@@ -124,8 +124,8 @@ T number(void* addr) noexcept {
 }
 
 // DTZ tables don't store valid scores for moves that reset the rule50 counter
-// like captures and pawn moves but we can easily recover the correct dtz of the
-// previous move if we know the position's WDL score.
+// like captures and pawn moves but can easily recover the correct dtz of the
+// previous move if know the position's WDL score.
 int dtz_before_zeroing(WDLScore wdl) noexcept {
     return wdl == WDLWin         ? +1
          : wdl == WDLCursedWin   ? +101
@@ -538,14 +538,14 @@ int decompress_pairs(PairsData* d, std::uint64_t idx) noexcept {
     if (d->flags & SingleValue)
         return d->minSymLen;
 
-    // First we need to locate the right block that stores the value at index "idx".
+    // First need to locate the right block that stores the value at index "idx".
     // Because each block n stores blockLength[n] + 1 values, the index i of the block
     // that contains the value at position idx is:
     //
     //                    for (i = -1, sum = 0; sum <= idx; ++i)
     //                        sum += blockLength[i + 1] + 1;
     //
-    // This can be slow, so we use SparseIndex[] populated with a set of SparseEntry that
+    // This can be slow, so use SparseIndex[] populated with a set of SparseEntry that
     // point to known indices into blockLength[]. Namely SparseIndex[k] is a SparseEntry
     // that stores the blockLength[] index and the offset within that block of the value
     // with index I(k), where:
@@ -555,21 +555,21 @@ int decompress_pairs(PairsData* d, std::uint64_t idx) noexcept {
     // First step is to get the 'k' of the I(k) nearest to our idx, using definition (1)
     auto k = std::uint32_t(idx / d->span);
 
-    // Then we read the corresponding SparseIndex[] entry
+    // Then read the corresponding SparseIndex[] entry
     auto block  = number<std::uint32_t, true>(&d->sparseIndex[k].block);
     int  offset = number<std::uint16_t, true>(&d->sparseIndex[k].offset);
 
-    // Now compute the difference idx - I(k). From the definition of k, we know that
+    // Now compute the difference idx - I(k). From the definition of k,
     //
     //       idx = k * d->span + idx % d->span    (2)
     //
-    // So from (1) and (2) we can compute idx - I(K):
+    // So from (1) and (2) can compute idx - I(K):
     int diff = idx % d->span - d->span / 2;
 
     // Sum the above to offset to find the offset corresponding to our idx
     offset += diff;
 
-    // Move to the previous/next block, until we reach the correct block that contains idx,
+    // Move to the previous/next block, until reach the correct block that contains idx,
     // that is when 0 <= offset <= d->blockLength[block]
     while (offset < 0)
         offset += d->blockLength[--block] + 1;
@@ -577,11 +577,11 @@ int decompress_pairs(PairsData* d, std::uint64_t idx) noexcept {
     while (offset > d->blockLength[block])
         offset -= d->blockLength[block++] + 1;
 
-    // Finally, we find the start address of our block of canonical Huffman symbols
+    // Finally, find the start address of our block of canonical Huffman symbols
     auto* ptr = (std::uint32_t*) (d->data + (std::uint64_t(block) * d->blockSize));
 
     // Read the first 64 bits in our block, this is a (truncated) sequence of
-    // unknown number of symbols of unknown length but we know the first one
+    // unknown number of symbols of unknown length but the first one
     // is at the beginning of this 64-bit sequence.
     auto buf64     = number<std::uint64_t, false>(ptr);
     int  buf64Size = 64;
@@ -593,21 +593,20 @@ int decompress_pairs(PairsData* d, std::uint64_t idx) noexcept {
         int len = 0;  // This is the symbol length - d->min_sym_len
 
         // Now get the symbol length. For any symbol s64 of length l right-padded
-        // to 64 bits we know that d->base64[l-1] >= s64 >= d->base64[l] so we
+        // to 64 bits that d->base64[l-1] >= s64 >= d->base64[l] so we
         // can find the symbol length iterating through base64[].
         while (buf64 < d->base64[len])
             ++len;
 
         // All the symbols of a given length are consecutive integers (numerical
-        // sequence property), so we can compute the offset of our symbol of
+        // sequence property), so can compute the offset of our symbol of
         // length len, stored at the beginning of buf64.
         sym = Sym((buf64 - d->base64[len]) >> (64 - len - d->minSymLen));
 
         // Now add the value of the lowest symbol of length len to get our symbol
         sym += number<Sym, true>(&d->lowestSym[len]);
 
-        // If our offset is within the number of values represented by symbol sym,
-        // we are done.
+        // If our offset is within the number of values represented by symbol sym, are done.
         if (offset < d->symLen[sym] + 1)
             break;
 
@@ -624,18 +623,18 @@ int decompress_pairs(PairsData* d, std::uint64_t idx) noexcept {
         }
     }
 
-    // Now we have our symbol that expands into d->symLen[sym] + 1 symbols.
-    // We binary-search for our value recursively expanding into the left and
-    // right child symbols until we reach a leaf node where symLen[sym] + 1 == 1
-    // that will store the value we need.
+    // Now have our symbol that expands into d->symLen[sym] + 1 symbols.
+    // Binary-search for our value recursively expanding into the left and
+    // right child symbols until reach a leaf node where symLen[sym] + 1 == 1
+    // that will store the value need.
     while (d->symLen[sym])
     {
         Sym lSym = d->btree[sym].get<LR::Left>();
 
         // If a symbol contains 36 sub-symbols (d->symLen[sym] + 1 = 36) and
         // expands in a pair (d->symLen[lSym] = 23, d->symLen[rSym] = 11), then
-        // we know that, for instance, the tenth value (offset = 10) will be on
-        // the left side because in Recursive Pairing child symbols are adjacent.
+        // for instance, the tenth value (offset = 10) will be on the left side
+        // because in Recursive Pairing child symbols are adjacent.
         if (offset < d->symLen[lSym] + 1)
             sym = lSym;
         else
@@ -677,7 +676,7 @@ int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdl) noexcept {
                                : map[idx[WDLMap[wdl + 2]] + value];
 
     // DTZ tables store distance to zero in number of moves or plies. We
-    // want to return plies, so we have to convert to plies when needed.
+    // want to return plies, so have to convert to plies when needed.
     if ((wdl == WDLWin && !(flags & WinPlies)) || (wdl == WDLLoss && !(flags & LossPlies))
         || wdl == WDLCursedWin || wdl == WDLBlessedLoss)
         value *= 2;
@@ -716,13 +715,13 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
     // A given TB entry like KRK has associated two material keys: KRvk and Kvkr.
     // If both sides have the same pieces keys are equal. In this case TB tables
     // only stores the 'white to move' case, so if the position to lookup has black
-    // to move, we need to switch the color and flip the squares before to lookup.
+    // to move, need to switch the color and flip the squares before to lookup.
     bool symmetricBlackToMove =
       entry->key[WHITE] == entry->key[BLACK] && pos.side_to_move() == BLACK;
 
     // TB files are calculated for white as the stronger side. For instance, we
     // have KRvK, not KvKR. A position where the stronger side is white will have
-    // its material key == entry->key[WHITE], otherwise we have to switch the color
+    // its material key == entry->key[WHITE], otherwise have to switch the color
     // and flip the squares before to lookup.
     bool blackStronger = pos.material_key() != entry->key[WHITE];
 
@@ -737,7 +736,7 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
     {
 
         // In all the 4 tables, pawns are at the beginning of the piece sequence and
-        // their color is the reference one. So we just pick the first one.
+        // their color is the reference one. So just pick the first one.
         auto pc = Piece(entry->get(0, 0)->pieces[0] ^ flipColor);
         assert(type_of(pc) == PAWN);
 
@@ -759,7 +758,7 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
     if (!check_dtz_stm(entry, stm, tbFile))
         return *result = CHANGE_STM, Ret();
 
-    // Now we are ready to get all the position pieces (but the lead pawns) and
+    // Now ready to get all the position pieces (but the lead pawns) and
     // directly map them to the correct color and square.
     b = pos.pieces() ^ leadPawns;
     do
@@ -773,7 +772,7 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
 
     PairsData* data = entry->get(stm, tbFile);
 
-    // Then we reorder the pieces to have the same sequence as the one stored
+    // Then reorder the pieces to have the same sequence as the one stored
     // in pieces[i]: the sequence that ensures the best compression.
     for (int i = leadPawnsCnt; i < size - 1; ++i)
         for (int j = i + 1; j < size; ++j)
@@ -784,7 +783,7 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
                 break;
             }
 
-    // Now we map again the squares so that the square of the lead piece is in
+    // Now map again the squares so that the square of the lead piece is in
     // the triangle A1-D1-D4.
     if (file_of(squares[0]) > FILE_D)
         for (int i = 0; i < size; ++i)
@@ -801,10 +800,10 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
         for (int i = 1; i < leadPawnsCnt; ++i)
             idx += Binomial[i][MapPawns[squares[i]]];
 
-        goto encode_remaining;  // With pawns we have finished special treatments
+        goto encode_remaining;  // With pawns have finished special treatments
     }
 
-    // In positions without pawns, we further flip the squares to ensure leading
+    // In positions without pawns, further flip the squares to ensure leading
     // piece is below RANK_5.
     if (rank_of(squares[0]) > RANK_4)
         for (int i = 0; i < size; ++i)
@@ -825,7 +824,7 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
 
     // Encode the leading group.
     //
-    // Suppose we have KRvK. Let's say the pieces are on square numbers wK, wR
+    // Suppose have KRvK. Let's say the pieces are on square numbers wK, wR
     // and bK (each 0...63). The simplest way to map this position to an index
     // is like this:
     //
@@ -837,19 +836,18 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
     // adjacent kings, etc.).
     // Usually the first step is to take the wK and bK together. There are just
     // 462 ways legal and not-mirrored ways to place the wK and bK on the board.
-    // Once we have placed the wK and bK, there are 62 squares left for the wR
+    // Once have placed the wK and bK, there are 62 squares left for the wR
     // Mapping its square from 0..63 to available squares 0..61 can be done like:
     //
     //   wR -= (wR > wK) + (wR > bK);
     //
-    // In words: if wR "comes later" than wK, we deduct 1, and the same if wR
-    // "comes later" than bK. In case of two same pieces like KRRvK we want to
-    // place the two Rs "together". If we have 62 squares left, we can place two
-    // Rs "together" in 62 * 61 / 2 ways (we divide by 2 because rooks can be
+    // In words: if wR "comes later" than wK, deduct 1, and the same if wR
+    // "comes later" than bK. In case of two same pieces like KRRvK want to
+    // place the two Rs "together". If have 62 squares left, can place two
+    // Rs "together" in 62 * 61 / 2 ways (divide by 2 because rooks can be
     // swapped and still get the same position.)
     //
-    // In case we have at least 3 unique pieces (including kings) we encode them
-    // together.
+    // In case have at least 3 unique pieces (including kings) encode them together.
     if (entry->hasUniquePieces)
     {
         int adjust1 = (squares[1] > squares[0]);
@@ -880,7 +878,7 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
                 + (rank_of(squares[1]) - adjust1) * 6 + (rank_of(squares[2]) - adjust2);
     }
     else
-        // We don't have at least 3 unique pieces, like in KRRvKBB, just map
+        // Don't have at least 3 unique pieces, like in KRRvKBB, just map
         // the kings.
         idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
 
@@ -911,7 +909,7 @@ encode_remaining:
         groupSq += data->groupLen[next];
     }
 
-    // Now that we have the index, decompress the pair and get the score
+    // Now that have the index, decompress the pair and get the score
     return map_score(entry, tbFile, decompress_pairs(data, idx), wdl);
 }
 
@@ -985,7 +983,7 @@ void set_groups(T& entry, PairsData* d, int order[], File f) noexcept {
 // symbol until reaching the leaves that represent the symbol value.
 std::uint8_t set_symlen(PairsData* d, Sym s, std::vector<bool>& visited) noexcept {
 
-    visited[s] = true;  // We can set it now because tree is acyclic
+    visited[s] = true;  // Can set it now because tree is acyclic
 
     Sym rSym = d->btree[s].get<LR::Right>();
 
@@ -1011,7 +1009,7 @@ std::uint8_t* set_sizes(PairsData* d, std::uint8_t* data) noexcept {
     {
         d->blockCount = d->blockLengthSize = 0;
         d->span = d->sparseIndexSize = 0;        // Broken MSVC zero-init
-        d->minSymLen                 = *data++;  // Here we store the single value
+        d->minSymLen                 = *data++;  // Here store the single value
         return data;
     }
 
@@ -1038,11 +1036,11 @@ std::uint8_t* set_sizes(PairsData* d, std::uint8_t* data) noexcept {
     // The canonical code is ordered such that longer symbols (in terms of
     // the number of bits of their Huffman code) have a lower numeric value,
     // so that d->lowestSym[i] >= d->lowestSym[i+1] (when read as LittleEndian).
-    // Starting from this we compute a base64[] table indexed by symbol length
+    // Starting from this compute a base64[] table indexed by symbol length
     // and containing 64 bit values so that d->base64[i] >= d->base64[i+1].
 
-    // Implementation note: we first cast the unsigned size_t "base64.size()"
-    // to a signed int "base64_size" variable and then we are able to subtract 2,
+    // Implementation note: first cast the unsigned size_t "base64.size()"
+    // to a signed int "base64_size" variable and then are able to subtract 2,
     // avoiding unsigned overflow warnings.
 
     auto base64Size = int(d->base64.size());
@@ -1056,7 +1054,7 @@ std::uint8_t* set_sizes(PairsData* d, std::uint8_t* data) noexcept {
     }
 
     // Now left-shift by an amount so that d->base64[i] gets shifted 1 bit more
-    // than d->base64[i+1] and given the above assert condition, we ensure that
+    // than d->base64[i+1] and given the above assert condition, ensure that
     // d->base64[i] >= d->base64[i+1]. Moreover for any symbol s64 of length i
     // and right-padded to 64 bits holds d->base64[i-1] >= s64 >= d->base64[i].
     for (int i = 0; i < base64Size; ++i)
@@ -1093,7 +1091,7 @@ std::uint8_t* set_dtz_map(TBTable<DTZ>& entry, std::uint8_t* data, File maxFile)
         {
             if (flags & Wide)
             {
-                data += std::uintptr_t(data) & 1;  // Word alignment, we may have a mixed table
+                data += std::uintptr_t(data) & 1;  // Word alignment, may have a mixed table
                 for (auto& idx : entry.get(0, f)->map_idx)
                 {
                     // Sequence like 3,x,x,x,1,x,0,2,x,x
@@ -1289,11 +1287,11 @@ WDLScore search(Position& pos, ProbeState* result) noexcept {
         }
     }
 
-    // In case we have already searched all the legal moves we don't have to probe
+    // In case have already searched all the legal moves don't have to probe
     // the TB because the stored score could be wrong. For instance TB tables
     // do not contain information on position with ep rights, so in this case
     // the result of probe_wdl_table is wrong. Also in case of only capture
-    // moves, for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7, we have to
+    // moves, for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7, have to
     // return with ZEROING_BEST_MOVE set.
     bool movesNoMore = (moveCount != 0 && moveCount == legalCount);
 
@@ -1403,7 +1401,7 @@ void init(const std::string& paths) noexcept {
         for (File f = FILE_A; f <= FILE_D; ++f)
         {
             // Restart the index at every file because TB table is split
-            // by file, so we can reuse the same index for different files.
+            // by file, so can reuse the same index for different files.
             int idx = 0;
 
             // Sum all possible combinations for a given file, starting with
@@ -1536,7 +1534,7 @@ int probe_dtz(Position& pos, ProbeState* result) noexcept {
     if (*result != CHANGE_STM)
         return (dtz + 100 * (wdl == WDLBlessedLoss || wdl == WDLCursedWin)) * sign_of(wdl);
 
-    // DTZ stores results for the other side, so we need to do a 1-ply search and
+    // DTZ stores results for the other side, so need to do a 1-ply search and
     // find the winning move that minimizes DTZ.
     StateInfo st;
     ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
@@ -1549,10 +1547,10 @@ int probe_dtz(Position& pos, ProbeState* result) noexcept {
 
         pos.do_move(m, st);
 
-        // For zeroing moves we want the dtz of the move _before_ doing it,
-        // otherwise we will get the dtz of the next move sequence. Search the
+        // For zeroing moves want the dtz of the move _before_ doing it,
+        // otherwise will get the dtz of the next move sequence. Search the
         // position after the move to get the score sign (because even in a
-        // winning position we could make a losing capture or go for a draw).
+        // winning position could make a losing capture or go for a draw).
         dtz = zeroing ? -dtz_before_zeroing(search<false>(pos, result)) : -probe_dtz(pos, result);
 
         // If the move mates, force minDTZ to 1
@@ -1564,7 +1562,7 @@ int probe_dtz(Position& pos, ProbeState* result) noexcept {
         if (!zeroing)
             dtz += sign_of(dtz);
 
-        // Skip the draws and if we are winning only pick positive dtz
+        // Skip the draws and if winning only pick positive dtz
         if (minDTZ > dtz && sign_of(dtz) == sign_of(wdl))
             minDTZ = dtz;
 
@@ -1574,7 +1572,7 @@ int probe_dtz(Position& pos, ProbeState* result) noexcept {
             return 0;
     }
 
-    // When there are no legal moves, the position is mate: we return -1
+    // When there are no legal moves, the position is mate: return -1
     return minDTZ == 0xFFFF ? -1 : minDTZ;
 }
 
@@ -1609,7 +1607,7 @@ bool root_probe(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noe
         else if (pos.is_draw(1))
         {
             // In case a root move leads to a draw by repetition or 50-move rule,
-            // we set dtz to zero. Note: since we are only 1 ply from the root,
+            // set dtz to zero. Note: since are only 1 ply from the root,
             // this must be a true 3-fold repetition inside the game history.
             dtz = 0;
         }
@@ -1724,7 +1722,7 @@ rank_root_moves(Position& pos, Search::RootMoves& rootMoves, const OptionsMap& o
                          [](const auto& rm1, const auto& rm2) noexcept -> bool {
                              return rm1.tbRank > rm2.tbRank;
                          });
-        // Probe during search only if DTZ is not available and we are winning
+        // Probe during search only if DTZ is not available and winning
         if (dtzAvailable || rootMoves[0].tbValue <= VALUE_DRAW)
             config.cardinality = 0;
     }

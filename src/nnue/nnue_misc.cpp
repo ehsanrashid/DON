@@ -121,7 +121,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
             format_cp_compact(value, pos, &board[y + 2][x + 2]);
     };
 
-    // We estimate the value of each piece by doing a differential evaluation from
+    // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
     Value base = networks.big.evaluate(pos, &caches.big);
     base       = pos.side_to_move() == WHITE ? +base : -base;

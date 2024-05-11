@@ -54,7 +54,7 @@ void TTEntry::save(
 
 std::uint8_t TTEntry::relative_age(std::uint8_t gen) const noexcept {
     // Due to our packed storage format for generation and its cyclic
-    // nature we add GENERATION_CYCLE (256 is the modulus, plus what
+    // nature add GENERATION_CYCLE (256 is the modulus, plus what
     // is needed to keep the unrelated lowest n bits from affecting
     // the result) to calculate the entry age correctly even after
     // generation8 overflows into the next cycle.

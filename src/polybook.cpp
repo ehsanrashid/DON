@@ -342,8 +342,8 @@ Move fix_promotion(Move move) noexcept {
 // bit 12-14: promotion piece (from KNIGHT == 1 to QUEEN == 4)
 //
 // Castling moves follow "king captures rook" representation. So in case book
-// move is a promotion we have to convert to our representation, in all the
-// other cases we can directly compare with a Move after having masked out
+// move is a promotion have to convert the representation, in all the
+// other cases can directly compare with a Move after having masked out
 // the special Move's flags (bit 14-15) that are not supported by PolyGlot.
 //
 // DON:

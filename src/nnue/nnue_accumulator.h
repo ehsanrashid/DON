@@ -63,8 +63,8 @@ struct AccumulatorCaches {
             Bitboard       colorBB[COLOR_NB];
             Bitboard       typeBB[PIECE_TYPE_NB];
 
-            // To initialize a refresh entry, we set all its bitboards empty,
-            // so we put the biases in the accumulation, without any weights on top
+            // To initialize a refresh entry, set all its bitboards empty,
+            // so put the biases in the accumulation, without any weights on top
             void clear(const BiasType* biases) noexcept {
 
                 std::memcpy(accumulation, biases, sizeof(accumulation));

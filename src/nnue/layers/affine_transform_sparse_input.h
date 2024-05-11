@@ -88,7 +88,7 @@ void find_nnz(const std::int32_t* input, std::uint16_t* out, IndexType& count_ou
         #define vec128_add(a, b) vaddq_u16(a, b)
     #endif
     constexpr IndexType InputSimdWidth = sizeof(vec_t) / sizeof(std::int32_t);
-    // Inputs are processed InputSimdWidth at a time and outputs are processed 8 at a time so we process in chunks of max(InputSimdWidth, 8)
+    // Inputs are processed InputSimdWidth at a time and outputs are processed 8 at a time so process in chunks of max(InputSimdWidth, 8)
     constexpr IndexType ChunkSize       = std::max<IndexType>(InputSimdWidth, 8);
     constexpr IndexType NumChunks       = InputDimensions / ChunkSize;
     constexpr IndexType InputsPerChunk  = ChunkSize / InputSimdWidth;

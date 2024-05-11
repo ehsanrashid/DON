@@ -182,7 +182,7 @@ Value Network<Arch, Transformer>::evaluate(const Position&                      
                                            AccumulatorCaches::Cache<FTDimensions>* cache,
                                            bool                                    adjusted,
                                            int* complexity) const noexcept {
-    // We manually align the arrays on the stack because with gcc < 9.3
+    // Manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
 
     constexpr std::uint64_t Alignment = CacheLineSize;
@@ -253,7 +253,7 @@ void Network<Arch, Transformer>::hint_common_access(
 template<typename Arch, typename Transformer>
 NnueEvalTrace Network<Arch, Transformer>::trace_evaluate(
   const Position& pos, AccumulatorCaches::Cache<FTDimensions>* cache) const noexcept {
-    // We manually align the arrays on the stack because with gcc < 9.3
+    // Manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
     constexpr std::uint64_t Alignment = CacheLineSize;
 

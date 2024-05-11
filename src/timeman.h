@@ -36,6 +36,7 @@ struct Limits;
 // the maximum available time, the game move number, and other parameters.
 class TimeManagement final {
    public:
+    TimeManagement() noexcept;
     void init(Search::Limits& limits, const Position& pos, const OptionsMap& options) noexcept;
 
     TimePoint optimum() const noexcept;
@@ -44,17 +45,17 @@ class TimeManagement final {
     template<typename Func>
     TimePoint elapsed(Func nodes) const noexcept;
 
-    void clear_nodes_time() noexcept;
-    void advance_nodes_time(std::int64_t diffNodes) noexcept;
+    void clear() noexcept;
+    void advance(std::int64_t diffNodes) noexcept;
 
-    bool useNodesTime = false;  // True if we are in 'Nodes as Time' mode
+    bool useNodesTime;
 
    private:
     TimePoint startTime;
     TimePoint optimumTime;
     TimePoint maximumTime;
 
-    std::int64_t totalNodes = -1LL;  // When in 'Nodes as Time' mode
+    std::int64_t totalNodes;
 };
 
 inline TimePoint TimeManagement::optimum() const noexcept { return optimumTime; }

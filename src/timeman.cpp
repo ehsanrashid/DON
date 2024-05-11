@@ -27,25 +27,28 @@
 
 namespace DON {
 
-// When in 'Nodes as Time' mode
-void TimeManagement::clear_nodes_time() noexcept {
-    assert(useNodesTime);
-    totalNodes = -1LL;
+TimeManagement::TimeManagement() noexcept { clear(); }
+
+void TimeManagement::clear() noexcept {
+    optimumTime  = 0;
+    maximumTime  = 0;
+    useNodesTime = false;
+    totalNodes   = -1LL;
 }
 // When in 'Nodes as Time' mode
-void TimeManagement::advance_nodes_time(std::int64_t diffNodes) noexcept {
+void TimeManagement::advance(std::int64_t diffNodes) noexcept {
     assert(useNodesTime);
     totalNodes = std::max(totalNodes - diffNodes, 0LL);
 }
 
 // Called at the beginning of the search and calculates
-// the bounds of time allowed for the current game ply. We currently support:
+// the bounds of time allowed for the current game ply. Currently support:
 //      1) x basetime (+ z increment)
 //      2) x moves in y seconds (+ z increment)
 void TimeManagement::init(Search::Limits&   limits,
                           const Position&   pos,
                           const OptionsMap& options) noexcept {
-    // If we have no time, no need to fully initialize TM.
+    // If have no time, no need to fully initialize TM.
     // startTime is used by movetime and useNodesTime is used in elapsed calls.
     startTime           = limits.startTime;
     TimePoint nodesTime = options["NodesTime"];
@@ -53,17 +56,15 @@ void TimeManagement::init(Search::Limits&   limits,
 
     Color stm         = pos.side_to_move();
     auto& [time, inc] = limits.clock[stm];
-    if (time <= 0)
+    if (time <= 0 && !useNodesTime)
     {
-        optimumTime = 0;
-        maximumTime = 0;
-        //totalNodes  = 0;
+        clear();
         return;
     }
 
-    TimePoint moveOverhead = options["MoveOverhead"];
+    TimePoint moveOverhead = options["Move Overhead"];
 
-    // If we have to play in 'Nodes as Time' mode, then convert from time to nodes,
+    // If have to play in 'Nodes as Time' mode, then convert from time to nodes,
     // and use resulting values in time management formulas.
     // WARNING: to avoid time losses, the given nodesTime (nodes per millisecond)
     // must be much lower than the real engine speed.
@@ -97,7 +98,7 @@ void TimeManagement::init(Search::Limits&   limits,
 
     assert(mtg != 0);
 
-    // Make sure remainingTime is > 0 since we use it as a divisor
+    // Make sure remainingTime is > 0 since use it as a divisor
     TimePoint remainingTime = std::max(time + (-1 + mtg) * inc - (+2 + mtg) * moveOverhead, 1LL);
 
     // optimumScale is a percentage of available time to use for the current move.

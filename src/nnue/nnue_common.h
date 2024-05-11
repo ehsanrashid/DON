@@ -84,7 +84,7 @@ constexpr IntType ceil_to_multiple(IntType n, IntType base) noexcept {
 }
 
 // Utility to read an integer (signed or unsigned, any size)
-// from a istream in little-endian order. We swap the byte order after the read
+// from a istream in little-endian order. Swap the byte order after the read
 // if necessary to return a result with the byte ordering of the compiling machine.
 template<typename IntType>
 inline IntType read_little_endian(std::istream& istream) noexcept {
@@ -108,7 +108,7 @@ inline IntType read_little_endian(std::istream& istream) noexcept {
 }
 
 // Utility to write an integer (signed or unsigned, any size)
-// to a ostream in little-endian order. We swap the byte order before the write
+// to a ostream in little-endian order. Swap the byte order before the write
 // if necessary to always write in little-endian order,
 // independently of the byte ordering of the compiling machine.
 template<typename IntType>

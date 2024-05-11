@@ -117,7 +117,7 @@ class Tune final {
     };
 
     // Our facility to fill the container, each Entry corresponds to a parameter
-    // to tune. We use variadic templates to deal with an unspecified number of
+    // to tune. Use variadic templates to deal with an unspecified number of
     // entries, each one of a possible different type.
     static std::string next(std::string& names, bool pop = true) noexcept;
 
@@ -166,7 +166,7 @@ class Tune final {
     static OptionsMap* Options;
 };
 
-// Some macro magic :-) we define a dummy int variable that the compiler initializes calling Tune::add()
+// Some macro magic :-) define a dummy int variable that the compiler initializes calling Tune::add()
 #if !defined(STRINGIFY)
     #define STRINGIFY2(x) #x
     #define STRINGIFY(x) STRINGIFY2(x)

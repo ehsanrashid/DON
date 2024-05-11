@@ -40,7 +40,7 @@ using BiasType       = std::int16_t;
 using WeightType     = std::int16_t;
 using PSQTWeightType = std::int32_t;
 
-// If vector instructions are enabled, we update and refresh the
+// If vector instructions are enabled, update and refresh the
 // accumulator tile by tile such that each tile fits in the CPU's
 // vector registers.
 #define VECTOR
@@ -157,8 +157,8 @@ inline vec_t vec_msb_pack_16(vec_t a, vec_t b) noexcept {
 
     // Compute optimal SIMD register count for feature transformer accumulation.
 
-    // We use __m* types as template arguments, which causes GCC to emit warnings
-    // about losing some attribute information. This is irrelevant to us as we
+    // Use __m* types as template arguments, which causes GCC to emit warnings
+    // about losing some attribute information. This is irrelevant to us as
     // only take their size, so the following pragma are harmless.
     #if defined(__GNUC__)
         #pragma GCC diagnostic push
@@ -388,7 +388,7 @@ class FeatureTransformer final {
     template<Color Perspective>
     [[nodiscard]] static std::pair<StateInfo*, StateInfo*>
     try_find_computed_accumulator(const Position& pos) noexcept {
-        // Look for a usable accumulator of an earlier position. We keep track
+        // Look for a usable accumulator of an earlier position. Keep track
         // of the estimated gain in terms of features to be added/subtracted.
         StateInfo* st        = pos.state();
         StateInfo* nextState = nullptr;
@@ -766,7 +766,7 @@ class FeatureTransformer final {
 #endif
 
         // The accumulator of the refresh entry has been updated.
-        // Now copy its content to the actual accumulator we were refreshing
+        // Now copy its content to the actual accumulator were refreshing
 
         std::memcpy(accumulator.accumulation[Perspective], entry.accumulation,
                     sizeof(BiasType) * HalfDimensions);
@@ -788,7 +788,7 @@ class FeatureTransformer final {
         // Works like update_accumulator, but performs less work.
         // Updates ONLY the accumulator for pos.
 
-        // Look for a usable accumulator of an earlier position. We keep track
+        // Look for a usable accumulator of an earlier position. Keep track
         // of the estimated gain in terms of features to be added/subtracted.
         // Fast early exit.
         if ((pos.state()->*accPtr).computed[Perspective])
@@ -818,7 +818,7 @@ class FeatureTransformer final {
                 return;
 
             // Now update the accumulators listed in toUpdateStates[], where the last element is a sentinel.
-            // Currently, we update 2 accumulators.
+            // Currently, update 2 accumulators.
             //     1. for the current position
             //     2. the next accumulator after the computed one
             // The heuristic may change in the future.

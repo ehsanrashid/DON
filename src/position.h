@@ -37,7 +37,7 @@ namespace DON {
 class TranspositionTable;
 
 // StateInfo struct stores information needed to restore a Position object to
-// its previous state when we retract a move. Whenever a move is made on the
+// its previous state when retract a move. Whenever a move is made on the
 // board (by calling Position::do_move), a StateInfo object must be passed.
 struct StateInfo final {
 

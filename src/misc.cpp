@@ -28,7 +28,7 @@
     #include <windows.h>
 // The needed Windows API for processor groups could be missed from old Windows
 // versions, so instead of calling them directly (forcing the linker to resolve
-// the calls at compile time), try to load them at runtime. To do this we need
+// the calls at compile time), try to load them at runtime. To do this need
 // first to define the corresponding function pointers.
 extern "C" {
 using Fun1_t = bool (*)(LOGICAL_PROCESSOR_RELATIONSHIP,
@@ -151,13 +151,13 @@ class Logger final {
 }  // namespace
 
 // Returns the full name of the current DON version.
-// For local dev compiles we try to append the commit sha and commit date
+// For local dev compiles try to append the commit sha and commit date
 // from git if that fails only the local compilation date is set and "nogit" is specified:
 // DON dev-YYYYMMDD-SHA
 // or
 // DON dev-YYYYMMDD-nogit
 //
-// For releases (non-dev builds) we only include the version number:
+// For releases (non-dev builds) only include the version number:
 // DON version
 std::string engine_info(bool uci) noexcept {
     std::ostringstream oss;
@@ -193,7 +193,7 @@ std::string engine_info(bool uci) noexcept {
     return oss.str();
 }
 
-// Returns a string trying to describe the compiler we use
+// Returns a string trying to describe the compiler used
 std::string compiler_info() noexcept {
 
 #define MAKE_VERSION_STRING(major, minor, patch) \
@@ -551,7 +551,7 @@ void* aligned_large_pages_alloc_windows([[maybe_unused]] std::size_t allocSize) 
 
     HANDLE hProcessToken{};
 
-    // We need SeLockMemoryPrivilege, so try to enable it for the process
+    // Need SeLockMemoryPrivilege, so try to enable it for the process
     if (!openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
                           &hProcessToken))
         return nullptr;
@@ -569,7 +569,7 @@ void* aligned_large_pages_alloc_windows([[maybe_unused]] std::size_t allocSize) 
         tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
         // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
-        // we still need to query GetLastError() to ensure that the privileges were actually obtained.
+        // still need to query GetLastError() to ensure that the privileges were actually obtained.
         if (adjustTokenPrivileges(hProcessToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), &prevTp,
                                   &prevTpLen)
             && GetLastError() == ERROR_SUCCESS)
@@ -657,15 +657,15 @@ std::int16_t best_node(std::uint16_t idx) noexcept {
 
     DWORD returnLength;
     // First call to GetLogicalProcessorInformationEx() to get returnLength.
-    // We expect the call to fail due to null buffer.
+    // expect the call to fail due to null buffer.
     if (getLogicalProcessorInformationEx(RelationAll, nullptr, &returnLength))
         return -1;
 
-    // Once we know returnLength, allocate the buffer
+    // Once know returnLength, allocate the buffer
     SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *buffer, *ptr;
     buffer = ptr = static_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(malloc(returnLength));
 
-    // Second call to GetLogicalProcessorInformationEx(), now we expect to succeed
+    // Second call to GetLogicalProcessorInformationEx(), now expect to succeed
     if (!getLogicalProcessorInformationEx(RelationAll, buffer, &returnLength))
     {
         free(buffer);
@@ -705,12 +705,12 @@ std::int16_t best_node(std::uint16_t idx) noexcept {
         for (std::uint16_t c = 0; c < cores / nodes; ++c)
             groups.push_back(n);
 
-    // In case a core has more than one logical processor (we assume 2) and we
-    // still have threads to allocate, spread them evenly across available nodes.
+    // In case a core has more than one logical processor (assume 2) and still
+    // have threads to allocate, spread them evenly across available nodes.
     for (std::uint16_t t = 0; t < threads - cores; ++t)
         groups.push_back(t % nodes);
 
-    // If we still have more threads than the total number of logical processors
+    // If still have more threads than the total number of logical processors
     // then return -1 and let the OS to decide what to do.
     return idx < groups.size() ? groups[idx] : -1;
 }
@@ -750,8 +750,8 @@ void bind_thread([[maybe_unused]] std::uint16_t idx) noexcept {
     }
     else
     {
-        // If a numa node has more than one processor group, we assume they are
-        // sized equal and we spread threads evenly across the groups.
+        // If a numa node has more than one processor group, assume they are
+        // sized equal and spread threads evenly across the groups.
         USHORT elements = getMaximumProcessorGroupCount();
         auto   affinity = static_cast<GROUP_AFFINITY*>(malloc(elements * sizeof(GROUP_AFFINITY)));
 

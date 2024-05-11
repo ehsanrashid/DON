@@ -52,7 +52,7 @@ constexpr std::uint16_t correction_index(Key pawnKey) noexcept {
 }
 
 // StatsEntry stores the stat table value. It is usually a number but could
-// be a move or even a nested history. We use a class instead of a naked value
+// be a move or even a nested history. Use a class instead of a naked value
 // to directly call history update operator<<() on the entry so to use stats
 // tables at caller sites as simple multi-dim arrays.
 template<typename T, std::int32_t D>
@@ -78,7 +78,7 @@ class StatsEntry final {
 
 // Stats is a generic N-dimensional array used to store various statistics.
 // The first template parameter T is the base type of the array, and the second
-// template parameter D limits the range of updates in [-D, D] when we update
+// template parameter D limits the range of updates in [-D, D] when update
 // values with the << operator, while the last parameters (Size and Sizes)
 // encode the dimensions of the array.
 template<typename T, std::int32_t D, std::uint32_t Size, std::uint32_t... Sizes>

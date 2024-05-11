@@ -164,12 +164,12 @@ UCI::UCI(int argc, const char** argv) noexcept :
     options["Clear Hash"] << Option([this](const Option&) { engine.clear(); });
     options["Retain Hash"] << Option(false);
     options["HashFile"] << Option("hash.dat");
-    options["SaveHash"] << Option([this](const Option&) {});
-    options["LoadHash"] << Option([this](const Option&) {});
+    options["Save Hash"] << Option([this](const Option&) {});
+    options["Load Hash"] << Option([this](const Option&) {});
     options["Ponder"] << Option(false);
     options["MultiPV"] << Option(1, 1, std::numeric_limits<std::uint8_t>::max());
     options["Skill Level"] << Option(Search::Skill::MaxLevel, 0, Search::Skill::MaxLevel);
-    options["MoveOverhead"] << Option(10, 0, 5000);
+    options["Move Overhead"] << Option(10, 0, 5000);
     options["NodesTime"] << Option(0, 0, 10000);
     options["DrawMoveCount"] << Option(Position::DrawMoveCount, 5, 50,
                                        [](const Option& o) { Position::DrawMoveCount = o; });
@@ -181,8 +181,8 @@ UCI::UCI(int argc, const char** argv) noexcept :
     options["UCI_ShowWDL"] << Option(false);
     options["OwnBook"] << Option(false);
     options["BookFile"] << Option("book.bin", [this](const Option& o) { engine.init_book(o); });
-    options["BookPickBest"] << Option(true);
     options["BookDepth"] << Option(100, 1, MAX_MOVES);
+    options["BookPickBest"] << Option(true);
     options["SyzygyPath"] << Option("<empty>", [](const Option& o) { Tablebases::init(o); });
     options["SyzygyProbeLimit"] << Option(7, 0, 7);
     options["SyzygyProbeDepth"] << Option(1, 1, 100);

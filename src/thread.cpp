@@ -78,7 +78,7 @@ void Thread::wait_idle() noexcept {
 void Thread::idle_func() noexcept {
 
     // If OS already scheduled us on a different group than 0 then don't overwrite
-    // the choice, eventually we are one of many one-threaded processes running on
+    // the choice, eventually are one of many one-threaded processes running on
     // some Windows NUMA hardware, for instance in fishtest. To make it simple,
     // just check if running threads are below a threshold, in this case, all this
     // NUMA machinery is not needed.
@@ -202,13 +202,13 @@ Thread* ThreadPool::best_thread() const noexcept {
 
         if (bestThreadInProvenWin)
         {
-            // Make sure we pick the shortest mate / TB conversion
+            // Make sure pick the shortest mate / TB conversion
             if (newThreadInProvenWin && newThreadValue > bestThreadValue)
                 bestThread = th;
         }
         else if (bestThreadInProvenLoss)
         {
-            // Make sure we pick the shortest mated / TB conversion
+            // Make sure pick the shortest mated / TB conversion
             if (newThreadInProvenLoss && newThreadValue < bestThreadValue)
                 bestThread = th;
         }
@@ -217,7 +217,7 @@ Thread* ThreadPool::best_thread() const noexcept {
           || (newThreadValue > VALUE_TB_LOSS_IN_MAX_PLY
               && (newThreadMoveVote > bestThreadMoveVote
                   || (newThreadMoveVote == bestThreadMoveVote
-                      // Note that we make sure not to pick a thread with truncated-PV for better viewer experience.
+                      // Note that make sure not to pick a thread with truncated-PV for better viewer experience.
                       && (thread_voting_value(th) > thread_voting_value(bestThread)
                           || (thread_voting_value(th) == thread_voting_value(bestThread)
                               && newThreadPV.size() > bestThreadPV.size()))))))
@@ -275,14 +275,14 @@ void ThreadPool::start(Position&             pos,
 
     Tablebases::Config tbConfig = Tablebases::rank_root_moves(pos, rootMoves, options);
 
-    // After ownership transfer 'states' becomes empty, so if we stop the search
+    // After ownership transfer 'states' becomes empty, so if stop the search
     // and call 'go' again without setting a new position states.get() == nullptr.
     assert(states.get() || setupStates.get());
 
     if (states.get())
         setupStates = std::move(states);  // Ownership transfer, states is now empty
 
-    // We use Position::set() to set root position across threads. But there are some
+    // Use Position::set() to set root position across threads. But there are some
     // StateInfo fields (rule50, nullPly, capturedPiece, previous) that cannot be deduced
     // from a fen string, so set() clears them and they are set from setupStates->back() later.
     // The rootState is per thread, earlier states are shared since they are read-only.

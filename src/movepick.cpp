@@ -26,9 +26,9 @@
 
 namespace DON {
 
-// Constructors of the MovePicker class. As arguments, we pass information
+// Constructors of the MovePicker class. As arguments, pass information
 // to help it return the (presumably) good moves first, to decide which
-// moves to return (in the quiescence search, for instance, we only want to
+// moves to return (in the quiescence search, for instance, only want to
 // search captures, promotions, and some checks) and how important a good
 // move ordering is at the current node.
 
@@ -77,7 +77,7 @@ MovePicker::MovePicker(const Position&               p,
     stage = (pos.checkers() ? EVASION_TT : QSEARCH_TT) + !ttMove;
 }
 
-// Constructor for ProbCut: we generate captures with SEE greater
+// Constructor for ProbCut: generate captures with SEE greater
 // than or equal to the given threshold.
 MovePicker::MovePicker(const Position&               p,
                        Move                          ttm,

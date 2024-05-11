@@ -604,7 +604,7 @@ Bitboard Position::attacks_by(Color c, Bitboard target, Bitboard occupied) const
     {
         attacks = pawn_attacks_bb(
           c, pieces(c, PAWN) & ~(st->blockers[c] & pieces(PAWN) & attacks_bb<ROOK>(ksq, occupied)));
-        st->mobility[c] += MobilityWeight[PAWN] * popcount(attacks & pieces(~c));
+        st->mobility[c] += MobilityWeight[PAWN] * popcount(attacks & target);
     }
     else
     {
@@ -729,7 +729,7 @@ bool Position::pseudo_legal(Move m) const noexcept {
         // Handle the special case of a pawn move
         if (type_of(pc) == PAWN)
         {
-            // We have already handled promotion moves, so destination cannot be on the 8th/1st rank
+            // Already handled promotion moves, so destination cannot be on the 8th/1st rank
             if (PromotionRankBB & dst)
                 return false;
             // clang-format off
@@ -768,10 +768,10 @@ bool Position::pseudo_legal(Move m) const noexcept {
     }
 
     // Evasions generator already takes care to avoid some kind of illegal moves and legal() relies on this.
-    // We therefore have to take care that the same kind of moves are filtered out here.
+    // Therefore have to take care that the same kind of moves are filtered out here.
     if (checkers())
     {
-        // In case of king moves under check we have to remove the king so as to catch
+        // In case of king moves under check have to remove the king so as to catch
         // invalid moves like b1a1 when opposite queen is on c1.
         if (king_square(sideToMove) == org)
             return !(attackers_to(dst, pieces() ^ org) & pieces(~sideToMove));
@@ -810,9 +810,9 @@ bool Position::gives_check(Move m) const noexcept {
     case PROMOTION :
         return attacks_bb(m.promotion_type(), dst, pieces() ^ org) & king_square(~sideToMove);
 
-    // En-passant capture with check? We have already handled the case of direct
-    // checks and ordinary discovered check, so the only case we need to handle
-    // is the unusual case of a discovered check through the captured pawn.
+    // En-passant capture with check? Already handled the case of direct check
+    // and ordinary discovered check, so the only case need to handle is
+    // the unusual case of a discovered check through the captured pawn.
     case EN_PASSANT : {
         Bitboard occupied = (pieces() ^ org ^ make_square(file_of(dst), rank_of(org))) | dst;
         return (pieces(sideToMove, QUEEN, BISHOP)
@@ -1281,26 +1281,32 @@ Key Position::move_key(Move m) const noexcept {
 }
 
 // Tests if the SEE (Static Exchange Evaluation)
-// value of move is greater or equal to the given threshold.
+// value of the move is greater or equal to the given threshold.
 // An algorithm similar to alpha-beta pruning with a null window.
 bool Position::see_ge(Move m, int threshold) const noexcept {
     assert(m.is_ok());
 
-    // Only deal with normal and promotion moves, assume others pass a simple SEE
-    // Note that for now don't count promotions as having a higher SEE
-    // from the "material gain" of replacing the pawn with a promoted piece.
-    if (m.type_of() != NORMAL && m.type_of() != PROMOTION)
+    // Not deal with castling, can't win any material, nor can lose any.
+    if (m.type_of() == CASTLING)
         return threshold <= 0;
 
     Square org = m.org_sq(), dst = m.dst_sq();
-
     assert(color_of(piece_on(org)) == sideToMove);
 
-    int swap = PieceValue[piece_on(dst)] - threshold;
+    Square cap = m.type_of() != EN_PASSANT ? dst : dst - pawn_spush(sideToMove);
+
+    int swap;
+
+    swap = PieceValue[piece_on(cap)] - threshold;
+    // If promotion, get the promoted piece and lose the pawn
+    if (m.type_of() == PROMOTION)
+        swap += PieceValue[m.promotion_type()] - PieceValue[PAWN];
     if (swap < 0)
         return false;
 
-    swap = PieceValue[piece_on(org)] - swap;
+    swap = (m.type_of() != PROMOTION ? PieceValue[piece_on(org)]  //
+                                     : PieceValue[m.promotion_type()])
+         - swap;
     if (swap <= 0)
         return true;
 
@@ -1310,7 +1316,11 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     bool discovery[COLOR_NB]{true, true};
 
-    Bitboard occupied  = pieces() ^ org ^ dst;  // xoring to is important for pinned piece logic
+    // It doesn't matter if the destination square is occupied or not
+    // xoring to is important for pinned piece logic
+    Bitboard occupied = pieces() ^ org ^ dst;
+    if (m.type_of() == EN_PASSANT)
+        occupied ^= cap;
     Bitboard qB        = pieces(QUEEN, BISHOP) & occupied;
     Bitboard qR        = pieces(QUEEN, ROOK) & occupied;
     Bitboard attackers = attackers_to(dst, occupied) & occupied;
@@ -1419,7 +1429,6 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             if ((swap = VALUE_PAWN - swap) < res)
                 break;
             occupied ^= org = lsb(b);
-            //qB &= occupied;
             attackers |= qB & attacks_bb<BISHOP>(dst, occupied);
         }
         else if ((b = pieces(KNIGHT) & stmAttackers))
@@ -1455,8 +1464,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                        | (qR & attacks_bb<ROOK>(dst, occupied));
         }
         else  // KING
-              // If we "capture" with the king but the opponent still has attackers,
-              // reverse the result.
+            // If "capture" with the king but the opponent still has attackers, reverse the result.
             return pieces(~stm) & attackers ? !bool(res) : bool(res);
 
         attackers &= occupied;
@@ -1494,8 +1502,8 @@ bool Position::has_repeated() const noexcept {
     return false;
 }
 
-// Tests if the position has a move which draws by repetition,
-// or an earlier position has a move that directly reaches the current position.
+// Tests if the position has a move which draws by repetition, or
+// an earlier position has a move that directly reaches the current position.
 bool Position::has_game_cycle(std::int16_t ply) const noexcept {
     std::uint8_t end = std::min(rule50_count(), null_ply());
     if (end < 3)
@@ -1524,7 +1532,7 @@ bool Position::has_game_cycle(std::int16_t ply) const noexcept {
                 // For nodes before or at the root, check that the move is a
                 // repetition rather than a move to the current position.
                 // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in
-                // the same location, so we have to select which square to check.
+                // the same location, so have to select which square to check.
                 if (color_of(piece_on(empty_on(s1) ? s2 : s1)) != sideToMove)
                     continue;
 

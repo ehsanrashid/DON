@@ -73,7 +73,7 @@ Bitboard sliding_attack(Square s, Bitboard occupied) noexcept {
 // Computes all rook and bishop attacks at startup.
 // Magic bitboards are used to look up attacks of sliding pieces.
 // As a reference see www.chessprogramming.org/Magic_Bitboards.
-// In particular, here we use the so called "fancy" approach.
+// In particular, here use the so called "fancy" approach.
 template<PieceType PT>
 void init_magics() noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in init_magics()");
@@ -108,7 +108,7 @@ void init_magics() noexcept {
         // Given a square 's', the mask is the bitboard of sliding attacks from
         // 's' computed on an empty board. The index must be big enough to contain
         // all the attacks for each possible subset of the mask and so is 2 power
-        // the number of 1s of the mask. Hence, we deduce the size of the shift to
+        // the number of 1s of the mask. Hence, deduce the size of the shift to
         // apply to the 64 or 32 bits word to get the index.
         Magic& m = magics[s];
 
@@ -123,7 +123,7 @@ void init_magics() noexcept {
           - popcount(m.mask);
 #endif
         // Set the offset for the attacks table of the square.
-        // We have individual table sizes for each square with "Fancy Magic Bitboards".
+        // Individual table sizes for each square with "Fancy Magic Bitboards".
         m.attacks = (s == SQ_A1) ? attacks : magics[s - 1].attacks + size;
 
         // Use Carry-Rippler trick to enumerate all subsets of masks[s] and
@@ -145,7 +145,7 @@ void init_magics() noexcept {
 
         PRNG rng(Seeds[rank_of(s)]);
         // Find a magic for square 's' picking up an (almost) random number
-        // until we find the one that passes the verification test.
+        // until find the one that passes the verification test.
         for (std::uint16_t i = 0; i < size;)
         {
             for (m.magic = 0; popcount((m.magic * m.mask) >> 56) < 6;)
@@ -153,9 +153,9 @@ void init_magics() noexcept {
 
             // A good magic must map every possible occupancy to an index that
             // looks up the correct sliding attack in the attacks[s] database.
-            // Note that we build up the database for square 's' as a side
-            // effect of verifying the magic. Keep track of the attempt count
-            // and save it in epoch[], little speed-up trick to avoid resetting
+            // Note that build up the database for square 's' as a side effect
+            // of verifying the magic. Keep track of the attempt count and
+            // save it in epoch[], little speed-up trick to avoid resetting
             // m.attacks[] after every failed attempt.
             for (++cnt, i = 0; i < size; ++i)
             {

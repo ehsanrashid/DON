@@ -58,7 +58,7 @@ enum NodeType : std::uint8_t {
     Root
 };
 
-// Stack struct keeps track of the information we need to remember from nodes
+// Stack struct keeps track of the information need to remember from nodes
 // shallower and deeper in the tree during the search. Each search thread has
 // its own array of Stack objects, indexed by the current ply.
 struct Stack final {
@@ -79,8 +79,8 @@ struct Stack final {
 using Moves = std::vector<Move>;
 
 // RootMove struct is used for moves at the root of the tree. For each root move
-// we store a score and a PV (really a refutation in the case of moves which
-// fail low). Score is normally set at -VALUE_INFINITE for all non-pv moves.
+// store a score and a PV (really a refutation in the case of moves which fail low).
+// Score is normally set at -VALUE_INFINITE for all non-pv moves.
 struct RootMove final {
 
     explicit RootMove(Move m) noexcept :
@@ -118,7 +118,7 @@ struct RootMove final {
 using RootMoves = std::vector<RootMove>;
 
 // Limits struct stores information sent by GUI about available time to
-// search the current move, maximum depth/time, or if we are in analysis mode.
+// search the current move, maximum depth/time, or if in analysis mode.
 struct Limits final {
 
     struct Clock final {
@@ -148,11 +148,9 @@ struct Limits final {
     std::vector<std::string>    ignoreMoves;
 };
 
-// Skill structure is used to implement strength limit. If we have a UCI_ELO,
-// we convert it to an appropriate skill level, anchored to the Stash engine.
-// This method is based on a fit of the Elo results for games played between
-// DON at various skill levels and various versions of the Stash engine.
-// Skill 0 .. 19 now covers CCRL Blitz Elo from 1320 to 3190, approximately.
+// Skill structure is used to implement strength limit.
+// If have a UCI_ELO, convert it to an appropriate skill level.
+// Skill 0 .. 19 now covers CCRL Blitz Elo from 1320 to 3190, approximately
 struct Skill final {
 
     Skill() = default;
