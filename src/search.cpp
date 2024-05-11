@@ -267,8 +267,7 @@ void Worker::start_search() noexcept {
     if (rootMoves.empty())
     {
         rootMoves.emplace_back(Move::None());
-        mainManager->updateContext.onUpdateShort(
-          {DEPTH_ZERO, {rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW, rootPos}});
+        mainManager->updateContext.onUpdateShort({rootPos, DEPTH_ZERO});
     }
     else
     {
@@ -337,13 +336,14 @@ void Worker::start_search() noexcept {
     if (bestWorker != this)
         mainManager->info_pv(*bestWorker, bestWorker->completedDepth);
 
-    std::string bestMove = UCI::move_to_can(bestWorker->rootMoves[0][0]);
-    std::string ponderMove;
-    if (bestWorker->rootMoves[0].size() > 1
-        || bestWorker->rootMoves[0].extract_ponder_from_tt(rootPos, tt))
-        ponderMove = UCI::move_to_can(bestWorker->rootMoves[0][1]);
+    Move bestMove   = bestWorker->rootMoves[0][0];
+    Move ponderMove = Move::None();
+    if (bestMove.is_ok()
+        && (bestWorker->rootMoves[0].size() > 1
+            || bestWorker->rootMoves[0].extract_ponder_from_tt(rootPos, tt)))
+        ponderMove = bestWorker->rootMoves[0][1];
 
-    mainManager->updateContext.onUpdateBestMove(bestMove, ponderMove);
+    mainManager->updateContext.onUpdateBestMove({bestMove, ponderMove});
 }
 
 // Main iterative deepening loop. It calls search() repeatedly with increasing depth
@@ -1067,7 +1067,7 @@ moves_loop:  // When in check, search starts here
             && main_manager()->elapsed() > 3000)
         {
             main_manager()->updateContext.onUpdateIteration(
-              {rootDepth, UCI::move_to_can(move), std::uint16_t(moveCount + pvIndex)});
+              {rootDepth, move, std::uint16_t(moveCount + pvIndex)});
         }
 
         if (PVNode)
@@ -1831,33 +1831,16 @@ void MainSearchManager::info_pv(const Search::Worker& worker, Depth depth) const
         if (tb)
             v = rootMoves[i].tbValue;
 
-        std::string bound;
+        InfoFull info(rootPos, d, rootMoves[i]);
+        info.value   = v;
+        info.multiPV = i + 1;
         // tablebase- and previous-scores are exact
-        if (updated && !tb && i == worker.pvIndex)
-            bound = rootMoves[i].lowerBound ? "lowerbound"
-                  : rootMoves[i].upperBound ? "upperbound"
-                                            : "";
-        std::string wdl;
-        if (showWDL)
-            wdl = UCI::to_wdl(v, rootPos);
-
-        std::string pv;
-        for (Move m : rootMoves[i].pv)
-            pv += " " + UCI::move_to_can(m);
-
-        InfoFull info;
-        info.depth    = d;
-        info.selDepth = rootMoves[i].selDepth;
-        info.multiPV  = i + 1;
-        info.score    = {v, rootPos};
-        info.bound    = bound;
-        info.wdl      = wdl;
-        info.time     = time;
-        info.nodes    = nodes;
-        info.nps      = 1000 * nodes / time;
-        info.hashfull = hashfull;
-        info.tbHits   = tbHits;
-        info.pv       = pv;
+        info.showBound = i == worker.pvIndex && updated && !tb;
+        info.showWDL   = showWDL;
+        info.time      = time;
+        info.nodes     = nodes;
+        info.hashfull  = hashfull;
+        info.tbHits    = tbHits;
 
         updateContext.onUpdateFull(info);
     }
@@ -1869,9 +1852,7 @@ void MainSearchManager::info_pv(const Search::Worker& worker, Depth depth) const
 // otherwise in case of 'ponder on' have nothing to think about.
 bool RootMove::extract_ponder_from_tt(Position& pos, const TranspositionTable& tt) noexcept {
     assert(size() == 1);
-
-    if (!pv[0].is_ok())
-        return false;
+    assert(pv[0].is_ok());
 
     StateInfo st;
     ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);

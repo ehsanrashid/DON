@@ -74,7 +74,7 @@ class UCI final {
     static void on_update_short(const Search::InfoShort& info) noexcept;
     static void on_update_full(const Search::InfoFull& info) noexcept;
     static void on_update_iteration(const Search::InfoIteration& info) noexcept;
-    static void on_update_bestmove(std::string_view bestMove, std::string_view ponderMove) noexcept;
+    static void on_update_bestmove(const Search::InfoBestMove& info) noexcept;
 
     Engine      engine;
     CommandLine cmdLine;

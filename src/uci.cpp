@@ -547,27 +547,31 @@ void UCI::on_update_short(const Search::InfoShort& info) noexcept {
     std::ostringstream oss;
     oss << "info"
         << " depth " << info.depth  //
-        << " score " << format_score(info.score);
+        << " score " << format_score({info.pos.checkers() ? -VALUE_MATE : VALUE_DRAW, info.pos});
     sync_cout << oss.str() << sync_endl;
 }
 
 void UCI::on_update_full(const Search::InfoFull& info) noexcept {
     std::ostringstream oss;
-    oss << "info"                                  //
-        << " depth " << info.depth                 //
-        << " seldepth " << info.selDepth           //
-        << " multipv " << info.multiPV             //
-        << " score " << format_score(info.score);  //
-    if (!info.bound.empty())
-        oss << " " << info.bound;
-    if (!info.wdl.empty())
-        oss << " wdl " << info.wdl;
-    oss << " time " << info.time          //
-        << " nodes " << info.nodes        //
-        << " nps " << info.nps            //
-        << " hashfull " << info.hashfull  //
-        << " tbhits " << info.tbHits      //
-        << " pv" << info.pv;              //
+    oss << "info"                                              //
+        << " depth " << info.depth                             //
+        << " seldepth " << info.rootMove.selDepth              //
+        << " multipv " << info.multiPV                         //
+        << " score " << format_score({info.value, info.pos});  //
+    if (info.showBound)
+        oss << (info.rootMove.lowerBound   ? " lowerbound"
+                : info.rootMove.upperBound ? " upperbound"
+                                           : "");
+    if (info.showWDL)
+        oss << " wdl " << to_wdl(info.value, info.pos);
+    oss << " time " << info.time                     //
+        << " nodes " << info.nodes                   //
+        << " nps " << 1000 * info.nodes / info.time  //
+        << " hashfull " << info.hashfull             //
+        << " tbhits " << info.tbHits                 //
+        << " pv";
+    for (Move m : info.rootMove.pv)
+        oss << " " << move_to_can(m);
     sync_cout << oss.str() << sync_endl;
 }
 
@@ -575,15 +579,15 @@ void UCI::on_update_iteration(const Search::InfoIteration& info) noexcept {
     std::ostringstream oss;
     oss << "info"                                      //
         << " depth " << info.depth                     //
-        << " currmove " << info.currMove               //
+        << " currmove " << move_to_can(info.currMove)  //
         << " currmovenumber " << info.currMoveNumber;  //
     sync_cout << oss.str() << sync_endl;
 }
 
-void UCI::on_update_bestmove(std::string_view bestMove, std::string_view ponderMove) noexcept {
-    sync_cout << "bestmove " << bestMove;
-    if (!ponderMove.empty())
-        std::cout << " ponder " << ponderMove;
+void UCI::on_update_bestmove(const Search::InfoBestMove& info) noexcept {
+    sync_cout << "bestmove " << move_to_can(info.bestMove);
+    if (info.ponderMove.is_ok())
+        std::cout << " ponder " << move_to_can(info.ponderMove);
     std::cout << sync_endl;
 }
 

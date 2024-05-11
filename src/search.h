@@ -202,33 +202,40 @@ class ISearchManager {
 using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
 
 struct InfoShort {
-    Depth depth;
-    Score score;
+    InfoShort(const Position& p, Depth d) :
+        pos(p),
+        depth(d) {}
+    const Position& pos;
+    Depth           depth;
 };
-
 struct InfoFull: InfoShort {
-    std::uint16_t    selDepth;
-    std::uint16_t    multiPV;
-    std::string_view bound;
-    std::string_view wdl;
-    TimePoint        time;
-    std::uint64_t    nodes;
-    std::uint32_t    nps;
-    std::uint16_t    hashfull;
-    std::uint64_t    tbHits;
-    std::string_view pv;
+    InfoFull(const Position& p, Depth d, const RootMove& rm) :
+        InfoShort(p, d),
+        rootMove(rm) {}
+    const RootMove& rootMove;
+    Value           value;
+    std::uint16_t   multiPV;
+    bool            showBound;
+    bool            showWDL;
+    TimePoint       time;
+    std::uint64_t   nodes;
+    std::uint16_t   hashfull;
+    std::uint64_t   tbHits;
 };
-
 struct InfoIteration {
-    Depth            depth;
-    std::string_view currMove;
-    std::uint16_t    currMoveNumber;
+    Depth         depth;
+    Move          currMove;
+    std::uint16_t currMoveNumber;
+};
+struct InfoBestMove {
+    Move bestMove;
+    Move ponderMove;
 };
 
 using OnUpdateShort     = std::function<void(const InfoShort&)>;
 using OnUpdateFull      = std::function<void(const InfoFull&)>;
 using OnUpdateIteration = std::function<void(const InfoIteration&)>;
-using OnUpdateBestMove  = std::function<void(std::string_view, std::string_view)>;
+using OnUpdateBestMove  = std::function<void(const InfoBestMove&)>;
 
 struct UpdateContext final {
     OnUpdateShort     onUpdateShort;
