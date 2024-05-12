@@ -33,6 +33,7 @@
 
 namespace DON {
 
+class ThreadPool;
 class OptionsMap;
 
 // Abstraction of a thread. It contains a pointer to the worker and a native thread.
@@ -44,9 +45,9 @@ class Thread final {
    public:
     Thread(const Thread&)            = delete;
     Thread& operator=(const Thread&) = delete;
-    Thread(const Search::SharedState& sharedState,
-           Search::ISearchManagerPtr  searchManager,
-           std::uint16_t              id) noexcept;
+    Thread(std::uint16_t              id,
+           const Search::SharedState& sharedState,
+           Search::ISearchManagerPtr  searchManager) noexcept;
     virtual ~Thread() noexcept;
 
     void idle_func() noexcept;
@@ -55,8 +56,6 @@ class Thread final {
 
     std::uint16_t id() const noexcept { return idx; }
 
-    std::unique_ptr<Search::Worker> worker;
-
    private:
     // Set before starting nativeThread
     bool dead = false, busy = true;
@@ -64,10 +63,33 @@ class Thread final {
     const std::uint16_t idx;
     const std::uint16_t threadCount;
 
+   public:
+    std::unique_ptr<Search::Worker> worker;
+
+   private:
     std::mutex              mutex;
     std::condition_variable condVar;
     NativeThread            nativeThread;
+
+    friend class ThreadPool;
 };
+
+// Wakes up the thread that will start the search
+inline void Thread::wake_up() noexcept {
+    {
+        std::lock_guard lockGuard(mutex);
+        busy = true;
+    }                      // Unlock before notifying saves a few CPU-cycles
+    condVar.notify_one();  // Wake up the thread in idle_func()
+}
+
+// Blocks on the condition variable
+// until the thread has finished searching.
+inline void Thread::wait_idle() noexcept {
+    std::unique_lock uniqueLock(mutex);
+    condVar.wait(uniqueLock, [this] { return !busy; });
+    //uniqueLock.unlock();
+}
 
 // ThreadPool struct handles all the threads-related stuff like init, starting,
 // parking and, most importantly, launching a thread.
@@ -80,6 +102,8 @@ class ThreadPool final {
     ThreadPool& operator=(const ThreadPool&) = delete;
     ~ThreadPool() noexcept;
 
+    // static Search::Worker* worker(const Thread* th) noexcept;
+
     void destroy() noexcept;
     void clear() noexcept;
     void set(Search::SharedState sharedState, const Search::UpdateContext& updateContext) noexcept;
@@ -90,6 +114,7 @@ class ThreadPool final {
 
     std::uint64_t nodes() const noexcept;
     std::uint64_t tbHits() const noexcept;
+    // std::uint32_t bestMoveChanges() const noexcept;
 
     void start(Position&             pos,
                StateListPtr&         states,
@@ -111,12 +136,12 @@ class ThreadPool final {
     std::atomic_bool stop, abort, research;
 
    private:
-    //template<typename T>
-    //void set(std::atomic<T> Search::Worker::*member, T value) const noexcept {
+    // template<typename T>
+    // void set(std::atomic<T> Search::Worker::*member, T value) const noexcept {
     //
-    //    for (Thread* th : threads)
+    //    for (const Thread* th : threads)
     //        th->worker.get()->*member = value;
-    //}
+    // }
 
     template<typename T>
     T accumulate(std::atomic<T> Search::Worker::*member, T sum = {}) const noexcept {
@@ -129,6 +154,67 @@ class ThreadPool final {
     std::vector<Thread*> threads;
     StateListPtr         setupStates;
 };
+
+inline ThreadPool::~ThreadPool() noexcept { destroy(); }
+
+// inline Search::Worker* ThreadPool::worker(const Thread* th) noexcept { return th->worker.get(); }
+
+// Destroy any existing thread(s)
+inline void ThreadPool::destroy() noexcept {
+    if (!empty())
+    {
+        main_thread()->wait_idle();
+
+        while (!empty())
+            delete threads.back(), threads.pop_back();
+    }
+}
+
+// Sets threadPool data to initial values
+inline void ThreadPool::clear() noexcept {
+    if (empty())
+        return;
+
+    for (Thread* th : threads)
+        th->worker->clear();
+
+    main_manager()->clear(size());
+}
+
+inline Thread* ThreadPool::main_thread() const noexcept { return threads.front(); }
+
+inline Search::MainSearchManager* ThreadPool::main_manager() const noexcept {
+    return main_thread()->worker->main_manager();
+}
+
+inline std::uint64_t ThreadPool::nodes() const noexcept {
+    return accumulate(&Search::Worker::nodes);
+}
+
+inline std::uint64_t ThreadPool::tbHits() const noexcept {
+    return accumulate(&Search::Worker::tbHits);
+}
+
+// inline std::uint32_t ThreadPool::bestMoveChanges() const noexcept {
+//     return accumulate(&Search::Worker::bestMoveChanges);
+// }
+
+// Start non-main threads
+// Will be invoked by main thread after it has started searching
+inline void ThreadPool::start_search() const noexcept {
+
+    for (Thread* th : threads)
+        if (th != main_thread())
+            th->wake_up();
+}
+
+// Wait for non-main threads
+inline void ThreadPool::wait_finish() const noexcept {
+
+    for (Thread* th : threads)
+        if (th != main_thread())
+            th->wait_idle();
+}
 
 }  // namespace DON
 

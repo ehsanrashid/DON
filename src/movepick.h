@@ -35,6 +35,8 @@ namespace DON {
 
 class Position;
 
+using KillerMoves = std::array<Move, 2>;
+
 constexpr std::uint16_t PAWN_HISTORY_SIZE        = 0x200;   // has to be a power of 2
 constexpr std::uint16_t CORRECTION_HISTORY_SIZE  = 0x4000;  // has to be a power of 2
 constexpr std::int32_t  CORRECTION_HISTORY_LIMIT = 1024;
@@ -131,6 +133,9 @@ using PawnHistory = Stats<std::int16_t, 8192, PAWN_HISTORY_SIZE, PIECE_NB, SQUAR
 using CorrectionHistory =
   Stats<std::int16_t, CORRECTION_HISTORY_LIMIT, COLOR_NB, CORRECTION_HISTORY_SIZE>;
 
+template<typename T, std::uint32_t M, std::uint32_t N>
+using Array2D = std::array<std::array<T, N>, M>;
+
 enum Stage : std::uint8_t {
     NO_STAGE,
     // Generate main-search moves
@@ -185,7 +190,7 @@ class MovePicker final {
                const CapturePieceDstHistory*,
                const PieceDstHistory**,
                const PawnHistory*,
-               std::array<Move, 2>,
+               const KillerMoves&,
                Move) noexcept;
     MovePicker(const Position&,
                Move,

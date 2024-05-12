@@ -18,6 +18,7 @@
 #include "search.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
@@ -85,8 +86,10 @@ Value to_corrected_static_eval(Value v, const Worker& worker, const Position& po
 // to "plies to mate from the current position". Standard scores are unchanged.
 // The function is called before storing a value in the transposition table.
 constexpr Value value_to_tt(Value v, std::int16_t ply) noexcept {
-    assert(v != VALUE_NONE);
-    return v >= VALUE_TB_WIN_IN_MAX_PLY ? v + ply : v <= VALUE_TB_LOSS_IN_MAX_PLY ? v - ply : v;
+    assert(-VALUE_INFINITE < v && v < +VALUE_INFINITE);
+    return v >= VALUE_TB_WIN_IN_MAX_PLY  ? v + ply  //
+         : v <= VALUE_TB_LOSS_IN_MAX_PLY ? v - ply
+                                         : v;
 }
 
 // Inverse of value_to_tt(): it adjusts a mate or TB score
@@ -103,7 +106,7 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::uint8_t rule50) no
     if (v >= VALUE_TB_WIN_IN_MAX_PLY)
     {
         // Downgrade a potentially false mate value
-        if (v >= VALUE_MATE_IN_MAX_PLY && VALUE_MATE - v > 100 - rule50)
+        if (v >= VALUE_MATES_IN_MAX_PLY && VALUE_MATE - v > 100 - rule50)
             return VALUE_TB_WIN_IN_MAX_PLY - 1;
 
         // Downgrade a potentially false TB value
@@ -233,9 +236,9 @@ void update_all_stats(Worker&         worker,
 
 }  // namespace
 
-Worker::Worker(const SharedState& sharedState,
-               ISearchManagerPtr  searchManager,
-               std::uint16_t      threadId) noexcept :
+Worker::Worker(std::uint16_t      threadId,
+               const SharedState& sharedState,
+               ISearchManagerPtr  searchManager) noexcept :
     // Unpack the SharedState struct into member variables
     threadIdx(threadId),
     manager(std::move(searchManager)),
@@ -245,6 +248,23 @@ Worker::Worker(const SharedState& sharedState,
     tt(sharedState.tt),
     accCaches(networks) {
     clear();
+}
+
+void Worker::clear() noexcept {
+    counterMoves.fill(Move::None());
+    mainHistory.fill(0);
+    captureHistory.fill(0);
+    pawnHistory.fill(0);
+    correctionHistory.fill(0);
+
+    for (bool inCheck : {false, true})
+        for (bool isCapture : {false, true})
+            for (auto& pieceTo : continuationHistory[inCheck][isCapture])
+                for (auto& h : pieceTo)
+                    h->fill(-60);
+
+    optimism.fill(VALUE_ZERO);
+    accCaches.clear(networks);
 }
 
 void Worker::start_search() noexcept {
@@ -290,13 +310,13 @@ void Worker::start_search() noexcept {
             Move bookPonderMove = mainManager->polyBook.probe(rootPos, options["BookPickBest"]);
             rootPos.undo_move(bookBestMove);
 
-            for (Thread* th : threads)
-                std::swap(th->worker->rootMoves[0],
-                          *std::find(th->worker->rootMoves.begin(), th->worker->rootMoves.end(),
-                                     bookBestMove));
-            if (bookPonderMove)
-                for (Thread* th : threads)
-                    th->worker->rootMoves[0].push(bookPonderMove);
+            for (const Thread* th : threads)
+            {
+                auto& rms = th->worker->rootMoves;
+                std::swap(rms[0], *std::find(rms.begin(), rms.end(), bookBestMove));
+                if (bookPonderMove)
+                    rms[0].push(bookPonderMove);
+            }
         }
         else
         {
@@ -338,12 +358,19 @@ void Worker::start_search() noexcept {
 
     Move bestMove   = bestWorker->rootMoves[0][0];
     Move ponderMove = Move::None();
-    if (bestMove.is_ok()
+    if (bestMove
         && (bestWorker->rootMoves[0].size() > 1
             || bestWorker->rootMoves[0].extract_ponder_from_tt(rootPos, tt)))
         ponderMove = bestWorker->rootMoves[0][1];
 
     mainManager->updateContext.onUpdateBestMove({bestMove, ponderMove});
+}
+
+// Get a pointer to the search manager,
+// Only allowed to be called by the main worker.
+MainSearchManager* Worker::main_manager() const noexcept {
+    assert(is_main_worker());
+    return static_cast<MainSearchManager*>(manager.get());
 }
 
 // Main iterative deepening loop. It calls search() repeatedly with increasing depth
@@ -387,7 +414,7 @@ void Worker::iterative_deepening() noexcept {
 
     std::uint16_t researchCounter = 0;
     std::uint8_t  iterIdx         = 0;
-    double        timeReduction = 1.0, bestMoveChangesSum = 0.0;
+    double        timeReduction = 1.0, sumBestMoveChanges = 0.0;
 
     Value value         = -VALUE_INFINITE;
     Moves lastBestPV    = {Move::None()};
@@ -399,7 +426,7 @@ void Worker::iterative_deepening() noexcept {
     {
         // Age out PV variability metric
         if (mainManager)
-            bestMoveChangesSum *= 0.5;
+            sumBestMoveChanges *= 0.5;
 
         // Save the last iteration's scores before the first PV line is searched and
         // all the move scores except the (new) PV are set to -VALUE_INFINITE.
@@ -533,7 +560,7 @@ void Worker::iterative_deepening() noexcept {
         // Have found a "mate in x"?
         if (limits.mate != 0 && rootMoves[0].value == rootMoves[0].uciValue
             && ((rootMoves[0].value != +VALUE_INFINITE
-                 && rootMoves[0].value >= VALUE_MATE_IN_MAX_PLY
+                 && rootMoves[0].value >= VALUE_MATES_IN_MAX_PLY
                  && VALUE_MATE - rootMoves[0].value <= 2 * limits.mate)
                 || (rootMoves[0].value != -VALUE_INFINITE
                     && rootMoves[0].value <= VALUE_MATED_IN_MAX_PLY
@@ -548,9 +575,9 @@ void Worker::iterative_deepening() noexcept {
         if (limits.use_time_management() && !threads.stop && !mainManager->ponderhitStop)
         {
             // Use part of the gained time from a previous stable move for the current move
-            for (Thread* th : threads)
+            for (const Thread* th : threads)
             {
-                bestMoveChangesSum += th->worker->bestMoveChanges;
+                sumBestMoveChanges += th->worker->bestMoveChanges;
                 th->worker->bestMoveChanges = 0;
             }
 
@@ -565,7 +592,7 @@ void Worker::iterative_deepening() noexcept {
             // If the bestMove is stable over several iterations, reduce time accordingly
             timeReduction        = 0.687 + 0.808 * (completedDepth > lastBestDepth + 8);
             double reduction     = 0.4608 * (1.48 + mainManager->prevTimeReduction) / timeReduction;
-            double instability   = 1.0 + 1.88 * bestMoveChangesSum / threads.size();
+            double instability   = 1.0 + 1.88 * sumBestMoveChanges / threads.size();
             double evalReduction = EvalReduction[std::clamp<int>((750 + value) / 150, 0, EvalReduction.size() - 1)];
             double recapture     = rootPos.cap_square() == rootMoves[0][0].dst_sq()
                                 && rootPos.pieces(~stm) & rootPos.cap_square() ? 0.955 : 1.005;
@@ -614,23 +641,6 @@ void Worker::iterative_deepening() noexcept {
                              mainManager->skill.bestMove
                                ? mainManager->skill.bestMove
                                : mainManager->skill.pick_best_move(rootMoves, multiPV)));
-}
-
-void Worker::clear() noexcept {
-    counterMoves.fill(Move::None());
-    mainHistory.fill(0);
-    captureHistory.fill(0);
-    pawnHistory.fill(0);
-    correctionHistory.fill(0);
-
-    for (bool inCheck : {false, true})
-        for (bool isCapture : {false, true})
-            for (auto& pieceTo : continuationHistory[inCheck][isCapture])
-                for (auto& h : pieceTo)
-                    h->fill(-60);
-
-    optimism.fill(VALUE_ZERO);
-    accCaches.clear(networks);
 }
 
 // Main search function for both PV and non-PV nodes.
@@ -822,7 +832,7 @@ Value Worker::search(
         // Step 7. A small ProbCut idea, when in check (~4 Elo)
         probCutBeta = beta + 420;
         if (!PVNode && ttCapture && ttValue != VALUE_NONE && tte->depth() >= depth - 4
-            && (tte->bound() & BOUND_LOWER) && ttValue >= probCutBeta
+            && ttValue >= probCutBeta && (tte->bound() & BOUND_LOWER)
             && std::abs(ttValue) < VALUE_TB_WIN_IN_MAX_PLY
             && std::abs(beta) < VALUE_TB_WIN_IN_MAX_PLY)
             return probCutBeta;
@@ -870,7 +880,7 @@ Value Worker::search(
     if (is_ok(prevDst) && !is_ok(prevCaptured) && !(ss - 1)->inCheck)
     {
         int bonus = std::clamp(-13 * (ss->staticEval + (ss - 1)->staticEval), -1796, 1526);
-        bonus     = bonus > 0 ? bonus << 1 : bonus >> 1;
+        bonus     = bonus > 0 ? 2 * bonus : bonus / 2;
         mainHistory[~stm][(ss - 1)->currentMove.org_dst()] << bonus;
         if (type_of(pos.piece_on(prevDst)) != PAWN && (ss - 1)->currentMove.type_of() != PROMOTION)
             pawnHistory[pawn_index(pos.pawn_key())][pos.piece_on(prevDst)][prevDst] << bonus / 2;
@@ -1063,7 +1073,7 @@ moves_loop:  // When in check, search starts here
 
         ss->moveCount = ++moveCount;
 
-        if (RootNode && is_main_worker() && !main_manager()->minimalReport
+        if (RootNode && is_main_worker() && !main_manager()->reportMinimal
             && main_manager()->elapsed() > 3000)
         {
             main_manager()->updateContext.onUpdateIteration(

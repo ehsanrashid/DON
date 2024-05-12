@@ -146,14 +146,14 @@ constexpr inline Value VALUE_NONE     = 32002;
 constexpr inline Value VALUE_INFINITE = 32001;
 
 constexpr inline Value VALUE_MATE             = 32000;
-constexpr inline Value VALUE_MATE_IN_MAX_PLY  = VALUE_MATE - MAX_PLY;
-constexpr inline Value VALUE_MATED_IN_MAX_PLY = -VALUE_MATE_IN_MAX_PLY;
+constexpr inline Value VALUE_MATES_IN_MAX_PLY = VALUE_MATE - MAX_PLY;
+constexpr inline Value VALUE_MATED_IN_MAX_PLY = -VALUE_MATES_IN_MAX_PLY;
 
-constexpr inline Value VALUE_TB                 = VALUE_MATE_IN_MAX_PLY - 1;
+constexpr inline Value VALUE_TB                 = VALUE_MATES_IN_MAX_PLY - 1;
 constexpr inline Value VALUE_TB_WIN_IN_MAX_PLY  = VALUE_TB - MAX_PLY;
 constexpr inline Value VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_TB_WIN_IN_MAX_PLY;
 
-// In the code, we make the assumption that these values
+// In the code, make the assumption that these values
 // are such that non_pawn_material() can be used to uniquely
 // identify the material on the board.
 constexpr inline Value VALUE_PAWN   = 208;
@@ -336,7 +336,7 @@ constexpr Key make_key(std::uint64_t seed) noexcept {
 // bit 14-15: special move flag: promotion (1), en-passant (2), castling (3)
 // NOTE: en-passant bit is set only when a pawn can be captured
 //
-// Special cases are Move::None() and Move::Null(). We can sneak these in because in
+// Special cases are Move::None() and Move::Null(). Can sneak these in because in
 // any normal move destination square is always different from origin square
 // while Move::None() and Move::Null() have the same origin and destination square.
 enum MoveType : std::uint16_t {

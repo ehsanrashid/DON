@@ -17,7 +17,6 @@
 
 #include "movepick.h"
 
-#include <cassert>
 #include <iterator>
 #include <utility>
 
@@ -40,7 +39,7 @@ MovePicker::MovePicker(const Position&               p,
                        const CapturePieceDstHistory* cph,
                        const PieceDstHistory**       ch,
                        const PawnHistory*            ph,
-                       std::array<Move, 2>           km,
+                       const KillerMoves&            km,
                        Move                          cm) noexcept :
     pos(p),
     mainHistory(mh),

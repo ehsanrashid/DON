@@ -65,12 +65,12 @@ class Engine final {
 
     void init_book(const std::string& bookFile) noexcept;
 
-    void set_minimalreport(bool minimalReport) noexcept;
+    void report_minimal(bool reportMinimal) noexcept;
 
     void clear() noexcept;
 
     void show() const noexcept;
-    void trace_eval() const noexcept;
+    void eval() const noexcept;
     void flip() noexcept;
 
     // Network related

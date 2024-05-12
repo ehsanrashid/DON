@@ -23,6 +23,8 @@
 #include <iostream>
 #include <sstream>
 
+#include "misc.h"
+
 namespace DON::Benchmark {
 
 namespace {
@@ -117,8 +119,8 @@ std::vector<std::string> setup_bench(std::istringstream& iss,
     std::string ttSize    = (iss >> token) ? token : "16";
     std::string threads   = (iss >> token) ? token : "1";
     std::string limitVal  = (iss >> token) ? token : "13";
-    std::string filename  = (iss >> token) ? token : "default";
-    std::string limitType = (iss >> token) ? token : "depth";
+    std::string filename  = (iss >> token) ? to_lower(token) : "default";
+    std::string limitType = (iss >> token) ? to_lower(token) : "depth";
 
     std::string go = limitType == "eval" ? "eval" : "go " + limitType + " " + limitVal;
 
@@ -148,9 +150,12 @@ std::vector<std::string> setup_bench(std::istringstream& iss,
     }
 
     std::vector<std::string> list;
-    list.emplace_back("setoption name Threads value " + threads);
-    list.emplace_back("setoption name Hash value " + ttSize);
-    list.emplace_back("ucinewgame");
+    if (limitType != "eval" && limitType != "perft")
+    {
+        list.emplace_back("setoption name Threads value " + threads);
+        list.emplace_back("setoption name Hash value " + ttSize);
+        list.emplace_back("ucinewgame");
+    }
 
     for (const std::string& fen : fens)
         if (fen.find("setoption") != std::string::npos)

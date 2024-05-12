@@ -21,7 +21,6 @@
 #include <memory>
 #include <ostream>
 #include <utility>
-#include <sstream>
 
 #include "evaluate.h"
 #include "misc.h"
@@ -106,13 +105,13 @@ void Engine::init_book(const std::string& bookFile) noexcept {
     threads.main_manager()->polyBook.init(bookFile);
 }
 
-void Engine::set_minimalreport(bool minimalReport) noexcept {
-    threads.main_manager()->minimalReport = minimalReport;
+void Engine::report_minimal(bool reportMinimal) noexcept {
+    threads.main_manager()->reportMinimal = reportMinimal;
 }
 
 void Engine::show() const noexcept { sync_cout << pos << sync_endl; }
 
-void Engine::trace_eval() const noexcept {
+void Engine::eval() const noexcept {
     StateInfo st;
     ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
 

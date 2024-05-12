@@ -35,12 +35,12 @@ namespace DON {
 
 // Constructor launches the thread and waits until it goes to sleep
 // in idle_func(). Note that 'dead' and 'busy' should be already set.
-Thread::Thread(const Search::SharedState& sharedState,
-               Search::ISearchManagerPtr  searchManager,
-               std::uint16_t              id) noexcept :
-    worker(std::make_unique<Search::Worker>(sharedState, std::move(searchManager), id)),
+Thread::Thread(std::uint16_t              id,
+               const Search::SharedState& sharedState,
+               Search::ISearchManagerPtr  searchManager) noexcept :
     idx(id),
     threadCount(sharedState.options["Threads"]),
+    worker(std::make_unique<Search::Worker>(id, sharedState, std::move(searchManager))),
     nativeThread(&Thread::idle_func, this) {
 
     wait_idle();
@@ -54,23 +54,6 @@ Thread::~Thread() noexcept {
     dead = true;
     wake_up();
     nativeThread.join();
-}
-
-// Wakes up the thread that will start the search
-void Thread::wake_up() noexcept {
-    {
-        std::lock_guard lockGuard(mutex);
-        busy = true;
-    }                      // Unlock before notifying saves a few CPU-cycles
-    condVar.notify_one();  // Wake up the thread in idle_func()
-}
-
-// Blocks on the condition variable
-// until the thread has finished searching.
-void Thread::wait_idle() noexcept {
-    std::unique_lock uniqueLock(mutex);
-    condVar.wait(uniqueLock, [this] { return !busy; });
-    //uniqueLock.unlock();
 }
 
 // Thread gets parked here, blocked on the
@@ -102,30 +85,6 @@ void Thread::idle_func() noexcept {
 }
 
 
-ThreadPool::~ThreadPool() noexcept { destroy(); }
-
-// Destroy any existing thread(s)
-void ThreadPool::destroy() noexcept {
-    if (!empty())
-    {
-        main_thread()->wait_idle();
-
-        while (!empty())
-            delete threads.back(), threads.pop_back();
-    }
-}
-
-// Sets threadPool data to initial values
-void ThreadPool::clear() noexcept {
-    if (empty())
-        return;
-
-    for (Thread* th : threads)
-        th->worker->clear();
-
-    main_manager()->clear(size());
-}
-
 // Creates/destroys threads to match the requested number.
 // Created and launched threads will immediately go to sleep in idle_func.
 // Upon resizing, threads are recreated to allow for binding if necessary.
@@ -144,12 +103,12 @@ void ThreadPool::set(Search::SharedState          sharedState,
         assert(empty());
 
         auto mainManager = std::make_unique<Search::MainSearchManager>(updateContext);
-        threads.push_back(new Thread(sharedState, std::move(mainManager), size()));
+        threads.push_back(new Thread(size(), sharedState, std::move(mainManager)));
 
         while (size() < threadCount)
         {
             auto nullManager = std::make_unique<Search::NullSearchManager>();
-            threads.push_back(new Thread(sharedState, std::move(nullManager), size()));
+            threads.push_back(new Thread(size(), sharedState, std::move(nullManager)));
         }
 
         clear();
@@ -157,8 +116,6 @@ void ThreadPool::set(Search::SharedState          sharedState,
         sharedState.tt.resize(sharedState.options["Hash"], threadCount);
     }
 }
-
-Thread* ThreadPool::main_thread() const noexcept { return threads.front(); }
 
 Thread* ThreadPool::best_thread() const noexcept {
     auto bestThread = main_thread();
@@ -227,14 +184,6 @@ Thread* ThreadPool::best_thread() const noexcept {
     return bestThread;
 }
 
-Search::MainSearchManager* ThreadPool::main_manager() const noexcept {
-    return main_thread()->worker->main_manager();
-}
-
-std::uint64_t ThreadPool::nodes() const noexcept { return accumulate(&Search::Worker::nodes); }
-
-std::uint64_t ThreadPool::tbHits() const noexcept { return accumulate(&Search::Worker::tbHits); }
-
 // Wakes up main thread waiting in idle_func() and returns immediately.
 // Main thread will wake up other threads and start the search.
 void ThreadPool::start(Position&             pos,
@@ -299,23 +248,6 @@ void ThreadPool::start(Position&             pos,
     }
 
     main_thread()->wake_up();
-}
-
-// Start non-main threads
-// Will be invoked by main thread after it has started searching
-void ThreadPool::start_search() const noexcept {
-
-    for (Thread* th : threads)
-        if (th != main_thread())
-            th->wake_up();
-}
-
-// Wait for non-main threads
-void ThreadPool::wait_finish() const noexcept {
-
-    for (Thread* th : threads)
-        if (th != main_thread())
-            th->wait_idle();
 }
 
 }  // namespace DON

@@ -20,6 +20,7 @@
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <sys/time.h>
 
 #include "misc.h"
@@ -524,7 +525,7 @@ int PolyBook::find_first_key(Key key) noexcept {
     bestIndex    = -1;
     randIndex    = -1;
     keyCount     = 0;
-    keyWeightSum = 0;
+    sumKeyWeight = 0;
 
     int begIndex = 0;
     int endIndex = entryCount;
@@ -570,14 +571,14 @@ int PolyBook::get_key_data() noexcept {
     keyCount       = 1;
     bestIndex      = firstIndex;
     int bestWeight = polyHash[firstIndex].weight;
-    keyWeightSum   = bestWeight;
+    sumKeyWeight   = bestWeight;
     for (int i = firstIndex + keyCount; i < entryCount; ++i)
     {
         if (key != polyHash[i].key)
             break;
 
         ++keyCount;
-        keyWeightSum += polyHash[i].weight;
+        sumKeyWeight += polyHash[i].weight;
         if (bestWeight < polyHash[i].weight)
         {
             bestWeight = polyHash[i].weight;
@@ -587,16 +588,16 @@ int PolyBook::get_key_data() noexcept {
 
     randIndex = bestIndex;
 
-    int randWeight = rng.rand<std::uint32_t>() % keyWeightSum;
-    int weightSum  = 0;
+    int randWeight = rng.rand<std::uint32_t>() % sumKeyWeight;
+    int sumWeight  = 0;
     for (int i = firstIndex; i < firstIndex + keyCount; ++i)
     {
-        if (weightSum <= randWeight && randWeight < weightSum + polyHash[i].weight)
+        if (sumWeight <= randWeight && randWeight < sumWeight + polyHash[i].weight)
         {
             randIndex = i;
             break;
         }
-        weightSum += polyHash[i].weight;
+        sumWeight += polyHash[i].weight;
     }
 
     return keyCount;
@@ -611,7 +612,7 @@ std::string PolyBook::show(std::uint8_t n) const noexcept {
         int index = firstIndex + i;
         oss << std::setfill('0') << std::setw(2) << i + 1 << " " << polyHash[index]
             << " prob: " << std::setfill('0') << std::setw(7) << std::fixed << std::setprecision(4)
-            << (keyWeightSum ? 100.0 * polyHash[index].weight / keyWeightSum : 0.0) << '\n';
+            << (sumKeyWeight != 0 ? 100.0 * polyHash[index].weight / sumKeyWeight : 0.0) << '\n';
     }
     return oss.str();
 }

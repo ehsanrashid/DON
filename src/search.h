@@ -20,7 +20,6 @@
 
 #include <array>
 #include <atomic>
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -51,6 +50,8 @@ struct Networks;
 
 namespace Search {
 
+using Moves = std::vector<Move>;
+
 // Different node types, used as a template parameter
 enum NodeType : std::uint8_t {
     NonPV,
@@ -62,21 +63,19 @@ enum NodeType : std::uint8_t {
 // shallower and deeper in the tree during the search. Each search thread has
 // its own array of Stack objects, indexed by the current ply.
 struct Stack final {
-    Move*               pv;
-    PieceDstHistory*    continuationHistory;
-    std::int16_t        ply;
-    Move                currentMove;
-    std::array<Move, 2> killerMoves;
-    Value               staticEval;
-    int                 history;
-    bool                inCheck;
-    bool                ttHit;
-    bool                ttPv;
-    std::uint8_t        moveCount;
-    std::uint8_t        cutoffCount;
+    Move*            pv;
+    PieceDstHistory* continuationHistory;
+    std::int16_t     ply;
+    Move             currentMove;
+    KillerMoves      killerMoves;
+    Value            staticEval;
+    int              history;
+    bool             inCheck;
+    bool             ttHit;
+    bool             ttPv;
+    std::uint8_t     moveCount;
+    std::uint8_t     cutoffCount;
 };
-
-using Moves = std::vector<Move>;
 
 // RootMove struct is used for moves at the root of the tree. For each root move
 // store a score and a PV (really a refutation in the case of moves which fail low).
@@ -266,15 +265,15 @@ class MainSearchManager final: public ISearchManager {
     TimeManagement       tm;
     Skill                skill;
     PolyBook             polyBook;
-    std::int16_t         callsCount;
-    bool                 ponderhitStop;
-    std::atomic_bool     ponder;
-    bool                 minimalReport = false;
+    std::int16_t         callsCount    = 0;
+    bool                 ponderhitStop = false;
+    std::atomic_bool     ponder        = false;
+    bool                 reportMinimal = false;
     std::array<Value, 4> iterValue;
 
-    Value  prevBestValue;
-    Value  prevBestAvgValue;
-    double prevTimeReduction;
+    Value  prevBestValue     = -VALUE_INFINITE;
+    Value  prevBestAvgValue  = -VALUE_INFINITE;
+    double prevTimeReduction = 1.0;
 };
 
 class NullSearchManager final: public ISearchManager {
@@ -288,9 +287,9 @@ class NullSearchManager final: public ISearchManager {
 // of the search history, and storing data required for the search.
 class Worker final {
    public:
-    Worker(const SharedState& sharedState,
-           ISearchManagerPtr  searchManager,
-           std::uint16_t      threadId) noexcept;
+    Worker(std::uint16_t      threadId,
+           const SharedState& sharedState,
+           ISearchManagerPtr  searchManager) noexcept;
 
     // Called at instantiation to reset histories, usually before a new game
     void clear() noexcept;
@@ -300,14 +299,18 @@ class Worker final {
     void start_search() noexcept;
 
     // Public because they need to be updatable by the stats
-    CounterMoveHistory                                counterMoves;
-    ButterflyHistory                                  mainHistory;
-    CapturePieceDstHistory                            captureHistory;
-    std::array<std::array<ContinuationHistory, 2>, 2> continuationHistory;
-    PawnHistory                                       pawnHistory;
-    CorrectionHistory                                 correctionHistory;
+    CounterMoveHistory                 counterMoves;
+    ButterflyHistory                   mainHistory;
+    CapturePieceDstHistory             captureHistory;
+    Array2D<ContinuationHistory, 2, 2> continuationHistory;
+    PawnHistory                        pawnHistory;
+    CorrectionHistory                  correctionHistory;
 
    private:
+    bool is_main_worker() const noexcept { return threadIdx == 0; }
+
+    MainSearchManager* main_manager() const noexcept;
+
     void iterative_deepening() noexcept;
 
     // Main search function for both PV and non-PV nodes
@@ -321,15 +324,6 @@ class Worker final {
     template<NodeType NT>
     Value
     qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth = DEPTH_ZERO) noexcept;
-
-    bool is_main_worker() const noexcept { return threadIdx == 0; }
-
-    // Get a pointer to the search manager,
-    // Only allowed to be called by the main worker.
-    MainSearchManager* main_manager() const noexcept {
-        assert(is_main_worker());
-        return static_cast<MainSearchManager*>(manager.get());
-    }
 
     Limits limits;
 

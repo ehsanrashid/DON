@@ -158,43 +158,39 @@ UCI::UCI(int argc, const char** argv) noexcept :
     cmdLine(argc, argv) {
 
     auto& options = engine_options();
-
-    options["Threads"] << Option(1, 1, 1024, [this](const Option&) { engine.resize_threads(); });
-    options["Hash"] << Option(16, 4, MAX_HASH, [this](const Option& o) { engine.resize_tt(o); });
-    options["Clear Hash"] << Option([this](const Option&) { engine.clear(); });
-    options["Retain Hash"] << Option(false);
-    options["HashFile"] << Option("hash.dat");
-    options["Save Hash"] << Option([this](const Option&) {});
-    options["Load Hash"] << Option([this](const Option&) {});
-    options["Ponder"] << Option(false);
-    options["MultiPV"] << Option(1, 1, std::numeric_limits<std::uint8_t>::max());
-    options["Skill Level"] << Option(Search::Skill::MaxLevel, 0, Search::Skill::MaxLevel);
+    // clang-format off
+    options["Threads"]      << Option(1, 1, 1024, [this](const Option&) { engine.resize_threads(); });
+    options["Hash"]         << Option(16, 4, MAX_HASH, [this](const Option& o) { engine.resize_tt(o); });
+    options["Clear Hash"]   << Option([this](const Option&) { engine.clear(); });
+    options["Retain Hash"]  << Option(false);
+    options["HashFile"]     << Option("hash.dat");
+    options["Save Hash"]    << Option([this](const Option&) {});
+    options["Load Hash"]    << Option([this](const Option&) {});
+    options["Ponder"]       << Option(false);
+    options["MultiPV"]      << Option(1, 1, std::numeric_limits<std::uint8_t>::max());
+    options["Skill Level"]  << Option(Search::Skill::MaxLevel, 0, Search::Skill::MaxLevel);
     options["Move Overhead"] << Option(10, 0, 5000);
-    options["NodesTime"] << Option(0, 0, 10000);
-    options["DrawMoveCount"] << Option(Position::DrawMoveCount, 5, 50,
-                                       [](const Option& o) { Position::DrawMoveCount = o; });
-    options["UCI_Chess960"] << Option(Position::Chess960,
-                                      [](const Option& o) { Position::Chess960 = o; });
+    options["NodesTime"]    << Option(0, 0, 10000);
+    options["DrawMoveCount"] << Option(Position::DrawMoveCount, 5, 50, [](const Option& o) { Position::DrawMoveCount = o; });
+    options["UCI_Chess960"] << Option(Position::Chess960, [](const Option& o) { Position::Chess960 = o; });
     options["UCI_LimitStrength"] << Option(false);
-    options["UCI_ELO"] << Option(Search::Skill::MinELO, Search::Skill::MinELO,
-                                 Search::Skill::MaxELO);
-    options["UCI_ShowWDL"] << Option(false);
-    options["OwnBook"] << Option(false);
-    options["BookFile"] << Option("book.bin", [this](const Option& o) { engine.init_book(o); });
-    options["BookDepth"] << Option(100, 1, MAX_MOVES);
+    options["UCI_ELO"]      << Option(Search::Skill::MinELO, Search::Skill::MinELO, Search::Skill::MaxELO);
+    options["UCI_ShowWDL"]  << Option(false);
+    options["OwnBook"]      << Option(false);
+    options["BookFile"]     << Option("book.bin", [this](const Option& o) { engine.init_book(o); });
+    options["BookDepth"]    << Option(100, 1, MAX_MOVES);
     options["BookPickBest"] << Option(true);
-    options["SyzygyPath"] << Option("<empty>", [](const Option& o) { Tablebases::init(o); });
+    options["SyzygyPath"]   << Option("<empty>", [](const Option& o) { Tablebases::init(o); });
     options["SyzygyProbeLimit"] << Option(7, 0, 7);
     options["SyzygyProbeDepth"] << Option(1, 1, 100);
     options["Syzygy50MoveRule"] << Option(true);
-    options["EvalFileBig"] << Option(EvalFileDefaultNameBig,
+    options["EvalFileBig"]  << Option(EvalFileDefaultNameBig,
                                      [this](const Option& o) { engine.load_big_network(o); });
     options["EvalFileSmall"] << Option(EvalFileDefaultNameSmall,
                                        [this](const Option& o) { engine.load_small_network(o); });
-    options["MinimalReport"] << Option(false,
-                                       [this](const Option& o) { engine.set_minimalreport(o); });
+    options["ReportMinimal"] << Option(false, [this](const Option& o) { engine.report_minimal(o); });
     options["DebugLogFile"] << Option("<empty>", [](const Option& o) { start_logger(o); });
-
+    // clang-format on
     engine.set_on_update_short(on_update_short);
     engine.set_on_update_full(on_update_full);
     engine.set_on_update_iteration(on_update_iteration);
@@ -257,7 +253,7 @@ void UCI::handle_commands() noexcept {
         else if (token == "show")
             engine.show();
         else if (token == "eval")
-            engine.trace_eval();
+            engine.eval();
         else if (token == "flip")
             engine.flip();
         else if (token == "compiler")
@@ -385,7 +381,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
             }
             else
             {
-                engine.trace_eval();
+                engine.eval();
             }
         }
         else if (token == "position")
@@ -605,7 +601,8 @@ enum Ambiguity : std::uint8_t {
 Ambiguity ambiguity(Move m, const Position& pos) noexcept {
     assert(pos.pseudo_legal(m) && pos.legal(m));
 
-    Color        stm = pos.side_to_move();
+    Color stm = pos.side_to_move();
+
     const Square org = m.org_sq(), dst = m.dst_sq();
     assert(color_of(pos.piece_on(org)) == stm);
     PieceType pt = type_of(pos.piece_on(org));

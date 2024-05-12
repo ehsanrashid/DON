@@ -58,6 +58,8 @@ class TimeManagement final {
     std::int64_t totalNodes;
 };
 
+inline TimeManagement::TimeManagement() noexcept { clear(); }
+
 inline TimePoint TimeManagement::optimum() const noexcept { return optimumTime; }
 
 inline TimePoint TimeManagement::maximum() const noexcept { return maximumTime; }
@@ -67,6 +69,13 @@ inline TimePoint TimeManagement::elapsed() const noexcept { return now() - start
 template<typename Func>
 inline TimePoint TimeManagement::elapsed(Func nodes) const noexcept {
     return useNodesTime ? TimePoint(nodes()) : elapsed();
+}
+
+inline void TimeManagement::clear() noexcept {
+    optimumTime  = 0;
+    maximumTime  = 0;
+    useNodesTime = false;
+    totalNodes   = -1LL;
 }
 
 }  // namespace DON

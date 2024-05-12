@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cassert>
 #include <cctype>
 #include <cstring>
 #include <initializer_list>

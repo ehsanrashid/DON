@@ -120,7 +120,7 @@ class Position final {
     Square cap_square() const noexcept;
 
     // Castling
-    //CastlingRights castling_rights(Color c) const noexcept;
+    // CastlingRights castling_rights(Color c) const noexcept;
     bool   can_castle(CastlingRights cr) const noexcept;
     bool   castling_impeded(CastlingRights cr) const noexcept;
     Square castling_rook_square(CastlingRights cr) const noexcept;
@@ -143,9 +143,9 @@ class Position final {
     // Attacks from a piece type
     template<PieceType PT>
     Bitboard attacks_by(Color c, Bitboard target = ~0ULL, Bitboard occupied = 0ULL) const noexcept;
-    //template<PieceType PT>
-    //Bitboard attacks_by(Color c) const noexcept;
-    //Bitboard attacks_by(Color c) const noexcept;
+    // template<PieceType PT>
+    // Bitboard attacks_by(Color c) const noexcept;
+    // Bitboard attacks_by(Color c) const noexcept;
 
    public:
     // Properties of moves
@@ -158,7 +158,7 @@ class Position final {
     Piece moved_piece(Move m) const noexcept;
     Piece captured_piece(Move m) const noexcept;
     Piece captured_piece() const noexcept;
-    //Piece promoted_piece() const noexcept;
+    // Piece promoted_piece() const noexcept;
 
     // Doing and undoing moves
     void do_move(Move m, StateInfo& newSt) noexcept;

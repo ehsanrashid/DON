@@ -74,7 +74,7 @@ class PolyBook final {
     // Key data
     int firstIndex, bestIndex, randIndex;
     int keyCount;
-    int keyWeightSum;
+    int sumKeyWeight;
 };
 
 }  // namespace DON

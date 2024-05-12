@@ -30,6 +30,7 @@ FixNamespaceComments: true
 IndentGotoLabels: false
 IndentPPDirectives: BeforeHash
 IndentWidth: 4
+UseTab: Never
 MaxEmptyLinesToKeep: 2
 NamespaceIndentation: None
 PackConstructorInitializers: Never

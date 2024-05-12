@@ -27,14 +27,6 @@
 
 namespace DON {
 
-TimeManagement::TimeManagement() noexcept { clear(); }
-
-void TimeManagement::clear() noexcept {
-    optimumTime  = 0;
-    maximumTime  = 0;
-    useNodesTime = false;
-    totalNodes   = -1LL;
-}
 // When in 'Nodes as Time' mode
 void TimeManagement::advance(std::int64_t diffNodes) noexcept {
     assert(useNodesTime);
