@@ -1016,7 +1016,7 @@ std::uint8_t* set_sizes(PairsData* d, std::uint8_t* data) noexcept {
     // groupLen[] is a zero-terminated list of group lengths, the last groupIdx[]
     // element stores the biggest index that is the tb size.
     std::uint64_t tbSize =
-      d->groupIdx[std::find(std::begin(d->groupLen), std::end(d->groupLen) - 1, 0)
+      d->groupIdx[std::find(std::begin(d->groupLen), std::begin(d->groupLen) + 7, 0)
                   - std::begin(d->groupLen)];
 
     d->blockSize       = 1ULL << *data++;
@@ -1594,9 +1594,9 @@ bool root_probe(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noe
     int dtz, bound = useRule50 ? (MAX_DTZ - 100) : 1;
 
     // Probe and rank each move
-    for (auto& rm : rootMoves)
+    for (Search::RootMove& rm : rootMoves)
     {
-        pos.do_move(rm.pv[0], st);
+        pos.do_move(rm[0], st);
 
         // Calculate dtz for the current move counting from the root position
         if (pos.rule50_count() == 0)
@@ -1622,7 +1622,7 @@ bool root_probe(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noe
         if (dtz == 2 && pos.checkers() && MoveList<LEGAL>(pos).size() == 0)
             dtz = 1;
 
-        pos.undo_move(rm.pv[0]);
+        pos.undo_move(rm[0]);
 
         if (result == FAIL)
             return false;
@@ -1659,13 +1659,13 @@ bool root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, bool useRule50)
     ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
 
     // Probe and rank each move
-    for (auto& rm : rootMoves)
+    for (Search::RootMove& rm : rootMoves)
     {
-        pos.do_move(rm.pv[0], st);
+        pos.do_move(rm[0], st);
 
         WDLScore wdl = pos.is_draw(1) ? WDLDraw : -probe_wdl(pos, &result);
 
-        pos.undo_move(rm.pv[0]);
+        pos.undo_move(rm[0]);
 
         if (result == FAIL)
             return false;
@@ -1718,18 +1718,20 @@ rank_root_moves(Position& pos, Search::RootMoves& rootMoves, const OptionsMap& o
     if (config.rootInTB)
     {
         // Sort moves according to TB rank
-        std::stable_sort(rootMoves.begin(), rootMoves.end(),
-                         [](const auto& rm1, const auto& rm2) noexcept -> bool {
-                             return rm1.tbRank > rm2.tbRank;
-                         });
+        rootMoves.sort(
+          [](const Search::RootMove& rm1, const Search::RootMove& rm2) noexcept -> bool {
+              return rm1.tbRank != rm2.tbRank   ? rm1.tbRank > rm2.tbRank
+                   : rm1.tbValue != rm2.tbValue ? rm1.tbValue > rm2.tbValue
+                                                : rm1 < rm2;
+          });
         // Probe during search only if DTZ is not available and winning
-        if (dtzAvailable || rootMoves[0].tbValue <= VALUE_DRAW)
+        if (dtzAvailable || rootMoves.front().tbValue <= VALUE_DRAW)
             config.cardinality = 0;
     }
     else
     {
         // Clean up if root_probe() and root_probe_wdl() have failed
-        for (auto& rm : rootMoves)
+        for (Search::RootMove& rm : rootMoves)
             rm.tbRank = 0;
     }
 

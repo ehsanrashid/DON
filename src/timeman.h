@@ -32,11 +32,11 @@ namespace Search {
 struct Limits;
 }
 
-// The TimeManagement class computes the optimal time to think depending on
+// TimeManager class computes the optimal time to think depending on
 // the maximum available time, the game move number, and other parameters.
-class TimeManagement final {
+class TimeManager final {
    public:
-    TimeManagement() noexcept;
+    TimeManager() noexcept;
     void init(Search::Limits& limits, const Position& pos, const OptionsMap& options) noexcept;
 
     TimePoint optimum() const noexcept;
@@ -46,37 +46,41 @@ class TimeManagement final {
     TimePoint elapsed(Func nodes) const noexcept;
 
     void clear() noexcept;
-    void advance(std::int64_t diffNodes) noexcept;
 
-    bool useNodesTime;
+    bool use_nodes_time() const noexcept;
+    void advance(std::int64_t usedNodes) noexcept;
 
    private:
     TimePoint startTime;
     TimePoint optimumTime;
     TimePoint maximumTime;
 
-    std::int64_t totalNodes;
+    TimePoint    nodesTime;
+    std::int64_t startNodes;
 };
 
-inline TimeManagement::TimeManagement() noexcept { clear(); }
+inline TimeManager::TimeManager() noexcept { clear(); }
 
-inline TimePoint TimeManagement::optimum() const noexcept { return optimumTime; }
+inline TimePoint TimeManager::optimum() const noexcept { return optimumTime; }
 
-inline TimePoint TimeManagement::maximum() const noexcept { return maximumTime; }
+inline TimePoint TimeManager::maximum() const noexcept { return maximumTime; }
 
-inline TimePoint TimeManagement::elapsed() const noexcept { return now() - startTime; }
+inline TimePoint TimeManager::elapsed() const noexcept { return now() - startTime; }
 
 template<typename Func>
-inline TimePoint TimeManagement::elapsed(Func nodes) const noexcept {
-    return useNodesTime ? TimePoint(nodes()) : elapsed();
+inline TimePoint TimeManager::elapsed(Func nodes) const noexcept {
+    return use_nodes_time() ? TimePoint(nodes()) : elapsed();
 }
 
-inline void TimeManagement::clear() noexcept {
-    optimumTime  = 0;
-    maximumTime  = 0;
-    useNodesTime = false;
-    totalNodes   = -1LL;
+inline void TimeManager::clear() noexcept {
+    optimumTime = 0;
+    maximumTime = 0;
+
+    nodesTime  = 0;
+    startNodes = -1LL;
 }
+
+inline bool TimeManager::use_nodes_time() const noexcept { return nodesTime != 0; }
 
 }  // namespace DON
 

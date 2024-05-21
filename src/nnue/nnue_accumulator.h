@@ -23,6 +23,7 @@
 #include <array>
 #include <cstdint>
 
+#include "../misc.h"
 #include "../types.h"
 #include "nnue_architecture.h"
 #include "nnue_common.h"
@@ -87,7 +88,7 @@ struct AccumulatorCaches {
 
         std::array<Entry, COLOR_NB>& operator[](Square sq) { return entries[sq]; }
 
-        std::array<std::array<Entry, COLOR_NB>, SQUARE_NB> entries;
+        std::array2d<Entry, COLOR_NB, SQUARE_NB> entries;
     };
 
     template<typename Networks>

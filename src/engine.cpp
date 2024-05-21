@@ -54,7 +54,7 @@ void Engine::setup(std::string_view fen, const std::vector<std::string>& moves) 
     for (const std::string& can : moves)
     {
         Move m = UCI::can_to_move(can, pos);
-        if (!m)
+        if (m == Move::None())
             break;
         assert(pos.rule50_count() <= 100);
         states->emplace_back();
@@ -103,10 +103,6 @@ void Engine::resize_tt(std::size_t mbSize) noexcept {
 void Engine::init_book(const std::string& bookFile) noexcept {
     wait_finish();
     threads.main_manager()->polyBook.init(bookFile);
-}
-
-void Engine::report_minimal(bool reportMinimal) noexcept {
-    threads.main_manager()->reportMinimal = reportMinimal;
 }
 
 void Engine::show() const noexcept { sync_cout << pos << sync_endl; }

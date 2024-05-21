@@ -225,17 +225,6 @@ ifeq ($(findstring -avx2,$(ARCH)), -avx2)
 	avx2 = yes
 endif
 
-ifeq ($(findstring -avxvnni,$(ARCH)), -avxvnni)
-	popcnt = yes
-	sse = yes
-	sse2 = yes
-	ssse3 = yes
-	sse41 = yes
-	avx2 = yes
-	avxvnni = yes
-	pext = yes
-endif
-
 ifeq ($(findstring -bmi2,$(ARCH)), -bmi2)
 	popcnt = yes
 	sse = yes
@@ -244,6 +233,17 @@ ifeq ($(findstring -bmi2,$(ARCH)), -bmi2)
 	sse41 = yes
 	avx2 = yes
 	pext = yes
+endif
+
+ifeq ($(findstring -avxvnni,$(ARCH)), -avxvnni)
+	popcnt = yes
+	sse = yes
+	sse2 = yes
+	ssse3 = yes
+	sse41 = yes
+	avx2 = yes
+	pext = yes
+	avxvnni = yes
 endif
 
 ifeq ($(findstring -avx512,$(ARCH)), -avx512)
@@ -1035,6 +1035,7 @@ config-sanity: net
 	@test "$(ssse3)" = "yes" || test "$(ssse3)" = "no"
 	@test "$(sse41)" = "yes" || test "$(sse41)" = "no"
 	@test "$(avx2)" = "yes" || test "$(avx2)" = "no"
+	@test "$(avxvnni)" = "yes" || test "$(avxvnni)" = "no"
 	@test "$(avx512)" = "yes" || test "$(avx512)" = "no"
 	@test "$(vnni256)" = "yes" || test "$(vnni256)" = "no"
 	@test "$(vnni512)" = "yes" || test "$(vnni512)" = "no"

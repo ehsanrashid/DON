@@ -15,6 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <cstdlib>
 #include <iostream>
 
 #include "bitboard.h"
@@ -26,12 +27,19 @@
 
 using namespace DON;
 
+void atexit_handler() noexcept;
+
 int main(int argc, const char** argv) noexcept {
 
     std::cout << engine_info() << '\n';
 
+    std::atexit(atexit_handler);
+
     Bitboards::init();
     Position::init();
+#if !defined(NDEBUG)
+    dbg_init();
+#endif
 
     UCI uci(argc, argv);
 
@@ -39,5 +47,9 @@ int main(int argc, const char** argv) noexcept {
 
     uci.handle_commands();
 
-    return 0;
+    return EXIT_SUCCESS;
+}
+
+void atexit_handler() noexcept {
+    //std::cout << "Thanks !!!\n";
 }

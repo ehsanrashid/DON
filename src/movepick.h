@@ -24,7 +24,6 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <cstdlib>
 #include <limits>
 #include <type_traits>  // IWYU pragma: keep
 
@@ -35,22 +34,20 @@ namespace DON {
 
 class Position;
 
-using KillerMoves = std::array<Move, 2>;
-
-constexpr std::uint16_t PAWN_HISTORY_SIZE        = 0x200;   // has to be a power of 2
-constexpr std::uint16_t CORRECTION_HISTORY_SIZE  = 0x4000;  // has to be a power of 2
-constexpr std::int32_t  CORRECTION_HISTORY_LIMIT = 1024;
+constexpr inline Key16        PAWN_HISTORY_SIZE        = 0x200;   // has to be a power of 2
+constexpr inline Key16        CORRECTION_HISTORY_SIZE  = 0x4000;  // has to be a power of 2
+constexpr inline std::int32_t CORRECTION_HISTORY_LIMIT = 1024;
 
 static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
               "PAWN_HISTORY_SIZE has to be a power of 2");
 static_assert((CORRECTION_HISTORY_SIZE & (CORRECTION_HISTORY_SIZE - 1)) == 0,
               "CORRECTION_HISTORY_SIZE has to be a power of 2");
 
-constexpr std::uint16_t pawn_index(Key pawnKey) noexcept {
-    return std::uint16_t(pawnKey) & (PAWN_HISTORY_SIZE - 1);
+constexpr Key16 pawn_index(Key pawnKey) noexcept {
+    return Key16(pawnKey) & (PAWN_HISTORY_SIZE - 1);
 }
-constexpr std::uint16_t correction_index(Key pawnKey) noexcept {
-    return std::uint16_t(pawnKey) & (CORRECTION_HISTORY_SIZE - 1);
+constexpr Key16 correction_index(Key pawnKey) noexcept {
+    return Key16(pawnKey) & (CORRECTION_HISTORY_SIZE - 1);
 }
 
 // StatsEntry stores the stat table value. It is usually a number but could
@@ -102,7 +99,7 @@ template<typename T, std::int32_t D, std::uint32_t Size>
 struct Stats<T, D, Size> final: public std::array<StatsEntry<T, D>, Size> {};
 
 // In stats table, D=0 means that the template parameter is not used
-constexpr std::int32_t NOT_USED = 0;
+constexpr inline std::int32_t NOT_USED = 0;
 
 // ButterflyHistory records how often quiet moves have been successful or unsuccessful
 // during the current search, and is used for reduction and move ordering decisions.
@@ -133,8 +130,7 @@ using PawnHistory = Stats<std::int16_t, 8192, PAWN_HISTORY_SIZE, PIECE_NB, SQUAR
 using CorrectionHistory =
   Stats<std::int16_t, CORRECTION_HISTORY_LIMIT, COLOR_NB, CORRECTION_HISTORY_SIZE>;
 
-template<typename T, std::uint32_t M, std::uint32_t N>
-using Array2D = std::array<std::array<T, N>, M>;
+using KillerMoves = std::array<Move, 2>;
 
 enum Stage : std::uint8_t {
     NO_STAGE,
@@ -229,7 +225,7 @@ class MovePicker final {
     Depth                         depth;
     int                           threshold;
 
-    ExtMove *cur, *endMoves, *endBadCaptures, *beginBadQuiets, *endBadQuiets;
+    ExtMove *cur, *endMoves, *begRef, *endRef, *endBadCaptures, *begBadQuiets, *endBadQuiets;
     ExtMove  refutations[3];
     ExtMove  moves[MAX_MOVES];
 };

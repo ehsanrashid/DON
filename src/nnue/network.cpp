@@ -207,7 +207,7 @@ Value Network<Arch, Transformer>::evaluate(const Position&                      
     if (complexity)
         *complexity = std::abs(psqt - positional) / OutputScale;
 
-    int delta = 24 * adjusted;
+    int delta = adjusted * std::max(28 - pos.non_pawn_material() / 1800, 24);
     // Give more value to positional evaluation when adjusted flag is set
     return ((1024 - delta) * psqt + (1024 + delta) * positional) / (1024 * OutputScale);
 }

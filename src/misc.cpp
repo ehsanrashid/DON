@@ -51,6 +51,7 @@ using Fun8_t = bool (*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGE
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <mutex>
 #include <sstream>
 #include <string_view>
@@ -318,13 +319,13 @@ std::string compiler_info() noexcept {
     return compiler;
 }
 
-
+#if !defined(NDEBUG)
 // Debug functions used mainly to collect run-time statistics
 namespace {
 
 template<std::uint8_t N>
 struct DebugInfo {
-    std::atomic_int64_t data[N] = {0};
+    std::atomic_int64_t data[N];  // = {0};
 
     constexpr inline std::atomic_int64_t& operator[](std::uint8_t index) noexcept {
         return data[index];
@@ -334,17 +335,44 @@ struct DebugInfo {
 constexpr std::uint8_t MaxSlot = 32;
 
 DebugInfo<2> hit[MaxSlot];
+DebugInfo<2> min[MaxSlot];
+DebugInfo<2> max[MaxSlot];
 DebugInfo<2> mean[MaxSlot];
 DebugInfo<3> stdev[MaxSlot];
 DebugInfo<6> correl[MaxSlot];
 
 }  // namespace
 
+void dbg_init() noexcept {
+
+    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+    {
+        hit[i][0] = hit[i][1] = 0;
+        min[i][0] = 0, min[i][1] = std::numeric_limits<std::int64_t>::max();
+        max[i][0] = 0, max[i][1] = std::numeric_limits<std::int64_t>::min();
+        mean[i][0] = mean[i][1] = 0;
+        stdev[i][0] = stdev[i][1] = stdev[i][2] = 0;
+        correl[i][0] = correl[i][1] = correl[i][2] = correl[i][3] = correl[i][4] = correl[i][5] = 0;
+    }
+}
+
 void dbg_hit_on(bool cond, std::uint8_t slot) noexcept {
 
     ++hit[slot][0];
     if (cond)
         ++hit[slot][1];
+}
+
+void dbg_min_of(std::int64_t value, std::uint8_t slot) noexcept {
+
+    ++min[slot][0];
+    min[slot][1] = std::min<std::int64_t>(value, min[slot][1]);
+}
+
+void dbg_max_of(std::int64_t value, std::uint8_t slot) noexcept {
+
+    ++max[slot][0];
+    max[slot][1] = std::max<std::int64_t>(value, max[slot][1]);
 }
 
 void dbg_mean_of(std::int64_t value, std::uint8_t slot) noexcept {
@@ -383,6 +411,14 @@ void dbg_print() noexcept {
                       << " Hit Rate (%) " << 100.0 * avg(hit[i][1]) << '\n';
 
     for (std::uint8_t i = 0; i < MaxSlot; ++i)
+        if ((n = min[i][0]))
+            std::cerr << "Min #" << int(i) << ": Total " << n << " Min " << min[i][1] << '\n';
+
+    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+        if ((n = max[i][0]))
+            std::cerr << "Max #" << int(i) << ": Total " << n << " Max " << max[i][1] << '\n';
+
+    for (std::uint8_t i = 0; i < MaxSlot; ++i)
         if ((n = mean[i][0]))
             std::cerr << "Mean #" << int(i) << ": Total " << n << " Mean " << avg(mean[i][1])
                       << '\n';
@@ -403,6 +439,7 @@ void dbg_print() noexcept {
             std::cerr << "Correl #" << int(i) << ": Total " << n << " Coefficient " << r << '\n';
         }
 }
+#endif
 
 // Used to serialize access to std::cout
 // to avoid multiple threads writing at the same time.

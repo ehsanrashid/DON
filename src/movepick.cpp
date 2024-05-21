@@ -50,9 +50,9 @@ MovePicker::MovePicker(const Position&               p,
     depth(d),
     refutations{{km[0], 0}, {km[1], 0}, {cm, 0}} {
     assert(depth > DEPTH_ZERO);
-    assert(!ttMove || pos.pseudo_legal(ttMove));
+    assert(ttMove == Move::None() || pos.pseudo_legal(ttMove));
 
-    stage = (pos.checkers() ? EVASION_TT : MAIN_TT) + !ttMove;
+    stage = (pos.checkers() ? EVASION_TT : MAIN_TT) + (ttMove == Move::None());
 }
 
 // Constructor for quiescence search
@@ -71,9 +71,9 @@ MovePicker::MovePicker(const Position&               p,
     ttMove(ttm),
     depth(d) {
     assert(depth <= DEPTH_ZERO);
-    assert(!ttMove || pos.pseudo_legal(ttMove));
+    assert(ttMove == Move::None() || pos.pseudo_legal(ttMove));
 
-    stage = (pos.checkers() ? EVASION_TT : QSEARCH_TT) + !ttMove;
+    stage = (pos.checkers() ? EVASION_TT : QSEARCH_TT) + (ttMove == Move::None());
 }
 
 // Constructor for ProbCut: generate captures with SEE greater
@@ -87,9 +87,10 @@ MovePicker::MovePicker(const Position&               p,
     ttMove(ttm),
     threshold(th) {
     assert(!pos.checkers());
-    assert(!ttMove || pos.pseudo_legal(ttMove));
+    assert(ttMove == Move::None() || pos.pseudo_legal(ttMove));
 
-    stage = PROBCUT_TT + !(ttMove && pos.capture_stage(ttMove) && pos.see_ge(ttMove, threshold));
+    stage = PROBCUT_TT
+          + !(ttMove != Move::None() && pos.capture_stage(ttMove) && pos.see_ge(ttMove, threshold));
 }
 
 // Assigns a numerical value to each move in a list, used
@@ -116,7 +117,7 @@ void MovePicker::score() noexcept {
 
             m.value = 7 * PieceValue[capturedPiece] - pt
                     + (*captureHistory)[pc][dst][type_of(capturedPiece)]
-                    + (pos.cap_square() == dst) * 256;
+                    + (pos.cap_square() == dst) * 128;
         }
 
         else if constexpr (GT == QUIETS)
@@ -230,30 +231,45 @@ top:
                 // Move losing capture to endBadCaptures to be tried later
                 return pos.see_ge(*cur, -cur->value / 18) ? true
                                                           : (*endBadCaptures++ = *cur, false);
-            }))
+            })
+            != Move::None())
             return *(cur - 1);
 
-        // Prepare the pointers to loop over the refutations array
-        cur      = std::begin(refutations);
-        endMoves = std::end(refutations);
+        begRef = std::begin(refutations);
+        endRef = std::end(refutations);
 
         // If the counterMove is the same as a killerMoves, skip it
-        if (refutations[2]
-            && (refutations[2] == refutations[0] || refutations[2] == refutations[1]))
-            refutations[2] = Move::None();
-
         std::replace_if(
-          cur, endMoves,
-          [&pos = pos](Move m) noexcept -> bool {
-              return m && (pos.capture_stage(m) || !pos.pseudo_legal(m));
+          begRef, endRef,
+          [&pos = std::as_const(pos)](Move m) noexcept -> bool {
+              return m != Move::None() && (pos.capture_stage(m) || !pos.pseudo_legal(m));
           },
           Move::None());
+        if (begRef[2] != Move::None() && (begRef[2] == begRef[0] || begRef[2] == begRef[1]))
+            begRef[2] = Move::None();
+        if (begRef[2] == Move::None())
+            --endRef;
+        if (begRef[1] == Move::None())
+        {
+            if (begRef[2] != Move::None())
+            {
+                begRef[1] = begRef[2];
+                begRef[2] = Move::None();
+            }
+            --endRef;
+        }
+        if (begRef[0] == Move::None())
+            ++begRef;
+        // Prepare the pointers to loop over the refutations array
+        assert(begRef <= endRef);
+        cur      = begRef;
+        endMoves = endRef;
 
         ++stage;
         [[fallthrough]];
 
     case REFUTATION :
-        if (pick([this]() noexcept -> bool { return bool(*cur); }))
+        if (pick([this]() noexcept -> bool { return *cur != Move::None(); }) != Move::None())
             return *(cur - 1);
 
         ++stage;
@@ -263,7 +279,7 @@ top:
         if (pickQuiets)
         {
             cur      = endBadCaptures;
-            endMoves = beginBadQuiets = endBadQuiets = generate<QUIETS>(pos, cur);
+            endMoves = begBadQuiets = endBadQuiets = generate<QUIETS>(pos, cur);
 
             score<QUIETS>();
             partial_sort(quiet_threshold(depth));
@@ -274,15 +290,14 @@ top:
 
     case QUIET_GOOD :
         if (pickQuiets && pick([this]() noexcept -> bool {
-                return std::find(std::begin(refutations), std::end(refutations), *cur)
-                    == std::end(refutations);
-            }))
+                              return std::find(begRef, endRef, *cur) == endRef;
+                          }) != Move::None())
         {
             if ((cur - 1)->value > -7998 || (cur - 1)->value <= quiet_threshold(depth))
                 return *(cur - 1);
 
             // Remaining quiets are bad
-            beginBadQuiets = cur - 1;
+            begBadQuiets = cur - 1;
         }
 
         // Prepare the pointers to loop over the bad captures
@@ -293,11 +308,11 @@ top:
         [[fallthrough]];
 
     case CAPTURE_BAD :
-        if (pick([]() noexcept -> bool { return true; }))
+        if (pick([]() noexcept -> bool { return true; }) != Move::None())
             return *(cur - 1);
 
         // Prepare the pointers to loop over the bad quiets
-        cur      = beginBadQuiets;
+        cur      = begBadQuiets;
         endMoves = endBadQuiets;
 
         ++stage;
@@ -305,10 +320,8 @@ top:
 
     case QUIET_BAD :
         if (pickQuiets)
-            return pick([this]() noexcept -> bool {
-                return std::find(std::begin(refutations), std::end(refutations), *cur)
-                    == std::end(refutations);
-            });
+            return pick(
+              [this]() noexcept -> bool { return std::find(begRef, endRef, *cur) == endRef; });
 
         return Move::None();
 
@@ -328,7 +341,7 @@ top:
         return pick([this]() noexcept -> bool { return pos.see_ge(*cur, threshold); });
 
     case QCAPTURE :
-        if (pick([]() noexcept -> bool { return true; }))
+        if (pick([]() noexcept -> bool { return true; }) != Move::None())
             return *(cur - 1);
 
         // If did not find any move and the depth is too low to try checks, then finished

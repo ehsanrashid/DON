@@ -21,7 +21,6 @@
 #include <cassert>
 #include <cctype>
 #include <cmath>
-#include <cstdlib>
 #include <optional>
 #include <iostream>
 #include <limits>
@@ -184,11 +183,9 @@ UCI::UCI(int argc, const char** argv) noexcept :
     options["SyzygyProbeLimit"] << Option(7, 0, 7);
     options["SyzygyProbeDepth"] << Option(1, 1, 100);
     options["Syzygy50MoveRule"] << Option(true);
-    options["EvalFileBig"]  << Option(EvalFileDefaultNameBig,
-                                     [this](const Option& o) { engine.load_big_network(o); });
-    options["EvalFileSmall"] << Option(EvalFileDefaultNameSmall,
-                                       [this](const Option& o) { engine.load_small_network(o); });
-    options["ReportMinimal"] << Option(false, [this](const Option& o) { engine.report_minimal(o); });
+    options["EvalFileBig"]  << Option(EvalFileDefaultNameBig, [this](const Option& o) { engine.load_big_network(o); });
+    options["EvalFileSmall"] << Option(EvalFileDefaultNameSmall, [this](const Option& o) { engine.load_small_network(o); });
+    options["ReportMinimal"] << Option(false);
     options["DebugLogFile"] << Option("<empty>", [](const Option& o) { start_logger(o); });
     // clang-format on
     engine.set_on_update_short(on_update_short);
@@ -345,7 +342,11 @@ void UCI::bench(std::istringstream& iss) noexcept {
         on_update_full(info);
     });
 
-    TimePoint elapsedTime = now();
+#if !defined(NDEBUG)
+    dbg_init();
+#endif
+    TimePoint startTime   = now();
+    TimePoint elapsedTime = 0;
 
     std::uint64_t nodes = 0;
 
@@ -390,16 +391,17 @@ void UCI::bench(std::istringstream& iss) noexcept {
             setoption(is);
         else if (token == "ucinewgame")
         {
+            elapsedTime += now() - startTime;
             engine.clear();  // May take a while
-            elapsedTime = now();
+            startTime = now();
         }
     }
 
     // Ensure non-zero to avoid a 'divide by zero'
-    elapsedTime = std::max(now() - elapsedTime, 1LL);
-
+    elapsedTime += std::max(now() - startTime, 1LL);
+#if !defined(NDEBUG)
     dbg_print();
-
+#endif
     std::cerr << "\n==========================="
               << "\nTotal time (ms) : " << elapsedTime  //
               << "\nTotal Nodes     : " << nodes        //
@@ -418,16 +420,14 @@ struct WinRateParams final {
 
 WinRateParams win_rate_params(const Position& pos) noexcept {
 
-    std::uint16_t material = pos.count<PAWN>() + 3 * pos.count<KNIGHT>() + 3 * pos.count<BISHOP>()
-                           + 5 * pos.count<ROOK>() + 9 * pos.count<QUEEN>();
-
-    // The fitted model only uses data for material counts in [10, 78], and is anchored at count 58.
-    double m = std::clamp<std::uint16_t>(material, 10, 78) / 58.0;
+    // The fitted model only uses data for material counts in [10, 78], and is anchored at count 58 (0.017241).
+    double m = 0.017241 * std::clamp<std::uint16_t>(pos.material(), 10, 78);
 
     // Return a = p_a(material) and b = p_b(material).
+    // clang-format off
     constexpr double as[4]{-150.77043883, 394.96159472, -321.73403766, 406.15850091};
-    constexpr double bs[4]{62.33245393, -91.02264855, 45.88486850, 51.63461272};
-
+    constexpr double bs[4]{  62.33245393, -91.02264855,   45.88486850,  51.63461272};
+    // clang-format on
     double a = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
     double b = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
 
@@ -540,11 +540,7 @@ Move UCI::can_to_move(const std::string& can, const Position& pos) noexcept {
 }
 
 void UCI::on_update_short(const Search::InfoShort& info) noexcept {
-    std::ostringstream oss;
-    oss << "info"
-        << " depth " << info.depth  //
-        << " score " << format_score({info.pos.checkers() ? -VALUE_MATE : VALUE_DRAW, info.pos});
-    sync_cout << oss.str() << sync_endl;
+    sync_cout << "info depth 0 score " << (info.inCheck ? "mate" : "cp") << " 0" << sync_endl;
 }
 
 void UCI::on_update_full(const Search::InfoFull& info) noexcept {
@@ -566,7 +562,7 @@ void UCI::on_update_full(const Search::InfoFull& info) noexcept {
         << " hashfull " << info.hashfull             //
         << " tbhits " << info.tbHits                 //
         << " pv";
-    for (Move m : info.rootMove.pv)
+    for (Move m : info.rootMove)
         oss << " " << move_to_can(m);
     sync_cout << oss.str() << sync_endl;
 }
@@ -582,7 +578,7 @@ void UCI::on_update_iteration(const Search::InfoIteration& info) noexcept {
 
 void UCI::on_update_bestmove(const Search::InfoBestMove& info) noexcept {
     sync_cout << "bestmove " << move_to_can(info.bestMove);
-    if (info.ponderMove.is_ok())
+    if (info.ponderMove != Move::None())
         std::cout << " ponder " << move_to_can(info.ponderMove);
     std::cout << sync_endl;
 }

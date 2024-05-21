@@ -39,7 +39,9 @@ Option::Option(bool v, OnChange&& f) noexcept :
     minValue(0),
     maxValue(0),
     onChange(std::move(f)) {
-    defaultValue = currentValue = (v ? "true" : "false");
+    std::ostringstream oss;
+    oss << std::boolalpha << v;
+    defaultValue = currentValue = oss.str();
 }
 
 Option::Option(const char* v, OnChange&& f) noexcept :
@@ -158,7 +160,7 @@ bool CaseInsensitiveLess::operator()(std::string_view s1, std::string_view s2) c
 }
 
 void OptionsMap::setoption(const std::string& name, const std::string& value) noexcept {
-    if (optionsMap.count(name))
+    if (optionsMap.find(name) != optionsMap.end())
         optionsMap[name] = value;
     else
         sync_cout << "No such option: " << name << sync_endl;

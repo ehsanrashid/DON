@@ -65,8 +65,8 @@ struct Cuckoo final {
 std::array<Cuckoo, 0X2000> Cuckoos;
 
 // First and second hash functions for indexing the cuckoo tables
-constexpr std::uint16_t H1(Key k) noexcept { return std::uint16_t(k >> 00) & (Cuckoos.size() - 1); }
-constexpr std::uint16_t H2(Key k) noexcept { return std::uint16_t(k >> 16) & (Cuckoos.size() - 1); }
+constexpr Key16 H1(Key k) noexcept { return Key16(k >> 00) & (Cuckoos.size() - 1); }
+constexpr Key16 H2(Key k) noexcept { return Key16(k >> 16) & (Cuckoos.size() - 1); }
 
 }  // namespace
 
@@ -116,11 +116,11 @@ void Position::init() noexcept {
                     Cuckoo ck{Zobrist::psq[pc][s1] ^ Zobrist::psq[pc][s2] ^ Zobrist::side,
                               Move(s1, s2)};
 
-                    std::uint16_t i = H1(ck.key);
+                    Key16 i = H1(ck.key);
                     while (true)
                     {
                         std::swap(Cuckoos[i], ck);
-                        if (!ck.move)  // Arrived at empty slot?
+                        if (ck.move == Move::None())  // Arrived at empty slot?
                             break;
                         i ^= H1(ck.key) ^ H2(ck.key);  // Push victim to alternative slot
                     }
@@ -609,13 +609,14 @@ Bitboard Position::attacks_by(Color c, Bitboard target, Bitboard occupied) const
     {
         attacks = 0;
 
-        Bitboard attackers = pieces(c, PT);
-        while (attackers)
+        Bitboard pc = pieces<PT>(c, ksq);
+        while (pc)
         {
-            Square   org  = pop_lsb(attackers);
+            Square   org  = pop_lsb(pc);
             Bitboard atks = attacks_bb<PT>(org, occupied);
-            if (blockers(c) & org)
-                atks &= line_bb(ksq, org);
+            if constexpr (PT != KNIGHT)
+                if (blockers(c) & org)
+                    atks &= line_bb(ksq, org);
             st->mobility[c] += MobilityWeight[PT] * popcount(atks & target);
             attacks |= atks;
         }
@@ -767,7 +768,7 @@ bool Position::pseudo_legal(Move m) const noexcept {
     }
 
     // Evasions generator already takes care to avoid some kind of illegal moves and legal() relies on this.
-    // Therefore have to take care that the same kind of moves are filtered out here.
+    // Therefore have to take care that the some kind of moves are filtered out here.
     if (checkers())
     {
         // In case of king moves under check have to remove the king so as to catch
@@ -849,8 +850,8 @@ bool Position::gives_dbl_check(Move m) const noexcept {
             && (attacks_bb(m.promotion_type(), dst, pieces() ^ org) & king_square(~sideToMove));
 
     case EN_PASSANT : {
-        Bitboard      occupied = (pieces() ^ org ^ make_square(file_of(dst), rank_of(org))) | dst;
-        std::uint16_t checkerCnt =
+        Bitboard     occupied = (pieces() ^ org ^ make_square(file_of(dst), rank_of(org))) | dst;
+        std::uint8_t checkerCnt =
           popcount((pieces(sideToMove, QUEEN, BISHOP)
                     & attacks_bb<BISHOP>(king_square(~sideToMove), occupied))
                    | (pieces(sideToMove, QUEEN, ROOK)
@@ -1232,7 +1233,7 @@ void Position::undo_null_move() noexcept {
 
 // Computes the new hash key after the given move.
 // Needed for speculative prefetch.
-// It doesn't recognize special moves like castling, en-passant and promotions.
+// It does recognize special moves like castling, en-passant and promotions.
 Key Position::move_key(Move m) const noexcept {
 
     const Square org = m.org_sq(), dst = m.dst_sq();
@@ -1292,7 +1293,9 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     Square org = m.org_sq(), dst = m.dst_sq();
     assert(color_of(piece_on(org)) == sideToMove);
 
-    Square cap = m.type_of() != EN_PASSANT ? dst : dst - pawn_spush(sideToMove);
+    Square cap = dst;
+    if (m.type_of() == EN_PASSANT)
+        cap -= pawn_spush(sideToMove);
 
     int swap;
 
@@ -1303,9 +1306,8 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     if (swap < 0)
         return false;
 
-    swap = (m.type_of() != PROMOTION ? PieceValue[piece_on(org)]  //
-                                     : PieceValue[m.promotion_type()])
-         - swap;
+    swap =
+      PieceValue[m.type_of() == PROMOTION ? m.promotion_type() : type_of(piece_on(org))] - swap;
     if (swap <= 0)
         return true;
 
@@ -1490,13 +1492,13 @@ bool Position::has_repeated() const noexcept {
     if (end < 4)
         return false;
 
-    StateInfo* stc = st;
+    StateInfo* stp = st;
     while (end-- >= 4)
     {
-        if (stc->repetition)
+        if (stp->repetition)
             return true;
 
-        stc = stc->previous;
+        stp = stp->previous;
     }
     return false;
 }
@@ -1516,8 +1518,8 @@ bool Position::has_game_cycle(std::int16_t ply) const noexcept {
         stp = stp->previous->previous;
 
         Key moveKey = key ^ stp->key;
-        if (std::uint16_t j; (j = H1(moveKey), Cuckoos[j].key == moveKey)
-                             || (j = H2(moveKey), Cuckoos[j].key == moveKey))
+        if (Key16 j; (j = H1(moveKey), Cuckoos[j].key == moveKey)
+                     || (j = H2(moveKey), Cuckoos[j].key == moveKey))
         {
             Move   move = Cuckoos[j].move;
             Square s1   = move.org_sq();

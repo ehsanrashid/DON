@@ -18,14 +18,17 @@
 #ifndef SEARCH_H_INCLUDED
 #define SEARCH_H_INCLUDED
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <initializer_list>
 #include <memory>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "misc.h"
@@ -50,13 +53,67 @@ struct Networks;
 
 namespace Search {
 
-using Moves = std::vector<Move>;
+class Moves final {
+   public:
+    using MoveVector = std::vector<Move>;
+    using NormalItr  = MoveVector::iterator;
+    using ConstItr   = MoveVector::const_iterator;
 
-// Different node types, used as a template parameter
-enum NodeType : std::uint8_t {
-    NonPV,
-    PV,
-    Root
+    Moves() = default;
+    explicit Moves(std::size_t count, Move m) noexcept :
+        moves(count, m) {}
+    // explicit Moves(std::size_t count) noexcept :
+    //     moves(count) {}
+    // Moves(const std::initializer_list<Move>& initList) noexcept :
+    //     moves(initList) {}
+
+    template<typename... Args>
+    void emplace_back(Args&&... args) noexcept {
+        moves.emplace_back(std::forward<Args>(args)...);
+    }
+
+    void push(Move m) noexcept { moves.push_back(m); }
+    void push(Move&& m) noexcept { moves.push_back(std::move(m)); }
+    void pop() noexcept { moves.pop_back(); }
+
+    void reserve(std::size_t newSize) noexcept { moves.reserve(newSize); }
+    void resize(std::size_t newSize) noexcept { moves.resize(newSize); }
+    // void clear() noexcept { moves.clear(); }
+
+    auto& operator[](std::size_t idx) const noexcept { return moves[idx]; }
+    auto& operator[](std::size_t idx) noexcept { return moves[idx]; }
+
+    auto begin() noexcept { return moves.begin(); }
+    auto end() noexcept { return moves.end(); }
+
+    auto begin() const noexcept { return moves.begin(); }
+    auto end() const noexcept { return moves.end(); }
+
+    auto& front() noexcept { return moves.front(); }
+    auto& back() noexcept { return moves.back(); }
+
+    auto size() const noexcept { return moves.size(); }
+    auto max_size() const noexcept { return moves.max_size(); }
+    bool empty() const noexcept { return moves.empty(); }
+
+    auto erase(ConstItr itr) noexcept { return moves.erase(itr); }
+    auto erase(ConstItr begItr, ConstItr endItr) noexcept {  //
+        assert(begItr <= endItr);
+        return moves.erase(begItr, endItr);
+    }
+    bool erase(Move m) noexcept {
+        auto itr = find(m);
+        if (itr != end())
+            return erase(itr), true;
+        return false;
+    }
+
+    ConstItr find(Move m) const noexcept { return std::find(begin(), end(), m); }
+
+    bool contains(Move m) const noexcept { return find(m) != end(); }
+
+   private:
+    MoveVector moves;
 };
 
 // Stack struct keeps track of the information need to remember from nodes
@@ -82,26 +139,42 @@ struct Stack final {
 // Score is normally set at -VALUE_INFINITE for all non-pv moves.
 struct RootMove final {
 
+    RootMove() = default;
     explicit RootMove(Move m) noexcept :
-        pv(1, m) {}
+        principalVar(1, m) {}
 
-    bool operator==(Move m) const noexcept { return pv[0] == m; }
+    bool operator==(Move m) const noexcept { return /*!empty() &&*/ (*this)[0] == m; }
     bool operator!=(Move m) const noexcept { return !(*this == m); }
+
+    bool operator==(const RootMove& rm) const noexcept { return /*!rm.empty() &&*/ *this == rm[0]; }
+    bool operator!=(const RootMove& rm) const noexcept { return !(*this == rm); }
+
     // Sort in descending order
     bool operator<(const RootMove& rm) const noexcept {
-        return value != rm.value ? value > rm.value : prevValue > rm.prevValue;
+        return currValue != rm.currValue ? currValue > rm.currValue
+             : prevValue != rm.prevValue ? prevValue > rm.prevValue
+                                         : avgValue > rm.avgValue;
     }
 
-    void push(Move m) noexcept { pv.push_back(m); }
+    void push(Move m) noexcept { principalVar.push(m); }
+    void pop() noexcept { principalVar.pop(); }
 
-    bool extract_ponder_from_tt(Position& pos, const TranspositionTable& tt) noexcept;
+    void resize(std::size_t newSize) noexcept { principalVar.resize(newSize); }
+    // void clear() noexcept { principalVar.clear(); }
 
-    auto  size() const noexcept { return pv.size(); }
-    auto  empty() const noexcept { return pv.empty(); }
-    Move  operator[](std::uint8_t idx) const noexcept { return pv[idx]; }
-    Move& operator[](std::uint8_t idx) noexcept { return pv[idx]; }
+    auto begin() const noexcept { return principalVar.begin(); }
+    auto end() const noexcept { return principalVar.end(); }
 
-    Value         value      = -VALUE_INFINITE;
+    auto& front() noexcept { return principalVar.front(); }
+    auto& back() noexcept { return principalVar.back(); }
+
+    auto size() const noexcept { return principalVar.size(); }
+    bool empty() const noexcept { return principalVar.empty(); }
+
+    Move  operator[](std::size_t idx) const noexcept { return principalVar[idx]; }
+    Move& operator[](std::size_t idx) noexcept { return principalVar[idx]; }
+
+    Value         currValue  = -VALUE_INFINITE;
     Value         prevValue  = -VALUE_INFINITE;
     Value         avgValue   = -VALUE_INFINITE;
     Value         uciValue   = -VALUE_INFINITE;
@@ -111,10 +184,117 @@ struct RootMove final {
     std::uint64_t nodes      = 0;
     std::int32_t  tbRank     = 0;
     Value         tbValue    = -VALUE_INFINITE;
-    Moves         pv;
+    Moves         principalVar;
 };
 
-using RootMoves = std::vector<RootMove>;
+class RootMoves final {
+   public:
+    using RootMoveVector = std::vector<RootMove>;
+    using NormalItr      = RootMoveVector::iterator;
+    using ConstItr       = RootMoveVector::const_iterator;
+
+    RootMoves() = default;
+    // explicit RootMoves(std::size_t count, const RootMove& rm) noexcept :
+    //     rootMoves(count, rm) {}
+    // explicit RootMoves(std::size_t count) noexcept :
+    //     rootMoves(count) {}
+    // RootMoves(const std::initializer_list<RootMove>& initList) noexcept :
+    //     rootMoves(initList) {}
+
+    template<typename... Args>
+    void emplace_back(Args&&... args) noexcept {
+        rootMoves.emplace_back(std::forward<Args>(args)...);
+    }
+
+    void push(const RootMove& rm) noexcept { rootMoves.push_back(rm); }
+    void push(RootMove&& rm) noexcept { rootMoves.push_back(std::move(rm)); }
+    void pop() noexcept { rootMoves.pop_back(); }
+
+    void reserve(std::size_t newSize) noexcept { rootMoves.reserve(newSize); }
+    void resize(std::size_t newSize) noexcept { rootMoves.resize(newSize); }
+    // void clear() noexcept { rootMoves.clear(); }
+
+    auto& operator[](std::size_t idx) const noexcept { return rootMoves[idx]; }
+    auto& operator[](std::size_t idx) noexcept { return rootMoves[idx]; }
+
+    auto begin() noexcept { return rootMoves.begin(); }
+    auto end() noexcept { return rootMoves.end(); }
+
+    auto begin() const noexcept { return rootMoves.begin(); }
+    auto end() const noexcept { return rootMoves.end(); }
+
+    auto& front() noexcept { return rootMoves.front(); }
+    auto& back() noexcept { return rootMoves.back(); }
+
+    auto size() const noexcept { return rootMoves.size(); }
+    auto max_size() const noexcept { return rootMoves.max_size(); }
+    auto empty() const noexcept { return rootMoves.empty(); }
+
+    auto erase(ConstItr itr) noexcept { return rootMoves.erase(itr); }
+    auto erase(ConstItr begItr, ConstItr endItr) noexcept {
+        return rootMoves.erase(begItr, endItr);
+    }
+    bool erase(Move m) noexcept {
+        auto itr = find(m);
+        if (itr != end())
+            return erase(itr), true;
+        return false;
+    }
+
+    NormalItr find(Move m) noexcept { return std::find(begin(), end(), m); }
+    NormalItr find(const RootMove& rm) noexcept { return find(rm[0]); }
+
+    ConstItr find(Move m) const noexcept { return std::find(begin(), end(), m); }
+    ConstItr find(const RootMove& rm) const noexcept { return find(rm[0]); }
+
+    ConstItr find(std::size_t begIdx, std::size_t endIdx, Move m) const noexcept {
+        assert(begIdx <= endIdx);
+        return std::find(begin() + begIdx, begin() + endIdx, m);
+    }
+    ConstItr find(std::size_t begIdx, std::size_t endIdx, const RootMove& rm) const noexcept {
+        return find(begIdx, endIdx, rm[0]);
+    }
+
+    bool contains(Move m) const noexcept { return find(m) != end(); }
+    bool contains(const RootMove& rm) const noexcept { return contains(rm[0]); }
+
+    bool contains(std::size_t begIdx, std::size_t endIdx, Move m) const noexcept {
+        return find(begIdx, endIdx, m) != begin() + endIdx;
+    }
+    bool contains(std::size_t begIdx, std::size_t endIdx, const RootMove& rm) const noexcept {
+        return contains(begIdx, endIdx, rm[0]);
+    }
+
+    template<typename Predicate>
+    auto find_if(Predicate pred) noexcept {
+        return std::find_if(begin(), end(), pred);
+    }
+
+    template<typename Predicate>
+    void move_to_front(Predicate pred) noexcept {
+        auto itr = find_if(pred);
+        if (itr != end())
+            std::rotate(begin(), itr, itr + 1);
+    }
+
+    void swap_to_front(Move m) noexcept {
+        auto itr = find(m);
+        if (itr != end())
+            std::swap(*begin(), *itr);
+    }
+
+    void sort(std::size_t begIdx, std::size_t endIdx) noexcept {
+        assert(begIdx <= endIdx);
+        std::stable_sort(begin() + begIdx, begin() + endIdx);
+    }
+    template<typename Predicate>
+    void sort(Predicate pred) noexcept {
+        std::stable_sort(begin(), end(), pred);
+    }
+
+   private:
+    RootMoveVector rootMoves;
+};
 
 // Limits struct stores information sent by GUI about available time to
 // search the current move, maximum depth/time, or if in analysis mode.
@@ -157,15 +337,18 @@ struct Skill final {
     void init(const OptionsMap& options) noexcept;
 
     bool enabled() const noexcept { return level < MaxLevel; }
+    Move best_move() const noexcept { return bestMove; }
 
     bool time_to_pick(Depth depth) const noexcept { return depth == 1 + int(level); }
 
-    Move pick_best_move(const RootMoves& rootMoves, std::uint8_t multiPV) noexcept;
+    Move
+    pick_best_move(const RootMoves& rootMoves, std::uint8_t multiPV, bool pickBest = true) noexcept;
 
     static constexpr double        MaxLevel = 20.0;
     static constexpr std::uint16_t MinELO   = 1320;
     static constexpr std::uint16_t MaxELO   = 3190;
 
+   private:
     double level    = MaxLevel;
     Move   bestMove = Move::None();
 };
@@ -201,17 +384,15 @@ class ISearchManager {
 using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
 
 struct InfoShort {
-    InfoShort(const Position& p, Depth d) :
-        pos(p),
-        depth(d) {}
-    const Position& pos;
-    Depth           depth;
+    bool inCheck;
 };
-struct InfoFull: InfoShort {
-    InfoFull(const Position& p, Depth d, const RootMove& rm) :
-        InfoShort(p, d),
+struct InfoFull {
+    InfoFull(const Position& p, const RootMove& rm) :
+        pos(p),
         rootMove(rm) {}
+    const Position& pos;
     const RootMove& rootMove;
+    Depth           depth;
     Value           value;
     std::uint16_t   multiPV;
     bool            showBound;
@@ -262,18 +443,17 @@ class MainSearchManager final: public ISearchManager {
 
     const UpdateContext& updateContext;
 
-    TimeManagement       tm;
-    Skill                skill;
+    TimeManager          timeManager;
     PolyBook             polyBook;
+    Skill                skill;
     std::int16_t         callsCount    = 0;
-    bool                 ponderhitStop = false;
+    bool                 stopPonderhit = false;
     std::atomic_bool     ponder        = false;
-    bool                 reportMinimal = false;
-    std::array<Value, 4> iterValue;
+    std::array<Value, 4> iterBestValue;
 
-    Value  prevBestValue     = -VALUE_INFINITE;
-    Value  prevBestAvgValue  = -VALUE_INFINITE;
-    double prevTimeReduction = 1.0;
+    Value  prevBestValue;
+    Value  prevBestAvgValue;
+    double prevTimeReduction;
 };
 
 class NullSearchManager final: public ISearchManager {
@@ -299,12 +479,12 @@ class Worker final {
     void start_search() noexcept;
 
     // Public because they need to be updatable by the stats
-    CounterMoveHistory                 counterMoves;
-    ButterflyHistory                   mainHistory;
-    CapturePieceDstHistory             captureHistory;
-    Array2D<ContinuationHistory, 2, 2> continuationHistory;
-    PawnHistory                        pawnHistory;
-    CorrectionHistory                  correctionHistory;
+    CounterMoveHistory                      counterMoves;
+    ButterflyHistory                        mainHistory;
+    CapturePieceDstHistory                  captureHistory;
+    std::array2d<ContinuationHistory, 2, 2> continuationHistory;
+    PawnHistory                             pawnHistory;
+    CorrectionHistory                       correctionHistory;
 
    private:
     bool is_main_worker() const noexcept { return threadIdx == 0; }
@@ -314,16 +494,18 @@ class Worker final {
     void iterative_deepening() noexcept;
 
     // Main search function for both PV and non-PV nodes
-    template<NodeType NT>
+    template<bool PVNode>
     // clang-format off
     Value
     search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, Move excludedMove = Move::None()) noexcept;
     // clang-format on
 
     // Quiescence search function, which is called by the main search
-    template<NodeType NT>
+    template<bool PVNode>
     Value
     qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth = DEPTH_ZERO) noexcept;
+
+    bool extract_ponder_move() noexcept;
 
     Limits limits;
 
@@ -334,11 +516,11 @@ class Worker final {
     std::atomic_uint64_t nodes, tbHits;
     std::atomic_uint32_t bestMoveChanges;
 
-    Position      rootPos;
-    StateInfo     rootState;
-    RootMoves     rootMoves;
-    Depth         rootDepth, completedDepth;
-    std::uint16_t rootDelta;
+    Position  rootPos;
+    StateInfo rootState;
+    RootMoves rootMoves;
+    Depth     rootDepth, completedDepth;
+    Value     rootDelta;
 
     Tablebases::Config tbConfig;
 

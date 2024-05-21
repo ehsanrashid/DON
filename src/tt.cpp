@@ -31,20 +31,20 @@ namespace DON {
 // Populates the TTEntry with a new node's data, possibly
 // overwriting an old position. The update is not atomic and can be racy.
 void TTEntry::save(
-  Key k, Depth d, bool pv, Bound b, Move m, Value v, Value ev, std::uint8_t gen) noexcept {
+  Key key, Depth d, bool pv, Bound b, Move m, Value v, Value ev, std::uint8_t gen) noexcept {
 
-    // Preserve any existing move
-    if (m)
+    // Preserve the old move if don't have a new one
+    if (m != Move::None())
         move16 = m;
 
     // Overwrite less valuable entries (cheapest checks first)
-    if (b == BOUND_EXACT || std::uint16_t(k) != key16
+    if (b == BOUND_EXACT || Key16(key) != key16
         || d + (std::uint8_t(pv) << 1) - DEPTH_OFFSET > depth8 - 4 || relative_age(gen))
     {
         assert(d > DEPTH_OFFSET);
         assert(d <= std::numeric_limits<std::uint8_t>::max() + DEPTH_OFFSET);
 
-        key16     = std::uint16_t(k);
+        key16     = Key16(key);
         depth8    = std::uint8_t(d - DEPTH_OFFSET);
         genBound8 = std::uint8_t(gen | (std::uint8_t(pv) << 2) | b);
         value16   = std::int16_t(v);
@@ -52,16 +52,6 @@ void TTEntry::save(
     }
 }
 
-std::uint8_t TTEntry::relative_age(std::uint8_t gen) const noexcept {
-    // Due to our packed storage format for generation and its cyclic
-    // nature add GENERATION_CYCLE (256 is the modulus, plus what
-    // is needed to keep the unrelated lowest n bits from affecting
-    // the result) to calculate the entry age correctly even after
-    // generation8 overflows into the next cycle.
-
-    return (TranspositionTable::GENERATION_CYCLE + gen - genBound8)
-         & TranspositionTable::GENERATION_MASK;
-}
 
 TranspositionTable::~TranspositionTable() noexcept { free(); }
 
@@ -113,7 +103,7 @@ void TranspositionTable::clear() noexcept {
         });
     }
 
-    for (auto& th : threads)
+    for (std::thread& th : threads)
         th.join();
 }
 
@@ -129,21 +119,14 @@ TTEntry* TranspositionTable::probe(Key key, bool& ttHit) const noexcept {
 
     for (std::uint8_t i = 0; i < EntryCount; ++i)
         // Use the low 16 bits as key inside the cluster
-        if (tte[i].key16 == std::uint16_t(key) || !tte[i].depth8)
-            return ttHit = tte[i].depth8, &tte[i];
+        if (Key16(key) == (tte + i)->key16)
+            return ttHit = (tte + i)->depth8, (tte + i);
 
     // Find an entry to be replaced according to the replacement strategy
-    TTEntry*     rte    = tte;
-    std::int16_t rWorth = rte->depth8 - 2 * rte->relative_age(generation8);
+    TTEntry* rte = tte;
     for (std::uint8_t i = 1; i < EntryCount; ++i)
-    {
-        std::int16_t tWorth = tte[i].depth8 - 2 * tte[i].relative_age(generation8);
-        if (rWorth > tWorth)
-        {
-            rWorth = tWorth;
-            rte    = &tte[i];
-        }
-    }
+        if (rte->worth(generation8) > (tte + i)->worth(generation8))
+            rte = (tte + i);
 
     return ttHit = false, rte;
 }

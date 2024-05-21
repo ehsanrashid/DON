@@ -65,12 +65,16 @@ struct MoveList final {
     explicit MoveList(const Position& pos) noexcept :
         last(generate<GT>(pos, moves)) {}
 
+    // ExtMove* begin() noexcept { return moves; }
+    // ExtMove* end() noexcept { return last; }
+
     const ExtMove* begin() const noexcept { return moves; }
     const ExtMove* end() const noexcept { return last; }
 
-    constexpr std::uint8_t size() const noexcept { return last - moves; }
+    constexpr std::size_t size() const noexcept { return last - moves; }
 
-    constexpr bool contains(Move m) const noexcept { return std::find(begin(), end(), m) != end(); }
+    const ExtMove* find(Move m) const noexcept { return std::find(begin(), end(), m); }
+    bool           contains(Move m) const noexcept { return find(m) != end(); }
 
    private:
     ExtMove moves[MAX_MOVES], *last;

@@ -63,8 +63,12 @@ Bitboard sliding_attack(Square s, Bitboard occupied) noexcept {
     for (Direction d : (PT == BISHOP ? BishopDirections : RookDirections))
     {
         Square sq = s;
-        while (safe_destination(sq, d) && !(occupied & sq))
+        while (safe_destination(sq, d))
+        {
             attacks |= (sq += d);
+            if (occupied & sq)
+                break;
+        }
     }
 
     return attacks;

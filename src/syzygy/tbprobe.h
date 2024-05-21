@@ -30,9 +30,8 @@ class Position;
 class OptionsMap;
 
 namespace Search {
-struct RootMove;
-using RootMoves = std::vector<RootMove>;
-}  // namespace Search
+class RootMoves;
+}
 
 namespace Tablebases {
 

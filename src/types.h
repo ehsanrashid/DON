@@ -83,8 +83,9 @@
 
 namespace DON {
 
-using Key      = std::uint64_t;
 using Bitboard = std::uint64_t;
+using Key      = std::uint64_t;
+using Key16    = std::uint16_t;
 
 constexpr inline std::uint16_t MAX_MOVES = 256;
 constexpr inline std::uint16_t MAX_PLY   = 253;
@@ -384,7 +385,7 @@ class Move {
     static constexpr Move Null() noexcept { return Move(0x41); }
 
     constexpr bool operator==(Move m) const noexcept { return data == m.data; }
-    constexpr bool operator!=(Move m) const noexcept { return !(*this == m); }
+    constexpr bool operator!=(Move m) const noexcept { return data != m.data; }
 
     constexpr explicit operator bool() const noexcept { return data != 0; }
 

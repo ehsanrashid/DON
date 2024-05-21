@@ -24,7 +24,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 #include "position.h"
@@ -64,8 +63,6 @@ class Engine final {
     void resize_tt(std::size_t mbSize) noexcept;
 
     void init_book(const std::string& bookFile) noexcept;
-
-    void report_minimal(bool reportMinimal) noexcept;
 
     void clear() noexcept;
 

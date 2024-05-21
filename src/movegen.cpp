@@ -52,13 +52,14 @@ ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moves, Bitboard targe
     Bitboard empties = ~pos.pieces();
     Bitboard enemies = GT == EVASIONS ? pos.checkers() : pos.pieces(~Stm);
 
-    Bitboard on7Pawns    = pos.pieces(Stm, PAWN) & (Stm == WHITE ? Rank7BB : Rank2BB);
-    Bitboard notOn7Pawns = pos.pieces(Stm, PAWN) & ~on7Pawns;
+    Bitboard allPawns  = pos.pieces(Stm, PAWN);
+    Bitboard on7Pawns  = allPawns & (Stm == WHITE ? Rank7BB : Rank2BB);
+    Bitboard non7Pawns = allPawns & ~on7Pawns;
 
     // Single and double pawn pushes, no promotions
     if constexpr (GT != CAPTURES)
     {
-        Bitboard b1 = shift<Up_1>(notOn7Pawns) & empties;
+        Bitboard b1 = shift<Up_1>(non7Pawns) & empties;
         Bitboard b2 = shift<Up_1>(b1 & (Stm == WHITE ? Rank3BB : Rank6BB)) & empties;
 
         if constexpr (GT == EVASIONS)  // Consider only blocking squares
@@ -74,9 +75,9 @@ ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moves, Bitboard targe
             // Discovered check promotion has been already generated amongst the captures.
             Square ksq = pos.king_square(~Stm);
 
-            Bitboard dcCandidatePawns = pos.blockers(~Stm) & ~file_bb(ksq);
-            b1 &= pawn_attacks_bb(~Stm, ksq) | shift<Up_1>(dcCandidatePawns);
-            b2 &= pawn_attacks_bb(~Stm, ksq) | shift<Up_2>(dcCandidatePawns);
+            Bitboard dcPawns = pos.blockers(~Stm) & ~file_bb(ksq);
+            b1 &= pawn_attacks_bb(~Stm, ksq) | shift<Up_1>(dcPawns);
+            b2 &= pawn_attacks_bb(~Stm, ksq) | shift<Up_2>(dcPawns);
         }
 
         while (b1)
@@ -115,8 +116,8 @@ ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moves, Bitboard targe
     // Standard and en-passant captures
     if constexpr (GT == CAPTURES || GT == EVASIONS || GT == NON_EVASIONS)
     {
-        Bitboard b1 = shift<Up_R>(notOn7Pawns) & enemies;
-        Bitboard b2 = shift<Up_L>(notOn7Pawns) & enemies;
+        Bitboard b1 = shift<Up_R>(non7Pawns) & enemies;
+        Bitboard b2 = shift<Up_L>(non7Pawns) & enemies;
 
         while (b1)
         {
@@ -130,7 +131,7 @@ ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moves, Bitboard targe
             *moves++   = Move(dst - Up_L, dst);
         }
 
-        Bitboard on5Pawns = notOn7Pawns & (Stm == WHITE ? Rank5BB : Rank4BB);
+        Bitboard on5Pawns = non7Pawns & (Stm == WHITE ? Rank5BB : Rank4BB);
         if (on5Pawns && is_ok_ep(pos.ep_square()))
         {
             assert(relative_rank(Stm, pos.ep_square()) == RANK_6);
@@ -159,16 +160,7 @@ ExtMove* generate_moves(const Position& pos, ExtMove* moves, Bitboard target) no
 
     Square ksq = pos.king_square(Stm);
 
-    Bitboard pc = pos.pieces(Stm, PT);
-    // clang-format off
-    switch (PT)
-    {
-    case KNIGHT : pc &= ~pos.blockers(Stm); break;
-    case BISHOP : pc &= ~pos.blockers(Stm) | attacks_bb<BISHOP>(ksq); break;
-    case ROOK :   pc &= ~pos.blockers(Stm) | attacks_bb<ROOK>(ksq); break;
-    default :;
-    }
-    // clang-format on
+    Bitboard pc = pos.pieces<PT>(Stm, ksq);
     while (pc)
     {
         Square org = pop_lsb(pc);

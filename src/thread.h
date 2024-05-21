@@ -33,8 +33,8 @@
 
 namespace DON {
 
-class ThreadPool;
 class OptionsMap;
+// class ThreadPool;
 
 // Abstraction of a thread. It contains a pointer to the worker and a native thread.
 // After construction, the native thread is started with idle_func()
@@ -71,7 +71,7 @@ class Thread final {
     std::condition_variable condVar;
     NativeThread            nativeThread;
 
-    friend class ThreadPool;
+    // friend class ThreadPool;
 };
 
 // Wakes up the thread that will start the search
@@ -124,11 +124,11 @@ class ThreadPool final {
     void start_search() const noexcept;
     void wait_finish() const noexcept;
 
-    auto cbegin() const noexcept { return threads.cbegin(); }
-    auto cend() const noexcept { return threads.cend(); }
-
     auto begin() noexcept { return threads.begin(); }
     auto end() noexcept { return threads.end(); }
+
+    auto begin() const noexcept { return threads.begin(); }
+    auto end() const noexcept { return threads.end(); }
 
     auto size() const noexcept { return threads.size(); }
     auto empty() const noexcept { return threads.empty(); }
@@ -175,7 +175,7 @@ inline void ThreadPool::clear() noexcept {
     if (empty())
         return;
 
-    for (Thread* th : threads)
+    for (const Thread* th : threads)
         th->worker->clear();
 
     main_manager()->clear(size());

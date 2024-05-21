@@ -19,6 +19,7 @@
 #define MISC_H_INCLUDED
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cctype>
 #include <chrono>
@@ -33,6 +34,11 @@
     #define STRINGIFY2(x) #x
     #define STRINGIFY(x) STRINGIFY2(x)
 #endif
+
+namespace std {
+template<typename T, uint32_t M, uint32_t N>
+using array2d = array<array<T, M>, N>;
+}
 
 namespace DON {
 
@@ -75,11 +81,16 @@ using AlignedPtr = std::unique_ptr<T, AlignedDeleter<T>>;
 template<typename T>
 using LargePagePtr = std::unique_ptr<T, LargePageDeleter<T>>;
 
+#if !defined(NDEBUG)
+void dbg_init() noexcept;
 void dbg_hit_on(bool cond, std::uint8_t slot = 0) noexcept;
+void dbg_min_of(std::int64_t value, std::uint8_t slot = 0) noexcept;
+void dbg_max_of(std::int64_t value, std::uint8_t slot = 0) noexcept;
 void dbg_mean_of(std::int64_t value, std::uint8_t slot = 0) noexcept;
 void dbg_stdev_of(std::int64_t value, std::uint8_t slot = 0) noexcept;
 void dbg_correl_of(std::int64_t value1, std::int64_t value2, std::uint8_t slot = 0) noexcept;
 void dbg_print() noexcept;
+#endif
 
 enum InOut : std::uint8_t {
     IO_LOCK,
@@ -202,13 +213,6 @@ struct CommandLine final {
     int          argc;
     const char** argv;
 };
-
-template<typename T, typename Predicate>
-void move_to_front(std::vector<T>& vec, Predicate pred) noexcept {
-    auto itr = std::find_if(vec.begin(), vec.end(), pred);
-    if (itr != vec.end())
-        std::rotate(vec.begin(), itr, itr + 1);
-}
 
 inline std::string to_lower(std::string str) {
     std::transform(str.begin(), str.end(), str.begin(), tolower);

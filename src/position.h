@@ -106,6 +106,8 @@ class Position final {
     Bitboard pieces(Color c) const noexcept;
     template<typename... PieceTypes>
     Bitboard pieces(Color c, PieceTypes... pts) const noexcept;
+    template<PieceType PT>
+    Bitboard pieces(Color c, Square s) const noexcept;
 
     std::uint8_t count(Color c, PieceType pt) const noexcept;
     template<PieceType PT>
@@ -159,6 +161,7 @@ class Position final {
     Piece captured_piece(Move m) const noexcept;
     Piece captured_piece() const noexcept;
     // Piece promoted_piece() const noexcept;
+    Piece prev_moved_piece(Move prevMove, Square prevDst) const noexcept;
 
     // Doing and undoing moves
     void do_move(Move m, StateInfo& newSt) noexcept;
@@ -170,13 +173,13 @@ class Position final {
     // Static Exchange Evaluation
     bool see_ge(Move m, int threshold = 0) const noexcept;
 
-    // Accessing hash keys
+    // Hash keys
     Key key() const noexcept;
     Key pawn_key() const noexcept;
     Key material_key() const noexcept;
     Key move_key(Move m) const noexcept;
 
-    // Other properties of the position
+    // Other properties
     Color        side_to_move() const noexcept;
     std::int16_t game_ply() const noexcept;
     std::int16_t game_move() const noexcept;
@@ -190,12 +193,17 @@ class Position final {
     bool         has_castled(Color c) const noexcept;
     bool         bishop_paired(Color c) const noexcept;
 
+    std::uint16_t material() const noexcept;
+    Value         evaluate() const noexcept;
+    Value         bonus() const noexcept;
+
     // Position consistency check, for debugging
     bool pos_is_ok() const noexcept;
     void flip() noexcept;
 
     // Used by NNUE
     StateInfo* state() const noexcept;
+    StateInfo* prev_state() const noexcept;
 
     void put_piece(Piece pc, Square s) noexcept;
     void remove_piece(Square s) noexcept;
@@ -250,6 +258,21 @@ inline Bitboard Position::pieces(Color c) const noexcept { return colorBB[c]; }
 template<typename... PieceTypes>
 inline Bitboard Position::pieces(Color c, PieceTypes... pts) const noexcept {
     return pieces(c) & pieces(pts...);
+}
+
+template<PieceType PT>
+inline Bitboard Position::pieces(Color c, Square s) const noexcept {
+    Bitboard pc = pieces(c, PT);
+    // clang-format off
+    switch (PT)
+    {
+    case KNIGHT : pc &= ~blockers(c); break;
+    case BISHOP : pc &= ~blockers(c) | attacks_bb<BISHOP>(s); break;
+    case ROOK :   pc &= ~blockers(c) | attacks_bb<ROOK>(s); break;
+    default :;
+    }
+    // clang-format on
+    return pc;
 }
 
 inline std::uint8_t Position::count(Color c, PieceType pt) const noexcept {
@@ -360,6 +383,29 @@ inline bool Position::bishop_paired(Color c) const noexcept {
     return (bishops & ColorBB[WHITE]) && (bishops & ColorBB[BLACK]);
 }
 
+inline std::uint16_t Position::material() const noexcept {
+    return 1 * count<PAWN>() + 3 * count<KNIGHT>() + 3 * count<BISHOP>()  //
+         + 5 * count<ROOK>() + 9 * count<QUEEN>();
+}
+
+// Returns a static, purely materialistic evaluation of the position from
+// the point of view of the side to move. It can be divided by VALUE_PAWN to get
+// an approximation of the material advantage on the board in terms of pawns.
+inline Value Position::evaluate() const noexcept {
+    return (count<PAWN>(sideToMove) - count<PAWN>(~sideToMove)) * VALUE_PAWN
+         + (non_pawn_material(sideToMove) - non_pawn_material(~sideToMove))  //
+         + bonus();
+}
+
+inline Value Position::bonus() const noexcept {
+    // clang-format off
+    return  7 * (mobility(sideToMove) - mobility(~sideToMove)) / 10
+         + 25 * (bishop_paired(sideToMove) - bishop_paired(~sideToMove))
+         + 50 * ((can_castle( sideToMove & ANY_CASTLING) || has_castled( sideToMove))
+               - (can_castle(~sideToMove & ANY_CASTLING) || has_castled(~sideToMove)));
+    // clang-format on
+}
+
 inline bool Position::capture(Move m) const noexcept {
     assert(m.is_ok());
     return (m.type_of() != CASTLING && !empty_on(m.dst_sq()))
@@ -387,6 +433,10 @@ inline Piece Position::captured_piece() const noexcept { return st->capturedPiec
 
 // inline Piece Position::promoted_piece() const noexcept { return st->promotedPiece; }
 
+inline Piece Position::prev_moved_piece(Move prevMove, Square prevDst) const noexcept {
+    return prevMove.type_of() != PROMOTION ? piece_on(prevDst) : make_piece(~sideToMove, PAWN);
+}
+
 inline void Position::put_piece(Piece pc, Square s) noexcept {
     assert(is_ok(pc));
 
@@ -413,9 +463,9 @@ inline void Position::move_piece(Square org, Square dst) noexcept {
 
     Piece pc = board[org];
     assert(is_ok(pc));
-    Bitboard orgDst = org | dst;
     board[org]      = NO_PIECE;
     board[dst]      = pc;
+    Bitboard orgDst = org | dst;
     typeBB[ALL_PIECE] ^= orgDst;
     typeBB[type_of(pc)] ^= orgDst;
     colorBB[color_of(pc)] ^= orgDst;
@@ -426,6 +476,8 @@ inline void Position::do_move(Move m, StateInfo& newSt) noexcept {
 }
 
 inline StateInfo* Position::state() const noexcept { return st; }
+
+inline StateInfo* Position::prev_state() const noexcept { return st->previous; }
 
 }  // namespace DON
 

@@ -22,7 +22,6 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
-#include <cstdlib>
 #include <string>
 
 #include "types.h"

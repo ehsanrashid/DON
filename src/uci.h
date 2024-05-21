@@ -23,7 +23,6 @@
 #include <iosfwd>
 #include <string>
 #include <string_view>
-#include <cstdint>
 
 #include "engine.h"
 #include "misc.h"

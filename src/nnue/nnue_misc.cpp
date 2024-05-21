@@ -41,11 +41,9 @@ void hint_common_parent_position(const Position&    pos,
                                  const Networks&    networks,
                                  AccumulatorCaches& caches) noexcept {
 
-    int simpleEvalAbs = std::abs(evaluate_simple(pos));
-    if (simpleEvalAbs > SmallNetThreshold)
-        networks.small.hint_common_access(pos, &caches.small);
-    else
-        networks.big.hint_common_access(pos, &caches.big);
+    use_small_net(std::abs(pos.evaluate()), pos)
+      ? networks.small.hint_common_access(pos, &caches.small)
+      : networks.big.hint_common_access(pos, &caches.big);
 }
 
 namespace {

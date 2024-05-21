@@ -20,29 +20,29 @@
 
 #include <string>
 
+#include "position.h"
 #include "types.h"
 
 namespace DON {
-
-class Position;
-
 namespace Eval {
+
+// The default net name MUST follow the format nn-[SHA256 first 12 digits].nnue
+// for the build process (profile-build and fishtest) to work. Do not change the
+// name of the macro or the location where this macro is defined, as it is used
+// in the Makefile/Fishtest.
+#define EvalFileDefaultNameBig "nn-c721dfca8cd3.nnue"
+#define EvalFileDefaultNameSmall "nn-baff1ede1f90.nnue"
 
 namespace NNUE {
 struct Networks;
 struct AccumulatorCaches;
 }  // namespace NNUE
 
-constexpr inline Value SmallNetThreshold = 1274;
+inline bool use_small_net(Value absEval, const Position& pos) noexcept {
+    return (absEval > 1126 + 6 * pos.count<PAWN>())
+        || (absEval > 975 - 36 * pos.count<PAWN>() && pos.count<ALL_PIECE>() <= 6);
+}
 
-// The default net name MUST follow the format nn-[SHA256 first 12 digits].nnue
-// for the build process (profile-build and fishtest) to work. Do not change the
-// name of the macro or the location where this macro is defined, as it is used
-// in the Makefile/Fishtest.
-#define EvalFileDefaultNameBig "nn-ae6a388e4a1a.nnue"
-#define EvalFileDefaultNameSmall "nn-baff1ede1f90.nnue"
-
-int   evaluate_simple(const Position& pos) noexcept;
 Value evaluate(const Position&          pos,
                const NNUE::Networks&    networks,
                NNUE::AccumulatorCaches& accCaches,

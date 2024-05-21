@@ -118,34 +118,45 @@ void ThreadPool::set(Search::SharedState          sharedState,
 }
 
 Thread* ThreadPool::best_thread() const noexcept {
-    auto bestThread = main_thread();
 
     Value minValue = +VALUE_INFINITE;
-    // Find the minimum score of all threads
+    // Find the minimum value of all threads
     for (const Thread* th : threads)
-        minValue = std::min(th->worker->rootMoves[0].value, minValue);
-
-    // Vote according to score and depth, and select the best thread
+    {
+        if (th->worker->completedDepth == DEPTH_ZERO)
+            continue;
+        assert(th->worker->rootMoves[0].currValue != +VALUE_INFINITE);
+        minValue = std::min(th->worker->rootMoves[0].currValue, minValue);
+    }
+    // Vote according to value and depth, and select the best thread
     auto thread_voting_value = [minValue](const Thread* th) noexcept -> std::uint64_t {
-        return (14 + th->worker->rootMoves[0].value - minValue) * th->worker->completedDepth;
+        return (14 + th->worker->rootMoves[0].currValue - minValue) * th->worker->completedDepth;
     };
+
+    Thread* bestThread = main_thread();
 
     std::unordered_map<Move, std::uint64_t, Move::MoveHash> votes(
       2 * std::min(size(), bestThread->worker->rootMoves.size()));
 
     for (const Thread* th : threads)
-        votes[th->worker->rootMoves[0].pv[0]] += thread_voting_value(th);
+        votes[th->worker->rootMoves[0][0]] += thread_voting_value(th);
 
-    for (Thread* th : threads)
+    for (Thread* newThread : threads)
     {
-        const auto bestThreadValue = bestThread->worker->rootMoves[0].value;
-        const auto newThreadValue  = th->worker->rootMoves[0].value;
+        if (newThread == bestThread || newThread->worker->completedDepth == DEPTH_ZERO)
+            continue;
 
-        const auto& bestThreadPV = bestThread->worker->rootMoves[0].pv;
-        const auto& newThreadPV  = th->worker->rootMoves[0].pv;
+        const auto bestThreadValue = bestThread->worker->rootMoves[0].currValue;
+        const auto newThreadValue  = newThread->worker->rootMoves[0].currValue;
 
-        const auto bestThreadMoveVote = votes[bestThreadPV[0]];
-        const auto newThreadMoveVote  = votes[newThreadPV[0]];
+        const auto& bestThreadPriVar = bestThread->worker->rootMoves[0].principalVar;
+        const auto& newThreadPriVar  = newThread->worker->rootMoves[0].principalVar;
+
+        const auto bestThreadMoveVote = votes[bestThreadPriVar[0]];
+        const auto newThreadMoveVote  = votes[newThreadPriVar[0]];
+
+        const auto bestThreadVoting = thread_voting_value(bestThread);
+        const auto newThreadVoting  = thread_voting_value(newThread);
 
         const bool bestThreadInProvenWin =
           bestThreadValue != +VALUE_INFINITE && bestThreadValue >= VALUE_TB_WIN_IN_MAX_PLY;
@@ -161,13 +172,13 @@ Thread* ThreadPool::best_thread() const noexcept {
         {
             // Make sure pick the shortest mate / TB conversion
             if (newThreadInProvenWin && newThreadValue > bestThreadValue)
-                bestThread = th;
+                bestThread = newThread;
         }
         else if (bestThreadInProvenLoss)
         {
             // Make sure pick the shortest mated / TB conversion
             if (newThreadInProvenLoss && newThreadValue < bestThreadValue)
-                bestThread = th;
+                bestThread = newThread;
         }
         else if (
           newThreadInProvenWin || newThreadInProvenLoss
@@ -175,10 +186,14 @@ Thread* ThreadPool::best_thread() const noexcept {
               && (newThreadMoveVote > bestThreadMoveVote
                   || (newThreadMoveVote == bestThreadMoveVote
                       // Note that make sure not to pick a thread with truncated-PV for better viewer experience.
-                      && (thread_voting_value(th) > thread_voting_value(bestThread)
-                          || (thread_voting_value(th) == thread_voting_value(bestThread)
-                              && newThreadPV.size() > bestThreadPV.size()))))))
-            bestThread = th;
+                      && (newThreadVoting > bestThreadVoting
+                          || (newThreadVoting == bestThreadVoting
+                              && (newThread->worker->completedDepth
+                                    > bestThread->worker->completedDepth
+                                  || (newThread->worker->completedDepth
+                                        == bestThread->worker->completedDepth
+                                      && newThreadPriVar.size() > bestThreadPriVar.size()))))))))
+            bestThread = newThread;
     }
 
     return bestThread;
@@ -202,7 +217,7 @@ void ThreadPool::start(Position&             pos,
         if (rootMoves.size() == legalMoves.size())
             break;
         Move m = UCI::can_to_move(can, legalMoves);
-        if (m && std::find(rootMoves.begin(), rootMoves.end(), m) == rootMoves.end())
+        if (m != Move::None() && !rootMoves.contains(m))
             rootMoves.emplace_back(m);
     }
 
@@ -210,14 +225,15 @@ void ThreadPool::start(Position&             pos,
         for (auto m : legalMoves)
             rootMoves.emplace_back(m);
 
+    bool erase = true;
     for (const std::string& can : limits.ignoreMoves)
     {
-        if (rootMoves.empty())
+        if (erase && rootMoves.empty())
             break;
         Move m = UCI::can_to_move(can, legalMoves);
-        if (Search::RootMoves::iterator itr;
-            m && (itr = std::find(rootMoves.begin(), rootMoves.end(), m)) != rootMoves.end())
-            rootMoves.erase(itr);
+        erase  = m != Move::None();
+        if (erase)
+            erase = rootMoves.erase(m);
     }
 
     std::string rootFen = pos.fen();

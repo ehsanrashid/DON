@@ -26,6 +26,7 @@
 #include <iostream>
 
 #include "../../bitboard.h"
+#include "../../misc.h"
 #include "../nnue_common.h"
 #include "affine_transform.h"
 #include "simd.h"
@@ -37,12 +38,13 @@
 namespace DON::Eval::NNUE::Layers {
 
 #if (USE_SSSE3 | (USE_NEON >= 8))
-alignas(CacheLineSize) static inline const
-  std::array<std::array<std::uint16_t, 8>, 256> lookup_indices = []() {
-      std::array<std::array<std::uint16_t, 8>, 256> v{};
-      for (unsigned i = 0; i < 256; ++i)
+alignas(CacheLineSize) static inline const std::array2d<std::uint16_t, 8, 256> lookup_indices =
+  []() {
+      std::array2d<std::uint16_t, 8, 256> v{};
+      for (std::uint16_t i = 0; i < 256; ++i)
       {
-          std::uint64_t j = i, k = 0;
+          Bitboard      j = i;
+          std::uint16_t k = 0;
           while (j)
               v[i][k++] = pop_lsb(j);
       }

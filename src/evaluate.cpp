@@ -20,30 +20,18 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
-#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <memory>
 
-#include "position.h"
 #include "uci.h"
 #include "nnue/network.h"
-#include "nnue/nnue_misc.h"
 #include "nnue/nnue_accumulator.h"
+#include "nnue/nnue_misc.h"
 
 namespace DON {
-
 namespace Eval {
-
-// Returns a static, purely materialistic evaluation of the position from
-// the point of view of the side to move. It can be divided by VALUE_PAWN to get
-// an approximation of the material advantage on the board in terms of pawns.
-Value evaluate_simple(const Position& pos) noexcept {
-    Color stm = pos.side_to_move();
-    return VALUE_PAWN * (pos.count<PAWN>(stm) - pos.count<PAWN>(~stm))
-         + (pos.non_pawn_material(stm) - pos.non_pawn_material(~stm));
-}
 
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
 // of the position from the point of view of the side to move.
@@ -53,42 +41,54 @@ Value evaluate(const Position&          pos,
                Value                    optimism) noexcept {
     assert(!pos.checkers());
 
-    Color stm        = pos.side_to_move();
-    Value simpleEval = evaluate_simple(pos);
-    bool  smallNet   = std::abs(simpleEval) > SmallNetThreshold;
+    const Value eval    = pos.evaluate();
+    const Value absEval = std::abs(eval);
+    const Value bonus   = pos.bonus();
 
-    int nnueComplexity;
-
-    Value nnue = smallNet ? networks.small.evaluate(pos, &accCaches.small, true, &nnueComplexity)
-                          : networks.big.evaluate(pos, &accCaches.big, true, &nnueComplexity);
+    int   complexity = 0;
+    Value nnue       = VALUE_ZERO;
 
     Value v;
 
-    auto adjustEval = [&](int nnueDiv, int nnueConstant, int pawnCountMul, int optConstant,
-                          int evalDiv, int shufflingConstant) noexcept {
-        // Blend optimism and eval with nnue complexity and material imbalance
-        optimism += optimism * (nnueComplexity + std::abs(simpleEval - nnue)) / 584;
-        nnue -= nnue * (5 * nnueComplexity / 3) / nnueDiv;
-
-        Value npm = pos.non_pawn_material() / 64;
-
-        v = (nnue * (npm + nnueConstant + pawnCountMul * pos.count<PAWN>())
-             + optimism * (npm + optConstant))
-          / evalDiv;
-
-        v += (pos.mobility(stm) - pos.mobility(~stm));
-        v += 20 * (pos.bishop_paired(stm) - pos.bishop_paired(~stm));
-        v += 40
-           * ((pos.can_castle(stm & ANY_CASTLING) || pos.has_castled(stm))
-              - (pos.can_castle(~stm & ANY_CASTLING) || pos.has_castled(~stm)));
-
-        int shuffling = pos.rule50_count();
-        // Damp down the evaluation linearly when shuffling
-        v = v * (shufflingConstant - shuffling) / 207;
+    // Blend optimism and eval with nnue complexity and material imbalance
+    // clang-format off
+    auto blend = [=, &nnue, &pos = std::as_const(pos)]() mutable {
+        optimism += optimism * (complexity + std::abs(nnue - eval)) / 584;
+        nnue -= nnue * (5 * complexity / 3) / 32395;
+        v = (nnue
+               * (32961 + 381 * pos.count<PAWN>() + 349 * pos.count<KNIGHT>()
+                  + 392 * pos.count<BISHOP>() + 649 * pos.count<ROOK>() + 1211 * pos.count<QUEEN>())
+           + optimism
+               * (4835 + 136 * pos.count<PAWN>() + 375 * pos.count<KNIGHT>()
+                  + 403 * pos.count<BISHOP>() + 628 * pos.count<ROOK>() + 1124 * pos.count<QUEEN>()))
+          / 32768;
+        v += bonus;
+        return v;
     };
+    // clang-format on
 
-    smallNet ? adjustEval(32793, 944, 9, 140, 1067, 206)
-             : adjustEval(32395, 942, 11, 139, 1058, 178);
+    bool useBigNet = true;
+    if (use_small_net(absEval, pos))
+    {
+        nnue = networks.small.evaluate(pos, &accCaches.small, true, &complexity);
+
+        v = blend();
+
+        useBigNet = std::signbit(v) != std::signbit(eval) || std::abs(v - eval) >= 760;
+    }
+    if (useBigNet)
+    {
+        nnue = networks.big.evaluate(pos, &accCaches.big, true, &complexity);
+
+        v = blend();
+    }
+
+    if (std::signbit(v) != std::signbit(nnue) && std::abs(v) < 100)
+        v = 7 * v / 8;
+
+    const int shuffling = pos.rule50_count();
+    // Damp down the evaluation linearly when shuffling
+    v = v * (204 - shuffling) / 208;
 
     // Guarantee evaluation does not hit the tablebase range
     return std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
@@ -111,7 +111,7 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     oss << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
 
     Value v;
-    v = networks.big.evaluate(pos, &accCaches->big, false);
+    v = networks.big.evaluate(pos, &accCaches->big);
     v = pos.side_to_move() == WHITE ? +v : -v;
     oss << "NNUE evaluation        " << 0.01 * UCI::to_cp(v, pos) << " (white side)\n";
 
