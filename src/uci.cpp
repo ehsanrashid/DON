@@ -158,7 +158,15 @@ UCI::UCI(int argc, const char** argv) noexcept :
 
     auto& options = engine_options();
     // clang-format off
-    options["Threads"]      << Option(1, 1, 1024, [this](const Option&) { engine.resize_threads(); });
+    options["NumaPolicy"] << Option("auto", [this](const Option& o) {
+        engine.set_numa_config(o);
+        print_numa_config_information();
+        print_thread_binding_information();
+    });
+    options["Threads"]      << Option(1, 1, 1024, [this](const Option&) {
+        engine.resize_threads();
+        print_thread_binding_information();
+    });
     options["Hash"]         << Option(16, 4, MAX_HASH, [this](const Option& o) { engine.resize_tt(o); });
     options["Clear Hash"]   << Option([this](const Option&) { engine.clear(); });
     options["Retain Hash"]  << Option(false);
@@ -166,7 +174,7 @@ UCI::UCI(int argc, const char** argv) noexcept :
     options["Save Hash"]    << Option([this](const Option&) {});
     options["Load Hash"]    << Option([this](const Option&) {});
     options["Ponder"]       << Option(false);
-    options["MultiPV"]      << Option(1, 1, std::numeric_limits<std::uint8_t>::max());
+    options["MultiPV"]      << Option(DefaultMultiPV, 1, std::numeric_limits<std::uint8_t>::max());
     options["Skill Level"]  << Option(Search::Skill::MaxLevel, 0, Search::Skill::MaxLevel);
     options["Move Overhead"] << Option(10, 0, 5000);
     options["NodesTime"]    << Option(0, 0, 10000);
@@ -188,10 +196,10 @@ UCI::UCI(int argc, const char** argv) noexcept :
     options["ReportMinimal"] << Option(false);
     options["DebugLogFile"] << Option("<empty>", [](const Option& o) { start_logger(o); });
     // clang-format on
-    engine.set_on_update_short(on_update_short);
+    engine.set_on_update_end(on_update_end);
     engine.set_on_update_full(on_update_full);
-    engine.set_on_update_iteration(on_update_iteration);
-    engine.set_on_update_bestmove(on_update_bestmove);
+    engine.set_on_update_iter(on_update_iter);
+    engine.set_on_update_move(on_update_move);
 
     engine.load_networks();
     engine.resize_threads();
@@ -235,9 +243,12 @@ void UCI::handle_commands() noexcept {
         else if (token == "setoption")
             setoption(iss);
         else if (token == "uci")
-            sync_cout << engine_info(true) << '\n'
-                      << engine_options() << '\n'
-                      << "uciok" << sync_endl;
+        {
+            sync_cout << engine_info(true) << '\n' << engine_options() << sync_endl;
+            print_numa_config_information();
+            print_thread_binding_information();
+            sync_cout << "uciok" << sync_endl;
+        }
         else if (token == "ucinewgame")
             engine.clear();
         else if (token == "isready")
@@ -281,6 +292,28 @@ void UCI::handle_commands() noexcept {
                       << sync_endl;
 
     } while (cmdLine.argc == 1 && token != "quit");  // The command-line arguments are one-shot
+}
+
+void UCI::print_numa_config_information() const noexcept {
+    auto numaConfig = engine.get_numa_config();
+    sync_cout << "info string Available Processors: " << numaConfig << sync_endl;
+}
+
+void UCI::print_thread_binding_information() const noexcept {
+    auto boundThreadCounts = engine.get_bound_thread_counts();
+    if (!boundThreadCounts.empty())
+    {
+        sync_cout << "info string NUMA Node Thread Binding: ";
+        bool isFirst = true;
+        for (auto&& [current, total] : boundThreadCounts)
+        {
+            if (!isFirst)
+                std::cout << ":";
+            std::cout << current << "/" << total;
+            isFirst = false;
+        }
+        std::cout << sync_endl;
+    }
 }
 
 void UCI::position(std::istringstream& iss) noexcept {
@@ -343,7 +376,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
     });
 
 #if !defined(NDEBUG)
-    dbg_init();
+    Debug::init();
 #endif
     TimePoint startTime   = now();
     TimePoint elapsedTime = 0;
@@ -400,7 +433,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
     // Ensure non-zero to avoid a 'divide by zero'
     elapsedTime += std::max(now() - startTime, 1LL);
 #if !defined(NDEBUG)
-    dbg_print();
+    Debug::print();
 #endif
     std::cerr << "\n==========================="
               << "\nTotal time (ms) : " << elapsedTime  //
@@ -421,7 +454,7 @@ struct WinRateParams final {
 WinRateParams win_rate_params(const Position& pos) noexcept {
 
     // The fitted model only uses data for material counts in [10, 78], and is anchored at count 58 (0.017241).
-    double m = 0.017241 * std::clamp<std::uint16_t>(pos.material(), 10, 78);
+    double m = 0.017241 * std::clamp(pos.material(), 10, 78);
 
     // Return a = p_a(material) and b = p_b(material).
     // clang-format off
@@ -539,11 +572,11 @@ Move UCI::can_to_move(const std::string& can, const Position& pos) noexcept {
     return can_to_move(can, MoveList<LEGAL>(pos));
 }
 
-void UCI::on_update_short(const Search::InfoShort& info) noexcept {
+void UCI::on_update_end(const Search::EndInfo& info) noexcept {
     sync_cout << "info depth 0 score " << (info.inCheck ? "mate" : "cp") << " 0" << sync_endl;
 }
 
-void UCI::on_update_full(const Search::InfoFull& info) noexcept {
+void UCI::on_update_full(const Search::FullInfo& info) noexcept {
     std::ostringstream oss;
     oss << "info"                                              //
         << " depth " << info.depth                             //
@@ -567,7 +600,7 @@ void UCI::on_update_full(const Search::InfoFull& info) noexcept {
     sync_cout << oss.str() << sync_endl;
 }
 
-void UCI::on_update_iteration(const Search::InfoIteration& info) noexcept {
+void UCI::on_update_iter(const Search::IterInfo& info) noexcept {
     std::ostringstream oss;
     oss << "info"                                      //
         << " depth " << info.depth                     //
@@ -576,7 +609,7 @@ void UCI::on_update_iteration(const Search::InfoIteration& info) noexcept {
     sync_cout << oss.str() << sync_endl;
 }
 
-void UCI::on_update_bestmove(const Search::InfoBestMove& info) noexcept {
+void UCI::on_update_move(const Search::MoveInfo& info) noexcept {
     sync_cout << "bestmove " << move_to_can(info.bestMove);
     if (info.ponderMove != Move::None())
         std::cout << " ponder " << move_to_can(info.ponderMove);

@@ -52,12 +52,12 @@ PGOBENCH = $(WINE_PATH) ./$(EXE) bench
 
 ### Source and object files
 SRCS = benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp misc.cpp \
-	movegen.cpp movepick.cpp perft.cpp polybook.cpp position.cpp search.cpp score.cpp \
+	movegen.cpp movepick.cpp perft.cpp polybook.cpp position.cpp score.cpp search.cpp \
 	thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp nnue/nnue_misc.cpp \
 	nnue/network.cpp nnue/features/half_ka_v2_hm.cpp syzygy/tbprobe.cpp
 
 HEADERS = benchmark.h bitboard.h engine.h evaluate.h misc.h movegen.h \
-	movepick.h perft.h polybook.h position.h search.h score.h thread.h \
+	movepick.h numa.h perft.h polybook.h position.h score.h search.h thread.h \
 	thread_win32_osx.h timeman.h tt.h tune.h types.h uci.h ucioption.h \
 	nnue/nnue_accumulator.h nnue/nnue_architecture.h nnue/nnue_common.h \
 	nnue/nnue_feature_transformer.h nnue/nnue_misc.h nnue/network.h \

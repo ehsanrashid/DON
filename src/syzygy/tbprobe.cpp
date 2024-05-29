@@ -31,6 +31,7 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 #include <sys/stat.h>
 
 #include "../bitboard.h"
@@ -64,6 +65,10 @@ constexpr std::uint32_t TBPIECES = 7;
 // Max DTZ supported, large enough to deal with the syzygy TB limit.
 constexpr int MAX_DTZ = 1 << 18;
 
+enum Endian {
+    BigEndian,
+    LittleEndian
+};
 enum TBType {
     WDL,
     DTZ
@@ -109,7 +114,7 @@ inline void swap_endian(T& x) noexcept {
 template<>
 inline void swap_endian<std::uint8_t>(std::uint8_t&) noexcept {}
 
-template<typename T, bool LittleEndian>
+template<typename T, Endian LE>
 T number(void* addr) noexcept {
     T v;
 
@@ -118,7 +123,7 @@ T number(void* addr) noexcept {
     else
         v = *((T*) (addr));
 
-    if (LittleEndian != IsLittleEndian)
+    if (LE != IsLittleEndian)
         swap_endian(v);
     return v;
 }
@@ -556,8 +561,8 @@ int decompress_pairs(PairsData* d, std::uint64_t idx) noexcept {
     auto k = std::uint32_t(idx / d->span);
 
     // Then read the corresponding SparseIndex[] entry
-    auto block  = number<std::uint32_t, true>(&d->sparseIndex[k].block);
-    int  offset = number<std::uint16_t, true>(&d->sparseIndex[k].offset);
+    auto block  = number<std::uint32_t, LittleEndian>(&d->sparseIndex[k].block);
+    int  offset = number<std::uint16_t, LittleEndian>(&d->sparseIndex[k].offset);
 
     // Now compute the difference idx - I(k). From the definition of k,
     //
@@ -583,7 +588,7 @@ int decompress_pairs(PairsData* d, std::uint64_t idx) noexcept {
     // Read the first 64 bits in our block, this is a (truncated) sequence of
     // unknown number of symbols of unknown length but the first one
     // is at the beginning of this 64-bit sequence.
-    auto buf64     = number<std::uint64_t, false>(ptr);
+    auto buf64     = number<std::uint64_t, BigEndian>(ptr);
     int  buf64Size = 64;
     ptr += 2;
     Sym sym;
@@ -604,7 +609,7 @@ int decompress_pairs(PairsData* d, std::uint64_t idx) noexcept {
         sym = Sym((buf64 - d->base64[len]) >> (64 - len - d->minSymLen));
 
         // Now add the value of the lowest symbol of length len to get our symbol
-        sym += number<Sym, true>(&d->lowestSym[len]);
+        sym += number<Sym, LittleEndian>(&d->lowestSym[len]);
 
         // If our offset is within the number of values represented by symbol sym, are done.
         if (offset < d->symLen[sym] + 1)
@@ -619,7 +624,7 @@ int decompress_pairs(PairsData* d, std::uint64_t idx) noexcept {
         if (buf64Size <= 32)
         {  // Refill the buffer
             buf64Size += 32;
-            buf64 |= std::uint64_t(number<std::uint32_t, false>(ptr++)) << (64 - buf64Size);
+            buf64 |= std::uint64_t(number<std::uint32_t, BigEndian>(ptr++)) << (64 - buf64Size);
         }
     }
 
@@ -1015,15 +1020,13 @@ std::uint8_t* set_sizes(PairsData* d, std::uint8_t* data) noexcept {
 
     // groupLen[] is a zero-terminated list of group lengths, the last groupIdx[]
     // element stores the biggest index that is the tb size.
-    std::uint64_t tbSize =
-      d->groupIdx[std::find(std::begin(d->groupLen), std::begin(d->groupLen) + 7, 0)
-                  - std::begin(d->groupLen)];
+    std::uint64_t tbSize = d->groupIdx[std::find(d->groupLen, d->groupLen + 7, 0) - d->groupLen];
 
     d->blockSize       = 1ULL << *data++;
     d->span            = 1ULL << *data++;
     d->sparseIndexSize = std::size_t((tbSize + d->span - 1) / d->span);  // Round up
-    auto padding       = number<std::uint8_t, true>(data++);
-    d->blockCount      = number<std::uint32_t, true>(data);
+    auto padding       = number<std::uint8_t, LittleEndian>(data++);
+    d->blockCount      = number<std::uint32_t, LittleEndian>(data);
     data += sizeof(std::uint32_t);
     d->blockLengthSize = d->blockCount + padding;  // Padded to ensure SparseIndex[]
                                                    // does not point out of range.
@@ -1046,8 +1049,8 @@ std::uint8_t* set_sizes(PairsData* d, std::uint8_t* data) noexcept {
     auto base64Size = int(d->base64.size());
     for (int i = base64Size - 2; i >= 0; --i)
     {
-        d->base64[i] = (d->base64[i + 1] + number<Sym, true>(&d->lowestSym[i])
-                        - number<Sym, true>(&d->lowestSym[i + 1]))
+        d->base64[i] = (d->base64[i + 1] + number<Sym, LittleEndian>(&d->lowestSym[i])
+                        - number<Sym, LittleEndian>(&d->lowestSym[i + 1]))
                      / 2;
 
         assert(2 * d->base64[i] >= d->base64[i + 1]);
@@ -1061,7 +1064,7 @@ std::uint8_t* set_sizes(PairsData* d, std::uint8_t* data) noexcept {
         d->base64[i] <<= 64 - i - d->minSymLen;  // Right-padding to 64 bits
 
     data += base64Size * sizeof(Sym);
-    d->symLen.resize(number<uint16_t, true>(data));
+    d->symLen.resize(number<uint16_t, LittleEndian>(data));
     data += sizeof(uint16_t);
     d->btree = (LR*) (data);
 
@@ -1096,7 +1099,7 @@ std::uint8_t* set_dtz_map(TBTable<DTZ>& entry, std::uint8_t* data, File maxFile)
                 {
                     // Sequence like 3,x,x,x,1,x,0,2,x,x
                     idx = (std::uint16_t*) (data) - (std::uint16_t*) (entry.map) + 1;
-                    data += 2 * number<std::uint16_t, true>(data) + 2;
+                    data += 2 * number<std::uint16_t, LittleEndian>(data) + 2;
                 }
             }
             else
@@ -1258,8 +1261,8 @@ WDLScore search(Position& pos, ProbeState* result) noexcept {
     StateInfo st;
     ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
 
-    const auto   legalMoves = MoveList<LEGAL>(pos);
-    std::uint8_t legalCount = legalMoves.size(), moveCount = 0;
+    const MoveList<LEGAL> legalMoves(pos);
+    std::uint8_t          legalCount = legalMoves.size(), moveCount = 0;
 
     for (auto m : legalMoves)
     {

@@ -297,7 +297,9 @@ constexpr File file_of(Square s) noexcept { return File(s & 0x7); }
 
 constexpr Rank rank_of(Square s) noexcept { return Rank((s >> 3) & 0x7); }
 
-//constexpr bool opposite_color(Square s1, Square s2) noexcept { return (int(s1) + rank_of(s1) + int(s2) + rank_of(s2)) & 1; }
+constexpr bool opposite_color(Square s1, Square s2) noexcept {
+    return (int(s1) + rank_of(s1) + int(s2) + rank_of(s2)) & 1;
+}
 
 // Swap A1 <-> H1
 constexpr Square flip_file(Square s) noexcept { return Square(int(s) ^ 0x07); }
@@ -405,7 +407,7 @@ class Move {
     };
 
    protected:
-    std::uint16_t data;
+    std::uint16_t data = 0;
 };
 
 }  // namespace DON

@@ -70,14 +70,14 @@ void TimeManager::init(Search::Limits&   limits,
         moveOverhead *= nodesTime;
     }
 
-    const TimePoint scaleFactor = std::max(nodesTime, 1LL);
-    const TimePoint scaledTime  = time / scaleFactor;
-    const TimePoint scaledInc   = inc / scaleFactor;
+    const std::int64_t scaleFactor = std::max(nodesTime, 1LL);
+    const TimePoint    scaledTime  = time / scaleFactor;
+    const TimePoint    scaledInc   = inc / scaleFactor;
 
     // Maximum move horizon of 50 moves
-    auto mtg = limits.movesToGo != 0
-               ? std::min<std::uint8_t>(limits.movesToGo, 50)
-               : std::max<std::uint8_t>(std::ceil(50 - 0.2 * pos.game_move()), 40);
+    std::uint8_t mtg = limits.movesToGo != 0
+                       ? std::min<std::uint8_t>(limits.movesToGo, 50)
+                       : std::max<std::uint8_t>(std::ceil(50 - 0.2 * pos.game_move()), 40);
 
     // If less than one second, gradually reduce mtg
     if (scaledTime < 1000 && mtg > 2)
@@ -85,10 +85,13 @@ void TimeManager::init(Search::Limits&   limits,
 
     assert(mtg != 0);
 
-    // Make sure remainingTime > 0 since use it as a divisor
-    TimePoint remainingTime = std::max(time + (-1 + mtg) * inc - (+2 + mtg) * moveOverhead, 1LL);
+    // Make sure remainTime > 0 since use it as a divisor
+    TimePoint remainTime = std::max(time + (-1 + mtg) * inc - (+2 + mtg) * moveOverhead, 1LL);
 
-    auto gamePly = pos.game_ply();
+    if (startRemainTime == -1LL)
+        startRemainTime = remainTime;
+
+    std::int16_t gamePly = pos.game_ply();
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
@@ -97,30 +100,31 @@ void TimeManager::init(Search::Limits&   limits,
     // x moves in y seconds (+ z increment)
     if (limits.movesToGo != 0)
     {
-        optimumScale = std::min((0.88 + 8.59106E-3 * gamePly) / mtg, 0.88 * time / remainingTime);
+        optimumScale = std::min((0.88 + 8.59106e-3 * gamePly) / mtg, 0.88 * time / remainTime);
         maximumScale = std::min(1.5 + 0.11 * mtg, 6.3);
     }
     // x basetime (+ z increment)
-    // If there is a healthy increment, remainingTime can exceed the actual available
+    // If there is a healthy increment, remainTime can exceed the actual available
     // game time for the current move, so also cap to a percentage of available game time.
     else
     {
         // Use extra time with larger increments.
-        auto log10ScaledInc = std::log10(std::max(scaledInc - 500, 1LL));
-        auto optimumExtra   = 1.0 + std::min(0.05 * log10ScaledInc, 0.14);
+        double log10ScaledInc = std::log10(std::max(scaledInc - 500, 1LL));
+        double optimumExtra   = (1.0 + std::min(0.05 * log10ScaledInc, 0.14))
+                            * (0.2078 + 0.1623 * std::log10(startRemainTime));
         // Calculate time constants based on current remaining time.
-        auto log10ScaledTime = std::log10(0.001 * scaledTime);
-        auto optimumConstant = std::min(3.08E-3 + 3.19E-4 * log10ScaledTime, 5.06E-3);
-        auto maximumConstant = std::max(3.39 + 3.01 * log10ScaledTime, 2.93);
+        double log10ScaledTime = std::log10(0.001 * scaledTime);
+        double optimumConstant = std::min(3.08e-3 + 3.19e-4 * log10ScaledTime, 5.06e-3);
+        double maximumConstant = std::max(3.39 + 3.01 * log10ScaledTime, 2.93);
 
         optimumScale = std::min(0.0122 + optimumConstant * std::pow(2.95 + gamePly, 0.462),
-                                0.213 * time / remainingTime)
+                                0.213 * time / remainTime)
                      * optimumExtra;
-        maximumScale = std::min(maximumConstant + 0.083333 * gamePly, 6.64);
+        maximumScale = std::min(maximumConstant + 83.3333e-3 * gamePly, 6.64);
     }
 
     // Limit the maximum possible time for this move
-    optimumTime = TimePoint(optimumScale * remainingTime);
+    optimumTime = TimePoint(optimumScale * remainTime);
     maximumTime = TimePoint(
       std::max(mtg > 1 ? std::min(0.825 * time - moveOverhead, maximumScale * optimumTime) - 10
                        : time - moveOverhead - 10,

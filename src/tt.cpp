@@ -26,6 +26,9 @@
 #include <thread>
 #include <vector>
 
+#include "misc.h"
+#include "thread.h"
+
 namespace DON {
 
 // Populates the TTEntry with a new node's data, possibly
@@ -56,7 +59,7 @@ void TTEntry::save(
 TranspositionTable::~TranspositionTable() noexcept { free(); }
 
 void TranspositionTable::free() noexcept {
-    aligned_large_pages_free(table);
+    free_aligned_lp(table);
     table        = nullptr;
     clusterCount = 0;
     generation8  = 0;
@@ -65,46 +68,39 @@ void TranspositionTable::free() noexcept {
 // Sets the size of the transposition table, measured in megabytes.
 // Transposition table consists of even number of clusters and
 // each cluster consists of EntryCount number of TTEntry.
-void TranspositionTable::resize(std::size_t mbSize, std::uint16_t threadCount) noexcept {
+void TranspositionTable::resize(std::size_t mbSize, ThreadPool& threads) noexcept {
     free();
     clusterCount = mbSize * 1024 * 1024 / sizeof(Cluster);
     assert(clusterCount % 2 == 0);
-    _threadCount = threadCount;
 
-    table = static_cast<Cluster*>(aligned_large_pages_alloc(clusterCount * sizeof(Cluster)));
+    table = static_cast<Cluster*>(alloc_aligned_lp(clusterCount * sizeof(Cluster)));
     if (!table)
     {
         std::cerr << "Failed to allocate " << mbSize << "MB for transposition table.\n";
         exit(EXIT_FAILURE);
     }
 
-    clear();
+    clear(threads);
 }
 
-void TranspositionTable::resize(std::size_t mbSize) noexcept { resize(mbSize, _threadCount); }
-
 // Initializes the entire transposition table to zero, in a multi-threaded way.
-void TranspositionTable::clear() noexcept {
-    std::vector<std::thread> threads;
+void TranspositionTable::clear(ThreadPool& threads) noexcept {
+    const std::uint16_t threadCount = threads.size();
 
-    for (std::uint16_t idx = 0; idx < _threadCount; ++idx)
+    for (std::uint16_t idx = 0; idx < threadCount; ++idx)
     {
-        threads.emplace_back([this, idx]() {
-            // Thread binding gives faster search on systems with a first-touch policy
-            if (_threadCount > 8)
-                WinProcGroup::bind_thread(idx);
-
+        threads.run_on_thread(idx, [this, idx, threadCount]() {
             // Each thread will zero its part of the hash table
-            std::size_t stride = clusterCount / _threadCount;
+            std::size_t stride = clusterCount / threadCount;
             std::size_t start  = stride * idx;
-            std::size_t count  = (idx + 1) != _threadCount ? stride : clusterCount - start;
+            std::size_t count  = (1 + idx) != threadCount ? stride : clusterCount - start;
 
             std::memset(static_cast<void*>(&table[start]), 0, count * sizeof(Cluster));
         });
     }
 
-    for (std::thread& th : threads)
-        th.join();
+    for (std::uint16_t idx = 0; idx < threadCount; ++idx)
+        threads.wait_on_thread(idx);
 }
 
 // Looks up the current position in the transposition table.
@@ -150,7 +146,7 @@ bool TranspositionTable::save(const std::string& fname) const noexcept {
     return ofstream.good();
 }
 
-bool TranspositionTable::load(const std::string& fname) noexcept {
+bool TranspositionTable::load(const std::string& fname, ThreadPool& threads) noexcept {
     std::ifstream ifstream(fname, std::ios_base::binary);
     if (ifstream)
     {
@@ -158,7 +154,7 @@ bool TranspositionTable::load(const std::string& fname) noexcept {
         std::streamsize fileSize = ifstream.tellg();
         ifstream.seekg(0, std::ios_base::beg);
         std::size_t mbSize = fileSize / (1024 * 1024);
-        resize(mbSize);
+        resize(mbSize, threads);
         ifstream.read(reinterpret_cast<char*>(table), clusterCount * sizeof(Cluster));
     }
     return ifstream.good();

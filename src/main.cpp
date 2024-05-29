@@ -38,7 +38,7 @@ int main(int argc, const char** argv) noexcept {
     Bitboards::init();
     Position::init();
 #if !defined(NDEBUG)
-    dbg_init();
+    Debug::init();
 #endif
 
     UCI uci(argc, argv);

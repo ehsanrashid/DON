@@ -20,6 +20,7 @@
 #include <cassert>
 #include <memory>
 #include <ostream>
+#include <sstream>
 #include <utility>
 
 #include "evaluate.h"
@@ -36,9 +37,13 @@ namespace NN = Eval::NNUE;
 
 Engine::Engine(const std::string& path) noexcept :
     binaryDirectory(CommandLine::get_binary_directory(path)),
-    networks(NN::Networks(
-      NN::BigNetwork({EvalFileDefaultNameBig, "None", ""}, NN::EmbeddedNNUEType::BIG),
-      NN::SmallNetwork({EvalFileDefaultNameSmall, "None", ""}, NN::EmbeddedNNUEType::SMALL))) {}
+    numaContext(NumaConfig::from_system()),
+    networks(
+      numaContext,
+      NN::Networks(
+        NN::BigNetwork({EvalFileDefaultNameBig, "None", ""}, NN::EmbeddedNNUEType::BIG),
+        NN::SmallNetwork({EvalFileDefaultNameSmall, "None", ""}, NN::EmbeddedNNUEType::SMALL))),
+    threads() {}
 
 Engine::~Engine() noexcept { wait_finish(); }
 
@@ -63,7 +68,7 @@ void Engine::setup(std::string_view fen, const std::vector<std::string>& moves) 
 }
 
 std::uint64_t Engine::perft(Depth depth, bool detail) noexcept {
-    return Benchmark::perft(pos, depth, options["Hash"], options["Threads"], detail);
+    return Benchmark::perft(pos, depth, options["Hash"], threads, detail);
 }
 
 void Engine::start(const Search::Limits& limits) noexcept {
@@ -82,8 +87,8 @@ void Engine::clear() noexcept {
     if (options["Retain Hash"])
         return;
     wait_finish();
+    tt.clear(threads);
     threads.clear();
-    tt.clear();
     // @TODO wont work with multiple instances
     Tablebases::init(options["SyzygyPath"]);  // Free mapped files
 }
@@ -92,12 +97,14 @@ void Engine::wait_finish() const noexcept { threads.main_thread()->wait_idle(); 
 
 
 void Engine::resize_threads() noexcept {
-    threads.set({options, networks, threads, tt}, updateContext);
+    threads.set(numaContext.get_numa_config(), {options, networks, threads, tt}, updateContext);
+    // Reallocate the hash with the new threadpool size
+    resize_tt(options["Hash"]);
 }
 
 void Engine::resize_tt(std::size_t mbSize) noexcept {
     wait_finish();
-    tt.resize(mbSize);
+    tt.resize(mbSize, threads);
 }
 
 void Engine::init_book(const std::string& bookFile) noexcept {
@@ -116,52 +123,95 @@ void Engine::eval() const noexcept {
 
     verify_networks();
 
-    sync_cout << '\n' << Eval::trace(p, networks) << sync_endl;
+    sync_cout << '\n' << Eval::trace(p, *networks) << sync_endl;
 }
 
 void Engine::flip() noexcept { pos.flip(); }
 
 
+void Engine::set_numa_config(const std::string& str) {
+    if (str == "auto" || str == "system")
+    {
+        numaContext.set_numa_config(NumaConfig::from_system());
+    }
+    else if (str == "none")
+    {
+        numaContext.set_numa_config(NumaConfig{});
+    }
+    else
+    {
+        numaContext.set_numa_config(NumaConfig::from_string(str));
+    }
+
+    // Force reallocation of threads in case affinities need to change.
+    resize_threads();
+}
+
+std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts() const noexcept {
+    std::vector<std::pair<std::size_t, std::size_t>> ratios;
+
+    auto              counts  = threads.get_bound_thread_counts();
+    const NumaConfig& config  = numaContext.get_numa_config();
+    NumaIndex         numaIdx = 0;
+    for (; numaIdx < counts.size(); ++numaIdx)
+        ratios.emplace_back(counts[numaIdx], config.num_cpus_in_numa_node(numaIdx));
+    if (!counts.empty())
+        for (; numaIdx < config.num_numa_nodes(); ++numaIdx)
+            ratios.emplace_back(0, config.num_cpus_in_numa_node(numaIdx));
+    return ratios;
+}
+
+std::string Engine::get_numa_config() const noexcept {
+    return numaContext.get_numa_config().to_string();
+}
+
 void Engine::verify_networks() const noexcept {
-    networks.big.verify(options["EvalFileBig"]);
-    networks.small.verify(options["EvalFileSmall"]);
+    networks->big.verify(options["EvalFileBig"]);
+    networks->small.verify(options["EvalFileSmall"]);
 }
 
 void Engine::load_networks() noexcept {
-    load_big_network(options["EvalFileBig"]);
-    load_small_network(options["EvalFileSmall"]);
+    networks.modify_and_replicate([this](NN::Networks& net) {
+        net.big.load(binaryDirectory, options["EvalFileBig"]);
+        net.small.load(binaryDirectory, options["EvalFileSmall"]);
+    });
+    threads.clear();
 }
 
 void Engine::load_big_network(const std::string& bigFile) noexcept {
-    networks.big.load(binaryDirectory, bigFile);
+    networks.modify_and_replicate(
+      [this, &bigFile](NN::Networks& net) { net.big.load(binaryDirectory, bigFile); });
     threads.clear();
 }
 
 void Engine::load_small_network(const std::string& smallFile) noexcept {
-    networks.small.load(binaryDirectory, smallFile);
+    networks.modify_and_replicate(
+      [this, &smallFile](NN::Networks& net) { net.small.load(binaryDirectory, smallFile); });
     threads.clear();
 }
 
 void Engine::save_networks(
-  const std::pair<std::optional<std::string>, std::string> files[2]) const noexcept {
-    networks.big.save(files[0].first);
-    networks.small.save(files[1].first);
+  const std::pair<std::optional<std::string>, std::string> files[2]) noexcept {
+    networks.modify_and_replicate([&files](NN::Networks& net) {
+        net.big.save(files[0].first);
+        net.small.save(files[1].first);
+    });
 }
 
-void Engine::set_on_update_short(Search::OnUpdateShort&& f) noexcept {
-    updateContext.onUpdateShort = std::move(f);
+void Engine::set_on_update_end(Search::OnUpdateEnd&& f) noexcept {
+    updateContext.onUpdateEnd = std::move(f);
 }
 
 void Engine::set_on_update_full(Search::OnUpdateFull&& f) noexcept {
     updateContext.onUpdateFull = std::move(f);
 }
 
-void Engine::set_on_update_iteration(Search::OnUpdateIteration&& f) noexcept {
-    updateContext.onUpdateIteration = std::move(f);
+void Engine::set_on_update_iter(Search::OnUpdateIter&& f) noexcept {
+    updateContext.onUpdateIter = std::move(f);
 }
 
-void Engine::set_on_update_bestmove(Search::OnUpdateBestMove&& f) noexcept {
-    updateContext.onUpdateBestMove = std::move(f);
+void Engine::set_on_update_move(Search::OnUpdateMove&& f) noexcept {
+    updateContext.onUpdateMove = std::move(f);
 }
 
 }  // namespace DON

@@ -32,6 +32,7 @@
 #include "tt.h"
 #include "types.h"
 #include "ucioption.h"
+#include "numa.h"
 #include "nnue/network.h"
 
 namespace DON {
@@ -40,6 +41,12 @@ class Engine final {
    public:
     Engine(const std::string& path = "") noexcept;
     ~Engine() noexcept;
+
+    // Can't be movable due to components holding backreferences to fields
+    Engine(const Engine&)            = delete;
+    Engine(Engine&&)                 = delete;
+    Engine& operator=(const Engine&) = delete;
+    Engine& operator=(Engine&&)      = delete;
 
     OptionsMap& get_options() noexcept;
     std::string fen() const noexcept;
@@ -58,6 +65,8 @@ class Engine final {
     // Blocking call to wait for search to finish
     void wait_finish() const noexcept;
 
+    void set_numa_config(const std::string& str);
+
     void resize_threads() noexcept;
 
     void resize_tt(std::size_t mbSize) noexcept;
@@ -70,29 +79,33 @@ class Engine final {
     void eval() const noexcept;
     void flip() noexcept;
 
+    std::vector<std::pair<size_t, size_t>> get_bound_thread_counts() const noexcept;
+    std::string                            get_numa_config() const noexcept;
+
     // Network related
     void verify_networks() const noexcept;
     void load_networks() noexcept;
     void load_big_network(const std::string& bigFile) noexcept;
     void load_small_network(const std::string& smallFile) noexcept;
-    void
-    save_networks(const std::pair<std::optional<std::string>, std::string> files[2]) const noexcept;
+    void save_networks(const std::pair<std::optional<std::string>, std::string> files[2]) noexcept;
 
-    void set_on_update_short(Search::OnUpdateShort&& f) noexcept;
+    void set_on_update_end(Search::OnUpdateEnd&& f) noexcept;
     void set_on_update_full(Search::OnUpdateFull&& f) noexcept;
-    void set_on_update_iteration(Search::OnUpdateIteration&& f) noexcept;
-    void set_on_update_bestmove(Search::OnUpdateBestMove&& f) noexcept;
+    void set_on_update_iter(Search::OnUpdateIter&& f) noexcept;
+    void set_on_update_move(Search::OnUpdateMove&& f) noexcept;
 
    private:
     const std::string binaryDirectory;
 
+    NumaReplicationContext numaContext;
+
     Position     pos;
     StateListPtr states;
 
-    OptionsMap           options;
-    Eval::NNUE::Networks networks;
-    ThreadPool           threads;
-    TranspositionTable   tt;
+    OptionsMap                           options;
+    NumaReplicated<Eval::NNUE::Networks> networks;
+    ThreadPool                           threads;
+    TranspositionTable                   tt;
 
     Search::UpdateContext updateContext;
 };

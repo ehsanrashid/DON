@@ -50,6 +50,12 @@ class Network final {
         evalFile(file),
         embeddedType(type) {}
 
+    Network(const Network& net);
+    Network(Network&& net) = default;
+
+    Network& operator=(const Network& net);
+    Network& operator=(Network&& net) = default;
+
     void load(const std::string& rootDirectory, std::string evalfilePath) noexcept;
     bool save(const std::optional<std::string>& filename) const noexcept;
 

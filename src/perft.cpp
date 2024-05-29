@@ -24,6 +24,7 @@
 #include "misc.h"
 #include "movegen.h"
 #include "position.h"
+#include "thread.h"
 #include "uci.h"
 
 namespace DON::Benchmark {
@@ -170,8 +171,8 @@ class HashTable final {
     }
 
     void free() noexcept;
-    void resize(std::size_t mbSize, std::uint16_t threadCount) noexcept;
-    void clear() noexcept;
+    void resize(std::size_t mbSize, ThreadPool& threads) noexcept;
+    void clear(ThreadPool& threads) noexcept;
 
     HashTable::Entry* probe(Key key, Depth depth, bool& hHit) const noexcept;
 
@@ -184,57 +185,51 @@ class HashTable final {
 
     static_assert(sizeof(Cluster) == 64, "Unexpected Cluster size");
 
-    Cluster*      table        = nullptr;
-    std::size_t   clusterCount = 0;
-    std::uint16_t _threadCount = 1;
+    Cluster*    table        = nullptr;
+    std::size_t clusterCount = 0;
 };
 
 HashTable::~HashTable() noexcept { free(); }
 
 void HashTable::free() noexcept {
-    aligned_large_pages_free(table);
+    free_aligned_lp(table);
     table        = nullptr;
     clusterCount = 0;
 }
 
-void HashTable::resize(std::size_t mbSize, std::uint16_t threadCount) noexcept {
+void HashTable::resize(std::size_t mbSize, ThreadPool& threads) noexcept {
     free();
     clusterCount = mbSize * 1024 * 1024 / sizeof(Cluster);
     assert(clusterCount % 2 == 0);
-    _threadCount = threadCount;
 
-    table = static_cast<Cluster*>(aligned_large_pages_alloc(clusterCount * sizeof(Cluster)));
+    table = static_cast<Cluster*>(alloc_aligned_lp(clusterCount * sizeof(Cluster)));
     if (!table)
     {
         std::cerr << "Failed to allocate " << mbSize << "MB for hash table.\n";
         exit(EXIT_FAILURE);
     }
 
-    clear();
+    clear(threads);
 }
 
 // Initializes the entire hash table to zero, in a multi-threaded way.
-void HashTable::clear() noexcept {
-    std::vector<std::thread> threads;
+void HashTable::clear(ThreadPool& threads) noexcept {
+    const std::uint16_t threadCount = threads.size();
 
-    for (std::uint16_t idx = 0; idx < _threadCount; ++idx)
+    for (std::uint16_t idx = 0; idx < threadCount; ++idx)
     {
-        threads.emplace_back([this, idx]() {
-            // Thread binding gives faster search on systems with a first-touch policy
-            if (_threadCount > 8)
-                WinProcGroup::bind_thread(idx);
-
+        threads.run_on_thread(idx, [this, idx, threadCount]() {
             // Each thread will zero its part of the hash table
-            std::size_t stride = clusterCount / _threadCount;
+            std::size_t stride = clusterCount / threadCount;
             std::size_t start  = stride * idx;
-            std::size_t count  = (idx + 1) != _threadCount ? stride : clusterCount - start;
+            std::size_t count  = (idx + 1) != threadCount ? stride : clusterCount - start;
 
             std::memset(static_cast<void*>(&table[start]), 0, count * sizeof(Cluster));
         });
     }
 
-    for (auto& th : threads)
-        th.join();
+    for (std::uint16_t idx = 0; idx < threadCount; ++idx)
+        threads.wait_on_thread(idx);
 }
 
 HashTable::Entry* HashTable::probe(Key key, Depth depth, bool& hHit) const noexcept {
@@ -302,7 +297,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
 
             if (depth <= 2)
             {
-                const auto legalMoves = MoveList<LEGAL>(pos);
+                const MoveList<LEGAL> legalMoves(pos);
                 iperft.nodes += legalMoves.size();
                 if (detail)
                     for (auto im : legalMoves)
@@ -386,11 +381,11 @@ template Perft perft<false>(Position& pos, Depth depth, bool detail) noexcept;
 
 }  // namespace
 
-std::uint64_t perft(
-  Position& pos, Depth depth, std::size_t mbSize, std::uint16_t threadCount, bool detail) noexcept {
+std::uint64_t
+perft(Position& pos, Depth depth, std::size_t mbSize, ThreadPool& threads, bool detail) noexcept {
 
     if (!detail)
-        hashTable.resize(mbSize, threadCount);
+        hashTable.resize(mbSize, threads);
 
     std::uint64_t nodes = perft<true>(pos, depth, detail).nodes;
     sync_cout << "\nTotal Nodes : " << nodes << '\n' << sync_endl;

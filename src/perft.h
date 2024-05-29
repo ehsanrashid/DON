@@ -26,14 +26,15 @@
 namespace DON {
 
 class Position;
+class ThreadPool;
 
 namespace Benchmark {
 
-std::uint64_t perft(Position&     pos,
-                    Depth         depth,
-                    std::size_t   mbSize,
-                    std::uint16_t threadCount,
-                    bool          detail = false) noexcept;
+std::uint64_t perft(Position&   pos,
+                    Depth       depth,
+                    std::size_t mbSize,
+                    ThreadPool& threads,
+                    bool        detail = false) noexcept;
 
 }  // namespace Benchmark
 }  // namespace DON

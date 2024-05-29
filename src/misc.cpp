@@ -45,6 +45,7 @@ using Fun8_t = bool (*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGE
 #endif
 
 #include <atomic>
+#include <charconv>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -55,6 +56,7 @@ using Fun8_t = bool (*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGE
 #include <mutex>
 #include <sstream>
 #include <string_view>
+#include <system_error>
 
 #include "types.h"
 
@@ -319,128 +321,6 @@ std::string compiler_info() noexcept {
     return compiler;
 }
 
-#if !defined(NDEBUG)
-// Debug functions used mainly to collect run-time statistics
-namespace {
-
-template<std::uint8_t N>
-struct DebugInfo {
-    std::atomic_int64_t data[N];  // = {0};
-
-    constexpr inline std::atomic_int64_t& operator[](std::uint8_t index) noexcept {
-        return data[index];
-    }
-};
-
-constexpr std::uint8_t MaxSlot = 32;
-
-DebugInfo<2> hit[MaxSlot];
-DebugInfo<2> min[MaxSlot];
-DebugInfo<2> max[MaxSlot];
-DebugInfo<2> mean[MaxSlot];
-DebugInfo<3> stdev[MaxSlot];
-DebugInfo<6> correl[MaxSlot];
-
-}  // namespace
-
-void dbg_init() noexcept {
-
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
-    {
-        hit[i][0] = hit[i][1] = 0;
-        min[i][0] = 0, min[i][1] = std::numeric_limits<std::int64_t>::max();
-        max[i][0] = 0, max[i][1] = std::numeric_limits<std::int64_t>::min();
-        mean[i][0] = mean[i][1] = 0;
-        stdev[i][0] = stdev[i][1] = stdev[i][2] = 0;
-        correl[i][0] = correl[i][1] = correl[i][2] = correl[i][3] = correl[i][4] = correl[i][5] = 0;
-    }
-}
-
-void dbg_hit_on(bool cond, std::uint8_t slot) noexcept {
-
-    ++hit[slot][0];
-    if (cond)
-        ++hit[slot][1];
-}
-
-void dbg_min_of(std::int64_t value, std::uint8_t slot) noexcept {
-
-    ++min[slot][0];
-    min[slot][1] = std::min<std::int64_t>(value, min[slot][1]);
-}
-
-void dbg_max_of(std::int64_t value, std::uint8_t slot) noexcept {
-
-    ++max[slot][0];
-    max[slot][1] = std::max<std::int64_t>(value, max[slot][1]);
-}
-
-void dbg_mean_of(std::int64_t value, std::uint8_t slot) noexcept {
-
-    ++mean[slot][0];
-    mean[slot][1] += value;
-}
-
-void dbg_stdev_of(std::int64_t value, std::uint8_t slot) noexcept {
-
-    ++stdev[slot][0];
-    stdev[slot][1] += value;
-    stdev[slot][2] += value * value;
-}
-
-void dbg_correl_of(std::int64_t value1, std::int64_t value2, std::uint8_t slot) noexcept {
-
-    ++correl[slot][0];
-    correl[slot][1] += value1;
-    correl[slot][2] += value1 * value1;
-    correl[slot][3] += value2;
-    correl[slot][4] += value2 * value2;
-    correl[slot][5] += value1 * value2;
-}
-
-void dbg_print() noexcept {
-
-    std::uint64_t n;
-
-    auto avg = [&n](std::int64_t x) { return double(x) / n; };
-    auto sqr = [](double x) { return x * x; };
-
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
-        if ((n = hit[i][0]))
-            std::cerr << "Hit #" << int(i) << ": Total " << n << " Hits " << hit[i][1]
-                      << " Hit Rate (%) " << 100.0 * avg(hit[i][1]) << '\n';
-
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
-        if ((n = min[i][0]))
-            std::cerr << "Min #" << int(i) << ": Total " << n << " Min " << min[i][1] << '\n';
-
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
-        if ((n = max[i][0]))
-            std::cerr << "Max #" << int(i) << ": Total " << n << " Max " << max[i][1] << '\n';
-
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
-        if ((n = mean[i][0]))
-            std::cerr << "Mean #" << int(i) << ": Total " << n << " Mean " << avg(mean[i][1])
-                      << '\n';
-
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
-        if ((n = stdev[i][0]))
-        {
-            double r = std::sqrt(avg(stdev[i][2]) - sqr(avg(stdev[i][1])));
-            std::cerr << "Stdev #" << int(i) << ": Total " << n << " Stdev " << r << '\n';
-        }
-
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
-        if ((n = correl[i][0]))
-        {
-            double r = (avg(correl[i][5]) - avg(correl[i][1]) * avg(correl[i][3]))
-                     / (std::sqrt(avg(correl[i][2]) - sqr(avg(correl[i][1])))
-                        * std::sqrt(avg(correl[i][4]) - sqr(avg(correl[i][3]))));
-            std::cerr << "Correl #" << int(i) << ": Total " << n << " Coefficient " << r << '\n';
-        }
-}
-#endif
-
 // Used to serialize access to std::cout
 // to avoid multiple threads writing at the same time.
 std::ostream& operator<<(std::ostream& os, InOut io) noexcept {
@@ -458,10 +338,20 @@ std::ostream& operator<<(std::ostream& os, InOut io) noexcept {
     return os;
 }
 
+void prefetch([[maybe_unused]] const void* addr) noexcept {
+
+#if defined(USE_PREFETCH)
+    #if defined(_MSC_VER)
+    _mm_prefetch(static_cast<const char*>(addr), _MM_HINT_T0);
+    #else
+    __builtin_prefetch(addr);
+    #endif
+#endif
+}
+
 /*
 std::ostream& operator<<(std::ostream&                            os,
                          [[maybe_unused]] SystemClock::time_point timePoint) noexcept {
-
 #if defined(_WIN32)
     std::string str;
 
@@ -511,21 +401,10 @@ std::string format_time(std::chrono::time_point<SystemClock> timePoint) {
 // Trampoline helper to avoid moving Logger to misc.h
 void start_logger(const std::string& fname) noexcept { Logger::start(fname); }
 
-void prefetch([[maybe_unused]] void* addr) noexcept {
-
-#if defined(USE_PREFETCH)
-    #if defined(_MSC_VER)
-    _mm_prefetch(static_cast<const char*>(addr), _MM_HINT_T0);
-    #else
-    __builtin_prefetch(addr);
-    #endif
-#endif
-}
-
 // Wrapper for systems where the c++17 implementation
 // does not guarantee the availability of aligned_alloc().
-// Memory allocated with std_aligned_alloc() must be freed with std_aligned_free().
-void* std_aligned_alloc(std::size_t alignment, std::size_t allocSize) noexcept {
+// Memory allocated with alloc_aligned_std() must be freed with free_aligned_std().
+void* alloc_aligned_std(std::size_t alignment, std::size_t allocSize) noexcept {
 
 #if defined(POSIX_ALIGNED_ALLOC)
     void* mem;
@@ -539,7 +418,7 @@ void* std_aligned_alloc(std::size_t alignment, std::size_t allocSize) noexcept {
 #endif
 }
 
-void std_aligned_free(void* mem) noexcept {
+void free_aligned_std(void* mem) noexcept {
 
 #if defined(POSIX_ALIGNED_ALLOC)
     free(mem);
@@ -557,7 +436,7 @@ void std_aligned_free(void* mem) noexcept {
 
 namespace {
 
-void* aligned_large_pages_alloc_windows([[maybe_unused]] std::size_t allocSize) noexcept {
+void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept {
 
     #if !defined(_WIN64)
     return nullptr;
@@ -629,11 +508,12 @@ void* aligned_large_pages_alloc_windows([[maybe_unused]] std::size_t allocSize) 
 }  // namespace
 #endif
 
-void* aligned_large_pages_alloc(std::size_t allocSize) noexcept {
+// Alloc Aligned Large Pages
+void* alloc_aligned_lp(std::size_t allocSize) noexcept {
 
 #if defined(_WIN32)
     // Try to allocate large pages
-    void* mem = aligned_large_pages_alloc_windows(allocSize);
+    void* mem = alloc_aligned_lp_windows(allocSize);
 
     // Fall back to regular, page-aligned, allocation if necessary
     if (!mem)
@@ -650,7 +530,7 @@ void* aligned_large_pages_alloc(std::size_t allocSize) noexcept {
     // Round up to multiples of Alignment
     std::size_t roundAllocSize = ((allocSize + Alignment - 1) / Alignment) * Alignment;
 
-    void* mem = std_aligned_alloc(Alignment, roundAllocSize);
+    void* mem = alloc_aligned_std(Alignment, roundAllocSize);
     #if defined(MADV_HUGEPAGE)
     if (mem)
         madvise(mem, roundAllocSize, MADV_HUGEPAGE);
@@ -659,9 +539,9 @@ void* aligned_large_pages_alloc(std::size_t allocSize) noexcept {
 #endif
 }
 
-// Free the previously allocated memory
+// Free Aligned Large Pages
 // nop if mem == nullptr
-void aligned_large_pages_free(void* mem) noexcept {
+void free_aligned_lp(void* mem) noexcept {
 #if defined(_WIN32)
     if (mem && !VirtualFree(mem, 0, MEM_RELEASE))
     {
@@ -671,137 +551,134 @@ void aligned_large_pages_free(void* mem) noexcept {
         exit(EXIT_FAILURE);
     }
 #else
-    std_aligned_free(mem);
+    free_aligned_std(mem);
 #endif
 }
 
-namespace WinProcGroup {
-
-#if defined(_WIN32)
-
+#if !defined(NDEBUG)
+// Debug functions used mainly to collect run-time statistics
+namespace Debug {
 namespace {
-// Retrieves logical processor information using Windows-specific
-// API and returns the best node id for the thread with index idx.
-// Original code from Texel by Peter Österlund.
-std::int16_t best_node(std::uint16_t idx) noexcept {
-    // Early exit if the needed API is not available at runtime
-    HMODULE k32 = GetModuleHandle(TEXT("Kernel32.dll"));
 
-    auto getLogicalProcessorInformationEx =
-      Fun1_t(reinterpret_cast<void (*)()>(GetProcAddress(k32, "GetLogicalProcessorInformationEx")));
-    if (!getLogicalProcessorInformationEx)
-        return -1;
+template<std::uint8_t N>
+struct Info {
+    std::atomic_int64_t data[N];  // = {0};
 
-    DWORD returnLength;
-    // First call to GetLogicalProcessorInformationEx() to get returnLength.
-    // expect the call to fail due to null buffer.
-    if (getLogicalProcessorInformationEx(RelationAll, nullptr, &returnLength))
-        return -1;
-
-    // Once know returnLength, allocate the buffer
-    SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *buffer, *ptr;
-    buffer = ptr = static_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(malloc(returnLength));
-
-    // Second call to GetLogicalProcessorInformationEx(), now expect to succeed
-    if (!getLogicalProcessorInformationEx(RelationAll, buffer, &returnLength))
-    {
-        free(buffer);
-        return -1;
+    constexpr inline std::atomic_int64_t& operator[](std::uint8_t index) noexcept {
+        return data[index];
     }
+};
 
-    std::uint16_t nodes   = 0;
-    std::uint16_t cores   = 0;
-    std::uint16_t threads = 0;
+constexpr std::uint8_t MaxSlot = 32;
 
-    DWORD byteOffset = 0;
-    while (byteOffset < returnLength)
+Info<2> hit[MaxSlot];
+Info<2> min[MaxSlot];
+Info<2> max[MaxSlot];
+Info<2> mean[MaxSlot];
+Info<3> stdev[MaxSlot];
+Info<6> correl[MaxSlot];
+
+}  // namespace
+
+void init() noexcept {
+
+    for (std::uint8_t i = 0; i < MaxSlot; ++i)
     {
-        switch (ptr->Relationship)
+        hit[i][0] = hit[i][1] = 0;
+        min[i][0] = 0, min[i][1] = std::numeric_limits<std::int64_t>::max();
+        max[i][0] = 0, max[i][1] = std::numeric_limits<std::int64_t>::min();
+        mean[i][0] = mean[i][1] = 0;
+        stdev[i][0] = stdev[i][1] = stdev[i][2] = 0;
+        correl[i][0] = correl[i][1] = correl[i][2] = correl[i][3] = correl[i][4] = correl[i][5] = 0;
+    }
+}
+
+void hit_on(bool cond, std::uint8_t slot) noexcept {
+
+    ++hit[slot][0];
+    if (cond)
+        ++hit[slot][1];
+}
+
+void min_of(std::int64_t value, std::uint8_t slot) noexcept {
+
+    ++min[slot][0];
+    min[slot][1] = std::min<std::int64_t>(value, min[slot][1]);
+}
+
+void max_of(std::int64_t value, std::uint8_t slot) noexcept {
+
+    ++max[slot][0];
+    max[slot][1] = std::max<std::int64_t>(value, max[slot][1]);
+}
+
+void mean_of(std::int64_t value, std::uint8_t slot) noexcept {
+
+    ++mean[slot][0];
+    mean[slot][1] += value;
+}
+
+void stdev_of(std::int64_t value, std::uint8_t slot) noexcept {
+
+    ++stdev[slot][0];
+    stdev[slot][1] += value;
+    stdev[slot][2] += value * value;
+}
+
+void correl_of(std::int64_t value1, std::int64_t value2, std::uint8_t slot) noexcept {
+
+    ++correl[slot][0];
+    correl[slot][1] += value1;
+    correl[slot][2] += value1 * value1;
+    correl[slot][3] += value2;
+    correl[slot][4] += value2 * value2;
+    correl[slot][5] += value1 * value2;
+}
+
+void print() noexcept {
+
+    std::uint64_t n;
+
+    auto avg = [&n](std::int64_t x) { return double(x) / n; };
+    auto sqr = [](double x) { return x * x; };
+
+    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+        if ((n = hit[i][0]))
+            std::cerr << "Hit #" << int(i) << ": Total " << n << " Hits " << hit[i][1]
+                      << " Hit Rate (%) " << 100.0 * avg(hit[i][1]) << '\n';
+
+    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+        if ((n = min[i][0]))
+            std::cerr << "Min #" << int(i) << ": Total " << n << " Min " << min[i][1] << '\n';
+
+    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+        if ((n = max[i][0]))
+            std::cerr << "Max #" << int(i) << ": Total " << n << " Max " << max[i][1] << '\n';
+
+    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+        if ((n = mean[i][0]))
+            std::cerr << "Mean #" << int(i) << ": Total " << n << " Mean " << avg(mean[i][1])
+                      << '\n';
+
+    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+        if ((n = stdev[i][0]))
         {
-        case RelationProcessorCore :
-            ++cores;
-            threads += (ptr->Processor.Flags == LTP_PC_SMT) ? 2 : 1;
-            break;
-        case RelationNumaNode :
-            ++nodes;
-            break;
-        default :;
+            double r = std::sqrt(avg(stdev[i][2]) - sqr(avg(stdev[i][1])));
+            std::cerr << "Stdev #" << int(i) << ": Total " << n << " Stdev " << r << '\n';
         }
 
-        assert(ptr->Size);
-        byteOffset += ptr->Size;
-        ptr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) (((char*) ptr) + ptr->Size);
-    }
-    free(buffer);
-
-    std::vector<std::uint16_t> groups;
-
-    // Run as many threads as possible on the same node until the core limit is
-    // reached, then move on to filling the next node.
-    for (std::uint16_t n = 0; n < nodes; ++n)
-        for (std::uint16_t c = 0; c < cores / nodes; ++c)
-            groups.push_back(n);
-
-    // In case a core has more than one logical processor (assume 2) and still
-    // have threads to allocate, spread them evenly across available nodes.
-    for (std::uint16_t t = 0; t < threads - cores; ++t)
-        groups.push_back(t % nodes);
-
-    // If still have more threads than the total number of logical processors
-    // then return -1 and let the OS to decide what to do.
-    return idx < groups.size() ? groups[idx] : -1;
+    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+        if ((n = correl[i][0]))
+        {
+            double r = (avg(correl[i][5]) - avg(correl[i][1]) * avg(correl[i][3]))
+                     / (std::sqrt(avg(correl[i][2]) - sqr(avg(correl[i][1])))
+                        * std::sqrt(avg(correl[i][4]) - sqr(avg(correl[i][3]))));
+            std::cerr << "Correl #" << int(i) << ": Total " << n << " Coefficient " << r << '\n';
+        }
 }
-}  // namespace
+}  // namespace Debug
 #endif
 
-// Sets the group affinity of the current thread
-void bind_thread([[maybe_unused]] std::uint16_t idx) noexcept {
-
-#if defined(_WIN32)
-    // Use only local variables to be thread-safe
-    std::int16_t node = best_node(idx);
-
-    if (node < 0)
-        return;
-
-    // Early exit if the needed API are not available at runtime
-    HMODULE k32 = GetModuleHandle(TEXT("Kernel32.dll"));
-
-    auto getNumaNodeProcessorMaskEx =
-      Fun2_t(reinterpret_cast<void (*)()>(GetProcAddress(k32, "GetNumaNodeProcessorMaskEx")));
-    auto setThreadGroupAffinity =
-      Fun3_t(reinterpret_cast<void (*)()>(GetProcAddress(k32, "SetThreadGroupAffinity")));
-    auto getNumaNodeProcessorMask2 =
-      Fun4_t(reinterpret_cast<void (*)()>(GetProcAddress(k32, "GetNumaNodeProcessorMask2")));
-    auto getMaximumProcessorGroupCount =
-      Fun5_t(reinterpret_cast<void (*)()>(GetProcAddress(k32, "GetMaximumProcessorGroupCount")));
-
-    if (!getNumaNodeProcessorMaskEx || !setThreadGroupAffinity)
-        return;
-
-    if (!getNumaNodeProcessorMask2 || !getMaximumProcessorGroupCount)
-    {
-        GROUP_AFFINITY affinity;
-        if (getNumaNodeProcessorMaskEx(node, &affinity))
-            setThreadGroupAffinity(GetCurrentThread(), &affinity, nullptr);
-    }
-    else
-    {
-        // If a numa node has more than one processor group, assume they are
-        // sized equal and spread threads evenly across the groups.
-        USHORT elements = getMaximumProcessorGroupCount();
-        auto   affinity = static_cast<GROUP_AFFINITY*>(malloc(elements * sizeof(GROUP_AFFINITY)));
-
-        USHORT returnedElements;
-        if (getNumaNodeProcessorMask2(node, affinity, elements, &returnedElements))
-            setThreadGroupAffinity(GetCurrentThread(), &affinity[idx % returnedElements], nullptr);
-
-        free(affinity);
-    }
-#endif
-}
-
-}  // namespace WinProcGroup
 
 #if defined(_WIN32)
     #include <direct.h>
@@ -853,6 +730,16 @@ std::string CommandLine::get_working_directory() noexcept {
         workingDirectory = cwd;
 
     return workingDirectory;
+}
+
+std::size_t str_to_size_t(const std::string& str) {
+    std::size_t value;
+    auto        result = std::from_chars(str.data(), str.data() + str.size(), value);
+
+    if (result.ec != std::errc())
+        std::exit(EXIT_FAILURE);
+
+    return value;
 }
 
 }  // namespace DON

@@ -24,8 +24,11 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
+#include <iterator>
 #include <limits>
 #include <type_traits>  // IWYU pragma: keep
+#include <vector>
 
 #include "movegen.h"
 #include "types.h"
@@ -49,6 +52,88 @@ constexpr Key16 pawn_index(Key pawnKey) noexcept {
 constexpr Key16 correction_index(Key pawnKey) noexcept {
     return Key16(pawnKey) & (CORRECTION_HISTORY_SIZE - 1);
 }
+
+class Moves final {
+   public:
+    using MoveDeque = std::deque<Move>;
+    using NormalItr = MoveDeque::iterator;
+    using ConstItr  = MoveDeque::const_iterator;
+
+    Moves() = default;
+    explicit Moves(std::size_t count, Move m) noexcept :
+        moves(count, m) {}
+    explicit Moves(std::size_t count) noexcept :
+        moves(count) {}
+    Moves(const std::initializer_list<Move>& initList) noexcept :
+        moves(initList) {}
+
+    template<typename... Args>
+    void emplace(Args&&... args) noexcept {
+        moves.emplace_back(std::forward<Args>(args)...);
+    }
+
+    void push_back(Move m) noexcept { moves.push_back(m); }
+    void push_back(Move&& m) noexcept { moves.push_back(std::move(m)); }
+    void push_front(Move m) noexcept { moves.push_front(m); }
+    void push_front(Move&& m) noexcept { moves.push_front(std::move(m)); }
+    void append(Move m) noexcept { moves.insert(end(), m); }
+    void append(ConstItr begItr, ConstItr endItr) noexcept {  //
+        moves.insert(end(), begItr, endItr);
+    }
+    void append(const std::initializer_list<Move>& initList) noexcept {  //
+        moves.insert(end(), initList);
+    }
+    void append(const Moves& ms) noexcept { append(ms.begin(), ms.end()); }
+    void pop() noexcept { moves.pop_back(); }
+
+    //void reserve(std::size_t newSize) noexcept { moves.reserve(newSize); }
+    void resize(std::size_t newSize) noexcept { moves.resize(newSize); }
+    void clear() noexcept { moves.clear(); }
+
+    NormalItr begin() noexcept { return moves.begin(); }
+    NormalItr end() noexcept { return moves.end(); }
+
+    ConstItr begin() const noexcept { return moves.begin(); }
+    ConstItr end() const noexcept { return moves.end(); }
+
+    auto& front() noexcept { return moves.front(); }
+    auto& back() noexcept { return moves.back(); }
+
+    auto size() const noexcept { return moves.size(); }
+    auto max_size() const noexcept { return moves.max_size(); }
+    bool empty() const noexcept { return moves.empty(); }
+
+    auto erase(ConstItr itr) noexcept { return moves.erase(itr); }
+    auto erase(ConstItr begItr, ConstItr endItr) noexcept {  //
+        assert(begItr <= endItr);
+        return moves.erase(begItr, endItr);
+    }
+    bool erase(Move m) noexcept {
+        auto itr = find(m);
+        if (itr != end())
+            return erase(itr), true;
+        return false;
+    }
+
+    ConstItr find(Move m) const noexcept { return std::find(begin(), end(), m); }
+
+    bool contains(Move m) const noexcept { return find(m) != end(); }
+
+    NormalItr remove(Move m) noexcept { return std::remove(begin(), end(), m); }
+    template<typename Predicate>
+    NormalItr remove_if(Predicate pred) noexcept {
+        return std::remove_if(begin(), end(), pred);
+    }
+
+    auto& operator[](std::size_t idx) const noexcept { return moves[idx]; }
+    auto& operator[](std::size_t idx) noexcept { return moves[idx]; }
+
+    void operator+=(Move m) noexcept { push_back(m); }
+    void operator-=(Move m) noexcept { erase(m); }
+
+   private:
+    MoveDeque moves;
+};
 
 // StatsEntry stores the stat table value. It is usually a number but could
 // be a move or even a nested history. Use a class instead of a naked value
@@ -155,11 +240,11 @@ enum Stage : std::uint8_t {
     PROBCUT,
 
     // Generate qsearch moves
-    QSEARCH_TT,
-    QCAPTURE_INIT,
-    QCAPTURE,
-    QCHECK_INIT,
-    QCHECK
+    QS_TT,
+    QS_CAPTURE_INIT,
+    QS_CAPTURE,
+    QS_CHECK_INIT,
+    QS_CHECK
 };
 
 constexpr Stage operator+(Stage s, int i) noexcept { return Stage(int(s) + i); }
@@ -208,13 +293,10 @@ class MovePicker final {
 
     void partial_sort(int limit) noexcept;
 
-    template<bool PickBest = false, typename Predicate>
-    Move pick(Predicate filter) noexcept;
+    auto begin() const noexcept { return curExtItr; }
+    auto end() const noexcept { return endExtItr; }
 
-    ExtMove* begin() const noexcept { return cur; }
-    ExtMove* end() const noexcept { return endMoves; }
-
-    constexpr std::uint8_t size() const noexcept { return endMoves - cur; }
+    std::uint8_t size() const noexcept { return std::distance(begin(), end()); }
 
     const Position&               pos;
     const ButterflyHistory*       mainHistory;
@@ -225,9 +307,11 @@ class MovePicker final {
     Depth                         depth;
     int                           threshold;
 
-    ExtMove *cur, *endMoves, *begRef, *endRef, *endBadCaptures, *begBadQuiets, *endBadQuiets;
-    ExtMove  refutations[3];
-    ExtMove  moves[MAX_MOVES];
+    ExtMoves            extMoves;
+    ExtMoves::NormalItr curExtItr, endExtItr;
+
+    Moves            refutations, badCaptures;
+    Moves::NormalItr curItr, endItr;
 };
 
 }  // namespace DON

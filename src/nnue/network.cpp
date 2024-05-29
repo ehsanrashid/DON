@@ -22,6 +22,8 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <optional>
 #include <type_traits>
 #include <vector>
 
@@ -81,7 +83,7 @@ namespace Detail {
 template<typename T>
 void initialize(AlignedPtr<T>& pointer) noexcept {
 
-    pointer.reset(reinterpret_cast<T*>(std_aligned_alloc(alignof(T), sizeof(T))));
+    pointer.reset(reinterpret_cast<T*>(alloc_aligned_std(alignof(T), sizeof(T))));
     std::memset(pointer.get(), 0, sizeof(T));
 }
 
@@ -89,8 +91,8 @@ template<typename T>
 void initialize(LargePagePtr<T>& pointer) noexcept {
 
     static_assert(alignof(T) <= 4096,
-                  "aligned_large_pages_alloc() may fail for such a big alignment requirement of T");
-    pointer.reset(reinterpret_cast<T*>(aligned_large_pages_alloc(sizeof(T))));
+                  "alloc_aligned_lp() may fail for such a big alignment requirement of T");
+    pointer.reset(reinterpret_cast<T*>(alloc_aligned_lp(sizeof(T))));
     std::memset(pointer.get(), 0, sizeof(T));
 }
 
@@ -114,6 +116,48 @@ bool write_parameters(std::ostream& ostream, const T& reference) noexcept {
 }
 
 }  // namespace Detail
+
+template<typename Arch, typename Transformer>
+Network<Arch, Transformer>::Network(const Network<Arch, Transformer>& net) :
+    evalFile(net.evalFile),
+    embeddedType(net.embeddedType) {
+    if (net.featureTransformer)
+    {
+        Detail::initialize(featureTransformer);
+        *featureTransformer = *net.featureTransformer;
+    }
+    for (std::size_t i = 0; i < LayerStacks; ++i)
+    {
+        if (net.network[i])
+        {
+            Detail::initialize(network[i]);
+            *(network[i]) = *(net.network[i]);
+        }
+    }
+}
+
+template<typename Arch, typename Transformer>
+Network<Arch, Transformer>&
+Network<Arch, Transformer>::operator=(const Network<Arch, Transformer>& net) {
+    evalFile     = net.evalFile;
+    embeddedType = net.embeddedType;
+
+    if (net.featureTransformer)
+    {
+        Detail::initialize(featureTransformer);
+        *featureTransformer = *net.featureTransformer;
+    }
+    for (std::size_t i = 0; i < LayerStacks; ++i)
+    {
+        if (net.network[i])
+        {
+            Detail::initialize(network[i]);
+            *(network[i]) = *(net.network[i]);
+        }
+    }
+
+    return *this;
+}
 
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load(const std::string& rootDirectory,

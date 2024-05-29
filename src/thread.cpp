@@ -18,31 +18,38 @@
 #include "thread.h"
 
 #include <algorithm>
-#include <cassert>
+#include <deque>
+#include <string>
 #include <unordered_map>
 #include <utility>
-#include <string>
 
-#include "misc.h"
 #include "movegen.h"
 #include "timeman.h"
-#include "tt.h"
+#include "types.h"
 #include "uci.h"
 #include "ucioption.h"
-#include "syzygy/tbprobe.h"
 
 namespace DON {
 
 // Constructor launches the thread and waits until it goes to sleep
 // in idle_func(). Note that 'dead' and 'busy' should be already set.
-Thread::Thread(std::uint16_t              id,
-               const Search::SharedState& sharedState,
-               Search::ISearchManagerPtr  searchManager) noexcept :
+Thread::Thread(std::uint16_t                  id,
+               const Search::SharedState&     sharedState,
+               Search::ISearchManagerPtr      searchManager,
+               OptionalThreadToNumaNodeBinder binder) noexcept :
     idx(id),
     threadCount(sharedState.options["Threads"]),
-    worker(std::make_unique<Search::Worker>(id, sharedState, std::move(searchManager))),
     nativeThread(&Thread::idle_func, this) {
 
+    wait_idle();
+    run_custom_job([this, id, &binder, &sharedState, &searchManager]() {
+        // Use the binder to [maybe] bind the threads to a NUMA node before doing
+        // the Worker allocation.
+        // Ideally we would also allocate the SearchManager here, but that's minor.
+        numaAccessToken = binder();
+        worker = std::make_unique<Search::Worker>(id, sharedState, std::move(searchManager),
+                                                  numaAccessToken);
+    });
     wait_idle();
 }
 
@@ -56,17 +63,25 @@ Thread::~Thread() noexcept {
     nativeThread.join();
 }
 
+// Wakes up the thread that will clear worker
+void Thread::clear() noexcept {
+    assert(worker != nullptr);
+    run_custom_job([this]() { worker->clear(); });
+}
+
+void Thread::run_custom_job(std::function<void()> func) noexcept {
+    {
+        std::unique_lock<std::mutex> uniqueLock(mutex);
+        condVar.wait(uniqueLock, [&] { return !busy; });
+        jobFunc = std::move(func);
+        busy    = true;
+    }
+    condVar.notify_one();
+}
+
 // Thread gets parked here, blocked on the
 // condition variable, when it has no work to do.
 void Thread::idle_func() noexcept {
-
-    // If OS already scheduled us on a different group than 0 then don't overwrite
-    // the choice, eventually are one of many one-threaded processes running on
-    // some Windows NUMA hardware, for instance in fishtest. To make it simple,
-    // just check if running threads are below a threshold, in this case, all this
-    // NUMA machinery is not needed.
-    if (threadCount > 8)
-        WinProcGroup::bind_thread(idx);
 
     while (true)
     {
@@ -78,9 +93,13 @@ void Thread::idle_func() noexcept {
         if (dead)
             return;
 
+        std::function<void()> job = std::move(jobFunc);
+        jobFunc                   = nullptr;
+
         uniqueLock.unlock();
 
-        worker->start_search();
+        if (job)
+            job();
     }
 }
 
@@ -88,7 +107,8 @@ void Thread::idle_func() noexcept {
 // Creates/destroys threads to match the requested number.
 // Created and launched threads will immediately go to sleep in idle_func.
 // Upon resizing, threads are recreated to allow for binding if necessary.
-void ThreadPool::set(Search::SharedState          sharedState,
+void ThreadPool::set(const NumaConfig&            numaConfig,
+                     Search::SharedState          sharedState,
                      const Search::UpdateContext& updateContext) noexcept {
     destroy();
 
@@ -100,37 +120,68 @@ void ThreadPool::set(Search::SharedState          sharedState,
     // create new thread(s)
     if (threadCount != 0)
     {
-        assert(empty());
+        // Binding threads may be problematic when there's multiple NUMA nodes and
+        // multiple Stockfish instances running. In particular, if each instance
+        // runs a single thread then they would all be mapped to the first NUMA node.
+        // This is undesirable, and so the default behaviour (i.e. when the user does not
+        // change the NumaConfig UCI setting) is to not bind the threads to processors
+        // unless we know for sure that we span NUMA nodes and replication is required.
+        const std::string numaPolicy(sharedState.options["NumaPolicy"]);
+        const bool        doBindThreads = [&]() {
+            if (numaPolicy == "none")
+                return false;
 
-        auto mainManager = std::make_unique<Search::MainSearchManager>(updateContext);
-        threads.push_back(new Thread(size(), sharedState, std::move(mainManager)));
+            if (numaPolicy == "auto")
+                return numaConfig.suggests_binding_threads(threadCount);
+
+            // numaPolicy == "system", or explicitly set by the user
+            return true;
+        }();
+
+        boundThreadToNumaNode = doBindThreads
+                                ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
+                                : std::vector<NumaIndex>{};
 
         while (size() < threadCount)
         {
-            auto nullManager = std::make_unique<Search::NullSearchManager>();
-            threads.push_back(new Thread(size(), sharedState, std::move(nullManager)));
+            const size_t    threadId = size();
+            const NumaIndex numaId   = doBindThreads ? boundThreadToNumaNode[threadId] : 0;
+            auto            manager  = threadId == 0 ? std::unique_ptr<Search::ISearchManager>(
+                             std::make_unique<Search::MainSearchManager>(updateContext))
+                                                     : std::make_unique<Search::NullSearchManager>();
+
+            // When not binding threads we want to force all access to happen
+            // from the same NUMA node, because in case of NUMA replicated memory
+            // accesses we don't want to trash cache in case the threads get scheduled
+            // on the same NUMA node.
+            auto binder = doBindThreads ? OptionalThreadToNumaNodeBinder(numaConfig, numaId)
+                                        : OptionalThreadToNumaNodeBinder(numaId);
+
+            threads.emplace_back(
+              std::make_unique<Thread>(threadId, sharedState, std::move(manager), binder));
         }
 
         clear();
-        // Reallocate the hash with the new thread-pool size
-        sharedState.tt.resize(sharedState.options["Hash"], threadCount);
+
+        main_thread()->wait_idle();
     }
 }
 
 Thread* ThreadPool::best_thread() const noexcept {
 
-    Value minValue = +VALUE_INFINITE;
+    Value minCurValue = +VALUE_INFINITE;
     // Find the minimum value of all threads
-    for (const Thread* th : threads)
+    for (auto&& th : threads)
     {
         if (th->worker->completedDepth == DEPTH_ZERO)
             continue;
-        assert(th->worker->rootMoves[0].currValue != +VALUE_INFINITE);
-        minValue = std::min(th->worker->rootMoves[0].currValue, minValue);
+        assert(th->worker->rootMoves.front().curValue != +VALUE_INFINITE);
+        minCurValue = std::min(th->worker->rootMoves.front().curValue, minCurValue);
     }
     // Vote according to value and depth, and select the best thread
-    auto thread_voting_value = [minValue](const Thread* th) noexcept -> std::uint64_t {
-        return (14 + th->worker->rootMoves[0].currValue - minValue) * th->worker->completedDepth;
+    auto thread_voting_value = [minCurValue](const Thread* th) noexcept -> std::uint64_t {
+        return th->worker->completedDepth
+             * (14 + th->worker->rootMoves.front().curValue - minCurValue);
     };
 
     Thread* bestThread = main_thread();
@@ -138,25 +189,25 @@ Thread* ThreadPool::best_thread() const noexcept {
     std::unordered_map<Move, std::uint64_t, Move::MoveHash> votes(
       2 * std::min(size(), bestThread->worker->rootMoves.size()));
 
-    for (const Thread* th : threads)
-        votes[th->worker->rootMoves[0][0]] += thread_voting_value(th);
+    for (auto&& th : threads)
+        votes[th->worker->rootMoves.front()[0]] += thread_voting_value(th.get());
 
-    for (Thread* newThread : threads)
+    for (auto&& newThread : threads)
     {
-        if (newThread == bestThread || newThread->worker->completedDepth == DEPTH_ZERO)
+        if (newThread.get() == bestThread || newThread->worker->completedDepth == DEPTH_ZERO)
             continue;
 
-        const auto bestThreadValue = bestThread->worker->rootMoves[0].currValue;
-        const auto newThreadValue  = newThread->worker->rootMoves[0].currValue;
+        const auto bestThreadValue = bestThread->worker->rootMoves.front().curValue;
+        const auto newThreadValue  = newThread->worker->rootMoves.front().curValue;
 
-        const auto& bestThreadPriVar = bestThread->worker->rootMoves[0].principalVar;
-        const auto& newThreadPriVar  = newThread->worker->rootMoves[0].principalVar;
+        const auto& bestThreadPV = bestThread->worker->rootMoves.front().pv;
+        const auto& newThreadPV  = newThread->worker->rootMoves.front().pv;
 
-        const auto bestThreadMoveVote = votes[bestThreadPriVar[0]];
-        const auto newThreadMoveVote  = votes[newThreadPriVar[0]];
+        const auto bestThreadMoveVote = votes[bestThreadPV[0]];
+        const auto newThreadMoveVote  = votes[newThreadPV[0]];
 
         const auto bestThreadVoting = thread_voting_value(bestThread);
-        const auto newThreadVoting  = thread_voting_value(newThread);
+        const auto newThreadVoting  = thread_voting_value(newThread.get());
 
         const bool bestThreadInProvenWin =
           bestThreadValue != +VALUE_INFINITE && bestThreadValue >= VALUE_TB_WIN_IN_MAX_PLY;
@@ -172,13 +223,13 @@ Thread* ThreadPool::best_thread() const noexcept {
         {
             // Make sure pick the shortest mate / TB conversion
             if (newThreadInProvenWin && newThreadValue > bestThreadValue)
-                bestThread = newThread;
+                bestThread = newThread.get();
         }
         else if (bestThreadInProvenLoss)
         {
             // Make sure pick the shortest mated / TB conversion
             if (newThreadInProvenLoss && newThreadValue < bestThreadValue)
-                bestThread = newThread;
+                bestThread = newThread.get();
         }
         else if (
           newThreadInProvenWin || newThreadInProvenLoss
@@ -192,8 +243,8 @@ Thread* ThreadPool::best_thread() const noexcept {
                                     > bestThread->worker->completedDepth
                                   || (newThread->worker->completedDepth
                                         == bestThread->worker->completedDepth
-                                      && newThreadPriVar.size() > bestThreadPriVar.size()))))))))
-            bestThread = newThread;
+                                      && newThreadPV.size() > bestThreadPV.size()))))))))
+            bestThread = newThread.get();
     }
 
     return bestThread;
@@ -211,19 +262,19 @@ void ThreadPool::start(Position&             pos,
 
     Search::RootMoves rootMoves;
 
-    const auto legalMoves = MoveList<LEGAL>(pos);
+    const MoveList<LEGAL> legalMoves(pos);
     for (const std::string& can : limits.searchMoves)
     {
         if (rootMoves.size() == legalMoves.size())
             break;
         Move m = UCI::can_to_move(can, legalMoves);
         if (m != Move::None() && !rootMoves.contains(m))
-            rootMoves.emplace_back(m);
+            rootMoves.emplace(m);
     }
 
     if (rootMoves.empty())
         for (auto m : legalMoves)
-            rootMoves.emplace_back(m);
+            rootMoves.emplace(m);
 
     bool erase = true;
     for (const std::string& can : limits.ignoreMoves)
@@ -251,19 +302,53 @@ void ThreadPool::start(Position&             pos,
     // StateInfo fields (rule50, nullPly, capturedPiece, previous) that cannot be deduced
     // from a fen string, so set() clears them and they are set from setupStates->back() later.
     // The rootState is per thread, earlier states are shared since they are read-only.
-    for (Thread* th : threads)
+    for (auto&& th : threads)
     {
-        th->worker->limits = limits;
-        th->worker->nodes = th->worker->tbHits = th->worker->bestMoveChanges = 0;
-        th->worker->selDepth = th->worker->nmpMinPly = 0;
-        th->worker->rootDepth = th->worker->completedDepth = DEPTH_ZERO;
-        th->worker->rootPos.set(rootFen, &th->worker->rootState);
-        th->worker->rootState = setupStates->back();
-        th->worker->rootMoves = rootMoves;
-        th->worker->tbConfig  = tbConfig;
+        th->run_custom_job([&]() {
+            th->worker->limits = limits;
+            th->worker->nodes = th->worker->tbHits = 0;
+            th->worker->bestMoveChange = th->worker->minNmpPly = 0;
+            th->worker->rootDepth = th->worker->completedDepth = DEPTH_ZERO;
+            th->worker->rootPos.set(rootFen, &th->worker->rootState);
+            th->worker->rootState = setupStates->back();
+            th->worker->rootMoves = rootMoves;
+            th->worker->tbConfig  = tbConfig;
+        });
     }
 
+    for (auto&& th : threads)
+        th->wait_idle();
+
     main_thread()->wake_up();
+}
+
+void ThreadPool::run_on_thread(std::uint16_t threadId, std::function<void()> func) {
+    assert(threadId < size());
+    threads[threadId]->run_custom_job(std::move(func));
+}
+
+void ThreadPool::wait_on_thread(std::uint16_t threadId) {
+    assert(threadId < size());
+    threads[threadId]->wait_idle();
+}
+
+std::vector<std::size_t> ThreadPool::get_bound_thread_counts() const noexcept {
+    std::vector<size_t> counts;
+
+    if (!boundThreadToNumaNode.empty())
+    {
+        NumaIndex maxNumaIdx = 0;
+        for (NumaIndex numaIdx : boundThreadToNumaNode)
+            if (maxNumaIdx < numaIdx)
+                maxNumaIdx = numaIdx;
+
+        counts.resize(1 + maxNumaIdx, 0);
+
+        for (NumaIndex numaIdx : boundThreadToNumaNode)
+            counts[numaIdx] += 1;
+    }
+
+    return counts;
 }
 
 }  // namespace DON

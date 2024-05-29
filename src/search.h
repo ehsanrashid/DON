@@ -33,11 +33,13 @@
 
 #include "misc.h"
 #include "movepick.h"
+#include "numa.h"
 #include "polybook.h"
 #include "position.h"
 #include "score.h"
 #include "timeman.h"
 #include "types.h"
+#include "nnue/network.h"
 #include "nnue/nnue_accumulator.h"
 #include "syzygy/tbprobe.h"
 
@@ -47,80 +49,15 @@ class OptionsMap;
 class ThreadPool;
 class TranspositionTable;
 
-namespace Eval::NNUE {
-struct Networks;
-}
+constexpr inline std::uint8_t DefaultMultiPV = 1;
 
 namespace Search {
-
-class Moves final {
-   public:
-    using MoveVector = std::vector<Move>;
-    using NormalItr  = MoveVector::iterator;
-    using ConstItr   = MoveVector::const_iterator;
-
-    Moves() = default;
-    explicit Moves(std::size_t count, Move m) noexcept :
-        moves(count, m) {}
-    // explicit Moves(std::size_t count) noexcept :
-    //     moves(count) {}
-    // Moves(const std::initializer_list<Move>& initList) noexcept :
-    //     moves(initList) {}
-
-    template<typename... Args>
-    void emplace_back(Args&&... args) noexcept {
-        moves.emplace_back(std::forward<Args>(args)...);
-    }
-
-    void push(Move m) noexcept { moves.push_back(m); }
-    void push(Move&& m) noexcept { moves.push_back(std::move(m)); }
-    void pop() noexcept { moves.pop_back(); }
-
-    void reserve(std::size_t newSize) noexcept { moves.reserve(newSize); }
-    void resize(std::size_t newSize) noexcept { moves.resize(newSize); }
-    // void clear() noexcept { moves.clear(); }
-
-    auto& operator[](std::size_t idx) const noexcept { return moves[idx]; }
-    auto& operator[](std::size_t idx) noexcept { return moves[idx]; }
-
-    auto begin() noexcept { return moves.begin(); }
-    auto end() noexcept { return moves.end(); }
-
-    auto begin() const noexcept { return moves.begin(); }
-    auto end() const noexcept { return moves.end(); }
-
-    auto& front() noexcept { return moves.front(); }
-    auto& back() noexcept { return moves.back(); }
-
-    auto size() const noexcept { return moves.size(); }
-    auto max_size() const noexcept { return moves.max_size(); }
-    bool empty() const noexcept { return moves.empty(); }
-
-    auto erase(ConstItr itr) noexcept { return moves.erase(itr); }
-    auto erase(ConstItr begItr, ConstItr endItr) noexcept {  //
-        assert(begItr <= endItr);
-        return moves.erase(begItr, endItr);
-    }
-    bool erase(Move m) noexcept {
-        auto itr = find(m);
-        if (itr != end())
-            return erase(itr), true;
-        return false;
-    }
-
-    ConstItr find(Move m) const noexcept { return std::find(begin(), end(), m); }
-
-    bool contains(Move m) const noexcept { return find(m) != end(); }
-
-   private:
-    MoveVector moves;
-};
 
 // Stack struct keeps track of the information need to remember from nodes
 // shallower and deeper in the tree during the search. Each search thread has
 // its own array of Stack objects, indexed by the current ply.
 struct Stack final {
-    Move*            pv;
+    Moves            pv;
     PieceDstHistory* continuationHistory;
     std::int16_t     ply;
     Move             currentMove;
@@ -141,7 +78,32 @@ struct RootMove final {
 
     RootMove() = default;
     explicit RootMove(Move m) noexcept :
-        principalVar(1, m) {}
+        pv(1, m) {}
+
+    void push_back(Move m) noexcept { pv.push_back(m); }
+    void push_front(Move m) noexcept { pv.push_front(m); }
+    void append(Move m) noexcept { pv.append(m); }
+    void append(Moves::ConstItr begItr, Moves::ConstItr endItr) noexcept {
+        pv.append(begItr, endItr);
+    }
+    void append(const std::initializer_list<Move>& initList) noexcept {  //
+        pv.append(initList);
+    }
+    void append(const Moves& ms) noexcept { pv.append(ms); }
+    void pop() noexcept { pv.pop(); }
+
+    //void reserve(std::size_t newSize) noexcept { pv.reserve(newSize); }
+    void resize(std::size_t newSize) noexcept { pv.resize(newSize); }
+    void clear() noexcept { pv.clear(); }
+
+    auto begin() const noexcept { return pv.begin(); }
+    auto end() const noexcept { return pv.end(); }
+
+    auto& front() noexcept { return pv.front(); }
+    auto& back() noexcept { return pv.back(); }
+
+    auto size() const noexcept { return pv.size(); }
+    bool empty() const noexcept { return pv.empty(); }
 
     bool operator==(Move m) const noexcept { return /*!empty() &&*/ (*this)[0] == m; }
     bool operator!=(Move m) const noexcept { return !(*this == m); }
@@ -151,31 +113,19 @@ struct RootMove final {
 
     // Sort in descending order
     bool operator<(const RootMove& rm) const noexcept {
-        return currValue != rm.currValue ? currValue > rm.currValue
-             : prevValue != rm.prevValue ? prevValue > rm.prevValue
-                                         : avgValue > rm.avgValue;
+        return curValue != rm.curValue ? curValue > rm.curValue
+             : preValue != rm.preValue ? preValue > rm.preValue
+                                       : avgValue > rm.avgValue;
     }
 
-    void push(Move m) noexcept { principalVar.push(m); }
-    void pop() noexcept { principalVar.pop(); }
+    Move  operator[](std::size_t idx) const noexcept { return pv[idx]; }
+    Move& operator[](std::size_t idx) noexcept { return pv[idx]; }
 
-    void resize(std::size_t newSize) noexcept { principalVar.resize(newSize); }
-    // void clear() noexcept { principalVar.clear(); }
+    void operator+=(Move m) noexcept { pv += m; }
+    void operator-=(Move m) noexcept { pv -= m; }
 
-    auto begin() const noexcept { return principalVar.begin(); }
-    auto end() const noexcept { return principalVar.end(); }
-
-    auto& front() noexcept { return principalVar.front(); }
-    auto& back() noexcept { return principalVar.back(); }
-
-    auto size() const noexcept { return principalVar.size(); }
-    bool empty() const noexcept { return principalVar.empty(); }
-
-    Move  operator[](std::size_t idx) const noexcept { return principalVar[idx]; }
-    Move& operator[](std::size_t idx) noexcept { return principalVar[idx]; }
-
-    Value         currValue  = -VALUE_INFINITE;
-    Value         prevValue  = -VALUE_INFINITE;
+    Value         curValue   = -VALUE_INFINITE;
+    Value         preValue   = -VALUE_INFINITE;
     Value         avgValue   = -VALUE_INFINITE;
     Value         uciValue   = -VALUE_INFINITE;
     bool          lowerBound = false;
@@ -184,7 +134,7 @@ struct RootMove final {
     std::uint64_t nodes      = 0;
     std::int32_t  tbRank     = 0;
     Value         tbValue    = -VALUE_INFINITE;
-    Moves         principalVar;
+    Moves         pv;
 };
 
 class RootMoves final {
@@ -202,7 +152,7 @@ class RootMoves final {
     //     rootMoves(initList) {}
 
     template<typename... Args>
-    void emplace_back(Args&&... args) noexcept {
+    void emplace(Args&&... args) noexcept {
         rootMoves.emplace_back(std::forward<Args>(args)...);
     }
 
@@ -212,10 +162,7 @@ class RootMoves final {
 
     void reserve(std::size_t newSize) noexcept { rootMoves.reserve(newSize); }
     void resize(std::size_t newSize) noexcept { rootMoves.resize(newSize); }
-    // void clear() noexcept { rootMoves.clear(); }
-
-    auto& operator[](std::size_t idx) const noexcept { return rootMoves[idx]; }
-    auto& operator[](std::size_t idx) noexcept { return rootMoves[idx]; }
+    void clear() noexcept { rootMoves.clear(); }
 
     auto begin() noexcept { return rootMoves.begin(); }
     auto end() noexcept { return rootMoves.end(); }
@@ -292,6 +239,9 @@ class RootMoves final {
         std::stable_sort(begin(), end(), pred);
     }
 
+    auto& operator[](std::size_t idx) const noexcept { return rootMoves[idx]; }
+    auto& operator[](std::size_t idx) noexcept { return rootMoves[idx]; }
+
    private:
     RootMoveVector rootMoves;
 };
@@ -356,19 +306,19 @@ struct Skill final {
 // The Engine stores the uci options, networks, thread pool, and transposition table.
 // This struct is used to easily forward data to the Search::Worker class.
 struct SharedState final {
-    SharedState(const OptionsMap&           optionsMap,
-                const Eval::NNUE::Networks& nnueNetworks,
-                ThreadPool&                 threadPool,
-                TranspositionTable&         transpositionTable) noexcept :
+    SharedState(const OptionsMap&                           optionsMap,
+                const NumaReplicated<Eval::NNUE::Networks>& nnueNetworks,
+                ThreadPool&                                 threadPool,
+                TranspositionTable&                         transpositionTable) noexcept :
         options(optionsMap),
         networks(nnueNetworks),
         threads(threadPool),
         tt(transpositionTable) {}
 
-    const OptionsMap&           options;
-    const Eval::NNUE::Networks& networks;
-    ThreadPool&                 threads;
-    TranspositionTable&         tt;
+    const OptionsMap&                           options;
+    const NumaReplicated<Eval::NNUE::Networks>& networks;
+    ThreadPool&                                 threads;
+    TranspositionTable&                         tt;
 };
 
 class Worker;
@@ -383,11 +333,11 @@ class ISearchManager {
 
 using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
 
-struct InfoShort {
+struct EndInfo {
     bool inCheck;
 };
-struct InfoFull {
-    InfoFull(const Position& p, const RootMove& rm) :
+struct FullInfo {
+    FullInfo(const Position& p, const RootMove& rm) :
         pos(p),
         rootMove(rm) {}
     const Position& pos;
@@ -402,26 +352,26 @@ struct InfoFull {
     std::uint16_t   hashfull;
     std::uint64_t   tbHits;
 };
-struct InfoIteration {
+struct IterInfo {
     Depth         depth;
     Move          currMove;
     std::uint16_t currMoveNumber;
 };
-struct InfoBestMove {
+struct MoveInfo {
     Move bestMove;
     Move ponderMove;
 };
 
-using OnUpdateShort     = std::function<void(const InfoShort&)>;
-using OnUpdateFull      = std::function<void(const InfoFull&)>;
-using OnUpdateIteration = std::function<void(const InfoIteration&)>;
-using OnUpdateBestMove  = std::function<void(const InfoBestMove&)>;
+using OnUpdateEnd  = std::function<void(const EndInfo&)>;
+using OnUpdateFull = std::function<void(const FullInfo&)>;
+using OnUpdateIter = std::function<void(const IterInfo&)>;
+using OnUpdateMove = std::function<void(const MoveInfo&)>;
 
 struct UpdateContext final {
-    OnUpdateShort     onUpdateShort;
-    OnUpdateFull      onUpdateFull;
-    OnUpdateIteration onUpdateIteration;
-    OnUpdateBestMove  onUpdateBestMove;
+    OnUpdateEnd  onUpdateEnd;
+    OnUpdateFull onUpdateFull;
+    OnUpdateIter onUpdateIter;
+    OnUpdateMove onUpdateMove;
 };
 
 // MainSearchManager manages the search from the main thread.
@@ -467,9 +417,10 @@ class NullSearchManager final: public ISearchManager {
 // of the search history, and storing data required for the search.
 class Worker final {
    public:
-    Worker(std::uint16_t      threadId,
-           const SharedState& sharedState,
-           ISearchManagerPtr  searchManager) noexcept;
+    Worker(std::uint16_t             threadId,
+           const SharedState&        sharedState,
+           ISearchManagerPtr         searchManager,
+           NumaReplicatedAccessToken token) noexcept;
 
     // Called at instantiation to reset histories, usually before a new game
     void clear() noexcept;
@@ -509,12 +460,13 @@ class Worker final {
 
     Limits limits;
 
+    std::uint8_t  multiPV = DefaultMultiPV;
     std::uint8_t  pvIndex, pvLast;
     std::uint16_t selDepth;
-    std::uint16_t nmpMinPly;
+    std::uint16_t minNmpPly;
 
     std::atomic_uint64_t nodes, tbHits;
-    std::atomic_uint32_t bestMoveChanges;
+    std::atomic_uint8_t  bestMoveChange;
 
     Position  rootPos;
     StateInfo rootState;
@@ -531,10 +483,12 @@ class Worker final {
     // The main thread has a MainSearchManager, the others have a NullSearchManager
     ISearchManagerPtr manager;
 
-    const OptionsMap&           options;
-    const Eval::NNUE::Networks& networks;
-    ThreadPool&                 threads;
-    TranspositionTable&         tt;
+    NumaReplicatedAccessToken numaAccessToken;
+
+    const OptionsMap&                           options;
+    const NumaReplicated<Eval::NNUE::Networks>& networks;
+    ThreadPool&                                 threads;
+    TranspositionTable&                         tt;
     // Used by NNUE
     Eval::NNUE::AccumulatorCaches accCaches;
 

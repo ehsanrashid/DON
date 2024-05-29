@@ -41,7 +41,7 @@ namespace Zobrist {
 Key psq[PIECE_NB][SQUARE_NB];
 Key castling[CASTLING_RIGHTS_NB];
 Key enpassant[FILE_NB];
-Key side, pawn;
+Key side;
 }  // namespace Zobrist
 
 namespace {
@@ -49,7 +49,7 @@ namespace {
 constexpr Piece Pieces[12]{W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
                            B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
 
-constexpr std::uint8_t MobilityWeight[PIECE_TYPE_NB]{0, 1, 10, 12, 16, 14, 1, 0};
+constexpr std::uint8_t MobilityWeight[PIECE_TYPE_NB]{0, 2, 22, 24, 29, 26, 1, 0};
 
 // Implements Marcel van Kervinck's cuckoo algorithm to detect repetition of positions
 // for 3-fold repetition draws. The algorithm uses two hash tables with Zobrist hashes
@@ -100,7 +100,6 @@ void Position::init() noexcept {
         Zobrist::enpassant[f] = rng.rand<Key>();
 
     Zobrist::side = rng.rand<Key>();
-    Zobrist::pawn = rng.rand<Key>();
 
     // Prepare the cuckoo tables
     Cuckoos.fill({0, Move::None()});
@@ -449,11 +448,10 @@ void Position::set_castling_rights(Color c, Square rorg) noexcept {
 // that once computed is updated incrementally as moves are made.
 // The function is only used when a new position is set up.
 void Position::set_state() noexcept {
-    assert(st->key == 0 && st->materialKey == 0);
+    assert(st->pawnKey == 0 && st->materialKey == 0 && st->key == 0);
     assert(st->nonPawnMaterial[WHITE] == VALUE_ZERO);
     assert(st->nonPawnMaterial[BLACK] == VALUE_ZERO);
 
-    st->pawnKey = Zobrist::pawn;
     for (Bitboard occ = pieces(); occ;)
     {
         Square s  = pop_lsb(occ);
@@ -548,9 +546,9 @@ void Position::set_ext_state() noexcept {
         st->attacks[c][QUEEN]     = st->attacks[c][ROOK]   | attacks_by<QUEEN> (c, target, occupied ^ ((pieces(c, QUEEN)         & ~st->blockers[c]) | (pieces(~c, KING))));
         st->attacks[c][KING]      = st->attacks[c][QUEEN]  | attacks_by<KING>  (c, target);
         st->attacks[c][ALL_PIECE] = st->attacks[c][KING];
-        st->attacks[~c][EX_PIECE] = (pieces(~c, KNIGHT, BISHOP) & st->attacks[c][PAWN])
-                                  | (pieces(~c, ROOK)           & st->attacks[c][MINOR])
-                                  | (pieces(~c, QUEEN)          & st->attacks[c][ROOK]);
+        // st->attacks[~c][EX_PIECE] = (pieces(~c, KNIGHT, BISHOP) & st->attacks[c][PAWN])
+        //                           | (pieces(~c, ROOK)           & st->attacks[c][MINOR])
+        //                           | (pieces(~c, QUEEN)          & st->attacks[c][ROOK]);
         // clang-format on
     }
 }

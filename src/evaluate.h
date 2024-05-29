@@ -39,14 +39,14 @@ struct AccumulatorCaches;
 }  // namespace NNUE
 
 inline bool use_small_net(Value absEval, const Position& pos) noexcept {
-    return (absEval > 1126 + 6 * pos.count<PAWN>())
+    return (absEval > 992 + 6 * pos.count<PAWN>())
         || (absEval > 975 - 36 * pos.count<PAWN>() && pos.count<ALL_PIECE>() <= 6);
 }
 
 Value evaluate(const Position&          pos,
                const NNUE::Networks&    networks,
                NNUE::AccumulatorCaches& accCaches,
-               Value                    optimism = VALUE_ZERO) noexcept;
+               const Value              optimism = VALUE_ZERO) noexcept;
 
 std::string trace(Position& pos, const NNUE::Networks& networks) noexcept;
 

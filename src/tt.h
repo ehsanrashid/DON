@@ -39,6 +39,9 @@ class TranspositionTable;
 // move       16 bit
 // value      16 bit
 // eval value 16 bit
+//
+// These fields are in the same order as accessed by TT::probe(), since memory is fastest sequentially.
+// Equally, the store order in save() matches this order.
 struct TTEntry final {
 
     constexpr Move  move() const noexcept { return move16; }
@@ -65,6 +68,8 @@ struct TTEntry final {
 
     friend class TranspositionTable;
 };
+
+class ThreadPool;
 
 // TranspositionTable is an array of Cluster, of size clusterCount.
 // Each cluster consists of EntryCount number of TTEntry.
@@ -102,29 +107,27 @@ class TranspositionTable final {
         generation8 = update * generation8 + GENERATION_DELTA;
     }
 
-    constexpr TTEntry* first_entry(Key key) const noexcept {
+    TTEntry* first_entry(Key key) const noexcept {
         return &table[mul_hi64(key, clusterCount)].entry[0];
     }
 
-    constexpr auto generation() const noexcept { return generation8; }
+    std::uint8_t generation() const noexcept { return generation8; }
 
-    void resize(std::size_t mbSize, std::uint16_t threadCount) noexcept;
-    void resize(std::size_t mbSize) noexcept;
-    void clear() noexcept;
+    void resize(std::size_t mbSize, ThreadPool& threads) noexcept;
+    void clear(ThreadPool& threads) noexcept;
 
     TTEntry*      probe(Key key, bool& ttHit) const noexcept;
     std::uint16_t hashfull() const noexcept;
 
     bool save(const std::string& fname) const noexcept;
-    bool load(const std::string& fname) noexcept;
+    bool load(const std::string& fname, ThreadPool& threads) noexcept;
 
    private:
     void free() noexcept;
 
-    Cluster*      table        = nullptr;
-    std::size_t   clusterCount = 0;
-    std::uint8_t  generation8  = 0;  // Size must be not bigger than TTEntry::genBound8
-    std::uint16_t _threadCount = 1;
+    Cluster*     table        = nullptr;
+    std::size_t  clusterCount = 0;
+    std::uint8_t generation8  = 0;  // Size must be not bigger than TTEntry::genBound8
 };
 
 inline std::uint8_t TTEntry::relative_age(std::uint8_t gen) const noexcept {

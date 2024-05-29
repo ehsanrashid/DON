@@ -18,7 +18,6 @@
 #include "movegen.h"
 
 #include <cassert>
-#include <initializer_list>
 
 #include "bitboard.h"
 #include "position.h"
@@ -28,21 +27,19 @@ namespace DON {
 namespace {
 
 template<GenType GT, Direction D, bool Enemy>
-ExtMove* make_promotions(ExtMove* moves, [[maybe_unused]] Square dst) noexcept {
+void make_promotions(ExtMoves& extMoves, [[maybe_unused]] Square dst) noexcept {
 
     if constexpr (GT == CAPTURES || GT == EVASIONS || GT == NON_EVASIONS)
-        *moves++ = Move::make<PROMOTION>(dst - D, dst, QUEEN);
+        extMoves += Move::make<PROMOTION>(dst - D, dst, QUEEN);
 
     if constexpr ((GT == CAPTURES && Enemy) || (GT == QUIETS && !Enemy)  //
                   || GT == EVASIONS || GT == NON_EVASIONS)
         for (PieceType promo : {ROOK, BISHOP, KNIGHT})
-            *moves++ = Move::make<PROMOTION>(dst - D, dst, promo);
-
-    return moves;
+            extMoves += Move::make<PROMOTION>(dst - D, dst, promo);
 }
 
 template<Color Stm, GenType GT>
-ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moves, Bitboard target) noexcept {
+void generate_pawn_moves(ExtMoves& extMoves, const Position& pos, Bitboard target) noexcept {
 
     constexpr Direction Up_1 = pawn_spush(Stm);
     constexpr Direction Up_2 = pawn_dpush(Stm);
@@ -83,13 +80,13 @@ ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moves, Bitboard targe
         while (b1)
         {
             Square dst = pop_lsb(b1);
-            *moves++   = Move(dst - Up_1, dst);
+            extMoves += Move(dst - Up_1, dst);
         }
 
         while (b2)
         {
             Square dst = pop_lsb(b2);
-            *moves++   = Move(dst - Up_2, dst);
+            extMoves += Move(dst - Up_2, dst);
         }
     }
 
@@ -104,13 +101,13 @@ ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moves, Bitboard targe
             b3 &= target;
 
         while (b1)
-            moves = make_promotions<GT, Up_R, true>(moves, pop_lsb(b1));
+            make_promotions<GT, Up_R, true>(extMoves, pop_lsb(b1));
 
         while (b2)
-            moves = make_promotions<GT, Up_L, true>(moves, pop_lsb(b2));
+            make_promotions<GT, Up_L, true>(extMoves, pop_lsb(b2));
 
         while (b3)
-            moves = make_promotions<GT, Up_1, false>(moves, pop_lsb(b3));
+            make_promotions<GT, Up_1, false>(extMoves, pop_lsb(b3));
     }
 
     // Standard and en-passant captures
@@ -122,13 +119,13 @@ ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moves, Bitboard targe
         while (b1)
         {
             Square dst = pop_lsb(b1);
-            *moves++   = Move(dst - Up_R, dst);
+            extMoves += Move(dst - Up_R, dst);
         }
 
         while (b2)
         {
             Square dst = pop_lsb(b2);
-            *moves++   = Move(dst - Up_L, dst);
+            extMoves += Move(dst - Up_L, dst);
         }
 
         Bitboard on5Pawns = non7Pawns & (Stm == WHITE ? Rank5BB : Rank4BB);
@@ -140,32 +137,38 @@ ExtMove* generate_pawn_moves(const Position& pos, ExtMove* moves, Bitboard targe
             // An en-passant capture cannot resolve a discovered check
             if constexpr (GT == EVASIONS)
                 if (target & (pos.ep_square() + Up_1))
-                    return moves;
+                    return;
 
             b1 = on5Pawns & pawn_attacks_bb(~Stm, pos.ep_square());
+            if (Bitboard b; more_than_one(b1) && (b = pos.blockers(Stm) & b1))
+            {
+                assert(!more_than_one(b));
+                Square psq = lsb(b);
+                if (!aligned(psq, pos.king_square(Stm), pos.ep_square()))
+                    b1 ^= psq;
+            }
             assert(b1);
 
             while (b1)
-                *moves++ = Move::make<EN_PASSANT>(pop_lsb(b1), pos.ep_square());
+                extMoves += Move::make<EN_PASSANT>(pop_lsb(b1), pos.ep_square());
         }
     }
-
-    return moves;
 }
 
 template<Color Stm, PieceType PT, bool Checks>
-ExtMove* generate_moves(const Position& pos, ExtMove* moves, Bitboard target) noexcept {
+void generate_moves(ExtMoves& extMoves, const Position& pos, Bitboard target) noexcept {
     static_assert(PT == KNIGHT || PT == BISHOP || PT == ROOK || PT == QUEEN,
                   "Unsupported piece type in generate_moves()");
 
     Square ksq = pos.king_square(Stm);
 
-    Bitboard pc = pos.pieces<PT>(Stm, ksq);
+    Bitboard occupied = pos.pieces();
+    Bitboard pc       = pos.pieces<PT>(Stm, ksq);
     while (pc)
     {
         Square org = pop_lsb(pc);
 
-        Bitboard b = attacks_bb<PT>(org, pos.pieces()) & target;
+        Bitboard b = attacks_bb<PT>(org, occupied) & target;
         if constexpr (PT != KNIGHT)
             if (b && (pos.blockers(Stm) & org))
                 b &= line_bb(ksq, org);
@@ -175,14 +178,12 @@ ExtMove* generate_moves(const Position& pos, ExtMove* moves, Bitboard target) no
                 b &= pos.checks(PT);
 
         while (b)
-            *moves++ = Move(org, pop_lsb(b));
+            extMoves += Move(org, pop_lsb(b));
     }
-
-    return moves;
 }
 
 template<Color Stm, GenType GT>
-ExtMove* generate_all(const Position& pos, ExtMove* moves) noexcept {
+void generate_all(ExtMoves& extMoves, const Position& pos) noexcept {
     static_assert(GT == CAPTURES || GT == QUIETS || GT == QUIET_CHECKS || GT == EVASIONS
                     || GT == NON_EVASIONS,
                   "Unsupported generate type in generate_all()");
@@ -200,11 +201,11 @@ ExtMove* generate_all(const Position& pos, ExtMove* moves) noexcept {
                : GT == NON_EVASIONS ? ~pos.pieces(Stm)
                                     : ~pos.pieces();  // QUIETS || QUIET_CHECKS
 
-        moves = generate_pawn_moves<Stm, GT>(pos, moves, target);
-        moves = generate_moves<Stm, KNIGHT, Checks>(pos, moves, target);
-        moves = generate_moves<Stm, BISHOP, Checks>(pos, moves, target);
-        moves = generate_moves<Stm, ROOK, Checks>(pos, moves, target);
-        moves = generate_moves<Stm, QUEEN, Checks>(pos, moves, target);
+        generate_pawn_moves<Stm, GT>(extMoves, pos, target);
+        generate_moves<Stm, KNIGHT, Checks>(extMoves, pos, target);
+        generate_moves<Stm, BISHOP, Checks>(extMoves, pos, target);
+        generate_moves<Stm, ROOK, Checks>(extMoves, pos, target);
+        generate_moves<Stm, QUEEN, Checks>(extMoves, pos, target);
     }
 
     if (!Checks || pos.blockers(~Stm) & ksq)
@@ -221,12 +222,13 @@ ExtMove* generate_all(const Position& pos, ExtMove* moves) noexcept {
             }
         }
 
-        Bitboard b = attacks_bb<KING>(ksq) & target;  // & ~pos.attacks_by(~Stm);
+        Bitboard b = attacks_bb<KING>(ksq) & target;
+        // Stop king from stepping in the way to check
         if (Checks)
             b &= ~attacks_bb<QUEEN>(pos.king_square(~Stm));
 
         while (b)
-            *moves++ = Move(ksq, pop_lsb(b));
+            extMoves += Move(ksq, pop_lsb(b));
 
         if constexpr (GT == QUIETS || GT == NON_EVASIONS)
             if (pos.can_castle(Stm & ANY_CASTLING))
@@ -236,15 +238,12 @@ ExtMove* generate_all(const Position& pos, ExtMove* moves) noexcept {
                         assert(!pos.checkers());
                         assert(is_ok(pos.castling_rook_square(cr)));
                         assert(pos.pieces(Stm, ROOK) & pos.castling_rook_square(cr));
-                        *moves++ = Move::make<CASTLING>(ksq, pos.castling_rook_square(cr));
+                        extMoves += Move::make<CASTLING>(ksq, pos.castling_rook_square(cr));
                     }
     }
-
-    return moves;
 }
 
 }  // namespace
-
 
 // <CAPTURES>     Generates all pseudo-legal captures plus queen promotions moves
 // <QUIETS>       Generates all pseudo-legal non-captures, castling and underpromotions moves
@@ -252,49 +251,62 @@ ExtMove* generate_all(const Position& pos, ExtMove* moves) noexcept {
 //                except castling and promotions moves
 // <EVASIONS>     Generates all pseudo-legal check evasions moves
 // <NON_EVASIONS> Generates all pseudo-legal captures and non-captures moves
-//
-// Returns a pointer to the end of the move list.
 template<GenType GT>
-ExtMove* generate(const Position& pos, ExtMove* moves) noexcept {
+ExtMoves::NormalItr generate(ExtMoves& extMoves, const Position& pos) noexcept {
     static_assert(GT == CAPTURES || GT == QUIETS || GT == QUIET_CHECKS || GT == EVASIONS
                     || GT == NON_EVASIONS,
                   "Unsupported generate type in generate()");
 
     assert((GT == EVASIONS) == bool(pos.checkers()));
 
-    return pos.side_to_move() == WHITE ? generate_all<WHITE, GT>(pos, moves)
-                                       : generate_all<BLACK, GT>(pos, moves);
+    switch (GT)
+    {
+    case CAPTURES :
+        extMoves.reserve(32);
+        break;
+    case QUIETS :
+        extMoves.reserve(48);
+        break;
+    case QUIET_CHECKS :
+        extMoves.reserve(16);
+        break;
+    default :
+        extMoves.reserve(64 - 48 * (pos.checkers() != 0));
+    }
+    pos.side_to_move() == WHITE ? generate_all<WHITE, GT>(extMoves, pos)
+                                : generate_all<BLACK, GT>(extMoves, pos);
+    return extMoves.end();
 }
 
 // Explicit template instantiations
-template ExtMove* generate<CAPTURES>(const Position& pos, ExtMove* moves) noexcept;
-template ExtMove* generate<QUIETS>(const Position& pos, ExtMove* moves) noexcept;
-template ExtMove* generate<QUIET_CHECKS>(const Position& pos, ExtMove* moves) noexcept;
-template ExtMove* generate<EVASIONS>(const Position& pos, ExtMove* moves) noexcept;
-template ExtMove* generate<NON_EVASIONS>(const Position& pos, ExtMove* moves) noexcept;
+// clang-format off
+template ExtMoves::NormalItr generate<CAPTURES>(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::NormalItr generate<QUIETS>(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::NormalItr generate<QUIET_CHECKS>(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::NormalItr generate<EVASIONS>(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::NormalItr generate<NON_EVASIONS>(ExtMoves& extMoves, const Position& pos) noexcept;
+// clang-format on
 
 // <LEGAL> Generates all legal moves
 template<>
-ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moves) noexcept {
+ExtMoves::NormalItr generate<LEGAL>(ExtMoves& extMoves, const Position& pos) noexcept {
+
+    pos.checkers() != 0  //
+      ? generate<EVASIONS>(extMoves, pos)
+      : generate<NON_EVASIONS>(extMoves, pos);
+    return filter_illegal(extMoves, pos);
+}
+
+// Filter illegal moves
+ExtMoves::NormalItr filter_illegal(ExtMoves& extMoves, const Position& pos) noexcept {
     Color    stm    = pos.side_to_move();
     Bitboard pinned = pos.blockers(stm) & pos.pieces(stm);
     Square   ksq    = pos.king_square(stm);
 
-    ExtMove* cur = moves;
-    moves        = pos.checkers()  //
-                   ? generate<EVASIONS>(pos, moves)
-                   : generate<NON_EVASIONS>(pos, moves);
-    while (cur != moves)
-    {
-        if (((pinned & cur->org_sq()) || cur->org_sq() == ksq || cur->type_of() == EN_PASSANT)
-            && !pos.legal(*cur))
-        {
-            *cur = *(--moves);
-            continue;
-        }
-        ++cur;
-    }
-    return moves;
+    return extMoves.remove_if([&](const ExtMove& em) noexcept -> bool {
+        return ((pinned & em.org_sq()) || em.org_sq() == ksq || em.type_of() == EN_PASSANT)
+            && !pos.legal(em);
+    });
 }
 
 }  // namespace DON

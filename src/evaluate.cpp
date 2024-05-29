@@ -38,35 +38,32 @@ namespace Eval {
 Value evaluate(const Position&          pos,
                const NNUE::Networks&    networks,
                NNUE::AccumulatorCaches& accCaches,
-               Value                    optimism) noexcept {
+               const Value              optimism) noexcept {
     assert(!pos.checkers());
 
-    const Value eval    = pos.evaluate();
-    const Value absEval = std::abs(eval);
-    const Value bonus   = pos.bonus();
+    const Value eval      = pos.evaluate();
+    const Value absEval   = std::abs(eval);
+    const Value bonus     = pos.bonus();
+    const auto  materials = pos.materials();
 
-    int   complexity = 0;
-    Value nnue       = VALUE_ZERO;
+    int   complexity;
+    Value nnue;
+    Value moptimism;
 
-    Value v;
-
-    // Blend optimism and eval with nnue complexity and material imbalance
+    // Blend optimism and eval with nnue complexity
     // clang-format off
-    auto blend = [=, &nnue, &pos = std::as_const(pos)]() mutable {
-        optimism += optimism * (complexity + std::abs(nnue - eval)) / 584;
-        nnue -= nnue * (5 * complexity / 3) / 32395;
-        v = (nnue
-               * (32961 + 381 * pos.count<PAWN>() + 349 * pos.count<KNIGHT>()
-                  + 392 * pos.count<BISHOP>() + 649 * pos.count<ROOK>() + 1211 * pos.count<QUEEN>())
-           + optimism
-               * (4835 + 136 * pos.count<PAWN>() + 375 * pos.count<KNIGHT>()
-                  + 403 * pos.count<BISHOP>() + 628 * pos.count<ROOK>() + 1124 * pos.count<QUEEN>()))
-          / 32768;
-        v += bonus;
-        return v;
+    auto blend = [&]() {
+        moptimism = optimism * (470 + complexity) / 470;
+        nnue -= nnue * (5 * complexity / 3) / 32621;
+        return bonus
+              + (nnue      * (34000 + materials + 135 * pos.count<PAWN>())
+               + moptimism * ( 4400 + materials +  99 * pos.count<PAWN>())) / 35967;
     };
     // clang-format on
 
+    Value v;
+
+    // Re-evaluate the position when higher eval accuracy is worth the time spent
     bool useBigNet = true;
     if (use_small_net(absEval, pos))
     {
@@ -74,7 +71,7 @@ Value evaluate(const Position&          pos,
 
         v = blend();
 
-        useBigNet = std::signbit(v) != std::signbit(eval) || std::abs(v - eval) >= 760;
+        useBigNet = std::abs(v + eval) < 1.25 * absEval;
     }
     if (useBigNet)
     {
@@ -82,9 +79,6 @@ Value evaluate(const Position&          pos,
 
         v = blend();
     }
-
-    if (std::signbit(v) != std::signbit(nnue) && std::abs(v) < 100)
-        v = 7 * v / 8;
 
     const int shuffling = pos.rule50_count();
     // Damp down the evaluation linearly when shuffling

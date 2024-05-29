@@ -38,22 +38,22 @@ std::string pretty(Bitboard b) noexcept;
 }  // namespace Bitboards
 
 constexpr inline Bitboard FileABB = 0x0101010101010101ULL;
-constexpr inline Bitboard FileBBB = FileABB << 1;
-constexpr inline Bitboard FileCBB = FileABB << 2;
-constexpr inline Bitboard FileDBB = FileABB << 3;
-constexpr inline Bitboard FileEBB = FileABB << 4;
-constexpr inline Bitboard FileFBB = FileABB << 5;
-constexpr inline Bitboard FileGBB = FileABB << 6;
-constexpr inline Bitboard FileHBB = FileABB << 7;
+constexpr inline Bitboard FileBBB = FileABB << (1 * 1);
+constexpr inline Bitboard FileCBB = FileABB << (1 * 2);
+constexpr inline Bitboard FileDBB = FileABB << (1 * 3);
+constexpr inline Bitboard FileEBB = FileABB << (1 * 4);
+constexpr inline Bitboard FileFBB = FileABB << (1 * 5);
+constexpr inline Bitboard FileGBB = FileABB << (1 * 6);
+constexpr inline Bitboard FileHBB = FileABB << (1 * 7);
 
 constexpr inline Bitboard Rank1BB = 0x00000000000000FFULL;
-constexpr inline Bitboard Rank2BB = Rank1BB << (1 * 8);
-constexpr inline Bitboard Rank3BB = Rank1BB << (2 * 8);
-constexpr inline Bitboard Rank4BB = Rank1BB << (3 * 8);
-constexpr inline Bitboard Rank5BB = Rank1BB << (4 * 8);
-constexpr inline Bitboard Rank6BB = Rank1BB << (5 * 8);
-constexpr inline Bitboard Rank7BB = Rank1BB << (6 * 8);
-constexpr inline Bitboard Rank8BB = Rank1BB << (7 * 8);
+constexpr inline Bitboard Rank2BB = Rank1BB << (8 * 1);
+constexpr inline Bitboard Rank3BB = Rank1BB << (8 * 2);
+constexpr inline Bitboard Rank4BB = Rank1BB << (8 * 3);
+constexpr inline Bitboard Rank5BB = Rank1BB << (8 * 4);
+constexpr inline Bitboard Rank6BB = Rank1BB << (8 * 5);
+constexpr inline Bitboard Rank7BB = Rank1BB << (8 * 6);
+constexpr inline Bitboard Rank8BB = Rank1BB << (8 * 7);
 
 constexpr inline Bitboard EnpassantRankBB = Rank6BB | Rank3BB;
 constexpr inline Bitboard PromotionRankBB = Rank8BB | Rank1BB;
@@ -89,9 +89,9 @@ struct Magic final {
     #if defined(IS_64BIT)
         return ((occupied & mask) * magic) >> shift;
     #else
-        auto lo = std::uint32_t(occupied) & std::uint32_t(mask);
+        auto lo = std::uint32_t(occupied >> 00) & std::uint32_t(mask >> 00);
         auto hi = std::uint32_t(occupied >> 32) & std::uint32_t(mask >> 32);
-        return (lo * std::uint32_t(magic) ^ hi * std::uint32_t(magic >> 32)) >> shift;
+        return (lo * std::uint32_t(magic >> 00) ^ hi * std::uint32_t(magic >> 32)) >> shift;
     #endif
 #endif
     }
@@ -121,7 +121,7 @@ inline Bitboard& operator^=(Bitboard& b, Square s) noexcept { return b = b ^ s; 
 constexpr Bitboard operator|(Square s1, Square s2) noexcept { return square_bb(s1) | s2; }
 
 // Return a bitboard representing all the squares on the given file.
-constexpr Bitboard file_bb(File f) noexcept { return FileABB << (f); }
+constexpr Bitboard file_bb(File f) noexcept { return FileABB << (1 * f); }
 constexpr Bitboard file_bb(Square s) noexcept { return file_bb(file_of(s)); }
 
 constexpr Bitboard operator&(Bitboard b, File f) noexcept { return b & file_bb(f); }
@@ -129,7 +129,7 @@ constexpr Bitboard operator|(Bitboard b, File f) noexcept { return b | file_bb(f
 constexpr Bitboard operator^(Bitboard b, File f) noexcept { return b ^ file_bb(f); }
 
 // Return a bitboard representing all the squares on the given rank.
-constexpr Bitboard rank_bb(Rank r) noexcept { return Rank1BB << (r * 8); }
+constexpr Bitboard rank_bb(Rank r) noexcept { return Rank1BB << (8 * r); }
 constexpr Bitboard rank_bb(Square s) noexcept { return rank_bb(rank_of(s)); }
 
 constexpr Bitboard operator&(Bitboard b, Rank r) noexcept { return b & rank_bb(r); }

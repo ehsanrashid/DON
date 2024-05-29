@@ -20,12 +20,15 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <mutex>
 #include <vector>
+#include <functional>
 
+#include "numa.h"
 #include "position.h"
 #include "search.h"
 #include "thread_win32_osx.h"
@@ -34,7 +37,30 @@
 namespace DON {
 
 class OptionsMap;
-// class ThreadPool;
+
+// Sometimes we don't want to actually bind the threads, but the recipent still
+// needs to think it runs on *some* NUMA node, such that it can access structures
+// that rely on NUMA node knowledge. This class encapsulates this optional process
+// such that the recipent does not need to know whether the binding happened or not.
+class OptionalThreadToNumaNodeBinder {
+   public:
+    OptionalThreadToNumaNodeBinder(NumaIndex nId) :
+        numaConfig(nullptr),
+        numaId(nId) {}
+
+    OptionalThreadToNumaNodeBinder(const NumaConfig& nConfig, NumaIndex nId) :
+        numaConfig(&nConfig),
+        numaId(nId) {}
+
+    NumaReplicatedAccessToken operator()() const {
+        return numaConfig != nullptr ? numaConfig->bind_current_thread_to_numa_node(numaId)
+                                     : NumaReplicatedAccessToken(numaId);
+    }
+
+   private:
+    const NumaConfig* numaConfig;
+    NumaIndex         numaId;
+};
 
 // Abstraction of a thread. It contains a pointer to the worker and a native thread.
 // After construction, the native thread is started with idle_func()
@@ -45,16 +71,21 @@ class Thread final {
    public:
     Thread(const Thread&)            = delete;
     Thread& operator=(const Thread&) = delete;
-    Thread(std::uint16_t              id,
-           const Search::SharedState& sharedState,
-           Search::ISearchManagerPtr  searchManager) noexcept;
+    Thread(std::uint16_t                  id,
+           const Search::SharedState&     sharedState,
+           Search::ISearchManagerPtr      searchManager,
+           OptionalThreadToNumaNodeBinder binder) noexcept;
     virtual ~Thread() noexcept;
+
+    std::uint16_t id() const noexcept { return idx; }
 
     void idle_func() noexcept;
     void wake_up() noexcept;
     void wait_idle() noexcept;
 
-    std::uint16_t id() const noexcept { return idx; }
+    void clear() noexcept;
+
+    void run_custom_job(std::function<void()> func) noexcept;
 
    private:
     // Set before starting nativeThread
@@ -67,20 +98,17 @@ class Thread final {
     std::unique_ptr<Search::Worker> worker;
 
    private:
-    std::mutex              mutex;
-    std::condition_variable condVar;
-    NativeThread            nativeThread;
-
-    // friend class ThreadPool;
+    std::mutex                mutex;
+    std::condition_variable   condVar;
+    NativeThread              nativeThread;
+    std::function<void()>     jobFunc;
+    NumaReplicatedAccessToken numaAccessToken;
 };
 
 // Wakes up the thread that will start the search
 inline void Thread::wake_up() noexcept {
-    {
-        std::lock_guard lockGuard(mutex);
-        busy = true;
-    }                      // Unlock before notifying saves a few CPU-cycles
-    condVar.notify_one();  // Wake up the thread in idle_func()
+    assert(worker != nullptr);
+    run_custom_job([this]() { worker->start_search(); });
 }
 
 // Blocks on the condition variable
@@ -97,16 +125,20 @@ inline void Thread::wait_idle() noexcept {
 class ThreadPool final {
 
    public:
-    ThreadPool()                             = default;
-    ThreadPool(const ThreadPool&)            = delete;
-    ThreadPool& operator=(const ThreadPool&) = delete;
-    ~ThreadPool() noexcept;
+    ThreadPool()                  = default;
+    ThreadPool(const ThreadPool&) = delete;
+    ThreadPool(ThreadPool&&)      = delete;
 
-    // static Search::Worker* worker(const Thread* th) noexcept;
+    ThreadPool& operator=(const ThreadPool&) = delete;
+    ThreadPool& operator=(ThreadPool&&)      = delete;
+
+    ~ThreadPool() noexcept;
 
     void destroy() noexcept;
     void clear() noexcept;
-    void set(Search::SharedState sharedState, const Search::UpdateContext& updateContext) noexcept;
+    void set(const NumaConfig&            numaConfig,
+             Search::SharedState          sharedState,
+             const Search::UpdateContext& updateContext) noexcept;
 
     Thread*                    main_thread() const noexcept;
     Thread*                    best_thread() const noexcept;
@@ -114,7 +146,6 @@ class ThreadPool final {
 
     std::uint64_t nodes() const noexcept;
     std::uint64_t tbHits() const noexcept;
-    // std::uint32_t bestMoveChanges() const noexcept;
 
     void start(Position&             pos,
                StateListPtr&         states,
@@ -123,6 +154,11 @@ class ThreadPool final {
 
     void start_search() const noexcept;
     void wait_finish() const noexcept;
+
+    void run_on_thread(std::uint16_t threadId, std::function<void()> func);
+    void wait_on_thread(std::uint16_t threadId);
+
+    std::vector<std::size_t> get_bound_thread_counts() const noexcept;
 
     auto begin() noexcept { return threads.begin(); }
     auto end() noexcept { return threads.end(); }
@@ -137,27 +173,25 @@ class ThreadPool final {
 
    private:
     // template<typename T>
-    // void set(std::atomic<T> Search::Worker::*member, T value) const noexcept {
-    //
-    //    for (const Thread* th : threads)
+    // void set(std::atomic<T> Search::Worker::*member, T value = T()) const noexcept {
+    //    for (auto&& th : threads)
     //        th->worker.get()->*member = value;
     // }
 
     template<typename T>
-    T accumulate(std::atomic<T> Search::Worker::*member, T sum = {}) const noexcept {
-
-        for (const Thread* th : threads)
+    std::uint64_t accumulate(std::atomic<T> Search::Worker::*member,
+                             std::uint64_t                   sum = T()) const noexcept {
+        for (auto&& th : threads)
             sum += (th->worker.get()->*member).load(std::memory_order_relaxed);
         return sum;
     }
 
-    std::vector<Thread*> threads;
-    StateListPtr         setupStates;
+    std::vector<std::unique_ptr<Thread>> threads;
+    std::vector<NumaIndex>               boundThreadToNumaNode;
+    StateListPtr                         setupStates;
 };
 
 inline ThreadPool::~ThreadPool() noexcept { destroy(); }
-
-// inline Search::Worker* ThreadPool::worker(const Thread* th) noexcept { return th->worker.get(); }
 
 // Destroy any existing thread(s)
 inline void ThreadPool::destroy() noexcept {
@@ -165,8 +199,8 @@ inline void ThreadPool::destroy() noexcept {
     {
         main_thread()->wait_idle();
 
-        while (!empty())
-            delete threads.back(), threads.pop_back();
+        threads.clear();
+        boundThreadToNumaNode.clear();
     }
 }
 
@@ -175,13 +209,15 @@ inline void ThreadPool::clear() noexcept {
     if (empty())
         return;
 
-    for (const Thread* th : threads)
-        th->worker->clear();
+    for (auto&& th : threads)
+        th->clear();
+    for (auto&& th : threads)
+        th->wait_idle();
 
     main_manager()->clear(size());
 }
 
-inline Thread* ThreadPool::main_thread() const noexcept { return threads.front(); }
+inline Thread* ThreadPool::main_thread() const noexcept { return threads.front().get(); }
 
 inline Search::MainSearchManager* ThreadPool::main_manager() const noexcept {
     return main_thread()->worker->main_manager();
@@ -195,24 +231,20 @@ inline std::uint64_t ThreadPool::tbHits() const noexcept {
     return accumulate(&Search::Worker::tbHits);
 }
 
-// inline std::uint32_t ThreadPool::bestMoveChanges() const noexcept {
-//     return accumulate(&Search::Worker::bestMoveChanges);
-// }
-
 // Start non-main threads
 // Will be invoked by main thread after it has started searching
 inline void ThreadPool::start_search() const noexcept {
 
-    for (Thread* th : threads)
-        if (th != main_thread())
+    for (auto&& th : threads)
+        if (th != threads.front())
             th->wake_up();
 }
 
 // Wait for non-main threads
 inline void ThreadPool::wait_finish() const noexcept {
 
-    for (Thread* th : threads)
-        if (th != main_thread())
+    for (auto&& th : threads)
+        if (th != threads.front())
             th->wait_idle();
 }
 

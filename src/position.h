@@ -54,16 +54,16 @@ struct StateInfo final {
     Value        nonPawnMaterial[COLOR_NB];
 
     // Not copied when making a move (will be recomputed anyhow)
-    Key           key;
-    Bitboard      checkers;
-    Bitboard      checks[PIECE_TYPE_NB];
-    Bitboard      pinners[COLOR_NB];
-    Bitboard      blockers[COLOR_NB];
-    Bitboard      attacks[COLOR_NB][PIECE_TYPE_NB];
-    std::uint16_t mobility[COLOR_NB];
-    std::int8_t   repetition;
-    Piece         capturedPiece;
-    //Piece         promotedPiece;
+    Key          key;
+    Bitboard     checkers;
+    Bitboard     checks[PIECE_TYPE_NB];
+    Bitboard     pinners[COLOR_NB];
+    Bitboard     blockers[COLOR_NB];
+    Bitboard     attacks[COLOR_NB][PIECE_TYPE_NB];
+    std::int16_t mobility[COLOR_NB];
+    std::int8_t  repetition;
+    Piece        capturedPiece;
+    //Piece        promotedPiece;
 
     // Used by NNUE
     Eval::NNUE::Accumulator<Eval::NNUE::BigTransformedFeatureDimensions>   bigAccumulator;
@@ -133,13 +133,13 @@ class Position final {
     Bitboard pinners(Color c) const noexcept;
     Bitboard blockers(Color c) const noexcept;
     Bitboard attacks(Color c, PieceType pt = ALL_PIECE) const noexcept;
-    Bitboard threatens(Color c) const noexcept;
+    // Bitboard threatens(Color c) const noexcept;
 
     // Attacks to a given square
     Bitboard attackers_to(Square s, Bitboard occupied) const noexcept;
     Bitboard attackers_to(Square s) const noexcept;
 
-    std::uint16_t mobility(Color c) const noexcept;
+    std::int16_t mobility(Color c) const noexcept;
 
    private:
     // Attacks from a piece type
@@ -192,10 +192,12 @@ class Position final {
     Value        non_pawn_material() const noexcept;
     bool         has_castled(Color c) const noexcept;
     bool         bishop_paired(Color c) const noexcept;
+    bool         opposite_bishops() const noexcept;
 
-    std::uint16_t material() const noexcept;
-    Value         evaluate() const noexcept;
-    Value         bonus() const noexcept;
+    int   material() const noexcept;
+    int   materials() const noexcept;
+    Value evaluate() const noexcept;
+    Value bonus() const noexcept;
 
     // Position consistency check, for debugging
     bool pos_is_ok() const noexcept;
@@ -344,9 +346,9 @@ inline Bitboard Position::blockers(Color c) const noexcept { return st->blockers
 // clang-format off
 inline Bitboard Position::attacks(Color c, PieceType pt) const noexcept { return st->attacks[c][pt]; }
 // clang-format on
-inline Bitboard Position::threatens(Color c) const noexcept { return st->attacks[c][EX_PIECE]; }
+// inline Bitboard Position::threatens(Color c) const noexcept { return st->attacks[c][EX_PIECE]; }
 
-inline std::uint16_t Position::mobility(Color c) const noexcept { return st->mobility[c]; }
+inline std::int16_t Position::mobility(Color c) const noexcept { return st->mobility[c]; }
 
 inline Key Position::adjust_key(Key k, bool before) const noexcept {
     return st->rule50 < 14 - before ? k : k ^ make_key((st->rule50 - (14 - before)) / 8);
@@ -383,9 +385,18 @@ inline bool Position::bishop_paired(Color c) const noexcept {
     return (bishops & ColorBB[WHITE]) && (bishops & ColorBB[BLACK]);
 }
 
-inline std::uint16_t Position::material() const noexcept {
+inline bool Position::opposite_bishops() const noexcept {
+    return count<BISHOP>(WHITE) == 1 && count<BISHOP>(BLACK) == 1
+        && opposite_color(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
+}
+
+inline int Position::material() const noexcept {
     return 1 * count<PAWN>() + 3 * count<KNIGHT>() + 3 * count<BISHOP>()  //
          + 5 * count<ROOK>() + 9 * count<QUEEN>();
+}
+inline int Position::materials() const noexcept {
+    return 200 * count<PAWN>() + 350 * count<KNIGHT>() + 400 * count<BISHOP>()  //
+         + 640 * count<ROOK>() + 1200 * count<QUEEN>();
 }
 
 // Returns a static, purely materialistic evaluation of the position from
@@ -399,7 +410,7 @@ inline Value Position::evaluate() const noexcept {
 
 inline Value Position::bonus() const noexcept {
     // clang-format off
-    return  7 * (mobility(sideToMove) - mobility(~sideToMove)) / 10
+    return      (mobility(sideToMove) - mobility(~sideToMove)) / 4
          + 25 * (bishop_paired(sideToMove) - bishop_paired(~sideToMove))
          + 50 * ((can_castle( sideToMove & ANY_CASTLING) || has_castled( sideToMove))
                - (can_castle(~sideToMove & ANY_CASTLING) || has_castled(~sideToMove)));

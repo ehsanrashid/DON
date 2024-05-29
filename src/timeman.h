@@ -52,8 +52,10 @@ class TimeManager final {
 
    private:
     TimePoint startTime;
+
     TimePoint optimumTime;
     TimePoint maximumTime;
+    TimePoint startRemainTime;
 
     TimePoint    nodesTime;
     std::int64_t startNodes;
@@ -73,8 +75,9 @@ inline TimePoint TimeManager::elapsed(Func nodes) const noexcept {
 }
 
 inline void TimeManager::clear() noexcept {
-    optimumTime = 0;
-    maximumTime = 0;
+    optimumTime     = 0;
+    maximumTime     = 0;
+    startRemainTime = -1LL;
 
     nodesTime  = 0;
     startNodes = -1LL;
