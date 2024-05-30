@@ -121,11 +121,11 @@ void MovePicker::score() noexcept {
 
         if constexpr (GT == CAPTURES)
         {
-            Piece capturedPiece = pos.captured_piece(m);
+            PieceType captured = type_of(pos.captured_piece(m));
 
-            m.value = 7 * PieceValue[capturedPiece] - pt
-                    + (*captureHistory)[pc][dst][type_of(capturedPiece)]
-                    + (pos.cap_square() == dst) * 128;
+            m.value = 7 * PieceValue[captured] - pt         //
+                    + (*captureHistory)[pc][dst][captured]  //
+                    + 128 * (pos.cap_square() == dst);
         }
 
         else if constexpr (GT == QUIETS)
@@ -142,7 +142,7 @@ void MovePicker::score() noexcept {
             // Bonus for checks
             m.value += pos.gives_check(m) * 16384;
 
-            if (pt == PAWN || pt == KING)
+            if (pt == KING)
                 continue;
 
             // Bonus for putting piece safe
@@ -151,27 +151,24 @@ void MovePicker::score() noexcept {
                                        + !(pos.attacks(xstm, PAWN) & dst) * 14450
                      : pt == ROOK ? !(pos.attacks(xstm, MINOR) & dst) * 15450
                                       + !(pos.attacks(xstm, PAWN) & dst) * 14450
-                                  : !(pos.attacks(xstm, PAWN) & dst) * 14450;
+                                  : !(pos.attacks(xstm, PAWN) & dst) * 14450 / (1 + (pt == PAWN));
 
             // Malus for putting piece en-prise
-            m.value -= !(pos.blockers(xstm) & org)
-                       ? pt == QUEEN ? !!(pos.attacks(xstm, ROOK) & dst) * 33250
-                                         + !!(pos.attacks(xstm, MINOR) & dst) * 15400
-                                         + !!(pos.attacks(xstm, PAWN) & dst) * 10650
-                       : pt == ROOK ? !!(pos.attacks(xstm, MINOR) & dst) * 15250
-                                        + !!(pos.attacks(xstm, PAWN) & dst) * 10050
-                                    : !!(pos.attacks(xstm, PAWN) & dst) * 14950
-                       : 0;
+            m.value -= pt == QUEEN ? !!(pos.attacks(xstm, ROOK) & dst) * 28500
+                                       + !!(pos.attacks(xstm, MINOR) & dst) * 10400
+                                       + !!(pos.attacks(xstm, PAWN) & dst) * 10150
+                     : pt == ROOK ? !!(pos.attacks(xstm, MINOR) & dst) * 15250
+                                      + !!(pos.attacks(xstm, PAWN) & dst) * 10050
+                                  : !!(pos.attacks(xstm, PAWN) & dst) * 14900 / (1 + (pt == PAWN));
         }
 
         else  // GT == EVASIONS
         {
-            if (pos.capture(m))
-                m.value = PieceValue[pos.captured_piece(m)] - pt + (1 << 28);
-            else
-                m.value = (*mainHistory)[stm][m.org_dst()]    //
-                        + (*continuationHistory[0])[pc][dst]  //
-                        + (*pawnHistory)[pawn_index(pos.pawn_key())][pc][dst];
+            m.value = pos.capture(m)  //
+                      ? PieceValue[pos.captured_piece(m)] - pt + (1 << 28)
+                      : (*mainHistory)[stm][m.org_dst()]        //
+                          + (*continuationHistory[0])[pc][dst]  //
+                          + (*pawnHistory)[pawn_index(pos.pawn_key())][pc][dst];
         }
     }
 }

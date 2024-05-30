@@ -31,21 +31,16 @@
 // the calls at compile time), try to load them at runtime. To do this need
 // first to define the corresponding function pointers.
 extern "C" {
-using Fun1_t = bool (*)(LOGICAL_PROCESSOR_RELATIONSHIP,
-                        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX,
-                        PDWORD);
-using Fun2_t = bool (*)(USHORT, PGROUP_AFFINITY);
-using Fun3_t = bool (*)(HANDLE, CONST GROUP_AFFINITY*, PGROUP_AFFINITY);
-using Fun4_t = bool (*)(USHORT, PGROUP_AFFINITY, USHORT, PUSHORT);
-using Fun5_t = WORD (*)();
-using Fun6_t = bool (*)(HANDLE, DWORD, PHANDLE);
-using Fun7_t = bool (*)(LPCSTR, LPCSTR, PLUID);
-using Fun8_t = bool (*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
+// clang-format off
+using _OpenProcessToken      = bool (*)(HANDLE, DWORD, PHANDLE);
+using _LookupPrivilegeValueA = bool (*)(LPCSTR, LPCSTR, PLUID);
+using _AdjustTokenPrivileges = bool (*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
+// clang-format on
 }
 #endif
 
 #include <atomic>
-#include <charconv>
+#include <cctype>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -53,10 +48,10 @@ using Fun8_t = bool (*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGE
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <iterator>
 #include <mutex>
 #include <sstream>
 #include <string_view>
-#include <system_error>
 
 #include "types.h"
 
@@ -446,22 +441,22 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
     if (!largePageSize)
         return nullptr;
 
-    // Dynamically link OpenProcessToken, LookupPrivilegeValue and AdjustTokenPrivileges
+    // Dynamically link OpenProcessToken, LookupPrivilegeValueA and AdjustTokenPrivileges
 
     HMODULE hAdvapi32 = GetModuleHandle(TEXT("advapi32.dll"));
     if (!hAdvapi32)
         hAdvapi32 = LoadLibrary(TEXT("advapi32.dll"));
 
     auto openProcessToken =
-      Fun6_t(reinterpret_cast<void (*)()>(GetProcAddress(hAdvapi32, "OpenProcessToken")));
+      _OpenProcessToken((void (*)())(GetProcAddress(hAdvapi32, "OpenProcessToken")));
     if (!openProcessToken)
         return nullptr;
     auto lookupPrivilegeValueA =
-      Fun7_t(reinterpret_cast<void (*)()>(GetProcAddress(hAdvapi32, "LookupPrivilegeValueA")));
+      _LookupPrivilegeValueA((void (*)())(GetProcAddress(hAdvapi32, "LookupPrivilegeValueA")));
     if (!lookupPrivilegeValueA)
         return nullptr;
     auto adjustTokenPrivileges =
-      Fun8_t(reinterpret_cast<void (*)()>(GetProcAddress(hAdvapi32, "AdjustTokenPrivileges")));
+      _AdjustTokenPrivileges((void (*)())(GetProcAddress(hAdvapi32, "AdjustTokenPrivileges")));
     if (!adjustTokenPrivileges)
         return nullptr;
 
@@ -472,8 +467,9 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
                           &hProcessToken))
         return nullptr;
 
-    LUID  luid{};
     void* mem = nullptr;
+
+    LUID luid{};
     if (lookupPrivilegeValueA(nullptr, "SeLockMemoryPrivilege", &luid))
     {
         TOKEN_PRIVILEGES tp{};
@@ -732,14 +728,18 @@ std::string CommandLine::get_working_directory() noexcept {
     return workingDirectory;
 }
 
-std::size_t str_to_size_t(const std::string& str) {
-    std::size_t value;
-    auto        result = std::from_chars(str.data(), str.data() + str.size(), value);
-
-    if (result.ec != std::errc())
+std::size_t str_to_size_t(const std::string& str) noexcept {
+    unsigned long long value = std::stoull(str);
+    if (value > std::numeric_limits<std::size_t>::max())
         std::exit(EXIT_FAILURE);
+    return static_cast<std::size_t>(value);
+}
 
-    return value;
+std::optional<std::string> read_file_to_string(const std::string& path) noexcept {
+    std::ifstream fstream(path, std::ios_base::binary);
+    if (!fstream)
+        return std::nullopt;
+    return std::string(std::istreambuf_iterator<char>(fstream), std::istreambuf_iterator<char>());
 }
 
 }  // namespace DON

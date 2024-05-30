@@ -257,7 +257,7 @@ inline Bitboard attacks_bb(Square s, Bitboard occupied) noexcept {
 // Returns the attacks by the given piece type
 // assuming the board is occupied according to the passed Bitboard.
 // Sliding piece attacks do not continue passed an occupied square.
-inline Bitboard attacks_bb(PieceType pt, Square s, Bitboard occupied) noexcept {
+inline Bitboard attacks_bb(PieceType pt, Square s, Bitboard occupied = 0) noexcept {
     assert(pt != PAWN && is_ok(s));
     switch (pt)
     {

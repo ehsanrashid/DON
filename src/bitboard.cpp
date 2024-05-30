@@ -56,7 +56,7 @@ Bitboard safe_destination(Square s, Direction step, std::uint8_t dist = 1) noexc
 
 // Computes sliding attacks
 template<PieceType PT>
-Bitboard sliding_attack(Square s, Bitboard occupied) noexcept {
+Bitboard sliding_attack(Square s, Bitboard occupied = 0) noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attack()");
 
     Bitboard attacks = 0;
@@ -116,7 +116,7 @@ void init_magics() noexcept {
         // apply to the 64 or 32 bits word to get the index.
         Magic& m = magics[s];
 
-        m.mask = sliding_attack<PT>(s, 0) & ~edges;
+        m.mask = sliding_attack<PT>(s) & ~edges;
 #if !defined(USE_PEXT)
         m.shift =
     #if defined(IS_64BIT)

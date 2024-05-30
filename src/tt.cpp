@@ -93,7 +93,7 @@ void TranspositionTable::clear(ThreadPool& threads) noexcept {
             // Each thread will zero its part of the hash table
             std::size_t stride = clusterCount / threadCount;
             std::size_t start  = stride * idx;
-            std::size_t count  = (1 + idx) != threadCount ? stride : clusterCount - start;
+            std::size_t count  = 1 + idx != threadCount ? stride : clusterCount - start;
 
             std::memset(static_cast<void*>(&table[start]), 0, count * sizeof(Cluster));
         });

@@ -222,7 +222,7 @@ void HashTable::clear(ThreadPool& threads) noexcept {
             // Each thread will zero its part of the hash table
             std::size_t stride = clusterCount / threadCount;
             std::size_t start  = stride * idx;
-            std::size_t count  = (idx + 1) != threadCount ? stride : clusterCount - start;
+            std::size_t count  = 1 + idx != threadCount ? stride : clusterCount - start;
 
             std::memset(static_cast<void*>(&table[start]), 0, count * sizeof(Cluster));
         });
@@ -309,7 +309,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
                     iperft = perft<false>(pos, depth - 1, detail);
                 else
                 {
-                    Key   key = pos.state()->key;
+                    Key   key = pos.key(-pos.rule50_count());
                     bool  hHit;
                     auto* hte = hashTable.probe(key, depth - 1, hHit);
                     if (hHit)

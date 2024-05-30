@@ -48,6 +48,7 @@ namespace DON {
 class OptionsMap;
 class ThreadPool;
 class TranspositionTable;
+struct TTEntry;
 
 constexpr inline std::uint8_t DefaultMultiPV = 1;
 
@@ -256,13 +257,13 @@ struct Limits final {
 
     Limits() = default;
 
-    bool use_time_management() const noexcept { return clock[WHITE].time || clock[BLACK].time; }
+    bool use_time_manager() const noexcept { return clock[WHITE].time || clock[BLACK].time; }
 
-    std::int16_t time_diff(Color stm) const noexcept {
+    std::int16_t diff_time(Color stm) const noexcept {
         return (clock[stm].time - clock[~stm].time) / 1000;
     }
 
-    TimePoint                   startTime = 0;
+    TimePoint                   initialTime = 0;
     std::array<Clock, COLOR_NB> clock{};
     TimePoint                   moveTime  = 0;
     std::uint8_t                movesToGo = 0, mate = 0;
@@ -456,6 +457,7 @@ class Worker final {
     Value
     qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth = DEPTH_ZERO) noexcept;
 
+    Move extract_tt_move(const Position& pos, const TTEntry* tte) noexcept;
     bool extract_ponder_move() noexcept;
 
     Limits limits;

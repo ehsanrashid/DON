@@ -79,20 +79,20 @@ void Position::init() noexcept {
 
     for (std::uint8_t pc : {0, 7, 8, 15})
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
-            Zobrist::psq[pc][s] = 0ULL;
+            Zobrist::psq[pc][s] = 0;
     for (Piece pc : Pieces)
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
             Zobrist::psq[pc][s] = rng.rand<Key>();
 
     for (std::uint8_t cr = NO_CASTLING; cr <= ANY_CASTLING; ++cr)
     {
-        Zobrist::castling[cr] = 0ULL;
+        Zobrist::castling[cr] = 0;
 
         Bitboard b = cr;
         while (b)
         {
-            Key k = Zobrist::castling[1U << pop_lsb(b)];
-            Zobrist::castling[cr] ^= k ? k : rng.rand<Key>();
+            Key key = Zobrist::castling[1 << pop_lsb(b)];
+            Zobrist::castling[cr] ^= key != 0 ? key : rng.rand<Key>();
         }
     }
 
@@ -110,7 +110,7 @@ void Position::init() noexcept {
             continue;
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
             for (Square s2 = Square(int(s1) + 1); s2 <= SQ_H8; ++s2)
-                if (attacks_bb(type_of(pc), s1, 0) & s2)
+                if (attacks_bb(type_of(pc), s1) & s2)
                 {
                     Cuckoo ck{Zobrist::psq[pc][s1] ^ Zobrist::psq[pc][s2] ^ Zobrist::side,
                               Move(s1, s2)};
@@ -123,7 +123,9 @@ void Position::init() noexcept {
                             break;
                         i ^= H1(ck.key) ^ H2(ck.key);  // Push victim to alternative slot
                     }
+#if !defined(NDEBUG)
                     ++count;
+#endif
                 }
     }
     assert(count == 3668);
@@ -385,7 +387,7 @@ std::string Position::fen(bool full) const noexcept {
                 ++emptyCount;
                 ++f;
             }
-            if (emptyCount)
+            if (emptyCount != 0)
                 oss << int(emptyCount);
 
             if (f <= FILE_H)
@@ -452,7 +454,8 @@ void Position::set_state() noexcept {
     assert(st->nonPawnMaterial[WHITE] == VALUE_ZERO);
     assert(st->nonPawnMaterial[BLACK] == VALUE_ZERO);
 
-    for (Bitboard occ = pieces(); occ;)
+    Bitboard occ = pieces();
+    while (occ)
     {
         Square s  = pop_lsb(occ);
         Piece  pc = piece_on(s);
@@ -624,7 +627,7 @@ Bitboard Position::attacks_by(Color c, Bitboard target, Bitboard occupied) const
 
 // Tests whether a pseudo-legal move is legal
 bool Position::legal(Move m) const noexcept {
-    assert(m.is_ok());
+    assert(m.is_ok() && pseudo_legal(m));
     assert(pieces(sideToMove, KING) & king_square(sideToMove));
 
     const Square org = m.org_sq(), dst = m.dst_sq();
@@ -862,10 +865,9 @@ bool Position::gives_dbl_check(Move m) const noexcept {
 }
 
 // Makes a move, and saves all information necessary to a StateInfo.
-// The move is assumed to be legal. Pseudo-legal moves should
-// be filtered out before this function is called.
+// The move is assumed to be legal.
 void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) noexcept {
-    assert(m.is_ok());
+    assert(m.is_ok() && legal(m));
     assert(&newSt != st);
 
     Key k = st->key ^ Zobrist::side;
@@ -1275,7 +1277,7 @@ Key Position::move_key(Move m) const noexcept {
              && can_enpassant(~sideToMove, dst - pawn_spush(sideToMove), true))
         k ^= Zobrist::enpassant[file_of(dst - pawn_spush(sideToMove))];
 
-    return (is_ok(capturedPiece) || type_of(movedPiece) == PAWN) ? k : adjust_key(k, true);
+    return (is_ok(capturedPiece) || type_of(movedPiece) == PAWN) ? k : adjust_key(k, 1);
 }
 
 // Tests if the SEE (Static Exchange Evaluation)

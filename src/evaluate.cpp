@@ -47,17 +47,17 @@ Value evaluate(const Position&          pos,
     const auto  materials = pos.materials();
 
     int   complexity;
-    Value nnue;
     Value moptimism;
+    Value nnue;
 
     // Blend optimism and eval with nnue complexity
     // clang-format off
     auto blend = [&]() {
         moptimism = optimism * (470 + complexity) / 470;
-        nnue -= nnue * (5 * complexity / 3) / 32621;
+        nnue -= nnue * complexity / 20000;
         return bonus
-              + (nnue      * (34000 + materials + 135 * pos.count<PAWN>())
-               + moptimism * ( 4400 + materials +  99 * pos.count<PAWN>())) / 35967;
+              + (nnue      * (34300 + materials)
+               + moptimism * ( 4400 + materials)) / 35967;
     };
     // clang-format on
 

@@ -210,19 +210,40 @@ void generate_all(ExtMoves& extMoves, const Position& pos) noexcept {
 
     if (!Checks || pos.blockers(~Stm) & ksq)
     {
+        Bitboard b = attacks_bb<KING>(ksq);
+
         if constexpr (GT == EVASIONS)
         {
-            target = ~pos.pieces(Stm);
-
-            Bitboard sliders = pos.checkers() & ~pos.pieces(PAWN, KNIGHT);
-            while (sliders)
+            target            = ~pos.pieces(Stm);
+            Bitboard occupied = pos.pieces() ^ ksq;
+            Bitboard checkers = pos.checkers() & pos.pieces(KNIGHT);
+            if (checkers)
+                target &= ~attacks_bb<KNIGHT>(lsb(checkers));
+            checkers = pos.checkers() & pos.pieces(QUEEN, ROOK, BISHOP);
+            while (checkers)
             {
-                Square slider = pop_lsb(sliders);
-                target &= ~line_bb(ksq, slider) | slider;
+                Square slider = pop_lsb(checkers);
+                if (b & slider)
+                {
+                    target &= ~attacks_bb(type_of(pos.piece_on(slider)), slider, occupied);
+                    if (pos.attackers_to(slider) & pos.pieces(~Stm))
+                        target &= ~square_bb(slider);
+                }
+                else if (type_of(pos.piece_on(slider)) == QUEEN && distance(ksq, slider) == 2)
+                    target &= ~attacks_bb<QUEEN>(slider, occupied);
+                else
+                    target &= ~line_bb(ksq, slider);
+            }
+            checkers = b & target;
+            while (checkers)
+            {
+                Square checker = pop_lsb(checkers);
+                if (pos.attackers_to(checker, occupied) & pos.pieces(~Stm))
+                    target &= ~square_bb(checker);
             }
         }
 
-        Bitboard b = attacks_bb<KING>(ksq) & target;
+        b &= target;
         // Stop king from stepping in the way to check
         if (Checks)
             b &= ~attacks_bb<QUEEN>(pos.king_square(~Stm));
@@ -303,9 +324,9 @@ ExtMoves::NormalItr filter_illegal(ExtMoves& extMoves, const Position& pos) noex
     Bitboard pinned = pos.blockers(stm) & pos.pieces(stm);
     Square   ksq    = pos.king_square(stm);
 
-    return extMoves.remove_if([&](const ExtMove& em) noexcept -> bool {
-        return ((pinned & em.org_sq()) || em.org_sq() == ksq || em.type_of() == EN_PASSANT)
-            && !pos.legal(em);
+    return extMoves.remove_if([&](Move m) noexcept -> bool {
+        return ((pinned & m.org_sq()) || m.org_sq() == ksq || m.type_of() == EN_PASSANT)
+            && !pos.legal(m);
     });
 }
 

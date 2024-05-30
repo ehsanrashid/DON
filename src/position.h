@@ -34,13 +34,14 @@
 
 namespace DON {
 
+class Position;
 class TranspositionTable;
 
 // StateInfo struct stores information needed to restore a Position object to
 // its previous state when retract a move. Whenever a move is made on the
 // board (by calling Position::do_move), a StateInfo object must be passed.
 struct StateInfo final {
-
+    //    private:
     // Copied when making a move
     Key          pawnKey;
     Key          materialKey;
@@ -65,12 +66,23 @@ struct StateInfo final {
     Piece        capturedPiece;
     //Piece        promotedPiece;
 
+   public:
     // Used by NNUE
     Eval::NNUE::Accumulator<Eval::NNUE::BigTransformedFeatureDimensions>   bigAccumulator;
     Eval::NNUE::Accumulator<Eval::NNUE::SmallTransformedFeatureDimensions> smallAccumulator;
     DirtyPiece                                                             dirtyPiece;
 
     StateInfo* previous;
+
+    // Key          pos_key() const noexcept { return key; }
+    Key pawn_key() const noexcept { return pawnKey; }
+    // Key          material_key() const noexcept { return materialKey; }
+    // Square       ep_square() const noexcept { return epSquare; }
+    // Square       cap_square() const noexcept { return capSquare; }
+    // std::uint8_t rule50_count() const noexcept { return rule50; }
+    // std::uint8_t null_ply() const noexcept { return nullPly; }
+
+    // friend class Position;
 };
 
 // A list to keep track of the position states along the setup moves
@@ -174,7 +186,7 @@ class Position final {
     bool see_ge(Move m, int threshold = 0) const noexcept;
 
     // Hash keys
-    Key key() const noexcept;
+    Key key(int ply = 0) const noexcept;
     Key pawn_key() const noexcept;
     Key material_key() const noexcept;
     Key move_key(Move m) const noexcept;
@@ -192,7 +204,7 @@ class Position final {
     Value        non_pawn_material() const noexcept;
     bool         has_castled(Color c) const noexcept;
     bool         bishop_paired(Color c) const noexcept;
-    bool         opposite_bishops() const noexcept;
+    bool         opposite_bishop() const noexcept;
 
     int   material() const noexcept;
     int   materials() const noexcept;
@@ -226,7 +238,7 @@ class Position final {
     void move_piece(Square org, Square dst) noexcept;
     template<bool Do>
     void do_castling(Color c, Square org, Square& dst, Square& rorg, Square& rdst) noexcept;
-    Key  adjust_key(Key k, bool before = false) const noexcept;
+    Key  adjust_key(Key k, int ply = 0) const noexcept;
 
     // Data members
     Piece        board[SQUARE_NB];
@@ -350,11 +362,11 @@ inline Bitboard Position::attacks(Color c, PieceType pt) const noexcept { return
 
 inline std::int16_t Position::mobility(Color c) const noexcept { return st->mobility[c]; }
 
-inline Key Position::adjust_key(Key k, bool before) const noexcept {
-    return st->rule50 < 14 - before ? k : k ^ make_key((st->rule50 - (14 - before)) / 8);
+inline Key Position::adjust_key(Key k, int ply) const noexcept {
+    return k ^ (st->rule50 + ply >= 14) * make_key((st->rule50 + ply - 14) / 8);
 }
 
-inline Key Position::key() const noexcept { return adjust_key(st->key); }
+inline Key Position::key(int ply) const noexcept { return adjust_key(st->key, ply); }
 
 inline Key Position::pawn_key() const noexcept { return st->pawnKey; }
 
@@ -381,11 +393,10 @@ inline Value Position::non_pawn_material() const noexcept {
 inline bool Position::has_castled(Color c) const noexcept { return st->hasCastled[c]; }
 
 inline bool Position::bishop_paired(Color c) const noexcept {
-    Bitboard bishops = pieces(c, BISHOP);
-    return (bishops & ColorBB[WHITE]) && (bishops & ColorBB[BLACK]);
+    return (pieces(c, BISHOP) & ColorBB[WHITE]) && (pieces(c, BISHOP) & ColorBB[BLACK]);
 }
 
-inline bool Position::opposite_bishops() const noexcept {
+inline bool Position::opposite_bishop() const noexcept {
     return count<BISHOP>(WHITE) == 1 && count<BISHOP>(BLACK) == 1
         && opposite_color(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
 }
@@ -395,7 +406,7 @@ inline int Position::material() const noexcept {
          + 5 * count<ROOK>() + 9 * count<QUEEN>();
 }
 inline int Position::materials() const noexcept {
-    return 200 * count<PAWN>() + 350 * count<KNIGHT>() + 400 * count<BISHOP>()  //
+    return 300 * count<PAWN>() + 350 * count<KNIGHT>() + 400 * count<BISHOP>()  //
          + 640 * count<ROOK>() + 1200 * count<QUEEN>();
 }
 
@@ -403,7 +414,7 @@ inline int Position::materials() const noexcept {
 // the point of view of the side to move. It can be divided by VALUE_PAWN to get
 // an approximation of the material advantage on the board in terms of pawns.
 inline Value Position::evaluate() const noexcept {
-    return (count<PAWN>(sideToMove) - count<PAWN>(~sideToMove)) * VALUE_PAWN
+    return VALUE_PAWN * (int(count<PAWN>(sideToMove)) - int(count<PAWN>(~sideToMove)))
          + (non_pawn_material(sideToMove) - non_pawn_material(~sideToMove))  //
          + bonus();
 }

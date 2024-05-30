@@ -113,7 +113,6 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::uint8_t rule50) no
 
         return v - ply;
     }
-
     // Handle TB loss or worse
     if (v <= VALUE_TB_LOSS_IN_MAX_PLY)
     {
@@ -412,7 +411,7 @@ void Worker::iterative_deepening() noexcept {
     }
     multiPV = std::min<std::uint8_t>(rootMoves.size(), multiPV);
 
-    std::int16_t timeOptimism = limits.time_diff(stm);
+    std::int16_t timeOptimism = limits.diff_time(stm);
 
     std::uint16_t researchCounter = 0;
     std::uint8_t  iterIdx         = 0;
@@ -432,7 +431,7 @@ void Worker::iterative_deepening() noexcept {
            && !(mainManager && limits.depth != DEPTH_ZERO && rootDepth > limits.depth))
     {
         // Age out PV variability metric
-        if (mainManager && limits.use_time_management())
+        if (mainManager && limits.use_time_manager())
             sumBestMoveChange *= 0.50;
 
         // Save the last iteration's scores before the first PV line is searched and
@@ -590,7 +589,7 @@ void Worker::iterative_deepening() noexcept {
             mainManager->skill.pick_best_move(rootMoves, multiPV);
 
         // Do have time for the next iteration? Can stop searching now?
-        if (limits.use_time_management() && !threads.stop && !mainManager->stopPonderhit)
+        if (limits.use_time_manager() && !threads.stop && !mainManager->stopPonderhit)
         {
             // Use part of the gained time from a previous stable move for the current move
             for (auto&& th : threads)
@@ -736,11 +735,7 @@ Value Worker::search(
 
     Value ttValue =
       ss->ttHit ? value_from_tt(tte->value(), ss->ply, pos.rule50_count()) : VALUE_NONE;
-    Move move   = tte->move();
-    Move ttMove = RootNode                                       ? rootMoves[pvIndex][0]
-                : move != Move::None() && pos.pseudo_legal(move) ? move
-                                                                 : Move::None();
-
+    Move ttMove    = RootNode ? rootMoves[pvIndex][0] : extract_tt_move(pos, tte);
     bool ttCapture = ttMove != Move::None() && pos.capture_stage(ttMove);
 
     // At this point, if excluded, skip straight to step 6, static eval. However,
@@ -749,7 +744,8 @@ Value Worker::search(
         ss->ttPv = PVNode || (ss->ttHit && tte->is_pv());
 
     // At non-PV nodes check for an early TT cutoff
-    if (!PVNode && excludedMove == Move::None() && ttValue != VALUE_NONE && tte->depth() > depth
+    if (!PVNode && excludedMove == Move::None() && ttValue != VALUE_NONE
+        && tte->depth() + (ttValue <= beta) > depth
         && (tte->bound() & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER)))
     {
         // If ttMove fails high, update move sorting heuristics on TT hit (~2 Elo)
@@ -829,6 +825,7 @@ Value Worker::search(
         }
     }
 
+    Move  move;
     Value probCutBeta;
     Value unadjustedStaticEval, eval;
     bool  improving, worsening;
@@ -891,7 +888,7 @@ Value Worker::search(
         int bonus = std::clamp(-11 * ((ss - 1)->staticEval + (ss - 0)->staticEval), -1592, 1390);
         bonus     = bonus > 0 ? bonus * 2 : bonus / 2;
         mainHistory[~stm][(ss - 1)->currentMove.org_dst()] << bonus;
-        Key   prevPawnKey = pos.prev_state()->pawnKey;
+        Key   prevPawnKey = pos.prev_state()->pawn_key();
         Piece prevPiece   = pos.prev_moved_piece((ss - 1)->currentMove, prevDst);
         pawnHistory[pawn_index(prevPawnKey)][prevPiece][prevDst] << bonus / 2;
     }
@@ -1008,7 +1005,7 @@ Value Worker::search(
         // Loop through all pseudo-legal moves
         while ((move = mp.next_move()) != Move::None())
         {
-            assert(move.is_ok());
+            assert(move.is_ok() && pos.pseudo_legal(move));
             assert(pos.capture_stage(move));
 
             // Check for legality
@@ -1048,10 +1045,10 @@ Value Worker::search(
         Eval::NNUE::hint_common_parent_position(pos, networks[numaAccessToken], accCaches);
     }
 
-    if (ttMove == Move::None() && (move = tte->move()) != Move::None() && pos.pseudo_legal(move))
+    if (ttMove == Move::None())
     {
-        ttMove    = move;
-        ttCapture = pos.capture_stage(ttMove);
+        ttMove    = extract_tt_move(pos, tte);
+        ttCapture = ttMove != Move::None() && pos.capture_stage(ttMove);
     }
 
 MOVES_LOOP:  // When in check, search starts here
@@ -1078,7 +1075,7 @@ MOVES_LOOP:  // When in check, search starts here
     // Step 13. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None())
     {
-        assert(move.is_ok());
+        assert(move.is_ok() && pos.pseudo_legal(move));
 
         // Check for legality
         if (
@@ -1257,9 +1254,9 @@ MOVES_LOOP:  // When in check, search starts here
         ss->currentMove         = move;
         ss->continuationHistory = &continuationHistory[ss->inCheck][isCapture][movedPiece][dst];
 
-        [[maybe_unused]] std::uint64_t startNodes;
+        [[maybe_unused]] std::uint64_t initialNodes;
         if (RootNode)
-            startNodes = std::uint64_t(nodes);
+            initialNodes = std::uint64_t(nodes);
 
         // Step 16. Make the move
         nodes.fetch_add(1, std::memory_order_relaxed);
@@ -1374,7 +1371,7 @@ MOVES_LOOP:  // When in check, search starts here
             RootMove& rm = *rootMoves.find(move);
 
             rm.avgValue = rm.avgValue != -VALUE_INFINITE ? (2 * value + rm.avgValue) / 3 : value;
-            rm.nodes += nodes - startNodes;
+            rm.nodes += nodes - initialNodes;
 
             // PV move or new best move?
             if (moveCount == 1 || alpha < value)
@@ -1400,7 +1397,7 @@ MOVES_LOOP:  // When in check, search starts here
                 // Record how often the best move has been changed in each iteration.
                 // This information is used for time management.
                 // In MultiPV mode, must take care to only do this for the first PV line.
-                if (pvIndex == 0 && moveCount > 1 && limits.use_time_management())
+                if (pvIndex == 0 && moveCount > 1 && limits.use_time_manager())
                     ++bestMoveChange;
             }
             else
@@ -1423,7 +1420,7 @@ MOVES_LOOP:  // When in check, search starts here
 
                 if (value >= beta)
                 {
-                    (ss - 1)->cutoffCount += 1 + (ttMove == Move::None());
+                    (ss - 1)->cutoffCount += 1 + (ttMove == Move::None()) - (extension >= 2);
                     break;  // Fail-high
                 }
 
@@ -1472,14 +1469,14 @@ MOVES_LOOP:  // When in check, search starts here
     // Bonus for prior counterMove that caused the fail low
     else if (is_ok(prevDst) && !is_ok(prevCaptured))
     {
-        int bonusMul = 54 * (depth > 4) + 62 * (depth > 5) + 115 * (PVNode || cutNode)       //
+        int bonusMul = 166 * (depth > 5) + 115 * (PVNode || cutNode)                         //
                      + 186 * ((ss - 1)->history < -14144) + 121 * ((ss - 1)->moveCount > 9)  //
                      + 64 * (!(ss - 0)->inCheck && bestValue <= +(ss - 0)->staticEval - 115)
                      + 137 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 81);
 
         int bonus = stat_bonus(depth) * bonusMul / 25;
         mainHistory[~stm][(ss - 1)->currentMove.org_dst()] << bonus / 8;
-        Key   prevPawnKey = pos.prev_state()->pawnKey;
+        Key   prevPawnKey = pos.prev_state()->pawn_key();
         Piece prevPiece   = pos.prev_moved_piece((ss - 1)->currentMove, prevDst);
         pawnHistory[pawn_index(prevPawnKey)][prevPiece][prevDst] << bonus;
         update_continuation_histories(ss - 1, prevPiece, prevDst, bonus / 4);
@@ -1529,10 +1526,6 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth d
     assert(PVNode || (alpha == beta - 1));
     assert(depth <= DEPTH_ZERO);
 
-    // Step 1. Initialize node
-    if constexpr (PVNode)
-        ss->pv.clear();
-
     // Check if have an upcoming move that draws by repetition, or
     // if the opponent had an alternative move earlier to this position. (~1 Elo)
     if (alpha < VALUE_DRAW && pos.has_game_cycle(ss->ply))
@@ -1545,6 +1538,9 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth d
     StateInfo st;
     ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
 
+    // Step 1. Initialize node
+    if constexpr (PVNode)
+        (ss + 1)->pv.clear();
     ss->inCheck = pos.checkers();
 
     Color stm = pos.side_to_move();
@@ -1573,8 +1569,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth d
 
     Value ttValue =
       ss->ttHit ? value_from_tt(tte->value(), ss->ply, pos.rule50_count()) : VALUE_NONE;
-    Move move   = tte->move();
-    Move ttMove = move != Move::None() && pos.pseudo_legal(move) ? move : Move::None();
+    Move ttMove = extract_tt_move(pos, tte);
     bool ttPv   = ss->ttHit && tte->is_pv();
 
     // At non-PV nodes check for an early TT cutoff
@@ -1642,7 +1637,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth d
     // Because the depth is <= DEPTH_ZERO here, only captures, queen promotions,
     // and other checks (only if depth == DEPTH_QS_CHECKS) will be generated.
     Value        value;
-    Move         bestMove  = Move::None();
+    Move         bestMove  = Move::None(), move;
     std::uint8_t moveCount = 0;
 
     const PieceDstHistory* contHistory[2]{(ss - 1)->continuationHistory,
@@ -1652,7 +1647,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth d
     // Step 5. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None())
     {
-        assert(move.is_ok());
+        assert(move.is_ok() && pos.pseudo_legal(move));
 
         // Check for legality
         if (!pos.legal(move))
@@ -1772,6 +1767,20 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth d
     return bestValue;
 }
 
+Move Worker::extract_tt_move(const Position& pos, const TTEntry* tte) noexcept {
+    Move ttMove   = tte->move();
+    bool ttmFound = ttMove != Move::None() && pos.pseudo_legal(ttMove);
+    int  rule50   = pos.rule50_count();
+    while (!ttmFound && rule50 >= 14)
+    {
+        rule50 -= 8;
+        TTEntry* tte_ = tt.probe(pos.key(rule50 - pos.rule50_count()), ttmFound);
+        ttMove        = tte_->move();
+        ttmFound      = ttMove != Move::None() && pos.pseudo_legal(ttMove);
+    }
+    return ttmFound ? ttMove : Move::None();
+}
+
 // Called in case have no ponder move before exiting the search,
 // for instance, in case stop the search during a fail high at root.
 // Try hard to have a ponder move to return to the GUI,
@@ -1797,7 +1806,7 @@ bool Worker::extract_ponder_move() noexcept {
         pm = tte->move();
         if (pm == Move::None() || !legalMoves.contains(pm))
         {
-            tte = tt.probe(rootPos.state()->key, ttHit);
+            tte = tt.probe(rootPos.key(-rootPos.rule50_count()), ttHit);
 
             pm = tte->move();
             if (pm == Move::None() || !legalMoves.contains(pm))
@@ -1847,7 +1856,7 @@ void MainSearchManager::should_abort(const Worker& worker) noexcept {
 
 #if !defined(NDEBUG)
     static TimePoint debugTime = now();
-    if (TimePoint curTime = worker.limits.startTime + elapsedTime; curTime - debugTime >= 1000)
+    if (TimePoint curTime = worker.limits.initialTime + elapsedTime; curTime - debugTime > 1000)
     {
         debugTime = curTime;
         Debug::print();
@@ -1860,7 +1869,7 @@ void MainSearchManager::should_abort(const Worker& worker) noexcept {
       // Later rely on the fact that at least use the main-thread previous root-search
       // score and PV in a multi-threaded environment to prove mated-in scores.
       && worker.completedDepth > DEPTH_ZERO
-      && ((worker.limits.use_time_management() && (stopPonderhit || elapsedTime > 0.999 * timeManager.maximum()))
+      && ((worker.limits.use_time_manager() && (stopPonderhit || elapsedTime > 0.999 * timeManager.maximum()))
        || (worker.limits.moveTime != 0 && elapsedTime >= worker.limits.moveTime)
        || (worker.limits.nodes != 0 && worker.threads.nodes() >= worker.limits.nodes)))
         worker.threads.stop = worker.threads.abort = true;

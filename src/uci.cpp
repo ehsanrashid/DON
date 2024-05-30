@@ -37,8 +37,8 @@ namespace DON {
 
 namespace {
 
-constexpr std::string_view START_FEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-constexpr std::string_view PIECE_CHAR(" PNBRQK  pnbrqk");
+constexpr std::string_view StartFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+constexpr std::string_view PieceChar(" PNBRQK  pnbrqk");
 
 constexpr std::uint32_t MAX_HASH =
 #if defined(IS_64BIT)
@@ -58,7 +58,7 @@ overload(Ts...) -> overload<Ts...>;
 Search::Limits parse_limits(std::istringstream& iss) noexcept {
     Search::Limits limits;
 
-    limits.startTime = now();  // The search starts as early as possible
+    limits.initialTime = now();  // The search starts as early as possible
 
     std::string token;
     while (iss >> token)
@@ -205,7 +205,7 @@ UCI::UCI(int argc, const char** argv) noexcept :
     engine.resize_threads();
     engine.clear();  // After threads are up
 
-    engine.setup(START_FEN);
+    engine.setup(StartFEN);
 }
 
 void UCI::handle_commands() noexcept {
@@ -323,7 +323,7 @@ void UCI::position(std::istringstream& iss) noexcept {
     token = to_lower(token);
     if (token == "startpos")
     {
-        fen = START_FEN;
+        fen = StartFEN;
         iss >> token;  // Consume the "moves" token, if any
     }
     else if (token == "fen")
@@ -378,7 +378,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
 #if !defined(NDEBUG)
     Debug::init();
 #endif
-    TimePoint startTime   = now();
+    TimePoint initialTime = now();
     TimePoint elapsedTime = 0;
 
     std::uint64_t nodes = 0;
@@ -424,14 +424,14 @@ void UCI::bench(std::istringstream& iss) noexcept {
             setoption(is);
         else if (token == "ucinewgame")
         {
-            elapsedTime += now() - startTime;
+            elapsedTime += now() - initialTime;
             engine.clear();  // May take a while
-            startTime = now();
+            initialTime = now();
         }
     }
 
     // Ensure non-zero to avoid a 'divide by zero'
-    elapsedTime += std::max(now() - startTime, 1LL);
+    elapsedTime += std::max(now() - initialTime, 1LL);
 #if !defined(NDEBUG)
     Debug::print();
 #endif
@@ -453,13 +453,13 @@ struct WinRateParams final {
 
 WinRateParams win_rate_params(const Position& pos) noexcept {
 
-    // The fitted model only uses data for material counts in [10, 78], and is anchored at count 58 (0.017241).
-    double m = 0.017241 * std::clamp(pos.material(), 10, 78);
+    // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (0.017241).
+    double m = 0.017241 * std::clamp(pos.material(), 17, 78);
 
     // Return a = p_a(material) and b = p_b(material).
     // clang-format off
-    constexpr double as[4]{-150.77043883, 394.96159472, -321.73403766, 406.15850091};
-    constexpr double bs[4]{  62.33245393, -91.02264855,   45.88486850,  51.63461272};
+    constexpr double as[4]{-41.25712052,  121.47473115, -124.46958843, 411.84490997};
+    constexpr double bs[4]{ 84.92998051, -143.66658718,   80.09988253,  49.80869370};
     // clang-format on
     double a = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
     double b = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
@@ -483,7 +483,7 @@ int win_rate_model(Value v, const Position& pos) noexcept {
 int UCI::to_cp(Value v, const Position& pos) noexcept {
 
     // In general, the score can be defined via the WDL as
-    // (log(1/L - 1) - log(1/W - 1)) / ((log(1/L - 1) + log(1/W - 1))
+    // (log(1/L - 1) - log(1/W - 1)) / (log(1/L - 1) + log(1/W - 1)).
     // Based on our win_rate_model, this simply yields v / a.
 
     auto [a, b] = win_rate_params(pos);
@@ -518,11 +518,11 @@ std::string UCI::format_score(const Score& score) noexcept {
     return score.visit(format);
 }
 
-char UCI::piece(PieceType pt) noexcept { return is_ok(pt) ? PIECE_CHAR[pt] : ' '; }
-char UCI::piece(Piece pc) noexcept { return is_ok(pc) ? PIECE_CHAR[pc] : ' '; }
+char UCI::piece(PieceType pt) noexcept { return is_ok(pt) ? PieceChar[pt] : ' '; }
+char UCI::piece(Piece pc) noexcept { return is_ok(pc) ? PieceChar[pc] : ' '; }
 
 Piece UCI::piece(char pc) noexcept {
-    auto pos = PIECE_CHAR.find(pc);
+    auto pos = PieceChar.find(pc);
     return pos != std::string_view::npos ? Piece(pos) : NO_PIECE;
 }
 

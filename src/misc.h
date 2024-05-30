@@ -27,10 +27,11 @@
 #include <cstdint>
 #include <cstdio>
 #include <iosfwd>
+#include <iterator>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
 
 #if !defined(STRINGIFY)
     #define STRINGIFY2(x) #x
@@ -131,19 +132,6 @@ struct PipeDeleter {
     }
 };
 
-inline std::optional<std::string> get_system_command_output(const std::string& command) {
-    std::unique_ptr<FILE, PipeDeleter> pipe(popen(command.c_str(), "r"));
-    if (!pipe)
-        return std::nullopt;
-
-    std::string result;
-    char        buffer[1024];
-    while (fgets(buffer, sizeof(buffer), pipe.get()) != nullptr)
-        result += buffer;
-
-    return result;
-}
-
 #endif
 
 // Get the first aligned element of an array.
@@ -232,24 +220,27 @@ struct CommandLine final {
     const char** argv;
 };
 
-inline std::string to_lower(std::string str) {
+inline std::string to_lower(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(), tolower);
     return str;
 }
 
-inline std::string to_upper(std::string str) {
+inline std::string to_upper(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(), toupper);
     return str;
 }
 
-inline std::vector<std::string> split(const std::string& str, const std::string& delimiter) {
+inline std::vector<std::string> split(const std::string& str,
+                                      const std::string& delimiter) noexcept {
     std::vector<std::string> res;
 
-    std::size_t begin = 0;
+    if (str.empty())
+        return res;
 
+    std::size_t begin = 0;
     while (true)
     {
-        std::size_t end = str.find(delimiter, begin);
+        const std::size_t end = str.find(delimiter, begin);
         if (end == std::string::npos)
             break;
 
@@ -261,7 +252,16 @@ inline std::vector<std::string> split(const std::string& str, const std::string&
     return res;
 }
 
-std::size_t str_to_size_t(const std::string& str);
+inline void remove_whitespace(std::string& str) noexcept {
+    str.erase(std::remove_if(str.begin(), str.end(), [](char c) { return std::isspace(c); }),
+              str.end());
+}
+
+std::size_t str_to_size_t(const std::string& str) noexcept;
+
+// Reads the file as bytes.
+// Returns std::nullopt if the file does not exist.
+std::optional<std::string> read_file_to_string(const std::string& path) noexcept;
 
 }  // namespace DON
 

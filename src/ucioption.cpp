@@ -22,20 +22,41 @@
 #include <cctype>
 #include <iostream>
 #include <sstream>
+#include <unordered_map>
 #include <utility>
 
 #include "misc.h"
 
 namespace DON {
 
+namespace {
+// clang-format off
+std::unordered_map<OptionType, std::string_view> OptionTypeString{
+  {OPT_NONE, "none"},
+  {BUTTON,   "button"},
+  {CHECK,    "check"},
+  {STRING,   "string"},
+  {SPIN,     "spin"},
+  {COMBO,    "combo"}};
+// clang-format on
+}  // namespace
+
+std::string_view to_string(OptionType ot) noexcept { return OptionTypeString[ot]; }
+
+Option::Option() noexcept :
+    type(OPT_NONE),
+    minValue(0),
+    maxValue(0),
+    onChange(nullptr) {}
+
 Option::Option(OnChange&& f) noexcept :
-    type("button"),
+    type(BUTTON),
     minValue(0),
     maxValue(0),
     onChange(std::move(f)) {}
 
 Option::Option(bool v, OnChange&& f) noexcept :
-    type("check"),
+    type(CHECK),
     minValue(0),
     maxValue(0),
     onChange(std::move(f)) {
@@ -45,7 +66,7 @@ Option::Option(bool v, OnChange&& f) noexcept :
 }
 
 Option::Option(const char* v, OnChange&& f) noexcept :
-    type("string"),
+    type(STRING),
     minValue(0),
     maxValue(0),
     onChange(std::move(f)) {
@@ -53,7 +74,7 @@ Option::Option(const char* v, OnChange&& f) noexcept :
 }
 
 Option::Option(int v, int minv, int maxv, OnChange&& f) noexcept :
-    type("spin"),
+    type(SPIN),
     minValue(minv),
     maxValue(maxv),
     onChange(std::move(f)) {
@@ -61,7 +82,7 @@ Option::Option(int v, int minv, int maxv, OnChange&& f) noexcept :
 }
 
 Option::Option(const char* v, const char* cur, OnChange&& f) noexcept :
-    type("combo"),
+    type(COMBO),
     minValue(0),
     maxValue(0),
     onChange(std::move(f)) {
@@ -70,17 +91,17 @@ Option::Option(const char* v, const char* cur, OnChange&& f) noexcept :
 }
 
 Option::operator int() const noexcept {
-    assert(type == "check" || type == "spin");
-    return type == "spin" ? std::stoi(currentValue) : currentValue == "true";
+    assert(type == CHECK || type == SPIN);
+    return type == SPIN ? std::stoi(currentValue) : currentValue == "true";
 }
 
 Option::operator std::string() const noexcept {
-    assert(type == "string");
+    assert(type == STRING);
     return currentValue;
 }
 
 bool Option::operator==(std::string_view v) const noexcept {
-    assert(type == "combo");
+    assert(type == COMBO);
     return !CaseInsensitiveLess()(currentValue, v) && !CaseInsensitiveLess()(v, currentValue);
 }
 bool Option::operator!=(std::string_view v) const noexcept { return !(*this == v); }
@@ -98,28 +119,28 @@ void Option::operator<<(const Option& o) noexcept {
 // but could receive the new value from the user by console window,
 // so let's check the bounds anyway.
 Option& Option::operator=(std::string value) noexcept {
-    assert(!type.empty());
+    assert(is_ok(type));
 
-    if (type != "button" && type != "string" && value.empty())
+    if (type != BUTTON && type != STRING && value.empty())
         return *this;
 
-    if (type == "check")
+    if (type == CHECK)
     {
         value = to_lower(value);
         if (value != "true" && value != "false")
             return *this;
     }
-    else if (type == "string")
+    else if (type == STRING)
     {
         if (!value.empty() && std::all_of(value.begin(), value.end(), isspace))
             value.clear();
     }
-    else if (type == "spin")
+    else if (type == SPIN)
     {
         if (int d = std::stoi(value); minValue > d || d > maxValue)
             value = std::to_string(std::clamp(d, minValue, maxValue));
     }
-    else if (type == "combo")
+    else if (type == COMBO)
     {
         OptionsMap comboMap;  // To have case-insensitive compare
 
@@ -132,7 +153,7 @@ Option& Option::operator=(std::string value) noexcept {
             return *this;
     }
 
-    if (type != "button")
+    if (type != BUTTON)
         currentValue = value;
 
     if (onChange)
@@ -142,12 +163,12 @@ Option& Option::operator=(std::string value) noexcept {
 }
 
 std::ostream& operator<<(std::ostream& os, const Option& o) noexcept {
-    os << " type " << o.type;
+    os << " type " << to_string(o.type);
 
-    if (o.type != "button")
+    if (o.type != BUTTON)
         os << " default " << o.defaultValue;
 
-    if (o.type == "spin")
+    if (o.type == SPIN)
         os << " min " << o.minValue << " max " << o.maxValue;
 
     return os;

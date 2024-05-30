@@ -30,7 +30,7 @@ namespace DON {
 // When in 'Nodes as Time' mode
 void TimeManager::advance(std::int64_t usedNodes) noexcept {
     assert(use_nodes_time());
-    startNodes = std::max(startNodes - usedNodes, 0LL);
+    remainNodes = 1ULL + std::max<std::int64_t>(remain_nodes() - usedNodes, 0);
 }
 
 // Called at the beginning of the search and calculates
@@ -41,9 +41,9 @@ void TimeManager::init(Search::Limits&   limits,
                        const Position&   pos,
                        const OptionsMap& options) noexcept {
     // If have no time, no need to fully initialize TM.
-    // startTime is used by movetime and nodesTime is used in elapsed calls.
-    startTime = limits.startTime;
-    nodesTime = options["NodesTime"];
+    // initialTime is used by movetime and nodesTime is used in elapsed calls.
+    initialTime = limits.initialTime;
+    nodesTime   = options["NodesTime"];
 
     Color stm         = pos.side_to_move();
     auto& [time, inc] = limits.clock[stm];
@@ -61,11 +61,11 @@ void TimeManager::init(Search::Limits&   limits,
     // must be much lower than the real engine speed.
     if (use_nodes_time())
     {
-        if (startNodes == -1LL)             // Only once at game start
-            startNodes = time * nodesTime;  // Time is in msec
+        if (remainNodes == 0)                       // Only once at game start
+            remainNodes = 1ULL + time * nodesTime;  // Time is in msec
 
         // Convert from milliseconds to nodes
-        time = startNodes;
+        time = remain_nodes();
         inc *= nodesTime;
         moveOverhead *= nodesTime;
     }
@@ -80,7 +80,7 @@ void TimeManager::init(Search::Limits&   limits,
                        : std::max<std::uint8_t>(std::ceil(50 - 0.2 * pos.game_move()), 40);
 
     // If less than one second, gradually reduce mtg
-    if (scaledTime < 1000 && mtg > 2)
+    if (scaledTime < 1000 && mtg > std::max(0.05 * scaledInc, 2.0))
         mtg = std::clamp<std::uint8_t>(0.05 * scaledTime, 2, mtg);
 
     assert(mtg != 0);
@@ -88,8 +88,8 @@ void TimeManager::init(Search::Limits&   limits,
     // Make sure remainTime > 0 since use it as a divisor
     TimePoint remainTime = std::max(time + (-1 + mtg) * inc - (+2 + mtg) * moveOverhead, 1LL);
 
-    if (startRemainTime == -1LL)
-        startRemainTime = remainTime;
+    if (initialAdjust == -1.0)
+        initialAdjust = 0.2078 + 0.1623 * std::log10(remainTime);
 
     std::int16_t gamePly = pos.game_ply();
 
@@ -104,22 +104,21 @@ void TimeManager::init(Search::Limits&   limits,
         maximumScale = std::min(1.5 + 0.11 * mtg, 6.3);
     }
     // x basetime (+ z increment)
-    // If there is a healthy increment, remainTime can exceed the actual available
+    // If there is a healthy increment, remaining time can exceed the actual available
     // game time for the current move, so also cap to a percentage of available game time.
     else
     {
         // Use extra time with larger increments.
-        double log10ScaledInc = std::log10(std::max(scaledInc - 500, 1LL));
-        double optimumExtra   = (1.0 + std::min(0.05 * log10ScaledInc, 0.14))
-                            * (0.2078 + 0.1623 * std::log10(startRemainTime));
+        double log10ScaledInc = std::log10(std::max(scaledInc - 500LL, 1LL));
+        double optimumExtra   = initialAdjust * (1.0 + std::min(50e-3 * log10ScaledInc, 0.14));
         // Calculate time constants based on current remaining time.
-        double log10ScaledTime = std::log10(0.001 * scaledTime);
+        double log10ScaledTime = std::log10(1e-3 * scaledTime);
         double optimumConstant = std::min(3.08e-3 + 3.19e-4 * log10ScaledTime, 5.06e-3);
         double maximumConstant = std::max(3.39 + 3.01 * log10ScaledTime, 2.93);
 
-        optimumScale = std::min(0.0122 + optimumConstant * std::pow(2.95 + gamePly, 0.462),
-                                0.213 * time / remainTime)
-                     * optimumExtra;
+        optimumScale = optimumExtra
+                     * std::min(12.2e-3 + optimumConstant * std::pow(2.95 + gamePly, 0.462),
+                                0.213 * time / remainTime);
         maximumScale = std::min(maximumConstant + 83.3333e-3 * gamePly, 6.64);
     }
 

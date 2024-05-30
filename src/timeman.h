@@ -47,18 +47,20 @@ class TimeManager final {
 
     void clear() noexcept;
 
-    bool use_nodes_time() const noexcept;
-    void advance(std::int64_t usedNodes) noexcept;
+    bool          use_nodes_time() const noexcept;
+    std::uint64_t remain_nodes() const noexcept;
+    void          advance(std::int64_t usedNodes) noexcept;
 
    private:
-    TimePoint startTime;
+    TimePoint initialTime;
 
     TimePoint optimumTime;
     TimePoint maximumTime;
-    TimePoint startRemainTime;
 
-    TimePoint    nodesTime;
-    std::int64_t startNodes;
+    double initialAdjust;
+
+    TimePoint     nodesTime;
+    std::uint64_t remainNodes;
 };
 
 inline TimeManager::TimeManager() noexcept { clear(); }
@@ -67,7 +69,7 @@ inline TimePoint TimeManager::optimum() const noexcept { return optimumTime; }
 
 inline TimePoint TimeManager::maximum() const noexcept { return maximumTime; }
 
-inline TimePoint TimeManager::elapsed() const noexcept { return now() - startTime; }
+inline TimePoint TimeManager::elapsed() const noexcept { return now() - initialTime; }
 
 template<typename Func>
 inline TimePoint TimeManager::elapsed(Func nodes) const noexcept {
@@ -75,15 +77,18 @@ inline TimePoint TimeManager::elapsed(Func nodes) const noexcept {
 }
 
 inline void TimeManager::clear() noexcept {
-    optimumTime     = 0;
-    maximumTime     = 0;
-    startRemainTime = -1LL;
+    optimumTime = 0;
+    maximumTime = 0;
 
-    nodesTime  = 0;
-    startNodes = -1LL;
+    initialAdjust = -1.0;
+
+    nodesTime   = 0;
+    remainNodes = 0;
 }
 
 inline bool TimeManager::use_nodes_time() const noexcept { return nodesTime != 0; }
+
+inline std::uint64_t TimeManager::remain_nodes() const noexcept { return remainNodes - 1ULL; }
 
 }  // namespace DON
 

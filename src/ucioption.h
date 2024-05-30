@@ -28,12 +28,26 @@
 
 namespace DON {
 
+enum OptionType : std::uint8_t {
+    OPT_NONE,
+    BUTTON,
+    CHECK,
+    STRING,
+    SPIN,
+    COMBO
+};
+
+inline bool is_ok(OptionType ot) noexcept { return BUTTON <= ot && ot <= COMBO; }
+
+std::string_view to_string(OptionType ot) noexcept;
+
 // The Option class implements each option as specified by the UCI protocol
 class Option final {
    public:
     using OnChange = std::function<void(const Option&)>;
 
-    explicit Option(OnChange&& f = nullptr) noexcept;
+    Option() noexcept;
+    explicit Option(OnChange&& f) noexcept;
     explicit Option(bool v, OnChange&& f = nullptr) noexcept;
     explicit Option(const char* v, OnChange&& f = nullptr) noexcept;
     explicit Option(int v, int minv, int maxv, OnChange&& f = nullptr) noexcept;
@@ -50,10 +64,11 @@ class Option final {
 
     friend std::ostream& operator<<(std::ostream& os, const Option& o) noexcept;
 
-    std::uint16_t idx;
+    std::uint16_t idx = -1;
 
    private:
-    std::string type, defaultValue, currentValue;
+    OptionType  type;
+    std::string defaultValue, currentValue;
     int         minValue, maxValue;
     OnChange    onChange;
 };
