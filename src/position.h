@@ -145,7 +145,7 @@ class Position final {
     Bitboard pinners(Color c) const noexcept;
     Bitboard blockers(Color c) const noexcept;
     Bitboard attacks(Color c, PieceType pt = ALL_PIECE) const noexcept;
-    // Bitboard threatens(Color c) const noexcept;
+    Bitboard threatens(Color c) const noexcept;
 
     // Attacks to a given square
     Bitboard attackers_to(Square s, Bitboard occupied) const noexcept;
@@ -358,7 +358,7 @@ inline Bitboard Position::blockers(Color c) const noexcept { return st->blockers
 // clang-format off
 inline Bitboard Position::attacks(Color c, PieceType pt) const noexcept { return st->attacks[c][pt]; }
 // clang-format on
-// inline Bitboard Position::threatens(Color c) const noexcept { return st->attacks[c][EX_PIECE]; }
+inline Bitboard Position::threatens(Color c) const noexcept { return st->attacks[c][EX_PIECE]; }
 
 inline std::int16_t Position::mobility(Color c) const noexcept { return st->mobility[c]; }
 

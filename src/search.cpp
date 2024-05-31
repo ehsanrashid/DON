@@ -1292,10 +1292,10 @@ MOVES_LOOP:  // When in check, search starts here
         if (ss->cutoffCount > 3)
             red++;
 
-        // Set reduction to 0 for first picked move (ttMove) (~2 Elo)
-        // Nullifies all previous reduction adjustments to ttMove and leaves only history to do them
+        // Reduction for first picked move (ttMove) (~2 Elo)
+        // Set to 0 if it's less than 2, otherwise, reduce by 2
         else if (move == ttMove)
-            red = 0;
+            red = std::max<Depth>(red - 2, 0);
 
         // Decrease/increase reduction for moves with a good/bad history (~8 Elo)
         red -= ss->history / (12219 - 120 * std::min<Depth>(depth, 13));

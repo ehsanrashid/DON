@@ -48,7 +48,6 @@ using _AdjustTokenPrivileges = bool (*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, 
 #include <iomanip>
 #include <iostream>
 #include <limits>
-#include <iterator>
 #include <mutex>
 #include <sstream>
 #include <string_view>

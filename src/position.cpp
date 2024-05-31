@@ -549,9 +549,9 @@ void Position::set_ext_state() noexcept {
         st->attacks[c][QUEEN]     = st->attacks[c][ROOK]   | attacks_by<QUEEN> (c, target, occupied ^ ((pieces(c, QUEEN)         & ~st->blockers[c]) | (pieces(~c, KING))));
         st->attacks[c][KING]      = st->attacks[c][QUEEN]  | attacks_by<KING>  (c, target);
         st->attacks[c][ALL_PIECE] = st->attacks[c][KING];
-        // st->attacks[~c][EX_PIECE] = (pieces(~c, KNIGHT, BISHOP) & st->attacks[c][PAWN])
-        //                           | (pieces(~c, ROOK)           & st->attacks[c][MINOR])
-        //                           | (pieces(~c, QUEEN)          & st->attacks[c][ROOK]);
+        st->attacks[~c][EX_PIECE] = (pieces(~c, KNIGHT, BISHOP) & st->attacks[c][PAWN])
+                                  | (pieces(~c, ROOK)           & st->attacks[c][MINOR])
+                                  | (pieces(~c, QUEEN)          & st->attacks[c][ROOK]);
         // clang-format on
     }
 }

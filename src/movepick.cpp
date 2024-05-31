@@ -142,24 +142,20 @@ void MovePicker::score() noexcept {
             // Bonus for checks
             m.value += pos.gives_check(m) * 16384;
 
-            if (pt == KING)
+            if (pt == PAWN || pt == KING)
                 continue;
 
-            // Bonus for putting piece safe
-            m.value += pt == QUEEN ? !(pos.attacks(xstm, ROOK) & dst) * 21000
-                                       + !(pos.attacks(xstm, MINOR) & dst) * 16450
-                                       + !(pos.attacks(xstm, PAWN) & dst) * 14450
-                     : pt == ROOK ? !(pos.attacks(xstm, MINOR) & dst) * 15450
-                                      + !(pos.attacks(xstm, PAWN) & dst) * 14450
-                                  : !(pos.attacks(xstm, PAWN) & dst) * 14450 / (1 + (pt == PAWN));
+            // Bonus for escaping from capture
+            m.value += (pos.threatens(stm) & org)
+                       ? pt == QUEEN ? !(pos.attacks(xstm, ROOK) & dst) * 51700
+                       : pt == ROOK  ? !(pos.attacks(xstm, MINOR) & dst) * 25600
+                                     : !(pos.attacks(xstm, PAWN) & dst) * 15000
+                       : 0;
 
             // Malus for putting piece en-prise
-            m.value -= pt == QUEEN ? !!(pos.attacks(xstm, ROOK) & dst) * 28500
-                                       + !!(pos.attacks(xstm, MINOR) & dst) * 10400
-                                       + !!(pos.attacks(xstm, PAWN) & dst) * 10150
-                     : pt == ROOK ? !!(pos.attacks(xstm, MINOR) & dst) * 15250
-                                      + !!(pos.attacks(xstm, PAWN) & dst) * 10050
-                                  : !!(pos.attacks(xstm, PAWN) & dst) * 14900 / (1 + (pt == PAWN));
+            m.value -= pt == QUEEN ? !!(pos.attacks(xstm, ROOK) & dst) * 49000
+                     : pt == ROOK  ? !!(pos.attacks(xstm, MINOR) & dst) * 24335
+                                   : !!(pos.attacks(xstm, PAWN) & dst) * 14900;
         }
 
         else  // GT == EVASIONS
