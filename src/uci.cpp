@@ -21,6 +21,7 @@
 #include <cassert>
 #include <cctype>
 #include <cmath>
+#include <functional>
 #include <optional>
 #include <iostream>
 #include <limits>
@@ -29,8 +30,10 @@
 
 #include "benchmark.h"
 #include "evaluate.h"
+#include "movegen.h"
 #include "position.h"
 #include "score.h"
+#include "search.h"
 #include "syzygy/tbprobe.h"
 
 namespace DON {
@@ -168,7 +171,7 @@ UCI::UCI(int argc, const char** argv) noexcept :
         print_thread_binding_information();
     });
     options["Hash"]         << Option(16, 4, MAX_HASH, [this](const Option& o) { engine.resize_tt(o); });
-    options["Clear Hash"]   << Option([this](const Option&) { engine.clear(); });
+    options["Clear Hash"]   << Option([this](const Option&) { engine.init(); });
     options["Retain Hash"]  << Option(false);
     options["HashFile"]     << Option("hash.dat");
     options["Save Hash"]    << Option([this](const Option&) {});
@@ -184,7 +187,7 @@ UCI::UCI(int argc, const char** argv) noexcept :
     options["UCI_ELO"]      << Option(Search::Skill::MinELO, Search::Skill::MinELO, Search::Skill::MaxELO);
     options["UCI_ShowWDL"]  << Option(false);
     options["OwnBook"]      << Option(false);
-    options["BookFile"]     << Option("book.bin", [this](const Option& o) { engine.init_book(o); });
+    options["BookFile"]     << Option("book.bin", [this](const Option& o) { engine.load_book(o); });
     options["BookDepth"]    << Option(100, 1, MAX_MOVES);
     options["BookPickBest"] << Option(true);
     options["SyzygyPath"]   << Option("<empty>", [](const Option& o) { Tablebases::init(o); });
@@ -203,7 +206,7 @@ UCI::UCI(int argc, const char** argv) noexcept :
 
     engine.load_networks();
     engine.resize_threads();
-    engine.clear();  // After threads are up
+    engine.init();  // After threads are up
 
     engine.setup(StartFEN);
 }
@@ -250,7 +253,7 @@ void UCI::handle_commands() noexcept {
             sync_cout << "uciok" << sync_endl;
         }
         else if (token == "ucinewgame")
-            engine.clear();
+            engine.init();
         else if (token == "isready")
             sync_cout << "readyok" << sync_endl;
 
@@ -303,16 +306,17 @@ void UCI::print_thread_binding_information() const noexcept {
     auto boundThreadCounts = engine.get_bound_thread_counts();
     if (!boundThreadCounts.empty())
     {
-        sync_cout << "info string NUMA Node Thread Binding: ";
+        std::ostringstream oss;
+        oss << "info string NUMA Node Thread Binding: ";
         bool isFirst = true;
         for (auto&& [current, total] : boundThreadCounts)
         {
             if (!isFirst)
-                std::cout << ":";
-            std::cout << current << "/" << total;
+                oss << ":";
+            oss << current << "/" << total;
             isFirst = false;
         }
-        std::cout << sync_endl;
+        sync_cout << oss.str() << sync_endl;
     }
 }
 
@@ -375,6 +379,9 @@ void UCI::bench(std::istringstream& iss) noexcept {
         on_update_full(info);
     });
 
+    bool reportMinimal                = engine_options()["ReportMinimal"];
+    engine_options()["ReportMinimal"] = std::string("true");
+
 #if !defined(NDEBUG)
     Debug::init();
 #endif
@@ -405,13 +412,15 @@ void UCI::bench(std::istringstream& iss) noexcept {
                 auto limits = parse_limits(is);
 
                 if (limits.perft)
-                    nodes += engine.perft(limits.depth, limits.detail);
+                    infoNodes = engine.perft(limits.depth, limits.detail);
                 else
                 {
                     engine.start(limits);
                     engine.wait_finish();
-                    nodes += infoNodes;
                 }
+
+                nodes += infoNodes;
+                infoNodes = 0;
             }
             else
             {
@@ -425,7 +434,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
         else if (token == "ucinewgame")
         {
             elapsedTime += now() - initialTime;
-            engine.clear();  // May take a while
+            engine.init();  // May take a while
             initialTime = now();
         }
     }
@@ -435,11 +444,12 @@ void UCI::bench(std::istringstream& iss) noexcept {
 #if !defined(NDEBUG)
     Debug::print();
 #endif
-    std::cerr << "\n==========================="
+    std::cerr << "\n==========================="        //
               << "\nTotal time (ms) : " << elapsedTime  //
               << "\nTotal Nodes     : " << nodes        //
               << "\nNodes/second    : " << 1000 * nodes / elapsedTime << '\n';
 
+    engine_options()["ReportMinimal"] = std::string(reportMinimal ? "true" : "false");
     // Reset callback, to not capture a dangling reference to infoNodes
     engine.set_on_update_full(on_update_full);
 }
@@ -454,7 +464,7 @@ struct WinRateParams final {
 WinRateParams win_rate_params(const Position& pos) noexcept {
 
     // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (0.017241).
-    double m = 0.017241 * std::clamp(pos.material(), 17, 78);
+    double m = 0.017241 * std::clamp<short>(pos.material(), 17, 78);
 
     // Return a = p_a(material) and b = p_b(material).
     // clang-format off

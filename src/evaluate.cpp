@@ -22,12 +22,13 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
 #include <memory>
+#include <sstream>
 
 #include "uci.h"
 #include "nnue/network.h"
 #include "nnue/nnue_accumulator.h"
+#include "nnue/nnue_common.h"
 #include "nnue/nnue_misc.h"
 
 namespace DON {
@@ -41,48 +42,49 @@ Value evaluate(const Position&          pos,
                const Value              optimism) noexcept {
     assert(!pos.checkers());
 
-    const Value eval      = pos.evaluate();
-    const Value absEval   = std::abs(eval);
-    const Value bonus     = pos.bonus();
-    const auto  materials = pos.materials();
+    const Value Eval      = pos.evaluate();
+    const Value AbsEval   = std::abs(Eval);
+    const Value Bonus     = pos.bonus();
+    const Value Materials = pos.materials();
 
-    int   complexity;
-    Value moptimism;
-    Value nnue;
+    const short Delta = std::min(28 + pos.non_pawn_material(pos.side_to_move()) / 450, 44);
 
-    // Blend optimism and eval with nnue complexity
+    // Blend nnue, optimism and complexity
     // clang-format off
-    auto blend = [&]() {
-        moptimism = optimism * (470 + complexity) / 470;
-        nnue -= nnue * complexity / 20000;
-        return bonus
-              + (nnue      * (34300 + materials)
-               + moptimism * ( 4400 + materials)) / 35967;
+    auto blend = [=](const Value Psqt, const Value Positional) {
+        Value complexity = std::abs((Psqt - Positional)) / NNUE::OutputScale;
+        // Give more value to positional than psqt
+        Value nnue       = ((2048 - Delta) * Psqt + (2048 + Delta) * Positional) / (2048 * NNUE::OutputScale);
+        nnue             = nnue     - nnue     * complexity / 19157;
+        Value mOptimism  = optimism + optimism * complexity / 457;
+        return (nnue      * (73921 + Materials)
+              + mOptimism * ( 8112 + Materials)) / 73260
+              + Bonus;
     };
     // clang-format on
 
     Value v;
 
-    // Re-evaluate the position when higher eval accuracy is worth the time spent
     bool useBigNet = true;
-    if (use_small_net(absEval, pos))
+    // Re-evaluate the position when higher eval accuracy is worth the time spent
+    if (use_small_net(AbsEval, pos))
     {
-        nnue = networks.small.evaluate(pos, &accCaches.small, true, &complexity);
+        auto [psqt, positional] = networks.small.evaluate(pos, &accCaches.small);
 
-        v = blend();
+        v = blend(psqt, positional);
 
-        useBigNet = std::abs(v + eval) < 1.25 * absEval;
+        useBigNet = std::abs(v + Eval) < 1.229 * AbsEval;
     }
     if (useBigNet)
     {
-        nnue = networks.big.evaluate(pos, &accCaches.big, true, &complexity);
+        auto [psqt, positional] = networks.big.evaluate(pos, &accCaches.big);
 
-        v = blend();
+        v = blend(psqt, positional);
     }
 
     const int shuffling = pos.rule50_count();
     // Damp down the evaluation linearly when shuffling
-    v = v * (204 - shuffling) / 208;
+    v -= v * shuffling / 212;
 
     // Guarantee evaluation does not hit the tablebase range
     return std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
@@ -105,7 +107,10 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     oss << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
 
     Value v;
-    v = networks.big.evaluate(pos, &accCaches->big);
+
+    auto [psqt, positional] = networks.big.evaluate(pos, &accCaches->big);
+
+    v = (psqt + positional) / NNUE::OutputScale;
     v = pos.side_to_move() == WHITE ? +v : -v;
     oss << "NNUE evaluation        " << 0.01 * UCI::to_cp(v, pos) << " (white side)\n";
 

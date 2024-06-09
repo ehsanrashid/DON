@@ -48,7 +48,7 @@ class Engine final {
     Engine& operator=(const Engine&) = delete;
     Engine& operator=(Engine&&)      = delete;
 
-    OptionsMap& get_options() noexcept;
+    Options&    get_options() noexcept;
     std::string fen() const noexcept;
 
     // Set a new position, moves are in UCI format
@@ -71,16 +71,17 @@ class Engine final {
 
     void resize_tt(std::size_t mbSize) noexcept;
 
-    void init_book(const std::string& bookFile) noexcept;
+    void load_book(const std::string& bookFile) noexcept;
 
-    void clear() noexcept;
+    void init() noexcept;
 
     void show() const noexcept;
-    void eval() const noexcept;
+    void eval() noexcept;
     void flip() noexcept;
 
-    std::vector<std::pair<size_t, size_t>> get_bound_thread_counts() const noexcept;
-    std::string                            get_numa_config() const noexcept;
+    std::vector<std::pair<std::size_t, std::size_t>>  //
+                get_bound_thread_counts() const noexcept;
+    std::string get_numa_config() const noexcept;
 
     // Network related
     void verify_networks() const noexcept;
@@ -102,7 +103,7 @@ class Engine final {
     Position     pos;
     StateListPtr states;
 
-    OptionsMap                           options;
+    Options                              options;
     NumaReplicated<Eval::NNUE::Networks> networks;
     ThreadPool                           threads;
     TranspositionTable                   tt;

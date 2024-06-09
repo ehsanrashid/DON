@@ -52,7 +52,7 @@ struct AccumulatorCaches {
 
     template<typename Networks>
     AccumulatorCaches(const Networks& networks) {
-        clear(networks);
+        init(networks);
     }
 
     template<IndexType Size>
@@ -69,7 +69,7 @@ struct AccumulatorCaches {
             void clear(const BiasType* biases) noexcept {
 
                 std::memcpy(accumulation, biases, sizeof(accumulation));
-                std::memset((uint8_t*) this + offsetof(Entry, psqtAccumulation), 0,
+                std::memset((std::uint8_t*) this + offsetof(Entry, psqtAccumulation), 0,
                             sizeof(Entry) - offsetof(Entry, psqtAccumulation));
             }
         };
@@ -92,7 +92,7 @@ struct AccumulatorCaches {
     };
 
     template<typename Networks>
-    void clear(const Networks& networks) noexcept {
+    void init(const Networks& networks) noexcept {
         big.clear(networks.big);
         small.clear(networks.small);
     }

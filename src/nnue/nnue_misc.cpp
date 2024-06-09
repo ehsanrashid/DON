@@ -34,7 +34,6 @@
 #include "nnue_accumulator.h"
 
 namespace DON {
-
 namespace Eval::NNUE {
 
 void hint_common_parent_position(const Position&    pos,
@@ -121,8 +120,9 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
 
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    Value base = networks.big.evaluate(pos, &caches.big);
-    base       = pos.side_to_move() == WHITE ? +base : -base;
+    auto  baseOutput = networks.big.evaluate(pos, &caches.big);
+    Value baseEval   = (baseOutput.psqt + baseOutput.positional) / OutputScale;
+    baseEval         = pos.side_to_move() == WHITE ? +baseEval : -baseEval;
 
     for (File f = FILE_A; f <= FILE_H; ++f)
         for (Rank r = RANK_1; r <= RANK_8; ++r)
@@ -138,9 +138,10 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
                 pos.remove_piece(sq);
                 st->bigAccumulator.computed[WHITE] = st->bigAccumulator.computed[BLACK] = false;
 
-                Value eval = networks.big.evaluate(pos, &caches.big);
-                eval       = pos.side_to_move() == WHITE ? +eval : -eval;
-                v          = base - eval;
+                auto  output = networks.big.evaluate(pos, &caches.big);
+                Value eval   = (output.psqt + output.positional) / OutputScale;
+                eval         = pos.side_to_move() == WHITE ? +eval : -eval;
+                v            = baseEval - eval;
 
                 pos.put_piece(pc, sq);
                 st->bigAccumulator.computed[WHITE] = st->bigAccumulator.computed[BLACK] = false;
@@ -154,7 +155,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
         oss << row << '\n';
     oss << '\n';
 
-    auto trace = networks.big.trace_evaluate(pos, &caches.big);
+    auto trace = networks.big.trace_eval(pos, &caches.big);
 
     oss << " NNUE network contributions "
         << (pos.side_to_move() == WHITE ? "(White to move)" : "(Black to move)") << '\n'
@@ -165,17 +166,13 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
 
     for (std::size_t bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        oss << "|  " << bucket << "        ";
-        oss << " |  ";
-        format_cp_aligned_dot(trace.psqt[bucket], pos, oss);
-        oss << "  "
-            << " |  ";
-        format_cp_aligned_dot(trace.positional[bucket], pos, oss);
-        oss << "  "
-            << " |  ";
-        format_cp_aligned_dot(trace.psqt[bucket] + trace.positional[bucket], pos, oss);
-        oss << "  "
-            << " |";
+        oss << "|  " << bucket << "         |  ";
+        format_cp_aligned_dot(trace.psqt[bucket] / OutputScale, pos, oss);
+        oss << "   |  ";
+        format_cp_aligned_dot(trace.positional[bucket] / OutputScale, pos, oss);
+        oss << "   |  ";
+        format_cp_aligned_dot((trace.psqt[bucket] + trace.positional[bucket]) / OutputScale, pos, oss);
+        oss << "   |";
         if (bucket == trace.correctBucket)
             oss << " <-- this bucket is used";
         oss << '\n';

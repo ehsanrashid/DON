@@ -51,12 +51,12 @@ BINDIR = $(PREFIX)/bin
 PGOBENCH = $(WINE_PATH) ./$(EXE) bench
 
 ### Source and object files
-SRCS = benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp misc.cpp \
+SRCS = benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp misc.cpp \
 	movegen.cpp movepick.cpp perft.cpp polybook.cpp position.cpp score.cpp search.cpp \
 	thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp nnue/nnue_misc.cpp \
 	nnue/network.cpp nnue/features/half_ka_v2_hm.cpp syzygy/tbprobe.cpp
 
-HEADERS = benchmark.h bitboard.h engine.h evaluate.h misc.h movegen.h \
+HEADERS = benchmark.h bitboard.h engine.h evaluate.h memory.h misc.h movegen.h \
 	movepick.h numa.h perft.h polybook.h position.h score.h search.h thread.h \
 	thread_win32_osx.h timeman.h tt.h tune.h types.h uci.h ucioption.h \
 	nnue/nnue_accumulator.h nnue/nnue_architecture.h nnue/nnue_common.h \
@@ -153,8 +153,8 @@ dotprod = no
 arm_version = 0
 STRIP = strip
 
-ifneq ($(shell which clang-format-17 2> /dev/null), )
-	CLANG-FORMAT = clang-format-17
+ifneq ($(shell which clang-format-18 2> /dev/null), )
+	CLANG-FORMAT = clang-format-18
 else
 	CLANG-FORMAT = clang-format
 endif
@@ -489,8 +489,8 @@ ifeq ($(COMP), clang)
 endif
 
 ifeq ($(KERNEL), Darwin)
-	CXXFLAGS += -mmacosx-version-min=10.14
-	LDFLAGS += -mmacosx-version-min=10.14
+	CXXFLAGS += -mmacosx-version-min=10.15
+	LDFLAGS += -mmacosx-version-min=10.15
 	ifneq ($(arch), any)
 		CXXFLAGS += -arch $(arch)
 		LDFLAGS += -arch $(arch)
@@ -1052,14 +1052,14 @@ FORCE:
 
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-instr-generate ' \
-	EXTRALDFLAGS=' -fprofile-instr-generate' \
+	EXTRACXXFLAGS='-fprofile-generate ' \
+	EXTRALDFLAGS=' -fprofile-generate' \
 	all
 
 clang-profile-use:
 	$(XCRUN) llvm-profdata merge -output=DON.profdata *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-instr-use=DON.profdata' \
+	EXTRACXXFLAGS='-fprofile-use=DON.profdata' \
 	EXTRALDFLAGS='-fprofile-use ' \
 	all
 

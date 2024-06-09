@@ -26,7 +26,7 @@
 namespace DON {
 
 class Position;
-class OptionsMap;
+class Options;
 
 namespace Search {
 class RootMoves;
@@ -67,7 +67,7 @@ int      probe_dtz(Position& pos, ProbeState* result) noexcept;
 bool     root_probe(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noexcept;
 bool     root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noexcept;
 Config
-rank_root_moves(Position& pos, Search::RootMoves& rootMoves, const OptionsMap& options) noexcept;
+rank_root_moves(Position& pos, Search::RootMoves& rootMoves, const Options& options) noexcept;
 
 }  // namespace Tablebases
 }  // namespace DON

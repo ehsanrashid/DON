@@ -24,8 +24,8 @@
 #include <utility>
 
 #include "movegen.h"
+#include "position.h"
 #include "timeman.h"
-#include "types.h"
 #include "uci.h"
 #include "ucioption.h"
 
@@ -41,7 +41,7 @@ Thread::Thread(std::uint16_t                  id,
     threadCount(sharedState.options["Threads"]),
     nativeThread(&Thread::idle_func, this) {
 
-    wait_idle();
+    wait_finish();
     run_custom_job([this, id, &binder, &sharedState, &searchManager]() {
         // Use the binder to [maybe] bind the threads to a NUMA node before doing
         // the Worker allocation.
@@ -50,7 +50,7 @@ Thread::Thread(std::uint16_t                  id,
         worker = std::make_unique<Search::Worker>(id, sharedState, std::move(searchManager),
                                                   numaAccessToken);
     });
-    wait_idle();
+    wait_finish();
 }
 
 // Destructor wakes up the thread in idle_func() and waits
@@ -59,19 +59,13 @@ Thread::~Thread() noexcept {
     assert(!busy);
 
     dead = true;
-    wake_up();
+    run_custom_job([]() { return; });
     nativeThread.join();
-}
-
-// Wakes up the thread that will clear worker
-void Thread::clear() noexcept {
-    assert(worker != nullptr);
-    run_custom_job([this]() { worker->clear(); });
 }
 
 void Thread::run_custom_job(std::function<void()> func) noexcept {
     {
-        std::unique_lock<std::mutex> uniqueLock(mutex);
+        std::unique_lock uniqueLock(mutex);
         condVar.wait(uniqueLock, [&] { return !busy; });
         jobFunc = std::move(func);
         busy    = true;
@@ -82,7 +76,6 @@ void Thread::run_custom_job(std::function<void()> func) noexcept {
 // Thread gets parked here, blocked on the
 // condition variable, when it has no work to do.
 void Thread::idle_func() noexcept {
-
     while (true)
     {
         std::unique_lock uniqueLock(mutex);
@@ -110,7 +103,7 @@ void Thread::idle_func() noexcept {
 void ThreadPool::set(const NumaConfig&            numaConfig,
                      Search::SharedState          sharedState,
                      const Search::UpdateContext& updateContext) noexcept {
-    destroy();
+    clear();
 
     std::uint16_t threadCount = sharedState.options["Threads"];
     // If options["Threads"] allow 0 threads
@@ -144,11 +137,14 @@ void ThreadPool::set(const NumaConfig&            numaConfig,
 
         while (size() < threadCount)
         {
-            const size_t    threadId = size();
-            const NumaIndex numaId   = doBindThreads ? boundThreadToNumaNode[threadId] : 0;
-            auto            manager  = threadId == 0 ? std::unique_ptr<Search::ISearchManager>(
-                             std::make_unique<Search::MainSearchManager>(updateContext))
-                                                     : std::make_unique<Search::NullSearchManager>();
+            std::uint16_t threadId = size();
+            NumaIndex     numaId   = doBindThreads ? boundThreadToNumaNode[threadId] : 0;
+
+            Search::ISearchManagerPtr searchManager;
+            if (threadId == 0)
+                searchManager = std::make_unique<Search::MainSearchManager>(updateContext);
+            else
+                searchManager = std::make_unique<Search::NullSearchManager>();
 
             // When not binding threads we want to force all access to happen
             // from the same NUMA node, because in case of NUMA replicated memory
@@ -158,12 +154,10 @@ void ThreadPool::set(const NumaConfig&            numaConfig,
                                         : OptionalThreadToNumaNodeBinder(numaId);
 
             threads.emplace_back(
-              std::make_unique<Thread>(threadId, sharedState, std::move(manager), binder));
+              std::make_unique<Thread>(threadId, sharedState, std::move(searchManager), binder));
         }
 
-        clear();
-
-        main_thread()->wait_idle();
+        init();
     }
 }
 
@@ -194,7 +188,7 @@ Thread* ThreadPool::best_thread() const noexcept {
 
     for (auto&& newThread : threads)
     {
-        if (newThread.get() == bestThread || newThread->worker->completedDepth == DEPTH_ZERO)
+        if (newThread->worker->completedDepth == DEPTH_ZERO)
             continue;
 
         const auto bestThreadValue = bestThread->worker->rootMoves.front().curValue;
@@ -255,20 +249,23 @@ Thread* ThreadPool::best_thread() const noexcept {
 void ThreadPool::start(Position&             pos,
                        StateListPtr&         states,
                        const Search::Limits& limits,
-                       const OptionsMap&     options) noexcept {
-    main_thread()->wait_idle();
+                       const Options&        options) noexcept {
+    main_thread()->wait_finish();
 
     stop = abort = research = false;
 
     Search::RootMoves rootMoves;
 
     const MoveList<LEGAL> legalMoves(pos);
+
+    bool emplace = true;
     for (const std::string& can : limits.searchMoves)
     {
-        if (rootMoves.size() == legalMoves.size())
+        if (emplace && rootMoves.size() == legalMoves.size())
             break;
-        Move m = UCI::can_to_move(can, legalMoves);
-        if (m != Move::None() && !rootMoves.contains(m))
+        Move m  = UCI::can_to_move(can, legalMoves);
+        emplace = m != Move::None() && !rootMoves.contains(m);
+        if (emplace)
             rootMoves.emplace(m);
     }
 
@@ -317,9 +314,9 @@ void ThreadPool::start(Position&             pos,
     }
 
     for (auto&& th : threads)
-        th->wait_idle();
+        th->wait_finish();
 
-    main_thread()->wake_up();
+    main_thread()->start_search();
 }
 
 void ThreadPool::run_on_thread(std::uint16_t threadId, std::function<void()> func) {
@@ -329,11 +326,11 @@ void ThreadPool::run_on_thread(std::uint16_t threadId, std::function<void()> fun
 
 void ThreadPool::wait_on_thread(std::uint16_t threadId) {
     assert(threadId < size());
-    threads[threadId]->wait_idle();
+    threads[threadId]->wait_finish();
 }
 
 std::vector<std::size_t> ThreadPool::get_bound_thread_counts() const noexcept {
-    std::vector<size_t> counts;
+    std::vector<std::size_t> counts;
 
     if (!boundThreadToNumaNode.empty())
     {

@@ -1684,7 +1684,7 @@ bool root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, bool useRule50)
 }
 
 Config
-rank_root_moves(Position& pos, Search::RootMoves& rootMoves, const OptionsMap& options) noexcept {
+rank_root_moves(Position& pos, Search::RootMoves& rootMoves, const Options& options) noexcept {
     Config config;
 
     if (rootMoves.empty())

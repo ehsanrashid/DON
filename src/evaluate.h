@@ -38,10 +38,9 @@ struct Networks;
 struct AccumulatorCaches;
 }  // namespace NNUE
 
-inline bool use_small_net(Value absEval, const Position& pos) noexcept {
-    int pawnCount = pos.count<PAWN>();
-    return (absEval > 992 + 6 * pawnCount * pawnCount / 16)
-        || (absEval > 975 - 36 * pawnCount && pos.count<ALL_PIECE>() <= 6);
+inline bool use_small_net(const Value AbsEval, const Position& pos) noexcept {
+    return (AbsEval > 962)
+        || (AbsEval > 944 - 28 * pos.count<PAWN>() && pos.count<ALL_PIECE>() <= 6);
 }
 
 Value evaluate(const Position&          pos,

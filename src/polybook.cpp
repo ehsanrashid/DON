@@ -23,6 +23,7 @@
 #include <sstream>
 #include <sys/time.h>
 
+#include "bitboard.h"
 #include "misc.h"
 #include "movegen.h"
 #include "position.h"
@@ -612,7 +613,7 @@ std::string PolyBook::show(std::uint8_t n) const noexcept {
         int index = firstIndex + i;
         oss << std::setfill('0') << std::setw(2) << i + 1 << " " << polyHash[index]
             << " prob: " << std::setfill('0') << std::setw(7) << std::fixed << std::setprecision(4)
-            << (sumKeyWeight != 0 ? 100.0 * polyHash[index].weight / sumKeyWeight : 0.0) << '\n';
+            << (sumKeyWeight != 0) * 100.0 * polyHash[index].weight / sumKeyWeight << '\n';
     }
     return oss.str();
 }

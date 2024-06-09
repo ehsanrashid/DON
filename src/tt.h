@@ -18,14 +18,31 @@
 #ifndef TT_H_INCLUDED
 #define TT_H_INCLUDED
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <string>
 
 #include "misc.h"
 #include "types.h"
 
 namespace DON {
+
+using UBit08 = std::uint8_t;
+using UBit16 = std::uint16_t;
+using Bit16  = std::int16_t;
+
+// Constants used to manipulate generation bits
+
+// Number of bits reserved for other things
+constexpr inline UBit08 GENERATION_BITS = 3;
+// Increment for generation field
+constexpr inline UBit08 GENERATION_DELTA = 1U << GENERATION_BITS;
+// Mask to pull out generation number
+constexpr inline UBit08 GENERATION_MASK = (0xFFU << GENERATION_BITS) & 0xFFU;
+// Generation cycle length
+constexpr inline UBit16 GENERATION_CYCLE = 0xFFU + GENERATION_DELTA;
 
 class TranspositionTable;
 
@@ -46,27 +63,61 @@ struct TTEntry final {
 
     constexpr Move  move() const noexcept { return move16; }
     constexpr Depth depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
-    constexpr bool  is_pv() const noexcept { return bool(genBound8 & 0x4); }
+    constexpr bool  pvNode() const noexcept { return bool(genBound8 & 0x4); }
     constexpr Bound bound() const noexcept { return Bound(genBound8 & 0x3); }
     constexpr Value value() const noexcept { return Value(value16); }
     constexpr Value eval() const noexcept { return Value(eval16); }
 
-    void
-    save(Key key, Depth d, bool pv, Bound b, Move m, Value v, Value ev, std::uint8_t gen) noexcept;
-    // The returned age is a multiple of TranspositionTable::GENERATION_DELTA
-    std::uint8_t relative_age(std::uint8_t gen) const noexcept;
+    // Populates the TTEntry with a new node's data, possibly
+    // overwriting an old position. The update is not atomic and can be racy.
+    FORCE_INLINE void
+    save(Key key, Depth d, bool pv, Bound b, Move m, Value v, Value ev, UBit08 gen) noexcept {
 
-    std::int16_t worth(std::uint8_t gen) const noexcept { return depth8 - 2 * relative_age(gen); }
+        // Preserve the old move if don't have a new one
+        if (m != Move::None())
+            move16 = m;
+
+        // Overwrite less valuable entries (cheapest checks first)
+        if (b == BOUND_EXACT || Key16(key) != key16 || d + 4 + 2 * pv - DEPTH_OFFSET > depth8
+            || relative_age(gen))
+        {
+            assert(d > DEPTH_OFFSET);
+            assert(d <= std::numeric_limits<UBit08>::max() + DEPTH_OFFSET);
+
+            key16     = Key16(key);
+            depth8    = UBit08(d - DEPTH_OFFSET);
+            genBound8 = UBit08(gen | (4 * pv) | b);
+            value16   = Bit16(v);
+            eval16    = Bit16(ev);
+        }
+    }
+
+    // The returned age is a multiple of TranspositionTable::GENERATION_DELTA
+    UBit08 relative_age(UBit08 gen) const noexcept {
+        // Due to our packed storage format for generation and its cyclic
+        // nature add GENERATION_CYCLE (256 is the modulus, plus what
+        // is needed to keep the unrelated lowest n bits from affecting
+        // the result) to calculate the entry age correctly even after
+        // generation8 overflows into the next cycle.
+        return (GENERATION_CYCLE - genBound8 + gen) & GENERATION_MASK;
+    }
+
+    Bit16 worth(UBit08 gen) const noexcept { return depth8 - 2 * relative_age(gen); }
 
    private:
-    Key16        key16;
-    std::uint8_t depth8;
-    std::uint8_t genBound8;
-    Move         move16;
-    std::int16_t value16;
-    std::int16_t eval16;
+    Key16  key16;
+    UBit08 depth8;
+    UBit08 genBound8;
+    Move   move16;
+    Bit16  value16;
+    Bit16  eval16;
 
     friend class TranspositionTable;
+};
+
+struct TTProbe final {
+    bool const     ttHit;
+    TTEntry* const tte;
 };
 
 class ThreadPool;
@@ -88,16 +139,6 @@ class TranspositionTable final {
     static_assert(sizeof(Cluster) == 32, "Unexpected Cluster size");
 
    public:
-    // Constants used to refresh the hash table periodically
-    // Number of bits reserved for other things
-    static constexpr std::uint8_t GENERATION_BITS = 3;
-    // Increment for generation field
-    static constexpr std::uint8_t GENERATION_DELTA = (1U << GENERATION_BITS);
-    // Cycle length
-    static constexpr std::uint16_t GENERATION_CYCLE = 0xFFU + GENERATION_DELTA;
-    // Mask to pull out generation number
-    static constexpr std::uint8_t GENERATION_MASK = (0xFFU << GENERATION_BITS) & 0xFFU;
-
     TranspositionTable()                                     = default;
     TranspositionTable(const TranspositionTable&)            = delete;
     TranspositionTable& operator=(const TranspositionTable&) = delete;
@@ -107,16 +148,17 @@ class TranspositionTable final {
         generation8 = update * generation8 + GENERATION_DELTA;
     }
 
+    UBit08 generation() const noexcept { return generation8; }
+
+    void resize(std::size_t mbSize, ThreadPool& threads) noexcept;
+    void init(ThreadPool& threads) noexcept;
+
     TTEntry* first_entry(Key key) const noexcept {
         return &table[mul_hi64(key, clusterCount)].entry[0];
     }
 
-    std::uint8_t generation() const noexcept { return generation8; }
+    TTProbe probe(Key key) const noexcept;
 
-    void resize(std::size_t mbSize, ThreadPool& threads) noexcept;
-    void clear(ThreadPool& threads) noexcept;
-
-    TTEntry*      probe(Key key, bool& ttHit) const noexcept;
     std::uint16_t hashfull() const noexcept;
 
     bool save(const std::string& fname) const noexcept;
@@ -125,20 +167,10 @@ class TranspositionTable final {
    private:
     void free() noexcept;
 
-    Cluster*     table        = nullptr;
-    std::size_t  clusterCount = 0;
-    std::uint8_t generation8  = 0;  // Size must be not bigger than TTEntry::genBound8
+    Cluster*    table        = nullptr;
+    std::size_t clusterCount = 0;
+    UBit08      generation8  = 0;  // Size must be not bigger than TTEntry::genBound8
 };
-
-inline std::uint8_t TTEntry::relative_age(std::uint8_t gen) const noexcept {
-    // Due to our packed storage format for generation and its cyclic
-    // nature add GENERATION_CYCLE (256 is the modulus, plus what
-    // is needed to keep the unrelated lowest n bits from affecting
-    // the result) to calculate the entry age correctly even after
-    // generation8 overflows into the next cycle.
-    return (TranspositionTable::GENERATION_CYCLE - genBound8 + gen)
-         & TranspositionTable::GENERATION_MASK;
-}
 
 }  // namespace DON
 

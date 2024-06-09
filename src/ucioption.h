@@ -28,6 +28,11 @@
 
 namespace DON {
 
+// Define a custom comparator, because the UCI options should be case-insensitive
+struct CaseInsensitiveLess final {
+    bool operator()(std::string_view s1, std::string_view s2) const noexcept;
+};
+
 enum OptionType : std::uint8_t {
     OPT_NONE,
     BUTTON,
@@ -59,10 +64,10 @@ class Option final {
     bool operator==(std::string_view v) const noexcept;
     bool operator!=(std::string_view v) const noexcept;
 
-    void    operator<<(const Option& o) noexcept;
+    void    operator<<(const Option& option) noexcept;
     Option& operator=(std::string value) noexcept;
 
-    friend std::ostream& operator<<(std::ostream& os, const Option& o) noexcept;
+    friend std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
 
     std::uint16_t idx = -1;
 
@@ -73,27 +78,27 @@ class Option final {
     OnChange    onChange;
 };
 
-// Define a custom comparator, because the UCI options should be case-insensitive
-struct CaseInsensitiveLess final {
-    bool operator()(std::string_view s1, std::string_view s2) const noexcept;
-};
-
-class OptionsMap final {
+class Options final {
    public:
     void setoption(const std::string& name, const std::string& value) noexcept;
 
     Option  operator[](const std::string& name) const noexcept;
     Option& operator[](const std::string& name) noexcept;
 
+    auto begin() const noexcept { return options.begin(); }
+    auto end() const noexcept { return options.end(); }
+
+    auto size() const noexcept { return options.size(); }
+
     std::size_t count(const std::string& name) const noexcept;
 
-    friend std::ostream& operator<<(std::ostream& os, const OptionsMap& om) noexcept;
+    friend std::ostream& operator<<(std::ostream& os, const Options& options) noexcept;
 
    private:
     // The options container is defined as a std::map
-    using OptionsStore = std::map<std::string, Option, CaseInsensitiveLess>;
+    using OptionMap = std::map<std::string, Option, CaseInsensitiveLess>;
 
-    OptionsStore optionsMap;
+    OptionMap options;
 };
 
 }  // namespace DON

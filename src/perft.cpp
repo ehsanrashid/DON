@@ -21,6 +21,7 @@
 #include <iostream>
 #include <sstream>
 
+#include "memory.h"
 #include "misc.h"
 #include "movegen.h"
 #include "position.h"
@@ -145,9 +146,9 @@ class HashTable final {
     struct Entry final {
 
         void save(Key k, Depth d, std::uint64_t n) noexcept {
-            if (key32 == std::uint32_t(k) && depth >= d)
+            if (key32 == Key32(k) && depth >= d)
                 return;
-            key32 = std::uint32_t(k);
+            key32 = Key32(k);
             depth = d;
             nodes = n;
         }
@@ -155,8 +156,8 @@ class HashTable final {
         std::uint64_t nodes;
 
        private:
-        std::uint32_t key32;
-        std::uint16_t depth;
+        Key32 key32;
+        Depth depth;
 
         friend class HashTable;
     };
@@ -166,7 +167,7 @@ class HashTable final {
     HashTable& operator=(const HashTable&) = delete;
     ~HashTable() noexcept;
 
-    constexpr HashTable::Entry* first_entry(Key key) const noexcept {
+    Entry* first_entry(Key key) const noexcept {
         return &table[mul_hi64(key, clusterCount)].entry[0];
     }
 
@@ -174,7 +175,7 @@ class HashTable final {
     void resize(std::size_t mbSize, ThreadPool& threads) noexcept;
     void clear(ThreadPool& threads) noexcept;
 
-    HashTable::Entry* probe(Key key, Depth depth, bool& hHit) const noexcept;
+    Entry* probe(Key key, Depth depth, bool& hHit) const noexcept;
 
    private:
     static constexpr std::uint8_t EntryCount = 4;
@@ -238,16 +239,16 @@ HashTable::Entry* HashTable::probe(Key key, Depth depth, bool& hHit) const noexc
 
     for (std::uint8_t i = 0; i < EntryCount; ++i)
         // Use the low 32 bits as key inside the cluster
-        if (hte[i].key32 == std::uint32_t(key) && hte[i].depth == depth)
+        if (hte[i].key32 == Key32(key) && hte[i].depth == depth)
             return hHit = true, &hte[i];
 
-    Entry* rte = hte;
+    Entry* const lte = hte + EntryCount - 1;
+    Entry*       rte = hte;
     for (std::uint8_t i = 1; i < EntryCount; ++i)
         if (rte->depth > hte[i].depth && depth > hte[i].depth)
             rte = &hte[i];
-    if (rte->depth > depth)
-        rte = &hte[EntryCount - 1];
-    return hHit = false, rte;
+
+    return hHit = false, rte->depth <= depth ? rte : lte;
 }
 
 HashTable hashTable;

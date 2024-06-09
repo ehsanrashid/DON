@@ -25,9 +25,9 @@
 #include <utility>
 #include <vector>
 
-namespace DON {
+#include "ucioption.h"
 
-class OptionsMap;
+namespace DON {
 
 using Range    = std::pair<int, int>;  // Option's min-max values
 using RangeFun = Range(int);
@@ -41,7 +41,7 @@ struct SetRange final {
     SetRange(int min, int max) noexcept :
         fun(nullptr),
         range(min, max) {}
-    Range operator()(int v) const noexcept { return fun ? fun(v) : range; }
+    Range operator()(int v) const noexcept { return fun != nullptr ? fun(v) : range; }
 
     RangeFun* fun;
     Range     range;
@@ -151,19 +151,19 @@ class Tune final {
         return instance().add(SetDefaultRange, names.substr(1, names.size() - 2),
                               args...);  // Remove trailing parenthesis
     }
-    static void init(OptionsMap& om) noexcept {
-        Options = &om;
+    static void init(Options& options) noexcept {
+        PtrOptions = &options;
         for (auto& e : instance().list)
             e->init_option();
         read_options();
-    }  // Deferred, due to UCI::Options access
+    }  // Deferred, due to UCI::engine_options() access
     static void read_options() noexcept {
         for (auto& e : instance().list)
             e->read_option();
     }
 
-    static bool        UpdateOnLast;
-    static OptionsMap* Options;
+    static bool     UpdateOnLast;
+    static Options* PtrOptions;
 };
 
 // Some macro magic :-) define a dummy int variable that the compiler initializes calling Tune::add()

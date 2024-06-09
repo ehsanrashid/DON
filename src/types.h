@@ -85,10 +85,11 @@ namespace DON {
 
 using Bitboard = std::uint64_t;
 using Key      = std::uint64_t;
+using Key32    = std::uint32_t;
 using Key16    = std::uint16_t;
 
 constexpr inline std::uint16_t MAX_MOVES = 256;
-constexpr inline std::uint16_t MAX_PLY   = 253;
+constexpr inline std::uint16_t MAX_PLY   = 252 + 1;
 
 enum Color : std::uint8_t {
     WHITE,
@@ -379,9 +380,9 @@ class Move {
     // Catch Move::None() and Move::Null()
     constexpr bool is_ok() const noexcept { return org_sq() != dst_sq(); }
 
-    constexpr Square prev_dst_sq(Color stm) const noexcept {
-        return type_of() != CASTLING ? dst_sq() : king_castle_sq(~stm, org_sq(), dst_sq());
-    }
+    //constexpr Square prev_dst_sq(Color stm) const noexcept {
+    //    return type_of() != CASTLING ? dst_sq() : king_castle_sq(~stm, org_sq(), dst_sq());
+    //}
 
     static constexpr Move None() noexcept { return Move(0x00); }
     static constexpr Move Null() noexcept { return Move(0x41); }
@@ -389,7 +390,7 @@ class Move {
     constexpr bool operator==(Move m) const noexcept { return data == m.data; }
     constexpr bool operator!=(Move m) const noexcept { return data != m.data; }
 
-    constexpr explicit operator bool() const noexcept { return data != 0; }
+    constexpr explicit operator bool() const noexcept { return *this != Move::None(); }
 
     constexpr auto raw() const noexcept { return data; }
     /*

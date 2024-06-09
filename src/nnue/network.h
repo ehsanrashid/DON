@@ -24,7 +24,7 @@
 #include <string>
 #include <utility>
 
-#include "../misc.h"
+#include "../memory.h"
 #include "../position.h"
 #include "../types.h"
 #include "nnue_accumulator.h"
@@ -33,12 +33,16 @@
 #include "nnue_misc.h"
 
 namespace DON {
-
 namespace Eval::NNUE {
 
 enum class EmbeddedNNUEType {
     BIG,
     SMALL,
+};
+
+struct NetworkOutput final {
+    Value psqt;
+    Value positional;
 };
 
 template<typename Arch, typename Transformer>
@@ -59,17 +63,15 @@ class Network final {
     void load(const std::string& rootDirectory, std::string evalfilePath) noexcept;
     bool save(const std::optional<std::string>& filename) const noexcept;
 
-    Value evaluate(const Position&                         pos,
-                   AccumulatorCaches::Cache<FTDimensions>* cache,
-                   bool                                    adjusted   = false,
-                   int*                                    complexity = nullptr) const noexcept;
+    NetworkOutput evaluate(const Position&                         pos,
+                           AccumulatorCaches::Cache<FTDimensions>* cache) const noexcept;
 
     void hint_common_access(const Position&                         pos,
                             AccumulatorCaches::Cache<FTDimensions>* cache) const noexcept;
 
     void          verify(std::string evalfilePath) const noexcept;
-    NnueEvalTrace trace_evaluate(const Position&                         pos,
-                                 AccumulatorCaches::Cache<FTDimensions>* cache) const noexcept;
+    NnueEvalTrace trace_eval(const Position&                         pos,
+                             AccumulatorCaches::Cache<FTDimensions>* cache) const noexcept;
 
    private:
     void load_user_net(const std::string& dir, const std::string& evalfilePath) noexcept;
@@ -89,10 +91,10 @@ class Network final {
     bool write_parameters(std::ostream&, const std::string&) const noexcept;
 
     // Input feature converter
-    LargePagePtr<Transformer> featureTransformer;
+    AlignedLPPtr<Transformer> featureTransformer;
 
     // Evaluation function
-    AlignedPtr<Arch> network[LayerStacks];
+    AlignedStdPtr<Arch[]> network;
 
     EvalFile         evalFile;
     EmbeddedNNUEType embeddedType;

@@ -28,7 +28,6 @@
 #include <cstdio>
 #include <iosfwd>
 #include <iterator>
-#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -36,6 +35,18 @@
 #if !defined(STRINGIFY)
     #define STRINGIFY2(x) #x
     #define STRINGIFY(x) STRINGIFY2(x)
+#endif
+
+#if defined(__clang__)
+    #define FORCE_INLINE [[gnu::always_inline]] [[gnu::gnu_inline]]
+
+#elif defined(__GNUC__)
+    #define FORCE_INLINE [[gnu::always_inline]]
+
+#elif defined(_MSC_VER)
+    #pragma warning(error: 4714)
+    #define FORCE_INLINE __forceinline
+
 #endif
 
 namespace std {
@@ -94,57 +105,16 @@ std::string format_time(std::chrono::time_point<SystemClock> timePoint);
 
 void start_logger(const std::string& fname) noexcept;
 
-void* alloc_aligned_std(std::size_t alignment, std::size_t allocSize) noexcept;
-void  free_aligned_std(void* mem) noexcept;
-// memory aligned by page size, min alignment: 4096 bytes
-void* alloc_aligned_lp(std::size_t allocSize) noexcept;
-void  free_aligned_lp(void* mem) noexcept;
-
-// Deleter for automating release of memory area
-template<typename T>
-struct AlignedDeleter final {
-    void operator()(T* ptr) const noexcept {
-        ptr->~T();
-        free_aligned_std(ptr);
-    }
-};
-
-template<typename T>
-struct LargePageDeleter final {
-    void operator()(T* ptr) const noexcept {
-        ptr->~T();
-        free_aligned_lp(ptr);
-    }
-};
-
-template<typename T>
-using AlignedPtr = std::unique_ptr<T, AlignedDeleter<T>>;
-
-template<typename T>
-using LargePagePtr = std::unique_ptr<T, LargePageDeleter<T>>;
-
 #if defined(__linux__)
 
 struct PipeDeleter {
-    void operator()(FILE* file) const {
-        if (file != nullptr)
-            pclose(file);
+    void operator()(FILE* pFile) const {
+        if (pFile != nullptr)
+            pclose(pFile);
     }
 };
 
 #endif
-
-// Get the first aligned element of an array.
-// ptr must point to an array of size at least `sizeof(T) * N + alignment` bytes,
-// where N is the number of elements in the array.
-template<std::uintptr_t Alignment, typename T>
-T* align_ptr_up(T* ptr) noexcept {
-    static_assert(alignof(T) < Alignment);
-
-    const std::uintptr_t intPtr = reinterpret_cast<std::uintptr_t>(reinterpret_cast<char*>(ptr));
-    return reinterpret_cast<T*>(
-      reinterpret_cast<char*>((intPtr + (Alignment - 1)) / Alignment * Alignment));
-}
 
 #if !defined(NDEBUG)
 namespace Debug {

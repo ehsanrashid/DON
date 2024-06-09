@@ -26,7 +26,6 @@
 #include "evaluate.h"
 #include "misc.h"
 #include "perft.h"
-#include "polybook.h"
 #include "uci.h"
 #include "nnue/nnue_common.h"
 #include "syzygy/tbprobe.h"
@@ -47,7 +46,7 @@ Engine::Engine(const std::string& path) noexcept :
 
 Engine::~Engine() noexcept { wait_finish(); }
 
-OptionsMap& Engine::get_options() noexcept { return options; }
+Options& Engine::get_options() noexcept { return options; }
 
 std::string Engine::fen() const noexcept { return pos.fen(); }
 
@@ -83,17 +82,17 @@ void Engine::stop() noexcept { threads.stop = true; }
 
 void Engine::ponderhit() noexcept { threads.main_manager()->ponder = false; }
 
-void Engine::clear() noexcept {
+void Engine::init() noexcept {
     if (options["Retain Hash"])
         return;
     wait_finish();
-    tt.clear(threads);
-    threads.clear();
+    tt.init(threads);
+    threads.init();
     // @TODO wont work with multiple instances
     Tablebases::init(options["SyzygyPath"]);  // Free mapped files
 }
 
-void Engine::wait_finish() const noexcept { threads.main_thread()->wait_idle(); }
+void Engine::wait_finish() const noexcept { threads.main_thread()->wait_finish(); }
 
 
 void Engine::resize_threads() noexcept {
@@ -107,23 +106,18 @@ void Engine::resize_tt(std::size_t mbSize) noexcept {
     tt.resize(mbSize, threads);
 }
 
-void Engine::init_book(const std::string& bookFile) noexcept {
+void Engine::load_book(const std::string& bookFile) noexcept {
     wait_finish();
-    threads.main_manager()->polyBook.init(bookFile);
+    threads.main_manager()->load_book(bookFile);
 }
 
 void Engine::show() const noexcept { sync_cout << pos << sync_endl; }
 
-void Engine::eval() const noexcept {
-    StateInfo st;
-    ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
-
-    Position p;
-    p.set(pos.fen(), &st);
+void Engine::eval() noexcept {
 
     verify_networks();
 
-    sync_cout << '\n' << Eval::trace(p, *networks) << sync_endl;
+    sync_cout << '\n' << Eval::trace(pos, *networks) << sync_endl;
 }
 
 void Engine::flip() noexcept { pos.flip(); }
@@ -131,17 +125,17 @@ void Engine::flip() noexcept { pos.flip(); }
 
 void Engine::set_numa_config(const std::string& str) {
     if (str == "auto" || str == "system")
-    {
         numaContext.set_numa_config(NumaConfig::from_system());
-    }
+
+    else if (str == "hardware")
+        // Don't respect affinity set in the system.
+        numaContext.set_numa_config(NumaConfig::from_system(false));
+
     else if (str == "none")
-    {
         numaContext.set_numa_config(NumaConfig{});
-    }
+
     else
-    {
         numaContext.set_numa_config(NumaConfig::from_string(str));
-    }
 
     // Force reallocation of threads in case affinities need to change.
     resize_threads();
@@ -171,28 +165,28 @@ void Engine::verify_networks() const noexcept {
 }
 
 void Engine::load_networks() noexcept {
-    networks.modify_and_replicate([this](NN::Networks& net) {
+    networks.modify_and_replicate([&](NN::Networks& net) {
         net.big.load(binaryDirectory, options["EvalFileBig"]);
         net.small.load(binaryDirectory, options["EvalFileSmall"]);
     });
-    threads.clear();
+    threads.init();
 }
 
 void Engine::load_big_network(const std::string& bigFile) noexcept {
     networks.modify_and_replicate(
-      [this, &bigFile](NN::Networks& net) { net.big.load(binaryDirectory, bigFile); });
-    threads.clear();
+      [&](NN::Networks& net) { net.big.load(binaryDirectory, bigFile); });
+    threads.init();
 }
 
 void Engine::load_small_network(const std::string& smallFile) noexcept {
     networks.modify_and_replicate(
-      [this, &smallFile](NN::Networks& net) { net.small.load(binaryDirectory, smallFile); });
-    threads.clear();
+      [&](NN::Networks& net) { net.small.load(binaryDirectory, smallFile); });
+    threads.init();
 }
 
 void Engine::save_networks(
   const std::pair<std::optional<std::string>, std::string> files[2]) noexcept {
-    networks.modify_and_replicate([&files](NN::Networks& net) {
+    networks.modify_and_replicate([&](NN::Networks& net) {
         net.big.save(files[0].first);
         net.small.save(files[1].first);
     });

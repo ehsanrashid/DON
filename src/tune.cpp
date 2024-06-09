@@ -22,25 +22,23 @@
 #include <map>
 #include <sstream>
 
-#include "ucioption.h"
-
 namespace DON {
 
 const Option* LastOption = nullptr;
 
-bool        Tune::UpdateOnLast;
-OptionsMap* Tune::Options;
+bool     Tune::UpdateOnLast;
+Options* Tune::PtrOptions;
 
 namespace {
 
 std::map<std::string, int> TuneResults;
 
-void on_tune(const Option& o) noexcept {
-    if (!Tune::UpdateOnLast || LastOption == &o)
+void on_tune(const Option& option) noexcept {
+    if (!Tune::UpdateOnLast || LastOption == &option)
         Tune::read_options();
 }
 
-void make_option(OptionsMap* options, const std::string& n, int v, const SetRange& r) noexcept {
+void make_option(Options* options, const std::string& n, int v, const SetRange& r) noexcept {
     // Do not generate option when there is nothing to tune (ie. min = max)
     if (r(v).first == r(v).second)
         return;
@@ -52,8 +50,9 @@ void make_option(OptionsMap* options, const std::string& n, int v, const SetRang
     LastOption = &((*options)[n]);
 
     // Print formatted parameters, ready to be copy-pasted in Fishtest
-    std::cout << n << "," << v << "," << r(v).first << "," << r(v).second << ","
-              << (r(v).second - r(v).first) / 20.0 << ","
+    std::cout << n << "," << v << ","                      //
+              << r(v).first << "," << r(v).second << ","   //
+              << (r(v).second - r(v).first) / 20.0 << ","  //
               << "0.0020" << '\n';
 }
 
@@ -79,13 +78,13 @@ std::string Tune::next(std::string& names, bool pop) noexcept {
 
 template<>
 void Tune::Entry<int>::init_option() noexcept {
-    make_option(Options, name, value, range);
+    make_option(PtrOptions, name, value, range);
 }
 
 template<>
 void Tune::Entry<int>::read_option() noexcept {
-    if (Options->count(name))
-        value = int((*Options)[name]);
+    if (PtrOptions->count(name))
+        value = int((*PtrOptions)[name]);
 }
 
 // Instead of a variable here have a PostUpdate function: just call it
@@ -111,7 +110,6 @@ void Tune::Entry<Tune::PostUpdate>::read_option() noexcept {
 
 namespace DON {
 
-void Tune::read_results() noexcept { /* ...insert your values here... */
-}
+void Tune::read_results() noexcept { /* ...insert your values here... */ }
 
 }  // namespace DON

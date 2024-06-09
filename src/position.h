@@ -139,19 +139,19 @@ class Position final {
     bool   castling_impeded(CastlingRights cr) const noexcept;
     Square castling_rook_square(CastlingRights cr) const noexcept;
 
-    // Attackers
-    Bitboard checkers() const noexcept;
-    Bitboard checks(PieceType pt) const noexcept;
-    Bitboard pinners(Color c) const noexcept;
-    Bitboard blockers(Color c) const noexcept;
-    Bitboard attacks(Color c, PieceType pt = ALL_PIECE) const noexcept;
-    Bitboard threatens(Color c) const noexcept;
+    // ExState Info
+    Bitboard     checkers() const noexcept;
+    Bitboard     checks(PieceType pt) const noexcept;
+    Bitboard     pinners(Color c) const noexcept;
+    Bitboard     pinners() const noexcept;
+    Bitboard     blockers(Color c) const noexcept;
+    Bitboard     attacks(Color c, PieceType pt = ALL_PIECE) const noexcept;
+    Bitboard     threatens(Color c) const noexcept;
+    std::int16_t mobility(Color c) const noexcept;
 
     // Attacks to a given square
     Bitboard attackers_to(Square s, Bitboard occupied) const noexcept;
     Bitboard attackers_to(Square s) const noexcept;
-
-    std::int16_t mobility(Color c) const noexcept;
 
    private:
     // Attacks from a piece type
@@ -170,10 +170,11 @@ class Position final {
     bool  gives_check(Move m) const noexcept;
     bool  gives_dbl_check(Move m) const noexcept;
     Piece moved_piece(Move m) const noexcept;
+    Piece ex_moved_piece(Move m) const noexcept;
     Piece captured_piece(Move m) const noexcept;
     Piece captured_piece() const noexcept;
     // Piece promoted_piece() const noexcept;
-    Piece prev_moved_piece(Move prevMove, Square prevDst) const noexcept;
+    Piece prev_moved_piece(Move pm) const noexcept;
 
     // Doing and undoing moves
     void do_move(Move m, StateInfo& newSt) noexcept;
@@ -206,14 +207,17 @@ class Position final {
     bool         bishop_paired(Color c) const noexcept;
     bool         opposite_bishop() const noexcept;
 
-    int   material() const noexcept;
-    int   materials() const noexcept;
+    short material() const noexcept;
+    Value materials() const noexcept;
     Value evaluate() const noexcept;
     Value bonus() const noexcept;
 
     // Position consistency check, for debugging
-    bool pos_is_ok() const noexcept;
     void flip() noexcept;
+#if !defined(NDEBUG)
+    Key  compute_key() const noexcept;
+    bool pos_is_ok() const noexcept;
+#endif
 
     // Used by NNUE
     StateInfo* state() const noexcept;
@@ -351,15 +355,17 @@ inline Bitboard Position::attackers_to(Square s) const noexcept {
 inline Bitboard Position::checkers() const noexcept { return st->checkers; }
 
 inline Bitboard Position::checks(PieceType pt) const noexcept { return st->checks[pt]; }
-
+// clang-format off
 inline Bitboard Position::pinners(Color c) const noexcept { return st->pinners[c]; }
 
-inline Bitboard Position::blockers(Color c) const noexcept { return st->blockers[c]; }
-// clang-format off
-inline Bitboard Position::attacks(Color c, PieceType pt) const noexcept { return st->attacks[c][pt]; }
-// clang-format on
-inline Bitboard Position::threatens(Color c) const noexcept { return st->attacks[c][EX_PIECE]; }
+inline Bitboard Position::pinners() const noexcept { return st->pinners[WHITE] | st->pinners[BLACK]; }
 
+inline Bitboard Position::blockers(Color c) const noexcept { return st->blockers[c]; }
+
+inline Bitboard Position::attacks(Color c, PieceType pt) const noexcept { return st->attacks[c][pt]; }
+
+inline Bitboard Position::threatens(Color c) const noexcept { return st->attacks[c][EX_PIECE]; }
+// clang-format on
 inline std::int16_t Position::mobility(Color c) const noexcept { return st->mobility[c]; }
 
 inline Key Position::adjust_key(Key k, int ply) const noexcept {
@@ -401,13 +407,12 @@ inline bool Position::opposite_bishop() const noexcept {
         && opposite_color(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
 }
 
-inline int Position::material() const noexcept {
+inline short Position::material() const noexcept {
     return 1 * count<PAWN>() + 3 * count<KNIGHT>() + 3 * count<BISHOP>()  //
          + 5 * count<ROOK>() + 9 * count<QUEEN>();
 }
-inline int Position::materials() const noexcept {
-    return 300 * count<PAWN>() + 350 * count<KNIGHT>() + 400 * count<BISHOP>()  //
-         + 640 * count<ROOK>() + 1200 * count<QUEEN>();
+inline Value Position::materials() const noexcept {
+    return 554 * count<PAWN>() + non_pawn_material();
 }
 
 // Returns a static, purely materialistic evaluation of the position from
@@ -421,7 +426,7 @@ inline Value Position::evaluate() const noexcept {
 
 inline Value Position::bonus() const noexcept {
     // clang-format off
-    return      (mobility(sideToMove) - mobility(~sideToMove)) / 4
+    return      (mobility(sideToMove) - mobility(~sideToMove)) / 6
          + 25 * (bishop_paired(sideToMove) - bishop_paired(~sideToMove))
          + 50 * ((can_castle( sideToMove & ANY_CASTLING) || has_castled( sideToMove))
                - (can_castle(~sideToMove & ANY_CASTLING) || has_castled(~sideToMove)));
@@ -442,6 +447,9 @@ inline bool Position::capture_stage(Move m) const noexcept {
 }
 
 inline Piece Position::moved_piece(Move m) const noexcept { return piece_on(m.org_sq()); }
+inline Piece Position::ex_moved_piece(Move m) const noexcept {
+    return m.type_of() != CASTLING ? piece_on(m.org_sq()) : make_piece(sideToMove, EX_PIECE);
+}
 
 inline Piece Position::captured_piece(Move m) const noexcept {
     assert(m.is_ok());
@@ -455,8 +463,10 @@ inline Piece Position::captured_piece() const noexcept { return st->capturedPiec
 
 // inline Piece Position::promoted_piece() const noexcept { return st->promotedPiece; }
 
-inline Piece Position::prev_moved_piece(Move prevMove, Square prevDst) const noexcept {
-    return prevMove.type_of() != PROMOTION ? piece_on(prevDst) : make_piece(~sideToMove, PAWN);
+inline Piece Position::prev_moved_piece(Move pm) const noexcept {
+    return pm.type_of() != CASTLING
+           ? pm.type_of() != PROMOTION ? piece_on(pm.dst_sq()) : make_piece(~sideToMove, PAWN)
+           : make_piece(~sideToMove, EX_PIECE);
 }
 
 inline void Position::put_piece(Piece pc, Square s) noexcept {

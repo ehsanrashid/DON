@@ -30,7 +30,7 @@ namespace DON::Benchmark {
 namespace {
 
 // clang-format off
-const std::vector<std::string> Defaults {
+const std::vector<std::string> Defaults{
   "setoption name UCI_Chess960 value false",
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
   "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",

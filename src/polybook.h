@@ -20,7 +20,6 @@
 
 #include <string>
 
-#include "bitboard.h"
 #include "types.h"
 
 namespace DON {

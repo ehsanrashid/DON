@@ -23,20 +23,20 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <vector>
-#include <functional>
 
 #include "numa.h"
-#include "position.h"
 #include "search.h"
 #include "thread_win32_osx.h"
 #include "types.h"
 
 namespace DON {
 
-class OptionsMap;
+class Position;
+class Options;
 
 // Sometimes we don't want to actually bind the threads, but the recipent still
 // needs to think it runs on *some* NUMA node, such that it can access structures
@@ -80,10 +80,11 @@ class Thread final {
     std::uint16_t id() const noexcept { return idx; }
 
     void idle_func() noexcept;
-    void wake_up() noexcept;
-    void wait_idle() noexcept;
 
-    void clear() noexcept;
+    void wait_finish() noexcept;
+
+    void init() noexcept;
+    void start_search() noexcept;
 
     void run_custom_job(std::function<void()> func) noexcept;
 
@@ -105,19 +106,26 @@ class Thread final {
     NumaReplicatedAccessToken numaAccessToken;
 };
 
-// Wakes up the thread that will start the search
-inline void Thread::wake_up() noexcept {
-    assert(worker != nullptr);
-    run_custom_job([this]() { worker->start_search(); });
-}
-
 // Blocks on the condition variable
-// until the thread has finished searching.
-inline void Thread::wait_idle() noexcept {
+// until the thread has finished job.
+inline void Thread::wait_finish() noexcept {
     std::unique_lock uniqueLock(mutex);
     condVar.wait(uniqueLock, [this] { return !busy; });
     //uniqueLock.unlock();
 }
+
+// Wakes up the thread that will initialize the worker
+inline void Thread::init() noexcept {
+    assert(worker != nullptr);
+    run_custom_job([this]() { worker->init(); });
+}
+
+// Wakes up the thread that will start the search on worker
+inline void Thread::start_search() noexcept {
+    assert(worker != nullptr);
+    run_custom_job([this]() { worker->start_search(); });
+}
+
 
 // ThreadPool struct handles all the threads-related stuff like init, starting,
 // parking and, most importantly, launching a thread.
@@ -134,11 +142,11 @@ class ThreadPool final {
 
     ~ThreadPool() noexcept;
 
-    void destroy() noexcept;
     void clear() noexcept;
     void set(const NumaConfig&            numaConfig,
              Search::SharedState          sharedState,
              const Search::UpdateContext& updateContext) noexcept;
+    void init() noexcept;
 
     Thread*                    main_thread() const noexcept;
     Thread*                    best_thread() const noexcept;
@@ -150,7 +158,7 @@ class ThreadPool final {
     void start(Position&             pos,
                StateListPtr&         states,
                const Search::Limits& limits,
-               const OptionsMap&     options) noexcept;
+               const Options&        options) noexcept;
 
     void start_search() const noexcept;
     void wait_finish() const noexcept;
@@ -165,6 +173,8 @@ class ThreadPool final {
 
     auto begin() const noexcept { return threads.begin(); }
     auto end() const noexcept { return threads.end(); }
+
+    auto& front() const noexcept { return threads.front(); }
 
     auto size() const noexcept { return threads.size(); }
     auto empty() const noexcept { return threads.empty(); }
@@ -191,33 +201,33 @@ class ThreadPool final {
     StateListPtr                         setupStates;
 };
 
-inline ThreadPool::~ThreadPool() noexcept { destroy(); }
+inline ThreadPool::~ThreadPool() noexcept { clear(); }
 
 // Destroy any existing thread(s)
-inline void ThreadPool::destroy() noexcept {
-    if (!empty())
-    {
-        main_thread()->wait_idle();
-
-        threads.clear();
-        boundThreadToNumaNode.clear();
-    }
-}
-
-// Sets threadPool data to initial values
 inline void ThreadPool::clear() noexcept {
     if (empty())
         return;
 
-    for (auto&& th : threads)
-        th->clear();
-    for (auto&& th : threads)
-        th->wait_idle();
+    main_thread()->wait_finish();
 
-    main_manager()->clear(size());
+    threads.clear();
+    boundThreadToNumaNode.clear();
 }
 
-inline Thread* ThreadPool::main_thread() const noexcept { return threads.front().get(); }
+// Sets threadPool data to initial values
+inline void ThreadPool::init() noexcept {
+    if (empty())
+        return;
+
+    for (auto&& th : threads)
+        th->init();
+    for (auto&& th : threads)
+        th->wait_finish();
+
+    main_manager()->init(size());
+}
+
+inline Thread* ThreadPool::main_thread() const noexcept { return front().get(); }
 
 inline Search::MainSearchManager* ThreadPool::main_manager() const noexcept {
     return main_thread()->worker->main_manager();
@@ -236,16 +246,16 @@ inline std::uint64_t ThreadPool::tbHits() const noexcept {
 inline void ThreadPool::start_search() const noexcept {
 
     for (auto&& th : threads)
-        if (th != threads.front())
-            th->wake_up();
+        if (th != front())
+            th->start_search();
 }
 
 // Wait for non-main threads
 inline void ThreadPool::wait_finish() const noexcept {
 
     for (auto&& th : threads)
-        if (th != threads.front())
-            th->wait_idle();
+        if (th != front())
+            th->wait_finish();
 }
 
 }  // namespace DON

@@ -17,21 +17,17 @@
 
 #include "network.h"
 
-#include <cmath>
 #include <cstdlib>
-#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <optional>
 #include <type_traits>
 #include <vector>
 
 #include "../evaluate.h"
+#include "../misc.h"
 #include "../incbin/incbin.h"
-#include "nnue_architecture.h"
 #include "nnue_common.h"
-#include "nnue_misc.h"
 
 namespace DON {
 
@@ -79,23 +75,6 @@ EmbeddedNNUE get_embedded(Eval::NNUE::EmbeddedNNUEType type) noexcept {
 
 namespace Detail {
 
-// Initialize the evaluation function parameters
-template<typename T>
-void initialize(AlignedPtr<T>& pointer) noexcept {
-
-    pointer.reset(reinterpret_cast<T*>(alloc_aligned_std(alignof(T), sizeof(T))));
-    std::memset(pointer.get(), 0, sizeof(T));
-}
-
-template<typename T>
-void initialize(LargePagePtr<T>& pointer) noexcept {
-
-    static_assert(alignof(T) <= 4096,
-                  "alloc_aligned_lp() may fail for such a big alignment requirement of T");
-    pointer.reset(reinterpret_cast<T*>(alloc_aligned_lp(sizeof(T))));
-    std::memset(pointer.get(), 0, sizeof(T));
-}
-
 // Read evaluation function parameters
 template<typename T>
 bool read_parameters(std::istream& istream, T& reference) noexcept {
@@ -121,19 +100,17 @@ template<typename Arch, typename Transformer>
 Network<Arch, Transformer>::Network(const Network<Arch, Transformer>& net) :
     evalFile(net.evalFile),
     embeddedType(net.embeddedType) {
+
     if (net.featureTransformer)
-    {
-        Detail::initialize(featureTransformer);
-        *featureTransformer = *net.featureTransformer;
-    }
+        featureTransformer = make_unique_aligned_lp<Transformer>(*net.featureTransformer);
+
+    network = make_unique_aligned_std<Arch[]>(LayerStacks);
+
+    if (!net.network)
+        return;
+
     for (std::size_t i = 0; i < LayerStacks; ++i)
-    {
-        if (net.network[i])
-        {
-            Detail::initialize(network[i]);
-            *(network[i]) = *(net.network[i]);
-        }
-    }
+        network[i] = net.network[i];
 }
 
 template<typename Arch, typename Transformer>
@@ -143,18 +120,15 @@ Network<Arch, Transformer>::operator=(const Network<Arch, Transformer>& net) {
     embeddedType = net.embeddedType;
 
     if (net.featureTransformer)
-    {
-        Detail::initialize(featureTransformer);
-        *featureTransformer = *net.featureTransformer;
-    }
+        featureTransformer = make_unique_aligned_lp<Transformer>(*net.featureTransformer);
+
+    network = make_unique_aligned_std<Arch[]>(LayerStacks);
+
+    if (!net.network)
+        return *this;
+
     for (std::size_t i = 0; i < LayerStacks; ++i)
-    {
-        if (net.network[i])
-        {
-            Detail::initialize(network[i]);
-            *(network[i]) = *(net.network[i]);
-        }
-    }
+        network[i] = net.network[i];
 
     return *this;
 }
@@ -163,11 +137,10 @@ template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load(const std::string& rootDirectory,
                                       std::string        evalfilePath) noexcept {
 
-    const std::vector<std::string> dirs {
-        "<internal>", "", rootDirectory
+    const std::vector<std::string> dirs{"<internal>", "", rootDirectory
 #if defined(DEFAULT_NNUE_DIRECTORY)
-          ,
-          STRINGIFY(DEFAULT_NNUE_DIRECTORY)
+                                        ,
+                                        STRINGIFY(DEFAULT_NNUE_DIRECTORY)
 #endif
     };
 
@@ -222,10 +195,9 @@ bool Network<Arch, Transformer>::save(const std::optional<std::string>& filename
 }
 
 template<typename Arch, typename Transformer>
-Value Network<Arch, Transformer>::evaluate(const Position&                         pos,
-                                           AccumulatorCaches::Cache<FTDimensions>* cache,
-                                           bool                                    adjusted,
-                                           int* complexity) const noexcept {
+NetworkOutput
+Network<Arch, Transformer>::evaluate(const Position&                         pos,
+                                     AccumulatorCaches::Cache<FTDimensions>* cache) const noexcept {
     // Manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
 
@@ -246,14 +218,8 @@ Value Network<Arch, Transformer>::evaluate(const Position&                      
 
     int  bucket     = (pos.count<ALL_PIECE>() - 1) / 4;
     auto psqt       = featureTransformer->transform(pos, cache, transformedFeatures, bucket);
-    auto positional = network[bucket]->propagate(transformedFeatures);
-
-    if (complexity)
-        *complexity = std::abs(psqt - positional) / OutputScale;
-
-    int delta = adjusted * std::max(28 - pos.non_pawn_material() / 1800, 24);
-    // Give more value to positional evaluation when adjusted flag is set
-    return ((1024 - delta) * psqt + (1024 + delta) * positional) / (1024 * OutputScale);
+    auto positional = network[bucket].propagate(transformedFeatures);
+    return {psqt, positional};
 }
 
 template<typename Arch, typename Transformer>
@@ -281,11 +247,11 @@ void Network<Arch, Transformer>::verify(std::string evalfilePath) const noexcept
         exit(EXIT_FAILURE);
     }
 
-    size_t size = sizeof(*featureTransformer) + sizeof(*network) * LayerStacks;
+    std::size_t size = sizeof(*featureTransformer) + sizeof(Arch) * LayerStacks;
     sync_cout << "info string NNUE evaluation using " << evalfilePath << " ("
               << size / (1024 * 1024) << "MiB, (" << featureTransformer->InputDimensions << ", "
-              << network[0]->TransformedFeatureDimensions << ", " << network[0]->FC_0_OUTPUTS
-              << ", " << network[0]->FC_1_OUTPUTS << ", 1))" << sync_endl;
+              << network[0].TransformedFeatureDimensions << ", " << network[0].FC_0_OUTPUTS << ", "
+              << network[0].FC_1_OUTPUTS << ", 1))" << sync_endl;
 }
 
 template<typename Arch, typename Transformer>
@@ -295,7 +261,7 @@ void Network<Arch, Transformer>::hint_common_access(
 }
 
 template<typename Arch, typename Transformer>
-NnueEvalTrace Network<Arch, Transformer>::trace_evaluate(
+NnueEvalTrace Network<Arch, Transformer>::trace_eval(
   const Position& pos, AccumulatorCaches::Cache<FTDimensions>* cache) const noexcept {
     // Manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
@@ -318,11 +284,11 @@ NnueEvalTrace Network<Arch, Transformer>::trace_evaluate(
     trace.correctBucket = (pos.count<ALL_PIECE>() - 1) / 4;
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        auto materialist = featureTransformer->transform(pos, cache, transformedFeatures, bucket);
-        auto positional  = network[bucket]->propagate(transformedFeatures);
+        auto psqt       = featureTransformer->transform(pos, cache, transformedFeatures, bucket);
+        auto positional = network[bucket].propagate(transformedFeatures);
 
-        trace.psqt[bucket]       = materialist / OutputScale;
-        trace.positional[bucket] = positional / OutputScale;
+        trace.psqt[bucket]       = psqt;
+        trace.positional[bucket] = positional;
     }
 
     return trace;
@@ -369,9 +335,8 @@ void Network<Arch, Transformer>::load_internal() noexcept {
 
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::initialize() noexcept {
-    Detail::initialize(featureTransformer);
-    for (auto& net : network)
-        Detail::initialize(net);
+    featureTransformer = make_unique_aligned_lp<Transformer>();
+    network            = make_unique_aligned_std<Arch[]>(LayerStacks);
 }
 
 template<typename Arch, typename Transformer>
@@ -431,11 +396,10 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& istream,
         return false;
     if (!Detail::read_parameters(istream, *featureTransformer))
         return false;
-    for (auto& net : network)
-    {
-        if (!Detail::read_parameters(istream, *net))
+    for (std::size_t i = 0; i < LayerStacks; ++i)
+        if (!Detail::read_parameters(istream, network[i]))
             return false;
-    }
+
     return bool(istream) && istream.peek() == std::ios::traits_type::eof();
 }
 
@@ -446,11 +410,10 @@ bool Network<Arch, Transformer>::write_parameters(
         return false;
     if (!Detail::write_parameters(ostream, *featureTransformer))
         return false;
-    for (const auto& net : network)
-    {
-        if (!Detail::write_parameters(ostream, *net))
+    for (std::size_t i = 0; i < LayerStacks; ++i)
+        if (!Detail::write_parameters(ostream, network[i]))
             return false;
-    }
+
     return bool(ostream);
 }
 

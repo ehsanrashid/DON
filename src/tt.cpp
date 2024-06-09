@@ -17,44 +17,15 @@
 
 #include "tt.h"
 
-#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <limits>
-#include <thread>
-#include <vector>
 
-#include "misc.h"
+#include "memory.h"
 #include "thread.h"
 
 namespace DON {
-
-// Populates the TTEntry with a new node's data, possibly
-// overwriting an old position. The update is not atomic and can be racy.
-void TTEntry::save(
-  Key key, Depth d, bool pv, Bound b, Move m, Value v, Value ev, std::uint8_t gen) noexcept {
-
-    // Preserve the old move if don't have a new one
-    if (m != Move::None())
-        move16 = m;
-
-    // Overwrite less valuable entries (cheapest checks first)
-    if (b == BOUND_EXACT || Key16(key) != key16
-        || d + (std::uint8_t(pv) << 1) - DEPTH_OFFSET > depth8 - 4 || relative_age(gen))
-    {
-        assert(d > DEPTH_OFFSET);
-        assert(d <= std::numeric_limits<std::uint8_t>::max() + DEPTH_OFFSET);
-
-        key16     = Key16(key);
-        depth8    = std::uint8_t(d - DEPTH_OFFSET);
-        genBound8 = std::uint8_t(gen | (std::uint8_t(pv) << 2) | b);
-        value16   = std::int16_t(v);
-        eval16    = std::int16_t(ev);
-    }
-}
-
 
 TranspositionTable::~TranspositionTable() noexcept { free(); }
 
@@ -62,7 +33,6 @@ void TranspositionTable::free() noexcept {
     free_aligned_lp(table);
     table        = nullptr;
     clusterCount = 0;
-    generation8  = 0;
 }
 
 // Sets the size of the transposition table, measured in megabytes.
@@ -80,11 +50,12 @@ void TranspositionTable::resize(std::size_t mbSize, ThreadPool& threads) noexcep
         exit(EXIT_FAILURE);
     }
 
-    clear(threads);
+    init(threads);
 }
 
 // Initializes the entire transposition table to zero, in a multi-threaded way.
-void TranspositionTable::clear(ThreadPool& threads) noexcept {
+void TranspositionTable::init(ThreadPool& threads) noexcept {
+    generation8                     = 0;
     const std::uint16_t threadCount = threads.size();
 
     for (std::uint16_t idx = 0; idx < threadCount; ++idx)
@@ -109,22 +80,21 @@ void TranspositionTable::clear(ThreadPool& threads) noexcept {
 // to be replaced later. The replacement value of an entry is calculated as its depth
 // minus 2 times its relative age. TTEntry t1 is considered more valuable than TTEntry t2
 // if replacement value of t1 is greater than that of t2.
-TTEntry* TranspositionTable::probe(Key key, bool& ttHit) const noexcept {
+TTProbe TranspositionTable::probe(Key key) const noexcept {
 
-    TTEntry* const tte = first_entry(key);
-
+    auto* const tte = first_entry(key);
+    auto*       rte = tte;
     for (std::uint8_t i = 0; i < EntryCount; ++i)
+    {
         // Use the low 16 bits as key inside the cluster
         if (Key16(key) == (tte + i)->key16)
-            return ttHit = (tte + i)->depth8, (tte + i);
+            return {(tte + i)->depth8 != 0, (tte + i)};
 
-    // Find an entry to be replaced according to the replacement strategy
-    TTEntry* rte = tte;
-    for (std::uint8_t i = 1; i < EntryCount; ++i)
-        if (rte->worth(generation8) > (tte + i)->worth(generation8))
+        // Find an entry to be replaced according to the replacement strategy
+        if (i != 0 && rte->worth(generation8) > (tte + i)->worth(generation8))
             rte = (tte + i);
-
-    return ttHit = false, rte;
+    }
+    return {false, rte};
 }
 
 // Returns an approximation of the hashtable occupation during a search.
@@ -132,9 +102,9 @@ TTEntry* TranspositionTable::probe(Key key, bool& ttHit) const noexcept {
 // Only counts entries which match the current generation.
 std::uint16_t TranspositionTable::hashfull() const noexcept {
     std::uint32_t cnt = 0;
-    for (std::size_t t = 0; t < std::min<std::size_t>(clusterCount, 1000); ++t)
-        for (const TTEntry& tte : table[t].entry)
-            cnt += tte.depth8 && (tte.genBound8 & GENERATION_MASK) == generation8;
+    for (std::size_t idx = 0; idx < std::min<std::size_t>(clusterCount, 1000); ++idx)
+        for (const auto& tte : table[idx].entry)
+            cnt += tte.depth8 != 0 && (tte.genBound8 & GENERATION_MASK) == generation8;
 
     return cnt / EntryCount;
 }

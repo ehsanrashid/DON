@@ -216,7 +216,8 @@ void generate_all(ExtMoves& extMoves, const Position& pos) noexcept {
         {
             target            = ~pos.pieces(Stm);
             Bitboard occupied = pos.pieces() ^ ksq;
-            Bitboard checkers = pos.checkers() & pos.pieces(KNIGHT);
+            Bitboard checkers;
+            checkers = pos.checkers() & pos.pieces(KNIGHT);
             if (checkers)
                 target &= ~attacks_bb<KNIGHT>(lsb(checkers));
             checkers = pos.checkers() & pos.pieces(QUEEN, ROOK, BISHOP);

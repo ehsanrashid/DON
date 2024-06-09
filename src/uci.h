@@ -26,15 +26,22 @@
 
 #include "engine.h"
 #include "misc.h"
-#include "movegen.h"
-#include "search.h"
 #include "types.h"
-#include "ucioption.h"
 
 namespace DON {
 
 class Position;
 class Score;
+enum GenType;
+template<GenType GT>
+struct MoveList;
+
+namespace Search {
+struct EndInfo;
+struct FullInfo;
+struct IterInfo;
+struct MoveInfo;
+}  // namespace Search
 
 class UCI final {
    public:

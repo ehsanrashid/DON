@@ -31,12 +31,9 @@
 #include <utility>
 #include <vector>
 
-#include "misc.h"
 #include "movepick.h"
 #include "numa.h"
-#include "polybook.h"
 #include "position.h"
-#include "score.h"
 #include "timeman.h"
 #include "types.h"
 #include "nnue/network.h"
@@ -45,10 +42,9 @@
 
 namespace DON {
 
-class OptionsMap;
+class Options;
 class ThreadPool;
 class TranspositionTable;
-struct TTEntry;
 
 constexpr inline std::uint8_t DefaultMultiPV = 1;
 
@@ -62,6 +58,7 @@ struct Stack final {
     PieceDstHistory* continuationHistory;
     std::int16_t     ply;
     Move             currentMove;
+    Move             ttMove;
     KillerMoves      killerMoves;
     Value            staticEval;
     int              history;
@@ -260,7 +257,7 @@ struct Limits final {
     bool use_time_manager() const noexcept { return clock[WHITE].time || clock[BLACK].time; }
 
     std::int16_t diff_time(Color stm) const noexcept {
-        return (clock[stm].time - clock[~stm].time) / 1000;
+        return 1e-3 * (clock[stm].time - clock[~stm].time);
     }
 
     TimePoint                   initialTime = 0;
@@ -285,7 +282,7 @@ struct Skill final {
 
     Skill() = default;
 
-    void init(const OptionsMap& options) noexcept;
+    void init(const Options& options) noexcept;
 
     bool enabled() const noexcept { return level < MaxLevel; }
     Move best_move() const noexcept { return bestMove; }
@@ -307,16 +304,16 @@ struct Skill final {
 // The Engine stores the uci options, networks, thread pool, and transposition table.
 // This struct is used to easily forward data to the Search::Worker class.
 struct SharedState final {
-    SharedState(const OptionsMap&                           optionsMap,
+    SharedState(const Options&                              engOptions,
                 const NumaReplicated<Eval::NNUE::Networks>& nnueNetworks,
                 ThreadPool&                                 threadPool,
                 TranspositionTable&                         transpositionTable) noexcept :
-        options(optionsMap),
+        options(engOptions),
         networks(nnueNetworks),
         threads(threadPool),
         tt(transpositionTable) {}
 
-    const OptionsMap&                           options;
+    const Options&                              options;
     const NumaReplicated<Eval::NNUE::Networks>& networks;
     ThreadPool&                                 threads;
     TranspositionTable&                         tt;
@@ -385,7 +382,8 @@ class MainSearchManager final: public ISearchManager {
 
     void should_abort(const Worker& worker) noexcept override;
 
-    void clear(std::uint16_t threadCount) noexcept;
+    void init(std::uint16_t threadCount) noexcept;
+    void load_book(const std::string& bookFile) const noexcept;
 
     TimePoint elapsed() const noexcept;
     TimePoint elapsed(const Worker& worker) const noexcept;
@@ -395,7 +393,6 @@ class MainSearchManager final: public ISearchManager {
     const UpdateContext& updateContext;
 
     TimeManager          timeManager;
-    PolyBook             polyBook;
     Skill                skill;
     std::int16_t         callsCount    = 0;
     bool                 stopPonderhit = false;
@@ -421,10 +418,10 @@ class Worker final {
     Worker(std::uint16_t             threadId,
            const SharedState&        sharedState,
            ISearchManagerPtr         searchManager,
-           NumaReplicatedAccessToken token) noexcept;
+           NumaReplicatedAccessToken accessToken) noexcept;
 
     // Called at instantiation to reset histories, usually before a new game
-    void clear() noexcept;
+    void init() noexcept;
 
     // Called when the program receives the UCI 'go' command.
     // It searches from the root position and outputs the "bestmove".
@@ -457,13 +454,13 @@ class Worker final {
     Value
     qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth = DEPTH_ZERO) noexcept;
 
-    Move extract_tt_move(const Position& pos, const TTEntry* tte) noexcept;
+    Move extract_tt_move(const Position& pos, Move ttMove) noexcept;
     bool extract_ponder_move() noexcept;
 
     Limits limits;
 
     std::uint8_t  multiPV = DefaultMultiPV;
-    std::uint8_t  pvIndex, pvLast;
+    std::uint8_t  curIdx, fstIdx, lstIdx;
     std::uint16_t selDepth;
     std::uint16_t minNmpPly;
 
@@ -485,13 +482,13 @@ class Worker final {
     // The main thread has a MainSearchManager, the others have a NullSearchManager
     ISearchManagerPtr manager;
 
-    NumaReplicatedAccessToken numaAccessToken;
-
-    const OptionsMap&                           options;
+    const Options&                              options;
     const NumaReplicated<Eval::NNUE::Networks>& networks;
     ThreadPool&                                 threads;
     TranspositionTable&                         tt;
     // Used by NNUE
+    NumaReplicatedAccessToken numaAccessToken;
+
     Eval::NNUE::AccumulatorCaches accCaches;
 
     friend class DON::ThreadPool;

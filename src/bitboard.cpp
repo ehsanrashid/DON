@@ -86,12 +86,14 @@ void init_magics() noexcept {
 
 #if !defined(USE_PEXT)
     // Optimal PRNG seeds to pick the correct magics in the shortest time
-    constexpr std::uint32_t Seeds[RANK_NB] {
+    constexpr std::uint32_t Seeds[RANK_NB]{
+    // clang-format off
     #if defined(IS_64BIT)
-        728, 10316, 55013, 32803, 12281, 15100, 16645, 255
+       728, 10316, 55013, 32803, 12281, 15100,  16645,   255
     #else
-        8977, 44560, 54343, 38998, 5731, 95205, 104912, 17020
+      8977, 44560, 54343, 38998,  5731, 95205, 104912, 17020
     #endif
+      // clang-format on
     };
 
     Bitboard      occupancy[TableSize];
@@ -202,24 +204,24 @@ void init() noexcept {
         for (Color c : {WHITE, BLACK})
             PawnAttacks[c][s] = pawn_attacks_bb(c, square_bb(s));
 
-        PseudoAttacks[0][s] = PseudoAttacks[1][s] = PseudoAttacks[7][s] = 0ULL;
+        PseudoAttacks[0][s] = PseudoAttacks[1][s] = PseudoAttacks[7][s] = 0;
 
-        PseudoAttacks[KNIGHT][s] = 0ULL;
+        PseudoAttacks[KNIGHT][s] = 0;
         for (auto d : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
                        WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
             PseudoAttacks[KNIGHT][s] |= safe_destination(s, d, 2);
-        PseudoAttacks[KING][s] = 0ULL;
+        PseudoAttacks[KING][s] = 0;
         for (auto d : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
             PseudoAttacks[KING][s] |= safe_destination(s, d);
 
-        PseudoAttacks[BISHOP][s] = attacks_bb<BISHOP>(s, 0ULL);
-        PseudoAttacks[ROOK][s]   = attacks_bb<ROOK>(s, 0ULL);
+        PseudoAttacks[BISHOP][s] = attacks_bb<BISHOP>(s, 0);
+        PseudoAttacks[ROOK][s]   = attacks_bb<ROOK>(s, 0);
         PseudoAttacks[QUEEN][s]  = PseudoAttacks[BISHOP][s] | PseudoAttacks[ROOK][s];
     }
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
-            LineBB[s1][s2] = BetweenBB[s1][s2] = 0ULL;
+            LineBB[s1][s2] = BetweenBB[s1][s2] = 0;
             for (PieceType pt : {BISHOP, ROOK})
             {
                 if (PseudoAttacks[pt][s1] & s2)

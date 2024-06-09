@@ -31,8 +31,7 @@ namespace DON {
 
 namespace {
 // clang-format off
-std::unordered_map<OptionType, std::string_view> OptionTypeString{
-  {OPT_NONE, "none"},
+const std::unordered_map<OptionType, std::string_view> OptionTypeString{
   {BUTTON,   "button"},
   {CHECK,    "check"},
   {STRING,   "string"},
@@ -41,7 +40,17 @@ std::unordered_map<OptionType, std::string_view> OptionTypeString{
 // clang-format on
 }  // namespace
 
-std::string_view to_string(OptionType ot) noexcept { return OptionTypeString[ot]; }
+
+bool CaseInsensitiveLess::operator()(std::string_view s1, std::string_view s2) const noexcept {
+    return std::lexicographical_compare(
+      s1.begin(), s1.end(), s2.begin(), s2.end(),
+      [](char c1, char c2) noexcept -> bool { return std::tolower(c1) < std::tolower(c2); });
+}
+
+std::string_view to_string(OptionType optType) noexcept {
+    auto itr = OptionTypeString.find(optType);
+    return itr != OptionTypeString.end() ? itr->second : "none";
+}
 
 Option::Option() noexcept :
     type(OPT_NONE),
@@ -107,10 +116,10 @@ bool Option::operator==(std::string_view v) const noexcept {
 bool Option::operator!=(std::string_view v) const noexcept { return !(*this == v); }
 
 // Init options and assigns idx in the correct printing order
-void Option::operator<<(const Option& o) noexcept {
+void Option::operator<<(const Option& option) noexcept {
     static std::uint16_t insertOrder = 0;
 
-    *this = o;
+    *this = option;
     idx   = insertOrder++;
 }
 
@@ -137,70 +146,68 @@ Option& Option::operator=(std::string value) noexcept {
     }
     else if (type == SPIN)
     {
-        if (int d = std::stoi(value); minValue > d || d > maxValue)
+        int d = std::stoi(value);
+        if (d < minValue || maxValue < d)
             value = std::to_string(std::clamp(d, minValue, maxValue));
     }
     else if (type == COMBO)
     {
-        OptionsMap comboMap;  // To have case-insensitive compare
+        Options combos;  // To have case-insensitive compare
 
         std::istringstream iss(defaultValue);
 
         std::string token;
         while (iss >> token)
-            comboMap[token] << Option();
-        if (value == "var" || !comboMap.count(value))
+        {
+            token = to_lower(token);
+            if (token == "var")
+                continue;
+            combos[token] << Option();
+        }
+        if (to_lower(value) == "var" || !combos.count(value))
             return *this;
     }
 
     if (type != BUTTON)
         currentValue = value;
 
-    if (onChange)
+    if (onChange != nullptr)
         onChange(*this);
 
     return *this;
 }
 
-std::ostream& operator<<(std::ostream& os, const Option& o) noexcept {
-    os << " type " << to_string(o.type);
+std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
+    os << " type " << to_string(option.type);
 
-    if (o.type != BUTTON)
-        os << " default " << o.defaultValue;
+    if (option.type != BUTTON)
+        os << " default " << option.defaultValue;
 
-    if (o.type == SPIN)
-        os << " min " << o.minValue << " max " << o.maxValue;
+    if (option.type == SPIN)
+        os << " min " << option.minValue << " max " << option.maxValue;
 
     return os;
 }
 
-bool CaseInsensitiveLess::operator()(std::string_view s1, std::string_view s2) const noexcept {
-    return std::lexicographical_compare(
-      s1.begin(), s1.end(), s2.begin(), s2.end(),
-      [](char c1, char c2) noexcept -> bool { return std::tolower(c1) < std::tolower(c2); });
-}
-
-void OptionsMap::setoption(const std::string& name, const std::string& value) noexcept {
-    if (optionsMap.find(name) != optionsMap.end())
-        optionsMap[name] = value;
+void Options::setoption(const std::string& name, const std::string& value) noexcept {
+    if (options.find(name) != options.end())
+        options[name] = value;
     else
         sync_cout << "No such option: " << name << sync_endl;
 }
 
-Option OptionsMap::operator[](const std::string& name) const noexcept {
-    auto itr = optionsMap.find(name);
-    return itr != optionsMap.end() ? itr->second : Option();
+Option Options::operator[](const std::string& name) const noexcept {
+    auto itr = options.find(name);
+    return itr != options.end() ? itr->second : Option();
 }
 
-Option& OptionsMap::operator[](const std::string& name) noexcept { return optionsMap[name]; }
+Option& Options::operator[](const std::string& name) noexcept { return options[name]; }
 
-std::size_t OptionsMap::count(const std::string& name) const noexcept {
-    return optionsMap.count(name);
-}
+std::size_t Options::count(const std::string& name) const noexcept { return options.count(name); }
 
-std::ostream& operator<<(std::ostream& os, const OptionsMap& om) noexcept {
-    for (std::uint16_t idx = 0; idx < om.optionsMap.size(); ++idx)
-        for (const auto& [fst, snd] : om.optionsMap)
+std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {
+    for (std::uint16_t idx = 0; idx < options.size(); ++idx)
+        for (const auto& [fst, snd] : options)
             if (snd.idx == idx)
             {
                 os << "\noption name " << fst << snd;

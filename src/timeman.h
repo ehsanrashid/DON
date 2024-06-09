@@ -26,7 +26,7 @@
 namespace DON {
 
 class Position;
-class OptionsMap;
+class Options;
 
 namespace Search {
 struct Limits;
@@ -37,7 +37,7 @@ struct Limits;
 class TimeManager final {
    public:
     TimeManager() noexcept;
-    void init(Search::Limits& limits, const Position& pos, const OptionsMap& options) noexcept;
+    void init(Search::Limits& limits, const Position& pos, const Options& options) noexcept;
 
     TimePoint optimum() const noexcept;
     TimePoint maximum() const noexcept;
@@ -80,7 +80,7 @@ inline void TimeManager::clear() noexcept {
     optimumTime = 0;
     maximumTime = 0;
 
-    initialAdjust = -1.0;
+    initialAdjust = 0.0;
 
     nodesTime   = 0;
     remainNodes = 0;

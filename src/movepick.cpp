@@ -48,7 +48,7 @@ MovePicker::MovePicker(const Position&               p,
     ttMove(ttm),
     depth(d) {
     assert(d > DEPTH_ZERO);
-    assert(ttm == Move::None() || pos.pseudo_legal(ttm));
+    assert(ttm == Move::None() || (pos.pseudo_legal(ttm) && pos.legal(ttm)));
     assert((km[0] == Move::None() && km[1] == Move::None()) || km[0] != km[1]);
     refutations.clear();
     // If the counterMove is the same as a killerMoves, skip it
@@ -80,7 +80,7 @@ MovePicker::MovePicker(const Position&               p,
     ttMove(ttm),
     depth(d) {
     assert(d <= DEPTH_ZERO);
-    assert(ttm == Move::None() || pos.pseudo_legal(ttm));
+    assert(ttm == Move::None() || (pos.pseudo_legal(ttm) && pos.legal(ttm)));
 
     stage = (p.checkers() != 0 ? EVASION_TT : QS_TT) + (ttm == Move::None());
 }
@@ -96,7 +96,7 @@ MovePicker::MovePicker(const Position&               p,
     ttMove(ttm),
     threshold(th) {
     assert(!p.checkers());
-    assert(ttm == Move::None() || pos.pseudo_legal(ttm));
+    assert(ttm == Move::None() || (pos.pseudo_legal(ttm) && pos.legal(ttm)));
 
     stage = PROBCUT_TT + !(ttm != Move::None() && p.capture_stage(ttm) && p.see_ge(ttm, th));
 }
@@ -131,11 +131,11 @@ void MovePicker::score() noexcept {
         else if constexpr (GT == QUIETS)
         {
             // Histories
-            m.value = 2 * (*mainHistory)[stm][m.org_dst()]
+            m.value = (*mainHistory)[stm][m.org_dst()]
                     + 2 * (*pawnHistory)[pawn_index(pos.pawn_key())][pc][dst]
                     + 2 * (*continuationHistory[0])[pc][dst]  //
                     + (*continuationHistory[1])[pc][dst]      //
-                    + (*continuationHistory[2])[pc][dst] / 4  //
+                    + (*continuationHistory[2])[pc][dst] / 3  //
                     + (*continuationHistory[3])[pc][dst]      //
                     + (*continuationHistory[5])[pc][dst];
 
@@ -146,16 +146,22 @@ void MovePicker::score() noexcept {
                 continue;
 
             // Bonus for escaping from capture
-            m.value += (pos.threatens(stm) & org)
-                       ? pt == QUEEN ? !(pos.attacks(xstm, ROOK) & dst) * 51700
-                       : pt == ROOK  ? !(pos.attacks(xstm, MINOR) & dst) * 25600
-                                     : !(pos.attacks(xstm, PAWN) & dst) * 15000
-                       : 0;
+            if ((pos.threatens(stm) & org))
+                m.value += pt == QUEEN ? !(pos.attacks(xstm, ROOK) & dst) * 21000
+                                           + !(pos.attacks(xstm, PAWN) & dst) * 16450
+                                           + !(pos.attacks(xstm, PAWN) & dst) * 14450
+                         : pt == ROOK ? !(pos.attacks(xstm, MINOR) & dst) * 15450
+                                          + !(pos.attacks(xstm, PAWN) & dst) * 14450
+                                      : !(pos.attacks(xstm, PAWN) & dst) * 14450;
 
             // Malus for putting piece en-prise
-            m.value -= pt == QUEEN ? !!(pos.attacks(xstm, ROOK) & dst) * 49000
-                     : pt == ROOK  ? !!(pos.attacks(xstm, MINOR) & dst) * 24335
-                                   : !!(pos.attacks(xstm, PAWN) & dst) * 14900;
+            if (!(pos.blockers(xstm) & org))
+                m.value -= pt == QUEEN ? !!(pos.attacks(xstm, ROOK) & dst) * 49000
+                         : pt == ROOK  ? !!(pos.attacks(xstm, MINOR) & dst) * 24335
+                                       : !!(pos.attacks(xstm, PAWN) & dst) * 14900;
+
+            if (pos.pinners() & org)
+                m.value -= !aligned(org, dst, pos.king_square(xstm)) * 1024;
         }
 
         else  // GT == EVASIONS
