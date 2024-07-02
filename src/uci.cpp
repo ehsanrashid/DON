@@ -34,7 +34,6 @@
 #include "position.h"
 #include "score.h"
 #include "search.h"
-#include "syzygy/tbprobe.h"
 
 namespace DON {
 
@@ -42,13 +41,6 @@ namespace {
 
 constexpr std::string_view StartFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 constexpr std::string_view PieceChar(" PNBRQK  pnbrqk");
-
-constexpr std::uint32_t MAX_HASH =
-#if defined(IS_64BIT)
-  0x2000000U;
-#else
-  0x800U;
-#endif
 
 template<typename... Ts>
 struct overload: Ts... {
@@ -153,66 +145,39 @@ Search::Limits parse_limits(std::istringstream& iss) noexcept {
     return limits;
 }
 
+void print_info_string(const std::string& infoStr) {
+    sync_cout;
+    for (std::string& info : split(infoStr, "\n"))
+        if (!is_whitespace(info))
+            std::cout << "info string " << info << "\n";
+    std::cout << sync_end;
+}
+
+void on_update_end(const Search::EndInfo& info) noexcept;
+void on_update_full(const Search::FullInfo& info) noexcept;
+void on_update_iter(const Search::IterInfo& info) noexcept;
+void on_update_move(const Search::MoveInfo& info) noexcept;
+
 }  // namespace
 
 UCI::UCI(int argc, const char** argv) noexcept :
     engine(argv[0]),
     cmdLine(argc, argv) {
 
-    auto& options = engine_options();
-    // clang-format off
-    options["NumaPolicy"] << Option("auto", [this](const Option& o) {
-        engine.set_numa_config(o);
-        print_numa_config_information();
-        print_thread_binding_information();
+    engine_options().add_info_listener([](const std::optional<std::string>& infoStr) {
+        if (infoStr.has_value())
+            print_info_string(*infoStr);
     });
-    options["Threads"]      << Option(1, 1, 1024, [this](const Option&) {
-        engine.resize_threads();
-        print_thread_binding_information();
-    });
-    options["Hash"]         << Option(16, 4, MAX_HASH, [this](const Option& o) { engine.resize_tt(o); });
-    options["Clear Hash"]   << Option([this](const Option&) { engine.init(); });
-    options["Retain Hash"]  << Option(false);
-    options["HashFile"]     << Option("hash.dat");
-    options["Save Hash"]    << Option([this](const Option&) {});
-    options["Load Hash"]    << Option([this](const Option&) {});
-    options["Ponder"]       << Option(false);
-    options["MultiPV"]      << Option(DefaultMultiPV, 1, std::numeric_limits<std::uint8_t>::max());
-    options["Skill Level"]  << Option(Search::Skill::MaxLevel, 0, Search::Skill::MaxLevel);
-    options["Move Overhead"] << Option(10, 0, 5000);
-    options["NodesTime"]    << Option(0, 0, 10000);
-    options["DrawMoveCount"] << Option(Position::DrawMoveCount, 5, 50, [](const Option& o) { Position::DrawMoveCount = o; });
-    options["UCI_Chess960"] << Option(Position::Chess960, [](const Option& o) { Position::Chess960 = o; });
-    options["UCI_LimitStrength"] << Option(false);
-    options["UCI_ELO"]      << Option(Search::Skill::MinELO, Search::Skill::MinELO, Search::Skill::MaxELO);
-    options["UCI_ShowWDL"]  << Option(false);
-    options["OwnBook"]      << Option(false);
-    options["BookFile"]     << Option("book.bin", [this](const Option& o) { engine.load_book(o); });
-    options["BookDepth"]    << Option(100, 1, MAX_MOVES);
-    options["BookPickBest"] << Option(true);
-    options["SyzygyPath"]   << Option("<empty>", [](const Option& o) { Tablebases::init(o); });
-    options["SyzygyProbeLimit"] << Option(7, 0, 7);
-    options["SyzygyProbeDepth"] << Option(1, 1, 100);
-    options["Syzygy50MoveRule"] << Option(true);
-    options["EvalFileBig"]  << Option(EvalFileDefaultNameBig, [this](const Option& o) { engine.load_big_network(o); });
-    options["EvalFileSmall"] << Option(EvalFileDefaultNameSmall, [this](const Option& o) { engine.load_small_network(o); });
-    options["ReportMinimal"] << Option(false);
-    options["DebugLogFile"] << Option("<empty>", [](const Option& o) { start_logger(o); });
-    // clang-format on
+
     engine.set_on_update_end(on_update_end);
     engine.set_on_update_full(on_update_full);
     engine.set_on_update_iter(on_update_iter);
     engine.set_on_update_move(on_update_move);
 
-    engine.load_networks();
-    engine.resize_threads();
-    engine.init();  // After threads are up
-
     engine.setup(StartFEN);
 }
 
 void UCI::handle_commands() noexcept {
-
     std::string cmd;
     for (int i = 1; i < cmdLine.argc; ++i)
         cmd += std::string(cmdLine.argv[i]) + " ";
@@ -248,9 +213,10 @@ void UCI::handle_commands() noexcept {
         else if (token == "uci")
         {
             sync_cout << engine_info(true) << '\n' << engine_options() << sync_endl;
-            print_numa_config_information();
-            print_thread_binding_information();
             sync_cout << "uciok" << sync_endl;
+            // Keep info strings after uciok for old GUIs
+            print_info_string(engine.get_numa_config_info());
+            print_info_string(engine.get_thread_binding_info());
         }
         else if (token == "ucinewgame")
             engine.init();
@@ -297,31 +263,8 @@ void UCI::handle_commands() noexcept {
     } while (cmdLine.argc == 1 && token != "quit");  // The command-line arguments are one-shot
 }
 
-void UCI::print_numa_config_information() const noexcept {
-    auto numaConfig = engine.get_numa_config();
-    sync_cout << "info string Available Processors: " << numaConfig << sync_endl;
-}
-
-void UCI::print_thread_binding_information() const noexcept {
-    auto boundThreadCounts = engine.get_bound_thread_counts();
-    if (!boundThreadCounts.empty())
-    {
-        std::ostringstream oss;
-        oss << "info string NUMA Node Thread Binding: ";
-        bool isFirst = true;
-        for (auto&& [current, total] : boundThreadCounts)
-        {
-            if (!isFirst)
-                oss << ":";
-            oss << current << "/" << total;
-            isFirst = false;
-        }
-        sync_cout << oss.str() << sync_endl;
-    }
-}
-
 void UCI::position(std::istringstream& iss) noexcept {
-    std::string token, fen;
+    std::string fen, token;
 
     iss >> token;
     token = to_lower(token);
@@ -331,8 +274,11 @@ void UCI::position(std::istringstream& iss) noexcept {
         iss >> token;  // Consume the "moves" token, if any
     }
     else if (token == "fen")
+    {
         while (iss >> token && to_lower(token) != "moves")
             fen += token + " ";
+        fen.pop_back();
+    }
     else
         return;
 
@@ -390,14 +336,14 @@ void UCI::bench(std::istringstream& iss) noexcept {
 
     std::uint64_t nodes = 0;
 
-    const std::vector<std::string> list = Benchmark::setup_bench(iss, engine.fen());
+    const std::vector<std::string> cmds = Benchmark::setup_bench(iss, engine.fen());
 
-    std::size_t num = std::count_if(list.begin(), list.end(), [](const std::string& cmd) {
+    std::size_t num = std::count_if(cmds.begin(), cmds.end(), [](const std::string& cmd) {
         return cmd.find("go ") == 0 || cmd.find("eval") == 0;
     });
 
     std::size_t cnt = 0;
-    for (const std::string& cmd : list)
+    for (const std::string& cmd : cmds)
     {
         std::istringstream is(cmd);
         std::string        token;
@@ -549,7 +495,7 @@ std::string UCI::move_to_can(Move m) noexcept {
     if (m == Move::None())
         return "(none)";
     if (m == Move::Null())
-        return "0000";
+        return "(null)";
 
     Square org = m.org_sq(), dst = m.dst_sq();
     if (m.type_of() == CASTLING && !Position::Chess960)
@@ -582,23 +528,25 @@ Move UCI::can_to_move(const std::string& can, const Position& pos) noexcept {
     return can_to_move(can, MoveList<LEGAL>(pos));
 }
 
-void UCI::on_update_end(const Search::EndInfo& info) noexcept {
+namespace {
+
+void on_update_end(const Search::EndInfo& info) noexcept {
     sync_cout << "info depth 0 score " << (info.inCheck ? "mate" : "cp") << " 0" << sync_endl;
 }
 
-void UCI::on_update_full(const Search::FullInfo& info) noexcept {
+void on_update_full(const Search::FullInfo& info) noexcept {
     std::ostringstream oss;
-    oss << "info"                                              //
-        << " depth " << info.depth                             //
-        << " seldepth " << info.rootMove.selDepth              //
-        << " multipv " << info.multiPV                         //
-        << " score " << format_score({info.value, info.pos});  //
+    oss << "info"                                                   //
+        << " depth " << info.depth                                  //
+        << " seldepth " << info.rootMove.selDepth                   //
+        << " multipv " << info.multiPV                              //
+        << " score " << UCI::format_score({info.value, info.pos});  //
     if (info.showBound)
         oss << (info.rootMove.lowerBound   ? " lowerbound"
                 : info.rootMove.upperBound ? " upperbound"
                                            : "");
     if (info.showWDL)
-        oss << " wdl " << to_wdl(info.value, info.pos);
+        oss << " wdl " << UCI::to_wdl(info.value, info.pos);
     oss << " time " << info.time                     //
         << " nodes " << info.nodes                   //
         << " nps " << 1000 * info.nodes / info.time  //
@@ -606,27 +554,25 @@ void UCI::on_update_full(const Search::FullInfo& info) noexcept {
         << " tbhits " << info.tbHits                 //
         << " pv";
     for (Move m : info.rootMove)
-        oss << " " << move_to_can(m);
+        oss << " " << UCI::move_to_can(m);
     sync_cout << oss.str() << sync_endl;
 }
 
-void UCI::on_update_iter(const Search::IterInfo& info) noexcept {
+void on_update_iter(const Search::IterInfo& info) noexcept {
     std::ostringstream oss;
-    oss << "info"                                      //
-        << " depth " << info.depth                     //
-        << " currmove " << move_to_can(info.currMove)  //
-        << " currmovenumber " << info.currMoveNumber;  //
+    oss << "info"                                           //
+        << " depth " << info.depth                          //
+        << " currmove " << UCI::move_to_can(info.currMove)  //
+        << " currmovenumber " << info.currMoveNumber;       //
     sync_cout << oss.str() << sync_endl;
 }
 
-void UCI::on_update_move(const Search::MoveInfo& info) noexcept {
-    sync_cout << "bestmove " << move_to_can(info.bestMove);
+void on_update_move(const Search::MoveInfo& info) noexcept {
+    sync_cout << "bestmove " << UCI::move_to_can(info.bestMove);
     if (info.ponderMove != Move::None())
-        std::cout << " ponder " << move_to_can(info.ponderMove);
+        std::cout << " ponder " << UCI::move_to_can(info.ponderMove);
     std::cout << sync_endl;
 }
-
-namespace {
 
 enum Ambiguity : std::uint8_t {
     AMBIGUITY_NONE,
@@ -682,7 +628,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     if (m == Move::None())
         return "(none)";
     if (m == Move::Null())
-        return "0000";
+        return "(null)";
     assert(MoveList<LEGAL>(pos).contains(m));
 
     std::ostringstream oss;

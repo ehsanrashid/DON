@@ -217,20 +217,20 @@ void HashTable::resize(std::size_t mbSize, ThreadPool& threads) noexcept {
 void HashTable::clear(ThreadPool& threads) noexcept {
     const std::uint16_t threadCount = threads.size();
 
-    for (std::uint16_t idx = 0; idx < threadCount; ++idx)
+    for (std::uint16_t threadId = 0; threadId < threadCount; ++threadId)
     {
-        threads.run_on_thread(idx, [this, idx, threadCount]() {
+        threads.run_on_thread(threadId, [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
             std::size_t stride = clusterCount / threadCount;
-            std::size_t start  = stride * idx;
-            std::size_t count  = 1 + idx != threadCount ? stride : clusterCount - start;
+            std::size_t start  = stride * threadId;
+            std::size_t count  = 1 + threadId != threadCount ? stride : clusterCount - start;
 
             std::memset(static_cast<void*>(&table[start]), 0, count * sizeof(Cluster));
         });
     }
 
-    for (std::uint16_t idx = 0; idx < threadCount; ++idx)
-        threads.wait_on_thread(idx);
+    for (std::uint16_t threadId = 0; threadId < threadCount; ++threadId)
+        threads.wait_on_thread(threadId);
 }
 
 HashTable::Entry* HashTable::probe(Key key, Depth depth, bool& hHit) const noexcept {
@@ -239,14 +239,14 @@ HashTable::Entry* HashTable::probe(Key key, Depth depth, bool& hHit) const noexc
 
     for (std::uint8_t i = 0; i < EntryCount; ++i)
         // Use the low 32 bits as key inside the cluster
-        if (hte[i].key32 == Key32(key) && hte[i].depth == depth)
-            return hHit = true, &hte[i];
+        if ((hte + i)->key32 == Key32(key) && (hte + i)->depth == depth)
+            return hHit = true, (hte + i);
 
     Entry* const lte = hte + EntryCount - 1;
     Entry*       rte = hte;
     for (std::uint8_t i = 1; i < EntryCount; ++i)
         if (rte->depth > hte[i].depth && depth > hte[i].depth)
-            rte = &hte[i];
+            rte = (hte + i);
 
     return hHit = false, rte->depth <= depth ? rte : lte;
 }

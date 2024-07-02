@@ -106,17 +106,17 @@ const std::vector<std::string> Defaults{
 // - and the type of the limit: depth, perft, nodes and movetime (in milliseconds).
 // Examples:
 //
-// bench                            : search default positions with 1 thread up to depth 13
+// bench                            : search default positions with 1 thread up to depth 13 (TT = 16MB)
 // bench 64 1 15                    : search default positions with 1 thread up to depth 15 (TT = 64MB)
-// bench 64 1 100000 default nodes  : search default positions with 1 thread for 100K nodes each
-// bench 64 4 5000 current movetime : search current position with 4 threads for 5 sec
-// bench 16 1 5 blah perft          : run a perft 5 on positions in filename "blah"
+// bench 64 1 100000 default nodes  : search default positions with 1 thread for 100K nodes each (TT = 64MB)
+// bench 64 4 5000 current movetime : search current position with 4 threads for 5 sec (TT = 64MB)
+// bench 16 1 5 blah perft          : run a perft 5 on positions in filename "blah" (TT = 16MB)
 std::vector<std::string> setup_bench(std::istringstream& iss,
                                      const std::string&  currentFen) noexcept {
 
     std::string token;
     // Assign default values to missing arguments
-    std::string ttSize    = (iss >> token) ? token : "16";
+    std::string hash      = (iss >> token) ? token : "16";
     std::string threads   = (iss >> token) ? token : "1";
     std::string limitVal  = (iss >> token) ? token : "13";
     std::string filename  = (iss >> token) ? to_lower(token) : "default";
@@ -143,30 +143,30 @@ std::vector<std::string> setup_bench(std::istringstream& iss,
 
         std::string fen;
         while (std::getline(ifstream, fen))
-            if (!fen.empty() && !std::all_of(fen.begin(), fen.end(), isspace))
+            if (!fen.empty() && !is_whitespace(fen))
                 fens.push_back(fen);
 
         ifstream.close();
     }
 
-    std::vector<std::string> list;
+    std::vector<std::string> cmds;
     if (limitType != "eval" && limitType != "perft")
     {
-        list.emplace_back("setoption name Threads value " + threads);
-        list.emplace_back("setoption name Hash value " + ttSize);
-        list.emplace_back("ucinewgame");
+        cmds.emplace_back("setoption name Threads value " + threads);
+        cmds.emplace_back("setoption name Hash value " + hash);
+        cmds.emplace_back("ucinewgame");
     }
 
     for (const std::string& fen : fens)
         if (fen.find("setoption") != std::string::npos)
-            list.emplace_back(fen);
+            cmds.emplace_back(fen);
         else
         {
-            list.emplace_back("position fen " + fen);
-            list.emplace_back(go);
+            cmds.emplace_back("position fen " + fen);
+            cmds.emplace_back(go);
         }
 
-    return list;
+    return cmds;
 }
 
 }  // namespace DON::Benchmark

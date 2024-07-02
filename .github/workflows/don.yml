@@ -90,6 +90,10 @@ jobs:
     uses: ./.github/workflows/sanitizers.yml
   Tests:
     uses: ./.github/workflows/tests.yml
+  Matetrack:
+    uses: ./.github/workflows/matetrack.yml
+  Games:
+    uses: ./.github/workflows/games.yml
   Binaries:
     if: github.repository == 'ehsanrashid/DON'
     needs: [Matrix, Prerelease, Compilation]

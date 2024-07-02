@@ -64,8 +64,8 @@ class SqrClippedReLU {
         constexpr IndexType NumChunks = InputDimensions / 16;
 
         static_assert(WeightScaleBits == 6);
-        const auto in  = reinterpret_cast<const __m128i*>(input);
-        const auto out = reinterpret_cast<__m128i*>(output);
+        auto in  = reinterpret_cast<const __m128i*>(input);
+        auto out = reinterpret_cast<__m128i*>(output);
         for (IndexType i = 0; i < NumChunks; ++i)
         {
             __m128i words0 =

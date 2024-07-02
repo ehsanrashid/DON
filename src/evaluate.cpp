@@ -47,7 +47,7 @@ Value evaluate(const Position&          pos,
     const Value Bonus     = pos.bonus();
     const Value Materials = pos.materials();
 
-    const short Delta = std::min(28 + pos.non_pawn_material(pos.side_to_move()) / 450, 44);
+    const short Delta = std::min(32 + pos.non_pawn_material(pos.side_to_move()) / 450, 48);
 
     // Blend nnue, optimism and complexity
     // clang-format off

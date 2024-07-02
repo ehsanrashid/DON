@@ -36,13 +36,6 @@ enum GenType;
 template<GenType GT>
 struct MoveList;
 
-namespace Search {
-struct EndInfo;
-struct FullInfo;
-struct IterInfo;
-struct MoveInfo;
-}  // namespace Search
-
 class UCI final {
    public:
     UCI(int argc, const char** argv) noexcept;
@@ -50,9 +43,6 @@ class UCI final {
     auto& engine_options() noexcept { return engine.get_options(); }
 
     void handle_commands() noexcept;
-
-    void print_numa_config_information() const noexcept;
-    void print_thread_binding_information() const noexcept;
 
     static int         to_cp(Value v, const Position& pos) noexcept;
     static std::string to_wdl(Value v, const Position& pos) noexcept;
@@ -79,11 +69,6 @@ class UCI final {
     void go(std::istringstream& iss) noexcept;
     void setoption(std::istringstream& iss) noexcept;
     void bench(std::istringstream& iss) noexcept;
-
-    static void on_update_end(const Search::EndInfo& info) noexcept;
-    static void on_update_full(const Search::FullInfo& info) noexcept;
-    static void on_update_iter(const Search::IterInfo& info) noexcept;
-    static void on_update_move(const Search::MoveInfo& info) noexcept;
 
     Engine      engine;
     CommandLine cmdLine;

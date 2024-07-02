@@ -64,8 +64,8 @@ using AdjustTokenPrivileges_ = bool (*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, 
 namespace DON {
 
 // Wrapper for systems where the c++17 implementation
-// does not guarantee the availability of aligned_alloc(). Memory allocated with
-// alloc_aligned_std() must be freed with free_aligned_std().
+// does not guarantee the availability of aligned_alloc().
+// Memory allocated with alloc_aligned_std() must be freed with free_aligned_std().
 void* alloc_aligned_std(std::size_t alignment, std::size_t allocSize) noexcept {
     // Apple requires 10.15, which is enforced in the makefile
 #if defined(_ISOC11_SOURCE) || defined(__APPLE__)
@@ -131,7 +131,7 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
         return nullptr;
 
     HANDLE hProcessToken{};
-    // We need SeLockMemoryPrivilege, so try to enable it for the process
+    // Need SeLockMemoryPrivilege, so try to enable it for the process
     if (!openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
                           &hProcessToken))
         return nullptr;
@@ -184,7 +184,7 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept {
     void* mem = alloc_aligned_lp_windows(allocSize);
 
     // Fall back to regular, page-aligned, allocation if necessary
-    if (!mem)
+    if (mem == nullptr)
         mem = VirtualAlloc(nullptr, allocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
     return mem;
@@ -200,7 +200,7 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept {
 
     void* mem = alloc_aligned_std(Alignment, roundAllocSize);
     #if defined(MADV_HUGEPAGE)
-    if (mem)
+    if (mem != nullptr)
         madvise(mem, roundAllocSize, MADV_HUGEPAGE);
     #endif
     return mem;
@@ -211,11 +211,10 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept {
 // nop if mem == nullptr
 void free_aligned_lp(void* mem) noexcept {
 #if defined(_WIN32)
-    if (mem && !VirtualFree(mem, 0, MEM_RELEASE))
+    if (mem != nullptr && !VirtualFree(mem, 0, MEM_RELEASE))
     {
-        DWORD err = GetLastError();
-        std::cerr << "Failed to free large page memory. Error code: 0x" << std::hex << err
-                  << std::dec << '\n';
+        std::cerr << "Failed to free large page memory."
+                  << "Error code: 0x" << std::hex << GetLastError() << std::dec << '\n';
         exit(EXIT_FAILURE);
     }
 #else

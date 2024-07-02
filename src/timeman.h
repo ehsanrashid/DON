@@ -52,6 +52,8 @@ class TimeManager final {
     void          advance(std::int64_t usedNodes) noexcept;
 
    private:
+    static constexpr std::uint64_t NodesOffset = 1ULL;
+
     TimePoint initialTime;
 
     TimePoint optimumTime;
@@ -88,7 +90,9 @@ inline void TimeManager::clear() noexcept {
 
 inline bool TimeManager::use_nodes_time() const noexcept { return nodesTime != 0; }
 
-inline std::uint64_t TimeManager::remain_nodes() const noexcept { return remainNodes - 1ULL; }
+inline std::uint64_t TimeManager::remain_nodes() const noexcept {
+    return remainNodes - NodesOffset;
+}
 
 }  // namespace DON
 

@@ -58,27 +58,26 @@ void TranspositionTable::init(ThreadPool& threads) noexcept {
     generation8                     = 0;
     const std::uint16_t threadCount = threads.size();
 
-    for (std::uint16_t idx = 0; idx < threadCount; ++idx)
+    for (std::uint16_t threadId = 0; threadId < threadCount; ++threadId)
     {
-        threads.run_on_thread(idx, [this, idx, threadCount]() {
+        threads.run_on_thread(threadId, [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
             std::size_t stride = clusterCount / threadCount;
-            std::size_t start  = stride * idx;
-            std::size_t count  = 1 + idx != threadCount ? stride : clusterCount - start;
+            std::size_t start  = stride * threadId;
+            std::size_t count  = 1 + threadId != threadCount ? stride : clusterCount - start;
 
             std::memset(static_cast<void*>(&table[start]), 0, count * sizeof(Cluster));
         });
     }
 
-    for (std::uint16_t idx = 0; idx < threadCount; ++idx)
-        threads.wait_on_thread(idx);
+    for (std::uint16_t threadId = 0; threadId < threadCount; ++threadId)
+        threads.wait_on_thread(threadId);
 }
 
 // Looks up the current position in the transposition table.
 // It returns true and a pointer to the TTEntry if the position is found.
-// Otherwise, it returns false and a pointer to an empty or least valuable TTEntry
-// to be replaced later. The replacement value of an entry is calculated as its depth
-// minus 2 times its relative age. TTEntry t1 is considered more valuable than TTEntry t2
+// Otherwise, it returns false and a pointer to an empty or least valuable TTEntry.
+// TTEntry t1 is considered more valuable than TTEntry t2
 // if replacement value of t1 is greater than that of t2.
 TTProbe TranspositionTable::probe(Key key) const noexcept {
 
@@ -88,7 +87,7 @@ TTProbe TranspositionTable::probe(Key key) const noexcept {
     {
         // Use the low 16 bits as key inside the cluster
         if (Key16(key) == (tte + i)->key16)
-            return {(tte + i)->depth8 != 0, (tte + i)};
+            return {(tte + i)->occupied(), (tte + i)};
 
         // Find an entry to be replaced according to the replacement strategy
         if (i != 0 && rte->worth(generation8) > (tte + i)->worth(generation8))
@@ -104,20 +103,24 @@ std::uint16_t TranspositionTable::hashfull() const noexcept {
     std::uint32_t cnt = 0;
     for (std::size_t idx = 0; idx < std::min<std::size_t>(clusterCount, 1000); ++idx)
         for (const auto& tte : table[idx].entry)
-            cnt += tte.depth8 != 0 && (tte.genBound8 & GENERATION_MASK) == generation8;
+            cnt += tte.occupied() && tte.generation() == generation8;
 
     return cnt / EntryCount;
 }
 
-bool TranspositionTable::save(const std::string& fname) const noexcept {
-    std::ofstream ofstream(fname, std::ios_base::binary);
+bool TranspositionTable::save(const std::string& hashFile) const noexcept {
+    if (hashFile.empty() || hashFile == "<empty>")
+        return false;
+    std::ofstream ofstream(hashFile, std::ios_base::binary);
     if (ofstream)
         ofstream.write(reinterpret_cast<const char*>(table), clusterCount * sizeof(Cluster));
     return ofstream.good();
 }
 
-bool TranspositionTable::load(const std::string& fname, ThreadPool& threads) noexcept {
-    std::ifstream ifstream(fname, std::ios_base::binary);
+bool TranspositionTable::load(const std::string& hashFile, ThreadPool& threads) noexcept {
+    if (hashFile.empty() || hashFile == "<empty>")
+        return false;
+    std::ifstream ifstream(hashFile, std::ios_base::binary);
     if (ifstream)
     {
         ifstream.seekg(0, std::ios_base::end);
@@ -129,5 +132,4 @@ bool TranspositionTable::load(const std::string& fname, ThreadPool& threads) noe
     }
     return ifstream.good();
 }
-
 }  // namespace DON

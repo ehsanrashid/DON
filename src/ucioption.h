@@ -23,6 +23,7 @@
 #include <functional>
 #include <iosfwd>
 #include <map>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -46,11 +47,14 @@ inline bool is_ok(OptionType ot) noexcept { return BUTTON <= ot && ot <= COMBO; 
 
 std::string_view to_string(OptionType ot) noexcept;
 
+class Options;
+
 // The Option class implements each option as specified by the UCI protocol
 class Option final {
    public:
-    using OnChange = std::function<void(const Option&)>;
+    using OnChange = std::function<std::optional<std::string>(const Option&)>;
 
+    explicit Option(const Options* ptrOptions);
     Option() noexcept;
     explicit Option(OnChange&& f) noexcept;
     explicit Option(bool v, OnChange&& f = nullptr) noexcept;
@@ -76,10 +80,24 @@ class Option final {
     std::string defaultValue, currentValue;
     int         minValue, maxValue;
     OnChange    onChange;
+
+    const Options* options = nullptr;
+
+    friend class OptionsMap;
 };
 
 class Options final {
    public:
+    using InfoListener = std::function<void(std::optional<std::string>)>;
+
+    Options()                          = default;
+    Options(const Options&)            = delete;
+    Options(Options&&)                 = delete;
+    Options& operator=(const Options&) = delete;
+    Options& operator=(Options&&)      = delete;
+
+    void add_info_listener(InfoListener&&);
+
     void setoption(const std::string& name, const std::string& value) noexcept;
 
     Option  operator[](const std::string& name) const noexcept;
@@ -98,7 +116,10 @@ class Options final {
     // The options container is defined as a std::map
     using OptionMap = std::map<std::string, Option, CaseInsensitiveLess>;
 
-    OptionMap options;
+    OptionMap    options;
+    InfoListener infoListener;
+
+    friend class Option;
 };
 
 }  // namespace DON

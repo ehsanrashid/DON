@@ -62,9 +62,9 @@ struct Cuckoo final {
     Move move;
 };
 
-std::array<Cuckoo, 0X2000> Cuckoos;
+std::array<Cuckoo, 0x2000> Cuckoos;
 
-// First and second hash functions for indexing the cuckoo tables
+// Hash functions for indexing the cuckoo tables
 constexpr Key16 H1(Key k) noexcept { return Key16(k >> 00) & (Cuckoos.size() - 1); }
 constexpr Key16 H2(Key k) noexcept { return Key16(k >> 16) & (Cuckoos.size() - 1); }
 
@@ -1209,7 +1209,7 @@ void Position::do_null_move(StateInfo& newSt, const TranspositionTable& tt) noex
     }
 
     ++st->rule50;
-    prefetch(tt.first_entry(key()));
+    tt.prefetch_entry(key());
 
     st->nullPly = 0;
     //st->checkers = 0;
@@ -1271,13 +1271,17 @@ Key Position::move_key(Move m) const noexcept {
     }
     else if (type_of(movedPiece) == PAWN && (int(dst) ^ int(org)) == NORTH_2
              && can_enpassant(~sideToMove, dst - pawn_spush(sideToMove), true))
+    {
+        assert(relative_rank(sideToMove, org) == RANK_2);
+        assert(relative_rank(sideToMove, dst) == RANK_4);
         k ^= Zobrist::enpassant[file_of(dst - pawn_spush(sideToMove))];
+    }
 
     return (is_ok(capturedPiece) || type_of(movedPiece) == PAWN) ? k : adjust_key(k, 1);
 }
 
-// Tests if the SEE (Static Exchange Evaluation)
-// value of the move is greater or equal to the given threshold.
+// Tests if the SEE (Static Exchange Evaluation) value of the move
+// is greater or equal to the given threshold.
 // An algorithm similar to alpha-beta pruning with a null window.
 bool Position::see_ge(Move m, int threshold) const noexcept {
     assert(m.is_ok());
@@ -1286,12 +1290,14 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     if (m.type_of() == CASTLING)
         return threshold <= 0;
 
+    Color stm = sideToMove;
+
     Square org = m.org_sq(), dst = m.dst_sq();
-    assert(color_of(piece_on(org)) == sideToMove);
+    assert(color_of(piece_on(org)) == stm);
 
     Square cap = dst;
     if (m.type_of() == EN_PASSANT)
-        cap -= pawn_spush(sideToMove);
+        cap -= pawn_spush(stm);
 
     int swap;
 
@@ -1303,14 +1309,22 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         return false;
 
     Piece movedPiece =
-      m.type_of() == PROMOTION ? make_piece(sideToMove, m.promotion_type()) : piece_on(org);
+      m.type_of() == PROMOTION ? make_piece(stm, m.promotion_type()) : piece_on(org);
     swap = PieceValue[movedPiece] - swap;
     if (swap <= 0)
         return true;
 
-    int res = 1;
+    bool enpassant = false;
+    if (type_of(movedPiece) == PAWN && (int(dst) ^ int(org)) == NORTH_2
+        && can_enpassant(~stm, dst - pawn_spush(stm), true))
+    {
+        assert(relative_rank(stm, org) == RANK_2);
+        assert(relative_rank(stm, dst) == RANK_4);
+        dst -= pawn_spush(stm);
+        enpassant = true;
+    }
 
-    Color stm = sideToMove;
+    int res = 1;
 
     bool discovery[COLOR_NB]{true, true};
 
@@ -1367,7 +1381,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
         res ^= 1;
 
-        if (discovery[stm] && (b = blockers(~stm) & stmAttackers))
+        if (!enpassant && discovery[stm] && (b = blockers(~stm) & stmAttackers))
         {
             Square sq;
             sq = pop_lsb(b);
@@ -1428,6 +1442,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 break;
             occupied ^= org = lsb(b);
             attackers |= qB & attacks_bb<BISHOP>(dst, occupied);
+            enpassant = false;
         }
         else if ((b = pieces(KNIGHT) & stmAttackers))
         {
@@ -1475,7 +1490,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     return bool(res);
 }
 
-// Tests whether the position is drawn by 50-move rule or by repetition.
+// Tests whether the current position is drawn by 50-move rule or by repetition.
 // It does not detect stalemates.
 bool Position::is_draw(std::int16_t ply) const noexcept {
 
@@ -1504,42 +1519,43 @@ bool Position::has_repeated() const noexcept {
     return false;
 }
 
-// Tests if the position has a move which draws by repetition, or
+// Tests if the current position has a move which draws by repetition, or
 // an earlier position has a move that directly reaches the current position.
 bool Position::has_game_cycle(std::int16_t ply) const noexcept {
     std::uint8_t end = std::min(st->rule50, st->nullPly);
+    // Enough reversible moves played
     if (end < 3)
         return false;
 
-    Key        key = st->key;
-    StateInfo* stp = st->previous;
+    Key baseKey = st->key;
+    Key iterKey = baseKey ^ st->previous->key ^ Zobrist::side;
 
+    StateInfo* stp = st->previous;
     for (std::uint8_t i = 3; i <= end; i += 2)
     {
+        iterKey ^= stp->previous->key ^ stp->previous->previous->key ^ Zobrist::side;
         stp = stp->previous->previous;
 
-        Key moveKey = key ^ stp->key;
-        if (Key16 j; (j = H1(moveKey), Cuckoos[j].key == moveKey)
-                     || (j = H2(moveKey), Cuckoos[j].key == moveKey))
+        // Opponent pieces have reverted
+        if (iterKey != 0)
+            continue;
+
+        Key moveKey = baseKey ^ stp->key;
+        // ‘moveKey’ is a single move
+        if (Key16 k; (k = H1(moveKey), Cuckoos[k].key == moveKey)
+                     || (k = H2(moveKey), Cuckoos[k].key == moveKey))
         {
-            Move   move = Cuckoos[j].move;
-            Square s1   = move.org_sq();
-            Square s2   = move.dst_sq();
+            Move   m  = Cuckoos[k].move;
+            Square s1 = m.org_sq();
+            Square s2 = m.dst_sq();
+
             // Path is clear
             if (!(pieces() & (between_bb(s1, s2) ^ s2)))
             {
-                if (i < ply)
-                    return true;
-
-                // For nodes before or at the root, check that the move is a
-                // repetition rather than a move to the current position.
-                // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in
-                // the same location, so have to select which square to check.
-                if (color_of(piece_on(empty_on(s1) ? s2 : s1)) != sideToMove)
-                    continue;
-
-                // For repetitions before or at the root, require one more
-                if (stp->repetition != 0)
+                if (i < ply
+                    // For nodes before or at the root, check that the move is a
+                    // repetition rather than a move to the current position.
+                    || stp->repetition != 0)
                     return true;
             }
         }
@@ -1547,7 +1563,7 @@ bool Position::has_game_cycle(std::int16_t ply) const noexcept {
     return false;
 }
 
-// Flips position with the white and black sides reversed.
+// Flips the current position with the white and black sides reversed.
 // This is only useful for debugging e.g. for finding evaluation symmetry bugs.
 void Position::flip() noexcept {
     std::istringstream iss(fen());
@@ -1580,6 +1596,7 @@ void Position::flip() noexcept {
 }
 
 #if !defined(NDEBUG)
+// Computes the hash key of the current position.
 Key Position::compute_key() const noexcept {
     Key key = 0;
 

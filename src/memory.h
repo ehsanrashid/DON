@@ -40,7 +40,7 @@ void  free_aligned_lp(void* mem) noexcept;
 // works for both single objects and arrays of unknown bound
 template<typename T, typename FreeFunc>
 void memory_deleter(T* mem, FreeFunc freeFunc) noexcept {
-    if (!mem)
+    if (mem == nullptr)
         return;
 
     // Explicitly needed to call the destructor
@@ -55,7 +55,7 @@ void memory_deleter(T* mem, FreeFunc freeFunc) noexcept {
 // works for both single objects and arrays of unknown bound
 template<typename T, typename FreeFunc>
 void memory_array_deleter(T* mem, FreeFunc freeFunc) noexcept {
-    if (!mem)
+    if (mem == nullptr)
         return;
 
     // Move back on the pointer to where the size is allocated.

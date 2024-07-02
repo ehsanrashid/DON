@@ -61,32 +61,34 @@ class TranspositionTable;
 // Equally, the store order in save() matches this order.
 struct TTEntry final {
 
-    constexpr Move  move() const noexcept { return move16; }
-    constexpr Depth depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
-    constexpr bool  pvNode() const noexcept { return bool(genBound8 & 0x4); }
-    constexpr Bound bound() const noexcept { return Bound(genBound8 & 0x3); }
-    constexpr Value value() const noexcept { return Value(value16); }
-    constexpr Value eval() const noexcept { return Value(eval16); }
+    constexpr Move   move() const noexcept { return move16; }
+    constexpr Depth  depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
+    constexpr bool   is_pv() const noexcept { return bool(genBound8 & 0x4); }
+    constexpr Bound  bound() const noexcept { return Bound(genBound8 & 0x3); }
+    constexpr Value  value() const noexcept { return Value(value16); }
+    constexpr Value  eval() const noexcept { return Value(eval16); }
+    constexpr bool   occupied() const noexcept { return depth8 != 0; }
+    constexpr UBit08 generation() const noexcept { return genBound8 & GENERATION_MASK; }
 
     // Populates the TTEntry with a new node's data, possibly
     // overwriting an old position. The update is not atomic and can be racy.
     FORCE_INLINE void
-    save(Key key, Depth d, bool pv, Bound b, Move m, Value v, Value ev, UBit08 gen) noexcept {
+    save(Key16 k16, Depth d, bool isPv, Bound b, Move m, Value v, Value ev, UBit08 gen) noexcept {
 
         // Preserve the old move if don't have a new one
         if (m != Move::None())
             move16 = m;
 
         // Overwrite less valuable entries (cheapest checks first)
-        if (b == BOUND_EXACT || Key16(key) != key16 || d + 4 + 2 * pv - DEPTH_OFFSET > depth8
-            || relative_age(gen))
+        if (b == BOUND_EXACT || k16 != key16 || 4 + d + 2 * isPv - DEPTH_OFFSET > depth8
+            || relative_age(gen) != 0)
         {
             assert(d > DEPTH_OFFSET);
             assert(d <= std::numeric_limits<UBit08>::max() + DEPTH_OFFSET);
 
-            key16     = Key16(key);
+            key16     = k16;
             depth8    = UBit08(d - DEPTH_OFFSET);
-            genBound8 = UBit08(gen | (4 * pv) | b);
+            genBound8 = UBit08(gen | (4 * isPv) | b);
             value16   = Bit16(v);
             eval16    = Bit16(ev);
         }
@@ -118,6 +120,26 @@ struct TTEntry final {
 struct TTProbe final {
     bool const     ttHit;
     TTEntry* const tte;
+};
+
+struct TTUpdater final {
+   public:
+    TTUpdater(TTEntry* const            tte,
+              const TranspositionTable& tt,
+              Key16                     key16,
+              std::int16_t              ply) noexcept :
+        _tte(tte),
+        _tt(tt),
+        _key16(key16),
+        _ply(ply) {}
+
+    void update(Depth depth, bool isPv, Bound bound, Move move, Value value, Value eval) noexcept;
+
+   private:
+    TTEntry* const            _tte;
+    const TranspositionTable& _tt;
+    Key16                     _key16;
+    std::int16_t              _ply;
 };
 
 class ThreadPool;
@@ -153,19 +175,21 @@ class TranspositionTable final {
     void resize(std::size_t mbSize, ThreadPool& threads) noexcept;
     void init(ThreadPool& threads) noexcept;
 
-    TTEntry* first_entry(Key key) const noexcept {
-        return &table[mul_hi64(key, clusterCount)].entry[0];
-    }
-
     TTProbe probe(Key key) const noexcept;
+    // Prefetch the cacheline which includes this key's entry
+    void prefetch_entry(Key key) const noexcept { prefetch(first_entry(key)); }
 
     std::uint16_t hashfull() const noexcept;
 
-    bool save(const std::string& fname) const noexcept;
-    bool load(const std::string& fname, ThreadPool& threads) noexcept;
+    bool save(const std::string& hashFile) const noexcept;
+    bool load(const std::string& hashFile, ThreadPool& threads) noexcept;
 
    private:
     void free() noexcept;
+
+    TTEntry* first_entry(Key key) const noexcept {
+        return &table[mul_hi64(key, clusterCount)].entry[0];
+    }
 
     Cluster*    table        = nullptr;
     std::size_t clusterCount = 0;

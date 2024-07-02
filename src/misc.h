@@ -50,7 +50,7 @@
 #endif
 
 namespace std {
-template<typename T, uint32_t M, uint32_t N>
+template<typename T, size_t M, size_t N>
 using array2d = array<array<T, M>, N>;
 }
 
@@ -68,24 +68,34 @@ std::ostream& operator<<(std::ostream& os, InOut io) noexcept;
 
 #define sync_cout std::cout << IO_LOCK
 #define sync_endl std::endl << IO_UNLOCK
+#define sync_end IO_UNLOCK
 
 constexpr std::uint64_t mul_hi64(std::uint64_t a, std::uint64_t b) noexcept {
 #if defined(__GNUC__) && defined(IS_64BIT)
-    __extension__ using uint128 = unsigned __int128;
-    return (uint128(a) * uint128(b)) >> 64;
+    __extension__ using uint128_t = unsigned __int128;
+    return (uint128_t(a) * uint128_t(b)) >> 64;
 #else
-    std::uint64_t aL = std::uint32_t(a >> 00), aH = std::uint32_t(a >> 32);
-    std::uint64_t bL = std::uint32_t(b >> 00), bH = std::uint32_t(b >> 32);
-    std::uint64_t c1 = aH * bL + std::uint32_t((aL * bL) >> 32);
+    std::uint64_t aL = std::uint32_t(a), aH = a >> 32;
+    std::uint64_t bL = std::uint32_t(b), bH = b >> 32;
+    std::uint64_t c1 = aH * bL + (aL * bL) >> 32;
     std::uint64_t c2 = aL * bH + std::uint32_t(c1);
     return aH * bH + (c1 >> 32) + (c2 >> 32);
 #endif
 }
 
-// Preloads the given address in L1/L2 cache. This is a non-blocking
-// function that doesn't stall the CPU waiting for data to be loaded from memory,
-// which can be quite slow.
-void prefetch(const void* addr) noexcept;
+// Preloads the given address in L1/L2 cache.
+// This is a non-blocking function that doesn't stall the CPU
+// waiting for data to be loaded from memory, which can be quite slow.
+inline void prefetch([[maybe_unused]] const void* const addr) noexcept {
+
+#if defined(USE_PREFETCH)
+    #if defined(_MSC_VER)
+    _mm_prefetch(static_cast<const char*>(addr), _MM_HINT_T0);
+    #else
+    __builtin_prefetch(addr);
+    #endif
+#endif
+}
 
 using SystemClock  = std::chrono::system_clock;
 using SteadyClock  = std::chrono::steady_clock;
@@ -103,7 +113,7 @@ inline TimePoint now() noexcept {
 
 std::string format_time(std::chrono::time_point<SystemClock> timePoint);
 
-void start_logger(const std::string& fname) noexcept;
+void start_logger(const std::string& logFile) noexcept;
 
 #if defined(__linux__)
 
@@ -222,9 +232,12 @@ inline std::vector<std::string> split(const std::string& str,
     return res;
 }
 
+inline bool is_whitespace(const std::string& str) {
+    return std::all_of(str.begin(), str.end(), isspace);
+}
+
 inline void remove_whitespace(std::string& str) noexcept {
-    str.erase(std::remove_if(str.begin(), str.end(), [](char c) { return std::isspace(c); }),
-              str.end());
+    str.erase(std::remove_if(str.begin(), str.end(), isspace), str.end());
 }
 
 std::size_t str_to_size_t(const std::string& str) noexcept;

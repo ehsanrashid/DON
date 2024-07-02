@@ -160,7 +160,7 @@ void MovePicker::score() noexcept {
                          : pt == ROOK  ? !!(pos.attacks(xstm, MINOR) & dst) * 24335
                                        : !!(pos.attacks(xstm, PAWN) & dst) * 14900;
 
-            if (pos.pinners() & org)
+            if ((pos.pinners() & org))
                 m.value -= !aligned(org, dst, pos.king_square(xstm)) * 1024;
         }
 

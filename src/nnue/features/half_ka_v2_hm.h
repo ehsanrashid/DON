@@ -29,9 +29,8 @@
 namespace DON {
 struct StateInfo;
 class Position;
-}  // namespace DON
 
-namespace DON::Eval::NNUE::Features {
+namespace Eval::NNUE::Features {
 
 template<typename T, std::size_t MaxSize>
 class ValueList final {
@@ -50,7 +49,7 @@ class ValueList final {
 
 // Feature HalfKAv2_hm: Combination of the position of own king and the
 // position of pieces. Position mirrored such that king is always on e..h files.
-class HalfKAv2_hm {
+class HalfKAv2_hm final {
 
     // Unique number for each piece type on each square
     enum {
@@ -161,6 +160,7 @@ class HalfKAv2_hm {
     static bool requires_refresh(const StateInfo* st, Color perspective) noexcept;
 };
 
-}  // namespace DON::Eval::NNUE::Features
+}  // namespace Eval::NNUE::Features
+}  // namespace DON
 
 #endif  // #ifndef NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED

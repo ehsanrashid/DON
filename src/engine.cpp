@@ -32,21 +32,78 @@
 
 namespace DON {
 
+namespace {
+constexpr std::uint32_t MAX_HASH =
+#if defined(IS_64BIT)
+  0x2000000U;
+#else
+  0x800U;
+#endif
+
+}  // namespace
+
 namespace NN = Eval::NNUE;
 
 Engine::Engine(const std::string& path) noexcept :
     binaryDirectory(CommandLine::get_binary_directory(path)),
     numaContext(NumaConfig::from_system()),
+    threads(),
     networks(
       numaContext,
       NN::Networks(
         NN::BigNetwork({EvalFileDefaultNameBig, "None", ""}, NN::EmbeddedNNUEType::BIG),
-        NN::SmallNetwork({EvalFileDefaultNameSmall, "None", ""}, NN::EmbeddedNNUEType::SMALL))),
-    threads() {}
+        NN::SmallNetwork({EvalFileDefaultNameSmall, "None", ""}, NN::EmbeddedNNUEType::SMALL))) {
+
+    // clang-format off
+    options["NumaPolicy"] << Option("auto", [this](const Option& o) {
+        set_numa_config(o);
+        return get_numa_config_info() + "\n" + get_thread_binding_info();
+    });
+    options["Threads"]      << Option(1, 1, 1024, [this](const Option& o) {
+        resize_threads_tt();
+        return "Threads: " + std::to_string(int(o)) + "\n" + get_thread_binding_info();
+    });
+    options["Hash"]         << Option(16, 4, MAX_HASH, [this](const Option& o) {
+        resize_tt(o);
+        return "Hash: " + std::to_string(int(o));
+    });
+    options["Clear Hash"]   << Option([this](const Option&) { init(); return std::nullopt; });
+    options["Retain Hash"]  << Option(false);
+    options["HashFile"]     << Option("<empty>");
+    options["Save Hash"]    << Option([this](const Option&) { return std::nullopt; });
+    options["Load Hash"]    << Option([this](const Option&) { return std::nullopt; });
+    options["Ponder"]       << Option(false);
+    options["MultiPV"]      << Option(DefaultMultiPV, 1, std::numeric_limits<std::uint8_t>::max());
+    options["Skill Level"]  << Option(Search::Skill::MaxLevel, 0, Search::Skill::MaxLevel);
+    options["Move Overhead"] << Option(10, 0, 5000);
+    options["NodesTime"]    << Option(0, 0, 10000);
+    options["DrawMoveCount"] << Option(Position::DrawMoveCount, 5, 50, [](const Option& o) { Position::DrawMoveCount = o; return std::nullopt; });
+    options["UCI_Chess960"] << Option(Position::Chess960, [](const Option& o) { Position::Chess960 = o; return std::nullopt; });
+    options["UCI_LimitStrength"] << Option(false);
+    options["UCI_ELO"]      << Option(Search::Skill::MinELO, Search::Skill::MinELO, Search::Skill::MaxELO);
+    options["UCI_ShowWDL"]  << Option(false);
+    options["OwnBook"]      << Option(false);
+    options["BookFile"]     << Option("<empty>", [this](const Option& o) { load_book(o); return std::nullopt; });
+    options["BookDepth"]    << Option(100, 1, 256);
+    options["BookPickBest"] << Option(true);
+    options["SyzygyPath"]   << Option("<empty>", [](const Option& o) { Tablebases::init(o); return std::nullopt; });
+    options["SyzygyProbeLimit"] << Option(7, 0, 7);
+    options["SyzygyProbeDepth"] << Option(1, 1, 100);
+    options["Syzygy50MoveRule"] << Option(true);
+    options["EvalFileBig"]  << Option(EvalFileDefaultNameBig, [this](const Option& o) { load_big_network(o); return std::nullopt; });
+    options["EvalFileSmall"] << Option(EvalFileDefaultNameSmall, [this](const Option& o) { load_small_network(o); return std::nullopt; });
+    options["ReportMinimal"] << Option(false);
+    options["DebugLogFile"] << Option("<empty>", [](const Option& o) { start_logger(o); return std::nullopt; });
+    // clang-format on
+
+    load_networks();
+    resize_threads_tt();
+}
 
 Engine::~Engine() noexcept { wait_finish(); }
 
-Options& Engine::get_options() noexcept { return options; }
+const Options& Engine::get_options() const noexcept { return options; }
+Options&       Engine::get_options() noexcept { return options; }
 
 std::string Engine::fen() const noexcept { return pos.fen(); }
 
@@ -86,8 +143,8 @@ void Engine::init() noexcept {
     if (options["Retain Hash"])
         return;
     wait_finish();
-    tt.init(threads);
     threads.init();
+    tt.init(threads);
     // @TODO wont work with multiple instances
     Tablebases::init(options["SyzygyPath"]);  // Free mapped files
 }
@@ -95,7 +152,7 @@ void Engine::init() noexcept {
 void Engine::wait_finish() const noexcept { threads.main_thread()->wait_finish(); }
 
 
-void Engine::resize_threads() noexcept {
+void Engine::resize_threads_tt() noexcept {
     threads.set(numaContext.get_numa_config(), {options, networks, threads, tt}, updateContext);
     // Reallocate the hash with the new threadpool size
     resize_tt(options["Hash"]);
@@ -122,7 +179,6 @@ void Engine::eval() noexcept {
 
 void Engine::flip() noexcept { pos.flip(); }
 
-
 void Engine::set_numa_config(const std::string& str) {
     if (str == "auto" || str == "system")
         numaContext.set_numa_config(NumaConfig::from_system());
@@ -138,7 +194,7 @@ void Engine::set_numa_config(const std::string& str) {
         numaContext.set_numa_config(NumaConfig::from_string(str));
 
     // Force reallocation of threads in case affinities need to change.
-    resize_threads();
+    resize_threads_tt();
 }
 
 std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts() const noexcept {
@@ -157,6 +213,31 @@ std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts
 
 std::string Engine::get_numa_config() const noexcept {
     return numaContext.get_numa_config().to_string();
+}
+
+std::string Engine::get_numa_config_info() const noexcept {
+    std::string numaConfig = get_numa_config();
+    return "Available Processors: " + numaConfig;
+}
+
+std::string Engine::get_thread_binding_info() const noexcept {
+    std::ostringstream oss;
+
+    auto boundThreadCounts = get_bound_thread_counts();
+    if (!boundThreadCounts.empty())
+    {
+        oss << "NUMA Node Thread Binding: ";
+        bool isFirst = true;
+        for (auto&& [current, total] : boundThreadCounts)
+        {
+            if (!isFirst)
+                oss << ":";
+            oss << current << "/" << total;
+            isFirst = false;
+        }
+    }
+
+    return oss.str();
 }
 
 void Engine::verify_networks() const noexcept {

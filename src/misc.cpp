@@ -83,7 +83,7 @@ class Logger final {
     std::ofstream ofstream;
 
    public:
-    static void start(std::string_view fname) noexcept {
+    static void start(std::string_view logFile) noexcept {
         static Logger logger(std::cin, std::cout);  // Tie std::cin and std::cout to a file.
 
         if (logger.ofstream.is_open())
@@ -95,14 +95,14 @@ class Logger final {
             logger.ofstream.close();
         }
 
-        if (fname.empty() || fname == "<empty>")
+        if (logFile.empty() || logFile == "<empty>")
             return;
 
-        logger.ofstream.open(fname.data(), std::ios_base::out | std::ios_base::app);
+        logger.ofstream.open(logFile.data(), std::ios_base::out | std::ios_base::app);
 
         if (!logger.ofstream.is_open())
         {
-            std::cerr << "Unable to open debug log file: " << fname << '\n';
+            std::cerr << "Unable to open debug log file: " << logFile << '\n';
             exit(EXIT_FAILURE);
         }
         logger.ofstream << "[" << format_time(SystemClock::now()) << "] ->\n";
@@ -299,17 +299,6 @@ std::ostream& operator<<(std::ostream& os, InOut io) noexcept {
     return os;
 }
 
-void prefetch([[maybe_unused]] const void* addr) noexcept {
-
-#if defined(USE_PREFETCH)
-    #if defined(_MSC_VER)
-    _mm_prefetch(static_cast<const char*>(addr), _MM_HINT_T0);
-    #else
-    __builtin_prefetch(addr);
-    #endif
-#endif
-}
-
 /*
 std::ostream& operator<<(std::ostream&                            os,
                          [[maybe_unused]] SystemClock::time_point timePoint) noexcept {
@@ -360,7 +349,7 @@ std::string format_time(std::chrono::time_point<SystemClock> timePoint) {
 }
 
 // Trampoline helper to avoid moving Logger to misc.h
-void start_logger(const std::string& fname) noexcept { Logger::start(fname); }
+void start_logger(const std::string& logFile) noexcept { Logger::start(logFile); }
 
 
 #if !defined(NDEBUG)
@@ -370,10 +359,14 @@ namespace {
 
 template<std::uint8_t N>
 struct Info {
-    std::atomic_int64_t data[N];  // = {0};
+    std::array<std::atomic_int64_t, N> data;
 
-    constexpr inline std::atomic_int64_t& operator[](std::uint8_t index) noexcept {
-        return data[index];
+    constexpr std::atomic_int64_t& operator[](std::uint8_t index) noexcept { return data[index]; }
+
+    void init(std::int64_t value) noexcept {
+        data[0] = 0;
+        for (std::uint8_t i = 1; i < N; ++i)
+            data[i] = value;
     }
 };
 
@@ -392,12 +385,12 @@ void init() noexcept {
 
     for (std::uint8_t i = 0; i < MaxSlot; ++i)
     {
-        hit[i][0] = hit[i][1] = 0;
-        min[i][0] = 0, min[i][1] = std::numeric_limits<std::int64_t>::max();
-        max[i][0] = 0, max[i][1] = std::numeric_limits<std::int64_t>::min();
-        mean[i][0] = mean[i][1] = 0;
-        stdev[i][0] = stdev[i][1] = stdev[i][2] = 0;
-        correl[i][0] = correl[i][1] = correl[i][2] = correl[i][3] = correl[i][4] = correl[i][5] = 0;
+        hit[i].init(0);
+        min[i].init(std::numeric_limits<std::int64_t>::max());
+        max[i].init(std::numeric_limits<std::int64_t>::min());
+        mean[i].init(0);
+        stdev[i].init(0);
+        correl[i].init(0);
     }
 }
 
@@ -411,13 +404,17 @@ void hit_on(bool cond, std::uint8_t slot) noexcept {
 void min_of(std::int64_t value, std::uint8_t slot) noexcept {
 
     ++min[slot][0];
-    min[slot][1] = std::min<std::int64_t>(value, min[slot][1]);
+    std::int64_t minValue = min[slot][1].load();
+    while (minValue > value && !min[slot][1].compare_exchange_weak(minValue, value))
+    {}
 }
 
 void max_of(std::int64_t value, std::uint8_t slot) noexcept {
 
     ++max[slot][0];
-    max[slot][1] = std::max<std::int64_t>(value, max[slot][1]);
+    std::int64_t maxValue = max[slot][1].load();
+    while (maxValue < value && !max[slot][1].compare_exchange_weak(maxValue, value))
+    {}
 }
 
 void mean_of(std::int64_t value, std::uint8_t slot) noexcept {
@@ -447,7 +444,7 @@ void print() noexcept {
 
     std::uint64_t n;
 
-    auto avg = [&n](std::int64_t x) { return double(x) / n; };
+    auto avg = [&](std::int64_t x) { return double(x) / n; };
     auto sqr = [](double x) { return x * x; };
 
     for (std::uint8_t i = 0; i < MaxSlot; ++i)

@@ -86,7 +86,7 @@ class Moves final {
     void append(const Moves& ms) noexcept { append(ms.begin(), ms.end()); }
     void pop() noexcept { moves.pop_back(); }
 
-    //void reserve(std::size_t newSize) noexcept { moves.reserve(newSize); }
+    // void reserve(std::size_t newSize) noexcept { moves.reserve(newSize); }
     void resize(std::size_t newSize) noexcept { moves.resize(newSize); }
     void clear() noexcept { moves.clear(); }
 

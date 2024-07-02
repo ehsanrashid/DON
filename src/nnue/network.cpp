@@ -30,7 +30,6 @@
 #include "nnue_common.h"
 
 namespace DON {
-
 namespace Eval::NNUE {
 
 namespace {
@@ -65,8 +64,8 @@ struct EmbeddedNNUE final {
     const unsigned int         size;
 };
 
-EmbeddedNNUE get_embedded(Eval::NNUE::EmbeddedNNUEType type) noexcept {
-    return type == Eval::NNUE::EmbeddedNNUEType::BIG
+EmbeddedNNUE get_embedded(EmbeddedNNUEType type) noexcept {
+    return type == EmbeddedNNUEType::BIG
            ? EmbeddedNNUE(gEmbeddedNNUEBigData, gEmbeddedNNUEBigEnd, gEmbeddedNNUEBigSize)
            : EmbeddedNNUE(gEmbeddedNNUESmallData, gEmbeddedNNUESmallEnd, gEmbeddedNNUESmallSize);
 }
@@ -206,12 +205,12 @@ Network<Arch, Transformer>::evaluate(const Position&                         pos
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType
       transformedFeaturesUnaligned[FeatureTransformer<FTDimensions, nullptr>::BufferSize
-                                   + Alignment / sizeof(TransformedFeatureType)];
+                                   + Alignment / sizeof(TransformedFeatureType)]{};
 
     auto* transformedFeatures = align_ptr_up<Alignment>(&transformedFeaturesUnaligned[0]);
 #else
     alignas(Alignment) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<FTDimensions, nullptr>::BufferSize];
+      transformedFeatures[FeatureTransformer<FTDimensions, nullptr>::BufferSize]{};
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, Alignment);
@@ -270,12 +269,12 @@ NnueEvalTrace Network<Arch, Transformer>::trace_eval(
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType
       transformedFeaturesUnaligned[FeatureTransformer<FTDimensions, nullptr>::BufferSize
-                                   + Alignment / sizeof(TransformedFeatureType)];
+                                   + Alignment / sizeof(TransformedFeatureType)]{};
 
     auto* transformedFeatures = align_ptr_up<Alignment>(&transformedFeaturesUnaligned[0]);
 #else
     alignas(Alignment) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<FTDimensions, nullptr>::BufferSize];
+      transformedFeatures[FeatureTransformer<FTDimensions, nullptr>::BufferSize]{};
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, Alignment);

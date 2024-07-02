@@ -154,7 +154,6 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
         if (status != 0)
             return std::make_pair(status,
                                   std::vector(alignedArrGroup, alignedArrGroup + groupCount));
-
     }
 
     return std::make_pair(0, std::vector<USHORT>());
@@ -656,7 +655,7 @@ class NumaConfig final {
                 str += ":";
 
             bool isFirstSet = true;
-            auto startItr = cpus.begin();
+            auto startItr   = cpus.begin();
             for (auto itr = cpus.begin(); itr != cpus.end(); ++itr)
             {
                 auto nextItr = std::next(itr);
@@ -677,7 +676,7 @@ class NumaConfig final {
                     else
                         str += std::to_string(lstIdx);
 
-                    startItr = nextItr;
+                    startItr   = nextItr;
                     isFirstSet = false;
                 }
             }

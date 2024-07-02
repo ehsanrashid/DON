@@ -38,10 +38,10 @@ namespace DON {
 class Position;
 class Options;
 
-// Sometimes we don't want to actually bind the threads, but the recipent still
+// Sometimes we don't want to actually bind the threads, but the recipient still
 // needs to think it runs on *some* NUMA node, such that it can access structures
 // that rely on NUMA node knowledge. This class encapsulates this optional process
-// such that the recipent does not need to know whether the binding happened or not.
+// such that the recipient does not need to know whether the binding happened or not.
 class OptionalThreadToNumaNodeBinder {
    public:
     OptionalThreadToNumaNodeBinder(NumaIndex nId) :
@@ -126,6 +126,7 @@ inline void Thread::start_search() noexcept {
     run_custom_job([this]() { worker->start_search(); });
 }
 
+using ThreadPtr = std::unique_ptr<Thread>;
 
 // ThreadPool struct handles all the threads-related stuff like init, starting,
 // parking and, most importantly, launching a thread.
@@ -163,8 +164,8 @@ class ThreadPool final {
     void start_search() const noexcept;
     void wait_finish() const noexcept;
 
-    void run_on_thread(std::uint16_t threadId, std::function<void()> func);
-    void wait_on_thread(std::uint16_t threadId);
+    void run_on_thread(std::uint16_t threadId, std::function<void()> func) noexcept;
+    void wait_on_thread(std::uint16_t threadId) noexcept;
 
     std::vector<std::size_t> get_bound_thread_counts() const noexcept;
 
@@ -196,9 +197,9 @@ class ThreadPool final {
         return sum;
     }
 
-    std::vector<std::unique_ptr<Thread>> threads;
-    std::vector<NumaIndex>               boundThreadToNumaNode;
-    StateListPtr                         setupStates;
+    std::vector<ThreadPtr> threads;
+    std::vector<NumaIndex> boundThreadToNumaNode;
+    StateListPtr           setupStates;
 };
 
 inline ThreadPool::~ThreadPool() noexcept { clear(); }

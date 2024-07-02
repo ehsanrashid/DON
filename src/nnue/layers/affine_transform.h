@@ -50,27 +50,31 @@ void affine_transform_non_ssse3(std::int32_t*       output,
     #if defined(USE_SSE2) || defined(USE_NEON_DOTPROD) || defined(USE_NEON)
         #if defined(USE_SSE2)
     // At least a multiple of 16, with SSE2.
-    constexpr IndexType NumChunks   = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
-    const __m128i       Zeros       = _mm_setzero_si128();
-    const auto          inputVector = reinterpret_cast<const __m128i*>(input);
+    constexpr IndexType NumChunks = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
+
+    __m128i Zeros = _mm_setzero_si128();
+
+    auto inputVector = reinterpret_cast<const __m128i*>(input);
 
         #elif defined(USE_NEON_DOTPROD)
-    constexpr IndexType NumChunks   = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
-    const auto          inputVector = reinterpret_cast<const int8x16_t*>(input);
+    constexpr IndexType NumChunks = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
+
+    auto inputVector = reinterpret_cast<const int8x16_t*>(input);
 
         #elif defined(USE_NEON)
-    constexpr IndexType NumChunks   = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
-    const auto          inputVector = reinterpret_cast<const int8x8_t*>(input);
+    constexpr IndexType NumChunks = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
+
+    auto inputVector = reinterpret_cast<const int8x8_t*>(input);
         #endif
 
     for (IndexType i = 0; i < OutputDimensions; ++i)
     {
-        const IndexType offset = i * PaddedInputDimensions;
+        IndexType offset = i * PaddedInputDimensions;
 
         #if defined(USE_SSE2)
-        __m128i    sumLo = _mm_cvtsi32_si128(biases[i]);
-        __m128i    sumHi = Zeros;
-        const auto row   = reinterpret_cast<const __m128i*>(&weights[offset]);
+        __m128i sumLo = _mm_cvtsi32_si128(biases[i]);
+        __m128i sumHi = Zeros;
+        auto    row   = reinterpret_cast<const __m128i*>(&weights[offset]);
         for (IndexType j = 0; j < NumChunks; ++j)
         {
             __m128i row_j           = _mm_load_si128(&row[j]);
@@ -92,8 +96,8 @@ void affine_transform_non_ssse3(std::int32_t*       output,
         output[i]             = _mm_cvtsi128_si32(sum);
 
         #elif defined(USE_NEON_DOTPROD)
-        int32x4_t  sum = {biases[i]};
-        const auto row = reinterpret_cast<const int8x16_t*>(&weights[offset]);
+        int32x4_t sum = {biases[i]};
+        auto      row = reinterpret_cast<const int8x16_t*>(&weights[offset]);
         for (IndexType j = 0; j < NumChunks; ++j)
         {
             sum = vdotq_s32(sum, inputVector[j], row[j]);
@@ -101,8 +105,8 @@ void affine_transform_non_ssse3(std::int32_t*       output,
         output[i] = vaddvq_s32(sum);
 
         #elif defined(USE_NEON)
-        int32x4_t  sum = {biases[i]};
-        const auto row = reinterpret_cast<const int8x8_t*>(&weights[offset]);
+        int32x4_t sum = {biases[i]};
+        auto      row = reinterpret_cast<const int8x8_t*>(&weights[offset]);
         for (IndexType j = 0; j < NumChunks; ++j)
         {
             int16x8_t product = vmull_s8(inputVector[j * 2], row[j * 2]);
@@ -118,12 +122,11 @@ void affine_transform_non_ssse3(std::int32_t*       output,
 
     // Traverse weights in transpose order to take advantage of input sparsity
     for (IndexType i = 0; i < InputDimensions; ++i)
-        if (input[i])
+        if (input[i] != 0)
         {
-            const std::int8_t* w  = &weights[i];
-            const int          in = input[i];
+            std::int8_t* w = &weights[i];
             for (IndexType j = 0; j < OutputDimensions; ++j)
-                output[j] += w[j * PaddedInputDimensions] * in;
+                output[j] += w[j * PaddedInputDimensions] * input[i];
         }
     #endif
 }
@@ -150,7 +153,7 @@ class AffineTransform {
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t get_hash_value(std::uint32_t prevHash) noexcept {
-        std::uint32_t hashValue = 0xCC03DAE4u;
+        std::uint32_t hashValue = 0xCC03DAE4U;
         hashValue += OutputDimensions;
         hashValue ^= prevHash >> 1;
         hashValue ^= prevHash << 31;
@@ -224,25 +227,24 @@ class AffineTransform {
             constexpr IndexType NumChunks = ceil_to_multiple<IndexType>(InputDimensions, 8) / 4;
             constexpr IndexType NumRegs   = OutputDimensions / OutputSimdWidth;
 
-            const auto   input32 = reinterpret_cast<const std::int32_t*>(input);
-            const vec_t* biasvec = reinterpret_cast<const vec_t*>(biases);
-            vec_t        acc[NumRegs];
+            auto  input32 = reinterpret_cast<const std::int32_t*>(input);
+            auto  biasVec = reinterpret_cast<const vec_t*>(biases);
+            vec_t acc[NumRegs];
             for (IndexType k = 0; k < NumRegs; ++k)
-                acc[k] = biasvec[k];
+                acc[k] = biasVec[k];
 
             for (IndexType i = 0; i < NumChunks; ++i)
             {
-                const vec_t in0 = vec_set_32(input32[i]);
-                const auto  col0 =
-                  reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
+                vec_t in0  = vec_set_32(input32[i]);
+                auto  col0 = reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
 
                 for (IndexType k = 0; k < NumRegs; ++k)
                     vec_add_dpbusd_32(acc[k], in0, col0[k]);
             }
 
-            vec_t* outptr = reinterpret_cast<vec_t*>(output);
+            auto outVec = reinterpret_cast<vec_t*>(output);
             for (IndexType k = 0; k < NumRegs; ++k)
-                outptr[k] = acc[k];
+                outVec[k] = acc[k];
 
     #undef vec_setzero
     #undef vec_set_32
@@ -268,19 +270,20 @@ class AffineTransform {
         #define vec_hadd Simd::m128_hadd
     #endif
 
-            const auto inputVector = reinterpret_cast<const vec_t*>(input);
+            auto inputVector = reinterpret_cast<const vec_t*>(input);
 
             static constexpr IndexType InputSimdWidth = sizeof(vec_t) / sizeof(InputType);
 
             static_assert(PaddedInputDimensions % InputSimdWidth == 0);
 
             constexpr IndexType NumChunks = PaddedInputDimensions / InputSimdWidth;
-            vec_t               sum0      = vec_setzero();
-            const auto          row0      = reinterpret_cast<const vec_t*>(&weights[0]);
+
+            vec_t sum0 = vec_setzero();
+            auto  row0 = reinterpret_cast<const vec_t*>(&weights[0]);
 
             for (int j = 0; j < int(NumChunks); ++j)
             {
-                const vec_t in = inputVector[j];
+                vec_t in = inputVector[j];
                 vec_add_dpbusd_32(sum0, in, row0[j]);
             }
             output[0] = vec_hadd(sum0, biases[0]);

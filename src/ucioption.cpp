@@ -52,6 +52,10 @@ std::string_view to_string(OptionType optType) noexcept {
     return itr != OptionTypeString.end() ? itr->second : "none";
 }
 
+Option::Option(const Options* ptrOptions) :
+    type(OPT_NONE),
+    options(ptrOptions) {}
+
 Option::Option() noexcept :
     type(OPT_NONE),
     minValue(0),
@@ -119,8 +123,11 @@ bool Option::operator!=(std::string_view v) const noexcept { return !(*this == v
 void Option::operator<<(const Option& option) noexcept {
     static std::uint16_t insertOrder = 0;
 
-    *this = option;
-    idx   = insertOrder++;
+    auto ptrOptions = this->options;
+    *this           = option;
+    this->options   = ptrOptions;
+
+    idx = insertOrder++;
 }
 
 // Updates currentValue and triggers on_change() action.
@@ -141,7 +148,7 @@ Option& Option::operator=(std::string value) noexcept {
     }
     else if (type == STRING)
     {
-        if (!value.empty() && std::all_of(value.begin(), value.end(), isspace))
+        if (!value.empty() && is_whitespace(value))
             value.clear();
     }
     else if (type == SPIN)
@@ -172,7 +179,11 @@ Option& Option::operator=(std::string value) noexcept {
         currentValue = value;
 
     if (onChange != nullptr)
-        onChange(*this);
+    {
+        const auto ret = onChange(*this);
+        if (ret && options != nullptr && options->infoListener != nullptr)
+            options->infoListener(ret);
+    }
 
     return *this;
 }
@@ -189,6 +200,8 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     return os;
 }
 
+void Options::add_info_listener(InfoListener&& listener) { infoListener = std::move(listener); }
+
 void Options::setoption(const std::string& name, const std::string& value) noexcept {
     if (options.find(name) != options.end())
         options[name] = value;
@@ -198,10 +211,14 @@ void Options::setoption(const std::string& name, const std::string& value) noexc
 
 Option Options::operator[](const std::string& name) const noexcept {
     auto itr = options.find(name);
-    return itr != options.end() ? itr->second : Option();
+    return itr != options.end() ? itr->second : Option(this);
 }
 
-Option& Options::operator[](const std::string& name) noexcept { return options[name]; }
+Option& Options::operator[](const std::string& name) noexcept {
+    if (options.find(name) == options.end())
+        options[name] = Option(this);
+    return options[name];
+}
 
 std::size_t Options::count(const std::string& name) const noexcept { return options.count(name); }
 

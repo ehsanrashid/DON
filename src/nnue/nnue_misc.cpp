@@ -171,7 +171,8 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
         oss << "   |  ";
         format_cp_aligned_dot(trace.positional[bucket] / OutputScale, pos, oss);
         oss << "   |  ";
-        format_cp_aligned_dot((trace.psqt[bucket] + trace.positional[bucket]) / OutputScale, pos, oss);
+        format_cp_aligned_dot((trace.psqt[bucket] + trace.positional[bucket]) / OutputScale, pos,
+                              oss);
         oss << "   |";
         if (bucket == trace.correctBucket)
             oss << " <-- this bucket is used";

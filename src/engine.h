@@ -48,7 +48,9 @@ class Engine final {
     Engine& operator=(const Engine&) = delete;
     Engine& operator=(Engine&&)      = delete;
 
-    Options&    get_options() noexcept;
+    const Options& get_options() const noexcept;
+    Options&       get_options() noexcept;
+
     std::string fen() const noexcept;
 
     // Set a new position, moves are in UCI format
@@ -67,7 +69,7 @@ class Engine final {
 
     void set_numa_config(const std::string& str);
 
-    void resize_threads() noexcept;
+    void resize_threads_tt() noexcept;
 
     void resize_tt(std::size_t mbSize) noexcept;
 
@@ -82,6 +84,8 @@ class Engine final {
     std::vector<std::pair<std::size_t, std::size_t>>  //
                 get_bound_thread_counts() const noexcept;
     std::string get_numa_config() const noexcept;
+    std::string get_numa_config_info() const noexcept;
+    std::string get_thread_binding_info() const noexcept;
 
     // Network related
     void verify_networks() const noexcept;
@@ -104,11 +108,10 @@ class Engine final {
     StateListPtr states;
 
     Options                              options;
-    NumaReplicated<Eval::NNUE::Networks> networks;
     ThreadPool                           threads;
     TranspositionTable                   tt;
-
-    Search::UpdateContext updateContext;
+    NumaReplicated<Eval::NNUE::Networks> networks;
+    Search::UpdateContext                updateContext;
 };
 
 }  // namespace DON

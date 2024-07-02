@@ -393,6 +393,11 @@ class Move {
     constexpr explicit operator bool() const noexcept { return *this != Move::None(); }
 
     constexpr auto raw() const noexcept { return data; }
+
+    constexpr Move reverse() const noexcept {
+        return Move((data & ~org_dst()) | (dst_sq() << 6) | int(org_sq()));
+    }
+
     /*
     constexpr Move mirror() const noexcept { return Move(data ^ 0x0E38U); }
 

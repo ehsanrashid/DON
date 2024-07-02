@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <iostream>
 #include <map>
+#include <optional>
 #include <sstream>
 
 namespace DON {
@@ -33,9 +34,11 @@ namespace {
 
 std::map<std::string, int> TuneResults;
 
-void on_tune(const Option& option) noexcept {
+std::optional<std::string> on_tune(const Option& option) noexcept {
     if (!Tune::UpdateOnLast || LastOption == &option)
         Tune::read_options();
+
+    return std::nullopt;
 }
 
 void make_option(Options* options, const std::string& n, int v, const SetRange& r) noexcept {

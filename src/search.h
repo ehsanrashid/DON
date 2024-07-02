@@ -90,7 +90,7 @@ struct RootMove final {
     void append(const Moves& ms) noexcept { pv.append(ms); }
     void pop() noexcept { pv.pop(); }
 
-    //void reserve(std::size_t newSize) noexcept { pv.reserve(newSize); }
+    // void reserve(std::size_t newSize) noexcept { pv.reserve(newSize); }
     void resize(std::size_t newSize) noexcept { pv.resize(newSize); }
     void clear() noexcept { pv.clear(); }
 
@@ -256,9 +256,9 @@ struct Limits final {
 
     bool use_time_manager() const noexcept { return clock[WHITE].time || clock[BLACK].time; }
 
-    std::int16_t diff_time(Color stm) const noexcept {
-        return 1e-3 * (clock[stm].time - clock[~stm].time);
-    }
+    //std::int16_t diff_time(Color stm) const noexcept {
+    //    return 1e-3 * (clock[stm].time - clock[~stm].time);
+    //}
 
     TimePoint                   initialTime = 0;
     std::array<Clock, COLOR_NB> clock{};
@@ -399,7 +399,7 @@ class MainSearchManager final: public ISearchManager {
     std::atomic_bool     ponder        = false;
     std::array<Value, 4> iterBestValue;
 
-    Value  prevBestValue;
+    Value  prevBestCurValue;
     Value  prevBestAvgValue;
     double prevTimeReduction;
 };

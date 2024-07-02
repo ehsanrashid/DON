@@ -41,11 +41,11 @@ case $1 in
 cat << EOF > tsan.supp
 race:DON::TTEntry::move
 race:DON::TTEntry::depth
+race:DON::TTEntry::is_pv
 race:DON::TTEntry::bound
-race:DON::TTEntry::save
 race:DON::TTEntry::value
 race:DON::TTEntry::eval
-race:DON::TTEntry::is_pv
+race:DON::TTEntry::save
 
 race:DON::TranspositionTable::probe
 race:DON::TranspositionTable::hashfull
@@ -173,6 +173,11 @@ cat << EOF > game.exp
  send "position fen 2brrb2/8/p7/Q7/1p1kpPp1/1P1pN1K1/3P4/8 b - -\n"
  send "go depth 18\n"
  expect "score mate -1"
+ expect "bestmove"
+
+ send "ucinewgame\n"
+ send "position fen 7K/P1p1p1p1/2P1P1Pk/6pP/3p2P1/1P6/3P4/8 w - - 0 1\n"
+ send "go nodes 500000\n"
  expect "bestmove"
 
  send "ucinewgame\n"
