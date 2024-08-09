@@ -27,40 +27,45 @@
 namespace DON {
 
 #if !defined(USE_POPCNT)
-std::uint8_t PopCnt16[PopCntSize];
+std::uint8_t PopCnt16[POPCNT_SIZE];
 #endif
-std::uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
 
-Bitboard LineBB[SQUARE_NB][SQUARE_NB];
-Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
-Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
-Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
+std::uint8_t Distances[SQUARE_NB][SQUARE_NB];
 
-Magic BishopMagics[SQUARE_NB];
-Magic RookMagics[SQUARE_NB];
+Bitboard Lines[SQUARE_NB][SQUARE_NB];
+Bitboard Betweens[SQUARE_NB][SQUARE_NB];
+Bitboard PawnAttacks[SQUARE_NB][COLOR_NB];
+Bitboard PseudoAttacks[SQUARE_NB][PIECE_TYPE_NB];
+
+Magic Magics[SQUARE_NB][2];
 
 namespace {
 
-Bitboard BishopAttacks[0x1480];  // Stores bishop attacks
-Bitboard RookAttacks[0x19000];   // Stores rook attacks
+constexpr inline Direction DIRECTIONS[2][4]{{NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},
+                                            {NORTH, SOUTH, EAST, WEST}};
 
-constexpr Direction BishopDirections[4]{NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST};
-constexpr Direction RookDirections[4]{NORTH, SOUTH, EAST, WEST};
+constexpr inline std::size_t ATTACKS_SIZE[2]{0x1480, 0x19000};
+
+Bitboard BishopAttacks[ATTACKS_SIZE[0]];  // Stores bishop attacks
+Bitboard RookAttacks[ATTACKS_SIZE[1]];    // Stores rook attacks
+
+Bitboard* Attacks[2]{BishopAttacks, RookAttacks};
 
 // Returns the bitboard of target square from the given square for the given step.
 // If the step is off the board, returns empty bitboard.
-Bitboard safe_destination(Square s, Direction step, std::uint8_t dist = 1) noexcept {
+inline Bitboard safe_destination(Square s, Direction step, std::uint8_t dist = 1) noexcept {
     Square sq = s + step;
     return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
 }
 
-// Computes sliding attacks
+// Computes sliding attack
 template<PieceType PT>
 Bitboard sliding_attack(Square s, Bitboard occupied = 0) noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attack()");
+    constexpr bool IsRook = PT == ROOK;
 
     Bitboard attacks = 0;
-    for (Direction d : (PT == BISHOP ? BishopDirections : RookDirections))
+    for (Direction d : DIRECTIONS[IsRook])
     {
         Square sq = s;
         while (safe_destination(sq, d))
@@ -81,56 +86,58 @@ Bitboard sliding_attack(Square s, Bitboard occupied = 0) noexcept {
 template<PieceType PT>
 void init_magics() noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in init_magics()");
+    constexpr bool IsRook = PT == ROOK;
 
-    constexpr std::uint16_t TableSize = 4096;
+    constexpr std::size_t TABLE_SIZE = 0x1000;
 
 #if !defined(USE_PEXT)
     // Optimal PRNG seeds to pick the correct magics in the shortest time
-    constexpr std::uint32_t Seeds[RANK_NB]{
+    constexpr std::uint16_t MAGIC_SEEDS[RANK_NB]{
     // clang-format off
     #if defined(IS_64BIT)
-       728, 10316, 55013, 32803, 12281, 15100,  16645,   255
+      0x02D8, 0x284C, 0xD6E5, 0x8023, 0x2FF9, 0x3AFC, 0x4105, 0x00FF
     #else
-      8977, 44560, 54343, 38998,  5731, 95205, 104912, 17020
+      0x2311, 0xAE10, 0xD447, 0x9856, 0x1663, 0x73E5, 0x99D0, 0x427C
     #endif
       // clang-format on
     };
 
-    Bitboard      occupancy[TableSize];
-    std::uint32_t epoch[TableSize]{}, cnt = 0;
+    Bitboard occupancy[TABLE_SIZE];
+
+    std::uint32_t epoch[TABLE_SIZE]{}, cnt = 0;
 #endif
 
-    Bitboard      reference[TableSize];
     std::uint16_t size;
 
-    Bitboard* attacks = (PT == BISHOP ? BishopAttacks : RookAttacks);
-    Magic*    magics  = (PT == BISHOP ? BishopMagics : RookMagics);
+    Bitboard reference[TABLE_SIZE];
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
         // Board edges are not considered in the relevant occupancies
-        Bitboard edges = ((Rank1BB | Rank8BB) & ~rank_bb(s)) | ((FileABB | FileHBB) & ~file_bb(s));
+        Bitboard edges = (PROMOTION_RANK_BB & ~rank_bb(s)) | (EDGE_FILE_BB & ~file_bb(s));
 
         // Given a square 's', the mask is the bitboard of sliding attacks from
         // 's' computed on an empty board. The index must be big enough to contain
         // all the attacks for each possible subset of the mask and so is 2 power
         // the number of 1s of the mask. Hence, deduce the size of the shift to
         // apply to the 64 or 32 bits word to get the index.
-        Magic& m = magics[s];
+        Magic& mag = Magics[s][IsRook];
 
-        m.mask = sliding_attack<PT>(s) & ~edges;
+        mag.mask = sliding_attack<PT>(s) & ~edges;
 #if !defined(USE_PEXT)
-        m.shift =
+        mag.shift =
     #if defined(IS_64BIT)
           64
     #else
           32
     #endif
-          - popcount(m.mask);
+          - popcount(mag.mask);
 #endif
+        assert(size < ATTACKS_SIZE[IsRook]);
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
-        m.attacks = (s == SQ_A1) ? attacks : magics[s - 1].attacks + size;
+        mag.attacks = s == SQ_A1 ? Attacks[IsRook] : Magics[s - 1][IsRook].attacks + size;
+        assert(mag.attacks != nullptr);
 
         // Use Carry-Rippler trick to enumerate all subsets of masks[s] and
         // store the corresponding sliding attack bitboard in reference[].
@@ -138,24 +145,25 @@ void init_magics() noexcept {
         do
         {
             reference[size] = sliding_attack<PT>(s, b);
-#if defined(USE_PEXT)
-            m.attacks[m.index(b)] = reference[size];
-#else
+#if !defined(USE_PEXT)
             occupancy[size] = b;
+#else
+            mag.attacks_bb(b, reference[size]);
 #endif
             ++size;
-            b = (b - m.mask) & m.mask;
+            b = (b - mag.mask) & mag.mask;
         } while (b);
 
 #if !defined(USE_PEXT)
 
-        PRNG rng(Seeds[rank_of(s)]);
+        PRNG rng(MAGIC_SEEDS[rank_of(s)]);
         // Find a magic for square 's' picking up an (almost) random number
         // until find the one that passes the verification test.
         for (std::uint16_t i = 0; i < size;)
         {
-            for (m.magic = 0; popcount((m.magic * m.mask) >> 56) < 6;)
-                m.magic = rng.sparse_rand<Bitboard>();
+            do
+                mag.magic = rng.sparse_rand<Bitboard>();
+            while (popcount(mag.mask * mag.magic >> 56) < 6);
 
             // A good magic must map every possible occupancy to an index that
             // looks up the correct sliding attack in the attacks[s] database.
@@ -165,14 +173,14 @@ void init_magics() noexcept {
             // m.attacks[] after every failed attempt.
             for (++cnt, i = 0; i < size; ++i)
             {
-                auto idx = m.index(occupancy[i]);
+                auto idx = mag.index(occupancy[i]);
 
                 if (epoch[idx] < cnt)
                 {
-                    epoch[idx]     = cnt;
-                    m.attacks[idx] = reference[i];
+                    epoch[idx]       = cnt;
+                    mag.attacks[idx] = reference[i];
                 }
-                else if (m.attacks[idx] != reference[i])
+                else if (mag.attacks[idx] != reference[i])
                     break;
             }
         }
@@ -182,19 +190,19 @@ void init_magics() noexcept {
 
 }  // namespace
 
-namespace Bitboards {
+namespace BitBoard {
 
 // Initializes various bitboard tables.
 // It is called at startup.
 void init() noexcept {
 
 #if !defined(USE_POPCNT)
-    for (std::uint32_t i = 0U; i < PopCntSize; ++i)
-        PopCnt16[i] = std::uint8_t(std::bitset<16>(i).count());
+    for (std::uint32_t i = 0; i < POPCNT_SIZE; ++i)
+        PopCnt16[i] = std::bitset<16>(i).count();
 #endif
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-            SquareDistance[s1][s2] = std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
+            Distances[s1][s2] = std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
 
     init_magics<BISHOP>();
     init_magics<ROOK>();
@@ -202,36 +210,33 @@ void init() noexcept {
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
         for (Color c : {WHITE, BLACK})
-            PawnAttacks[c][s] = pawn_attacks_bb(c, square_bb(s));
+            PawnAttacks[s][c] = pawn_attacks_bb(c, square_bb(s));
 
-        PseudoAttacks[0][s] = PseudoAttacks[1][s] = PseudoAttacks[7][s] = 0;
+        //PseudoAttacks[s][0] = PseudoAttacks[s][1] = PseudoAttacks[s][7] = 0;
 
-        PseudoAttacks[KNIGHT][s] = 0;
+        PseudoAttacks[s][KNIGHT] = 0;
         for (auto d : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
                        WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
-            PseudoAttacks[KNIGHT][s] |= safe_destination(s, d, 2);
-        PseudoAttacks[KING][s] = 0;
+            PseudoAttacks[s][KNIGHT] |= safe_destination(s, d, 2);
+        PseudoAttacks[s][KING] = 0;
         for (auto d : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
-            PseudoAttacks[KING][s] |= safe_destination(s, d);
+            PseudoAttacks[s][KING] |= safe_destination(s, d);
 
-        PseudoAttacks[BISHOP][s] = attacks_bb<BISHOP>(s, 0);
-        PseudoAttacks[ROOK][s]   = attacks_bb<ROOK>(s, 0);
-        PseudoAttacks[QUEEN][s]  = PseudoAttacks[BISHOP][s] | PseudoAttacks[ROOK][s];
+        PseudoAttacks[s][QUEEN] = PseudoAttacks[s][BISHOP] = attacks_bb<BISHOP>(s, 0);
+        PseudoAttacks[s][QUEEN] |= PseudoAttacks[s][ROOK]  = attacks_bb<ROOK>(s, 0);
     }
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
-            LineBB[s1][s2] = BetweenBB[s1][s2] = 0;
+            Lines[s1][s2] = Betweens[s1][s2] = 0;
             for (PieceType pt : {BISHOP, ROOK})
-            {
-                if (PseudoAttacks[pt][s1] & s2)
+                if (PseudoAttacks[s1][pt] & s2)
                 {
-                    LineBB[s1][s2] = (PseudoAttacks[pt][s1] & PseudoAttacks[pt][s2]) | s1 | s2;
-                    BetweenBB[s1][s2] =
+                    Lines[s1][s2] = (PseudoAttacks[s1][pt] & PseudoAttacks[s2][pt]) | s1 | s2;
+                    Betweens[s1][s2] =
                       (attacks_bb(pt, s1, square_bb(s2)) & attacks_bb(pt, s2, square_bb(s1)));
                 }
-                BetweenBB[s1][s2] |= s2;
-            }
+            Betweens[s1][s2] |= s2;
         }
 }
 
@@ -257,5 +262,5 @@ std::string pretty(Bitboard b) noexcept {
 }
 #endif
 
-}  // namespace Bitboards
+}  // namespace BitBoard
 }  // namespace DON

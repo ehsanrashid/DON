@@ -37,6 +37,11 @@ struct Limits;
 class TimeManager final {
    public:
     TimeManager() noexcept;
+    TimeManager(const TimeManager&) noexcept            = delete;
+    TimeManager(TimeManager&&) noexcept                 = delete;
+    TimeManager& operator=(const TimeManager&) noexcept = delete;
+    TimeManager& operator=(TimeManager&&) noexcept      = delete;
+
     void init(Search::Limits& limits, const Position& pos, const Options& options) noexcept;
 
     TimePoint optimum() const noexcept;
@@ -49,12 +54,12 @@ class TimeManager final {
 
     bool          use_nodes_time() const noexcept;
     std::uint64_t remain_nodes() const noexcept;
-    void          advance(std::int64_t usedNodes) noexcept;
+    void          advance_nodes(std::int64_t usedNodes) noexcept;
 
    private:
-    static constexpr std::uint64_t NodesOffset = 1ULL;
+    static constexpr std::uint64_t NODE_OFFSET = 1ull;
 
-    TimePoint initialTime;
+    TimePoint startTime;
 
     TimePoint optimumTime;
     TimePoint maximumTime;
@@ -71,7 +76,7 @@ inline TimePoint TimeManager::optimum() const noexcept { return optimumTime; }
 
 inline TimePoint TimeManager::maximum() const noexcept { return maximumTime; }
 
-inline TimePoint TimeManager::elapsed() const noexcept { return now() - initialTime; }
+inline TimePoint TimeManager::elapsed() const noexcept { return now() - startTime; }
 
 template<typename Func>
 inline TimePoint TimeManager::elapsed(Func nodes) const noexcept {
@@ -82,7 +87,7 @@ inline void TimeManager::clear() noexcept {
     optimumTime = 0;
     maximumTime = 0;
 
-    initialAdjust = 0.0;
+    initialAdjust = -1.0;
 
     nodesTime   = 0;
     remainNodes = 0;
@@ -91,7 +96,7 @@ inline void TimeManager::clear() noexcept {
 inline bool TimeManager::use_nodes_time() const noexcept { return nodesTime != 0; }
 
 inline std::uint64_t TimeManager::remain_nodes() const noexcept {
-    return remainNodes - NodesOffset;
+    return remainNodes - NODE_OFFSET;
 }
 
 }  // namespace DON

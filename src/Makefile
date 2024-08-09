@@ -27,36 +27,35 @@ endif
 ### Target Windows OS
 ifeq ($(OS), Windows_NT)
 	ifneq ($(COMP), ndk)
-		target_windows = yes
+		target_windows := yes
 	endif
 else ifeq ($(COMP), mingw)
-	target_windows = yes
+	target_windows := yes
 	ifeq ($(WINE_PATH), )
 		WINE_PATH := $(shell which wine)
 	endif
 endif
 
 ### Executable name
+EXE := DON
 ifeq ($(target_windows), yes)
-	EXE = DON.exe
-else
-	EXE = DON
+	EXE := $(EXE).exe
 endif
 
 ### Installation dir definitions
-PREFIX = /usr/local
-BINDIR = $(PREFIX)/bin
+PREFIX := /usr/local
+BINDIR := $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds
-PGOBENCH = $(WINE_PATH) ./$(EXE) bench
+PGOBENCH := $(WINE_PATH) ./$(EXE) bench
 
 ### Source and object files
-SRCS = benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp misc.cpp \
-	movegen.cpp movepick.cpp perft.cpp polybook.cpp position.cpp score.cpp search.cpp \
-	thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp nnue/nnue_misc.cpp \
-	nnue/network.cpp nnue/features/half_ka_v2_hm.cpp syzygy/tbprobe.cpp
+SRCS := benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp \
+	misc.cpp movegen.cpp movepick.cpp perft.cpp polybook.cpp position.cpp score.cpp \
+	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp \
+	nnue/nnue_misc.cpp nnue/network.cpp nnue/features/half_ka_v2_hm.cpp syzygy/tbprobe.cpp
 
-HEADERS = benchmark.h bitboard.h engine.h evaluate.h memory.h misc.h movegen.h \
+HEADERS := benchmark.h bitboard.h engine.h evaluate.h memory.h misc.h movegen.h \
 	movepick.h numa.h perft.h polybook.h position.h score.h search.h thread.h \
 	thread_win32_osx.h timeman.h tt.h tune.h types.h uci.h ucioption.h \
 	nnue/nnue_accumulator.h nnue/nnue_architecture.h nnue/nnue_common.h \
@@ -65,9 +64,9 @@ HEADERS = benchmark.h bitboard.h engine.h evaluate.h memory.h misc.h movegen.h \
 	nnue/layers/affine_transform_sparse_input.h nnue/layers/clipped_relu.h \
 	nnue/layers/simd.h nnue/layers/sqr_clipped_relu.h syzygy/tbprobe.h
 
-OBJS = $(notdir $(SRCS:.cpp=.o))
+OBJS := $(notdir $(SRCS:.cpp=.o))
 
-VPATH = syzygy:nnue:nnue/features
+VPATH := syzygy:nnue:nnue/features
 
 ### ==========================================================================
 ### Section 2. High-level Configuration
@@ -905,7 +904,7 @@ clean: objclean profileclean
 
 # clean binaries and objects
 objclean:
-	@rm -f DON DON.exe *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o
+	@rm -f $(EXE) *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o
 
 # clean auxiliary profiling files
 profileclean:
@@ -1052,15 +1051,15 @@ FORCE:
 
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-generate ' \
-	EXTRALDFLAGS=' -fprofile-generate' \
+	EXTRACXXFLAGS='-fprofile-generate' \
+	EXTRALDFLAGS='-fprofile-generate' \
 	all
 
 clang-profile-use:
 	$(XCRUN) llvm-profdata merge -output=DON.profdata *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-use=DON.profdata' \
-	EXTRALDFLAGS='-fprofile-use ' \
+	EXTRALDFLAGS='-fprofile-use' \
 	all
 
 gcc-profile-make:
@@ -1080,15 +1079,15 @@ gcc-profile-use:
 
 icx-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-instr-generate ' \
-	EXTRALDFLAGS=' -fprofile-instr-generate' \
+	EXTRACXXFLAGS='-fprofile-instr-generate' \
+	EXTRALDFLAGS='-fprofile-instr-generate' \
 	all
 
 icx-profile-use:
 	$(XCRUN) llvm-profdata merge -output=DON.profdata *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-instr-use=DON.profdata' \
-	EXTRALDFLAGS='-fprofile-use ' \
+	EXTRALDFLAGS='-fprofile-use' \
 	all
 
 .depend: $(SRCS)

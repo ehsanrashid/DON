@@ -37,16 +37,16 @@ namespace DON::Eval::NNUE {
 using FeatureSet = Features::HalfKAv2_hm;
 
 // Number of input feature dimensions after conversion
-constexpr IndexType BigTransformedFeatureDimensions = 3072;
-constexpr int       BigL2                           = 15;
-constexpr int       BigL3                           = 32;
+constexpr inline IndexType BigTransformedFeatureDimensions = 3072;
+constexpr inline int       BigL2                           = 15;
+constexpr inline int       BigL3                           = 32;
 
-constexpr IndexType SmallTransformedFeatureDimensions = 128;
-constexpr int       SmallL2                           = 15;
-constexpr int       SmallL3                           = 32;
+constexpr inline IndexType SmallTransformedFeatureDimensions = 128;
+constexpr inline int       SmallL2                           = 15;
+constexpr inline int       SmallL3                           = 32;
 
-constexpr IndexType PSQTBuckets = 8;
-constexpr IndexType LayerStacks = 8;
+constexpr inline IndexType PSQTBuckets = 8;
+constexpr inline IndexType LayerStacks = 8;
 
 template<IndexType L1, int L2, int L3>
 struct NetworkArchitecture final {
@@ -92,14 +92,14 @@ struct NetworkArchitecture final {
 
     // Forward propagation
     std::int32_t propagate(const TransformedFeatureType* transformedFeatures) noexcept {
-        struct alignas(CacheLineSize) Buffer final {
-            alignas(CacheLineSize) typename decltype(fc_0)::OutputBuffer fc_0_out;
-            alignas(CacheLineSize) typename decltype(ac_sqr_0)::OutputType
+        struct alignas(CACHE_LINE_SIZE) Buffer final {
+            alignas(CACHE_LINE_SIZE) typename decltype(fc_0)::OutputBuffer fc_0_out;
+            alignas(CACHE_LINE_SIZE) typename decltype(ac_sqr_0)::OutputType
               ac_sqr_0_out[ceil_to_multiple<IndexType>(FC_0_OUTPUTS * 2, 32)];
-            alignas(CacheLineSize) typename decltype(ac_0)::OutputBuffer ac_0_out;
-            alignas(CacheLineSize) typename decltype(fc_1)::OutputBuffer fc_1_out;
-            alignas(CacheLineSize) typename decltype(ac_1)::OutputBuffer ac_1_out;
-            alignas(CacheLineSize) typename decltype(fc_2)::OutputBuffer fc_2_out;
+            alignas(CACHE_LINE_SIZE) typename decltype(ac_0)::OutputBuffer ac_0_out;
+            alignas(CACHE_LINE_SIZE) typename decltype(fc_1)::OutputBuffer fc_1_out;
+            alignas(CACHE_LINE_SIZE) typename decltype(ac_1)::OutputBuffer ac_1_out;
+            alignas(CACHE_LINE_SIZE) typename decltype(fc_2)::OutputBuffer fc_2_out;
 
             Buffer() noexcept { std::memset(this, 0, sizeof(Buffer)); }
         };
@@ -110,7 +110,7 @@ struct NetworkArchitecture final {
         // Access TLS only once, cache result.
         Buffer& buffer = *ptrBuffer;
 #else
-        alignas(CacheLineSize) static thread_local Buffer buffer;
+        alignas(CACHE_LINE_SIZE) static thread_local Buffer buffer;
 #endif
 
         fc_0.propagate(transformedFeatures, buffer.fc_0_out);
@@ -122,13 +122,11 @@ struct NetworkArchitecture final {
         ac_1.propagate(buffer.fc_1_out, buffer.ac_1_out);
         fc_2.propagate(buffer.ac_1_out, buffer.fc_2_out);
 
-        // buffer.fc_0_out[FC_0_OUTPUTS] is such that 1.0 is equal to 127*(1<<WeightScaleBits) in
-        // quantized form, but want 1.0 to be equal to 600*OutputScale
-        std::int32_t fwdOut =
-          (buffer.fc_0_out[FC_0_OUTPUTS]) * (600 * OutputScale) / (127 * (1 << WeightScaleBits));
-        std::int32_t outputValue = buffer.fc_2_out[0] + fwdOut;
-
-        return outputValue;
+        // buffer.fc_0_out[FC_0_OUTPUTS] is such that 1.0 is equal to 127 * (1 << WEIGHT_SCALE_BITS)
+        // in quantized form, but want 1.0 to be equal to 600 * OUTPUT_SCALE
+        return buffer.fc_2_out[0]
+             + (buffer.fc_0_out[FC_0_OUTPUTS]) * (600 * OUTPUT_SCALE)
+                 / (127 * (1 << WEIGHT_SCALE_BITS));
     }
 };
 

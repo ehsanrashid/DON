@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>
+#include <deque>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -42,7 +43,7 @@ class Engine final {
     Engine(const std::string& path = "") noexcept;
     ~Engine() noexcept;
 
-    // Can't be movable due to components holding backreferences to fields
+    // Cannot be movable due to components holding backreferences to fields
     Engine(const Engine&)            = delete;
     Engine(Engine&&)                 = delete;
     Engine& operator=(const Engine&) = delete;
@@ -53,8 +54,8 @@ class Engine final {
 
     std::string fen() const noexcept;
 
-    // Set a new position, moves are in UCI format
-    void setup(std::string_view fen, const std::vector<std::string>& moves = {}) noexcept;
+    // Set a new position, moves are in UCI or SAN format
+    void setup(std::string_view fen, const std::deque<std::string>& moves = {}) noexcept;
 
     std::uint64_t perft(Depth depth, bool detail = false) noexcept;
     // Non-blocking call to start searching
@@ -107,11 +108,11 @@ class Engine final {
     Position     pos;
     StateListPtr states;
 
-    Options                              options;
-    ThreadPool                           threads;
-    TranspositionTable                   tt;
-    NumaReplicated<Eval::NNUE::Networks> networks;
-    Search::UpdateContext                updateContext;
+    Options                                  options;
+    ThreadPool                               threads;
+    TranspositionTable                       tt;
+    LazyNumaReplicated<Eval::NNUE::Networks> networks;
+    Search::UpdateContext                    updateContext;
 };
 
 }  // namespace DON

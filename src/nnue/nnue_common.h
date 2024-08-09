@@ -22,25 +22,23 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <type_traits>
 
 #include "../misc.h"
+#include "../types.h"
 
 #if defined(USE_AVX2)
     #include <immintrin.h>
-
 #elif defined(USE_SSE41)
     #include <smmintrin.h>
-
 #elif defined(USE_SSSE3)
     #include <tmmintrin.h>
-
 #elif defined(USE_SSE2)
     #include <emmintrin.h>
-
 #elif defined(USE_NEON)
     #include <arm_neon.h>
 #endif
@@ -48,30 +46,28 @@
 namespace DON::Eval::NNUE {
 
 // Version of the evaluation file
-constexpr inline std::uint32_t Version = 0x7AF32F20U;
+constexpr inline std::uint32_t FILE_VERSION = 0x7AF32F20u;
 
 // Constant used in evaluation value calculation
-constexpr inline int OutputScale     = 16;
-constexpr inline int WeightScaleBits = 6;
+constexpr inline int OUTPUT_SCALE      = 16;
+constexpr inline int WEIGHT_SCALE_BITS = 6;
 
-// Size of cache line (in bytes)
-constexpr inline std::size_t CacheLineSize = 64;
-
-constexpr inline const char  Leb128MagicString[]   = "COMPRESSED_LEB128";
-constexpr inline std::size_t Leb128MagicStringSize = sizeof(Leb128MagicString) - 1;
+constexpr inline const char  LEB128_MAGIC_STRING[]    = "COMPRESSED_LEB128";
+constexpr inline std::size_t LEB128_MAGIC_STRING_SIZE = sizeof(LEB128_MAGIC_STRING) - 1;
 
 // SIMD width (in bytes)
+constexpr inline std::size_t SIMD_WIDTH =
 #if defined(USE_AVX2)
-constexpr inline std::size_t SimdWidth = 32;
-
+  32;
 #elif defined(USE_SSE2)
-constexpr inline std::size_t SimdWidth = 16;
-
+  16;
 #elif defined(USE_NEON)
-constexpr inline std::size_t SimdWidth = 16;
+  16;
+#else
+  16;
 #endif
 
-constexpr inline std::size_t MaxSimdWidth = 32;
+constexpr inline std::size_t MAX_SIMD_WIDTH = 32;
 
 // Type of input feature after conversion
 using TransformedFeatureType = std::uint8_t;
@@ -167,46 +163,48 @@ template<typename IntType>
 inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count) noexcept {
 
     // Check the presence of our LEB128 magic string
-    char leb128MagicString[Leb128MagicStringSize];
-    istream.read(leb128MagicString, Leb128MagicStringSize);
-    assert(strncmp(Leb128MagicString, leb128MagicString, Leb128MagicStringSize) == 0);
+    char leb128MagicString[LEB128_MAGIC_STRING_SIZE];
+    istream.read(leb128MagicString, LEB128_MAGIC_STRING_SIZE);
+    assert(strncmp(leb128MagicString, LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE) == 0);
 
     static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
 
-    const std::uint32_t BUF_SIZE = 4096;
-    std::uint8_t        buf[BUF_SIZE];
+    constexpr std::size_t BUFF_SIZE = 4096;
 
-    auto leftBytes = read_little_endian<std::uint32_t>(istream);
+    std::uint8_t buffer[BUFF_SIZE];
 
-    std::uint32_t bufPos = BUF_SIZE;
+    std::uint32_t buffPos   = BUFF_SIZE;
+    std::uint32_t byteCount = read_little_endian<std::uint32_t>(istream);
+
     for (std::size_t i = 0; i < count; ++i)
     {
         IntType     result = 0;
         std::size_t shift  = 0;
         do
         {
-            if (bufPos == BUF_SIZE)
+            if (buffPos == BUFF_SIZE)
             {
-                istream.read(reinterpret_cast<char*>(buf), std::min(leftBytes, BUF_SIZE));
-                bufPos = 0;
+                istream.read(reinterpret_cast<char*>(buffer),
+                             std::min(byteCount, uint32_t(BUFF_SIZE)));
+                buffPos = 0;
             }
 
-            std::uint8_t byte = buf[bufPos++];
-            --leftBytes;
-            result |= (byte & 0x7f) << shift;
+            std::uint8_t byte = buffer[buffPos++];
+            --byteCount;
+            result |= (byte & 0x7F) << shift;
             shift += 7;
 
             if ((byte & 0x80) == 0)
             {
-                out[i] = (sizeof(IntType) * 8 <= shift || (byte & 0x40) == 0)
+                out[i] = (8 * sizeof(IntType) <= shift || (byte & 0x40) == 0)
                          ? result
                          : result | ~((1 << shift) - 1);
                 break;
             }
-        } while (shift < sizeof(IntType) * 8);
+        } while (shift < 8 * sizeof(IntType));
     }
 
-    assert(leftBytes == 0);
+    assert(byteCount == 0);
 }
 
 // Write signed integers to a ostream with LEB128 compression.
@@ -218,7 +216,7 @@ inline void
 write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) noexcept {
 
     // Write our LEB128 magic string
-    ostream.write(Leb128MagicString, Leb128MagicStringSize);
+    ostream.write(LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE);
 
     static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
 
@@ -237,21 +235,22 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
 
     write_little_endian(ostream, byteCount);
 
-    constexpr std::uint32_t BufSize = 4096;
-    std::uint8_t            buf[BufSize];
-    std::uint32_t           bufPos = 0;
+    constexpr std::size_t BUFF_SIZE = 4096;
+
+    std::uint8_t buffer[BUFF_SIZE];
+
+    std::uint32_t buffPos = 0;
 
     auto flush = [&]() {
-        if (bufPos != 0)
-        {
-            ostream.write(reinterpret_cast<char*>(buf), bufPos);
-            bufPos = 0;
-        }
+        if (buffPos == 0)
+            return;
+        ostream.write(reinterpret_cast<char*>(buffer), buffPos);
+        buffPos = 0;
     };
 
     auto write = [&](std::uint8_t byte) {
-        buf[bufPos++] = byte;
-        if (bufPos == BufSize)
+        buffer[buffPos++] = byte;
+        if (buffPos == BUFF_SIZE)
             flush();
     };
 
@@ -260,7 +259,7 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
         IntType value = values[i];
         while (true)
         {
-            std::uint8_t byte = value & 0x7f;
+            std::uint8_t byte = value & 0x7F;
             value >>= 7;
             if ((byte & 0x40) == 0 ? value == 0 : value == -1)
             {

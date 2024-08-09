@@ -61,13 +61,18 @@ struct Config final {
 extern std::uint8_t MaxCardinality;
 
 
-void     init(const std::string& paths) noexcept;
+void init(const std::string& paths) noexcept;
+
 WDLScore probe_wdl(Position& pos, ProbeState* result) noexcept;
 int      probe_dtz(Position& pos, ProbeState* result) noexcept;
-bool     root_probe(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noexcept;
-bool     root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noexcept;
-Config
-rank_root_moves(Position& pos, Search::RootMoves& rootMoves, const Options& options) noexcept;
+
+bool root_probe(Position& pos, Search::RootMoves& rootMoves, bool useRule50, bool rankDTZ) noexcept;
+bool root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noexcept;
+
+Config rank_root_moves(Position&          pos,
+                       Search::RootMoves& rootMoves,
+                       const Options&     options,
+                       bool               rankDTZ = false) noexcept;
 
 }  // namespace Tablebases
 }  // namespace DON

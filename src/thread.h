@@ -19,10 +19,11 @@
 #define THREAD_H_INCLUDED
 
 #include <atomic>
-#include <condition_variable>
 #include <cassert>
+#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -42,7 +43,7 @@ class Options;
 // needs to think it runs on *some* NUMA node, such that it can access structures
 // that rely on NUMA node knowledge. This class encapsulates this optional process
 // such that the recipient does not need to know whether the binding happened or not.
-class OptionalThreadToNumaNodeBinder {
+class OptionalThreadToNumaNodeBinder final {
    public:
     OptionalThreadToNumaNodeBinder(NumaIndex nId) :
         numaConfig(nullptr),
@@ -69,8 +70,8 @@ class OptionalThreadToNumaNodeBinder {
 // the search is finished, it goes back to idle_func() waiting for a new signal.
 class Thread final {
    public:
-    Thread(const Thread&)            = delete;
-    Thread& operator=(const Thread&) = delete;
+    Thread(const Thread&) noexcept            = delete;
+    Thread& operator=(const Thread&) noexcept = delete;
     Thread(std::uint16_t                  id,
            const Search::SharedState&     sharedState,
            Search::ISearchManagerPtr      searchManager,
@@ -78,6 +79,8 @@ class Thread final {
     virtual ~Thread() noexcept;
 
     std::uint16_t id() const noexcept { return idx; }
+
+    void ensure_network_replicated() noexcept;
 
     void idle_func() noexcept;
 
@@ -134,13 +137,11 @@ using ThreadPtr = std::unique_ptr<Thread>;
 class ThreadPool final {
 
    public:
-    ThreadPool()                  = default;
-    ThreadPool(const ThreadPool&) = delete;
-    ThreadPool(ThreadPool&&)      = delete;
-
-    ThreadPool& operator=(const ThreadPool&) = delete;
-    ThreadPool& operator=(ThreadPool&&)      = delete;
-
+    ThreadPool() noexcept                             = default;
+    ThreadPool(const ThreadPool&) noexcept            = delete;
+    ThreadPool(ThreadPool&&) noexcept                 = delete;
+    ThreadPool& operator=(const ThreadPool&) noexcept = delete;
+    ThreadPool& operator=(ThreadPool&&) noexcept      = delete;
     ~ThreadPool() noexcept;
 
     void clear() noexcept;
@@ -168,6 +169,8 @@ class ThreadPool final {
     void wait_on_thread(std::uint16_t threadId) noexcept;
 
     std::vector<std::size_t> get_bound_thread_counts() const noexcept;
+
+    void ensure_network_replicated() noexcept;
 
     auto begin() noexcept { return threads.begin(); }
     auto end() noexcept { return threads.end(); }
@@ -197,7 +200,7 @@ class ThreadPool final {
         return sum;
     }
 
-    std::vector<ThreadPtr> threads;
+    std::deque<ThreadPtr>  threads;
     std::vector<NumaIndex> boundThreadToNumaNode;
     StateListPtr           setupStates;
 };
@@ -257,6 +260,12 @@ inline void ThreadPool::wait_finish() const noexcept {
     for (auto&& th : threads)
         if (th != front())
             th->wait_finish();
+}
+
+inline void ThreadPool::ensure_network_replicated() noexcept {
+
+    for (auto&& th : threads)
+        th->ensure_network_replicated();
 }
 
 }  // namespace DON

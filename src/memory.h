@@ -36,8 +36,8 @@ void  free_aligned_std(void* mem) noexcept;
 void* alloc_aligned_lp(std::size_t allocSize) noexcept;
 void  free_aligned_lp(void* mem) noexcept;
 
-// frees memory which was placed there with placement new.
-// works for both single objects and arrays of unknown bound
+// Frees memory which was placed there with placement new.
+// Works for both single objects and arrays of unknown bound.
 template<typename T, typename FreeFunc>
 void memory_deleter(T* mem, FreeFunc freeFunc) noexcept {
     if (mem == nullptr)
@@ -51,17 +51,16 @@ void memory_deleter(T* mem, FreeFunc freeFunc) noexcept {
     return;
 }
 
-// frees memory which was placed there with placement new.
-// works for both single objects and arrays of unknown bound
+// Frees memory which was placed there with placement new.
+// Works for both single objects and arrays of unknown bound.
 template<typename T, typename FreeFunc>
 void memory_array_deleter(T* mem, FreeFunc freeFunc) noexcept {
     if (mem == nullptr)
         return;
 
+    constexpr std::size_t ARRAY_OFFSET = std::max(sizeof(std::size_t), alignof(T));
     // Move back on the pointer to where the size is allocated.
-    const std::size_t arrayOffset = std::max(sizeof(std::size_t), alignof(T));
-
-    char* rawMemory = reinterpret_cast<char*>(mem) - arrayOffset;
+    char* rawMemory = reinterpret_cast<char*>(mem) - ARRAY_OFFSET;
 
     if constexpr (!std::is_trivially_destructible_v<T>)
     {
@@ -90,34 +89,34 @@ inline std::enable_if_t<std::is_array_v<T>, std::remove_extent_t<T>*>
 memory_allocator(AllocFunc allocFunc, std::size_t num) noexcept {
     using ElementType = std::remove_extent_t<T>;
 
-    const std::size_t arrayOffset = std::max(sizeof(std::size_t), alignof(ElementType));
+    constexpr std::size_t ARRAY_OFFSET = std::max(sizeof(std::size_t), alignof(ElementType));
 
-    // save the array size in the memory location
-    char* rawMemory = reinterpret_cast<char*>(allocFunc(arrayOffset + num * sizeof(ElementType)));
+    // Save the array size in the memory location
+    char* rawMemory = reinterpret_cast<char*>(allocFunc(ARRAY_OFFSET + num * sizeof(ElementType)));
     ASSERT_ALIGNED(rawMemory, alignof(T));
 
     new (rawMemory) std::size_t(num);
 
     for (std::size_t i = 0; i < num; ++i)
-        new (rawMemory + arrayOffset + i * sizeof(ElementType)) ElementType();
+        new (rawMemory + ARRAY_OFFSET + i * sizeof(ElementType)) ElementType();
 
     // Need to return the pointer at the start of the array so that the indexing in unique_ptr<T[]> works
-    return reinterpret_cast<ElementType*>(rawMemory + arrayOffset);
+    return reinterpret_cast<ElementType*>(rawMemory + ARRAY_OFFSET);
 }
 
 //
-// aligned std unique ptr
+// Aligned std unique ptr
 //
 
 template<typename T>
-struct AlignedStdDeleter {
+struct AlignedStdDeleter final {
     void operator()(T* mem) const noexcept {  //
         return memory_deleter<T>(mem, free_aligned_std);
     }
 };
 
 template<typename T>
-struct AlignedStdArrayDeleter {
+struct AlignedStdArrayDeleter final {
     void operator()(T* mem) const noexcept {  //
         return memory_array_deleter<T>(mem, free_aligned_std);
     }
@@ -129,7 +128,7 @@ using AlignedStdPtr =
                      std::unique_ptr<T, AlignedStdArrayDeleter<std::remove_extent_t<T>>>,
                      std::unique_ptr<T, AlignedStdDeleter<T>>>;
 
-// make_unique_aligned_std for single objects
+// make_unique_aligned_std() for single objects
 template<typename T, typename... Args>
 std::enable_if_t<!std::is_array_v<T>, AlignedStdPtr<T>>
 make_unique_aligned_std(Args&&... args) noexcept {
@@ -141,7 +140,7 @@ make_unique_aligned_std(Args&&... args) noexcept {
     return AlignedStdPtr<T>(obj);
 }
 
-// make_unique_aligned_std for arrays of unknown bound
+// make_unique_aligned_std() for arrays of unknown bound
 template<typename T>
 std::enable_if_t<std::is_array_v<T>, AlignedStdPtr<T>>
 make_unique_aligned_std(std::size_t num) noexcept {
@@ -156,18 +155,18 @@ make_unique_aligned_std(std::size_t num) noexcept {
 }
 
 //
-// aligned large page unique ptr
+// Aligned large page unique ptr
 //
 
 template<typename T>
-struct AlignedLPDeleter {
+struct AlignedLPDeleter final {
     void operator()(T* mem) const noexcept {  //
         return memory_deleter<T>(mem, free_aligned_lp);
     }
 };
 
 template<typename T>
-struct AlignedLPArrayDeleter {
+struct AlignedLPArrayDeleter final {
     void operator()(T* mem) const noexcept {  //
         return memory_array_deleter<T>(mem, free_aligned_lp);
     }
@@ -179,7 +178,7 @@ using AlignedLPPtr =
                      std::unique_ptr<T, AlignedLPArrayDeleter<std::remove_extent_t<T>>>,
                      std::unique_ptr<T, AlignedLPDeleter<T>>>;
 
-// make_unique_aligned_lp for single objects
+// make_unique_aligned_lp() for single objects
 template<typename T, typename... Args>
 std::enable_if_t<!std::is_array_v<T>, AlignedLPPtr<T>>
 make_unique_aligned_lp(Args&&... args) noexcept {
@@ -191,7 +190,7 @@ make_unique_aligned_lp(Args&&... args) noexcept {
     return AlignedLPPtr<T>(obj);
 }
 
-// make_unique_aligned_lp for arrays of unknown bound
+// make_unique_aligned_lp() for arrays of unknown bound
 template<typename T>
 std::enable_if_t<std::is_array_v<T>, AlignedLPPtr<T>> make_unique_aligned_lp(std::size_t num) {
     using ElementType = std::remove_extent_t<T>;
@@ -212,9 +211,9 @@ template<std::uintptr_t Alignment, typename T>
 T* align_ptr_up(T* ptr) noexcept {
     static_assert(alignof(T) < Alignment);
 
-    const std::uintptr_t intPtr = reinterpret_cast<std::uintptr_t>(reinterpret_cast<char*>(ptr));
+    const std::uintptr_t uintPtr = reinterpret_cast<std::uintptr_t>(reinterpret_cast<char*>(ptr));
     return reinterpret_cast<T*>(
-      reinterpret_cast<char*>((intPtr + (Alignment - 1)) / Alignment * Alignment));
+      reinterpret_cast<char*>((uintPtr + (Alignment - 1)) / Alignment * Alignment));
 }
 
 }  // namespace DON

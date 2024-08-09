@@ -23,86 +23,110 @@
 #include <cmath>
 #include <cstdint>
 #include <string>
+#if defined(_MSC_VER)
+    #include <intrin.h>  // Microsoft header for __popcnt() & _BitScanForward64()
+
+    #if defined(USE_POPCNT)
+        #include <nmmintrin.h>  // Microsoft header for _mm_popcnt_u64()
+    #endif
+#endif
+#if defined(USE_PEXT)
+    #include <immintrin.h>  // Header for _pext_u64() intrinsic
+#endif
 
 #include "types.h"
 
 namespace DON {
 
-namespace Bitboards {
+namespace BitBoard {
 
 void init() noexcept;
 #if !defined(NDEBUG)
 std::string pretty(Bitboard b) noexcept;
 #endif
 
-}  // namespace Bitboards
+}  // namespace BitBoard
 
-constexpr inline Bitboard FileABB = 0x0101010101010101ULL;
-constexpr inline Bitboard FileBBB = FileABB << (1 * 1);
-constexpr inline Bitboard FileCBB = FileABB << (1 * 2);
-constexpr inline Bitboard FileDBB = FileABB << (1 * 3);
-constexpr inline Bitboard FileEBB = FileABB << (1 * 4);
-constexpr inline Bitboard FileFBB = FileABB << (1 * 5);
-constexpr inline Bitboard FileGBB = FileABB << (1 * 6);
-constexpr inline Bitboard FileHBB = FileABB << (1 * 7);
+constexpr inline Bitboard FILE_A_BB = 0x0101010101010101ull;
+constexpr inline Bitboard FILE_B_BB = FILE_A_BB << (1 * 1);
+constexpr inline Bitboard FILE_C_BB = FILE_A_BB << (1 * 2);
+constexpr inline Bitboard FILE_D_BB = FILE_A_BB << (1 * 3);
+constexpr inline Bitboard FILE_E_BB = FILE_A_BB << (1 * 4);
+constexpr inline Bitboard FILE_F_BB = FILE_A_BB << (1 * 5);
+constexpr inline Bitboard FILE_G_BB = FILE_A_BB << (1 * 6);
+constexpr inline Bitboard FILE_H_BB = FILE_A_BB << (1 * 7);
 
-constexpr inline Bitboard Rank1BB = 0x00000000000000FFULL;
-constexpr inline Bitboard Rank2BB = Rank1BB << (8 * 1);
-constexpr inline Bitboard Rank3BB = Rank1BB << (8 * 2);
-constexpr inline Bitboard Rank4BB = Rank1BB << (8 * 3);
-constexpr inline Bitboard Rank5BB = Rank1BB << (8 * 4);
-constexpr inline Bitboard Rank6BB = Rank1BB << (8 * 5);
-constexpr inline Bitboard Rank7BB = Rank1BB << (8 * 6);
-constexpr inline Bitboard Rank8BB = Rank1BB << (8 * 7);
+constexpr inline Bitboard RANK_1_BB = 0x00000000000000FFull;
+constexpr inline Bitboard RANK_2_BB = RANK_1_BB << (8 * 1);
+constexpr inline Bitboard RANK_3_BB = RANK_1_BB << (8 * 2);
+constexpr inline Bitboard RANK_4_BB = RANK_1_BB << (8 * 3);
+constexpr inline Bitboard RANK_5_BB = RANK_1_BB << (8 * 4);
+constexpr inline Bitboard RANK_6_BB = RANK_1_BB << (8 * 5);
+constexpr inline Bitboard RANK_7_BB = RANK_1_BB << (8 * 6);
+constexpr inline Bitboard RANK_8_BB = RANK_1_BB << (8 * 7);
 
-constexpr inline Bitboard EnpassantRankBB = Rank6BB | Rank3BB;
-constexpr inline Bitboard PromotionRankBB = Rank8BB | Rank1BB;
-constexpr inline Bitboard ColorBB[COLOR_NB]{0x55AA55AA55AA55AAULL, 0xAA55AA55AA55AA55ULL};
-constexpr inline Bitboard LowRankBB[COLOR_NB]{Rank2BB | Rank3BB, Rank7BB | Rank6BB};
+constexpr inline Bitboard ENPASSANT_RANK_BB = RANK_6_BB | RANK_3_BB;
+constexpr inline Bitboard PROMOTION_RANK_BB = RANK_8_BB | RANK_1_BB;
+constexpr inline Bitboard EDGE_FILE_BB      = FILE_A_BB | FILE_H_BB;
+constexpr inline Bitboard COLOR_BB[COLOR_NB]{0x55AA55AA55AA55AAull, 0xAA55AA55AA55AA55ull};
+constexpr inline Bitboard LOW_RANK_BB[COLOR_NB]{RANK_2_BB | RANK_3_BB, RANK_7_BB | RANK_6_BB};
 
 #if !defined(USE_POPCNT)
-constexpr inline std::uint32_t PopCntSize = 1U << 16;
-extern std::uint8_t            PopCnt16[PopCntSize];
+constexpr inline std::uint32_t POPCNT_SIZE = 1u << 16;
+extern std::uint8_t            PopCnt16[POPCNT_SIZE];
 #endif
-extern std::uint8_t SquareDistance[SQUARE_NB][SQUARE_NB];
 
-extern Bitboard LineBB[SQUARE_NB][SQUARE_NB];
-extern Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
-extern Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
-extern Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
+extern std::uint8_t Distances[SQUARE_NB][SQUARE_NB];
+
+extern Bitboard Lines[SQUARE_NB][SQUARE_NB];
+extern Bitboard Betweens[SQUARE_NB][SQUARE_NB];
+extern Bitboard PawnAttacks[SQUARE_NB][COLOR_NB];
+extern Bitboard PseudoAttacks[SQUARE_NB][PIECE_TYPE_NB];
 
 // Magic holds all magic bitboards relevant data for a single square
 struct Magic final {
+   public:
+    Magic() noexcept                        = default;
+    Magic(const Magic&) noexcept            = delete;
+    Magic(Magic&&) noexcept                 = delete;
+    Magic& operator=(const Magic&) noexcept = delete;
+    Magic& operator=(Magic&&) noexcept      = delete;
+
     Bitboard  mask;
     Bitboard* attacks;
 #if !defined(USE_PEXT)
     Bitboard     magic;
     std::uint8_t shift;
+#else
+    void attacks_bb(Bitboard occupied, Bitboard ref) noexcept { attacks[index(occupied)] = ref; }
 #endif
+
+    Bitboard attacks_bb(Bitboard occupied) const noexcept { return attacks[index(occupied)]; }
 
     // Compute the attack's index using the 'magic bitboards' approach
     std::uint16_t index(Bitboard occupied) const noexcept {
 
 #if defined(USE_PEXT)
+        // _pext_u64(Parallel Bits Extract) extracts bits from a 64-bit integer
+        // according to a specified mask and compresses them into a contiguous block in the lower bits
         return _pext_u64(occupied, mask);
 #else
     #if defined(IS_64BIT)
-        return ((occupied & mask) * magic) >> shift;
+        return (occupied & mask) * magic >> shift;
     #else
-        auto lo = std::uint32_t(occupied >> 00) & std::uint32_t(mask >> 00);
+        auto lo = std::uint32_t(occupied) & std::uint32_t(mask);
         auto hi = std::uint32_t(occupied >> 32) & std::uint32_t(mask >> 32);
-        return (lo * std::uint32_t(magic >> 00) ^ hi * std::uint32_t(magic >> 32)) >> shift;
+        return (lo * std::uint32_t(magic) ^ hi * std::uint32_t(magic >> 32)) >> shift;
     #endif
 #endif
     }
 };
 
-extern Magic BishopMagics[SQUARE_NB];
-extern Magic RookMagics[SQUARE_NB];
+extern Magic Magics[SQUARE_NB][2];  // BISHOP or ROOK
 
 constexpr Bitboard square_bb(Square s) noexcept {
     assert(is_ok(s));
-    return 1ULL << s;
+    return 1ull << s;
 }
 
 // Overloads of bitwise operators between a Bitboard and a Square for testing
@@ -121,7 +145,7 @@ inline Bitboard& operator^=(Bitboard& b, Square s) noexcept { return b = b ^ s; 
 constexpr Bitboard operator|(Square s1, Square s2) noexcept { return square_bb(s1) | s2; }
 
 // Return a bitboard representing all the squares on the given file.
-constexpr Bitboard file_bb(File f) noexcept { return FileABB << (1 * f); }
+constexpr Bitboard file_bb(File f) noexcept { return FILE_A_BB << (1 * f); }
 constexpr Bitboard file_bb(Square s) noexcept { return file_bb(file_of(s)); }
 
 constexpr Bitboard operator&(Bitboard b, File f) noexcept { return b & file_bb(f); }
@@ -129,14 +153,16 @@ constexpr Bitboard operator|(Bitboard b, File f) noexcept { return b | file_bb(f
 constexpr Bitboard operator^(Bitboard b, File f) noexcept { return b ^ file_bb(f); }
 
 // Return a bitboard representing all the squares on the given rank.
-constexpr Bitboard rank_bb(Rank r) noexcept { return Rank1BB << (8 * r); }
+constexpr Bitboard rank_bb(Rank r) noexcept { return RANK_1_BB << (8 * r); }
 constexpr Bitboard rank_bb(Square s) noexcept { return rank_bb(rank_of(s)); }
 
 constexpr Bitboard operator&(Bitboard b, Rank r) noexcept { return b & rank_bb(r); }
 constexpr Bitboard operator|(Bitboard b, Rank r) noexcept { return b | rank_bb(r); }
 constexpr Bitboard operator^(Bitboard b, Rank r) noexcept { return b ^ rank_bb(r); }
 
-constexpr bool is_ok_ep(Square epSq) noexcept { return epSq != SQ_NONE && EnpassantRankBB & epSq; }
+constexpr bool is_ok_ep(Square epSq) noexcept {
+    return epSq != SQ_NONE && ENPASSANT_RANK_BB & epSq;
+}
 
 constexpr bool more_than_one(Bitboard b) noexcept { return b & (b - 1); }
 
@@ -146,7 +172,7 @@ constexpr bool more_than_one(Bitboard b) noexcept { return b & (b - 1); }
 // will return a bitboard with the A2-G8 diagonal.
 inline Bitboard line_bb(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
-    return LineBB[s1][s2];
+    return Lines[s1][s2];
 }
 
 // Returns a bitboard representing the squares in the semi-open segment
@@ -158,8 +184,10 @@ inline Bitboard line_bb(Square s1, Square s2) noexcept {
 // the defending piece must either interpose itself to cover the check or capture the checking piece.
 inline Bitboard between_bb(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
-    return BetweenBB[s1][s2];
+    return Betweens[s1][s2];
 }
+// Returns a bitboard between the squares s1 and s2 (excluding s1 and s2)
+inline Bitboard ex_between_bb(Square s1, Square s2) noexcept { return between_bb(s1, s2) ^ s2; }
 
 // Returns true if the squares s1, s2 and s3 are aligned
 // either on a straight or on a diagonal line.
@@ -185,54 +213,51 @@ constexpr std::uint8_t distance<Rank>(Square s1, Square s2) noexcept {
 template<>
 inline std::uint8_t distance<Square>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
-    return SquareDistance[s1][s2];
+    return Distances[s1][s2];
 }
 
 constexpr File edge_distance(File f) noexcept { return std::min(f, File(FILE_H - f)); }
 constexpr Rank edge_distance(Rank r) noexcept { return std::min(r, Rank(RANK_8 - r)); }
 
-// Shifts a bitboard one or two steps as specified by the direction D
-template<Direction D>
-constexpr Bitboard shift(Bitboard b) noexcept {
+// Shifts a bitboard as specified by the direction
+constexpr Bitboard shift(Direction dir, Bitboard b) noexcept {
     // clang-format off
-    switch (D)
+    switch (dir)
     {
     case NORTH :      return b << NORTH;
     case SOUTH :      return b >> NORTH;
     case NORTH_2 :    return b << NORTH_2;
     case SOUTH_2 :    return b >> NORTH_2;
-    case EAST :       return (b & ~FileHBB) << EAST;
-    case WEST :       return (b & ~FileABB) >> EAST;
-    case NORTH_WEST : return (b & ~FileABB) << NORTH_WEST;
-    case SOUTH_EAST : return (b & ~FileHBB) >> NORTH_WEST;
-    case NORTH_EAST : return (b & ~FileHBB) << NORTH_EAST;
-    case SOUTH_WEST : return (b & ~FileABB) >> NORTH_EAST;
+    case EAST :       return (b & ~FILE_H_BB) << EAST;
+    case WEST :       return (b & ~FILE_A_BB) >> EAST;
+    case NORTH_WEST : return (b & ~FILE_A_BB) << NORTH_WEST;
+    case SOUTH_EAST : return (b & ~FILE_H_BB) >> NORTH_WEST;
+    case NORTH_EAST : return (b & ~FILE_H_BB) << NORTH_EAST;
+    case SOUTH_WEST : return (b & ~FILE_A_BB) >> NORTH_EAST;
     default :         return b;
     }
     // clang-format on
 }
 
-constexpr Bitboard pawn_push_bb(Color c, Bitboard b) noexcept {
-    return c == WHITE ? shift<NORTH>(b) : shift<SOUTH>(b);
-}
+constexpr Bitboard pawn_push_bb(Color c, Bitboard b) noexcept { return shift(pawn_spush(c), b); }
 
 // Returns the squares attacked by pawns of the given color
 // from the squares in the given bitboard.
 constexpr Bitboard pawn_attacks_bb(Color c, Bitboard b) noexcept {
-    return c == WHITE ? shift<NORTH_WEST>(b) | shift<NORTH_EAST>(b)
-                      : shift<SOUTH_WEST>(b) | shift<SOUTH_EAST>(b);
+    return c == WHITE ? shift(NORTH_WEST, b) | shift(NORTH_EAST, b)
+                      : shift(SOUTH_WEST, b) | shift(SOUTH_EAST, b);
 }
 
 inline Bitboard pawn_attacks_bb(Color c, Square s) noexcept {
     assert(is_ok(s));
-    return PawnAttacks[c][s];
+    return PawnAttacks[s][c];
 }
 
 // Returns the pseudo attacks of the given piece type assuming an empty board.
 template<PieceType PT>
 inline Bitboard attacks_bb(Square s) noexcept {
     assert(PT != PAWN && is_ok(s));
-    return PseudoAttacks[PT][s];
+    return PseudoAttacks[s][PT];
 }
 
 // Returns the attacks by the given piece type
@@ -244,13 +269,13 @@ inline Bitboard attacks_bb(Square s, Bitboard occupied) noexcept {
     switch (PT)
     {
     case BISHOP :
-        return BishopMagics[s].attacks[BishopMagics[s].index(occupied)];
+        return Magics[s][0].attacks_bb(occupied);
     case ROOK :
-        return RookMagics[s].attacks[RookMagics[s].index(occupied)];
+        return Magics[s][1].attacks_bb(occupied);
     case QUEEN :
         return attacks_bb<BISHOP>(s, occupied) | attacks_bb<ROOK>(s, occupied);
     default :
-        return PseudoAttacks[PT][s];
+        return PseudoAttacks[s][PT];
     }
 }
 
@@ -268,7 +293,7 @@ inline Bitboard attacks_bb(PieceType pt, Square s, Bitboard occupied = 0) noexce
     case QUEEN :
         return attacks_bb<BISHOP>(s, occupied) | attacks_bb<ROOK>(s, occupied);
     default :
-        return PseudoAttacks[pt][s];
+        return PseudoAttacks[s][pt];
     }
 }
 
@@ -296,7 +321,7 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
 #endif
 }
 
-// Returns the least significant bit in a non-zero bitboard.
+// Returns the least significant bit in a non-zero bitboard
 inline Square lsb(Bitboard b) noexcept {
     assert(b);
 
@@ -315,9 +340,9 @@ inline Square lsb(Bitboard b) noexcept {
 
     unsigned long idx;
 
-    if (b & 0xFFFFFFFF)
+    if (std::uint32_t bb = std::uint32_t(b); bb)
     {
-        _BitScanForward(&idx, std::uint32_t(b));
+        _BitScanForward(&idx, bb);
         return Square(idx);
     }
     _BitScanForward(&idx, std::uint32_t(b >> 32));
@@ -329,7 +354,7 @@ inline Square lsb(Bitboard b) noexcept {
 #endif
 }
 
-// Returns the most significant bit in a non-zero bitboard.
+// Returns the most significant bit in a non-zero bitboard
 inline Square msb(Bitboard b) noexcept {
     assert(b);
 
@@ -348,9 +373,9 @@ inline Square msb(Bitboard b) noexcept {
 
     unsigned long idx;
 
-    if (b >> 32)
+    if (std::uint32_t bb = b >> 32; bb)
     {
-        _BitScanReverse(&idx, std::uint32_t(b >> 32));
+        _BitScanReverse(&idx, bb);
         return Square(idx + 32);
     }
     _BitScanReverse(&idx, std::uint32_t(b));
@@ -369,7 +394,7 @@ constexpr Bitboard lsb_square_bb(Bitboard b) noexcept {
     return b & -b;
 }
 
-// Finds and clears the least significant bit in a non-zero bitboard.
+// Finds and clears the least significant bit in a non-zero bitboard
 inline Square pop_lsb(Bitboard& b) noexcept {
     assert(b);
     Square s = lsb(b);

@@ -28,7 +28,6 @@
 #include <iterator>
 #include <limits>
 #include <type_traits>  // IWYU pragma: keep
-#include <vector>
 
 #include "movegen.h"
 #include "types.h"
@@ -37,39 +36,24 @@ namespace DON {
 
 class Position;
 
-constexpr inline Key16        PAWN_HISTORY_SIZE        = 0x200;   // has to be a power of 2
-constexpr inline Key16        CORRECTION_HISTORY_SIZE  = 0x4000;  // has to be a power of 2
-constexpr inline std::int32_t CORRECTION_HISTORY_LIMIT = 1024;
-
-static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
-              "PAWN_HISTORY_SIZE has to be a power of 2");
-static_assert((CORRECTION_HISTORY_SIZE & (CORRECTION_HISTORY_SIZE - 1)) == 0,
-              "CORRECTION_HISTORY_SIZE has to be a power of 2");
-
-constexpr Key16 pawn_index(Key pawnKey) noexcept {
-    return Key16(pawnKey) & (PAWN_HISTORY_SIZE - 1);
-}
-constexpr Key16 correction_index(Key pawnKey) noexcept {
-    return Key16(pawnKey) & (CORRECTION_HISTORY_SIZE - 1);
-}
-
 class Moves final {
    public:
-    using MoveDeque = std::deque<Move>;
-    using NormalItr = MoveDeque::iterator;
-    using ConstItr  = MoveDeque::const_iterator;
+    using MoveDeque  = std::deque<Move>;
+    using NormalItr  = MoveDeque::iterator;
+    using ReverseItr = MoveDeque::reverse_iterator;
+    using ConstItr   = MoveDeque::const_iterator;
 
     Moves() = default;
     explicit Moves(std::size_t count, Move m) noexcept :
         moves(count, m) {}
-    explicit Moves(std::size_t count) noexcept :
-        moves(count) {}
+    //explicit Moves(std::size_t count) noexcept :
+    //    moves(count) {}
     Moves(const std::initializer_list<Move>& initList) noexcept :
         moves(initList) {}
 
     template<typename... Args>
-    void emplace(Args&&... args) noexcept {
-        moves.emplace_back(std::forward<Args>(args)...);
+    auto& operator+=(Args&&... args) noexcept {
+        return moves.emplace_back(std::forward<Args>(args)...);
     }
 
     void push_back(Move m) noexcept { moves.push_back(m); }
@@ -86,12 +70,14 @@ class Moves final {
     void append(const Moves& ms) noexcept { append(ms.begin(), ms.end()); }
     void pop() noexcept { moves.pop_back(); }
 
-    // void reserve(std::size_t newSize) noexcept { moves.reserve(newSize); }
     void resize(std::size_t newSize) noexcept { moves.resize(newSize); }
     void clear() noexcept { moves.clear(); }
 
     NormalItr begin() noexcept { return moves.begin(); }
     NormalItr end() noexcept { return moves.end(); }
+
+    ReverseItr rbegin() noexcept { return moves.rbegin(); }
+    ReverseItr rend() noexcept { return moves.rend(); }
 
     ConstItr begin() const noexcept { return moves.begin(); }
     ConstItr end() const noexcept { return moves.end(); }
@@ -100,20 +86,7 @@ class Moves final {
     auto& back() noexcept { return moves.back(); }
 
     auto size() const noexcept { return moves.size(); }
-    auto max_size() const noexcept { return moves.max_size(); }
     bool empty() const noexcept { return moves.empty(); }
-
-    auto erase(ConstItr itr) noexcept { return moves.erase(itr); }
-    auto erase(ConstItr begItr, ConstItr endItr) noexcept {  //
-        assert(begItr <= endItr);
-        return moves.erase(begItr, endItr);
-    }
-    bool erase(Move m) noexcept {
-        auto itr = find(m);
-        if (itr != end())
-            return erase(itr), true;
-        return false;
-    }
 
     ConstItr find(Move m) const noexcept { return std::find(begin(), end(), m); }
 
@@ -128,51 +101,48 @@ class Moves final {
     auto& operator[](std::size_t idx) const noexcept { return moves[idx]; }
     auto& operator[](std::size_t idx) noexcept { return moves[idx]; }
 
-    void operator+=(Move m) noexcept { push_back(m); }
-    void operator-=(Move m) noexcept { erase(m); }
-
    private:
     MoveDeque moves;
 };
 
-// StatsEntry stores the stat table value. It is usually a number but could
-// be a move or even a nested history. Use a class instead of a naked value
-// to directly call history update operator<<() on the entry so to use stats
-// tables at caller sites as simple multi-dim arrays.
-template<typename T, std::int32_t D>
+// StatsEntry stores the stat table value. It is usually a integer but also could be a nested Stats.
+// Use a class instead of a naked value to directly call history update operator<<() on the entry
+// so to use stats tables at caller sites as simple multi-dim arrays.
+template<typename T, int D>
 class StatsEntry final {
-    T entry;
-
    public:
     void operator=(const T& e) noexcept { entry = e; }
     T*   operator&() noexcept { return &entry; }
     T*   operator->() noexcept { return &entry; }
     operator const T&() const noexcept { return entry; }
 
-    void operator<<(std::int32_t bonus) noexcept {
+    void operator<<(int bonus) noexcept {
         static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
 
         // Make sure that bonus is in range [-D, D]
-        std::int32_t clampedBonus = std::clamp(bonus, -D, +D);
+        int clampedBonus = std::clamp(bonus, -D, +D);
         entry += clampedBonus - entry * std::abs(clampedBonus) / D;
 
         assert(std::abs(entry) <= D);
     }
+
+   private:
+    T entry;
 };
 
 // Stats is a generic N-dimensional array used to store various statistics.
 // The first template parameter T is the base type of the array, and the second
-// template parameter D limits the range of updates in [-D, D] when update
+// template parameter D limits the range of updates in [-D, +D] when update
 // values with the << operator, while the last parameters (Size and Sizes)
 // encode the dimensions of the array.
-template<typename T, std::int32_t D, std::uint32_t Size, std::uint32_t... Sizes>
+template<typename T, int D, std::size_t Size, std::size_t... Sizes>
 struct Stats final: public std::array<Stats<T, D, Sizes...>, Size> {
-    using stats = Stats<T, D, Size, Sizes...>;
+    using StatsAlias = Stats<T, D, Size, Sizes...>;
 
     void fill(const T& v) noexcept {
 
         // For standard-layout 'this' points to the first struct member
-        assert(std::is_standard_layout_v<stats>);
+        assert(std::is_standard_layout_v<StatsAlias>);
 
         using Entry = StatsEntry<T, D>;
         auto* p     = reinterpret_cast<Entry*>(this);
@@ -180,42 +150,49 @@ struct Stats final: public std::array<Stats<T, D, Sizes...>, Size> {
     }
 };
 
-template<typename T, std::int32_t D, std::uint32_t Size>
+template<typename T, int D, std::size_t Size>
 struct Stats<T, D, Size> final: public std::array<StatsEntry<T, D>, Size> {};
 
+// clang-format off
+
 // In stats table, D=0 means that the template parameter is not used
-constexpr inline std::int32_t NOT_USED = 0;
+constexpr inline int STATS_PARAM_NOT_USED = 0;
 
-// ButterflyHistory records how often quiet moves have been successful or unsuccessful
+constexpr inline int   PAWN_HISTORY_LIMIT = 0x2000;
+constexpr inline Key16 PAWN_HISTORY_SIZE  = 0x200;
+static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
+              "PAWN_HISTORY_SIZE has to be a power of 2");
+constexpr Key16 pawn_index(Key pawnKey) noexcept { return pawnKey & (PAWN_HISTORY_SIZE - 1); }
+
+constexpr inline int   CORRECTION_HISTORY_LIMIT = 0x400;
+constexpr inline Key16 CORRECTION_HISTORY_SIZE  = 0x4000;
+static_assert((CORRECTION_HISTORY_SIZE & (CORRECTION_HISTORY_SIZE - 1)) == 0,
+              "CORRECTION_HISTORY_SIZE has to be a power of 2");
+constexpr Key16 correction_index(Key pawnKey) noexcept { return pawnKey & (CORRECTION_HISTORY_SIZE - 1); }
+
+// ButterflyHistory records how often quiet moves have been successful or not
 // during the current search, and is used for reduction and move ordering decisions.
-// It uses 2 tables (one for each color) indexed by the move's from and to squares,
+// It uses 2 tables (one for each color) indexed by the move's org and dst squares,
 // see www.chessprogramming.org/Butterfly_Boards (~11 Elo)
-using ButterflyHistory = Stats<std::int16_t, 7183, COLOR_NB, SQUARE_NB * SQUARE_NB>;
+using ButterflyHistory = Stats<std::int16_t, 0x1C0F, COLOR_NB, SQUARE_NB * SQUARE_NB>;
 
-// CounterMoveHistory stores counter moves indexed by [piece][to] of the previous move,
-// see www.chessprogramming.org/Countermove_Heuristic
-using CounterMoveHistory = Stats<Move, NOT_USED, PIECE_NB, SQUARE_NB>;
+// CapturePieceDstHistory is addressed by a move's [piece][dst][captured piece type]
+using CapturePieceDstHistory = Stats<std::int16_t, 0x29C4, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 
-// CapturePieceDstHistory is addressed by a move's [piece][to][captured piece type]
-using CapturePieceDstHistory = Stats<std::int16_t, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
-
-// PieceDstHistory is like ButterflyHistory but is addressed by a move's [piece][to]
-using PieceDstHistory = Stats<std::int16_t, 29952, PIECE_NB, SQUARE_NB>;
+// PieceDstHistory is like ButterflyHistory but is addressed by a move's [piece][dst]
+using PieceDstHistory = Stats<std::int16_t, 0x7500, PIECE_NB, SQUARE_NB>;
 
 // ContinuationHistory is the combined history of a given pair of moves, usually
 // the current one given a previous one. The nested history table is based on
-// PieceDstHistory instead of ButterflyBoards.
-// (~63 Elo)
-using ContinuationHistory = Stats<PieceDstHistory, NOT_USED, PIECE_NB, SQUARE_NB>;
+// PieceDstHistory instead of ButterflyBoards. (~63 Elo)
+using ContinuationHistory = Stats<PieceDstHistory, STATS_PARAM_NOT_USED, PIECE_NB, SQUARE_NB>;
 
-// PawnHistory is addressed by the pawn structure and a move's [piece][to]
-using PawnHistory = Stats<std::int16_t, 8192, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
+// PawnHistory is addressed by the pawn structure and a move's [piece][dst]
+using PawnHistory = Stats<std::int16_t, PAWN_HISTORY_LIMIT, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
 
 // CorrectionHistory is addressed by color and pawn structure
-using CorrectionHistory =
-  Stats<std::int16_t, CORRECTION_HISTORY_LIMIT, COLOR_NB, CORRECTION_HISTORY_SIZE>;
-
-using KillerMoves = std::array<Move, 2>;
+using CorrectionHistory = Stats<std::int16_t, CORRECTION_HISTORY_LIMIT, COLOR_NB, CORRECTION_HISTORY_SIZE>;
+// clang-format on
 
 enum Stage : std::uint8_t {
     NO_STAGE,
@@ -223,7 +200,6 @@ enum Stage : std::uint8_t {
     MAIN_TT,
     CAPTURE_INIT,
     CAPTURE_GOOD,
-    REFUTATION,
     QUIET_INIT,
     QUIET_GOOD,
     CAPTURE_BAD,
@@ -238,21 +214,10 @@ enum Stage : std::uint8_t {
     PROBCUT_TT,
     PROBCUT_INIT,
     PROBCUT,
-
-    // Generate qsearch moves
-    QS_TT,
-    QS_CAPTURE_INIT,
-    QS_CAPTURE,
-    QS_CHECK_INIT,
-    QS_CHECK
 };
 
 constexpr Stage operator+(Stage s, int i) noexcept { return Stage(int(s) + i); }
-constexpr Stage operator-(Stage s, int i) noexcept { return Stage(int(s) - i); }
-constexpr Stage operator+(Stage s, bool b) noexcept { return s + int(b); }
-constexpr Stage operator-(Stage s, bool b) noexcept { return s - int(b); }
 inline Stage&   operator++(Stage& s) noexcept { return s = s + 1; }
-inline Stage&   operator--(Stage& s) noexcept { return s = s - 1; }
 
 // MovePicker class is used to pick one pseudo-legal move at a time from the
 // current position. The most important method is next_move(), which returns a
@@ -262,36 +227,32 @@ inline Stage&   operator--(Stage& s) noexcept { return s = s - 1; }
 // likely to get a cut-off first.
 class MovePicker final {
    public:
-    MovePicker(const MovePicker&)            = delete;
-    MovePicker& operator=(const MovePicker&) = delete;
-    MovePicker(const Position&,
-               Move,
-               Depth,
-               const ButterflyHistory*,
-               const CapturePieceDstHistory*,
-               const PieceDstHistory**,
-               const PawnHistory*,
-               const KillerMoves&,
-               Move) noexcept;
-    MovePicker(const Position&,
-               Move,
-               Depth,
-               const ButterflyHistory*,
-               const CapturePieceDstHistory*,
-               const PieceDstHistory**,
-               const PawnHistory*) noexcept;
-    MovePicker(const Position&, Move, int, const CapturePieceDstHistory*) noexcept;
+    // Constructors
+    MovePicker(const Position&               p,
+               Move                          ttm,
+               const ButterflyHistory*       mh,
+               const CapturePieceDstHistory* cph,
+               const PieceDstHistory**       ch,
+               const PawnHistory*            ph,
+               int                           th  = 0,
+               bool                          all = true) noexcept;
+    MovePicker() noexcept                             = delete;
+    MovePicker(const MovePicker&) noexcept            = delete;
+    MovePicker(MovePicker&&) noexcept                 = delete;
+    MovePicker& operator=(const MovePicker&) noexcept = delete;
+    MovePicker& operator=(MovePicker&&) noexcept      = delete;
 
-    Move next_move() noexcept;
+    Move next_move(bool pickQuiets = false) noexcept;
 
-    Stage stage      = NO_STAGE;
-    bool  pickQuiets = true;
+    Stage stage = NO_STAGE;
 
    private:
+    void next_stage() noexcept { ++stage; }
+
     template<GenType GT>
     void score() noexcept;
 
-    void partial_sort(int limit) noexcept;
+    void sort_partial(int limit = std::numeric_limits<int>::min()) noexcept;
 
     auto begin() const noexcept { return curExtItr; }
     auto end() const noexcept { return endExtItr; }
@@ -299,19 +260,18 @@ class MovePicker final {
     std::uint8_t size() const noexcept { return std::distance(begin(), end()); }
 
     const Position&               pos;
+    const Move                    ttMove;
     const ButterflyHistory*       mainHistory;
     const CapturePieceDstHistory* captureHistory;
     const PieceDstHistory**       continuationHistory;
     const PawnHistory*            pawnHistory;
-    Move                          ttMove;
-    Depth                         depth;
-    int                           threshold;
+    const int                     threshold;
+
+    Moves            badCaptures;
+    Moves::NormalItr curItr, endItr;
 
     ExtMoves            extMoves;
     ExtMoves::NormalItr curExtItr, endExtItr;
-
-    Moves            refutations, badCaptures;
-    Moves::NormalItr curItr, endItr;
 };
 
 }  // namespace DON

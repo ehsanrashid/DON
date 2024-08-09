@@ -32,17 +32,7 @@
 
 namespace DON {
 
-namespace {
-constexpr std::uint32_t MAX_HASH =
-#if defined(IS_64BIT)
-  0x2000000U;
-#else
-  0x800U;
-#endif
-
-}  // namespace
-
-namespace NN = Eval::NNUE;
+namespace NN = Eval::NNUE;  // Create alias
 
 Engine::Engine(const std::string& path) noexcept :
     binaryDirectory(CommandLine::get_binary_directory(path)),
@@ -69,31 +59,31 @@ Engine::Engine(const std::string& path) noexcept :
     });
     options["Clear Hash"]   << Option([this](const Option&) { init(); return std::nullopt; });
     options["Retain Hash"]  << Option(false);
-    options["HashFile"]     << Option("<empty>");
+    options["HashFile"]     << Option("");
     options["Save Hash"]    << Option([this](const Option&) { return std::nullopt; });
     options["Load Hash"]    << Option([this](const Option&) { return std::nullopt; });
     options["Ponder"]       << Option(false);
-    options["MultiPV"]      << Option(DefaultMultiPV, 1, std::numeric_limits<std::uint8_t>::max());
-    options["Skill Level"]  << Option(Search::Skill::MaxLevel, 0, Search::Skill::MaxLevel);
+    options["MultiPV"]      << Option(DEFAULT_MULTI_PV, 1, std::numeric_limits<std::uint8_t>::max());
+    options["Skill Level"]  << Option(Search::Skill::MAX_LEVEL, 0, Search::Skill::MAX_LEVEL);
     options["Move Overhead"] << Option(10, 0, 5000);
     options["NodesTime"]    << Option(0, 0, 10000);
     options["DrawMoveCount"] << Option(Position::DrawMoveCount, 5, 50, [](const Option& o) { Position::DrawMoveCount = o; return std::nullopt; });
     options["UCI_Chess960"] << Option(Position::Chess960, [](const Option& o) { Position::Chess960 = o; return std::nullopt; });
     options["UCI_LimitStrength"] << Option(false);
-    options["UCI_ELO"]      << Option(Search::Skill::MinELO, Search::Skill::MinELO, Search::Skill::MaxELO);
+    options["UCI_ELO"]      << Option(Search::Skill::MAX_ELO, Search::Skill::MIN_ELO, Search::Skill::MAX_ELO);
     options["UCI_ShowWDL"]  << Option(false);
     options["OwnBook"]      << Option(false);
-    options["BookFile"]     << Option("<empty>", [this](const Option& o) { load_book(o); return std::nullopt; });
+    options["BookFile"]     << Option("", [this](const Option& o) { load_book(o); return std::nullopt; });
     options["BookDepth"]    << Option(100, 1, 256);
     options["BookPickBest"] << Option(true);
-    options["SyzygyPath"]   << Option("<empty>", [](const Option& o) { Tablebases::init(o); return std::nullopt; });
+    options["SyzygyPath"]   << Option("", [](const Option& o) { Tablebases::init(o); return std::nullopt; });
     options["SyzygyProbeLimit"] << Option(7, 0, 7);
     options["SyzygyProbeDepth"] << Option(1, 1, 100);
     options["Syzygy50MoveRule"] << Option(true);
     options["EvalFileBig"]  << Option(EvalFileDefaultNameBig, [this](const Option& o) { load_big_network(o); return std::nullopt; });
     options["EvalFileSmall"] << Option(EvalFileDefaultNameSmall, [this](const Option& o) { load_small_network(o); return std::nullopt; });
     options["ReportMinimal"] << Option(false);
-    options["DebugLogFile"] << Option("<empty>", [](const Option& o) { start_logger(o); return std::nullopt; });
+    options["DebugLogFile"] << Option("", [](const Option& o) { start_logger(o); return std::nullopt; });
     // clang-format on
 
     load_networks();
@@ -107,14 +97,17 @@ Options&       Engine::get_options() noexcept { return options; }
 
 std::string Engine::fen() const noexcept { return pos.fen(); }
 
-void Engine::setup(std::string_view fen, const std::vector<std::string>& moves) noexcept {
-    // Drop the old state and create a new one
+void Engine::setup(std::string_view fen, const std::deque<std::string>& moves) noexcept {
+    // Drop the old states and create a new one
     states = std::make_unique<StateList>(1);
     pos.set(fen, &states->back());
 
-    for (const std::string& can : moves)
+    for (const std::string& move : moves)
     {
-        Move m = UCI::can_to_move(can, pos);
+        const MoveList<LEGAL> legalMoves(pos);
+        if (legalMoves.size() == 0)
+            break;
+        Move m = UCI::mix_to_move(move, pos, legalMoves);
         if (m == Move::None())
             break;
         assert(pos.rule50_count() <= 100);
@@ -156,6 +149,7 @@ void Engine::resize_threads_tt() noexcept {
     threads.set(numaContext.get_numa_config(), {options, networks, threads, tt}, updateContext);
     // Reallocate the hash with the new threadpool size
     resize_tt(options["Hash"]);
+    threads.ensure_network_replicated();
 }
 
 void Engine::resize_tt(std::size_t mbSize) noexcept {
@@ -216,23 +210,23 @@ std::string Engine::get_numa_config() const noexcept {
 }
 
 std::string Engine::get_numa_config_info() const noexcept {
-    std::string numaConfig = get_numa_config();
-    return "Available Processors: " + numaConfig;
+    return "Available Processors: " + get_numa_config();
 }
 
 std::string Engine::get_thread_binding_info() const noexcept {
     std::ostringstream oss;
 
+    oss << "NUMA " << threads.size() << " thread(s)";
     auto boundThreadCounts = get_bound_thread_counts();
     if (!boundThreadCounts.empty())
     {
-        oss << "NUMA Node Thread Binding: ";
+        oss << " with NUMA node thread binding: ";
         bool isFirst = true;
-        for (auto&& [current, total] : boundThreadCounts)
+        for (auto&& [count, total] : boundThreadCounts)
         {
             if (!isFirst)
-                oss << ":";
-            oss << current << "/" << total;
+                oss << ':';
+            oss << count << '/' << total;
             isFirst = false;
         }
     }
@@ -251,18 +245,21 @@ void Engine::load_networks() noexcept {
         net.small.load(binaryDirectory, options["EvalFileSmall"]);
     });
     threads.init();
+    threads.ensure_network_replicated();
 }
 
 void Engine::load_big_network(const std::string& bigFile) noexcept {
     networks.modify_and_replicate(
       [&](NN::Networks& net) { net.big.load(binaryDirectory, bigFile); });
     threads.init();
+    threads.ensure_network_replicated();
 }
 
 void Engine::load_small_network(const std::string& smallFile) noexcept {
     networks.modify_and_replicate(
       [&](NN::Networks& net) { net.small.load(binaryDirectory, smallFile); });
     threads.init();
+    threads.ensure_network_replicated();
 }
 
 void Engine::save_networks(

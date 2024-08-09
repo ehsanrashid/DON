@@ -47,9 +47,9 @@ struct EvalFile final {
 struct NnueEvalTrace final {
     static_assert(LayerStacks == PSQTBuckets);
 
-    Value       psqt[LayerStacks];
-    Value       positional[LayerStacks];
-    std::size_t correctBucket;
+    std::int32_t psqt[LayerStacks];
+    std::int32_t positional[LayerStacks];
+    std::size_t  correctBucket;
 };
 
 void        hint_common_parent_position(const Position&    pos,

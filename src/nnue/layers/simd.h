@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SIMD_H_INCLUDED
-#define SIMD_H_INCLUDED
+#ifndef NNUE_LAYERS_SIMD_H_INCLUDED
+#define NNUE_LAYERS_SIMD_H_INCLUDED
 
 #if defined(USE_AVX2)
     #include <immintrin.h>
@@ -130,4 +130,4 @@ neon_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept {
 #endif
 }  // namespace DON::Simd
 
-#endif  // #ifndef SIMD_H_INCLUDED
+#endif  // #ifndef NNUE_LAYERS_SIMD_H_INCLUDED

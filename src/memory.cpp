@@ -48,6 +48,7 @@
     #include <iostream>  // std::cerr
     #include <ostream>   // std::endl
     #include <windows.h>
+
 // The needed Windows API for processor groups could be missed from old Windows
 // versions, so instead of calling them directly (forcing the linker to resolve
 // the calls at compile time), try to load them at runtime. To do this we need
@@ -67,12 +68,13 @@ namespace DON {
 // does not guarantee the availability of aligned_alloc().
 // Memory allocated with alloc_aligned_std() must be freed with free_aligned_std().
 void* alloc_aligned_std(std::size_t alignment, std::size_t allocSize) noexcept {
-    // Apple requires 10.15, which is enforced in the makefile
-#if defined(_ISOC11_SOURCE) || defined(__APPLE__)
+
+#if defined(_ISOC11_SOURCE)
     return aligned_alloc(alignment, allocSize);
 #elif defined(POSIX_ALIGNED)
-    void* mem;
-    return posix_memalign(&mem, alignment, allocSize) ? nullptr : mem;
+    void* mem = nullptr;
+    posix_memalign(&mem, alignment, allocSize);
+    return mem;
 #elif defined(_WIN32) && !defined(_M_ARM) && !defined(_M_ARM64)
     return _mm_malloc(allocSize, alignment);
 #elif defined(_WIN32)
@@ -150,7 +152,7 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
         tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
         // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
-        // we still need to query GetLastError() to ensure that the privileges were actually obtained.
+        // Still need to query GetLastError() to ensure that the privileges were actually obtained.
         if (adjustTokenPrivileges(hProcessToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), &prevTp,
                                   &prevTpLen)
             && GetLastError() == ERROR_SUCCESS)
@@ -189,16 +191,18 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept {
 
     return mem;
 #else
+
+    constexpr std::size_t ALIGNMENT =
     #if defined(__linux__)
-    constexpr std::size_t Alignment = 2 * 1024 * 1024;  // assumed 2MB page size
+      2 * 1024 * 1024;  // Assume 2MB page size
     #else
-    constexpr std::size_t Alignment = 4 * 1024;  // assumed small page size
+      4 * 1024;  // Assume small page size
     #endif
 
-    // Round up to multiples of Alignment
-    std::size_t roundAllocSize = ((allocSize + Alignment - 1) / Alignment) * Alignment;
+    // Round up to multiples of ALIGNMENT
+    std::size_t roundAllocSize = ((allocSize + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT;
 
-    void* mem = alloc_aligned_std(Alignment, roundAllocSize);
+    void* mem = alloc_aligned_std(ALIGNMENT, roundAllocSize);
     #if defined(MADV_HUGEPAGE)
     if (mem != nullptr)
         madvise(mem, roundAllocSize, MADV_HUGEPAGE);
@@ -207,15 +211,16 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept {
 #endif
 }
 
-// Free Aligned Large Pages
-// nop if mem == nullptr
+// Free Aligned Large Pages.
+// The effect is a nop if mem == nullptr
 void free_aligned_lp(void* mem) noexcept {
+
 #if defined(_WIN32)
     if (mem != nullptr && !VirtualFree(mem, 0, MEM_RELEASE))
     {
         std::cerr << "Failed to free large page memory."
                   << "Error code: 0x" << std::hex << GetLastError() << std::dec << '\n';
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
 #else
     free_aligned_std(mem);

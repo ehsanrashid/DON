@@ -24,7 +24,6 @@
 #include <cstring>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <limits>
 #include <mutex>
 #include <sstream>
@@ -37,15 +36,38 @@ namespace DON {
 namespace {
 
 // Version number or dev.
-constexpr std::string_view Version("dev");
+constexpr inline std::string_view Version{"dev"};
 
-// Our fancy logging facility. The trick here is to replace cin.rdbuf() and
-// cout.rdbuf() with two Tie objects that tie cin and cout to a file stream. We
-// can toggle the logging of std::cout and std:cin at runtime whilst preserving
+inline std::string format_date(const std::string& date) noexcept {
+    //constexpr std::string_view Months{"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"};
+    constexpr std::array<std::string_view, 12> Months{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+    std::istringstream iss(date);  // From compiler, format is "Sep 21 2008"
+
+    std::string month, day, year;
+    iss >> month >> day >> year;
+
+    // clang-format off
+    std::ostringstream oss;
+    oss << std::setfill('0')
+        << std::setw(4) << year
+        //<< std::setw(2) << (1 + Months.find(month) / 4)
+        << std::setw(2) << (1 + std::distance(Months.begin(), std::find(Months.begin(), Months.end(), month)))
+        << std::setw(2) << day;
+    // clang-format on
+    return oss.str();
+}
+
+// Fancy logging facility. The trick here is to replace cin.rdbuf() and cout.rdbuf()
+// with two Tie objects that tie std::cin and std::cout to a file stream.
+// Can toggle the logging of std::cout and std:cin at runtime whilst preserving
 // usual I/O functionality, all without changing a single line of code!
 // Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
-class Tie final: public std::streambuf {  // MSVC requires split streambuf for cin and cout
+// MSVC requires split streambuf for std::cin and std::cout.
+class Tie final: public std::streambuf {
    public:
+    Tie() noexcept = delete;
     Tie(std::streambuf* b1, std::streambuf* b2) noexcept :
         buf1(b1),
         buf2(b2) {}
@@ -68,7 +90,8 @@ class Tie final: public std::streambuf {  // MSVC requires split streambuf for c
 };
 
 class Logger final {
-
+   private:
+    Logger() noexcept = delete;
     Logger(std::istream& is, std::ostream& os) noexcept :
         istream(is),
         ostream(os),
@@ -83,7 +106,7 @@ class Logger final {
     std::ofstream ofstream;
 
    public:
-    static void start(std::string_view logFile) noexcept {
+    static void start(const std::string& logFile) noexcept {
         static Logger logger(std::cin, std::cout);  // Tie std::cin and std::cout to a file.
 
         if (logger.ofstream.is_open())
@@ -95,15 +118,15 @@ class Logger final {
             logger.ofstream.close();
         }
 
-        if (logFile.empty() || logFile == "<empty>")
+        if (is_empty(logFile))
             return;
 
-        logger.ofstream.open(logFile.data(), std::ios_base::out | std::ios_base::app);
+        logger.ofstream.open(logFile, std::ios_base::out | std::ios_base::app);
 
         if (!logger.ofstream.is_open())
         {
             std::cerr << "Unable to open debug log file: " << logFile << '\n';
-            exit(EXIT_FAILURE);
+            std::exit(EXIT_FAILURE);
         }
         logger.ofstream << "[" << format_time(SystemClock::now()) << "] ->\n";
 
@@ -115,14 +138,14 @@ class Logger final {
 }  // namespace
 
 // Returns the full name of the current DON version.
-// For local dev compiles try to append the commit sha and commit date
-// from git if that fails only the local compilation date is set and "nogit" is specified:
-// DON dev-YYYYMMDD-SHA
+// For local dev compiles try to append the commit sha and commit date from git.
+// If that fails only the local compilation date is set and "nogit" is specified:
+//  - DON dev-YYYYMMDD-SHA
 // or
-// DON dev-YYYYMMDD-nogit
+//  - DON dev-YYYYMMDD-nogit
 //
 // For releases (non-dev builds) only include the version number:
-// DON version
+//  - DON version
 std::string engine_info(bool uci) noexcept {
     std::ostringstream oss;
     oss << (uci ? "id name " : "") << "DON"
@@ -134,15 +157,8 @@ std::string engine_info(bool uci) noexcept {
 #if defined(GIT_DATE)
         oss << STRINGIFY(GIT_DATE);
 #else
-        constexpr std::string_view Months("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
-
-        std::istringstream iss(__DATE__);  // From compiler, format is "Sep 21 2008"
-        std::string        month, day, year;
-        iss >> month >> day >> year;
-        oss << std::setfill('0') << std::setw(4) << year << std::setfill('0') << std::setw(2)
-            << (1 + Months.find(month) / 4) << std::setfill('0') << std::setw(2) << day;
+        oss << format_date(__DATE__);
 #endif
-
         oss << "-";
 
 #if defined(GIT_SHA)
@@ -284,14 +300,15 @@ std::string compiler_info() noexcept {
 
 // Used to serialize access to std::cout
 // to avoid multiple threads writing at the same time.
-std::ostream& operator<<(std::ostream& os, InOut io) noexcept {
+std::ostream& operator<<(std::ostream& os, OutState out) noexcept {
     static std::mutex mutex;
-    switch (io)
+
+    switch (out)
     {
-    case IO_LOCK :
+    case OUT_LOCK :
         mutex.lock();
         break;
-    case IO_UNLOCK :
+    case OUT_UNLOCK :
         mutex.unlock();
         break;
     }
@@ -299,35 +316,7 @@ std::ostream& operator<<(std::ostream& os, InOut io) noexcept {
     return os;
 }
 
-/*
-std::ostream& operator<<(std::ostream&                            os,
-                         [[maybe_unused]] SystemClock::time_point timePoint) noexcept {
-#if defined(_WIN32)
-    std::string str;
-
-    time_t rawTime = SystemClock::to_time_t(timePoint);
-    tm     localTm;
-    localtime_s(&localTm, &rawTime);
-    auto format = "%Y.%m.%d-%H.%M.%S";
-
-    constexpr std::size_t BuffSize = 32;
-    char                  buffer[BuffSize];
-    strftime(buffer, BuffSize, format, &localTm);
-    str += buffer;
-    // Milli-second
-    auto ms =
-      std::chrono::duration_cast<MilliSeconds>(timePoint - SystemClock::from_time_t(rawTime))
-        .count();
-    str += "." + std::to_string(ms);
-    os << str;
-#endif
-
-    return os;
-}
-*/
-
 std::string format_time(std::chrono::time_point<SystemClock> timePoint) {
-
     static std::mutex mutex;
 
     std::ostringstream oss;
@@ -358,9 +347,8 @@ namespace Debug {
 namespace {
 
 template<std::uint8_t N>
-struct Info {
-    std::array<std::atomic_int64_t, N> data;
-
+class Info final {
+   public:
     constexpr std::atomic_int64_t& operator[](std::uint8_t index) noexcept { return data[index]; }
 
     void init(std::int64_t value) noexcept {
@@ -368,16 +356,26 @@ struct Info {
         for (std::uint8_t i = 1; i < N; ++i)
             data[i] = value;
     }
+
+    void init(std::int64_t maxValue, std::int64_t minValue) noexcept {
+        data[0] = 0;
+        data[1] = maxValue;
+        data[2] = minValue;
+    }
+
+   private:
+    std::array<std::atomic_int64_t, N> data;
 };
 
 constexpr std::uint8_t MaxSlot = 32;
 
-Info<2> hit[MaxSlot];
-Info<2> min[MaxSlot];
-Info<2> max[MaxSlot];
-Info<2> mean[MaxSlot];
-Info<3> stdev[MaxSlot];
-Info<6> correl[MaxSlot];
+std::array<Info<2>, MaxSlot> hit;
+std::array<Info<2>, MaxSlot> min;
+std::array<Info<2>, MaxSlot> max;
+std::array<Info<3>, MaxSlot> extreme;
+std::array<Info<2>, MaxSlot> mean;
+std::array<Info<3>, MaxSlot> stdev;
+std::array<Info<6>, MaxSlot> correl;
 
 }  // namespace
 
@@ -388,6 +386,8 @@ void init() noexcept {
         hit[i].init(0);
         min[i].init(std::numeric_limits<std::int64_t>::max());
         max[i].init(std::numeric_limits<std::int64_t>::min());
+        extreme[i].init(std::numeric_limits<std::int64_t>::max(),
+                        std::numeric_limits<std::int64_t>::min());
         mean[i].init(0);
         stdev[i].init(0);
         correl[i].init(0);
@@ -417,6 +417,17 @@ void max_of(std::int64_t value, std::uint8_t slot) noexcept {
     {}
 }
 
+void extreme_of(std::int64_t value, std::uint8_t slot) noexcept {
+
+    ++extreme[slot][0];
+    std::int64_t minValue = extreme[slot][1].load();
+    while (minValue > value && !extreme[slot][1].compare_exchange_weak(minValue, value))
+    {}
+    std::int64_t maxValue = extreme[slot][2].load();
+    while (maxValue < value && !extreme[slot][2].compare_exchange_weak(maxValue, value))
+    {}
+}
+
 void mean_of(std::int64_t value, std::uint8_t slot) noexcept {
 
     ++mean[slot][0];
@@ -442,34 +453,38 @@ void correl_of(std::int64_t value1, std::int64_t value2, std::uint8_t slot) noex
 
 void print() noexcept {
 
-    std::uint64_t n;
+    std::int64_t n;
 
-    auto avg = [&](std::int64_t x) { return double(x) / n; };
-    auto sqr = [](double x) { return x * x; };
+    auto avg = [&n](std::int64_t x) noexcept { return double(x) / n; };
 
     for (std::uint8_t i = 0; i < MaxSlot; ++i)
         if ((n = hit[i][0]))
-            std::cerr << "Hit #" << int(i) << ": Total " << n << " Hits " << hit[i][1]
+            std::cerr << "Hit #" << int(i) << ": Count " << n << " Hits " << hit[i][1]
                       << " Hit Rate (%) " << 100.0 * avg(hit[i][1]) << '\n';
 
     for (std::uint8_t i = 0; i < MaxSlot; ++i)
         if ((n = min[i][0]))
-            std::cerr << "Min #" << int(i) << ": Total " << n << " Min " << min[i][1] << '\n';
+            std::cerr << "Min #" << int(i) << ": Count " << n << " Min " << min[i][1] << '\n';
 
     for (std::uint8_t i = 0; i < MaxSlot; ++i)
         if ((n = max[i][0]))
-            std::cerr << "Max #" << int(i) << ": Total " << n << " Max " << max[i][1] << '\n';
+            std::cerr << "Max #" << int(i) << ": Count " << n << " Max " << max[i][1] << '\n';
+
+    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+        if ((n = extreme[i][0]))
+            std::cerr << "Extreme #" << int(i) << ": Count " << n  //
+                      << " Min " << extreme[i][1] << " Max " << extreme[i][2] << '\n';
 
     for (std::uint8_t i = 0; i < MaxSlot; ++i)
         if ((n = mean[i][0]))
-            std::cerr << "Mean #" << int(i) << ": Total " << n << " Mean " << avg(mean[i][1])
-                      << '\n';
+            std::cerr << "Mean #" << int(i) << ": Count " << n  //
+                      << " Mean " << avg(mean[i][1]) << '\n';
 
     for (std::uint8_t i = 0; i < MaxSlot; ++i)
         if ((n = stdev[i][0]))
         {
             double r = std::sqrt(avg(stdev[i][2]) - sqr(avg(stdev[i][1])));
-            std::cerr << "Stdev #" << int(i) << ": Total " << n << " Stdev " << r << '\n';
+            std::cerr << "Stdev #" << int(i) << ": Count " << n << " Stdev " << r << '\n';
         }
 
     for (std::uint8_t i = 0; i < MaxSlot; ++i)
@@ -478,7 +493,7 @@ void print() noexcept {
             double r = (avg(correl[i][5]) - avg(correl[i][1]) * avg(correl[i][3]))
                      / (std::sqrt(avg(correl[i][2]) - sqr(avg(correl[i][1])))
                         * std::sqrt(avg(correl[i][4]) - sqr(avg(correl[i][3]))));
-            std::cerr << "Correl #" << int(i) << ": Total " << n << " Coefficient " << r << '\n';
+            std::cerr << "Correl #" << int(i) << ": Count " << n << " Coefficient " << r << '\n';
         }
 }
 }  // namespace Debug
@@ -528,9 +543,10 @@ std::string CommandLine::get_binary_directory(const std::string& path) noexcept 
 std::string CommandLine::get_working_directory() noexcept {
     std::string workingDirectory;
 
-    constexpr std::uint32_t BuffSize = 40000;
-    char                    buffer[BuffSize];
-    char*                   cwd = GETCWD(buffer, BuffSize);
+    constexpr std::size_t BUFF_SIZE = 4096;
+
+    char  buffer[BUFF_SIZE];
+    char* cwd = GETCWD(buffer, BUFF_SIZE);
     if (cwd)
         workingDirectory = cwd;
 
@@ -544,11 +560,11 @@ std::size_t str_to_size_t(const std::string& str) noexcept {
     return static_cast<std::size_t>(value);
 }
 
-std::optional<std::string> read_file_to_string(const std::string& path) noexcept {
-    std::ifstream fstream(path, std::ios_base::binary);
-    if (!fstream)
+std::optional<std::string> read_file_to_string(const std::string& filePath) noexcept {
+    std::ifstream ifstream(filePath, std::ios_base::binary);
+    if (!ifstream)
         return std::nullopt;
-    return std::string(std::istreambuf_iterator<char>(fstream), std::istreambuf_iterator<char>());
+    return std::string(std::istreambuf_iterator<char>(ifstream), std::istreambuf_iterator<char>());
 }
 
 }  // namespace DON

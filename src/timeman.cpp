@@ -28,9 +28,9 @@
 namespace DON {
 
 // When in 'Nodes as Time' mode
-void TimeManager::advance(std::int64_t usedNodes) noexcept {
+void TimeManager::advance_nodes(std::int64_t usedNodes) noexcept {
     assert(use_nodes_time());
-    remainNodes = std::max<std::int64_t>(remain_nodes() - usedNodes, 0) + NodesOffset;
+    remainNodes = std::max<std::int64_t>(remain_nodes() - usedNodes, 0) + NODE_OFFSET;
 }
 
 // Called at the beginning of the search and calculates
@@ -41,11 +41,11 @@ void TimeManager::init(Search::Limits& limits,
                        const Position& pos,
                        const Options&  options) noexcept {
     // If have no time, no need to fully initialize TM.
-    // initialTime is used by movetime and nodesTime is used in elapsed calls.
-    initialTime = limits.initialTime;
-    nodesTime   = options["NodesTime"];
+    // startTime is used by movetime and nodesTime is used in elapsed calls.
+    startTime = limits.startTime;
+    nodesTime = options["NodesTime"];
 
-    Color stm         = pos.side_to_move();
+    const Color stm   = pos.side_to_move();
     auto& [time, inc] = limits.clock[stm];
     if (time == 0 && !use_nodes_time())
     {
@@ -63,7 +63,7 @@ void TimeManager::init(Search::Limits& limits,
     {
         // Only once at game start
         if (remainNodes == 0)
-            remainNodes = time * nodesTime + NodesOffset;  // Time is in msec
+            remainNodes = time * nodesTime + NODE_OFFSET;  // Time is in msec
 
         // Convert from milliseconds to nodes
         time = remain_nodes();
@@ -71,14 +71,14 @@ void TimeManager::init(Search::Limits& limits,
         moveOverhead *= nodesTime;
     }
 
-    const std::int64_t scaleFactor = std::max(nodesTime, 1LL);
+    const std::int64_t scaleFactor = std::max(nodesTime, 1ll);
     const TimePoint    scaledTime  = time / scaleFactor;
     const TimePoint    scaledInc   = inc / scaleFactor;
 
     // Maximum move horizon of 50 moves
     std::uint16_t mtg = limits.movesToGo != 0
-                        ? std::min<std::uint16_t>(limits.movesToGo, 50)
-                        : std::max<std::uint16_t>(std::ceil(50 - 0.2 * pos.game_move()), 40);
+                        ? std::min(+limits.movesToGo, 50)
+                        : std::max(int(std::ceil(50 - 0.2 * pos.game_move())), 40);
 
     // If less than one second, gradually reduce mtg
     if (scaledTime < 1000 && mtg > std::max<std::uint16_t>(0.05 * scaledInc, 2))
@@ -87,7 +87,7 @@ void TimeManager::init(Search::Limits& limits,
     assert(mtg != 0);
 
     // Make sure remainTime > 0 since use it as a divisor
-    TimePoint remainTime = std::max(time + (-1 + mtg) * inc - (+2 + mtg) * moveOverhead, 1LL);
+    TimePoint remainTime = std::max(time + (-1 + mtg) * inc - (+2 + mtg) * moveOverhead, 1ll);
 
     std::int16_t gamePly = pos.game_ply();
 
@@ -107,8 +107,8 @@ void TimeManager::init(Search::Limits& limits,
     else
     {
         // Extra time according to initial remainTime
-        if (initialAdjust == 0.0)
-            initialAdjust = std::max(-0.4830 + 0.3285 * std::log10(remainTime), 1e-4);
+        if (initialAdjust < 0.0)
+            initialAdjust = std::max(-0.4830 + 0.3285 * std::log10(remainTime), 1e-5);
         // Calculate time constants based on current remaining time
         double log10ScaledTime = std::log10(1e-3 * scaledTime);
         double optimumConstant = std::min(3.08e-3 + 3.19e-4 * log10ScaledTime, 5.06e-3);
@@ -126,7 +126,7 @@ void TimeManager::init(Search::Limits& limits,
       TimePoint((mtg > 1 ? std::min(0.825 * time - moveOverhead, maximumScale * optimumTime)
                          : time - moveOverhead)
                 - 10);
-    maximumTime = std::max(maximumTime, 1LL);
+    maximumTime = std::max(maximumTime, 1ll);
 
     if (options["Ponder"])
         optimumTime *= 1.25;

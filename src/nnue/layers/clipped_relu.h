@@ -46,7 +46,7 @@ class ClippedReLU {
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t get_hash_value(std::uint32_t prevHash) noexcept {
-        std::uint32_t hashValue = 0x538D24C7U;
+        std::uint32_t hashValue = 0x538D24C7u;
         hashValue += prevHash;
         return hashValue;
     }
@@ -61,50 +61,50 @@ class ClippedReLU {
     void propagate(const InputType* input, OutputType* output) const noexcept {
 
 #if defined(USE_AVX2)
-        if constexpr (InputDimensions % SimdWidth == 0)
+        if constexpr (InputDimensions % SIMD_WIDTH == 0)
         {
-            constexpr IndexType NumChunks = InputDimensions / SimdWidth;
+            constexpr IndexType CHUNK_COUNT = InputDimensions / SIMD_WIDTH;
 
             __m256i Offsets = _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0);
             auto    in      = reinterpret_cast<const __m256i*>(input);
             auto    out     = reinterpret_cast<__m256i*>(output);
-            for (IndexType i = 0; i < NumChunks; ++i)
+            for (IndexType i = 0; i < CHUNK_COUNT; ++i)
             {
                 __m256i words0 =
                   _mm256_srli_epi16(_mm256_packus_epi32(_mm256_load_si256(&in[i * 4 + 0]),
                                                         _mm256_load_si256(&in[i * 4 + 1])),
-                                    WeightScaleBits);
+                                    WEIGHT_SCALE_BITS);
                 __m256i words1 =
                   _mm256_srli_epi16(_mm256_packus_epi32(_mm256_load_si256(&in[i * 4 + 2]),
                                                         _mm256_load_si256(&in[i * 4 + 3])),
-                                    WeightScaleBits);
+                                    WEIGHT_SCALE_BITS);
                 _mm256_store_si256(&out[i], _mm256_permutevar8x32_epi32(
                                               _mm256_packs_epi16(words0, words1), Offsets));
             }
         }
         else
         {
-            constexpr IndexType NumChunks = InputDimensions / (SimdWidth / 2);
+            constexpr IndexType CHUNK_COUNT = InputDimensions / (SIMD_WIDTH / 2);
 
             auto in  = reinterpret_cast<const __m128i*>(input);
             auto out = reinterpret_cast<__m128i*>(output);
-            for (IndexType i = 0; i < NumChunks; ++i)
+            for (IndexType i = 0; i < CHUNK_COUNT; ++i)
             {
                 __m128i words0 = _mm_srli_epi16(
                   _mm_packus_epi32(_mm_load_si128(&in[i * 4 + 0]), _mm_load_si128(&in[i * 4 + 1])),
-                  WeightScaleBits);
+                  WEIGHT_SCALE_BITS);
                 __m128i words1 = _mm_srli_epi16(
                   _mm_packus_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3])),
-                  WeightScaleBits);
+                  WEIGHT_SCALE_BITS);
                 _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
             }
         }
-        constexpr IndexType Start = InputDimensions % SimdWidth == 0
-                                    ? InputDimensions / SimdWidth * SimdWidth
-                                    : InputDimensions / (SimdWidth / 2) * (SimdWidth / 2);
+        constexpr IndexType Start = InputDimensions % SIMD_WIDTH == 0
+                                    ? InputDimensions / SIMD_WIDTH * SIMD_WIDTH
+                                    : InputDimensions / (SIMD_WIDTH / 2) * (SIMD_WIDTH / 2);
 
 #elif defined(USE_SSE2)
-        constexpr IndexType NumChunks = InputDimensions / SimdWidth;
+        constexpr IndexType CHUNK_COUNT = InputDimensions / SIMD_WIDTH;
 
     #if !defined(USE_SSE41)
         __m128i k0x80s = _mm_set1_epi8(-128);
@@ -112,50 +112,50 @@ class ClippedReLU {
 
         auto in  = reinterpret_cast<const __m128i*>(input);
         auto out = reinterpret_cast<__m128i*>(output);
-        for (IndexType i = 0; i < NumChunks; ++i)
+        for (IndexType i = 0; i < CHUNK_COUNT; ++i)
         {
     #if defined(USE_SSE41)
             __m128i words0 = _mm_srli_epi16(
               _mm_packus_epi32(_mm_load_si128(&in[i * 4 + 0]), _mm_load_si128(&in[i * 4 + 1])),
-              WeightScaleBits);
+              WEIGHT_SCALE_BITS);
             __m128i words1 = _mm_srli_epi16(
               _mm_packus_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3])),
-              WeightScaleBits);
+              WEIGHT_SCALE_BITS);
             _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
     #else
             __m128i words0 = _mm_srai_epi16(
               _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]), _mm_load_si128(&in[i * 4 + 1])),
-              WeightScaleBits);
+              WEIGHT_SCALE_BITS);
             __m128i words1 = _mm_srai_epi16(
               _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3])),
-              WeightScaleBits);
+              WEIGHT_SCALE_BITS);
             __m128i packedbytes = _mm_packs_epi16(words0, words1);
             _mm_store_si128(&out[i], _mm_subs_epi8(_mm_adds_epi8(packedbytes, k0x80s), k0x80s));
     #endif
         }
-        constexpr IndexType Start = NumChunks * SimdWidth;
+        constexpr IndexType Start = SIMD_WIDTH * CHUNK_COUNT;
 
 #elif defined(USE_NEON)
-        constexpr IndexType NumChunks = InputDimensions / (SimdWidth / 2);
+        constexpr IndexType CHUNK_COUNT = InputDimensions / (SIMD_WIDTH / 2);
 
         int8x8_t Zero = {0};
         auto     in   = reinterpret_cast<const int32x4_t*>(input);
         auto     out  = reinterpret_cast<int8x8_t*>(output);
-        for (IndexType i = 0; i < NumChunks; ++i)
+        for (IndexType i = 0; i < CHUNK_COUNT; ++i)
         {
             int16x8_t shifted;
             auto      pack = reinterpret_cast<int16x4_t*>(&shifted);
-            pack[0]        = vqshrn_n_s32(in[i * 2 + 0], WeightScaleBits);
-            pack[1]        = vqshrn_n_s32(in[i * 2 + 1], WeightScaleBits);
+            pack[0]        = vqshrn_n_s32(in[i * 2 + 0], WEIGHT_SCALE_BITS);
+            pack[1]        = vqshrn_n_s32(in[i * 2 + 1], WEIGHT_SCALE_BITS);
             out[i]         = vmax_s8(vqmovn_s16(shifted), Zero);
         }
-        constexpr IndexType Start = NumChunks * (SimdWidth / 2);
+        constexpr IndexType Start = (SIMD_WIDTH / 2) * CHUNK_COUNT;
 #else
         constexpr IndexType Start = 0;
 #endif
 
         for (IndexType i = Start; i < InputDimensions; ++i)
-            output[i] = static_cast<OutputType>(std::clamp(input[i] >> WeightScaleBits, 0, 127));
+            output[i] = static_cast<OutputType>(std::clamp(input[i] >> WEIGHT_SCALE_BITS, 0, 127));
     }
 };
 

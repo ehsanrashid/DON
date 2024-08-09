@@ -58,7 +58,7 @@ void Perft::classify(Position& pos, Move m) noexcept {
     const Color  stm = pos.side_to_move();
 
     StateInfo st;
-    ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
+    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     if (pos.capture(m))
     {
@@ -70,7 +70,8 @@ void Perft::classify(Position& pos, Move m) noexcept {
     if (pos.gives_check(m))
     {
         ++anyCheck;
-        if (!(pos.checks(m.type_of() != PROMOTION ? type_of(pos.piece_on(org)) : m.promotion_type())
+        if (!(pos.checks(m.type_of() != PROMOTION ? type_of(pos.piece_on(org))  //
+                                                  : m.promotion_type())
               & dst))
         {
             if (pos.blockers(~stm) & org)
@@ -140,81 +141,93 @@ void Perft::operator+=(const Perft& perft) noexcept {
 //     stalemate -= perft.stalemate;
 // }
 
-class HashTable final {
+class PerftTable;
+
+struct PerftEntry final {
+
+    constexpr std::uint64_t nodes() const noexcept { return nodes64; }
+
+    void save(Key32 k32, Depth d, std::uint64_t n) noexcept {
+        if ((key32 == k32 && depth16 >= d) || nodes64 >= 10000 + n)
+            return;
+        key32   = k32;
+        depth16 = d;
+        nodes64 = n;
+    }
+
+   private:
+    Key32         key32;
+    Depth         depth16;
+    std::uint64_t nodes64;
+
+    friend class PerftTable;
+};
+
+static_assert(sizeof(PerftEntry) == 16, "Unexpected PerftEntry size");
+
+constexpr inline std::uint8_t PERFT_CLUSTER_ENTRY_COUNT = 4;
+
+struct PerftCluster final {
+    PerftEntry entry[PERFT_CLUSTER_ENTRY_COUNT];
+};
+
+static_assert(sizeof(PerftCluster) == 64, "Unexpected PerftCluster size");
+
+struct PerftProbe final {
+    bool const        ptHit;
+    PerftEntry* const pte;
+};
+
+class PerftTable final {
 
    public:
-    struct Entry final {
-
-        void save(Key k, Depth d, std::uint64_t n) noexcept {
-            if (key32 == Key32(k) && depth >= d)
-                return;
-            key32 = Key32(k);
-            depth = d;
-            nodes = n;
-        }
-
-        std::uint64_t nodes;
-
-       private:
-        Key32 key32;
-        Depth depth;
-
-        friend class HashTable;
-    };
-
-    HashTable()                            = default;
-    HashTable(const HashTable&)            = delete;
-    HashTable& operator=(const HashTable&) = delete;
-    ~HashTable() noexcept;
-
-    Entry* first_entry(Key key) const noexcept {
-        return &table[mul_hi64(key, clusterCount)].entry[0];
-    }
+    PerftTable() noexcept                             = default;
+    PerftTable(const PerftTable&) noexcept            = delete;
+    PerftTable(PerftTable&&) noexcept                 = delete;
+    PerftTable& operator=(const PerftTable&) noexcept = delete;
+    PerftTable& operator=(PerftTable&&) noexcept      = delete;
+    ~PerftTable() noexcept;
 
     void free() noexcept;
     void resize(std::size_t mbSize, ThreadPool& threads) noexcept;
-    void clear(ThreadPool& threads) noexcept;
+    void init(ThreadPool& threads) noexcept;
 
-    Entry* probe(Key key, Depth depth, bool& hHit) const noexcept;
+    PerftProbe probe(Key key, Depth depth) const noexcept;
 
    private:
-    static constexpr std::uint8_t EntryCount = 4;
+    PerftEntry* first_entry(Key key) const noexcept {
+        return &clusters[mul_hi64(key, clusterCount)].entry[0];
+    }
 
-    struct Cluster final {
-        Entry entry[EntryCount];
-    };
-
-    static_assert(sizeof(Cluster) == 64, "Unexpected Cluster size");
-
-    Cluster*    table        = nullptr;
-    std::size_t clusterCount = 0;
+    PerftCluster* clusters     = nullptr;
+    std::size_t   clusterCount = 0;
 };
 
-HashTable::~HashTable() noexcept { free(); }
+PerftTable::~PerftTable() noexcept { free(); }
 
-void HashTable::free() noexcept {
-    free_aligned_lp(table);
-    table        = nullptr;
+void PerftTable::free() noexcept {
+    free_aligned_lp(clusters);
+    clusters     = nullptr;
     clusterCount = 0;
 }
 
-void HashTable::resize(std::size_t mbSize, ThreadPool& threads) noexcept {
+void PerftTable::resize(std::size_t mbSize, ThreadPool& threads) noexcept {
     free();
-    clusterCount = mbSize * 1024 * 1024 / sizeof(Cluster);
+    clusterCount = mbSize * 1024 * 1024 / sizeof(PerftCluster);
     assert(clusterCount % 2 == 0);
 
-    table = static_cast<Cluster*>(alloc_aligned_lp(clusterCount * sizeof(Cluster)));
-    if (!table)
+    clusters = static_cast<PerftCluster*>(alloc_aligned_lp(clusterCount * sizeof(PerftCluster)));
+    if (!clusters)
     {
-        std::cerr << "Failed to allocate " << mbSize << "MB for hash table.\n";
-        exit(EXIT_FAILURE);
+        std::cerr << "Failed to allocate " << mbSize << "MB for perft table.\n";
+        std::exit(EXIT_FAILURE);
     }
 
-    clear(threads);
+    init(threads);
 }
 
-// Initializes the entire hash table to zero, in a multi-threaded way.
-void HashTable::clear(ThreadPool& threads) noexcept {
+// Initializes the entire perft table to zero, in a multi-threaded way.
+void PerftTable::init(ThreadPool& threads) noexcept {
     const std::uint16_t threadCount = threads.size();
 
     for (std::uint16_t threadId = 0; threadId < threadCount; ++threadId)
@@ -225,7 +238,7 @@ void HashTable::clear(ThreadPool& threads) noexcept {
             std::size_t start  = stride * threadId;
             std::size_t count  = 1 + threadId != threadCount ? stride : clusterCount - start;
 
-            std::memset(static_cast<void*>(&table[start]), 0, count * sizeof(Cluster));
+            std::memset(static_cast<void*>(&clusters[start]), 0, count * sizeof(PerftCluster));
         });
     }
 
@@ -233,25 +246,27 @@ void HashTable::clear(ThreadPool& threads) noexcept {
         threads.wait_on_thread(threadId);
 }
 
-HashTable::Entry* HashTable::probe(Key key, Depth depth, bool& hHit) const noexcept {
+PerftProbe PerftTable::probe(Key key, Depth depth) const noexcept {
 
-    Entry* const hte = first_entry(key);
+    PerftEntry* const pte = first_entry(key);
 
-    for (std::uint8_t i = 0; i < EntryCount; ++i)
+    for (std::uint8_t i = 0; i < PERFT_CLUSTER_ENTRY_COUNT; ++i)
         // Use the low 32 bits as key inside the cluster
-        if ((hte + i)->key32 == Key32(key) && (hte + i)->depth == depth)
-            return hHit = true, (hte + i);
+        if ((pte + i)->key32 == Key32(key) && (pte + i)->depth16 == depth)
+            return {true, (pte + i)};
 
-    Entry* const lte = hte + EntryCount - 1;
-    Entry*       rte = hte;
-    for (std::uint8_t i = 1; i < EntryCount; ++i)
-        if (rte->depth > hte[i].depth && depth > hte[i].depth)
-            rte = (hte + i);
+    PerftEntry* const lte = pte + PERFT_CLUSTER_ENTRY_COUNT - 1;
+    PerftEntry*       rte = pte;
+    for (std::uint8_t i = 1; i < PERFT_CLUSTER_ENTRY_COUNT; ++i)
+        if (rte->depth16 > (pte + i)->depth16 && depth > (pte + i)->depth16)
+            rte = (pte + i);
 
-    return hHit = false, rte->depth <= depth ? rte : lte;
+    return {false, rte->depth16 <= depth ? rte : lte};
 }
 
-HashTable hashTable;
+PerftTable perftTable;
+
+constexpr bool use_perft_table(Depth depth, bool detail) noexcept { return !detail && depth >= 4; }
 
 // Utility to verify move generation.
 // All the leaf nodes up to the given depth are generated and counted,
@@ -280,7 +295,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
     }
 
     Perft sperft;
-    for (auto m : MoveList<LEGAL>(pos))
+    for (const auto& m : MoveList<LEGAL>(pos))
     {
         Perft iperft;
         if (RootNode && depth <= 1)
@@ -292,7 +307,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
         else
         {
             StateInfo st;
-            ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
+            ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
             pos.do_move(m, st);
 
@@ -301,26 +316,25 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
                 const MoveList<LEGAL> legalMoves(pos);
                 iperft.nodes += legalMoves.size();
                 if (detail)
-                    for (auto im : legalMoves)
+                    for (const auto& im : legalMoves)
                         iperft.classify(pos, im);
             }
             else
             {
-                if (depth < 4 || detail)
-                    iperft = perft<false>(pos, depth - 1, detail);
-                else
+                if (use_perft_table(depth, detail))
                 {
-                    Key   key = pos.key(-pos.rule50_count());
-                    bool  hHit;
-                    auto* hte = hashTable.probe(key, depth - 1, hHit);
-                    if (hHit)
-                        iperft.nodes += hte->nodes;
+                    Key key           = pos.key(-pos.rule50_count());
+                    auto [ptHit, pte] = perftTable.probe(key, depth - 1);
+                    if (ptHit)
+                        iperft.nodes += pte->nodes();
                     else
                     {
                         iperft = perft<false>(pos, depth - 1, detail);
-                        hte->save(key, depth - 1, iperft.nodes);
+                        pte->save(Key32(key), depth - 1, iperft.nodes);
                     }
                 }
+                else
+                    iperft = perft<false>(pos, depth - 1, detail);
             }
             pos.undo_move(m);
         }
@@ -385,14 +399,14 @@ template Perft perft<false>(Position& pos, Depth depth, bool detail) noexcept;
 std::uint64_t
 perft(Position& pos, Depth depth, std::size_t mbSize, ThreadPool& threads, bool detail) noexcept {
 
-    if (!detail)
-        hashTable.resize(mbSize, threads);
+    if (use_perft_table(depth, detail))
+        perftTable.resize(mbSize, threads);
 
     std::uint64_t nodes = perft<true>(pos, depth, detail).nodes;
     sync_cout << "\nTotal Nodes : " << nodes << '\n' << sync_endl;
 
-    if (!detail)
-        hashTable.free();
+    if (use_perft_table(depth, detail))
+        perftTable.free();
 
     return nodes;
 }

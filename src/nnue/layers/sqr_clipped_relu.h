@@ -61,19 +61,19 @@ class SqrClippedReLU {
     void propagate(const InputType* input, OutputType* output) const noexcept {
 
 #if defined(USE_SSE2)
-        constexpr IndexType NumChunks = InputDimensions / 16;
+        constexpr IndexType CHUNK_COUNT = InputDimensions / 16;
 
-        static_assert(WeightScaleBits == 6);
+        static_assert(WEIGHT_SCALE_BITS == 6);
         auto in  = reinterpret_cast<const __m128i*>(input);
         auto out = reinterpret_cast<__m128i*>(output);
-        for (IndexType i = 0; i < NumChunks; ++i)
+        for (IndexType i = 0; i < CHUNK_COUNT; ++i)
         {
             __m128i words0 =
               _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]), _mm_load_si128(&in[i * 4 + 1]));
             __m128i words1 =
               _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3]));
 
-            // Shift by WeightScaleBits * 2 = 12 and divide by 128
+            // Shift by WEIGHT_SCALE_BITS * 2 = 12 and divide by 128
             // which is an additional shift-right of 7, meaning 19 in total.
             // MulHi strips the lower 16 bits so need to shift out 3 more to match.
             words0 = _mm_srli_epi16(_mm_mulhi_epi16(words0, words0), 3);
@@ -81,8 +81,7 @@ class SqrClippedReLU {
 
             _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
         }
-        constexpr IndexType Start = NumChunks * 16;
-
+        constexpr IndexType Start = 16 * CHUNK_COUNT;
 #else
         constexpr IndexType Start = 0;
 #endif
@@ -92,7 +91,7 @@ class SqrClippedReLU {
             output[i] = static_cast<OutputType>(
               // Really should be /127 but need to make it fast so right-shift
               // by an extra 7 bits instead. Needs to be accounted for in the trainer.
-              std::min(((long long) (input[i]) * input[i]) >> (2 * WeightScaleBits + 7), 127LL));
+              std::min(((long long) (input[i]) * input[i]) >> (7 + 2 * WEIGHT_SCALE_BITS), 127ll));
         }
     }
 };

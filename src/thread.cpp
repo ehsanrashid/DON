@@ -18,7 +18,6 @@
 #include "thread.h"
 
 #include <algorithm>
-#include <deque>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -63,18 +62,21 @@ Thread::~Thread() noexcept {
     nativeThread.join();
 }
 
+// Launching a function in the thread
 void Thread::run_custom_job(std::function<void()> func) noexcept {
     {
         std::unique_lock uniqueLock(mutex);
-        condVar.wait(uniqueLock, [&] { return !busy; });
+        condVar.wait(uniqueLock, [this] { return !busy; });
         jobFunc = std::move(func);
         busy    = true;
     }
     condVar.notify_one();
 }
 
-// Thread gets parked here, blocked on the
-// condition variable, when it has no work to do.
+void Thread::ensure_network_replicated() noexcept { worker->ensure_network_replicated(); }
+
+// Thread gets parked here, blocked on the condition variable,
+// when it has no work to do.
 void Thread::idle_func() noexcept {
     while (true)
     {
@@ -176,7 +178,7 @@ Thread* ThreadPool::best_thread() const noexcept {
 
     Thread* bestThread = main_thread();
 
-    std::unordered_map<Move, std::uint64_t, Move::MoveHash> votes(
+    std::unordered_map<Move, std::uint64_t, Move::Hash> votes(
       2 * std::min(size(), bestThread->worker->rootMoves.size()));
 
     for (auto&& th : threads)
@@ -255,26 +257,26 @@ void ThreadPool::start(Position&             pos,
     const MoveList<LEGAL> legalMoves(pos);
 
     bool emplace = true;
-    for (const std::string& can : limits.searchMoves)
+    for (const std::string& move : limits.searchMoves)
     {
         if (emplace && rootMoves.size() == legalMoves.size())
             break;
-        Move m  = UCI::can_to_move(can, legalMoves);
+        Move m  = UCI::mix_to_move(move, pos, legalMoves);
         emplace = m != Move::None() && !rootMoves.contains(m);
         if (emplace)
             rootMoves.emplace(m);
     }
 
     if (limits.searchMoves.empty())
-        for (auto m : legalMoves)
+        for (const auto& m : legalMoves)
             rootMoves.emplace(m);
 
     bool erase = true;
-    for (const std::string& can : limits.ignoreMoves)
+    for (const std::string& move : limits.ignoreMoves)
     {
         if (erase && rootMoves.empty())
             break;
-        Move m = UCI::can_to_move(can, legalMoves);
+        Move m = UCI::mix_to_move(move, pos, legalMoves);
         erase  = m != Move::None();
         if (erase)
             erase = rootMoves.erase(m);
@@ -282,7 +284,7 @@ void ThreadPool::start(Position&             pos,
 
     std::string rootFen = pos.fen();
 
-    Tablebases::Config tbConfig = Tablebases::rank_root_moves(pos, rootMoves, options);
+    auto tbConfig = Tablebases::rank_root_moves(pos, rootMoves, options);
 
     // After ownership transfer 'states' becomes empty, so if stop the search
     // and call 'go' again without setting a new position states.get() == nullptr.
@@ -299,9 +301,6 @@ void ThreadPool::start(Position&             pos,
     {
         th->run_custom_job([&]() {
             th->worker->limits = limits;
-            th->worker->nodes = th->worker->tbHits = 0;
-            th->worker->bestMoveChange = th->worker->minNmpPly = 0;
-            th->worker->rootDepth = th->worker->completedDepth = DEPTH_ZERO;
             th->worker->rootPos.set(rootFen, &th->worker->rootState);
             th->worker->rootState = setupStates->back();
             th->worker->rootMoves = rootMoves;

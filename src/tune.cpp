@@ -19,20 +19,20 @@
 
 #include <algorithm>
 #include <iostream>
-#include <map>
 #include <optional>
 #include <sstream>
+#include <unordered_map>
 
 namespace DON {
 
-const Option* LastOption = nullptr;
-
-bool     Tune::UpdateOnLast;
-Options* Tune::PtrOptions;
+bool     Tune::UpdateOnLast = false;
+Options* Tune::Options      = nullptr;
 
 namespace {
 
-std::map<std::string, int> TuneResults;
+const Option* LastOption = nullptr;
+
+std::unordered_map<std::string, int> TuneResults;
 
 std::optional<std::string> on_tune(const Option& option) noexcept {
     if (!Tune::UpdateOnLast || LastOption == &option)
@@ -41,7 +41,7 @@ std::optional<std::string> on_tune(const Option& option) noexcept {
     return std::nullopt;
 }
 
-void make_option(Options* options, const std::string& n, int v, const SetRange& r) noexcept {
+void make_option(Options* options, const std::string& n, int v, const RangeSetter& r) noexcept {
     // Do not generate option when there is nothing to tune (ie. min = max)
     if (r(v).first == r(v).second)
         return;
@@ -53,9 +53,9 @@ void make_option(Options* options, const std::string& n, int v, const SetRange& 
     LastOption = &((*options)[n]);
 
     // Print formatted parameters, ready to be copy-pasted in Fishtest
-    std::cout << n << "," << v << ","                      //
-              << r(v).first << "," << r(v).second << ","   //
-              << (r(v).second - r(v).first) / 20.0 << ","  //
+    std::cout << n << ',' << v << ','                      //
+              << r(v).first << ',' << r(v).second << ','   //
+              << (r(v).second - r(v).first) / 20.0 << ','  //
               << "0.0020" << '\n';
 }
 
@@ -69,7 +69,7 @@ std::string Tune::next(std::string& names, bool pop) noexcept {
         std::string token = names.substr(0, names.find(','));
 
         if (pop)
-            names.erase(0, token.size() + 1);
+            names.erase(0, 1 + token.size());
 
         std::istringstream iss(token);
         name += (iss >> token, token);  // Remove trailing whitespace
@@ -81,13 +81,13 @@ std::string Tune::next(std::string& names, bool pop) noexcept {
 
 template<>
 void Tune::Entry<int>::init_option() noexcept {
-    make_option(PtrOptions, name, value, range);
+    make_option(Options, name, value, range);
 }
 
 template<>
 void Tune::Entry<int>::read_option() noexcept {
-    if (PtrOptions->count(name))
-        value = int((*PtrOptions)[name]);
+    if (Options->count(name))
+        value = int((*Options)[name]);
 }
 
 // Instead of a variable here have a PostUpdate function: just call it

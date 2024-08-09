@@ -57,13 +57,19 @@ class UCI final {
 
     static std::string square(Square s) noexcept;
 
+    // clang-format off
     static std::string move_to_can(Move m) noexcept;
+
     static Move can_to_move(const std::string& can, const MoveList<LEGAL>& legalMoves) noexcept;
     static Move can_to_move(const std::string& can, const Position& pos) noexcept;
 
     static std::string move_to_san(Move m, Position& pos) noexcept;
-    static Move        san_to_move(const std::string& san, Position& pos) noexcept;
 
+    static Move san_to_move(const std::string& san, Position& pos, const MoveList<LEGAL>& legalMoves) noexcept;
+    static Move san_to_move(const std::string& san, Position& pos) noexcept;
+
+    static Move mix_to_move(const std::string& mix, Position& pos, const MoveList<LEGAL>& legalMoves) noexcept;
+    // clang-format on
    private:
     void position(std::istringstream& iss) noexcept;
     void go(std::istringstream& iss) noexcept;

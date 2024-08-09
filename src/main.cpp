@@ -31,11 +31,11 @@ void atexit_handler() noexcept;
 
 int main(int argc, const char** argv) noexcept {
 
-    std::cout << engine_info() << '\n';
+    std::cout << engine_info() << std::endl;
 
     std::atexit(atexit_handler);
 
-    Bitboards::init();
+    BitBoard::init();
     Position::init();
 #if !defined(NDEBUG)
     Debug::init();
@@ -50,6 +50,7 @@ int main(int argc, const char** argv) noexcept {
     return EXIT_SUCCESS;
 }
 
+// The cleanup function to be called at program exit
 void atexit_handler() noexcept {
     //std::cout << "Thanks !!!\n";
 }

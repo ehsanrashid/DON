@@ -30,7 +30,7 @@ namespace Eval {
 // for the build process (profile-build and fishtest) to work. Do not change the
 // name of the macro or the location where this macro is defined, as it is used
 // in the Makefile/Fishtest.
-#define EvalFileDefaultNameBig "nn-ddcfb9224cdb.nnue"
+#define EvalFileDefaultNameBig "nn-31337bea577c.nnue"
 #define EvalFileDefaultNameSmall "nn-37f18f62d772.nnue"
 
 namespace NNUE {
@@ -38,15 +38,17 @@ struct Networks;
 struct AccumulatorCaches;
 }  // namespace NNUE
 
-inline bool use_small_net(const Value AbsEval, const Position& pos) noexcept {
-    return (AbsEval > 962)
-        || (AbsEval > 944 - 28 * pos.count<PAWN>() && pos.count<ALL_PIECE>() <= 6);
+inline bool use_small_net(const Position& pos) noexcept {
+    const Value absEval = std::abs(pos.evaluate());
+    return (absEval > 952 + 8 * (pos.count<ALL_PIECE>() / 4))
+        || (absEval > 944 - 24 * pos.count<PAWN>() && pos.count<ALL_PIECE>() < 6)  //
+      ;
 }
 
 Value evaluate(const Position&          pos,
                const NNUE::Networks&    networks,
                NNUE::AccumulatorCaches& accCaches,
-               const Value              optimism = VALUE_ZERO) noexcept;
+               std::int32_t             optimism = 0) noexcept;
 
 std::string trace(Position& pos, const NNUE::Networks& networks) noexcept;
 

@@ -24,6 +24,7 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
+//#include <limits>
 
 #include "../../bitboard.h"
 #include "../../misc.h"
@@ -38,22 +39,23 @@
 namespace DON::Eval::NNUE::Layers {
 
 #if (USE_SSSE3 | (USE_NEON >= 8))
-alignas(CacheLineSize) static inline const std::array2d<std::uint16_t, 8, 256> lookup_indices =
+alignas(CACHE_LINE_SIZE) static inline const std::array2d<std::uint16_t, 256, 8> LookupIndices =
   []() {
-      std::array2d<std::uint16_t, 8, 256> v{};
-      for (std::uint16_t i = 0; i < 256; ++i)
+      std::array2d<std::uint16_t, 256, 8> v{};
+      for (std::size_t i = 0; i < v.size(); ++i)
       {
-          Bitboard      j = i;
-          std::uint16_t k = 0;
-          while (j)
-              v[i][k++] = pop_lsb(j);
+          std::size_t k = 0;
+
+          Bitboard b = i;
+          while (b)
+              v[i][k++] = pop_lsb(b);
       }
       return v;
   }();
 
 // Find indices of nonzero numbers in an std::int32_t array
 template<IndexType InputDimensions>
-void find_nnz(const std::int32_t* input, std::uint16_t* out, IndexType& count_out) noexcept {
+void find_nnz(const std::int32_t* input, std::uint16_t* outNnz, IndexType& outCount) noexcept {
     #if defined(USE_SSSE3)
         #if defined(USE_AVX512)
     using vec_t = __m512i;
@@ -91,34 +93,37 @@ void find_nnz(const std::int32_t* input, std::uint16_t* out, IndexType& count_ou
     #endif
     constexpr IndexType InputSimdWidth = sizeof(vec_t) / sizeof(std::int32_t);
     // Inputs are processed InputSimdWidth at a time and outputs are processed 8 at a time so process in chunks of max(InputSimdWidth, 8)
-    constexpr IndexType ChunkSize       = std::max<IndexType>(InputSimdWidth, 8);
-    constexpr IndexType NumChunks       = InputDimensions / ChunkSize;
-    constexpr IndexType InputsPerChunk  = ChunkSize / InputSimdWidth;
-    constexpr IndexType OutputsPerChunk = ChunkSize / 8;
+    constexpr IndexType CHUNK_SIZE        = std::max<IndexType>(InputSimdWidth, 8);
+    constexpr IndexType CHUNK_COUNT       = InputDimensions / CHUNK_SIZE;
+    constexpr IndexType INPUTS_PER_CHUNK  = CHUNK_SIZE / InputSimdWidth;
+    constexpr IndexType OUTPUTS_PER_CHUNK = CHUNK_SIZE / 8;
 
     auto      inputVector = reinterpret_cast<const vec_t*>(input);
     IndexType count       = 0;
     vec128_t  base        = vec128_zero;
     vec128_t  increment   = vec128_set_16(8);
-    for (IndexType i = 0; i < NumChunks; ++i)
+    for (IndexType i = 0; i < CHUNK_COUNT; ++i)
     {
-        // bitmask of nonzero values in this chunk
+        // Bitmask of nonzero values in this chunk
         unsigned nnz = 0;
-        for (IndexType j = 0; j < InputsPerChunk; ++j)
+        for (IndexType j = 0; j < INPUTS_PER_CHUNK; ++j)
         {
-            vec_t inputChunk = inputVector[i * InputsPerChunk + j];
+            vec_t inputChunk = inputVector[i * INPUTS_PER_CHUNK + j];
             nnz |= unsigned(vec_nnz(inputChunk)) << (j * InputSimdWidth);
+            // Early exit if all bits are set
+            //if (nnz == std::numeric_limits<unsigned>::max())
+            //    break;
         }
-        for (IndexType j = 0; j < OutputsPerChunk; ++j)
+        for (IndexType j = 0; j < OUTPUTS_PER_CHUNK; ++j)
         {
-            auto lookup  = (nnz >> (j * 8)) & 0xFF;
-            auto offsets = vec128_load(reinterpret_cast<const vec128_t*>(&lookup_indices[lookup]));
-            vec128_storeu(reinterpret_cast<vec128_t*>(out + count), vec128_add(base, offsets));
+            auto lookup = (nnz >> (j * 8)) & 0xFF;
+            auto offset = vec128_load(reinterpret_cast<const vec128_t*>(&LookupIndices[lookup]));
+            vec128_storeu(reinterpret_cast<vec128_t*>(outNnz + count), vec128_add(base, offset));
             count += popcount(lookup);
             base = vec128_add(base, increment);
         }
     }
-    count_out = count;
+    outCount = count;
 }
     #undef vec_nnz
     #undef vec128_zero
@@ -144,14 +149,15 @@ class AffineTransformSparseInput {
                   "Only implemented for OutputDimensions divisible by 16.");
 
     static constexpr IndexType PaddedInputDimensions =
-      ceil_to_multiple<IndexType>(InputDimensions, MaxSimdWidth);
+      ceil_to_multiple<IndexType>(InputDimensions, MAX_SIMD_WIDTH);
     static constexpr IndexType PaddedOutputDimensions =
-      ceil_to_multiple<IndexType>(OutputDimensions, MaxSimdWidth);
+      ceil_to_multiple<IndexType>(OutputDimensions, MAX_SIMD_WIDTH);
 
+    static constexpr IndexType CHUNK_SIZE =
 #if (USE_SSSE3 | (USE_NEON >= 8))
-    static constexpr IndexType ChunkSize = 4;
+      4;
 #else
-    static constexpr IndexType ChunkSize = 1;
+      1;
 #endif
 
     using OutputBuffer = OutputType[PaddedOutputDimensions];
@@ -166,8 +172,10 @@ class AffineTransformSparseInput {
     }
 
     static constexpr IndexType get_weight_index_scrambled(IndexType i) noexcept {
-        return (i / ChunkSize) % (PaddedInputDimensions / ChunkSize) * OutputDimensions * ChunkSize
-             + i / PaddedInputDimensions * ChunkSize + i % ChunkSize;
+        // clang-format off
+        return (i / CHUNK_SIZE) % (PaddedInputDimensions / CHUNK_SIZE) * OutputDimensions * CHUNK_SIZE
+             + i / PaddedInputDimensions * CHUNK_SIZE + i % CHUNK_SIZE;
+        // clang-format on
     }
 
     static constexpr IndexType get_weight_index(IndexType i) noexcept {
@@ -229,32 +237,34 @@ class AffineTransformSparseInput {
     #endif
         static constexpr IndexType OutputSimdWidth = sizeof(outvec_t) / sizeof(OutputType);
 
-        constexpr IndexType NumChunks = ceil_to_multiple<IndexType>(InputDimensions, 8) / ChunkSize;
-        constexpr IndexType NumRegs   = OutputDimensions / OutputSimdWidth;
-        std::uint16_t       nnz[NumChunks];
+        constexpr IndexType CHUNK_COUNT =
+          ceil_to_multiple<IndexType>(InputDimensions, 8) / CHUNK_SIZE;
+        constexpr IndexType REG_COUNT = OutputDimensions / OutputSimdWidth;
+        std::uint16_t       nnz[CHUNK_COUNT];
         IndexType           count;
 
         auto input32 = reinterpret_cast<const std::int32_t*>(input);
 
         // Find indices of nonzero 32-bit blocks
-        find_nnz<NumChunks>(input32, nnz, count);
+        find_nnz<CHUNK_COUNT>(input32, nnz, count);
 
         auto     biasvec = reinterpret_cast<const outvec_t*>(biases);
-        outvec_t acc[NumRegs];
-        for (IndexType k = 0; k < NumRegs; ++k)
+        outvec_t acc[REG_COUNT];
+        for (IndexType k = 0; k < REG_COUNT; ++k)
             acc[k] = biasvec[k];
 
         for (IndexType j = 0; j < count; ++j)
         {
             auto    i  = nnz[j];
             invec_t in = vec_set_32(input32[i]);
-            auto col = reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);
-            for (IndexType k = 0; k < NumRegs; ++k)
+            auto    col =
+              reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * CHUNK_SIZE]);
+            for (IndexType k = 0; k < REG_COUNT; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
 
         auto outptr = reinterpret_cast<outvec_t*>(output);
-        for (IndexType k = 0; k < NumRegs; ++k)
+        for (IndexType k = 0; k < REG_COUNT; ++k)
             outptr[k] = acc[k];
     #undef vec_set_32
     #undef vec_add_dpbusd_32
@@ -269,8 +279,8 @@ class AffineTransformSparseInput {
     using BiasType   = OutputType;
     using WeightType = std::int8_t;
 
-    alignas(CacheLineSize) BiasType biases[OutputDimensions];
-    alignas(CacheLineSize) WeightType weights[OutputDimensions * PaddedInputDimensions];
+    alignas(CACHE_LINE_SIZE) BiasType biases[OutputDimensions];
+    alignas(CACHE_LINE_SIZE) WeightType weights[OutputDimensions * PaddedInputDimensions];
 };
 
 }  // namespace DON::Eval::NNUE::Layers

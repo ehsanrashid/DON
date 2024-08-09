@@ -36,7 +36,7 @@ using IndexType      = std::uint32_t;
 
 // Class that holds the result of affine transformation of input features
 template<IndexType Size>
-struct alignas(CacheLineSize) Accumulator {
+struct alignas(CACHE_LINE_SIZE) Accumulator {
     std::int16_t accumulation[COLOR_NB][Size];
     std::int32_t psqtAccumulation[COLOR_NB][PSQTBuckets];
     bool         computed[COLOR_NB];
@@ -56,9 +56,9 @@ struct AccumulatorCaches {
     }
 
     template<IndexType Size>
-    struct alignas(CacheLineSize) Cache {
+    struct alignas(CACHE_LINE_SIZE) Cache {
 
-        struct alignas(CacheLineSize) Entry {
+        struct alignas(CACHE_LINE_SIZE) Entry {
             BiasType       accumulation[Size];
             PSQTWeightType psqtAccumulation[PSQTBuckets];
             Bitboard       colorBB[COLOR_NB];
@@ -66,7 +66,7 @@ struct AccumulatorCaches {
 
             // To initialize a refresh entry, set all its bitboards empty,
             // so put the biases in the accumulation, without any weights on top
-            void clear(const BiasType* biases) noexcept {
+            void init(const BiasType* biases) noexcept {
 
                 std::memcpy(accumulation, biases, sizeof(accumulation));
                 std::memset((std::uint8_t*) this + offsetof(Entry, psqtAccumulation), 0,
@@ -75,26 +75,26 @@ struct AccumulatorCaches {
         };
 
         template<typename Network>
-        void clear(const Network& network) noexcept {
+        void init(const Network& network) noexcept {
             for (auto& entries1D : entries)
                 for (auto& entry : entries1D)
-                    entry.clear(network.featureTransformer->biases);
+                    entry.init(network.featureTransformer->biases);
         }
 
-        void clear(const BiasType* biases) noexcept {
+        void init(const BiasType* biases) noexcept {
             for (auto& entry : entries)
-                entry.clear(biases);
+                entry.init(biases);
         }
 
         std::array<Entry, COLOR_NB>& operator[](Square sq) { return entries[sq]; }
 
-        std::array2d<Entry, COLOR_NB, SQUARE_NB> entries;
+        std::array2d<Entry, SQUARE_NB, COLOR_NB> entries;
     };
 
     template<typename Networks>
     void init(const Networks& networks) noexcept {
-        big.clear(networks.big);
-        small.clear(networks.small);
+        big.init(networks.big);
+        small.init(networks.small);
     }
 
     Cache<BigTransformedFeatureDimensions>   big;

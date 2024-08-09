@@ -22,7 +22,7 @@
 
 // On OSX threads other than the main thread are created with a reduced stack
 // size of 512KB by default, this is too low for deep searches, which require
-// somewhat more than 1MB stack, so adjust it to ThreadStackSize.
+// somewhat more than 1MB stack, so adjust it to THREAD_STACK_SIZE.
 // The implementation calls pthread_create() with the stack size parameter
 // equal to the Linux 8MB default, on platforms that support it.
 
@@ -34,10 +34,6 @@
 namespace DON {
 
 class NativeThread final {
-    pthread_t thread;
-
-    static constexpr std::size_t ThreadStackSize = 8 * 1024 * 1024;
-
    public:
     template<class Function, class... Args>
     explicit NativeThread(Function&& func, Args&&... args) noexcept {
@@ -46,7 +42,7 @@ class NativeThread final {
 
         pthread_attr_t ptAttr, *ptAttrPtr = &ptAttr;
         pthread_attr_init(ptAttrPtr);
-        pthread_attr_setstacksize(ptAttrPtr, ThreadStackSize);
+        pthread_attr_setstacksize(ptAttrPtr, THREAD_STACK_SIZE);
 
         auto start_routine = [](void* ptr) noexcept -> void* {
             auto f = reinterpret_cast<std::function<void()>*>(ptr);
@@ -60,6 +56,11 @@ class NativeThread final {
     }
 
     void join() const noexcept { pthread_join(thread, nullptr); }
+
+   private:
+    static constexpr std::size_t THREAD_STACK_SIZE = 8 * 1024 * 1024;
+
+    pthread_t thread;
 };
 
 }  // namespace DON

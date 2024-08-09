@@ -22,28 +22,38 @@
 #include <cstdint>
 #include <functional>
 #include <iosfwd>
-#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 namespace DON {
 
-// Define a custom comparator, because the UCI options should be case-insensitive
+// Because the UCI options should be case-insensitive
+
+// Define a custom case-insensitive hash
+struct CaseInsensitiveHash final {
+    std::uint64_t operator()(const std::string& key) const noexcept;
+};
+// Define a custom case-insensitive equality
+struct CaseInsensitiveEqual final {
+    bool operator()(std::string_view s1, std::string_view s2) const noexcept;
+};
+// Define a custom case-insensitive less
 struct CaseInsensitiveLess final {
     bool operator()(std::string_view s1, std::string_view s2) const noexcept;
 };
 
 enum OptionType : std::uint8_t {
     OPT_NONE,
-    BUTTON,
-    CHECK,
-    STRING,
-    SPIN,
-    COMBO
+    OPT_BUTTON,
+    OPT_CHECK,
+    OPT_STRING,
+    OPT_SPIN,
+    OPT_COMBO
 };
 
-inline bool is_ok(OptionType ot) noexcept { return BUTTON <= ot && ot <= COMBO; }
+inline bool is_ok(OptionType ot) noexcept { return OPT_BUTTON <= ot && ot <= OPT_COMBO; }
 
 std::string_view to_string(OptionType ot) noexcept;
 
@@ -54,7 +64,7 @@ class Option final {
    public:
     using OnChange = std::function<std::optional<std::string>(const Option&)>;
 
-    explicit Option(const Options* ptrOptions);
+    explicit Option(const Options* pOptions) noexcept;
     Option() noexcept;
     explicit Option(OnChange&& f) noexcept;
     explicit Option(bool v, OnChange&& f = nullptr) noexcept;
@@ -65,17 +75,25 @@ class Option final {
     operator int() const noexcept;
     operator std::string() const noexcept;
 
-    bool operator==(std::string_view v) const noexcept;
-    bool operator!=(std::string_view v) const noexcept;
+    bool operator==(const std::string& value) const noexcept;
+    bool operator!=(const std::string& value) const noexcept;
 
-    void    operator<<(const Option& option) noexcept;
+    void operator<<(const Option& option) noexcept;
+
+    bool operator==(const Option& option) const noexcept;
+    bool operator!=(const Option& option) const noexcept;
+
+    bool operator<(const Option& option) const noexcept;
+    bool operator>(const Option& option) const noexcept;
+
     Option& operator=(std::string value) noexcept;
 
     friend std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
-
-    std::uint16_t idx = -1;
+    friend std::ostream& operator<<(std::ostream& os, const Options& options) noexcept;
 
    private:
+    std::uint16_t idx = -1;
+
     OptionType  type;
     std::string defaultValue, currentValue;
     int         minValue, maxValue;
@@ -83,25 +101,32 @@ class Option final {
 
     const Options* options = nullptr;
 
-    friend class OptionsMap;
+    //friend class Options;
 };
 
 class Options final {
    public:
+    // The options container is defined as a std::unordered_map<>
+    using OptionMap =
+      std::unordered_map<std::string, Option, CaseInsensitiveHash, CaseInsensitiveEqual>;
+    using OptionPair = std::pair<OptionMap::key_type, OptionMap::mapped_type>;
+
     using InfoListener = std::function<void(std::optional<std::string>)>;
 
-    Options()                          = default;
-    Options(const Options&)            = delete;
-    Options(Options&&)                 = delete;
-    Options& operator=(const Options&) = delete;
-    Options& operator=(Options&&)      = delete;
+    // Sort in ascending order
+    static bool compare_pair(const OptionPair& op1, const OptionPair& op2) noexcept {
+        return op1.second < op2.second;
+    }
+
+    Options() noexcept                          = default;
+    Options(const Options&) noexcept            = delete;
+    Options(Options&&) noexcept                 = delete;
+    Options& operator=(const Options&) noexcept = delete;
+    Options& operator=(Options&&) noexcept      = delete;
 
     void add_info_listener(InfoListener&&);
 
     void setoption(const std::string& name, const std::string& value) noexcept;
-
-    Option  operator[](const std::string& name) const noexcept;
-    Option& operator[](const std::string& name) noexcept;
 
     auto begin() const noexcept { return options.begin(); }
     auto end() const noexcept { return options.end(); }
@@ -110,12 +135,12 @@ class Options final {
 
     std::size_t count(const std::string& name) const noexcept;
 
+    Option  operator[](const std::string& name) const noexcept;
+    Option& operator[](const std::string& name) noexcept;
+
     friend std::ostream& operator<<(std::ostream& os, const Options& options) noexcept;
 
    private:
-    // The options container is defined as a std::map
-    using OptionMap = std::map<std::string, Option, CaseInsensitiveLess>;
-
     OptionMap    options;
     InfoListener infoListener;
 

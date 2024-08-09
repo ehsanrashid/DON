@@ -30,24 +30,24 @@ namespace DON {
 TranspositionTable::~TranspositionTable() noexcept { free(); }
 
 void TranspositionTable::free() noexcept {
-    free_aligned_lp(table);
-    table        = nullptr;
+    free_aligned_lp(clusters);
+    clusters     = nullptr;
     clusterCount = 0;
+    generation8  = 0;
 }
 
 // Sets the size of the transposition table, measured in megabytes.
-// Transposition table consists of even number of clusters and
-// each cluster consists of EntryCount number of TTEntry.
+// Transposition table consists of even number of clusters.
 void TranspositionTable::resize(std::size_t mbSize, ThreadPool& threads) noexcept {
     free();
-    clusterCount = mbSize * 1024 * 1024 / sizeof(Cluster);
+    clusterCount = mbSize * 1024 * 1024 / sizeof(TTCluster);
     assert(clusterCount % 2 == 0);
 
-    table = static_cast<Cluster*>(alloc_aligned_lp(clusterCount * sizeof(Cluster)));
-    if (!table)
+    clusters = static_cast<TTCluster*>(alloc_aligned_lp(clusterCount * sizeof(TTCluster)));
+    if (!clusters)
     {
         std::cerr << "Failed to allocate " << mbSize << "MB for transposition table.\n";
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
 
     init(threads);
@@ -55,7 +55,8 @@ void TranspositionTable::resize(std::size_t mbSize, ThreadPool& threads) noexcep
 
 // Initializes the entire transposition table to zero, in a multi-threaded way.
 void TranspositionTable::init(ThreadPool& threads) noexcept {
-    generation8                     = 0;
+    generation8 = 0;
+
     const std::uint16_t threadCount = threads.size();
 
     for (std::uint16_t threadId = 0; threadId < threadCount; ++threadId)
@@ -66,7 +67,7 @@ void TranspositionTable::init(ThreadPool& threads) noexcept {
             std::size_t start  = stride * threadId;
             std::size_t count  = 1 + threadId != threadCount ? stride : clusterCount - start;
 
-            std::memset(static_cast<void*>(&table[start]), 0, count * sizeof(Cluster));
+            std::memset(static_cast<void*>(&clusters[start]), 0, count * sizeof(TTCluster));
         });
     }
 
@@ -79,21 +80,18 @@ void TranspositionTable::init(ThreadPool& threads) noexcept {
 // Otherwise, it returns false and a pointer to an empty or least valuable TTEntry.
 // TTEntry t1 is considered more valuable than TTEntry t2
 // if replacement value of t1 is greater than that of t2.
-TTProbe TranspositionTable::probe(Key key) const noexcept {
+TTProbe TranspositionTable::probe(const Key key, const Key16 key16) const noexcept {
 
-    auto* const tte = first_entry(key);
-    auto*       rte = tte;
-    for (std::uint8_t i = 0; i < EntryCount; ++i)
+    TTEntry* const fte = first_entry(key);
+
+    for (std::uint8_t i = 0; i < TT_CLUSTER_ENTRY_COUNT; ++i)
     {
-        // Use the low 16 bits as key inside the cluster
-        if (Key16(key) == (tte + i)->key16)
-            return {(tte + i)->occupied(), (tte + i)};
-
-        // Find an entry to be replaced according to the replacement strategy
-        if (i != 0 && rte->worth(generation8) > (tte + i)->worth(generation8))
-            rte = (tte + i);
+        TTEntry* cte = fte + i;
+        // Use the compress 16 bits as key inside the cluster
+        if (key16 == cte->key16)
+            return {cte->occupied(), cte, fte};
     }
-    return {false, rte};
+    return {false, fte, fte};
 }
 
 // Returns an approximation of the hashtable occupation during a search.
@@ -101,24 +99,24 @@ TTProbe TranspositionTable::probe(Key key) const noexcept {
 // Only counts entries which match the current generation.
 std::uint16_t TranspositionTable::hashfull() const noexcept {
     std::uint32_t cnt = 0;
-    for (std::size_t idx = 0; idx < std::min<std::size_t>(clusterCount, 1000); ++idx)
-        for (const auto& tte : table[idx].entry)
+    for (std::size_t idx = 0; idx < std::min(clusterCount, std::size_t(1000)); ++idx)
+        for (const auto& tte : clusters[idx].entry)
             cnt += tte.occupied() && tte.generation() == generation8;
 
-    return cnt / EntryCount;
+    return cnt / TT_CLUSTER_ENTRY_COUNT;
 }
 
 bool TranspositionTable::save(const std::string& hashFile) const noexcept {
-    if (hashFile.empty() || hashFile == "<empty>")
+    if (is_empty(hashFile))
         return false;
     std::ofstream ofstream(hashFile, std::ios_base::binary);
     if (ofstream)
-        ofstream.write(reinterpret_cast<const char*>(table), clusterCount * sizeof(Cluster));
+        ofstream.write(reinterpret_cast<const char*>(clusters), clusterCount * sizeof(TTCluster));
     return ofstream.good();
 }
 
 bool TranspositionTable::load(const std::string& hashFile, ThreadPool& threads) noexcept {
-    if (hashFile.empty() || hashFile == "<empty>")
+    if (is_empty(hashFile))
         return false;
     std::ifstream ifstream(hashFile, std::ios_base::binary);
     if (ifstream)
@@ -128,8 +126,9 @@ bool TranspositionTable::load(const std::string& hashFile, ThreadPool& threads) 
         ifstream.seekg(0, std::ios_base::beg);
         std::size_t mbSize = fileSize / (1024 * 1024);
         resize(mbSize, threads);
-        ifstream.read(reinterpret_cast<char*>(table), clusterCount * sizeof(Cluster));
+        ifstream.read(reinterpret_cast<char*>(clusters), clusterCount * sizeof(TTCluster));
     }
     return ifstream.good();
 }
+
 }  // namespace DON

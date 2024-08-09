@@ -41,10 +41,12 @@ case $1 in
 cat << EOF > tsan.supp
 race:DON::TTEntry::move
 race:DON::TTEntry::depth
+race:DON::TTEntry::generation
 race:DON::TTEntry::is_pv
 race:DON::TTEntry::bound
 race:DON::TTEntry::value
 race:DON::TTEntry::eval
+race:DON::TTEntry::occupied
 race:DON::TTEntry::save
 
 race:DON::TranspositionTable::probe

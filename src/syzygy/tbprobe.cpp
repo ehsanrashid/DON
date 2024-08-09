@@ -62,17 +62,18 @@ namespace {
 
 // Max number of supported piece
 constexpr std::uint32_t TBPIECES = 7;
-// Max DTZ supported, large enough to deal with the syzygy TB limit.
+// Max DTZ supported (2 times), large enough to deal with the syzygy TB limit.
 constexpr int MAX_DTZ = 1 << 18;
 
 enum Endian {
     BigEndian,
     LittleEndian
 };
+// Used as template parameter
 enum TBType {
     WDL,
     DTZ
-};  // Used as template parameter
+};
 
 // Each table has a set of flags: all of them refer to DTZ tables, the last one to WDL tables
 enum TBFlag {
@@ -232,7 +233,7 @@ class TBFile: public std::ifstream {
         if (bufStat.st_size % 64 != 16)
         {
             std::cerr << "Corrupt tablebase file " << filename << '\n';
-            exit(EXIT_FAILURE);
+            std::exit(EXIT_FAILURE);
         }
 
         *mapping     = bufStat.st_size;
@@ -245,7 +246,7 @@ class TBFile: public std::ifstream {
         if (*baseAddress == MAP_FAILED)
         {
             std::cerr << "Could not mmap(), name = " << filename << '\n';
-            exit(EXIT_FAILURE);
+            std::exit(EXIT_FAILURE);
         }
 #else
         // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored.
@@ -261,7 +262,7 @@ class TBFile: public std::ifstream {
         if (lowSize % 64 != 16)
         {
             std::cerr << "Corrupt tablebase file " << filename << '\n';
-            exit(EXIT_FAILURE);
+            std::exit(EXIT_FAILURE);
         }
 
         HANDLE mmap = CreateFileMapping(fd, nullptr, PAGE_READONLY, highSize, lowSize, nullptr);
@@ -270,7 +271,7 @@ class TBFile: public std::ifstream {
         if (!mmap)
         {
             std::cerr << "CreateFileMapping() failed, name = " << filename << '\n';
-            exit(EXIT_FAILURE);
+            std::exit(EXIT_FAILURE);
         }
 
         *mapping     = std::uint64_t(mmap);
@@ -280,7 +281,7 @@ class TBFile: public std::ifstream {
         {
             std::cerr << "MapViewOfFile() failed, name = " << filename
                       << ", error = " << GetLastError() << '\n';
-            exit(EXIT_FAILURE);
+            std::exit(EXIT_FAILURE);
         }
 #endif
         auto data = (std::uint8_t*) (*baseAddress);
@@ -315,7 +316,7 @@ std::string TBFile::Paths;
 // struct PairsData contains low-level indexing information to access TB data.
 // There are 8, 4, or 2 PairsData records for each TBTable, according to the type
 // of table and if positions have pawns or not. It is populated at first access.
-struct PairsData {
+struct PairsData final {
     std::uint8_t   flags;        // Table flags, see enum TBFlag
     std::uint8_t   maxSymLen;    // Maximum length in bits of the Huffman symbols
     std::uint8_t   minSymLen;    // Minimum length in bits of the Huffman symbols
@@ -349,7 +350,7 @@ template<TBType Type>
 struct TBTable final {
     using Ret = std::conditional_t<Type == WDL, WDLScore, int>;
 
-    static constexpr int Sides = 1 + 1 * (Type == WDL);
+    static constexpr int SIDES = 1 + 1 * (Type == WDL);
 
     std::atomic_bool ready;
     void*            baseAddress;
@@ -360,9 +361,9 @@ struct TBTable final {
     bool             hasPawns;
     bool             hasUniquePieces;
     std::uint8_t     pawnCount[COLOR_NB];        // [Lead color / other color]
-    PairsData        items[Sides][FILE_NB / 2];  // [wtm / btm][FILE_A..FILE_D or 0]
+    PairsData        items[SIDES][FILE_NB / 2];  // [wtm / btm][FILE_A..FILE_D or 0]
 
-    PairsData* get(int stm, int f) noexcept { return &items[stm % Sides][f * hasPawns]; }
+    PairsData* get(int stm, int f) noexcept { return &items[stm % SIDES][f * hasPawns]; }
 
     TBTable() noexcept :
         ready(false),
@@ -381,7 +382,7 @@ TBTable<WDL>::TBTable(const std::string& code) noexcept :
     TBTable() {
 
     StateInfo st;
-    ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
+    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     Position pos;
 
@@ -436,20 +437,25 @@ class TBTables final {
         }
     };
 
-    static constexpr int Size     = 1 << 12;  // 4K table, indexed by key's 12 lsb
-    static constexpr int Overflow = 1;  // Number of elements allowed to map to the last bucket
+    static constexpr int SIZE     = 1 << 12;  // 4K table, indexed by key's 12 lsb
+    static constexpr int OVERFLOW = 1;  // Number of elements allowed to map to the last bucket
 
-    Entry hashTable[Size + Overflow];
+    static constexpr Key16 get_index(Key key) noexcept { return Key16(key & (SIZE - 1)); }
+
+    Entry hashTable[SIZE + OVERFLOW];
 
     std::deque<TBTable<WDL>> wdlTable;
     std::deque<TBTable<DTZ>> dtzTable;
 
-    void insert(Key key, TBTable<WDL>* wdl, TBTable<DTZ>* dtz) noexcept {
-        std::uint32_t homeBucket = std::uint32_t(key) & (Size - 1);
-        Entry         entry{key, wdl, dtz};
+    std::size_t wdlFileFound = 0;
+    std::size_t dtzFileFound = 0;
 
+    void insert(Key key, TBTable<WDL>* wdl, TBTable<DTZ>* dtz) noexcept {
+        Entry entry{key, wdl, dtz};
+
+        Key16 homeBucket = get_index(key);
         // Ensure last element is empty to avoid overflow when looking up
-        for (std::uint32_t bucket = homeBucket; bucket < Size + Overflow - 1; ++bucket)
+        for (Key16 bucket = homeBucket; bucket < SIZE + OVERFLOW - 1; ++bucket)
         {
             Key otherKey = hashTable[bucket].key;
             if (otherKey == key || !hashTable[bucket].get<WDL>())
@@ -460,7 +466,7 @@ class TBTables final {
 
             // Robin Hood hashing: If we've probed for longer than this element,
             // insert here and search for a new spot for the other element instead.
-            std::uint32_t otherHomeBucket = std::uint32_t(otherKey) & (Size - 1);
+            Key16 otherHomeBucket = get_index(otherKey);
             if (otherHomeBucket > homeBucket)
             {
                 std::swap(entry, hashTable[bucket]);
@@ -469,13 +475,13 @@ class TBTables final {
             }
         }
         std::cerr << "TB hash table size too low!\n";
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
 
    public:
     template<TBType Type>
     TBTable<Type>* get(Key key) noexcept {
-        const Entry* entry = &hashTable[std::uint32_t(key) & (Size - 1)];
+        const Entry* entry = &hashTable[get_index(key)];
         while (true)
         {
             if (entry->key == key || !entry->get<Type>())
@@ -488,14 +494,15 @@ class TBTables final {
         std::memset(hashTable, 0, sizeof(hashTable));
         wdlTable.clear();
         dtzTable.clear();
+        wdlFileFound = 0;
+        dtzFileFound = 0;
     }
 
-    std::size_t size() const noexcept { return wdlTable.size(); }
+    std::size_t wdl_found() const noexcept { return wdlFileFound; }
+    std::size_t dtz_found() const noexcept { return dtzFileFound; }
 
     void add(const std::vector<PieceType>& pieces) noexcept;
 };
-
-TBTables TBTables;
 
 // If the corresponding file exists two new objects TBTable<WDL> and TBTable<DTZ>
 // are created and added to the lists and hash table. Called at init time.
@@ -504,15 +511,23 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     std::string code;
     for (PieceType pt : pieces)
         code += UCI::piece(pt);
+    code.insert(code.find('K', 1), "v");  // KRK -> KRvK
 
-    TBFile file(code.insert(code.find('K', 1), "v") + ".rtbw");  // KRK -> KRvK
+    TBFile dtzFile(code + ".rtbz");
+    if (dtzFile.is_open())
+    {
+        dtzFile.close();
+        dtzFileFound++;
+    }
 
-    if (!file.is_open())  // Only WDL file is checked
+    TBFile wdlFile(code + ".rtbw");
+    if (!wdlFile.is_open())  // Only WDL file is checked
         return;
 
-    file.close();
+    wdlFile.close();
+    wdlFileFound++;
 
-    MaxCardinality = std::max<std::uint8_t>(pieces.size(), MaxCardinality);
+    MaxCardinality = std::max<std::uint8_t>(MaxCardinality, pieces.size());
 
     wdlTable.emplace_back(code);
     dtzTable.emplace_back(wdlTable.back());
@@ -521,6 +536,8 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     insert(wdlTable.back().key[WHITE], &wdlTable.back(), &dtzTable.back());
     insert(wdlTable.back().key[BLACK], &wdlTable.back(), &dtzTable.back());
 }
+
+TBTables TBTables;
 
 // TB tables are compressed with canonical Huffman code. The compressed data is divided into
 // blocks of size d->blockSize, and each block stores a variable number of symbols.
@@ -906,7 +923,7 @@ encode_remaining:
         {
             auto adjust =
               std::count_if(squares, groupSq, [&](Square s) -> bool { return groupSq[i] > s; });
-            n += Binomial[i + 1][groupSq[i] - adjust - 8 * pawnsRemaining];
+            n += Binomial[i + 1][int(groupSq[i]) - adjust - 8 * pawnsRemaining];
         }
 
         pawnsRemaining = false;
@@ -1022,8 +1039,8 @@ std::uint8_t* set_sizes(PairsData* d, std::uint8_t* data) noexcept {
     // element stores the biggest index that is the tb size.
     std::uint64_t tbSize = d->groupIdx[std::find(d->groupLen, d->groupLen + 7, 0) - d->groupLen];
 
-    d->blockSize       = 1ULL << *data++;
-    d->span            = 1ULL << *data++;
+    d->blockSize       = 1ull << *data++;
+    d->span            = 1ull << *data++;
     d->sparseIndexSize = std::size_t((tbSize + d->span - 1) / d->span);  // Round up
     auto padding       = number<std::uint8_t, LittleEndian>(data++);
     d->blockCount      = number<std::uint32_t, LittleEndian>(data);
@@ -1133,7 +1150,7 @@ void set(T& entry, std::uint8_t* data) noexcept {
 
     data++;  // First byte stores flags
 
-    const int  sides   = T::Sides == 2 && entry.key[WHITE] != entry.key[BLACK] ? 2 : 1;
+    const int  sides   = T::SIDES == 2 && entry.key[WHITE] != entry.key[BLACK] ? 2 : 1;
     const File maxFile = entry.hasPawns ? FILE_D : FILE_A;
 
     bool pp = entry.hasPawns && entry.pawnCount[BLACK];  // Pawns on both sides
@@ -1259,12 +1276,12 @@ WDLScore search(Position& pos, ProbeState* result) noexcept {
     WDLScore value, bestValue = WDLLoss;
 
     StateInfo st;
-    ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
+    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     const MoveList<LEGAL> legalMoves(pos);
     std::uint8_t          legalCount = legalMoves.size(), moveCount = 0;
 
-    for (auto m : legalMoves)
+    for (const auto& m : legalMoves)
     {
         if (!pos.capture(m) && (!CheckZeroingMoves || type_of(pos.moved_piece(m)) != PAWN))
             continue;
@@ -1330,7 +1347,7 @@ void init(const std::string& paths) noexcept {
     MaxCardinality = 0;
     TBFile::Paths  = paths;
 
-    if (paths.empty() || paths == "<empty>")
+    if (is_empty(paths))
         return;
 
     int code;
@@ -1473,7 +1490,9 @@ void init(const std::string& paths) noexcept {
         }
     }
 
-    sync_cout << "info string Found " << TBTables.size() << " tablebases" << sync_endl;
+    sync_cout << "info string Tablebase: "  //
+              << TBTables.wdl_found() << " WDL and " << TBTables.dtz_found() << " DTZ found. "
+              << "Tablebase files (up to " << int(MaxCardinality) << "-man)." << sync_endl;
 }
 
 // Probe the WDL table for a particular position.
@@ -1540,11 +1559,11 @@ int probe_dtz(Position& pos, ProbeState* result) noexcept {
     // DTZ stores results for the other side, so need to do a 1-ply search and
     // find the winning move that minimizes DTZ.
     StateInfo st;
-    ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
+    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     int minDTZ = 0xFFFF;
 
-    for (auto m : MoveList<LEGAL>(pos))
+    for (const auto& m : MoveList<LEGAL>(pos))
     {
         bool zeroing = pos.capture(m) || type_of(pos.moved_piece(m)) == PAWN;
 
@@ -1582,11 +1601,14 @@ int probe_dtz(Position& pos, ProbeState* result) noexcept {
 // Use the DTZ tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool root_probe(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noexcept {
+bool root_probe(Position&          pos,
+                Search::RootMoves& rootMoves,
+                bool               useRule50,
+                bool               rankDTZ) noexcept {
     ProbeState result = OK;
 
     StateInfo st;
-    ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
+    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     // Obtain 50-move counter for the root position
     int rule50 = pos.rule50_count();
@@ -1594,7 +1616,7 @@ bool root_probe(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noe
     // Check whether a position was repeated since the last zeroing move.
     bool rep = pos.has_repeated();
 
-    int dtz, bound = useRule50 ? (MAX_DTZ - 100) : 1;
+    int dtz, bound = useRule50 ? (MAX_DTZ / 2 - 100) : 1;
 
     // Probe and rank each move
     for (Search::RootMove& rm : rootMoves)
@@ -1632,8 +1654,10 @@ bool root_probe(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noe
 
         // Better moves are ranked higher. Certain wins are ranked equally.
         // Losing moves are ranked equally unless a 50-move draw is in sight.
-        int r = dtz > 0 ? (+dtz + rule50 < 100 && !rep ? +MAX_DTZ : +MAX_DTZ - (+dtz + rule50))
-              : dtz < 0 ? (-dtz * 2 + rule50 < 100 ? -MAX_DTZ : -MAX_DTZ + (-dtz + rule50))
+        int r = dtz > 0 ? (+1 * dtz + rule50 < 100 && !rep ? +MAX_DTZ - rankDTZ * dtz
+                                                           : +MAX_DTZ / 2 - (+dtz + rule50))
+              : dtz < 0 ? (-2 * dtz + rule50 < 100 /*   */ ? -MAX_DTZ - rankDTZ * dtz
+                                                           : -MAX_DTZ / 2 + (-dtz + rule50))
                         : 0;
 
         rm.tbRank = r;
@@ -1641,11 +1665,11 @@ bool root_probe(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noe
         // Determine the score to be displayed for this move. Assign at least
         // 1 cp to cursed wins and let it grow to 49 cp as the positions gets
         // closer to a real win.
-        rm.tbValue = r >= bound ? +VALUE_MATE - MAX_PLY - 1
-                   : r > 0      ? (std::max(r - (MAX_DTZ - 200), +3) * VALUE_PAWN) / 200
-                   : r == 0     ? VALUE_DRAW
-                   : r > -bound ? (std::min(r + (MAX_DTZ - 200), -3) * VALUE_PAWN) / 200
-                                : -VALUE_MATE + MAX_PLY + 1;
+        rm.tbValue = r >= +bound ? +VALUE_MATE - MAX_PLY - 1
+                   : r > 0       ? (std::max(r - (+MAX_DTZ / 2 - 200), +3) * VALUE_PAWN) / 200
+                   : r == 0      ? VALUE_DRAW
+                   : r > -bound  ? (std::min(r + (+MAX_DTZ / 2 - 200), -3) * VALUE_PAWN) / 200
+                                 : -VALUE_MATE + MAX_PLY + 1;
     }
 
     return true;
@@ -1659,7 +1683,7 @@ bool root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, bool useRule50)
     ProbeState result = OK;
 
     StateInfo st;
-    ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
+    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     // Probe and rank each move
     for (Search::RootMove& rm : rootMoves)
@@ -1683,62 +1707,60 @@ bool root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, bool useRule50)
     return true;
 }
 
-Config
-rank_root_moves(Position& pos, Search::RootMoves& rootMoves, const Options& options) noexcept {
-    Config config;
+Config rank_root_moves(Position&          pos,
+                       Search::RootMoves& rootMoves,
+                       const Options&     options,
+                       bool               rankDTZ) noexcept {
+    Config tbConfig;
 
     if (rootMoves.empty())
-        return config;
+        return tbConfig;
 
-    config.rootInTB    = false;
-    config.cardinality = options["SyzygyProbeLimit"];
-    config.probeDepth  = options["SyzygyProbeDepth"];
-    config.useRule50   = options["Syzygy50MoveRule"];
+    tbConfig.rootInTB    = false;
+    tbConfig.cardinality = options["SyzygyProbeLimit"];
+    tbConfig.probeDepth  = options["SyzygyProbeDepth"];
+    tbConfig.useRule50   = options["Syzygy50MoveRule"];
 
     bool dtzAvailable = true;
 
     // Tables with fewer pieces than SyzygyProbeLimit are searched with
     // probeDepth == DEPTH_ZERO
-    if (config.cardinality > MaxCardinality)
+    if (tbConfig.cardinality > MaxCardinality)
     {
-        config.cardinality = MaxCardinality;
-        config.probeDepth  = DEPTH_ZERO;
+        tbConfig.cardinality = MaxCardinality;
+        tbConfig.probeDepth  = DEPTH_ZERO;
     }
 
-    if (config.cardinality >= pos.count<ALL_PIECE>() && !pos.can_castle(ANY_CASTLING))
+    if (tbConfig.cardinality >= pos.count<ALL_PIECE>() && !pos.can_castle(ANY_CASTLING))
     {
         // Rank moves using DTZ tables
-        config.rootInTB = root_probe(pos, rootMoves, config.useRule50);
+        tbConfig.rootInTB = root_probe(pos, rootMoves, tbConfig.useRule50, rankDTZ);
 
-        if (!config.rootInTB)
+        if (!tbConfig.rootInTB)
         {
             // DTZ tables are missing; try to rank moves using WDL tables
-            dtzAvailable    = false;
-            config.rootInTB = root_probe_wdl(pos, rootMoves, config.useRule50);
+            dtzAvailable      = false;
+            tbConfig.rootInTB = root_probe_wdl(pos, rootMoves, tbConfig.useRule50);
         }
     }
 
-    if (config.rootInTB)
+    if (tbConfig.rootInTB)
     {
         // Sort moves according to TB rank
         rootMoves.sort(
           [](const Search::RootMove& rm1, const Search::RootMove& rm2) noexcept -> bool {
-              return rm1.tbRank != rm2.tbRank   ? rm1.tbRank > rm2.tbRank
-                   : rm1.tbValue != rm2.tbValue ? rm1.tbValue > rm2.tbValue
-                                                : rm1 < rm2;
+              return rm1.tbRank > rm2.tbRank;
           });
         // Probe during search only if DTZ is not available and winning
         if (dtzAvailable || rootMoves.front().tbValue <= VALUE_DRAW)
-            config.cardinality = 0;
+            tbConfig.cardinality = 0;
     }
     else
-    {
         // Clean up if root_probe() and root_probe_wdl() have failed
         for (Search::RootMove& rm : rootMoves)
             rm.tbRank = 0;
-    }
 
-    return config;
+    return tbConfig;
 }
 }  // namespace Tablebases
 }  // namespace DON

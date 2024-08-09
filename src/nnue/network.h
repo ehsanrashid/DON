@@ -32,8 +32,7 @@
 #include "nnue_feature_transformer.h"
 #include "nnue_misc.h"
 
-namespace DON {
-namespace Eval::NNUE {
+namespace DON::Eval::NNUE {
 
 enum class EmbeddedNNUEType {
     BIG,
@@ -41,37 +40,39 @@ enum class EmbeddedNNUEType {
 };
 
 struct NetworkOutput final {
-    Value psqt;
-    Value positional;
+    std::int32_t psqt;
+    std::int32_t positional;
 };
 
 template<typename Arch, typename Transformer>
 class Network final {
-    static constexpr IndexType FTDimensions = Arch::TransformedFeatureDimensions;
+    static constexpr IndexType TransformedFeatureDimensions = Arch::TransformedFeatureDimensions;
 
    public:
     Network(EvalFile file, EmbeddedNNUEType type) noexcept :
         evalFile(file),
         embeddedType(type) {}
 
-    Network(const Network& net);
-    Network(Network&& net) = default;
-
-    Network& operator=(const Network& net);
-    Network& operator=(Network&& net) = default;
+    Network(const Network<Arch, Transformer>& net) noexcept;
+    Network(Network<Arch, Transformer>&&) noexcept = default;
+    Network<Arch, Transformer>& operator=(const Network<Arch, Transformer>& net) noexcept;
+    Network<Arch, Transformer>& operator=(Network<Arch, Transformer>&&) noexcept = default;
 
     void load(const std::string& rootDirectory, std::string evalfilePath) noexcept;
     bool save(const std::optional<std::string>& filename) const noexcept;
 
-    NetworkOutput evaluate(const Position&                         pos,
-                           AccumulatorCaches::Cache<FTDimensions>* cache) const noexcept;
+    NetworkOutput
+    evaluate(const Position&                                         pos,
+             AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
-    void hint_common_access(const Position&                         pos,
-                            AccumulatorCaches::Cache<FTDimensions>* cache) const noexcept;
+    void hint_common_access(
+      const Position&                                         pos,
+      AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
-    void          verify(std::string evalfilePath) const noexcept;
-    NnueEvalTrace trace_eval(const Position&                         pos,
-                             AccumulatorCaches::Cache<FTDimensions>* cache) const noexcept;
+    void verify(std::string evalfilePath) const noexcept;
+    NnueEvalTrace
+    trace_eval(const Position&                                         pos,
+               AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
    private:
     void load_user_net(const std::string& dir, const std::string& evalfilePath) noexcept;
@@ -90,6 +91,10 @@ class Network final {
     bool read_parameters(std::istream&, std::string&) const noexcept;
     bool write_parameters(std::ostream&, const std::string&) const noexcept;
 
+    // Hash value of evaluation function structure
+    static constexpr std::uint32_t HASH_VALUE =
+      Arch::get_hash_value() ^ Transformer::get_hash_value();
+
     // Input feature converter
     AlignedLPPtr<Transformer> featureTransformer;
 
@@ -98,9 +103,6 @@ class Network final {
 
     EvalFile         evalFile;
     EmbeddedNNUEType embeddedType;
-
-    // Hash value of evaluation function structure
-    static constexpr std::uint32_t Hash = Transformer::get_hash_value() ^ Arch::get_hash_value();
 
     template<IndexType Size>
     friend struct AccumulatorCaches::Cache;
@@ -128,7 +130,6 @@ struct Networks final {
     SmallNetwork small;
 };
 
-}  // namespace Eval::NNUE
-}  // namespace DON
+}  // namespace DON::Eval::NNUE
 
 #endif  // #ifndef NETWORK_H_INCLUDED

@@ -18,6 +18,7 @@
 #ifndef POSITION_H_INCLUDED
 #define POSITION_H_INCLUDED
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -34,55 +35,46 @@
 
 namespace DON {
 
-class Position;
-class TranspositionTable;
-
 // StateInfo struct stores information needed to restore a Position object to
 // its previous state when retract a move. Whenever a move is made on the
 // board (by calling Position::do_move), a StateInfo object must be passed.
 struct StateInfo final {
-    //    private:
+    StateInfo() noexcept                            = default;
+    StateInfo(const StateInfo&) noexcept            = delete;
+    StateInfo(StateInfo&&) noexcept                 = delete;
+    StateInfo& operator=(const StateInfo&) noexcept = default;
+    StateInfo& operator=(StateInfo&&) noexcept      = default;
+
     // Copied when making a move
-    Key          pawnKey;
-    Key          materialKey;
-    Square       epSquare;
-    Square       capSquare;
-    std::uint8_t castlingRights;
-    std::uint8_t rule50;
-    std::uint8_t nullPly;  // Plies from Null-Move
-    Square       kingSquare[COLOR_NB];
-    bool         hasCastled[COLOR_NB];
-    Value        nonPawnMaterial[COLOR_NB];
+    Key            pawnKey;
+    Key            materialKey;
+    Square         epSquare;
+    Square         capSquare;
+    CastlingRights castlingRights;
+    std::uint8_t   rule50;
+    std::uint8_t   nullPly;  // Plies from Null-Move
+    Square         kingSquare[COLOR_NB];
+    bool           hasCastled[COLOR_NB];
+    Value          nonPawnMaterial[COLOR_NB];
 
     // Not copied when making a move (will be recomputed anyhow)
-    Key          key;
-    Bitboard     checkers;
-    Bitboard     checks[PIECE_TYPE_NB];
-    Bitboard     pinners[COLOR_NB];
-    Bitboard     blockers[COLOR_NB];
-    Bitboard     attacks[COLOR_NB][PIECE_TYPE_NB];
-    std::int16_t mobility[COLOR_NB];
-    std::int8_t  repetition;
-    Piece        capturedPiece;
+    Key           key;
+    Bitboard      checkers;
+    Bitboard      checks[PIECE_TYPE_NB];
+    Bitboard      pinners[COLOR_NB];
+    Bitboard      blockers[COLOR_NB];
+    Bitboard      attacks[COLOR_NB][PIECE_TYPE_NB];
+    std::uint16_t mobility[COLOR_NB];
+    std::int8_t   repetition;
+    Piece         capturedPiece;
     //Piece        promotedPiece;
 
-   public:
     // Used by NNUE
     Eval::NNUE::Accumulator<Eval::NNUE::BigTransformedFeatureDimensions>   bigAccumulator;
     Eval::NNUE::Accumulator<Eval::NNUE::SmallTransformedFeatureDimensions> smallAccumulator;
     DirtyPiece                                                             dirtyPiece;
 
     StateInfo* previous;
-
-    // Key          pos_key() const noexcept { return key; }
-    Key pawn_key() const noexcept { return pawnKey; }
-    // Key          material_key() const noexcept { return materialKey; }
-    // Square       ep_square() const noexcept { return epSquare; }
-    // Square       cap_square() const noexcept { return capSquare; }
-    // std::uint8_t rule50_count() const noexcept { return rule50; }
-    // std::uint8_t null_ply() const noexcept { return nullPly; }
-
-    // friend class Position;
 };
 
 // A list to keep track of the position states along the setup moves
@@ -100,9 +92,14 @@ class Position final {
    public:
     static void init() noexcept;
 
-    Position()                           = default;
-    Position(const Position&)            = delete;
-    Position& operator=(const Position&) = delete;
+    static bool         Chess960;
+    static std::uint8_t DrawMoveCount;
+
+    Position() noexcept                           = default;
+    Position(const Position&) noexcept            = delete;
+    Position(Position&&) noexcept                 = delete;
+    Position& operator=(const Position&) noexcept = delete;
+    Position& operator=(Position&&) noexcept      = delete;
 
     // FEN string input/output
     Position&   set(std::string_view fenStr, StateInfo* si) noexcept;
@@ -134,20 +131,22 @@ class Position final {
     Square cap_square() const noexcept;
 
     // Castling
+    CastlingRights castling_rights() const noexcept;
     // CastlingRights castling_rights(Color c) const noexcept;
-    bool   can_castle(CastlingRights cr) const noexcept;
-    bool   castling_impeded(CastlingRights cr) const noexcept;
-    Square castling_rook_square(CastlingRights cr) const noexcept;
+    bool         can_castle(CastlingRights cr) const noexcept;
+    bool         castling_impeded(CastlingRights cr) const noexcept;
+    Square       castling_rook_square(CastlingRights cr) const noexcept;
+    std::uint8_t castling_rights_mask(Square org, Square dst) const noexcept;
 
     // ExState Info
-    Bitboard     checkers() const noexcept;
-    Bitboard     checks(PieceType pt) const noexcept;
-    Bitboard     pinners(Color c) const noexcept;
-    Bitboard     pinners() const noexcept;
-    Bitboard     blockers(Color c) const noexcept;
-    Bitboard     attacks(Color c, PieceType pt = ALL_PIECE) const noexcept;
-    Bitboard     threatens(Color c) const noexcept;
-    std::int16_t mobility(Color c) const noexcept;
+    Bitboard      checkers() const noexcept;
+    Bitboard      checks(PieceType pt) const noexcept;
+    Bitboard      pinners(Color c) const noexcept;
+    Bitboard      pinners() const noexcept;
+    Bitboard      blockers(Color c) const noexcept;
+    Bitboard      attacks(Color c, PieceType pt = ALL_PIECE) const noexcept;
+    Bitboard      threatens(Color c) const noexcept;
+    std::uint16_t mobility(Color c) const noexcept;
 
     // Attacks to a given square
     Bitboard attackers_to(Square s, Bitboard occupied) const noexcept;
@@ -156,7 +155,7 @@ class Position final {
    private:
     // Attacks from a piece type
     template<PieceType PT>
-    Bitboard attacks_by(Color c, Bitboard target = ~0ULL, Bitboard occupied = 0ULL) const noexcept;
+    Bitboard attacks_by(Color c, Bitboard target = ~0ull, Bitboard occupied = 0ull) noexcept;
     // template<PieceType PT>
     // Bitboard attacks_by(Color c) const noexcept;
     // Bitboard attacks_by(Color c) const noexcept;
@@ -174,23 +173,24 @@ class Position final {
     Piece captured_piece(Move m) const noexcept;
     Piece captured_piece() const noexcept;
     // Piece promoted_piece() const noexcept;
-    Piece prev_moved_piece(Move pm) const noexcept;
+    Piece prev_ex_moved_piece(Move pm) const noexcept;
 
     // Doing and undoing moves
     void do_move(Move m, StateInfo& newSt) noexcept;
     void do_move(Move m, StateInfo& newSt, bool givesCheck) noexcept;
     void undo_move(Move m) noexcept;
-    void do_null_move(StateInfo& newSt, const TranspositionTable& tt) noexcept;
+    void do_null_move(StateInfo& newSt) noexcept;
     void undo_null_move() noexcept;
 
-    // Static Exchange Evaluation
-    bool see_ge(Move m, int threshold = 0) const noexcept;
-
     // Hash keys
-    Key key(int ply = 0) const noexcept;
+    Key key(std::int16_t ply = 0) const noexcept;
     Key pawn_key() const noexcept;
     Key material_key() const noexcept;
     Key move_key(Move m) const noexcept;
+    Key null_move_key() const noexcept;
+
+    // Static Exchange Evaluation
+    auto see(Move m) const noexcept { return SEE(*this, m); }
 
     // Other properties
     Color        side_to_move() const noexcept;
@@ -198,9 +198,10 @@ class Position final {
     std::int16_t game_move() const noexcept;
     std::uint8_t rule50_count() const noexcept;
     std::uint8_t null_ply() const noexcept;
-    bool         is_draw(std::int16_t ply) const noexcept;
-    bool         has_game_cycle(std::int16_t ply) const noexcept;
+    std::int8_t  repetition() const noexcept;
+    bool         is_draw(std::int16_t ply, bool checkStaleMate = false) const noexcept;
     bool         has_repeated() const noexcept;
+    Move         upcoming_repetition(std::int16_t ply) const noexcept;
     Value        non_pawn_material(Color c) const noexcept;
     Value        non_pawn_material() const noexcept;
     bool         has_castled(Color c) const noexcept;
@@ -208,7 +209,6 @@ class Position final {
     bool         opposite_bishop() const noexcept;
 
     short material() const noexcept;
-    Value materials() const noexcept;
     Value evaluate() const noexcept;
     Value bonus() const noexcept;
 
@@ -228,10 +228,32 @@ class Position final {
 
     friend std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept;
 
-    static bool         Chess960;
-    static std::uint8_t DrawMoveCount;
-
    private:
+    // SEE struct used to get a nice syntax for SEE comparisons.
+    // Never use this type directly or store a value into a variable of this type,
+    // instead use the syntax "pos.see(move) >= threshold" and similar for other comparisons.
+    struct SEE final {
+       public:
+        SEE() noexcept                      = delete;
+        SEE(const SEE&) noexcept            = delete;
+        SEE(SEE&&) noexcept                 = delete;
+        SEE& operator=(const SEE&) noexcept = delete;
+        SEE& operator=(SEE&&) noexcept      = delete;
+
+        SEE(const Position& p, Move m) noexcept :
+            pos(p),
+            move(m) {}
+
+        bool operator>=(int threshold) const noexcept;
+        bool operator>(int threshold) const noexcept;
+        bool operator<=(int threshold) const noexcept;
+        bool operator<(int threshold) const noexcept;
+
+       private:
+        const Position& pos;
+        Move            move;
+    };
+
     // Initialization helpers (used while setting up a position)
     void set_castling_rights(Color c, Square rorg) noexcept;
     void set_state() noexcept;
@@ -242,7 +264,10 @@ class Position final {
     void move_piece(Square org, Square dst) noexcept;
     template<bool Do>
     void do_castling(Color c, Square org, Square& dst, Square& rorg, Square& rdst) noexcept;
-    Key  adjust_key(Key k, int ply = 0) const noexcept;
+    Key  adjust_key(Key k, std::int16_t ply = 0) const noexcept;
+
+    // Static Exchange Evaluation
+    bool see_ge(Move m, int threshold /*= 0*/) const noexcept;
 
     // Data members
     Piece        board[SQUARE_NB];
@@ -319,22 +344,25 @@ inline Square Position::ep_square() const noexcept { return st->epSquare; }
 
 inline Square Position::cap_square() const noexcept { return st->capSquare; }
 
-// inline CastlingRights Position::castling_rights(Color c) const noexcept {
-//     return c & CastlingRights(st->castlingRights);
-// }
+inline CastlingRights Position::castling_rights() const noexcept { return st->castlingRights; }
+// inline CastlingRights Position::castling_rights(Color c) const noexcept { return c & castling_rights(); }
 
 inline bool Position::can_castle(CastlingRights cr) const noexcept {
-    return st->castlingRights & cr;
+    return castling_rights() & cr;
 }
 
 inline bool Position::castling_impeded(CastlingRights cr) const noexcept {
     assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
-    return pieces() & PromotionRankBB & castlingPath[lsb(cr)];
+    return pieces() & PROMOTION_RANK_BB & castlingPath[lsb(cr)];
 }
 
 inline Square Position::castling_rook_square(CastlingRights cr) const noexcept {
     assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
     return castlingRookSquare[lsb(cr)];
+}
+
+inline std::uint8_t Position::castling_rights_mask(Square org, Square dst) const noexcept {
+    return castlingRightsMask[org] | castlingRightsMask[dst];
 }
 
 inline Bitboard Position::attackers_to(Square s) const noexcept {
@@ -343,7 +371,7 @@ inline Bitboard Position::attackers_to(Square s) const noexcept {
 
 // template<PieceType PT>
 // inline Bitboard Position::attacks_by(Color c) const noexcept {
-//     return attacks_by<PT>(c, ~0ULL, pieces());
+//     return attacks_by<PT>(c, ~0ull, pieces());
 // }
 
 // inline Bitboard Position::attacks_by(Color c) const noexcept {
@@ -365,14 +393,15 @@ inline Bitboard Position::blockers(Color c) const noexcept { return st->blockers
 inline Bitboard Position::attacks(Color c, PieceType pt) const noexcept { return st->attacks[c][pt]; }
 
 inline Bitboard Position::threatens(Color c) const noexcept { return st->attacks[c][EX_PIECE]; }
-// clang-format on
-inline std::int16_t Position::mobility(Color c) const noexcept { return st->mobility[c]; }
 
-inline Key Position::adjust_key(Key k, int ply) const noexcept {
-    return k ^ (st->rule50 + ply >= 14) * make_key((st->rule50 + ply - 14) / 8);
+inline std::uint16_t Position::mobility(Color c) const noexcept { return st->mobility[c]; }
+// clang-format on
+
+inline Key Position::adjust_key(Key k, std::int16_t ply) const noexcept {
+    return k ^ (st->rule50 + ply >= 14) * make_hash((st->rule50 + ply - 14) / 8);
 }
 
-inline Key Position::key(int ply) const noexcept { return adjust_key(st->key, ply); }
+inline Key Position::key(std::int16_t ply) const noexcept { return adjust_key(st->key, ply); }
 
 inline Key Position::pawn_key() const noexcept { return st->pawnKey; }
 
@@ -383,12 +412,14 @@ inline Color Position::side_to_move() const noexcept { return sideToMove; }
 inline std::int16_t Position::game_ply() const noexcept { return gamePly; }
 
 inline std::int16_t Position::game_move() const noexcept {
-    return 1 + (gamePly - (sideToMove == BLACK)) / 2;
+    return 1 + (game_ply() - (side_to_move() == BLACK)) / 2;
 }
 
 inline std::uint8_t Position::rule50_count() const noexcept { return st->rule50; }
 
 inline std::uint8_t Position::null_ply() const noexcept { return st->nullPly; }
+
+inline std::int8_t Position::repetition() const noexcept { return st->repetition; }
 
 inline Value Position::non_pawn_material(Color c) const noexcept { return st->nonPawnMaterial[c]; }
 
@@ -399,7 +430,7 @@ inline Value Position::non_pawn_material() const noexcept {
 inline bool Position::has_castled(Color c) const noexcept { return st->hasCastled[c]; }
 
 inline bool Position::bishop_paired(Color c) const noexcept {
-    return (pieces(c, BISHOP) & ColorBB[WHITE]) && (pieces(c, BISHOP) & ColorBB[BLACK]);
+    return (pieces(c, BISHOP) & COLOR_BB[WHITE]) && (pieces(c, BISHOP) & COLOR_BB[BLACK]);
 }
 
 inline bool Position::opposite_bishop() const noexcept {
@@ -411,25 +442,23 @@ inline short Position::material() const noexcept {
     return 1 * count<PAWN>() + 3 * count<KNIGHT>() + 3 * count<BISHOP>()  //
          + 5 * count<ROOK>() + 9 * count<QUEEN>();
 }
-inline Value Position::materials() const noexcept {
-    return 554 * count<PAWN>() + non_pawn_material();
-}
 
 // Returns a static, purely materialistic evaluation of the position from
 // the point of view of the side to move. It can be divided by VALUE_PAWN to get
 // an approximation of the material advantage on the board in terms of pawns.
 inline Value Position::evaluate() const noexcept {
-    return VALUE_PAWN * (int(count<PAWN>(sideToMove)) - int(count<PAWN>(~sideToMove)))
-         + (non_pawn_material(sideToMove) - non_pawn_material(~sideToMove))  //
-         + bonus();
+    Color stm = side_to_move();
+    return VALUE_PAWN * (count<PAWN>(stm) - count<PAWN>(~stm))
+         + (non_pawn_material(stm) - non_pawn_material(~stm));
 }
 
 inline Value Position::bonus() const noexcept {
+    Color stm = side_to_move();
     // clang-format off
-    return      (mobility(sideToMove) - mobility(~sideToMove)) / 6
-         + 25 * (bishop_paired(sideToMove) - bishop_paired(~sideToMove))
-         + 50 * ((can_castle( sideToMove & ANY_CASTLING) || has_castled( sideToMove))
-               - (can_castle(~sideToMove & ANY_CASTLING) || has_castled(~sideToMove)));
+    return      std::min((mobility(stm) - mobility(~stm)) / 8, 80)
+         + 40 * (bishop_paired(stm) - bishop_paired(~stm))
+         + 70 * ((can_castle( stm & ANY_CASTLING) || has_castled( stm))
+               - (can_castle(~stm & ANY_CASTLING) || has_castled(~stm)));
     // clang-format on
 }
 
@@ -439,34 +468,37 @@ inline bool Position::capture(Move m) const noexcept {
         || (m.type_of() == EN_PASSANT && ep_square() == m.dst_sq());
 }
 
-// Returns true if a move is generated from the capture stage, having also
-// queen promotions covered, i.e. consistency with the capture stage move generation
-// is needed to avoid the generation of duplicate moves.
+// Returns true if a move is generated from the capture stage, having also promotions covered
 inline bool Position::capture_stage(Move m) const noexcept {
-    return capture(m) || m.promotion_type() == QUEEN;
+    return capture(m) || m.type_of() == PROMOTION;
 }
 
 inline Piece Position::moved_piece(Move m) const noexcept { return piece_on(m.org_sq()); }
 inline Piece Position::ex_moved_piece(Move m) const noexcept {
-    return m.type_of() != CASTLING ? piece_on(m.org_sq()) : make_piece(sideToMove, EX_PIECE);
+    return m.type_of() != CASTLING ? piece_on(m.org_sq()) : make_piece(side_to_move(), EX_PIECE);
 }
 
 inline Piece Position::captured_piece(Move m) const noexcept {
     assert(m.is_ok());
-    return m.type_of() == EN_PASSANT && ep_square() == m.dst_sq()
-           ? piece_on(m.dst_sq() - pawn_spush(sideToMove))
-         : m.type_of() != CASTLING ? piece_on(m.dst_sq())
-                                   : NO_PIECE;
+    // clang-format off
+    return m.type_of() == EN_PASSANT && ep_square() == m.dst_sq() ? make_piece(~side_to_move(), PAWN)
+         : m.type_of() == PROMOTION  && empty_on(m.dst_sq())      ? make_piece(~side_to_move(), m.promotion_type())
+         : m.type_of() != CASTLING                                ? piece_on(m.dst_sq())
+                                                                  : NO_PIECE;
+    // clang-format on
 }
 
 inline Piece Position::captured_piece() const noexcept { return st->capturedPiece; }
 
 // inline Piece Position::promoted_piece() const noexcept { return st->promotedPiece; }
 
-inline Piece Position::prev_moved_piece(Move pm) const noexcept {
-    return pm.type_of() != CASTLING
-           ? pm.type_of() != PROMOTION ? piece_on(pm.dst_sq()) : make_piece(~sideToMove, PAWN)
-           : make_piece(~sideToMove, EX_PIECE);
+inline Piece Position::prev_ex_moved_piece(Move pm) const noexcept {
+    // clang-format off
+    return pm.type_of() != CASTLING ? pm.type_of() != PROMOTION
+           ? piece_on(pm.dst_sq())
+           : make_piece(~side_to_move(), PAWN)
+           : make_piece(~side_to_move(), EX_PIECE);
+    // clang-format on
 }
 
 inline void Position::put_piece(Piece pc, Square s) noexcept {
@@ -476,7 +508,7 @@ inline void Position::put_piece(Piece pc, Square s) noexcept {
     typeBB[ALL_PIECE] |= typeBB[type_of(pc)] |= s;
     colorBB[color_of(pc)] |= s;
     ++pieceCount[pc];
-    ++pieceCount[pc & 8];
+    ++pieceCount[pc & PIECE_TYPE_NB];
 }
 
 inline void Position::remove_piece(Square s) noexcept {
@@ -488,7 +520,7 @@ inline void Position::remove_piece(Square s) noexcept {
     typeBB[type_of(pc)] ^= s;
     colorBB[color_of(pc)] ^= s;
     --pieceCount[pc];
-    --pieceCount[pc & 8];
+    --pieceCount[pc & PIECE_TYPE_NB];
 }
 
 inline void Position::move_piece(Square org, Square dst) noexcept {
@@ -510,6 +542,20 @@ inline void Position::do_move(Move m, StateInfo& newSt) noexcept {
 inline StateInfo* Position::state() const noexcept { return st; }
 
 inline StateInfo* Position::prev_state() const noexcept { return st->previous; }
+
+// Position::SEE
+inline bool Position::SEE::operator>=(int threshold) const noexcept {
+    return pos.see_ge(move, threshold);
+}
+inline bool Position::SEE::operator>(int threshold) const noexcept {
+    return *this >= threshold + 1;
+}
+inline bool Position::SEE::operator<=(int threshold) const noexcept {  //
+    return !(*this > threshold);
+}
+inline bool Position::SEE::operator<(int threshold) const noexcept {  //
+    return !(*this >= threshold);
+}
 
 }  // namespace DON
 

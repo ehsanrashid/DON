@@ -33,16 +33,14 @@
 #include "network.h"
 #include "nnue_accumulator.h"
 
-namespace DON {
-namespace Eval::NNUE {
+namespace DON::Eval::NNUE {
 
 void hint_common_parent_position(const Position&    pos,
                                  const Networks&    networks,
                                  AccumulatorCaches& caches) noexcept {
 
-    use_small_net(std::abs(pos.evaluate()), pos)
-      ? networks.small.hint_common_access(pos, &caches.small)
-      : networks.big.hint_common_access(pos, &caches.big);
+    use_small_net(pos) ? networks.small.hint_common_access(pos, &caches.small)
+                       : networks.big.hint_common_access(pos, &caches.big);
 }
 
 namespace {
@@ -84,8 +82,11 @@ void format_cp_compact(Value v, const Position& pos, char* buffer) noexcept {
 }
 
 // Converts a Value into pawns, always keeping two decimals
-void format_cp_aligned_dot(Value v, const Position& pos, std::ostringstream& oss) noexcept {
+void format_cp_aligned_dot(std::int32_t        val,
+                           const Position&     pos,
+                           std::ostringstream& oss) noexcept {
 
+    Value  v    = std::clamp(val, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
     char   sign = (v < 0 ? '-' : v > 0 ? '+' : ' ');
     double cp   = 0.01 * std::abs(UCI::to_cp(v, pos));
     oss << sign << std::fixed << std::setprecision(2) << std::setw(6) << cp;
@@ -104,9 +105,9 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
         row[8 * 8 + 1] = '\0';
 
     // A lambda to output one box of the board
-    auto writeSquare = [&board, &pos](File file, Rank rank, Piece pc, Value value) noexcept {
-        const int x = int(file) * 8;
-        const int y = (7 - int(rank)) * 3;
+    auto write_square = [&board, &pos](File file, Rank rank, Piece pc, Value value) noexcept {
+        int x = 8 * int(file);
+        int y = 3 * (7 - int(rank));
         for (int i = 1; i < 8; ++i)
             board[y][x + i] = board[y + 3][x + i] = '-';
         for (int j = 1; j < 3; ++j)
@@ -120,9 +121,10 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
 
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    auto  baseOutput = networks.big.evaluate(pos, &caches.big);
-    Value baseEval   = (baseOutput.psqt + baseOutput.positional) / OutputScale;
-    baseEval         = pos.side_to_move() == WHITE ? +baseEval : -baseEval;
+    auto         baseNetOut = networks.big.evaluate(pos, &caches.big);
+    std::int32_t baseEval   = (baseNetOut.psqt + baseNetOut.positional) / OUTPUT_SCALE;
+
+    baseEval = pos.side_to_move() == WHITE ? +baseEval : -baseEval;
 
     for (File f = FILE_A; f <= FILE_H; ++f)
         for (Rank r = RANK_1; r <= RANK_8; ++r)
@@ -138,16 +140,18 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
                 pos.remove_piece(sq);
                 st->bigAccumulator.computed[WHITE] = st->bigAccumulator.computed[BLACK] = false;
 
-                auto  output = networks.big.evaluate(pos, &caches.big);
-                Value eval   = (output.psqt + output.positional) / OutputScale;
-                eval         = pos.side_to_move() == WHITE ? +eval : -eval;
-                v            = baseEval - eval;
+                auto         netOut = networks.big.evaluate(pos, &caches.big);
+                std::int32_t eval   = (netOut.psqt + netOut.positional) / OUTPUT_SCALE;
+
+                eval = pos.side_to_move() == WHITE ? +eval : -eval;
+
+                v = baseEval - eval;
 
                 pos.put_piece(pc, sq);
                 st->bigAccumulator.computed[WHITE] = st->bigAccumulator.computed[BLACK] = false;
             }
 
-            writeSquare(f, r, pc, v);
+            write_square(f, r, pc, v);
         }
 
     oss << " NNUE derived piece values:\n";
@@ -166,13 +170,17 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
 
     for (std::size_t bucket = 0; bucket < LayerStacks; ++bucket)
     {
+        std::int32_t val;
+
         oss << "|  " << bucket << "         |  ";
-        format_cp_aligned_dot(trace.psqt[bucket] / OutputScale, pos, oss);
+        val = trace.psqt[bucket] / OUTPUT_SCALE;
+        format_cp_aligned_dot(val, pos, oss);
         oss << "   |  ";
-        format_cp_aligned_dot(trace.positional[bucket] / OutputScale, pos, oss);
+        val = trace.positional[bucket] / OUTPUT_SCALE;
+        format_cp_aligned_dot(val, pos, oss);
         oss << "   |  ";
-        format_cp_aligned_dot((trace.psqt[bucket] + trace.positional[bucket]) / OutputScale, pos,
-                              oss);
+        val = (trace.psqt[bucket] + trace.positional[bucket]) / OUTPUT_SCALE;
+        format_cp_aligned_dot(val, pos, oss);
         oss << "   |";
         if (bucket == trace.correctBucket)
             oss << " <-- this bucket is used";
@@ -184,5 +192,4 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
     return oss.str();
 }
 
-}  // namespace Eval::NNUE
-}  // namespace DON
+}  // namespace DON::Eval::NNUE

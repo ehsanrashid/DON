@@ -138,7 +138,7 @@ std::vector<std::string> setup_bench(std::istringstream& iss,
         if (!ifstream.is_open())
         {
             std::cerr << "Unable to open file " << filename << '\n';
-            exit(EXIT_FAILURE);
+            std::exit(EXIT_FAILURE);
         }
 
         std::string fen;

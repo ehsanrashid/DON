@@ -29,8 +29,7 @@
 #include "../incbin/incbin.h"
 #include "nnue_common.h"
 
-namespace DON {
-namespace Eval::NNUE {
+namespace DON::Eval::NNUE {
 
 namespace {
 // Macro to embed the default efficiently updatable neural network (NNUE) file
@@ -96,7 +95,7 @@ bool write_parameters(std::ostream& ostream, const T& reference) noexcept {
 }  // namespace Detail
 
 template<typename Arch, typename Transformer>
-Network<Arch, Transformer>::Network(const Network<Arch, Transformer>& net) :
+Network<Arch, Transformer>::Network(const Network<Arch, Transformer>& net) noexcept :
     evalFile(net.evalFile),
     embeddedType(net.embeddedType) {
 
@@ -105,16 +104,14 @@ Network<Arch, Transformer>::Network(const Network<Arch, Transformer>& net) :
 
     network = make_unique_aligned_std<Arch[]>(LayerStacks);
 
-    if (!net.network)
-        return;
-
-    for (std::size_t i = 0; i < LayerStacks; ++i)
-        network[i] = net.network[i];
+    if (net.network)
+        for (std::size_t i = 0; i < LayerStacks; ++i)
+            network[i] = net.network[i];
 }
 
 template<typename Arch, typename Transformer>
 Network<Arch, Transformer>&
-Network<Arch, Transformer>::operator=(const Network<Arch, Transformer>& net) {
+Network<Arch, Transformer>::operator=(const Network<Arch, Transformer>& net) noexcept {
     evalFile     = net.evalFile;
     embeddedType = net.embeddedType;
 
@@ -123,11 +120,9 @@ Network<Arch, Transformer>::operator=(const Network<Arch, Transformer>& net) {
 
     network = make_unique_aligned_std<Arch[]>(LayerStacks);
 
-    if (!net.network)
-        return *this;
-
-    for (std::size_t i = 0; i < LayerStacks; ++i)
-        network[i] = net.network[i];
+    if (net.network)
+        for (std::size_t i = 0; i < LayerStacks; ++i)
+            network[i] = net.network[i];
 
     return *this;
 }
@@ -194,31 +189,30 @@ bool Network<Arch, Transformer>::save(const std::optional<std::string>& filename
 }
 
 template<typename Arch, typename Transformer>
-NetworkOutput
-Network<Arch, Transformer>::evaluate(const Position&                         pos,
-                                     AccumulatorCaches::Cache<FTDimensions>* cache) const noexcept {
+NetworkOutput Network<Arch, Transformer>::evaluate(
+  const Position&                                         pos,
+  AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
     // Manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
 
-    constexpr std::uint64_t Alignment = CacheLineSize;
+    constexpr std::uint64_t ALIGNMENT = CACHE_LINE_SIZE;
 
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
-    TransformedFeatureType
-      transformedFeaturesUnaligned[FeatureTransformer<FTDimensions, nullptr>::BufferSize
-                                   + Alignment / sizeof(TransformedFeatureType)]{};
+    TransformedFeatureType transformedFeaturesUnaligned
+      [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE
+       + ALIGNMENT / sizeof(TransformedFeatureType)]{};
 
-    auto* transformedFeatures = align_ptr_up<Alignment>(&transformedFeaturesUnaligned[0]);
+    auto* transformedFeatures = align_ptr_up<ALIGNMENT>(&transformedFeaturesUnaligned[0]);
 #else
-    alignas(Alignment) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<FTDimensions, nullptr>::BufferSize]{};
+    alignas(ALIGNMENT) TransformedFeatureType
+      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE]{};
 #endif
 
-    ASSERT_ALIGNED(transformedFeatures, Alignment);
+    ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
 
-    int  bucket     = (pos.count<ALL_PIECE>() - 1) / 4;
-    auto psqt       = featureTransformer->transform(pos, cache, transformedFeatures, bucket);
-    auto positional = network[bucket].propagate(transformedFeatures);
-    return {psqt, positional};
+    int bucket = (pos.count<ALL_PIECE>() - 1) / 4;
+    return {featureTransformer->transform(pos, cache, transformedFeatures, bucket),
+            network[bucket].propagate(transformedFeatures)};
 }
 
 template<typename Arch, typename Transformer>
@@ -243,7 +237,7 @@ void Network<Arch, Transformer>::verify(std::string evalfilePath) const noexcept
         sync_cout << "info string ERROR: " << msg3 << sync_endl;
         sync_cout << "info string ERROR: " << msg4 << sync_endl;
         sync_cout << "info string ERROR: " << msg5 << sync_endl;
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
 
     std::size_t size = sizeof(*featureTransformer) + sizeof(Arch) * LayerStacks;
@@ -255,39 +249,38 @@ void Network<Arch, Transformer>::verify(std::string evalfilePath) const noexcept
 
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::hint_common_access(
-  const Position& pos, AccumulatorCaches::Cache<FTDimensions>* cache) const noexcept {
+  const Position&                                         pos,
+  AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
     featureTransformer->hint_common_access(pos, cache);
 }
 
 template<typename Arch, typename Transformer>
 NnueEvalTrace Network<Arch, Transformer>::trace_eval(
-  const Position& pos, AccumulatorCaches::Cache<FTDimensions>* cache) const noexcept {
+  const Position&                                         pos,
+  AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
     // Manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
-    constexpr std::uint64_t Alignment = CacheLineSize;
+    constexpr std::uint64_t ALIGNMENT = CACHE_LINE_SIZE;
 
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
-    TransformedFeatureType
-      transformedFeaturesUnaligned[FeatureTransformer<FTDimensions, nullptr>::BufferSize
-                                   + Alignment / sizeof(TransformedFeatureType)]{};
+    TransformedFeatureType transformedFeaturesUnaligned
+      [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE
+       + ALIGNMENT / sizeof(TransformedFeatureType)]{};
 
-    auto* transformedFeatures = align_ptr_up<Alignment>(&transformedFeaturesUnaligned[0]);
+    auto* transformedFeatures = align_ptr_up<ALIGNMENT>(&transformedFeaturesUnaligned[0]);
 #else
-    alignas(Alignment) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<FTDimensions, nullptr>::BufferSize]{};
+    alignas(ALIGNMENT) TransformedFeatureType
+      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE]{};
 #endif
 
-    ASSERT_ALIGNED(transformedFeatures, Alignment);
+    ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
 
     NnueEvalTrace trace{};
     trace.correctBucket = (pos.count<ALL_PIECE>() - 1) / 4;
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        auto psqt       = featureTransformer->transform(pos, cache, transformedFeatures, bucket);
-        auto positional = network[bucket].propagate(transformedFeatures);
-
-        trace.psqt[bucket]       = psqt;
-        trace.positional[bucket] = positional;
+        trace.psqt[bucket] = featureTransformer->transform(pos, cache, transformedFeatures, bucket);
+        trace.positional[bucket] = network[bucket].propagate(transformedFeatures);
     }
 
     return trace;
@@ -360,16 +353,16 @@ std::optional<std::string> Network<Arch, Transformer>::load(std::istream& istrea
 template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::read_header(std::istream&  istream,
                                              std::uint32_t* hashValue,
-                                             std::string*   desc) const noexcept {
+                                             std::string*   netDescription) const noexcept {
     std::uint32_t version, size;
 
     version    = read_little_endian<std::uint32_t>(istream);
     *hashValue = read_little_endian<std::uint32_t>(istream);
     size       = read_little_endian<std::uint32_t>(istream);
-    if (!istream || version != Version)
+    if (!istream || version != FILE_VERSION)
         return false;
-    desc->resize(size);
-    istream.read(&(*desc)[0], size);
+    netDescription->resize(size);
+    istream.read(&(*netDescription)[0], size);
     return !istream.fail();
 }
 
@@ -377,11 +370,11 @@ bool Network<Arch, Transformer>::read_header(std::istream&  istream,
 template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::write_header(std::ostream&      ostream,
                                               std::uint32_t      hashValue,
-                                              const std::string& desc) const noexcept {
-    write_little_endian<std::uint32_t>(ostream, Version);
+                                              const std::string& netDescription) const noexcept {
+    write_little_endian<std::uint32_t>(ostream, FILE_VERSION);
     write_little_endian<std::uint32_t>(ostream, hashValue);
-    write_little_endian<std::uint32_t>(ostream, std::uint32_t(desc.size()));
-    ostream.write(&desc[0], desc.size());
+    write_little_endian<std::uint32_t>(ostream, std::uint32_t(netDescription.size()));
+    ostream.write(&netDescription[0], netDescription.size());
     return !ostream.fail();
 }
 
@@ -391,7 +384,7 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& istream,
     std::uint32_t hashValue;
     if (!read_header(istream, &hashValue, &netDescription))
         return false;
-    if (hashValue != Network::Hash)
+    if (hashValue != Network::HASH_VALUE)
         return false;
     if (!Detail::read_parameters(istream, *featureTransformer))
         return false;
@@ -405,7 +398,7 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& istream,
 template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::write_parameters(
   std::ostream& ostream, const std::string& netDescription) const noexcept {
-    if (!write_header(ostream, Network::Hash, netDescription))
+    if (!write_header(ostream, Network::HASH_VALUE, netDescription))
         return false;
     if (!Detail::write_parameters(ostream, *featureTransformer))
         return false;
@@ -424,5 +417,4 @@ template class Network<
   NetworkArchitecture<SmallTransformedFeatureDimensions, SmallL2, SmallL3>,
   FeatureTransformer<SmallTransformedFeatureDimensions, &StateInfo::smallAccumulator>>;
 
-}  // namespace Eval::NNUE
-}  // namespace DON
+}  // namespace DON::Eval::NNUE
