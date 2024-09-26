@@ -40,28 +40,25 @@ enum GenType : std::uint8_t {
     LEGAL
 };
 
-class ExtMove final: public Move {
+struct ExtMove final: public Move {
    public:
-    ExtMove() = default;
-    ExtMove(Move m) noexcept :
-        Move(m) {}
-    //ExtMove(Move m, std::int32_t v) noexcept :
-    //    Move(m),
-    //    value(v) {}
+    using Move::Move;
+
+    explicit ExtMove(Move&& m) noexcept :
+        Move(std::move(m)) {}
 
     void operator=(Move m) noexcept { move = m.raw(); }
 
-    bool operator==(const ExtMove& em) const noexcept { return move == em.move; }
-    bool operator!=(const ExtMove& em) const noexcept { return !(*this == em); }
-
     bool operator<(const ExtMove& em) const noexcept { return value < em.value; }
-    bool operator>(const ExtMove& em) const noexcept { return value > em.value; }
+    bool operator>(const ExtMove& em) const noexcept { return (em < *this); }
+    bool operator<=(const ExtMove& em) const noexcept { return !(*this > em); }
+    bool operator>=(const ExtMove& em) const noexcept { return !(*this < em); }
 
     // Inhibit unwanted implicit conversions to Move
     // with an ambiguity that yields to a compile error.
     operator float() const noexcept = delete;
 
-    std::int32_t value = 0;
+    int value = 0;
 };
 
 //inline bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept { return em1.value < em2.value; }
@@ -126,9 +123,10 @@ struct MoveList final {
     auto end() noexcept { return endExtItr; }
 
     auto begin() const noexcept { return extMoves.begin(); }
-    auto end() const noexcept { return (ExtMoves::ConstItr)(endExtItr); }
+    auto end() const noexcept { return ExtMoves::ConstItr(endExtItr); }
 
-    std::size_t size() const noexcept { return std::distance(begin(), end()); }
+    auto size() const noexcept { return std::size_t(std::distance(begin(), end())); }
+    bool empty() const noexcept { return !size(); }
 
     auto find(Move m) const noexcept { return std::find(begin(), end(), m); }
     bool contains(Move m) const noexcept { return find(m) != end(); }
@@ -137,6 +135,8 @@ struct MoveList final {
     ExtMoves            extMoves;
     ExtMoves::NormalItr endExtItr;
 };
+
+using LegalMoveList = MoveList<LEGAL>;
 
 }  // namespace DON
 

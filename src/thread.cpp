@@ -123,20 +123,20 @@ void ThreadPool::set(const NumaConfig&            numaConfig,
         // unless we know for sure that we span NUMA nodes and replication is required.
         std::string numaPolicy = sharedState.options["NumaPolicy"];
 
-        bool doBindThreads = numaPolicy == "none" ? false
-                           : numaPolicy == "auto"
-                             ? numaConfig.suggests_binding_threads(threadCount)
-                             // numaPolicy == "system", or explicitly set by the user
-                             : true;
+        bool threadBind = numaPolicy == "none" ? false
+                        : numaPolicy == "auto"
+                          ? numaConfig.suggests_binding_threads(threadCount)
+                          // numaPolicy == "system", or explicitly set by the user
+                          : true;
 
-        boundThreadToNumaNode = doBindThreads
-                                ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
-                                : std::vector<NumaIndex>{};
+        numaNodeBoundThreads = threadBind
+                               ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
+                               : std::vector<NumaIndex>{};
 
         std::uint16_t threadId = 0;  // size();
         while (threadId < threadCount)
         {
-            NumaIndex numaId = doBindThreads ? boundThreadToNumaNode[threadId] : 0;
+            NumaIndex numaId = threadBind ? numaNodeBoundThreads[threadId] : 0;
 
             Search::ISearchManagerPtr searchManager;
             if (threadId == 0)
@@ -147,8 +147,8 @@ void ThreadPool::set(const NumaConfig&            numaConfig,
             // When not binding threads want to force all access to happen from the same
             // NUMA node, because in case of NUMA replicated memory accesses don't
             // want to trash cache in case the threads get scheduled on the same NUMA node.
-            auto nodeBinder = doBindThreads ? OptionalThreadToNumaNodeBinder(numaConfig, numaId)
-                                            : OptionalThreadToNumaNodeBinder(numaId);
+            auto nodeBinder = threadBind ? OptionalThreadToNumaNodeBinder(numaConfig, numaId)
+                                         : OptionalThreadToNumaNodeBinder(numaId);
 
             threads.emplace_back(std::make_unique<Thread>(threadId, sharedState,
                                                           std::move(searchManager), nodeBinder));
@@ -254,7 +254,7 @@ void ThreadPool::start(Position&             pos,
 
     Search::RootMoves rootMoves;
 
-    const MoveList<LEGAL> legalMoves(pos);
+    const LegalMoveList legalMoves(pos);
 
     bool emplace = true;
     for (const std::string& move : limits.searchMoves)
@@ -268,7 +268,7 @@ void ThreadPool::start(Position&             pos,
     }
 
     if (limits.searchMoves.empty())
-        for (const auto& m : legalMoves)
+        for (Move m : legalMoves)
             rootMoves.emplace(m);
 
     bool erase = true;
@@ -282,8 +282,6 @@ void ThreadPool::start(Position&             pos,
             erase = rootMoves.erase(m);
     }
 
-    std::string rootFen = pos.fen();
-
     auto tbConfig = Tablebases::rank_root_moves(pos, rootMoves, options);
 
     // After ownership transfer 'states' becomes empty, so if stop the search
@@ -294,16 +292,16 @@ void ThreadPool::start(Position&             pos,
         setupStates = std::move(states);  // Ownership transfer, states is now empty
 
     // Use Position::set() to set root position across threads. But there are some
-    // StateInfo fields (rule50, nullPly, capturedPiece, previous) that cannot be deduced
-    // from a fen string, so set() clears them and they are set from setupStates->back() later.
+    // State fields (rule50, nullPly, capturedPiece, preState) that cannot be deduced
+    // from the fen string, so rootState are set from setupStates->back() object later.
     // The rootState is per thread, earlier states are shared since they are read-only.
     for (auto&& th : threads)
     {
         th->run_custom_job([&]() {
-            th->worker->limits = limits;
-            th->worker->rootPos.set(rootFen, &th->worker->rootState);
+            th->worker->rootPos.set(pos, &th->worker->rootState);
             th->worker->rootState = setupStates->back();
             th->worker->rootMoves = rootMoves;
+            th->worker->limits    = limits;
             th->worker->tbConfig  = tbConfig;
         });
     }
@@ -327,14 +325,14 @@ void ThreadPool::wait_on_thread(std::uint16_t threadId) noexcept {
 std::vector<std::size_t> ThreadPool::get_bound_thread_counts() const noexcept {
     std::vector<std::size_t> counts;
 
-    if (!boundThreadToNumaNode.empty())
+    if (!numaNodeBoundThreads.empty())
     {
         NumaIndex maxNumaIdx =
-          *std::max_element(boundThreadToNumaNode.begin(), boundThreadToNumaNode.end());
+          *std::max_element(numaNodeBoundThreads.begin(), numaNodeBoundThreads.end());
 
         counts.resize(1 + maxNumaIdx, 0);
 
-        for (NumaIndex numaIdx : boundThreadToNumaNode)
+        for (NumaIndex numaIdx : numaNodeBoundThreads)
             ++counts[numaIdx];
     }
 

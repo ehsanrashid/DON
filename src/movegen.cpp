@@ -27,29 +27,29 @@ namespace DON {
 
 namespace {
 
-inline void generate_promotion_moves(ExtMoves& extMoves, Square dst, Direction dir) noexcept {
+void generate_promotion_moves(ExtMoves& extMoves, Square dst, Direction dir) noexcept {
 
     for (PieceType promo : {QUEEN, ROOK, BISHOP, KNIGHT})
         extMoves += Move(dst - dir, dst, promo);
 }
 
 template<GenType GT>
-void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, const Bitboard target) noexcept {
+void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard target) noexcept {
     assert(!pos.checkers() || !more_than_one(pos.checkers()));
 
-    Color stm = pos.side_to_move();
+    Color ac = pos.active_color();
 
-    Direction Up_1 = pawn_spush(stm);
-    Direction Up_2 = pawn_dpush(stm);
-    Direction Up_R = Direction((int(NORTH_EAST) ^ -int(stm)) + int(stm));
-    Direction Up_L = Direction((int(NORTH_WEST) ^ -int(stm)) + int(stm));
+    Direction Up_1 = pawn_spush(ac);
+    Direction Up_2 = pawn_dpush(ac);
+    Direction Up_R = Direction((int(NORTH_EAST) ^ -int(ac)) + int(ac));
+    Direction Up_L = Direction((int(NORTH_WEST) ^ -int(ac)) + int(ac));
 
-    Bitboard allPawns  = pos.pieces(stm, PAWN);
-    Bitboard on7Pawns  = allPawns & rank_bb(relative_rank(stm, RANK_7));
-    Bitboard non7Pawns = allPawns & ~on7Pawns;
+    Bitboard acPawns   = pos.pieces(ac, PAWN);
+    Bitboard on7Pawns  = acPawns & relative_rank(ac, RANK_7);
+    Bitboard non7Pawns = acPawns & ~on7Pawns;
 
     Bitboard empties = ~pos.pieces();
-    Bitboard enemies = pos.pieces(~stm);
+    Bitboard enemies = pos.pieces(~ac);
 
     Bitboard b = 0;
     if constexpr (GT != CAPTURES)
@@ -69,7 +69,7 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, const Bitboar
         Bitboard b1 = b;
         if constexpr (GT == EVASIONS)
             b1 &= empties;
-        Bitboard b2 = shift(Up_1, b & rank_bb(relative_rank(stm, RANK_3))) & empties;
+        Bitboard b2 = shift(Up_1, b & relative_rank(ac, RANK_3)) & empties;
 
         while (b1)
         {
@@ -116,23 +116,23 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, const Bitboar
             extMoves += Move(dst - Up_L, dst);
         }
 
-        if (is_ok_ep(pos.ep_square()))
+        if (ep_is_ok(pos.ep_square()))
         {
-            assert(relative_rank(stm, pos.ep_square()) == RANK_6);
-            assert(pos.pieces(~stm, PAWN) & (pos.ep_square() - Up_1));
+            assert(relative_rank(ac, pos.ep_square()) == RANK_6);
+            assert(pos.pieces(~ac, PAWN) & (pos.ep_square() - Up_1));
             assert(pos.rule50_count() == 0);
-            assert(non7Pawns & rank_bb(relative_rank(stm, RANK_5)));
+            assert(non7Pawns & relative_rank(ac, RANK_5));
 
             // An en-passant capture cannot resolve a discovered check
             if (GT == EVASIONS && (target & (pos.ep_square() + Up_1)))
                 return;
 
-            b = non7Pawns & pawn_attacks_bb(~stm, pos.ep_square());
+            b = non7Pawns & pawn_attacks_bb(~ac, pos.ep_square());
             /*
-            if (Bitboard pin; more_than_one(b) && (pin = pos.blockers(stm) & b))
+            if (Bitboard pin; more_than_one(b) && (pin = pos.blockers(ac) & b))
             {
                 assert(!more_than_one(pin));
-                if (!aligned(lsb(pin), pos.ep_square(), pos.king_square(stm)))
+                if (!aligned(lsb(pin), pos.ep_square(), pos.king_square(ac)))
                     b ^= pin;
             }
             */
@@ -145,23 +145,23 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, const Bitboar
 }
 
 template<PieceType PT>
-void generate_piece_moves(ExtMoves& extMoves, const Position& pos, const Bitboard target) noexcept {
+void generate_piece_moves(ExtMoves& extMoves, const Position& pos, Bitboard target) noexcept {
     static_assert(PT == KNIGHT || PT == BISHOP || PT == ROOK || PT == QUEEN,
                   "Unsupported piece type in generate_piece_moves()");
 
     assert(!pos.checkers() || !more_than_one(pos.checkers()));
 
-    Color stm = pos.side_to_move();
+    Color ac = pos.active_color();
 
-    Bitboard pc = pos.pieces<PT>(stm, pos.king_square(stm));
+    Bitboard pc = pos.pieces<PT>(ac, pos.king_square(ac));
     while (pc)
     {
         Square org = pop_lsb(pc);
 
         Bitboard b = attacks_bb<PT>(org, pos.pieces()) & target;
 
-        if (PT != KNIGHT && (pos.blockers(stm) & org))
-            b &= line_bb(pos.king_square(stm), org);
+        if (PT != KNIGHT && (pos.blockers(ac) & org))
+            b &= line_bb(pos.king_square(ac), org);
 
         while (b)
             extMoves += Move(org, pop_lsb(b));
@@ -169,11 +169,12 @@ void generate_piece_moves(ExtMoves& extMoves, const Position& pos, const Bitboar
 }
 
 template<GenType GT>
-void generate_king_moves(ExtMoves& extMoves, const Position& pos, const Bitboard target) noexcept {
+void generate_king_moves(ExtMoves& extMoves, const Position& pos, Bitboard target) noexcept {
     assert(popcount(pos.checkers()) <= 2);
 
-    Color  stm = pos.side_to_move();
-    Square ksq = pos.king_square(stm);
+    Color ac = pos.active_color();
+
+    Square ksq = pos.king_square(ac);
 
     Bitboard b = attacks_bb<KING>(ksq) & target;
 
@@ -193,9 +194,9 @@ void generate_king_moves(ExtMoves& extMoves, const Position& pos, const Bitboard
             else
                 b &= ~line_bb(ksq, slider) | pos.checkers();
         }
-        Bitboard jumper = pos.checkers() & pos.pieces(KNIGHT);
-        if (jumper)
-            b &= ~attacks_bb<KNIGHT>(lsb(jumper));
+        Bitboard knight = pos.checkers() & pos.pieces(KNIGHT);
+        if (knight)
+            b &= ~attacks_bb<KNIGHT>(lsb(knight));
     }
 
     while (b)
@@ -204,12 +205,12 @@ void generate_king_moves(ExtMoves& extMoves, const Position& pos, const Bitboard
     if constexpr (GT == QUIETS || GT == ENCOUNTERS)
     {
         assert(!pos.checkers());
-        if (pos.can_castle(stm & ANY_CASTLING))
-            for (CastlingRights cr : {stm & KING_SIDE, stm & QUEEN_SIDE})
+        if (pos.can_castle(ac & ANY_CASTLING))
+            for (CastlingRights cr : {ac & KING_SIDE, ac & QUEEN_SIDE})
                 if (pos.can_castle(cr) && !pos.castling_impeded(cr))
                 {
-                    assert(is_ok(pos.castling_rook_square(cr))
-                           && pos.pieces(stm, ROOK) & pos.castling_rook_square(cr));
+                    assert(pos.castling_rook_square(cr) != SQ_NONE
+                           && pos.pieces(ac, ROOK) & pos.castling_rook_square(cr));
                     extMoves += Move(CASTLING, ksq, pos.castling_rook_square(cr));
                 }
     }
@@ -220,7 +221,7 @@ void generate_moves(ExtMoves& extMoves, const Position& pos) noexcept {
     static_assert(GT == CAPTURES || GT == QUIETS || GT == ENCOUNTERS || GT == EVASIONS,
                   "Unsupported generate type in generate_moves()");
 
-    Color stm = pos.side_to_move();
+    Color ac = pos.active_color();
 
     Bitboard target;
     // Skip generating non-king moves when in double check
@@ -229,10 +230,10 @@ void generate_moves(ExtMoves& extMoves, const Position& pos) noexcept {
         // clang-format off
         switch (GT)
         {
-        case CAPTURES :   target = pos.pieces(~stm);                                      break;
-        case QUIETS :     target = ~pos.pieces();                                         break;
-        case ENCOUNTERS : target = ~pos.pieces(stm);                                      break;
-        case EVASIONS :   target = between_bb(pos.king_square(stm), lsb(pos.checkers())); break;
+        case CAPTURES :   target = pos.pieces(~ac);                                      break;
+        case QUIETS :     target = ~pos.pieces();                                        break;
+        case ENCOUNTERS : target = ~pos.pieces(ac);                                      break;
+        case EVASIONS :   target = between_bb(pos.king_square(ac), lsb(pos.checkers())); break;
         default :         target = 0;
         }
 
@@ -245,7 +246,7 @@ void generate_moves(ExtMoves& extMoves, const Position& pos) noexcept {
     }
 
     if constexpr (GT == EVASIONS)
-        target = ~pos.pieces(stm);
+        target = ~pos.pieces(ac);
 
     generate_king_moves<GT>(extMoves, pos, target);
 }
@@ -263,7 +264,6 @@ ExtMoves::NormalItr generate(ExtMoves& extMoves, const Position& pos) noexcept {
 
     assert((GT == EVASIONS) == bool(pos.checkers()));
 
-    extMoves.clear();
     generate_moves<GT>(extMoves, pos);
     return extMoves.end();
 }
@@ -279,9 +279,11 @@ template ExtMoves::NormalItr generate<EVASIONS>  (ExtMoves& extMoves, const Posi
 // Filter illegal moves
 ExtMoves::NormalItr filter_illegal(ExtMoves& extMoves, const Position& pos) noexcept {
 
-    Color    stm    = pos.side_to_move();
-    Square   ksq    = pos.king_square(stm);
-    Bitboard pinned = pos.blockers(stm) & pos.pieces(stm);
+    Color ac = pos.active_color();
+
+    Square ksq = pos.king_square(ac);
+
+    Bitboard pinned = pos.blockers(ac) & pos.pieces(ac);
 
     return extMoves.remove_if([=, &pos](Move m) noexcept -> bool {
         return ((pinned & m.org_sq()) || m.org_sq() == ksq || m.type_of() == EN_PASSANT)

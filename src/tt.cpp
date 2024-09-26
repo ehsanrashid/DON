@@ -21,6 +21,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <numeric>
 
 #include "memory.h"
 #include "thread.h"
@@ -39,15 +40,25 @@ void TranspositionTable::free() noexcept {
 // Sets the size of the transposition table, measured in megabytes.
 // Transposition table consists of even number of clusters.
 void TranspositionTable::resize(std::size_t mbSize, ThreadPool& threads) noexcept {
-    free();
-    clusterCount = mbSize * 1024 * 1024 / sizeof(TTCluster);
-    assert(clusterCount % 2 == 0);
 
-    clusters = static_cast<TTCluster*>(alloc_aligned_lp(clusterCount * sizeof(TTCluster)));
-    if (!clusters)
+    constexpr std::size_t ClusterSize = sizeof(TTCluster);
+
+    std::size_t newClusterCount = mbSize * 1024 * 1024 / ClusterSize;
+    assert(newClusterCount % 2 == 0);
+
+    if (clusterCount != newClusterCount)
     {
-        std::cerr << "Failed to allocate " << mbSize << "MB for transposition table.\n";
-        std::exit(EXIT_FAILURE);
+        free();
+
+        clusterCount = newClusterCount;
+
+        clusters = static_cast<TTCluster*>(alloc_aligned_lp(clusterCount * ClusterSize));
+        if (clusters == nullptr)
+        {
+            clusterCount = 0;
+            std::cerr << "Failed to allocate " << mbSize << "MB for transposition table.\n";
+            std::exit(EXIT_FAILURE);
+        }
     }
 
     init(threads);
@@ -65,7 +76,7 @@ void TranspositionTable::init(ThreadPool& threads) noexcept {
             // Each thread will zero its part of the hash table
             std::size_t stride = clusterCount / threadCount;
             std::size_t start  = stride * threadId;
-            std::size_t count  = 1 + threadId != threadCount ? stride : clusterCount - start;
+            std::size_t count  = threadId != threadCount - 1 ? stride : clusterCount - start;
 
             std::memset(static_cast<void*>(&clusters[start]), 0, count * sizeof(TTCluster));
         });
@@ -80,17 +91,16 @@ void TranspositionTable::init(ThreadPool& threads) noexcept {
 // Otherwise, it returns false and a pointer to an empty or least valuable TTEntry.
 // TTEntry t1 is considered more valuable than TTEntry t2
 // if replacement value of t1 is greater than that of t2.
-TTProbe TranspositionTable::probe(const Key key, const Key16 key16) const noexcept {
+TTProbe TranspositionTable::probe(Key key, Key16 key16) const noexcept {
 
     TTEntry* const fte = first_entry(key);
 
+    //TTCluster* ttc = reinterpret_cast<TTCluster*>(fte);
+
     for (std::uint8_t i = 0; i < TT_CLUSTER_ENTRY_COUNT; ++i)
-    {
-        TTEntry* cte = fte + i;
-        // Use the compress 16 bits as key inside the cluster
-        if (key16 == cte->key16)
-            return {cte->occupied(), cte, fte};
-    }
+        if (fte[i].key16 == key16)
+            return {fte[i].occupied(), &fte[i], fte};
+
     return {false, fte, fte};
 }
 
@@ -100,9 +110,10 @@ TTProbe TranspositionTable::probe(const Key key, const Key16 key16) const noexce
 std::uint16_t TranspositionTable::hashfull() const noexcept {
     std::uint32_t cnt = 0;
     for (std::size_t idx = 0; idx < std::min(clusterCount, std::size_t(1000)); ++idx)
-        for (const auto& tte : clusters[idx].entry)
-            cnt += tte.occupied() && tte.generation() == generation8;
-
+        cnt += std::accumulate(std::begin(clusters[idx].entry), std::end(clusters[idx].entry), 0,
+                               [&](std::uint32_t c, const auto& tte) {
+                                   return c + (tte.occupied() && tte.generation() == generation8);
+                               });
     return cnt / TT_CLUSTER_ENTRY_COUNT;
 }
 

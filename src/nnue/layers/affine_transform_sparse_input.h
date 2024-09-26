@@ -24,7 +24,6 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
-//#include <limits>
 
 #include "../../bitboard.h"
 #include "../../misc.h"
@@ -110,9 +109,6 @@ void find_nnz(const std::int32_t* input, std::uint16_t* outNnz, IndexType& outCo
         {
             vec_t inputChunk = inputVector[i * INPUTS_PER_CHUNK + j];
             nnz |= unsigned(vec_nnz(inputChunk)) << (j * InputSimdWidth);
-            // Early exit if all bits are set
-            //if (nnz == std::numeric_limits<unsigned>::max())
-            //    break;
         }
         for (IndexType j = 0; j < OUTPUTS_PER_CHUNK; ++j)
         {
@@ -235,13 +231,15 @@ class AffineTransformSparseInput {
         #define vec_set_32(a) vreinterpretq_s8_u32(vdupq_n_u32(a))
         #define vec_add_dpbusd_32 Simd::neon_m128_add_dpbusd_epi32
     #endif
+
         static constexpr IndexType OutputSimdWidth = sizeof(outvec_t) / sizeof(OutputType);
 
         constexpr IndexType CHUNK_COUNT =
           ceil_to_multiple<IndexType>(InputDimensions, 8) / CHUNK_SIZE;
         constexpr IndexType REG_COUNT = OutputDimensions / OutputSimdWidth;
-        std::uint16_t       nnz[CHUNK_COUNT];
-        IndexType           count;
+
+        std::uint16_t nnz[CHUNK_COUNT];
+        IndexType     count;
 
         auto input32 = reinterpret_cast<const std::int32_t*>(input);
 

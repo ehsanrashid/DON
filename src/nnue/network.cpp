@@ -410,11 +410,10 @@ bool Network<Arch, Transformer>::write_parameters(
 }
 
 // Explicit template instantiation
-template class Network<
-  NetworkArchitecture<BigTransformedFeatureDimensions, BigL2, BigL3>,
-  FeatureTransformer<BigTransformedFeatureDimensions, &StateInfo::bigAccumulator>>;
+template class Network<NetworkArchitecture<BigTransformedFeatureDimensions, BigL2, BigL3>,
+                       FeatureTransformer<BigTransformedFeatureDimensions, &State::bigAccumulator>>;
 template class Network<
   NetworkArchitecture<SmallTransformedFeatureDimensions, SmallL2, SmallL3>,
-  FeatureTransformer<SmallTransformedFeatureDimensions, &StateInfo::smallAccumulator>>;
+  FeatureTransformer<SmallTransformedFeatureDimensions, &State::smallAccumulator>>;
 
 }  // namespace DON::Eval::NNUE

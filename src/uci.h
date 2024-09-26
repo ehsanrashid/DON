@@ -32,9 +32,7 @@ namespace DON {
 
 class Position;
 class Score;
-enum GenType;
-template<GenType GT>
-struct MoveList;
+using LegalMoveList = MoveList<LEGAL>;
 
 class UCI final {
    public:
@@ -52,7 +50,9 @@ class UCI final {
     static char  piece(Piece pc) noexcept;
     static Piece piece(char pc) noexcept;
 
-    static char file(File f, bool caseLower = true) noexcept;
+    static std::string piece_figure(Piece pc) noexcept;
+
+    static char file(File f, bool caseUpper = false) noexcept;
     static char rank(Rank r) noexcept;
 
     static std::string square(Square s) noexcept;
@@ -60,15 +60,15 @@ class UCI final {
     // clang-format off
     static std::string move_to_can(Move m) noexcept;
 
-    static Move can_to_move(const std::string& can, const MoveList<LEGAL>& legalMoves) noexcept;
+    static Move can_to_move(const std::string& can, const LegalMoveList& legalMoves) noexcept;
     static Move can_to_move(const std::string& can, const Position& pos) noexcept;
 
     static std::string move_to_san(Move m, Position& pos) noexcept;
 
-    static Move san_to_move(const std::string& san, Position& pos, const MoveList<LEGAL>& legalMoves) noexcept;
+    static Move san_to_move(const std::string& san, Position& pos, const LegalMoveList& legalMoves) noexcept;
     static Move san_to_move(const std::string& san, Position& pos) noexcept;
 
-    static Move mix_to_move(const std::string& mix, Position& pos, const MoveList<LEGAL>& legalMoves) noexcept;
+    static Move mix_to_move(const std::string& mix, Position& pos, const LegalMoveList& legalMoves) noexcept;
     // clang-format on
    private:
     void position(std::istringstream& iss) noexcept;

@@ -51,7 +51,7 @@ struct alignas(CACHE_LINE_SIZE) Accumulator {
 struct AccumulatorCaches {
 
     template<typename Networks>
-    AccumulatorCaches(const Networks& networks) {
+    explicit AccumulatorCaches(const Networks& networks) {
         init(networks);
     }
 
@@ -69,7 +69,7 @@ struct AccumulatorCaches {
             void init(const BiasType* biases) noexcept {
 
                 std::memcpy(accumulation, biases, sizeof(accumulation));
-                std::memset((std::uint8_t*) this + offsetof(Entry, psqtAccumulation), 0,
+                std::memset((std::uint8_t*) (this) + offsetof(Entry, psqtAccumulation), 0,
                             sizeof(Entry) - offsetof(Entry, psqtAccumulation));
             }
         };

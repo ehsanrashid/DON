@@ -29,12 +29,44 @@
 #include <limits>
 #include <type_traits>  // IWYU pragma: keep
 
+#include "misc.h"
 #include "movegen.h"
 #include "types.h"
 
 namespace DON {
 
 class Position;
+
+// clang-format off
+// In stats table, D=0 means that the template parameter is not used
+constexpr inline int STATS_PARAM_NOT_USED = 0;
+
+constexpr inline int BUTTERFLY_HISTORY_LIMIT = 0x1C0F;
+constexpr inline int CAPTURE_HISTORY_LIMIT   = 0x29C4;
+constexpr inline int PIECE_SQ_HISTORY_LIMIT  = 0x7500;
+
+constexpr inline int   PAWN_HISTORY_LIMIT = 0x2000;
+constexpr inline Key16 PAWN_HISTORY_SIZE  = 0x400;
+static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
+              "PAWN_HISTORY_SIZE has to be a power of 2");
+constexpr Key16 pawn_index               (Key pawnKey)     noexcept { return pawnKey     & (PAWN_HISTORY_SIZE - 1); }
+
+constexpr inline int   PAWN_CORRECTION_HISTORY_LIMIT = 0x400;
+constexpr inline Key16 PAWN_CORRECTION_HISTORY_SIZE  = 0x4000;
+static_assert((PAWN_CORRECTION_HISTORY_SIZE & (PAWN_CORRECTION_HISTORY_SIZE - 1)) == 0,
+              "PAWN_CORRECTION_HISTORY_SIZE has to be a power of 2");
+constexpr Key16 pawn_correction_index    (Key pawnKey)     noexcept { return pawnKey     & (PAWN_CORRECTION_HISTORY_SIZE - 1); }
+
+constexpr inline int   OTHER_CORRECTION_HISTORY_LIMIT = 0x400;
+constexpr inline Key16 OTHER_CORRECTION_HISTORY_SIZE  = 0x8000;
+static_assert((OTHER_CORRECTION_HISTORY_SIZE & (OTHER_CORRECTION_HISTORY_SIZE - 1)) == 0,
+              "OTHER_CORRECTION_HISTORY_SIZE has to be a power of 2");
+
+constexpr Key16 material_correction_index(Key materialKey) noexcept { return materialKey & (OTHER_CORRECTION_HISTORY_SIZE - 1); }
+constexpr Key16 major_correction_index   (Key majorKey)    noexcept { return majorKey    & (OTHER_CORRECTION_HISTORY_SIZE - 1); }
+constexpr Key16 minor_correction_index   (Key minorKey)    noexcept { return minorKey    & (OTHER_CORRECTION_HISTORY_SIZE - 1); }
+constexpr Key16 non_pawn_correction_index(Key nonPawnKey)  noexcept { return nonPawnKey  & (OTHER_CORRECTION_HISTORY_SIZE - 1); }
+// clang-format on
 
 class Moves final {
    public:
@@ -145,7 +177,8 @@ struct Stats final: public std::array<Stats<T, D, Sizes...>, Size> {
         assert(std::is_standard_layout_v<StatsAlias>);
 
         using Entry = StatsEntry<T, D>;
-        auto* p     = reinterpret_cast<Entry*>(this);
+
+        auto* p = reinterpret_cast<Entry*>(this);
         std::fill(p, p + sizeof(*this) / sizeof(Entry), v);
     }
 };
@@ -155,47 +188,46 @@ struct Stats<T, D, Size> final: public std::array<StatsEntry<T, D>, Size> {};
 
 // clang-format off
 
-// In stats table, D=0 means that the template parameter is not used
-constexpr inline int STATS_PARAM_NOT_USED = 0;
-
-constexpr inline int   PAWN_HISTORY_LIMIT = 0x2000;
-constexpr inline Key16 PAWN_HISTORY_SIZE  = 0x200;
-static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
-              "PAWN_HISTORY_SIZE has to be a power of 2");
-constexpr Key16 pawn_index(Key pawnKey) noexcept { return pawnKey & (PAWN_HISTORY_SIZE - 1); }
-
-constexpr inline int   CORRECTION_HISTORY_LIMIT = 0x400;
-constexpr inline Key16 CORRECTION_HISTORY_SIZE  = 0x4000;
-static_assert((CORRECTION_HISTORY_SIZE & (CORRECTION_HISTORY_SIZE - 1)) == 0,
-              "CORRECTION_HISTORY_SIZE has to be a power of 2");
-constexpr Key16 correction_index(Key pawnKey) noexcept { return pawnKey & (CORRECTION_HISTORY_SIZE - 1); }
-
 // ButterflyHistory records how often quiet moves have been successful or not
 // during the current search, and is used for reduction and move ordering decisions.
-// It uses 2 tables (one for each color) indexed by the move's org and dst squares,
+// It is addressed by color and move's from and to squares,
 // see www.chessprogramming.org/Butterfly_Boards (~11 Elo)
-using ButterflyHistory = Stats<std::int16_t, 0x1C0F, COLOR_NB, SQUARE_NB * SQUARE_NB>;
+using ButterflyHistory    = Stats<std::int16_t, BUTTERFLY_HISTORY_LIMIT, COLOR_NB, SQUARE_NB * SQUARE_NB>;
 
-// CapturePieceDstHistory is addressed by a move's [piece][dst][captured piece type]
-using CapturePieceDstHistory = Stats<std::int16_t, 0x29C4, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
+// CaptureHistory is addressed by a move's [piece][dst][captured piece type]
+using CaptureHistory      = Stats<std::int16_t, CAPTURE_HISTORY_LIMIT, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 
-// PieceDstHistory is like ButterflyHistory but is addressed by a move's [piece][dst]
-using PieceDstHistory = Stats<std::int16_t, 0x7500, PIECE_NB, SQUARE_NB>;
+// PieceSqHistory is like ButterflyHistory but is addressed by a move's [piece][dst]
+using PieceSqHistory      = Stats<std::int16_t, PIECE_SQ_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
 
 // ContinuationHistory is the combined history of a given pair of moves, usually
 // the current one given a previous one. The nested history table is based on
-// PieceDstHistory instead of ButterflyBoards. (~63 Elo)
-using ContinuationHistory = Stats<PieceDstHistory, STATS_PARAM_NOT_USED, PIECE_NB, SQUARE_NB>;
+// PieceSqHistory instead of ButterflyBoards. (~63 Elo)
+using ContinuationHistory = std::array2d<Stats<PieceSqHistory, STATS_PARAM_NOT_USED, PIECE_NB, SQUARE_NB>, 2, 2>;
 
 // PawnHistory is addressed by the pawn structure and a move's [piece][dst]
 using PawnHistory = Stats<std::int16_t, PAWN_HISTORY_LIMIT, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
 
-// CorrectionHistory is addressed by color and pawn structure
-using CorrectionHistory = Stats<std::int16_t, CORRECTION_HISTORY_LIMIT, COLOR_NB, CORRECTION_HISTORY_SIZE>;
+// Correction histories record differences between the static evaluation of
+// positions and their search score.
+// It is used to improve the static evaluation used by some search heuristics.
+// see https://www.chessprogramming.org/Static_Evaluation_Correction_History
+
+// PawnCorrectionHistory       is addressed by color and pawn structure
+using PawnCorrectionHistory     = Stats<std::int16_t, PAWN_CORRECTION_HISTORY_LIMIT,  COLOR_NB, PAWN_CORRECTION_HISTORY_SIZE>;
+// NonPawnCorrectionHistory    is addressed by color and non-pawn material structure
+using NonPawnCorrectionHistory  = std::array<Stats<std::int16_t, OTHER_CORRECTION_HISTORY_LIMIT, COLOR_NB, OTHER_CORRECTION_HISTORY_SIZE>, COLOR_NB>;
+// MinorPieceCorrectionHistory is addressed by color and minor piece (Bishop, Knight) structure
+using MinorCorrectionHistory    = Stats<std::int16_t, OTHER_CORRECTION_HISTORY_LIMIT, COLOR_NB, OTHER_CORRECTION_HISTORY_SIZE>;
+// MajorPieceCorrectionHistory is addressed by color and major piece (Queen, Rook) structure
+using MajorCorrectionHistory    = Stats<std::int16_t, OTHER_CORRECTION_HISTORY_LIMIT, COLOR_NB, OTHER_CORRECTION_HISTORY_SIZE>;
+// MaterialCorrectionHistory   is addressed by color and material count structure
+using MaterialCorrectionHistory = Stats<std::int16_t, OTHER_CORRECTION_HISTORY_LIMIT, COLOR_NB, OTHER_CORRECTION_HISTORY_SIZE>;
 // clang-format on
 
 enum Stage : std::uint8_t {
-    NO_STAGE,
+    STAGE_NONE,
+
     // Generate main-search moves
     MAIN_TT,
     CAPTURE_INIT,
@@ -219,23 +251,21 @@ enum Stage : std::uint8_t {
 constexpr Stage operator+(Stage s, int i) noexcept { return Stage(int(s) + i); }
 inline Stage&   operator++(Stage& s) noexcept { return s = s + 1; }
 
-// MovePicker class is used to pick one pseudo-legal move at a time from the
-// current position. The most important method is next_move(), which returns a
-// new pseudo-legal move each time it is called, until there are no moves left,
-// when Move::None() is returned. In order to improve the efficiency of the
-// alpha-beta algorithm, MovePicker attempts to return the moves which are most
-// likely to get a cut-off first.
+// MovePicker class is used to pick one pseudo-legal move at a time from the given current position.
+// The most important method is next_move(), which returns a new pseudo-legal move each time it is called,
+// until there are no moves left, when Move::None() is returned. In order to improve the efficiency of the
+// alpha-beta algorithm, MovePicker attempts to return the moves which are most likely to get a cut-off first.
 class MovePicker final {
    public:
     // Constructors
-    MovePicker(const Position&               p,
-               Move                          ttm,
-               const ButterflyHistory*       mh,
-               const CapturePieceDstHistory* cph,
-               const PieceDstHistory**       ch,
-               const PawnHistory*            ph,
-               int                           th  = 0,
-               bool                          all = true) noexcept;
+    MovePicker(const Position&         p,
+               Move                    ttm,
+               const ButterflyHistory* mainHist,
+               const CaptureHistory*   capHist,
+               const PieceSqHistory**  conHist,
+               const PawnHistory*      pawnHist,
+               const ButterflyHistory* rootHist = nullptr,
+               Value                   th       = 0) noexcept;
     MovePicker() noexcept                             = delete;
     MovePicker(const MovePicker&) noexcept            = delete;
     MovePicker(MovePicker&&) noexcept                 = delete;
@@ -244,7 +274,7 @@ class MovePicker final {
 
     Move next_move(bool pickQuiets = false) noexcept;
 
-    Stage stage = NO_STAGE;
+    Stage stage = STAGE_NONE;
 
    private:
     void next_stage() noexcept { ++stage; }
@@ -256,22 +286,32 @@ class MovePicker final {
 
     auto begin() const noexcept { return curExtItr; }
     auto end() const noexcept { return endExtItr; }
+    auto next() noexcept { return ++curExtItr; }
 
-    std::uint8_t size() const noexcept { return std::distance(begin(), end()); }
+    auto current() const noexcept { return *curExtItr; }
+    auto current_next() noexcept { return *curExtItr++; }
 
-    const Position&               pos;
-    const Move                    ttMove;
-    const ButterflyHistory*       mainHistory;
-    const CapturePieceDstHistory* captureHistory;
-    const PieceDstHistory**       continuationHistory;
-    const PawnHistory*            pawnHistory;
-    const int                     threshold;
+    void swap_maximum(int tolerance = 0) noexcept;
 
-    Moves            badCaptures;
-    Moves::NormalItr curItr, endItr;
+    //auto size() const noexcept { return std::distance(begin(), end()); }
+
+    const Position&         pos;
+    const Move              ttMove;
+    const ButterflyHistory* mainHistory;
+    const CaptureHistory*   captureHistory;
+    const PieceSqHistory**  continuationHistory;
+    const PawnHistory*      pawnHistory;
+    const ButterflyHistory* rootHistory;
+    const Value             threshold;
+
+    int curMin = std::numeric_limits<int>::min();
+    int curMax = std::numeric_limits<int>::max();
 
     ExtMoves            extMoves;
     ExtMoves::NormalItr curExtItr, endExtItr;
+
+    Moves            badCaptures;
+    Moves::NormalItr curItr, endItr;
 };
 
 }  // namespace DON

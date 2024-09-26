@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
@@ -51,36 +52,39 @@ constexpr inline std::uint8_t DEFAULT_MULTI_PV = 1;
 
 namespace Search {
 
-// Node types, used as a template parameter
+// Node type,
 enum NodeType : std::uint8_t {
-    NonPV = 0,
-    PV    = 1,
-    Root  = 2 | PV
+    Root = 4,
+    PV   = 2,
+    Cut  = 1,
+    All  = 0,
 };
+
+constexpr NodeType operator~(NodeType nt) noexcept { return NodeType((int(nt) ^ 1) & 1); }
 
 // Stack struct keeps track of the information need to remember from nodes
 // shallower and deeper in the tree during the search. Each search thread has
 // its own array of Stack objects, indexed by the current ply.
 struct Stack final {
-    std::int16_t     ply;
-    Move             currentMove;
-    Value            staticEval;
-    int              history;
-    bool             inCheck;
-    bool             ttM;
-    bool             ttPv;
-    std::uint8_t     moveCount;
-    std::uint8_t     cutoffCount;
-    Moves            pv;
-    PieceDstHistory* continuationHistory;
+    std::int16_t    ply;
+    std::uint8_t    cutoffCount;
+    std::uint8_t    moveCount;
+    Move            move;
+    Value           staticEval;
+    int             history;
+    bool            inCheck;
+    bool            ttM;
+    bool            ttPv;
+    PieceSqHistory* continuationHistory;
+    Moves           pv;
 };
 
 // RootMove struct is used for moves at the root of the tree. For each root move
 // store a score and a PV (really a refutation in the case of moves which fail low).
 // Score is normally set at -VALUE_INFINITE for all non-pv moves.
 struct RootMove final {
-
-    RootMove() = default;
+   public:
+    RootMove() noexcept = default;
     explicit RootMove(Move m) noexcept :
         pv(1, m) {}
 
@@ -112,6 +116,7 @@ struct RootMove final {
     bool empty() const noexcept { return pv.empty(); }
 
     bool operator==(Move m) const noexcept { return /*!empty() &&*/ (*this)[0] == m; }
+    bool operator!=(Move m) const noexcept { return !(*this == m); }
 
     bool operator==(const RootMove& rm) const noexcept { return /*!rm.empty() &&*/ *this == rm[0]; }
     bool operator!=(const RootMove& rm) const noexcept { return !(*this == rm); }
@@ -122,11 +127,9 @@ struct RootMove final {
              : preValue != rm.preValue ? preValue > rm.preValue
                                        : avgValue > rm.avgValue;
     }
-    bool operator>(const RootMove& rm) const noexcept {
-        return curValue != rm.curValue ? curValue < rm.curValue
-             : preValue != rm.preValue ? preValue < rm.preValue
-                                       : avgValue < rm.avgValue;
-    }
+    bool operator>(const RootMove& rm) const noexcept { return (rm < *this); }
+    bool operator<=(const RootMove& rm) const noexcept { return !(*this > rm); }
+    bool operator>=(const RootMove& rm) const noexcept { return !(*this < rm); }
 
     Move  operator[](std::size_t idx) const noexcept { return pv[idx]; }
     Move& operator[](std::size_t idx) noexcept { return pv[idx]; }
@@ -137,8 +140,8 @@ struct RootMove final {
     Value         preValue   = -VALUE_INFINITE;
     Value         avgValue   = -VALUE_INFINITE;
     Value         uciValue   = -VALUE_INFINITE;
-    bool          lowerBound = false;
-    bool          upperBound = false;
+    bool          boundLower = false;
+    bool          boundUpper = false;
     std::uint16_t selDepth   = DEPTH_ZERO;
     std::uint64_t nodes      = 0;
     std::int32_t  tbRank     = 0;
@@ -185,7 +188,10 @@ class RootMoves final {
     bool erase(Move m) noexcept {
         auto itr = find(m);
         if (itr != end())
-            return erase(itr), true;
+        {
+            erase(itr);
+            return true;
+        }
         return false;
     }
 
@@ -250,42 +256,43 @@ class RootMoves final {
 // Limits struct stores information sent by GUI about available time to
 // search the current move, maximum depth/time, or if in analysis mode.
 struct Limits final {
-
+   public:
     struct Clock final {
-        TimePoint time = 0, inc = 0;
+        TimePoint time = TimePoint(0), inc = TimePoint(0);
     };
 
-    Limits() noexcept = default;
-    Limits(TimePoint nowTime) noexcept :
-        startTime(nowTime) {}
+    Limits() noexcept {
+        for (Color c : {WHITE, BLACK})
+            clock[c].time = clock[c].inc = TimePoint(0);
+
+        movesToGo = mate = 0;
+        moveTime         = TimePoint(0);
+        depth            = DEPTH_ZERO;
+        nodes            = 0;
+        hitRate          = 512;
+        infinite = ponder = perft = detail = false;
+    }
 
     bool use_time_manager() const noexcept { return clock[WHITE].time || clock[BLACK].time; }
 
-    //std::int16_t diff_time(Color stm) const noexcept {
-    //    return 1e-3 * (clock[stm].time - clock[~stm].time);
-    //}
+    TimePoint startTime;
 
-    TimePoint                   startTime = 0;
-    std::array<Clock, COLOR_NB> clock{};
-    TimePoint                   moveTime  = 0;
-    std::uint8_t                movesToGo = 0, mate = 0;
-    Depth                       depth    = DEPTH_ZERO;
-    std::uint64_t               nodes    = 0;
-    std::uint16_t               hitRate  = 512;
-    bool                        infinite = false;
-    bool                        ponder   = false;
-    bool                        perft    = false;
-    bool                        detail   = false;
-    std::deque<std::string>     searchMoves;
-    std::deque<std::string>     ignoreMoves;
+    std::array<Clock, COLOR_NB> clock;
+
+    std::uint8_t  movesToGo, mate;
+    TimePoint     moveTime;
+    Depth         depth;
+    std::uint64_t nodes;
+    std::uint16_t hitRate;
+    bool          infinite, ponder, perft, detail;
+
+    std::deque<std::string> searchMoves, ignoreMoves;
 };
 
 // Skill structure is used to implement strength limit.
 // If UCI_ELO is set, convert it to an appropriate skill level.
-// Skill 0 .. 19 now covers CCRL Blitz Elo from 1320 to 3190, approximately
+// Skill 0..19 covers CCRL Blitz Elo from 1320 to 3190, approximately.
 struct Skill final {
-
-    Skill() = default;
 
     void init(const Options& options) noexcept;
 
@@ -297,6 +304,7 @@ struct Skill final {
     Move
     pick_best_move(const RootMoves& rootMoves, std::uint8_t multiPV, bool pickBest = true) noexcept;
 
+    static constexpr double        MIN_LEVEL = 00.0;
     static constexpr double        MAX_LEVEL = 20.0;
     static constexpr std::uint16_t MIN_ELO   = 1320;
     static constexpr std::uint16_t MAX_ELO   = 3190;
@@ -332,7 +340,7 @@ class ISearchManager {
    public:
     virtual ~ISearchManager() noexcept = default;
 
-    virtual void should_abort(Worker&) noexcept = 0;
+    virtual void check_time(Worker&) noexcept = 0;
 };
 
 using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
@@ -349,8 +357,8 @@ struct FullInfo final {
     Depth           depth;
     Value           value;
     std::uint16_t   multiPV;
-    bool            showBound;
-    bool            showWDL;
+    bool            boundShow;
+    bool            wdlShow;
     TimePoint       time;
     std::uint64_t   nodes;
     std::uint16_t   hashfull;
@@ -383,40 +391,41 @@ struct UpdateContext final {
 // and storing data strictly related to the main thread.
 class MainSearchManager final: public ISearchManager {
    public:
-    MainSearchManager() noexcept = default;
-    MainSearchManager(const UpdateContext& updateCxt) noexcept :
-        updateContext(updateCxt) {}
-
-    void should_abort(Worker& worker) noexcept override;
+    MainSearchManager() noexcept = delete;
+    explicit MainSearchManager(const UpdateContext& updateContext) noexcept :
+        updateCxt(updateContext) {}
 
     void init(std::uint16_t threadCount) noexcept;
+
+    void check_time(Worker& worker) noexcept override;
+
     void load_book(const std::string& bookFile) const noexcept;
 
     TimePoint elapsed() const noexcept;
-    TimePoint elapsed(const Worker& worker) const noexcept;
+    TimePoint elapsed(const ThreadPool& threads) const noexcept;
 
-    void info_pv(Worker& worker, Depth depth) const noexcept;
+    void show_pv(Worker& worker, Depth depth) const noexcept;
 
-    const UpdateContext& updateContext;
+    const UpdateContext& updateCxt;
 
+    std::uint16_t        callsCount;
+    std::atomic_bool     ponder;
+    bool                 stopPonderhit;
     TimeManager          timeManager;
     Skill                skill;
-    std::uint16_t        callsCount;
-    bool                 stopPonderhit;
-    std::atomic_bool     ponder;
     std::array<Value, 4> iterBestValue;
 
-    bool   isInit;
-    Value  prevBestCurValue;
-    Value  prevBestAvgValue;
-    double prevTimeReduction;
+    bool   first;
+    Value  preBestCurValue;
+    Value  preBestAvgValue;
+    double preTimeReduction;
 };
 
 class NullSearchManager final: public ISearchManager {
    public:
     NullSearchManager() noexcept = default;
 
-    void should_abort(Worker&) noexcept override {}
+    void check_time(Worker&) noexcept override {}
 };
 
 // Worker is the class that does the actual search.
@@ -430,7 +439,6 @@ class Worker final {
            ISearchManagerPtr         searchManager,
            NumaReplicatedAccessToken accessToken) noexcept;
 
-    // Called at instantiation to initialize histories, usually before a new game
     void init() noexcept;
 
     void ensure_network_replicated() noexcept;
@@ -439,46 +447,44 @@ class Worker final {
     // It searches from the root position and outputs the "bestmove".
     void start_search() noexcept;
 
-    // Public because they need to be updatable by the stats
-    ButterflyHistory                        mainHistory;
-    CapturePieceDstHistory                  captureHistory;
-    std::array2d<ContinuationHistory, 2, 2> continuationHistory;
-    PawnHistory                             pawnHistory;
-    CorrectionHistory                       correctionHistory;
-
    private:
     bool is_main_worker() const noexcept { return threadIdx == 0; }
 
-    MainSearchManager* main_manager() const noexcept;
+    // Get a pointer to the search manager,
+    // Only allowed to be called by the main worker.
+    MainSearchManager* main_manager() const noexcept {
+        assert(is_main_worker());
+        return static_cast<MainSearchManager*>(manager.get());
+    }
 
     void iterative_deepening() noexcept;
 
+    // clang-format off
     // Main search function for NodeType nodes
     template<NodeType NT>
-    // clang-format off
-    Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, Move excludedMove = Move::None()) noexcept;
-    // clang-format on
+    Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, Move excludedMove = Move::None()) noexcept;
 
     // Quiescence search function, which is called by the main search
     template<bool PVNode>
     Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcept;
+    // clang-format on
 
-    Move extract_tt_move(const Position& pos, Move ttMove) noexcept;
+    Move extract_tt_move(const Position& pos, Move ttMove) const noexcept;
     bool ponder_move_extracted() noexcept;
 
-    Limits    limits;
+    Limits             limits;
+    Tablebases::Config tbConfig;
+
     Position  rootPos;
-    StateInfo rootState;
+    State     rootState;
     RootMoves rootMoves;
     Depth     rootDepth, completedDepth;
     int       rootDelta;
+    bool      rootImprove;
+    bool      nullVerify;
 
-    Tablebases::Config tbConfig;
-
-    std::uint16_t minNmpPly;
-
-    std::atomic_uint64_t nodes, tbHits;
-    std::atomic_uint8_t  bestMoveChange;
+    std::uint64_t nodes, tbHits;
+    std::uint16_t moveChanges;
 
     std::uint8_t  multiPV;
     std::uint8_t  curIdx, fstIdx, lstIdx;

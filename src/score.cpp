@@ -30,17 +30,17 @@ Score::Score(Value v, const Position& pos) noexcept {
     Value absV = std::abs(v);
     if (absV < VALUE_TB_WIN_IN_MAX_PLY)
     {
-        variant = Unit{UCI::to_cp(v, pos)};
+        score = Unit{UCI::to_cp(v, pos)};
     }
     else if (absV <= VALUE_TB)
     {
         auto distance = VALUE_TB - absV;
-        variant       = v > 0 ? Tablebase{+distance, true} : Tablebase{-distance, false};
+        score         = v > 0 ? Tablebase{+distance, true} : Tablebase{-distance, false};
     }
     else
     {
         auto distance = VALUE_MATE - absV;
-        variant       = Mate{v > 0 ? +distance : -distance};
+        score         = Mate{v > 0 ? +distance : -distance};
     }
 }
 

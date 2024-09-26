@@ -37,8 +37,6 @@ class NativeThread final {
    public:
     template<class Function, class... Args>
     explicit NativeThread(Function&& func, Args&&... args) noexcept {
-        auto funcPtr = new std::function<void()>(
-          std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
 
         pthread_attr_t ptAttr, *ptAttrPtr = &ptAttr;
         pthread_attr_init(ptAttrPtr);
@@ -51,6 +49,9 @@ class NativeThread final {
             delete f;
             return nullptr;
         };
+
+        auto funcPtr = new std::function<void()>(
+          std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
 
         pthread_create(&thread, ptAttrPtr, start_routine, funcPtr);
     }

@@ -28,7 +28,7 @@
 
 namespace DON {
 
-struct StateInfo;
+struct State;
 class Position;
 
 namespace Eval::NNUE::Features {
@@ -134,9 +134,9 @@ class HalfKAv2_hm final {
     // clang-format on
 
     // Maximum number of simultaneously active features.
-    static constexpr IndexType MaxActiveDimentions = 32;
+    static constexpr IndexType MaxActiveDimensions = 32;
 
-    using IndexList = ArrayList<IndexType, MaxActiveDimentions>;
+    using IndexList = ArrayList<IndexType, MaxActiveDimensions>;
 
     // Index of a feature for a given king position and another piece on some square
     template<Color Perspective>
@@ -155,12 +155,12 @@ class HalfKAv2_hm final {
 
     // Returns the cost of updating one perspective, the most costly one.
     // Assumes no refresh needed.
-    static int update_cost(const StateInfo* st) noexcept;
+    static int update_cost(const State* st) noexcept;
     static int refresh_cost(const Position& pos) noexcept;
 
-    // Returns whether the change stored in this StateInfo means
+    // Returns whether the change stored in this State means
     // that a full accumulator refresh is required.
-    static bool requires_refresh(const StateInfo* st, Color perspective) noexcept;
+    static bool requires_refresh(const State* st, Color perspective) noexcept;
 };
 
 }  // namespace Eval::NNUE::Features

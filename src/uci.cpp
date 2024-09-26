@@ -18,6 +18,7 @@
 #include "uci.h"
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cctype>
 #include <cmath>
@@ -43,7 +44,9 @@ namespace {
 
 // clang-format off
 constexpr inline std::string_view StartFEN{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
-constexpr inline std::string_view PieceChar{" PNBRQK  pnbrqk"};
+constexpr inline std::string_view PieceChar{" PNBRQK  pnbrqk "};
+const     inline std::array<std::string, PIECE_NB> PieceFigure{"", "\u2659", "\u2658", "\u2657", "\u2656", "\u2655", "\u2654", "",
+                                                               "", "\u265F", "\u265E", "\u265D", "\u265C", "\u265B", "\u265A", ""};
 // clang-format on
 
 enum UciCommand : std::uint8_t {
@@ -105,8 +108,9 @@ UciCommand uci_command(std::string_view cmd) noexcept {
 }
 
 Search::Limits parse_limits(std::istringstream& iss) noexcept {
+    Search::Limits limits;
     // The search starts as early as possible
-    Search::Limits limits(now());
+    limits.startTime = now();
 
     std::string token;
     while (iss >> token)
@@ -245,7 +249,7 @@ void UCI::handle_commands() noexcept {
     {
         if (i != 1)
             cmd += ' ';
-        cmd += std::string(cmdLine.argv[i]);
+        cmd += cmdLine.argv[i];
     }
     // The command-line arguments are one-shot
     bool running = cmdLine.argc <= 1;
@@ -295,8 +299,9 @@ void UCI::handle_commands() noexcept {
             setoption(iss);
             break;
         case CMD_UCI :
-            sync_cout << engine_info(true) << '\n' << engine_options() << sync_endl;
-            sync_cout << "uciok" << sync_endl;
+            sync_cout << engine_info(true) << '\n'  //
+                      << engine_options() << '\n'   //
+                      << "uciok" << sync_endl;
             break;
         case CMD_UCINEWGAME :
             engine.init();
@@ -399,32 +404,30 @@ void UCI::go(std::istringstream& iss) noexcept {
 }
 
 void UCI::setoption(std::istringstream& iss) noexcept {
-    //engine.wait_finish();
-
     std::string token, name, value;
 
-    bool isFirst;
+    bool first;
 
     iss >> token;  // Consume the "name" token
     assert(to_lower(token) == "name");
     // Read the option name (can contain spaces)
-    isFirst = true;
+    first = true;
     while (iss >> token && to_lower(token) != "value")
     {
-        if (!isFirst)
+        if (!first)
             name += ' ';
         name += token;
-        isFirst = false;
+        first = false;
     }
     assert(to_lower(token) == "value");
     // Read the option value (can contain spaces)
-    isFirst = true;
+    first = true;
     while (iss >> token)
     {
-        if (!isFirst)
+        if (!first)
             value += ' ';
         value += token;
-        isFirst = false;
+        first = false;
     }
 
     engine_options().setoption(name, value);
@@ -466,40 +469,42 @@ void UCI::bench(std::istringstream& iss) noexcept {
         is >> std::skipws >> token;
         if (token.empty())
             continue;
-        token = to_lower(token);
 
-        if (token == "go" || token == "eval")
+        auto uciCmd = uci_command(to_lower(token));
+        switch (uciCmd)
         {
+        case CMD_GO : {
             std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")\n";
-            if (token == "go")
-            {
-                auto limits = parse_limits(is);
+            auto limits = parse_limits(is);
 
-                if (limits.perft)
-                    infoNodes = engine.perft(limits.depth, limits.detail);
-                else
-                {
-                    engine.start(limits);
-                    engine.wait_finish();
-                }
-
-                nodes += infoNodes;
-                infoNodes = 0;
-            }
+            if (limits.perft)
+                infoNodes = engine.perft(limits.depth, limits.detail);
             else
             {
-                engine.eval();
+                engine.start(limits);
+                engine.wait_finish();
             }
+
+            nodes += infoNodes;
+            infoNodes = 0;
         }
-        else if (token == "position")
+        break;
+        case CMD_EVAL :
+            std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")\n";
+            engine.eval();
+            break;
+        case CMD_POSITION :
             position(is);
-        else if (token == "setoption")
+            break;
+        case CMD_SETOPTION :
             setoption(is);
-        else if (token == "ucinewgame")
-        {
+            break;
+        case CMD_UCINEWGAME :
             elapsedTime += now() - startTime;
             engine.init();  // May take a while
             startTime = now();
+            break;
+        default :;
         }
     }
 
@@ -524,8 +529,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
 namespace {
 
 struct WinRateParams final {
-    double a;
-    double b;
+    double a, b;
 };
 
 WinRateParams win_rate_params(const Position& pos) noexcept {
@@ -535,8 +539,8 @@ WinRateParams win_rate_params(const Position& pos) noexcept {
 
     // Return a = p_a(material) and b = p_b(material).
     // clang-format off
-    constexpr double as[4]{-41.25712052,  121.47473115, -124.46958843, 411.84490997};
-    constexpr double bs[4]{ 84.92998051, -143.66658718,   80.09988253,  49.80869370};
+    constexpr double as[4]{-37.45051876,  121.19101539, -132.78783573, 420.70576692};
+    constexpr double bs[4]{ 90.26261072, -137.26549898,   71.10130540,  51.35259597};
     // clang-format on
     double a = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
     double b = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
@@ -602,8 +606,9 @@ Piece UCI::piece(char pc) noexcept {
     auto pos = PieceChar.find(pc);
     return pos != std::string_view::npos ? Piece(pos) : NO_PIECE;
 }
+std::string UCI::piece_figure(Piece pc) noexcept { return is_ok(pc) ? PieceFigure[pc] : " "; }
 
-char UCI::file(File f, bool caseLower) noexcept { return int(f) + 'A' + 0x20 * caseLower; }
+char UCI::file(File f, bool caseUpper) noexcept { return int(f) + 'a' - 0x20 * caseUpper; }
 
 char UCI::rank(Rank r) noexcept { return int(r) + '1'; }
 
@@ -616,7 +621,7 @@ std::string UCI::move_to_can(Move m) noexcept {
     if (m == Move::None())
         return "(none)";
     if (m == Move::Null())
-        return "(null)";
+        return "0000";
 
     Square org = m.org_sq(), dst = m.dst_sq();
     if (m.type_of() == CASTLING && !Position::Chess960)
@@ -634,11 +639,11 @@ std::string UCI::move_to_can(Move m) noexcept {
 
 // Converts a string representing a move in coordinate notation
 // (g1f3, a7a8q) to the corresponding legal move, if any.
-Move UCI::can_to_move(const std::string& can, const MoveList<LEGAL>& legalMoves) noexcept {
+Move UCI::can_to_move(const std::string& can, const LegalMoveList& legalMoves) noexcept {
     assert(4 <= can.length() && can.length() <= 5);
     std::string ccan = to_lower(can);
 
-    for (const auto& m : legalMoves)
+    for (Move m : legalMoves)
         if (ccan == move_to_can(m))
             return m;
 
@@ -646,7 +651,7 @@ Move UCI::can_to_move(const std::string& can, const MoveList<LEGAL>& legalMoves)
 }
 
 Move UCI::can_to_move(const std::string& can, const Position& pos) noexcept {
-    return can_to_move(can, MoveList<LEGAL>(pos));
+    return can_to_move(can, LegalMoveList(pos));
 }
 
 namespace {
@@ -662,11 +667,14 @@ void on_update_full(const Search::FullInfo& info) noexcept {
         << " seldepth " << info.rootMove.selDepth                   //
         << " multipv " << info.multiPV                              //
         << " score " << UCI::format_score({info.value, info.pos});  //
-    if (info.showBound)
-        oss << (info.rootMove.lowerBound   ? " lowerbound"
-                : info.rootMove.upperBound ? " upperbound"
-                                           : "");
-    if (info.showWDL)
+    if (info.boundShow)
+    {
+        if (info.rootMove.boundLower)
+            oss << " lowerbound";
+        else if (info.rootMove.boundUpper)
+            oss << " upperbound";
+    }
+    if (info.wdlShow)
         oss << " wdl " << UCI::to_wdl(info.value, info.pos);
     oss << " time " << info.time                     //
         << " nodes " << info.nodes                   //
@@ -674,7 +682,7 @@ void on_update_full(const Search::FullInfo& info) noexcept {
         << " hashfull " << info.hashfull             //
         << " tbhits " << info.tbHits                 //
         << " pv";
-    for (const auto& m : info.rootMove)
+    for (Move m : info.rootMove)
         oss << " " << UCI::move_to_can(m);
     sync_cout << oss.str() << sync_endl;
 }
@@ -696,10 +704,10 @@ void on_update_move(const Search::MoveInfo& info) noexcept {
 }
 
 enum Ambiguity : std::uint8_t {
-    AMBIGUITY_NONE,
-    AMBIGUITY_RANK,
-    AMBIGUITY_FILE,
-    AMBIGUITY_SQUARE,
+    AMB_NONE,
+    AMB_RANK,
+    AMB_FILE,
+    AMB_SQUARE,
 };
 
 // Ambiguity if more then one piece of same type can reach 'to' with a legal move.
@@ -707,26 +715,26 @@ enum Ambiguity : std::uint8_t {
 Ambiguity ambiguity(Move m, const Position& pos) noexcept {
     assert(pos.pseudo_legal(m) && pos.legal(m));
 
-    Color stm = pos.side_to_move();
+    Color ac = pos.active_color();
 
-    const Square org = m.org_sq(), dst = m.dst_sq();
-    assert(color_of(pos.piece_on(org)) == stm);
+    Square org = m.org_sq(), dst = m.dst_sq();
+    assert(color_of(pos.piece_on(org)) == ac);
     PieceType pt = type_of(pos.piece_on(org));
 
     // If there is only one piece 'pc' then move cannot be ambiguous
-    if (pos.count(stm, pt) == 1)
-        return AMBIGUITY_NONE;
+    if (pos.count(ac, pt) == 1)
+        return AMB_NONE;
 
     // Disambiguation if have more then one piece with destination
     // note that for pawns is not needed because starting file is explicit.
-    Bitboard piece = (attacks_bb(pt, dst, pos.pieces()) & pos.pieces(stm, pt)) ^ org;
+    Bitboard piece = (attacks_bb(pt, dst, pos.pieces()) & pos.pieces(ac, pt)) ^ org;
 
     if (!piece)
-        return AMBIGUITY_NONE;
+        return AMB_NONE;
 
     Bitboard b = piece;
     // If pinned piece is considered as ambiguous
-    //& ~pos.blockers(stm);
+    //& ~pos.blockers(ac);
     while (b)
     {
         Square sq = pop_lsb(b);
@@ -736,11 +744,11 @@ Ambiguity ambiguity(Move m, const Position& pos) noexcept {
             piece ^= sq;
     }
     if (!(piece & file_bb(org)))
-        return AMBIGUITY_RANK;
+        return AMB_RANK;
     if (!(piece & rank_bb(org)))
-        return AMBIGUITY_FILE;
+        return AMB_FILE;
 
-    return AMBIGUITY_SQUARE;
+    return AMB_SQUARE;
 }
 
 }  // namespace
@@ -749,15 +757,15 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     if (m == Move::None())
         return "(none)";
     if (m == Move::Null())
-        return "(null)";
-    assert(MoveList<LEGAL>(pos).contains(m));
+        return "0000";
+    assert(LegalMoveList(pos).contains(m));
 
     std::string san;
 
-    const Square org = m.org_sq(), dst = m.dst_sq();
-    assert(color_of(pos.piece_on(org)) == pos.side_to_move());
+    Square org = m.org_sq(), dst = m.dst_sq();
+    assert(color_of(pos.piece_on(org)) == pos.active_color());
 
-    const PieceType pt = type_of(pos.piece_on(org));
+    auto pt = type_of(pos.piece_on(org));
 
     if (m.type_of() != CASTLING)
     {
@@ -769,13 +777,13 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
                 // Disambiguation if have more then one piece of type 'pt' that can reach 'to' with a legal move.
                 switch (ambiguity(m, pos))
                 {
-                case AMBIGUITY_RANK :
+                case AMB_RANK :
                     san += file(file_of(org));
                     break;
-                case AMBIGUITY_FILE :
+                case AMB_FILE :
                     san += rank(rank_of(org));
                     break;
-                case AMBIGUITY_SQUARE :
+                case AMB_SQUARE :
                     san += square(org);
                     break;
                 default :;
@@ -804,29 +812,33 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
         san = (org < dst ? "O-O" : "O-O-O");
     }
 
-    // Move marker for check & checkmate
-    if (pos.gives_check(m))
-    {
-        StateInfo st;
-        ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
+    State st;
+    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
-        pos.do_move(m, st, true);
-        san += (MoveList<LEGAL>(pos).size() != 0 ? '+' : '#');
-        pos.undo_move(m);
-    }
+    bool check = pos.check(m);
+    pos.do_move(m, st, check);
+
+    bool movesEmpty = LegalMoveList(pos).empty();
+    // Move marker for check & checkmate
+    if (check)
+        san += (movesEmpty ? '#' : '+');
+    else if (movesEmpty)
+        san += '=';
+
+    pos.undo_move(m);
 
     return san;
 }
 
 // clang-format off
-Move UCI::san_to_move(const std::string& san, Position& pos, const MoveList<LEGAL>& legalMoves) noexcept {
+Move UCI::san_to_move(const std::string& san, Position& pos, const LegalMoveList& legalMoves) noexcept {
     assert(2 <= san.length() && san.length() <= 9);
     std::string csan = san;
     if (starts_with(csan, "O-") || starts_with(csan, "o-") || starts_with(csan, "0-"))
         for (char ch : {'o', '0'})
             std::replace(csan.begin(), csan.end(), ch, 'O');
 
-    for (const auto& m : legalMoves)
+    for (Move m : legalMoves)
         if (csan == move_to_san(m, pos))
             return m;
 
@@ -834,11 +846,10 @@ Move UCI::san_to_move(const std::string& san, Position& pos, const MoveList<LEGA
 }
 
 Move UCI::san_to_move(const std::string& san, Position& pos) noexcept {
-    return san_to_move(san, pos, MoveList<LEGAL>(pos));
+    return san_to_move(san, pos, LegalMoveList(pos));
 }
 
-Move UCI::mix_to_move(const std::string& mix, Position& pos, const MoveList<LEGAL>& legalMoves) noexcept
-{
+Move UCI::mix_to_move(const std::string& mix, Position& pos, const LegalMoveList& legalMoves) noexcept {
     Move m = Move::None();
     auto length = mix.length();
     if (length < 2)

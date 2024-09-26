@@ -106,6 +106,7 @@ enum CastlingRights : std::uint8_t {
     BLACK_CASTLING = BLACK_OO | BLACK_OOO,
     ANY_CASTLING   = WHITE_CASTLING | BLACK_CASTLING,
 
+    CASTLING_SIDE_NB   = 2,
     CASTLING_RIGHTS_NB = 16
 };
 
@@ -118,8 +119,9 @@ enum Bound : std::uint8_t {
 
 // clang-format off
 enum PieceType : std::int8_t {
-    NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
-    EX_PIECE,
+    NO_PIECE_TYPE,
+    PAWN = 1, KNIGHT, BISHOP, ROOK, QUEEN, KING,
+    EX_PIECE      = 7,
     ALL_PIECE     = 0,
     MINOR         = BISHOP,
     PIECE_TYPE_NB = 8
@@ -127,8 +129,10 @@ enum PieceType : std::int8_t {
 
 enum Piece : std::uint8_t {
     NO_PIECE,
-    W_PAWN = PAWN + 0, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
-    B_PAWN = PAWN + 8, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
+    W_ALL = 0,
+    B_ALL = 8,
+    W_PAWN = PAWN + W_ALL, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
+    B_PAWN = PAWN + B_ALL, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
     PIECE_NB = 16
 };
 // clang-format on
@@ -161,8 +165,7 @@ constexpr inline Value VALUE_BISHOP = 825;
 constexpr inline Value VALUE_ROOK   = 1276;
 constexpr inline Value VALUE_QUEEN  = 2538;
 // clang-format off
-constexpr inline Value PIECE_VALUE[PIECE_NB]{
-  VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO, VALUE_ZERO,
+constexpr inline Value PIECE_VALUE[PIECE_TYPE_NB]{
   VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO, VALUE_ZERO};
 // clang-format on
 
@@ -286,18 +289,18 @@ constexpr Color operator~(Color c) noexcept { return Color((int(c) ^ 1) & 1); }
 
 constexpr bool is_ok(PieceType pt) noexcept { return (PAWN <= pt && pt <= KING); }
 
+constexpr bool is_major(PieceType pt) noexcept { return (pt == QUEEN || pt == ROOK); }
+
+constexpr Piece make_piece(Color c, PieceType pt) noexcept { return Piece((c << 3) | int(pt)); }
+
 constexpr bool is_ok(Piece pc) noexcept {
     return (W_PAWN <= pc && pc <= W_KING) || (B_PAWN <= pc && pc <= B_KING);
 }
 
-constexpr Piece make_piece(Color c, PieceType pt) noexcept { return Piece((c << 3) | int(pt)); }
-
 constexpr PieceType type_of(Piece pc) noexcept { return PieceType(int(pc) & 7); }
 
-constexpr Color color_of(Piece pc) noexcept {
-    assert(is_ok(pc));
-    return Color((pc >> 3) & 1);
-}
+constexpr Color color_of(Piece pc) noexcept { return Color((pc >> 3) & 1); }
+
 // Swap color of piece B_KNIGHT <-> W_KNIGHT
 constexpr Piece operator~(Piece pc) noexcept { return Piece(pc ^ 8); }
 
@@ -305,15 +308,15 @@ constexpr Value mates_in(std::int16_t ply) noexcept { return +VALUE_MATE - ply; 
 
 constexpr Value mated_in(std::int16_t ply) noexcept { return -VALUE_MATE + ply; }
 
-constexpr bool is_ok(Square s) noexcept { return (SQ_A1 <= s && s <= SQ_H8); }
-
 constexpr Square make_square(File f, Rank r) noexcept { return Square((r << 3) | int(f)); }
+
+constexpr bool is_ok(Square s) noexcept { return (SQ_A1 <= s && s <= SQ_H8); }
 
 constexpr File file_of(Square s) noexcept { return File(int(s) & 7); }
 
 constexpr Rank rank_of(Square s) noexcept { return Rank((s >> 3) & 7); }
 
-constexpr bool opposite_color(Square s1, Square s2) noexcept {
+constexpr bool color_opposite(Square s1, Square s2) noexcept {
     return (int(s1) + rank_of(s1) + int(s2) + rank_of(s2)) & 1;
 }
 
@@ -328,15 +331,15 @@ constexpr Rank relative_rank(Color c, Rank r) noexcept { return Rank(int(r) ^ (c
 
 constexpr Rank relative_rank(Color c, Square s) noexcept { return relative_rank(c, rank_of(s)); }
 
-constexpr CastlingRights make_castling_rights(Color c, Square org, Square dst) noexcept {
-    return c & (org < dst ? KING_SIDE : QUEEN_SIDE);
+constexpr CastlingRights make_castling_rights(Color c, Square s1, Square s2) noexcept {
+    return c & (s1 < s2 ? KING_SIDE : QUEEN_SIDE);
 }
 
-constexpr Square king_castle_sq(Color c, Square org, Square dst) noexcept {
-    return relative_square(c, org < dst ? SQ_G1 : SQ_C1);
+constexpr Square king_castle_sq(Color c, Square s1, Square s2) noexcept {
+    return relative_square(c, s1 < s2 ? SQ_G1 : SQ_C1);
 }
-constexpr Square rook_castle_sq(Color c, Square org, Square dst) noexcept {
-    return relative_square(c, org < dst ? SQ_F1 : SQ_D1);
+constexpr Square rook_castle_sq(Color c, Square s1, Square s2) noexcept {
+    return relative_square(c, s1 < s2 ? SQ_F1 : SQ_D1);
 }
 
 constexpr Direction pawn_spush(Color c) noexcept {
@@ -354,12 +357,12 @@ constexpr std::uint64_t make_hash(std::uint64_t seed) noexcept {
 
 constexpr Key16 compress_key(Key key) noexcept {
     // Weights for each byte position
-    constexpr std::uint16_t WEIGHTS[8]{59, 53, 43, 41, 31, 29, 19, 17};
+    constexpr std::uint8_t WEIGHTS[8]{59, 53, 43, 41, 31, 29, 19, 17};
 
     Key16 key16 = 0;
     // Sum up weighted contributions from each byte
     for (std::uint8_t i = 0; i < 8; ++i)
-        key16 += WEIGHTS[i] * std::uint8_t(key >> (i * 8));
+        key16 += WEIGHTS[i] * std::uint8_t(key >> (8 * i));
     return key16;
 }
 
@@ -393,7 +396,7 @@ class Move {
         move(m) {}
 
     constexpr Move(MoveType T, Square org, Square dst) noexcept :
-        move(T | (int(org) << 6) | int(dst)) {}
+        Move(T | (int(org) << 6) | int(dst)) {}
 
     constexpr Move(Square org, Square dst) noexcept :
         Move(NORMAL, org, dst) {}
@@ -418,10 +421,6 @@ class Move {
 
     // Catch Move::None() and Move::Null()
     constexpr bool is_ok() const noexcept { return org_sq() != dst_sq(); }
-
-    //constexpr Square prev_dst_sq(Color stm) const noexcept {
-    //    return type_of() != CASTLING ? dst_sq() : king_castle_sq(~stm, org_sq(), dst_sq());
-    //}
 
     constexpr bool operator==(Move m) const noexcept { return move == m.move; }
     constexpr bool operator!=(Move m) const noexcept { return move != m.move; }

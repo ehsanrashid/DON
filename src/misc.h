@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <iterator>
 #include <limits>
@@ -187,9 +188,8 @@ void start_logger(const std::string& logFile) noexcept;
 // For further analysis see
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class PRNG final {
-
    public:
-    PRNG(std::uint64_t seed) noexcept :
+    explicit PRNG(std::uint64_t seed) noexcept :
         s(seed) {
         assert(seed);
     }
@@ -236,9 +236,8 @@ class PRNG final {
 
 // XORShift1024Star Pseudo-Random Number Generator
 class PRNG1024 final {
-
    public:
-    PRNG1024(std::uint64_t seed) noexcept :
+    explicit PRNG1024(std::uint64_t seed) noexcept :
         p(0) {
         constexpr std::uint64_t SEED_OFFSET     = 0x9857FB32C9EFB5E4ull;
         constexpr std::uint64_t SEED_MULTIPLIER = 0x2545F4914F6CDD1Dull;
@@ -431,7 +430,8 @@ inline void trim_trailing_whitespace(std::string& str) noexcept {
 }
 
 inline bool is_valid_bool(std::string& str) noexcept {
-    if (auto s = to_lower(str); s == "true" || s == "false")
+    auto s = to_lower(str);
+    if (s == "true" || s == "false")
     {
         str = s;
         return true;
@@ -451,6 +451,12 @@ inline bool string_to_bool(const std::string& str) noexcept {
     std::istringstream iss(to_lower(str));
     iss >> std::boolalpha >> b;
     return b;
+}
+
+inline std::string u64_to_string(std::uint64_t u64) noexcept {
+    std::ostringstream oss;
+    oss << std::setw(16) << std::hex << std::uppercase << std::setfill('0') << u64;
+    return oss.str();
 }
 
 inline std::vector<std::string> split(const std::string& str,

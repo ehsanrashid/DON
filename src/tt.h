@@ -37,11 +37,11 @@ using uint16 = std::uint16_t;
 // Number of bits reserved for data
 constexpr inline uint08 DATA_BITS = 3;
 // Increment for generation field
-constexpr inline uint08 GENERATION_DELTA = 1u << DATA_BITS;
+constexpr inline uint08 GENERATION_DELTA = 1 << DATA_BITS;
 // Mask to pull out generation field
-constexpr inline uint08 GENERATION_MASK = (0xFFu << DATA_BITS) & 0xFFu;
+constexpr inline uint08 GENERATION_MASK = (0xFF << DATA_BITS) & 0xFF;
 // Generation cycle length
-constexpr inline uint16 GENERATION_CYCLE = 0xFFu + GENERATION_DELTA;
+constexpr inline uint16 GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 
 class TTUpdater;
 class TranspositionTable;
@@ -52,7 +52,7 @@ class TranspositionTable;
 // depth       8 bit
 // generation  5 bit
 // data:       3 bit
-//  - is_pv    1 bit
+//  - pv       1 bit
 //  - bound    2 bit
 // move       16 bit
 // value      16 bit
@@ -65,7 +65,7 @@ struct TTEntry final {
     constexpr Move   move() const noexcept { return move16; }
     constexpr Depth  depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
     constexpr uint08 generation() const noexcept { return genData8 & GENERATION_MASK; }
-    constexpr bool   is_pv() const noexcept { return bool(genData8 & 0x4); }
+    constexpr bool   pv() const noexcept { return bool(genData8 & 0x4); }
     constexpr Bound  bound() const noexcept { return Bound(genData8 & 0x3); }
     constexpr Value  value() const noexcept { return value16; }
     constexpr Value  eval() const noexcept { return eval16; }
@@ -73,33 +73,35 @@ struct TTEntry final {
 
     // Populates the TTEntry with a new node's data, possibly
     // overwriting an old position. The update is not atomic and can be racy.
-    FORCE_INLINE void save(const Key16  k16,
-                           const Depth  depth,
-                           const bool   isPv,
-                           const Bound  bound,
-                           const Move   move,
-                           const Value  value,
-                           const Value  eval,
-                           const uint08 gen) noexcept {
+    void save(Key16  k16,
+              Depth  depth,
+              bool   pv,
+              Bound  bound,
+              Move   move,
+              Value  value,
+              Value  eval,
+              uint08 gen) noexcept {
 
-        // Preserve the old move if don't have a new one
+        bool entryNew = k16 != key16;
+
+        key16 = k16;
+        // Preserve the old data if don't have a new one
         if (move != Move::None())
             move16 = move;
-
         // Overwrite less valuable entries (cheapest checks first)
-        if (bound == BOUND_EXACT || k16 != key16             //
-            || 4 + depth + 2 * isPv - DEPTH_OFFSET > depth8  //
-            || relative_age(gen) != 0)
+        if (entryNew || bound == BOUND_EXACT               //
+            || 4 + depth + 2 * pv - DEPTH_OFFSET > depth8  //
+            || relative_age(gen))
         {
             assert(depth > DEPTH_OFFSET);
             assert(depth <= std::numeric_limits<uint08>::max() + DEPTH_OFFSET);
 
-            key16    = k16;
             depth8   = uint08(depth - DEPTH_OFFSET);
-            genData8 = uint08(gen | (4 * isPv) | bound);
+            genData8 = uint08(gen | (uint08(pv) << 2) | bound);
             value16  = value;
-            eval16   = eval;
         }
+        if (entryNew || eval != VALUE_NONE)
+            eval16 = eval;
     }
 
     // The returned age is a multiple of TranspositionTable::GENERATION_DELTA
@@ -109,10 +111,10 @@ struct TTEntry final {
         // is needed to keep the unrelated lowest n bits from affecting
         // the result) to calculate the entry age correctly even after
         // generation8 overflows into the next cycle.
-        return (GENERATION_CYCLE - genData8 + gen) & GENERATION_MASK;
+        return (GENERATION_CYCLE + gen - genData8) & GENERATION_MASK;
     }
 
-    std::int16_t worth(uint08 gen) const noexcept { return depth8 - 2 * relative_age(gen); }
+    short worth(uint08 gen) const noexcept { return 4 * depth8 - 9 * relative_age(gen); }
 
    private:
     Key16  key16;
@@ -136,15 +138,15 @@ constexpr inline std::uint8_t TT_CLUSTER_ENTRY_COUNT = 3;
 struct TTCluster final {
    public:
     TTEntry entry[TT_CLUSTER_ENTRY_COUNT];
-   private:
-    char padding[2];  // Pad to 32 bytes
+
+    uint16 padding;  // Pad to 32 bytes
 };
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
 struct TTProbe final {
    public:
-    const bool     ttHit;
+    bool           ttHit;
     TTEntry*       tte;
     TTEntry* const fte;
 };
@@ -157,21 +159,21 @@ class TTUpdater final {
     TTUpdater& operator=(const TTUpdater&) noexcept = delete;
     TTUpdater& operator=(TTUpdater&&) noexcept      = delete;
 
-    TTUpdater(TTEntry* tte_, TTEntry* const fte_, Key16 k16, std::int16_t ply, uint08 gen) noexcept :
-        tte(tte_),
-        fte(fte_),
+    TTUpdater(TTEntry* te, TTEntry* const fe, Key16 k16, std::int16_t ply, uint08 gen) noexcept :
+        tte(te),
+        fte(fe),
         key16(k16),
         ssPly(ply),
         generation(gen) {}
 
-    void update(const Depth depth, const bool isPv, const Bound bound, const Move move, const Value value, const Value eval) noexcept;
+    void update(Depth depth, bool pv, Bound bound, Move move, Value value, Value eval) noexcept;
 
    private:
-    TTEntry*           tte;
-    TTEntry* const     fte;
-    const Key16        key16;
-    const std::int16_t ssPly;
-    const uint08       generation;
+    TTEntry*       tte;
+    TTEntry* const fte;
+    Key16          key16;
+    std::int16_t   ssPly;
+    uint08         generation;
 };
 
 class ThreadPool;
@@ -196,10 +198,10 @@ class TranspositionTable final {
     void resize(std::size_t mbSize, ThreadPool& threads) noexcept;
     void init(ThreadPool& threads) noexcept;
 
-    TTProbe probe(const Key key, const Key16 key16) const noexcept;
+    TTProbe probe(Key key, Key16 key16) const noexcept;
 
     // Prefetch the cache line which includes this key's entry
-    void prefetch_entry(const Key key) const noexcept { prefetch(first_entry(key)); }
+    void prefetch_entry(Key key) const noexcept { prefetch(first_entry(key)); }
 
     std::uint16_t hashfull() const noexcept;
 
@@ -209,7 +211,7 @@ class TranspositionTable final {
    private:
     void free() noexcept;
 
-    TTEntry* first_entry(const Key key) const noexcept {
+    TTEntry* first_entry(Key key) const noexcept {
         return &clusters[mul_hi64(key, clusterCount)].entry[0];
     }
 

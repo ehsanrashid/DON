@@ -145,7 +145,7 @@ bool Option::operator==(const Option& option) const noexcept {
 bool Option::operator!=(const Option& option) const noexcept { return !(*this == option); }
 
 bool Option::operator<(const Option& option) const noexcept { return idx < option.idx; }
-bool Option::operator>(const Option& option) const noexcept { return idx > option.idx; }
+bool Option::operator>(const Option& option) const noexcept { return (option < *this); }
 
 // Updates currentValue and triggers on_change() action.
 // It's up to the GUI to check for option's limits,

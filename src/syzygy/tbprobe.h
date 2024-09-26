@@ -47,8 +47,8 @@ constexpr WDLScore operator-(WDLScore wdl) noexcept { return WDLScore(-int(wdl))
 enum ProbeState : std::int8_t {
     FAIL              = 0,   // Probe failed (missing file table)
     OK                = +1,  // Probe successful
-    CHANGE_STM        = -1,  // DTZ should check the other side
-    ZEROING_BEST_MOVE = +2   // Best move zeroes DTZ (capture or pawn move)
+    CHANGE_AC         = -1,  // DTZ should check the other side
+    BEST_MOVE_ZEROING = +2   // Best move zeroes DTZ (capture or pawn move)
 };
 
 struct Config final {
@@ -60,7 +60,7 @@ struct Config final {
 
 extern std::uint8_t MaxCardinality;
 
-
+void init() noexcept;
 void init(const std::string& paths) noexcept;
 
 WDLScore probe_wdl(Position& pos, ProbeState* result) noexcept;

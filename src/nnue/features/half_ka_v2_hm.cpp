@@ -41,10 +41,10 @@ template<Color Perspective>
 void HalfKAv2_hm::append_active_indices(const Position& pos, IndexList& active) noexcept {
     Square ksq = pos.king_square(Perspective);
 
-    Bitboard b = pos.pieces();
-    while (b)
+    Bitboard occupied = pos.pieces();
+    while (occupied)
     {
-        Square s = pop_lsb(b);
+        Square s = pop_lsb(occupied);
         active.push_back(make_index<Perspective>(s, pos.piece_on(s), ksq));
     }
 }
@@ -61,9 +61,9 @@ template<Color Perspective>
 void HalfKAv2_hm::append_changed_indices(Square ksq, const DirtyPiece& dp, IndexList& removed, IndexList& added) noexcept {
     for (int i = 0; i < dp.dirtyNum; ++i)
     {
-        if (is_ok(dp.org[i]))
+        if (dp.org[i] != SQ_NONE)
             removed.push_back(make_index<Perspective>(dp.org[i], dp.piece[i], ksq));
-        if (is_ok(dp.dst[i]))
+        if (dp.dst[i] != SQ_NONE)
             added.push_back(make_index<Perspective>(dp.dst[i], dp.piece[i], ksq));
     }
 }
@@ -73,11 +73,11 @@ template void HalfKAv2_hm::append_changed_indices<WHITE>(Square ksq, const Dirty
 template void HalfKAv2_hm::append_changed_indices<BLACK>(Square ksq, const DirtyPiece& dp, IndexList& removed, IndexList& added) noexcept;
 // clang-format on
 
-int HalfKAv2_hm::update_cost(const StateInfo* st) noexcept { return st->dirtyPiece.dirtyNum; }
+int HalfKAv2_hm::update_cost(const State* st) noexcept { return st->dirtyPiece.dirtyNum; }
 
 int HalfKAv2_hm::refresh_cost(const Position& pos) noexcept { return pos.count<ALL_PIECE>(); }
 
-bool HalfKAv2_hm::requires_refresh(const StateInfo* st, Color perspective) noexcept {
+bool HalfKAv2_hm::requires_refresh(const State* st, Color perspective) noexcept {
     return st->dirtyPiece.piece[0] == make_piece(perspective, KING);
 }
 

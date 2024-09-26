@@ -38,9 +38,9 @@ const union /*PolyGlot*/ {
     Key Randoms[781];
 
     struct {
-        Key psq[2 * 6][SQUARE_NB];  // [piece][square]
-        Key castling[2 * 2];        // [castle-right]
-        Key enpassant[FILE_NB];     // [file]
+        Key psq[COLOR_NB * 6][SQUARE_NB];  // [piece][square]
+        Key castling[COLOR_NB * 2];        // [castle-right]
+        Key enpassant[FILE_NB];            // [file]
         Key side;
     } Zobrist;
 } PG = {{0x9D39247E33776D41ull, 0x2AF7398005AAA5C7ull, 0x44DB015024623547ull, 0x9C15F73E62A76AE2ull,
@@ -299,14 +299,12 @@ void swap_polyhash(PolyHash* ph) noexcept {
 Key polyglot_key(const Position& pos) noexcept {
     Key key = 0;
 
-    Bitboard b;
-    b = pos.pieces();
-    while (b)
+    Bitboard occupied = pos.pieces();
+    while (occupied)
     {
-        Square s  = pop_lsb(b);
+        Square s  = pop_lsb(occupied);
         Piece  pc = pos.piece_on(s);
-        if (!is_ok(pc))
-            continue;
+        assert(is_ok(pc));
         // PolyGlot pieces are: BP = 0, WP = 1, BN = 2, ... BK = 10, WK = 11
         key ^= PG.Zobrist.psq[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
     }
@@ -324,14 +322,14 @@ Key polyglot_key(const Position& pos) noexcept {
             key ^= PG.Zobrist.castling[3];
     }
     */
-    b = pos.castling_rights();
-    while (b)
-        key ^= PG.Zobrist.castling[pop_lsb(b)];
+    Bitboard cr = pos.castling_rights();
+    while (cr)
+        key ^= PG.Zobrist.castling[pop_lsb(cr)];
 
-    if (is_ok_ep(pos.ep_square()))
+    if (ep_is_ok(pos.ep_square()))
         key ^= PG.Zobrist.enpassant[file_of(pos.ep_square())];
 
-    if (pos.side_to_move() == WHITE)
+    if (pos.active_color() == WHITE)
         key ^= PG.Zobrist.side;
 
     return key;
@@ -365,7 +363,7 @@ Move pg_to_move(std::uint16_t pg_move, const Position& pos) noexcept {
 
     std::uint16_t moveRaw = move.raw() & ~MOVETYPE_MASK;
     // Add 'Special move' flags and verify it is legal
-    for (auto m : MoveList<LEGAL>(pos))
+    for (Move m : LegalMoveList(pos))
         // Compare with MoveType (bit 14-15) Masked-out
         if ((m.raw() & ~MOVETYPE_MASK) == moveRaw)
             return m;
@@ -374,7 +372,7 @@ Move pg_to_move(std::uint16_t pg_move, const Position& pos) noexcept {
 }
 
 bool is_draw(Position& pos, Move m) noexcept {
-    StateInfo st;
+    State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     pos.do_move(m, st);
@@ -392,21 +390,23 @@ bool PolyHash::operator==(const PolyHash& ph) const noexcept {
 bool PolyHash::operator!=(const PolyHash& ph) const noexcept { return !(*this == ph); }
 
 bool PolyHash::operator<(const PolyHash& ph) const noexcept {
-    return key != ph.key ? key < ph.key : weight != ph.weight ? weight < ph.weight : move < ph.move;
+    return key != ph.key       ? key < ph.key        //
+         : weight != ph.weight ? weight < ph.weight  //
+                               : move < ph.move;
 }
-bool PolyHash::operator>(const PolyHash& ph) const noexcept {
-    return key != ph.key ? key > ph.key : weight != ph.weight ? weight > ph.weight : move > ph.move;
-}
+bool PolyHash::operator>(const PolyHash& ph) const noexcept { return (ph < *this); }
+bool PolyHash::operator<=(const PolyHash& ph) const noexcept { return !(*this > ph); }
+bool PolyHash::operator>=(const PolyHash& ph) const noexcept { return !(*this < ph); }
 
 bool PolyHash::operator==(Move m) const noexcept { return move == (m.raw() & ~MOVETYPE_MASK); }
 bool PolyHash::operator!=(Move m) const noexcept { return !(*this == m); }
 
 std::ostream& operator<<(std::ostream& os, const PolyHash& ph) noexcept {
     // clang-format off
-    os << std::right << "key: " << std::setw(16) << std::setfill('0') << std::hex << std::uppercase << ph.key << std::nouppercase << std::dec
-       << std::left << " move: " << std::setw(5) << std::setfill(' ') << UCI::move_to_can(fix_promotion(Move(ph.move)))
+    os << std::right << "key: "     << u64_to_string(ph.key)  //
+       << std::left  << " move: "   << std::setw(5) << std::setfill(' ') << UCI::move_to_can(fix_promotion(Move(ph.move)))
        << std::right << " weight: " << std::setw(5) << std::setfill('0') << ph.weight
-       << std::right << " learn: " << std::setw(2) << std::setfill('0') << ph.learn;
+       << std::right << " learn: "  << std::setw(2) << std::setfill('0') << ph.learn;
     // clang-format on
     return os;
 }
@@ -479,41 +479,37 @@ Move PolyBook::probe(Position& pos, bool pickBest) noexcept {
     Key key = polyglot_key(pos);
     if (!can_probe(pos, key))
         return Move::None();
-    int n = find_first_key(key);
-    if (n <= 0)
+
+    find_key(key);
+    if (keyCount <= 0)
     {
         ++failCount;
         return Move::None();
     }
 #if !defined(NDEBUG)
-    sync_cout << show(n) << sync_endl;
+    show_key_data();
 #endif
 
-    int idx = pickBest || n == 1 ? bestIndex : randIndex;
+    int idx;
+    idx = pickBest || keyCount == 1 ? bestIndex : randIndex;
 
     Move m = pg_to_move(polyHash[idx].move, pos);
-    if (n == 1 || !is_draw(pos, m))
+    if (keyCount == 1 || !is_draw(pos, m))
         return m;
-    if (n > 1)
-    {
-        idx = idx == firstIndex ? firstIndex + 1 : firstIndex;
 
-        m = pg_to_move(polyHash[idx].move, pos);
-        if (n == 2 || !is_draw(pos, m))
-            return m;
-        if (n > 2)
-        {
-            idx = idx != randIndex ? firstIndex + 2 : n > 3 ? firstIndex + 3 : randIndex;
+    idx = idx == firstIndex ? firstIndex + 1 : firstIndex;
 
-            m = pg_to_move(polyHash[idx].move, pos);
-            if (n == 3 || !is_draw(pos, m))
-                return m;
-            if (n > 3)
-                return pg_to_move(polyHash[firstIndex + 3].move, pos);
-        }
-    }
+    m = pg_to_move(polyHash[idx].move, pos);
+    if (keyCount == 2 || !is_draw(pos, m))
+        return m;
 
-    return Move::None();
+    idx = idx != randIndex ? firstIndex + 2 : keyCount > 3 ? firstIndex + 3 : randIndex;
+
+    m = pg_to_move(polyHash[idx].move, pos);
+    if (keyCount == 3 || !is_draw(pos, m))
+        return m;
+
+    return keyCount > 3 ? pg_to_move(polyHash[firstIndex + 3].move, pos) : Move::None();
 }
 
 bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
@@ -527,12 +523,12 @@ bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
     return failCount <= 4;
 }
 
-int PolyBook::find_first_key(Key key) noexcept {
+void PolyBook::find_key(Key key) noexcept {
     firstIndex   = -1;
     bestIndex    = -1;
     randIndex    = -1;
-    keyCount     = 0;
-    sumKeyWeight = 0;
+    keyCount     = -1;
+    keySumWeight = 0;
 
     int begIndex = 0;
     int endIndex = entryCount;
@@ -562,66 +558,71 @@ int PolyBook::find_first_key(Key key) noexcept {
             firstIndex = begIndex;
             while (firstIndex > 0 && key == polyHash[firstIndex - 1].key)
                 --firstIndex;
-            return get_key_data();
+            get_key_data();
+            return;
         }
         ++begIndex;
     }
-
-    return -1;
 }
 
-int PolyBook::get_key_data() noexcept {
+void PolyBook::get_key_data() noexcept {
     static PRNG rng(time(nullptr));
 
     Key key = polyHash[firstIndex].key;
 
-    keyCount       = 1;
-    bestIndex      = firstIndex;
-    int bestWeight = polyHash[firstIndex].weight;
-    sumKeyWeight   = bestWeight;
-    for (int i = firstIndex + keyCount; i < entryCount; ++i)
+    keyCount = 1;
+
+    bestIndex = firstIndex;
+
+    int bestWeight;
+    bestWeight   = polyHash[firstIndex].weight;
+    keySumWeight = bestWeight;
+    for (int idx = firstIndex + keyCount; idx < entryCount; ++idx)
     {
-        if (key != polyHash[i].key)
+        if (key != polyHash[idx].key)
             break;
 
-        ++keyCount;
-        sumKeyWeight += polyHash[i].weight;
-        if (bestWeight < polyHash[i].weight)
+        keyCount += 1;
+
+        int idxWeight = polyHash[idx].weight;
+        keySumWeight += idxWeight;
+        if (bestWeight < idxWeight)
         {
-            bestWeight = polyHash[i].weight;
-            bestIndex  = i;
+            bestWeight = idxWeight;
+            bestIndex  = idx;
         }
     }
 
     randIndex = bestIndex;
 
-    int randWeight = rng.rand<std::uint32_t>() % sumKeyWeight;
+    int randWeight = rng.rand<std::uint32_t>() % keySumWeight;
     int sumWeight  = 0;
-    for (int i = firstIndex; i < firstIndex + keyCount; ++i)
+    for (int idx = firstIndex; idx < firstIndex + keyCount; ++idx)
     {
-        if (sumWeight <= randWeight && randWeight < sumWeight + polyHash[i].weight)
+        int idxWeight = polyHash[idx].weight;
+        if (sumWeight <= randWeight && randWeight < sumWeight + idxWeight)
         {
-            randIndex = i;
+            randIndex = idx;
             break;
         }
-        sumWeight += polyHash[i].weight;
+        sumWeight += idxWeight;
     }
-
-    return keyCount;
 }
 
-std::string PolyBook::show(std::uint8_t n) const noexcept {
+void PolyBook::show_key_data() const noexcept {
     std::ostringstream oss;
 
-    oss << "\nBook entries: " << int(n) << '\n';
-    for (std::uint8_t i = 0; i < n; ++i)
+    oss << "\nBook entries: " << keyCount << '\n';
+    for (int i = 0; i < keyCount; ++i)
     {
-        int index = firstIndex + i;
-        oss << std::setfill('0') << std::setw(2) << i + 1 << " " << polyHash[index]
-            << " prob: " << std::setfill('0') << std::setw(7) << std::fixed << std::setprecision(4)
-            << (sumKeyWeight != 0) * 100.0 * polyHash[index].weight / sumKeyWeight << '\n';
+        int idx = firstIndex + i;
+        oss << std::setw(2) << std::setfill('0') << i + 1  //
+            << " " << polyHash[idx]                        //
+            << " prob: " << std::setw(7) << std::setfill('0') << std::fixed << std::setprecision(4)
+            << (keySumWeight != 0) * 100.0 * polyHash[idx].weight / keySumWeight  //
+            << '\n';
     }
-    return oss.str();
+    sync_cout << oss.str() << sync_endl;
 }
 
 }  // namespace DON

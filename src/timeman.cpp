@@ -45,15 +45,14 @@ void TimeManager::init(Search::Limits& limits,
     startTime = limits.startTime;
     nodesTime = options["NodesTime"];
 
-    const Color stm   = pos.side_to_move();
-    auto& [time, inc] = limits.clock[stm];
+    auto& [time, inc] = limits.clock[pos.active_color()];
     if (time == 0 && !use_nodes_time())
     {
         clear();
         return;
     }
 
-    TimePoint moveOverhead = options["Move Overhead"];
+    TimePoint moveOverhead = options["MoveOverhead"];
 
     // If have to play in 'Nodes as Time' mode, then convert from time to nodes,
     // and use resulting values in time management formulas.
@@ -76,13 +75,14 @@ void TimeManager::init(Search::Limits& limits,
     const TimePoint    scaledInc   = inc / scaleFactor;
 
     // Maximum move horizon of 50 moves
-    std::uint16_t mtg = limits.movesToGo != 0
-                        ? std::min(+limits.movesToGo, 50)
-                        : std::max(int(std::ceil(50 - 0.2 * pos.game_move())), 40);
+    std::uint16_t mtg =
+      limits.movesToGo != 0
+        ? std::min(+limits.movesToGo, 50)
+        : std::max(int(std::ceil(50 - 0.1 * std::max(pos.game_move() - 20, 0))), 40);
 
     // If less than one second, gradually reduce mtg
-    if (scaledTime < 1000 && mtg > std::max<std::uint16_t>(0.05 * scaledInc, 2))
-        mtg = std::clamp<std::uint16_t>(0.05 * scaledTime, 2, mtg);
+    if (scaledTime < 1000 && mtg > 0.05 * scaledInc)
+        mtg = std::clamp<int>(0.05 * scaledTime, 2, mtg);
 
     assert(mtg != 0);
 
@@ -95,7 +95,7 @@ void TimeManager::init(Search::Limits& limits,
     // maximumScale is a multiplier applied to optimumTime.
     double optimumScale, maximumScale;
 
-    // x moves in y seconds (+ z increment)
+    // x moves in y time (+ z increment)
     if (limits.movesToGo != 0)
     {
         optimumScale = std::min((0.88 + 8.59106e-3 * gamePly) / mtg, 0.88 * time / remainTime);
@@ -107,8 +107,8 @@ void TimeManager::init(Search::Limits& limits,
     else
     {
         // Extra time according to initial remainTime
-        if (initialAdjust < 0.0)
-            initialAdjust = std::max(-0.4830 + 0.3285 * std::log10(remainTime), 1e-5);
+        if (initialAdjust <= MIN_ADJUST)
+            initialAdjust = std::max(-0.4830 + 0.3285 * std::log10(remainTime), MIN_ADJUST);
         // Calculate time constants based on current remaining time
         double log10ScaledTime = std::log10(1e-3 * scaledTime);
         double optimumConstant = std::min(3.08e-3 + 3.19e-4 * log10ScaledTime, 5.06e-3);

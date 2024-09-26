@@ -40,7 +40,7 @@ namespace DON {
 
 class Engine final {
    public:
-    Engine(const std::string& path = "") noexcept;
+    explicit Engine(std::optional<std::string> path = std::nullopt) noexcept;
     ~Engine() noexcept;
 
     // Cannot be movable due to components holding backreferences to fields

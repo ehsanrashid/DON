@@ -34,8 +34,8 @@ namespace DON {
 
 namespace NN = Eval::NNUE;  // Create alias
 
-Engine::Engine(const std::string& path) noexcept :
-    binaryDirectory(CommandLine::get_binary_directory(path)),
+Engine::Engine(std::optional<std::string> path) noexcept :
+    binaryDirectory(path ? CommandLine::get_binary_directory(*path) : ""),
     numaContext(NumaConfig::from_system()),
     threads(),
     networks(
@@ -60,12 +60,12 @@ Engine::Engine(const std::string& path) noexcept :
     options["Clear Hash"]   << Option([this](const Option&) { init(); return std::nullopt; });
     options["Retain Hash"]  << Option(false);
     options["HashFile"]     << Option("");
-    options["Save Hash"]    << Option([this](const Option&) { return std::nullopt; });
-    options["Load Hash"]    << Option([this](const Option&) { return std::nullopt; });
+    options["Save Hash"]    << Option([this](const Option&) { (void)this; return std::nullopt; });
+    options["Load Hash"]    << Option([this](const Option&) { (void)this; return std::nullopt; });
     options["Ponder"]       << Option(false);
     options["MultiPV"]      << Option(DEFAULT_MULTI_PV, 1, std::numeric_limits<std::uint8_t>::max());
-    options["Skill Level"]  << Option(Search::Skill::MAX_LEVEL, 0, Search::Skill::MAX_LEVEL);
-    options["Move Overhead"] << Option(10, 0, 5000);
+    options["Skill Level"]  << Option(int(Search::Skill::MAX_LEVEL), int(Search::Skill::MIN_LEVEL), int(Search::Skill::MAX_LEVEL));
+    options["MoveOverhead"] << Option(10, 0, 5000);
     options["NodesTime"]    << Option(0, 0, 10000);
     options["DrawMoveCount"] << Option(Position::DrawMoveCount, 5, 50, [](const Option& o) { Position::DrawMoveCount = o; return std::nullopt; });
     options["UCI_Chess960"] << Option(Position::Chess960, [](const Option& o) { Position::Chess960 = o; return std::nullopt; });
@@ -104,8 +104,8 @@ void Engine::setup(std::string_view fen, const std::deque<std::string>& moves) n
 
     for (const std::string& move : moves)
     {
-        const MoveList<LEGAL> legalMoves(pos);
-        if (legalMoves.size() == 0)
+        const LegalMoveList legalMoves(pos);
+        if (legalMoves.empty())
             break;
         Move m = UCI::mix_to_move(move, pos, legalMoves);
         if (m == Move::None())
@@ -194,9 +194,10 @@ void Engine::set_numa_config(const std::string& str) {
 std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts() const noexcept {
     std::vector<std::pair<std::size_t, std::size_t>> ratios;
 
-    auto              counts  = threads.get_bound_thread_counts();
-    const NumaConfig& config  = numaContext.get_numa_config();
-    NumaIndex         numaIdx = 0;
+    auto              counts = threads.get_bound_thread_counts();
+    const NumaConfig& config = numaContext.get_numa_config();
+
+    NumaIndex numaIdx = 0;
     for (; numaIdx < counts.size(); ++numaIdx)
         ratios.emplace_back(counts[numaIdx], config.num_cpus_in_numa_node(numaIdx));
     if (!counts.empty())
@@ -221,13 +222,13 @@ std::string Engine::get_thread_binding_info() const noexcept {
     if (!boundThreadCounts.empty())
     {
         oss << " with NUMA node thread binding: ";
-        bool isFirst = true;
+        bool first = true;
         for (auto&& [count, total] : boundThreadCounts)
         {
-            if (!isFirst)
+            if (!first)
                 oss << ':';
             oss << count << '/' << total;
-            isFirst = false;
+            first = false;
         }
     }
 
@@ -264,7 +265,7 @@ void Engine::load_small_network(const std::string& smallFile) noexcept {
 
 void Engine::save_networks(
   const std::pair<std::optional<std::string>, std::string> files[2]) noexcept {
-    networks.modify_and_replicate([&](NN::Networks& net) {
+    networks.modify_and_replicate([&](const NN::Networks& net) {
         net.big.save(files[0].first);
         net.small.save(files[1].first);
     });

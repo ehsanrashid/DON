@@ -33,6 +33,8 @@ struct PolyHash final {
 
     bool operator<(const PolyHash& ph) const noexcept;
     bool operator>(const PolyHash& ph) const noexcept;
+    bool operator<=(const PolyHash& ph) const noexcept;
+    bool operator>=(const PolyHash& ph) const noexcept;
 
     bool operator==(Move m) const noexcept;
     bool operator!=(Move m) const noexcept;
@@ -59,10 +61,10 @@ class PolyBook final {
    private:
     bool can_probe(const Position& pos, Key key) noexcept;
 
-    int find_first_key(Key key) noexcept;
-    int get_key_data() noexcept;
+    void find_key(Key key) noexcept;
+    void get_key_data() noexcept;
 
-    std::string show(std::uint8_t n) const noexcept;
+    void show_key_data() const noexcept;
 
     bool      enabled    = false;
     PolyHash* polyHash   = nullptr;
@@ -73,7 +75,7 @@ class PolyBook final {
     // Key data
     int firstIndex, bestIndex, randIndex;
     int keyCount;
-    int sumKeyWeight;
+    int keySumWeight;
 };
 
 }  // namespace DON

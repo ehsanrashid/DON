@@ -35,7 +35,7 @@ std::uint8_t Distances[SQUARE_NB][SQUARE_NB];
 Bitboard Lines[SQUARE_NB][SQUARE_NB];
 Bitboard Betweens[SQUARE_NB][SQUARE_NB];
 Bitboard PawnAttacks[SQUARE_NB][COLOR_NB];
-Bitboard PseudoAttacks[SQUARE_NB][PIECE_TYPE_NB];
+Bitboard PieceAttacks[SQUARE_NB][PIECE_TYPE_NB - 3];
 
 Magic Magics[SQUARE_NB][2];
 
@@ -53,8 +53,8 @@ Bitboard* Attacks[2]{BishopAttacks, RookAttacks};
 
 // Returns the bitboard of target square from the given square for the given step.
 // If the step is off the board, returns empty bitboard.
-inline Bitboard safe_destination(Square s, Direction step, std::uint8_t dist = 1) noexcept {
-    Square sq = s + step;
+inline Bitboard safe_destination(Square s, Direction dir, std::uint8_t dist = 1) noexcept {
+    Square sq = s + dir;
     return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
 }
 
@@ -65,13 +65,15 @@ Bitboard sliding_attack(Square s, Bitboard occupied = 0) noexcept {
     constexpr bool IsRook = PT == ROOK;
 
     Bitboard attacks = 0;
-    for (Direction d : DIRECTIONS[IsRook])
+    for (Direction dir : DIRECTIONS[IsRook])
     {
         Square sq = s;
-        while (safe_destination(sq, d))
+
+        Bitboard b;
+        while ((b = safe_destination(sq, dir)))
         {
-            attacks |= (sq += d);
-            if (occupied & sq)
+            attacks |= b;
+            if (occupied & (sq += dir))
                 break;
         }
     }
@@ -81,7 +83,7 @@ Bitboard sliding_attack(Square s, Bitboard occupied = 0) noexcept {
 
 // Computes all rook and bishop attacks at startup.
 // Magic bitboards are used to look up attacks of sliding pieces.
-// As a reference see www.chessprogramming.org/Magic_Bitboards.
+// As a reference see https://www.chessprogramming.org/Magic_Bitboards.
 // In particular, here use the so called "fancy" approach.
 template<PieceType PT>
 void init_magics() noexcept {
@@ -92,22 +94,22 @@ void init_magics() noexcept {
 
 #if !defined(USE_PEXT)
     // Optimal PRNG seeds to pick the correct magics in the shortest time
-    constexpr std::uint16_t MAGIC_SEEDS[RANK_NB]{
     // clang-format off
+    constexpr std::uint16_t MAGIC_SEEDS[RANK_NB]{
     #if defined(IS_64BIT)
       0x02D8, 0x284C, 0xD6E5, 0x8023, 0x2FF9, 0x3AFC, 0x4105, 0x00FF
     #else
       0x2311, 0xAE10, 0xD447, 0x9856, 0x1663, 0x73E5, 0x99D0, 0x427C
     #endif
-      // clang-format on
     };
+    // clang-format on
 
     Bitboard occupancy[TABLE_SIZE];
 
     std::uint32_t epoch[TABLE_SIZE]{}, cnt = 0;
 #endif
 
-    std::uint16_t size;
+    std::uint16_t size = 0;
 
     Bitboard reference[TABLE_SIZE];
 
@@ -171,7 +173,8 @@ void init_magics() noexcept {
             // of verifying the magic. Keep track of the attempt count and
             // save it in epoch[], little speed-up trick to avoid resetting
             // m.attacks[] after every failed attempt.
-            for (++cnt, i = 0; i < size; ++i)
+            ++cnt;
+            for (i = 0; i < size; ++i)
             {
                 auto idx = mag.index(occupancy[i]);
 
@@ -212,29 +215,29 @@ void init() noexcept {
         for (Color c : {WHITE, BLACK})
             PawnAttacks[s][c] = pawn_attacks_bb(c, square_bb(s));
 
-        //PseudoAttacks[s][0] = PseudoAttacks[s][1] = PseudoAttacks[s][7] = 0;
+        PieceAttacks[s][KNIGHT - 2] = 0;
+        for (auto dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
+                         WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
+            PieceAttacks[s][KNIGHT - 2] |= safe_destination(s, dir, 2);
 
-        PseudoAttacks[s][KNIGHT] = 0;
-        for (auto d : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
-                       WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
-            PseudoAttacks[s][KNIGHT] |= safe_destination(s, d, 2);
-        PseudoAttacks[s][KING] = 0;
-        for (auto d : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
-            PseudoAttacks[s][KING] |= safe_destination(s, d);
+        PieceAttacks[s][BISHOP - 2] = attacks_bb<BISHOP>(s, 0);
+        PieceAttacks[s][ROOK - 2]   = attacks_bb<ROOK>(s, 0);
+        PieceAttacks[s][QUEEN - 2]  = PieceAttacks[s][BISHOP - 2] | PieceAttacks[s][ROOK - 2];
 
-        PseudoAttacks[s][QUEEN] = PseudoAttacks[s][BISHOP] = attacks_bb<BISHOP>(s, 0);
-        PseudoAttacks[s][QUEEN] |= PseudoAttacks[s][ROOK]  = attacks_bb<ROOK>(s, 0);
+        PieceAttacks[s][KING - 2] = 0;
+        for (auto dir : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
+            PieceAttacks[s][KING - 2] |= safe_destination(s, dir);
     }
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
             Lines[s1][s2] = Betweens[s1][s2] = 0;
             for (PieceType pt : {BISHOP, ROOK})
-                if (PseudoAttacks[s1][pt] & s2)
+                if (PieceAttacks[s1][pt - 2] & s2)
                 {
-                    Lines[s1][s2] = (PseudoAttacks[s1][pt] & PseudoAttacks[s2][pt]) | s1 | s2;
+                    Lines[s1][s2] = (PieceAttacks[s1][pt - 2] & PieceAttacks[s2][pt - 2]) | s1 | s2;
                     Betweens[s1][s2] =
-                      (attacks_bb(pt, s1, square_bb(s2)) & attacks_bb(pt, s2, square_bb(s1)));
+                      attacks_bb(pt, s1, square_bb(s2)) & attacks_bb(pt, s2, square_bb(s1));
                 }
             Betweens[s1][s2] |= s2;
         }
@@ -255,7 +258,7 @@ std::string pretty(Bitboard b) noexcept {
     }
     oss << "  ";
     for (File f = FILE_A; f <= FILE_H; ++f)
-        oss << UCI::file(f) << "   ";
+        oss << UCI::file(f, true) << "   ";
     oss << '\n';
 
     return oss.str();

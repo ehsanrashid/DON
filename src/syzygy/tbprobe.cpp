@@ -77,7 +77,7 @@ enum TBType {
 
 // Each table has a set of flags: all of them refer to DTZ tables, the last one to WDL tables
 enum TBFlag {
-    STM         = 1,
+    AC          = 1,
     Mapped      = 2,
     WinPlies    = 4,
     LossPlies   = 8,
@@ -86,24 +86,35 @@ enum TBFlag {
 };
 
 constexpr Square operator^(Square s, int i) noexcept { return Square(int(s) ^ i); }
+constexpr Piece  operator^(Piece pc, int i) noexcept { return Piece(int(pc) ^ i); }
 
 int MapPawns[SQUARE_NB];
 int MapB1H1H7[SQUARE_NB];
 int MapA1D1D4[SQUARE_NB];
 int MapKK[10][SQUARE_NB];  // [MapA1D1D4][SQUARE_NB]
 
-int Binomial[6][SQUARE_NB];         // [k][n] k elements from a set of n elements
-int LeadPawnIdx[6][SQUARE_NB];      // [leadPawnsCnt][SQUARE_NB]
-int LeadPawnsSize[6][FILE_NB / 2];  // [leadPawnsCnt][FILE_A..FILE_D]
+int Binomial[6][SQUARE_NB];        // [k][n] k elements from a set of n elements
+int LeadPawnIdx[6][SQUARE_NB];     // [leadPawnCnt][SQUARE_NB]
+int LeadPawnSize[6][FILE_NB / 2];  // [leadPawnCnt][FILE_A..FILE_D]
 
 // Comparison function to sort leading pawns in ascending MapPawns[] order
 bool pawns_comp(Square s1, Square s2) noexcept { return MapPawns[s1] < MapPawns[s2]; }
 
 constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
+
 // clang-format off
-constexpr std::int32_t WDLToRank[5]{-MAX_DTZ, -MAX_DTZ + 101, 0, MAX_DTZ - 101, MAX_DTZ};
-constexpr Value WDLToValue[5]{-VALUE_MATE + MAX_PLY + 1, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_MATE - MAX_PLY - 1};
+constexpr std::int32_t WDLToRank [5]{-MAX_DTZ,
+                                     -MAX_DTZ + 101,
+                                      0,
+                                     +MAX_DTZ - 101,
+                                     +MAX_DTZ};
+constexpr Value        WDLToValue[5]{-VALUE_MATE + MAX_PLY + 1,
+                                      VALUE_DRAW - 2,
+                                      VALUE_DRAW,
+                                      VALUE_DRAW + 2,
+                                     +VALUE_MATE - MAX_PLY - 1};
 // clang-format on
+
 template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
 inline void swap_endian(T& x) noexcept {
     static_assert(std::is_unsigned_v<T>, "Argument of swap_endian not unsigned");
@@ -286,18 +297,18 @@ class TBFile: public std::ifstream {
 #endif
         auto data = (std::uint8_t*) (*baseAddress);
 
-        constexpr std::size_t  MagicsSize = 4;
-        constexpr std::uint8_t Magics[2][MagicsSize]{{0xD7, 0x66, 0x0C, 0xA5},
-                                                     {0x71, 0xE8, 0x23, 0x5D}};
+        constexpr std::size_t  MAGIC_SIZE = 4;
+        constexpr std::uint8_t MAGIC[2][MAGIC_SIZE]{{0xD7, 0x66, 0x0C, 0xA5},
+                                                    {0x71, 0xE8, 0x23, 0x5D}};
 
-        if (std::memcmp(data, Magics[type == WDL], MagicsSize))
+        if (std::memcmp(data, MAGIC[type == WDL], MAGIC_SIZE))
         {
             std::cerr << "Corrupted table in file " << filename << '\n';
             unmap(*baseAddress, *mapping);
             return *baseAddress = nullptr, nullptr;
         }
 
-        return data + MagicsSize;  // Skip Magics's header
+        return data + MAGIC_SIZE;  // Skip Magics's header
     }
 
     static void unmap(void* baseAddress, std::uint64_t mapping) noexcept {
@@ -363,7 +374,7 @@ struct TBTable final {
     std::uint8_t     pawnCount[COLOR_NB];        // [Lead color / other color]
     PairsData        items[SIDES][FILE_NB / 2];  // [wtm / btm][FILE_A..FILE_D or 0]
 
-    PairsData* get(int stm, int f) noexcept { return &items[stm % SIDES][f * hasPawns]; }
+    PairsData* get(int ac, int f) noexcept { return &items[ac % SIDES][f * hasPawns]; }
 
     TBTable() noexcept :
         ready(false),
@@ -381,12 +392,13 @@ template<>
 TBTable<WDL>::TBTable(const std::string& code) noexcept :
     TBTable() {
 
-    StateInfo st;
+    State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     Position pos;
 
-    key[WHITE] = pos.set(code, WHITE, &st).material_key();
+    pos.set(code, WHITE, &st);
+    key[WHITE] = pos.material_key();
     pieceCount = pos.count<ALL_PIECE>();
     hasPawns   = pos.count<PAWN>();
 
@@ -404,7 +416,8 @@ TBTable<WDL>::TBTable(const std::string& code) noexcept :
     pawnCount[WHITE] = pos.count<PAWN>(c ? WHITE : BLACK);
     pawnCount[BLACK] = pos.count<PAWN>(c ? BLACK : WHITE);
 
-    key[BLACK] = pos.set(code, BLACK, &st).material_key();
+    pos.set(code, BLACK, &st);
+    key[BLACK] = pos.material_key();
 }
 
 template<>
@@ -669,12 +682,12 @@ int decompress_pairs(PairsData* d, std::uint64_t idx) noexcept {
     return d->btree[sym].get<LR::Left>();
 }
 
-bool check_dtz_stm(TBTable<WDL>*, int, File) noexcept { return true; }
+bool check_dtz_ac(TBTable<WDL>*, int, File) noexcept { return true; }
 
-bool check_dtz_stm(TBTable<DTZ>* entry, int stm, File f) noexcept {
+bool check_dtz_ac(TBTable<DTZ>* entry, int ac, File f) noexcept {
 
-    auto flags = entry->get(stm, f)->flags;
-    return (flags & STM) == stm || (!entry->hasPawns && entry->key[WHITE] == entry->key[BLACK]);
+    auto flags = entry->get(ac, f)->flags;
+    return (flags & AC) == ac || (!entry->hasPawns && entry->key[WHITE] == entry->key[BLACK]);
 }
 
 // DTZ scores are sorted by frequency of occurrence and then assigned the
@@ -717,9 +730,9 @@ int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdl) noexcept {
     #define CLANG_AVX512_BUG_FIX
 #endif
 
-// Compute a unique index out of a position and use it to probe the TB file. To
-// encode k pieces of the same type and color, first sort the pieces by square in
-// ascending order s1 <= s2 <= ... <= sk then compute the unique index as:
+// Compute a unique index out of a position and use it to probe the TB file.
+// To encode k pieces of the same type and color, first sort the pieces by square
+// in ascending order s1 <= s2 <= ... <= sk then compute the unique index as:
 //
 //      idx = Binomial[1][s1] + Binomial[2][s2] + ... + Binomial[k][sk]
 //
@@ -731,7 +744,7 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
     Piece         pieces[TBPIECES];
     std::uint64_t idx;
     Bitboard      b, leadPawns = 0;
-    int           size = 0, leadPawnsCnt = 0;
+    int           size = 0, leadPawnCnt = 0;
     File          tbFile = FILE_A;
 
     // A given TB entry like KRK has associated two material keys: KRvk and Kvkr.
@@ -739,7 +752,7 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
     // only stores the 'white to move' case, so if the position to lookup has black
     // to move, need to switch the color and flip the squares before to lookup.
     bool symmetricBlackToMove =
-      entry->key[WHITE] == entry->key[BLACK] && pos.side_to_move() == BLACK;
+      entry->key[WHITE] == entry->key[BLACK] && pos.active_color() == BLACK;
 
     // TB files are calculated for white as the stronger side. For instance, we
     // have KRvK, not KvKR. A position where the stronger side is white will have
@@ -747,56 +760,55 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
     // and flip the squares before to lookup.
     bool blackStronger = pos.material_key() != entry->key[WHITE];
 
-    int flipColor  = (symmetricBlackToMove || blackStronger) * 8;
-    int flipSquare = (symmetricBlackToMove || blackStronger) * 56;
-    int stm        = (symmetricBlackToMove || blackStronger) ^ pos.side_to_move();
+    int colorFlip  = (symmetricBlackToMove || blackStronger) * 8;
+    int squareFlip = (symmetricBlackToMove || blackStronger) * 56;
+    int ac         = (symmetricBlackToMove || blackStronger) ^ pos.active_color();
 
     // For pawns, TB files store 4 separate tables according if leading pawn is on
     // file a, b, c or d after reordering. The leading pawn is the one with maximum
     // MapPawns[] value, that is the one most toward the edges and with lowest rank.
     if (entry->hasPawns)
     {
-
         // In all the 4 tables, pawns are at the beginning of the piece sequence and
         // their color is the reference one. So just pick the first one.
-        auto pc = Piece(entry->get(0, 0)->pieces[0] ^ flipColor);
+        auto pc = Piece(entry->get(0, 0)->pieces[0] ^ colorFlip);
         assert(type_of(pc) == PAWN);
 
         leadPawns = b = pos.pieces(color_of(pc), PAWN);
         do
-            squares[size++] = pop_lsb(b) ^ flipSquare;
+            squares[size++] = pop_lsb(b) ^ squareFlip;
         while (b);
 
-        leadPawnsCnt = size;
+        leadPawnCnt = size;
 
-        std::swap(squares[0], *std::max_element(squares, squares + leadPawnsCnt, pawns_comp));
+        std::swap(squares[0], *std::max_element(squares, squares + leadPawnCnt, pawns_comp));
 
         tbFile = edge_distance(file_of(squares[0]));
     }
 
     // DTZ tables are one-sided, i.e. they store positions only for white to
-    // move or only for black to move, so check for side to move to be stm,
+    // move or only for black to move, so check for side to move to be ac,
     // early exit otherwise.
-    if (!check_dtz_stm(entry, stm, tbFile))
-        return *result = CHANGE_STM, Ret();
+    if (!check_dtz_ac(entry, ac, tbFile))
+        return *result = CHANGE_AC, Ret();
 
-    // Now ready to get all the position pieces (but the lead pawns) and
-    // directly map them to the correct color and square.
+    // Now ready to get all the position pieces (but the lead pawns)
+    // and directly map them to the correct square and color.
     b = pos.pieces() ^ leadPawns;
-    do
+    while (b)
     {
         Square s       = pop_lsb(b);
-        squares[size]  = s ^ flipSquare;
-        pieces[size++] = Piece(pos.piece_on(s) ^ flipColor);
-    } while (b);
+        squares[size]  = s ^ squareFlip;
+        pieces[size++] = pos.piece_on(s) ^ colorFlip;
+    }
 
     assert(size >= 2);
 
-    PairsData* data = entry->get(stm, tbFile);
+    PairsData* data = entry->get(ac, tbFile);
 
     // Then reorder the pieces to have the same sequence as the one stored
     // in pieces[i]: the sequence that ensures the best compression.
-    for (int i = leadPawnsCnt; i < size - 1; ++i)
+    for (int i = leadPawnCnt; i < size - 1; ++i)
         for (int j = i + 1; j < size; ++j)
             if (data->pieces[i] == pieces[j])
             {
@@ -815,14 +827,14 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
     // proceeding in ascending order.
     if (entry->hasPawns)
     {
-        idx = LeadPawnIdx[leadPawnsCnt][squares[0]];
+        idx = LeadPawnIdx[leadPawnCnt][squares[0]];
 
-        std::stable_sort(squares + 1, squares + leadPawnsCnt, pawns_comp);
+        std::stable_sort(squares + 1, squares + leadPawnCnt, pawns_comp);
 
-        for (int i = 1; i < leadPawnsCnt; ++i)
+        for (int i = 1; i < leadPawnCnt; ++i)
             idx += Binomial[i][MapPawns[squares[i]]];
 
-        goto encode_remaining;  // With pawns have finished special treatments
+        goto ENCODE_END;  // With pawns have finished special treatments
     }
 
     // In positions without pawns, further flip the squares to ensure leading
@@ -904,7 +916,7 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
         // the kings.
         idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
 
-encode_remaining:
+ENCODE_END:
     idx *= data->groupIdx[0];
     Square* groupSq = squares + data->groupLen[0];
 
@@ -981,7 +993,7 @@ void set_groups(T& entry, PairsData* d, int order[], File f) noexcept {
         if (k == order[0])  // Leading pawns or pieces
         {
             d->groupIdx[0] = idx;
-            idx *= entry.hasPawns        ? LeadPawnsSize[d->groupLen[0]][f]
+            idx *= entry.hasPawns        ? LeadPawnSize[d->groupLen[0]][f]
                  : entry.hasUniquePieces ? 31332
                                          : 462;
         }
@@ -1148,7 +1160,7 @@ void set(T& entry, std::uint8_t* data) noexcept {
     assert(entry.hasPawns == bool(*data & HasPawns));
     assert((entry.key[WHITE] != entry.key[BLACK]) == bool(*data & Split));
 
-    data++;  // First byte stores flags
+    ++data;  // First byte stores flags
 
     const int  sides   = T::SIDES == 2 && entry.key[WHITE] != entry.key[BLACK] ? 2 : 1;
     const File maxFile = entry.hasPawns ? FILE_D : FILE_A;
@@ -1269,19 +1281,19 @@ Ret probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw)
 // DTZ tables do not store values when a following move is a zeroing winning move
 // (winning capture or winning pawn move). Also, DTZ store wrong values for positions
 // where the best move is an ep-move (even if losing). So in all these cases set
-// the state to ZEROING_BEST_MOVE.
+// the state to BEST_MOVE_ZEROING.
 template<bool CheckZeroingMoves>
 WDLScore search(Position& pos, ProbeState* result) noexcept {
 
     WDLScore value, bestValue = WDLLoss;
 
-    StateInfo st;
+    State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
-    const MoveList<LEGAL> legalMoves(pos);
-    std::uint8_t          legalCount = legalMoves.size(), moveCount = 0;
+    const LegalMoveList legalMoves(pos);
+    std::uint8_t        moveCount = 0;
 
-    for (const auto& m : legalMoves)
+    for (Move m : legalMoves)
     {
         if (!pos.capture(m) && (!CheckZeroingMoves || type_of(pos.moved_piece(m)) != PAWN))
             continue;
@@ -1301,7 +1313,7 @@ WDLScore search(Position& pos, ProbeState* result) noexcept {
 
             if (value >= WDLWin)
             {
-                *result = ZEROING_BEST_MOVE;  // Winning DTZ-zeroing move
+                *result = BEST_MOVE_ZEROING;  // Winning DTZ-zeroing move
                 return value;
             }
         }
@@ -1312,8 +1324,8 @@ WDLScore search(Position& pos, ProbeState* result) noexcept {
     // do not contain information on position with ep rights, so in this case
     // the result of probe_wdl_table is wrong. Also in case of only capture
     // moves, for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7, have to
-    // return with ZEROING_BEST_MOVE set.
-    bool movesNoMore = (moveCount != 0 && moveCount == legalCount);
+    // return with BEST_MOVE_ZEROING set.
+    bool movesNoMore = (moveCount != 0 && moveCount == legalMoves.size());
 
     if (movesNoMore)
         value = bestValue;
@@ -1327,7 +1339,7 @@ WDLScore search(Position& pos, ProbeState* result) noexcept {
 
     // DTZ stores a "don't care" value if bestValue is a win
     if (bestValue >= value)
-        return *result = (bestValue > WDLDraw || movesNoMore ? ZEROING_BEST_MOVE : OK), bestValue;
+        return *result = (bestValue > WDLDraw || movesNoMore ? BEST_MOVE_ZEROING : OK), bestValue;
 
     return *result = OK, value;
 }
@@ -1338,17 +1350,8 @@ namespace Tablebases {
 
 std::uint8_t MaxCardinality;
 
-// Called at startup and after every change to
-// "SyzygyPath" UCI option to (re)create the various tables.
-// It is not thread safe, nor it needs to be.
-void init(const std::string& paths) noexcept {
-
-    TBTables.clear();
-    MaxCardinality = 0;
-    TBFile::Paths  = paths;
-
-    if (is_empty(paths))
-        return;
+// Called at startup to create the various tables
+void init() noexcept {
 
     int code;
     // MapB1H1H7[] encodes a square below a1-h8 diagonal to 0..27
@@ -1409,15 +1412,15 @@ void init(const std::string& paths) noexcept {
             Binomial[k][n] =
               (k > 0 ? Binomial[k - 1][n - 1] : 0) + (k < n ? Binomial[k][n - 1] : 0);
 
-    // MapPawns[s] encodes squares a2-h7 to 0..47. This is the number of possible
-    // available squares when the leading one is in 's'. Moreover the pawn with
-    // highest MapPawns[] is the leading pawn, the one nearest the edge, and
-    // among pawns with the same file, the one with the lowest rank.
-    int availableSquares = 47;  // Available squares when lead pawn is in a2
+    // MapPawns[s] encodes squares a2-h7 to a1-h6 (0..47).
+    // This is the number of possible available squares when the leading one
+    // is in 's'. Moreover the pawn with highest MapPawns[] is the leading pawn,
+    // the one nearest the edge, and among pawns with the same file, the one with the lowest rank.
+    code = SQ_H6;  // Available squares (47) when lead pawn is in a2-h7
 
-    // Init the tables for the encoding of leading pawns group: with 7-men TB we
-    // can have up to 5 leading pawns (KPPPPPK).
-    for (int leadPawnsCnt = 1; leadPawnsCnt <= 5; ++leadPawnsCnt)
+    // Init the tables for the encoding of leading pawn group:
+    // with 7-men TB can have up to 5 leading pawns (KPPPPPK).
+    for (int leadPawnCnt = 1; leadPawnCnt <= 5; ++leadPawnCnt)
         for (File f = FILE_A; f <= FILE_D; ++f)
         {
             // Restart the index at every file because TB table is split
@@ -1435,17 +1438,30 @@ void init(const std::string& paths) noexcept {
                 // below or more toward the edge of sq. There are 47 available
                 // squares when sq = a2 and reduced by 2 for any rank increase
                 // due to mirroring: sq == a3 -> no a2, h2, so MapPawns[a3] = 45
-                if (leadPawnsCnt == 1)
+                if (leadPawnCnt == 1)
                 {
-                    MapPawns[s]            = availableSquares--;
-                    MapPawns[flip_file(s)] = availableSquares--;
+                    MapPawns[s]            = code--;
+                    MapPawns[flip_file(s)] = code--;
                 }
-                LeadPawnIdx[leadPawnsCnt][s] = idx;
-                idx += Binomial[leadPawnsCnt - 1][MapPawns[s]];
+                LeadPawnIdx[leadPawnCnt][s] = idx;
+                idx += Binomial[leadPawnCnt - 1][MapPawns[s]];
             }
             // After a file is traversed, store the cumulated per-file index
-            LeadPawnsSize[leadPawnsCnt][f] = idx;
+            LeadPawnSize[leadPawnCnt][f] = idx;
         }
+}
+
+// Called after every change to "SyzygyPath" UCI option
+// to (re)create the various tables.
+// It is not thread safe, nor it needs to be.
+void init(const std::string& paths) noexcept {
+
+    TBTables.clear();
+    MaxCardinality = 0;
+    TBFile::Paths  = paths;
+
+    if (is_empty(paths))
+        return;
 
     // Add entries in TB tables if the corresponding ".rtbw" file exists
     for (PieceType p1 = PAWN; p1 < KING; ++p1)
@@ -1492,7 +1508,7 @@ void init(const std::string& paths) noexcept {
 
     sync_cout << "info string Tablebase: "  //
               << TBTables.wdl_found() << " WDL and " << TBTables.dtz_found() << " DTZ found. "
-              << "Tablebase files (up to " << int(MaxCardinality) << "-man)." << sync_endl;
+              << "Tablebase files up to " << int(MaxCardinality) << "-man." << sync_endl;
 }
 
 // Probe the WDL table for a particular position.
@@ -1545,7 +1561,7 @@ int probe_dtz(Position& pos, ProbeState* result) noexcept {
 
     // DTZ stores a 'don't care value in this case, or even a plain wrong
     // one as in case the best move is a losing ep, so it cannot be probed.
-    if (*result == ZEROING_BEST_MOVE)
+    if (*result == BEST_MOVE_ZEROING)
         return dtz_before_zeroing(wdl);
 
     int dtz = probe_table<DTZ>(pos, result, wdl);
@@ -1553,17 +1569,17 @@ int probe_dtz(Position& pos, ProbeState* result) noexcept {
     if (*result == FAIL)
         return 0;
 
-    if (*result != CHANGE_STM)
+    if (*result != CHANGE_AC)
         return (dtz + 100 * (wdl == WDLBlessedLoss || wdl == WDLCursedWin)) * sign_of(wdl);
 
     // DTZ stores results for the other side, so need to do a 1-ply search and
     // find the winning move that minimizes DTZ.
-    StateInfo st;
+    State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     int minDTZ = 0xFFFF;
 
-    for (const auto& m : MoveList<LEGAL>(pos))
+    for (Move m : LegalMoveList(pos))
     {
         bool zeroing = pos.capture(m) || type_of(pos.moved_piece(m)) == PAWN;
 
@@ -1576,7 +1592,7 @@ int probe_dtz(Position& pos, ProbeState* result) noexcept {
         dtz = zeroing ? -dtz_before_zeroing(search<false>(pos, result)) : -probe_dtz(pos, result);
 
         // If the move mates, force minDTZ to 1
-        if (dtz == 1 && pos.checkers() && MoveList<LEGAL>(pos).size() == 0)
+        if (dtz == 1 && pos.checkers() && LegalMoveList(pos).empty())
             minDTZ = 1;
 
         // Convert result from 1-ply search. Zeroing moves are already accounted
@@ -1607,7 +1623,7 @@ bool root_probe(Position&          pos,
                 bool               rankDTZ) noexcept {
     ProbeState result = OK;
 
-    StateInfo st;
+    State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     // Obtain 50-move counter for the root position
@@ -1644,7 +1660,7 @@ bool root_probe(Position&          pos,
         }
 
         // Make sure that a mating move is assigned a dtz value of 1
-        if (dtz == 2 && pos.checkers() && MoveList<LEGAL>(pos).size() == 0)
+        if (dtz == 2 && pos.checkers() && LegalMoveList(pos).empty())
             dtz = 1;
 
         pos.undo_move(rm[0]);
@@ -1682,7 +1698,7 @@ bool root_probe(Position&          pos,
 bool root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noexcept {
     ProbeState result = OK;
 
-    StateInfo st;
+    State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     // Probe and rank each move

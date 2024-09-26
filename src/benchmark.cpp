@@ -150,7 +150,7 @@ std::vector<std::string> setup_bench(std::istringstream& iss,
     }
 
     std::vector<std::string> cmds;
-    if (limitType != "eval" && limitType != "perft")
+    if (limitType != "eval")
     {
         cmds.emplace_back("setoption name Threads value " + threads);
         cmds.emplace_back("setoption name Hash value " + hash);

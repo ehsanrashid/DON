@@ -42,18 +42,15 @@ Value evaluate(const Position&          pos,
                std::int32_t             optimism) noexcept {
     assert(!pos.checkers());
 
-    const Value npm = pos.non_pawn_material();
+    NNUE::NetworkOutput netOut{0, 0};
 
-    const short delta = std::min(14 + npm / 1600, 24);
-
-    NNUE::NetworkOutput netOut;
-
-    std::int32_t nnue;
-
-    auto compute_nnue = [=, &netOut = std::as_const(netOut)]() noexcept -> std::int32_t {
-        return ((1024 - delta) * netOut.psqt + (1024 + delta) * netOut.positional)
-             / (1024 * NNUE::OUTPUT_SCALE);
+    auto compute_nnue = [&netOut = std::as_const(netOut)]() noexcept -> std::int32_t {
+        constexpr short delta = 3;
+        return ((128 - delta) * netOut.psqt + (128 + delta) * netOut.positional)
+             / (128 * NNUE::OUTPUT_SCALE);
     };
+
+    std::int32_t nnue = 0;
 
     bool netSmall = use_small_net(pos);
     if (netSmall)
@@ -63,8 +60,8 @@ Value evaluate(const Position&          pos,
         nnue = compute_nnue();
 
         // Re-evaluate the position when higher eval accuracy is worth the time spent
-        netSmall = std::abs(nnue + netOut.psqt)
-                 > 1.199 * std::abs(netOut.psqt) + 20 * (pos.count<ALL_PIECE>() / 4);
+        netSmall = std::signbit(nnue) == std::signbit(netOut.psqt)
+                && std::abs(nnue) > 225 + 2 * pos.count<ALL_PIECE>();
     }
     if (!netSmall)
     {
@@ -80,7 +77,7 @@ Value evaluate(const Position&          pos,
 
     optimism += optimism * complexity / (453 - 20 * netSmall);
 
-    const Value material = (532 + 21 * netSmall) * pos.count<PAWN>() + npm;
+    const Value material = (532 + 21 * netSmall) * pos.count<PAWN>() + pos.non_pawn_material();
 
     // clang-format off
     std::int32_t v = (nnue     * (73921 + material)
@@ -120,14 +117,13 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     auto netOut = networks.big.evaluate(pos, &accCaches->big);
 
     v = (netOut.psqt + netOut.positional) / NNUE::OUTPUT_SCALE;
-    v = pos.side_to_move() == WHITE ? +v : -v;
+    v = pos.active_color() == WHITE ? +v : -v;
     oss << "NNUE evaluation        " << 0.01 * UCI::to_cp(v, pos) << " (white side)\n";
 
     v = evaluate(pos, networks, *accCaches);
-    v = pos.side_to_move() == WHITE ? +v : -v;
+    v = pos.active_color() == WHITE ? +v : -v;
     oss << "Final evaluation       " << 0.01 * UCI::to_cp(v, pos) << " (white side)";
-    oss << " [with scaled NNUE, ...]";
-    oss << '\n';
+    oss << " [with scaled NNUE, ...]\n";
 
     return oss.str();
 }

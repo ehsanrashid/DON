@@ -45,7 +45,7 @@ class Options;
 // such that the recipient does not need to know whether the binding happened or not.
 class OptionalThreadToNumaNodeBinder final {
    public:
-    OptionalThreadToNumaNodeBinder(NumaIndex nId) :
+    explicit OptionalThreadToNumaNodeBinder(NumaIndex nId) :
         numaConfig(nullptr),
         numaId(nId) {}
 
@@ -154,8 +154,11 @@ class ThreadPool final {
     Thread*                    best_thread() const noexcept;
     Search::MainSearchManager* main_manager() const noexcept;
 
-    std::uint64_t nodes() const noexcept;
-    std::uint64_t tbHits() const noexcept;
+    auto nodes() const noexcept;
+    auto tbHits() const noexcept;
+    auto move_changes() const noexcept;
+
+    void set_move_changes(std::uint16_t moveChanges = 0) noexcept;
 
     void start(Position&             pos,
                StateListPtr&         states,
@@ -186,22 +189,21 @@ class ThreadPool final {
     std::atomic_bool stop, abort, research;
 
    private:
-    // template<typename T>
-    // void set(std::atomic<T> Search::Worker::*member, T value = T()) const noexcept {
-    //    for (auto&& th : threads)
-    //        th->worker.get()->*member = value;
-    // }
+    template<typename T>
+    void set(T Search::Worker::*member, T value = T()) noexcept {
+        for (auto&& th : threads)
+            th->worker.get()->*member = value;
+    }
 
     template<typename T>
-    std::uint64_t accumulate(std::atomic<T> Search::Worker::*member,
-                             std::uint64_t                   sum = T()) const noexcept {
+    T accumulate(T Search::Worker::*member, T sum = T()) const noexcept {
         for (auto&& th : threads)
-            sum += (th->worker.get()->*member).load(std::memory_order_relaxed);
+            sum += th->worker.get()->*member;
         return sum;
     }
 
     std::deque<ThreadPtr>  threads;
-    std::vector<NumaIndex> boundThreadToNumaNode;
+    std::vector<NumaIndex> numaNodeBoundThreads;
     StateListPtr           setupStates;
 };
 
@@ -215,7 +217,7 @@ inline void ThreadPool::clear() noexcept {
     main_thread()->wait_finish();
 
     threads.clear();
-    boundThreadToNumaNode.clear();
+    numaNodeBoundThreads.clear();
 }
 
 // Sets threadPool data to initial values
@@ -237,12 +239,20 @@ inline Search::MainSearchManager* ThreadPool::main_manager() const noexcept {
     return main_thread()->worker->main_manager();
 }
 
-inline std::uint64_t ThreadPool::nodes() const noexcept {
+inline auto ThreadPool::nodes() const noexcept {  //
     return accumulate(&Search::Worker::nodes);
 }
 
-inline std::uint64_t ThreadPool::tbHits() const noexcept {
+inline auto ThreadPool::tbHits() const noexcept {  //
     return accumulate(&Search::Worker::tbHits);
+}
+
+inline auto ThreadPool::move_changes() const noexcept {
+    return accumulate(&Search::Worker::moveChanges);
+}
+
+inline void ThreadPool::set_move_changes(std::uint16_t moveChanges) noexcept {
+    set(&Search::Worker::moveChanges, moveChanges);
 }
 
 // Start non-main threads

@@ -30,7 +30,7 @@ namespace Eval {
 // for the build process (profile-build and fishtest) to work. Do not change the
 // name of the macro or the location where this macro is defined, as it is used
 // in the Makefile/Fishtest.
-#define EvalFileDefaultNameBig "nn-31337bea577c.nnue"
+#define EvalFileDefaultNameBig "nn-1111cefa1111.nnue"
 #define EvalFileDefaultNameSmall "nn-37f18f62d772.nnue"
 
 namespace NNUE {
@@ -39,10 +39,9 @@ struct AccumulatorCaches;
 }  // namespace NNUE
 
 inline bool use_small_net(const Position& pos) noexcept {
-    const Value absEval = std::abs(pos.evaluate());
-    return (absEval > 952 + 8 * (pos.count<ALL_PIECE>() / 4))
-        || (absEval > 944 - 24 * pos.count<PAWN>() && pos.count<ALL_PIECE>() < 6)  //
-      ;
+    Value absEval = std::abs(pos.evaluate());
+    return (absEval > 960 + 6 * pos.count<ALL_PIECE>() / 4)
+        || (absEval > 950 - 22 * pos.count<PAWN>() && pos.count<ALL_PIECE>() < 6);
 }
 
 Value evaluate(const Position&          pos,

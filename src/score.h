@@ -42,26 +42,26 @@ class Score final {
         int value;
     };
 
-    Score() = default;
+    Score() noexcept = delete;
     Score(Value v, const Position& pos) noexcept;
 
     template<typename T>
     bool is() const noexcept {
-        return std::holds_alternative<T>(variant);
+        return std::holds_alternative<T>(score);
     }
 
     template<typename T>
     T get() const noexcept {
-        return std::get<T>(variant);
+        return std::get<T>(score);
     }
 
     template<typename F>
     decltype(auto) visit(F&& f) const noexcept {
-        return std::visit(std::forward<F>(f), variant);
+        return std::visit(std::forward<F>(f), score);
     }
 
    private:
-    std::variant<Mate, Tablebase, Unit> variant;
+    std::variant<Mate, Tablebase, Unit> score;
 };
 
 }  // namespace DON

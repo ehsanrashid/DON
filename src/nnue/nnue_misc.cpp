@@ -124,7 +124,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
     auto         baseNetOut = networks.big.evaluate(pos, &caches.big);
     std::int32_t baseEval   = (baseNetOut.psqt + baseNetOut.positional) / OUTPUT_SCALE;
 
-    baseEval = pos.side_to_move() == WHITE ? +baseEval : -baseEval;
+    baseEval = pos.active_color() == WHITE ? +baseEval : -baseEval;
 
     for (File f = FILE_A; f <= FILE_H; ++f)
         for (Rank r = RANK_1; r <= RANK_8; ++r)
@@ -143,11 +143,11 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
                 auto         netOut = networks.big.evaluate(pos, &caches.big);
                 std::int32_t eval   = (netOut.psqt + netOut.positional) / OUTPUT_SCALE;
 
-                eval = pos.side_to_move() == WHITE ? +eval : -eval;
+                eval = pos.active_color() == WHITE ? +eval : -eval;
 
                 v = baseEval - eval;
 
-                pos.put_piece(pc, sq);
+                pos.put_piece(sq, pc);
                 st->bigAccumulator.computed[WHITE] = st->bigAccumulator.computed[BLACK] = false;
             }
 
@@ -162,7 +162,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
     auto trace = networks.big.trace_eval(pos, &caches.big);
 
     oss << " NNUE network contributions "
-        << (pos.side_to_move() == WHITE ? "(White to move)" : "(Black to move)") << '\n'
+        << (pos.active_color() == WHITE ? "(White to move)" : "(Black to move)") << '\n'
         << "+------------+------------+------------+------------+\n"
         << "|   Bucket   |  Material  | Positional |   Total    |\n"
         << "|            |   (PSQT)   |  (Layers)  |            |\n"

@@ -38,6 +38,7 @@ namespace {
 // Version number or dev.
 constexpr inline std::string_view Version{"dev"};
 
+#if !defined(GIT_DATE)
 inline std::string format_date(const std::string& date) noexcept {
     //constexpr std::string_view Months{"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"};
     constexpr std::array<std::string_view, 12> Months{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -58,6 +59,7 @@ inline std::string format_date(const std::string& date) noexcept {
     // clang-format on
     return oss.str();
 }
+#endif
 
 // Fancy logging facility. The trick here is to replace cin.rdbuf() and cout.rdbuf()
 // with two Tie objects that tie std::cin and std::cout to a file stream.
@@ -95,6 +97,7 @@ class Logger final {
     Logger(std::istream& is, std::ostream& os) noexcept :
         istream(is),
         ostream(os),
+        ofstream(),
         iTie(is.rdbuf(), ofstream.rdbuf()),
         oTie(os.rdbuf(), ofstream.rdbuf()) {}
 
@@ -102,8 +105,9 @@ class Logger final {
 
     std::istream& istream;
     std::ostream& ostream;
-    Tie           iTie, oTie;
     std::ofstream ofstream;
+    Tie           iTie;
+    Tie           oTie;
 
    public:
     static void start(const std::string& logFile) noexcept {
@@ -453,7 +457,7 @@ void correl_of(std::int64_t value1, std::int64_t value2, std::uint8_t slot) noex
 
 void print() noexcept {
 
-    std::int64_t n;
+    std::int64_t n = 1;
 
     auto avg = [&n](std::int64_t x) noexcept { return double(x) / n; };
 

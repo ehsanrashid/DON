@@ -17,6 +17,7 @@
 
 #include <cstdlib>
 #include <iostream>
+//#include <locale>
 
 #include "bitboard.h"
 #include "misc.h"
@@ -24,6 +25,7 @@
 #include "tune.h"
 #include "types.h"
 #include "uci.h"
+#include "syzygy/tbprobe.h"
 
 using namespace DON;
 
@@ -31,12 +33,16 @@ void atexit_handler() noexcept;
 
 int main(int argc, const char** argv) noexcept {
 
+    //std::locale::global(std::locale(""));
+    //std::cout.imbue(std::locale());
+
     std::cout << engine_info() << std::endl;
 
     std::atexit(atexit_handler);
 
     BitBoard::init();
     Position::init();
+    Tablebases::init();
 #if !defined(NDEBUG)
     Debug::init();
 #endif

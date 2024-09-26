@@ -303,14 +303,12 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                     for (int i = 0; i < std::min(numActiveProcessors, 2); ++i)
                     {
-                        GROUP_AFFINITY GroupAffinity;
-                        std::memset(&GroupAffinity, 0, sizeof(GROUP_AFFINITY));
-                        GroupAffinity.Group = static_cast<WORD>(procGroupIndex);
+                        GROUP_AFFINITY grpAffinity;
+                        std::memset(&grpAffinity, 0, sizeof(GROUP_AFFINITY));
+                        grpAffinity.Group = static_cast<WORD>(procGroupIndex);
+                        grpAffinity.Mask  = static_cast<KAFFINITY>(1) << i;
 
-                        GroupAffinity.Mask = static_cast<KAFFINITY>(1) << i;
-
-                        status =
-                          SetThreadGroupAffinity(GetCurrentThread(), &GroupAffinity, nullptr);
+                        status = SetThreadGroupAffinity(GetCurrentThread(), &grpAffinity, nullptr);
                         if (status == 0)
                         {
                             winAffinity.isOldDeterminate = false;
@@ -558,8 +556,21 @@ class NumaConfig final {
         // the new NUMA allocation behaviour was introduced while there was
         // still no way to set thread affinity spanning multiple processor groups.
         // See https://learn.microsoft.com/en-us/windows/win32/procthread/numa-support
-        // We also do this is if need to force old API for some reason.
-        if (STARTUP_USE_OLD_AFFINITY_API)
+        // Also do this is if need to force old API for some reason.
+        //
+        // Later it appears that needed to actually always force this behaviour.
+        // While Windows allows this to work now, such assignments have bad interaction
+        // with the scheduler - in particular it still prefers scheduling on the thread's
+        // "primary" node, even if it means scheduling SMT processors first.
+        // See https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
+        //
+        //     Each process is assigned a primary group at creation, and by default all
+        //     of its threads' primary group is the same. Each thread's ideal processor
+        //     is in the thread's primary group, so threads will preferentially be
+        //     scheduled to processors on their primary group, but they are able to
+        //     be scheduled to processors on any other group.
+        //
+        // used to be guarded by if (STARTUP_USE_OLD_AFFINITY_API)
         {
             NumaConfig splitCfg = empty();
 
@@ -570,17 +581,17 @@ class NumaConfig final {
                     continue;
 
                 std::size_t lastProcGroupIndex = *(cpus.begin()) / WIN_PROCESSOR_GROUP_SIZE;
-                for (CpuIndex c : cpus)
+                for (CpuIndex cpuIdx : cpus)
                 {
-                    const std::size_t procGroupIndex = c / WIN_PROCESSOR_GROUP_SIZE;
-                    if (procGroupIndex != lastProcGroupIndex)
+                    std::size_t procGroupIndex = cpuIdx / WIN_PROCESSOR_GROUP_SIZE;
+                    if (lastProcGroupIndex != procGroupIndex)
                     {
-                        splitNodeIndex += 1;
+                        ++splitNodeIndex;
                         lastProcGroupIndex = procGroupIndex;
                     }
-                    splitCfg.add_cpu_to_node(splitNodeIndex, c);
+                    splitCfg.add_cpu_to_node(splitNodeIndex, cpuIdx);
                 }
-                splitNodeIndex += 1;
+                ++splitNodeIndex;
             }
 
             cfg = std::move(splitCfg);
@@ -589,8 +600,8 @@ class NumaConfig final {
 #else
 
         // Fallback for unsupported systems.
-        for (CpuIndex c = 0; c < SYSTEM_THREADS_NB; ++c)
-            cfg.add_cpu_to_node(NumaIndex{0}, c);
+        for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
+            cfg.add_cpu_to_node(NumaIndex{0}, cpuIdx);
 
 #endif
 
@@ -623,7 +634,7 @@ class NumaConfig final {
                     if (!cfg.add_cpu_to_node(nIdx, CpuIndex(idx)))
                         std::exit(EXIT_FAILURE);
 
-                nIdx += 1;
+                ++nIdx;
             }
         }
 
@@ -653,21 +664,21 @@ class NumaConfig final {
     std::string to_string() const noexcept {
         std::ostringstream oss;
 
-        bool isFirstNode = true;
+        bool nodeFirst = true;
         for (auto&& cpus : nodes)
         {
-            if (!isFirstNode)
+            if (!nodeFirst)
                 oss << ':';
 
-            bool isFirstSet = true;
-            auto beginItr   = cpus.begin();
+            bool setFirst = true;
+            auto beginItr = cpus.begin();
             for (auto itr = cpus.begin(); itr != cpus.end(); ++itr)
             {
                 auto nextItr = std::next(itr);
                 if (nextItr == cpus.end() || *nextItr != *itr + 1)
                 {
                     // cpus[i] is at the end of the range (may be of size 1)
-                    if (!isFirstSet)
+                    if (!setFirst)
                         oss << ',';
 
                     CpuIndex lstIdx = *itr;
@@ -678,11 +689,11 @@ class NumaConfig final {
                     }
                     oss << std::to_string(lstIdx);
 
-                    beginItr   = nextItr;
-                    isFirstSet = false;
+                    beginItr = nextItr;
+                    setFirst = false;
                 }
             }
-            isFirstNode = false;
+            nodeFirst = false;
         }
 
         return oss.str();
@@ -906,7 +917,7 @@ class NumaConfig final {
 
     static NumaConfig empty() { return NumaConfig(EmptyNodeTag{}); }
 
-    NumaConfig(EmptyNodeTag) :
+    explicit NumaConfig(EmptyNodeTag) :
         highestCpuIndex(0),
         affinityCustom(false) {}
 
@@ -1020,7 +1031,7 @@ class NumaReplicated final: public NumaReplicatedBase {
    public:
     using ReplicatorFuncType = std::function<T(const T&)>;
 
-    NumaReplicated(NumaReplicationContext& ctx) noexcept :
+    explicit NumaReplicated(NumaReplicationContext& ctx) noexcept :
         NumaReplicatedBase(ctx) {
         replicate_from(T{});
     }
@@ -1104,7 +1115,7 @@ class LazyNumaReplicated final: public NumaReplicatedBase {
    public:
     using ReplicatorFuncType = std::function<T(const T&)>;
 
-    LazyNumaReplicated(NumaReplicationContext& ctx) noexcept :
+    explicit LazyNumaReplicated(NumaReplicationContext& ctx) noexcept :
         NumaReplicatedBase(ctx) {
         prepare_replicate_from(T{});
     }
@@ -1210,7 +1221,7 @@ class LazyNumaReplicated final: public NumaReplicatedBase {
 
 class NumaReplicationContext final {
    public:
-    NumaReplicationContext(NumaConfig&& cfg) noexcept :
+    explicit NumaReplicationContext(NumaConfig&& cfg) noexcept :
         config(std::move(cfg)) {}
 
     NumaReplicationContext(const NumaReplicationContext&) noexcept            = delete;
