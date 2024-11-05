@@ -71,18 +71,6 @@ constexpr inline Bitboard EDGE_FILE_BB      = FILE_A_BB | FILE_H_BB;
 constexpr inline Bitboard COLOR_BB[COLOR_NB]{0x55AA55AA55AA55AAull, 0xAA55AA55AA55AA55ull};
 constexpr inline Bitboard LOW_RANK_BB[COLOR_NB]{RANK_2_BB | RANK_3_BB, RANK_7_BB | RANK_6_BB};
 
-#if !defined(USE_POPCNT)
-constexpr inline std::uint32_t POPCNT_SIZE = 1 << 16;
-extern std::uint8_t            PopCnt16[POPCNT_SIZE];
-#endif
-
-extern std::uint8_t Distances[SQUARE_NB][SQUARE_NB];
-
-extern Bitboard Lines[SQUARE_NB][SQUARE_NB];
-extern Bitboard Betweens[SQUARE_NB][SQUARE_NB];
-extern Bitboard PawnAttacks[SQUARE_NB][COLOR_NB];
-extern Bitboard PieceAttacks[SQUARE_NB][PIECE_TYPE_NB - 3];
-
 // Magic holds all magic bitboards relevant data for a single square
 struct Magic final {
    public:
@@ -122,7 +110,19 @@ struct Magic final {
     }
 };
 
-extern Magic Magics[SQUARE_NB][2];  // BISHOP or ROOK
+#if !defined(USE_POPCNT)
+constexpr inline std::uint32_t POPCNT_SIZE = 1 << 16;
+extern std::uint8_t            PopCnt16[POPCNT_SIZE];
+#endif
+// clang-format off
+extern std::uint8_t Distances[SQUARE_NB][SQUARE_NB];
+
+extern Bitboard         Lines[SQUARE_NB][SQUARE_NB];
+extern Bitboard      Betweens[SQUARE_NB][SQUARE_NB];
+extern Bitboard   PawnAttacks[SQUARE_NB][COLOR_NB];
+extern Bitboard  PieceAttacks[SQUARE_NB][PIECE_TYPE_NB - 3];
+extern Magic           Magics[SQUARE_NB][2];  // BISHOP or ROOK
+// clang-format on
 
 constexpr Bitboard square_bb(Square s) noexcept {
     assert(is_ok(s));

@@ -34,7 +34,7 @@
     #include <arm_neon.h>
 #endif
 
-namespace DON::Simd {
+namespace DON::NNUE::Simd {
 
 #if defined(USE_AVX512)
 
@@ -128,6 +128,6 @@ neon_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept {
     acc                = vpadalq_s16(acc, sum);
 }
 #endif
-}  // namespace DON::Simd
+}  // namespace DON::NNUE::Simd
 
 #endif  // #ifndef NNUE_LAYERS_SIMD_H_INCLUDED

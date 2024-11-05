@@ -22,9 +22,11 @@
 #include <cassert>
 #include <cctype>
 #include <cmath>
+#include <cstdint>
 #include <deque>
 #include <functional>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <optional>
 #include <sstream>
@@ -33,6 +35,7 @@
 
 #include "benchmark.h"
 #include "evaluate.h"
+#include "memory.h"
 #include "movegen.h"
 #include "position.h"
 #include "score.h"
@@ -42,14 +45,12 @@ namespace DON {
 
 namespace {
 
-// clang-format off
-constexpr inline std::string_view StartFEN{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
-constexpr inline std::string_view PieceChar{" PNBRQK  pnbrqk "};
-const     inline std::array<std::string, PIECE_NB> PieceFigure{"", "\u2659", "\u2658", "\u2657", "\u2656", "\u2655", "\u2654", "",
-                                                               "", "\u265F", "\u265E", "\u265D", "\u265C", "\u265B", "\u265A", ""};
-// clang-format on
+constexpr inline std::string_view              PieceChar{" PNBRQK  pnbrqk "};
+const inline std::array<std::string, PIECE_NB> PieceFigure{
+  "", "\u2659", "\u2658", "\u2657", "\u2656", "\u2655", "\u2654", "",
+  "", "\u265F", "\u265E", "\u265D", "\u265C", "\u265B", "\u265A", ""};
 
-enum UciCommand : std::uint8_t {
+enum Command : std::uint8_t {
     CMD_STOP,
     CMD_QUIT,
     CMD_PONDERHIT,
@@ -62,6 +63,7 @@ enum UciCommand : std::uint8_t {
     // Add custom non-UCI commands, mainly for debugging purposes.
     // These commands must not be used during a search!
     CMD_BENCH,
+    CMD_BENCHMARK,
     CMD_SHOW,
     CMD_EVAL,
     CMD_FLIP,
@@ -73,7 +75,7 @@ enum UciCommand : std::uint8_t {
 };
 
 // clang-format off
-const inline std::unordered_map<std::string_view, UciCommand> UciCommandMap{
+const inline std::unordered_map<std::string_view, Command> CommandMap{
   {"stop",       CMD_STOP},
   {"quit",       CMD_QUIT},
   {"ponderhit",  CMD_PONDERHIT},
@@ -84,10 +86,12 @@ const inline std::unordered_map<std::string_view, UciCommand> UciCommandMap{
   {"ucinewgame", CMD_UCINEWGAME},
   {"isready",    CMD_ISREADY},
   {"bench",      CMD_BENCH},
+  {"benchmark",  CMD_BENCHMARK},
   {"show",       CMD_SHOW},
   {"eval",       CMD_EVAL},
   {"flip",       CMD_FLIP},
   {"compiler",   CMD_COMPILER},
+  {"export_net", CMD_EXPORT_NET},
   {"--help",     CMD_HELP},
   {"help",       CMD_HELP},
   {"--license",  CMD_HELP},
@@ -102,80 +106,81 @@ struct Overload final: Ts... {
 template<typename... Ts>
 Overload(Ts...) -> Overload<Ts...>;
 
-UciCommand uci_command(std::string_view cmd) noexcept {
-    auto itr = UciCommandMap.find(cmd);
-    return itr != UciCommandMap.end() ? itr->second : CMD_NONE;
+Command to_command(std::string_view command) noexcept {
+    auto itr = CommandMap.find(command);
+    return itr != CommandMap.end() ? itr->second : CMD_NONE;
 }
 
-Search::Limits parse_limits(std::istringstream& iss) noexcept {
-    Search::Limits limits;
+Limit parse_limit(std::istringstream& iss) noexcept {
+
+    Limit limit;
     // The search starts as early as possible
-    limits.startTime = now();
+    limit.startTime = now();
 
     std::string token;
     while (iss >> token)
     {
-        token = to_lower(token);
+        token = lower_case(token);
         if (token == "wtime")
         {
-            iss >> limits.clock[WHITE].time;
-            limits.clock[WHITE].time = std::max(std::abs(limits.clock[WHITE].time), 1ll);
+            iss >> limit.clocks[WHITE].time;
+            limit.clocks[WHITE].time = std::max(std::abs(limit.clocks[WHITE].time), 1ll);
         }
         else if (token == "btime")
         {
-            iss >> limits.clock[BLACK].time;
-            limits.clock[BLACK].time = std::max(std::abs(limits.clock[BLACK].time), 1ll);
+            iss >> limit.clocks[BLACK].time;
+            limit.clocks[BLACK].time = std::max(std::abs(limit.clocks[BLACK].time), 1ll);
         }
         else if (token == "winc")
         {
-            iss >> limits.clock[WHITE].inc;
-            limits.clock[WHITE].inc = std::max(std::abs(limits.clock[WHITE].inc), 1ll);
+            iss >> limit.clocks[WHITE].inc;
+            limit.clocks[WHITE].inc = std::max(std::abs(limit.clocks[WHITE].inc), 1ll);
         }
         else if (token == "binc")
         {
-            iss >> limits.clock[BLACK].inc;
-            limits.clock[BLACK].inc = std::max(std::abs(limits.clock[BLACK].inc), 1ll);
+            iss >> limit.clocks[BLACK].inc;
+            limit.clocks[BLACK].inc = std::max(std::abs(limit.clocks[BLACK].inc), 1ll);
         }
         else if (token == "movetime")
         {
-            iss >> limits.moveTime;
-            limits.moveTime = std::max(std::abs(limits.moveTime), 1ll);
+            iss >> limit.moveTime;
+            limit.moveTime = std::max(std::abs(limit.moveTime), 1ll);
         }
         else if (token == "movestogo")
         {
             std::int16_t movesToGo;
             iss >> movesToGo;
-            limits.movesToGo =
+            limit.movesToGo =
               std::clamp(std::abs(movesToGo), 1, +std::numeric_limits<std::uint8_t>::max());
         }
         else if (token == "mate")
         {
             std::int16_t mate;
             iss >> mate;
-            limits.mate = std::clamp(std::abs(mate), 1, +std::numeric_limits<std::uint8_t>::max());
+            limit.mate = std::clamp(std::abs(mate), 1, +std::numeric_limits<std::uint8_t>::max());
         }
         else if (token == "depth")
         {
-            iss >> limits.depth;
-            limits.depth = std::clamp(std::abs(limits.depth), 1, MAX_PLY - 1);
+            iss >> limit.depth;
+            limit.depth = std::clamp(std::abs(limit.depth), 1, MAX_PLY - 1);
         }
         else if (token == "nodes")
         {
-            iss >> limits.nodes;
-            limits.nodes = std::max(limits.nodes, 1ull);
+            iss >> limit.nodes;
+            limit.nodes = std::max(limit.nodes, 1ull);
             // When using nodes, ensure checking rate is not lower than 0.1% of nodes
-            limits.hitRate = std::min(+limits.hitRate, 1 + int(std::ceil(limits.nodes / 1024.0)));
+            limit.hitRate = std::min(+limit.hitRate, 1 + int(std::ceil(limit.nodes / 1024.0)));
         }
         else if (token == "infinite")
-            limits.infinite = true;
+            limit.infinite = true;
         else if (token == "ponder")
-            limits.ponder = true;
+            limit.ponder = true;
         else if (token == "perft")
         {
-            limits.perft = true;
-            iss >> limits.depth;
-            limits.depth = std::abs(limits.depth);
-            iss >> std::boolalpha >> limits.detail;
+            limit.perft = true;
+            iss >> limit.depth;
+            limit.depth = std::abs(limit.depth);
+            iss >> std::boolalpha >> limit.detail;
         }
         // "searchmoves" needs to be the last command on the line
         else if (starts_with(token, "search"))
@@ -183,12 +188,12 @@ Search::Limits parse_limits(std::istringstream& iss) noexcept {
             auto pos = iss.tellg();
             while (iss >> token)
             {
-                if (starts_with(to_lower(token), "ignore"))
+                if (starts_with(lower_case(token), "ignore"))
                 {
                     iss.seekg(pos);
                     break;
                 }
-                limits.searchMoves.push_back(token);
+                limit.searchMoves.push_back(token);
                 pos = iss.tellg();
             }
         }
@@ -198,72 +203,75 @@ Search::Limits parse_limits(std::istringstream& iss) noexcept {
             auto pos = iss.tellg();
             while (iss >> token)
             {
-                if (starts_with(to_lower(token), "search"))
+                if (starts_with(lower_case(token), "search"))
                 {
                     iss.seekg(pos);
                     break;
                 }
-                limits.ignoreMoves.push_back(token);
+                limit.ignoreMoves.push_back(token);
                 pos = iss.tellg();
             }
         }
     }
-    return limits;
+    return limit;
 }
 
-void print_info_string(const std::string& infoStr) noexcept {
+void print_info_string(std::string_view infoStr) noexcept {
     sync_cout;
-    for (const std::string& info : split(infoStr, "\n"))
+    for (const auto& info : split(infoStr, "\n"))
         if (!is_whitespace(info))
             std::cout << "info string " << info << '\n';
     std::cout << sync_end;
 }
 
-void on_update_end(const Search::EndInfo& info) noexcept;
-void on_update_full(const Search::FullInfo& info) noexcept;
-void on_update_iter(const Search::IterInfo& info) noexcept;
-void on_update_move(const Search::MoveInfo& info) noexcept;
+void on_update_end(const EndInfo& info) noexcept;
+void on_update_full(const FullInfo& info) noexcept;
+void on_update_iter(const IterInfo& info) noexcept;
+void on_update_move(const MoveInfo& info) noexcept;
 
 }  // namespace
 
 UCI::UCI(int argc, const char** argv) noexcept :
     engine(argv[0]),
-    cmdLine(argc, argv) {
+    commandLine(argc, argv) {
 
-    engine_options().add_info_listener([](const std::optional<std::string>& infoStr) {
-        if (infoStr.has_value())
-            print_info_string(*infoStr);
+    engine_options().add_info_listener([](const std::optional<std::string>& infoOpt) {
+        if (infoOpt.has_value())
+            print_info_string(*infoOpt);
     });
 
+    init_update_listeners();
+}
+
+void UCI::init_update_listeners() noexcept {
     engine.set_on_update_end(on_update_end);
     engine.set_on_update_full(on_update_full);
     engine.set_on_update_iter(on_update_iter);
     engine.set_on_update_move(on_update_move);
-
-    engine.setup(StartFEN);
+    engine.set_on_verify_networks(print_info_string);
 }
 
 void UCI::handle_commands() noexcept {
-    std::string cmd;
-    for (int i = 1; i < cmdLine.argc; ++i)
+    std::string command;
+    for (int i = 1; i < commandLine.argc; ++i)
     {
         if (i != 1)
-            cmd += ' ';
-        cmd += cmdLine.argv[i];
+            command += ' ';
+        command += commandLine.argv[i];
     }
     // The command-line arguments are one-shot
-    bool running = cmdLine.argc <= 1;
-    if (!running && is_whitespace(cmd))
+    bool running = commandLine.argc <= 1;
+    if (!running && is_whitespace(command))
         return;
 
     do
     {
         if (running
             // Wait for an input or an end-of-file (EOF) indication
-            && !std::getline(std::cin, cmd))
-            cmd = "quit";
+            && !std::getline(std::cin, command))
+            command = "quit";
 
-        std::istringstream iss(cmd);
+        std::istringstream iss(command);
         iss >> std::skipws;
 
         std::string token;
@@ -271,13 +279,13 @@ void UCI::handle_commands() noexcept {
         if (token.empty())
             continue;
 
-        auto uciCmd = uci_command(to_lower(token));
-        switch (uciCmd)
+        auto cmd = to_command(lower_case(token));
+        switch (cmd)
         {
         case CMD_STOP :
         case CMD_QUIT :
             engine.stop();
-            running &= uciCmd != CMD_QUIT;
+            running &= cmd != CMD_QUIT;
             break;
         case CMD_PONDERHIT :
             // The GUI sends 'ponderhit' to tell that the user has played the expected move.
@@ -291,7 +299,7 @@ void UCI::handle_commands() noexcept {
         case CMD_GO :
             // Send info strings after the go command is sent for old GUIs and python-chess
             print_info_string(engine.get_numa_config_info());
-            print_info_string(engine.get_thread_binding_info());
+            print_info_string(engine.get_thread_allocation_info());
 
             go(iss);
             break;
@@ -314,6 +322,9 @@ void UCI::handle_commands() noexcept {
         case CMD_BENCH :
             bench(iss);
             break;
+        case CMD_BENCHMARK :
+            benchmark(iss);
+            break;
         case CMD_SHOW :
             engine.show();
             break;
@@ -324,16 +335,17 @@ void UCI::handle_commands() noexcept {
             engine.flip();
             break;
         case CMD_COMPILER :
-            sync_cout << compiler_info() << sync_endl;
+            sync_cout << compiler_info() << '\n' << sync_endl;
             break;
         case CMD_EXPORT_NET : {
-            std::pair<std::optional<std::string>, std::string> files[2];
+            std::array<std::optional<std::string>, 2> files;
+            std::array<std::string, 2>                inputFiles;
 
-            if (iss >> files[0].second)
-                files[0].first = files[0].second;
+            if (iss >> inputFiles[0])
+                files[0] = inputFiles[0];
 
-            if (iss >> files[1].second)
-                files[1].first = files[1].second;
+            if (iss >> inputFiles[1])
+                files[1] = inputFiles[1];
 
             engine.save_networks(files);
         }
@@ -351,7 +363,7 @@ void UCI::handle_commands() noexcept {
         default :
             if (token[0] != '#')
             {
-                sync_cout << "Unknown command: '" << cmd << "'. "
+                sync_cout << "Unknown command: '" << command << "'. "
                           << "Type help for more information." << sync_endl;
             }
         }
@@ -362,7 +374,7 @@ void UCI::position(std::istringstream& iss) noexcept {
     std::string token, fen;
 
     iss >> token;
-    token = to_lower(token);
+    token = lower_case(token);
     if (starts_with(token, "start"))  // "startpos"
     {
         fen = StartFEN;
@@ -373,7 +385,7 @@ void UCI::position(std::istringstream& iss) noexcept {
         int i = 0;
         while (iss >> token && i < 6)  // Consume the "moves" token, if any
         {
-            if (i >= 2 && starts_with(to_lower(token), "moves"))
+            if (i >= 2 && starts_with(lower_case(token), "moves"))
                 break;
             if (i != 0)
                 fen += ' ';
@@ -395,12 +407,12 @@ void UCI::position(std::istringstream& iss) noexcept {
 }
 
 void UCI::go(std::istringstream& iss) noexcept {
-    auto limits = parse_limits(iss);
+    auto limit = parse_limit(iss);
 
-    if (limits.perft)
-        engine.perft(limits.depth, limits.detail);
+    if (limit.perft)
+        engine.perft(limit.depth, limit.detail);
     else
-        engine.start(limits);
+        engine.start(limit);
 }
 
 void UCI::setoption(std::istringstream& iss) noexcept {
@@ -409,17 +421,17 @@ void UCI::setoption(std::istringstream& iss) noexcept {
     bool first;
 
     iss >> token;  // Consume the "name" token
-    assert(to_lower(token) == "name");
+    assert(lower_case(token) == "name");
     // Read the option name (can contain spaces)
     first = true;
-    while (iss >> token && to_lower(token) != "value")
+    while (iss >> token && lower_case(token) != "value")
     {
         if (!first)
             name += ' ';
         name += token;
         first = false;
     }
-    assert(to_lower(token) == "value");
+    assert(lower_case(token) == "value");
     // Read the option value (can contain spaces)
     first = true;
     while (iss >> token)
@@ -443,7 +455,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
 
     auto reportMinimal = bool_to_string(engine_options()["ReportMinimal"]);
 
-    engine_options()["ReportMinimal"] = bool_to_string(true);
+    engine_options().setoption("ReportMinimal", "true");
 
 #if !defined(NDEBUG)
     Debug::init();
@@ -454,34 +466,34 @@ void UCI::bench(std::istringstream& iss) noexcept {
 
     std::uint64_t nodes = 0;
 
-    const std::vector<std::string> cmds = Benchmark::setup_bench(iss, engine.fen());
+    auto commands = Benchmark::setup_bench(iss, engine.fen());
 
-    std::size_t num = std::count_if(cmds.begin(), cmds.end(), [](const std::string& cmd) {
-        return cmd.find("go ") == 0 || cmd.find("eval") == 0;
+    std::size_t num = std::count_if(commands.begin(), commands.end(), [](const auto& command) {
+        return command.find("go ") == 0 || command.find("eval") == 0;
     });
 
     std::size_t cnt = 0;
-    for (const std::string& cmd : cmds)
+    for (const auto& command : commands)
     {
-        std::istringstream is(cmd);
+        std::istringstream is(command);
 
         std::string token;
         is >> std::skipws >> token;
         if (token.empty())
             continue;
 
-        auto uciCmd = uci_command(to_lower(token));
-        switch (uciCmd)
+        auto cmd = to_command(lower_case(token));
+        switch (cmd)
         {
         case CMD_GO : {
             std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")\n";
-            auto limits = parse_limits(is);
+            auto limit = parse_limit(is);
 
-            if (limits.perft)
-                infoNodes = engine.perft(limits.depth, limits.detail);
+            if (limit.perft)
+                infoNodes = engine.perft(limit.depth, limit.detail);
             else
             {
-                engine.start(limits);
+                engine.start(limit);
                 engine.wait_finish();
             }
 
@@ -517,13 +529,189 @@ void UCI::bench(std::istringstream& iss) noexcept {
 #endif
 
     std::cerr << "\n==========================="        //
-              << "\nTotal time (ms) : " << elapsedTime  //
-              << "\nTotal Nodes     : " << nodes        //
-              << "\nNodes/second    : " << 1000 * nodes / elapsedTime << '\n';
+              << "\nTotal time [ms] : " << elapsedTime  //
+              << "\nTotal nodes     : " << nodes        //
+              << "\nnodes/second    : " << 1000 * nodes / elapsedTime << '\n';
 
-    engine_options()["ReportMinimal"] = reportMinimal;
+    engine_options().setoption("ReportMinimal", reportMinimal);
     // Reset callback, to not capture a dangling reference to infoNodes
     engine.set_on_update_full(on_update_full);
+}
+
+void UCI::benchmark(std::istringstream& iss) noexcept {
+    // Probably not very important for a test this long, but include for completeness and sanity.
+    constexpr std::size_t WARMUP_POSITION_COUNT = 3;
+
+    std::uint64_t infoNodes = 0;
+    engine.set_on_update_full([&](const auto& info) { infoNodes = info.nodes; });
+    engine.set_on_update_end([](const auto&) {});
+    engine.set_on_update_iter([](const auto&) {});
+    engine.set_on_update_move([](const auto&) {});
+    engine.set_on_verify_networks([](const auto&) {});
+
+    auto setup = Benchmark::setup_benchmark(iss);
+
+    std::size_t num = std::count_if(setup.commands.begin(), setup.commands.end(),
+                                    [](const auto& command) { return command.find("go ") == 0; });
+
+    TimePoint startTime   = now();
+    TimePoint elapsedTime = 0;
+
+    // Set options once at the start.
+    engine_options().setoption("Threads", std::to_string(setup.threads));
+    engine_options().setoption("Hash", std::to_string(setup.ttSize));
+    engine_options().setoption("UCI_Chess960", "false");
+
+    std::uint64_t nodes = 0;
+    std::size_t   cnt   = 0;
+    // Warmup
+    for (const auto& command : setup.commands)
+    {
+        std::istringstream is(command);
+
+        std::string token;
+        is >> std::skipws >> token;
+        if (token.empty())
+            continue;
+
+        auto cmd = to_command(lower_case(token));
+        switch (cmd)
+        {
+        case CMD_GO : {
+            // One new line is produced by the search, so omit it here
+            std::cerr << "\rWarmup position " << ++cnt << '/' << WARMUP_POSITION_COUNT;
+
+            auto limit = parse_limit(is);
+
+            // Run with silenced network verification
+            engine.start(limit);
+            engine.wait_finish();
+
+            nodes += infoNodes;
+            infoNodes = 0;
+        }
+        break;
+        case CMD_POSITION :
+            position(is);
+            break;
+        case CMD_UCINEWGAME :
+            elapsedTime += now() - startTime;
+            engine.init();  // May take a while
+            startTime = now();
+            break;
+        default :;
+        }
+
+        if (cnt >= WARMUP_POSITION_COUNT)
+            break;
+    }
+
+    elapsedTime += now() - startTime;
+    // Ensure non-zero to avoid a 'divide by zero'
+    elapsedTime = std::max(elapsedTime, 1ll);
+
+    std::cerr << '\n';
+
+    nodes = 0;
+    cnt   = 0;
+
+    constexpr std::uint16_t hashfullAges[2]{0, 999};  // Only normal hashfull and touched hash.
+
+    std::uint16_t numHashfullReadings                  = 0;
+    std::uint16_t maxHashfull[std::size(hashfullAges)] = {0};
+    std::uint32_t sumHashfull[std::size(hashfullAges)] = {0};
+
+    auto updateHashfullReadings = [&]() {
+        ++numHashfullReadings;
+        for (std::size_t i = 0; i < std::size(hashfullAges); ++i)
+        {
+            auto hashfull  = engine.get_hashfull(hashfullAges[i]);
+            maxHashfull[i] = std::max(maxHashfull[i], hashfull);
+            sumHashfull[i] += hashfull;
+        }
+    };
+
+    elapsedTime += now() - startTime;
+    engine.init();  // May take a while
+    startTime = now();
+
+    for (const auto& command : setup.commands)
+    {
+        std::istringstream is(command);
+
+        std::string token;
+        is >> std::skipws >> token;
+        if (token.empty())
+            continue;
+
+        auto cmd = to_command(lower_case(token));
+        switch (cmd)
+        {
+        case CMD_GO : {
+            // One new line is produced by the search, so omit it here
+            std::cerr << "\rPosition " << ++cnt << '/' << num;
+
+            auto limit = parse_limit(is);
+
+            // Run with silenced network verification
+            engine.start(limit);
+            engine.wait_finish();
+
+            updateHashfullReadings();
+
+            nodes += infoNodes;
+            infoNodes = 0;
+        }
+        break;
+        case CMD_POSITION :
+            position(is);
+            break;
+        case CMD_UCINEWGAME :
+            elapsedTime += now() - startTime;
+            engine.init();  // May take a while
+            startTime = now();
+            break;
+        default :;
+        }
+    }
+
+    elapsedTime += now() - startTime;
+    // Ensure non-zero to avoid a 'divide by zero'
+    elapsedTime = std::max(elapsedTime, 1ll);
+
+#if !defined(NDEBUG)
+    Debug::print();
+#endif
+    std::cerr << '\n';
+
+    static_assert(
+      std::size(hashfullAges) == 2 && hashfullAges[0] == 0 && hashfullAges[1] == 999,
+      "Hardcoded for display. Would complicate the code needlessly in the current state.");
+
+    std::string threadBinding = engine.get_thread_binding_info();
+    if (threadBinding.empty())
+        threadBinding = "none";
+
+    std::cerr << "==========================="
+              << "\nVersion                    : " << version_info()
+              << "\nCompiler                   : " << compiler_info()
+              << "\nLarge pages                : " << (has_large_pages() ? "yes" : "no")
+              << "\nOriginal invocation        : " << "benchmark " << setup.originalInvocation
+              << "\nFilled invocation          : " << "benchmark " << setup.filledInvocation
+              << "\nAvailable processors       : " << engine.get_numa_config()
+              << "\nThread count               : " << setup.threads
+              << "\nThread binding             : " << threadBinding
+              << "\nTT size [MiB]              : " << setup.ttSize
+              << "\nHash max, avg [per mille]  : "  //
+              << "\n    Single search          : " << maxHashfull[0] << ", "
+              << sumHashfull[0] / numHashfullReadings  //
+              << "\n    Single game            : " << maxHashfull[1] << ", "
+              << sumHashfull[1] / numHashfullReadings  //
+              << "\nTotal time [s]             : " << elapsedTime / 1000.0
+              << "\nTotal nodes                : " << nodes
+              << "\nnodes/second               : " << 1000 * nodes / elapsedTime << '\n';
+
+    init_update_listeners();
 }
 
 namespace {
@@ -534,16 +722,16 @@ struct WinRateParams final {
 
 WinRateParams win_rate_params(const Position& pos) noexcept {
 
-    // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (0.017241).
-    double m = 0.017241 * std::clamp<short>(pos.material(), 17, 78);
-
-    // Return a = p_a(material) and b = p_b(material).
     // clang-format off
     constexpr double as[4]{-37.45051876,  121.19101539, -132.78783573, 420.70576692};
     constexpr double bs[4]{ 90.26261072, -137.26549898,   71.10130540,  51.35259597};
     // clang-format on
-    double a = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
-    double b = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
+
+    // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (0.017241).
+    double m = 0.017241 * std::clamp(+pos.material(), 17, 78);
+    // Return a = p_a(material) and b = p_b(material).
+    double a = m * (m * (m * as[0] + as[1]) + as[2]) + as[3];
+    double b = m * (m * (m * bs[0] + bs[1]) + bs[2]) + bs[3];
 
     return {a, b};
 }
@@ -594,7 +782,9 @@ std::string UCI::format_score(const Score& score) noexcept {
                [](Score::Tablebase tb) -> std::string {
                    return "cp " + std::to_string((tb.win ? +TB_CP : -TB_CP) - tb.ply);
                },
-               [](Score::Unit unit) -> std::string { return "cp " + std::to_string(unit.value); }};
+               [](Score::Unit unit) -> std::string {  //
+                   return "cp " + std::to_string(unit.value);
+               }};
 
     return score.visit(format);
 }
@@ -606,9 +796,10 @@ Piece UCI::piece(char pc) noexcept {
     auto pos = PieceChar.find(pc);
     return pos != std::string_view::npos ? Piece(pos) : NO_PIECE;
 }
+
 std::string UCI::piece_figure(Piece pc) noexcept { return is_ok(pc) ? PieceFigure[pc] : " "; }
 
-char UCI::file(File f, bool caseUpper) noexcept { return int(f) + 'a' - 0x20 * caseUpper; }
+char UCI::file(File f, bool upper) noexcept { return int(f) + 'a' - 0x20 * upper; }
 
 char UCI::rank(Rank r) noexcept { return int(r) + '1'; }
 
@@ -640,8 +831,8 @@ std::string UCI::move_to_can(Move m) noexcept {
 // Converts a string representing a move in coordinate notation
 // (g1f3, a7a8q) to the corresponding legal move, if any.
 Move UCI::can_to_move(const std::string& can, const LegalMoveList& legalMoves) noexcept {
-    assert(4 <= can.length() && can.length() <= 5);
-    std::string ccan = to_lower(can);
+    assert(4 <= can.size() && can.size() <= 5);
+    std::string ccan = lower_case(can);
 
     for (Move m : legalMoves)
         if (ccan == move_to_can(m))
@@ -656,11 +847,11 @@ Move UCI::can_to_move(const std::string& can, const Position& pos) noexcept {
 
 namespace {
 
-void on_update_end(const Search::EndInfo& info) noexcept {
+void on_update_end(const EndInfo& info) noexcept {
     sync_cout << "info depth 0 score " << (info.inCheck ? "mate" : "cp") << " 0" << sync_endl;
 }
 
-void on_update_full(const Search::FullInfo& info) noexcept {
+void on_update_full(const FullInfo& info) noexcept {
     std::ostringstream oss;
     oss << "info"                                                   //
         << " depth " << info.depth                                  //
@@ -683,11 +874,11 @@ void on_update_full(const Search::FullInfo& info) noexcept {
         << " tbhits " << info.tbHits                 //
         << " pv";
     for (Move m : info.rootMove)
-        oss << " " << UCI::move_to_can(m);
+        oss << ' ' << UCI::move_to_can(m);
     sync_cout << oss.str() << sync_endl;
 }
 
-void on_update_iter(const Search::IterInfo& info) noexcept {
+void on_update_iter(const IterInfo& info) noexcept {
     std::ostringstream oss;
     oss << "info"                                           //
         << " depth " << info.depth                          //
@@ -696,7 +887,7 @@ void on_update_iter(const Search::IterInfo& info) noexcept {
     sync_cout << oss.str() << sync_endl;
 }
 
-void on_update_move(const Search::MoveInfo& info) noexcept {
+void on_update_move(const MoveInfo& info) noexcept {
     sync_cout << "bestmove " << UCI::move_to_can(info.bestMove);
     if (info.ponderMove != Move::None())
         std::cout << " ponder " << UCI::move_to_can(info.ponderMove);
@@ -818,11 +1009,11 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     bool check = pos.check(m);
     pos.do_move(m, st, check);
 
-    bool movesEmpty = LegalMoveList(pos).empty();
+    bool legalEmpty = LegalMoveList(pos).empty();
     // Move marker for check & checkmate
     if (check)
-        san += (movesEmpty ? '#' : '+');
-    else if (movesEmpty)
+        san += (legalEmpty ? '#' : '+');
+    else if (legalEmpty)
         san += '=';
 
     pos.undo_move(m);
@@ -832,7 +1023,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
 
 // clang-format off
 Move UCI::san_to_move(const std::string& san, Position& pos, const LegalMoveList& legalMoves) noexcept {
-    assert(2 <= san.length() && san.length() <= 9);
+    assert(2 <= san.size() && san.size() <= 9);
     std::string csan = san;
     if (starts_with(csan, "O-") || starts_with(csan, "o-") || starts_with(csan, "0-"))
         for (char ch : {'o', '0'})
@@ -851,15 +1042,15 @@ Move UCI::san_to_move(const std::string& san, Position& pos) noexcept {
 
 Move UCI::mix_to_move(const std::string& mix, Position& pos, const LegalMoveList& legalMoves) noexcept {
     Move m = Move::None();
-    auto length = mix.length();
-    if (length < 2)
+    auto size = mix.size();
+    if (size < 2)
         return m;
-    if (length < 4 || starts_with(to_lower(mix), "o-") || starts_with(mix, "0-"))
-        return UCI::san_to_move(mix, pos, legalMoves);
-    if (length <= 5)
-        m = UCI::can_to_move(mix, legalMoves);
-    if (m == Move::None() && length <= 9)
-        return UCI::san_to_move(mix, pos, legalMoves);
+    if (size < 4 || starts_with(lower_case(mix), "o-") || starts_with(mix, "0-"))
+        return san_to_move(mix, pos, legalMoves);
+    if (size <= 5)
+        m = can_to_move(mix, legalMoves);
+    if (m == Move::None() && size <= 9)
+        return san_to_move(mix, pos, legalMoves);
     return m;
 }
 // clang-format on

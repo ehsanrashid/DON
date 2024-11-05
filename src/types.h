@@ -77,12 +77,6 @@ using Key16    = std::uint16_t;
 
 constexpr inline std::uint16_t MAX_MOVES = 256;
 constexpr inline std::uint16_t MAX_PLY   = 254;
-constexpr inline std::uint32_t MAX_HASH =
-    #if defined(IS_64BIT)
-  0x2000000u;
-    #else
-  0x800u;
-    #endif
 
 // Size of cache line (in bytes)
 constexpr inline std::size_t CACHE_LINE_SIZE = 64;
@@ -140,7 +134,8 @@ enum Piece : std::uint8_t {
 // Value is used as an alias for std::int16_t, this is done to differentiate between
 // a search value and any other integer value. The values used in search are always
 // supposed to be in the range (-VALUE_NONE, +VALUE_NONE] and should not exceed this range.
-using Value = std::int16_t;
+using Value    = std::int16_t;
+using SqrValue = std::int32_t;
 
 constexpr inline Value VALUE_ZERO = 0;
 constexpr inline Value VALUE_DRAW = VALUE_ZERO;

@@ -24,13 +24,12 @@
 #include "types.h"
 
 namespace DON {
-namespace Eval {
 
 // The default net name MUST follow the format nn-[SHA256 first 12 digits].nnue
-// for the build process (profile-build and fishtest) to work. Do not change the
-// name of the macro or the location where this macro is defined, as it is used
-// in the Makefile/Fishtest.
-#define EvalFileDefaultNameBig "nn-1111cefa1111.nnue"
+// for the build process (profile-build and fishtest) to work.
+// Do not change the name of the macro or the location where this macro is defined,
+// as it is used in the Makefile/Fishtest.
+#define EvalFileDefaultNameBig "nn-1cedc0ffeeee.nnue"
 #define EvalFileDefaultNameSmall "nn-37f18f62d772.nnue"
 
 namespace NNUE {
@@ -51,7 +50,6 @@ Value evaluate(const Position&          pos,
 
 std::string trace(Position& pos, const NNUE::Networks& networks) noexcept;
 
-}  // namespace Eval
 }  // namespace DON
 
 #endif  // #ifndef EVALUATE_H_INCLUDED

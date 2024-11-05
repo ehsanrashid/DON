@@ -262,12 +262,8 @@ class MiniTestFramework:
 
     def __print_summary(self, duration: float):
         print(f"\n{WHITE_BOLD}Test Summary{RESET_COLOR}\n")
-        print(
-            f"    Test Suites: {GREEN_COLOR}{self.passed_test_suites} passed{RESET_COLOR}, {RED_COLOR}{self.failed_test_suites} failed{RESET_COLOR}, {self.passed_test_suites + self.failed_test_suites} total"
-        )
-        print(
-            f"    Tests:       {GREEN_COLOR}{self.passed_tests} passed{RESET_COLOR}, {RED_COLOR}{self.failed_tests} failed{RESET_COLOR}, {self.passed_tests + self.failed_tests} total"
-        )
+        print(f"    Test Suites: {GREEN_COLOR}{self.passed_test_suites} passed{RESET_COLOR}, {RED_COLOR}{self.failed_test_suites} failed{RESET_COLOR}, {self.passed_test_suites + self.failed_test_suites} total")
+        print(f"    Tests:       {GREEN_COLOR}{self.passed_tests} passed{RESET_COLOR}, {RED_COLOR}{self.failed_tests} failed{RESET_COLOR}, {self.passed_tests + self.failed_tests} total")
         print(f"    Time:        {duration}s\n")
 
     def print_failure(self, add: str):
@@ -277,7 +273,7 @@ class MiniTestFramework:
         print(f"    {GREEN_COLOR}✓{RESET_COLOR}{add}", flush=True)
 
 
-class DON:
+class Engine:
     def __init__(
         self,
         prefix: List[str],
@@ -320,7 +316,7 @@ class DON:
 
     def send_command(self, command: str):
         if not self.process:
-            raise RuntimeError("DON process is not started")
+            raise RuntimeError("Engine process is not started")
 
         self.process.stdin.write(command + "\n")
         self.process.stdin.flush()
@@ -360,7 +356,7 @@ class DON:
 
     def readline(self):
         if not self.process:
-            raise RuntimeError("DON process is not started")
+            raise RuntimeError("Engine process is not started")
 
         while True:
             line = self.process.stdout.readline().strip()

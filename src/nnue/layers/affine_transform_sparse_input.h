@@ -35,7 +35,7 @@
   This file contains the definition for a fully connected layer (aka affine transform) with block sparse input.
 */
 
-namespace DON::Eval::NNUE::Layers {
+namespace DON::NNUE::Layers {
 
 #if (USE_SSSE3 | (USE_NEON >= 8))
 alignas(CACHE_LINE_SIZE) static inline const std::array2d<std::uint16_t, 256, 8> LookupIndices =
@@ -281,6 +281,6 @@ class AffineTransformSparseInput {
     alignas(CACHE_LINE_SIZE) WeightType weights[OutputDimensions * PaddedInputDimensions];
 };
 
-}  // namespace DON::Eval::NNUE::Layers
+}  // namespace DON::NNUE::Layers
 
 #endif  // #ifndef NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED

@@ -32,12 +32,73 @@ namespace DON {
 
 class Position;
 
-enum GenType : std::uint8_t {
-    CAPTURES,
-    QUIETS,
-    ENCOUNTERS,
-    EVASIONS,
-    LEGAL
+class Moves final {
+   public:
+    using MoveDeque  = std::deque<Move>;
+    using NormalItr  = MoveDeque::iterator;
+    using ReverseItr = MoveDeque::reverse_iterator;
+    using ConstItr   = MoveDeque::const_iterator;
+
+    Moves() = default;
+    explicit Moves(std::size_t count, Move m) noexcept :
+        moves(count, m) {}
+    //explicit Moves(std::size_t count) noexcept :
+    //    moves(count) {}
+    Moves(const std::initializer_list<Move>& initList) noexcept :
+        moves(initList) {}
+
+    template<typename... Args>
+    auto& operator+=(Args&&... args) noexcept {
+        return moves.emplace_back(std::forward<Args>(args)...);
+    }
+
+    void push_back(Move m) noexcept { moves.push_back(m); }
+    void push_back(Move&& m) noexcept { moves.push_back(std::move(m)); }
+    void push_front(Move m) noexcept { moves.push_front(m); }
+    void push_front(Move&& m) noexcept { moves.push_front(std::move(m)); }
+    void append(Move m) noexcept { moves.insert(end(), m); }
+    void append(ConstItr begItr, ConstItr endItr) noexcept {  //
+        moves.insert(end(), begItr, endItr);
+    }
+    void append(const std::initializer_list<Move>& initList) noexcept {  //
+        moves.insert(end(), initList);
+    }
+    void append(const Moves& ms) noexcept { append(ms.begin(), ms.end()); }
+    void pop() noexcept { moves.pop_back(); }
+
+    void resize(std::size_t newSize) noexcept { moves.resize(newSize); }
+    void clear() noexcept { moves.clear(); }
+
+    NormalItr begin() noexcept { return moves.begin(); }
+    NormalItr end() noexcept { return moves.end(); }
+
+    ReverseItr rbegin() noexcept { return moves.rbegin(); }
+    ReverseItr rend() noexcept { return moves.rend(); }
+
+    ConstItr begin() const noexcept { return moves.begin(); }
+    ConstItr end() const noexcept { return moves.end(); }
+
+    auto& front() noexcept { return moves.front(); }
+    auto& back() noexcept { return moves.back(); }
+
+    auto size() const noexcept { return moves.size(); }
+    bool empty() const noexcept { return moves.empty(); }
+
+    ConstItr find(Move m) const noexcept { return std::find(begin(), end(), m); }
+
+    bool contains(Move m) const noexcept { return find(m) != end(); }
+
+    NormalItr remove(Move m) noexcept { return std::remove(begin(), end(), m); }
+    template<typename Predicate>
+    NormalItr remove_if(Predicate pred) noexcept {
+        return std::remove_if(begin(), end(), pred);
+    }
+
+    auto& operator[](std::size_t idx) const noexcept { return moves[idx]; }
+    auto& operator[](std::size_t idx) noexcept { return moves[idx]; }
+
+   private:
+    MoveDeque moves;
 };
 
 struct ExtMove final: public Move {
@@ -49,10 +110,12 @@ struct ExtMove final: public Move {
 
     void operator=(Move m) noexcept { move = m.raw(); }
 
-    bool operator<(const ExtMove& em) const noexcept { return value < em.value; }
-    bool operator>(const ExtMove& em) const noexcept { return (em < *this); }
-    bool operator<=(const ExtMove& em) const noexcept { return !(*this > em); }
-    bool operator>=(const ExtMove& em) const noexcept { return !(*this < em); }
+    friend bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept {
+        return em1.value < em2.value;
+    }
+    friend bool operator>(const ExtMove& em1, const ExtMove& em2) noexcept { return (em2 < em1); }
+    friend bool operator<=(const ExtMove& em1, const ExtMove& em2) noexcept { return !(em1 > em2); }
+    friend bool operator>=(const ExtMove& em1, const ExtMove& em2) noexcept { return !(em1 < em2); }
 
     // Inhibit unwanted implicit conversions to Move
     // with an ambiguity that yields to a compile error.
@@ -60,9 +123,6 @@ struct ExtMove final: public Move {
 
     int value = 0;
 };
-
-//inline bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept { return em1.value < em2.value; }
-//inline bool operator>(const ExtMove& em1, const ExtMove& em2) noexcept { return em1.value > em2.value; }
 
 class ExtMoves final {
    public:
@@ -102,6 +162,14 @@ class ExtMoves final {
     ExtMoveDeque extMoves;
 };
 
+enum GenType : std::uint8_t {
+    CAPTURES,
+    QUIETS,
+    ENCOUNTERS,
+    EVASIONS,
+    LEGAL
+};
+
 template<GenType GT>
 ExtMoves::NormalItr generate(ExtMoves& extMoves, const Position& pos) noexcept;
 
@@ -126,7 +194,7 @@ struct MoveList final {
     auto end() const noexcept { return ExtMoves::ConstItr(endExtItr); }
 
     auto size() const noexcept { return std::size_t(std::distance(begin(), end())); }
-    bool empty() const noexcept { return !size(); }
+    bool empty() const noexcept { return size() == 0; }
 
     auto find(Move m) const noexcept { return std::find(begin(), end(), m); }
     bool contains(Move m) const noexcept { return find(m) != end(); }

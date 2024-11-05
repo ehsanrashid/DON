@@ -31,7 +31,7 @@ namespace DON {
 struct State;
 class Position;
 
-namespace Eval::NNUE::Features {
+namespace NNUE::Features {
 
 template<typename T, std::size_t MaxSize>
 class ArrayList final {
@@ -163,7 +163,7 @@ class HalfKAv2_hm final {
     static bool requires_refresh(const State* st, Color perspective) noexcept;
 };
 
-}  // namespace Eval::NNUE::Features
+}  // namespace NNUE::Features
 }  // namespace DON
 
 #endif  // #ifndef NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED

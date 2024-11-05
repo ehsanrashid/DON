@@ -29,7 +29,7 @@
 #include "../incbin/incbin.h"
 #include "nnue_common.h"
 
-namespace DON::Eval::NNUE {
+namespace DON::NNUE {
 
 namespace {
 // Macro to embed the default efficiently updatable neural network (NNUE) file
@@ -146,14 +146,10 @@ void Network<Arch, Transformer>::load(const std::string& rootDirectory,
         if (evalFile.current != evalfilePath)
         {
             if (directory != "<internal>")
-            {
                 load_user_net(directory, evalfilePath);
-            }
 
             if (directory == "<internal>" && evalfilePath == evalFile.defaultName)
-            {
                 load_internal();
-            }
         }
     }
 }
@@ -161,7 +157,6 @@ void Network<Arch, Transformer>::load(const std::string& rootDirectory,
 template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::save(const std::optional<std::string>& filename) const noexcept {
     std::string actualFilename;
-    std::string msg;
 
     if (filename.has_value())
         actualFilename = filename.value();
@@ -169,10 +164,9 @@ bool Network<Arch, Transformer>::save(const std::optional<std::string>& filename
     {
         if (evalFile.current != evalFile.defaultName)
         {
-            msg = "Failed to export a net. "
-                  "A non-embedded net can only be saved if the filename is specified";
-
-            sync_cout << msg << sync_endl;
+            sync_cout
+              << "Failed to export net. Non-embedded net can only be saved if the filename is specified"
+              << sync_endl;
             return false;
         }
 
@@ -180,11 +174,12 @@ bool Network<Arch, Transformer>::save(const std::optional<std::string>& filename
     }
 
     std::ofstream ofstream(actualFilename, std::ios_base::binary);
-    bool          saved = save(ofstream, evalFile.current, evalFile.netDescription);
 
-    msg = saved ? "Network saved successfully to " + actualFilename : "Failed to export a net";
+    bool saved = save(ofstream, evalFile.current, evalFile.netDescription);
 
-    sync_cout << msg << sync_endl;
+    sync_cout << (saved ? "Network saved successfully to " + actualFilename
+                        : "Failed to export net")
+              << sync_endl;
     return saved;
 }
 
@@ -216,35 +211,46 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
 }
 
 template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::verify(std::string evalfilePath) const noexcept {
+void Network<Arch, Transformer>::verify(
+  std::string evalfilePath, const std::function<void(std::string_view)>& f) const noexcept {
     if (evalfilePath.empty())
         evalfilePath = evalFile.defaultName;
 
     if (evalFile.current != evalfilePath)
     {
-        std::string msg1 =
-          "Network evaluation parameters compatible with the engine must be available.";
-        std::string msg2 = "The network file " + evalfilePath + " was not loaded successfully.";
-        std::string msg3 = "The UCI option EvalFile might need to specify the full path, "
-                           "including the directory name, to the network file.";
-        std::string msg4 = "The default net can be downloaded from: "
-                           "https://tests.stockfishchess.org/api/nn/"
-                         + evalFile.defaultName;
-        std::string msg5 = "The engine will be terminated now.";
+        if (f)
+        {
+            std::string msg1 =
+              "Network evaluation parameters compatible with the engine must be available.";
+            std::string msg2 = "The network file " + evalfilePath + " was not loaded successfully.";
+            std::string msg3 =
+              "The UCI option EvalFile might need to specify the full path, including the directory name, to the network file.";
+            std::string msg4 =
+              "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/"
+              + evalFile.defaultName;
+            std::string msg5 = "The engine will be terminated now.";
 
-        sync_cout << "info string ERROR: " << msg1 << sync_endl;
-        sync_cout << "info string ERROR: " << msg2 << sync_endl;
-        sync_cout << "info string ERROR: " << msg3 << sync_endl;
-        sync_cout << "info string ERROR: " << msg4 << sync_endl;
-        sync_cout << "info string ERROR: " << msg5 << sync_endl;
+            std::string msg = "ERROR: " + msg1 + '\n'  //
+                            + "ERROR: " + msg2 + '\n'  //
+                            + "ERROR: " + msg3 + '\n'  //
+                            + "ERROR: " + msg4 + '\n'  //
+                            + "ERROR: " + msg5 + '\n';
+
+            f(msg);
+        }
         std::exit(EXIT_FAILURE);
     }
 
-    std::size_t size = sizeof(*featureTransformer) + sizeof(Arch) * LayerStacks;
-    sync_cout << "info string NNUE evaluation using " << evalfilePath << " ("
-              << size / (1024 * 1024) << "MiB, (" << featureTransformer->InputDimensions << ", "
-              << network[0].TransformedFeatureDimensions << ", " << network[0].FC_0_OUTPUTS << ", "
-              << network[0].FC_1_OUTPUTS << ", 1))" << sync_endl;
+    if (f)
+    {
+        std::size_t size = sizeof(*featureTransformer) + sizeof(Arch) * LayerStacks;
+        f("info string NNUE evaluation using " + evalfilePath + " ("
+          + std::to_string(size / (1024 * 1024)) + "MiB, ("
+          + std::to_string(featureTransformer->InputDimensions) + ", "
+          + std::to_string(network[0].TransformedFeatureDimensions) + ", "
+          + std::to_string(network[0].FC_0_OUTPUTS) + ", "  //
+          + std::to_string(network[0].FC_1_OUTPUTS) + ", 1))");
+    }
 }
 
 template<typename Arch, typename Transformer>
@@ -416,4 +422,4 @@ template class Network<
   NetworkArchitecture<SmallTransformedFeatureDimensions, SmallL2, SmallL3>,
   FeatureTransformer<SmallTransformedFeatureDimensions, &State::smallAccumulator>>;
 
-}  // namespace DON::Eval::NNUE
+}  // namespace DON::NNUE

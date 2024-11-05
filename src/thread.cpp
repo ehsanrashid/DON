@@ -32,10 +32,10 @@ namespace DON {
 
 // Constructor launches the thread and waits until it goes to sleep
 // in idle_func(). Note that 'dead' and 'busy' should be already set.
-Thread::Thread(std::uint16_t                  id,
-               const Search::SharedState&     sharedState,
-               Search::ISearchManagerPtr      searchManager,
-               OptionalThreadToNumaNodeBinder binder) noexcept :
+Thread::Thread(std::uint16_t                         id,
+               const SharedState&                    sharedState,
+               ISearchManagerPtr                     searchManager,
+               const OptionalThreadToNumaNodeBinder& binder) noexcept :
     idx(id),
     threadCount(sharedState.options["Threads"]),
     nativeThread(&Thread::idle_func, this) {
@@ -46,8 +46,8 @@ Thread::Thread(std::uint16_t                  id,
         // the Worker allocation.
         // Ideally we would also allocate the SearchManager here, but that's minor.
         numaAccessToken = binder();
-        worker = std::make_unique<Search::Worker>(id, sharedState, std::move(searchManager),
-                                                  numaAccessToken);
+        worker =
+          std::make_unique<Worker>(id, sharedState, std::move(searchManager), numaAccessToken);
     });
     wait_finish();
 }
@@ -102,9 +102,9 @@ void Thread::idle_func() noexcept {
 // Creates/destroys threads to match the requested number.
 // Created and launched threads will immediately go to sleep in idle_func.
 // Upon resizing, threads are recreated to allow for binding if necessary.
-void ThreadPool::set(const NumaConfig&            numaConfig,
-                     Search::SharedState          sharedState,
-                     const Search::UpdateContext& updateContext) noexcept {
+void ThreadPool::set(const NumaConfig&    numaConfig,
+                     SharedState          sharedState,
+                     const UpdateContext& updateContext) noexcept {
     clear();
 
     std::uint16_t threadCount = sharedState.options["Threads"];
@@ -121,34 +121,36 @@ void ThreadPool::set(const NumaConfig&            numaConfig,
         // This is undesirable, and so the default behaviour (i.e. when the user does not
         // change the NumaConfig UCI setting) is to not bind the threads to processors
         // unless we know for sure that we span NUMA nodes and replication is required.
-        std::string numaPolicy = sharedState.options["NumaPolicy"];
+        std::string numaPolicy = lower_case(sharedState.options["NumaPolicy"]);
 
-        bool threadBind = numaPolicy == "none" ? false
-                        : numaPolicy == "auto"
-                          ? numaConfig.suggests_binding_threads(threadCount)
-                          // numaPolicy == "system", or explicitly set by the user
-                          : true;
+        bool threadBind = numaPolicy == "none"  //
+                          ? false
+                          : numaPolicy == "auto"
+                              ? numaConfig.suggests_binding_threads(threadCount)
+                              // numaPolicy == "system", or explicitly set by the user
+                              : true;
 
         numaNodeBoundThreads = threadBind
                                ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
                                : std::vector<NumaIndex>{};
+
+        const NumaConfig* numaConfigPtr = threadBind ? &numaConfig : nullptr;
 
         std::uint16_t threadId = 0;  // size();
         while (threadId < threadCount)
         {
             NumaIndex numaId = threadBind ? numaNodeBoundThreads[threadId] : 0;
 
-            Search::ISearchManagerPtr searchManager;
+            ISearchManagerPtr searchManager;
             if (threadId == 0)
-                searchManager = std::make_unique<Search::MainSearchManager>(updateContext);
+                searchManager = std::make_unique<MainSearchManager>(updateContext);
             else
-                searchManager = std::make_unique<Search::NullSearchManager>();
+                searchManager = std::make_unique<NullSearchManager>();
 
             // When not binding threads want to force all access to happen from the same
             // NUMA node, because in case of NUMA replicated memory accesses don't
             // want to trash cache in case the threads get scheduled on the same NUMA node.
-            auto nodeBinder = threadBind ? OptionalThreadToNumaNodeBinder(numaConfig, numaId)
-                                         : OptionalThreadToNumaNodeBinder(numaId);
+            auto nodeBinder = OptionalThreadToNumaNodeBinder(numaConfigPtr, numaId);
 
             threads.emplace_back(std::make_unique<Thread>(threadId, sharedState,
                                                           std::move(searchManager), nodeBinder));
@@ -244,20 +246,20 @@ Thread* ThreadPool::best_thread() const noexcept {
 
 // Wakes up main thread waiting in idle_func() and returns immediately.
 // Main thread will wake up other threads and start the search.
-void ThreadPool::start(Position&             pos,
-                       StateListPtr&         states,
-                       const Search::Limits& limits,
-                       const Options&        options) noexcept {
+void ThreadPool::start(Position&      pos,
+                       StateListPtr&  states,
+                       const Limit&   limit,
+                       const Options& options) noexcept {
     main_thread()->wait_finish();
 
     stop = abort = research = false;
 
-    Search::RootMoves rootMoves;
+    RootMoves rootMoves;
 
     const LegalMoveList legalMoves(pos);
 
     bool emplace = true;
-    for (const std::string& move : limits.searchMoves)
+    for (const auto& move : limit.searchMoves)
     {
         if (emplace && rootMoves.size() == legalMoves.size())
             break;
@@ -267,12 +269,12 @@ void ThreadPool::start(Position&             pos,
             rootMoves.emplace(m);
     }
 
-    if (limits.searchMoves.empty())
+    if (limit.searchMoves.empty())
         for (Move m : legalMoves)
             rootMoves.emplace(m);
 
     bool erase = true;
-    for (const std::string& move : limits.ignoreMoves)
+    for (const auto& move : limit.ignoreMoves)
     {
         if (erase && rootMoves.empty())
             break;
@@ -301,7 +303,7 @@ void ThreadPool::start(Position&             pos,
             th->worker->rootPos.set(pos, &th->worker->rootState);
             th->worker->rootState = setupStates->back();
             th->worker->rootMoves = rootMoves;
-            th->worker->limits    = limits;
+            th->worker->limit     = limit;
             th->worker->tbConfig  = tbConfig;
         });
     }

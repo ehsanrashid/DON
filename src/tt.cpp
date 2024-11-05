@@ -37,13 +37,13 @@ void TranspositionTable::free() noexcept {
     generation8  = 0;
 }
 
-// Sets the size of the transposition table, measured in megabytes.
+// Sets the size of the transposition table, measured in megabytes (MB).
 // Transposition table consists of even number of clusters.
-void TranspositionTable::resize(std::size_t mbSize, ThreadPool& threads) noexcept {
+void TranspositionTable::resize(std::size_t ttSize, ThreadPool& threads) noexcept {
 
     constexpr std::size_t ClusterSize = sizeof(TTCluster);
 
-    std::size_t newClusterCount = mbSize * 1024 * 1024 / ClusterSize;
+    std::size_t newClusterCount = ttSize * 1024 * 1024 / ClusterSize;
     assert(newClusterCount % 2 == 0);
 
     if (clusterCount != newClusterCount)
@@ -56,7 +56,7 @@ void TranspositionTable::resize(std::size_t mbSize, ThreadPool& threads) noexcep
         if (clusters == nullptr)
         {
             clusterCount = 0;
-            std::cerr << "Failed to allocate " << mbSize << "MB for transposition table.\n";
+            std::cerr << "Failed to allocate " << ttSize << "MB for transposition table.\n";
             std::exit(EXIT_FAILURE);
         }
     }
@@ -68,7 +68,7 @@ void TranspositionTable::resize(std::size_t mbSize, ThreadPool& threads) noexcep
 void TranspositionTable::init(ThreadPool& threads) noexcept {
     generation8 = 0;
 
-    const std::uint16_t threadCount = threads.size();
+    auto threadCount = threads.size();
 
     for (std::uint16_t threadId = 0; threadId < threadCount; ++threadId)
     {
@@ -107,17 +107,22 @@ TTProbe TranspositionTable::probe(Key key, Key16 key16) const noexcept {
 // Returns an approximation of the hashtable occupation during a search.
 // The hash is x permill full, as per UCI protocol.
 // Only counts entries which match the current generation.
-std::uint16_t TranspositionTable::hashfull() const noexcept {
+std::uint16_t TranspositionTable::hashfull(std::uint16_t maxAge) const noexcept {
+
+    std::uint16_t maxRelAge = maxAge << DATA_BITS;
+
     std::uint32_t cnt = 0;
-    for (std::size_t idx = 0; idx < std::min(clusterCount, std::size_t(1000)); ++idx)
-        cnt += std::accumulate(std::begin(clusters[idx].entry), std::end(clusters[idx].entry), 0,
-                               [&](std::uint32_t c, const auto& tte) {
-                                   return c + (tte.occupied() && tte.generation() == generation8);
-                               });
+    for (std::size_t idx = 0; idx < std::min<size_t>(clusterCount, 1000); ++idx)
+        for (std::uint8_t i = 0; i < TT_CLUSTER_ENTRY_COUNT; ++i)
+        {
+            const auto& entry = clusters[idx].entry[i];
+            cnt += entry.occupied() && entry.relative_age(generation8) <= maxRelAge;
+        }
     return cnt / TT_CLUSTER_ENTRY_COUNT;
 }
 
 bool TranspositionTable::save(const std::string& hashFile) const noexcept {
+
     if (is_empty(hashFile))
         return false;
     std::ofstream ofstream(hashFile, std::ios_base::binary);
@@ -127,6 +132,7 @@ bool TranspositionTable::save(const std::string& hashFile) const noexcept {
 }
 
 bool TranspositionTable::load(const std::string& hashFile, ThreadPool& threads) noexcept {
+
     if (is_empty(hashFile))
         return false;
     std::ifstream ifstream(hashFile, std::ios_base::binary);
@@ -135,8 +141,8 @@ bool TranspositionTable::load(const std::string& hashFile, ThreadPool& threads) 
         ifstream.seekg(0, std::ios_base::end);
         std::streamsize fileSize = ifstream.tellg();
         ifstream.seekg(0, std::ios_base::beg);
-        std::size_t mbSize = fileSize / (1024 * 1024);
-        resize(mbSize, threads);
+        std::size_t ttSize = fileSize / (1024 * 1024);
+        resize(ttSize, threads);
         ifstream.read(reinterpret_cast<char*>(clusters), clusterCount * sizeof(TTCluster));
     }
     return ifstream.good();

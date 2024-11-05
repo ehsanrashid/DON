@@ -45,8 +45,7 @@ struct State final {
     // Copied when making a move
     Key            pawnKey[COLOR_NB];
     Key            nonPawnKey[COLOR_NB];
-    Key            pieceKey[2];
-    Key            materialKey;
+    Key            groupKey[2];
     Square         epSquare;
     Square         capSquare;
     CastlingRights castlingRights;
@@ -55,7 +54,6 @@ struct State final {
     bool           rule50High;
     Square         kingSquare[COLOR_NB];
     bool           castled[COLOR_NB];
-    Value          nonPawnMaterial[COLOR_NB];
 
     // Not copied when making a move (will be recomputed anyhow)
     Key         key;
@@ -70,9 +68,9 @@ struct State final {
     Piece       promotedPiece;
 
     // Used by NNUE
-    Eval::NNUE::Accumulator<Eval::NNUE::BigTransformedFeatureDimensions>   bigAccumulator;
-    Eval::NNUE::Accumulator<Eval::NNUE::SmallTransformedFeatureDimensions> smallAccumulator;
-    DirtyPiece                                                             dirtyPiece;
+    NNUE::Accumulator<NNUE::BigTransformedFeatureDimensions>   bigAccumulator;
+    NNUE::Accumulator<NNUE::SmallTransformedFeatureDimensions> smallAccumulator;
+    DirtyPiece                                                 dirtyPiece;
 
     State* preState;
     State* nxtState;
@@ -255,9 +253,9 @@ class Position final {
     Piece moved_piece(Move m) const noexcept;
     Piece ex_moved_piece(Move m) const noexcept;
     Piece captured_piece(Move m) const noexcept;
-    Piece prev_ex_moved_piece(Move pm) const noexcept;
     auto  captured(Move m) const noexcept;
     auto  ex_captured(Move m) const noexcept;
+    Piece prev_ex_moved_piece(Move pm) const noexcept;
 
     // Hash keys
     Key key(std::int16_t ply = 0) const noexcept;
@@ -276,13 +274,15 @@ class Position final {
 
     // Other properties
     auto active_color() const noexcept;
-    auto game_ply() const noexcept;
-    auto game_move() const noexcept;
-    auto game_phase() const noexcept;
-    auto rule50_count() const noexcept;
+    auto ply() const noexcept;
+    auto move_num() const noexcept;
+    auto phase() const noexcept;
+
+    std::int16_t rule50_count() const noexcept;
+    std::int16_t null_ply() const noexcept;
+    std::int16_t repetition() const noexcept;
+
     bool rule50_high() const noexcept;
-    auto null_ply() const noexcept;
-    auto repetition() const noexcept;
     bool is_draw(std::int16_t ply, bool checkStalemate = false) const noexcept;
     bool has_repeated() const noexcept;
     bool upcoming_repetition(std::int16_t ply) const noexcept;
@@ -293,7 +293,8 @@ class Position final {
     bool  bishop_paired(Color c) const noexcept;
     bool  bishop_opposite() const noexcept;
 
-    short material() const noexcept;
+    std::uint16_t material() const noexcept;
+
     Value evaluate() const noexcept;
     Value bonus() const noexcept;
 
@@ -335,7 +336,7 @@ class Position final {
 
        private:
         const Position& pos;
-        Move            move;
+        const Move      move;
     };
 
     // Initialization helpers (used while setting up a position)
@@ -366,7 +367,7 @@ class Position final {
     Bitboard     castlingPath[COLOR_NB * CASTLING_SIDE_NB];
     Square       castlingRookSquare[COLOR_NB * CASTLING_SIDE_NB];
     std::uint8_t castlingRightsMask[COLOR_NB * FILE_NB];
-    std::int16_t gamePly;
+    std::int16_t posPly;
     Color        activeColor;
     State*       st;
 };
@@ -523,33 +524,36 @@ inline Key Position::non_pawn_key(Color c) const noexcept { return st->nonPawnKe
 
 inline Key Position::non_pawn_key() const noexcept { return non_pawn_key(WHITE) ^ non_pawn_key(BLACK); }
 
-inline Key Position::minor_key() const noexcept { return st->pieceKey[0]; }
+inline Key Position::minor_key() const noexcept { return st->groupKey[0]; }
 
-inline Key Position::major_key() const noexcept { return st->pieceKey[1]; }
-
-inline Key Position::material_key() const noexcept { return st->materialKey; }
+inline Key Position::major_key() const noexcept { return st->groupKey[1]; }
 
 inline auto Position::active_color() const noexcept { return activeColor; }
 
-inline auto Position::game_ply() const noexcept { return gamePly; }
+inline auto Position::ply() const noexcept { return posPly; }
 
-inline auto Position::game_move() const noexcept {
-    return 1 + (game_ply() - (active_color() == BLACK)) / 2;
+inline auto Position::move_num() const noexcept {
+    return 1 + (ply() - (active_color() == BLACK)) / 2;
 }
 
-inline auto Position::game_phase() const noexcept {
+inline auto Position::phase() const noexcept {
     return std::max(24 - count<KNIGHT>() - count<BISHOP>() - 2 * count<ROOK>() - 4 * count<QUEEN>(), 0);
 }
 
-inline auto Position::rule50_count() const noexcept { return st->rule50; }
+inline std::int16_t Position::rule50_count() const noexcept { return st->rule50; }
+
+inline std::int16_t Position::null_ply() const noexcept { return st->nullPly; }
+
+inline std::int16_t Position::repetition() const noexcept { return st->repetition; }
 
 inline bool Position::rule50_high() const noexcept { return st->rule50High; }
 
-inline auto Position::null_ply() const noexcept { return st->nullPly; }
-
-inline auto Position::repetition() const noexcept { return st->repetition; }
-
-inline Value Position::non_pawn_material(Color c) const noexcept { return st->nonPawnMaterial[c]; }
+inline Value Position::non_pawn_material(Color c) const noexcept {
+    Value npm = VALUE_ZERO;
+    for (auto pt : {KNIGHT, BISHOP, ROOK, QUEEN})
+        npm += count(c, pt) * PIECE_VALUE[pt];
+    return npm;
+}
 
 inline Value Position::non_pawn_material() const noexcept {
     return non_pawn_material(WHITE) + non_pawn_material(BLACK);
@@ -566,7 +570,7 @@ inline bool Position::bishop_opposite() const noexcept {
         && color_opposite(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
 }
 
-inline short Position::material() const noexcept {
+inline std::uint16_t Position::material() const noexcept {
     return 1 * count<PAWN>() + 3 * count<KNIGHT>() + 3 * count<BISHOP>() + 5 * count<ROOK>() + 9 * count<QUEEN>();
 }
 // clang-format on
@@ -576,7 +580,7 @@ inline short Position::material() const noexcept {
 // an approximation of the material advantage on the board in terms of pawns.
 inline Value Position::evaluate() const noexcept {
     Color ac = active_color();
-    return VALUE_PAWN * (count<PAWN>(ac) - count<PAWN>(~ac))
+    return (int(count<PAWN>(ac)) - int(count<PAWN>(~ac))) * VALUE_PAWN
          + (non_pawn_material(ac) - non_pawn_material(~ac));
 }
 
@@ -585,8 +589,9 @@ inline Value Position::bonus() const noexcept {
     // clang-format off
     return  1 * (mobility(ac) - mobility(~ac))
          + 30 * (bishop_paired(ac) - bishop_paired(~ac))
-         + 70 * ((can_castle( ac & ANY_CASTLING) || castled( ac))
-               - (can_castle(~ac & ANY_CASTLING) || castled(~ac)));
+         + 80 * ((can_castle( ac & ANY_CASTLING) || castled( ac))
+               - (can_castle(~ac & ANY_CASTLING) || castled(~ac)))
+              * (1.0 - 4.1250e-2 * phase());
     // clang-format on
 }
 
@@ -610,10 +615,6 @@ inline Piece Position::captured_piece(Move m) const noexcept {
                                      : NO_PIECE;
 }
 
-inline Piece Position::prev_ex_moved_piece(Move pm) const noexcept {
-    return pm.type_of() != CASTLING ? piece_on(pm.dst_sq()) : make_piece(~active_color(), EX_PIECE);
-}
-
 inline auto Position::captured(Move m) const noexcept { return type_of(captured_piece(m)); }
 
 inline auto Position::ex_captured(Move m) const noexcept {
@@ -623,6 +624,9 @@ inline auto Position::ex_captured(Move m) const noexcept {
     return capture;
 }
 
+inline Piece Position::prev_ex_moved_piece(Move pm) const noexcept {
+    return pm.type_of() != CASTLING ? piece_on(pm.dst_sq()) : make_piece(~active_color(), EX_PIECE);
+}
 
 inline void Position::put_piece(Square s, Piece pc) noexcept {
     assert(is_ok(s) && is_ok(pc));

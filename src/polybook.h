@@ -26,20 +26,20 @@ namespace DON {
 
 class Position;
 
-struct PolyHash final {
+struct PolyEntry final {
 
-    bool operator==(const PolyHash& ph) const noexcept;
-    bool operator!=(const PolyHash& ph) const noexcept;
+    friend bool operator==(const PolyEntry& pe1, const PolyEntry& pe2) noexcept;
+    friend bool operator!=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept;
 
-    bool operator<(const PolyHash& ph) const noexcept;
-    bool operator>(const PolyHash& ph) const noexcept;
-    bool operator<=(const PolyHash& ph) const noexcept;
-    bool operator>=(const PolyHash& ph) const noexcept;
+    friend bool operator<(const PolyEntry& pe1, const PolyEntry& pe2) noexcept;
+    friend bool operator>(const PolyEntry& pe1, const PolyEntry& pe2) noexcept;
+    friend bool operator<=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept;
+    friend bool operator>=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept;
 
-    bool operator==(Move m) const noexcept;
-    bool operator!=(Move m) const noexcept;
+    friend bool operator==(const PolyEntry& pe, Move m) noexcept;
+    friend bool operator!=(const PolyEntry& pe, Move m) noexcept;
 
-    friend std::ostream& operator<<(std::ostream& os, const PolyHash& ph) noexcept;
+    friend std::ostream& operator<<(std::ostream& os, const PolyEntry& ph) noexcept;
 
     Key           key;
     std::uint16_t move;
@@ -53,29 +53,36 @@ class PolyBook final {
     ~PolyBook() noexcept;
 
     void clear() noexcept;
+
     void init(const std::string& bookFile) noexcept;
+
     Move probe(Position& pos, bool pickBest = true) noexcept;
 
-    bool is_enabled() const noexcept { return enabled; }
+    bool enabled() const noexcept { return enable; }
 
    private:
     bool can_probe(const Position& pos, Key key) noexcept;
 
     void find_key(Key key) noexcept;
-    void get_key_data() noexcept;
+
+    void get_key_data(std::size_t begIndex) noexcept;
 
     void show_key_data() const noexcept;
 
-    bool      enabled    = false;
-    PolyHash* polyHash   = nullptr;
-    int       entryCount = 0;
+    bool        enable     = false;
+    PolyEntry*  entries    = nullptr;
+    std::size_t entryCount = 0;
     // Last probe info
-    Bitboard pieces    = 0;
-    int      failCount = 0;
+    Bitboard      pieces    = 0;
+    std::uint16_t failCount = 0;
     // Key data
-    int firstIndex, bestIndex, randIndex;
-    int keyCount;
-    int keySumWeight;
+    struct KeyData final {
+        std::size_t   begIndex, bestIndex, randIndex;
+        std::uint16_t entryCount;
+        std::uint16_t bestWeight;
+        std::uint32_t sumWeight;
+    };
+    KeyData keyData;
 };
 
 }  // namespace DON

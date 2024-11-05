@@ -195,7 +195,7 @@ class TranspositionTable final {
 
     uint08 generation() const noexcept { return generation8; }
 
-    void resize(std::size_t mbSize, ThreadPool& threads) noexcept;
+    void resize(std::size_t ttSize, ThreadPool& threads) noexcept;
     void init(ThreadPool& threads) noexcept;
 
     TTProbe probe(Key key, Key16 key16) const noexcept;
@@ -203,7 +203,7 @@ class TranspositionTable final {
     // Prefetch the cache line which includes this key's entry
     void prefetch_entry(Key key) const noexcept { prefetch(first_entry(key)); }
 
-    std::uint16_t hashfull() const noexcept;
+    std::uint16_t hashfull(std::uint16_t maxAge = 0) const noexcept;
 
     bool save(const std::string& hashFile) const noexcept;
     bool load(const std::string& hashFile, ThreadPool& threads) noexcept;

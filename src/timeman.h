@@ -27,10 +27,7 @@ namespace DON {
 
 class Position;
 class Options;
-
-namespace Search {
-struct Limits;
-}
+struct Limit;
 
 // TimeManager class computes the optimal time to think depending on
 // the maximum available time, the game move number, and other parameters.
@@ -43,7 +40,7 @@ class TimeManager final {
     TimeManager& operator=(const TimeManager&) noexcept = delete;
     TimeManager& operator=(TimeManager&&) noexcept      = delete;
 
-    void init(Search::Limits& limits, const Position& pos, const Options& options) noexcept;
+    void init(Limit& limit, const Position& pos, const Options& options) noexcept;
 
     TimePoint optimum() const noexcept { return optimumTime; }
     TimePoint maximum() const noexcept { return maximumTime; }

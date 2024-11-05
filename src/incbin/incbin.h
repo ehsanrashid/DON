@@ -133,9 +133,9 @@
  */
 #if !defined(INCBIN_OUTPUT_SECTION)
 #  if defined(__APPLE__)
-#    define INCBIN_OUTPUT_SECTION         ".const_data"
+#    define INCBIN_OUTPUT_SECTION   ".const_data"
 #  else
-#    define INCBIN_OUTPUT_SECTION         ".rodata"
+#    define INCBIN_OUTPUT_SECTION   ".rodata"
 #  endif
 #endif
 

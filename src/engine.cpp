@@ -32,64 +32,71 @@
 
 namespace DON {
 
-namespace NN = Eval::NNUE;  // Create alias
-
+constexpr inline std::size_t MAX_THREADS = 1024;
+constexpr inline std::size_t MIN_HASH    = 4;
+constexpr inline std::size_t MAX_HASH =
+#if defined(IS_64BIT)
+  0x2000000u;
+#else
+  0x800u;
+#endif
+// clang-format off
 Engine::Engine(std::optional<std::string> path) noexcept :
     binaryDirectory(path ? CommandLine::get_binary_directory(*path) : ""),
     numaContext(NumaConfig::from_system()),
-    threads(),
-    networks(
-      numaContext,
-      NN::Networks(
-        NN::BigNetwork({EvalFileDefaultNameBig, "None", ""}, NN::EmbeddedNNUEType::BIG),
-        NN::SmallNetwork({EvalFileDefaultNameSmall, "None", ""}, NN::EmbeddedNNUEType::SMALL))) {
+    networks(numaContext,
+             NNUE::Networks(
+               NNUE::BigNetwork  ({EvalFileDefaultNameBig,   "None", ""}, NNUE::EmbeddedNNUEType::BIG),
+               NNUE::SmallNetwork({EvalFileDefaultNameSmall, "None", ""}, NNUE::EmbeddedNNUEType::SMALL))) {
 
-    // clang-format off
-    options["NumaPolicy"] << Option("auto", [this](const Option& o) {
+    options["NumaPolicy"]       << Option("auto", [this](const Option& o) {
         set_numa_config(o);
-        return get_numa_config_info() + "\n" + get_thread_binding_info();
+        return get_numa_config_info() + '\n'  //
+             + get_thread_allocation_info();
     });
-    options["Threads"]      << Option(1, 1, 1024, [this](const Option& o) {
+    options["Threads"]          << Option(1, 1, MAX_THREADS, [this](const Option& o) {
         resize_threads_tt();
-        return "Threads: " + std::to_string(int(o)) + "\n" + get_thread_binding_info();
+        return "Threads: " + std::to_string(int(o)) + '\n'  //
+             + get_thread_allocation_info();
     });
-    options["Hash"]         << Option(16, 4, MAX_HASH, [this](const Option& o) {
+    options["Hash"]             << Option(16, MIN_HASH, MAX_HASH, [this](const Option& o) {
         resize_tt(o);
         return "Hash: " + std::to_string(int(o));
     });
-    options["Clear Hash"]   << Option([this](const Option&) { init(); return std::nullopt; });
-    options["Retain Hash"]  << Option(false);
-    options["HashFile"]     << Option("");
-    options["Save Hash"]    << Option([this](const Option&) { (void)this; return std::nullopt; });
-    options["Load Hash"]    << Option([this](const Option&) { (void)this; return std::nullopt; });
-    options["Ponder"]       << Option(false);
-    options["MultiPV"]      << Option(DEFAULT_MULTI_PV, 1, std::numeric_limits<std::uint8_t>::max());
-    options["Skill Level"]  << Option(int(Search::Skill::MAX_LEVEL), int(Search::Skill::MIN_LEVEL), int(Search::Skill::MAX_LEVEL));
-    options["MoveOverhead"] << Option(10, 0, 5000);
-    options["NodesTime"]    << Option(0, 0, 10000);
-    options["DrawMoveCount"] << Option(Position::DrawMoveCount, 5, 50, [](const Option& o) { Position::DrawMoveCount = o; return std::nullopt; });
-    options["UCI_Chess960"] << Option(Position::Chess960, [](const Option& o) { Position::Chess960 = o; return std::nullopt; });
+    options["Clear Hash"]       << Option([this](const Option&) { init(); return std::nullopt; });
+    options["Retain Hash"]      << Option(false);
+    options["HashFile"]         << Option("");
+    options["Save Hash"]        << Option([this](const Option&) { (void)this; return std::nullopt; });
+    options["Load Hash"]        << Option([this](const Option&) { (void)this; return std::nullopt; });
+    options["Ponder"]           << Option(false);
+    options["MultiPV"]          << Option(DEFAULT_MULTI_PV, 1, std::numeric_limits<std::uint8_t>::max());
+    options["Skill Level"]      << Option(int(Skill::MAX_LEVEL), int(Skill::MIN_LEVEL), int(Skill::MAX_LEVEL));
+    options["MoveOverhead"]     << Option(10, 0, 5000);
+    options["NodesTime"]        << Option(0, 0, 10000);
+    options["DrawMoveCount"]    << Option(Position::DrawMoveCount, 5, 50, [](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; });
+    options["UCI_Chess960"]     << Option(Position::Chess960, [](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; });
     options["UCI_LimitStrength"] << Option(false);
-    options["UCI_ELO"]      << Option(Search::Skill::MAX_ELO, Search::Skill::MIN_ELO, Search::Skill::MAX_ELO);
-    options["UCI_ShowWDL"]  << Option(false);
-    options["OwnBook"]      << Option(false);
-    options["BookFile"]     << Option("", [this](const Option& o) { load_book(o); return std::nullopt; });
-    options["BookDepth"]    << Option(100, 1, 256);
-    options["BookPickBest"] << Option(true);
-    options["SyzygyPath"]   << Option("", [](const Option& o) { Tablebases::init(o); return std::nullopt; });
+    options["UCI_ELO"]          << Option(Skill::MAX_ELO, Skill::MIN_ELO, Skill::MAX_ELO);
+    options["UCI_ShowWDL"]      << Option(false);
+    options["OwnBook"]          << Option(false);
+    options["BookFile"]         << Option("", [this](const Option& o) { load_book(o); return std::nullopt; });
+    options["BookDepth"]        << Option(100, 1, 256);
+    options["BookPickBest"]     << Option(true);
+    options["SyzygyPath"]       << Option("", [](const Option& o) { Tablebases::init(o); return std::nullopt; });
     options["SyzygyProbeLimit"] << Option(7, 0, 7);
     options["SyzygyProbeDepth"] << Option(1, 1, 100);
     options["Syzygy50MoveRule"] << Option(true);
-    options["EvalFileBig"]  << Option(EvalFileDefaultNameBig, [this](const Option& o) { load_big_network(o); return std::nullopt; });
-    options["EvalFileSmall"] << Option(EvalFileDefaultNameSmall, [this](const Option& o) { load_small_network(o); return std::nullopt; });
-    options["ReportMinimal"] << Option(false);
-    options["DebugLogFile"] << Option("", [](const Option& o) { start_logger(o); return std::nullopt; });
-    // clang-format on
+    options["EvalFileBig"]      << Option(EvalFileDefaultNameBig, [this](const Option& o) { load_big_network(o); return std::nullopt; });
+    options["EvalFileSmall"]    << Option(EvalFileDefaultNameSmall, [this](const Option& o) { load_small_network(o); return std::nullopt; });
+    options["ReportMinimal"]    << Option(false);
+    options["DebugLogFile"]     << Option("", [](const Option& o) { start_logger(o); return std::nullopt; });
 
     load_networks();
     resize_threads_tt();
-}
 
+    setup(UCI::StartFEN);
+}
+// clang-format on
 Engine::~Engine() noexcept { wait_finish(); }
 
 const Options& Engine::get_options() const noexcept { return options; }
@@ -102,7 +109,7 @@ void Engine::setup(std::string_view fen, const std::deque<std::string>& moves) n
     states = std::make_unique<StateList>(1);
     pos.set(fen, &states->back());
 
-    for (const std::string& move : moves)
+    for (const auto& move : moves)
     {
         const LegalMoveList legalMoves(pos);
         if (legalMoves.empty())
@@ -120,12 +127,12 @@ std::uint64_t Engine::perft(Depth depth, bool detail) noexcept {
     return Benchmark::perft(pos, depth, options["Hash"], threads, detail);
 }
 
-void Engine::start(const Search::Limits& limits) noexcept {
-    assert(!limits.perft);
+void Engine::start(const Limit& limit) noexcept {
+    assert(!limit.perft);
 
     verify_networks();
 
-    threads.start(pos, states, limits, options);
+    threads.start(pos, states, limit, options);
 }
 
 void Engine::stop() noexcept { threads.stop = true; }
@@ -138,7 +145,7 @@ void Engine::init() noexcept {
     wait_finish();
     threads.init();
     tt.init(threads);
-    // @TODO wont work with multiple instances
+    // @TODO won't work with multiple instances
     Tablebases::init(options["SyzygyPath"]);  // Free mapped files
 }
 
@@ -152,9 +159,9 @@ void Engine::resize_threads_tt() noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::resize_tt(std::size_t mbSize) noexcept {
+void Engine::resize_tt(std::size_t ttSize) noexcept {
     wait_finish();
-    tt.resize(mbSize, threads);
+    tt.resize(ttSize, threads);
 }
 
 void Engine::load_book(const std::string& bookFile) noexcept {
@@ -168,10 +175,14 @@ void Engine::eval() noexcept {
 
     verify_networks();
 
-    sync_cout << '\n' << Eval::trace(pos, *networks) << sync_endl;
+    sync_cout << '\n' << trace(pos, *networks) << sync_endl;
 }
 
 void Engine::flip() noexcept { pos.flip(); }
+
+std::uint16_t Engine::get_hashfull(std::uint16_t maxAge) const noexcept {
+    return tt.hashfull(maxAge);
+}
 
 void Engine::set_numa_config(const std::string& str) {
     if (str == "auto" || str == "system")
@@ -217,11 +228,9 @@ std::string Engine::get_numa_config_info() const noexcept {
 std::string Engine::get_thread_binding_info() const noexcept {
     std::ostringstream oss;
 
-    oss << "NUMA " << threads.size() << " thread(s)";
     auto boundThreadCounts = get_bound_thread_counts();
     if (!boundThreadCounts.empty())
     {
-        oss << " with NUMA node thread binding: ";
         bool first = true;
         for (auto&& [count, total] : boundThreadCounts)
         {
@@ -235,56 +244,76 @@ std::string Engine::get_thread_binding_info() const noexcept {
     return oss.str();
 }
 
+std::string Engine::get_thread_allocation_info() const noexcept {
+    std::ostringstream oss;
+
+    oss << "Threads: " << threads.size();
+
+    auto boundThreadsByNodeStr = get_thread_binding_info();
+    if (!boundThreadsByNodeStr.empty())
+    {
+        oss << " with NUMA node thread binding: ";
+        oss << boundThreadsByNodeStr;
+    }
+
+    return oss.str();
+}
+
 void Engine::verify_networks() const noexcept {
-    networks->big.verify(options["EvalFileBig"]);
-    networks->small.verify(options["EvalFileSmall"]);
+    networks->big.verify(options["EvalFileBig"], onVerifyNetworks);
+    networks->small.verify(options["EvalFileSmall"], onVerifyNetworks);
 }
 
 void Engine::load_networks() noexcept {
-    networks.modify_and_replicate([&](NN::Networks& net) {
-        net.big.load(binaryDirectory, options["EvalFileBig"]);
-        net.small.load(binaryDirectory, options["EvalFileSmall"]);
-    });
+    networks.modify_and_replicate(  //
+      [&](NNUE::Networks& net) {
+          net.big.load(binaryDirectory, options["EvalFileBig"]);
+          net.small.load(binaryDirectory, options["EvalFileSmall"]);
+      });
     threads.init();
     threads.ensure_network_replicated();
 }
 
 void Engine::load_big_network(const std::string& bigFile) noexcept {
     networks.modify_and_replicate(
-      [&](NN::Networks& net) { net.big.load(binaryDirectory, bigFile); });
+      [&](NNUE::Networks& net) { net.big.load(binaryDirectory, bigFile); });
     threads.init();
     threads.ensure_network_replicated();
 }
 
 void Engine::load_small_network(const std::string& smallFile) noexcept {
     networks.modify_and_replicate(
-      [&](NN::Networks& net) { net.small.load(binaryDirectory, smallFile); });
+      [&](NNUE::Networks& net) { net.small.load(binaryDirectory, smallFile); });
     threads.init();
     threads.ensure_network_replicated();
 }
 
-void Engine::save_networks(
-  const std::pair<std::optional<std::string>, std::string> files[2]) noexcept {
-    networks.modify_and_replicate([&](const NN::Networks& net) {
-        net.big.save(files[0].first);
-        net.small.save(files[1].first);
-    });
+void Engine::save_networks(const std::array<std::optional<std::string>, 2>& files) noexcept {
+    networks.modify_and_replicate(  //
+      [&](const NNUE::Networks& net) {
+          net.big.save(files[0]);
+          net.small.save(files[1]);
+      });
 }
 
-void Engine::set_on_update_end(Search::OnUpdateEnd&& f) noexcept {
+void Engine::set_on_update_end(OnUpdateEnd&& f) noexcept {
     updateContext.onUpdateEnd = std::move(f);
 }
 
-void Engine::set_on_update_full(Search::OnUpdateFull&& f) noexcept {
+void Engine::set_on_update_full(OnUpdateFull&& f) noexcept {
     updateContext.onUpdateFull = std::move(f);
 }
 
-void Engine::set_on_update_iter(Search::OnUpdateIter&& f) noexcept {
+void Engine::set_on_update_iter(OnUpdateIter&& f) noexcept {
     updateContext.onUpdateIter = std::move(f);
 }
 
-void Engine::set_on_update_move(Search::OnUpdateMove&& f) noexcept {
+void Engine::set_on_update_move(OnUpdateMove&& f) noexcept {
     updateContext.onUpdateMove = std::move(f);
+}
+
+void Engine::set_on_verify_networks(std::function<void(std::string_view)>&& f) noexcept {
+    onVerifyNetworks = std::move(f);
 }
 
 }  // namespace DON

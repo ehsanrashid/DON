@@ -227,4 +227,25 @@ void free_aligned_lp(void* mem) noexcept {
 #endif
 }
 
+bool has_large_pages() noexcept {
+
+#if defined(_WIN32)
+    constexpr size_t PageSize = 2 * 1024 * 1024;  // 2MB page size assumed
+
+    void* mem = alloc_aligned_lp_windows(PageSize);
+    if (mem == nullptr)
+        return false;
+    free_aligned_lp(mem);
+    return true;
+#elif defined(__linux__)
+    #if defined(MADV_HUGEPAGE)
+    return true;
+    #else
+    return false;
+    #endif
+#else
+    return false;
+#endif
+}
+
 }  // namespace DON

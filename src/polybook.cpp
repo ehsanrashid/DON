@@ -289,11 +289,11 @@ std::uint64_t swap_uint64(std::uint64_t d) noexcept {
     return r;
 }
 
-void swap_polyhash(PolyHash* ph) noexcept {
-    ph->key    = swap_uint64(ph->key);
-    ph->move   = swap_uint16(ph->move);
-    ph->weight = swap_uint16(ph->weight);
-    ph->learn  = swap_uint32(ph->learn);
+void swap_polyhash(PolyEntry* pe) noexcept {
+    pe->key    = swap_uint64(pe->key);
+    pe->move   = swap_uint16(pe->move);
+    pe->weight = swap_uint16(pe->weight);
+    pe->learn  = swap_uint32(pe->learn);
 }
 
 Key polyglot_key(const Position& pos) noexcept {
@@ -372,11 +372,14 @@ Move pg_to_move(std::uint16_t pg_move, const Position& pos) noexcept {
 }
 
 bool is_draw(Position& pos, Move m) noexcept {
+    if (m == Move::None())
+        return true;
+
     State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     pos.do_move(m, st);
-    bool draw = pos.is_draw(pos.game_ply(), true);
+    bool draw = pos.is_draw(pos.ply(), true);
     pos.undo_move(m);
 
     return draw;
@@ -384,29 +387,31 @@ bool is_draw(Position& pos, Move m) noexcept {
 
 }  // namespace
 
-bool PolyHash::operator==(const PolyHash& ph) const noexcept {
-    return key == ph.key && move == ph.move && weight == ph.weight;
+bool operator==(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
+    return std::tie(pe1.key, pe1.move, pe1.weight)  //
+        == std::tie(pe2.key, pe2.move, pe2.weight);
 }
-bool PolyHash::operator!=(const PolyHash& ph) const noexcept { return !(*this == ph); }
+bool operator!=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept { return !(pe1 == pe2); }
 
-bool PolyHash::operator<(const PolyHash& ph) const noexcept {
-    return key != ph.key       ? key < ph.key        //
-         : weight != ph.weight ? weight < ph.weight  //
-                               : move < ph.move;
+bool operator<(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
+    return std::tie(pe1.key, pe1.weight, pe1.move)  //
+         < std::tie(pe2.key, pe2.weight, pe2.move);
 }
-bool PolyHash::operator>(const PolyHash& ph) const noexcept { return (ph < *this); }
-bool PolyHash::operator<=(const PolyHash& ph) const noexcept { return !(*this > ph); }
-bool PolyHash::operator>=(const PolyHash& ph) const noexcept { return !(*this < ph); }
+bool operator>(const PolyEntry& pe1, const PolyEntry& pe2) noexcept { return (pe2 < pe1); }
+bool operator<=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept { return !(pe1 > pe2); }
+bool operator>=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept { return !(pe1 < pe2); }
 
-bool PolyHash::operator==(Move m) const noexcept { return move == (m.raw() & ~MOVETYPE_MASK); }
-bool PolyHash::operator!=(Move m) const noexcept { return !(*this == m); }
+bool operator==(const PolyEntry& pe, Move m) noexcept {
+    return pe.move == (m.raw() & ~MOVETYPE_MASK);
+}
+bool operator!=(const PolyEntry& pe, Move m) noexcept { return !(pe == m); }
 
-std::ostream& operator<<(std::ostream& os, const PolyHash& ph) noexcept {
+std::ostream& operator<<(std::ostream& os, const PolyEntry& pe) noexcept {
     // clang-format off
-    os << std::right << "key: "     << u64_to_string(ph.key)  //
-       << std::left  << " move: "   << std::setw(5) << std::setfill(' ') << UCI::move_to_can(fix_promotion(Move(ph.move)))
-       << std::right << " weight: " << std::setw(5) << std::setfill('0') << ph.weight
-       << std::right << " learn: "  << std::setw(2) << std::setfill('0') << ph.learn;
+    os << std::right << "key: "     << u64_to_string(pe.key)  //
+       << std::left  << " move: "   << std::setw(5) << std::setfill(' ') << UCI::move_to_can(fix_promotion(Move(pe.move)))
+       << std::right << " weight: " << std::setw(5) << std::setfill('0') << pe.weight
+       << std::right << " learn: "  << std::setw(2) << std::setfill('0') << pe.learn;
     // clang-format on
     return os;
 }
@@ -415,11 +420,11 @@ std::ostream& operator<<(std::ostream& os, const PolyHash& ph) noexcept {
 PolyBook::~PolyBook() noexcept { clear(); }
 
 void PolyBook::clear() noexcept {
-    enabled = false;
-    if (polyHash)
+    enable = false;
+    if (entries != nullptr)
     {
-        free(polyHash);
-        polyHash = nullptr;
+        free(entries);
+        entries = nullptr;
     }
     entryCount = 0;
     pieces     = 0;
@@ -443,17 +448,17 @@ void PolyBook::init(const std::string& bookFile) noexcept {
     std::size_t fileSize = std::ftell(fptr);
     std::rewind(fptr);
 
-    polyHash = static_cast<PolyHash*>(malloc(fileSize));
-    if (!polyHash)
+    entries = static_cast<PolyEntry*>(malloc(fileSize));
+    if (entries == nullptr)
     {
         sync_cout << "info string Memory allocation failed: " << bookFile << sync_endl;
         std::fclose(fptr);
         return;
     }
 
-    entryCount = fileSize / sizeof(PolyHash);
+    entryCount = fileSize / sizeof(PolyEntry);
 
-    std::size_t readSize = std::fread(polyHash, 1, fileSize, fptr);
+    std::size_t readSize = std::fread(entries, 1, fileSize, fptr);
     std::fclose(fptr);
 
     if (readSize != fileSize)
@@ -464,24 +469,26 @@ void PolyBook::init(const std::string& bookFile) noexcept {
     }
 
     if (IsLittleEndian)
-        for (int i = 0; i < entryCount; ++i)
-            swap_polyhash(&polyHash[i]);
+        for (std::size_t i = 0; i < entryCount; ++i)
+            swap_polyhash(&entries[i]);
+
+    enable = true;
 
     sync_cout << "info string Book loaded: " << bookFile << " with entries " << entryCount
               << sync_endl;
-
-    enabled = true;
 }
 
 Move PolyBook::probe(Position& pos, bool pickBest) noexcept {
-    assert(enabled);
+    assert(enabled());
 
     Key key = polyglot_key(pos);
+
     if (!can_probe(pos, key))
         return Move::None();
 
     find_key(key);
-    if (keyCount <= 0)
+
+    if (keyData.entryCount <= 0)
     {
         ++failCount;
         return Move::None();
@@ -490,26 +497,30 @@ Move PolyBook::probe(Position& pos, bool pickBest) noexcept {
     show_key_data();
 #endif
 
-    int idx;
-    idx = pickBest || keyCount == 1 ? bestIndex : randIndex;
+    std::size_t idx;
+    idx = pickBest || keyData.entryCount == 1 ? keyData.bestIndex : keyData.randIndex;
 
-    Move m = pg_to_move(polyHash[idx].move, pos);
-    if (keyCount == 1 || !is_draw(pos, m))
+    Move m;
+    m = pg_to_move(entries[idx].move, pos);
+    if (keyData.entryCount == 1 || !is_draw(pos, m))
         return m;
 
-    idx = idx == firstIndex ? firstIndex + 1 : firstIndex;
+    idx = idx == keyData.begIndex ? keyData.begIndex + 1 : keyData.begIndex;
 
-    m = pg_to_move(polyHash[idx].move, pos);
-    if (keyCount == 2 || !is_draw(pos, m))
+    m = pg_to_move(entries[idx].move, pos);
+    if (keyData.entryCount == 2 || !is_draw(pos, m))
         return m;
 
-    idx = idx != randIndex ? firstIndex + 2 : keyCount > 3 ? firstIndex + 3 : randIndex;
+    idx = idx != keyData.randIndex ? keyData.begIndex + 2
+        : keyData.entryCount > 3   ? keyData.begIndex + 3
+                                   : keyData.randIndex;
 
-    m = pg_to_move(polyHash[idx].move, pos);
-    if (keyCount == 3 || !is_draw(pos, m))
+    m = pg_to_move(entries[idx].move, pos);
+    if (keyData.entryCount == 3 || !is_draw(pos, m))
         return m;
 
-    return keyCount > 3 ? pg_to_move(polyHash[firstIndex + 3].move, pos) : Move::None();
+    return keyData.entryCount > 3 ? pg_to_move(entries[keyData.begIndex + 3].move, pos)
+                                  : Move::None();
 }
 
 bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
@@ -524,103 +535,93 @@ bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
 }
 
 void PolyBook::find_key(Key key) noexcept {
-    firstIndex   = -1;
-    bestIndex    = -1;
-    randIndex    = -1;
-    keyCount     = -1;
-    keySumWeight = 0;
+    keyData = {0, 0, 0, 0, 0, 0};
 
-    int begIndex = 0;
-    int endIndex = entryCount;
+    std::size_t begIndex = 0;
+    std::size_t endIndex = entryCount;
 
-    while (begIndex != endIndex)
+    while (begIndex < endIndex)
     {
-        int midIndex = (begIndex + endIndex) / 2;
+        std::size_t midIndex = (begIndex + endIndex) / 2;
 
-        if (polyHash[midIndex].key < key)
+        if (entries[midIndex].key < key)
             begIndex = midIndex;
-        else if (polyHash[midIndex].key > key)
+        else if (entries[midIndex].key > key)
             endIndex = midIndex;
         else
         {
-            begIndex = std::max(midIndex - 4, 0);
-            endIndex = std::min(midIndex + 4, entryCount);
+            begIndex = std::max<size_t>(midIndex, 0 /*    */ + 4) - 4;
+            endIndex = std::min<size_t>(midIndex, entryCount - 4) + 4;
         }
 
         if (endIndex - begIndex <= 8)
             break;
     }
 
-    while (begIndex != endIndex)
+    while (begIndex < endIndex)
     {
-        if (key == polyHash[begIndex].key)
+        if (entries[begIndex].key == key)
         {
-            firstIndex = begIndex;
-            while (firstIndex > 0 && key == polyHash[firstIndex - 1].key)
-                --firstIndex;
-            get_key_data();
-            return;
+            while (begIndex > 0 && entries[begIndex - 1].key == key)
+                --begIndex;
+
+            get_key_data(begIndex);
+            break;
         }
         ++begIndex;
     }
 }
 
-void PolyBook::get_key_data() noexcept {
+void PolyBook::get_key_data(std::size_t begIndex) noexcept {
     static PRNG rng(time(nullptr));
 
-    Key key = polyHash[firstIndex].key;
-
-    keyCount = 1;
-
-    bestIndex = firstIndex;
-
-    int bestWeight;
-    bestWeight   = polyHash[firstIndex].weight;
-    keySumWeight = bestWeight;
-    for (int idx = firstIndex + keyCount; idx < entryCount; ++idx)
+    keyData.entryCount = 1;
+    keyData.begIndex   = begIndex;
+    keyData.bestIndex  = begIndex;
+    keyData.bestWeight = entries[begIndex].weight;
+    keyData.sumWeight  = keyData.bestWeight;
+    for (std::size_t idx = begIndex + 1; idx < entryCount; ++idx)
     {
-        if (key != polyHash[idx].key)
+        if (entries[idx].key != entries[begIndex].key)
             break;
 
-        keyCount += 1;
+        ++keyData.entryCount;
 
-        int idxWeight = polyHash[idx].weight;
-        keySumWeight += idxWeight;
-        if (bestWeight < idxWeight)
+        auto weight = entries[idx].weight;
+        if (keyData.bestWeight < weight)
         {
-            bestWeight = idxWeight;
-            bestIndex  = idx;
+            keyData.bestWeight = weight;
+            keyData.bestIndex  = idx;
         }
+        keyData.sumWeight += weight;
     }
 
-    randIndex = bestIndex;
+    keyData.randIndex = keyData.bestIndex;
 
-    int randWeight = rng.rand<std::uint32_t>() % keySumWeight;
-    int sumWeight  = 0;
-    for (int idx = firstIndex; idx < firstIndex + keyCount; ++idx)
+    std::uint16_t randWeight = rng.rand<std::uint16_t>() % keyData.sumWeight;
+    std::uint32_t sumWeight  = 0;
+    for (std::size_t idx = begIndex; idx < begIndex + keyData.entryCount; ++idx)
     {
-        int idxWeight = polyHash[idx].weight;
-        if (sumWeight <= randWeight && randWeight < sumWeight + idxWeight)
+        auto weight = entries[idx].weight;
+        if (sumWeight <= randWeight && randWeight < sumWeight + weight)
         {
-            randIndex = idx;
+            keyData.randIndex = idx;
             break;
         }
-        sumWeight += idxWeight;
+        sumWeight += weight;
     }
 }
 
 void PolyBook::show_key_data() const noexcept {
     std::ostringstream oss;
 
-    oss << "\nBook entries: " << keyCount << '\n';
-    for (int i = 0; i < keyCount; ++i)
+    oss << "\nBook entries: " << keyData.entryCount << '\n';
+    for (std::size_t idx = keyData.begIndex; idx < keyData.begIndex + keyData.entryCount; ++idx)
     {
-        int idx = firstIndex + i;
-        oss << std::setw(2) << std::setfill('0') << i + 1  //
-            << " " << polyHash[idx]                        //
+        oss << std::setw(2) << std::setfill('0')                  //
+            << idx - keyData.begIndex + 1 << ' ' << entries[idx]  //
             << " prob: " << std::setw(7) << std::setfill('0') << std::fixed << std::setprecision(4)
-            << (keySumWeight != 0) * 100.0 * polyHash[idx].weight / keySumWeight  //
-            << '\n';
+            << (keyData.sumWeight != 0) * 100.0 * entries[idx].weight / keyData.sumWeight << '\n';
     }
     sync_cout << oss.str() << sync_endl;
 }

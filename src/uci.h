@@ -36,6 +36,9 @@ using LegalMoveList = MoveList<LEGAL>;
 
 class UCI final {
    public:
+    static constexpr std::string_view StartFEN{
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
+
     UCI(int argc, const char** argv) noexcept;
 
     auto& engine_options() noexcept { return engine.get_options(); }
@@ -52,7 +55,7 @@ class UCI final {
 
     static std::string piece_figure(Piece pc) noexcept;
 
-    static char file(File f, bool caseUpper = false) noexcept;
+    static char file(File f, bool upper = false) noexcept;
     static char rank(Rank r) noexcept;
 
     static std::string square(Square s) noexcept;
@@ -75,9 +78,12 @@ class UCI final {
     void go(std::istringstream& iss) noexcept;
     void setoption(std::istringstream& iss) noexcept;
     void bench(std::istringstream& iss) noexcept;
+    void benchmark(std::istringstream& iss) noexcept;
+
+    void init_update_listeners() noexcept;
 
     Engine      engine;
-    CommandLine cmdLine;
+    CommandLine commandLine;
 };
 
 }  // namespace DON

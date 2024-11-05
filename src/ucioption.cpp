@@ -41,7 +41,7 @@ const inline std::unordered_map<OptionType, std::string_view> OptionTypeMap{
 }  // namespace
 
 std::uint64_t CaseInsensitiveHash::operator()(const std::string& key) const noexcept {
-    return std::hash<std::string>()(to_lower(key));
+    return std::hash<std::string>()(lower_case(key));
 }
 
 bool CaseInsensitiveEqual::operator()(std::string_view s1, std::string_view s2) const noexcept {
@@ -122,12 +122,6 @@ Option::operator std::string() const noexcept {
     return currentValue;
 }
 
-bool Option::operator==(const std::string& value) const noexcept {
-    assert(type == OPT_COMBO);
-    return CaseInsensitiveEqual()(currentValue, value);
-}
-bool Option::operator!=(const std::string& value) const noexcept { return !(*this == value); }
-
 // Assign option and set idx in the correct insertion order
 void Option::operator<<(const Option& option) noexcept {
     static std::uint16_t insertOrder = 0;
@@ -139,16 +133,24 @@ void Option::operator<<(const Option& option) noexcept {
     idx = insertOrder++;
 }
 
-bool Option::operator==(const Option& option) const noexcept {
-    return idx == option.idx && type == option.type;
+bool operator==(const Option& o, std::string_view value) noexcept {
+    assert(o.type == OPT_COMBO);
+    return CaseInsensitiveEqual()(o.currentValue, value);
 }
-bool Option::operator!=(const Option& option) const noexcept { return !(*this == option); }
+bool operator!=(const Option& o, std::string_view value) noexcept { return !(o == value); }
 
-bool Option::operator<(const Option& option) const noexcept { return idx < option.idx; }
-bool Option::operator>(const Option& option) const noexcept { return (option < *this); }
+bool operator==(const Option& o1, const Option& o2) noexcept {
+    return o1.idx == o2.idx && o1.type == o2.type;
+}
+bool operator!=(const Option& o1, const Option& o2) noexcept { return !(o1 == o2); }
+
+bool operator<(const Option& o1, const Option& o2) noexcept {  //
+    return o1.idx < o2.idx;
+}
+bool operator>(const Option& o1, const Option& o2) noexcept { return (o2 < o1); }
 
 // Updates currentValue and triggers on_change() action.
-// It's up to the GUI to check for option's limits,
+// It's up to the GUI to check for option's limit,
 // but could receive the new value from the user by console window,
 // so let's check the bounds anyway.
 Option& Option::operator=(std::string value) noexcept {
@@ -159,7 +161,7 @@ Option& Option::operator=(std::string value) noexcept {
 
     if (type == OPT_CHECK)
     {
-        if (!is_valid_bool(value))
+        if (!is_bool(value))
             return *this;
     }
     else if (type == OPT_STRING)
@@ -183,12 +185,12 @@ Option& Option::operator=(std::string value) noexcept {
         std::string token;
         while (iss >> token)
         {
-            token = to_lower(token);
+            token = lower_case(token);
             if (token == "var")
                 continue;
             combos[token] << Option();
         }
-        if (to_lower(value) == "var" || !combos.count(value))
+        if (lower_case(value) == "var" || !combos.count(value))
             return *this;
     }
 

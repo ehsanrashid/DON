@@ -28,6 +28,9 @@ namespace DON {
 namespace {
 
 void generate_promotion_moves(ExtMoves& extMoves, Square dst, Direction dir) noexcept {
+    assert(dir == NORTH || dir == SOUTH               //
+           || dir == NORTH_EAST || dir == SOUTH_EAST  //
+           || dir == NORTH_WEST || dir == SOUTH_WEST);
 
     for (PieceType promo : {QUEEN, ROOK, BISHOP, KNIGHT})
         extMoves += Move(dst - dir, dst, promo);
@@ -53,8 +56,7 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
 
     Bitboard b = 0;
     if constexpr (GT != CAPTURES)
-        if (non7Pawns)
-            b = shift(Up_1, non7Pawns) & empties;
+        b = shift(Up_1, non7Pawns) & empties;
 
     if constexpr (GT == EVASIONS)
     {
@@ -69,6 +71,7 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
         Bitboard b1 = b;
         if constexpr (GT == EVASIONS)
             b1 &= empties;
+
         Bitboard b2 = shift(Up_1, b & relative_rank(ac, RANK_3)) & empties;
 
         while (b1)
@@ -90,19 +93,23 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
         if (on7Pawns)
         {
             b = shift(Up_1, on7Pawns) & empties;
+
             while (b)
                 generate_promotion_moves(extMoves, pop_lsb(b), Up_1);
 
             b = shift(Up_R, on7Pawns) & enemies;
+
             while (b)
                 generate_promotion_moves(extMoves, pop_lsb(b), Up_R);
 
             b = shift(Up_L, on7Pawns) & enemies;
+
             while (b)
                 generate_promotion_moves(extMoves, pop_lsb(b), Up_L);
         }
 
         b = shift(Up_R, non7Pawns) & enemies;
+
         while (b)
         {
             Square dst = pop_lsb(b);
@@ -110,6 +117,7 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
         }
 
         b = shift(Up_L, non7Pawns) & enemies;
+
         while (b)
         {
             Square dst = pop_lsb(b);

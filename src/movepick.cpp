@@ -17,6 +17,8 @@
 
 #include "movepick.h"
 
+#include <algorithm>
+#include <cassert>
 #include <utility>
 
 #include "bitboard.h"
@@ -27,36 +29,45 @@ namespace DON {
 // Constructors of the MovePicker class. As arguments, pass information
 // to decide which class of moves to return, to help sorting the (presumably)
 // good moves first, and how important move ordering is at the current node.
-MovePicker::MovePicker(const Position&         p,
-                       Move                    ttm,
-                       const ButterflyHistory* mainHist,
-                       const CaptureHistory*   capHist,
-                       const PieceSqHistory**  conHist,
-                       const PawnHistory*      pawnHist,
-                       const ButterflyHistory* rootHist,
-                       Value                   th) noexcept :
+MovePicker::MovePicker(const Position&            p,
+                       Move                       ttm,
+                       const History<HButterfly>* mainHist,
+                       const History<HCapture>*   capHist,
+                       const History<HPawn>*      pawnHist,
+                       const History<HPieceSq>**  psqHist,
+                       const History<HLowPly>*    lpHist,
+                       std::int16_t               ply,
+                       Value                      th) noexcept :
     pos(p),
     ttMove(ttm),
     mainHistory(mainHist),
     captureHistory(capHist),
-    continuationHistory(conHist),
     pawnHistory(pawnHist),
-    rootHistory(rootHist),
+    pieceSqHistory(psqHist),
+    lowPlyHistory(lpHist),
+    ssPly(ply),
     threshold(th) {
     assert(ttm == Move::None() || (p.pseudo_legal(ttm) && p.legal(ttm)));
 
-    if (mainHist)
-    {
-        stage = p.checkers() ? EVASION_TT : MAIN_TT;
-        if (ttm == Move::None())
-            next_stage();
-    }
-    else
-    {
-        stage = PROBCUT_TT;
-        if (ttm == Move::None() || !p.capture_promo(ttm) || p.see(ttm) < th)
-            next_stage();
-    }
+    stage = p.checkers() ? EVASION_TT : MAIN_TT;
+    if (ttm == Move::None())
+        next_stage();
+}
+
+MovePicker::MovePicker(const Position&          p,
+                       Move                     ttm,
+                       const History<HCapture>* capHist,
+                       Value                    th) noexcept :
+    pos(p),
+    ttMove(ttm),
+    captureHistory(capHist),
+    threshold(th) {
+    assert(!p.checkers());
+    assert(ttm == Move::None() || (p.pseudo_legal(ttm) && p.legal(ttm)));
+
+    stage = PROBCUT_TT;
+    if (ttm == Move::None() || !p.capture_promo(ttm) || p.see(ttm) < th)
+        next_stage();
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -89,37 +100,35 @@ void MovePicker::score() noexcept {
         else if constexpr (GT == QUIETS)
         {
             // Histories
-            m.value = (*mainHistory)[ac][m.org_dst()]         //
-                    + (*pawnHistory)[pawnIndex][pc][dst] * 2  //
-                    + (*continuationHistory[0])[pc][dst] * 2  //
-                    + (*continuationHistory[1])[pc][dst]      //
-                    + (*continuationHistory[2])[pc][dst] / 3  //
-                    + (*continuationHistory[3])[pc][dst]      //
-                    + (*continuationHistory[5])[pc][dst];
+            m.value = 2 * (*mainHistory)[ac][m.org_dst()]     //
+                    + 2 * (*pawnHistory)[pawnIndex][pc][dst]  //
+                    + (*pieceSqHistory[0])[pc][dst]           //
+                    + (*pieceSqHistory[1])[pc][dst]           //
+                    + (*pieceSqHistory[2])[pc][dst]           //
+                    + (*pieceSqHistory[3])[pc][dst]           //
+                    + (*pieceSqHistory[5])[pc][dst];
 
-            if (rootHistory)
-                m.value += 8 * (*rootHistory)[ac][m.org_dst()];
+            if (ssPly < LOW_PLY_SIZE)
+                m.value += 8 * (*lowPlyHistory)[ssPly][m.org_dst()] / (1 + 2 * ssPly);
 
             // Bonus for checks
             m.value += 0x4000 * pos.check(m);
             m.value += 0x2000 * pos.fork(m);
 
-            if (pt == KING)
+            if (pt == PAWN || pt == KING)
                 continue;
 
             // Bonus for escaping from capture
             if ((pos.threatens(ac) & org))
-                m.value += pt == QUEEN ? !(pos.attacks(~ac, ROOK) & dst) * 51700
-                         : pt == ROOK  ? !(pos.attacks(~ac, MINOR) & dst) * 25600
-                         : pt != PAWN  ? !(pos.attacks(~ac, PAWN) & dst) * 14450
-                                       : !(pos.attacks(~ac, PAWN) & dst) * 12450;
+                m.value += pt == QUEEN ? 51700 * !(pos.attacks(~ac, ROOK) & dst)
+                         : pt == ROOK  ? 25600 * !(pos.attacks(~ac, MINOR) & dst)
+                                       : 14450 * !(pos.attacks(~ac, PAWN) & dst);
 
             // Malus for putting piece en-prise
             if (!(pos.blockers(~ac) & org))
-                m.value -= pt == QUEEN ? !!(pos.attacks(~ac, ROOK) & dst) * 49000
-                         : pt == ROOK  ? !!(pos.attacks(~ac, MINOR) & dst) * 24335
-                         : pt != PAWN  ? !!(pos.attacks(~ac, PAWN) & dst) * 14900
-                                       : !!(pos.attacks(~ac, PAWN) & dst) * 11900;
+                m.value -= pt == QUEEN ? 49000 * !!(pos.attacks(~ac, ROOK) & dst)
+                         : pt == ROOK  ? 24335 * !!(pos.attacks(~ac, MINOR) & dst)
+                                       : 14900 * !!(pos.attacks(~ac, PAWN) & dst);
 
             if ((pos.pinners() & org))
                 m.value -= 0x400 * !aligned(org, dst, pos.king_square(~ac));
@@ -139,8 +148,8 @@ void MovePicker::score() noexcept {
             else
             {
                 m.value = (*mainHistory)[ac][m.org_dst()]     //
-                        + (*continuationHistory[0])[pc][dst]  //
-                        + (*pawnHistory)[pawnIndex][pc][dst];
+                        + (*pawnHistory)[pawnIndex][pc][dst]  //
+                        + (*pieceSqHistory[0])[pc][dst];
             }
         }
     }
@@ -150,35 +159,38 @@ void MovePicker::score() noexcept {
 // The order of moves smaller than the limit is left unspecified.
 void MovePicker::sort_partial(int limit) noexcept {
 
-    for (auto s = begin(), p = s + 1; p < end(); ++p)
+    auto b = begin(), e = end();
+    for (auto p = b + 1, s = b; p < e; ++p)
     {
         if (p->value < limit)
             continue;
 
         auto cur = *p;
-
-        auto q = ++s;
+        auto q   = ++s;
 
         *p = *q;
-        for (; q > begin() && (q - 1)->value < cur.value; --q)
+        while (q != b && *(q - 1) < cur)
+        {
             *q = *(q - 1);
+            --q;
+        }
         *q = cur;
     }
 }
 
-void MovePicker::swap_maximum(int tolerance) noexcept {
+void MovePicker::swap_best(int tolerance) noexcept {
 
-    if (curMax > curMin + 2 && curMax > current().value + tolerance)
+    if (curValue > minValue + 2 && curValue > current().value + tolerance)
     {
         std::iter_swap(begin(), std::max_element(begin(), end()));
-        curMax = current().value;
+        curValue = current().value;
     }
 }
 
 // Most important method of the MovePicker class.
 // It returns a new pseudo-legal move every time it is called until there are no more moves left,
 // picking the move with the highest score from a list of generated moves.
-Move MovePicker::next_move(bool pickQuiets) noexcept {
+Move MovePicker::next_move() noexcept {
 
 STAGE_SWITCH:
     switch (stage)
@@ -192,7 +204,7 @@ STAGE_SWITCH:
     case CAPTURE_INIT :
     case PROBCUT_INIT :
         generate<CAPTURES>(extMoves, pos);
-        curExtItr = extMoves.begin();
+        begExtItr = extMoves.begin();
         endExtItr = ttMove != Move::None() && pos.capture_promo(ttMove)  //
                     ? extMoves.remove(ttMove)
                     : extMoves.end();
@@ -208,14 +220,12 @@ STAGE_SWITCH:
     case CAPTURE_GOOD :
         while (begin() < end())
         {
-            auto cur = current();
+            auto cur = current_next();
 
-            next();
-
-            Value curThreshold = -(0.05555 + 0.00694 * (cur.value < 0)) * cur.value;
+            Value curThreshold = -(55.5555e-3 + 6.9444e-3 * (cur.value < 0)) * cur.value;
             if (pos.see(cur) >= curThreshold)
                 return cur;
-            badCaptures += cur;
+            badCapMoves += cur;
         }
 
         next_stage();
@@ -226,7 +236,7 @@ STAGE_SWITCH:
         {
             extMoves.clear();
             generate<QUIETS>(extMoves, pos);
-            curExtItr = extMoves.begin();
+            begExtItr = extMoves.begin();
             endExtItr = ttMove != Move::None() && !pos.capture_promo(ttMove)
                         ? extMoves.remove(ttMove)
                         : extMoves.end();
@@ -236,10 +246,8 @@ STAGE_SWITCH:
             score<QUIETS>();
             sort_partial(threshold);
 
-            curMin = std::min_element(begin(), end())->value;
+            minValue = std::min_element(begin(), end())->value;
         }
-        else
-            assert(begin() == end());
 
         next_stage();
         [[fallthrough]];
@@ -250,15 +258,15 @@ STAGE_SWITCH:
         // Remaining quiets are bad
 
         // Prepare to loop over the bad captures
-        curItr = badCaptures.begin();
-        endItr = badCaptures.end();
+        begItr = badCapMoves.begin();
+        endItr = badCapMoves.end();
 
         next_stage();
         [[fallthrough]];
 
     case CAPTURE_BAD :
-        if (curItr < endItr)
-            return *curItr++;
+        if (begItr < endItr)
+            return *begItr++;
 
         next_stage();
         [[fallthrough]];
@@ -266,19 +274,19 @@ STAGE_SWITCH:
     case QUIET_BAD :
         if (pickQuiets && begin() < end())
         {
-            swap_maximum(1);
+            swap_best(1);
             return current_next();
         }
         return Move::None();
 
     case EVASION_INIT :
         generate<EVASIONS>(extMoves, pos);
-        curExtItr = extMoves.begin();
+        begExtItr = extMoves.begin();
         endExtItr = ttMove != Move::None() ? extMoves.remove(ttMove) : extMoves.end();
 
         score<EVASIONS>();
 
-        curMin = std::min_element(begin(), end())->value;
+        minValue = std::min_element(begin(), end())->value;
 
         next_stage();
         [[fallthrough]];
@@ -286,7 +294,7 @@ STAGE_SWITCH:
     case EVASION :
         if (begin() < end())
         {
-            swap_maximum(0);
+            swap_best(0);
             return current_next();
         }
         return Move::None();
@@ -294,9 +302,7 @@ STAGE_SWITCH:
     case PROBCUT :
         while (begin() < end())
         {
-            auto cur = current();
-
-            next();
+            auto cur = current_next();
 
             if (pos.see(cur) >= threshold)
                 return cur;

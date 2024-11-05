@@ -141,6 +141,14 @@ class Logger final {
 
 }  // namespace
 
+std::string engine_info(bool uci) noexcept {
+    std::ostringstream oss;
+    oss << (uci ? "id name " : "");
+    oss << version_info();
+    oss << (uci ? "\nid author " : " by ") << "Ehsan Rashid";
+    return oss.str();
+}
+
 // Returns the full name of the current DON version.
 // For local dev compiles try to append the commit sha and commit date from git.
 // If that fails only the local compilation date is set and "nogit" is specified:
@@ -150,10 +158,9 @@ class Logger final {
 //
 // For releases (non-dev builds) only include the version number:
 //  - DON version
-std::string engine_info(bool uci) noexcept {
+std::string version_info() noexcept {
     std::ostringstream oss;
-    oss << (uci ? "id name " : "") << "DON"
-        << " " << Version;
+    oss << "DON" << " " << Version;
 
     if constexpr (Version == "dev")
     {
@@ -171,9 +178,6 @@ std::string engine_info(bool uci) noexcept {
         oss << "nogit";
 #endif
     }
-
-    oss << (uci ? "\nid author " : " by ") << "Ehsan Rashid";
-
     return oss.str();
 }
 
@@ -296,9 +300,6 @@ std::string compiler_info() noexcept {
 #else
     compiler += "(undefined macro)";
 #endif
-
-    compiler += '\n';
-
     return compiler;
 }
 
@@ -350,14 +351,14 @@ void start_logger(const std::string& logFile) noexcept { Logger::start(logFile);
 namespace Debug {
 namespace {
 
-template<std::uint8_t N>
+template<std::size_t N>
 class Info final {
    public:
     constexpr std::atomic_int64_t& operator[](std::uint8_t index) noexcept { return data[index]; }
 
     void init(std::int64_t value) noexcept {
         data[0] = 0;
-        for (std::uint8_t i = 1; i < N; ++i)
+        for (std::size_t i = 1; i < N; ++i)
             data[i] = value;
     }
 
@@ -371,21 +372,21 @@ class Info final {
     std::array<std::atomic_int64_t, N> data;
 };
 
-constexpr std::uint8_t MaxSlot = 32;
+constexpr inline std::size_t MAX_SLOT = 32;
 
-std::array<Info<2>, MaxSlot> hit;
-std::array<Info<2>, MaxSlot> min;
-std::array<Info<2>, MaxSlot> max;
-std::array<Info<3>, MaxSlot> extreme;
-std::array<Info<2>, MaxSlot> mean;
-std::array<Info<3>, MaxSlot> stdev;
-std::array<Info<6>, MaxSlot> correl;
+std::array<Info<2>, MAX_SLOT> hit;
+std::array<Info<2>, MAX_SLOT> min;
+std::array<Info<2>, MAX_SLOT> max;
+std::array<Info<3>, MAX_SLOT> extreme;
+std::array<Info<2>, MAX_SLOT> mean;
+std::array<Info<3>, MAX_SLOT> stdev;
+std::array<Info<6>, MAX_SLOT> correl;
 
 }  // namespace
 
 void init() noexcept {
 
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+    for (std::size_t i = 0; i < MAX_SLOT; ++i)
     {
         hit[i].init(0);
         min[i].init(std::numeric_limits<std::int64_t>::max());
@@ -461,48 +462,47 @@ void print() noexcept {
 
     auto avg = [&n](std::int64_t x) noexcept { return double(x) / n; };
 
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+    for (std::size_t i = 0; i < MAX_SLOT; ++i)
         if ((n = hit[i][0]))
-            std::cerr << "Hit #" << int(i) << ": Count " << n << " Hits " << hit[i][1]
+            std::cerr << "Hit #" << i << ": Count " << n << " Hits " << hit[i][1]
                       << " Hit Rate (%) " << 100.0 * avg(hit[i][1]) << '\n';
 
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+    for (std::size_t i = 0; i < MAX_SLOT; ++i)
         if ((n = min[i][0]))
-            std::cerr << "Min #" << int(i) << ": Count " << n << " Min " << min[i][1] << '\n';
+            std::cerr << "Min #" << i << ": Count " << n << " Min " << min[i][1] << '\n';
 
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+    for (std::size_t i = 0; i < MAX_SLOT; ++i)
         if ((n = max[i][0]))
-            std::cerr << "Max #" << int(i) << ": Count " << n << " Max " << max[i][1] << '\n';
+            std::cerr << "Max #" << i << ": Count " << n << " Max " << max[i][1] << '\n';
 
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+    for (std::size_t i = 0; i < MAX_SLOT; ++i)
         if ((n = extreme[i][0]))
-            std::cerr << "Extreme #" << int(i) << ": Count " << n  //
+            std::cerr << "Extreme #" << i << ": Count " << n  //
                       << " Min " << extreme[i][1] << " Max " << extreme[i][2] << '\n';
 
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+    for (std::size_t i = 0; i < MAX_SLOT; ++i)
         if ((n = mean[i][0]))
-            std::cerr << "Mean #" << int(i) << ": Count " << n  //
+            std::cerr << "Mean #" << i << ": Count " << n  //
                       << " Mean " << avg(mean[i][1]) << '\n';
 
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+    for (std::size_t i = 0; i < MAX_SLOT; ++i)
         if ((n = stdev[i][0]))
         {
             double r = std::sqrt(avg(stdev[i][2]) - sqr(avg(stdev[i][1])));
-            std::cerr << "Stdev #" << int(i) << ": Count " << n << " Stdev " << r << '\n';
+            std::cerr << "Stdev #" << i << ": Count " << n << " Stdev " << r << '\n';
         }
 
-    for (std::uint8_t i = 0; i < MaxSlot; ++i)
+    for (std::size_t i = 0; i < MAX_SLOT; ++i)
         if ((n = correl[i][0]))
         {
             double r = (avg(correl[i][5]) - avg(correl[i][1]) * avg(correl[i][3]))
                      / (std::sqrt(avg(correl[i][2]) - sqr(avg(correl[i][1])))
                         * std::sqrt(avg(correl[i][4]) - sqr(avg(correl[i][3]))));
-            std::cerr << "Correl #" << int(i) << ": Count " << n << " Coefficient " << r << '\n';
+            std::cerr << "Correl #" << i << ": Count " << n << " Coefficient " << r << '\n';
         }
 }
 }  // namespace Debug
 #endif
-
 
 #if defined(_WIN32)
     #include <direct.h>

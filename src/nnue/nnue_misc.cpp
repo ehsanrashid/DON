@@ -33,7 +33,7 @@
 #include "network.h"
 #include "nnue_accumulator.h"
 
-namespace DON::Eval::NNUE {
+namespace DON::NNUE {
 
 void hint_common_parent_position(const Position&    pos,
                                  const Networks&    networks,
@@ -192,4 +192,4 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
     return oss.str();
 }
 
-}  // namespace DON::Eval::NNUE
+}  // namespace DON::NNUE

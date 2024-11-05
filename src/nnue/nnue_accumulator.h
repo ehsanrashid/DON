@@ -28,7 +28,7 @@
 #include "nnue_architecture.h"
 #include "nnue_common.h"
 
-namespace DON::Eval::NNUE {
+namespace DON::NNUE {
 
 using BiasType       = std::int16_t;
 using PSQTWeightType = std::int32_t;
@@ -51,14 +51,16 @@ struct alignas(CACHE_LINE_SIZE) Accumulator {
 struct AccumulatorCaches {
 
     template<typename Networks>
-    explicit AccumulatorCaches(const Networks& networks) {
+    explicit AccumulatorCaches(const Networks& networks) noexcept {
+
         init(networks);
     }
 
     template<IndexType Size>
-    struct alignas(CACHE_LINE_SIZE) Cache {
+    struct alignas(CACHE_LINE_SIZE) Cache final {
 
-        struct alignas(CACHE_LINE_SIZE) Entry {
+        struct alignas(CACHE_LINE_SIZE) Entry final {
+
             BiasType       accumulation[Size];
             PSQTWeightType psqtAccumulation[PSQTBuckets];
             Bitboard       colorBB[COLOR_NB];
@@ -69,30 +71,27 @@ struct AccumulatorCaches {
             void init(const BiasType* biases) noexcept {
 
                 std::memcpy(accumulation, biases, sizeof(accumulation));
-                std::memset((std::uint8_t*) (this) + offsetof(Entry, psqtAccumulation), 0,
-                            sizeof(Entry) - offsetof(Entry, psqtAccumulation));
+                auto offset = offsetof(Entry, psqtAccumulation);
+                std::memset((std::uint8_t*) (this) + offset, 0, sizeof(Entry) - offset);
             }
         };
 
         template<typename Network>
         void init(const Network& network) noexcept {
-            for (auto& entries1D : entries)
-                for (auto& entry : entries1D)
+
+            for (auto& _1dEntries : entries)
+                for (auto& entry : _1dEntries)
                     entry.init(network.featureTransformer->biases);
         }
 
-        void init(const BiasType* biases) noexcept {
-            for (auto& entry : entries)
-                entry.init(biases);
-        }
-
-        std::array<Entry, COLOR_NB>& operator[](Square sq) { return entries[sq]; }
+        auto& operator[](Square sq) { return entries[sq]; }
 
         std::array2d<Entry, SQUARE_NB, COLOR_NB> entries;
     };
 
     template<typename Networks>
     void init(const Networks& networks) noexcept {
+
         big.init(networks.big);
         small.init(networks.small);
     }
@@ -101,6 +100,6 @@ struct AccumulatorCaches {
     Cache<SmallTransformedFeatureDimensions> small;
 };
 
-}  // namespace DON::Eval::NNUE
+}  // namespace DON::NNUE
 
 #endif  // #ifndef NNUE_ACCUMULATOR_H_INCLUDED

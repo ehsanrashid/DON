@@ -55,9 +55,9 @@ SRCS := benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp \
 	search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp \
 	nnue/nnue_misc.cpp nnue/network.cpp nnue/features/half_ka_v2_hm.cpp syzygy/tbprobe.cpp
 
-HEADERS := benchmark.h bitboard.h engine.h evaluate.h memory.h misc.h movegen.h \
-	movepick.h numa.h perft.h polybook.h position.h score.h search.h thread.h \
-	thread_win32_osx.h timeman.h tt.h tune.h types.h uci.h ucioption.h \
+HEADERS := benchmark.h bitboard.h engine.h evaluate.h history.h memory.h misc.h \
+	movegen.h movepick.h numa.h perft.h polybook.h position.h score.h search.h \
+	thread.h thread_win32_osx.h timeman.h tt.h tune.h types.h uci.h ucioption.h \
 	nnue/nnue_accumulator.h nnue/nnue_architecture.h nnue/nnue_common.h \
 	nnue/nnue_feature_transformer.h nnue/nnue_misc.h nnue/network.h \
 	nnue/features/half_ka_v2_hm.h nnue/layers/affine_transform.h \
@@ -97,8 +97,12 @@ VPATH := syzygy:nnue:nnue/features
 # avx512 = yes/no     --- -mavx512bw         --- Use Intel Advanced Vector Extensions 512
 # vnni256 = yes/no    --- -mavx256vnni       --- Use Intel Vector Neural Network Instructions 512 with 256bit operands
 # vnni512 = yes/no    --- -mavx512vnni       --- Use Intel Vector Neural Network Instructions 512
+# altivec = yes/no    --- -maltivec          --- Use PowerPC Altivec SIMD extension
+# vsx = yes/no        --- -mvsx              --- Use POWER VSX SIMD extension
 # neon = yes/no       --- -DUSE_NEON         --- Use ARM SIMD architecture
 # dotprod = yes/no    --- -DUSE_NEON_DOTPROD --- Use ARM advanced SIMD Int8 dot product instructions
+# lsx = yes/no        --- -mlsx              --- Use Loongson SIMD eXtension
+# lasx = yes/no       --- -mlasx             --- use Loongson Advanced SIMD eXtension
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
@@ -121,10 +125,11 @@ endif
 # explicitly check for the list of supported architectures (as listed with make help),
 # the user can override with `make ARCH=x86-32-vnni256 SUPPORTED_ARCH=true`
 ifeq ($(ARCH), $(filter $(ARCH), \
-                 x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni x86-64-bmi2 \
-                 x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-ssse3 x86-64-sse3-popcnt \
-                 x86-64 x86-32-sse41-popcnt x86-32-sse2 x86-32-popcnt x86-32 ppc-64 ppc-32 e2k \
-                 armv7 armv7-neon armv8 armv8-dotprod apple-silicon general-64 general-32 riscv64 loongarch64))
+                 x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni x86-64-bmi2 x86-64-avx2 \
+                 x86-64-sse41-popcnt x86-64-modern x86-64-ssse3 x86-64-sse3-popcnt x86-64 \
+                 x86-32-sse41-popcnt x86-32-sse2 x86-32-popcnt x86-32 ppc-64 ppc-64-altivec ppc-64-vsx ppc-32 \
+                 e2k armv7 armv7-neon armv8 armv8-dotprod apple-silicon general-64 general-32 riscv64 \
+                 loongarch64 loongarch64-lsx loongarch64-lasx))
    SUPPORTED_ARCH=true
 else
    SUPPORTED_ARCH=false
@@ -147,9 +152,13 @@ avxvnni = no
 avx512 = no
 vnni256 = no
 vnni512 = no
+altivec = no
+vsx = no
 neon = no
 dotprod = no
 arm_version = 0
+lsx = no
+lasx = no
 STRIP = strip
 
 ifneq ($(shell which clang-format-18 2> /dev/null), )
@@ -160,11 +169,11 @@ endif
 
 ### 2.2 Architecture specific
 
-ifeq ($(findstring x86,$(ARCH)), x86)
+ifeq ($(findstring x86, $(ARCH)), x86)
 
 # x86-32/64
 
-ifeq ($(findstring x86-32,$(ARCH)), x86-32)
+ifeq ($(findstring x86-32, $(ARCH)), x86-32)
 	arch = i386
 	bits = 32
 	sse = no
@@ -175,37 +184,37 @@ else
 	sse2 = yes
 endif
 
-ifeq ($(findstring -sse,$(ARCH)), -sse)
+ifeq ($(findstring -sse, $(ARCH)), -sse)
 	sse = yes
 endif
 
-ifeq ($(findstring -popcnt,$(ARCH)), -popcnt)
+ifeq ($(findstring -popcnt, $(ARCH)), -popcnt)
 	popcnt = yes
 endif
 
-ifeq ($(findstring -mmx,$(ARCH)), -mmx)
+ifeq ($(findstring -mmx, $(ARCH)), -mmx)
 	mmx = yes
 endif
 
-ifeq ($(findstring -sse2,$(ARCH)), -sse2)
+ifeq ($(findstring -sse2, $(ARCH)), -sse2)
 	sse = yes
 	sse2 = yes
 endif
 
-ifeq ($(findstring -ssse3,$(ARCH)), -ssse3)
+ifeq ($(findstring -ssse3, $(ARCH)), -ssse3)
 	sse = yes
 	sse2 = yes
 	ssse3 = yes
 endif
 
-ifeq ($(findstring -sse41,$(ARCH)), -sse41)
+ifeq ($(findstring -sse41, $(ARCH)), -sse41)
 	sse = yes
 	sse2 = yes
 	ssse3 = yes
 	sse41 = yes
 endif
 
-ifeq ($(findstring -modern,$(ARCH)), -modern)
+ifeq ($(findstring -modern, $(ARCH)), -modern)
         $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute `make help` for a list of available architectures. ***)
         $(shell sleep 5)
 	popcnt = yes
@@ -215,7 +224,7 @@ ifeq ($(findstring -modern,$(ARCH)), -modern)
 	sse41 = yes
 endif
 
-ifeq ($(findstring -avx2,$(ARCH)), -avx2)
+ifeq ($(findstring -avx2, $(ARCH)), -avx2)
 	popcnt = yes
 	sse = yes
 	sse2 = yes
@@ -224,7 +233,7 @@ ifeq ($(findstring -avx2,$(ARCH)), -avx2)
 	avx2 = yes
 endif
 
-ifeq ($(findstring -bmi2,$(ARCH)), -bmi2)
+ifeq ($(findstring -bmi2, $(ARCH)), -bmi2)
 	popcnt = yes
 	sse = yes
 	sse2 = yes
@@ -234,7 +243,7 @@ ifeq ($(findstring -bmi2,$(ARCH)), -bmi2)
 	pext = yes
 endif
 
-ifeq ($(findstring -avxvnni,$(ARCH)), -avxvnni)
+ifeq ($(findstring -avxvnni, $(ARCH)), -avxvnni)
 	popcnt = yes
 	sse = yes
 	sse2 = yes
@@ -245,7 +254,7 @@ ifeq ($(findstring -avxvnni,$(ARCH)), -avxvnni)
 	avxvnni = yes
 endif
 
-ifeq ($(findstring -avx512,$(ARCH)), -avx512)
+ifeq ($(findstring -avx512, $(ARCH)), -avx512)
 	popcnt = yes
 	sse = yes
 	sse2 = yes
@@ -256,7 +265,7 @@ ifeq ($(findstring -avx512,$(ARCH)), -avx512)
 	avx512 = yes
 endif
 
-ifeq ($(findstring -vnni256,$(ARCH)), -vnni256)
+ifeq ($(findstring -vnni256, $(ARCH)), -vnni256)
 	popcnt = yes
 	sse = yes
 	sse2 = yes
@@ -267,7 +276,7 @@ ifeq ($(findstring -vnni256,$(ARCH)), -vnni256)
 	vnni256 = yes
 endif
 
-ifeq ($(findstring -vnni512,$(ARCH)), -vnni512)
+ifeq ($(findstring -vnni512, $(ARCH)), -vnni512)
 	popcnt = yes
 	sse = yes
 	sse2 = yes
@@ -354,7 +363,21 @@ ifeq ($(ARCH), ppc-64)
 	prefetch = yes
 endif
 
-ifeq ($(findstring e2k,$(ARCH)), e2k)
+ifeq ($(ARCH), ppc-64-altivec)
+	arch = ppc64
+	popcnt = yes
+	prefetch = yes
+	altivec = yes
+endif
+
+ifeq ($(ARCH), ppc-64-vsx)
+	arch = ppc64
+	popcnt = yes
+	prefetch = yes
+	vsx = yes
+endif
+
+ifeq ($(findstring e2k, $(ARCH)), e2k)
 	arch = e2k
 	mmx = yes
 	bits = 64
@@ -369,8 +392,19 @@ ifeq ($(ARCH), riscv64)
 	arch = riscv64
 endif
 
-ifeq ($(ARCH), loongarch64)
+ifeq ($(findstring loongarch64, $(ARCH)), loongarch64)
 	arch = loongarch64
+	prefetch = yes
+
+ifeq ($(findstring -lasx, $(ARCH)), -lasx)
+	lsx = yes
+	lasx = yes
+endif
+
+ifeq ($(findstring -lsx, $(ARCH)), -lsx)
+	lsx = yes
+endif
+
 endif
 endif
 
@@ -399,7 +433,7 @@ ifeq ($(COMP), gcc)
 	CXX=g++
 	CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
 
-	ifeq ($(arch), $(filter $(arch),armv7 armv8 riscv64))
+	ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64))
 		ifeq ($(OS), Android)
 			CXXFLAGS += -m$(bits)
 			LDFLAGS += -m$(bits)
@@ -407,14 +441,14 @@ ifeq ($(COMP), gcc)
 		ifeq ($(ARCH), riscv64)
 			CXXFLAGS += -latomic
 		endif
-	else ifeq ($(ARCH), loongarch64)
+	else ifeq ($(arch), loongarch64)
 		CXXFLAGS += -latomic
 	else
 		CXXFLAGS += -m$(bits)
 		LDFLAGS += -m$(bits)
 	endif
 
-	ifeq ($(arch), $(filter $(arch),armv7))
+	ifeq ($(arch), $(filter $(arch), armv7))
 		LDFLAGS += -latomic
 	endif
 
@@ -463,7 +497,7 @@ ifeq ($(COMP), clang)
 	CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes \
 	            -Wconditional-uninitialized
 
-	ifeq ($(filter $(KERNEL),Darwin OpenBSD FreeBSD), )
+	ifeq ($(filter $(KERNEL), Darwin OpenBSD FreeBSD), )
 	ifeq ($(target_windows), )
 	ifneq ($(RTLIB), compiler-rt)
 		LDFLAGS += -latomic
@@ -471,7 +505,7 @@ ifeq ($(COMP), clang)
 	endif
 	endif
 
-	ifeq ($(arch), $(filter $(arch),armv7 armv8 riscv64))
+	ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64))
 		ifeq ($(OS), Android)
 			CXXFLAGS += -m$(bits)
 			LDFLAGS += -m$(bits)
@@ -479,7 +513,7 @@ ifeq ($(COMP), clang)
 		ifeq ($(ARCH), riscv64)
 			CXXFLAGS += -latomic
 		endif
-	else ifeq ($(ARCH), loongarch64)
+	else ifeq ($(arch), loongarch64)
 		CXXFLAGS += -latomic
 	else
 		CXXFLAGS += -m$(bits)
@@ -553,7 +587,7 @@ endif
 ### Sometimes gcc is really clang
 ifeq ($(COMP), gcc)
 	gccversion := $(shell $(CXX) --version 2>/dev/null)
-	gccisclang := $(findstring clang,$(gccversion))
+	gccisclang := $(findstring clang, $(gccversion))
 	ifneq ($(gccisclang), )
 		profile_make = clang-profile-make
 		profile_use = clang-profile-use
@@ -599,7 +633,7 @@ ifeq ($(optimize), yes)
 	endif
 
 	ifeq ($(KERNEL), Darwin)
-		ifeq ($(comp), $(filter $(comp),clang icx))
+		ifeq ($(comp), $(filter $(comp), clang icx))
 			CXXFLAGS += -mdynamic-no-pic
 		endif
 
@@ -632,7 +666,7 @@ ifeq ($(prefetch), yes)
 endif
 
 ifeq ($(popcnt), yes)
-	ifeq ($(arch), $(filter $(arch),ppc64 armv7 armv8 arm64))
+	ifeq ($(arch), $(filter $(arch), ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64))
 		CXXFLAGS += -DUSE_POPCNT
 	else
 		CXXFLAGS += -DUSE_POPCNT -msse3 -mpopcnt
@@ -642,63 +676,77 @@ endif
 ### 3.6 SIMD architectures
 ifeq ($(avx2), yes)
 	CXXFLAGS += -DUSE_AVX2
-	ifeq ($(comp), $(filter $(comp),gcc clang mingw icx))
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
 		CXXFLAGS += -mavx2 -mbmi
 	endif
 endif
 
 ifeq ($(avxvnni), yes)
 	CXXFLAGS += -DUSE_VNNI -DUSE_AVXVNNI
-	ifeq ($(comp), $(filter $(comp),gcc clang mingw icx))
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
 		CXXFLAGS += -mavxvnni
 	endif
 endif
 
 ifeq ($(avx512), yes)
 	CXXFLAGS += -DUSE_AVX512
-	ifeq ($(comp), $(filter $(comp),gcc clang mingw icx))
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
 		CXXFLAGS += -mavx512f -mavx512bw
 	endif
 endif
 
 ifeq ($(vnni256), yes)
 	CXXFLAGS += -DUSE_VNNI
-	ifeq ($(comp), $(filter $(comp),gcc clang mingw icx))
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
 		CXXFLAGS += -mavx512f -mavx512bw -mavx512vnni -mavx512dq -mavx512vl -mprefer-vector-width=256
 	endif
 endif
 
 ifeq ($(vnni512), yes)
 	CXXFLAGS += -DUSE_VNNI
-	ifeq ($(comp), $(filter $(comp),gcc clang mingw icx))
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
 		CXXFLAGS += -mavx512f -mavx512bw -mavx512vnni -mavx512dq -mavx512vl -mprefer-vector-width=512
 	endif
 endif
 
 ifeq ($(sse41), yes)
 	CXXFLAGS += -DUSE_SSE41
-	ifeq ($(comp), $(filter $(comp),gcc clang mingw icx))
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
 		CXXFLAGS += -msse4.1
 	endif
 endif
 
 ifeq ($(ssse3), yes)
 	CXXFLAGS += -DUSE_SSSE3
-	ifeq ($(comp), $(filter $(comp),gcc clang mingw icx))
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
 		CXXFLAGS += -mssse3
 	endif
 endif
 
 ifeq ($(sse2), yes)
 	CXXFLAGS += -DUSE_SSE2
-	ifeq ($(comp), $(filter $(comp),gcc clang mingw icx))
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
 		CXXFLAGS += -msse2
 	endif
 endif
 
 ifeq ($(mmx), yes)
-	ifeq ($(comp), $(filter $(comp),gcc clang mingw icx))
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
 		CXXFLAGS += -mmmx
+	endif
+endif
+
+ifeq ($(altivec), yes)
+	CXXFLAGS += -maltivec
+	ifeq ($(COMP), gcc)
+		CXXFLAGS += -mabi=altivec
+	endif
+endif
+
+ifeq ($(vsx), yes)
+	CXXFLAGS += -mvsx
+	ifeq ($(COMP), gcc)
+		CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
 	endif
 endif
 
@@ -717,10 +765,22 @@ ifeq ($(dotprod), yes)
 	CXXFLAGS += -march=armv8.2-a+dotprod -DUSE_NEON_DOTPROD
 endif
 
+ifeq ($(lasx), yes)
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+		CXXFLAGS += -mlasx
+	endif
+endif
+
+ifeq ($(lsx),yes)
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+		CXXFLAGS += -mlsx
+	endif
+endif
+
 ### 3.7 pext
 ifeq ($(pext), yes)
 	CXXFLAGS += -DUSE_PEXT
-	ifeq ($(comp), $(filter $(comp),gcc clang mingw icx))
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
 		CXXFLAGS += -mbmi2
 	endif
 endif
@@ -747,7 +807,7 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize), yes)
 ifeq ($(debug), no)
-	ifeq ($(comp), $(filter $(comp),clang icx))
+	ifeq ($(comp), $(filter $(comp), clang icx))
 		CXXFLAGS += -flto=full
 		ifeq ($(comp), icx)
 			CXXFLAGS += -fwhole-program-vtables
@@ -789,73 +849,77 @@ endif
 ### ==========================================================================
 
 help:
-	@echo ""
-	@echo "To compile DON, type: "
-	@echo ""
-	@echo "make -j target [ARCH=arch] [COMP=compiler] [COMPCXX=cxx]"
-	@echo ""
-	@echo "Supported targets:"
-	@echo ""
-	@echo "help                    > Display architecture details"
-	@echo "profile-build           > standard build with profile-guided optimization"
-	@echo "build                   > skip profile-guided optimization"
-	@echo "net                     > Download the default nnue nets"
-	@echo "strip                   > Strip executable"
-	@echo "install                 > Install executable"
-	@echo "clean                   > Clean up"
-	@echo ""
-	@echo "Supported archs:"
-	@echo ""
-	@echo "native                  > select the best architecture for the host processor (default)"
-	@echo "x86-64-vnni512          > x86 64-bit with vnni 512bit support"
-	@echo "x86-64-vnni256          > x86 64-bit with vnni 512bit support, limit operands to 256bit wide"
-	@echo "x86-64-avx512           > x86 64-bit with avx512 support"
-	@echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support"
-	@echo "x86-64-bmi2             > x86 64-bit with bmi2 support"
-	@echo "x86-64-avx2             > x86 64-bit with avx2 support"
-	@echo "x86-64-sse41-popcnt     > x86 64-bit with sse41 and popcnt support"
-	@echo "x86-64-modern           > deprecated, currently x86-64-sse41-popcnt"
-	@echo "x86-64-ssse3            > x86 64-bit with ssse3 support"
-	@echo "x86-64-sse3-popcnt      > x86 64-bit with sse3 compile and popcnt support"
-	@echo "x86-64                  > x86 64-bit generic (with sse2 support)"
-	@echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support"
-	@echo "x86-32-sse2             > x86 32-bit with sse2 support"
-	@echo "x86-32-popcnt           > x86 32-bit with popcnt support"
-	@echo "x86-32                  > x86 32-bit generic (with mmx compile support)"
-	@echo "ppc-64                  > PPC 64-bit"
-	@echo "ppc-32                  > PPC 32-bit"
-	@echo "armv7                   > ARMv7 32-bit"
-	@echo "armv7-neon              > ARMv7 32-bit with popcnt and neon"
-	@echo "armv8                   > ARMv8 64-bit with popcnt and neon"
-	@echo "armv8-dotprod           > ARMv8 64-bit with popcnt, neon and dot product support"
-	@echo "e2k                     > Elbrus 2000"
-	@echo "apple-silicon           > Apple silicon ARM64"
-	@echo "general-64              > unspecified 64-bit"
-	@echo "general-32              > unspecified 32-bit"
-	@echo "riscv64                 > RISC-V 64-bit"
-	@echo "loongarch64             > LoongArch 64-bit"
-	@echo ""
-	@echo "Supported compilers:"
-	@echo ""
-	@echo "gcc                     > GNU compiler (default)"
-	@echo "mingw                   > GNU compiler with MinGW under Windows"
-	@echo "clang                   > LLVM Clang compiler"
-	@echo "icx                     > Intel oneAPI DPC++/C++ Compiler"
-	@echo "ndk                     > Google NDK to cross-compile for Android"
-	@echo ""
-	@echo "Simple examples. If you don't know what to do, you likely want to run one of: "
-	@echo ""
-	@echo "make -j profile-build ARCH=x86-64-avx2    # typically a fast compile for common systems "
-	@echo "make -j profile-build ARCH=x86-64-sse41-popcnt  # A more portable compile for 64-bit systems "
-	@echo "make -j profile-build ARCH=x86-64         # A portable compile for 64-bit systems "
-	@echo ""
-	@echo "Advanced examples, for experienced users: "
-	@echo ""
-	@echo "make -j profile-build ARCH=x86-64-avxvnni"
-	@echo "make -j profile-build ARCH=x86-64-avxvnni COMP=gcc COMPCXX=g++-12.0"
-	@echo "make -j build ARCH=x86-64-ssse3 COMP=clang"
-	@echo ""
-ifneq ($(SUPPORTED_ARCH),true)
+	@echo "" && \
+	echo "To compile DON, type: " && \
+	echo "" && \
+	echo "make -j target [ARCH=arch] [COMP=compiler] [COMPCXX=cxx]" && \
+	echo "" && \
+	echo "Supported targets:" && \
+	echo "" && \
+	echo "help                    > Display architecture details" && \
+	echo "profile-build           > standard build with profile-guided optimization" && \
+	echo "build                   > skip profile-guided optimization" && \
+	echo "net                     > Download the default nnue nets" && \
+	echo "strip                   > Strip executable" && \
+	echo "install                 > Install executable" && \
+	echo "clean                   > Clean up" && \
+	echo "" && \
+	echo "Supported archs:" && \
+	echo "" && \
+	echo "native                  > select the best architecture for the host processor (default)" && \
+	echo "x86-64-vnni512          > x86 64-bit with vnni 512bit support" && \
+	echo "x86-64-vnni256          > x86 64-bit with vnni 512bit support, limit operands to 256bit wide" && \
+	echo "x86-64-avx512           > x86 64-bit with avx512 support" && \
+	echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support" && \
+	echo "x86-64-bmi2             > x86 64-bit with bmi2 support" && \
+	echo "x86-64-avx2             > x86 64-bit with avx2 support" && \
+	echo "x86-64-sse41-popcnt     > x86 64-bit with sse41 and popcnt support" && \
+	echo "x86-64-modern           > deprecated, currently x86-64-sse41-popcnt" && \
+	echo "x86-64-ssse3            > x86 64-bit with ssse3 support" && \
+	echo "x86-64-sse3-popcnt      > x86 64-bit with sse3 compile and popcnt support" && \
+	echo "x86-64                  > x86 64-bit generic (with sse2 support)" && \
+	echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support" && \
+	echo "x86-32-sse2             > x86 32-bit with sse2 support" && \
+	echo "x86-32-popcnt           > x86 32-bit with popcnt support" && \
+	echo "x86-32                  > x86 32-bit generic (with mmx compile support)" && \
+	echo "ppc-64                  > PPC 64-bit" && \
+	echo "ppc-64-altivec          > PPC 64-bit with altivec support" && \
+	echo "ppc-64-vsx              > PPC 64-bit with vsx support" && \
+	echo "ppc-32                  > PPC 32-bit" && \
+	echo "armv7                   > ARMv7 32-bit" && \
+	echo "armv7-neon              > ARMv7 32-bit with popcnt and neon" && \
+	echo "armv8                   > ARMv8 64-bit with popcnt and neon" && \
+	echo "armv8-dotprod           > ARMv8 64-bit with popcnt, neon and dot product support" && \
+	echo "e2k                     > Elbrus 2000" && \
+	echo "apple-silicon           > Apple silicon ARM64" && \
+	echo "general-64              > unspecified 64-bit" && \
+	echo "general-32              > unspecified 32-bit" && \
+	echo "riscv64                 > RISC-V 64-bit" && \
+	echo "loongarch64             > LoongArch 64-bit" && \
+	echo "loongarch64-lsx         > LoongArch 64-bit with SIMD eXtension" && \
+	echo "loongarch64-lasx        > LoongArch 64-bit with Advanced SIMD eXtension" && \
+	echo "" && \
+	echo "Supported compilers:" && \
+	echo "" && \
+	echo "gcc                     > GNU compiler (default)" && \
+	echo "mingw                   > GNU compiler with MinGW under Windows" && \
+	echo "clang                   > LLVM Clang compiler" && \
+	echo "icx                     > Intel oneAPI DPC++/C++ Compiler" && \
+	echo "ndk                     > Google NDK to cross-compile for Android" && \
+	echo "" && \
+	echo "Simple examples. If you don't know what to do, you likely want to run one of: " && \
+	echo "" && \
+	echo "make -j profile-build ARCH=x86-64-avx2    # typically a fast compile for common systems " && \
+	echo "make -j profile-build ARCH=x86-64-sse41-popcnt  # A more portable compile for 64-bit systems " && \
+	echo "make -j profile-build ARCH=x86-64         # A portable compile for 64-bit systems " && \
+	echo "" && \
+	echo "Advanced examples, for experienced users: " && \
+	echo "" && \
+	echo "make -j profile-build ARCH=x86-64-avxvnni" && \
+	echo "make -j profile-build ARCH=x86-64-avxvnni COMP=gcc COMPCXX=g++-12.0" && \
+	echo "make -j build ARCH=x86-64-ssse3 COMP=clang" && \
+	echo ""
+ifneq ($(SUPPORTED_ARCH), true)
 	@echo "Specify a supported architecture with the ARCH option for more details"
 	@echo ""
 endif
@@ -935,62 +999,71 @@ all: $(EXE) .depend
 
 config-sanity: net
 	@echo ""
-	@echo "Config:"
-	@echo "debug: '$(debug)'"
-	@echo "sanitize: '$(sanitize)'"
-	@echo "optimize: '$(optimize)'"
-	@echo "arch: '$(arch)'"
-	@echo "bits: '$(bits)'"
-	@echo "kernel: '$(KERNEL)'"
-	@echo "os: '$(OS)'"
-	@echo "prefetch: '$(prefetch)'"
-	@echo "popcnt: '$(popcnt)'"
-	@echo "pext: '$(pext)'"
-	@echo "sse: '$(sse)'"
-	@echo "mmx: '$(mmx)'"
-	@echo "sse2: '$(sse2)'"
-	@echo "ssse3: '$(ssse3)'"
-	@echo "sse41: '$(sse41)'"
-	@echo "avx2: '$(avx2)'"
-	@echo "avxvnni: '$(avxvnni)'"
-	@echo "avx512: '$(avx512)'"
-	@echo "vnni256: '$(vnni256)'"
-	@echo "vnni512: '$(vnni512)'"
-	@echo "neon: '$(neon)'"
-	@echo "dotprod: '$(dotprod)'"
-	@echo "arm_version: '$(arm_version)'"
-	@echo "target_windows: '$(target_windows)'"
-	@echo ""
-	@echo "Flags:"
-	@echo "CXX: $(CXX)"
-	@echo "CXXFLAGS: $(CXXFLAGS)"
-	@echo "LDFLAGS: $(LDFLAGS)"
-	@echo ""
-	@echo "Testing config sanity. If this fails, try 'make help' ..."
-	@echo ""
-	@test "$(debug)" = "yes" || test "$(debug)" = "no"
-	@test "$(optimize)" = "yes" || test "$(optimize)" = "no"
-	@test "$(SUPPORTED_ARCH)" = "true"
-	@test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
+	@echo "Config:" && \
+	echo "debug: '$(debug)'" && \
+	echo "sanitize: '$(sanitize)'" && \
+	echo "optimize: '$(optimize)'" && \
+	echo "arch: '$(arch)'" && \
+	echo "bits: '$(bits)'" && \
+	echo "kernel: '$(KERNEL)'" && \
+	echo "os: '$(OS)'" && \
+	echo "prefetch: '$(prefetch)'" && \
+	echo "popcnt: '$(popcnt)'" && \
+	echo "pext: '$(pext)'" && \
+	echo "sse: '$(sse)'" && \
+	echo "mmx: '$(mmx)'" && \
+	echo "sse2: '$(sse2)'" && \
+	echo "ssse3: '$(ssse3)'" && \
+	echo "sse41: '$(sse41)'" && \
+	echo "avx2: '$(avx2)'" && \
+	echo "avxvnni: '$(avxvnni)'" && \
+	echo "avx512: '$(avx512)'" && \
+	echo "vnni256: '$(vnni256)'" && \
+	echo "vnni512: '$(vnni512)'" && \
+	echo "altivec: '$(altivec)'" && \
+	echo "vsx: '$(vsx)'" && \
+	echo "neon: '$(neon)'" && \
+	echo "dotprod: '$(dotprod)'" && \
+	echo "arm_version: '$(arm_version)'" && \
+	echo "lsx: '$(lsx)'" && \
+	echo "lasx: '$(lasx)'" && \
+	echo "target_windows: '$(target_windows)'" && \
+	echo "" && \
+	echo "Flags:" && \
+	echo "CXX: $(CXX)" && \
+	echo "CXXFLAGS: $(CXXFLAGS)" && \
+	echo "LDFLAGS: $(LDFLAGS)" && \
+	echo "" && \
+	echo "Testing config sanity. If this fails, try 'make help' ..." && \
+	echo "" && \
+	(test "$(debug)" = "yes" || test "$(debug)" = "no") && \
+	(test "$(optimize)" = "yes" || test "$(optimize)" = "no") && \
+	(test "$(SUPPORTED_ARCH)" = "true") && \
+	(test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
 	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc" || test "$(arch)" = "e2k" || \
-	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || test "$(arch)" = "riscv64" || test "$(arch)" = "loongarch64"
-	@test "$(bits)" = "32" || test "$(bits)" = "64"
-	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
-	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
-	@test "$(pext)" = "yes" || test "$(pext)" = "no"
-	@test "$(sse)" = "yes" || test "$(sse)" = "no"
-	@test "$(mmx)" = "yes" || test "$(mmx)" = "no"
-	@test "$(sse2)" = "yes" || test "$(sse2)" = "no"
-	@test "$(ssse3)" = "yes" || test "$(ssse3)" = "no"
-	@test "$(sse41)" = "yes" || test "$(sse41)" = "no"
-	@test "$(avx2)" = "yes" || test "$(avx2)" = "no"
-	@test "$(avxvnni)" = "yes" || test "$(avxvnni)" = "no"
-	@test "$(avx512)" = "yes" || test "$(avx512)" = "no"
-	@test "$(vnni256)" = "yes" || test "$(vnni256)" = "no"
-	@test "$(vnni512)" = "yes" || test "$(vnni512)" = "no"
-	@test "$(neon)" = "yes" || test "$(neon)" = "no"
-	@test "$(comp)" = "gcc" || test "$(comp)" = "icx" || test "$(comp)" = "mingw" || test "$(comp)" = "clang" \
-	|| test "$(comp)" = "armv7a-linux-androideabi16-clang"  || test "$(comp)" = "aarch64-linux-android21-clang"
+	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
+	 test "$(arch)" = "riscv64" || test "$(arch)" = "loongarch64") && \
+	(test "$(bits)" = "32" || test "$(bits)" = "64") && \
+	(test "$(prefetch)" = "yes" || test "$(prefetch)" = "no") && \
+	(test "$(popcnt)" = "yes" || test "$(popcnt)" = "no") && \
+	(test "$(pext)" = "yes" || test "$(pext)" = "no") && \
+	(test "$(sse)" = "yes" || test "$(sse)" = "no") && \
+	(test "$(mmx)" = "yes" || test "$(mmx)" = "no") && \
+	(test "$(sse2)" = "yes" || test "$(sse2)" = "no") && \
+	(test "$(ssse3)" = "yes" || test "$(ssse3)" = "no") && \
+	(test "$(sse41)" = "yes" || test "$(sse41)" = "no") && \
+	(test "$(avx2)" = "yes" || test "$(avx2)" = "no") && \
+	(test "$(avx512)" = "yes" || test "$(avx512)" = "no") && \
+	(test "$(vnni256)" = "yes" || test "$(vnni256)" = "no") && \
+	(test "$(vnni512)" = "yes" || test "$(vnni512)" = "no") && \
+	(test "$(altivec)" = "yes" || test "$(altivec)" = "no") && \
+	(test "$(vsx)" = "yes" || test "$(vsx)" = "no") && \
+	(test "$(neon)" = "yes" || test "$(neon)" = "no") && \
+	(test "$(lsx)" = "yes" || test "$(lsx)" = "no") && \
+	(test "$(lasx)" = "yes" || test "$(lasx)" = "no") && \
+	(test "$(comp)" = "gcc" || test "$(comp)" = "icx" || test "$(comp)" = "mingw" || \
+	 test "$(comp)" = "clang" || test "$(comp)" = "armv7a-linux-androideabi16-clang" || \
+	 test "$(comp)" = "aarch64-linux-android21-clang")
 
 $(EXE): $(OBJS)
 	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)

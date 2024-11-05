@@ -33,6 +33,8 @@
 #include <utility>
 #include <vector>
 
+#include "history.h"
+#include "movegen.h"
 #include "movepick.h"
 #include "numa.h"
 #include "position.h"
@@ -50,9 +52,7 @@ class TranspositionTable;
 
 constexpr inline std::uint8_t DEFAULT_MULTI_PV = 1;
 
-namespace Search {
-
-// Node type,
+// Node type
 enum NodeType : std::uint8_t {
     Root = 4,
     PV   = 2,
@@ -66,17 +66,19 @@ constexpr NodeType operator~(NodeType nt) noexcept { return NodeType((int(nt) ^ 
 // shallower and deeper in the tree during the search. Each search thread has
 // its own array of Stack objects, indexed by the current ply.
 struct Stack final {
-    std::int16_t    ply;
-    std::uint8_t    cutoffCount;
-    std::uint8_t    moveCount;
-    Move            move;
-    Value           staticEval;
-    int             history;
-    bool            inCheck;
-    bool            ttM;
-    bool            ttPv;
-    PieceSqHistory* continuationHistory;
-    Moves           pv;
+    std::int16_t ply;
+    std::uint8_t cutoffCount;
+    std::uint8_t moveCount;
+    Move         move;
+    Value        staticEval;
+    int          history;
+    bool         inCheck;
+    bool         ttM;
+    bool         ttPv;
+    Moves        pv;
+
+    History<HPieceSq>*            pieceSqHistory;
+    CorrectionHistory<CHPieceSq>* pieceSqCorrectionHistory;
 };
 
 // RootMove struct is used for moves at the root of the tree. For each root move
@@ -115,31 +117,45 @@ struct RootMove final {
     auto size() const noexcept { return pv.size(); }
     bool empty() const noexcept { return pv.empty(); }
 
-    bool operator==(Move m) const noexcept { return /*!empty() &&*/ (*this)[0] == m; }
-    bool operator!=(Move m) const noexcept { return !(*this == m); }
+    friend bool operator==(const RootMove& rm, Move m) noexcept {
+        return !rm.empty() && rm[0] == m;
+    }
+    friend bool operator!=(const RootMove& rm, Move m) noexcept { return !(rm == m); }
 
-    bool operator==(const RootMove& rm) const noexcept { return /*!rm.empty() &&*/ *this == rm[0]; }
-    bool operator!=(const RootMove& rm) const noexcept { return !(*this == rm); }
+    friend bool operator==(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return !rm1.empty() && !rm2.empty() && rm1[0] == rm2[0];
+    }
+    friend bool operator!=(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return !(rm1 == rm2);
+    }
 
     // Sort in descending order
-    bool operator<(const RootMove& rm) const noexcept {
-        return curValue != rm.curValue ? curValue > rm.curValue
-             : preValue != rm.preValue ? preValue > rm.preValue
-                                       : avgValue > rm.avgValue;
+    friend bool operator<(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return std::tie(rm1.curValue, rm1.preValue, rm1.avgValue)  //
+             > std::tie(rm2.curValue, rm2.preValue, rm2.avgValue);
     }
-    bool operator>(const RootMove& rm) const noexcept { return (rm < *this); }
-    bool operator<=(const RootMove& rm) const noexcept { return !(*this > rm); }
-    bool operator>=(const RootMove& rm) const noexcept { return !(*this < rm); }
+    friend bool operator>(const RootMove& rm1, const RootMove& rm2) noexcept {  //
+        return (rm2 < rm1);
+    }
+    friend bool operator<=(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return !(rm1 > rm2);
+    }
+    friend bool operator>=(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return !(rm1 < rm2);
+    }
 
     Move  operator[](std::size_t idx) const noexcept { return pv[idx]; }
     Move& operator[](std::size_t idx) noexcept { return pv[idx]; }
 
     void operator+=(Move m) noexcept { pv += m; }
 
-    Value         curValue   = -VALUE_INFINITE;
-    Value         preValue   = -VALUE_INFINITE;
-    Value         avgValue   = -VALUE_INFINITE;
-    Value         uciValue   = -VALUE_INFINITE;
+    Value curValue = -VALUE_INFINITE;
+    Value preValue = -VALUE_INFINITE;
+    Value uciValue = -VALUE_INFINITE;
+
+    Value    avgValue    = -VALUE_INFINITE;
+    SqrValue avgSqrValue = -VALUE_INFINITE * VALUE_INFINITE;
+
     bool          boundLower = false;
     bool          boundUpper = false;
     std::uint16_t selDepth   = DEPTH_ZERO;
@@ -155,7 +171,7 @@ class RootMoves final {
     using NormalItr     = RootMoveDeque::iterator;
     using ConstItr      = RootMoveDeque::const_iterator;
 
-    RootMoves() = default;
+    RootMoves() noexcept = default;
 
     template<typename... Args>
     auto& emplace(Args&&... args) noexcept {
@@ -169,11 +185,10 @@ class RootMoves final {
     void resize(std::size_t newSize) noexcept { rootMoves.resize(newSize); }
     void clear() noexcept { rootMoves.clear(); }
 
-    auto begin() noexcept { return rootMoves.begin(); }
-    auto end() noexcept { return rootMoves.end(); }
-
     auto begin() const noexcept { return rootMoves.begin(); }
     auto end() const noexcept { return rootMoves.end(); }
+    auto begin() noexcept { return rootMoves.begin(); }
+    auto end() noexcept { return rootMoves.end(); }
 
     auto& front() noexcept { return rootMoves.front(); }
     auto& back() noexcept { return rootMoves.back(); }
@@ -195,29 +210,29 @@ class RootMoves final {
         return false;
     }
 
-    NormalItr find(Move m) noexcept { return std::find(begin(), end(), m); }
-    NormalItr find(const RootMove& rm) noexcept { return find(rm[0]); }
-
-    ConstItr find(Move m) const noexcept { return std::find(begin(), end(), m); }
-    ConstItr find(const RootMove& rm) const noexcept { return find(rm[0]); }
-
     ConstItr find(std::size_t begIdx, std::size_t endIdx, Move m) const noexcept {
         assert(begIdx <= endIdx);
         return std::find(begin() + begIdx, begin() + endIdx, m);
     }
     ConstItr find(std::size_t begIdx, std::size_t endIdx, const RootMove& rm) const noexcept {
-        return find(begIdx, endIdx, rm[0]);
+        return !rm.empty() ? find(begIdx, endIdx, rm[0]) : begin() + endIdx;
     }
 
-    bool contains(Move m) const noexcept { return find(m) != end(); }
-    bool contains(const RootMove& rm) const noexcept { return contains(rm[0]); }
+    ConstItr find(Move m) const noexcept { return std::find(begin(), end(), m); }
+    ConstItr find(const RootMove& rm) const noexcept { return !rm.empty() ? find(rm[0]) : end(); }
+
+    NormalItr find(Move m) noexcept { return std::find(begin(), end(), m); }
+    NormalItr find(const RootMove& rm) noexcept { return !rm.empty() ? find(rm[0]) : end(); }
 
     bool contains(std::size_t begIdx, std::size_t endIdx, Move m) const noexcept {
         return find(begIdx, endIdx, m) != begin() + endIdx;
     }
     bool contains(std::size_t begIdx, std::size_t endIdx, const RootMove& rm) const noexcept {
-        return contains(begIdx, endIdx, rm[0]);
+        return !rm.empty() && contains(begIdx, endIdx, rm[0]);
     }
+
+    bool contains(Move m) const noexcept { return find(m) != end(); }
+    bool contains(const RootMove& rm) const noexcept { return !rm.empty() && contains(rm[0]); }
 
     template<typename Predicate>
     auto find_if(Predicate pred) noexcept {
@@ -253,50 +268,46 @@ class RootMoves final {
     RootMoveDeque rootMoves;
 };
 
-// Limits struct stores information sent by GUI about available time to
+// Limit struct stores information sent by GUI about available time to
 // search the current move, maximum depth/time, or if in analysis mode.
-struct Limits final {
+struct Limit final {
    public:
     struct Clock final {
         TimePoint time = TimePoint(0), inc = TimePoint(0);
     };
 
-    Limits() noexcept {
-        for (Color c : {WHITE, BLACK})
-            clock[c].time = clock[c].inc = TimePoint(0);
+    Limit() noexcept = default;
 
-        movesToGo = mate = 0;
-        moveTime         = TimePoint(0);
-        depth            = DEPTH_ZERO;
-        nodes            = 0;
-        hitRate          = 512;
-        infinite = ponder = perft = detail = false;
-    }
+    bool use_time_manager() const noexcept { return clocks[WHITE].time || clocks[BLACK].time; }
 
-    bool use_time_manager() const noexcept { return clock[WHITE].time || clock[BLACK].time; }
+    TimePoint startTime = TimePoint(0);
 
-    TimePoint startTime;
+    std::array<Clock, COLOR_NB> clocks;
 
-    std::array<Clock, COLOR_NB> clock;
-
-    std::uint8_t  movesToGo, mate;
-    TimePoint     moveTime;
-    Depth         depth;
-    std::uint64_t nodes;
-    std::uint16_t hitRate;
-    bool          infinite, ponder, perft, detail;
+    std::uint8_t  movesToGo = 0;
+    std::uint8_t  mate      = 0;
+    TimePoint     moveTime  = TimePoint(0);
+    Depth         depth     = DEPTH_ZERO;
+    std::uint64_t nodes     = 0;
+    std::uint16_t hitRate   = 512;
+    bool          infinite  = false;
+    bool          ponder    = false;
+    bool          perft = false, detail = false;
 
     std::deque<std::string> searchMoves, ignoreMoves;
 };
 
-// Skill structure is used to implement strength limit.
+// Skill struct is used to implement engine strength limit.
 // If UCI_ELO is set, convert it to an appropriate skill level.
 // Skill 0..19 covers CCRL Blitz Elo from 1320 to 3190, approximately.
 struct Skill final {
+   public:
+    Skill() noexcept = default;
 
     void init(const Options& options) noexcept;
 
     bool enabled() const noexcept { return level < MAX_LEVEL; }
+
     Move best_move() const noexcept { return bestMove; }
 
     bool time_to_pick(Depth depth) const noexcept { return depth == 1 + int(level); }
@@ -314,22 +325,22 @@ struct Skill final {
     Move   bestMove = Move::None();
 };
 
-// The Engine stores the uci options, networks, thread pool, and transposition table.
-// This struct is used to easily forward data to the Search::Worker class.
+// SharedState struct stores the engine options, networks, thread pool, and transposition table.
+// It is used to easily forward data to the Worker class.
 struct SharedState final {
-    SharedState(const Options&                                  engOptions,
-                const LazyNumaReplicated<Eval::NNUE::Networks>& nnueNetworks,
-                ThreadPool&                                     threadPool,
-                TranspositionTable&                             transpositionTable) noexcept :
+    SharedState(const Options&                            engOptions,
+                const LazyNumaReplicated<NNUE::Networks>& nnueNetworks,
+                ThreadPool&                               threadPool,
+                TranspositionTable&                       transpositionTable) noexcept :
         options(engOptions),
         networks(nnueNetworks),
         threads(threadPool),
         tt(transpositionTable) {}
 
-    const Options&                                  options;
-    const LazyNumaReplicated<Eval::NNUE::Networks>& networks;
-    ThreadPool&                                     threads;
-    TranspositionTable&                             tt;
+    const Options&                            options;
+    const LazyNumaReplicated<NNUE::Networks>& networks;
+    ThreadPool&                               threads;
+    TranspositionTable&                       tt;
 };
 
 class Worker;
@@ -408,17 +419,18 @@ class MainSearchManager final: public ISearchManager {
 
     const UpdateContext& updateCxt;
 
-    std::uint16_t        callsCount;
-    std::atomic_bool     ponder;
-    bool                 stopPonderhit;
-    TimeManager          timeManager;
-    Skill                skill;
+    std::uint16_t callsCount    = 0;
+    bool          ponder        = false;
+    bool          ponderhitStop = false;
+    TimeManager   timeManager;
+    Skill         skill;
+
     std::array<Value, 4> iterBestValue;
 
-    bool   first;
-    Value  preBestCurValue;
-    Value  preBestAvgValue;
-    double preTimeReduction;
+    bool   first            = true;
+    Value  preBestCurValue  = VALUE_ZERO;
+    Value  preBestAvgValue  = VALUE_ZERO;
+    double preTimeReduction = 1.0;
 };
 
 class NullSearchManager final: public ISearchManager {
@@ -472,20 +484,19 @@ class Worker final {
     Move extract_tt_move(const Position& pos, Move ttMove) const noexcept;
     bool ponder_move_extracted() noexcept;
 
-    Limits             limits;
+    Limit              limit;
     Tablebases::Config tbConfig;
 
     Position  rootPos;
     State     rootState;
     RootMoves rootMoves;
     Depth     rootDepth, completedDepth;
-    int       rootDelta;
-    bool      rootImprove;
-    bool      nullVerify;
 
     std::uint64_t nodes, tbHits;
     std::uint16_t moveChanges;
 
+    int           rootDelta;
+    std::int16_t  nmpMinPly;
     std::uint8_t  multiPV;
     std::uint8_t  curIdx, fstIdx, lstIdx;
     std::uint16_t selDepth;
@@ -497,20 +508,18 @@ class Worker final {
     // The main thread has a MainSearchManager, the others have a NullSearchManager
     ISearchManagerPtr manager;
 
-    const Options&                                  options;
-    const LazyNumaReplicated<Eval::NNUE::Networks>& networks;
-    ThreadPool&                                     threads;
-    TranspositionTable&                             tt;
+    const Options&                            options;
+    const LazyNumaReplicated<NNUE::Networks>& networks;
+    ThreadPool&                               threads;
+    TranspositionTable&                       tt;
     // Used by NNUE
     NumaReplicatedAccessToken numaAccessToken;
+    NNUE::AccumulatorCaches   accCaches;
 
-    Eval::NNUE::AccumulatorCaches accCaches;
-
-    friend class DON::ThreadPool;
+    friend class ThreadPool;
     friend class MainSearchManager;
 };
 
-}  // namespace Search
 }  // namespace DON
 
 #endif  // #ifndef SEARCH_H_INCLUDED

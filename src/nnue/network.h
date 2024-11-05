@@ -19,9 +19,11 @@
 #define NETWORK_H_INCLUDED
 
 #include <cstdint>
+#include <functional>
 #include <iosfwd>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "../memory.h"
@@ -32,7 +34,7 @@
 #include "nnue_feature_transformer.h"
 #include "nnue_misc.h"
 
-namespace DON::Eval::NNUE {
+namespace DON::NNUE {
 
 enum class EmbeddedNNUEType {
     BIG,
@@ -69,7 +71,8 @@ class Network final {
       const Position&                                         pos,
       AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
-    void verify(std::string evalfilePath) const noexcept;
+    void verify(std::string evalfilePath,
+                const std::function<void(std::string_view)>&) const noexcept;
     NnueEvalTrace
     trace_eval(const Position&                                         pos,
                AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
@@ -130,6 +133,6 @@ struct Networks final {
     SmallNetwork small;
 };
 
-}  // namespace DON::Eval::NNUE
+}  // namespace DON::NNUE
 
 #endif  // #ifndef NETWORK_H_INCLUDED

@@ -75,16 +75,16 @@ class Option final {
     operator int() const noexcept;
     operator std::string() const noexcept;
 
-    bool operator==(const std::string& value) const noexcept;
-    bool operator!=(const std::string& value) const noexcept;
-
     void operator<<(const Option& option) noexcept;
 
-    bool operator==(const Option& option) const noexcept;
-    bool operator!=(const Option& option) const noexcept;
+    friend bool operator==(const Option& o, std::string_view value) noexcept;
+    friend bool operator!=(const Option& o, std::string_view value) noexcept;
 
-    bool operator<(const Option& option) const noexcept;
-    bool operator>(const Option& option) const noexcept;
+    friend bool operator==(const Option& o1, const Option& o2) noexcept;
+    friend bool operator!=(const Option& o1, const Option& o2) noexcept;
+
+    friend bool operator<(const Option& o1, const Option& o2) noexcept;
+    friend bool operator>(const Option& o1, const Option& o2) noexcept;
 
     Option& operator=(std::string value) noexcept;
 

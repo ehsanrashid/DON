@@ -32,7 +32,7 @@
 #include "nnue_architecture.h"
 #include "nnue_common.h"
 
-namespace DON::Eval::NNUE {
+namespace DON::NNUE {
 
 // A class that converts the input features of the NNUE evaluation function
 
@@ -878,6 +878,6 @@ class FeatureTransformer final {
     alignas(CACHE_LINE_SIZE) PSQTWeightType psqtWeights[InputDimensions * PSQTBuckets];
 };
 
-}  // namespace DON::Eval::NNUE
+}  // namespace DON::NNUE
 
 #endif  // #ifndef NNUE_FEATURE_TRANSFORMER_H_INCLUDED

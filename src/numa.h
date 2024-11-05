@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <iostream>
 #include <limits>
 #include <map>
@@ -625,9 +626,9 @@ class NumaConfig final {
         NumaConfig cfg = empty();
 
         NumaIndex nIdx = 0;
-        for (auto&& nodeStr : split(s, ":"))
+        for (const auto& nodeStr : split(s, ":"))
         {
-            auto indices = indices_from_shortened_string(nodeStr);
+            auto indices = indices_from_shortened_string(std::string(nodeStr));
             if (!indices.empty())
             {
                 for (auto idx : indices)
@@ -977,7 +978,7 @@ class NumaConfig final {
         if (s.empty())
             return indices;
 
-        for (const std::string& ss : split(s, ","))
+        for (const auto& ss : split(s, ","))
         {
             if (ss.empty())
                 continue;
@@ -985,13 +986,13 @@ class NumaConfig final {
             auto parts = split(ss, "-");
             if (parts.size() == 1)
             {
-                CpuIndex c = CpuIndex{str_to_size_t(parts[0])};
+                CpuIndex c = CpuIndex{str_to_size_t(std::string(parts[0]))};
                 indices.emplace_back(c);
             }
             else if (parts.size() == 2)
             {
-                CpuIndex fstIdx = CpuIndex{str_to_size_t(parts[0])};
-                CpuIndex lstIdx = CpuIndex{str_to_size_t(parts[1])};
+                CpuIndex fstIdx = CpuIndex{str_to_size_t(std::string(parts[0]))};
+                CpuIndex lstIdx = CpuIndex{str_to_size_t(std::string(parts[1]))};
                 for (std::size_t c = fstIdx; c <= lstIdx; ++c)
                     indices.emplace_back(c);
             }

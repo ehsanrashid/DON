@@ -88,17 +88,19 @@ enum TBFlag {
 constexpr Square operator^(Square s, int i) noexcept { return Square(int(s) ^ i); }
 constexpr Piece  operator^(Piece pc, int i) noexcept { return Piece(int(pc) ^ i); }
 
-int MapPawns[SQUARE_NB];
-int MapB1H1H7[SQUARE_NB];
-int MapA1D1D4[SQUARE_NB];
-int MapKK[10][SQUARE_NB];  // [MapA1D1D4][SQUARE_NB]
+// clang-format off
+size_t  PawnsMap[SQUARE_NB];
+size_t B1H1H7Map[SQUARE_NB];
+size_t A1D1D4Map[SQUARE_NB];
+size_t KKMap[10][SQUARE_NB];  // [A1D1D4Map][SQUARE_NB]
 
-int Binomial[6][SQUARE_NB];        // [k][n] k elements from a set of n elements
-int LeadPawnIdx[6][SQUARE_NB];     // [leadPawnCnt][SQUARE_NB]
-int LeadPawnSize[6][FILE_NB / 2];  // [leadPawnCnt][FILE_A..FILE_D]
+size_t     Binomial[6][SQUARE_NB];    // [k][n] k elements from a set of n elements
+size_t  LeadPawnIdx[6][SQUARE_NB];    // [leadPawnCnt][SQUARE_NB]
+size_t LeadPawnSize[6][FILE_NB / 2];  // [leadPawnCnt][FILE_A..FILE_D]
+// clang-format on
 
-// Comparison function to sort leading pawns in ascending MapPawns[] order
-bool pawns_comp(Square s1, Square s2) noexcept { return MapPawns[s1] < MapPawns[s2]; }
+// Comparison function to sort leading pawns in ascending PawnsMap[] order
+bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
 
 constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 
@@ -625,23 +627,23 @@ int decompress_pairs(PairsData* d, std::uint64_t idx) noexcept {
 
     while (true)
     {
-        int len = 0;  // This is the symbol length - d->min_sym_len
+        size_t len = 0;  // This is the symbol length - d->min_sym_len
 
-        // Now get the symbol length. For any symbol s64 of length l right-padded
-        // to 64 bits that d->base64[l-1] >= s64 >= d->base64[l] so we
-        // can find the symbol length iterating through base64[].
+        // Now get the symbol length.
+        // For any symbol s64 of length 'l' right-padded to 64 bits that
+        // d->base64[l-1] >= s64 >= d->base64[l]
+        // so can find the symbol length iterating through base64[].
         while (buf64 < d->base64[len])
             ++len;
 
-        // All the symbols of a given length are consecutive integers (numerical
-        // sequence property), so can compute the offset of our symbol of
-        // length len, stored at the beginning of buf64.
+        // All the symbols of a given length are consecutive integers (numerical sequence property),
+        // so can compute the offset of our symbol of length len, stored at the beginning of buf64.
         sym = Sym((buf64 - d->base64[len]) >> (64 - len - d->minSymLen));
 
         // Now add the value of the lowest symbol of length len to get our symbol
         sym += number<Sym, LittleEndian>(&d->lowestSym[len]);
 
-        // If our offset is within the number of values represented by symbol sym, are done.
+        // If our offset is within the number of values represented by symbol 'sym', are done.
         if (offset < d->symLen[sym] + 1)
             break;
 
@@ -651,8 +653,9 @@ int decompress_pairs(PairsData* d, std::uint64_t idx) noexcept {
         buf64 <<= len;        // Consume the just processed symbol
         buf64Size -= len;
 
+        // Refill the buffer
         if (buf64Size <= 32)
-        {  // Refill the buffer
+        {
             buf64Size += 32;
             buf64 |= std::uint64_t(number<std::uint32_t, BigEndian>(ptr++)) << (64 - buf64Size);
         }
@@ -766,7 +769,7 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
 
     // For pawns, TB files store 4 separate tables according if leading pawn is on
     // file a, b, c or d after reordering. The leading pawn is the one with maximum
-    // MapPawns[] value, that is the one most toward the edges and with lowest rank.
+    // PawnsMap[] value, that is the one most toward the edges and with lowest rank.
     if (entry->hasPawns)
     {
         // In all the 4 tables, pawns are at the beginning of the piece sequence and
@@ -823,7 +826,7 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
         for (int i = 0; i < size; ++i)
             squares[i] = flip_file(squares[i]);
 
-    // Encode leading pawns starting with the one with minimum MapPawns[] and
+    // Encode leading pawns starting with the one with minimum PawnsMap[] and
     // proceeding in ascending order.
     if (entry->hasPawns)
     {
@@ -832,7 +835,7 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
         std::stable_sort(squares + 1, squares + leadPawnCnt, pawns_comp);
 
         for (int i = 1; i < leadPawnCnt; ++i)
-            idx += Binomial[i][MapPawns[squares[i]]];
+            idx += Binomial[i][PawnsMap[squares[i]]];
 
         goto ENCODE_END;  // With pawns have finished special treatments
     }
@@ -887,24 +890,24 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
         int adjust1 = (squares[1] > squares[0]);
         int adjust2 = (squares[2] > squares[0]) + (squares[2] > squares[1]);
 
-        // First piece is below a1-h8 diagonal. MapA1D1D4[] maps the b1-d1-d3
+        // First piece is below a1-h8 diagonal. A1D1D4Map[] maps the b1-d1-d3
         // triangle to 0...5. There are 63 squares for second piece and 62
         // (mapped to 0...61) for the third.
         if (off_A1H8(squares[0]))
             idx =
-              (MapA1D1D4[squares[0]] * 63 + (squares[1] - adjust1)) * 62 + (squares[2] - adjust2);
+              (A1D1D4Map[squares[0]] * 63 + (squares[1] - adjust1)) * 62 + (squares[2] - adjust2);
 
         // First piece is on a1-h8 diagonal, second below: map this occurrence to
         // 6 to differentiate from the above case, rank_of() maps a1-d4 diagonal
-        // to 0...3 and finally MapB1H1H7[] maps the b1-h1-h7 triangle to 0..27.
+        // to 0...3 and finally B1H1H7Map[] maps the b1-h1-h7 triangle to 0..27.
         else if (off_A1H8(squares[1]))
-            idx = (6 * 63 + rank_of(squares[0]) * 28 + MapB1H1H7[squares[1]]) * 62
+            idx = (6 * 63 + rank_of(squares[0]) * 28 + B1H1H7Map[squares[1]]) * 62
                 + (squares[2] - adjust2);
 
         // First two pieces are on a1-h8 diagonal, third below
         else if (off_A1H8(squares[2]))
             idx = 6 * 63 * 62 + 4 * 28 * 62 + rank_of(squares[0]) * 7 * 28
-                + (rank_of(squares[1]) - adjust1) * 28 + MapB1H1H7[squares[2]];
+                + (rank_of(squares[1]) - adjust1) * 28 + B1H1H7Map[squares[2]];
 
         // All 3 pieces on the diagonal a1-h8
         else
@@ -912,9 +915,8 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* result) 
                 + (rank_of(squares[1]) - adjust1) * 6 + (rank_of(squares[2]) - adjust2);
     }
     else
-        // Don't have at least 3 unique pieces, like in KRRvKBB, just map
-        // the kings.
-        idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
+        // Don't have at least 3 unique pieces, like in KRRvKBB, just map the kings.
+        idx = KKMap[A1D1D4Map[squares[0]]][squares[1]];
 
 ENCODE_END:
     idx *= data->groupIdx[0];
@@ -958,19 +960,21 @@ ENCODE_END:
 // The actual grouping depends on the TB generator and can be inferred from the
 // sequence of pieces in piece[] array.
 template<typename T>
-void set_groups(T& entry, PairsData* d, int order[], File f) noexcept {
+void set_groups(T& entry, PairsData* d, size_t order[], File f) noexcept {
 
-    int n = 0, firstLen = entry.hasPawns ? 0 : entry.hasUniquePieces ? 3 : 2;
-    d->groupLen[n] = 1;
+    size_t n        = 0;
+    int    firstLen = entry.hasPawns ? 0 : entry.hasUniquePieces ? 3 : 2;
+    d->groupLen[n]  = 1;
 
     // Number of pieces per group is stored in groupLen[], for instance in KRKN
     // the encoder will default on '111', so groupLen[] will be (3, 1).
     for (std::uint8_t i = 1; i < entry.pieceCount; ++i)
+    {
         if (--firstLen > 0 || d->pieces[i] == d->pieces[i - 1])
             d->groupLen[n]++;
         else
             d->groupLen[++n] = 1;
-
+    }
     d->groupLen[++n] = 0;  // Zero-terminated
 
     // The sequence in pieces[] defines the groups, but not the order in which
@@ -984,31 +988,36 @@ void set_groups(T& entry, PairsData* d, int order[], File f) noexcept {
     // pawns/pieces -> remaining pawns -> remaining pieces. In particular the
     // first group is at order[0] position and the remaining pawns, when present,
     // are at order[1] position.
-    bool          pp          = entry.hasPawns && entry.pawnCount[1];  // Pawns on both sides
-    int           next        = pp ? 2 : 1;
-    std::int32_t  freeSquares = 64 - d->groupLen[0] - pp * d->groupLen[1];
-    std::uint64_t idx         = 1;
+    bool   pp = entry.hasPawns && entry.pawnCount[1] != 0;  // Pawns on both sides
+    size_t i  = pp ? 2 : 1;
 
-    for (int k = 0; next < n || k == order[0] || k == order[1]; ++k)
-        if (k == order[0])  // Leading pawns or pieces
+    std::size_t   freeLen = 64 - d->groupLen[0] - pp * d->groupLen[1];
+    std::uint64_t idx     = 1;
+
+    for (size_t k = 0; k == order[0] || k == order[1] || i < n; ++k)
+    {
+        // Leading pawns or pieces
+        if (k == order[0])
         {
             d->groupIdx[0] = idx;
             idx *= entry.hasPawns        ? LeadPawnSize[d->groupLen[0]][f]
                  : entry.hasUniquePieces ? 31332
                                          : 462;
+            continue;
         }
-        else if (k == order[1])  // Remaining pawns
+        // Remaining pawns
+        if (k == order[1])
         {
             d->groupIdx[1] = idx;
             idx *= Binomial[d->groupLen[1]][48 - d->groupLen[0]];
+            continue;
         }
-        else  // Remaining pieces
-        {
-            d->groupIdx[next] = idx;
-            idx *= Binomial[d->groupLen[next]][freeSquares];
-            freeSquares -= d->groupLen[next++];
-        }
-
+        // Remaining pieces
+        d->groupIdx[i] = idx;
+        idx *= Binomial[d->groupLen[i]][freeLen];
+        freeLen -= d->groupLen[i];
+        ++i;
+    }
     d->groupIdx[n] = idx;
 }
 
@@ -1041,9 +1050,11 @@ std::uint8_t* set_sizes(PairsData* d, std::uint8_t* data) noexcept {
 
     if (d->flags & SingleValue)
     {
-        d->blockCount = d->blockLengthSize = 0;
-        d->span = d->sparseIndexSize = 0;        // Broken MSVC zero-init
-        d->minSymLen                 = *data++;  // Here store the single value
+        d->blockCount      = 0;
+        d->blockLengthSize = 0;
+        d->span            = 0;
+        d->sparseIndexSize = 0;        // Broken MSVC zero-init
+        d->minSymLen       = *data++;  // Here store the single value
         return data;
     }
 
@@ -1051,14 +1062,15 @@ std::uint8_t* set_sizes(PairsData* d, std::uint8_t* data) noexcept {
     // element stores the biggest index that is the tb size.
     std::uint64_t tbSize = d->groupIdx[std::find(d->groupLen, d->groupLen + 7, 0) - d->groupLen];
 
-    d->blockSize       = 1ull << *data++;
-    d->span            = 1ull << *data++;
+    d->blockSize       = 1u << *data++;
+    d->span            = 1u << *data++;
     d->sparseIndexSize = std::size_t((tbSize + d->span - 1) / d->span);  // Round up
-    auto padding       = number<std::uint8_t, LittleEndian>(data++);
-    d->blockCount      = number<std::uint32_t, LittleEndian>(data);
+
+    auto padding  = number<std::uint8_t, LittleEndian>(data++);
+    d->blockCount = number<std::uint32_t, LittleEndian>(data);
     data += sizeof(std::uint32_t);
-    d->blockLengthSize = d->blockCount + padding;  // Padded to ensure SparseIndex[]
-                                                   // does not point out of range.
+    d->blockLengthSize =
+      d->blockCount + padding;  // Padded to ensure SparseIndex[] does not point out of range.
     d->maxSymLen = *data++;
     d->minSymLen = *data++;
     d->lowestSym = (Sym*) (data);
@@ -1075,26 +1087,27 @@ std::uint8_t* set_sizes(PairsData* d, std::uint8_t* data) noexcept {
     // to a signed int "base64_size" variable and then are able to subtract 2,
     // avoiding unsigned overflow warnings.
 
-    auto base64Size = int(d->base64.size());
-    for (int i = base64Size - 2; i >= 0; --i)
+    std::size_t base64Size = d->base64.size();
+    for (std::size_t i = base64Size - 1; i > 0; --i)
     {
-        d->base64[i] = (d->base64[i + 1] + number<Sym, LittleEndian>(&d->lowestSym[i])
-                        - number<Sym, LittleEndian>(&d->lowestSym[i + 1]))
-                     / 2;
+        d->base64[i - 1] = (d->base64[i]                                       //
+                            + number<Sym, LittleEndian>(&d->lowestSym[i - 1])  //
+                            - number<Sym, LittleEndian>(&d->lowestSym[i]))
+                         / 2;
 
-        assert(2 * d->base64[i] >= d->base64[i + 1]);
+        assert(2 * d->base64[i - 1] >= d->base64[i]);
     }
 
     // Now left-shift by an amount so that d->base64[i] gets shifted 1 bit more
     // than d->base64[i+1] and given the above assert condition, ensure that
     // d->base64[i] >= d->base64[i+1]. Moreover for any symbol s64 of length i
     // and right-padded to 64 bits holds d->base64[i-1] >= s64 >= d->base64[i].
-    for (int i = 0; i < base64Size; ++i)
+    for (std::size_t i = 0; i < base64Size; ++i)
         d->base64[i] <<= 64 - i - d->minSymLen;  // Right-padding to 64 bits
 
     data += base64Size * sizeof(Sym);
-    d->symLen.resize(number<uint16_t, LittleEndian>(data));
-    data += sizeof(uint16_t);
+    d->symLen.resize(number<std::uint16_t, LittleEndian>(data));
+    data += sizeof(std::uint16_t);
     d->btree = (LR*) (data);
 
     // The compression scheme used is "Recursive Pairing", that replaces the most
@@ -1162,8 +1175,8 @@ void set(T& entry, std::uint8_t* data) noexcept {
 
     ++data;  // First byte stores flags
 
-    const int  sides   = T::SIDES == 2 && entry.key[WHITE] != entry.key[BLACK] ? 2 : 1;
-    const File maxFile = entry.hasPawns ? FILE_D : FILE_A;
+    const size_t sides   = T::SIDES == 2 && entry.key[WHITE] != entry.key[BLACK] ? 2 : 1;
+    const File   maxFile = entry.hasPawns ? FILE_D : FILE_A;
 
     bool pp = entry.hasPawns && entry.pawnCount[BLACK];  // Pawns on both sides
 
@@ -1171,45 +1184,45 @@ void set(T& entry, std::uint8_t* data) noexcept {
 
     for (File f = FILE_A; f <= maxFile; ++f)
     {
-        for (int i = 0; i < sides; ++i)
+        for (size_t i = 0; i < sides; ++i)
             *entry.get(i, f) = PairsData();
 
-        int order[2][2]{{*data & 0xF, pp ? *(data + 1) & 0xF : 0xF},
-                        {*data >> 4, pp ? *(data + 1) >> 4 : 0xF}};
+        size_t order[2][2]{{size_t(*data & 0xF), size_t(pp ? *(data + 1) & 0xF : 0xF)},
+                           {size_t(*data >> 04), size_t(pp ? *(data + 1) >> 04 : 0xF)}};
         data += 1 + pp;
 
-        for (int i = 0; i < sides; ++i)
+        for (size_t i = 0; i < sides; ++i)
             for (std::uint8_t k = 0; k < entry.pieceCount; ++k, ++data)
                 entry.get(i, f)->pieces[k] = Piece(i ? *data >> 4 : *data & 0xF);
 
-        for (int i = 0; i < sides; ++i)
+        for (size_t i = 0; i < sides; ++i)
             set_groups(entry, entry.get(i, f), order[i], f);
     }
 
     data += std::uintptr_t(data) & 1;  // Word alignment
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (int i = 0; i < sides; ++i)
+        for (size_t i = 0; i < sides; ++i)
             data = set_sizes(entry.get(i, f), data);
 
     data = set_dtz_map(entry, data, maxFile);
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (int i = 0; i < sides; ++i)
+        for (size_t i = 0; i < sides; ++i)
         {
             (d = entry.get(i, f))->sparseIndex = (SparseEntry*) (data);
             data += d->sparseIndexSize * sizeof(SparseEntry);
         }
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (int i = 0; i < sides; ++i)
+        for (size_t i = 0; i < sides; ++i)
         {
             (d = entry.get(i, f))->blockLength = (std::uint16_t*) (data);
             data += d->blockLengthSize * sizeof(std::uint16_t);
         }
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (int i = 0; i < sides; ++i)
+        for (size_t i = 0; i < sides; ++i)
         {
             data = (std::uint8_t*) ((std::uintptr_t(data) + 0x3F) & ~0x3F);  // 64 byte alignment
             (d = entry.get(i, f))->data = data;
@@ -1218,9 +1231,9 @@ void set(T& entry, std::uint8_t* data) noexcept {
 }
 
 // If the TB file corresponding to the given position is already memory-mapped
-// then return its base address, otherwise, try to memory map and init it. Called
-// at every probe, memory map, and init only at first access. Function is thread
-// safe and can be called concurrently.
+// then return its base address, otherwise, try to memory map and init it.
+// Called at every probe, memory map, and init only at first access.
+// Function is thread safe and can be called concurrently.
 template<TBType Type>
 void* mapped(TBTable<Type>& entry, const Position& pos) noexcept {
     static std::mutex mutex;
@@ -1353,21 +1366,21 @@ std::uint8_t MaxCardinality;
 // Called at startup to create the various tables
 void init() noexcept {
 
-    int code;
-    // MapB1H1H7[] encodes a square below a1-h8 diagonal to 0..27
+    size_t code;
+    // B1H1H7Map[] encodes a square below a1-h8 diagonal to 0..27
     code = 0;
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
         if (off_A1H8(s) < 0)
-            MapB1H1H7[s] = code++;
+            B1H1H7Map[s] = code++;
 
-    // MapA1D1D4[] encodes a square in the a1-d1-d4 triangle to 0..9
+    // A1D1D4Map[] encodes a square in the a1-d1-d4 triangle to 0..9
     std::vector<Square> diagonal;
     code = 0;
     for (Square s = SQ_A1; s <= SQ_D4; ++s)
         if (file_of(s) <= FILE_D)
         {
             if (off_A1H8(s) < 0)
-                MapA1D1D4[s] = code++;
+                A1D1D4Map[s] = code++;
 
             else if (!off_A1H8(s))
                 diagonal.push_back(s);
@@ -1375,52 +1388,55 @@ void init() noexcept {
 
     // Diagonal squares are encoded as last ones
     for (Square s : diagonal)
-        MapA1D1D4[s] = code++;
+        A1D1D4Map[s] = code++;
 
-    // MapKK[] encodes all the 462 possible legal positions of two kings where
+    // KKMap[] encodes all the 462 possible legal positions of two kings where
     // the first is in the a1-d1-d4 triangle. If the first king is on the a1-d4
     // diagonal, the other one shall not be above the a1-h8 diagonal.
     std::vector<std::pair<int, Square>> bothOnDiagonal;
     code = 0;
-    for (int idx = 0; idx < 10; ++idx)
+    for (size_t idx = 0; idx < 10; ++idx)
         for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1)
-            if (MapA1D1D4[s1] == idx && (idx || s1 == SQ_B1))  // SQ_B1 is mapped to 0
+            if (A1D1D4Map[s1] == idx && (idx || s1 == SQ_B1))  // SQ_B1 is mapped to 0
             {
                 for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+                {
                     if ((attacks_bb<KING>(s1) | s1) & s2)
                         continue;  // Illegal position
 
-                    else if (!off_A1H8(s1) && off_A1H8(s2) > 0)
+                    if (!off_A1H8(s1) && off_A1H8(s2) > 0)
                         continue;  // First on diagonal, second above
 
-                    else if (!off_A1H8(s1) && !off_A1H8(s2))
+                    if (!off_A1H8(s1) && !off_A1H8(s2))
                         bothOnDiagonal.emplace_back(idx, s2);
-
                     else
-                        MapKK[idx][s2] = code++;
+                        KKMap[idx][s2] = code++;
+                }
             }
 
     // Legal positions with both kings on a diagonal are encoded as last ones
     for (const auto& [fst, snd] : bothOnDiagonal)
-        MapKK[fst][snd] = code++;
+        KKMap[fst][snd] = code++;
 
     // Binomial[] stores the Binomial Coefficients using Pascal rule. There
     // are Binomial[k][n] ways to choose k elements from a set of n elements.
     Binomial[0][0] = 1;
-    for (int n = SQ_B1; n <= SQ_H8; ++n)       // Squares
-        for (int k = 0; k < 6 && k <= n; ++k)  // Pieces
+    for (size_t n = SQ_B1; n <= SQ_H8; ++n)                   // Squares
+        for (size_t k = 0; k <= std::min<size_t>(n, 5); ++k)  // Pieces
             Binomial[k][n] =
               (k > 0 ? Binomial[k - 1][n - 1] : 0) + (k < n ? Binomial[k][n - 1] : 0);
 
-    // MapPawns[s] encodes squares a2-h7 to a1-h6 (0..47).
+    std::memset(LeadPawnIdx, 0, sizeof(LeadPawnIdx));
+    std::memset(LeadPawnSize, 0, sizeof(LeadPawnSize));
+    // PawnsMap[s] encodes squares a2-h7 to a1-h6 (0..47).
     // This is the number of possible available squares when the leading one
-    // is in 's'. Moreover the pawn with highest MapPawns[] is the leading pawn,
+    // is in 's'. Moreover the pawn with highest PawnsMap[] is the leading pawn,
     // the one nearest the edge, and among pawns with the same file, the one with the lowest rank.
     code = SQ_H6;  // Available squares (47) when lead pawn is in a2-h7
 
     // Init the tables for the encoding of leading pawn group:
     // with 7-men TB can have up to 5 leading pawns (KPPPPPK).
-    for (int leadPawnCnt = 1; leadPawnCnt <= 5; ++leadPawnCnt)
+    for (size_t leadPawnCnt = 1; leadPawnCnt <= 5; ++leadPawnCnt)
         for (File f = FILE_A; f <= FILE_D; ++f)
         {
             // Restart the index at every file because TB table is split
@@ -1433,18 +1449,18 @@ void init() noexcept {
             {
                 Square s = make_square(f, r);
 
-                // Compute MapPawns[] at first pass.
+                // Compute PawnsMap[] at first pass.
                 // If sq is the leading pawn square, any other pawn cannot be
                 // below or more toward the edge of sq. There are 47 available
                 // squares when sq = a2 and reduced by 2 for any rank increase
-                // due to mirroring: sq == a3 -> no a2, h2, so MapPawns[a3] = 45
+                // due to mirroring: sq == a3 -> no a2, h2, so PawnsMap[a3] = 45
                 if (leadPawnCnt == 1)
                 {
-                    MapPawns[s]            = code--;
-                    MapPawns[flip_file(s)] = code--;
+                    PawnsMap[s]            = code--;
+                    PawnsMap[flip_file(s)] = code--;
                 }
                 LeadPawnIdx[leadPawnCnt][s] = idx;
-                idx += Binomial[leadPawnCnt - 1][MapPawns[s]];
+                idx += Binomial[leadPawnCnt - 1][PawnsMap[s]];
             }
             // After a file is traversed, store the cumulated per-file index
             LeadPawnSize[leadPawnCnt][f] = idx;
@@ -1577,7 +1593,7 @@ int probe_dtz(Position& pos, ProbeState* result) noexcept {
     State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
-    int minDTZ = 0xFFFF;
+    int minDTZ = INT_MAX;
 
     for (Move m : LegalMoveList(pos))
     {
@@ -1611,16 +1627,13 @@ int probe_dtz(Position& pos, ProbeState* result) noexcept {
     }
 
     // When there are no legal moves, the position is mate: return -1
-    return minDTZ == 0xFFFF ? -1 : minDTZ;
+    return minDTZ == INT_MAX ? -1 : minDTZ;
 }
 
 // Use the DTZ tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool root_probe(Position&          pos,
-                Search::RootMoves& rootMoves,
-                bool               useRule50,
-                bool               rankDTZ) noexcept {
+bool root_probe(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ) noexcept {
     ProbeState result = OK;
 
     State st;
@@ -1635,7 +1648,7 @@ bool root_probe(Position&          pos,
     int dtz, bound = useRule50 ? (MAX_DTZ / 2 - 100) : 1;
 
     // Probe and rank each move
-    for (Search::RootMove& rm : rootMoves)
+    for (auto& rm : rootMoves)
     {
         pos.do_move(rm[0], st);
 
@@ -1695,14 +1708,14 @@ bool root_probe(Position&          pos,
 // This is a fallback for the case that some or all DTZ tables are missing.
 //
 // A return value false indicates that not all probes were successful.
-bool root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noexcept {
+bool root_probe_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept {
     ProbeState result = OK;
 
     State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     // Probe and rank each move
-    for (Search::RootMove& rm : rootMoves)
+    for (auto& rm : rootMoves)
     {
         pos.do_move(rm[0], st);
 
@@ -1723,10 +1736,10 @@ bool root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, bool useRule50)
     return true;
 }
 
-Config rank_root_moves(Position&          pos,
-                       Search::RootMoves& rootMoves,
-                       const Options&     options,
-                       bool               rankDTZ) noexcept {
+Config rank_root_moves(Position&      pos,
+                       RootMoves&     rootMoves,
+                       const Options& options,
+                       bool           rankDTZ) noexcept {
     Config tbConfig;
 
     if (rootMoves.empty())
@@ -1763,17 +1776,16 @@ Config rank_root_moves(Position&          pos,
     if (tbConfig.rootInTB)
     {
         // Sort moves according to TB rank
-        rootMoves.sort(
-          [](const Search::RootMove& rm1, const Search::RootMove& rm2) noexcept -> bool {
-              return rm1.tbRank > rm2.tbRank;
-          });
+        rootMoves.sort([](const RootMove& rm1, const RootMove& rm2) noexcept -> bool {
+            return rm1.tbRank > rm2.tbRank;
+        });
         // Probe during search only if DTZ is not available and winning
         if (dtzAvailable || rootMoves.front().tbValue <= VALUE_DRAW)
             tbConfig.cardinality = 0;
     }
     else
         // Clean up if root_probe() and root_probe_wdl() have failed
-        for (Search::RootMove& rm : rootMoves)
+        for (auto& rm : rootMoves)
             rm.tbRank = 0;
 
     return tbConfig;

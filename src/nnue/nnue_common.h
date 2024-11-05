@@ -43,7 +43,7 @@
     #include <arm_neon.h>
 #endif
 
-namespace DON::Eval::NNUE {
+namespace DON::NNUE {
 
 // Version of the evaluation file
 constexpr inline std::uint32_t FILE_VERSION = 0x7AF32F20u;
@@ -273,6 +273,6 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
     flush();
 }
 
-}  // namespace DON::Eval::NNUE
+}  // namespace DON::NNUE
 
 #endif  // #ifndef NNUE_COMMON_H_INCLUDED

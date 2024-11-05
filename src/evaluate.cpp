@@ -32,7 +32,6 @@
 #include "nnue/nnue_misc.h"
 
 namespace DON {
-namespace Eval {
 
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
 // of the position from the point of view of the side to move.
@@ -45,7 +44,7 @@ Value evaluate(const Position&          pos,
     NNUE::NetworkOutput netOut{0, 0};
 
     auto compute_nnue = [&netOut = std::as_const(netOut)]() noexcept -> std::int32_t {
-        constexpr short delta = 3;
+        constexpr std::uint8_t delta = 3;
         return ((128 - delta) * netOut.psqt + (128 + delta) * netOut.positional)
              / (128 * NNUE::OUTPUT_SCALE);
     };
@@ -71,26 +70,22 @@ Value evaluate(const Position&          pos,
     }
 
     // Blend nnue and optimism with complexity
+    // clang-format off
     std::int32_t complexity = std::abs(netOut.psqt - netOut.positional) / NNUE::OUTPUT_SCALE;
 
-    nnue -= nnue * complexity / (17864 + 951 * netSmall);
+    nnue     -= nnue     * complexity * (55.9315e-6 - 06.5073e-6 * netSmall);
+    optimism += optimism * complexity * (21.3675e-4);
 
-    optimism += optimism * complexity / (453 - 20 * netSmall);
+    Value material = pos.count<PAWN>() * (532 + 21 * netSmall)
+                   + pos.non_pawn_material();
 
-    const Value material = (532 + 21 * netSmall) * pos.count<PAWN>() + pos.non_pawn_material();
-
-    // clang-format off
-    std::int32_t v = (nnue     * (73921 + material)
-                    + optimism * ( 8112 + material)) / (74715 - 6611 * netSmall)
+    std::int32_t v = (nnue + 0.1 * optimism)
+                   + (nnue + 1.0 * optimism) * material * 12.8573e-6
                    + pos.bonus();
     // clang-format on
 
-    const short rule50 = pos.rule50_count();
-    // Evaluation grain (to get more alpha-beta cuts) with randomization (for robustness)
-    v = 16 * (v / 16) + (pos.key() & 1) - (rule50 & 1);
-
     // Damp down the evaluation linearly when shuffling
-    v -= (v * rule50) / 212;
+    v *= (1.0 - 5.7142e-3 * pos.rule50_count());
 
     // Guarantee evaluation does not hit the tablebase range
     return std::clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
@@ -104,9 +99,10 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     if (pos.checkers())
         return "Final evaluation: none (in check)";
 
+    std::ostringstream oss;
+
     auto accCaches = std::make_unique<NNUE::AccumulatorCaches>(networks);
 
-    std::ostringstream oss;
     oss << std::showpoint << std::noshowpos << std::fixed << std::setprecision(2);
     oss << '\n' << NNUE::trace(pos, networks, *accCaches) << '\n';
 
@@ -128,5 +124,4 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     return oss.str();
 }
 
-}  // namespace Eval
 }  // namespace DON

@@ -18,14 +18,28 @@
 #ifndef BENCHMARK_H_INCLUDED
 #define BENCHMARK_H_INCLUDED
 
+#include <cstdint>
 #include <iosfwd>
 #include <string>
 #include <vector>
 
+#include "uci.h"
+
 namespace DON::Benchmark {
 
-std::vector<std::string> setup_bench(std::istringstream& iss,
-                                     const std::string&  currentFen) noexcept;
+using Commands = std::vector<std::string>;
+
+Commands setup_bench(std::istringstream& iss, std::string_view currentFen = UCI::StartFEN) noexcept;
+
+struct Setup final {
+    std::uint16_t threads;
+    std::size_t   ttSize;
+    Commands      commands;
+    std::string   originalInvocation;
+    std::string   filledInvocation;
+};
+
+Setup setup_benchmark(std::istringstream& iss) noexcept;
 
 }  // namespace DON::Benchmark
 

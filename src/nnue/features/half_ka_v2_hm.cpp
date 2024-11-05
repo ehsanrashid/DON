@@ -24,7 +24,7 @@
 #include "../../types.h"
 #include "../nnue_accumulator.h"
 
-namespace DON::Eval::NNUE::Features {
+namespace DON::NNUE::Features {
 
 // clang-format off
 
@@ -81,4 +81,4 @@ bool HalfKAv2_hm::requires_refresh(const State* st, Color perspective) noexcept 
     return st->dirtyPiece.piece[0] == make_piece(perspective, KING);
 }
 
-}  // namespace DON::Eval::NNUE::Features
+}  // namespace DON::NNUE::Features

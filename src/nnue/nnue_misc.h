@@ -29,7 +29,7 @@ namespace DON {
 
 class Position;
 
-namespace Eval::NNUE {
+namespace NNUE {
 
 struct Networks;
 struct AccumulatorCaches;
@@ -57,7 +57,7 @@ void        hint_common_parent_position(const Position&    pos,
                                         AccumulatorCaches& caches) noexcept;
 std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& caches) noexcept;
 
-}  // namespace Eval::NNUE
+}  // namespace NNUE
 }  // namespace DON
 
 #endif  // #ifndef NNUE_MISC_H_INCLUDED

@@ -27,10 +27,7 @@ namespace DON {
 
 class Position;
 class Options;
-
-namespace Search {
 class RootMoves;
-}
 
 namespace Tablebases {
 
@@ -66,13 +63,13 @@ void init(const std::string& paths) noexcept;
 WDLScore probe_wdl(Position& pos, ProbeState* result) noexcept;
 int      probe_dtz(Position& pos, ProbeState* result) noexcept;
 
-bool root_probe(Position& pos, Search::RootMoves& rootMoves, bool useRule50, bool rankDTZ) noexcept;
-bool root_probe_wdl(Position& pos, Search::RootMoves& rootMoves, bool useRule50) noexcept;
+bool root_probe(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ) noexcept;
+bool root_probe_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept;
 
-Config rank_root_moves(Position&          pos,
-                       Search::RootMoves& rootMoves,
-                       const Options&     options,
-                       bool               rankDTZ = false) noexcept;
+Config rank_root_moves(Position&      pos,
+                       RootMoves&     rootMoves,
+                       const Options& options,
+                       bool           rankDTZ = false) noexcept;
 
 }  // namespace Tablebases
 }  // namespace DON

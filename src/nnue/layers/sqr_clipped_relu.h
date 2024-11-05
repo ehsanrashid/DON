@@ -26,7 +26,7 @@
 
 #include "../nnue_common.h"
 
-namespace DON::Eval::NNUE::Layers {
+namespace DON::NNUE::Layers {
 
 // Clipped ReLU
 template<IndexType InDims>
@@ -96,6 +96,6 @@ class SqrClippedReLU {
     }
 };
 
-}  // namespace DON::Eval::NNUE::Layers
+}  // namespace DON::NNUE::Layers
 
 #endif  // #ifndef NNUE_LAYERS_SQR_CLIPPED_RELU_H_INCLUDED

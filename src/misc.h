@@ -66,6 +66,7 @@ using array2d = array<array<T, N>, M>;
 namespace DON {
 
 std::string engine_info(bool uci = false) noexcept;
+std::string version_info() noexcept;
 std::string compiler_info() noexcept;
 
 //inline void log_call(const std::string& function, const std::string& file, int line) {
@@ -90,27 +91,27 @@ template<typename T>
 constexpr auto sqr(T x) noexcept -> typename std::common_type<T, long long>::type {
     static_assert(std::is_arithmetic<T>::value, "Template argument must be an arithmetic type");
 
-    using ResultType = typename std::common_type<T, long long>::type;
+    using ReturnType = typename std::common_type<T, long long>::type;
 
-    ResultType result = ResultType(x) * x;
+    ReturnType square = ReturnType(x) * x;
 
     // Check for overflow
-    assert(result <= std::numeric_limits<T>::max());
-    //if (result > std::numeric_limits<T>::max())
-    //    std::cerr << "Warning: Result exceeds the range of the original type!\n";
-    return result;
+    assert(square <= std::numeric_limits<T>::max());
+    //if (square > std::numeric_limits<T>::max())
+    //    std::cerr << "Warning: Square exceeds the range of the original type!\n";
+    return square;
 }
 
-constexpr std::uint64_t mul_hi64(std::uint64_t a, std::uint64_t b) noexcept {
+constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 #if defined(IS_64BIT) && defined(__GNUC__)
     __extension__ using uint128_t = unsigned __int128;
-    return uint128_t(a) * uint128_t(b) >> 64;
+    return uint128_t(u1) * uint128_t(u2) >> 64;
 #else
-    std::uint64_t aL = std::uint32_t(a), aH = a >> 32;
-    std::uint64_t bL = std::uint32_t(b), bH = b >> 32;
-    std::uint64_t c1 = aH * bL + (aL * bL >> 32);  // c0
-    std::uint64_t c2 = aL * bH + std::uint32_t(c1);
-    return aH * bH + (c2 >> 32) + (c1 >> 32);
+    std::uint64_t u1L = std::uint32_t(u1), u1H = u1 >> 32;
+    std::uint64_t u2L = std::uint32_t(u2), u2H = u2 >> 32;
+    std::uint64_t vM = u1H * u2L + ((u1L * u2L) >> 32);  // vL
+    std::uint64_t vH = u1L * u2H + std::uint32_t(vM);
+    return u1H * u2H + (vH >> 32) + (vM >> 32);
 #endif
 }
 
@@ -352,7 +353,7 @@ struct CommandLine final {
 
 constexpr inline std::string_view EMPTY_STRING{"<empty>"};
 
-inline std::string to_lower(std::string str) noexcept {
+inline std::string lower_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(), [](char ch) noexcept -> char {
         if (std::isupper(ch))
             return char(std::tolower(ch));
@@ -361,7 +362,7 @@ inline std::string to_lower(std::string str) noexcept {
     return str;
 }
 
-inline std::string to_upper(std::string str) noexcept {
+inline std::string upper_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(), [](char ch) noexcept -> char {
         if (std::islower(ch))
             return char(std::toupper(ch));
@@ -381,7 +382,7 @@ inline std::string toggle_case(std::string str) noexcept {
     return str;
 }
 
-inline bool starts_with(const std::string& str, const std::string& prefix) noexcept {
+inline bool starts_with(std::string_view str, std::string_view prefix) noexcept {
     //return str.starts_with(prefix);  // C++20
     return str.size() >= prefix.size()
         //&& strncmp(str.c_str(), prefix.c_str(), prefix.size()) == 0;
@@ -393,7 +394,7 @@ inline bool starts_with(const std::string& str, const std::string& prefix) noexc
         && str.compare(0, prefix.size(), prefix) == 0;
 }
 
-inline bool ends_with(const std::string& str, const std::string& suffix) noexcept {
+inline bool ends_with(std::string_view str, std::string_view suffix) noexcept {
     //return str.ends_with(suffix);  // C++20
     return str.size() >= suffix.size()
         //&& strncmp(str.c_str() + str.size() - suffix.size(), suffix.c_str(), suffix.size()) == 0;
@@ -404,12 +405,12 @@ inline bool ends_with(const std::string& str, const std::string& suffix) noexcep
         && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
-inline bool is_whitespace(const std::string& str) noexcept {
+inline bool is_whitespace(std::string_view str) noexcept {
     return str.empty() || std::all_of(str.begin(), str.end(), ::isspace);
 }
 
-inline bool is_empty(const std::string& str) noexcept {
-    return is_whitespace(str) || to_lower(str) == EMPTY_STRING;
+inline bool is_empty(std::string_view str) noexcept {
+    return is_whitespace(str) || lower_case(std::string(str)) == EMPTY_STRING;
 }
 
 inline void remove_whitespace(std::string& str) noexcept {
@@ -429,13 +430,10 @@ inline void trim_trailing_whitespace(std::string& str) noexcept {
               str.end());
 }
 
-inline bool is_valid_bool(std::string& str) noexcept {
-    auto s = to_lower(str);
+inline bool is_bool(std::string& str) noexcept {
+    auto s = lower_case(str);
     if (s == "true" || s == "false")
-    {
-        str = s;
-        return true;
-    }
+        return str = s, true;
     return false;
 }
 
@@ -448,7 +446,7 @@ inline std::string bool_to_string(bool b) noexcept {
 inline bool string_to_bool(const std::string& str) noexcept {
     bool b = false;
 
-    std::istringstream iss(to_lower(str));
+    std::istringstream iss(lower_case(str));
     iss >> std::boolalpha >> b;
     return b;
 }
@@ -459,12 +457,12 @@ inline std::string u64_to_string(std::uint64_t u64) noexcept {
     return oss.str();
 }
 
-inline std::vector<std::string> split(const std::string& str,
-                                      const std::string& delimiter) noexcept {
-    std::vector<std::string> vec;
+inline std::vector<std::string_view> split(std::string_view str,
+                                           std::string_view delimiter) noexcept {
+    std::vector<std::string_view> parts;
 
     if (str.empty())
-        return vec;
+        return parts;
 
     std::size_t begin = 0;
     while (true)
@@ -473,12 +471,12 @@ inline std::vector<std::string> split(const std::string& str,
         if (end == std::string::npos)
             break;
 
-        vec.emplace_back(str.substr(begin, end - begin));
+        parts.emplace_back(str.substr(begin, end - begin));
         begin = end + delimiter.size();
     }
-    vec.emplace_back(str.substr(begin));
+    parts.emplace_back(str.substr(begin));
 
-    return vec;
+    return parts;
 }
 
 std::size_t str_to_size_t(const std::string& str) noexcept;

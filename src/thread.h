@@ -45,15 +45,14 @@ class Options;
 // such that the recipient does not need to know whether the binding happened or not.
 class OptionalThreadToNumaNodeBinder final {
    public:
-    explicit OptionalThreadToNumaNodeBinder(NumaIndex nId) :
-        numaConfig(nullptr),
+    OptionalThreadToNumaNodeBinder(const NumaConfig* nConfig, NumaIndex nId) noexcept :
+        numaConfig(nConfig),
         numaId(nId) {}
 
-    OptionalThreadToNumaNodeBinder(const NumaConfig& nConfig, NumaIndex nId) :
-        numaConfig(&nConfig),
-        numaId(nId) {}
+    explicit OptionalThreadToNumaNodeBinder(NumaIndex nId) noexcept :
+        OptionalThreadToNumaNodeBinder(nullptr, nId) {}
 
-    NumaReplicatedAccessToken operator()() const {
+    NumaReplicatedAccessToken operator()() const noexcept {
         return numaConfig != nullptr ? numaConfig->bind_current_thread_to_numa_node(numaId)
                                      : NumaReplicatedAccessToken(numaId);
     }
@@ -72,10 +71,10 @@ class Thread final {
    public:
     Thread(const Thread&) noexcept            = delete;
     Thread& operator=(const Thread&) noexcept = delete;
-    Thread(std::uint16_t                  id,
-           const Search::SharedState&     sharedState,
-           Search::ISearchManagerPtr      searchManager,
-           OptionalThreadToNumaNodeBinder binder) noexcept;
+    Thread(std::uint16_t                         id,
+           const SharedState&                    sharedState,
+           ISearchManagerPtr                     searchManager,
+           const OptionalThreadToNumaNodeBinder& binder) noexcept;
     virtual ~Thread() noexcept;
 
     std::uint16_t id() const noexcept { return idx; }
@@ -99,7 +98,7 @@ class Thread final {
     const std::uint16_t threadCount;
 
    public:
-    std::unique_ptr<Search::Worker> worker;
+    std::unique_ptr<Worker> worker;
 
    private:
     std::mutex                mutex;
@@ -145,14 +144,14 @@ class ThreadPool final {
     ~ThreadPool() noexcept;
 
     void clear() noexcept;
-    void set(const NumaConfig&            numaConfig,
-             Search::SharedState          sharedState,
-             const Search::UpdateContext& updateContext) noexcept;
+    void set(const NumaConfig&    numaConfig,
+             SharedState          sharedState,
+             const UpdateContext& updateContext) noexcept;
     void init() noexcept;
 
-    Thread*                    main_thread() const noexcept;
-    Thread*                    best_thread() const noexcept;
-    Search::MainSearchManager* main_manager() const noexcept;
+    Thread*            main_thread() const noexcept;
+    Thread*            best_thread() const noexcept;
+    MainSearchManager* main_manager() const noexcept;
 
     auto nodes() const noexcept;
     auto tbHits() const noexcept;
@@ -160,10 +159,8 @@ class ThreadPool final {
 
     void set_move_changes(std::uint16_t moveChanges = 0) noexcept;
 
-    void start(Position&             pos,
-               StateListPtr&         states,
-               const Search::Limits& limits,
-               const Options&        options) noexcept;
+    void
+    start(Position& pos, StateListPtr& states, const Limit& limit, const Options& options) noexcept;
 
     void start_search() const noexcept;
     void wait_finish() const noexcept;
@@ -190,13 +187,13 @@ class ThreadPool final {
 
    private:
     template<typename T>
-    void set(T Search::Worker::*member, T value = T()) noexcept {
+    void set(T Worker::*member, T value = T()) noexcept {
         for (auto&& th : threads)
             th->worker.get()->*member = value;
     }
 
     template<typename T>
-    T accumulate(T Search::Worker::*member, T sum = T()) const noexcept {
+    T accumulate(T Worker::*member, T sum = T()) const noexcept {
         for (auto&& th : threads)
             sum += th->worker.get()->*member;
         return sum;
@@ -235,24 +232,18 @@ inline void ThreadPool::init() noexcept {
 
 inline Thread* ThreadPool::main_thread() const noexcept { return front().get(); }
 
-inline Search::MainSearchManager* ThreadPool::main_manager() const noexcept {
+inline MainSearchManager* ThreadPool::main_manager() const noexcept {
     return main_thread()->worker->main_manager();
 }
 
-inline auto ThreadPool::nodes() const noexcept {  //
-    return accumulate(&Search::Worker::nodes);
-}
+inline auto ThreadPool::nodes() const noexcept { return accumulate(&Worker::nodes); }
 
-inline auto ThreadPool::tbHits() const noexcept {  //
-    return accumulate(&Search::Worker::tbHits);
-}
+inline auto ThreadPool::tbHits() const noexcept { return accumulate(&Worker::tbHits); }
 
-inline auto ThreadPool::move_changes() const noexcept {
-    return accumulate(&Search::Worker::moveChanges);
-}
+inline auto ThreadPool::move_changes() const noexcept { return accumulate(&Worker::moveChanges); }
 
 inline void ThreadPool::set_move_changes(std::uint16_t moveChanges) noexcept {
-    set(&Search::Worker::moveChanges, moveChanges);
+    set(&Worker::moveChanges, moveChanges);
 }
 
 // Start non-main threads

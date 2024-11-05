@@ -37,7 +37,7 @@
     - accumulation happens directly to int32s
 */
 
-namespace DON::Eval::NNUE::Layers {
+namespace DON::NNUE::Layers {
 
 #if defined(USE_SSSE3) || defined(USE_NEON_DOTPROD)
     #define ENABLE_SEQ_OPT
@@ -304,6 +304,6 @@ class AffineTransform final {
     alignas(CACHE_LINE_SIZE) WeightType weights[OutputDimensions * PaddedInputDimensions];
 };
 
-}  // namespace DON::Eval::NNUE::Layers
+}  // namespace DON::NNUE::Layers
 
 #endif  // #ifndef NNUE_LAYERS_AFFINE_TRANSFORM_H_INCLUDED

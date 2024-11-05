@@ -29,15 +29,15 @@ namespace DON {
 #if !defined(USE_POPCNT)
 std::uint8_t PopCnt16[POPCNT_SIZE];
 #endif
+// clang-format off
+alignas(CACHE_LINE_SIZE) std::uint8_t Distances[SQUARE_NB][SQUARE_NB];
 
-std::uint8_t Distances[SQUARE_NB][SQUARE_NB];
-
-Bitboard Lines[SQUARE_NB][SQUARE_NB];
-Bitboard Betweens[SQUARE_NB][SQUARE_NB];
-Bitboard PawnAttacks[SQUARE_NB][COLOR_NB];
-Bitboard PieceAttacks[SQUARE_NB][PIECE_TYPE_NB - 3];
-
-Magic Magics[SQUARE_NB][2];
+alignas(CACHE_LINE_SIZE) Bitboard         Lines[SQUARE_NB][SQUARE_NB];
+alignas(CACHE_LINE_SIZE) Bitboard      Betweens[SQUARE_NB][SQUARE_NB];
+alignas(CACHE_LINE_SIZE) Bitboard   PawnAttacks[SQUARE_NB][COLOR_NB];
+alignas(CACHE_LINE_SIZE) Bitboard  PieceAttacks[SQUARE_NB][PIECE_TYPE_NB - 3];
+alignas(CACHE_LINE_SIZE) Magic           Magics[SQUARE_NB][2];
+// clang-format on
 
 namespace {
 
@@ -62,10 +62,10 @@ inline Bitboard safe_destination(Square s, Direction dir, std::uint8_t dist = 1)
 template<PieceType PT>
 Bitboard sliding_attack(Square s, Bitboard occupied = 0) noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attack()");
-    constexpr bool IsRook = PT == ROOK;
+    constexpr bool Rook = PT == ROOK;
 
     Bitboard attacks = 0;
-    for (Direction dir : DIRECTIONS[IsRook])
+    for (Direction dir : DIRECTIONS[Rook])
     {
         Square sq = s;
 
@@ -88,7 +88,7 @@ Bitboard sliding_attack(Square s, Bitboard occupied = 0) noexcept {
 template<PieceType PT>
 void init_magics() noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in init_magics()");
-    constexpr bool IsRook = PT == ROOK;
+    constexpr bool Rook = PT == ROOK;
 
     constexpr std::size_t TABLE_SIZE = 0x1000;
 
@@ -123,7 +123,7 @@ void init_magics() noexcept {
         // all the attacks for each possible subset of the mask and so is 2 power
         // the number of 1s of the mask. Hence, deduce the size of the shift to
         // apply to the 64 or 32 bits word to get the index.
-        Magic& mag = Magics[s][IsRook];
+        Magic& mag = Magics[s][Rook];
 
         mag.mask = sliding_attack<PT>(s) & ~edges;
 #if !defined(USE_PEXT)
@@ -135,10 +135,10 @@ void init_magics() noexcept {
     #endif
           - popcount(mag.mask);
 #endif
-        assert(size < ATTACKS_SIZE[IsRook]);
+        assert(size < ATTACKS_SIZE[Rook]);
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
-        mag.attacks = s == SQ_A1 ? Attacks[IsRook] : Magics[s - 1][IsRook].attacks + size;
+        mag.attacks = s == SQ_A1 ? Attacks[Rook] : Magics[s - 1][Rook].attacks + size;
         assert(mag.attacks != nullptr);
 
         // Use Carry-Rippler trick to enumerate all subsets of masks[s] and

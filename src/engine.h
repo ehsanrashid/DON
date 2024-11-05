@@ -59,7 +59,7 @@ class Engine final {
 
     std::uint64_t perft(Depth depth, bool detail = false) noexcept;
     // Non-blocking call to start searching
-    void start(const Search::Limits& limits) noexcept;
+    void start(const Limit& limit) noexcept;
     // Non-blocking call to stop searching
     void stop() noexcept;
 
@@ -72,7 +72,7 @@ class Engine final {
 
     void resize_threads_tt() noexcept;
 
-    void resize_tt(std::size_t mbSize) noexcept;
+    void resize_tt(std::size_t ttSize) noexcept;
 
     void load_book(const std::string& bookFile) noexcept;
 
@@ -82,10 +82,13 @@ class Engine final {
     void eval() noexcept;
     void flip() noexcept;
 
+    std::uint16_t get_hashfull(std::uint16_t maxAge = 0) const noexcept;
+
     std::vector<std::pair<std::size_t, std::size_t>>  //
                 get_bound_thread_counts() const noexcept;
     std::string get_numa_config() const noexcept;
     std::string get_numa_config_info() const noexcept;
+    std::string get_thread_allocation_info() const noexcept;
     std::string get_thread_binding_info() const noexcept;
 
     // Network related
@@ -93,26 +96,27 @@ class Engine final {
     void load_networks() noexcept;
     void load_big_network(const std::string& bigFile) noexcept;
     void load_small_network(const std::string& smallFile) noexcept;
-    void save_networks(const std::pair<std::optional<std::string>, std::string> files[2]) noexcept;
+    void save_networks(const std::array<std::optional<std::string>, 2>& files) noexcept;
 
-    void set_on_update_end(Search::OnUpdateEnd&& f) noexcept;
-    void set_on_update_full(Search::OnUpdateFull&& f) noexcept;
-    void set_on_update_iter(Search::OnUpdateIter&& f) noexcept;
-    void set_on_update_move(Search::OnUpdateMove&& f) noexcept;
+    void set_on_update_end(OnUpdateEnd&& f) noexcept;
+    void set_on_update_full(OnUpdateFull&& f) noexcept;
+    void set_on_update_iter(OnUpdateIter&& f) noexcept;
+    void set_on_update_move(OnUpdateMove&& f) noexcept;
+
+    void set_on_verify_networks(std::function<void(std::string_view)>&&) noexcept;
 
    private:
     const std::string binaryDirectory;
 
-    NumaReplicationContext numaContext;
-
-    Position     pos;
-    StateListPtr states;
-
-    Options                                  options;
-    ThreadPool                               threads;
-    TranspositionTable                       tt;
-    LazyNumaReplicated<Eval::NNUE::Networks> networks;
-    Search::UpdateContext                    updateContext;
+    Position                              pos;
+    StateListPtr                          states;
+    Options                               options;
+    ThreadPool                            threads;
+    TranspositionTable                    tt;
+    NumaReplicationContext                numaContext;
+    LazyNumaReplicated<NNUE::Networks>    networks;
+    UpdateContext                         updateContext;
+    std::function<void(std::string_view)> onVerifyNetworks;
 };
 
 }  // namespace DON
