@@ -868,12 +868,9 @@ void on_update_full(const FullInfo& info) noexcept {
         << " multipv " << info.multiPV                              //
         << " score " << UCI::format_score({info.value, info.pos});  //
     if (info.boundShow)
-    {
-        if (info.rootMove.boundLower)
-            oss << " lowerbound";
-        else if (info.rootMove.boundUpper)
-            oss << " upperbound";
-    }
+        oss << (info.rootMove.boundLower   ? " lowerbound"
+                : info.rootMove.boundUpper ? " upperbound"
+                                           : "");
     if (info.wdlShow)
         oss << " wdl " << UCI::to_wdl(info.value, info.pos);
     oss << " time " << info.time                     //

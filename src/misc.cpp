@@ -298,22 +298,13 @@ std::string compiler_info() noexcept {
 }
 
 std::string format_time(std::chrono::time_point<SystemClock> timePoint) {
-    static std::mutex mutex;
-
     std::ostringstream oss;
 
     auto time = SystemClock::to_time_t(timePoint);
     auto usec =
       std::chrono::duration_cast<MicroSeconds>(timePoint.time_since_epoch()).count() % 1000000;
-    // std::localtime is not thread safe. Since this is the only place
-    // std::localtime is used in the program, guard by mutex.
-    // TODO: replace with std::localtime_r or s once they are properly
-    // standardised. Or some other more c++ like time component thing.
-    {
-        std::unique_lock uniqueLock(mutex);
-        oss << std::put_time(std::localtime(&time), "%Y.%m.%d-%H:%M:%S")  //
-            << '.' << std::setfill('0') << std::setw(6) << usec;
-    }
+    oss << std::put_time(std::localtime(&time), "%Y.%m.%d-%H:%M:%S")  //
+        << '.' << std::setfill('0') << std::setw(6) << usec;
 
     return oss.str();
 }
