@@ -203,16 +203,16 @@ constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 
 #if defined(USE_PREFETCH)
     #if defined(_MSC_VER)
-inline void prefetch(const void* const addr, int locality = _MM_HINT_T0, bool = false) noexcept {
-    _mm_prefetch(reinterpret_cast<const char*>(addr), locality);
+inline void prefetch(const void* const addr) noexcept {
+    _mm_prefetch(reinterpret_cast<const char*>(addr), _MM_HINT_T0);
 }
     #else
-constexpr void prefetch(const void* const addr, int locality = 3, bool rw = false) noexcept {
-    __builtin_prefetch(addr, rw, locality);
+constexpr void prefetch(const void* const addr) noexcept {
+    __builtin_prefetch(addr);
 }
     #endif
 #else
-constexpr void prefetch(const void* const, int = 0, bool = false) noexcept {}
+constexpr void prefetch(const void* const) noexcept {}
 #endif
 
 using SystemClock  = std::chrono::system_clock;
