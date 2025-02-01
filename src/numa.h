@@ -783,14 +783,14 @@ class NumaConfig final {
         if (mask == nullptr)
             std::exit(EXIT_FAILURE);
 
-        constexpr std::size_t MASK_SIZE = CPU_ALLOC_SIZE(highestCpuIndex + 1);
+        const std::size_t MaskSize = CPU_ALLOC_SIZE(highestCpuIndex + 1);
 
-        CPU_ZERO_S(MASK_SIZE, mask);
+        CPU_ZERO_S(MaskSize, mask);
 
         for (CpuIndex c : nodes[n])
-            CPU_SET_S(c, MASK_SIZE, mask);
+            CPU_SET_S(c, MaskSize, mask);
 
-        int status = sched_setaffinity(0, MASK_SIZE, mask);
+        int status = sched_setaffinity(0, MaskSize, mask);
 
         CPU_FREE(mask);
 

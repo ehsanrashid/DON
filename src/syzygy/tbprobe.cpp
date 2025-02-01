@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <climits>
 #include <cstdlib>
 #include <cstring>
 #include <deque>
