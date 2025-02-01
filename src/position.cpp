@@ -44,7 +44,7 @@ constexpr inline std::array<Piece, COLOR_NB * KING> Pieces{
 };
 
 template <std::size_t N>
-constexpr inline std::unique_ptr<const std::int8_t[]> make_array(const std::int8_t (&data)[N]) noexcept {
+inline std::unique_ptr<const std::int8_t[]> make_array(const std::int8_t (&data)[N]) noexcept {
     auto arr = std::make_unique<std::int8_t[]>(N);
     std::copy(std::begin(data), std::end(data), arr.get());
     return arr;
@@ -253,10 +253,14 @@ void Position::set(std::string_view fenStr, State* newSt) noexcept {
 */
     assert(!fenStr.empty());
     assert(newSt != nullptr);
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wclass-memaccess"
+#if defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wclass-memaccess"
+#endif
     std::memset(this, 0, sizeof(Position));
-#pragma GCC diagnostic pop
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
     std::fill(std::begin(castlingRookSquare), std::end(castlingRookSquare), SQ_NONE);
     std::memset(newSt, 0, sizeof(State));
     newSt->epSquare = newSt->capSquare = SQ_NONE;
