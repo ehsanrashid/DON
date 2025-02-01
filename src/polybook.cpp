@@ -308,19 +308,6 @@ Key polyglot_key(const Position& pos) noexcept {
         key ^= PG.Zobrist.psq[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
     }
 
-    /*
-    if (pos.can_castle(ANY_CASTLING))
-    {
-        if (pos.can_castle(WHITE_OO))
-            key ^= PG.Zobrist.castling[0];
-        if (pos.can_castle(WHITE_OOO))
-            key ^= PG.Zobrist.castling[1];
-        if (pos.can_castle(BLACK_OO))
-            key ^= PG.Zobrist.castling[2];
-        if (pos.can_castle(BLACK_OOO))
-            key ^= PG.Zobrist.castling[3];
-    }
-    */
     Bitboard b = pos.castling_rights();
     while (b)
         key ^= PG.Zobrist.castling[pop_lsb(b)];

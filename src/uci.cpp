@@ -349,8 +349,8 @@ void UCI::handle_commands() noexcept {
         default :
             if (token[0] != '#')
             {
-                std::cout << "Unknown command: '" << command << "'. "
-                          << "Type help for more information." << std::endl;
+                std::cout << "Unknown command: '" << command << "'."
+                          << "\nType help for more information." << std::endl;
             }
         }
     } while (running);
@@ -397,7 +397,7 @@ void UCI::position(std::istringstream& iss) noexcept {
         }
         while (i < 4)
         {
-            fen += " -";
+            fen += "- ";
             ++i;
         }
     }

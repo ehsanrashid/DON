@@ -995,7 +995,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Step 9. Null move search with verification search
     if (CutNode && npm && !exclude && preMove != Move::Null()  //
         && !is_loss(beta) && eval >= beta && ss->ply >= nmpMinPly
-        && ss->staticEval >= 470 + beta - 20 * depth - 1 * sqr(depth) - 60 * improve)
+        && ss->staticEval >= 470 + beta - 20 * depth - 60 * improve)
     {
         int diff = eval - beta;
         assert(diff >= 0);
