@@ -222,16 +222,16 @@ inline bool aligned(Square s1, Square s2, Square s3) noexcept { return line_bb(s
 // Return the distance between x and y, defined as the
 // number of steps for a king in x to reach y.
 template<typename T = Square>
-constexpr std::uint8_t distance(Square s1, Square s2) noexcept;
+inline std::uint8_t distance(Square s1, Square s2) noexcept;
 
 template<>
-constexpr std::uint8_t distance<File>(Square s1, Square s2) noexcept {
+inline std::uint8_t distance<File>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
     return std::abs(file_of(s1) - file_of(s2));
 }
 
 template<>
-constexpr std::uint8_t distance<Rank>(Square s1, Square s2) noexcept {
+inline std::uint8_t distance<Rank>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
     return std::abs(rank_of(s1) - rank_of(s2));
 }
