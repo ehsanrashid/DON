@@ -25,7 +25,6 @@
 #include <fstream>
 #include <iomanip>
 //#include <iterator>
-#include <mutex>
 
 #include "types.h"
 
@@ -137,6 +136,8 @@ class Logger final {
 };
 
 }  // namespace
+
+std::mutex SyncCout::mutex;
 
 std::string engine_info(bool uci) noexcept {
     std::ostringstream oss;
@@ -296,24 +297,6 @@ std::string compiler_info() noexcept {
     return compiler;
 }
 
-// Used to serialize access to std::cout
-// to avoid multiple threads writing at the same time.
-std::ostream& operator<<(std::ostream& os, OutState out) noexcept {
-    static std::mutex mutex;
-
-    switch (out)
-    {
-    case OUT_LOCK :
-        mutex.lock();
-        break;
-    case OUT_UNLOCK :
-        mutex.unlock();
-        break;
-    }
-
-    return os;
-}
-
 std::string format_time(std::chrono::time_point<SystemClock> timePoint) {
     static std::mutex mutex;
 
@@ -337,7 +320,6 @@ std::string format_time(std::chrono::time_point<SystemClock> timePoint) {
 
 // Trampoline helper to avoid moving Logger to misc.h
 void start_logger(const std::string& logFile) noexcept { Logger::start(logFile); }
-
 
 #if !defined(NDEBUG)
 // Debug functions used mainly to collect run-time statistics

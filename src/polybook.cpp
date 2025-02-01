@@ -321,9 +321,9 @@ Key polyglot_key(const Position& pos) noexcept {
             key ^= PG.Zobrist.castling[3];
     }
     */
-    Bitboard cr = pos.castling_rights();
-    while (cr)
-        key ^= PG.Zobrist.castling[pop_lsb(cr)];
+    Bitboard b = pos.castling_rights();
+    while (b)
+        key ^= PG.Zobrist.castling[pop_lsb(b)];
 
     if (ep_is_ok(pos.ep_square()))
         key ^= PG.Zobrist.enpassant[file_of(pos.ep_square())];

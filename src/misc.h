@@ -30,6 +30,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <mutex>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -76,16 +77,32 @@ std::string compiler_info() noexcept;
 //
 // #define TRACE() trace(__FUNCTION__, __FILE__, __LINE__)
 
-enum OutState : std::uint8_t {
-    OUT_LOCK,
-    OUT_UNLOCK
+class SyncCout final {
+   public:
+    SyncCout() noexcept :
+        lockGuard(mutex) {}
+    //~SyncCout() noexcept { mutex.unlock(); }
+
+    template<typename T>
+    SyncCout& operator<<(const T& value) noexcept {
+        std::cout << value;
+        return *this;
+    }
+
+    using Manipulator = std::ostream& (*) (std::ostream&);
+    SyncCout& operator<<(Manipulator manip) noexcept {
+        std::cout << manip;
+        return *this;
+    }
+
+   private:
+    static std::mutex mutex;
+
+    std::lock_guard<std::mutex> lockGuard;
 };
 
-std::ostream& operator<<(std::ostream& os, OutState out) noexcept;
-
-#define sync_cout std::cout << OUT_LOCK
-#define sync_endl std::endl << OUT_UNLOCK
-#define sync_end OUT_UNLOCK
+#define sync_cout SyncCout()
+#define sync_endl std::endl
 
 /*
 namespace Internal {

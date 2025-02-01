@@ -120,6 +120,7 @@ Limit parse_limit(std::istringstream& iss) noexcept {
     while (iss >> token)
     {
         token = lower_case(token);
+
         if (token == "wtime")
         {
             iss >> limit.clocks[WHITE].time;
@@ -358,11 +359,11 @@ void UCI::handle_commands() noexcept {
 void UCI::print_info_string(std::string_view infoStr) noexcept {
     if (infoStringStop)
         return;
-    sync_cout;
+
+    auto syncCout = sync_cout;
     for (const auto& info : split(infoStr, "\n"))
         if (!is_whitespace(info))
-            std::cout << "info string " << info << '\n';
-    std::cout << sync_end;
+            syncCout << "info string " << info << '\n';
 }
 
 void UCI::init_update_listeners() noexcept {
@@ -373,11 +374,12 @@ void UCI::init_update_listeners() noexcept {
 }
 
 void UCI::position(std::istringstream& iss) noexcept {
-    std::string token;
-
     std::string fen;
+
+    std::string token;
     iss >> token;
     token = lower_case(token);
+
     if (starts_with(token, "start"))  // "startpos"
     {
         fen = StartFEN;
@@ -385,14 +387,13 @@ void UCI::position(std::istringstream& iss) noexcept {
     }
     else  //if (token == "fen")
     {
-        int i = 0;
+        std::uint8_t i = 0;
         while (iss >> token && i < 6)  // Consume the "moves" token, if any
         {
             if (i >= 2 && starts_with(lower_case(token), "moves"))
                 break;
-            if (i != 0)
-                fen += ' ';
-            fen += token;
+
+            fen += token + " ";
             ++i;
         }
         while (i < 4)

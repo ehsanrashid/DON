@@ -170,22 +170,13 @@ void init() noexcept {
             psq[pc][s] = rng.rand<Key>();
     }
 
-    for (std::size_t cr = 0; cr < CASTLING_RIGHTS_NB; ++cr)
+    for (std::size_t cr = 1; cr < CASTLING_RIGHTS_NB; ++cr)
     {
-        std::size_t mask = 1;
-        while (mask <= cr)
+        Bitboard b = cr;
+        while (b)
         {
-            if (std::size_t idx = cr & mask; idx)
-            {
-                if (castling[idx])
-                    castling[cr] ^= castling[idx];
-                else
-                {
-                    castling[idx] = rng.rand<Key>();
-                    break;
-                }
-            }
-            mask <<= 1;
+            Key k = castling[square_bb(pop_lsb(b))];
+            castling[cr] ^= (k != 0) ? k : rng.rand<Key>();
         }
     }
 
