@@ -274,22 +274,21 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
 
     if (RootNode)
     {
-        std::ostringstream oss;
-        oss << std::left                //
-            << std::setw(3) << "N"      //
-            << std::setw(10) << "Move"  //
-            << std::setw(19) << "Nodes";
+        std::cout << std::left                //
+                  << std::setw(3) << "N"      //
+                  << std::setw(10) << "Move"  //
+                  << std::setw(19) << "Nodes";
         if (detail)
-            oss << std::setw(17) << "Capture"    //
-                << std::setw(15) << "Enpassant"  //
-                << std::setw(15) << "AnyCheck"   //
-                << std::setw(15) << "DscCheck"   //
-                << std::setw(15) << "DblCheck"   //
-                << std::setw(15) << "Castle"     //
-                << std::setw(15) << "Promote"    //
-                << std::setw(15) << "Checkmate"  //
-                << std::setw(15) << "Stalemate";
-        std::cout << oss.str() << std::endl;
+            std::cout << std::setw(17) << "Capture"    //
+                      << std::setw(15) << "Enpassant"  //
+                      << std::setw(15) << "AnyCheck"   //
+                      << std::setw(15) << "DscCheck"   //
+                      << std::setw(15) << "DblCheck"   //
+                      << std::setw(15) << "Castle"     //
+                      << std::setw(15) << "Promote"    //
+                      << std::setw(15) << "Checkmate"  //
+                      << std::setw(15) << "Stalemate";
+        std::cout << std::endl;
     }
 
     Perft sperft;
@@ -347,43 +346,41 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
         {
             sperft.count++;
 
-            std::ostringstream oss;
-            oss << std::right << std::setfill('0')                  //
-                << std::setw(2) << sperft.count                     //
-                << std::left << std::setfill(' ')                   //
-                << " " << std::setw(7) << UCI::move_to_san(m, pos)  //
-                << std::right << std::setfill('.')                  //
-                << ": " << std::setw(16) << iperft.nodes;
+            std::cout << std::right << std::setfill('0')                  //
+                      << std::setw(2) << sperft.count                     //
+                      << std::left << std::setfill(' ')                   //
+                      << " " << std::setw(7) << UCI::move_to_san(m, pos)  //
+                      << std::right << std::setfill('.')                  //
+                      << ": " << std::setw(16) << iperft.nodes;
             if (detail)
-                oss << "   " << std::setw(14) << iperft.capture    //
-                    << "   " << std::setw(12) << iperft.enpassant  //
-                    << "   " << std::setw(12) << iperft.anyCheck   //
-                    << "   " << std::setw(12) << iperft.dscCheck   //
-                    << "   " << std::setw(12) << iperft.dblCheck   //
-                    << "   " << std::setw(12) << iperft.castle     //
-                    << "   " << std::setw(12) << iperft.promotion  //
-                    << "   " << std::setw(12) << iperft.checkmate  //
-                    << "   " << std::setw(12) << iperft.stalemate;
-            std::cout << oss.str() << std::endl;
+                std::cout << "   " << std::setw(14) << iperft.capture    //
+                          << "   " << std::setw(12) << iperft.enpassant  //
+                          << "   " << std::setw(12) << iperft.anyCheck   //
+                          << "   " << std::setw(12) << iperft.dscCheck   //
+                          << "   " << std::setw(12) << iperft.dblCheck   //
+                          << "   " << std::setw(12) << iperft.castle     //
+                          << "   " << std::setw(12) << iperft.promotion  //
+                          << "   " << std::setw(12) << iperft.checkmate  //
+                          << "   " << std::setw(12) << iperft.stalemate;
+            std::cout << std::endl;
         }
     }
 
     if (RootNode)
     {
-        std::ostringstream oss;
-        oss << std::right << std::setfill('.');
-        oss << "Total     : " << std::setw(16) << sperft.nodes;
+        std::cout << std::right << std::setfill('.');
+        std::cout << "Total     : " << std::setw(16) << sperft.nodes;
         if (detail)
-            oss << " " << std::setw(16) << sperft.capture    //
-                << " " << std::setw(14) << sperft.enpassant  //
-                << " " << std::setw(14) << sperft.anyCheck   //
-                << " " << std::setw(14) << sperft.dscCheck   //
-                << " " << std::setw(14) << sperft.dblCheck   //
-                << " " << std::setw(14) << sperft.castle     //
-                << " " << std::setw(14) << sperft.promotion  //
-                << " " << std::setw(14) << sperft.checkmate  //
-                << " " << std::setw(14) << sperft.stalemate;
-        std::cout << oss.str() << std::endl;
+            std::cout << " " << std::setw(16) << sperft.capture    //
+                      << " " << std::setw(14) << sperft.enpassant  //
+                      << " " << std::setw(14) << sperft.anyCheck   //
+                      << " " << std::setw(14) << sperft.dscCheck   //
+                      << " " << std::setw(14) << sperft.dblCheck   //
+                      << " " << std::setw(14) << sperft.castle     //
+                      << " " << std::setw(14) << sperft.promotion  //
+                      << " " << std::setw(14) << sperft.checkmate  //
+                      << " " << std::setw(14) << sperft.stalemate;
+        std::cout << std::endl;
     }
 
     return sperft;

@@ -580,17 +580,18 @@ void PolyBook::get_key_data(std::size_t begIndex) noexcept {
 }
 
 void PolyBook::show_key_data() const noexcept {
-    std::ostringstream oss;
 
-    oss << "\nBook entries: " << keyData.entryCount << '\n';
+    std::cout << "\nBook entries: " << keyData.entryCount << std::endl;
     for (std::size_t idx = keyData.begIndex; idx < keyData.begIndex + keyData.entryCount; ++idx)
     {
-        oss << std::setw(2) << std::setfill('0')                  //
-            << idx - keyData.begIndex + 1 << ' ' << entries[idx]  //
-            << " prob: " << std::setw(7) << std::setfill('0') << std::fixed << std::setprecision(4)
-            << (keyData.sumWeight != 0) * 100.0 * entries[idx].weight / keyData.sumWeight << '\n';
+        std::cout << std::setw(2) << std::setfill('0')                  //
+                  << idx - keyData.begIndex + 1 << ' ' << entries[idx]  //
+                  << " prob: " << std::setw(7) << std::setfill('0') << std::fixed
+                  << std::setprecision(4)
+                  << (keyData.sumWeight != 0) * 100.0 * entries[idx].weight / keyData.sumWeight
+                  << std::endl;
     }
-    std::cout << oss.str() << std::endl;
+    std::cout << std::endl;
 }
 
 }  // namespace DON
