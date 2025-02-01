@@ -995,7 +995,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Step 9. Null move search with verification search
     if (CutNode && npm && !exclude && preMove != Move::Null()  //
         && !is_loss(beta) && eval >= beta && ss->ply >= nmpMinPly
-        && ss->staticEval >= 470 + beta - 20 * depth - 60 * improve)
+        && ss->staticEval >= 470 + beta - 20 * depth - 1 * sqr(depth) - 60 * improve)
     {
         int diff = eval - beta;
         assert(diff >= 0);
@@ -1110,6 +1110,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             pos.undo_move(move);
 
             assert(is_ok(value));
+
+            if (threads.stop.load(std::memory_order_relaxed))
+                return VALUE_ZERO;
 
             if (value >= probCutBeta)
             {
@@ -1308,14 +1311,13 @@ S_MOVES_LOOP:  // When in check, search starts here
                 {
                     singularValue = value;
 
-                    int doubleMargin =   0 + 250 * PVNode - 176 * !ttCapture +   0 * ss->pvHit - 4.1827e-6 * absCorrectionValue;
-                    int tripleMargin = 100 + 285 * PVNode - 253 * !ttCapture +  97 * ss->pvHit - 3.6452e-6 * absCorrectionValue;
+                    int doubleMargin =   0 + 250 * PVNode - 176 * !ttCapture +  0 * ss->pvHit - 4.1827e-6 * absCorrectionValue;
+                    int tripleMargin = 100 + 285 * PVNode - 253 * !ttCapture + 97 * ss->pvHit - 3.6452e-6 * absCorrectionValue;
 
                     extension = 1 + (value < singularBeta - doubleMargin)
                                   + (value < singularBeta - tripleMargin);
 
-                    if (depth < 16)
-                        depth += 1 + (depth < 8 && extension > 2);
+                    depth = std::min(depth + 1 + (depth < 8 && extension > 2), MAX_PLY - 1);
                 }
                 // clang-format on
 
@@ -1420,14 +1422,14 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
-            Depth lmrDepth =
+            Depth redDepth =
               std::max(1, std::min(newDepth - r / 1024,
                                    newDepth + !AllNode + (PVNode && bestMove == Move::None())));
 
-            value = -search<Cut>(pos, ss + 1, -(alpha + 1), -alpha, lmrDepth, newDepth - lmrDepth);
+            value = -search<Cut>(pos, ss + 1, -(alpha + 1), -alpha, redDepth, newDepth - redDepth);
 
             // Do a full-depth search when reduced LMR search fails high
-            if (value > alpha && newDepth > lmrDepth)
+            if (value > alpha && newDepth > redDepth)
             {
                 // Adjust full-depth search based on LMR value
                 newDepth +=
@@ -1436,7 +1438,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                   // - if the value was bad enough search shallower
                   - (value < 9 + bestValue);
 
-                if (newDepth > lmrDepth)
+                if (newDepth > redDepth)
                     value = -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha, newDepth);
 
                 if (value >= beta)

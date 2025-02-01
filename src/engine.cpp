@@ -34,16 +34,17 @@ namespace DON {
 
 namespace {
 
-constexpr inline std::size_t MIN_THREADS = 1;
-constexpr inline std::size_t MAX_THREADS = 1024;
+constexpr inline std::size_t MIN_THREADS = 1u;
+constexpr inline std::size_t MAX_THREADS = 1024u;
 
-constexpr inline std::size_t MIN_HASH = 4;
+constexpr inline std::size_t MIN_HASH = 4u;
 constexpr inline std::size_t MAX_HASH =
 #if defined(IS_64BIT)
-  0x2000000u;
+  0x2000000u
 #else
-  0x800u;
+  0x800u
 #endif
+  ;
 
 }  // namespace
 
