@@ -11,15 +11,13 @@ trap 'error ${LINENO}' ERR
 echo "perft testing started"
 
 cat << EOF > perft.exp
- set timeout 10
- spawn ./DON.exe
- lassign \$argv pos depth nodes
-
- send "position \$pos\n"
- send "go perft \$depth\n"
- expect "Total nodes :? \$nodes" {} timeout {exit 1}
- send "quit\n"
- expect eof
+   set timeout 10
+   lassign \$argv pos depth nodes
+   spawn ./DON
+   send "position \$pos\\ngo perft \$depth\\n"
+   expect "Total nodes? \$nodes" {} timeout {exit 1}
+   send "quit\\n"
+   expect eof
 EOF
 
 expect perft.exp startpos 5 4865609 > /dev/null
