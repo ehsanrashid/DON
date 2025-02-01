@@ -856,7 +856,8 @@ namespace {
 
 void on_update_end(const EndInfo& info) noexcept {
     std::cout << "info"
-              << " depth " << "0" << " score " << (info.inCheck ? "mate " : "cp ") << "0\n";
+              << " depth " << "0" << " score " << (info.inCheck ? "mate " : "cp ") << "0"
+              << std::endl;
 }
 
 void on_update_full(const FullInfo& info) noexcept {
@@ -883,7 +884,7 @@ void on_update_full(const FullInfo& info) noexcept {
         << " pv";
     for (const Move& m : info.rootMove)
         oss << ' ' << UCI::move_to_can(m);
-    std::cout << oss.str() << '\n';
+    std::cout << oss.str() << std::endl;
 }
 
 void on_update_iter(const IterInfo& info) noexcept {
@@ -892,14 +893,14 @@ void on_update_iter(const IterInfo& info) noexcept {
         << " depth " << info.depth                          //
         << " currmove " << UCI::move_to_can(info.currMove)  //
         << " currmovenumber " << info.currMoveNumber;       //
-    std::cout << oss.str() << '\n';
+    std::cout << oss.str() << std::endl;
 }
 
 void on_update_move(const MoveInfo& info) noexcept {
     std::cout << "bestmove " << UCI::move_to_can(info.bestMove);
     if (info.ponderMove != Move::None())
         std::cout << " ponder " << UCI::move_to_can(info.ponderMove);
-    std::cout << '\n';
+    std::cout << std::endl;
 }
 
 enum Ambiguity : std::uint8_t {
