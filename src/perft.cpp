@@ -212,7 +212,7 @@ void PerftTable::resize(std::size_t ptSize, ThreadPool& threads) noexcept {
         if (clusters == nullptr)
         {
             clusterCount = 0;
-            std::cerr << "Failed to allocate " << ptSize << "MB for perft table.\n";
+            std::cerr << "Failed to allocate " << ptSize << "MB for perft table." << std::endl;
             std::exit(EXIT_FAILURE);
         }
     }
@@ -289,7 +289,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
                 << std::setw(15) << "Promote"    //
                 << std::setw(15) << "Checkmate"  //
                 << std::setw(15) << "Stalemate";
-        std::cout << oss.str() << '\n';
+        std::cout << oss.str() << std::endl;
     }
 
     Perft sperft;
@@ -364,7 +364,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
                     << "   " << std::setw(12) << iperft.promotion  //
                     << "   " << std::setw(12) << iperft.checkmate  //
                     << "   " << std::setw(12) << iperft.stalemate;
-            std::cout << oss.str() << '\n';
+            std::cout << oss.str() << std::endl;
         }
     }
 
@@ -383,7 +383,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
                 << " " << std::setw(14) << sperft.promotion  //
                 << " " << std::setw(14) << sperft.checkmate  //
                 << " " << std::setw(14) << sperft.stalemate;
-        std::cout << oss.str() << '\n';
+        std::cout << oss.str() << std::endl;
     }
 
     return sperft;
@@ -402,7 +402,7 @@ perft(Position& pos, Depth depth, std::size_t ptSize, ThreadPool& threads, bool 
         perftTable.resize(ptSize, threads);
 
     auto nodes = perft<true>(pos, depth, detail).nodes;
-    std::cout << "\nTotal nodes : " << nodes << "\n\n";
+    std::cout << "\nTotal nodes : " << nodes << '\n' << std::endl;
 
     if (use_perft_table(depth, detail))
         perftTable.free();

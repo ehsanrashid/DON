@@ -246,7 +246,7 @@ class TBFile: public std::ifstream {
 
         if (bufStat.st_size % 64 != 16)
         {
-            std::cerr << "Corrupt tablebase file " << filename << '\n';
+            std::cerr << "Corrupt tablebase file " << filename << std::endl;
             std::exit(EXIT_FAILURE);
         }
 
@@ -259,7 +259,7 @@ class TBFile: public std::ifstream {
 
         if (*baseAddress == MAP_FAILED)
         {
-            std::cerr << "Could not mmap(), name = " << filename << '\n';
+            std::cerr << "Could not mmap(), name = " << filename << std::endl;
             std::exit(EXIT_FAILURE);
         }
 #else
@@ -275,7 +275,7 @@ class TBFile: public std::ifstream {
 
         if (lowSize % 64 != 16)
         {
-            std::cerr << "Corrupt tablebase file " << filename << '\n';
+            std::cerr << "Corrupt tablebase file " << filename << std::endl;
             std::exit(EXIT_FAILURE);
         }
 
@@ -284,7 +284,7 @@ class TBFile: public std::ifstream {
 
         if (!mmap)
         {
-            std::cerr << "CreateFileMapping() failed, name = " << filename << '\n';
+            std::cerr << "CreateFileMapping() failed, name = " << filename << std::endl;
             std::exit(EXIT_FAILURE);
         }
 
@@ -294,7 +294,7 @@ class TBFile: public std::ifstream {
         if (!*baseAddress)
         {
             std::cerr << "MapViewOfFile() failed, name = " << filename
-                      << ", error = " << GetLastError() << '\n';
+                      << ", error = " << GetLastError() << std::endl;
             std::exit(EXIT_FAILURE);
         }
 #endif
@@ -306,7 +306,7 @@ class TBFile: public std::ifstream {
 
         if (std::memcmp(data, MAGIC[type == WDL], MAGIC_SIZE))
         {
-            std::cerr << "Corrupted table in file " << filename << '\n';
+            std::cerr << "Corrupted table in file " << filename << std::endl;
             unmap(*baseAddress, *mapping);
             return *baseAddress = nullptr, nullptr;
         }

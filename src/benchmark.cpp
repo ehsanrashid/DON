@@ -412,7 +412,7 @@ Commands setup_bench(std::istringstream& iss, std::string_view currentFen) noexc
 
         if (!ifstream.is_open())
         {
-            std::cerr << "Unable to open fen filename " << fenFile << '\n';
+            std::cerr << "Unable to open fen filename " << fenFile << std::endl;
             std::exit(EXIT_FAILURE);
         }
 

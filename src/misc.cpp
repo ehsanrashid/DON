@@ -125,7 +125,7 @@ class Logger final {
 
         if (!logger.ofstream.is_open())
         {
-            std::cerr << "Unable to open debug log file: " << logFile << '\n';
+            std::cerr << "Unable to open debug log file: " << logFile << std::endl;
             std::exit(EXIT_FAILURE);
         }
         logger.ofstream << "[" << format_time(SystemClock::now()) << "] ->\n";

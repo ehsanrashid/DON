@@ -54,7 +54,8 @@ void TranspositionTable::resize(std::size_t ttSize, ThreadPool& threads) noexcep
         if (clusters == nullptr)
         {
             clusterCount = 0;
-            std::cerr << "Failed to allocate " << ttSize << "MB for transposition table.\n";
+            std::cerr << "Failed to allocate " << ttSize << "MB for transposition table."
+                      << std::endl;
             std::exit(EXIT_FAILURE);
         }
     }

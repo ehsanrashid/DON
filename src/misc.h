@@ -150,7 +150,7 @@ class MultiArray final {
 
     /*
     void print() const noexcept {
-        std::cout << Size << ':' << sizeof...(Sizes) << '\n';
+        std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
         for (auto& entry : *this)
         {
             if constexpr (sizeof...(Sizes) == 0)
@@ -158,7 +158,7 @@ class MultiArray final {
             else
                 entry.print();
         }
-        std::cout << '\n';
+        std::cout << std::endl;
     }
     */
 
