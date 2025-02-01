@@ -34,6 +34,7 @@
 #include "tt.h"
 #include "uci.h"
 #include "ucioption.h"
+#include "nnue/network.h"
 #include "nnue/nnue_misc.h"
 
 namespace DON {

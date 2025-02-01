@@ -20,7 +20,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <iosfwd>
+#include <iosfwd>  // IWYU pragma: keep
 #include <string>
 
 #include "nnue_architecture.h"

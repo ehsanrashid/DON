@@ -37,7 +37,6 @@
 #include "position.h"
 #include "timeman.h"
 #include "types.h"
-#include "nnue/network.h"
 #include "nnue/nnue_accumulator.h"
 #include "syzygy/tbprobe.h"
 
@@ -47,6 +46,10 @@ class Options;
 class ThreadPool;
 class TranspositionTable;
 class Worker;
+
+namespace NNUE {
+struct Networks;
+}
 
 constexpr inline std::size_t DEFAULT_MULTI_PV = 1;
 

@@ -27,6 +27,7 @@
 #include <utility>
 
 #include "misc.h"
+#include "movegen.h"
 #include "uci.h"
 #include "syzygy/tbprobe.h"
 

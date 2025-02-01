@@ -79,8 +79,8 @@ constexpr inline std::uint8_t GENERATION_MASK = (0xFF << DATA_BITS) & 0xFF;
 // Generation cycle length
 constexpr inline std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 
-class TTUpdater;
-class TranspositionTable;
+class TTUpdater;           // IWYU pragma: keep
+class TranspositionTable;  // IWYU pragma: keep
 
 // TTEntry struct is the 10 bytes transposition table entry, defined as below:
 //
