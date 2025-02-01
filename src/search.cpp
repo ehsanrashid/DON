@@ -1871,8 +1871,7 @@ QS_MOVES_LOOP:
 
             if (capture)
             {
-                int capHist = 0;
-                ++capHist;
+                ;
             }
             else
             {
