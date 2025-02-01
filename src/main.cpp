@@ -28,15 +28,9 @@
 
 using namespace DON;
 
-void atexit_handler() noexcept;
-
 int main(int argc, const char** argv) noexcept {
 
-    //std::locale::global(std::locale(""));
-    //std::cout.imbue(std::locale());
-    //std::atexit(atexit_handler);
-
-    std::cout << engine_info() << '\n';
+    std::cout << engine_info() << std::endl;
 
 #if !defined(NDEBUG)
     Debug::init();
@@ -54,10 +48,3 @@ int main(int argc, const char** argv) noexcept {
 
     return EXIT_SUCCESS;
 }
-
-/*
-// The cleanup function to be called at program exit
-void atexit_handler() noexcept {
-    //std::cout << "Thanks !!!\n";
-}
-*/

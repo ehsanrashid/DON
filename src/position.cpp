@@ -1921,13 +1921,11 @@ void Position::flip() noexcept {
 
 Key Position::compute_material_key() const noexcept {
     Key materialKey = 0;
+
     for (Piece pc : Pieces)
-    {
-        //if (type_of(pc) == KING)
-        //    continue;
         for (auto cnt = 0; cnt < count(pc); ++cnt)
             materialKey ^= Zobrist::psq[pc][PawnOffset + cnt];
-    }
+
     return materialKey;
 }
 

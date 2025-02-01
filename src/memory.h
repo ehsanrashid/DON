@@ -204,7 +204,6 @@ std::enable_if_t<std::is_array_v<T>, AlignedLPPtr<T>> make_unique_aligned_lp(std
     return AlignedLPPtr<T>(memory);
 }
 
-
 // Get the first aligned element of an array.
 // ptr must point to an array of size at least `sizeof(T) * N + alignment` bytes,
 // where N is the number of elements in the array.
@@ -217,27 +216,6 @@ T* align_ptr_up(T* ptr) noexcept {
       reinterpret_cast<char*>((uintPtr + (Alignment - 1)) / Alignment * Alignment));
 }
 
-/*
-template<typename T>
-struct UniqueArrayWithSize final {
-   public:
-    UniqueArrayWithSize(std::unique_ptr<T[]> arr, std::size_t sz) noexcept :
-        array(std::move(arr)),
-        size(sz) {}
-
-    auto* get() const noexcept { return array.get(); }
-
-    auto sizeOf() const noexcept { return size * sizeof(T); }
-
-    std::unique_ptr<T[]> array;
-    std::size_t          size;
-};
-
-template<typename T, std::size_t N>
-auto make_unique_array_with_size(const T (&)[N]) noexcept {
-    return UniqueArrayWithSize(std::make_unique<T[]>(N), N);
-}
-*/
 }  // namespace DON
 
 #endif  // #ifndef MEMORY_H_INCLUDED

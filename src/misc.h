@@ -30,7 +30,6 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
-//#include <mutex>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -51,78 +50,11 @@
     #define STRINGIFY(x) STRING_LITERAL(x)
 #endif
 
-//#if defined(__clang__)
-//    #define FORCE_INLINE [[gnu::always_inline]] [[gnu::gnu_inline]]
-//
-//#elif defined(__GNUC__)
-//    #define FORCE_INLINE [[gnu::always_inline]]
-//
-//#elif defined(_MSC_VER)
-//    #pragma warning(error: 4714)
-//    #define FORCE_INLINE __forceinline
-//
-//#endif
-
 namespace DON {
 
 std::string engine_info(bool uci = false) noexcept;
 std::string version_info() noexcept;
 std::string compiler_info() noexcept;
-
-// inline void trace(const char* func, const char* file, int line) {
-//     std::cerr << "Function: " << func  //
-//               << ", file: " << file    //
-//               << ", line: " << line << '\n';
-// }
-//
-// #define TRACE() trace(__FUNCTION__, __FILE__, __LINE__)
-
-/*
-class SyncCout final {
-   public:
-    SyncCout() noexcept :
-        lockGuard(mutex) {}
-    //~SyncCout() noexcept { mutex.unlock(); }
-
-    template<typename T>
-    SyncCout& operator<<(const T& value) noexcept {
-        std::cout << value;
-        return *this;
-    }
-
-    using Manipulator = std::ostream& (*) (std::ostream&);
-    SyncCout& operator<<(Manipulator manip) noexcept {
-        std::cout << manip;
-        return *this;
-    }
-
-   private:
-    static std::mutex mutex;
-
-    std::lock_guard<std::mutex> lockGuard;
-};
-
-#define sync_cout SyncCout()
-*/
-
-/*
-namespace Internal {
-// Recursive template to define multi-dimensional std::array
-template<typename T, std::size_t Size, std::size_t... Sizes>
-struct MArrayTypdef final {
-    using Type = std::array<typename MArrayTypdef<T, Sizes...>::Type, Size>;
-};
-// Base case: single-dimensional array
-template<typename T, std::size_t Size>
-struct MArrayTypdef<T, Size> final {
-    using Type = std::array<T, Size>;
-};
-}  // namespace Internal
-
-// Alias template for convenience
-template<typename T, std::size_t Size, std::size_t... Sizes>
-using MArray = typename Internal::MArrayTypdef<T, Size, Sizes...>::Type;
-*/
 
 template<typename T, std::size_t Size, std::size_t... Sizes>
 class MultiArray;
@@ -272,28 +204,10 @@ constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 #if defined(USE_PREFETCH)
     #if defined(_MSC_VER)
 inline void prefetch(const void* const addr, int locality = _MM_HINT_T0, bool = false) noexcept {
-    // locality-Hint       IA32/AMD         iMC
-    //_MM_HINT_T0  :      prefetcht0     vprefetch0
-    //_MM_HINT_T1  :      prefetcht1     vprefetch1
-    //_MM_HINT_T2  :      prefetcht2     vprefetch2
-    //_MM_HINT_NTA :      prefetchnta    vprefetchnta
-    //_MM_HINT_ENTA:           -         vprefetchenta
-    //_MM_HINT_ET0 :           -         vprefetchet0
-    //_MM_HINT_ET1 :      prefetchwt1    vprefetchet1
-    //_MM_HINT_ET2 :           -         vprefetchet2
     _mm_prefetch(reinterpret_cast<const char*>(addr), locality);
 }
     #else
 constexpr void prefetch(const void* const addr, int locality = 3, bool rw = false) noexcept {
-    // locality:
-    // 0: None, the data can be removed from the cache after the access.
-    // 1: Low, L3 cache, leave the data in the L3 cache level after the access.
-    // 2: Moderate, L2 cache, leave the data in L2 and L3 cache levels after the access.
-    // 3: High, L1 cache, leave the data in the L1, L2, and L3 cache levels after the access. (default)
-    //
-    // rw:
-    // 0: prepare the prefetch for a read from the memory. (default)
-    // 1: prepare the prefetch for a write to the memory.
     __builtin_prefetch(addr, rw, locality);
 }
     #endif
@@ -519,25 +433,12 @@ inline std::string toggle_case(std::string str) noexcept {
 }
 
 inline bool starts_with(std::string_view str, std::string_view prefix) noexcept {
-    //return str.starts_with(prefix);  // C++20
-    return str.size() >= prefix.size()
-        //&& strncmp(str.c_str(), prefix.c_str(), prefix.size()) == 0;
-        //&& str.substr(0, prefix.size()) == prefix;
-        //&& std::mismatch(prefix.begin(), prefix.end(), str.begin()).first == prefix.end();
-        //&& std::equal(prefix.begin(), prefix.end(), str.begin());
-        //&& str.rfind(prefix, 0) == 0;
-        //&& str.find(prefix) == 0;
+    return str.size() >= prefix.size()  //
         && str.compare(0, prefix.size(), prefix) == 0;
 }
 
 inline bool ends_with(std::string_view str, std::string_view suffix) noexcept {
-    //return str.ends_with(suffix);  // C++20
-    return str.size() >= suffix.size()
-        //&& strncmp(str.c_str() + str.size() - suffix.size(), suffix.c_str(), suffix.size()) == 0;
-        //&& str.substr(str.size() - suffix.size(), suffix.size()) == suffix;
-        //&& std::equal(suffix.rbegin(), suffix.rend(), str.rbegin());
-        //&& str.find(suffix, str.size() - suffix.size()) == (str.size() - suffix.size());
-        //&& str.rfind(suffix) == (str.size() - suffix.size());
+    return str.size() >= suffix.size()  //
         && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 

@@ -137,8 +137,6 @@ class Logger final {
 
 }  // namespace
 
-//std::mutex SyncCout::mutex;
-
 std::string engine_info(bool uci) noexcept {
     std::ostringstream oss;
     oss << (uci ? "id name " : "");
@@ -434,31 +432,31 @@ void print() noexcept {
     for (std::size_t i = 0; i < MAX_SLOT; ++i)
         if ((n = hit[i][0]))
             std::cerr << "Hit #" << i << ": Count " << n << " Hits " << hit[i][1]
-                      << " Hit Rate (%) " << 100.0 * avg(hit[i][1]) << '\n';
+                      << " Hit Rate (%) " << 100.0 * avg(hit[i][1]) << std::endl;
 
     for (std::size_t i = 0; i < MAX_SLOT; ++i)
         if ((n = min[i][0]))
-            std::cerr << "Min #" << i << ": Count " << n << " Min " << min[i][1] << '\n';
+            std::cerr << "Min #" << i << ": Count " << n << " Min " << min[i][1] << std::endl;
 
     for (std::size_t i = 0; i < MAX_SLOT; ++i)
         if ((n = max[i][0]))
-            std::cerr << "Max #" << i << ": Count " << n << " Max " << max[i][1] << '\n';
+            std::cerr << "Max #" << i << ": Count " << n << " Max " << max[i][1] << std::endl;
 
     for (std::size_t i = 0; i < MAX_SLOT; ++i)
         if ((n = extreme[i][0]))
             std::cerr << "Extreme #" << i << ": Count " << n  //
-                      << " Min " << extreme[i][1] << " Max " << extreme[i][2] << '\n';
+                      << " Min " << extreme[i][1] << " Max " << extreme[i][2] << std::endl;
 
     for (std::size_t i = 0; i < MAX_SLOT; ++i)
         if ((n = mean[i][0]))
-            std::cerr << "Mean #" << i << ": Count " << n  //
-                      << " Mean " << avg(mean[i][1]) << '\n';
+            std::cerr << "Mean #" << i << ": Count " << n << " Mean " << avg(mean[i][1])
+                      << std::endl;
 
     for (std::size_t i = 0; i < MAX_SLOT; ++i)
         if ((n = stdev[i][0]))
         {
             double r = std::sqrt(avg(stdev[i][2]) - sqr(avg(stdev[i][1])));
-            std::cerr << "Stdev #" << i << ": Count " << n << " Stdev " << r << '\n';
+            std::cerr << "Stdev #" << i << ": Count " << n << " Stdev " << r << std::endl;
         }
 
     for (std::size_t i = 0; i < MAX_SLOT; ++i)
@@ -467,7 +465,7 @@ void print() noexcept {
             double r = (avg(correl[i][5]) - avg(correl[i][1]) * avg(correl[i][3]))
                      / (std::sqrt(avg(correl[i][2]) - sqr(avg(correl[i][1])))
                         * std::sqrt(avg(correl[i][4]) - sqr(avg(correl[i][3]))));
-            std::cerr << "Correl #" << i << ": Count " << n << " Coefficient " << r << '\n';
+            std::cerr << "Correl #" << i << ": Count " << n << " Coefficient " << r << std::endl;
         }
 }
 }  // namespace Debug
@@ -536,19 +534,17 @@ std::size_t str_to_size_t(const std::string& str) noexcept {
 }
 
 std::streamsize get_file_size(std::ifstream& ifstream) noexcept {
+    // Return -1 if the file stream is not open
     if (!ifstream.is_open())
-        return std::streamsize(-1);  // Return -1 if the file stream is not open
+        return std::streamsize(-1);
 
     // Store the current position
     auto curPos = ifstream.tellg();
-
     // Move to the end to get the size
     ifstream.seekg(0, std::ios_base::end);
     std::streamsize fileSize = ifstream.tellg();
-
     // Restore the original position
     ifstream.seekg(curPos, std::ios_base::beg);
-
     // Return file size or -1 if tellg() fails
     return fileSize >= 0 ? fileSize : std::streamsize(-1);
 }
@@ -558,7 +554,6 @@ std::optional<std::string> read_file_to_string(const std::string& filePath) noex
     std::ifstream ifstream(filePath, std::ios_base::binary | std::ios_base::ate);
     if (!ifstream)
         return std::nullopt;
-    //return std::string(std::istreambuf_iterator<char>(ifstream), std::istreambuf_iterator<char>());
 
     // Pre-allocate the string to the file size
     auto fileSize = get_file_size(ifstream);

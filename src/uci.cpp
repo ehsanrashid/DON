@@ -295,13 +295,13 @@ void UCI::handle_commands() noexcept {
         case CMD_UCI :
             std::cout << engine_info(true) << '\n'  //
                       << engine_options() << '\n'   //
-                      << "uciok\n";
+                      << "uciok" << std::endl;
             break;
         case CMD_UCINEWGAME :
             engine.init();
             break;
         case CMD_ISREADY :
-            std::cout << "readyok\n";
+            std::cout << "readyok" << std::endl;
             break;
         // Add custom non-UCI commands, mainly for debugging purposes.
         // These commands must not be used during a search!
@@ -321,7 +321,7 @@ void UCI::handle_commands() noexcept {
             engine.flip();
             break;
         case CMD_COMPILER :
-            std::cout << compiler_info() << "\n\n";
+            std::cout << compiler_info() << '\n' << std::endl;
             break;
         case CMD_EXPORT_NET : {
             std::array<std::string, 2>                inputFiles;
@@ -343,13 +343,14 @@ void UCI::handle_commands() noexcept {
                  "\nDON is normally used with a graphical user interface (GUI) and implements"
                  "\nthe Universal Chess Interface (UCI) protocol to communicate with a GUI, an API, etc."
                  "\nFor any further information, visit https://github.com/ehsanrashid/DON#readme"
-                 "\nor read the corresponding README.md and Copying.txt files distributed along with this program.\n\n";
+                 "\nor read the corresponding README.md and Copying.txt files distributed along with this program.\n"
+              << std::endl;
             break;
         default :
             if (token[0] != '#')
             {
                 std::cout << "Unknown command: '" << command << "'. "
-                          << "Type help for more information.\n";
+                          << "Type help for more information." << std::endl;
             }
         }
     } while (running);
@@ -361,7 +362,7 @@ void UCI::print_info_string(std::string_view infoStr) noexcept {
 
     for (const auto& info : split(infoStr, "\n"))
         if (!is_whitespace(info))
-            std::cout << "info string " << info << '\n';
+            std::cout << "info string " << info << std::endl;
 }
 
 void UCI::init_update_listeners() noexcept {
@@ -534,7 +535,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
     std::cerr << "\n==========================="        //
               << "\nTotal time [ms] : " << elapsedTime  //
               << "\nTotal nodes     : " << nodes        //
-              << "\nnodes/second    : " << 1000 * nodes / elapsedTime << '\n';
+              << "\nnodes/second    : " << 1000 * nodes / elapsedTime << std::endl;
 
     engine_options().set_option("ReportMinimal", reportMinimal);
     // Reset callback, to not capture a dangling reference to infoNodes
@@ -688,6 +689,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
 #if !defined(NDEBUG)
     Debug::print();
 #endif
+
     std::cerr << '\n';
 
     static_assert(
@@ -715,7 +717,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
               << sumHashFull[1] / hashFullCount  //
               << "\nTotal time [s]             : " << elapsedTime / 1000.0
               << "\nTotal nodes                : " << nodes
-              << "\nnodes/second               : " << 1000 * nodes / elapsedTime << '\n';
+              << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
 
     infoStringStop = false;
     init_update_listeners();
