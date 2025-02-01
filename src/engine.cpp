@@ -26,9 +26,9 @@
 
 #include "evaluate.h"
 #include "misc.h"
+#include "movegen.h"
 #include "perft.h"
 #include "uci.h"
-#include "nnue/nnue_common.h"
 #include "syzygy/tbprobe.h"
 
 namespace DON {

@@ -138,7 +138,7 @@ void Perft::operator+=(const Perft& perft) noexcept {
 
 // clang-format on
 
-class PerftTable;
+class PerftTable;  // IWYU pragma: keep
 
 struct PTEntry final {
 

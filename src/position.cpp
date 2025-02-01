@@ -253,14 +253,7 @@ void Position::set(std::string_view fenStr, State* newSt) noexcept {
 */
     assert(!fenStr.empty());
     assert(newSt != nullptr);
-#if defined(__GNUC__)
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wclass-memaccess"
-#endif
-    std::memset(this, 0, sizeof(Position));
-#if defined(__GNUC__)
-    #pragma GCC diagnostic pop
-#endif
+    std::memset(static_cast<void*>(this), 0, sizeof(Position));
     std::fill(std::begin(castlingRookSquare), std::end(castlingRookSquare), SQ_NONE);
     std::memset(newSt, 0, sizeof(State));
     newSt->epSquare = newSt->capSquare = SQ_NONE;
