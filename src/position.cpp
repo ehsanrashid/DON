@@ -1589,7 +1589,7 @@ bool Position::see_ge(const Move& m, int threshold) const noexcept {
     Bitboard qB = pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(dst) & occupied;
     Bitboard qR = pieces(QUEEN, ROOK) & attacks_bb<ROOK>(dst) & occupied;
 
-    auto(*magic)[2] = &Magics[dst];
+    Magic(*magic)[2] = &Magics[dst];
 
     std::array<bool, COLOR_NB> discovery{true, true};
 
