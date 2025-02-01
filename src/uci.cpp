@@ -293,15 +293,15 @@ void UCI::handle_commands() noexcept {
             set_option(iss);
             break;
         case CMD_UCI :
-            sync_cout << engine_info(true) << '\n'  //
+            std::cout << engine_info(true) << '\n'  //
                       << engine_options() << '\n'   //
-                      << "uciok" << sync_endl;
+                      << "uciok\n";
             break;
         case CMD_UCINEWGAME :
             engine.init();
             break;
         case CMD_ISREADY :
-            sync_cout << "readyok" << sync_endl;
+            std::cout << "readyok\n";
             break;
         // Add custom non-UCI commands, mainly for debugging purposes.
         // These commands must not be used during a search!
@@ -321,7 +321,7 @@ void UCI::handle_commands() noexcept {
             engine.flip();
             break;
         case CMD_COMPILER :
-            sync_cout << compiler_info() << '\n' << sync_endl;
+            std::cout << compiler_info() << "\n\n";
             break;
         case CMD_EXPORT_NET : {
             std::array<std::string, 2>                inputFiles;
@@ -337,20 +337,19 @@ void UCI::handle_commands() noexcept {
         }
         break;
         case CMD_HELP :
-            sync_cout
+            std::cout
               << "\nDON is a powerful chess engine for playing and analyzing."
                  "\nIt is released as free software licensed under the GNU GPLv3 License."
                  "\nDON is normally used with a graphical user interface (GUI) and implements"
                  "\nthe Universal Chess Interface (UCI) protocol to communicate with a GUI, an API, etc."
                  "\nFor any further information, visit https://github.com/ehsanrashid/DON#readme"
-                 "\nor read the corresponding README.md and Copying.txt files distributed along with this program.\n"
-              << sync_endl;
+                 "\nor read the corresponding README.md and Copying.txt files distributed along with this program.\n\n";
             break;
         default :
             if (token[0] != '#')
             {
-                sync_cout << "Unknown command: '" << command << "'. "
-                          << "Type help for more information." << sync_endl;
+                std::cout << "Unknown command: '" << command << "'. "
+                          << "Type help for more information.\n";
             }
         }
     } while (running);
@@ -360,10 +359,9 @@ void UCI::print_info_string(std::string_view infoStr) noexcept {
     if (infoStringStop)
         return;
 
-    auto syncCout = sync_cout;
     for (const auto& info : split(infoStr, "\n"))
         if (!is_whitespace(info))
-            syncCout << "info string " << info << '\n';
+            std::cout << "info string " << info << '\n';
 }
 
 void UCI::init_update_listeners() noexcept {
@@ -857,9 +855,8 @@ Move UCI::can_to_move(const std::string& can, const Position& pos) noexcept {
 namespace {
 
 void on_update_end(const EndInfo& info) noexcept {
-    sync_cout << "info"
-              << " depth " << "0" << " score " << (info.inCheck ? "mate " : "cp ") << "0"
-              << sync_endl;
+    std::cout << "info"
+              << " depth " << "0" << " score " << (info.inCheck ? "mate " : "cp ") << "0\n";
 }
 
 void on_update_full(const FullInfo& info) noexcept {
@@ -886,7 +883,7 @@ void on_update_full(const FullInfo& info) noexcept {
         << " pv";
     for (const Move& m : info.rootMove)
         oss << ' ' << UCI::move_to_can(m);
-    sync_cout << oss.str() << sync_endl;
+    std::cout << oss.str() << '\n';
 }
 
 void on_update_iter(const IterInfo& info) noexcept {
@@ -895,14 +892,14 @@ void on_update_iter(const IterInfo& info) noexcept {
         << " depth " << info.depth                          //
         << " currmove " << UCI::move_to_can(info.currMove)  //
         << " currmovenumber " << info.currMoveNumber;       //
-    sync_cout << oss.str() << sync_endl;
+    std::cout << oss.str() << '\n';
 }
 
 void on_update_move(const MoveInfo& info) noexcept {
-    sync_cout << "bestmove " << UCI::move_to_can(info.bestMove);
+    std::cout << "bestmove " << UCI::move_to_can(info.bestMove);
     if (info.ponderMove != Move::None())
         std::cout << " ponder " << UCI::move_to_can(info.ponderMove);
-    std::cout << sync_endl;
+    std::cout << '\n';
 }
 
 enum Ambiguity : std::uint8_t {

@@ -603,7 +603,7 @@ void PolyBook::show_key_data() const noexcept {
             << " prob: " << std::setw(7) << std::setfill('0') << std::fixed << std::setprecision(4)
             << (keyData.sumWeight != 0) * 100.0 * entries[idx].weight / keyData.sumWeight << '\n';
     }
-    sync_cout << oss.str() << sync_endl;
+    std::cout << oss.str() << '\n';
 }
 
 }  // namespace DON

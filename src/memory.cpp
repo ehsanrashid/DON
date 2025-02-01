@@ -44,9 +44,9 @@
         #define NOMINMAX
     #endif
 
-    #include <ios>       // std::hex, std::dec
-    #include <iostream>  // std::cerr
-    #include <ostream>   // std::endl
+    #include <ios>
+    #include <iostream>
+    #include <ostream>
     #include <windows.h>
 
 // The needed Windows API for processor groups could be missed from old Windows

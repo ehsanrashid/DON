@@ -231,7 +231,7 @@ void Options::set_option(const std::string& name, const std::string& value) noex
     if (contains(name))
         options[name] = value;
     else
-        sync_cout << "No such option: " << name << sync_endl;
+        std::cout << "No such option: '" << name << "'\n";
 }
 
 Option Options::operator[](const std::string& name) const noexcept {

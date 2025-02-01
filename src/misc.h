@@ -77,6 +77,7 @@ std::string compiler_info() noexcept;
 //
 // #define TRACE() trace(__FUNCTION__, __FILE__, __LINE__)
 
+/*
 class SyncCout final {
    public:
     SyncCout() noexcept :
@@ -102,7 +103,7 @@ class SyncCout final {
 };
 
 #define sync_cout SyncCout()
-#define sync_endl std::endl
+*/
 
 /*
 namespace Internal {
@@ -350,16 +351,14 @@ class PRNG final {
 
     // Jump function for the XORShift64Star PRNG
     void jump() noexcept {
-        constexpr std::uint64_t JUMP_MASK = 0x9E3779B97F4A7C15ull;
+        static constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ull;
 
-        std::uint64_t t    = 0;
-        std::uint64_t mask = 1;
-        while (mask)
+        std::uint64_t t = 0;
+        for (std::uint8_t m = 0; m < 64; ++m)
         {
-            if (JUMP_MASK & mask)
+            if (JumpMask & (1ull << m))
                 t ^= s;
             rand64();
-            mask <<= 1;
         }
         s = t;
     }
@@ -367,10 +366,10 @@ class PRNG final {
    private:
     // XORShift64Star algorithm implementation
     std::uint64_t rand64() noexcept {
-        constexpr std::uint64_t SEED_MULTIPLIER = 0x2545F4914F6CDD1Dull;
+        static constexpr std::uint64_t SeedMultiplier = 0x2545F4914F6CDD1Dull;
 
         s ^= s >> 12, s ^= s << 25, s ^= s >> 27;
-        return SEED_MULTIPLIER * s;
+        return SeedMultiplier * s;
     }
 
     std::uint64_t s;
@@ -381,12 +380,12 @@ class PRNG1024 final {
    public:
     explicit PRNG1024(std::uint64_t seed) noexcept :
         p(0) {
-        constexpr std::uint64_t SEED_OFFSET     = 0x9857FB32C9EFB5E4ull;
-        constexpr std::uint64_t SEED_MULTIPLIER = 0x2545F4914F6CDD1Dull;
+        static constexpr std::uint64_t SeedOffset     = 0x9857FB32C9EFB5E4ull;
+        static constexpr std::uint64_t SeedMultiplier = 0x2545F4914F6CDD1Dull;
         assert(seed);
 
-        for (std::size_t i = 0; i < SEED_SIZE; ++i)
-            s[i] = seed = SEED_OFFSET + SEED_MULTIPLIER * seed;
+        for (std::size_t i = 0; i < Size; ++i)
+            s[i] = seed = SeedOffset + SeedMultiplier * seed;
     }
 
     template<typename T>
@@ -403,7 +402,7 @@ class PRNG1024 final {
 
     // Jump function for the XORShift1024Star PRNG
     void jump() noexcept {
-        constexpr std::array<std::uint64_t, SEED_SIZE> JUMP_MASK{
+        static constexpr std::array<std::uint64_t, Size> JumpMask{
           // clang-format off
           0x84242F96ECA9C41Dull, 0xA3C65B8776F96855ull, 0x5B34A39F070B5837ull, 0x4489AFFCE4F31A1Eull,
           0x2FFEEB0A48316F40ull, 0xDC2D9891FE68C022ull, 0x3659132BB12FEA70ull, 0xAAC17D8EFA43CAB8ull,
@@ -412,43 +411,40 @@ class PRNG1024 final {
           // clang-format on
         };
 
-        std::array<std::uint64_t, SEED_SIZE> t{};
-        for (std::size_t i = 0; i < SEED_SIZE; ++i)
-        {
-            std::uint64_t mask = 1;
-            while (mask)
+        std::array<std::uint64_t, Size> t{};
+        for (std::size_t j = 0; j < JumpMask.size(); ++j)
+            for (std::uint8_t m = 0; m < 64; ++m)
             {
-                if (JUMP_MASK[i] & mask)
-                    for (std::size_t j = 0; j < SEED_SIZE; ++j)
-                        t[j] ^= s[get_index(j)];
+                if (JumpMask[j] & (1ull << m))
+                    for (std::size_t i = 0; i < t.size(); ++i)
+                        t[i] ^= s[get_index(i)];
                 rand64();
-                mask <<= 1;
             }
-        }
-        for (std::size_t i = 0; i < SEED_SIZE; ++i)
+
+        for (std::size_t i = 0; i < t.size(); ++i)
             s[get_index(i)] = t[i];
     }
 
    private:
     constexpr std::size_t get_index(std::size_t k) const noexcept {
-        return (k + p) & (SEED_SIZE - 1);
+        return (p + k) & (s.size() - 1);
     }
 
     // XORShift1024Star algorithm implementation
     std::uint64_t rand64() noexcept {
-        constexpr std::uint64_t SEED_MULTIPLIER = 0x106689D45497FDB5ull;
+        static constexpr std::uint64_t SeedMultiplier = 0x106689D45497FDB5ull;
 
-        std::uint64_t s0 = s[p];
-        std::uint64_t s1 = s[p = get_index(1)];
+        auto s0 = s[p];
+        auto s1 = s[p = get_index(1)];
         s1 ^= s1 << 31;
         s[p] = s0 ^ s1 ^ (s0 >> 30) ^ (s1 >> 11);
-        return SEED_MULTIPLIER * s[p];
+        return SeedMultiplier * s[p];
     }
 
-    static constexpr std::size_t SEED_SIZE = 16;
+    static constexpr std::size_t Size = 16;
 
-    std::array<std::uint64_t, SEED_SIZE> s;
-    std::size_t                          p;
+    std::array<std::uint64_t, Size> s;
+    std::size_t                     p;
 };
 
 #if !defined(NDEBUG)

@@ -34,10 +34,9 @@ int main(int argc, const char** argv) noexcept {
 
     //std::locale::global(std::locale(""));
     //std::cout.imbue(std::locale());
+    //std::atexit(atexit_handler);
 
-    std::cout << engine_info() << std::endl;
-
-    std::atexit(atexit_handler);
+    std::cout << engine_info() << '\n';
 
 #if !defined(NDEBUG)
     Debug::init();
@@ -56,7 +55,9 @@ int main(int argc, const char** argv) noexcept {
     return EXIT_SUCCESS;
 }
 
+/*
 // The cleanup function to be called at program exit
 void atexit_handler() noexcept {
     //std::cout << "Thanks !!!\n";
 }
+*/

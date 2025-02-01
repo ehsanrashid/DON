@@ -174,11 +174,11 @@ void Engine::resize_tt(std::size_t ttSize) noexcept {
     tt.resize(ttSize, threads);
 }
 
-void Engine::show() const noexcept { sync_cout << pos << sync_endl; }
+void Engine::show() const noexcept { std::cout << pos << '\n'; }
 
 void Engine::eval() noexcept {
     verify_networks();
-    sync_cout << '\n' << trace(pos, *networks) << sync_endl;
+    std::cout << '\n' << trace(pos, *networks) << '\n';
 }
 
 void Engine::flip() noexcept { pos.flip(); }

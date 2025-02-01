@@ -137,7 +137,7 @@ class Logger final {
 
 }  // namespace
 
-std::mutex SyncCout::mutex;
+//std::mutex SyncCout::mutex;
 
 std::string engine_info(bool uci) noexcept {
     std::ostringstream oss;
