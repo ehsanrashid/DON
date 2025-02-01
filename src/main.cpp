@@ -1,44 +1,62 @@
+/*
+  DON, a UCI chess playing engine derived from Stockfish
+
+  DON is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  DON is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include <cstdlib>
 #include <iostream>
+//#include <locale>
 
-#include "bitbase.h"
 #include "bitboard.h"
-#include "cuckoo.h"
-#include "endgame.h"
-#include "evaluator.h"
-#include "polyglot.h"
-#include "psqtable.h"
-#include "searcher.h"
-#include "thread.h"
-#include "timemanager.h"
-#include "transposition.h"
+#include "misc.h"
+#include "position.h"
+#include "tune.h"
 #include "uci.h"
-#include "zobrist.h"
-#include "helper/commandline.h"
+#include "syzygy/tbprobe.h"
 
-int main(int argc, char const *const argv[]) {
+using namespace DON;
 
-    std::cout << Name << " " << engineInfo() << " by " << Author << '\n';
-    std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency() << '\n';
+void atexit_handler() noexcept;
 
-    // path+name of the executable binary, as given by argv[0]
-    CommandLine::initialize(argv[0]);
-    UCI::initialize();
-    //Tune::initialize();
-    Bitboards::initialize();
-    Bitbases::initialize();
-    PSQT::initialize();
-    Zobrists::initialize();
-    Cuckoos::initialize();
-    EndGame::initialize();
-    Book.initialize(Options["Book File"]);
-    Threadpool.setup(optionThreads());
-    Evaluator::NNUE::initialize();
-    UCI::clear();
+int main(int argc, const char** argv) noexcept {
 
-    UCI::handleCommands(argc, argv);
+    //std::locale::global(std::locale(""));
+    //std::cout.imbue(std::locale());
 
-    Threadpool.setup(0);
+    std::cout << engine_info() << std::endl;
 
-    //std::atexit(clear);
+    std::atexit(atexit_handler);
+
+#if !defined(NDEBUG)
+    Debug::init();
+#endif
+
+    BitBoard::init();
+    Position::init();
+    Tablebases::init();
+
+    UCI uci(argc, argv);
+
+    Tune::init(uci.engine_options());
+
+    uci.handle_commands();
+
     return EXIT_SUCCESS;
+}
+
+// The cleanup function to be called at program exit
+void atexit_handler() noexcept {
+    //std::cout << "Thanks !!!\n";
 }

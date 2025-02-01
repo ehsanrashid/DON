@@ -1,86 +1,94 @@
-#pragma once
+/*
+  DON, a UCI chess playing engine derived from Stockfish
 
-#include <map>
+  DON is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  DON is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef UCI_H_INCLUDED
+#define UCI_H_INCLUDED
+
+#include <cstddef>
+#include <cstdint>
+#include <iosfwd>
 #include <string>
 #include <string_view>
-#include <type_traits>
 
-#include "type.h"
-#include "helper/comparer.h"
+#include "engine.h"
+#include "misc.h"
+#include "types.h"
 
-extern std::string const Name;
-extern std::string const Version;
-extern std::string const Author;
+namespace DON {
 
-extern std::string const engineInfo();
+class Position;
+class Score;
+using LegalMoveList = MoveList<LEGAL>;
 
-extern std::string const compilerInfo();
+class UCI final {
+   public:
+    static constexpr std::string_view StartFEN{
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 
-namespace UCI {
+    UCI(int argc, const char** argv) noexcept;
 
-    /// Option class implements an option as defined by UCI protocol
-    class Option {
+    auto& engine_options() noexcept { return engine.get_options(); }
 
-    public:
+    void handle_commands() noexcept;
 
-        using OnChange = void(*)(Option const&);
+    static void print_info_string(std::string_view infoStr) noexcept;
 
-        Option(OnChange = nullptr) noexcept;
-        Option(bool, OnChange = nullptr) noexcept;
-        Option(std::string_view, OnChange = nullptr) noexcept;
-        Option(double, double, double, OnChange = nullptr) noexcept;
-        Option(std::string_view, std::string_view, OnChange = nullptr) noexcept;
-        //Option(Option const&) = delete;
-        //Option(Option&&) = delete;
+    static int         to_cp(Value v, const Position& pos) noexcept;
+    static std::string to_wdl(Value v, const Position& pos) noexcept;
+    static std::string format_score(const Score& score) noexcept;
 
-        //operator std::string() const;
-        operator std::string_view() const noexcept;
-        operator     bool() const noexcept;
-        operator  int16_t() const noexcept;
-        operator uint16_t() const noexcept;
-        operator  int32_t() const noexcept;
-        operator uint32_t() const noexcept;
-        operator  int64_t() const noexcept;
-        operator uint64_t() const noexcept;
-        operator   double() const noexcept;
+    static char  piece(PieceType pt) noexcept;
+    static char  piece(Piece pc) noexcept;
+    static Piece piece(char pc) noexcept;
 
-        bool operator==(std::string_view) const;
+    static std::string piece_figure(Piece pc) noexcept;
 
-        Option& operator=(std::string_view);
+    static char file(File f, bool upper = false) noexcept;
+    static char rank(Rank r) noexcept;
 
-        void operator<<(Option const&) noexcept;
+    static std::string square(Square s) noexcept;
 
-        const std::string& defaultValue() const noexcept;
-        std::string toString() const noexcept;
+    static std::string move_to_can(const Move& m) noexcept;
 
-        uint32_t    index{ 0 };
+    static Move can_to_move(std::string can, const LegalMoveList&) noexcept;
+    static Move can_to_move(const std::string& can, const Position& pos) noexcept;
 
-    private:
+    static std::string move_to_san(const Move& m, Position& pos) noexcept;
 
-        std::string type,
-                    defaultVal,
-                    currentVal;
-        double  minVal{ 0.0 },
-                maxVal{ 0.0 };
+    static Move san_to_move(std::string san, Position& pos, const LegalMoveList&) noexcept;
+    static Move san_to_move(const std::string&, Position& pos) noexcept;
 
-        OnChange onChange;
-    };
+    static Move mix_to_move(const std::string& mix, Position& pos, const LegalMoveList&) noexcept;
 
+    static bool infoStringStop;
 
-    /// Options container is std::map of string & Option
-    using OptionMap = std::map<std::string, Option, CaseInsensitiveLessComparer>;
+   private:
+    void init_update_listeners() noexcept;
 
-    extern void initialize() noexcept;
+    void position(std::istringstream& iss) noexcept;
+    void go(std::istringstream& iss) noexcept;
+    void set_option(std::istringstream& iss) noexcept;
+    void bench(std::istringstream& iss) noexcept;
+    void benchmark(std::istringstream& iss) noexcept;
 
-    extern void handleCommands(int, char const *const[]);
+    Engine      engine;
+    CommandLine commandLine;
+};
 
-    extern void clear() noexcept;
-}
+}  // namespace DON
 
-extern std::ostream &operator<<(std::ostream &, UCI::Option const &);
-extern std::ostream &operator<<(std::ostream &, UCI::OptionMap const &);
-
-// Global nocase mapping of Options
-extern UCI::OptionMap Options;
-
-extern uint16_t optionThreads();
+#endif  // #ifndef UCI_H_INCLUDED

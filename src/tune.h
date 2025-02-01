@@ -1,95 +1,93 @@
-#pragma once
+/*
+  DON, a UCI chess playing engine derived from Stockfish
 
+  DON is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  DON is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef TUNE_H_INCLUDED
+#define TUNE_H_INCLUDED
+
+#include <cstddef>
 #include <memory>
 #include <string>
-#include <type_traits>
+#include <type_traits>  // IWYU pragma: keep
+#include <utility>
 #include <vector>
 
-typedef std::pair<int, int> Range; // Option's min-max values
-typedef Range(RangeFun) (int);
+#include "ucioption.h"
+
+namespace DON {
+
+using Range    = std::pair<int, int>;  // Option's min-max values
+using RangeFun = Range(int);
+
+struct RangeSetter final {
+   public:
+    explicit RangeSetter(RangeFun f) noexcept :
+        rangeFun(f) {}
+    RangeSetter(int min, int max) noexcept :
+        rangeFun(nullptr),
+        range(min, max) {}
+
+    Range operator()(int v) const noexcept { return rangeFun != nullptr ? rangeFun(v) : range; }
+
+    RangeFun* rangeFun;
+    Range     range;
+};
 
 // Default Range function, to calculate Option's min-max values
-inline Range defaultRange(int v) noexcept {
-    return v > 0 ? Range(0, 2 * v) : Range(2 * v, 0);
-}
+inline Range default_range(int v) noexcept { return v > 0 ? Range(0, 2 * v) : Range(2 * v, 0); }
 
-struct SetRange {
-
-    explicit SetRange(RangeFun f) noexcept :
-        fun(f) {
-    }
-
-    SetRange(int min, int max) noexcept :
-        fun(nullptr),
-        range(min, max) {
-    }
-
-    Range operator()(int v) const noexcept { return fun ? fun(v) : range; }
-
-    RangeFun *fun;
-    Range range;
-};
-
-#define SetDefaultRange SetRange(defaultRange)
+#define SetDefaultRange RangeSetter(default_range)
 
 
-/// BoolConditions struct is used to tune boolean conditions in the
-/// code by toggling them on/off according to a probability that
-/// depends on the value of a tuned integer parameter: for high
-/// values of the parameter condition is always disabled, for low
-/// values is always enabled, otherwise it is enabled with a given
-/// probability that depnends on the parameter under tuning.
+// Tune class implements the 'magic' code that makes the setup of a fishtest tuning
+// session as easy as it can be. Mainly you have just to remove const qualifiers
+// from the variables you want to tune and flag them for tuning, so if you have:
+//
+//   const Value myValue[][2] = { { V(100), V(20) }, { V(7), V(78) } };
+//
+// If you have a my_post_update() function to run after values have been updated,
+// and a my_range() function to set custom Option's min-max values, then you just
+// remove the 'const' qualifiers and write somewhere below in the file:
+//
+//   TUNE(RangeSetter(my_range), myValue, my_post_update);
+//
+// You can also set the range directly, and restore the default at the end
+//
+//   TUNE(RangeSetter(-100, 100), myValue, SetDefaultRange);
+//
+// In case update function is slow and you have many parameters, you can add:
+//
+//   ON_LAST_UPDATE();
+//
+// And the values update, including post update function call, will be done only
+// once, after the engine receives the last UCI option, that is the one defined
+// and created as the last one, so the GUI should send the options in the same
+// order in which have been defined.
 
-struct BoolConditions {
+class Tune final {
+   private:
+    using PostUpdate = void();  // Post-update function
 
-    void init(size_t size) { values.resize(size, defaultValue), binary.resize(size, 0); }
-    void set() noexcept;
+    Tune() noexcept { read_results(); }
+    Tune(const Tune&) noexcept            = delete;
+    Tune(Tune&&) noexcept                 = delete;
+    Tune& operator=(const Tune&) noexcept = delete;
+    Tune& operator=(Tune&&) noexcept      = delete;
 
-    std::vector<int> binary, values;
-    int defaultValue = 465, variance = 40, threshold = 500;
-    SetRange range = SetRange(0, 1000);
-};
-
-extern BoolConditions Conditions;
-
-inline void setConditions() noexcept { Conditions.set(); }
-
-
-/// Tune class implements the 'magic' code that makes the setup of a fishtest
-/// tuning session as easy as it can be. Mainly you have just to remove const
-/// qualifiers from the variables you want to tune and flag them for tuning, so
-/// if you have:
-///
-///   const Score myScore = S(10, 15);
-///   const Value myValue[][2] = { { V(100), V(20) }, { V(7), V(78) } };
-///
-/// If you have a my_post_update() function to run after values have been updated,
-/// and a my_range() function to set custom Option's min-max values, then you just
-/// remove the 'const' qualifiers and write somewhere below in the file:
-///
-///   TUNE(SetRange(my_range), myScore, myValue, my_post_update);
-///
-/// You can also set the range directly, and restore the default at the end
-///
-///   TUNE(SetRange(-100, 100), myScore, SetDefaultRange);
-///
-/// In case update function is slow and you have many parameters, you can add:
-///
-///   UPDATE_ON_LAST();
-///
-/// And the values update, including post update function call, will be done only
-/// once, after the engine receives the last UCI option, that is the one defined
-/// and created as the last one, so the GUI should send the options in the same
-/// order in which have been defined.
-class Tune {
-
-    typedef void (PostUpdate)(); // Post-update function
-
-    Tune() noexcept { readResults(); }
-    Tune(Tune const&) = delete;
-    void operator=(Tune const &) = delete;
-
-    void readResults() noexcept;
+    void read_results() noexcept;
 
     // Singleton
     static Tune& instance() noexcept {
@@ -97,104 +95,112 @@ class Tune {
         return tune;
     }
 
-    // Use polymorphism to accomodate Entry of different types in the same vector
+    // Use polymorphism to accommodate Entry of different types in the same vector
     struct EntryBase {
+       public:
         virtual ~EntryBase() = default;
-        virtual void initOption() noexcept = 0;
-        virtual void readOption() noexcept = 0;
+
+        virtual void init_option() noexcept = 0;
+        virtual void read_option() noexcept = 0;
     };
 
     template<typename T>
-    struct Entry :
-        public EntryBase {
+    struct Entry final: public EntryBase {
+       public:
+        static_assert(!std::is_const_v<T>, "Parameter cannot be const!");
+        static_assert(std::is_same_v<T, int> || std::is_same_v<T, PostUpdate>,
+                      "Parameter type not supported!");
 
-        static_assert(!std::is_const<T>::value, "Parameter cannot be const!");
+        Entry(const std::string& n, T& v, const RangeSetter& r) noexcept :
+            name(n),
+            value(v),
+            range(r) {}
 
-        static_assert(std::is_same<T, int>::value
-            || std::is_same<T, Value>::value
-            || std::is_same<T, Score>::value
-            || std::is_same<T, PostUpdate>::value, "Parameter type not supported!");
+        // Because 'value' is a reference
+        Entry(const Entry&) noexcept            = delete;
+        Entry(Entry&&) noexcept                 = delete;
+        Entry& operator=(const Entry&) noexcept = delete;
+        Entry& operator=(Entry&&) noexcept      = delete;
 
-        Entry(const std::string &n, T &v, const SetRange &r) : name(n), value(v), range(r) {}
-        void operator=(const Entry &) = delete; // Because 'value' is a reference
-        void initOption() noexcept override;
-        void readOption() noexcept override;
+        void init_option() noexcept override;
+        void read_option() noexcept override;
 
         std::string name;
-        T &value;
-        SetRange range;
+        T&          value;
+        RangeSetter range;
     };
 
-    // Our facilty to fill the container, each Entry corresponds to a parameter to tune.
-    // We use variadic templates to deal with an unspecified number of entries, each one
-    // of a possible different type.
-    static std::string next(std::string &names, bool pop = true);
+    // Our facility to fill the container, each Entry corresponds to a parameter
+    // to tune. Use variadic templates to deal with an unspecified number of
+    // entries, each one of a possible different type.
+    static std::string next(std::string& names, bool pop = true) noexcept;
 
-    int add(const SetRange&, std::string&&) noexcept { return 0; }
+    static void make_option(Options*           optionsPtr,
+                            const std::string& name,
+                            int                value,
+                            const RangeSetter& range) noexcept;
+
+    int add(const RangeSetter&, std::string&&) noexcept { return 0; }
 
     template<typename T, typename... Args>
-    int add(const SetRange &range, std::string &&names, T &value, Args&&... args) {
-        list.push_back(std::unique_ptr<EntryBase>(new Entry<T>(next(names), value, range)));
+    int add(const RangeSetter& range, std::string&& names, T& value, Args&&... args) noexcept {
+        entries.push_back(std::make_unique<Entry<T>>(next(names), value, range));
         return add(range, std::move(names), args...);
     }
 
     // Template specialization for arrays: recursively handle multi-dimensional arrays
-    template<typename T, size_t N, typename... Args>
-    int add(const SetRange &range, std::string &&names, T(&value)[N], Args&&... args) {
-        for (size_t i = 0; i < N; ++i) {
+    template<typename T, std::size_t N, typename... Args>
+    int add(const RangeSetter& range, std::string&& names, T (&value)[N], Args&&... args) noexcept {
+        for (std::size_t i = 0; i < N; ++i)
             add(range, next(names, i == N - 1) + "[" + std::to_string(i) + "]", value[i]);
-        }
         return add(range, std::move(names), args...);
     }
 
-    // Template specialization for SetRange
+    // Template specialization for RangeSetter
     template<typename... Args>
-    int add(const SetRange &, std::string &&names, SetRange &value, Args&&... args) {
+    int add(const RangeSetter&, std::string&& names, RangeSetter& value, Args&&... args) noexcept {
         return add(value, (next(names), std::move(names)), args...);
     }
 
-    // Template specialization for BoolConditions
+    std::vector<std::unique_ptr<EntryBase>> entries;
+
+   public:
     template<typename... Args>
-    int add(const SetRange &range, std::string &&names, BoolConditions &cond, Args&&... args) {
-        for (size_t size = cond.values.size(), i = 0; i < size; ++i) {
-            add(cond.range, next(names, i == size - 1) + "_" + std::to_string(i), cond.values[i]);
-        }
-        return add(range, std::move(names), args...);
+    static int add(const std::string& names, Args&&... args) noexcept {
+        // Remove trailing parenthesis
+        return instance().add(SetDefaultRange, names.substr(1, names.size() - 2), args...);
     }
 
-    std::vector<std::unique_ptr<EntryBase>> list;
+    // Deferred, due to UCI::engine_options() access
+    static void init(Options& options) noexcept {
+        OptionsPtr = &options;
 
-public:
+        for (auto& entry : instance().entries)
+            entry->init_option();
 
-    template<typename... Args>
-    static int add(const std::string &names, Args&&... args) {
-        return instance().add(SetDefaultRange, names.substr(1, names.size() - 2), args...); // Remove trailing parenthesis
+        read_options();
     }
 
-    static void initialize() { // Deferred, due to UCI::Options access
-        for (auto &e : instance().list) {
-            e->initOption();
-            readOptions();
-        }
+    static void read_options() noexcept {
+        for (auto& entry : instance().entries)
+            entry->read_option();
     }
-    static void readOptions() noexcept {
-        for (auto &e : instance().list) {
-            e->readOption();
-        }
-    }
-    static bool updateOnLast;
+
+    static bool     OnLastUpdate;
+    static Options* OptionsPtr;
 };
 
-// Some macro magic :-) we define a dummy int variable that compiler initializes calling Tune::add()
-#define XSTRING(x)      #x
-#define UNIQUE2(x, y)   x ## y
-#define UNIQUE(x, y)    UNIQUE2(x, y) // Two indirection levels to expand __LINE__
-#define TUNE(...)       int UNIQUE(p, __LINE__) = Tune::add(XSTRING((__VA_ARGS__)), __VA_ARGS__)
+// Some macro magic :-) define a dummy int variable that the compiler initializes calling Tune::add()
+#if !defined(STRINGIFY)
+    #define STRING_LITERAL(x) #x
+    #define STRINGIFY(x) STRING_LITERAL(x)
+#endif
+#define UNIQUE2(x, y) x##y
+#define UNIQUE(x, y) UNIQUE2(x, y)  // Two indirection levels to expand __LINE__
+#define TUNE(...) int UNIQUE(p, __LINE__) = Tune::add(STRINGIFY((__VA_ARGS__)), __VA_ARGS__)
 
-#define UPDATE_ON_LAST() bool UNIQUE(p, __LINE__) = Tune::updateOnLast = true
+#define ON_LAST_UPDATE() bool UNIQUE(p, __LINE__) = Tune::OnLastUpdate = true
 
-// Some macro to tune toggling of boolean conditions
-#define CONDITION(x) (Conditions.binary[__COUNTER__] || (x))
-#define TUNE_CONDITIONS() int UNIQUE(c, __LINE__) = (Conditions.init(__COUNTER__), 0); \
-                          TUNE(Conditions, setConditions)
+}  // namespace DON
 
+#endif  // #ifndef TUNE_H_INCLUDED

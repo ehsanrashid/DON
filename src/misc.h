@@ -1,0 +1,615 @@
+/*
+  DON, a UCI chess playing engine derived from Stockfish
+
+  DON is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  DON is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef MISC_H_INCLUDED
+#define MISC_H_INCLUDED
+
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cctype>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <iomanip>
+#include <iostream>
+#include <limits>
+#include <optional>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <type_traits>  // for std::common_type and std::is_arithmetic
+#include <vector>
+
+#if defined(USE_PREFETCH)
+    #if defined(_MSC_VER)
+        #include <xmmintrin.h>  // Microsoft header for _mm_prefetch()
+    #else
+        //#include <xmmintrin.h>
+    #endif
+#endif
+
+#if !defined(STRINGIFY)
+    #define STRING_LITERAL(x) #x
+    #define STRINGIFY(x) STRING_LITERAL(x)
+#endif
+
+//#if defined(__clang__)
+//    #define FORCE_INLINE [[gnu::always_inline]] [[gnu::gnu_inline]]
+//
+//#elif defined(__GNUC__)
+//    #define FORCE_INLINE [[gnu::always_inline]]
+//
+//#elif defined(_MSC_VER)
+//    #pragma warning(error: 4714)
+//    #define FORCE_INLINE __forceinline
+//
+//#endif
+
+namespace DON {
+
+std::string engine_info(bool uci = false) noexcept;
+std::string version_info() noexcept;
+std::string compiler_info() noexcept;
+
+// inline void trace(const char* func, const char* file, int line) {
+//     std::cerr << "Function: " << func  //
+//               << ", file: " << file    //
+//               << ", line: " << line << '\n';
+// }
+//
+// #define TRACE() trace(__FUNCTION__, __FILE__, __LINE__)
+
+enum OutState : std::uint8_t {
+    OUT_LOCK,
+    OUT_UNLOCK
+};
+
+std::ostream& operator<<(std::ostream& os, OutState out) noexcept;
+
+#define sync_cout std::cout << OUT_LOCK
+#define sync_endl std::endl << OUT_UNLOCK
+#define sync_end OUT_UNLOCK
+
+/*
+namespace Internal {
+// Recursive template to define multi-dimensional std::array
+template<typename T, std::size_t Size, std::size_t... Sizes>
+struct MArrayTypdef final {
+    using Type = std::array<typename MArrayTypdef<T, Sizes...>::Type, Size>;
+};
+// Base case: single-dimensional array
+template<typename T, std::size_t Size>
+struct MArrayTypdef<T, Size> final {
+    using Type = std::array<T, Size>;
+};
+}  // namespace Internal
+
+// Alias template for convenience
+template<typename T, std::size_t Size, std::size_t... Sizes>
+using MArray = typename Internal::MArrayTypdef<T, Size, Sizes...>::Type;
+*/
+
+template<typename T, std::size_t Size, std::size_t... Sizes>
+class MultiArray;
+
+namespace Internal {
+template<typename T, std::size_t Size, std::size_t... Sizes>
+struct MultiArrayTypedef;
+
+// Recursive template to define multi-dimensional MultiArray
+template<typename T, std::size_t Size, std::size_t... Sizes>
+struct MultiArrayTypedef final {
+    using Type = MultiArray<T, Sizes...>;
+};
+// Base case: single-dimensional MultiArray
+template<typename T, std::size_t Size>
+struct MultiArrayTypedef<T, Size> final {
+    using Type = T;
+};
+}  // namespace Internal
+
+// MultiArray is a generic N-dimensional array.
+// The first template parameter T is the base type of the MultiArray
+// The template parameters (Size and Sizes) encode the dimensions of the array.
+template<typename T, std::size_t Size, std::size_t... Sizes>
+class MultiArray final {
+   public:
+    using Array = std::array<typename Internal::MultiArrayTypedef<T, Size, Sizes...>::Type, Size>;
+
+    using value_type             = typename Array::value_type;
+    using size_type              = typename Array::size_type;
+    using difference_type        = typename Array::difference_type;
+    using reference              = typename Array::reference;
+    using const_reference        = typename Array::const_reference;
+    using pointer                = typename Array::pointer;
+    using const_pointer          = typename Array::const_pointer;
+    using iterator               = typename Array::iterator;
+    using const_iterator         = typename Array::const_iterator;
+    using reverse_iterator       = typename Array::reverse_iterator;
+    using const_reverse_iterator = typename Array::const_reverse_iterator;
+
+    constexpr auto begin() const noexcept { return array.begin(); }
+    constexpr auto end() const noexcept { return array.end(); }
+    constexpr auto begin() noexcept { return array.begin(); }
+    constexpr auto end() noexcept { return array.end(); }
+
+    constexpr auto cbegin() const noexcept { return array.cbegin(); }
+    constexpr auto cend() const noexcept { return array.cend(); }
+
+    constexpr auto rbegin() const noexcept { return array.rbegin(); }
+    constexpr auto rend() const noexcept { return array.rend(); }
+    constexpr auto rbegin() noexcept { return array.rbegin(); }
+    constexpr auto rend() noexcept { return array.rend(); }
+
+    constexpr auto crbegin() const noexcept { return array.crbegin(); }
+    constexpr auto crend() const noexcept { return array.crend(); }
+
+    constexpr auto&       front() noexcept { return array.front(); }
+    constexpr const auto& front() const noexcept { return array.front(); }
+    constexpr auto&       back() noexcept { return array.back(); }
+    constexpr const auto& back() const noexcept { return array.back(); }
+
+    auto*       data() { return array.data(); }
+    const auto* data() const { return array.data(); }
+
+    constexpr auto max_size() const noexcept { return array.max_size(); }
+
+    constexpr auto size() const noexcept { return array.size(); }
+    constexpr auto empty() const noexcept { return array.empty(); }
+
+    constexpr const auto& at(size_type idx) const noexcept { return array.at(idx); }
+    constexpr auto&       at(size_type idx) noexcept { return array.at(idx); }
+
+    constexpr auto& operator[](size_type idx) const noexcept { return array[idx]; }
+    constexpr auto& operator[](size_type idx) noexcept { return array[idx]; }
+
+    constexpr void swap(MultiArray<T, Size, Sizes...>& multiArray) noexcept {
+        array.swap(multiArray.array);
+    }
+
+    // Recursively fill all dimensions by calling the sub fill method
+    template<typename U>
+    void fill(U v) noexcept {
+        static_assert(std::is_assignable_v<T, U>, "Cannot assign fill value to entry type");
+
+        for (auto& entry : *this)
+        {
+            if constexpr (sizeof...(Sizes) == 0)
+                entry = v;
+            else
+                entry.fill(v);
+        }
+    }
+
+    /*
+    void print() const noexcept {
+        std::cout << Size << ':' << sizeof...(Sizes) << '\n';
+        for (auto& entry : *this)
+        {
+            if constexpr (sizeof...(Sizes) == 0)
+                std::cout << entry << ' ';
+            else
+                entry.print();
+        }
+        std::cout << '\n';
+    }
+    */
+
+   private:
+    Array array;
+};
+
+template<typename T>
+constexpr int sign(T x) noexcept {
+    static_assert(std::is_arithmetic_v<T>, "Argument must be an arithmetic type");
+    return (T(0) < x) - (x < T(0));  // Returns 1 for positive, -1 for negative, and 0 for zero
+}
+
+template<typename T>
+constexpr auto sqr(T x) noexcept {
+    static_assert(std::is_arithmetic_v<T>, "Argument must be an arithmetic type");
+    return x * x;
+}
+
+template<typename T>
+constexpr auto sign_sqr(T x) noexcept {
+    static_assert(std::is_arithmetic_v<T>, "Argument must be an arithmetic type");
+    return sign(x) * sqr(x);
+}
+
+// True if and only if the binary is compiled on a little-endian machine
+constexpr inline std::uint16_t LittleEndian   = 1;
+static inline const bool       IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndian) == 1;
+
+constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
+#if defined(IS_64BIT) && defined(__GNUC__)
+    __extension__ using uint128_t = unsigned __int128;
+    return (uint128_t(u1) * uint128_t(u2)) >> 64;
+#else
+    std::uint64_t u1L = std::uint32_t(u1), u1H = u1 >> 32;
+    std::uint64_t u2L = std::uint32_t(u2), u2H = u2 >> 32;
+    std::uint64_t vM = u1H * u2L + ((u1L * u2L) >> 32);  // vL
+    std::uint64_t vH = u1L * u2H + std::uint32_t(vM);
+    return u1H * u2H + (vH >> 32) + (vM >> 32);
+#endif
+}
+
+#if defined(USE_PREFETCH)
+    #if defined(_MSC_VER)
+inline void prefetch(const void* const addr, int locality = _MM_HINT_T0, bool = false) noexcept {
+    // locality-Hint       IA32/AMD         iMC
+    //_MM_HINT_T0  :      prefetcht0     vprefetch0
+    //_MM_HINT_T1  :      prefetcht1     vprefetch1
+    //_MM_HINT_T2  :      prefetcht2     vprefetch2
+    //_MM_HINT_NTA :      prefetchnta    vprefetchnta
+    //_MM_HINT_ENTA:           -         vprefetchenta
+    //_MM_HINT_ET0 :           -         vprefetchet0
+    //_MM_HINT_ET1 :      prefetchwt1    vprefetchet1
+    //_MM_HINT_ET2 :           -         vprefetchet2
+    _mm_prefetch(reinterpret_cast<const char*>(addr), locality);
+}
+    #else
+constexpr void prefetch(const void* const addr, int locality = 3, bool rw = false) noexcept {
+    // locality:
+    // 0: None, the data can be removed from the cache after the access.
+    // 1: Low, L3 cache, leave the data in the L3 cache level after the access.
+    // 2: Moderate, L2 cache, leave the data in L2 and L3 cache levels after the access.
+    // 3: High, L1 cache, leave the data in the L1, L2, and L3 cache levels after the access. (default)
+    //
+    // rw:
+    // 0: prepare the prefetch for a read from the memory. (default)
+    // 1: prepare the prefetch for a write to the memory.
+    __builtin_prefetch(addr, rw, locality);
+}
+    #endif
+#else
+constexpr void prefetch(const void* const, int = 0, bool = false) noexcept {}
+#endif
+
+using SystemClock  = std::chrono::system_clock;
+using SteadyClock  = std::chrono::steady_clock;
+using MilliSeconds = std::chrono::milliseconds;
+using MicroSeconds = std::chrono::microseconds;
+
+using TimePoint = MilliSeconds::rep;  // A value in milliseconds
+static_assert(sizeof(TimePoint) == sizeof(std::int64_t), "TimePoint should be 64 bits");
+inline TimePoint now() noexcept {
+    return std::chrono::duration_cast<MilliSeconds>(SteadyClock::now().time_since_epoch()).count();
+}
+
+std::string format_time(std::chrono::time_point<SystemClock> timePoint);
+
+void start_logger(const std::string& logFile) noexcept;
+
+// XORShift64Star Pseudo-Random Number Generator
+// This class is based on original code written and dedicated
+// to the public domain by Sebastiano Vigna (2014).
+// It has the following characteristics:
+//
+//  -  Outputs 64-bit numbers
+//  -  Passes Dieharder and SmallCrush test batteries
+//  -  Does not require warm-up, no zeroland to escape
+//  -  Internal state is a single 64-bit integer
+//  -  Period is 2^64 - 1
+//  -  Speed: 1.60 ns/call (Core i7 @3.40GHz)
+//
+// For further analysis see
+//   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
+class PRNG final {
+   public:
+    explicit PRNG(std::uint64_t seed) noexcept :
+        s(seed) {
+        assert(seed);
+    }
+
+    template<typename T>
+    T rand() noexcept {
+        return T(rand64());
+    }
+
+    // Special generator used to fast init magic numbers.
+    // Output values only have 1/8th of their bits set on average.
+    template<typename T>
+    T sparse_rand() noexcept {
+        return T(rand64() & rand64() & rand64());
+    }
+
+    // Jump function for the XORShift64Star PRNG
+    void jump() noexcept {
+        constexpr std::uint64_t JUMP_MASK = 0x9E3779B97F4A7C15ull;
+
+        std::uint64_t t    = 0;
+        std::uint64_t mask = 1;
+        while (mask)
+        {
+            if (JUMP_MASK & mask)
+                t ^= s;
+            rand64();
+            mask <<= 1;
+        }
+        s = t;
+    }
+
+   private:
+    // XORShift64Star algorithm implementation
+    std::uint64_t rand64() noexcept {
+        constexpr std::uint64_t SEED_MULTIPLIER = 0x2545F4914F6CDD1Dull;
+
+        s ^= s >> 12, s ^= s << 25, s ^= s >> 27;
+        return SEED_MULTIPLIER * s;
+    }
+
+    std::uint64_t s;
+};
+
+// XORShift1024Star Pseudo-Random Number Generator
+class PRNG1024 final {
+   public:
+    explicit PRNG1024(std::uint64_t seed) noexcept :
+        p(0) {
+        constexpr std::uint64_t SEED_OFFSET     = 0x9857FB32C9EFB5E4ull;
+        constexpr std::uint64_t SEED_MULTIPLIER = 0x2545F4914F6CDD1Dull;
+        assert(seed);
+
+        for (std::size_t i = 0; i < SEED_SIZE; ++i)
+            s[i] = seed = SEED_OFFSET + SEED_MULTIPLIER * seed;
+    }
+
+    template<typename T>
+    T rand() noexcept {
+        return T(rand64());
+    }
+
+    // Special generator used to fast init magic numbers.
+    // Output values only have 1/8th of their bits set on average.
+    template<typename T>
+    T sparse_rand() noexcept {
+        return T(rand64() & rand64() & rand64());
+    }
+
+    // Jump function for the XORShift1024Star PRNG
+    void jump() noexcept {
+        constexpr std::array<std::uint64_t, SEED_SIZE> JUMP_MASK{
+          // clang-format off
+          0x84242F96ECA9C41Dull, 0xA3C65B8776F96855ull, 0x5B34A39F070B5837ull, 0x4489AFFCE4F31A1Eull,
+          0x2FFEEB0A48316F40ull, 0xDC2D9891FE68C022ull, 0x3659132BB12FEA70ull, 0xAAC17D8EFA43CAB8ull,
+          0xC4CB815590989B13ull, 0x5EE975283D71C93Bull, 0x691548C86C1BD540ull, 0x7910C41D10A1E6A5ull,
+          0x0B5FC64563B3E2A8ull, 0x047F7684E9FC949Dull, 0xB99181F2D8F685CAull, 0x284600E3F30E38C3ull
+          // clang-format on
+        };
+
+        std::array<std::uint64_t, SEED_SIZE> t{};
+        for (std::size_t i = 0; i < SEED_SIZE; ++i)
+        {
+            std::uint64_t mask = 1;
+            while (mask)
+            {
+                if (JUMP_MASK[i] & mask)
+                    for (std::size_t j = 0; j < SEED_SIZE; ++j)
+                        t[j] ^= s[get_index(j)];
+                rand64();
+                mask <<= 1;
+            }
+        }
+        for (std::size_t i = 0; i < SEED_SIZE; ++i)
+            s[get_index(i)] = t[i];
+    }
+
+   private:
+    constexpr std::size_t get_index(std::size_t k) const noexcept {
+        return (k + p) & (SEED_SIZE - 1);
+    }
+
+    // XORShift1024Star algorithm implementation
+    std::uint64_t rand64() noexcept {
+        constexpr std::uint64_t SEED_MULTIPLIER = 0x106689D45497FDB5ull;
+
+        std::uint64_t s0 = s[p];
+        std::uint64_t s1 = s[p = get_index(1)];
+        s1 ^= s1 << 31;
+        s[p] = s0 ^ s1 ^ (s0 >> 30) ^ (s1 >> 11);
+        return SEED_MULTIPLIER * s[p];
+    }
+
+    static constexpr std::size_t SEED_SIZE = 16;
+
+    std::array<std::uint64_t, SEED_SIZE> s;
+    std::size_t                          p;
+};
+
+#if !defined(NDEBUG)
+namespace Debug {
+
+void init() noexcept;
+
+void hit_on(bool cond, std::size_t slot = 0) noexcept;
+void min_of(std::int64_t value, std::size_t slot = 0) noexcept;
+void max_of(std::int64_t value, std::size_t slot = 0) noexcept;
+void extreme_of(std::int64_t value, std::size_t slot = 0) noexcept;
+void mean_of(std::int64_t value, std::size_t slot = 0) noexcept;
+void stdev_of(std::int64_t value, std::size_t slot = 0) noexcept;
+void correl_of(std::int64_t value1, std::int64_t value2, std::size_t slot = 0) noexcept;
+
+void print() noexcept;
+}  // namespace Debug
+#endif
+
+struct CommandLine final {
+   public:
+    CommandLine(int ac, const char** av) noexcept :
+        argc(ac),
+        argv(av) {}
+
+    static std::string get_binary_directory(const std::string& path) noexcept;
+    static std::string get_working_directory() noexcept;
+
+    int          argc;
+    const char** argv;
+};
+
+
+constexpr char digit_to_char(int digit) noexcept {
+    assert(0 <= digit && digit <= 9);
+    return '0' + digit;
+}
+constexpr int char_to_digit(char ch) noexcept {
+    assert(std::isdigit(ch));
+    return ch - '0';
+}
+
+constexpr inline std::string_view EMPTY_STRING{"<empty>"};
+
+inline std::string lower_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(), [](char ch) noexcept {
+        if (std::isupper(ch))
+            return char(std::tolower(ch));
+        return ch;
+    });
+    return str;
+}
+
+inline std::string upper_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(), [](char ch) noexcept {
+        if (std::islower(ch))
+            return char(std::toupper(ch));
+        return ch;
+    });
+    return str;
+}
+
+inline std::string toggle_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(), [](char ch) noexcept {
+        if (std::islower(ch))
+            return char(std::toupper(ch));
+        if (std::isupper(ch))
+            return char(std::tolower(ch));
+        return ch;
+    });
+    return str;
+}
+
+inline bool starts_with(std::string_view str, std::string_view prefix) noexcept {
+    //return str.starts_with(prefix);  // C++20
+    return str.size() >= prefix.size()
+        //&& strncmp(str.c_str(), prefix.c_str(), prefix.size()) == 0;
+        //&& str.substr(0, prefix.size()) == prefix;
+        //&& std::mismatch(prefix.begin(), prefix.end(), str.begin()).first == prefix.end();
+        //&& std::equal(prefix.begin(), prefix.end(), str.begin());
+        //&& str.rfind(prefix, 0) == 0;
+        //&& str.find(prefix) == 0;
+        && str.compare(0, prefix.size(), prefix) == 0;
+}
+
+inline bool ends_with(std::string_view str, std::string_view suffix) noexcept {
+    //return str.ends_with(suffix);  // C++20
+    return str.size() >= suffix.size()
+        //&& strncmp(str.c_str() + str.size() - suffix.size(), suffix.c_str(), suffix.size()) == 0;
+        //&& str.substr(str.size() - suffix.size(), suffix.size()) == suffix;
+        //&& std::equal(suffix.rbegin(), suffix.rend(), str.rbegin());
+        //&& str.find(suffix, str.size() - suffix.size()) == (str.size() - suffix.size());
+        //&& str.rfind(suffix) == (str.size() - suffix.size());
+        && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+inline bool is_whitespace(std::string_view str) noexcept {
+    return str.empty()
+        || std::all_of(str.begin(), str.end(), [](char ch) { return std::isspace(ch); });
+}
+
+inline bool is_empty(std::string_view str) noexcept {
+    return is_whitespace(str) || lower_case(std::string(str)) == EMPTY_STRING;
+}
+
+inline void remove_whitespace(std::string& str) noexcept {
+    str.erase(  //
+      std::remove_if(str.begin(), str.end(), [](char ch) { return std::isspace(ch); }), str.end());
+}
+
+inline void trim_leading_whitespace(std::string& str) noexcept {
+    str.erase(  //
+      str.begin(), std::find_if(str.begin(), str.end(), [](char ch) { return !std::isspace(ch); }));
+}
+
+inline void trim_trailing_whitespace(std::string& str) noexcept {
+    str.erase(  //
+      std::find_if(str.rbegin(), str.rend(), [](char ch) { return !std::isspace(ch); }).base(),
+      str.end());
+}
+
+inline bool is_bool(std::string& str) noexcept {
+    auto s = lower_case(str);
+    if (s == "true" || s == "false")
+        return str = s, true;
+    return false;
+}
+
+inline std::string bool_to_string(bool b) noexcept {
+    std::ostringstream oss;
+    oss << std::boolalpha << b;
+    return oss.str();
+}
+
+inline bool string_to_bool(const std::string& str) noexcept {
+    bool b = false;
+
+    std::istringstream iss(lower_case(str));
+    iss >> std::boolalpha >> b;
+    return b;
+}
+
+inline std::string u64_to_string(std::uint64_t u64) noexcept {
+    std::ostringstream oss;
+    oss << std::setw(16) << std::hex << std::uppercase << std::setfill('0') << u64;
+    return oss.str();
+}
+
+inline std::vector<std::string_view> split(std::string_view str,
+                                           std::string_view delimiter) noexcept {
+    std::vector<std::string_view> parts;
+
+    if (str.empty())
+        return parts;
+
+    std::size_t beg = 0;
+    while (true)
+    {
+        std::size_t end = str.find(delimiter, beg);
+        if (end == std::string::npos)
+            break;
+
+        parts.emplace_back(str.substr(beg, end - beg));
+        beg = end + delimiter.size();
+    }
+    parts.emplace_back(str.substr(beg));
+
+    return parts;
+}
+
+std::size_t str_to_size_t(const std::string& str) noexcept;
+
+std::streamsize get_file_size(std::ifstream& ifstream) noexcept;
+
+// Reads the file as bytes.
+// Returns std::nullopt if the file does not exist.
+std::optional<std::string> read_file_to_string(const std::string& filePath) noexcept;
+
+}  // namespace DON
+
+#endif  // #ifndef MISC_H_INCLUDED

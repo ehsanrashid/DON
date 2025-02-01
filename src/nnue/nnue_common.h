@@ -1,130 +1,278 @@
-#pragma once
+/*
+  DON, a UCI chess playing engine derived from Stockfish
+
+  DON is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  DON is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 // Constants used in NNUE evaluation function
 
-#include <cstring> // For memcpy()
+#ifndef NNUE_COMMON_H_INCLUDED
+#define NNUE_COMMON_H_INCLUDED
+
+#include <algorithm>
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <iostream>
+#include <type_traits>
 
-#include "../type.h"
+#include "../misc.h"
+#include "../types.h"
 
-
-//#if defined(USE_AVX512)
-//    #include <zmmintrin.h>
-//#endif
 #if defined(USE_AVX2)
     #include <immintrin.h>
-#elif defined(USE_AES)
-    #include <wmmintrin.h>
-#elif defined(USE_SSE4A)
-    #include <ammintrin.h>
-#elif defined(USE_SSE42)
-    #include <nmmintrin.h>
 #elif defined(USE_SSE41)
     #include <smmintrin.h>
 #elif defined(USE_SSSE3)
     #include <tmmintrin.h>
-#elif defined(USE_SSE3)
-    #include <pmmintrin.h>
 #elif defined(USE_SSE2)
     #include <emmintrin.h>
-#elif defined(USE_MMX)
-    #include <mmintrin.h>
 #elif defined(USE_NEON)
     #include <arm_neon.h>
 #endif
 
-namespace Evaluator::NNUE {
+namespace DON::NNUE {
 
-    // Version of the evaluation file
-    constexpr uint32_t Version{ 0x7AF32F16u };
+// Version of the evaluation file
+constexpr inline std::uint32_t FILE_VERSION = 0x7AF32F20u;
 
-    // Constant used in evaluation value calculation
-    constexpr int FVScale{ 16 };
-    constexpr int WeightScaleBits{ 6 };
+// Constant used in evaluation value calculation
+constexpr inline int OUTPUT_SCALE      = 16;
+constexpr inline int WEIGHT_SCALE_BITS = 6;
 
-    // SIMD width (in bytes)
-#if defined(USE_AVX2) //|| defined(USE_BMI2) || defined(USE_AVX512)
-    constexpr size_t SimdWidth{ 32 };
-#elif defined(USE_SSE2) //|| defined(USE_SSSE3)
-    constexpr size_t SimdWidth{ 16 };
-#elif defined(USE_MMX)
-    constexpr size_t SimdWidth{  8 };
+constexpr inline const char  LEB128_MAGIC_STRING[]    = "COMPRESSED_LEB128";
+constexpr inline std::size_t LEB128_MAGIC_STRING_SIZE = sizeof(LEB128_MAGIC_STRING) - 1;
+
+// SIMD width (in bytes)
+constexpr inline std::size_t SIMD_WIDTH =
+#if defined(USE_AVX2)
+  32;
+#elif defined(USE_SSE2)
+  16;
 #elif defined(USE_NEON)
-    constexpr size_t SimdWidth{ 16 };
+  16;
+#else
+  16;
 #endif
 
-    // Type of input feature after conversion
-    using TransformedFeatureType = uint8_t;
-    using IndexType = uint32_t;
+constexpr inline std::size_t MAX_SIMD_WIDTH = 32;
 
+// Type of input feature after conversion
+using TransformedFeatureType = std::uint8_t;
+using IndexType              = std::uint32_t;
 
-    constexpr size_t MaxSimdWidth{ 32 };
-
-    // Unique number for each piece type on each square
-    enum PieceSquare : uint32_t {
-        PS_NONE     =  0,
-        PS_W_PAWN   =  1,
-        PS_B_PAWN   =  1 * SQUARES + 1,
-        PS_W_KNIGHT =  2 * SQUARES + 1,
-        PS_B_KNIGHT =  3 * SQUARES + 1,
-        PS_W_BISHOP =  4 * SQUARES + 1,
-        PS_B_BISHOP =  5 * SQUARES + 1,
-        PS_W_ROOK   =  6 * SQUARES + 1,
-        PS_B_ROOK   =  7 * SQUARES + 1,
-        PS_W_QUEEN  =  8 * SQUARES + 1,
-        PS_B_QUEEN  =  9 * SQUARES + 1,
-        PS_W_KING   = 10 * SQUARES + 1,
-        PS_END      = PS_W_KING, // pieces without kings (pawns included)
-        PS_B_KING   = 11 * SQUARES + 1,
-        PS_END2     = 12 * SQUARES + 1
-    };
-
-    constexpr PieceSquare BoardPieceSquare[COLORS][PIECES]{
-        // convention: W - us, B - them
-        // viewed from other side, W and B are reversed
-        { PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_W_KING, PS_NONE,
-          PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_B_KING, PS_NONE },
-        { PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_B_KING, PS_NONE,
-          PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_W_KING, PS_NONE }
-    };
-
-    constexpr int32_t OrientSquare[COLORS]{
-        SQ_A1, SQ_H8
-    };
-
-    // Orient a square according to perspective (rotates by 180 for black)
-    inline Square orient(Color perspective, Square s) noexcept {
-        return Square(int32_t(s) ^ OrientSquare[perspective]);
-    }
-
-    // Index of a feature for a given king position and another piece on some square
-    inline IndexType makeIndex(Color perspective, Square s, Piece pc, Square kSq) {
-        return IndexType(orient(perspective, s) + BoardPieceSquare[perspective][pc] + PS_END * kSq);
-    }
-
-    // Round n up to be a multiple of base
-    template<typename IntType>
-    constexpr IntType ceilToMultiple(IntType n, IntType base) {
-        return (n + base - 1) / base * base;
-    }
-
-    // readLittleEndian() is our utility to read an integer (signed or unsigned, any size)
-    // from a stream in little-endian order. We swap the byte order after the read if
-    // necessary to return a result with the byte ordering of the compiling machine.
-    template <typename IntType>
-    inline IntType readLittleEndian(std::istream &istream) {
-
-        // Read the relevant bytes from the stream in little-endian order
-        uint8_t u[sizeof(IntType)];
-        istream.read(reinterpret_cast<char*>(u), sizeof(IntType));
-        // Use unsigned arithmetic to convert to machine order
-        typename std::make_unsigned<IntType>::type v = 0;
-        for (size_t i = 0; i < sizeof(IntType); ++i) {
-            v = (v << 8) | u[sizeof(IntType) - 1 - i];
-        }
-        // Copy the machine-ordered bytes into a potentially signed value
-        IntType result;
-        std::memcpy(&result, &v, sizeof(IntType));
-        return result;
-    }
-
+// Round n up to be a multiple of base
+template<typename IntType>
+constexpr IntType ceil_to_multiple(IntType n, IntType base) noexcept {
+    return (n + base - 1) / base * base;
 }
+
+// Utility to read an integer (signed or unsigned, any size)
+// from a istream in little-endian order. Swap the byte order after the read
+// if necessary to return a result with the byte ordering of the compiling machine.
+template<typename IntType>
+inline IntType read_little_endian(std::istream& istream) noexcept {
+    IntType result;
+
+    if (IsLittleEndian)
+        istream.read(reinterpret_cast<char*>(&result), sizeof(IntType));
+    else
+    {
+        std::uint8_t                  u[sizeof(IntType)];
+        std::make_unsigned_t<IntType> v = 0;
+
+        istream.read(reinterpret_cast<char*>(u), sizeof(IntType));
+        for (std::size_t i = 0; i < sizeof(IntType); ++i)
+            v = (v << 8) | u[sizeof(IntType) - i - 1];
+
+        std::memcpy(&result, &v, sizeof(IntType));
+    }
+
+    return result;
+}
+
+// Utility to write an integer (signed or unsigned, any size)
+// to a ostream in little-endian order. Swap the byte order before the write
+// if necessary to always write in little-endian order,
+// independently of the byte ordering of the compiling machine.
+template<typename IntType>
+inline void write_little_endian(std::ostream& ostream, IntType value) noexcept {
+
+    if (IsLittleEndian)
+        ostream.write(reinterpret_cast<const char*>(&value), sizeof(IntType));
+    else
+    {
+        std::uint8_t                  u[sizeof(IntType)];
+        std::make_unsigned_t<IntType> v = value;
+
+        std::size_t i = 0;
+        // if constexpr to silence the warning about shift by 8
+        if constexpr (sizeof(IntType) > 1)
+        {
+            for (; i + 1 < sizeof(IntType); ++i)
+            {
+                u[i] = std::uint8_t(v);
+                v >>= 8;
+            }
+        }
+        u[i] = std::uint8_t(v);
+
+        ostream.write(reinterpret_cast<char*>(u), sizeof(IntType));
+    }
+}
+
+// Read integers in bulk from a little-endian istream.
+// This reads N integers from istream and puts them in array out.
+template<typename IntType>
+inline void read_little_endian(std::istream& istream, IntType* out, std::size_t count) noexcept {
+    if (IsLittleEndian)
+        istream.read(reinterpret_cast<char*>(out), sizeof(IntType) * count);
+    else
+        for (std::size_t i = 0; i < count; ++i)
+            out[i] = read_little_endian<IntType>(istream);
+}
+
+// Write integers in bulk to a little-endian ostream.
+// This takes N integers from array values and writes them on ostream.
+template<typename IntType>
+inline void
+write_little_endian(std::ostream& ostream, const IntType* values, std::size_t count) noexcept {
+    if (IsLittleEndian)
+        ostream.write(reinterpret_cast<const char*>(values), sizeof(IntType) * count);
+    else
+        for (std::size_t i = 0; i < count; ++i)
+            write_little_endian<IntType>(ostream, values[i]);
+}
+
+// Read N signed integers from the istream, putting them in the array out.
+// The istream is assumed to be compressed using the signed LEB128 format.
+// See https://en.wikipedia.org/wiki/LEB128 for a description of the compression scheme.
+template<typename IntType>
+inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count) noexcept {
+
+    // Check the presence of our LEB128 magic string
+    char leb128MagicString[LEB128_MAGIC_STRING_SIZE];
+    istream.read(leb128MagicString, LEB128_MAGIC_STRING_SIZE);
+    assert(strncmp(leb128MagicString, LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE) == 0);
+
+    static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
+
+    constexpr std::size_t BUFF_SIZE = 4096;
+
+    std::uint8_t buffer[BUFF_SIZE];
+
+    std::uint32_t buffPos   = BUFF_SIZE;
+    std::uint32_t byteCount = read_little_endian<std::uint32_t>(istream);
+
+    for (std::size_t i = 0; i < count; ++i)
+    {
+        IntType     result = 0;
+        std::size_t shift  = 0;
+        do
+        {
+            if (buffPos == BUFF_SIZE)
+            {
+                istream.read(reinterpret_cast<char*>(buffer),
+                             std::min(byteCount, uint32_t(BUFF_SIZE)));
+                buffPos = 0;
+            }
+
+            std::uint8_t byte = buffer[buffPos++];
+            --byteCount;
+            result |= (byte & 0x7F) << shift;
+            shift += 7;
+
+            if ((byte & 0x80) == 0)
+            {
+                out[i] = (8 * sizeof(IntType) <= shift || (byte & 0x40) == 0)
+                         ? result
+                         : result | ~((1 << shift) - 1);
+                break;
+            }
+        } while (shift < 8 * sizeof(IntType));
+    }
+
+    assert(byteCount == 0);
+}
+
+// Write signed integers to a ostream with LEB128 compression.
+// This takes N integers from array values, compresses them with
+// the LEB128 algorithm and writes the result on the ostream.
+// See https://en.wikipedia.org/wiki/LEB128 for a description of the compression scheme.
+template<typename IntType>
+inline void
+write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) noexcept {
+
+    // Write our LEB128 magic string
+    ostream.write(LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE);
+
+    static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
+
+    std::uint32_t byteCount = 0;
+    for (std::size_t i = 0; i < count; ++i)
+    {
+        IntType      value = values[i];
+        std::uint8_t byte;
+        do
+        {
+            byte = value & 0x7f;
+            value >>= 7;
+            ++byteCount;
+        } while ((byte & 0x40) == 0 ? value != 0 : value != -1);
+    }
+
+    write_little_endian(ostream, byteCount);
+
+    constexpr std::size_t BUFF_SIZE = 4096;
+
+    std::uint8_t buffer[BUFF_SIZE];
+
+    std::uint32_t buffPos = 0;
+
+    auto flush = [&]() {
+        if (buffPos == 0)
+            return;
+        ostream.write(reinterpret_cast<char*>(buffer), buffPos);
+        buffPos = 0;
+    };
+
+    auto write = [&](std::uint8_t byte) {
+        buffer[buffPos++] = byte;
+        if (buffPos == BUFF_SIZE)
+            flush();
+    };
+
+    for (std::size_t i = 0; i < count; ++i)
+    {
+        IntType value = values[i];
+        while (true)
+        {
+            std::uint8_t byte = value & 0x7F;
+            value >>= 7;
+            if ((byte & 0x40) == 0 ? value == 0 : value == -1)
+            {
+                write(byte);
+                break;
+            }
+            write(byte | 0x80);
+        }
+    }
+
+    flush();
+}
+
+}  // namespace DON::NNUE
+
+#endif  // #ifndef NNUE_COMMON_H_INCLUDED

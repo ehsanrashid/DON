@@ -1,231 +1,276 @@
-#pragma once
+/*
+  DON, a UCI chess playing engine derived from Stockfish
 
-#include <array>
+  DON is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  DON is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef THREAD_H_INCLUDED
+#define THREAD_H_INCLUDED
+
 #include <atomic>
+#include <cassert>
 #include <condition_variable>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <memory>
 #include <mutex>
 #include <vector>
 
+#include "numa.h"
+#include "search.h"
 #include "thread_win32_osx.h"
+#include "types.h"
 
-#include "movepicker.h"
-#include "position.h"
-#include "rootmove.h"
-#include "king.h"
-#include "material.h"
-#include "pawns.h"
-#include "type.h"
+namespace DON {
 
-/// Thread class keeps together all the thread-related stuff.
-/// It use pawn and material hash tables so that once get a pointer to
-/// an entry its life time is unlimited and we don't have to care about
-/// someone changing the entry under our feet.
-class Thread {
+class Position;
+class Options;
 
-public:
+// Sometimes we don't want to actually bind the threads, but the recipient still
+// needs to think it runs on *some* NUMA node, such that it can access structures
+// that rely on NUMA node knowledge. This class encapsulates this optional process
+// such that the recipient does not need to know whether the binding happened or not.
+class OptionalThreadToNumaNodeBinder final {
+   public:
+    OptionalThreadToNumaNodeBinder(NumaIndex nId, const NumaConfig* nConfigPtr) noexcept :
+        numaId(nId),
+        numaConfigPtr(nConfigPtr) {}
 
-    explicit Thread(uint16_t);
-    virtual ~Thread();
+    explicit OptionalThreadToNumaNodeBinder(NumaIndex nId) noexcept :
+        OptionalThreadToNumaNodeBinder(nId, nullptr) {}
 
-    Thread() = delete;
-    Thread(Thread const&) = delete;
-    Thread(Thread&&) = delete;
-
-    Thread& operator=(Thread const&) = delete;
-    Thread& operator=(Thread&&) = delete;
-
-    void wakeUp();
-    void waitIdle();
-
-    void threadFunc();
-
-    virtual void clean();
-    virtual void search();
-
-    Material::Table matlTable;
-    Pawns   ::Table pawnTable;
-    King    ::Table kingTable;
-
-    //uint16_t pvBeg;
-    uint16_t pvCur;
-    uint16_t pvEnd;
-
-    Position  rootPos;
-    StateInfo rootState;
-    RootMoves rootMoves;
-
-    Depth rootDepth,
-          finishedDepth,
-          selDepth;
-
-    std::atomic<uint64_t> nodes;
-    std::atomic<uint64_t> tbHits;
-    std::atomic<uint32_t> pvChanges;
-
-    int16_t nmpMinPly;
-    Color   nmpColor;
-
-    uint64_t ttHitAvg;
-
-    Score   contempt;
-
-    int16_t failHighCount;
-
-    // mainStats records how often quiet moves have been successful/unsuccessful
-    // during the current search, and is used for reduction and move ordering decisions.
-    ButterFlyStatsTable         mainStats;
-
-    // lowPlyStats records how often quiet moves have been successful/unsuccessful
-    // at higher depths on plies 0 to 3 and in the PV (ttPv)
-    // It get cleared with each new search and get filled during iterative deepening
-    PlyIndexStatsTable          lowPlyStats;
-
-    // captureStats records how often capture moves have been successful/unsuccessful
-    // during the current search, and is used for reduction and move ordering decisions.
-    PieceSquareTypeStatsTable   captureStats;
-
-    // counterMoves stores counter moves
-    PieceSquareMoveTable        counterMoves;
-
-    // continuationStats is the combined stats of a given pair of moves,
-    // usually the current one given a previous one. [inCheck][captureOrPromotion]
-    ContinuationStatsTable      continuationStats[2][2];
-
-private:
-
-    std::mutex mutex;
-    std::condition_variable condition;
-    bool dead;
-    bool busy;
-    uint16_t index; // indentity
-    NativeThread nativeThread;
-};
-
-/// MainThread class is derived from Thread class used specific for main thread.
-class MainThread :
-    public Thread {
-
-public:
-
-    using Thread::Thread;
-
-    MainThread() = delete;
-    MainThread(MainThread const&) = delete;
-    MainThread(MainThread&&) = delete;
-
-    MainThread& operator=(MainThread const&) = delete;
-    MainThread& operator=(MainThread&&) = delete;
-
-    void tick();
-
-    void clean() final;
-    void search() final;
-
-    int16_t tickCount;
-};
-
-
-/// ThreadPool class handles all the threads related stuff like,
-/// initializing & deinitializing, starting, parking & launching a thread
-/// All the access to shared thread data is done through this class.
-class ThreadPool final :
-    public std::vector<Thread*> {
-
-public:
-
-    //using std::vector<Thread*>::vector;
-
-    ThreadPool() = default;
-    ThreadPool(ThreadPool const&) = delete;
-
-    ThreadPool& operator=(ThreadPool const&) = delete;
-    ThreadPool& operator=(ThreadPool&&) = delete;
-
-    template<typename T>
-    void set(std::atomic<T> Thread::*member, T value) const noexcept {
-        for (auto *th : *this) {
-            th->*member = value;
-        }
+    NumaReplicatedAccessToken operator()() const noexcept {
+        return numaConfigPtr != nullptr ? numaConfigPtr->bind_current_thread_to_numa_node(numaId)
+                                        : NumaReplicatedAccessToken(numaId);
     }
 
+   private:
+    NumaIndex         numaId;
+    const NumaConfig* numaConfigPtr;
+};
+
+using JobFunc   = std::function<void()>;
+using WorkerPtr = std::unique_ptr<Worker>;
+
+// Abstraction of a thread. It contains a pointer to the worker and a native thread.
+// After construction, the native thread is started with idle_func()
+// waiting for a signal to start searching.
+// When the signal is received, the thread starts searching and when
+// the search is finished, it goes back to idle_func() waiting for a new signal.
+class Thread final {
+   public:
+    Thread(const Thread&) noexcept            = delete;
+    Thread& operator=(const Thread&) noexcept = delete;
+    Thread(std::size_t                           id,
+           const SharedState&                    sharedState,
+           ISearchManagerPtr                     searchManager,
+           const OptionalThreadToNumaNodeBinder& nodeBinder) noexcept;
+    virtual ~Thread() noexcept;
+
+    std::size_t id() const noexcept { return idx; }
+
+    void ensure_network_replicated() const noexcept;
+
+    void run_custom_job(JobFunc func) noexcept;
+
+    void idle_func() noexcept;
+
+    void wait_finish() noexcept;
+
+    void init() noexcept;
+
+    void start_search() noexcept;
+
+   private:
+    // Set before starting nativeThread
+    bool dead = false, busy = true;
+
+    const std::size_t         idx;
+    const std::size_t         threadCount;
+    NativeThread              nativeThread;
+    std::mutex                mutex;
+    std::condition_variable   condVar;
+    JobFunc                   jobFunc;
+    NumaReplicatedAccessToken numaAccessToken;
+
+   public:
+    WorkerPtr worker;
+};
+
+// Launching a function in the thread
+inline void Thread::run_custom_job(JobFunc func) noexcept {
+    {
+        std::unique_lock uniqueLock(mutex);
+        condVar.wait(uniqueLock, [this] { return !busy; });
+        jobFunc = std::move(func);
+        busy    = true;
+    }
+    condVar.notify_one();
+}
+
+// Blocks on the condition variable
+// until the thread has finished job.
+inline void Thread::wait_finish() noexcept {
+    std::unique_lock uniqueLock(mutex);
+    condVar.wait(uniqueLock, [this] { return !busy; });
+}
+
+// Wakes up the thread that will initialize the worker
+inline void Thread::init() noexcept {
+    assert(worker != nullptr);
+    run_custom_job([this]() { worker->init(); });
+}
+
+// Wakes up the thread that will start the search on worker
+inline void Thread::start_search() noexcept {
+    assert(worker != nullptr);
+    run_custom_job([this]() { worker->start_search(); });
+}
+
+using ThreadPtr = std::unique_ptr<Thread>;
+
+// ThreadPool struct handles all the threads-related stuff like init, starting,
+// parking and, most importantly, launching a thread.
+// All the access to threads is done through this class.
+class ThreadPool final {
+   public:
+    ThreadPool() noexcept                             = default;
+    ThreadPool(const ThreadPool&) noexcept            = delete;
+    ThreadPool(ThreadPool&&) noexcept                 = delete;
+    ThreadPool& operator=(const ThreadPool&) noexcept = delete;
+    ThreadPool& operator=(ThreadPool&&) noexcept      = delete;
+    ~ThreadPool() noexcept;
+
+    auto begin() const noexcept { return threads.begin(); }
+    auto end() const noexcept { return threads.end(); }
+    auto begin() noexcept { return threads.begin(); }
+    auto end() noexcept { return threads.end(); }
+
+    auto& front() const noexcept { return threads.front(); }
+
+    auto size() const noexcept { return threads.size(); }
+    auto empty() const noexcept { return threads.empty(); }
+
+    void clear() noexcept;
+
+    void set(const NumaConfig&    numaConfig,
+             SharedState          sharedState,
+             const UpdateContext& updateContext) noexcept;
+
+    void init() noexcept;
+
+    Thread*            main_thread() const noexcept;
+    Thread*            best_thread() const noexcept;
+    MainSearchManager* main_manager() const noexcept;
+
+    auto nodes() const noexcept;
+    auto tbHits() const noexcept;
+
+    void start(Position&      pos,  //
+               StateListPtr&  states,
+               const Limit&   limit,
+               const Options& options) noexcept;
+
+    void start_search() const noexcept;
+    void wait_finish() const noexcept;
+
+    void ensure_network_replicated() const noexcept;
+
+    void run_on_thread(std::size_t threadId, JobFunc func) noexcept;
+    void wait_on_thread(std::size_t threadId) noexcept;
+
+    std::vector<std::size_t> get_bound_thread_counts() const noexcept;
+
+    std::atomic_bool stop, abort, research;
+
+   private:
     template<typename T>
-    T accumulate(std::atomic<T> Thread::*member, T value = {}) const noexcept {
-        for (auto const *th : *this) {
-            value += (th->*member).load(std::memory_order::memory_order_relaxed);
-        }
-        return value;
+    T accumulate(T Worker::*member, T sum = T()) const noexcept {
+
+        for (auto&& th : threads)
+            sum += th->worker.get()->*member;
+        return sum;
     }
 
-    MainThread* mainThread() const noexcept;
-    Thread* bestThread() const noexcept;
-
-    void setup(uint16_t);
-    void clean();
-
-    void startThinking(Position&, StateListPtr&);
-    void stopThinking();
-
-    void wakeUpAll();
-    void waitIdleAll();
-
-    uint16_t pvCount;
-
-    std::atomic<bool> stop;     // Stop searching forcefully
-    std::atomic<bool> stand;    // Stop increasing depth
-
-    std::atomic<bool> ponder;   // Search in ponder mode, on ponder move until the "stop"/"ponderhit" command
-    bool    stopPonderhit;      // Stop search on ponderhit
-
-    double  pvChangesSum;
-    double  timeReduction;
-
-    Move    bestMove;
-    int16_t bestDepth;
-    Value   bestValue;
-    std::array<Value, 4> iterValues;
-    int16_t iterIdx;
-
-private:
-
-    StateListPtr setupStates;
+    std::vector<ThreadPtr> threads;
+    std::vector<NumaIndex> numaNodeBoundThreadIds;
+    StateListPtr           setupStates;
 };
 
-// Global ThreadPool
-extern ThreadPool Threadpool;
+inline ThreadPool::~ThreadPool() noexcept { clear(); }
 
-/// Pre-loads the given address in L1/L2 cache.
-/// This is a non-blocking function that doesn't stall the CPU
-/// waiting for data to be loaded from memory, which can be quite slow.
-#if defined(USE_PREFETCH)
+// Destroy any existing thread(s)
+inline void ThreadPool::clear() noexcept {
+    if (empty())
+        return;
 
-inline void prefetch(void const* addr) noexcept {
+    main_thread()->wait_finish();
 
-#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-#if defined(__INTEL_COMPILER)
-    // This hack prevents prefetches from being optimized away by
-    // Intel compiler. Both MSVC and gcc seem not be affected by this.
-    __asm__("");
-#endif
-    _mm_prefetch((char const*)(addr), _MM_HINT_T0);
-#else
-    __builtin_prefetch(addr);
-#endif
+    threads.clear();
+    numaNodeBoundThreadIds.clear();
 }
 
-#else
+// Sets threadPool data to initial values
+inline void ThreadPool::init() noexcept {
 
-inline void prefetch(void const*) noexcept {
+    Search::init();
+
+    if (empty())
+        return;
+
+    main_manager()->init();
+
+    for (auto&& th : threads)
+        th->init();
+    for (auto&& th : threads)
+        th->wait_finish();
 }
 
-#endif
+inline Thread* ThreadPool::main_thread() const noexcept { return front().get(); }
 
-enum OutputState : uint8_t {
-    OS_LOCK,
-    OS_UNLOCK
-};
+inline MainSearchManager* ThreadPool::main_manager() const noexcept {
+    return main_thread()->worker->main_manager();
+}
 
-extern std::ostream& operator<<(std::ostream&, OutputState);
+inline auto ThreadPool::nodes() const noexcept { return accumulate(&Worker::nodes); }
 
-#define sync_cout std::cout << OS_LOCK
-#define sync_endl std::endl << OS_UNLOCK
+inline auto ThreadPool::tbHits() const noexcept { return accumulate(&Worker::tbHits); }
 
+// Start non-main threads
+// Will be invoked by main thread after it has started searching
+inline void ThreadPool::start_search() const noexcept {
+
+    for (auto&& th : threads)
+        if (th != front())
+            th->start_search();
+}
+
+// Wait for non-main threads
+inline void ThreadPool::wait_finish() const noexcept {
+
+    for (auto&& th : threads)
+        if (th != front())
+            th->wait_finish();
+}
+
+inline void ThreadPool::ensure_network_replicated() const noexcept {
+
+    for (auto&& th : threads)
+        th->ensure_network_replicated();
+}
+
+}  // namespace DON
+
+#endif  // #ifndef THREAD_H_INCLUDED
