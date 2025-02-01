@@ -71,10 +71,12 @@ struct Cuckoo final {
 
     constexpr auto empty() const noexcept { return key == 0 /*&& move == Move::None()*/; }
 
-    friend bool operator==(const Cuckoo& cuckoo1, const Cuckoo& cuckoo2) noexcept {  //
+    [[maybe_unused]] friend bool operator==(const Cuckoo& cuckoo1,
+                                            const Cuckoo& cuckoo2) noexcept {  //
         return cuckoo1.move == cuckoo2.move && cuckoo1.key == cuckoo2.key;
     }
-    friend bool operator!=(const Cuckoo& cuckoo1, const Cuckoo& cuckoo2) noexcept {  //
+    [[maybe_unused]] friend bool operator!=(const Cuckoo& cuckoo1,
+                                            const Cuckoo& cuckoo2) noexcept {  //
         return !(cuckoo1 == cuckoo2);
     }
 
