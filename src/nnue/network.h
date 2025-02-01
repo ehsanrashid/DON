@@ -19,16 +19,13 @@
 #define NETWORK_H_INCLUDED
 
 #include <cstdint>
-#include <functional>
 #include <iosfwd>
 #include <optional>
 #include <string>
-#include <string_view>
 #include <utility>
 
 #include "../memory.h"
 #include "../position.h"
-#include "../types.h"
 #include "nnue_accumulator.h"
 #include "nnue_architecture.h"
 #include "nnue_feature_transformer.h"

@@ -18,10 +18,12 @@
 #ifndef MOVEGEN_H_INCLUDED
 #define MOVEGEN_H_INCLUDED
 
-#include <algorithm>  // IWYU pragma: keep
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <iterator>
+#include <utility>
 #include <vector>
 
 #include "types.h"

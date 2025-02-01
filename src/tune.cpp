@@ -23,6 +23,8 @@
 #include <sstream>
 #include <unordered_map>
 
+#include "ucioption.h"
+
 namespace DON {
 
 bool     Tune::OnLastUpdate = false;

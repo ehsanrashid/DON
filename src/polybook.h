@@ -18,8 +18,11 @@
 #ifndef POLYBOOK_H_INCLUDED
 #define POLYBOOK_H_INCLUDED
 
+#include <cstddef>
+#include <cstdint>
 #include <iosfwd>
 #include <string>
+#include <tuple>
 
 #include "types.h"
 

@@ -17,11 +17,15 @@
 
 #include "perft.h"
 
+#include <cassert>
+#include <algorithm>
+#include <cstdlib>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
 #include <tuple>
 
+#include "bitboard.h"
 #include "memory.h"
 #include "misc.h"
 #include "movegen.h"

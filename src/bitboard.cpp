@@ -18,6 +18,8 @@
 #include "bitboard.h"
 
 #include <bitset>
+#include <initializer_list>
+#include <iostream>
 #include <sstream>
 
 #include "misc.h"

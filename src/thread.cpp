@@ -18,15 +18,19 @@
 #include "thread.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <deque>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 
+#include "misc.h"
 #include "movegen.h"
-#include "position.h"
-#include "timeman.h"
+#include "types.h"
 #include "uci.h"
 #include "ucioption.h"
+#include "syzygy/tbprobe.h"
 
 namespace DON {
 

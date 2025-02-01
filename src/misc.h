@@ -25,16 +25,13 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
-#include <cstring>
 #include <iomanip>
 #include <iostream>
-#include <limits>
 #include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <type_traits>  // for std::common_type and std::is_arithmetic
+#include <type_traits>  // IWYU pragma: keep
 #include <vector>
 
 #if defined(USE_PREFETCH)

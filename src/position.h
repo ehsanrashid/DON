@@ -21,10 +21,13 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <deque>
 #include <iosfwd>
+#include <iterator>
 #include <memory>
 #include <numeric>
 #include <string>

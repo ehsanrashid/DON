@@ -18,15 +18,14 @@
 #include "misc.h"
 
 #include <atomic>
-#include <cctype>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <fstream>
 #include <iomanip>
-//#include <iterator>
-
-#include "types.h"
+#include <iterator>
+#include <limits>
 
 namespace DON {
 

@@ -20,10 +20,12 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <utility>
 
 #include "position.h"
 #include "uci.h"

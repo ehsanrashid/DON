@@ -16,15 +16,15 @@
 */
 
 #include "benchmark.h"
-#include "numa.h"
 
-#include <algorithm>
+#include <cstdint>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 
 #include "misc.h"
+#include "numa.h"
 
 namespace DON::Benchmark {
 

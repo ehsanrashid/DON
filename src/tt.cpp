@@ -17,11 +17,12 @@
 
 #include "tt.h"
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <numeric>
 
 #include "memory.h"
 #include "thread.h"

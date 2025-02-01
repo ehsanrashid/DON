@@ -18,9 +18,10 @@
 #ifndef BENCHMARK_H_INCLUDED
 #define BENCHMARK_H_INCLUDED
 
-#include <cstdint>
+#include <cstddef>
 #include <iosfwd>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "uci.h"

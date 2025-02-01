@@ -17,14 +17,16 @@
 
 #include "search.h"
 
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
-#include <iostream>
+#include <initializer_list>
 #include <list>
 #include <ratio>
 
+#include "bitboard.h"
 #include "evaluate.h"
 #include "movepick.h"
 #include "polybook.h"
@@ -32,7 +34,6 @@
 #include "tt.h"
 #include "uci.h"
 #include "ucioption.h"
-#include "nnue/nnue_common.h"
 #include "nnue/nnue_misc.h"
 
 namespace DON {

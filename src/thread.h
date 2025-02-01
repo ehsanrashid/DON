@@ -22,20 +22,19 @@
 #include <cassert>
 #include <condition_variable>
 #include <cstddef>
-#include <cstdint>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <utility>
 #include <vector>
 
 #include "numa.h"
+#include "position.h"
 #include "search.h"
 #include "thread_win32_osx.h"
-#include "types.h"
 
 namespace DON {
 
-class Position;
 class Options;
 
 // Sometimes we don't want to actually bind the threads, but the recipient still

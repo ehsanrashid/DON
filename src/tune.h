@@ -21,13 +21,13 @@
 #include <cstddef>
 #include <memory>
 #include <string>
-#include <type_traits>  // IWYU pragma: keep
+#include <type_traits>
 #include <utility>
 #include <vector>
 
-#include "ucioption.h"
-
 namespace DON {
+
+class Options;
 
 using Range    = std::pair<int, int>;  // Option's min-max values
 using RangeFun = Range(int);

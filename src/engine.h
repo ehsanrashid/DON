@@ -18,12 +18,14 @@
 #ifndef ENGINE_H_INCLUDED
 #define ENGINE_H_INCLUDED
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
-#include <iosfwd>
+#include <iosfwd>  // IWYU pragma: keep
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "position.h"

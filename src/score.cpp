@@ -18,9 +18,8 @@
 #include "score.h"
 
 #include <cassert>
-#include <cmath>
+#include <cstdlib>
 
-#include "position.h"
 #include "uci.h"
 
 namespace DON {

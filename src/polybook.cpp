@@ -17,10 +17,13 @@
 
 #include "polybook.h"
 
+#include <assert.h>
+#include <stdlib.h>
+#include <time.h>
+#include <algorithm>
 #include <cstdio>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
 
 #include "bitboard.h"
 #include "misc.h"

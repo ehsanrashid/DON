@@ -18,8 +18,9 @@
 #include "engine.h"
 
 #include <cassert>
+#include <deque>
+#include <iostream>
 #include <memory>
-#include <ostream>
 #include <sstream>
 #include <utility>
 

@@ -17,6 +17,7 @@
 
 #include "network.h"
 
+#include <assert.h>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -28,7 +29,6 @@
 #include "../incbin/incbin.h"
 
 #include "../evaluate.h"
-#include "../misc.h"
 #include "../uci.h"
 #include "nnue_common.h"
 

@@ -18,21 +18,19 @@
 #ifndef UCI_H_INCLUDED
 #define UCI_H_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
 #include <iosfwd>
 #include <string>
 #include <string_view>
 
 #include "engine.h"
 #include "misc.h"
+#include "movegen.h"
 #include "types.h"
 
 namespace DON {
 
 class Position;
 class Score;
-using LegalMoveList = MoveList<LEGAL>;
 
 class UCI final {
    public:

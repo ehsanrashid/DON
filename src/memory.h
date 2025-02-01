@@ -18,6 +18,7 @@
 #ifndef MEMORY_H_INCLUDED
 #define MEMORY_H_INCLUDED
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>

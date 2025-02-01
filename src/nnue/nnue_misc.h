@@ -19,10 +19,10 @@
 #define NNUE_MISC_H_INCLUDED
 
 #include <cstddef>
+#include <cstdint>
 #include <iosfwd>
 #include <string>
 
-#include "../types.h"
 #include "nnue_architecture.h"
 
 namespace DON {

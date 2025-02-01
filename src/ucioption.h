@@ -18,7 +18,6 @@
 #ifndef UCIOPTION_H_INCLUDED
 #define UCIOPTION_H_INCLUDED
 
-#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <iosfwd>
@@ -26,6 +25,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 
 namespace DON {
 

@@ -18,6 +18,7 @@
 #ifndef EVALUATE_H_INCLUDED
 #define EVALUATE_H_INCLUDED
 
+#include <cstdint>
 #include <string>
 
 #include "types.h"

@@ -19,21 +19,24 @@
 
 #include "nnue_misc.h"
 
-#include <cassert>
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <initializer_list>
 #include <iomanip>
 #include <iostream>
+#include <ostream>
 #include <sstream>
-#include <string_view>
 
 #include "../evaluate.h"
 #include "../misc.h"
 #include "../position.h"
 #include "../uci.h"
+#include "../types.h"
 #include "network.h"
 #include "nnue_accumulator.h"
+#include "nnue_common.h"
 
 namespace DON::NNUE {
 

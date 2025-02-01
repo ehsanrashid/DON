@@ -19,8 +19,8 @@
 #define TT_H_INCLUDED
 
 #include <cassert>
-#include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <limits>
 #include <string>
 #include <tuple>

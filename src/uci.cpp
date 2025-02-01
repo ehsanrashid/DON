@@ -22,23 +22,27 @@
 #include <cassert>
 #include <cctype>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
-#include <functional>
+#include <cstdlib>
+#include <initializer_list>
 #include <iostream>
 #include <iterator>
 #include <limits>
 #include <optional>
 #include <sstream>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "benchmark.h"
-#include "evaluate.h"
+#include "bitboard.h"
 #include "memory.h"
 #include "movegen.h"
 #include "position.h"
 #include "score.h"
 #include "search.h"
+#include "ucioption.h"
 
 namespace DON {
 
