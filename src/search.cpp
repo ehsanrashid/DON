@@ -662,7 +662,7 @@ void Worker::iterative_deepening() noexcept {
             if (completedDepth >= 10)
             {
                 assert(nodes != 0);
-                double scaledNodes = 100000.0 * rootMoves.front().nodes / std::max(nodes, 1ull);
+                double scaledNodes = 100000.0 * rootMoves.front().nodes / std::max(nodes, std::uint64_t(1));
                 nodeReduction   -= 70.79288e-6 * std::max(-95056.0 + scaledNodes, 0.0);  // -97056.0 + 2000.0
             }
             double reCapture     = 1.0;
