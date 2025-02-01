@@ -863,26 +863,27 @@ void on_update_end(const EndInfo& info) noexcept {
 }
 
 void on_update_full(const FullInfo& info) noexcept {
-    std::cout << "info"                                                   //
-              << " depth " << info.depth                                  //
-              << " seldepth " << info.rootMove.selDepth                   //
-              << " multipv " << info.multiPV                              //
-              << " score " << UCI::format_score({info.value, info.pos});  //
+    std::ostringstream oss;
+    oss << "info"                                                   //
+        << " depth " << info.depth                                  //
+        << " seldepth " << info.rootMove.selDepth                   //
+        << " multipv " << info.multiPV                              //
+        << " score " << UCI::format_score({info.value, info.pos});  //
     if (info.boundShow)
-        std::cout << (info.rootMove.boundLower   ? " lowerbound"
-                      : info.rootMove.boundUpper ? " upperbound"
-                                                 : "");
+        oss << (info.rootMove.boundLower   ? " lowerbound"
+                : info.rootMove.boundUpper ? " upperbound"
+                                           : "");
     if (info.wdlShow)
-        std::cout << " wdl " << UCI::to_wdl(info.value, info.pos);
-    std::cout << " time " << info.time                     //
-              << " nodes " << info.nodes                   //
-              << " nps " << 1000 * info.nodes / info.time  //
-              << " hashfull " << info.hashFull             //
-              << " tbhits " << info.tbHits                 //
-              << " pv";
+        oss << " wdl " << UCI::to_wdl(info.value, info.pos);
+    oss << " time " << info.time                     //
+        << " nodes " << info.nodes                   //
+        << " nps " << 1000 * info.nodes / info.time  //
+        << " hashfull " << info.hashFull             //
+        << " tbhits " << info.tbHits                 //
+        << " pv";
     for (const Move& m : info.rootMove)
-        std::cout << ' ' << UCI::move_to_can(m);
-    std::cout << std::endl;
+        oss << ' ' << UCI::move_to_can(m);
+    std::cout << oss.str() << std::endl;
 }
 
 void on_update_iter(const IterInfo& info) noexcept {
