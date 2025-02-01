@@ -207,9 +207,7 @@ inline void prefetch(const void* const addr) noexcept {
     _mm_prefetch(reinterpret_cast<const char*>(addr), _MM_HINT_T0);
 }
     #else
-constexpr void prefetch(const void* const addr) noexcept {
-    __builtin_prefetch(addr);
-}
+constexpr void prefetch(const void* const addr) noexcept { __builtin_prefetch(addr); }
     #endif
 #else
 constexpr void prefetch(const void* const) noexcept {}

@@ -126,7 +126,9 @@ struct NetworkArchitecture final {
         // in quantized form, but want 1.0 to be equal to 600 * OUTPUT_SCALE
         std::int32_t fwdOut =
           (buffer.fc_0_out[FC_0_OUTPUTS]) * (600 * OUTPUT_SCALE) / (127 * (1 << WEIGHT_SCALE_BITS));
-        return buffer.fc_2_out[0] + fwdOut;
+        std::int32_t outputValue = buffer.fc_2_out[0] + fwdOut;
+
+        return outputValue;
     }
 };
 

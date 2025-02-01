@@ -113,8 +113,8 @@ void affine_transform_non_ssse3(std::int32_t*       output,
     for (IndexType i = 0; i < InputDimensions; ++i)
         if (input[i])
         {
-            std::int8_t* w  = &weights[i];
-            int          in = input[i];
+            auto* w  = &weights[i];
+            int   in = input[i];
             for (IndexType j = 0; j < OutputDimensions; ++j)
                 output[j] += w[j * PaddedInputDimensions] * in;
         }

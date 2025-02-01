@@ -48,8 +48,7 @@ Value evaluate(const Position&          pos,
 
     bool smallNetUse = use_small_net(pos);
 
-    const auto compute_nnue = [&netOut = std::as_const(netOut),
-                               &smallNetUse]() noexcept -> std::int32_t {
+    const auto compute_nnue = [&netOut = std::as_const(netOut)]() noexcept -> std::int32_t {
         auto delta = 3;
 
         return ((128 - delta) * netOut.psqt + (128 + delta) * netOut.positional)

@@ -168,8 +168,6 @@ void find_nnz(const std::int32_t* input, std::uint16_t* outNnz, IndexType& outCo
     #undef vec128_load
     #undef vec128_storeu
     #undef vec128_add
-#else
-    #pragma message("Warning: Compiling without SSSE3 or NEON, intended for testing.")
 #endif
 
 // Sparse input implementation

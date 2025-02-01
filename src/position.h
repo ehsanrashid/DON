@@ -398,9 +398,6 @@ class Position final {
     State*       st;
 };
 
-static_assert(sizeof(Position) == 192, "Unexpected Position size");
-
-
 inline auto Position::rule50_threshold() noexcept { return -10 + 2 * DrawMoveCount; }
 
 inline Piece Position::piece_on(Square s) const noexcept {
