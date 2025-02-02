@@ -61,6 +61,14 @@ race:DON::TranspositionTable::hashFull
 race:DON::captureHistory
 race:DON::quietHistory
 race:DON::pawnHistory
+race:DON::continuationHistory
+
+race:DON::lowPlyQuietHistory
+
+race:DON::pawnCorrectionHistory
+race:DON::minorCorrectionHistory
+race:DON::majorCorrectionHistory
+race:DON::continuationCorrectionHistory
 """
             )
 
