@@ -276,9 +276,10 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
 
     ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
 
-    int bucket = (pos.count<ALL_PIECE>() - 1) / 4;
-    return {featureTransformer->transform(pos, cache, transformedFeatures, bucket),
-            network[bucket].propagate(transformedFeatures)};
+    int  bucket     = (pos.count<ALL_PIECE>() - 1) / 4;
+    auto psqt       = featureTransformer->transform(pos, cache, transformedFeatures, bucket);
+    auto positional = network[bucket].propagate(transformedFeatures);
+    return {psqt, positional};
 }
 
 template<typename Arch, typename Transformer>
