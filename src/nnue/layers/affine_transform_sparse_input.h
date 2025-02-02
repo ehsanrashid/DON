@@ -277,30 +277,27 @@ class AffineTransformSparseInput {
         std::uint16_t nnz[CHUNK_COUNT];
         IndexType     count;
 
-        auto input32 = reinterpret_cast<const std::int32_t*>(input);
+        const auto* input32 = reinterpret_cast<const std::int32_t*>(input);
 
         // Find indices of nonzero 32-bit blocks
         find_nnz<CHUNK_COUNT>(input32, nnz, count);
 
-        auto     biasvec = reinterpret_cast<const outvec_t*>(biases);
+        auto*    biasvec = reinterpret_cast<const outvec_t*>(biases);
         outvec_t acc[REG_COUNT];
         for (IndexType k = 0; k < REG_COUNT; ++k)
             acc[k] = biasvec[k];
 
-        InputType tempInput32[CHUNK_COUNT] = {};  // Initialize all elements to 0
-        std::copy(input32, input32 + CHUNK_COUNT, tempInput32);
-
         for (IndexType j = 0; j < count; ++j)
         {
             const auto    i  = nnz[j];
-            const invec_t in = vec_set_32(tempInput32[i]);
+            const invec_t in = vec_set_32(input32[i]);
             const auto*   col =
               reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * CHUNK_SIZE]);
             for (IndexType k = 0; k < REG_COUNT; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
 
-        auto outptr = reinterpret_cast<outvec_t*>(output);
+        auto* outptr = reinterpret_cast<outvec_t*>(output);
         for (IndexType k = 0; k < REG_COUNT; ++k)
             outptr[k] = acc[k];
     #undef vec_set_32
