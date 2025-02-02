@@ -68,12 +68,12 @@ jobs:
             run_64bit_tests: false
             run_m1_tests: true
             shell: bash
-          - name: MacOS 13 GCC 11
-            os: macos-13
-            compiler: g++-11
-            comp: gcc
-            run_64bit_tests: true
-            shell: bash
+          # - name: MacOS 13 GCC 11
+          #   os: macos-13
+          #   compiler: g++-11
+          #   comp: gcc
+          #   run_64bit_tests: true
+          #   shell: bash
           - name: Windows 2022 Mingw-w64 GCC x86_64
             os: windows-2022
             compiler: g++

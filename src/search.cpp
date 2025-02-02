@@ -143,6 +143,8 @@ std::mutex        quietHistoryMutex;
 std::mutex         pawnHistoryMutex;
 std::mutex continuationHistoryMutex;
 
+std::mutex lowPlyQuietHistoryMutex;
+
 std::mutex correctionHistoryMutex;
 
 // Reductions lookup table initialized at startup
@@ -2210,7 +2212,7 @@ namespace {
 // clang-format off
 
 void update_capture_history(Piece pc, Square dst, PieceType captured, unsigned imbalance, int bonus) noexcept {
-    std::lock_guard<std::mutex> lockGuard(captureHistoryMutex);
+    std::lock_guard lockGuard(captureHistoryMutex);
     captureHistory[pc][dst][captured][imbalance] << bonus;
     if (imbalance > 0)
         captureHistory[pc][dst][captured][imbalance - 1] << +0.5 * bonus;
@@ -2224,11 +2226,11 @@ void update_capture_history(const Position& pos, const Move& m, int bonus) noexc
 
 void update_quiet_history(Color ac, const Move& m, int bonus) noexcept {
     assert(m.is_ok());
-    std::lock_guard<std::mutex> lockGuard(quietHistoryMutex);
+    std::lock_guard lockGuard(quietHistoryMutex);
     quietHistory[ac][m.org_dst()] << bonus;
 }
 void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) noexcept {
-    std::lock_guard<std::mutex> lockGuard(pawnHistoryMutex);
+    std::lock_guard lockGuard(pawnHistoryMutex);
     pawnHistory[pawn_index(pos.pawn_key())][pc][dst] << bonus;
 }
 // Updates histories of the move pairs formed by
@@ -2240,7 +2242,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
       {{1, +1.1094}, {2, +0.6806}, {3, +0.3184}, {4, +0.4882},
        {5, +0.2698}, {6, +0.4795}, {7, +0.2222}, {8, +0.3251}}};
 
-    std::lock_guard<std::mutex> lockGuard(continuationHistoryMutex);
+    std::lock_guard lockGuard(continuationHistoryMutex);
     for (auto [i, weight] : ContHistoryWeights)
     {
         // Only first 2 continuation histories if in check
@@ -2252,6 +2254,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
 }
 void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) noexcept {
     assert(m.is_ok());
+    std::lock_guard lockGuard(lowPlyQuietHistoryMutex);
     if (ssPly < LOW_PLY_SIZE)
         lowPlyQuietHistory[ssPly][m.org_dst()] << bonus;
 }
@@ -2303,7 +2306,7 @@ void update_correction_history(const Position& pos, Stack* const ss, int bonus) 
 
     bonus = std::clamp(bonus, -BonusLimit, +BonusLimit);
 
-    std::lock_guard<std::mutex> lockGuard(correctionHistoryMutex);
+    std::lock_guard lockGuard(correctionHistoryMutex);
     for (Color c : {WHITE, BLACK})
     {
        pawnCorrectionHistory[correction_index(pos. pawn_key(c))][ac][c] << +0.8125 * bonus;

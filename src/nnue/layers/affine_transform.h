@@ -107,7 +107,8 @@ void affine_transform_non_ssse3(std::int32_t*       output,
         #endif
     }
     #else
-    std::memcpy(output, biases, sizeof(std::int32_t) * OutputDimensions);
+
+    std::memcpy(output, biases, OutputDimensions * sizeof(std::int32_t));
 
     // Traverse weights in transpose order to take advantage of input sparsity
     for (IndexType i = 0; i < InputDimensions; ++i)
@@ -212,16 +213,16 @@ class AffineTransform final {
             constexpr IndexType CHUNK_COUNT = ceil_to_multiple<IndexType>(InputDimensions, 8) / 4;
             constexpr IndexType REG_COUNT   = OutputDimensions / OutputSimdWidth;
 
-            auto* input32 = reinterpret_cast<const std::int32_t*>(input);
-            auto* biasVec = reinterpret_cast<const vec_t*>(biases);
-            vec_t acc[REG_COUNT];
+            const auto* input32 = reinterpret_cast<const std::int32_t*>(input);
+            const auto* biasVec = reinterpret_cast<const vec_t*>(biases);
+            vec_t       acc[REG_COUNT];
             for (IndexType k = 0; k < REG_COUNT; ++k)
                 acc[k] = biasVec[k];
 
             for (IndexType i = 0; i < CHUNK_COUNT; ++i)
             {
                 const vec_t in0 = vec_set_32(input32[i]);
-                const auto  col0 =
+                const auto* col0 =
                   reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
 
                 for (IndexType k = 0; k < REG_COUNT; ++k)
@@ -261,7 +262,7 @@ class AffineTransform final {
         #define vec_hadd Simd::neon_m128_hadd
     #endif
 
-            auto* inputVector = reinterpret_cast<const vec_t*>(input);
+            const auto* inputVector = reinterpret_cast<const vec_t*>(input);
 
             static constexpr IndexType InputSimdWidth = sizeof(vec_t) / sizeof(InputType);
 
@@ -269,8 +270,8 @@ class AffineTransform final {
 
             constexpr IndexType CHUNK_COUNT = PaddedInputDimensions / InputSimdWidth;
 
-            vec_t sum0 = vec_setzero();
-            auto* row0 = reinterpret_cast<const vec_t*>(&weights[0]);
+            vec_t       sum0 = vec_setzero();
+            const auto* row0 = reinterpret_cast<const vec_t*>(&weights[0]);
 
             for (IndexType j = 0; j < CHUNK_COUNT; ++j)
                 vec_add_dpbusd_32(sum0, inputVector[j], row0[j]);

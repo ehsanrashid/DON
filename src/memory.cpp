@@ -171,8 +171,8 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
     CloseHandle(processHandle);
 
     //if (mem == nullptr)
-    //    std::cerr << "Failed to allocate large page memory."
-    //              << "Error code: 0x" << std::hex << GetLastError() << std::dec << '\n';
+    //    std::cerr << "Failed to allocate large page memory.\n"
+    //              << "Error code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
 
     return mem;
     #endif
@@ -224,8 +224,8 @@ void free_aligned_lp(void* mem) noexcept {
 #if defined(_WIN32)
     if (!VirtualFree(mem, 0, MEM_RELEASE))
     {
-        std::cerr << "Failed to free large page memory."
-                  << "Error code: 0x" << std::hex << GetLastError() << std::dec << '\n';
+        std::cerr << "Failed to free large page memory.\n"
+                  << "Error code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
         std::exit(EXIT_FAILURE);
     }
 #else

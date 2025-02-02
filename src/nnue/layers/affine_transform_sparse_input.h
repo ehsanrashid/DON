@@ -136,7 +136,7 @@ void find_nnz(const std::int32_t* input, std::uint16_t* outNnz, IndexType& outCo
     constexpr IndexType INPUTS_PER_CHUNK  = CHUNK_SIZE / InputSimdWidth;
     constexpr IndexType OUTPUTS_PER_CHUNK = CHUNK_SIZE / 8;
 
-    auto* inputVector = reinterpret_cast<const vec_t*>(input);
+    const auto* inputVector = reinterpret_cast<const vec_t*>(input);
 
     IndexType count     = 0;
     vec128_t  base      = vec128_zero;
@@ -147,13 +147,13 @@ void find_nnz(const std::int32_t* input, std::uint16_t* outNnz, IndexType& outCo
         unsigned nnz = 0;
         for (IndexType j = 0; j < INPUTS_PER_CHUNK; ++j)
         {
-            vec_t inputChunk = inputVector[i * INPUTS_PER_CHUNK + j];
+            const vec_t inputChunk = inputVector[i * INPUTS_PER_CHUNK + j];
             nnz |= unsigned(vec_nnz(inputChunk)) << (j * InputSimdWidth);
         }
         for (IndexType j = 0; j < OUTPUTS_PER_CHUNK; ++j)
         {
             unsigned index = (nnz >> (j * 8)) & 0xFF;
-            auto     offsets =
+            vec128_t offsets =
               vec128_load(reinterpret_cast<const vec128_t*>(&LookupInstance.indices[index]));
             vec128_storeu(reinterpret_cast<vec128_t*>(outNnz + count), vec128_add(base, offsets));
             count += LookupInstance.popcounts[index];
@@ -277,32 +277,29 @@ class AffineTransformSparseInput {
         std::uint16_t nnz[CHUNK_COUNT];
         IndexType     count;
 
-        auto input32 = reinterpret_cast<const std::int32_t*>(input);
+        const auto* input32 = reinterpret_cast<const std::int32_t*>(input);
 
         // Find indices of nonzero 32-bit blocks
         find_nnz<CHUNK_COUNT>(input32, nnz, count);
 
-        auto     biasvec = reinterpret_cast<const outvec_t*>(biases);
-        outvec_t acc[REG_COUNT];
+        const auto* biasVec = reinterpret_cast<const outvec_t*>(biases);
+        outvec_t    acc[REG_COUNT];
         for (IndexType k = 0; k < REG_COUNT; ++k)
-            acc[k] = biasvec[k];
-
-        InputType tempInput32[CHUNK_COUNT] = {};  // Initialize all elements to 0
-        std::copy(input32, input32 + CHUNK_COUNT, tempInput32);
+            acc[k] = biasVec[k];
 
         for (IndexType j = 0; j < count; ++j)
         {
             const auto    i  = nnz[j];
-            const invec_t in = vec_set_32(tempInput32[i]);
+            const invec_t in = vec_set_32(input32[i]);
             const auto*   col =
               reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * CHUNK_SIZE]);
             for (IndexType k = 0; k < REG_COUNT; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
 
-        auto outptr = reinterpret_cast<outvec_t*>(output);
+        auto* outVec = reinterpret_cast<outvec_t*>(output);
         for (IndexType k = 0; k < REG_COUNT; ++k)
-            outptr[k] = acc[k];
+            outVec[k] = acc[k];
     #undef vec_set_32
     #undef vec_add_dpbusd_32
 #else
