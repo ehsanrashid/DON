@@ -136,7 +136,7 @@ void find_nnz(const std::int32_t* input, std::uint16_t* outNnz, IndexType& outCo
     constexpr IndexType INPUTS_PER_CHUNK  = CHUNK_SIZE / InputSimdWidth;
     constexpr IndexType OUTPUTS_PER_CHUNK = CHUNK_SIZE / 8;
 
-    auto* inputVector = reinterpret_cast<const vec_t*>(input);
+    const auto* inputVector = reinterpret_cast<const vec_t*>(input);
 
     IndexType count     = 0;
     vec128_t  base      = vec128_zero;
@@ -147,13 +147,13 @@ void find_nnz(const std::int32_t* input, std::uint16_t* outNnz, IndexType& outCo
         unsigned nnz = 0;
         for (IndexType j = 0; j < INPUTS_PER_CHUNK; ++j)
         {
-            vec_t inputChunk = inputVector[i * INPUTS_PER_CHUNK + j];
+            const vec_t inputChunk = inputVector[i * INPUTS_PER_CHUNK + j];
             nnz |= unsigned(vec_nnz(inputChunk)) << (j * InputSimdWidth);
         }
         for (IndexType j = 0; j < OUTPUTS_PER_CHUNK; ++j)
         {
             unsigned index = (nnz >> (j * 8)) & 0xFF;
-            auto     offsets =
+            vec128_t offsets =
               vec128_load(reinterpret_cast<const vec128_t*>(&LookupInstance.indices[index]));
             vec128_storeu(reinterpret_cast<vec128_t*>(outNnz + count), vec128_add(base, offsets));
             count += LookupInstance.popcounts[index];
@@ -282,7 +282,7 @@ class AffineTransformSparseInput {
         // Find indices of nonzero 32-bit blocks
         find_nnz<CHUNK_COUNT>(input32, nnz, count);
 
-        auto*    biasvec = reinterpret_cast<const outvec_t*>(biases);
+        const auto* biasvec = reinterpret_cast<const outvec_t*>(biases);
         outvec_t acc[REG_COUNT];
         for (IndexType k = 0; k < REG_COUNT; ++k)
             acc[k] = biasvec[k];
