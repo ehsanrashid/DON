@@ -102,15 +102,15 @@ class TestCLI(metaclass=OrderedClassMembers):
         assert self.engine.process.returncode == 0
 
     def test_go_wtime_8000_btime_8000_winc_500_binc_500(self):
-        self.engine = DON("go wtime 8000 btime 8000 winc 500 binc 500".split(" "), True)
+        self.engine = DON("go wtime 8000 btime 8000 winc 500 binc 500".split(" "), True,)
         assert self.engine.process.returncode == 0
 
     def test_go_wtime_1000_btime_1000_winc_0_binc_0(self):
-        self.engine = DON("go wtime 1000 btime 1000 winc 0 binc 0".split(" "), True)
+        self.engine = DON("go wtime 1000 btime 1000 winc 0 binc 0".split(" "), True,)
         assert self.engine.process.returncode == 0
 
     def test_go_wtime_1000_btime_1000_winc_0_binc_0_movestogo_5(self):
-        self.engine = DON("go wtime 1000 btime 1000 winc 0 binc 0 movestogo 5".split(" "), True)
+        self.engine = DON("go wtime 1000 btime 1000 winc 0 binc 0 movestogo 5".split(" "), True,)
         assert self.engine.process.returncode == 0
 
     def test_go_movetime_200(self):
@@ -249,7 +249,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
             # nonlocal depth
 
             # regex = rf"info depth {depth} seldepth \d+ multipv \d+ score cp \d+ wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
-            regex = rf"info depth \d+ seldepth \d+ multipv \d+ score cp \d+ wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp \d+ wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
 
             # if output.startswith("info depth"):
             #     if not re.match(regex, output):
@@ -389,11 +389,11 @@ class TestSyzygy(metaclass=OrderedClassMembers):
         self.engine.send_command("position fen 4k3/PP6/8/8/8/8/8/4K3 w - - 0 1")
         self.engine.send_command("go depth 5")
 
-        def check_output(output):
+        def callback(output):
             if "score cp 20000" in output or "score mate" in output:
                 return True
 
-        self.engine.check_output(check_output)
+        self.engine.check_output(callback)
         self.engine.expect("bestmove *")
 
     def test_syzygy_position_2(self):
@@ -401,11 +401,11 @@ class TestSyzygy(metaclass=OrderedClassMembers):
         self.engine.send_command("position fen 8/1P6/2B5/8/4K3/8/6k1/8 w - - 0 1")
         self.engine.send_command("go depth 5")
 
-        def check_output(output):
+        def callback(output):
             if "score cp 20000" in output or "score mate" in output:
                 return True
 
-        self.engine.check_output(check_output)
+        self.engine.check_output(callback)
         self.engine.expect("bestmove *")
 
     def test_syzygy_position_3(self):
@@ -413,11 +413,11 @@ class TestSyzygy(metaclass=OrderedClassMembers):
         self.engine.send_command("position fen 8/1P6/2B5/8/4K3/8/6k1/8 b - - 0 1")
         self.engine.send_command("go depth 5")
 
-        def check_output(output):
+        def callback(output):
             if "score cp -20000" in output or "score mate" in output:
                 return True
 
-        self.engine.check_output(check_output)
+        self.engine.check_output(callback)
         self.engine.expect("bestmove *")
 
 
