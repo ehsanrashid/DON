@@ -112,7 +112,7 @@ class Thread final {
 inline void Thread::run_custom_job(JobFunc func) noexcept {
     {
         std::unique_lock uniqueLock(mutex);
-        condVar.wait(uniqueLock, [this] { return !busy; });
+        condVar.wait(uniqueLock, [&] { return !busy; });
         jobFunc = std::move(func);
         busy    = true;
     }
@@ -123,7 +123,7 @@ inline void Thread::run_custom_job(JobFunc func) noexcept {
 // until the thread has finished job.
 inline void Thread::wait_finish() noexcept {
     std::unique_lock uniqueLock(mutex);
-    condVar.wait(uniqueLock, [this] { return !busy; });
+    condVar.wait(uniqueLock, [&] { return !busy; });
 }
 
 // Wakes up the thread that will initialize the worker
