@@ -54,7 +54,7 @@ class StatsEntry final {
         int clampedBonus = std::clamp(bonus, -D, +D);
         value += clampedBonus - value * std::abs(clampedBonus) / D;
 
-        //assert(std::abs(value) <= D);
+        assert(std::abs(value) <= D);
     }
 
    private:

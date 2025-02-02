@@ -57,6 +57,10 @@ race:DON::TTEntry::read
 race:DON::TTEntry::save
 race:DON::TranspositionTable::probe
 race:DON::TranspositionTable::hashFull
+
+race:DON::captureHistory
+race:DON::quietHistory
+race:DON::pawnHistory
 """
             )
 

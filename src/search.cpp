@@ -133,30 +133,15 @@ void TTUpdater::update(
         ttc->move = move;
 }
 
+// clang-format off
+
 namespace {
 
 constexpr inline int MaxQuietThreshold = -7998;
 
-// clang-format off
 std::mutex captureMutex;
 std::mutex   quietMutex;
 std::mutex    pawnMutex;
-
-// History
-History<HCapture>           captureHistory;
-History<HQuiet>               quietHistory;
-History<HPawn>                 pawnHistory;
-History<HContinuation> continuationHistory[2][2];
-
-// Low Ply History
-History<HLowPlyQuiet> lowPlyQuietHistory;
-
-// Correction History
-CorrectionHistory<CHPawn>                 pawnCorrectionHistory;
-CorrectionHistory<CHMinor>               minorCorrectionHistory;
-CorrectionHistory<CHMajor>               majorCorrectionHistory;
-CorrectionHistory<CHContinuation> continuationCorrectionHistory;
-// clang-format on
 
 // Reductions lookup table initialized at startup
 std::array<std::int16_t, MAX_MOVES> reductions;  // [depth or moveCount]
@@ -206,7 +191,6 @@ void update_pv(Move* pv, const Move& move, const Move* childPv) noexcept {
     *pv = Move::None();
 }
 
-// clang-format off
 void update_capture_history(Piece pc, Square dst, PieceType captured, unsigned imbalance, int bonus) noexcept;
 void update_capture_history(const Position& pos, const Move& m, int bonus) noexcept;
 
@@ -222,7 +206,6 @@ void update_correction_history(const Position& pos, Stack* const ss, int bonus) 
 int  correction_value(const Position& pos, const Stack* const ss) noexcept;
 
 Value adjust_static_eval(Value ev, int cv) noexcept;
-// clang-format on
 
 void extend_tb_pv(Position&      rootPos,
                   RootMove&      rootMove,
@@ -232,10 +215,24 @@ void extend_tb_pv(Position&      rootPos,
 
 }  // namespace
 
+// History
+History<HCapture>           captureHistory;
+History<HQuiet>               quietHistory;
+History<HPawn>                 pawnHistory;
+History<HContinuation> continuationHistory[2][2];
+
+// Low Ply History
+History<HLowPlyQuiet> lowPlyQuietHistory;
+
+// Correction History
+CorrectionHistory<CHPawn>                 pawnCorrectionHistory;
+CorrectionHistory<CHMinor>               minorCorrectionHistory;
+CorrectionHistory<CHMajor>               majorCorrectionHistory;
+CorrectionHistory<CHContinuation> continuationCorrectionHistory;
+
 namespace Search {
 
 void init() noexcept {
-    // clang-format off
     captureHistory.fill(-638);
       quietHistory.fill(56);
        pawnHistory.fill(-1198);
@@ -253,7 +250,6 @@ void init() noexcept {
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(0);
     continuationCorrectionHistory[NO_PIECE][SQ_ZERO].fill(0);
-    // clang-format on
 
     reductions[0] = 0;
     for (std::size_t i = 1; i < reductions.size(); ++i)
@@ -263,6 +259,8 @@ void init() noexcept {
 void load_book(const std::string& bookFile) noexcept { polyBook.init(bookFile); }
 
 }  // namespace Search
+
+// clang-format on
 
 Worker::Worker(std::size_t               threadId,
                const SharedState&        sharedState,
