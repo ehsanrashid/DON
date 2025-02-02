@@ -8,7 +8,7 @@ import os
 from testing import (
     EPD,
     TSAN,
-    Engine,
+    DON as Engine,
     MiniTestFramework,
     OrderedClassMembers,
     Valgrind,
