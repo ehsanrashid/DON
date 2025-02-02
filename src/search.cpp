@@ -23,7 +23,6 @@
 #include <ctime>
 #include <initializer_list>
 #include <list>
-#include <mutex>
 #include <ratio>
 
 #include "bitboard.h"
