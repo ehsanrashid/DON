@@ -227,12 +227,12 @@ inline void ThreadPool::init() noexcept {
     if (empty())
         return;
 
-    main_manager()->init();
-
     for (auto&& th : threads)
         th->init();
     for (auto&& th : threads)
         th->wait_finish();
+
+    main_manager()->init();
 }
 
 inline Thread* ThreadPool::main_thread() const noexcept { return front().get(); }

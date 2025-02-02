@@ -50,14 +50,14 @@ jobs:
       - name: Run matetrack
         working-directory: matetrack
         run: |
-          python matecheck.py --SyzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine /home/runner/work/DON/DON/DON/src/DON --epdFile mates2000.epd --nodes 100000 | tee matecheckout.out
+          python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine /home/runner/work/DON/DON/DON/src/DON --epdFile mates2000.epd --nodes 100000 | tee matecheckout.out
           ! grep "issues were detected" matecheckout.out > /dev/null
 
       - name: Run matetrack with --Syzygy50MoveRule false
         working-directory: matetrack
         run: |
           grep 5men cursed.epd > cursed5.epd
-          python matecheck.py --SyzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine /home/runner/work/DON/DON/DON/src/DON --epdFile cursed5.epd --nodes 100000 --Syzygy50MoveRule false | tee matecheckcursed.out
+          python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine /home/runner/work/DON/DON/DON/src/DON --epdFile cursed5.epd --nodes 100000 --syzygy50MoveRule false | tee matecheckcursed.out
           ! grep "issues were detected" matecheckcursed.out > /dev/null
 
       - name: Verify mate and TB win count for matecheckcursed.out
