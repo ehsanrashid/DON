@@ -500,7 +500,7 @@ inline std::vector<std::string_view> split(std::string_view str,
     while (true)
     {
         std::size_t end = str.find(delimiter, beg);
-        if (end == std::string::npos)
+        if (end == std::string_view::npos)
             break;
 
         parts.emplace_back(str.substr(beg, end - beg));

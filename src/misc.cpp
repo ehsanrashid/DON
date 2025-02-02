@@ -554,13 +554,7 @@ std::optional<std::string> read_file_to_string(const std::string& filePath) noex
     if (!ifstream)
         return std::nullopt;
 
-    // Pre-allocate the string to the file size
-    auto fileSize = get_file_size(ifstream);
-    if (fileSize < 0)
-        return std::nullopt;
-    std::string content(fileSize, '\0');
-    ifstream.read(&content[0], fileSize);
-    return content;
+    return std::string(std::istreambuf_iterator<char>(ifstream), std::istreambuf_iterator<char>());
 }
 
 }  // namespace DON
