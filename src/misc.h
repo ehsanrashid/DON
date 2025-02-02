@@ -58,7 +58,7 @@ class MultiArray;
 
 namespace Internal {
 template<typename T, std::size_t Size, std::size_t... Sizes>
-struct MultiArrayTypedef;
+struct [[maybe_unused]] MultiArrayTypedef;
 
 // Recursive template to define multi-dimensional MultiArray
 template<typename T, std::size_t Size, std::size_t... Sizes>
@@ -387,11 +387,11 @@ struct CommandLine final {
 };
 
 
-constexpr char digit_to_char(int digit) noexcept {
+inline char digit_to_char(int digit) noexcept {
     assert(0 <= digit && digit <= 9);
     return '0' + digit;
 }
-constexpr int char_to_digit(char ch) noexcept {
+inline int char_to_digit(char ch) noexcept {
     assert(std::isdigit(ch));
     return ch - '0';
 }

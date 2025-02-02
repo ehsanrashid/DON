@@ -403,7 +403,7 @@ perft(Position& pos, Depth depth, std::size_t ptSize, ThreadPool& threads, bool 
         perftTable.resize(ptSize, threads);
 
     auto nodes = perft<true>(pos, depth, detail).nodes;
-    std::cout << "\nTotal nodes : " << nodes << '\n' << std::endl;
+    std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
 
     if (use_perft_table(depth, detail))
         perftTable.free();
