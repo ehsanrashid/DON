@@ -220,8 +220,9 @@ class AffineTransform final {
 
             for (IndexType i = 0; i < CHUNK_COUNT; ++i)
             {
-                vec_t in0  = vec_set_32(input32[i]);
-                auto  col0 = reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
+                const vec_t in0 = vec_set_32(input32[i]);
+                const auto  col0 =
+                  reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
 
                 for (IndexType k = 0; k < REG_COUNT; ++k)
                     vec_add_dpbusd_32(acc[k], in0, col0[k]);

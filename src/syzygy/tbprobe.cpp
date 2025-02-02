@@ -39,6 +39,7 @@
 #include "../movegen.h"
 #include "../position.h"
 #include "../search.h"
+#include "../types.h"
 #include "../uci.h"
 #include "../ucioption.h"
 
