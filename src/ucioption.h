@@ -75,7 +75,7 @@ class Option final {
     operator int() const noexcept;
     operator std::string() const noexcept;
 
-    void operator<<(const Option& option) noexcept;
+    void operator<<(const Option&) noexcept = delete;
 
     friend bool operator==(const Option& o, std::string_view value) noexcept;
     friend bool operator!=(const Option& o, std::string_view value) noexcept;
@@ -101,7 +101,7 @@ class Option final {
 
     const Options* optionsPtr = nullptr;
 
-    //friend class Options;
+    friend class Options;
 };
 
 class Options final {
@@ -127,7 +127,7 @@ class Options final {
     auto size() const noexcept { return options.size(); }
     auto empty() const noexcept { return options.empty(); }
 
-    auto contains(const std::string& name) const noexcept {
+    auto contains(const std::string& name) const noexcept {  //
         return options.find(name) != options.end();
     }
     auto count(const std::string& name) const noexcept {  //
@@ -136,10 +136,11 @@ class Options final {
 
     void set_info_listener(InfoListener&& listener) noexcept;
 
-    void set_option(const std::string& name, const std::string& value) noexcept;
+    void add(const std::string& name, const Option& option) noexcept;
 
-    Option  operator[](const std::string& name) const noexcept;
-    Option& operator[](const std::string& name) noexcept;
+    void set(const std::string& name, const std::string& value) noexcept;
+
+    const Option& operator[](const std::string& name) const noexcept;
 
     friend std::ostream& operator<<(std::ostream& os, const Options& options) noexcept;
 

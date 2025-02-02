@@ -74,7 +74,7 @@ void Tune::make_option(Options*           optionsPtr,
     if (TuneResults.count(name))
         value = TuneResults[name];
 
-    (*optionsPtr)[name] << Option(value, range(value).first, range(value).second, on_tune);
+    optionsPtr->add(name, Option(value, range(value).first, range(value).second, on_tune));
     LastOption = &((*optionsPtr)[name]);
 
     // Print formatted parameters, ready to be copy-pasted in Fishtest

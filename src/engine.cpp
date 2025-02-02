@@ -61,47 +61,47 @@ Engine::Engine(std::optional<std::string> path) noexcept :
       NNUE::Networks(NNUE::BigNetwork  ({EvalFileDefaultNameBig  , "None", ""}, NNUE::BIG),
                      NNUE::SmallNetwork({EvalFileDefaultNameSmall, "None", ""}, NNUE::SMALL))) {
     
-    options["NumaPolicy"]       << Option("auto", [this](const Option& o) {
+    options.add("NumaPolicy",       Option("auto", [this](const Option& o) {
         set_numa_config(o);
         return get_numa_config_info() + '\n'  //
              + get_thread_allocation_info();
-    });
-    options["Threads"]          << Option(1, MIN_THREADS, MAX_THREADS, [this](const Option& o) {
+    }));
+    options.add("Threads",          Option(1, MIN_THREADS, MAX_THREADS, [this](const Option& o) {
         resize_threads_tt();
         return "Threads: " + std::to_string(int(o)) + '\n'  //
              + get_thread_allocation_info();
-    });
-    options["Hash"]             << Option(16, MIN_HASH, MAX_HASH, [this](const Option& o) {
+    }));
+    options.add("Hash",             Option(16, MIN_HASH, MAX_HASH, [this](const Option& o) {
         resize_tt(o);
         return "Hash: " + std::to_string(int(o));
-    });
-    options["Clear Hash"]       << Option([this](const Option&) { init(); return std::nullopt; });
-    options["HashRetain"]       << Option(false);
-    options["HashFile"]         << Option("");
-    options["Save Hash"]        << Option([this](const Option&) { (void)this; return std::nullopt; });
-    options["Load Hash"]        << Option([this](const Option&) { (void)this; return std::nullopt; });
-    options["Ponder"]           << Option(false);
-    options["MultiPV"]          << Option(DEFAULT_MULTI_PV, 1, 256);
-    options["SkillLevel"]       << Option(int(Skill::MAX_LEVEL), int(Skill::MIN_LEVEL), int(Skill::MAX_LEVEL));
-    options["MoveOverhead"]     << Option(10, 0, 5000);
-    options["NodesTime"]        << Option(0, 0, 10000);
-    options["DrawMoveCount"]    << Option(Position::DrawMoveCount, 5, 50, [](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; });
-    options["UCI_Chess960"]     << Option(Position::Chess960, [](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; });
-    options["UCI_LimitStrength"] << Option(false);
-    options["UCI_ELO"]          << Option(Skill::MAX_ELO, Skill::MIN_ELO, Skill::MAX_ELO);
-    options["UCI_ShowWDL"]      << Option(false);
-    options["OwnBook"]          << Option(false);
-    options["BookFile"]         << Option("", [](const Option& o) { Search::load_book(o); return std::nullopt; });
-    options["BookDepth"]        << Option(100, 1, 256);
-    options["BookBestPick"]     << Option(true);
-    options["SyzygyPath"]       << Option("", [](const Option& o) { Tablebases::init(o); return std::nullopt; });
-    options["SyzygyProbeLimit"] << Option(7, 0, 7);
-    options["SyzygyProbeDepth"] << Option(1, 1, 100);
-    options["Syzygy50MoveRule"] << Option(true);
-    options["EvalFileBig"]      << Option(EvalFileDefaultNameBig  , [this](const Option& o) { load_big_network(o);   return std::nullopt; });
-    options["EvalFileSmall"]    << Option(EvalFileDefaultNameSmall, [this](const Option& o) { load_small_network(o); return std::nullopt; });
-    options["ReportMinimal"]    << Option(false);
-    options["DebugLogFile"]     << Option("", [](const Option& o) { start_logger(o); return std::nullopt; });
+    }));
+    options.add("Clear Hash",       Option([this](const Option&) { init(); return std::nullopt; }));
+    options.add("HashRetain",       Option(false));
+    options.add("HashFile",         Option(""));
+    options.add("Save Hash",        Option([this](const Option&) { (void)this; return std::nullopt; }));
+    options.add("Load Hash",        Option([this](const Option&) { (void)this; return std::nullopt; }));
+    options.add("Ponder",           Option(false));
+    options.add("MultiPV",          Option(DEFAULT_MULTI_PV, 1, 256));
+    options.add("SkillLevel",       Option(int(Skill::MAX_LEVEL), int(Skill::MIN_LEVEL), int(Skill::MAX_LEVEL)));
+    options.add("MoveOverhead",     Option(10, 0, 5000));
+    options.add("NodesTime",        Option(0, 0, 10000));
+    options.add("DrawMoveCount",    Option(Position::DrawMoveCount, 5, 50, [](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; }));
+    options.add("UCI_Chess960",     Option(Position::Chess960, [](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; }));
+    options.add("UCI_LimitStrength",Option(false));
+    options.add("UCI_ELO",          Option(Skill::MAX_ELO, Skill::MIN_ELO, Skill::MAX_ELO));
+    options.add("UCI_ShowWDL",      Option(false));
+    options.add("OwnBook",          Option(false));
+    options.add("BookFile",         Option("", [](const Option& o) { Search::load_book(o); return std::nullopt; }));
+    options.add("BookDepth",        Option(100, 1, 256));
+    options.add("BookBestPick",     Option(true));
+    options.add("SyzygyPath",       Option("", [](const Option& o) { Tablebases::init(o); return std::nullopt; }));
+    options.add("SyzygyProbeLimit", Option(7, 0, 7));
+    options.add("SyzygyProbeDepth", Option(1, 1, 100));
+    options.add("Syzygy50MoveRule", Option(true));
+    options.add("EvalFileBig",      Option(EvalFileDefaultNameBig  , [this](const Option& o) { load_big_network(o);   return std::nullopt; }));
+    options.add("EvalFileSmall",    Option(EvalFileDefaultNameSmall, [this](const Option& o) { load_small_network(o); return std::nullopt; }));
+    options.add("ReportMinimal",    Option(false));
+    options.add("DebugLogFile",     Option("", [](const Option& o) { start_logger(o); return std::nullopt; }));
     // clang-format on
     load_networks();
     resize_threads_tt();

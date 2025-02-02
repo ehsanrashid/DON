@@ -189,14 +189,14 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
                 buffPos = 0;
             }
 
-            std::uint8_t byte = buffer[buffPos++];
+            std::uint8_t byt = buffer[buffPos++];
             --byteCount;
-            result |= (byte & 0x7F) << shift;
+            result |= (byt & 0x7F) << shift;
             shift += 7;
 
-            if ((byte & 0x80) == 0)
+            if ((byt & 0x80) == 0)
             {
-                out[i] = (8 * sizeof(IntType) <= shift || (byte & 0x40) == 0)
+                out[i] = (8 * sizeof(IntType) <= shift || (byt & 0x40) == 0)
                          ? result
                          : result | ~((1 << shift) - 1);
                 break;

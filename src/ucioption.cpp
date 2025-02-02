@@ -121,17 +121,6 @@ Option::operator std::string() const noexcept {
     return currentValue;
 }
 
-// Assign option and set idx in the correct insertion order
-void Option::operator<<(const Option& option) noexcept {
-    static std::uint16_t insertOrder = 0;
-
-    auto* optPtr = optionsPtr;
-    *this        = option;
-    optionsPtr   = optPtr;
-
-    idx = insertOrder++;
-}
-
 bool operator==(const Option& o, std::string_view value) noexcept {
     assert(o.type == OPT_COMBO);
     return CaseInsensitiveEqual()(o.currentValue, value);
@@ -189,7 +178,7 @@ Option& Option::operator=(std::string value) noexcept {
             token = lower_case(token);
             if (token == "var")
                 continue;
-            combos[token] << Option();
+            combos.add(token, Option());
         }
         if (lower_case(value) == "var" || !combos.contains(value))
             return *this;
@@ -227,21 +216,32 @@ void Options::set_info_listener(InfoListener&& listener) noexcept {
     infoListener = std::move(listener);
 }
 
-void Options::set_option(const std::string& name, const std::string& value) noexcept {
+// Add option and assigns idx in the correct insertion order
+void Options::add(const std::string& name, const Option& option) noexcept {
+    static std::uint16_t insertOrder = 0;
+
+    if (contains(name))
+    {
+        std::cerr << "Option: '" << name << "' was already added!" << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+
+    auto& o = options[name] = option;
+
+    o.idx        = insertOrder++;
+    o.optionsPtr = this;
+}
+
+void Options::set(const std::string& name, const std::string& value) noexcept {
     if (contains(name))
         options[name] = value;
     else
-        std::cout << "No such option: '" << name << "'\n";
+        std::cout << "No such option: '" << name << "'" << std::endl;
 }
 
-Option Options::operator[](const std::string& name) const noexcept {
-    return contains(name) ? options.at(name) : Option(this);
-}
-
-Option& Options::operator[](const std::string& name) noexcept {
-    if (!contains(name))
-        options[name] = Option(this);
-    return options[name];
+const Option& Options::operator[](const std::string& name) const noexcept {
+    assert(contains(name));
+    return options.at(name);
 }
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {

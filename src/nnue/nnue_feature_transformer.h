@@ -229,13 +229,13 @@ void permute(T (&data)[N], const std::array<std::size_t, OrderSize>& order) noex
     constexpr std::size_t ChunkSize = BlockSize * OrderSize;
     static_assert(TotalSize % ChunkSize == 0, "ChunkSize must perfectly divide TotalSize");
 
-    std::byte* const bytes = reinterpret_cast<std::byte*>(data);
+    std::byte* const byts = reinterpret_cast<std::byte*>(data);
 
     for (std::size_t i = 0; i < TotalSize; i += ChunkSize)
     {
         std::array<std::byte, ChunkSize> buffer{};
 
-        std::byte* const values = &bytes[i];
+        std::byte* const values = &byts[i];
 
         for (std::size_t j = 0; j < OrderSize; ++j)
         {
