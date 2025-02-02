@@ -722,7 +722,7 @@ class NumaConfig final {
             if (maxNodeSize < cpus.size())
                 maxNodeSize = cpus.size();
 
-        auto is_node_small = [=](const std::set<CpuIndex>& node) {
+        auto is_node_small = [maxNodeSize](const std::set<CpuIndex>& node) {
             return double(node.size()) / maxNodeSize <= 0.6;
         };
 
@@ -1025,7 +1025,7 @@ class NumaReplicated final: public NumaReplicatedBase {
    public:
     using ReplicatorFuncType = std::function<T(const T&)>;
 
-    explicit NumaReplicated(NumaReplicationContext& ctx) noexcept :
+    NumaReplicated(NumaReplicationContext& ctx) noexcept :
         NumaReplicatedBase(ctx) {
         replicate_from(T{});
     }
@@ -1109,7 +1109,7 @@ class LazyNumaReplicated final: public NumaReplicatedBase {
    public:
     using ReplicatorFuncType = std::function<T(const T&)>;
 
-    explicit LazyNumaReplicated(NumaReplicationContext& ctx) noexcept :
+    LazyNumaReplicated(NumaReplicationContext& ctx) noexcept :
         NumaReplicatedBase(ctx) {
         prepare_replicate_from(T{});
     }
@@ -1215,7 +1215,7 @@ class LazyNumaReplicated final: public NumaReplicatedBase {
 
 class NumaReplicationContext final {
    public:
-    explicit NumaReplicationContext(NumaConfig&& cfg) noexcept :
+    NumaReplicationContext(NumaConfig&& cfg) noexcept :
         config(std::move(cfg)) {}
 
     NumaReplicationContext(const NumaReplicationContext&) noexcept            = delete;

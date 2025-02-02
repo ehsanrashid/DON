@@ -269,7 +269,7 @@ void Engine::verify_networks() const noexcept {
 
 void Engine::load_networks() noexcept {
     networks.modify_and_replicate(  //
-      [&](NNUE::Networks& net) {
+      [this](NNUE::Networks& net) {
           net.big.load(binaryDirectory, options["EvalFileBig"]);
           net.small.load(binaryDirectory, options["EvalFileSmall"]);
       });
