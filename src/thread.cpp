@@ -50,8 +50,8 @@ Thread::Thread(std::size_t                           id,
         // the Worker allocation.
         // Ideally we would also allocate the SearchManager here, but that's minor.
         this->numaAccessToken = nodeBinder();
-        this->worker =
-          std::make_unique<Worker>(id, sharedState, std::move(searchManager), this->numaAccessToken);
+        this->worker          = std::make_unique<Worker>(id, sharedState, std::move(searchManager),
+                                                         this->numaAccessToken);
     });
     wait_finish();
 }
@@ -115,7 +115,7 @@ void ThreadPool::set(const NumaConfig&    numaConfig,
     // change the NumaConfig UCI setting) is to not bind the threads to processors
     // unless we know for sure that we span NUMA nodes and replication is required.
     std::string numaPolicy  = lower_case(sharedState.options["NumaPolicy"]);
-    const bool  bind_thread = [&]() {
+    const bool  threadBind = [&]() {
         if (numaPolicy == "none")
             return false;
 
@@ -126,15 +126,15 @@ void ThreadPool::set(const NumaConfig&    numaConfig,
         return true;
     }();
 
-    numaNodeBoundThreadIds = bind_thread
+    numaNodeBoundThreadIds = threadBind
                              ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
                              : std::vector<NumaIndex>{};
 
-    const NumaConfig* numaConfigPtr = bind_thread ? &numaConfig : nullptr;
+    const NumaConfig* numaConfigPtr = threadBind ? &numaConfig : nullptr;
 
     for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
     {
-        NumaIndex numaIdx = bind_thread ? numaNodeBoundThreadIds[threadId] : 0;
+        NumaIndex numaIdx = threadBind ? numaNodeBoundThreadIds[threadId] : 0;
 
         ISearchManagerPtr searchManager;
         if (threadId == 0)
