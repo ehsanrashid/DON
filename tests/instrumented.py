@@ -122,11 +122,11 @@ class TestCLI(metaclass=OrderedClassMembers):
         assert self.engine.process.returncode == 0
 
     def test_bench_128_threads_8_default_depth(self):
-        self.engine = DON(f"bench 128 {get_threads()} 8 default depth".split(" "), True)
+        self.engine = DON(f"bench 128 {get_threads()} 8 default depth".split(" "), True,)
         assert self.engine.process.returncode == 0
 
     def test_bench_128_threads_3_bench_tmp_epd_depth(self):
-        self.engine = DON(f"bench 128 {get_threads()} 3 {os.path.join(PATH,'bench_tmp.epd')} depth".split(" "), True)
+        self.engine = DON(f"bench 128 {get_threads()} 3 {os.path.join(PATH,'bench_tmp.epd')} depth".split(" "), True,)
         assert self.engine.process.returncode == 0
 
     def test_show(self):
@@ -153,7 +153,7 @@ class TestCLI(metaclass=OrderedClassMembers):
     # verify the generated net equals the base net
 
     def test_network_equals_base(self):
-        self.engine = DON(["uci"], True)
+        self.engine = DON(["uci"], True,)
 
         output = self.engine.process.stdout
 
