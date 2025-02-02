@@ -78,6 +78,7 @@ jobs:
           make clean
           make -j4 profile-build ARCH=$BINARY COMP=$COMP WINE_PATH="$SDE"
           make strip ARCH=$BINARY COMP=$COMP
+          chmod +x ../tests/signature.sh
           WINE_PATH="$SDE" ../tests/signature.sh $benchref
           mv ./DON$EXT ../DON-$NAME-$BINARY$EXT
 
