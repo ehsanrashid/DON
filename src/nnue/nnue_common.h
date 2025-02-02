@@ -248,8 +248,8 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
         buffPos = 0;
     };
 
-    auto write = [&](std::uint8_t byte) {
-        buffer[buffPos++] = byte;
+    auto write = [&](std::uint8_t b) {
+        buffer[buffPos++] = b;
         if (buffPos == BUFF_SIZE)
             flush();
     };

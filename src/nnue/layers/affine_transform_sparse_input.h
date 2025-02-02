@@ -287,12 +287,15 @@ class AffineTransformSparseInput {
         for (IndexType k = 0; k < REG_COUNT; ++k)
             acc[k] = biasvec[k];
 
+        // Create a temporary array to avoid modifying a read-only pointer
+        int tempInput32[CHUNK_COUNT] = {};  // Initialize all elements to 0
+        std::copy(input32, input32 + CHUNK_COUNT, tempInput32);
+
         for (IndexType j = 0; j < count; ++j)
         {
             const auto    i  = nnz[j];
-            const invec_t in = vec_set_32(input32[i]);
-            const auto    col =
-              reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * CHUNK_SIZE]);
+            const invec_t in = vec_set_32(tempInput32[i]); 
+            const auto* col = reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * CHUNK_SIZE]);
             for (IndexType k = 0; k < REG_COUNT; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
