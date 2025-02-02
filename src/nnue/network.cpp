@@ -17,7 +17,7 @@
 
 #include "network.h"
 
-#include <assert.h>
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -267,15 +267,13 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType transformedFeaturesUnaligned
       [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE
-       + ALIGNMENT / sizeof(TransformedFeatureType)];
-    std::memset(transformedFeaturesUnaligned, 0, sizeof(transformedFeaturesUnaligned));
+       + ALIGNMENT / sizeof(TransformedFeatureType)]{};
 
     auto* transformedFeatures = align_ptr_up<ALIGNMENT>(&transformedFeaturesUnaligned[0]);
 #else
     alignas(ALIGNMENT) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE];
-    std::fill(std::begin(transformedFeatures), std::end(transformedFeatures),
-              TransformedFeatureType{});
+      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE]{};
+    std::memset(transformedFeatures, 0, sizeof(transformedFeatures));
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
@@ -304,15 +302,13 @@ EvalTrace Network<Arch, Transformer>::trace_eval(
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType transformedFeaturesUnaligned
       [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE
-       + ALIGNMENT / sizeof(TransformedFeatureType)];
-    std::memset(transformedFeaturesUnaligned, 0, sizeof(transformedFeaturesUnaligned));
+       + ALIGNMENT / sizeof(TransformedFeatureType)]{};
 
     auto* transformedFeatures = align_ptr_up<ALIGNMENT>(&transformedFeaturesUnaligned[0]);
 #else
     alignas(ALIGNMENT) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE];
-    std::fill(std::begin(transformedFeatures), std::end(transformedFeatures),
-              TransformedFeatureType{});
+      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE]{};
+    std::memset(transformedFeatures, 0, sizeof(transformedFeatures));
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);

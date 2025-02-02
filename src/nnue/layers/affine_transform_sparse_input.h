@@ -282,10 +282,10 @@ class AffineTransformSparseInput {
         // Find indices of nonzero 32-bit blocks
         find_nnz<CHUNK_COUNT>(input32, nnz, count);
 
-        const auto* biasvec = reinterpret_cast<const outvec_t*>(biases);
+        const auto* biasVec = reinterpret_cast<const outvec_t*>(biases);
         outvec_t    acc[REG_COUNT];
         for (IndexType k = 0; k < REG_COUNT; ++k)
-            acc[k] = biasvec[k];
+            acc[k] = biasVec[k];
 
         for (IndexType j = 0; j < count; ++j)
         {
