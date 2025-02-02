@@ -271,7 +271,8 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
     auto* transformedFeatures = align_ptr_up<ALIGNMENT>(&transformedFeaturesUnaligned[0]);
 #else
     alignas(ALIGNMENT) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE]{};
+      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE];
+    std::memset(transformedFeatures, 0, sizeof(transformedFeatures));
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
@@ -305,12 +306,13 @@ EvalTrace Network<Arch, Transformer>::trace_eval(
     auto* transformedFeatures = align_ptr_up<ALIGNMENT>(&transformedFeaturesUnaligned[0]);
 #else
     alignas(ALIGNMENT) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE]{};
+      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE];
+    std::memset(transformedFeatures, 0, sizeof(transformedFeatures));
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
 
-    EvalTrace trace;
+    EvalTrace trace{};
     trace.correctBucket = (pos.count<ALL_PIECE>() - 1) / 4;
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
