@@ -223,11 +223,12 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
     std::uint32_t byteCount = 0;
     for (std::size_t i = 0; i < count; ++i)
     {
-        IntType      value = values[i];
+        IntType value = values[i];
+
         std::uint8_t byte;
         do
         {
-            byte = value & 0x7f;
+            byte = value & 0x7F;
             value >>= 7;
             ++byteCount;
         } while ((byte & 0x40) == 0 ? value != 0 : value != -1);

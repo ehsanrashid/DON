@@ -192,7 +192,7 @@ constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 #else
     std::uint64_t u1L = std::uint32_t(u1), u1H = u1 >> 32;
     std::uint64_t u2L = std::uint32_t(u2), u2H = u2 >> 32;
-    std::uint64_t vM = u1H * u2L + ((u1L * u2L) >> 32);  // vL
+    std::uint64_t vM = u1H * u2L + ((u1L * u2L) >> 32);
     std::uint64_t vH = u1L * u2H + std::uint32_t(vM);
     return u1H * u2H + (vH >> 32) + (vM >> 32);
 #endif
