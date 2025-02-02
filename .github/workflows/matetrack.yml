@@ -53,7 +53,7 @@ jobs:
           python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine /home/runner/work/DON/DON/DON/src/DON --epdFile mates2000.epd --nodes 100000 | tee matecheckout.out
           ! grep "issues were detected" matecheckout.out > /dev/null
 
-      - name: Run matetrack with --Syzygy50MoveRule false
+      - name: Run matetrack with --syzygy50MoveRule false
         working-directory: matetrack
         run: |
           grep 5men cursed.epd > cursed5.epd

@@ -1219,6 +1219,11 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         int r = reduction(depth, moveCount, deltaRatio, improve);
 
+        // Increase reduction for ttPv nodes (*Scaler)
+        // Smaller or even negative value is better for short time controls
+        // Bigger value is better for long time controls
+        r += 1024 * ss->pvHit;
+
         // Step 14. Pruning at shallow depth
         // Depth conditions are important for mate finding.
         if (!RootNode && npm && !is_loss(bestValue))
@@ -1394,7 +1399,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                                   + (*contHistory[1])[movedPiece][dst] - 3752;
 
         // Decrease reduction if position is or has been on the PV (*Scaler)
-        r -= (1037                                                //
+        r -= (2061                                                //
               + 965 * (is_valid(ttd.value) && ttd.value > alpha)  //
               + 960 * (ttd.depth >= depth))
            * ss->pvHit;
