@@ -62,23 +62,6 @@ void load_book(const std::string& bookFile) noexcept;
 
 }  // namespace Search
 
-// clang-format off
-// History
-extern History<HCapture>           captureHistory;
-extern History<HQuiet>               quietHistory;
-extern History<HPawn>                 pawnHistory;
-extern History<HContinuation> continuationHistory[2][2];
-
-// Low Ply History
-extern History<HLowPlyQuiet> lowPlyQuietHistory;
-
-// Correction History
-extern CorrectionHistory<CHPawn>                 pawnCorrectionHistory;
-extern CorrectionHistory<CHMinor>               minorCorrectionHistory;
-extern CorrectionHistory<CHMajor>               majorCorrectionHistory;
-extern CorrectionHistory<CHContinuation> continuationCorrectionHistory;
-// clang-format on
-
 // RootMove struct is used for moves at the root of the tree. For each root move
 // store a score and a PV (really a refutation in the case of moves which fail low).
 // Score is normally set at -VALUE_INFINITE for all non-pv moves.

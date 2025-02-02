@@ -54,14 +54,17 @@ class StatsEntry final {
         // Make sure that bonus is in range [-D, D]
         int clampedBonus = std::clamp(bonus, -D, +D);
         
-        T oldVal = value.load(std::memory_order_acquire);
-        T newVal; 
-        do
+        T oldValue = value.load(std::memory_order_acquire);
+
+        while (true)
         {
-            newVal = oldVal + clampedBonus - oldVal * std::abs(clampedBonus) / D;
-            assert(std::abs(newVal) <= D);
-        } while (!value.compare_exchange_weak(oldVal, newVal, std::memory_order_release,
-                                              std::memory_order_relaxed));
+            T newValue = oldValue + clampedBonus - oldValue * std::abs(clampedBonus) / D;
+            assert(std::abs(newValue) <= D);
+
+            if (value.compare_exchange_weak(oldValue, newValue, std::memory_order_release,
+                                            std::memory_order_relaxed))
+                break;
+        }
     }
 
    private:

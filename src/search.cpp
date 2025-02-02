@@ -137,6 +137,21 @@ namespace {
 
 constexpr inline int MaxQuietThreshold = -7998;
 
+// History
+History<HCapture>           captureHistory;
+History<HQuiet>               quietHistory;
+History<HPawn>                 pawnHistory;
+History<HContinuation> continuationHistory[2][2];
+
+// Low Ply History
+History<HLowPlyQuiet> lowPlyQuietHistory;
+
+// Correction History
+CorrectionHistory<CHPawn>                 pawnCorrectionHistory;
+CorrectionHistory<CHMinor>               minorCorrectionHistory;
+CorrectionHistory<CHMajor>               majorCorrectionHistory;
+CorrectionHistory<CHContinuation> continuationCorrectionHistory;
+
 // Reductions lookup table initialized at startup
 std::array<std::int16_t, MAX_MOVES> reductions;  // [depth or moveCount]
 
@@ -208,21 +223,6 @@ void extend_tb_pv(Position&      rootPos,
                   const Options& options) noexcept;
 
 }  // namespace
-
-// History
-History<HCapture>           captureHistory;
-History<HQuiet>               quietHistory;
-History<HPawn>                 pawnHistory;
-History<HContinuation> continuationHistory[2][2];
-
-// Low Ply History
-History<HLowPlyQuiet> lowPlyQuietHistory;
-
-// Correction History
-CorrectionHistory<CHPawn>                 pawnCorrectionHistory;
-CorrectionHistory<CHMinor>               minorCorrectionHistory;
-CorrectionHistory<CHMajor>               majorCorrectionHistory;
-CorrectionHistory<CHContinuation> continuationCorrectionHistory;
 
 namespace Search {
 
