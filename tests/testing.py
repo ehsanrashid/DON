@@ -285,14 +285,14 @@ class MiniTestFramework:
         print(f"    {GREEN_COLOR}✓{RESET_COLOR}{add}", flush=True)
 
 
-class Engine:
+class DON:
     def __init__(
         self,
         prefix: List[str],
         path: str,
         args: List[str] = [],
-        cli: bool = False):
-
+        cli: bool = False,
+    ):
         self.path = path
         self.process = None
         self.args = args
@@ -312,7 +312,8 @@ class Engine:
             self.process = subprocess.run(
                 self.prefix + [self.path] + self.args,
                 capture_output=True,
-                text=True)
+                text=True,
+            )
 
             self.process.stdout
 
@@ -324,7 +325,8 @@ class Engine:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             universal_newlines=True,
-            bufsize=1)
+            bufsize=1,
+        )
 
     def setoption(self, name: str, value: str):
         self.send_command(f"setoption name {name} value {value}")
