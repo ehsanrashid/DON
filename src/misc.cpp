@@ -526,10 +526,10 @@ std::string CommandLine::get_working_directory() noexcept {
 
 std::size_t str_to_size_t(const std::string& str) noexcept {
 
-    auto value = std::stoull(str);
+    unsigned long long value = std::stoull(str);
     if (value > std::numeric_limits<std::size_t>::max())
         std::exit(EXIT_FAILURE);
-    return value;
+    return std::size_t(value);
 }
 
 std::streamsize get_file_size(std::ifstream& ifstream) noexcept {

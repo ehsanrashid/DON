@@ -13,7 +13,7 @@ echo "perft testing started"
 cat << EOF > perft.exp
    set timeout 10
    lassign \$argv pos depth nodes
-   spawn ./DON
+   spawn ./don
    send "position \$pos\\ngo perft \$depth\\n"
    expect "Total nodes? \$nodes" {} timeout {exit 1}
    send "quit\\n"
