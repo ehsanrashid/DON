@@ -1025,7 +1025,7 @@ class NumaReplicated final: public NumaReplicatedBase {
    public:
     using ReplicatorFuncType = std::function<T(const T&)>;
 
-    NumaReplicated(NumaReplicationContext& ctx) noexcept :
+    explicit NumaReplicated(NumaReplicationContext& ctx) noexcept :
         NumaReplicatedBase(ctx) {
         replicate_from(T{});
     }
@@ -1109,7 +1109,7 @@ class LazyNumaReplicated final: public NumaReplicatedBase {
    public:
     using ReplicatorFuncType = std::function<T(const T&)>;
 
-    LazyNumaReplicated(NumaReplicationContext& ctx) noexcept :
+    explicit LazyNumaReplicated(NumaReplicationContext& ctx) noexcept :
         NumaReplicatedBase(ctx) {
         prepare_replicate_from(T{});
     }
@@ -1215,7 +1215,7 @@ class LazyNumaReplicated final: public NumaReplicatedBase {
 
 class NumaReplicationContext final {
    public:
-    NumaReplicationContext(NumaConfig&& cfg) noexcept :
+    explicit NumaReplicationContext(NumaConfig&& cfg) noexcept :
         config(std::move(cfg)) {}
 
     NumaReplicationContext(const NumaReplicationContext&) noexcept            = delete;

@@ -20,7 +20,9 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 
 #include "../nnue_common.h"
@@ -288,11 +290,12 @@ class AffineTransformSparseInput {
             acc[k] = biasVec[k];
 
         InputType tmpInput32[CHUNK_COUNT]{};  // Initialize all elements to 0
-        std::copy(input32, input32 + CHUNK_COUNT, tmpInput32);
+        std::memcpy(tmpInput32, input32, CHUNK_COUNT * sizeof(InputType));
 
         for (IndexType j = 0; j < count; ++j)
         {
-            const auto    i  = nnz[j];
+            const auto i = nnz[j];
+            assert(i < CHUNK_COUNT);
             const invec_t in = vec_set_32(tmpInput32[i]);
             const auto*   col =
               reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * CHUNK_SIZE]);
