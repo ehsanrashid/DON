@@ -434,7 +434,7 @@ def parse_args():
     parser.add_argument(
         "--sanitizer-undefined",
         action="store_true",
-        help="Run sanitizer-undefined testing",)
+        help="Run sanitizer-undefined testing")
     parser.add_argument(
         "--sanitizer-thread",
         action="store_true",
