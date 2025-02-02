@@ -190,14 +190,14 @@ class ThreadPool final {
 
     std::vector<std::size_t> get_bound_thread_counts() const noexcept;
 
-    std::atomic_bool stop, abort, research;
+    std::atomic<bool> stop, abort, research;
 
    private:
     template<typename T>
-    T accumulate(T Worker::*member, T sum = T()) const noexcept {
+    T accumulate(std::atomic<T> Worker::*member, T sum = T()) const noexcept {
 
         for (auto&& th : threads)
-            sum += th->worker.get()->*member;
+            sum += (th->worker.get()->*member).load(std::memory_order_relaxed);
         return sum;
     }
 

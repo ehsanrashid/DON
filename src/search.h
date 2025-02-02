@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -567,8 +568,8 @@ class Worker final {
     RootMoves rootMoves;
     Depth     rootDepth, completedDepth;
 
-    std::uint64_t nodes, tbHits;
-    std::uint16_t moveChanges;
+    std::atomic<std::uint64_t> nodes, tbHits;
+    std::atomic<std::uint16_t> moveChanges;
 
     int           rootDelta;
     std::int16_t  nmpMinPly;

@@ -317,7 +317,7 @@ namespace {
 template<std::size_t N>
 class Info final {
    public:
-    [[nodiscard]] constexpr std::atomic_int64_t& operator[](std::size_t index) noexcept {
+    [[nodiscard]] constexpr std::atomic<std::int64_t>& operator[](std::size_t index) noexcept {
         assert(index < N);
         return data[index];
     }
@@ -335,7 +335,7 @@ class Info final {
     }
 
    private:
-    std::array<std::atomic_int64_t, N> data;
+    std::array<std::atomic<std::int64_t>, N> data;
 };
 
 constexpr inline std::size_t MAX_SLOT = 32;

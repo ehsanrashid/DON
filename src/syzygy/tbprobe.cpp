@@ -366,16 +366,16 @@ struct TBTable final {
 
     static constexpr int SIDES = 1 + 1 * (Type == WDL);
 
-    std::atomic_bool ready;
-    void*            baseAddress;
-    std::uint8_t*    map;
-    std::uint64_t    mapping;
-    Key              key[COLOR_NB];
-    std::uint8_t     pieceCount;
-    bool             hasPawns;
-    bool             hasUniquePieces;
-    std::uint8_t     pawnCount[COLOR_NB];        // [Lead color / other color]
-    PairsData        items[SIDES][FILE_NB / 2];  // [wtm / btm][FILE_A..FILE_D or 0]
+    std::atomic<bool> ready;
+    void*             baseAddress;
+    std::uint8_t*     map;
+    std::uint64_t     mapping;
+    Key               key[COLOR_NB];
+    std::uint8_t      pieceCount;
+    bool              hasPawns;
+    bool              hasUniquePieces;
+    std::uint8_t      pawnCount[COLOR_NB];        // [Lead color / other color]
+    PairsData         items[SIDES][FILE_NB / 2];  // [wtm / btm][FILE_A..FILE_D or 0]
 
     PairsData* get(int ac, int f) noexcept { return &items[ac % SIDES][hasPawns * f]; }
 

@@ -17,7 +17,6 @@
 
 #include "search.h"
 
-#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
@@ -670,7 +669,7 @@ void Worker::iterative_deepening() noexcept {
             if (completedDepth >= 10)
             {
                 assert(nodes != 0);
-                double scaledNodes = 100000.0 * rootMoves.front().nodes / std::max(nodes, std::uint64_t(1));
+                double scaledNodes = 100000.0 * rootMoves.front().nodes / std::max(std::uint64_t(nodes), std::uint64_t(1));
                 nodeReduction   -= 70.79288e-6 * std::max(-95056.0 + scaledNodes, 0.0);  // -97056.0 + 2000.0
             }
             double reCapture     = 1.0;
@@ -869,7 +868,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             if (ps != Tablebases::FAIL)
             {
-                ++tbHits;
+                tbHits.fetch_add(1, std::memory_order_relaxed);
 
                 std::int8_t drawValue = 1 * tbConfig.rule50Use;
 
@@ -1017,7 +1016,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         // Speculative prefetch as early as possible
         tt.prefetch_key(pos.key());
-        ++nodes;
+        nodes.fetch_add(1, std::memory_order_relaxed);
         // clang-format off
         ss->move                     = Move::Null();
         ss->pieceSqHistory           = &continuationHistory[0][0][NO_PIECE][SQ_ZERO];
@@ -1101,7 +1100,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             // Speculative prefetch as early as possible
             tt.prefetch_key(pos.key());
-            ++nodes;
+            nodes.fetch_add(1, std::memory_order_relaxed);
             // clang-format off
             ss->move                     = move;
             ss->pieceSqHistory           = &continuationHistory[ss->inCheck][true][movedPiece][dst];
@@ -1371,14 +1370,14 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         [[maybe_unused]] std::uint64_t preNodes;
         if constexpr (RootNode)
-            preNodes = nodes;
+            preNodes = std::uint64_t(nodes);
 
         // Step 16. Make the move
         pos.do_move(move, st, check);
 
         // Speculative prefetch as early as possible
         tt.prefetch_key(pos.key());
-        ++nodes;
+        nodes.fetch_add(1, std::memory_order_relaxed);
         // Update the move (this must be done after singular extension search)
         // clang-format off
         ss->move                     = move;
@@ -1899,7 +1898,7 @@ QS_MOVES_LOOP:
 
         // Speculative prefetch as early as possible
         tt.prefetch_key(pos.key());
-        ++nodes;
+        nodes.fetch_add(1, std::memory_order_relaxed);
         // Update the move
         // clang-format off
         ss->move                     = move;
