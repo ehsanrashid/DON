@@ -55,6 +55,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     binaryDirectory(path ? CommandLine::get_binary_directory(*path) : ""),
     numaContext(NumaConfig::from_system(true)),
     threads(),
+    tt(),
     networks(
       numaContext,
       NNUE::Networks(NNUE::BigNetwork  ({EvalFileDefaultNameBig  , "None", ""}, NNUE::BIG),
