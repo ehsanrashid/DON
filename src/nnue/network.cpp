@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -266,7 +267,8 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType transformedFeaturesUnaligned
       [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE
-       + ALIGNMENT / sizeof(TransformedFeatureType)]{};
+       + ALIGNMENT / sizeof(TransformedFeatureType)];
+    std::memset(transformedFeaturesUnaligned, 0, sizeof(transformedFeaturesUnaligned));
 
     auto* transformedFeatures = align_ptr_up<ALIGNMENT>(&transformedFeaturesUnaligned[0]);
 #else
@@ -302,6 +304,7 @@ EvalTrace Network<Arch, Transformer>::trace_eval(
     TransformedFeatureType transformedFeaturesUnaligned
       [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE
        + ALIGNMENT / sizeof(TransformedFeatureType)];
+    std::memset(transformedFeaturesUnaligned, 0, sizeof(transformedFeaturesUnaligned));
 
     auto* transformedFeatures = align_ptr_up<ALIGNMENT>(&transformedFeaturesUnaligned[0]);
 #else
