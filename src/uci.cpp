@@ -704,6 +704,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     if (threadBinding.empty())
         threadBinding = "none";
 
+    // clang-format off
     std::cerr << "\n==========================="
               << "\nVersion                    : " << version_info()
               << "\nCompiler                   : " << compiler_info()
@@ -715,13 +716,12 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
               << "\nThread binding             : " << threadBinding
               << "\nTT size [MiB]              : " << benchmark.ttSize
               << "\nHash max, avg [per mille]  : "  //
-              << "\n    Single search          : " << maxHashFull[0] << ", "
-              << sumHashFull[0] / hashFullCount  //
-              << "\n    Single game            : " << maxHashFull[1] << ", "
-              << sumHashFull[1] / hashFullCount  //
+              << "\n    Single search          : " << maxHashFull[0] << ", " << sumHashFull[0] / hashFullCount  //
+              << "\n    Single game            : " << maxHashFull[1] << ", " << sumHashFull[1] / hashFullCount  //
               << "\nTotal time [s]             : " << elapsedTime / 1000.0
               << "\nTotal nodes                : " << nodes
               << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
+    // clang-format on
 
     infoStringStop = false;
     init_update_listeners();
