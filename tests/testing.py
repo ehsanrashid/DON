@@ -139,7 +139,8 @@ def timeout_decorator(timeout: float):
                 except concurrent.futures.TimeoutError:
                     raise TimeoutException(
                         f"Function {func.__name__} timed out after {timeout} seconds",
-                        timeout,)
+                        timeout,
+                        )
             return result
 
         return wrapper
@@ -226,8 +227,7 @@ class MiniTestFramework:
             self.tests_passed += 1
         except Exception as e:
             if isinstance(e, TimeoutException):
-                self.print_failure(
-                    f" {method} (hit execution limit of {e.timeout} seconds)")
+                self.print_failure(f" {method} (hit execution limit of {e.timeout} seconds)")
 
             if isinstance(e, AssertionError):
                 self.__handle_assertion_error(t0, method)

@@ -114,7 +114,7 @@ void ThreadPool::set(const NumaConfig&    numaConfig,
     // This is undesirable, and so the default behaviour (i.e. when the user does not
     // change the NumaConfig UCI setting) is to not bind the threads to processors
     // unless we know for sure that we span NUMA nodes and replication is required.
-    std::string numaPolicy  = lower_case(sharedState.options["NumaPolicy"]);
+    std::string numaPolicy = lower_case(sharedState.options["NumaPolicy"]);
     const bool  threadBind = [&]() {
         if (numaPolicy == "none")
             return false;
