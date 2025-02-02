@@ -283,7 +283,7 @@ class AffineTransformSparseInput {
         find_nnz<CHUNK_COUNT>(input32, nnz, count);
 
         const auto* biasvec = reinterpret_cast<const outvec_t*>(biases);
-        outvec_t acc[REG_COUNT];
+        outvec_t    acc[REG_COUNT];
         for (IndexType k = 0; k < REG_COUNT; ++k)
             acc[k] = biasvec[k];
 
@@ -297,9 +297,9 @@ class AffineTransformSparseInput {
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
 
-        auto* outptr = reinterpret_cast<outvec_t*>(output);
+        auto* outVec = reinterpret_cast<outvec_t*>(output);
         for (IndexType k = 0; k < REG_COUNT; ++k)
-            outptr[k] = acc[k];
+            outVec[k] = acc[k];
     #undef vec_set_32
     #undef vec_add_dpbusd_32
 #else
