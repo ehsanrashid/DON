@@ -355,11 +355,11 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.starts_with("bestmove")
 
     def test_fen_position_with_skill_level(self):
-        self.engine.send_command("setoption name Skill Level value 10")
+        self.engine.send_command("setoption name SkillLevel value 10")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
-        self.engine.send_command("setoption name Skill Level value 20")
+        self.engine.send_command("setoption name SkillLevel value 20")
 
 
 class TestSyzygy(metaclass=OrderedClassMembers):
