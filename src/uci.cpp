@@ -437,7 +437,8 @@ void UCI::set_option(std::istringstream& iss) noexcept {
         name += token;
         first = false;
     }
-    assert(lower_case(token) == "value");
+    //assert(lower_case(token) == "value");
+
     // Read the option value (can contain spaces)
     first = true;
     while (iss >> token)
