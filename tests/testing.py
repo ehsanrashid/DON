@@ -114,14 +114,17 @@ class Syzygy:
                 tarball_path = os.path.join(tmpdirname, f"{file}.tar.gz")
 
                 response = requests.get(url, stream=True)
-                with open(tarball_path, 'wb') as f:
+                with open(tarball_path, "wb") as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
 
                 with tarfile.open(tarball_path, "r:gz") as tar:
                     tar.extractall(tmpdirname)
 
-                shutil.move(os.path.join(tmpdirname, file), os.path.join(PATH, "syzygy"))
+                shutil.move(
+                    os.path.join(tmpdirname, file), os.path.join(PATH, "syzygy")
+                )
+
 
 class OrderedClassMembers(type):
     @classmethod
@@ -153,7 +156,7 @@ def timeout_decorator(timeout: float):
                     raise TimeoutException(
                         f"Function {func.__name__} timed out after {timeout} seconds",
                         timeout,
-                        )
+                    )
             return result
 
         return wrapper
@@ -240,7 +243,9 @@ class MiniTestFramework:
             self.tests_passed += 1
         except Exception as e:
             if isinstance(e, TimeoutException):
-                self.print_failure(f" {method} (hit execution limit of {e.timeout} seconds)")
+                self.print_failure(
+                    f" {method} (hit execution limit of {e.timeout} seconds)"
+                )
 
             if isinstance(e, AssertionError):
                 self.__handle_assertion_error(t0, method)
@@ -277,8 +282,12 @@ class MiniTestFramework:
 
     def __print_summary(self, duration: float):
         print(f"\n{WHITE_BOLD}Test Summary{RESET_COLOR}\n")
-        print(f"    Test Suites: {GREEN_COLOR}{self.test_suites_passed} passed{RESET_COLOR}, {RED_COLOR}{self.test_suites_failed} failed{RESET_COLOR}, {self.test_suites_passed + self.test_suites_failed} total")
-        print(f"    Tests:       {GREEN_COLOR}{self.tests_passed} passed{RESET_COLOR}, {RED_COLOR}{self.tests_failed} failed{RESET_COLOR}, {self.tests_passed + self.tests_failed} total")
+        print(
+            f"    Test Suites: {GREEN_COLOR}{self.test_suites_passed} passed{RESET_COLOR}, {RED_COLOR}{self.test_suites_failed} failed{RESET_COLOR}, {self.test_suites_passed + self.test_suites_failed} total"
+        )
+        print(
+            f"    Tests:       {GREEN_COLOR}{self.tests_passed} passed{RESET_COLOR}, {RED_COLOR}{self.tests_failed} failed{RESET_COLOR}, {self.tests_passed + self.tests_failed} total"
+        )
         print(f"    Time:        {duration}s\n")
 
     def print_failure(self, add: str):
