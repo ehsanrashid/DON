@@ -624,7 +624,7 @@ class NumaConfig final {
         NumaConfig cfg = empty();
 
         NumaIndex nIdx = 0;
-        for (const auto& nodeStr : split(str, ":"))
+        for (auto&& nodeStr : split(str, ":"))
         {
             auto indices = indices_from_shortened_string(std::string(nodeStr));
             if (!indices.empty())
