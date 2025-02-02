@@ -105,14 +105,17 @@ class Engine final {
    private:
     const std::string binaryDirectory;
 
-    Position                           pos;
-    StateListPtr                       states;
+    NumaReplicationContext numaContext;
+
     Options                            options;
     ThreadPool                         threads;
     TranspositionTable                 tt;
-    NumaReplicationContext             numaContext;
     LazyNumaReplicated<NNUE::Networks> networks;
-    UpdateContext                      updateContext;
+
+    Position     pos;
+    StateListPtr states;
+
+    UpdateContext updateContext;
 };
 
 }  // namespace DON

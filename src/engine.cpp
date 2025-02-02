@@ -53,8 +53,8 @@ constexpr inline std::size_t MAX_HASH =
 Engine::Engine(std::optional<std::string> path) noexcept :
     // clang-format off
     binaryDirectory(path ? CommandLine::get_binary_directory(*path) : ""),
-    threads(),
     numaContext(NumaConfig::from_system(true)),
+    threads(),
     networks(
       numaContext,
       NNUE::Networks(NNUE::BigNetwork  ({EvalFileDefaultNameBig  , "None", ""}, NNUE::BIG),
