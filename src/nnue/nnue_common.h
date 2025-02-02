@@ -225,13 +225,13 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
     {
         IntType value = values[i];
 
-        std::uint8_t byte;
+        std::uint8_t byt;
         do
         {
-            byte = value & 0x7F;
+            byt = value & 0x7F;
             value >>= 7;
             ++byteCount;
-        } while ((byte & 0x40) == 0 ? value != 0 : value != -1);
+        } while ((byt & 0x40) == 0 ? value != 0 : value != -1);
     }
 
     write_little_endian(ostream, byteCount);
@@ -249,8 +249,8 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
         buffPos = 0;
     };
 
-    auto write = [&](std::uint8_t byte) {
-        buffer[buffPos++] = byte;
+    auto write = [&](std::uint8_t byt) {
+        buffer[buffPos++] = byt;
         if (buffPos == BUFF_SIZE)
             flush();
     };
@@ -260,14 +260,14 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
         IntType value = values[i];
         while (true)
         {
-            std::uint8_t byte = value & 0x7F;
+            std::uint8_t byt = value & 0x7F;
             value >>= 7;
-            if ((byte & 0x40) == 0 ? value == 0 : value == -1)
+            if ((byt & 0x40) == 0 ? value == 0 : value == -1)
             {
-                write(byte);
+                write(byt);
                 break;
             }
-            write(byte | 0x80);
+            write(byt | 0x80);
         }
     }
 
