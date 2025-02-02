@@ -147,7 +147,7 @@ class TestCLI(metaclass=OrderedClassMembers):
 
     def test_export_net_verify_nnue(self):
         current_path = os.path.abspath(os.getcwd())
-        self.engine = DON(f"export_net {os.path.join(current_path , 'verify.nnue')}".split(" "), True)
+        self.engine = DON(f"export_net {os.path.join(current_path, 'verify.nnue')}".split(" "), True)
         assert self.engine.process.returncode == 0
 
     # verify the generated net equals the base net
@@ -159,7 +159,7 @@ class TestCLI(metaclass=OrderedClassMembers):
 
         # find line
         for line in output.split("\n"):
-            if "option name EvalFile type string default" in line:
+            if "option name EvalFileBig type string default" in line:
                 network = line.split(" ")[-1]
                 break
 
@@ -342,7 +342,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
 
     def test_verify_nnue_network(self):
         current_path = os.path.abspath(os.getcwd())
-        DON(f"export_net {os.path.join(current_path , 'verify.nnue')}".split(" "), True)
+        DON(f"export_net {os.path.join(current_path, 'verify.nnue')}".split(" "), True)
         self.engine.send_command("setoption name EvalFileBig value verify.nnue")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
