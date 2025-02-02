@@ -274,7 +274,8 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
 #else
     alignas(ALIGNMENT) TransformedFeatureType
       transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE];
-    std::memset(transformedFeatures, 0, sizeof(transformedFeatures));
+    std::fill(std::begin(transformedFeatures), std::end(transformedFeatures),
+              TransformedFeatureType{});
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
@@ -310,7 +311,8 @@ EvalTrace Network<Arch, Transformer>::trace_eval(
 #else
     alignas(ALIGNMENT) TransformedFeatureType
       transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE];
-    std::memset(transformedFeatures, 0, sizeof(transformedFeatures));
+    std::fill(std::begin(transformedFeatures), std::end(transformedFeatures),
+              TransformedFeatureType{});
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
