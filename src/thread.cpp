@@ -114,24 +114,27 @@ void ThreadPool::set(const NumaConfig&    numaConfig,
     // This is undesirable, and so the default behaviour (i.e. when the user does not
     // change the NumaConfig UCI setting) is to not bind the threads to processors
     // unless we know for sure that we span NUMA nodes and replication is required.
-    std::string numaPolicy = lower_case(sharedState.options["NumaPolicy"]);
+    std::string numaPolicy  = lower_case(sharedState.options["NumaPolicy"]);
+    const bool  bind_thread = [&]() {
+        if (numaPolicy == "none")
+            return false;
 
-    bool threadBind = numaPolicy == "none"  //
-                      ? false
-                      : numaPolicy == "auto"
-                          ? numaConfig.suggests_binding_threads(threadCount)
-                          // numaPolicy == "system", or explicitly set by the user
-                          : true;
+        if (numaPolicy == "auto")
+            return numaConfig.suggests_binding_threads(threadCount);
 
-    numaNodeBoundThreadIds = threadBind
+        // numaPolicy == "system", or explicitly set by the user
+        return true;
+    }();
+
+    numaNodeBoundThreadIds = bind_thread
                              ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
                              : std::vector<NumaIndex>{};
 
-    const NumaConfig* numaConfigPtr = threadBind ? &numaConfig : nullptr;
+    const NumaConfig* numaConfigPtr = bind_thread ? &numaConfig : nullptr;
 
     for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
     {
-        NumaIndex numaIdx = threadBind ? numaNodeBoundThreadIds[threadId] : 0;
+        NumaIndex numaIdx = bind_thread ? numaNodeBoundThreadIds[threadId] : 0;
 
         ISearchManagerPtr searchManager;
         if (threadId == 0)

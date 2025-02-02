@@ -70,8 +70,6 @@ using WorkerPtr = std::unique_ptr<Worker>;
 // the search is finished, it goes back to idle_func() waiting for a new signal.
 class Thread final {
    public:
-    Thread(const Thread&) noexcept            = delete;
-    Thread& operator=(const Thread&) noexcept = delete;
     Thread(std::size_t                           id,
            const SharedState&                    sharedState,
            ISearchManagerPtr                     searchManager,
