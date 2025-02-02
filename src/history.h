@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <cmath>
 #include <cstdint>
@@ -42,23 +43,29 @@ class StatsEntry final {
     static_assert(D > 0, "D must be positive");
     static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
 
-    void operator=(T v) noexcept { value = v; }
+    void operator=(T v) noexcept { value.store(v, std::memory_order_relaxed); }
 
     //T* operator&() noexcept { return &value; }
     //T* operator->() noexcept { return &value; }
-    operator T() const noexcept { return value; }
+    operator T() const noexcept { return value.load(std::memory_order_acquire); }
 
     // Overload operator<< to modify the value
     void operator<<(int bonus) noexcept {
         // Make sure that bonus is in range [-D, D]
         int clampedBonus = std::clamp(bonus, -D, +D);
-        value += clampedBonus - value * std::abs(clampedBonus) / D;
-
-        assert(std::abs(value) <= D);
+        
+        T oldVal = value.load(std::memory_order_acquire);
+        T newVal; 
+        do
+        {
+            newVal = oldVal + clampedBonus - oldVal * std::abs(clampedBonus) / D;
+            assert(std::abs(newVal) <= D);
+        } while (!value.compare_exchange_weak(oldVal, newVal, std::memory_order_release,
+                                              std::memory_order_relaxed));
     }
 
    private:
-    T value;
+    std::atomic<T> value{};
 };
 
 
