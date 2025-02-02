@@ -24,6 +24,7 @@
 #include <ctime>
 #include <initializer_list>
 #include <list>
+#include <mutex>
 #include <ratio>
 
 #include "bitboard.h"
@@ -137,6 +138,10 @@ namespace {
 constexpr inline int MaxQuietThreshold = -7998;
 
 // clang-format off
+std::mutex captureMutex;
+std::mutex   quietMutex;
+std::mutex    pawnMutex;
+
 // History
 History<HCapture>           captureHistory;
 History<HQuiet>               quietHistory;
@@ -2205,6 +2210,7 @@ namespace {
 // clang-format off
 
 void update_capture_history(Piece pc, Square dst, PieceType captured, unsigned imbalance, int bonus) noexcept {
+    std::lock_guard<std::mutex> lockGuard(captureMutex);
     captureHistory[pc][dst][captured][imbalance] << bonus;
     if (imbalance > 0)
         captureHistory[pc][dst][captured][imbalance - 1] << +0.5 * bonus;
@@ -2218,9 +2224,11 @@ void update_capture_history(const Position& pos, const Move& m, int bonus) noexc
 
 void update_quiet_history(Color ac, const Move& m, int bonus) noexcept {
     assert(m.is_ok());
+    std::lock_guard<std::mutex> lockGuard(quietMutex);
     quietHistory[ac][m.org_dst()] << bonus;
 }
 void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) noexcept {
+    std::lock_guard<std::mutex> lockGuard(pawnMutex);
     pawnHistory[pawn_index(pos.pawn_key())][pc][dst] << bonus;
 }
 // Updates histories of the move pairs formed by

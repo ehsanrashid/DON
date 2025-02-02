@@ -53,18 +53,8 @@ class TSAN:
         with open(f"tsan.supp", "w") as f:
             f.write(
                 """
-race:DON::TTEntry::move
-race:DON::TTEntry::occupied
-race:DON::TTEntry::depth
-race:DON::TTEntry::pv
-race:DON::TTEntry::bound
-race:DON::TTEntry::generation
-race:DON::TTEntry::value
-race:DON::TTEntry::eval
-
 race:DON::TTEntry::read
 race:DON::TTEntry::save
-
 race:DON::TranspositionTable::probe
 race:DON::TranspositionTable::hashFull
 """
@@ -149,7 +139,7 @@ def timeout_decorator(timeout: float):
                 except concurrent.futures.TimeoutError:
                     raise TimeoutException(
                         f"Function {func.__name__} timed out after {timeout} seconds",
-                        timeout)
+                        timeout,)
             return result
 
         return wrapper
