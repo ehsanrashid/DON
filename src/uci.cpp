@@ -422,6 +422,7 @@ void UCI::go(std::istringstream& iss) noexcept {
 }
 
 void UCI::set_option(std::istringstream& iss) noexcept {
+    engine.wait_finish();
     std::string token, name, value;
 
     bool first;
@@ -861,7 +862,7 @@ Move UCI::can_to_move(const std::string& can, const Position& pos) noexcept {
 namespace {
 
 void on_update_end(const EndInfo& info) noexcept {
-    std::cout << "info"
+    std::cout << "info"  //
               << " depth " << "0" << " score " << (info.inCheck ? "mate " : "cp ") << "0"
               << std::endl;
 }

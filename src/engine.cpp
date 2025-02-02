@@ -22,7 +22,6 @@
 #include <deque>
 #include <iostream>
 #include <memory>
-#include <mutex>
 #include <sstream>
 #include <utility>
 
@@ -49,7 +48,6 @@ constexpr inline std::size_t MAX_HASH =
 #endif
   ;
 
-std::mutex networkMutex;
 }  // namespace
 
 Engine::Engine(std::optional<std::string> path) noexcept :
@@ -271,7 +269,6 @@ void Engine::verify_networks() const noexcept {
 }
 
 void Engine::load_networks() noexcept {
-    std::lock_guard lockGuard(networkMutex);
     networks.modify_and_replicate(  //
       [this](NNUE::Networks& net) {
           net.big.load(binaryDirectory, options["EvalFileBig"]);
@@ -282,7 +279,6 @@ void Engine::load_networks() noexcept {
 }
 
 void Engine::load_big_network(const std::string& netFile) noexcept {
-    std::lock_guard lockGuard(networkMutex);
     networks.modify_and_replicate(
       [this, &netFile](NNUE::Networks& net) { net.big.load(binaryDirectory, netFile); });
     threads.init();
@@ -290,7 +286,6 @@ void Engine::load_big_network(const std::string& netFile) noexcept {
 }
 
 void Engine::load_small_network(const std::string& netFile) noexcept {
-    std::lock_guard lockGuard(networkMutex);
     networks.modify_and_replicate(
       [this, &netFile](NNUE::Networks& net) { net.small.load(binaryDirectory, netFile); });
     threads.init();
