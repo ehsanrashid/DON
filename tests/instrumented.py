@@ -344,7 +344,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         current_path = os.path.abspath(os.getcwd())
         self.engine = DON(
             f"export_net {os.path.join(current_path , 'verify.nnue')}".split(" "), True)
-        self.engine.send_command("setoption name EvalFile value verify.nnue")
+        self.engine.send_command("setoption name EvalFileBig value verify.nnue")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
