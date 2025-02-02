@@ -94,11 +94,11 @@ class Thread final {
     // Set before starting nativeThread
     bool dead = false, busy = true;
 
+    std::mutex                mutex;
+    std::condition_variable   condVar;
     const std::size_t         idx;
     const std::size_t         threadCount;
     NativeThread              nativeThread;
-    std::mutex                mutex;
-    std::condition_variable   condVar;
     JobFunc                   jobFunc;
     NumaReplicatedAccessToken numaAccessToken;
 
