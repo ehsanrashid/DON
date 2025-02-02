@@ -17,6 +17,7 @@
 
 #include "engine.h"
 
+#include <atomic>
 #include <cassert>
 #include <deque>
 #include <iostream>
