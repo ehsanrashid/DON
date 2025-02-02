@@ -93,9 +93,9 @@ class Engine final {
     // Network related
     void verify_networks() const noexcept;
     void load_networks() noexcept;
-    void load_big_network(const std::string& bigFile) noexcept;
-    void load_small_network(const std::string& smallFile) noexcept;
-    void save_networks(const std::array<std::optional<std::string>, 2>& files) noexcept;
+    void load_big_network(const std::string& netFile) noexcept;
+    void load_small_network(const std::string& netFile) noexcept;
+    void save_networks(const std::array<std::optional<std::string>, 2>& netFiles) noexcept;
 
     void set_on_update_end(OnUpdateEnd&& f) noexcept;
     void set_on_update_full(OnUpdateFull&& f) noexcept;

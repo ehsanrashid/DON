@@ -8,11 +8,11 @@ jobs:
     name: Matetrack
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout SF repo 
+      - name: Checkout DON repo 
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          path: Stockfish
+          path: DON
           persist-credentials: false
 
       - name: Build DON

@@ -277,25 +277,25 @@ void Engine::load_networks() noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::load_big_network(const std::string& bigFile) noexcept {
+void Engine::load_big_network(const std::string& netFile) noexcept {
     networks.modify_and_replicate(
-      [&](NNUE::Networks& net) { net.big.load(binaryDirectory, bigFile); });
+      [this, &netFile](NNUE::Networks& net) { net.big.load(binaryDirectory, netFile); });
     threads.init();
     threads.ensure_network_replicated();
 }
 
-void Engine::load_small_network(const std::string& smallFile) noexcept {
+void Engine::load_small_network(const std::string& netFile) noexcept {
     networks.modify_and_replicate(
-      [&](NNUE::Networks& net) { net.small.load(binaryDirectory, smallFile); });
+      [this, &netFile](NNUE::Networks& net) { net.small.load(binaryDirectory, netFile); });
     threads.init();
     threads.ensure_network_replicated();
 }
 
-void Engine::save_networks(const std::array<std::optional<std::string>, 2>& files) noexcept {
+void Engine::save_networks(const std::array<std::optional<std::string>, 2>& netFiles) noexcept {
     networks.modify_and_replicate(  //
       [&](const NNUE::Networks& net) {
-          net.big.save(files[0]);
-          net.small.save(files[1]);
+          net.big.save(netFiles[0]);
+          net.small.save(netFiles[1]);
       });
 }
 
