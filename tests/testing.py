@@ -43,7 +43,7 @@ class Valgrind:
         return [
             "valgrind",
             "--error-exitcode=42",
-            "--fair-sched=try"
+            "--fair-sched=try",
         ]
 
 
