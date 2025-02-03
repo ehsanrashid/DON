@@ -1555,8 +1555,9 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 if (value >= beta)
                 {
+                    // (*Scaler) Especially if they make cutoffCnt increment more often
                     if constexpr (!RootNode)
-                        ++(ss - 1)->cutoffCount;
+                        (ss - 1)->cutoffCount += PVNode || (extension < 2);
 
                     break;  // Fail-high
                 }
@@ -1602,11 +1603,17 @@ S_MOVES_LOOP:  // When in check, search starts here
         // clang-format off
         // Make sure the bonus is positive
         auto bonusScale = std::max(
-                        + 125 * (depth > 5) + 176 * ((ss - 1)->moveCount > 8)
+                        // Increase bonus when depth is high
+                        + 125 * (depth > 5)
+                        // Increase bonus when the previous move count is high
+                        + 176 * ((ss - 1)->moveCount > 8)
+                        // Increase bonus when bestValue is lower than current static evaluation
                         + 135 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107)
+                        // Increase bonus when bestValue is higher than previous static evaluation
                         + 122 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 81)
+                        // Increase bonus when the previous move is TT move
                         +  87 * ((ss - 1)->move == (ss - 1)->ttMove)
-                        // Proportional to "how much damage have to undo"
+                        // Increase bonus if the previous move has a bad history
                         + std::min(-10.0000e-3 * (ss - 1)->history, 316.0), 0.0);
         // clang-format on
 

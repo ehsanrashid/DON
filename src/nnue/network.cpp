@@ -328,8 +328,8 @@ template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_user_net(const std::string& dir,
                                                const std::string& evalfilePath) noexcept {
     std::ifstream ifstream(dir + evalfilePath, std::ios_base::binary);
-    auto          description = load(ifstream);
 
+    auto description = load(ifstream);
     if (description.has_value())
     {
         evalFile.current        = evalfilePath;
