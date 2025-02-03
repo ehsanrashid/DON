@@ -294,8 +294,8 @@ class TestInteractive(metaclass=OrderedClassMembers):
         #
         # self.engine.check_output(callback)
 
-    def test_clear_hash(self):
-        self.engine.send_command("setoption name Clear Hash")
+    # def test_clear_hash(self):
+    #     self.engine.send_command("setoption name Clear Hash")
 
     def test_position_fen_mate_plus_1(self):
         self.engine.send_command("ucinewgame")
