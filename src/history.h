@@ -45,8 +45,6 @@ class StatsEntry final {
 
     void operator=(T v) noexcept { value.store(v, std::memory_order_relaxed); }
 
-    //T* operator&() noexcept { return &value; }
-    //T* operator->() noexcept { return &value; }
     operator T() const noexcept { return value.load(std::memory_order_acquire); }
 
     // Overload operator<< to modify the value
@@ -58,7 +56,7 @@ class StatsEntry final {
 
         while (true)
         {
-            T newValue = oldValue + clampedBonus - oldValue * std::abs(clampedBonus) / D;
+            T newValue = clampedBonus + oldValue * ((D - std::abs(clampedBonus)) / D);
             assert(std::abs(newValue) <= D);
 
             if (value.compare_exchange_weak(oldValue, newValue, std::memory_order_release,
