@@ -1212,7 +1212,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Increase reduction for ttPv nodes (*Scaler)
         // Smaller or even negative value is better for short time controls
         // Bigger value is better for long time controls
-        r += 1024 * ss->pvHit;
+        r += 1024 * ss->pvHit - 32 * moveCount;
 
         // Step 14. Pruning at shallow depth
         // Depth conditions are important for mate finding.
@@ -1403,7 +1403,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r += (2825 - 1101 * (ss->pvHit && ttd.depth >= depth)) * CutNode;
 
         // Adjust reduction with move count and correction value
-        r += 292 - 64 * moveCount - 1024 * dblCheck - 29.5525e-6 * absCorrectionValue;
+        r += 292 - 32 * moveCount - 1024 * dblCheck - 29.5525e-6 * absCorrectionValue;
 
         // Increase reduction if ttMove is a capture and the current move is not a capture
         r += (1230 + 1194 * (depth < 7)) * (ttCapture && !capture);
@@ -1765,7 +1765,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
         // Can ttValue be used as a better position evaluation
         if (is_valid(ttd.value) && (ttd.bound & bound_for_fail(ttd.value > bestValue)) != 0)
-            return ttd.value;
+            bestValue = ttd.value;
     }
     else
     {
