@@ -1555,7 +1555,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 if (value >= beta)
                 {
-                    // (*Scaler) Especially if they make cutoffCnt increment more often
+                    // If make cutoffCount increment more often (*Scaler)
                     if constexpr (!RootNode)
                         (ss - 1)->cutoffCount += PVNode || (extension < 2);
 
