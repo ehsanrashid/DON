@@ -32,7 +32,7 @@ namespace DON {
 namespace {
 
 // Version number or dev.
-constexpr inline std::string_view Version{"dev"};
+constexpr inline std::string_view Version{"3.0"};
 
 #if !defined(GIT_DATE)
 inline std::string format_date(std::string_view date) noexcept {
