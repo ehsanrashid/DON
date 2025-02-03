@@ -174,8 +174,8 @@ std::string trace(Position&          pos,  //
 
     auto trace = networks.big.trace_eval(pos, &caches.big);
 
-    oss << " NNUE network contributions (" << (pos.active_color() == WHITE ? "White" : "Black")
-        << " to move):\n"
+    oss << " NNUE network contributions ("  //
+        << (pos.active_color() == WHITE ? "White" : "Black") << " to move):\n"
         << "+------------+------------+------------+------------+\n"
         << "|   Bucket   |  Material  | Positional |   Total    |\n"
         << "|            |   (PSQT)   |  (Layers)  |            |\n"
