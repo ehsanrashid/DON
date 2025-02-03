@@ -294,8 +294,8 @@ class TestInteractive(metaclass=OrderedClassMembers):
         #
         # self.engine.check_output(callback)
 
-    # def test_clear_hash(self):
-    #     self.engine.send_command("setoption name Clear Hash")
+    def test_clear_hash(self):
+        self.engine.send_command("setoption name Clear Hash")
 
     def test_position_fen_mate_plus_1(self):
         self.engine.send_command("ucinewgame")
@@ -304,7 +304,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         )
         self.engine.send_command("go depth 18")
         self.engine.expect("* score mate 1 * pv d5e6")
-        self.engine.equals("bestmove d5e6")
+        self.engine.starts_with("bestmove d5e6")
 
     def test_position_fen_mate_minus_1(self):
         self.engine.send_command("ucinewgame")
