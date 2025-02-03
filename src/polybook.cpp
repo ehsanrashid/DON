@@ -532,7 +532,7 @@ void PolyBook::find_key(Key key) noexcept {
     {
         if (entries[begIndex].key == key)
         {
-            while (begIndex != 0 && entries[begIndex - 1].key == key)
+            while (begIndex > 0 && entries[begIndex - 1].key == key)
                 --begIndex;
 
             get_key_data(begIndex);

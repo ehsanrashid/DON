@@ -30,7 +30,7 @@ namespace DON {
 class Options;
 
 using Range    = std::pair<int, int>;  // Option's min-max values
-using RangeFun = Range(int);
+using RangeFun = Range (*)(int);
 
 struct RangeSetter final {
    public:
@@ -42,8 +42,8 @@ struct RangeSetter final {
 
     Range operator()(int v) const noexcept { return rangeFun != nullptr ? rangeFun(v) : range; }
 
-    RangeFun* rangeFun;
-    Range     range;
+    RangeFun rangeFun;
+    Range    range;
 };
 
 // Default Range function, to calculate Option's min-max values

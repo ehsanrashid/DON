@@ -326,16 +326,16 @@ class PRNG1024 final {
             {
                 if (JumpMask[j] & (1ull << m))
                     for (std::size_t i = 0; i < t.size(); ++i)
-                        t[i] ^= s[get_index(i)];
+                        t[i] ^= s[index(i)];
                 rand64();
             }
 
         for (std::size_t i = 0; i < t.size(); ++i)
-            s[get_index(i)] = t[i];
+            s[index(i)] = t[i];
     }
 
    private:
-    constexpr std::size_t get_index(std::size_t k) const noexcept {
+    constexpr std::size_t index(std::size_t k) const noexcept {
         return (p + k) & (s.size() - 1);
     }
 
@@ -344,7 +344,7 @@ class PRNG1024 final {
         static constexpr std::uint64_t SeedMultiplier = 0x106689D45497FDB5ull;
 
         auto s0 = s[p];
-        auto s1 = s[p = get_index(1)];
+        auto s1 = s[p = index(1)];
         s1 ^= s1 << 31;
         s[p] = s0 ^ s1 ^ (s0 >> 30) ^ (s1 >> 11);
         return SeedMultiplier * s[p];

@@ -50,8 +50,9 @@ Thread::Thread(std::size_t                           id,
         // the Worker allocation.
         // Ideally we would also allocate the SearchManager here, but that's minor.
         this->numaAccessToken = nodeBinder();
-        this->worker          = std::make_unique<Worker>(id, sharedState, std::move(searchManager),
-                                                         this->numaAccessToken);
+
+        this->worker = std::make_unique<Worker>(id, sharedState, std::move(searchManager),
+                                                this->numaAccessToken);
     });
     wait_finish();
 }
@@ -79,7 +80,7 @@ void Thread::idle_func() noexcept {
         condVar.wait(uniqueLock, [&] { return busy; });
 
         if (dead)
-            return;
+            break;
 
         auto job = std::move(jobFunc);
         jobFunc  = nullptr;

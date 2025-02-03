@@ -1181,7 +1181,7 @@ class LazyNumaReplicated final: public NumaReplicatedBase {
         if (instances[idx] != nullptr)
             return;
 
-        const NumaConfig& cfg = get_numa_config();
+        const auto& cfg = get_numa_config();
         cfg.execute_on_numa_node(
           idx, [this, idx]() { instances[idx] = std::make_unique<T>(*instances[0]); });
     }
@@ -1189,7 +1189,7 @@ class LazyNumaReplicated final: public NumaReplicatedBase {
     void prepare_replicate_from(T&& source) noexcept {
         instances.clear();
 
-        const NumaConfig& cfg = get_numa_config();
+        const auto& cfg = get_numa_config();
         if (cfg.requires_memory_replication())
         {
             assert(cfg.num_numa_nodes() > 0);
