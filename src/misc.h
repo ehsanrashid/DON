@@ -335,9 +335,7 @@ class PRNG1024 final {
     }
 
    private:
-    constexpr std::size_t index(std::size_t k) const noexcept {
-        return (p + k) & (s.size() - 1);
-    }
+    constexpr std::size_t index(std::size_t k) const noexcept { return (p + k) & (s.size() - 1); }
 
     // XORShift1024Star algorithm implementation
     std::uint64_t rand64() noexcept {
@@ -379,7 +377,7 @@ struct CommandLine final {
         argc(ac),
         argv(av) {}
 
-    static std::string get_binary_directory(const std::string& path) noexcept;
+    static std::string get_binary_directory(std::string path) noexcept;
     static std::string get_working_directory() noexcept;
 
     int          argc;

@@ -479,10 +479,11 @@ void print() noexcept {
 #endif
 
 // Extract the binary directory path
-std::string CommandLine::get_binary_directory(const std::string& path) noexcept {
+std::string CommandLine::get_binary_directory(std::string path) noexcept {
+    std::string pathSeparator;
 
 #if defined(_WIN32)
-    std::string pathSeparator = "\\";
+    pathSeparator = "\\";
     #if defined(_MSC_VER)
     // Under windows path may not have the extension.
     // Also _get_pgmptr() had issues in some Windows 10 versions,
@@ -492,7 +493,7 @@ std::string CommandLine::get_binary_directory(const std::string& path) noexcept 
         path = pgmptr;
     #endif
 #else
-    std::string pathSeparator = "/";
+    pathSeparator = "/";
 #endif
 
     std::string binaryDirectory = path;
@@ -518,7 +519,7 @@ std::string CommandLine::get_working_directory() noexcept {
     char* cwd = GETCWD(buffer, BUFF_SIZE);
 
     std::string workingDirectory;
-    if (cwd)
+    if (cwd != nullptr)
         workingDirectory = cwd;
 
     return workingDirectory;
