@@ -1460,7 +1460,8 @@ S_MOVES_LOOP:  // When in check, search starts here
             r += 2178 * (ttd.move == Move::None());
 
             // Reduce search depth if expected reduction is high
-            value = -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha, newDepth - (r > 3385));
+            value = -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha,
+                                 newDepth - (r > 3385) - (r > 5588 && newDepth > 2));
         }
 
         // For PV nodes only, do a full PV search on the first move or after a fail high,
@@ -1557,7 +1558,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (value >= beta)
                 {
                     if constexpr (!RootNode)
-                        (ss - 1)->cutoffCount += (extension < 2);
+                        ++(ss - 1)->cutoffCount;
 
                     break;  // Fail-high
                 }
@@ -1602,10 +1603,10 @@ S_MOVES_LOOP:  // When in check, search starts here
     {
         // clang-format off
         auto bonusScale = std::max(
-                        + 119 * (depth > 5) + 39 * !AllNode + 193 * ((ss - 1)->moveCount > 8)
-                        + 143 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107)
-                        + 110 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 81)
-                        +  80 * ((ss - 1)->move == (ss - 1)->ttMove)
+                        + 125 * (depth > 5) + 176 * ((ss - 1)->moveCount > 8)
+                        + 135 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107)
+                        + 122 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 81)
+                        +  87 * ((ss - 1)->move == (ss - 1)->ttMove)
                         // proportional to "how much damage have to undo"
                         + std::min(-10.0000e-3 * (ss - 1)->history, 316.0), 0.0);
         // clang-format on
@@ -1764,7 +1765,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
         // Can ttValue be used as a better position evaluation
         if (is_valid(ttd.value) && (ttd.bound & bound_for_fail(ttd.value > bestValue)) != 0)
-            bestValue = ttd.value;
+            return ttd.value;
     }
     else
     {

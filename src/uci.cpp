@@ -899,10 +899,8 @@ void on_update_iter(const IterInfo& info) noexcept {
 }
 
 void on_update_move(const MoveInfo& info) noexcept {
-    std::cout << "bestmove " << UCI::move_to_can(info.bestMove);
-    if (info.ponderMove != Move::None())
-        std::cout << " ponder " << UCI::move_to_can(info.ponderMove);
-    std::cout << std::endl;
+    std::cout << "bestmove " << UCI::move_to_can(info.bestMove)  //
+              << " ponder " << UCI::move_to_can(info.ponderMove) << std::endl;
 }
 
 enum Ambiguity : std::uint8_t {

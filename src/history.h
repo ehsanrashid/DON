@@ -53,7 +53,7 @@ class StatsEntry final {
     void operator<<(int bonus) noexcept {
         // Make sure that bonus is in range [-D, D]
         int clampedBonus = std::clamp(bonus, -D, +D);
-        
+
         T oldValue = value.load(std::memory_order_acquire);
 
         while (true)
