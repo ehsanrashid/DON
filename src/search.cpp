@@ -1046,8 +1046,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     improve = improve || ss->staticEval >= 101 + beta;
 
     // Step 10. Internal iterative reductions
-    // Decrease depth for PVNode as well as for deep enough CutNode, without a ttMove.
-    // Especially if they make IIR less aggressive. (*Scaler)
+    // Decrease depth for not AllNode, without a ttMove. (*Scaler)
     if (!AllNode && ttd.move == Move::None())
         depth = std::max(depth - 2, 1);
 

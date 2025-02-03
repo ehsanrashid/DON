@@ -56,7 +56,7 @@ class StatsEntry final {
 
         while (true)
         {
-            T newValue = bonus + oldValue * (D - std::abs(bonus)) / D;
+            T newValue = bonus + (oldValue * (D - std::abs(bonus))) / D;
             assert(std::abs(newValue) <= D);
 
             if (value.compare_exchange_weak(oldValue, newValue))
