@@ -43,20 +43,20 @@ class StatsEntry final {
     static_assert(D > 0, "D must be positive");
     static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
 
-    void operator=(T v) noexcept { value.store(v, std::memory_order_relaxed); }
+    void operator=(T v) noexcept { value = v; }
 
-    operator T() const noexcept { return value.load(std::memory_order_relaxed); }
+    operator T() const noexcept { return value; }
 
     // Overload operator<< to modify the value
     void operator<<(int bonus) noexcept {
         // Make sure that bonus is in range [-D, D]
-        int clampedBonus = std::clamp(bonus, -D, +D);
+        bonus = std::clamp(bonus, -D, +D);
 
         T oldValue = value.load();
 
         while (true)
         {
-            T newValue = clampedBonus + oldValue * (D - std::abs(clampedBonus)) / D;
+            T newValue = bonus + oldValue * (D - std::abs(bonus)) / D;
             assert(std::abs(newValue) <= D);
 
             if (value.compare_exchange_weak(oldValue, newValue))
