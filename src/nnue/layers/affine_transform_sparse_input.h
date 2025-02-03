@@ -291,7 +291,7 @@ class AffineTransformSparseInput {
 
         for (IndexType j = 0; j < count; ++j)
         {
-            const auto i = nnz[j];
+            const auto    i  = nnz[j];
             const invec_t in = vec_set_32(input32[i]);
             const auto*   col =
               reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * CHUNK_SIZE]);

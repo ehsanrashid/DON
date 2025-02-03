@@ -952,7 +952,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         eval = ss->staticEval = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
-        // Static evaluation is saved as it was before adjustment by correction history
         ttu.update(DEPTH_NONE, ss->pvHit, BOUND_NONE, Move::None(), VALUE_NONE,
                    unadjustedStaticEval);
     }
@@ -1048,8 +1047,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     // Step 10. Internal iterative reductions
     // Decrease depth for PVNode as well as for deep enough CutNode, without a ttMove.
-    // This heuristic is known to scale non-linearly, current version was tested at VVLTC.
-    // Further improvements need to be tested at similar time control if make IIR more aggressive.
+    // Especially if they make IIR less aggressive. (*Scaler)
     if (!AllNode && depth > 4 * CutNode && ttd.move == Move::None())
         depth = std::max(depth - 2, 1);
 
@@ -1295,8 +1293,8 @@ S_MOVES_LOOP:  // When in check, search starts here
             // Recursive singular search is avoided.
 
             // Note:
-            // (* Scaler) Generally, higher singularBeta (i.e closer to ttValue)
-            // and lower extension margins scales well.
+            // Generally, higher singularBeta (i.e closer to ttValue)
+            // and lower extension margins scales well. (*Scaler)
             if (!RootNode && !exclude && move == ttd.move
                 && depth > 4 - (completedDepth > 32) + ss->pvHit   //
                 && is_valid(ttd.value) && !is_decisive(ttd.value)  //
@@ -1461,7 +1459,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             // Reduce search depth if expected reduction is high
             value = -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha,
-                                 newDepth - (r > 3385) - (r > 5588 && newDepth > 2));
+                                 newDepth - ((r > 3444) * (1 + (r > 5588 && newDepth > 2))));
         }
 
         // For PV nodes only, do a full PV search on the first move or after a fail high,
@@ -1602,12 +1600,13 @@ S_MOVES_LOOP:  // When in check, search starts here
     else if (is_ok(preSq) && !preCapture)
     {
         // clang-format off
+        // Make sure the bonus is positive
         auto bonusScale = std::max(
                         + 125 * (depth > 5) + 176 * ((ss - 1)->moveCount > 8)
                         + 135 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107)
                         + 122 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 81)
                         +  87 * ((ss - 1)->move == (ss - 1)->ttMove)
-                        // proportional to "how much damage have to undo"
+                        // Proportional to "how much damage have to undo"
                         + std::min(-10.0000e-3 * (ss - 1)->history, 316.0), 0.0);
         // clang-format on
 
@@ -1636,8 +1635,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     // opponent move is probably good and the new position is added to the search tree.
     ss->pvHit = ss->pvHit || ((ss - 1)->pvHit && bestValue <= alpha);
 
-    // Write gathered information in transposition table
-    // Static evaluation is saved as it was before correction history
+    // Save gathered information in transposition table
     if ((!RootNode || curIdx == 0) && !exclude)
     {
         Bound bound = bestValue >= beta                  ? BOUND_LOWER
@@ -1946,7 +1944,6 @@ QS_MOVES_LOOP:
     }
 
     // Save gathered info in transposition table
-    // Static evaluation is saved as it was before adjustment by correction history
     Bound bound = bound_for_fail(bestValue >= beta);
     ttu.update(DEPTH_ZERO, pvHit, bound, bestMove, bestValue, unadjustedStaticEval);
 

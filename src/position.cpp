@@ -1752,12 +1752,8 @@ bool Position::see_ge(const Move& m, int threshold) const noexcept {
         else if ((b = pieces(QUEEN) & acAttackers))
         {
             occupied ^= org = lsb(b);
-
-            swap = VALUE_QUEEN - swap;
-            //if ((swap = VALUE_QUEEN - swap) < win)
-            //    break;
-            // Implies that the previous recapture was done by a higher rated piece than Queen (King is excluded)
-            assert(swap >= win);
+            if ((swap = VALUE_QUEEN - swap) < win)
+                break;
 
             qB &= occupied;
             qR &= occupied;
