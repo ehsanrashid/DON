@@ -289,14 +289,10 @@ class AffineTransformSparseInput {
         for (IndexType k = 0; k < REG_COUNT; ++k)
             acc[k] = biasVec[k];
 
-        InputType tmpInput32[CHUNK_COUNT]{};  // Initialize all elements to 0
-        std::memcpy(tmpInput32, input32, CHUNK_COUNT * sizeof(InputType));
-
         for (IndexType j = 0; j < count; ++j)
         {
             const auto i = nnz[j];
-            assert(i < CHUNK_COUNT);
-            const invec_t in = vec_set_32(tmpInput32[i]);
+            const invec_t in = vec_set_32(input32[i]);
             const auto*   col =
               reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * CHUNK_SIZE]);
             for (IndexType k = 0; k < REG_COUNT; ++k)
