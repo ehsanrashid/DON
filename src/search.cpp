@@ -200,7 +200,7 @@ void update_pv(Move* pv, const Move& move, const Move* childPv) noexcept {
     *pv = Move::None();
 }
 
-void update_capture_history(Piece pc, Square dst, PieceType captured, unsigned imbalance, int bonus) noexcept;
+void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept;
 void update_capture_history(const Position& pos, const Move& m, int bonus) noexcept;
 
 void update_quiet_history(Color ac, const Move& m, int bonus) noexcept;
@@ -1156,7 +1156,6 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     Value singularValue = +VALUE_INFINITE;
 
-    auto imbalance = pos.imbalance();
     auto pawnIndex = pawn_index(pos.pawn_key());
 
     const History<HPieceSq>* contHistory[8]{(ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,
@@ -1227,7 +1226,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             if (capture)
             {
-                int captHist = captureHistory[movedPiece][dst][captured][imbalance];
+                int captHist = captureHistory[movedPiece][dst][captured];
 
                 // Futility pruning for captures not check
                 if (!ss->inCheck && lmrDepth < 7 && !check)
@@ -1353,7 +1352,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             // Recapture extension
             else if (PVNode && capture && dst == preSq
-                     && captureHistory[movedPiece][dst][captured][imbalance] > 4263)
+                     && captureHistory[movedPiece][dst][captured] > 4263)
                 extension = 1;
 
             // Check extension
@@ -1383,7 +1382,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // clang-format on
 
         ss->history = capture ? 7 * PIECE_VALUE[captured] + 3 * promotion_value(move)  //
-                                  + captureHistory[movedPiece][dst][captured][imbalance] - 4790
+                                  + captureHistory[movedPiece][dst][captured] - 4790
                               : 2 * quietHistory[ac][move.org_dst()]    //
                                   + (*contHistory[0])[movedPiece][dst]  //
                                   + (*contHistory[1])[movedPiece][dst] - 3752;
@@ -1599,41 +1598,44 @@ S_MOVES_LOOP:  // When in check, search starts here
     else if (bestMove != Move::None())
         update_all_history(pos, ss, depth, bestMove, moves);
 
-    // Bonus for prior quiet move that caused the fail low
-    else if (is_ok(preSq) && !preCapture)
+    // If prior move is valid, that caused the fail low
+    else if (is_ok(preSq))
     {
-        // clang-format off
-        // Make sure the bonus is positive
-        auto bonusScale = std::max(
-                        // Increase bonus when depth is high
-                        + 125 * (depth > 5)
-                        // Increase bonus when the previous move count is high
-                        + 176 * ((ss - 1)->moveCount > 8)
-                        // Increase bonus when bestValue is lower than current static evaluation
-                        + 135 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107)
-                        // Increase bonus when bestValue is higher than previous static evaluation
-                        + 122 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 81)
-                        // Increase bonus when the previous move is TT move
-                        +  87 * ((ss - 1)->move == (ss - 1)->ttMove)
-                        // Increase bonus if the previous move has a bad history
-                        + std::min(-10.0000e-3 * (ss - 1)->history, 316.0), 0.0);
-        // clang-format on
+        // Bonus for prior quiet move
+        if (!preCapture)
+        {
+            // clang-format off
+            // Make sure the bonus is positive
+            auto bonusScale = std::max(
+                            // Increase bonus when depth is high
+                            + 125 * (depth > 5)
+                            // Increase bonus when the previous move count is high
+                            + 176 * ((ss - 1)->moveCount > 8)
+                            // Increase bonus when bestValue is lower than current static evaluation
+                            + 135 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107)
+                            // Increase bonus when bestValue is higher than previous static evaluation
+                            + 122 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 81)
+                            // Increase bonus when the previous move is TT move
+                            +  87 * ((ss - 1)->move == (ss - 1)->ttMove)
+                            // Increase bonus if the previous move has a bad history
+                            + std::min(-10.0000e-3 * (ss - 1)->history, 316.0), 0.0);
+            // clang-format on
 
-        int bonus = bonusScale * stat_bonus(depth);
+            int bonus = bonusScale * stat_bonus(depth);
 
-        update_quiet_history(~ac, preMove, +6.6834e-3 * bonus);
-        update_continuation_history(ss - 1, pos.piece_on(preSq), preSq, +15.6250e-3 * bonus);
-        if (preNonPawn)
-            update_pawn_history(pos, pos.piece_on(preSq), preSq, +38.3606e-3 * bonus);
-    }
-
-    // Bonus for prior counter move that caused the fail low
-    else if (is_ok(preSq) && preCapture)
-    {
-        auto captured = type_of(pos.captured_piece());
-        assert(captured != NO_PIECE_TYPE);
-        int bonus = +2.0000 * stat_bonus(depth);
-        update_capture_history(pos.piece_on(preSq), preSq, captured, imbalance, bonus);
+            update_quiet_history(~ac, preMove, +6.6834e-3 * bonus);
+            update_continuation_history(ss - 1, pos.piece_on(preSq), preSq, +15.6250e-3 * bonus);
+            if (preNonPawn)
+                update_pawn_history(pos, pos.piece_on(preSq), preSq, +38.3606e-3 * bonus);
+        }
+        // Bonus for prior capture move
+        else
+        {
+            auto captured = type_of(pos.captured_piece());
+            assert(captured != NO_PIECE_TYPE);
+            int bonus = +2.0000 * stat_bonus(depth);
+            update_capture_history(pos.piece_on(preSq), preSq, captured, bonus);
+        }
     }
 
     // Don't let bestValue inflate too high (tb)
@@ -2213,16 +2215,12 @@ namespace {
 
 // clang-format off
 
-void update_capture_history(Piece pc, Square dst, PieceType captured, unsigned imbalance, int bonus) noexcept {
-    captureHistory[pc][dst][captured][imbalance] << bonus;
-    if (imbalance > 0)
-        captureHistory[pc][dst][captured][imbalance - 1] << +0.5 * bonus;
-    if (imbalance < IMBALANCE_SIZE)
-        captureHistory[pc][dst][captured][imbalance + 1] << +0.5 * bonus;
+void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept {
+    captureHistory[pc][dst][captured] << bonus;
 }
 void update_capture_history(const Position& pos, const Move& m, int bonus) noexcept {
     assert(pos.pseudo_legal(m));
-    update_capture_history(pos.moved_piece(m), m.dst_sq(), pos.captured(m), pos.imbalance(), bonus);
+    update_capture_history(pos.moved_piece(m), m.dst_sq(), pos.captured(m), bonus);
 }
 
 void update_quiet_history(Color ac, const Move& m, int bonus) noexcept {

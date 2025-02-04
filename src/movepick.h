@@ -103,7 +103,7 @@ class MovePicker final {
     const auto& current_next() noexcept { return *extBeg++; }
     void        next() noexcept { ++extBeg; }
 
-    bool current_ok() const noexcept { return current() != ttMove; }
+    bool current_ok() const noexcept { return *extBeg != ttMove; }
 
     const Position&              pos;
     const Move&                  ttMove;

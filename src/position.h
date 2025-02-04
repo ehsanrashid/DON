@@ -208,7 +208,7 @@ class Position final {
 
     // Castling
     CastlingRights castling_rights() const noexcept;
-    //CastlingRights castling_rights(Color c) const noexcept;
+
     bool   can_castle(CastlingRights cr) const noexcept;
     bool   castling_impeded(CastlingRights cr) const noexcept;
     Square castling_rook_square(CastlingRights cr) const noexcept;
@@ -220,7 +220,7 @@ class Position final {
     Bitboard pinners(Color c) const noexcept;
     Bitboard pinners() const noexcept;
     Bitboard blockers(Color c) const noexcept;
-    //Bitboard blockers() const noexcept;
+
     template<PieceType PT>
     Bitboard attacks(Color c) const noexcept;
     Bitboard threatens(Color c) const noexcept;
@@ -309,8 +309,6 @@ class Position final {
 
     int std_material(Color c) const noexcept;
     int std_material() const noexcept;
-
-    unsigned imbalance() const noexcept;
 
     Value material() const noexcept;
     Value evaluate() const noexcept;
@@ -466,7 +464,6 @@ inline Square Position::ep_square() const noexcept { return st->epSquare; }
 inline Square Position::cap_square() const noexcept { return st->capSquare; }
 
 inline CastlingRights Position::castling_rights() const noexcept { return st->castlingRights; }
-//inline CastlingRights Position::castling_rights(Color c) const noexcept { return c & castling_rights(); }
 
 inline bool Position::can_castle(CastlingRights cr) const noexcept {
     return castling_rights() & cr;
@@ -568,8 +565,6 @@ inline Bitboard Position::pinners() const noexcept { return pinners(WHITE) | pin
 
 inline Bitboard Position::blockers(Color c) const noexcept { return st->blockers[c]; }
 
-//inline Bitboard Position::blockers() const noexcept { return blockers(WHITE) | blockers(BLACK); }
-
 // clang-format off
 
 template<PieceType PT>
@@ -654,15 +649,6 @@ inline int Position::std_material(Color c) const noexcept {
 
 inline int Position::std_material() const noexcept {
     return std_material(WHITE) + std_material(BLACK);
-}
-
-inline unsigned Position::imbalance() const noexcept {
-    static constexpr int ImbalanceLimit = 16;
-
-    auto imbalance =
-      (double) std::min(std::abs(std_material(WHITE) - std_material(BLACK)) / 2, ImbalanceLimit)
-      / ImbalanceLimit;
-    return std::lround(4 * imbalance);
 }
 
 inline Value Position::material() const noexcept {

@@ -74,8 +74,6 @@ constexpr inline int  CAPTURE_HISTORY_LIMIT = 10692u;
 constexpr inline int    QUIET_HISTORY_LIMIT =  7183u;
 constexpr inline int PIECE_SQ_HISTORY_LIMIT = 30000u;
 
-constexpr inline std::size_t IMBALANCE_SIZE = 4u;
-
 constexpr inline int         PAWN_HISTORY_LIMIT = 8192u;
 constexpr inline std::size_t PAWN_HISTORY_SIZE  = 0x400u;
 static_assert(exactly_one(PAWN_HISTORY_SIZE), "PAWN_HISTORY_SIZE has to be a power of 2");
@@ -101,7 +99,7 @@ struct HistoryTypedef;
 
 template<>
 struct HistoryTypedef<HCapture> final {
-    using Type = StatsArray<CAPTURE_HISTORY_LIMIT, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB, IMBALANCE_SIZE + 1>;
+    using Type = StatsArray<CAPTURE_HISTORY_LIMIT, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 };
 
 // It records how often quiet moves have been successful or not during the current search,

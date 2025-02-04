@@ -82,7 +82,6 @@ void MovePicker::score() noexcept {
 
     Color ac = pos.active_color();
 
-    auto imbalance = pos.imbalance();
     auto pawnIndex = pawn_index(pos.pawn_key());
 
     for (auto& m : *this)
@@ -95,7 +94,7 @@ void MovePicker::score() noexcept {
             auto captured = pos.captured(m);
 
             m.value = 7 * PIECE_VALUE[captured] + 3 * promotion_value(m, true)  //
-                    + (*captureHistory)[pc][dst][captured][imbalance]           //
+                    + (*captureHistory)[pc][dst][captured]                      //
                     + 0x100 * (pos.cap_square() == dst);
         }
 

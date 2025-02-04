@@ -38,7 +38,7 @@ constexpr inline double       MtgFactor    = 0.05051;
 // When in 'Nodes as Time' mode
 void TimeManager::update_nodes(std::int64_t usedNodes) noexcept {
     assert(use_nodes_time());
-    remainNodes = std::max<std::int64_t>(remain_nodes() - usedNodes, 0) + OFFSET_NODE;
+    remainNodes = std::max<std::int64_t>(remain_nodes() - usedNodes, 0) + OffsetNode;
 }
 
 // Called at the beginning of the search and calculates
@@ -72,7 +72,7 @@ void TimeManager::init(Limit& limit, const Position& pos, const Options& options
     {
         // Only once at game start
         if (remainNodes == 0)
-            remainNodes = clock.time * nodesTime + OFFSET_NODE;  // Time is in msec
+            remainNodes = clock.time * nodesTime + OffsetNode;  // Time is in msec
 
         // Convert from milliseconds to nodes
         clock.time = remain_nodes();

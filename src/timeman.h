@@ -61,12 +61,12 @@ class TimeManager final {
 
     bool use_nodes_time() const noexcept { return bool(nodesTime); }
 
-    auto remain_nodes() const noexcept { return remainNodes - OFFSET_NODE; }
+    auto remain_nodes() const noexcept { return remainNodes - OffsetNode; }
 
     void update_nodes(std::int64_t usedNodes) noexcept;
 
    private:
-    static constexpr std::uint64_t OFFSET_NODE = 1;
+    static constexpr std::uint64_t OffsetNode = 1;
 
     TimePoint startTime;
 

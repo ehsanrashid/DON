@@ -104,6 +104,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("ReportMinimal",    Option(false));
     options.add("DebugLogFile",     Option("", [](const Option& o) { start_logger(o); return std::nullopt; }));
     // clang-format on
+
     load_networks();
     resize_threads_tt();
 
