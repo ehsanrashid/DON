@@ -1394,7 +1394,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // These reduction adjustments have no proven non-linear scaling.
 
         // Adjust reduction with move count and correction value
-        r += 316 - 63 * moveCount - 1024 * dblCheck - 31.6776e-6 * absCorrectionValue;
+        r += 316 - 32 * moveCount - 1024 * dblCheck - 31.6776e-6 * absCorrectionValue;
 
         // Increase reduction for cut nodes
         r += (2608 - 1159 * (ss->pvHit && ttd.depth >= depth)) * CutNode;
@@ -2253,7 +2253,7 @@ void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& 
     update_quiet_history(pos.active_color(), m, +1.0000 * bonus);
     update_pawn_history(pos, pos.moved_piece(m), m.dst_sq(), +0.6006 * bonus);
     update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), +0.9414 * bonus);
-    update_low_ply_quiet_history(ss->ply, m, +0.8242 * bonus);
+    update_low_ply_quiet_history(ss->ply, m, +0.8243 * bonus);
 }
 
 // Updates history at the end of search() when a bestMove is found
