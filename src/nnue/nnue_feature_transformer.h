@@ -435,10 +435,11 @@ class FeatureTransformer final {
 
             constexpr int shift =
     #if defined(USE_SSE2)
-              7;
+              7
     #else
-              6;
+              6
     #endif
+              ;
 
             for (IndexType j = 0; j < NumOutputChunks; ++j)
             {
@@ -460,7 +461,7 @@ class FeatureTransformer final {
 
                 sum0               = std::clamp<BiasType>(sum0, 0, 127 * 2);
                 sum1               = std::clamp<BiasType>(sum1, 0, 127 * 2);
-                output[offset + j] = static_cast<OutputType>(unsigned(sum0 * sum1) / 512);
+                output[offset + j] = unsigned(sum0 * sum1) / 512;
             }
 #endif
         }

@@ -1838,7 +1838,7 @@ bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
         pst = pst->preState->preState;
 
         // Opponent pieces have reverted
-        if (iterKey)
+        if (iterKey != 0)
             continue;
 
         Key moveKey = baseKey ^ pst->key;

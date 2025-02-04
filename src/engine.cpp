@@ -160,6 +160,7 @@ void Engine::wait_finish() const noexcept { threads.main_thread()->wait_finish()
 void Engine::init() noexcept {
     if (options["HashRetain"])
         return;
+
     wait_finish();
     threads.init();
     tt.init(threads);

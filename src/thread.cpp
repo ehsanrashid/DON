@@ -102,9 +102,6 @@ void ThreadPool::set(const NumaConfig&    numaConfig,
     clear();
 
     std::size_t threadCount = sharedState.options["Threads"];
-    // If options["Threads"] allow 0 threads
-    //if (threadCount == 0)
-    //    threadCount = std::thread::hardware_concurrency();
     assert(threadCount != 0);
 
     // Create new thread(s)

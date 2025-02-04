@@ -17,11 +17,11 @@
 
 #include "polybook.h"
 
-#include <assert.h>
-#include <stdlib.h>
-#include <time.h>
 #include <algorithm>
+#include <cassert>
 #include <cstdio>
+#include <cstdlib>
+#include <ctime>
 #include <iomanip>
 #include <iostream>
 
@@ -241,11 +241,6 @@ const union PolyGlot {
          0x70CC73D90BC26E24ull, 0xE21A6B35DF0C3AD7ull, 0x003A93D8B2806962ull, 0x1C99DED33CB890A1ull,
          0xCF3145DE0ADD4289ull, 0xD0E4427A5514FB72ull, 0x77C621CC9FB3A483ull, 0x67A34DAC4356550Bull,
          0xF8D626AAAF278509ull}};
-
-//constexpr bool is_little_endian() noexcept {
-//    int num = 1;
-//    return *(std::uint8_t*) &num == 1;
-//}
 
 std::uint16_t swap_uint16(std::uint16_t d) noexcept {
     std::uint16_t r;
