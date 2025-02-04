@@ -52,16 +52,14 @@ class StatsEntry final {
         // Make sure that bonus is in range [-D, D]
         bonus = std::clamp(bonus, -D, +D);
 
-        T oldValue = value.load(std::memory_order_relaxed);
+        T oldValue = value.load();
 
         while (true)
         {
             T newValue = bonus + (oldValue * (D - std::abs(bonus))) / D;
             assert(std::abs(newValue) <= D);
 
-            if (newValue == oldValue
-                || value.compare_exchange_weak(oldValue, newValue, std::memory_order_relaxed,
-                                               std::memory_order_relaxed))
+            if (newValue == oldValue || value.compare_exchange_weak(oldValue, newValue))
                 break;
         }
     }
