@@ -467,31 +467,12 @@ class Move {
 
     constexpr auto raw() const noexcept { return move; }
 
-    //constexpr bool operator==(const Move& m) const noexcept { return move == m.move; }
-    //constexpr bool operator!=(const Move& m) const noexcept { return move != m.move; }
-
     constexpr friend bool operator==(const Move& m1, const Move& m2) noexcept {
         return m1.move == m2.move;
     }
     constexpr friend bool operator!=(const Move& m1, const Move& m2) noexcept {
         return !(m1 == m2);
     }
-
-    //constexpr explicit operator bool() const noexcept { return *this != Move::None(); }
-
-    /*
-    constexpr Move reverse() const noexcept {
-        return Move((move & ~org_dst()) | (int(dst_sq()) << 6) | int(org_sq()));
-    }
-
-    constexpr Move mirror() const noexcept { return Move(move ^ 0x0E38u); }
-
-    void set_org_sq(Square org) noexcept { move = (move & 0xF03Fu) | (int(org) << 6); }
-    void set_dst_sq(Square dst) noexcept { move = (move & 0xFFC0u) | (int(dst)); }
-    void set_promotion_type(PieceType promo = KNIGHT) noexcept {
-        move = (move & 0x0FFFu) | PROMOTION | ((int(promo) - int(KNIGHT)) << 12);
-    }
-    */
 
    protected:
     std::uint16_t move;
