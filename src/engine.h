@@ -69,19 +69,19 @@ class Engine final {
     // Blocking call to wait for search to finish
     void wait_finish() const noexcept;
 
-    void set_numa_config(const std::string& str);
+    void init() noexcept;
 
     void resize_threads_tt() noexcept;
 
     void resize_tt(std::size_t ttSize) noexcept;
-
-    void init() noexcept;
 
     void show() const noexcept;
     void eval() noexcept;
     void flip() noexcept;
 
     std::uint16_t get_hashFull(std::uint8_t maxAge = 0) const noexcept;
+
+    void set_numa_config(const std::string& str) noexcept;
 
     std::vector<std::pair<std::size_t, std::size_t>>  //
                 get_bound_thread_counts() const noexcept;

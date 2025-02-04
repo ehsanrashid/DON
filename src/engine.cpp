@@ -54,6 +54,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     // clang-format off
     binaryDirectory(path ? CommandLine::get_binary_directory(*path) : ""),
     numaContext(NumaConfig::from_system(true)),
+    options(),
     threads(),
     tt(),
     networks(
@@ -153,6 +154,8 @@ void Engine::stop() noexcept { threads.stop = true; }
 
 void Engine::ponderhit() noexcept { threads.main_manager()->ponder = false; }
 
+void Engine::wait_finish() const noexcept { threads.main_thread()->wait_finish(); }
+
 void Engine::init() noexcept {
     if (options["HashRetain"])
         return;
@@ -162,9 +165,6 @@ void Engine::init() noexcept {
     // @TODO won't work with multiple instances
     Tablebases::init(options["SyzygyPath"]);  // Free mapped files
 }
-
-void Engine::wait_finish() const noexcept { threads.main_thread()->wait_finish(); }
-
 
 void Engine::resize_threads_tt() noexcept {
     threads.set(numaContext.get_numa_config(), {options, networks, threads, tt}, updateContext);
@@ -191,7 +191,7 @@ std::uint16_t Engine::get_hashFull(std::uint8_t maxAge) const noexcept {
     return tt.hashFull(maxAge);
 }
 
-void Engine::set_numa_config(const std::string& str) {
+void Engine::set_numa_config(const std::string& str) noexcept {
     if (str == "auto" || str == "system")
         numaContext.set_numa_config(NumaConfig::from_system(true));
 

@@ -77,7 +77,6 @@ constexpr inline Bitboard RANK_8_BB = RANK_1_BB << (8 * 7);
 
 constexpr inline Bitboard EDGE_FILE_BB      = FILE_A_BB | FILE_H_BB;
 constexpr inline Bitboard PROMOTION_RANK_BB = RANK_8_BB | RANK_1_BB;
-//constexpr inline Bitboard ENPASSANT_RANK_BB = RANK_6_BB | RANK_3_BB;
 constexpr inline Bitboard COLOR_BB[COLOR_NB]{0x55AA55AA55AA55AAull, 0xAA55AA55AA55AA55ull};
 constexpr inline Bitboard LOW_RANK_BB[COLOR_NB]{RANK_2_BB | RANK_3_BB, RANK_7_BB | RANK_6_BB};
 
@@ -186,9 +185,7 @@ constexpr Bitboard operator&(Bitboard b, Rank r) noexcept { return b & rank_bb(r
 constexpr Bitboard operator|(Bitboard b, Rank r) noexcept { return b | rank_bb(r); }
 constexpr Bitboard operator^(Bitboard b, Rank r) noexcept { return b ^ rank_bb(r); }
 
-constexpr bool ep_is_ok(Square epSq) noexcept {
-    return is_ok(epSq) /*&& ENPASSANT_RANK_BB & epSq*/;
-}
+constexpr bool ep_is_ok(Square epSq) noexcept { return is_ok(epSq); }
 
 constexpr bool more_than_one(Bitboard b) noexcept { return b & (b - 1); }
 constexpr bool exactly_one(Bitboard b) noexcept { return b && !more_than_one(b); }
