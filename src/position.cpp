@@ -19,6 +19,8 @@
 
 #include <array>
 #include <cctype>
+#include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <initializer_list>
 #include <iomanip>
