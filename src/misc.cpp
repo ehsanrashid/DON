@@ -32,7 +32,7 @@ namespace DON {
 namespace {
 
 // Version number or dev.
-constexpr inline std::string_view Version{"3.0"};
+constexpr inline std::string_view Version{"dev"};
 
 #if !defined(GIT_DATE)
 inline std::string format_date(std::string_view date) noexcept {
@@ -513,10 +513,10 @@ std::string CommandLine::get_binary_directory(std::string path) noexcept {
 // Extract the working directory
 std::string CommandLine::get_working_directory() noexcept {
 
-    constexpr std::size_t BUFF_SIZE = 4096;
+    static constexpr std::size_t BuffSize = 4096;
 
-    char  buffer[BUFF_SIZE];
-    char* cwd = GETCWD(buffer, BUFF_SIZE);
+    char  buffer[BuffSize];
+    char* cwd = GETCWD(buffer, BuffSize);
 
     std::string workingDirectory;
     if (cwd != nullptr)

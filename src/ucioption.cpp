@@ -246,16 +246,6 @@ const Option& Options::operator[](const std::string& name) const noexcept {
 }
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {
-    /*
-    for (std::uint16_t idx = 0; idx < options.size(); ++idx)
-        for (const auto& [fst, snd] : options)
-            if (idx == snd.idx)
-            {
-                os << "\noption name " << fst << snd;
-                break;
-            }
-    */
-
     std::vector<Options::Pair> optPairs(options.begin(), options.end());
     std::sort(optPairs.begin(), optPairs.end(),
               // Sort in ascending order

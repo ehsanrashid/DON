@@ -89,7 +89,6 @@ class Option final {
     Option& operator=(std::string value) noexcept;
 
     friend std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
-    friend std::ostream& operator<<(std::ostream& os, const Options& options) noexcept;
 
    private:
     std::uint16_t idx = -1;

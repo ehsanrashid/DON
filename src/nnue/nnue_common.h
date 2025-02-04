@@ -58,14 +58,15 @@ constexpr inline std::size_t LEB128_MAGIC_STRING_SIZE = sizeof(LEB128_MAGIC_STRI
 // SIMD width (in bytes)
 constexpr inline std::size_t SIMD_WIDTH =
 #if defined(USE_AVX2)
-  32;
+  32
 #elif defined(USE_SSE2)
-  16;
+  16
 #elif defined(USE_NEON)
-  16;
+  16
 #else
-  16;
+  16
 #endif
+  ;
 
 constexpr inline std::size_t MAX_SIMD_WIDTH = 32;
 
@@ -169,11 +170,11 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
 
     static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
 
-    constexpr std::size_t BUFF_SIZE = 4096;
+    static constexpr std::size_t BuffSize = 4096;
 
-    std::uint8_t buffer[BUFF_SIZE];
+    std::uint8_t buffer[BuffSize];
 
-    std::uint32_t buffPos   = BUFF_SIZE;
+    std::uint32_t buffPos   = BuffSize;
     std::uint32_t byteCount = read_little_endian<std::uint32_t>(istream);
 
     for (std::size_t i = 0; i < count; ++i)
@@ -182,10 +183,10 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
         std::size_t shift  = 0;
         do
         {
-            if (buffPos == BUFF_SIZE)
+            if (buffPos == BuffSize)
             {
                 istream.read(reinterpret_cast<char*>(buffer),
-                             std::min(byteCount, uint32_t(BUFF_SIZE)));
+                             std::min(byteCount, uint32_t(BuffSize)));
                 buffPos = 0;
             }
 
@@ -236,9 +237,9 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
 
     write_little_endian(ostream, byteCount);
 
-    constexpr std::size_t BUFF_SIZE = 4096;
+    static constexpr std::size_t BuffSize = 4096;
 
-    std::uint8_t buffer[BUFF_SIZE];
+    std::uint8_t buffer[BuffSize];
 
     std::uint32_t buffPos = 0;
 
@@ -251,7 +252,7 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
 
     auto write = [&](std::uint8_t byt) {
         buffer[buffPos++] = byt;
-        if (buffPos == BUFF_SIZE)
+        if (buffPos == BuffSize)
             flush();
     };
 
