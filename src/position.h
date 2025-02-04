@@ -52,8 +52,8 @@ extern Key side;
 void init() noexcept;
 }  // namespace Zobrist
 
-// State struct stores information needed to restore a Position object to
-// its previous state when retract a move.
+// State struct stores information needed to restore Position object
+// to its previous state when retract any move.
 struct State final {
     // --- Copied when making a move
     Key   pawnKey[COLOR_NB];
@@ -706,9 +706,7 @@ inline Piece Position::moved_piece(const Move& m) const noexcept {
 inline Piece Position::captured_piece(const Move& m) const noexcept {
     assert(pseudo_legal(m));
     assert(m.type_of() != CASTLING);
-    return m.type_of() == EN_PASSANT ? make_piece(~active_color(), PAWN)
-                                     //: m.type_of() == CASTLING   ? NO_PIECE
-                                     : piece_on(m.dst_sq());
+    return m.type_of() == EN_PASSANT ? make_piece(~active_color(), PAWN) : piece_on(m.dst_sq());
 }
 
 inline auto Position::captured(const Move& m) const noexcept { return type_of(captured_piece(m)); }

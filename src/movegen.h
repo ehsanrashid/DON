@@ -269,8 +269,6 @@ struct MoveList final {
 
 using LegalMoveList = MoveList<LEGAL>;
 
-//static_assert(sizeof(LegalMoveList) == 56, "Unexpected LegalMoveList size");
-
 }  // namespace DON
 
 #endif  // #ifndef MOVEGEN_H_INCLUDED

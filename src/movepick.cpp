@@ -101,6 +101,8 @@ void MovePicker::score() noexcept {
 
         else if constexpr (GT == ENC_QUIET)
         {
+            assert(m.type_of() != PROMOTION);
+
             Square org = m.org_sq(), dst = m.dst_sq();
 
             auto pc = pos.moved_piece(m);
@@ -159,7 +161,7 @@ void MovePicker::score() noexcept {
 
         else  //if constexpr(GT == EVA_QUIET)
         {
-            assert(m.type_of() != CASTLING);  // NOTE: Castling not possible
+            assert(m.type_of() != CASTLING);
 
             Square dst = m.dst_sq();
 

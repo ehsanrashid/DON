@@ -26,6 +26,7 @@
 #include <sstream>
 #include <utility>
 
+#include "memory.h"
 #include "misc.h"
 #include "movegen.h"
 #include "uci.h"
@@ -42,13 +43,6 @@ constexpr inline std::array<Piece, COLOR_NB * KING> Pieces{
   W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
   B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING
 };
-
-template <std::size_t N>
-inline std::unique_ptr<const std::int8_t[]> make_array(const std::int8_t (&data)[N]) noexcept {
-    auto arr = std::make_unique<std::int8_t[]>(N);
-    std::copy(std::begin(data), std::end(data), arr.get());
-    return arr;
-}
 
 const inline std::array<std::unique_ptr<const std::int8_t[]>, PIECE_TYPE_NB - 1> MobilityBonus{
   nullptr,
