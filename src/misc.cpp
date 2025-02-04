@@ -367,59 +367,67 @@ void init() noexcept {
 
 void hit_on(bool cond, std::size_t slot) noexcept {
 
-    ++hit.at(slot)[0];
+    hit.at(slot)[0].fetch_add(1, std::memory_order_relaxed);
     if (cond)
-        ++hit.at(slot)[1];
+        hit.at(slot)[1].fetch_add(1, std::memory_order_relaxed);
 }
 
 void min_of(std::int64_t value, std::size_t slot) noexcept {
 
-    ++min.at(slot)[0];
-    auto minValue = min.at(slot)[1].load();
-    while (minValue > value && !min.at(slot)[1].compare_exchange_weak(minValue, value))
+    min.at(slot)[0].fetch_add(1, std::memory_order_relaxed);
+    auto minValue = min.at(slot)[1].load(std::memory_order_relaxed);
+    while (minValue > value
+           && !min.at(slot)[1].compare_exchange_weak(minValue, value, std::memory_order_relaxed,
+                                                     std::memory_order_relaxed))
     {}
 }
 
 void max_of(std::int64_t value, std::size_t slot) noexcept {
 
-    ++max.at(slot)[0];
-    auto maxValue = max.at(slot)[1].load();
-    while (maxValue < value && !max.at(slot)[1].compare_exchange_weak(maxValue, value))
+    max.at(slot)[0].fetch_add(1, std::memory_order_relaxed);
+    auto maxValue = max.at(slot)[1].load(std::memory_order_relaxed);
+    while (maxValue < value
+           && !max.at(slot)[1].compare_exchange_weak(maxValue, value, std::memory_order_relaxed,
+                                                     std::memory_order_relaxed))
     {}
 }
 
 void extreme_of(std::int64_t value, std::size_t slot) noexcept {
 
-    ++extreme.at(slot)[0];
-    auto minValue = extreme.at(slot)[1].load();
-    while (minValue > value && !extreme.at(slot)[1].compare_exchange_weak(minValue, value))
+    extreme.at(slot)[0].fetch_add(1, std::memory_order_relaxed);
+    auto minValue = extreme.at(slot)[1].load(std::memory_order_relaxed);
+    while (minValue > value
+           && !extreme.at(slot)[1].compare_exchange_weak(minValue, value, std::memory_order_relaxed,
+                                                         std::memory_order_relaxed))
     {}
-    auto maxValue = extreme.at(slot)[2].load();
-    while (maxValue < value && !extreme.at(slot)[2].compare_exchange_weak(maxValue, value))
+    auto maxValue = extreme.at(slot)[2].load(std::memory_order_relaxed);
+    while (maxValue < value
+           && !extreme.at(slot)[2].compare_exchange_weak(maxValue, value, std::memory_order_relaxed,
+                                                         std::memory_order_relaxed))
     {}
 }
 
 void mean_of(std::int64_t value, std::size_t slot) noexcept {
 
-    ++mean.at(slot)[0];
-    mean.at(slot)[1] += value;
+    mean.at(slot)[0].fetch_add(1, std::memory_order_relaxed);
+    mean.at(slot)[1].fetch_add(value, std::memory_order_relaxed);
 }
 
 void stdev_of(std::int64_t value, std::size_t slot) noexcept {
 
-    ++stdev.at(slot)[0];
-    stdev.at(slot)[1] += value;
-    stdev.at(slot)[2] += value * value;
+    stdev.at(slot)[0].fetch_add(1, std::memory_order_relaxed);
+    stdev.at(slot)[1].fetch_add(value, std::memory_order_relaxed);
+    stdev.at(slot)[2].fetch_add(value * value, std::memory_order_relaxed);
 }
 
 void correl_of(std::int64_t value1, std::int64_t value2, std::size_t slot) noexcept {
 
-    ++correl.at(slot)[0];
-    correl.at(slot)[1] += value1;
-    correl.at(slot)[2] += value1 * value1;
-    correl.at(slot)[3] += value2;
-    correl.at(slot)[4] += value2 * value2;
-    correl.at(slot)[5] += value1 * value2;
+    correl.at(slot)[0].fetch_add(1, std::memory_order_relaxed);
+    correl.at(slot)[1].fetch_add(value1, std::memory_order_relaxed);
+    correl.at(slot)[2].fetch_add(value1 * value1, std::memory_order_relaxed);
+    correl.at(slot)[3].fetch_add(value2, std::memory_order_relaxed);
+    correl.at(slot)[4].fetch_add(value2 * value2, std::memory_order_relaxed);
+    correl.at(slot)[5].fetch_add(value1 * value2, std::memory_order_relaxed);
 }
 
 void print() noexcept {
