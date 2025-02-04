@@ -813,10 +813,10 @@ class NumaConfig final {
 
         BOOL status;
 
-        // We ALWAYS set affinity with the new API if available,
-        // because there's no downsides, and we forcibly keep it consistent
-        // with the old API should we need to use it. I.e. we always keep this as a superset
-        // of what we set with SetThreadGroupAffinity.
+        // ALWAYS set affinity with the new API if available,
+        // because there's no downsides, and we forcibly keep it consistent with
+        // the old API should need to use it. I.e. always keep this as a superset
+        // of what set with SetThreadGroupAffinity.
         if (setThreadSelectedCpuSetMasks != nullptr)
         {
             // Only available on Windows 11 and Windows Server 2022 onwards.

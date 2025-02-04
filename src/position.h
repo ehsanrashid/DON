@@ -156,8 +156,8 @@ class Position final {
         Cardinal cardinals[RANK_NB];
     };
 
-    static constexpr std::uint16_t R50_OFFSET = 14;
-    static constexpr std::uint16_t R50_FACTOR = 8;
+    static constexpr std::uint16_t R50Offset = 14;
+    static constexpr std::uint16_t R50Factor = 8;
 
     static void init() noexcept;
 
@@ -584,9 +584,9 @@ inline Piece Position::captured_piece() const noexcept { return st->capturedPiec
 inline Piece Position::promoted_piece() const noexcept { return st->promotedPiece; }
 
 inline Key Position::adjust_key(Key k, std::int16_t ply) const noexcept {
-    return st->rule50 + ply - R50_OFFSET < 0
+    return st->rule50 + ply - R50Offset < 0
            ? k
-           : k ^ make_hash((st->rule50 + ply - R50_OFFSET) / R50_FACTOR);
+           : k ^ make_hash((st->rule50 + ply - R50Offset) / R50Factor);
 }
 
 inline Key Position::key(std::int16_t ply) const noexcept { return adjust_key(st->key, ply); }

@@ -39,7 +39,7 @@
 namespace DON {
 
 // (*Scaler):
-// The values with Scaler asterisks have proven non-linear scaling.
+// Search features marked by "(*Scaler)" have proven non-linear scaling.
 // They are optimized to time controls of 180 + 1.8 and longer,
 // so changing them or adding conditions that are similar requires
 // tests at these types of time controls.
@@ -963,8 +963,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     improve = ss->staticEval > 0 + (ss - 2)->staticEval;
     opworse = ss->staticEval > 2 - (ss - 1)->staticEval;
 
-    if (!opworse && red > 2)
+    if (red > 2 && !opworse)
         depth = std::min(depth + 1, MAX_PLY - 1);
+    if (red > 0 && !(ss - 1)->inCheck && ss->staticEval > 200 - (ss - 1)->staticEval)
+        depth = std::max(depth - 1, 1);
 
     // Use static evaluation difference to improve quiet move ordering
     if (is_ok(preSq) && !preCapture && !(ss - 1)->inCheck)
@@ -1292,8 +1294,9 @@ S_MOVES_LOOP:  // When in check, search starts here
             // Recursive singular search is avoided.
 
             // Note:
-            // Generally, higher singularBeta (i.e closer to ttValue)
-            // and lower extension margins scales well. (*Scaler)
+            // Generally, tweaks that make extensions more frequent scale well.
+            // This includes higher values of singularBeta (i.e closer to ttValue)
+            // and lower extension margins. (*Scaler)
             if (!RootNode && !exclude && move == ttd.move
                 && depth > 4 - (completedDepth > 32) + ss->pvHit   //
                 && is_valid(ttd.value) && !is_decisive(ttd.value)  //
@@ -1970,9 +1973,9 @@ Move Worker::extract_tt_move(const Position& pos, Move ttMove, bool deep) const 
     if (deep)
     {
         auto rule50 = pos.rule50_count();
-        while (rule50 >= Position::R50_OFFSET)
+        while (rule50 >= Position::R50Offset)
         {
-            rule50 -= Position::R50_FACTOR;
+            rule50 -= Position::R50Factor;
             Key key = pos.key(rule50 - pos.rule50_count());
 
             auto [ttd, tte, ttc] = tt.probe(key);
@@ -2367,7 +2370,7 @@ void extend_tb_pv(Position&      rootPos,
 
     // Step 1. Walk the PV to the last position in TB with correct decisive score
     std::int16_t ply = 1;
-    while (ply < int(rootMove.size()))
+    while (ply < std::int16_t(rootMove.size()))
     {
         const Move& pvMove = rootMove[ply];
 
