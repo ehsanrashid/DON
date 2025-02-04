@@ -21,10 +21,8 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <cstdlib>
 #include <deque>
 #include <iosfwd>
 #include <iterator>
@@ -307,7 +305,6 @@ class Position final {
     bool  bishop_paired(Color c) const noexcept;
     bool  bishop_opposite() const noexcept;
 
-    int std_material(Color c) const noexcept;
     int std_material() const noexcept;
 
     Value material() const noexcept;
@@ -642,13 +639,9 @@ inline bool Position::bishop_opposite() const noexcept {
         && color_opposite(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
 }
 
-inline int Position::std_material(Color c) const noexcept {
-    return 1 * count<PAWN>(c) + 3 * count<KNIGHT>(c) + 3 * count<BISHOP>(c) + 5 * count<ROOK>(c)
-         + 9 * count<QUEEN>(c);
-}
-
 inline int Position::std_material() const noexcept {
-    return std_material(WHITE) + std_material(BLACK);
+    return 1 * count<PAWN>() + 3 * count<KNIGHT>() + 3 * count<BISHOP>() + 5 * count<ROOK>()
+         + 9 * count<QUEEN>();
 }
 
 inline Value Position::material() const noexcept {
