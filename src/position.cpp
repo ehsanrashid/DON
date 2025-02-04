@@ -69,16 +69,7 @@ const inline std::array<std::unique_ptr<const std::int8_t[]>, PIECE_TYPE_NB - 1>
 // Cuckoo table with Zobrist hashes of valid reversible moves, and the moves themselves
 struct Cuckoo final {
 
-    constexpr auto empty() const noexcept { return key == 0 /*&& move == Move::None()*/; }
-
-    [[maybe_unused]] friend bool operator==(const Cuckoo& cuckoo1,
-                                            const Cuckoo& cuckoo2) noexcept {  //
-        return cuckoo1.move == cuckoo2.move && cuckoo1.key == cuckoo2.key;
-    }
-    [[maybe_unused]] friend bool operator!=(const Cuckoo& cuckoo1,
-                                            const Cuckoo& cuckoo2) noexcept {  //
-        return !(cuckoo1 == cuckoo2);
-    }
+    constexpr auto empty() const noexcept { return key == 0; }
 
     Key  key  = 0;
     Move move = Move::None();
