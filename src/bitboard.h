@@ -156,16 +156,8 @@ constexpr Bitboard operator|(Square s1, Square s2) noexcept {
 }
 
 // Returns a bitboard from a list of squares
-//constexpr Bitboard make_bitboard() noexcept { return 0; }
-//template<typename... Squares>
-//constexpr Bitboard make_bitboard(Square s, Squares... squares) noexcept {
-//    return square_bb(s) | make_bitboard(squares...);
-//}
 template<typename... Squares>
 constexpr Bitboard make_bitboard(Squares... squares) noexcept {
-    //Bitboard b = 0;
-    //((b |= square_bb(squares)), ...);  // Equivalent to a fold expression
-    //return b;
     return (square_bb(squares) | ...);
 }
 

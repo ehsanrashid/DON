@@ -96,8 +96,6 @@ class MovePicker final {
 
     void sort_partial(int limit = std::numeric_limits<int>::min()) noexcept;
 
-    //auto begin() const noexcept { return ExtMoves::ConstItr(extBeg); }
-    //auto end() const noexcept { return ExtMoves::ConstItr(extEnd); }
     auto begin() noexcept { return extBeg; }
     auto end() noexcept { return extEnd; }
 
