@@ -439,7 +439,7 @@ class NumaReplicatedAccessToken final {
 // are replaced by std::exit.
 class NumaConfig final {
    public:
-    explicit NumaConfig(CpuIndex highestCpuIdx, bool affinityCtm) noexcept :
+    NumaConfig(CpuIndex highestCpuIdx, bool affinityCtm) noexcept :
         highestCpuIndex(highestCpuIdx),
         affinityCustom(affinityCtm) {}
 

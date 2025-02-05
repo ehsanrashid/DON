@@ -70,7 +70,7 @@ class Option final {
     explicit Option(bool v, OnChange&& f = nullptr) noexcept;
     explicit Option(const char* v, OnChange&& f = nullptr) noexcept;
     explicit Option(int v, int minv, int maxv, OnChange&& f = nullptr) noexcept;
-    explicit Option(const char* v, const char* cur, OnChange&& f = nullptr) noexcept;
+    explicit Option(const char* cur, const char* var, OnChange&& f = nullptr) noexcept;
 
     operator int() const noexcept;
     operator std::string() const noexcept;

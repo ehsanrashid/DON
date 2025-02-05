@@ -103,12 +103,12 @@ Option::Option(int v, int minv, int maxv, OnChange&& f) noexcept :
     defaultValue = currentValue = std::to_string(v);
 }
 
-Option::Option(const char* v, const char* cur, OnChange&& f) noexcept :
+Option::Option(const char* cur, const char* var, OnChange&& f) noexcept :
     type(OPT_COMBO),
     minValue(0),
     maxValue(0),
     onChange(std::move(f)) {
-    defaultValue = v;
+    defaultValue = var;
     currentValue = cur;
 }
 
@@ -118,7 +118,7 @@ Option::operator int() const noexcept {
 }
 
 Option::operator std::string() const noexcept {
-    assert(type == OPT_STRING);
+    assert(type == OPT_STRING || type == OPT_COMBO);
     return currentValue;
 }
 
@@ -203,11 +203,11 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
 
     if (option.type != OPT_BUTTON)
         os << " default "
-           << (option.type == OPT_STRING && is_whitespace(option.defaultValue)
-                 ? EMPTY_STRING
-                 : option.defaultValue);
+           << (option.type == OPT_STRING && is_whitespace(option.defaultValue) ? EMPTY_STRING
+               : option.type == OPT_COMBO                                      ? option.currentValue
+                                          : option.defaultValue);
     if (option.type == OPT_COMBO)
-        os << " " << option.currentValue;
+        os << " " << option.defaultValue;
     if (option.type == OPT_SPIN)
         os << " min " << option.minValue << " max " << option.maxValue;
 
