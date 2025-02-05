@@ -712,7 +712,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     assert((RootNode && ss->ply == 0) || ss->ply > 0);
     assert(!RootNode || (DEPTH_ZERO < depth && depth < MAX_PLY));
 
-    Key key = pos.key();
+    Color ac  = pos.active_color();
+    Key   key = pos.key();
 
     if constexpr (!RootNode)
     {
@@ -746,7 +747,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     }
 
     // Step 1. Initialize node
-    Color ac      = pos.active_color();
     ss->inCheck   = bool(pos.checkers());
     ss->moveCount = 0;
     ss->history   = 0;
@@ -958,13 +958,13 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // is bigger than the previous static evaluation at our turn
     // (if in check at previous move go back until not in check).
     // The improve flag is used in various pruning heuristics.
-    improve = ss->staticEval > 0 + (ss - 2)->staticEval;
-    opworse = ss->staticEval > 5 - (ss - 1)->staticEval;
+    improve = !(ss - 2)->inCheck && ss->staticEval > +(ss - 2)->staticEval;
+    opworse = (ss - 1)->inCheck || ss->staticEval > -(ss - 1)->staticEval;
 
-    if (red > 2 && !opworse)
-        depth = std::min(depth + 1, MAX_PLY - 1);
-    if (red > 0 && !(ss - 1)->inCheck && ss->staticEval > 200 - (ss - 1)->staticEval)
-        depth = std::max(depth - 1, 1);
+    if (depth < MAX_PLY - 1 && red > 2 && !opworse)
+        ++depth;
+    if (depth > 1 && red > 0 && !(ss - 1)->inCheck && ss->staticEval > 200 - (ss - 1)->staticEval)
+        --depth;
 
     // Use static evaluation difference to improve quiet move ordering
     if (is_ok(preSq) && !preCapture && !(ss - 1)->inCheck)
@@ -991,7 +991,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         return in_range((2 * eval + beta) / 3);
 
     // Step 9. Null move search with verification search
-    if (CutNode && !exclude && pos.non_pawn_material(ac) != VALUE_ZERO && preMove != Move::Null()
+    if (CutNode && !exclude && pos.non_pawn_material(ac) && preMove != Move::Null()
         && !is_loss(beta) && eval >= beta && ss->ply >= nmpMinPly
         && ss->staticEval >= 455 + beta - 21 * depth - 60 * improve)
     {
@@ -1048,7 +1048,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Step 10. Internal iterative reductions
     // Decrease depth for PVNode or deep CutNode without ttMove. (*Scaler)
     if ((PVNode || CutNode) && depth > 2 + 3 * CutNode && ttd.move == Move::None())
-        depth = std::max(depth - 1, 1);
+        --depth;
 
     assert(depth > DEPTH_ZERO);
 
@@ -1318,7 +1318,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                     extension = 1 + (value < singularBeta - doubleMargin)
                                   + (value < singularBeta - tripleMargin);
 
-                    depth = std::min(depth + 1, MAX_PLY - 1);
+                    if (depth < MAX_PLY - 1)
+                        ++depth;
                 }
                 // clang-format on
 
