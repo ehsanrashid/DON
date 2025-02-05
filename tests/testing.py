@@ -315,7 +315,10 @@ class DON:
                 text=True,
             )
 
-            self.process.stdout
+            if self.process.returncode != 0:
+                print(self.process.stdout)
+                print(self.process.stderr)
+                print(f"Process failed with return code {self.process.returncode}")
 
             return
 

@@ -1048,8 +1048,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     improve = improve || ss->staticEval >= 101 + beta;
 
     // Step 10. Internal iterative reductions
-    // Decrease depth for not AllNode, without ttMove. (*Scaler)
-    if (!AllNode && depth > 3 + 3 * CutNode && ttd.move == Move::None())
+    // Decrease depth for PVNode or deep CutNode without ttMove. (*Scaler)
+    if ((PVNode || CutNode) && depth > 3 + 3 * CutNode && ttd.move == Move::None())
         depth = depth - 1;
 
     assert(depth > DEPTH_ZERO);
@@ -1454,8 +1454,8 @@ S_MOVES_LOOP:  // When in check, search starts here
             r += 1111 * (ttd.move == Move::None());
 
             // Reduce search depth if expected reduction is high
-            value = -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha,
-                                 newDepth - ((r > 3554) * (1 + (r > 5373 && newDepth > 2))));
+            value =
+              -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha, newDepth - (r > 3554) - (r > 5373));
         }
 
         // For PV nodes only, do a full PV search on the first move or after a fail high,
@@ -1612,6 +1612,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                             + 120 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 84)
                             // Increase bonus when the previous move is TT move
                             +  81 * ((ss - 1)->move == (ss - 1)->ttMove)
+                            // Increase bonus when the previous cutoffCount is low
+                            + 100 * (!RootNode && (ss - 1)->cutoffCount <= 3)
                             // Increase bonus if the previous move has a bad history
                             + std::min(-9.2593e-3 * (ss - 1)->history, 320.0), 0.0);
             // clang-format on
