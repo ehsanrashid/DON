@@ -1552,9 +1552,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (value >= beta)
                 {
                     // If make cutoffCount increment more often (*Scaler)
-                    if constexpr (!RootNode)
-                        (ss - 1)->cutoffCount += PVNode || (extension < 2);
-
+                    (ss - 1)->cutoffCount += PVNode || (extension < 2);
                     break;  // Fail-high
                 }
 
@@ -1613,7 +1611,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                             // Increase bonus when the previous move is TT move
                             +  81 * ((ss - 1)->move == (ss - 1)->ttMove)
                             // Increase bonus when the previous cutoffCount is low
-                            + 100 * (!RootNode && (ss - 1)->cutoffCount <= 3)
+                            + 100 * ((ss - 1)->cutoffCount <= 3)
                             // Increase bonus if the previous move has a bad history
                             + std::min(-9.2593e-3 * (ss - 1)->history, 320.0), 0.0);
             // clang-format on
