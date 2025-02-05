@@ -723,7 +723,7 @@ class NumaConfig final {
                 maxNodeSize = cpus.size();
 
         auto is_node_small = [maxNodeSize](const std::set<CpuIndex>& node) {
-            return double(node.size()) / maxNodeSize <= 0.6;
+            return double(node.size()) / double(maxNodeSize) <= 0.6;
         };
 
         std::size_t notSmallNodeCount = 0;
@@ -755,7 +755,7 @@ class NumaConfig final {
                 float minFill = std::numeric_limits<float>::max();
                 for (NumaIndex node = 0; node < nodes.size(); ++node)
                 {
-                    float fill = float(1 + occupation[node]) / nodes[node].size();
+                    float fill = float(1 + occupation[node]) / float(nodes[node].size());
                     // NOTE: Do want to perhaps fill the first available node up to 50% first before considering other nodes?
                     //       Probably not, because it would interfere with running multiple instances.
                     //       Basically shouldn't favor any particular node.
@@ -783,14 +783,14 @@ class NumaConfig final {
         if (mask == nullptr)
             std::exit(EXIT_FAILURE);
 
-        const std::size_t MaskSize = CPU_ALLOC_SIZE(highestCpuIndex + 1);
+        const std::size_t maskSize = CPU_ALLOC_SIZE(highestCpuIndex + 1);
 
-        CPU_ZERO_S(MaskSize, mask);
+        CPU_ZERO_S(maskSize, mask);
 
         for (CpuIndex c : nodes[n])
-            CPU_SET_S(c, MaskSize, mask);
+            CPU_SET_S(c, maskSize, mask);
 
-        int status = sched_setaffinity(0, MaskSize, mask);
+        int status = sched_setaffinity(0, maskSize, mask);
 
         CPU_FREE(mask);
 
