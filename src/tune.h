@@ -144,7 +144,7 @@ class Tune final {
 
     template<typename T, typename... Args>
     int add(const RangeSetter& range, std::string&& names, T& value, Args&&... args) noexcept {
-        entries.push_back(std::make_unique<Entry<T>>(next(names), value, range));
+        entries.push_back(std::unique_ptr<EntryBase>(new Entry<T>(next(names), value, range)));
         return add(range, std::move(names), args...);
     }
 

@@ -62,7 +62,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
       NNUE::Networks(NNUE::BigNetwork  ({EvalFileDefaultNameBig  , "None", ""}, NNUE::BIG),
                      NNUE::SmallNetwork({EvalFileDefaultNameSmall, "None", ""}, NNUE::SMALL))) {
     
-    options.add("NumaPolicy",       Option("auto", [this](const Option& o) {
+    options.add("NumaPolicy",       Option("none", [this](const Option& o) {
         set_numa_config(o);
         return get_numa_config_info() + '\n'  //
              + get_thread_allocation_info();
