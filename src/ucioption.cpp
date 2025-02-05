@@ -206,7 +206,8 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
            << (option.type == OPT_STRING && is_whitespace(option.defaultValue)
                  ? EMPTY_STRING
                  : option.defaultValue);
-
+    if (option.type == OPT_COMBO)
+        os << " " << option.currentValue;
     if (option.type == OPT_SPIN)
         os << " min " << option.minValue << " max " << option.maxValue;
 

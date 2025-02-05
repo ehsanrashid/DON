@@ -22,8 +22,8 @@
 #include "misc.h"
 #include "position.h"
 //#include "tune.h"
-#include "uci.h"
 #include "types.h"
+#include "uci.h"
 #include "syzygy/tbprobe.h"
 
 using namespace DON;
