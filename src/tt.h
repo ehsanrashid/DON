@@ -18,6 +18,7 @@
 #ifndef TT_H_INCLUDED
 #define TT_H_INCLUDED
 
+#include <atomic>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
@@ -187,7 +188,7 @@ struct TTCluster final {
    public:
     TTEntry entry[TT_CLUSTER_ENTRY_COUNT];
 
-    Move move;  // Pad to 32 bytes
+    std::atomic<DON::Move> move;  // Pad to 32 bytes
 };
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
