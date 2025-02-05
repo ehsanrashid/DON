@@ -898,8 +898,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     int absCorrectionValue = std::abs(correctionValue);
 
-    bool npm = pos.non_pawn_material(ac) != VALUE_ZERO;
-
     Value unadjustedStaticEval, eval;
 
     bool improve, opworse;
@@ -993,7 +991,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         return in_range((2 * eval + beta) / 3);
 
     // Step 9. Null move search with verification search
-    if (CutNode && npm && !exclude && preMove != Move::Null()  //
+    if (CutNode && !exclude && pos.non_pawn_material(ac) != VALUE_ZERO && preMove != Move::Null()
         && !is_loss(beta) && eval >= beta && ss->ply >= nmpMinPly
         && ss->staticEval >= 455 + beta - 21 * depth - 60 * improve)
     {
@@ -1214,7 +1212,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Step 14. Pruning at shallow depth
         // Depth conditions are important for mate finding.
-        if (!RootNode && npm && !is_loss(bestValue))
+        if (!RootNode && !is_loss(bestValue))
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
             mp.quietPick = mp.quietPick
@@ -1701,7 +1699,6 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     }
 
     // Step 1. Initialize node
-    Color ac    = pos.active_color();
     ss->inCheck = bool(pos.checkers());
 
     // Step 2. Check for an immediate draw or maximum ply reached
@@ -1800,8 +1797,6 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
 QS_MOVES_LOOP:
 
-    bool npm = pos.non_pawn_material(ac) != VALUE_ZERO;
-
     State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
@@ -1845,7 +1840,7 @@ QS_MOVES_LOOP:
         auto captured = capture ? pos.captured(move) : NO_PIECE_TYPE;
 
         // Step 6. Pruning
-        if (npm && !is_loss(bestValue))
+        if (!is_loss(bestValue))
         {
             // Skip quiet moves
             mp.quietPick = mp.quietPick && moveCount < 4 + promoCount;
