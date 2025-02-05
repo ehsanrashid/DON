@@ -120,7 +120,7 @@ void ThreadPool::set(const NumaConfig&    numaConfig,
         if (numaPolicy == "auto")
             return numaConfig.suggests_binding_threads(threadCount);
 
-        // numaPolicy == "system", or explicitly set by the user
+        // numaPolicy == "system", "hardware" or explicitly set by the user string
         return true;
     }();
 

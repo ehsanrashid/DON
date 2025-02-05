@@ -62,7 +62,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
       NNUE::Networks(NNUE::BigNetwork  ({EvalFileDefaultNameBig  , "None", ""}, NNUE::BIG),
                      NNUE::SmallNetwork({EvalFileDefaultNameSmall, "None", ""}, NNUE::SMALL))) {
     
-    options.add("NumaPolicy",       Option("none", "var none var auto var system", [this](const Option& o) {
+    options.add("NumaPolicy",       Option("none", "var none var auto var system var hardware var default", [this](const Option& o) {
         set_numa_config(o);
         return get_numa_config_info() + '\n'  //
              + get_thread_allocation_info();
@@ -194,15 +194,19 @@ std::uint16_t Engine::get_hashFull(std::uint8_t maxAge) const noexcept {
 }
 
 void Engine::set_numa_config(const std::string& str) noexcept {
-    if (str == "auto" || str == "system")
+    if (str == "none")
+        numaContext.set_numa_config(NumaConfig{});
+
+    else if (str == "auto" || str == "system")
         numaContext.set_numa_config(NumaConfig::from_system(true));
 
     else if (str == "hardware")
         // Don't respect affinity set in the system.
         numaContext.set_numa_config(NumaConfig::from_system(false));
 
-    else if (str == "none")
-        numaContext.set_numa_config(NumaConfig{});
+    else if (str == "default")
+        numaContext.set_numa_config(
+          NumaConfig::from_string("0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"));
 
     else
         numaContext.set_numa_config(NumaConfig::from_string(str));
