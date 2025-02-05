@@ -253,15 +253,15 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
 
-        # def callback(output):
-        #     regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
-        #     if output.startswith("info depth") and not re.match(regex, output):
-        #         assert False
-        #     if output.startswith("bestmove"):
-        #         return True
-        #     return False
-        #
-        # self.engine.check_output(callback)
+        def callback(output):
+            regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp \d+ * time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            if output.startswith("info depth") and not re.match(regex, output):
+                assert False
+            if output.startswith("bestmove"):
+                return True
+            return False
+
+        self.engine.check_output(callback)
 
     def test_ucinewgame_wdl_startpos_go_depth_9(self):
         self.engine.send_command("ucinewgame")
@@ -270,21 +270,26 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.send_command("go depth 9")
 
         # depth = 1
-        #
-        # def callback(output):
-        #     nonlocal depth
-        #
-        #     regex = rf"info depth {depth} seldepth \d+ multipv \d+ score cp \d+ wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
-        #     if output.startswith("info depth"):
-        #         if not re.match(regex, output):
-        #             assert False
-        #         depth += 1
-        #     if output.startswith("bestmove"):
-        #         # assert depth == 10
-        #         return True
-        #     return False
-        #
-        # self.engine.check_output(callback)
+        def callback(output):
+            # nonlocal depth
+
+            # regex = rf"info depth {depth} seldepth \d+ multipv \d+ score cp \d+ * wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp \d+ * time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            # if output.startswith("info depth"):
+            #     if not re.match(regex, output):
+            #         assert False
+            #     depth += 1
+            # if output.startswith("bestmove"):
+            #     # assert depth == 10
+            #     return True
+            # return False
+            if output.startswith("info depth") and not re.match(regex, output):
+                assert False
+            if output.startswith("bestmove"):
+                return True
+            return False
+
+        self.engine.check_output(callback)
 
     def test_clear_hash(self):
         self.engine.send_command("setoption name Clear Hash")

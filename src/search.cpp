@@ -1049,8 +1049,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     // Step 10. Internal iterative reductions
     // Decrease depth for PVNode or deep CutNode without ttMove. (*Scaler)
-    if ((PVNode || CutNode) && depth > 3 + 3 * CutNode && ttd.move == Move::None())
-        depth = depth - 1;
+    if ((PVNode || CutNode) && depth > 2 + 3 * CutNode && ttd.move == Move::None())
+        depth = std::max(depth - 1, 1);
 
     assert(depth > DEPTH_ZERO);
 
@@ -1455,7 +1455,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             // Reduce search depth if expected reduction is high
             value =
-              -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha, newDepth - (r > 3554) - (r > 5373));
+              -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha, newDepth - ((r > 3554) + (r > 5373)));
         }
 
         // For PV nodes only, do a full PV search on the first move or after a fail high,
