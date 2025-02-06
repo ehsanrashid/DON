@@ -128,8 +128,6 @@ struct ExtMove final: public Move {
         move = m.raw();
     }
 
-    //void operator=(const Move& m) noexcept { move = m.raw(); }
-
     friend bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept {  //
         return em1.value < em2.value;
     }
@@ -143,12 +141,7 @@ struct ExtMove final: public Move {
         return !(em1 < em2);
     }
 
-    // Inhibit unwanted implicit conversions to Move
-    // with an ambiguity that yields to a compile error.
-    operator float() const noexcept = delete;
-
-    // No need as MovePicker set values
-    int value;  // = 0;
+    int value;
 };
 
 class ExtMoves final {

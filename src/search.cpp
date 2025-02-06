@@ -894,6 +894,14 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         }
     }
 
+    Value probCutBeta;
+
+    // Step 6. Small ProbCut idea
+    probCutBeta = std::min(363 + beta, VALUE_TB_WIN_IN_MAX_PLY - 1);
+    if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value)
+        && ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
+        return probCutBeta;
+
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
     int absCorrectionValue = std::abs(correctionValue);
@@ -902,14 +910,12 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     bool improve, opworse;
 
-    Value probCutBeta;
-
     Move move;
 
     State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
-    // Step 6. Static evaluation of the position
+    // Step 7. Static evaluation of the position
     if (ss->inCheck)
     {
         unadjustedStaticEval = VALUE_NONE;
@@ -976,12 +982,12 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             update_pawn_history(pos, pos.piece_on(preSq), preSq, +1.1670 * bonus);
     }
 
-    // Step 7. Razoring
+    // Step 8. Razoring
     // If eval is really low, skip search entirely and return the qsearch value.
     if (!PVNode && eval < -446 + alpha - 303 * sqr(depth))
         return qsearch<false>(pos, ss, alpha, beta);
 
-    // Step 8. Futility pruning: child node
+    // Step 9. Futility pruning: child node
     // The depth condition is important for mate finding.
     if (!ss->pvHit && depth < 15 && eval >= beta && (ttd.move == Move::None() || ttCapture)
         && !is_loss(beta) && !is_win(eval)
@@ -990,7 +996,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
              >= beta)
         return in_range((2 * eval + beta) / 3);
 
-    // Step 9. Null move search with verification search
+    // Step 10. Null move search with verification search
     if (CutNode && !exclude && pos.non_pawn_material(ac) && preMove != Move::Null()
         && !is_loss(beta) && eval >= beta && ss->ply >= nmpMinPly
         && ss->staticEval >= 455 + beta - 21 * depth - 60 * improve)
@@ -1045,14 +1051,14 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     improve = improve || ss->staticEval >= 101 + beta;
 
-    // Step 10. Internal iterative reductions
+    // Step 11. Internal iterative reductions
     // Decrease depth for PVNode or deep CutNode without ttMove. (*Scaler)
     if ((PVNode || CutNode) && depth > 2 + 3 * CutNode && ttd.move == Move::None())
         --depth;
 
     assert(depth > DEPTH_ZERO);
 
-    // Step 11. ProbCut
+    // Step 12. ProbCut
     // If have a good enough capture or any promotion and a reduced search
     // returns a value much above beta, can (almost) safely prune previous move.
     probCutBeta = std::min(187 + beta - 55 * improve, +VALUE_INFINITE - 1);
@@ -1125,12 +1131,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     }
 
 S_MOVES_LOOP:  // When in check, search starts here
-
-    // Step 12. Small ProbCut idea
-    probCutBeta = std::min(413 + beta, VALUE_TB_WIN_IN_MAX_PLY - 1);
-    if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value)
-        && ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
-        return probCutBeta;
 
     if (!ss->inCheck && ttd.hit && ttd.move == Move::None() && tte->move() != Move::None())
     {
@@ -1611,6 +1611,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                             +  81 * ((ss - 1)->move == (ss - 1)->ttMove)
                             // Increase bonus when the previous cutoffCount is low
                             + 100 * ((ss - 1)->cutoffCount <= 3)
+                            + 100 * (red > 1)
                             // Increase bonus if the previous move has a bad history
                             + std::min(-9.2593e-3 * (ss - 1)->history, 320.0), 0.0);
             // clang-format on
