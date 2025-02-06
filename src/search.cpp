@@ -963,7 +963,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     if (depth < MAX_PLY - 1 && red > 2 && !opworse)
         ++depth;
-    if (depth > 1 && red > 0 && !(ss - 1)->inCheck && ss->staticEval > 200 - (ss - 1)->staticEval)
+    if (depth > 1 && red > 0 && ((ss - 1)->inCheck || ss->staticEval > 200 - (ss - 1)->staticEval))
         --depth;
 
     // Use static evaluation difference to improve quiet move ordering
