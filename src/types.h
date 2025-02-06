@@ -402,13 +402,10 @@ constexpr std::uint64_t make_hash(std::uint64_t seed) noexcept {
 }
 
 constexpr Key16 compress_key(Key key) noexcept {
-    // Weights for each byte position
-    constexpr std::uint8_t Weights[8]{59, 53, 43, 41, 31, 29, 19, 17};
-    // Sum up weighted contributions from each byte
-    return Weights[0] * std::uint8_t(key >> 0) + Weights[1] * std::uint8_t(key >> 8)
-         + Weights[2] * std::uint8_t(key >> 16) + Weights[3] * std::uint8_t(key >> 24)
-         + Weights[4] * std::uint8_t(key >> 32) + Weights[5] * std::uint8_t(key >> 40)
-         + Weights[6] * std::uint8_t(key >> 48) + Weights[7] * std::uint8_t(key >> 56);
+    return ((key >> 00) & 0xFFFF)  //
+         ^ ((key >> 16) & 0x0FFF)  //
+         ^ ((key >> 32) & 0x00FF)  //
+         ^ ((key >> 48) & 0x000F);
 }
 
 // A move needs 16 bits to be stored

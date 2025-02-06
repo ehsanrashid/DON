@@ -85,7 +85,6 @@ void MovePicker::score() noexcept {
     auto pawnIndex = pawn_index(pos.pawn_key());
 
     for (auto& m : *this)
-    {
         if constexpr (GT == ENC_CAPTURE)
         {
             Square dst = m.dst_sq();
@@ -158,7 +157,7 @@ void MovePicker::score() noexcept {
             m.value = 2 * PIECE_VALUE[pos.captured(m)] + promotion_value(m, true);
         }
 
-        else  //if constexpr(GT == EVA_QUIET)
+        else  //if constexpr (GT == EVA_QUIET)
         {
             assert(m.type_of() != CASTLING);
 
@@ -170,7 +169,6 @@ void MovePicker::score() noexcept {
                     + (*pawnHistory)[pawnIndex][pc][dst]  //
                     + (*continuationHistory[0])[pc][dst];
         }
-    }
 }
 
 // Sort moves in descending order up to and including a given limit.

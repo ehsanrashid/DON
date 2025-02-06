@@ -961,9 +961,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     improve = !(ss - 2)->inCheck && ss->staticEval > +(ss - 2)->staticEval;
     opworse = (ss - 1)->inCheck || ss->staticEval > -(ss - 1)->staticEval;
 
-    if (depth < MAX_PLY - 1 && red > 2 && !opworse)
+    if (red > 2 && depth < MAX_PLY - 1 && !opworse)
         ++depth;
-    if (depth > 1 && red > 0 && ((ss - 1)->inCheck || ss->staticEval > 200 - (ss - 1)->staticEval))
+    if (red > 0 && depth > 1 && ((ss - 1)->inCheck || ss->staticEval > 200 - (ss - 1)->staticEval))
         --depth;
 
     // Use static evaluation difference to improve quiet move ordering
@@ -1145,16 +1145,16 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     value = bestValue;
 
+    Move bestMove = Move::None();
+
+    auto pawnIndex = pawn_index(pos.pawn_key());
+
     std::uint8_t moveCount  = 0;
     std::uint8_t promoCount = 0;
-
-    Move bestMove = Move::None();
 
     std::array<Moves, 2> moves;
 
     Value singularValue = +VALUE_INFINITE;
-
-    auto pawnIndex = pawn_index(pos.pawn_key());
 
     const History<HPieceSq>* contHistory[8]{(ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,
                                             (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,
@@ -2289,7 +2289,7 @@ void update_correction_history(const Position& pos, Stack* const ss, int bonus) 
     Color ac = pos.active_color();
     Move  m  = (ss - 1)->move;
 
-    constexpr int BonusLimit = CORRECTION_HISTORY_LIMIT / 4;
+    static constexpr int BonusLimit = CORRECTION_HISTORY_LIMIT / 4;
 
     bonus = std::clamp(bonus, -BonusLimit, +BonusLimit);
 

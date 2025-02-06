@@ -1036,7 +1036,7 @@ DO_MOVE_END:
             pst = pst->preState->preState;
             if (pst->key == st->key)
             {
-                st->repetition = pst->repetition ? -i : +i;
+                st->repetition = pst->repetition != 0 ? -i : +i;
                 break;
             }
         }
@@ -1119,7 +1119,7 @@ UNDO_MOVE_END:
     assert(pos_is_ok());
 }
 
-// Used to do a "null move":
+// Makes a null move
 // It flips the active color without executing any move on the board.
 void Position::do_null_move(State& newSt) noexcept {
     assert(&newSt != st);
@@ -1159,7 +1159,7 @@ void Position::do_null_move(State& newSt) noexcept {
     assert(pos_is_ok());
 }
 
-// Used to undo a "null move"
+// Unmakes a null move
 void Position::undo_null_move() noexcept {
     assert(!checkers());
     assert(!is_ok(captured_piece()));
