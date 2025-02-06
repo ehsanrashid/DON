@@ -719,7 +719,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
               << "\nHash max, avg [per mille]  : "  //
               << "\n    Single search          : " << maxHashFull[0] << ", " << sumHashFull[0] / hashFullCount  //
               << "\n    Single game            : " << maxHashFull[1] << ", " << sumHashFull[1] / hashFullCount  //
-              << "\nTotal time [s]             : " << elapsedTime / 1000.0
+              << "\nTotal time [s]             : " << 1.0e-3f * elapsedTime
               << "\nTotal nodes                : " << nodes
               << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
     // clang-format on

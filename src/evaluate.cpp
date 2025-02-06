@@ -85,15 +85,15 @@ Value evaluate(const Position&          pos,
     // clang-format off
     std::int32_t complexity = std::abs(netOut.psqt - netOut.positional) / NNUE::OUTPUT_SCALE;
 
-    nnue     -= nnue     * complexity * (55.9315e-6 - 06.5073e-6 * smallNetUse);
-    optimism += optimism * complexity * (21.3675e-4);
+    nnue     -= nnue     * complexity * (55.9315e-6f - 06.5073e-6f * smallNetUse);
+    optimism += optimism * complexity * (21.3675e-4f);
 
-    std::int32_t v = (nnue + 0.0999 * optimism)
-                   + (nnue + 0.9999 * optimism) * pos.material() * 12.8573e-6;
+    std::int32_t v = (nnue + 0.0999f * optimism)
+                   + (nnue + 0.9999f * optimism) * pos.material() * 12.8573e-6f;
     // clang-format on
 
     // Damp down the evaluation linearly when shuffling
-    v *= 1.0 - 4.9019e-3 * std::max(pos.rule50_count() - 4, 0);
+    v *= 1.0f - 4.9019e-3f * std::max(pos.rule50_count() - 4, 0);
 
     // Guarantee evaluation does not hit the tablebase range
     return in_range(v);
@@ -123,11 +123,11 @@ std::string trace(Position&             pos,  //
 
     v = (netOut.psqt + netOut.positional) / NNUE::OUTPUT_SCALE;
     v = pos.active_color() == WHITE ? +v : -v;
-    oss << "NNUE evaluation      : " << 0.01 * UCI::to_cp(v, pos) << " (white side)\n";
+    oss << "NNUE evaluation      : " << 0.01f * UCI::to_cp(v, pos) << " (white side)\n";
 
     v = evaluate(pos, networks, *accCaches);
     v = pos.active_color() == WHITE ? +v : -v;
-    oss << "Final evaluation     : " << 0.01 * UCI::to_cp(v, pos) << " (white side)";
+    oss << "Final evaluation     : " << 0.01f * UCI::to_cp(v, pos) << " (white side)";
     oss << " [with scaled NNUE, ...]\n";
 
     return oss.str();

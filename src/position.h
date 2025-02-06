@@ -660,11 +660,11 @@ inline Value Position::evaluate() const noexcept {
 inline Value Position::bonus() const noexcept {
     Color ac = active_color();
     // clang-format off
-    return (0.6 * (mobility(ac) - mobility(~ac))
-           + 20 * (bishop_paired(ac) - bishop_paired(~ac))
-           + 56 * ((can_castle( ac & ANY_CASTLING) || castled( ac))
-                 - (can_castle(~ac & ANY_CASTLING) || castled(~ac))))
-         * (1.0 - 4.1250e-2 * phase());
+    return (0.8f * (mobility(ac) - mobility(~ac))
+           +  20 * (bishop_paired(ac) - bishop_paired(~ac))
+           +  56 * ((can_castle( ac & ANY_CASTLING) || castled( ac))
+                  - (can_castle(~ac & ANY_CASTLING) || castled(~ac))))
+         * (1.0f - 4.1250e-2f * phase());
     // clang-format on
 }
 
