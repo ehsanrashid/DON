@@ -826,7 +826,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
         if (pos.rule50_count() < Position::rule50_threshold()
-            && (!pos.rule50_high() || pos.rule50_count() < 10))
+            && (!pos.rule50_high() || pos.rule50_count() < 0.5 * Position::rule50_threshold()))
         {
             if (ttd.value > beta && ttd.depth > DEPTH_ZERO && !is_decisive(ttd.value))
             {
@@ -1726,7 +1726,10 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     // At non-PV nodes check for an early TT cutoff
     if (!PVNode && is_valid(ttd.value) && ttd.depth >= DEPTH_ZERO
-        && (ttd.bound & bound_for_fail(ttd.value >= beta)) != 0)
+        && (ttd.bound & bound_for_fail(ttd.value >= beta)) != 0
+        // For high rule50 counts don't produce transposition table cutoffs.
+        && pos.rule50_count() < Position::rule50_threshold()
+        && (!pos.rule50_high() || pos.rule50_count() < 0.5 * Position::rule50_threshold()))
     {
         if (ttd.value > beta && ttd.depth > DEPTH_ZERO && !is_decisive(ttd.value))
         {
