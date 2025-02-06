@@ -128,7 +128,7 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
             extMoves.emplace_back(s - PushR, s);
         }
 
-        if (ep_is_ok(pos.ep_square()))
+        if (is_ok(pos.ep_square()))
         {
             assert(relative_rank(ac, pos.ep_square()) == RANK_6);
             assert(pos.pieces(~ac, PAWN) & (pos.ep_square() - Push1));

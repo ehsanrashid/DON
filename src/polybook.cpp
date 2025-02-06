@@ -310,7 +310,7 @@ Key polyglot_key(const Position& pos) noexcept {
     while (b)
         key ^= PG.Zobrist.castling[pop_lsb(b)];
 
-    if (ep_is_ok(pos.ep_square()))
+    if (is_ok(pos.ep_square()))
         key ^= PG.Zobrist.enpassant[file_of(pos.ep_square())];
 
     if (pos.active_color() == WHITE)

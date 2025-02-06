@@ -177,8 +177,6 @@ constexpr Bitboard operator&(Bitboard b, Rank r) noexcept { return b & rank_bb(r
 constexpr Bitboard operator|(Bitboard b, Rank r) noexcept { return b | rank_bb(r); }
 constexpr Bitboard operator^(Bitboard b, Rank r) noexcept { return b ^ rank_bb(r); }
 
-constexpr bool ep_is_ok(Square epSq) noexcept { return is_ok(epSq); }
-
 constexpr bool more_than_one(Bitboard b) noexcept { return b & (b - 1); }
 constexpr bool exactly_one(Bitboard b) noexcept { return b && !more_than_one(b); }
 
