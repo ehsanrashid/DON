@@ -213,9 +213,9 @@ class AffineTransformSparseInput {
 
     static constexpr IndexType get_weight_index(IndexType i) noexcept {
 #if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
-        return CHUNK_SIZE * (i / CHUNK_SIZE) % (PaddedInputDimensions / CHUNK_SIZE)
-               * OutputDimensions
-             + CHUNK_SIZE * i / PaddedInputDimensions + i % CHUNK_SIZE;
+        return (i / CHUNK_SIZE) % (PaddedInputDimensions / CHUNK_SIZE) * OutputDimensions
+               * CHUNK_SIZE
+             + i / PaddedInputDimensions * CHUNK_SIZE + i % CHUNK_SIZE;
 #else
         return i;
 #endif

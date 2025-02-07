@@ -152,8 +152,8 @@ class AffineTransform final {
 
     static constexpr IndexType get_weight_index(IndexType i) noexcept {
 #if defined(ENABLE_SEQ_OPT)
-        return 4 * (i / 4) % (PaddedInputDimensions / 4) * OutputDimensions
-             + 4 * i / PaddedInputDimensions + i % 4;
+        return (i / 4) % (PaddedInputDimensions / 4) * OutputDimensions * 4
+             + i / PaddedInputDimensions * 4 + i % 4;
 #else
         return i;
 #endif
