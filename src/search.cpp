@@ -150,6 +150,7 @@ History<HLowPlyQuiet> lowPlyQuietHistory;
 CorrectionHistory<CHPawn>                 pawnCorrectionHistory;
 CorrectionHistory<CHMinor>               minorCorrectionHistory;
 CorrectionHistory<CHMajor>               majorCorrectionHistory;
+CorrectionHistory<CHNonPawn>           nonPawnCorrectionHistory;
 CorrectionHistory<CHContinuation> continuationCorrectionHistory;
 
 // Reductions lookup table initialized at startup
@@ -237,9 +238,10 @@ void init() noexcept {
                     pieceSqHist.fill(-493);
     continuationHistory[0][0][NO_PIECE][SQ_ZERO].fill(0);
 
-     pawnCorrectionHistory.fill(4);
-    minorCorrectionHistory.fill(0);
-    majorCorrectionHistory.fill(0);
+       pawnCorrectionHistory.fill(4);
+      minorCorrectionHistory.fill(0);
+      majorCorrectionHistory.fill(0);
+    nonPawnCorrectionHistory.fill(0);
     for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(0);
@@ -2311,9 +2313,10 @@ void update_correction_history(const Position& pos, Stack* const ss, int bonus) 
 
     for (Color c : {WHITE, BLACK})
     {
-       pawnCorrectionHistory[correction_index(pos. pawn_key(c))][ac][c] << +0.8516f * bonus;
-      minorCorrectionHistory[correction_index(pos.minor_key(c))][ac][c] << +1.3058f * bonus;
-      majorCorrectionHistory[correction_index(pos.major_key(c))][ac][c] << +1.2891f * bonus;
+       pawnCorrectionHistory[correction_index(pos.    pawn_key(c))][ac][c] << +0.8516f * bonus;
+      minorCorrectionHistory[correction_index(pos.   minor_key(c))][ac][c] << +1.1016f * bonus;
+      majorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c] << +0.5508f * bonus;
+    nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c] << +1.2891f * bonus;
     }
     if (m.is_ok())
       (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << +1.0781f * bonus;
@@ -2326,17 +2329,19 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
     int pcv  = 0;
     int micv = 0;
     int mjcv = 0;
+    int npcv = 0;
     for (Color c : {WHITE, BLACK})
     {
-        pcv  +=  pawnCorrectionHistory[correction_index(pos. pawn_key(c))][ac][c];
-        micv += minorCorrectionHistory[correction_index(pos.minor_key(c))][ac][c];
-        mjcv += majorCorrectionHistory[correction_index(pos.major_key(c))][ac][c];
+        pcv  +=    pawnCorrectionHistory[correction_index(pos.    pawn_key(c))][ac][c];
+        micv +=   minorCorrectionHistory[correction_index(pos.   minor_key(c))][ac][c];
+        mjcv +=   majorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c];
+        npcv += nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c];
     }
     int cntcv = m.is_ok()
               ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
               : 0;
 
-    return (+6995 * pcv + 8179 * micv + 7753 * mjcv + 6049 * cntcv);
+    return (+6995 * pcv + 6593 * micv + 3296 * mjcv + 7753 * npcv + 6049 * cntcv);
 }
 
 // Update raw staticEval according to various CorrectionHistory value

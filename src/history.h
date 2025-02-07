@@ -153,6 +153,7 @@ enum CorrectionHistoryType : std::uint8_t {
     CHPawn,          // By color and pawn structure
     CHMinor,         // By color and minor piece (Knight, Bishop) structure
     CHMajor,         // By color and major piece (Rook, Queen) structure
+    CHNonPawn,       // By color and non-pawn structure
     CHPieceSq,       // By move's [piece][sq]
     CHContinuation,  // By combination of pair of moves
 };
@@ -176,6 +177,11 @@ struct CorrectionHistoryTypedef<CHMinor> final {
 
 template<>
 struct CorrectionHistoryTypedef<CHMajor> final {
+    using Type = CorrectionStatsArray<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+};
+
+template<>
+struct CorrectionHistoryTypedef<CHNonPawn> final {
     using Type = CorrectionStatsArray<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
