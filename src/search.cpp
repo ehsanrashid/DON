@@ -299,9 +299,11 @@ void Worker::start_search() noexcept {
         // When playing with strength handicap enable MultiPV search that will
         // use behind-the-scenes to retrieve a set of possible moves.
         if (mainManager->skill.enabled())
-            multiPV = std::max(multiPV, std::size_t(4));
+            if (multiPV < 4)
+                multiPV = 4;
     }
-    multiPV = std::min(multiPV, rootMoves.size());
+    if (multiPV > rootMoves.size())
+        multiPV = rootMoves.size();
 
     // Non-main threads go directly to iterative_deepening()
     if (!mainManager)
@@ -730,7 +732,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         }
 
         // Limit the depth if extensions made it too large
-        depth = std::min(+depth, MAX_PLY - 1);
+        if (depth > MAX_PLY - 1)
+            depth = MAX_PLY - 1;
         assert(DEPTH_ZERO < depth && depth < MAX_PLY);
     }
 
@@ -743,7 +746,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if constexpr (PVNode)
     {
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max(+selDepth, 1 + ss->ply);
+        if (selDepth < 1 + ss->ply)
+            selDepth = 1 + ss->ply;
     }
 
     // Step 1. Initialize node
@@ -885,7 +889,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 if constexpr (PVNode)
                 {
                     if (bound == BOUND_LOWER)
-                        bestValue = value, alpha = std::max(alpha, value);
+                    {
+                        bestValue = value;
+                        if (alpha < value)
+                            alpha = value;
+                    }
                     else
                         maxValue = value;
                 }
@@ -1000,8 +1008,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         // Null move dynamic reduction based on depth, eval and phase
         Depth R = 4 + 0.3333f * depth + std::min(4.2194e-3f * diff, 6.0f) + 0.1111f * pos.phase();
-        R       = std::min(R, depth);
-        assert(R <= depth);
+        if (R > depth)
+            R = depth;
 
         pos.do_null_move(st);
 
@@ -1264,12 +1272,14 @@ S_MOVES_LOOP:  // When in check, search starts here
                       VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
                     {
-                        bestValue = std::max(bestValue, futilityValue);
+                        if (bestValue < futilityValue)
+                            bestValue = futilityValue;
                         continue;
                     }
                 }
 
-                lmrDepth = std::max(lmrDepth, DEPTH_ZERO);
+                if (lmrDepth < DEPTH_ZERO)
+                    lmrDepth = DEPTH_ZERO;
 
                 // SEE based pruning for quiets
                 if (pos.see(move) < -(26 * sqr(lmrDepth) + 256 * dblCheck))
@@ -1597,7 +1607,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             // clang-format off
             // Make sure the bonus is positive
-            auto bonusScale = std::max(
+            auto bonusScale =
                             // Increase bonus when depth is high
                             + 118 * (depth > 5) + 36 * !AllNode
                             // Increase bonus when the previous move count is high
@@ -1612,8 +1622,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                             + 100 * ((ss - 1)->cutoffCount <= 3)
                             + 100 * (red > 1)
                             // Increase bonus if the previous move has a bad history
-                            + std::min(-9.2593e-3f * (ss - 1)->history, 320.0f), 0.0f);
+                            + std::min(-9.2593e-3f * (ss - 1)->history, 320.0f);
             // clang-format on
+            if (bonusScale < 0.0f)
+                bonusScale = 0.0f;
 
             int bonus = bonusScale * stat_bonus(depth);
 
@@ -1634,7 +1646,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // Don't let bestValue inflate too high (tb)
     if constexpr (PVNode)
-        bestValue = std::min(bestValue, maxValue);
+        if (bestValue > maxValue)
+            bestValue = maxValue;
 
     // If no good move is found and the previous position was ttPv, then the previous
     // opponent move is probably good and the new position is added to the search tree.
@@ -1696,7 +1709,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         (ss + 1)->pv = pv.data();
 
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max(+selDepth, 1 + ss->ply);
+        if (selDepth < 1 + ss->ply)
+            selDepth = 1 + ss->ply;
     }
 
     // Step 1. Initialize node
@@ -1791,7 +1805,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         return bestValue;
     }
 
-    alpha = std::max(alpha, bestValue);
+    if (alpha < bestValue)
+        alpha = bestValue;
 
     futilityBase = std::min(325 + ss->staticEval, VALUE_TB_WIN_IN_MAX_PLY - 1);
 
@@ -1859,14 +1874,17 @@ QS_MOVES_LOOP:
                 // If static evaluation + value of piece going to captured is much lower than alpha
                 if (futilityValue <= alpha)
                 {
-                    bestValue = std::max(bestValue, futilityValue);
+                    if (bestValue < futilityValue)
+                        bestValue = futilityValue;
                     continue;
                 }
 
                 // SEE based pruning
                 if (pos.see(move) < (alpha - futilityBase))
                 {
-                    bestValue = std::max(bestValue, std::min(alpha, futilityBase));
+                    auto margin = std::min(alpha, futilityBase);
+                    if (bestValue < margin)
+                        bestValue = margin;
                     continue;
                 }
             }
