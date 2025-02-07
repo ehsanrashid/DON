@@ -188,7 +188,7 @@ struct TTCluster final {
    public:
     TTEntry entry[TT_CLUSTER_ENTRY_COUNT];
 
-    std::atomic<Move> move;  // Pad to 32 bytes
+    std::atomic<Move> move{};  // Pad to 32 bytes
 };
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");

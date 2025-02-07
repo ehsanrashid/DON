@@ -433,7 +433,8 @@ class Move {
         std::uint64_t operator()(const Move& m) const noexcept { return make_hash(m.move); }
     };
 
-    Move() noexcept = default;
+    Move() noexcept :
+        Move(0) {}
     constexpr explicit Move(std::uint16_t m) noexcept :
         move(m) {}
     constexpr Move(MoveType T, Square org, Square dst) noexcept :

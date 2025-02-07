@@ -883,7 +883,7 @@ help:
 	echo "x86-64-ssse3-popcnt     > x86 64-bit with ssse3 and popcnt support" && \
 	echo "x86-64                  > x86 64-bit generic (with sse2 support)" && \
 	echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support" && \
-	echo "x86-32-sse2             > x86 32-bit with sse2 support" && \
+	echo "x86-32-sse2-popcnt      > x86 32-bit with sse2 and popcnt support" && \
 	echo "x86-32-popcnt           > x86 32-bit with popcnt support" && \
 	echo "x86-32                  > x86 32-bit generic (with mmx compile support)" && \
 	echo "ppc-64                  > PPC 64-bit" && \
