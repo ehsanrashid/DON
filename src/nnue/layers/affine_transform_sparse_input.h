@@ -213,9 +213,9 @@ class AffineTransformSparseInput {
 
     static constexpr IndexType get_weight_index(IndexType i) noexcept {
 #if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
-        return (i / CHUNK_SIZE) % (PaddedInputDimensions / CHUNK_SIZE) * OutputDimensions
-               * CHUNK_SIZE
-             + i / PaddedInputDimensions * CHUNK_SIZE + i % CHUNK_SIZE;
+        return CHUNK_SIZE * (i / CHUNK_SIZE) % (PaddedInputDimensions / CHUNK_SIZE)
+               * OutputDimensions
+             + CHUNK_SIZE * i / PaddedInputDimensions + i % CHUNK_SIZE;
 #else
         return i;
 #endif
@@ -233,7 +233,6 @@ class AffineTransformSparseInput {
     // Write network parameters
     bool write_parameters(std::ostream& stream) const noexcept {
         write_little_endian<BiasType>(stream, biases, OutputDimensions);
-
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
             write_little_endian<WeightType>(stream, weights[get_weight_index(i)]);
 

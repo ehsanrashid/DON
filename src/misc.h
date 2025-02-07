@@ -134,7 +134,7 @@ class MultiArray final {
     // Recursively fill all dimensions by calling the sub fill method
     template<typename U>
     void fill(U v) noexcept {
-        static_assert(std::is_assignable_v<T, U>, "Cannot assign fill value to entry type");
+        static_assert(std::is_assignable_v<T, U>, "Cannot assign fill value to entry");
 
         for (auto& entry : *this)
         {

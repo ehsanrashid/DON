@@ -39,7 +39,7 @@ namespace DON {
 template<typename T, int D>
 class StatsEntry final {
    public:
-    static_assert(std::is_arithmetic<T>::value, "Not an arithmetic type");
+    static_assert(std::is_arithmetic_v<T>, "Not an arithmetic type");
     static_assert(D > 0, "D must be positive");
     static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
 
@@ -49,7 +49,7 @@ class StatsEntry final {
 
     // Overload operator<< to modify the value
     void operator<<(int bonus) noexcept {
-        // Make sure that bonus is in range [-D, D]
+        // Make sure that bonus is in range [-D, +D]
         bonus = std::clamp(bonus, -D, +D);
 
         T oldValue = value.load(std::memory_order_acquire);

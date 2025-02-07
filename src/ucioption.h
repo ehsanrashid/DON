@@ -64,7 +64,6 @@ class Option final {
    public:
     using OnChange = std::function<std::optional<std::string>(const Option&)>;
 
-    explicit Option(const Options* optPtr) noexcept;
     Option() noexcept;
     explicit Option(OnChange&& f) noexcept;
     explicit Option(bool v, OnChange&& f = nullptr) noexcept;

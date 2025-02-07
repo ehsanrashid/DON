@@ -114,10 +114,9 @@ void affine_transform_non_ssse3(std::int32_t*       output,
     for (IndexType i = 0; i < InputDimensions; ++i)
         if (input[i])
         {
-            auto* w  = &weights[i];
-            int   in = input[i];
+            auto* w = &weights[i];
             for (IndexType j = 0; j < OutputDimensions; ++j)
-                output[j] += w[j * PaddedInputDimensions] * in;
+                output[j] += w[j * PaddedInputDimensions] * input[i];
         }
     #endif
 }
@@ -153,8 +152,8 @@ class AffineTransform final {
 
     static constexpr IndexType get_weight_index(IndexType i) noexcept {
 #if defined(ENABLE_SEQ_OPT)
-        return (i / 4) % (PaddedInputDimensions / 4) * OutputDimensions * 4
-             + i / PaddedInputDimensions * 4 + i % 4;
+        return 4 * (i / 4) % (PaddedInputDimensions / 4) * OutputDimensions
+             + 4 * i / PaddedInputDimensions + i % 4;
 #else
         return i;
 #endif
@@ -221,12 +220,11 @@ class AffineTransform final {
 
             for (IndexType i = 0; i < CHUNK_COUNT; ++i)
             {
-                const vec_t in0 = vec_set_32(input32[i]);
-                const auto* col0 =
+                const vec_t in = vec_set_32(input32[i]);
+                const auto* col =
                   reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
-
                 for (IndexType k = 0; k < REG_COUNT; ++k)
-                    vec_add_dpbusd_32(acc[k], in0, col0[k]);
+                    vec_add_dpbusd_32(acc[k], in, col[k]);
             }
 
             auto* outVec = reinterpret_cast<vec_t*>(output);

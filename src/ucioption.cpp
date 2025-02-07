@@ -63,10 +63,6 @@ std::string_view to_string(OptionType ot) noexcept {
     return itr != OptionTypeMap.end() ? itr->second : "none";
 }
 
-Option::Option(const Options* optPtr) noexcept :
-    type(OPT_NONE),
-    optionsPtr(optPtr) {}
-
 Option::Option() noexcept :
     type(OPT_NONE),
     minValue(0),
