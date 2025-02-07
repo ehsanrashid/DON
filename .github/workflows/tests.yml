@@ -282,11 +282,11 @@ jobs:
           make -j4 build ARCH=x86-64-ssse3
           ../tests/signature.sh $benchref
 
-      - name: Test x86-64-sse3-popcnt build
+      - name: Test x86-64-ssse3-popcnt build
         if: matrix.config.run_64bit_tests
         run: |
           make clean
-          make -j4 build ARCH=x86-64-sse3-popcnt
+          make -j4 build ARCH=x86-64-ssse3-popcnt
           ../tests/signature.sh $benchref
 
       - name: Test x86-64 build
