@@ -123,7 +123,9 @@ void MovePicker::score() noexcept {
                        : 0;
 
             // Bonus for checks
-            m.value += 0x4000 * pos.check(m);
+            if (pos.check(m))
+                m.value += 0x4000 + 0x2000 * pos.dbl_check(m);
+
             m.value += 0x2000 * pos.fork(m);
 
             if (pt == PAWN || pt == KING)

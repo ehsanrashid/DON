@@ -960,6 +960,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     improve = !(ss - 2)->inCheck && ss->staticEval > +(ss - 2)->staticEval;
     opworse = (ss - 1)->inCheck || ss->staticEval > -(ss - 1)->staticEval;
 
+    // Retroactive LMR adjustments
     if (red > 2 && depth < MAX_PLY - 1 && !opworse)
         ++depth;
     if (red > 0 && depth > 1 && ((ss - 1)->inCheck || ss->staticEval > 200 - (ss - 1)->staticEval))
@@ -1277,10 +1278,9 @@ S_MOVES_LOOP:  // When in check, search starts here
         }
 
         // Step 15. Extensions
-        // Take care to not overdo to avoid search getting stuck.
         Depth extension = DEPTH_ZERO;
-
-        if (ss->ply < 2 * rootDepth)
+        // Take care to not overdo to avoid search getting stuck
+        if (ss->ply <= 2 * (2 + rootDepth))
         {
             // Singular extension search. If all moves but one fail low on a search
             // of (alpha-s, beta-s), and just one fails high on (alpha, beta), then
