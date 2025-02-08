@@ -101,7 +101,7 @@ TranspositionTable::probe(Key key, Key16 key16) const noexcept {
         if (ttc->entry[i].key16 == key16)
             return {ttc->entry[i].read(), &ttc->entry[i], ttc};
 
-    return {{false, false, BOUND_NONE, Move::None(), DEPTH_OFFSET, VALUE_NONE, VALUE_NONE},
+    return {{false, false, BOUND_NONE, Move::None, DEPTH_OFFSET, VALUE_NONE, VALUE_NONE},
             &ttc->entry[0],
             ttc};
 }

@@ -251,7 +251,7 @@ void ThreadPool::start(Position&      pos,
         if (emplace && rootMoves.size() == legalMoves.size())
             break;
         Move m  = UCI::mix_to_move(move, pos, legalMoves);
-        emplace = m != Move::None() && !rootMoves.contains(m);
+        emplace = m != Move::None && !rootMoves.contains(m);
         if (emplace)
             rootMoves.emplace_back(m);
     }
@@ -266,7 +266,7 @@ void ThreadPool::start(Position&      pos,
         if (erase && rootMoves.empty())
             break;
         Move m = UCI::mix_to_move(move, pos, legalMoves);
-        erase  = m != Move::None();
+        erase  = m != Move::None;
         if (erase)
             erase = rootMoves.erase(m);
     }

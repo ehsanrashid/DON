@@ -330,7 +330,7 @@ struct Skill final {
    public:
     Skill() noexcept {
         level    = MAX_LEVEL;
-        bestMove = Move::None();
+        bestMove = Move::None;
     };
 
     void init(const Options& options) noexcept;
@@ -532,7 +532,7 @@ class Worker final {
     // clang-format off
     // Main search function for NodeType nodes
     template<NodeType NT>
-    Value search(Position& pos, Stack* const ss, Value alpha, Value beta, Depth depth, std::int8_t red = 0, const Move& excludedMove = Move::None()) noexcept;
+    Value search(Position& pos, Stack* const ss, Value alpha, Value beta, Depth depth, std::int8_t red = 0, const Move& excludedMove = Move::None) noexcept;
 
     // Quiescence search function, which is called by the main search
     template<bool PVNode>

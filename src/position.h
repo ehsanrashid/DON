@@ -616,8 +616,10 @@ inline auto Position::move_num() const noexcept {
 }
 
 inline auto Position::phase() const noexcept {
-    return std::max(24 - count<KNIGHT>() - count<BISHOP>() - 2 * count<ROOK>() - 4 * count<QUEEN>(),
-                    0);
+    static constexpr int MaxPhase = 24;
+
+    return std::max(
+      MaxPhase - count<KNIGHT>() - count<BISHOP>() - 2 * count<ROOK>() - 4 * count<QUEEN>(), 0);
 }
 
 inline std::int16_t Position::rule50_count() const noexcept { return st->rule50; }

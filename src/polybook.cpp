@@ -352,11 +352,11 @@ Move pg_to_move(std::uint16_t pg_move, const Position& pos) noexcept {
         if ((m.raw() & ~MOVETYPE_MASK) == moveRaw)
             return m;
 
-    return Move::None();
+    return Move::None;
 }
 
 bool is_draw(Position& pos, const Move& m) noexcept {
-    if (m == Move::None())
+    if (m == Move::None)
         return true;
 
     State st;
@@ -449,14 +449,14 @@ Move PolyBook::probe(Position& pos, bool bestPick) noexcept {
     Key key = polyglot_key(pos);
 
     if (!can_probe(pos, key))
-        return Move::None();
+        return Move::None;
 
     find_key(key);
 
     if (keyData.entryCount <= 0)
     {
         ++failCount;
-        return Move::None();
+        return Move::None;
     }
 #if !defined(NDEBUG)
     show_key_data();
@@ -485,7 +485,7 @@ Move PolyBook::probe(Position& pos, bool bestPick) noexcept {
         return m;
 
     return keyData.entryCount > 3 ? pg_to_move(entries[keyData.begIndex + 3].move, pos)
-                                  : Move::None();
+                                  : Move::None;
 }
 
 bool PolyBook::can_probe(const Position& pos, Key key) noexcept {

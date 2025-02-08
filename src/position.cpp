@@ -101,7 +101,7 @@ class CuckooTable final {
     constexpr void fill(Cuckoo&& cuckoo) noexcept { cuckoos.fill(std::move(cuckoo)); }
 
     constexpr void init() noexcept {
-        fill({0, Move::None()});
+        fill({0, Move::None});
         count = 0;
     }
 
@@ -1452,10 +1452,11 @@ bool Position::fork(const Move& m) const noexcept {
 // It does recognize special moves like castling, en-passant and promotions.
 Key Position::move_key(const Move& m) const noexcept {
     Key moveKey = st->key ^ Zobrist::side;
+
     if (is_ok(ep_square()))
         moveKey ^= Zobrist::enpassant[file_of(ep_square())];
 
-    if (m == Move::Null())
+    if (m == Move::Null)
         return moveKey;
 
     assert(legal(m));
@@ -1493,7 +1494,9 @@ Key Position::move_key(const Move& m) const noexcept {
     {
         assert(relative_rank(ac, org) == RANK_2);
         assert(relative_rank(ac, dst) == RANK_4);
+
         moveKey ^= Zobrist::enpassant[file_of(dst)];
+
         return moveKey;
     }
 
@@ -1849,7 +1852,7 @@ bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
             continue;
 
         Move m = Cuckoos[index].move;
-        assert(m != Move::None());
+        assert(m != Move::None);
         Square s1 = m.org_sq();
         Square s2 = m.dst_sq();
 

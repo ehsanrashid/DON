@@ -47,10 +47,10 @@ MovePicker::MovePicker(const Position&              p,
     lowPlyQuietHistory(lowPlyQuietHist),
     ssPly(ply),
     threshold(th) {
-    assert(ttMove == Move::None() || pos.pseudo_legal(ttMove));
+    assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
 
     stage = pos.checkers() ? STG_EVA_TT : STG_ENC_TT;
-    if (ttMove == Move::None() || !(threshold < 0 || pos.checkers() || pos.capture_promo(ttMove)))
+    if (ttMove == Move::None || !(threshold < 0 || pos.checkers() || pos.capture_promo(ttMove)))
         next_stage();
 }
 
@@ -64,10 +64,10 @@ MovePicker::MovePicker(const Position&          p,
     ssPly(0),
     threshold(th) {
     assert(!pos.checkers());
-    assert(ttMove == Move::None() || pos.pseudo_legal(ttMove));
+    assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
 
     stage = STG_PROBCUT_TT;
-    if (ttMove == Move::None() || !(pos.capture_promo(ttMove) && pos.see(ttMove) >= threshold))
+    if (ttMove == Move::None || !(pos.capture_promo(ttMove) && pos.see(ttMove) >= threshold))
         next_stage();
 }
 
@@ -314,7 +314,7 @@ STAGE_SWITCH:
                     return current_next();
                 next();
             }
-        return Move::None();
+        return Move::None;
 
     case STG_EVA_CAPTURE_INIT :
         extEnd = generate<EVA_CAPTURE>(extMoves, pos);
@@ -359,7 +359,7 @@ STAGE_SWITCH:
                     return current_next();
                 next();
             }
-        return Move::None();
+        return Move::None;
 
     case STG_PROBCUT_ALL :
         while (begin() != end())
@@ -369,12 +369,12 @@ STAGE_SWITCH:
                     return current_next();
             next();
         }
-        return Move::None();
+        return Move::None;
 
     case STG_NONE :;
     }
     assert(false);
-    return Move::None();  // Silence warning
+    return Move::None;  // Silence warning
 }
 
 }  // namespace DON

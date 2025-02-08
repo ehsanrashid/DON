@@ -129,7 +129,7 @@ void Engine::setup(std::string_view fen, const std::vector<std::string>& moves) 
         if (legalMoves.empty())
             break;
         Move m = UCI::mix_to_move(move, pos, legalMoves);
-        if (m == Move::None())
+        if (m == Move::None)
         {
             assert(false);
             break;

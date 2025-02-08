@@ -417,9 +417,9 @@ constexpr Key16 compress_key(Key key) noexcept {
 // bit 14-15: special move flag: promotion (1), en-passant (2), castling (3)
 // NOTE: en-passant bit is set only when a pawn can be captured
 //
-// Special cases are Move::None() and Move::Null(). Can sneak these in because
+// Special cases are Move::None and Move::Null. Can sneak these in because
 // in any normal move destination square is always different from origin square
-// while Move::None() and Move::Null() have the same origin and destination square.
+// while Move::None and Move::Null have the same origin and destination square.
 enum MoveType : std::uint16_t {
     NORMAL        = 0 << 14,
     PROMOTION     = 1 << 14,
@@ -430,41 +430,44 @@ enum MoveType : std::uint16_t {
 
 class Move {
    public:
+    // Hash function for unordered containers (e.g., std::unordered_set, std::unordered_map).
+    // Uses make_hash function to produce a unique hash value for move
     struct Hash final {
         std::uint64_t operator()(const Move& m) const noexcept { return make_hash(m.move); }
     };
 
-    Move() noexcept :
-        Move(0) {}
+    // Bit masks for extracting parts of the move
+    static constexpr std::uint16_t SqrMask    = 0x3F;   // 6 bits for origin/destiny
+    static constexpr std::uint16_t SqrSqrMask = 0xFFF;  // 12 bits for combined origin/destiny
+    static constexpr std::uint16_t PromoMask  = 0x3;    // 2 bits for promotion type
+
+    // Constructors using delegating syntax
     constexpr explicit Move(std::uint16_t m) noexcept :
         move(m) {}
+    constexpr Move() noexcept :
+        Move(0) {}
     constexpr Move(MoveType T, Square org, Square dst) noexcept :
-        Move(T | (int(org) << 6) | int(dst)) {}
+        Move(T | (int(org) << 6) | (int(dst) << 0)) {}
     constexpr Move(Square org, Square dst) noexcept :
         Move(NORMAL, org, dst) {}
     constexpr Move(Square org, Square dst, PieceType promo) noexcept :
         Move(MoveType(PROMOTION | ((int(promo) - int(KNIGHT)) << 12)), org, dst) {}
 
-    static constexpr Move None() noexcept { return Move(0x00); }
-    static constexpr Move Null() noexcept { return Move(0x41); }
-
-    constexpr Square org_sq() const noexcept { return Square((move >> 6) & 0x3F); }
-
-    constexpr Square dst_sq() const noexcept { return Square(move & 0x3F); }
-
-    constexpr std::uint16_t org_dst() const noexcept { return move & 0xFFF; }
-
-    constexpr MoveType type_of() const noexcept { return MoveType(move & int(MOVETYPE_MASK)); }
-
-    constexpr PieceType promotion_type() const noexcept {
-        return PieceType(((move >> 12) & 0x3) + int(KNIGHT));
+    // Accessors: extract parts of the move
+    constexpr Square        org_sq() const noexcept { return Square((move >> 6) & SqrMask); }
+    constexpr Square        dst_sq() const noexcept { return Square((move >> 0) & SqrMask); }
+    constexpr std::uint16_t org_dst() const noexcept { return move & SqrSqrMask; }
+    constexpr MoveType      type_of() const noexcept { return MoveType(move & int(MOVETYPE_MASK)); }
+    constexpr PieceType     promotion_type() const noexcept {
+        return PieceType(((move >> 12) & PromoMask) + int(KNIGHT));
     }
 
-    // Catch Move::None() and Move::Null()
+    // Validity check: ensures move is not None or Null
     constexpr bool is_ok() const noexcept { return org_sq() != dst_sq(); }
 
     constexpr auto raw() const noexcept { return move; }
 
+    // Friend comparison operators
     constexpr friend bool operator==(const Move& m1, const Move& m2) noexcept {
         return m1.move == m2.move;
     }
@@ -472,9 +475,17 @@ class Move {
         return !(m1 == m2);
     }
 
+    // Declare static const members (to be defined later)
+    static const Move None;
+    static const Move Null;
+
    protected:
     std::uint16_t move;
 };
+
+// **Define the constexpr static members outside the class**
+constexpr Move Move::None{0x00};
+constexpr Move Move::Null{0x41};
 
 constexpr Value promotion_value(const Move& m, bool mp = false) noexcept {
     return m.type_of() == PROMOTION

@@ -822,9 +822,9 @@ std::string UCI::square(Square s) noexcept {
 }
 
 std::string UCI::move_to_can(const Move& m) noexcept {
-    if (m == Move::None())
+    if (m == Move::None)
         return "(none)";
-    if (m == Move::Null())
+    if (m == Move::Null)
         return "0000";
 
     Square org = m.org_sq(), dst = m.dst_sq();
@@ -851,7 +851,7 @@ Move UCI::can_to_move(std::string can, const LegalMoveList& legalMoves) noexcept
         if (can == move_to_can(m))
             return m;
 
-    return Move::None();
+    return Move::None;
 }
 
 Move UCI::can_to_move(const std::string& can, const Position& pos) noexcept {
@@ -953,9 +953,9 @@ Ambiguity ambiguity(const Move& m, const Position& pos) noexcept {
 }  // namespace
 
 std::string UCI::move_to_san(const Move& m, Position& pos) noexcept {
-    if (m == Move::None())
+    if (m == Move::None)
         return "(none)";
-    if (m == Move::Null())
+    if (m == Move::Null)
         return "0000";
     assert(LegalMoveList(pos).contains(m));
 
@@ -1038,7 +1038,7 @@ Move UCI::san_to_move(std::string san, Position& pos, const LegalMoveList& legal
         if (san == move_to_san(m, pos))
             return m;
 
-    return Move::None();
+    return Move::None;
 }
 
 Move UCI::san_to_move(const std::string& san, Position& pos) noexcept {
@@ -1049,7 +1049,7 @@ Move UCI::mix_to_move(const std::string&   mix,
                       Position&            pos,
                       const LegalMoveList& legalMoves) noexcept {
     assert(2 <= mix.size() && mix.size() <= 9);
-    Move m = Move::None();
+    Move m = Move::None;
 
     if (mix.size() >= 2)
     {
@@ -1057,7 +1057,7 @@ Move UCI::mix_to_move(const std::string&   mix,
             return san_to_move(mix, pos, legalMoves);
         if (mix.size() <= 5)
             m = can_to_move(mix, legalMoves);
-        if (m == Move::None() && mix.size() <= 9)
+        if (m == Move::None && mix.size() <= 9)
             m = san_to_move(mix, pos, legalMoves);
     }
     return m;
