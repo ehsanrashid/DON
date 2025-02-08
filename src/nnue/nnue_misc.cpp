@@ -93,9 +93,9 @@ void format_cp_aligned_dot(std::ostringstream& oss,
                            std::int32_t        val,
                            const Position&     pos) noexcept {
 
-    Value  v    = std::clamp(val, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
-    char   sign = (v < 0 ? '-' : v > 0 ? '+' : ' ');
-    double cp   = 0.01 * std::abs(UCI::to_cp(v, pos));
+    Value v    = in_range(val);
+    char  sign = (v < 0 ? '-' : v > 0 ? '+' : ' ');
+    float cp   = 0.01 * std::abs(UCI::to_cp(v, pos));
     oss << sign << std::setw(6) << std::fixed << std::setprecision(2) << cp;
 }
 

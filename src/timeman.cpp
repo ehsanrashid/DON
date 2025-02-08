@@ -31,7 +31,7 @@ namespace DON {
 namespace {
 
 constexpr inline std::int16_t MaxMovesToGo = 50;
-constexpr inline double       MtgFactor    = 0.05051;
+constexpr inline float        MtgFactor    = 0.05051;
 
 }  // namespace
 
@@ -88,12 +88,12 @@ void TimeManager::init(Limit& limit, const Position& pos, const Options& options
 
     // Maximum move horizon
     std::int16_t mtg = movesToGo != 0
-                     ? std::min(int(std::floor(MaxMovesToGo + 0.1 * std::max(movesToGo - MaxMovesToGo, 0))), +movesToGo)
-                     : std::max(int(std::ceil (MaxMovesToGo - 0.1 * std::max(pos.move_num() - 20, 0))), MaxMovesToGo - 10);
+                     ? std::min<std::int16_t>(std::floor(MaxMovesToGo + 0.1 * std::max(movesToGo - MaxMovesToGo, 0)), movesToGo)
+                     : std::max<std::int16_t>(std::ceil (MaxMovesToGo - 0.1 * std::max(pos.move_num() - 20, 0)), MaxMovesToGo - 10);
 
     // If less than one second, gradually reduce mtg
     if (scaledTime < 1000 && mtg > MtgFactor * scaledInc)
-        mtg = std::clamp(int(MtgFactor * scaledTime), 2, +mtg);
+        mtg = std::clamp<std::int16_t>(MtgFactor * scaledTime, 2, mtg);
 
     assert(mtg > 0);
 
@@ -105,14 +105,14 @@ void TimeManager::init(Limit& limit, const Position& pos, const Options& options
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
-    double optimumScale, maximumScale;
+    float optimumScale, maximumScale;
 
     // x moves in y time (+ z increment)
     if (movesToGo != 0)
     {
-        optimumScale = std::min((0.8800 + 85.9106e-4 * ply) / mtg,
-                                 0.0000 +  0.8800    * clock.time / remainTime);
-        maximumScale = std::min(1.3000 + 0.1100 * mtg, 8.4500);
+        optimumScale = std::min((0.8800f + 85.9106e-4f * ply) / mtg,
+                                 0.0000f +  0.8800f    * clock.time / remainTime);
+        maximumScale = std::min( 1.3000f + 0.1100f * mtg, 8.4500f);
     }
     // x basetime (+ z increment)
     // If there is a healthy increment, remaining time can exceed the actual available
@@ -121,29 +121,29 @@ void TimeManager::init(Limit& limit, const Position& pos, const Options& options
     {
         // Extra time according to initial remaining Time
         if (initialAdjust < 0)
-            initialAdjust = std::max(-0.4354 + 0.3128 * std::log10(1.0000 * remainTime), 1.0000e-6);
+            initialAdjust = std::max(-0.4354f + 0.3128f * std::log10(1.0000f * remainTime), 1.0000e-6f);
 
         // Calculate time constants based on current remaining time        
-        double log10ScaledTime = std::log10(1.0e-3 * scaledTime);
-        double optimumConstant = std::min(3.2116e-3 + 32.1123e-5 * log10ScaledTime, 5.08017e-3);
-        double maximumConstant = std::max(3.3977    +  3.0395    * log10ScaledTime, 2.94761);
+        auto log10ScaledTime = std::log10(1.0e-3f * scaledTime);
+        auto optimumConstant = std::min(3.2116e-3f + 32.1123e-5f * log10ScaledTime, 5.08017e-3f);
+        auto maximumConstant = std::max(3.3977f    +  3.0395f    * log10ScaledTime, 2.94761f);
 
         optimumScale = initialAdjust
-                     * std::min(12.1431e-3 + optimumConstant * std::pow(2.94693 + ply, 0.461073),
-                                 0.00000   + 0.213035        * clock.time / remainTime);
-        maximumScale = std::min(maximumConstant + 83.439719e-3 * ply, 6.67704);
+                     * std::min(12.1431e-3f + optimumConstant * std::pow(2.94693f + ply, 0.461073f),
+                                 0.00000f   + 0.213035f        * clock.time / remainTime);
+        maximumScale = std::min(maximumConstant + 83.439719e-3f * ply, 6.67704f);
     }
 
     // Limit the maximum possible time for this move
     optimumTime = TimePoint(optimumScale * remainTime);
-    maximumTime = std::max(mtg > 1 ? TimePoint(std::min(0.82518 * clock.time - moveOverhead, maximumScale * optimumTime)) - 10
+    maximumTime = std::max(mtg > 1 ? TimePoint(std::min(0.82518f * clock.time - moveOverhead, maximumScale * optimumTime)) - 10
                                    : clock.time - moveOverhead,
                            TimePoint(1));
 
     // clang-format on
 
     if (options["Ponder"])
-        optimumTime *= 1.2500;
+        optimumTime *= 1.2500f;
 }
 
 }  // namespace DON

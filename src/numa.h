@@ -723,7 +723,7 @@ class NumaConfig final {
                 maxNodeSize = cpus.size();
 
         auto is_node_small = [maxNodeSize](const std::set<CpuIndex>& node) {
-            return double(node.size()) / double(maxNodeSize) <= 0.6;
+            return float(node.size()) / float(maxNodeSize) <= 0.6;
         };
 
         std::size_t notSmallNodeCount = 0;

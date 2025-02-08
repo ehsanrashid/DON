@@ -317,8 +317,8 @@ void Worker::start_search() noexcept {
     mainManager->callsCount     = limit.hitRate;
     mainManager->ponder         = limit.ponder;
     mainManager->ponderhitStop  = false;
-    mainManager->sumMoveChanges = 0.0;
-    mainManager->timeReduction  = 1.0;
+    mainManager->sumMoveChanges = 0.0f;
+    mainManager->timeReduction  = 1.0f;
     mainManager->skill.init(options);
     mainManager->timeManager.init(limit, rootPos, options);
 
@@ -530,8 +530,9 @@ void Worker::iterative_deepening() noexcept {
                 assert(rootDelta > 0);
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
-                Depth adjustedDepth =
-                  std::max(rootDepth - failHighCnt - int(0.75f * (1 + researchCnt)), 1);
+                Depth adjustedDepth = rootDepth - failHighCnt - 0.75f * (1 + researchCnt);
+                if (adjustedDepth < 1)
+                    adjustedDepth = 1;
 
                 bestValue = search<Root>(rootPos, ss, alpha, beta, adjustedDepth);
 
@@ -650,36 +651,36 @@ void Worker::iterative_deepening() noexcept {
             }
 
             // clang-format off
-            double evalChange = std::clamp( 0.11396
-                                          + 0.02035 * (mainManager->preBestAvgValue - bestValue)
-                                          + 0.00968 * (mainManager->preBestCurValue - bestValue),
-                                           0.9 - 0.3214 * !mainManager->moveFirst,
-                                           1.1 + 0.5752 * !mainManager->moveFirst);
+            float evalChange = std::clamp( 0.11396f
+                                          + 0.02035f * (mainManager->preBestAvgValue - bestValue)
+                                          + 0.00968f * (mainManager->preBestCurValue - bestValue),
+                                           0.9f - 0.3214f * !mainManager->moveFirst,
+                                           1.1f + 0.5752f * !mainManager->moveFirst);
             // If the bestMove is stable over several iterations, reduce time accordingly
-            Depth stableDepth    = completedDepth - lastBestDepth;
+            Depth stableDepth   = completedDepth - lastBestDepth;
             assert(stableDepth >= DEPTH_ZERO);
-            mainManager->timeReduction = 0.7046 + 0.39055 * std::clamp(std::ceil(stableDepth / (3.0 + 2.0 * std::log10((1 + stableDepth) / 2)) - 1.27), 0.0, 3.0);
-            double reduction     = 0.46311 * (1.4540 + mainManager->preTimeReduction) / mainManager->timeReduction;
-            double instability   = 0.9929 + 1.8519 * mainManager->sumMoveChanges / threads.size();
-            double nodeReduction = 1.0;
+            mainManager->timeReduction = 0.7046f + 0.39055f * std::clamp(std::ceil(stableDepth / (3.0f + 2.0f * std::log10((1.0f + stableDepth) / 2.0f)) - 1.27f), 0.0f, 3.0f);
+            float reduction     = 0.46311f * (1.4540f + mainManager->preTimeReduction) / mainManager->timeReduction;
+            float instability   = 0.9929f + 1.8519f * mainManager->sumMoveChanges / threads.size();
+            float nodeReduction = 1.0f;
             if (completedDepth >= 10)
             {
                 assert(nodes != 0);
-                double scaledNodes = 100000.0 * rootMoves.front().nodes / std::max(std::uint64_t(nodes), std::uint64_t(1));
-                nodeReduction   -= 70.79288e-6 * std::max(-95056.0 + scaledNodes, 0.0);  // -97056.0 + 2000.0
+                float scaledNodes = 100000.0f * rootMoves.front().nodes / std::max(std::uint64_t(nodes), std::uint64_t(1));
+                nodeReduction    -= 70.79288e-6f * std::max(-95056.0f + scaledNodes, 0.0f);
             }
-            double reCapture     = 1.0;
+            float reCapture     = 1.0f;
             if (rootPos.cap_square() == rootMoves.front()[0].dst_sq()
              && rootPos.cap_square() & rootPos.pieces(~ac)
              && rootPos.see(rootMoves.front()[0]) >= 200)
-                reCapture       -= 13.84e-3 * std::min(+stableDepth, 25);
+                reCapture      -= 13.84e-3f * std::min(+stableDepth, 25);
 
-            double totalTime = mainManager->timeManager.optimum() * evalChange * reduction * instability * nodeReduction * reCapture;
-            assert(totalTime >= 0.0);
+            float totalTime = mainManager->timeManager.optimum() * evalChange * reduction * instability * nodeReduction * reCapture;
+            assert(totalTime >= 0.0f);
 
             // Cap totalTime in case of a single legal move for a better viewer experience
             if (rootMoves.size() == 1)
-                totalTime = std::min(0.500 * totalTime, 500.0);
+                totalTime = std::min(0.500f * totalTime, 500.0f);
 
             TimePoint elapsedTime = mainManager->elapsed(threads);
 
@@ -695,7 +696,7 @@ void Worker::iterative_deepening() noexcept {
             }
 
             if (!mainManager->ponder)
-                threads.research = elapsedTime > 0.5138 * totalTime;
+                threads.research = elapsedTime > 0.5138f * totalTime;
             // clang-format on
             mainManager->preBestCurValue = bestValue;
         }
@@ -2172,9 +2173,9 @@ void Skill::init(const Options& options) noexcept {
     {
         std::uint16_t uciELO = options["UCI_ELO"];
 
-        auto e = double(uciELO - MIN_ELO) / (MAX_ELO - MIN_ELO);
-        level  = std::clamp(-311.4380e-3 + (22.2943 + (-40.8525 + 37.2473 * e) * e) * e,  //
-                            MIN_LEVEL, MAX_LEVEL - 0.01);
+        auto e = float(uciELO - MIN_ELO) / float(MAX_ELO - MIN_ELO);
+        level  = std::clamp(-311.4380e-3f + (22.2943f + (-40.8525f + 37.2473f * e) * e) * e,  //
+                            MIN_LEVEL, MAX_LEVEL - 0.01f);
     }
     else
     {
@@ -2195,9 +2196,9 @@ Move Skill::pick_best_move(const RootMoves& rootMoves,
     if (bestPick || bestMove == Move::None())
     {
         // RootMoves are already sorted by value in descending order
-        Value  curValue = rootMoves[0].curValue;
-        int    delta    = std::min(curValue - rootMoves[multiPV - 1].curValue, +VALUE_PAWN);
-        double weakness = 2.0 * (3.0 * MAX_LEVEL - level);
+        Value curValue = rootMoves[0].curValue;
+        auto  delta    = std::min(curValue - rootMoves[multiPV - 1].curValue, +VALUE_PAWN);
+        auto  weakness = 2.0f * (3.0f * MAX_LEVEL - level);
 
         Value maxValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.
@@ -2368,8 +2369,8 @@ void extend_tb_pv(Position&      rootPos,
     const auto time_to_abort = [&]() {
         auto endTime = SteadyClock::now();
         return limit.use_time_manager()
-            && std::chrono::duration<double, std::milli>(endTime - startTime).count()
-                 > 0.5 * options["MoveOverhead"];
+            && std::chrono::duration<float, std::milli>(endTime - startTime).count()
+                 > 0.5f * options["MoveOverhead"];
     };
 
     bool rule50Use = options["Syzygy50MoveRule"];

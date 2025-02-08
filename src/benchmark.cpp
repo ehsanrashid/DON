@@ -487,23 +487,23 @@ Benchmark setup_benchmark(std::istringstream& iss) noexcept {
         // msec    = 50000 / (15 + ply)
         // with this fit 10th move gets 2000ms
         // adjust for desired 10th move time
-        return 50000.0 / (15 + ply);
+        return 50000.0f / (15 + ply);
     };
 
-    double totalTime = 0.0;
+    float totalTime = 0.0;
     for (const auto& game : Games)
     {
         std::uint16_t ply = 1;
         for (std::size_t i = 0; i < game.size(); ++i)
         {
-            double correctedTime = get_corrected_time(ply);
+            float correctedTime = get_corrected_time(ply);
             totalTime += correctedTime;
 
             ++ply;
         }
     }
 
-    double timeScaleFactor = (1000.0 * moveTime) / totalTime;
+    float timeScaleFactor = 1000.0f * moveTime / totalTime;
     for (const auto& game : Games)
     {
         benchmark.commands.emplace_back("ucinewgame");

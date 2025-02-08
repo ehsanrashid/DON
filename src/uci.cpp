@@ -172,7 +172,7 @@ Limit parse_limit(std::istringstream& iss) noexcept {
             iss >> limit.nodes;
             limit.nodes = std::max(limit.nodes, std::uint64_t(1));
             // When using nodes, ensure checking rate is not lower than 0.1% of nodes
-            limit.hitRate = std::min(+limit.hitRate, 1 + int(std::ceil(limit.nodes / 1024.0)));
+            limit.hitRate = std::min(+limit.hitRate, 1 + int(std::ceil(limit.nodes / 1024.0f)));
         }
         else if (token == "infinite")
             limit.infinite = true;
@@ -737,8 +737,8 @@ struct WinRateParams final {
 WinRateParams win_rate_params(const Position& pos) noexcept {
 
     // clang-format off
-    constexpr double as[4]{-37.45051876,  121.19101539, -132.78783573, 420.70576692};
-    constexpr double bs[4]{ 90.26261072, -137.26549898,   71.10130540,  51.35259597};
+    static constexpr double as[4]{-37.45051876,  121.19101539, -132.78783573, 420.70576692};
+    static constexpr double bs[4]{ 90.26261072, -137.26549898,   71.10130540,  51.35259597};
     // clang-format on
 
     // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (17.2414e-3).
@@ -776,14 +776,12 @@ int UCI::to_cp(Value v, const Position& pos) noexcept {
 
 std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
     assert(is_ok(v));
-    std::ostringstream oss;
 
     auto wdlW = win_rate_model(+v, pos);
     auto wdlL = win_rate_model(-v, pos);
     auto wdlD = 1000 - wdlW - wdlL;
-    oss << wdlW << " " << wdlD << " " << wdlL;
 
-    return oss.str();
+    return std::to_string(wdlW) + " " + std::to_string(wdlD) + " " + std::to_string(wdlL);
 }
 
 std::string UCI::format_score(const Score& score) noexcept {

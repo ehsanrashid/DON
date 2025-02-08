@@ -49,7 +49,7 @@ class TimeManager final {
 
     void init() noexcept {
 
-        initialAdjust = -1.0;
+        initialAdjust = -1.0f;
 
         optimumTime = 0;
         maximumTime = 0;
@@ -70,7 +70,7 @@ class TimeManager final {
 
     TimePoint startTime;
 
-    double initialAdjust;
+    float initialAdjust;
 
     TimePoint optimumTime;
     TimePoint maximumTime;
