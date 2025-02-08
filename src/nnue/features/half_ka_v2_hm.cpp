@@ -62,7 +62,7 @@ void HalfKAv2_hm::append_changed_indices(Square            ksq,
                                          const DirtyPiece& dp,
                                          IndexList&        removed,
                                          IndexList&        added) noexcept {
-    for (int i = 0; i < dp.dirtyNum; ++i)
+    for (std::size_t i = 0; i < dp.dirtyNum; ++i)
     {
         if (is_ok(dp.org[i]))
             removed.push_back(make_index<Perspective>(dp.org[i], dp.piece[i], ksq));

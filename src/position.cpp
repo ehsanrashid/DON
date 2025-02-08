@@ -57,20 +57,21 @@ const inline std::array<std::unique_ptr<const std::int8_t[]>, PIECE_TYPE_NB - 1>
 };
 // clang-format on
 
-// Implements Marcel van Kervinck's cuckoo algorithm to detect repetition of positions
-// for 3-fold repetition draws. The algorithm uses hash tables with Zobrist hashes
-// to allow fast detection of recurring positions. For details see:
+// Implements Marcel van Kervinck's cuckoo algorithm to detect repetition of positions for 3-fold repetition draws.
+// The algorithm uses hash tables with Zobrist hashes to allow fast detection of recurring positions.
+// For details see:
 // http://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
 
 // Cuckoo table with Zobrist hashes of valid reversible moves, and the moves themselves
 struct Cuckoo final {
 
-    constexpr auto empty() const noexcept { return key == 0; }
+    constexpr bool empty() const noexcept { return key == 0; }
 
-    Key  key  = 0;
-    Move move = Move::None();
+    Key  key;
+    Move move;
 };
 
+// Cuckoo table with Zobrist hashes of valid reversible moves, and the moves themselves
 template<std::size_t Size>
 class CuckooTable final {
     static_assert(exactly_one(Size), "Size has to be a power of 2");

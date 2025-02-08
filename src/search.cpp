@@ -934,6 +934,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (exclude)
     {
         assert(is_ok(ss->staticEval));
+
         unadjustedStaticEval = eval = ss->staticEval;
         // Providing the hint that this node's accumulator will often be used
         NNUE::hint_common_parent_position(pos, networks[numaAccessToken], accCaches);

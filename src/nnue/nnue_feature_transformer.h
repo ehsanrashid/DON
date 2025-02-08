@@ -527,11 +527,11 @@ class FeatureTransformer final {
         }
         else
         {
+            // clang-format off
             assert(added.size() == 1 || added.size() == 2);
             assert(removed.size() == 1 || removed.size() == 2);
             assert(added.size() <= removed.size());
 
-            // clang-format off
 #if defined(VECTOR)
             
             auto* accIn  = reinterpret_cast<const vec_t*>(&(computedState->*accPtr).accumulation[Perspective][0]);
@@ -553,7 +553,7 @@ class FeatureTransformer final {
                 auto*     columnR1 = reinterpret_cast<const vec_t*>(&weights[offsetR1]);
 
                 for (IndexType i = 0; i < HalfDimensions * sizeof(WeightType) / sizeof(vec_t); ++i)
-                    accOut[i] = vec_sub_16(vec_add_16(accIn[i], columnA0[i]),
+                    accOut[i] = vec_sub_16(vec_add_16(accIn[i]   , columnA0[i]),
                                            vec_add_16(columnR0[i], columnR1[i]));
             }
             else
@@ -587,7 +587,7 @@ class FeatureTransformer final {
                 auto*     columnPsqtR1 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offsetPsqtR1]);
 
                 for (IndexType i = 0; i < PSQTBuckets * sizeof(PSQTWeightType) / sizeof(psqt_vec_t); ++i)
-                    accPsqtOut[i] = vec_sub_psqt_32(vec_add_psqt_32(accPsqtIn[i], columnPsqtA0[i]),
+                    accPsqtOut[i] = vec_sub_psqt_32(vec_add_psqt_32(accPsqtIn[i]   , columnPsqtA0[i]),
                                                     vec_add_psqt_32(columnPsqtR0[i], columnPsqtR1[i]));
             }
             else
