@@ -34,7 +34,6 @@
 #include "uci.h"
 #include "ucioption.h"
 #include "nnue/network.h"
-#include "nnue/nnue_misc.h"
 
 namespace DON {
 
@@ -934,9 +933,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (exclude)
     {
         assert(is_ok(ss->staticEval));
+
         unadjustedStaticEval = eval = ss->staticEval;
-        // Providing the hint that this node's accumulator will often be used
-        NNUE::hint_common_parent_position(pos, networks[numaAccessToken], accCaches);
     }
     else if (ttd.hit)
     {
@@ -944,8 +942,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         unadjustedStaticEval = ttd.eval;
         if (!is_valid(unadjustedStaticEval))
             unadjustedStaticEval = evaluate(pos);
-        else if constexpr (PVNode)
-            NNUE::hint_common_parent_position(pos, networks[numaAccessToken], accCaches);
 
         eval = ss->staticEval = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
