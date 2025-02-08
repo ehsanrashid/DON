@@ -88,8 +88,8 @@ void TimeManager::init(Limit& limit, const Position& pos, const Options& options
 
     // Maximum move horizon
     std::int16_t mtg = movesToGo != 0
-                     ? std::min<std::int16_t>(std::floor(MaxMovesToGo + 0.1 * std::max(movesToGo - MaxMovesToGo, 0)), movesToGo)
-                     : std::max<std::int16_t>(std::ceil (MaxMovesToGo - 0.1 * std::max(pos.move_num() - 20, 0)), MaxMovesToGo - 10);
+                     ? std::min<std::int16_t>(std::floor(MaxMovesToGo + 0.1f * std::max(movesToGo - MaxMovesToGo, 0)), movesToGo)
+                     : std::max<std::int16_t>(std::ceil (MaxMovesToGo - 0.1f * std::max(pos.move_num() - 20     , 0)), MaxMovesToGo - 10);
 
     // If less than one second, gradually reduce mtg
     if (scaledTime < 1000 && mtg > MtgFactor * scaledInc)
@@ -110,33 +110,36 @@ void TimeManager::init(Limit& limit, const Position& pos, const Options& options
     // x moves in y time (+ z increment)
     if (movesToGo != 0)
     {
-        optimumScale = std::min((0.8800f + 85.9106e-4f * ply) / mtg,
-                                 0.0000f +  0.8800f    * clock.time / remainTime);
-        maximumScale = std::min( 1.3000f + 0.1100f * mtg, 8.4500f);
+        optimumScale = std::min((0.88000f + 85.91060e-4f * ply) / mtg,
+                                 0.00000f +  0.88000f    * clock.time / remainTime);
+        maximumScale = std::min( 1.30000f + 0.11000f * mtg, 8.45000f);
     }
     // x basetime (+ z increment)
     // If there is a healthy increment, remaining time can exceed the actual available
     // game time for the current move, so also cap to a percentage of available game time.
     else
     {
-        // Extra time according to initial remaining Time
-        if (initialAdjust < 0)
+        // Extra time according to initial remaining Time (Only once at game start)
+        if (initialAdjust < 0.0f)
             initialAdjust = std::max(-0.4354f + 0.3128f * std::log10(1.0000f * remainTime), 1.0000e-6f);
 
-        // Calculate time constants based on current remaining time        
-        auto log10ScaledTime = std::log10(1.0000e-3f * scaledTime);
-        auto optimumConstant = std::min(3.2116e-3f + 32.1123e-5f * log10ScaledTime, 5.08017e-3f);
-        auto maximumConstant = std::max(3.3977f    +  3.0395f    * log10ScaledTime, 2.94761f);
+        // Calculate time constants based on current remaining time
+        auto logScaledTime = std::log10(1.0000e-3f * scaledTime);
 
+        auto optimumOffset = 12.14310e-3f;
+        auto optimumFactor = std::min(3.21160e-3f + 32.11230e-5f * logScaledTime, 5.08017e-3f);
         optimumScale = initialAdjust
-                     * std::min(12.1431e-3f + optimumConstant * std::pow(2.94693f + ply, 0.461073f),
-                                 0.00000f   + 0.213035f        * clock.time / remainTime);
-        maximumScale = std::min(maximumConstant + 83.43972e-3f * ply, 6.67704f);
+                     * std::min(optimumOffset + optimumFactor * std::pow(2.94693f + ply, 0.461073f),
+                                0.00000f + 0.213035f * clock.time / remainTime);
+
+        auto maximumOffset = std::max(3.39770f    +  3.03950f    * logScaledTime, 2.94761f);
+        auto maximumFactor = 83.43972e-3f;
+        maximumScale = std::min(maximumOffset + maximumFactor * ply, 6.67704f);
     }
 
     // Limit the maximum possible time for this move
     optimumTime = TimePoint(optimumScale * remainTime);
-    maximumTime = std::max(mtg > 1 ? TimePoint(std::min(0.82518f * clock.time - moveOverhead, maximumScale * optimumTime)) - 10
+    maximumTime = std::max(mtg > 1 ? TimePoint(std::min(0.825179f * clock.time - moveOverhead, maximumScale * optimumTime)) - 10
                                    : clock.time - moveOverhead,
                            TimePoint(1));
 

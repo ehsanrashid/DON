@@ -1432,11 +1432,11 @@ bool Position::fork(const Move& m) const noexcept {
     case KNIGHT :
         return more_than_one(pieces(~ac) & attacks_bb<KNIGHT>(m.dst_sq()));
     case BISHOP :
-        return more_than_one(pieces(~ac) & attacks_bb<BISHOP>(m.dst_sq()));
+        return more_than_one(pieces(~ac) & attacks_bb<BISHOP>(m.dst_sq(), pieces() ^ m.org_sq()));
     case ROOK :
-        return more_than_one(pieces(~ac) & attacks_bb<ROOK>(m.dst_sq()));
+        return more_than_one(pieces(~ac) & attacks_bb<ROOK>(m.dst_sq(), pieces() ^ m.org_sq()));
     case QUEEN :
-        return more_than_one(pieces(~ac) & attacks_bb<QUEEN>(m.dst_sq()));
+        return more_than_one(pieces(~ac) & attacks_bb<QUEEN>(m.dst_sq(), pieces() ^ m.org_sq()));
     case KING :
         return more_than_one(pieces(~ac) & ~pieces(KING, QUEEN) & attacks_bb<KING>(m.dst_sq()));
     default :;

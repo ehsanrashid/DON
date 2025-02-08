@@ -120,8 +120,10 @@ void TTUpdater::update(
         }
     }
     else
+    {
         for (; tte > &ttc->entry[0] && (tte - 1)->key16 == key16; --tte)
             tte->clear();
+    }
 
     tte->save(key16, depth, pv, bound, move, value_to_tt(value, ssPly), eval, generation);
 
@@ -317,8 +319,8 @@ void Worker::start_search() noexcept {
     mainManager->callsCount     = limit.hitRate;
     mainManager->ponder         = limit.ponder;
     mainManager->ponderhitStop  = false;
-    mainManager->sumMoveChanges = 0.0f;
-    mainManager->timeReduction  = 1.0f;
+    mainManager->sumMoveChanges = 0.0000f;
+    mainManager->timeReduction  = 1.0000f;
     mainManager->skill.init(options);
     mainManager->timeManager.init(limit, rootPos, options);
 
@@ -479,7 +481,7 @@ void Worker::iterative_deepening() noexcept {
     {
         // Age out PV variability metric
         if (mainManager && limit.use_time_manager())
-            mainManager->sumMoveChanges *= 0.50f;
+            mainManager->sumMoveChanges *= 0.5000f;
 
         // Save the last iteration's scores before the first PV line is searched and
         // all the move scores except the (new) PV are set to -VALUE_INFINITE.
@@ -641,7 +643,7 @@ void Worker::iterative_deepening() noexcept {
             mainManager->skill.pick_best_move(rootMoves, multiPV);
 
         // Do have time for the next iteration? Can stop searching now?
-        if (limit.use_time_manager() && !threads.stop && !mainManager->ponderhitStop)
+        if (!(mainManager->ponderhitStop || threads.stop) && limit.use_time_manager())
         {
             // Use part of the gained time from a previous stable move for the current move
             for (auto&& th : threads)
@@ -651,36 +653,44 @@ void Worker::iterative_deepening() noexcept {
             }
 
             // clang-format off
-            float evalChange = std::clamp( 0.11396f
-                                         + 0.02035f * (mainManager->preBestAvgValue - bestValue)
-                                         + 0.00968f * (mainManager->preBestCurValue - bestValue),
-                                           0.9f - 0.3214f * !mainManager->moveFirst,
-                                           1.1f + 0.5752f * !mainManager->moveFirst);
-            // If the bestMove is stable over several iterations, reduce time accordingly
-            Depth stableDepth   = completedDepth - lastBestDepth;
-            assert(stableDepth >= DEPTH_ZERO);
-            mainManager->timeReduction = 0.7046f + 0.39055f * std::clamp(std::ceil(stableDepth / (3.0f + 2.0f * std::log10((1.0f + stableDepth) / 2.0f)) - 1.27f), 0.0f, 3.0f);
-            float reduction     = 0.46311f * (1.4540f + mainManager->preTimeReduction) / mainManager->timeReduction;
-            float instability   = 0.9929f + 1.8519f * mainManager->sumMoveChanges / threads.size();
-            float nodeReduction = 1.0f;
-            if (completedDepth >= 10)
-            {
-                assert(nodes != 0);
-                float scaledNodes = 100000.0f * rootMoves.front().nodes / std::max(std::uint64_t(nodes), std::uint64_t(1));
-                nodeReduction    -= 70.79288e-6f * std::max(-95056.0f + scaledNodes, 0.0f);
-            }
-            float reCapture     = 1.0f;
-            if (rootPos.cap_square() == rootMoves.front()[0].dst_sq()
-             && rootPos.cap_square() & rootPos.pieces(~ac)
-             && rootPos.see(rootMoves.front()[0]) >= 200)
-                reCapture      -= 13.84e-3f * std::min(+stableDepth, 25);
+            float inconsistency = 0.11396f
+                                + 0.02035f * (mainManager->preBestAvgValue - bestValue)
+                                + 0.00968f * (mainManager->preBestCurValue - bestValue);
 
-            float totalTime = mainManager->timeManager.optimum() * evalChange * reduction * instability * nodeReduction * reCapture;
+            inconsistency = std::clamp(inconsistency,
+                                       0.9999f - 0.4213f * !mainManager->moveFirst,
+                                       1.0001f + 0.6751f * !mainManager->moveFirst);
+
+            Depth stableDepth = completedDepth - lastBestDepth;
+            assert(stableDepth >= DEPTH_ZERO);
+
+            // If the bestMove is stable over several iterations, reduce time accordingly
+            mainManager->timeReduction = 0.7046f
+                                       + 0.39055f
+                                         * std::clamp(
+                                            std::ceil(stableDepth / (3.0f + 2.0f * std::log10((1.0f + stableDepth) / 2.0f)) - 1.27f),
+                                            0.0f, 3.0f);
+
+            float easability = 0.46311f * (1.4540f + mainManager->preTimeReduction) / mainManager->timeReduction;
+
+            float instability = 0.9929f + 1.8519f * mainManager->sumMoveChanges / threads.size();
+
+            float nodeEffort = 1.0f;
+            if (completedDepth >= 10)
+                nodeEffort -= 70.7929e-6f * std::max(-95056.0f + 100000.0f * rootMoves.front().nodes / std::max(std::uint64_t(nodes), std::uint64_t(1)), 0.0f);
+
+            float recapture = 1.0f;
+            if ( rootPos.cap_square() == rootMoves.front()[0].dst_sq()
+             && (rootPos.cap_square() & rootPos.pieces(~ac))
+             && rootPos.see(rootMoves.front()[0]) >= 200)
+                recapture -= 13.8400e-3f * std::min(+stableDepth, 25);
+
+            float totalTime = mainManager->timeManager.optimum() * inconsistency * easability * instability * nodeEffort * recapture;
             assert(totalTime >= 0.0f);
 
             // Cap totalTime in case of a single legal move for a better viewer experience
             if (rootMoves.size() == 1)
-                totalTime = std::min(0.500f * totalTime, 500.0f);
+                totalTime = std::min(0.5000f * totalTime, 500.0f);
 
             TimePoint elapsedTime = mainManager->elapsed(threads);
 
@@ -698,6 +708,7 @@ void Worker::iterative_deepening() noexcept {
             if (!mainManager->ponder)
                 threads.research = elapsedTime > 0.5138f * totalTime;
             // clang-format on
+
             mainManager->preBestCurValue = bestValue;
         }
     }
@@ -1075,7 +1086,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         assert(beta < probCutBeta && probCutBeta < +VALUE_INFINITE);
 
-        Depth probCutDepth     = std::max(depth - 4, +DEPTH_ZERO);
+        Depth probCutDepth     = std::max(depth - 4, 0);
         int   probCutThreshold = probCutBeta - ss->staticEval;
 
         MovePicker mp(pos, pttm, &captureHistory, probCutThreshold);
@@ -1282,8 +1293,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                     }
                 }
 
-                if (lmrDepth < DEPTH_ZERO)
-                    lmrDepth = DEPTH_ZERO;
+                if (lmrDepth < 0)
+                    lmrDepth = 0;
 
                 // SEE based pruning for quiets
                 if (pos.see(move) < -(26 * sqr(lmrDepth) + 256 * dblCheck))
