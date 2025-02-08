@@ -34,13 +34,13 @@
     #include <stdlib.h>
 #endif
 
-#ifdef _WIN32
-    #if _WIN32_WINNT < 0x0601
+#if defined(_WIN32)
+    #if !defined(_WIN32_WINNT) || _WIN32_WINNT < 0x0601
         #undef _WIN32_WINNT
         #define _WIN32_WINNT 0x0601  // Force to include needed API prototypes
     #endif
 
-    #ifndef NOMINMAX
+    #if !defined(NOMINMAX)
         #define NOMINMAX
     #endif
 
@@ -118,8 +118,13 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
 
     HMODULE advapi32Module = GetModuleHandle(TEXT("advapi32.dll"));
 
-    if (advapi32Module == nullptr)
+    bool freeNeeded = false;
+
+    if (!advapi32Module)
+    {
         advapi32Module = LoadLibrary(TEXT("advapi32.dll"));
+        freeNeeded     = true;
+    }
 
     auto openProcessToken =
       OpenProcessToken_((void (*)()) GetProcAddress(advapi32Module, "OpenProcessToken"));
@@ -134,7 +139,7 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
     if (adjustTokenPrivileges == nullptr)
         return nullptr;
 
-    HANDLE processHandle;
+    HANDLE processHandle{};
     // Need SeLockMemoryPrivilege, so try to enable it for the process
     if (!openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
                           &processHandle))
@@ -142,15 +147,16 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
 
     void* mem = nullptr;
 
-    LUID luid;
+    LUID luid{};
     if (lookupPrivilegeValueA(nullptr, "SeLockMemoryPrivilege", &luid))
     {
-        TOKEN_PRIVILEGES tp;
+        TOKEN_PRIVILEGES tp{};
         tp.PrivilegeCount           = 1;
         tp.Privileges[0].Luid       = luid;
         tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-        TOKEN_PRIVILEGES preTp;
-        DWORD            preTpLen;
+
+        TOKEN_PRIVILEGES preTp{};
+        DWORD            preTpLen{};
         // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
         // Still need to query GetLastError() to ensure that the privileges were actually obtained.
         if (adjustTokenPrivileges(processHandle, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), &preTp,
@@ -169,6 +175,9 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
     }
 
     CloseHandle(processHandle);
+
+    if (freeNeeded)
+        FreeLibrary(advapi32Module);
 
     //if (mem == nullptr)
     //    std::cerr << "Failed to allocate large page memory.\n"

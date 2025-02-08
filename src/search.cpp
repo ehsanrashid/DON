@@ -1145,7 +1145,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 // Save ProbCut data into transposition table
                 ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move, value,
                            unadjustedStaticEval);
- 
+
                 return value;
             }
         }
