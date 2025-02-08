@@ -482,7 +482,7 @@ class FeatureTransformer final {
         // Keep track of the estimated gain in terms of features to be added/subtracted.
         State* st   = pos.state();
         int    gain = FeatureSet::refresh_cost(pos);
-        while (st->preState && !(st->*accPtr).computed[Perspective])
+        while (st->preState != nullptr && !(st->*accPtr).computed[Perspective])
         {
             // This governs when a full feature refresh is needed and
             // how many updates are better than just one full refresh.
@@ -500,7 +500,7 @@ class FeatureTransformer final {
         assert((computedState->*accPtr).computed[Perspective]);
         assert(computedState->nxtState != nullptr);
 
-        const Square ksq = pos.king_square(Perspective);
+        Square ksq = pos.king_square(Perspective);
 
         // The size must be enough to contain the largest possible update.
         // That might depend on the feature set and generally relies on the

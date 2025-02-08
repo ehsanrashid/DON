@@ -769,20 +769,20 @@ void Position::do_castling(Color ac, Square org, Square& dst, Square& rorg, Squa
     {
         auto& dp = st->dirtyPiece;
 
-        dp.dirtyNum = 0;
+        dp.count = 0;
         if (kingMoved)
         {
-            dp.piece[dp.dirtyNum] = king;
-            dp.org[dp.dirtyNum]   = org;
-            dp.dst[dp.dirtyNum]   = dst;
-            dp.dirtyNum++;
+            dp.piece[dp.count] = king;
+            dp.org[dp.count]   = org;
+            dp.dst[dp.count]   = dst;
+            dp.count++;
         }
         if (rookMoved)
         {
-            dp.piece[dp.dirtyNum] = rook;
-            dp.org[dp.dirtyNum]   = rorg;
-            dp.dst[dp.dirtyNum]   = rdst;
-            dp.dirtyNum++;
+            dp.piece[dp.count] = rook;
+            dp.org[dp.count]   = rorg;
+            dp.dst[dp.count]   = rdst;
+            dp.count++;
         }
         st->kingSquare[ac] = dst;
         st->castled[ac]    = true;
@@ -821,7 +821,7 @@ void Position::do_move(const Move& m, State& newSt, bool check) noexcept {
 
     auto& dp = st->dirtyPiece;
 
-    dp.dirtyNum = 1;
+    dp.count = 1;
 
     // Increment ply counters. In particular, rule50 will be reset to zero later on
     // in case of a capture or a pawn move.
@@ -912,7 +912,7 @@ void Position::do_move(const Move& m, State& newSt, bool check) noexcept {
             st->nonPawnMaterial[~ac]              -= PIECE_VALUE[captured];
             // clang-format on
         }
-        dp.dirtyNum = 2;  // 1 piece moved, 1 piece captured
+        dp.count    = 2;  // 1 piece moved, 1 piece captured
         dp.piece[1] = capturedPiece;
         dp.org[1]   = cap;
         dp.dst[1]   = SQ_NONE;
@@ -956,11 +956,11 @@ void Position::do_move(const Move& m, State& newSt, bool check) noexcept {
             promotedPiece = make_piece(ac, promoted);
 
             // Promoting pawn to SQ_NONE, promoted piece from SQ_NONE
-            dp.dst[0]             = SQ_NONE;
-            dp.piece[dp.dirtyNum] = promotedPiece;
-            dp.org[dp.dirtyNum]   = SQ_NONE;
-            dp.dst[dp.dirtyNum]   = dst;
-            dp.dirtyNum++;
+            dp.dst[0]          = SQ_NONE;
+            dp.piece[dp.count] = promotedPiece;
+            dp.org[dp.count]   = SQ_NONE;
+            dp.dst[dp.count]   = dst;
+            dp.count++;
 
             remove_piece(dst);
             put_piece(dst, promotedPiece);
@@ -1131,7 +1131,7 @@ void Position::do_null_move(State& newSt) noexcept {
     for (Color c : {WHITE, BLACK})
         st->bigAccumulator.computed[c] = st->smallAccumulator.computed[c] = false;
 
-    st->dirtyPiece.dirtyNum = 0;
+    st->dirtyPiece.count    = 0;
     st->dirtyPiece.piece[0] = NO_PIECE;  // Avoid checks in UpdateAccumulator()
     st->capturedPiece       = NO_PIECE;
     st->promotedPiece       = NO_PIECE;

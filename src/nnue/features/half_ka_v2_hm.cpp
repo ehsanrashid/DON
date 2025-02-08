@@ -62,7 +62,7 @@ void HalfKAv2_hm::append_changed_indices(Square            ksq,
                                          const DirtyPiece& dp,
                                          IndexList&        removed,
                                          IndexList&        added) noexcept {
-    for (std::size_t i = 0; i < dp.dirtyNum; ++i)
+    for (std::uint8_t i = 0; i < dp.count; ++i)
     {
         if (is_ok(dp.org[i]))
             removed.push_back(make_index<Perspective>(dp.org[i], dp.piece[i], ksq));
@@ -81,9 +81,13 @@ template void HalfKAv2_hm::append_changed_indices<BLACK>(Square            ksq,
                                                          IndexList&        removed,
                                                          IndexList&        added) noexcept;
 
-int HalfKAv2_hm::update_cost(const State* st) noexcept { return st->dirtyPiece.dirtyNum; }
+std::uint8_t HalfKAv2_hm::update_cost(const State* st) noexcept {  //
+    return st->dirtyPiece.count;
+}
 
-int HalfKAv2_hm::refresh_cost(const Position& pos) noexcept { return pos.count<ALL_PIECE>(); }
+std::uint8_t HalfKAv2_hm::refresh_cost(const Position& pos) noexcept {  //
+    return pos.count<ALL_PIECE>();
+}
 
 bool HalfKAv2_hm::requires_refresh(const State* st, Color perspective) noexcept {
     return st->dirtyPiece.piece[0] == make_piece(perspective, KING);

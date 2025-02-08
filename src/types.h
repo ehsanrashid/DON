@@ -262,7 +262,7 @@ enum Direction : std::int8_t {
 struct DirtyPiece final {
 
     // Number of changed pieces
-    std::size_t dirtyNum;
+    std::uint8_t count;
 
     // Max 3 pieces can change in one move.
     // A promotion with capture moves both the pawn and the captured piece to SQ_NONE

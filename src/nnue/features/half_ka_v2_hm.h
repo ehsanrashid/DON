@@ -156,8 +156,8 @@ class HalfKAv2_hm final {
 
     // Returns the cost of updating one perspective, the most costly one.
     // Assumes no refresh needed.
-    static int update_cost(const State* st) noexcept;
-    static int refresh_cost(const Position& pos) noexcept;
+    static std::uint8_t update_cost(const State* st) noexcept;
+    static std::uint8_t refresh_cost(const Position& pos) noexcept;
 
     // Returns whether the change stored in this State means
     // that a full accumulator refresh is required.
