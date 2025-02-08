@@ -165,7 +165,7 @@ static_assert(sizeof(PTEntry) == 16, "Unexpected PTEntry size");
 
 struct PTCluster final {
    public:
-    static constexpr inline std::uint8_t EntryCount = 4;
+    static constexpr std::uint8_t EntryCount = 4;
 
     PTEntry entry[EntryCount];
 };

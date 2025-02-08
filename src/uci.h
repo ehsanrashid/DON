@@ -72,7 +72,7 @@ class UCI final {
 
     static Move mix_to_move(const std::string& mix, Position& pos, const LegalMoveList&) noexcept;
 
-    static bool infoStringStop;
+    static bool InfoStringStop;
 
    private:
     void init_update_listeners() noexcept;

@@ -184,7 +184,7 @@ static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");
 // as the cache-line is prefetched when possible.
 struct TTCluster final {
    public:
-    static constexpr inline std::uint8_t EntryCount = 3;
+    static constexpr std::uint8_t EntryCount = 3;
 
     TTEntry entry[EntryCount];
 

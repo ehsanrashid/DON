@@ -226,7 +226,7 @@ void on_update_move(const MoveInfo& info) noexcept;
 
 }  // namespace
 
-bool UCI::infoStringStop = false;
+bool UCI::InfoStringStop = false;
 
 UCI::UCI(int argc, const char** argv) noexcept :
     engine(argv[0]),
@@ -360,7 +360,7 @@ void UCI::handle_commands() noexcept {
 }
 
 void UCI::print_info_string(std::string_view infoStr) noexcept {
-    if (infoStringStop)
+    if (InfoStringStop)
         return;
 
     for (const auto& info : split(infoStr, "\n"))
@@ -572,7 +572,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     engine_options().set("Hash", std::to_string(benchmark.ttSize));
     engine_options().set("UCI_Chess960", bool_to_string(false));
 
-    infoStringStop = true;
+    InfoStringStop = true;
 
     std::uint64_t nodes = 0;
     std::size_t   cnt   = 0;
@@ -724,7 +724,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
               << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
     // clang-format on
 
-    infoStringStop = false;
+    InfoStringStop = false;
     init_update_listeners();
 }
 
@@ -802,6 +802,7 @@ std::string UCI::format_score(const Score& score) noexcept {
 }
 
 char UCI::piece(PieceType pt) noexcept { return is_ok(pt) ? PieceChar[pt] : ' '; }
+
 char UCI::piece(Piece pc) noexcept { return is_ok(pc) ? PieceChar[pc] : ' '; }
 
 Piece UCI::piece(char pc) noexcept {
@@ -1006,7 +1007,7 @@ std::string UCI::move_to_san(const Move& m, Position& pos) noexcept {
         if (m.type_of() == PROMOTION)
         {
             assert(pt == PAWN);
-            san += std::string{'=', piece(m.promotion_type())};
+            san += std::string{'=', char(std::toupper(piece(m.promotion_type())))};
         }
     }
 

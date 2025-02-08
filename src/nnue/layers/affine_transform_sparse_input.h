@@ -36,14 +36,14 @@
 namespace DON::NNUE::Layers {
 
 #if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
-static constexpr inline std::uint8_t LsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
-                                                    57, 49, 41, 37, 28, 16, 3,  61,  //
-                                                    54, 58, 35, 52, 50, 42, 21, 44,  //
-                                                    38, 32, 29, 23, 17, 11, 4,  62,  //
-                                                    46, 55, 26, 59, 40, 36, 15, 53,  //
-                                                    34, 51, 20, 43, 31, 22, 10, 45,  //
-                                                    25, 39, 14, 33, 19, 30, 9,  24,  //
-                                                    13, 18, 8,  12, 7,  6,  5,  63};
+constexpr inline std::uint8_t LsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
+                                             57, 49, 41, 37, 28, 16, 3,  61,  //
+                                             54, 58, 35, 52, 50, 42, 21, 44,  //
+                                             38, 32, 29, 23, 17, 11, 4,  62,  //
+                                             46, 55, 26, 59, 40, 36, 15, 53,  //
+                                             34, 51, 20, 43, 31, 22, 10, 45,  //
+                                             25, 39, 14, 33, 19, 30, 9,  24,  //
+                                             13, 18, 8,  12, 7,  6,  5,  63};
 
 constexpr std::uint8_t constexpr_lsb(std::uint64_t bb) noexcept {
     assert(bb != 0);
@@ -51,7 +51,7 @@ constexpr std::uint8_t constexpr_lsb(std::uint64_t bb) noexcept {
     return LsbIndices[((bb ^ (bb - 1)) * Debruijn64Multi) >> 58];
 }
 
-alignas(CACHE_LINE_SIZE) static constexpr struct Lookup final {
+alignas(CACHE_LINE_SIZE) constexpr inline struct Lookup final {
 
     using IndexType =
     #if defined(USE_SSE41)

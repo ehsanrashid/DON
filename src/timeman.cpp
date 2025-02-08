@@ -124,14 +124,14 @@ void TimeManager::init(Limit& limit, const Position& pos, const Options& options
             initialAdjust = std::max(-0.4354f + 0.3128f * std::log10(1.0000f * remainTime), 1.0000e-6f);
 
         // Calculate time constants based on current remaining time        
-        auto log10ScaledTime = std::log10(1.0e-3f * scaledTime);
+        auto log10ScaledTime = std::log10(1.0000e-3f * scaledTime);
         auto optimumConstant = std::min(3.2116e-3f + 32.1123e-5f * log10ScaledTime, 5.08017e-3f);
         auto maximumConstant = std::max(3.3977f    +  3.0395f    * log10ScaledTime, 2.94761f);
 
         optimumScale = initialAdjust
                      * std::min(12.1431e-3f + optimumConstant * std::pow(2.94693f + ply, 0.461073f),
                                  0.00000f   + 0.213035f        * clock.time / remainTime);
-        maximumScale = std::min(maximumConstant + 83.439719e-3f * ply, 6.67704f);
+        maximumScale = std::min(maximumConstant + 83.43972e-3f * ply, 6.67704f);
     }
 
     // Limit the maximum possible time for this move
