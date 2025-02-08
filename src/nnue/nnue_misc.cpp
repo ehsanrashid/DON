@@ -19,7 +19,6 @@
 
 #include "nnue_misc.h"
 
-#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>

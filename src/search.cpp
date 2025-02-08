@@ -652,8 +652,8 @@ void Worker::iterative_deepening() noexcept {
 
             // clang-format off
             float evalChange = std::clamp( 0.11396f
-                                          + 0.02035f * (mainManager->preBestAvgValue - bestValue)
-                                          + 0.00968f * (mainManager->preBestCurValue - bestValue),
+                                         + 0.02035f * (mainManager->preBestAvgValue - bestValue)
+                                         + 0.00968f * (mainManager->preBestCurValue - bestValue),
                                            0.9f - 0.3214f * !mainManager->moveFirst,
                                            1.1f + 0.5752f * !mainManager->moveFirst);
             // If the bestMove is stable over several iterations, reduce time accordingly
