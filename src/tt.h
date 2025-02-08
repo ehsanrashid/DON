@@ -179,14 +179,14 @@ struct TTEntry final {
 
 static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");
 
-constexpr inline std::size_t TT_CLUSTER_ENTRY_COUNT = 3;
-
 // TTCluster consists of TT_CLUSTER_ENTRY_COUNT number of TTEntry.
 // The size of a TTCluster should divide the size of a cache line for best performance,
 // as the cache-line is prefetched when possible.
 struct TTCluster final {
    public:
-    TTEntry entry[TT_CLUSTER_ENTRY_COUNT];
+    static constexpr inline std::uint8_t EntryCount = 3;
+
+    TTEntry entry[EntryCount];
 
     std::atomic<Move> move{};  // Pad to 32 bytes
 };

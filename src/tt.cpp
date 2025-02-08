@@ -97,7 +97,7 @@ TranspositionTable::probe(Key key, Key16 key16) const noexcept {
 
     auto* const ttc = cluster(key);
 
-    for (std::size_t i = 0; i < TT_CLUSTER_ENTRY_COUNT; ++i)
+    for (std::uint8_t i = 0; i < TTCluster::EntryCount; ++i)
         if (ttc->entry[i].key16 == key16)
             return {ttc->entry[i].read(), &ttc->entry[i], ttc};
 
@@ -119,12 +119,12 @@ std::uint16_t TranspositionTable::hashFull(std::uint8_t maxAge) const noexcept {
 
     std::uint32_t cnt = 0;
     for (std::size_t idx = 0; idx < std::min<size_t>(clusterCount, 1000); ++idx)
-        for (std::size_t i = 0; i < TT_CLUSTER_ENTRY_COUNT; ++i)
+        for (std::uint8_t i = 0; i < TTCluster::EntryCount; ++i)
         {
             const auto& entry = clusters[idx].entry[i];
             cnt += entry.occupied() && entry.relative_age(generation8) <= maxRelAge;
         }
-    return cnt / TT_CLUSTER_ENTRY_COUNT;
+    return cnt / TTCluster::EntryCount;
 }
 
 std::uint16_t TranspositionTable::hashFull() noexcept { return lastHashFull = hashFull(0); }

@@ -144,7 +144,8 @@ struct PTEntry final {
 
     constexpr std::uint64_t nodes() const noexcept { return nodes64; }
 
-    void save(Key32 k32, Depth d, std::uint64_t n) noexcept {
+    void save(Key k, Depth d, std::uint64_t n) noexcept {
+        Key32 k32 = k & 0xFFFFFFFF;
         if ((key32 == k32 && depth16 >= d) || nodes64 >= 10000 + n)
             return;
         key32   = k32;
@@ -162,10 +163,11 @@ struct PTEntry final {
 
 static_assert(sizeof(PTEntry) == 16, "Unexpected PTEntry size");
 
-constexpr inline std::size_t PT_CLUSTER_ENTRY_COUNT = 4;
-
 struct PTCluster final {
-    PTEntry entry[PT_CLUSTER_ENTRY_COUNT];
+   public:
+    static constexpr inline std::uint8_t EntryCount = 4;
+
+    PTEntry entry[EntryCount];
 };
 
 static_assert(sizeof(PTCluster) == 64, "Unexpected PTCluster size");
@@ -252,14 +254,14 @@ std::tuple<bool, PTEntry* const> PerftTable::probe(Key key, Depth depth) const n
     auto* const ptc = cluster(key);
     auto* const fte = &ptc->entry[0];
 
-    Key32 key32 = Key32(key);
-    for (std::size_t i = 0; i < PT_CLUSTER_ENTRY_COUNT; ++i)
+    Key32 key32 = key & 0xFFFFFFFF;
+    for (std::uint8_t i = 0; i < PTCluster::EntryCount; ++i)
         if (fte[i].key32 == key32 && fte[i].depth16 == depth)
             return {true, &fte[i]};
 
-    auto* const lte = fte + PT_CLUSTER_ENTRY_COUNT - 1;
+    auto* const lte = fte + PTCluster::EntryCount - 1;
     auto*       rte = fte;
-    for (std::size_t i = 1; i < PT_CLUSTER_ENTRY_COUNT; ++i)
+    for (std::uint8_t i = 1; i < PTCluster::EntryCount; ++i)
         if (rte->depth16 > fte[i].depth16)
             rte = &fte[i];
 
@@ -332,7 +334,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
                     else
                     {
                         iperft = perft<false>(pos, depth - 1, detail);
-                        pte->save(Key32(key), depth - 1, iperft.nodes);
+                        pte->save(key, depth - 1, iperft.nodes);
                     }
                 }
                 else

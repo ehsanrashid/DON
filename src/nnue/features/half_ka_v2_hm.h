@@ -33,7 +33,7 @@ class Position;
 
 namespace NNUE::Features {
 
-template<typename T, std::size_t MaxSize>
+template<typename T, std::size_t Size>
 class ArrayList final {
 
    public:
@@ -48,7 +48,7 @@ class ArrayList final {
     T&       operator[](std::size_t index) noexcept { return data[index]; }
 
    private:
-    T           data[MaxSize];
+    T           data[Size];
     std::size_t count = 0;
 };
 

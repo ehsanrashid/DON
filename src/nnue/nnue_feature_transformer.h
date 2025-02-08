@@ -480,15 +480,17 @@ class FeatureTransformer final {
     static State* find_computed_accumulator(const Position& pos) noexcept {
         // Look for a usable accumulator of an earlier position.
         // Keep track of the estimated gain in terms of features to be added/subtracted.
-        State* st   = pos.state();
-        int    gain = FeatureSet::refresh_cost(pos);
+        State* st = pos.state();
+
+        int gain = FeatureSet::refresh_cost(pos);
         while (st->preState != nullptr && !(st->*accPtr).computed[Perspective])
         {
             // This governs when a full feature refresh is needed and
             // how many updates are better than just one full refresh.
             if (FeatureSet::requires_refresh(st, Perspective)
-                || (gain -= FeatureSet::update_cost(st) + 1) < 0)
+                || (gain -= 1 + FeatureSet::update_cost(st)) < 0)
                 break;
+
             st = st->preState;
         }
         return st;

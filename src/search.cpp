@@ -107,7 +107,7 @@ void TTUpdater::update(
     if (tte->key16 != key16)
     {
         tte = &ttc->entry[0];
-        for (std::size_t i = 0; i < TT_CLUSTER_ENTRY_COUNT; ++i)
+        for (std::uint8_t i = 0; i < TTCluster::EntryCount; ++i)
         {
             if (ttc->entry[i].key16 == key16)
             {
