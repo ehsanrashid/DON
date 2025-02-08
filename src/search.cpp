@@ -1138,16 +1138,15 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             if (threads.stop.load(std::memory_order_relaxed))
                 return VALUE_ZERO;
 
-            if (value >= probCutBeta)
+            if (value >= probCutBeta && !is_win(value))
             {
                 assert(!is_loss(value));
 
                 // Save ProbCut data into transposition table
                 ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move, value,
                            unadjustedStaticEval);
-
-                if (!is_win(value))
-                    return value - (probCutBeta - beta);
+ 
+                return value;
             }
         }
     }
@@ -1429,9 +1428,6 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Increase reduction if ttMove is a capture and the current move is not a capture
         r += (1123 + 982 * (depth < 8)) * (ttCapture && !capture);
-
-        // Increase reduction on repetition
-        r += 2048 * (move == (ss - 4)->move && pos.repetition() == 4);
 
         r += ss->cutoffCount > 3  //
              ?

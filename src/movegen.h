@@ -123,10 +123,12 @@ struct ExtMove final: public Move {
    public:
     using Move::Move;
 
-    explicit ExtMove(const Move& m, int v = 0) noexcept :
-        value(v) {
-        move = m.raw();
-    }
+    //constexpr explicit ExtMove(const Move& m, int v = 0) noexcept :
+    //    Move(m),
+    //    value(v) {}
+    //constexpr explicit ExtMove(Move&& m, int v = 0) noexcept :
+    //    Move(std::move(m)),
+    //    value(v) {}
 
     friend bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept {  //
         return em1.value < em2.value;
@@ -141,7 +143,7 @@ struct ExtMove final: public Move {
         return !(em1 < em2);
     }
 
-    int value;
+    int value;  // = 0;
 };
 
 class ExtMoves final {

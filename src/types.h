@@ -484,8 +484,8 @@ class Move {
 };
 
 // **Define the constexpr static members outside the class**
-constexpr Move Move::None{0x00};
-constexpr Move Move::Null{0x41};
+constexpr Move Move::None{SQ_A1, SQ_A1};
+constexpr Move Move::Null{SQ_B1, SQ_B1};
 
 constexpr Value promotion_value(const Move& m, bool mp = false) noexcept {
     return m.type_of() == PROMOTION
