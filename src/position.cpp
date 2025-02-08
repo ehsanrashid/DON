@@ -1978,7 +1978,7 @@ Key Position::compute_non_pawn_key() const noexcept {
         auto   pt = type_of(pc);
         assert(is_ok(pc));
 
-        if (pt != PAWN && pt != KING)
+        if (pt != PAWN)
             nonPawnKey ^= Zobrist::psq[pc][s];
     }
     return nonPawnKey;
