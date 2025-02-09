@@ -270,8 +270,15 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
 
     auto* transformedFeatures = align_ptr_up<ALIGNMENT>(&transformedFeaturesUnaligned[0]);
 #else
+    #if defined(__GNUC__)
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+    #endif
     alignas(ALIGNMENT) TransformedFeatureType
       transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE]{};
+    #if defined(__GNUC__)
+        #pragma GCC diagnostic pop
+    #endif
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
@@ -297,8 +304,15 @@ EvalTrace Network<Arch, Transformer>::trace_eval(
 
     auto* transformedFeatures = align_ptr_up<ALIGNMENT>(&transformedFeaturesUnaligned[0]);
 #else
+    #if defined(__GNUC__)
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+    #endif
     alignas(ALIGNMENT) TransformedFeatureType
       transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE]{};
+    #if defined(__GNUC__)
+        #pragma GCC diagnostic pop
+    #endif
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
