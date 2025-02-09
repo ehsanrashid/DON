@@ -462,9 +462,6 @@ class Move {
         return PieceType(((move >> 12) & PromoMask) + int(KNIGHT));
     }
 
-    // Validity check: ensures move is not None or Null
-    constexpr bool is_ok() const noexcept { return org_sq() != dst_sq(); }
-
     constexpr auto raw() const noexcept { return move; }
 
     // Friend comparison operators
@@ -474,6 +471,9 @@ class Move {
     constexpr friend bool operator!=(const Move& m1, const Move& m2) noexcept {
         return !(m1 == m2);
     }
+
+    // Validity check: ensures move is not None or Null
+    constexpr bool is_ok() const noexcept { return org_sq() != dst_sq(); }
 
     // Declare static const members (to be defined later)
     static const Move None;

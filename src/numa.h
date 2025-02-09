@@ -47,7 +47,7 @@
     #include <sched.h>
 #elif defined(_WIN64)
 
-    #if _WIN32_WINNT < 0x0601
+    #if !defined(_WIN32_WINNT) || _WIN32_WINNT < 0x0601
         #undef _WIN32_WINNT
         #define _WIN32_WINNT 0x0601  // Force to include needed API prototypes
     #endif
@@ -92,7 +92,7 @@ inline CpuIndex get_hardware_concurrency() noexcept {
     return concurrency;
 }
 
-const inline CpuIndex SYSTEM_THREADS_NB = std::max<CpuIndex>(get_hardware_concurrency(), 1);
+inline const CpuIndex SYSTEM_THREADS_NB = std::max<CpuIndex>(get_hardware_concurrency(), 1);
 
 #if defined(_WIN64)
 
@@ -397,12 +397,12 @@ inline std::set<CpuIndex> get_process_affinity() noexcept {
 
 #if defined(__linux__) && !defined(__ANDROID__)
 
-static inline const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
+inline static const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
 
 #elif defined(_WIN64)
 
-static inline const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
-static inline const auto STARTUP_USE_OLD_AFFINITY_API =
+inline static const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
+inline static const auto STARTUP_USE_OLD_AFFINITY_API =
   STARTUP_PROCESSOR_AFFINITY.likely_used_old_api();
 
 #endif
@@ -1181,7 +1181,7 @@ class LazyNumaReplicated final: public NumaReplicatedBase {
         if (instances[idx] != nullptr)
             return;
 
-        const auto& cfg = get_numa_config();
+        const NumaConfig& cfg = get_numa_config();
         cfg.execute_on_numa_node(
           idx, [this, idx]() { instances[idx] = std::make_unique<T>(*instances[0]); });
     }
@@ -1189,7 +1189,7 @@ class LazyNumaReplicated final: public NumaReplicatedBase {
     void prepare_replicate_from(T&& source) noexcept {
         instances.clear();
 
-        const auto& cfg = get_numa_config();
+        const NumaConfig& cfg = get_numa_config();
         if (cfg.requires_memory_replication())
         {
             assert(cfg.num_numa_nodes() > 0);

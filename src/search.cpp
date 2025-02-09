@@ -1165,18 +1165,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     }
     assert(ss->ttMove == ttd.move);
 
-    value = bestValue;
-
-    Move bestMove = Move::None;
-
     auto pawnIndex = pawn_index(pos.pawn_key());
-
-    std::uint8_t moveCount  = 0;
-    std::uint8_t promoCount = 0;
-
-    std::array<Moves, 2> moves;
-
-    Value singularValue = +VALUE_INFINITE;
 
     const History<HPieceSq>* contHistory[8]{(ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,
                                             (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,
@@ -1184,6 +1173,17 @@ S_MOVES_LOOP:  // When in check, search starts here
                                             (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory};
 
     int quietThreshold = std::min((-3560 - 10 * improve) * depth, MaxQuietThreshold);
+
+    value = bestValue;
+
+    Value singularValue = +VALUE_INFINITE;
+
+    std::uint8_t moveCount  = 0;
+    std::uint8_t promoCount = 0;
+
+    Move bestMove = Move::None;
+
+    std::array<Moves, 2> moves;
 
     MovePicker mp(pos, pttm, &captureHistory, &quietHistory, &pawnHistory, contHistory,
                   &lowPlyQuietHistory, ss->ply, quietThreshold);
@@ -1249,14 +1249,18 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int captHist = captureHistory[movedPiece][dst][captured];
 
                 // Futility pruning for captures not check
-                if (!ss->inCheck && lmrDepth < 7 && !check)
+                if (!ss->inCheck && lmrDepth < 7 && !check && !pos.fork(move))
                 {
                     Value futilityValue =
                       std::min(242 + ss->staticEval + PIECE_VALUE[captured] + promotion_value(move)
                                  + int(0.1357f * captHist) + 238 * lmrDepth,
                                VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
+                    {
+                        if (bestValue < futilityValue)
+                            bestValue = futilityValue;
                         continue;
+                    }
                 }
 
                 // SEE based pruning for captures
@@ -1279,11 +1283,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                 lmrDepth += 27.9642e-5f * contHist;
 
                 // Futility pruning for quiets not check
-                if (!ss->inCheck && lmrDepth < 13 && !check)
+                if (!ss->inCheck && lmrDepth < 12 && !check && !pos.fork(move))
                 {
                     Value futilityValue =
-                      std::min(49 + ss->staticEval + 86 * (bestMove == Move::None) + 150 * lmrDepth,
-                               VALUE_TB_WIN_IN_MAX_PLY - 1);
+                      std::min(135 + ss->staticEval + 150 * lmrDepth, VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
                     {
                         if (bestValue < futilityValue)
@@ -1420,6 +1423,9 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Increase reduction if ttMove is a capture and the current move is not a capture
         r += (1123 + 982 * (depth < 8)) * (ttCapture && !capture);
+
+        // Increase reduction on repetition
+        r += 2048 * (move == (ss - 4)->move && pos.repetition() == 4);
 
         r += ss->cutoffCount > 3  //
              ?
@@ -1819,20 +1825,20 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
 QS_MOVES_LOOP:
 
-    State st;
-    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
+    auto pawnIndex = pawn_index(pos.pawn_key());
 
-    Value value;
+    const History<HPieceSq>* contHistory[2]{(ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory};
+
     Move  move;
+    Value value;
 
     std::uint8_t moveCount  = 0;
     std::uint8_t promoCount = 0;
 
     Move bestMove = Move::None;
 
-    auto pawnIndex = pawn_index(pos.pawn_key());
-
-    const History<HPieceSq>* contHistory[2]{(ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory};
+    State st;
+    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
