@@ -283,13 +283,6 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
 }
 
 template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::hint_common_access(
-  const Position&                                         pos,
-  AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
-    featureTransformer->hint_common_access(pos, cache);
-}
-
-template<typename Arch, typename Transformer>
 EvalTrace Network<Arch, Transformer>::trace_eval(
   const Position&                                         pos,
   AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {

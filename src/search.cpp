@@ -34,7 +34,6 @@
 #include "uci.h"
 #include "ucioption.h"
 #include "nnue/network.h"
-#include "nnue/nnue_misc.h"
 
 namespace DON {
 
@@ -666,10 +665,10 @@ void Worker::iterative_deepening() noexcept {
             assert(stableDepth >= DEPTH_ZERO);
 
             // Compute stability factor from the stable depth. This factor is used to reduce time if the best move remains stable
-            float stabilityFactor = std::ceil(stableDepth / (3.0f + 2.0f * std::log10((1.0f + stableDepth) / 2.0f)) - 1.27f);
+            int stabilityFactor = std::ceil(stableDepth / (3.0f + 2.0f * std::log10((1.0f + stableDepth) / 2.0f)) - 1.31f * (stableDepth > 0));
 
             // Use the stability factor to adjust the time reduction
-            mainManager->timeReduction = 0.7046f + 0.39055f * std::clamp(stabilityFactor, 0.0f, 3.0f);
+            mainManager->timeReduction = 0.7046f + 0.39055f * std::min(stabilityFactor, 3);
 
             // Compute ease factor that factors in previous time reduction
             float easeFactor = 0.46311f * (1.4540f + mainManager->preTimeReduction) / mainManager->timeReduction;
@@ -680,7 +679,7 @@ void Worker::iterative_deepening() noexcept {
             // Compute node effort factor which slightly reduces effort if the completed depth is sufficiently high
             float nodeEffortFactor = 1.0f;
             if (completedDepth >= 10)
-                nodeEffortFactor -= 70.7929e-6f * std::max(-95056.0f + 100000.0f * rootMoves.front().nodes / std::max(std::uint64_t(nodes), std::uint64_t(1)), 0.0f);
+                nodeEffortFactor -= 70.7929e-6f * std::max(-95056.0f + 100000.0f * (float(rootMoves.front().nodes) / std::max(std::uint64_t(nodes), std::uint64_t(1))), 0.0f);
 
             // Compute recapture factor that reduces time if recapture conditions are met
             float recaptureFactor = 1.0f;
@@ -954,8 +953,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         assert(is_ok(ss->staticEval));
 
         unadjustedStaticEval = eval = ss->staticEval;
-        // Providing the hint that this node's accumulator will often be used
-        NNUE::hint_common_parent_position(pos, networks[numaAccessToken], accCaches);
     }
     else if (ttd.hit)
     {
@@ -963,8 +960,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         unadjustedStaticEval = ttd.eval;
         if (!is_valid(unadjustedStaticEval))
             unadjustedStaticEval = evaluate(pos);
-        else if constexpr (PVNode)
-            NNUE::hint_common_parent_position(pos, networks[numaAccessToken], accCaches);
 
         eval = ss->staticEval = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
@@ -1410,13 +1405,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                                   + (*contHistory[1])[movedPiece][dst] - 3591;
 
         // Decrease reduction if position is or has been on the PV (*Scaler)
-        r -= (2230                                                //
+        r -= (2230 + 1013 * PVNode                                //
               + 925 * (is_valid(ttd.value) && ttd.value > alpha)  //
-              + 971 * (ttd.depth >= depth))
+              + (971 + 1159 * CutNode) * (ttd.hit && ttd.depth >= depth))
            * ss->pvHit;
-
-        // Decrease reduction for PvNodes (*Scaler)
-        r -= 1013 * PVNode;
 
         // These reduction adjustments have no proven non-linear scaling.
 
@@ -1424,7 +1416,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r += 316 - 32 * moveCount - 1024 * dblCheck - 31.6776e-6f * absCorrectionValue;
 
         // Increase reduction for cut nodes
-        r += (2608 - 1159 * (ss->pvHit && ttd.depth >= depth)) * CutNode;
+        r += 2608 * CutNode;
 
         // Increase reduction if ttMove is a capture and the current move is not a capture
         r += (1123 + 982 * (depth < 8)) * (ttCapture && !capture);
@@ -2082,7 +2074,7 @@ void MainSearchManager::init() noexcept {
     moveFirst        = true;
     preBestCurValue  = VALUE_ZERO;
     preBestAvgValue  = VALUE_ZERO;
-    preTimeReduction = 0.85;
+    preTimeReduction = 0.85f;
 }
 
 // Used to print debug info and, more importantly,

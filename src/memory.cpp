@@ -150,16 +150,16 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
     LUID luid{};
     if (lookupPrivilegeValueA(nullptr, "SeLockMemoryPrivilege", &luid))
     {
-        TOKEN_PRIVILEGES tp{};
-        tp.PrivilegeCount           = 1;
-        tp.Privileges[0].Luid       = luid;
-        tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+        TOKEN_PRIVILEGES curTp{};
+        curTp.PrivilegeCount           = 1;
+        curTp.Privileges[0].Luid       = luid;
+        curTp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
         TOKEN_PRIVILEGES preTp{};
         DWORD            preTpLen{};
         // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
         // Still need to query GetLastError() to ensure that the privileges were actually obtained.
-        if (adjustTokenPrivileges(processHandle, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), &preTp,
+        if (adjustTokenPrivileges(processHandle, FALSE, &curTp, sizeof(TOKEN_PRIVILEGES), &preTp,
                                   &preTpLen)
             && GetLastError() == ERROR_SUCCESS)
         {
@@ -242,7 +242,8 @@ void free_aligned_lp(void* mem) noexcept {
 #endif
 }
 
-bool has_large_pages() noexcept {
+// Check Large Pages support
+bool has_lp() noexcept {
 
 #if defined(_WIN32)
     constexpr std::size_t PageSize = 2 * 1024 * 1024;  // 2MB page size assumed

@@ -52,10 +52,6 @@ struct EvalTrace final {
     std::size_t  correctBucket;
 };
 
-void hint_common_parent_position(const Position&    pos,
-                                 const Networks&    networks,
-                                 AccumulatorCaches& caches) noexcept;
-
 std::string trace(Position&          pos,  //
                   const Networks&    networks,
                   AccumulatorCaches& caches) noexcept;

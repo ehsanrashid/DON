@@ -66,10 +66,6 @@ class Network final {
     evaluate(const Position&                                         pos,
              AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
-    void hint_common_access(
-      const Position&                                         pos,
-      AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
-
     EvalTrace
     trace_eval(const Position&                                         pos,
                AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;

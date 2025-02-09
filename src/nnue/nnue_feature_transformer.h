@@ -42,6 +42,11 @@ using BiasType       = std::int16_t;
 using WeightType     = std::int16_t;
 using PSQTWeightType = std::int32_t;
 
+enum IncUpdateDirection : std::uint8_t {
+    FORWARD,
+    BACKWARDS
+};
+
 // If vector instructions are enabled, update and refresh the
 // accumulator tile by tile such that each tile fits in the CPU's
 // vector registers.
@@ -257,6 +262,8 @@ class FeatureTransformer final {
    private:
     // Number of output dimensions for one side
     static constexpr IndexType HalfDimensions = TransformedFeatureDimensions;
+    static constexpr bool Big = TransformedFeatureDimensions == BigTransformedFeatureDimensions;
+
 #if defined(VECTOR)
     using Tiling = SIMDTiling<HalfDimensions>;
 #endif
@@ -469,40 +476,21 @@ class FeatureTransformer final {
         return psqt;
     }
 
-    void hint_common_access(const Position&                           pos,
-                            AccumulatorCaches::Cache<HalfDimensions>* cache) const noexcept {
-        update_accumulator<WHITE>(pos, cache);
-        update_accumulator<BLACK>(pos, cache);
-    }
-
    private:
-    template<Color Perspective>
-    static State* find_computed_accumulator(const Position& pos) noexcept {
-        // Look for a usable accumulator of an earlier position.
-        // Keep track of the estimated gain in terms of features to be added/subtracted.
-        State* st = pos.state();
-
-        int gain = FeatureSet::refresh_cost(pos);
-        while (st->preState != nullptr && !(st->*accPtr).computed[Perspective])
-        {
-            // This governs when a full feature refresh is needed and
-            // how many updates are better than just one full refresh.
-            if (FeatureSet::requires_refresh(st, Perspective)
-                || (gain -= 1 + FeatureSet::update_cost(st)) < 0)
-                break;
-
-            st = st->preState;
-        }
-        return st;
-    }
-
     // Computes the accumulator of the next position, on given computedState
-    template<Color Perspective>
-    void update_accumulator_incremental(const Position& pos, State* computedState) const noexcept {
-        assert((computedState->*accPtr).computed[Perspective]);
-        assert(computedState->nxtState != nullptr);
+    template<Color Perspective, IncUpdateDirection Direction = FORWARD>
+    void update_accumulator_incremental(Square       ksq,
+                                        State*       targetState,
+                                        const State* computedState) const noexcept {
+        [[maybe_unused]] constexpr bool Forward   = Direction == FORWARD;
+        [[maybe_unused]] constexpr bool Backwards = Direction == BACKWARDS;
 
-        Square ksq = pos.king_square(Perspective);
+        assert((computedState->*accPtr).computed[Perspective]);
+
+        State* nxtState = Forward ? computedState->nxtState : computedState->preState;
+
+        assert(nxtState != nullptr);
+        assert(!(nxtState->*accPtr).computed[Perspective]);
 
         // The size must be enough to contain the largest possible update.
         // That might depend on the feature set and generally relies on the
@@ -511,12 +499,12 @@ class FeatureTransformer final {
         // In this case, the maximum size of both feature addition and removal is 2,
         // since incrementally updating one move at a time.
         FeatureSet::IndexList removed, added;
-
-        FeatureSet::append_changed_indices<Perspective>(ksq, computedState->nxtState->dirtyPiece,
-                                                        removed, added);
-
-        State* nxtState = computedState->nxtState;
-        assert(!(nxtState->*accPtr).computed[Perspective]);
+        if constexpr (Forward)
+            FeatureSet::append_changed_indices<Perspective>(ksq, nxtState->dirtyPiece, removed,
+                                                            added);
+        else
+            FeatureSet::append_changed_indices<Perspective>(ksq, computedState->dirtyPiece, added,
+                                                            removed);
 
         if (removed.size() == 0 && added.size() == 0)
         {
@@ -532,7 +520,10 @@ class FeatureTransformer final {
             // clang-format off
             assert(added.size() == 1 || added.size() == 2);
             assert(removed.size() == 1 || removed.size() == 2);
-            assert(added.size() <= removed.size());
+            if (Forward)
+                assert(added.size() <= removed.size());
+            else
+                assert(removed.size() <= added.size());
 
 #if defined(VECTOR)
             
@@ -544,12 +535,13 @@ class FeatureTransformer final {
             IndexType offsetR0 = HalfDimensions * removed[0];
             auto*     columnR0 = reinterpret_cast<const vec_t*>(&weights[offsetR0]);
 
-            if (removed.size() == 1)
+            if ((Forward && removed.size() == 1)
+                || (Backwards && added.size() == 1))  // added.size() == removed.size() == 1
             {
                 for (IndexType i = 0; i < HalfDimensions * sizeof(WeightType) / sizeof(vec_t); ++i)
                     accOut[i] = vec_add_16(vec_sub_16(accIn[i], columnR0[i]), columnA0[i]);
             }
-            else if (added.size() == 1)
+            else if (Forward && added.size() == 1)  // removed.size() == 2
             {
                 IndexType offsetR1 = HalfDimensions * removed[1];
                 auto*     columnR1 = reinterpret_cast<const vec_t*>(&weights[offsetR1]);
@@ -558,7 +550,16 @@ class FeatureTransformer final {
                     accOut[i] = vec_sub_16(vec_add_16(accIn[i]   , columnA0[i]),
                                            vec_add_16(columnR0[i], columnR1[i]));
             }
-            else
+            else if (Backwards && removed.size() == 1)  // added.size() == 2
+            {
+                const IndexType offsetA1 = HalfDimensions * added[1];
+                auto*           columnA1 = reinterpret_cast<const vec_t*>(&weights[offsetA1]);
+
+                for (IndexType i = 0; i < HalfDimensions * sizeof(WeightType) / sizeof(vec_t); ++i)
+                    accOut[i] = vec_add_16(vec_add_16(accIn[i]   , columnA0[i]),
+                                           vec_sub_16(columnA1[i], columnR0[i]));
+            }
+            else // added.size() == removed.size() == 2
             {
                 IndexType offsetA1 = HalfDimensions * added[1];
                 auto*     columnA1 = reinterpret_cast<const vec_t*>(&weights[offsetA1]);
@@ -578,12 +579,13 @@ class FeatureTransformer final {
             IndexType offsetPsqtR0 = PSQTBuckets * removed[0];
             auto* columnPsqtR0 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offsetPsqtR0]);
 
-            if (removed.size() == 1)
+            if ((Forward && removed.size() == 1)
+                || (Backwards && added.size() == 1))  // added.size() == removed.size() == 1
             {
                 for (IndexType i = 0; i < PSQTBuckets * sizeof(PSQTWeightType) / sizeof(psqt_vec_t); ++i)
                     accPsqtOut[i] = vec_add_psqt_32(vec_sub_psqt_32(accPsqtIn[i], columnPsqtR0[i]), columnPsqtA0[i]);
             }
-            else if (added.size() == 1)
+            else if (Forward && added.size() == 1)  // removed.size() == 2
             {
                 IndexType offsetPsqtR1 = PSQTBuckets * removed[1];
                 auto*     columnPsqtR1 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offsetPsqtR1]);
@@ -591,6 +593,15 @@ class FeatureTransformer final {
                 for (IndexType i = 0; i < PSQTBuckets * sizeof(PSQTWeightType) / sizeof(psqt_vec_t); ++i)
                     accPsqtOut[i] = vec_sub_psqt_32(vec_add_psqt_32(accPsqtIn[i]   , columnPsqtA0[i]),
                                                     vec_add_psqt_32(columnPsqtR0[i], columnPsqtR1[i]));
+            }
+            else if (Backwards && removed.size() == 1)  // added.size() == 2
+            {
+                IndexType offsetPsqtA1 = PSQTBuckets * added[1];
+                auto*     columnPsqtA1 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offsetPsqtA1]);
+
+                for (IndexType i = 0; i < PSQTBuckets * sizeof(PSQTWeightType) / sizeof(psqt_vec_t); ++i)
+                    accPsqtOut[i] = vec_add_psqt_32(vec_add_psqt_32(accPsqtIn[i]   , columnPsqtA0[i]),
+                                                    vec_sub_psqt_32(columnPsqtA1[i], columnPsqtR0[i]));
             }
             else
             {
@@ -638,8 +649,8 @@ class FeatureTransformer final {
 
         (nxtState->*accPtr).computed[Perspective] = true;
 
-        if (nxtState != pos.state())
-            update_accumulator_incremental<Perspective>(pos, nxtState);
+        if (nxtState != targetState)
+            update_accumulator_incremental<Perspective, Direction>(ksq, targetState, nxtState);
     }
 
     template<Color Perspective>
@@ -810,17 +821,40 @@ class FeatureTransformer final {
     void update_accumulator(const Position&                           pos,
                             AccumulatorCaches::Cache<HalfDimensions>* cache) const noexcept {
 
-        if ((pos.state()->*accPtr).computed[Perspective])
-            return;
+        State* st = pos.state();
+        if ((st->*accPtr).computed[Perspective])
+            return;  // nothing to do
 
-        State* oldState = find_computed_accumulator<Perspective>(pos);
+        // Only used when !Big
+        [[maybe_unused]] int gain = FeatureSet::refresh_cost(pos);
+        // Look for a usable already computed accumulator of an earlier position.
+        // When computing the small accumulator, keep track of the estimated gain in
+        // terms of features to be added/subtracted.
+        // When computing the big accumulator, expect to be able to reuse any accumulators,
+        // so always try to do an incremental update.
+        do
+        {
+            if (st->preState == nullptr || st->preState->nxtState != st
+                || FeatureSet::requires_refresh(st, Perspective)
+                || (!Big && (gain -= FeatureSet::update_cost(st)) < 0))
+                goto REFRESH;
 
-        if ((oldState->*accPtr).computed[Perspective] && oldState != pos.state())
-            // Start from the oldState computed accumulator,
-            // update all the accumulators up to the current position.
-            update_accumulator_incremental<Perspective>(pos, oldState);
-        else
-            update_accumulator_refresh_cache<Perspective>(pos, cache);
+            st = st->preState;
+        } while (!(st->*accPtr).computed[Perspective]);
+
+        // Start from the oldest computed accumulator, update all the accumulators up to the current position.
+        update_accumulator_incremental<Perspective>(pos.king_square(Perspective), pos.state(), st);
+        return;
+
+REFRESH:
+        // Compute accumulator from scratch for this position
+        update_accumulator_refresh_cache<Perspective>(pos, cache);
+        if (Big && st != pos.state())
+            // When computing a big accumulator from scratch can use it to efficiently
+            // compute the accumulator backwards, until get to a king move.
+            // Expect that will need these accumulators later anyway, so computing them now will save some work.
+            update_accumulator_incremental<Perspective, BACKWARDS>(pos.king_square(Perspective), st,
+                                                                   pos.state());
     }
 
     template<IndexType Size>

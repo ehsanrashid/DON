@@ -36,7 +36,7 @@ void  free_aligned_std(void* mem) noexcept;
 void* alloc_aligned_lp(std::size_t allocSize) noexcept;
 void  free_aligned_lp(void* mem) noexcept;
 
-bool has_large_pages() noexcept;
+bool has_lp() noexcept;
 
 // Frees memory which was placed there with placement new.
 // Works for both single objects and arrays of unknown bound.

@@ -34,7 +34,6 @@ void TranspositionTable::free() noexcept {
     free_aligned_lp(clusters);
     clusters     = nullptr;
     clusterCount = 0;
-    generation8  = 0;
 }
 
 // Sets the size of the transposition table, measured in megabytes (MB).
@@ -96,14 +95,13 @@ std::tuple<TTData, TTEntry*, TTCluster* const>
 TranspositionTable::probe(Key key, Key16 key16) const noexcept {
 
     auto* const ttc = cluster(key);
+    auto* const tte = &ttc->entry[0];
 
     for (std::uint8_t i = 0; i < TTCluster::EntryCount; ++i)
-        if (ttc->entry[i].key16 == key16)
-            return {ttc->entry[i].read(), &ttc->entry[i], ttc};
+        if (tte[i].key16 == key16)
+            return {tte[i].read(), &tte[i], ttc};
 
-    return {{false, false, BOUND_NONE, Move::None, DEPTH_OFFSET, VALUE_NONE, VALUE_NONE},
-            &ttc->entry[0],
-            ttc};
+    return {{false, false, BOUND_NONE, Move::None, DEPTH_OFFSET, VALUE_NONE, VALUE_NONE}, tte, ttc};
 }
 
 std::tuple<TTData, TTEntry*, TTCluster* const> TranspositionTable::probe(Key key) const noexcept {

@@ -28,7 +28,6 @@
 #include <ostream>
 #include <sstream>
 
-#include "../evaluate.h"
 #include "../misc.h"
 #include "../position.h"
 #include "../uci.h"
@@ -38,14 +37,6 @@
 #include "nnue_common.h"
 
 namespace DON::NNUE {
-
-void hint_common_parent_position(const Position&    pos,
-                                 const Networks&    networks,
-                                 AccumulatorCaches& caches) noexcept {
-
-    use_small_net(pos) ? networks.small.hint_common_access(pos, &caches.small)
-                       : networks.big.hint_common_access(pos, &caches.big);
-}
 
 namespace {
 
