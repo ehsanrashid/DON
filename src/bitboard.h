@@ -111,9 +111,9 @@ struct Magic final {
     #if defined(IS_64BIT)
         return ((occupied & mask) * magic) >> shift;
     #else
-        auto lo = std::uint32_t(occupied) & std::uint32_t(mask);
-        auto hi = std::uint32_t(occupied >> 32) & std::uint32_t(mask >> 32);
-        return (lo * std::uint32_t(magic) ^ hi * std::uint32_t(magic >> 32)) >> shift;
+        std::uint32_t lo = std::uint32_t(occupied >> 00) & std::uint32_t(mask >> 00);
+        std::uint32_t hi = std::uint32_t(occupied >> 32) & std::uint32_t(mask >> 32);
+        return (lo * std::uint32_t(magic >> 00) ^ hi * std::uint32_t(magic >> 32)) >> shift;
     #endif
 #endif
     }

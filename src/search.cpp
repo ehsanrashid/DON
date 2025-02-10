@@ -1068,10 +1068,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     improve = improve || ss->staticEval >= 101 + beta;
 
-    // Step 10. Internal iterative reductions
-    // Decrease depth for PVNode or deep CutNode without ttMove. (*Scaler)
-    if ((PVNode || CutNode) && depth > 2 + 3 * CutNode && ttd.move == Move::None)
-        --depth;
+    // Step 10. Internal iterative reductions (*Scaler)
+    // Decrease depth, if depth is high enough without ttMove.
+    if constexpr (!AllNode)
+        if (depth > 5 - 3 * PVNode && ttd.move == Move::None)
+            --depth;
 
     assert(depth > DEPTH_ZERO);
 
@@ -1573,7 +1574,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 if (value >= beta)
                 {
-                    // If make cutoffCount increment more often (*Scaler)
+                    // Increment cutoffCount (*Scaler)
                     (ss - 1)->cutoffCount += PVNode || (extension < 2);
                     break;  // Fail-high
                 }
@@ -1960,13 +1961,18 @@ QS_MOVES_LOOP:
         }
     }
 
-    // Step 9. Check for checkmate
+    // Step 9. Check for checkmate & stalemate
     // All legal moves have been searched.
-    // A special case: if in check and no legal moves were found, it is checkmate.
-    if (ss->inCheck && bestValue == -VALUE_INFINITE)
+    if (moveCount == 0)
     {
-        assert(moveCount == 0 && LegalMoveList(pos).empty());
-        return mated_in(ss->ply);  // Plies to mate from the root
+        // A special case: if in check and no legal moves were found, it is checkmate.
+        if (ss->inCheck)
+        {
+            assert(LegalMoveList(pos).empty());
+            bestValue = mated_in(ss->ply);  // Plies to mate from the root
+        }
+        else if (std::abs(bestValue) >= 100 && LegalMoveList(pos).empty())
+            bestValue = VALUE_DRAW;
     }
 
     // Adjust best value for fail high cases
