@@ -45,16 +45,17 @@ std::uint64_t CaseInsensitiveHash::operator()(const std::string& key) const noex
 }
 
 bool CaseInsensitiveEqual::operator()(std::string_view s1, std::string_view s2) const noexcept {
-    return s1.size() == s2.size()
-        && std::equal(
-             s1.begin(), s1.end(), s2.begin(), s2.end(),  //
-             [](char c1, char c2) noexcept { return std::tolower(c1) == std::tolower(c2); });
+    return std::equal(s1.begin(), s1.end(), s2.begin(), s2.end(),
+                      [](unsigned char c1, unsigned char c2) noexcept {
+                          return std::tolower(c1) == std::tolower(c2);
+                      });
 }
 
 bool CaseInsensitiveLess::operator()(std::string_view s1, std::string_view s2) const noexcept {
-    return std::lexicographical_compare(
-      s1.begin(), s1.end(), s2.begin(), s2.end(),
-      [](char c1, char c2) noexcept { return std::tolower(c1) < std::tolower(c2); });
+    return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(),
+                                        [](unsigned char c1, unsigned char c2) noexcept {
+                                            return std::tolower(c1) < std::tolower(c2);
+                                        });
 }
 
 std::string_view to_string(OptionType ot) noexcept {
@@ -116,12 +117,6 @@ Option::operator std::string() const noexcept {
     assert(type == OPT_STRING || type == OPT_COMBO);
     return currentValue;
 }
-
-bool operator==(const Option& o, std::string_view value) noexcept {
-    assert(o.type == OPT_COMBO);
-    return CaseInsensitiveEqual()(o.currentValue, value);
-}
-bool operator!=(const Option& o, std::string_view value) noexcept { return !(o == value); }
 
 bool operator==(const Option& o1, const Option& o2) noexcept {  //
     return o1.idx == o2.idx && o1.type == o2.type;

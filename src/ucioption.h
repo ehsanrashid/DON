@@ -76,9 +76,6 @@ class Option final {
 
     void operator<<(const Option&) noexcept = delete;
 
-    friend bool operator==(const Option& o, std::string_view value) noexcept;
-    friend bool operator!=(const Option& o, std::string_view value) noexcept;
-
     friend bool operator==(const Option& o1, const Option& o2) noexcept;
     friend bool operator!=(const Option& o1, const Option& o2) noexcept;
 
