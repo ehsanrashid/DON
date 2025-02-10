@@ -40,8 +40,8 @@ const inline std::unordered_map<OptionType, std::string_view> OptionTypeMap{
 // clang-format on
 }  // namespace
 
-std::uint64_t CaseInsensitiveHash::operator()(const std::string& key) const noexcept {
-    return std::hash<std::string>()(lower_case(key));
+std::size_t CaseInsensitiveHash::operator()(const std::string& str) const noexcept {
+    return std::hash<std::string>()(lower_case(str));
 }
 
 bool CaseInsensitiveEqual::operator()(std::string_view s1, std::string_view s2) const noexcept {
@@ -62,12 +62,6 @@ std::string_view to_string(OptionType ot) noexcept {
     auto itr = OptionTypeMap.find(ot);
     return itr != OptionTypeMap.end() ? itr->second : "none";
 }
-
-Option::Option() noexcept :
-    type(OPT_NONE),
-    minValue(0),
-    maxValue(0),
-    onChange(nullptr) {}
 
 Option::Option(OnChange&& f) noexcept :
     type(OPT_BUTTON),
@@ -181,13 +175,17 @@ void Option::operator=(std::string value) noexcept {
 std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     os << " type " << to_string(option.type);
 
-    if (option.type != OPT_BUTTON)
-        os << " default "
-           << (option.type == OPT_STRING && is_whitespace(option.defaultValue) ? EMPTY_STRING
-               : option.type == OPT_COMBO                                      ? option.currentValue
-                                          : option.defaultValue);
+    if (option.type == OPT_BUTTON)
+        return os;
+
+    os << " default ";
     if (option.type == OPT_COMBO)
-        os << " " << option.defaultValue;
+        os << option.currentValue << " " << option.defaultValue;
+    else if (option.type == OPT_STRING && is_whitespace(option.defaultValue))
+        os << EMPTY_STRING;
+    else
+        os << option.defaultValue;
+
     if (option.type == OPT_SPIN)
         os << " min " << option.minValue << " max " << option.maxValue;
 
@@ -208,7 +206,7 @@ void Options::add(const std::string& name, const Option& option) noexcept {
         std::exit(EXIT_FAILURE);
     }
 
-    auto& o = options[name] = option;
+    auto& o = options.emplace(name, option).first->second;
 
     o.idx        = insertOrder++;
     o.optionsPtr = this;
@@ -216,7 +214,7 @@ void Options::add(const std::string& name, const Option& option) noexcept {
 
 void Options::set(const std::string& name, const std::string& value) noexcept {
     if (contains(name))
-        options[name] = value;
+        options.at(name) = value;
     else
         std::cout << "No such option: '" << name << "'" << std::endl;
 }
@@ -227,12 +225,12 @@ const Option& Options::operator[](const std::string& name) const noexcept {
 }
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {
-    std::vector<Options::Pair> optPairs(options.begin(), options.end());
-    std::sort(optPairs.begin(), optPairs.end(),
-              // Sort in ascending order
+
+    std::vector<Options::Pair> optionPairs(options.begin(), options.end());
+    std::sort(optionPairs.begin(), optionPairs.end(),
               [](const auto& op1, const auto& op2) noexcept { return op1.second < op2.second; });
-    for (const auto& [fst, snd] : optPairs)
-        os << "\noption name " << fst << snd;
+    for (const auto& [name, option] : optionPairs)
+        os << "\noption name " << name << option;
 
     return os;
 }

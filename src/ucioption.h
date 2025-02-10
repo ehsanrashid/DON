@@ -33,7 +33,7 @@ namespace DON {
 
 // Define a custom case-insensitive hash
 struct CaseInsensitiveHash final {
-    std::uint64_t operator()(const std::string& key) const noexcept;
+    std::size_t operator()(const std::string& str) const noexcept;
 };
 // Define a custom case-insensitive equality
 struct CaseInsensitiveEqual final {
@@ -64,7 +64,6 @@ class Option final {
    public:
     using OnChange = std::function<std::optional<std::string>(const Option&)>;
 
-    Option() noexcept;
     explicit Option(OnChange&& f) noexcept;
     explicit Option(bool v, OnChange&& f = nullptr) noexcept;
     explicit Option(const char* v, OnChange&& f = nullptr) noexcept;
@@ -87,13 +86,13 @@ class Option final {
     friend std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
 
    private:
-    std::uint16_t idx = -1;
-
     OptionType  type;
-    std::string defaultValue, currentValue;
+    std::string defaultValue;
+    std::string currentValue;
     int         minValue, maxValue;
     OnChange    onChange;
 
+    std::uint16_t  idx;
     const Options* optionsPtr = nullptr;
 
     friend class Options;
