@@ -287,8 +287,8 @@ void UCI::handle_commands() noexcept {
             break;
         case CMD_GO :
             // Send info strings after the go command is sent for old GUIs and python-chess
-            print_info_string(engine.get_numa_config_info());
-            print_info_string(engine.get_thread_allocation_info());
+            print_info_string(engine.get_numa_config_info_str());
+            print_info_string(engine.get_thread_allocation_info_str());
 
             go(iss);
             break;
@@ -701,9 +701,9 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
       std::size(hashFullAges) == 2 && hashFullAges[0] == 0 && hashFullAges[1] == 31,
       "Hardcoded for display. Would complicate the code needlessly in the current state.");
 
-    auto threadBinding = engine.get_thread_binding_info();
-    if (threadBinding.empty())
-        threadBinding = "none";
+    auto threadBindingStr = engine.get_thread_binding_info_str();
+    if (threadBindingStr.empty())
+        threadBindingStr = "none";
 
     // clang-format off
     std::cerr << "\n==========================="
@@ -712,9 +712,9 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
               << "\nLarge pages                : " << bool_to_string(has_lp())
               << "\nOriginal invocation        : " << "benchmark " << benchmark.originalInvocation
               << "\nFilled invocation          : " << "benchmark " << benchmark.filledInvocation
-              << "\nAvailable processors       : " << engine.get_numa_config()
+              << "\nAvailable processors       : " << engine.get_numa_config_str()
               << "\nThread count               : " << benchmark.threads
-              << "\nThread binding             : " << threadBinding
+              << "\nThread binding             : " << threadBindingStr
               << "\nTT size [MiB]              : " << benchmark.ttSize
               << "\nHash max, avg [per mille]  : "  //
               << "\n    Single search          : " << maxHashFull[0] << ", " << sumHashFull[0] / hashFullCount  //

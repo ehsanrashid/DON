@@ -83,13 +83,13 @@ class Engine final {
 
     void set_numa_config(const std::string& str) noexcept;
 
-    std::string get_numa_config() const noexcept;
-    std::string get_numa_config_info() const noexcept;
+    std::string get_numa_config_str() const noexcept;
+    std::string get_numa_config_info_str() const noexcept;
 
     std::vector<std::pair<std::size_t, std::size_t>>  //
                 get_bound_thread_counts() const noexcept;
-    std::string get_thread_binding_info() const noexcept;
-    std::string get_thread_allocation_info() const noexcept;
+    std::string get_thread_binding_info_str() const noexcept;
+    std::string get_thread_allocation_info_str() const noexcept;
 
     // Network related
     void verify_networks() const noexcept;

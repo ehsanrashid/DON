@@ -64,12 +64,12 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     
     options.add("NumaPolicy",       Option("none", "var none var auto var system var hardware var default", [this](const Option& o) {
         set_numa_config(o);
-        return get_numa_config_info() + '\n'  //
-             + get_thread_allocation_info();
+        return get_numa_config_info_str() + '\n'  //
+             + get_thread_allocation_info_str();
     }));
-    options.add("Threads",          Option(1, MIN_THREADS, MAX_THREADS, [this](const Option& o) {
+    options.add("Threads",          Option(1, MIN_THREADS, MAX_THREADS, [this](const Option&) {
         resize_threads_tt();
-        return get_thread_allocation_info();
+        return get_thread_allocation_info_str();
     }));
     options.add("Hash",             Option(16, MIN_HASH, MAX_HASH, [this](const Option& o) {
         resize_tt(o);
@@ -214,12 +214,12 @@ void Engine::set_numa_config(const std::string& str) noexcept {
     resize_threads_tt();
 }
 
-std::string Engine::get_numa_config() const noexcept {
+std::string Engine::get_numa_config_str() const noexcept {
     return numaContext.get_numa_config().to_string();
 }
 
-std::string Engine::get_numa_config_info() const noexcept {
-    return "Available Processors: " + get_numa_config();
+std::string Engine::get_numa_config_info_str() const noexcept {
+    return "Available Processors: " + get_numa_config_str();
 }
 
 std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts() const noexcept {
@@ -237,7 +237,7 @@ std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts
     return ratios;
 }
 
-std::string Engine::get_thread_binding_info() const noexcept {
+std::string Engine::get_thread_binding_info_str() const noexcept {
     std::ostringstream oss;
 
     auto boundThreadCounts = get_bound_thread_counts();
@@ -256,14 +256,14 @@ std::string Engine::get_thread_binding_info() const noexcept {
     return oss.str();
 }
 
-std::string Engine::get_thread_allocation_info() const noexcept {
+std::string Engine::get_thread_allocation_info_str() const noexcept {
     std::ostringstream oss;
 
     oss << "Threads: " << threads.size();
 
-    auto boundThreadInfo = get_thread_binding_info();
-    if (!boundThreadInfo.empty())
-        oss << " with NUMA node thread binding: " << boundThreadInfo;
+    auto boundThreadInfoStr = get_thread_binding_info_str();
+    if (!boundThreadInfoStr.empty())
+        oss << " with NUMA node thread binding: " << boundThreadInfoStr;
 
     return oss.str();
 }
