@@ -1318,9 +1318,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             // Recursive singular search is avoided.
 
             // Note:
-            // Generally, tweaks that make extensions more frequent scale well.
-            // This includes higher values of singularBeta (i.e closer to ttValue)
-            // and lower extension margins. (*Scaler)
+            // Generally, higher values of singularBeta (i.e closer to ttValue) and lower extension margins. (*Scaler)
             if (!RootNode && !exclude && move == ttd.move
                 && depth > 4 - (completedDepth > 32) + ss->pvHit   //
                 && is_valid(ttd.value) && !is_decisive(ttd.value)  //
@@ -1876,8 +1874,8 @@ QS_MOVES_LOOP:
 
             // Futility pruning and moveCount pruning
             if (!check && dst != preSq && !is_loss(futilityBase)
-                && (move.type_of() != PROMOTION
-                    || (!ss->inCheck && move.promotion_type() != QUEEN)))
+                && (move.type_of() != PROMOTION || (!ss->inCheck && move.promotion_type() != QUEEN))
+                && !pos.fork(move))
             {
                 if (moveCount > 2 + promoCount)
                     continue;
@@ -1903,11 +1901,7 @@ QS_MOVES_LOOP:
                 }
             }
 
-            if (capture)
-            {
-                ;
-            }
-            else
+            if (!capture)
             {
                 // Continuation history based pruning
                 int contHist = (*contHistory[0])[movedPiece][dst]  //
