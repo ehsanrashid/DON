@@ -232,9 +232,9 @@ UCI::UCI(int argc, const char** argv) noexcept :
     engine(argv[0]),
     commandLine(argc, argv) {
 
-    engine_options().set_info_listener([](const std::optional<std::string>& infoOpt) {
-        if (infoOpt.has_value())
-            print_info_string(*infoOpt);
+    engine_options().set_info_listener([](const std::optional<std::string>& optInfo) {
+        if (optInfo.has_value())
+            print_info_string(*optInfo);
     });
 
     init_update_listeners();

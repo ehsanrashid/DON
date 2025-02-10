@@ -433,7 +433,7 @@ class Move {
     // Hash function for unordered containers (e.g., std::unordered_set, std::unordered_map).
     // Uses make_hash function to produce a unique hash value for move
     struct Hash final {
-        std::uint64_t operator()(const Move& m) const noexcept { return make_hash(m.move); }
+        std::size_t operator()(const Move& m) const noexcept { return make_hash(m.move); }
     };
 
     // Bit masks for extracting parts of the move

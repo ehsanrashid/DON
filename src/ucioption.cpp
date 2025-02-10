@@ -126,39 +126,37 @@ bool operator>(const Option& o1, const Option& o2) noexcept {  //
     return (o2 < o1);
 }
 
-// Updates currentValue and triggers on_change() action.
+// Updates currentValue and triggers onChange() action.
 // It's up to the GUI to check for option's limit,
-// but could receive the new value from the user by console window,
-// so let's check the bounds anyway.
+// but could receive the new value from the user, so let's check the bounds anyway.
 void Option::operator=(std::string value) noexcept {
     assert(is_ok(type));
 
     if (type != OPT_BUTTON && type != OPT_STRING && value.empty())
         return;
 
-    if (type == OPT_CHECK)
+    value = lower_case(value);
+
+    switch (type)
     {
-        value = lower_case(value);
+    case OPT_CHECK :
         if (!(value == "true" || value == "false"))
             return;
-    }
-    else if (type == OPT_STRING)
-    {
-        value = lower_case(value);
+        break;
+    case OPT_STRING :
         if (is_empty(value))
             value.clear();
-    }
-    else if (type == OPT_SPIN)
-    {
+        break;
+    case OPT_SPIN :
         value = std::to_string(std::clamp(std::stoi(value), minValue, maxValue));
-    }
-    else if (type == OPT_COMBO)
-    {
-        value = lower_case(value);
-
+        break;
+    case OPT_COMBO : {
         auto combos = split(defaultValue, "var", true);
         if (std::find(combos.begin(), combos.end(), value) == combos.end())
             return;
+    }
+    break;
+    default :;
     }
 
     if (type != OPT_BUTTON)
@@ -166,9 +164,9 @@ void Option::operator=(std::string value) noexcept {
 
     if (onChange)
     {
-        auto infoOpt = onChange(*this);
-        if (infoOpt && optionsPtr != nullptr && optionsPtr->infoListener)
-            optionsPtr->infoListener(infoOpt);
+        auto optInfo = onChange(*this);
+        if (optInfo && optionsPtr != nullptr && optionsPtr->infoListener)
+            optionsPtr->infoListener(optInfo);
     }
 }
 

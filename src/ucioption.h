@@ -18,6 +18,7 @@
 #ifndef UCIOPTION_H_INCLUDED
 #define UCIOPTION_H_INCLUDED
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <iosfwd>
@@ -45,7 +46,6 @@ struct CaseInsensitiveLess final {
 };
 
 enum OptionType : std::uint8_t {
-    OPT_NONE,
     OPT_BUTTON,
     OPT_CHECK,
     OPT_STRING,
@@ -105,7 +105,7 @@ class Options final {
       std::unordered_map<std::string, Option, CaseInsensitiveHash, CaseInsensitiveEqual>;
     using Pair = std::pair<UnorderedMap::key_type, UnorderedMap::mapped_type>;
 
-    using InfoListener = std::function<void(std::optional<std::string>)>;
+    using InfoListener = std::function<void(const std::optional<std::string>&)>;
 
     Options() noexcept                          = default;
     Options(const Options&) noexcept            = delete;
