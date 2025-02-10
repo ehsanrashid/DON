@@ -142,16 +142,16 @@ bool operator>(const Option& o1, const Option& o2) noexcept {  //
 // It's up to the GUI to check for option's limit,
 // but could receive the new value from the user by console window,
 // so let's check the bounds anyway.
-Option& Option::operator=(std::string value) noexcept {
+void Option::operator=(std::string value) noexcept {
     assert(is_ok(type));
 
     if (type != OPT_BUTTON && type != OPT_STRING && value.empty())
-        return *this;
+        return;
 
     if (type == OPT_CHECK)
     {
         if (!is_bool(value))
-            return *this;
+            return;
     }
     else if (type == OPT_STRING)
     {
@@ -164,21 +164,9 @@ Option& Option::operator=(std::string value) noexcept {
     }
     else if (type == OPT_COMBO)
     {
-        Options combos;  // To have case-insensitive compare
-
-        std::istringstream iss(defaultValue);
-        iss >> std::skipws;
-
-        std::string token;
-        while (iss >> token)
-        {
-            token = lower_case(token);
-            if (token == "var")
-                continue;
-            combos.add(token, Option());
-        }
-        if (lower_case(value) == "var" || !combos.contains(value))
-            return *this;
+        auto combos = split(defaultValue, "var", true);
+        if (std::find(combos.begin(), combos.end(), lower_case(value)) == combos.end())
+            return;
     }
 
     if (type != OPT_BUTTON)
@@ -190,8 +178,6 @@ Option& Option::operator=(std::string value) noexcept {
         if (infoOpt && optionsPtr != nullptr && optionsPtr->infoListener)
             optionsPtr->infoListener(infoOpt);
     }
-
-    return *this;
 }
 
 std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {

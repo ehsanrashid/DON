@@ -85,7 +85,7 @@ class Option final {
     friend bool operator<(const Option& o1, const Option& o2) noexcept;
     friend bool operator>(const Option& o1, const Option& o2) noexcept;
 
-    Option& operator=(std::string value) noexcept;
+    void operator=(std::string value) noexcept;
 
     friend std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
 

@@ -485,24 +485,45 @@ inline std::string u64_to_string(std::uint64_t u64) noexcept {
     return oss.str();
 }
 
-inline std::vector<std::string_view> split(std::string_view str,
-                                           std::string_view delimiter) noexcept {
+constexpr std::string_view trim(std::string_view str) noexcept {
+    // Define whitespace characters.
+    constexpr std::string_view whitespace = " \t\r\n";
+
+    // Find first non-whitespace character.
+    std::size_t start = str.find_first_not_of(whitespace);
+    if (start == std::string_view::npos)
+        return {};  // All whitespace
+
+    // Find last non-whitespace character.
+    std::size_t end = str.find_last_not_of(whitespace);
+    return str.substr(start, end - start + 1);
+}
+
+inline std::vector<std::string_view>
+split(std::string_view str, std::string_view delimiter, bool doTrim = false) noexcept {
     std::vector<std::string_view> parts;
 
     if (str.empty())
         return parts;
 
-    std::size_t beg = 0;
+    std::size_t      beg = 0;
+    std::string_view part;
     while (true)
     {
         std::size_t end = str.find(delimiter, beg);
         if (end == std::string_view::npos)
             break;
 
-        parts.emplace_back(str.substr(beg, end - beg));
+        part = str.substr(beg, end - beg);
+        if (doTrim)
+            part = trim(part);
+        parts.emplace_back(part);
         beg = end + delimiter.size();
     }
-    parts.emplace_back(str.substr(beg));
+    part = str.substr(beg);
+    if (doTrim)
+        part = trim(part);
+    parts.emplace_back(part);
 
     return parts;
 }
