@@ -22,7 +22,6 @@
 #include <cctype>
 #include <cstdlib>
 #include <iostream>
-#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -150,7 +149,8 @@ void Option::operator=(std::string value) noexcept {
 
     if (type == OPT_CHECK)
     {
-        if (!is_bool(value))
+        value = lower_case(value);
+        if (!(value == "true" || value == "false"))
             return;
     }
     else if (type == OPT_STRING)

@@ -458,13 +458,6 @@ inline void trim_trailing_whitespace(std::string& str) noexcept {
       str.end());
 }
 
-inline bool is_bool(std::string& str) noexcept {
-    auto s = lower_case(str);
-    if (s == "true" || s == "false")
-        return str = s, true;
-    return false;
-}
-
 inline std::string bool_to_string(bool b) noexcept {
     std::ostringstream oss;
     oss << std::boolalpha << b;
@@ -472,8 +465,7 @@ inline std::string bool_to_string(bool b) noexcept {
 }
 
 inline bool string_to_bool(const std::string& str) noexcept {
-    bool b = false;
-
+    bool               b = false;
     std::istringstream iss(lower_case(str));
     iss >> std::boolalpha >> b;
     return b;
@@ -486,15 +478,15 @@ inline std::string u64_to_string(std::uint64_t u64) noexcept {
 }
 
 constexpr std::string_view trim(std::string_view str) noexcept {
-    // Define whitespace characters.
+    // Define whitespace characters
     constexpr std::string_view whitespace = " \t\r\n";
 
-    // Find first non-whitespace character.
+    // Find first non-whitespace character
     std::size_t beg = str.find_first_not_of(whitespace);
     if (beg == std::string_view::npos)
         return {};  // All whitespace
 
-    // Find last non-whitespace character.
+    // Find last non-whitespace character
     std::size_t end = str.find_last_not_of(whitespace);
     return str.substr(beg, end - beg + 1);
 }
