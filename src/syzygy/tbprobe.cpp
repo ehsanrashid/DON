@@ -214,11 +214,14 @@ class TBFile: public std::ifstream {
 
     explicit TBFile(const std::string& file) noexcept {
 
-#if !defined(_WIN32)
-        constexpr char PathSeparator = ':';
+        constexpr char PathSeparator =
+#if defined(_WIN32)
+          ';'
 #else
-        constexpr char PathSeparator = ';';
+          ':'
 #endif
+          ;
+
         std::istringstream iss(Paths);
 
         std::string path;
@@ -231,8 +234,10 @@ class TBFile: public std::ifstream {
         }
     }
 
-    // Memory map the file and check it.
-    std::uint8_t* map(void** baseAddress, std::uint64_t* mapping, TBType type) noexcept {
+    // Memory map the file and check it
+    template<TBType Type>
+    std::uint8_t* map(void** baseAddress, std::uint64_t* mapping) noexcept {
+
         if (is_open())
             close();  // Need to re-open to get native file descriptor
 
@@ -264,7 +269,7 @@ class TBFile: public std::ifstream {
             std::exit(EXIT_FAILURE);
         }
 #else
-        // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored.
+        // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
         HANDLE fd = CreateFileA(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
                                 OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
 
@@ -299,20 +304,21 @@ class TBFile: public std::ifstream {
             std::exit(EXIT_FAILURE);
         }
 #endif
+
         auto data = (std::uint8_t*) (*baseAddress);
 
-        constexpr std::size_t  MAGIC_SIZE = 4;
-        constexpr std::uint8_t MAGIC[2][MAGIC_SIZE]{{0xD7, 0x66, 0x0C, 0xA5},
-                                                    {0x71, 0xE8, 0x23, 0x5D}};
+        static constexpr std::size_t  MagicSize = 4;
+        static constexpr std::uint8_t Magics[2][MagicSize]{{0xD7, 0x66, 0x0C, 0xA5},
+                                                           {0x71, 0xE8, 0x23, 0x5D}};
 
-        if (std::memcmp(data, MAGIC[type == WDL], MAGIC_SIZE))
+        if (std::memcmp(data, Magics[Type == WDL], MagicSize))
         {
             std::cerr << "Corrupted table in file " << filename << std::endl;
             unmap(*baseAddress, *mapping);
             return *baseAddress = nullptr, nullptr;
         }
 
-        return data + MAGIC_SIZE;  // Skip Magics's header
+        return data + MagicSize;  // Skip Magics's header
     }
 
     static void unmap(void* baseAddress, std::uint64_t mapping) noexcept {
@@ -1265,7 +1271,7 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
 
     std::string fname = (isWhite ? w + 'v' + b : b + 'v' + w) + (Type == WDL ? ".rtbw" : ".rtbz");
 
-    auto* data = TBFile(fname).map(&entry.baseAddress, &entry.mapping, Type);
+    auto* data = TBFile(fname).map<Type>(&entry.baseAddress, &entry.mapping);
 
     if (data != nullptr)
         set(entry, data);
@@ -1277,7 +1283,7 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
 template<TBType Type, typename Ret = typename TBTable<Type>::Ret>
 Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdl = WDLDraw) noexcept {
 
-    if (pos.count<ALL_PIECE>() == 2)  // KvK
+    if (pos.count<ALL_PIECE>() == 2)  // KvK, materialKey = 0
         return Ret(WDLDraw);
 
     Key materialKey = pos.material_key();
