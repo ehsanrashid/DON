@@ -1120,14 +1120,14 @@ class LazyNumaReplicated final: public NumaReplicatedBase {
     }
 
     LazyNumaReplicated(const LazyNumaReplicated&) noexcept = delete;
-    LazyNumaReplicated(LazyNumaReplicated&& other) noexcept :
-        NumaReplicatedBase(std::move(other)),
-        instances(std::exchange(other.instances, {})) {}
+    LazyNumaReplicated(LazyNumaReplicated&& lazyNumaRep) noexcept :
+        NumaReplicatedBase(std::move(lazyNumaRep)),
+        instances(std::exchange(lazyNumaRep.instances, {})) {}
 
     LazyNumaReplicated& operator=(const LazyNumaReplicated&) noexcept = delete;
-    LazyNumaReplicated& operator=(LazyNumaReplicated&& other) noexcept {
-        NumaReplicatedBase::operator=(*this, std::move(other));
-        instances = std::exchange(other.instances, {});
+    LazyNumaReplicated& operator=(LazyNumaReplicated&& lazyNumaRep) noexcept {
+        NumaReplicatedBase::operator=(*this, std::move(lazyNumaRep));
+        instances = std::exchange(lazyNumaRep.instances, {});
 
         return *this;
     }
@@ -1140,7 +1140,7 @@ class LazyNumaReplicated final: public NumaReplicatedBase {
 
     ~LazyNumaReplicated() noexcept override = default;
 
-    const T& operator[](NumaReplicatedAccessToken token) const {
+    const T& operator[](NumaReplicatedAccessToken token) const noexcept {
         assert(token.numa_index() < instances.size());
         ensure_present(token.numa_index());
         return *(instances[token.numa_index()]);

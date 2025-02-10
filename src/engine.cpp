@@ -69,8 +69,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     }));
     options.add("Threads",          Option(1, MIN_THREADS, MAX_THREADS, [this](const Option& o) {
         resize_threads_tt();
-        return "Threads: " + std::to_string(int(o)) + '\n'  //
-             + get_thread_allocation_info();
+        return get_thread_allocation_info();
     }));
     options.add("Hash",             Option(16, MIN_HASH, MAX_HASH, [this](const Option& o) {
         resize_tt(o);
@@ -215,6 +214,14 @@ void Engine::set_numa_config(const std::string& str) noexcept {
     resize_threads_tt();
 }
 
+std::string Engine::get_numa_config() const noexcept {
+    return numaContext.get_numa_config().to_string();
+}
+
+std::string Engine::get_numa_config_info() const noexcept {
+    return "Available Processors: " + get_numa_config();
+}
+
 std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts() const noexcept {
     std::vector<std::pair<std::size_t, std::size_t>> ratios;
 
@@ -228,14 +235,6 @@ std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts
         for (; numaIdx < config.num_numa_nodes(); ++numaIdx)
             ratios.emplace_back(0, config.num_cpus_in_numa_node(numaIdx));
     return ratios;
-}
-
-std::string Engine::get_numa_config() const noexcept {
-    return numaContext.get_numa_config().to_string();
-}
-
-std::string Engine::get_numa_config_info() const noexcept {
-    return "Available Processors: " + get_numa_config();
 }
 
 std::string Engine::get_thread_binding_info() const noexcept {
