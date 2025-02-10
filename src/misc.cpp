@@ -117,7 +117,7 @@ class Logger final {
             logger.ofstream.close();
         }
 
-        if (is_empty(logFile))
+        if (logFile.empty())
             return;
 
         logger.ofstream.open(logFile, std::ios_base::out | std::ios_base::app);

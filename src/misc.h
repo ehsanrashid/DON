@@ -392,8 +392,6 @@ inline int char_to_digit(char ch) noexcept {
     return ch - '0';
 }
 
-constexpr inline std::string_view EMPTY_STRING{"<empty>"};
-
 inline std::string lower_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(), [](char ch) noexcept {
         if (std::isupper(ch))
@@ -436,10 +434,6 @@ inline bool ends_with(std::string_view str, std::string_view suffix) noexcept {
 inline bool is_whitespace(std::string_view str) noexcept {
     return str.empty()
         || std::all_of(str.begin(), str.end(), [](char ch) { return std::isspace(ch); });
-}
-
-inline bool is_empty(std::string_view str) noexcept {
-    return is_whitespace(str) || str == EMPTY_STRING;
 }
 
 inline void remove_whitespace(std::string& str) noexcept {

@@ -399,7 +399,7 @@ void PolyBook::clear() noexcept {
 void PolyBook::init(const std::string& bookFile) noexcept {
     clear();
 
-    if (is_empty(bookFile))
+    if (bookFile.empty())
         return;
 
     FILE* fptr = std::fopen(bookFile.c_str(), "rb");

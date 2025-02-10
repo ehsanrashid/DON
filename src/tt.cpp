@@ -129,8 +129,9 @@ std::uint16_t TranspositionTable::hashFull() noexcept { return lastHashFull = ha
 
 bool TranspositionTable::save(const std::string& hashFile) const noexcept {
 
-    if (is_empty(hashFile))
+    if (hashFile.empty())
         return false;
+
     std::ofstream ofstream(hashFile, std::ios_base::binary);
     if (ofstream)
     {
@@ -141,8 +142,9 @@ bool TranspositionTable::save(const std::string& hashFile) const noexcept {
 
 bool TranspositionTable::load(const std::string& hashFile, ThreadPool& threads) noexcept {
 
-    if (is_empty(hashFile))
+    if (hashFile.empty())
         return false;
+
     std::ifstream ifstream(hashFile, std::ios_base::binary);
     if (ifstream)
     {

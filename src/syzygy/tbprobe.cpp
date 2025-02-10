@@ -1491,7 +1491,7 @@ void init(const std::string& paths) noexcept {
     MaxCardinality = 0;
     TBFile::Paths  = paths;
 
-    if (is_empty(paths))
+    if (paths.empty())
         return;
 
     // Add entries in TB tables if the corresponding ".rtbw" file exists
