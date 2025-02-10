@@ -56,7 +56,6 @@ struct State final {
     // --- Copied when making a move
     Key   pawnKey[COLOR_NB];
     Key   groupKey[COLOR_NB][2];
-    Key   materialKey;
     Value nonPawnMaterial[COLOR_NB];
 
     Square         kingSquare[COLOR_NB];
@@ -317,7 +316,6 @@ class Position final {
     void flip() noexcept;
 
     // Position consistency check, for debugging
-    Key compute_material_key() const noexcept;
 #if !defined(NDEBUG)
     Key compute_key() const noexcept;
     Key compute_minor_key() const noexcept;
@@ -604,8 +602,6 @@ inline Value Position::non_pawn_material(Color c) const noexcept { return st->no
 inline Value Position::non_pawn_material() const noexcept { return non_pawn_material(WHITE) + non_pawn_material(BLACK); }
 
 // clang-format on
-
-inline Key Position::material_key() const noexcept { return st->materialKey; }
 
 inline auto Position::active_color() const noexcept { return activeColor; }
 

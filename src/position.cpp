@@ -578,7 +578,6 @@ void Position::set_state() noexcept {
     assert(st->groupKey[WHITE][1] == 0 && st->groupKey[BLACK][1] == 0);
     assert(st->nonPawnMaterial[WHITE] == VALUE_ZERO && st->nonPawnMaterial[BLACK] == VALUE_ZERO);
     assert(st->key == 0);
-    assert(st->materialKey == 0);
 
     Bitboard occupied = pieces();
     while (occupied)
@@ -601,8 +600,6 @@ void Position::set_state() noexcept {
             st->nonPawnMaterial[color_of(pc)] += PIECE_VALUE[pt];
         }
     }
-
-    st->materialKey = compute_material_key();
 
     st->key ^= Zobrist::castling[castling_rights()];
 
@@ -920,10 +917,7 @@ void Position::do_move(const Move& m, State& newSt, bool check) noexcept {
         remove_piece(cap);
         st->capSquare = dst;
         // Update hash key
-        // clang-format off
-        k               ^= Zobrist::psq[capturedPiece][cap];
-        st->materialKey ^= Zobrist::psq[capturedPiece][PawnOffset + count(capturedPiece)];
-        // clang-format on
+        k ^= Zobrist::psq[capturedPiece][cap];
         // Reset rule 50 draw counter
         reset_rule50_count();
     }
@@ -970,8 +964,6 @@ void Position::do_move(const Move& m, State& newSt, bool check) noexcept {
             // clang-format off
             k                                    ^= Zobrist::psq[promotedPiece][dst];
             st->groupKey[ac][is_major(promoted)] ^= Zobrist::psq[promotedPiece][dst];
-            st->materialKey                      ^= Zobrist::psq[movedPiece   ][PawnOffset + count(movedPiece)    - 0]
-                                                  ^ Zobrist::psq[promotedPiece][PawnOffset + count(promotedPiece) - 1];
             st->nonPawnMaterial[ac]              += PIECE_VALUE[promoted];
             // clang-format on
         }
@@ -1447,6 +1439,15 @@ bool Position::fork(const Move& m) const noexcept {
     return false;
 }
 
+Key Position::material_key() const noexcept {
+    Key materialKey = 0;
+
+    for (Piece pc : Pieces)
+        materialKey ^= Zobrist::psq[pc][PawnOffset + count(pc)];
+
+    return materialKey;
+}
+
 // Computes the new hash key after the given move.
 // Needed for speculative prefetch.
 // It does recognize special moves like castling, en-passant and promotions.
@@ -1905,16 +1906,6 @@ void Position::flip() noexcept {
     assert(pos_is_ok());
 }
 
-Key Position::compute_material_key() const noexcept {
-    Key materialKey = 0;
-
-    for (Piece pc : Pieces)
-        for (auto cnt = 0; cnt < count(pc); ++cnt)
-            materialKey ^= Zobrist::psq[pc][PawnOffset + cnt];
-
-    return materialKey;
-}
-
 #if !defined(NDEBUG)
 // Computes the hash key of the current position.
 Key Position::compute_key() const noexcept {
@@ -2021,9 +2012,6 @@ bool Position::pos_is_ok() const noexcept {
 
     if (non_pawn_key() != compute_non_pawn_key())
         assert(false && "Position::pos_is_ok(): NonPawn Key");
-
-    if (material_key() != compute_material_key())
-        assert(false && "Position::pos_is_ok(): Material Key");
 
     if (exist_attackers_to(king_square(~active_color()), pieces(active_color())))
         assert(false && "Position::pos_is_ok(): King Checker");

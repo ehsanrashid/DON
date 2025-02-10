@@ -741,8 +741,8 @@ int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdl) noexcept {
 //      idx = Binomial[1][s1] + Binomial[2][s2] + ... + Binomial[k][sk]
 //
 template<typename T, typename Ret = typename T::Ret>
-CLANG_AVX512_BUG_FIX Ret
-do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* ps) noexcept {
+CLANG_AVX512_BUG_FIX Ret do_probe_table(
+  const Position& pos, Key materialKey, T* entry, WDLScore wdl, ProbeState* ps) noexcept {
 
     // A given TB entry like KRK has associated two material keys: KRvk and Kvkr.
     // If both sides have the same pieces keys are equal. In this case TB tables
@@ -755,7 +755,7 @@ do_probe_table(const Position& pos, T* entry, WDLScore wdl, ProbeState* ps) noex
     // have KRvK, not KvKR. A position where the stronger side is white will have
     // its material key == entry->key[WHITE], otherwise have to switch the color
     // and flip the squares before to lookup.
-    bool blackStronger = pos.material_key() != entry->key[WHITE];
+    bool blackStronger = materialKey != entry->key[WHITE];
 
     int colorFlip   = (symmetricBlackToMove || blackStronger) * 8;
     int squareFlip  = (symmetricBlackToMove || blackStronger) * 56;
@@ -1279,12 +1279,14 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdl = WDLDraw) noe
     if (pos.count<ALL_PIECE>() == 2)  // KvK
         return Ret(WDLDraw);
 
-    auto* entry = TB_Tables.get<Type>(pos.material_key());
+    Key materialKey = pos.material_key();
+
+    auto* entry = TB_Tables.get<Type>(materialKey);
 
     if (entry == nullptr || mapped(*entry, pos) == nullptr)
         return *ps = FAIL, Ret();
 
-    return do_probe_table(pos, entry, wdl, ps);
+    return do_probe_table(pos, materialKey, entry, wdl, ps);
 }
 
 // For a position where the side to move has a winning capture it is not necessary
