@@ -1283,10 +1283,10 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
 template<TBType Type, typename Ret = typename TBTable<Type>::Ret>
 Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdl = WDLDraw) noexcept {
 
-    if (pos.count<ALL_PIECE>() == 2)  // KvK, materialKey = 0
-        return Ret(WDLDraw);
-
     Key materialKey = pos.material_key();
+
+    if (materialKey == 0)  // KvK, pos.count<ALL_PIECE>() == 2
+        return Ret(WDLDraw);
 
     auto* entry = TB_Tables.get<Type>(materialKey);
 

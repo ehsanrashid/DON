@@ -1443,7 +1443,7 @@ Key Position::material_key() const noexcept {
     Key materialKey = 0;
 
     for (Piece pc : Pieces)
-        if (pc != W_KING && pc != B_KING)
+        if (pc != W_KING && pc != B_KING && count(pc) != 0)
             materialKey ^= Zobrist::psq[pc][PawnOffset + count(pc)];
 
     return materialKey;

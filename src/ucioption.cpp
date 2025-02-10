@@ -135,22 +135,23 @@ void Option::operator=(std::string value) noexcept {
     if (type != OPT_BUTTON && type != OPT_STRING && value.empty())
         return;
 
-    value = lower_case(value);
-
     switch (type)
     {
     case OPT_CHECK :
+        value = lower_case(value);
         if (!(value == "true" || value == "false"))
             return;
         break;
     case OPT_STRING :
-        if (is_empty(value))
+        if (is_empty(lower_case(value)))
             value.clear();
         break;
     case OPT_SPIN :
         value = std::to_string(std::clamp(std::stoi(value), minValue, maxValue));
         break;
     case OPT_COMBO : {
+        value = lower_case(value);
+
         auto combos = split(defaultValue, "var", true);
         if (std::find(combos.begin(), combos.end(), value) == combos.end())
             return;
