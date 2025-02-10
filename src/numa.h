@@ -180,7 +180,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
     WindowsAffinity winAffinity;
 
-    BOOL status;
+    BOOL status = 0;
 
     if (getThreadSelectedCpuSetMasks != nullptr)
     {
