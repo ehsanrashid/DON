@@ -439,7 +439,7 @@ inline bool is_whitespace(std::string_view str) noexcept {
 }
 
 inline bool is_empty(std::string_view str) noexcept {
-    return is_whitespace(str) || lower_case(std::string(str)) == EMPTY_STRING;
+    return is_whitespace(str) || str == EMPTY_STRING;
 }
 
 inline void remove_whitespace(std::string& str) noexcept {
@@ -490,13 +490,13 @@ constexpr std::string_view trim(std::string_view str) noexcept {
     constexpr std::string_view whitespace = " \t\r\n";
 
     // Find first non-whitespace character.
-    std::size_t start = str.find_first_not_of(whitespace);
-    if (start == std::string_view::npos)
+    std::size_t beg = str.find_first_not_of(whitespace);
+    if (beg == std::string_view::npos)
         return {};  // All whitespace
 
     // Find last non-whitespace character.
     std::size_t end = str.find_last_not_of(whitespace);
-    return str.substr(start, end - start + 1);
+    return str.substr(beg, end - beg + 1);
 }
 
 inline std::vector<std::string_view>
@@ -517,13 +517,15 @@ split(std::string_view str, std::string_view delimiter, bool doTrim = false) noe
         part = str.substr(beg, end - beg);
         if (doTrim)
             part = trim(part);
-        parts.emplace_back(part);
+        if (!part.empty())
+            parts.emplace_back(part);
         beg = end + delimiter.size();
     }
     part = str.substr(beg);
     if (doTrim)
         part = trim(part);
-    parts.emplace_back(part);
+    if (!part.empty())
+        parts.emplace_back(part);
 
     return parts;
 }

@@ -155,6 +155,7 @@ void Option::operator=(std::string value) noexcept {
     }
     else if (type == OPT_STRING)
     {
+        value = lower_case(value);
         if (is_empty(value))
             value.clear();
     }
@@ -164,8 +165,10 @@ void Option::operator=(std::string value) noexcept {
     }
     else if (type == OPT_COMBO)
     {
+        value = lower_case(value);
+
         auto combos = split(defaultValue, "var", true);
-        if (std::find(combos.begin(), combos.end(), lower_case(value)) == combos.end())
+        if (std::find(combos.begin(), combos.end(), value) == combos.end())
             return;
     }
 
