@@ -414,8 +414,8 @@ TBTable<WDL>::TBTable(const std::string& code) noexcept :
 
     // Set the leading color. In case both sides have pawns the leading color
     // is the side with fewer pawns because this leads to better compression.
-    bool c = !pos.count<PAWN>(BLACK)
-          || (pos.count<PAWN>(WHITE) && pos.count<PAWN>(BLACK) >= pos.count<PAWN>(WHITE));
+    bool c = pos.count<PAWN>(BLACK) == 0
+          || (pos.count<PAWN>(WHITE) != 0 && pos.count<PAWN>(BLACK) >= pos.count<PAWN>(WHITE));
 
     pawnCount[WHITE] = pos.count<PAWN>(c ? WHITE : BLACK);
     pawnCount[BLACK] = pos.count<PAWN>(c ? BLACK : WHITE);
@@ -1240,7 +1240,7 @@ void set(T& entry, std::uint8_t* data) noexcept {
 // Called at every probe, memory map, and init only at first access.
 // Function is thread safe and can be called concurrently.
 template<TBType Type>
-void* mapped(TBTable<Type>& entry, const Position& pos) noexcept {
+void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcept {
     static std::mutex mutex;
 
     // Use 'acquire' to avoid a thread reading 'ready' == true while
@@ -1261,8 +1261,9 @@ void* mapped(TBTable<Type>& entry, const Position& pos) noexcept {
         b += std::string(popcount(pos.pieces(BLACK, pt)), UCI::piece(pt));
     }
 
-    std::string fname = (pos.material_key() == entry.key[WHITE] ? w + 'v' + b : b + 'v' + w)
-                      + (Type == WDL ? ".rtbw" : ".rtbz");
+    bool isWhite = materialKey == entry.key[WHITE];
+
+    std::string fname = (isWhite ? w + 'v' + b : b + 'v' + w) + (Type == WDL ? ".rtbw" : ".rtbz");
 
     auto* data = TBFile(fname).map(&entry.baseAddress, &entry.mapping, Type);
 
@@ -1283,7 +1284,7 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdl = WDLDraw) noe
 
     auto* entry = TB_Tables.get<Type>(materialKey);
 
-    if (entry == nullptr || mapped(*entry, pos) == nullptr)
+    if (entry == nullptr || mapped(pos, materialKey, *entry) == nullptr)
         return *ps = FAIL, Ret();
 
     return do_probe_table(pos, materialKey, entry, wdl, ps);
