@@ -28,7 +28,7 @@
 namespace DON {
 
 #if !defined(USE_POPCNT)
-alignas(CACHE_LINE_SIZE) std::uint8_t PopCnt16[POPCNT_SIZE];
+alignas(CACHE_LINE_SIZE) std::uint8_t PopCnt[PopCntSize];
 #endif
 // clang-format off
 alignas(CACHE_LINE_SIZE) std::uint8_t Distances[SQUARE_NB][SQUARE_NB];
@@ -42,13 +42,13 @@ alignas(CACHE_LINE_SIZE) Magic           Magics[SQUARE_NB][2];
 
 namespace {
 
-constexpr inline Direction DIRECTIONS[2][4]{{NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},
+constexpr inline Direction Directions[2][4]{{NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},
                                             {NORTH, SOUTH, EAST, WEST}};
 
-constexpr inline std::size_t ATTACKS_SIZE[2]{0x1480, 0x19000};
+constexpr inline std::size_t AttacksSize[2]{0x1480, 0x19000};
 
-alignas(CACHE_LINE_SIZE) Bitboard BishopAttacks[ATTACKS_SIZE[0]];  // Stores bishop attacks
-alignas(CACHE_LINE_SIZE) Bitboard RookAttacks[ATTACKS_SIZE[1]];    // Stores rook attacks
+alignas(CACHE_LINE_SIZE) Bitboard BishopAttacks[AttacksSize[0]];  // Stores bishop attacks
+alignas(CACHE_LINE_SIZE) Bitboard RookAttacks[AttacksSize[1]];    // Stores rook attacks
 
 alignas(CACHE_LINE_SIZE) Bitboard* Attacks[2]{BishopAttacks, RookAttacks};
 
@@ -68,7 +68,7 @@ Bitboard sliding_attack(Square s, Bitboard occupied = 0) noexcept {
     assert(is_ok(s));
 
     Bitboard attacks = 0;
-    for (Direction d : DIRECTIONS[Rook])
+    for (Direction d : Directions[Rook])
     {
         Square sq = s;
 
@@ -136,7 +136,8 @@ void init_magics() noexcept {
     #endif
           - popcount(magic.mask);
 #endif
-        assert(size < ATTACKS_SIZE[Rook]);
+
+        assert(size < AttacksSize[Rook]);
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
         magic.attacks = s == SQ_A1 ? Attacks[Rook] : Magics[s - 1][Rook].attacks + size;
@@ -201,8 +202,8 @@ namespace BitBoard {
 void init() noexcept {
 
 #if !defined(USE_POPCNT)
-    for (std::uint32_t i = 0; i < POPCNT_SIZE; ++i)
-        PopCnt16[i] = std::bitset<16>(i).count();
+    for (std::uint32_t i = 0; i < PopCntSize; ++i)
+        PopCnt[i] = std::bitset<16>(i).count();
 #endif
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)

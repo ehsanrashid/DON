@@ -338,21 +338,21 @@ class Info final {
     std::array<std::atomic<std::int64_t>, N> data;
 };
 
-constexpr inline std::size_t MAX_SLOT = 32;
+constexpr inline std::size_t MaxSlot = 32;
 
-std::array<Info<2>, MAX_SLOT> hit;
-std::array<Info<2>, MAX_SLOT> min;
-std::array<Info<2>, MAX_SLOT> max;
-std::array<Info<3>, MAX_SLOT> extreme;
-std::array<Info<2>, MAX_SLOT> mean;
-std::array<Info<3>, MAX_SLOT> stdev;
-std::array<Info<6>, MAX_SLOT> correl;
+std::array<Info<2>, MaxSlot> hit;
+std::array<Info<2>, MaxSlot> min;
+std::array<Info<2>, MaxSlot> max;
+std::array<Info<3>, MaxSlot> extreme;
+std::array<Info<2>, MaxSlot> mean;
+std::array<Info<3>, MaxSlot> stdev;
+std::array<Info<6>, MaxSlot> correl;
 
 }  // namespace
 
 void init() noexcept {
 
-    for (std::size_t i = 0; i < MAX_SLOT; ++i)
+    for (std::size_t i = 0; i < MaxSlot; ++i)
     {
         hit[i].init(0);
         min[i].init(std::numeric_limits<std::int64_t>::max());
@@ -436,37 +436,37 @@ void print() noexcept {
 
     auto avg = [&n](std::int64_t x) noexcept { return float(x) / n; };
 
-    for (std::size_t i = 0; i < MAX_SLOT; ++i)
+    for (std::size_t i = 0; i < MaxSlot; ++i)
         if ((n = hit[i][0]))
             std::cerr << "Hit #" << i << ": Count " << n << " Hits " << hit[i][1]
                       << " Hit Rate (%) " << 100.0f * avg(hit[i][1]) << std::endl;
 
-    for (std::size_t i = 0; i < MAX_SLOT; ++i)
+    for (std::size_t i = 0; i < MaxSlot; ++i)
         if ((n = min[i][0]))
             std::cerr << "Min #" << i << ": Count " << n << " Min " << min[i][1] << std::endl;
 
-    for (std::size_t i = 0; i < MAX_SLOT; ++i)
+    for (std::size_t i = 0; i < MaxSlot; ++i)
         if ((n = max[i][0]))
             std::cerr << "Max #" << i << ": Count " << n << " Max " << max[i][1] << std::endl;
 
-    for (std::size_t i = 0; i < MAX_SLOT; ++i)
+    for (std::size_t i = 0; i < MaxSlot; ++i)
         if ((n = extreme[i][0]))
             std::cerr << "Extreme #" << i << ": Count " << n  //
                       << " Min " << extreme[i][1] << " Max " << extreme[i][2] << std::endl;
 
-    for (std::size_t i = 0; i < MAX_SLOT; ++i)
+    for (std::size_t i = 0; i < MaxSlot; ++i)
         if ((n = mean[i][0]))
             std::cerr << "Mean #" << i << ": Count " << n << " Mean " << avg(mean[i][1])
                       << std::endl;
 
-    for (std::size_t i = 0; i < MAX_SLOT; ++i)
+    for (std::size_t i = 0; i < MaxSlot; ++i)
         if ((n = stdev[i][0]))
         {
             float r = std::sqrt(avg(stdev[i][2]) - sqr(avg(stdev[i][1])));
             std::cerr << "Stdev #" << i << ": Count " << n << " Stdev " << r << std::endl;
         }
 
-    for (std::size_t i = 0; i < MAX_SLOT; ++i)
+    for (std::size_t i = 0; i < MaxSlot; ++i)
         if ((n = correl[i][0]))
         {
             float r = (avg(correl[i][5]) - avg(correl[i][1]) * avg(correl[i][3]))

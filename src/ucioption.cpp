@@ -31,7 +31,7 @@ namespace DON {
 
 namespace {
 
-constexpr inline std::string_view EMPTY_STRING{"<empty>"};
+constexpr inline std::string_view EmptyString{"<empty>"};
 
 // clang-format off
 const inline std::unordered_map<OptionType, std::string_view> OptionTypeMap{
@@ -85,7 +85,7 @@ Option::Option(const char* v, OnChange&& f) noexcept :
     minValue(0),
     maxValue(0),
     onChange(std::move(f)) {
-    defaultValue = currentValue = is_whitespace(v) || lower_case(v) == EMPTY_STRING ? "" : v;
+    defaultValue = currentValue = is_whitespace(v) || lower_case(v) == EmptyString ? "" : v;
 }
 
 Option::Option(int v, int minv, int maxv, OnChange&& f) noexcept :
@@ -146,7 +146,7 @@ void Option::operator=(std::string value) noexcept {
             return;
         break;
     case OPT_STRING :
-        if (is_whitespace(value) || lower_case(value) == EMPTY_STRING)
+        if (is_whitespace(value) || lower_case(value) == EmptyString)
             value.clear();
         break;
     case OPT_SPIN :
@@ -184,7 +184,7 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     if (option.type == OPT_COMBO)
         os << option.currentValue << " " << option.defaultValue;
     else if (option.type == OPT_STRING && is_whitespace(option.defaultValue))
-        os << EMPTY_STRING;
+        os << EmptyString;
     else
         os << option.defaultValue;
 

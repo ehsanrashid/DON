@@ -52,7 +52,7 @@ namespace NNUE {
 struct Networks;
 }
 
-constexpr inline std::size_t DEFAULT_MULTI_PV = 1;
+constexpr inline std::size_t DefaultMultiPV = 1;
 
 namespace Search {
 
@@ -328,30 +328,26 @@ struct Limit final {
 // Skill 0..19 covers CCRL Blitz Elo from 1320 to 3190, approximately.
 struct Skill final {
    public:
-    Skill() noexcept {
-        level    = MAX_LEVEL;
-        bestMove = Move::None;
-    };
+    Skill() noexcept :
+        level(MaxLevel),
+        move(Move::None) {}
 
     void init(const Options& options) noexcept;
 
-    bool enabled() const noexcept { return level < MAX_LEVEL; }
-
-    Move best_move() const noexcept { return bestMove; }
+    bool enabled() const noexcept { return level < MaxLevel; }
 
     bool time_to_pick(Depth depth) const noexcept { return depth == 1 + int(level); }
 
-    Move
-    pick_best_move(const RootMoves& rootMoves, std::size_t multiPV, bool bestPick = true) noexcept;
+    Move pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick = true) noexcept;
 
-    static constexpr float         MIN_LEVEL = 00.0f;
-    static constexpr float         MAX_LEVEL = 20.0f;
-    static constexpr std::uint16_t MIN_ELO   = 1320;
-    static constexpr std::uint16_t MAX_ELO   = 3190;
+    static constexpr float         MinLevel = 00.0f;
+    static constexpr float         MaxLevel = 20.0f;
+    static constexpr std::uint16_t MinELO   = 1320;
+    static constexpr std::uint16_t MaxELO   = 3190;
 
    private:
     float level;
-    Move  bestMove;
+    Move  move;
 };
 
 // SharedState struct stores the engine options, networks, thread pool, and transposition table.

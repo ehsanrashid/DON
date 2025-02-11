@@ -295,7 +295,7 @@ void Worker::start_search() noexcept {
     tbHits         = 0;
     moveChanges    = 0;
 
-    multiPV = DEFAULT_MULTI_PV;
+    multiPV = DefaultMultiPV;
     if (mainManager)
     {
         multiPV = options["MultiPV"];
@@ -397,7 +397,7 @@ void Worker::start_search() noexcept {
     {
         // If the skill level is enabled, swap the best PV line with the sub-optimal one
         if (mainManager->skill.enabled())
-            rootMoves.swap_to_front(mainManager->skill.pick_best_move(rootMoves, multiPV, false));
+            rootMoves.swap_to_front(mainManager->skill.pick_move(rootMoves, multiPV, false));
 
         else if (multiPV == 1 && threads.size() > 1 && limit.mate == 0
                  && rootMoves.front()[0] != Move::None)
@@ -639,7 +639,7 @@ void Worker::iterative_deepening() noexcept {
 
         // If the skill level is enabled and time is up, pick a sub-optimal best move
         if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))
-            mainManager->skill.pick_best_move(rootMoves, multiPV);
+            mainManager->skill.pick_move(rootMoves, multiPV);
 
         // Do have time for the next iteration? Can stop searching now?
         if (!(mainManager->ponderhitStop || threads.stop) && limit.use_time_manager())
@@ -2182,32 +2182,30 @@ void Skill::init(const Options& options) noexcept {
     {
         std::uint16_t uciELO = options["UCI_ELO"];
 
-        auto e = float(uciELO - MIN_ELO) / float(MAX_ELO - MIN_ELO);
+        auto e = float(uciELO - MinELO) / float(MaxELO - MinELO);
         level  = std::clamp(-311.4380e-3f + (22.2943f + (-40.8525f + 37.2473f * e) * e) * e,  //
-                            MIN_LEVEL, MAX_LEVEL - 0.01f);
+                            MinLevel, MaxLevel - 0.01f);
     }
     else
     {
         level = options["SkillLevel"];
     }
 
-    bestMove = Move::None;
+    move = Move::None;
 }
 
 // When playing with strength handicap, choose the best move among a set of RootMoves
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-Move Skill::pick_best_move(const RootMoves& rootMoves,
-                           std::size_t      multiPV,
-                           bool             bestPick) noexcept {
+Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick) noexcept {
     assert(1 <= multiPV && multiPV <= rootMoves.size());
     static PRNG rng(now());  // PRNG sequence should be non-deterministic
 
-    if (bestPick || bestMove == Move::None)
+    if (pick || move == Move::None)
     {
         // RootMoves are already sorted by value in descending order
         Value curValue = rootMoves[0].curValue;
         auto  delta    = std::min(curValue - rootMoves[multiPV - 1].curValue, +VALUE_PAWN);
-        auto  weakness = 2.0f * (3.0f * MAX_LEVEL - level);
+        auto  weakness = 2.0f * (3.0f * MaxLevel - level);
 
         Value maxValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.
@@ -2224,12 +2222,12 @@ Move Skill::pick_best_move(const RootMoves& rootMoves,
             if (maxValue <= value)
             {
                 maxValue = value;
-                bestMove = rootMoves[i][0];
+                move     = rootMoves[i][0];
             }
         }
     }
 
-    return bestMove;
+    return move;
 }
 
 namespace {

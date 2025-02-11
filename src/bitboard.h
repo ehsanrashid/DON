@@ -120,8 +120,8 @@ struct Magic final {
 };
 
 #if !defined(USE_POPCNT)
-constexpr inline std::uint32_t POPCNT_SIZE = 1 << 16;
-extern std::uint8_t            PopCnt16[POPCNT_SIZE];
+constexpr inline std::uint32_t PopCntSize = 1 << 16;
+extern std::uint8_t            PopCnt[PopCntSize];
 #endif
 
 // clang-format off
@@ -381,7 +381,7 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
 #if !defined(USE_POPCNT)
     std::uint16_t b16[4];
     std::memcpy(b16, &b, sizeof(b));
-    return PopCnt16[b16[0]] + PopCnt16[b16[1]] + PopCnt16[b16[2]] + PopCnt16[b16[3]];
+    return PopCnt[b16[0]] + PopCnt[b16[1]] + PopCnt[b16[2]] + PopCnt[b16[3]];
 #elif defined(__GNUC__) || defined(__clang__)  // (GCC, Clang, ICX)
     return __builtin_popcountll(b);
 #elif defined(_MSC_VER)
