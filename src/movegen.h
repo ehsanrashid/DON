@@ -22,7 +22,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
-#include <iterator>
 #include <utility>
 #include <vector>
 
@@ -80,15 +79,6 @@ class Moves final {
     void resize(std::size_t newSize) noexcept { moves.resize(newSize); }
     void reserve(std::size_t newCapacity) noexcept { moves.reserve(newCapacity); }
 
-    //void append(const Move& m) noexcept { moves.insert(end(), m); }
-    //void append(ConstItr begItr, ConstItr endItr) noexcept {  //
-    //    moves.insert(end(), begItr, endItr);
-    //}
-    //void append(const std::initializer_list<Move>& initList) noexcept {  //
-    //    moves.insert(end(), initList);
-    //}
-    //void append(const Moves& ms) noexcept { append(ms.begin(), ms.end()); }
-
     auto find(const Move& m) const noexcept { return std::find(begin(), end(), m); }
 
     bool contains(const Move& m) const noexcept { return find(m) != end(); }
@@ -123,13 +113,6 @@ struct ExtMove final: public Move {
    public:
     using Move::Move;
 
-    //constexpr explicit ExtMove(const Move& m, int v = 0) noexcept :
-    //    Move(m),
-    //    value(v) {}
-    //constexpr explicit ExtMove(Move&& m, int v = 0) noexcept :
-    //    Move(std::move(m)),
-    //    value(v) {}
-
     friend bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept {  //
         return em1.value < em2.value;
     }
@@ -143,7 +126,7 @@ struct ExtMove final: public Move {
         return !(em1 < em2);
     }
 
-    int value;  // = 0;
+    int value;
 };
 
 class ExtMoves final {
