@@ -1964,7 +1964,7 @@ QS_MOVES_LOOP:
             assert(LegalMoveList(pos).empty());
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
-        else if (std::abs(bestValue) >= 100 && LegalMoveList(pos).empty())
+        else if (std::abs(bestValue) > 100 * !PVNode && LegalMoveList(pos).empty())
             bestValue = VALUE_DRAW;
     }
     // Adjust best value for fail high cases
@@ -2295,12 +2295,12 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
         update_all_quiet_history(pos, ss, bm, +1.1738f * bonus);
 
         // Decrease history for all non-best quiet moves
-        for (const Move& qm : moves[false])
+        for (const Move& qm : moves[0])
             update_all_quiet_history(pos, ss, qm, -1.1250f * malus);
     }
 
     // Decrease history for all non-best capture moves
-    for (const Move& cm : moves[true])
+    for (const Move& cm : moves[1])
         update_capture_history(pos, cm, -1.1953f * malus);
 
     Move m = (ss - 1)->move;

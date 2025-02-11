@@ -494,7 +494,8 @@ void UCI::bench(std::istringstream& iss) noexcept {
         switch (cmd)
         {
         case CMD_GO : {
-            std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")\n";
+            std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")"
+                      << std::endl;
             auto limit = parse_limit(is);
 
             if (limit.perft)
@@ -510,7 +511,8 @@ void UCI::bench(std::istringstream& iss) noexcept {
         }
         break;
         case CMD_EVAL :
-            std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")\n";
+            std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")"
+                      << std::endl;
             engine.eval();
             break;
         case CMD_POSITION :

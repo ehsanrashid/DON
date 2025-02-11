@@ -180,7 +180,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
     WindowsAffinity winAffinity;
 
-    BOOL status = 0;
+    BOOL status;
 
     if (getThreadSelectedCpuSetMasks != nullptr)
     {
@@ -190,8 +190,10 @@ inline WindowsAffinity get_process_affinity() noexcept {
         // We expect ERROR_INSUFFICIENT_BUFFER from GetThreadSelectedCpuSetMasks,
         // but other failure is an actual error.
         if (status == 0 && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+        {
             winAffinity.isNewDeterminate = false;
-        else if (requiredMaskCount != 0)
+        }
+        else if (requiredMaskCount > 0)
         {
             // If RequiredMaskCount then these affinities were never set, but it's not consistent
             // so GetProcessAffinityMask may still return some affinity.

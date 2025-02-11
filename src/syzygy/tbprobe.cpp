@@ -497,7 +497,7 @@ class TBTables final {
                 std::swap(entry, hashTable[bucket]);
             }
         }
-        std::cerr << "TB hash table size too low!\n";
+        std::cerr << "TB hash table size too low!" << std::endl;
         std::exit(EXIT_FAILURE);
     }
 
