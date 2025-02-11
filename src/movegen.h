@@ -251,8 +251,8 @@ struct MoveList final {
     auto begin() noexcept { return extMoves.begin(); }
     auto end() noexcept { return extEnd; }
 
-    auto size() const noexcept { return std::size_t(std::distance(begin(), end())); }
-    auto empty() const noexcept { return size() == 0; }
+    std::size_t size() const noexcept { return end() - begin(); }
+    bool        empty() const noexcept { return end() == begin(); }
 
     auto find(const Move& m) const noexcept { return std::find(begin(), end(), m); }
     bool contains(const Move& m) const noexcept { return find(m) != end(); }

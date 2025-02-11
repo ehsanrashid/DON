@@ -132,16 +132,14 @@ struct WindowsAffinity final {
 inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcept {
     // GetProcessGroupAffinity requires the arrGroup argument to be
     // aligned to 4 bytes instead of just 2.
-    constexpr std::size_t ARR_GROUP_MIN_ALIGNMENT = 4;
+    static constexpr std::size_t ARR_GROUP_MIN_ALIGNMENT = 4;
     static_assert(ARR_GROUP_MIN_ALIGNMENT >= alignof(USHORT));
-
-    constexpr int MAX_TRIES = 2;
 
     // The function should succeed the second time, but it may fail if the
     // group affinity has changed between GetProcessGroupAffinity calls.
     // In such case consider this a hard error, can't work with unstable affinities anyway.
     USHORT groupCount = 1;
-    for (int i = 0; i < MAX_TRIES; ++i)
+    for (int i = 0; i < 2; ++i)
     {
         auto arrGroup =
           std::make_unique<USHORT[]>(groupCount + (ARR_GROUP_MIN_ALIGNMENT / alignof(USHORT) - 1));
@@ -368,17 +366,17 @@ inline std::set<CpuIndex> get_process_affinity() noexcept {
     // cpu_set_t by default holds 1024 entries. This may not be enough soon,
     // but there is no easy way to determine how many threads there actually is.
     // In this case we just choose a reasonable upper bound.
-    constexpr CpuIndex MAX_NUM_CPUS = 64 * 1024;
+    constexpr CpuIndex MaxCpusCount = 64 * 1024;
 
-    cpu_set_t* mask = CPU_ALLOC(MAX_NUM_CPUS);
+    cpu_set_t* mask = CPU_ALLOC(MaxCpusCount);
     if (mask == nullptr)
         std::exit(EXIT_FAILURE);
 
-    constexpr std::size_t MASK_SIZE = CPU_ALLOC_SIZE(MAX_NUM_CPUS);
+    constexpr std::size_t MaskSize = CPU_ALLOC_SIZE(MaxCpusCount);
 
-    CPU_ZERO_S(MASK_SIZE, mask);
+    CPU_ZERO_S(MaskSize, mask);
 
-    int status = sched_getaffinity(0, MASK_SIZE, mask);
+    int status = sched_getaffinity(0, MaskSize, mask);
 
     if (status != 0)
     {
@@ -386,8 +384,8 @@ inline std::set<CpuIndex> get_process_affinity() noexcept {
         std::exit(EXIT_FAILURE);
     }
 
-    for (CpuIndex cpuIdx = 0; cpuIdx < MAX_NUM_CPUS; ++cpuIdx)
-        if (CPU_ISSET_S(cpuIdx, MASK_SIZE, mask))
+    for (CpuIndex cpuIdx = 0; cpuIdx < MaxCpusCount; ++cpuIdx)
+        if (CPU_ISSET_S(cpuIdx, MaskSize, mask))
             cpus.insert(cpuIdx);
 
     CPU_FREE(mask);
@@ -404,7 +402,7 @@ inline static const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
 #elif defined(_WIN64)
 
 inline static const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
-inline static const auto STARTUP_USE_OLD_AFFINITY_API =
+inline static const auto STARTUP_OLD_AFFINITY_API_USE =
   STARTUP_PROCESSOR_AFFINITY.likely_used_old_api();
 
 #endif
@@ -571,7 +569,7 @@ class NumaConfig final {
         //     scheduled to processors on their primary group, but they are able to
         //     be scheduled to processors on any other group.
         //
-        // used to be guarded by if (STARTUP_USE_OLD_AFFINITY_API)
+        // used to be guarded by if (STARTUP_OLD_AFFINITY_API_USE)
         {
             NumaConfig splitCfg = empty();
 
@@ -849,7 +847,7 @@ class NumaConfig final {
         }
 
         // Sometimes need to force the old API, but do not use it unless necessary.
-        if (setThreadSelectedCpuSetMasks == nullptr || STARTUP_USE_OLD_AFFINITY_API)
+        if (setThreadSelectedCpuSetMasks == nullptr || STARTUP_OLD_AFFINITY_API_USE)
         {
             // On earlier windows version (since windows 7)
             // cannot run a single thread on multiple processor groups, so need to restrict the group.
