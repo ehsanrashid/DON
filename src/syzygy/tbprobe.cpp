@@ -1430,8 +1430,8 @@ void init() noexcept {
             }
 
     // Legal positions with both kings on a diagonal are encoded as last ones
-    for (const auto& [fst, snd] : bothOnDiagonal)
-        KKMap[fst][snd] = code++;
+    for (const auto& [idx, s] : bothOnDiagonal)
+        KKMap[idx][s] = code++;
 
     // Binomial[] stores the Binomial Coefficients using Pascal rule. There
     // are Binomial[k][n] ways to choose k elements from a set of n elements.

@@ -1599,17 +1599,16 @@ S_MOVES_LOOP:  // When in check, search starts here
     assert(moveCount != 0 || !ss->inCheck || exclude || LegalMoveList(pos).empty());
     assert(moveCount == ss->moveCount);
 
+    if (moveCount == 0)
+        bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases at non-pv nodes
-    if (!PVNode && bestValue > beta && !is_decisive(bestValue))
+    else if (!PVNode && bestValue > beta && !is_decisive(bestValue))
     {
         bestValue = in_range((depth * bestValue + beta) / (depth + 1));
     }
 
-    if (moveCount == 0)
-        bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
-
     // If there is a move that produces search value greater than alpha update the history of searched moves
-    else if (bestMove != Move::None)
+    if (moveCount != 0 && bestMove != Move::None)
         update_all_history(pos, ss, depth, bestMove, moves);
 
     // If prior move is valid, that caused the fail low
@@ -1968,9 +1967,8 @@ QS_MOVES_LOOP:
         else if (std::abs(bestValue) >= 100 && LegalMoveList(pos).empty())
             bestValue = VALUE_DRAW;
     }
-
     // Adjust best value for fail high cases
-    if (bestValue > beta && !is_decisive(bestValue))
+    else if (bestValue > beta && !is_decisive(bestValue))
     {
         bestValue = in_range((3 * bestValue + beta) / 4);
     }
