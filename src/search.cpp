@@ -72,11 +72,11 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::uint8_t rule50) no
     if (is_win(v))
     {
         // Downgrade a potentially false mate value
-        if (is_mate_win(v) && VALUE_MATE - v > 2 * Position::DrawMoveCount - rule50)
+        if (is_mate_win(v) && VALUE_MATE - v > 2 * DrawMoveCount - rule50)
             return VALUE_TB_WIN_IN_MAX_PLY - 1;
 
         // Downgrade a potentially false TB value
-        if (VALUE_TB - v > 2 * Position::DrawMoveCount - rule50)
+        if (VALUE_TB - v > 2 * DrawMoveCount - rule50)
             return VALUE_TB_WIN_IN_MAX_PLY - 1;
 
         return v - ply;
@@ -85,11 +85,11 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::uint8_t rule50) no
     if (is_loss(v))
     {
         // Downgrade a potentially false mate value
-        if (is_mate_loss(v) && VALUE_MATE + v > 2 * Position::DrawMoveCount - rule50)
+        if (is_mate_loss(v) && VALUE_MATE + v > 2 * DrawMoveCount - rule50)
             return VALUE_TB_LOSS_IN_MAX_PLY + 1;
 
         // Downgrade a potentially false TB value
-        if (VALUE_TB + v > 2 * Position::DrawMoveCount - rule50)
+        if (VALUE_TB + v > 2 * DrawMoveCount - rule50)
             return VALUE_TB_LOSS_IN_MAX_PLY + 1;
 
         return v + ply;
@@ -295,7 +295,7 @@ void Worker::start_search() noexcept {
     tbHits         = 0;
     moveChanges    = 0;
 
-    multiPV = DefaultMultiPV;
+    multiPV = MinMultiPV;
     if (mainManager)
     {
         multiPV = options["MultiPV"];

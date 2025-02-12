@@ -67,7 +67,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
         return get_numa_config_info_str() + '\n'  //
              + get_thread_allocation_info_str();
     }));
-    options.add("Threads",          Option(1, MIN_THREADS, MAX_THREADS, [this](const Option&) {
+    options.add("Threads",          Option(MIN_THREADS, MIN_THREADS, MAX_THREADS, [this](const Option&) {
         resize_threads_tt();
         return get_thread_allocation_info_str();
     }));
@@ -81,12 +81,12 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("Save Hash",        Option([this](const Option&) { (void)this; return std::nullopt; }));
     options.add("Load Hash",        Option([this](const Option&) { (void)this; return std::nullopt; }));
     options.add("Ponder",           Option(false));
-    options.add("MultiPV",          Option(DefaultMultiPV, 1, 256));
+    options.add("MultiPV",          Option(MinMultiPV, 1, 256));
     options.add("SkillLevel",       Option(int(Skill::MaxLevel), int(Skill::MinLevel), int(Skill::MaxLevel)));
     options.add("MoveOverhead",     Option(10, 0, 5000));
     options.add("NodesTime",        Option(0, 0, 10000));
-    options.add("DrawMoveCount",    Option(Position::DrawMoveCount, 5, 50, [](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; }));
-    options.add("UCI_Chess960",     Option(Position::Chess960, [](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; }));
+    options.add("DrawMoveCount",    Option(DrawMoveCount, 5, DrawMoveCount, [](const Option& o) { DrawMoveCount = int(o); return std::nullopt; }));
+    options.add("UCI_Chess960",     Option(Chess960, [](const Option& o) { Chess960 = bool(o); return std::nullopt; }));
     options.add("UCI_LimitStrength",Option(false));
     options.add("UCI_ELO",          Option(Skill::MaxELO, Skill::MinELO, Skill::MaxELO));
     options.add("UCI_ShowWDL",      Option(false));

@@ -177,8 +177,9 @@ void init() noexcept {
 }
 }  // namespace Zobrist
 
-bool         Position::Chess960      = false;
-std::uint8_t Position::DrawMoveCount = 50;
+std::uint8_t DrawMoveCount = 50;
+
+bool Chess960 = false;
 
 // Called at startup to initialize the Zobrist arrays used to compute hash keys
 void Position::init() noexcept {
@@ -1444,7 +1445,7 @@ Key Position::material_key() const noexcept {
 
     for (Piece pc : Pieces)
         if (pc != W_KING && pc != B_KING && count(pc) != 0)
-            materialKey ^= Zobrist::psq[pc][PawnOffset + count(pc)];
+            materialKey ^= Zobrist::psq[pc][PawnOffset + count(pc) - 1];
 
     return materialKey;
 }

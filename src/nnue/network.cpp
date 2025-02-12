@@ -124,7 +124,7 @@ inline bool read_parameters(std::istream& istream, T& reference) noexcept {
 
 // Write evaluation function parameters
 template<typename T>
-inline bool write_parameters(std::ostream& ostream, /*const*/ T& reference) noexcept {
+inline bool write_parameters(std::ostream& ostream, T& reference) noexcept {
     write_little_endian<std::uint32_t>(ostream, T::get_hash_value());
 
     return reference.write_parameters(ostream);
@@ -270,15 +270,8 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
 
     auto* transformedFeatures = align_ptr_up<ALIGNMENT>(&transformedFeaturesUnaligned[0]);
 #else
-    #if defined(__GNUC__)
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-    #endif
     alignas(ALIGNMENT) TransformedFeatureType
       transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE]{};
-    #if defined(__GNUC__)
-        #pragma GCC diagnostic pop
-    #endif
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
@@ -304,15 +297,8 @@ EvalTrace Network<Arch, Transformer>::trace_eval(
 
     auto* transformedFeatures = align_ptr_up<ALIGNMENT>(&transformedFeaturesUnaligned[0]);
 #else
-    #if defined(__GNUC__)
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-    #endif
     alignas(ALIGNMENT) TransformedFeatureType
       transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE]{};
-    #if defined(__GNUC__)
-        #pragma GCC diagnostic pop
-    #endif
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);

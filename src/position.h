@@ -95,6 +95,10 @@ struct State final {
 using StateList    = std::deque<State>;
 using StateListPtr = std::unique_ptr<StateList>;
 
+extern std::uint8_t DrawMoveCount;
+
+extern bool Chess960;
+
 // Position class stores information regarding the board representation as
 // pieces, active color, hash keys, castling info, etc. (Size = 192)
 // Important methods are do_move() and undo_move(),
@@ -159,9 +163,6 @@ class Position final {
     static void init() noexcept;
 
     static auto rule50_threshold() noexcept;
-
-    static bool         Chess960;
-    static std::uint8_t DrawMoveCount;
 
     Position() noexcept = default;
 
