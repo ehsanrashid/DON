@@ -475,8 +475,8 @@ enum NodeType : std::uint8_t {
 constexpr NodeType operator~(NodeType nt) noexcept { return NodeType((int(nt) ^ 1) & 1); }
 
 // Stack struct keeps track of the information need to remember from nodes
-// shallower and deeper in the tree during the search. Each search thread has
-// its own array of Stack objects, indexed by the current ply.
+// shallower and deeper in the tree during the search.
+// Each search thread has its own array of Stack objects, indexed by the ply.
 struct Stack final {
    public:
     std::int16_t ply;
