@@ -148,11 +148,11 @@ T number(void* addr) noexcept {
 // like captures and pawn moves but can easily recover the correct dtz of the
 // previous move if know the position's WDL score.
 int dtz_before_zeroing(WDLScore wdl) noexcept {
-    return wdl == WDLWin         ? +1
-         : wdl == WDLCursedWin   ? +101
-         : wdl == WDLBlessedLoss ? -101
-         : wdl == WDLLoss        ? -1
-                                 : 0;
+    return wdl == WDL_WIN          ? +1
+         : wdl == WDL_CURSED_WIN   ? +101
+         : wdl == WDL_BLESSED_LOSS ? -101
+         : wdl == WDL_LOSS         ? -1
+                                   : 0;
 }
 
 // Return the sign of a number (-1, 0, +1)
@@ -719,17 +719,17 @@ int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdl) noexcept {
         value = (flags & Wide) ? ((std::uint16_t*) map)[idx[WDLMap[wdl + 2]] + value]
                                : map[idx[WDLMap[wdl + 2]] + value];
 
-    // DTZ tables store distance to zero in number of moves or plies. We
-    // want to return plies, so have to convert to plies when needed.
-    if ((wdl == WDLWin && !(flags & WinPlies))       //
-        || (wdl == WDLLoss && !(flags & LossPlies))  //
-        || wdl == WDLCursedWin || wdl == WDLBlessedLoss)
+    // DTZ tables store distance to zero in number of moves or plies.
+    // So have to convert to plies when needed.
+    if ((wdl == WDL_WIN && !(flags & WinPlies))       //
+        || (wdl == WDL_LOSS && !(flags & LossPlies))  //
+        || wdl == WDL_CURSED_WIN || wdl == WDL_BLESSED_LOSS)
         value *= 2;
 
     return value + 1;
 }
 
-// A temporary fix for the compiler bug with AVX-512. (#4450)
+// A temporary fix for the compiler bug with AVX-512
 #if defined(USE_AVX512)
     #if defined(__clang__) && defined(__clang_major__) && __clang_major__ >= 15
         #define CLANG_AVX512_BUG_FIX __attribute__((optnone))
@@ -801,7 +801,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // move or only for black to move, so check for side to move to be ac,
     // early exit otherwise.
     if (!check_dtz_ac(entry, activeColor, tbFile))
-        return *ps = CHANGE_AC, Ret();
+        return *ps = PS_CHANGE_AC, Ret();
 
     // Now ready to get all the position pieces (but the lead pawns)
     // and directly map them to the correct square and color.
@@ -1281,17 +1281,17 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
 }
 
 template<TBType Type, typename Ret = typename TBTable<Type>::Ret>
-Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdl = WDLDraw) noexcept {
+Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdl = WDL_DRAW) noexcept {
 
     Key materialKey = pos.material_key();
 
     if (materialKey == 0)  // KvK, pos.count<ALL_PIECE>() == 2
-        return Ret(WDLDraw);
+        return Ret(WDL_DRAW);
 
     auto* entry = TB_Tables.get<Type>(materialKey);
 
     if (entry == nullptr || mapped(pos, materialKey, *entry) == nullptr)
-        return *ps = FAIL, Ret();
+        return *ps = PS_FAIL, Ret();
 
     return do_probe_table(pos, materialKey, entry, wdl, ps);
 }
@@ -1312,7 +1312,7 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdl = WDLDraw) noe
 template<bool CheckZeroingMoves>
 WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
-    WDLScore value, bestValue = WDLLoss;
+    WDLScore value, bestValue = WDL_LOSS;
 
     State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
@@ -1331,17 +1331,17 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
         value = -search<false>(pos, ps);
         pos.undo_move(m);
 
-        if (*ps == FAIL)
-            return WDLDraw;
+        if (*ps == PS_FAIL)
+            return WDL_DRAW;
 
         if (bestValue < value)
         {
             bestValue = value;
 
-            if (value >= WDLWin)
+            if (value >= WDL_WIN)
             {
                 // Winning DTZ-zeroing move
-                return *ps = BEST_MOVE_ZEROING, value;
+                return *ps = PS_BEST_MOVE_ZEROING, value;
             }
         }
     }
@@ -1360,15 +1360,16 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
     {
         value = probe_table<WDL>(pos, ps);
 
-        if (*ps == FAIL)
-            return WDLDraw;
+        if (*ps == PS_FAIL)
+            return WDL_DRAW;
     }
 
     // DTZ stores a "don't care" value if bestValue is a win
     if (bestValue >= value)
-        return *ps = (bestValue > WDLDraw || movesNoMore ? BEST_MOVE_ZEROING : OK), bestValue;
+        return *ps = (bestValue > WDL_DRAW || movesNoMore ? PS_BEST_MOVE_ZEROING : PS_OK),
+               bestValue;
 
-    return *ps = OK, value;
+    return *ps = PS_OK, value;
 }
 
 }  // namespace
@@ -1554,7 +1555,7 @@ void init(const std::string& paths) noexcept {
 //  2 : win
 WDLScore probe_wdl(Position& pos, ProbeState* ps) noexcept {
 
-    *ps = OK;
+    *ps = PS_OK;
     return search<false>(pos, ps);
 }
 
@@ -1586,24 +1587,24 @@ WDLScore probe_wdl(Position& pos, ProbeState* ps) noexcept {
 // then do not accept moves leading to dtz + 50-move-counter == 100.
 int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
-    *ps          = OK;
+    *ps          = PS_OK;
     WDLScore wdl = search<true>(pos, ps);
 
-    if (*ps == FAIL || wdl == WDLDraw)  // DTZ tables don't store draws
+    if (*ps == PS_FAIL || wdl == WDL_DRAW)  // DTZ tables don't store draws
         return 0;
 
     // DTZ stores a 'don't care value in this case, or even a plain wrong
     // one as in case the best move is a losing ep, so it cannot be probed.
-    if (*ps == BEST_MOVE_ZEROING)
+    if (*ps == PS_BEST_MOVE_ZEROING)
         return dtz_before_zeroing(wdl);
 
     int dtz = probe_table<DTZ>(pos, ps, wdl);
 
-    if (*ps == FAIL)
+    if (*ps == PS_FAIL)
         return 0;
 
-    if (*ps != CHANGE_AC)
-        return (dtz + 100 * (wdl == WDLBlessedLoss || wdl == WDLCursedWin)) * sign_of(wdl);
+    if (*ps != PS_CHANGE_AC)
+        return (dtz + 100 * (wdl == WDL_BLESSED_LOSS || wdl == WDL_CURSED_WIN)) * sign_of(wdl);
 
     // DTZ stores results for the other side, so need to do a 1-ply search and
     // find the winning move that minimizes DTZ.
@@ -1639,7 +1640,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
         pos.undo_move(m);
 
-        if (*ps == FAIL)
+        if (*ps == PS_FAIL)
             return 0;
     }
 
@@ -1651,7 +1652,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 //
 // A return value false indicates that not all probes were successful.
 bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dtzRank) noexcept {
-    ProbeState ps = OK;
+    ProbeState ps = PS_OK;
 
     State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
@@ -1696,7 +1697,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
 
         pos.undo_move(rm[0]);
 
-        if (ps == FAIL)
+        if (ps == PS_FAIL)
             return false;
 
         // Better moves are ranked higher. Certain wins are ranked equally.
@@ -1727,7 +1728,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
 //
 // A return value false indicates that not all probes were successful.
 bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Use) noexcept {
-    ProbeState ps = OK;
+    ProbeState ps = PS_OK;
 
     State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
@@ -1737,17 +1738,17 @@ bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Use) noexcep
     {
         pos.do_move(rm[0], st);
 
-        WDLScore wdl = pos.is_draw(1) ? WDLDraw : -probe_wdl(pos, &ps);
+        WDLScore wdl = pos.is_draw(1) ? WDL_DRAW : -probe_wdl(pos, &ps);
 
         pos.undo_move(rm[0]);
 
-        if (ps == FAIL)
+        if (ps == PS_FAIL)
             return false;
 
         rm.tbRank = WDLToRank[wdl + 2];
 
         if (!rule50Use)
-            wdl = wdl > WDLDraw ? WDLWin : wdl < WDLDraw ? WDLLoss : WDLDraw;
+            wdl = wdl > WDL_DRAW ? WDL_WIN : wdl < WDL_DRAW ? WDL_LOSS : WDL_DRAW;
         rm.tbValue = WDLToValue[wdl + 2];
     }
 

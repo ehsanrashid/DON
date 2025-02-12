@@ -32,20 +32,20 @@ class RootMoves;
 namespace Tablebases {
 
 enum WDLScore : std::int8_t {
-    WDLLoss        = -2,  // Loss
-    WDLBlessedLoss = -1,  // Loss, but draw under 50-move rule
-    WDLDraw        = 0,   // Draw
-    WDLCursedWin   = +1,  // Win, but draw under 50-move rule
-    WDLWin         = +2,  // Win
+    WDL_LOSS         = -2,  // Loss
+    WDL_BLESSED_LOSS = -1,  // Loss, but draw under 50-move rule
+    WDL_DRAW         = 0,   // Draw
+    WDL_CURSED_WIN   = +1,  // Win, but draw under 50-move rule
+    WDL_WIN          = +2,  // Win
 };
 constexpr WDLScore operator-(WDLScore wdl) noexcept { return WDLScore(-int(wdl)); }
 
 // Possible states after a probing operation
 enum ProbeState : std::int8_t {
-    FAIL              = 0,   // Probe failed (missing file table)
-    OK                = +1,  // Probe successful
-    CHANGE_AC         = -1,  // DTZ should check the other side
-    BEST_MOVE_ZEROING = +2   // Best move zeroes DTZ (capture or pawn move)
+    PS_FAIL              = 0,   // Probe failed (missing file table)
+    PS_OK                = +1,  // Probe successful
+    PS_CHANGE_AC         = -1,  // DTZ should check the other side
+    PS_BEST_MOVE_ZEROING = +2   // Best move zeroes DTZ (capture or pawn move)
 };
 
 struct Config final {

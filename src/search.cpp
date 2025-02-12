@@ -880,7 +880,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             if (is_main_worker())
                 main_manager()->callsCount = 1;
 
-            if (ps != Tablebases::FAIL)
+            if (ps != Tablebases::PS_FAIL)
             {
                 tbHits.fetch_add(1, std::memory_order_relaxed);
 
