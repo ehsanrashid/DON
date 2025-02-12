@@ -828,9 +828,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
       is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && preMove.type_of() != PROMOTION;
 
     // At non-PV nodes check for an early TT cutoff
-    if (!PVNode && !exclude && is_valid(ttd.value)        //
-        && (CutNode == (ttd.value >= beta) || depth > 9)  //
-        && ttd.depth > depth - (ttd.value <= beta)        //
+    if (!PVNode && !exclude && is_valid(ttd.value)                               //
+        && (CutNode == (ttd.value >= beta) || depth > 9 - 4 * (rootDepth > 10))  //
+        && ttd.depth > depth - (ttd.value <= beta)                               //
         && (ttd.bound & bound_for_fail(ttd.value >= beta)) != 0)
     {
         // If ttMove fails high, update move sorting heuristics on TT hit
@@ -1417,8 +1417,9 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Adjust reduction with move count and correction value
         r += 316 - 32 * moveCount - 1024 * dblCheck - 31.6776e-6f * absCorrectionValue;
 
-        // Increase reduction for cut nodes
-        r += 2608 * CutNode;
+        // Increase reduction for CutNode
+        if constexpr (CutNode)
+            r += 2608 + 1024 * (ttd.move == Move::None);
 
         // Increase reduction if ttMove is a capture and the current move is not a capture
         r += (1123 + 982 * (depth < 8)) * (ttCapture && !capture);
