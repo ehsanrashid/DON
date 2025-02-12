@@ -90,14 +90,14 @@ constexpr Square operator^(Square s, int i) noexcept { return Square(int(s) ^ i)
 constexpr Piece  operator^(Piece pc, int i) noexcept { return Piece(int(pc) ^ i); }
 
 // clang-format off
-size_t  PawnsMap[SQUARE_NB];
-size_t B1H1H7Map[SQUARE_NB];
-size_t A1D1D4Map[SQUARE_NB];
-size_t KKMap[10][SQUARE_NB];  // [A1D1D4Map][SQUARE_NB]
+std::size_t  PawnsMap[SQUARE_NB];
+std::size_t B1H1H7Map[SQUARE_NB];
+std::size_t A1D1D4Map[SQUARE_NB];
+std::size_t KKMap[10][SQUARE_NB];  // [A1D1D4Map][SQUARE_NB]
 
-size_t     Binomial[6][SQUARE_NB];    // [k][n] k elements from a set of n elements
-size_t  LeadPawnIdx[6][SQUARE_NB];    // [leadPawnCnt][SQUARE_NB]
-size_t LeadPawnSize[6][FILE_NB / 2];  // [leadPawnCnt][FILE_A..FILE_D]
+std::size_t     Binomial[6][SQUARE_NB];    // [k][n] k elements from a set of n elements
+std::size_t  LeadPawnIdx[6][SQUARE_NB];    // [leadPawnCnt][SQUARE_NB]
+std::size_t LeadPawnSize[6][FILE_NB / 2];  // [leadPawnCnt][FILE_A..FILE_D]
 // clang-format on
 
 // Comparison function to sort leading pawns in ascending PawnsMap[] order
@@ -106,17 +106,17 @@ bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[
 constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 
 // clang-format off
-constexpr int          WDLMap[5]{1, 3, 0, 2, 0};
+constexpr int          WDLMap    [5]{1, 3, 0, 2, 0};
 constexpr std::int32_t WDLToRank [5]{-MAX_DTZ,
                                      -MAX_DTZ + 101,
                                       0,
                                      +MAX_DTZ - 101,
                                      +MAX_DTZ};
-constexpr Value        WDLToValue[5]{-VALUE_MATE + MAX_PLY + 1,
-                                      VALUE_DRAW - 2,
-                                      VALUE_DRAW,
-                                      VALUE_DRAW + 2,
-                                     +VALUE_MATE - MAX_PLY - 1};
+constexpr Value        WDLToValue[5]{VALUE_MATED_IN_MAX_PLY + 1,
+                                     VALUE_DRAW - 2,
+                                     VALUE_DRAW,
+                                     VALUE_DRAW + 2,
+                                     VALUE_MATES_IN_MAX_PLY - 1};
 // clang-format on
 
 template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
@@ -550,7 +550,8 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     wdlFile.close();
     ++wdlCount;
 
-    MaxCardinality = std::max<std::uint8_t>(MaxCardinality, pieces.size());
+    if (MaxCardinality < pieces.size())
+        MaxCardinality = pieces.size();
 
     wdlTable.emplace_back(code);
     dtzTable.emplace_back(wdlTable.back());
@@ -696,9 +697,8 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
 bool check_dtz_ac(TBTable<WDL>*, int, File) noexcept { return true; }
 
 bool check_dtz_ac(TBTable<DTZ>* entry, int ac, File f) noexcept {
-
-    auto flags = entry->get(ac, f)->flags;
-    return (flags & AC) == ac || (!entry->hasPawns && entry->key[WHITE] == entry->key[BLACK]);
+    return (entry->get(ac, f)->flags & AC) == ac
+        || (!entry->hasPawns && entry->key[WHITE] == entry->key[BLACK]);
 }
 
 // DTZ scores are sorted by frequency of occurrence and then assigned the
@@ -711,13 +711,15 @@ WDLScore map_score(TBTable<WDL>*, File, int value, WDLScore) noexcept {
 
 int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdl) noexcept {
 
-    auto  flags = entry->get(0, f)->flags;
-    auto* map   = entry->map;
-    auto* idx   = entry->get(0, f)->mapIdx;
+    auto* pd     = entry->get(0, f);
+    auto  flags  = pd->flags;
+    auto* map    = entry->map;
+    auto* mapIdx = pd->mapIdx;
+
+    auto idx = mapIdx[WDLMap[wdl + 2]] + value;
 
     if (flags & Mapped)
-        value = (flags & Wide) ? ((std::uint16_t*) map)[idx[WDLMap[wdl + 2]] + value]
-                               : map[idx[WDLMap[wdl + 2]] + value];
+        value = (flags & Wide) ? ((std::uint16_t*) map)[idx] : map[idx];
 
     // DTZ tables store distance to zero in number of moves or plies.
     // So have to convert to plies when needed.
@@ -770,10 +772,8 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     Bitboard leadPawns   = 0, b;
     int      leadPawnCnt = 0, size = 0;
     File     tbFile = FILE_A;
-    Square   squares[TBPIECES];
-    Piece    pieces[TBPIECES];
-
-    squares[0] = SQ_ZERO;
+    Square   squares[TBPIECES]{};
+    Piece    pieces[TBPIECES]{};
 
     // For pawns, TB files store 4 separate tables according if leading pawn is on
     // file a, b, c or d after reordering. The leading pawn is the one with maximum
@@ -808,7 +808,8 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     b = pos.pieces() ^ leadPawns;
     while (b)
     {
-        Square s      = pop_lsb(b);
+        Square s = pop_lsb(b);
+
         squares[size] = s ^ squareFlip;
         pieces[size]  = pos.piece_on(s) ^ colorFlip;
         ++size;
@@ -1076,7 +1077,8 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     pd->span            = 1ull << *data++;
     pd->sparseIndexSize = (tbSize + pd->span - 1) / pd->span;  // Round up
 
-    auto padding   = number<std::uint8_t, LittleEndian>(data++);
+    auto padding = number<std::uint8_t, LittleEndian>(data);
+    data += 1;
     pd->blockCount = number<std::uint32_t, LittleEndian>(data);
     data += sizeof(std::uint32_t);
     // Padded to ensure SparseIndex[] does not point out of range.
@@ -1142,7 +1144,9 @@ std::uint8_t* set_dtz_map(TBTable<DTZ>& entry, std::uint8_t* data, File maxFile)
 
     for (File f = FILE_A; f <= maxFile; ++f)
     {
-        auto flags = entry.get(0, f)->flags;
+        auto* pd = entry.get(0, f);
+
+        auto flags = pd->flags;
         if (flags & Mapped)
         {
             if (flags & Wide)
@@ -1151,8 +1155,7 @@ std::uint8_t* set_dtz_map(TBTable<DTZ>& entry, std::uint8_t* data, File maxFile)
                 for (std::size_t i = 0; i < 4; ++i)
                 {
                     // Sequence like 3,x,x,x,1,x,0,2,x,x
-                    entry.get(0, f)->mapIdx[i] =
-                      1 + (std::uint16_t*) (data) - (std::uint16_t*) (entry.map);
+                    pd->mapIdx[i] = 1 + (std::uint16_t*) (data) - (std::uint16_t*) (entry.map);
                     data += 2 + 2 * number<std::uint16_t, LittleEndian>(data);
                 }
             }
@@ -1160,7 +1163,7 @@ std::uint8_t* set_dtz_map(TBTable<DTZ>& entry, std::uint8_t* data, File maxFile)
             {
                 for (std::size_t i = 0; i < 4; ++i)
                 {
-                    entry.get(0, f)->mapIdx[i] = 1 + data - entry.map;
+                    pd->mapIdx[i] = 1 + data - entry.map;
                     data += 1 + *data;
                 }
             }
@@ -1713,11 +1716,11 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
         // Determine the score to be displayed for this move. Assign at least
         // 1 cp to cursed wins and let it grow to 49 cp as the positions gets
         // closer to a real win.
-        rm.tbValue = r >= +bound ? +VALUE_MATE - MAX_PLY - 1
+        rm.tbValue = r >= +bound ? VALUE_MATES_IN_MAX_PLY - 1
                    : r > 0       ? (std::max(r - (+MAX_DTZ / 2 - 200), +3) * VALUE_PAWN) / 200
                    : r == 0      ? VALUE_DRAW
                    : r > -bound  ? (std::min(r + (+MAX_DTZ / 2 - 200), -3) * VALUE_PAWN) / 200
-                                 : -VALUE_MATE + MAX_PLY + 1;
+                                 : VALUE_MATED_IN_MAX_PLY + 1;
     }
 
     return true;
