@@ -99,6 +99,8 @@ extern std::uint8_t DrawMoveCount;
 
 extern bool Chess960;
 
+inline auto rule50_threshold() noexcept { return -10 + 2 * DrawMoveCount; }
+
 // Position class stores information regarding the board representation as
 // pieces, active color, hash keys, castling info, etc. (Size = 192)
 // Important methods are do_move() and undo_move(),
@@ -161,8 +163,6 @@ class Position final {
     static constexpr std::uint16_t R50Factor = 8;
 
     static void init() noexcept;
-
-    static auto rule50_threshold() noexcept;
 
     Position() noexcept = default;
 
@@ -394,8 +394,6 @@ class Position final {
     std::int16_t gamePly;
     State*       st;
 };
-
-inline auto Position::rule50_threshold() noexcept { return -10 + 2 * DrawMoveCount; }
 
 inline Piece Position::piece_on(Square s) const noexcept {
     assert(is_ok(s));

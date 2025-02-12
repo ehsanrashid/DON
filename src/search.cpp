@@ -248,7 +248,7 @@ void init() noexcept {
 
     reductions[0] = 0;
     for (std::size_t i = 1; i < reductions.size(); ++i)
-        reductions[i] = 22.95 * std::log(i);
+        reductions[i] = 22.9453f * std::log(i);
 }
 
 void load_book(const std::string& bookFile) noexcept { polyBook.init(bookFile); }
@@ -846,7 +846,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
-        if (pos.rule50_count() < (1.0f - 0.5f * pos.rule50_high()) * Position::rule50_threshold())
+        if (pos.rule50_count() < (1.0f - 0.5f * pos.rule50_high()) * rule50_threshold())
         {
             if (ttd.value > beta && ttd.depth > DEPTH_ZERO && !is_decisive(ttd.value))
             {
@@ -1752,7 +1752,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (!PVNode && is_valid(ttd.value) && ttd.depth >= DEPTH_ZERO
         && (ttd.bound & bound_for_fail(ttd.value >= beta)) != 0
         // For high rule50 counts don't produce transposition table cutoffs.
-        && pos.rule50_count() < (1.0f - 0.5f * pos.rule50_high()) * Position::rule50_threshold())
+        && pos.rule50_count() < (1.0f - 0.5f * pos.rule50_high()) * rule50_threshold())
     {
         if (ttd.value > beta && ttd.depth > DEPTH_ZERO && !is_decisive(ttd.value))
         {
