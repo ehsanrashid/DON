@@ -50,7 +50,7 @@ MovePicker::MovePicker(const Position&              p,
     assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
 
     stage = pos.checkers() ? STG_EVA_TT : STG_ENC_TT;
-    if (ttMove == Move::None || !(threshold < 0 || pos.checkers() || pos.capture_promo(ttMove)))
+    if (ttMove == Move::None || !(pos.checkers() || threshold < 0 || pos.capture_promo(ttMove)))
         next_stage();
 }
 

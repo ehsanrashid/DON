@@ -237,7 +237,6 @@ void init() noexcept {
             for (auto& toPieceSqHist : continuationHistory[inCheck][capture])
                 for (auto& pieceSqHist : toPieceSqHist)
                     pieceSqHist.fill(-493);
-    continuationHistory[0][0][NO_PIECE][SQ_ZERO].fill(0);
 
        pawnCorrectionHistory.fill(4);
       minorCorrectionHistory.fill(0);
@@ -246,7 +245,6 @@ void init() noexcept {
     for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(0);
-    continuationCorrectionHistory[NO_PIECE][SQ_ZERO].fill(0);
 
     reductions[0] = 0;
     for (std::size_t i = 1; i < reductions.size(); ++i)

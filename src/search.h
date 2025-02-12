@@ -288,8 +288,8 @@ struct Limit final {
     Limit() noexcept {
         startTime = TimePoint(0);
 
-        clocks[WHITE].time = clocks[WHITE].inc = TimePoint(0);
-        clocks[BLACK].time = clocks[BLACK].inc = TimePoint(0);
+        clocks[WHITE].time = clocks[BLACK].time = TimePoint(0);
+        clocks[WHITE].inc = clocks[BLACK].inc = TimePoint(0);
 
         movesToGo = 0;
         mate      = 0;
