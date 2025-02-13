@@ -188,8 +188,8 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     if (option.type == OPT_SPIN)
         os << " min " << option.minValue << " max " << option.maxValue;
     else if (option.type == OPT_COMBO)
-        os << std::accumulate(option.comboValues.begin(), option.comboValues.end(), std::string(),
-                              [](std::string& acc, std::string_view s) noexcept -> std::string& {
+        os << std::accumulate(option.comboValues.begin(), option.comboValues.end(), std::string{},
+                              [](std::string acc, std::string_view s) noexcept -> std::string {
                                   return acc.append(" var ").append(s);
                               });
 
