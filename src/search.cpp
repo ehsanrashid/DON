@@ -826,9 +826,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
       is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && preMove.type_of() != PROMOTION;
 
     // At non-PV nodes check for an early TT cutoff
-    if (!PVNode && !exclude && is_valid(ttd.value)                               //
-        && (CutNode == (ttd.value >= beta) || depth > 9 - 4 * (rootDepth > 10))  //
-        && ttd.depth > depth - (ttd.value <= beta)                               //
+    if (!PVNode && !exclude && is_valid(ttd.value)        //
+        && (depth > 5 || CutNode == (ttd.value >= beta))  //
+        && ttd.depth > depth - (ttd.value <= beta)        //
         && (ttd.bound & bound_for_fail(ttd.value >= beta)) != 0)
     {
         // If ttMove fails high, update move sorting heuristics on TT hit
@@ -2257,7 +2257,6 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
 
     for (auto [i, weight] : ContHistoryWeights)
     {
-        // Only first 2 continuation histories if in check
         if ((ss->inCheck && i > 2) || !(ss - i)->move.is_ok())
             break;
 
