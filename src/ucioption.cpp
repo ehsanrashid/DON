@@ -22,6 +22,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <iostream>
+#include <numeric>
 #include <utility>
 #include <vector>
 
@@ -96,13 +97,13 @@ Option::Option(int v, int minv, int maxv, OnChange&& f) noexcept :
     defaultValue = currentValue = std::to_string(v);
 }
 
-Option::Option(const char* cur, const char* var, OnChange&& f) noexcept :
+Option::Option(const char* v, const char* var, OnChange&& f) noexcept :
     type(OPT_COMBO),
     minValue(0),
     maxValue(0),
     onChange(std::move(f)) {
-    defaultValue = var;
-    currentValue = cur;
+    defaultValue = currentValue = is_whitespace(v) || lower_case(v) == EmptyString ? "" : v;
+    comboValues                 = split(var, "var", true);
 }
 
 Option::operator int() const noexcept {
@@ -154,9 +155,7 @@ void Option::operator=(std::string value) noexcept {
         break;
     case OPT_COMBO : {
         value = lower_case(value);
-
-        auto combos = split(defaultValue, "var", true);
-        if (std::find(combos.begin(), combos.end(), value) == combos.end())
+        if (std::find(comboValues.begin(), comboValues.end(), value) == comboValues.end())
             return;
     }
     break;
@@ -181,15 +180,18 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
         return os;
 
     os << " default ";
-    if (option.type == OPT_COMBO)
-        os << option.currentValue << " " << option.defaultValue;
-    else if (option.type == OPT_STRING && is_whitespace(option.defaultValue))
+    if (option.type == OPT_STRING && is_whitespace(option.defaultValue))
         os << EmptyString;
     else
         os << option.defaultValue;
 
     if (option.type == OPT_SPIN)
         os << " min " << option.minValue << " max " << option.maxValue;
+    else if (option.type == OPT_COMBO)
+        os << std::accumulate(option.comboValues.begin(), option.comboValues.end(), std::string(),
+                              [](std::string& acc, std::string_view s) noexcept -> std::string& {
+                                  return acc.append(" var ").append(s);
+                              });
 
     return os;
 }

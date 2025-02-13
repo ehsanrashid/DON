@@ -68,7 +68,7 @@ class Option final {
     explicit Option(bool v, OnChange&& f = nullptr) noexcept;
     explicit Option(const char* v, OnChange&& f = nullptr) noexcept;
     explicit Option(int v, int minv, int maxv, OnChange&& f = nullptr) noexcept;
-    explicit Option(const char* cur, const char* var, OnChange&& f = nullptr) noexcept;
+    explicit Option(const char* v, const char* var, OnChange&& f = nullptr) noexcept;
 
     operator int() const noexcept;
     operator std::string() const noexcept;
@@ -86,11 +86,12 @@ class Option final {
     friend std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
 
    private:
-    OptionType  type;
-    std::string defaultValue;
-    std::string currentValue;
-    int         minValue, maxValue;
-    OnChange    onChange;
+    OptionType                    type;
+    std::string                   defaultValue;
+    std::string                   currentValue;
+    int                           minValue, maxValue;
+    std::vector<std::string_view> comboValues;
+    OnChange                      onChange;
 
     std::uint16_t  idx;
     const Options* optionsPtr = nullptr;
