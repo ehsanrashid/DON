@@ -338,7 +338,7 @@ class Info final {
     std::array<std::atomic<std::int64_t>, N> data;
 };
 
-constexpr inline std::size_t MaxSlot = 32;
+constexpr inline std::size_t MaxSlot = 128;
 
 std::array<Info<2>, MaxSlot> hit;
 std::array<Info<2>, MaxSlot> min;

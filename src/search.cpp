@@ -1285,7 +1285,9 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (!ss->inCheck && lmrDepth < 12 && !check && !pos.fork(move))
                 {
                     Value futilityValue =
-                      std::min(135 + ss->staticEval + 150 * lmrDepth, VALUE_TB_WIN_IN_MAX_PLY - 1);
+                      std::min(143 + ss->staticEval + 116 * lmrDepth
+                                 + std::max(-150 + ss->staticEval - bestValue, 0),
+                               VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
                     {
                         if (bestValue < futilityValue)
