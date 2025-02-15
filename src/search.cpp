@@ -1282,7 +1282,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 lmrDepth += 27.9642e-5f * contHist;
 
                 // Futility pruning for quiets not check
-                if (!ss->inCheck && lmrDepth < 12 && !check && !pos.fork(move))
+                if (!ss->inCheck && ss->staticEval <= alpha && lmrDepth < 12 && !check
+                    && !pos.fork(move))
                 {
                     Value futilityValue =
                       std::min(143 + ss->staticEval + 116 * lmrDepth
