@@ -1244,7 +1244,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int captHist = captureHistory[movedPiece][dst][captured];
 
                 // Futility pruning for captures not check
-                if (!ss->inCheck && lmrDepth < 7 && !check && !pos.fork(move))
+                if (!ss->inCheck && ss->staticEval <= alpha && lmrDepth < 7 && !check
+                    && !pos.fork(move))
                 {
                     Value futilityValue =
                       std::min(242 + ss->staticEval + PIECE_VALUE[captured] + promotion_value(move)
@@ -1293,8 +1294,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                     }
                 }
 
-                if (lmrDepth < 0)
-                    lmrDepth = 0;
+                if (lmrDepth < DEPTH_ZERO)
+                    lmrDepth = DEPTH_ZERO;
 
                 // SEE based pruning for quiets
                 if (pos.see(move) < -(26 * sqr(lmrDepth) + 256 * dblCheck))
