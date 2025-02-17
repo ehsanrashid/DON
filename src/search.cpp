@@ -1239,6 +1239,8 @@ S_MOVES_LOOP:  // When in check, search starts here
             // Reduced depth of the next LMR search
             Depth lmrDepth = newDepth - r / 1024;
 
+            Value futilityValue;
+
             if (capture)
             {
                 int captHist = captureHistory[movedPiece][dst][captured];
@@ -1247,7 +1249,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (!ss->inCheck && ss->staticEval <= alpha && lmrDepth < 7 && !check
                     && !pos.fork(move))
                 {
-                    Value futilityValue =
+                    futilityValue =
                       std::min(242 + ss->staticEval + PIECE_VALUE[captured] + promotion_value(move)
                                  + int(0.1357f * captHist) + 238 * lmrDepth,
                                VALUE_TB_WIN_IN_MAX_PLY - 1);
@@ -1282,10 +1284,9 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (!ss->inCheck && ss->staticEval <= alpha && lmrDepth < 12 && !check
                     && !pos.fork(move))
                 {
-                    Value futilityValue =
-                      std::min(143 + ss->staticEval + 116 * lmrDepth
-                                 + std::max(-150 + ss->staticEval - bestValue, 0),
-                               VALUE_TB_WIN_IN_MAX_PLY - 1);
+                    futilityValue = std::min(143 + ss->staticEval + 116 * lmrDepth
+                                               + std::max(-150 + ss->staticEval - bestValue, 0),
+                                             VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
                     {
                         if (bestValue < futilityValue)
@@ -1492,7 +1493,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             value = -search<PV>(pos, ss + 1, -beta, -alpha, newDepth);
         }
 
-        // Step 19. Undo move
+        // Step 19. Unmake move
         pos.undo_move(move);
 
         assert(is_ok(value));
@@ -1870,15 +1871,17 @@ QS_MOVES_LOOP:
             // Skip quiet moves
             mp.quietPick = mp.quietPick && moveCount < 4 + promoCount;
 
+            Value futilityValue;
+
             // Futility pruning and moveCount pruning
-            if (!check && dst != preSq && !is_loss(futilityBase)
+            if (!check && dst != preSq && !is_loss(futilityBase) && futilityBase <= alpha
                 && (move.type_of() != PROMOTION || (!ss->inCheck && move.promotion_type() != QUEEN))
                 && !pos.fork(move))
             {
                 if (moveCount > 2 + promoCount)
                     continue;
 
-                Value futilityValue =
+                futilityValue =
                   std::min(futilityBase + PIECE_VALUE[captured] + promotion_value(move),
                            VALUE_TB_WIN_IN_MAX_PLY - 1);
                 // If static evaluation + value of piece going to captured is much lower than alpha
@@ -1914,7 +1917,7 @@ QS_MOVES_LOOP:
                 continue;
         }
 
-        // Step 7. Make and search the move
+        // Step 7. Make the move
         pos.do_move(move, st, check);
 
         // Speculative prefetch as early as possible
@@ -1929,11 +1932,12 @@ QS_MOVES_LOOP:
 
         value = -qsearch<PVNode>(pos, ss + 1, -beta, -alpha);
 
+        // Step 8. Unmake move
         pos.undo_move(move);
 
         assert(is_ok(value));
 
-        // Step 8. Check for a new best move
+        // Step 9. Check for a new best move
         if (bestValue < value)
         {
             bestValue = value;
@@ -1953,7 +1957,7 @@ QS_MOVES_LOOP:
         }
     }
 
-    // Step 9. Check for checkmate & stalemate
+    // Step 10. Check for checkmate & stalemate
     // All legal moves have been searched.
     if (moveCount == 0)
     {
