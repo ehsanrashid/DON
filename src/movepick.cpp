@@ -118,9 +118,8 @@ void MovePicker::score() noexcept {
                     + (*continuationHistory[6])[pc][dst]      //
                     + (*continuationHistory[7])[pc][dst];
 
-            m.value += (ssPly < LOW_PLY_SIZE)
-                       ? 8 * (*lowPlyQuietHistory)[ssPly][m.org_dst()] / (1 + 2 * ssPly)
-                       : 0;
+            if (ssPly < LOW_PLY_SIZE)
+                m.value += 8 * (*lowPlyQuietHistory)[ssPly][m.org_dst()] / (1 + 2 * ssPly);
 
             // Bonus for checks
             if (pos.check(m))
@@ -158,7 +157,13 @@ void MovePicker::score() noexcept {
         {
             assert(m.type_of() != CASTLING);
 
-            m.value = 2 * PIECE_VALUE[pos.captured(m)] + promotion_value(m, true);
+            Square dst = m.dst_sq();
+
+            auto pc       = pos.moved_piece(m);
+            auto captured = pos.captured(m);
+
+            m.value = 2 * PIECE_VALUE[captured] + promotion_value(m, true)
+                    + (*captureHistory)[pc][dst][captured];
         }
 
         else  //if constexpr (GT == EVA_QUIET)

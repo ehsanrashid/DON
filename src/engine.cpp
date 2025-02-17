@@ -78,8 +78,8 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("Clear Hash",           Option([this](const Option&) { init(); return std::nullopt; }));
     options.add("HashRetain",           Option(false));
     options.add("HashFile",             Option(""));
-    options.add("Save Hash",            Option([this](const Option&) { (void)this; return std::nullopt; }));
-    options.add("Load Hash",            Option([this](const Option&) { (void)this; return std::nullopt; }));
+    options.add("Save Hash",            Option([this](const Option& o) { tt.save(o);          return std::nullopt; }));
+    options.add("Load Hash",            Option([this](const Option& o) { tt.load(o, threads); return std::nullopt; }));
     options.add("Ponder",               Option(false));
     options.add("MultiPV",              Option(MinMultiPV, 1, 256));
     options.add("SkillLevel",           Option(int(Skill::MaxLevel), int(Skill::MinLevel), int(Skill::MaxLevel)));
