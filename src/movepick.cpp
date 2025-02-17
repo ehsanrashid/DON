@@ -250,7 +250,7 @@ STAGE_SWITCH:
     case STG_ENC_CAPTURE_GOOD :
         while (begin() != end())
         {
-            if (current_ok())
+            if (is_ok(current()))
             {
                 if (threshold == 0 || pos.see(current()) >= -55.5555e-3 * current().value)
                     return current_next();
@@ -283,7 +283,7 @@ STAGE_SWITCH:
         if (quietPick)
             while (begin() != end())
             {
-                if (current_ok())
+                if (is_ok(current()))
                 {
                     if (current().value >= threshold)
                         return current_next();
@@ -303,7 +303,7 @@ STAGE_SWITCH:
     case STG_ENC_CAPTURE_BAD :
         if (badCapBeg != badCapMoves.end())
         {
-            assert(*badCapBeg != ttMove);
+            assert(is_ok(*badCapBeg));
             return *badCapBeg++;
         }
 
@@ -317,7 +317,7 @@ STAGE_SWITCH:
         if (quietPick)
             while (begin() != end())
             {
-                if (current_ok())
+                if (is_ok(current()))
                     return current_next();
                 next();
             }
@@ -336,7 +336,7 @@ STAGE_SWITCH:
     case STG_EVA_CAPTURE_ALL :
         while (begin() != end())
         {
-            if (current_ok())
+            if (is_ok(current()))
                 return current_next();
             next();
         }
@@ -362,7 +362,7 @@ STAGE_SWITCH:
         if (quietPick)
             while (begin() != end())
             {
-                if (current_ok())
+                if (is_ok(current()))
                     return current_next();
                 next();
             }
@@ -371,7 +371,7 @@ STAGE_SWITCH:
     case STG_PROBCUT_ALL :
         while (begin() != end())
         {
-            if (current_ok())
+            if (is_ok(current()))
                 if (pos.see(current()) >= threshold)
                     return current_next();
             next();
