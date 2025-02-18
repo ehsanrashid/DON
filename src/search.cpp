@@ -717,7 +717,7 @@ template<NodeType NT>
 Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, Depth depth, std::int8_t red, const Move& excludedMove) noexcept {
     // clang-format on
     constexpr bool RootNode = NT == Root;
-    constexpr bool PVNode   = RootNode || NT == PV;
+    constexpr bool PVNode   = NT & PV;
     constexpr bool CutNode  = NT == Cut;  // !PVNode
     constexpr bool AllNode  = NT == All;  // !PVNode
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
@@ -1246,8 +1246,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int captHist = captureHistory[movedPiece][dst][captured];
 
                 // Futility pruning for captures not check
-                if (!ss->inCheck && ss->staticEval <= alpha && lmrDepth < 7 && !check
-                    && !pos.fork(move))
+                if (!ss->inCheck && lmrDepth < 7 && !check && !pos.fork(move))
                 {
                     futilityValue =
                       std::min(242 + ss->staticEval + PIECE_VALUE[captured] + promotion_value(move)
@@ -1281,8 +1280,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 lmrDepth += 27.9642e-5f * contHist;
 
                 // Futility pruning for quiets not check
-                if (!ss->inCheck && ss->staticEval <= alpha && lmrDepth < 12 && !check
-                    && !pos.fork(move))
+                if (!ss->inCheck && lmrDepth < 12 && !check && !pos.fork(move))
                 {
                     futilityValue = std::min(143 + ss->staticEval + 116 * lmrDepth
                                                + std::max(-150 + ss->staticEval - bestValue, 0),
@@ -1874,7 +1872,7 @@ QS_MOVES_LOOP:
             Value futilityValue;
 
             // Futility pruning and moveCount pruning
-            if (!check && dst != preSq && !is_loss(futilityBase) && futilityBase <= alpha
+            if (!check && dst != preSq && !is_loss(futilityBase)
                 && (move.type_of() != PROMOTION || (!ss->inCheck && move.promotion_type() != QUEEN))
                 && !pos.fork(move))
             {
@@ -2259,7 +2257,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
       {{1, +1.0048f}, {2, +0.6407f}, {3, +0.3184f}, {4, +0.5234f},
        {5, +0.2698f}, {6, +0.5244f}, {7, +0.2222f}, {8, +0.3251f}}};
 
-    for (auto [i, weight] : ContHistoryWeights)
+    for (auto &[i, weight] : ContHistoryWeights)
     {
         if ((ss->inCheck && i > 2) || !(ss - i)->move.is_ok())
             break;

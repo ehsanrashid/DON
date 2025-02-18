@@ -466,7 +466,7 @@ class NullSearchManager final: public ISearchManager {
 
 // Node type
 enum NodeType : std::uint8_t {
-    Root = 4,
+    Root = 6,
     PV   = 2,
     Cut  = 1,
     All  = 0,
