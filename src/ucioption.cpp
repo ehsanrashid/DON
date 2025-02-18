@@ -24,7 +24,6 @@
 #include <iostream>
 #include <numeric>
 #include <utility>
-#include <vector>
 
 #include "misc.h"
 

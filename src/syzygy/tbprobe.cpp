@@ -39,7 +39,6 @@
 #include "../movegen.h"
 #include "../position.h"
 #include "../search.h"
-#include "../types.h"
 #include "../uci.h"
 #include "../ucioption.h"
 
@@ -62,9 +61,9 @@ namespace DON {
 namespace {
 
 // Max number of supported piece
-constexpr std::uint32_t TBPIECES = 7;
+constexpr inline std::uint32_t TBPieces = 7;
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit.
-constexpr int MAX_DTZ = 1 << 18;
+constexpr inline int MAX_DTZ = 1 << 18;
 
 enum Endian {
     BigEndian,
@@ -356,10 +355,10 @@ struct PairsData final {
       base64;  // base64[l - minSymLen] is the 64bit-padded lowest symbol of length l
     std::vector<std::uint8_t>
           symLen;            // Number of values (-1) represented by a given Huffman symbol: 1..256
-    Piece pieces[TBPIECES];  // Position pieces: the order of pieces defines the groups
+    Piece pieces[TBPieces];  // Position pieces: the order of pieces defines the groups
     std::uint64_t
-                 groupIdx[TBPIECES + 1];  // Start index used for the encoding of the group's pieces
-    std::int32_t groupLen[TBPIECES + 1];  // Number of pieces in a given group: KRKN -> (3, 1)
+                 groupIdx[TBPieces + 1];  // Start index used for the encoding of the group's pieces
+    std::int32_t groupLen[TBPieces + 1];  // Number of pieces in a given group: KRKN -> (3, 1)
     std::uint16_t mapIdx[4];  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
 };
 
@@ -772,8 +771,8 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     Bitboard leadPawns   = 0, b;
     int      leadPawnCnt = 0, size = 0;
     File     tbFile = FILE_A;
-    Square   squares[TBPIECES]{};
-    Piece    pieces[TBPIECES]{};
+    Square   squares[TBPieces]{};
+    Piece    pieces[TBPieces]{};
 
     // For pawns, TB files store 4 separate tables according if leading pawn is on
     // file a, b, c or d after reordering. The leading pawn is the one with maximum
