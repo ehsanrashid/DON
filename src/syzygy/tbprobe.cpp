@@ -39,6 +39,7 @@
 #include "../movegen.h"
 #include "../position.h"
 #include "../search.h"
+#include "../types.h"
 #include "../uci.h"
 #include "../ucioption.h"
 
@@ -693,9 +694,9 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     return pd->btree[sym].get<LR::Left>();
 }
 
-bool check_dtz_ac(TBTable<WDL>*, int, File) noexcept { return true; }
+bool check_ac(TBTable<WDL>*, int, File) noexcept { return true; }
 
-bool check_dtz_ac(TBTable<DTZ>* entry, int ac, File f) noexcept {
+bool check_ac(TBTable<DTZ>* entry, int ac, File f) noexcept {
     return (entry->get(ac, f)->flags & AC) == ac
         || (!entry->hasPawns && entry->key[WHITE] == entry->key[BLACK]);
 }
@@ -799,7 +800,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // DTZ tables are one-sided, i.e. they store positions only for white to
     // move or only for black to move, so check for side to move to be ac,
     // early exit otherwise.
-    if (!check_dtz_ac(entry, activeColor, tbFile))
+    if (!check_ac(entry, activeColor, tbFile))
         return *ps = PS_CHANGE_AC, Ret();
 
     // Now ready to get all the position pieces (but the lead pawns)
