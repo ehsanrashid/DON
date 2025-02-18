@@ -34,9 +34,6 @@ class Score;
 
 class UCI final {
    public:
-    static constexpr std::string_view StartFEN{
-      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
-
     UCI(int argc, const char** argv) noexcept;
 
     auto& engine_options() noexcept { return engine.get_options(); }

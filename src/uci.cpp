@@ -37,7 +37,6 @@
 #include "benchmark.h"
 #include "bitboard.h"
 #include "memory.h"
-#include "movegen.h"
 #include "position.h"
 #include "score.h"
 #include "search.h"

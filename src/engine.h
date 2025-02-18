@@ -56,7 +56,8 @@ class Engine final {
     std::string fen() const noexcept;
 
     // Set a new position, moves are in UCI or SAN format
-    void setup(std::string_view fen, const std::vector<std::string>& moves = {}) noexcept;
+    void setup(std::string_view                fen   = StartFEN,
+               const std::vector<std::string>& moves = {}) noexcept;
 
     std::uint64_t perft(Depth depth, bool detail = false) noexcept;
     // Non-blocking call to start searching

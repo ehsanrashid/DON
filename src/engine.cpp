@@ -109,7 +109,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     load_networks();
     resize_threads_tt();
 
-    setup(UCI::StartFEN);
+    setup();
 }
 
 Engine::~Engine() noexcept { wait_finish(); }

@@ -40,6 +40,7 @@
     #include <cstddef>
     #include <cstdint>
     #include <limits>
+    #include <string_view>
 
 // Predefined macros hell:
 //
@@ -81,6 +82,9 @@ constexpr inline std::uint16_t MAX_PLY   = 254;
 
 // Size of cache line (in bytes)
 constexpr inline std::size_t CACHE_LINE_SIZE = 64;
+
+constexpr inline std::string_view StartFEN{
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 
 enum Color : std::uint8_t {
     WHITE,

@@ -24,13 +24,13 @@
 #include <string_view>
 #include <vector>
 
-#include "uci.h"
+#include "types.h"
 
 namespace DON::Benchmark {
 
 using Commands = std::vector<std::string>;
 
-Commands setup_bench(std::istringstream& iss, std::string_view currentFen = UCI::StartFEN) noexcept;
+Commands setup_bench(std::istringstream& iss, std::string_view currentFen = StartFEN) noexcept;
 
 struct Benchmark final {
     std::size_t threads;
