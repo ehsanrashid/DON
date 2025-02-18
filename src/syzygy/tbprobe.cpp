@@ -701,10 +701,11 @@ bool check_ac(TBTable<DTZ>* entry, int ac, File f) noexcept {
         || (!entry->hasPawns && entry->key[WHITE] == entry->key[BLACK]);
 }
 
-// DTZ scores are sorted by frequency of occurrence and then assigned the
-// values 0, 1, 2, ... in order of decreasing frequency. This is done for each
-// of the four WDLScore values. The mapping information necessary to reconstruct
-// the original values are stored in the TB file and read during map[] init.
+// DTZ scores are sorted by frequency of occurrence and
+// then assigned the values 0, 1, 2, ... in order of decreasing frequency.
+// This is done for each of the four WDLScore values.
+// The mapping information necessary to reconstruct the original values
+// are stored in the TB file and read during map[] init.
 WDLScore map_score(TBTable<WDL>*, File, int value, WDLScore) noexcept {
     return WDLScore(value - 2);
 }

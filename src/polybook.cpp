@@ -320,7 +320,7 @@ Key polyglot_key(const Position& pos) noexcept {
 }
 
 Move fix_promotion(const Move& m) noexcept {
-    if (int pt = (m.raw() >> 12) & 7)
+    if (int pt = (m.raw() >> 12) & 0x7)
         return Move(m.org_sq(), m.dst_sq(), PieceType(pt + 1));
     return m;
 }
