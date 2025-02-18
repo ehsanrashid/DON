@@ -290,6 +290,7 @@ STAGE_SWITCH:
                     if (cur.value >= threshold)
                         return cur;
                     // Remaining quiets are bad
+                    --extBeg;
                     break;
                 }
             }
