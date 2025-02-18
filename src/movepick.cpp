@@ -284,15 +284,17 @@ STAGE_SWITCH:
             while (begin() != end())
             {
                 auto& cur = current();
-                next();
                 if (is_ok(cur))
                 {
                     if (cur.value >= threshold)
+                    {
+                        next();
                         return cur;
+                    }
                     // Remaining quiets are bad
-                    --extBeg;
                     break;
                 }
+                next();
             }
 
         // Prepare to loop over the bad captures
