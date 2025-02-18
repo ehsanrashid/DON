@@ -250,15 +250,15 @@ STAGE_SWITCH:
     case STG_ENC_CAPTURE_GOOD :
         while (begin() != end())
         {
-            if (is_ok(current()))
-            {
-                if (threshold == 0 || pos.see(current()) >= -55.5555e-3 * current().value)
-                    return current_next();
-
-                // Store bad captures
-                badCapMoves.push_back(current());
-            }
+            auto& cur = current();
             next();
+            if (is_ok(cur))
+            {
+                if (threshold == 0 || pos.see(cur) >= -55.5555e-3 * cur.value)
+                    return cur;
+                // Store bad captures
+                badCapMoves.push_back(cur);
+            }
         }
 
         next_stage();
@@ -283,15 +283,15 @@ STAGE_SWITCH:
         if (quietPick)
             while (begin() != end())
             {
-                if (is_ok(current()))
+                auto& cur = current();
+                next();
+                if (is_ok(cur))
                 {
-                    if (current().value >= threshold)
-                        return current_next();
-
+                    if (cur.value >= threshold)
+                        return cur;
                     // Remaining quiets are bad
                     break;
                 }
-                next();
             }
 
         // Prepare to loop over the bad captures
@@ -317,9 +317,10 @@ STAGE_SWITCH:
         if (quietPick)
             while (begin() != end())
             {
-                if (is_ok(current()))
-                    return current_next();
+                Move cur = current();
                 next();
+                if (is_ok(cur))
+                    return cur;
             }
         return Move::None;
 
@@ -336,9 +337,10 @@ STAGE_SWITCH:
     case STG_EVA_CAPTURE_ALL :
         while (begin() != end())
         {
-            if (is_ok(current()))
-                return current_next();
+            Move cur = current();
             next();
+            if (is_ok(cur))
+                return cur;
         }
 
         next_stage();
@@ -362,19 +364,21 @@ STAGE_SWITCH:
         if (quietPick)
             while (begin() != end())
             {
-                if (is_ok(current()))
-                    return current_next();
+                Move cur = current();
                 next();
+                if (is_ok(cur))
+                    return cur;
             }
         return Move::None;
 
     case STG_PROBCUT_ALL :
         while (begin() != end())
         {
-            if (is_ok(current()))
-                if (pos.see(current()) >= threshold)
-                    return current_next();
+            Move cur = current();
             next();
+            if (is_ok(cur))
+                if (pos.see(cur) >= threshold)
+                    return cur;
         }
         return Move::None;
 

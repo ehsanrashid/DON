@@ -99,9 +99,9 @@ class MovePicker final {
     auto begin() noexcept { return extBeg; }
     auto end() noexcept { return extEnd; }
 
+    void next() noexcept { ++extBeg; }
+
     const auto& current() const noexcept { return *extBeg; }
-    const auto& current_next() noexcept { return *extBeg++; }
-    void        next() noexcept { ++extBeg; }
 
     bool is_ok(const Move& move) const noexcept { return move != ttMove; }
 
