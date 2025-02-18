@@ -560,7 +560,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     insert(wdlTable.back().key[BLACK], &wdlTable.back(), &dtzTable.back());
 }
 
-TBTables TB_Tables;
+TBTables _TBTables;
 
 // TB tables are compressed with canonical Huffman code. The compressed data is divided into
 // blocks of size d->blockSize, and each block stores a variable number of symbols.
@@ -755,8 +755,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // If both sides have the same pieces keys are equal. In this case TB tables
     // only stores the 'white to move' case, so if the position to lookup has black
     // to move, need to switch the color and flip the squares before to lookup.
-    bool symmetricBlackToMove =
-      entry->key[WHITE] == entry->key[BLACK] && pos.active_color() == BLACK;
+    bool blackSymmetric = pos.active_color() == BLACK && entry->key[WHITE] == entry->key[BLACK];
 
     // TB files are calculated for white as the stronger side. For instance, we
     // have KRvK, not KvKR. A position where the stronger side is white will have
@@ -764,9 +763,9 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // and flip the squares before to lookup.
     bool blackStronger = materialKey != entry->key[WHITE];
 
-    int colorFlip   = (symmetricBlackToMove || blackStronger) * 8;
-    int squareFlip  = (symmetricBlackToMove || blackStronger) * 56;
-    int activeColor = (symmetricBlackToMove || blackStronger) ^ pos.active_color();
+    int flipColor   = (blackSymmetric || blackStronger) * 8;
+    int flipSquare  = (blackSymmetric || blackStronger) * 56;
+    int activeColor = (blackSymmetric || blackStronger) ^ pos.active_color();
 
     Bitboard leadPawns   = 0, b;
     int      leadPawnCnt = 0, size = 0;
@@ -781,12 +780,13 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     {
         // In all the 4 tables, pawns are at the beginning of the piece sequence and
         // their color is the reference one. So just pick the first one.
-        auto pc = Piece(entry->get(0, 0)->pieces[0] ^ colorFlip);
+        Piece pc = entry->get(0, 0)->pieces[0];
         assert(type_of(pc) == PAWN);
+        pc = pc ^ flipColor;
 
         leadPawns = b = pos.pieces(color_of(pc), PAWN);
         do
-            squares[size++] = pop_lsb(b) ^ squareFlip;
+            squares[size++] = pop_lsb(b) ^ flipSquare;
         while (b);
 
         leadPawnCnt = size;
@@ -809,8 +809,8 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     {
         Square s = pop_lsb(b);
 
-        squares[size] = s ^ squareFlip;
-        pieces[size]  = pos.piece_on(s) ^ colorFlip;
+        squares[size] = s ^ flipSquare;
+        pieces[size]  = pos.piece_on(s) ^ flipColor;
         ++size;
     }
 
@@ -1290,7 +1290,7 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdl = WDL_DRAW) no
     if (materialKey == 0)  // KvK, pos.count<ALL_PIECE>() == 2
         return Ret(WDL_DRAW);
 
-    auto* entry = TB_Tables.get<Type>(materialKey);
+    auto* entry = _TBTables.get<Type>(materialKey);
 
     if (entry == nullptr || mapped(pos, materialKey, *entry) == nullptr)
         return *ps = PS_FAIL, Ret();
@@ -1490,7 +1490,7 @@ void init() noexcept {
 // It is not thread safe, nor it needs to be.
 void init(const std::string& paths) noexcept {
 
-    TB_Tables.clear();
+    _TBTables.clear();
     MaxCardinality = 0;
     TBFile::Paths  = paths;
 
@@ -1500,49 +1500,49 @@ void init(const std::string& paths) noexcept {
     // Add entries in TB tables if the corresponding ".rtbw" file exists
     for (PieceType p1 = PAWN; p1 < KING; ++p1)
     {
-        TB_Tables.add({KING, p1, KING});
+        _TBTables.add({KING, p1, KING});
 
         for (PieceType p2 = PAWN; p2 <= p1; ++p2)
         {
-            TB_Tables.add({KING, p1, p2, KING});
-            TB_Tables.add({KING, p1, KING, p2});
+            _TBTables.add({KING, p1, p2, KING});
+            _TBTables.add({KING, p1, KING, p2});
 
             for (PieceType p3 = PAWN; p3 < KING; ++p3)
-                TB_Tables.add({KING, p1, p2, KING, p3});
+                _TBTables.add({KING, p1, p2, KING, p3});
 
             for (PieceType p3 = PAWN; p3 <= p2; ++p3)
             {
-                TB_Tables.add({KING, p1, p2, p3, KING});
+                _TBTables.add({KING, p1, p2, p3, KING});
 
                 for (PieceType p4 = PAWN; p4 <= p3; ++p4)
                 {
-                    TB_Tables.add({KING, p1, p2, p3, p4, KING});
+                    _TBTables.add({KING, p1, p2, p3, p4, KING});
 
                     for (PieceType p5 = PAWN; p5 <= p4; ++p5)
-                        TB_Tables.add({KING, p1, p2, p3, p4, p5, KING});
+                        _TBTables.add({KING, p1, p2, p3, p4, p5, KING});
 
                     for (PieceType p5 = PAWN; p5 < KING; ++p5)
-                        TB_Tables.add({KING, p1, p2, p3, p4, KING, p5});
+                        _TBTables.add({KING, p1, p2, p3, p4, KING, p5});
                 }
 
                 for (PieceType p4 = PAWN; p4 < KING; ++p4)
                 {
-                    TB_Tables.add({KING, p1, p2, p3, KING, p4});
+                    _TBTables.add({KING, p1, p2, p3, KING, p4});
 
                     for (PieceType p5 = PAWN; p5 <= p4; ++p5)
-                        TB_Tables.add({KING, p1, p2, p3, KING, p4, p5});
+                        _TBTables.add({KING, p1, p2, p3, KING, p4, p5});
                 }
             }
 
             for (PieceType p3 = PAWN; p3 <= p1; ++p3)
                 for (PieceType p4 = PAWN; p4 <= (p1 == p3 ? p2 : p3); ++p4)
-                    TB_Tables.add({KING, p1, p2, KING, p3, p4});
+                    _TBTables.add({KING, p1, p2, KING, p3, p4});
         }
     }
 
     std::string msg = "Tablebase: "  //
-                    + std::to_string(TB_Tables.wdl_count()) + " WDL and "
-                    + std::to_string(TB_Tables.dtz_count()) + " DTZ found. "
+                    + std::to_string(_TBTables.wdl_count()) + " WDL and "
+                    + std::to_string(_TBTables.dtz_count()) + " DTZ found. "
                     + "Tablebase files up to " + std::to_string(MaxCardinality) + "-man.";
     UCI::print_info_string(msg);
 }
