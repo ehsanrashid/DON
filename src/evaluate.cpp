@@ -93,7 +93,8 @@ Value evaluate(const Position&          pos,
     // clang-format on
 
     // Damp down the evaluation linearly when shuffling
-    auto damp = 1.0f - 8.0645e-3f * std::max(pos.rule50_count() - 4, 0);
+    auto rule50 = pos.rule50_count();
+    auto damp   = 1.0f - 2.0e-3f * (rule50 <= 4 ? rule50 : 4 + 3.3333f * (rule50 - 4));
     if (damp < 0.0f)
         damp = 0.0f;
 
