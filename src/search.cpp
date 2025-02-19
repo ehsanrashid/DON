@@ -1308,7 +1308,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Step 15. Extensions
         Depth extension = DEPTH_ZERO;
         // Take care to not overdo to avoid search getting stuck
-        if (ss->ply <= 2 * (2 + rootDepth))
+        if (ss->ply <= 2 * rootDepth)
         {
             // Singular extension search. If all moves but one fail low on a search
             // of (alpha-s, beta-s), and just one fails high on (alpha, beta), then
