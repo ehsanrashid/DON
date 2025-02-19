@@ -1375,7 +1375,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             }
 
             // Check extension
-            else if (check && depth > 12 && pos.rule50_count() < 10
+            else if (PVNode && check && depth > 12 && pos.rule50_count() < 4
                      && pos.see(move) > (0 - 256 * dblCheck))
                 extension = 1;
         }

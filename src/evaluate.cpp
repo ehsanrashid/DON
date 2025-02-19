@@ -93,7 +93,11 @@ Value evaluate(const Position&          pos,
     // clang-format on
 
     // Damp down the evaluation linearly when shuffling
-    v *= 1.0f - 4.9019e-3f * std::max(pos.rule50_count() - 4, 0);
+    auto damp = 1.0f - 8.0645e-3f * std::max(pos.rule50_count() - 4, 0);
+    if (damp < 0.0f)
+        damp = 0.0f;
+
+    v *= damp;
 
     // Guarantee evaluation does not hit the tablebase range
     return in_range(v);
