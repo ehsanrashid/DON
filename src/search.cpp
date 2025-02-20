@@ -1128,7 +1128,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             if (threads.stop.load(std::memory_order_relaxed))
                 return VALUE_ZERO;
 
-            if (value >= probCutBeta && !is_win(value))
+            // Subtract the margin
+            value -= probCutBeta - beta;
+
+            if (value >= beta && !is_win(value))
             {
                 assert(!is_loss(value));
 
