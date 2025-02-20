@@ -40,12 +40,10 @@ namespace DON {
 
 namespace Zobrist {
 
-// clang-format off
-extern Key psq      [PIECE_NB][SQUARE_NB];
-extern Key castling [CASTLING_RIGHTS_NB];
+extern Key psq[PIECE_NB][SQUARE_NB];
+extern Key castling[CASTLING_RIGHTS_NB];
 extern Key enpassant[FILE_NB];
 extern Key side;
-// clang-format on
 
 void init() noexcept;
 }  // namespace Zobrist
@@ -134,15 +132,15 @@ class Position final {
         struct Cardinal final {
            public:
             Cardinal() noexcept :
-                rankP(0) {}
+                rankPieces(0) {}
 
             constexpr void piece_on(File f, Piece pc) noexcept {
-                auto x = f << 2;
-                rankP  = (rankP & ~(0xFu << x)) | (pc << x);
+                auto shift = f << 2;
+                rankPieces = (rankPieces & ~(0xF << shift)) | (pc << shift);
             }
 
             constexpr Piece piece_on(File f) const noexcept {
-                return Piece((rankP >> (f << 2)) & 0xFu);
+                return Piece((rankPieces >> (f << 2)) & 0xF);
             }
 
             std::uint8_t count(Piece pc) const noexcept {
@@ -153,7 +151,7 @@ class Position final {
             }
 
            private:
-            std::uint32_t rankP;
+            std::uint32_t rankPieces;
         };
 
         Cardinal cardinals[RANK_NB];

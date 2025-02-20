@@ -139,12 +139,10 @@ CuckooTable<0x2000> Cuckoos;
 
 namespace Zobrist {
 
-// clang-format off
-Key psq      [PIECE_NB][SQUARE_NB];
-Key castling [CASTLING_RIGHTS_NB];
+Key psq[PIECE_NB][SQUARE_NB];
+Key castling[CASTLING_RIGHTS_NB];
 Key enpassant[FILE_NB];
 Key side;
-// clang-format on
 
 void init() noexcept {
     PRNG1024 rng(0x105524ull);
@@ -160,6 +158,7 @@ void init() noexcept {
     for (std::size_t cr = 0; cr < CASTLING_RIGHTS_NB; ++cr)
     {
         castling[cr] = 0;
+
         Bitboard b = cr;
         while (b)
         {

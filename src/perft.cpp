@@ -44,7 +44,6 @@ struct Perft final {
     void operator+=(const Perft& perft) noexcept;
     //void operator-=(const Perft& perft) noexcept;
 
-    std::uint16_t count     = 0;
     std::uint64_t nodes     = 0;
     std::uint64_t capture   = 0;
     std::uint64_t enpassant = 0;
@@ -293,20 +292,22 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
                       << std::setw(15) << "Castle"     //
                       << std::setw(15) << "Promote"    //
                       << std::setw(15) << "Checkmate"  //
-                      << std::setw(15) << "Stalemate";
+                      << std::setw(13) << "Stalemate";
         std::cout << std::endl;
     }
 
-    Perft sperft;
+    [[maybe_unused]] std::uint16_t count = 0;
+
+    Perft sPerft;
 
     for (const Move& m : LegalMoveList(pos))
     {
-        Perft iperft;
+        Perft iPerft;
         if (RootNode && depth <= 1)
         {
-            iperft.nodes++;
+            iPerft.nodes++;
             if (detail)
-                iperft.classify(pos, m);
+                iPerft.classify(pos, m);
         }
         else
         {
@@ -318,10 +319,10 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
             if (depth <= 2)
             {
                 const LegalMoveList ilegalMoves(pos);
-                iperft.nodes += ilegalMoves.size();
+                iPerft.nodes += ilegalMoves.size();
                 if (detail)
                     for (const Move& im : ilegalMoves)
-                        iperft.classify(pos, im);
+                        iPerft.classify(pos, im);
             }
             else
             {
@@ -330,44 +331,41 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
                     Key key           = pos.key(-pos.rule50_count());
                     auto [ptHit, pte] = perftTable.probe(key, depth - 1);
                     if (ptHit)
-                        iperft.nodes += pte->nodes();
+                        iPerft.nodes += pte->nodes();
                     else
                     {
-                        iperft = perft<false>(pos, depth - 1, detail);
-                        pte->save(key, depth - 1, iperft.nodes);
+                        iPerft = perft<false>(pos, depth - 1, detail);
+                        pte->save(key, depth - 1, iPerft.nodes);
                     }
                 }
                 else
-                    iperft = perft<false>(pos, depth - 1, detail);
+                    iPerft = perft<false>(pos, depth - 1, detail);
             }
             pos.undo_move(m);
         }
 
-        if (detail)
-            sperft += iperft;
-        else
-            sperft.nodes += iperft.nodes;
+        sPerft += iPerft;
 
         if (RootNode)
         {
-            sperft.count++;
+            ++count;
 
             std::cout << std::right << std::setfill('0')                  //
-                      << std::setw(2) << sperft.count                     //
+                      << std::setw(2) << count                            //
                       << std::left << std::setfill(' ')                   //
                       << " " << std::setw(7) << UCI::move_to_san(m, pos)  //
                       << std::right << std::setfill('.')                  //
-                      << ": " << std::setw(16) << iperft.nodes;
+                      << ": " << std::setw(16) << iPerft.nodes;
             if (detail)
-                std::cout << "   " << std::setw(14) << iperft.capture    //
-                          << "   " << std::setw(12) << iperft.enpassant  //
-                          << "   " << std::setw(12) << iperft.anyCheck   //
-                          << "   " << std::setw(12) << iperft.dscCheck   //
-                          << "   " << std::setw(12) << iperft.dblCheck   //
-                          << "   " << std::setw(12) << iperft.castle     //
-                          << "   " << std::setw(12) << iperft.promotion  //
-                          << "   " << std::setw(12) << iperft.checkmate  //
-                          << "   " << std::setw(12) << iperft.stalemate;
+                std::cout << "   " << std::setw(14) << iPerft.capture    //
+                          << "   " << std::setw(12) << iPerft.enpassant  //
+                          << "   " << std::setw(12) << iPerft.anyCheck   //
+                          << "   " << std::setw(12) << iPerft.dscCheck   //
+                          << "   " << std::setw(12) << iPerft.dblCheck   //
+                          << "   " << std::setw(12) << iPerft.castle     //
+                          << "   " << std::setw(12) << iPerft.promotion  //
+                          << "   " << std::setw(12) << iPerft.checkmate  //
+                          << "   " << std::setw(10) << iPerft.stalemate;
             std::cout << std::endl;
         }
     }
@@ -375,21 +373,21 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
     if (RootNode)
     {
         std::cout << std::right << std::setfill('.');
-        std::cout << "Total     : " << std::setw(16) << sperft.nodes;
+        std::cout << "Total     : " << std::setw(16) << sPerft.nodes;
         if (detail)
-            std::cout << " " << std::setw(16) << sperft.capture    //
-                      << " " << std::setw(14) << sperft.enpassant  //
-                      << " " << std::setw(14) << sperft.anyCheck   //
-                      << " " << std::setw(14) << sperft.dscCheck   //
-                      << " " << std::setw(14) << sperft.dblCheck   //
-                      << " " << std::setw(14) << sperft.castle     //
-                      << " " << std::setw(14) << sperft.promotion  //
-                      << " " << std::setw(14) << sperft.checkmate  //
-                      << " " << std::setw(14) << sperft.stalemate;
-        std::cout << std::endl;
+            std::cout << " " << std::setw(16) << sPerft.capture    //
+                      << " " << std::setw(14) << sPerft.enpassant  //
+                      << " " << std::setw(14) << sPerft.anyCheck   //
+                      << " " << std::setw(14) << sPerft.dscCheck   //
+                      << " " << std::setw(14) << sPerft.dblCheck   //
+                      << " " << std::setw(14) << sPerft.castle     //
+                      << " " << std::setw(14) << sPerft.promotion  //
+                      << " " << std::setw(14) << sPerft.checkmate  //
+                      << " " << std::setw(12) << sPerft.stalemate;
+        std::cout << std::setfill(' ') << std::endl;
     }
 
-    return sperft;
+    return sPerft;
 }
 
 // Explicit template instantiations
