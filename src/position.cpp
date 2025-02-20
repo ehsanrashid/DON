@@ -2059,17 +2059,24 @@ bool Position::pos_is_ok() const noexcept {
 }
 #endif
 
+std::ostream& operator<<(std::ostream& os, const Position::Board::Cardinal& cardinal) noexcept {
+    for (File f = FILE_A; f <= FILE_H; ++f)
+        os << " | " << UCI::piece(cardinal.piece_on(f));
+    os << " | ";
+
+    return os;
+}
+
 std::ostream& operator<<(std::ostream& os, const Position::Board& board) noexcept {
-    os << "\n +---+---+---+---+---+---+---+---+\n";
+    static constexpr std::string_view Sep = "\n  +---+---+---+---+---+---+---+---+\n";
+
+    os << Sep;
     for (Rank r = RANK_8; r >= RANK_1; --r)
-    {
-        for (File f = FILE_A; f <= FILE_H; ++f)
-            os << " | " << UCI::piece(board.piece_on(make_square(f, r)));
-        os << " | " << UCI::rank(r)  //
-           << "\n +---+---+---+---+---+---+---+---+\n";
-    }
+        os << UCI::rank(r) << board.cardinals[r] << Sep;
+    os << " ";
     for (File f = FILE_A; f <= FILE_H; ++f)
         os << "   " << UCI::file(f, true);
+    os << "\n";
 
     return os;
 }
@@ -2077,7 +2084,7 @@ std::ostream& operator<<(std::ostream& os, const Position::Board& board) noexcep
 // Returns an ASCII representation of the position
 std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
-    os << pos.board << '\n'                                         //
+    os << pos.board                                                 //
        << "\nFen: " << pos.fen()                                    //
        << "\nKey: " << u64_to_string(pos.key())                     //
        << "\nKing Squares: "                                        //

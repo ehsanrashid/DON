@@ -107,6 +107,33 @@ class Position final {
    public:
     class Board final {
        public:
+        struct Cardinal final {
+           public:
+            Cardinal() noexcept :
+                rankPieces(0) {}
+
+            constexpr void piece_on(File f, Piece pc) noexcept {
+                auto shift = f << 2;
+                rankPieces = (rankPieces & ~(0xF << shift)) | (pc << shift);
+            }
+
+            constexpr Piece piece_on(File f) const noexcept {
+                return Piece((rankPieces >> (f << 2)) & 0xF);
+            }
+
+            std::uint8_t count(Piece pc) const noexcept {
+                std::uint8_t cnt = 0;
+                for (File f = FILE_A; f <= FILE_H; ++f)
+                    cnt += piece_on(f) == pc;
+                return cnt;
+            }
+
+            friend std::ostream& operator<<(std::ostream& os, const Cardinal& cardinal) noexcept;
+
+           private:
+            std::uint32_t rankPieces;
+        };
+
         Board() noexcept                        = default;
         Board(const Board&) noexcept            = delete;
         Board(Board&&) noexcept                 = delete;
@@ -129,31 +156,6 @@ class Position final {
         friend std::ostream& operator<<(std::ostream& os, const Board& board) noexcept;
 
        private:
-        struct Cardinal final {
-           public:
-            Cardinal() noexcept :
-                rankPieces(0) {}
-
-            constexpr void piece_on(File f, Piece pc) noexcept {
-                auto shift = f << 2;
-                rankPieces = (rankPieces & ~(0xF << shift)) | (pc << shift);
-            }
-
-            constexpr Piece piece_on(File f) const noexcept {
-                return Piece((rankPieces >> (f << 2)) & 0xF);
-            }
-
-            std::uint8_t count(Piece pc) const noexcept {
-                std::uint8_t cnt = 0;
-                for (File f = FILE_A; f <= FILE_H; ++f)
-                    cnt += piece_on(f) == pc;
-                return cnt;
-            }
-
-           private:
-            std::uint32_t rankPieces;
-        };
-
         Cardinal cardinals[RANK_NB];
     };
 
