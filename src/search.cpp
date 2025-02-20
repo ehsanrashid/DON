@@ -1320,7 +1320,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             // Note:
             // Generally, higher values of singularBeta (i.e closer to ttValue) and lower extension margins. (*Scaler)
             if ((!RootNode || curIdx == 0) && !exclude && move == ttd.move
-                && depth > 4 - ss->pvHit - (completedDepth > 32)   //
+                && depth > 4 + ss->pvHit - (completedDepth > 32)   //
                 && is_valid(ttd.value) && !is_decisive(ttd.value)  //
                 && ttd.depth >= depth - 3 && (ttd.bound & BOUND_LOWER))
             {
@@ -1367,11 +1367,11 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 // If the ttMove is assumed to fail high over current beta
                 else if (ttd.value >= beta)
-                    extension = -3 + ss->pvHit;
+                    extension = -3;
 
                 // If on CutNode but the ttMove is not assumed to fail high over current beta
                 else if constexpr (CutNode)
-                    extension = -2 + ss->pvHit;
+                    extension = -2;
             }
         }
 
