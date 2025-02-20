@@ -1319,7 +1319,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             // Note:
             // Generally, higher values of singularBeta (i.e closer to ttValue) and lower extension margins. (*Scaler)
-            if (!RootNode && !exclude && move == ttd.move
+            if ((!RootNode || curIdx == 0) && !exclude && move == ttd.move
                 && depth > 4 - (completedDepth > 32) + ss->pvHit   //
                 && is_valid(ttd.value) && !is_decisive(ttd.value)  //
                 && ttd.depth >= depth - 3 && (ttd.bound & BOUND_LOWER))
@@ -1373,10 +1373,6 @@ S_MOVES_LOOP:  // When in check, search starts here
                 else if constexpr (CutNode)
                     extension = -2;
             }
-
-            // Check extension
-            else if (PVNode && check && depth > 12 && pos.see(move) > (0 - 256 * dblCheck))
-                extension = 1;
         }
 
         // Add extension to new depth
