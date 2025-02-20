@@ -722,7 +722,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     constexpr bool AllNode  = NT == All;  // !PVNode
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (1 + alpha == beta));
-    assert((RootNode && ss->ply == 0) || ss->ply > 0);
+    assert((RootNode && ss->ply == 0) || ss->ply >= 0);
     assert(!RootNode || (DEPTH_ZERO < depth && depth < MAX_PLY));
 
     Color ac  = pos.active_color();
