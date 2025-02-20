@@ -150,9 +150,6 @@ void init() noexcept {
     PRNG1024 rng(0x105524ull);
 
     std::memset(psq, 0, sizeof(psq));
-    std::memset(castling, 0, sizeof(castling));
-    std::memset(enpassant, 0, sizeof(enpassant));
-
     for (Piece pc : Pieces)
     {
         std::size_t offset = PawnOffset * (type_of(pc) == PAWN);
@@ -160,8 +157,9 @@ void init() noexcept {
             psq[pc][s] = rng.rand<Key>();
     }
 
-    for (std::size_t cr = 1; cr < CASTLING_RIGHTS_NB; ++cr)
+    for (std::size_t cr = 0; cr < CASTLING_RIGHTS_NB; ++cr)
     {
+        castling[cr] = 0;
         Bitboard b = cr;
         while (b)
         {
