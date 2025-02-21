@@ -44,17 +44,19 @@ struct EvalFile final {
     std::string netDescription;
 };
 
-struct EvalTrace final {
-    static_assert(LayerStacks == PSQTBuckets);
-
-    std::int32_t psqt[LayerStacks];
-    std::int32_t positional[LayerStacks];
-    std::size_t  correctBucket;
+struct NetworkOutput final {
+    std::int32_t psqt;
+    std::int32_t positional;
 };
 
-std::string trace(Position&          pos,  //
-                  const Networks&    networks,
-                  AccumulatorCaches& caches) noexcept;
+struct NetworkTrace final {
+    static_assert(LayerStacks == PSQTBuckets);
+
+    NetworkOutput netOut[LayerStacks];
+    std::size_t   correctBucket;
+};
+
+std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& caches) noexcept;
 
 }  // namespace NNUE
 }  // namespace DON

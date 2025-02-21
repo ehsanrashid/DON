@@ -37,22 +37,22 @@ namespace DON::NNUE {
 using FeatureSet = Features::HalfKAv2_hm;
 
 // Number of input feature dimensions after conversion
-constexpr inline IndexType BigTransformedFeatureDimensions = 3072;
-constexpr inline int       BigL2                           = 15;
-constexpr inline int       BigL3                           = 32;
+constexpr inline IndexType     BigTransformedFeatureDimensions = 3072;
+constexpr inline std::uint32_t BigL2                           = 15;
+constexpr inline std::uint32_t BigL3                           = 32;
 
-constexpr inline IndexType SmallTransformedFeatureDimensions = 128;
-constexpr inline int       SmallL2                           = 15;
-constexpr inline int       SmallL3                           = 32;
+constexpr inline IndexType     SmallTransformedFeatureDimensions = 128;
+constexpr inline std::uint32_t SmallL2                           = 15;
+constexpr inline std::uint32_t SmallL3                           = 32;
 
 constexpr inline IndexType PSQTBuckets = 8;
 constexpr inline IndexType LayerStacks = 8;
 
-template<IndexType L1, int L2, int L3>
+template<IndexType L1, std::uint32_t L2, std::uint32_t L3>
 struct NetworkArchitecture final {
-    static constexpr IndexType TransformedFeatureDimensions = L1;
-    static constexpr int       FC_0_OUTPUTS                 = L2;
-    static constexpr int       FC_1_OUTPUTS                 = L3;
+    static constexpr IndexType     TransformedFeatureDimensions = L1;
+    static constexpr std::uint32_t FC_0_OUTPUTS                 = L2;
+    static constexpr std::uint32_t FC_1_OUTPUTS                 = L3;
 
     Layers::AffineTransformSparseInput<TransformedFeatureDimensions, FC_0_OUTPUTS + 1> fc_0;
     Layers::SqrClippedReLU<FC_0_OUTPUTS + 1>                                           ac_sqr_0;

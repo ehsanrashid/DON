@@ -38,11 +38,6 @@ enum EmbeddedType : std::uint8_t {
     SMALL,
 };
 
-struct NetworkOutput final {
-    std::int32_t psqt;
-    std::int32_t positional;
-};
-
 template<typename Arch, typename Transformer>
 class Network final {
     static constexpr IndexType TransformedFeatureDimensions = Arch::TransformedFeatureDimensions;
@@ -66,7 +61,7 @@ class Network final {
     evaluate(const Position&                                         pos,
              AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
-    EvalTrace
+    NetworkTrace
     trace_eval(const Position&                                         pos,
                AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
 

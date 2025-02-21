@@ -46,10 +46,10 @@ namespace DON::NNUE::Layers {
 #if !defined(ENABLE_SEQ_OPT)
 namespace {
 template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType OutputDimensions>
-void affine_transform_non_ssse3(std::int32_t*       output,
-                                const std::int32_t* biases,
+void affine_transform_non_ssse3(const std::int32_t* biases,
                                 const std::int8_t*  weights,
-                                const std::uint8_t* input) noexcept {
+                                const std::uint8_t* input,
+                                std::int32_t*       output) noexcept {
     #if defined(USE_SSE2) || defined(USE_NEON)
         #if defined(USE_SSE2)
     // At least a multiple of 16, with SSE2.
@@ -284,7 +284,7 @@ class AffineTransform final {
 #else
         // Use old implementation for the other architectures.
         affine_transform_non_ssse3<InputDimensions, PaddedInputDimensions, OutputDimensions>(
-          output, biases, weights, input);
+          biases, weights, input, output);
 #endif
     }
 
