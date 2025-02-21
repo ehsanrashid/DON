@@ -1243,6 +1243,8 @@ S_MOVES_LOOP:  // When in check, search starts here
             Depth lmrDepth = newDepth - r / 1024;
 
             Depth virtualDepth = depth - (bestMove != Move::None);
+            if (virtualDepth < 1)
+                virtualDepth = 1;
 
             Value futilityValue;
 
@@ -1253,10 +1255,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Futility pruning for captures not check
                 if (!ss->inCheck && lmrDepth < 7 && !check && !pos.fork(move))
                 {
-                    futilityValue =
-                      std::min(242 + ss->staticEval + PIECE_VALUE[captured] + promotion_value(move)
-                                 + int(0.1357f * captHist) + 238 * lmrDepth,
-                               VALUE_TB_WIN_IN_MAX_PLY - 1);
+                    futilityValue = std::min(242 + ss->staticEval - 94 * (bestMove != Move::None)
+                                               + PIECE_VALUE[captured] + promotion_value(move)
+                                               + int(0.1357f * captHist) + 238 * lmrDepth,
+                                             VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
                     {
                         if (bestValue < futilityValue)
@@ -1288,9 +1290,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Futility pruning for quiets not check
                 if (!ss->inCheck && lmrDepth < 12 && !check && !pos.fork(move))
                 {
-                    futilityValue = std::min(143 + ss->staticEval + 116 * lmrDepth
-                                               + std::max(-150 + ss->staticEval - bestValue, 0),
-                                             VALUE_TB_WIN_IN_MAX_PLY - 1);
+                    futilityValue =
+                      std::min(143 + ss->staticEval - 94 * (bestMove != Move::None) + 116 * lmrDepth
+                                 + std::max(-150 + ss->staticEval - bestValue, 0),
+                               VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
                     {
                         if (bestValue < futilityValue)

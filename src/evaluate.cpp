@@ -17,7 +17,7 @@
 
 #include "evaluate.h"
 
-#include <algorithm>
+#include <algorithm>  // IWYU pragma: keep
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
