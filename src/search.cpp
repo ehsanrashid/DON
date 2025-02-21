@@ -196,6 +196,26 @@ void update_pv(Move* pv, const Move& move, const Move* childPv) noexcept {
     *pv = Move::None;
 }
 
+// Returns (some constant of) second derivative of sigmoid.
+constexpr int fast_sigmoid_2nd_derivative_constant(int x, int y) noexcept { return -345600 * x / (sqr(x) + 3 * sqr(y)); }
+
+int risk_tolerance(const Position& pos, Value v) noexcept {
+    int material = pos.std_material();
+    int m = std::clamp(material, 17, 78);
+    int a = ((-3220 * m / 256 + 2361) * m / 256 - 586) * m / 256 + 421;
+    int b = ((+7761 * m / 256 - 2674) * m / 256 + 314) * m / 256 + 51;
+    // a and b are the crude approximation of the wdl model.
+    // The win rate is: 1 / (1 + exp((a-v) / b))
+    // The loss rate is 1 / (1 + exp((v+a) / b))
+
+    // The risk utility is therefore d / dv^2 (1 / (1 + exp(-(v-a) / b)) - 1 / (1 + exp(-(-v-a) / b)))
+    // -115200x/(x^2+3) = -345600(ab) / (a^2+3b^2) (multiplied by some constant) (second degree pade approximant)
+    int wRisk = +fast_sigmoid_2nd_derivative_constant(+v - a, b);
+    int lRisk = -fast_sigmoid_2nd_derivative_constant(-v - a, b);
+
+    return (wRisk + lRisk) * 60 / b;
+}
+
 void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept;
 void update_capture_history(const Position& pos, const Move& m, int bonus) noexcept;
 
@@ -1415,6 +1435,9 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Adjust reduction with move count and correction value
         r += 316 - 32 * moveCount - 1024 * dblCheck - 31.6776e-6f * absCorrectionValue;
+
+        if (PVNode && !is_decisive(bestValue))
+            r -= risk_tolerance(pos, bestValue);
 
         // Increase reduction for CutNode
         if constexpr (CutNode)
