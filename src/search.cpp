@@ -1243,8 +1243,6 @@ S_MOVES_LOOP:  // When in check, search starts here
             Depth lmrDepth = newDepth - r / 1024;
 
             Depth virtualDepth = depth - (bestMove != Move::None);
-            if (virtualDepth < 1)
-                virtualDepth = 1;
 
             Value futilityValue;
 
