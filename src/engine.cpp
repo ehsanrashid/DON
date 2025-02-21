@@ -53,7 +53,7 @@ constexpr inline std::size_t MAX_HASH =
 Engine::Engine(std::optional<std::string> path) noexcept :
     // clang-format off
     binaryDirectory(path ? CommandLine::get_binary_directory(*path) : ""),
-    numaContext(NumaConfig{}),
+    numaContext(NumaConfig::from_system()),
     options(),
     threads(),
     tt(),
@@ -62,7 +62,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
       NNUE::Networks(NNUE::BigNetwork  ({EvalFileDefaultNameBig  , "None", ""}, NNUE::BIG),
                      NNUE::SmallNetwork({EvalFileDefaultNameSmall, "None", ""}, NNUE::SMALL))) {
     
-    options.add("NumaPolicy",       Option("none", "var none var auto var system var hardware var default", [this](const Option& o) {
+    options.add("NumaPolicy",       Option("auto", "var none var auto var system var hardware var default", [this](const Option& o) {
         set_numa_config(o);
         return get_numa_config_info_str() + '\n'  //
              + get_thread_allocation_info_str();

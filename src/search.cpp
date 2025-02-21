@@ -722,7 +722,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     constexpr bool AllNode  = NT == All;  // !PVNode
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (1 + alpha == beta));
-    assert((RootNode && ss->ply == 0) || ss->ply >= 0);
+    assert(ss->ply >= 0);
     assert(!RootNode || (DEPTH_ZERO < depth && depth < MAX_PLY));
 
     Color ac  = pos.active_color();
@@ -2285,7 +2285,9 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
     assert(ss->moveCount != 0);
 
     int bonus = std::min(-92 + 162 * depth, 1587) + 298 * (bm == ss->ttMove);
-    int malus = std::max(std::min(-230 + 694 * depth, 2503) - 32 * (ss->moveCount - 1), 1);
+    int malus = std::min(-230 + 694 * depth, 2503) - 32 * (ss->moveCount - 1);
+    if (malus < 1)
+        malus = 1;
 
     if (pos.capture_promo(bm))
     {
@@ -2406,16 +2408,13 @@ void extend_tb_pv(Position&      rootPos,
 
         auto& st = states.emplace_back();
         rootPos.do_move(pvMove, st);
-
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime.
         if (tbConfig.rootInTB && rootPos.is_draw(ply, rule50Use))
         {
             rootPos.undo_move(pvMove);
-
             --ply;
-
             break;
         }
 
@@ -2430,7 +2429,7 @@ void extend_tb_pv(Position&      rootPos,
 
     // Step 2. Now extend the PV to mate, as if the user explores syzygy-tables.info using
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
-    while (!(rule50Use && rootPos.is_draw(0, rule50Use)))
+    while (!rootPos.is_draw(0, rule50Use))
     {
         RootMoves legalRootMoves;
         for (const Move& m : LegalMoveList(rootPos))

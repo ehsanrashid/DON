@@ -26,13 +26,13 @@
 #include <functional>
 #include <iostream>
 #include <limits>
-#include <map>
 #include <memory>
 #include <mutex>
 #include <set>
 #include <sstream>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -910,10 +910,10 @@ class NumaConfig final {
    private:
     static NumaConfig empty() noexcept { return NumaConfig(0, false); }
 
-    std::vector<std::set<CpuIndex>> nodes;
-    std::map<CpuIndex, NumaIndex>   nodeByCpu;
-    CpuIndex                        highestCpuIndex;
-    bool                            affinityCustom;
+    std::vector<std::set<CpuIndex>>         nodes;
+    std::unordered_map<CpuIndex, NumaIndex> nodeByCpu;
+    CpuIndex                                highestCpuIndex;
+    bool                                    affinityCustom;
 
     void remove_empty_numa_nodes() {
         std::vector<std::set<CpuIndex>> newNodes;
