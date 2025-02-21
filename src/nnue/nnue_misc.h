@@ -44,12 +44,16 @@ struct EvalFile final {
     std::string netDescription;
 };
 
+struct NetworkOutput final {
+    std::int32_t psqt;
+    std::int32_t positional;
+};
+
 struct EvalTrace final {
     static_assert(LayerStacks == PSQTBuckets);
 
-    std::int32_t psqt[LayerStacks];
-    std::int32_t positional[LayerStacks];
-    std::size_t  correctBucket;
+    NetworkOutput netOut[LayerStacks];
+    std::size_t   correctBucket;
 };
 
 std::string trace(Position&          pos,  //

@@ -307,8 +307,11 @@ EvalTrace Network<Arch, Transformer>::trace_eval(
     trace.correctBucket = (pos.count<ALL_PIECE>() - 1) / 4;
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        trace.psqt[bucket] = featureTransformer->transform(pos, cache, transformedFeatures, bucket);
-        trace.positional[bucket] = network[bucket].propagate(transformedFeatures);
+        auto psqt       = featureTransformer->transform(pos, cache, transformedFeatures, bucket);
+        auto positional = network[bucket].propagate(transformedFeatures);
+
+        trace.netOut[bucket].psqt       = psqt;
+        trace.netOut[bucket].positional = positional;
     }
 
     return trace;

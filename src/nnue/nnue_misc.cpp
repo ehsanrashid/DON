@@ -176,13 +176,13 @@ std::string trace(Position&          pos,  //
         std::int32_t val;
 
         oss << "|  " << bucket << "         |  ";
-        val = trace.psqt[bucket] / OUTPUT_SCALE;
+        val = trace.netOut[bucket].psqt / OUTPUT_SCALE;
         format_cp_aligned_dot(oss, val, pos);
         oss << "   |  ";
-        val = trace.positional[bucket] / OUTPUT_SCALE;
+        val = trace.netOut[bucket].positional / OUTPUT_SCALE;
         format_cp_aligned_dot(oss, val, pos);
         oss << "   |  ";
-        val = (trace.psqt[bucket] + trace.positional[bucket]) / OUTPUT_SCALE;
+        val = (trace.netOut[bucket].psqt + trace.netOut[bucket].positional) / OUTPUT_SCALE;
         format_cp_aligned_dot(oss, val, pos);
         oss << "   |";
         if (bucket == trace.correctBucket)
