@@ -2105,8 +2105,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
         ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
         Position p;
-        p.set(pos, &st);
-        st = *pos.state();
+        p.set(pos.fen(), &st);
 
         Tablebases::ProbeState wdlPs, dtzPs;
 
