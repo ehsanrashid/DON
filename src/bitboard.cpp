@@ -21,6 +21,7 @@
 #include <initializer_list>
 #include <iostream>
 #include <sstream>
+#include <string_view>
 
 #include "misc.h"
 #include "uci.h"
@@ -249,23 +250,21 @@ void init() noexcept {
 // Returns an ASCII representation of a bitboard suitable
 // to be printed to standard output. Useful for debugging.
 std::string pretty(Bitboard b) noexcept {
+    static constexpr std::string_view Sep = "\n  +---+---+---+---+---+---+---+---+\n";
+
     std::ostringstream oss;
 
-    oss << "+---+---+---+---+---+---+---+---+\n";
-
+    oss << Sep;
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
+        oss << UCI::rank(r);
         for (File f = FILE_A; f <= FILE_H; ++f)
-            oss << "| " << ((b & make_square(f, r)) ? "X" : " ") << " ";
-
-        oss << "| " << UCI::rank(r) << "\n+---+---+---+---+---+---+---+---+\n";
+            oss << " | " << ((b & make_square(f, r)) ? "X" : " ");
+        oss << " |" << Sep;
     }
-
-    oss << "  ";
+    oss << " ";
     for (File f = FILE_A; f <= FILE_H; ++f)
-        oss << UCI::file(f, true) << "   ";
-
-    oss << '\n';
+        oss << "   " << UCI::file(f, true);
 
     return oss.str();
 }
