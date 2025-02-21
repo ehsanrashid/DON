@@ -197,7 +197,7 @@ void update_pv(Move* pv, const Move& move, const Move* childPv) noexcept {
 }
 
 // Returns (some constant of) second derivative of sigmoid.
-constexpr int fast_sigmoid_2nd_derivative_constant(int x, int y) noexcept { return -345600 * x / (x * x + 3 * y * y); }
+constexpr int fast_sigmoid_2nd_derivative_constant(int x, int y) noexcept { return -345600 * x / (sqr(x) + 3 * sqr(y)); }
 
 int risk_tolerance(const Position& pos, Value v) noexcept {
     int material = pos.std_material();
@@ -210,7 +210,7 @@ int risk_tolerance(const Position& pos, Value v) noexcept {
 
     // The risk utility is therefore d / dv^2 (1 / (1 + exp(-(v-a) / b)) - 1 / (1 + exp(-(-v-a) / b)))
     // -115200x/(x^2+3) = -345600(ab) / (a^2+3b^2) (multiplied by some constant) (second degree pade approximant)
-    int wRisk = fast_sigmoid_2nd_derivative_constant(v - a, b);
+    int wRisk = +fast_sigmoid_2nd_derivative_constant(+v - a, b);
     int lRisk = -fast_sigmoid_2nd_derivative_constant(-v - a, b);
 
     return (wRisk + lRisk) * 60 / b;
