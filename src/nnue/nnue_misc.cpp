@@ -93,10 +93,7 @@ void format_cp_aligned_dot(std::ostringstream& oss,
 
 // Returns a string with the value of each piece on a board,
 // and a table for (PSQT, Layers) values bucket by bucket.
-std::string trace(Position&          pos,  //
-                  const Networks&    networks,
-                  AccumulatorCaches& caches) noexcept {
-
+std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& caches) noexcept {
     std::ostringstream oss;
 
     char board[3 * 8 + 1][8 * 8 + 2];

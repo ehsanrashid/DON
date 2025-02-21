@@ -283,7 +283,7 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
 }
 
 template<typename Arch, typename Transformer>
-EvalTrace Network<Arch, Transformer>::trace_eval(
+NetworkTrace Network<Arch, Transformer>::trace_eval(
   const Position&                                         pos,
   AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
     // Manually align the arrays on the stack because with gcc < 9.3
@@ -303,7 +303,7 @@ EvalTrace Network<Arch, Transformer>::trace_eval(
 
     ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
 
-    EvalTrace trace{};
+    NetworkTrace trace{};
     trace.correctBucket = (pos.count<ALL_PIECE>() - 1) / 4;
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {

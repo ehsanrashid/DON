@@ -61,7 +61,7 @@ class Network final {
     evaluate(const Position&                                         pos,
              AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
-    EvalTrace
+    NetworkTrace
     trace_eval(const Position&                                         pos,
                AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
 

@@ -49,16 +49,14 @@ struct NetworkOutput final {
     std::int32_t positional;
 };
 
-struct EvalTrace final {
+struct NetworkTrace final {
     static_assert(LayerStacks == PSQTBuckets);
 
     NetworkOutput netOut[LayerStacks];
     std::size_t   correctBucket;
 };
 
-std::string trace(Position&          pos,  //
-                  const Networks&    networks,
-                  AccumulatorCaches& caches) noexcept;
+std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& caches) noexcept;
 
 }  // namespace NNUE
 }  // namespace DON
