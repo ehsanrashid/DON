@@ -2395,6 +2395,9 @@ void extend_tb_pv(Position&      rootPos,
                   const Limit&   limit,
                   const Options& options) noexcept {
 
+    if (!options["SyzygyPVExtend"])
+        return;
+
     auto startTime = SteadyClock::now();
 
     // Do not use more than (0.5 * moveOverhead) time, if time manager is active.
