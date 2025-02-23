@@ -100,6 +100,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("SyzygyProbeLimit",     Option(7, 0, 7));
     options.add("SyzygyProbeDepth",     Option(1, 1, 100));
     options.add("Syzygy50MoveRule",     Option(true));
+    options.add("SyzygyPVExtend",       Option(true));
     options.add("EvalFileBig",          Option(EvalFileDefaultNameBig  , [this](const Option& o) { load_big_network(o);   return std::nullopt; }));
     options.add("EvalFileSmall",        Option(EvalFileDefaultNameSmall, [this](const Option& o) { load_small_network(o); return std::nullopt; }));
     options.add("ReportMinimal",        Option(false));

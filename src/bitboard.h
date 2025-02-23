@@ -474,13 +474,6 @@ inline Square msb(Bitboard b) noexcept {
 #endif
 }
 
-// Returns the bitboard of the least significant square of a non-zero bitboard.
-// It is equivalent to square_bb(lsb(bb)).
-constexpr Bitboard lsb_square_bb(Bitboard b) noexcept {
-    assert(b);
-    return b & -b;
-}
-
 // Returns and clears the least significant bit in a non-zero bitboard
 inline Square pop_lsb(Bitboard& b) noexcept {
     assert(b);
@@ -495,6 +488,13 @@ inline Square pop_msb(Bitboard& b) noexcept {
     Square s = msb(b);
     b ^= s;
     return s;
+}
+
+// Returns the bitboard of the least significant square of a non-zero bitboard.
+// It is equivalent to square_bb(lsb(bb)).
+constexpr Bitboard lsb_square_bb(Bitboard b) noexcept {
+    assert(b);
+    return b & -b;
 }
 
 }  // namespace DON
