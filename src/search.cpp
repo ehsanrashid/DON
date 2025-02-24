@@ -1489,7 +1489,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                     update_continuation_history(ss, movedPiece, dst, 2010);
                 }
             }
-            else if (value > alpha && value < 9 + bestValue)
+            else if (value < 9 + bestValue)
                 --newDepth;
         }
 
