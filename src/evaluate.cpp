@@ -85,11 +85,11 @@ Value evaluate(const Position&          pos,
     // clang-format off
     std::int32_t complexity = std::abs(netOut.psqt - netOut.positional) / NNUE::OUTPUT_SCALE;
 
-    nnue     -= nnue     * complexity * 55.5555e-6f;
-    optimism += optimism * complexity * 21.3675e-4f;
+    nnue     -= nnue     * std::lround(complexity * 55.5555e-6f);
+    optimism += optimism * std::lround(complexity * 21.3675e-4f);
 
     std::int32_t v = (nnue + 0.0999f * optimism)
-                   + (nnue + 0.9999f * optimism) * pos.material() * 12.8573e-6f;
+                   + (nnue + 0.9999f * optimism) * std::lround(pos.material() * 12.8573e-6f);
     // clang-format on
 
     // Damp down the evaluation linearly when shuffling
@@ -98,7 +98,7 @@ Value evaluate(const Position&          pos,
     if (damp < 0.0f)
         damp = 0.0f;
 
-    v *= damp;
+    v = std::lround(v * damp);
 
     // Guarantee evaluation does not hit the tablebase range
     return in_range(v);
