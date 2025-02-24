@@ -2006,7 +2006,7 @@ QS_MOVES_LOOP:
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_decisive(bestValue))
     {
-        bestValue = in_range((3 * bestValue + beta) / 4);
+        bestValue = in_range((bestValue + beta) / 2);
     }
 
     // Save gathered info in transposition table
