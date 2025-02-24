@@ -1038,9 +1038,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         assert(diff >= 0);
 
         // Null move dynamic reduction based on depth, eval and phase
-        Depth R = 4 + std::lround(0.3333f * depth)
-                + std::min(int(std::lround(4.2194e-3f * diff)), 6)
-                + std::lround(0.1111f * pos.phase());
+        Depth R = 4 + int(0.3333f * depth)             //
+                + std::min(int(4.2194e-3f * diff), 6)  //
+                + int(0.1111f * pos.phase());
         if (R > depth)
             R = depth;
 
