@@ -82,7 +82,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("Load Hash",            Option([this](const Option& o) { tt.load(o, threads); return std::nullopt; }));
     options.add("Ponder",               Option(false));
     options.add("MultiPV",              Option(MinMultiPV, 1, 256));
-    options.add("SkillLevel",           Option(int(Skill::MaxLevel), int(Skill::MinLevel), int(Skill::MaxLevel)));
+    options.add("SkillLevel",           Option(Skill::MaxLevel, Skill::MinLevel, Skill::MaxLevel));
     options.add("MoveOverhead",         Option(10, 0, 5000));
     options.add("NodesTime",            Option(0, 0, 10000));
     options.add("DrawMoveCount",        Option(DrawMoveCount, 5, 50, [](const Option& o) { DrawMoveCount = int(o); return std::nullopt; }));

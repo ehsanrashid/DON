@@ -197,7 +197,7 @@ void update_pv(Move* pv, const Move& move, const Move* childPv) noexcept {
 }
 
 int risk_tolerance(const Position& pos, Value v) noexcept {
-        
+
     // Returns (some constant of) second derivative of sigmoid
     static constexpr auto sigmoid_d2 = [](int x, int y) { return -345600 * x / (sqr(x) + 3 * sqr(y)); };
 
