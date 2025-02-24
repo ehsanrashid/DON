@@ -213,7 +213,7 @@ int risk_tolerance(const Position& pos, Value v) noexcept {
     int wRisk = +fast_sigmoid_2nd_derivative_constant(+v - a, b);
     int lRisk = -fast_sigmoid_2nd_derivative_constant(-v - a, b);
 
-    return (wRisk + lRisk) * 60 / b;
+    return std::lround((wRisk + lRisk) * 60.0f / b);
 }
 
 void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept;
@@ -850,14 +850,15 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         {
             // Bonus for a quiet ttMove
             if (!ttCapture)
-                update_all_quiet_history(pos, ss, ttd.move,
-                                         std::min(-69.6719f + 114.8438f * depth, 1215.8125f));
+                update_all_quiet_history(
+                  pos, ss, ttd.move,
+                  std::lround(std::min(-69.6719f + 114.8438f * depth, 1215.8125f)));
 
             // Extra penalty for early quiet moves of the previous ply
             if (is_ok(preSq) && !preCapture && (ss - 1)->moveCount <= 3)
                 update_continuation_history(
                   ss - 1, pos.piece_on(preSq), preSq,
-                  -std::min(-265.4355f + 761.5117f * (depth + 1), 265.4355f));
+                  std::lround(-std::min(-265.4355f + 761.5117f * (depth + 1), 265.4355f)));
         }
 
         // Partial workaround for the graph history interaction problem
@@ -1008,9 +1009,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         int bonus = 638 + std::clamp(-10 * (ss->staticEval + (ss - 1)->staticEval), -1906, +1450);
 
-        update_quiet_history(~ac, preMove, +1.1094f * bonus);
+        update_quiet_history(~ac, preMove, std::lround(+1.1094f * bonus));
         if (preNonPawn)
-            update_pawn_history(pos, pos.piece_on(preSq), preSq, +1.1670f * bonus);
+            update_pawn_history(pos, pos.piece_on(preSq), preSq, std::lround(+1.1670f * bonus));
     }
 
     // Step 7. Razoring
@@ -1023,7 +1024,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (!ss->pvHit && depth < 15 && eval >= beta && (ttd.move == Move::None || ttCapture)
         && !is_loss(beta) && !is_win(eval)
         && eval - futility_margin<CutNode>(depth, ttd.hit, improve, opworse)
-               + (37 - 7.5289e-6f * absCorrectionValue) - 3.0675e-3f * (ss - 1)->history
+               + (37 - std::lround(7.5289e-6f * absCorrectionValue))
+               - std::lround(3.0675e-3f * (ss - 1)->history)
              >= beta)
         return in_range((2 * eval + beta) / 3);
 
@@ -1036,7 +1038,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         assert(diff >= 0);
 
         // Null move dynamic reduction based on depth, eval and phase
-        Depth R = 4 + 0.3333f * depth + std::min(4.2194e-3f * diff, 6.0f) + 0.1111f * pos.phase();
+        Depth R = 4 + std::lround(0.3333f * depth)
+                + std::min(int(std::lround(4.2194e-3f * diff)), 6)
+                + std::lround(0.1111f * pos.phase());
         if (R > depth)
             R = depth;
 
@@ -1260,7 +1264,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                                          - (!improve && singularValue < -80 + alpha);
 
             // Reduced depth of the next LMR search
-            Depth lmrDepth = newDepth - std::lround(float(r) / 1024.0f);
+            Depth lmrDepth = newDepth - std::lround(float(r) / 1024);
 
             Depth virtualDepth = depth - (bestMove != Move::None);
 
@@ -1273,10 +1277,11 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Futility pruning for captures not check
                 if (!ss->inCheck && lmrDepth < 7 && !check && !pos.fork(move))
                 {
-                    futilityValue = std::min(242 + ss->staticEval - 94 * (bestMove != Move::None)
-                                               + PIECE_VALUE[captured] + promotion_value(move)
-                                               + int(0.1357f * captHist) + 238 * lmrDepth,
-                                             VALUE_TB_WIN_IN_MAX_PLY - 1);
+                    futilityValue =
+                      std::min(242 + ss->staticEval - 94 * (bestMove != Move::None)
+                                 + PIECE_VALUE[captured] + promotion_value(move)
+                                 + int(std::lround(0.1357f * captHist)) + 238 * lmrDepth,
+                               VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
                     {
                         if (bestValue < futilityValue)
@@ -1286,8 +1291,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for captures
-                int seeHist =
-                  std::clamp(int(0.0278f * captHist), -153 * virtualDepth, +134 * virtualDepth);
+                int seeHist = std::clamp(int(std::lround(0.0278f * captHist)), -153 * virtualDepth,
+                                         +134 * virtualDepth);
                 if (pos.see(move) < -(seeHist + 157 * virtualDepth + 256 * dblCheck))
                     continue;
             }
@@ -1301,9 +1306,9 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (contHist < -4107 * virtualDepth)
                     continue;
 
-                contHist += 2.1250f * quietHistory[ac][move.org_dst()];
+                contHist += std::lround(2.1250f * quietHistory[ac][move.org_dst()]);
 
-                lmrDepth += 27.9642e-5f * contHist;
+                lmrDepth += std::lround(27.9642e-5f * contHist);
 
                 // Futility pruning for quiets not check
                 if (!ss->inCheck && lmrDepth < 12 && !check && !pos.fork(move))
@@ -1349,7 +1354,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 && ttd.depth >= depth - 3 && (ttd.bound & BOUND_LOWER))
             {
                 // clang-format off
-                Value singularBeta  = ttd.value - (0.9483f + 1.3966f * (!PVNode && ss->pvHit)) * depth;
+                Value singularBeta  = ttd.value - std::lround((0.9483f + 1.3966f * (!PVNode && ss->pvHit)) * depth);
                 Depth singularDepth = 0.5f * newDepth;
                 assert(singularDepth > DEPTH_ZERO);
 
@@ -1361,8 +1366,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 {
                     singularValue = value;
 
-                    int doubleMargin =  0 + 267 * PVNode - 181 * !ttCapture +   0 * ss->pvHit - 3.7724e-6f * absCorrectionValue;
-                    int tripleMargin = 96 + 282 * PVNode - 250 * !ttCapture + 103 * ss->pvHit - 3.9420e-6f * absCorrectionValue;
+                    int doubleMargin =  0 + 267 * PVNode - 181 * !ttCapture +   0 * ss->pvHit - std::lround(3.7724e-6f * absCorrectionValue);
+                    int tripleMargin = 96 + 282 * PVNode - 250 * !ttCapture + 103 * ss->pvHit - std::lround(3.9420e-6f * absCorrectionValue);
 
                     extension = 1 + (value < singularBeta - doubleMargin)
                                   + (value < singularBeta - tripleMargin);
@@ -1434,7 +1439,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // These reduction adjustments have no proven non-linear scaling.
 
         // Adjust reduction with move count and correction value
-        r += 316 - 32 * moveCount - 1024 * dblCheck - 31.6776e-6f * absCorrectionValue;
+        r += 316 - 32 * moveCount - 1024 * dblCheck - std::lround(31.6776e-6f * absCorrectionValue);
 
         if (PVNode && !is_decisive(bestValue))
             r -= risk_tolerance(pos, bestValue);
@@ -1457,7 +1462,7 @@ S_MOVES_LOOP:  // When in check, search starts here
              : -1982 * (move == ttd.move);
 
         // Decrease/Increase reduction for moves with a good/bad history
-        r -= 85.8764e-3f * ss->history;
+        r -= std::lround(85.8764e-3f * ss->history);
 
         // Step 17. Late moves reduction / extension (LMR)
         if (depth > 1 && moveCount > 1)
@@ -1465,7 +1470,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
             Depth redDepth =
-              std::max(1, std::min(newDepth - int(std::lround(float(r) / 1024.0f)),
+              std::max(1, std::min(newDepth - int(std::lround(float(r) / 1024)),
                                    newDepth + !AllNode + (PVNode && bestMove == Move::None)));
 
             value = -search<Cut>(pos, ss + 1, -(alpha + 1), -alpha, redDepth, newDepth - redDepth);
@@ -1660,17 +1665,19 @@ S_MOVES_LOOP:  // When in check, search starts here
                             + 100 * ((ss - 1)->cutoffCount <= 3)
                             + 100 * (red > 1)
                             // Increase bonus if the previous move has a bad history
-                            + std::min(-9.2593e-3f * (ss - 1)->history, 320.0f);
+                            + std::min(int(std::lround(-9.2593e-3f * (ss - 1)->history)), 320);
             // clang-format on
-            if (bonusScale < 0.0f)
-                bonusScale = 0.0f;
+            if (bonusScale < 0)
+                bonusScale = 0;
 
             int bonus = bonusScale * std::min(-106 + 160 * depth, 1523);
 
-            update_quiet_history(~ac, preMove, +6.6833e-3f * bonus);
-            update_continuation_history(ss - 1, pos.piece_on(preSq), preSq, +12.6953e-3f * bonus);
+            update_quiet_history(~ac, preMove, std::lround(+6.6833e-3f * bonus));
+            update_continuation_history(ss - 1, pos.piece_on(preSq), preSq,
+                                        std::lround(+12.6953e-3f * bonus));
             if (preNonPawn)
-                update_pawn_history(pos, pos.piece_on(preSq), preSq, +33.6609e-3f * bonus);
+                update_pawn_history(pos, pos.piece_on(preSq), preSq,
+                                    std::lround(+33.6609e-3f * bonus));
         }
         // Bonus for prior capture move
         else
@@ -1709,7 +1716,7 @@ S_MOVES_LOOP:  // When in check, search starts here
           // positive correction & no fail low
           || (bestValue > ss->staticEval && bestMove != Move::None)))
     {
-        int bonus = 0.1250f * depth * (bestValue - ss->staticEval);
+        int bonus = std::lround(0.1250f * depth * (bestValue - ss->staticEval));
         update_correction_history(pos, ss, bonus);
     }
 
@@ -2290,7 +2297,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
         if ((ss->inCheck && i > 2) || !(ss - i)->move.is_ok())
             break;
 
-        (*(ss - i)->pieceSqHistory)[pc][dst] << weight * bonus;
+        (*(ss - i)->pieceSqHistory)[pc][dst] << int(std::lround(weight * bonus));
     }
 }
 void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) noexcept {
@@ -2300,10 +2307,10 @@ void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) 
 }
 void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& m, int bonus) noexcept {
     assert(m.is_ok());
-    update_quiet_history(pos.active_color(), m, +1.0000f * bonus);
-    update_pawn_history(pos, pos.moved_piece(m), m.dst_sq(), +0.6006f * bonus);
-    update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), +0.9414f * bonus);
-    update_low_ply_quiet_history(ss->ply, m, +0.8243f * bonus);
+    update_quiet_history(pos.active_color(), m, std::lround(+1.0000f * bonus));
+    update_pawn_history(pos, pos.moved_piece(m), m.dst_sq(), std::lround(+0.6006f * bonus));
+    update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), std::lround(+0.9414f * bonus));
+    update_low_ply_quiet_history(ss->ply, m, std::lround(+0.8243f * bonus));
 }
 
 // Updates history at the end of search() when a bestMove is found
@@ -2318,26 +2325,26 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
 
     if (pos.capture_promo(bm))
     {
-        update_capture_history(pos, bm, +1.2070f * bonus);
+        update_capture_history(pos, bm, std::lround(+1.2070f * bonus));
     }
     else
     {
-        update_all_quiet_history(pos, ss, bm, +1.1738f * bonus);
+        update_all_quiet_history(pos, ss, bm, std::lround(+1.1738f * bonus));
 
         // Decrease history for all non-best quiet moves
         for (const Move& qm : moves[0])
-            update_all_quiet_history(pos, ss, qm, -1.1250f * malus);
+            update_all_quiet_history(pos, ss, qm, std::lround(-1.1250f * malus));
     }
 
     // Decrease history for all non-best capture moves
     for (const Move& cm : moves[1])
-        update_capture_history(pos, cm, -1.1953f * malus);
+        update_capture_history(pos, cm, std::lround(-1.1953f * malus));
 
     Move m = (ss - 1)->move;
     // Extra penalty for a quiet early move that was not a TT move
     // in the previous ply when it gets refuted.
     if (m.is_ok() && pos.captured_piece() == NO_PIECE && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
-        update_continuation_history(ss - 1, pos.piece_on(m.dst_sq()), m.dst_sq(), -0.9531f * malus);
+        update_continuation_history(ss - 1, pos.piece_on(m.dst_sq()), m.dst_sq(), std::lround(-0.9531f * malus));
 }
 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept {
@@ -2350,13 +2357,13 @@ void update_correction_history(const Position& pos, Stack* const ss, int bonus) 
 
     for (Color c : {WHITE, BLACK})
     {
-       pawnCorrectionHistory[correction_index(pos.    pawn_key(c))][ac][c] << +0.8516f * bonus;
-      minorCorrectionHistory[correction_index(pos.   minor_key(c))][ac][c] << +1.1016f * bonus;
-      majorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c] << +0.5508f * bonus;
-    nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c] << +1.2891f * bonus;
+       pawnCorrectionHistory[correction_index(pos.    pawn_key(c))][ac][c] << int(std::lround(+0.8516f * bonus));
+      minorCorrectionHistory[correction_index(pos.   minor_key(c))][ac][c] << int(std::lround(+1.1016f * bonus));
+      majorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c] << int(std::lround(+0.5508f * bonus));
+    nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c] << int(std::lround(+1.2891f * bonus));
     }
     if (m.is_ok())
-      (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << +1.0781f * bonus;
+      (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << int(std::lround(+1.0781f * bonus));
 }
 
 int correction_value(const Position& pos, const Stack* const ss) noexcept {
@@ -2384,7 +2391,7 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
 // Update raw staticEval according to various CorrectionHistory value
 // and guarantee evaluation does not hit the tablebase range.
 Value adjust_static_eval(Value ev, int cv) noexcept {    
-    return in_range(ev + 7.6294e-6f * cv);
+    return in_range(ev + std::lround(7.6294e-6f * cv));
 }
 
 // clang-format on
