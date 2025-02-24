@@ -62,7 +62,7 @@ void memory_array_deleter(T* mem, FreeFunc freeFunc) noexcept {
 
     constexpr std::size_t ARRAY_OFFSET = std::max(sizeof(std::size_t), alignof(T));
     // Move back on the pointer to where the size is allocated.
-    char* rawMemory = reinterpret_cast<char*>(mem) - ARRAY_OFFSET;
+    auto* rawMemory = reinterpret_cast<char*>(mem) - ARRAY_OFFSET;
 
     if constexpr (!std::is_trivially_destructible_v<T>)
     {
@@ -94,7 +94,7 @@ memory_allocator(AllocFunc allocFunc, std::size_t num) noexcept {
     constexpr std::size_t ARRAY_OFFSET = std::max(sizeof(std::size_t), alignof(ElementType));
 
     // Save the array size in the memory location
-    char* rawMemory = reinterpret_cast<char*>(allocFunc(ARRAY_OFFSET + num * sizeof(ElementType)));
+    auto* rawMemory = reinterpret_cast<char*>(allocFunc(ARRAY_OFFSET + num * sizeof(ElementType)));
     ASSERT_ALIGNED(rawMemory, alignof(T));
 
     new (rawMemory) std::size_t(num);
@@ -137,7 +137,8 @@ make_unique_aligned_std(Args&&... args) noexcept {
     const auto allocFunc = [](std::size_t allocSize) {
         return alloc_aligned_std(allocSize, alignof(T));
     };
-    T* obj = memory_allocator<T>(allocFunc, std::forward<Args>(args)...);
+
+    auto* obj = memory_allocator<T>(allocFunc, std::forward<Args>(args)...);
 
     return AlignedStdPtr<T>(obj);
 }
@@ -151,7 +152,8 @@ make_unique_aligned_std(std::size_t num) noexcept {
     const auto allocFunc = [](std::size_t allocSize) {
         return alloc_aligned_std(allocSize, alignof(ElementType));
     };
-    ElementType* memory = memory_allocator<T>(allocFunc, num);
+
+    auto* memory = memory_allocator<T>(allocFunc, num);
 
     return AlignedStdPtr<T>(memory);
 }
@@ -187,7 +189,7 @@ make_unique_aligned_lp(Args&&... args) noexcept {
     static_assert(alignof(T) <= 4096,
                   "alloc_aligned_lp() may fail for such a big alignment requirement of T");
 
-    T* obj = memory_allocator<T>(alloc_aligned_lp, std::forward<Args>(args)...);
+    auto* obj = memory_allocator<T>(alloc_aligned_lp, std::forward<Args>(args)...);
 
     return AlignedLPPtr<T>(obj);
 }
@@ -200,7 +202,7 @@ std::enable_if_t<std::is_array_v<T>, AlignedLPPtr<T>> make_unique_aligned_lp(std
     static_assert(alignof(ElementType) <= 4096,
                   "alloc_aligned_lp() may fail for such a big alignment requirement of T");
 
-    ElementType* memory = memory_allocator<T>(alloc_aligned_lp, num);
+    auto* memory = memory_allocator<T>(alloc_aligned_lp, num);
 
     return AlignedLPPtr<T>(memory);
 }
@@ -212,7 +214,7 @@ template<std::uintptr_t Alignment, typename T>
 T* align_ptr_up(T* ptr) noexcept {
     static_assert(alignof(T) < Alignment);
 
-    const std::uintptr_t uintPtr = reinterpret_cast<std::uintptr_t>(reinterpret_cast<char*>(ptr));
+    const auto uintPtr = reinterpret_cast<std::uintptr_t>(reinterpret_cast<char*>(ptr));
     return reinterpret_cast<T*>(
       reinterpret_cast<char*>((uintPtr + (Alignment - 1)) / Alignment * Alignment));
 }
