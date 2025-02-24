@@ -225,7 +225,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
 void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) noexcept;
 void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& m, int bonus) noexcept;
 
-void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const std::array<Moves, 2>& moves) noexcept;
+void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const std::array<std::vector<Move>, 2>& moves) noexcept;
 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
 int  correction_value(const Position& pos, const Stack* const ss) noexcept;
@@ -1205,7 +1205,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     Move bestMove = Move::None;
 
-    std::array<Moves, 2> moves;
+    std::array<std::vector<Move>, 2> moves;
 
     MovePicker mp(pos, pttm, &captureHistory, &quietHistory, &pawnHistory, contHistory,
                   &lowPlyQuietHistory, ss->ply, quietThreshold);
@@ -2314,7 +2314,7 @@ void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& 
 }
 
 // Updates history at the end of search() when a bestMove is found
-void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const std::array<Moves, 2>& moves) noexcept {
+void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const std::array<std::vector<Move>, 2>& moves) noexcept {
     assert(pos.pseudo_legal(bm));
     assert(ss->moveCount != 0);
 
