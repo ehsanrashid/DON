@@ -50,12 +50,6 @@ struct alignas(CACHE_LINE_SIZE) Accumulator {
 // is commonly referred to as "Finny Tables".
 struct AccumulatorCaches final {
 
-    template<typename Networks>
-    explicit AccumulatorCaches(const Networks& networks) noexcept {
-
-        init(networks);
-    }
-
     template<IndexType Size>
     struct alignas(CACHE_LINE_SIZE) Cache final {
 
@@ -88,6 +82,12 @@ struct AccumulatorCaches final {
 
         std::array<std::array<Entry, COLOR_NB>, SQUARE_NB> entries;
     };
+
+    template<typename Networks>
+    explicit AccumulatorCaches(const Networks& networks) noexcept {
+
+        init(networks);
+    }
 
     template<typename Networks>
     void init(const Networks& networks) noexcept {
