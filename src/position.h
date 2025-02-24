@@ -306,6 +306,7 @@ class Position final {
     bool  bishop_opposite() const noexcept;
 
     int std_material() const noexcept;
+    int bucket() const noexcept;
 
     Value material() const noexcept;
     Value evaluate() const noexcept;
@@ -640,6 +641,8 @@ inline int Position::std_material() const noexcept {
     return 1 * count<PAWN>() + 3 * count<KNIGHT>() + 3 * count<BISHOP>() + 5 * count<ROOK>()
          + 9 * count<QUEEN>();
 }
+
+inline int Position::bucket() const noexcept { return (count<ALL_PIECE>() - 1) / 4; }
 
 inline Value Position::material() const noexcept {
     return 535 * count<PAWN>() + non_pawn_material();

@@ -276,7 +276,7 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
 
     ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
 
-    int  bucket     = (pos.count<ALL_PIECE>() - 1) / 4;
+    int  bucket     = pos.bucket();
     auto psqt       = featureTransformer->transform(pos, cache, transformedFeatures, bucket);
     auto positional = network[bucket].propagate(transformedFeatures);
     return {psqt, positional};
@@ -304,7 +304,7 @@ NetworkTrace Network<Arch, Transformer>::trace_eval(
     ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
 
     NetworkTrace trace{};
-    trace.correctBucket = (pos.count<ALL_PIECE>() - 1) / 4;
+    trace.correctBucket = pos.bucket();
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
         auto psqt       = featureTransformer->transform(pos, cache, transformedFeatures, bucket);

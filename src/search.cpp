@@ -2390,7 +2390,7 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
 
 // Update raw staticEval according to various CorrectionHistory value
 // and guarantee evaluation does not hit the tablebase range.
-Value adjust_static_eval(Value ev, int cv) noexcept {    
+Value adjust_static_eval(Value ev, int cv) noexcept {
     return in_range(ev + std::lround(7.6294e-6f * cv));
 }
 
