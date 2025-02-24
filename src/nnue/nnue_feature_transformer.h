@@ -787,20 +787,20 @@ class FeatureTransformer final {
 
             for (std::size_t i = 0; i < removed.size(); ++i)
             {
-                auto  offset     = removed[i] * PSQTBuckets + j * Tiling::PSQT_TILE_HEIGHT;
-                auto* psqtColumn = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
+                auto  offset = removed[i] * PSQTBuckets + j * Tiling::PSQT_TILE_HEIGHT;
+                auto* column = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
 
                 for (IndexType k = 0; k < Tiling::PSQT_REG_COUNT; ++k)
-                    psqt[k] = vec_sub_psqt_32(psqt[k], psqtColumn[k]);
+                    psqt[k] = vec_sub_psqt_32(psqt[k], column[k]);
             }
 
             for (std::size_t i = 0; i < added.size(); ++i)
             {
-                auto  offset     = added[i] * PSQTBuckets + j * Tiling::PSQT_TILE_HEIGHT;
-                auto* psqtColumn = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
+                auto  offset = added[i] * PSQTBuckets + j * Tiling::PSQT_TILE_HEIGHT;
+                auto* column = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
 
                 for (IndexType k = 0; k < Tiling::PSQT_REG_COUNT; ++k)
-                    psqt[k] = vec_add_psqt_32(psqt[k], psqtColumn[k]);
+                    psqt[k] = vec_add_psqt_32(psqt[k], column[k]);
             }
 
             for (IndexType k = 0; k < Tiling::PSQT_REG_COUNT; ++k)
