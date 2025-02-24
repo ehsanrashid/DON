@@ -1474,11 +1474,12 @@ S_MOVES_LOOP:  // When in check, search starts here
             if (value > alpha && newDepth > redDepth)
             {
                 // Adjust full-depth search based on LMR value
-                newDepth +=
-                  // - if the value was good enough search deeper
-                  +(value > 41 + bestValue + 2 * newDepth)
-                  // - if the value was bad enough search shallower
-                  - (value < 9 + bestValue);
+                if (!is_decisive(value) && !is_decisive(bestValue))
+                    newDepth +=
+                      // - if the value was good enough search deeper
+                      +(value > 41 + bestValue + 2 * newDepth)
+                      // - if the value was bad enough search shallower
+                      - (value < 9 + bestValue);
 
                 if (newDepth > redDepth)
                     value = -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha, newDepth);
