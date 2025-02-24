@@ -98,7 +98,7 @@ Value evaluate(const Position&          pos,
     if (damp < 0.0f)
         damp = 0.0f;
 
-    v *= damp;
+    v = std::lround(v * damp);
 
     // Guarantee evaluation does not hit the tablebase range
     return in_range(v);
