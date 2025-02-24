@@ -369,9 +369,9 @@ class FeatureTransformer final {
                           * (psqtAccumulation[perspectives[0]][bucket]  //
                              - psqtAccumulation[perspectives[1]][bucket]);
 
-        for (IndexType p = 0; p < COLOR_NB; ++p)
+        for (auto p = 0; p < COLOR_NB; ++p)
         {
-            IndexType offset = p * (HalfDimensions / 2);
+            auto offset = p * (HalfDimensions / 2);
 
 #if defined(VECTOR)
             constexpr IndexType OutputChunkSize = MaxChunkSize;
@@ -529,10 +529,10 @@ class FeatureTransformer final {
             auto* accIn  = reinterpret_cast<const vec_t*>(&(computedState->*accPtr).accumulation[Perspective][0]);
             auto* accOut = reinterpret_cast<      vec_t*>(&(nxtState->*accPtr).accumulation[Perspective][0]);
 
-            IndexType offsetA0 = HalfDimensions * added[0];
-            auto*     columnA0 = reinterpret_cast<const vec_t*>(&weights[offsetA0]);
-            IndexType offsetR0 = HalfDimensions * removed[0];
-            auto*     columnR0 = reinterpret_cast<const vec_t*>(&weights[offsetR0]);
+            auto  offsetA0 = HalfDimensions * added[0];
+            auto* columnA0 = reinterpret_cast<const vec_t*>(&weights[offsetA0]);
+            auto  offsetR0 = HalfDimensions * removed[0];
+            auto* columnR0 = reinterpret_cast<const vec_t*>(&weights[offsetR0]);
 
             if ((Forward && removed.size() == 1)
                 || (Backwards && added.size() == 1))  // added.size() == removed.size() == 1
@@ -542,8 +542,8 @@ class FeatureTransformer final {
             }
             else if (Forward && added.size() == 1)  // removed.size() == 2
             {
-                IndexType offsetR1 = HalfDimensions * removed[1];
-                auto*     columnR1 = reinterpret_cast<const vec_t*>(&weights[offsetR1]);
+                auto  offsetR1 = HalfDimensions * removed[1];
+                auto* columnR1 = reinterpret_cast<const vec_t*>(&weights[offsetR1]);
 
                 for (IndexType i = 0; i < HalfDimensions * sizeof(WeightType) / sizeof(vec_t); ++i)
                     accOut[i] = vec_sub_16(vec_add_16(accIn   [i], columnA0[i]),
@@ -551,8 +551,8 @@ class FeatureTransformer final {
             }
             else if (Backwards && removed.size() == 1)  // added.size() == 2
             {
-                IndexType offsetA1 = HalfDimensions * added[1];
-                auto*     columnA1 = reinterpret_cast<const vec_t*>(&weights[offsetA1]);
+                auto  offsetA1 = HalfDimensions * added[1];
+                auto* columnA1 = reinterpret_cast<const vec_t*>(&weights[offsetA1]);
 
                 for (IndexType i = 0; i < HalfDimensions * sizeof(WeightType) / sizeof(vec_t); ++i)
                     accOut[i] = vec_add_16(vec_add_16(accIn   [i], columnA0[i]),
@@ -560,10 +560,10 @@ class FeatureTransformer final {
             }
             else // added.size() == removed.size() == 2
             {
-                IndexType offsetA1 = HalfDimensions * added[1];
-                auto*     columnA1 = reinterpret_cast<const vec_t*>(&weights[offsetA1]);
-                IndexType offsetR1 = HalfDimensions * removed[1];
-                auto*     columnR1 = reinterpret_cast<const vec_t*>(&weights[offsetR1]);
+                auto  offsetA1 = HalfDimensions * added[1];
+                auto* columnA1 = reinterpret_cast<const vec_t*>(&weights[offsetA1]);
+                auto  offsetR1 = HalfDimensions * removed[1];
+                auto* columnR1 = reinterpret_cast<const vec_t*>(&weights[offsetR1]);
 
                 for (IndexType i = 0; i < HalfDimensions * sizeof(WeightType) / sizeof(vec_t); ++i)
                     accOut[i] = vec_add_16(accIn[i], vec_sub_16(vec_add_16(columnA0[i], columnA1[i]),
@@ -573,10 +573,10 @@ class FeatureTransformer final {
             auto* psqtAccIn  = reinterpret_cast<const psqt_vec_t*>(&(computedState->*accPtr).psqtAccumulation[Perspective][0]);
             auto* psqtAccOut = reinterpret_cast<      psqt_vec_t*>(&(nxtState->*accPtr).psqtAccumulation[Perspective][0]);
 
-            IndexType offsetPsqtA0 = PSQTBuckets * added[0];
-            auto* psqtColumnA0 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offsetPsqtA0]);
-            IndexType offsetPsqtR0 = PSQTBuckets * removed[0];
-            auto* psqtColumnR0 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offsetPsqtR0]);
+            auto  psqtOffsetA0 = PSQTBuckets * added[0];
+            auto* psqtColumnA0 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[psqtOffsetA0]);
+            auto  psqtOffsetR0 = PSQTBuckets * removed[0];
+            auto* psqtColumnR0 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[psqtOffsetR0]);
 
             if ((Forward && removed.size() == 1)
                 || (Backwards && added.size() == 1))  // added.size() == removed.size() == 1
@@ -586,8 +586,8 @@ class FeatureTransformer final {
             }
             else if (Forward && added.size() == 1)  // removed.size() == 2
             {
-                IndexType psqtOffsetR1 = PSQTBuckets * removed[1];
-                auto*     psqtColumnR1 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[psqtOffsetR1]);
+                auto  psqtOffsetR1 = PSQTBuckets * removed[1];
+                auto* psqtColumnR1 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[psqtOffsetR1]);
 
                 for (IndexType i = 0; i < PSQTBuckets * sizeof(PSQTWeightType) / sizeof(psqt_vec_t); ++i)
                     psqtAccOut[i] = vec_sub_psqt_32(vec_add_psqt_32(psqtAccIn   [i], psqtColumnA0[i]),
@@ -595,8 +595,8 @@ class FeatureTransformer final {
             }
             else if (Backwards && removed.size() == 1)  // added.size() == 2
             {
-                IndexType psqtOffsetA1 = PSQTBuckets * added[1];
-                auto*     psqtColumnA1 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[psqtOffsetA1]);
+                auto  psqtOffsetA1 = PSQTBuckets * added[1];
+                auto* psqtColumnA1 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[psqtOffsetA1]);
 
                 for (IndexType i = 0; i < PSQTBuckets * sizeof(PSQTWeightType) / sizeof(psqt_vec_t); ++i)
                     psqtAccOut[i] = vec_add_psqt_32(vec_add_psqt_32(psqtAccIn   [i], psqtColumnA0[i]),
@@ -604,10 +604,10 @@ class FeatureTransformer final {
             }
             else
             {
-                IndexType psqtOffsetA1 = PSQTBuckets * added[1];
-                auto*     psqtColumnA1 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[psqtOffsetA1]);
-                IndexType psqtOffsetR1 = PSQTBuckets * removed[1];
-                auto*     psqtColumnR1 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[psqtOffsetR1]);
+                auto  psqtOffsetA1 = PSQTBuckets * added[1];
+                auto* psqtColumnA1 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[psqtOffsetA1]);
+                auto  psqtOffsetR1 = PSQTBuckets * removed[1];
+                auto* psqtColumnR1 = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[psqtOffsetR1]);
 
                 for (IndexType i = 0; i < PSQTBuckets * sizeof(PSQTWeightType) / sizeof(psqt_vec_t); ++i)
                     psqtAccOut[i] = vec_add_psqt_32(psqtAccIn[i],
@@ -712,12 +712,10 @@ class FeatureTransformer final {
             std::size_t i = 0;
             for (; i < std::min(removed.size(), added.size()) - last3Combine; ++i)
             {
-                IndexType indexR  = removed[i];
-                IndexType offsetR = indexR * HalfDimensions + j * Tiling::TILE_HEIGHT;
-                auto*     columnR = reinterpret_cast<const vec_t*>(&weights[offsetR]);
-                IndexType indexA  = added[i];
-                IndexType offsetA = indexA * HalfDimensions + j * Tiling::TILE_HEIGHT;
-                auto*     columnA = reinterpret_cast<const vec_t*>(&weights[offsetA]);
+                auto  offsetR = removed[i] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                auto* columnR = reinterpret_cast<const vec_t*>(&weights[offsetR]);
+                auto  offsetA = added[i] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                auto* columnA = reinterpret_cast<const vec_t*>(&weights[offsetA]);
 
                 for (IndexType k = 0; k < Tiling::REG_COUNT; ++k)
                     acc[k] = vec_add_16(acc[k], vec_sub_16(columnA[k], columnR[k]));
@@ -725,18 +723,15 @@ class FeatureTransformer final {
 
             if (last3Combine)
             {
-                IndexType indexR  = removed[i];
-                IndexType offsetR = indexR * HalfDimensions + j * Tiling::TILE_HEIGHT;
-                auto*     columnR = reinterpret_cast<const vec_t*>(&weights[offsetR]);
-                IndexType indexA  = added[i];
-                IndexType offsetA = indexA * HalfDimensions + j * Tiling::TILE_HEIGHT;
-                auto*     columnA = reinterpret_cast<const vec_t*>(&weights[offsetA]);
+                auto  offsetR = removed[i] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                auto* columnR = reinterpret_cast<const vec_t*>(&weights[offsetR]);
+                auto  offsetA = added[i] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                auto* columnA = reinterpret_cast<const vec_t*>(&weights[offsetA]);
 
                 if (removed.size() > added.size())
                 {
-                    IndexType indexR2  = removed[i + 1];
-                    IndexType offsetR2 = indexR2 * HalfDimensions + j * Tiling::TILE_HEIGHT;
-                    auto*     columnR2 = reinterpret_cast<const vec_t*>(&weights[offsetR2]);
+                    auto  offsetR2 = removed[i + 1] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                    auto* columnR2 = reinterpret_cast<const vec_t*>(&weights[offsetR2]);
 
                     for (IndexType k = 0; k < Tiling::REG_COUNT; ++k)
                         acc[k] = vec_sub_16(vec_add_16(acc    [k], columnA[k]),
@@ -744,9 +739,8 @@ class FeatureTransformer final {
                 }
                 else
                 {
-                    IndexType indexA2  = added[i + 1];
-                    IndexType offsetA2 = indexA2 * HalfDimensions + j * Tiling::TILE_HEIGHT;
-                    auto*     columnA2 = reinterpret_cast<const vec_t*>(&weights[offsetA2]);
+                    auto  offsetA2 = added[i + 1] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                    auto* columnA2 = reinterpret_cast<const vec_t*>(&weights[offsetA2]);
 
                     for (IndexType k = 0; k < Tiling::REG_COUNT; ++k)
                         acc[k] = vec_add_16(vec_sub_16(acc    [k], columnR[k]),
@@ -757,9 +751,8 @@ class FeatureTransformer final {
             {
                 for (; i < removed.size(); ++i)
                 {
-                    IndexType index  = removed[i];
-                    IndexType offset = index * HalfDimensions + j * Tiling::TILE_HEIGHT;
-                    auto*     column = reinterpret_cast<const vec_t*>(&weights[offset]);
+                    auto  offset = removed[i] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                    auto* column = reinterpret_cast<const vec_t*>(&weights[offset]);
 
                     for (IndexType k = 0; k < Tiling::REG_COUNT; ++k)
                         acc[k] = vec_sub_16(acc[k], column[k]);
@@ -767,9 +760,8 @@ class FeatureTransformer final {
 
                 for (; i < added.size(); ++i)
                 {
-                    IndexType index  = added[i];
-                    IndexType offset = index * HalfDimensions + j * Tiling::TILE_HEIGHT;
-                    auto*     column = reinterpret_cast<const vec_t*>(&weights[offset]);
+                    auto  offset = added[i] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                    auto* column = reinterpret_cast<const vec_t*>(&weights[offset]);
 
                     for (IndexType k = 0; k < Tiling::REG_COUNT; ++k)
                         acc[k] = vec_add_16(acc[k], column[k]);
@@ -795,9 +787,8 @@ class FeatureTransformer final {
 
             for (std::size_t i = 0; i < removed.size(); ++i)
             {
-                IndexType index      = removed[i];
-                IndexType offset     = index * PSQTBuckets + j * Tiling::PSQT_TILE_HEIGHT;
-                auto*     psqtColumn = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
+                auto  offset     = removed[i] * PSQTBuckets + j * Tiling::PSQT_TILE_HEIGHT;
+                auto* psqtColumn = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
 
                 for (IndexType k = 0; k < Tiling::PSQT_REG_COUNT; ++k)
                     psqt[k] = vec_sub_psqt_32(psqt[k], psqtColumn[k]);
@@ -805,9 +796,8 @@ class FeatureTransformer final {
 
             for (std::size_t i = 0; i < added.size(); ++i)
             {
-                IndexType index      = added[i];
-                IndexType offset     = index * PSQTBuckets + j * Tiling::PSQT_TILE_HEIGHT;
-                auto*     psqtColumn = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
+                auto  offset     = added[i] * PSQTBuckets + j * Tiling::PSQT_TILE_HEIGHT;
+                auto* psqtColumn = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
 
                 for (IndexType k = 0; k < Tiling::PSQT_REG_COUNT; ++k)
                     psqt[k] = vec_add_psqt_32(psqt[k], psqtColumn[k]);
