@@ -710,8 +710,8 @@ void Worker::iterative_deepening() noexcept {
 
             TimePoint elapsedTime = mainManager->elapsed(threads);
 
-            // Stop the search if have exceeded the totalTime
-            if (elapsedTime > totalTime)
+            // Stop the search if have exceeded the total time or maximum time
+            if (elapsedTime > std::min(totalTime, float(mainManager->timeManager.maximum())))
             {
                 // If allowed to ponder do not stop the search now but
                 // keep pondering until the GUI sends "ponderhit" or "stop".
@@ -1489,6 +1489,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                     update_continuation_history(ss, movedPiece, dst, 2010);
                 }
             }
+            else if (value < 9 + bestValue)
+                --newDepth;
         }
 
         // Step 18. Full-depth search when LMR is skipped
@@ -2400,12 +2402,14 @@ void extend_tb_pv(Position&      rootPos,
 
     auto startTime = SteadyClock::now();
 
+    TimePoint moveOverhead = options["MoveOverhead"];
+
     // Do not use more than (0.5 * moveOverhead) time, if time manager is active.
     const auto time_to_abort = [&]() {
         auto endTime = SteadyClock::now();
         return limit.use_time_manager()
             && std::chrono::duration<float, std::milli>(endTime - startTime).count()
-                 > 0.5f * options["MoveOverhead"];
+                 > 0.5f * moveOverhead;
     };
 
     bool rule50Use = options["Syzygy50MoveRule"];
