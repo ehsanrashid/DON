@@ -1024,7 +1024,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (!ss->pvHit && depth < 15 && eval >= beta && (ttd.move == Move::None || ttCapture)
         && !is_loss(beta) && !is_win(eval)
         && eval - futility_margin<CutNode>(depth, ttd.hit, improve, opworse)
-               + (37 - std::lround(7.5289e-6f * absCorrectionValue))
+               + (37 - 7.5289e-6f * absCorrectionValue)
                - std::lround(3.0675e-3f * (ss - 1)->history)
              >= beta)
         return in_range((2 * eval + beta) / 3);
@@ -1354,7 +1354,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 && ttd.depth >= depth - 3 && (ttd.bound & BOUND_LOWER))
             {
                 // clang-format off
-                Value singularBeta  = ttd.value - std::lround((0.9483f + 1.3966f * (!PVNode && ss->pvHit)) * depth);
+                Value singularBeta  = ttd.value - (0.9483f + 1.3966f * (!PVNode && ss->pvHit)) * depth;
                 Depth singularDepth = 0.5f * newDepth;
                 assert(singularDepth > DEPTH_ZERO);
 
@@ -1366,8 +1366,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 {
                     singularValue = value;
 
-                    int doubleMargin =  0 + 267 * PVNode - 181 * !ttCapture +   0 * ss->pvHit - std::lround(3.7724e-6f * absCorrectionValue);
-                    int tripleMargin = 96 + 282 * PVNode - 250 * !ttCapture + 103 * ss->pvHit - std::lround(3.9420e-6f * absCorrectionValue);
+                    int doubleMargin =  0 + 267 * PVNode - 181 * !ttCapture +   0 * ss->pvHit - 3.7724e-6f * absCorrectionValue;
+                    int tripleMargin = 96 + 282 * PVNode - 250 * !ttCapture + 103 * ss->pvHit - 3.9420e-6f * absCorrectionValue;
 
                     extension = 1 + (value < singularBeta - doubleMargin)
                                   + (value < singularBeta - tripleMargin);
@@ -1439,7 +1439,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // These reduction adjustments have no proven non-linear scaling.
 
         // Adjust reduction with move count and correction value
-        r += 316 - 32 * moveCount - 1024 * dblCheck - std::lround(31.6776e-6f * absCorrectionValue);
+        r += 316 - 32 * moveCount - 1024 * dblCheck - 31.6776e-6f * absCorrectionValue;
 
         if (PVNode && !is_decisive(bestValue))
             r -= risk_tolerance(pos, bestValue);
