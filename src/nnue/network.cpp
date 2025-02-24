@@ -260,21 +260,18 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
   AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
     // Manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
-
-    constexpr std::uint64_t ALIGNMENT = CACHE_LINE_SIZE;
-
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType transformedFeaturesUnaligned
       [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE
-       + ALIGNMENT / sizeof(TransformedFeatureType)]{};
+       + CACHE_LINE_SIZE / sizeof(TransformedFeatureType)]{};
 
-    auto* transformedFeatures = align_ptr_up<ALIGNMENT>(&transformedFeaturesUnaligned[0]);
+    auto* transformedFeatures = align_ptr_up<CACHE_LINE_SIZE>(&transformedFeaturesUnaligned[0]);
 #else
-    alignas(ALIGNMENT) TransformedFeatureType
+    alignas(CACHE_LINE_SIZE) TransformedFeatureType
       transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE]{};
 #endif
 
-    ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
+    ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
 
     int  bucket     = pos.bucket();
     auto psqt       = featureTransformer->transform(pos, cache, transformedFeatures, bucket);
@@ -288,20 +285,18 @@ NetworkTrace Network<Arch, Transformer>::trace_eval(
   AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
     // Manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
-    constexpr std::uint64_t ALIGNMENT = CACHE_LINE_SIZE;
-
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType transformedFeaturesUnaligned
       [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE
-       + ALIGNMENT / sizeof(TransformedFeatureType)]{};
+       + CACHE_LINE_SIZE / sizeof(TransformedFeatureType)]{};
 
-    auto* transformedFeatures = align_ptr_up<ALIGNMENT>(&transformedFeaturesUnaligned[0]);
+    auto* transformedFeatures = align_ptr_up<CACHE_LINE_SIZE>(&transformedFeaturesUnaligned[0]);
 #else
-    alignas(ALIGNMENT) TransformedFeatureType
+    alignas(CACHE_LINE_SIZE) TransformedFeatureType
       transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE]{};
 #endif
 
-    ASSERT_ALIGNED(transformedFeatures, ALIGNMENT);
+    ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
 
     NetworkTrace trace{};
     trace.correctBucket = pos.bucket();
