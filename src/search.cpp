@@ -1260,7 +1260,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                                          - (!improve && singularValue < -80 + alpha);
 
             // Reduced depth of the next LMR search
-            Depth lmrDepth = newDepth - r / 1024;
+            Depth lmrDepth = newDepth - std::lround(float(r) / 1024.0f);
 
             Depth virtualDepth = depth - (bestMove != Move::None);
 
@@ -1465,7 +1465,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
             Depth redDepth =
-              std::max(1, std::min(newDepth - r / 1024,
+              std::max(1, std::min(newDepth - int(std::lround(float(r) / 1024.0f)),
                                    newDepth + !AllNode + (PVNode && bestMove == Move::None)));
 
             value = -search<Cut>(pos, ss + 1, -(alpha + 1), -alpha, redDepth, newDepth - redDepth);
@@ -1474,11 +1474,12 @@ S_MOVES_LOOP:  // When in check, search starts here
             if (value > alpha && newDepth > redDepth)
             {
                 // Adjust full-depth search based on LMR value
-                newDepth +=
-                  // - if the value was good enough search deeper
-                  +(value > 41 + bestValue + 2 * newDepth)
-                  // - if the value was bad enough search shallower
-                  - (value < 9 + bestValue);
+                if (!is_decisive(value) && !is_decisive(bestValue))
+                    newDepth +=
+                      // - if the value was good enough search deeper
+                      +(value > 41 + bestValue + 2 * newDepth)
+                      // - if the value was bad enough search shallower
+                      - (value < 9 + bestValue);
 
                 if (newDepth > redDepth)
                     value = -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha, newDepth);
