@@ -31,6 +31,8 @@
 
 namespace DON {
 
+extern std::uint8_t DrawMoveCount;
+
 // There is only one global hash table for the engine and all its threads.
 // For chess in particular, even allow racy updates between threads to and from the TT,
 // as taking the time to synchronize access would cost thinking time and thus elo.
@@ -193,6 +195,59 @@ struct TTCluster final {
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
+// Adjusts a mate or TB score from "plies to mate from the root"
+// to "plies to mate from the current position". Standard scores are unchanged.
+// The function is called before storing a value in the transposition table.
+constexpr Value value_to_tt(Value v, std::int16_t ply) noexcept {
+
+    if (!is_valid(v))
+        return v;
+    assert(is_ok(v));
+    return is_win(v)  ? std::min(v + ply, +VALUE_MATE)
+         : is_loss(v) ? std::max(v - ply, -VALUE_MATE)
+                      : v;
+}
+
+// Inverse of value_to_tt(): it adjusts a mate or TB score
+// from the transposition table (which refers to the plies to mate/be mated from
+// current position) to "plies to mate/be mated (TB win/loss) from the root".
+// However, to avoid potentially false mate or TB scores related to the 50 moves rule
+// and the graph history interaction, return the highest non-TB score instead.
+constexpr Value value_from_tt(Value v, std::int16_t ply, std::uint8_t rule50) noexcept {
+
+    if (!is_valid(v))
+        return v;
+    assert(is_ok(v));
+    // Handle TB win or better
+    if (is_win(v))
+    {
+        // Downgrade a potentially false mate value
+        if (is_mate_win(v) && VALUE_MATE - v > 2 * DrawMoveCount - rule50)
+            return VALUE_TB_WIN_IN_MAX_PLY - 1;
+
+        // Downgrade a potentially false TB value
+        if (VALUE_TB - v > 2 * DrawMoveCount - rule50)
+            return VALUE_TB_WIN_IN_MAX_PLY - 1;
+
+        return v - ply;
+    }
+    // Handle TB loss or worse
+    if (is_loss(v))
+    {
+        // Downgrade a potentially false mate value
+        if (is_mate_loss(v) && VALUE_MATE + v > 2 * DrawMoveCount - rule50)
+            return VALUE_TB_LOSS_IN_MAX_PLY + 1;
+
+        // Downgrade a potentially false TB value
+        if (VALUE_TB + v > 2 * DrawMoveCount - rule50)
+            return VALUE_TB_LOSS_IN_MAX_PLY + 1;
+
+        return v + ply;
+    }
+
+    return v;
+}
+
 class TTUpdater final {
    public:
     TTUpdater() noexcept                            = delete;
@@ -210,7 +265,36 @@ class TTUpdater final {
         generation(gen) {}
 
     void
-    update(Depth depth, bool pv, Bound bound, const Move& move, Value value, Value eval) noexcept;
+    update(Depth depth, bool pv, Bound bound, const Move& move, Value value, Value eval) noexcept {
+
+        if (tte->key16 != key16)
+        {
+            tte = &ttc->entry[0];
+            for (std::uint8_t i = 0; i < TTCluster::EntryCount; ++i)
+            {
+                if (ttc->entry[i].key16 == key16)
+                {
+                    tte = &ttc->entry[i];
+                    break;
+                }
+                // Find an entry to be replaced according to the replacement strategy
+                if (i != 0 && tte->worth(generation) > ttc->entry[i].worth(generation))
+                    tte = &ttc->entry[i];
+            }
+        }
+        else
+        {
+            for (; tte > &ttc->entry[0] && (tte - 1)->key16 == key16; --tte)
+                tte->clear();
+        }
+
+        tte->save(key16, depth, pv, bound, move, value_to_tt(value, ssPly), eval, generation);
+
+        if (move != Move::None
+            && depth - DEPTH_OFFSET + 2 * pv + 4 * (bound == BOUND_EXACT)
+                 >= std::max({ttc->entry[0].depth8, ttc->entry[1].depth8, ttc->entry[2].depth8}))
+            ttc->move = move;
+    }
 
    private:
     TTEntry*         tte;
