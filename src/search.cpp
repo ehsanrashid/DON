@@ -929,7 +929,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     // Step 7. Razoring
     // If eval is really low, skip search entirely and return the qsearch value.
-    if (eval < -446 + alpha - 303 * sqr(depth))
+    if (!PVNode && eval < -446 + alpha - 303 * sqr(depth))
         return qsearch<PVNode>(pos, ss, alpha, beta);
 
     // Step 8. Futility pruning: child node
