@@ -345,10 +345,11 @@ void Worker::start_search() noexcept {
     // clang-format off
     assert(!bestWorker->rootMoves.empty()
         && !bestWorker->rootMoves.front().empty());
-    Move bestMove   = bestWorker->rootMoves.front()[0];
+    auto& rootMove  = bestWorker->rootMoves.front();
+    Move bestMove   = rootMove[0];
     Move ponderMove = bestMove != Move::None
-                  && (bestWorker->rootMoves.front().size() >= 2 || bestWorker->ponder_move_extracted())
-                    ? bestWorker->rootMoves.front()[1] : Move::None;
+                  && (rootMove.size() >= 2 || bestWorker->ponder_move_extracted())
+                    ? rootMove[1] : Move::None;
     // clang-format on
     mainManager->updateCxt.onUpdateMove({bestMove, ponderMove});
 }
@@ -928,8 +929,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     // Step 7. Razoring
     // If eval is really low, skip search entirely and return the qsearch value.
-    if (!PVNode && eval < -446 + alpha - 303 * sqr(depth))
-        return qsearch<false>(pos, ss, alpha, beta);
+    if (eval < -446 + alpha - 303 * sqr(depth))
+        return qsearch<PVNode>(pos, ss, alpha, beta);
 
     // Step 8. Futility pruning: child node
     // The depth condition is important for mate finding.
@@ -942,8 +943,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         return in_range((2 * eval + beta) / 3);
 
     // Step 9. Null move search with verification search
-    if (CutNode && !exclude && pos.non_pawn_material(ac) && preMove != Move::Null && !is_loss(beta)
-        && eval >= beta && ss->ply >= nmpMinPly
+    if (CutNode && !exclude && preMove != Move::Null && pos.non_pawn_material(ac)  //
+        && !is_loss(beta) && eval >= beta && ss->ply >= nmpMinPly
         && ss->staticEval >= 455 + beta - 21 * depth - 60 * improve)
     {
         int diff = eval - beta;
@@ -1964,9 +1965,10 @@ Move Worker::extract_tt_move(const Position& pos, Move ttMove, bool deep) const 
 // Try hard to have a ponder move to return to the GUI,
 // otherwise in case of 'ponder on' have nothing to think about.
 bool Worker::ponder_move_extracted() noexcept {
-    assert(rootMoves.front().size() == 1 && rootMoves.front()[0] != Move::None);
+    auto& rootMove = rootMoves.front();
+    assert(rootMove.size() == 1 && rootMove[0] != Move::None);
 
-    Move bm = rootMoves.front()[0];
+    Move bm = rootMove[0];
 
     State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
@@ -2013,11 +2015,11 @@ bool Worker::ponder_move_extracted() noexcept {
             }
         }
 
-        rootMoves.front().push_back(pm);
+        rootMove.push_back(pm);
     }
 
     rootPos.undo_move(bm);
-    return rootMoves.front().size() == 2;
+    return rootMove.size() == 2;
 }
 
 void MainSearchManager::init() noexcept {
