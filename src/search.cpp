@@ -1072,7 +1072,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             if (value >= probCutBeta)
             {
-                value = in_range(value);
+                // Subtract the margin
+                value = in_range(value - (probCutBeta - beta));
 
                 // Save ProbCut data into transposition table
                 ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move, value,
