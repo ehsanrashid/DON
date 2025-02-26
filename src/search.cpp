@@ -116,7 +116,7 @@ void update_pv(Move* pv, const Move& move, const Move* childPv) noexcept {
 int risk_tolerance(const Position& pos, Value v) noexcept {
 
     // Returns (some constant of) second derivative of sigmoid
-    static constexpr auto sigmoid_d2 = [](int x, int y) { return -345600 * x / (sqr(x) + 3 * sqr(y)); };
+    static constexpr auto sigmoid_d2 = [](int x, int y) noexcept { return -345600ll * x / (sqr(x) + 3 * sqr(y)); };
 
     int material = pos.std_material();
     int m = std::clamp(material, 17, 78);
@@ -995,10 +995,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             nmpMinPly = 0;
 
+            ss->ttMove = ttd.move;
+
             if (v >= beta)
                 return nullValue;
-
-            ss->ttMove = ttd.move;
         }
     }
 
