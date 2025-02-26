@@ -128,10 +128,7 @@ int risk_tolerance(const Position& pos, Value v) noexcept {
 
     // The risk utility is therefore d / dv^2 (1 / (1 + exp(-(v-a) / b)) - 1 / (1 + exp(-(-v-a) / b)))
     // -115200x/(x^2+3) = -345600(ab) / (a^2+3b^2) (multiplied by some constant) (second degree pade approximant)
-    int wRisk = +sigmoid_d2(+v - a, b);
-    int lRisk = -sigmoid_d2(-v - a, b);
-
-    return std::lround((wRisk + lRisk) * 60.0f / b);
+    return std::lround((sigmoid_d2(v - a, b) + sigmoid_d2(v + a, b)) * 60.0f / b);
 }
 
 void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept;
@@ -942,7 +939,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         && !is_loss(beta) && !is_win(eval)
         && eval - futility_margin<CutNode>(depth, ttd.hit, improve, opworse)
                + (37 - 7.5289e-6f * absCorrectionValue)
-               - std::lround(3.0675e-3f * (ss - 1)->history)
+               + std::lround(-3.0675e-3f * (ss - 1)->history)
              >= beta)
         return in_range((2 * eval + beta) / 3);
 
