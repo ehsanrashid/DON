@@ -85,7 +85,7 @@ constexpr Value futility_margin(Depth depth, bool ttHit, bool improve, bool opwo
 }
 
 // History and stats update bonus, based on depth
-constexpr int stat_bonus(Depth depth) noexcept { return std::min(-98 + 158 * depth, 1622); }
+constexpr int stat_bonus(Depth depth) noexcept { return std::min(-98 + 158 * depth, 1632); }
 
 // History and stats update malus, based on depth
 constexpr int stat_malus(Depth depth) noexcept { return std::min(-243 + 802 * depth, 2850); }
@@ -1569,10 +1569,9 @@ S_MOVES_LOOP:  // When in check, search starts here
             // clang-format off
             // Make sure the bonus is positive
             auto bonusScale =
-                            // Increase bonus when depth is high
-                            + 118 * (depth > 5) + 36 * !AllNode
-                            // Increase bonus when the previous move count is high
-                            +  32 * std::max((ss - 1)->moveCount - 4, 0)
+                            +  36 * !AllNode
+                            // Increase bonus with previous move count
+                            +  32 * std::min<int>((ss - 1)->moveCount - 1, 16)
                             // Increase bonus when bestValue is lower than current static evaluation
                             + 133 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107)
                             // Increase bonus when bestValue is higher than previous static evaluation
