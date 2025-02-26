@@ -1572,7 +1572,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                             // Increase bonus when depth is high
                             + 118 * (depth > 5) + 36 * !AllNode
                             // Increase bonus when the previous move count is high
-                            + 161 * ((ss - 1)->moveCount > 8)
+                            +  32 * std::max((ss - 1)->moveCount - 4, 0)
                             // Increase bonus when bestValue is lower than current static evaluation
                             + 133 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107)
                             // Increase bonus when bestValue is higher than previous static evaluation
@@ -1584,10 +1584,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                             // Increase bonus if the previous move has a bad history
                             + std::min(int(std::lround(-9.2593e-3f * (ss - 1)->history)), 320);
             // clang-format on
-            if (bonusScale < 0)
-                bonusScale = 0;
-
-            int bonus = bonusScale * stat_bonus(depth);
+            int bonus = std::max(bonusScale, 1) * stat_bonus(depth);
 
             update_quiet_history(~ac, preMove, std::lround(+6.6833e-3f * bonus));
             update_continuation_history(ss - 1, pos.piece_on(preSq), preSq,
