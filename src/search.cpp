@@ -929,9 +929,13 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     }
 
     // Step 7. Razoring
-    // If eval is really low, skip search entirely and return the qsearch value.
-    if (!PVNode && eval < -446 + alpha - 303 * sqr(depth))
-        return qsearch<PVNode>(pos, ss, alpha, beta);
+    // If eval is really low, check with qsearch if can exceed alpha.
+    if (eval < -446 + alpha - 303 * sqr(depth))
+    {
+        value = qsearch<PVNode>(pos, ss, alpha, beta);
+        if (value < alpha)
+            return value;
+    }
 
     // Step 8. Futility pruning: child node
     // The depth condition is important for mate finding.
@@ -1914,7 +1918,7 @@ QS_MOVES_LOOP:
             assert(LegalMoveList(pos).empty());
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
-        else if (std::abs(bestValue) > 100 * !PVNode && LegalMoveList(pos).empty())
+        else if (bestValue != VALUE_DRAW && LegalMoveList(pos).empty())
             bestValue = VALUE_DRAW;
     }
     // Adjust best value for fail high cases
