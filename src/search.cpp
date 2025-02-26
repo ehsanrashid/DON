@@ -725,6 +725,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     (ss + 1)->cutoffCount = 0;
 
+    // At this point, if excludedMove, skip straight to step 6, static evaluation.
+    // However, to save indentation, list the condition in all code between here and there.
+    const bool exclude = excludedMove != Move::None;
+
     // Step 4. Transposition table lookup
     Key16 key16 = compress_key(key);
 
@@ -732,19 +736,15 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     TTUpdater ttu(tte, ttc, key16, ss->ply, tt.generation());
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
-    ttd.move  = RootNode ? rootMoves[curIdx][0]
-              : ttd.hit  ? extract_tt_move(pos, ttd.move)
-                         : Move::None;
+    ttd.move  = RootNode            ? rootMoves[curIdx][0]
+              : ttd.hit && !exclude ? extract_tt_move(pos, ttd.move)
+                                    : Move::None;
 
     Move pttm      = ttd.move != Move::None   ? ttd.move
                    : tte->move() != ttc->move ? extract_tt_move(pos, ttc->move, false)
                                               : Move::None;
     ss->ttMove     = ttd.move;
     bool ttCapture = ttd.move != Move::None && pos.capture_promo(ttd.move);
-
-    // At this point, if excludedMove, skip straight to step 6, static evaluation.
-    // However, to save indentation, list the condition in all code between here and there.
-    const bool exclude = excludedMove != Move::None;
 
     ss->pvHit = exclude ? ss->pvHit : PVNode || (ttd.hit && ttd.pv);
 
@@ -995,10 +995,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             nmpMinPly = 0;
 
-            ss->ttMove = ttd.move;
-
             if (v >= beta)
                 return nullValue;
+
+            ss->ttMove = ttd.move;
         }
     }
 
