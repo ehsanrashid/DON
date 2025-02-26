@@ -1581,7 +1581,6 @@ S_MOVES_LOOP:  // When in check, search starts here
                             +  81 * ((ss - 1)->move == (ss - 1)->ttMove)
                             // Increase bonus when the previous cutoffCount is low
                             + 100 * ((ss - 1)->cutoffCount <= 3)
-                            + 100 * (red > 1)
                             // Increase bonus if the previous move has a bad history
                             + std::min(int(std::lround(-9.2593e-3f * (ss - 1)->history)), 320);
             // clang-format on
