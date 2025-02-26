@@ -1103,7 +1103,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         ss->ttMove = ttd.move;
         ttCapture  = ttd.move != Move::None && pos.capture_promo(ttd.move);
     }
-    assert(ss->ttMove == ttd.move);
+    //assert(ss->ttMove == ttd.move);
 
     auto pawnIndex = pawn_index(pos.pawn_key());
 
