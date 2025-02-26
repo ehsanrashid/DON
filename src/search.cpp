@@ -84,6 +84,12 @@ constexpr Value futility_margin(Depth depth, bool ttHit, bool improve, bool opwo
     return (depth - 2.0000f * improve - 0.3333f * opworse) * (111 - 25 * (CutNode && !ttHit));
 }
 
+// History and stats update bonus, based on depth
+constexpr int stat_bonus(Depth depth) noexcept { return std::min(-98 + 158 * depth, 1622); }
+
+// History and stats update malus, based on depth
+constexpr int stat_malus(Depth depth) noexcept { return std::min(-243 + 802 * depth, 2850); }
+
 // Add a small random value to draw evaluation to avoid 3-fold blindness
 constexpr Value draw_value(Key key, std::uint64_t nodes) noexcept {
     return VALUE_DRAW + (key & 1) - (nodes & 1);
@@ -763,15 +769,13 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         {
             // Bonus for a quiet ttMove
             if (!ttCapture)
-                update_all_quiet_history(
-                  pos, ss, ttd.move,
-                  std::lround(std::min(-69.6719f + 114.8438f * depth, 1215.8125f)));
+                update_all_quiet_history(pos, ss, ttd.move,
+                                         std::lround(+0.7656 * stat_bonus(depth)));
 
             // Extra penalty for early quiet moves of the previous ply
             if (is_ok(preSq) && !preCapture && (ss - 1)->moveCount <= 3)
-                update_continuation_history(
-                  ss - 1, pos.piece_on(preSq), preSq,
-                  std::lround(-std::min(-265.4355f + 761.5117f * (depth + 1), 265.4355f)));
+                update_continuation_history(ss - 1, pos.piece_on(preSq), preSq,
+                                            std::lround(-0.9941 * stat_malus(depth + 1)));
         }
 
         // Partial workaround for the graph history interaction problem
@@ -945,7 +949,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Step 9. Null move search with verification search
     if (CutNode && !exclude && preMove != Move::Null && pos.non_pawn_material(ac)  //
         && !is_loss(beta) && eval >= beta && ss->ply >= nmpMinPly
-        && ss->staticEval >= 455 + beta - 21 * depth - 60 * improve)
+        && ss->staticEval >= 395 + beta - 21 * depth)
     {
         int diff = eval - beta;
         assert(diff >= 0);
@@ -1583,7 +1587,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             if (bonusScale < 0)
                 bonusScale = 0;
 
-            int bonus = bonusScale * std::min(-106 + 160 * depth, 1523);
+            int bonus = bonusScale * stat_bonus(depth);
 
             update_quiet_history(~ac, preMove, std::lround(+6.6833e-3f * bonus));
             update_continuation_history(ss - 1, pos.piece_on(preSq), preSq,
@@ -1597,7 +1601,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             auto captured = type_of(pos.captured_piece());
             assert(captured != NO_PIECE_TYPE);
-            int bonus = std::min(-198 + 330 * depth, 3320);
+            int bonus = std::lround(2.0000f * stat_bonus(depth));
             update_capture_history(pos.piece_on(preSq), preSq, captured, bonus);
         }
     }
@@ -2232,8 +2236,8 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
     assert(pos.pseudo_legal(bm));
     assert(ss->moveCount != 0);
 
-    int bonus = std::min(-92 + 162 * depth, 1587) + 298 * (bm == ss->ttMove);
-    int malus = std::min(-230 + 694 * depth, 2503) - 32 * (ss->moveCount - 1);
+    int bonus = stat_bonus(depth) + 298 * (bm == ss->ttMove);
+    int malus = stat_malus(depth) - 32 * (ss->moveCount - 1);
     if (malus < 1)
         malus = 1;
 
