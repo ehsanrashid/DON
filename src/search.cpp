@@ -978,9 +978,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         pos.undo_null_move();
 
         // Do not return unproven mate or TB scores
-        if (nullValue >= beta && !is_win(nullValue))
+        if (nullValue >= beta)
         {
-            assert(!is_loss(nullValue));
+            nullValue = in_range(nullValue);
 
             if (nmpMinPly != 0 || depth < 16)
                 return nullValue;
@@ -1073,9 +1073,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             // Subtract the margin
             value -= probCutBeta - beta;
 
-            if (value >= beta && !is_win(value))
+            if (value >= beta)
             {
-                assert(!is_loss(value));
+                value = in_range(value);
 
                 // Save ProbCut data into transposition table
                 ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move, value,
@@ -1300,10 +1300,9 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // if after excluding the ttMove with a reduced search fail high over the original beta,
                 // assume this expected cut-node is not singular (multiple moves fail high),
                 // and can prune the whole subtree by returning a soft-bound.
-                else if (value >= beta && !is_win(value))
+                else if (value >= beta)
                 {
-                    assert(!is_loss(value));
-                    return value;
+                    return in_range(value);
                 }
 
                 // Negative extensions
