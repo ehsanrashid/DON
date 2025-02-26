@@ -933,7 +933,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (eval < -446 + alpha - 303 * sqr(depth))
     {
         value = qsearch<PVNode>(pos, ss, alpha, beta);
-        if (value < alpha)
+        if (value < alpha && !is_loss(value))
             return value;
     }
 
