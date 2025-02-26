@@ -935,6 +935,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         value = qsearch<PVNode>(pos, ss, alpha, beta);
         if (value < alpha)
             return in_range(value);
+
+        ss->ttMove = ttd.move;
     }
 
     // Step 8. Futility pruning: child node
@@ -1101,7 +1103,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         ss->ttMove = ttd.move;
         ttCapture  = ttd.move != Move::None && pos.capture_promo(ttd.move);
     }
-    //assert(ss->ttMove == ttd.move);
+    assert(ss->ttMove == ttd.move);
 
     auto pawnIndex = pawn_index(pos.pawn_key());
 
