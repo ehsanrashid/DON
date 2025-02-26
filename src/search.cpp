@@ -140,7 +140,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
 void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) noexcept;
 void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& m, int bonus) noexcept;
 
-void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const std::array<std::vector<Move>, 2>& moves) noexcept;
+void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const Move& ttMove, const std::array<std::vector<Move>, 2>& moves) noexcept;
 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
 int  correction_value(const Position& pos, const Stack* const ss) noexcept;
@@ -1559,7 +1559,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (moveCount != 0 && bestMove != Move::None)
-        update_all_history(pos, ss, depth, bestMove, moves);
+        update_all_history(pos, ss, depth, bestMove, pttm, moves);
 
     // If prior move is valid, that caused the fail low
     else if (is_ok(preSq))
@@ -1571,14 +1571,12 @@ S_MOVES_LOOP:  // When in check, search starts here
             // Make sure the bonus is positive
             auto bonusScale =
                             +  36 * !AllNode
-                            // Increase bonus with previous move count
-                            +  32 * std::min<int>((ss - 1)->moveCount - 1, 16)
                             // Increase bonus when bestValue is lower than current static evaluation
                             + 133 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107)
                             // Increase bonus when bestValue is higher than previous static evaluation
                             + 120 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 84)
-                            // Increase bonus when the previous move is TT move
-                            +  81 * ((ss - 1)->move == (ss - 1)->ttMove)
+                            // Increase bonus when the previous count is low
+                            +  82 * ((ss - 1)->moveCount <= 2)
                             // Increase bonus when the previous cutoffCount is low
                             + 100 * ((ss - 1)->cutoffCount <= 3)
                             // Increase bonus if the previous move has a bad history
@@ -2229,11 +2227,11 @@ void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& 
 }
 
 // Updates history at the end of search() when a bestMove is found
-void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const std::array<std::vector<Move>, 2>& moves) noexcept {
+void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const Move& ttMove, const std::array<std::vector<Move>, 2>& moves) noexcept {
     assert(pos.pseudo_legal(bm));
     assert(ss->moveCount != 0);
 
-    int bonus = stat_bonus(depth) + 298 * (bm == ss->ttMove);
+    int bonus = stat_bonus(depth) + 298 * (bm == ttMove);
     int malus = stat_malus(depth) - 32 * (ss->moveCount - 1);
     if (malus < 1)
         malus = 1;
