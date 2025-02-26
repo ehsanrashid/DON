@@ -1575,7 +1575,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                             + 133 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107)
                             // Increase bonus when bestValue is higher than previous static evaluation
                             + 120 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 84)
-                            // Increase bonus when the previous count is low
+                            // Increase bonus when the previous moveCount is low
                             +  82 * ((ss - 1)->moveCount <= 2)
                             // Increase bonus when the previous cutoffCount is low
                             + 100 * ((ss - 1)->cutoffCount <= 3)
