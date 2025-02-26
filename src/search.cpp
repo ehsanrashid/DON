@@ -1572,8 +1572,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                             + 133 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107)
                             // Increase bonus when bestValue is higher than previous static evaluation
                             + 120 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 84)
-                            // Increase bonus when the previous moveCount is low
-                            +  82 * ((ss - 1)->moveCount <= 2)
+                            // Increase bonus when the previous moveCount is high
+                            +  32 * std::min((ss - 1)->moveCount - 1, 16)
+                            // Increase bonus when the previous move is TT move
+                            +  81 * ((ss - 1)->move == (ss - 1)->ttMove)
                             // Increase bonus when the previous cutoffCount is low
                             + 100 * ((ss - 1)->cutoffCount <= 3)
                             // Increase bonus if the previous move has a bad history
