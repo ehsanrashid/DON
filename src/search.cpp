@@ -140,7 +140,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
 void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) noexcept;
 void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& m, int bonus) noexcept;
 
-void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const Move& ttMove, const std::array<std::vector<Move>, 2>& moves) noexcept;
+void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const Move& ttm, const std::array<std::vector<Move>, 2>& moves) noexcept;
 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
 int  correction_value(const Position& pos, const Stack* const ss) noexcept;
@@ -1568,7 +1568,6 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (!preCapture)
         {
             // clang-format off
-            // Make sure the bonus is positive
             auto bonusScale =
                             +  36 * !AllNode
                             // Increase bonus when bestValue is lower than current static evaluation
@@ -2227,11 +2226,11 @@ void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& 
 }
 
 // Updates history at the end of search() when a bestMove is found
-void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const Move& ttMove, const std::array<std::vector<Move>, 2>& moves) noexcept {
+void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const Move& ttm, const std::array<std::vector<Move>, 2>& moves) noexcept {
     assert(pos.pseudo_legal(bm));
     assert(ss->moveCount != 0);
 
-    int bonus = stat_bonus(depth) + 298 * (bm == ttMove);
+    int bonus = stat_bonus(depth) + 298 * (bm == ttm);
     int malus = stat_malus(depth) - 32 * (ss->moveCount - 1);
     if (malus < 1)
         malus = 1;
