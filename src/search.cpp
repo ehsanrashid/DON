@@ -1278,6 +1278,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 value = search<~~NT>(pos, ss, singularBeta - 1, singularBeta, singularDepth, 0, move);
 
+                ss->ttMove = ttd.move;
+
                 ss->moveCount = moveCount;
 
                 if (value < singularBeta)
