@@ -1070,10 +1070,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             if (threads.stop.load(std::memory_order_relaxed))
                 return VALUE_ZERO;
 
-            // Subtract the margin
-            value -= probCutBeta - beta;
-
-            if (value >= beta)
+            if (value >= probCutBeta)
             {
                 value = in_range(value);
 
@@ -1089,10 +1086,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 S_MOVES_LOOP:  // When in check, search starts here
 
     // Step 12. Small ProbCut idea
-    probCutBeta = std::min(413 + beta, VALUE_TB_WIN_IN_MAX_PLY - 1);
+    probCutBeta = std::min(413 + beta, +VALUE_INFINITE - 1);
     if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value)
         && ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
-        return probCutBeta;
+        return ttd.value;
 
     if (!ss->inCheck && ttd.hit && ttd.move == Move::None && tte->move() != Move::None)
     {
