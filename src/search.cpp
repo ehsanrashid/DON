@@ -80,8 +80,8 @@ reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noe
 
 // Futility margin
 template<bool CutNode>
-constexpr Value futility_margin(Depth depth, bool ttHit, bool improve, bool opworse) noexcept {
-    return (depth - 2.0000f * improve - 0.3333f * opworse) * (111 - 25 * (CutNode && !ttHit));
+constexpr Value futility_margin(Depth depth, bool ttHit, bool improve, bool oppworse) noexcept {
+    return (depth - 2.0000f * improve - 0.3333f * oppworse) * (111 - 25 * (CutNode && !ttHit));
 }
 
 // History and stats update bonus, based on depth
@@ -855,7 +855,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     Value unadjustedStaticEval, eval;
 
-    bool improve, opworse;
+    bool improve, oppworse;
 
     Value probCutBeta;
 
@@ -871,7 +871,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         eval = ss->staticEval = (ss - 2)->staticEval;
 
-        improve = opworse = false;
+        improve = oppworse = false;
 
         // Skip early pruning when in check
         goto S_MOVES_LOOP;
@@ -909,11 +909,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // is bigger than the previous static evaluation at our turn
     // (if in check at previous move go back until not in check).
     // The improve flag is used in various pruning heuristics.
-    improve = !(ss - 2)->inCheck && ss->staticEval > +(ss - 2)->staticEval;
-    opworse = (ss - 1)->inCheck || ss->staticEval > -(ss - 1)->staticEval;
+    improve  = !(ss - 2)->inCheck && ss->staticEval > +(ss - 2)->staticEval;
+    oppworse = (ss - 1)->inCheck || ss->staticEval > -(ss - 1)->staticEval;
 
     // Retroactive LMR adjustments
-    if (red > 2 && depth < MAX_PLY - 1 && !opworse)
+    if (red > 2 && depth < MAX_PLY - 1 && !oppworse)
         ++depth;
     if (red > 0 && depth > 1 && ((ss - 1)->inCheck || ss->staticEval > 200 - (ss - 1)->staticEval))
         --depth;
@@ -943,7 +943,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // The depth condition is important for mate finding.
     if (!ss->pvHit && depth < 15 && eval >= beta && (ttd.move == Move::None || ttCapture)
         && !is_loss(beta) && !is_win(eval)
-        && eval - futility_margin<CutNode>(depth, ttd.hit, improve, opworse)
+        && eval - futility_margin<CutNode>(depth, ttd.hit, improve, oppworse)
                + (37 - 7.5289e-6f * absCorrectionValue)
                + std::lround(-3.0675e-3f * (ss - 1)->history)
              >= beta)
@@ -1094,7 +1094,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         && ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
         return ttd.value;
 
-    if (!ss->inCheck && ttd.hit && ttd.move == Move::None && tte->move() != Move::None)
+    if (!ss->inCheck && ttd.hit && !exclude && ttd.move == Move::None && tte->move() != Move::None)
     {
         ttd.move   = extract_tt_move(pos, tte->move(), false);
         pttm       = ttd.move != Move::None   ? ttd.move
@@ -1504,8 +1504,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 rm.curValue = -VALUE_INFINITE;
         }
 
-        // In case have an alternative move equal in eval to the current bestmove,
-        // promote it to bestmove by pretending it just exceeds alpha (but not beta).
+        // In case have an alternative move equal in eval to the current bestMove,
+        // promote it to bestMove by pretending it just exceeds alpha (but not beta).
         bool inc = value == bestValue && (nodes & 0xF) == 0 && 2 + ss->ply >= rootDepth
                 && !is_win(value + 1);
 
