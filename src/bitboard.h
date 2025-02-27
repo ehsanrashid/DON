@@ -147,13 +147,14 @@ constexpr Bitboard operator^(Bitboard b, Square s) noexcept { return b ^ square_
 constexpr Bitboard operator&(Square s, Bitboard b) noexcept { return b & s; }
 constexpr Bitboard operator|(Square s, Bitboard b) noexcept { return b | s; }
 constexpr Bitboard operator^(Square s, Bitboard b) noexcept { return b ^ s; }
-inline Bitboard&   operator&=(Bitboard& b, Square s) noexcept { return b = b & s; }
-inline Bitboard&   operator|=(Bitboard& b, Square s) noexcept { return b = b | s; }
-inline Bitboard&   operator^=(Bitboard& b, Square s) noexcept { return b = b ^ s; }
 
-constexpr Bitboard operator|(Square s1, Square s2) noexcept {
-    return square_bb(s1) | square_bb(s2);
-}
+inline Bitboard& operator&=(Bitboard& b, Square s) noexcept { return b = b & s; }
+inline Bitboard& operator|=(Bitboard& b, Square s) noexcept { return b = b | s; }
+inline Bitboard& operator^=(Bitboard& b, Square s) noexcept { return b = b ^ s; }
+
+constexpr Bitboard operator|(Square s1, Square s2) noexcept { return square_bb(s1) | s2; }
+//constexpr Bitboard operator&(Square s1, Square s2) noexcept { return square_bb(s1) & s2; }
+//constexpr Bitboard operator^(Square s1, Square s2) noexcept { return square_bb(s1) ^ s2; }
 
 // Returns a bitboard from a list of squares
 template<typename... Squares>
