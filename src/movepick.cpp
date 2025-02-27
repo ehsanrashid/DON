@@ -18,7 +18,7 @@
 #include "movepick.h"
 
 #include <cassert>
-#include <iterator>
+#include <utility>
 
 #include "bitboard.h"
 #include "misc.h"
