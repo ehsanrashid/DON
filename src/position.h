@@ -638,14 +638,14 @@ inline bool Position::bishop_opposite() const noexcept {
 }
 
 inline int Position::std_material() const noexcept {
-    return 1 * count<PAWN>() + 3 * count<KNIGHT>() + 3 * count<BISHOP>() + 5 * count<ROOK>()
-         + 9 * count<QUEEN>();
+    return 1.0469f * count<PAWN>() + 2.8438f * count<KNIGHT>() + 2.8438f * count<BISHOP>()
+         + 5.2656f * count<ROOK>() + 8.6406f * count<QUEEN>();
 }
 
 inline int Position::bucket() const noexcept { return (count<ALL_PIECE>() - 1) / 4; }
 
 inline Value Position::material() const noexcept {
-    return 535 * count<PAWN>() + non_pawn_material();
+    return 594 * count<PAWN>() + non_pawn_material();
 }
 
 // Returns a static, purely materialistic evaluation of the position from

@@ -36,7 +36,7 @@
 
 namespace DON {
 
-bool use_small_net(const Position& pos) noexcept { return std::abs(pos.evaluate()) > 962; }
+bool use_small_net(const Position& pos) noexcept { return std::abs(pos.evaluate()) > 1013; }
 
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
 // of the position from the point of view of the side to move.
@@ -51,10 +51,7 @@ Value evaluate(const Position&          pos,
     bool smallNetUse = use_small_net(pos);
 
     const auto compute_nnue = [&netOut = std::as_const(netOut)]() noexcept -> std::int32_t {
-        static constexpr int delta = 3;
-
-        return ((128 - delta) * netOut.psqt + (128 + delta) * netOut.positional)
-             / (128 * NNUE::OUTPUT_SCALE);
+        return (1004 * netOut.psqt + 1044 * netOut.positional) / (1024 * NNUE::OUTPUT_SCALE);
     };
 
     std::int32_t nnue = 0;
@@ -70,7 +67,7 @@ Value evaluate(const Position&          pos,
         nnue = compute_nnue();
 
         // Re-evaluate with the big-net if the small-net's NNUE evaluation is below a certain threshold
-        smallNetUse = std::abs(nnue) >= 236;
+        smallNetUse = std::abs(nnue) >= 221;
     }
     if (!smallNetUse)
     {
@@ -85,11 +82,11 @@ Value evaluate(const Position&          pos,
     // clang-format off
     std::int32_t complexity = std::abs(netOut.psqt - netOut.positional) / NNUE::OUTPUT_SCALE;
 
-    nnue     -= nnue     * std::lround(complexity * 55.5555e-6f);
-    optimism += optimism * std::lround(complexity * 21.3675e-4f);
+    nnue     -= std::lround(nnue     * complexity * 51.8753e-6f);
+    optimism += std::lround(optimism * complexity * 18.7617e-4f);
 
-    std::int32_t v = (nnue + 0.0999f * optimism)
-                   + (nnue + 0.9999f * optimism) * std::lround(pos.material() * 12.8573e-6f);
+    std::int32_t v = (0.9513f * nnue + 0.08737f * optimism)
+                   + (1.0000f * nnue + 0.99999f * optimism) * std::lround(pos.material() * 12.4642e-6f);
     // clang-format on
 
     // Damp down the evaluation linearly when shuffling
@@ -100,7 +97,7 @@ Value evaluate(const Position&          pos,
 
     v = std::lround(v * damp);
 
-    // Guarantee evaluation does not hit the tablebase range
+    // Guarantee evaluation does not hit the table-base range
     return in_range(v);
 }
 
