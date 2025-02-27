@@ -185,40 +185,40 @@ void MovePicker::score() noexcept {
 void MovePicker::sort_partial(int limit) noexcept {
     if (begin() == end())
         return;
-    for (auto s = begin(), p = std::next(begin()); p != end(); ++p)
+    for (auto s = begin(), p = begin() + 1; p != end(); ++p)
         if (p->value >= limit)
         {
-            auto em = *p;
+            auto em = std::move(*p);
 
-            *p = *++s;
+            *p = std::move(*++s);
 
             // Shift elements until the correct position for 'em' is found
             auto q = s;
             // Unroll 8x
             for (; q - 8 >= begin() && *(q - 8) < em; q -= 8)
             {
-                *(q)     = *(q - 1);
-                *(q - 1) = *(q - 2);
-                *(q - 2) = *(q - 3);
-                *(q - 3) = *(q - 4);
-                *(q - 4) = *(q - 5);
-                *(q - 5) = *(q - 6);
-                *(q - 6) = *(q - 7);
-                *(q - 7) = *(q - 8);
+                *(q)     = std::move(*(q - 1));
+                *(q - 1) = std::move(*(q - 2));
+                *(q - 2) = std::move(*(q - 3));
+                *(q - 3) = std::move(*(q - 4));
+                *(q - 4) = std::move(*(q - 5));
+                *(q - 5) = std::move(*(q - 6));
+                *(q - 6) = std::move(*(q - 7));
+                *(q - 7) = std::move(*(q - 8));
             }
             // Unroll 4x
             for (; q - 4 >= begin() && *(q - 4) < em; q -= 4)
             {
-                *(q)     = *(q - 1);
-                *(q - 1) = *(q - 2);
-                *(q - 2) = *(q - 3);
-                *(q - 3) = *(q - 4);
+                *(q)     = std::move(*(q - 1));
+                *(q - 1) = std::move(*(q - 2));
+                *(q - 2) = std::move(*(q - 3));
+                *(q - 3) = std::move(*(q - 4));
             }
             // Handle remaining shift safely
             for (; q - 1 >= begin() && *(q - 1) < em; --q)
-                *(q) = *(q - 1);
+                *(q) = std::move(*(q - 1));
 
-            *q = em;  // Insert the element in its correct position
+            *q = std::move(em);  // Insert the element in its correct position
         }
 }
 
