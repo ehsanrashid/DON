@@ -1854,7 +1854,7 @@ QS_MOVES_LOOP:
                 {
                     // Capture history based pruning
                     int captHist = captureHistory[movedPiece][dst][captured];
-                    if (captHist < -5300)
+                    if (captHist < -5100)
                         continue;
 
                     // SEE based pruning

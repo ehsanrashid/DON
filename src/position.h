@@ -645,7 +645,7 @@ inline int Position::std_material() const noexcept {
 inline int Position::bucket() const noexcept { return (count<ALL_PIECE>() - 1) / 4; }
 
 inline Value Position::material() const noexcept {
-    return 594 * count<PAWN>() + non_pawn_material();
+    return 535 * count<PAWN>() + non_pawn_material();
 }
 
 // Returns a static, purely materialistic evaluation of the position from

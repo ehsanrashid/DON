@@ -36,7 +36,7 @@
 
 namespace DON {
 
-bool use_small_net(const Position& pos) noexcept { return std::abs(pos.evaluate()) > 1013; }
+bool use_small_net(const Position& pos) noexcept { return std::abs(pos.evaluate()) > 962; }
 
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
 // of the position from the point of view of the side to move.
@@ -67,7 +67,7 @@ Value evaluate(const Position&          pos,
         nnue = compute_nnue();
 
         // Re-evaluate with the big-net if the small-net's NNUE evaluation is below a certain threshold
-        smallNetUse = std::abs(nnue) >= 221;
+        smallNetUse = std::abs(nnue) >= 236;
     }
     if (!smallNetUse)
     {
@@ -82,11 +82,11 @@ Value evaluate(const Position&          pos,
     // clang-format off
     std::int32_t complexity = std::abs(netOut.psqt - netOut.positional) / NNUE::OUTPUT_SCALE;
 
-    nnue     -= std::lround(nnue     * complexity * 51.8753e-6f);
-    optimism += std::lround(optimism * complexity * 18.7617e-4f);
+    nnue     = std::lround(nnue     * (1.0f - 51.8753e-6f * complexity));
+    optimism = std::lround(optimism * (1.0f + 18.7617e-4f * complexity));
 
     std::int32_t v = (0.9513f * nnue + 0.08737f * optimism)
-                   + (1.0000f * nnue + 0.99999f * optimism) * std::lround(pos.material() * 12.4642e-6f);
+                   + (1.0000f * nnue + 0.99999f * optimism) * pos.material() * 12.4642e-6f;
     // clang-format on
 
     // Damp down the evaluation linearly when shuffling
