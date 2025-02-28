@@ -122,10 +122,7 @@ int risk_tolerance(const Position& pos, Value v) noexcept {
     int b = ((+7936 * m / 256 - 2255) * m / 256 + 319) * m / 256 + 83;
     // a and b are the crude approximation of the wdl model.
     // The win rate is: 1 / (1 + exp((a-v) / b))
-    // The loss rate is 1 / (1 + exp((v+a) / b))
-
-    // The risk utility is therefore d / dv^2 (1 / (1 + exp(-(v-a) / b)) - 1 / (1 + exp(-(-v-a) / b)))
-    // -115200x/(x^2+3) = -345600(ab) / (a^2+3b^2) (multiplied by some constant) (second degree pade approximant)
+    // The loss rate is 1 / (1 + exp((a+v) / b))
     return std::lround(float(sigmoid_d2(v - a, b) + sigmoid_d2(v + a, b)) * 58 / b);
 }
 
@@ -1198,7 +1195,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                     futilityValue =
                       std::min(242 + ss->staticEval - 98 * (bestMove != Move::None)
                                  + PIECE_VALUE[captured] + promotion_value(move)
-                                 + int(std::lround(0.1298f * captHist)) + 230 * lmrDepth,
+                                 + int(std::lround(0.1299f * captHist)) + 230 * lmrDepth,
                                VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
                     {
@@ -1209,8 +1206,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for captures
-                int seeHist = std::clamp(int(std::lround(0.03125f * captHist)), -138 * virtualDepth,
-                                         +135 * virtualDepth);
+                int seeHist = std::clamp(int(std::lround(0.03125f * captHist)),  //
+                                         -138 * virtualDepth, +135 * virtualDepth);
                 if (!(is_ok(preSq) && dst == preSq)
                     && pos.see(move) < -(seeHist + 154 * virtualDepth + 256 * dblCheck))
                     continue;
@@ -1362,7 +1359,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Adjust reduction with move count and correction value
         r += 306 - 34 * moveCount - 1024 * dblCheck - 33.6746e-6f * absCorrectionValue;
 
-        if (PVNode && !is_decisive(bestValue))
+        if (!is_decisive(bestValue))
             r -= risk_tolerance(pos, bestValue);
 
         // Increase reduction for CutNode
