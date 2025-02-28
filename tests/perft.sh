@@ -1,7 +1,7 @@
 #!/bin/bash
 # verify perft numbers (positions from https://www.chessprogramming.org/Perft_Results)
 
-TestsFailed = 0
+TestsFailed=0
 
 error()
 {
@@ -55,7 +55,7 @@ run_test()
     cat "$tmp_file"
     echo "=================================="
     rm -f "$tmp_file"
-    TestsFailed = 1
+    TestsFailed=1
   fi
 }
 
