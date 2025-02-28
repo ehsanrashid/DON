@@ -1192,7 +1192,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int captHist = captureHistory[movedPiece][dst][captured];
 
                 // Futility pruning for captures not check
-                if (!ss->inCheck && lmrDepth < 7 && !check && !pos.fork(move))
+                if (!ss->inCheck && lmrDepth < 7 && !(is_ok(preSq) && dst == preSq) && !check
+                    && !pos.fork(move))
                 {
                     futilityValue =
                       std::min(242 + ss->staticEval - 98 * (bestMove != Move::None)
@@ -1210,7 +1211,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // SEE based pruning for captures
                 int seeHist = std::clamp(int(std::lround(0.03125f * captHist)), -138 * virtualDepth,
                                          +135 * virtualDepth);
-                if (pos.see(move) < -(seeHist + 154 * virtualDepth + 256 * dblCheck))
+                if (!(is_ok(preSq) && dst == preSq)
+                    && pos.see(move) < -(seeHist + 154 * virtualDepth + 256 * dblCheck))
                     continue;
             }
             else
@@ -1820,7 +1822,7 @@ QS_MOVES_LOOP:
             Value futilityValue;
 
             // Futility pruning and moveCount pruning
-            if (!check && dst != preSq && !is_loss(futilityBase)
+            if (!check && !(is_ok(preSq) && dst == preSq) && !is_loss(futilityBase)
                 && (move.type_of() != PROMOTION || (!ss->inCheck && move.promotion_type() != QUEEN))
                 && !pos.fork(move))
             {
@@ -1860,7 +1862,7 @@ QS_MOVES_LOOP:
             }
 
             // SEE based pruning
-            if (dst != preSq && pos.see(move) < -(75 + 64 * dblCheck))
+            if (!(is_ok(preSq) && dst == preSq) && pos.see(move) < -(75 + 64 * dblCheck))
                 continue;
         }
 
