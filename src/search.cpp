@@ -1848,21 +1848,7 @@ QS_MOVES_LOOP:
                 }
             }
 
-            if (capture)
-            {
-                if (dst != preSq)
-                {
-                    // Capture history based pruning
-                    int captHist = captureHistory[movedPiece][dst][captured];
-                    if (captHist < -5100)
-                        continue;
-
-                    // SEE based pruning
-                    if (pos.see(move) < -(75 + 64 * dblCheck))
-                        continue;
-                }
-            }
-            else
+            if (!capture)
             {
                 assert(dst != preSq);
                 // Continuation history based pruning
@@ -1871,11 +1857,11 @@ QS_MOVES_LOOP:
                              + pawnHistory[pawnIndex][movedPiece][dst];
                 if (contHist < 5924)
                     continue;
-
-                // SEE based pruning
-                if (pos.see(move) < -(75 + 64 * dblCheck))
-                    continue;
             }
+
+            // SEE based pruning
+            if (dst != preSq && pos.see(move) < -(75 + 64 * dblCheck))
+                continue;
         }
 
         // Step 7. Make the move

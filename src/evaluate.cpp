@@ -82,8 +82,8 @@ Value evaluate(const Position&          pos,
     // clang-format off
     std::int32_t complexity = std::abs(netOut.psqt - netOut.positional) / NNUE::OUTPUT_SCALE;
 
-    nnue     = std::lround(nnue     * (1.0f - 51.8753e-6f * complexity));
-    optimism = std::lround(optimism * (1.0f + 18.7617e-4f * complexity));
+    nnue     = std::lround(nnue     * std::max(1.0f - 51.8753e-6f * complexity, 0.0001f));
+    optimism = std::lround(optimism *         (1.0f + 18.7617e-4f * complexity));
 
     std::int32_t v = (0.9513f * nnue + 0.08737f * optimism)
                    + (1.0000f * nnue + 0.99999f * optimism) * pos.material() * 12.4642e-6f;
@@ -91,9 +91,7 @@ Value evaluate(const Position&          pos,
 
     // Damp down the evaluation linearly when shuffling
     auto rule50 = pos.rule50_count();
-    auto damp   = 1.0f - 2.0e-3f * (rule50 <= 4 ? rule50 : 4 + 3.3333f * (rule50 - 4));
-    if (damp < 0.0f)
-        damp = 0.0f;
+    auto damp   = std::max(1.0f - 2.0e-3f * (rule50 <= 4 ? rule50 : 4 + 3.3333f * (rule50 - 4)), 0.0f);
 
     v = std::lround(v * damp);
 
