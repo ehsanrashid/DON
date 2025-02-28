@@ -258,7 +258,9 @@ void generate_moves(ExtMoves& extMoves, const Position& pos, bool any) noexcept 
         }
 
         generate_pawns_moves<GT>    (extMoves, pos, target);
-        if (any && !extMoves.empty() && pos.legal(extMoves[0])) return;
+        if (any && ((extMoves.size() > 0 && pos.legal(extMoves[0]))
+                 || (extMoves.size() > 1 && pos.legal(extMoves[1]))
+                 || (extMoves.size() > 2 && pos.legal(extMoves[2])))) return;
         auto extMovesEnd = extMoves.end();
         generate_piece_moves<KNIGHT>(extMoves, pos, target);
         if (any && extMovesEnd != extMoves.end()) return;

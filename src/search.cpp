@@ -956,8 +956,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         Depth R = 4 + int(0.3333f * depth)             //
                 + std::min(int(4.3103e-3f * diff), 6)  //
                 + int(0.1111f * pos.phase());
-        if (R > depth)
-            R = depth;
 
         pos.do_null_move(st);
 
