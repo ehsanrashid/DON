@@ -228,7 +228,6 @@ void generate_king_moves(ExtMoves& extMoves, const Position& pos, Bitboard targe
                     assert(is_ok(pos.castling_rook_square(cr))
                            && (pos.pieces(ac, ROOK) & pos.castling_rook_square(cr)));
                     extMoves.emplace_back(CASTLING, ksq, pos.castling_rook_square(cr));
-                    if (any) return;
                 }
     }
 }
