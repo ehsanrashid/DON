@@ -259,14 +259,15 @@ void generate_moves(ExtMoves& extMoves, const Position& pos, bool any) noexcept 
 
         generate_pawns_moves<GT>    (extMoves, pos, target);
         if (any && !extMoves.empty() && pos.legal(extMoves[0])) return;
+        auto extMovesEnd = extMoves.end();
         generate_piece_moves<KNIGHT>(extMoves, pos, target);
-        if (any && !extMoves.empty()) return;
+        if (any && extMovesEnd != extMoves.end()) return;
         generate_piece_moves<BISHOP>(extMoves, pos, target);
-        if (any && !extMoves.empty()) return;
+        if (any && extMovesEnd != extMoves.end()) return;
         generate_piece_moves<ROOK>  (extMoves, pos, target);
-        if (any && !extMoves.empty()) return;
+        if (any && extMovesEnd != extMoves.end()) return;
         generate_piece_moves<QUEEN> (extMoves, pos, target);
-        if (any && !extMoves.empty()) return;
+        if (any && extMovesEnd != extMoves.end()) return;
     }
 
     if constexpr (Evasion)
