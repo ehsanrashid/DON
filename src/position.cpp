@@ -1801,9 +1801,9 @@ bool Position::is_draw(std::int16_t ply, bool rule50Use, bool stalemateUse) cons
       is_repetition(ply)
       // Draw by 50-move rule
       || (rule50Use && rule50_count() >= 2 * DrawMoveCount
-          && (!checkers() || !LegalMoveList(*this).empty()))
+          && (!checkers() || !LegalMoveList(*this, true).empty()))
       // Draw by Stalemate
-      || (stalemateUse && !checkers() && LegalMoveList(*this).empty());
+      || (stalemateUse && !checkers() && LegalMoveList(*this, true).empty());
 }
 
 // Tests whether there has been at least one repetition

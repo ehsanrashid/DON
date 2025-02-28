@@ -1545,7 +1545,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     // All legal moves have been searched and if there are no legal moves,
     // it must be a mate or a stalemate.
     // If in a singular extension search then return a fail low score.
-    assert(moveCount != 0 || !ss->inCheck || exclude || LegalMoveList(pos).empty());
+    assert(moveCount != 0 || !ss->inCheck || exclude || LegalMoveList(pos, true).empty());
     assert(moveCount == ss->moveCount);
 
     if (moveCount == 0)
@@ -1910,10 +1910,11 @@ QS_MOVES_LOOP:
         // A special case: if in check and no legal moves were found, it is checkmate.
         if (ss->inCheck)
         {
-            assert(LegalMoveList(pos).empty());
+            assert(LegalMoveList(pos, true).empty());
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
-        else if (bestValue != VALUE_DRAW && LegalMoveList(pos).empty())
+        else if (bestValue != VALUE_DRAW && (pttm == Move::None || !pos.legal(pttm))
+                 && LegalMoveList(pos, true).empty())
             bestValue = VALUE_DRAW;
     }
     // Adjust best value for fail high cases

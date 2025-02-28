@@ -1630,7 +1630,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
         dtz = zeroing ? -dtz_before_zeroing(search<false>(pos, ps)) : -probe_dtz(pos, ps);
 
         // If the move mates, force minDTZ to 1
-        if (dtz == 1 && pos.checkers() && LegalMoveList(pos).empty())
+        if (dtz == 1 && pos.checkers() && LegalMoveList(pos, true).empty())
             minDTZ = 1;
 
         // Convert result from 1-ply search. Zeroing moves are already accounted
@@ -1696,7 +1696,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
         }
 
         // Make sure that a mating move is assigned a dtz value of 1
-        if (dtz == 2 && pos.checkers() && LegalMoveList(pos).empty())
+        if (dtz == 2 && pos.checkers() && LegalMoveList(pos, true).empty())
             dtz = 1;
 
         pos.undo_move(rm[0]);

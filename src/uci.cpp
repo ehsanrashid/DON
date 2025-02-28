@@ -1019,8 +1019,8 @@ std::string UCI::move_to_san(const Move& m, Position& pos) noexcept {
 
     // Marker for check & checkmate
     if (check)
-        san += (LegalMoveList(pos).empty() ? '#' : '+');
-    else if (LegalMoveList(pos).empty())
+        san += (LegalMoveList(pos, true).empty() ? '#' : '+');
+    else if (LegalMoveList(pos, true).empty())
         san += '=';
 
     pos.undo_move(m);

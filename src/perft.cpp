@@ -98,12 +98,12 @@ void Perft::classify(Position& pos, const Move& m) noexcept {
 
         pos.do_move(m, st, true);
         //dblCheck += more_than_one(pos.checkers());
-        checkmate += LegalMoveList(pos).empty();
+        checkmate += LegalMoveList(pos, true).empty();
     }
     else
     {
         pos.do_move(m, st, false);
-        stalemate += LegalMoveList(pos).empty();
+        stalemate += LegalMoveList(pos, true).empty();
     }
     pos.undo_move(m);
 }

@@ -211,7 +211,7 @@ enum GenType : std::uint8_t {
 };
 
 template<GenType GT>
-ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos) noexcept;
+ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos, bool any = false) noexcept;
 
 ExtMoves::Itr filter_legal(ExtMoves& extMoves, const Position& pos) noexcept;
 
@@ -220,8 +220,8 @@ ExtMoves::Itr filter_legal(ExtMoves& extMoves, const Position& pos) noexcept;
 template<GenType GT>
 struct MoveList final {
 
-    explicit MoveList(const Position& pos) noexcept {  //
-        extEnd = generate<GT>(extMoves, pos);
+    explicit MoveList(const Position& pos, bool any = false) noexcept {  //
+        extEnd = generate<GT>(extMoves, pos, any);
     }
     MoveList() noexcept                           = delete;
     MoveList(MoveList const&) noexcept            = delete;
