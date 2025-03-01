@@ -318,18 +318,6 @@ template ExtMoves::Itr generate<EVA_CAPTURE>(ExtMoves& extMoves, const Position&
 template ExtMoves::Itr generate<EVA_QUIET  >(ExtMoves& extMoves, const Position& pos, bool any) noexcept;
 // clang-format on
 
-// Filter legal moves
-ExtMoves::Itr filter_legal(ExtMoves& extMoves, const Position& pos) noexcept {
-
-    return extMoves.remove_if([&pos](const Move& m) noexcept {
-        assert(pos.pseudo_legal(m));
-        return ((type_of(pos.piece_on(m.org_sq())) == PAWN
-                 && (pos.blockers(pos.active_color()) & m.org_sq()))
-                || m.type_of() == CASTLING)
-            && !pos.legal(m);
-    });
-}
-
 // <LEGAL> Generates all legal moves
 template<>
 ExtMoves::Itr generate<LEGAL>(ExtMoves& extMoves, const Position& pos, bool any) noexcept {
@@ -337,7 +325,14 @@ ExtMoves::Itr generate<LEGAL>(ExtMoves& extMoves, const Position& pos, bool any)
     pos.checkers()  //
       ? generate<EVASION>(extMoves, pos, any)
       : generate<ENCOUNTER>(extMoves, pos, any);
-    return filter_legal(extMoves, pos);
+    // Filter legal moves
+    return extMoves.remove_if([&pos](const Move& m) noexcept {
+        assert(pos.pseudo_legal(m));
+        return ((type_of(pos.piece_on(m.org_sq())) == PAWN
+                 && (pos.blockers(pos.active_color()) & m.org_sq()))
+                || m.type_of() == CASTLING)
+            && !pos.legal(m);
+    });
 }
 
 }  // namespace DON

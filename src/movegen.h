@@ -213,8 +213,6 @@ enum GenType : std::uint8_t {
 template<GenType GT>
 ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos, bool any = false) noexcept;
 
-ExtMoves::Itr filter_legal(ExtMoves& extMoves, const Position& pos) noexcept;
-
 // The MoveList struct wraps the generate() function and returns a convenient list of moves.
 // Using MoveList is sometimes preferable to directly calling the lower level generate() function.
 template<GenType GT>
