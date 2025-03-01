@@ -116,10 +116,12 @@ int risk_tolerance(const Position& pos, Value v) noexcept {
     // Returns (some constant of) second derivative of sigmoid
     static constexpr auto sigmoid_d2 = [](int x, int y) noexcept { return -355752ll * x / (sqr(x) + 3 * sqr(y)); };
 
-    int material = pos.std_material();
-    int m = std::clamp(material, 17, 78);
-    int a = ((-3037 * m / 256 + 2270) * m / 256 - 637) * m / 256 + 413;
-    int b = ((+7936 * m / 256 - 2255) * m / 256 + 319) * m / 256 + 83;
+    static constexpr int as[4]{-3037, +2270, -637, +413};
+    static constexpr int bs[4]{+7936, -2255, +319, +83};
+
+    int m = pos.std_material();
+    int a = m * (m * (m * as[0] / 256 + as[1]) / 256 + as[2]) / 256 + as[3];
+    int b = m * (m * (m * bs[0] / 256 + bs[1]) / 256 + bs[2]) / 256 + bs[3];
     // a and b are the crude approximation of the wdl model.
     // The win rate is: 1 / (1 + exp((a-v) / b))
     // The loss rate is 1 / (1 + exp((a+v) / b))
@@ -449,7 +451,7 @@ void Worker::iterative_deepening() noexcept {
             std::uint16_t failHighCnt = 0;
             while (true)
             {
-                nmpPly = 0;
+                nmpPly    = 0;
                 rootDelta = beta - alpha;
                 assert(rootDelta > 0);
                 // Adjust the effective depth searched, but ensure at least one

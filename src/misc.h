@@ -170,7 +170,8 @@ constexpr int sign(T x) noexcept {
 template<typename T>
 constexpr auto sqr(T x) noexcept {
     static_assert(std::is_arithmetic_v<T>, "Argument must be an arithmetic type");
-    return x * x;
+    using Wider = std::conditional_t<std::is_integral_v<T>, long long, T>;
+    return Wider(x) * x;
 }
 
 template<typename T>
