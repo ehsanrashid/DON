@@ -693,7 +693,7 @@ Position::attacks_mob_by(Color c, Bitboard blockers, Bitboard target, Bitboard o
 
         Square ksq = king_square(c);
 
-        Bitboard pc = pieces<PT>(c, ksq);
+        Bitboard pc = pieces<PT>(c, ksq, blockers);
         while (pc)
         {
             Square s = pop_lsb(pc);

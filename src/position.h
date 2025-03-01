@@ -189,6 +189,8 @@ class Position final {
     template<typename... PieceTypes>
     Bitboard pieces(Color c, PieceTypes... pts) const noexcept;
     template<PieceType PT>
+    Bitboard pieces(Color c, Square s, Bitboard blockers) const noexcept;
+    template<PieceType PT>
     Bitboard pieces(Color c, Square s) const noexcept;
 
     std::uint8_t count(Piece pc) const noexcept;
@@ -418,16 +420,21 @@ inline Bitboard Position::pieces(Color c, PieceTypes... pts) const noexcept {
 }
 
 template<PieceType PT>
-inline Bitboard Position::pieces(Color c, Square s) const noexcept {
+inline Bitboard Position::pieces(Color c, Square s, Bitboard blockers) const noexcept {
     // clang-format off
     switch (PT)
     {
-    case KNIGHT : return pieces(c, KNIGHT) & (~blockers(c));
-    case BISHOP : return pieces(c, BISHOP) & (~blockers(c) | attacks_bb<BISHOP>(s));
-    case ROOK :   return pieces(c, ROOK  ) & (~blockers(c) | attacks_bb<ROOK>  (s));
+    case KNIGHT : return pieces(c, KNIGHT) & (~blockers);
+    case BISHOP : return pieces(c, BISHOP) & (~blockers | attacks_bb<BISHOP>(s));
+    case ROOK :   return pieces(c, ROOK  ) & (~blockers | attacks_bb<ROOK>  (s));
     default :     return pieces(c, PT    );
     }
     // clang-format on
+}
+
+template<PieceType PT>
+inline Bitboard Position::pieces(Color c, Square s) const noexcept {
+    return pieces<PT>(c, s, blockers(c));
 }
 
 inline std::uint8_t Position::count(Piece pc) const noexcept { return pieceCount[pc]; }

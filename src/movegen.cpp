@@ -169,7 +169,7 @@ void generate_piece_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
     Bitboard occupied = pos.pieces();
     Bitboard blockers = pos.blockers(ac);
 
-    Bitboard pc = pos.pieces<PT>(ac, ksq);
+    Bitboard pc = pos.pieces<PT>(ac, ksq, blockers);
     while (pc)
     {
         Square s = pop_lsb(pc);
