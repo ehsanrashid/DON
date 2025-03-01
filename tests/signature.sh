@@ -29,4 +29,3 @@ else
    # just report signature
    echo $signature
 fi
-

@@ -552,7 +552,7 @@ class Worker final {
     std::atomic<std::uint16_t> moveChanges;
 
     int           rootDelta;
-    std::int16_t  nmpMinPly;
+    std::int16_t  nmpPly;
     std::size_t   multiPV, fstIdx, lstIdx, curIdx;
     std::uint16_t selDepth;
 

@@ -449,7 +449,7 @@ void Worker::iterative_deepening() noexcept {
             std::uint16_t failHighCnt = 0;
             while (true)
             {
-                nmpMinPly = 0;
+                nmpPly = 0;
                 rootDelta = beta - alpha;
                 assert(rootDelta > 0);
                 // Adjust the effective depth searched, but ensure at least one
@@ -946,7 +946,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     // Step 9. Null move search with verification search
     if (CutNode && !exclude && preMove != Move::Null && pos.non_pawn_material(ac)  //
-        && !is_loss(beta) && eval >= beta && ss->ply >= nmpMinPly
+        && !is_loss(beta) && eval >= beta && ss->ply >= nmpPly
         && ss->staticEval >= 418 + beta - 19 * depth)
     {
         int diff = eval - beta;
@@ -979,18 +979,18 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         {
             nullValue = in_range(nullValue);
 
-            if (nmpMinPly != 0 || depth < 16)
+            if (nmpPly != 0 || depth < 16)
                 return nullValue;
 
-            assert(nmpMinPly == 0);  // Recursive verification is not allowed
+            assert(nmpPly == 0);  // Recursive verification is not allowed
 
             // Do verification search at high depths,
             // with null move pruning disabled until ply exceeds nmpMinPly.
-            nmpMinPly = ss->ply + 0.75f * (depth - R);
+            nmpPly = ss->ply + int(0.75f * (depth - R));
 
             Value v = search<All>(pos, ss, beta - 1, beta, depth - R);
 
-            nmpMinPly = 0;
+            nmpPly = 0;
 
             if (v >= beta)
                 return nullValue;
