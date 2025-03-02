@@ -1531,9 +1531,9 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 alpha = value;  // Update alpha! Always alpha < beta
 
-                // Reduce other moves if have found at least one score improvement
-                if (depth < 18 && !is_decisive(value))
-                    depth = std::max(depth - (depth < 8 ? 3 : depth < 14 ? 2 : 1), 1);
+                // Reduce depth for other moves if have found at least one score improvement
+                if (!is_decisive(value))
+                    depth = std::max(depth - 2, 1);
 
                 assert(depth > DEPTH_ZERO);
             }

@@ -213,11 +213,11 @@ enum GenType : std::uint8_t {
 template<GenType GT, bool Any = false>
 ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos) noexcept;
 
-// The MoveList struct wraps the generate() function and returns a convenient list of moves.
+// MoveList struct wraps the generate() function and returns a convenient list of moves.
 // Using MoveList is sometimes preferable to directly calling the lower level generate() function.
 template<GenType GT, bool Any = false>
 struct MoveList final {
-
+   public:
     explicit MoveList(const Position& pos) noexcept {  //
         extEnd = generate<GT, Any>(extMoves, pos);
     }

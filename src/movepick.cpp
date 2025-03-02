@@ -239,7 +239,7 @@ STAGE_SWITCH:
     case STG_ENC_CAPTURE_INIT :
     case STG_PROBCUT_INIT :
         extEnd = generate<ENC_CAPTURE>(extMoves, pos);
-        extBeg = extMoves.begin();
+        extCur = extMoves.begin();
 
         score<ENC_CAPTURE>();
         sort_partial();
@@ -269,7 +269,7 @@ STAGE_SWITCH:
         if (quietPick)
         {
             extEnd = generate<ENC_QUIET>(extMoves, pos);
-            extBeg = extMoves.begin();
+            extCur = extMoves.begin();
 
             score<ENC_QUIET>();
             assert(threshold < 0);
@@ -298,16 +298,17 @@ STAGE_SWITCH:
             }
 
         // Prepare to loop over the bad captures
-        badCapBeg = badCapMoves.begin();
+        badCapCur = badCapMoves.begin();
+        badCapEnd = badCapMoves.end();
 
         next_stage();
         [[fallthrough]];
 
     case STG_ENC_CAPTURE_BAD :
-        if (badCapBeg != badCapMoves.end())
+        if (badCapCur != badCapEnd)
         {
-            assert(is_ok(*badCapBeg));
-            return *badCapBeg++;
+            assert(is_ok(*badCapCur));
+            return *badCapCur++;
         }
 
         if (quietPick)
@@ -329,7 +330,7 @@ STAGE_SWITCH:
 
     case STG_EVA_CAPTURE_INIT :
         extEnd = generate<EVA_CAPTURE>(extMoves, pos);
-        extBeg = extMoves.begin();
+        extCur = extMoves.begin();
 
         score<EVA_CAPTURE>();
         sort_partial();
@@ -354,7 +355,7 @@ STAGE_SWITCH:
         if (quietPick)
         {
             extEnd = generate<EVA_QUIET>(extMoves, pos);
-            extBeg = extMoves.begin();
+            extCur = extMoves.begin();
 
             score<EVA_QUIET>();
             sort_partial();

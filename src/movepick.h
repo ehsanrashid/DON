@@ -96,12 +96,12 @@ class MovePicker final {
 
     void sort_partial(int limit = std::numeric_limits<int>::min()) noexcept;
 
-    auto begin() noexcept { return extBeg; }
+    auto begin() noexcept { return extCur; }
     auto end() noexcept { return extEnd; }
 
-    void next() noexcept { ++extBeg; }
+    void next() noexcept { ++extCur; }
 
-    const auto& current() const noexcept { return *extBeg; }
+    const auto& current() const noexcept { return *extCur; }
 
     bool is_ok(const Move& move) const noexcept { return move != ttMove; }
 
@@ -116,10 +116,10 @@ class MovePicker final {
     const int                    threshold;
 
     Moves      badCapMoves;
-    Moves::Itr badCapBeg;
+    Moves::Itr badCapCur, badCapEnd;
 
     ExtMoves      extMoves;
-    ExtMoves::Itr extBeg, extEnd;
+    ExtMoves::Itr extCur, extEnd;
 };
 
 }  // namespace DON
