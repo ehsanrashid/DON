@@ -123,8 +123,8 @@ int risk_tolerance(const Position& pos, Value v) noexcept {
     int a = m * (m * (m * as[0] / 256 + as[1]) / 256 + as[2]) / 256 + as[3];
     int b = m * (m * (m * bs[0] / 256 + bs[1]) / 256 + bs[2]) / 256 + bs[3];
     // a and b are the crude approximation of the wdl model.
-    // The win rate is: 1 / (1 + exp((a-v) / b))
-    // The loss rate is 1 / (1 + exp((a+v) / b))
+    // The win  rate: 1 / (1 + exp((a-v) / b))
+    // The loss rate: 1 / (1 + exp((a+v) / b))
     return std::lround(float(sigmoid_d2(v - a, b) + sigmoid_d2(v + a, b)) * 58 / b);
 }
 
@@ -2369,15 +2369,15 @@ void extend_tb_pv(Position&      rootPos,
     {
         const Move& pvMove = rootMove[ply];
 
-        RootMoves legalRootMoves;
+        RootMoves rootMoves;
         for (const Move& m : MoveList<LEGAL>(rootPos))
-            legalRootMoves.emplace_back(m);
+            rootMoves.emplace_back(m);
 
-        auto tbConfig = Tablebases::rank_root_moves(rootPos, legalRootMoves, options);
+        auto tbConfig = Tablebases::rank_root_moves(rootPos, rootMoves, options);
 
-        auto& rm = *legalRootMoves.find(pvMove);
+        auto& rm = *rootMoves.find(pvMove);
 
-        if (rm.tbRank != legalRootMoves.front().tbRank)
+        if (rm.tbRank != rootMoves.front().tbRank)
             break;
 
         auto& st = states.emplace_back();
@@ -2405,10 +2405,10 @@ void extend_tb_pv(Position&      rootPos,
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
     while (!rootPos.is_draw(0, rule50Use))
     {
-        RootMoves legalRootMoves;
+        RootMoves rootMoves;
         for (const Move& m : MoveList<LEGAL>(rootPos))
         {
-            auto& rm = legalRootMoves.emplace_back(m);
+            auto& rm = rootMoves.emplace_back(m);
 
             State st;
             rootPos.do_move(m, st);
@@ -2420,23 +2420,23 @@ void extend_tb_pv(Position&      rootPos,
         }
 
         // Mate found
-        if (legalRootMoves.empty())
+        if (rootMoves.empty())
             break;
 
         // Sort moves according to their above assigned TB rank.
         // This will break ties for moves with equal DTZ in rank_root_moves.
-        legalRootMoves.sort([](const RootMove& rm1, const RootMove& rm2) noexcept {
+        rootMoves.sort([](const RootMove& rm1, const RootMove& rm2) noexcept {
             return rm1.tbRank > rm2.tbRank;
         });
 
         // The winning side tries to minimize DTZ, the losing side maximizes it.
-        auto tbConfig = Tablebases::rank_root_moves(rootPos, legalRootMoves, options, true);
+        auto tbConfig = Tablebases::rank_root_moves(rootPos, rootMoves, options, true);
 
         // If DTZ is not available might not find a mate, so bail out.
         if (!tbConfig.rootInTB || tbConfig.cardinality != 0)
             break;
 
-        const Move& pvMove = legalRootMoves.front()[0];
+        const Move& pvMove = rootMoves.front()[0];
         rootMove.push_back(pvMove);
         auto& st = states.emplace_back();
         rootPos.do_move(pvMove, st);

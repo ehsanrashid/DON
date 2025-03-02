@@ -313,15 +313,15 @@ ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos) noexcept {
 template ExtMoves::Itr generate<ENCOUNTER  , false>(ExtMoves& extMoves, const Position& pos) noexcept;
 template ExtMoves::Itr generate<ENCOUNTER  , true >(ExtMoves& extMoves, const Position& pos) noexcept;
 template ExtMoves::Itr generate<ENC_CAPTURE, false>(ExtMoves& extMoves, const Position& pos) noexcept;
-template ExtMoves::Itr generate<ENC_CAPTURE, true >(ExtMoves& extMoves, const Position& pos) noexcept;
+//template ExtMoves::Itr generate<ENC_CAPTURE, true >(ExtMoves& extMoves, const Position& pos) noexcept;
 template ExtMoves::Itr generate<ENC_QUIET  , false>(ExtMoves& extMoves, const Position& pos) noexcept;
-template ExtMoves::Itr generate<ENC_QUIET  , true >(ExtMoves& extMoves, const Position& pos) noexcept;
+//template ExtMoves::Itr generate<ENC_QUIET  , true >(ExtMoves& extMoves, const Position& pos) noexcept;
 template ExtMoves::Itr generate<EVASION    , false>(ExtMoves& extMoves, const Position& pos) noexcept;
 template ExtMoves::Itr generate<EVASION    , true >(ExtMoves& extMoves, const Position& pos) noexcept;
 template ExtMoves::Itr generate<EVA_CAPTURE, false>(ExtMoves& extMoves, const Position& pos) noexcept;
-template ExtMoves::Itr generate<EVA_CAPTURE, true >(ExtMoves& extMoves, const Position& pos) noexcept;
+//template ExtMoves::Itr generate<EVA_CAPTURE, true >(ExtMoves& extMoves, const Position& pos) noexcept;
 template ExtMoves::Itr generate<EVA_QUIET  , false>(ExtMoves& extMoves, const Position& pos) noexcept;
-template ExtMoves::Itr generate<EVA_QUIET  , true >(ExtMoves& extMoves, const Position& pos) noexcept;
+//template ExtMoves::Itr generate<EVA_QUIET  , true >(ExtMoves& extMoves, const Position& pos) noexcept;
 // clang-format on
 
 // <LEGAL> Generates all legal moves
