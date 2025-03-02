@@ -1970,9 +1970,8 @@ Move Worker::extract_tt_move(const Position& pos, Move ttMove, bool deep) const 
         while (rule50 >= Position::R50Offset)
         {
             rule50 -= Position::R50Factor;
-            Key key = pos.key(rule50 - pos.rule50_count());
 
-            auto [ttd, tte, ttc] = tt.probe(key);
+            auto [ttd, tte, ttc] = tt.probe(pos.key(rule50 - pos.rule50_count()));
 
             ttMove = ttd.hit ? ttd.move : Move::None;
 
@@ -2005,9 +2004,7 @@ bool Worker::ponder_move_extracted() noexcept {
     {
         Move pm;
 
-        Key key = rootPos.key();
-
-        auto [ttd, tte, ttc] = tt.probe(key);
+        auto [ttd, tte, ttc] = tt.probe(rootPos.key());
 
         pm = ttd.hit ? extract_tt_move(rootPos, ttd.move) : Move::None;
         if (pm == Move::None || !legalMoveList.contains(pm))

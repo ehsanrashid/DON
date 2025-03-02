@@ -475,7 +475,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run DON with testing options")
 
     parser.add_argument(
-        "--valgrind", action="store_true", help="Run valgrind testing"
+        "--valgrind",
+        action="store_true",
+        help="Run valgrind testing",
     )
     parser.add_argument(
         "--valgrind-thread",
@@ -495,7 +497,7 @@ def parse_args():
     parser.add_argument(
         "--none",
         action="store_true",
-        help="Run without any testing options",
+        help="Run without any options testing",
     )
     parser.add_argument(
         "engine_path", type=str, help="Path to Engine binary"
