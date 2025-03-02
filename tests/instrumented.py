@@ -475,30 +475,30 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Run DON with testing options")
 
     parser.add_argument(
-        name_or_flags="--valgrind", action="store_true", help="Run valgrind testing"
+        "--valgrind", action="store_true", help="Run valgrind testing"
     )
     parser.add_argument(
-        name_or_flags="--valgrind-thread",
+        "--valgrind-thread",
         action="store_true",
         help="Run valgrind-thread testing",
     )
     parser.add_argument(
-        name_or_flags="--sanitizer-undefined",
+        "--sanitizer-undefined",
         action="store_true",
         help="Run sanitizer-undefined testing",
     )
     parser.add_argument(
-        name_or_flags="--sanitizer-thread",
+        "--sanitizer-thread",
         action="store_true",
         help="Run sanitizer-thread testing",
     )
     parser.add_argument(
-        name_or_flags="--none",
+        "--none",
         action="store_true",
         help="Run without any testing options",
     )
     parser.add_argument(
-        name_or_flags="engine_path", type=str, help="Path to Engine binary"
+        "engine_path", type=str, help="Path to Engine binary"
     )
 
     return parser.parse_args()
