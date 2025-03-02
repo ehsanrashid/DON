@@ -59,15 +59,15 @@ class UCI final {
 
     static std::string move_to_can(const Move& m) noexcept;
 
-    static Move can_to_move(std::string can, const LegalMoveList&) noexcept;
+    static Move can_to_move(std::string can, const MoveList<LEGAL>&) noexcept;
     static Move can_to_move(const std::string& can, const Position& pos) noexcept;
 
     static std::string move_to_san(const Move& m, Position& pos) noexcept;
 
-    static Move san_to_move(std::string san, Position& pos, const LegalMoveList&) noexcept;
+    static Move san_to_move(std::string san, Position& pos, const MoveList<LEGAL>&) noexcept;
     static Move san_to_move(const std::string&, Position& pos) noexcept;
 
-    static Move mix_to_move(const std::string& mix, Position& pos, const LegalMoveList&) noexcept;
+    static Move mix_to_move(const std::string& mix, Position& pos, const MoveList<LEGAL>&) noexcept;
 
     static bool InfoStringStop;
 

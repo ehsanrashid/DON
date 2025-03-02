@@ -1321,10 +1321,10 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
     State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
-    const LegalMoveList legalMoves(pos);
-    std::uint8_t        moveCount = 0;
+    const MoveList<LEGAL> legalMoveList(pos);
+    std::uint8_t          moveCount = 0;
 
-    for (const Move& m : legalMoves)
+    for (const Move& m : legalMoveList)
     {
         if (!pos.capture(m) && (!CheckZeroingMoves || type_of(pos.moved_piece(m)) != PAWN))
             continue;
@@ -1356,7 +1356,7 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
     // the result of probe_wdl_table is wrong. Also in case of only capture
     // moves, for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7, have to
     // return with BEST_MOVE_ZEROING set.
-    bool movesNoMore = (moveCount != 0 && moveCount == legalMoves.size());
+    bool movesNoMore = (moveCount != 0 && moveCount == legalMoveList.size());
 
     if (movesNoMore)
         value = bestValue;
@@ -1617,7 +1617,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
     int minDTZ = INT_MAX;
 
-    for (const Move& m : LegalMoveList(pos))
+    for (const Move& m : MoveList<LEGAL>(pos))
     {
         bool zeroing = pos.capture(m) || type_of(pos.moved_piece(m)) == PAWN;
 
@@ -1630,7 +1630,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
         dtz = zeroing ? -dtz_before_zeroing(search<false>(pos, ps)) : -probe_dtz(pos, ps);
 
         // If the move mates, force minDTZ to 1
-        if (dtz == 1 && pos.checkers() && LegalMoveList(pos, true).empty())
+        if (dtz == 1 && pos.checkers() && MoveList<LEGAL, true>(pos).empty())
             minDTZ = 1;
 
         // Convert result from 1-ply search. Zeroing moves are already accounted
@@ -1696,7 +1696,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
         }
 
         // Make sure that a mating move is assigned a dtz value of 1
-        if (dtz == 2 && pos.checkers() && LegalMoveList(pos, true).empty())
+        if (dtz == 2 && pos.checkers() && MoveList<LEGAL, true>(pos).empty())
             dtz = 1;
 
         pos.undo_move(rm[0]);

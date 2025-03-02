@@ -210,16 +210,16 @@ enum GenType : std::uint8_t {
     LEGAL
 };
 
-template<GenType GT>
-ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos, bool any = false) noexcept;
+template<GenType GT, bool Any = false>
+ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos) noexcept;
 
 // The MoveList struct wraps the generate() function and returns a convenient list of moves.
 // Using MoveList is sometimes preferable to directly calling the lower level generate() function.
-template<GenType GT>
+template<GenType GT, bool Any = false>
 struct MoveList final {
 
-    explicit MoveList(const Position& pos, bool any = false) noexcept {  //
-        extEnd = generate<GT>(extMoves, pos, any);
+    explicit MoveList(const Position& pos) noexcept {  //
+        extEnd = generate<GT, Any>(extMoves, pos);
     }
     MoveList() noexcept                           = delete;
     MoveList(MoveList const&) noexcept            = delete;
@@ -242,8 +242,6 @@ struct MoveList final {
     ExtMoves      extMoves;
     ExtMoves::Itr extEnd;
 };
-
-using LegalMoveList = MoveList<LEGAL>;
 
 }  // namespace DON
 

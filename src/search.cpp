@@ -930,6 +930,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (eval < -461 + alpha - 315 * sqr(depth))
     {
         value = qsearch<PVNode>(pos, ss, alpha, beta);
+
         if (value < alpha)
             return in_range(value);
 
@@ -1547,13 +1548,26 @@ S_MOVES_LOOP:  // When in check, search starts here
     // All legal moves have been searched and if there are no legal moves,
     // it must be a mate or a stalemate.
     // If in a singular extension search then return a fail low score.
-    assert(moveCount != 0 || !ss->inCheck || exclude || LegalMoveList(pos, true).empty());
+    assert(moveCount != 0 || !ss->inCheck || exclude || (MoveList<LEGAL, true>(pos).empty()));
     assert(moveCount == ss->moveCount);
 
     if (moveCount == 0)
-        bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
-    // Adjust best value for fail high cases at non-pv nodes
-    else if (!PVNode && bestValue > beta && !is_decisive(bestValue))
+    {
+        if (exclude)
+            bestValue = alpha;
+        else if (ss->inCheck)
+            bestValue = mated_in(ss->ply);
+        else
+        {
+            bestValue = VALUE_DRAW;
+
+            ttu.update(MAX_PLY - 1, true, BOUND_EXACT, bestMove, bestValue, unadjustedStaticEval);
+
+            return bestValue;
+        }
+    }
+    // Adjust best value for fail high cases
+    else if (bestValue > beta && !is_decisive(bestValue))
     {
         bestValue = in_range((depth * bestValue + beta) / (depth + 1));
     }
@@ -1912,12 +1926,18 @@ QS_MOVES_LOOP:
         // A special case: if in check and no legal moves were found, it is checkmate.
         if (ss->inCheck)
         {
-            assert(LegalMoveList(pos, true).empty());
+            assert((MoveList<LEGAL, true>(pos).empty()));
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
         else if (bestValue != VALUE_DRAW && (pttm == Move::None || !pos.legal(pttm))
-                 && LegalMoveList(pos, true).empty())
+                 && MoveList<LEGAL, true>(pos).empty())
+        {
             bestValue = VALUE_DRAW;
+
+            ttu.update(MAX_PLY - 1, true, BOUND_EXACT, bestMove, bestValue, unadjustedStaticEval);
+
+            return bestValue;
+        }
     }
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_decisive(bestValue))
@@ -1979,8 +1999,8 @@ bool Worker::ponder_move_extracted() noexcept {
     rootPos.do_move(bm, st);
 
     // Legal moves for the opponent
-    const LegalMoveList legalMoves(rootPos);
-    if (!legalMoves.empty())
+    const MoveList<LEGAL> legalMoveList(rootPos);
+    if (!legalMoveList.empty())
     {
         Move pm;
 
@@ -1989,7 +2009,7 @@ bool Worker::ponder_move_extracted() noexcept {
         auto [ttd, tte, ttc] = tt.probe(key);
 
         pm = ttd.hit ? extract_tt_move(rootPos, ttd.move) : Move::None;
-        if (pm == Move::None || !legalMoves.contains(pm))
+        if (pm == Move::None || !legalMoveList.contains(pm))
         {
             pm = Move::None;
             for (auto&& th : threads)
@@ -2014,7 +2034,7 @@ bool Worker::ponder_move_extracted() noexcept {
             if (pm == Move::None)
             {
                 std::srand(std::time(nullptr));
-                pm = *(legalMoves.begin() + (std::rand() % legalMoves.size()));
+                pm = *(legalMoveList.begin() + (std::rand() % legalMoveList.size()));
             }
         }
 
@@ -2352,7 +2372,7 @@ void extend_tb_pv(Position&      rootPos,
         const Move& pvMove = rootMove[ply];
 
         RootMoves legalRootMoves;
-        for (const Move& m : LegalMoveList(rootPos))
+        for (const Move& m : MoveList<LEGAL>(rootPos))
             legalRootMoves.emplace_back(m);
 
         auto tbConfig = Tablebases::rank_root_moves(rootPos, legalRootMoves, options);
@@ -2388,7 +2408,7 @@ void extend_tb_pv(Position&      rootPos,
     while (!rootPos.is_draw(0, rule50Use))
     {
         RootMoves legalRootMoves;
-        for (const Move& m : LegalMoveList(rootPos))
+        for (const Move& m : MoveList<LEGAL>(rootPos))
         {
             auto& rm = legalRootMoves.emplace_back(m);
 
@@ -2396,7 +2416,7 @@ void extend_tb_pv(Position&      rootPos,
             rootPos.do_move(m, st);
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
-            for (const Move& om : LegalMoveList(rootPos))
+            for (const Move& om : MoveList<LEGAL>(rootPos))
                 rm.tbRank -= 1 + 99 * rootPos.capture(om);
             rootPos.undo_move(m);
         }

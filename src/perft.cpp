@@ -98,12 +98,12 @@ void Perft::classify(Position& pos, const Move& m) noexcept {
 
         pos.do_move(m, st, true);
         //dblCheck += more_than_one(pos.checkers());
-        checkmate += LegalMoveList(pos, true).empty();
+        checkmate += MoveList<LEGAL, true>(pos).empty();
     }
     else
     {
         pos.do_move(m, st, false);
-        stalemate += LegalMoveList(pos, true).empty();
+        stalemate += MoveList<LEGAL, true>(pos).empty();
     }
     pos.undo_move(m);
 }
@@ -300,7 +300,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
 
     Perft sPerft;
 
-    for (const Move& m : LegalMoveList(pos))
+    for (const Move& m : MoveList<LEGAL>(pos))
     {
         Perft iPerft;
         if (RootNode && depth <= 1)
@@ -318,10 +318,10 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
 
             if (depth <= 2)
             {
-                const LegalMoveList ilegalMoves(pos);
-                iPerft.nodes += ilegalMoves.size();
+                const MoveList<LEGAL> iLegalMoveList(pos);
+                iPerft.nodes += iLegalMoveList.size();
                 if (detail)
-                    for (const Move& im : ilegalMoves)
+                    for (const Move& im : iLegalMoveList)
                         iPerft.classify(pos, im);
             }
             else

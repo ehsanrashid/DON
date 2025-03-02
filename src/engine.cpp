@@ -127,10 +127,10 @@ void Engine::setup(std::string_view fen, const std::vector<std::string>& moves) 
 
     for (const auto& move : moves)
     {
-        const LegalMoveList legalMoves(pos);
-        if (legalMoves.empty())
+        const MoveList<LEGAL> legalMoveList(pos);
+        if (legalMoveList.empty())
             break;
-        Move m = UCI::mix_to_move(move, pos, legalMoves);
+        Move m = UCI::mix_to_move(move, pos, legalMoveList);
         if (m == Move::None)
         {
             assert(false);

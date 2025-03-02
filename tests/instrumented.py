@@ -473,22 +473,33 @@ class TestSyzygy(metaclass=OrderedClassMembers):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run DON with testing options")
-    parser.add_argument("--valgrind", action="store_true", help="Run valgrind testing")
+
     parser.add_argument(
-        "--valgrind-thread", action="store_true", help="Run valgrind-thread testing"
+        name_or_flags="--valgrind", action="store_true", help="Run valgrind testing"
     )
     parser.add_argument(
-        "--sanitizer-undefined",
+        name_or_flags="--valgrind-thread",
+        action="store_true",
+        help="Run valgrind-thread testing",
+    )
+    parser.add_argument(
+        name_or_flags="--sanitizer-undefined",
         action="store_true",
         help="Run sanitizer-undefined testing",
     )
     parser.add_argument(
-        "--sanitizer-thread", action="store_true", help="Run sanitizer-thread testing"
+        name_or_flags="--sanitizer-thread",
+        action="store_true",
+        help="Run sanitizer-thread testing",
     )
     parser.add_argument(
-        "--none", action="store_true", help="Run without any testing options"
+        name_or_flags="--none",
+        action="store_true",
+        help="Run without any testing options",
     )
-    parser.add_argument("engine_path", type=str, help="Path to Engine binary")
+    parser.add_argument(
+        name_or_flags="engine_path", type=str, help="Path to Engine binary"
+    )
 
     return parser.parse_args()
 

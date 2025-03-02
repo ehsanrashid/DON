@@ -185,8 +185,8 @@ void generate_piece_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
 }
 
 // clang-format off
-template<GenType GT>
-void generate_king_moves(ExtMoves& extMoves, const Position& pos, Bitboard target, bool any) noexcept {
+template<GenType GT, bool Any>
+void generate_king_moves(ExtMoves& extMoves, const Position& pos, Bitboard target) noexcept {
     assert(popcount(pos.checkers()) <= 2);
 
     constexpr bool Castle = GT == ENCOUNTER || GT == ENC_QUIET;
@@ -213,7 +213,7 @@ void generate_king_moves(ExtMoves& extMoves, const Position& pos, Bitboard targe
                && (pos.pieces(~ac, QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupied)))))
             {
                 extMoves.emplace_back(ksq, s);
-                if (any) return;
+                if constexpr (Any) return;
             }
         }
     }
@@ -233,8 +233,8 @@ void generate_king_moves(ExtMoves& extMoves, const Position& pos, Bitboard targe
 }
 // clang-format on
 
-template<GenType GT>
-void generate_moves(ExtMoves& extMoves, const Position& pos, bool any) noexcept {
+template<GenType GT, bool Any>
+void generate_moves(ExtMoves& extMoves, const Position& pos) noexcept {
     static_assert(GT == ENCOUNTER || GT == ENC_CAPTURE || GT == ENC_QUIET  //
                     || GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET,
                   "Unsupported generate type in generate_moves()");
@@ -258,18 +258,18 @@ void generate_moves(ExtMoves& extMoves, const Position& pos, bool any) noexcept 
         }
 
         generate_pawns_moves<GT>    (extMoves, pos, target);
-        if (any && ((extMoves.size() > 0 && pos.legal(extMoves[0]))
+        if (Any && ((extMoves.size() > 0 && pos.legal(extMoves[0]))
                  || (extMoves.size() > 1 && pos.legal(extMoves[1]))
                  || (extMoves.size() > 2 && pos.legal(extMoves[2])))) return;
-        auto extMovesEnd = extMoves.end();
+        [[maybe_unused]] auto extMovesEnd = extMoves.end();
         generate_piece_moves<KNIGHT>(extMoves, pos, target);
-        if (any && extMovesEnd != extMoves.end()) return;
+        if (Any && extMovesEnd != extMoves.end()) return;
         generate_piece_moves<BISHOP>(extMoves, pos, target);
-        if (any && extMovesEnd != extMoves.end()) return;
+        if (Any && extMovesEnd != extMoves.end()) return;
         generate_piece_moves<ROOK>  (extMoves, pos, target);
-        if (any && extMovesEnd != extMoves.end()) return;
+        if (Any && extMovesEnd != extMoves.end()) return;
         generate_piece_moves<QUEEN> (extMoves, pos, target);
-        if (any && extMovesEnd != extMoves.end()) return;
+        if (Any && extMovesEnd != extMoves.end()) return;
     }
 
     if constexpr (Evasion)
@@ -283,7 +283,7 @@ void generate_moves(ExtMoves& extMoves, const Position& pos, bool any) noexcept 
     }
     // clang-format on
 
-    generate_king_moves<GT>(extMoves, pos, target, any);
+    generate_king_moves<GT, Any>(extMoves, pos, target);
 }
 
 }  // namespace
@@ -294,8 +294,8 @@ void generate_moves(ExtMoves& extMoves, const Position& pos, bool any) noexcept 
 // <EVASION    > Generates all pseudo-legal check evasions moves
 // <EVA_CAPTURE> Generates all pseudo-legal check evasions captures and promotions moves
 // <EVA_QUIET  > Generates all pseudo-legal check evasions non-captures moves
-template<GenType GT>
-ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos, bool any) noexcept {
+template<GenType GT, bool Any>
+ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos) noexcept {
     static_assert(GT == ENCOUNTER || GT == ENC_CAPTURE || GT == ENC_QUIET  //
                     || GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET,
                   "Unsupported generate type in generate()");
@@ -304,27 +304,48 @@ ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos, bool any) noexce
 
     extMoves.reserve(24 + 12 * (GT == ENCOUNTER) + 4 * (GT == ENC_CAPTURE) + 8 * (GT == ENC_QUIET)
                      - 8 * (GT == EVASION) - 16 * (GT == EVA_CAPTURE) - 12 * (GT == EVA_QUIET));
-    generate_moves<GT>(extMoves, pos, any);
+    generate_moves<GT, Any>(extMoves, pos);
     return extMoves.end();
 }
 
 // clang-format off
 // Explicit template instantiations
-template ExtMoves::Itr generate<ENCOUNTER  >(ExtMoves& extMoves, const Position& pos, bool any) noexcept;
-template ExtMoves::Itr generate<ENC_CAPTURE>(ExtMoves& extMoves, const Position& pos, bool any) noexcept;
-template ExtMoves::Itr generate<ENC_QUIET  >(ExtMoves& extMoves, const Position& pos, bool any) noexcept;
-template ExtMoves::Itr generate<EVASION    >(ExtMoves& extMoves, const Position& pos, bool any) noexcept;
-template ExtMoves::Itr generate<EVA_CAPTURE>(ExtMoves& extMoves, const Position& pos, bool any) noexcept;
-template ExtMoves::Itr generate<EVA_QUIET  >(ExtMoves& extMoves, const Position& pos, bool any) noexcept;
+template ExtMoves::Itr generate<ENCOUNTER  , false>(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::Itr generate<ENCOUNTER  , true >(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::Itr generate<ENC_CAPTURE, false>(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::Itr generate<ENC_CAPTURE, true >(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::Itr generate<ENC_QUIET  , false>(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::Itr generate<ENC_QUIET  , true >(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::Itr generate<EVASION    , false>(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::Itr generate<EVASION    , true >(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::Itr generate<EVA_CAPTURE, false>(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::Itr generate<EVA_CAPTURE, true >(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::Itr generate<EVA_QUIET  , false>(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::Itr generate<EVA_QUIET  , true >(ExtMoves& extMoves, const Position& pos) noexcept;
 // clang-format on
 
 // <LEGAL> Generates all legal moves
 template<>
-ExtMoves::Itr generate<LEGAL>(ExtMoves& extMoves, const Position& pos, bool any) noexcept {
+ExtMoves::Itr generate<LEGAL, false>(ExtMoves& extMoves, const Position& pos) noexcept {
 
     pos.checkers()  //
-      ? generate<EVASION>(extMoves, pos, any)
-      : generate<ENCOUNTER>(extMoves, pos, any);
+      ? generate<EVASION, false>(extMoves, pos)
+      : generate<ENCOUNTER, false>(extMoves, pos);
+    // Filter legal moves
+    return extMoves.remove_if([&pos](const Move& m) noexcept {
+        assert(pos.pseudo_legal(m));
+        return ((type_of(pos.piece_on(m.org_sq())) == PAWN
+                 && (pos.blockers(pos.active_color()) & m.org_sq()))
+                || m.type_of() == CASTLING)
+            && !pos.legal(m);
+    });
+}
+template<>
+ExtMoves::Itr generate<LEGAL, true>(ExtMoves& extMoves, const Position& pos) noexcept {
+
+    pos.checkers()  //
+      ? generate<EVASION, true>(extMoves, pos)
+      : generate<ENCOUNTER, true>(extMoves, pos);
     // Filter legal moves
     return extMoves.remove_if([&pos](const Move& m) noexcept {
         assert(pos.pseudo_legal(m));
