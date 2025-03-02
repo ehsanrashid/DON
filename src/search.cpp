@@ -1561,7 +1561,8 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             bestValue = VALUE_DRAW;
 
-            ttu.update(MAX_PLY - 1, true, BOUND_EXACT, bestMove, bestValue, unadjustedStaticEval);
+            ttu.update(MAX_PLY - 1, ss->pvHit, BOUND_EXACT, bestMove, bestValue,
+                       unadjustedStaticEval);
 
             return bestValue;
         }
@@ -1934,7 +1935,7 @@ QS_MOVES_LOOP:
         {
             bestValue = VALUE_DRAW;
 
-            ttu.update(MAX_PLY - 1, true, BOUND_EXACT, bestMove, bestValue, unadjustedStaticEval);
+            ttu.update(MAX_PLY - 1, pvHit, BOUND_EXACT, bestMove, bestValue, unadjustedStaticEval);
 
             return bestValue;
         }

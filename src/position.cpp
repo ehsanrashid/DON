@@ -1864,7 +1864,7 @@ bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
         // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location
         if (empty_on(s1))
             m = Move(s2, s1);
-        assert(pseudo_legal(m) && legal(m) && LegalMoveList(*this).contains(m));
+        assert(pseudo_legal(m) && legal(m) && MoveList<LEGAL>(*this).contains(m));
 #endif
         if (i < ply
             // For nodes before or at the root, check that the move is
