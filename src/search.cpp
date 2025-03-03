@@ -752,7 +752,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     bool preNonPawn =
       is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && preMove.type_of() != PROMOTION;
 
-    // At non-PV nodes check for an early TT cutoff
+    // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && !exclude && is_valid(ttd.value)        //
         && (depth > 5 || CutNode == (ttd.value >= beta))  //
         && ttd.depth > depth - (ttd.value <= beta)        //
@@ -1561,7 +1561,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             bestValue = VALUE_DRAW;
 
-            ttu.update(MAX_PLY - 1, ss->pvHit, BOUND_EXACT, bestMove, bestValue,
+            ttu.update(MAX_PLY - 1, ss->pvHit, BOUND_EXACT, Move::None, bestValue,
                        unadjustedStaticEval);
 
             return bestValue;
@@ -1711,7 +1711,11 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     ss->ttMove = ttd.move;
     bool pvHit = ttd.hit && ttd.pv;
 
-    // At non-PV nodes check for an early TT cutoff
+    if (ttd.hit && ttd.value == VALUE_DRAW && ttd.depth == MAX_PLY - 1 && ttd.bound == BOUND_EXACT
+        && ttd.move == Move::None)
+        return VALUE_DRAW;
+
+    // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && is_valid(ttd.value) && ttd.depth >= DEPTH_ZERO
         && (ttd.bound & bound_for_fail(ttd.value >= beta)) != 0
         // For high rule50 counts don't produce transposition table cutoffs.
@@ -1935,7 +1939,8 @@ QS_MOVES_LOOP:
         {
             bestValue = VALUE_DRAW;
 
-            ttu.update(MAX_PLY - 1, pvHit, BOUND_EXACT, bestMove, bestValue, unadjustedStaticEval);
+            ttu.update(MAX_PLY - 1, pvHit, BOUND_EXACT, Move::None, bestValue,
+                       unadjustedStaticEval);
 
             return bestValue;
         }

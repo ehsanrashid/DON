@@ -250,7 +250,7 @@ void generate_moves(ExtMoves& extMoves, const Position& pos) noexcept {
         switch (GT)
         {
         case ENCOUNTER :   target = ~pos.pieces(ac);                                         break;
-        case ENC_CAPTURE : target = pos.pieces(~ac);                                         break;
+        case ENC_CAPTURE : target =  pos.pieces(~ac);                                        break;
         case ENC_QUIET :   target = ~pos.pieces();                                           break;
         case EVASION :     target = between_bb(pos.king_square(ac), lsb(pos.checkers()));    break;
         case EVA_CAPTURE : target = pos.checkers();                                          break;
@@ -276,9 +276,9 @@ void generate_moves(ExtMoves& extMoves, const Position& pos) noexcept {
     {
         switch (GT)
         {
-        case EVASION :     target = ~pos.pieces(ac); break;
-        case EVA_CAPTURE : target = pos.pieces(~ac); break;
-        case EVA_QUIET :   target = ~pos.pieces();   break;
+        case EVASION :     target = ~pos.pieces(ac);  break;
+        case EVA_CAPTURE : target =  pos.pieces(~ac); break;
+        case EVA_QUIET :   target = ~pos.pieces();    break;
         }
     }
     // clang-format on
@@ -351,7 +351,6 @@ template<>
 ExtMoves::Itr generate<LEGAL, false>(ExtMoves& extMoves, const Position& pos) noexcept {
     return generate_legal<false>(extMoves, pos);
 }
-
 template<>
 ExtMoves::Itr generate<LEGAL, true>(ExtMoves& extMoves, const Position& pos) noexcept {
     return generate_legal<true>(extMoves, pos);
