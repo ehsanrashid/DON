@@ -261,15 +261,15 @@ void generate_moves(ExtMoves& extMoves, const Position& pos) noexcept {
         if (Any && ((extMoves.size() > 0 && pos.legal(extMoves[0]))
                  || (extMoves.size() > 1 && pos.legal(extMoves[1]))
                  || (extMoves.size() > 2 && pos.legal(extMoves[2])))) return;
-        [[maybe_unused]] auto extMovesEnd = extMoves.end();
+        [[maybe_unused]] auto extEnd = extMoves.end();
         generate_piece_moves<KNIGHT>(extMoves, pos, target);
-        if (Any && extMovesEnd != extMoves.end()) return;
+        if (Any && extEnd != extMoves.end()) return;
         generate_piece_moves<BISHOP>(extMoves, pos, target);
-        if (Any && extMovesEnd != extMoves.end()) return;
+        if (Any && extEnd != extMoves.end()) return;
         generate_piece_moves<ROOK>  (extMoves, pos, target);
-        if (Any && extMovesEnd != extMoves.end()) return;
+        if (Any && extEnd != extMoves.end()) return;
         generate_piece_moves<QUEEN> (extMoves, pos, target);
-        if (Any && extMovesEnd != extMoves.end()) return;
+        if (Any && extEnd != extMoves.end()) return;
     }
 
     if constexpr (Evasion)
@@ -288,6 +288,8 @@ void generate_moves(ExtMoves& extMoves, const Position& pos) noexcept {
 
 }  // namespace
 
+// clang-format off
+
 // <ENCOUNTER  > Generates all pseudo-legal captures and non-captures moves
 // <ENC_CAPTURE> Generates all pseudo-legal captures and promotions moves
 // <ENC_QUIET  > Generates all pseudo-legal non-captures and castling moves
@@ -302,13 +304,13 @@ ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos) noexcept {
 
     assert((GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET) == bool(pos.checkers()));
 
-    extMoves.reserve(24 + 12 * (GT == ENCOUNTER) + 4 * (GT == ENC_CAPTURE) + 8 * (GT == ENC_QUIET)
-                     - 8 * (GT == EVASION) - 16 * (GT == EVA_CAPTURE) - 12 * (GT == EVA_QUIET));
+    if constexpr (!Any)
+        extMoves.reserve(24 + 12 * (GT == ENCOUNTER) + 4 * (GT == ENC_CAPTURE) + 8 * (GT == ENC_QUIET)  //
+                         - 8 * (GT == EVASION) - 16 * (GT == EVA_CAPTURE) - 12 * (GT == EVA_QUIET));
     generate_moves<GT, Any>(extMoves, pos);
     return extMoves.end();
 }
 
-// clang-format off
 // Explicit template instantiations
 template ExtMoves::Itr generate<ENCOUNTER  , false>(ExtMoves& extMoves, const Position& pos) noexcept;
 template ExtMoves::Itr generate<ENCOUNTER  , true >(ExtMoves& extMoves, const Position& pos) noexcept;
@@ -322,6 +324,7 @@ template ExtMoves::Itr generate<EVA_CAPTURE, false>(ExtMoves& extMoves, const Po
 //template ExtMoves::Itr generate<EVA_CAPTURE, true >(ExtMoves& extMoves, const Position& pos) noexcept;
 template ExtMoves::Itr generate<EVA_QUIET  , false>(ExtMoves& extMoves, const Position& pos) noexcept;
 //template ExtMoves::Itr generate<EVA_QUIET  , true >(ExtMoves& extMoves, const Position& pos) noexcept;
+
 // clang-format on
 
 // <LEGAL> Generates all legal moves
