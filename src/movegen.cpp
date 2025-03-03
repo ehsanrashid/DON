@@ -286,6 +286,25 @@ void generate_moves(ExtMoves& extMoves, const Position& pos) noexcept {
     generate_king_moves<GT, Any>(extMoves, pos, target);
 }
 
+template<bool Any>
+ExtMoves::Itr generate_legal(ExtMoves& extMoves, const Position& pos) noexcept {
+    pos.checkers()  //
+      ? generate<EVASION, Any>(extMoves, pos)
+      : generate<ENCOUNTER, Any>(extMoves, pos);
+    // Filter legal moves
+    return extMoves.remove_if([&pos](const Move& m) noexcept {
+        assert(pos.pseudo_legal(m));
+        return ((type_of(pos.piece_on(m.org_sq())) == PAWN
+                 && (pos.blockers(pos.active_color()) & m.org_sq()))
+                || m.type_of() == CASTLING)
+            && !pos.legal(m);
+    });
+}
+
+// Explicit template instantiations
+template ExtMoves::Itr generate_legal<false>(ExtMoves& extMoves, const Position& pos) noexcept;
+template ExtMoves::Itr generate_legal<true>(ExtMoves& extMoves, const Position& pos) noexcept;
+
 }  // namespace
 
 // clang-format off
@@ -305,8 +324,8 @@ ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos) noexcept {
     assert((GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET) == bool(pos.checkers()));
 
     if constexpr (!Any)
-        extMoves.reserve(24 + 12 * (GT == ENCOUNTER) + 4 * (GT == ENC_CAPTURE) + 8 * (GT == ENC_QUIET)  //
-                         - 8 * (GT == EVASION) - 16 * (GT == EVA_CAPTURE) - 12 * (GT == EVA_QUIET));
+        extMoves.reserve(24 + 12 * (GT == ENCOUNTER) +  4 * (GT == ENC_CAPTURE) +  8 * (GT == ENC_QUIET)  //
+                            -  8 * (GT == EVASION)   - 16 * (GT == EVA_CAPTURE) - 12 * (GT == EVA_QUIET));
     generate_moves<GT, Any>(extMoves, pos);
     return extMoves.end();
 }
@@ -330,33 +349,12 @@ template ExtMoves::Itr generate<EVA_QUIET  , false>(ExtMoves& extMoves, const Po
 // <LEGAL> Generates all legal moves
 template<>
 ExtMoves::Itr generate<LEGAL, false>(ExtMoves& extMoves, const Position& pos) noexcept {
-
-    pos.checkers()  //
-      ? generate<EVASION, false>(extMoves, pos)
-      : generate<ENCOUNTER, false>(extMoves, pos);
-    // Filter legal moves
-    return extMoves.remove_if([&pos](const Move& m) noexcept {
-        assert(pos.pseudo_legal(m));
-        return ((type_of(pos.piece_on(m.org_sq())) == PAWN
-                 && (pos.blockers(pos.active_color()) & m.org_sq()))
-                || m.type_of() == CASTLING)
-            && !pos.legal(m);
-    });
+    return generate_legal<false>(extMoves, pos);
 }
+
 template<>
 ExtMoves::Itr generate<LEGAL, true>(ExtMoves& extMoves, const Position& pos) noexcept {
-
-    pos.checkers()  //
-      ? generate<EVASION, true>(extMoves, pos)
-      : generate<ENCOUNTER, true>(extMoves, pos);
-    // Filter legal moves
-    return extMoves.remove_if([&pos](const Move& m) noexcept {
-        assert(pos.pseudo_legal(m));
-        return ((type_of(pos.piece_on(m.org_sq())) == PAWN
-                 && (pos.blockers(pos.active_color()) & m.org_sq()))
-                || m.type_of() == CASTLING)
-            && !pos.legal(m);
-    });
+    return generate_legal<true>(extMoves, pos);
 }
 
 }  // namespace DON
