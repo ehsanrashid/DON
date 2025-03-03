@@ -192,31 +192,12 @@ void MovePicker::sort_partial(int limit) noexcept {
 
             *p = std::move(*++s);
 
-            // Shift elements until the correct position for 'em' is found
-            auto q = s;
-            // Unroll 8x
-            for (; q - 8 >= begin() && *(q - 8) < em; q -= 8)
-            {
-                *(q)     = std::move(*(q - 1));
-                *(q - 1) = std::move(*(q - 2));
-                *(q - 2) = std::move(*(q - 3));
-                *(q - 3) = std::move(*(q - 4));
-                *(q - 4) = std::move(*(q - 5));
-                *(q - 5) = std::move(*(q - 6));
-                *(q - 6) = std::move(*(q - 7));
-                *(q - 7) = std::move(*(q - 8));
-            }
-            // Unroll 4x
-            for (; q - 4 >= begin() && *(q - 4) < em; q -= 4)
-            {
-                *(q)     = std::move(*(q - 1));
-                *(q - 1) = std::move(*(q - 2));
-                *(q - 2) = std::move(*(q - 3));
-                *(q - 3) = std::move(*(q - 4));
-            }
-            // Handle remaining shift safely
-            for (; q - 1 >= begin() && *(q - 1) < em; --q)
-                *(q) = std::move(*(q - 1));
+            // Shift elements until the correct position for 'em' is found using binary search
+            auto q = std::upper_bound(begin(), s, em,
+                                      [](const auto& em1, const auto& em2) { return em1 > em2; });
+
+            // Move elements to make space for 'em'
+            std::move_backward(q, s, s + 1);
 
             *q = std::move(em);  // Insert the element in its correct position
         }

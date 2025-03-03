@@ -81,7 +81,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("Save Hash",            Option([this](const Option& o) { tt.save(o);          return std::nullopt; }));
     options.add("Load Hash",            Option([this](const Option& o) { tt.load(o, threads); return std::nullopt; }));
     options.add("Ponder",               Option(false));
-    options.add("MultiPV",              Option(MinMultiPV, 1, 256));
+    options.add("MultiPV",              Option(DefaultMultiPV, 1, 256));
     options.add("SkillLevel",           Option(Skill::MaxLevel, Skill::MinLevel, Skill::MaxLevel));
     options.add("MoveOverhead",         Option(10, 0, 5000));
     options.add("NodesTime",            Option(0, 0, 10000));
@@ -94,7 +94,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("UCI_ShowRefutations",  Option(false));
     options.add("OwnBook",              Option(false));
     options.add("BookFile",             Option("", [](const Option& o) { Search::load_book(o); return std::nullopt; }));
-    options.add("BookDepth",            Option(100, 1, 256));
+    options.add("BookProbeDepth",       Option(100, 1, 256));
     options.add("BookBestPick",         Option(true));
     options.add("SyzygyPath",           Option("", [](const Option& o) { Tablebases::init(o); return std::nullopt; }));
     options.add("SyzygyProbeLimit",     Option(7, 0, 7));

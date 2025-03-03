@@ -52,7 +52,7 @@ namespace NNUE {
 struct Networks;
 }
 
-constexpr inline std::size_t MinMultiPV = 1;
+constexpr inline std::size_t DefaultMultiPV = 1;
 
 namespace Search {
 

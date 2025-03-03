@@ -219,7 +219,7 @@ void Worker::start_search() noexcept {
     tbHits         = 0;
     moveChanges    = 0;
 
-    multiPV = MinMultiPV;
+    multiPV = DefaultMultiPV;
     if (mainManager)
     {
         multiPV = options["MultiPV"];
@@ -266,7 +266,7 @@ void Worker::start_search() noexcept {
         {
             // Check polyglot book
             if (options["OwnBook"] && polyBook.enabled()
-                && rootPos.move_num() < options["BookDepth"])
+                && rootPos.move_num() < options["BookProbeDepth"])
                 bookBestMove = polyBook.probe(rootPos, options["BookBestPick"]);
         }
 
@@ -363,12 +363,12 @@ void Worker::iterative_deepening() noexcept {
     // Allocate stack with extra size to allow access from (ss - 9) to (ss + 1):
     // (ss - 9) is needed for update_continuation_history(ss - 1) which accesses (ss - 8),
     // (ss + 1) is needed for initialization of cutoffCount.
-    constexpr std::uint16_t STACK_OFFSET = 9;
-    constexpr std::uint16_t STACK_SIZE   = STACK_OFFSET + (MAX_PLY + 1) + 1;
+    constexpr std::uint16_t StackOffset = 9;
+    constexpr std::uint16_t StackSize   = StackOffset + (MAX_PLY + 1) + 1;
     // clang-format off
-    Stack  stack[STACK_SIZE]{};
-    Stack* ss = stack + STACK_OFFSET;
-    for (std::int16_t i = 0 - STACK_OFFSET; i < STACK_SIZE - STACK_OFFSET; ++i)
+    Stack  stack[StackSize]{};
+    Stack* ss = stack + StackOffset;
+    for (std::int16_t i = 0 - StackOffset; i < StackSize - StackOffset; ++i)
     {
         (ss + i)->ply = i;
         if (i < 0)
@@ -379,7 +379,7 @@ void Worker::iterative_deepening() noexcept {
             (ss + i)->pieceSqCorrectionHistory = &continuationCorrectionHistory[NO_PIECE][SQ_ZERO];
         }
     }
-    assert(stack[0].ply == -STACK_OFFSET && stack[STACK_SIZE - 1].ply == MAX_PLY + 1);
+    assert(stack[0].ply == -StackOffset && stack[StackSize - 1].ply == MAX_PLY + 1);
     assert(ss->ply == 0);
     // clang-format on
 
@@ -989,7 +989,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             // Do verification search at high depths,
             // with null move pruning disabled until ply exceeds nmpMinPly.
-            nmpPly = ss->ply + int(0.75f * (depth - R));
+            nmpPly = ss->ply + 0.75f * (depth - R);
 
             Value v = search<All>(pos, ss, beta - 1, beta, depth - R);
 
