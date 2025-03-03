@@ -752,6 +752,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     bool preNonPawn =
       is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && preMove.type_of() != PROMOTION;
 
+    if (ttd.hit && ttd.value == VALUE_DRAW && ttd.depth == MAX_PLY - 1 && ttd.bound == BOUND_EXACT
+        && ttd.move == Move::None)
+        return VALUE_DRAW;
+
     // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && !exclude && is_valid(ttd.value)        //
         && (depth > 5 || CutNode == (ttd.value >= beta))  //
