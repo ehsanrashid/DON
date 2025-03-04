@@ -2337,8 +2337,6 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
 
 namespace {
 
-// clang-format off
-
 void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept {
     captureHistory[pc][dst][captured] << bonus;
 }
@@ -2354,6 +2352,9 @@ void update_quiet_history(Color ac, const Move& m, int bonus) noexcept {
 void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) noexcept {
     pawnHistory[pawn_index(pos.pawn_key())][pc][dst] << bonus;
 }
+
+// clang-format off
+
 // Updates histories of the move pairs formed by
 // move at ply -1, -2, -3, -4, -5 and -6 with move at ply 0.
 void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept {

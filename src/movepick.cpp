@@ -77,109 +77,110 @@ MovePicker::MovePicker(const Position&          p,
 // Captures moves are ordered by Most Valuable Victim (MVV),
 // preferring captures moves with a good history.
 // Quiets moves are ordered by using the history tables.
-template<GenType GT>
-void MovePicker::score() noexcept {
-    static_assert(GT == ENC_CAPTURE || GT == ENC_QUIET || GT == EVA_CAPTURE || GT == EVA_QUIET,
-                  "Unsupported generate type");
-
-    Color ac = pos.active_color();
-
-    auto pawnIndex = pawn_index(pos.pawn_key());
+template<>
+void MovePicker::score<ENC_CAPTURE>() noexcept {
 
     for (auto& m : *this)
-        if constexpr (GT == ENC_CAPTURE)
-        {
-            Square dst = m.dst_sq();
+    {
+        Square dst      = m.dst_sq();
+        auto   pc       = pos.moved_piece(m);
+        auto   captured = pos.captured(m);
 
-            auto pc       = pos.moved_piece(m);
-            auto captured = pos.captured(m);
+        m.value = 7 * PIECE_VALUE[captured] + 3 * promotion_value(m, true)  //
+                + (*captureHistory)[pc][dst][captured]                      //
+                + 0x100 * (pos.cap_square() == dst);
+    }
+}
 
-            m.value = 7 * PIECE_VALUE[captured] + 3 * promotion_value(m, true)  //
-                    + (*captureHistory)[pc][dst][captured]                      //
-                    + 0x100 * (pos.cap_square() == dst);
-        }
+template<>
+void MovePicker::score<ENC_QUIET>() noexcept {
+    Color ac        = pos.active_color();
+    auto  pawnIndex = pawn_index(pos.pawn_key());
 
-        else if constexpr (GT == ENC_QUIET)
-        {
-            assert(m.type_of() != PROMOTION);
+    for (auto& m : *this)
+    {
+        assert(m.type_of() != PROMOTION);
 
-            Square org = m.org_sq(), dst = m.dst_sq();
+        Square org = m.org_sq(), dst = m.dst_sq();
+        auto   pc = pos.moved_piece(m);
+        auto   pt = type_of(pc);
 
-            auto pc = pos.moved_piece(m);
-            auto pt = type_of(pc);
+        m.value = 2 * (*quietHistory)[ac][m.org_dst()]    //
+                + 2 * (*pawnHistory)[pawnIndex][pc][dst]  //
+                + (*continuationHistory[0])[pc][dst]      //
+                + (*continuationHistory[1])[pc][dst]      //
+                + (*continuationHistory[2])[pc][dst]      //
+                + (*continuationHistory[3])[pc][dst]      //
+                + (*continuationHistory[4])[pc][dst]      //
+                + (*continuationHistory[5])[pc][dst]      //
+                + (*continuationHistory[6])[pc][dst]      //
+                + (*continuationHistory[7])[pc][dst];
 
-            // Histories
-            m.value = 2 * (*quietHistory)[ac][m.org_dst()]    //
-                    + 2 * (*pawnHistory)[pawnIndex][pc][dst]  //
-                    + (*continuationHistory[0])[pc][dst]      //
-                    + (*continuationHistory[1])[pc][dst]      //
-                    + (*continuationHistory[2])[pc][dst]      //
-                    + (*continuationHistory[3])[pc][dst]      //
-                    + (*continuationHistory[4])[pc][dst]      //
-                    + (*continuationHistory[5])[pc][dst]      //
-                    + (*continuationHistory[6])[pc][dst]      //
-                    + (*continuationHistory[7])[pc][dst];
+        if (ssPly < LOW_PLY_SIZE)
+            m.value += 8 * (*lowPlyQuietHistory)[ssPly][m.org_dst()] / (1 + 2 * ssPly);
 
-            if (ssPly < LOW_PLY_SIZE)
-                m.value += 8 * (*lowPlyQuietHistory)[ssPly][m.org_dst()] / (1 + 2 * ssPly);
+        if (pos.check(m))
+            m.value += 0x4000 + 0x1000 * pos.dbl_check(m);
 
-            // Bonus for checks
-            if (pos.check(m))
-                m.value += 0x4000 + 0x1000 * pos.dbl_check(m);
+        m.value += 0x1000 * pos.fork(m);
 
-            m.value += 0x1000 * pos.fork(m);
+        if (pt == PAWN || pt == KING)
+            continue;
 
-            if (pt == PAWN || pt == KING)
-                continue;
+        m.value += (pos.threatens(ac) & org)
+                   ? (pt == QUEEN ? 21200 * !(pos.attacks<ROOK>(~ac) & dst)
+                                      + 16150 * !(pos.attacks<MINOR>(~ac) & dst)
+                                      + 14450 * !(pos.attacks<PAWN>(~ac) & dst)
+                      : pt == ROOK ? 16150 * !(pos.attacks<MINOR>(~ac) & dst)
+                                       + 14450 * !(pos.attacks<PAWN>(~ac) & dst)
+                                   : 14450 * !(pos.attacks<PAWN>(~ac) & dst))
+                   : 0;
 
-            // Bonus for escaping from capture
-            m.value += (pos.threatens(ac) & org)
-                       ? (pt == QUEEN ? 21200 * !(pos.attacks<ROOK>(~ac) & dst)
-                                          + 16150 * !(pos.attacks<MINOR>(~ac) & dst)
-                                          + 14450 * !(pos.attacks<PAWN>(~ac) & dst)
-                          : pt == ROOK ? 16150 * !(pos.attacks<MINOR>(~ac) & dst)
-                                           + 14450 * !(pos.attacks<PAWN>(~ac) & dst)
-                                       : 14450 * !(pos.attacks<PAWN>(~ac) & dst))
-                       : 0;
+        m.value -= !(pos.blockers(~ac) & org)
+                   ? (pt == QUEEN ? 24665 * !!(pos.attacks<ROOK>(~ac) & dst)
+                                      + 13435 * !!(pos.attacks<MINOR>(~ac) & dst)
+                                      + 10900 * !!(pos.attacks<PAWN>(~ac) & dst)
+                      : pt == ROOK ? 13435 * !!(pos.attacks<MINOR>(~ac) & dst)
+                                       + 10900 * !!(pos.attacks<PAWN>(~ac) & dst)
+                                   : 10900 * !!(pos.attacks<PAWN>(~ac) & dst))
+                   : 0;
 
-            // Malus for putting in en-prise
-            m.value -= !(pos.blockers(~ac) & org)
-                       ? (pt == QUEEN ? 24665 * !!(pos.attacks<ROOK>(~ac) & dst)
-                                          + 13435 * !!(pos.attacks<MINOR>(~ac) & dst)
-                                          + 10900 * !!(pos.attacks<PAWN>(~ac) & dst)
-                          : pt == ROOK ? 13435 * !!(pos.attacks<MINOR>(~ac) & dst)
-                                           + 10900 * !!(pos.attacks<PAWN>(~ac) & dst)
-                                       : 10900 * !!(pos.attacks<PAWN>(~ac) & dst))
-                       : 0;
+        m.value -= 0x400 * ((pos.pinners() & org) && !aligned(pos.king_square(~ac), org, dst));
+    }
+}
 
-            m.value -= 0x400 * ((pos.pinners() & org) && !aligned(pos.king_square(~ac), org, dst));
-        }
+template<>
+void MovePicker::score<EVA_CAPTURE>() noexcept {
 
-        else if constexpr (GT == EVA_CAPTURE)
-        {
-            assert(m.type_of() != CASTLING);
+    for (auto& m : *this)
+    {
+        assert(m.type_of() != CASTLING);
 
-            Square dst = m.dst_sq();
+        Square dst      = m.dst_sq();
+        auto   pc       = pos.moved_piece(m);
+        auto   captured = pos.captured(m);
 
-            auto pc       = pos.moved_piece(m);
-            auto captured = pos.captured(m);
+        m.value = 2 * PIECE_VALUE[captured] + promotion_value(m, true)
+                + (*captureHistory)[pc][dst][captured];
+    }
+}
 
-            m.value = 2 * PIECE_VALUE[captured] + promotion_value(m, true)
-                    + (*captureHistory)[pc][dst][captured];
-        }
+template<>
+void MovePicker::score<EVA_QUIET>() noexcept {
+    Color ac        = pos.active_color();
+    auto  pawnIndex = pawn_index(pos.pawn_key());
 
-        else  //if constexpr (GT == EVA_QUIET)
-        {
-            assert(m.type_of() != CASTLING);
+    for (auto& m : *this)
+    {
+        assert(m.type_of() != CASTLING);
 
-            Square dst = m.dst_sq();
+        Square dst = m.dst_sq();
+        auto   pc  = pos.moved_piece(m);
 
-            auto pc = pos.moved_piece(m);
-
-            m.value = (*quietHistory)[ac][m.org_dst()]    //
-                    + (*pawnHistory)[pawnIndex][pc][dst]  //
-                    + (*continuationHistory[0])[pc][dst];
-        }
+        m.value = (*quietHistory)[ac][m.org_dst()]    //
+                + (*pawnHistory)[pawnIndex][pc][dst]  //
+                + (*continuationHistory[0])[pc][dst];
+    }
 }
 
 // Sort moves in descending order up to and including a given limit.
