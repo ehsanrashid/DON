@@ -454,7 +454,7 @@ class NumaConfig final {
     // On Windows utilize GetNumaProcessorNodeEx, which has its quirks, see
     // comment for Windows implementation of get_process_affinity()
     static NumaConfig from_system([[maybe_unused]] bool processAffinityRespect = true) noexcept {
-        NumaConfig cfg = empty();
+        NumaConfig numaCfg = empty();
 
 #if defined(__linux__) && !defined(__ANDROID__)
 
@@ -475,7 +475,7 @@ class NumaConfig final {
         bool useFallback = false;
         auto fallback    = [&]() {
             useFallback = true;
-            cfg         = empty();
+            numaCfg     = empty();
         };
 
         // /sys/devices/system/node/online contains information about active NUMA nodes
@@ -506,7 +506,7 @@ class NumaConfig final {
                     remove_whitespace(*cpuIdsStr);
                     for (std::size_t c : shortened_string_to_indices(*cpuIdsStr))
                         if (is_cpu_allowed(c))
-                            cfg.add_cpu_to_node(n, c);
+                            numaCfg.add_cpu_to_node(n, c);
                 }
             }
         }
@@ -514,7 +514,7 @@ class NumaConfig final {
         if (useFallback)
             for (CpuIndex c = 0; c < SYSTEM_THREADS_NB; ++c)
                 if (is_cpu_allowed(c))
-                    cfg.add_cpu_to_node(NumaIndex{0}, c);
+                    numaCfg.add_cpu_to_node(NumaIndex{0}, c);
 
 #elif defined(_WIN64)
 
@@ -535,19 +535,20 @@ class NumaConfig final {
         for (WORD procGroup = 0; procGroup < procGroupCount; ++procGroup)
             for (BYTE number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
             {
-                PROCESSOR_NUMBER procnum;
-                procnum.Group    = procGroup;
-                procnum.Number   = number;
-                procnum.Reserved = 0;
+                PROCESSOR_NUMBER procNumber{};
+                procNumber.Group    = procGroup;
+                procNumber.Number   = number;
+                procNumber.Reserved = 0;
+
                 USHORT nodeNumber;
 
-                BOOL status = GetNumaProcessorNodeEx(&procnum, &nodeNumber);
-
-                CpuIndex c = static_cast<CpuIndex>(procGroup) * WIN_PROCESSOR_GROUP_SIZE
-                           + static_cast<CpuIndex>(number);
-                if (status != 0 && nodeNumber != std::numeric_limits<USHORT>::max()
-                    && is_cpu_allowed(c))
-                    cfg.add_cpu_to_node(nodeNumber, c);
+                BOOL status = GetNumaProcessorNodeEx(&procNumber, &nodeNumber);
+                if (status != 0 && nodeNumber != std::numeric_limits<USHORT>::max())
+                {
+                    CpuIndex c = procGroup * WIN_PROCESSOR_GROUP_SIZE + number;
+                    if (is_cpu_allowed(c))
+                        numaCfg.add_cpu_to_node(nodeNumber, c);
+                }
             }
 
         // Split the NUMA nodes to be contained within a group if necessary.
@@ -574,7 +575,7 @@ class NumaConfig final {
             NumaConfig splitCfg = empty();
 
             NumaIndex splitNodeIndex = 0;
-            for (const auto& cpus : cfg.nodes)
+            for (const auto& cpus : numaCfg.nodes)
             {
                 if (cpus.empty())
                     continue;
@@ -593,27 +594,27 @@ class NumaConfig final {
                 ++splitNodeIndex;
             }
 
-            cfg = std::move(splitCfg);
+            numaCfg = std::move(splitCfg);
         }
 
 #else
 
         // Fallback for unsupported systems.
         for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
-            cfg.add_cpu_to_node(NumaIndex{0}, cpuIdx);
+            numaCfg.add_cpu_to_node(NumaIndex{0}, cpuIdx);
 
 #endif
 
         // We have to ensure no empty NUMA nodes persist.
-        cfg.remove_empty_numa_nodes();
+        numaCfg.remove_empty_numa_nodes();
 
         // If the user explicitly opts out from respecting the current process affinity
         // then it may be inconsistent with the current affinity (obviously), so we
         // consider it custom.
         if (!processAffinityRespect)
-            cfg.affinityCustom = true;
+            numaCfg.affinityCustom = true;
 
-        return cfg;
+        return numaCfg;
     }
 
     // ':'-separated numa nodes
