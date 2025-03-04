@@ -2072,7 +2072,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     std::list<State> states;
 
-    // Step 0. Do the rootMove, no correction allowed, as needed for MultiPV in TB.
+    // Step 0. Do the rootMove, no correction allowed, as needed for MultiPV in TB
     auto& rootSt = states.emplace_back();
     rootPos.do_move(rootMove[0], rootSt);
 
@@ -2097,7 +2097,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         rootPos.do_move(pvMove, st);
         ++ply;
 
-        // Don't allow for repetitions or drawing moves along the PV in TB regime.
+        // Don't allow for repetitions or drawing moves along the PV in TB regime
         if (localTbConfig.rootInTB && rootPos.is_draw(ply, rule50Use))
         {
             rootPos.undo_move(pvMove);
@@ -2105,9 +2105,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             break;
         }
 
-        // Full PV shown will thus be validated and end TB.
-        // If we can't validate the full PV in time, we don't show it.
-        if (localTbConfig.rootInTB && time_to_abort())
+        if (time_to_abort())
             break;
     }
 
@@ -2142,10 +2140,10 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             return rm1.tbRank > rm2.tbRank;
         });
 
-        // The winning side tries to minimize DTZ, the losing side maximizes it.
+        // The winning side tries to minimize DTZ, the losing side maximizes it
         auto localTbConfig = Tablebases::rank_root_moves(rootPos, localRootMoves, options, true);
 
-        // If DTZ is not available might not find a mate, so bail out.
+        // If DTZ is not available might not find a mate, so bail out
         if (!localTbConfig.rootInTB || localTbConfig.cardinality != 0)
             break;
 
@@ -2157,12 +2155,11 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         //++ply;
 
         if (time_to_abort())
-        {
-            UCI::print_info_string(
-              "PV extension requires more time, increase MoveOverhead as needed.");
             break;
-        }
     }
+
+    if (time_to_abort())
+        UCI::print_info_string("PV extension requires more time, increase MoveOverhead as needed.");
 
     // Finding a draw in this function is an exceptional case,
     // that cannot happen when rule50 is false or during engine game play,
@@ -2177,7 +2174,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     if (rootPos.is_draw(0, rule50Use))
         value = VALUE_DRAW;
 
-    // Undo the PV moves.
+    // Undo the PV moves
     for (auto itr = rootMove.rbegin(); itr != rootMove.rend(); ++itr)
         rootPos.undo_move(*itr);
 }
