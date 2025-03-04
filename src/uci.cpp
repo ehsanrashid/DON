@@ -386,12 +386,12 @@ void UCI::position(std::istringstream& iss) noexcept {
         fen = StartFEN;
         iss >> token;  // Consume the "moves" token, if any
     }
-    else  //if (token == "fen")
+    else if (starts_with(token, "f"))  // "fen"
     {
-        std::uint8_t i = 0;
+        std::size_t i = 0;
         while (iss >> token && i < 6)  // Consume the "moves" token, if any
         {
-            if (i >= 2 && starts_with(lower_case(token), "moves"))
+            if (i >= 2 && starts_with(lower_case(token), "m"))  // "moves"
                 break;
 
             fen += token + " ";
@@ -402,6 +402,11 @@ void UCI::position(std::istringstream& iss) noexcept {
             fen += "- ";
             ++i;
         }
+    }
+    else
+    {
+        assert(false);
+        return;
     }
 
     std::vector<std::string> moves;
@@ -422,30 +427,27 @@ void UCI::go(std::istringstream& iss) noexcept {
 
 void UCI::set_option(std::istringstream& iss) noexcept {
     engine.wait_finish();
-    std::string token, name, value;
 
-    bool first;
-
+    std::string token;
     iss >> token;  // Consume the "name" token
     assert(lower_case(token) == "name");
+
     // Read the option name (can contain spaces)
-    first = true;
+    std::string name;
     while (iss >> token && lower_case(token) != "value")
     {
-        if (!first)
+        if (!name.empty())
             name += ' ';
         name += token;
-        first = false;
     }
 
     // Read the option value (can contain spaces)
-    first = true;
+    std::string value;
     while (iss >> token)
     {
-        if (!first)
+        if (!value.empty())
             value += ' ';
         value += token;
-        first = false;
     }
 
     engine_options().set(name, value);

@@ -171,7 +171,7 @@ void Engine::init() noexcept {
 }
 
 void Engine::resize_threads_tt() noexcept {
-    threads.set(numaContext.get_numa_config(), {options, networks, threads, tt}, updateContext);
+    threads.set(numaContext.numa_config(), {options, networks, threads, tt}, updateContext);
     // Reallocate the hash with the new threadpool size
     resize_tt(options["Hash"]);
     threads.ensure_network_replicated();
@@ -218,7 +218,7 @@ void Engine::set_numa_config(const std::string& str) noexcept {
 }
 
 std::string Engine::get_numa_config_str() const noexcept {
-    return numaContext.get_numa_config().to_string();
+    return numaContext.numa_config().to_string();
 }
 
 std::string Engine::get_numa_config_info_str() const noexcept {
@@ -228,15 +228,16 @@ std::string Engine::get_numa_config_info_str() const noexcept {
 std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts() const noexcept {
     std::vector<std::pair<std::size_t, std::size_t>> ratios;
 
-    auto              counts = threads.get_bound_thread_counts();
-    const NumaConfig& config = numaContext.get_numa_config();
+    const auto  threadCounts = threads.get_bound_thread_counts();
+    const auto& numaConfig   = numaContext.numa_config();
 
     NumaIndex numaIdx = 0;
-    for (; numaIdx < counts.size(); ++numaIdx)
-        ratios.emplace_back(counts[numaIdx], config.num_cpus_in_numa_node(numaIdx));
-    if (!counts.empty())
-        for (; numaIdx < config.num_numa_nodes(); ++numaIdx)
-            ratios.emplace_back(0, config.num_cpus_in_numa_node(numaIdx));
+    for (; numaIdx < threadCounts.size(); ++numaIdx)
+        ratios.emplace_back(threadCounts[numaIdx], numaConfig.node_cpus_size(numaIdx));
+    if (!threadCounts.empty())
+        for (; numaIdx < numaConfig.nodes_size(); ++numaIdx)
+            ratios.emplace_back(0, numaConfig.node_cpus_size(numaIdx));
+
     return ratios;
 }
 
@@ -245,16 +246,12 @@ std::string Engine::get_thread_binding_info_str() const noexcept {
 
     auto boundThreadCounts = get_bound_thread_counts();
     if (!boundThreadCounts.empty())
-    {
-        bool first = true;
-        for (auto&& [count, total] : boundThreadCounts)
+        for (auto itr = boundThreadCounts.begin(); itr != boundThreadCounts.end(); ++itr)
         {
-            if (!first)
+            if (itr != boundThreadCounts.begin())
                 oss << ':';
-            oss << count << '/' << total;
-            first = false;
+            oss << itr->first << '/' << itr->second;
         }
-    }
 
     return oss.str();
 }
@@ -264,9 +261,9 @@ std::string Engine::get_thread_allocation_info_str() const noexcept {
 
     oss << "Threads: " << threads.size();
 
-    auto boundThreadInfoStr = get_thread_binding_info_str();
-    if (!boundThreadInfoStr.empty())
-        oss << " with NUMA node thread binding: " << boundThreadInfoStr;
+    auto threadBindingInfoStr = get_thread_binding_info_str();
+    if (!threadBindingInfoStr.empty())
+        oss << " with NUMA node thread binding: " << threadBindingInfoStr;
 
     return oss.str();
 }

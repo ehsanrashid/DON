@@ -621,25 +621,25 @@ class NumaConfig final {
     // supports "first-last" range syntax for cpu indices
     // For example "0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"
     static NumaConfig from_string(const std::string& str) noexcept {
-        NumaConfig cfg = empty();
+        NumaConfig numaCfg = empty();
 
-        NumaIndex nIdx = 0;
+        NumaIndex n = 0;
         for (auto&& nodeStr : split(str, ":"))
         {
-            auto indices = indices_from_shortened_string(std::string(nodeStr));
+            auto indices = shortened_string_to_indices(std::string(nodeStr));
             if (!indices.empty())
             {
-                for (auto idx : indices)
-                    if (!cfg.add_cpu_to_node(nIdx, CpuIndex(idx)))
+                for (auto c : indices)
+                    if (!numaCfg.add_cpu_to_node(n, c))
                         std::exit(EXIT_FAILURE);
 
-                ++nIdx;
+                ++n;
             }
         }
 
-        cfg.affinityCustom = true;
+        numaCfg.affinityCustom = true;
 
-        return cfg;
+        return numaCfg;
     }
 
     NumaConfig(const NumaConfig&) noexcept            = delete;
@@ -649,50 +649,42 @@ class NumaConfig final {
 
     bool is_cpu_assigned(CpuIndex n) const noexcept { return nodeByCpu.count(n) == 1; }
 
-    NumaIndex num_numa_nodes() const noexcept { return nodes.size(); }
+    NumaIndex nodes_size() const noexcept { return nodes.size(); }
 
-    CpuIndex num_cpus_in_numa_node(NumaIndex nIdx) const noexcept {
-        assert(nIdx < nodes.size());
-        return nodes[nIdx].size();
+    CpuIndex node_cpus_size(NumaIndex n) const noexcept {
+        assert(n < nodes_size());
+        return nodes[n].size();
     }
 
-    CpuIndex num_cpus() const noexcept { return nodeByCpu.size(); }
+    CpuIndex cpus_size() const noexcept { return nodeByCpu.size(); }
 
-    bool requires_memory_replication() const noexcept { return affinityCustom || nodes.size() > 1; }
+    bool requires_memory_replication() const noexcept { return affinityCustom || nodes_size() > 1; }
 
     std::string to_string() const noexcept {
         std::ostringstream oss;
 
-        bool nodeFirst = true;
-        for (auto&& cpus : nodes)
+        for (auto nodeItr = nodes.begin(); nodeItr != nodes.end(); ++nodeItr)
         {
-            if (!nodeFirst)
+            if (nodeItr != nodes.begin())
                 oss << ':';
 
-            bool setFirst = true;
-            auto beginItr = cpus.begin();
-            for (auto itr = cpus.begin(); itr != cpus.end(); ++itr)
+            auto begItr = nodeItr->begin();
+            for (auto itr = nodeItr->begin(); itr != nodeItr->end(); ++itr)
             {
                 auto nextItr = std::next(itr);
-                if (nextItr == cpus.end() || *nextItr != *itr + 1)
+                if (nextItr == nodeItr->end() || *nextItr != *itr + 1)
                 {
-                    // cpus[i] is at the end of the range (may be of size 1)
-                    if (!setFirst)
+                    if (itr != nodeItr->begin())
                         oss << ',';
 
-                    CpuIndex lstIdx = *itr;
-                    if (itr != beginItr)
-                    {
-                        CpuIndex fstIdx = *beginItr;
-                        oss << std::to_string(fstIdx) << '-';
-                    }
-                    oss << std::to_string(lstIdx);
+                    if (itr != begItr)
+                        oss << *begItr << '-';
 
-                    beginItr = nextItr;
-                    setFirst = false;
+                    oss << *itr;
+
+                    begItr = nextItr;
                 }
             }
-            nodeFirst = false;
         }
 
         return oss.str();
@@ -731,7 +723,7 @@ class NumaConfig final {
             if (!is_node_small(cpus))
                 notSmallNodeCount += 1;
 
-        return nodes.size() > 1
+        return nodes_size() > 1
             && (threadCount > maxNodeSize / 2 || threadCount >= 4 * notSmallNodeCount);
     }
 
@@ -739,7 +731,7 @@ class NumaConfig final {
     distribute_threads_among_numa_nodes(std::size_t threadCount) const noexcept {
         std::vector<NumaIndex> ns;
 
-        if (nodes.size() == 1)
+        if (nodes_size() == 1)
         {
             // Special case for when there's no NUMA nodes
             // Doesn't buy much, but let's keep the default path simple
@@ -747,15 +739,15 @@ class NumaConfig final {
         }
         else
         {
-            std::vector<std::size_t> occupation(nodes.size(), 0);
+            std::vector<std::size_t> occupation(nodes_size(), 0);
             for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
             {
                 NumaIndex bestNode = 0;
 
                 float minFill = std::numeric_limits<float>::max();
-                for (NumaIndex node = 0; node < nodes.size(); ++node)
+                for (NumaIndex node = 0; node < nodes_size(); ++node)
                 {
-                    float fill = float(1 + occupation[node]) / float(nodes[node].size());
+                    float fill = float(1 + occupation[node]) / node_cpus_size(node);
                     // NOTE: Do want to perhaps fill the first available node up to 50% first before considering other nodes?
                     //       Probably not, because it would interfere with running multiple instances.
                     //       Basically shouldn't favor any particular node.
@@ -765,6 +757,7 @@ class NumaConfig final {
                         bestNode = node;
                     }
                 }
+
                 ns.emplace_back(bestNode);
                 occupation[bestNode] += 1;
             }
@@ -774,7 +767,7 @@ class NumaConfig final {
     }
 
     NumaReplicatedAccessToken bind_current_thread_to_numa_node(NumaIndex n) const noexcept {
-        if (n >= nodes.size() || nodes[n].size() == 0)
+        if (n >= nodes_size() || node_cpus_size(n) == 0)
             std::exit(EXIT_FAILURE);
 
 #if defined(__linux__) && !defined(__ANDROID__)
@@ -915,7 +908,40 @@ class NumaConfig final {
     CpuIndex                                highestCpuIndex;
     bool                                    affinityCustom;
 
-    void remove_empty_numa_nodes() {
+    static std::vector<CpuIndex> shortened_string_to_indices(const std::string& s) noexcept {
+        std::vector<CpuIndex> indices;
+
+        if (s.empty())
+            return indices;
+
+        for (const auto& ss : split(s, ","))
+        {
+            if (ss.empty())
+                continue;
+
+            auto parts = split(ss, "-");
+            if (parts.size() == 1)
+            {
+                auto c = CpuIndex{str_to_size_t(std::string(parts[0]))};
+                indices.emplace_back(c);
+            }
+            else if (parts.size() == 2)
+            {
+                auto fstC = CpuIndex{str_to_size_t(std::string(parts[0]))};
+                auto lstC = CpuIndex{str_to_size_t(std::string(parts[1]))};
+                for (auto c = fstC; c <= lstC; ++c)
+                    indices.emplace_back(c);
+            }
+            else
+            {
+                assert(false);
+            }
+        }
+
+        return indices;
+    }
+
+    void remove_empty_numa_nodes() noexcept {
         std::vector<std::set<CpuIndex>> newNodes;
         for (auto&& cpus : nodes)
             if (!cpus.empty())
@@ -930,7 +956,7 @@ class NumaConfig final {
         if (is_cpu_assigned(c))
             return false;
 
-        while (nodes.size() <= n)
+        while (nodes_size() <= n)
             nodes.emplace_back();
 
         nodes[n].insert(c);
@@ -945,53 +971,24 @@ class NumaConfig final {
     // Returns true if successful
     // Returns false if failed, i.e. when any of the cpus is already present
     //                          strong guarantee, the structure remains unmodified
-    bool add_cpu_range_to_node(NumaIndex n, CpuIndex fstIdx, CpuIndex lstIdx) noexcept {
-        for (CpuIndex c = fstIdx; c <= lstIdx; ++c)
+    bool add_cpu_range_to_node(NumaIndex n, CpuIndex fstC, CpuIndex lstC) noexcept {
+        for (auto c = fstC; c <= lstC; ++c)
             if (is_cpu_assigned(c))
                 return false;
 
-        while (nodes.size() <= n)
+        while (nodes_size() <= n)
             nodes.emplace_back();
 
-        for (CpuIndex c = fstIdx; c <= lstIdx; ++c)
+        for (auto c = fstC; c <= lstC; ++c)
         {
             nodes[n].insert(c);
             nodeByCpu[c] = n;
         }
 
-        if (highestCpuIndex < lstIdx)
-            highestCpuIndex = lstIdx;
+        if (highestCpuIndex < lstC)
+            highestCpuIndex = lstC;
 
         return true;
-    }
-
-    static std::vector<std::size_t> indices_from_shortened_string(const std::string& s) noexcept {
-        std::vector<std::size_t> indices;
-
-        if (s.empty())
-            return indices;
-
-        for (const auto& ss : split(s, ","))
-        {
-            if (ss.empty())
-                continue;
-
-            auto parts = split(ss, "-");
-            if (parts.size() == 1)
-            {
-                CpuIndex c = CpuIndex{str_to_size_t(std::string(parts[0]))};
-                indices.emplace_back(c);
-            }
-            else if (parts.size() == 2)
-            {
-                CpuIndex fstIdx = CpuIndex{str_to_size_t(std::string(parts[0]))};
-                CpuIndex lstIdx = CpuIndex{str_to_size_t(std::string(parts[1]))};
-                for (std::size_t c = fstIdx; c <= lstIdx; ++c)
-                    indices.emplace_back(c);
-            }
-        }
-
-        return indices;
     }
 };
 
@@ -1011,7 +1008,7 @@ class NumaReplicatedBase {
 
     virtual void on_numa_config_changed() noexcept = 0;
 
-    const NumaConfig& get_numa_config() const noexcept;
+    const NumaConfig& numa_config() const noexcept;
 
    private:
     NumaReplicationContext* context;
@@ -1083,18 +1080,18 @@ class NumaReplicated final: public NumaReplicatedBase {
     void replicate_from(T&& source) noexcept {
         instances.clear();
 
-        const NumaConfig& cfg = get_numa_config();
-        if (cfg.requires_memory_replication())
+        const auto& numaCfg = numa_config();
+        if (numaCfg.requires_memory_replication())
         {
-            for (NumaIndex n = 0; n < cfg.num_numa_nodes(); ++n)
+            for (NumaIndex n = 0; n < numaCfg.nodes_size(); ++n)
             {
-                cfg.execute_on_numa_node(
+                numaCfg.execute_on_numa_node(
                   n, [this, &source]() { instances.emplace_back(std::make_unique<T>(source)); });
             }
         }
         else
         {
-            assert(cfg.num_numa_nodes() == 1);
+            assert(numaCfg.nodes_size() == 1);
             // Take advantage of the fact that replication is not required
             // and reuse the source value, avoiding one copy operation.
             instances.emplace_back(std::make_unique<T>(std::move(source)));
@@ -1168,44 +1165,44 @@ class LazyNumaReplicated final: public NumaReplicatedBase {
     mutable std::vector<std::unique_ptr<T>> instances;
     mutable std::mutex                      mutex;
 
-    void ensure_present(NumaIndex idx) const noexcept {
-        assert(idx < instances.size());
+    void ensure_present(NumaIndex n) const noexcept {
+        assert(n < instances.size());
 
-        if (instances[idx] != nullptr)
+        if (instances[n] != nullptr)
             return;
 
-        assert(idx != 0);
+        assert(n != 0);
 
         std::unique_lock uniqueLock(mutex);
         // Check again for races.
-        if (instances[idx] != nullptr)
+        if (instances[n] != nullptr)
             return;
 
-        const NumaConfig& cfg = get_numa_config();
-        cfg.execute_on_numa_node(
-          idx, [this, idx]() { instances[idx] = std::make_unique<T>(*instances[0]); });
+        const auto& numaCfg = numa_config();
+        numaCfg.execute_on_numa_node(
+          n, [this, n]() { instances[n] = std::make_unique<T>(*instances[0]); });
     }
 
     void prepare_replicate_from(T&& source) noexcept {
         instances.clear();
 
-        const NumaConfig& cfg = get_numa_config();
-        if (cfg.requires_memory_replication())
+        const auto& numaCfg = numa_config();
+        if (numaCfg.requires_memory_replication())
         {
-            assert(cfg.num_numa_nodes() > 0);
+            assert(numaCfg.nodes_size() > 0);
 
             // Just need to make sure the first instance is there.
             // Note that cannot move here as need to reallocate the data
             // on the correct NUMA node.
-            cfg.execute_on_numa_node(
+            numaCfg.execute_on_numa_node(
               0, [this, &source]() { instances.emplace_back(std::make_unique<T>(source)); });
 
             // Prepare others for lazy init.
-            instances.resize(cfg.num_numa_nodes());
+            instances.resize(numaCfg.nodes_size());
         }
         else
         {
-            assert(cfg.num_numa_nodes() == 1);
+            assert(numaCfg.nodes_size() == 1);
             // Take advantage of the fact that replication is not required
             // and reuse the source value, avoiding one copy operation.
             instances.emplace_back(std::make_unique<T>(std::move(source)));
@@ -1216,7 +1213,7 @@ class LazyNumaReplicated final: public NumaReplicatedBase {
 class NumaReplicationContext final {
    public:
     explicit NumaReplicationContext(NumaConfig&& cfg) noexcept :
-        config(std::move(cfg)) {}
+        numaConfig(std::move(cfg)) {}
 
     NumaReplicationContext(const NumaReplicationContext&) noexcept            = delete;
     NumaReplicationContext(NumaReplicationContext&&) noexcept                 = delete;
@@ -1248,15 +1245,15 @@ class NumaReplicationContext final {
     }
 
     void set_numa_config(NumaConfig&& cfg) noexcept {
-        config = std::move(cfg);
+        numaConfig = std::move(cfg);
         for (auto&& obj : trackedReplicatedObjects)
             obj->on_numa_config_changed();
     }
 
-    const NumaConfig& get_numa_config() const noexcept { return config; }
+    const NumaConfig& numa_config() const noexcept { return numaConfig; }
 
    private:
-    NumaConfig config;
+    NumaConfig numaConfig;
 
     // std::set uses std::less by default, which is required for pointer comparison
     std::set<NumaReplicatedBase*> trackedReplicatedObjects;
@@ -1284,8 +1281,8 @@ inline NumaReplicatedBase::~NumaReplicatedBase() noexcept {
         context->detach(this);
 }
 
-inline const NumaConfig& NumaReplicatedBase::get_numa_config() const noexcept {
-    return context->get_numa_config();
+inline const NumaConfig& NumaReplicatedBase::numa_config() const noexcept {
+    return context->numa_config();
 }
 
 }  // namespace DON
