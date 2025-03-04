@@ -203,7 +203,7 @@ void Engine::set_numa_config(const std::string& str) noexcept {
         numaContext.set_numa_config(NumaConfig::from_system(true));
 
     else if (str == "hardware")
-        // Don't respect affinity set in the system.
+        // Don't respect affinity set in the system
         numaContext.set_numa_config(NumaConfig::from_system(false));
 
     else if (str == "default")
@@ -213,7 +213,7 @@ void Engine::set_numa_config(const std::string& str) noexcept {
     else
         numaContext.set_numa_config(NumaConfig::from_string(str));
 
-    // Force reallocation of threads in case affinities need to change.
+    // Force reallocation of threads in case affinities need to change
     resize_threads_tt();
 }
 

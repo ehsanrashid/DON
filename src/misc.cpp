@@ -317,8 +317,18 @@ namespace {
 template<std::size_t N>
 class Info final {
    public:
-    [[nodiscard]] constexpr std::atomic<std::int64_t>& operator[](std::size_t index) noexcept {
-        assert(index < N);
+    constexpr Info& operator=(const Info& info) noexcept {
+        for (std::size_t i = 0; i < N; ++i)
+            data[i].store(info.data[i].load());
+        return *this;
+    }
+
+    [[nodiscard]] constexpr std::atomic<std::int64_t>&  //
+    operator[](std::size_t index) const noexcept {
+        return data[index];
+    }
+    [[nodiscard]] constexpr std::atomic<std::int64_t>&  //
+    operator[](std::size_t index) noexcept {
         return data[index];
     }
 
@@ -379,7 +389,7 @@ void min_of(std::int64_t value, std::size_t slot) noexcept {
     while (minValue > value
            && !min.at(slot)[1].compare_exchange_weak(minValue, value, std::memory_order_relaxed,
                                                      std::memory_order_relaxed))
-    {}
+        ;
 }
 
 void max_of(std::int64_t value, std::size_t slot) noexcept {
@@ -389,7 +399,7 @@ void max_of(std::int64_t value, std::size_t slot) noexcept {
     while (maxValue < value
            && !max.at(slot)[1].compare_exchange_weak(maxValue, value, std::memory_order_relaxed,
                                                      std::memory_order_relaxed))
-    {}
+        ;
 }
 
 void extreme_of(std::int64_t value, std::size_t slot) noexcept {
@@ -399,12 +409,12 @@ void extreme_of(std::int64_t value, std::size_t slot) noexcept {
     while (minValue > value
            && !extreme.at(slot)[1].compare_exchange_weak(minValue, value, std::memory_order_relaxed,
                                                          std::memory_order_relaxed))
-    {}
+        ;
     auto maxValue = extreme.at(slot)[2].load(std::memory_order_relaxed);
     while (maxValue < value
            && !extreme.at(slot)[2].compare_exchange_weak(maxValue, value, std::memory_order_relaxed,
                                                          std::memory_order_relaxed))
-    {}
+        ;
 }
 
 void mean_of(std::int64_t value, std::size_t slot) noexcept {

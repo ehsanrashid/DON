@@ -540,6 +540,8 @@ class Worker final {
     Move extract_tt_move(const Position& pos, Move ttMove, bool deep = true) const noexcept;
     bool ponder_move_extracted() noexcept;
 
+    void extend_tb_pv(std::size_t index, Value& value) noexcept;
+
     Limit              limit;
     Tablebases::Config tbConfig;
 

@@ -144,12 +144,6 @@ int  correction_value(const Position& pos, const Stack* const ss) noexcept;
 
 Value adjust_static_eval(Value ev, int cv) noexcept;
 
-void extend_tb_pv(Position&      rootPos,
-                  RootMove&      rootMove,
-                  Value&         value,
-                  const Limit&   limit,
-                  const Options& options) noexcept;
-
 }  // namespace
 
 namespace Search {
@@ -2052,6 +2046,142 @@ bool Worker::ponder_move_extracted() noexcept {
     return rootMove.size() == 2;
 }
 
+// Used to correct and extend PVs for moves that have a TB (but not a mate) score.
+// Keeps the search based PV for as long as it is verified to maintain the game outcome, truncates afterwards.
+// Finally, extends to mate the PV, providing a possible continuation (but not a proven mating line).
+void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
+
+    if (!options["SyzygyPVExtend"])
+        return;
+
+    auto& rootMove = rootMoves[index];
+
+    auto startTime = SteadyClock::now();
+
+    TimePoint moveOverhead = options["MoveOverhead"];
+
+    // Do not use more than (0.5 * moveOverhead) time, if time manager is active.
+    const auto time_to_abort = [&]() {
+        auto endTime = SteadyClock::now();
+        return limit.use_time_manager()
+            && std::chrono::duration<float, std::milli>(endTime - startTime).count()
+                 > 0.5f * moveOverhead;
+    };
+
+    bool rule50Use = options["Syzygy50MoveRule"];
+
+    std::list<State> states;
+
+    // Step 0. Do the rootMove, no correction allowed, as needed for MultiPV in TB.
+    auto& rootSt = states.emplace_back();
+    rootPos.do_move(rootMove[0], rootSt);
+
+    // Step 1. Walk the PV to the last position in TB with correct decisive score
+    std::int16_t ply = 1;
+    while (ply < std::int16_t(rootMove.size()))
+    {
+        const Move& pvMove = rootMove[ply];
+
+        RootMoves localRootMoves;
+        for (const Move& m : MoveList<LEGAL>(rootPos))
+            localRootMoves.emplace_back(m);
+
+        auto localTbConfig = Tablebases::rank_root_moves(rootPos, localRootMoves, options);
+
+        auto& rm = *localRootMoves.find(pvMove);
+
+        if (rm.tbRank != localRootMoves.front().tbRank)
+            break;
+
+        auto& st = states.emplace_back();
+        rootPos.do_move(pvMove, st);
+        ++ply;
+
+        // Don't allow for repetitions or drawing moves along the PV in TB regime.
+        if (localTbConfig.rootInTB && rootPos.is_draw(ply, rule50Use))
+        {
+            rootPos.undo_move(pvMove);
+            --ply;
+            break;
+        }
+
+        // Full PV shown will thus be validated and end TB.
+        // If we can't validate the full PV in time, we don't show it.
+        if (localTbConfig.rootInTB && time_to_abort())
+            break;
+    }
+
+    // Resize the PV to the correct part
+    rootMove.resize(ply);
+
+    // Step 2. Now extend the PV to mate, as if the user explores syzygy-tables.info using
+    // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
+    while (!rootPos.is_draw(0, rule50Use))
+    {
+        RootMoves localRootMoves;
+        for (const Move& m : MoveList<LEGAL>(rootPos))
+        {
+            auto& rm = localRootMoves.emplace_back(m);
+
+            State st;
+            rootPos.do_move(m, st);
+            // Give a score of each move to break DTZ ties
+            // restricting opponent mobility, but not giving the opponent a capture.
+            for (const Move& om : MoveList<LEGAL>(rootPos))
+                rm.tbRank -= 1 + 99 * rootPos.capture(om);
+            rootPos.undo_move(m);
+        }
+
+        // Mate found
+        if (localRootMoves.empty())
+            break;
+
+        // Sort moves according to their above assigned TB rank.
+        // This will break ties for moves with equal DTZ in rank_root_moves.
+        localRootMoves.sort([](const RootMove& rm1, const RootMove& rm2) noexcept {
+            return rm1.tbRank > rm2.tbRank;
+        });
+
+        // The winning side tries to minimize DTZ, the losing side maximizes it.
+        auto localTbConfig = Tablebases::rank_root_moves(rootPos, localRootMoves, options, true);
+
+        // If DTZ is not available might not find a mate, so bail out.
+        if (!localTbConfig.rootInTB || localTbConfig.cardinality != 0)
+            break;
+
+        const Move& pvMove = localRootMoves.front()[0];
+        rootMove.push_back(pvMove);
+        auto& st = states.emplace_back();
+        rootPos.do_move(pvMove, st);
+
+        //++ply;
+
+        if (time_to_abort())
+        {
+            UCI::print_info_string(
+              "PV extension requires more time, increase MoveOverhead as needed.");
+            break;
+        }
+    }
+
+    // Finding a draw in this function is an exceptional case,
+    // that cannot happen when rule50 is false or during engine game play,
+    // since we have a winning score, and play correctly with TB support.
+    // However, it can be that a position is draw due to the 50 move rule
+    // if it has been been reached on the board with a non-optimal 50 move counter
+    // (e.g. 8/8/6k1/3B4/3K4/4N3/8/8 w - - 54 106) which TB with dtz counter rounding
+    // cannot always correctly rank.
+    // Adjust the score to match the found PV. Note that a TB loss score can be displayed
+    // if the engine did not find a drawing move yet, but eventually search will figure it out.
+    // (e.g. 1kq5/q2r4/5K2/8/8/8/8/7Q w - - 96 1)
+    if (rootPos.is_draw(0, rule50Use))
+        value = VALUE_DRAW;
+
+    // Undo the PV moves.
+    for (auto itr = rootMove.rbegin(); itr != rootMove.rend(); ++itr)
+        rootPos.undo_move(*itr);
+}
+
 void MainSearchManager::init() noexcept {
 
     timeManager.init();
@@ -2137,7 +2267,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
         // Potentially correct and extend the PV, and in exceptional cases value also
         if (is_decisive(v) && !is_mate(v) && (exact || !(rm.boundLower || rm.boundUpper)))
-            extend_tb_pv(worker.rootPos, rm, v, worker.limit, worker.options);
+            worker.extend_tb_pv(i, v);
 
         FullInfo info(worker.rootPos, rm);
         info.depth     = d;
@@ -2339,144 +2469,6 @@ Value adjust_static_eval(Value ev, int cv) noexcept {
 }
 
 // clang-format on
-
-// Used to correct and extend PVs for moves that have a TB (but not a mate) score.
-// Keeps the search based PV for as long as it is verified to maintain the game outcome, truncates afterwards.
-// Finally, extends to mate the PV, providing a possible continuation (but not a proven mating line).
-void extend_tb_pv(Position&      rootPos,
-                  RootMove&      rootMove,
-                  Value&         value,
-                  const Limit&   limit,
-                  const Options& options) noexcept {
-
-    if (!options["SyzygyPVExtend"])
-        return;
-
-    auto startTime = SteadyClock::now();
-
-    TimePoint moveOverhead = options["MoveOverhead"];
-
-    // Do not use more than (0.5 * moveOverhead) time, if time manager is active.
-    const auto time_to_abort = [&]() {
-        auto endTime = SteadyClock::now();
-        return limit.use_time_manager()
-            && std::chrono::duration<float, std::milli>(endTime - startTime).count()
-                 > 0.5f * moveOverhead;
-    };
-
-    bool rule50Use = options["Syzygy50MoveRule"];
-
-    std::list<State> states;
-
-    // Step 0. Do the rootMove, no correction allowed, as needed for MultiPV in TB.
-    auto& rootSt = states.emplace_back();
-    rootPos.do_move(rootMove[0], rootSt);
-
-    // Step 1. Walk the PV to the last position in TB with correct decisive score
-    std::int16_t ply = 1;
-    while (ply < std::int16_t(rootMove.size()))
-    {
-        const Move& pvMove = rootMove[ply];
-
-        RootMoves rootMoves;
-        for (const Move& m : MoveList<LEGAL>(rootPos))
-            rootMoves.emplace_back(m);
-
-        auto tbConfig = Tablebases::rank_root_moves(rootPos, rootMoves, options);
-
-        auto& rm = *rootMoves.find(pvMove);
-
-        if (rm.tbRank != rootMoves.front().tbRank)
-            break;
-
-        auto& st = states.emplace_back();
-        rootPos.do_move(pvMove, st);
-        ++ply;
-
-        // Don't allow for repetitions or drawing moves along the PV in TB regime.
-        if (tbConfig.rootInTB && rootPos.is_draw(ply, rule50Use))
-        {
-            rootPos.undo_move(pvMove);
-            --ply;
-            break;
-        }
-
-        // Full PV shown will thus be validated and end TB.
-        // If we can't validate the full PV in time, we don't show it.
-        if (tbConfig.rootInTB && time_to_abort())
-            break;
-    }
-
-    // Resize the PV to the correct part
-    rootMove.resize(ply);
-
-    // Step 2. Now extend the PV to mate, as if the user explores syzygy-tables.info using
-    // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
-    while (!rootPos.is_draw(0, rule50Use))
-    {
-        RootMoves rootMoves;
-        for (const Move& m : MoveList<LEGAL>(rootPos))
-        {
-            auto& rm = rootMoves.emplace_back(m);
-
-            State st;
-            rootPos.do_move(m, st);
-            // Give a score of each move to break DTZ ties
-            // restricting opponent mobility, but not giving the opponent a capture.
-            for (const Move& om : MoveList<LEGAL>(rootPos))
-                rm.tbRank -= 1 + 99 * rootPos.capture(om);
-            rootPos.undo_move(m);
-        }
-
-        // Mate found
-        if (rootMoves.empty())
-            break;
-
-        // Sort moves according to their above assigned TB rank.
-        // This will break ties for moves with equal DTZ in rank_root_moves.
-        rootMoves.sort([](const RootMove& rm1, const RootMove& rm2) noexcept {
-            return rm1.tbRank > rm2.tbRank;
-        });
-
-        // The winning side tries to minimize DTZ, the losing side maximizes it.
-        auto tbConfig = Tablebases::rank_root_moves(rootPos, rootMoves, options, true);
-
-        // If DTZ is not available might not find a mate, so bail out.
-        if (!tbConfig.rootInTB || tbConfig.cardinality != 0)
-            break;
-
-        const Move& pvMove = rootMoves.front()[0];
-        rootMove.push_back(pvMove);
-        auto& st = states.emplace_back();
-        rootPos.do_move(pvMove, st);
-
-        //++ply;
-
-        if (time_to_abort())
-            break;
-    }
-
-    // Finding a draw in this function is an exceptional case,
-    // that cannot happen when rule50 is false or during engine game play,
-    // since we have a winning score, and play correctly with TB support.
-    // However, it can be that a position is draw due to the 50 move rule
-    // if it has been been reached on the board with a non-optimal 50 move counter
-    // (e.g. 8/8/6k1/3B4/3K4/4N3/8/8 w - - 54 106) which TB with dtz counter rounding
-    // cannot always correctly rank.
-    // Adjust the score to match the found PV. Note that a TB loss score can be displayed
-    // if the engine did not find a drawing move yet, but eventually search will figure it out.
-    // (e.g. 1kq5/q2r4/5K2/8/8/8/8/7Q w - - 96 1)
-    if (rootPos.is_draw(0, rule50Use))
-        value = VALUE_DRAW;
-
-    // Undo the PV moves.
-    for (auto itr = rootMove.rbegin(); itr != rootMove.rend(); ++itr)
-        rootPos.undo_move(*itr);
-
-    // Inform if couldn't get a full extension in time.
-    if (time_to_abort())
-        UCI::print_info_string("PV extension requires more time, increase MoveOverhead as needed.");
-}
 
 }  // namespace
 }  // namespace DON
