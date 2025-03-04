@@ -487,7 +487,7 @@ class NumaConfig final {
         else
         {
             remove_whitespace(*nodeIdsStr);
-            for (std::size_t n : indices_from_shortened_string(*nodeIdsStr))
+            for (std::size_t n : shortened_string_to_indices(*nodeIdsStr))
             {
                 // /sys/devices/system/node/node.../cpulist
                 std::string path =
@@ -504,7 +504,7 @@ class NumaConfig final {
                 else
                 {
                     remove_whitespace(*cpuIdsStr);
-                    for (std::size_t c : indices_from_shortened_string(*cpuIdsStr))
+                    for (std::size_t c : shortened_string_to_indices(*cpuIdsStr))
                         if (is_cpu_allowed(c))
                             cfg.add_cpu_to_node(n, c);
                 }
