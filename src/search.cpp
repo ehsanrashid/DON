@@ -608,7 +608,7 @@ void Worker::iterative_deepening() noexcept {
                 recaptureFactor -= 13.8400e-3f * std::min<int>(stableDepth, 25);
 
             // Calculate total time by combining all factors with the optimum time
-            float totalTime = mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor;
+            TimePoint totalTime = mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor;
             assert(totalTime >= 0.0f);
 
             // Cap totalTime in case of a single legal move for a better viewer experience
@@ -618,7 +618,7 @@ void Worker::iterative_deepening() noexcept {
             TimePoint elapsedTime = mainManager->elapsed(threads);
 
             // Stop the search if have exceeded the total time or maximum time
-            if (elapsedTime > std::min(totalTime, float(mainManager->timeManager.maximum())))
+            if (elapsedTime > std::min(totalTime, mainManager->timeManager.maximum()))
             {
                 // If allowed to ponder do not stop the search now but
                 // keep pondering until the GUI sends "ponderhit" or "stop".

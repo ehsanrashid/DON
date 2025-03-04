@@ -312,20 +312,20 @@ void ThreadPool::wait_on_thread(std::size_t threadId) noexcept {
 }
 
 std::vector<std::size_t> ThreadPool::get_bound_thread_counts() const noexcept {
-    std::vector<std::size_t> counts;
+    std::vector<std::size_t> threadCounts;
 
     if (!numaNodeBoundThreadIds.empty())
     {
         NumaIndex maxNumaIdx =
           *std::max_element(numaNodeBoundThreadIds.begin(), numaNodeBoundThreadIds.end());
 
-        counts.resize(1 + maxNumaIdx, 0);
+        threadCounts.resize(1 + maxNumaIdx, 0);
 
         for (NumaIndex numaIdx : numaNodeBoundThreadIds)
-            ++counts[numaIdx];
+            ++threadCounts[numaIdx];
     }
 
-    return counts;
+    return threadCounts;
 }
 
 }  // namespace DON
