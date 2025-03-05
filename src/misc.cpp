@@ -113,7 +113,7 @@ class Logger final {
             logger.istream.rdbuf(logger.iTie.buf1);
             logger.ostream.rdbuf(logger.oTie.buf1);
 
-            logger.ofstream << "[" << format_time(SystemClock::now()) << "] <-\n";
+            logger.ofstream << "[" << format_time(SystemClock::now()) << "] <-" << std::endl;
             logger.ofstream.close();
         }
 
@@ -127,7 +127,7 @@ class Logger final {
             std::cerr << "Unable to open debug log file: " << logFile << std::endl;
             std::exit(EXIT_FAILURE);
         }
-        logger.ofstream << "[" << format_time(SystemClock::now()) << "] ->\n";
+        logger.ofstream << "[" << format_time(SystemClock::now()) << "] ->" << std::endl;
 
         logger.istream.rdbuf(&logger.iTie);
         logger.ostream.rdbuf(&logger.oTie);
@@ -178,7 +178,7 @@ std::string version_info() noexcept {
 // Returns a string trying to describe the compiler used
 std::string compiler_info() noexcept {
 
-#define MAKE_VERSION_STRING(major, minor, patch) \
+#define VERSION_STRING(major, minor, patch) \
     STRINGIFY(major) "." STRINGIFY(minor) "." STRINGIFY(patch)
 
     // Predefined macros hell:
@@ -190,52 +190,49 @@ std::string compiler_info() noexcept {
     // _WIN32                  Building on Windows (any)
     // _WIN64                  Building on Windows 64 bit
 
-    std::string compiler = "\nCompiled by                : ";
+    std::string compiler;
 
+    compiler = "\nCompiled by                : ";
 #if defined(__INTEL_LLVM_COMPILER)
     compiler += "ICX ";
     compiler += STRINGIFY(__INTEL_LLVM_COMPILER);
 #elif defined(__clang__)
     compiler += "clang++ ";
-    compiler += MAKE_VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
+    compiler += VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
 #elif defined(_MSC_VER)
     compiler += "MSVC ";
-    compiler += "(version ";
     compiler += STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD);
-    compiler += ")";
 #elif defined(__e2k__) && defined(__LCC__)
     compiler += "MCST LCC ";
-    compiler += "(version ";
     compiler += std::to_string(__LCC__ / 100) + "."  //
               + std::to_string(__LCC__ % 100) + "."  //
               + std::to_string(__LCC_MINOR__);
-    compiler += ")";
 #elif __GNUC__
     compiler += "g++ (GNUC) ";
-    compiler += MAKE_VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+    compiler += VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
 #else
-    compiler += "Unknown compiler ";
-    compiler += "(unknown version)";
+    compiler += "unknown compiler";
 #endif
 
+    compiler += "\nCompiled on                : ";
 #if defined(__APPLE__)
-    compiler += " on Apple";
+    compiler += "Apple";
 #elif defined(__CYGWIN__)
-    compiler += " on Cygwin";
+    compiler += "Cygwin";
 #elif defined(__MINGW64__)
-    compiler += " on MinGW64";
+    compiler += "MinGW64";
 #elif defined(__MINGW32__)
-    compiler += " on MinGW32";
+    compiler += "MinGW32";
 #elif defined(__ANDROID__)
-    compiler += " on Android";
+    compiler += "Android";
 #elif defined(__linux__)
-    compiler += " on Linux";
+    compiler += "Linux";
 #elif defined(_WIN64)
-    compiler += " on Microsoft Windows 64-bit";
+    compiler += "Microsoft Windows 64-bit";
 #elif defined(_WIN32)
-    compiler += " on Microsoft Windows 32-bit";
+    compiler += "Microsoft Windows 32-bit";
 #else
-    compiler += " on unknown system";
+    compiler += "unknown system";
 #endif
 
     compiler += "\nCompilation architecture   : ";
@@ -291,10 +288,11 @@ std::string compiler_info() noexcept {
 #else
     compiler += "(undefined macro)";
 #endif
+
     return compiler;
 }
 
-std::string format_time(std::chrono::time_point<SystemClock> timePoint) {
+std::string format_time(const SystemClock::time_point& timePoint) {
     std::ostringstream oss;
 
     auto time = SystemClock::to_time_t(timePoint);

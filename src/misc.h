@@ -218,7 +218,7 @@ inline TimePoint now() noexcept {
     return std::chrono::duration_cast<MilliSeconds>(SteadyClock::now().time_since_epoch()).count();
 }
 
-std::string format_time(std::chrono::time_point<SystemClock> timePoint);
+std::string format_time(const SystemClock::time_point& timePoint);
 
 void start_logger(const std::string& logFile) noexcept;
 
@@ -227,12 +227,12 @@ void start_logger(const std::string& logFile) noexcept;
 // to the public domain by Sebastiano Vigna (2014).
 // It has the following characteristics:
 //
-//  -  Outputs 64-bit numbers
-//  -  Passes Dieharder and SmallCrush test batteries
-//  -  Does not require warm-up, no zeroland to escape
-//  -  Internal state is a single 64-bit integer
-//  -  Period is 2^64 - 1
-//  -  Speed: 1.60 ns/call (Core i7 @3.40GHz)
+//  - Outputs 64-bit numbers
+//  - Passes Dieharder and SmallCrush test batteries
+//  - Does not require warm-up, no zero-land to escape
+//  - Internal state is a single 64-bit integer
+//  - Period is 2^64 - 1
+//  - Speed: 1.60 ns/call (measured on a Core i7 @3.40GHz)
 //
 // For further analysis see
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
