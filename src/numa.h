@@ -1021,8 +1021,6 @@ class NumaReplicatedBase {
 template<typename T>
 class NumaReplicated final: public NumaReplicatedBase {
    public:
-    using ReplicatorFuncType = std::function<T(const T&)>;
-
     explicit NumaReplicated(NumaReplicationContext& ctx) noexcept :
         NumaReplicatedBase(ctx) {
         replicate_from(T{});
@@ -1105,8 +1103,6 @@ class NumaReplicated final: public NumaReplicatedBase {
 template<typename T>
 class LazyNumaReplicated final: public NumaReplicatedBase {
    public:
-    using ReplicatorFuncType = std::function<T(const T&)>;
-
     explicit LazyNumaReplicated(NumaReplicationContext& ctx) noexcept :
         NumaReplicatedBase(ctx) {
         prepare_replicate_from(T{});
