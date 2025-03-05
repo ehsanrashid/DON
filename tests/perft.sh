@@ -3,8 +3,7 @@
 
 TestsFailed=0
 
-error()
-{
+error() {
   echo "perft testing failed on line $1"
   exit 1
 }
@@ -16,7 +15,7 @@ EXPECT_SCRIPT=$(mktemp)
 
 cat << 'EOF' > $EXPECT_SCRIPT
 #!/usr/bin/expect -f
-set timeout 30
+set timeout 40
 lassign [lrange $argv 0 4] pos depth result chess960 logfile
 log_file -noappend $logfile
 spawn ./DON
@@ -35,8 +34,7 @@ EOF
 
 chmod +x $EXPECT_SCRIPT
 
-run_test()
-{
+run_test() {
   local pos="$1"
   local depth="$2"
   local expected="$3"
@@ -63,7 +61,7 @@ run_test()
 
 run_test "startpos" 7 3195901860 "false"
 run_test "fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -" 5 193690690 "false"
-#run_test "fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -" 6 8031647685 "false"
+run_test "fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -" 6 8031647685 "false"
 run_test "fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -" 7 178633661 "false"
 run_test "fen r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1" 6 706045033 "false"
 run_test "fen r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1" 6 706045033 "false"

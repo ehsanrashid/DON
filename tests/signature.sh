@@ -2,8 +2,7 @@
 # obtain and optionally verify Bench / signature
 # if no reference is given, the output is deliberately limited to just the signature
 
-error()
-{
+error() {
   echo "running bench for signature failed on line $1"
   exit 1
 }

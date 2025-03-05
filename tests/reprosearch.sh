@@ -1,8 +1,7 @@
 #!/bin/bash
 # verify reproducible search
 
-error()
-{
+error() {
   echo "reprosearch testing failed on line $1"
   exit 1
 }
