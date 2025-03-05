@@ -669,13 +669,14 @@ class NumaConfig final {
             if (nodeItr != nodes.begin())
                 oss << ':';
 
-            auto begItr = nodeItr->begin();
+            bool setFirst = true;
+            auto begItr   = nodeItr->begin();
             for (auto itr = nodeItr->begin(); itr != nodeItr->end(); ++itr)
             {
                 auto nextItr = std::next(itr);
                 if (nextItr == nodeItr->end() || *nextItr != *itr + 1)
                 {
-                    if (itr != nodeItr->begin())
+                    if (!setFirst)
                         oss << ',';
 
                     if (itr != begItr)
@@ -683,7 +684,8 @@ class NumaConfig final {
 
                     oss << *itr;
 
-                    begItr = nextItr;
+                    setFirst = false;
+                    begItr   = nextItr;
                 }
             }
         }
