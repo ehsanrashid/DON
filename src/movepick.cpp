@@ -195,14 +195,12 @@ void MovePicker::sort_partial(int limit) noexcept {
 
             *p = std::move(*++s);
 
-            // Shift elements until the correct position for 'em' is found using binary search
-            auto q = std::upper_bound(begin(), s, em,
-                                      [](const auto& em1, const auto& em2) { return em1 > em2; });
-
+            // Find the correct position for 'em' using binary search
+            auto q = std::upper_bound(begin(), s, em, std::greater<>{});
             // Move elements to make space for 'em'
             std::move_backward(q, s, s + 1);
-
-            *q = std::move(em);  // Insert the element in its correct position
+            // Insert the element in its correct position
+            *q = std::move(em);
         }
 }
 
@@ -259,6 +257,8 @@ STAGE_SWITCH:
             assert(threshold < 0);
             sort_partial(threshold);
         }
+        else
+            extCur = extEnd;
 
         next_stage();
         [[fallthrough]];
@@ -344,6 +344,8 @@ STAGE_SWITCH:
             score<EVA_QUIET>();
             sort_partial();
         }
+        else
+            extCur = extEnd;
 
         next_stage();
         [[fallthrough]];
