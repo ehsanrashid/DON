@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <functional>
 #include <type_traits>
 #include <utility>
 
@@ -186,9 +187,10 @@ void MovePicker::score<EVA_QUIET>() noexcept {
 // Sort moves in descending order up to and including a given limit.
 // The order of moves smaller than the limit is left unspecified.
 void MovePicker::sort_partial(int limit) noexcept {
-    if (begin() == end())
+    auto b = begin(), e = end();
+    if (b == e)
         return;
-    for (auto s = begin(), p = begin() + 1; p != end(); ++p)
+    for (auto s = b, p = b + 1; p != e; ++p)
         if (p->value >= limit)
         {
             auto em = std::move(*p);
@@ -196,7 +198,7 @@ void MovePicker::sort_partial(int limit) noexcept {
             *p = std::move(*++s);
 
             // Find the correct position for 'em' using binary search
-            auto q = std::upper_bound(begin(), s, em, std::greater<>{});
+            auto q = std::upper_bound(b, s, em, std::greater<>{});
             // Move elements to make space for 'em'
             std::move_backward(q, s, s + 1);
             // Insert the element in its correct position
