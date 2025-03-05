@@ -669,23 +669,21 @@ class NumaConfig final {
             if (nodeItr != nodes.begin())
                 oss << ':';
 
-            bool setFirst = true;
-            auto begItr   = nodeItr->begin();
+            auto rangeItr = nodeItr->begin();
             for (auto itr = nodeItr->begin(); itr != nodeItr->end(); ++itr)
             {
                 auto nextItr = std::next(itr);
                 if (nextItr == nodeItr->end() || *nextItr != *itr + 1)
                 {
-                    if (!setFirst)
+                    if (rangeItr != nodeItr->begin())
                         oss << ',';
 
-                    if (itr != begItr)
-                        oss << *begItr << '-';
+                    if (itr != rangeItr)
+                        oss << *rangeItr << '-';
 
                     oss << *itr;
 
-                    setFirst = false;
-                    begItr   = nextItr;
+                    rangeItr = nextItr;
                 }
             }
         }
