@@ -196,6 +196,8 @@ constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 #endif
 }
 
+static_assert(mul_hi64(0xDEADBEEFDEADBEEFull, 0xCAFEBABECAFEBABEull) == 0xB092AB7CE9F4B259ull);
+
 #if defined(USE_PREFETCH)
     #if defined(_MSC_VER)
 inline void prefetch(const void* const addr) noexcept {
