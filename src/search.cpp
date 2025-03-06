@@ -1927,12 +1927,12 @@ QS_MOVES_LOOP:
         }
     }
 
-    bool pttmNone = false;
-
     // Step 10. Check for checkmate & stalemate
     // All legal moves have been searched.
     if (moveCount == 0)
     {
+        bool pttmNone = false;
+
         // A special case: if in check and no legal moves were found, it is checkmate.
         if (ss->inCheck)
         {
