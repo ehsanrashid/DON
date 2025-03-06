@@ -1211,7 +1211,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                                          -138 * virtualDepth, +135 * virtualDepth);
                 if (!(is_ok(preSq) && dst == preSq)
                     && !((ss - 1)->inCheck && (ss - 3)->inCheck && (ss - 5)->inCheck
-                         && alpha < -500)
+                         && (ss - 7)->inCheck && alpha < -500)
                     && pos.see(move) < -(seeHist + 154 * virtualDepth + 256 * dblCheck))
                     continue;
             }
@@ -1248,7 +1248,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                     lmrDepth = DEPTH_ZERO;
 
                 // SEE based pruning for quiets
-                if (!((ss - 1)->inCheck && (ss - 3)->inCheck && (ss - 5)->inCheck && alpha < -500)
+                if (!((ss - 1)->inCheck && (ss - 3)->inCheck && (ss - 5)->inCheck
+                      && (ss - 7)->inCheck && alpha < -500)
                     && pos.see(move) < -(27 * sqr(lmrDepth) + 256 * dblCheck))
                     continue;
             }
@@ -1882,7 +1883,8 @@ QS_MOVES_LOOP:
 
             // SEE based pruning
             if (!(is_ok(preSq) && dst == preSq)
-                && !((ss - 1)->inCheck && (ss - 3)->inCheck && (ss - 5)->inCheck && alpha < -500)
+                && !((ss - 1)->inCheck && (ss - 3)->inCheck && (ss - 5)->inCheck
+                     && (ss - 7)->inCheck && alpha < -500)
                 && pos.see(move) < -(75 + 64 * dblCheck))
                 continue;
         }
@@ -1958,6 +1960,10 @@ QS_MOVES_LOOP:
     {
         bestValue = in_range((bestValue + beta) / 2);
     }
+
+    if (moveCount != 0 && ss->inCheck && (ss - 2)->inCheck && (ss - 4)->inCheck && (ss - 6)->inCheck
+        && (ss - 8)->inCheck)
+        bestValue *= 0.8571f;
 
     // Save gathered info in transposition table
     Bound bound = bound_for_fail(bestValue >= beta);
