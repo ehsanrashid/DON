@@ -1927,6 +1927,10 @@ QS_MOVES_LOOP:
         }
     }
 
+    if (ss->inCheck && (ss - 2)->inCheck && (ss - 4)->inCheck && (ss - 6)->inCheck
+        && (ss - 8)->inCheck)
+        bestValue *= 0.8571f;
+
     // Step 10. Check for checkmate & stalemate
     // All legal moves have been searched.
     if (moveCount == 0)
