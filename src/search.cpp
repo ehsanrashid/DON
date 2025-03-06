@@ -1210,6 +1210,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int seeHist = std::clamp(int(std::lround(0.03125f * captHist)),  //
                                          -138 * virtualDepth, +135 * virtualDepth);
                 if (!(is_ok(preSq) && dst == preSq)
+                    && !((ss - 1)->inCheck && (ss - 3)->inCheck && (ss - 5)->inCheck
+                         && alpha < -500)
                     && pos.see(move) < -(seeHist + 154 * virtualDepth + 256 * dblCheck))
                     continue;
             }
@@ -1246,7 +1248,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                     lmrDepth = DEPTH_ZERO;
 
                 // SEE based pruning for quiets
-                if (pos.see(move) < -(27 * sqr(lmrDepth) + 256 * dblCheck))
+                if (!((ss - 1)->inCheck && (ss - 3)->inCheck && (ss - 5)->inCheck && alpha < -500)
+                    && pos.see(move) < -(27 * sqr(lmrDepth) + 256 * dblCheck))
                     continue;
             }
         }
@@ -1878,7 +1881,9 @@ QS_MOVES_LOOP:
             }
 
             // SEE based pruning
-            if (!(is_ok(preSq) && dst == preSq) && pos.see(move) < -(75 + 64 * dblCheck))
+            if (!(is_ok(preSq) && dst == preSq)
+                && !((ss - 1)->inCheck && (ss - 3)->inCheck && (ss - 5)->inCheck && alpha < -500)
+                && pos.see(move) < -(75 + 64 * dblCheck))
                 continue;
         }
 
@@ -1922,6 +1927,8 @@ QS_MOVES_LOOP:
         }
     }
 
+    bool pttmNone = false;
+
     // Step 10. Check for checkmate & stalemate
     // All legal moves have been searched.
     if (moveCount == 0)
@@ -1932,11 +1939,14 @@ QS_MOVES_LOOP:
             assert((MoveList<LEGAL, true>(pos).empty()));
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
-        else if (bestValue != VALUE_DRAW && (pttm == Move::None || !pos.legal(pttm))
+        else if ((pttmNone = (pttm == Move::None || !pos.legal(pttm))) && bestValue != VALUE_DRAW
                  && MoveList<LEGAL, true>(pos).empty())
         {
             bestValue = VALUE_DRAW;
+        }
 
+        if (pttmNone && bestValue == VALUE_DRAW)
+        {
             ttu.update(MAX_PLY - 1, pvHit, BOUND_EXACT, Move::None, bestValue,
                        unadjustedStaticEval);
 
