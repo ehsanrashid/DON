@@ -41,7 +41,7 @@ run_test() {
   local chess960="$4"
   local tmp_file=$(mktemp)
 
-  echo -n "Testing depth $depth: ${pos:0:60}... "
+  echo -n "Testing depth $depth: ${pos:0:64}... "
 
   if $EXPECT_SCRIPT "$pos" "$depth" "$expected" "$chess960" "$tmp_file" > /dev/null 2>&1; then
     echo "OK"
