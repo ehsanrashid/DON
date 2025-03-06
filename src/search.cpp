@@ -114,7 +114,7 @@ void update_pv(Move* pv, const Move& move, const Move* childPv) noexcept {
 int risk_tolerance(const Position& pos, Value v) noexcept {
 
     // Returns (some constant of) second derivative of sigmoid
-    static constexpr auto sigmoid_d2 = [](int x, int y) noexcept { return -355752ll * x / (sqr(x) + 3 * sqr(y)); };
+    static constexpr auto sigmoid_d2 = [](int x, int y) noexcept { return 355752ll * x / (sqr(x) + 3 * sqr(y)); };
 
     static constexpr int as[4]{-3037, +2270, -637, +413};
     static constexpr int bs[4]{+7936, -2255, +319, +83};
@@ -1210,6 +1210,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int seeHist = std::clamp(int(std::lround(0.03125f * captHist)),  //
                                          -138 * virtualDepth, +135 * virtualDepth);
                 if (!(is_ok(preSq) && dst == preSq)
+                    && !((ss - 1)->inCheck && (ss - 3)->inCheck && (ss - 5)->inCheck
+                         && alpha < -500)
                     && pos.see(move) < -(seeHist + 154 * virtualDepth + 256 * dblCheck))
                     continue;
             }
@@ -1246,7 +1248,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                     lmrDepth = DEPTH_ZERO;
 
                 // SEE based pruning for quiets
-                if (pos.see(move) < -(27 * sqr(lmrDepth) + 256 * dblCheck))
+                if (!((ss - 1)->inCheck && (ss - 3)->inCheck && (ss - 5)->inCheck && alpha < -500)
+                    && pos.see(move) < -(27 * sqr(lmrDepth) + 256 * dblCheck))
                     continue;
             }
         }
@@ -1361,7 +1364,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r += 306 - 34 * moveCount - 1024 * dblCheck - 33.6746e-6f * absCorrectionValue;
 
         if (!is_decisive(bestValue))
-            r -= risk_tolerance(pos, bestValue);
+            r += risk_tolerance(pos, bestValue);
 
         // Increase reduction for CutNode
         if constexpr (CutNode)
@@ -1878,7 +1881,9 @@ QS_MOVES_LOOP:
             }
 
             // SEE based pruning
-            if (!(is_ok(preSq) && dst == preSq) && pos.see(move) < -(75 + 64 * dblCheck))
+            if (!(is_ok(preSq) && dst == preSq)
+                && !((ss - 1)->inCheck && (ss - 3)->inCheck && (ss - 5)->inCheck && alpha < -500)
+                && pos.see(move) < -(75 + 64 * dblCheck))
                 continue;
         }
 
@@ -1926,17 +1931,22 @@ QS_MOVES_LOOP:
     // All legal moves have been searched.
     if (moveCount == 0)
     {
+        bool pttmNone = false;
+
         // A special case: if in check and no legal moves were found, it is checkmate.
         if (ss->inCheck)
         {
             assert((MoveList<LEGAL, true>(pos).empty()));
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
-        else if (bestValue != VALUE_DRAW && (pttm == Move::None || !pos.legal(pttm))
+        else if ((pttmNone = (pttm == Move::None || !pos.legal(pttm))) && bestValue != VALUE_DRAW
                  && MoveList<LEGAL, true>(pos).empty())
         {
             bestValue = VALUE_DRAW;
+        }
 
+        if (pttmNone && bestValue == VALUE_DRAW)
+        {
             ttu.update(MAX_PLY - 1, pvHit, BOUND_EXACT, Move::None, bestValue,
                        unadjustedStaticEval);
 
