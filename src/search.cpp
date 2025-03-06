@@ -114,7 +114,7 @@ void update_pv(Move* pv, const Move& move, const Move* childPv) noexcept {
 int risk_tolerance(const Position& pos, Value v) noexcept {
 
     // Returns (some constant of) second derivative of sigmoid
-    static constexpr auto sigmoid_d2 = [](int x, int y) noexcept { return -355752ll * x / (sqr(x) + 3 * sqr(y)); };
+    static constexpr auto sigmoid_d2 = [](int x, int y) noexcept { return 355752ll * x / (sqr(x) + 3 * sqr(y)); };
 
     static constexpr int as[4]{-3037, +2270, -637, +413};
     static constexpr int bs[4]{+7936, -2255, +319, +83};
@@ -1364,7 +1364,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r += 306 - 34 * moveCount - 1024 * dblCheck - 33.6746e-6f * absCorrectionValue;
 
         if (!is_decisive(bestValue))
-            r -= risk_tolerance(pos, bestValue);
+            r += risk_tolerance(pos, bestValue);
 
         // Increase reduction for CutNode
         if constexpr (CutNode)
