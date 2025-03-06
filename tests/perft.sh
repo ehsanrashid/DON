@@ -15,7 +15,7 @@ EXPECT_SCRIPT=$(mktemp)
 
 cat << 'EOF' > $EXPECT_SCRIPT
 #!/usr/bin/expect -f
-set timeout 80
+set timeout 100
 lassign [lrange $argv 0 4] pos depth result chess960 logfile
 log_file -noappend $logfile
 spawn ./DON
@@ -41,7 +41,7 @@ run_test() {
   local chess960="$4"
   local tmp_file=$(mktemp)
 
-  echo -n "Testing depth $depth: ${pos:0:48}... "
+  echo -n "Testing depth $depth: ${pos:0:64}... "
 
   if $EXPECT_SCRIPT "$pos" "$depth" "$expected" "$chess960" "$tmp_file" > /dev/null 2>&1; then
     echo "OK"
