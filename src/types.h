@@ -391,12 +391,10 @@ constexpr Square rook_castle_sq(Color c, Square s1, Square s2) noexcept {
 
 constexpr Direction pawn_spush(Color c) noexcept {
     assert(is_ok(c));
-    //return Direction((int(NORTH) ^ -int(c)) + int(c));
     return c == WHITE ? NORTH : SOUTH;
 }
 constexpr Direction pawn_dpush(Color c) noexcept {
     assert(is_ok(c));
-    //return Direction((int(NORTH_2) ^ -int(c)) + int(c));
     return c == WHITE ? NORTH_2 : SOUTH_2;
 }
 

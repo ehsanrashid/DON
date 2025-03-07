@@ -47,8 +47,8 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
 
     Direction Push1 = pawn_spush(ac);
     Direction Push2 = pawn_dpush(ac);
-    Direction PushL = ac == WHITE ? NORTH_WEST : SOUTH_EAST;
-    Direction PushR = ac == WHITE ? NORTH_EAST : SOUTH_WEST;
+    Direction CaptL = ac == WHITE ? NORTH_WEST : SOUTH_EAST;
+    Direction CaptR = ac == WHITE ? NORTH_EAST : SOUTH_WEST;
 
     Bitboard acPawns   = pos.pieces(ac, PAWN);
     Bitboard on7Pawns  = acPawns & relative_rank(ac, RANK_7);
@@ -101,31 +101,31 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
             while (b)
                 generate_promotion_moves(extMoves, pop_lsb(b), Push1);
 
-            b = shift(PushL, on7Pawns) & enemies;
+            b = shift(CaptL, on7Pawns) & enemies;
 
             while (b)
-                generate_promotion_moves(extMoves, pop_lsb(b), PushL);
+                generate_promotion_moves(extMoves, pop_lsb(b), CaptL);
 
-            b = shift(PushR, on7Pawns) & enemies;
+            b = shift(CaptR, on7Pawns) & enemies;
 
             while (b)
-                generate_promotion_moves(extMoves, pop_lsb(b), PushR);
+                generate_promotion_moves(extMoves, pop_lsb(b), CaptR);
         }
 
-        b = shift(PushL, non7Pawns) & enemies;
+        b = shift(CaptL, non7Pawns) & enemies;
 
         while (b)
         {
             Square s = pop_lsb(b);
-            extMoves.emplace_back(s - PushL, s);
+            extMoves.emplace_back(s - CaptL, s);
         }
 
-        b = shift(PushR, non7Pawns) & enemies;
+        b = shift(CaptR, non7Pawns) & enemies;
 
         while (b)
         {
             Square s = pop_lsb(b);
-            extMoves.emplace_back(s - PushR, s);
+            extMoves.emplace_back(s - CaptR, s);
         }
 
         if (is_ok(pos.ep_square()))
@@ -136,8 +136,6 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
             assert(non7Pawns & relative_rank(ac, RANK_5));
 
             // An en-passant capture cannot resolve a discovered check
-            //if (Evasion && (target & (pos.ep_square() + Push1)))
-            //    return;
             assert(!(Evasion && (target & (pos.ep_square() + Push1))));
 
             b = non7Pawns & pawn_attacks_bb(~ac, pos.ep_square());
