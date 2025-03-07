@@ -42,8 +42,8 @@ const inline std::unordered_map<OptionType, std::string_view> OptionTypeMap{
 // clang-format on
 }  // namespace
 
-std::size_t CaseInsensitiveHash::operator()(const std::string& str) const noexcept {
-    return std::hash<std::string>()(lower_case(str));
+std::size_t CaseInsensitiveHash::operator()(std::string_view str) const noexcept {
+    return std::hash<std::string>()(lower_case(std::string(str)));
 }
 
 bool CaseInsensitiveEqual::operator()(std::string_view s1, std::string_view s2) const noexcept {

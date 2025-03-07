@@ -35,7 +35,7 @@ namespace DON {
 
 // Define a custom case-insensitive hash
 struct CaseInsensitiveHash final {
-    std::size_t operator()(const std::string& str) const noexcept;
+    std::size_t operator()(std::string_view str) const noexcept;
 };
 // Define a custom case-insensitive equality
 struct CaseInsensitiveEqual final {
