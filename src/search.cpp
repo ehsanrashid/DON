@@ -47,8 +47,6 @@ namespace DON {
 
 namespace {
 
-constexpr inline int MaxQuietThreshold = -7998;
-
 // History
 History<HCapture>           captureHistory;
 History<HQuiet>               quietHistory;
@@ -1109,7 +1107,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                                             (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,
                                             (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory};
 
-    int quietThreshold = std::min((-3560 - 10 * improve) * depth, MaxQuietThreshold);
+    int quietThreshold = std::min((-3560 - 10 * improve) * depth, -7998);
 
     value = bestValue;
 
