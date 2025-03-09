@@ -510,6 +510,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
                 infoNodes = engine.perft(limit.depth, limit.detail);
             else
                 engine.start(limit);
+
             engine.wait_finish();
 
             nodes += infoNodes;
