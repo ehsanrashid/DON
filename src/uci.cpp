@@ -557,7 +557,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
 
 void UCI::benchmark(std::istringstream& iss) noexcept {
     // Probably not very important for a test this long, but include for completeness and sanity.
-    constexpr std::size_t WARMUP_POSITION_COUNT = 3;
+    static constexpr std::size_t WarmupPositionCount = 3;
 
     std::uint64_t infoNodes = 0;
     engine.set_on_update_full([&](const auto& info) { infoNodes = info.nodes; });
@@ -599,7 +599,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
         {
         case CMD_GO : {
             // One new line is produced by the search, so omit it here
-            std::cerr << "\rWarmup position " << ++cnt << '/' << WARMUP_POSITION_COUNT;
+            std::cerr << "\rWarmup position " << ++cnt << '/' << WarmupPositionCount;
 
             auto limit = parse_limit(is);
 
@@ -622,7 +622,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
         default :;
         }
 
-        if (cnt >= WARMUP_POSITION_COUNT)
+        if (cnt >= WarmupPositionCount)
             break;
     }
 
