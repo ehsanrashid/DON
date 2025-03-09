@@ -66,8 +66,6 @@ CorrectionHistory<CHContinuation> continuationCorrectionHistory;
 // Reductions lookup table initialized at startup
 std::array<std::int16_t, MAX_MOVES> reductions;  // [depth or moveCount]
 
-PolyBook polyBook;
-
 constexpr int
 reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
     int reductionScale = reductions[depth] * reductions[moveCount];
@@ -169,8 +167,6 @@ void init() noexcept {
         reductions[i] = 23.0781f * std::log(i);
 }
 
-void load_book(const std::string& bookFile) noexcept { polyBook.init(bookFile); }
-
 }  // namespace Search
 
 // clang-format on
@@ -257,9 +253,9 @@ void Worker::start_search() noexcept {
         if (!limit.infinite && limit.mate == 0)
         {
             // Check polyglot book
-            if (options["OwnBook"] && polyBook.enabled()
+            if (options["OwnBook"] && Book.enabled()
                 && rootPos.move_num() < options["BookProbeDepth"])
-                bookBestMove = polyBook.probe(rootPos, options["BookBestPick"]);
+                bookBestMove = Book.probe(rootPos, options["BookBestPick"]);
         }
 
         if (bookBestMove != Move::None && rootMoves.contains(bookBestMove))
@@ -268,7 +264,7 @@ void Worker::start_search() noexcept {
             ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
             rootPos.do_move(bookBestMove, st);
-            Move bookPonderMove = polyBook.probe(rootPos, options["BookBestPick"]);
+            Move bookPonderMove = Book.probe(rootPos, options["BookBestPick"]);
             rootPos.undo_move(bookBestMove);
 
             for (auto&& th : threads)

@@ -108,6 +108,10 @@ class PolyBook final {
     KeyData keyData;
 };
 
+extern PolyBook Book;
+
+inline void load_book(const std::string& bookFile) noexcept { Book.init(bookFile); }
+
 }  // namespace DON
 
 #endif  // #ifndef POLYBOOK_H_INCLUDED
