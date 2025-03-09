@@ -236,7 +236,7 @@ UCI::UCI(int argc, const char** argv) noexcept :
             print_info_string(*optInfo);
     });
 
-    init_update_listeners();
+    set_update_listeners();
 }
 
 void UCI::execute() noexcept {
@@ -374,7 +374,7 @@ void UCI::print_info_string(std::string_view infoStr) noexcept {
             std::cout << "info string " << info << std::endl;
 }
 
-void UCI::init_update_listeners() noexcept {
+void UCI::set_update_listeners() noexcept {
     engine.set_on_update_end(on_update_end);
     engine.set_on_update_full(on_update_full);
     engine.set_on_update_iter(on_update_iter);
@@ -730,7 +730,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     // clang-format on
 
     InfoStringStop = false;
-    init_update_listeners();
+    set_update_listeners();
 }
 
 namespace {
