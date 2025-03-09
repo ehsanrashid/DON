@@ -239,7 +239,7 @@ UCI::UCI(int argc, const char** argv) noexcept :
     init_update_listeners();
 }
 
-void UCI::handle_commands() noexcept {
+void UCI::execute() noexcept {
     std::string command;
     for (int i = 1; i < commandLine.argc; ++i)
     {
