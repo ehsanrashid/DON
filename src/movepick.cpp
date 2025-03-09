@@ -29,25 +29,24 @@
 
 namespace DON {
 
+// History
+History<HCapture>      CaptureHistory;
+History<HQuiet>        QuietHistory;
+History<HPawn>         PawnHistory;
+History<HContinuation> ContinuationHistory[2][2];
+History<HLowPlyQuiet>  LowPlyQuietHistory;
+
 // Constructors of the MovePicker class. As arguments, pass information
 // to decide which class of moves to return, to help sorting the (presumably)
 // good moves first, and how important move ordering is at the current node.
-MovePicker::MovePicker(const Position&              p,
-                       const Move&                  ttm,
-                       const History<HCapture>*     captureHist,
-                       const History<HQuiet>*       quietHist,
-                       const History<HPawn>*        pawnHist,
-                       const History<HPieceSq>**    continuationHist,
-                       const History<HLowPlyQuiet>* lowPlyQuietHist,
-                       std::int16_t                 ply,
-                       int                          th) noexcept :
+MovePicker::MovePicker(const Position&           p,
+                       const Move&               ttm,
+                       const History<HPieceSq>** continuationHist,
+                       std::int16_t              ply,
+                       int                       th) noexcept :
     pos(p),
     ttMove(ttm),
-    captureHistory(captureHist),
-    quietHistory(quietHist),
-    pawnHistory(pawnHist),
     continuationHistory(continuationHist),
-    lowPlyQuietHistory(lowPlyQuietHist),
     ssPly(ply),
     threshold(th) {
     assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
@@ -57,13 +56,12 @@ MovePicker::MovePicker(const Position&              p,
         next_stage();
 }
 
-MovePicker::MovePicker(const Position&          p,
-                       const Move&              ttm,
-                       const History<HCapture>* captureHist,
-                       int                      th) noexcept :
+MovePicker::MovePicker(const Position& p,  //
+                       const Move&     ttm,
+                       int             th) noexcept :
     pos(p),
     ttMove(ttm),
-    captureHistory(captureHist),
+    continuationHistory(nullptr),
     ssPly(0),
     threshold(th) {
     assert(!pos.checkers());
@@ -88,7 +86,7 @@ void MovePicker::score<ENC_CAPTURE>() noexcept {
         auto   captured = pos.captured(m);
 
         m.value = 7 * PIECE_VALUE[captured] + 3 * promotion_value(m, true)  //
-                + (*captureHistory)[pc][dst][captured]                      //
+                + CaptureHistory[pc][dst][captured]                         //
                 + 0x100 * (pos.cap_square() == dst);
     }
 }
@@ -106,19 +104,19 @@ void MovePicker::score<ENC_QUIET>() noexcept {
         auto   pc = pos.moved_piece(m);
         auto   pt = type_of(pc);
 
-        m.value = 2 * (*quietHistory)[ac][m.org_dst()]    //
-                + 2 * (*pawnHistory)[pawnIndex][pc][dst]  //
-                + (*continuationHistory[0])[pc][dst]      //
-                + (*continuationHistory[1])[pc][dst]      //
-                + (*continuationHistory[2])[pc][dst]      //
-                + (*continuationHistory[3])[pc][dst]      //
-                + (*continuationHistory[4])[pc][dst]      //
-                + (*continuationHistory[5])[pc][dst]      //
-                + (*continuationHistory[6])[pc][dst]      //
+        m.value = 2 * QuietHistory[ac][m.org_dst()]    //
+                + 2 * PawnHistory[pawnIndex][pc][dst]  //
+                + (*continuationHistory[0])[pc][dst]   //
+                + (*continuationHistory[1])[pc][dst]   //
+                + (*continuationHistory[2])[pc][dst]   //
+                + (*continuationHistory[3])[pc][dst]   //
+                + (*continuationHistory[4])[pc][dst]   //
+                + (*continuationHistory[5])[pc][dst]   //
+                + (*continuationHistory[6])[pc][dst]   //
                 + (*continuationHistory[7])[pc][dst];
 
         if (ssPly < LOW_PLY_SIZE)
-            m.value += 8 * (*lowPlyQuietHistory)[ssPly][m.org_dst()] / (1 + 2 * ssPly);
+            m.value += 8 * LowPlyQuietHistory[ssPly][m.org_dst()] / (1 + 2 * ssPly);
 
         if (pos.check(m))
             m.value += 0x4000 + 0x1000 * pos.dbl_check(m);
@@ -161,8 +159,8 @@ void MovePicker::score<EVA_CAPTURE>() noexcept {
         auto   pc       = pos.moved_piece(m);
         auto   captured = pos.captured(m);
 
-        m.value = 2 * PIECE_VALUE[captured] + promotion_value(m, true)
-                + (*captureHistory)[pc][dst][captured];
+        m.value =
+          2 * PIECE_VALUE[captured] + promotion_value(m, true) + CaptureHistory[pc][dst][captured];
     }
 }
 
@@ -178,8 +176,8 @@ void MovePicker::score<EVA_QUIET>() noexcept {
         Square dst = m.dst_sq();
         auto   pc  = pos.moved_piece(m);
 
-        m.value = (*quietHistory)[ac][m.org_dst()]    //
-                + (*pawnHistory)[pawnIndex][pc][dst]  //
+        m.value = QuietHistory[ac][m.org_dst()]    //
+                + PawnHistory[pawnIndex][pc][dst]  //
                 + (*continuationHistory[0])[pc][dst];
     }
 }

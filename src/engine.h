@@ -56,7 +56,7 @@ class Engine final {
     std::string fen() const noexcept;
 
     // Set a new position, moves are in UCI or SAN format
-    void setup(std::string_view                fen   = StartFEN,
+    void setup(std::string_view                fen   = START_FEN,
                const std::vector<std::string>& moves = {}) noexcept;
 
     std::uint64_t perft(Depth depth, bool detail = false) noexcept;

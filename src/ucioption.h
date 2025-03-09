@@ -90,7 +90,7 @@ class Option final {
     OptionType                    type;
     std::string                   defaultValue;
     std::string                   currentValue;
-    int                           minValue, maxValue;
+    int                           minValue = 0, maxValue = 0;
     std::vector<std::string_view> comboValues;
     OnChange                      onChange;
 

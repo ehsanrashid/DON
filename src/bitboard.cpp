@@ -29,7 +29,7 @@
 namespace DON {
 
 #if !defined(USE_POPCNT)
-alignas(CACHE_LINE_SIZE) std::uint8_t PopCnt[PopCntSize];
+alignas(CACHE_LINE_SIZE) std::uint8_t PopCnt[POP_CNT_SIZE];
 #endif
 // clang-format off
 alignas(CACHE_LINE_SIZE) std::uint8_t Distances[SQUARE_NB][SQUARE_NB];
@@ -203,7 +203,7 @@ namespace BitBoard {
 void init() noexcept {
 
 #if !defined(USE_POPCNT)
-    for (std::uint32_t i = 0; i < PopCntSize; ++i)
+    for (std::uint32_t i = 0; i < POP_CNT_SIZE; ++i)
         PopCnt[i] = std::bitset<16>(i).count();
 #endif
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)

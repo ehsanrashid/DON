@@ -390,7 +390,7 @@ void UCI::position(std::istringstream& iss) noexcept {
 
     if (starts_with(token, "start"))  // "startpos"
     {
-        fen = StartFEN;
+        fen = START_FEN;
         iss >> token;  // Consume the "moves" token, if any
     }
     else if (starts_with(token, "f"))  // "fen"

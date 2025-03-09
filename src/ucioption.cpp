@@ -30,7 +30,7 @@ namespace DON {
 
 namespace {
 
-constexpr inline std::string_view EmptyString{"<empty>"};
+constexpr inline std::string_view EMPTY_STRING{"<empty>"};
 
 // clang-format off
 const inline std::unordered_map<OptionType, std::string_view> OptionTypeMap{
@@ -67,24 +67,18 @@ std::string_view to_string(OptionType ot) noexcept {
 
 Option::Option(OnChange&& f) noexcept :
     type(OPT_BUTTON),
-    minValue(0),
-    maxValue(0),
     onChange(std::move(f)) {}
 
 Option::Option(bool v, OnChange&& f) noexcept :
     type(OPT_CHECK),
-    minValue(0),
-    maxValue(0),
     onChange(std::move(f)) {
     defaultValue = currentValue = bool_to_string(v);
 }
 
 Option::Option(const char* v, OnChange&& f) noexcept :
     type(OPT_STRING),
-    minValue(0),
-    maxValue(0),
     onChange(std::move(f)) {
-    defaultValue = currentValue = is_whitespace(v) || lower_case(v) == EmptyString ? "" : v;
+    defaultValue = currentValue = is_whitespace(v) || lower_case(v) == EMPTY_STRING ? "" : v;
 }
 
 Option::Option(int v, int minv, int maxv, OnChange&& f) noexcept :
@@ -97,10 +91,8 @@ Option::Option(int v, int minv, int maxv, OnChange&& f) noexcept :
 
 Option::Option(const char* v, const char* var, OnChange&& f) noexcept :
     type(OPT_COMBO),
-    minValue(0),
-    maxValue(0),
     onChange(std::move(f)) {
-    defaultValue = currentValue = is_whitespace(v) || lower_case(v) == EmptyString ? "" : v;
+    defaultValue = currentValue = is_whitespace(v) || lower_case(v) == EMPTY_STRING ? "" : v;
     comboValues                 = split(var, "var", true);
 }
 
@@ -145,7 +137,7 @@ void Option::operator=(std::string value) noexcept {
             return;
         break;
     case OPT_STRING :
-        if (is_whitespace(value) || lower_case(value) == EmptyString)
+        if (is_whitespace(value) || lower_case(value) == EMPTY_STRING)
             value = "";
         break;
     case OPT_SPIN :
@@ -179,7 +171,7 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
 
     os << " default ";
     if (option.type == OPT_STRING && is_whitespace(option.defaultValue))
-        os << EmptyString;
+        os << EMPTY_STRING;
     else
         os << option.defaultValue;
 

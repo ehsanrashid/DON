@@ -22,9 +22,7 @@
 
 // On OSX threads other than the main thread are created with a reduced stack
 // size of 512KB by default, this is too low for deep searches, which require
-// somewhat more than 1MB stack, so adjust it to THREAD_STACK_SIZE.
-// The implementation calls pthread_create() with the stack size parameter
-// equal to the Linux 8MB default, on platforms that support it.
+// somewhat more than 1MB stack, so adjust it to 8MB.
 
 #if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(USE_PTHREADS)
 
@@ -37,32 +35,29 @@ class NativeThread final {
    public:
     template<class Function, class... Args>
     explicit NativeThread(Function&& func, Args&&... args) noexcept {
-
         pthread_attr_t attribute;
         pthread_attr_init(&attribute);
-        pthread_attr_setstacksize(&attribute, THREAD_STACK_SIZE);
+        pthread_attr_setstacksize(&attribute, 8u * 1024 * 1024);
 
         using Func = std::function<void()>;
 
-        const auto start_routine = [](void* ptrFunc) noexcept -> void* {
-            auto* f = reinterpret_cast<Func*>(ptrFunc);
+        const auto start_routine = [](void* funcPtr) noexcept -> void* {
+            auto* f = reinterpret_cast<Func*>(funcPtr);
             // Call the function
             (*f)();
             delete f;
             return nullptr;
         };
 
-        auto* ptrFunc =
+        auto* funcPtr =
           new Func(std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
 
-        pthread_create(&thread, &attribute, start_routine, ptrFunc);
+        pthread_create(&thread, &attribute, start_routine, funcPtr);
     }
 
     void join() const noexcept { pthread_join(thread, nullptr); }
 
    private:
-    static constexpr std::size_t THREAD_STACK_SIZE = 8 * 1024 * 1024;
-
     pthread_t thread;
 };
 
