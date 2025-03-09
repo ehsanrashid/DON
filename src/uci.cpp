@@ -503,15 +503,14 @@ void UCI::bench(std::istringstream& iss) noexcept {
         case CMD_GO : {
             std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")"
                       << std::endl;
+
             auto limit = parse_limit(is);
 
             if (limit.perft)
                 infoNodes = engine.perft(limit.depth, limit.detail);
             else
-            {
                 engine.start(limit);
-                engine.wait_finish();
-            }
+            engine.wait_finish();
 
             nodes += infoNodes;
             infoNodes = 0;
@@ -601,10 +600,8 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
             // One new line is produced by the search, so omit it here
             std::cerr << "\rWarmup position " << ++cnt << '/' << WarmupPositionCount;
 
-            auto limit = parse_limit(is);
-
             // Run with silenced network verification
-            engine.start(limit);
+            engine.start(parse_limit(is));
             engine.wait_finish();
 
             nodes += infoNodes;
@@ -671,10 +668,8 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
             // One new line is produced by the search, so omit it here
             std::cerr << "\rPosition " << ++cnt << '/' << num;
 
-            auto limit = parse_limit(is);
-
             // Run with silenced network verification
-            engine.start(limit);
+            engine.start(parse_limit(is));
             engine.wait_finish();
 
             update_hashFull();
