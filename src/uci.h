@@ -78,7 +78,7 @@ class UCI final {
 
     void position(std::istringstream& iss) noexcept;
     void go(std::istringstream& iss) noexcept;
-    void set_option(std::istringstream& iss) noexcept;
+    void setoption(std::istringstream& iss) noexcept;
     void bench(std::istringstream& iss) noexcept;
     void benchmark(std::istringstream& iss) noexcept;
 

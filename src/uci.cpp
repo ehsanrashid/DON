@@ -301,7 +301,7 @@ bool UCI::run_command(const std::string& command) noexcept {
         go(iss);
         break;
     case CMD_SETOPTION :
-        set_option(iss);
+        setoption(iss);
         break;
     case CMD_UCI :
         std::cout << engine_info(true) << '\n'  //
@@ -434,7 +434,7 @@ void UCI::go(std::istringstream& iss) noexcept {
         engine.start(limit);
 }
 
-void UCI::set_option(std::istringstream& iss) noexcept {
+void UCI::setoption(std::istringstream& iss) noexcept {
     engine.wait_finish();
 
     std::string token;
@@ -529,7 +529,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
             position(is);
             break;
         case CMD_SETOPTION :
-            set_option(is);
+            setoption(is);
             break;
         case CMD_UCINEWGAME :
             elapsedTime += now() - startTime;
