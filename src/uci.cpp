@@ -269,9 +269,10 @@ void UCI::execute() noexcept {
 void UCI::run_command(const std::string& command) noexcept {
 
     std::istringstream iss(command);
+    iss >> std::skipws;
 
     std::string token;
-    iss >> std::skipws >> token;
+    iss >> token;
     if (token.empty())
         return;
 
@@ -490,9 +491,10 @@ void UCI::bench(std::istringstream& iss) noexcept {
     for (const auto& command : commands)
     {
         std::istringstream is(command);
+        is >> std::skipws;
 
         std::string token;
-        is >> std::skipws >> token;
+        is >> token;
         if (token.empty())
             continue;
 
@@ -586,9 +588,10 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     for (const auto& command : benchmark.commands)
     {
         std::istringstream is(command);
+        is >> std::skipws;
 
         std::string token;
-        is >> std::skipws >> token;
+        is >> token;
         if (token.empty())
             continue;
 
@@ -655,9 +658,10 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     for (const auto& command : benchmark.commands)
     {
         std::istringstream is(command);
+        is >> std::skipws;
 
         std::string token;
-        is >> std::skipws >> token;
+        is >> token;
         if (token.empty())
             continue;
 
