@@ -1973,8 +1973,7 @@ QS_MOVES_LOOP:
 }
 
 Value Worker::evaluate(const Position& pos) noexcept {
-    using DON::evaluate;
-    return evaluate(pos, networks[numaAccessToken], accCaches, optimism[pos.active_color()]);
+    return DON::evaluate(pos, networks[numaAccessToken], accCaches, optimism[pos.active_color()]);
 }
 
 Move Worker::extract_tt_move(const Position& pos, Move ttMove, bool deep) const noexcept {
