@@ -36,7 +36,7 @@ class UCI final {
    public:
     UCI(int argc, const char** argv) noexcept;
 
-    auto& engine_options() noexcept { return engine.get_options(); }
+    auto& options() noexcept { return engine.get_options(); }
 
     void execute() noexcept;
 

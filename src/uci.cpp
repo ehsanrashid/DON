@@ -231,7 +231,7 @@ UCI::UCI(int argc, const char** argv) noexcept :
     engine(argv[0]),
     commandLine(argc, argv) {
 
-    engine_options().set_info_listener([](const std::optional<std::string>& optInfo) {
+    options().set_info_listener([](const std::optional<std::string>& optInfo) {
         if (optInfo.has_value())
             print_info_string(*optInfo);
     });
@@ -305,7 +305,7 @@ bool UCI::run_command(const std::string& command) noexcept {
         break;
     case CMD_UCI :
         std::cout << engine_info(true) << '\n'  //
-                  << engine_options() << '\n'   //
+                  << options() << '\n'          //
                   << "uciok" << std::endl;
         break;
     case CMD_UCINEWGAME :
@@ -459,7 +459,7 @@ void UCI::setoption(std::istringstream& iss) noexcept {
         value += token;
     }
 
-    engine_options().set(name, value);
+    options().set(name, value);
 }
 
 void UCI::bench(std::istringstream& iss) noexcept {
@@ -470,9 +470,9 @@ void UCI::bench(std::istringstream& iss) noexcept {
         on_update_full(info);
     });
 
-    auto reportMinimal = bool_to_string(engine_options()["ReportMinimal"]);
+    auto reportMinimal = bool_to_string(options()["ReportMinimal"]);
 
-    engine_options().set("ReportMinimal", bool_to_string(true));
+    options().set("ReportMinimal", bool_to_string(true));
 
 #if !defined(NDEBUG)
     Debug::init();
@@ -553,7 +553,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
               << "\nTotal nodes     : " << nodes        //
               << "\nnodes/second    : " << 1000 * nodes / elapsedTime << std::endl;
 
-    engine_options().set("ReportMinimal", reportMinimal);
+    options().set("ReportMinimal", reportMinimal);
     // Reset callback, to not capture a dangling reference to infoNodes
     engine.set_on_update_full(on_update_full);
 }
@@ -579,9 +579,9 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     TimePoint elapsedTime = 0;
 
     // Set options once at the start.
-    engine_options().set("Threads", std::to_string(benchmark.threads));
-    engine_options().set("Hash", std::to_string(benchmark.ttSize));
-    engine_options().set("UCI_Chess960", bool_to_string(false));
+    options().set("Threads", std::to_string(benchmark.threads));
+    options().set("Hash", std::to_string(benchmark.ttSize));
+    options().set("UCI_Chess960", bool_to_string(false));
 
     InfoStringStop = true;
 

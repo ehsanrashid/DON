@@ -42,7 +42,7 @@ int main(int argc, const char** argv) noexcept {
 
     UCI uci(argc, argv);
 
-    //Tune::init(uci.engine_options());
+    //Tune::init(uci.options());
 
     uci.execute();
 
