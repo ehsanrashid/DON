@@ -574,7 +574,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     TimePoint startTime   = now();
     TimePoint elapsedTime = 0;
 
-    // Set options once at the start.
+    // Set options once at the start
     options().set("Threads", std::to_string(benchmark.threads));
     options().set("Hash", std::to_string(benchmark.ttSize));
     options().set("UCI_Chess960", bool_to_string(false));
@@ -633,7 +633,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     nodes = 0;
     cnt   = 0;
 
-    constexpr std::uint8_t hashFullAges[2]{0, 31};  // Only normal hashfull and touched hash.
+    constexpr std::uint8_t hashFullAges[2]{0, 31};  // Only normal hashfull and touched hash
 
     std::uint16_t hashFullCount                        = 0;
     std::uint16_t maxHashFull[std::size(hashFullAges)] = {0};
