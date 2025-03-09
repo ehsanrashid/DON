@@ -262,7 +262,7 @@ void UCI::execute() noexcept {
         run_command(command);
 
         if (command == "quit")
-            running = false;
+            return;
 
     } while (running);
 }
