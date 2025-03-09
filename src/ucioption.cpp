@@ -30,7 +30,7 @@ namespace DON {
 
 namespace {
 
-constexpr inline std::string_view EMPTY_STRING{"<empty>"};
+constexpr std::string_view EMPTY_STRING{"<empty>"};
 
 // clang-format off
 const inline std::unordered_map<OptionType, std::string_view> OptionTypeMap{

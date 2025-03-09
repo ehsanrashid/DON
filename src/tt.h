@@ -75,13 +75,13 @@ static_assert(sizeof(TTData) == 12, "Unexpected TTData size");
 // Constants used to manipulate generation bits
 
 // Number of bits reserved for data
-constexpr inline std::uint8_t DATA_BITS = 3;
+constexpr std::uint8_t DATA_BITS = 3;
 // Increment for generation field
-constexpr inline std::uint8_t GENERATION_DELTA = 1 << DATA_BITS;
+constexpr std::uint8_t GENERATION_DELTA = 1 << DATA_BITS;
 // Mask to pull out generation field
-constexpr inline std::uint8_t GENERATION_MASK = (0xFF << DATA_BITS) & 0xFF;
+constexpr std::uint8_t GENERATION_MASK = (0xFF << DATA_BITS) & 0xFF;
 // Generation cycle length
-constexpr inline std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
+constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 
 class TTUpdater;           // IWYU pragma: keep
 class TranspositionTable;  // IWYU pragma: keep

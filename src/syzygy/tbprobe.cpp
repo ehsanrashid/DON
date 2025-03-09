@@ -62,9 +62,9 @@ namespace DON {
 namespace {
 
 // Max number of supported piece
-constexpr inline std::uint32_t TBPieces = 7;
+constexpr std::uint32_t TBPieces = 7;
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit.
-constexpr inline int MAX_DTZ = 1 << 18;
+constexpr int MAX_DTZ = 1 << 18;
 
 enum Endian {
     BigEndian,

@@ -46,7 +46,7 @@ namespace DON {
 
 namespace {
 
-constexpr inline std::string_view              PieceChar{" PNBRQK  pnbrqk "};
+constexpr std::string_view                     PieceChar{" PNBRQK  pnbrqk "};
 const inline std::array<std::string, PIECE_NB> PieceFigure{
   "", "\u2659", "\u2658", "\u2657", "\u2656", "\u2655", "\u2654", "",
   "", "\u265F", "\u265E", "\u265D", "\u265C", "\u265B", "\u265A", ""};
@@ -188,31 +188,23 @@ Limit parse_limit(std::istringstream& iss) noexcept {
         else if (starts_with(token, "search"))
         {
             auto pos = iss.tellg();
-            while (iss >> token)
+            while (iss >> token && !starts_with(lower_case(token), "ignore"))
             {
-                if (starts_with(lower_case(token), "ignore"))
-                {
-                    iss.seekg(pos);
-                    break;
-                }
                 limit.searchMoves.push_back(token);
                 pos = iss.tellg();
             }
+            iss.seekg(pos);
         }
         // "ignoremoves" needs to be the last command on the line
         else if (starts_with(token, "ignore"))
         {
             auto pos = iss.tellg();
-            while (iss >> token)
+            while (iss >> token && !starts_with(lower_case(token), "search"))
             {
-                if (starts_with(lower_case(token), "search"))
-                {
-                    iss.seekg(pos);
-                    break;
-                }
                 limit.ignoreMoves.push_back(token);
                 pos = iss.tellg();
             }
+            iss.seekg(pos);
         }
     }
     return limit;

@@ -30,8 +30,8 @@ namespace DON {
 
 namespace {
 
-constexpr inline std::int16_t MaxMovesToGo = 50;
-constexpr inline float        MtgFactor    = 0.05051;
+constexpr std::int16_t MaxMovesToGo = 50;
+constexpr float        MtgFactor    = 0.05051;
 
 }  // namespace
 

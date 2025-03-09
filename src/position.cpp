@@ -38,10 +38,10 @@ namespace DON {
 
 namespace {
 
-constexpr inline std::size_t PawnOffset = 8;
+constexpr std::size_t PawnOffset = 8;
 
 // clang-format off
-constexpr inline std::array<Piece, COLOR_NB * KING> Pieces{
+constexpr std::array<Piece, COLOR_NB * KING> Pieces{
   W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
   B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING
 };

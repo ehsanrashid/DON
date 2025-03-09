@@ -32,7 +32,7 @@ namespace DON {
 namespace {
 
 // Version number or dev.
-constexpr inline std::string_view Version{"dev"};
+constexpr std::string_view Version{"dev"};
 
 #if !defined(GIT_DATE)
 inline std::string format_date(std::string_view date) noexcept {
@@ -346,7 +346,7 @@ class Info final {
     std::array<std::atomic<std::int64_t>, N> data;
 };
 
-constexpr inline std::size_t MaxSlot = 128;
+constexpr std::size_t MaxSlot = 128;
 
 std::array<Info<2>, MaxSlot> hit;
 std::array<Info<2>, MaxSlot> min;
