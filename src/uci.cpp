@@ -269,12 +269,13 @@ bool UCI::run_command(const std::string& command) noexcept {
     std::istringstream iss(command);
     iss >> std::skipws;
 
+    bool running = true;
+
     std::string token;
     iss >> token;
     if (token.empty())
-        return false;
+        return running;
 
-    bool running = true;
     auto cmd = str_to_command(lower_case(token));
     switch (cmd)
     {
