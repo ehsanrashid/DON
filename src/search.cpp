@@ -48,11 +48,11 @@ namespace DON {
 namespace {
 
 // Correction History
-CorrectionHistory<CHPawn>                 pawnCorrectionHistory;
-CorrectionHistory<CHMinor>               minorCorrectionHistory;
-CorrectionHistory<CHMajor>               majorCorrectionHistory;
-CorrectionHistory<CHNonPawn>           nonPawnCorrectionHistory;
-CorrectionHistory<CHContinuation> continuationCorrectionHistory;
+CorrectionHistory<CHPawn>                 PawnCorrectionHistory;
+CorrectionHistory<CHMinor>               MinorCorrectionHistory;
+CorrectionHistory<CHMajor>               MajorCorrectionHistory;
+CorrectionHistory<CHNonPawn>           NonPawnCorrectionHistory;
+CorrectionHistory<CHContinuation> ContinuationCorrectionHistory;
 
 // Reductions lookup table initialized at startup
 std::array<std::int16_t, MAX_MOVES> reductions;  // [depth or moveCount]
@@ -136,20 +136,20 @@ Value adjust_static_eval(Value ev, int cv) noexcept;
 namespace Search {
 
 void init() noexcept {
-    captureHistory.fill(-646);
-      quietHistory.fill(66);
-       pawnHistory.fill(-1262);
+    CaptureHistory.fill(-646);
+      QuietHistory.fill(66);
+       PawnHistory.fill(-1262);
     for (bool inCheck : {false, true})
         for (bool capture : {false, true})
-            for (auto& toPieceSqHist : continuationHistory[inCheck][capture])
+            for (auto& toPieceSqHist : ContinuationHistory[inCheck][capture])
                 for (auto& pieceSqHist : toPieceSqHist)
                     pieceSqHist.fill(-468);
 
-       pawnCorrectionHistory.fill(6);
-      minorCorrectionHistory.fill(0);
-      majorCorrectionHistory.fill(0);
-    nonPawnCorrectionHistory.fill(0);
-    for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
+       PawnCorrectionHistory.fill(6);
+      MinorCorrectionHistory.fill(0);
+      MajorCorrectionHistory.fill(0);
+    NonPawnCorrectionHistory.fill(0);
+    for (auto& toPieceSqCorrHist : ContinuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(5);
 
@@ -198,7 +198,7 @@ void Worker::start_search() noexcept {
     tbHits         = 0;
     moveChanges    = 0;
 
-    multiPV = DefaultMultiPV;
+    multiPV = DEFAULT_MULTI_PV;
     if (mainManager)
     {
         multiPV = options["MultiPV"];
@@ -228,7 +228,7 @@ void Worker::start_search() noexcept {
 
     tt.update_generation(!limit.infinite);
 
-    lowPlyQuietHistory.fill(92);
+    LowPlyQuietHistory.fill(92);
 
     bool think = false;
 
@@ -354,8 +354,8 @@ void Worker::iterative_deepening() noexcept {
         {
             // Use as a sentinel
             (ss + i)->staticEval               = VALUE_NONE;
-            (ss + i)->pieceSqHistory           = &continuationHistory[0][0][NO_PIECE][SQ_ZERO];
-            (ss + i)->pieceSqCorrectionHistory = &continuationCorrectionHistory[NO_PIECE][SQ_ZERO];
+            (ss + i)->pieceSqHistory           = &ContinuationHistory[0][0][NO_PIECE][SQ_ZERO];
+            (ss + i)->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[NO_PIECE][SQ_ZERO];
         }
     }
     assert(stack[0].ply == -StackOffset && stack[StackSize - 1].ply == MAX_PLY + 1);
@@ -952,8 +952,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         nodes.fetch_add(1, std::memory_order_relaxed);
         // clang-format off
         ss->move                     = Move::Null;
-        ss->pieceSqHistory           = &continuationHistory[0][0][NO_PIECE][SQ_ZERO];
-        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[NO_PIECE][SQ_ZERO];
+        ss->pieceSqHistory           = &ContinuationHistory[0][0][NO_PIECE][SQ_ZERO];
+        ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[NO_PIECE][SQ_ZERO];
         // clang-format on
 
         Value nullValue = -search<All>(pos, ss + 1, -beta, -beta + 1, depth - R);
@@ -1035,8 +1035,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             nodes.fetch_add(1, std::memory_order_relaxed);
             // clang-format off
             ss->move                     = move;
-            ss->pieceSqHistory           = &continuationHistory[ss->inCheck][true][movedPiece][dst];
-            ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[movedPiece][dst];
+            ss->pieceSqHistory           = &ContinuationHistory[ss->inCheck][true][movedPiece][dst];
+            ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[movedPiece][dst];
             // clang-format on
 
             // Perform a preliminary qsearch to verify that the move holds
@@ -1171,7 +1171,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             if (capture)
             {
-                int captHist = captureHistory[movedPiece][dst][captured];
+                int captHist = CaptureHistory[movedPiece][dst][captured];
 
                 // Futility pruning for captures not check
                 if (!ss->inCheck && lmrDepth < 7 && !(is_ok(preSq) && dst == preSq) && !check
@@ -1203,13 +1203,13 @@ S_MOVES_LOOP:  // When in check, search starts here
             {
                 int contHist = (*contHistory[0])[movedPiece][dst]  //
                              + (*contHistory[1])[movedPiece][dst]  //
-                             + pawnHistory[pawnIndex][movedPiece][dst];
+                             + PawnHistory[pawnIndex][movedPiece][dst];
 
                 // Continuation history based pruning
                 if (contHist < -4348 * virtualDepth)
                     continue;
 
-                contHist += std::lround(2.1250f * quietHistory[ac][move.org_dst()]);
+                contHist += std::lround(2.1250f * QuietHistory[ac][move.org_dst()]);
 
                 lmrDepth += std::lround(27.8319e-5f * contHist);
 
@@ -1326,14 +1326,14 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Update the move (this must be done after singular extension search)
         // clang-format off
         ss->move                     = move;
-        ss->pieceSqHistory           = &continuationHistory[ss->inCheck][capture][movedPiece][dst];
-        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[movedPiece][dst];
+        ss->pieceSqHistory           = &ContinuationHistory[ss->inCheck][capture][movedPiece][dst];
+        ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[movedPiece][dst];
         // clang-format on
 
         ss->history = capture
                       ? 6.6094f * PIECE_VALUE[captured] + 2.9999f * promotion_value(move)  //
-                          + captureHistory[movedPiece][dst][captured] - 4822
-                      : 2 * quietHistory[ac][move.org_dst()]    //
+                          + CaptureHistory[movedPiece][dst][captured] - 4822
+                      : 2 * QuietHistory[ac][move.org_dst()]    //
                           + (*contHistory[0])[movedPiece][dst]  //
                           + (*contHistory[1])[movedPiece][dst] - 3271;
 
@@ -1859,7 +1859,7 @@ QS_MOVES_LOOP:
                 // Continuation history based pruning
                 int contHist = (*contHistory[0])[movedPiece][dst]  //
                              + (*contHistory[1])[movedPiece][dst]  //
-                             + pawnHistory[pawnIndex][movedPiece][dst];
+                             + PawnHistory[pawnIndex][movedPiece][dst];
                 if (contHist < 5924)
                     continue;
             }
@@ -1881,8 +1881,8 @@ QS_MOVES_LOOP:
         // Update the move
         // clang-format off
         ss->move                     = move;
-        ss->pieceSqHistory           = &continuationHistory[ss->inCheck][capture][movedPiece][dst];
-        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[movedPiece][dst];
+        ss->pieceSqHistory           = &ContinuationHistory[ss->inCheck][capture][movedPiece][dst];
+        ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[movedPiece][dst];
         // clang-format on
 
         value = -qsearch<PVNode>(pos, ss + 1, -beta, -alpha);
@@ -2336,7 +2336,7 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
 namespace {
 
 void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept {
-    captureHistory[pc][dst][captured] << bonus;
+    CaptureHistory[pc][dst][captured] << bonus;
 }
 void update_capture_history(const Position& pos, const Move& m, int bonus) noexcept {
     assert(pos.pseudo_legal(m));
@@ -2345,10 +2345,10 @@ void update_capture_history(const Position& pos, const Move& m, int bonus) noexc
 
 void update_quiet_history(Color ac, const Move& m, int bonus) noexcept {
     assert(m.is_ok());
-    quietHistory[ac][m.org_dst()] << bonus;
+    QuietHistory[ac][m.org_dst()] << bonus;
 }
 void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) noexcept {
-    pawnHistory[pawn_index(pos.pawn_key())][pc][dst] << bonus;
+    PawnHistory[pawn_index(pos.pawn_key())][pc][dst] << bonus;
 }
 
 // clang-format off
@@ -2373,7 +2373,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
 void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) noexcept {
     assert(m.is_ok());
     if (ssPly < LOW_PLY_SIZE)
-        lowPlyQuietHistory[ssPly][m.org_dst()] << bonus;
+        LowPlyQuietHistory[ssPly][m.org_dst()] << bonus;
 }
 void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& m, int bonus) noexcept {
     assert(m.is_ok());
@@ -2427,10 +2427,10 @@ void update_correction_history(const Position& pos, Stack* const ss, int bonus) 
 
     for (Color c : {WHITE, BLACK})
     {
-       pawnCorrectionHistory[correction_index(pos.    pawn_key(c))][ac][c] << int(std::lround(+0.8672f * bonus));
-      minorCorrectionHistory[correction_index(pos.   minor_key(c))][ac][c] << int(std::lround(+1.1406f * bonus));
-      majorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c] << int(std::lround(+0.5703f * bonus));
-    nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c] << int(std::lround(+1.2656f * bonus));
+       PawnCorrectionHistory[correction_index(pos.    pawn_key(c))][ac][c] << int(std::lround(+0.8672f * bonus));
+      MinorCorrectionHistory[correction_index(pos.   minor_key(c))][ac][c] << int(std::lround(+1.1406f * bonus));
+      MajorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c] << int(std::lround(+0.5703f * bonus));
+    NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c] << int(std::lround(+1.2656f * bonus));
     }
     if (m.is_ok())
       (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << int(std::lround(+1.1172f * bonus));
@@ -2446,10 +2446,10 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
     int npcv = 0;
     for (Color c : {WHITE, BLACK})
     {
-        pcv  +=    pawnCorrectionHistory[correction_index(pos.    pawn_key(c))][ac][c];
-        micv +=   minorCorrectionHistory[correction_index(pos.   minor_key(c))][ac][c];
-        mjcv +=   majorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c];
-        npcv += nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c];
+        pcv  +=    PawnCorrectionHistory[correction_index(pos.    pawn_key(c))][ac][c];
+        micv +=   MinorCorrectionHistory[correction_index(pos.   minor_key(c))][ac][c];
+        mjcv +=   MajorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c];
+        npcv += NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c];
     }
     int cntcv = m.is_ok()
               ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]

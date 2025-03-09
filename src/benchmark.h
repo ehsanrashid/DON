@@ -30,7 +30,7 @@ namespace DON::Benchmark {
 
 using Commands = std::vector<std::string>;
 
-Commands setup_bench(std::istringstream& iss, std::string_view currentFen = StartFEN) noexcept;
+Commands setup_bench(std::istringstream& iss, std::string_view currentFen = START_FEN) noexcept;
 
 struct Benchmark final {
     std::size_t threads;

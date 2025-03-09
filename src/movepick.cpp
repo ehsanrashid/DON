@@ -30,11 +30,11 @@
 namespace DON {
 
 // History
-History<HCapture>      captureHistory;
-History<HQuiet>        quietHistory;
-History<HPawn>         pawnHistory;
-History<HContinuation> continuationHistory[2][2];
-History<HLowPlyQuiet>  lowPlyQuietHistory;
+History<HCapture>      CaptureHistory;
+History<HQuiet>        QuietHistory;
+History<HPawn>         PawnHistory;
+History<HContinuation> ContinuationHistory[2][2];
+History<HLowPlyQuiet>  LowPlyQuietHistory;
 
 // Constructors of the MovePicker class. As arguments, pass information
 // to decide which class of moves to return, to help sorting the (presumably)
@@ -86,7 +86,7 @@ void MovePicker::score<ENC_CAPTURE>() noexcept {
         auto   captured = pos.captured(m);
 
         m.value = 7 * PIECE_VALUE[captured] + 3 * promotion_value(m, true)  //
-                + captureHistory[pc][dst][captured]                         //
+                + CaptureHistory[pc][dst][captured]                         //
                 + 0x100 * (pos.cap_square() == dst);
     }
 }
@@ -104,8 +104,8 @@ void MovePicker::score<ENC_QUIET>() noexcept {
         auto   pc = pos.moved_piece(m);
         auto   pt = type_of(pc);
 
-        m.value = 2 * quietHistory[ac][m.org_dst()]    //
-                + 2 * pawnHistory[pawnIndex][pc][dst]  //
+        m.value = 2 * QuietHistory[ac][m.org_dst()]    //
+                + 2 * PawnHistory[pawnIndex][pc][dst]  //
                 + (*continuationHistory[0])[pc][dst]   //
                 + (*continuationHistory[1])[pc][dst]   //
                 + (*continuationHistory[2])[pc][dst]   //
@@ -116,7 +116,7 @@ void MovePicker::score<ENC_QUIET>() noexcept {
                 + (*continuationHistory[7])[pc][dst];
 
         if (ssPly < LOW_PLY_SIZE)
-            m.value += 8 * lowPlyQuietHistory[ssPly][m.org_dst()] / (1 + 2 * ssPly);
+            m.value += 8 * LowPlyQuietHistory[ssPly][m.org_dst()] / (1 + 2 * ssPly);
 
         if (pos.check(m))
             m.value += 0x4000 + 0x1000 * pos.dbl_check(m);
@@ -160,7 +160,7 @@ void MovePicker::score<EVA_CAPTURE>() noexcept {
         auto   captured = pos.captured(m);
 
         m.value =
-          2 * PIECE_VALUE[captured] + promotion_value(m, true) + captureHistory[pc][dst][captured];
+          2 * PIECE_VALUE[captured] + promotion_value(m, true) + CaptureHistory[pc][dst][captured];
     }
 }
 
@@ -176,8 +176,8 @@ void MovePicker::score<EVA_QUIET>() noexcept {
         Square dst = m.dst_sq();
         auto   pc  = pos.moved_piece(m);
 
-        m.value = quietHistory[ac][m.org_dst()]    //
-                + pawnHistory[pawnIndex][pc][dst]  //
+        m.value = QuietHistory[ac][m.org_dst()]    //
+                + PawnHistory[pawnIndex][pc][dst]  //
                 + (*continuationHistory[0])[pc][dst];
     }
 }

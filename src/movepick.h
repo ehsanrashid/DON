@@ -58,11 +58,11 @@ constexpr Stage operator+(Stage s, int i) noexcept { return Stage(int(s) + i); }
 inline Stage&   operator++(Stage& s) noexcept { return s = s + 1; }
 
 // History
-extern History<HCapture>      captureHistory;
-extern History<HQuiet>        quietHistory;
-extern History<HPawn>         pawnHistory;
-extern History<HContinuation> continuationHistory[2][2];
-extern History<HLowPlyQuiet>  lowPlyQuietHistory;
+extern History<HCapture>      CaptureHistory;
+extern History<HQuiet>        QuietHistory;
+extern History<HPawn>         PawnHistory;
+extern History<HContinuation> ContinuationHistory[2][2];
+extern History<HLowPlyQuiet>  LowPlyQuietHistory;
 
 // MovePicker class is used to pick one pseudo-legal move at a time from the given current position.
 // The most important method is next_move(), which returns a new pseudo-legal move each time it is called,
