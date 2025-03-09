@@ -302,7 +302,7 @@ struct Limit final {
         perft = detail = false;
         assert(searchMoves.empty());
         assert(ignoreMoves.empty());
-    };
+    }
 
     bool use_time_manager() const noexcept { return clocks[WHITE].time || clocks[BLACK].time; }
 
