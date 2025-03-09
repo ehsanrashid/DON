@@ -58,8 +58,6 @@ namespace Search {
 
 void init() noexcept;
 
-void load_book(const std::string& bookFile) noexcept;
-
 }  // namespace Search
 
 // RootMove struct is used for moves at the root of the tree. For each root move
@@ -300,9 +298,7 @@ struct Limit final {
         infinite  = false;
         ponder    = false;
         perft = detail = false;
-        assert(searchMoves.empty());
-        assert(ignoreMoves.empty());
-    };
+    }
 
     bool use_time_manager() const noexcept { return clocks[WHITE].time || clocks[BLACK].time; }
 

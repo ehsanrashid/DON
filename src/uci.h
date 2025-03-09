@@ -36,15 +36,17 @@ class UCI final {
    public:
     UCI(int argc, const char** argv) noexcept;
 
-    auto& engine_options() noexcept { return engine.get_options(); }
+    auto& options() noexcept { return engine.get_options(); }
 
-    void handle_commands() noexcept;
+    void execute() noexcept;
+
+    void run_command(const std::string& command) noexcept;
 
     static void print_info_string(std::string_view infoStr) noexcept;
 
     static int         to_cp(Value v, const Position& pos) noexcept;
     static std::string to_wdl(Value v, const Position& pos) noexcept;
-    static std::string format_score(const Score& score) noexcept;
+    static std::string score(const Score& score) noexcept;
 
     static char  piece(PieceType pt) noexcept;
     static char  piece(Piece pc) noexcept;
@@ -72,11 +74,11 @@ class UCI final {
     static bool InfoStringStop;
 
    private:
-    void init_update_listeners() noexcept;
+    void set_update_listeners() noexcept;
 
     void position(std::istringstream& iss) noexcept;
     void go(std::istringstream& iss) noexcept;
-    void set_option(std::istringstream& iss) noexcept;
+    void setoption(std::istringstream& iss) noexcept;
     void bench(std::istringstream& iss) noexcept;
     void benchmark(std::istringstream& iss) noexcept;
 

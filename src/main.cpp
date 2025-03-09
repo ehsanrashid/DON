@@ -37,14 +37,14 @@ int main(int argc, const char** argv) noexcept {
 #endif
 
     BitBoard::init();
-    Position::init();
     Tablebases::init();
+    Position::init();
 
     UCI uci(argc, argv);
 
-    //Tune::init(uci.engine_options());
+    //Tune::init(uci.options());
 
-    uci.handle_commands();
+    uci.execute();
 
     return EXIT_SUCCESS;
 }

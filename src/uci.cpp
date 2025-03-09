@@ -231,131 +231,138 @@ UCI::UCI(int argc, const char** argv) noexcept :
     engine(argv[0]),
     commandLine(argc, argv) {
 
-    engine_options().set_info_listener([](const std::optional<std::string>& optInfo) {
+    options().set_info_listener([](const std::optional<std::string>& optInfo) {
         if (optInfo.has_value())
             print_info_string(*optInfo);
     });
 
-    init_update_listeners();
+    set_update_listeners();
 }
 
-void UCI::handle_commands() noexcept {
+void UCI::execute() noexcept {
     std::string command;
     for (int i = 1; i < commandLine.argc; ++i)
     {
-        if (i != 1)
+        if (!command.empty())
             command += ' ';
         command += commandLine.argv[i];
     }
-    // The command-line arguments are one-shot
-    bool running = commandLine.argc <= 1;
-    if (!running && is_whitespace(command))
+
+    const bool running = commandLine.argc <= 1;
+    if (running || !is_whitespace(command))
+    {
+        do
+        {
+            // The command-line arguments are one-shot
+            if (running
+                // Wait for an input or an end-of-file (EOF) indication
+                && !std::getline(std::cin, command))
+                command = "quit";
+
+            run_command(command);
+
+            if (command == "quit")
+                break;
+        } while (running);
+    }
+}
+
+void UCI::run_command(const std::string& command) noexcept {
+
+    std::istringstream iss(command);
+    iss >> std::skipws;
+
+    std::string token;
+    iss >> token;
+    if (token.empty())
         return;
 
-    do
+    switch (str_to_command(lower_case(token)))
     {
-        if (running
-            // Wait for an input or an end-of-file (EOF) indication
-            && !std::getline(std::cin, command))
-            command = "quit";
-
-        std::istringstream iss(command);
-        iss >> std::skipws;
-
-        std::string token;
-        iss >> token;
-        if (token.empty())
-            continue;
-
-        auto cmd = str_to_command(lower_case(token));
-        switch (cmd)
-        {
-        case CMD_STOP :
-        case CMD_QUIT :
-            engine.stop();
-            running &= cmd != CMD_QUIT;
-            break;
-        case CMD_PONDERHIT :
-            // The GUI sends 'ponderhit' to tell that the user has played the expected move.
-            // So, 'ponderhit' is sent if pondering was done on the same move that the user has played.
-            // The search should continue, but should also switch from pondering to the normal search.
-            engine.ponderhit();
-            break;
-        case CMD_POSITION :
-            position(iss);
-            break;
-        case CMD_GO :
-            // Send info strings after the go command is sent for old GUIs and python-chess
-            print_info_string(engine.get_numa_config_info_str());
-            print_info_string(engine.get_thread_allocation_info_str());
-
-            go(iss);
-            break;
-        case CMD_SETOPTION :
-            set_option(iss);
-            break;
-        case CMD_UCI :
-            std::cout << engine_info(true) << '\n'  //
-                      << engine_options() << '\n'   //
-                      << "uciok" << std::endl;
-            break;
-        case CMD_UCINEWGAME :
-            engine.init();
-            break;
-        case CMD_ISREADY :
-            std::cout << "readyok" << std::endl;
-            break;
-        // Add custom non-UCI commands, mainly for debugging purposes.
-        // These commands must not be used during a search!
-        case CMD_BENCH :
-            bench(iss);
-            break;
-        case CMD_BENCHMARK :
-            benchmark(iss);
-            break;
-        case CMD_SHOW :
-            engine.show();
-            break;
-        case CMD_EVAL :
-            engine.eval();
-            break;
-        case CMD_FLIP :
-            engine.flip();
-            break;
-        case CMD_COMPILER :
-            std::cout << compiler_info() << '\n' << std::endl;
-            break;
-        case CMD_EXPORT_NET : {
-            std::array<std::string, 2>                inputFiles;
-            std::array<std::optional<std::string>, 2> files;
-
-            if (iss >> inputFiles[0])
-                files[0] = inputFiles[0];
-
-            if (iss >> inputFiles[1])
-                files[1] = inputFiles[1];
-
-            engine.save_networks(files);
-        }
+    case CMD_STOP :
+    case CMD_QUIT :
+        engine.stop();
         break;
-        case CMD_HELP :
-            std::cout
-              << "\nDON is a powerful chess engine for playing and analyzing."
-                 "\nIt is released as free software licensed under the GNU GPLv3 License."
-                 "\nDON is normally used with a graphical user interface (GUI) and implements"
-                 "\nthe Universal Chess Interface (UCI) protocol to communicate with a GUI, an API, etc."
-                 "\nFor any further information, visit https://github.com/ehsanrashid/DON#readme"
-                 "\nor read the corresponding README.md and Copying.txt files distributed along with this program.\n"
-              << std::endl;
-            break;
-        default :
-            if (token[0] != '#')
-            {
-                std::cout << "Unknown command: '" << command << "'."
-                          << "\nType help for more information." << std::endl;
-            }
+    case CMD_PONDERHIT :
+        // The GUI sends 'ponderhit' to tell that the user has played the expected move.
+        // So, 'ponderhit' is sent if pondering was done on the same move that the user has played.
+        // The search should continue, but should also switch from pondering to the normal search.
+        engine.ponderhit();
+        break;
+    case CMD_POSITION :
+        position(iss);
+        break;
+    case CMD_GO :
+        // Send info strings after the go command is sent for old GUIs and python-chess
+        print_info_string(engine.get_numa_config_info_str());
+        print_info_string(engine.get_thread_allocation_info_str());
+
+        go(iss);
+        break;
+    case CMD_SETOPTION :
+        setoption(iss);
+        break;
+    case CMD_UCI :
+        std::cout << engine_info(true) << '\n'  //
+                  << options() << '\n'          //
+                  << "uciok" << std::endl;
+        break;
+    case CMD_UCINEWGAME :
+        engine.init();
+        break;
+    case CMD_ISREADY :
+        std::cout << "readyok" << std::endl;
+        break;
+    // Add custom non-UCI commands, mainly for debugging purposes.
+    // These commands must not be used during a search!
+    case CMD_BENCH :
+        bench(iss);
+        break;
+    case CMD_BENCHMARK :
+        benchmark(iss);
+        break;
+    case CMD_SHOW :
+        engine.show();
+        break;
+    case CMD_EVAL :
+        engine.eval();
+        break;
+    case CMD_FLIP :
+        engine.flip();
+        break;
+    case CMD_COMPILER :
+        std::cout << compiler_info() << '\n' << std::endl;
+        break;
+    case CMD_EXPORT_NET : {
+        std::array<std::string, 2>                inputFiles;
+        std::array<std::optional<std::string>, 2> files;
+
+        if (iss >> inputFiles[0])
+            files[0] = inputFiles[0];
+
+        if (iss >> inputFiles[1])
+            files[1] = inputFiles[1];
+
+        engine.save_networks(files);
+    }
+    break;
+    case CMD_HELP :
+        std::cout
+          << "\nDON is a powerful chess engine for playing and analyzing."
+             "\nIt is released as free software licensed under the GNU GPLv3 License."
+             "\nDON is normally used with a graphical user interface (GUI) and implements"
+             "\nthe Universal Chess Interface (UCI) protocol to communicate with a GUI, an API, etc."
+             "\nFor any further information, visit https://github.com/ehsanrashid/DON#readme"
+             "\nor read the corresponding README.md and Copying.txt files distributed along with this program.\n"
+          << std::endl;
+        break;
+    default :
+        if (token[0] != '#')
+        {
+            std::cout << "\nUnknown command: '" << command << "'."
+                      << "\nType help for more information." << std::endl;
         }
-    } while (running);
+    }
 }
 
 void UCI::print_info_string(std::string_view infoStr) noexcept {
@@ -367,7 +374,7 @@ void UCI::print_info_string(std::string_view infoStr) noexcept {
             std::cout << "info string " << info << std::endl;
 }
 
-void UCI::init_update_listeners() noexcept {
+void UCI::set_update_listeners() noexcept {
     engine.set_on_update_end(on_update_end);
     engine.set_on_update_full(on_update_full);
     engine.set_on_update_iter(on_update_iter);
@@ -425,7 +432,7 @@ void UCI::go(std::istringstream& iss) noexcept {
         engine.start(limit);
 }
 
-void UCI::set_option(std::istringstream& iss) noexcept {
+void UCI::setoption(std::istringstream& iss) noexcept {
     engine.wait_finish();
 
     std::string token;
@@ -450,7 +457,7 @@ void UCI::set_option(std::istringstream& iss) noexcept {
         value += token;
     }
 
-    engine_options().set(name, value);
+    options().set(name, value);
 }
 
 void UCI::bench(std::istringstream& iss) noexcept {
@@ -461,9 +468,9 @@ void UCI::bench(std::istringstream& iss) noexcept {
         on_update_full(info);
     });
 
-    auto reportMinimal = bool_to_string(engine_options()["ReportMinimal"]);
+    auto reportMinimal = bool_to_string(options()["ReportMinimal"]);
 
-    engine_options().set("ReportMinimal", bool_to_string(true));
+    options().set("ReportMinimal", bool_to_string(true));
 
 #if !defined(NDEBUG)
     Debug::init();
@@ -485,27 +492,27 @@ void UCI::bench(std::istringstream& iss) noexcept {
     for (const auto& command : commands)
     {
         std::istringstream is(command);
+        is >> std::skipws;
 
         std::string token;
-        is >> std::skipws >> token;
+        is >> token;
         if (token.empty())
             continue;
 
-        auto cmd = str_to_command(lower_case(token));
-        switch (cmd)
+        switch (str_to_command(lower_case(token)))
         {
         case CMD_GO : {
             std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")"
                       << std::endl;
+
             auto limit = parse_limit(is);
 
             if (limit.perft)
                 infoNodes = engine.perft(limit.depth, limit.detail);
             else
-            {
                 engine.start(limit);
-                engine.wait_finish();
-            }
+
+            engine.wait_finish();
 
             nodes += infoNodes;
             infoNodes = 0;
@@ -520,7 +527,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
             position(is);
             break;
         case CMD_SETOPTION :
-            set_option(is);
+            setoption(is);
             break;
         case CMD_UCINEWGAME :
             elapsedTime += now() - startTime;
@@ -544,14 +551,14 @@ void UCI::bench(std::istringstream& iss) noexcept {
               << "\nTotal nodes     : " << nodes        //
               << "\nnodes/second    : " << 1000 * nodes / elapsedTime << std::endl;
 
-    engine_options().set("ReportMinimal", reportMinimal);
+    options().set("ReportMinimal", reportMinimal);
     // Reset callback, to not capture a dangling reference to infoNodes
     engine.set_on_update_full(on_update_full);
 }
 
 void UCI::benchmark(std::istringstream& iss) noexcept {
     // Probably not very important for a test this long, but include for completeness and sanity.
-    constexpr std::size_t WARMUP_POSITION_COUNT = 3;
+    static constexpr std::size_t WarmupPositionCount = 3;
 
     std::uint64_t infoNodes = 0;
     engine.set_on_update_full([&](const auto& info) { infoNodes = info.nodes; });
@@ -569,10 +576,10 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     TimePoint startTime   = now();
     TimePoint elapsedTime = 0;
 
-    // Set options once at the start.
-    engine_options().set("Threads", std::to_string(benchmark.threads));
-    engine_options().set("Hash", std::to_string(benchmark.ttSize));
-    engine_options().set("UCI_Chess960", bool_to_string(false));
+    // Set options once at the start
+    options().set("Threads", std::to_string(benchmark.threads));
+    options().set("Hash", std::to_string(benchmark.ttSize));
+    options().set("UCI_Chess960", bool_to_string(false));
 
     InfoStringStop = true;
 
@@ -582,23 +589,21 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     for (const auto& command : benchmark.commands)
     {
         std::istringstream is(command);
+        is >> std::skipws;
 
         std::string token;
-        is >> std::skipws >> token;
+        is >> token;
         if (token.empty())
             continue;
 
-        auto cmd = str_to_command(lower_case(token));
-        switch (cmd)
+        switch (str_to_command(lower_case(token)))
         {
         case CMD_GO : {
             // One new line is produced by the search, so omit it here
-            std::cerr << "\rWarmup position " << ++cnt << '/' << WARMUP_POSITION_COUNT;
-
-            auto limit = parse_limit(is);
+            std::cerr << "\rWarmup position " << ++cnt << '/' << WarmupPositionCount;
 
             // Run with silenced network verification
-            engine.start(limit);
+            engine.start(parse_limit(is));
             engine.wait_finish();
 
             nodes += infoNodes;
@@ -616,7 +621,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
         default :;
         }
 
-        if (cnt >= WARMUP_POSITION_COUNT)
+        if (cnt >= WarmupPositionCount)
             break;
     }
 
@@ -629,7 +634,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     nodes = 0;
     cnt   = 0;
 
-    constexpr std::uint8_t hashFullAges[2]{0, 31};  // Only normal hashfull and touched hash.
+    constexpr std::uint8_t hashFullAges[2]{0, 31};  // Only normal hashfull and touched hash
 
     std::uint16_t hashFullCount                        = 0;
     std::uint16_t maxHashFull[std::size(hashFullAges)] = {0};
@@ -652,23 +657,21 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     for (const auto& command : benchmark.commands)
     {
         std::istringstream is(command);
+        is >> std::skipws;
 
         std::string token;
-        is >> std::skipws >> token;
+        is >> token;
         if (token.empty())
             continue;
 
-        auto cmd = str_to_command(lower_case(token));
-        switch (cmd)
+        switch (str_to_command(lower_case(token)))
         {
         case CMD_GO : {
             // One new line is produced by the search, so omit it here
             std::cerr << "\rPosition " << ++cnt << '/' << num;
 
-            auto limit = parse_limit(is);
-
             // Run with silenced network verification
-            engine.start(limit);
+            engine.start(parse_limit(is));
             engine.wait_finish();
 
             update_hashFull();
@@ -727,7 +730,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     // clang-format on
 
     InfoStringStop = false;
-    init_update_listeners();
+    set_update_listeners();
 }
 
 namespace {
@@ -786,7 +789,7 @@ std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
     return std::to_string(wdlW) + " " + std::to_string(wdlD) + " " + std::to_string(wdlL);
 }
 
-std::string UCI::format_score(const Score& score) noexcept {
+std::string UCI::score(const Score& score) noexcept {
     constexpr int TB_CP = 20000;
 
     const auto format =
@@ -827,7 +830,7 @@ std::string UCI::move_to_can(const Move& m) noexcept {
     if (m == Move::None)
         return "(none)";
     if (m == Move::Null)
-        return "0000";
+        return "(null)";
 
     Square org = m.org_sq(), dst = m.dst_sq();
     if (m.type_of() == CASTLING && !Chess960)
@@ -870,11 +873,11 @@ void on_update_end(const EndInfo& info) noexcept {
 
 void on_update_full(const FullInfo& info) noexcept {
     std::ostringstream oss;
-    oss << "info"                                                   //
-        << " depth " << info.depth                                  //
-        << " seldepth " << info.rootMove.selDepth                   //
-        << " multipv " << info.multiPV                              //
-        << " score " << UCI::format_score({info.value, info.pos});  //
+    oss << "info"                                            //
+        << " depth " << info.depth                           //
+        << " seldepth " << info.rootMove.selDepth            //
+        << " multipv " << info.multiPV                       //
+        << " score " << UCI::score({info.value, info.pos});  //
     if (info.boundShow)
         oss << (info.rootMove.boundLower   ? " lowerbound"
                 : info.rootMove.boundUpper ? " upperbound"
@@ -958,7 +961,7 @@ std::string UCI::move_to_san(const Move& m, Position& pos) noexcept {
     if (m == Move::None)
         return "(none)";
     if (m == Move::Null)
-        return "0000";
+        return "(null)";
     assert(MoveList<LEGAL>(pos).contains(m));
 
     Square org = m.org_sq(), dst = m.dst_sq();

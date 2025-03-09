@@ -29,6 +29,7 @@
 #include "misc.h"
 #include "movegen.h"
 #include "perft.h"
+#include "polybook.h"
 #include "uci.h"
 #include "syzygy/tbprobe.h"
 
@@ -93,7 +94,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("UCI_ShowCurrLine",     Option(false));
     options.add("UCI_ShowRefutations",  Option(false));
     options.add("OwnBook",              Option(false));
-    options.add("BookFile",             Option("", [](const Option& o) { Search::load_book(o); return std::nullopt; }));
+    options.add("BookFile",             Option("", [](const Option& o) { Book.init(o); return std::nullopt; }));
     options.add("BookProbeDepth",       Option(100, 1, 256));
     options.add("BookBestPick",         Option(true));
     options.add("SyzygyPath",           Option("", [](const Option& o) { Tablebases::init(o); return std::nullopt; }));
@@ -160,14 +161,15 @@ void Engine::ponderhit() noexcept { threads.main_manager()->ponder = false; }
 void Engine::wait_finish() const noexcept { threads.main_thread()->wait_finish(); }
 
 void Engine::init() noexcept {
+    wait_finish();
+
+    Tablebases::init(options["SyzygyPath"]);  // Free mapped files
+
     if (options["HashRetain"])
         return;
 
-    wait_finish();
     threads.init();
     tt.init(threads);
-    // @TODO won't work with multiple instances
-    Tablebases::init(options["SyzygyPath"]);  // Free mapped files
 }
 
 void Engine::resize_threads_tt() noexcept {

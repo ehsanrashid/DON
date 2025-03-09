@@ -384,7 +384,7 @@ struct CommandLine final {
     static std::string get_binary_directory(std::string path) noexcept;
     static std::string get_working_directory() noexcept;
 
-    int          argc;
+    const int    argc;
     const char** argv;
 };
 

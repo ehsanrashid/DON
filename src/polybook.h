@@ -108,6 +108,8 @@ class PolyBook final {
     KeyData keyData;
 };
 
+extern PolyBook Book;
+
 }  // namespace DON
 
 #endif  // #ifndef POLYBOOK_H_INCLUDED
