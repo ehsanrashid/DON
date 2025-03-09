@@ -274,13 +274,14 @@ bool UCI::run_command(const std::string& command) noexcept {
     if (token.empty())
         return false;
 
+    bool running = true;
     auto cmd = str_to_command(lower_case(token));
     switch (cmd)
     {
     case CMD_STOP :
     case CMD_QUIT :
         engine.stop();
-        return cmd != CMD_QUIT;
+        running = cmd != CMD_QUIT;
         break;
     case CMD_PONDERHIT :
         // The GUI sends 'ponderhit' to tell that the user has played the expected move.
@@ -362,7 +363,7 @@ bool UCI::run_command(const std::string& command) noexcept {
                       << "\nType help for more information." << std::endl;
         }
     }
-    return true;
+    return running;
 }
 
 void UCI::print_info_string(std::string_view infoStr) noexcept {
