@@ -46,7 +46,7 @@ namespace DON {
 
 namespace {
 
-constexpr inline std::string_view              PieceChar{" PNBRQK  pnbrqk "};
+constexpr std::string_view                     PieceChar{" PNBRQK  pnbrqk "};
 const inline std::array<std::string, PIECE_NB> PieceFigure{
   "", "\u2659", "\u2658", "\u2657", "\u2656", "\u2655", "\u2654", "",
   "", "\u265F", "\u265E", "\u265D", "\u265C", "\u265B", "\u265A", ""};

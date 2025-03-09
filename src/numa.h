@@ -54,7 +54,7 @@
 
 // On Windows each processor group can have up to 64 processors.
 // https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
-constexpr inline std::size_t WIN_PROCESSOR_GROUP_SIZE = 64;
+constexpr std::size_t WIN_PROCESSOR_GROUP_SIZE = 64;
 
     #if !defined(NOMINMAX)
         #define NOMINMAX

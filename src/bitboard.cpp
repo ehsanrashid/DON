@@ -43,10 +43,10 @@ alignas(CACHE_LINE_SIZE) Magic           Magics[SQUARE_NB][2];
 
 namespace {
 
-constexpr inline Direction Directions[2][4]{{NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},
-                                            {NORTH, SOUTH, EAST, WEST}};
+constexpr Direction Directions[2][4]{{NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},
+                                     {NORTH, SOUTH, EAST, WEST}};
 
-constexpr inline std::size_t AttacksSize[2]{0x1480, 0x19000};
+constexpr std::size_t AttacksSize[2]{0x1480, 0x19000};
 
 alignas(CACHE_LINE_SIZE) Bitboard BishopAttacks[AttacksSize[0]];  // Stores bishop attacks
 alignas(CACHE_LINE_SIZE) Bitboard RookAttacks[AttacksSize[1]];    // Stores rook attacks

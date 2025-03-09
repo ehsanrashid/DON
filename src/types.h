@@ -77,14 +77,13 @@ using Key      = std::uint64_t;
 using Key32    = std::uint32_t;
 using Key16    = std::uint16_t;
 
-constexpr inline std::uint16_t MAX_MOVES = 256;
-constexpr inline std::uint16_t MAX_PLY   = 254;
+constexpr std::uint16_t MAX_MOVES = 256;
+constexpr std::uint16_t MAX_PLY   = 254;
 
 // Size of cache line (in bytes)
-constexpr inline std::size_t CACHE_LINE_SIZE = 64;
+constexpr std::size_t CACHE_LINE_SIZE = 64;
 
-constexpr inline std::string_view START_FEN{
-  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
+constexpr std::string_view START_FEN{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 
 enum Color : std::uint8_t {
     WHITE,
@@ -142,30 +141,30 @@ enum Piece : std::uint8_t {
 using Value    = std::int16_t;
 using SqrValue = std::int32_t;
 
-constexpr inline Value VALUE_ZERO = 0;
-constexpr inline Value VALUE_DRAW = VALUE_ZERO;
+constexpr Value VALUE_ZERO = 0;
+constexpr Value VALUE_DRAW = VALUE_ZERO;
 
-constexpr inline Value VALUE_NONE     = std::numeric_limits<Value>::max();
-constexpr inline Value VALUE_INFINITE = VALUE_NONE - 1;
+constexpr Value VALUE_NONE     = std::numeric_limits<Value>::max();
+constexpr Value VALUE_INFINITE = VALUE_NONE - 1;
 
-constexpr inline Value VALUE_MATE             = VALUE_INFINITE - 1;
-constexpr inline Value VALUE_MATES_IN_MAX_PLY = VALUE_MATE - MAX_PLY;
-constexpr inline Value VALUE_MATED_IN_MAX_PLY = -VALUE_MATES_IN_MAX_PLY;
+constexpr Value VALUE_MATE             = VALUE_INFINITE - 1;
+constexpr Value VALUE_MATES_IN_MAX_PLY = VALUE_MATE - MAX_PLY;
+constexpr Value VALUE_MATED_IN_MAX_PLY = -VALUE_MATES_IN_MAX_PLY;
 
-constexpr inline Value VALUE_TB                 = VALUE_MATES_IN_MAX_PLY - 1;
-constexpr inline Value VALUE_TB_WIN_IN_MAX_PLY  = VALUE_TB - MAX_PLY;
-constexpr inline Value VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_TB_WIN_IN_MAX_PLY;
+constexpr Value VALUE_TB                 = VALUE_MATES_IN_MAX_PLY - 1;
+constexpr Value VALUE_TB_WIN_IN_MAX_PLY  = VALUE_TB - MAX_PLY;
+constexpr Value VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_TB_WIN_IN_MAX_PLY;
 
 // In the code, make the assumption that these values
 // are such that non_pawn_material() can be used to uniquely
 // identify the material on the board.
-constexpr inline Value VALUE_PAWN   = 208;
-constexpr inline Value VALUE_KNIGHT = 781;
-constexpr inline Value VALUE_BISHOP = 825;
-constexpr inline Value VALUE_ROOK   = 1276;
-constexpr inline Value VALUE_QUEEN  = 2538;
+constexpr Value VALUE_PAWN   = 208;
+constexpr Value VALUE_KNIGHT = 781;
+constexpr Value VALUE_BISHOP = 825;
+constexpr Value VALUE_ROOK   = 1276;
+constexpr Value VALUE_QUEEN  = 2538;
 // clang-format off
-constexpr inline Value PIECE_VALUE[PIECE_TYPE_NB]{
+constexpr Value PIECE_VALUE[PIECE_TYPE_NB]{
   VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO, VALUE_ZERO
 };
 // clang-format on
@@ -212,10 +211,10 @@ constexpr bool is_mate(Value value) noexcept {  //
 // Depth is used as an alias for std::int16_t
 using Depth = std::int16_t;
 
-constexpr inline Depth DEPTH_ZERO = 0;
-constexpr inline Depth DEPTH_NONE = -1;
+constexpr Depth DEPTH_ZERO = 0;
+constexpr Depth DEPTH_NONE = -1;
 // Depth used only for TT entry occupancy check
-constexpr inline Depth DEPTH_OFFSET = DEPTH_NONE - 1;
+constexpr Depth DEPTH_OFFSET = DEPTH_NONE - 1;
 static_assert(DEPTH_OFFSET == MAX_PLY - 1 - std::numeric_limits<std::uint8_t>::max(),
               "DEPTH_OFFSET == MAX_PLY - 1 - std::numeric_limits<std::uint8_t>::max()");
 

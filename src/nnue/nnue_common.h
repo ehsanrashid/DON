@@ -46,17 +46,17 @@
 namespace DON::NNUE {
 
 // Version of the evaluation file
-constexpr inline std::uint32_t FILE_VERSION = 0x7AF32F20u;
+constexpr std::uint32_t FILE_VERSION = 0x7AF32F20u;
 
 // Constant used in evaluation value calculation
-constexpr inline int OUTPUT_SCALE      = 16;
-constexpr inline int WEIGHT_SCALE_BITS = 6;
+constexpr int OUTPUT_SCALE      = 16;
+constexpr int WEIGHT_SCALE_BITS = 6;
 
-constexpr inline const char  LEB128_MAGIC_STRING[]    = "COMPRESSED_LEB128";
-constexpr inline std::size_t LEB128_MAGIC_STRING_SIZE = sizeof(LEB128_MAGIC_STRING) - 1;
+constexpr const char  LEB128_MAGIC_STRING[]    = "COMPRESSED_LEB128";
+constexpr std::size_t LEB128_MAGIC_STRING_SIZE = sizeof(LEB128_MAGIC_STRING) - 1;
 
 // SIMD width (in bytes)
-constexpr inline std::size_t SIMD_WIDTH =
+constexpr std::size_t SIMD_WIDTH =
 #if defined(USE_AVX2)
   32
 #elif defined(USE_SSE2)
@@ -68,7 +68,7 @@ constexpr inline std::size_t SIMD_WIDTH =
 #endif
   ;
 
-constexpr inline std::size_t MAX_SIMD_WIDTH = 32;
+constexpr std::size_t MAX_SIMD_WIDTH = 32;
 
 // Type of input feature after conversion
 using TransformedFeatureType = std::uint8_t;
