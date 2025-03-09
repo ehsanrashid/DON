@@ -259,22 +259,23 @@ void UCI::execute() noexcept {
             && !std::getline(std::cin, command))
             command = "quit";
 
-        running &= run_command(command);
+        run_command(command);
+
+        if (command == "quit")
+            running = false;
 
     } while (running);
 }
 
-bool UCI::run_command(const std::string& command) noexcept {
+void UCI::run_command(const std::string& command) noexcept {
 
     std::istringstream iss(command);
     iss >> std::skipws;
 
-    bool running = true;
-
     std::string token;
     iss >> token;
     if (token.empty())
-        return running;
+        return;
 
     auto cmd = str_to_command(lower_case(token));
     switch (cmd)
@@ -282,7 +283,6 @@ bool UCI::run_command(const std::string& command) noexcept {
     case CMD_STOP :
     case CMD_QUIT :
         engine.stop();
-        running = cmd != CMD_QUIT;
         break;
     case CMD_PONDERHIT :
         // The GUI sends 'ponderhit' to tell that the user has played the expected move.
@@ -364,7 +364,6 @@ bool UCI::run_command(const std::string& command) noexcept {
                       << "\nType help for more information." << std::endl;
         }
     }
-    return running;
 }
 
 void UCI::print_info_string(std::string_view infoStr) noexcept {
