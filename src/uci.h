@@ -40,6 +40,8 @@ class UCI final {
 
     void handle_commands() noexcept;
 
+    bool run_command(const std::string& command) noexcept;
+
     static void print_info_string(std::string_view infoStr) noexcept;
 
     static int         to_cp(Value v, const Position& pos) noexcept;

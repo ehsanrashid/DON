@@ -243,7 +243,7 @@ void UCI::handle_commands() noexcept {
     std::string command;
     for (int i = 1; i < commandLine.argc; ++i)
     {
-        if (i != 1)
+        if (!command.empty())
             command += ' ';
         command += commandLine.argv[i];
     }
@@ -259,103 +259,110 @@ void UCI::handle_commands() noexcept {
             && !std::getline(std::cin, command))
             command = "quit";
 
-        std::istringstream iss(command);
-        iss >> std::skipws;
+        running &= run_command(command);
 
-        std::string token;
-        iss >> token;
-        if (token.empty())
-            continue;
-
-        auto cmd = str_to_command(lower_case(token));
-        switch (cmd)
-        {
-        case CMD_STOP :
-        case CMD_QUIT :
-            engine.stop();
-            running &= cmd != CMD_QUIT;
-            break;
-        case CMD_PONDERHIT :
-            // The GUI sends 'ponderhit' to tell that the user has played the expected move.
-            // So, 'ponderhit' is sent if pondering was done on the same move that the user has played.
-            // The search should continue, but should also switch from pondering to the normal search.
-            engine.ponderhit();
-            break;
-        case CMD_POSITION :
-            position(iss);
-            break;
-        case CMD_GO :
-            // Send info strings after the go command is sent for old GUIs and python-chess
-            print_info_string(engine.get_numa_config_info_str());
-            print_info_string(engine.get_thread_allocation_info_str());
-
-            go(iss);
-            break;
-        case CMD_SETOPTION :
-            set_option(iss);
-            break;
-        case CMD_UCI :
-            std::cout << engine_info(true) << '\n'  //
-                      << engine_options() << '\n'   //
-                      << "uciok" << std::endl;
-            break;
-        case CMD_UCINEWGAME :
-            engine.init();
-            break;
-        case CMD_ISREADY :
-            std::cout << "readyok" << std::endl;
-            break;
-        // Add custom non-UCI commands, mainly for debugging purposes.
-        // These commands must not be used during a search!
-        case CMD_BENCH :
-            bench(iss);
-            break;
-        case CMD_BENCHMARK :
-            benchmark(iss);
-            break;
-        case CMD_SHOW :
-            engine.show();
-            break;
-        case CMD_EVAL :
-            engine.eval();
-            break;
-        case CMD_FLIP :
-            engine.flip();
-            break;
-        case CMD_COMPILER :
-            std::cout << compiler_info() << '\n' << std::endl;
-            break;
-        case CMD_EXPORT_NET : {
-            std::array<std::string, 2>                inputFiles;
-            std::array<std::optional<std::string>, 2> files;
-
-            if (iss >> inputFiles[0])
-                files[0] = inputFiles[0];
-
-            if (iss >> inputFiles[1])
-                files[1] = inputFiles[1];
-
-            engine.save_networks(files);
-        }
-        break;
-        case CMD_HELP :
-            std::cout
-              << "\nDON is a powerful chess engine for playing and analyzing."
-                 "\nIt is released as free software licensed under the GNU GPLv3 License."
-                 "\nDON is normally used with a graphical user interface (GUI) and implements"
-                 "\nthe Universal Chess Interface (UCI) protocol to communicate with a GUI, an API, etc."
-                 "\nFor any further information, visit https://github.com/ehsanrashid/DON#readme"
-                 "\nor read the corresponding README.md and Copying.txt files distributed along with this program.\n"
-              << std::endl;
-            break;
-        default :
-            if (token[0] != '#')
-            {
-                std::cout << "Unknown command: '" << command << "'."
-                          << "\nType help for more information." << std::endl;
-            }
-        }
     } while (running);
+}
+
+bool UCI::run_command(const std::string& command) noexcept {
+
+    std::istringstream iss(command);
+    iss >> std::skipws;
+
+    std::string token;
+    iss >> token;
+    if (token.empty())
+        return false;
+
+    auto cmd = str_to_command(lower_case(token));
+    switch (cmd)
+    {
+    case CMD_STOP :
+    case CMD_QUIT :
+        engine.stop();
+        return cmd != CMD_QUIT;
+        break;
+    case CMD_PONDERHIT :
+        // The GUI sends 'ponderhit' to tell that the user has played the expected move.
+        // So, 'ponderhit' is sent if pondering was done on the same move that the user has played.
+        // The search should continue, but should also switch from pondering to the normal search.
+        engine.ponderhit();
+        break;
+    case CMD_POSITION :
+        position(iss);
+        break;
+    case CMD_GO :
+        // Send info strings after the go command is sent for old GUIs and python-chess
+        print_info_string(engine.get_numa_config_info_str());
+        print_info_string(engine.get_thread_allocation_info_str());
+
+        go(iss);
+        break;
+    case CMD_SETOPTION :
+        set_option(iss);
+        break;
+    case CMD_UCI :
+        std::cout << engine_info(true) << '\n'  //
+                  << engine_options() << '\n'   //
+                  << "uciok" << std::endl;
+        break;
+    case CMD_UCINEWGAME :
+        engine.init();
+        break;
+    case CMD_ISREADY :
+        std::cout << "readyok" << std::endl;
+        break;
+    // Add custom non-UCI commands, mainly for debugging purposes.
+    // These commands must not be used during a search!
+    case CMD_BENCH :
+        bench(iss);
+        break;
+    case CMD_BENCHMARK :
+        benchmark(iss);
+        break;
+    case CMD_SHOW :
+        engine.show();
+        break;
+    case CMD_EVAL :
+        engine.eval();
+        break;
+    case CMD_FLIP :
+        engine.flip();
+        break;
+    case CMD_COMPILER :
+        std::cout << compiler_info() << '\n' << std::endl;
+        break;
+    case CMD_EXPORT_NET : {
+        std::array<std::string, 2>                inputFiles;
+        std::array<std::optional<std::string>, 2> files;
+
+        if (iss >> inputFiles[0])
+            files[0] = inputFiles[0];
+
+        if (iss >> inputFiles[1])
+            files[1] = inputFiles[1];
+
+        engine.save_networks(files);
+    }
+    break;
+    case CMD_HELP :
+        std::cout
+          << "\nDON is a powerful chess engine for playing and analyzing."
+             "\nIt is released as free software licensed under the GNU GPLv3 License."
+             "\nDON is normally used with a graphical user interface (GUI) and implements"
+             "\nthe Universal Chess Interface (UCI) protocol to communicate with a GUI, an API, etc."
+             "\nFor any further information, visit https://github.com/ehsanrashid/DON#readme"
+             "\nor read the corresponding README.md and Copying.txt files distributed along with this program.\n"
+          << std::endl;
+        break;
+    default :
+        if (token[0] != '#')
+        {
+            std::cout << "Unknown command: '" << command << "'."
+                      << "\nType help for more information." << std::endl;
+        }
+    }
+    return true;
 }
 
 void UCI::print_info_string(std::string_view infoStr) noexcept {
@@ -827,7 +834,7 @@ std::string UCI::move_to_can(const Move& m) noexcept {
     if (m == Move::None)
         return "(none)";
     if (m == Move::Null)
-        return "0000";
+        return "(null)";
 
     Square org = m.org_sq(), dst = m.dst_sq();
     if (m.type_of() == CASTLING && !Chess960)
@@ -958,7 +965,7 @@ std::string UCI::move_to_san(const Move& m, Position& pos) noexcept {
     if (m == Move::None)
         return "(none)";
     if (m == Move::Null)
-        return "0000";
+        return "(null)";
     assert(MoveList<LEGAL>(pos).contains(m));
 
     Square org = m.org_sq(), dst = m.dst_sq();

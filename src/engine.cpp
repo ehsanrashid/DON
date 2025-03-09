@@ -160,14 +160,15 @@ void Engine::ponderhit() noexcept { threads.main_manager()->ponder = false; }
 void Engine::wait_finish() const noexcept { threads.main_thread()->wait_finish(); }
 
 void Engine::init() noexcept {
+    wait_finish();
+
+    Tablebases::init(options["SyzygyPath"]);  // Free mapped files
+
     if (options["HashRetain"])
         return;
 
-    wait_finish();
     threads.init();
     tt.init(threads);
-    // @TODO won't work with multiple instances
-    Tablebases::init(options["SyzygyPath"]);  // Free mapped files
 }
 
 void Engine::resize_threads_tt() noexcept {
