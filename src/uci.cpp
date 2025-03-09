@@ -247,22 +247,23 @@ void UCI::execute() noexcept {
             command += ' ';
         command += commandLine.argv[i];
     }
-    // The command-line arguments are one-shot
-    if (commandLine.argc > 1 && is_whitespace(command))
-        return;
 
-    do
+    if (!(commandLine.argc > 1 && is_whitespace(command)))
     {
-        if (commandLine.argc <= 1
-            // Wait for an input or an end-of-file (EOF) indication
-            && !std::getline(std::cin, command))
-            command = "quit";
+        do
+        {
+            // The command-line arguments are one-shot
+            if (commandLine.argc <= 1
+                // Wait for an input or an end-of-file (EOF) indication
+                && !std::getline(std::cin, command))
+                command = "quit";
 
-        run_command(command);
+            run_command(command);
 
-        if (command == "quit")
-            return;
-    } while (commandLine.argc <= 1);
+            if (command == "quit")
+                break;
+        } while (commandLine.argc <= 1);
+    }
 }
 
 void UCI::run_command(const std::string& command) noexcept {
