@@ -41,18 +41,18 @@ class NativeThread final {
 
         using Func = std::function<void()>;
 
-        const auto start_routine = [](void* ptrFunc) noexcept -> void* {
-            auto* f = reinterpret_cast<Func*>(ptrFunc);
+        const auto start_routine = [](void* funcPtr) noexcept -> void* {
+            auto* f = reinterpret_cast<Func*>(funcPtr);
             // Call the function
             (*f)();
             delete f;
             return nullptr;
         };
 
-        auto* ptrFunc =
+        auto* funcPtr =
           new Func(std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
 
-        pthread_create(&thread, &attribute, start_routine, ptrFunc);
+        pthread_create(&thread, &attribute, start_routine, funcPtr);
     }
 
     void join() const noexcept { pthread_join(thread, nullptr); }
