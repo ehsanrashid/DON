@@ -56,7 +56,9 @@ MovePicker::MovePicker(const Position&           p,
         next_stage();
 }
 
-MovePicker::MovePicker(const Position& p, const Move& ttm, int th) noexcept :
+MovePicker::MovePicker(const Position& p,  //
+                       const Move&     ttm,
+                       int             th) noexcept :
     pos(p),
     ttMove(ttm),
     continuationHistory(nullptr),
