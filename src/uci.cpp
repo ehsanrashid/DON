@@ -276,8 +276,7 @@ void UCI::run_command(const std::string& command) noexcept {
     if (token.empty())
         return;
 
-    auto cmd = str_to_command(lower_case(token));
-    switch (cmd)
+    switch (str_to_command(lower_case(token)))
     {
     case CMD_STOP :
     case CMD_QUIT :
@@ -498,8 +497,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
         if (token.empty())
             continue;
 
-        auto cmd = str_to_command(lower_case(token));
-        switch (cmd)
+        switch (str_to_command(lower_case(token)))
         {
         case CMD_GO : {
             std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")"
@@ -595,8 +593,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
         if (token.empty())
             continue;
 
-        auto cmd = str_to_command(lower_case(token));
-        switch (cmd)
+        switch (str_to_command(lower_case(token)))
         {
         case CMD_GO : {
             // One new line is produced by the search, so omit it here
