@@ -35,11 +35,9 @@ class NativeThread final {
    public:
     template<class Function, class... Args>
     explicit NativeThread(Function&& func, Args&&... args) noexcept {
-        static constexpr std::size_t ThreadStackSize = 8 * 1024 * 1024;
-
         pthread_attr_t attribute;
         pthread_attr_init(&attribute);
-        pthread_attr_setstacksize(&attribute, ThreadStackSize);
+        pthread_attr_setstacksize(&attribute, 8u * 1024 * 1024);
 
         using Func = std::function<void()>;
 
