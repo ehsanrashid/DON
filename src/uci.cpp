@@ -793,7 +793,7 @@ std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
     return std::to_string(wdlW) + " " + std::to_string(wdlD) + " " + std::to_string(wdlL);
 }
 
-std::string UCI::format_score(const Score& score) noexcept {
+std::string UCI::score(const Score& score) noexcept {
     constexpr int TB_CP = 20000;
 
     const auto format =
@@ -877,11 +877,11 @@ void on_update_end(const EndInfo& info) noexcept {
 
 void on_update_full(const FullInfo& info) noexcept {
     std::ostringstream oss;
-    oss << "info"                                                   //
-        << " depth " << info.depth                                  //
-        << " seldepth " << info.rootMove.selDepth                   //
-        << " multipv " << info.multiPV                              //
-        << " score " << UCI::format_score({info.value, info.pos});  //
+    oss << "info"                                            //
+        << " depth " << info.depth                           //
+        << " seldepth " << info.rootMove.selDepth            //
+        << " multipv " << info.multiPV                       //
+        << " score " << UCI::score({info.value, info.pos});  //
     if (info.boundShow)
         oss << (info.rootMove.boundLower   ? " lowerbound"
                 : info.rootMove.boundUpper ? " upperbound"

@@ -46,7 +46,7 @@ class UCI final {
 
     static int         to_cp(Value v, const Position& pos) noexcept;
     static std::string to_wdl(Value v, const Position& pos) noexcept;
-    static std::string format_score(const Score& score) noexcept;
+    static std::string score(const Score& score) noexcept;
 
     static char  piece(PieceType pt) noexcept;
     static char  piece(Piece pc) noexcept;
