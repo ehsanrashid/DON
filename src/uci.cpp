@@ -188,31 +188,23 @@ Limit parse_limit(std::istringstream& iss) noexcept {
         else if (starts_with(token, "search"))
         {
             auto pos = iss.tellg();
-            while (iss >> token)
+            while (iss >> token && !starts_with(lower_case(token), "ignore"))
             {
-                if (starts_with(lower_case(token), "ignore"))
-                {
-                    iss.seekg(pos);
-                    break;
-                }
                 limit.searchMoves.push_back(token);
                 pos = iss.tellg();
             }
+            iss.seekg(pos);
         }
         // "ignoremoves" needs to be the last command on the line
         else if (starts_with(token, "ignore"))
         {
             auto pos = iss.tellg();
-            while (iss >> token)
+            while (iss >> token && !starts_with(lower_case(token), "search"))
             {
-                if (starts_with(lower_case(token), "search"))
-                {
-                    iss.seekg(pos);
-                    break;
-                }
                 limit.ignoreMoves.push_back(token);
                 pos = iss.tellg();
             }
+            iss.seekg(pos);
         }
     }
     return limit;
