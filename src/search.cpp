@@ -47,15 +47,6 @@ namespace DON {
 
 namespace {
 
-// History
-History<HCapture>           captureHistory;
-History<HQuiet>               quietHistory;
-History<HPawn>                 pawnHistory;
-History<HContinuation> continuationHistory[2][2];
-
-// Low Ply History
-History<HLowPlyQuiet> lowPlyQuietHistory;
-
 // Correction History
 CorrectionHistory<CHPawn>                 pawnCorrectionHistory;
 CorrectionHistory<CHMinor>               minorCorrectionHistory;
@@ -1018,7 +1009,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         Depth probCutDepth     = std::max(depth - 4, 0);
         int   probCutThreshold = probCutBeta - ss->staticEval;
 
-        MovePicker mp(pos, pttm, &captureHistory, probCutThreshold);
+        MovePicker mp(pos, pttm, probCutThreshold);
         // Loop through all pseudo-legal moves
         while ((move = mp.next_move()) != Move::None)
         {
@@ -1116,8 +1107,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     std::array<std::vector<Move>, 2> moves;
 
-    MovePicker mp(pos, pttm, &captureHistory, &quietHistory, &pawnHistory, contHistory,
-                  &lowPlyQuietHistory, ss->ply, quietThreshold);
+    MovePicker mp(pos, pttm, contHistory, ss->ply, quietThreshold);
     mp.quietPick = true;
     // Step 13. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
@@ -1802,8 +1792,7 @@ QS_MOVES_LOOP:
 
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
-    MovePicker mp(pos, pttm, &captureHistory, &quietHistory, &pawnHistory, contHistory,
-                  &lowPlyQuietHistory, ss->ply);
+    MovePicker mp(pos, pttm, contHistory, ss->ply);
     mp.quietPick = ss->inCheck;
     // Step 5. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)

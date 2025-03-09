@@ -57,25 +57,25 @@ enum Stage : std::uint8_t {
 constexpr Stage operator+(Stage s, int i) noexcept { return Stage(int(s) + i); }
 inline Stage&   operator++(Stage& s) noexcept { return s = s + 1; }
 
+// History
+extern History<HCapture>      captureHistory;
+extern History<HQuiet>        quietHistory;
+extern History<HPawn>         pawnHistory;
+extern History<HContinuation> continuationHistory[2][2];
+extern History<HLowPlyQuiet>  lowPlyQuietHistory;
+
 // MovePicker class is used to pick one pseudo-legal move at a time from the given current position.
 // The most important method is next_move(), which returns a new pseudo-legal move each time it is called,
 // until there are no moves left, when Move::None is returned. In order to improve the efficiency of the
 // alpha-beta algorithm, MovePicker attempts to return the moves which are most likely to get a cut-off first.
 class MovePicker final {
    public:
-    MovePicker(const Position&              p,
-               const Move&                  ttm,
-               const History<HCapture>*     captureHist,
-               const History<HQuiet>*       quietHist,
-               const History<HPawn>*        pawnHist,
-               const History<HPieceSq>**    continuationHist,
-               const History<HLowPlyQuiet>* lowPlyQuietHist,
-               std::int16_t                 ply,
-               int                          th = 0) noexcept;
-    MovePicker(const Position&          p,
-               const Move&              ttm,
-               const History<HCapture>* captureHist,
-               int                      th) noexcept;
+    MovePicker(const Position&           p,
+               const Move&               ttm,
+               const History<HPieceSq>** continuationHist,
+               std::int16_t              ply,
+               int                       th = 0) noexcept;
+    MovePicker(const Position& p, const Move& ttm, int th) noexcept;
     MovePicker() noexcept                             = delete;
     MovePicker(const MovePicker&) noexcept            = delete;
     MovePicker(MovePicker&&) noexcept                 = delete;
@@ -105,15 +105,11 @@ class MovePicker final {
 
     bool is_ok(const Move& move) const noexcept { return move != ttMove; }
 
-    const Position&              pos;
-    const Move&                  ttMove;
-    const History<HCapture>*     captureHistory;
-    const History<HQuiet>*       quietHistory;
-    const History<HPawn>*        pawnHistory;
-    const History<HPieceSq>**    continuationHistory;
-    const History<HLowPlyQuiet>* lowPlyQuietHistory;
-    const std::int16_t           ssPly;
-    const int                    threshold;
+    const Position&           pos;
+    const Move&               ttMove;
+    const History<HPieceSq>** continuationHistory;
+    const std::int16_t        ssPly;
+    const int                 threshold;
 
     Moves      badCapMoves;
     Moves::Itr badCapCur, badCapEnd;
