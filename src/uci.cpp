@@ -357,7 +357,7 @@ void UCI::run_command(const std::string& command) noexcept {
     default :
         if (token[0] != '#')
         {
-            std::cout << "Unknown command: '" << command << "'."
+            std::cout << "\nUnknown command: '" << command << "'."
                       << "\nType help for more information." << std::endl;
         }
     }
