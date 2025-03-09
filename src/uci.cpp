@@ -269,10 +269,9 @@ void UCI::execute() noexcept {
 void UCI::run_command(const std::string& command) noexcept {
 
     std::istringstream iss(command);
-    iss >> std::skipws;
 
     std::string token;
-    iss >> token;
+    iss >> std::skipws >> token;
     if (token.empty())
         return;
 
@@ -662,8 +661,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
         if (token.empty())
             continue;
 
-        auto cmd = str_to_command(lower_case(token));
-        switch (cmd)
+        switch (str_to_command(lower_case(token)))
         {
         case CMD_GO : {
             // One new line is produced by the search, so omit it here
