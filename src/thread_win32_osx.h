@@ -22,9 +22,7 @@
 
 // On OSX threads other than the main thread are created with a reduced stack
 // size of 512KB by default, this is too low for deep searches, which require
-// somewhat more than 1MB stack, so adjust it to ThreadStackSize.
-// The implementation calls pthread_create() with the stack size parameter
-// equal to the Linux 8MB default, on platforms that support it.
+// somewhat more than 1MB stack, so adjust it to 8MB.
 
 #if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(USE_PTHREADS)
 
