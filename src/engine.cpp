@@ -94,7 +94,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("UCI_ShowCurrLine",     Option(false));
     options.add("UCI_ShowRefutations",  Option(false));
     options.add("OwnBook",              Option(false));
-    options.add("BookFile",             Option("", [](const Option& o) { load_book(o); return std::nullopt; }));
+    options.add("BookFile",             Option("", [](const Option& o) { init_book(o); return std::nullopt; }));
     options.add("BookProbeDepth",       Option(100, 1, 256));
     options.add("BookBestPick",         Option(true));
     options.add("SyzygyPath",           Option("", [](const Option& o) { Tablebases::init(o); return std::nullopt; }));

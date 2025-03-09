@@ -110,7 +110,7 @@ class PolyBook final {
 
 extern PolyBook Book;
 
-inline void load_book(const std::string& bookFile) noexcept { Book.init(bookFile); }
+inline void init_book(const std::string& bookFile) noexcept { Book.init(bookFile); }
 
 }  // namespace DON
 
