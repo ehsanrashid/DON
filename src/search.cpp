@@ -145,7 +145,7 @@ void init() noexcept {
                 for (auto& pieceSqHist : toPieceSqHist)
                     pieceSqHist.fill(-468);
 
-       PawnCorrectionHistory.fill(6);
+       PawnCorrectionHistory.fill(0);
       MinorCorrectionHistory.fill(0);
       MajorCorrectionHistory.fill(0);
     NonPawnCorrectionHistory.fill(0);
