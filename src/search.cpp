@@ -1570,8 +1570,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (!preCapture)
         {
             // clang-format off
-            auto bonusScale =
-                            +  34 * !AllNode
+            auto bonusScale =  34 * !AllNode
                             // Increase bonus when bestValue is lower than current static evaluation
                             + 141 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 100)
                             // Increase bonus when bestValue is higher than previous static evaluation

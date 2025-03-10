@@ -279,10 +279,8 @@ class PRNG final {
    private:
     // XORShift64Star algorithm implementation
     std::uint64_t rand64() noexcept {
-        static constexpr std::uint64_t SeedMultiplier = 0x2545F4914F6CDD1Dull;
-
         s ^= s >> 12, s ^= s << 25, s ^= s >> 27;
-        return SeedMultiplier * s;
+        return 0x2545F4914F6CDD1Dull * s;
     }
 
     std::uint64_t s;
@@ -293,12 +291,10 @@ class PRNG1024 final {
    public:
     explicit PRNG1024(std::uint64_t seed) noexcept :
         p(0) {
-        static constexpr std::uint64_t SeedOffset     = 0x9857FB32C9EFB5E4ull;
-        static constexpr std::uint64_t SeedMultiplier = 0x2545F4914F6CDD1Dull;
         assert(seed);
 
-        for (std::size_t i = 0; i < Size; ++i)
-            s[i] = seed = SeedOffset + SeedMultiplier * seed;
+        for (auto& e : s)
+            e = seed = 0x9857FB32C9EFB5E4ull + 0x2545F4914F6CDD1Dull * seed;
     }
 
     template<typename T>
@@ -343,13 +339,11 @@ class PRNG1024 final {
 
     // XORShift1024Star algorithm implementation
     std::uint64_t rand64() noexcept {
-        static constexpr std::uint64_t SeedMultiplier = 0x106689D45497FDB5ull;
-
         auto s0 = s[p];
         auto s1 = s[p = index(1)];
         s1 ^= s1 << 31;
         s[p] = s0 ^ s1 ^ (s0 >> 30) ^ (s1 >> 11);
-        return SeedMultiplier * s[p];
+        return 0x106689D45497FDB5ull * s[p];
     }
 
     static constexpr std::size_t Size = 16;

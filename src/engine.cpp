@@ -144,7 +144,7 @@ void Engine::setup(std::string_view fen, const std::vector<std::string>& moves) 
 }
 
 std::uint64_t Engine::perft(Depth depth, bool detail) noexcept {
-    return Benchmark::perft(pos, depth, options["Hash"], threads, detail);
+    return Benchmark::perft(pos, options["Hash"], threads, depth, detail);
 }
 
 void Engine::start(const Limit& limit) noexcept {

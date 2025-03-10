@@ -326,16 +326,13 @@ void UCI::run_command(const std::string& command) noexcept {
         std::cout << compiler_info() << '\n' << std::endl;
         break;
     case CMD_EXPORT_NET : {
-        std::array<std::string, 2>                inputFiles;
-        std::array<std::optional<std::string>, 2> files;
+        std::array<std::optional<std::string>, 2> netFiles;
 
-        if (iss >> inputFiles[0])
-            files[0] = inputFiles[0];
+        std::string input;
+        for (std::size_t i = 0; i < netFiles.size() && iss >> input; ++i)
+            netFiles[i] = input;
 
-        if (iss >> inputFiles[1])
-            files[1] = inputFiles[1];
-
-        engine.save_networks(files);
+        engine.save_networks(netFiles);
     }
     break;
     case CMD_HELP :
@@ -374,12 +371,12 @@ void UCI::set_update_listeners() noexcept {
 }
 
 void UCI::position(std::istringstream& iss) noexcept {
-    std::string fen;
 
     std::string token;
     iss >> token;
     token = lower_case(token);
 
+    std::string fen;
     if (starts_with(token, "start"))  // "startpos"
     {
         fen = START_FEN;
