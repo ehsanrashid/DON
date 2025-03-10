@@ -1201,9 +1201,9 @@ S_MOVES_LOOP:  // When in check, search starts here
             }
             else
             {
-                int contHist = (*contHistory[0])[movedPiece][dst]  //
-                             + (*contHistory[1])[movedPiece][dst]  //
-                             + PawnHistory[pawnIndex][movedPiece][dst];
+                int contHist = PawnHistory[pawnIndex][movedPiece][dst]  //
+                             + (*contHistory[0])[movedPiece][dst]       //
+                             + (*contHistory[1])[movedPiece][dst];
 
                 // Continuation history based pruning
                 if (contHist < -4348 * virtualDepth)
@@ -1856,10 +1856,9 @@ QS_MOVES_LOOP:
             {
                 assert(dst != preSq);
                 // Continuation history based pruning
-                int contHist = (*contHistory[0])[movedPiece][dst]  //
-                             + (*contHistory[1])[movedPiece][dst]  //
-                             + PawnHistory[pawnIndex][movedPiece][dst];
-                if (contHist < 5924)
+                int contHist = PawnHistory[pawnIndex][movedPiece][dst]  //
+                             + (*contHistory[0])[movedPiece][dst];
+                if (contHist < 6290)
                     continue;
             }
 
