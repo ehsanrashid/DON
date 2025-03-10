@@ -85,10 +85,7 @@ void TranspositionTable::init(ThreadPool& threads) noexcept {
 }
 
 // Looks up the current position (key) in the transposition table.
-// It returns true and a pointer to the TTEntry if the position is found.
-// Otherwise, it returns false and a pointer to an empty or least valuable TTEntry.
-// TTEntry t1 is considered more valuable than TTEntry t2
-// if replacement value of t1 is greater than that of t2.
+// It returns pointer to the TTEntry if the position is found.
 std::tuple<TTData, TTEntry*, TTCluster* const>
 TranspositionTable::probe(Key key, Key16 key16) const noexcept {
 
