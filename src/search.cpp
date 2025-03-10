@@ -151,7 +151,7 @@ void init() noexcept {
     NonPawnCorrectionHistory.fill(0);
     for (auto& toPieceSqCorrHist : ContinuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
-            pieceSqCorrHist.fill(5);
+            pieceSqCorrHist.fill(0);
 
     reductions[0] = 0;
     for (std::size_t i = 1; i < reductions.size(); ++i)
