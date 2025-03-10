@@ -396,7 +396,7 @@ template Perft perft<false>(Position& pos, Depth depth, bool detail) noexcept;
 }  // namespace
 
 std::uint64_t
-perft(Position& pos, Depth depth, std::size_t ptSize, ThreadPool& threads, bool detail) noexcept {
+perft(Position& pos, std::size_t ptSize, ThreadPool& threads, Depth depth, bool detail) noexcept {
 
     if (use_perft_table(depth, detail))
         perftTable.resize(ptSize, threads);

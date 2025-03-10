@@ -31,9 +31,9 @@ class ThreadPool;
 namespace Benchmark {
 
 std::uint64_t perft(Position&   pos,
-                    Depth       depth,
                     std::size_t ptSize,
                     ThreadPool& threads,
+                    Depth       depth,
                     bool        detail = false) noexcept;
 
 }  // namespace Benchmark
