@@ -145,13 +145,13 @@ void init() noexcept {
                 for (auto& pieceSqHist : toPieceSqHist)
                     pieceSqHist.fill(-468);
 
-       PawnCorrectionHistory.fill(6);
+       PawnCorrectionHistory.fill(0);
       MinorCorrectionHistory.fill(0);
       MajorCorrectionHistory.fill(0);
     NonPawnCorrectionHistory.fill(0);
     for (auto& toPieceSqCorrHist : ContinuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
-            pieceSqCorrHist.fill(5);
+            pieceSqCorrHist.fill(0);
 
     reductions[0] = 0;
     for (std::size_t i = 1; i < reductions.size(); ++i)
@@ -1944,10 +1944,6 @@ QS_MOVES_LOOP:
         bestValue = in_range((bestValue + beta) / 2);
     }
 
-    if (moveCount != 0 && ss->inCheck && (ss - 2)->inCheck && (ss - 4)->inCheck && (ss - 6)->inCheck
-        && (ss - 8)->inCheck)
-        bestValue *= 0.8571f;
-
     // Save gathered info in transposition table
     Bound bound = bound_for_fail(bestValue >= beta);
     ttu.update(DEPTH_ZERO, pvHit, bound, bestMove, bestValue, unadjustedStaticEval);
@@ -2048,6 +2044,7 @@ bool Worker::ponder_move_extracted() noexcept {
 // Keeps the search based PV for as long as it is verified to maintain the game outcome, truncates afterwards.
 // Finally, extends to mate the PV, providing a possible continuation (but not a proven mating line).
 void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
+    assert(index < rootMoves.size());
 
     if (!options["SyzygyPVExtend"])
         return;

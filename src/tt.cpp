@@ -85,21 +85,19 @@ void TranspositionTable::init(ThreadPool& threads) noexcept {
 }
 
 // Looks up the current position (key) in the transposition table.
-// It returns true and a pointer to the TTEntry if the position is found.
-// Otherwise, it returns false and a pointer to an empty or least valuable TTEntry.
-// TTEntry t1 is considered more valuable than TTEntry t2
-// if replacement value of t1 is greater than that of t2.
+// It returns pointer to the TTEntry if the position is found.
 std::tuple<TTData, TTEntry*, TTCluster* const>
 TranspositionTable::probe(Key key, Key16 key16) const noexcept {
 
     auto* const ttc = cluster(key);
-    auto* const tte = &ttc->entry[0];
 
-    for (std::uint8_t i = 0; i < TTCluster::EntryCount; ++i)
-        if (tte[i].key16 == key16)
-            return {tte[i].read(), &tte[i], ttc};
+    for (auto& entry : ttc->entry)
+        if (entry.key16 == key16)
+            return {entry.read(), &entry, ttc};
 
-    return {{false, false, BOUND_NONE, Move::None, DEPTH_OFFSET, VALUE_NONE, VALUE_NONE}, tte, ttc};
+    return {{false, false, BOUND_NONE, Move::None, DEPTH_OFFSET, VALUE_NONE, VALUE_NONE},
+            &ttc->entry[0],
+            ttc};
 }
 
 std::tuple<TTData, TTEntry*, TTCluster* const> TranspositionTable::probe(Key key) const noexcept {
@@ -110,21 +108,17 @@ std::tuple<TTData, TTEntry*, TTCluster* const> TranspositionTable::probe(Key key
 // The hash is x permill full, as per UCI protocol.
 // Only counts entries which match the current generation. [maxAge: 0-31]
 std::uint16_t TranspositionTable::hashFull(std::uint8_t maxAge) const noexcept {
+    assert(maxAge < 32);
 
-    std::uint16_t relMaxAge = maxAge * GENERATION_DELTA;
+    std::uint8_t maxRelAge = maxAge * GENERATION_DELTA;
 
-    const auto clustersCnt = std::min<std::size_t>(clusterCount, 1000);
+    const auto clusterCnt = std::min<std::size_t>(clusterCount, 1000);
 
     std::uint32_t cnt = 0;
-    for (std::size_t idx = 0; idx < clustersCnt; ++idx)
-    {
-        const auto& cluster = clusters[idx];
-        for (std::uint8_t i = 0; i < TTCluster::EntryCount; ++i)
-        {
-            const auto& entry = cluster.entry[i];
-            cnt += entry.occupied() && entry.relative_age(generation8) <= relMaxAge;
-        }
-    }
+    for (std::size_t idx = 0; idx < clusterCnt; ++idx)
+        for (const auto& entry : clusters[idx].entry)
+            cnt += entry.occupied() && entry.relative_age(generation8) <= maxRelAge;
+
     return (cnt + TTCluster::EntryCount / 2) / TTCluster::EntryCount;
 }
 
@@ -154,7 +148,7 @@ bool TranspositionTable::load(const std::string& hashFile, ThreadPool& threads) 
         auto fileSize = get_file_size(ifstream);
         if (fileSize < 0)
             return false;
-        auto ttSize = fileSize / (1024 * 1024);
+        auto ttSize = fileSize / (1ull * 1024 * 1024);
         resize(ttSize, threads);
         ifstream.read(reinterpret_cast<char*>(clusters), clusterCount * sizeof(TTCluster));
     }

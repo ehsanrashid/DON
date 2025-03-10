@@ -271,16 +271,16 @@ class TTUpdater final {
         if (tte->key16 != key16)
         {
             tte = &ttc->entry[0];
-            for (std::uint8_t i = 0; i < TTCluster::EntryCount; ++i)
+            for (auto& entry : ttc->entry)
             {
-                if (ttc->entry[i].key16 == key16)
+                if (entry.key16 == key16)
                 {
-                    tte = &ttc->entry[i];
+                    tte = &entry;
                     break;
                 }
                 // Find an entry to be replaced according to the replacement strategy
-                if (i != 0 && tte->worth(generation) > ttc->entry[i].worth(generation))
-                    tte = &ttc->entry[i];
+                if (tte->worth(generation) > entry.worth(generation))
+                    tte = &entry;
             }
         }
         else
