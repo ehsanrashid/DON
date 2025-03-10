@@ -253,18 +253,17 @@ std::tuple<bool, PTEntry* const> PerftTable::probe(Key key, Depth depth) const n
     auto* const ptc = cluster(key);
     auto* const fte = &ptc->entry[0];
 
-    Key32 key32 = key & 0xFFFFFFFF;
-    for (std::uint8_t i = 0; i < PTCluster::EntryCount; ++i)
-        if (fte[i].key32 == key32 && fte[i].depth16 == depth)
-            return {true, &fte[i]};
+    Key32 key32 = Key32(key);
+    for (auto& entry : ptc->entry)
+        if (entry.key32 == key32 && entry.depth16 == depth)
+            return {true, &entry};
 
-    auto* const lte = fte + PTCluster::EntryCount - 1;
-    auto*       rte = fte;
-    for (std::uint8_t i = 1; i < PTCluster::EntryCount; ++i)
-        if (rte->depth16 > fte[i].depth16)
-            rte = &fte[i];
+    auto* rte = fte;
+    for (auto& entry : ptc->entry)
+        if (rte->depth16 > entry.depth16)
+            rte = &entry;
 
-    return {false, rte->depth16 <= depth ? rte : lte};
+    return {false, rte->depth16 <= depth ? rte : fte + PTCluster::EntryCount - 1};
 }
 
 PerftTable perftTable;
