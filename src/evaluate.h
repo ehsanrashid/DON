@@ -39,8 +39,6 @@ struct Networks;
 struct AccumulatorCaches;
 }  // namespace NNUE
 
-bool use_small_net(const Position& pos) noexcept;
-
 Value evaluate(const Position&          pos,
                const NNUE::Networks&    networks,
                NNUE::AccumulatorCaches& accCaches,
