@@ -115,9 +115,12 @@ inline void Thread::wait_finish() noexcept {
 
 // Launching a function in the thread
 inline void Thread::run_custom_job(JobFunc func) noexcept {
-    wait_finish();
-    jobFunc = std::move(func);
-    busy    = true;
+    {
+        std::unique_lock uniqueLock(mutex);
+        condVar.wait(uniqueLock, [&] { return !busy; });
+        jobFunc = std::move(func);
+        busy    = true;
+    }
     condVar.notify_one();
 }
 
