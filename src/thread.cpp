@@ -45,7 +45,7 @@ Thread::Thread(std::size_t                           id,
     nativeThread(&Thread::idle_func, this) {
 
     wait_finish();
-    run_custom_job([this, id, &nodeBinder, &sharedState, &searchManager]() {
+    run_custom_job([this, id, &sharedState, &searchManager, &nodeBinder]() {
         // Use the binder to [maybe] bind the threads to a NUMA node before doing
         // the Worker allocation.
         // Ideally we would also allocate the SearchManager here, but that's minor.
