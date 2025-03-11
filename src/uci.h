@@ -38,9 +38,9 @@ class UCI final {
 
     auto& options() noexcept { return engine.get_options(); }
 
-    void execute() noexcept;
+    void run() noexcept;
 
-    void run_command(const std::string& command) noexcept;
+    void execute(const std::string& command) noexcept;
 
     static void print_info_string(std::string_view infoStr) noexcept;
 

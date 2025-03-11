@@ -34,7 +34,7 @@
 #include "bitboard.h"
 #include "types.h"
 #include "nnue/nnue_accumulator.h"
-#include "nnue/nnue_architecture.h"
+#include "nnue/nnue_architecture.h"  // IWYU pragma: keep
 
 namespace DON {
 

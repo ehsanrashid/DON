@@ -171,7 +171,6 @@ class AffineTransform final {
     // Write network parameters
     bool write_parameters(std::ostream& stream) const noexcept {
         write_little_endian<BiasType>(stream, biases, OutputDimensions);
-
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
             write_little_endian<WeightType>(stream, weights[get_weight_index(i)]);
 

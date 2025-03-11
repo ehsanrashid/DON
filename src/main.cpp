@@ -44,7 +44,7 @@ int main(int argc, const char** argv) noexcept {
 
     //Tune::init(uci.options());
 
-    uci.execute();
+    uci.run();
 
     return EXIT_SUCCESS;
 }

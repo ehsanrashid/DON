@@ -231,7 +231,7 @@ UCI::UCI(int argc, const char** argv) noexcept :
     set_update_listeners();
 }
 
-void UCI::execute() noexcept {
+void UCI::run() noexcept {
     std::string command;
     for (int i = 1; i < commandLine.argc; ++i)
     {
@@ -251,7 +251,7 @@ void UCI::execute() noexcept {
                 && !std::getline(std::cin, command))
                 command = "quit";
 
-            run_command(command);
+            execute(command);
 
             if (command == "quit")
                 break;
@@ -259,7 +259,7 @@ void UCI::execute() noexcept {
     }
 }
 
-void UCI::run_command(const std::string& command) noexcept {
+void UCI::execute(const std::string& command) noexcept {
 
     std::istringstream iss(command);
     iss >> std::skipws;

@@ -262,7 +262,7 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
     // overaligning stack variables with alignas() doesn't work correctly.
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType transformedFeaturesUnaligned
-      [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE
+      [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BufferSize
        + CACHE_LINE_SIZE / sizeof(TransformedFeatureType)]{};
 
     auto* transformedFeatures = align_ptr_up<CACHE_LINE_SIZE>(&transformedFeaturesUnaligned[0]);
@@ -287,7 +287,7 @@ NetworkTrace Network<Arch, Transformer>::trace_eval(
     // overaligning stack variables with alignas() doesn't work correctly.
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType transformedFeaturesUnaligned
-      [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BUFFER_SIZE
+      [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BufferSize
        + CACHE_LINE_SIZE / sizeof(TransformedFeatureType)]{};
 
     auto* transformedFeatures = align_ptr_up<CACHE_LINE_SIZE>(&transformedFeaturesUnaligned[0]);
