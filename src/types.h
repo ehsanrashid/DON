@@ -164,7 +164,7 @@ constexpr Value VALUE_BISHOP = 825;
 constexpr Value VALUE_ROOK   = 1276;
 constexpr Value VALUE_QUEEN  = 2538;
 // clang-format off
-constexpr Value PIECE_VALUE[PIECE_TYPE_NB]{
+constexpr Value PIECE_VALUE[PIECE_TYPE_NB] = {
   VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO, VALUE_ZERO
 };
 // clang-format on

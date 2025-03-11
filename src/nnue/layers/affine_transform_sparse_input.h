@@ -133,26 +133,26 @@ void find_nnz(const std::int32_t* input, std::uint16_t* outNnz, IndexType& outCo
     constexpr IndexType InputSimdWidth = sizeof(vec_t) / sizeof(std::int32_t);
     // Inputs are processed InputSimdWidth at a time and
     // Outputs are processed 8 at a time so process in chunks of max(InputSimdWidth, 8)
-    constexpr IndexType CHUNK_SIZE        = std::max<IndexType>(InputSimdWidth, 8);
-    constexpr IndexType CHUNK_COUNT       = InputDimensions / CHUNK_SIZE;
-    constexpr IndexType INPUTS_PER_CHUNK  = CHUNK_SIZE / InputSimdWidth;
-    constexpr IndexType OUTPUTS_PER_CHUNK = CHUNK_SIZE / 8;
+    constexpr IndexType ChunkSize       = std::max<IndexType>(InputSimdWidth, 8);
+    constexpr IndexType ChunkCount      = InputDimensions / ChunkSize;
+    constexpr IndexType InputsPerChunk  = ChunkSize / InputSimdWidth;
+    constexpr IndexType OutputsPerChunk = ChunkSize / 8;
 
     const auto* inputVector = reinterpret_cast<const vec_t*>(input);
 
     IndexType count     = 0;
     vec128_t  base      = vec128_zero;
     vec128_t  increment = vec128_set_16(8);
-    for (IndexType i = 0; i < CHUNK_COUNT; ++i)
+    for (IndexType i = 0; i < ChunkCount; ++i)
     {
         // Bitmask of nonzero values in this chunk
         unsigned nnz = 0;
-        for (IndexType j = 0; j < INPUTS_PER_CHUNK; ++j)
+        for (IndexType j = 0; j < InputsPerChunk; ++j)
         {
-            const vec_t inputChunk = inputVector[i * INPUTS_PER_CHUNK + j];
+            const vec_t inputChunk = inputVector[i * InputsPerChunk + j];
             nnz |= unsigned(vec_nnz(inputChunk)) << (j * InputSimdWidth);
         }
-        for (IndexType j = 0; j < OUTPUTS_PER_CHUNK; ++j)
+        for (IndexType j = 0; j < OutputsPerChunk; ++j)
         {
             unsigned index = (nnz >> (j * 8)) & 0xFF;
             vec128_t offsets =
@@ -192,7 +192,7 @@ class AffineTransformSparseInput {
     static constexpr IndexType PaddedOutputDimensions =
       ceil_to_multiple<IndexType>(OutputDimensions, MAX_SIMD_WIDTH);
 
-    static constexpr IndexType CHUNK_SIZE =
+    static constexpr IndexType ChunkSize =
 #if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
       4
 #else
@@ -213,9 +213,8 @@ class AffineTransformSparseInput {
 
     static constexpr IndexType get_weight_index(IndexType i) noexcept {
 #if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
-        return (i / CHUNK_SIZE) % (PaddedInputDimensions / CHUNK_SIZE) * OutputDimensions
-               * CHUNK_SIZE
-             + i / PaddedInputDimensions * CHUNK_SIZE + i % CHUNK_SIZE;
+        return (i / ChunkSize) % (PaddedInputDimensions / ChunkSize) * OutputDimensions * ChunkSize
+             + i / PaddedInputDimensions * ChunkSize + i % ChunkSize;
 #else
         return i;
 #endif
@@ -272,21 +271,21 @@ class AffineTransformSparseInput {
 
         static constexpr IndexType OutputSimdWidth = sizeof(outvec_t) / sizeof(OutputType);
 
-        constexpr IndexType CHUNK_COUNT =
-          ceil_to_multiple<IndexType>(InputDimensions, 8) / CHUNK_SIZE;
-        constexpr IndexType REG_COUNT = OutputDimensions / OutputSimdWidth;
+        constexpr IndexType ChunkCount =
+          ceil_to_multiple<IndexType>(InputDimensions, 8) / ChunkSize;
+        constexpr IndexType RegCount = OutputDimensions / OutputSimdWidth;
 
-        std::uint16_t nnz[CHUNK_COUNT];
+        std::uint16_t nnz[ChunkCount];
         IndexType     count;
 
         const auto* input32 = reinterpret_cast<const std::int32_t*>(input);
 
         // Find indices of nonzero 32-bit blocks
-        find_nnz<CHUNK_COUNT>(input32, nnz, count);
+        find_nnz<ChunkCount>(input32, nnz, count);
 
         const auto* biasVec = reinterpret_cast<const outvec_t*>(biases);
-        outvec_t    acc[REG_COUNT];
-        for (IndexType k = 0; k < REG_COUNT; ++k)
+        outvec_t    acc[RegCount];
+        for (IndexType k = 0; k < RegCount; ++k)
             acc[k] = biasVec[k];
 
         for (IndexType j = 0; j < count; ++j)
@@ -294,13 +293,13 @@ class AffineTransformSparseInput {
             const auto    i  = nnz[j];
             const invec_t in = vec_set_32(input32[i]);
             const auto*   col =
-              reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * CHUNK_SIZE]);
-            for (IndexType k = 0; k < REG_COUNT; ++k)
+              reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);
+            for (IndexType k = 0; k < RegCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
 
         auto* outVec = reinterpret_cast<outvec_t*>(output);
-        for (IndexType k = 0; k < REG_COUNT; ++k)
+        for (IndexType k = 0; k < RegCount; ++k)
             outVec[k] = acc[k];
     #undef vec_set_32
     #undef vec_add_dpbusd_32

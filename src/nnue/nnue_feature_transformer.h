@@ -198,16 +198,16 @@ class SIMDTiling final {
     #endif
 
    public:
-    static constexpr IndexType REG_COUNT =
+    static constexpr IndexType RegCount =
       best_register_count<vec_t, WeightType, HalfDimensions, MaxRegisterCount>();
-    static constexpr IndexType PSQT_REG_COUNT =
+    static constexpr IndexType PSQTRegCount =
       best_register_count<psqt_vec_t, PSQTWeightType, PSQTBuckets, MaxRegisterCount>();
 
-    static constexpr IndexType TILE_HEIGHT      = REG_COUNT * sizeof(vec_t) / 2;
-    static constexpr IndexType PSQT_TILE_HEIGHT = PSQT_REG_COUNT * sizeof(psqt_vec_t) / 4;
+    static constexpr IndexType TileHeight     = RegCount * sizeof(vec_t) / 2;
+    static constexpr IndexType PSQTTileHeight = PSQTRegCount * sizeof(psqt_vec_t) / 4;
 
-    static_assert(HalfDimensions % TILE_HEIGHT == 0, "TILE_HEIGHT must divide HalfDimensions");
-    static_assert(PSQTBuckets % PSQT_TILE_HEIGHT == 0, "PSQT_TILE_HEIGHT must divide PSQTBuckets");
+    static_assert(HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
+    static_assert(PSQTBuckets % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQTBuckets");
 };
 #endif
 
@@ -684,57 +684,57 @@ class FeatureTransformer final {
 
 #if defined(VECTOR)
 
-        vec_t      acc[Tiling::REG_COUNT];
-        psqt_vec_t psqt[Tiling::PSQT_REG_COUNT];
+        vec_t      acc[Tiling::RegCount];
+        psqt_vec_t psqt[Tiling::PSQTRegCount];
 
         bool last3Combine = std::abs(int(removed.size()) - int(added.size())) == 1
                          && removed.size() + added.size() > 2;
 
         // clang-format off
-        for (IndexType j = 0; j < HalfDimensions / Tiling::TILE_HEIGHT; ++j)
+        for (IndexType j = 0; j < HalfDimensions / Tiling::TileHeight; ++j)
         {
             auto* accTile = reinterpret_cast<vec_t*>(
-              &accumulator.accumulation[Perspective][j * Tiling::TILE_HEIGHT]);
+              &accumulator.accumulation[Perspective][j * Tiling::TileHeight]);
             auto* entryTile =
-              reinterpret_cast<vec_t*>(&entry.accumulation[j * Tiling::TILE_HEIGHT]);
+              reinterpret_cast<vec_t*>(&entry.accumulation[j * Tiling::TileHeight]);
 
-            for (IndexType k = 0; k < Tiling::REG_COUNT; ++k)
+            for (IndexType k = 0; k < Tiling::RegCount; ++k)
                 acc[k] = entryTile[k];
 
             std::size_t i = 0;
             for (; i < std::min(removed.size(), added.size()) - last3Combine; ++i)
             {
-                auto  offsetR = removed[i] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                auto  offsetR = removed[i] * HalfDimensions + j * Tiling::TileHeight;
                 auto* columnR = reinterpret_cast<const vec_t*>(&weights[offsetR]);
-                auto  offsetA = added[i] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                auto  offsetA = added[i] * HalfDimensions + j * Tiling::TileHeight;
                 auto* columnA = reinterpret_cast<const vec_t*>(&weights[offsetA]);
 
-                for (IndexType k = 0; k < Tiling::REG_COUNT; ++k)
+                for (IndexType k = 0; k < Tiling::RegCount; ++k)
                     acc[k] = vec_add_16(acc[k], vec_sub_16(columnA[k], columnR[k]));
             }
 
             if (last3Combine)
             {
-                auto  offsetR = removed[i] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                auto  offsetR = removed[i] * HalfDimensions + j * Tiling::TileHeight;
                 auto* columnR = reinterpret_cast<const vec_t*>(&weights[offsetR]);
-                auto  offsetA = added[i] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                auto  offsetA = added[i] * HalfDimensions + j * Tiling::TileHeight;
                 auto* columnA = reinterpret_cast<const vec_t*>(&weights[offsetA]);
 
                 if (removed.size() > added.size())
                 {
-                    auto  offsetR2 = removed[i + 1] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                    auto  offsetR2 = removed[i + 1] * HalfDimensions + j * Tiling::TileHeight;
                     auto* columnR2 = reinterpret_cast<const vec_t*>(&weights[offsetR2]);
 
-                    for (IndexType k = 0; k < Tiling::REG_COUNT; ++k)
+                    for (IndexType k = 0; k < Tiling::RegCount; ++k)
                         acc[k] = vec_sub_16(vec_add_16(acc    [k], columnA[k]),
                                             vec_add_16(columnR[k], columnR2[k]));
                 }
                 else
                 {
-                    auto  offsetA2 = added[i + 1] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                    auto  offsetA2 = added[i + 1] * HalfDimensions + j * Tiling::TileHeight;
                     auto* columnA2 = reinterpret_cast<const vec_t*>(&weights[offsetA2]);
 
-                    for (IndexType k = 0; k < Tiling::REG_COUNT; ++k)
+                    for (IndexType k = 0; k < Tiling::RegCount; ++k)
                         acc[k] = vec_add_16(vec_sub_16(acc    [k], columnR[k]),
                                             vec_add_16(columnA[k], columnA2[k]));
                 }
@@ -743,59 +743,59 @@ class FeatureTransformer final {
             {
                 for (; i < removed.size(); ++i)
                 {
-                    auto  offset = removed[i] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                    auto  offset = removed[i] * HalfDimensions + j * Tiling::TileHeight;
                     auto* column = reinterpret_cast<const vec_t*>(&weights[offset]);
 
-                    for (IndexType k = 0; k < Tiling::REG_COUNT; ++k)
+                    for (IndexType k = 0; k < Tiling::RegCount; ++k)
                         acc[k] = vec_sub_16(acc[k], column[k]);
                 }
 
                 for (; i < added.size(); ++i)
                 {
-                    auto  offset = added[i] * HalfDimensions + j * Tiling::TILE_HEIGHT;
+                    auto  offset = added[i] * HalfDimensions + j * Tiling::TileHeight;
                     auto* column = reinterpret_cast<const vec_t*>(&weights[offset]);
 
-                    for (IndexType k = 0; k < Tiling::REG_COUNT; ++k)
+                    for (IndexType k = 0; k < Tiling::RegCount; ++k)
                         acc[k] = vec_add_16(acc[k], column[k]);
                 }
             }
 
-            for (IndexType k = 0; k < Tiling::REG_COUNT; ++k)
+            for (IndexType k = 0; k < Tiling::RegCount; ++k)
             {
                 vec_store(&entryTile[k], acc[k]);
                 vec_store(&accTile[k], acc[k]);
             }
         }
 
-        for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQT_TILE_HEIGHT; ++j)
+        for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j)
         {
             auto* psqtAccTile = reinterpret_cast<psqt_vec_t*>(
-              &accumulator.psqtAccumulation[Perspective][j * Tiling::PSQT_TILE_HEIGHT]);
+              &accumulator.psqtAccumulation[Perspective][j * Tiling::PSQTTileHeight]);
             auto* psqtEntryTile =
-              reinterpret_cast<psqt_vec_t*>(&entry.psqtAccumulation[j * Tiling::PSQT_TILE_HEIGHT]);
+              reinterpret_cast<psqt_vec_t*>(&entry.psqtAccumulation[j * Tiling::PSQTTileHeight]);
 
-            for (IndexType k = 0; k < Tiling::PSQT_REG_COUNT; ++k)
+            for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = psqtEntryTile[k];
 
             for (std::size_t i = 0; i < removed.size(); ++i)
             {
-                auto  offset = removed[i] * PSQTBuckets + j * Tiling::PSQT_TILE_HEIGHT;
+                auto  offset = removed[i] * PSQTBuckets + j * Tiling::PSQTTileHeight;
                 auto* column = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
 
-                for (IndexType k = 0; k < Tiling::PSQT_REG_COUNT; ++k)
+                for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
                     psqt[k] = vec_sub_psqt_32(psqt[k], column[k]);
             }
 
             for (std::size_t i = 0; i < added.size(); ++i)
             {
-                auto  offset = added[i] * PSQTBuckets + j * Tiling::PSQT_TILE_HEIGHT;
+                auto  offset = added[i] * PSQTBuckets + j * Tiling::PSQTTileHeight;
                 auto* column = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
 
-                for (IndexType k = 0; k < Tiling::PSQT_REG_COUNT; ++k)
+                for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
                     psqt[k] = vec_add_psqt_32(psqt[k], column[k]);
             }
 
-            for (IndexType k = 0; k < Tiling::PSQT_REG_COUNT; ++k)
+            for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
             {
                 vec_store_psqt(&psqtEntryTile[k], psqt[k]);
                 vec_store_psqt(&psqtAccTile  [k], psqt[k]);
