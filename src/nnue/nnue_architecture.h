@@ -51,15 +51,15 @@ constexpr IndexType LayerStacks = 8;
 template<IndexType L1, std::uint32_t L2, std::uint32_t L3>
 struct NetworkArchitecture final {
     static constexpr IndexType     TransformedFeatureDimensions = L1;
-    static constexpr std::uint32_t FC_0_OUTPUTS                 = L2;
-    static constexpr std::uint32_t FC_1_OUTPUTS                 = L3;
+    static constexpr std::uint32_t FC_0_Outputs                 = L2;
+    static constexpr std::uint32_t FC_1_Outputs                 = L3;
 
-    Layers::AffineTransformSparseInput<TransformedFeatureDimensions, FC_0_OUTPUTS + 1> fc_0;
-    Layers::SqrClippedReLU<FC_0_OUTPUTS + 1>                                           ac_sqr_0;
-    Layers::ClippedReLU<FC_0_OUTPUTS + 1>                                              ac_0;
-    Layers::AffineTransform<FC_0_OUTPUTS * 2, FC_1_OUTPUTS>                            fc_1;
-    Layers::ClippedReLU<FC_1_OUTPUTS>                                                  ac_1;
-    Layers::AffineTransform<FC_1_OUTPUTS, 1>                                           fc_2;
+    Layers::AffineTransformSparseInput<TransformedFeatureDimensions, FC_0_Outputs + 1> fc_0;
+    Layers::SqrClippedReLU<FC_0_Outputs + 1>                                           ac_sqr_0;
+    Layers::ClippedReLU<FC_0_Outputs + 1>                                              ac_0;
+    Layers::AffineTransform<FC_0_Outputs * 2, FC_1_Outputs>                            fc_1;
+    Layers::ClippedReLU<FC_1_Outputs>                                                  ac_1;
+    Layers::AffineTransform<FC_1_Outputs, 1>                                           fc_2;
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t get_hash_value() noexcept {
@@ -95,7 +95,7 @@ struct NetworkArchitecture final {
         struct alignas(CACHE_LINE_SIZE) Buffer final {
             alignas(CACHE_LINE_SIZE) typename decltype(fc_0)::OutputBuffer fc_0_out;
             alignas(CACHE_LINE_SIZE) typename decltype(ac_sqr_0)::OutputType
-              ac_sqr_0_out[ceil_to_multiple<IndexType>(FC_0_OUTPUTS * 2, 32)];
+              ac_sqr_0_out[ceil_to_multiple<IndexType>(FC_0_Outputs * 2, 32)];
             alignas(CACHE_LINE_SIZE) typename decltype(ac_0)::OutputBuffer ac_0_out;
             alignas(CACHE_LINE_SIZE) typename decltype(fc_1)::OutputBuffer fc_1_out;
             alignas(CACHE_LINE_SIZE) typename decltype(ac_1)::OutputBuffer ac_1_out;
@@ -116,8 +116,8 @@ struct NetworkArchitecture final {
         fc_0.propagate(transformedFeatures, buffer.fc_0_out);
         ac_sqr_0.propagate(buffer.fc_0_out, buffer.ac_sqr_0_out);
         ac_0.propagate(buffer.fc_0_out, buffer.ac_0_out);
-        std::memcpy(buffer.ac_sqr_0_out + FC_0_OUTPUTS, buffer.ac_0_out,
-                    FC_0_OUTPUTS * sizeof(typename decltype(ac_0)::OutputType));
+        std::memcpy(buffer.ac_sqr_0_out + FC_0_Outputs, buffer.ac_0_out,
+                    FC_0_Outputs * sizeof(typename decltype(ac_0)::OutputType));
         fc_1.propagate(buffer.ac_sqr_0_out, buffer.fc_1_out);
         ac_1.propagate(buffer.fc_1_out, buffer.ac_1_out);
         fc_2.propagate(buffer.ac_1_out, buffer.fc_2_out);
@@ -125,7 +125,7 @@ struct NetworkArchitecture final {
         // buffer.fc_0_out[FC_0_OUTPUTS] is such that 1.0 is equal to 127 * (1 << WEIGHT_SCALE_BITS)
         // in quantized form, but want 1.0 to be equal to 600 * OUTPUT_SCALE
         std::int32_t fwdOut =
-          (buffer.fc_0_out[FC_0_OUTPUTS]) * (600 * OUTPUT_SCALE) / (127 * (1 << WEIGHT_SCALE_BITS));
+          (buffer.fc_0_out[FC_0_Outputs]) * (600 * OUTPUT_SCALE) / (127 * (1 << WEIGHT_SCALE_BITS));
         std::int32_t outputValue = buffer.fc_2_out[0] + fwdOut;
 
         return outputValue;

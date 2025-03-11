@@ -57,7 +57,7 @@ class ArrayList final {
 class HalfKAv2_hm final {
 
     // Unique number for each piece type on each square
-    enum /*PS*/ {
+    enum PS {
         PS_NONE     = 0,
         PS_W_PAWN   = 0 * SQUARE_NB,
         PS_B_PAWN   = 1 * SQUARE_NB,

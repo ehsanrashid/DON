@@ -249,8 +249,8 @@ void Network<Arch, Transformer>::verify(std::string evalFilename) const noexcept
                     + std::to_string(size / (1024 * 1024)) + "MiB, ("
                     + std::to_string(featureTransformer->InputDimensions) + ", "
                     + std::to_string(network[0].TransformedFeatureDimensions) + ", "
-                    + std::to_string(network[0].FC_0_OUTPUTS) + ", "  //
-                    + std::to_string(network[0].FC_1_OUTPUTS) + ", 1))";
+                    + std::to_string(network[0].FC_0_Outputs) + ", "  //
+                    + std::to_string(network[0].FC_1_Outputs) + ", 1))";
     UCI::print_info_string(msg);
 }
 
@@ -381,7 +381,7 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& istream,
     std::uint32_t hashValue;
     if (!Internal::read_header(istream, hashValue, netDescription))
         return false;
-    if (hashValue != Network::HASH_VALUE)
+    if (hashValue != Network::HashValue)
         return false;
     if (!Internal::read_parameters(istream, *featureTransformer))
         return false;
@@ -395,7 +395,7 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& istream,
 template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::write_parameters(
   std::ostream& ostream, const std::string& netDescription) const noexcept {
-    if (!Internal::write_header(ostream, Network::HASH_VALUE, netDescription))
+    if (!Internal::write_header(ostream, Network::HashValue, netDescription))
         return false;
     if (!Internal::write_parameters(ostream, *featureTransformer))
         return false;

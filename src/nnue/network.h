@@ -80,7 +80,7 @@ class Network final {
     bool write_parameters(std::ostream&, const std::string&) const noexcept;
 
     // Hash value of evaluation function structure
-    static constexpr std::uint32_t HASH_VALUE =
+    static constexpr std::uint32_t HashValue =
       Arch::get_hash_value() ^ Transformer::get_hash_value();
 
     // Input feature converter
