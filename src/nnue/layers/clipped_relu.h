@@ -45,8 +45,10 @@ class ClippedReLU {
     using OutputBuffer = OutputType[PaddedOutputDimensions];
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t get_hash_value(std::uint32_t hashValue) noexcept {
-        return 0x538D24C7u + hashValue;
+    static constexpr std::uint32_t get_hash_value(std::uint32_t preHashValue) noexcept {
+        std::uint32_t hashValue = 0x538D24C7u;
+        hashValue += preHashValue;
+        return hashValue;
     }
 
     // Read network parameters

@@ -53,13 +53,13 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
     #if defined(USE_SSE2) || defined(USE_NEON)
         #if defined(USE_SSE2)
     // At least a multiple of 16, with SSE2.
-    constexpr IndexType CHUNK_COUNT = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
+    constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
 
     auto* inputVector = reinterpret_cast<const __m128i*>(input);
 
     const __m128i Zeros = _mm_setzero_si128();
         #elif defined(USE_NEON)
-    constexpr IndexType CHUNK_COUNT = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
+    constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
 
     auto* inputVector = reinterpret_cast<const int8x8_t*>(input);
         #endif
@@ -72,7 +72,7 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
         __m128i sumLo = _mm_cvtsi32_si128(biases[i]);
         __m128i sumHi = Zeros;
         auto*   row   = reinterpret_cast<const __m128i*>(&weights[offset]);
-        for (IndexType j = 0; j < CHUNK_COUNT; ++j)
+        for (IndexType j = 0; j < ChunkCount; ++j)
         {
             __m128i row_j           = _mm_load_si128(&row[j]);
             __m128i input_j         = _mm_load_si128(&inputVector[j]);
@@ -96,7 +96,7 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
 
         int32x4_t sum = {biases[i]};
         auto*     row = reinterpret_cast<const int8x8_t*>(&weights[offset]);
-        for (IndexType j = 0; j < CHUNK_COUNT; ++j)
+        for (IndexType j = 0; j < ChunkCount; ++j)
         {
             int16x8_t product = vmull_s8(inputVector[j * 2], row[j * 2]);
             product           = vmlal_s8(product, inputVector[j * 2 + 1], row[j * 2 + 1]);
@@ -209,26 +209,26 @@ class AffineTransform final {
 
             static_assert(OutputDimensions % OutputSimdWidth == 0);
 
-            constexpr IndexType CHUNK_COUNT = ceil_to_multiple<IndexType>(InputDimensions, 8) / 4;
-            constexpr IndexType REG_COUNT   = OutputDimensions / OutputSimdWidth;
+            constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 8) / 4;
+            constexpr IndexType RegCount   = OutputDimensions / OutputSimdWidth;
 
             const auto* input32 = reinterpret_cast<const std::int32_t*>(input);
             const auto* biasVec = reinterpret_cast<const vec_t*>(biases);
-            vec_t       acc[REG_COUNT];
-            for (IndexType k = 0; k < REG_COUNT; ++k)
+            vec_t       acc[RegCount];
+            for (IndexType k = 0; k < RegCount; ++k)
                 acc[k] = biasVec[k];
 
-            for (IndexType i = 0; i < CHUNK_COUNT; ++i)
+            for (IndexType i = 0; i < ChunkCount; ++i)
             {
                 const vec_t in = vec_set_32(input32[i]);
                 const auto* col =
                   reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
-                for (IndexType k = 0; k < REG_COUNT; ++k)
+                for (IndexType k = 0; k < RegCount; ++k)
                     vec_add_dpbusd_32(acc[k], in, col[k]);
             }
 
             auto* outVec = reinterpret_cast<vec_t*>(output);
-            for (IndexType k = 0; k < REG_COUNT; ++k)
+            for (IndexType k = 0; k < RegCount; ++k)
                 outVec[k] = acc[k];
 
     #undef vec_set_32
@@ -266,12 +266,12 @@ class AffineTransform final {
 
             static_assert(PaddedInputDimensions % InputSimdWidth == 0);
 
-            constexpr IndexType CHUNK_COUNT = PaddedInputDimensions / InputSimdWidth;
+            constexpr IndexType ChunkCount = PaddedInputDimensions / InputSimdWidth;
 
             vec_t       sum0 = vec_setzero();
             const auto* row0 = reinterpret_cast<const vec_t*>(&weights[0]);
 
-            for (IndexType j = 0; j < CHUNK_COUNT; ++j)
+            for (IndexType j = 0; j < ChunkCount; ++j)
                 vec_add_dpbusd_32(sum0, inputVector[j], row0[j]);
 
             output[0] = vec_hadd(sum0, biases[0]);
