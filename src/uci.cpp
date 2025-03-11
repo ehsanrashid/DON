@@ -711,8 +711,8 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
               << "\nThread binding             : " << threadBindingStr
               << "\nTT size [MiB]              : " << benchmark.ttSize
               << "\nHash max, avg [per mille]  : "  //
-              << "\n    Single search          : " << maxHashFull[0] << ", " << sumHashFull[0] / hashFullCount  //
-              << "\n    Single game            : " << maxHashFull[1] << ", " << sumHashFull[1] / hashFullCount  //
+              << "\n    Single search          : " << maxHashFull[0] << ", " << float(sumHashFull[0]) / hashFullCount  //
+              << "\n    Single game            : " << maxHashFull[1] << ", " << float(sumHashFull[1]) / hashFullCount  //
               << "\nTotal time [s]             : " << 1.0e-3f * elapsedTime
               << "\nTotal nodes                : " << nodes
               << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
@@ -744,13 +744,12 @@ WinRateParams win_rate_params(const Position& pos) noexcept {
     return {a, b};
 }
 
-// The win rate model is 1 / (1 + exp((a - eval) / b)), where a = p_a(material) and b = p_b(material).
-// It fits the LTC fishtest statistics rather accurately.
+// The win rate model is 1 / (1 + exp((a - eval) / b)), where a = p_a(material) and b = p_b(material)
 int win_rate_model(Value v, const Position& pos) noexcept {
     assert(is_ok(v));
     auto [a, b] = win_rate_params(pos);
 
-    // Return the win rate in per mille units, rounded to the nearest integer.
+    // Return the win rate in per mille units, rounded to the nearest integer
     return int(0.5 + 1000.0 / (1.0 + std::exp((a - v) / b)));
 }
 }  // namespace
