@@ -36,8 +36,6 @@
 
 namespace DON {
 
-bool use_small_net(const Position& pos) noexcept { return std::abs(pos.evaluate()) > 962; }
-
 // Evaluate is the evaluator for the outer world. It returns a static evaluation
 // of the position from the point of view of the side to move.
 Value evaluate(const Position&          pos,
@@ -48,7 +46,7 @@ Value evaluate(const Position&          pos,
 
     NNUE::NetworkOutput netOut{0, 0};
 
-    bool smallNetUse = use_small_net(pos);
+    bool smallNetUse = std::abs(pos.evaluate()) > 962;
 
     const auto compute_nnue = [&netOut = std::as_const(netOut)]() noexcept -> std::int32_t {
         return (1004 * netOut.psqt + 1044 * netOut.positional) / (1024 * NNUE::OUTPUT_SCALE);

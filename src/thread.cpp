@@ -45,14 +45,11 @@ Thread::Thread(std::size_t                           id,
     nativeThread(&Thread::idle_func, this) {
 
     wait_finish();
-    run_custom_job([this, id, &nodeBinder, &sharedState, &searchManager]() {
+    run_custom_job([this, id, &sharedState, &searchManager, &nodeBinder]() {
         // Use the binder to [maybe] bind the threads to a NUMA node before doing
         // the Worker allocation.
-        // Ideally we would also allocate the SearchManager here, but that's minor.
-        this->numaAccessToken = nodeBinder();
-
-        this->worker = std::make_unique<Worker>(id, sharedState, std::move(searchManager),
-                                                this->numaAccessToken);
+        // Ideally would also allocate the SearchManager here, but that's minor.
+        worker = std::make_unique<Worker>(id, sharedState, std::move(searchManager), nodeBinder());
     });
     wait_finish();
 }
@@ -77,7 +74,7 @@ void Thread::idle_func() noexcept {
         std::unique_lock uniqueLock(mutex);
         busy = false;
         condVar.notify_one();  // Wake up anyone waiting for search finished
-        condVar.wait(uniqueLock, [&] { return busy; });
+        condVar.wait(uniqueLock, [this] { return busy; });
 
         if (dead)
             break;
