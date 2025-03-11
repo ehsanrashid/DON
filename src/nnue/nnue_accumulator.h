@@ -36,7 +36,7 @@ using IndexType      = std::uint32_t;
 
 // Class that holds the result of affine transformation of input features
 template<IndexType Size>
-struct alignas(CACHE_LINE_SIZE) Accumulator {
+struct alignas(CACHE_LINE_SIZE) Accumulator final {
     BiasType       accumulation[COLOR_NB][Size];
     PSQTWeightType psqtAccumulation[COLOR_NB][PSQTBuckets];
     bool           computed[COLOR_NB];
@@ -86,6 +86,9 @@ struct AccumulatorCaches final {
         std::array<std::array<Entry, COLOR_NB>, SQUARE_NB> entries;
     };
 
+    using BigCache   = Cache<BigTransformedFeatureDimensions>;
+    using SmallCache = Cache<SmallTransformedFeatureDimensions>;
+
     template<typename Networks>
     explicit AccumulatorCaches(const Networks& networks) noexcept {
 
@@ -99,8 +102,8 @@ struct AccumulatorCaches final {
         small.init(networks.small);
     }
 
-    Cache<BigTransformedFeatureDimensions>   big;
-    Cache<SmallTransformedFeatureDimensions> small;
+    BigCache   big;
+    SmallCache small;
 };
 
 }  // namespace DON::NNUE

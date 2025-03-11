@@ -159,8 +159,8 @@ void MovePicker::score<EVA_CAPTURE>() noexcept {
         auto   pc       = pos.moved_piece(m);
         auto   captured = pos.captured(m);
 
-        m.value =
-          2 * PIECE_VALUE[captured] + promotion_value(m, true) + CaptureHistory[pc][dst][captured];
+        m.value = 2 * PIECE_VALUE[captured] + promotion_value(m, true)  //
+                + CaptureHistory[pc][dst][captured];
     }
 }
 
