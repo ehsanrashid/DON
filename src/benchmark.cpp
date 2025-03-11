@@ -452,8 +452,8 @@ Commands setup_bench(std::istringstream& iss, std::string_view currentFen) noexc
 Benchmark setup_benchmark(std::istringstream& iss) noexcept {
     // TT_SIZE_PER_THREAD is chosen such that roughly half of the hash is
     // used all positions for the current sequence have been searched.
-    constexpr std::size_t TT_SIZE_PER_THREAD = 128;
-    constexpr std::size_t MOVE_TIME          = 150;
+    constexpr std::size_t ThreadTTSize = 128;
+    constexpr std::size_t MoveTime     = 150;
 
     Benchmark benchmark;
 
@@ -470,12 +470,12 @@ Benchmark setup_benchmark(std::istringstream& iss) noexcept {
     if (iss >> benchmark.ttSize)
         benchmark.originalInvocation += ' ' + std::to_string(benchmark.ttSize);
     else
-        benchmark.ttSize = benchmark.threads * TT_SIZE_PER_THREAD;
+        benchmark.ttSize = ThreadTTSize * benchmark.threads;
 
     if (iss >> moveTime)
         benchmark.originalInvocation += ' ' + std::to_string(moveTime);
     else
-        moveTime = MOVE_TIME;
+        moveTime = MoveTime;
 
     benchmark.filledInvocation += std::to_string(benchmark.threads) + ' '  //
                                 + std::to_string(benchmark.ttSize) + ' '   //

@@ -182,8 +182,8 @@ struct TTEntry final {
 
 static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");
 
-// TTCluster consists of TT_CLUSTER_ENTRY_COUNT number of TTEntry.
-// The size of a TTCluster should divide the size of a cache line for best performance,
+// TTCluster consists of EntryCount number of TTEntry.
+// The size of a TTCluster should divide the size of a cache-line for best performance,
 // as the cache-line is prefetched when possible.
 struct TTCluster final {
    public:

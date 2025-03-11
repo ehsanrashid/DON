@@ -61,12 +61,12 @@ class SqrClippedReLU {
     void propagate(const InputType* input, OutputType* output) const noexcept {
 
 #if defined(USE_SSE2)
-        constexpr IndexType CHUNK_COUNT = InputDimensions / 16;
+        constexpr IndexType ChunkCount = InputDimensions / 16;
 
         static_assert(WEIGHT_SCALE_BITS == 6);
         auto in  = reinterpret_cast<const __m128i*>(input);
         auto out = reinterpret_cast<__m128i*>(output);
-        for (IndexType i = 0; i < CHUNK_COUNT; ++i)
+        for (IndexType i = 0; i < ChunkCount; ++i)
         {
             __m128i words0 =
               _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]), _mm_load_si128(&in[i * 4 + 1]));
@@ -81,7 +81,7 @@ class SqrClippedReLU {
 
             _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
         }
-        constexpr IndexType Start = 16 * CHUNK_COUNT;
+        constexpr IndexType Start = 16 * ChunkCount;
 #else
         constexpr IndexType Start = 0;
 #endif
