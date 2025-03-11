@@ -78,9 +78,9 @@ struct State final {
     Piece        promotedPiece;
 
     // Used by NNUE
-    DirtyPiece                                                 dirtyPiece;
-    NNUE::Accumulator<NNUE::BigTransformedFeatureDimensions>   bigAccumulator;
-    NNUE::Accumulator<NNUE::SmallTransformedFeatureDimensions> smallAccumulator;
+    DirtyPiece             dirtyPiece;
+    NNUE::BigAccumulator   bigAccumulator;
+    NNUE::SmallAccumulator smallAccumulator;
 
     State* preState;
     State* nxtState;

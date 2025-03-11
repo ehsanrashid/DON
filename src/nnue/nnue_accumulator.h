@@ -42,6 +42,9 @@ struct alignas(CACHE_LINE_SIZE) Accumulator {
     bool           computed[COLOR_NB];
 };
 
+using BigAccumulator   = Accumulator<BigTransformedFeatureDimensions>;
+using SmallAccumulator = Accumulator<SmallTransformedFeatureDimensions>;
+
 // AccumulatorCaches struct provides per-thread accumulator caches, where each
 // cache contains multiple entries for each of the possible king squares.
 // When the accumulator needs to be refreshed, the cached entry is used to more
