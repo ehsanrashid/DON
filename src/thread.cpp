@@ -74,7 +74,7 @@ void Thread::idle_func() noexcept {
         std::unique_lock uniqueLock(mutex);
         busy = false;
         condVar.notify_one();  // Wake up anyone waiting for search finished
-        condVar.wait(uniqueLock, [&] { return busy; });
+        condVar.wait(uniqueLock, [this] { return busy; });
 
         if (dead)
             break;
