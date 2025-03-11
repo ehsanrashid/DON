@@ -80,11 +80,11 @@ class Thread final {
 
     void ensure_network_replicated() const noexcept;
 
+    void wait_finish() noexcept;
+
     void run_custom_job(JobFunc func) noexcept;
 
     void idle_func() noexcept;
-
-    void wait_finish() noexcept;
 
     void init() noexcept;
 
@@ -106,22 +106,19 @@ class Thread final {
     WorkerPtr worker;
 };
 
-// Launching a function in the thread
-inline void Thread::run_custom_job(JobFunc func) noexcept {
-    {
-        std::unique_lock uniqueLock(mutex);
-        condVar.wait(uniqueLock, [&] { return !busy; });
-        jobFunc = std::move(func);
-        busy    = true;
-    }
-    condVar.notify_one();
-}
-
 // Blocks on the condition variable
 // until the thread has finished job.
 inline void Thread::wait_finish() noexcept {
     std::unique_lock uniqueLock(mutex);
     condVar.wait(uniqueLock, [&] { return !busy; });
+}
+
+// Launching a function in the thread
+inline void Thread::run_custom_job(JobFunc func) noexcept {
+    wait_finish();
+    jobFunc = std::move(func);
+    busy    = true;
+    condVar.notify_one();
 }
 
 // Wakes up the thread that will initialize the worker
