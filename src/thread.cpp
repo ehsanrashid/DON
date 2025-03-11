@@ -49,10 +49,8 @@ Thread::Thread(std::size_t                           id,
         // Use the binder to [maybe] bind the threads to a NUMA node before doing
         // the Worker allocation.
         // Ideally we would also allocate the SearchManager here, but that's minor.
-        this->numaAccessToken = nodeBinder();
-
-        this->worker = std::make_unique<Worker>(id, sharedState, std::move(searchManager),
-                                                this->numaAccessToken);
+        this->worker =
+          std::make_unique<Worker>(id, sharedState, std::move(searchManager), nodeBinder());
     });
     wait_finish();
 }

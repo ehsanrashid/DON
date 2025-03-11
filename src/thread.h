@@ -94,13 +94,12 @@ class Thread final {
     // Set before starting nativeThread
     bool dead = false, busy = true;
 
-    std::mutex                mutex;
-    std::condition_variable   condVar;
-    const std::size_t         idx;
-    const std::size_t         threadCount;
-    NativeThread              nativeThread;
-    JobFunc                   jobFunc;
-    NumaReplicatedAccessToken numaAccessToken;
+    std::mutex              mutex;
+    std::condition_variable condVar;
+    const std::size_t       idx;
+    const std::size_t       threadCount;
+    NativeThread            nativeThread;
+    JobFunc                 jobFunc;
 
    public:
     WorkerPtr worker;
