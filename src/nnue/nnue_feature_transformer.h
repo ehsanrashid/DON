@@ -271,11 +271,11 @@ class FeatureTransformer final {
     static constexpr IndexType OutputDimensions = HalfDimensions;
 
     // Size of forward propagation buffer
-    static constexpr std::size_t BUFFER_SIZE = OutputDimensions * sizeof(OutputType);
+    static constexpr std::size_t BufferSize = OutputDimensions * sizeof(OutputType);
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t get_hash_value() noexcept {
-        return FeatureSet::HASH_VALUE ^ (2 * OutputDimensions);
+        return FeatureSet::HashValue ^ (2 * OutputDimensions);
     }
 
     // Store the order by which 128-bit blocks of a 1024-bit data must

@@ -29,9 +29,9 @@ namespace DON::NNUE::Features {
 // Index of a feature for a given king position and another piece on some square
 template<Color Perspective>
 IndexType HalfKAv2_hm::make_index(Square s, Piece pc, Square ksq) noexcept {
-    return (ORIENT_TABLE[Perspective][ksq] ^ int(s))  //
-         + PIECE_SQUARE_INDEX[Perspective][pc]        //
-         + KING_BUCKETS[Perspective][ksq];
+    return (OrientTable[Perspective][ksq] ^ int(s))  //
+         + PieceSquareIndex[Perspective][pc]         //
+         + KingBuckets[Perspective][ksq];
 }
 
 // Get a list of indices for active features
