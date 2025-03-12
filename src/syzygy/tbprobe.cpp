@@ -1181,10 +1181,10 @@ void set(T& entry, std::uint8_t* data) noexcept {
 
     PairsData* pd;
 
-    [[maybe_unused]] static constexpr std::uint8_t Split = 1, HasPawns = 2;
+    [[maybe_unused]] bool Split = *data & 1, HasPawns = *data & 2;
 
-    assert((entry.key[WHITE] != entry.key[BLACK]) == bool(*data & Split));
-    assert(entry.hasPawns == bool(*data & HasPawns));
+    assert((entry.key[WHITE] != entry.key[BLACK]) == Split);
+    assert(entry.hasPawns == HasPawns);
 
     ++data;  // First byte stores flags
 
