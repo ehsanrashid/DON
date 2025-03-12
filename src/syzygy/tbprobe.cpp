@@ -130,7 +130,7 @@ inline void swap_endian(T& x) noexcept {
 template<>
 inline void swap_endian<std::uint8_t>(std::uint8_t&) noexcept {}
 
-template<typename T, Endian LE>
+template<typename T, Endian Endian>
 T number(void* addr) noexcept {
     T v;
 
@@ -139,7 +139,7 @@ T number(void* addr) noexcept {
     else
         v = *((T*) (addr));
 
-    if (LE != IsLittleEndian)
+    if (Endian != IsLittleEndian)
         swap_endian(v);
     return v;
 }
@@ -147,7 +147,7 @@ T number(void* addr) noexcept {
 // DTZ tables don't store valid scores for moves that reset the rule50 counter
 // like captures and pawn moves but can easily recover the correct dtz of the
 // previous move if know the position's WDL score.
-int dtz_before_zeroing(WDLScore wdl) noexcept {
+int before_zeroing_dtz(WDLScore wdl) noexcept {
     switch (wdl)
     {
     case WDL_WIN :
@@ -1602,7 +1602,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     // DTZ stores a 'don't care value in this case, or even a plain wrong
     // one as in case the best move is a losing ep, so it cannot be probed.
     if (*ps == PS_BEST_MOVE_ZEROING)
-        return dtz_before_zeroing(wdl);
+        return before_zeroing_dtz(wdl);
 
     int dtz = probe_table<DTZ>(pos, ps, wdl);
 
@@ -1629,7 +1629,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
         // otherwise will get the dtz of the next move sequence. Search the
         // position after the move to get the score sign (because even in a
         // winning position could make a losing capture or go for a draw).
-        dtz = zeroing ? -dtz_before_zeroing(search<false>(pos, ps)) : -probe_dtz(pos, ps);
+        dtz = zeroing ? -before_zeroing_dtz(search<false>(pos, ps)) : -probe_dtz(pos, ps);
 
         // If the move mates, force minDTZ to 1
         if (dtz == 1 && pos.checkers() && MoveList<LEGAL, true>(pos).empty())
@@ -1681,7 +1681,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
         {
             // In case of a zeroing move, dtz is one of -101/-1/0/1/101
             auto wdl = -probe_wdl(pos, &ps);
-            dtz      = dtz_before_zeroing(wdl);
+            dtz      = before_zeroing_dtz(wdl);
         }
         else if (pos.is_draw(1, rule50Use))
         {
