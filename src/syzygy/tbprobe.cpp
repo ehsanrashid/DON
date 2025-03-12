@@ -244,13 +244,13 @@ class TBFile: public std::ifstream {
             close();  // Need to re-open to get native file descriptor
 
 #if !defined(_WIN32)
-        int fd = ::open(filename.c_str(), O_RDONLY);
+        int fileHandle = ::open(filename.c_str(), O_RDONLY);
 
-        if (fd == -1)
+        if (fileHandle == -1)
             return *baseAddress = nullptr, nullptr;
 
         struct stat bufStat;
-        fstat(fd, &bufStat);
+        fstat(fileHandle, &bufStat);
 
         if (bufStat.st_size % 64 != 16)
         {
@@ -259,11 +259,11 @@ class TBFile: public std::ifstream {
         }
 
         *mapping     = bufStat.st_size;
-        *baseAddress = mmap(nullptr, bufStat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+        *baseAddress = mmap(nullptr, bufStat.st_size, PROT_READ, MAP_SHARED, fileHandle, 0);
     #if defined(MADV_RANDOM)
         madvise(*baseAddress, bufStat.st_size, MADV_RANDOM);
     #endif
-        ::close(fd);
+        ::close(fileHandle);
 
         if (*baseAddress == MAP_FAILED)
         {
@@ -272,14 +272,14 @@ class TBFile: public std::ifstream {
         }
 #else
         // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
-        HANDLE fd = CreateFileA(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
-                                OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
+        HANDLE fileHandle = CreateFileA(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+                                        OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
 
-        if (fd == INVALID_HANDLE_VALUE)
+        if (fileHandle == INVALID_HANDLE_VALUE)
             return *baseAddress = nullptr, nullptr;
 
         DWORD highSize;
-        DWORD lowSize = GetFileSize(fd, &highSize);
+        DWORD lowSize = GetFileSize(fileHandle, &highSize);
 
         if (lowSize % 64 != 16)
         {
@@ -287,17 +287,18 @@ class TBFile: public std::ifstream {
             std::exit(EXIT_FAILURE);
         }
 
-        HANDLE mmap = CreateFileMapping(fd, nullptr, PAGE_READONLY, highSize, lowSize, nullptr);
-        CloseHandle(fd);
+        HANDLE mapHandle =
+          CreateFileMapping(fileHandle, nullptr, PAGE_READONLY, highSize, lowSize, nullptr);
+        CloseHandle(fileHandle);
 
-        if (!mmap)
+        if (!mapHandle)
         {
             std::cerr << "CreateFileMapping() failed, name = " << filename << std::endl;
             std::exit(EXIT_FAILURE);
         }
 
-        *mapping     = std::uint64_t(mmap);
-        *baseAddress = MapViewOfFile(mmap, FILE_MAP_READ, 0, 0, 0);
+        *mapping     = std::uint64_t(mapHandle);
+        *baseAddress = MapViewOfFile(mapHandle, FILE_MAP_READ, 0, 0, 0);
 
         if (!*baseAddress)
         {
@@ -309,9 +310,9 @@ class TBFile: public std::ifstream {
 
         auto data = (std::uint8_t*) (*baseAddress);
 
-        static constexpr std::size_t  MagicSize = 4;
-        static constexpr std::uint8_t Magics[2][MagicSize]{{0xD7, 0x66, 0x0C, 0xA5},
-                                                           {0x71, 0xE8, 0x23, 0x5D}};
+        static constexpr std::size_t  MagicSize            = 4;
+        static constexpr std::uint8_t Magics[2][MagicSize] = {{0xD7, 0x66, 0x0C, 0xA5},
+                                                              {0x71, 0xE8, 0x23, 0x5D}};
 
         if (std::memcmp(data, Magics[Type == WDL], MagicSize))
         {
