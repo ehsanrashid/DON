@@ -1196,7 +1196,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                                          -138 * virtualDepth, +135 * virtualDepth);
                 if (!(is_ok(preSq) && dst == preSq)
                     && !((ss - 1)->conseqChecks >= 3 && alpha < VALUE_DRAW
-                         && pos.non_pawn_material(ac) <= PIECE_VALUE[movedPiece])
+                         && pos.non_pawn_material(ac) <= PIECE_VALUE[type_of(movedPiece)])
                     && pos.see(move) < -(seeHist + 154 * virtualDepth + 256 * dblCheck))
                     continue;
             }
@@ -1234,7 +1234,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 // SEE based pruning for quiets
                 if (!((ss - 1)->conseqChecks >= 3 && alpha < VALUE_DRAW
-                      && pos.non_pawn_material(ac) <= PIECE_VALUE[movedPiece])
+                      && pos.non_pawn_material(ac) <= PIECE_VALUE[type_of(movedPiece)])
                     && pos.see(move) < -(27 * sqr(lmrDepth) + 256 * dblCheck))
                     continue;
             }
@@ -1868,7 +1868,7 @@ QS_MOVES_LOOP:
             // SEE based pruning
             if (!(is_ok(preSq) && dst == preSq)
                 && !((ss - 1)->conseqChecks >= 3 && alpha < VALUE_DRAW
-                     && pos.non_pawn_material(ac) <= PIECE_VALUE[movedPiece])
+                     && pos.non_pawn_material(ac) <= PIECE_VALUE[type_of(movedPiece)])
                 && pos.see(move) < -(75 + 64 * dblCheck))
                 continue;
         }
