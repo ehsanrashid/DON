@@ -848,7 +848,7 @@ class FeatureTransformer final {
         do
         {
             if (st->preState == nullptr || st->preState->nxtState != st
-                || FeatureSet::requires_refresh(st, Perspective))
+                || FeatureSet::requires_refresh(st->dirtyPiece, Perspective))
                 goto REFRESH;
 
             st = st->preState;

@@ -28,7 +28,6 @@
 
 namespace DON {
 
-struct State;
 class Position;
 
 namespace NNUE::Features {
@@ -153,7 +152,7 @@ class HalfKAv2_hm final {
 
     // Returns whether the change stored in this State means
     // that a full accumulator refresh is required.
-    static bool requires_refresh(const State* st, Color perspective) noexcept;
+    static bool requires_refresh(const DirtyPiece& dp, Color perspective) noexcept;
 };
 
 }  // namespace NNUE::Features

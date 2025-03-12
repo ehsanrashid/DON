@@ -81,8 +81,8 @@ template void HalfKAv2_hm::append_changed_indices<BLACK>(Square            ksq,
                                                          IndexList&        removed,
                                                          IndexList&        added) noexcept;
 
-bool HalfKAv2_hm::requires_refresh(const State* st, Color perspective) noexcept {
-    return st->dirtyPiece.piece[0] == make_piece(perspective, KING);
+bool HalfKAv2_hm::requires_refresh(const DirtyPiece& dp, Color perspective) noexcept {
+    return dp.piece[0] == make_piece(perspective, KING);
 }
 
 }  // namespace DON::NNUE::Features
