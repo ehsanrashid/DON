@@ -186,8 +186,8 @@ constexpr auto sign_sqr(T x) noexcept {
 }
 
 // True if and only if the binary is compiled on a little-endian machine
-constexpr std::uint16_t  LittleEndian   = 1;
-static const inline bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndian) == 1;
+constexpr std::uint16_t  LittleEndianValue = 1;
+static const inline bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;
 
 constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 #if defined(IS_64BIT) && defined(__GNUC__)

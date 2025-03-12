@@ -67,8 +67,8 @@ constexpr std::uint32_t TBPieces = 7;
 constexpr int MAX_DTZ = 1 << 18;
 
 enum Endian {
-    BigEndian,
-    LittleEndian
+    Big,
+    Little
 };
 // Used as template parameter
 enum TBType {
@@ -604,8 +604,8 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     auto k = std::uint32_t(idx / pd->span);
 
     // Then read the corresponding SparseIndex[] entry
-    auto block  = number<std::uint32_t, LittleEndian>(&pd->sparseIndex[k].block);
-    int  offset = number<std::uint16_t, LittleEndian>(&pd->sparseIndex[k].offset);
+    auto block  = number<std::uint32_t, Little>(&pd->sparseIndex[k].block);
+    int  offset = number<std::uint16_t, Little>(&pd->sparseIndex[k].offset);
 
     // Now compute the difference idx - I(k). From the definition of k,
     //
@@ -631,7 +631,7 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     // Read the first 64 bits in our block, this is a (truncated) sequence of
     // unknown number of symbols of unknown length but the first one
     // is at the beginning of this 64-bit sequence.
-    auto buf64     = number<std::uint64_t, BigEndian>(ptr);
+    auto buf64     = number<std::uint64_t, Big>(ptr);
     int  buf64Size = 64;
     ptr += 2;
     Sym sym;
@@ -652,7 +652,7 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
         sym = Sym((buf64 - pd->base64[len]) >> (64 - len - pd->minSymLen));
 
         // Now add the value of the lowest symbol of length len to get our symbol
-        sym += number<Sym, LittleEndian>(&pd->lowestSym[len]);
+        sym += number<Sym, Little>(&pd->lowestSym[len]);
 
         // If our offset is within the number of values represented by symbol 'sym', are done.
         if (offset < pd->symLen[sym] + 1)
@@ -668,7 +668,7 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
         if (buf64Size <= 32)
         {
             buf64Size += 32;
-            buf64 |= std::uint64_t(number<std::uint32_t, BigEndian>(ptr++)) << (64 - buf64Size);
+            buf64 |= std::uint64_t(number<std::uint32_t, Big>(ptr++)) << (64 - buf64Size);
         }
     }
 
@@ -1080,9 +1080,9 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     pd->span            = 1ull << *data++;
     pd->sparseIndexSize = (tbSize + pd->span - 1) / pd->span;  // Round up
 
-    auto padding = number<std::uint8_t, LittleEndian>(data);
+    auto padding = number<std::uint8_t, Little>(data);
     data += 1;
-    pd->blockCount = number<std::uint32_t, LittleEndian>(data);
+    pd->blockCount = number<std::uint32_t, Little>(data);
     data += sizeof(std::uint32_t);
     // Padded to ensure SparseIndex[] does not point out of range.
     pd->blockLengthSize = pd->blockCount + padding;
@@ -1106,9 +1106,9 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     if (base64Size > 0)
         for (std::size_t i = base64Size - 1; i > 0; --i)
         {
-            pd->base64[i - 1] = (pd->base64[i]                                       //
-                                 + number<Sym, LittleEndian>(&pd->lowestSym[i - 1])  //
-                                 - number<Sym, LittleEndian>(&pd->lowestSym[i]))
+            pd->base64[i - 1] = (pd->base64[i]                                 //
+                                 + number<Sym, Little>(&pd->lowestSym[i - 1])  //
+                                 - number<Sym, Little>(&pd->lowestSym[i]))
                               / 2;
 
             assert(2 * pd->base64[i - 1] >= pd->base64[i]);
@@ -1122,7 +1122,7 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
         pd->base64[i] <<= 64 - i - pd->minSymLen;  // Right-padding to 64 bits
 
     data += base64Size * sizeof(Sym);
-    pd->symLen.resize(number<std::uint16_t, LittleEndian>(data));
+    pd->symLen.resize(number<std::uint16_t, Little>(data));
     data += sizeof(std::uint16_t);
     pd->btree = (LR*) (data);
 
@@ -1159,7 +1159,7 @@ std::uint8_t* set_dtz_map(TBTable<DTZ>& entry, std::uint8_t* data, File maxFile)
                 {
                     // Sequence like 3,x,x,x,1,x,0,2,x,x
                     pd->mapIdx[i] = 1 + (std::uint16_t*) (data) - (std::uint16_t*) (entry.map);
-                    data += 2 + 2 * number<std::uint16_t, LittleEndian>(data);
+                    data += 2 + 2 * number<std::uint16_t, Little>(data);
                 }
             }
             else
