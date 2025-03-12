@@ -62,8 +62,8 @@ class Network final {
              AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
     NetworkTrace
-    trace_eval(const Position&                                         pos,
-               AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
+    trace(const Position&                                         pos,
+          AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
    private:
     void load_user_net(const std::string& dir, const std::string& evalfilePath) noexcept;

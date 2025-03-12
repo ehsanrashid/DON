@@ -280,7 +280,7 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
 }
 
 template<typename Arch, typename Transformer>
-NetworkTrace Network<Arch, Transformer>::trace_eval(
+NetworkTrace Network<Arch, Transformer>::trace(
   const Position&                                         pos,
   AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
     // Manually align the arrays on the stack because with gcc < 9.3

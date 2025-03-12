@@ -165,9 +165,10 @@ class MultiArray final {
     Array array;
 };
 
+// Return the sign of a number (-1, 0, +1)
 template<typename T>
 constexpr int sign(T x) noexcept {
-    static_assert(std::is_arithmetic_v<T>, "Argument must be an arithmetic type");
+    //static_assert(std::is_arithmetic_v<T>, "Argument must be an arithmetic type");
     return (T(0) < x) - (x < T(0));  // Returns 1 for positive, -1 for negative, and 0 for zero
 }
 

@@ -148,17 +148,19 @@ T number(void* addr) noexcept {
 // like captures and pawn moves but can easily recover the correct dtz of the
 // previous move if know the position's WDL score.
 int dtz_before_zeroing(WDLScore wdl) noexcept {
-    return wdl == WDL_WIN          ? +1
-         : wdl == WDL_CURSED_WIN   ? +101
-         : wdl == WDL_BLESSED_LOSS ? -101
-         : wdl == WDL_LOSS         ? -1
-                                   : 0;
-}
-
-// Return the sign of a number (-1, 0, +1)
-template<typename T>
-int sign_of(T val) noexcept {
-    return (T(0) < val) - (val < T(0));
+    switch (wdl)
+    {
+    case WDL_WIN :
+        return +1;
+    case WDL_CURSED_WIN :
+        return +101;
+    case WDL_BLESSED_LOSS :
+        return -101;
+    case WDL_LOSS :
+        return -1;
+    default :
+        return 0;
+    }
 }
 
 // Numbers in little-endian used by sparseIndex[] to point into blockLength[]
@@ -1608,14 +1610,14 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
         return 0;
 
     if (*ps != PS_CHANGE_AC)
-        return (dtz + 100 * (wdl == WDL_BLESSED_LOSS || wdl == WDL_CURSED_WIN)) * sign_of(wdl);
+        return (dtz + 100 * (wdl == WDL_BLESSED_LOSS || wdl == WDL_CURSED_WIN)) * sign(wdl);
 
     // DTZ stores results for the other side, so need to do a 1-ply search and
     // find the winning move that minimizes DTZ.
     State st;
     ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
-    int minDTZ = INT_MAX;
+    int minDtz = INT_MAX;
 
     for (const Move& m : MoveList<LEGAL>(pos))
     {
@@ -1631,16 +1633,16 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
         // If the move mates, force minDTZ to 1
         if (dtz == 1 && pos.checkers() && MoveList<LEGAL, true>(pos).empty())
-            minDTZ = 1;
+            minDtz = 1;
 
         // Convert result from 1-ply search. Zeroing moves are already accounted
         // by dtz_before_zeroing() that returns the DTZ of the previous move.
         if (!zeroing)
-            dtz += sign_of(dtz);
+            dtz += sign(dtz);
 
         // Skip the draws and if winning only pick positive dtz
-        if (minDTZ > dtz && sign_of(dtz) == sign_of(wdl))
-            minDTZ = dtz;
+        if (minDtz > dtz && sign(dtz) == sign(wdl))
+            minDtz = dtz;
 
         pos.undo_move(m);
 
@@ -1649,7 +1651,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     }
 
     // When there are no legal moves, the position is mate: return -1
-    return minDTZ == INT_MAX ? -1 : minDTZ;
+    return minDtz == INT_MAX ? -1 : minDtz;
 }
 
 // Use the DTZ tables to rank root moves.

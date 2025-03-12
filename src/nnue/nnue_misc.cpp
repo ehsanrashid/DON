@@ -159,7 +159,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
         oss << row << '\n';
     oss << '\n';
 
-    auto trace = networks.big.trace_eval(pos, &caches.big);
+    auto trace = networks.big.trace(pos, &caches.big);
 
     oss << " NNUE network contributions ("  //
         << (pos.active_color() == WHITE ? "White" : "Black") << " to move):\n"
