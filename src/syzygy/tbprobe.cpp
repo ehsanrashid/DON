@@ -106,17 +106,17 @@ bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[
 constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 
 // clang-format off
-constexpr int          WDLMap    [5]{1, 3, 0, 2, 0};
-constexpr std::int32_t WDLToRank [5]{-MAX_DTZ,
-                                     -MAX_DTZ + 101,
-                                      0,
-                                     +MAX_DTZ - 101,
-                                     +MAX_DTZ};
-constexpr Value        WDLToValue[5]{VALUE_MATED_IN_MAX_PLY + 1,
-                                     VALUE_DRAW - 2,
-                                     VALUE_DRAW,
-                                     VALUE_DRAW + 2,
-                                     VALUE_MATES_IN_MAX_PLY - 1};
+constexpr int          WDLMap    [5] = {1, 3, 0, 2, 0};
+constexpr std::int32_t WDLToRank [5] = {-MAX_DTZ,
+                                        -MAX_DTZ + 101,
+                                        0,
+                                        +MAX_DTZ - 101,
+                                        +MAX_DTZ};
+constexpr Value        WDLToValue[5] = {VALUE_MATED_IN_MAX_PLY + 1,
+                                        VALUE_DRAW - 2,
+                                        VALUE_DRAW,
+                                        VALUE_DRAW + 2,
+                                        VALUE_MATES_IN_MAX_PLY - 1};
 // clang-format on
 
 template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
@@ -1200,8 +1200,8 @@ void set(T& entry, std::uint8_t* data) noexcept {
         for (std::size_t i = 0; i < sides; ++i)
             *entry.get(i, f) = PairsData();
 
-        int order[2][2]{{*data & 0xF, pp ? *(data + 1) & 0xF : 0xF},
-                        {*data >> 4, pp ? *(data + 1) >> 4 : 0xF}};
+        int order[2][2] = {{*data & 0xF, pp ? *(data + 1) & 0xF : 0xF},
+                           {*data >> 4, pp ? *(data + 1) >> 4 : 0xF}};
         data += 1 + pp;
 
         for (std::uint8_t k = 0; k < entry.pieceCount; ++k, ++data)
