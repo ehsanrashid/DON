@@ -864,15 +864,12 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // Look for the first piece of the leading group not on the A1-D4 diagonal
     // and ensure it is mapped below the diagonal.
     for (int i = 0; i < pd->groupLen[0]; ++i)
-    {
-        if (!off_A1H8(squares[i]))
-            continue;
-
         if (off_A1H8(squares[i]) > 0)  // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
+        {
             for (int j = i; j < size; ++j)
                 squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 0x3F);
-        break;
-    }
+            break;
+        }
 
     // Encode the leading group.
     //
@@ -1009,7 +1006,6 @@ void set_groups(T& entry, PairsData* pd, int order[], File f) noexcept {
     std::uint64_t idx     = 1;
 
     for (int k = 0; k == order[0] || k == order[1] || i < n; ++k)
-    {
         // Leading pawns or pieces
         if (k == order[0])
         {
@@ -1017,21 +1013,22 @@ void set_groups(T& entry, PairsData* pd, int order[], File f) noexcept {
             idx *= entry.hasPawns        ? LeadPawnSize[pd->groupLen[0]][f]
                  : entry.hasUniquePieces ? 31332
                                          : 462;
-            continue;
         }
         // Remaining pawns
-        if (k == order[1])
+        else if (k == order[1])
         {
             pd->groupIdx[1] = idx;
             idx *= Binomial[pd->groupLen[1]][48 - pd->groupLen[0]];
-            continue;
         }
         // Remaining pieces
-        pd->groupIdx[i] = idx;
-        idx *= Binomial[pd->groupLen[i]][freeLen];
-        freeLen -= pd->groupLen[i];
-        ++i;
-    }
+        else
+        {
+            pd->groupIdx[i] = idx;
+            idx *= Binomial[pd->groupLen[i]][freeLen];
+            freeLen -= pd->groupLen[i];
+            ++i;
+        }
+
     pd->groupIdx[n] = idx;
 }
 
@@ -1184,10 +1181,8 @@ void set(T& entry, std::uint8_t* data) noexcept {
 
     PairsData* pd;
 
-    enum : std::uint8_t {
-        Split    = 1,
-        HasPawns = 2
-    };
+    [[maybe_unused]] static constexpr std::uint8_t Split = 1, HasPawns = 2;
+
     assert((entry.key[WHITE] != entry.key[BLACK]) == bool(*data & Split));
     assert(entry.hasPawns == bool(*data & HasPawns));
 
