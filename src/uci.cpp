@@ -770,11 +770,11 @@ int UCI::to_cp(Value v, const Position& pos) noexcept {
 std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
     assert(is_ok(v));
 
-    auto wdlW = win_rate_model(+v, pos);
-    auto wdlL = win_rate_model(-v, pos);
-    auto wdlD = 1000 - wdlW - wdlL;
+    auto w = win_rate_model(+v, pos);
+    auto l = win_rate_model(-v, pos);
+    auto d = 1000 - (w + l);
 
-    return std::to_string(wdlW) + " " + std::to_string(wdlD) + " " + std::to_string(wdlL);
+    return std::to_string(w) + " " + std::to_string(d) + " " + std::to_string(l);
 }
 
 std::string UCI::score(const Score& score) noexcept {

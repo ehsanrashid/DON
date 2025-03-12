@@ -36,17 +36,18 @@
 
 namespace DON {
 
-// Evaluate is the evaluator for the outer world. It returns a static evaluation
-// of the position from the point of view of the side to move.
+// Evaluate is the evaluator for the outer world.
+// It returns a static evaluation of the position
+// from the point of view of the side to move.
 Value evaluate(const Position&          pos,
                const NNUE::Networks&    networks,
                NNUE::AccumulatorCaches& accCaches,
                std::int32_t             optimism) noexcept {
     assert(!pos.checkers());
 
-    NNUE::NetworkOutput netOut{0, 0};
-
     bool smallNetUse = std::abs(pos.evaluate()) > 962;
+
+    NNUE::NetworkOutput netOut{0, 0};
 
     const auto compute_nnue = [&netOut = std::as_const(netOut)]() noexcept -> std::int32_t {
         return (1004 * netOut.psqt + 1044 * netOut.positional) / (1024 * NNUE::OUTPUT_SCALE);
@@ -98,10 +99,10 @@ Value evaluate(const Position&          pos,
     return in_range(v);
 }
 
-// Like evaluate(), but instead of returning a value, it returns
-// a string (suitable for outputting to stdout) that contains the detailed
-// descriptions and values of each evaluation term. Useful for debugging.
-// Trace scores are from white's point of view
+// Like evaluate(), but instead of returning a value,
+// it returns a string (suitable for outputting to stdout)
+// that contains the detailed descriptions and values of each evaluation term.
+// Trace scores are from white's point of view.
 std::string trace(Position&             pos,  //
                   const NNUE::Networks& networks) noexcept {
     if (pos.checkers())

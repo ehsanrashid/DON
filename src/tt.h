@@ -214,7 +214,7 @@ constexpr Value value_to_tt(Value v, std::int16_t ply) noexcept {
 // current position) to "plies to mate/be mated (TB win/loss) from the root".
 // However, to avoid potentially false mate or TB scores related to the 50 moves rule
 // and the graph history interaction, return the highest non-TB score instead.
-constexpr Value value_from_tt(Value v, std::int16_t ply, std::uint8_t rule50) noexcept {
+constexpr Value value_from_tt(Value v, std::int16_t ply, std::uint8_t rule50Count) noexcept {
 
     if (!is_valid(v))
         return v;
@@ -223,11 +223,11 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::uint8_t rule50) no
     if (is_win(v))
     {
         // Downgrade a potentially false mate value
-        if (is_mate_win(v) && VALUE_MATE - v > 2 * DrawMoveCount - rule50)
+        if (is_mate_win(v) && VALUE_MATE - v > 2 * DrawMoveCount - rule50Count)
             return VALUE_TB_WIN_IN_MAX_PLY - 1;
 
         // Downgrade a potentially false TB value
-        if (VALUE_TB - v > 2 * DrawMoveCount - rule50)
+        if (VALUE_TB - v > 2 * DrawMoveCount - rule50Count)
             return VALUE_TB_WIN_IN_MAX_PLY - 1;
 
         return v - ply;
@@ -236,11 +236,11 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::uint8_t rule50) no
     if (is_loss(v))
     {
         // Downgrade a potentially false mate value
-        if (is_mate_loss(v) && VALUE_MATE + v > 2 * DrawMoveCount - rule50)
+        if (is_mate_loss(v) && VALUE_MATE + v > 2 * DrawMoveCount - rule50Count)
             return VALUE_TB_LOSS_IN_MAX_PLY + 1;
 
         // Downgrade a potentially false TB value
-        if (VALUE_TB + v > 2 * DrawMoveCount - rule50)
+        if (VALUE_TB + v > 2 * DrawMoveCount - rule50Count)
             return VALUE_TB_LOSS_IN_MAX_PLY + 1;
 
         return v + ply;

@@ -29,8 +29,8 @@ class Position;
 
 class Score final {
    public:
-    struct Mate final {
-        int ply;
+    struct Unit final {
+        int value;
     };
 
     struct Tablebase final {
@@ -38,8 +38,8 @@ class Score final {
         bool win;
     };
 
-    struct Unit final {
-        int value;
+    struct Mate final {
+        int ply;
     };
 
     Score() noexcept = delete;
@@ -61,7 +61,7 @@ class Score final {
     }
 
    private:
-    std::variant<Mate, Tablebase, Unit> score;
+    std::variant<Unit, Tablebase, Mate> score;
 };
 
 }  // namespace DON

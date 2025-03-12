@@ -674,9 +674,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     }
 
     // Step 1. Initialize node
-    ss->inCheck   = bool(pos.checkers());
-    ss->moveCount = 0;
-    ss->history   = 0;
+    ss->inCheck      = bool(pos.checkers());
+    ss->conseqChecks = ss->inCheck ? 1 + (ss - 2)->conseqChecks : 0;
+    ss->moveCount    = 0;
+    ss->history      = 0;
 
     if constexpr (!RootNode)
     {
@@ -1194,8 +1195,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int seeHist = std::clamp(int(std::lround(0.03125f * captHist)),  //
                                          -138 * virtualDepth, +135 * virtualDepth);
                 if (!(is_ok(preSq) && dst == preSq)
-                    && !((ss - 1)->inCheck && (ss - 3)->inCheck && (ss - 5)->inCheck
-                         && (ss - 7)->inCheck && alpha < -500)
+                    && !((ss - 1)->conseqChecks >= 3 && alpha < VALUE_DRAW
+                         && pos.non_pawn_material(ac) <= PIECE_VALUE[movedPiece])
                     && pos.see(move) < -(seeHist + 154 * virtualDepth + 256 * dblCheck))
                     continue;
             }
@@ -1232,8 +1233,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                     lmrDepth = DEPTH_ZERO;
 
                 // SEE based pruning for quiets
-                if (!((ss - 1)->inCheck && (ss - 3)->inCheck && (ss - 5)->inCheck
-                      && (ss - 7)->inCheck && alpha < -500)
+                if (!((ss - 1)->conseqChecks >= 3 && alpha < VALUE_DRAW
+                      && pos.non_pawn_material(ac) <= PIECE_VALUE[movedPiece])
                     && pos.see(move) < -(27 * sqr(lmrDepth) + 256 * dblCheck))
                     continue;
             }
@@ -1647,7 +1648,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (1 + alpha == beta));
 
-    Key key = pos.key();
+    Color ac  = pos.active_color();
+    Key   key = pos.key();
 
     // Check if have an upcoming move that draws by repetition
     if (alpha < VALUE_DRAW && pos.upcoming_repetition(ss->ply))
@@ -1673,7 +1675,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     }
 
     // Step 1. Initialize node
-    ss->inCheck = bool(pos.checkers());
+    ss->inCheck      = bool(pos.checkers());
+    ss->conseqChecks = ss->inCheck ? 1 + (ss - 2)->conseqChecks : 0;
 
     // Step 2. Check for an immediate draw or maximum ply reached
     if (ss->ply >= MAX_PLY || pos.is_draw(ss->ply))
@@ -1864,8 +1867,8 @@ QS_MOVES_LOOP:
 
             // SEE based pruning
             if (!(is_ok(preSq) && dst == preSq)
-                && !((ss - 1)->inCheck && (ss - 3)->inCheck && (ss - 5)->inCheck
-                     && (ss - 7)->inCheck && alpha < -500)
+                && !((ss - 1)->conseqChecks >= 3 && alpha < VALUE_DRAW
+                     && pos.non_pawn_material(ac) <= PIECE_VALUE[movedPiece])
                 && pos.see(move) < -(75 + 64 * dblCheck))
                 continue;
         }

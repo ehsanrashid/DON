@@ -35,8 +35,8 @@ class Moves final {
    public:
     using Vector     = std::vector<Move>;
     using Itr        = Vector::iterator;
-    using ReverseItr = Vector::reverse_iterator;
     using ConstItr   = Vector::const_iterator;
+    using ReverseItr = Vector::reverse_iterator;
 
     Moves() noexcept = default;
     explicit Moves(const std::size_t count, const Move& m) noexcept :
