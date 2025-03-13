@@ -153,7 +153,7 @@ using psqt_vec_t = int32x4_t;
 
 #if defined(VECTOR)
 // Compute optimal SIMD register count for feature transformer accumulation.
-template<IndexType HalfDimensions>
+template<IndexType TransformedFeatureDimensions>
 class SIMDTiling final {
    private:
     SIMDTiling() noexcept  = delete;
@@ -199,14 +199,15 @@ class SIMDTiling final {
 
    public:
     static constexpr IndexType RegCount =
-      best_register_count<vec_t, WeightType, HalfDimensions, MaxRegisterCount>();
+      best_register_count<vec_t, WeightType, TransformedFeatureDimensions, MaxRegisterCount>();
     static constexpr IndexType PSQTRegCount =
       best_register_count<psqt_vec_t, PSQTWeightType, PSQTBuckets, MaxRegisterCount>();
 
     static constexpr IndexType TileHeight     = RegCount * sizeof(vec_t) / 2;
     static constexpr IndexType PSQTTileHeight = PSQTRegCount * sizeof(psqt_vec_t) / 4;
 
-    static_assert(HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
+    static_assert(TransformedFeatureDimensions % TileHeight == 0,
+                  "TileHeight must divide TransformedFeatureDimensions");
     static_assert(PSQTBuckets % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQTBuckets");
 };
 #endif
@@ -255,15 +256,12 @@ template<IndexType                                 TransformedFeatureDimensions,
 class FeatureTransformer final {
 
    public:
-    // Number of output dimensions for one side
-    static constexpr IndexType HalfDimensions = TransformedFeatureDimensions;
-
     // Output type
     using OutputType = TransformedFeatureType;
 
     // Number of input/output dimensions
     static constexpr IndexType InputDimensions  = FeatureSet::Dimensions;
-    static constexpr IndexType OutputDimensions = HalfDimensions;
+    static constexpr IndexType OutputDimensions = TransformedFeatureDimensions;
 
     // Size of forward propagation buffer
     static constexpr std::size_t BufferSize = OutputDimensions * sizeof(OutputType);
@@ -305,12 +303,12 @@ class FeatureTransformer final {
 
     template<bool Read>
     void scale_weights() noexcept {
-        for (IndexType i = 0; i < HalfDimensions; ++i)
+        for (IndexType i = 0; i < TransformedFeatureDimensions; ++i)
             biases[i] *= (Read ? 2.0f : 0.5f);
 
         for (IndexType j = 0; j < InputDimensions; ++j)
-            for (IndexType i = 0; i < HalfDimensions; ++i)
-                weights[j * HalfDimensions + i] *= (Read ? 2.0f : 0.5f);
+            for (IndexType i = 0; i < TransformedFeatureDimensions; ++i)
+                weights[j * TransformedFeatureDimensions + i] *= (Read ? 2.0f : 0.5f);
     }
 
     // Read network parameters
@@ -343,11 +341,11 @@ class FeatureTransformer final {
     }
 
     // Convert input features
-    std::int32_t transform(const Position&        pos,
-                           AccumulatorStack&      accStack,
-                           Cache<HalfDimensions>* cache,
-                           OutputType*            output,
-                           int                    bucket) const noexcept {
+    std::int32_t transform(const Position&                      pos,
+                           AccumulatorStack&                    accStack,
+                           Cache<TransformedFeatureDimensions>* cache,
+                           OutputType*                          output,
+                           int                                  bucket) const noexcept {
         accStack.evaluate(pos, *this, *cache);
         const auto& accumulatorState = accStack.latest();
 
@@ -362,16 +360,17 @@ class FeatureTransformer final {
 
         for (auto p = 0; p < COLOR_NB; ++p)
         {
-            auto offset = p * (HalfDimensions / 2);
+            auto offset = p * (TransformedFeatureDimensions / 2);
 
 #if defined(VECTOR)
             constexpr IndexType OutputChunkSize = MaxChunkSize;
-            static_assert((HalfDimensions / 2) % OutputChunkSize == 0);
-            constexpr IndexType NumOutputChunks = HalfDimensions / 2 / OutputChunkSize;
+            static_assert((TransformedFeatureDimensions / 2) % OutputChunkSize == 0);
+            constexpr IndexType NumOutputChunks =
+              TransformedFeatureDimensions / 2 / OutputChunkSize;
 
             // clang-format off
             auto* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
-            auto* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
+            auto* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][TransformedFeatureDimensions / 2]));
             auto* out = reinterpret_cast<      vec_t*>(output + offset);
             // clang-format on
 
@@ -451,10 +450,10 @@ class FeatureTransformer final {
                 out[j] = vec_packus_16(pa, pb);
             }
 #else
-            for (IndexType j = 0; j < HalfDimensions / 2; ++j)
+            for (IndexType j = 0; j < TransformedFeatureDimensions / 2; ++j)
             {
                 BiasType sum0 = accumulation[perspectives[p]][j + 0];
-                BiasType sum1 = accumulation[perspectives[p]][j + HalfDimensions / 2];
+                BiasType sum1 = accumulation[perspectives[p]][j + TransformedFeatureDimensions / 2];
 
                 sum0               = std::clamp<BiasType>(sum0, 0, 127 * 2);
                 sum1               = std::clamp<BiasType>(sum1, 0, 127 * 2);
@@ -466,8 +465,8 @@ class FeatureTransformer final {
         return psqt;
     }
 
-    alignas(CACHE_LINE_SIZE) BiasType biases[HalfDimensions];
-    alignas(CACHE_LINE_SIZE) WeightType weights[HalfDimensions * InputDimensions];
+    alignas(CACHE_LINE_SIZE) BiasType biases[TransformedFeatureDimensions];
+    alignas(CACHE_LINE_SIZE) WeightType weights[TransformedFeatureDimensions * InputDimensions];
     alignas(CACHE_LINE_SIZE) PSQTWeightType psqtWeights[PSQTBuckets * InputDimensions];
 };
 

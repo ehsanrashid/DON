@@ -177,20 +177,20 @@ void update_accumulator_incremental(
             for (auto index : removed)
             {
                 for (IndexType i = 0; i < TransformedFeatureDimensions; ++i)
-                    (targetState.*accPtr).accumulation[Perspective][i] -= weights[index * TransformedFeatureDimensions + i];
+                    (targetState.*accPtr).accumulation[Perspective][i] -= featureTransformer.weights[index * TransformedFeatureDimensions + i];
 
                 for (IndexType i = 0; i < PSQTBuckets; ++i)
-                    (targetState.*accPtr).psqtAccumulation[Perspective][i] -= psqtWeights[index * PSQTBuckets + i];
+                    (targetState.*accPtr).psqtAccumulation[Perspective][i] -= featureTransformer.psqtWeights[index * PSQTBuckets + i];
             }
 
             // Difference calculation for the activated features
             for (auto index : added)
             {
                 for (IndexType i = 0; i < TransformedFeatureDimensions; ++i)
-                    (targetState.*accPtr).accumulation[Perspective][i] += weights[index * TransformedFeatureDimensions + i];
+                    (targetState.*accPtr).accumulation[Perspective][i] += featureTransformer.weights[index * TransformedFeatureDimensions + i];
 
                 for (IndexType i = 0; i < PSQTBuckets; ++i)
-                    (targetState.*accPtr).psqtAccumulation[Perspective][i] += psqtWeights[index * PSQTBuckets + i];
+                    (targetState.*accPtr).psqtAccumulation[Perspective][i] += featureTransformer.psqtWeights[index * PSQTBuckets + i];
             }
 #endif
         // clang-format on
@@ -366,23 +366,23 @@ void update_accumulator_refresh_cache(
     for (auto index : removed)
     {
         for (IndexType i = 0; i < Dimensions; ++i)
-            entry.accumulation[i] -= weights[index * Dimensions + i];
+            entry.accumulation[i] -= featureTransformer.weights[index * Dimensions + i];
         for (IndexType i = 0; i < PSQTBuckets; ++i)
-            entry.psqtAccumulation[i] -= psqtWeights[index * PSQTBuckets + i];
+            entry.psqtAccumulation[i] -= featureTransformer.psqtWeights[index * PSQTBuckets + i];
     }
 
     for (auto index : added)
     {
         for (IndexType i = 0; i < Dimensions; ++i)
-            entry.accumulation[i] += weights[index * Dimensions + i];
+            entry.accumulation[i] += featureTransformer.weights[index * Dimensions + i];
         for (IndexType i = 0; i < PSQTBuckets; ++i)
-            entry.psqtAccumulation[i] += psqtWeights[index * PSQTBuckets + i];
+            entry.psqtAccumulation[i] += featureTransformer.psqtWeights[index * PSQTBuckets + i];
     }
 
     // The accumulator of the refresh entry has been updated.
     // Now copy its content to the actual accumulator were refreshing.
     std::memcpy(accumulator.accumulation[Perspective], entry.accumulation,
-                HalfDimensions * sizeof(BiasType));
+                Dimensions * sizeof(BiasType));
     std::memcpy(accumulator.psqtAccumulation[Perspective], entry.psqtAccumulation,
                 PSQTBuckets * sizeof(PSQTWeightType));
 #endif
