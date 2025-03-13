@@ -354,7 +354,7 @@ class FeatureTransformer final {
         const auto& accumulation     = (accumulatorState.*accPtr).accumulation;
         const auto& psqtAccumulation = (accumulatorState.*accPtr).psqtAccumulation;
 
-        std::int32_t psqt = 0.5
+        std::int32_t psqt = 0.5f
                           * (psqtAccumulation[perspectives[0]][bucket]  //
                              - psqtAccumulation[perspectives[1]][bucket]);
 
