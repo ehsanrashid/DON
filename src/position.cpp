@@ -813,8 +813,6 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
 
     DirtyPiece dp;
 
-    dp.count = 1;
-
     // Increment ply counters. In particular, rule50 will be reset to zero later on
     // in case of a capture or a pawn move.
     ++gamePly;
@@ -870,6 +868,8 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
 
         goto DO_MOVE_END;
     }
+
+    dp.count = 1;
 
     if (capturedPiece != NO_PIECE)
     {
