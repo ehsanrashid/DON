@@ -204,7 +204,8 @@ class TBFile: public std::ifstream {
     // where the .rtbw and .rtbz files can be found.
     static std::vector<std::string_view> Paths;
 
-    explicit TBFile(const std::string& file) noexcept {
+    explicit TBFile(const std::string& file) noexcept :
+        filename("") {
 
         for (const auto& path : Paths)
         {
@@ -1250,7 +1251,9 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
 
     std::string fname = (isWhite ? w + 'v' + b : b + 'v' + w) + (Type == WDL ? ".rtbw" : ".rtbz");
 
-    auto* data = TBFile(fname).map<Type>(&entry.baseAddress, &entry.mapping);
+    auto tbFile = TBFile(fname);
+
+    auto* data = tbFile.map<Type>(&entry.baseAddress, &entry.mapping);
 
     if (data != nullptr)
         set(entry, data);
