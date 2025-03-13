@@ -205,8 +205,9 @@ void update_accumulator_refresh_cache(
   const Position&                               pos,
   AccumulatorState&                             accState,
   Cache<Dimensions>&                            cache) noexcept {
-
-    using Tiling [[maybe_unused]] = SIMDTiling<Dimensions>;
+#if defined(VECTOR)
+    using Tiling = SIMDTiling<Dimensions>;
+#endif
 
     Square ksq = pos.king_square(Perspective);
 
