@@ -28,6 +28,7 @@
 #include <initializer_list>
 #include <iostream>
 #include <mutex>
+#include <sstream>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -204,13 +205,12 @@ class TBFile: public std::ifstream {
     // where the .rtbw and .rtbz files can be found.
     static std::vector<std::string_view> Paths;
 
-    explicit TBFile(const std::string& file) noexcept :
-        filename("") {
+    explicit TBFile(const std::string& file) noexcept {
 
         for (const auto& path : Paths)
         {
             filename = std::string(path) + "/" + file;
-            std::ifstream::open(filename);
+            open(filename);
             if (is_open())
                 return;
         }
@@ -288,7 +288,7 @@ class TBFile: public std::ifstream {
         }
 #endif
 
-        auto data = (std::uint8_t*) (*baseAddress);
+        auto* data = (std::uint8_t*) (*baseAddress);
 
         static constexpr std::size_t  MagicSize            = 4;
         static constexpr std::uint8_t Magics[2][MagicSize] = {{0xD7, 0x66, 0x0C, 0xA5},
@@ -1477,17 +1477,23 @@ void init(const std::string& paths) noexcept {
     //
     // Example:
     // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
-    static constexpr std::string_view PathSeparator =
+    static constexpr char PathSeparator =
 #if defined(_WIN32)
-      ";"
+      ';'
 #else
-      ":"
+      ':'
 #endif
       ;
 
-    TBFile::Paths = split(paths, PathSeparator);
-    if (TBFile::Paths.empty())
+    TBFile::Paths.clear();
+
+    if (paths.empty())
         return;
+
+    std::istringstream iss(paths);
+    std::string        path;
+    while (std::getline(iss, path, PathSeparator))
+        TBFile::Paths.push_back(path);
 
     // Add entries in TB tables if the corresponding ".rtbw" file exists
     for (PieceType p1 = PAWN; p1 < KING; ++p1)
