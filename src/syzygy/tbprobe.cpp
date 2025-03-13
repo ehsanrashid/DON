@@ -200,30 +200,15 @@ class TBFile: public std::ifstream {
     std::string filename;
 
    public:
-    // Look for and open the file among the Paths directories where the .rtbw
-    // and .rtbz files can be found. Multiple directories are separated by ";"
-    // on Windows and by ":" on Unix-based operating systems.
-    //
-    // Example:
-    // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
-    static std::string Paths;
+    // Look for and open the file among the Paths directories
+    // where the .rtbw and .rtbz files can be found.
+    static std::vector<std::string_view> Paths;
 
     explicit TBFile(const std::string& file) noexcept {
 
-        constexpr char PathSeparator =
-#if defined(_WIN32)
-          ';'
-#else
-          ':'
-#endif
-          ;
-
-        std::istringstream iss(Paths);
-
-        std::string path;
-        while (std::getline(iss, path, PathSeparator))
+        for (const auto& path : Paths)
         {
-            filename = path + "/" + file;
+            filename = std::string(path) + "/" + file;
             std::ifstream::open(filename);
             if (is_open())
                 return;
@@ -329,7 +314,7 @@ class TBFile: public std::ifstream {
     }
 };
 
-std::string TBFile::Paths;
+std::vector<std::string_view> TBFile::Paths;
 
 // struct PairsData contains low-level indexing information to access TB data.
 // There are 8, 4, or 2 PairsData records for each TBTable, according to the type
@@ -556,7 +541,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     insert(wdlTable.back().key[BLACK], &wdlTable.back(), &dtzTable.back());
 }
 
-TBTables _TBTables;
+TBTables tbTables;
 
 // TB tables are compressed with canonical Huffman code. The compressed data is divided into
 // blocks of size d->blockSize, and each block stores a variable number of symbols.
@@ -1282,7 +1267,7 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdl = WDL_DRAW) no
     if (materialKey == 0)  // KvK, pos.count<ALL_PIECE>() == 2
         return Ret(WDL_DRAW);
 
-    auto* entry = _TBTables.get<Type>(materialKey);
+    auto* entry = tbTables.get<Type>(materialKey);
 
     if (entry == nullptr || mapped(pos, materialKey, *entry) == nullptr)
         return *ps = PS_FAIL, Ret();
@@ -1481,59 +1466,72 @@ void init() noexcept {
 // It is not thread safe, nor it needs to be.
 void init(const std::string& paths) noexcept {
 
-    _TBTables.clear();
+    tbTables.clear();
     MaxCardinality = 0;
-    TBFile::Paths  = paths;
 
+    // Multiple directories are separated by ";" on Windows
+    // and by ":" on Unix-based operating systems.
+    //
+    // Example:
+    // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
+    static constexpr std::string_view PathSeparator =
+#if defined(_WIN32)
+      ";"
+#else
+      ":"
+#endif
+      ;
+
+    TBFile::Paths = split(paths, PathSeparator, true);
     if (paths.empty())
         return;
 
     // Add entries in TB tables if the corresponding ".rtbw" file exists
     for (PieceType p1 = PAWN; p1 < KING; ++p1)
     {
-        _TBTables.add({KING, p1, KING});
+        tbTables.add({KING, p1, KING});
 
         for (PieceType p2 = PAWN; p2 <= p1; ++p2)
         {
-            _TBTables.add({KING, p1, p2, KING});
-            _TBTables.add({KING, p1, KING, p2});
+            tbTables.add({KING, p1, p2, KING});
+            tbTables.add({KING, p1, KING, p2});
 
             for (PieceType p3 = PAWN; p3 < KING; ++p3)
-                _TBTables.add({KING, p1, p2, KING, p3});
+                tbTables.add({KING, p1, p2, KING, p3});
 
             for (PieceType p3 = PAWN; p3 <= p2; ++p3)
             {
-                _TBTables.add({KING, p1, p2, p3, KING});
+                tbTables.add({KING, p1, p2, p3, KING});
 
                 for (PieceType p4 = PAWN; p4 <= p3; ++p4)
                 {
-                    _TBTables.add({KING, p1, p2, p3, p4, KING});
+                    tbTables.add({KING, p1, p2, p3, p4, KING});
 
                     for (PieceType p5 = PAWN; p5 <= p4; ++p5)
-                        _TBTables.add({KING, p1, p2, p3, p4, p5, KING});
+                        tbTables.add({KING, p1, p2, p3, p4, p5, KING});
 
                     for (PieceType p5 = PAWN; p5 < KING; ++p5)
-                        _TBTables.add({KING, p1, p2, p3, p4, KING, p5});
+                        tbTables.add({KING, p1, p2, p3, p4, KING, p5});
                 }
 
                 for (PieceType p4 = PAWN; p4 < KING; ++p4)
                 {
-                    _TBTables.add({KING, p1, p2, p3, KING, p4});
+                    tbTables.add({KING, p1, p2, p3, KING, p4});
 
                     for (PieceType p5 = PAWN; p5 <= p4; ++p5)
-                        _TBTables.add({KING, p1, p2, p3, KING, p4, p5});
+                        tbTables.add({KING, p1, p2, p3, KING, p4, p5});
                 }
             }
 
             for (PieceType p3 = PAWN; p3 <= p1; ++p3)
                 for (PieceType p4 = PAWN; p4 <= (p1 == p3 ? p2 : p3); ++p4)
-                    _TBTables.add({KING, p1, p2, KING, p3, p4});
+                    tbTables.add({KING, p1, p2, KING, p3, p4});
         }
     }
 
     std::string msg = "Tablebase: "  //
-                    + std::to_string(_TBTables.wdl_count()) + " WDL and "
-                    + std::to_string(_TBTables.dtz_count()) + " DTZ found. "
+                    + std::to_string(tbTables.wdl_count()) + " WDL and "
+                    + std::to_string(tbTables.dtz_count()) + " DTZ found. "
                     + "Tablebase files up to " + std::to_string(MaxCardinality) + "-man.";
     UCI::print_info_string(msg);
 }
