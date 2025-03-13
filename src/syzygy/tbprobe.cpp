@@ -28,7 +28,6 @@
 #include <initializer_list>
 #include <iostream>
 #include <mutex>
-#include <sstream>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -206,7 +205,7 @@ class TBFile: public std::ifstream {
 
     explicit TBFile(const std::string& file) noexcept {
 
-        for (const auto& path : Paths)
+        for (auto path : Paths)
         {
             filename = std::string(path) + "/" + file;
             std::ifstream::open(filename);
