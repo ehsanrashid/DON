@@ -255,9 +255,9 @@ void Network<Arch, Transformer>::verify(std::string evalFilename) const noexcept
 }
 
 template<typename Arch, typename Transformer>
-NetworkOutput Network<Arch, Transformer>::evaluate(
-  const Position&                                         pos,
-  AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
+NetworkOutput
+Network<Arch, Transformer>::evaluate(const Position&                      pos,
+                                     Cache<TransformedFeatureDimensions>* cache) const noexcept {
     // Manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
@@ -280,9 +280,9 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
 }
 
 template<typename Arch, typename Transformer>
-NetworkTrace Network<Arch, Transformer>::trace(
-  const Position&                                         pos,
-  AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
+NetworkTrace
+Network<Arch, Transformer>::trace(const Position&                      pos,
+                                  Cache<TransformedFeatureDimensions>* cache) const noexcept {
     // Manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)

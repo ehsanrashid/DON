@@ -34,7 +34,7 @@ using BiasType       = std::int16_t;
 using PSQTWeightType = std::int32_t;
 using IndexType      = std::uint32_t;
 
-// Class that holds the result of affine transformation of input features
+// Accumulator holds the result of affine transformation of input features
 template<IndexType Size>
 struct alignas(CACHE_LINE_SIZE) Accumulator final {
     BiasType       accumulation[COLOR_NB][Size];
@@ -45,49 +45,49 @@ struct alignas(CACHE_LINE_SIZE) Accumulator final {
 using BigAccumulator   = Accumulator<BigTransformedFeatureDimensions>;
 using SmallAccumulator = Accumulator<SmallTransformedFeatureDimensions>;
 
-// AccumulatorCaches struct provides per-thread accumulator caches, where each
-// cache contains multiple entries for each of the possible king squares.
+template<IndexType Size>
+struct alignas(CACHE_LINE_SIZE) Cache final {
+
+    struct alignas(CACHE_LINE_SIZE) Entry final {
+
+        BiasType       accumulation[Size];
+        PSQTWeightType psqtAccumulation[PSQTBuckets];
+        Bitboard       colorBB[COLOR_NB];
+        Bitboard       typeBB[PIECE_TYPE_NB];
+
+        // To initialize a refresh entry, set all its bitboards empty,
+        // so put the biases in the accumulation, without any weights on top
+        void init(const BiasType* biases) noexcept {
+
+            std::memcpy(accumulation, biases, sizeof(accumulation));
+            auto offset = offsetof(Entry, psqtAccumulation);
+            std::memset((std::uint8_t*) this + offset, 0, sizeof(Entry) - offset);
+        }
+    };
+
+    template<typename Network>
+    void init(const Network& network) noexcept {
+
+        for (auto& subEntry : entries)
+            for (auto& entry : subEntry)
+                entry.init(network.featureTransformer->biases);
+    }
+
+    auto& operator[](Square s) noexcept { return entries[s]; }
+
+    std::array<std::array<Entry, COLOR_NB>, SQUARE_NB> entries;
+};
+
+using BigCache   = Cache<BigTransformedFeatureDimensions>;
+using SmallCache = Cache<SmallTransformedFeatureDimensions>;
+
+// AccumulatorCaches provides per-thread accumulator caches,
+// where each cache contains multiple entries for each of the possible king squares.
 // When the accumulator needs to be refreshed, the cached entry is used to more
 // efficiently update the accumulator, instead of rebuilding it from scratch.
 // This idea, was first described by Luecx (author of Koivisto) and
 // is commonly referred to as "Finny Tables".
 struct AccumulatorCaches final {
-
-    template<IndexType Size>
-    struct alignas(CACHE_LINE_SIZE) Cache final {
-
-        struct alignas(CACHE_LINE_SIZE) Entry final {
-
-            BiasType       accumulation[Size];
-            PSQTWeightType psqtAccumulation[PSQTBuckets];
-            Bitboard       colorBB[COLOR_NB];
-            Bitboard       typeBB[PIECE_TYPE_NB];
-
-            // To initialize a refresh entry, set all its bitboards empty,
-            // so put the biases in the accumulation, without any weights on top
-            void init(const BiasType* biases) noexcept {
-
-                std::memcpy(accumulation, biases, sizeof(accumulation));
-                auto offset = offsetof(Entry, psqtAccumulation);
-                std::memset((std::uint8_t*) this + offset, 0, sizeof(Entry) - offset);
-            }
-        };
-
-        template<typename Network>
-        void init(const Network& network) noexcept {
-
-            for (auto& subEntry : entries)
-                for (auto& entry : subEntry)
-                    entry.init(network.featureTransformer->biases);
-        }
-
-        auto& operator[](Square s) noexcept { return entries[s]; }
-
-        std::array<std::array<Entry, COLOR_NB>, SQUARE_NB> entries;
-    };
-
-    using BigCache   = Cache<BigTransformedFeatureDimensions>;
-    using SmallCache = Cache<SmallTransformedFeatureDimensions>;
 
     template<typename Networks>
     explicit AccumulatorCaches(const Networks& networks) noexcept {

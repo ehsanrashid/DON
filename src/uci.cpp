@@ -1004,10 +1004,9 @@ std::string UCI::move_to_san(const Move& m, Position& pos) noexcept {
         }
     }
 
-    State st;
-    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
-
     bool check = pos.check(m);
+
+    State st;
     pos.do_move(m, st, check);
 
     // Marker for check & checkmate

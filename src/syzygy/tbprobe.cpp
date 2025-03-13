@@ -405,10 +405,8 @@ template<>
 TBTable<WDL>::TBTable(const std::string& code) noexcept :
     TBTable() {
 
-    State st;
-    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
-
     Position pos;
+    State    st;
 
     pos.set(code, WHITE, &st);
     key[WHITE] = pos.material_key();
@@ -1317,7 +1315,6 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
     WDLScore value, bestValue = WDL_LOSS;
 
     State st;
-    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     const MoveList<LEGAL> legalMoveList(pos);
     std::uint8_t          moveCount = 0;
@@ -1611,7 +1608,6 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     // DTZ stores results for the other side, so need to do a 1-ply search and
     // find the winning move that minimizes DTZ.
     State st;
-    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     int minDtz = INT_MAX;
 
@@ -1657,7 +1653,6 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
     ProbeState ps = PS_OK;
 
     State st;
-    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     // Obtain 50-move counter for the root position
     int rule50 = pos.rule50_count();
@@ -1733,7 +1728,6 @@ bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Use) noexcep
     ProbeState ps = PS_OK;
 
     State st;
-    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     // Probe and rank each move
     for (auto& rm : rootMoves)

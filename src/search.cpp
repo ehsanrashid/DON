@@ -252,8 +252,6 @@ void Worker::start_search() noexcept {
         if (bookBestMove != Move::None && rootMoves.contains(bookBestMove))
         {
             State st;
-            ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
-
             rootPos.do_move(bookBestMove, st);
             Move bookPonderMove = Book.probe(rootPos, options["BookBestPick"]);
             rootPos.undo_move(bookBestMove);
@@ -725,12 +723,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     ss->pvHit = exclude ? ss->pvHit : PVNode || (ttd.hit && ttd.pv);
 
-    Move preMove = (ss - 1)->move;
-    auto preSq   = preMove.is_ok() ? preMove.dst_sq() : SQ_NONE;
+    auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
     bool preCapture = pos.captured_piece() != NO_PIECE;
     bool preNonPawn =
-      is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && preMove.type_of() != PROMOTION;
+      is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && (ss - 1)->move.type_of() != PROMOTION;
 
     if (ttd.hit && ttd.value == VALUE_DRAW && ttd.depth == MAX_PLY - 1 && ttd.bound == BOUND_EXACT
         && ttd.move == Move::None)
@@ -843,7 +840,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     Move move;
 
     State st;
-    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     // Step 6. Static evaluation of the position
     if (ss->inCheck)
@@ -904,7 +900,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         int bonus = 655 + std::clamp(-10 * (ss->staticEval + (ss - 1)->staticEval), -1950, +1416);
 
-        update_quiet_history(~ac, preMove, std::lround(+1.0977f * bonus));
+        update_quiet_history(~ac, (ss - 1)->move, std::lround(+1.0977f * bonus));
         if (preNonPawn)
             update_pawn_history(pos, pos.piece_on(preSq), preSq, std::lround(+1.1680f * bonus));
     }
@@ -932,7 +928,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         return in_range((2 * eval + beta) / 3);
 
     // Step 9. Null move search with verification search
-    if (CutNode && !exclude && preMove != Move::Null && pos.non_pawn_material(ac)  //
+    if (CutNode && !exclude && (ss - 1)->move != Move::Null && pos.non_pawn_material(ac)  //
         && !is_loss(beta) && eval >= beta && ss->ply >= nmpPly
         && ss->staticEval >= 418 + beta - 19 * depth)
     {
@@ -1267,7 +1263,6 @@ S_MOVES_LOOP:  // When in check, search starts here
                 value = search<~~NT>(pos, ss, singularBeta - 1, singularBeta, singularDepth, 0, move);
 
                 ss->ttMove = ttd.move;
-
                 ss->moveCount = moveCount;
 
                 if (value < singularBeta)
@@ -1587,7 +1582,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             // clang-format on
             int bonus = std::max(bonusScale, 1) * stat_bonus(depth);
 
-            update_quiet_history(~ac, preMove, std::lround(+6.4697e-3f * bonus));
+            update_quiet_history(~ac, (ss - 1)->move, std::lround(+6.4697e-3f * bonus));
             update_continuation_history(ss - 1, pos.piece_on(preSq), preSq,
                                         std::lround(+11.8408e-3f * bonus));
             if (preNonPawn)
@@ -1717,9 +1712,6 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         return ttd.value;
     }
 
-    Move preMove = (ss - 1)->move;
-    auto preSq   = preMove.is_ok() ? preMove.dst_sq() : SQ_NONE;
-
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
     Value unadjustedStaticEval, bestValue;
@@ -1751,7 +1743,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     else
     {
         // In case of null move search, use previous staticEval with a opposite sign
-        unadjustedStaticEval = preMove != Move::Null ? evaluate(pos) : -(ss - 1)->staticEval;
+        unadjustedStaticEval = (ss - 1)->move != Move::Null ? evaluate(pos) : -(ss - 1)->staticEval;
 
         bestValue = ss->staticEval = adjust_static_eval(unadjustedStaticEval, correctionValue);
     }
@@ -1777,6 +1769,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
 QS_MOVES_LOOP:
 
+    auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+
     auto pawnIndex = pawn_index(pos.pawn_key());
 
     const History<HPieceSq>* contHistory[2]{(ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory};
@@ -1790,7 +1784,6 @@ QS_MOVES_LOOP:
     Move bestMove = Move::None;
 
     State st;
-    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
@@ -1992,8 +1985,6 @@ bool Worker::ponder_move_extracted() noexcept {
     Move bm = rootMove[0];
 
     State st;
-    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
-
     rootPos.do_move(bm, st);
 
     // Legal moves for the opponent
@@ -2416,10 +2407,9 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
 }
 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept {
-    Color ac = pos.active_color();
-    Move  m  = (ss - 1)->move;
-
     static constexpr int BonusLimit = CORRECTION_HISTORY_LIMIT / 4;
+
+    Color ac = pos.active_color();
 
     bonus = std::clamp(bonus, -BonusLimit, +BonusLimit);
 
@@ -2430,13 +2420,12 @@ void update_correction_history(const Position& pos, Stack* const ss, int bonus) 
       MajorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c] << int(std::lround(+0.5703f * bonus));
     NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c] << int(std::lround(+1.2656f * bonus));
     }
-    if (m.is_ok())
-      (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << int(std::lround(+1.1172f * bonus));
+    if ((ss - 1)->move.is_ok())
+      (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on((ss - 1)->move.dst_sq())][(ss - 1)->move.dst_sq()] << int(std::lround(+1.1172f * bonus));
 }
 
 int correction_value(const Position& pos, const Stack* const ss) noexcept {
     Color ac = pos.active_color();
-    Move  m  = (ss - 1)->move;
 
     int pcv  = 0;
     int micv = 0;
@@ -2449,8 +2438,8 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
         mjcv +=   MajorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c];
         npcv += NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c];
     }
-    int cntcv = m.is_ok()
-              ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
+    int cntcv = (ss - 1)->move.is_ok()
+              ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on((ss - 1)->move.dst_sq())][(ss - 1)->move.dst_sq()]
               : 0;
 
     return (+7685 * pcv + 7495 * micv + 3747 * mjcv + 9144 * npcv + 6469 * cntcv);

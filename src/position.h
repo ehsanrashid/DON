@@ -228,7 +228,7 @@ class Position final {
     Piece    captured_piece() const noexcept;
     Piece    promoted_piece() const noexcept;
 
-    // Slide attacker to a given sqaure
+    // Slide attacker to a given square
     Bitboard xslide_attackers_to(Square s) const noexcept;
     Bitboard slide_attackers_to(Square s, Bitboard occupied) const noexcept;
     Bitboard slide_attackers_to(Square s) const noexcept;

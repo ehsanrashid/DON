@@ -348,10 +348,10 @@ class FeatureTransformer final {
     }
 
     // Convert input features
-    std::int32_t transform(const Position&                           pos,
-                           AccumulatorCaches::Cache<HalfDimensions>* cache,
-                           OutputType*                               output,
-                           int                                       bucket) const noexcept {
+    std::int32_t transform(const Position&        pos,
+                           Cache<HalfDimensions>* cache,
+                           OutputType*            output,
+                           int                    bucket) const noexcept {
         update_accumulator<WHITE>(pos, cache);
         update_accumulator<BLACK>(pos, cache);
 
@@ -645,8 +645,8 @@ class FeatureTransformer final {
     }
 
     template<Color Perspective>
-    void update_accumulator_refresh_cache(
-      const Position& pos, AccumulatorCaches::Cache<HalfDimensions>* cache) const noexcept {
+    void update_accumulator_refresh_cache(const Position&        pos,
+                                          Cache<HalfDimensions>* cache) const noexcept {
         assert(cache != nullptr);
 
         Square ksq = pos.king_square(Perspective);
@@ -836,8 +836,7 @@ class FeatureTransformer final {
     }
 
     template<Color Perspective>
-    void update_accumulator(const Position&                           pos,
-                            AccumulatorCaches::Cache<HalfDimensions>* cache) const noexcept {
+    void update_accumulator(const Position& pos, Cache<HalfDimensions>* cache) const noexcept {
 
         State* st = pos.state();
         if ((st->*accPtr).computed[Perspective])
@@ -870,7 +869,7 @@ REFRESH:
     }
 
     template<IndexType Size>
-    friend struct AccumulatorCaches::Cache;
+    friend struct Cache;
 
     alignas(CACHE_LINE_SIZE) BiasType biases[HalfDimensions];
     alignas(CACHE_LINE_SIZE) WeightType weights[HalfDimensions * InputDimensions];

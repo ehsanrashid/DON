@@ -362,8 +362,6 @@ bool is_draw(Position& pos, const Move& m) noexcept {
         return true;
 
     State st;
-    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
-
     pos.do_move(m, st);
     bool draw = pos.is_draw(pos.ply(), true, true);
     pos.undo_move(m);

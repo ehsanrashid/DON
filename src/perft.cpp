@@ -61,7 +61,6 @@ void Perft::classify(Position& pos, const Move& m) noexcept {
     Square org = m.org_sq(), dst = m.dst_sq();
 
     State st;
-    ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
     castle += m.type_of() == CASTLING;
     promotion += m.type_of() == PROMOTION;
@@ -311,7 +310,6 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
         else
         {
             State st;
-            ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
 
             pos.do_move(m, st);
 

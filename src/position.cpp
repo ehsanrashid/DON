@@ -2101,10 +2101,8 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     if (Tablebases::MaxCardinality >= pos.count<ALL_PIECE>() && !pos.can_castle(ANY_CASTLING))
     {
-        State st;
-        ASSERT_ALIGNED(&st, CACHE_LINE_SIZE);
-
         Position p;
+        State    st;
         p.set(pos.fen(), &st);
 
         Tablebases::ProbeState wdlPs, dtzPs;

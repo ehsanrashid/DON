@@ -57,13 +57,11 @@ class Network final {
 
     void verify(std::string evalFilename) const noexcept;
 
-    NetworkOutput
-    evaluate(const Position&                                         pos,
-             AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
+    NetworkOutput evaluate(const Position&                      pos,
+                           Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
-    NetworkTrace
-    trace(const Position&                                         pos,
-          AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
+    NetworkTrace trace(const Position&                      pos,
+                       Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
    private:
     void load_user_net(const std::string& dir, const std::string& evalfilePath) noexcept;
@@ -93,7 +91,7 @@ class Network final {
     EmbeddedType embeddedType;
 
     template<IndexType Size>
-    friend struct AccumulatorCaches::Cache;
+    friend struct Cache;
 };
 
 // Definitions of the network types
