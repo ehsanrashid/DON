@@ -109,8 +109,8 @@ std::string trace(Position&             pos,  //
     if (pos.checkers())
         return "Final evaluation     : none (in check)";
 
-    NNUE::AccumulatorStack accStack;
-    auto                   accCaches = std::make_unique<NNUE::AccumulatorCaches>(networks);
+    auto accStack  = NNUE::AccumulatorStack();
+    auto accCaches = std::make_unique<NNUE::AccumulatorCaches>(networks);
 
     std::ostringstream oss;
 
