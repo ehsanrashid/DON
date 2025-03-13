@@ -37,11 +37,13 @@ class Position;
 namespace NNUE {
 struct Networks;
 struct AccumulatorCaches;
+class AccumulatorStack;
 }  // namespace NNUE
 
 Value evaluate(const Position&          pos,
                const NNUE::Networks&    networks,
                NNUE::AccumulatorCaches& accCaches,
+               NNUE::AccumulatorStack&  accStack,
                std::int32_t             optimism = 0) noexcept;
 
 std::string trace(Position&             pos,  //

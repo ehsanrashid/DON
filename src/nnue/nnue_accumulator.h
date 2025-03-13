@@ -21,14 +21,21 @@
 #define NNUE_ACCUMULATOR_H_INCLUDED
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <vector>
 
-#include "../misc.h"
 #include "../types.h"
 #include "nnue_architecture.h"
-#include "nnue_common.h"
 
-namespace DON::NNUE {
+namespace DON {
+
+class Position;
+
+namespace NNUE {
+
+struct Networks;
 
 using BiasType       = std::int16_t;
 using PSQTWeightType = std::int32_t;
@@ -37,9 +44,9 @@ using IndexType      = std::uint32_t;
 // Accumulator holds the result of affine transformation of input features
 template<IndexType Size>
 struct alignas(CACHE_LINE_SIZE) Accumulator final {
-    BiasType       accumulation[COLOR_NB][Size];
-    PSQTWeightType psqtAccumulation[COLOR_NB][PSQTBuckets];
-    bool           computed[COLOR_NB];
+    BiasType                   accumulation[COLOR_NB][Size];
+    PSQTWeightType             psqtAccumulation[COLOR_NB][PSQTBuckets];
+    std::array<bool, COLOR_NB> computed;
 };
 
 using BigAccumulator   = Accumulator<BigTransformedFeatureDimensions>;
@@ -81,6 +88,14 @@ struct alignas(CACHE_LINE_SIZE) Cache final {
 using BigCache   = Cache<BigTransformedFeatureDimensions>;
 using SmallCache = Cache<SmallTransformedFeatureDimensions>;
 
+struct AccumulatorState final {
+    DirtyPiece       dirtyPiece;
+    BigAccumulator   big;
+    SmallAccumulator small;
+
+    void reset(const DirtyPiece& dp) noexcept;
+};
+
 // AccumulatorCaches provides per-thread accumulator caches,
 // where each cache contains multiple entries for each of the possible king squares.
 // When the accumulator needs to be refreshed, the cached entry is used to more
@@ -89,23 +104,72 @@ using SmallCache = Cache<SmallTransformedFeatureDimensions>;
 // is commonly referred to as "Finny Tables".
 struct AccumulatorCaches final {
 
-    template<typename Networks>
-    explicit AccumulatorCaches(const Networks& networks) noexcept {
+    explicit AccumulatorCaches(const Networks& networks) noexcept { init(networks); }
 
-        init(networks);
-    }
-
-    template<typename Networks>
-    void init(const Networks& networks) noexcept {
-
-        big.init(networks.big);
-        small.init(networks.small);
-    }
+    void init(const Networks& networks) noexcept;
 
     BigCache   big;
     SmallCache small;
 };
 
-}  // namespace DON::NNUE
+template<IndexType                                 TransformedFeatureDimensions,
+         Accumulator<TransformedFeatureDimensions> AccumulatorState::*accPtr>
+class FeatureTransformer;
+
+class AccumulatorStack final {
+   public:
+    AccumulatorStack() noexcept :
+        accStates(MAX_PLY + 1),
+        index(0) {}
+
+    [[nodiscard]] const AccumulatorState& latest() const noexcept;
+
+    void reset(const Position& pos, const Networks& networks, AccumulatorCaches& caches) noexcept;
+    void push(const DirtyPiece& dp) noexcept;
+    void pop() noexcept;
+
+    template<IndexType Dimensions, Accumulator<Dimensions> AccumulatorState::*accPtr>
+    void evaluate(const Position&                               pos,
+                  const FeatureTransformer<Dimensions, accPtr>& featureTransformer,
+                  Cache<Dimensions>&                            cache) noexcept;
+
+   private:
+    [[nodiscard]] AccumulatorState& mut_latest() noexcept;
+
+    template<Color                   Perspective,
+             IndexType               Dimensions,
+             Accumulator<Dimensions> AccumulatorState::*accPtr>
+    void evaluate_side(const Position&                               pos,
+                       const FeatureTransformer<Dimensions, accPtr>& featureTransformer,
+                       Cache<Dimensions>&                            cache) noexcept;
+
+    template<Color                   Perspective,
+             IndexType               Dimensions,
+             Accumulator<Dimensions> AccumulatorState::*accPtr>
+    [[nodiscard]] std::size_t find_last_usable_accumulator() const noexcept;
+
+    template<Color                   Perspective,
+             IndexType               Dimensions,
+             Accumulator<Dimensions> AccumulatorState::*accPtr>
+    void
+    forward_update_incremental(const Position&                               pos,
+                               const FeatureTransformer<Dimensions, accPtr>& featureTransformer,
+                               const std::size_t                             begin) noexcept;
+
+    template<Color                   Perspective,
+             IndexType               Dimensions,
+             Accumulator<Dimensions> AccumulatorState::*accPtr>
+    void
+    backward_update_incremental(const Position&                               pos,
+                                const FeatureTransformer<Dimensions, accPtr>& featureTransformer,
+                                const std::size_t                             end) noexcept;
+
+   private:
+    std::vector<AccumulatorState> accStates;
+    std::size_t                   index;
+};
+
+}  // namespace NNUE
+}  // namespace DON
 
 #endif  // #ifndef NNUE_ACCUMULATOR_H_INCLUDED

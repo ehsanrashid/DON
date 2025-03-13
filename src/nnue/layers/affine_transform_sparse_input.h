@@ -275,11 +275,10 @@ class AffineTransformSparseInput {
           ceil_to_multiple<IndexType>(InputDimensions, 8) / ChunkSize;
         constexpr IndexType RegCount = OutputDimensions / OutputSimdWidth;
 
-        std::uint16_t nnz[ChunkCount];
-        IndexType     count;
-
         const auto* input32 = reinterpret_cast<const std::int32_t*>(input);
 
+        std::uint16_t nnz[ChunkCount];
+        IndexType     count;
         // Find indices of nonzero 32-bit blocks
         find_nnz<ChunkCount>(input32, nnz, count);
 
@@ -290,7 +289,8 @@ class AffineTransformSparseInput {
 
         for (IndexType j = 0; j < count; ++j)
         {
-            const auto    i  = nnz[j];
+            const auto i = nnz[j];
+
             const invec_t in = vec_set_32(input32[i]);
             const auto*   col =
               reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);

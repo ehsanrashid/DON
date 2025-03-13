@@ -42,6 +42,7 @@ namespace DON {
 Value evaluate(const Position&          pos,
                const NNUE::Networks&    networks,
                NNUE::AccumulatorCaches& accCaches,
+               NNUE::AccumulatorStack&  accStack,
                std::int32_t             optimism) noexcept {
     assert(!pos.checkers());
 
@@ -59,7 +60,7 @@ Value evaluate(const Position&          pos,
 
     if (smallNetUse)
     {
-        netOut = networks.small.evaluate(pos, &accCaches.small);
+        netOut = networks.small.evaluate(pos, accStack, &accCaches.small);
 
         netOut.positional += bonus;
 
@@ -70,7 +71,7 @@ Value evaluate(const Position&          pos,
     }
     if (!smallNetUse)
     {
-        netOut = networks.big.evaluate(pos, &accCaches.big);
+        netOut = networks.big.evaluate(pos, accStack, &accCaches.big);
 
         netOut.positional += bonus;
 
@@ -108,6 +109,7 @@ std::string trace(Position&             pos,  //
     if (pos.checkers())
         return "Final evaluation     : none (in check)";
 
+    auto accStack  = NNUE::AccumulatorStack();
     auto accCaches = std::make_unique<NNUE::AccumulatorCaches>(networks);
 
     std::ostringstream oss;
@@ -119,13 +121,17 @@ std::string trace(Position&             pos,  //
 
     Value v;
 
-    auto netOut = networks.big.evaluate(pos, &accCaches->big);
+    accStack.reset(pos, networks, *accCaches);
+
+    auto netOut = networks.big.evaluate(pos, accStack, &accCaches->big);
 
     v = (netOut.psqt + netOut.positional) / NNUE::OUTPUT_SCALE;
     v = pos.active_color() == WHITE ? +v : -v;
     oss << "NNUE evaluation      : " << 0.01f * UCI::to_cp(v, pos) << " (white side)\n";
 
-    v = evaluate(pos, networks, *accCaches);
+    accStack.reset(pos, networks, *accCaches);
+
+    v = evaluate(pos, networks, *accCaches, accStack);
     v = pos.active_color() == WHITE ? +v : -v;
     oss << "Final evaluation     : " << 0.01f * UCI::to_cp(v, pos) << " (white side)";
     oss << " [with scaled NNUE, ...]\n";

@@ -709,10 +709,10 @@ Position::attacks_mob_by(Color c, Bitboard blockers, Bitboard target, Bitboard o
 }
 
 // Check can do en-passant
-bool Position::can_enpassant(Color     ac,
-                             Square    epSq,
-                             bool      before,
-                             Bitboard* epAttackers) const noexcept {
+bool Position::can_enpassant(Color           ac,
+                             Square          epSq,
+                             bool            before,
+                             Bitboard* const epAttackers) const noexcept {
     assert(is_ok(epSq));
 
     // En-passant attackers
@@ -746,7 +746,8 @@ bool Position::can_enpassant(Color     ac,
 // Helper used to do/undo a castling move.
 // This is a bit tricky in Chess960 where org/dst squares can overlap.
 template<bool Do>
-void Position::do_castling(Color ac, Square org, Square& dst, Square& rorg, Square& rdst) noexcept {
+void Position::do_castling(
+  Color ac, Square org, Square& dst, Square& rorg, Square& rdst, DirtyPiece* const dp) noexcept {
 
     rorg = dst;  // Castling is encoded as "king captures rook"
     rdst = rook_castle_sq(ac, org, dst);
@@ -760,24 +761,24 @@ void Position::do_castling(Color ac, Square org, Square& dst, Square& rorg, Squa
     bool kingMoved = org != dst;
     bool rookMoved = rorg != rdst;
 
+    assert(!Do || dp != nullptr);
+
     if constexpr (Do)
     {
-        auto& dp = st->dirtyPiece;
-
-        dp.count = 0;
+        dp->count = 0;
         if (kingMoved)
         {
-            dp.piece[dp.count] = king;
-            dp.org[dp.count]   = org;
-            dp.dst[dp.count]   = dst;
-            dp.count++;
+            dp->piece[dp->count] = king;
+            dp->org[dp->count]   = org;
+            dp->dst[dp->count]   = dst;
+            dp->count++;
         }
         if (rookMoved)
         {
-            dp.piece[dp.count] = rook;
-            dp.org[dp.count]   = rorg;
-            dp.dst[dp.count]   = rdst;
-            dp.count++;
+            dp->piece[dp->count] = rook;
+            dp->org[dp->count]   = rorg;
+            dp->dst[dp->count]   = rdst;
+            dp->count++;
         }
         st->kingSquare[ac] = dst;
         st->castled[ac]    = true;
@@ -796,7 +797,7 @@ void Position::do_castling(Color ac, Square org, Square& dst, Square& rorg, Squa
 
 // Makes a move, and saves all necessary information to new state.
 // The move is assumed to be legal.
-void Position::do_move(const Move& m, State& newSt, bool check) noexcept {
+DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
@@ -810,13 +811,7 @@ void Position::do_move(const Move& m, State& newSt, bool check) noexcept {
 
     st = st->nxtState = &newSt;
 
-    // Used by NNUE
-    for (Color c : {WHITE, BLACK})
-        st->bigAccumulator.computed[c] = st->smallAccumulator.computed[c] = false;
-
-    auto& dp = st->dirtyPiece;
-
-    dp.count = 1;
+    DirtyPiece dp;
 
     // Increment ply counters. In particular, rule50 will be reset to zero later on
     // in case of a capture or a pawn move.
@@ -852,7 +847,7 @@ void Position::do_move(const Move& m, State& newSt, bool check) noexcept {
         assert(!st->castled[ac]);
 
         Square rorg, rdst;
-        do_castling<true>(ac, org, dst, rorg, rdst);
+        do_castling<true>(ac, org, dst, rorg, rdst, &dp);
         assert(rorg == m.dst_sq());
 
         // Update castling rights
@@ -873,6 +868,8 @@ void Position::do_move(const Move& m, State& newSt, bool check) noexcept {
 
         goto DO_MOVE_END;
     }
+
+    dp.count = 1;
 
     if (capturedPiece != NO_PIECE)
     {
@@ -1031,6 +1028,8 @@ DO_MOVE_END:
     }
 
     assert(pos_is_ok());
+
+    return dp;
 }
 
 // Unmakes a move, restoring the position to its exact state before the move was made.
@@ -1113,19 +1112,14 @@ void Position::do_null_move(State& newSt) noexcept {
     assert(&newSt != st);
     assert(!checkers());
 
-    std::memcpy(&newSt, st, offsetof(State, bigAccumulator));
+    std::memcpy(&newSt, st, sizeof(State));
     newSt.preState = st;
 
     st = st->nxtState = &newSt;
 
-    for (Color c : {WHITE, BLACK})
-        st->bigAccumulator.computed[c] = st->smallAccumulator.computed[c] = false;
-
-    st->dirtyPiece.count    = 0;
-    st->dirtyPiece.piece[0] = NO_PIECE;  // Avoid checks in UpdateAccumulator()
-    st->capturedPiece       = NO_PIECE;
-    st->promotedPiece       = NO_PIECE;
-    st->capSquare           = SQ_NONE;
+    st->capturedPiece = NO_PIECE;
+    st->promotedPiece = NO_PIECE;
+    st->capSquare     = SQ_NONE;
 
     // NOTE: no ++st->rule50 here
     st->nullPly = 0;

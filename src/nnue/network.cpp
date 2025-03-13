@@ -165,7 +165,7 @@ Network<Arch, Transformer>::operator=(const Network<Arch, Transformer>& net) noe
 
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load(const std::string& rootDirectory,
-                                      std::string        evalFilename) noexcept {
+                                      std::string        evalFileName) noexcept {
 
     const std::vector<std::string> dirs{"<internal>", "", rootDirectory
 #if defined(DEFAULT_NNUE_DIRECTORY)
@@ -174,28 +174,28 @@ void Network<Arch, Transformer>::load(const std::string& rootDirectory,
 #endif
     };
 
-    if (evalFilename.empty())
-        evalFilename = evalFile.defaultName;
+    if (evalFileName.empty())
+        evalFileName = evalFile.defaultName;
 
     for (const auto& directory : dirs)
     {
-        if (evalFilename != evalFile.current)
+        if (evalFileName != evalFile.current)
         {
             if (directory != "<internal>")
-                load_user_net(directory, evalFilename);
+                load_user_net(directory, evalFileName);
 
-            if (directory == "<internal>" && evalFilename == evalFile.defaultName)
+            if (directory == "<internal>" && evalFileName == evalFile.defaultName)
                 load_internal();
         }
     }
 }
 
 template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::save(const std::optional<std::string>& filename) const noexcept {
-    std::string evalFilename;
+bool Network<Arch, Transformer>::save(const std::optional<std::string>& fileName) const noexcept {
+    std::string evalFileName;
 
-    if (filename.has_value())
-        evalFilename = filename.value();
+    if (fileName.has_value())
+        evalFileName = fileName.value();
     else
     {
         if (evalFile.current != evalFile.defaultName)
@@ -205,28 +205,28 @@ bool Network<Arch, Transformer>::save(const std::optional<std::string>& filename
             return false;
         }
 
-        evalFilename = evalFile.defaultName;
+        evalFileName = evalFile.defaultName;
     }
 
-    std::ofstream ofstream(evalFilename, std::ios_base::binary);
+    std::ofstream ofstream(evalFileName, std::ios_base::binary);
 
     bool saved = save(ofstream, evalFile.current, evalFile.netDescription);
 
-    UCI::print_info_string(saved ? "Network saved successfully to " + evalFilename
+    UCI::print_info_string(saved ? "Network saved successfully to " + evalFileName
                                  : "Failed to export net");
     return saved;
 }
 
 template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::verify(std::string evalFilename) const noexcept {
-    if (evalFilename.empty())
-        evalFilename = evalFile.defaultName;
+void Network<Arch, Transformer>::verify(std::string evalFileName) const noexcept {
+    if (evalFileName.empty())
+        evalFileName = evalFile.defaultName;
 
-    if (evalFilename != evalFile.current)
+    if (evalFileName != evalFile.current)
     {
         std::string msg1 =
           "Network evaluation parameters compatible with the engine must be available.";
-        std::string msg2 = "The network file " + evalFilename + " was not loaded successfully.";
+        std::string msg2 = "The network file " + evalFileName + " was not loaded successfully.";
         std::string msg3 = "The UCI option EvalFile might need to specify the full path, "
                            "including the directory name, to the network file.";
         std::string msg4 = "The default net can be downloaded from: "
@@ -245,7 +245,7 @@ void Network<Arch, Transformer>::verify(std::string evalFilename) const noexcept
 
     auto size = sizeof(*featureTransformer) + LayerStacks * sizeof(Arch);
 
-    std::string msg = "NNUE evaluation using " + evalFilename + " ("
+    std::string msg = "NNUE evaluation using " + evalFileName + " ("
                     + std::to_string(size / (1024 * 1024)) + "MiB, ("
                     + std::to_string(featureTransformer->InputDimensions) + ", "
                     + std::to_string(network[0].TransformedFeatureDimensions) + ", "
@@ -257,6 +257,7 @@ void Network<Arch, Transformer>::verify(std::string evalFilename) const noexcept
 template<typename Arch, typename Transformer>
 NetworkOutput
 Network<Arch, Transformer>::evaluate(const Position&                      pos,
+                                     AccumulatorStack&                    accStack,
                                      Cache<TransformedFeatureDimensions>* cache) const noexcept {
     // Manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
@@ -273,15 +274,18 @@ Network<Arch, Transformer>::evaluate(const Position&                      pos,
 
     ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
 
-    int  bucket     = pos.bucket();
-    auto psqt       = featureTransformer->transform(pos, cache, transformedFeatures, bucket);
+    int bucket = pos.bucket();
+
+    auto psqt = featureTransformer->transform(pos, accStack, cache, transformedFeatures, bucket);
     auto positional = network[bucket].propagate(transformedFeatures);
+
     return {psqt, positional};
 }
 
 template<typename Arch, typename Transformer>
 NetworkTrace
 Network<Arch, Transformer>::trace(const Position&                      pos,
+                                  AccumulatorStack&                    accStack,
                                   Cache<TransformedFeatureDimensions>* cache) const noexcept {
     // Manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
@@ -302,7 +306,8 @@ Network<Arch, Transformer>::trace(const Position&                      pos,
     trace.correctBucket = pos.bucket();
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        auto psqt       = featureTransformer->transform(pos, cache, transformedFeatures, bucket);
+        auto psqt =
+          featureTransformer->transform(pos, accStack, cache, transformedFeatures, bucket);
         auto positional = network[bucket].propagate(transformedFeatures);
 
         trace.netOut[bucket].psqt       = psqt;
@@ -314,13 +319,13 @@ Network<Arch, Transformer>::trace(const Position&                      pos,
 
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_user_net(const std::string& dir,
-                                               const std::string& evalfilePath) noexcept {
-    std::ifstream ifstream(dir + evalfilePath, std::ios_base::binary);
+                                               const std::string& evalFilePath) noexcept {
+    std::ifstream ifstream(dir + evalFilePath, std::ios_base::binary);
 
     auto description = load(ifstream);
     if (description.has_value())
     {
-        evalFile.current        = evalfilePath;
+        evalFile.current        = evalFilePath;
         evalFile.netDescription = description.value();
     }
 }
@@ -409,9 +414,9 @@ bool Network<Arch, Transformer>::write_parameters(
 // Explicit template instantiations
 template class Network<  //
   NetworkArchitecture<BigTransformedFeatureDimensions, BigL2, BigL3>,
-  FeatureTransformer<BigTransformedFeatureDimensions, &State::bigAccumulator>>;
+  FeatureTransformer<BigTransformedFeatureDimensions, &AccumulatorState::big>>;
 template class Network<  //
   NetworkArchitecture<SmallTransformedFeatureDimensions, SmallL2, SmallL3>,
-  FeatureTransformer<SmallTransformedFeatureDimensions, &State::smallAccumulator>>;
+  FeatureTransformer<SmallTransformedFeatureDimensions, &AccumulatorState::small>>;
 
 }  // namespace DON::NNUE

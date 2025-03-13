@@ -22,7 +22,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
-#include <initializer_list>
 #include <iomanip>
 #include <iostream>
 #include <ostream>
@@ -116,9 +115,12 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
             format_cp_compact(&board[y + 2][x + 2], value, pos);
     };
 
+    AccumulatorStack accStack;
+
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    auto         baseNetOut = networks.big.evaluate(pos, &caches.big);
+    accStack.reset(pos, networks, caches);
+    auto         baseNetOut = networks.big.evaluate(pos, accStack, &caches.big);
     std::int32_t baseEval   = (baseNetOut.psqt + baseNetOut.positional) / OUTPUT_SCALE;
 
     baseEval = pos.active_color() == WHITE ? +baseEval : -baseEval;
@@ -132,13 +134,10 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
 
             if (is_ok(pc) && type_of(pc) != KING)
             {
-                auto st = pos.state();
-
                 pos.remove_piece(sq);
-                for (Color c : {WHITE, BLACK})
-                    st->bigAccumulator.computed[c] = false;
 
-                auto netOut = networks.big.evaluate(pos, &caches.big);
+                accStack.reset(pos, networks, caches);
+                auto netOut = networks.big.evaluate(pos, accStack, &caches.big);
 
                 std::int32_t eval = (netOut.psqt + netOut.positional) / OUTPUT_SCALE;
 
@@ -146,8 +145,6 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
 
                 v = baseEval - eval;
 
-                for (Color c : {WHITE, BLACK})
-                    st->bigAccumulator.computed[c] = false;
                 pos.put_piece(sq, pc);
             }
 
@@ -159,7 +156,8 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
         oss << row << '\n';
     oss << '\n';
 
-    auto trace = networks.big.trace(pos, &caches.big);
+    accStack.reset(pos, networks, caches);
+    auto trace = networks.big.trace(pos, accStack, &caches.big);
 
     oss << " NNUE network contributions ("  //
         << (pos.active_color() == WHITE ? "White" : "Black") << " to move):\n"

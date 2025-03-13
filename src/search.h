@@ -532,6 +532,14 @@ class Worker final {
     Value qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) noexcept;
     // clang-format on
 
+    void do_move(Position& pos, const Move& m, State& st, bool check) noexcept;
+    void do_move(Position& pos, const Move& m, State& st) noexcept {
+        do_move(pos, m, st, pos.check(m));
+    }
+    void undo_move(Position& pos, const Move& m) noexcept;
+    void do_null_move(Position& pos, State& st) noexcept;
+    void undo_null_move(Position& pos) noexcept;
+
     Value evaluate(const Position& pos) noexcept;
 
     Move extract_tt_move(const Position& pos, Move ttMove, bool deep = true) const noexcept;
@@ -568,7 +576,9 @@ class Worker final {
     TranspositionTable&                       tt;
     // Used by NNUE
     NumaReplicatedAccessToken numaAccessToken;
-    NNUE::AccumulatorCaches   accCaches;
+
+    NNUE::AccumulatorCaches accCaches;
+    NNUE::AccumulatorStack  accStack;
 
     friend class ThreadPool;
     friend class MainSearchManager;
