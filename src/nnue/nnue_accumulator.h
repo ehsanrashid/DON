@@ -119,7 +119,7 @@ class FeatureTransformer;
 
 class AccumulatorStack final {
    public:
-    AccumulatorStack() :
+    AccumulatorStack() noexcept :
         accStates(MAX_PLY + 1),
         index(0) {}
 
@@ -165,6 +165,7 @@ class AccumulatorStack final {
                                 const FeatureTransformer<Dimensions, accPtr>& featureTransformer,
                                 const std::size_t                             end) noexcept;
 
+   private:
     std::vector<AccumulatorState> accStates;
     std::size_t                   index;
 };

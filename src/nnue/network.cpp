@@ -276,8 +276,10 @@ Network<Arch, Transformer>::evaluate(const Position&                      pos,
 
     int bucket = pos.bucket();
 
-    return {featureTransformer->transform(pos, accStack, cache, transformedFeatures, bucket),
-            network[bucket].propagate(transformedFeatures)};
+    auto psqt = featureTransformer->transform(pos, accStack, cache, transformedFeatures, bucket);
+    auto positional = network[bucket].propagate(transformedFeatures);
+
+    return {psqt, positional};
 }
 
 template<typename Arch, typename Transformer>
@@ -303,9 +305,14 @@ Network<Arch, Transformer>::trace(const Position&                      pos,
     NetworkTrace trace{};
     trace.correctBucket = pos.bucket();
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
-        trace.netOut[bucket] = {
-          featureTransformer->transform(pos, accStack, cache, transformedFeatures, bucket),
-          network[bucket].propagate(transformedFeatures)};
+    {
+        auto psqt =
+          featureTransformer->transform(pos, accStack, cache, transformedFeatures, bucket);
+        auto positional = network[bucket].propagate(transformedFeatures);
+
+        trace.netOut[bucket].psqt       = psqt;
+        trace.netOut[bucket].positional = positional;
+    }
 
     return trace;
 }
