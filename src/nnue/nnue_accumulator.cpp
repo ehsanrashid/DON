@@ -464,7 +464,6 @@ void AccumulatorStack::evaluate_side(
 
     if ((accStates[lastUsableAccum].*accPtr).computed[Perspective])
         forward_update_incremental<Perspective>(pos, featureTransformer, lastUsableAccum);
-
     else
     {
         update_accumulator_refresh_cache<Perspective>(featureTransformer, pos, mut_latest(), cache);

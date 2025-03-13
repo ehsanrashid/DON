@@ -37,8 +37,8 @@ int main(int argc, const char** argv) noexcept {
 #endif
 
     BitBoard::init();
-    Tablebases::init();
     Position::init();
+    Tablebases::init();
 
     UCI uci(argc, argv);
 

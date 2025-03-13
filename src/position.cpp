@@ -151,11 +151,11 @@ void init() noexcept {
     for (Piece pc : Pieces)
     {
         std::size_t offset = PawnOffset * (type_of(pc) == PAWN);
-        for (std::size_t s = 0 + offset; s < int(SQUARE_NB) - offset; ++s)
+        for (std::size_t s = 0 + offset; s < std::size(psq[pc]) - offset; ++s)
             psq[pc][s] = rng.rand<Key>();
     }
 
-    for (std::size_t cr = 0; cr < CASTLING_RIGHTS_NB; ++cr)
+    for (std::size_t cr = 0; cr < std::size(castling); ++cr)
     {
         castling[cr] = 0;
 
@@ -167,7 +167,7 @@ void init() noexcept {
         }
     }
 
-    for (std::size_t f = 0; f < FILE_NB; ++f)
+    for (std::size_t f = 0; f < std::size(enpassant); ++f)
         enpassant[f] = rng.rand<Key>();
 
     side = rng.rand<Key>();

@@ -150,14 +150,14 @@ T number(void* addr) noexcept {
 int before_zeroing_dtz(WDLScore wdl) noexcept {
     switch (wdl)
     {
-    case WDL_WIN :
-        return +1;
-    case WDL_CURSED_WIN :
-        return +101;
     case WDL_BLESSED_LOSS :
         return -101;
     case WDL_LOSS :
         return -1;
+    case WDL_WIN :
+        return +1;
+    case WDL_CURSED_WIN :
+        return +101;
     default :
         return 0;
     }
@@ -174,19 +174,13 @@ static_assert(sizeof(SparseEntry) == 6, "SparseEntry must be 6 bytes");
 using Sym = std::uint16_t;  // Huffman symbol
 
 struct LR final {
-    enum Side : std::uint8_t {
-        Left,
-        Right
-    };
+    // First 12 bits is the left-hand symbol, second 12 bits is the right-hand symbol.
+    // If the symbol has length 1, then the left-hand symbol is the stored value.
+    std::uint8_t data[3];
 
-    std::uint8_t lr[3];  // The first 12 bits is the left-hand symbol, the second 12
-                         // bits is the right-hand symbol. If the symbol has length 1,
-                         // then the left-hand symbol is the stored value.
-    template<Side S>
+    template<bool Left>
     Sym get() const noexcept {
-        return S == Left  ? ((lr[1] & 0xF) << 8) | lr[0]
-             : S == Right ? (lr[2] << 4) | (lr[1] >> 4)
-                          : (assert(false), Sym(-1));
+        return Left ? ((data[1] & 0xF) << 8) | data[0] : (data[2] << 4) | (data[1] >> 4);
     }
 };
 
@@ -374,7 +368,7 @@ template<TBType Type>
 struct TBTable final {
     using Ret = std::conditional_t<Type == WDL, WDLScore, int>;
 
-    static constexpr int SIDES = 1 + 1 * (Type == WDL);
+    static constexpr unsigned SIDES = 1 + 1 * (Type == WDL);
 
     std::atomic<bool> ready;
     void*             baseAddress;
@@ -396,7 +390,7 @@ struct TBTable final {
     explicit TBTable(const TBTable<WDL>& wdl) noexcept;
 
     ~TBTable() noexcept {
-        if (baseAddress)
+        if (baseAddress != nullptr)
             TBFile::unmap(baseAddress, mapping);
     }
 };
@@ -677,7 +671,7 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     // that will store the value need.
     while (pd->symLen[sym])
     {
-        Sym lSym = pd->btree[sym].get<LR::Left>();
+        Sym lSym = pd->btree[sym].get<true>();
 
         // If a symbol contains 36 sub-symbols (d->symLen[sym] + 1 = 36) and
         // expands in a pair (d->symLen[lSym] = 23, d->symLen[rSym] = 11), then
@@ -688,11 +682,11 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
         else
         {
             offset -= pd->symLen[lSym] + 1;
-            sym = pd->btree[sym].get<LR::Right>();
+            sym = pd->btree[sym].get<false>();
         }
     }
 
-    return pd->btree[sym].get<LR::Left>();
+    return pd->btree[sym].get<true>();
 }
 
 bool check_ac(TBTable<WDL>*, int, File) noexcept { return true; }
@@ -1037,12 +1031,12 @@ std::uint8_t set_symlen(PairsData* pd, Sym s, std::vector<bool>& visited) noexce
 
     visited[s] = true;  // Can set it now because tree is acyclic
 
-    Sym rSym = pd->btree[s].get<LR::Right>();
+    Sym rSym = pd->btree[s].get<false>();
 
     if (rSym == 0xFFF)
         return 0;
 
-    Sym lSym = pd->btree[s].get<LR::Left>();
+    Sym lSym = pd->btree[s].get<true>();
 
     if (!visited[lSym])
         pd->symLen[lSym] = set_symlen(pd, lSym, visited);
@@ -1607,10 +1601,9 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
     // DTZ stores results for the other side, so need to do a 1-ply search and
     // find the winning move that minimizes DTZ.
-    State st;
-
     int minDtz = INT_MAX;
 
+    State st;
     for (const Move& m : MoveList<LEGAL>(pos))
     {
         bool zeroing = pos.capture(m) || type_of(pos.moved_piece(m)) == PAWN;
@@ -1652,27 +1645,26 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dtzRank) noexcept {
     ProbeState ps = PS_OK;
 
-    State st;
-
     // Obtain 50-move counter for the root position
-    int rule50 = pos.rule50_count();
+    int rule50Count = pos.rule50_count();
 
     // Check whether a position was repeated since the last zeroing move.
     bool rep = pos.has_repetition();
 
-    int dtz, bound = rule50Use ? (MAX_DTZ / 2 - 100) : 1;
+    int bound = rule50Use ? (MAX_DTZ / 2 - 100) : 1;
 
     // Probe and rank each move
+    State st;
     for (auto& rm : rootMoves)
     {
         pos.do_move(rm[0], st);
 
+        int dtz;
         // Calculate dtz for the current move counting from the root position
         if (pos.rule50_count() == 0)
         {
             // In case of a zeroing move, dtz is one of -101/-1/0/1/101
-            auto wdl = -probe_wdl(pos, &ps);
-            dtz      = before_zeroing_dtz(wdl);
+            dtz = before_zeroing_dtz(-probe_wdl(pos, &ps));
         }
         else if (pos.is_draw(1, rule50Use))
         {
@@ -1699,11 +1691,12 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
 
         // Better moves are ranked higher. Certain wins are ranked equally.
         // Losing moves are ranked equally unless a 50-move draw is in sight.
-        int r = dtz > 0 ? (+1 * dtz + rule50 < 100 && !rep ? +MAX_DTZ - (dtzRank ? dtz : 0)
-                                                           : +MAX_DTZ / 2 - (+dtz + rule50))
-              : dtz < 0 ? (-2 * dtz + rule50 < 100 /*   */ ? -MAX_DTZ - (dtzRank ? dtz : 0)
-                                                           : -MAX_DTZ / 2 + (-dtz + rule50))
-                        : 0;
+        int r =
+          dtz > 0   ? (+1 * dtz + rule50Count < 100 && !rep ? +MAX_DTZ - (dtzRank ? dtz : 0)
+                                                            : +MAX_DTZ / 2 - (+dtz + rule50Count))
+          : dtz < 0 ? (-2 * dtz + rule50Count < 100 /*   */ ? -MAX_DTZ - (dtzRank ? dtz : 0)
+                                                            : -MAX_DTZ / 2 + (-dtz + rule50Count))
+                    : 0;
 
         rm.tbRank = r;
 
@@ -1727,9 +1720,8 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
 bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Use) noexcept {
     ProbeState ps = PS_OK;
 
-    State st;
-
     // Probe and rank each move
+    State st;
     for (auto& rm : rootMoves)
     {
         pos.do_move(rm[0], st);
