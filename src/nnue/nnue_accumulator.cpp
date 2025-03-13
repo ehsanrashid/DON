@@ -168,7 +168,7 @@ void update_accumulator_incremental(
 #else
             std::memcpy((targetState.*accPtr).accumulation[Perspective],
                         (computedState.*accPtr).accumulation[Perspective],
-                        HalfDimensions * sizeof(BiasType));
+                        TransformedFeatureDimensions * sizeof(BiasType));
             std::memcpy((targetState.*accPtr).psqtAccumulation[Perspective],
                         (computedState.*accPtr).psqtAccumulation[Perspective],
                         PSQTBuckets * sizeof(PSQTWeightType));
@@ -176,8 +176,8 @@ void update_accumulator_incremental(
             // Difference calculation for the deactivated features
             for (auto index : removed)
             {
-                for (IndexType i = 0; i < HalfDimensions; ++i)
-                    (targetState.*accPtr).accumulation[Perspective][i] -= weights[index * HalfDimensions + i];
+                for (IndexType i = 0; i < TransformedFeatureDimensions; ++i)
+                    (targetState.*accPtr).accumulation[Perspective][i] -= weights[index * TransformedFeatureDimensions + i];
 
                 for (IndexType i = 0; i < PSQTBuckets; ++i)
                     (targetState.*accPtr).psqtAccumulation[Perspective][i] -= psqtWeights[index * PSQTBuckets + i];
@@ -186,8 +186,8 @@ void update_accumulator_incremental(
             // Difference calculation for the activated features
             for (auto index : added)
             {
-                for (IndexType i = 0; i < HalfDimensions; ++i)
-                    (targetState.*accPtr).accumulation[Perspective][i] += weights[index * HalfDimensions + i];
+                for (IndexType i = 0; i < TransformedFeatureDimensions; ++i)
+                    (targetState.*accPtr).accumulation[Perspective][i] += weights[index * TransformedFeatureDimensions + i];
 
                 for (IndexType i = 0; i < PSQTBuckets; ++i)
                     (targetState.*accPtr).psqtAccumulation[Perspective][i] += psqtWeights[index * PSQTBuckets + i];
