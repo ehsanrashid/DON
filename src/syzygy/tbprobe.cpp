@@ -233,7 +233,7 @@ class TBFile: public std::ifstream {
 
         if (bufStat.st_size % 64 != 16)
         {
-            std::cerr << "Corrupt tablebase file " << filename << std::endl;
+            UCI::print_info_string("Corrupt tablebase file " + filename);
             std::exit(EXIT_FAILURE);
         }
 
@@ -246,7 +246,7 @@ class TBFile: public std::ifstream {
 
         if (*baseAddress == MAP_FAILED)
         {
-            std::cerr << "Could not mmap(), name = " << filename << std::endl;
+            UCI::print_info_string("Could not mmap(), name = " + filename);
             std::exit(EXIT_FAILURE);
         }
 #else
@@ -262,7 +262,7 @@ class TBFile: public std::ifstream {
 
         if (lowSize % 64 != 16)
         {
-            std::cerr << "Corrupt tablebase file " << filename << std::endl;
+            UCI::print_info_string("Corrupt tablebase file " + filename);
             std::exit(EXIT_FAILURE);
         }
 
@@ -272,7 +272,7 @@ class TBFile: public std::ifstream {
 
         if (!mapHandle)
         {
-            std::cerr << "CreateFileMapping() failed, name = " << filename << std::endl;
+            UCI::print_info_string("CreateFileMapping() failed, name = " + filename);
             std::exit(EXIT_FAILURE);
         }
 
@@ -281,21 +281,21 @@ class TBFile: public std::ifstream {
 
         if (!*baseAddress)
         {
-            std::cerr << "MapViewOfFile() failed, name = " << filename
-                      << ", error = " << GetLastError() << std::endl;
+            UCI::print_info_string("MapViewOfFile() failed, name = " + filename
+                                   + ", error = " + std::to_string(GetLastError()));
             std::exit(EXIT_FAILURE);
         }
 #endif
-
-        auto* data = (std::uint8_t*) (*baseAddress);
 
         static constexpr std::size_t  MagicSize            = 4;
         static constexpr std::uint8_t Magics[2][MagicSize] = {{0xD7, 0x66, 0x0C, 0xA5},
                                                               {0x71, 0xE8, 0x23, 0x5D}};
 
+        auto* data = (std::uint8_t*) (*baseAddress);
+
         if (std::memcmp(data, Magics[Type == WDL], MagicSize))
         {
-            std::cerr << "Corrupted table in file " << filename << std::endl;
+            UCI::print_info_string("Corrupted table in file " + filename);
             unmap(*baseAddress, *mapping);
             return *baseAddress = nullptr, nullptr;
         }
@@ -440,12 +440,14 @@ class TBTables final {
         }
     };
 
-    static constexpr int SIZE      = 1 << 12;  // 4K table, indexed by key's 12 lsb
-    static constexpr int OVER_FLOW = 1;  // Number of elements allowed to map to the last bucket
+    // 4K table, indexed by key's 12 lsb
+    static constexpr std::size_t Size = 1u << 12;
+    // Number of elements allowed to map to the last bucket
+    static constexpr std::size_t OverFlow = 1;
 
-    static constexpr std::size_t get_index(Key key) noexcept { return key & (SIZE - 1); }
+    static constexpr std::size_t get_index(Key key) noexcept { return key & (Size - 1); }
 
-    Entry hashTable[SIZE + OVER_FLOW];
+    Entry hashTable[Size + OverFlow];
 
     std::deque<TBTable<WDL>> wdlTable;
     std::deque<TBTable<DTZ>> dtzTable;
@@ -458,7 +460,7 @@ class TBTables final {
 
         auto homeBucket = get_index(key);
         // Ensure last element is empty to avoid overflow when looking up
-        for (auto bucket = homeBucket; bucket < SIZE + OVER_FLOW - 1; ++bucket)
+        for (auto bucket = homeBucket; bucket < Size + OverFlow - 1; ++bucket)
         {
             Key otherKey = hashTable[bucket].key;
             if (otherKey == key || !hashTable[bucket].get<WDL>())
@@ -467,7 +469,7 @@ class TBTables final {
                 return;
             }
 
-            // Robin Hood hashing: If we've probed for longer than this element,
+            // Robin Hood hashing: If probed for longer than this element,
             // insert here and search for a new spot for the other element instead.
             auto otherHomeBucket = get_index(otherKey);
             if (homeBucket < otherHomeBucket)
@@ -477,7 +479,8 @@ class TBTables final {
                 std::swap(entry, hashTable[bucket]);
             }
         }
-        std::cerr << "TB hash table size too low!" << std::endl;
+
+        UCI::print_info_string("TB hash table size too low!");
         std::exit(EXIT_FAILURE);
     }
 
