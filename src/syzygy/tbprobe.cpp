@@ -1483,7 +1483,7 @@ void init(const std::string& paths) noexcept {
       ;
 
     TBFile::Paths = split(paths, PathSeparator);
-    if (paths.empty())
+    if (TBFile::Paths.empty())
         return;
 
     // Add entries in TB tables if the corresponding ".rtbw" file exists
