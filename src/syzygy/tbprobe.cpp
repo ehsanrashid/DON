@@ -29,7 +29,6 @@
 #include <iostream>
 #include <mutex>
 #include <sstream>
-#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -203,13 +202,13 @@ class TBFile: public std::ifstream {
    public:
     // Look for and open the file among the Paths directories
     // where the .rtbw and .rtbz files can be found.
-    static std::vector<std::string_view> Paths;
+    static std::vector<std::string> Paths;
 
     explicit TBFile(const std::string& file) noexcept {
 
         for (const auto& path : Paths)
         {
-            filename = std::string(path) + "/" + file;
+            filename = path + "/" + file;
             open(filename);
             if (is_open())
                 return;
@@ -315,7 +314,7 @@ class TBFile: public std::ifstream {
     }
 };
 
-std::vector<std::string_view> TBFile::Paths;
+std::vector<std::string> TBFile::Paths;
 
 // struct PairsData contains low-level indexing information to access TB data.
 // There are 8, 4, or 2 PairsData records for each TBTable, according to the type
