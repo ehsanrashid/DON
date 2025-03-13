@@ -1495,7 +1495,11 @@ void init(const std::string& paths) noexcept {
     std::istringstream iss(paths);
     std::string        path;
     while (std::getline(iss, path, PathSeparator))
-        TBFile::Paths.push_back(path);
+        if (!path.empty())
+            TBFile::Paths.push_back(path);
+
+    if (TBFile::Paths.empty())
+        return;
 
     // Add entries in TB tables if the corresponding ".rtbw" file exists
     for (PieceType p1 = PAWN; p1 < KING; ++p1)
