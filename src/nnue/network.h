@@ -25,13 +25,16 @@
 #include <utility>
 
 #include "../memory.h"
-#include "../position.h"
 #include "nnue_accumulator.h"
 #include "nnue_architecture.h"
 #include "nnue_feature_transformer.h"
 #include "nnue_misc.h"
 
-namespace DON::NNUE {
+namespace DON {
+
+class Position;
+
+namespace NNUE {
 
 enum EmbeddedType : std::uint8_t {
     BIG,
@@ -52,19 +55,21 @@ class Network final {
     Network<Arch, Transformer>& operator=(const Network<Arch, Transformer>& net) noexcept;
     Network<Arch, Transformer>& operator=(Network<Arch, Transformer>&&) noexcept = default;
 
-    void load(const std::string& rootDirectory, std::string evalFilename) noexcept;
-    bool save(const std::optional<std::string>& filename) const noexcept;
+    void load(const std::string& rootDirectory, std::string evalFileName) noexcept;
+    bool save(const std::optional<std::string>& fileName) const noexcept;
 
-    void verify(std::string evalFilename) const noexcept;
+    void verify(std::string evalFileName) const noexcept;
 
     NetworkOutput evaluate(const Position&                      pos,
+                           AccumulatorStack&                    accStack,
                            Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
     NetworkTrace trace(const Position&                      pos,
+                       AccumulatorStack&                    accStack,
                        Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
    private:
-    void load_user_net(const std::string& dir, const std::string& evalfilePath) noexcept;
+    void load_user_net(const std::string& dir, const std::string& evalFilePath) noexcept;
     void load_internal() noexcept;
 
     void initialize() noexcept;
@@ -92,17 +97,19 @@ class Network final {
 
     template<IndexType Size>
     friend struct Cache;
+
+    friend class AccumulatorStack;
 };
 
 // Definitions of the network types
 using BigNetworkArchitecture = NetworkArchitecture<BigTransformedFeatureDimensions, BigL2, BigL3>;
 using BigFeatureTransformer =
-  FeatureTransformer<BigTransformedFeatureDimensions, &State::bigAccumulator>;
+  FeatureTransformer<BigTransformedFeatureDimensions, &AccumulatorState::big>;
 
 using SmallNetworkArchitecture =
   NetworkArchitecture<SmallTransformedFeatureDimensions, SmallL2, SmallL3>;
 using SmallFeatureTransformer =
-  FeatureTransformer<SmallTransformedFeatureDimensions, &State::smallAccumulator>;
+  FeatureTransformer<SmallTransformedFeatureDimensions, &AccumulatorState::small>;
 
 using BigNetwork   = Network<BigNetworkArchitecture, BigFeatureTransformer>;
 using SmallNetwork = Network<SmallNetworkArchitecture, SmallFeatureTransformer>;
@@ -116,6 +123,7 @@ struct Networks final {
     SmallNetwork small;
 };
 
-}  // namespace DON::NNUE
+}  // namespace NNUE
+}  // namespace DON
 
 #endif  // #ifndef NETWORK_H_INCLUDED

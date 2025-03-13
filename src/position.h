@@ -33,8 +33,6 @@
 
 #include "bitboard.h"
 #include "types.h"
-#include "nnue/nnue_accumulator.h"
-#include "nnue/nnue_architecture.h"  // IWYU pragma: keep
 
 namespace DON {
 
@@ -76,11 +74,6 @@ struct State final {
     std::int8_t  repetition;
     Piece        capturedPiece;
     Piece        promotedPiece;
-
-    // Used by NNUE
-    DirtyPiece             dirtyPiece;
-    NNUE::BigAccumulator   bigAccumulator;
-    NNUE::SmallAccumulator smallAccumulator;
 
     State* preState;
     State* nxtState;
@@ -251,11 +244,11 @@ class Position final {
 
    public:
     // Doing and undoing moves
-    void do_move(const Move& m, State& newSt, bool check) noexcept;
-    void do_move(const Move& m, State& newSt) noexcept;
-    void undo_move(const Move& m) noexcept;
-    void do_null_move(State& newSt) noexcept;
-    void undo_null_move() noexcept;
+    DirtyPiece do_move(const Move& m, State& newSt, bool check) noexcept;
+    DirtyPiece do_move(const Move& m, State& newSt) noexcept;
+    void       undo_move(const Move& m) noexcept;
+    void       do_null_move(State& newSt) noexcept;
+    void       undo_null_move() noexcept;
 
     // Properties of moves
     bool  pseudo_legal(const Move& m) const noexcept;
@@ -365,16 +358,21 @@ class Position final {
     void set_state() noexcept;
     void set_ext_state() noexcept;
 
-    bool can_enpassant(Color     ac,
-                       Square    epSq,
-                       bool      before      = false,
-                       Bitboard* epAttackers = nullptr) const noexcept;
+    bool can_enpassant(Color           ac,
+                       Square          epSq,
+                       bool            before      = false,
+                       Bitboard* const epAttackers = nullptr) const noexcept;
 
     // Other helpers
     void move_piece(Square s1, Square s2) noexcept;
 
     template<bool Do>
-    void do_castling(Color ac, Square org, Square& dst, Square& rorg, Square& rdst) noexcept;
+    void do_castling(Color             ac,
+                     Square            org,
+                     Square&           dst,
+                     Square&           rorg,
+                     Square&           rdst,
+                     DirtyPiece* const dp = nullptr) noexcept;
 
     Key adjust_key(Key k, std::int16_t ply = 0) const noexcept;
 
@@ -747,7 +745,9 @@ inline void Position::move_piece(Square s1, Square s2) noexcept {
     colorBB[color_of(pc)] ^= s1s2;
 }
 
-inline void Position::do_move(const Move& m, State& newSt) noexcept { do_move(m, newSt, check(m)); }
+inline DirtyPiece Position::do_move(const Move& m, State& newSt) noexcept {
+    return do_move(m, newSt, check(m));
+}
 
 inline State* Position::state() const noexcept { return st; }
 

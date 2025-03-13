@@ -192,6 +192,8 @@ void Worker::ensure_network_replicated() noexcept {
 void Worker::start_search() noexcept {
     auto* mainManager = is_main_worker() ? main_manager() : nullptr;
 
+    accStack.reset(rootPos, networks[numaAccessToken], accCaches);
+
     rootDepth      = DEPTH_ZERO;
     completedDepth = DEPTH_ZERO;
     nodes          = 0;
@@ -942,11 +944,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         if (R > depth - 1)
             R = depth - 1;
 
-        pos.do_null_move(st);
-
-        // Speculative prefetch as early as possible
-        tt.prefetch_key(pos.key());
-        nodes.fetch_add(1, std::memory_order_relaxed);
+        do_null_move(pos, st);
         // clang-format off
         ss->move                     = Move::Null;
         ss->pieceSqHistory           = &ContinuationHistory[0][0][NO_PIECE][SQ_ZERO];
@@ -955,7 +953,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         Value nullValue = -search<All>(pos, ss + 1, -beta, -beta + 1, depth - R);
 
-        pos.undo_null_move();
+        undo_null_move(pos);
 
         // Do not return unproven mate or TB scores
         if (nullValue >= beta)
@@ -1025,11 +1023,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             Square dst        = move.dst_sq();
             Piece  movedPiece = pos.moved_piece(move);
 
-            pos.do_move(move, st);
-
-            // Speculative prefetch as early as possible
-            tt.prefetch_key(pos.key());
-            nodes.fetch_add(1, std::memory_order_relaxed);
+            do_move(pos, move, st);
             // clang-format off
             ss->move                     = move;
             ss->pieceSqHistory           = &ContinuationHistory[ss->inCheck][true][movedPiece][dst];
@@ -1043,7 +1037,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             if (value >= probCutBeta && probCutDepth > DEPTH_ZERO)
                 value = -search<~NT>(pos, ss + 1, -probCutBeta, -probCutBeta + 1, probCutDepth);
 
-            pos.undo_move(move);
+            undo_move(pos, move);
 
             assert(is_ok(value));
 
@@ -1314,11 +1308,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             preNodes = std::uint64_t(nodes);
 
         // Step 16. Make the move
-        pos.do_move(move, st, check);
-
-        // Speculative prefetch as early as possible
-        tt.prefetch_key(pos.key());
-        nodes.fetch_add(1, std::memory_order_relaxed);
+        do_move(pos, move, st, check);
         // Update the move (this must be done after singular extension search)
         // clang-format off
         ss->move                     = move;
@@ -1428,7 +1418,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         }
 
         // Step 19. Unmake move
-        pos.undo_move(move);
+        undo_move(pos, move);
 
         assert(is_ok(value));
 
@@ -1867,11 +1857,7 @@ QS_MOVES_LOOP:
         }
 
         // Step 7. Make the move
-        pos.do_move(move, st, check);
-
-        // Speculative prefetch as early as possible
-        tt.prefetch_key(pos.key());
-        nodes.fetch_add(1, std::memory_order_relaxed);
+        do_move(pos, move, st, check);
         // Update the move
         // clang-format off
         ss->move                     = move;
@@ -1882,7 +1868,7 @@ QS_MOVES_LOOP:
         value = -qsearch<PVNode>(pos, ss + 1, -beta, -alpha);
 
         // Step 8. Unmake move
-        pos.undo_move(move);
+        undo_move(pos, move);
 
         assert(is_ok(value));
 
@@ -1947,8 +1933,31 @@ QS_MOVES_LOOP:
     return bestValue;
 }
 
+
+void Worker::do_move(Position& pos, const Move& m, State& st, bool check) noexcept {
+    accStack.push(pos.do_move(m, st, check));
+    // Speculative prefetch as early as possible
+    tt.prefetch_key(pos.key());
+    nodes.fetch_add(1, std::memory_order_relaxed);
+}
+
+void Worker::undo_move(Position& pos, const Move& m) noexcept {
+    pos.undo_move(m);
+    accStack.pop();
+}
+
+void Worker::do_null_move(Position& pos, State& st) noexcept {
+    pos.do_null_move(st);
+    // Speculative prefetch as early as possible
+    tt.prefetch_key(pos.key());
+    nodes.fetch_add(1, std::memory_order_relaxed);
+}
+
+void Worker::undo_null_move(Position& pos) noexcept { pos.undo_null_move(); }
+
 Value Worker::evaluate(const Position& pos) noexcept {
-    return DON::evaluate(pos, networks[numaAccessToken], accCaches, optimism[pos.active_color()]);
+    return DON::evaluate(pos, networks[numaAccessToken], accCaches, accStack,
+                         optimism[pos.active_color()]);
 }
 
 Move Worker::extract_tt_move(const Position& pos, Move ttMove, bool deep) const noexcept {
