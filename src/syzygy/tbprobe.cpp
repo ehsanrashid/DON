@@ -206,7 +206,7 @@ class TBFile: public std::ifstream {
 
     explicit TBFile(const std::string& file) noexcept {
 
-        for (auto path : Paths)
+        for (const auto& path : Paths)
         {
             filename = std::string(path) + "/" + file;
             std::ifstream::open(filename);
@@ -1482,7 +1482,7 @@ void init(const std::string& paths) noexcept {
 #endif
       ;
 
-    TBFile::Paths = split(paths, PathSeparator, true);
+    TBFile::Paths = split(paths, PathSeparator);
     if (paths.empty())
         return;
 
