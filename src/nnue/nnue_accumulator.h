@@ -37,9 +37,9 @@ using IndexType      = std::uint32_t;
 // Accumulator holds the result of affine transformation of input features
 template<IndexType Size>
 struct alignas(CACHE_LINE_SIZE) Accumulator final {
-    BiasType       accumulation[COLOR_NB][Size];
-    PSQTWeightType psqtAccumulation[COLOR_NB][PSQTBuckets];
-    bool           computed[COLOR_NB];
+    BiasType                   accumulation[COLOR_NB][Size];
+    PSQTWeightType             psqtAccumulation[COLOR_NB][PSQTBuckets];
+    std::array<bool, COLOR_NB> computed;
 };
 
 using BigAccumulator   = Accumulator<BigTransformedFeatureDimensions>;
@@ -80,6 +80,14 @@ struct alignas(CACHE_LINE_SIZE) Cache final {
 
 using BigCache   = Cache<BigTransformedFeatureDimensions>;
 using SmallCache = Cache<SmallTransformedFeatureDimensions>;
+
+struct AccumulatorState final {
+    BigAccumulator   big;
+    SmallAccumulator small;
+    DirtyPiece       dirtyPiece;
+
+    void reset(const DirtyPiece& dp) noexcept;
+};
 
 // AccumulatorCaches provides per-thread accumulator caches,
 // where each cache contains multiple entries for each of the possible king squares.

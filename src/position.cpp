@@ -811,8 +811,8 @@ void Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     st = st->nxtState = &newSt;
 
     // Used by NNUE
-    for (Color c : {WHITE, BLACK})
-        st->bigAccumulator.computed[c] = st->smallAccumulator.computed[c] = false;
+    st->bigAccumulator.computed.fill(false);
+    st->smallAccumulator.computed.fill(false);
 
     auto& dp = st->dirtyPiece;
 
@@ -1118,8 +1118,8 @@ void Position::do_null_move(State& newSt) noexcept {
 
     st = st->nxtState = &newSt;
 
-    for (Color c : {WHITE, BLACK})
-        st->bigAccumulator.computed[c] = st->smallAccumulator.computed[c] = false;
+    st->bigAccumulator.computed.fill(false);
+    st->smallAccumulator.computed.fill(false);
 
     st->dirtyPiece.count    = 0;
     st->dirtyPiece.piece[0] = NO_PIECE;  // Avoid checks in UpdateAccumulator()
