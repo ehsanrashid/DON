@@ -398,7 +398,7 @@ void update_accumulator_refresh_cache(
 
 }  // namespace
 
-inline void AccumulatorState::reset(const DirtyPiece& dp) noexcept {
+void AccumulatorState::reset(const DirtyPiece& dp) noexcept {
     dirtyPiece = dp;
     big.computed.fill(false);
     small.computed.fill(false);
@@ -436,7 +436,7 @@ void AccumulatorStack::reset(const Position&    pos,
 }
 
 void AccumulatorStack::push(const DirtyPiece& dp) noexcept {
-    assert(index + 1 < accStates.size());
+    assert(index < accStates.size() - 1);
     accStates[index++].reset(dp);
 }
 
