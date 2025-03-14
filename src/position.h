@@ -76,7 +76,6 @@ struct State final {
     Piece        promotedPiece;
 
     State* preState;
-    State* nxtState;
 };
 
 // A list to keep track of the position states along the setup moves
