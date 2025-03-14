@@ -44,8 +44,9 @@ using IndexType      = std::uint32_t;
 // Accumulator holds the result of affine transformation of input features
 template<IndexType Size>
 struct alignas(CACHE_LINE_SIZE) Accumulator final {
-    BiasType                   accumulation[COLOR_NB][Size];
-    PSQTWeightType             psqtAccumulation[COLOR_NB][PSQTBuckets];
+    BiasType       accumulation[COLOR_NB][Size];
+    PSQTWeightType psqtAccumulation[COLOR_NB][PSQTBuckets];
+
     std::array<bool, COLOR_NB> computed;
 };
 

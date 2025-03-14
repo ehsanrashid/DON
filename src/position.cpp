@@ -808,7 +808,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     // then switch the state pointer to point to the new state.
     std::memcpy(&newSt, st, offsetof(State, key));
     newSt.preState = st;
-
+    newSt.nxtState = nullptr;
     st = st->nxtState = &newSt;
 
     DirtyPiece dp;
@@ -1112,9 +1112,9 @@ void Position::do_null_move(State& newSt) noexcept {
     assert(&newSt != st);
     assert(!checkers());
 
-    std::memcpy(&newSt, st, sizeof(State));
+    std::memcpy(&newSt, st, offsetof(State, preState));
     newSt.preState = st;
-
+    newSt.nxtState = nullptr;
     st = st->nxtState = &newSt;
 
     st->capturedPiece = NO_PIECE;
@@ -1238,17 +1238,15 @@ bool Position::pseudo_legal(const Move& m) const noexcept {
 
     // Evasions generator already takes care to avoid some kind of illegal moves and legal() relies on this.
     // Therefore have to take care that the some kind of moves are filtered out here.
-    return (checkers()  //
-              ?
-              // Double check? In this case, a king move is required
-              !more_than_one(checkers())
-                // Pinned piece can never resolve a check
-                // NOTE: there is some issue with this condition
-                //&& !(blockers(ac) & org)
-                // Our move must be a blocking interposition or a capture of the checking piece
-                && ((between_bb(king_square(ac), lsb(checkers())) & dst)
-                    || (m.type_of() == EN_PASSANT && (checkers() & (dst - pawn_spush(ac)))))
-              : true)
+    return (!checkers() ||
+            // Double check? In this case, a king move is required
+            (!more_than_one(checkers())
+             // Pinned piece can never resolve a check
+             // NOTE: there is some issue with this condition
+             //&& !(blockers(ac) & org)
+             // Our move must be a blocking interposition or a capture of the checking piece
+             && ((between_bb(king_square(ac), lsb(checkers())) & dst)
+                 || (m.type_of() == EN_PASSANT && (checkers() & (dst - pawn_spush(ac)))))))
         && (type_of(pc) == PAWN || !(blockers(ac) & org) || aligned(king_square(ac), org, dst));
 }
 
