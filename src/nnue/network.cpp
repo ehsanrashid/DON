@@ -312,8 +312,7 @@ Network<Arch, Transformer>::trace(const Position&                      pos,
           featureTransformer->transform(pos, accStack, cache, transformedFeatures, bucket);
         auto positional = network[bucket].propagate(transformedFeatures);
 
-        trace.netOut[bucket].psqt       = psqt;
-        trace.netOut[bucket].positional = positional;
+        trace.netOut[bucket] = {psqt, positional};
     }
 
     return trace;
