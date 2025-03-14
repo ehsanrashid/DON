@@ -808,7 +808,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     // then switch the state pointer to point to the new state.
     std::memcpy(&newSt, st, offsetof(State, key));
     newSt.preState = st;
-
+    newSt.nxtState = nullptr;
     st = st->nxtState = &newSt;
 
     DirtyPiece dp;
@@ -1112,9 +1112,9 @@ void Position::do_null_move(State& newSt) noexcept {
     assert(&newSt != st);
     assert(!checkers());
 
-    std::memcpy(&newSt, st, sizeof(State));
+    std::memcpy(&newSt, st, offsetof(State, preState));
     newSt.preState = st;
-
+    newSt.nxtState = nullptr;
     st = st->nxtState = &newSt;
 
     st->capturedPiece = NO_PIECE;
