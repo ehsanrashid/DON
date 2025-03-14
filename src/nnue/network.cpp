@@ -264,12 +264,13 @@ Network<Arch, Transformer>::evaluate(const Position&                      pos,
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType transformedFeaturesUnaligned
       [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BufferSize
-       + CACHE_LINE_SIZE / sizeof(TransformedFeatureType)]{};
+       + CACHE_LINE_SIZE / sizeof(TransformedFeatureType)] = {};
 
     auto* transformedFeatures = align_ptr_up<CACHE_LINE_SIZE>(&transformedFeaturesUnaligned[0]);
 #else
     alignas(CACHE_LINE_SIZE) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BufferSize]{};
+      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BufferSize] =
+        {};
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
@@ -292,12 +293,13 @@ Network<Arch, Transformer>::trace(const Position&                      pos,
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
     TransformedFeatureType transformedFeaturesUnaligned
       [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BufferSize
-       + CACHE_LINE_SIZE / sizeof(TransformedFeatureType)]{};
+       + CACHE_LINE_SIZE / sizeof(TransformedFeatureType)] = {};
 
     auto* transformedFeatures = align_ptr_up<CACHE_LINE_SIZE>(&transformedFeaturesUnaligned[0]);
 #else
     alignas(CACHE_LINE_SIZE) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BufferSize]{};
+      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BufferSize] =
+        {};
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
