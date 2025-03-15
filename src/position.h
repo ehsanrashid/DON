@@ -76,7 +76,6 @@ struct State final {
     Piece        promotedPiece;
 
     State* preState;
-    State* nxtState;
 };
 
 // A list to keep track of the position states along the setup moves
@@ -90,7 +89,7 @@ extern std::uint8_t DrawMoveCount;
 
 extern bool Chess960;
 
-inline auto rule50_threshold() noexcept { return -10 + 2 * DrawMoveCount; }
+inline std::uint8_t rule50_threshold() noexcept { return -10 + 2 * DrawMoveCount; }
 
 // Position class stores information regarding the board representation as
 // pieces, active color, hash keys, castling info, etc. (Size = 192)
