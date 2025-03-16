@@ -465,7 +465,7 @@ Benchmark setup_benchmark(std::istringstream& iss) noexcept {
     if (iss >> benchmark.threads)
         benchmark.originalInvocation += std::to_string(benchmark.threads);
     else
-        benchmark.threads = get_hardware_concurrency();
+        benchmark.threads = hardware_concurrency();
 
     if (iss >> benchmark.ttSize)
         benchmark.originalInvocation += ' ' + std::to_string(benchmark.ttSize);

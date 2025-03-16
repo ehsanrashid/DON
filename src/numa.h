@@ -79,7 +79,7 @@ namespace DON {
 using CpuIndex  = std::size_t;
 using NumaIndex = std::size_t;
 
-inline CpuIndex get_hardware_concurrency() noexcept {
+inline CpuIndex hardware_concurrency() noexcept {
     CpuIndex concurrency = std::thread::hardware_concurrency();
 
     // Get all processors across all processor groups on windows, since
@@ -92,7 +92,7 @@ inline CpuIndex get_hardware_concurrency() noexcept {
     return concurrency;
 }
 
-inline const CpuIndex SYSTEM_THREADS_NB = std::max<CpuIndex>(get_hardware_concurrency(), 1);
+inline const CpuIndex SYSTEM_THREADS_NB = std::max<CpuIndex>(hardware_concurrency(), 1);
 
 #if defined(_WIN64)
 

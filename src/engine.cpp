@@ -28,6 +28,7 @@
 #include "evaluate.h"
 #include "misc.h"
 #include "movegen.h"
+#include "numa.h"
 #include "perft.h"
 #include "polybook.h"
 #include "uci.h"
@@ -37,8 +38,8 @@ namespace DON {
 
 namespace {
 
-constexpr std::size_t MIN_THREADS = 1u;
-constexpr std::size_t MAX_THREADS = 1024u;
+constexpr std::size_t    MIN_THREADS = 1u;
+const inline std::size_t MAX_THREADS = std::max<std::size_t>(hardware_concurrency(), 1024u);
 
 constexpr std::size_t MIN_HASH = 4u;
 constexpr std::size_t MAX_HASH =
@@ -53,7 +54,7 @@ constexpr std::size_t MAX_HASH =
 
 Engine::Engine(std::optional<std::string> path) noexcept :
     // clang-format off
-    binaryDirectory(path ? CommandLine::get_binary_directory(*path) : ""),
+    binaryDirectory(path ? CommandLine::binary_directory(*path) : ""),
     numaContext(NumaConfig::from_system()),
     options(),
     threads(),

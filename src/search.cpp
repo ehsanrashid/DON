@@ -1316,12 +1316,23 @@ S_MOVES_LOOP:  // When in check, search starts here
         ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[movedPiece][dst];
         // clang-format on
 
-        ss->history = capture
-                      ? 6.6094f * PIECE_VALUE[captured] + 2.9999f * promotion_value(move)  //
-                          + CaptureHistory[movedPiece][dst][captured] - 4822
-                      : 2 * QuietHistory[ac][move.org_dst()]    //
-                          + (*contHistory[0])[movedPiece][dst]  //
-                          + (*contHistory[1])[movedPiece][dst] - 3271;
+        if (ss->inCheck)
+        {
+            ss->history = capture
+                          ? 6.6094f * PIECE_VALUE[captured] + 2.9999f * promotion_value(move)  //
+                              + CaptureHistory[movedPiece][dst][captured] - 4822
+                          : 1 * QuietHistory[ac][move.org_dst()]  //
+                              + (*contHistory[0])[movedPiece][dst] - 2771;
+        }
+        else
+        {
+            ss->history = capture
+                          ? 6.6094f * PIECE_VALUE[captured] + 2.9999f * promotion_value(move)  //
+                              + CaptureHistory[movedPiece][dst][captured] - 4822
+                          : 2 * QuietHistory[ac][move.org_dst()]    //
+                              + (*contHistory[0])[movedPiece][dst]  //
+                              + (*contHistory[1])[movedPiece][dst] - 3271;
+        }
 
         // Decrease reduction if position is or has been on the PV (*Scaler)
         r -= (2381 + 1008 * PVNode                                //
@@ -1382,11 +1393,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (newDepth > redDepth)
                     value = -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha, newDepth);
 
-                if (value >= beta)
-                {
-                    // Post LMR continuation history updates
-                    update_continuation_history(ss, movedPiece, dst, 1800);
-                }
+                // Post LMR continuation history updates
+                update_continuation_history(ss, movedPiece, dst, 1600);
             }
             else if (value < 9 + bestValue)
                 --newDepth;
@@ -1584,8 +1592,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             auto captured = type_of(pos.captured_piece());
             assert(captured != NO_PIECE_TYPE);
-            int bonus = std::lround(2.0000f * stat_bonus(depth));
-            update_capture_history(pos.piece_on(preSq), preSq, captured, bonus);
+            update_capture_history(pos.piece_on(preSq), preSq, captured, 1100);
         }
     }
 

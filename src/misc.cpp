@@ -495,7 +495,7 @@ void print() noexcept {
 #endif
 
 // Extract the binary directory path
-std::string CommandLine::get_binary_directory(std::string path) noexcept {
+std::string CommandLine::binary_directory(std::string path) noexcept {
     std::string pathSeparator;
 
 #if defined(_WIN32)
@@ -522,12 +522,12 @@ std::string CommandLine::get_binary_directory(std::string path) noexcept {
 
     // Pattern replacement: "./" at the start of path is replaced by the working directory
     if (binaryDirectory.find("." + pathSeparator) == 0)
-        binaryDirectory.replace(0, 1, CommandLine::get_working_directory());
+        binaryDirectory.replace(0, 1, CommandLine::working_directory());
 
     return binaryDirectory;
 }
 // Extract the working directory
-std::string CommandLine::get_working_directory() noexcept {
+std::string CommandLine::working_directory() noexcept {
 
     static constexpr std::size_t BuffSize = 4096;
 

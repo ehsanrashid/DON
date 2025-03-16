@@ -198,15 +198,14 @@ class Position final {
     Square ep_square() const noexcept;
     Square cap_square() const noexcept;
 
-    // Castling
     CastlingRights castling_rights() const noexcept;
 
     bool   can_castle(CastlingRights cr) const noexcept;
     bool   castling_impeded(CastlingRights cr) const noexcept;
     Square castling_rook_square(CastlingRights cr) const noexcept;
-    auto   castling_rights_mask(Square s1, Square s2) const noexcept;
+    auto   castling_rights_mask(Square org, Square dst) const noexcept;
 
-    // ExState Info
+    // Other info
     Bitboard checkers() const noexcept;
     Bitboard checks(PieceType pt) const noexcept;
     Bitboard pinners(Color c) const noexcept;
@@ -478,7 +477,7 @@ inline Square Position::castling_rook_square(CastlingRights cr) const noexcept {
     return castlingRookSquare[lsb(cr)];
 }
 
-inline auto Position::castling_rights_mask(Square s1, Square s2) const noexcept {
+inline auto Position::castling_rights_mask(Square org, Square dst) const noexcept {
     static constexpr auto Indices = []() {
         std::array<std::size_t, SQUARE_NB> indices{};
         for (std::size_t s = 0; s < indices.size(); ++s)
@@ -492,7 +491,7 @@ inline auto Position::castling_rights_mask(Square s1, Square s2) const noexcept 
         return indices;
     }();
 
-    return castlingRightsMask[Indices[s1]] | castlingRightsMask[Indices[s2]];
+    return castlingRightsMask[Indices[org]] | castlingRightsMask[Indices[dst]];
 }
 
 // clang-format off
