@@ -775,11 +775,11 @@ class NumaConfig final {
 
 #if defined(__linux__) && !defined(__ANDROID__)
 
-        cpu_set_t* mask = CPU_ALLOC(highestCpuIndex + 1);
+        cpu_set_t* mask = CPU_ALLOC(maxCpuIndex + 1);
         if (mask == nullptr)
             std::exit(EXIT_FAILURE);
 
-        const std::size_t maskSize = CPU_ALLOC_SIZE(highestCpuIndex + 1);
+        const std::size_t maskSize = CPU_ALLOC_SIZE(maxCpuIndex + 1);
 
         CPU_ZERO_S(maskSize, mask);
 
