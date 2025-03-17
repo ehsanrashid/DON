@@ -441,8 +441,8 @@ class NumaReplicatedAccessToken final {
 // are replaced by std::exit.
 class NumaConfig final {
    public:
-    NumaConfig(CpuIndex highestCpuIdx, bool affinityCtm) noexcept :
-        highestCpuIndex(highestCpuIdx),
+    NumaConfig(CpuIndex maxCpuIdx, bool affinityCtm) noexcept :
+        maxCpuIndex(maxCpuIdx),
         affinityCustom(affinityCtm) {}
 
     NumaConfig() noexcept :
@@ -816,8 +816,8 @@ class NumaConfig final {
         if (setThreadSelectedCpuSetMasks != nullptr)
         {
             // Only available on Windows 11 and Windows Server 2022 onwards.
-            WORD procGroupCount  = WORD(((highestCpuIndex + 1) + WIN_PROCESSOR_GROUP_SIZE - 1)
-                                        / WIN_PROCESSOR_GROUP_SIZE);
+            WORD procGroupCount =
+              WORD(((maxCpuIndex + 1) + WIN_PROCESSOR_GROUP_SIZE - 1) / WIN_PROCESSOR_GROUP_SIZE);
             auto groupAffinities = std::make_unique<GROUP_AFFINITY[]>(procGroupCount);
             std::memset(groupAffinities.get(), 0, procGroupCount * sizeof(GROUP_AFFINITY));
             for (WORD procGroup = 0; procGroup < procGroupCount; ++procGroup)
@@ -908,7 +908,7 @@ class NumaConfig final {
 
     std::vector<std::set<CpuIndex>>         nodes;
     std::unordered_map<CpuIndex, NumaIndex> nodeByCpu;
-    CpuIndex                                highestCpuIndex;
+    CpuIndex                                maxCpuIndex;
     bool                                    affinityCustom;
 
     static std::vector<CpuIndex> shortened_string_to_indices(const std::string& s) noexcept {
@@ -965,8 +965,8 @@ class NumaConfig final {
         nodes[n].insert(c);
         nodeByCpu[c] = n;
 
-        if (highestCpuIndex < c)
-            highestCpuIndex = c;
+        if (maxCpuIndex < c)
+            maxCpuIndex = c;
 
         return true;
     }
@@ -988,8 +988,8 @@ class NumaConfig final {
             nodeByCpu[c] = n;
         }
 
-        if (highestCpuIndex < lstC)
-            highestCpuIndex = lstC;
+        if (maxCpuIndex < lstC)
+            maxCpuIndex = lstC;
 
         return true;
     }
