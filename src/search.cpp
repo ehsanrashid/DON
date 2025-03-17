@@ -1519,8 +1519,8 @@ S_MOVES_LOOP:  // When in check, search starts here
             }
         }
 
-        // Collection of worse moves
-        if (move != bestMove && moveCount <= 32)
+        // Collection of moves
+        if (moveCount <= 32)
             moves[capture].push_back(move);
     }
 
@@ -2408,12 +2408,14 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
 
         // Decrease history for all non-best quiet moves
         for (const Move& qm : moves[0])
-            update_all_quiet_history(pos, ss, qm, std::lround(-1.2168f * malus));
+            if (qm != bm)
+                update_all_quiet_history(pos, ss, qm, std::lround(-1.2168f * malus));
     }
 
     // Decrease history for all non-best capture moves
     for (const Move& cm : moves[1])
-        update_capture_history(pos, cm, std::lround(-1.3447f * malus));
+        if (cm != bm)
+            update_capture_history(pos, cm, std::lround(-1.3447f * malus));
 
     Move m = (ss - 1)->move;
     // Extra penalty for a quiet early move that was not a TT move
