@@ -2393,8 +2393,8 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
     assert(pos.pseudo_legal(bm));
     assert(ss->moveCount != 0);
 
-    int bonus = stat_bonus(depth) + 298 * (bm == ss->ttMove);
-    int malus = stat_malus(depth) - 32 * (ss->moveCount - 1);
+    int bonus = stat_bonus(depth) + 311 * (ss->ttMove == bm);
+    int malus = stat_malus(depth) - 31 * (ss->moveCount - 1);
     if (malus < 1)
         malus = 1;
 
