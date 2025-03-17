@@ -1369,7 +1369,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r -= std::lround(96.5576e-3f * ss->history);
 
         // Step 17. Late moves reduction / extension (LMR)
-        if (moveCount > 1)
+        if (moveCount > 1 && depth > 1)
         {
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
