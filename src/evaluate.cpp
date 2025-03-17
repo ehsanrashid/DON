@@ -90,9 +90,7 @@ Value evaluate(const Position&          pos,
     // clang-format on
 
     // Damp down the evaluation linearly when shuffling
-    auto rule50 = pos.rule50_count();
-    auto damp =
-      std::max(1.0f - 2.0e-3f * (rule50 <= 4 ? rule50 : 4 + 3.3333f * (rule50 - 4)), 0.0f);
+    auto damp = std::max(1.0f - 5.7142f * pos.rule50_count(), 0.0f);
 
     v = std::lround(v * damp);
 
