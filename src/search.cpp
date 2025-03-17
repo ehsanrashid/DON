@@ -997,7 +997,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (depth >= 3
         && !is_decisive(beta)
         // If value from transposition table is atleast probCutBeta
-        && is_valid(ttd.value) && !is_decisive(ttd.value) && ttd.value >= probCutBeta)
+        && (!is_valid(ttd.value) || ttd.value >= probCutBeta))
     {
         assert(beta < probCutBeta && probCutBeta < +VALUE_INFINITE);
 
@@ -1369,7 +1369,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r -= std::lround(96.5576e-3f * ss->history);
 
         // Step 17. Late moves reduction / extension (LMR)
-        if (moveCount > 1 && depth > 1)
+        if (moveCount != 1 && depth > 1)
         {
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
@@ -1401,7 +1401,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         }
 
         // Step 18. Full-depth search when LMR is skipped
-        else if (!PVNode || moveCount > 1)
+        else if (!PVNode || moveCount != 1)
         {
             // Increase reduction if ttMove is not present
             r += 1156 * (ttd.move == Move::None);
