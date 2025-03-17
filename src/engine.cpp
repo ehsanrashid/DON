@@ -40,7 +40,7 @@ namespace DON {
 namespace {
 
 constexpr std::size_t    MIN_THREADS = 1u;
-const inline std::size_t MAX_THREADS = std::max<std::size_t>(hardware_concurrency(), 1024u);
+const inline std::size_t MAX_THREADS = std::max<std::size_t>(4 * hardware_concurrency(), 1024u);
 
 constexpr std::size_t MIN_HASH = 4u;
 constexpr std::size_t MAX_HASH =
