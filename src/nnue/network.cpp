@@ -376,8 +376,8 @@ bool Network<Arch, Transformer>::save(std::ostream&      ostream,
 template<typename Arch, typename Transformer>
 std::optional<std::string> Network<Arch, Transformer>::load(std::istream& istream) noexcept {
     initialize();
-    std::string description;
 
+    std::string description;
     return read_parameters(istream, description) ? std::make_optional(description) : std::nullopt;
 }
 

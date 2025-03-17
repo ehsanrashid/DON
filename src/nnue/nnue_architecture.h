@@ -48,6 +48,8 @@ constexpr std::uint32_t SmallL3                           = 32;
 constexpr IndexType PSQTBuckets = 8;
 constexpr IndexType LayerStacks = 8;
 
+static_assert(LayerStacks == PSQTBuckets);
+
 template<IndexType L1, std::uint32_t L2, std::uint32_t L3>
 struct NetworkArchitecture final {
     static constexpr IndexType     TransformedFeatureDimensions = L1;

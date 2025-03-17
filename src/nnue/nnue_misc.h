@@ -50,8 +50,6 @@ struct NetworkOutput final {
 };
 
 struct NetworkTrace final {
-    static_assert(LayerStacks == PSQTBuckets);
-
     NetworkOutput netOut[LayerStacks];
     std::size_t   correctBucket;
 };

@@ -121,6 +121,28 @@ Engine::~Engine() noexcept { wait_finish(); }
 const Options& Engine::get_options() const noexcept { return options; }
 Options&       Engine::get_options() noexcept { return options; }
 
+void Engine::set_numa_config(const std::string& str) noexcept {
+    if (str == "none")
+        numaContext.set_numa_config(NumaConfig{});
+
+    else if (str == "auto" || str == "system")
+        numaContext.set_numa_config(NumaConfig::from_system(true));
+
+    else if (str == "hardware")
+        // Don't respect affinity set in the system
+        numaContext.set_numa_config(NumaConfig::from_system(false));
+
+    else if (str == "default")
+        numaContext.set_numa_config(
+          NumaConfig::from_string("0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"));
+
+    else
+        numaContext.set_numa_config(NumaConfig::from_string(str));
+
+    // Force reallocation of threads in case affinities need to change
+    resize_threads_tt();
+}
+
 std::string Engine::fen() const noexcept { return pos.fen(); }
 
 void Engine::setup(std::string_view fen, const std::vector<std::string>& moves) noexcept {
@@ -197,28 +219,6 @@ void Engine::flip() noexcept { pos.flip(); }
 
 std::uint16_t Engine::get_hashFull(std::uint8_t maxAge) const noexcept {
     return tt.hashFull(maxAge);
-}
-
-void Engine::set_numa_config(const std::string& str) noexcept {
-    if (str == "none")
-        numaContext.set_numa_config(NumaConfig{});
-
-    else if (str == "auto" || str == "system")
-        numaContext.set_numa_config(NumaConfig::from_system(true));
-
-    else if (str == "hardware")
-        // Don't respect affinity set in the system
-        numaContext.set_numa_config(NumaConfig::from_system(false));
-
-    else if (str == "default")
-        numaContext.set_numa_config(
-          NumaConfig::from_string("0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"));
-
-    else
-        numaContext.set_numa_config(NumaConfig::from_string(str));
-
-    // Force reallocation of threads in case affinities need to change
-    resize_threads_tt();
 }
 
 std::string Engine::get_numa_config_str() const noexcept {

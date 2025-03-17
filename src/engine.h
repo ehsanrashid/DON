@@ -53,6 +53,8 @@ class Engine final {
     const Options& get_options() const noexcept;
     Options&       get_options() noexcept;
 
+    void set_numa_config(const std::string& str) noexcept;
+
     std::string fen() const noexcept;
 
     // Set a new position, moves are in UCI or SAN format
@@ -81,8 +83,6 @@ class Engine final {
     void flip() noexcept;
 
     std::uint16_t get_hashFull(std::uint8_t maxAge = 0) const noexcept;
-
-    void set_numa_config(const std::string& str) noexcept;
 
     std::string get_numa_config_str() const noexcept;
     std::string get_numa_config_info_str() const noexcept;
