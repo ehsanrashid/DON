@@ -80,10 +80,10 @@ constexpr Value draw_value(Key key, std::uint64_t nodes) noexcept {
     return VALUE_DRAW + (key & 1) - (nodes & 1);
 }
 
-constexpr Bound bound_for_fail(bool failHigh) noexcept {
+constexpr Bound fail_bound(bool failHigh) noexcept {
     return failHigh ? BOUND_LOWER : BOUND_UPPER;
 }
-constexpr Bound bound_for_fail(bool failHigh, bool failLow) noexcept {
+constexpr Bound fail_bound(bool failHigh, bool failLow) noexcept {
     return failHigh ? BOUND_LOWER : failLow ? BOUND_UPPER : BOUND_NONE;
 }
 
@@ -739,7 +739,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (!PVNode && !exclude && is_valid(ttd.value)        //
         && (depth > 5 || CutNode == (ttd.value >= beta))  //
         && ttd.depth > depth - (ttd.value <= beta)        //
-        && (ttd.bound & bound_for_fail(ttd.value >= beta)) != 0)
+        && (ttd.bound & fail_bound(ttd.value >= beta)) != 0)
     {
         // If ttMove fails high, update move sorting heuristics on TT hit
         if (ttd.move != Move::None && ttd.value >= beta)
@@ -806,7 +806,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                             : wdl > +drawValue ? BOUND_LOWER
                                                : BOUND_EXACT;
 
-                if (bound == BOUND_EXACT || bound == bound_for_fail(value >= beta, value <= alpha))
+                if (bound == BOUND_EXACT || bound == fail_bound(value >= beta, value <= alpha))
                 {
                     depth = std::min(depth + 6, MAX_PLY - 1);
                     ttu.update(depth, ss->pvHit, bound, Move::None, value, VALUE_NONE);
@@ -872,7 +872,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         eval = ss->staticEval = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
         // Can ttValue be used as a better position evaluation
-        if (is_valid(ttd.value) && (ttd.bound & bound_for_fail(ttd.value > eval)) != 0)
+        if (is_valid(ttd.value) && (ttd.bound & fail_bound(ttd.value > eval)) != 0)
             eval = ttd.value;
     }
     else
@@ -1696,7 +1696,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && is_valid(ttd.value) && ttd.depth >= DEPTH_ZERO
-        && (ttd.bound & bound_for_fail(ttd.value >= beta)) != 0
+        && (ttd.bound & fail_bound(ttd.value >= beta)) != 0
         // For high rule50 counts don't produce transposition table cutoffs.
         && pos.rule50_count() < (1.0f - 0.5f * pos.rule50_high()) * rule50_threshold())
     {
@@ -1733,7 +1733,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         bestValue = ss->staticEval = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
         // Can ttValue be used as a better position evaluation
-        if (is_valid(ttd.value) && (ttd.bound & bound_for_fail(ttd.value > bestValue)) != 0)
+        if (is_valid(ttd.value) && (ttd.bound & fail_bound(ttd.value > bestValue)) != 0)
             bestValue = ttd.value;
     }
     else
@@ -1931,7 +1931,7 @@ QS_MOVES_LOOP:
     }
 
     // Save gathered info in transposition table
-    Bound bound = bound_for_fail(bestValue >= beta);
+    Bound bound = fail_bound(bestValue >= beta);
     ttu.update(DEPTH_ZERO, pvHit, bound, bestMove, bestValue, unadjustedStaticEval);
 
     assert(is_ok(bestValue));
