@@ -731,8 +731,8 @@ struct WinRateParams final {
 WinRateParams win_rate_params(const Position& pos) noexcept {
 
     // clang-format off
-    static constexpr double as[4]{-37.45051876,  121.19101539, -132.78783573, 420.70576692};
-    static constexpr double bs[4]{ 90.26261072, -137.26549898,   71.10130540,  51.35259597};
+    static constexpr double as[4]{-13.50030198,   40.92780883, -36.82753545, 386.83004070};
+    static constexpr double bs[4]{ 96.53354896, -165.79058388,  90.89679019,  49.29561889};
     // clang-format on
 
     // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (17.2414e-3).
