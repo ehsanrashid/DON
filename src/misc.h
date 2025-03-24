@@ -474,15 +474,15 @@ inline std::string u64_to_string(std::uint64_t u64) noexcept {
 
 constexpr std::string_view trim(std::string_view str) noexcept {
     // Define whitespace characters
-    constexpr std::string_view whitespace = " \t\r\n";
+    constexpr std::string_view Whitespace = " \t\r\n";
 
     // Find first non-whitespace character
-    std::size_t beg = str.find_first_not_of(whitespace);
+    std::size_t beg = str.find_first_not_of(Whitespace);
     if (beg == std::string_view::npos)
         return {};  // All whitespace
 
     // Find last non-whitespace character
-    std::size_t end = str.find_last_not_of(whitespace);
+    std::size_t end = str.find_last_not_of(Whitespace);
     return str.substr(beg, end - beg + 1);
 }
 

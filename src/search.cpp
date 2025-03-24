@@ -1973,9 +1973,9 @@ Move Worker::extract_tt_move(const Position& pos, Move ttMove, bool deep) const 
     if (deep)
     {
         auto rule50 = pos.rule50_count();
-        while (rule50 >= Position::R50Offset)
+        while (rule50 >= R50Offset)
         {
-            rule50 -= Position::R50Factor;
+            rule50 -= R50Factor;
 
             auto [ttd, tte, ttc] = tt.probe(pos.key(rule50 - pos.rule50_count()));
 

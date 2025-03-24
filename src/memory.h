@@ -60,9 +60,9 @@ void memory_array_deleter(T* mem, FreeFunc freeFunc) noexcept {
     if (mem == nullptr)
         return;
 
-    constexpr std::size_t ARRAY_OFFSET = std::max(sizeof(std::size_t), alignof(T));
+    constexpr std::size_t ArrayOffset = std::max(sizeof(std::size_t), alignof(T));
     // Move back on the pointer to where the size is allocated.
-    auto* rawMemory = reinterpret_cast<char*>(mem) - ARRAY_OFFSET;
+    auto* rawMemory = reinterpret_cast<char*>(mem) - ArrayOffset;
 
     if constexpr (!std::is_trivially_destructible_v<T>)
     {
@@ -91,19 +91,19 @@ inline std::enable_if_t<std::is_array_v<T>, std::remove_extent_t<T>*>
 memory_allocator(AllocFunc allocFunc, std::size_t num) noexcept {
     using ElementType = std::remove_extent_t<T>;
 
-    constexpr std::size_t ARRAY_OFFSET = std::max(sizeof(std::size_t), alignof(ElementType));
+    constexpr std::size_t ArrayOffset = std::max(sizeof(std::size_t), alignof(ElementType));
 
     // Save the array size in the memory location
-    auto* rawMemory = reinterpret_cast<char*>(allocFunc(ARRAY_OFFSET + num * sizeof(ElementType)));
+    auto* rawMemory = reinterpret_cast<char*>(allocFunc(ArrayOffset + num * sizeof(ElementType)));
     ASSERT_ALIGNED(rawMemory, alignof(T));
 
     new (rawMemory) std::size_t(num);
 
     for (std::size_t i = 0; i < num; ++i)
-        new (rawMemory + ARRAY_OFFSET + i * sizeof(ElementType)) ElementType();
+        new (rawMemory + ArrayOffset + i * sizeof(ElementType)) ElementType();
 
     // Need to return the pointer at the start of the array so that the indexing in unique_ptr<T[]> works
-    return reinterpret_cast<ElementType*>(rawMemory + ARRAY_OFFSET);
+    return reinterpret_cast<ElementType*>(rawMemory + ArrayOffset);
 }
 
 //

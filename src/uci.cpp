@@ -695,9 +695,9 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
       std::size(hashFullAges) == 2 && hashFullAges[0] == 0 && hashFullAges[1] == 31,
       "Hardcoded for display. Would complicate the code needlessly in the current state.");
 
-    auto threadBindingStr = engine.get_thread_binding_info_str();
-    if (threadBindingStr.empty())
-        threadBindingStr = "none";
+    auto threadBinding = engine.get_thread_binding_info_str();
+    if (threadBinding.empty())
+        threadBinding = "none";
 
     // clang-format off
     std::cerr << "\n==========================="
@@ -708,7 +708,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
               << "\nFilled invocation          : " << "benchmark " << benchmark.filledInvocation
               << "\nAvailable processors       : " << engine.get_numa_config_str()
               << "\nThread count               : " << benchmark.threads
-              << "\nThread binding             : " << threadBindingStr
+              << "\nThread binding             : " << threadBinding
               << "\nTT size [MiB]              : " << benchmark.ttSize
               << "\nHash max, avg [per mille]  : "  //
               << "\n    Single search          : " << maxHashFull[0] << ", " << float(sumHashFull[0]) / hashFullCount  //

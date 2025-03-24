@@ -85,6 +85,9 @@ struct State final {
 using StateList    = std::deque<State>;
 using StateListPtr = std::unique_ptr<StateList>;
 
+constexpr std::uint16_t R50Offset = 14;
+constexpr std::uint16_t R50Factor = 8;
+
 extern std::uint8_t DrawMoveCount;
 
 extern bool Chess960;
@@ -150,9 +153,6 @@ class Position final {
        private:
         Cardinal cardinals[RANK_NB];
     };
-
-    static constexpr std::uint16_t R50Offset = 14;
-    static constexpr std::uint16_t R50Factor = 8;
 
     static void init() noexcept;
 
