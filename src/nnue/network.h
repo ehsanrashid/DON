@@ -103,13 +103,11 @@ class Network final {
 
 // Definitions of the network types
 using BigNetworkArchitecture = NetworkArchitecture<BigTransformedFeatureDimensions, BigL2, BigL3>;
-using BigFeatureTransformer =
-  FeatureTransformer<BigTransformedFeatureDimensions, &AccumulatorState::big>;
+using BigFeatureTransformer  = FeatureTransformer<BigTransformedFeatureDimensions>;
 
 using SmallNetworkArchitecture =
   NetworkArchitecture<SmallTransformedFeatureDimensions, SmallL2, SmallL3>;
-using SmallFeatureTransformer =
-  FeatureTransformer<SmallTransformedFeatureDimensions, &AccumulatorState::small>;
+using SmallFeatureTransformer = FeatureTransformer<SmallTransformedFeatureDimensions>;
 
 using BigNetwork   = Network<BigNetworkArchitecture, BigFeatureTransformer>;
 using SmallNetwork = Network<SmallNetworkArchitecture, SmallFeatureTransformer>;

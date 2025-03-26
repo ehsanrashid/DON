@@ -262,15 +262,14 @@ Network<Arch, Transformer>::evaluate(const Position&                      pos,
     // Manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
-    TransformedFeatureType transformedFeaturesUnaligned
-      [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BufferSize
-       + CACHE_LINE_SIZE / sizeof(TransformedFeatureType)] = {};
+    TransformedFeatureType
+      transformedFeaturesUnaligned[FeatureTransformer<TransformedFeatureDimensions>::BufferSize
+                                   + CACHE_LINE_SIZE / sizeof(TransformedFeatureType)] = {};
 
     auto* transformedFeatures = align_ptr_up<CACHE_LINE_SIZE>(&transformedFeaturesUnaligned[0]);
 #else
     alignas(CACHE_LINE_SIZE) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BufferSize] =
-        {};
+      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions>::BufferSize] = {};
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
@@ -291,15 +290,14 @@ Network<Arch, Transformer>::trace(const Position&                      pos,
     // Manually align the arrays on the stack because with gcc < 9.3
     // overaligning stack variables with alignas() doesn't work correctly.
 #if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
-    TransformedFeatureType transformedFeaturesUnaligned
-      [FeatureTransformer<TransformedFeatureDimensions, nullptr>::BufferSize
-       + CACHE_LINE_SIZE / sizeof(TransformedFeatureType)] = {};
+    TransformedFeatureType
+      transformedFeaturesUnaligned[FeatureTransformer<TransformedFeatureDimensions>::BufferSize
+                                   + CACHE_LINE_SIZE / sizeof(TransformedFeatureType)] = {};
 
     auto* transformedFeatures = align_ptr_up<CACHE_LINE_SIZE>(&transformedFeaturesUnaligned[0]);
 #else
     alignas(CACHE_LINE_SIZE) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions, nullptr>::BufferSize] =
-        {};
+      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions>::BufferSize] = {};
 #endif
 
     ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
@@ -415,9 +413,9 @@ bool Network<Arch, Transformer>::write_parameters(
 // Explicit template instantiations
 template class Network<  //
   NetworkArchitecture<BigTransformedFeatureDimensions, BigL2, BigL3>,
-  FeatureTransformer<BigTransformedFeatureDimensions, &AccumulatorState::big>>;
+  FeatureTransformer<BigTransformedFeatureDimensions>>;
 template class Network<  //
   NetworkArchitecture<SmallTransformedFeatureDimensions, SmallL2, SmallL3>,
-  FeatureTransformer<SmallTransformedFeatureDimensions, &AccumulatorState::small>>;
+  FeatureTransformer<SmallTransformedFeatureDimensions>>;
 
 }  // namespace DON::NNUE

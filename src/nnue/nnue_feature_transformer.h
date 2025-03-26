@@ -251,8 +251,7 @@ void permute(T (&data)[N], const std::array<std::size_t, OrderSize>& order) noex
 }
 
 // Input feature converter
-template<IndexType                                 TransformedFeatureDimensions,
-         Accumulator<TransformedFeatureDimensions> AccumulatorState::*accPtr>
+template<IndexType TransformedFeatureDimensions>
 class FeatureTransformer final {
 
    public:
@@ -351,8 +350,10 @@ class FeatureTransformer final {
 
         const Color perspectives[COLOR_NB]{pos.active_color(), ~pos.active_color()};
 
-        const auto& accumulation     = (accumulatorState.*accPtr).accumulation;
-        const auto& psqtAccumulation = (accumulatorState.*accPtr).psqtAccumulation;
+        const auto& accumulation =
+          (accumulatorState.acc<TransformedFeatureDimensions>()).accumulation;
+        const auto& psqtAccumulation =
+          (accumulatorState.acc<TransformedFeatureDimensions>()).psqtAccumulation;
 
         std::int32_t psqt = 0.5f
                           * (psqtAccumulation[perspectives[0]][bucket]  //
