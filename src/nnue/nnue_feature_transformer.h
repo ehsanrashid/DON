@@ -346,7 +346,7 @@ class FeatureTransformer final {
                            OutputType*                          output,
                            int                                  bucket) const noexcept {
         accStack.evaluate(pos, *this, *cache);
-        const auto& accumulatorState = accStack.latest();
+        const auto& accumulatorState = accStack.clatest_state();
 
         const Color perspectives[COLOR_NB]{pos.active_color(), ~pos.active_color()};
 

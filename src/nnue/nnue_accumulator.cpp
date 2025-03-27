@@ -408,9 +408,12 @@ void AccumulatorCaches::init(const Networks& networks) noexcept {
 }
 
 
-const AccumulatorState& AccumulatorStack::latest() const noexcept { return accStates[index - 1]; }
-
-AccumulatorState& AccumulatorStack::mut_latest() noexcept { return accStates[index - 1]; }
+const AccumulatorState& AccumulatorStack::clatest_state() const noexcept {
+    return accStates[index - 1];
+}
+AccumulatorState& AccumulatorStack::latest_state() noexcept {  //
+    return accStates[index - 1];
+}
 
 void AccumulatorStack::reset(const Position&    pos,
                              const Networks&    networks,
@@ -452,14 +455,15 @@ void AccumulatorStack::evaluate_side(const Position&                       pos,
                                      const FeatureTransformer<Dimensions>& featureTransformer,
                                      Cache<Dimensions>&                    cache) noexcept {
 
-    const auto lastUsableAccum = find_last_usable_accumulator<Perspective, Dimensions>();
+    auto lastUsableAcc = find_last_usable_accumulator<Perspective, Dimensions>();
 
-    if ((accStates[lastUsableAccum].template acc<Dimensions>()).computed[Perspective])
-        forward_update_incremental<Perspective>(pos, featureTransformer, lastUsableAccum);
+    if ((accStates[lastUsableAcc].template acc<Dimensions>()).computed[Perspective])
+        forward_update_incremental<Perspective>(pos, featureTransformer, lastUsableAcc);
     else
     {
-        update_accumulator_refresh_cache<Perspective>(featureTransformer, pos, mut_latest(), cache);
-        backward_update_incremental<Perspective>(pos, featureTransformer, lastUsableAccum);
+        update_accumulator_refresh_cache<Perspective>(featureTransformer, pos, latest_state(),
+                                                      cache);
+        backward_update_incremental<Perspective>(pos, featureTransformer, lastUsableAcc);
     }
 }
 
@@ -495,7 +499,7 @@ void AccumulatorStack::forward_update_incremental(
         update_accumulator_incremental<Perspective, true>(featureTransformer, ksq,
                                                           accStates[idx - 1], accStates[idx]);
 
-    assert((latest().acc<Dimensions>()).computed[Perspective]);
+    assert((clatest_state().acc<Dimensions>()).computed[Perspective]);
 }
 
 template<Color Perspective, IndexType Dimensions>
@@ -506,7 +510,7 @@ void AccumulatorStack::backward_update_incremental(
 
     assert(end < accStates.size());
     assert(end < index);
-    assert((latest().acc<Dimensions>()).computed[Perspective]);
+    assert((clatest_state().acc<Dimensions>()).computed[Perspective]);
 
     Square ksq = pos.king_square(Perspective);
 

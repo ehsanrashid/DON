@@ -146,7 +146,8 @@ class AccumulatorStack final {
         accStates(MAX_PLY + 1),
         index(0) {}
 
-    [[nodiscard]] const AccumulatorState& latest() const noexcept;
+    [[nodiscard]] const AccumulatorState& clatest_state() const noexcept;
+    [[nodiscard]] AccumulatorState&       latest_state() noexcept;
 
     void reset(const Position& pos, const Networks& networks, AccumulatorCaches& caches) noexcept;
     void push(const DirtyPiece& dp) noexcept;
@@ -158,8 +159,6 @@ class AccumulatorStack final {
                   Cache<Dimensions>&                    cache) noexcept;
 
    private:
-    [[nodiscard]] AccumulatorState& mut_latest() noexcept;
-
     template<Color Perspective, IndexType Dimensions>
     void evaluate_side(const Position&                       pos,
                        const FeatureTransformer<Dimensions>& featureTransformer,
