@@ -94,9 +94,11 @@ class CuckooTable final {
     constexpr auto& operator[](std::size_t idx) const noexcept { return cuckoos[idx]; }
     constexpr auto& operator[](std::size_t idx) noexcept { return cuckoos[idx]; }
 
-    // Hash functions for indexing the cuckoo table
-    constexpr std::size_t H1(Key key) const noexcept { return (key >> 00) & (size() - 1); }
-    constexpr std::size_t H2(Key key) const noexcept { return (key >> 16) & (size() - 1); }
+    // Hash function for indexing the cuckoo table
+    template<unsigned Index>
+    constexpr std::size_t H(Key key) const noexcept {
+        return (key >> (16 * Index)) & (size() - 1);
+    }
 
     constexpr void fill(Cuckoo&& cuckoo) noexcept { cuckoos.fill(std::move(cuckoo)); }
 
@@ -106,22 +108,22 @@ class CuckooTable final {
     }
 
     void insert(Cuckoo cuckoo) noexcept {
-        std::size_t index = H1(cuckoo.key);
+        std::size_t index = H<0>(cuckoo.key);
         while (true)
         {
             std::swap(cuckoos[index], cuckoo);
             if (cuckoo.empty())  // Arrived at empty slot?
                 break;
-            index ^= H1(cuckoo.key) ^ H2(cuckoo.key);  // Push victim to alternative slot
+            index ^= H<0>(cuckoo.key) ^ H<1>(cuckoo.key);  // Push victim to alternative slot
         }
         ++count;
     }
 
     std::size_t find_key(Key key) const noexcept {
         std::size_t index;
-        if (index = H1(key); cuckoos[index].key == key)
+        if (index = H<0>(key); cuckoos[index].key == key)
             return index;
-        if (index = H2(key); cuckoos[index].key == key)
+        if (index = H<1>(key); cuckoos[index].key == key)
             return index;
         return size();
     }
@@ -1737,7 +1739,6 @@ bool Position::see_ge(const Move& m, int threshold) const noexcept {
             occupied ^= org = lsb(b);
             if ((swap = VALUE_QUEEN - swap) < win)
                 break;
-
             qB &= occupied;
             qR &= occupied;
             if (qB)

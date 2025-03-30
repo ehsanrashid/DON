@@ -29,6 +29,18 @@
 
 namespace DON::NNUE {
 
+#if defined(__GNUC__) && !defined(__clang__)
+    #define assume(cond) \
+        do \
+        { \
+            if (!(cond)) \
+                __builtin_unreachable(); \
+        } while (0)
+#else
+    // do nothing for other compilers
+    #define assume(cond)
+#endif
+
 namespace {
 
 // Computes the accumulator of the next position, on given computedState
@@ -72,6 +84,11 @@ void update_accumulator_incremental(
             assert(removed.size() == 1 || removed.size() == 2);
             assert(( Forward && added.size() <= removed.size())
                 || (!Forward && removed.size() <= added.size()));
+
+        // Workaround compiler warning for uninitialized variables,
+        // replicated on profile builds on windows with gcc 14.2.0.
+        assume(added.size() == 1 || added.size() == 2);
+        assume(removed.size() == 1 || removed.size() == 2);
 
 #if defined(VECTOR)
             
@@ -394,6 +411,8 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
 }
 
 }  // namespace
+
+#undef assume
 
 void AccumulatorState::reset(const DirtyPiece& dp) noexcept {
     dirtyPiece = dp;

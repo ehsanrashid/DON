@@ -252,14 +252,14 @@ class PRNG final {
     }
 
     template<typename T>
-    T rand() noexcept {
+    constexpr T rand() noexcept {
         return T(rand64());
     }
 
     // Special generator used to fast init magic numbers.
     // Output values only have 1/8th of their bits set on average.
     template<typename T>
-    T sparse_rand() noexcept {
+    constexpr T sparse_rand() noexcept {
         return T(rand64() & rand64() & rand64());
     }
 
@@ -279,7 +279,7 @@ class PRNG final {
 
    private:
     // XORShift64Star algorithm implementation
-    std::uint64_t rand64() noexcept {
+    constexpr std::uint64_t rand64() noexcept {
         s ^= s >> 12, s ^= s << 25, s ^= s >> 27;
         return 0x2545F4914F6CDD1Dull * s;
     }
@@ -299,14 +299,14 @@ class PRNG1024 final {
     }
 
     template<typename T>
-    T rand() noexcept {
+    constexpr T rand() noexcept {
         return T(rand64());
     }
 
     // Special generator used to fast init magic numbers.
     // Output values only have 1/8th of their bits set on average.
     template<typename T>
-    T sparse_rand() noexcept {
+    constexpr T sparse_rand() noexcept {
         return T(rand64() & rand64() & rand64());
     }
 
@@ -322,10 +322,10 @@ class PRNG1024 final {
         };
 
         std::array<std::uint64_t, Size> t{};
-        for (std::size_t j = 0; j < JumpMask.size(); ++j)
+        for (const auto jumpMask : JumpMask)
             for (std::uint8_t m = 0; m < 64; ++m)
             {
-                if (JumpMask[j] & (1ull << m))
+                if (jumpMask & (1ull << m))
                     for (std::size_t i = 0; i < t.size(); ++i)
                         t[i] ^= s[index(i)];
                 rand64();
@@ -339,7 +339,7 @@ class PRNG1024 final {
     constexpr std::size_t index(std::size_t k) const noexcept { return (p + k) & (s.size() - 1); }
 
     // XORShift1024Star algorithm implementation
-    std::uint64_t rand64() noexcept {
+    constexpr std::uint64_t rand64() noexcept {
         auto s0 = s[p];
         auto s1 = s[p = index(1)];
         s1 ^= s1 << 31;
