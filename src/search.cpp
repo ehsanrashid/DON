@@ -47,6 +47,8 @@ namespace DON {
 
 namespace {
 
+History<HTTMove> TTMoveHistory;
+
 // Correction History
 CorrectionHistory<CHPawn>                 PawnCorrectionHistory;
 CorrectionHistory<CHMinor>               MinorCorrectionHistory;
@@ -144,6 +146,8 @@ void init() noexcept {
             for (auto& toPieceSqHist : ContinuationHistory[inCheck][capture])
                 for (auto& pieceSqHist : toPieceSqHist)
                     pieceSqHist.fill(-468);
+
+    TTMoveHistory.fill(0);
 
        PawnCorrectionHistory.fill(0);
       MinorCorrectionHistory.fill(0);
@@ -751,8 +755,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             // Extra penalty for early quiet moves of the previous ply
             if (is_ok(preSq) && !preCapture && (ss - 1)->moveCount <= 3)
-                update_continuation_history(ss - 1, pos.piece_on(preSq), preSq,
-                                            std::lround(-0.9941 * stat_malus(depth + 1)));
+                update_continuation_history(ss - 1, pos.piece_on(preSq), preSq, -2200);
         }
 
         // Partial workaround for the graph history interaction problem
@@ -1263,7 +1266,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 {
                     singularValue = value;
 
-                    int doubleMargin =  0 + 262 * PVNode - 188 * !ttCapture +  0 * ss->pvHit - 4.0181e-6f * absCorrectionValue;
+                    int doubleMargin =  0 + 262 * PVNode - 188 * !ttCapture +  0 * ss->pvHit - 4.0181e-6f * absCorrectionValue - TTMoveHistory[pawnIndex][ac] / 128;
                     int tripleMargin = 88 + 265 * PVNode - 256 * !ttCapture + 93 * ss->pvHit - 3.9165e-6f * absCorrectionValue;
 
                     extension = 1 + (value < singularBeta - doubleMargin)
@@ -1358,7 +1361,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Increase reduction on repetition
         r += 2048 * (move == (ss - 4)->move && pos.repetition() == 4);
 
-        r += ss->cutoffCount > 3  //
+        r += ss->cutoffCount > 2  //
              ?
              // Increase reduction if next ply has a lot of fail high
                1042 + 864 * AllNode
@@ -1554,8 +1557,10 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (moveCount != 0 && bestMove != Move::None)
+    {
         update_all_history(pos, ss, depth, bestMove, moves);
-
+        TTMoveHistory[pawnIndex][ac] << (bestMove == ttd.move ? 800 : -600 * moveCount);
+    }
     // If prior move is valid, that caused the fail low
     else if (is_ok(preSq))
     {

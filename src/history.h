@@ -90,6 +90,7 @@ enum HistoryType : std::uint8_t {
     HPieceSq,       // By move's [piece][sq]
     HContinuation,  // By combination of pair of moves
     HLowPlyQuiet,   // By ply and move's org and dst squares
+    HTTMove,
 };
 
 namespace Internal {
@@ -131,6 +132,11 @@ struct HistoryTypedef<HContinuation> final {
 template<>
 struct HistoryTypedef<HLowPlyQuiet> final {
     using Type = StatsArray<QUIET_HISTORY_LIMIT, LOW_PLY_SIZE, SQUARE_NB * SQUARE_NB>;
+};
+
+template<>
+struct HistoryTypedef<HTTMove> final {
+    using Type = StatsArray<PAWN_HISTORY_LIMIT, PAWN_HISTORY_SIZE, COLOR_NB>;
 };
 }  // namespace Internal
 
