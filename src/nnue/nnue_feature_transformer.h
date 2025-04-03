@@ -151,6 +151,60 @@ using psqt_vec_t = int32x4_t;
 
 #endif
 
+struct Vec16Wrapper final {
+#if defined(VECTOR)
+    using type = vec_t;
+    static type add(const type& lhs, const type& rhs) { return vec_add_16(lhs, rhs); }
+    static type sub(const type& lhs, const type& rhs) { return vec_sub_16(lhs, rhs); }
+#else
+    using type = BiasType;
+    static type add(const type& lhs, const type& rhs) { return lhs + rhs; }
+    static type sub(const type& lhs, const type& rhs) { return lhs - rhs; }
+#endif
+};
+
+struct Vec32Wrapper final {
+#if defined(VECTOR)
+    using type = psqt_vec_t;
+    static type add(const type& lhs, const type& rhs) { return vec_add_psqt_32(lhs, rhs); }
+    static type sub(const type& lhs, const type& rhs) { return vec_sub_psqt_32(lhs, rhs); }
+#else
+    using type = PSQTWeightType;
+    static type add(const type& lhs, const type& rhs) { return lhs + rhs; }
+    static type sub(const type& lhs, const type& rhs) { return lhs - rhs; }
+#endif
+};
+
+enum UpdateOperation : std::uint8_t {
+    Add,
+    Sub
+};
+
+template<typename VecWrapper,
+         UpdateOperation... ops,
+         std::enable_if_t<sizeof...(ops) == 0, bool> = true>
+typename VecWrapper::type fused(const typename VecWrapper::type& in) {
+    return in;
+}
+
+template<typename VecWrapper,
+         UpdateOperation update_op,
+         UpdateOperation... ops,
+         typename T,
+         typename... Ts,
+         std::enable_if_t<is_all_same_v<typename VecWrapper::type, T, Ts...>, bool> = true,
+         std::enable_if_t<sizeof...(ops) == sizeof...(Ts), bool>                    = true>
+typename VecWrapper::type
+fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operands) {
+    switch (update_op)
+    {
+    case Add :
+        return fused<VecWrapper, ops...>(VecWrapper::add(in, operand), operands...);
+    case Sub :
+        return fused<VecWrapper, ops...>(VecWrapper::sub(in, operand), operands...);
+    }
+}
+
 #if defined(VECTOR)
 // Compute optimal SIMD register count for feature transformer accumulation.
 template<IndexType TransformedFeatureDimensions>
@@ -213,10 +267,10 @@ class SIMDTiling final {
 #endif
 
 // Returns the inverse of a permutation
-template<std::size_t Len>
-constexpr std::array<std::size_t, Len>
-invert_permutation(const std::array<std::size_t, Len>& order) noexcept {
-    std::array<std::size_t, Len> inverse{};
+template<std::size_t Size>
+constexpr std::array<std::size_t, Size>
+invert_permutation(const std::array<std::size_t, Size>& order) noexcept {
+    std::array<std::size_t, Size> inverse{};
     for (std::size_t i = 0; i < order.size(); ++i)
         inverse[order[i]] = i;
     return inverse;

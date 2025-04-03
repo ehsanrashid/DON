@@ -41,6 +41,7 @@
     #include <cstdint>
     #include <limits>
     #include <string_view>
+    #include <type_traits>
 
 // Predefined macros hell:
 //
@@ -409,6 +410,14 @@ constexpr Key16 compress_key(Key key) noexcept {
          ^ ((key >> 32) & 0xFF00)  //
          ^ ((key >> 48) & 0xF000);
 }
+
+template<typename T, typename... Ts>
+struct is_all_same final {
+    static constexpr bool value = (std::is_same_v<T, Ts> && ...);
+};
+
+template<typename... Ts>
+constexpr auto is_all_same_v = is_all_same<Ts...>::value;
 
 // A move needs 16 bits to be stored
 //
