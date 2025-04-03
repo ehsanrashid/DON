@@ -23,7 +23,6 @@
 #include <type_traits>
 
 #include "../bitboard.h"
-#include "../misc.h"
 #include "../position.h"
 #include "../types.h"
 #include "network.h"
