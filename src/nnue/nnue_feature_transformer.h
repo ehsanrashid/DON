@@ -188,7 +188,7 @@ typename VecWrapper::type fused(const typename VecWrapper::type& in) {
 }
 
 template<typename VecWrapper,
-         UpdateOperation update_op,
+         UpdateOperation updateOp,
          UpdateOperation... ops,
          typename T,
          typename... Ts,
@@ -196,12 +196,15 @@ template<typename VecWrapper,
          std::enable_if_t<sizeof...(ops) == sizeof...(Ts), bool>                    = true>
 typename VecWrapper::type
 fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operands) {
-    switch (update_op)
+    switch (updateOp)
     {
     case Add :
         return fused<VecWrapper, ops...>(VecWrapper::add(in, operand), operands...);
     case Sub :
         return fused<VecWrapper, ops...>(VecWrapper::sub(in, operand), operands...);
+    default :
+        static_assert(updateOp == Add || updateOp == Sub, "Only Add and Sub are supported.");
+        return typename VecWrapper::type();
     }
 }
 

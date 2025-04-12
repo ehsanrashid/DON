@@ -735,7 +735,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     bool preNonPawn =
       is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && (ss - 1)->move.type_of() != PROMOTION;
 
-    if (ttd.hit && ttd.value == VALUE_DRAW && ttd.depth == MAX_PLY - 1 && ttd.bound == BOUND_EXACT
+    if (ttd.hit && ttd.value == VALUE_DRAW && ttd.depth >= 6 && ttd.bound == BOUND_EXACT
         && ttd.move == Move::None)
         return VALUE_DRAW;
 
@@ -1543,8 +1543,8 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             bestValue = VALUE_DRAW;
 
-            ttu.update(MAX_PLY - 1, ss->pvHit, BOUND_EXACT, Move::None, bestValue,
-                       unadjustedStaticEval);
+            ttu.update(std::min(depth + 6, MAX_PLY - 1), ss->pvHit, BOUND_EXACT, Move::None,
+                       bestValue, unadjustedStaticEval);
 
             return bestValue;
         }
@@ -1615,7 +1615,8 @@ S_MOVES_LOOP:  // When in check, search starts here
         Bound bound = bestValue >= beta                ? BOUND_LOWER
                     : PVNode && bestMove != Move::None ? BOUND_EXACT
                                                        : BOUND_UPPER;
-        ttu.update(depth, ss->pvHit, bound, bestMove, bestValue, unadjustedStaticEval);
+        ttu.update(moveCount != 0 ? depth : std::min(depth + 6, MAX_PLY - 1), ss->pvHit, bound,
+                   bestMove, bestValue, unadjustedStaticEval);
     }
 
     // Adjust correction history
@@ -1695,7 +1696,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     ss->ttMove = ttd.move;
     bool pvHit = ttd.hit && ttd.pv;
 
-    if (ttd.hit && ttd.value == VALUE_DRAW && ttd.depth == MAX_PLY - 1 && ttd.bound == BOUND_EXACT
+    if (ttd.hit && ttd.value == VALUE_DRAW && ttd.depth >= 6 && ttd.bound == BOUND_EXACT
         && ttd.move == Move::None)
         return VALUE_DRAW;
 
@@ -1923,8 +1924,7 @@ QS_MOVES_LOOP:
 
         if (pttmNone && bestValue == VALUE_DRAW)
         {
-            ttu.update(MAX_PLY - 1, pvHit, BOUND_EXACT, Move::None, bestValue,
-                       unadjustedStaticEval);
+            ttu.update(6, pvHit, BOUND_EXACT, Move::None, bestValue, unadjustedStaticEval);
 
             return bestValue;
         }
