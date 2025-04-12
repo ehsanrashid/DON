@@ -215,9 +215,6 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
     vec_t      acc[Tiling::RegCount];
     psqt_vec_t psqt[Tiling::PSQTRegCount];
 
-    bool last3Combine =
-      std::abs(int(removed.size()) - int(added.size())) == 1 && removed.size() + added.size() > 2;
-
     // clang-format off
     for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
     {
@@ -228,7 +225,7 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
             acc[k] = entryTile[k];
 
         std::size_t i = 0;
-        for (; i < std::min(removed.size(), added.size()) - last3Combine; ++i)
+        for (; i < std::min(removed.size(), added.size()); ++i)
         {
             auto  offsetR = removed[i] * Dimensions + j * Tiling::TileHeight;
             auto* columnR = reinterpret_cast<const vec_t*>(&featureTransformer.weights[offsetR]);
@@ -239,49 +236,22 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
                 acc[k] = fused<Vec16Wrapper, Add, Sub>(acc[k], columnA[k], columnR[k]);
         }
 
-        if (last3Combine)
+        for (; i < removed.size(); ++i)
         {
-            auto  offsetR = removed[i] * Dimensions + j * Tiling::TileHeight;
-            auto* columnR = reinterpret_cast<const vec_t*>(&featureTransformer.weights[offsetR]);
-            auto  offsetA = added[i] * Dimensions + j * Tiling::TileHeight;
-            auto* columnA = reinterpret_cast<const vec_t*>(&featureTransformer.weights[offsetA]);
+            auto  offset = removed[i] * Dimensions + j * Tiling::TileHeight;
+            auto* column = reinterpret_cast<const vec_t*>(&featureTransformer.weights[offset]);
 
-            if (removed.size() > added.size())
-            {
-                auto  offsetR2 = removed[i + 1] * Dimensions + j * Tiling::TileHeight;
-                auto* columnR2 = reinterpret_cast<const vec_t*>(&featureTransformer.weights[offsetR2]);
-
-                for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                    acc[k] = fused<Vec16Wrapper, Add, Sub, Sub>(acc[k], columnA[k], columnR[k], columnR2[k]);
-            }
-            else
-            {
-                auto  offsetA2 = added[i + 1] * Dimensions + j * Tiling::TileHeight;
-                auto* columnA2 = reinterpret_cast<const vec_t*>(&featureTransformer.weights[offsetA2]);
-
-                for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                    acc[k] = fused<Vec16Wrapper, Add, Add, Sub>(acc[k], columnA[k], columnA2[k], columnR[k]);
-            }
+            for (IndexType k = 0; k < Tiling::RegCount; ++k)
+                acc[k] = vec_sub_16(acc[k], column[k]);
         }
-        else
+
+        for (; i < added.size(); ++i)
         {
-            for (; i < removed.size(); ++i)
-            {
-                auto  offset = removed[i] * Dimensions + j * Tiling::TileHeight;
-                auto* column = reinterpret_cast<const vec_t*>(&featureTransformer.weights[offset]);
+            auto  offset = added[i] * Dimensions + j * Tiling::TileHeight;
+            auto* column = reinterpret_cast<const vec_t*>(&featureTransformer.weights[offset]);
 
-                for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                    acc[k] = vec_sub_16(acc[k], column[k]);
-            }
-
-            for (; i < added.size(); ++i)
-            {
-                auto  offset = added[i] * Dimensions + j * Tiling::TileHeight;
-                auto* column = reinterpret_cast<const vec_t*>(&featureTransformer.weights[offset]);
-
-                for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                    acc[k] = vec_add_16(acc[k], column[k]);
-            }
+            for (IndexType k = 0; k < Tiling::RegCount; ++k)
+                acc[k] = vec_add_16(acc[k], column[k]);
         }
 
         for (IndexType k = 0; k < Tiling::RegCount; ++k)
