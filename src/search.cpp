@@ -147,7 +147,7 @@ void init() noexcept {
                 for (auto& pieceSqHist : toPieceSqHist)
                     pieceSqHist.fill(-468);
 
-    TTMoveHistory.fill(0);
+    TTMoveHistory = 0;
 
        PawnCorrectionHistory.fill(0);
       MinorCorrectionHistory.fill(0);
@@ -1266,7 +1266,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 {
                     singularValue = value;
 
-                    int doubleMargin =  0 + 262 * PVNode - 188 * !ttCapture +  0 * ss->pvHit - 4.0181e-6f * absCorrectionValue - TTMoveHistory[pawnIndex][ac] / 128;
+                    int doubleMargin =  0 + 262 * PVNode - 188 * !ttCapture +  0 * ss->pvHit - 4.0181e-6f * absCorrectionValue - TTMoveHistory / 128;
                     int tripleMargin = 88 + 265 * PVNode - 256 * !ttCapture + 93 * ss->pvHit - 3.9165e-6f * absCorrectionValue;
 
                     extension = 1 + (value < singularBeta - doubleMargin)
@@ -1559,7 +1559,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (moveCount != 0 && bestMove != Move::None)
     {
         update_all_history(pos, ss, depth, bestMove, moves);
-        TTMoveHistory[pawnIndex][ac] << (bestMove == ttd.move ? 800 : -600 * moveCount);
+        TTMoveHistory << (bestMove == ttd.move ? 800 : -870);
     }
     // If prior move is valid, that caused the fail low
     else if (is_ok(preSq))
