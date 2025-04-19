@@ -204,6 +204,41 @@ void MovePicker::sort_partial(int limit) noexcept {
         }
 }
 
+bool MovePicker::otherPieceTypesMobile(PieceType pt, std::vector<Move>& captureMoves) {
+    if (stage != STG_ENC_QUIET_GOOD && stage != STG_ENC_QUIET_BAD)
+        return true;
+
+    // verify good captures
+    for (const Move& cm : captureMoves)
+        if (type_of(pos.moved_piece(cm)) != pt)
+        {
+            if (type_of(pos.moved_piece(cm)) != KING)
+                return true;
+            if (pos.legal(cm))
+                return true;
+        }
+
+    // now verify bad captures and quiets
+    for (auto itr = badCapCur; itr < badCapEnd; ++itr)
+        if (type_of(pos.moved_piece(*itr)) != pt)
+        {
+            if (type_of(pos.moved_piece(*itr)) != KING)
+                return true;
+            if (pos.legal(*itr))
+                return true;
+        }
+    for (auto itr = begin(); itr < end(); ++itr)
+        if (type_of(pos.moved_piece(*itr)) != pt)
+        {
+            if (type_of(pos.moved_piece(*itr)) != KING)
+                return true;
+            if (pos.legal(*itr))
+                return true;
+        }
+
+    return false;
+}
+
 // Most important method of the MovePicker class.
 // It emits a new pseudo-legal move every time it is called until there are no more moves left,
 // picking the move with the highest score from a list of generated moves.

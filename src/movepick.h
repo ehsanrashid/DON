@@ -85,6 +85,7 @@ class MovePicker final {
     MovePicker& operator=(MovePicker&&) noexcept      = delete;
 
     Move next_move() noexcept;
+    bool otherPieceTypesMobile(PieceType pt, std::vector<Move>& captureMoves);
 
     Stage stage = STG_NONE;
 

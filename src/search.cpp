@@ -108,7 +108,7 @@ int risk_tolerance(const Position& pos, Value v) noexcept {
     static constexpr int as[4]{-3037, +2270, -637, +413};
     static constexpr int bs[4]{+7936, -2255, +319, +83};
 
-    int m = pos.std_material();
+    int m = pos.count<PAWN>() + pos.non_pawn_material() / 300;
     int a = m * (m * (m * as[0] / 256 + as[1]) / 256 + as[2]) / 256 + as[3];
     int b = m * (m * (m * bs[0] / 256 + bs[1]) / 256 + bs[2]) / 256 + bs[3];
     // a and b are the crude approximation of the wdl model.
@@ -927,7 +927,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (!ss->pvHit && depth < 15 && eval >= beta && (ttd.move == Move::None || ttCapture)
         && !is_loss(beta) && !is_win(eval)
         && eval - futility_margin<CutNode>(depth, ttd.hit, improve, oppworse)
-               + (37 - 7.1491e-6f * absCorrectionValue)
+               + (37 - 7.1491e-6f * absCorrectionValue) + ((eval - beta) / 8)
                + std::lround(-3.3223e-3f * (ss - 1)->history)
              >= beta)
         return in_range((2 * eval + beta) / 3);
@@ -1188,8 +1188,6 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int seeHist = std::clamp(int(std::lround(0.03125f * captHist)),  //
                                          -138 * virtualDepth, +135 * virtualDepth);
                 if (!(is_ok(preSq) && dst == preSq)
-                    && !((ss - 1)->conseqChecks >= 3 && alpha < VALUE_DRAW
-                         && pos.non_pawn_material(ac) <= PIECE_VALUE[type_of(movedPiece)])
                     && pos.see(move) < -(seeHist + 154 * virtualDepth + 256 * dblCheck))
                     continue;
             }
@@ -1226,10 +1224,19 @@ S_MOVES_LOOP:  // When in check, search starts here
                     lmrDepth = DEPTH_ZERO;
 
                 // SEE based pruning for quiets
-                if (!((ss - 1)->conseqChecks >= 3 && alpha < VALUE_DRAW
-                      && pos.non_pawn_material(ac) <= PIECE_VALUE[type_of(movedPiece)])
-                    && pos.see(move) < -(27 * sqr(lmrDepth) + 256 * dblCheck))
-                    continue;
+                if (pos.see(move) < -(27 * sqr(lmrDepth) + 256 * dblCheck))
+                {
+                    bool skip = true;
+                    if (depth > 2 && check && alpha < VALUE_ZERO
+                        && pos.non_pawn_material(ac) == PIECE_VALUE[type_of(movedPiece)]
+                        && PIECE_VALUE[type_of(movedPiece)] >= VALUE_ROOK
+                        && !(PieceAttacks[pos.king_square(ac)][KING] & move.org_dst()))
+                        // if the opponent captures last mobile piece it might be stalemate
+                        skip = mp.otherPieceTypesMobile(type_of(movedPiece), moves[1]);
+
+                    if (skip)
+                        continue;
+                }
             }
         }
 
