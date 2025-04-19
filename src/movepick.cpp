@@ -219,7 +219,7 @@ bool MovePicker::otherPieceTypesMobile(PieceType pt, std::vector<Move>& captureM
         }
 
     // now verify bad captures and quiets
-    for (auto itr = badCapCur; itr < badCapEnd; ++itr)
+    for (auto itr = badCapMoves.begin(); itr < badCapMoves.end(); ++itr)
         if (type_of(pos.moved_piece(*itr)) != pt)
         {
             if (type_of(pos.moved_piece(*itr)) != KING)
@@ -227,7 +227,7 @@ bool MovePicker::otherPieceTypesMobile(PieceType pt, std::vector<Move>& captureM
             if (pos.legal(*itr))
                 return true;
         }
-    for (auto itr = begin(); itr < end(); ++itr)
+    for (auto itr = extMoves.begin(); itr < extMoves.end(); ++itr)
         if (type_of(pos.moved_piece(*itr)) != pt)
         {
             if (type_of(pos.moved_piece(*itr)) != KING)
