@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <vector>
 
 #include "history.h"
 #include "movegen.h"
