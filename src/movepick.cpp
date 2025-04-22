@@ -85,8 +85,8 @@ void MovePicker::score<ENC_CAPTURE>() noexcept {
         auto   pc       = pos.moved_piece(m);
         auto   captured = pos.captured(m);
 
-        m.value = 7 * PIECE_VALUE[captured] + 3 * promotion_value(m, true)  //
-                + CaptureHistory[pc][dst][captured]                         //
+        m.value = (7 + 2 * pos.check(m)) * PIECE_VALUE[captured] + 3 * promotion_value(m, true)  //
+                + CaptureHistory[pc][dst][captured]                                              //
                 + 0x100 * (pos.cap_square() == dst);
     }
 }

@@ -259,18 +259,8 @@ NetworkOutput
 Network<Arch, Transformer>::evaluate(const Position&                      pos,
                                      AccumulatorStack&                    accStack,
                                      Cache<TransformedFeatureDimensions>* cache) const noexcept {
-    // Manually align the arrays on the stack because with gcc < 9.3
-    // overaligning stack variables with alignas() doesn't work correctly.
-#if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
-    TransformedFeatureType
-      transformedFeaturesUnaligned[FeatureTransformer<TransformedFeatureDimensions>::BufferSize
-                                   + CACHE_LINE_SIZE / sizeof(TransformedFeatureType)] = {};
-
-    auto* transformedFeatures = align_ptr_up<CACHE_LINE_SIZE>(&transformedFeaturesUnaligned[0]);
-#else
     alignas(CACHE_LINE_SIZE) TransformedFeatureType
       transformedFeatures[FeatureTransformer<TransformedFeatureDimensions>::BufferSize] = {};
-#endif
 
     ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
 
@@ -287,18 +277,8 @@ NetworkTrace
 Network<Arch, Transformer>::trace(const Position&                      pos,
                                   AccumulatorStack&                    accStack,
                                   Cache<TransformedFeatureDimensions>* cache) const noexcept {
-    // Manually align the arrays on the stack because with gcc < 9.3
-    // overaligning stack variables with alignas() doesn't work correctly.
-#if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
-    TransformedFeatureType
-      transformedFeaturesUnaligned[FeatureTransformer<TransformedFeatureDimensions>::BufferSize
-                                   + CACHE_LINE_SIZE / sizeof(TransformedFeatureType)] = {};
-
-    auto* transformedFeatures = align_ptr_up<CACHE_LINE_SIZE>(&transformedFeaturesUnaligned[0]);
-#else
     alignas(CACHE_LINE_SIZE) TransformedFeatureType
       transformedFeatures[FeatureTransformer<TransformedFeatureDimensions>::BufferSize] = {};
-#endif
 
     ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
 

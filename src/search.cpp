@@ -1210,7 +1210,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 {
                     futilityValue =
                       std::min(146 + ss->staticEval - 98 * (bestMove != Move::None) + 116 * lmrDepth
-                                 + std::max(-128 + ss->staticEval - bestValue, 0),
+                                 + std::max(-128 + ss->staticEval - bestValue, 0)
+                                     * (ss->staticEval > alpha - 50),
                                VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
                     {
@@ -1413,7 +1414,9 @@ S_MOVES_LOOP:  // When in check, search starts here
         else if (!PVNode || moveCount != 1)
         {
             // Increase reduction if ttMove is not present
-            r += ttd.move == Move::None ? 1156 : -(TTMoveHistory[ac] / 8);
+            r += 1156 * (ttd.move == Move::None);
+
+            r -= TTMoveHistory[ac] / 8;
 
             // Reduce search depth if expected reduction is high
             value =
