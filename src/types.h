@@ -262,6 +262,9 @@ struct DirtyPiece final {
     // Max 3 pieces can change in one move
     static constexpr std::uint8_t MaxCount = 3;
 
+    DirtyPiece() noexcept :
+        count(0) {}
+
     // Count of changed pieces
     std::uint8_t count;
 
