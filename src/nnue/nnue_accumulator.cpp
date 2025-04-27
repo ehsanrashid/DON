@@ -355,7 +355,8 @@ void AccumulatorStack::reset() noexcept {
 
 void AccumulatorStack::push(const DirtyPiece& dp) noexcept {
     assert(size < accStates.size() - 1);
-    accStates[size++].reset(dp);
+    accStates[size].reset(dp);
+    ++size;
 }
 
 void AccumulatorStack::pop() noexcept {
