@@ -1423,6 +1423,9 @@ S_MOVES_LOOP:  // When in check, search starts here
             r += 1156 * (ttd.move == Move::None);
 
             r -= TTMoveHistory[ac] / 8;
+            
+            if constexpr (CutNode)
+                r += 520;
 
             // Reduce search depth if expected reduction is high
             value =
