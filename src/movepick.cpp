@@ -118,7 +118,7 @@ void MovePicker::score<ENC_QUIET>() noexcept {
         if (ssPly < LOW_PLY_SIZE)
             m.value += 8 * LowPlyQuietHistory[ssPly][m.org_dst()] / (1 + 2 * ssPly);
 
-        if (pos.check(m))
+        if (pos.check(m) && pos.see(m) >= -75)
             m.value += 0x4000 + 0x1000 * pos.dbl_check(m);
 
         m.value += 0x1000 * pos.fork(m);

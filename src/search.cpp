@@ -67,10 +67,17 @@ reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noe
 
 // Futility margin
 template<bool CutNode>
-constexpr Value futility_margin(Depth depth, bool ttHit, bool improve, bool oppworse) noexcept {
-    return (depth - 2.0000f * improve - 0.3333f * oppworse) * (110 - 25 * (CutNode && !ttHit));
+constexpr Value futility_margin(Depth depth,
+                                bool  ttHit,
+                                bool  improve,
+                                bool  oppworse,
+                                int   ssHistory,
+                                int   absCorrectionValue) noexcept {
+    Value futilityMult       = 98 - 22 * (CutNode && !ttHit);
+    return futilityMult * depth - improve * futilityMult * 2 - oppworse * futilityMult / 3
+         + ssHistory / 339 + absCorrectionValue / 157363;
 }
-
+ 
 // History and stats update bonus, based on depth
 constexpr int stat_bonus(Depth depth) noexcept { return std::min(-98 + 158 * depth, 1632); }
 
@@ -117,6 +124,18 @@ int risk_tolerance(Value v) noexcept {
     // -115200x/(x^2+3) = -345600(ab) / (a^2+3b^2) (multiplied by some constant) (second degree pade approximant)
 
     return (sigmoid_d2(v - a, b) + sigmoid_d2(v + a, b)) * 32;
+}
+
+int adaptive_probcut_margin(Depth depth) {
+    // Base margin
+    static constexpr int base = 180;
+
+    // Approximate log2(depth) using a fast lookup table
+    static constexpr int logTable[32] = {0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
+                                         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
+
+    int logDepth = logTable[std::min(+depth, 31)];
+    return base + logDepth * 60 + std::min(10, (depth - 16) * 2);
 }
 
 void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept;
@@ -928,9 +947,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // The depth condition is important for mate finding.
     if (!ss->pvHit && depth < 15 && eval >= beta && (ttd.move == Move::None || ttCapture)
         && !is_loss(beta) && !is_win(eval)
-        && eval - futility_margin<CutNode>(depth, ttd.hit, improve, oppworse)
-               + (37 - 7.1491e-6f * absCorrectionValue) + ((eval - beta) / 8)
-               + std::lround(-3.3223e-3f * (ss - 1)->history)
+        && eval
+               - futility_margin<CutNode>(depth, ttd.hit, improve, oppworse, (ss - 1)->history,
+                                          absCorrectionValue)
              >= beta)
         return in_range((2 * eval + beta) / 3);
 
@@ -1067,7 +1086,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 S_MOVES_LOOP:  // When in check, search starts here
 
     // Step 12. Small ProbCut idea
-    probCutBeta = std::min(415 + beta, +VALUE_INFINITE - 1);
+    probCutBeta = std::min(beta + adaptive_probcut_margin(depth), +VALUE_INFINITE - 1);
     if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value)
         && ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
         return ttd.value;
@@ -1423,7 +1442,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             r += 1156 * (ttd.move == Move::None);
 
             r -= TTMoveHistory[ac] / 8;
-            
+
             if constexpr (CutNode)
                 r += 520;
 
