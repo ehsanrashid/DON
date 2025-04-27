@@ -18,6 +18,7 @@
 #include "nnue_accumulator.h"
 
 #include <cassert>
+#include <cstdint>
 #include <initializer_list>
 #include <memory>
 #include <type_traits>
@@ -345,36 +346,23 @@ void AccumulatorCaches::init(const Networks& networks) noexcept {
 
 
 const AccumulatorState& AccumulatorStack::clatest_state() const noexcept {
-    return accStates[index - 1];
+    return accStates[size - 1];
 }
-AccumulatorState& AccumulatorStack::latest_state() noexcept {  //
-    return accStates[index - 1];
-}
+AccumulatorState& AccumulatorStack::latest_state() noexcept { return accStates[size - 1]; }
 
-void AccumulatorStack::reset(const Position&    pos,
-                             const Networks&    networks,
-                             AccumulatorCaches& caches) noexcept {
-    index = 1;
-
-    update_accumulator_refresh_cache<WHITE, BigTransformedFeatureDimensions>(
-      *networks.big.featureTransformer, pos, accStates[0], caches.big);
-    update_accumulator_refresh_cache<BLACK, BigTransformedFeatureDimensions>(
-      *networks.big.featureTransformer, pos, accStates[0], caches.big);
-
-    update_accumulator_refresh_cache<WHITE, SmallTransformedFeatureDimensions>(
-      *networks.small.featureTransformer, pos, accStates[0], caches.small);
-    update_accumulator_refresh_cache<BLACK, SmallTransformedFeatureDimensions>(
-      *networks.small.featureTransformer, pos, accStates[0], caches.small);
+void AccumulatorStack::reset() noexcept {
+    accStates[0].reset({});
+    size = 1;
 }
 
 void AccumulatorStack::push(const DirtyPiece& dp) noexcept {
-    assert(index < accStates.size() - 1);
-    accStates[index++].reset(dp);
+    assert(size < accStates.size() - 1);
+    accStates[size++].reset(dp);
 }
 
 void AccumulatorStack::pop() noexcept {
-    assert(index > 1);
-    --index;
+    assert(size > 1);
+    --size;
 }
 
 template<IndexType Dimensions>
@@ -408,7 +396,7 @@ void AccumulatorStack::evaluate_side(const Position&                       pos,
 template<Color Perspective, IndexType Dimensions>
 std::size_t AccumulatorStack::find_last_usable_accumulator() const noexcept {
 
-    for (std::size_t idx = index - 1; idx > 0; --idx)
+    for (std::size_t idx = size - 1; idx > 0; --idx)
     {
         if ((accStates[idx].template acc<Dimensions>()).computed[Perspective])
             return idx;
@@ -431,7 +419,7 @@ void AccumulatorStack::forward_update_incremental(
 
     Square ksq = pos.king_square(Perspective);
 
-    for (std::size_t idx = begin + 1; idx < index; ++idx)
+    for (std::size_t idx = begin + 1; idx < size; ++idx)
         update_accumulator_incremental<Perspective, true>(featureTransformer, ksq,
                                                           accStates[idx - 1], accStates[idx]);
 
@@ -445,12 +433,12 @@ void AccumulatorStack::backward_update_incremental(
   const std::size_t                     end) noexcept {
 
     assert(end < accStates.size());
-    assert(end < index);
+    assert(end < size);
     assert((clatest_state().acc<Dimensions>()).computed[Perspective]);
 
     Square ksq = pos.king_square(Perspective);
 
-    for (std::size_t idx = index - 2; idx >= end; --idx)
+    for (std::size_t idx = size - 2; idx >= end; --idx)
         update_accumulator_incremental<Perspective, false>(featureTransformer, ksq,
                                                            accStates[idx + 1], accStates[idx]);
 

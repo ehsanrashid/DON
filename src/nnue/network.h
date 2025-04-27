@@ -69,7 +69,7 @@ class Network final {
                        Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
    private:
-    void load_user_net(const std::string& dir, const std::string& evalFilePath) noexcept;
+    void load_user_net(const std::string& dir, const std::string& evalFileName) noexcept;
     void load_internal() noexcept;
 
     void initialize() noexcept;

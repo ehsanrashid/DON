@@ -119,7 +119,6 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
 
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    accStack.reset(pos, networks, caches);
     auto         baseNetOut = networks.big.evaluate(pos, accStack, &caches.big);
     std::int32_t baseEval   = (baseNetOut.psqt + baseNetOut.positional) / OUTPUT_SCALE;
 
@@ -136,7 +135,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
             {
                 pos.remove_piece(sq);
 
-                accStack.reset(pos, networks, caches);
+                accStack.reset();
                 auto netOut = networks.big.evaluate(pos, accStack, &caches.big);
 
                 std::int32_t eval = (netOut.psqt + netOut.positional) / OUTPUT_SCALE;
@@ -156,7 +155,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
         oss << row << '\n';
     oss << '\n';
 
-    accStack.reset(pos, networks, caches);
+    accStack.reset();
     auto trace = networks.big.trace(pos, accStack, &caches.big);
 
     oss << " NNUE network contributions ("  //

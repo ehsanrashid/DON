@@ -298,13 +298,13 @@ Network<Arch, Transformer>::trace(const Position&                      pos,
 
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_user_net(const std::string& dir,
-                                               const std::string& evalFilePath) noexcept {
-    std::ifstream ifstream(dir + evalFilePath, std::ios_base::binary);
+                                               const std::string& evalFileName) noexcept {
+    std::ifstream ifstream(dir + evalFileName, std::ios_base::binary);
 
     auto description = load(ifstream);
     if (description.has_value())
     {
-        evalFile.current        = evalFilePath;
+        evalFile.current        = evalFileName;
         evalFile.netDescription = description.value();
     }
 }

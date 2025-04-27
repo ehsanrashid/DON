@@ -100,21 +100,23 @@ void update_pv(Move* pv, const Move& move, const Move* childPv) noexcept {
     *pv = Move::None;
 }
 
-int risk_tolerance(const Position& pos, Value v) noexcept {
+int risk_tolerance(Value v) noexcept {
 
-    // Returns (some constant of) second derivative of sigmoid
-    static constexpr auto sigmoid_d2 = [](int x, int y) noexcept { return 355752ll * x / (sqr(x) + 3 * sqr(y)); };
+    // Returns (some constant of) second derivative of sigmoid.
+    static constexpr auto sigmoid_d2 = [](int x, int y) {
+        return 644800ull * x / ((x * x + 3 * y * y) * y);
+    };
 
-    static constexpr int as[4]{-3037, +2270, -637, +413};
-    static constexpr int bs[4]{+7936, -2255, +319, +83};
-
-    int m = pos.count<PAWN>() + pos.non_pawn_material() / 300;
-    int a = m * (m * (m * as[0] / 256 + as[1]) / 256 + as[2]) / 256 + as[3];
-    int b = m * (m * (m * bs[0] / 256 + bs[1]) / 256 + bs[2]) / 256 + bs[3];
     // a and b are the crude approximation of the wdl model.
-    // The win  rate: 1 / (1 + exp((a-v) / b))
-    // The loss rate: 1 / (1 + exp((a+v) / b))
-    return std::lround(float(sigmoid_d2(v - a, b) + sigmoid_d2(v + a, b)) * 58 / b);
+    // The win rate is: 1/(1+exp((a-v)/b))
+    // The loss rate is 1/(1+exp((v+a)/b))
+    int a = 356;
+    int b = 123;
+
+    // The risk utility is therefore d/dv^2 (1/(1+exp(-(v-a)/b)) -1/(1+exp(-(-v-a)/b)))
+    // -115200x/(x^2+3) = -345600(ab) / (a^2+3b^2) (multiplied by some constant) (second degree pade approximant)
+
+    return (sigmoid_d2(v - a, b) + sigmoid_d2(v + a, b)) * 32;
 }
 
 void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept;
@@ -196,7 +198,7 @@ void Worker::ensure_network_replicated() noexcept {
 void Worker::start_search() noexcept {
     auto* mainManager = is_main_worker() ? main_manager() : nullptr;
 
-    accStack.reset(rootPos, networks[numaAccessToken], accCaches);
+    accStack.reset();
 
     rootDepth      = DEPTH_ZERO;
     completedDepth = DEPTH_ZERO;
@@ -1357,7 +1359,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r += 306 - 34 * moveCount - 1024 * dblCheck - 33.6746e-6f * absCorrectionValue;
 
         if (!is_decisive(bestValue))
-            r += risk_tolerance(pos, bestValue);
+            r += risk_tolerance(bestValue);
 
         // Increase reduction for CutNode
         if constexpr (CutNode)
@@ -1407,7 +1409,11 @@ S_MOVES_LOOP:  // When in check, search starts here
                 update_continuation_history(ss, movedPiece, dst, 1600);
             }
             else if (value < 9 + bestValue)
+            {
                 --newDepth;
+                if (value < 3 + bestValue)
+                    --newDepth;
+            }
         }
 
         // Step 18. Full-depth search when LMR is skipped

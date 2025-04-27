@@ -144,12 +144,12 @@ class AccumulatorStack final {
    public:
     AccumulatorStack() noexcept :
         accStates(MAX_PLY + 1),
-        index(0) {}
+        size(0) {}
 
     [[nodiscard]] const AccumulatorState& clatest_state() const noexcept;
     [[nodiscard]] AccumulatorState&       latest_state() noexcept;
 
-    void reset(const Position& pos, const Networks& networks, AccumulatorCaches& caches) noexcept;
+    void reset() noexcept;
     void push(const DirtyPiece& dp) noexcept;
     void pop() noexcept;
 
@@ -179,7 +179,7 @@ class AccumulatorStack final {
 
    private:
     std::vector<AccumulatorState> accStates;
-    std::size_t                   index;
+    std::size_t                   size;
 };
 
 }  // namespace NNUE

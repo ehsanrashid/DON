@@ -117,15 +117,11 @@ std::string trace(Position&             pos,  //
 
     Value v;
 
-    accStack.reset(pos, networks, *accCaches);
-
     auto netOut = networks.big.evaluate(pos, accStack, &accCaches->big);
 
     v = (netOut.psqt + netOut.positional) / NNUE::OUTPUT_SCALE;
     v = pos.active_color() == WHITE ? +v : -v;
     oss << "NNUE evaluation      : " << 0.01f * UCI::to_cp(v, pos) << " (white side)\n";
-
-    accStack.reset(pos, networks, *accCaches);
 
     v = evaluate(pos, networks, *accCaches, accStack);
     v = pos.active_color() == WHITE ? +v : -v;

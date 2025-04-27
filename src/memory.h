@@ -50,7 +50,6 @@ void memory_deleter(T* mem, FreeFunc freeFunc) noexcept {
         std::destroy_at(mem);
 
     freeFunc(mem);
-    return;
 }
 
 // Frees memory which was placed there with placement new.
