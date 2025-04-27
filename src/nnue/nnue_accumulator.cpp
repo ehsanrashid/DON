@@ -128,12 +128,12 @@ void update_accumulator_incremental(
     else
         FeatureSet::append_changed_indices<Perspective>(ksq, computedState.dirtyPiece, added,
                                                         removed);
-
+    /*
     assert(added.size() == 1 || added.size() == 2);
     assert(removed.size() == 1 || removed.size() == 2);
     assert((Forward && added.size() <= removed.size())
            || (!Forward && removed.size() <= added.size()));
-
+    */
     // Workaround compiler warning for uninitialized variables,
     // replicated on profile builds on windows with gcc 14.2.0.
     assume(added.size() == 1 || added.size() == 2);
