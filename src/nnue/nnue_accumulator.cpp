@@ -129,8 +129,8 @@ void update_accumulator_incremental(
         FeatureSet::append_changed_indices<Perspective>(ksq, computedState.dirtyPiece, added,
                                                         removed);
 
-    //assert(added.size() == 1 || added.size() == 2);
-    //assert(removed.size() == 1 || removed.size() == 2);
+    assert(added.size() == 1 || added.size() == 2);
+    assert(removed.size() == 1 || removed.size() == 2);
     assert((Forward && added.size() <= removed.size())
            || (!Forward && removed.size() <= added.size()));
 
@@ -159,7 +159,7 @@ void update_accumulator_incremental(
     }
     else
     {
-        //assert(added.size() == 2 && removed.size() == 2);
+        assert(added.size() == 2 && removed.size() == 2);
         updateContext.template apply<Add, Add, Sub, Sub>(added[0], added[1], removed[0],
                                                          removed[1]);
     }
