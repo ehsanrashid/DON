@@ -136,8 +136,8 @@ void update_accumulator_incremental(
 
     // Workaround compiler warning for uninitialized variables,
     // replicated on profile builds on windows with gcc 14.2.0.
-    assume(added.size() == 1 || added.size() == 2);
-    assume(removed.size() == 1 || removed.size() == 2);
+    //assume(added.size() == 1 || added.size() == 2);
+    //assume(removed.size() == 1 || removed.size() == 2);
 
     auto updateContext =
       make_accumulator_update_context<Perspective>(featureTransformer, computedState, targetState);
