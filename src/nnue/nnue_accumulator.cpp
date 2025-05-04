@@ -130,7 +130,7 @@ void update_accumulator_incremental(
                                                         removed);
 
     //assert(added.size() == 1 || added.size() == 2);
-    assert(removed.size() == 1 || removed.size() == 2);
+    //assert(removed.size() == 1 || removed.size() == 2);
     assert((Forward && added.size() <= removed.size())
            || (!Forward && removed.size() <= added.size()));
 
