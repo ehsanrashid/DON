@@ -29,18 +29,6 @@
 
 namespace DON::NNUE {
 
-#if defined(__GNUC__) && !defined(__clang__)
-    #define assume(cond) \
-        do \
-        { \
-            if (!(cond)) \
-                __builtin_unreachable(); \
-        } while (0)
-#else
-    // do nothing for other compilers
-    #define assume(cond)
-#endif
-
 namespace {
 
 template<typename VectorWrapper,
@@ -129,15 +117,8 @@ void update_accumulator_incremental(
         FeatureSet::append_changed_indices<Perspective>(ksq, computedState.dirtyPiece, added,
                                                         removed);
 
-    //assert(added.size() == 1 || added.size() == 2);
-    //assert(removed.size() == 1 || removed.size() == 2);
     assert((Forward && added.size() <= removed.size())
            || (!Forward && removed.size() <= added.size()));
-
-    // Workaround compiler warning for uninitialized variables,
-    // replicated on profile builds on windows with gcc 14.2.0.
-    //assume(added.size() == 1 || added.size() == 2);
-    //assume(removed.size() == 1 || removed.size() == 2);
 
     auto updateContext =
       make_accumulator_update_context<Perspective>(featureTransformer, computedState, targetState);
