@@ -19,6 +19,8 @@
 
 #include "half_ka_v2_hm.h"
 
+#include <cassert>
+
 #include "../../bitboard.h"
 #include "../../position.h"
 #include "../../types.h"
@@ -62,7 +64,7 @@ void HalfKAv2_hm::append_changed_indices(Square            ksq,
                                          const DirtyPiece& dp,
                                          IndexList&        removed,
                                          IndexList&        added) noexcept {
-    assert(dp.count <= 3);
+    assert(dp.count <= DirtyPiece::MaxCount);
     for (std::uint8_t i = 0; i < dp.count; ++i)
     {
         if (is_ok(dp.org[i]))
