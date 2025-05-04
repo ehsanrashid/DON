@@ -62,6 +62,7 @@ void HalfKAv2_hm::append_changed_indices(Square            ksq,
                                          const DirtyPiece& dp,
                                          IndexList&        removed,
                                          IndexList&        added) noexcept {
+    assert(dp.count <= 3);
     for (std::uint8_t i = 0; i < dp.count; ++i)
     {
         if (is_ok(dp.org[i]))
