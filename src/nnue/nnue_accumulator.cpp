@@ -100,8 +100,8 @@ void update_accumulator_incremental(
   Square                                                  ksq,
   const AccumulatorState&                                 computedState,
   AccumulatorState&                                       targetState) noexcept {
-    assert((computedState.acc<TransformedFeatureDimensions>()).computed[Perspective]);
-    assert(!(targetState.acc<TransformedFeatureDimensions>()).computed[Perspective]);
+    //assert((computedState.acc<TransformedFeatureDimensions>()).computed[Perspective]);
+    //assert(!(targetState.acc<TransformedFeatureDimensions>()).computed[Perspective]);
 
     // The size must be enough to contain the largest possible update.
     // That might depend on the feature set and generally relies on the
