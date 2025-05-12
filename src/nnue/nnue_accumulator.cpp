@@ -106,11 +106,12 @@ auto make_accumulator_update_context(const FeatureTransformer<Dimensions>& featu
 }
 
 template<Color Perspective, IndexType TransformedFeatureDimensions>
-void double_inc_update(const FeatureTransformer<TransformedFeatureDimensions>& featureTransformer,
-                       const Square                                            ksq,
-                       const AccumulatorState&                                 computedState,
-                       AccumulatorState&                                       middleState,
-                       AccumulatorState&                                       targetState) {
+void update_accumulator_incremental_double(
+  const FeatureTransformer<TransformedFeatureDimensions>& featureTransformer,
+  const Square                                            ksq,
+  const AccumulatorState&                                 computedState,
+  AccumulatorState&                                       middleState,
+  AccumulatorState&                                       targetState) {
 
     assert(computedState.acc<TransformedFeatureDimensions>().computed[Perspective]);
     assert(!middleState.acc<TransformedFeatureDimensions>().computed[Perspective]);
@@ -474,11 +475,11 @@ void AccumulatorStack::forward_update_incremental(
             {
                 const Square captureSq = dp1.dst[0];
                 dp1.dst[0] = dp2.org[1] = SQ_NONE;
-                double_inc_update<Perspective>(featureTransformer, ksq, accStates[idx - 1],
-                                               accStates[idx], accStates[idx + 1]);
+                update_accumulator_incremental_double<Perspective>(
+                  featureTransformer, ksq, accStates[idx - 1], accStates[idx], accStates[idx + 1]);
                 dp1.dst[0] = dp2.org[1] = captureSq;
 
-                idx++;
+                ++idx;
                 continue;
             }
         }
@@ -496,8 +497,7 @@ void AccumulatorStack::backward_update_incremental(
   const FeatureTransformer<Dimensions>& featureTransformer,
   const std::size_t                     end) noexcept {
 
-    assert(end < accStates.size());
-    assert(end < size);
+    assert(end < size && end < accStates.size());
     assert((clatest_state().acc<Dimensions>()).computed[Perspective]);
 
     Square ksq = pos.king_square(Perspective);
