@@ -108,7 +108,7 @@ auto make_accumulator_update_context(const FeatureTransformer<Dimensions>& featu
 template<Color Perspective, IndexType TransformedFeatureDimensions>
 void update_accumulator_incremental_double(
   const FeatureTransformer<TransformedFeatureDimensions>& featureTransformer,
-  const Square                                            ksq,
+  Square                                                  ksq,
   const AccumulatorState&                                 computedState,
   AccumulatorState&                                       middleState,
   AccumulatorState&                                       targetState) {

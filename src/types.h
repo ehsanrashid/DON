@@ -350,8 +350,8 @@ constexpr Value mated_in(std::int16_t ply) noexcept { return -VALUE_MATE + ply; 
 constexpr Square make_square(File f, Rank r) noexcept { return Square((r << 3) | int(f)); }
 
 constexpr bool is_ok(Square s) noexcept {
-    return s != SQ_NONE;
-    //return (SQ_A1 <= s && s <= SQ_H8);
+    //return s != SQ_NONE;
+    return (SQ_A1 <= s && s <= SQ_H8);
 }
 
 constexpr File file_of(Square s) noexcept { return File(int(s) & 7); }
