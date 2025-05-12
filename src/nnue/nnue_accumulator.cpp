@@ -31,6 +31,18 @@ namespace DON::NNUE {
 
 namespace {
 
+#if defined(__GNUC__) && !defined(__clang__)
+    #define assume(cond) \
+        do \
+        { \
+            if (!(cond)) \
+                __builtin_unreachable(); \
+        } while (0)
+#else
+    // do nothing for other compilers
+    #define assume(cond)
+#endif
+
 template<typename VectorWrapper,
          IndexType Width,
          UpdateOperation... ops,
@@ -93,6 +105,49 @@ auto make_accumulator_update_context(const FeatureTransformer<Dimensions>& featu
     return AccumulatorUpdateContext<Perspective, Dimensions>{featureTransformer, fState, tState};
 }
 
+template<Color Perspective, IndexType TransformedFeatureDimensions>
+void double_inc_update(const FeatureTransformer<TransformedFeatureDimensions>& featureTransformer,
+                       const Square                                            ksq,
+                       const AccumulatorState&                                 computedState,
+                       AccumulatorState&                                       middleState,
+                       AccumulatorState&                                       targetState) {
+
+    assert(computedState.acc<TransformedFeatureDimensions>().computed[Perspective]);
+    assert(!middleState.acc<TransformedFeatureDimensions>().computed[Perspective]);
+    assert(!targetState.acc<TransformedFeatureDimensions>().computed[Perspective]);
+
+    FeatureSet::IndexList removed, added;
+    FeatureSet::append_changed_indices<Perspective>(ksq, middleState.dirtyPiece, removed, added);
+    // you can't capture a piece that was just involved in castling since the rook ends up
+    // in a square that the king passed
+    assert(added.size() < 2);
+    FeatureSet::append_changed_indices<Perspective>(ksq, targetState.dirtyPiece, removed, added);
+
+    assert(added.size() == 1);
+    assert(removed.size() == 2 || removed.size() == 3);
+
+    // Workaround compiler warning for uninitialized variables, replicated on
+    // profile builds on windows with gcc 14.2.0.
+    // TODO remove once unneeded
+    assume(added.size() == 1);
+    assume(removed.size() == 2 || removed.size() == 3);
+
+    auto updateContext =
+      make_accumulator_update_context<Perspective>(featureTransformer, computedState, targetState);
+
+    if (removed.size() == 2)
+    {
+        updateContext.template apply<Add, Sub, Sub>(added[0], removed[0], removed[1]);
+    }
+    else
+    {
+        updateContext.template apply<Add, Sub, Sub, Sub>(added[0], removed[0], removed[1],
+                                                         removed[2]);
+    }
+
+    targetState.acc<TransformedFeatureDimensions>().computed[Perspective] = true;
+}
+
 // Computes the accumulator of the next position, on given computedState
 template<Color Perspective, bool Forward, IndexType TransformedFeatureDimensions>
 void update_accumulator_incremental(
@@ -100,6 +155,9 @@ void update_accumulator_incremental(
   Square                                                  ksq,
   const AccumulatorState&                                 computedState,
   AccumulatorState&                                       targetState) noexcept {
+
+    assert((computedState.acc<TransformedFeatureDimensions>()).computed[Perspective]);
+    assert(!(targetState.acc<TransformedFeatureDimensions>()).computed[Perspective]);
 
     // The size must be enough to contain the largest possible update.
     // That might depend on the feature set and generally relies on the
@@ -115,8 +173,16 @@ void update_accumulator_incremental(
         FeatureSet::append_changed_indices<Perspective>(ksq, computedState.dirtyPiece, added,
                                                         removed);
 
+    assert(added.size() == 1 || added.size() == 2);
+    assert(removed.size() == 1 || removed.size() == 2);
     assert((Forward && added.size() <= removed.size())
            || (!Forward && removed.size() <= added.size()));
+
+    // Workaround compiler warning for uninitialized variables, replicated on
+    // profile builds on windows with gcc 14.2.0.
+    // TODO remove once unneeded
+    assume(added.size() == 1 || added.size() == 2);
+    assume(removed.size() == 1 || removed.size() == 2);
 
     auto updateContext =
       make_accumulator_update_context<Perspective>(featureTransformer, computedState, targetState);
@@ -136,8 +202,9 @@ void update_accumulator_incremental(
         assert(added.size() == 2);
         updateContext.template apply<Add, Add, Sub>(added[0], added[1], removed[0]);
     }
-    else if (added.size() == 2 && removed.size() == 2)
+    else
     {
+        assert(added.size() == 2 && removed.size() == 2);
         updateContext.template apply<Add, Add, Sub, Sub>(added[0], added[1], removed[0],
                                                          removed[1]);
     }
@@ -397,8 +464,28 @@ void AccumulatorStack::forward_update_incremental(
     Square ksq = pos.king_square(Perspective);
 
     for (std::size_t idx = begin + 1; idx < size; ++idx)
+    {
+        if (idx + 1 < size)
+        {
+            auto& dp1 = accStates[idx].dirtyPiece;
+            auto& dp2 = accStates[idx + 1].dirtyPiece;
+
+            if (dp2.count >= 2 && dp1.piece[0] == dp2.piece[1] && dp1.dst[0] == dp2.org[1])
+            {
+                const Square captureSq = dp1.dst[0];
+                dp1.dst[0] = dp2.org[1] = SQ_NONE;
+                double_inc_update<Perspective>(featureTransformer, ksq, accStates[idx - 1],
+                                               accStates[idx], accStates[idx + 1]);
+                dp1.dst[0] = dp2.org[1] = captureSq;
+
+                idx++;
+                continue;
+            }
+        }
+
         update_accumulator_incremental<Perspective, true>(featureTransformer, ksq,
                                                           accStates[idx - 1], accStates[idx]);
+    }
 
     assert((clatest_state().acc<Dimensions>()).computed[Perspective]);
 }

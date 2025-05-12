@@ -262,11 +262,8 @@ struct DirtyPiece final {
     // Max 3 pieces can change in one move
     static constexpr std::uint8_t MaxCount = 3;
 
-    DirtyPiece() noexcept :
-        count(0) {}
-
     // Count of changed pieces
-    std::uint8_t count;
+    std::uint8_t count = 0;
 
     // A promotion with capture moves both the pawn and the captured piece to SQ_NONE
     // and the piece promoted to from SQ_NONE to the capture square.

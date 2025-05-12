@@ -1030,6 +1030,7 @@ DO_MOVE_END:
     }
 
     assert(pos_is_ok());
+    assert(dp.count <= DirtyPiece::MaxCount);
 
     return dp;
 }
