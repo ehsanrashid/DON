@@ -895,8 +895,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Step 8. Futility pruning: child node
     // The depth condition is important for mate finding.
     {
-        auto futility_margin = [&](Depth d) {
-            Value futilityMult = 90 - 20 * (CutNode && !ttd.hit);
+        auto futility_margin = [&](Depth d, bool ttHit) {
+            Value futilityMult = 90 - 20 * (CutNode && !ttHit);
 
             return futilityMult * d             //
                  - improve * futilityMult * 2   //
@@ -906,7 +906,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         };
 
         if (!ss->pvHit && depth < 15 && eval >= beta && (ttd.move == Move::None || ttCapture)
-            && !is_loss(beta) && !is_win(eval) && eval - futility_margin(depth) >= beta)
+            && !is_loss(beta) && !is_win(eval) && eval - futility_margin(depth, ttd.hit) >= beta)
             return in_range((2 * eval + beta) / 3);
     }
 
@@ -1146,9 +1146,9 @@ S_MOVES_LOOP:  // When in check, search starts here
                     && !pos.fork(move))
                 {
                     futilityValue =
-                      std::min(242 + ss->staticEval - 98 * (bestMove != Move::None)
-                                 + PIECE_VALUE[captured] + promotion_value(move)
-                                 + int(std::lround(0.1299f * captHist)) + 230 * lmrDepth,
+                      std::min(225 + ss->staticEval + PIECE_VALUE[captured] + promotion_value(move)
+                                 + 275 * (dst == preSq) - 98 * (bestMove != Move::None)
+                                 + int(std::lround(0.1279f * captHist)) + 220 * lmrDepth,
                                VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
                     {

@@ -19,8 +19,6 @@
 
 #include "half_ka_v2_hm.h"
 
-#include <cassert>
-
 #include "../../bitboard.h"
 #include "../../position.h"
 #include "../../types.h"
