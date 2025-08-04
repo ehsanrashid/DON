@@ -419,7 +419,7 @@ void Position::set(std::string_view fenStr, State* newSt) noexcept {
             // d) there is no enemy Bishop, Rook or Queen pinning
             enpassant = (pieces(~ac, PAWN) & (ep_square() - pawn_spush(ac)))
                      && !(pieces() & make_bitboard(ep_square(), ep_square() + pawn_spush(ac)))
-                     && (pieces(ac, PAWN) & pawn_attacks_bb(~ac, ep_square()))
+                     && (pieces(ac, PAWN) & attacks_bb<PAWN>(ep_square(), ~ac))
                      && can_enpassant(ac, ep_square());
         }
         else
@@ -622,7 +622,7 @@ void Position::set_ext_state() noexcept {
     Bitboard occupied = pieces();
 
     // clang-format off
-    st->checks[PAWN  ] = pawn_attacks_bb(~active_color(), king_square(~active_color()));
+    st->checks[PAWN  ] = attacks_bb<PAWN>(king_square(~active_color()), ~active_color());
     st->checks[KNIGHT] = attacks_bb<KNIGHT>(king_square(~active_color()));
     st->checks[BISHOP] = attacks_bb<BISHOP>(king_square(~active_color()), occupied);
     st->checks[ROOK  ] = attacks_bb<ROOK  >(king_square(~active_color()), occupied);
@@ -654,7 +654,7 @@ void Position::set_ext_state() noexcept {
             }
         }
 
-        st->mobility[c] = MobilityBonus[PAWN][popcount(pawn_push_bb(c, pieces(c, PAWN)) & ~occupied)];
+        st->mobility[c] = MobilityBonus[PAWN][popcount(pawn_push_bb(pieces(c, PAWN), c) & ~occupied)];
         st->attacks[c][PAWN] = attacks_mob_by<PAWN>(c, 0, pieces(~c), occupied);
     }
 
@@ -664,7 +664,7 @@ void Position::set_ext_state() noexcept {
                           | (pieces(~c) & (pinners()))
                           | (pieces( c) & ((blockers(c))
                                          | (pieces(QUEEN, KING))
-                                         | (pieces(PAWN) & (LOW_RANK_BB[c] | (pawn_push_bb(~c, occupied) & ~pawn_attacks_bb(~c, pieces(~c) & ~pieces(KING))))))));
+                                         | (pieces(PAWN) & (LOW_RANK_BB[c] | (pawn_push_bb(occupied, ~c) & ~pawn_attacks_bb(pieces(~c) & ~pieces(KING), ~c)))))));
 
         st->attacks[c][KNIGHT] = st->attacks[c][PAWN  ] | attacks_mob_by<KNIGHT>(c, blockers(c), target, occupied                                                                                             );
         st->attacks[c][BISHOP] = st->attacks[c][KNIGHT] | attacks_mob_by<BISHOP>(c, blockers(c), target, occupied ^ ((pieces(c, QUEEN, BISHOP) & ~blockers(c)) | (pieces(~c, KING, QUEEN, ROOK) & ~pinners())));
@@ -686,7 +686,7 @@ Position::attacks_mob_by(Color c, Bitboard blockers, Bitboard target, Bitboard o
     Bitboard attacks;
     if constexpr (PT == PAWN)
     {
-        attacks = pawn_attacks_bb(c, pieces(c, PAWN));
+        attacks = pawn_attacks_bb(pieces(c, PAWN), c);
         st->mobility[c] += MobilityBonus[PAWN][popcount(attacks & target)];
     }
     else
@@ -718,7 +718,7 @@ bool Position::can_enpassant(Color           ac,
     assert(is_ok(epSq));
 
     // En-passant attackers
-    Bitboard attackers = pieces(ac, PAWN) & pawn_attacks_bb(~ac, epSq);
+    Bitboard attackers = pieces(ac, PAWN) & attacks_bb<PAWN>(epSq, ~ac);
     if (epAttackers != nullptr)
         *epAttackers = attackers;
     if (!attackers)
@@ -1200,8 +1200,8 @@ bool Position::pseudo_legal(const Move& m) const noexcept {
             if (PROMOTION_RANK_BB & make_bitboard(org, dst))
                 return false;
             if (!(relative_rank(ac, org) < RANK_7 && relative_rank(ac, dst) < RANK_8
-                  && ((org + pawn_spush(ac) == dst && !(pieces() & dst))   // Single push
-                      || (pawn_attacks_bb(ac, org) & pieces(~ac) & dst)))  // Capture
+                  && ((org + pawn_spush(ac) == dst && !(pieces() & dst))    // Single push
+                      || (attacks_bb<PAWN>(org, ac) & pieces(~ac) & dst)))  // Capture
                 && !(relative_rank(ac, org) == RANK_2 && relative_rank(ac, dst) == RANK_4
                      && org + pawn_dpush(ac) == dst  // Double push
                      && !(pieces() & make_bitboard(dst, dst - pawn_spush(ac)))))
@@ -1219,7 +1219,7 @@ bool Position::pseudo_legal(const Move& m) const noexcept {
         if (!(relative_rank(ac, org) == RANK_7 && relative_rank(ac, dst) == RANK_8
               && type_of(pc) == PAWN  //&& (PROMOTION_RANK_BB & dst)
               && ((org + pawn_spush(ac) == dst && !(pieces() & dst))
-                  || ((pawn_attacks_bb(ac, org) & pieces(~ac)) & dst))))
+                  || ((attacks_bb<PAWN>(org, ac) & pieces(~ac)) & dst))))
             return false;
         break;
 
@@ -1228,7 +1228,7 @@ bool Position::pseudo_legal(const Move& m) const noexcept {
               && type_of(pc) == PAWN && ep_square() == dst && rule50_count() == 0
               && (pieces(~ac, PAWN) & (dst - pawn_spush(ac)))
               && !(pieces() & make_bitboard(dst, dst + pawn_spush(ac)))
-              && ((pawn_attacks_bb(ac, org) /*& ~pieces()*/) & dst)
+              && ((attacks_bb<PAWN>(org, ac) /*& ~pieces()*/) & dst)
               && !(slide_attackers_to(king_square(ac),
                                       pieces() ^ make_bitboard(org, dst, dst - pawn_spush(ac)))
                    & pieces(~ac))))
@@ -1274,7 +1274,7 @@ bool Position::legal(const Move& m) const noexcept {
         assert(rule50_count() == 0);
         assert(pieces(~ac, PAWN) & (dst - pawn_spush(ac)));
         assert(!(pieces() & make_bitboard(dst, dst + pawn_spush(ac))));
-        assert((pawn_attacks_bb(ac, org) /*& ~pieces()*/) & dst);
+        assert((attacks_bb<PAWN>(org, ac) /*& ~pieces()*/) & dst);
         assert(!(slide_attackers_to(king_square(ac),
                                     pieces() ^ make_bitboard(org, dst, dst - pawn_spush(ac)))
                  & pieces(~ac)));
@@ -1320,7 +1320,7 @@ bool Position::legal(const Move& m) const noexcept {
         assert(relative_rank(ac, dst) == RANK_8);
         assert(type_of(piece_on(org)) == PAWN);
         assert((org + pawn_spush(ac) == dst && !(pieces() & dst))
-               || ((pawn_attacks_bb(ac, org) & pieces(~ac)) & dst));
+               || ((attacks_bb<PAWN>(org, ac) & pieces(~ac)) & dst));
         break;
     }
 
@@ -1413,7 +1413,7 @@ bool Position::fork(const Move& m) const noexcept {
     switch (type_of(piece_on(m.org_sq())))
     {
     case PAWN :
-        return more_than_one(pieces(~ac) & ~pieces(PAWN) & pawn_attacks_bb(ac, m.dst_sq()));
+        return more_than_one(pieces(~ac) & ~pieces(PAWN) & attacks_bb<PAWN>(m.dst_sq(), ac));
     case KNIGHT :
         return more_than_one(pieces(~ac) & ~pieces(KNIGHT) & attacks_bb<KNIGHT>(m.dst_sq()));
     case BISHOP :

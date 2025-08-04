@@ -511,10 +511,10 @@ inline Bitboard Position::slide_attackers_to(Square s) const noexcept {
 // Slider attacks use the occupied bitboard to indicate occupancy.
 inline Bitboard Position::attackers_to(Square s, Bitboard occupied) const noexcept {
     return slide_attackers_to(s, occupied)
-         | (pieces(WHITE, PAWN) & pawn_attacks_bb<BLACK>(s))
-         | (pieces(BLACK, PAWN) & pawn_attacks_bb<WHITE>(s))
-         | (pieces(KNIGHT     ) & attacks_bb<KNIGHT    >(s))
-         | (pieces(KING       ) & attacks_bb<KING      >(s));
+         | (pieces(WHITE, PAWN) & attacks_bb<PAWN> (s, BLACK))
+         | (pieces(BLACK, PAWN) & attacks_bb<PAWN> (s, WHITE))
+         | (pieces(KNIGHT     ) & attacks_bb<KNIGHT>(s))
+         | (pieces(KING       ) & attacks_bb<KING  >(s));
 }
 inline Bitboard Position::attackers_to(Square s) const noexcept {
     return attackers_to(s, pieces());
@@ -527,8 +527,8 @@ inline bool Position::exist_attackers_to(Square s, Bitboard attackers, Bitboard 
         || ((attackers & pieces(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s))
          && (attackers & pieces(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupied)))
         ||  (attackers & pieces(KING         ) & attacks_bb<KING  >(s))
-        ||  (attackers & ((pieces(WHITE, PAWN) & pawn_attacks_bb<BLACK>(s))
-                        | (pieces(BLACK, PAWN) & pawn_attacks_bb<WHITE>(s))));
+        ||  (attackers & ((pieces(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
+                        | (pieces(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE))));
 }
 inline bool Position::exist_attackers_to(Square s, Bitboard attackers) const noexcept {
     return exist_attackers_to(s, attackers, pieces());
@@ -536,11 +536,12 @@ inline bool Position::exist_attackers_to(Square s, Bitboard attackers) const noe
 
 // clang-format on
 
+// Computes attacks from a piece type for a given color.
 template<PieceType PT>
 inline Bitboard Position::attacks_by(Color c) const noexcept {
     if constexpr (PT == PAWN)
     {
-        return pawn_attacks_bb(c, pieces(c, PAWN));
+        return pawn_attacks_bb(pieces(c, PAWN), c);
     }
     else
     {

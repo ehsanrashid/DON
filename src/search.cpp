@@ -933,7 +933,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     // Step 7. Razoring
     // If eval is really low, check with qsearch if can exceed alpha.
-    if (eval < -461 + alpha - 315 * sqr(depth))
+    if (eval < -495 + alpha - 290 * sqr(depth))
     {
         value = qsearch<PVNode>(pos, ss, alpha, beta);
 
@@ -954,17 +954,13 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         return in_range((2 * eval + beta) / 3);
 
     // Step 9. Null move search with verification search
-    if (CutNode && !exclude && (ss - 1)->move != Move::Null && pos.non_pawn_material(ac)  //
-        && !is_loss(beta) && eval >= beta && ss->ply >= nmpPly
-        && ss->staticEval >= 418 + beta - 19 * depth)
+    if (CutNode && !exclude && pos.non_pawn_material(ac) && !is_loss(beta) && ss->ply >= nmpPly
+        && ss->staticEval >= 403 + beta - 19 * depth)
     {
-        int diff = eval - beta;
-        assert(diff >= 0);
+        assert((ss - 1)->move != Move::Null);
 
         // Null move dynamic reduction based on depth, eval and phase
-        Depth R = 4 + int(0.3333f * depth)             //
-                + std::min(int(4.3103e-3f * diff), 6)  //
-                + int(0.1111f * pos.phase());
+        Depth R = 6 + int(0.3333f * depth) + int(0.1111f * pos.phase());
         if (R > depth - 1)
             R = depth - 1;
 
@@ -1017,7 +1013,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Step 11. ProbCut
     // If have a good enough capture or any promotion and a reduced search
     // returns a value much above beta, can (almost) safely prune previous move.
-    probCutBeta = std::min(185 + beta - 58 * improve, +VALUE_INFINITE - 1);
+    probCutBeta = std::min(215 + beta - 60 * improve, +VALUE_INFINITE - 1);
     if (depth >= 3
         && !is_decisive(beta)
         // If value from transposition table is atleast probCutBeta
@@ -1597,7 +1593,8 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (moveCount != 0 && bestMove != Move::None)
     {
         update_all_history(pos, ss, depth, bestMove, moves);
-        TTMoveHistory[ac] << (bestMove == ttd.move ? 800 : -870);
+        if (!PVNode)
+            TTMoveHistory[ac] << (bestMove == ttd.move ? 811 : -848);
     }
     // If prior move is valid, that caused the fail low
     else if (is_ok(preSq))

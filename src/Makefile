@@ -574,7 +574,7 @@ endif
 # Locate the version in the same directory as the compiler used,
 # with fallback to a generic one if it can't be located
 LLVM_PROFDATA := $(dir $(realpath $(shell which $(CXX))))llvm-profdata
-ifeq ($(wildcard $(LLVM_PROFDATA)),)
+ifeq ($(wildcard $(LLVM_PROFDATA)), )
 	LLVM_PROFDATA := llvm-profdata
 endif
 

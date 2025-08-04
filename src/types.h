@@ -275,8 +275,8 @@ struct DirtyPiece final {
 };
 
     #define ENABLE_INCR_OPERATORS_ON(T) \
-        inline T& operator++(T& t) noexcept { return t = T(int(t) + 1); } \
-        inline T& operator--(T& t) noexcept { return t = T(int(t) - 1); }
+        constexpr T& operator++(T& t) noexcept { return t = T(int(t) + 1); } \
+        constexpr T& operator--(T& t) noexcept { return t = T(int(t) - 1); }
 
 ENABLE_INCR_OPERATORS_ON(PieceType)
 ENABLE_INCR_OPERATORS_ON(File)
@@ -314,12 +314,12 @@ constexpr Direction operator*(int i, Direction d) noexcept { return d * i; }
 // clang-format on
 
 // Additional operators to add a Direction to a Square
-constexpr Square operator+(Square s, int i) noexcept { return Square(int(s) + i); }
-constexpr Square operator-(Square s, int i) noexcept { return Square(int(s) - i); }
-constexpr Square operator+(Square s, Direction d) noexcept { return s + int(d); }
-constexpr Square operator-(Square s, Direction d) noexcept { return s - int(d); }
-inline Square&   operator+=(Square& s, Direction d) noexcept { return s = s + d; }
-inline Square&   operator-=(Square& s, Direction d) noexcept { return s = s - d; }
+constexpr Square  operator+(Square s, int i) noexcept { return Square(int(s) + i); }
+constexpr Square  operator-(Square s, int i) noexcept { return Square(int(s) - i); }
+constexpr Square  operator+(Square s, Direction d) noexcept { return s + int(d); }
+constexpr Square  operator-(Square s, Direction d) noexcept { return s - int(d); }
+constexpr Square& operator+=(Square& s, Direction d) noexcept { return s = s + d; }
+constexpr Square& operator-=(Square& s, Direction d) noexcept { return s = s - d; }
 
 constexpr bool is_ok(Color c) noexcept { return (c == WHITE || c == BLACK); }
 
@@ -338,7 +338,7 @@ constexpr bool is_ok(Piece pc) noexcept {
 
 constexpr PieceType type_of(Piece pc) noexcept { return PieceType(int(pc) & 7); }
 
-constexpr Color color_of(Piece pc) noexcept { return Color((pc >> 3) & 1); }
+constexpr Color color_of(Piece pc) noexcept { return Color(pc >> 3); }
 
 // Swap color of piece B_KNIGHT <-> W_KNIGHT
 constexpr Piece operator~(Piece pc) noexcept { return Piece(pc ^ 8); }

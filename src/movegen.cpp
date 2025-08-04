@@ -138,7 +138,7 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
             // An en-passant capture cannot resolve a discovered check
             assert(!(Evasion && (target & (pos.ep_square() + Push1))));
 
-            b = non7Pawns & pawn_attacks_bb(~ac, pos.ep_square());
+            b = non7Pawns & attacks_bb<PAWN>(pos.ep_square(), ~ac);
             if (more_than_one(b))
             {
                 Bitboard pin = b & pos.blockers(ac);

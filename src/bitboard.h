@@ -127,11 +127,10 @@ extern std::uint8_t     PopCnt[POP_CNT_SIZE];
 // clang-format off
 extern std::uint8_t Distances[SQUARE_NB][SQUARE_NB];
 
-extern Bitboard         Lines[SQUARE_NB][SQUARE_NB];
-extern Bitboard      Betweens[SQUARE_NB][SQUARE_NB];
-extern Bitboard   PawnAttacks[SQUARE_NB][COLOR_NB];
-extern Bitboard  PieceAttacks[SQUARE_NB][PIECE_TYPE_NB];
-extern Magic           Magics[SQUARE_NB][2];  // BISHOP or ROOK
+extern Bitboard        Lines[SQUARE_NB][SQUARE_NB];
+extern Bitboard     Betweens[SQUARE_NB][SQUARE_NB];
+extern Bitboard PieceAttacks[SQUARE_NB][PIECE_TYPE_NB];
+extern Magic          Magics[SQUARE_NB][2];  // BISHOP or ROOK
 // clang-format on
 
 constexpr Bitboard square_bb(Square s) noexcept {
@@ -284,7 +283,7 @@ constexpr Bitboard pawn_push_bb(Bitboard b) noexcept {
     static_assert(is_ok(C), "Invalid color for pawn_push_bb()");
     return shift<pawn_spush(C)>(b);
 }
-constexpr Bitboard pawn_push_bb(Color c, Bitboard b) noexcept {
+constexpr Bitboard pawn_push_bb(Bitboard b, Color c) noexcept {
     assert(is_ok(c));
     return c == WHITE ? pawn_push_bb<WHITE>(b) : pawn_push_bb<BLACK>(b);
 }
@@ -300,30 +299,16 @@ constexpr Bitboard pawn_attacks_bb(Bitboard b) noexcept {
         return shift<SOUTH_WEST>(b) | shift<SOUTH_EAST>(b);
 }
 
-constexpr Bitboard pawn_attacks_bb(Color c, Bitboard b) noexcept {
+constexpr Bitboard pawn_attacks_bb(Bitboard b, Color c) noexcept {
     assert(is_ok(c));
     return c == WHITE ? pawn_attacks_bb<WHITE>(b) : pawn_attacks_bb<BLACK>(b);
 }
 
-template<Color C>
-constexpr Bitboard pawn_attacks_bb(Square s) noexcept {
-    static_assert(is_ok(C), "Invalid color for pawn_attacks_bb()");
-    assert(is_ok(s));
-    return PawnAttacks[s][C];
-}
-
-constexpr Bitboard pawn_attacks_bb(Color c, Square s) noexcept {
-    assert(is_ok(c));
-    assert(is_ok(s));
-    return c == WHITE ? pawn_attacks_bb<WHITE>(s) : pawn_attacks_bb<BLACK>(s);
-}
-
 // Returns the pseudo attacks of the given piece type assuming an empty board.
 template<PieceType PT>
-constexpr Bitboard attacks_bb(Square s) noexcept {
-    static_assert(PT != PAWN, "Unsupported piece type in attacks_bb()");
-    assert(is_ok(s));
-    return PieceAttacks[s][PT];
+constexpr Bitboard attacks_bb(Square s, Color c = COLOR_NB) noexcept {
+    assert(is_ok(s) && (PT != PAWN || c < COLOR_NB));
+    return PT == PAWN ? PieceAttacks[s][c] : PieceAttacks[s][PT];
 }
 
 template<PieceType PT>

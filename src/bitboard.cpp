@@ -34,11 +34,10 @@ alignas(CACHE_LINE_SIZE) std::uint8_t PopCnt[POP_CNT_SIZE];
 // clang-format off
 alignas(CACHE_LINE_SIZE) std::uint8_t Distances[SQUARE_NB][SQUARE_NB];
 
-alignas(CACHE_LINE_SIZE) Bitboard         Lines[SQUARE_NB][SQUARE_NB];
-alignas(CACHE_LINE_SIZE) Bitboard      Betweens[SQUARE_NB][SQUARE_NB];
-alignas(CACHE_LINE_SIZE) Bitboard   PawnAttacks[SQUARE_NB][COLOR_NB];
-alignas(CACHE_LINE_SIZE) Bitboard  PieceAttacks[SQUARE_NB][PIECE_TYPE_NB];
-alignas(CACHE_LINE_SIZE) Magic           Magics[SQUARE_NB][2];
+alignas(CACHE_LINE_SIZE) Bitboard        Lines[SQUARE_NB][SQUARE_NB];
+alignas(CACHE_LINE_SIZE) Bitboard     Betweens[SQUARE_NB][SQUARE_NB];
+alignas(CACHE_LINE_SIZE) Bitboard PieceAttacks[SQUARE_NB][PIECE_TYPE_NB];
+alignas(CACHE_LINE_SIZE) Magic          Magics[SQUARE_NB][2];
 // clang-format on
 
 namespace {
@@ -216,7 +215,7 @@ void init() noexcept {
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
         for (Color c : {WHITE, BLACK})
-            PawnAttacks[s][c] = pawn_attacks_bb(c, square_bb(s));
+            PieceAttacks[s][c] = pawn_attacks_bb(square_bb(s), c);
 
         PieceAttacks[s][KNIGHT] = 0;
         for (auto dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
