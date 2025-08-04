@@ -392,12 +392,12 @@ void Worker::iterative_deepening() noexcept {
                 avgSqrValue = VALUE_ZERO;
 
             // Reset aspiration window starting size
-            int   delta = 5 + 84.5023e-6f * std::abs(avgSqrValue);
+            int   delta = 5 + 89.8392e-6f * std::abs(avgSqrValue);
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
 
             // Adjust optimism based on root move's avgValue
-            optimism[ac]  = 138 * avgValue / (84 + std::abs(avgValue));
+            optimism[ac]  = 136 * avgValue / (93 + std::abs(avgValue));
             optimism[~ac] = -optimism[ac];
 
             // Start with a small aspiration window and, in the case of a fail
@@ -439,7 +439,7 @@ void Worker::iterative_deepening() noexcept {
                 // otherwise exit the loop.
                 if (bestValue <= alpha)
                 {
-                    beta  = (alpha + beta) / 2;
+                    beta  = (3 * alpha + beta) / 4;
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;
@@ -543,11 +543,8 @@ void Worker::iterative_deepening() noexcept {
             Depth stableDepth = completedDepth - lastBestDepth;
             assert(stableDepth >= DEPTH_ZERO);
 
-            // Compute stability factor from the stable depth. This factor is used to reduce time if the best move remains stable
-            int stabilityFactor = std::ceil(stableDepth / (3.0f + 2.0f * std::log10((1.0f + stableDepth) / 2.0f)) - 1.31f * (stableDepth > 0));
-
             // Use the stability factor to adjust the time reduction
-            mainManager->timeReduction = 0.7046f + 0.39055f * std::min(stabilityFactor, 3);
+            mainManager->timeReduction = 0.80f + 0.84f / (1.077f + std::exp(-0.5270f * (completedDepth - lastBestDepth - 11)));
 
             // Compute ease factor that factors in previous time reduction
             float easeFactor = 0.46311f * (1.4540f + mainManager->preTimeReduction) / mainManager->timeReduction;
@@ -710,6 +707,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         && ttd.move == Move::None)
         return VALUE_DRAW;
 
+    State st;
+
     // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && !exclude && is_valid(ttd.value)        //
         && (depth > 5 || CutNode == (ttd.value >= beta))  //
@@ -732,12 +731,22 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         // For high rule50 counts don't produce transposition table cutoffs.
         if (pos.rule50_count() < (1.0f - 0.5f * pos.rule50_high()) * rule50_threshold())
         {
-            if (ttd.value > beta && ttd.depth > DEPTH_ZERO && !is_decisive(ttd.value))
+            if (depth >= 8 && ttd.move != Move::None && pos.pseudo_legal(ttd.move)
+                && pos.legal(ttd.move) && !is_decisive(ttd.value))
             {
-                ttd.value = in_range((ttd.depth * ttd.value + beta) / (ttd.depth + 1));
-            }
+                pos.do_move(ttd.move, st);
+                Key nextPosKey                   = pos.key();
+                auto [nextTtd, nextTte, nextTtc] = tt.probe(nextPosKey);
+                pos.undo_move(ttd.move);
 
-            return ttd.value;
+                // Check that the ttValue after the tt move would also trigger a cutoff
+                if (!is_valid(nextTtd.value))
+                    return ttd.value;
+                if ((ttd.value >= beta) == (-nextTtd.value >= beta))
+                    return ttd.value;
+            }
+            else
+                return ttd.value;
         }
     }
 
@@ -813,8 +822,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     Value probCutBeta;
 
     Move move;
-
-    State st;
 
     // Step 6. Static evaluation of the position
     if (ss->inCheck)
@@ -997,15 +1004,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             if (RootNode && !rootMoves.contains(curIdx, lstIdx, move))
                 continue;
 
-            Square dst        = move.dst_sq();
-            Piece  movedPiece = pos.moved_piece(move);
-
-            do_move(pos, move, st);
-            // clang-format off
-            ss->move                     = move;
-            ss->pieceSqHistory           = &ContinuationHistory[ss->inCheck][true][movedPiece][dst];
-            ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[movedPiece][dst];
-            // clang-format on
+            do_move(pos, move, st, ss);
 
             // Perform a preliminary qsearch to verify that the move holds
             value = -qsearch<false>(pos, ss + 1, -probCutBeta, -probCutBeta + 1);
@@ -1293,13 +1292,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             preNodes = std::uint64_t(nodes);
 
         // Step 16. Make the move
-        do_move(pos, move, st, check);
-        // Update the move (this must be done after singular extension search)
-        // clang-format off
-        ss->move                     = move;
-        ss->pieceSqHistory           = &ContinuationHistory[ss->inCheck][capture][movedPiece][dst];
-        ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[movedPiece][dst];
-        // clang-format on
+        do_move(pos, move, st, check, ss);
 
         if (ss->inCheck)
         {
@@ -1850,13 +1843,7 @@ QS_MOVES_LOOP:
         }
 
         // Step 7. Make the move
-        do_move(pos, move, st, check);
-        // Update the move
-        // clang-format off
-        ss->move                     = move;
-        ss->pieceSqHistory           = &ContinuationHistory[ss->inCheck][capture][movedPiece][dst];
-        ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[movedPiece][dst];
-        // clang-format on
+        do_move(pos, move, st, check, ss);
 
         value = -qsearch<PVNode>(pos, ss + 1, -beta, -alpha);
 
@@ -1925,12 +1912,22 @@ QS_MOVES_LOOP:
     return bestValue;
 }
 
-
-void Worker::do_move(Position& pos, const Move& m, State& st, bool check) noexcept {
-    accStack.push(pos.do_move(m, st, check));
+void Worker::do_move(
+  Position& pos, const Move& m, State& st, bool check, Stack* const ss) noexcept {
+    bool capture = pos.capture_promo(m);
+    auto dp      = pos.do_move(m, st, check);
+    accStack.push(dp);
     // Speculative prefetch as early as possible
     tt.prefetch_key(pos.key());
     nodes.fetch_add(1, std::memory_order_relaxed);
+    if (ss != nullptr)
+    {
+        auto dst = m.dst_sq();
+
+        ss->move                     = m;
+        ss->pieceSqHistory           = &ContinuationHistory[ss->inCheck][capture][dp.pc][dst];
+        ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[dp.pc][dst];
+    }
 }
 
 void Worker::undo_move(Position& pos, const Move& m) noexcept {
