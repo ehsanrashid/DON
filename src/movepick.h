@@ -86,7 +86,7 @@ class MovePicker final {
     MovePicker& operator=(MovePicker&&) noexcept      = delete;
 
     Move next_move() noexcept;
-    bool otherPieceTypesMobile(PieceType pt, std::vector<Move>& captureMoves);
+    bool can_move_king_or_pawn() const noexcept;
 
     Stage stage = STG_NONE;
 
@@ -118,7 +118,7 @@ class MovePicker final {
     Moves      badCapMoves;
     Moves::Itr badCapCur, badCapEnd;
 
-    ExtMoves      extMoves;
+    ExtMoves      extMoves, allExtMoves;
     ExtMoves::Itr extCur, extEnd;
 };
 

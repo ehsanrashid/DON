@@ -65,25 +65,6 @@ reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noe
     return 1087 + reductionScale - deltaRatio + 0.3730f * !improve * reductionScale;
 }
 
-// Futility margin
-template<bool CutNode>
-constexpr Value futility_margin(Depth depth,
-                                bool  ttHit,
-                                bool  improve,
-                                bool  oppworse,
-                                int   ssHistory,
-                                int   absCorrectionValue) noexcept {
-    Value futilityMult       = 98 - 22 * (CutNode && !ttHit);
-    return futilityMult * depth - improve * futilityMult * 2 - oppworse * futilityMult / 3
-         + ssHistory / 339 + absCorrectionValue / 157363;
-}
- 
-// History and stats update bonus, based on depth
-constexpr int stat_bonus(Depth depth) noexcept { return std::min(-98 + 158 * depth, 1632); }
-
-// History and stats update malus, based on depth
-constexpr int stat_malus(Depth depth) noexcept { return std::min(-243 + 802 * depth, 2850); }
-
 // Add a small random value to draw evaluation to avoid 3-fold blindness
 constexpr Value draw_value(Key key, std::uint64_t nodes) noexcept {
     return VALUE_DRAW + (key & 1) - (nodes & 1);
@@ -105,37 +86,6 @@ void update_pv(Move* pv, const Move& move, const Move* childPv) noexcept {
         while (*childPv != Move::None)
             *pv++ = *childPv++;
     *pv = Move::None;
-}
-
-int risk_tolerance(Value v) noexcept {
-
-    // Returns (some constant of) second derivative of sigmoid.
-    static constexpr auto sigmoid_d2 = [](int x, int y) {
-        return 644800ull * x / ((x * x + 3 * y * y) * y);
-    };
-
-    // a and b are the crude approximation of the wdl model.
-    // The win rate is: 1/(1+exp((a-v)/b))
-    // The loss rate is 1/(1+exp((v+a)/b))
-    int a = 356;
-    int b = 123;
-
-    // The risk utility is therefore d/dv^2 (1/(1+exp(-(v-a)/b)) -1/(1+exp(-(-v-a)/b)))
-    // -115200x/(x^2+3) = -345600(ab) / (a^2+3b^2) (multiplied by some constant) (second degree pade approximant)
-
-    return (sigmoid_d2(v - a, b) + sigmoid_d2(v + a, b)) * 32;
-}
-
-int adaptive_probcut_margin(Depth depth) {
-    // Base margin
-    static constexpr int base = 180;
-
-    // Approximate log2(depth) using a fast lookup table
-    static constexpr int logTable[32] = {0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
-                                         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
-
-    int logDepth = logTable[std::min(+depth, 31)];
-    return base + logDepth * 60 + std::min(10, (depth - 16) * 2);
 }
 
 void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept;
@@ -771,8 +721,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         {
             // Bonus for a quiet ttMove
             if (!ttCapture)
-                update_all_quiet_history(pos, ss, ttd.move,
-                                         std::lround(+0.7656 * stat_bonus(depth)));
+                update_all_quiet_history(pos, ss, ttd.move, std::min(-74 + 127 * depth, 1063));
 
             // Extra penalty for early quiet moves of the previous ply
             if (is_ok(preSq) && !preCapture && (ss - 1)->moveCount <= 3)
@@ -945,13 +894,21 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     // Step 8. Futility pruning: child node
     // The depth condition is important for mate finding.
-    if (!ss->pvHit && depth < 15 && eval >= beta && (ttd.move == Move::None || ttCapture)
-        && !is_loss(beta) && !is_win(eval)
-        && eval
-               - futility_margin<CutNode>(depth, ttd.hit, improve, oppworse, (ss - 1)->history,
-                                          absCorrectionValue)
-             >= beta)
-        return in_range((2 * eval + beta) / 3);
+    {
+        auto futility_margin = [&](Depth d) {
+            Value futilityMult = 90 - 20 * (CutNode && !ttd.hit);
+
+            return futilityMult * d             //
+                 - improve * futilityMult * 2   //
+                 - oppworse * futilityMult / 3  //
+                 + (ss - 1)->history / 356      //
+                 + absCorrectionValue / 171290;
+        };
+
+        if (!ss->pvHit && depth < 15 && eval >= beta && (ttd.move == Move::None || ttCapture)
+            && !is_loss(beta) && !is_win(eval) && eval - futility_margin(depth) >= beta)
+            return in_range((2 * eval + beta) / 3);
+    }
 
     // Step 9. Null move search with verification search
     if (CutNode && !exclude && pos.non_pawn_material(ac) && !is_loss(beta) && ss->ply >= nmpPly
@@ -1082,7 +1039,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 S_MOVES_LOOP:  // When in check, search starts here
 
     // Step 12. Small ProbCut idea
-    probCutBeta = std::min(beta + adaptive_probcut_margin(depth), +VALUE_INFINITE - 1);
+    probCutBeta = std::min(417 + beta, +VALUE_INFINITE - 1);
     if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value)
         && ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
         return ttd.value;
@@ -1250,10 +1207,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                         && PIECE_VALUE[type_of(movedPiece)] >= VALUE_ROOK
                         && !(PieceAttacks[pos.king_square(ac)][KING] & move.org_dst()))
                         // if the opponent captures last mobile piece it might be stalemate
-                        skip = mp.otherPieceTypesMobile(type_of(movedPiece), moves[1]);
+                        //skip = mp.otherPieceTypesMobile(type_of(movedPiece), moves[1]);
 
-                    if (skip)
-                        continue;
+                        if (skip)
+                            continue;
                 }
             }
         }
@@ -1373,9 +1330,6 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Adjust reduction with move count and correction value
         r += 306 - 34 * moveCount - 1024 * dblCheck - 33.6746e-6f * absCorrectionValue;
 
-        if (!is_decisive(bestValue))
-            r += risk_tolerance(bestValue);
-
         // Increase reduction for CutNode
         if constexpr (CutNode)
             r += 2784 + 1038 * (ttd.move == Move::None);
@@ -1422,12 +1376,6 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 // Post LMR continuation history updates
                 update_continuation_history(ss, movedPiece, dst, 1600);
-            }
-            else if (value < 9 + bestValue)
-            {
-                --newDepth;
-                if (value < 3 + bestValue)
-                    --newDepth;
             }
         }
 
@@ -1603,21 +1551,19 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (!preCapture)
         {
             // clang-format off
-            auto bonusScale =  34 * !AllNode
+            auto bonusScale = -215
+                            // Increase bonus when depth is high
+                            + std::min(64 * depth, 552)
                             // Increase bonus when bestValue is lower than current static evaluation
-                            + 141 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 100)
+                            + 141 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 94)
                             // Increase bonus when bestValue is higher than previous static evaluation
-                            + 121 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 75)
+                            + 121 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 76)
                             // Increase bonus when the previous moveCount is high
                             +  30 * ((ss - 1)->moveCount - 1)
-                            // Increase bonus when the previous move is TT move
-                            +  86 * ((ss - 1)->move == (ss - 1)->ttMove)
-                            // Increase bonus when the previous cutoffCount is low
-                            +  86 * ((ss - 1)->cutoffCount <= 3)
                             // Increase bonus if the previous move has a bad history
-                            + std::min(int(std::lround(-8.9286e-3f * (ss - 1)->history)), 303);
+                            + std::min(-(ss - 1)->history / 103, 337);
             // clang-format on
-            int bonus = std::max(bonusScale, 1) * stat_bonus(depth);
+            int bonus = std::max(bonusScale, 1) * std::min(-88 + 155 * depth, 1416);
 
             update_quiet_history(~ac, (ss - 1)->move, std::lround(+6.4697e-3f * bonus));
             update_continuation_history(ss - 1, pos.piece_on(preSq), preSq,
@@ -2432,8 +2378,8 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
     assert(pos.pseudo_legal(bm));
     assert(ss->moveCount != 0);
 
-    int bonus = stat_bonus(depth) + 311 * (ss->ttMove == bm);
-    int malus = stat_malus(depth) - 31 * (ss->moveCount - 1);
+    int bonus = std::min(-88  + 142 * depth, 1501) + 311 * (ss->ttMove == bm);
+    int malus = std::min(-184 + 695 * depth, 2839) - 31 * ss->moveCount;
     if (malus < 1)
         malus = 1;
 

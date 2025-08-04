@@ -47,6 +47,22 @@
     #define STRINGIFY(x) STRING_LITERAL(x)
 #endif
 
+#if defined(__GNUC__) && !defined(__clang__)
+    #if __GNUC__ >= 13
+        #define ASSUME(cond) __attribute__((assume(cond)))
+    #else
+        #define ASSUME(cond) \
+            do \
+            { \
+                if (!(cond)) \
+                    __builtin_unreachable(); \
+            } while (0)
+    #endif
+#else
+    // do nothing for other compilers
+    #define ASSUME(cond)
+#endif
+
 namespace DON {
 
 std::string engine_info(bool uci = false) noexcept;

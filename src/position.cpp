@@ -724,12 +724,12 @@ bool Position::can_enpassant(Color           ac,
     if (!attackers)
         return false;
 
-    Square cap = epSq + (before ? +1 : -1) * pawn_spush(ac);
-    assert(pieces(~ac, PAWN) & cap);
+    Square capSq = epSq + (before ? +1 : -1) * pawn_spush(ac);
+    assert(pieces(~ac, PAWN) & capSq);
 
     bool enpassant = false;
     // Check en-passant is legal for the position
-    Bitboard occupied = pieces() ^ make_bitboard(cap, epSq);
+    Bitboard occupied = pieces() ^ make_bitboard(capSq, epSq);
     while (attackers)
     {
         Square s = pop_lsb(attackers);
@@ -767,21 +767,14 @@ void Position::do_castling(
 
     if constexpr (Do)
     {
-        dp->count = 0;
-        if (kingMoved)
-        {
-            dp->piece[dp->count] = king;
-            dp->org[dp->count]   = org;
-            dp->dst[dp->count]   = dst;
-            dp->count++;
-        }
         if (rookMoved)
         {
-            dp->piece[dp->count] = rook;
-            dp->org[dp->count]   = rorg;
-            dp->dst[dp->count]   = rdst;
-            dp->count++;
+            dp->dst      = dst;
+            dp->removePc = dp->addPc = rook;
+            dp->removeSq             = rorg;
+            dp->addSq                = rdst;
         }
+
         st->kingSquare[ac] = dst;
         st->castled[ac]    = true;
     }
@@ -813,8 +806,6 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
 
     st = &newSt;
 
-    DirtyPiece dp;
-
     // Increment ply counters. In particular, rule50 will be reset to zero later on
     // in case of a capture or a pawn move.
     ++gamePly;
@@ -834,6 +825,12 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     assert(capturedPiece == NO_PIECE || (color_of(capturedPiece) == (m.type_of() != CASTLING ? ~ac : ac) && type_of(capturedPiece) != KING));
     auto pt = type_of(movedPiece);
     // clang-format on
+
+    DirtyPiece dp;
+    dp.pc    = movedPiece;
+    dp.org   = org;
+    dp.dst   = dst;
+    dp.addSq = SQ_NONE;
 
     // Reset en-passant square
     if (is_ok(ep_square()))
@@ -871,25 +868,23 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
         goto DO_MOVE_END;
     }
 
-    dp.count = 1;
-
     if (capturedPiece != NO_PIECE)
     {
         auto captured = type_of(capturedPiece);
 
-        Square cap = dst;
+        Square capSq = dst;
         // If the captured piece is a pawn, update pawn hash key,
         // otherwise update non-pawn material.
         if (captured == PAWN)
         {
             if (m.type_of() == EN_PASSANT)
             {
-                cap -= pawn_spush(ac);
+                capSq -= pawn_spush(ac);
 
                 assert(relative_rank(ac, org) == RANK_5);
                 assert(relative_rank(ac, dst) == RANK_6);
                 assert(pt == PAWN);
-                assert(pieces(~ac, PAWN) & cap);
+                assert(pieces(~ac, PAWN) & capSq);
                 assert(!(pieces() & make_bitboard(dst, dst + pawn_spush(ac))));
                 assert(!is_ok(ep_square()));  // Already reset to SQ_NONE
                 assert(rule50_count() == 1);
@@ -897,32 +892,29 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
                 assert(st->preState->rule50 == 0);
             }
 
-            st->pawnKey[~ac] ^= Zobrist::psq[capturedPiece][cap];
+            st->pawnKey[~ac] ^= Zobrist::psq[capturedPiece][capSq];
         }
         else
         {
             // clang-format off
-            st->groupKey[~ac][is_major(captured)] ^= Zobrist::psq[capturedPiece][cap];
+            st->groupKey[~ac][is_major(captured)] ^= Zobrist::psq[capturedPiece][capSq];
             st->nonPawnMaterial[~ac]              -= PIECE_VALUE[captured];
             // clang-format on
         }
-        dp.count    = 2;  // 1 piece moved, 1 piece captured
-        dp.piece[1] = capturedPiece;
-        dp.org[1]   = cap;
-        dp.dst[1]   = SQ_NONE;
+
+        dp.removePc = capturedPiece;
+        dp.removeSq = capSq;
+
         // Remove the captured piece
-        remove_piece(cap);
+        remove_piece(capSq);
         st->capSquare = dst;
         // Update hash key
-        k ^= Zobrist::psq[capturedPiece][cap];
+        k ^= Zobrist::psq[capturedPiece][capSq];
         // Reset rule 50 draw counter
         reset_rule50_count();
     }
-
-    // Move the piece. The tricky Chess960 castling is handled earlier
-    dp.piece[0] = movedPiece;
-    dp.org[0]   = org;
-    dp.dst[0]   = dst;
+    else
+        dp.removeSq = SQ_NONE;
 
     move_piece(org, dst);
 
@@ -946,12 +938,9 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
 
             promotedPiece = make_piece(ac, promoted);
 
-            // Promoting pawn to SQ_NONE, promoted piece from SQ_NONE
-            dp.dst[0]          = SQ_NONE;
-            dp.piece[dp.count] = promotedPiece;
-            dp.org[dp.count]   = SQ_NONE;
-            dp.dst[dp.count]   = dst;
-            dp.count++;
+            dp.addPc = promotedPiece;
+            dp.addSq = dst;
+            dp.dst   = SQ_NONE;
 
             remove_piece(dst);
             put_piece(dst, promotedPiece);
@@ -1030,8 +1019,11 @@ DO_MOVE_END:
     }
 
     assert(pos_is_ok());
-    assert(dp.count <= DirtyPiece::MaxCount);
 
+    assert(dp.pc != NO_PIECE);
+    assert(!(capturedPiece != NO_PIECE || m.type_of() == CASTLING) ^ (dp.removeSq != SQ_NONE));
+    assert(dp.org != SQ_NONE);
+    assert(!(dp.addSq != SQ_NONE) ^ (m.type_of() == PROMOTION || m.type_of() == CASTLING));
     return dp;
 }
 
@@ -1080,23 +1072,23 @@ void Position::undo_move(const Move& m) noexcept {
 
     if (capturedPiece != NO_PIECE)
     {
-        Square cap = dst;
+        Square capSq = dst;
 
         if (m.type_of() == EN_PASSANT)
         {
-            cap -= pawn_spush(ac);
+            capSq -= pawn_spush(ac);
 
             assert(type_of(pc) == PAWN);
             assert(relative_rank(ac, org) == RANK_5);
             assert(relative_rank(ac, dst) == RANK_6);
-            assert(empty_on(cap));
+            assert(empty_on(capSq));
             assert(capturedPiece == make_piece(~ac, PAWN));
             assert(rule50_count() == 0);
             assert(st->preState->epSquare == dst);
             assert(st->preState->rule50 == 0);
         }
         // Restore the captured piece
-        put_piece(cap, capturedPiece);
+        put_piece(capSq, capturedPiece);
     }
 
 UNDO_MOVE_END:
@@ -1460,8 +1452,8 @@ Key Position::move_key(const Move& m) const noexcept {
 
     Square org = m.org_sq(), dst = m.dst_sq();
     Piece  movedPiece    = piece_on(org);
-    Square cap           = m.type_of() != EN_PASSANT ? dst : dst - pawn_spush(ac);
-    Piece  capturedPiece = piece_on(cap);
+    Square capSq         = m.type_of() != EN_PASSANT ? dst : dst - pawn_spush(ac);
+    Piece  capturedPiece = piece_on(capSq);
     assert(color_of(movedPiece) == ac);
     assert(capturedPiece == NO_PIECE
            || color_of(capturedPiece) == (m.type_of() != CASTLING ? ~ac : ac));
@@ -1495,7 +1487,7 @@ Key Position::move_key(const Move& m) const noexcept {
         return moveKey;
     }
 
-    moveKey ^= Zobrist::psq[capturedPiece][cap];
+    moveKey ^= Zobrist::psq[capturedPiece][capSq];
 
     return capturedPiece || type_of(movedPiece) == PAWN ? moveKey : adjust_key(moveKey, 1);
 }

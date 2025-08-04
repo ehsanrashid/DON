@@ -259,19 +259,13 @@ enum Direction : std::int8_t {
 
 // Keep track of what a move changes on the board (used by NNUE)
 struct DirtyPiece final {
-    // Max 3 pieces can change in one move
-    static constexpr std::uint8_t MaxCount = 3;
+    Piece  pc;        // this is never allowed to be NO_PIECE
+    Square org, dst;  // dst should be SQ_NONE for promotions
 
-    // Count of changed pieces
-    std::uint8_t count = 0;
-
-    // A promotion with capture moves both the pawn and the captured piece to SQ_NONE
-    // and the piece promoted to from SQ_NONE to the capture square.
-    Piece piece[MaxCount];
-
-    // org and dst squares, which may be SQ_NONE
-    Square org[MaxCount];
-    Square dst[MaxCount];
+    // if {add, remove}Sq is SQ_NONE, {add, remove}Pc is allowed to be uninitialized
+    // castling uses addSq and removeSq to remove and add the rook
+    Square removeSq, addSq;
+    Piece  removePc, addPc;
 };
 
     #define ENABLE_INCR_OPERATORS_ON(T) \

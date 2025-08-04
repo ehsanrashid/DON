@@ -214,6 +214,7 @@ class Position final {
 
     template<PieceType PT>
     Bitboard attacks(Color c) const noexcept;
+    Bitboard attacks(Color c, PieceType pt) const noexcept;
     Bitboard threatens(Color c) const noexcept;
     auto     mobility(Color c) const noexcept;
     Piece    captured_piece() const noexcept;
@@ -568,6 +569,7 @@ inline Bitboard Position::blockers(Color c) const noexcept { return st->blockers
 
 template<PieceType PT>
 inline Bitboard Position::attacks(Color c) const noexcept { return st->attacks[c][PT]; }
+inline Bitboard Position::attacks(Color c, PieceType pt) const noexcept { return st->attacks[c][pt]; }
 
 inline Bitboard Position::threatens(Color c) const noexcept { return st->attacks[c][EXT_PIECE]; }
 

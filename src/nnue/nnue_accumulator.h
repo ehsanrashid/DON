@@ -170,14 +170,13 @@ class AccumulatorStack final {
     template<Color Perspective, IndexType Dimensions>
     void forward_update_incremental(const Position&                       pos,
                                     const FeatureTransformer<Dimensions>& featureTransformer,
-                                    const std::size_t                     begin) noexcept;
+                                    std::size_t                           begin) noexcept;
 
     template<Color Perspective, IndexType Dimensions>
     void backward_update_incremental(const Position&                       pos,
                                      const FeatureTransformer<Dimensions>& featureTransformer,
-                                     const std::size_t                     end) noexcept;
+                                     std::size_t                           end) noexcept;
 
-   private:
     std::vector<AccumulatorState> accStates;
     std::size_t                   size;
 };

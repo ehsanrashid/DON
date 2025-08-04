@@ -64,14 +64,16 @@ void HalfKAv2_hm::append_changed_indices(Square            ksq,
                                          const DirtyPiece& dp,
                                          IndexList&        removed,
                                          IndexList&        added) noexcept {
-    assert(dp.count <= DirtyPiece::MaxCount);
-    for (std::uint8_t i = 0; i < dp.count; ++i)
-    {
-        if (is_ok(dp.org[i]))
-            removed.push_back(make_index<Perspective>(dp.org[i], dp.piece[i], ksq));
-        if (is_ok(dp.dst[i]))
-            added.push_back(make_index<Perspective>(dp.dst[i], dp.piece[i], ksq));
-    }
+    removed.push_back(make_index<Perspective>(dp.org, dp.pc, ksq));
+
+    if (is_ok(dp.dst))
+        added.push_back(make_index<Perspective>(dp.dst, dp.pc, ksq));
+
+    if (is_ok(dp.removeSq))
+        removed.push_back(make_index<Perspective>(dp.removeSq, dp.removePc, ksq));
+
+    if (is_ok(dp.addSq))
+        added.push_back(make_index<Perspective>(dp.addSq, dp.addPc, ksq));
 }
 
 // Explicit template instantiations
@@ -85,7 +87,7 @@ template void HalfKAv2_hm::append_changed_indices<BLACK>(Square            ksq,
                                                          IndexList&        added) noexcept;
 
 bool HalfKAv2_hm::requires_refresh(const DirtyPiece& dp, Color perspective) noexcept {
-    return dp.piece[0] == make_piece(perspective, KING);
+    return dp.pc == make_piece(perspective, KING);
 }
 
 }  // namespace DON::NNUE::Features

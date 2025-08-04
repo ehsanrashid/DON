@@ -23,6 +23,7 @@
 
 #include "../bitboard.h"
 #include "../position.h"
+#include "../misc.h"
 #include "../types.h"
 #include "network.h"
 #include "nnue_feature_transformer.h"
@@ -30,18 +31,6 @@
 namespace DON::NNUE {
 
 namespace {
-
-#if defined(__GNUC__) && !defined(__clang__)
-    #define assume(cond) \
-        do \
-        { \
-            if (!(cond)) \
-                __builtin_unreachable(); \
-        } while (0)
-#else
-    // do nothing for other compilers
-    #define assume(cond)
-#endif
 
 template<typename VectorWrapper,
          IndexType Width,
@@ -111,7 +100,7 @@ void update_accumulator_incremental_double(
   Square                                                  ksq,
   const AccumulatorState&                                 computedState,
   AccumulatorState&                                       middleState,
-  AccumulatorState&                                       targetState) {
+  AccumulatorState&                                       targetState) noexcept {
 
     assert(computedState.acc<TransformedFeatureDimensions>().computed[Perspective]);
     assert(!middleState.acc<TransformedFeatureDimensions>().computed[Perspective]);
@@ -130,8 +119,8 @@ void update_accumulator_incremental_double(
     // Workaround compiler warning for uninitialized variables, replicated on
     // profile builds on windows with gcc 14.2.0.
     // TODO remove once unneeded
-    assume(added.size() == 1);
-    assume(removed.size() == 2 || removed.size() == 3);
+    ASSUME(added.size() == 1);
+    ASSUME(removed.size() == 2 || removed.size() == 3);
 
     auto updateContext =
       make_accumulator_update_context<Perspective>(featureTransformer, computedState, targetState);
@@ -182,8 +171,8 @@ void update_accumulator_incremental(
     // Workaround compiler warning for uninitialized variables, replicated on
     // profile builds on windows with gcc 14.2.0.
     // TODO remove once unneeded
-    assume(added.size() == 1 || added.size() == 2);
-    assume(removed.size() == 1 || removed.size() == 2);
+    ASSUME(added.size() == 1 || added.size() == 2);
+    ASSUME(removed.size() == 1 || removed.size() == 2);
 
     auto updateContext =
       make_accumulator_update_context<Perspective>(featureTransformer, computedState, targetState);
@@ -457,7 +446,7 @@ template<Color Perspective, IndexType Dimensions>
 void AccumulatorStack::forward_update_incremental(
   const Position&                       pos,
   const FeatureTransformer<Dimensions>& featureTransformer,
-  const std::size_t                     begin) noexcept {
+  std::size_t                           begin) noexcept {
 
     assert(begin < accStates.size());
     assert((accStates[begin].acc<Dimensions>()).computed[Perspective]);
@@ -471,13 +460,13 @@ void AccumulatorStack::forward_update_incremental(
             auto& dp1 = accStates[idx].dirtyPiece;
             auto& dp2 = accStates[idx + 1].dirtyPiece;
 
-            if (dp2.count >= 2 && dp1.piece[0] == dp2.piece[1] && dp1.dst[0] == dp2.org[1])
+            if (is_ok(dp1.dst) && dp1.dst == dp2.removeSq)
             {
-                const Square captureSq = dp1.dst[0];
-                dp1.dst[0] = dp2.org[1] = SQ_NONE;
+                auto capSq = dp1.dst;
+                dp1.dst = dp2.removeSq = SQ_NONE;
                 update_accumulator_incremental_double<Perspective>(
                   featureTransformer, ksq, accStates[idx - 1], accStates[idx], accStates[idx + 1]);
-                dp1.dst[0] = dp2.org[1] = captureSq;
+                dp1.dst = dp2.removeSq = capSq;
 
                 ++idx;
                 continue;
@@ -495,14 +484,14 @@ template<Color Perspective, IndexType Dimensions>
 void AccumulatorStack::backward_update_incremental(
   const Position&                       pos,
   const FeatureTransformer<Dimensions>& featureTransformer,
-  const std::size_t                     end) noexcept {
+  std::size_t                           end) noexcept {
 
     assert(end < size && end < accStates.size());
     assert((clatest_state().acc<Dimensions>()).computed[Perspective]);
 
     Square ksq = pos.king_square(Perspective);
 
-    for (std::size_t idx = size - 2; idx >= end; --idx)
+    for (std::int64_t idx = std::int64_t(size) - 2; idx >= std::int64_t(end); --idx)
         update_accumulator_incremental<Perspective, false>(featureTransformer, ksq,
                                                            accStates[idx + 1], accStates[idx]);
 

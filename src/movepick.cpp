@@ -29,6 +29,12 @@
 
 namespace DON {
 
+namespace {
+
+constexpr int Bonus[PIECE_TYPE_NB]{0, 0, 144, 144, 256, 517};
+
+}
+
 // History
 History<HCapture>      CaptureHistory;
 History<HQuiet>        QuietHistory;
@@ -85,8 +91,9 @@ void MovePicker::score<ENC_CAPTURE>() noexcept {
         auto   pc       = pos.moved_piece(m);
         auto   captured = pos.captured(m);
 
-        m.value = (7 + 2 * pos.check(m)) * PIECE_VALUE[captured] + 3 * promotion_value(m, true)  //
-                + CaptureHistory[pc][dst][captured]                                              //
+        m.value = 7 * PIECE_VALUE[captured] + 3 * promotion_value(m, true)  //
+                + CaptureHistory[pc][dst][captured]                         //
+                + 0x400 + bool(pos.check(m))                                //
                 + 0x100 * (pos.cap_square() == dst);
     }
 }
@@ -116,34 +123,24 @@ void MovePicker::score<ENC_QUIET>() noexcept {
                 + (*continuationHistory[7])[pc][dst];
 
         if (ssPly < LOW_PLY_SIZE)
-            m.value += 8 * LowPlyQuietHistory[ssPly][m.org_dst()] / (1 + 2 * ssPly);
+            m.value += 8 * LowPlyQuietHistory[ssPly][m.org_dst()] / (1 + ssPly);
 
         if (pos.check(m) && pos.see(m) >= -75)
             m.value += 0x4000 + 0x1000 * pos.dbl_check(m);
 
         m.value += 0x1000 * pos.fork(m);
 
-        if (pt == PAWN || pt == KING)
+        if (KNIGHT < pt || pt > QUEEN)
             continue;
 
-        m.value += (pos.threatens(ac) & org)
-                   ? (pt == QUEEN ? 21200 * !(pos.attacks<ROOK>(~ac) & dst)
-                                      + 16150 * !(pos.attacks<MINOR>(~ac) & dst)
-                                      + 14450 * !(pos.attacks<PAWN>(~ac) & dst)
-                      : pt == ROOK ? 16150 * !(pos.attacks<MINOR>(~ac) & dst)
-                                       + 14450 * !(pos.attacks<PAWN>(~ac) & dst)
-                                   : 14450 * !(pos.attacks<PAWN>(~ac) & dst))
-                   : 0;
+        // Penalty for moving to a square threatened by a lesser piece or
+        // Bonus for escaping an attack by a lesser piece.
+        m.value += Bonus[pt]
+                 * (((pos.attacks(~ac, pt) & dst) && !(pos.blockers(~ac) & org))
+                      ? -95
+                      : 100 * (pos.attacks(~ac, pt) & org));
 
-        m.value -= !(pos.blockers(~ac) & org)
-                   ? (pt == QUEEN ? 24665 * !!(pos.attacks<ROOK>(~ac) & dst)
-                                      + 13435 * !!(pos.attacks<MINOR>(~ac) & dst)
-                                      + 10900 * !!(pos.attacks<PAWN>(~ac) & dst)
-                      : pt == ROOK ? 13435 * !!(pos.attacks<MINOR>(~ac) & dst)
-                                       + 10900 * !!(pos.attacks<PAWN>(~ac) & dst)
-                                   : 10900 * !!(pos.attacks<PAWN>(~ac) & dst))
-                   : 0;
-
+        // Penalty for moving a pinner piece.
         m.value -= 0x400 * ((pos.pinners() & org) && !aligned(pos.king_square(~ac), org, dst));
     }
 }
@@ -166,8 +163,7 @@ void MovePicker::score<EVA_CAPTURE>() noexcept {
 
 template<>
 void MovePicker::score<EVA_QUIET>() noexcept {
-    Color ac        = pos.active_color();
-    auto  pawnIndex = pawn_index(pos.pawn_key());
+    Color ac = pos.active_color();
 
     for (auto& m : *this)
     {
@@ -176,9 +172,10 @@ void MovePicker::score<EVA_QUIET>() noexcept {
         Square dst = m.dst_sq();
         auto   pc  = pos.moved_piece(m);
 
-        m.value = QuietHistory[ac][m.org_dst()]    //
-                + PawnHistory[pawnIndex][pc][dst]  //
-                + (*continuationHistory[0])[pc][dst];
+        m.value = QuietHistory[ac][m.org_dst()] + (*continuationHistory[0])[pc][dst];
+
+        if (ssPly < LOW_PLY_SIZE)
+            m.value += 2 * LowPlyQuietHistory[ssPly][m.org_dst()] / (1 + ssPly);
     }
 }
 
@@ -204,41 +201,6 @@ void MovePicker::sort_partial(int limit) noexcept {
         }
 }
 
-bool MovePicker::otherPieceTypesMobile(PieceType pt, std::vector<Move>& captureMoves) {
-    if (stage != STG_ENC_QUIET_GOOD && stage != STG_ENC_QUIET_BAD)
-        return true;
-
-    // verify good captures
-    for (const Move& cm : captureMoves)
-        if (type_of(pos.moved_piece(cm)) != pt)
-        {
-            if (type_of(pos.moved_piece(cm)) != KING)
-                return true;
-            if (pos.legal(cm))
-                return true;
-        }
-
-    // now verify bad captures and quiets
-    for (auto itr = badCapMoves.begin(); itr < badCapMoves.end(); ++itr)
-        if (type_of(pos.moved_piece(*itr)) != pt)
-        {
-            if (type_of(pos.moved_piece(*itr)) != KING)
-                return true;
-            if (pos.legal(*itr))
-                return true;
-        }
-    for (auto itr = extMoves.begin(); itr < extMoves.end(); ++itr)
-        if (type_of(pos.moved_piece(*itr)) != pt)
-        {
-            if (type_of(pos.moved_piece(*itr)) != KING)
-                return true;
-            if (pos.legal(*itr))
-                return true;
-        }
-
-    return false;
-}
-
 // Most important method of the MovePicker class.
 // It emits a new pseudo-legal move every time it is called until there are no more moves left,
 // picking the move with the highest score from a list of generated moves.
@@ -255,8 +217,12 @@ STAGE_SWITCH:
 
     case STG_ENC_CAPTURE_INIT :
     case STG_PROBCUT_INIT :
+        allExtMoves.clear();
+
         extEnd = generate<ENC_CAPTURE>(extMoves, pos);
         extCur = extMoves.begin();
+
+        allExtMoves.insert(extMoves);
 
         score<ENC_CAPTURE>();
         sort_partial();
@@ -287,6 +253,8 @@ STAGE_SWITCH:
         {
             extEnd = generate<ENC_QUIET>(extMoves, pos);
             extCur = extMoves.begin();
+
+            allExtMoves.insert(extMoves);
 
             score<ENC_QUIET>();
             assert(threshold < 0);
@@ -348,8 +316,12 @@ STAGE_SWITCH:
         return Move::None;
 
     case STG_EVA_CAPTURE_INIT :
+        allExtMoves.clear();
+
         extEnd = generate<EVA_CAPTURE>(extMoves, pos);
         extCur = extMoves.begin();
+
+        allExtMoves.insert(extMoves);
 
         score<EVA_CAPTURE>();
         sort_partial();
@@ -375,6 +347,8 @@ STAGE_SWITCH:
         {
             extEnd = generate<EVA_QUIET>(extMoves, pos);
             extCur = extMoves.begin();
+
+            allExtMoves.insert(extMoves);
 
             score<EVA_QUIET>();
             sort_partial();
@@ -411,6 +385,20 @@ STAGE_SWITCH:
     }
     assert(false);
     return Move::None;  // Silence warning
+}
+
+// Must be called after all captures and quiet moves have been generated
+bool MovePicker::can_move_king_or_pawn() const noexcept {
+    // SEE negative captures shouldn't be returned in GOOD_CAPTURE stage
+    assert(stage > STG_ENC_QUIET_GOOD && stage != STG_EVA_CAPTURE_INIT);
+
+    for (auto m : allExtMoves)
+    {
+        PieceType movedPieceType = type_of(pos.moved_piece(m));
+        if ((movedPieceType == PAWN || movedPieceType == KING) && pos.legal(m))
+            return true;
+    }
+    return false;
 }
 
 }  // namespace DON

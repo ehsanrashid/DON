@@ -193,6 +193,8 @@ class ExtMoves final {
         return false;
     }
 
+    void insert(ExtMoves& em) noexcept { extMoves.insert(extMoves.end(), em.begin(), em.end()); }
+
     auto& operator[](std::size_t idx) const noexcept { return extMoves[idx]; }
     auto& operator[](std::size_t idx) noexcept { return extMoves[idx]; }
 
