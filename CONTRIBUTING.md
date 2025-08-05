@@ -38,8 +38,8 @@ further discussion._
 
 ### Submitting Pull Requests
 
-- Functional changes need to be tested on fishtest. See
-  [Creating my First Test][creating-my-first-test] for more details.
+- Functional changes need to be tested on fishtest.
+  See [Creating my First Test][creating-my-first-test] for more details.
   The accompanying pull request should include a link to the test results and
   the new bench.
 
@@ -59,7 +59,7 @@ discussion._
 
 Changes to DON C++ code should respect our coding style defined by
 [.clang-format](.clang-format). You can format your changes by running
-`make format`. This requires clang-format version 18 to be installed on your system.
+`make format`. This requires clang-format version 20 to be installed on your system.
 
 ## Navigate
 

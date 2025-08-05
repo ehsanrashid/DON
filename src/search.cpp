@@ -1714,8 +1714,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     }
     else
     {
-        // In case of null move search, use previous staticEval with a opposite sign
-        unadjustedStaticEval = (ss - 1)->move != Move::Null ? evaluate(pos) : -(ss - 1)->staticEval;
+        unadjustedStaticEval = evaluate(pos);
 
         bestValue = ss->staticEval = adjust_static_eval(unadjustedStaticEval, correctionValue);
     }
