@@ -85,7 +85,7 @@ alignas(CACHE_LINE_SIZE) constexpr struct Lookup final {
         }
     }
 
-} Lookup;
+} LookupInstance;
 
 // Find indices of nonzero numbers in an std::int32_t array
 template<IndexType InputDimensions>
@@ -168,9 +168,9 @@ void find_nnz(const std::int32_t* input, std::uint16_t* outNnz, IndexType& outCo
         {
             unsigned nnzMask = (nnz >> (j * 8)) & 0xFF;
             vec128_t offsets =
-              vec128_load(reinterpret_cast<const vec128_t*>(&Lookup.indices[nnzMask]));
+              vec128_load(reinterpret_cast<const vec128_t*>(&LookupInstance.indices[nnzMask]));
             vec128_storeu(reinterpret_cast<vec128_t*>(outNnz + count), vec128_add(base, offsets));
-            count += Lookup.popcounts[nnzMask];
+            count += LookupInstance.popcounts[nnzMask];
             base = vec128_add(base, increment);
         }
     }
