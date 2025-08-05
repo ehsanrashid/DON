@@ -28,6 +28,7 @@
 
 #include "../types.h"
 #include "nnue_architecture.h"
+#include "nnue_common.h"
 
 namespace DON {
 
@@ -36,10 +37,6 @@ class Position;
 namespace NNUE {
 
 struct Networks;
-
-using BiasType       = std::int16_t;
-using PSQTWeightType = std::int32_t;
-using IndexType      = std::uint32_t;
 
 // Accumulator holds the result of affine transformation of input features
 template<IndexType Size>

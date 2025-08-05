@@ -31,9 +31,10 @@ namespace DON {
 
 namespace {
 
-constexpr int Bonus[PIECE_TYPE_NB]{0, 0, 144, 144, 256, 517};
+constexpr int Bonus[PIECE_TYPE_NB]{0, 0, 144, 144, 256, 517, 0, 0};
+constexpr int GoodQuietThreshold = -14000;
 
-}
+}  // namespace
 
 // History
 History<HCapture>      CaptureHistory;
@@ -136,9 +137,9 @@ void MovePicker::score<ENC_QUIET>() noexcept {
         // Penalty for moving to a square threatened by a lesser piece or
         // Bonus for escaping an attack by a lesser piece.
         m.value += Bonus[pt]
-                 * (((pos.attacks(~ac, pt) & dst) && !(pos.blockers(~ac) & org))
-                      ? -95
-                      : 100 * (pos.attacks(~ac, pt) & org));
+                 * (((pos.attacks(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? -95
+                    : (pos.attacks(~ac, pt) & org)                               ? 100
+                                                                                 : 0);
 
         // Penalty for moving a pinner piece.
         m.value -= 0x400 * ((pos.pinners() & org) && !aligned(pos.king_square(~ac), org, dst));
@@ -217,8 +218,6 @@ STAGE_SWITCH:
 
     case STG_ENC_CAPTURE_INIT :
     case STG_PROBCUT_INIT :
-        allExtMoves.clear();
-
         extEnd = generate<ENC_CAPTURE>(extMoves, pos);
         extCur = extMoves.begin();
 
@@ -237,7 +236,7 @@ STAGE_SWITCH:
             next();
             if (is_ok(cur))
             {
-                if (threshold == 0 || pos.see(cur) >= -55.5555e-3 * cur.value)
+                if (threshold == 0 || pos.see(cur) >= -55.5555e-3f * cur.value)
                     return cur;
                 // Store bad captures
                 badCapMoves.push_back(cur);
@@ -260,8 +259,6 @@ STAGE_SWITCH:
             assert(threshold < 0);
             sort_partial(threshold);
         }
-        else
-            extCur = extEnd;
 
         next_stage();
         [[fallthrough]];
@@ -273,7 +270,7 @@ STAGE_SWITCH:
                 auto& cur = current();
                 if (is_ok(cur))
                 {
-                    if (cur.value >= threshold)
+                    if (cur.value >= GoodQuietThreshold)
                     {
                         next();
                         return cur;
@@ -316,8 +313,6 @@ STAGE_SWITCH:
         return Move::None;
 
     case STG_EVA_CAPTURE_INIT :
-        allExtMoves.clear();
-
         extEnd = generate<EVA_CAPTURE>(extMoves, pos);
         extCur = extMoves.begin();
 
@@ -353,8 +348,6 @@ STAGE_SWITCH:
             score<EVA_QUIET>();
             sort_partial();
         }
-        else
-            extCur = extEnd;
 
         next_stage();
         [[fallthrough]];
@@ -389,10 +382,10 @@ STAGE_SWITCH:
 
 // Must be called after all captures and quiet moves have been generated
 bool MovePicker::can_move_king_or_pawn() const noexcept {
-    // SEE negative captures shouldn't be returned in GOOD_CAPTURE stage
-    assert(stage > STG_ENC_QUIET_GOOD && stage != STG_EVA_CAPTURE_INIT);
+    // SEE negative captures shouldn't be returned in STG_ENC_CAPTURE_GOOD stage
+    assert(stage > STG_ENC_CAPTURE_GOOD && stage != STG_EVA_CAPTURE_INIT);
 
-    for (auto m : allExtMoves)
+    for (const Move& m : allExtMoves)
     {
         PieceType movedPieceType = type_of(pos.moved_piece(m));
         if ((movedPieceType == PAWN || movedPieceType == KING) && pos.legal(m))

@@ -485,6 +485,7 @@ struct Stack final {
     std::uint8_t conseqChecks;
     Value        staticEval;
     int          history;
+    int          quietMoveStreak;
 
     Move*                         pv;
     History<HPieceSq>*            pieceSqHistory;
@@ -534,11 +535,9 @@ class Worker final {
 
     void do_move(
       Position& pos, const Move& m, State& st, bool check, Stack* const ss = nullptr) noexcept;
-    void do_move(Position& pos, const Move& m, State& st, Stack* const ss = nullptr) noexcept {
-        do_move(pos, m, st, pos.check(m), ss);
-    }
+    void do_move(Position& pos, const Move& m, State& st, Stack* const ss = nullptr) noexcept;
     void undo_move(Position& pos, const Move& m) noexcept;
-    void do_null_move(Position& pos, State& st) noexcept;
+    void do_null_move(Position& pos, State& st, Stack* const ss) noexcept;
     void undo_null_move(Position& pos) noexcept;
 
     Value evaluate(const Position& pos) noexcept;

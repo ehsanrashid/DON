@@ -92,7 +92,7 @@ extern std::uint8_t DrawMoveCount;
 
 extern bool Chess960;
 
-inline std::uint8_t rule50_threshold() noexcept { return -10 + 2 * DrawMoveCount; }
+inline std::uint8_t rule50_threshold() noexcept { return -9 + 2 * DrawMoveCount; }
 
 // Position class stores information regarding the board representation as
 // pieces, active color, hash keys, castling info, etc. (Size = 192)

@@ -24,12 +24,12 @@
 #include <cstring>
 #include <iosfwd>
 
-#include "nnue_common.h"
 #include "features/half_ka_v2_hm.h"
 #include "layers/affine_transform.h"
 #include "layers/affine_transform_sparse_input.h"
 #include "layers/clipped_relu.h"
 #include "layers/sqr_clipped_relu.h"
+#include "nnue_common.h"
 
 namespace DON::NNUE {
 
@@ -49,6 +49,12 @@ constexpr IndexType PSQTBuckets = 8;
 constexpr IndexType LayerStacks = 8;
 
 static_assert(LayerStacks == PSQTBuckets);
+
+// If vector instructions are enabled, we update and refresh the
+// accumulator tile by tile such that each tile fits in the CPU's
+// vector registers.
+static_assert(PSQTBuckets % 8 == 0,
+              "Per feature PSQT values cannot be processed at granularity lower than 8 at a time.");
 
 template<IndexType L1, std::uint32_t L2, std::uint32_t L3>
 struct NetworkArchitecture final {

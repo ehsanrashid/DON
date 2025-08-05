@@ -45,6 +45,11 @@
 
 namespace DON::NNUE {
 
+using BiasType       = std::int16_t;
+using WeightType     = std::int16_t;
+using PSQTWeightType = std::int32_t;
+using IndexType      = std::uint32_t;
+
 // Version of the evaluation file
 constexpr std::uint32_t FILE_VERSION = 0x7AF32F20u;
 

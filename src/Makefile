@@ -62,10 +62,10 @@ HEADERS := benchmark.h bitboard.h engine.h evaluate.h history.h memory.h misc.h 
 	movegen.h movepick.h numa.h perft.h polybook.h position.h score.h search.h \
 	thread.h thread_win32_osx.h timeman.h tt.h tune.h types.h uci.h ucioption.h \
 	nnue/nnue_accumulator.h nnue/nnue_architecture.h nnue/nnue_common.h \
-	nnue/nnue_feature_transformer.h nnue/nnue_misc.h nnue/network.h \
+	nnue/nnue_feature_transformer.h nnue/nnue_misc.h nnue/network.h nnue/simd.h \
 	nnue/features/half_ka_v2_hm.h nnue/layers/affine_transform.h \
 	nnue/layers/affine_transform_sparse_input.h nnue/layers/clipped_relu.h \
-	nnue/layers/simd.h nnue/layers/sqr_clipped_relu.h syzygy/tbprobe.h
+	nnue/layers/sqr_clipped_relu.h syzygy/tbprobe.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
 
@@ -569,11 +569,20 @@ ifeq ($(COMP), ndk)
 	LDFLAGS += -static-libstdc++ -pie -lm -latomic
 endif
 
+### Allow overwriting CXX from command line
+ifdef COMPCXX
+	CXX=$(COMPCXX)
+endif
+
 # llvm-profdata must be version compatible with the specified CXX (be it clang, or the gcc alias)
 # make -j profile-build CXX=clang++-20 COMP=clang
 # Locate the version in the same directory as the compiler used,
 # with fallback to a generic one if it can't be located
 LLVM_PROFDATA := $(dir $(realpath $(shell which $(CXX))))llvm-profdata
+# for icx
+ifeq ($(wildcard $(LLVM_PROFDATA)), )
+	LLVM_PROFDATA := $(dir $(realpath $(shell which $(CXX) 2> /dev/null)))/compiler/llvm-profdata
+endif
 ifeq ($(wildcard $(LLVM_PROFDATA)), )
 	LLVM_PROFDATA := llvm-profdata
 endif
@@ -590,11 +599,6 @@ else
 	ifeq ($(KERNEL), Darwin)
 		EXTRAPROFILEFLAGS = -fvisibility=hidden
 	endif
-endif
-
-### Allow overwriting CXX from command line
-ifdef COMPCXX
-	CXX=$(COMPCXX)
 endif
 
 ### Sometimes gcc is really clang

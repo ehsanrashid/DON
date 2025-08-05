@@ -19,15 +19,13 @@
 #define NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
 
 #include "../nnue_common.h"
-#include "affine_transform.h"
-#include "simd.h"
+#include "../simd.h"
 
 // Definition of layer AffineTransformSparseInput of NNUE evaluation function
 
@@ -36,6 +34,16 @@
 namespace DON::NNUE::Layers {
 
 #if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
+    #if defined(__GNUC__) || defined(__clang__)
+        #define RESTRICT __restrict__
+    #elif defined(_MSC_VER)
+        #define RESTRICT __restrict
+    #else
+        #define RESTRICT
+    #endif
+
+namespace {
+
 constexpr std::uint8_t LsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
                                       57, 49, 41, 37, 28, 16, 3,  61,  //
                                       54, 58, 35, 52, 50, 42, 21, 44,  //
@@ -53,19 +61,11 @@ constexpr std::uint8_t constexpr_lsb(std::uint64_t bb) noexcept {
 
 alignas(CACHE_LINE_SIZE) constexpr struct Lookup final {
 
-    using IndexType =
-    #if defined(USE_SSE41)
-      std::uint8_t
-    #else
-      std::uint16_t
-    #endif
-      ;
-
     static constexpr std::size_t Size      = 256;
     static constexpr std::size_t IndexSize = 8;
 
-    std::array<std::array<IndexType, IndexSize>, Size> indices{};
-    std::array<std::uint8_t, Size>                     popcounts{};
+    std::uint16_t indices[Size][IndexSize]{};
+    std::uint8_t  popcounts[Size]{};
 
     constexpr Lookup() noexcept {
         for (std::size_t i = 0; i < Size; ++i)
@@ -90,86 +90,101 @@ alignas(CACHE_LINE_SIZE) constexpr struct Lookup final {
 
 // Find indices of nonzero numbers in an std::int32_t array
 template<IndexType InputDimensions>
-void find_nnz(const std::int32_t* input, std::uint16_t* outNnz, IndexType& outCount) noexcept {
-    #if defined(USE_SSSE3)
-        #if defined(USE_AVX512)
-    using vec_t = __m512i;
-            #define vec_nnz(a) _mm512_cmpgt_epi32_mask(a, _mm512_setzero_si512())
-        #elif defined(USE_AVX2)
-    using vec_t = __m256i;
-            #if defined(USE_VNNI) && !defined(USE_AVXVNNI)
-                #define vec_nnz(a) _mm256_cmpgt_epi32_mask(a, _mm256_setzero_si256())
-            #else
-                #define vec_nnz(a) \
-                    _mm256_movemask_ps( \
-                      _mm256_castsi256_ps(_mm256_cmpgt_epi32(a, _mm256_setzero_si256())))
-            #endif
-        #elif defined(USE_SSSE3)
-    using vec_t = __m128i;
-            #define vec_nnz(a) \
-                _mm_movemask_ps(_mm_castsi128_ps(_mm_cmpgt_epi32(a, _mm_setzero_si128())))
-        #endif
-    using vec128_t = __m128i;
-        #define vec128_zero _mm_setzero_si128()
-        #define vec128_set_16(a) _mm_set1_epi16(a)
-        #if defined(USE_SSE41)
-            #define vec128_load(a) _mm_cvtepu8_epi16(_mm_loadl_epi64(a))
-        #else
-            #define vec128_load(a) _mm_load_si128(a)
-        #endif
-        #define vec128_storeu(a, b) _mm_storeu_si128(a, b)
-        #define vec128_add(a, b) _mm_add_epi16(a, b)
-    #elif defined(USE_NEON)
-    using vec_t = uint32x4_t;
-    static const std::uint32_t Mask[4]{1, 2, 4, 8};
-        #define vec_nnz(a) vaddvq_u32(vandq_u32(vtstq_u32(a, a), vld1q_u32(Mask)))
-    using vec128_t = uint16x8_t;
-        #define vec128_zero vdupq_n_u16(0)
-        #define vec128_set_16(a) vdupq_n_u16(a)
-        #define vec128_load(a) vld1q_u16(reinterpret_cast<const std::uint16_t*>(a))
-        #define vec128_storeu(a, b) vst1q_u16(reinterpret_cast<std::uint16_t*>(a), b)
-        #define vec128_add(a, b) vaddq_u16(a, b)
-    #endif
-    constexpr IndexType InputSimdWidth = sizeof(vec_t) / sizeof(std::int32_t);
-    // Inputs are processed InputSimdWidth at a time and
-    // Outputs are processed 8 at a time so process in chunks of max(InputSimdWidth, 8)
+void find_nnz(const std::int32_t* RESTRICT input,
+              std::uint16_t* RESTRICT      outNnz,
+              IndexType&                   outCount) noexcept {
+
+    #if defined(USE_AVX512ICL)
+
+    constexpr IndexType SimdWidthIn  = 16;  // 512 bits / 32 bits
+    constexpr IndexType SimdWidthOut = 32;  // 512 bits / 16 bits
+    constexpr IndexType NumChunks    = InputDimensions / SimdWidthOut;
+    const __m512i       increment    = _mm512_set1_epi16(SimdWidthOut);
+    __m512i base = _mm512_set_epi16(31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
+                                    15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+
+    IndexType count = 0;
+    for (IndexType i = 0; i < NumChunks; ++i)
+    {
+        __m512i inputV0 = _mm512_load_si512(input + i * 2 * SimdWidthIn);
+        __m512i inputV1 = _mm512_load_si512(input + i * 2 * SimdWidthIn + SimdWidthIn);
+
+        // Get a bitmask and gather non zero indices
+        __mmask32 nnzMask = _mm512_kunpackw(_mm512_test_epi32_mask(inputV1, inputV1),
+                                            _mm512_test_epi32_mask(inputV0, inputV0));
+
+        // Avoid _mm512_mask_compressstoreu_epi16() as it's 256 uOps on Zen4
+        __m512i nnz = _mm512_maskz_compress_epi16(nnzMask, base);
+        _mm512_storeu_epi16(outNnz + count, nnz);
+
+        count += LookupInstance.popcounts[nnzMask];
+        base = _mm512_add_epi16(base, increment);
+    }
+    outCount = count;
+
+    #elif defined(USE_AVX512)
+
+    constexpr IndexType SimdWidth = 16;  // 512 bits / 32 bits
+    constexpr IndexType NumChunks = InputDimensions / SimdWidth;
+
+    __m512i base      = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+    __m512i increment = _mm512_set1_epi32(SimdWidth);
+
+    IndexType count = 0;
+    for (IndexType i = 0; i < NumChunks; ++i)
+    {
+        __m512i inputV = _mm512_load_si512(input + i * SimdWidth);
+
+        // Get a bitmask and gather non zero indices
+        __mmask16 nnzMask = _mm512_test_epi32_mask(inputV, inputV);
+        __m512i   nnzV    = _mm512_maskz_compress_epi32(nnzMask, base);
+        _mm512_mask_cvtepi32_storeu_epi16(outNnz + count, 0xFFFF, nnzV);
+        count += LookupInstance.popcounts[nnzMask];
+        base = _mm512_add_epi32(base, increment);
+    }
+    outCount = count;
+
+    #else
+
+    using namespace SIMD;
+
+    constexpr IndexType InputSimdWidth = sizeof(vec_uint_t) / sizeof(std::int32_t);
+    // Inputs are processed InputSimdWidth at a time and outputs are processed 8 at a time so we process in chunks of max(InputSimdWidth, 8)
     constexpr IndexType ChunkSize       = std::max<IndexType>(InputSimdWidth, 8);
-    constexpr IndexType ChunkCount      = InputDimensions / ChunkSize;
+    constexpr IndexType NumChunks       = InputDimensions / ChunkSize;
     constexpr IndexType InputsPerChunk  = ChunkSize / InputSimdWidth;
     constexpr IndexType OutputsPerChunk = ChunkSize / 8;
 
-    const auto* inputVector = reinterpret_cast<const vec_t*>(input);
+    const auto inputVector = reinterpret_cast<const vec_uint_t*>(input);
 
-    IndexType count     = 0;
-    vec128_t  base      = vec128_zero;
-    vec128_t  increment = vec128_set_16(8);
-    for (IndexType i = 0; i < ChunkCount; ++i)
+    vec128_t base      = vec128_zero;
+    vec128_t increment = vec128_set_16(8);
+
+    IndexType count = 0;
+    for (IndexType i = 0; i < NumChunks; ++i)
     {
-        // Bitmask of nonzero values in this chunk
+        // bitmask of nonzero values in this chunk
         unsigned nnz = 0;
         for (IndexType j = 0; j < InputsPerChunk; ++j)
         {
-            const vec_t inputChunk = inputVector[i * InputsPerChunk + j];
+            vec_uint_t inputChunk = inputVector[i * InputsPerChunk + j];
             nnz |= unsigned(vec_nnz(inputChunk)) << (j * InputSimdWidth);
         }
         for (IndexType j = 0; j < OutputsPerChunk; ++j)
         {
-            unsigned index = (nnz >> (j * 8)) & 0xFF;
+            unsigned nnzMask = (nnz >> (j * 8)) & 0xFF;
             vec128_t offsets =
-              vec128_load(reinterpret_cast<const vec128_t*>(&LookupInstance.indices[index]));
+              vec128_load(reinterpret_cast<const vec128_t*>(&LookupInstance.indices[nnzMask]));
             vec128_storeu(reinterpret_cast<vec128_t*>(outNnz + count), vec128_add(base, offsets));
-            count += LookupInstance.popcounts[index];
+            count += LookupInstance.popcounts[nnzMask];
             base = vec128_add(base, increment);
         }
     }
     outCount = count;
+    #endif
 }
-    #undef vec_nnz
-    #undef vec128_zero
-    #undef vec128_set_16
-    #undef vec128_load
-    #undef vec128_storeu
-    #undef vec128_add
+
+}  // namespace
 #endif
 
 // Sparse input implementation
@@ -246,27 +261,27 @@ class AffineTransformSparseInput {
         using invec_t  = __m512i;
         using outvec_t = __m512i;
         #define vec_set_32 _mm512_set1_epi32
-        #define vec_add_dpbusd_32 Simd::m512_add_dpbusd_epi32
+        #define vec_add_dpbusd_32 SIMD::m512_add_dpbusd_epi32
     #elif defined(USE_AVX2)
         using invec_t  = __m256i;
         using outvec_t = __m256i;
         #define vec_set_32 _mm256_set1_epi32
-        #define vec_add_dpbusd_32 Simd::m256_add_dpbusd_epi32
+        #define vec_add_dpbusd_32 SIMD::m256_add_dpbusd_epi32
     #elif defined(USE_SSSE3)
         using invec_t  = __m128i;
         using outvec_t = __m128i;
         #define vec_set_32 _mm_set1_epi32
-        #define vec_add_dpbusd_32 Simd::m128_add_dpbusd_epi32
+        #define vec_add_dpbusd_32 SIMD::m128_add_dpbusd_epi32
     #elif defined(USE_NEON_DOTPROD)
         using invec_t  = int8x16_t;
         using outvec_t = int32x4_t;
         #define vec_set_32(a) vreinterpretq_s8_u32(vdupq_n_u32(a))
-        #define vec_add_dpbusd_32 Simd::dotprod_m128_add_dpbusd_epi32
+        #define vec_add_dpbusd_32 SIMD::dotprod_m128_add_dpbusd_epi32
     #elif defined(USE_NEON)
         using invec_t  = int8x16_t;
         using outvec_t = int32x4_t;
         #define vec_set_32(a) vreinterpretq_s8_u32(vdupq_n_u32(a))
-        #define vec_add_dpbusd_32 Simd::neon_m128_add_dpbusd_epi32
+        #define vec_add_dpbusd_32 SIMD::neon_m128_add_dpbusd_epi32
     #endif
 
         static constexpr IndexType OutputSimdWidth = sizeof(outvec_t) / sizeof(OutputType);
@@ -289,10 +304,10 @@ class AffineTransformSparseInput {
 
         for (IndexType j = 0; j < count; ++j)
         {
-            const auto i = nnz[j];
+            auto    i  = nnz[j];
+            invec_t in = vec_set_32(input32[i]);
 
-            const invec_t in = vec_set_32(input32[i]);
-            const auto*   col =
+            const auto* col =
               reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);
             for (IndexType k = 0; k < RegCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
