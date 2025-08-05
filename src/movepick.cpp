@@ -220,6 +220,8 @@ STAGE_SWITCH:
         extEnd = generate<ENC_CAPTURE>(extMoves, pos);
         extCur = extMoves.begin();
 
+        allExtMoves.insert(extMoves);
+
         score<ENC_CAPTURE>();
         sort_partial();
 
@@ -244,9 +246,13 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case STG_ENC_QUIET_INIT :
+        extMoves.clear();
         if (quietPick)
         {
             extEnd = generate<ENC_QUIET>(extMoves, pos);
+            extCur = extMoves.begin();
+
+            allExtMoves.insert(extMoves);
 
             score<ENC_QUIET>();
             assert(threshold < 0);
@@ -309,6 +315,8 @@ STAGE_SWITCH:
         extEnd = generate<EVA_CAPTURE>(extMoves, pos);
         extCur = extMoves.begin();
 
+        allExtMoves.insert(extMoves);
+
         score<EVA_CAPTURE>();
         sort_partial();
 
@@ -332,6 +340,9 @@ STAGE_SWITCH:
         if (quietPick)
         {
             extEnd = generate<EVA_QUIET>(extMoves, pos);
+            extCur = extMoves.begin();
+
+            allExtMoves.insert(extMoves);
 
             score<EVA_QUIET>();
             sort_partial();
@@ -373,7 +384,7 @@ bool MovePicker::can_move_king_or_pawn() const noexcept {
     // SEE negative captures shouldn't be returned in GOOD_CAPTURE stage
     assert(stage > STG_ENC_QUIET_GOOD && stage != STG_EVA_CAPTURE_INIT);
 
-    for (const Move& m : extMoves)
+    for (const Move& m : allExtMoves)
     {
         PieceType movedPieceType = type_of(pos.moved_piece(m));
         if ((movedPieceType == PAWN || movedPieceType == KING) && pos.legal(m))
