@@ -26,6 +26,21 @@ namespace DON {
 
 namespace {
 
+// Splat pawn moves for a given direction
+inline void splat_pawn_moves(ExtMoves& extMoves, Bitboard b, Direction dir) noexcept {
+    while (b)
+    {
+        Square s = pop_lsb(b);
+        extMoves.emplace_back(s - dir, s);
+    }
+}
+// Splat moves for a given square and bitboard
+inline void splat_moves(ExtMoves& extMoves, Square s, Bitboard b) noexcept {
+    while (b)
+        extMoves.emplace_back(s, pop_lsb(b));
+}
+
+// Generate promotion moves for a pawn on given square moving in given direction
 void generate_promotion_moves(ExtMoves& extMoves, Square s, Direction d) noexcept {
     assert(d == NORTH || d == SOUTH               //
            || d == NORTH_EAST || d == SOUTH_EAST  //
@@ -73,17 +88,8 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
             b2 &= target;
         }
 
-        while (b1)
-        {
-            Square s = pop_lsb(b1);
-            extMoves.emplace_back(s - Push1, s);
-        }
-
-        while (b2)
-        {
-            Square s = pop_lsb(b2);
-            extMoves.emplace_back(s - Push2, s);
-        }
+        splat_pawn_moves(extMoves, b1, Push1);
+        splat_pawn_moves(extMoves, b2, Push2);
     }
 
     // Promotions and under-promotions & Standard and en-passant captures
@@ -113,20 +119,10 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
         }
 
         b = shift(CaptL, non7Pawns) & enemies;
-
-        while (b)
-        {
-            Square s = pop_lsb(b);
-            extMoves.emplace_back(s - CaptL, s);
-        }
+        splat_pawn_moves(extMoves, b, CaptL);
 
         b = shift(CaptR, non7Pawns) & enemies;
-
-        while (b)
-        {
-            Square s = pop_lsb(b);
-            extMoves.emplace_back(s - CaptR, s);
-        }
+        splat_pawn_moves(extMoves, b, CaptR);
 
         if (is_ok(pos.ep_square()))
         {
@@ -177,8 +173,7 @@ void generate_piece_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
         if (PT != KNIGHT && (blockers & s))
             b &= line_bb(ksq, s);
 
-        while (b)
-            extMoves.emplace_back(s, pop_lsb(b));
+        splat_moves(extMoves, s, b);
     }
 }
 
