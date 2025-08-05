@@ -32,6 +32,13 @@ namespace DON {
 
 namespace {
 
+#if defined(USE_AVX512ICL)
+inline Move* write_moves(Move* moveList, std::uint32_t mask, __m512i vector) noexcept {
+    _mm512_storeu_si512(reinterpret_cast<__m512i*>(moveList),
+                        _mm512_maskz_compress_epi16(mask, vector));
+    return moveList + popcount(mask);
+}
+#endif
 
 // Splat pawn moves for a given direction
 inline void splat_pawn_moves(ExtMoves& extMoves, Bitboard b, Direction d) noexcept {
