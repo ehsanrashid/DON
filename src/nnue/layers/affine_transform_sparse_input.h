@@ -19,7 +19,6 @@
 #define NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
@@ -63,9 +62,8 @@ alignas(CACHE_LINE_SIZE) constexpr struct Lookup final {
     static constexpr std::size_t Size      = 256;
     static constexpr std::size_t IndexSize = 8;
 
-    std::array<std::array<IndexType, IndexSize>, Size> indices{};
-    std::array<std::uint8_t, Size>                     popcounts{};
-
+    IndexType    indices[Size][IndexSize]{};
+    std::uint8_t popcounts[Size]{};
     constexpr Lookup() noexcept {
         for (std::size_t i = 0; i < Size; ++i)
         {
@@ -300,7 +298,7 @@ class AffineTransformSparseInput {
         find_nnz<ChunkCount>(input32, nnz, count);
 
         const outvec_t* biasVec = reinterpret_cast<const outvec_t*>(biases);
-        outvec_t    acc[RegCount];
+        outvec_t        acc[RegCount];
         for (IndexType k = 0; k < RegCount; ++k)
             acc[k] = biasVec[k];
 
