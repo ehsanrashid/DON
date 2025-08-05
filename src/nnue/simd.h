@@ -67,7 +67,7 @@ using vec_uint_t = __m512i;
     #define vec_sub_psqt_32(a, b) _mm256_sub_epi32(a, b)
     #define vec_zero_psqt() _mm256_setzero_si256()
 
-    #ifdef USE_SSSE3
+    #if defined(USE_SSSE3)
         #define vec_nnz(a) _mm512_cmpgt_epi32_mask(a, _mm512_setzero_si512())
     #endif
 
@@ -154,7 +154,11 @@ using vec_uint_t = __m128i;
     #define vec128_storeu(a, b) _mm_storeu_si128(a, b)
     #define vec128_add(a, b) _mm_add_epi16(a, b)
 
-    #define MaxRegisterCount (Is64Bit ? 16 : 8)
+    #if defined(IS_64BIT)
+        #define MaxRegisterCount 16
+    #else
+        #define MaxRegisterCount 8
+    #endif
     #define MaxChunkSize 16
 
 #elif defined(USE_NEON)
