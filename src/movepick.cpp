@@ -382,7 +382,7 @@ STAGE_SWITCH:
 
 // Must be called after all captures and quiet moves have been generated
 bool MovePicker::can_move_king_or_pawn() const noexcept {
-    // SEE negative captures shouldn't be returned in GOOD_CAPTURE stage
+    // SEE negative captures shouldn't be returned in STG_ENC_CAPTURE_GOOD stage
     assert(stage > STG_ENC_CAPTURE_GOOD && stage != STG_EVA_CAPTURE_INIT);
 
     for (const Move& m : allExtMoves)
