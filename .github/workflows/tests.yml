@@ -396,5 +396,7 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=x86-64-avx2 build
+          chmod +x ../tests/perft.sh
           ../tests/perft.sh
+          chmod +x ../tests/reprosearch.sh
           ../tests/reprosearch.sh
