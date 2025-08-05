@@ -51,19 +51,12 @@ constexpr std::uint8_t constexpr_lsb(std::uint64_t bb) noexcept {
 
 alignas(CACHE_LINE_SIZE) constexpr struct Lookup final {
 
-    using IndexType =
-    #if defined(USE_SSE41)
-      std::uint8_t
-    #else
-      std::uint16_t
-    #endif
-      ;
-
     static constexpr std::size_t Size      = 256;
     static constexpr std::size_t IndexSize = 8;
 
-    IndexType    indices[Size][IndexSize]{};
-    std::uint8_t popcounts[Size]{};
+    std::uint16_t indices[Size][IndexSize]{};
+    std::uint8_t  popcounts[Size]{};
+
     constexpr Lookup() noexcept {
         for (std::size_t i = 0; i < Size; ++i)
         {
