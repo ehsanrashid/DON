@@ -26,9 +26,12 @@
 #include "../misc.h"
 #include "../types.h"
 #include "network.h"
-#include "nnue_feature_transformer.h"
+#include "nnue_feature_transformer.h"  // IWYU pragma: keep
+#include "simd.h"
 
 namespace DON::NNUE {
+
+using namespace SIMD;
 
 namespace {
 
@@ -208,7 +211,7 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
                                       AccumulatorState&                     accState,
                                       Cache<Dimensions>&                    cache) noexcept {
 #if defined(VECTOR)
-    using Tiling = SIMDTiling<Dimensions>;
+    using Tiling = SIMDTiling<Dimensions, PSQTBuckets>;
 #endif
 
     Square ksq = pos.king_square(Perspective);

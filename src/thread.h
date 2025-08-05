@@ -193,7 +193,7 @@ class ThreadPool final {
 
    private:
     template<typename T>
-    T accumulate(std::atomic<T> Worker::*member, T sum = T()) const noexcept {
+    T accumulate(std::atomic<T> Worker::* member, T sum = T()) const noexcept {
 
         for (auto&& th : threads)
             sum += (th->worker.get()->*member).load(std::memory_order_relaxed);

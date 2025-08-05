@@ -166,7 +166,7 @@ struct TTEntry final {
         return (GENERATION_CYCLE + gen - genData8) & GENERATION_MASK;
     }
 
-    std::int16_t worth(std::uint8_t gen) const noexcept { return depth8 - 2 * relative_age(gen); }
+    std::int16_t worth(std::uint8_t gen) const noexcept { return depth8 - relative_age(gen); }
 
    private:
     Key16        key16;

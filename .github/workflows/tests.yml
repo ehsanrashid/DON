@@ -29,24 +29,25 @@ jobs:
             shell: bash
           - name: Android NDK aarch64
             os: ubuntu-22.04
-            compiler: aarch64-linux-android21-clang++
+            compiler: aarch64-linux-android29-clang++
             comp: ndk
             run_armv8_tests: true
             shell: bash
           - name: Android NDK arm
             os: ubuntu-22.04
-            compiler: armv7a-linux-androideabi21-clang++
+            compiler: armv7a-linux-androideabi29-clang++
             comp: ndk
             run_armv7_tests: true
             shell: bash
-          - name: Linux GCC riscv64
-            os: ubuntu-22.04
-            compiler: g++
-            comp: gcc
-            run_riscv64_tests: true
-            base_image: "riscv64/alpine:edge"
-            platform: linux/riscv64
-            shell: bash
+          # Currently segfaults in the CI unrelated to a DON change.
+          # - name: Linux GCC riscv64
+          #   os: ubuntu-22.04
+          #   compiler: g++
+          #   comp: gcc
+          #   run_riscv64_tests: true
+          #   base_image: "riscv64/alpine:edge"
+          #   platform: linux/riscv64
+          #   shell: bash
           - name: Linux GCC ppc64
             os: ubuntu-22.04
             compiler: g++
@@ -98,6 +99,14 @@ jobs:
             msys_sys: clang64
             msys_env: clang-x86_64-clang
             shell: msys2 {0}
+          - name: Windows 11 Mingw-w64 Clang arm64
+            os: windows-11-arm
+            compiler: clang++
+            comp: clang
+            run_armv8_tests: true
+            msys_sys: clangarm64
+            msys_env: clang-aarch64-clang
+            shell: msys2 {0}
     defaults:
       run:
         working-directory: src
@@ -118,7 +127,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           if [ $COMP == ndk ]; then
-            NDKV="21.4.7075529"
+            NDKV="27.2.12479018"
             ANDROID_ROOT=/usr/local/lib/android
             ANDROID_SDK_ROOT=$ANDROID_ROOT/sdk
             SDKMANAGER=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager
@@ -139,7 +148,7 @@ jobs:
       - name: Build Docker container
         if: matrix.config.base_image
         run: |
-          docker buildx build --platform ${{ matrix.config.platform }} --load -t sf_builder - << EOF
+          docker buildx build --platform ${{ matrix.config.platform }} --load -t don_builder - << EOF
           FROM ${{ matrix.config.base_image }}
           WORKDIR /app
           RUN apk update && apk add make g++
@@ -176,7 +185,7 @@ jobs:
             $COMPCXX -v
           else
             echo "$COMPCXX -v" > script.sh
-            docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app sf_builder
+            docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
           fi
 
       - name: Test help target
@@ -187,53 +196,40 @@ jobs:
 
       # x86-32 tests
 
-      - name: Change mode
-        run: |
-          chmod +x ../tests/signature.sh
-          chmod +x ../tests/perft.sh
-          chmod +x ../tests/reprosearch.sh
-
       - name: Test debug x86-32 build
         if: matrix.config.run_32bit_tests
         run: |
           export CXXFLAGS="-Werror -D_GLIBCXX_DEBUG"
           make clean
-          make -j4 build ARCH=x86-32 optimize=no debug=yes
+          make -j4 ARCH=x86-32 optimize=no debug=yes build
           ../tests/signature.sh $benchref
 
       - name: Test x86-32 build
         if: matrix.config.run_32bit_tests
         run: |
           make clean
-          make -j4 build ARCH=x86-32
+          make -j4 ARCH=x86-32 build
           ../tests/signature.sh $benchref
 
       - name: Test x86-32-sse41-popcnt build
         if: matrix.config.run_32bit_tests
         run: |
           make clean
-          make -j4 build ARCH=x86-32-sse41-popcnt
+          make -j4 ARCH=x86-32-sse41-popcnt build
           ../tests/signature.sh $benchref
 
       - name: Test x86-32-sse2 build
         if: matrix.config.run_32bit_tests
         run: |
           make clean
-          make -j4 build ARCH=x86-32-sse2
-          ../tests/signature.sh $benchref
-
-      - name: Test x86-32-popcnt build
-        if: matrix.config.run_32bit_tests
-        run: |
-          make clean
-          make -j4 build ARCH=x86-32-popcnt
+          make -j4 ARCH=x86-32-sse2 build
           ../tests/signature.sh $benchref
 
       - name: Test general-32 build
         if: matrix.config.run_32bit_tests
         run: |
           make clean
-          make -j4 build ARCH=general-32
+          make -j4 ARCH=general-32 build
           ../tests/signature.sh $benchref
 
       # x86-64 tests
@@ -243,21 +239,21 @@ jobs:
         run: |
           export CXXFLAGS="-Werror -D_GLIBCXX_DEBUG"
           make clean
-          make -j4 build ARCH=x86-64-avx2 optimize=no debug=yes
+          make -j4 ARCH=x86-64-avx2 optimize=no debug=yes build
           ../tests/signature.sh $benchref
 
       - name: Test x86-64-bmi2 build
         if: matrix.config.run_64bit_tests
         run: |
           make clean
-          make -j4 build ARCH=x86-64-bmi2
+          make -j4 ARCH=x86-64-bmi2 build
           ../tests/signature.sh $benchref
 
       - name: Test x86-64-avx2 build
         if: matrix.config.run_64bit_tests
         run: |
           make clean
-          make -j4 build ARCH=x86-64-avx2
+          make -j4 ARCH=x86-64-avx2 build
           ../tests/signature.sh $benchref
 
       # Test a deprecated arch
@@ -265,49 +261,49 @@ jobs:
         if: matrix.config.run_64bit_tests
         run: |
           make clean
-          make -j4 build ARCH=x86-64-modern
+          make -j4 ARCH=x86-64-modern build
           ../tests/signature.sh $benchref
 
       - name: Test x86-64-sse41-popcnt build
         if: matrix.config.run_64bit_tests
         run: |
           make clean
-          make -j4 build ARCH=x86-64-sse41-popcnt
+          make -j4 ARCH=x86-64-sse41-popcnt build
           ../tests/signature.sh $benchref
 
       - name: Test x86-64-ssse3 build
         if: matrix.config.run_64bit_tests
         run: |
           make clean
-          make -j4 build ARCH=x86-64-ssse3
+          make -j4 ARCH=x86-64-ssse3 build
           ../tests/signature.sh $benchref
 
-      - name: Test x86-64-ssse3-popcnt build
+      - name: Test x86-64-sse3-popcnt build
         if: matrix.config.run_64bit_tests
         run: |
           make clean
-          make -j4 build ARCH=x86-64-ssse3-popcnt
+          make -j4 ARCH=x86-64-sse3-popcnt build
           ../tests/signature.sh $benchref
 
       - name: Test x86-64 build
         if: matrix.config.run_64bit_tests
         run: |
           make clean
-          make -j4 build ARCH=x86-64
+          make -j4 ARCH=x86-64 build
           ../tests/signature.sh $benchref
 
       - name: Test general-64 build
         if: matrix.config.run_64bit_tests
         run: |
           make clean
-          make -j4 build ARCH=general-64
+          make -j4 ARCH=general-64 build
           ../tests/signature.sh $benchref
 
       - name: Test apple-silicon build
         if: matrix.config.run_m1_tests
         run: |
           make clean
-          make -j4 build ARCH=apple-silicon
+          make -j4 ARCH=apple-silicon build
           ../tests/signature.sh $benchref
 
       # armv8 tests
@@ -315,19 +311,23 @@ jobs:
       - name: Test armv8 build
         if: matrix.config.run_armv8_tests
         run: |
-          export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
-          export LDFLAGS="-static -Wno-unused-command-line-argument"
+          if [ $COMP == ndk ]; then
+            export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
+            export LDFLAGS="-static -Wno-unused-command-line-argument"
+          fi
           make clean
-          make -j4 build ARCH=armv8
+          make -j4 ARCH=armv8 build
           ../tests/signature.sh $benchref
 
       - name: Test armv8-dotprod build
         if: matrix.config.run_armv8_tests
         run: |
-          export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
-          export LDFLAGS="-static -Wno-unused-command-line-argument"
+          if [ $COMP == ndk ]; then
+            export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
+            export LDFLAGS="-static -Wno-unused-command-line-argument"
+          fi
           make clean
-          make -j4 build ARCH=armv8-dotprod
+          make -j4 ARCH=armv8-dotprod build
           ../tests/signature.sh $benchref
 
       # armv7 tests
@@ -338,7 +338,7 @@ jobs:
           export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
           export LDFLAGS="-static -Wno-unused-command-line-argument"
           make clean
-          make -j4 build ARCH=armv7
+          make -j4 ARCH=armv7 build
           ../tests/signature.sh $benchref
 
       - name: Test armv7-neon build
@@ -347,7 +347,7 @@ jobs:
           export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
           export LDFLAGS="-static -Wno-unused-command-line-argument"
           make clean
-          make -j4 build ARCH=armv7-neon
+          make -j4 ARCH=armv7-neon build
           ../tests/signature.sh $benchref
 
       # riscv64 tests
@@ -355,8 +355,8 @@ jobs:
       - name: Test riscv64 build
         if: matrix.config.run_riscv64_tests
         run: |
-          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 build ARCH=riscv64" > script.sh
-          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app sf_builder
+          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=riscv64 build" > script.sh
+          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
           ../tests/signature.sh $benchref
 
       # ppc64 tests
@@ -364,8 +364,8 @@ jobs:
       - name: Test ppc64 build
         if: matrix.config.run_ppc64_tests
         run: |
-          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 build ARCH=ppc-64" > script.sh
-          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app sf_builder
+          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=ppc-64 build" > script.sh
+          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
           ../tests/signature.sh $benchref
 
       # Other tests
@@ -374,6 +374,6 @@ jobs:
         if: matrix.config.run_64bit_tests
         run: |
           make clean
-          make -j4 build ARCH=x86-64-avx2
+          make -j4 ARCH=x86-64-avx2 build
           ../tests/perft.sh
           ../tests/reprosearch.sh

@@ -81,7 +81,7 @@ constexpr std::size_t PAWN_HISTORY_SIZE  = 0x400u;
 static_assert(exactly_one(PAWN_HISTORY_SIZE), "PAWN_HISTORY_SIZE has to be a power of 2");
 constexpr std::size_t pawn_index(Key pawnKey) noexcept { return pawnKey & (PAWN_HISTORY_SIZE - 1); }
 
-constexpr std::uint16_t LOW_PLY_SIZE = 4u;
+constexpr std::uint16_t LOW_PLY_SIZE = 5u;
 
 enum HistoryType : std::uint8_t {
     HCapture,       // By move's [piece][dst][captured piece type]
