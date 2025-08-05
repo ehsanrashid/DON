@@ -36,6 +36,10 @@ namespace {
 
 // Splat pawn moves for a given direction
 inline void splat_pawn_moves(ExtMoves& extMoves, Bitboard b, Direction d) noexcept {
+    assert(d == NORTH || d == SOUTH || d == NORTH_2 || d == SOUTH_2  //
+           || d == NORTH_EAST || d == SOUTH_EAST                     //
+           || d == NORTH_WEST || d == SOUTH_WEST);
+
     while (b)
     {
         Square s = pop_lsb(b);
@@ -67,6 +71,10 @@ inline void splat_moves(ExtMoves& extMoves, Square s, Bitboard b) noexcept {
 
 // Splat pawn moves for a given direction
 inline void splat_pawn_moves(ExtMoves& extMoves, Bitboard b, Direction d) noexcept {
+    assert(d == NORTH || d == SOUTH || d == NORTH_2 || d == SOUTH_2  //
+           || d == NORTH_EAST || d == SOUTH_EAST                     //
+           || d == NORTH_WEST || d == SOUTH_WEST);
+
     while (b)
     {
         Square s = pop_lsb(b);
