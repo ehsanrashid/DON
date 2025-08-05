@@ -217,8 +217,8 @@ STAGE_SWITCH:
 
     case STG_ENC_CAPTURE_INIT :
     case STG_PROBCUT_INIT :
-        extEnd = generate<ENC_CAPTURE>(extMoves, pos);
         extCur = extMoves.begin();
+        extEnd = generate<ENC_CAPTURE>(extMoves, pos);
 
         score<ENC_CAPTURE>();
         sort_partial();
@@ -246,6 +246,7 @@ STAGE_SWITCH:
     case STG_ENC_QUIET_INIT :
         if (quietPick)
         {
+            extCur = extEnd;
             extEnd = generate<ENC_QUIET>(extMoves, pos);
 
             score<ENC_QUIET>();
@@ -306,8 +307,8 @@ STAGE_SWITCH:
         return Move::None;
 
     case STG_EVA_CAPTURE_INIT :
-        extEnd = generate<EVA_CAPTURE>(extMoves, pos);
         extCur = extMoves.begin();
+        extEnd = generate<EVA_CAPTURE>(extMoves, pos);
 
         score<EVA_CAPTURE>();
         sort_partial();
@@ -330,6 +331,7 @@ STAGE_SWITCH:
     case STG_EVA_QUIET_INIT :
         if (quietPick)
         {
+            extCur = extEnd;
             extEnd = generate<EVA_QUIET>(extMoves, pos);
 
             score<EVA_QUIET>();
