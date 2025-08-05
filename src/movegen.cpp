@@ -22,6 +22,12 @@
 #include "bitboard.h"
 #include "position.h"
 
+#if defined(USE_AVX512ICL)
+    #include <array>
+    #include <algorithm>
+    #include <immintrin.h>
+#endif
+
 namespace DON {
 
 namespace {
