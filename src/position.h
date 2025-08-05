@@ -542,7 +542,7 @@ template<PieceType PT>
 inline Bitboard Position::attacks_by(Color c) const noexcept {
     if constexpr (PT == PAWN)
     {
-        return pawn_attacks_bb(pieces(c, PAWN), c);
+        return attacks_pawn_bb(pieces(c, PAWN), c);
     }
     else
     {

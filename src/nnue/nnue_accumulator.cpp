@@ -502,17 +502,13 @@ void AccumulatorStack::backward_update_incremental(
 }
 
 // Explicit template instantiations
-template  //
-  void
-  AccumulatorStack::evaluate<BigTransformedFeatureDimensions>(
-    const Position&                                            pos,
-    const FeatureTransformer<BigTransformedFeatureDimensions>& featureTransformer,
-    Cache<BigTransformedFeatureDimensions>&                    cache) noexcept;
-template  //
-  void
-  AccumulatorStack::evaluate<SmallTransformedFeatureDimensions>(
-    const Position&                                              pos,
-    const FeatureTransformer<SmallTransformedFeatureDimensions>& featureTransformer,
-    Cache<SmallTransformedFeatureDimensions>&                    cache) noexcept;
+template void AccumulatorStack::evaluate<BigTransformedFeatureDimensions>(
+  const Position&                                            pos,
+  const FeatureTransformer<BigTransformedFeatureDimensions>& featureTransformer,
+  Cache<BigTransformedFeatureDimensions>&                    cache) noexcept;
+template void AccumulatorStack::evaluate<SmallTransformedFeatureDimensions>(
+  const Position&                                              pos,
+  const FeatureTransformer<SmallTransformedFeatureDimensions>& featureTransformer,
+  Cache<SmallTransformedFeatureDimensions>&                    cache) noexcept;
 
 }  // namespace DON::NNUE
