@@ -113,6 +113,8 @@ struct ExtMove final: public Move {
    public:
     using Move::Move;
 
+    void operator=(Move m) { move = m.raw(); }
+
     friend bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept {  //
         return em1.value < em2.value;
     }
@@ -126,80 +128,11 @@ struct ExtMove final: public Move {
         return !(em1 < em2);
     }
 
+    // Inhibit unwanted implicit conversions to Move
+    // with an ambiguity that yields to a compile error.
+    operator float() const = delete;
+
     int value;
-};
-
-class ExtMoves final {
-   public:
-    using Vector   = std::vector<ExtMove>;
-    using Itr      = Vector::iterator;
-    using ConstItr = Vector::const_iterator;
-
-    ExtMoves() noexcept = default;
-
-    auto begin() const noexcept { return extMoves.begin(); }
-    auto end() const noexcept { return extMoves.end(); }
-    auto begin() noexcept { return extMoves.begin(); }
-    auto end() noexcept { return extMoves.end(); }
-
-    auto rbegin() noexcept { return extMoves.rbegin(); }
-    auto rend() noexcept { return extMoves.rend(); }
-
-    auto& front() noexcept { return extMoves.front(); }
-    auto& back() noexcept { return extMoves.back(); }
-
-    auto size() const noexcept { return extMoves.size(); }
-    auto empty() const noexcept { return extMoves.empty(); }
-
-    template<typename... Args>
-    auto& emplace_back(Args&&... args) noexcept {
-        return extMoves.emplace_back(std::forward<Args>(args)...);
-    }
-    template<typename... Args>
-    auto& emplace(ConstItr where, Args&&... args) noexcept {
-        return extMoves.emplace(where, std::forward<Args>(args)...);
-    }
-
-    void push_back(const ExtMove& em) noexcept { extMoves.push_back(em); }
-    void push_back(ExtMove&& em) noexcept { extMoves.push_back(std::move(em)); }
-
-    void pop_back() noexcept { extMoves.pop_back(); }
-
-    void clear() noexcept { extMoves.clear(); }
-
-    void resize(std::size_t newSize) noexcept { extMoves.resize(newSize); }
-    void reserve(std::size_t newCapacity) noexcept { extMoves.reserve(newCapacity); }
-
-    auto find(const Move& m) const noexcept { return std::find(begin(), end(), m); }
-
-    bool contains(const Move& m) const noexcept { return find(m) != end(); }
-
-    auto remove(const Move& m) noexcept { return std::remove(begin(), end(), m); }
-
-    template<typename Predicate>
-    auto remove_if(Predicate pred) noexcept {
-        return std::remove_if(begin(), end(), pred);
-    }
-
-    auto erase(ConstItr where) noexcept { return extMoves.erase(where); }
-    auto erase(ConstItr fst, ConstItr lst) noexcept { return extMoves.erase(fst, lst); }
-    bool erase(const Move& m) noexcept {
-        auto itr = find(m);
-        if (itr != end())
-        {
-            erase(itr);
-            return true;
-        }
-        return false;
-    }
-
-    void insert(ExtMoves& em) noexcept { extMoves.insert(extMoves.end(), em.begin(), em.end()); }
-
-    auto& operator[](std::size_t idx) const noexcept { return extMoves[idx]; }
-    auto& operator[](std::size_t idx) noexcept { return extMoves[idx]; }
-
-   private:
-    Vector extMoves;
 };
 
 enum GenType : std::uint8_t {
@@ -213,26 +146,25 @@ enum GenType : std::uint8_t {
 };
 
 template<GenType GT, bool Any = false>
-ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos) noexcept;
+Move* generate(const Position& pos, Move* moves) noexcept;
 
 // MoveList struct wraps the generate() function and returns a convenient list of moves.
 // Using MoveList is sometimes preferable to directly calling the lower level generate() function.
 template<GenType GT, bool Any = false>
 struct MoveList final {
    public:
-    explicit MoveList(const Position& pos) noexcept {  //
-        extEnd = generate<GT, Any>(extMoves, pos);
-    }
+    explicit MoveList(const Position& pos) noexcept :
+        endCur(generate<GT>(pos, moves)) {}
     MoveList() noexcept                           = delete;
     MoveList(MoveList const&) noexcept            = delete;
     MoveList(MoveList&&) noexcept                 = delete;
     MoveList& operator=(const MoveList&) noexcept = delete;
     MoveList& operator=(MoveList&&) noexcept      = delete;
 
-    auto begin() const noexcept { return extMoves.begin(); }
-    auto end() const noexcept { return ExtMoves::ConstItr(extEnd); }
-    auto begin() noexcept { return extMoves.begin(); }
-    auto end() noexcept { return extEnd; }
+    const Move* begin() const noexcept { return moves; }
+    const Move* end() const noexcept { return endCur; }
+    Move*       begin() noexcept { return moves; }
+    Move*       end() noexcept { return endCur; }
 
     std::size_t size() const noexcept { return end() - begin(); }
     bool        empty() const noexcept { return end() == begin(); }
@@ -241,8 +173,8 @@ struct MoveList final {
     bool contains(const Move& m) const noexcept { return find(m) != end(); }
 
    private:
-    ExtMoves      extMoves;
-    ExtMoves::Itr extEnd;
+    Move  moves[MAX_MOVES];
+    Move* endCur;
 };
 
 }  // namespace DON

@@ -41,28 +41,38 @@ inline Move* write_moves(Move* moveList, std::uint32_t mask, __m512i vector) noe
 #endif
 
 // Splat pawn moves for a given direction
-inline void splat_pawn_moves(ExtMoves& extMoves, Bitboard b, Direction d) noexcept {
+inline Move* splat_pawn_moves(Move* moves, Bitboard b, Direction d) noexcept {
     assert(d == NORTH || d == SOUTH || d == NORTH_2 || d == SOUTH_2  //
            || d == NORTH_EAST || d == SOUTH_EAST                     //
            || d == NORTH_WEST || d == SOUTH_WEST);
 
 #if defined(USE_AVX512ICL)
-    while (b)
-    {
-        Square s = pop_lsb(b);
-        extMoves.emplace_back(s - d, s);
-    }
+    alignas(64) static constexpr auto SolateTable = [] {
+        std::array<Move, 64> table{};
+        for (int8_t i = 0; i < 64; ++i)
+        {
+            Square s{std::clamp<int8_t>(i - offset, 0, 63)};
+            table[i] = {Move(s, Square{i})};
+        }
+        return table;
+    }();
+
+    const auto* table = reinterpret_cast<const __m512i*>(SolateTable.data());
+
+    moves = write_moves(moves, static_cast<uint32_t>(b >> 0), _mm512_load_si512(table + 0));
+    moves = write_moves(moves, static_cast<uint32_t>(b >> 32), _mm512_load_si512(table + 1));
 #else
     while (b)
     {
         Square s = pop_lsb(b);
-        extMoves.emplace_back(s - d, s);
+        *moves++ = Move(s - d, s);
     }
 #endif
+    return moves;
 }
 
 // Splat promotion moves for a given direction
-inline void splat_promotion_moves(ExtMoves& extMoves, Bitboard b, Direction d) noexcept {
+inline Move* splat_promotion_moves(Move* moves, Bitboard b, Direction d) noexcept {
     assert(d == NORTH || d == SOUTH               //
            || d == NORTH_EAST || d == SOUTH_EAST  //
            || d == NORTH_WEST || d == SOUTH_WEST);
@@ -72,31 +82,47 @@ inline void splat_promotion_moves(ExtMoves& extMoves, Bitboard b, Direction d) n
     {
         Square s = pop_lsb(b);
         for (PieceType promo : {QUEEN, KNIGHT, ROOK, BISHOP})
-            extMoves.emplace_back(s - d, s, promo);
+            *moves++ = Move(s - d, s, promo);
     }
 #else
     while (b)
     {
         Square s = pop_lsb(b);
         for (PieceType promo : {QUEEN, KNIGHT, ROOK, BISHOP})
-            extMoves.emplace_back(s - d, s, promo);
+            *moves++ = Move(s - d, s, promo);
     }
 #endif
+    return moves;
 }
 
 // Splat moves for a given square and bitboard
-inline void splat_moves(ExtMoves& extMoves, Square s, Bitboard b) noexcept {
+inline Move* splat_moves(Move* moves, Square s, Bitboard b) noexcept {
+
 #if defined(USE_AVX512ICL)
-    while (b)
-        extMoves.emplace_back(s, pop_lsb(b));
+    alignas(64) static constexpr auto SolateTable = [] {
+        std::array<Move, 64> table{};
+        for (int8_t i = 0; i < 64; ++i)
+            table[i] = {Move(SQUARE_ZERO, Square{i})};
+        return table;
+    }();
+
+    __m512i sVec = _mm512_set1_epi16(Move(s, SQUARE_ZERO).raw());
+
+    const auto* table = reinterpret_cast<const __m512i*>(SolateTable.data());
+
+    moves = write_moves(moves, static_cast<uint32_t>(b >> 0),
+                        _mm512_or_si512(_mm512_load_si512(table + 0), sVec));
+    moves = write_moves(moves, static_cast<uint32_t>(b >> 32),
+                        _mm512_or_si512(_mm512_load_si512(table + 1), sVec));
 #else
     while (b)
-        extMoves.emplace_back(s, pop_lsb(b));
+        *moves++ = Move(s, pop_lsb(b));
 #endif
+    return moves;
 }
 
 template<GenType GT>
-void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard target) noexcept {
+Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) noexcept {
     assert(!pos.checkers() || !more_than_one(pos.checkers()));
 
     constexpr bool Evasion = GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET;
@@ -133,8 +159,8 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
             b2 &= target;
         }
 
-        splat_pawn_moves(extMoves, b1, Push1);
-        splat_pawn_moves(extMoves, b2, Push2);
+        moves = splat_pawn_moves(moves, b1, Push1);
+        moves = splat_pawn_moves(moves, b2, Push2);
     }
 
     // Promotions and under-promotions & Standard and en-passant captures
@@ -148,20 +174,20 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
             // Consider only blocking and capture squares
             if constexpr (Evasion)
                 b &= between_bb(pos.king_square(ac), lsb(pos.checkers()));
-            splat_promotion_moves(extMoves, b, Push1);
+            moves = splat_promotion_moves(moves, b, Push1);
 
-            b = shift(CaptL, on7Pawns) & enemies;
-            splat_promotion_moves(extMoves, b, CaptL);
+            b     = shift(CaptL, on7Pawns) & enemies;
+            moves = splat_promotion_moves(moves, b, CaptL);
 
-            b = shift(CaptR, on7Pawns) & enemies;
-            splat_promotion_moves(extMoves, b, CaptR);
+            b     = shift(CaptR, on7Pawns) & enemies;
+            moves = splat_promotion_moves(moves, b, CaptR);
         }
 
-        b = shift(CaptL, non7Pawns) & enemies;
-        splat_pawn_moves(extMoves, b, CaptL);
+        b     = shift(CaptL, non7Pawns) & enemies;
+        moves = splat_pawn_moves(moves, b, CaptL);
 
-        b = shift(CaptR, non7Pawns) & enemies;
-        splat_pawn_moves(extMoves, b, CaptR);
+        b     = shift(CaptR, non7Pawns) & enemies;
+        moves = splat_pawn_moves(moves, b, CaptR);
 
         if (is_ok(pos.ep_square()))
         {
@@ -184,13 +210,14 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
             assert(b);
 
             while (b)
-                extMoves.emplace_back(EN_PASSANT, pop_lsb(b), pos.ep_square());
+                *moves++ = Move(EN_PASSANT, pop_lsb(b), pos.ep_square());
         }
     }
+    return moves;
 }
 
 template<PieceType PT>
-void generate_piece_moves(ExtMoves& extMoves, const Position& pos, Bitboard target) noexcept {
+Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) noexcept {
     static_assert(PT == KNIGHT || PT == BISHOP || PT == ROOK || PT == QUEEN,
                   "Unsupported piece type in generate_piece_moves()");
     assert(!pos.checkers() || !more_than_one(pos.checkers()));
@@ -212,13 +239,14 @@ void generate_piece_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
         if (PT != KNIGHT && (blockers & s))
             b &= line_bb(ksq, s);
 
-        splat_moves(extMoves, s, b);
+        moves = splat_moves(moves, s, b);
     }
+    return moves;
 }
 
 // clang-format off
 template<GenType GT, bool Any>
-void generate_king_moves(ExtMoves& extMoves, const Position& pos, Bitboard target) noexcept {
+Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noexcept {
     assert(popcount(pos.checkers()) <= 2);
 
     constexpr bool Castle = GT == ENCOUNTER || GT == ENC_QUIET;
@@ -244,8 +272,8 @@ void generate_king_moves(ExtMoves& extMoves, const Position& pos, Bitboard targe
               || ((pos.pieces(~ac, QUEEN, ROOK  ) & attacks_bb<ROOK  >(s))
                && (pos.pieces(~ac, QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupied)))))
             {
-                extMoves.emplace_back(ksq, s);
-                if constexpr (Any) return;
+                *moves++ = Move(ksq, s);
+                if constexpr (Any) return moves;
             }
         }
     }
@@ -259,14 +287,15 @@ void generate_king_moves(ExtMoves& extMoves, const Position& pos, Bitboard targe
                 {
                     assert(is_ok(pos.castling_rook_square(cr))
                            && (pos.pieces(ac, ROOK) & pos.castling_rook_square(cr)));
-                    extMoves.emplace_back(CASTLING, ksq, pos.castling_rook_square(cr));
+                    *moves++ = Move(CASTLING, ksq, pos.castling_rook_square(cr));
                 }
     }
+   return moves;
 }
 // clang-format on
 
 template<GenType GT, bool Any>
-void generate_moves(ExtMoves& extMoves, const Position& pos) noexcept {
+Move* generate_moves(const Position& pos, Move* moves) noexcept {
     static_assert(GT == ENCOUNTER || GT == ENC_CAPTURE || GT == ENC_QUIET  //
                     || GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET,
                   "Unsupported generate type in generate_moves()");
@@ -289,19 +318,24 @@ void generate_moves(ExtMoves& extMoves, const Position& pos) noexcept {
         case EVA_QUIET :   target = between_ex_bb(pos.king_square(ac), lsb(pos.checkers())); break;
         }
 
-        generate_pawns_moves<GT>    (extMoves, pos, target);
-        if (Any && ((extMoves.size() > 0 && pos.legal(extMoves[0]))
-                 || (extMoves.size() > 1 && pos.legal(extMoves[1]))
-                 || (extMoves.size() > 2 && pos.legal(extMoves[2])))) return;
-        [[maybe_unused]] auto extEnd = extMoves.end();
-        generate_piece_moves<KNIGHT>(extMoves, pos, target);
-        if (Any && extEnd != extMoves.end()) return;
-        generate_piece_moves<BISHOP>(extMoves, pos, target);
-        if (Any && extEnd != extMoves.end()) return;
-        generate_piece_moves<ROOK>  (extMoves, pos, target);
-        if (Any && extEnd != extMoves.end()) return;
-        generate_piece_moves<QUEEN> (extMoves, pos, target);
-        if (Any && extEnd != extMoves.end()) return;
+        [[maybe_unused]] auto last = moves;
+
+        moves = generate_pawns_moves<GT>    (pos, moves, target);
+        if (Any && ((moves - last > 0 && pos.legal(moves[0]))
+                 || (moves - last > 1 && pos.legal(moves[1]))
+                 || (moves - last > 2 && pos.legal(moves[2])))) return moves;
+        last = moves;
+        moves = generate_piece_moves<KNIGHT>(pos, moves, target);
+        if (Any && moves > last) return moves;
+        last = moves;
+        moves = generate_piece_moves<BISHOP>(pos, moves, target);
+        if (Any && moves > last) return moves;
+        last = moves;
+        moves = generate_piece_moves<ROOK>  (pos, moves,  target);
+        if (Any && moves > last) return moves;
+        last = moves;
+        moves = generate_piece_moves<QUEEN> (pos, moves,  target);
+        if (Any && moves > last) return moves;
     }
 
     if constexpr (Evasion)
@@ -315,12 +349,13 @@ void generate_moves(ExtMoves& extMoves, const Position& pos) noexcept {
     }
     // clang-format on
 
-    generate_king_moves<GT, Any>(extMoves, pos, target);
+    moves = generate_king_moves<GT, Any>(pos, moves, target);
+
+    return moves;
 }
 
 }  // namespace
 
-// clang-format off
 
 // <ENCOUNTER  > Generates all pseudo-legal captures and non-captures moves
 // <ENC_CAPTURE> Generates all pseudo-legal captures and promotions moves
@@ -329,68 +364,69 @@ void generate_moves(ExtMoves& extMoves, const Position& pos) noexcept {
 // <EVA_CAPTURE> Generates all pseudo-legal check evasions captures and promotions moves
 // <EVA_QUIET  > Generates all pseudo-legal check evasions non-captures moves
 template<GenType GT, bool Any>
-ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos) noexcept {
+Move* generate(const Position& pos, Move* moves) noexcept {
     static_assert(GT == ENCOUNTER || GT == ENC_CAPTURE || GT == ENC_QUIET  //
                     || GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET,
                   "Unsupported generate type in generate()");
 
     assert((GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET) == bool(pos.checkers()));
 
-    if constexpr (!Any)
-        extMoves.reserve(extMoves.size() + 24                                                             //
-                            + 12 * (GT == ENCOUNTER) +  4 * (GT == ENC_CAPTURE) +  8 * (GT == ENC_QUIET)  //
-                            -  8 * (GT == EVASION)   - 16 * (GT == EVA_CAPTURE) - 12 * (GT == EVA_QUIET));
-    generate_moves<GT, Any>(extMoves, pos);
-    return extMoves.end();
+    moves = generate_moves<GT, Any>(pos, moves);
+
+    return moves;
 }
 
 // Explicit template instantiations
-template ExtMoves::Itr generate<ENCOUNTER  , false>(ExtMoves& extMoves, const Position& pos) noexcept;
-template ExtMoves::Itr generate<ENCOUNTER  , true >(ExtMoves& extMoves, const Position& pos) noexcept;
-template ExtMoves::Itr generate<ENC_CAPTURE, false>(ExtMoves& extMoves, const Position& pos) noexcept;
-//template ExtMoves::Itr generate<ENC_CAPTURE, true >(ExtMoves& extMoves, const Position& pos) noexcept;
-template ExtMoves::Itr generate<ENC_QUIET  , false>(ExtMoves& extMoves, const Position& pos) noexcept;
-//template ExtMoves::Itr generate<ENC_QUIET  , true >(ExtMoves& extMoves, const Position& pos) noexcept;
-template ExtMoves::Itr generate<EVASION    , false>(ExtMoves& extMoves, const Position& pos) noexcept;
-template ExtMoves::Itr generate<EVASION    , true >(ExtMoves& extMoves, const Position& pos) noexcept;
-template ExtMoves::Itr generate<EVA_CAPTURE, false>(ExtMoves& extMoves, const Position& pos) noexcept;
-//template ExtMoves::Itr generate<EVA_CAPTURE, true >(ExtMoves& extMoves, const Position& pos) noexcept;
-template ExtMoves::Itr generate<EVA_QUIET  , false>(ExtMoves& extMoves, const Position& pos) noexcept;
-//template ExtMoves::Itr generate<EVA_QUIET  , true >(ExtMoves& extMoves, const Position& pos) noexcept;
-
-// clang-format on
+template Move* generate<ENCOUNTER, false>(const Position& pos, Move* moves) noexcept;
+template Move* generate<ENCOUNTER, true>(const Position& pos, Move* moves) noexcept;
+template Move* generate<ENC_CAPTURE, false>(const Position& pos, Move* moves) noexcept;
+//template Move* generate<ENC_CAPTURE, true>(const Position& pos, Move* moves) noexcept;
+template Move* generate<ENC_QUIET, false>(const Position& pos, Move* moves) noexcept;
+//template Move* generate<ENC_QUIET, true>(const Position& pos, Move* moves) noexcept;
+template Move* generate<EVASION, false>(const Position& pos, Move* moves) noexcept;
+template Move* generate<EVASION, true>(const Position& pos, Move* moves) noexcept;
+template Move* generate<EVA_CAPTURE, false>(const Position& pos, Move* moves) noexcept;
+//template Move* generate<EVA_CAPTURE, true >(const Position& pos, Move* moves) noexcept;
+template Move* generate<EVA_QUIET, false>(const Position& pos, Move* moves) noexcept;
+//template Move* generate<EVA_QUIET, true>(const Position& pos, Move* moves) noexcept;
 
 namespace {
 
 template<bool Any>
-ExtMoves::Itr generate_legal(ExtMoves& extMoves, const Position& pos) noexcept {
-    pos.checkers()  //
-      ? generate<EVASION, Any>(extMoves, pos)
-      : generate<ENCOUNTER, Any>(extMoves, pos);
+Move* generate_legal(const Position& pos, Move* moves) noexcept {
+
+    Move* cur = moves;
+
+    moves = (pos.checkers()  //
+               ? generate<EVASION, Any>(pos, moves)
+               : generate<ENCOUNTER, Any>(pos, moves));
     // Filter legal moves
-    return extMoves.remove_if([&pos](const Move& m) noexcept {
-        assert(pos.pseudo_legal(m));
-        return ((type_of(pos.piece_on(m.org_sq())) == PAWN
-                 && (pos.blockers(pos.active_color()) & m.org_sq()))
-                || m.type_of() == CASTLING)
-            && !pos.legal(m);
-    });
+    while (cur != moves)
+        if (((type_of(pos.piece_on(cur->org_sq())) == PAWN
+              && (pos.blockers(pos.active_color()) & cur->org_sq()))
+             || cur->type_of() == CASTLING)
+            && !pos.legal(*cur))
+            *cur = *(--moves);
+        else
+            ++cur;
+
+    return moves;
 }
 
 // Explicit template instantiations
-template ExtMoves::Itr generate_legal<false>(ExtMoves& extMoves, const Position& pos) noexcept;
-template ExtMoves::Itr generate_legal<true>(ExtMoves& extMoves, const Position& pos) noexcept;
+template Move* generate_legal<false>(const Position& pos, Move* moves) noexcept;
+template Move* generate_legal<true>(const Position& pos, Move* moves) noexcept;
 
 }  // namespace
 
 // <LEGAL> Generates all legal moves
 template<>
-ExtMoves::Itr generate<LEGAL, false>(ExtMoves& extMoves, const Position& pos) noexcept {
-    return generate_legal<false>(extMoves, pos);
+Move* generate<LEGAL, false>(const Position& pos, Move* moves) noexcept {
+    return generate_legal<false>(pos, moves);
 }
 template<>
-ExtMoves::Itr generate<LEGAL, true>(ExtMoves& extMoves, const Position& pos) noexcept {
-    return generate_legal<true>(extMoves, pos);
+Move* generate<LEGAL, true>(const Position& pos, Move* moves) noexcept {
+    return generate_legal<true>(pos, moves);
 }
 
 }  // namespace DON

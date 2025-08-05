@@ -95,18 +95,14 @@ class MovePicker final {
     void next_stage() noexcept { ++stage; }
 
     template<GenType GT>
-    void score() noexcept;
+    ExtMove* score(MoveList<GT>& moveList) noexcept;
 
     void sort_partial(int limit = std::numeric_limits<int>::min()) noexcept;
 
-    auto begin() noexcept { return extCur; }
-    auto end() noexcept { return extEnd; }
+    auto begin() noexcept { return cur; }
+    auto end() noexcept { return endCur; }
 
-    void next() noexcept { ++extCur; }
-
-    const auto& current() const noexcept { return *extCur; }
-
-    bool is_ok(const Move& move) const noexcept { return move != ttMove; }
+    void next() noexcept { ++cur; }
 
     const Position&           pos;
     const Move&               ttMove;
@@ -114,11 +110,8 @@ class MovePicker final {
     const std::int16_t        ssPly;
     const int                 threshold;
 
-    Moves      badCapMoves;
-    Moves::Itr badCapCur, badCapEnd;
-
-    ExtMoves      extMoves, allExtMoves;
-    ExtMoves::Itr extCur, extEnd;
+    ExtMove  moves[MAX_MOVES];
+    ExtMove *cur, *endCur, *endBadCaptures, *endCaptures, *endGenerated;
 };
 
 }  // namespace DON

@@ -84,28 +84,37 @@ MovePicker::MovePicker(const Position& p,  //
 // preferring captures moves with a good history.
 // Quiets moves are ordered by using the history tables.
 template<>
-void MovePicker::score<ENC_CAPTURE>() noexcept {
+ExtMove* MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveList) noexcept {
 
-    for (auto& m : *this)
+    auto* itr = cur;
+    for (auto& move : moveList)
     {
+        auto& m = *itr++;
+        m       = move;
+
         Square dst      = m.dst_sq();
         auto   pc       = pos.moved_piece(m);
         auto   captured = pos.captured(m);
 
         m.value = 7 * PIECE_VALUE[captured] + 3 * promotion_value(m, true)  //
                 + CaptureHistory[pc][dst][captured]                         //
-                + 0x400 + bool(pos.check(m))                                //
+                + 0x400 * bool(pos.check(m))                                //
                 + 0x100 * (pos.cap_square() == dst);
     }
+    return itr;
 }
 
 template<>
-void MovePicker::score<ENC_QUIET>() noexcept {
+ExtMove* MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
     Color ac        = pos.active_color();
     auto  pawnIndex = pawn_index(pos.pawn_key());
 
-    for (auto& m : *this)
+    auto* itr = cur;
+    for (auto& move : moveList)
     {
+        auto& m = *itr++;
+        m       = move;
+
         assert(m.type_of() != PROMOTION);
 
         Square org = m.org_sq(), dst = m.dst_sq();
@@ -144,30 +153,37 @@ void MovePicker::score<ENC_QUIET>() noexcept {
         // Penalty for moving a pinner piece.
         m.value -= 0x400 * ((pos.pinners() & org) && !aligned(pos.king_square(~ac), org, dst));
     }
+    return itr;
 }
 
 template<>
-void MovePicker::score<EVA_CAPTURE>() noexcept {
+ExtMove* MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveList) noexcept {
 
-    for (auto& m : *this)
+    auto* itr = cur;
+    for (auto& move : moveList)
     {
+        auto& m = *itr++;
+        m       = move;
+
         assert(m.type_of() != CASTLING);
 
-        Square dst      = m.dst_sq();
-        auto   pc       = pos.moved_piece(m);
-        auto   captured = pos.captured(m);
+        auto captured = pos.captured(m);
 
-        m.value = 2 * PIECE_VALUE[captured] + promotion_value(m, true)  //
-                + CaptureHistory[pc][dst][captured];
+        m.value = PIECE_VALUE[captured] + promotion_value(m, true);
     }
+    return itr;
 }
 
 template<>
-void MovePicker::score<EVA_QUIET>() noexcept {
+ExtMove* MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList) noexcept {
     Color ac = pos.active_color();
 
-    for (auto& m : *this)
+    auto* itr = cur;
+    for (auto& move : moveList)
     {
+        auto& m = *itr++;
+        m       = move;
+
         assert(m.type_of() != CASTLING);
 
         Square dst = m.dst_sq();
@@ -178,15 +194,15 @@ void MovePicker::score<EVA_QUIET>() noexcept {
         if (ssPly < LOW_PLY_SIZE)
             m.value += 2 * LowPlyQuietHistory[ssPly][m.org_dst()] / (1 + ssPly);
     }
+    return itr;
 }
 
 // Sort moves in descending order up to and including a given limit.
 // The order of moves smaller than the limit is left unspecified.
 void MovePicker::sort_partial(int limit) noexcept {
-    auto b = begin(), e = end();
-    if (b == e)
+    if (cur == endCur)
         return;
-    for (auto s = b, p = b + 1; p != e; ++p)
+    for (auto s = cur, p = cur + 1; p != endCur; ++p)
         if (p->value >= limit)
         {
             auto m = std::move(*p);
@@ -194,7 +210,7 @@ void MovePicker::sort_partial(int limit) noexcept {
             *p = std::move(*++s);
 
             // Find the correct position for 'm' using binary search
-            auto q = std::upper_bound(b, s, m, std::greater<>{});
+            auto q = std::upper_bound(cur, s, m, std::greater<>{});
             // Move elements to make space for 'm'
             std::move_backward(q, s, s + 1);
             // Insert the element in its correct position
@@ -217,45 +233,41 @@ STAGE_SWITCH:
         return ttMove;
 
     case STG_ENC_CAPTURE_INIT :
-    case STG_PROBCUT_INIT :
-        extEnd = generate<ENC_CAPTURE>(extMoves, pos);
-        extCur = extMoves.begin();
+    case STG_PROBCUT_INIT : {
+        MoveList<ENC_CAPTURE> moveList(pos);
 
-        allExtMoves.insert(extMoves);
+        cur = endBadCaptures = moves;
+        endCur = endCaptures = score<ENC_CAPTURE>(moveList);
 
-        score<ENC_CAPTURE>();
         sort_partial();
 
         next_stage();
         goto STAGE_SWITCH;
+    }
 
     case STG_ENC_CAPTURE_GOOD :
-        while (begin() != end())
+        while (cur != endCur)
         {
-            auto& cur = current();
-            next();
-            if (is_ok(cur))
+            if (*cur != ttMove)
             {
-                if (threshold == 0 || pos.see(cur) >= -55.5555e-3f * cur.value)
-                    return cur;
+                if (threshold == 0 || pos.see(*cur) >= -55.5555e-3f * cur->value)
+                    return *cur++;
                 // Store bad captures
-                badCapMoves.push_back(cur);
+                std::swap(*endBadCaptures++, *cur);
             }
+            ++cur;
         }
 
         next_stage();
         [[fallthrough]];
 
     case STG_ENC_QUIET_INIT :
-        extMoves.clear();
         if (quietPick)
         {
-            extEnd = generate<ENC_QUIET>(extMoves, pos);
-            extCur = extMoves.begin();
+            MoveList<ENC_QUIET> moveList(pos);
 
-            allExtMoves.insert(extMoves);
+            endCur = endGenerated = score<ENC_QUIET>(moveList);
 
-            score<ENC_QUIET>();
             assert(threshold < 0);
             sort_partial(threshold);
         }
@@ -265,35 +277,28 @@ STAGE_SWITCH:
 
     case STG_ENC_QUIET_GOOD :
         if (quietPick)
-            while (begin() != end())
+            while (cur != endCur)
             {
-                auto& cur = current();
-                if (is_ok(cur))
+                if (*cur != ttMove)
                 {
-                    if (cur.value >= GoodQuietThreshold)
-                    {
-                        next();
-                        return cur;
-                    }
+                    if (cur->value >= GoodQuietThreshold)
+                        return *cur++;
                     // Remaining quiets are bad
                     break;
                 }
-                next();
+                ++cur;
             }
 
         // Prepare to loop over the bad captures
-        badCapCur = badCapMoves.begin();
-        badCapEnd = badCapMoves.end();
+        cur    = moves;
+        endCur = endBadCaptures;
 
         next_stage();
         [[fallthrough]];
 
     case STG_ENC_CAPTURE_BAD :
-        if (badCapCur != badCapEnd)
-        {
-            assert(is_ok(*badCapCur));
-            return *badCapCur++;
-        }
+        if (cur != endCur)
+            return *cur++;
 
         if (quietPick)
             sort_partial();
@@ -303,49 +308,44 @@ STAGE_SWITCH:
 
     case STG_ENC_QUIET_BAD :
         if (quietPick)
-            while (begin() != end())
+            while (cur != endCur)
             {
-                Move cur = current();
-                next();
-                if (is_ok(cur))
-                    return cur;
+                if (*cur != ttMove)
+                    return *cur++;
+                ++cur;
             }
         return Move::None;
 
-    case STG_EVA_CAPTURE_INIT :
-        extEnd = generate<EVA_CAPTURE>(extMoves, pos);
-        extCur = extMoves.begin();
+    case STG_EVA_CAPTURE_INIT : {
+        MoveList<EVA_CAPTURE> moveList(pos);
 
-        allExtMoves.insert(extMoves);
+        cur    = moves;
+        endCur = endGenerated = score<EVA_CAPTURE>(moveList);
 
-        score<EVA_CAPTURE>();
         sort_partial();
+    }
 
         next_stage();
         [[fallthrough]];
 
     case STG_EVA_CAPTURE_ALL :
-        while (begin() != end())
+        while (cur != endCur)
         {
-            Move cur = current();
-            next();
-            if (is_ok(cur))
-                return cur;
+            if (*cur != ttMove)
+                return *cur++;
+            ++cur;
         }
 
         next_stage();
         [[fallthrough]];
 
     case STG_EVA_QUIET_INIT :
-        extMoves.clear();
         if (quietPick)
         {
-            extEnd = generate<EVA_QUIET>(extMoves, pos);
-            extCur = extMoves.begin();
+            MoveList<EVA_QUIET> moveList(pos);
 
-            allExtMoves.insert(extMoves);
+            endCur = endGenerated = score<EVA_QUIET>(moveList);
 
-            score<EVA_QUIET>();
             sort_partial();
         }
 
@@ -354,23 +354,21 @@ STAGE_SWITCH:
 
     case STG_EVA_QUIET_ALL :
         if (quietPick)
-            while (begin() != end())
+            while (cur != endCur)
             {
-                Move cur = current();
-                next();
-                if (is_ok(cur))
-                    return cur;
+                if (*cur != ttMove)
+                    return *cur++;
+                ++cur;
             }
+
         return Move::None;
 
     case STG_PROBCUT_ALL :
-        while (begin() != end())
+        while (cur != endCur)
         {
-            Move cur = current();
-            next();
-            if (is_ok(cur))
-                if (pos.see(cur) >= threshold)
-                    return cur;
+            if (*cur != ttMove && pos.see(*cur) >= threshold)
+                return *cur++;
+            ++cur;
         }
         return Move::None;
 
@@ -385,10 +383,10 @@ bool MovePicker::can_move_king_or_pawn() const noexcept {
     // SEE negative captures shouldn't be returned in STG_ENC_CAPTURE_GOOD stage
     assert(stage > STG_ENC_CAPTURE_GOOD && stage != STG_EVA_CAPTURE_INIT);
 
-    for (const Move& m : allExtMoves)
+    for (const ExtMove* m = moves; m < endGenerated; ++m)
     {
-        PieceType movedPieceType = type_of(pos.moved_piece(m));
-        if ((movedPieceType == PAWN || movedPieceType == KING) && pos.legal(m))
+        PieceType movedPieceType = type_of(pos.moved_piece(*m));
+        if ((movedPieceType == PAWN || movedPieceType == KING) && pos.legal(*m))
             return true;
     }
     return false;
