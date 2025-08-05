@@ -17,8 +17,7 @@ error() {
 trap 'error ${LINENO}' ERR
 
 # obtain signature
-eval "$WINE_PATH ./DON bench" > "$STDOUT_FILE" 2> "$STDERR_FILE" || error ${LINENO}
-signature=$(grep "Total nodes     : " "$STDERR_FILE" | awk '{print $4}')
+signature=`eval "$WINE_PATH ./DON bench 2>&1" | grep "Total nodes     : " | awk '{print $4}'`
 
 rm -f "$STDOUT_FILE" "$STDERR_FILE"
 
