@@ -113,12 +113,12 @@ void find_nnz(const std::int32_t* RESTRICT input,
     IndexType count = 0;
     for (IndexType i = 0; i < NumChunks; ++i)
     {
-        const __m512i inputV0 = _mm512_load_si512(input + i * 2 * SimdWidthIn);
-        const __m512i inputV1 = _mm512_load_si512(input + i * 2 * SimdWidthIn + SimdWidthIn);
+        __m512i inputV0 = _mm512_load_si512(input + i * 2 * SimdWidthIn);
+        __m512i inputV1 = _mm512_load_si512(input + i * 2 * SimdWidthIn + SimdWidthIn);
 
         // Get a bitmask and gather non zero indices
-        const __mmask32 nnzMask = _mm512_kunpackw(_mm512_test_epi32_mask(inputV1, inputV1),
-                                                  _mm512_test_epi32_mask(inputV0, inputV0));
+        __mmask32 nnzMask = _mm512_kunpackw(_mm512_test_epi32_mask(inputV1, inputV1),
+                                            _mm512_test_epi32_mask(inputV0, inputV0));
 
         // Avoid _mm512_mask_compressstoreu_epi16() as it's 256 uOps on Zen4
         __m512i nnz = _mm512_maskz_compress_epi16(nnzMask, base);
@@ -299,7 +299,7 @@ class AffineTransformSparseInput {
         // Find indices of nonzero 32-bit blocks
         find_nnz<ChunkCount>(input32, nnz, count);
 
-        const auto* biasVec = reinterpret_cast<const outvec_t*>(biases);
+        const outvec_t* biasVec = reinterpret_cast<const outvec_t*>(biases);
         outvec_t    acc[RegCount];
         for (IndexType k = 0; k < RegCount; ++k)
             acc[k] = biasVec[k];
@@ -315,7 +315,7 @@ class AffineTransformSparseInput {
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
 
-        auto* outVec = reinterpret_cast<outvec_t*>(output);
+        outvec_t* outVec = reinterpret_cast<outvec_t*>(output);
         for (IndexType k = 0; k < RegCount; ++k)
             outVec[k] = acc[k];
     #undef vec_set_32
