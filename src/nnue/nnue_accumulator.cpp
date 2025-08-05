@@ -22,8 +22,8 @@
 #include <type_traits>
 
 #include "../bitboard.h"
-#include "../position.h"
 #include "../misc.h"
+#include "../position.h"
 #include "../types.h"
 #include "network.h"
 #include "nnue_feature_transformer.h"  // IWYU pragma: keep

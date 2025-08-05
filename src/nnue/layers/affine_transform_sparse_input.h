@@ -87,9 +87,19 @@ alignas(CACHE_LINE_SIZE) constexpr struct Lookup final {
 
 } LookupInstance;
 
+    #if defined(__GNUC__) || defined(__clang__)
+        #define RESTRICT __restrict__
+    #elif defined(_MSC_VER)
+        #define RESTRICT __restrict
+    #else
+        #define RESTRICT
+    #endif
+
 // Find indices of nonzero numbers in an std::int32_t array
 template<IndexType InputDimensions>
-void find_nnz(const std::int32_t* input, std::uint16_t* outNnz, IndexType& outCount) noexcept {
+void find_nnz(const std::int32_t* RESTRICT input,
+              std::uint16_t* RESTRICT      outNnz,
+              IndexType&                   outCount) noexcept {
 
     #if defined(USE_AVX512ICL)
 
@@ -161,7 +171,7 @@ void find_nnz(const std::int32_t* input, std::uint16_t* outNnz, IndexType& outCo
         unsigned nnz = 0;
         for (IndexType j = 0; j < InputsPerChunk; ++j)
         {
-            const vec_uint_t inputChunk = inputVector[i * InputsPerChunk + j];
+            vec_uint_t inputChunk = inputVector[i * InputsPerChunk + j];
             nnz |= unsigned(vec_nnz(inputChunk)) << (j * InputSimdWidth);
         }
         for (IndexType j = 0; j < OutputsPerChunk; ++j)
