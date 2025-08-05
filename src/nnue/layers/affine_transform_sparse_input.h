@@ -176,8 +176,8 @@ void find_nnz(const std::int32_t* RESTRICT input,
         }
         for (IndexType j = 0; j < OutputsPerChunk; ++j)
         {
-            unsigned nnzMask = (nnz >> (j * 8)) & 0xFF;
-            vec128_t offsets =
+            const unsigned nnzMask = (nnz >> (j * 8)) & 0xFF;
+            const vec128_t offsets =
               vec128_load(reinterpret_cast<const vec128_t*>(&LookupInstance.indices[nnzMask]));
             vec128_storeu(reinterpret_cast<vec128_t*>(outNnz + count), vec128_add(base, offsets));
             count += LookupInstance.popcounts[nnzMask];
