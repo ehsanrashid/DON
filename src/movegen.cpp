@@ -35,11 +35,11 @@ namespace {
 #if defined(USE_AVX512ICL)
 
 // Splat pawn moves for a given direction
-inline void splat_pawn_moves(ExtMoves& extMoves, Bitboard b, Direction dir) noexcept {
+inline void splat_pawn_moves(ExtMoves& extMoves, Bitboard b, Direction d) noexcept {
     while (b)
     {
         Square s = pop_lsb(b);
-        extMoves.emplace_back(s - dir, s);
+        extMoves.emplace_back(s - d, s);
     }
 }
 
