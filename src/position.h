@@ -174,9 +174,9 @@ class Position final {
     // Position representation
     Piece    piece_on(Square s) const noexcept;
     bool     empty_on(Square s) const noexcept;
-    Bitboard pieces(PieceType pt = ALL_PIECE) const noexcept;
+    Bitboard pieces() const noexcept;
     template<typename... PieceTypes>
-    Bitboard pieces(PieceType pt, PieceTypes... pts) const noexcept;
+    Bitboard pieces(PieceTypes... pts) const noexcept;
     Bitboard pieces(Color c) const noexcept;
     template<typename... PieceTypes>
     Bitboard pieces(Color c, PieceTypes... pts) const noexcept;
@@ -402,11 +402,11 @@ inline Piece Position::piece_on(Square s) const noexcept {
 
 inline bool Position::empty_on(Square s) const noexcept { return piece_on(s) == NO_PIECE; }
 
-inline Bitboard Position::pieces(PieceType pt) const noexcept { return typeBB[pt]; }
+inline Bitboard Position::pieces() const noexcept { return typeBB[ALL_PIECE]; }
 
 template<typename... PieceTypes>
-inline Bitboard Position::pieces(PieceType pt, PieceTypes... pts) const noexcept {
-    return pieces(pt) | pieces(pts...);
+inline Bitboard Position::pieces(PieceTypes... pts) const noexcept {
+    return (typeBB[pts] | ...);
 }
 
 inline Bitboard Position::pieces(Color c) const noexcept { return colorBB[c]; }
