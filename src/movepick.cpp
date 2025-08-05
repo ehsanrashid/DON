@@ -217,12 +217,8 @@ STAGE_SWITCH:
 
     case STG_ENC_CAPTURE_INIT :
     case STG_PROBCUT_INIT :
-        allExtMoves.clear();
-
-        extEnd = generate<ENC_CAPTURE>(extMoves, pos);
         extCur = extMoves.begin();
-
-        allExtMoves.insert(extMoves);
+        extEnd = generate<ENC_CAPTURE>(extMoves, pos);
 
         score<ENC_CAPTURE>();
         sort_partial();
@@ -248,20 +244,14 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case STG_ENC_QUIET_INIT :
-        extMoves.clear();
         if (quietPick)
         {
             extEnd = generate<ENC_QUIET>(extMoves, pos);
-            extCur = extMoves.begin();
-
-            allExtMoves.insert(extMoves);
 
             score<ENC_QUIET>();
             assert(threshold < 0);
             sort_partial(threshold);
         }
-        else
-            extCur = extEnd;
 
         next_stage();
         [[fallthrough]];
@@ -316,12 +306,8 @@ STAGE_SWITCH:
         return Move::None;
 
     case STG_EVA_CAPTURE_INIT :
-        allExtMoves.clear();
-
-        extEnd = generate<EVA_CAPTURE>(extMoves, pos);
         extCur = extMoves.begin();
-
-        allExtMoves.insert(extMoves);
+        extEnd = generate<EVA_CAPTURE>(extMoves, pos);
 
         score<EVA_CAPTURE>();
         sort_partial();
@@ -342,19 +328,13 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case STG_EVA_QUIET_INIT :
-        extMoves.clear();
         if (quietPick)
         {
             extEnd = generate<EVA_QUIET>(extMoves, pos);
-            extCur = extMoves.begin();
-
-            allExtMoves.insert(extMoves);
 
             score<EVA_QUIET>();
             sort_partial();
         }
-        else
-            extCur = extEnd;
 
         next_stage();
         [[fallthrough]];
@@ -392,7 +372,7 @@ bool MovePicker::can_move_king_or_pawn() const noexcept {
     // SEE negative captures shouldn't be returned in GOOD_CAPTURE stage
     assert(stage > STG_ENC_QUIET_GOOD && stage != STG_EVA_CAPTURE_INIT);
 
-    for (auto m : allExtMoves)
+    for (const Move& m : extMoves)
     {
         PieceType movedPieceType = type_of(pos.moved_piece(m));
         if ((movedPieceType == PAWN || movedPieceType == KING) && pos.legal(m))

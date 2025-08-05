@@ -117,7 +117,7 @@ class MovePicker final {
     Moves      badCapMoves;
     Moves::Itr badCapCur, badCapEnd;
 
-    ExtMoves      extMoves, allExtMoves;
+    ExtMoves      extMoves;
     ExtMoves::Itr extCur, extEnd;
 };
 

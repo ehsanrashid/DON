@@ -303,7 +303,8 @@ ExtMoves::Itr generate(ExtMoves& extMoves, const Position& pos) noexcept {
     assert((GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET) == bool(pos.checkers()));
 
     if constexpr (!Any)
-        extMoves.reserve(24 + 12 * (GT == ENCOUNTER) +  4 * (GT == ENC_CAPTURE) +  8 * (GT == ENC_QUIET)  //
+        extMoves.reserve(extMoves.size() + 24
+                            + 12 * (GT == ENCOUNTER) +  4 * (GT == ENC_CAPTURE) +  8 * (GT == ENC_QUIET)  //
                             -  8 * (GT == EVASION)   - 16 * (GT == EVA_CAPTURE) - 12 * (GT == EVA_QUIET));
     generate_moves<GT, Any>(extMoves, pos);
     return extMoves.end();
