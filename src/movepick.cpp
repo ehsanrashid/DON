@@ -217,8 +217,8 @@ STAGE_SWITCH:
 
     case STG_ENC_CAPTURE_INIT :
     case STG_PROBCUT_INIT :
-        extCur = extMoves.begin();
         extEnd = generate<ENC_CAPTURE>(extMoves, pos);
+        extCur = extMoves.begin();
 
         score<ENC_CAPTURE>();
         sort_partial();
@@ -306,8 +306,8 @@ STAGE_SWITCH:
         return Move::None;
 
     case STG_EVA_CAPTURE_INIT :
-        extCur = extMoves.begin();
         extEnd = generate<EVA_CAPTURE>(extMoves, pos);
+        extCur = extMoves.begin();
 
         score<EVA_CAPTURE>();
         sort_partial();
