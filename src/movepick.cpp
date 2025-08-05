@@ -260,8 +260,6 @@ STAGE_SWITCH:
             assert(threshold < 0);
             sort_partial(threshold);
         }
-        else
-            extCur = extEnd;
 
         next_stage();
         [[fallthrough]];
@@ -353,8 +351,6 @@ STAGE_SWITCH:
             score<EVA_QUIET>();
             sort_partial();
         }
-        else
-            extCur = extEnd;
 
         next_stage();
         [[fallthrough]];
@@ -392,7 +388,7 @@ bool MovePicker::can_move_king_or_pawn() const noexcept {
     // SEE negative captures shouldn't be returned in GOOD_CAPTURE stage
     assert(stage > STG_ENC_QUIET_GOOD && stage != STG_EVA_CAPTURE_INIT);
 
-    for (auto m : allExtMoves)
+    for (const Move& m : allExtMoves)
     {
         PieceType movedPieceType = type_of(pos.moved_piece(m));
         if ((movedPieceType == PAWN || movedPieceType == KING) && pos.legal(m))
