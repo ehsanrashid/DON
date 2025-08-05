@@ -32,54 +32,26 @@ namespace DON {
 
 namespace {
 
+
+// Splat pawn moves for a given direction
+inline void splat_pawn_moves(ExtMoves& extMoves, Bitboard b, Direction d) noexcept {
+    assert(d == NORTH || d == SOUTH || d == NORTH_2 || d == SOUTH_2  //
+           || d == NORTH_EAST || d == SOUTH_EAST                     //
+           || d == NORTH_WEST || d == SOUTH_WEST);
+
 #if defined(USE_AVX512ICL)
-
-// Splat pawn moves for a given direction
-inline void splat_pawn_moves(ExtMoves& extMoves, Bitboard b, Direction d) noexcept {
-    assert(d == NORTH || d == SOUTH || d == NORTH_2 || d == SOUTH_2  //
-           || d == NORTH_EAST || d == SOUTH_EAST                     //
-           || d == NORTH_WEST || d == SOUTH_WEST);
-
     while (b)
     {
         Square s = pop_lsb(b);
         extMoves.emplace_back(s - d, s);
     }
-}
-
-// Splat promotion moves for a given direction
-inline void splat_promotion_moves(ExtMoves& extMoves, Bitboard b, Direction d) noexcept {
-    assert(d == NORTH || d == SOUTH               //
-           || d == NORTH_EAST || d == SOUTH_EAST  //
-           || d == NORTH_WEST || d == SOUTH_WEST);
-
-    while (b)
-    {
-        Square s = pop_lsb(b);
-        for (PieceType promo : {QUEEN, KNIGHT, ROOK, BISHOP})
-            extMoves.emplace_back(s - d, s, promo);
-    }
-}
-
-// Splat moves for a given square and bitboard
-inline void splat_moves(ExtMoves& extMoves, Square s, Bitboard b) noexcept {
-    while (b)
-        extMoves.emplace_back(s, pop_lsb(b));
-}
-
 #else
-
-// Splat pawn moves for a given direction
-inline void splat_pawn_moves(ExtMoves& extMoves, Bitboard b, Direction d) noexcept {
-    assert(d == NORTH || d == SOUTH || d == NORTH_2 || d == SOUTH_2  //
-           || d == NORTH_EAST || d == SOUTH_EAST                     //
-           || d == NORTH_WEST || d == SOUTH_WEST);
-
     while (b)
     {
         Square s = pop_lsb(b);
         extMoves.emplace_back(s - d, s);
     }
+#endif
 }
 
 // Splat promotion moves for a given direction
@@ -88,21 +60,33 @@ inline void splat_promotion_moves(ExtMoves& extMoves, Bitboard b, Direction d) n
            || d == NORTH_EAST || d == SOUTH_EAST  //
            || d == NORTH_WEST || d == SOUTH_WEST);
 
+#if defined(USE_AVX512ICL)
     while (b)
     {
         Square s = pop_lsb(b);
         for (PieceType promo : {QUEEN, KNIGHT, ROOK, BISHOP})
             extMoves.emplace_back(s - d, s, promo);
     }
+#else
+    while (b)
+    {
+        Square s = pop_lsb(b);
+        for (PieceType promo : {QUEEN, KNIGHT, ROOK, BISHOP})
+            extMoves.emplace_back(s - d, s, promo);
+    }
+#endif
 }
 
 // Splat moves for a given square and bitboard
 inline void splat_moves(ExtMoves& extMoves, Square s, Bitboard b) noexcept {
+#if defined(USE_AVX512ICL)
     while (b)
         extMoves.emplace_back(s, pop_lsb(b));
-}
-
+#else
+    while (b)
+        extMoves.emplace_back(s, pop_lsb(b));
 #endif
+}
 
 template<GenType GT>
 void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard target) noexcept {
