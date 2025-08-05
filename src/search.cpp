@@ -870,7 +870,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         int bonus = 630 + std::clamp(-10 * (ss->staticEval + (ss - 1)->staticEval), -1979, +1561);
 
         update_quiet_history(~ac, (ss - 1)->move, std::lround(+0.9131f * bonus));
-        if (preNonPawn)
+        if (!ttd.hit && preNonPawn)
             update_pawn_history(pos, pos.piece_on(preSq), preSq, std::lround(+1.3945f * bonus));
     }
 
@@ -962,7 +962,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     improve = improve || ss->staticEval >= beta;
 
     // Step 10. Internal iterative reductions (*Scaler)
-    // Decrease depth, if depth is high enough without ttMove.
+    // Decrease depth for PV/Cut nodes, if depth is high enough without ttMove.
     if constexpr (!AllNode)
         if (depth > 5 && red <= 3 && ttd.move == Move::None)
             --depth;
@@ -975,7 +975,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     probCutBeta = std::min(215 + beta - 60 * improve, +VALUE_INFINITE - 1);
     if (depth >= 3
         && !is_decisive(beta)
-        // If value from transposition table is atleast probCutBeta
+        // If value from transposition table is less than probCutBeta, don't attempt probCut
         && (!is_valid(ttd.value) || ttd.value >= probCutBeta))
     {
         assert(beta < probCutBeta && probCutBeta < +VALUE_INFINITE);
@@ -1164,9 +1164,9 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for captures
-                int seeHist =
+                int margin =
                   std::clamp(158 * depth + int(std::lround(0.0323f * captHist)), 0, 283 * depth);
-                if (!(is_ok(preSq) && dst == preSq) && pos.see(move) < -(seeHist + 256 * dblCheck))
+                if (!(is_ok(preSq) && dst == preSq) && pos.see(move) < -(margin + 256 * dblCheck))
                 {
                     // Avoid pruning sacrifices of our last piece for stalemate
                     if (!may_stalemate_trap())
@@ -1714,8 +1714,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     }
     else
     {
-        // In case of null move search, use previous staticEval with a opposite sign
-        unadjustedStaticEval = (ss - 1)->move != Move::Null ? evaluate(pos) : -(ss - 1)->staticEval;
+        unadjustedStaticEval = evaluate(pos);
 
         bestValue = ss->staticEval = adjust_static_eval(unadjustedStaticEval, correctionValue);
     }

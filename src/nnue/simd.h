@@ -352,7 +352,7 @@ dotprod_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) {
 #if defined(VECTOR)
 // Compute optimal SIMD register count for feature transformer accumulation.
 template<IndexType TransformedFeatureDimensions, IndexType PSQTBuckets>
-class SIMDTiling {
+class SIMDTiling final {
    private:
     SIMDTiling() noexcept  = delete;
     ~SIMDTiling() noexcept = delete;

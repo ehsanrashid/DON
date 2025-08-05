@@ -129,7 +129,7 @@ struct TTEntry final {
     void save(Key16        k16,
               Depth        depth,
               bool         pv,
-              Bound        bound,
+              Bound        b,
               const Move&  move,
               Value        value,
               Value        eval,
@@ -138,19 +138,21 @@ struct TTEntry final {
         assert(depth <= std::numeric_limits<std::uint8_t>::max() + DEPTH_OFFSET);
 
         // Preserve the old move if don't have a new one
-        if (key16 != k16 || bound == BOUND_EXACT || move != Move::None)
+        if (key16 != k16 || b == BOUND_EXACT || move != Move::None)
             move16 = move;
         // Overwrite less valuable entries (cheapest checks first)
-        if (key16 != k16 || bound == BOUND_EXACT           //
-            || 4 + depth - DEPTH_OFFSET + 2 * pv > depth8  //
+        if (key16 != k16 || b == BOUND_EXACT               //
+            || depth8 < 4 + depth - DEPTH_OFFSET + 2 * pv  //
             || relative_age(gen))
         {
             key16    = k16;
             depth8   = std::uint8_t(depth - DEPTH_OFFSET);
-            genData8 = std::uint8_t(gen | std::uint8_t(pv) << 2 | bound);
+            genData8 = std::uint8_t(gen | std::uint8_t(pv) << 2 | b);
             value16  = value;
             eval16   = eval;
         }
+        else if (depth8 + DEPTH_OFFSET >= 5 && bound() != BOUND_EXACT)
+            --depth8;
     }
 
     void clear() noexcept {  //

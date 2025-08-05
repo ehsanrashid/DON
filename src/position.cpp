@@ -654,7 +654,7 @@ void Position::set_ext_state() noexcept {
             }
         }
 
-        st->mobility[c] = MobilityBonus[PAWN][popcount(pawn_push_bb(pieces(c, PAWN), c) & ~occupied)];
+        st->mobility[c] = MobilityBonus[PAWN][popcount(push_pawn_bb(pieces(c, PAWN), c) & ~occupied)];
         st->attacks[c][PAWN] = attacks_mob_by<PAWN>(c, 0, pieces(~c), occupied);
     }
 
@@ -664,7 +664,7 @@ void Position::set_ext_state() noexcept {
                           | (pieces(~c) & (pinners()))
                           | (pieces( c) & ((blockers(c))
                                          | (pieces(QUEEN, KING))
-                                         | (pieces(PAWN) & (LOW_RANK_BB[c] | (pawn_push_bb(occupied, ~c) & ~pawn_attacks_bb(pieces(~c) & ~pieces(KING), ~c)))))));
+                                         | (pieces(PAWN) & (LOW_RANK_BB[c] | (push_pawn_bb(occupied, ~c) & ~attacks_pawn_bb(pieces(~c) & ~pieces(KING), ~c)))))));
 
         st->attacks[c][KNIGHT] = st->attacks[c][PAWN  ] | attacks_mob_by<KNIGHT>(c, blockers(c), target, occupied                                                                                             );
         st->attacks[c][BISHOP] = st->attacks[c][KNIGHT] | attacks_mob_by<BISHOP>(c, blockers(c), target, occupied ^ ((pieces(c, QUEEN, BISHOP) & ~blockers(c)) | (pieces(~c, KING, QUEEN, ROOK) & ~pinners())));
@@ -686,7 +686,7 @@ Position::attacks_mob_by(Color c, Bitboard blockers, Bitboard target, Bitboard o
     Bitboard attacks;
     if constexpr (PT == PAWN)
     {
-        attacks = pawn_attacks_bb(pieces(c, PAWN), c);
+        attacks = attacks_pawn_bb(pieces(c, PAWN), c);
         st->mobility[c] += MobilityBonus[PAWN][popcount(attacks & target)];
     }
     else

@@ -31,7 +31,6 @@ namespace DON {
 namespace {
 
 constexpr std::int16_t MaxMovesToGo = 50;
-constexpr float        MtgFactor    = 0.05051;
 
 }  // namespace
 
@@ -82,7 +81,6 @@ void TimeManager::init(Limit& limit, const Position& pos, const Options& options
 
     std::int64_t scaleFactor = std::max(nodesTime, TimePoint(1));
     TimePoint    scaledTime  = clock.time / scaleFactor;
-    TimePoint    scaledInc   = clock.inc / scaleFactor;
 
     // clang-format off
 
@@ -92,8 +90,8 @@ void TimeManager::init(Limit& limit, const Position& pos, const Options& options
                      : std::max<std::int16_t>(std::ceil (MaxMovesToGo - 0.1f * std::max(pos.move_num() - 20     , 0)), MaxMovesToGo - 10);
 
     // If less than one second, gradually reduce mtg
-    if (scaledTime < 1000 && mtg > MtgFactor * scaledInc)
-        mtg = std::clamp<std::int16_t>(MtgFactor * scaledTime, 2, mtg);
+    if (scaledTime < 1000)
+        mtg = std::max<std::int16_t>(0.05051f * scaledTime, 2);
 
     assert(mtg > 0);
 

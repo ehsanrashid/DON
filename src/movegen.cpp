@@ -22,17 +22,77 @@
 #include "bitboard.h"
 #include "position.h"
 
+#if defined(USE_AVX512ICL)
+    #include <algorithm>
+    #include <array>
+    #include <immintrin.h>
+#endif
+
 namespace DON {
 
 namespace {
 
-void generate_promotion_moves(ExtMoves& extMoves, Square s, Direction d) noexcept {
+#if defined(USE_AVX512ICL)
+inline Move* write_moves(Move* moveList, std::uint32_t mask, __m512i vector) noexcept {
+    _mm512_storeu_si512(reinterpret_cast<__m512i*>(moveList),
+                        _mm512_maskz_compress_epi16(mask, vector));
+    return moveList + popcount(mask);
+}
+#endif
+
+// Splat pawn moves for a given direction
+inline void splat_pawn_moves(ExtMoves& extMoves, Bitboard b, Direction d) noexcept {
+    assert(d == NORTH || d == SOUTH || d == NORTH_2 || d == SOUTH_2  //
+           || d == NORTH_EAST || d == SOUTH_EAST                     //
+           || d == NORTH_WEST || d == SOUTH_WEST);
+
+#if defined(USE_AVX512ICL)
+    while (b)
+    {
+        Square s = pop_lsb(b);
+        extMoves.emplace_back(s - d, s);
+    }
+#else
+    while (b)
+    {
+        Square s = pop_lsb(b);
+        extMoves.emplace_back(s - d, s);
+    }
+#endif
+}
+
+// Splat promotion moves for a given direction
+inline void splat_promotion_moves(ExtMoves& extMoves, Bitboard b, Direction d) noexcept {
     assert(d == NORTH || d == SOUTH               //
            || d == NORTH_EAST || d == SOUTH_EAST  //
            || d == NORTH_WEST || d == SOUTH_WEST);
 
-    for (PieceType promo : {QUEEN, KNIGHT, ROOK, BISHOP})
-        extMoves.emplace_back(s - d, s, promo);
+#if defined(USE_AVX512ICL)
+    while (b)
+    {
+        Square s = pop_lsb(b);
+        for (PieceType promo : {QUEEN, KNIGHT, ROOK, BISHOP})
+            extMoves.emplace_back(s - d, s, promo);
+    }
+#else
+    while (b)
+    {
+        Square s = pop_lsb(b);
+        for (PieceType promo : {QUEEN, KNIGHT, ROOK, BISHOP})
+            extMoves.emplace_back(s - d, s, promo);
+    }
+#endif
+}
+
+// Splat moves for a given square and bitboard
+inline void splat_moves(ExtMoves& extMoves, Square s, Bitboard b) noexcept {
+#if defined(USE_AVX512ICL)
+    while (b)
+        extMoves.emplace_back(s, pop_lsb(b));
+#else
+    while (b)
+        extMoves.emplace_back(s, pop_lsb(b));
+#endif
 }
 
 template<GenType GT>
@@ -73,17 +133,8 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
             b2 &= target;
         }
 
-        while (b1)
-        {
-            Square s = pop_lsb(b1);
-            extMoves.emplace_back(s - Push1, s);
-        }
-
-        while (b2)
-        {
-            Square s = pop_lsb(b2);
-            extMoves.emplace_back(s - Push2, s);
-        }
+        splat_pawn_moves(extMoves, b1, Push1);
+        splat_pawn_moves(extMoves, b2, Push2);
     }
 
     // Promotions and under-promotions & Standard and en-passant captures
@@ -97,36 +148,20 @@ void generate_pawns_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
             // Consider only blocking and capture squares
             if constexpr (Evasion)
                 b &= between_bb(pos.king_square(ac), lsb(pos.checkers()));
-
-            while (b)
-                generate_promotion_moves(extMoves, pop_lsb(b), Push1);
+            splat_promotion_moves(extMoves, b, Push1);
 
             b = shift(CaptL, on7Pawns) & enemies;
-
-            while (b)
-                generate_promotion_moves(extMoves, pop_lsb(b), CaptL);
+            splat_promotion_moves(extMoves, b, CaptL);
 
             b = shift(CaptR, on7Pawns) & enemies;
-
-            while (b)
-                generate_promotion_moves(extMoves, pop_lsb(b), CaptR);
+            splat_promotion_moves(extMoves, b, CaptR);
         }
 
         b = shift(CaptL, non7Pawns) & enemies;
-
-        while (b)
-        {
-            Square s = pop_lsb(b);
-            extMoves.emplace_back(s - CaptL, s);
-        }
+        splat_pawn_moves(extMoves, b, CaptL);
 
         b = shift(CaptR, non7Pawns) & enemies;
-
-        while (b)
-        {
-            Square s = pop_lsb(b);
-            extMoves.emplace_back(s - CaptR, s);
-        }
+        splat_pawn_moves(extMoves, b, CaptR);
 
         if (is_ok(pos.ep_square()))
         {
@@ -177,8 +212,7 @@ void generate_piece_moves(ExtMoves& extMoves, const Position& pos, Bitboard targ
         if (PT != KNIGHT && (blockers & s))
             b &= line_bb(ksq, s);
 
-        while (b)
-            extMoves.emplace_back(s, pop_lsb(b));
+        splat_moves(extMoves, s, b);
     }
 }
 

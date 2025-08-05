@@ -215,7 +215,7 @@ void init() noexcept {
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
         for (Color c : {WHITE, BLACK})
-            PieceAttacks[s][c] = pawn_attacks_bb(square_bb(s), c);
+            PieceAttacks[s][c] = attacks_pawn_bb(square_bb(s), c);
 
         PieceAttacks[s][KNIGHT] = 0;
         for (auto dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
