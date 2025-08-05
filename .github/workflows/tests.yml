@@ -289,11 +289,11 @@ jobs:
           chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
-      - name: Test x86-64-sse3-popcnt build
+      - name: Test x86-64-ssse3-popcnt build
         if: matrix.config.run_64bit_tests
         run: |
           make clean
-          make -j4 ARCH=x86-64-sse3-popcnt build
+          make -j4 ARCH=x86-64-ssse3-popcnt build
           chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 

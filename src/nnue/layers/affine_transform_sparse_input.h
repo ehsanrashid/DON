@@ -34,6 +34,16 @@
 namespace DON::NNUE::Layers {
 
 #if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
+    #if defined(__GNUC__) || defined(__clang__)
+        #define RESTRICT __restrict__
+    #elif defined(_MSC_VER)
+        #define RESTRICT __restrict
+    #else
+        #define RESTRICT
+    #endif
+
+namespace {
+
 constexpr std::uint8_t LsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
                                       57, 49, 41, 37, 28, 16, 3,  61,  //
                                       54, 58, 35, 52, 50, 42, 21, 44,  //
@@ -77,14 +87,6 @@ alignas(CACHE_LINE_SIZE) constexpr struct Lookup final {
     }
 
 } LookupInstance;
-
-    #if defined(__GNUC__) || defined(__clang__)
-        #define RESTRICT __restrict__
-    #elif defined(_MSC_VER)
-        #define RESTRICT __restrict
-    #else
-        #define RESTRICT
-    #endif
 
 // Find indices of nonzero numbers in an std::int32_t array
 template<IndexType InputDimensions>
@@ -178,6 +180,8 @@ void find_nnz(const std::int32_t* RESTRICT input,
     outCount = count;
     #endif
 }
+
+}  // namespace
 #endif
 
 // Sparse input implementation
