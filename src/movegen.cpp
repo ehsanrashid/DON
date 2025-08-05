@@ -23,8 +23,8 @@
 #include "position.h"
 
 #if defined(USE_AVX512ICL)
-    #include <array>
     #include <algorithm>
+    #include <array>
     #include <immintrin.h>
 #endif
 
