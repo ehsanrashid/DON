@@ -248,6 +248,9 @@ std::string compiler_info() noexcept {
 #else
     compiler += "32bit";
 #endif
+#if defined(USE_AVX512ICL)
+    compiler += " AVX512ICL";
+#endif
 #if defined(USE_VNNI)
     compiler += " VNNI";
 #endif
