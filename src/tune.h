@@ -190,6 +190,11 @@ class Tune final {
     static Options* OptionsPtr;
 };
 
+template<typename... Args>
+constexpr void check_tune_args(Args&&...) {
+    static_assert((!std::is_fundamental_v<Args> && ...), "TUNE macro arguments wrong");
+}
+
 // Some macro magic :-) define a dummy int variable that the compiler initializes calling Tune::add()
 #if !defined(STRINGIFY)
     #define STRING_LITERAL(x) #x
@@ -197,7 +202,11 @@ class Tune final {
 #endif
 #define UNIQUE2(x, y) x##y
 #define UNIQUE(x, y) UNIQUE2(x, y)  // Two indirection levels to expand __LINE__
-#define TUNE(...) int UNIQUE(p, __LINE__) = Tune::add(STRINGIFY((__VA_ARGS__)), __VA_ARGS__)
+#define TUNE(...) \
+    int UNIQUE(p, __LINE__) = []() -> int { \
+        check_tune_args(__VA_ARGS__); \
+        return Tune::add(STRINGIFY((__VA_ARGS__)), __VA_ARGS__); \
+    }();
 
 #define ON_LAST_UPDATE() bool UNIQUE(p, __LINE__) = Tune::OnLastUpdate = true
 

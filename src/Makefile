@@ -1144,7 +1144,7 @@ icx-profile-make:
 	all
 
 icx-profile-use:
-	$(XCRUN) llvm-profdata merge -output=$(NAME).profdata *.profraw
+	$(XCRUN) $(LLVM_PROFDATA) merge -output=$(NAME).profdata *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-instr-use=$(NAME).profdata' \
 	EXTRALDFLAGS='-fprofile-use' \
