@@ -1,13 +1,11 @@
 # Files from build
-*.o
-*.s
-.depend
-profdir/
-PGOBENCH.out
+**/*.o
+**/*.s
+src/.depend
 
 # Built binary
-DON*
--lstdc++.res
+src/DON*
+src/-lstdc++.res
 
 # Neural network for the NNUE evaluation
 *.nnue
