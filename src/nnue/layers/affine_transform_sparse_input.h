@@ -126,8 +126,9 @@ void find_nnz(const std::int32_t* RESTRICT input,
 
     constexpr IndexType SimdWidth = 16;  // 512 bits / 32 bits
     constexpr IndexType NumChunks = InputDimensions / SimdWidth;
-    const __m512i       increment = _mm512_set1_epi32(SimdWidth);
-    __m512i base = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+
+    __m512i base      = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+    __m512i increment = _mm512_set1_epi32(SimdWidth);
 
     IndexType count = 0;
     for (IndexType i = 0; i < NumChunks; ++i)
@@ -154,10 +155,12 @@ void find_nnz(const std::int32_t* RESTRICT input,
     constexpr IndexType InputsPerChunk  = ChunkSize / InputSimdWidth;
     constexpr IndexType OutputsPerChunk = ChunkSize / 8;
 
-    const auto     inputVector = reinterpret_cast<const vec_uint_t*>(input);
-    IndexType      count       = 0;
-    vec128_t       base        = vec128_zero;
-    const vec128_t increment   = vec128_set_16(8);
+    const auto inputVector = reinterpret_cast<const vec_uint_t*>(input);
+
+    vec128_t base      = vec128_zero;
+    vec128_t increment = vec128_set_16(8);
+
+    IndexType count = 0;
     for (IndexType i = 0; i < NumChunks; ++i)
     {
         // bitmask of nonzero values in this chunk
@@ -169,8 +172,8 @@ void find_nnz(const std::int32_t* RESTRICT input,
         }
         for (IndexType j = 0; j < OutputsPerChunk; ++j)
         {
-            const unsigned nnzMask = (nnz >> (j * 8)) & 0xFF;
-            const vec128_t offsets =
+            unsigned nnzMask = (nnz >> (j * 8)) & 0xFF;
+            vec128_t offsets =
               vec128_load(reinterpret_cast<const vec128_t*>(&LookupInstance.indices[nnzMask]));
             vec128_storeu(reinterpret_cast<vec128_t*>(outNnz + count), vec128_add(base, offsets));
             count += LookupInstance.popcounts[nnzMask];
@@ -294,23 +297,23 @@ class AffineTransformSparseInput {
         // Find indices of nonzero 32-bit blocks
         find_nnz<ChunkCount>(input32, nnz, count);
 
-        const outvec_t* biasVec = reinterpret_cast<const outvec_t*>(biases);
-        outvec_t        acc[RegCount];
+        const auto* biasVec = reinterpret_cast<const outvec_t*>(biases);
+        outvec_t    acc[RegCount];
         for (IndexType k = 0; k < RegCount; ++k)
             acc[k] = biasVec[k];
 
         for (IndexType j = 0; j < count; ++j)
         {
-            const auto i = nnz[j];
+            auto    i  = nnz[j];
+            invec_t in = vec_set_32(input32[i]);
 
-            const invec_t in = vec_set_32(input32[i]);
-            const auto*   col =
+            const auto* col =
               reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);
             for (IndexType k = 0; k < RegCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
 
-        outvec_t* outVec = reinterpret_cast<outvec_t*>(output);
+        auto* outVec = reinterpret_cast<outvec_t*>(output);
         for (IndexType k = 0; k < RegCount; ++k)
             outVec[k] = acc[k];
     #undef vec_set_32
