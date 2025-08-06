@@ -1006,19 +1006,10 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     st->checkers = check ? attackers_to(king_square(~ac)) & pieces(ac) : 0;
     assert(!check || (checkers() && popcount(checkers()) <= 2));
 
-    if (epCheck && can_enpassant(~ac, dst - pawn_spush(ac)))
-    {
-        st->epSquare = dst - pawn_spush(ac);
-        k ^= Zobrist::enpassant[file_of(ep_square())];
-    }
-
 DO_MOVE_END:
 
     // Update hash key
     k ^= Zobrist::psq[movedPiece][org] ^ Zobrist::psq[movedPiece][dst];
-
-    // Set the key with the updated key
-    st->key = k;
 
     st->capturedPiece = capturedPiece;
     st->promotedPiece = promotedPiece;
@@ -1027,6 +1018,15 @@ DO_MOVE_END:
 
     // Update king attacks used for fast check detection
     set_ext_state();
+
+    if (epCheck && can_enpassant(~ac, dst - pawn_spush(ac)))
+    {
+        st->epSquare = dst - pawn_spush(ac);
+        k ^= Zobrist::enpassant[file_of(ep_square())];
+    }
+
+    // Set the key with the updated key
+    st->key = k;
 
     // Calculate the repetition info.
     // It is the ply distance from the previous occurrence of the same position,
