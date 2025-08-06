@@ -734,14 +734,22 @@ bool Position::can_enpassant(Color           ac,
         if (checkers() & ~square_bb(capSq))
             return false;
 
-        // If there are two pawns potentially being abled to capture and both are pinned.
-        if (more_than_one(blockers(ac) & attackers))
+        // If there are two pawns potentially being abled to capture
+        if (more_than_one(attackers))
         {
+            // If at least one is not pinned, ep is legal as there are no horizontal exposed checks
+            if (!more_than_one(attackers & blockers(ac)))
+            {
+                if (epAttackers != nullptr)
+                    *epAttackers = attackers;
+                return true;
+            }
+
             Bitboard kingFile = file_bb(king_square(ac));
             // If there is no pawn on our king's file and thus both pawns are pinned by bishops.
             if (!(attackers & kingFile))
                 return false;
-
+            // Otherwise remove the pawn on the king file, as an ep capture by it can never be legal
             attackers &= ~kingFile;
         }
     }
