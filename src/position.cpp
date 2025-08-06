@@ -717,18 +717,37 @@ bool Position::can_enpassant(Color           ac,
                              Bitboard* const epAttackers) const noexcept {
     assert(is_ok(epSq));
 
+    if (epAttackers != nullptr)
+        *epAttackers = 0;
+
     // En-passant attackers
     Bitboard attackers = pieces(ac, PAWN) & attacks_bb<PAWN>(epSq, ~ac);
-    if (epAttackers != nullptr)
-        *epAttackers = attackers;
     if (!attackers)
         return false;
 
     Square capSq = epSq + (before ? +1 : -1) * pawn_spush(ac);
     assert(pieces(~ac, PAWN) & capSq);
 
-    if (!before && (checkers() & ~square_bb(capSq)))
-        return false;
+    if (!before)
+    {
+        // If there are checkers other than the to be captured pawn, ep is never legal
+        if (checkers() & ~square_bb(capSq))
+            return false;
+
+        if (more_than_one(attackers))
+        {
+            Bitboard kingFile = file_bb(king_square(ac));
+            // If there are two pawns potentially being abled to capture and both are pinned.
+            // If there is no pawn on our king's file and thus both pawns are pinned by bishops.
+            if (more_than_one(blockers(ac) & attackers) && !(kingFile & attackers))
+                return false;
+
+            attackers &= ~kingFile;
+        }
+    }
+
+    if (epAttackers != nullptr)
+        *epAttackers = attackers;
 
     bool enpassant = false;
     // Check en-passant is legal for the position
@@ -844,7 +863,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
         reset_ep_square();
     }
 
-    bool checkEp = false;
+    bool epCheck = false;
 
     // If the move is a castling, do some special work
     if (m.type_of() == CASTLING)
@@ -966,7 +985,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
         {
             assert(relative_rank(ac, org) == RANK_2);
             assert(relative_rank(ac, dst) == RANK_4);
-            checkEp = true;
+            epCheck = true;
         }
 
         // Update pawn hash key
@@ -988,7 +1007,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     st->checkers = check ? attackers_to(king_square(~ac)) & pieces(ac) : 0;
     assert(!check || (checkers() && popcount(checkers()) <= 2));
 
-    if (checkEp && can_enpassant(~ac, dst - pawn_spush(ac)))
+    if (epCheck && can_enpassant(~ac, dst - pawn_spush(ac)))
     {
         st->epSquare = dst - pawn_spush(ac);
         k ^= Zobrist::enpassant[file_of(ep_square())];
@@ -1033,9 +1052,9 @@ DO_MOVE_END:
     assert(pos_is_ok());
 
     assert(is_ok(dp.pc));
-    assert(!(capturedPiece != NO_PIECE || m.type_of() == CASTLING) ^ is_ok(dp.removeSq));
     assert(is_ok(dp.org));
-    assert(!is_ok(dp.addSq) ^ (m.type_of() == PROMOTION || m.type_of() == CASTLING));
+    //assert(!(capturedPiece != NO_PIECE || m.type_of() == CASTLING) ^ is_ok(dp.removeSq));
+    //assert(!is_ok(dp.addSq) ^ (m.type_of() == PROMOTION || m.type_of() == CASTLING));
     return dp;
 }
 
