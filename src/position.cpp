@@ -717,15 +717,37 @@ bool Position::can_enpassant(Color           ac,
                              Bitboard* const epAttackers) const noexcept {
     assert(is_ok(epSq));
 
+    //if (epAttackers != nullptr)
+    //    *epAttackers = 0;
+
     // En-passant attackers
     Bitboard attackers = pieces(ac, PAWN) & attacks_bb<PAWN>(epSq, ~ac);
-    if (epAttackers != nullptr)
-        *epAttackers = attackers;
     if (!attackers)
         return false;
 
     Square capSq = epSq + (before ? +1 : -1) * pawn_spush(ac);
     assert(pieces(~ac, PAWN) & capSq);
+
+    if (!before)
+    {
+        // If there are checkers other than the to be captured pawn, ep is never legal
+        if (checkers() & ~square_bb(capSq))
+            return false;
+
+        // If there are two pawns potentially being abled to capture and both are pinned.
+        if (more_than_one(blockers(ac) & attackers))
+        {
+            Bitboard kingFile = file_bb(king_square(ac));
+            // If there is no pawn on our king's file and thus both pawns are pinned by bishops.
+            if (!(attackers & kingFile))
+                return false;
+
+            attackers &= ~kingFile;
+        }
+    }
+
+    if (epAttackers != nullptr)
+        *epAttackers = attackers;
 
     bool enpassant = false;
     // Check en-passant is legal for the position
@@ -767,9 +789,10 @@ void Position::do_castling(
 
     if constexpr (Do)
     {
+        dp->dst = dst;
+
         if (rookMoved)
         {
-            dp->dst      = dst;
             dp->removePc = dp->addPc = rook;
             dp->removeSq             = rorg;
             dp->addSq                = rdst;
@@ -839,6 +862,9 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
         reset_ep_square();
     }
 
+    bool epCheck = false;
+
+    // If the move is a castling, do some special work
     if (m.type_of() == CASTLING)
     {
         assert(pt == KING);
@@ -954,13 +980,11 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
             // clang-format on
         }
         // Set en-passant square if the moved pawn can be captured
-        else if ((int(dst) ^ int(org)) == NORTH_2 && can_enpassant(~ac, dst - pawn_spush(ac)))
+        else if ((int(dst) ^ int(org)) == NORTH_2)
         {
             assert(relative_rank(ac, org) == RANK_2);
             assert(relative_rank(ac, dst) == RANK_4);
-
-            st->epSquare = dst - pawn_spush(ac);
-            k ^= Zobrist::enpassant[file_of(ep_square())];
+            epCheck = true;
         }
 
         // Update pawn hash key
@@ -987,9 +1011,6 @@ DO_MOVE_END:
     // Update hash key
     k ^= Zobrist::psq[movedPiece][org] ^ Zobrist::psq[movedPiece][dst];
 
-    // Set the key with the updated key
-    st->key = k;
-
     st->capturedPiece = capturedPiece;
     st->promotedPiece = promotedPiece;
 
@@ -997,6 +1018,15 @@ DO_MOVE_END:
 
     // Update king attacks used for fast check detection
     set_ext_state();
+
+    if (epCheck && can_enpassant(active_color(), dst - pawn_spush(ac)))
+    {
+        st->epSquare = dst - pawn_spush(ac);
+        k ^= Zobrist::enpassant[file_of(ep_square())];
+    }
+
+    // Set the key with the updated key
+    st->key = k;
 
     // Calculate the repetition info.
     // It is the ply distance from the previous occurrence of the same position,
@@ -1020,10 +1050,10 @@ DO_MOVE_END:
 
     assert(pos_is_ok());
 
-    assert(dp.pc != NO_PIECE);
-    assert(!(capturedPiece != NO_PIECE || m.type_of() == CASTLING) ^ (dp.removeSq != SQ_NONE));
-    assert(dp.org != SQ_NONE);
-    assert(!(dp.addSq != SQ_NONE) ^ (m.type_of() == PROMOTION || m.type_of() == CASTLING));
+    assert(is_ok(dp.pc));
+    assert(is_ok(dp.org));
+    //assert(!(capturedPiece != NO_PIECE || m.type_of() == CASTLING) ^ is_ok(dp.removeSq));
+    //assert(!is_ok(dp.addSq) ^ (m.type_of() == PROMOTION || m.type_of() == CASTLING));
     return dp;
 }
 
@@ -1344,7 +1374,7 @@ bool Position::check(const Move& m) const noexcept {
         return false;
 
     case PROMOTION :
-        return attacks_bb(m.promotion_type(), dst, pieces() ^ org) & king_square(~ac);
+        return attacks_bb(m.promotion_type(), dst, pieces() ^ org) & pieces(~ac, KING);
 
     // En-passant capture with check? Already handled the case of direct check
     // and ordinary discovered check, so the only case need to handle is
@@ -1381,7 +1411,7 @@ bool Position::dbl_check(const Move& m) const noexcept {
 
     case PROMOTION :
         return (blockers(~ac) & org)  //
-            && (attacks_bb(m.promotion_type(), dst, pieces() ^ org) & king_square(~ac));
+            && (attacks_bb(m.promotion_type(), dst, pieces() ^ org) & pieces(~ac, KING));
 
     case EN_PASSANT : {
         Bitboard checkers =
@@ -1597,7 +1627,7 @@ bool Position::see_ge(const Move& m, int threshold) const noexcept {
             acAttackers &= king_square(ac);
 
             if (!acAttackers  //
-                && (pt == PAWN || !(attacks_bb(pt, dst, occupied) & king_square(ac))))
+                && (pt == PAWN || !(attacks_bb(pt, dst, occupied) & pieces(ac, KING))))
             {
                 dst  = lsb(b);
                 swap = PIECE_VALUE[type_of(piece_on(org))] - swap;

@@ -415,16 +415,16 @@ ifeq ($(findstring loongarch64, $(ARCH)), loongarch64)
 	arch = loongarch64
 	prefetch = yes
 
-ifeq ($(findstring -lasx, $(ARCH)), -lasx)
-	lsx = yes
-	lasx = yes
+	ifeq ($(findstring -lasx, $(ARCH)), -lasx)
+		lsx = yes
+		lasx = yes
+	endif
+
+	ifeq ($(findstring -lsx, $(ARCH)), -lsx)
+		lsx = yes
+	endif
 endif
 
-ifeq ($(findstring -lsx, $(ARCH)), -lsx)
-	lsx = yes
-endif
-
-endif
 endif
 
 
@@ -676,7 +676,7 @@ ifeq ($(optimize), yes)
 
 	ifeq ($(comp), clang)
 		clangmajorversion := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
-		ifeq ($(shell expr $(clangmajorversion) \< 16),1)
+		ifeq ($(shell expr $(clangmajorversion) \< 16), 1)
 			CXXFLAGS += -fexperimental-new-pass-manager
 		endif
 	endif
@@ -790,16 +790,16 @@ endif
 ifeq ($(neon), yes)
 	CXXFLAGS += -DUSE_NEON=$(arm_version)
 	ifeq ($(KERNEL), Linux)
-	ifneq ($(COMP), ndk)
-	ifneq ($(arch), armv8)
-		CXXFLAGS += -mfpu=neon
-	endif
-	endif
+		ifneq ($(COMP), ndk)
+			ifneq ($(arch), armv8)
+				CXXFLAGS += -mfpu=neon
+			endif
+		endif
 	endif
 endif
 
 ifeq ($(dotprod), yes)
-	CXXFLAGS += -march=armv8.2-a+dotprod -DUSE_NEON_DOTPROD
+	CXXFLAGS += -DUSE_NEON_DOTPROD -march=armv8.2-a+dotprod
 endif
 
 ifeq ($(lasx), yes)
@@ -808,7 +808,7 @@ ifeq ($(lasx), yes)
 	endif
 endif
 
-ifeq ($(lsx),yes)
+ifeq ($(lsx), yes)
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
 		CXXFLAGS += -mlsx
 	endif
@@ -848,7 +848,7 @@ ifeq ($(debug), no)
 		CXXFLAGS += -flto=full
 		ifeq ($(comp), icx)
 			CXXFLAGS += -fwhole-program-vtables
-                endif
+		endif
 		ifeq ($(target_windows), yes)
 			CXXFLAGS += -fuse-ld=lld
 		endif
