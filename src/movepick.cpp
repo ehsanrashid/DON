@@ -248,13 +248,17 @@ STAGE_SWITCH:
     case STG_ENC_CAPTURE_GOOD :
         while (cur != endCur)
         {
-            if (*cur != ttMove)
+            if (ttmCheck && *cur == ttMove)
             {
-                if (threshold == 0 || pos.see(*cur) >= -55.5555e-3f * cur->value)
-                    return *cur++;
-                // Store bad captures
-                std::swap(*endBadCaptures++, *cur);
+                ttmCheck = false;
+                ++cur;
+                continue;
             }
+
+            if (threshold == 0 || pos.see(*cur) >= -55.5555e-3f * cur->value)
+                return *cur++;
+            // Store bad captures
+            std::swap(*endBadCaptures++, *cur);
             ++cur;
         }
 
@@ -279,14 +283,17 @@ STAGE_SWITCH:
         if (quietPick)
             while (cur != endCur)
             {
-                if (*cur != ttMove)
+                if (ttmCheck && *cur == ttMove)
                 {
-                    if (cur->value >= GoodQuietThreshold)
-                        return *cur++;
-                    // Remaining quiets are bad
-                    break;
+                    ttmCheck = false;
+                    ++cur;
+                    continue;
                 }
-                ++cur;
+
+                if (cur->value >= GoodQuietThreshold)
+                    return *cur++;
+                // Remaining quiets are bad
+                break;
             }
 
         // Prepare the pointers to loop over the bad captures
@@ -299,9 +306,13 @@ STAGE_SWITCH:
     case STG_ENC_CAPTURE_BAD :
         while (cur != endCur)
         {
-            if (*cur != ttMove)
-                return *cur++;
-            ++cur;
+            if (ttmCheck && *cur == ttMove)
+            {
+                ttmCheck = false;
+                ++cur;
+                continue;
+            }
+            return *cur++;
         }
 
         if (quietPick)
@@ -320,9 +331,13 @@ STAGE_SWITCH:
         if (quietPick)
             while (cur != endCur)
             {
-                if (*cur != ttMove)
-                    return *cur++;
-                ++cur;
+                if (ttmCheck && *cur == ttMove)
+                {
+                    ttmCheck = false;
+                    ++cur;
+                    continue;
+                }
+                return *cur++;
             }
         return Move::None;
 
@@ -341,9 +356,13 @@ STAGE_SWITCH:
     case STG_EVA_CAPTURE_ALL :
         while (cur != endCur)
         {
-            if (*cur != ttMove)
-                return *cur++;
-            ++cur;
+            if (ttmCheck && *cur == ttMove)
+            {
+                ttmCheck = false;
+                ++cur;
+                continue;
+            }
+            return *cur++;
         }
 
         ++stage;
@@ -366,9 +385,13 @@ STAGE_SWITCH:
         if (quietPick)
             while (cur != endCur)
             {
-                if (*cur != ttMove)
-                    return *cur++;
-                ++cur;
+                if (ttmCheck && *cur == ttMove)
+                {
+                    ttmCheck = false;
+                    ++cur;
+                    continue;
+                }
+                return *cur++;
             }
 
         return Move::None;
@@ -376,7 +399,13 @@ STAGE_SWITCH:
     case STG_PROBCUT_ALL :
         while (cur != endCur)
         {
-            if (*cur != ttMove && pos.see(*cur) >= threshold)
+            if (ttmCheck && *cur == ttMove)
+            {
+                ttmCheck = false;
+                ++cur;
+                continue;
+            }
+            if (pos.see(*cur) >= threshold)
                 return *cur++;
             ++cur;
         }
