@@ -717,8 +717,8 @@ bool Position::can_enpassant(Color           ac,
                              Bitboard* const epAttackers) const noexcept {
     assert(is_ok(epSq));
 
-    if (epAttackers != nullptr)
-        *epAttackers = 0;
+    //if (epAttackers != nullptr)
+    //    *epAttackers = 0;
 
     // En-passant attackers
     Bitboard attackers = pieces(ac, PAWN) & attacks_bb<PAWN>(epSq, ~ac);
