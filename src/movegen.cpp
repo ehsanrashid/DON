@@ -319,23 +319,23 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
         case EVA_QUIET :   target = between_ex_bb(pos.king_square(ac), lsb(pos.checkers())); break;
         }
 
-        auto last = moves;
+        auto* lmoves = moves;
         moves = generate_pawns_moves<GT>    (pos, moves, target);
-        if (Any && ((moves - last > 0 && pos.legal(last[0]))
-                 || (moves - last > 1 && pos.legal(last[1]))
-                 || (moves - last > 2 && pos.legal(last[2])))) return moves;
-        last = moves;
+        if (Any && ((moves > lmoves + 0 && pos.legal(lmoves[0]))
+                 || (moves > lmoves + 1 && pos.legal(lmoves[1]))
+                 || (moves > lmoves + 2 && pos.legal(lmoves[2])))) return moves;
+        lmoves = moves;
         moves = generate_piece_moves<KNIGHT>(pos, moves, target);
-        if (Any && moves > last) return moves;
-        last = moves;
+        if (Any && moves > lmoves) return moves;
+        lmoves = moves;
         moves = generate_piece_moves<BISHOP>(pos, moves, target);
-        if (Any && moves > last) return moves;
-        last = moves;
+        if (Any && moves > lmoves) return moves;
+        lmoves = moves;
         moves = generate_piece_moves<ROOK>  (pos, moves, target);
-        if (Any && moves > last) return moves;
-        last = moves;
+        if (Any && moves > lmoves) return moves;
+        lmoves = moves;
         moves = generate_piece_moves<QUEEN> (pos, moves, target);
-        if (Any && moves > last) return moves;
+        if (Any && moves > lmoves) return moves;
     }
 
     if constexpr (Evasion)

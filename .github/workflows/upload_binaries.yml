@@ -61,6 +61,9 @@ jobs:
           cp -r src ../DON/
           cp -r scripts ../DON/
           cp DON-$NAME-$BINARY$EXT ../DON/
+          cp "Top CPU Contributors.txt" ../DON/
+          cp Copying.txt ../DON/
+          cp AUTHORS ../DON/
           cp CITATION.cff ../DON/
           cp README.md ../DON/
           cp CONTRIBUTING.md ../DON/

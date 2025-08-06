@@ -770,9 +770,11 @@ void Position::do_castling(
 
     if constexpr (Do)
     {
+        if (kingMoved)
+            dp->dst = dst;
+
         if (rookMoved)
         {
-            dp->dst      = dst;
             dp->removePc = dp->addPc = rook;
             dp->removeSq             = rorg;
             dp->addSq                = rdst;
@@ -1030,10 +1032,10 @@ DO_MOVE_END:
 
     assert(pos_is_ok());
 
-    assert(dp.pc != NO_PIECE);
-    assert(!(capturedPiece != NO_PIECE || m.type_of() == CASTLING) ^ (dp.removeSq != SQ_NONE));
-    assert(dp.org != SQ_NONE);
-    assert(!(dp.addSq != SQ_NONE) ^ (m.type_of() == PROMOTION || m.type_of() == CASTLING));
+    assert(is_ok(dp.pc));
+    assert(!(capturedPiece != NO_PIECE || m.type_of() == CASTLING) ^ is_ok(dp.removeSq));
+    assert(is_ok(dp.org));
+    assert(!is_ok(dp.addSq) ^ (m.type_of() == PROMOTION || m.type_of() == CASTLING));
     return dp;
 }
 

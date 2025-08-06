@@ -71,10 +71,6 @@ jobs:
             $COMPCXX -Q -march=native --help=target
           fi
 
-      - name: Show clang++ cpu info
-        if: runner.os == 'macOS'
-        run: clang++ -E - -march=native -###
-
       # x86-64 with newer extensions tests
 
       - name: Compile ${{ matrix.config.binaries }} build
