@@ -717,16 +717,17 @@ bool Position::can_enpassant(Color           ac,
                              Bitboard* const epAttackers) const noexcept {
     assert(is_ok(epSq));
 
-    //if (epAttackers != nullptr)
-    //    *epAttackers = 0;
-
     // En-passant attackers
     Bitboard attackers = pieces(ac, PAWN) & attacks_bb<PAWN>(epSq, ~ac);
+    if (epAttackers != nullptr)
+        *epAttackers = attackers;
     if (!attackers)
         return false;
 
     Square capSq = epSq + (before ? +1 : -1) * pawn_spush(ac);
     assert(pieces(~ac, PAWN) & capSq);
+
+    Square kingSq = king_square(ac);
 
     if (!before)
     {
@@ -739,40 +740,35 @@ bool Position::can_enpassant(Color           ac,
         {
             // If at least one is not pinned, ep is legal as there are no horizontal exposed checks
             if (!more_than_one(attackers & blockers(ac)))
-            {
-                if (epAttackers != nullptr)
-                    *epAttackers = attackers;
                 return true;
-            }
 
-            Bitboard kingFile = file_bb(king_square(ac));
+            Bitboard kingFile = file_bb(kingSq);
             // If there is no pawn on our king's file and thus both pawns are pinned by bishops.
             if (!(attackers & kingFile))
                 return false;
             // Otherwise remove the pawn on the king file, as an ep capture by it can never be legal
             attackers &= ~kingFile;
+            if (epAttackers != nullptr)
+                *epAttackers = attackers;
         }
     }
 
-    if (epAttackers != nullptr)
-        *epAttackers = attackers;
-
-    bool enpassant = false;
+    bool epCan = false;
     // Check en-passant is legal for the position
     Bitboard occupied = pieces() ^ make_bitboard(capSq, epSq);
     while (attackers)
     {
         Square s = pop_lsb(attackers);
-        if (!(slide_attackers_to(king_square(ac), occupied ^ s) & pieces(~ac)))
+        if (!(slide_attackers_to(kingSq, occupied ^ s) & pieces(~ac)))
         {
-            enpassant = true;
+            epCan = true;
             if (epAttackers == nullptr)
                 break;
         }
         else if (epAttackers != nullptr)
             *epAttackers ^= s;
     }
-    return enpassant;
+    return epCan;
 }
 
 // Helper used to do/undo a castling move.
