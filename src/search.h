@@ -33,7 +33,6 @@
 
 #include "history.h"
 #include "misc.h"
-#include "movegen.h"
 #include "numa.h"
 #include "position.h"
 #include "timeman.h"

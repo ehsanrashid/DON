@@ -27,6 +27,7 @@
 
 #include "bitboard.h"
 #include "evaluate.h"
+#include "movegen.h"
 #include "movepick.h"
 #include "polybook.h"
 #include "thread.h"

@@ -18,12 +18,8 @@
 #ifndef MOVEGEN_H_INCLUDED
 #define MOVEGEN_H_INCLUDED
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <initializer_list>
-#include <utility>
-#include <vector>
 
 #include "types.h"
 
