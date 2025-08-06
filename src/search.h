@@ -73,25 +73,23 @@ struct RootMove final {
     }
     friend bool operator!=(const RootMove& rm, const Move& m) noexcept { return !(rm == m); }
 
-    friend bool operator==(const RootMove& rm1, const RootMove& rm2) noexcept {  //
+    friend bool operator==(const RootMove& rm1, const RootMove& rm2) noexcept {
         return !rm1.pv.empty() && !rm2.pv.empty() && rm1.pv[0] == rm2.pv[0];
     }
-    friend bool operator!=(const RootMove& rm1, const RootMove& rm2) noexcept {  //
+    friend bool operator!=(const RootMove& rm1, const RootMove& rm2) noexcept {
         return !(rm1 == rm2);
     }
 
     // Sort in descending order
-    friend bool operator<(const RootMove& rm1, const RootMove& rm2) noexcept {  //
+    friend bool operator<(const RootMove& rm1, const RootMove& rm2) noexcept {
         return std::tie(rm1.curValue, rm1.preValue, rm1.avgValue)
              > std::tie(rm2.curValue, rm2.preValue, rm2.avgValue);
     }
-    friend bool operator>(const RootMove& rm1, const RootMove& rm2) noexcept {  //
-        return (rm2 < rm1);
-    }
-    friend bool operator<=(const RootMove& rm1, const RootMove& rm2) noexcept {  //
+    friend bool operator>(const RootMove& rm1, const RootMove& rm2) noexcept { return (rm2 < rm1); }
+    friend bool operator<=(const RootMove& rm1, const RootMove& rm2) noexcept {
         return !(rm1 > rm2);
     }
-    friend bool operator>=(const RootMove& rm1, const RootMove& rm2) noexcept {  //
+    friend bool operator>=(const RootMove& rm1, const RootMove& rm2) noexcept {
         return !(rm1 < rm2);
     }
 

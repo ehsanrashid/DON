@@ -1374,7 +1374,7 @@ bool Position::check(const Move& m) const noexcept {
         return false;
 
     case PROMOTION :
-        return attacks_bb(m.promotion_type(), dst, pieces() ^ org) & king_square(~ac);
+        return attacks_bb(m.promotion_type(), dst, pieces() ^ org) & pieces(~ac, KING);
 
     // En-passant capture with check? Already handled the case of direct check
     // and ordinary discovered check, so the only case need to handle is
@@ -1411,7 +1411,7 @@ bool Position::dbl_check(const Move& m) const noexcept {
 
     case PROMOTION :
         return (blockers(~ac) & org)  //
-            && (attacks_bb(m.promotion_type(), dst, pieces() ^ org) & king_square(~ac));
+            && (attacks_bb(m.promotion_type(), dst, pieces() ^ org) & pieces(~ac, KING));
 
     case EN_PASSANT : {
         Bitboard checkers =
@@ -1627,7 +1627,7 @@ bool Position::see_ge(const Move& m, int threshold) const noexcept {
             acAttackers &= king_square(ac);
 
             if (!acAttackers  //
-                && (pt == PAWN || !(attacks_bb(pt, dst, occupied) & king_square(ac))))
+                && (pt == PAWN || !(attacks_bb(pt, dst, occupied) & pieces(ac, KING))))
             {
                 dst  = lsb(b);
                 swap = PIECE_VALUE[type_of(piece_on(org))] - swap;
