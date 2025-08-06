@@ -92,8 +92,6 @@ class MovePicker final {
     bool quietPick = false;
 
    private:
-    void next_stage() noexcept { ++stage; }
-
     template<GenType GT>
     ExtMove* score(MoveList<GT>& moveList) noexcept;
 
@@ -101,8 +99,6 @@ class MovePicker final {
 
     auto begin() noexcept { return cur; }
     auto end() noexcept { return endCur; }
-
-    void next() noexcept { ++cur; }
 
     const Position&           pos;
     const Move&               ttMove;

@@ -60,7 +60,7 @@ MovePicker::MovePicker(const Position&           p,
 
     stage = pos.checkers() ? STG_EVA_TT : STG_ENC_TT;
     if (ttMove == Move::None || !(pos.checkers() || threshold < 0 || pos.capture_promo(ttMove)))
-        next_stage();
+        ++stage;
 }
 
 MovePicker::MovePicker(const Position& p,  //
@@ -76,7 +76,7 @@ MovePicker::MovePicker(const Position& p,  //
 
     stage = STG_PROBCUT_TT;
     if (ttMove == Move::None || !(pos.capture_promo(ttMove) && pos.see(ttMove) >= threshold))
-        next_stage();
+        ++stage;
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -229,7 +229,7 @@ STAGE_SWITCH:
     case STG_ENC_TT :
     case STG_EVA_TT :
     case STG_PROBCUT_TT :
-        next_stage();
+        ++stage;
         return ttMove;
 
     case STG_ENC_CAPTURE_INIT :
@@ -241,7 +241,7 @@ STAGE_SWITCH:
 
         sort_partial();
 
-        next_stage();
+        ++stage;
         goto STAGE_SWITCH;
     }
 
@@ -258,7 +258,7 @@ STAGE_SWITCH:
             ++cur;
         }
 
-        next_stage();
+        ++stage;
         [[fallthrough]];
 
     case STG_ENC_QUIET_INIT :
@@ -272,7 +272,7 @@ STAGE_SWITCH:
             sort_partial(threshold);
         }
 
-        next_stage();
+        ++stage;
         [[fallthrough]];
 
     case STG_ENC_QUIET_GOOD :
@@ -293,7 +293,7 @@ STAGE_SWITCH:
         cur    = moves;
         endCur = endBadCaptures;
 
-        next_stage();
+        ++stage;
         [[fallthrough]];
 
     case STG_ENC_CAPTURE_BAD :
@@ -303,7 +303,7 @@ STAGE_SWITCH:
         if (quietPick)
             sort_partial();
 
-        next_stage();
+        ++stage;
         [[fallthrough]];
 
     case STG_ENC_QUIET_BAD :
@@ -325,7 +325,7 @@ STAGE_SWITCH:
         sort_partial();
     }
 
-        next_stage();
+        ++stage;
         [[fallthrough]];
 
     case STG_EVA_CAPTURE_ALL :
@@ -336,7 +336,7 @@ STAGE_SWITCH:
             ++cur;
         }
 
-        next_stage();
+        ++stage;
         [[fallthrough]];
 
     case STG_EVA_QUIET_INIT :
@@ -349,7 +349,7 @@ STAGE_SWITCH:
             sort_partial();
         }
 
-        next_stage();
+        ++stage;
         [[fallthrough]];
 
     case STG_EVA_QUIET_ALL :
