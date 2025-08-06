@@ -330,8 +330,8 @@ void Worker::iterative_deepening() noexcept {
         {
             // Use as a sentinel
             (ss + i)->staticEval               = VALUE_NONE;
-            (ss + i)->pieceSqHistory           = &ContinuationHistory[0][0][NO_PIECE][SQ_ZERO];
-            (ss + i)->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[NO_PIECE][SQ_ZERO];
+            (ss + i)->pieceSqHistory           = &ContinuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
+            (ss + i)->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[NO_PIECE][SQUARE_ZERO];
         }
     }
     assert(stack[0].ply == -StackOffset && stack[StackSize - 1].ply == MAX_PLY + 1);
@@ -1940,8 +1940,8 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
     tt.prefetch_key(pos.key());
     nodes.fetch_add(1, std::memory_order_relaxed);
     ss->move                     = Move::Null;
-    ss->pieceSqHistory           = &ContinuationHistory[0][0][NO_PIECE][SQ_ZERO];
-    ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[NO_PIECE][SQ_ZERO];
+    ss->pieceSqHistory           = &ContinuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
+    ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[NO_PIECE][SQUARE_ZERO];
 }
 
 void Worker::undo_null_move(Position& pos) noexcept { pos.undo_null_move(); }

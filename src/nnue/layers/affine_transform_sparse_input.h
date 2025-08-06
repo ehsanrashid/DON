@@ -99,9 +99,10 @@ void find_nnz(const std::int32_t* RESTRICT input,
     constexpr IndexType SimdWidthIn  = 16;  // 512 bits / 32 bits
     constexpr IndexType SimdWidthOut = 32;  // 512 bits / 16 bits
     constexpr IndexType NumChunks    = InputDimensions / SimdWidthOut;
-    const __m512i       increment    = _mm512_set1_epi16(SimdWidthOut);
+
     __m512i base = _mm512_set_epi16(31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
                                     15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+    __m512i increment = _mm512_set1_epi16(SimdWidthOut);
 
     IndexType count = 0;
     for (IndexType i = 0; i < NumChunks; ++i)
@@ -155,7 +156,7 @@ void find_nnz(const std::int32_t* RESTRICT input,
     constexpr IndexType InputsPerChunk  = ChunkSize / InputSimdWidth;
     constexpr IndexType OutputsPerChunk = ChunkSize / 8;
 
-    const auto inputVector = reinterpret_cast<const vec_uint_t*>(input);
+    const auto* inputVector = reinterpret_cast<const vec_uint_t*>(input);
 
     vec128_t base      = vec128_zero;
     vec128_t increment = vec128_set_16(8);

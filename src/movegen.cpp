@@ -34,10 +34,10 @@ namespace DON {
 namespace {
 
 #if defined(USE_AVX512ICL)
-inline Move* write_moves(Move* moveList, std::uint32_t mask, __m512i vector) noexcept {
-    _mm512_storeu_si512(reinterpret_cast<__m512i*>(moveList),
+inline Move* write_moves(Move* moves, std::uint32_t mask, __m512i vector) noexcept {
+    _mm512_storeu_si512(reinterpret_cast<__m512i*>(moves),
                         _mm512_maskz_compress_epi16(mask, vector));
-    return moveList + popcount(mask);
+    return moves + popcount(mask);
 }
 #endif
 
@@ -50,9 +50,9 @@ inline Move* splat_pawn_moves(Move* moves, Bitboard b, Direction d) noexcept {
 #if defined(USE_AVX512ICL)
     alignas(64) static constexpr auto SolateTable = [] {
         std::array<Move, 64> table{};
-        for (int8_t i = 0; i < 64; ++i)
+        for (std::int8_t i = 0; i < 64; ++i)
         {
-            Square s{std::clamp<int8_t>(i - offset, 0, 63)};
+            Square s{std::clamp<int8_t>(i - d, 0, 63)};
             table[i] = {Move(s, Square{i})};
         }
         return table;
@@ -102,7 +102,7 @@ inline Move* splat_moves(Move* moves, Square s, Bitboard b) noexcept {
 #if defined(USE_AVX512ICL)
     alignas(64) static constexpr auto SolateTable = [] {
         std::array<Move, 64> table{};
-        for (int8_t i = 0; i < 64; ++i)
+        for (std::int8_t i = 0; i < 64; ++i)
             table[i] = {Move(SQUARE_ZERO, Square{i})};
         return table;
     }();
