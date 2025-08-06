@@ -1019,7 +1019,7 @@ DO_MOVE_END:
     // Update king attacks used for fast check detection
     set_ext_state();
 
-    if (epCheck && can_enpassant(~ac, dst - pawn_spush(ac)))
+    if (epCheck && can_enpassant(active_color(), dst - pawn_spush(ac)))
     {
         st->epSquare = dst - pawn_spush(ac);
         k ^= Zobrist::enpassant[file_of(ep_square())];
