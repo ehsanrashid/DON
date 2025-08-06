@@ -168,7 +168,7 @@ Thread* ThreadPool::best_thread() const noexcept {
       2 * std::min(size(), bestThread->worker->rootMoves.size()));
 
     for (auto&& th : threads)
-        votes[th->worker->rootMoves.front()[0]] += thread_voting_value(th.get());
+        votes[th->worker->rootMoves.front().pv[0]] += thread_voting_value(th.get());
 
     for (auto&& nextThread : threads)
     {

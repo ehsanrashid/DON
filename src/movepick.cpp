@@ -237,7 +237,7 @@ STAGE_SWITCH:
         MoveList<ENC_CAPTURE> moveList(pos);
 
         cur = endBadCaptures = moves;
-        endCur = endCaptures = score<ENC_CAPTURE>(moveList);
+        endCur               = score<ENC_CAPTURE>(moveList);
 
         sort_partial();
 
@@ -383,9 +383,9 @@ bool MovePicker::can_move_king_or_pawn() const noexcept {
     // SEE negative captures shouldn't be returned in STG_ENC_CAPTURE_GOOD stage
     assert(stage > STG_ENC_CAPTURE_GOOD && stage != STG_EVA_CAPTURE_INIT);
 
-    for (const ExtMove* m = moves; m < endGenerated; ++m)
+    for (const auto* m = moves; m < endGenerated; ++m)
     {
-        PieceType movedPieceType = type_of(pos.moved_piece(*m));
+        auto movedPieceType = type_of(pos.moved_piece(*m));
         if ((movedPieceType == PAWN || movedPieceType == KING) && pos.legal(*m))
             return true;
     }

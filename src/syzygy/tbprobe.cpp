@@ -1670,7 +1670,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
     State st;
     for (auto& rm : rootMoves)
     {
-        pos.do_move(rm[0], st);
+        pos.do_move(rm.pv[0], st);
 
         int dtz;
         // Calculate dtz for the current move counting from the root position
@@ -1697,7 +1697,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
         if (dtz == 2 && pos.checkers() && MoveList<LEGAL, true>(pos).empty())
             dtz = 1;
 
-        pos.undo_move(rm[0]);
+        pos.undo_move(rm.pv[0]);
 
         if (ps == PS_FAIL)
             return false;
@@ -1737,11 +1737,11 @@ bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Use) noexcep
     State st;
     for (auto& rm : rootMoves)
     {
-        pos.do_move(rm[0], st);
+        pos.do_move(rm.pv[0], st);
 
         WDLScore wdl = pos.is_draw(1) ? WDL_DRAW : -probe_wdl(pos, &ps);
 
-        pos.undo_move(rm[0]);
+        pos.undo_move(rm.pv[0]);
 
         if (ps == PS_FAIL)
             return false;

@@ -878,7 +878,7 @@ void on_update_full(const FullInfo& info) noexcept {
         << " hashfull " << info.hashFull             //
         << " tbhits " << info.tbHits                 //
         << " pv";
-    for (const Move& m : info.rootMove)
+    for (const Move& m : info.rootMove.pv)
         oss << ' ' << UCI::move_to_can(m);
     std::cout << oss.str() << std::endl;
 }

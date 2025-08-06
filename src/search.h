@@ -69,44 +69,13 @@ struct RootMove final {
     explicit RootMove(const Move& m) noexcept :
         pv(1, m) {}
 
-    auto begin() const noexcept { return pv.begin(); }
-    auto end() const noexcept { return pv.end(); }
-    auto begin() noexcept { return pv.begin(); }
-    auto end() noexcept { return pv.end(); }
-
-    auto rbegin() noexcept { return pv.rbegin(); }
-    auto rend() noexcept { return pv.rend(); }
-
-    auto& front() noexcept { return pv.front(); }
-    auto& back() noexcept { return pv.back(); }
-
-    auto size() const noexcept { return pv.size(); }
-    auto empty() const noexcept { return pv.empty(); }
-
-    template<typename... Args>
-    auto& emplace_back(Args&&... args) noexcept {
-        return pv.emplace_back(std::forward<Args>(args)...);
-    }
-
-    void push_back(const Move& m) noexcept { pv.push_back(m); }
-    void push_back(Move&& m) noexcept { pv.push_back(std::move(m)); }
-
-    void pop_back() noexcept { pv.pop_back(); }
-
-    void clear() noexcept { pv.clear(); }
-
-    void resize(std::size_t newSize) noexcept { pv.resize(newSize); }
-
-    auto  operator[](std::size_t idx) const noexcept { return pv[idx]; }
-    auto& operator[](std::size_t idx) noexcept { return pv[idx]; }
-
     friend bool operator==(const RootMove& rm, const Move& m) noexcept {
-        return !rm.empty() && rm[0] == m;
+        return !rm.pv.empty() && rm.pv[0] == m;
     }
     friend bool operator!=(const RootMove& rm, const Move& m) noexcept { return !(rm == m); }
 
     friend bool operator==(const RootMove& rm1, const RootMove& rm2) noexcept {  //
-        return !rm1.empty() && !rm2.empty() && rm1[0] == rm2[0];
+        return !rm1.pv.empty() && !rm2.pv.empty() && rm1.pv[0] == rm2.pv[0];
     }
     friend bool operator!=(const RootMove& rm1, const RootMove& rm2) noexcept {  //
         return !(rm1 == rm2);
@@ -134,18 +103,13 @@ struct RootMove final {
     Value    avgValue    = -VALUE_INFINITE;
     SqrValue avgSqrValue = sign_sqr(-VALUE_INFINITE);
 
-    bool          boundLower = false;
-    bool          boundUpper = false;
-    std::uint16_t selDepth   = DEPTH_ZERO;
-    std::uint64_t nodes      = 0;
-    std::int32_t  tbRank     = 0;
-    Value         tbValue    = -VALUE_INFINITE;
-
-   private:
-    Moves pv;
-
-    friend class ThreadPool;
-    friend class Worker;
+    bool              boundLower = false;
+    bool              boundUpper = false;
+    std::uint16_t     selDepth   = DEPTH_ZERO;
+    std::uint64_t     nodes      = 0;
+    std::int32_t      tbRank     = 0;
+    Value             tbValue    = -VALUE_INFINITE;
+    std::vector<Move> pv;
 };
 
 class RootMoves final {
@@ -191,14 +155,14 @@ class RootMoves final {
         return std::find(begin() + fst, begin() + lst, m);
     }
     auto find(std::size_t fst, std::size_t lst, const RootMove& rm) const noexcept {
-        return !rm.empty() ? find(fst, lst, rm[0]) : begin() + lst;
+        return !rm.pv.empty() ? find(fst, lst, rm.pv[0]) : begin() + lst;
     }
 
     auto find(const Move& m) const noexcept { return std::find(begin(), end(), m); }
-    auto find(const RootMove& rm) const noexcept { return !rm.empty() ? find(rm[0]) : end(); }
+    auto find(const RootMove& rm) const noexcept { return !rm.pv.empty() ? find(rm.pv[0]) : end(); }
 
     auto find(const Move& m) noexcept { return std::find(begin(), end(), m); }
-    auto find(const RootMove& rm) noexcept { return !rm.empty() ? find(rm[0]) : end(); }
+    auto find(const RootMove& rm) noexcept { return !rm.pv.empty() ? find(rm.pv[0]) : end(); }
 
     template<typename Predicate>
     auto find_if(Predicate pred) noexcept {
@@ -209,11 +173,11 @@ class RootMoves final {
         return find(fst, lst, m) != begin() + lst;
     }
     bool contains(std::size_t fst, std::size_t lst, const RootMove& rm) const noexcept {
-        return rm.empty() || contains(fst, lst, rm[0]);
+        return rm.pv.empty() || contains(fst, lst, rm.pv[0]);
     }
 
     bool contains(const Move& m) const noexcept { return find(m) != end(); }
-    bool contains(const RootMove& rm) const noexcept { return rm.empty() || contains(rm[0]); }
+    bool contains(const RootMove& rm) const noexcept { return rm.pv.empty() || contains(rm.pv[0]); }
 
     auto remove(const Move& m) noexcept { return std::remove(begin(), end(), m); }
     auto remove(const RootMove& rm) noexcept { return std::remove(begin(), end(), rm); }

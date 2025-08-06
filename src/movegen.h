@@ -31,102 +31,18 @@ namespace DON {
 
 class Position;
 
-class Moves final {
-   public:
-    using Vector     = std::vector<Move>;
-    using Itr        = Vector::iterator;
-    using ConstItr   = Vector::const_iterator;
-    using ReverseItr = Vector::reverse_iterator;
-
-    Moves() noexcept = default;
-    explicit Moves(const std::size_t count, const Move& m) noexcept :
-        moves(count, m) {}
-    explicit Moves(const std::size_t count) noexcept :
-        moves(count) {}
-    Moves(const std::initializer_list<Move>& initList) noexcept :
-        moves(initList) {}
-
-    auto begin() const noexcept { return moves.begin(); }
-    auto end() const noexcept { return moves.end(); }
-    auto begin() noexcept { return moves.begin(); }
-    auto end() noexcept { return moves.end(); }
-
-    auto rbegin() noexcept { return moves.rbegin(); }
-    auto rend() noexcept { return moves.rend(); }
-
-    auto& front() noexcept { return moves.front(); }
-    auto& back() noexcept { return moves.back(); }
-
-    auto size() const noexcept { return moves.size(); }
-    auto empty() const noexcept { return moves.empty(); }
-
-    template<typename... Args>
-    auto& emplace_back(Args&&... args) noexcept {
-        return moves.emplace_back(std::forward<Args>(args)...);
-    }
-    template<typename... Args>
-    auto& emplace(ConstItr where, Args&&... args) noexcept {
-        return moves.emplace(where, std::forward<Args>(args)...);
-    }
-
-    void push_back(const Move& m) noexcept { moves.push_back(m); }
-    void push_back(Move&& m) noexcept { moves.push_back(std::move(m)); }
-
-    void pop_back() noexcept { moves.pop_back(); }
-
-    void clear() noexcept { moves.clear(); }
-
-    void resize(std::size_t newSize) noexcept { moves.resize(newSize); }
-    void reserve(std::size_t newCapacity) noexcept { moves.reserve(newCapacity); }
-
-    auto find(const Move& m) const noexcept { return std::find(begin(), end(), m); }
-
-    bool contains(const Move& m) const noexcept { return find(m) != end(); }
-
-    auto remove(const Move& m) noexcept { return std::remove(begin(), end(), m); }
-
-    template<typename Predicate>
-    auto remove_if(Predicate pred) noexcept {
-        return std::remove_if(begin(), end(), pred);
-    }
-
-    auto erase(ConstItr where) noexcept { return moves.erase(where); }
-    auto erase(ConstItr fst, ConstItr lst) noexcept { return moves.erase(fst, lst); }
-    bool erase(const Move& m) noexcept {
-        auto itr = find(m);
-        if (itr != end())
-        {
-            erase(itr);
-            return true;
-        }
-        return false;
-    }
-
-    auto& operator[](std::size_t idx) const noexcept { return moves[idx]; }
-    auto& operator[](std::size_t idx) noexcept { return moves[idx]; }
-
-   private:
-    Vector moves;
-};
-
 struct ExtMove final: public Move {
    public:
     using Move::Move;
 
     void operator=(Move m) { move = m.raw(); }
 
-    friend bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept {  //
+    friend bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept {
         return em1.value < em2.value;
     }
-    friend bool operator>(const ExtMove& em1, const ExtMove& em2) noexcept {  //
-        return (em2 < em1);
-    }
-    friend bool operator<=(const ExtMove& em1, const ExtMove& em2) noexcept {  //
-        return !(em1 > em2);
-    }
-    friend bool operator>=(const ExtMove& em1, const ExtMove& em2) noexcept {  //
-        return !(em1 < em2);
-    }
+    friend bool operator>(const ExtMove& em1, const ExtMove& em2) noexcept { return (em2 < em1); }
+    friend bool operator<=(const ExtMove& em1, const ExtMove& em2) noexcept { return !(em1 > em2); }
+    friend bool operator>=(const ExtMove& em1, const ExtMove& em2) noexcept { return !(em1 < em2); }
 
     // Inhibit unwanted implicit conversions to Move
     // with an ambiguity that yields to a compile error.
