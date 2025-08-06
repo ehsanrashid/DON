@@ -298,11 +298,7 @@ STAGE_SWITCH:
 
     case STG_ENC_CAPTURE_BAD :
         while (cur != endCur)
-        {
-            if (*cur != ttMove)
-                return *cur++;
-            ++cur;
-        }
+            return *cur++;
 
         if (quietPick)
         {
