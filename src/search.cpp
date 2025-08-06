@@ -1037,7 +1037,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     probCutBeta = std::min(417 + beta, +VALUE_INFINITE - 1);
     if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value)
         && ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
-        return ttd.value;
+        return probCutBeta;
 
     if (!ss->inCheck && ttd.hit && !exclude && ttd.move == Move::None && tte->move() != Move::None)
     {
