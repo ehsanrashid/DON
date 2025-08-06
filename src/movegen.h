@@ -66,7 +66,7 @@ template<GenType GT, bool Any = false>
 struct MoveList final {
    public:
     explicit MoveList(const Position& pos) noexcept :
-        endCur(generate<GT, Any>(pos, moves)) {}
+        endCur(generate<GT>(pos, moves)) {}
     MoveList() noexcept                           = delete;
     MoveList(MoveList const&) noexcept            = delete;
     MoveList(MoveList&&) noexcept                 = delete;

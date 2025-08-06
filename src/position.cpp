@@ -727,8 +727,8 @@ bool Position::can_enpassant(Color           ac,
     Square capSq = epSq + (before ? +1 : -1) * pawn_spush(ac);
     assert(pieces(~ac, PAWN) & capSq);
 
-    //if (!before && (checkers() & ~square_bb(capSq)))
-    //    return false;
+    if (!before && (checkers() & ~square_bb(capSq)))
+        return false;
 
     bool enpassant = false;
     // Check en-passant is legal for the position
