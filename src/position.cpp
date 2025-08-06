@@ -717,8 +717,8 @@ bool Position::can_enpassant(Color           ac,
                              Bitboard* const epAttackers) const noexcept {
     assert(is_ok(epSq));
 
-    if (epAttackers != nullptr)
-        *epAttackers = 0;
+    //if (epAttackers != nullptr)
+    //    *epAttackers = 0;
 
     // En-passant attackers
     Bitboard attackers = pieces(ac, PAWN) & attacks_bb<PAWN>(epSq, ~ac);
@@ -734,12 +734,12 @@ bool Position::can_enpassant(Color           ac,
         if (checkers() & ~square_bb(capSq))
             return false;
 
-        if (more_than_one(attackers))
+        // If there are two pawns potentially being abled to capture and both are pinned.
+        if (more_than_one(blockers(ac) & attackers))
         {
             Bitboard kingFile = file_bb(king_square(ac));
-            // If there are two pawns potentially being abled to capture and both are pinned.
             // If there is no pawn on our king's file and thus both pawns are pinned by bishops.
-            if (more_than_one(blockers(ac) & attackers) && !(kingFile & attackers))
+            if (!(attackers & kingFile))
                 return false;
 
             attackers &= ~kingFile;
