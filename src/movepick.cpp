@@ -274,6 +274,8 @@ STAGE_SWITCH:
 
             assert(threshold < 0);
             sort_partial(threshold);
+
+            ttmCheck = true;
         }
 
         ++stage;
@@ -376,6 +378,8 @@ STAGE_SWITCH:
             endCur = endGenerated = score<EVA_QUIET>(moveList);
 
             sort_partial();
+
+            ttmCheck = true;
         }
 
         ++stage;
