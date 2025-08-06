@@ -789,8 +789,7 @@ void Position::do_castling(
 
     if constexpr (Do)
     {
-        if (kingMoved)
-            dp->dst = dst;
+        dp->dst = dst;
 
         if (rookMoved)
         {
