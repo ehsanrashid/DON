@@ -727,6 +727,9 @@ bool Position::can_enpassant(Color           ac,
     Square capSq = epSq + (before ? +1 : -1) * pawn_spush(ac);
     assert(pieces(~ac, PAWN) & capSq);
 
+    if (!before && (checkers() & ~square_bb(capSq)))
+        return false;
+
     bool enpassant = false;
     // Check en-passant is legal for the position
     Bitboard occupied = pieces() ^ make_bitboard(capSq, epSq);
@@ -839,6 +842,9 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
         reset_ep_square();
     }
 
+    bool checkEp = false;
+
+    // If the move is a castling, do some special work
     if (m.type_of() == CASTLING)
     {
         assert(pt == KING);
@@ -954,13 +960,11 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
             // clang-format on
         }
         // Set en-passant square if the moved pawn can be captured
-        else if ((int(dst) ^ int(org)) == NORTH_2 && can_enpassant(~ac, dst - pawn_spush(ac)))
+        else if ((int(dst) ^ int(org)) == NORTH_2)
         {
             assert(relative_rank(ac, org) == RANK_2);
             assert(relative_rank(ac, dst) == RANK_4);
-
-            st->epSquare = dst - pawn_spush(ac);
-            k ^= Zobrist::enpassant[file_of(ep_square())];
+            checkEp = true;
         }
 
         // Update pawn hash key
@@ -981,6 +985,12 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     // Calculate checkers (if move is check)
     st->checkers = check ? attackers_to(king_square(~ac)) & pieces(ac) : 0;
     assert(!check || (checkers() && popcount(checkers()) <= 2));
+
+    if (checkEp && can_enpassant(~ac, dst - pawn_spush(ac)))
+    {
+        st->epSquare = dst - pawn_spush(ac);
+        k ^= Zobrist::enpassant[file_of(ep_square())];
+    }
 
 DO_MOVE_END:
 

@@ -1104,7 +1104,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         bool capture  = pos.capture_promo(move);
         auto captured = capture ? pos.captured(move) : NO_PIECE_TYPE;
 
-        (ss + 1)->quietMoveStreak = (!capture && !check) ? (ss->quietMoveStreak + 1) : 0;
+        ss->quietMoveStreak = (!capture && !check) ? ((ss - 1)->quietMoveStreak + 1) : 0;
 
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
@@ -1335,7 +1335,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         r += (935 + 763 * AllNode) * (ss->cutoffCount > 2);
 
-        r += 51 * (ss + 1)->quietMoveStreak;
+        r += 51 * ss->quietMoveStreak;
 
         // For first picked move (ttMove) reduce reduction
         r -= 2043 * (move == ttd.move);
@@ -2348,15 +2348,15 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
     assert(is_ok(dst));
 
     static constexpr std::array<std::pair<std::int16_t, float>, 8> ContHistoryWeights{
-      {{1, +1.0771f}, {2, +0.6436f}, {3, +0.3154f}, {4, +0.5205f},
-       {5, +0.2698f}, {6, +0.4629f}, {7, +0.2222f}, {8, +0.3251f}}};
+      {{1, +1.0820f}, {2, +0.6367f}, {3, +0.2666f}, {4, +0.5586f},
+       {5, +0.1230f}, {6, +0.4385f}, {7, +0.2222f}, {8, +0.2167f}}};
 
     for (auto &[i, weight] : ContHistoryWeights)
     {
-        if ((ss->inCheck && i > 2) || !(ss - i)->move.is_ok())
+        if ((i > 2 && ss->inCheck) || !(ss - i)->move.is_ok())
             break;
 
-        (*(ss - i)->pieceSqHistory)[pc][dst] << int(std::lround(weight * bonus));
+        (*(ss - i)->pieceSqHistory)[pc][dst] << int(std::lround(weight * bonus)) + 80 * (i < 2);
     }
 }
 void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) noexcept {
@@ -2367,9 +2367,9 @@ void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) 
 void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& m, int bonus) noexcept {
     assert(m.is_ok());
     update_quiet_history(pos.active_color(), m, std::lround(+1.0000f * bonus));
-    update_pawn_history(pos, pos.moved_piece(m), m.dst_sq(), std::lround(+0.5732f * bonus));
-    update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), std::lround(+0.9805f * bonus));
-    update_low_ply_quiet_history(ss->ply, m, std::lround(+0.8096f * bonus));
+    update_pawn_history(pos, pos.moved_piece(m), m.dst_sq(), std::lround((bonus > 0 ? +0.6875f : +0.4287f) * bonus) + 70);
+    update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), std::lround((bonus > 0 ? +0.9561f : +0.8223f) * bonus));
+    update_low_ply_quiet_history(ss->ply, m, std::lround(+0.7529f * bonus) + 40);
 }
 
 // Updates history at the end of search() when a bestMove is found
