@@ -322,9 +322,9 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
         [[maybe_unused]] auto last = moves;
 
         moves = generate_pawns_moves<GT>    (pos, moves, target);
-        if (Any && ((moves - last > 0 && pos.legal(moves[0]))
-                 || (moves - last > 1 && pos.legal(moves[1]))
-                 || (moves - last > 2 && pos.legal(moves[2])))) return moves;
+        if (Any && ((moves - last > 0 && pos.legal(last[0]))
+                 || (moves - last > 1 && pos.legal(last[1]))
+                 || (moves - last > 2 && pos.legal(last[2])))) return moves;
         last = moves;
         moves = generate_piece_moves<KNIGHT>(pos, moves, target);
         if (Any && moves > last) return moves;
