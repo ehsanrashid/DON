@@ -237,7 +237,7 @@ STAGE_SWITCH:
         MoveList<ENC_CAPTURE> moveList(pos);
 
         cur = endBadCaptures = moves;
-        endCur               = score<ENC_CAPTURE>(moveList);
+        endCur = endCaptures = score<ENC_CAPTURE>(moveList);
 
         sort_partial();
 
@@ -289,7 +289,7 @@ STAGE_SWITCH:
                 ++cur;
             }
 
-        // Prepare to loop over the bad captures
+        // Prepare the pointers to loop over the bad captures
         cur    = moves;
         endCur = endBadCaptures;
 
@@ -297,11 +297,21 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case STG_ENC_CAPTURE_BAD :
-        if (cur != endCur)
-            return *cur++;
+        while (cur != endCur)
+        {
+            if (*cur != ttMove)
+                return *cur++;
+            ++cur;
+        }
 
         if (quietPick)
+        {
+            // Prepare the pointers to loop over the bad quiets
+            cur    = endCaptures;
+            endCur = endGenerated;
+
             sort_partial();
+        }
 
         ++stage;
         [[fallthrough]];

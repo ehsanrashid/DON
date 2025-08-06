@@ -319,8 +319,7 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
         case EVA_QUIET :   target = between_ex_bb(pos.king_square(ac), lsb(pos.checkers())); break;
         }
 
-        [[maybe_unused]] auto last = moves;
-
+        auto last = moves;
         moves = generate_pawns_moves<GT>    (pos, moves, target);
         if (Any && ((moves - last > 0 && pos.legal(last[0]))
                  || (moves - last > 1 && pos.legal(last[1]))
@@ -332,10 +331,10 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
         moves = generate_piece_moves<BISHOP>(pos, moves, target);
         if (Any && moves > last) return moves;
         last = moves;
-        moves = generate_piece_moves<ROOK>  (pos, moves,  target);
+        moves = generate_piece_moves<ROOK>  (pos, moves, target);
         if (Any && moves > last) return moves;
         last = moves;
-        moves = generate_piece_moves<QUEEN> (pos, moves,  target);
+        moves = generate_piece_moves<QUEEN> (pos, moves, target);
         if (Any && moves > last) return moves;
     }
 
@@ -396,7 +395,7 @@ namespace {
 template<bool Any>
 Move* generate_legal(const Position& pos, Move* moves) noexcept {
 
-    Move* cur = moves;
+    auto* cur = moves;
 
     moves = (pos.checkers()  //
                ? generate<EVASION, Any>(pos, moves)
