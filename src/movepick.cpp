@@ -241,6 +241,8 @@ STAGE_SWITCH:
 
         sort_partial();
 
+        ttmCheck = true;
+
         ++stage;
         goto STAGE_SWITCH;
     }
@@ -350,6 +352,8 @@ STAGE_SWITCH:
         endCur = endGenerated = score<EVA_CAPTURE>(moveList);
 
         sort_partial();
+
+        ttmCheck = true;
     }
 
         ++stage;

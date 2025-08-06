@@ -106,7 +106,7 @@ class MovePicker final {
     const std::int16_t        ssPly;
     const int                 threshold;
 
-    bool ttmCheck = true;
+    bool ttmCheck;
 
     ExtMove  moves[MAX_MOVES];
     ExtMove *cur, *endCur, *endBadCaptures, *endCaptures, *endGenerated;
