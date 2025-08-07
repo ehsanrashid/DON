@@ -237,7 +237,7 @@ STAGE_SWITCH:
         MoveList<ENC_CAPTURE> moveList(pos);
 
         cur = endBadCaptures = moves;
-        endCur = endCaptures = endGenerated = score<ENC_CAPTURE>(moveList);
+        endCur = endGenerated = score<ENC_CAPTURE>(moveList);
 
         sort_partial();
 
@@ -290,6 +290,7 @@ STAGE_SWITCH:
             }
 
         begBadQuiets = cur;
+
         // Prepare the pointers to loop over the bad captures
         cur    = moves;
         endCur = endBadCaptures;
