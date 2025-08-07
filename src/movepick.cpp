@@ -299,7 +299,10 @@ STAGE_SWITCH:
 
     case STG_ENC_CAPTURE_BAD :
         while (cur != endCur)
+        {
+            assert(*cur != ttMove);
             return *cur++;
+        }
 
         if (quietPick)
         {
