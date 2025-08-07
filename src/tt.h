@@ -138,7 +138,7 @@ struct TTEntry final {
         assert(depth <= std::numeric_limits<std::uint8_t>::max() + DEPTH_OFFSET);
 
         // Preserve the old move if don't have a new one
-        if (key16 != k16 || bnd == BOUND_EXACT || move != Move::None)
+        if (key16 != k16 || move != Move::None)
             move16 = move;
         // Overwrite less valuable entries (cheapest checks first)
         if (key16 != k16 || bnd == BOUND_EXACT                //

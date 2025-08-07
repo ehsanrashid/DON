@@ -703,10 +703,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     bool preNonPawn =
       is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && (ss - 1)->move.type_of() != PROMOTION;
 
-    if (ttd.hit && ttd.value == VALUE_DRAW && ttd.depth == MAX_PLY - 1 && ttd.bound == BOUND_EXACT
-        && ttd.move == Move::None)
-        return VALUE_DRAW;
-
     State st;
 
     // Check for an early TT cutoff at non-pv nodes
@@ -1650,10 +1646,6 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     ss->ttMove = ttd.move;
     bool pvHit = ttd.hit && ttd.pvHit;
 
-    if (ttd.hit && ttd.value == VALUE_DRAW && ttd.depth == MAX_PLY - 1 && ttd.bound == BOUND_EXACT
-        && ttd.move == Move::None)
-        return VALUE_DRAW;
-
     // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && is_valid(ttd.value) && ttd.depth >= DEPTH_ZERO
         && (ttd.bound & fail_bound(ttd.value >= beta)) != 0
@@ -1854,24 +1846,13 @@ QS_MOVES_LOOP:
             assert((MoveList<LEGAL, true>(pos).empty()));
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
-        else
+        else if (bestValue != VALUE_DRAW && !pos.non_pawn_material(ac)
+                 && type_of(pos.captured_piece()) >= ROOK
+                 // No pawn pushes available
+                 && !(push_pawn_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces())
+                 && (pttm == Move::None || !pos.legal(pttm)) && MoveList<LEGAL, true>(pos).empty())
         {
-            if (bestValue != VALUE_DRAW && !pos.non_pawn_material(ac)
-                && type_of(pos.captured_piece()) >= ROOK
-                // No pawn pushes available
-                && !(push_pawn_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces())
-                && (pttm == Move::None || !pos.legal(pttm)) && MoveList<LEGAL, true>(pos).empty())
-            {
-                bestValue = VALUE_DRAW;
-            }
-
-            if (bestValue == VALUE_DRAW)
-            {
-                ttu.update(MAX_PLY - 1, pvHit, BOUND_EXACT, Move::None, bestValue,
-                           unadjustedStaticEval);
-
-                return bestValue;
-            }
+            bestValue = VALUE_DRAW;
         }
     }
     // Adjust best value for fail high cases
