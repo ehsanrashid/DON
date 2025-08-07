@@ -50,9 +50,9 @@ extern std::uint8_t DrawMoveCount;
 struct TTData final {
    public:
     TTData() noexcept = delete;
-    TTData(bool h, bool p, Bound b, const Move& m, Depth d, Value v, Value ev) noexcept :
-        hit(h),
-        pv(p),
+    TTData(bool ht, bool pv, Bound b, const Move& m, Depth d, Value v, Value ev) noexcept :
+        hit(ht),
+        pvHit(pv),
         bound(b),
         padding(0),
         move(m),
@@ -61,7 +61,7 @@ struct TTData final {
         eval(ev) {}
 
     bool         hit;
-    bool         pv;
+    bool         pvHit;
     Bound        bound;
     std::uint8_t padding;
     Move         move;
@@ -113,7 +113,7 @@ struct TTEntry final {
    private:
     constexpr auto occupied() const noexcept { return bool(depth8); }
     constexpr auto depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
-    constexpr auto pv() const noexcept { return bool(genData8 & 0x4); }
+    constexpr auto pv_hit() const noexcept { return bool(genData8 & 0x4); }
     constexpr auto bound() const noexcept { return Bound(genData8 & 0x3); }
     constexpr auto generation() const noexcept { return std::uint8_t(genData8 & GENERATION_MASK); }
     constexpr auto value() const noexcept { return value16; }
@@ -121,15 +121,15 @@ struct TTEntry final {
 
     // Convert internal bitfields to TTData
     TTData read() const noexcept {
-        return {occupied(), pv(), bound(), move(), depth(), value(), eval()};
+        return {occupied(), pv_hit(), bound(), move(), depth(), value(), eval()};
     }
 
     // Populates the TTEntry with a new node's data, possibly
     // overwriting an old position. The update is not atomic and can be racy.
     void save(Key16        k16,
               Depth        depth,
-              bool         pv,
-              Bound        b,
+              bool         pvHit,
+              Bound        bnd,
               const Move&  move,
               Value        value,
               Value        eval,
@@ -138,16 +138,16 @@ struct TTEntry final {
         assert(depth <= std::numeric_limits<std::uint8_t>::max() + DEPTH_OFFSET);
 
         // Preserve the old move if don't have a new one
-        if (key16 != k16 || b == BOUND_EXACT || move != Move::None)
+        if (key16 != k16 || bnd == BOUND_EXACT || move != Move::None)
             move16 = move;
         // Overwrite less valuable entries (cheapest checks first)
-        if (key16 != k16 || b == BOUND_EXACT               //
-            || depth8 < 4 + depth - DEPTH_OFFSET + 2 * pv  //
+        if (key16 != k16 || bnd == BOUND_EXACT                //
+            || depth8 < 4 + depth - DEPTH_OFFSET + 2 * pvHit  //
             || relative_age(gen))
         {
             key16    = k16;
             depth8   = std::uint8_t(depth - DEPTH_OFFSET);
-            genData8 = std::uint8_t(gen | std::uint8_t(pv) << 2 | b);
+            genData8 = std::uint8_t(gen | std::uint8_t(pvHit) << 2 | bnd);
             value16  = value;
             eval16   = eval;
         }
@@ -155,9 +155,7 @@ struct TTEntry final {
             --depth8;
     }
 
-    void clear() noexcept {  //
-        std::memset(static_cast<void*>(this), 0, sizeof(TTEntry));
-    }
+    void clear() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(TTEntry)); }
 
     // The returned age is a multiple of GENERATION_DELTA
     std::uint8_t relative_age(std::uint8_t gen) const noexcept {
@@ -267,8 +265,8 @@ class TTUpdater final {
         ssPly(ply),
         generation(gen) {}
 
-    void
-    update(Depth depth, bool pv, Bound bound, const Move& move, Value value, Value eval) noexcept {
+    void update(
+      Depth depth, bool pvHit, Bound bound, const Move& move, Value value, Value eval) noexcept {
 
         if (tte->key16 != key16)
         {
@@ -291,10 +289,10 @@ class TTUpdater final {
                 tte->clear();
         }
 
-        tte->save(key16, depth, pv, bound, move, value_to_tt(value, ssPly), eval, generation);
+        tte->save(key16, depth, pvHit, bound, move, value_to_tt(value, ssPly), eval, generation);
 
         if (move != Move::None
-            && depth - DEPTH_OFFSET + 2 * pv + 4 * (bound == BOUND_EXACT)
+            && depth - DEPTH_OFFSET + 2 * pvHit + 4 * (bound == BOUND_EXACT)
                  >= std::max({ttc->entry[0].depth8, ttc->entry[1].depth8, ttc->entry[2].depth8}))
             ttc->move = move;
     }

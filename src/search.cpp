@@ -696,7 +696,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     ss->ttMove     = ttd.move;
     bool ttCapture = ttd.move != Move::None && pos.capture_promo(ttd.move);
 
-    ss->pvHit = exclude ? ss->pvHit : PVNode || (ttd.hit && ttd.pv);
+    ss->pvHit = exclude ? ss->pvHit : PVNode || (ttd.hit && ttd.pvHit);
 
     auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
@@ -1578,7 +1578,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // If no good move is found and the previous position was ttPv, then the previous
     // opponent move is probably good and the new position is added to the search tree.
-    ss->pvHit = ss->pvHit || ((ss - 1)->pvHit && bestValue <= alpha);
+    ss->pvHit = ss->pvHit || (bestValue <= alpha && (ss - 1)->pvHit);
 
     // Save gathered information in transposition table
     if ((!RootNode || curIdx == 0) && !exclude)
@@ -1665,7 +1665,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
                : tte->move() != ttc->move ? extract_tt_move(pos, ttc->move, false)
                                           : Move::None;
     ss->ttMove = ttd.move;
-    bool pvHit = ttd.hit && ttd.pv;
+    bool pvHit = ttd.hit && ttd.pvHit;
 
     if (ttd.hit && ttd.value == VALUE_DRAW && ttd.depth >= 6 && ttd.bound == BOUND_EXACT
         && ttd.move == Move::None)
