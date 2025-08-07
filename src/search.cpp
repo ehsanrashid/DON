@@ -1477,8 +1477,11 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 if (value >= beta)
                 {
-                    // Increment cutoffCount (*Scaler)
-                    (ss - 1)->cutoffCount += PVNode || (extension < 2);
+                    if constexpr (!RootNode)
+                    {
+                        // Increment cutoffCount (*Scaler)
+                        (ss - 1)->cutoffCount += PVNode || (extension < 2);
+                    }
                     break;  // Fail-high
                 }
 
