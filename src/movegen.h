@@ -27,26 +27,6 @@ namespace DON {
 
 class Position;
 
-struct ExtMove final: public Move {
-   public:
-    using Move::Move;
-
-    void operator=(Move m) { move = m.raw(); }
-
-    friend bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept {
-        return em1.value < em2.value;
-    }
-    friend bool operator>(const ExtMove& em1, const ExtMove& em2) noexcept { return (em2 < em1); }
-    friend bool operator<=(const ExtMove& em1, const ExtMove& em2) noexcept { return !(em1 > em2); }
-    friend bool operator>=(const ExtMove& em1, const ExtMove& em2) noexcept { return !(em1 < em2); }
-
-    // Inhibit unwanted implicit conversions to Move
-    // with an ambiguity that yields to a compile error.
-    operator float() const = delete;
-
-    int value;
-};
-
 enum GenType : std::uint8_t {
     ENCOUNTER,
     ENC_CAPTURE,

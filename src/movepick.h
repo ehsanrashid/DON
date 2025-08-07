@@ -57,6 +57,26 @@ enum Stage : std::uint8_t {
 constexpr Stage operator+(Stage s, int i) noexcept { return Stage(int(s) + i); }
 inline Stage&   operator++(Stage& s) noexcept { return s = s + 1; }
 
+struct ExtMove final: public Move {
+   public:
+    using Move::Move;
+
+    void operator=(Move m) { move = m.raw(); }
+
+    friend bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept {
+        return em1.value < em2.value;
+    }
+    friend bool operator>(const ExtMove& em1, const ExtMove& em2) noexcept { return (em2 < em1); }
+    friend bool operator<=(const ExtMove& em1, const ExtMove& em2) noexcept { return !(em1 > em2); }
+    friend bool operator>=(const ExtMove& em1, const ExtMove& em2) noexcept { return !(em1 < em2); }
+
+    // Inhibit unwanted implicit conversions to Move
+    // with an ambiguity that yields to a compile error.
+    operator float() const = delete;
+
+    int value;
+};
+
 // History
 extern History<HCapture>      CaptureHistory;
 extern History<HQuiet>        QuietHistory;
