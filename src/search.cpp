@@ -1512,7 +1512,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         bestValue = in_range((depth * bestValue + beta) / (depth + 1));
 
     // If there is a move that produces search value greater than alpha update the history of searched moves
-    if (moveCount != 0 && bestMove != Move::None)
+    if (bestMove != Move::None)
     {
         update_all_history(pos, ss, depth, bestMove, moves);
         if (!PVNode)
