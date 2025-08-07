@@ -1262,9 +1262,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             // assume this expected cut-node is not singular (multiple moves fail high),
             // and can prune the whole subtree by returning a soft-bound.
             else if (value >= beta)
-            {
                 return in_range(value);
-            }
 
             // Negative extensions
             // If other moves failed high over (ttValue - margin) without the ttMove on a reduced search,
@@ -1508,24 +1506,10 @@ S_MOVES_LOOP:  // When in check, search starts here
     assert(moveCount == ss->moveCount);
 
     if (moveCount == 0)
-    {
-        if (exclude)
-            bestValue = alpha;
-        else if (ss->inCheck)
-            bestValue = mated_in(ss->ply);
-        else
-        {
-            bestValue = VALUE_DRAW;
-
-            ttu.update(std::min(depth + 6, MAX_PLY - 1), ss->pvHit, BOUND_EXACT, Move::None,
-                       bestValue, unadjustedStaticEval);
-        }
-    }
+        bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_decisive(bestValue))
-    {
         bestValue = in_range((depth * bestValue + beta) / (depth + 1));
-    }
 
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (moveCount != 0 && bestMove != Move::None)
@@ -1677,9 +1661,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         && pos.rule50_count() < (1.0f - 0.5f * pos.rule50_high()) * rule50_threshold())
     {
         if (ttd.value > beta && ttd.depth > DEPTH_ZERO && !is_decisive(ttd.value))
-        {
             ttd.value = in_range((ttd.depth * ttd.value + beta) / (ttd.depth + 1));
-        }
 
         return ttd.value;
     }
@@ -1723,9 +1705,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (bestValue >= beta)
     {
         if (bestValue > beta && !is_decisive(bestValue))
-        {
             bestValue = in_range((bestValue + beta) / 2);
-        }
 
         if (!ttd.hit)
             ttu.update(DEPTH_NONE, false, BOUND_LOWER, Move::None, bestValue, unadjustedStaticEval);
@@ -1895,9 +1875,7 @@ QS_MOVES_LOOP:
     }
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_decisive(bestValue))
-    {
         bestValue = in_range((bestValue + beta) / 2);
-    }
 
     // Save gathered info in transposition table
     Bound bound = fail_bound(bestValue >= beta);
