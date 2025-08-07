@@ -289,6 +289,7 @@ STAGE_SWITCH:
                 ++cur;
             }
 
+        begBadQuiets = cur;
         // Prepare the pointers to loop over the bad captures
         cur    = moves;
         endCur = endBadCaptures;
@@ -303,7 +304,7 @@ STAGE_SWITCH:
         if (quietPick)
         {
             // Prepare the pointers to loop over the bad quiets
-            cur    = endCaptures;
+            cur    = begBadQuiets;
             endCur = endGenerated;
 
             sort_partial();

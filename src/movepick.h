@@ -107,7 +107,7 @@ class MovePicker final {
     const int                 threshold;
 
     ExtMove  moves[MAX_MOVES];
-    ExtMove *cur, *endCur, *endBadCaptures, *endCaptures, *endGenerated;
+    ExtMove *cur, *endCur, *endBadCaptures, *endCaptures, *begBadQuiets, *endGenerated;
 };
 
 }  // namespace DON
