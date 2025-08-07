@@ -1099,7 +1099,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         bool capture  = pos.capture_promo(move);
         auto captured = capture ? pos.captured(move) : NO_PIECE_TYPE;
 
-        ss->quietMoveStreak = (!capture && !check) ? ((ss - 1)->quietMoveStreak + 1) : 0;
+        ss->quietMoveStreak = (!capture && !check) ? 1 + (ss - 1)->quietMoveStreak : 0;
 
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
@@ -1124,8 +1124,6 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             // Reduced depth of the next LMR search
             Depth lmrDepth = newDepth - std::lround(r / 1024.0f);
-
-            Depth virtualDepth = depth - (bestMove != Move::None);
 
             Value futilityValue;
 
@@ -1175,7 +1173,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                              + (*contHistory[1])[movedPiece][dst];
 
                 // Continuation history based pruning
-                if (contHist < -4361 * virtualDepth)
+                if (contHist < -4361 * depth)
                     continue;
 
                 contHist += std::lround(2.2188f * QuietHistory[ac][move.org_dst()]);
