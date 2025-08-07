@@ -1161,7 +1161,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // SEE based pruning for captures
                 int margin =
                   std::clamp(158 * depth + int(std::lround(0.0323f * captHist)), 0, 283 * depth);
-                if (dst != preSq && pos.see(move) < -(margin + 256 * dblCheck))
+                if (pos.see(move) < -(margin + 256 * dblCheck))
                 {
                     // Avoid pruning sacrifices of our last piece for stalemate
                     if (!may_stalemate_trap())
@@ -1802,7 +1802,7 @@ QS_MOVES_LOOP:
             }
 
             // SEE based pruning
-            if (dst != preSq && pos.see(move) < -(74 + 64 * dblCheck))
+            if (pos.see(move) < -(74 + 64 * dblCheck))
                 continue;
         }
 
