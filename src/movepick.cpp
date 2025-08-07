@@ -237,7 +237,7 @@ STAGE_SWITCH:
         MoveList<ENC_CAPTURE> moveList(pos);
 
         cur = endBadCaptures = moves;
-        endCur = endCaptures = score<ENC_CAPTURE>(moveList);
+        endCur = endCaptures = endGenerated = score<ENC_CAPTURE>(moveList);
 
         sort_partial();
 
