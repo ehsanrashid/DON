@@ -63,7 +63,7 @@ jobs:
           cp DON-$NAME-$BINARY$EXT ../DON/
           #cp "Top CPU Contributors.txt" ../DON/
           cp Copying.txt ../DON/
-          cp AUTHORS ../DON/
+          #cp AUTHORS ../DON/
           cp CITATION.cff ../DON/
           cp README.md ../DON/
           cp CONTRIBUTING.md ../DON/
