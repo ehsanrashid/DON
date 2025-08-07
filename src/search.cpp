@@ -1120,7 +1120,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Step 14. Pruning at shallow depth
         // Depth conditions are important for mate finding.
-        if (!RootNode && !is_loss(bestValue))
+        if (!RootNode && !is_loss(bestValue) && pos.non_pawn_material(ac))
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
             mp.quietPick = mp.quietPick
@@ -1872,25 +1872,29 @@ QS_MOVES_LOOP:
     // All legal moves have been searched.
     if (moveCount == 0)
     {
-        bool pttmNone = false;
-
         // A special case: if in check and no legal moves were found, it is checkmate.
         if (ss->inCheck)
         {
             assert((MoveList<LEGAL, true>(pos).empty()));
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
-        else if ((pttmNone = (pttm == Move::None || !pos.legal(pttm))) && bestValue != VALUE_DRAW
-                 && MoveList<LEGAL, true>(pos).empty())
+        else
         {
-            bestValue = VALUE_DRAW;
-        }
+            if (bestValue != VALUE_DRAW && !pos.non_pawn_material(ac)
+                && type_of(pos.captured_piece()) >= ROOK
+                // No pawn pushes available
+                && !(push_pawn_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces())
+                && (pttm == Move::None || !pos.legal(pttm)) && MoveList<LEGAL, true>(pos).empty())
+            {
+                bestValue = VALUE_DRAW;
+            }
 
-        if (pttmNone && bestValue == VALUE_DRAW)
-        {
-            ttu.update(6, pvHit, BOUND_EXACT, Move::None, bestValue, unadjustedStaticEval);
+            if (bestValue == VALUE_DRAW)
+            {
+                ttu.update(6, pvHit, BOUND_EXACT, Move::None, bestValue, unadjustedStaticEval);
 
-            return bestValue;
+                return bestValue;
+            }
         }
     }
     // Adjust best value for fail high cases
