@@ -647,10 +647,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     }
 
     // Step 1. Initialize node
-    ss->inCheck      = bool(pos.checkers());
-    ss->conseqChecks = ss->inCheck ? 1 + (ss - 2)->conseqChecks : 0;
-    ss->moveCount    = 0;
-    ss->history      = 0;
+    ss->inCheck   = bool(pos.checkers());
+    ss->moveCount = 0;
+    ss->history   = 0;
 
     if constexpr (!RootNode)
     {
@@ -1166,7 +1165,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // SEE based pruning for captures
                 int margin =
                   std::clamp(158 * depth + int(std::lround(0.0323f * captHist)), 0, 283 * depth);
-                if (!(is_ok(preSq) && dst == preSq) && pos.see(move) < -(margin + 256 * dblCheck))
+                if (dst != preSq && pos.see(move) < -(margin + 256 * dblCheck))
                 {
                     // Avoid pruning sacrifices of our last piece for stalemate
                     if (!may_stalemate_trap())
@@ -1643,8 +1642,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     }
 
     // Step 1. Initialize node
-    ss->inCheck      = bool(pos.checkers());
-    ss->conseqChecks = ss->inCheck ? 1 + (ss - 2)->conseqChecks : 0;
+    ss->inCheck = bool(pos.checkers());
 
     // Step 2. Check for an immediate draw or maximum ply reached
     if (ss->ply >= MAX_PLY || pos.is_draw(ss->ply))
@@ -1792,7 +1790,7 @@ QS_MOVES_LOOP:
             Value futilityValue;
 
             // Futility pruning and moveCount pruning
-            if (!check && !(is_ok(preSq) && dst == preSq) && !is_loss(futilityBase)
+            if (!check && dst != preSq && !is_loss(futilityBase)
                 && (move.type_of() != PROMOTION || (!ss->inCheck && move.promotion_type() != QUEEN))
                 && !pos.fork(move))
             {
@@ -1826,15 +1824,12 @@ QS_MOVES_LOOP:
                 // Continuation history based pruning
                 int contHist = PawnHistory[pawnIndex][movedPiece][dst]  //
                              + (*contHistory[0])[movedPiece][dst];
-                if (contHist < 5868)
+                if (contHist <= 5868)
                     continue;
             }
 
             // SEE based pruning
-            if (!(is_ok(preSq) && dst == preSq)
-                && !((ss - 1)->conseqChecks >= 3 && alpha < VALUE_DRAW
-                     && pos.non_pawn_material(ac) <= PIECE_VALUE[type_of(movedPiece)])
-                && pos.see(move) < -(74 + 64 * dblCheck))
+            if (dst != preSq && pos.see(move) < -(74 + 64 * dblCheck))
                 continue;
         }
 

@@ -443,7 +443,6 @@ struct Stack final {
     Move         move;
     std::uint8_t moveCount;
     std::uint8_t cutoffCount;
-    std::uint8_t conseqChecks;
     Value        staticEval;
     int          history;
     int          quietMoveStreak;
