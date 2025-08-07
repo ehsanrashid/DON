@@ -319,7 +319,7 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
         case EVA_QUIET :   target = between_ex_bb(pos.king_square(ac), lsb(pos.checkers())); break;
         }
 
-        auto* lmoves = moves;
+        const auto* lmoves = moves;
         moves = generate_pawns_moves<GT>    (pos, moves, target);
         if (Any && ((moves > lmoves + 0 && pos.legal(lmoves[0]))
                  || (moves > lmoves + 1 && pos.legal(lmoves[1]))

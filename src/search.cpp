@@ -166,7 +166,7 @@ void Worker::ensure_network_replicated() noexcept {
 }
 
 void Worker::start_search() noexcept {
-    auto* mainManager = is_main_worker() ? main_manager() : nullptr;
+    auto* const mainManager = is_main_worker() ? main_manager() : nullptr;
 
     accStack.reset();
 
@@ -300,7 +300,7 @@ void Worker::start_search() noexcept {
     // clang-format off
     assert(!bestWorker->rootMoves.empty()
         && !bestWorker->rootMoves.front().pv.empty());
-    auto& rootMove  = bestWorker->rootMoves.front();
+    const auto& rootMove  = bestWorker->rootMoves.front();
     Move bestMove   = rootMove.pv[0];
     Move ponderMove = bestMove != Move::None
                   && (rootMove.pv.size() >= 2 || bestWorker->ponder_move_extracted())
@@ -313,7 +313,7 @@ void Worker::start_search() noexcept {
 // until the allocated thinking time has been consumed, the user stops the search,
 // or the maximum search depth is reached.
 void Worker::iterative_deepening() noexcept {
-    auto* mainManager = is_main_worker() ? main_manager() : nullptr;
+    auto* const mainManager = is_main_worker() ? main_manager() : nullptr;
 
     // Allocate stack with extra size to allow access from (ss - 9) to (ss + 1):
     // (ss - 9) is needed for update_continuation_history(ss - 1) which accesses (ss - 8),
