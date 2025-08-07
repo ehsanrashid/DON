@@ -703,7 +703,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     bool preNonPawn =
       is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && (ss - 1)->move.type_of() != PROMOTION;
 
-    if (ttd.hit && ttd.value == VALUE_DRAW && ttd.depth >= 6 && ttd.bound == BOUND_EXACT
+    if (ttd.hit && ttd.value == VALUE_DRAW && ttd.depth == MAX_PLY - 1 && ttd.bound == BOUND_EXACT
         && ttd.move == Move::None)
         return VALUE_DRAW;
 
@@ -1650,7 +1650,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     ss->ttMove = ttd.move;
     bool pvHit = ttd.hit && ttd.pvHit;
 
-    if (ttd.hit && ttd.value == VALUE_DRAW && ttd.depth >= 6 && ttd.bound == BOUND_EXACT
+    if (ttd.hit && ttd.value == VALUE_DRAW && ttd.depth == MAX_PLY - 1 && ttd.bound == BOUND_EXACT
         && ttd.move == Move::None)
         return VALUE_DRAW;
 
@@ -1867,7 +1867,8 @@ QS_MOVES_LOOP:
 
             if (bestValue == VALUE_DRAW)
             {
-                ttu.update(6, pvHit, BOUND_EXACT, Move::None, bestValue, unadjustedStaticEval);
+                ttu.update(MAX_PLY - 1, pvHit, BOUND_EXACT, Move::None, bestValue,
+                           unadjustedStaticEval);
 
                 return bestValue;
             }
