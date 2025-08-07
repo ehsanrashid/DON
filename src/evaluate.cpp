@@ -51,7 +51,7 @@ Value evaluate(const Position&          pos,
     NNUE::NetworkOutput netOut{0, 0};
 
     const auto compute_nnue = [&netOut = std::as_const(netOut)]() noexcept -> std::int32_t {
-        return (1004 * netOut.psqt + 1044 * netOut.positional) / (1024 * NNUE::OUTPUT_SCALE);
+        return (125 * netOut.psqt + 131 * netOut.positional) / (128 * NNUE::OUTPUT_SCALE);
     };
 
     std::int32_t nnue = 0;
@@ -82,11 +82,11 @@ Value evaluate(const Position&          pos,
     // clang-format off
     std::int32_t complexity = std::abs(netOut.psqt - netOut.positional) / NNUE::OUTPUT_SCALE;
 
-    nnue     = std::lround(nnue     * std::max(1.0f - 51.8753e-6f * complexity, 0.0001f));
-    optimism = std::lround(optimism *         (1.0f + 18.7617e-4f * complexity));
+    nnue     = std::lround(nnue     * std::max(1.0f - 55.5555e-6f * complexity, 0.0001f));
+    optimism = std::lround(optimism *         (1.0f + 21.3675e-4f * complexity));
 
-    std::int32_t v = (0.9513f * nnue + 0.08737f * optimism)
-                   + (1.0000f * nnue + 0.99999f * optimism) * pos.material() * 12.4642e-6f;
+    std::int32_t v = (nnue + 0.09999f * optimism)
+                   + (nnue +            optimism) * pos.material() * 12.8572e-6f;
     // clang-format on
 
     // Damp down the evaluation linearly when shuffling
@@ -105,8 +105,8 @@ std::string trace(Position&             pos,  //
     if (pos.checkers())
         return "Final evaluation     : none (in check)";
 
-    auto accStack  = NNUE::AccumulatorStack();
-    auto accCaches = std::make_unique<NNUE::AccumulatorCaches>(networks);
+    NNUE::AccumulatorStack accStack;
+    auto                   accCaches = std::make_unique<NNUE::AccumulatorCaches>(networks);
 
     std::ostringstream oss;
 
