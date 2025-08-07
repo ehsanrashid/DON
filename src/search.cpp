@@ -1519,8 +1519,6 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             ttu.update(std::min(depth + 6, MAX_PLY - 1), ss->pvHit, BOUND_EXACT, Move::None,
                        bestValue, unadjustedStaticEval);
-
-            return bestValue;
         }
     }
     // Adjust best value for fail high cases
