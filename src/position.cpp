@@ -244,7 +244,7 @@ void Position::set(std::string_view fenStr, State* newSt) noexcept {
     assert(!fenStr.empty());
     assert(newSt != nullptr);
     std::memset(static_cast<void*>(this), 0, sizeof(Position));
-    std::fill(std::begin(castlingRookSquare), std::end(castlingRookSquare), SQ_NONE);
+    std::fill(std::begin(castlingRookSq), std::end(castlingRookSq), SQ_NONE);
     std::memset(newSt, 0, sizeof(State));
     newSt->epSq = newSt->capSq = SQ_NONE;
     newSt->kingSq[WHITE] = newSt->kingSq[BLACK] = SQ_NONE;
@@ -352,13 +352,13 @@ void Position::set(std::string_view fenStr, State* newSt) noexcept {
 
         if (token == 'k')
         {
-            rsq = relative_square(c, SQ_H1);
+            rsq = relative_sq(c, SQ_H1);
             while (file_of(rsq) >= FILE_C && !(rooks & rsq) && rsq != king_sq(c))
                 --rsq;
         }
         else if (token == 'q')
         {
-            rsq = relative_square(c, SQ_A1);
+            rsq = relative_sq(c, SQ_A1);
             while (file_of(rsq) <= FILE_F && !(rooks & rsq) && rsq != king_sq(c))
                 ++rsq;
         }
@@ -522,13 +522,13 @@ std::string Position::fen(bool full) const noexcept {
     if (can_castle(ANY_CASTLING))
     {
         if (can_castle(WHITE_OO))
-            oss << (Chess960 ? UCI::file(file_of(castling_rook_square(WHITE_OO)), true) : 'K');
+            oss << (Chess960 ? UCI::file(file_of(castling_rook_sq(WHITE_OO)), true) : 'K');
         if (can_castle(WHITE_OOO))
-            oss << (Chess960 ? UCI::file(file_of(castling_rook_square(WHITE_OOO)), true) : 'Q');
+            oss << (Chess960 ? UCI::file(file_of(castling_rook_sq(WHITE_OOO)), true) : 'Q');
         if (can_castle(BLACK_OO))
-            oss << (Chess960 ? UCI::file(file_of(castling_rook_square(BLACK_OO)), false) : 'k');
+            oss << (Chess960 ? UCI::file(file_of(castling_rook_sq(BLACK_OO)), false) : 'k');
         if (can_castle(BLACK_OOO))
-            oss << (Chess960 ? UCI::file(file_of(castling_rook_square(BLACK_OOO)), false) : 'q');
+            oss << (Chess960 ? UCI::file(file_of(castling_rook_sq(BLACK_OOO)), false) : 'q');
     }
     else
         oss << "-";
@@ -553,14 +553,14 @@ void Position::set_castling_rights(Color c, Square rorg) noexcept {
     int cr = make_castling_rights(c, korg, rorg);
 
     std::size_t crLsb = lsb(cr);
-    assert(crLsb < std::size(castlingRookSquare));
-    assert(!is_ok(castlingRookSquare[crLsb]));
+    assert(crLsb < std::size(castlingRookSq));
+    assert(!is_ok(castlingRookSq[crLsb]));
 
     st->castlingRights |= cr;
     castlingRightsMask[c * FILE_NB + file_of(korg)] |= cr;
     castlingRightsMask[c * FILE_NB + file_of(rorg)] = cr;
 
-    castlingRookSquare[crLsb] = rorg;
+    castlingRookSq[crLsb] = rorg;
 
     Square kdst = king_castle_sq(c, korg, rorg);
     Square rdst = rook_castle_sq(c, korg, rorg);
@@ -1210,7 +1210,7 @@ bool Position::pseudo_legal(const Move& m) const noexcept {
         CastlingRights cr = make_castling_rights(ac, org, dst);
         return relative_rank(ac, org) == RANK_1 && relative_rank(ac, dst) == RANK_1
             && type_of(pc) == KING && (pieces(ac, ROOK) & dst) && !checkers()  //
-            && can_castle(cr) && !castling_impeded(cr) && castling_rook_square(cr) == dst;
+            && can_castle(cr) && !castling_impeded(cr) && castling_rook_sq(cr) == dst;
     }
 
     // The destination square cannot be occupied by a friendly piece
@@ -1321,7 +1321,7 @@ bool Position::legal(const Move& m) const noexcept {
         assert(!checkers());
         assert(can_castle(make_castling_rights(ac, org, dst)));
         assert(!castling_impeded(make_castling_rights(ac, org, dst)));
-        assert(castling_rook_square(make_castling_rights(ac, org, dst)) == dst);
+        assert(castling_rook_sq(make_castling_rights(ac, org, dst)) == dst);
 
         // After castling, the rook and king final positions are the same in
         // Chess960 as they would be in standard chess.
@@ -2072,9 +2072,9 @@ bool Position::pos_is_ok() const noexcept {
             if (!can_castle(cr))
                 continue;
 
-            if (!is_ok(castling_rook_square(cr))  //
-                || !(pieces(c, ROOK) & castling_rook_square(cr))
-                || (castlingRightsMask[c * FILE_NB + file_of(castling_rook_square(cr))]) != cr
+            if (!is_ok(castling_rook_sq(cr))  //
+                || !(pieces(c, ROOK) & castling_rook_sq(cr))
+                || (castlingRightsMask[c * FILE_NB + file_of(castling_rook_sq(cr))]) != cr
                 || (castlingRightsMask[c * FILE_NB + file_of(king_sq(c))] & cr) != cr)
                 assert(false && "Position::pos_is_ok(): Castling");
         }

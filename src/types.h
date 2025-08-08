@@ -372,7 +372,7 @@ constexpr Square flip_file(Square s) noexcept { return Square(int(s) ^ 0x07); }
 // Swap A1 <-> A8
 constexpr Square flip_rank(Square s) noexcept { return Square(int(s) ^ 0x38); }
 
-constexpr Square relative_square(Color c, Square s) noexcept { return Square(int(s) ^ (c * 0x38)); }
+constexpr Square relative_sq(Color c, Square s) noexcept { return Square(int(s) ^ (c * 0x38)); }
 
 constexpr Rank relative_rank(Color c, Rank r) noexcept { return Rank(int(r) ^ (c * 0x7)); }
 
@@ -383,10 +383,10 @@ constexpr CastlingRights make_castling_rights(Color c, Square s1, Square s2) noe
 }
 
 constexpr Square king_castle_sq(Color c, Square s1, Square s2) noexcept {
-    return relative_square(c, s1 < s2 ? SQ_G1 : SQ_C1);
+    return relative_sq(c, s1 < s2 ? SQ_G1 : SQ_C1);
 }
 constexpr Square rook_castle_sq(Color c, Square s1, Square s2) noexcept {
-    return relative_square(c, s1 < s2 ? SQ_F1 : SQ_D1);
+    return relative_sq(c, s1 < s2 ? SQ_F1 : SQ_D1);
 }
 
 constexpr Direction pawn_spush(Color c) noexcept {

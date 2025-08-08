@@ -202,7 +202,7 @@ class Position final {
 
     bool   can_castle(CastlingRights cr) const noexcept;
     bool   castling_impeded(CastlingRights cr) const noexcept;
-    Square castling_rook_square(CastlingRights cr) const noexcept;
+    Square castling_rook_sq(CastlingRights cr) const noexcept;
     auto   castling_rights_mask(Square org, Square dst) const noexcept;
 
     // Other info
@@ -388,7 +388,7 @@ class Position final {
     Bitboard     colorBB[COLOR_NB];
     std::uint8_t pieceCount[PIECE_NB];
     Bitboard     castlingPath[COLOR_NB * CASTLING_SIDE_NB];
-    Square       castlingRookSquare[COLOR_NB * CASTLING_SIDE_NB];
+    Square       castlingRookSq[COLOR_NB * CASTLING_SIDE_NB];
     std::uint8_t castlingRightsMask[COLOR_NB * FILE_NB + 1];
     Color        activeColor;
     std::int16_t gamePly;
@@ -473,9 +473,9 @@ inline bool Position::castling_impeded(CastlingRights cr) const noexcept {
     return pieces() & castlingPath[lsb(cr)];
 }
 
-inline Square Position::castling_rook_square(CastlingRights cr) const noexcept {
+inline Square Position::castling_rook_sq(CastlingRights cr) const noexcept {
     assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
-    return castlingRookSquare[lsb(cr)];
+    return castlingRookSq[lsb(cr)];
 }
 
 inline auto Position::castling_rights_mask(Square org, Square dst) const noexcept {

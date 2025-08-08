@@ -286,9 +286,9 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
             for (CastlingRights cr : {ac & KING_SIDE, ac & QUEEN_SIDE})
                 if (pos.can_castle(cr) && !pos.castling_impeded(cr))
                 {
-                    assert(is_ok(pos.castling_rook_square(cr))
-                           && (pos.pieces(ac, ROOK) & pos.castling_rook_square(cr)));
-                    *moves++ = Move(CASTLING, ksq, pos.castling_rook_square(cr));
+                    assert(is_ok(pos.castling_rook_sq(cr))
+                           && (pos.pieces(ac, ROOK) & pos.castling_rook_sq(cr)));
+                    *moves++ = Move(CASTLING, ksq, pos.castling_rook_sq(cr));
                 }
     }
    return moves;
