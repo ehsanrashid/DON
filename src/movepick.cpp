@@ -99,7 +99,7 @@ ExtMove* MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveList) noexcep
         m.value = 7 * PIECE_VALUE[captured] + 3 * promotion_value(m, true)  //
                 + CaptureHistory[pc][dst][captured]                         //
                 + 0x400 * bool(pos.check(m))                                //
-                + 0x100 * (pos.cap_square() == dst);
+                + 0x100 * (pos.cap_sq() == dst);
     }
     return itr;
 }
@@ -334,10 +334,10 @@ STAGE_SWITCH:
         endCur = endGenerated = score<EVA_CAPTURE>(moveList);
 
         sort_partial();
-    }
 
         ++stage;
         [[fallthrough]];
+    }
 
     case STG_EVA_CAPTURE_ALL :
         while (cur != endCur)

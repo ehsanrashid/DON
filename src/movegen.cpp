@@ -190,28 +190,28 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
         b     = shift(CaptR, non7Pawns) & enemies;
         moves = splat_pawn_moves(moves, b, CaptR);
 
-        if (is_ok(pos.ep_square()))
+        if (is_ok(pos.ep_sq()))
         {
-            assert(relative_rank(ac, pos.ep_square()) == RANK_6);
-            assert(pos.pieces(~ac, PAWN) & (pos.ep_square() - Push1));
+            assert(relative_rank(ac, pos.ep_sq()) == RANK_6);
+            assert(pos.pieces(~ac, PAWN) & (pos.ep_sq() - Push1));
             assert(pos.rule50_count() == 0);
             assert(non7Pawns & relative_rank(ac, RANK_5));
 
             // An en-passant capture cannot resolve a discovered check
-            assert(!(Evasion && (target & (pos.ep_square() + Push1))));
+            assert(!(Evasion && (target & (pos.ep_sq() + Push1))));
 
-            b = non7Pawns & attacks_bb<PAWN>(pos.ep_square(), ~ac);
+            b = non7Pawns & attacks_bb<PAWN>(pos.ep_sq(), ~ac);
             if (more_than_one(b))
             {
                 Bitboard pin = b & pos.blockers(ac);
                 assert(!more_than_one(pin));
-                if (pin && !aligned(pos.king_square(ac), pos.ep_square(), lsb(pin)))
+                if (pin && !aligned(pos.king_square(ac), pos.ep_sq(), lsb(pin)))
                     b ^= pin;
             }
             assert(b);
 
             while (b)
-                *moves++ = Move(EN_PASSANT, pop_lsb(b), pos.ep_square());
+                *moves++ = Move(EN_PASSANT, pop_lsb(b), pos.ep_sq());
         }
     }
     return moves;

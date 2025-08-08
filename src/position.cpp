@@ -246,7 +246,7 @@ void Position::set(std::string_view fenStr, State* newSt) noexcept {
     std::memset(static_cast<void*>(this), 0, sizeof(Position));
     std::fill(std::begin(castlingRookSquare), std::end(castlingRookSquare), SQ_NONE);
     std::memset(newSt, 0, sizeof(State));
-    newSt->epSquare = newSt->capSquare = SQ_NONE;
+    newSt->epSq = newSt->capSq = SQ_NONE;
     newSt->kingSquare[WHITE] = newSt->kingSquare[BLACK] = SQ_NONE;
 
     st = newSt;
@@ -410,17 +410,17 @@ void Position::set(std::string_view fenStr, State* newSt) noexcept {
 
         if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
         {
-            st->epSquare = make_square(File(epFile - 'a'), Rank(epRank - '1'));
+            st->epSq = make_square(File(epFile - 'a'), Rank(epRank - '1'));
 
             // En-passant square will be considered only if
             // a) there is an enemy pawn in front of epSquare
             // b) there is no piece on epSquare or behind epSquare
             // c) there is atleast one friend pawn threatening epSquare
             // d) there is no enemy Bishop, Rook or Queen pinning
-            enpassant = (pieces(~ac, PAWN) & (ep_square() - pawn_spush(ac)))
-                     && !(pieces() & make_bitboard(ep_square(), ep_square() + pawn_spush(ac)))
-                     && (pieces(ac, PAWN) & attacks_bb<PAWN>(ep_square(), ~ac))
-                     && can_enpassant(ac, ep_square());
+            enpassant = (pieces(~ac, PAWN) & (ep_sq() - pawn_spush(ac)))
+                     && !(pieces() & make_bitboard(ep_sq(), ep_sq() + pawn_spush(ac)))
+                     && (pieces(ac, PAWN) & attacks_bb<PAWN>(ep_sq(), ~ac))
+                     && can_enpassant(ac, ep_sq());
         }
         else
         {
@@ -439,11 +439,11 @@ void Position::set(std::string_view fenStr, State* newSt) noexcept {
     gamePly = std::max(2 * (std::abs(moveNum) - 1), 0) + (ac == BLACK);
 
     // Reset illegal values
-    if (is_ok(ep_square()))
+    if (is_ok(ep_sq()))
     {
         reset_rule50_count();
         if (!enpassant)
-            reset_ep_square();
+            reset_ep_sq();
     }
     assert(rule50_count() <= 100);
     gamePly = std::max(ply(), rule50_count());
@@ -533,7 +533,7 @@ std::string Position::fen(bool full) const noexcept {
     else
         oss << "-";
 
-    oss << ' ' << (is_ok(ep_square()) ? UCI::square(ep_square()) : "-");
+    oss << ' ' << (is_ok(ep_sq()) ? UCI::square(ep_sq()) : "-");
     if (full)
         oss << ' ' << rule50_count() << ' ' << move_num();
 
@@ -603,8 +603,8 @@ void Position::set_state() noexcept {
 
     st->key ^= Zobrist::castling[castling_rights()];
 
-    if (is_ok(ep_square()))
-        st->key ^= Zobrist::enpassant[file_of(ep_square())];
+    if (is_ok(ep_sq()))
+        st->key ^= Zobrist::enpassant[file_of(ep_sq())];
 
     Color ac = active_color();
 
@@ -860,10 +860,10 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     dp.addSq = SQ_NONE;
 
     // Reset en-passant square
-    if (is_ok(ep_square()))
+    if (is_ok(ep_sq()))
     {
-        k ^= Zobrist::enpassant[file_of(ep_square())];
-        reset_ep_square();
+        k ^= Zobrist::enpassant[file_of(ep_sq())];
+        reset_ep_sq();
     }
 
     bool epCheck = false;
@@ -916,9 +916,9 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
                 assert(pt == PAWN);
                 assert(pieces(~ac, PAWN) & capSq);
                 assert(!(pieces() & make_bitboard(dst, dst + pawn_spush(ac))));
-                assert(!is_ok(ep_square()));  // Already reset to SQ_NONE
+                assert(!is_ok(ep_sq()));  // Already reset to SQ_NONE
                 assert(rule50_count() == 1);
-                assert(st->preState->epSquare == dst);
+                assert(st->preState->epSq == dst);
                 assert(st->preState->rule50 == 0);
             }
 
@@ -935,9 +935,9 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
         dp.removePc = capturedPiece;
         dp.removeSq = capSq;
 
+        st->capSq = dst;
         // Remove the captured piece
         remove_piece(capSq);
-        st->capSquare = dst;
         // Update hash key
         k ^= Zobrist::psq[capturedPiece][capSq];
         // Reset rule 50 draw counter
@@ -1028,8 +1028,8 @@ DO_MOVE_END:
 
     if (epCheck && can_enpassant(active_color(), dst - pawn_spush(ac)))
     {
-        st->epSquare = dst - pawn_spush(ac);
-        k ^= Zobrist::enpassant[file_of(ep_square())];
+        st->epSq = dst - pawn_spush(ac);
+        k ^= Zobrist::enpassant[file_of(ep_sq())];
     }
 
     // Set the key with the updated key
@@ -1121,7 +1121,7 @@ void Position::undo_move(const Move& m) noexcept {
             assert(empty_on(capSq));
             assert(capturedPiece == make_piece(~ac, PAWN));
             assert(rule50_count() == 0);
-            assert(st->preState->epSquare == dst);
+            assert(st->preState->epSq == dst);
             assert(st->preState->rule50 == 0);
         }
         // Restore the captured piece
@@ -1151,17 +1151,17 @@ void Position::do_null_move(State& newSt) noexcept {
 
     st->capturedPiece = NO_PIECE;
     st->promotedPiece = NO_PIECE;
-    st->capSquare     = SQ_NONE;
+    st->capSq         = SQ_NONE;
 
     // NOTE: no ++st->rule50 here
     st->nullPly = 0;
 
     st->key ^= Zobrist::side;
 
-    if (is_ok(ep_square()))
+    if (is_ok(ep_sq()))
     {
-        st->key ^= Zobrist::enpassant[file_of(ep_square())];
-        reset_ep_square();
+        st->key ^= Zobrist::enpassant[file_of(ep_sq())];
+        reset_ep_sq();
     }
 
     activeColor = ~active_color();
@@ -1178,7 +1178,7 @@ void Position::undo_null_move() noexcept {
     assert(!checkers());
     assert(!is_ok(captured_piece()));
     assert(!is_ok(promoted_piece()));
-    assert(!is_ok(cap_square()));
+    assert(!is_ok(cap_sq()));
 
     activeColor = ~active_color();
 
@@ -1254,7 +1254,7 @@ bool Position::pseudo_legal(const Move& m) const noexcept {
 
     case EN_PASSANT :
         if (!(relative_rank(ac, org) == RANK_5 && relative_rank(ac, dst) == RANK_6
-              && type_of(pc) == PAWN && ep_square() == dst && rule50_count() == 0
+              && type_of(pc) == PAWN && ep_sq() == dst && rule50_count() == 0
               && (pieces(~ac, PAWN) & (dst - pawn_spush(ac)))
               && !(pieces() & make_bitboard(dst, dst + pawn_spush(ac)))
               && ((attacks_bb<PAWN>(org, ac) /*& ~pieces()*/) & dst)
@@ -1299,7 +1299,7 @@ bool Position::legal(const Move& m) const noexcept {
         assert(relative_rank(ac, org) == RANK_5);
         assert(relative_rank(ac, dst) == RANK_6);
         assert(type_of(piece_on(org)) == PAWN);
-        assert(ep_square() == dst);
+        assert(ep_sq() == dst);
         assert(rule50_count() == 0);
         assert(pieces(~ac, PAWN) & (dst - pawn_spush(ac)));
         assert(!(pieces() & make_bitboard(dst, dst + pawn_spush(ac))));
@@ -1477,8 +1477,8 @@ Key Position::material_key() const noexcept {
 Key Position::move_key(const Move& m) const noexcept {
     Key moveKey = st->key ^ Zobrist::side;
 
-    if (is_ok(ep_square()))
-        moveKey ^= Zobrist::enpassant[file_of(ep_square())];
+    if (is_ok(ep_sq()))
+        moveKey ^= Zobrist::enpassant[file_of(ep_sq())];
 
     if (m == Move::Null)
         return moveKey;
@@ -1947,8 +1947,8 @@ Key Position::compute_key() const noexcept {
 
     key ^= Zobrist::castling[castling_rights()];
 
-    if (is_ok(ep_square()))
-        key ^= Zobrist::enpassant[file_of(ep_square())];
+    if (is_ok(ep_sq()))
+        key ^= Zobrist::enpassant[file_of(ep_sq())];
 
     if (active_color() == BLACK)
         key ^= Zobrist::side;
@@ -2019,8 +2019,7 @@ bool Position::pos_is_ok() const noexcept {
         || piece_on(king_square(WHITE)) != W_KING             //
         || piece_on(king_square(BLACK)) != B_KING             //
         || distance(king_square(WHITE), king_square(BLACK)) <= 1
-        || (is_ok(ep_square())  //
-            && !can_enpassant(active_color(), ep_square())))
+        || (is_ok(ep_sq()) && !can_enpassant(active_color(), ep_sq())))
         assert(false && "Position::pos_is_ok(): Default");
 
     if (Fast)

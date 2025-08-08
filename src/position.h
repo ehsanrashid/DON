@@ -56,8 +56,8 @@ struct State final {
 
     Square         kingSquare[COLOR_NB];
     bool           castled[COLOR_NB];
-    Square         epSquare;
-    Square         capSquare;
+    Square         epSq;
+    Square         capSq;
     CastlingRights castlingRights;
     std::uint8_t   rule50;
     std::uint8_t   nullPly;  // Plies from Null-Move
@@ -195,8 +195,8 @@ class Position final {
     template<PieceType PT>
     Square square(Color c) const noexcept;
     Square king_square(Color c) const noexcept;
-    Square ep_square() const noexcept;
-    Square cap_square() const noexcept;
+    Square ep_sq() const noexcept;
+    Square cap_sq() const noexcept;
 
     CastlingRights castling_rights() const noexcept;
 
@@ -375,7 +375,7 @@ class Position final {
 
     Key adjust_key(Key k, std::int16_t ply = 0) const noexcept;
 
-    void reset_ep_square() noexcept;
+    void reset_ep_sq() noexcept;
     void reset_rule50_count() noexcept;
     void reset_repetitions() noexcept;
 
@@ -458,9 +458,9 @@ inline Square Position::square(Color c) const noexcept {
 
 inline Square Position::king_square(Color c) const noexcept { return st->kingSquare[c]; }
 
-inline Square Position::ep_square() const noexcept { return st->epSquare; }
+inline Square Position::ep_sq() const noexcept { return st->epSq; }
 
-inline Square Position::cap_square() const noexcept { return st->capSquare; }
+inline Square Position::cap_sq() const noexcept { return st->capSq; }
 
 inline CastlingRights Position::castling_rights() const noexcept { return st->castlingRights; }
 
@@ -696,7 +696,7 @@ inline Piece Position::captured_piece(const Move& m) const noexcept {
 
 inline auto Position::captured(const Move& m) const noexcept { return type_of(captured_piece(m)); }
 
-inline void Position::reset_ep_square() noexcept { st->epSquare = SQ_NONE; }
+inline void Position::reset_ep_sq() noexcept { st->epSq = SQ_NONE; }
 
 inline void Position::reset_rule50_count() noexcept { st->rule50 = 0; }
 
