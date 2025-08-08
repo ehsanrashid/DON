@@ -1132,7 +1132,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                     && pos.non_pawn_material(ac) == PIECE_VALUE[type_of(movedPiece)]
                     && PIECE_VALUE[type_of(movedPiece)] >= VALUE_ROOK
                     // It can't be stalemate if we moved a piece adjacent to the king
-                    && !(attacks_bb<KING>(pos.king_square(ac)) & move.org_sq())
+                    && !(attacks_bb<KING>(pos.king_sq(ac)) & move.org_sq())
                     && !mp.can_move_king_or_pawn();
             };
 

@@ -54,7 +54,7 @@ struct State final {
     Key   groupKey[COLOR_NB][2];
     Value nonPawnMaterial[COLOR_NB];
 
-    Square         kingSquare[COLOR_NB];
+    Square         kingSq[COLOR_NB];
     bool           castled[COLOR_NB];
     Square         epSq;
     Square         capSq;
@@ -194,7 +194,7 @@ class Position final {
 
     template<PieceType PT>
     Square square(Color c) const noexcept;
-    Square king_square(Color c) const noexcept;
+    Square king_sq(Color c) const noexcept;
     Square ep_sq() const noexcept;
     Square cap_sq() const noexcept;
 
@@ -456,7 +456,7 @@ inline Square Position::square(Color c) const noexcept {
     return lsb(pieces(c, PT));
 }
 
-inline Square Position::king_square(Color c) const noexcept { return st->kingSquare[c]; }
+inline Square Position::king_sq(Color c) const noexcept { return st->kingSq[c]; }
 
 inline Square Position::ep_sq() const noexcept { return st->epSq; }
 
@@ -599,7 +599,7 @@ inline Key Position::major_key(Color c) const noexcept { return st->groupKey[c][
 
 inline Key Position::major_key() const noexcept { return major_key(WHITE) ^ major_key(BLACK); }
 
-inline Key Position::non_pawn_key(Color c) const noexcept { return minor_key(c) ^ major_key(c) ^ Zobrist::psq[make_piece(c, KING)][king_square(c)]; }
+inline Key Position::non_pawn_key(Color c) const noexcept { return minor_key(c) ^ major_key(c) ^ Zobrist::psq[make_piece(c, KING)][king_sq(c)]; }
 
 inline Key Position::non_pawn_key() const noexcept { return non_pawn_key(WHITE) ^ non_pawn_key(BLACK); }
 

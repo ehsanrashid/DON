@@ -214,7 +214,7 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
     using Tiling = SIMDTiling<Dimensions, PSQTBuckets>;
 #endif
 
-    Square ksq = pos.king_square(Perspective);
+    Square ksq = pos.king_sq(Perspective);
 
     auto& entry = cache[ksq][Perspective];
 
@@ -454,7 +454,7 @@ void AccumulatorStack::forward_update_incremental(
     assert(begin < accStates.size());
     assert((accStates[begin].acc<Dimensions>()).computed[Perspective]);
 
-    Square ksq = pos.king_square(Perspective);
+    Square ksq = pos.king_sq(Perspective);
 
     for (std::size_t idx = begin + 1; idx < size; ++idx)
     {
@@ -492,7 +492,7 @@ void AccumulatorStack::backward_update_incremental(
     assert(end < size && end < accStates.size());
     assert((clatest_state().acc<Dimensions>()).computed[Perspective]);
 
-    Square ksq = pos.king_square(Perspective);
+    Square ksq = pos.king_sq(Perspective);
 
     for (std::int64_t idx = std::int64_t(size) - 2; idx >= std::int64_t(end); --idx)
         update_accumulator_incremental<Perspective, false>(featureTransformer, ksq,
