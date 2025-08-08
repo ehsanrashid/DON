@@ -85,12 +85,12 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
             sumLo                   = _mm_add_epi32(sumLo, productLo);
             sumHi                   = _mm_add_epi32(sumHi, productHi);
         }
-        __m128i sum           = _mm_add_epi32(sumLo, sumHi);
-        __m128i sumHigh_64    = _mm_shuffle_epi32(sum, _MM_SHUFFLE(1, 0, 3, 2));
-        sum                   = _mm_add_epi32(sum, sumHigh_64);
-        __m128i sum_second_32 = _mm_shufflelo_epi16(sum, _MM_SHUFFLE(1, 0, 3, 2));
-        sum                   = _mm_add_epi32(sum, sum_second_32);
-        output[i]             = _mm_cvtsi128_si32(sum);
+        __m128i sum       = _mm_add_epi32(sumLo, sumHi);
+        __m128i sumHigh64 = _mm_shuffle_epi32(sum, _MM_SHUFFLE(1, 0, 3, 2));
+        sum               = _mm_add_epi32(sum, sumHigh64);
+        __m128i sumLow32  = _mm_shufflelo_epi16(sum, _MM_SHUFFLE(1, 0, 3, 2));
+        sum               = _mm_add_epi32(sum, sumLow32);
+        output[i]         = _mm_cvtsi128_si32(sum);
 
         #elif defined(USE_NEON)
 

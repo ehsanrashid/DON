@@ -34,12 +34,8 @@
 #include <type_traits>  // IWYU pragma: keep
 #include <vector>
 
-#if defined(USE_PREFETCH)
-    #if defined(_MSC_VER)
-        #include <xmmintrin.h>  // Microsoft header for _mm_prefetch()
-    #else
-        //#include <xmmintrin.h>
-    #endif
+#if defined(USE_PREFETCH) && defined(_MSC_VER)
+    #include <xmmintrin.h>  // Microsoft header for _mm_prefetch()
 #endif
 
 #if !defined(STRINGIFY)
