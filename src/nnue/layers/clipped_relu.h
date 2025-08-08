@@ -110,8 +110,8 @@ class ClippedReLU {
         __m128i k0x80s = _mm_set1_epi8(-128);
     #endif
 
-        auto in  = reinterpret_cast<const __m128i*>(input);
-        auto out = reinterpret_cast<__m128i*>(output);
+        const auto* in  = reinterpret_cast<const __m128i*>(input);
+        auto*       out = reinterpret_cast<__m128i*>(output);
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
     #if defined(USE_SSE41)
@@ -138,13 +138,13 @@ class ClippedReLU {
 #elif defined(USE_NEON)
         constexpr IndexType ChunkCount = InputDimensions / (SIMD_WIDTH / 2);
 
-        int8x8_t Zero = {0};
-        auto     in   = reinterpret_cast<const int32x4_t*>(input);
-        auto     out  = reinterpret_cast<int8x8_t*>(output);
+        const int8x8_t Zero = {0};
+        const auto*    in   = reinterpret_cast<const int32x4_t*>(input);
+        auto*          out  = reinterpret_cast<int8x8_t*>(output);
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
             int16x8_t shifted;
-            auto      pack = reinterpret_cast<int16x4_t*>(&shifted);
+            auto*     pack = reinterpret_cast<int16x4_t*>(&shifted);
             pack[0]        = vqshrn_n_s32(in[i * 2 + 0], WEIGHT_SCALE_BITS);
             pack[1]        = vqshrn_n_s32(in[i * 2 + 1], WEIGHT_SCALE_BITS);
             out[i]         = vmax_s8(vqmovn_s16(shifted), Zero);

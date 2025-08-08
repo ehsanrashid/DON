@@ -263,7 +263,6 @@ fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operan
 }
 
 [[maybe_unused]] static void m512_add_dpbusd_epi32(__m512i& acc, __m512i a, __m512i b) noexcept {
-
     #if defined(USE_VNNI)
     acc = _mm512_dpbusd_epi32(acc, a, b);
     #else
@@ -285,7 +284,6 @@ fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operan
 }
 
 [[maybe_unused]] static void m256_add_dpbusd_epi32(__m256i& acc, __m256i a, __m256i b) noexcept {
-
     #if defined(USE_VNNI)
     acc = _mm256_dpbusd_epi32(acc, a, b);
     #else
@@ -306,7 +304,6 @@ fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operan
 }
 
 [[maybe_unused]] static void m128_add_dpbusd_epi32(__m128i& acc, __m128i a, __m128i b) noexcept {
-
     __m128i product0 = _mm_maddubs_epi16(a, b);
     product0         = _mm_madd_epi16(product0, _mm_set1_epi16(1));
     acc              = _mm_add_epi32(acc, product0);
@@ -318,7 +315,6 @@ fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operan
 
 [[maybe_unused]] static void
 dotprod_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept {
-
     acc = vdotq_s32(acc, a, b);
 }
 #endif
@@ -326,7 +322,7 @@ dotprod_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept
 #if defined(USE_NEON)
 
 [[maybe_unused]] static int neon_m128_reduce_add_epi32(int32x4_t s) noexcept {
-    #if (defined(USE_NEON) && USE_NEON >= 8)
+    #if (defined(USE_NEON) && (USE_NEON >= 8))
     return vaddvq_s32(s);
     #else
     return s[0] + s[1] + s[2] + s[3];
@@ -339,10 +335,9 @@ dotprod_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept
 
 #endif
 
-#if (defined(USE_NEON) && USE_NEON >= 8)
+#if (defined(USE_NEON) && (USE_NEON >= 8))
 [[maybe_unused]] static void
 neon_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept {
-
     int16x8_t product0 = vmull_s8(vget_low_s8(a), vget_low_s8(b));
     int16x8_t product1 = vmull_high_s8(a, b);
     int16x8_t sum      = vpaddq_s16(product0, product1);

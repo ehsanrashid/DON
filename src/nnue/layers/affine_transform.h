@@ -55,13 +55,13 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
     // At least a multiple of 16, with SSE2.
     constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
 
-    auto* inputVector = reinterpret_cast<const __m128i*>(input);
+    const auto* inputVector = reinterpret_cast<const __m128i*>(input);
 
     const __m128i Zeros = _mm_setzero_si128();
         #elif defined(USE_NEON)
     constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
 
-    auto* inputVector = reinterpret_cast<const int8x8_t*>(input);
+    const auto* inputVector = reinterpret_cast<const int8x8_t*>(input);
         #endif
 
     for (IndexType i = 0; i < OutputDimensions; ++i)
@@ -69,9 +69,9 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
         IndexType offset = i * PaddedInputDimensions;
 
         #if defined(USE_SSE2)
-        __m128i sumLo = _mm_cvtsi32_si128(biases[i]);
-        __m128i sumHi = Zeros;
-        auto*   row   = reinterpret_cast<const __m128i*>(&weights[offset]);
+        __m128i     sumLo = _mm_cvtsi32_si128(biases[i]);
+        __m128i     sumHi = Zeros;
+        const auto* row   = reinterpret_cast<const __m128i*>(&weights[offset]);
         for (IndexType j = 0; j < ChunkCount; ++j)
         {
             __m128i row_j           = _mm_load_si128(&row[j]);
@@ -94,8 +94,8 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
 
         #elif defined(USE_NEON)
 
-        int32x4_t sum = {biases[i]};
-        auto*     row = reinterpret_cast<const int8x8_t*>(&weights[offset]);
+        int32x4_t   sum = {biases[i]};
+        const auto* row = reinterpret_cast<const int8x8_t*>(&weights[offset]);
         for (IndexType j = 0; j < ChunkCount; ++j)
         {
             int16x8_t product = vmull_s8(inputVector[j * 2], row[j * 2]);
@@ -114,9 +114,10 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
     for (IndexType i = 0; i < InputDimensions; ++i)
         if (input[i])
         {
-            auto* w = &weights[i];
+            const std::int8_t* w  = &weights[i];
+            const int          in = input[i];
             for (IndexType j = 0; j < OutputDimensions; ++j)
-                output[j] += w[j * PaddedInputDimensions] * input[i];
+                output[j] += w[j * PaddedInputDimensions] * in;
         }
     #endif
 }
@@ -222,6 +223,7 @@ class AffineTransform final {
                 const vec_t in = vec_set_32(input32[i]);
                 const auto* col =
                   reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
+
                 for (IndexType k = 0; k < RegCount; ++k)
                     vec_add_dpbusd_32(acc[k], in, col[k]);
             }
@@ -268,7 +270,10 @@ class AffineTransform final {
             const auto* row0 = reinterpret_cast<const vec_t*>(&weights[0]);
 
             for (IndexType j = 0; j < ChunkCount; ++j)
-                vec_add_dpbusd_32(sum0, inputVector[j], row0[j]);
+            {
+                const vec_t in = inputVector[j];
+                vec_add_dpbusd_32(sum0, in, row0[j]);
+            }
 
             output[0] = vec_hadd(sum0, biases[0]);
 

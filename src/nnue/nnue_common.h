@@ -61,17 +61,15 @@ constexpr const char  LEB128_MAGIC_STRING[]    = "COMPRESSED_LEB128";
 constexpr std::size_t LEB128_MAGIC_STRING_SIZE = sizeof(LEB128_MAGIC_STRING) - 1;
 
 // SIMD width (in bytes)
-constexpr std::size_t SIMD_WIDTH =
 #if defined(USE_AVX2)
-  32
+constexpr std::size_t SIMD_WIDTH = 32;
+
 #elif defined(USE_SSE2)
-  16
+constexpr std::size_t SIMD_WIDTH = 16;
+
 #elif defined(USE_NEON)
-  16
-#else
-  16
+constexpr std::size_t SIMD_WIDTH = 16;
 #endif
-  ;
 
 constexpr std::size_t MAX_SIMD_WIDTH = 32;
 
