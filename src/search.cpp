@@ -1053,7 +1053,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                                             (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,
                                             (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory};
 
-    int quietThreshold = std::max((-3560 - 10 * improve) * depth, -VALUE_INFINITE);
+    int quietThreshold = (-3560 - 10 * improve) * depth;
 
     value = bestValue;
 

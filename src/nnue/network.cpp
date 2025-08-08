@@ -29,8 +29,8 @@
 #include "../incbin/incbin.h"
 
 #include "../evaluate.h"
-#include "../position.h"
 #include "../memory.h"
+#include "../position.h"
 #include "../types.h"
 #include "../uci.h"
 #include "nnue_common.h"
