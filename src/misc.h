@@ -34,12 +34,8 @@
 #include <type_traits>  // IWYU pragma: keep
 #include <vector>
 
-#if defined(USE_PREFETCH)
-    #if defined(_MSC_VER)
-        #include <xmmintrin.h>  // Microsoft header for _mm_prefetch()
-    #else
-        //#include <xmmintrin.h>
-    #endif
+#if defined(USE_PREFETCH) && defined(_MSC_VER)
+    #include <xmmintrin.h>  // Microsoft header for _mm_prefetch()
 #endif
 
 #if !defined(STRINGIFY)
@@ -220,13 +216,13 @@ constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 static_assert(mul_hi64(0xDEADBEEFDEADBEEFull, 0xCAFEBABECAFEBABEull) == 0xB092AB7CE9F4B259ull);
 
 #if defined(USE_PREFETCH)
-    #if defined(_MSC_VER)
 inline void prefetch(const void* const addr) noexcept {
+    #if defined(_MSC_VER)
     _mm_prefetch(reinterpret_cast<const char*>(addr), _MM_HINT_T0);
-}
     #else
-inline void prefetch(const void* const addr) noexcept { __builtin_prefetch(addr); }
+    __builtin_prefetch(addr);
     #endif
+}
 #else
 inline void prefetch(const void* const) noexcept {}
 #endif

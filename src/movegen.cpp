@@ -48,7 +48,7 @@ inline Move* splat_pawn_moves(Move* moves, Bitboard b, Direction d) noexcept {
            || d == NORTH_WEST || d == SOUTH_WEST);
 
 #if defined(USE_AVX512ICL)
-    alignas(64) static constexpr auto SolateTable = [] {
+    alignas(64) static constexpr auto SplatTable = [] {
         std::array<Move, 64> table{};
         for (std::int8_t i = 0; i < 64; ++i)
         {
@@ -58,7 +58,7 @@ inline Move* splat_pawn_moves(Move* moves, Bitboard b, Direction d) noexcept {
         return table;
     }();
 
-    const auto* table = reinterpret_cast<const __m512i*>(SolateTable.data());
+    const auto* table = reinterpret_cast<const __m512i*>(SplatTable.data());
 
     moves = write_moves(moves, static_cast<uint32_t>(b >> 0), _mm512_load_si512(table + 0));
     moves = write_moves(moves, static_cast<uint32_t>(b >> 32), _mm512_load_si512(table + 1));
@@ -100,7 +100,7 @@ inline Move* splat_promotion_moves(Move* moves, Bitboard b, Direction d) noexcep
 inline Move* splat_moves(Move* moves, Square s, Bitboard b) noexcept {
 
 #if defined(USE_AVX512ICL)
-    alignas(64) static constexpr auto SolateTable = [] {
+    alignas(64) static constexpr auto SplatTable = [] {
         std::array<Move, 64> table{};
         for (std::int8_t i = 0; i < 64; ++i)
             table[i] = {Move(SQUARE_ZERO, Square{i})};
@@ -109,7 +109,7 @@ inline Move* splat_moves(Move* moves, Square s, Bitboard b) noexcept {
 
     __m512i sVec = _mm512_set1_epi16(Move(s, SQUARE_ZERO).raw());
 
-    const auto* table = reinterpret_cast<const __m512i*>(SolateTable.data());
+    const auto* table = reinterpret_cast<const __m512i*>(SplatTable.data());
 
     moves = write_moves(moves, static_cast<uint32_t>(b >> 0),
                         _mm512_or_si512(_mm512_load_si512(table + 0), sVec));
