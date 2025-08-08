@@ -685,9 +685,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     TTUpdater ttu(tte, ttc, key16, ss->ply, tt.generation());
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
-    ttd.move  = RootNode            ? rootMoves[curIdx].pv[0]
-              : ttd.hit && !exclude ? extract_tt_move(pos, ttd.move)
-                                    : Move::None;
+    ttd.move  = RootNode ? rootMoves[curIdx].pv[0]
+              : ttd.hit  ? extract_tt_move(pos, ttd.move)
+                         : Move::None;
+    assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
 
     Move pttm      = ttd.move != Move::None   ? ttd.move
                    : tte->move() != ttc->move ? extract_tt_move(pos, ttc->move, false)
@@ -727,8 +728,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         // For high rule50 counts don't produce transposition table cutoffs.
         if (pos.rule50_count() < (1.0f - 0.5f * pos.rule50_high()) * rule50_threshold())
         {
-            if (depth >= 8 && ttd.move != Move::None && pos.pseudo_legal(ttd.move)
-                && pos.legal(ttd.move) && !is_decisive(ttd.value))
+            if (depth >= 8 && ttd.move != Move::None && pos.legal(ttd.move)
+                && !is_decisive(ttd.value))
             {
                 pos.do_move(ttd.move, st);
                 Key nextPosKey                   = pos.key();
@@ -914,8 +915,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     }
 
     // Step 9. Null move search with verification search
-    if (CutNode && !exclude && pos.non_pawn_material(ac) && !is_loss(beta) && ss->ply >= nmpPly
-        && ss->staticEval >= 403 + beta - 19 * depth)
+    if (CutNode && !exclude && pos.non_pawn_material(ac) && !is_loss(beta)  //
+        && ss->ply >= nmpPly && ss->staticEval >= 403 + beta - 19 * depth)
     {
         assert((ss - 1)->move != Move::Null);
 
@@ -1141,7 +1142,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int captHist = CaptureHistory[movedPiece][dst][captured];
 
                 // Futility pruning for captures not check
-                if (!ss->inCheck && lmrDepth < 7 && !check && !pos.fork(move))
+                if (lmrDepth < 7 && !check && !ss->inCheck && !pos.fork(move))
                 {
                     futilityValue =
                       std::min(225 + ss->staticEval + PIECE_VALUE[captured] + promotion_value(move)
@@ -1181,7 +1182,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 lmrDepth += std::lround(30.9310e-5f * contHist);
 
                 // Futility pruning for quiets not check
-                if (!ss->inCheck && lmrDepth < 11 && !check && !pos.fork(move))
+                if (lmrDepth < 11 && !check && !ss->inCheck && !pos.fork(move))
                 {
                     futilityValue = std::min((bestMove != Move::None ? 46 : 230) + ss->staticEval
                                                - 98 * (bestMove != Move::None) + 131 * lmrDepth
@@ -1344,7 +1345,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             value = -search<Cut>(pos, ss + 1, -(alpha + 1), -alpha, redDepth, newDepth - redDepth);
 
-            // Do a full-depth search when reduced LMR search fails high
+            // Do a full-depth search when reduced LMR search fails high (*Scaler)
+            // Usually doing more shallower searches doesn't scale well to longer TCs
             if (value > alpha)
             {
                 // Adjust full-depth search based on LMR value
@@ -1354,7 +1356,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                   // - if the value was bad enough search shallower
                   - (value < 9 + bestValue);
 
-                if (newDepth > redDepth)
+                if (redDepth < newDepth)
                     value = -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha, newDepth);
 
                 // Post LMR continuation history updates
@@ -1453,7 +1455,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // In case have an alternative move equal in eval to the current bestMove,
         // promote it to bestMove by pretending it just exceeds alpha (but not beta).
-        bool inc = value == bestValue && (nodes & 0xF) == 0 && 2 + ss->ply >= rootDepth
+        bool inc = value == bestValue && (nodes & 0xE) == 0 && 2 + ss->ply >= rootDepth
                 && !is_win(value + 1);
 
         if (bestValue < value + inc)
@@ -1637,6 +1639,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = ttd.hit ? extract_tt_move(pos, ttd.move) : Move::None;
+    assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
 
     Move pttm  = ttd.move != Move::None   ? ttd.move
                : tte->move() != ttc->move ? extract_tt_move(pos, ttc->move, false)
@@ -1841,6 +1844,7 @@ QS_MOVES_LOOP:
         // A special case: if in check and no legal moves were found, it is checkmate.
         if (ss->inCheck)
         {
+            assert(bestValue == -VALUE_INFINITE);
             assert((MoveList<LEGAL, true>(pos).empty()));
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }

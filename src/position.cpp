@@ -797,9 +797,9 @@ void Position::do_castling(
 
         if (rookMoved)
         {
+            dp->removeSq = rorg;
+            dp->addSq    = rdst;
             dp->removePc = dp->addPc = rook;
-            dp->removeSq             = rorg;
-            dp->addSq                = rdst;
         }
 
         st->kingSq[ac]  = dst;
@@ -932,8 +932,8 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
             // clang-format on
         }
 
-        dp.removePc = capturedPiece;
         dp.removeSq = capSq;
+        dp.removePc = capturedPiece;
 
         st->capSq = dst;
         // Remove the captured piece
@@ -945,8 +945,8 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     }
     else
     {
-        //dp.removePc = NO_PIECE;
         dp.removeSq = SQ_NONE;
+        //dp.removePc = NO_PIECE;
     }
 
     move_piece(org, dst);
@@ -971,8 +971,8 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
 
             promotedPiece = make_piece(ac, promoted);
 
-            dp.addPc = promotedPiece;
             dp.addSq = dst;
+            dp.addPc = promotedPiece;
             dp.dst   = SQ_NONE;
 
             remove_piece(dst);
