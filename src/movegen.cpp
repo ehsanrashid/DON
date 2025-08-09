@@ -41,18 +41,20 @@ inline Move* write_moves(Move* moves, std::uint32_t mask, __m512i vector) noexce
 }
 #endif
 
-// Splat pawn moves for a given direction
-inline Move* splat_pawn_moves(Move* moves, Bitboard b, Direction d) noexcept {
-    assert(d == NORTH || d == SOUTH || d == NORTH_2 || d == SOUTH_2  //
-           || d == NORTH_EAST || d == SOUTH_EAST                     //
-           || d == NORTH_WEST || d == SOUTH_WEST);
+// Splat pawn moves
+template<Direction D>
+inline Move* splat_pawn_moves(Move* moves, Bitboard b) noexcept {
+    static_assert(D == NORTH || D == SOUTH || D == NORTH_2 || D == SOUTH_2  //
+                    || D == NORTH_EAST || D == SOUTH_EAST                   //
+                    || D == NORTH_WEST || D == SOUTH_WEST,
+                  "D is invalid");
 
 #if defined(USE_AVX512ICL)
     alignas(64) static constexpr auto SplatTable = [] {
         std::array<Move, 64> table{};
         for (std::int8_t i = 0; i < 64; ++i)
         {
-            Square s{std::clamp<int8_t>(i - d, 0, 63)};
+            Square s{std::clamp<int8_t>(i - D, 0, 63)};
             table[i] = {Move(s, Square{i})};
         }
         return table;
@@ -66,10 +68,27 @@ inline Move* splat_pawn_moves(Move* moves, Bitboard b, Direction d) noexcept {
     while (b)
     {
         Square s = pop_lsb(b);
-        *moves++ = Move(s - d, s);
+        *moves++ = Move(s - D, s);
     }
 #endif
     return moves;
+}
+
+inline Move* splat_pawn_moves(Move* moves, Bitboard b, Direction d) noexcept {
+    // clang-format off
+    switch (d)
+    {
+    case NORTH :      return splat_pawn_moves<NORTH>     (moves, b);
+    case SOUTH :      return splat_pawn_moves<SOUTH>     (moves, b);
+    case NORTH_2 :    return splat_pawn_moves<NORTH_2>   (moves, b);
+    case SOUTH_2 :    return splat_pawn_moves<SOUTH_2>   (moves, b);
+    case NORTH_WEST : return splat_pawn_moves<NORTH_WEST>(moves, b);
+    case SOUTH_EAST : return splat_pawn_moves<SOUTH_EAST>(moves, b);
+    case NORTH_EAST : return splat_pawn_moves<NORTH_EAST>(moves, b);
+    case SOUTH_WEST : return splat_pawn_moves<SOUTH_WEST>(moves, b);
+    default :         return 0;
+    }
+    // clang-format on
 }
 
 // Splat promotion moves for a given direction
