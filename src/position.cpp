@@ -867,6 +867,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     }
 
     bool epCheck = false;
+    //bool rookMoved = false;
 
     // If the move is a castling, do some special work
     if (m.type_of() == CASTLING)
@@ -878,6 +879,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
         Square rorg, rdst;
         do_castling<true>(ac, org, dst, rorg, rdst, &dp);
         assert(rorg == m.dst_sq());
+        //rookMoved = rorg != rdst;
 
         // Update castling rights
         int cr = ac & ANY_CASTLING;
@@ -1059,8 +1061,10 @@ DO_MOVE_END:
 
     assert(is_ok(dp.pc));
     assert(is_ok(dp.org));
-    //assert(!(capturedPiece != NO_PIECE || m.type_of() == CASTLING) ^ is_ok(dp.removeSq));
-    //assert(!is_ok(dp.addSq) ^ (m.type_of() == PROMOTION || m.type_of() == CASTLING));
+    assert(is_ok(dp.dst) ^ (m.type_of() == PROMOTION));
+    // The way castling is implemented, this check may fail in Chess960.
+    //assert(is_ok(dp.removeSq) ^ (m.type_of() != CASTLING && capturedPiece == NO_PIECE));
+    //assert(is_ok(dp.addSq) ^ (m.type_of() != PROMOTION && m.type_of() != CASTLING));
     return dp;
 }
 
@@ -1766,11 +1770,8 @@ bool Position::see_ge(const Move& m, int threshold) const noexcept {
         else if ((b = pieces(QUEEN) & acAttackers))
         {
             occupied ^= org = lsb(b);
-
-            swap = VALUE_QUEEN - swap;
-            // Implies that the previous recapture was done by a higher rated piece than a Queen (King is excluded)
-            assert(swap >= win);
-
+            if ((swap = VALUE_QUEEN - swap) < win)
+                break;
             qB &= occupied;
             qR &= occupied;
             if (qB)

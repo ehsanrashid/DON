@@ -200,9 +200,8 @@ ExtMove* MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList) noexcept {
 // Sort moves in descending order up to and including a given limit.
 // The order of moves smaller than the limit is left unspecified.
 void MovePicker::sort_partial(int limit) noexcept {
-    if (cur == endCur)
-        return;
-    for (auto s = cur, p = cur + 1; p != endCur; ++p)
+
+    for (auto s = cur, p = cur + 1; p < endCur; ++p)
         if (p->value >= limit)
         {
             auto m = std::move(*p);
