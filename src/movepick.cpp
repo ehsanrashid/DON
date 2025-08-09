@@ -31,7 +31,7 @@ namespace DON {
 namespace {
 
 constexpr int Bonus[PIECE_TYPE_NB]{0, 0, 144, 144, 256, 517, 0, 0};
-constexpr int GoodQuietThreshold = -14000;
+constexpr int GoodQuietThreshold = -13500;
 
 }  // namespace
 
