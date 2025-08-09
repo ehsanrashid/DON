@@ -67,11 +67,11 @@ struct AccumulatorUpdateContext {
              typename... Ts,
              std::enable_if_t<is_all_same_v<IndexType, Ts...>, bool> = true>
     void apply(const Ts... indices) noexcept {
-        auto to_weight_vector = [&](const IndexType index) {
+        auto to_weight_vector = [&](IndexType index) {
             return &featureTransformer.weights[index * Dimensions];
         };
 
-        auto to_psqt_weight_vector = [&](const IndexType index) {
+        auto to_psqt_weight_vector = [&](IndexType index) {
             return &featureTransformer.psqtWeights[index * PSQTBuckets];
         };
 
@@ -100,7 +100,7 @@ auto make_accumulator_update_context(const FeatureTransformer<Dimensions>& featu
 template<Color Perspective, IndexType TransformedFeatureDimensions>
 void update_accumulator_incremental_double(
   const FeatureTransformer<TransformedFeatureDimensions>& featureTransformer,
-  Square                                                  ksq,
+  Square                                                  kingSq,
   const AccumulatorState&                                 computedState,
   AccumulatorState&                                       middleState,
   AccumulatorState&                                       targetState) noexcept {
@@ -110,11 +110,11 @@ void update_accumulator_incremental_double(
     assert(!targetState.acc<TransformedFeatureDimensions>().computed[Perspective]);
 
     FeatureSet::IndexList removed, added;
-    FeatureSet::append_changed_indices<Perspective>(ksq, middleState.dirtyPiece, removed, added);
-    // you can't capture a piece that was just involved in castling since the rook ends up
+    FeatureSet::append_changed_indices<Perspective>(kingSq, middleState.dirtyPiece, removed, added);
+    // Can't capture a piece that was just involved in castling since the rook ends up
     // in a square that the king passed
     assert(added.size() < 2);
-    FeatureSet::append_changed_indices<Perspective>(ksq, targetState.dirtyPiece, removed, added);
+    FeatureSet::append_changed_indices<Perspective>(kingSq, targetState.dirtyPiece, removed, added);
 
     assert(added.size() == 1);
     assert(removed.size() == 2 || removed.size() == 3);
@@ -145,7 +145,7 @@ void update_accumulator_incremental_double(
 template<Color Perspective, bool Forward, IndexType TransformedFeatureDimensions>
 void update_accumulator_incremental(
   const FeatureTransformer<TransformedFeatureDimensions>& featureTransformer,
-  Square                                                  ksq,
+  Square                                                  kingSq,
   const AccumulatorState&                                 computedState,
   AccumulatorState&                                       targetState) noexcept {
 
@@ -160,10 +160,10 @@ void update_accumulator_incremental(
     // since incrementally updating one move at a time.
     FeatureSet::IndexList removed, added;
     if constexpr (Forward)
-        FeatureSet::append_changed_indices<Perspective>(ksq, targetState.dirtyPiece, removed,
+        FeatureSet::append_changed_indices<Perspective>(kingSq, targetState.dirtyPiece, removed,
                                                         added);
     else
-        FeatureSet::append_changed_indices<Perspective>(ksq, computedState.dirtyPiece, added,
+        FeatureSet::append_changed_indices<Perspective>(kingSq, computedState.dirtyPiece, added,
                                                         removed);
 
     assert(added.size() == 1 || added.size() == 2);
@@ -214,9 +214,9 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
     using Tiling = SIMDTiling<Dimensions, PSQTBuckets>;
 #endif
 
-    Square ksq = pos.king_sq(Perspective);
+    Square kingSq = pos.king_sq(Perspective);
 
-    auto& entry = cache[ksq][Perspective];
+    auto& entry = cache[kingSq][Perspective];
 
     FeatureSet::IndexList removed, added;
 
@@ -233,12 +233,12 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
             while (removeBB)
             {
                 Square s = pop_lsb(removeBB);
-                removed.push_back(FeatureSet::make_index<Perspective>(s, piece, ksq));
+                removed.push_back(FeatureSet::make_index<Perspective>(s, piece, kingSq));
             }
             while (addBB)
             {
                 Square s = pop_lsb(addBB);
-                added.push_back(FeatureSet::make_index<Perspective>(s, piece, ksq));
+                added.push_back(FeatureSet::make_index<Perspective>(s, piece, kingSq));
             }
         }
     }
@@ -454,7 +454,7 @@ void AccumulatorStack::forward_update_incremental(
     assert(begin < accStates.size());
     assert((accStates[begin].acc<Dimensions>()).computed[Perspective]);
 
-    Square ksq = pos.king_sq(Perspective);
+    Square kingSq = pos.king_sq(Perspective);
 
     for (std::size_t idx = begin + 1; idx < size; ++idx)
     {
@@ -468,7 +468,8 @@ void AccumulatorStack::forward_update_incremental(
                 auto capSq = dp1.dst;
                 dp1.dst = dp2.removeSq = SQ_NONE;
                 update_accumulator_incremental_double<Perspective>(
-                  featureTransformer, ksq, accStates[idx - 1], accStates[idx], accStates[idx + 1]);
+                  featureTransformer, kingSq, accStates[idx - 1], accStates[idx],
+                  accStates[idx + 1]);
                 dp1.dst = dp2.removeSq = capSq;
 
                 ++idx;
@@ -476,7 +477,7 @@ void AccumulatorStack::forward_update_incremental(
             }
         }
 
-        update_accumulator_incremental<Perspective, true>(featureTransformer, ksq,
+        update_accumulator_incremental<Perspective, true>(featureTransformer, kingSq,
                                                           accStates[idx - 1], accStates[idx]);
     }
 
@@ -492,10 +493,10 @@ void AccumulatorStack::backward_update_incremental(
     assert(end < size && end < accStates.size());
     assert((clatest_state().acc<Dimensions>()).computed[Perspective]);
 
-    Square ksq = pos.king_sq(Perspective);
+    Square kingSq = pos.king_sq(Perspective);
 
     for (std::int64_t idx = std::int64_t(size) - 2; idx >= std::int64_t(end); --idx)
-        update_accumulator_incremental<Perspective, false>(featureTransformer, ksq,
+        update_accumulator_incremental<Perspective, false>(featureTransformer, kingSq,
                                                            accStates[idx + 1], accStates[idx]);
 
     assert((accStates[end].acc<Dimensions>()).computed[Perspective]);

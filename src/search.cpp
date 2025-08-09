@@ -29,7 +29,6 @@
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
-#include "polybook.h"
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
@@ -45,6 +44,8 @@ namespace DON {
 // tests at these types of time controls.
 
 // clang-format off
+
+PolyBook Book;
 
 namespace {
 

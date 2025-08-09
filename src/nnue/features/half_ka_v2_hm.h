@@ -137,7 +137,7 @@ class HalfKAv2_hm final {
 
     // Index of a feature for a given king position and another piece on some square
     template<Color Perspective>
-    static IndexType make_index(Square s, Piece pc, Square ksq) noexcept;
+    static IndexType make_index(Square s, Piece pc, Square kingSq) noexcept;
 
     // Get a list of indices for active features
     template<Color Perspective>
@@ -145,7 +145,7 @@ class HalfKAv2_hm final {
 
     // Get a list of indices for recently changed features
     template<Color Perspective>
-    static void append_changed_indices(Square            ksq,
+    static void append_changed_indices(Square            kingSq,
                                        const DirtyPiece& dp,
                                        IndexList&        removed,
                                        IndexList&        added) noexcept;

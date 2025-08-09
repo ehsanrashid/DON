@@ -203,12 +203,10 @@ inline Bitboard between_bb(Square s1, Square s2) noexcept {
 // Returns a bitboard between the squares s1 and s2 (excluding s1 and s2)
 inline Bitboard between_ex_bb(Square s1, Square s2) noexcept { return between_bb(s1, s2) ^ s2; }
 
-// Returns true if the squares s1, s2 and s3 are aligned
-// either on a straight or on a diagonal line.
+// Returns true if the squares s1, s2 and s3 are aligned either on a straight or on a diagonal line.
 inline bool aligned(Square s1, Square s2, Square s3) noexcept { return line_bb(s1, s2) & s3; }
 
-// Return the distance between x and y, defined as the
-// number of steps for a king in x to reach y.
+// Return the distance between x and y, defined as the number of steps for a king in x to reach y.
 template<typename T = Square>
 inline std::uint8_t distance(Square s1, Square s2) noexcept;
 
@@ -270,8 +268,7 @@ constexpr Bitboard push_pawn_bb(Bitboard b, Color c) noexcept {
     return c == WHITE ? push_pawn_bb<WHITE>(b) : push_pawn_bb<BLACK>(b);
 }
 
-// Returns the squares attacked by pawns of the given color
-// from the squares in the given bitboard.
+// Returns the squares attacked by pawns of the given color from the given bitboard.
 template<Color C>
 constexpr Bitboard attacks_pawn_bb(Bitboard b) noexcept {
     static_assert(is_ok(C), "Invalid color for attacks_pawn_bb()");
@@ -280,7 +277,6 @@ constexpr Bitboard attacks_pawn_bb(Bitboard b) noexcept {
     else
         return shift<SOUTH_WEST>(b) | shift<SOUTH_EAST>(b);
 }
-
 constexpr Bitboard attacks_pawn_bb(Bitboard b, Color c) noexcept {
     assert(is_ok(c));
     return c == WHITE ? attacks_pawn_bb<WHITE>(b) : attacks_pawn_bb<BLACK>(b);
@@ -343,7 +339,7 @@ constexpr Bitboard attacks_bb(PieceType pt, Square s, Bitboard occupied = 0) noe
     }
 }
 
-// Counts the number of non-zero bits in a bitboard.
+// Counts the number of non-zero bits in the bitboard.
 inline std::uint8_t popcount(Bitboard b) noexcept {
 
 #if !defined(USE_POPCNT)
@@ -371,7 +367,7 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
 #endif
 }
 
-// Returns the least significant bit in a non-zero bitboard
+// Returns the least significant bit in the non-zero bitboard
 inline Square lsb(Bitboard b) noexcept {
     assert(b);
 
@@ -407,7 +403,7 @@ inline Square lsb(Bitboard b) noexcept {
 #endif
 }
 
-// Returns the most significant bit in a non-zero bitboard
+// Returns the most significant bit in the non-zero bitboard
 inline Square msb(Bitboard b) noexcept {
     assert(b);
 
@@ -442,7 +438,7 @@ inline Square msb(Bitboard b) noexcept {
 #endif
 }
 
-// Returns and clears the least significant bit in a non-zero bitboard
+// Returns and clears the least significant bit in the non-zero bitboard
 inline Square pop_lsb(Bitboard& b) noexcept {
     assert(b);
     Square s = lsb(b);
@@ -450,7 +446,7 @@ inline Square pop_lsb(Bitboard& b) noexcept {
     return s;
 }
 
-// Returns and clears the most significant bit in a non-zero bitboard
+// Returns and clears the most significant bit in the non-zero bitboard
 inline Square pop_msb(Bitboard& b) noexcept {
     assert(b);
     Square s = msb(b);
@@ -458,7 +454,7 @@ inline Square pop_msb(Bitboard& b) noexcept {
     return s;
 }
 
-// Returns the bitboard of the least significant square of a non-zero bitboard.
+// Returns the bitboard of the least significant square of the non-zero bitboard.
 // It is equivalent to square_bb(lsb(bb)).
 constexpr Bitboard lsb_square_bb(Bitboard b) noexcept {
     assert(b);

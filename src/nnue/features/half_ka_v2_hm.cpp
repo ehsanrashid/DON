@@ -28,28 +28,28 @@ namespace DON::NNUE::Features {
 
 // Index of a feature for a given king position and another piece on some square
 template<Color Perspective>
-IndexType HalfKAv2_hm::make_index(Square s, Piece pc, Square ksq) noexcept {
-    return (OrientTable[Perspective][ksq] ^ int(s))  //
-         + PieceSquareIndex[Perspective][pc]         //
-         + KingBuckets[Perspective][ksq];
+IndexType HalfKAv2_hm::make_index(Square s, Piece pc, Square kingSq) noexcept {
+    return (OrientTable[Perspective][kingSq] ^ int(s))  //
+         + PieceSquareIndex[Perspective][pc]            //
+         + KingBuckets[Perspective][kingSq];
 }
 
 // Get a list of indices for active features
 template<Color Perspective>
 void HalfKAv2_hm::append_active_indices(const Position& pos, IndexList& active) noexcept {
-    Square ksq = pos.king_sq(Perspective);
+    Square kingSq = pos.king_sq(Perspective);
 
     Bitboard occupied = pos.pieces();
     while (occupied)
     {
         Square s = pop_lsb(occupied);
-        active.push_back(make_index<Perspective>(s, pos.piece_on(s), ksq));
+        active.push_back(make_index<Perspective>(s, pos.piece_on(s), kingSq));
     }
 }
 
 // Explicit template instantiations
-template IndexType HalfKAv2_hm::make_index<WHITE>(Square s, Piece pc, Square ksq) noexcept;
-template IndexType HalfKAv2_hm::make_index<BLACK>(Square s, Piece pc, Square ksq) noexcept;
+template IndexType HalfKAv2_hm::make_index<WHITE>(Square s, Piece pc, Square kingSq) noexcept;
+template IndexType HalfKAv2_hm::make_index<BLACK>(Square s, Piece pc, Square kingSq) noexcept;
 
 template void HalfKAv2_hm::append_active_indices<WHITE>(const Position& pos,
                                                         IndexList&      active) noexcept;
@@ -58,28 +58,28 @@ template void HalfKAv2_hm::append_active_indices<BLACK>(const Position& pos,
 
 // Get a list of indices for recently changed features
 template<Color Perspective>
-void HalfKAv2_hm::append_changed_indices(Square            ksq,
+void HalfKAv2_hm::append_changed_indices(Square            kingSq,
                                          const DirtyPiece& dp,
                                          IndexList&        removed,
                                          IndexList&        added) noexcept {
-    removed.push_back(make_index<Perspective>(dp.org, dp.pc, ksq));
+    removed.push_back(make_index<Perspective>(dp.org, dp.pc, kingSq));
 
     if (is_ok(dp.dst))
-        added.push_back(make_index<Perspective>(dp.dst, dp.pc, ksq));
+        added.push_back(make_index<Perspective>(dp.dst, dp.pc, kingSq));
 
     if (is_ok(dp.removeSq))
-        removed.push_back(make_index<Perspective>(dp.removeSq, dp.removePc, ksq));
+        removed.push_back(make_index<Perspective>(dp.removeSq, dp.removePc, kingSq));
 
     if (is_ok(dp.addSq))
-        added.push_back(make_index<Perspective>(dp.addSq, dp.addPc, ksq));
+        added.push_back(make_index<Perspective>(dp.addSq, dp.addPc, kingSq));
 }
 
 // Explicit template instantiations
-template void HalfKAv2_hm::append_changed_indices<WHITE>(Square            ksq,
+template void HalfKAv2_hm::append_changed_indices<WHITE>(Square            kingSq,
                                                          const DirtyPiece& dp,
                                                          IndexList&        removed,
                                                          IndexList&        added) noexcept;
-template void HalfKAv2_hm::append_changed_indices<BLACK>(Square            ksq,
+template void HalfKAv2_hm::append_changed_indices<BLACK>(Square            kingSq,
                                                          const DirtyPiece& dp,
                                                          IndexList&        removed,
                                                          IndexList&        added) noexcept;

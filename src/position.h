@@ -353,7 +353,7 @@ class Position final {
     };
 
     // Initialization helpers (used while setting up a position)
-    void set_castling_rights(Color c, Square rorg) noexcept;
+    void set_castling_rights(Color c, Square rOrg) noexcept;
     void set_state() noexcept;
     void set_ext_state() noexcept;
 
@@ -369,8 +369,8 @@ class Position final {
     void do_castling(Color             ac,
                      Square            org,
                      Square&           dst,
-                     Square&           rorg,
-                     Square&           rdst,
+                     Square&           rOrg,
+                     Square&           rDst,
                      DirtyPiece* const dp = nullptr) noexcept;
 
     Key adjust_key(Key k, std::int16_t ply = 0) const noexcept;

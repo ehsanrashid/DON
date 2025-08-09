@@ -541,32 +541,32 @@ std::string Position::fen(bool full) const noexcept {
 }
 
 // Sets castling rights given the corresponding color and the rook starting square.
-void Position::set_castling_rights(Color c, Square rorg) noexcept {
-    assert(relative_rank(c, rorg) == RANK_1);
-    assert((pieces(c, ROOK) & rorg));
-    assert(castlingRightsMask[c * FILE_NB + file_of(rorg)] == 0);
+void Position::set_castling_rights(Color c, Square rOrg) noexcept {
+    assert(relative_rank(c, rOrg) == RANK_1);
+    assert((pieces(c, ROOK) & rOrg));
+    assert(castlingRightsMask[c * FILE_NB + file_of(rOrg)] == 0);
 
-    Square korg = king_sq(c);
-    assert(relative_rank(c, korg) == RANK_1);
-    assert((pieces(c, KING) & korg));
+    Square kOrg = king_sq(c);
+    assert(relative_rank(c, kOrg) == RANK_1);
+    assert((pieces(c, KING) & kOrg));
 
-    int cr = make_castling_rights(c, korg, rorg);
+    int cr = make_castling_rights(c, kOrg, rOrg);
 
     std::size_t crLsb = lsb(cr);
     assert(crLsb < std::size(castlingRookSq));
     assert(!is_ok(castlingRookSq[crLsb]));
 
     st->castlingRights |= cr;
-    castlingRightsMask[c * FILE_NB + file_of(korg)] |= cr;
-    castlingRightsMask[c * FILE_NB + file_of(rorg)] = cr;
+    castlingRightsMask[c * FILE_NB + file_of(kOrg)] |= cr;
+    castlingRightsMask[c * FILE_NB + file_of(rOrg)] = cr;
 
-    castlingRookSq[crLsb] = rorg;
+    castlingRookSq[crLsb] = rOrg;
 
-    Square kdst = king_castle_sq(c, korg, rorg);
-    Square rdst = rook_castle_sq(c, korg, rorg);
+    Square kDst = king_castle_sq(c, kOrg, rOrg);
+    Square rDst = rook_castle_sq(c, kOrg, rOrg);
 
     castlingPath[crLsb] =
-      (between_bb(korg, kdst) | between_bb(rorg, rdst)) & ~make_bitboard(korg, rorg);
+      (between_bb(kOrg, kDst) | between_bb(rOrg, rDst)) & ~make_bitboard(kOrg, rOrg);
 }
 
 // Computes the hash keys of the position, and other data
@@ -693,16 +693,16 @@ Position::attacks_mob_by(Color c, Bitboard blockers, Bitboard target, Bitboard o
     {
         attacks = 0;
 
-        Square ksq = king_sq(c);
+        Square kingSq = king_sq(c);
 
-        Bitboard pc = pieces<PT>(c, ksq, blockers);
+        Bitboard pc = pieces<PT>(c, kingSq, blockers);
         while (pc)
         {
             Square s = pop_lsb(pc);
 
             Bitboard atks = attacks_bb<PT>(s, occupied);
             if (PT != KNIGHT && PT != KING && (blockers & s))
-                atks &= line_bb(ksq, s);
+                atks &= line_bb(kingSq, s);
             st->mobility[c] += MobilityBonus[PT][popcount(atks & target)];
             attacks |= atks;
         }
@@ -775,19 +775,19 @@ bool Position::can_enpassant(Color           ac,
 // This is a bit tricky in Chess960 where org/dst squares can overlap.
 template<bool Do>
 void Position::do_castling(
-  Color ac, Square org, Square& dst, Square& rorg, Square& rdst, DirtyPiece* const dp) noexcept {
+  Color ac, Square org, Square& dst, Square& rOrg, Square& rDst, DirtyPiece* const dp) noexcept {
 
-    rorg = dst;  // Castling is encoded as "king captures rook"
-    rdst = rook_castle_sq(ac, org, dst);
+    rOrg = dst;  // Castling is encoded as "king captures rook"
+    rDst = rook_castle_sq(ac, org, dst);
     dst  = king_castle_sq(ac, org, dst);
 
     Piece king = piece_on(Do ? org : dst);
     assert(king == make_piece(ac, KING));
-    Piece rook = piece_on(Do ? rorg : rdst);
+    Piece rook = piece_on(Do ? rOrg : rDst);
     assert(rook == make_piece(ac, ROOK));
 
     bool kingMoved = org != dst;
-    bool rookMoved = rorg != rdst;
+    bool rookMoved = rOrg != rDst;
 
     assert(!Do || dp != nullptr);
 
@@ -797,8 +797,8 @@ void Position::do_castling(
 
         if (rookMoved)
         {
-            dp->removeSq = rorg;
-            dp->addSq    = rdst;
+            dp->removeSq = rOrg;
+            dp->addSq    = rDst;
             dp->removePc = dp->addPc = rook;
         }
 
@@ -810,11 +810,11 @@ void Position::do_castling(
     if (kingMoved)
         remove_piece(Do ? org : dst);
     if (rookMoved)
-        remove_piece(Do ? rorg : rdst);
+        remove_piece(Do ? rOrg : rDst);
     if (kingMoved)
         put_piece(Do ? dst : org, king);
     if (rookMoved)
-        put_piece(Do ? rdst : rorg, rook);
+        put_piece(Do ? rDst : rOrg, rook);
 }
 
 // Makes a move, and saves all necessary information to new state.
@@ -876,10 +876,10 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
         assert(capturedPiece == make_piece(ac, ROOK));
         assert(!st->castled[ac]);
 
-        Square rorg, rdst;
-        do_castling<true>(ac, org, dst, rorg, rdst, &dp);
-        assert(rorg == m.dst_sq());
-        //rookMoved = rorg != rdst;
+        Square rOrg, rDst;
+        do_castling<true>(ac, org, dst, rOrg, rDst, &dp);
+        assert(rOrg == m.dst_sq());
+        //rookMoved = rOrg != rDst;
 
         // Update castling rights
         int cr = ac & ANY_CASTLING;
@@ -888,14 +888,14 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
         st->castlingRights &= ~cr;
 
         // clang-format off
-        k                   ^= Zobrist::psq[capturedPiece][rorg] ^ Zobrist::psq[capturedPiece][rdst];
-        st->groupKey[ac][1] ^= Zobrist::psq[capturedPiece][rorg] ^ Zobrist::psq[capturedPiece][rdst];
+        k                   ^= Zobrist::psq[capturedPiece][rOrg] ^ Zobrist::psq[capturedPiece][rDst];
+        st->groupKey[ac][1] ^= Zobrist::psq[capturedPiece][rOrg] ^ Zobrist::psq[capturedPiece][rDst];
         capturedPiece = NO_PIECE;
         // clang-format on
 
         // Calculate checker only one ROOK possible (if move is check)
-        st->checkers = check ? square_bb(rdst) : 0;
-        assert(!check || (checkers() & rdst));
+        st->checkers = check ? square_bb(rDst) : 0;
+        assert(!check || (checkers() & rDst));
 
         goto DO_MOVE_END;
     }
@@ -993,6 +993,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
         {
             assert(relative_rank(ac, org) == RANK_2);
             assert(relative_rank(ac, dst) == RANK_4);
+
             epCheck = true;
         }
 
@@ -1045,13 +1046,13 @@ DO_MOVE_END:
     auto end = std::min(rule50_count(), null_ply());
     if (end >= 4)
     {
-        auto* pst = st->preState->preState;
+        auto* pSt = st->preState->preState;
         for (auto i = 4; i <= end; i += 2)
         {
-            pst = pst->preState->preState;
-            if (pst->key == st->key)
+            pSt = pSt->preState->preState;
+            if (pSt->key == st->key)
             {
-                st->repetition = pst->repetition != 0 ? -i : +i;
+                st->repetition = pSt->repetition != 0 ? -i : +i;
                 break;
             }
         }
@@ -1088,9 +1089,9 @@ void Position::undo_move(const Move& m) noexcept {
         assert(capturedPiece == NO_PIECE);
         assert(st->castled[ac]);
 
-        Square rorg, rdst;
-        do_castling<false>(ac, org, dst, rorg, rdst);
-        assert(rorg == m.dst_sq());
+        Square rOrg, rDst;
+        do_castling<false>(ac, org, dst, rOrg, rDst);
+        assert(rOrg == m.dst_sq());
 
         goto UNDO_MOVE_END;
     }
@@ -1329,9 +1330,9 @@ bool Position::legal(const Move& m) const noexcept {
 
         // After castling, the rook and king final positions are the same in
         // Chess960 as they would be in standard chess.
-        Square    kdst = king_castle_sq(ac, org, dst);
-        Direction step = org < kdst ? WEST : EAST;
-        for (Square s = kdst; s != org; s += step)
+        Square    kDst = king_castle_sq(ac, org, dst);
+        Direction step = org < kDst ? WEST : EAST;
+        for (Square s = kDst; s != org; s += step)
             if (exist_attackers_to(s, pieces(~ac)))
                 return false;
 
@@ -1385,7 +1386,7 @@ bool Position::check(const Move& m) const noexcept {
         return false;
 
     case PROMOTION :
-        return attacks_bb(m.promotion_type(), dst, pieces() ^ org) & pieces(~ac, KING);
+        return attacks_bb(m.promotion_type(), dst, pieces() ^ org) & king_sq(~ac);
 
     // En-passant capture with check? Already handled the case of direct check
     // and ordinary discovered check, so the only case need to handle is
@@ -1422,7 +1423,7 @@ bool Position::dbl_check(const Move& m) const noexcept {
 
     case PROMOTION :
         return (blockers(~ac) & org)  //
-            && (attacks_bb(m.promotion_type(), dst, pieces() ^ org) & pieces(~ac, KING));
+            && (attacks_bb(m.promotion_type(), dst, pieces() ^ org) & king_sq(~ac));
 
     case EN_PASSANT : {
         Bitboard checkers =
@@ -1637,7 +1638,7 @@ bool Position::see_ge(const Move& m, int threshold) const noexcept {
             acAttackers &= king_sq(ac);
 
             if (!acAttackers  //
-                && (pt == PAWN || !(attacks_bb(pt, dst, occupied) & pieces(ac, KING))))
+                && (pt == PAWN || !(attacks_bb(pt, dst, occupied) & king_sq(ac))))
             {
                 dst  = lsb(b);
                 swap = PIECE_VALUE[type_of(piece_on(org))] - swap;
@@ -1857,21 +1858,21 @@ bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
     if (end < 3)
         return false;
 
-    auto* pst = st->preState;
+    auto* pSt = st->preState;
 
     Key baseKey = st->key;
-    Key iterKey = baseKey ^ pst->key ^ Zobrist::side;
+    Key iterKey = baseKey ^ pSt->key ^ Zobrist::side;
 
     for (std::int16_t i = 3; i <= end; i += 2)
     {
-        iterKey ^= pst->preState->key ^ pst->preState->preState->key ^ Zobrist::side;
-        pst = pst->preState->preState;
+        iterKey ^= pSt->preState->key ^ pSt->preState->preState->key ^ Zobrist::side;
+        pSt = pSt->preState->preState;
 
         // Opponent pieces have reverted
         if (iterKey != 0)
             continue;
 
-        Key moveKey = baseKey ^ pst->key;
+        Key moveKey = baseKey ^ pSt->key;
         // 'moveKey' is a single move
         std::size_t index = Cuckoos.find_key(moveKey);
         if (index >= Cuckoos.size())
@@ -1895,7 +1896,7 @@ bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
         if (i < ply
             // For nodes before or at the root, check that the move is
             // a repetition rather than a move to the current position.
-            || pst->repetition != 0)
+            || pSt->repetition != 0)
             return true;
     }
     return false;

@@ -184,13 +184,13 @@ class FeatureTransformer final {
         const auto& psqtAccumulation =
           (accumulatorState.acc<TransformedFeatureDimensions>()).psqtAccumulation;
 
-        std::int32_t psqt = 0.5f
-                          * (psqtAccumulation[perspectives[0]][bucket]  //
-                             - psqtAccumulation[perspectives[1]][bucket]);
+        std::int32_t psqt =
+          (psqtAccumulation[perspectives[0]][bucket] - psqtAccumulation[perspectives[1]][bucket])
+          / 2;
 
         for (auto p = 0; p < COLOR_NB; ++p)
         {
-            auto offset = p * (TransformedFeatureDimensions / 2);
+            IndexType offset = p * (TransformedFeatureDimensions / 2);
 
 #if defined(VECTOR)
             constexpr IndexType OutputChunkSize = MaxChunkSize;
@@ -199,9 +199,9 @@ class FeatureTransformer final {
               TransformedFeatureDimensions / 2 / OutputChunkSize;
 
             // clang-format off
-            auto* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
-            auto* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][TransformedFeatureDimensions / 2]));
-            auto* out = reinterpret_cast<      vec_t*>(output + offset);
+            const auto* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
+            const auto* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][TransformedFeatureDimensions / 2]));
+            auto*       out = reinterpret_cast<      vec_t*>(output + offset);
             // clang-format on
 
             // Per the NNUE architecture, here we want to multiply pairs of

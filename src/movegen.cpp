@@ -80,21 +80,12 @@ inline Move* splat_promotion_moves(Move* moves, Bitboard b) noexcept {
                     || D == NORTH_EAST || D == SOUTH_EAST || D == NORTH_WEST || D == SOUTH_WEST,
                   "D is invalid");
 
-#if defined(USE_AVX512ICL)
     while (b)
     {
         Square s = pop_lsb(b);
         for (PieceType promo : {QUEEN, KNIGHT, ROOK, BISHOP})
             *moves++ = Move(s - D, s, promo);
     }
-#else
-    while (b)
-    {
-        Square s = pop_lsb(b);
-        for (PieceType promo : {QUEEN, KNIGHT, ROOK, BISHOP})
-            *moves++ = Move(s - D, s, promo);
-    }
-#endif
     return moves;
 }
 
@@ -223,12 +214,12 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
                   "Unsupported piece type in generate_piece_moves()");
     assert(!pos.checkers() || !more_than_one(pos.checkers()));
 
-    Square ksq = pos.king_sq(AC);
+    Square kingSq = pos.king_sq(AC);
 
     Bitboard occupied = pos.pieces();
     Bitboard blockers = pos.blockers(AC);
 
-    Bitboard pc = pos.pieces<PT>(AC, ksq, blockers);
+    Bitboard pc = pos.pieces<PT>(AC, kingSq, blockers);
     while (pc)
     {
         Square s = pop_lsb(pc);
@@ -236,42 +227,44 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
         Bitboard b = attacks_bb<PT>(s, occupied) & target;
 
         if (PT != KNIGHT && (blockers & s))
-            b &= line_bb(ksq, s);
+            b &= line_bb(kingSq, s);
 
         moves = splat_moves(moves, s, b);
     }
     return moves;
 }
 
-// clang-format off
 template<Color AC, GenType GT, bool Any>
 Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noexcept {
     assert(popcount(pos.checkers()) <= 2);
 
     constexpr bool Castle = GT == ENCOUNTER || GT == ENC_QUIET;
 
-    Square ksq = pos.king_sq(AC);
+    Square kingSq = pos.king_sq(AC);
 
-    Bitboard b = attacks_bb<KING>(ksq) & target;
+    Bitboard b = attacks_bb<KING>(kingSq) & target;
 
     if (b)
     {
         b &= ~(pos.attacks<PAWN>(~AC) | pos.attacks<KING>(~AC));
 
-        Bitboard occupied = pos.pieces() ^ ksq;
+        Bitboard occupied = pos.pieces() ^ kingSq;
 
         while (b)
         {
             Square s = pop_lsb(b);
+            // clang-format off
             if (!((pos.pieces(~AC, KNIGHT       ) & attacks_bb<KNIGHT>(s))
               || ((pos.pieces(~AC, QUEEN, BISHOP) & attacks_bb<BISHOP>(s))
                && (pos.pieces(~AC, QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupied)))
               || ((pos.pieces(~AC, QUEEN, ROOK  ) & attacks_bb<ROOK  >(s))
                && (pos.pieces(~AC, QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupied)))))
             {
-                *moves++ = Move(ksq, s);
-                if constexpr (Any) return moves;
+                *moves++ = Move(kingSq, s);
+                if constexpr (Any)
+                    return moves;
             }
+            // clang-format on
         }
     }
 
@@ -284,12 +277,13 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
                 {
                     assert(is_ok(pos.castling_rook_sq(cr))
                            && (pos.pieces(AC, ROOK) & pos.castling_rook_sq(cr)));
-                    *moves++ = Move(CASTLING, ksq, pos.castling_rook_sq(cr));
+                    *moves++ = Move(CASTLING, kingSq, pos.castling_rook_sq(cr));
+                    if constexpr (Any)
+                        return moves;
                 }
     }
-   return moves;
+    return moves;
 }
-// clang-format on
 
 template<Color AC, GenType GT, bool Any>
 Move* generate_moves(const Position& pos, Move* moves) noexcept {

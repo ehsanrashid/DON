@@ -34,6 +34,7 @@
 #include "history.h"
 #include "misc.h"
 #include "numa.h"
+#include "polybook.h"
 #include "position.h"
 #include "timeman.h"
 #include "types.h"
@@ -52,6 +53,8 @@ struct Networks;
 }
 
 constexpr std::size_t DEFAULT_MULTI_PV = 1;
+
+extern PolyBook Book;
 
 namespace Search {
 
