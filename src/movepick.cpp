@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <cassert>
 #include <functional>
-#include <type_traits>
 #include <utility>
 
 #include "bitboard.h"
@@ -201,7 +200,7 @@ ExtMove* MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList) noexcept {
 // The order of moves smaller than the limit is left unspecified.
 void MovePicker::sort_partial(int limit) noexcept {
 
-    for (auto s = cur, p = cur + 1; p < endCur; ++p)
+    for (auto *s = cur, *p = cur + 1; p < endCur; ++p)
         if (p->value >= limit)
         {
             auto m = std::move(*p);
@@ -209,7 +208,7 @@ void MovePicker::sort_partial(int limit) noexcept {
             *p = std::move(*++s);
 
             // Find the correct position for 'm' using binary search
-            auto q = std::upper_bound(cur, s, m, std::greater<>{});
+            auto* q = std::upper_bound(cur, s, m, std::greater<>{});
             // Move elements to make space for 'm'
             std::move_backward(q, s, s + 1);
             // Insert the element in its correct position
@@ -245,7 +244,7 @@ STAGE_SWITCH:
     }
 
     case STG_ENC_CAPTURE_GOOD :
-        while (cur != endCur)
+        while (cur < endCur)
         {
             if (*cur != ttMove)
             {
@@ -276,7 +275,7 @@ STAGE_SWITCH:
 
     case STG_ENC_QUIET_GOOD :
         if (quietPick)
-            while (cur != endCur)
+            while (cur < endCur)
             {
                 if (*cur != ttMove)
                 {
@@ -298,7 +297,7 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case STG_ENC_CAPTURE_BAD :
-        while (cur != endCur)
+        while (cur < endCur)
         {
             assert(*cur != ttMove);
             return *cur++;
@@ -318,7 +317,7 @@ STAGE_SWITCH:
 
     case STG_ENC_QUIET_BAD :
         if (quietPick)
-            while (cur != endCur)
+            while (cur < endCur)
             {
                 if (*cur != ttMove)
                     return *cur++;
@@ -339,7 +338,7 @@ STAGE_SWITCH:
     }
 
     case STG_EVA_CAPTURE_ALL :
-        while (cur != endCur)
+        while (cur < endCur)
         {
             if (*cur != ttMove)
                 return *cur++;
@@ -364,7 +363,7 @@ STAGE_SWITCH:
 
     case STG_EVA_QUIET_ALL :
         if (quietPick)
-            while (cur != endCur)
+            while (cur < endCur)
             {
                 if (*cur != ttMove)
                     return *cur++;
@@ -374,7 +373,7 @@ STAGE_SWITCH:
         return Move::None;
 
     case STG_PROBCUT_ALL :
-        while (cur != endCur)
+        while (cur < endCur)
         {
             if (*cur != ttMove && pos.see(*cur) >= threshold)
                 return *cur++;
