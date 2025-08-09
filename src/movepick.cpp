@@ -279,7 +279,7 @@ STAGE_SWITCH:
             {
                 if (*cur != ttMove)
                 {
-                    if (cur->value >= GoodQuietThreshold)
+                    if (cur->value >= (GoodQuietThreshold + threshold / 8))
                         return *cur++;
                     // Remaining quiets are bad
                     break;
