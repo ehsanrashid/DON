@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <cassert>
 #include <functional>
-#include <type_traits>
 #include <utility>
 
 #include "bitboard.h"
@@ -204,16 +203,16 @@ void MovePicker::sort_partial(int limit) noexcept {
     for (auto *s = cur, *p = cur + 1; p < endCur; ++p)
         if (p->value >= limit)
         {
-            auto m = std::move(*p);
+            auto m = *p;
 
-            *p = std::move(*++s);
+            *p = *++s;
 
             // Find the correct position for 'm' using binary search
             auto* q = std::upper_bound(cur, s, m, std::greater<>{});
             // Move elements to make space for 'm'
             std::move_backward(q, s, s + 1);
             // Insert the element in its correct position
-            *q = std::move(m);
+            *q = m;
         }
 }
 
