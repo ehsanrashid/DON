@@ -259,24 +259,6 @@ constexpr Bitboard shift(Bitboard b) noexcept {
     else
         return b;
 }
-constexpr Bitboard shift(Direction d, Bitboard b) noexcept {
-    // clang-format off
-    switch (d)
-    {
-    case NORTH :      return shift<NORTH>     (b);
-    case SOUTH :      return shift<SOUTH>     (b);
-    case NORTH_2 :    return shift<NORTH_2>   (b);
-    case SOUTH_2 :    return shift<SOUTH_2>   (b);
-    case EAST :       return shift<EAST>      (b);
-    case WEST :       return shift<WEST>      (b);
-    case NORTH_WEST : return shift<NORTH_WEST>(b);
-    case SOUTH_EAST : return shift<SOUTH_EAST>(b);
-    case NORTH_EAST : return shift<NORTH_EAST>(b);
-    case SOUTH_WEST : return shift<SOUTH_WEST>(b);
-    default :         return b;
-    }
-    // clang-format on
-}
 
 template<Color C>
 constexpr Bitboard push_pawn_bb(Bitboard b) noexcept {
