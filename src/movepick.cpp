@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cassert>
 #include <functional>
+#include <type_traits>
 #include <utility>
 
 #include "bitboard.h"
