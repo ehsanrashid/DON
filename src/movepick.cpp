@@ -138,7 +138,7 @@ ExtMove* MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
         if (pos.check(m))
             m.value += 0x4000 * (pos.see(m) >= -75) + 0x1000 * pos.dbl_check(m);
 
-        m.value += 0x1000 * (pos.fork(m) && pos.see(m) >= -25);
+        m.value += 0x1000 * (pos.fork(m) && pos.see(m) >= -50);
 
         if (KNIGHT < pt || pt > QUEEN)
             continue;
