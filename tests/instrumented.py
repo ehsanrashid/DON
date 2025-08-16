@@ -263,33 +263,34 @@ class TestInteractive(metaclass=OrderedClassMembers):
 
         self.engine.check_output(callback)
 
-    # def test_ucinewgame_wdl_startpos_go_depth_9(self):
-    #     self.engine.send_command("ucinewgame")
-    #     self.engine.send_command("setoption name UCI_ShowWDL value true")
-    #     self.engine.send_command("position startpos")
-    #     self.engine.send_command("go depth 9")
+    def test_ucinewgame_wdl_startpos_go_depth_9(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("setoption name UCI_ShowWDL value true")
+        self.engine.send_command("position startpos")
+        self.engine.send_command("go depth 9")
 
-    #     # depth = 1
-    #     def callback(output):
-    #         # nonlocal depth
+        # depth = 1
 
-    #         # regex = rf"info depth {depth} seldepth \d+ multipv \d+ score cp \d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
-    #         regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp \d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
-    #         # if output.startswith("info depth"):
-    #         #     if not re.match(regex, output):
-    #         #         assert False
-    #         #     depth += 1
-    #         # if output.startswith("bestmove"):
-    #         #     # assert depth == 10
-    #         #     return True
-    #         # return False
-    #         if output.startswith("info depth") and not re.match(regex, output):
-    #             assert False
-    #         if output.startswith("bestmove"):
-    #             return True
-    #         return False
+        def callback(output):
+            # nonlocal depth
 
-    #     self.engine.check_output(callback)
+            # regex = rf"info depth {depth} seldepth \d+ multipv \d+ score cp \d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp \d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            # if output.startswith("info depth"):
+            #     if not re.match(regex, output):
+            #         assert False
+            #     depth += 1
+            # if output.startswith("bestmove"):
+            #     assert depth == 10
+            #     return True
+            # return False
+            if output.startswith("info depth") and not re.match(regex, output):
+                assert False
+            if output.startswith("bestmove"):
+                return True
+            return False
+
+        self.engine.check_output(callback)
 
     def test_clear_hash(self):
         self.engine.send_command("setoption name Clear Hash")
@@ -320,7 +321,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.send_command("go nodes 500000")
         self.engine.starts_with("bestmove")
 
-    def test_position_fen_with_mate_go_depth_18(self):
+    def test_position_fen_with_mate_go_depth_18_searchmoves(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command(
             "position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1"
@@ -400,7 +401,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
 
-    def test_skilllevel_setting_position_fen_go_depth_5(self):
+    def test_skilllevel_setting_startpos_go_depth_5(self):
         self.engine.send_command("setoption name SkillLevel value 10")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
