@@ -281,7 +281,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
             #         assert False
             #     depth += 1
             # if output.startswith("bestmove"):
-            #     assert depth == 10
+            #     assert depth >= 10
             #     return True
             # return False
             if output.startswith("info depth") and not re.match(regex, output):
