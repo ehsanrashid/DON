@@ -1,7 +1,7 @@
 #!/bin/bash
 # verify perft numbers (positions from https://www.chessprogramming.org/Perft_Results)
 
-TestsFailed=0
+TESTS_FAILED=0
 
 error() {
   echo "perft testing failed on line $1"
@@ -53,7 +53,7 @@ run_test() {
     cat "$tmp_file"
     echo "=================================="
     rm -f "$tmp_file"
-    TestsFailed=1
+    TESTS_FAILED=1
   fi
 }
 
@@ -89,7 +89,7 @@ run_test "fen bnn1qrkr/pp1ppp1p/2p5/b3Q1p1/8/5P1P/PPPPP1P1/BNNB1RKR w HFhf - 2 9
 rm -f $EXPECT_SCRIPT
 echo "perft testing completed"
 
-if [ $TestsFailed -ne 0 ]; then
+if [ $TESTS_FAILED -ne 0 ]; then
   echo "Some tests failed"
   exit 1
 fi

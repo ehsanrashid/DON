@@ -345,7 +345,7 @@ class TranspositionTable final {
     // Prefetch the cache line which includes this key's entry
     void prefetch_key(Key key) const noexcept { prefetch(cluster(key)); }
 
-    std::uint16_t lastHashfull = 0;
+    std::atomic<std::uint16_t> lastHashfull{0};
 
    private:
     TTCluster*   clusters     = nullptr;
