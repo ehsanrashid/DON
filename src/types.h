@@ -84,11 +84,11 @@ using Key      = std::uint64_t;
 using Key32    = std::uint32_t;
 using Key16    = std::uint16_t;
 
-constexpr std::uint16_t MAX_MOVES = 256;
-constexpr std::uint16_t MAX_PLY   = 254;
+constexpr std::uint16_t MAX_MOVES = 256u;
+constexpr std::uint16_t MAX_PLY   = 254u;
 
 // Size of cache line (in bytes)
-constexpr std::size_t CACHE_LINE_SIZE = 64;
+constexpr std::size_t CACHE_LINE_SIZE = 64u;
 
 constexpr std::string_view START_FEN{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 
@@ -197,9 +197,7 @@ constexpr bool is_loss(Value value) noexcept {
     return value <= VALUE_TB_LOSS_IN_MAX_PLY;
 }
 
-constexpr bool is_decisive(Value value) noexcept {  //
-    return is_win(value) || is_loss(value);
-}
+constexpr bool is_decisive(Value value) noexcept { return is_win(value) || is_loss(value); }
 
 constexpr bool is_mate_win(Value value) noexcept {
     assert(is_valid(value));
@@ -211,9 +209,7 @@ constexpr bool is_mate_loss(Value value) noexcept {
     return value <= VALUE_MATED_IN_MAX_PLY;
 }
 
-constexpr bool is_mate(Value value) noexcept {  //
-    return is_mate_win(value) || is_mate_loss(value);
-}
+constexpr bool is_mate(Value value) noexcept { return is_mate_win(value) || is_mate_loss(value); }
 
 // Depth is used as an alias for std::int16_t
 using Depth = std::int16_t;
@@ -404,7 +400,11 @@ constexpr std::uint64_t make_hash(std::uint64_t seed) noexcept {
     return 0x14057B7EF767814Full + 0x5851F42D4C957F2Dull * seed;
 }
 
-constexpr Key16 compress_key(Key key) noexcept {
+constexpr Key32 compress_key32(Key key) noexcept {
+    return ((key >> 00) & 0xFFFFFFFF)  //
+         ^ ((key >> 32) & 0xFFFF0000);
+}
+constexpr Key16 compress_key16(Key key) noexcept {
     return ((key >> 00) & 0xFFFF)  //
          ^ ((key >> 16) & 0xFFF0)  //
          ^ ((key >> 32) & 0xFF00)  //
@@ -484,6 +484,8 @@ class Move {
 
     // Validity check: ensures move is not None or Null
     constexpr bool is_ok() const noexcept { return org_sq() != dst_sq(); }
+
+    //constexpr explicit operator bool() const noexcept { return move != 0; }
 
     // Declare static const members (to be defined later)
     static const Move None;

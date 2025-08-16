@@ -330,8 +330,8 @@ class TranspositionTable final {
     std::tuple<TTData, TTEntry*, TTCluster* const> probe(Key key, Key16 key16) const noexcept;
     std::tuple<TTData, TTEntry*, TTCluster* const> probe(Key key) const noexcept;
 
-    std::uint16_t hashFull(std::uint8_t maxAge) const noexcept;
-    std::uint16_t hashFull() noexcept;
+    std::uint16_t hashfull(std::uint8_t maxAge) const noexcept;
+    std::uint16_t hashfull() noexcept;
 
     bool save(const std::string& hashFile) const noexcept;
     bool load(const std::string& hashFile, ThreadPool& threads) noexcept;
@@ -345,7 +345,7 @@ class TranspositionTable final {
     // Prefetch the cache line which includes this key's entry
     void prefetch_key(Key key) const noexcept { prefetch(cluster(key)); }
 
-    std::uint16_t lastHashFull = 0;
+    std::uint16_t lastHashfull = 0;
 
    private:
     TTCluster*   clusters     = nullptr;

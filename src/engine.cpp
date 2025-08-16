@@ -93,8 +93,8 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("UCI_LimitStrength",    Option(false));
     options.add("UCI_ELO",              Option(Skill::MaxELO, Skill::MinELO, Skill::MaxELO));
     options.add("UCI_ShowWDL",          Option(false));
-    options.add("UCI_ShowCurrLine",     Option(false));
-    options.add("UCI_ShowRefutations",  Option(false));
+    //options.add("UCI_ShowCurrLine",     Option(false));
+    //options.add("UCI_ShowRefutations",  Option(false));
     options.add("OwnBook",              Option(false));
     options.add("BookFile",             Option("", [](const Option& o) { Book.init(o); return std::nullopt; }));
     options.add("BookProbeDepth",       Option(100, 1, 256));
@@ -217,9 +217,7 @@ void Engine::eval() noexcept {
 
 void Engine::flip() noexcept { pos.flip(); }
 
-std::uint16_t Engine::get_hashFull(std::uint8_t maxAge) const noexcept {
-    return tt.hashFull(maxAge);
-}
+std::uint16_t Engine::hashfull(std::uint8_t maxAge) const noexcept { return tt.hashfull(maxAge); }
 
 std::string Engine::get_numa_config_str() const noexcept {
     return numaContext.numa_config().to_string();
@@ -278,11 +276,10 @@ void Engine::verify_networks() const noexcept {
 }
 
 void Engine::load_networks() noexcept {
-    networks.modify_and_replicate(  //
-      [this](NNUE::Networks& nets) {
-          nets.big.load(binaryDirectory, options["EvalFileBig"]);
-          nets.small.load(binaryDirectory, options["EvalFileSmall"]);
-      });
+    networks.modify_and_replicate([this](NNUE::Networks& nets) {
+        nets.big.load(binaryDirectory, options["EvalFileBig"]);
+        nets.small.load(binaryDirectory, options["EvalFileSmall"]);
+    });
     threads.init();
     threads.ensure_network_replicated();
 }
@@ -302,11 +299,10 @@ void Engine::load_small_network(const std::string& netFile) noexcept {
 }
 
 void Engine::save_networks(const std::array<std::optional<std::string>, 2>& netFiles) noexcept {
-    networks.modify_and_replicate(  //
-      [&](const NNUE::Networks& nets) {
-          nets.big.save(netFiles[0]);
-          nets.small.save(netFiles[1]);
-      });
+    networks.modify_and_replicate([&](const NNUE::Networks& nets) {
+        nets.big.save(netFiles[0]);
+        nets.small.save(netFiles[1]);
+    });
 }
 
 void Engine::set_on_update_end(OnUpdateEnd&& f) noexcept {

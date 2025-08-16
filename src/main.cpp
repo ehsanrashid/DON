@@ -21,7 +21,7 @@
 #include "bitboard.h"
 #include "misc.h"
 #include "position.h"
-//#include "tune.h"
+#include "tune.h"
 #include "types.h"
 #include "uci.h"
 #include "syzygy/tbprobe.h"
@@ -42,7 +42,7 @@ int main(int argc, const char** argv) noexcept {
 
     UCI uci(argc, argv);
 
-    //Tune::init(uci.options());
+    Tune::init(uci.options());
 
     uci.run();
 

@@ -82,7 +82,7 @@ class Engine final {
     void eval() noexcept;
     void flip() noexcept;
 
-    std::uint16_t get_hashFull(std::uint8_t maxAge = 0) const noexcept;
+    std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
 
     std::string get_numa_config_str() const noexcept;
     std::string get_numa_config_info_str() const noexcept;

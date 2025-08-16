@@ -123,12 +123,10 @@ class Options final {
     auto size() const noexcept { return options.size(); }
     auto empty() const noexcept { return options.empty(); }
 
-    auto contains(const std::string& name) const noexcept {  //
+    auto contains(const std::string& name) const noexcept {
         return options.find(name) != options.end();
     }
-    auto count(const std::string& name) const noexcept {  //
-        return options.count(name);
-    }
+    auto count(const std::string& name) const noexcept { return options.count(name); }
 
     void set_info_listener(InfoListener&& listener) noexcept;
 

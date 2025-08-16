@@ -21,7 +21,6 @@
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
-#include <ctime>
 #include <iomanip>
 #include <iostream>
 
@@ -536,7 +535,7 @@ void PolyBook::find_key(Key key) noexcept {
 }
 
 void PolyBook::get_key_data(std::size_t begIndex) noexcept {
-    static PRNG rng(time(nullptr));
+    static PRNG rng(now());
 
     keyData.entryCount = 1;
     keyData.begIndex   = begIndex;

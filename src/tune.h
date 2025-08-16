@@ -197,8 +197,7 @@ constexpr void check_tune_args(Args&&...) {
 
 // Some macro magic :-) define a dummy int variable that the compiler initializes calling Tune::add()
 #if !defined(STRINGIFY)
-    #define STRING_LITERAL(x) #x
-    #define STRINGIFY(x) STRING_LITERAL(x)
+    #define STRINGIFY(x) #x
 #endif
 #define UNIQUE2(x, y) x##y
 #define UNIQUE(x, y) UNIQUE2(x, y)  // Two indirection levels to expand __LINE__

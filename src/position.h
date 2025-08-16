@@ -75,7 +75,7 @@ struct State final {
     Piece        capturedPiece;
     Piece        promotedPiece;
 
-    State* preState;
+    State* preSt;
 };
 
 // A list to keep track of the position states along the setup moves
@@ -166,9 +166,9 @@ class Position final {
 
    public:
     // FEN string input/output
-    void        set(std::string_view fenStr, State* newSt) noexcept;
-    void        set(std::string_view code, Color c, State* newSt) noexcept;
-    void        set(const Position& pos, State* newSt) noexcept;
+    void        set(std::string_view fenStr, State* const newSt) noexcept;
+    void        set(std::string_view code, Color c, State* const newSt) noexcept;
+    void        set(const Position& pos, State* const newSt) noexcept;
     std::string fen(bool full = true) const noexcept;
 
     // Position representation
@@ -701,12 +701,12 @@ inline void Position::reset_ep_sq() noexcept { st->epSq = SQ_NONE; }
 inline void Position::reset_rule50_count() noexcept { st->rule50 = 0; }
 
 inline void Position::reset_repetitions() noexcept {
-    auto* cst = st;
-    while (cst != nullptr)
+    auto* cSt = st;
+    while (cSt != nullptr)
     {
-        cst->repetition = 0;
+        cSt->repetition = 0;
 
-        cst = cst->preState;
+        cSt = cSt->preSt;
     }
 }
 
@@ -753,18 +753,14 @@ inline DirtyPiece Position::do_move(const Move& m, State& newSt) noexcept {
 inline State* Position::state() const noexcept { return st; }
 
 // Position::SEE
-inline bool Position::SEE::operator>=(int threshold) const noexcept {  //
+inline bool Position::SEE::operator>=(int threshold) const noexcept {
     return pos.see_ge(move, threshold);
 }
-inline bool Position::SEE::operator>(int threshold) const noexcept {  //
-    return *this >= threshold + 1;
+inline bool Position::SEE::operator>(int threshold) const noexcept {
+    return *this >= 1 + threshold;
 }
-inline bool Position::SEE::operator<=(int threshold) const noexcept {  //
-    return !(*this > threshold);
-}
-inline bool Position::SEE::operator<(int threshold) const noexcept {  //
-    return !(*this >= threshold);
-}
+inline bool Position::SEE::operator<=(int threshold) const noexcept { return !(*this > threshold); }
+inline bool Position::SEE::operator<(int threshold) const noexcept { return !(*this >= threshold); }
 
 }  // namespace DON
 

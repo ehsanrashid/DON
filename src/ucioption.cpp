@@ -106,19 +106,13 @@ Option::operator std::string() const noexcept {
     return currentValue;
 }
 
-bool operator==(const Option& o1, const Option& o2) noexcept {  //
+bool operator==(const Option& o1, const Option& o2) noexcept {
     return o1.idx == o2.idx && o1.type == o2.type;
 }
-bool operator!=(const Option& o1, const Option& o2) noexcept {  //
-    return !(o1 == o2);
-}
+bool operator!=(const Option& o1, const Option& o2) noexcept { return !(o1 == o2); }
 
-bool operator<(const Option& o1, const Option& o2) noexcept {  //
-    return o1.idx < o2.idx;
-}
-bool operator>(const Option& o1, const Option& o2) noexcept {  //
-    return (o2 < o1);
-}
+bool operator<(const Option& o1, const Option& o2) noexcept { return o1.idx < o2.idx; }
+bool operator>(const Option& o1, const Option& o2) noexcept { return (o2 < o1); }
 
 // Updates currentValue and triggers onChange() action.
 // It's up to the GUI to check for option's limit,
@@ -143,12 +137,11 @@ void Option::operator=(std::string value) noexcept {
     case OPT_SPIN :
         value = std::to_string(std::clamp(std::stoi(value), minValue, maxValue));
         break;
-    case OPT_COMBO : {
+    case OPT_COMBO :
         value = lower_case(value);
         if (std::find(comboValues.begin(), comboValues.end(), value) == comboValues.end())
             return;
-    }
-    break;
+        break;
     default :;
     }
 

@@ -39,8 +39,7 @@
 #endif
 
 #if !defined(STRINGIFY)
-    #define STRING_LITERAL(x) #x
-    #define STRINGIFY(x) STRING_LITERAL(x)
+    #define STRINGIFY(x) #x
 #endif
 
 #if defined(__GNUC__) && !defined(__clang__)
@@ -203,8 +202,8 @@ static const inline bool IsLittleEndian = *reinterpret_cast<const char*>(&Little
 
 constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 #if defined(IS_64BIT) && defined(__GNUC__)
-    __extension__ using uint128_t = unsigned __int128;
-    return (uint128_t(u1) * uint128_t(u2)) >> 64;
+    __extension__ using uint128 = unsigned __int128;
+    return (uint128(u1) * uint128(u2)) >> 64;
 #else
     std::uint64_t u1L = std::uint32_t(u1), u1H = u1 >> 32;
     std::uint64_t u2L = std::uint32_t(u2), u2H = u2 >> 32;
@@ -213,7 +212,8 @@ constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 #endif
 }
 
-static_assert(mul_hi64(0xDEADBEEFDEADBEEFull, 0xCAFEBABECAFEBABEull) == 0xB092AB7CE9F4B259ull);
+static_assert(mul_hi64(0xDEADBEEFDEADBEEFull, 0xCAFEBABECAFEBABEull) == 0xB092AB7CE9F4B259ull,
+              "Error in mul_hi64()");
 
 #if defined(USE_PREFETCH)
 inline void prefetch(const void* const addr) noexcept {

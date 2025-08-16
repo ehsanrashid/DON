@@ -101,18 +101,17 @@ TranspositionTable::probe(Key key, Key16 key16) const noexcept {
 }
 
 std::tuple<TTData, TTEntry*, TTCluster* const> TranspositionTable::probe(Key key) const noexcept {
-    return probe(key, compress_key(key));
+    return probe(key, compress_key16(key));
 }
 
 // Returns an approximation of the hashtable occupation during a search.
 // The hash is x permill full, as per UCI protocol.
 // Only counts entries which match the current generation. [maxAge: 0-31]
-std::uint16_t TranspositionTable::hashFull(std::uint8_t maxAge) const noexcept {
+std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
     assert(maxAge < 32);
 
-    std::uint8_t maxRelAge = maxAge * GENERATION_DELTA;
-
-    const auto clusterCnt = std::min<std::size_t>(clusterCount, 1000);
+    const auto   clusterCnt = std::min<std::size_t>(clusterCount, 1000);
+    std::uint8_t maxRelAge  = maxAge * GENERATION_DELTA;
 
     std::uint32_t cnt = 0;
     for (std::size_t idx = 0; idx < clusterCnt; ++idx)
@@ -122,7 +121,7 @@ std::uint16_t TranspositionTable::hashFull(std::uint8_t maxAge) const noexcept {
     return (cnt + TTCluster::EntryCount / 2) / TTCluster::EntryCount;
 }
 
-std::uint16_t TranspositionTable::hashFull() noexcept { return lastHashFull = hashFull(0); }
+std::uint16_t TranspositionTable::hashfull() noexcept { return lastHashfull = hashfull(0); }
 
 bool TranspositionTable::save(const std::string& hashFile) const noexcept {
 
@@ -148,7 +147,7 @@ bool TranspositionTable::load(const std::string& hashFile, ThreadPool& threads) 
         auto fileSize = get_file_size(ifstream);
         if (fileSize < 0)
             return false;
-        auto ttSize = fileSize / (1ull * 1024 * 1024);
+        std::size_t ttSize = fileSize / (1024 * 1024);
         resize(ttSize, threads);
         ifstream.read(reinterpret_cast<char*>(clusters), clusterCount * sizeof(TTCluster));
     }

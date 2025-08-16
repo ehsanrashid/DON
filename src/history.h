@@ -45,7 +45,7 @@ class StatsEntry final {
 
     void operator=(T v) noexcept { value = v; }
 
-    operator T() const noexcept { return value; }
+    operator T() const noexcept { return value.load(std::memory_order_relaxed); }
 
     // Overload operator<< to modify the value
     void operator<<(int bonus) noexcept {

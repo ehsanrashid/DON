@@ -251,7 +251,7 @@ std::tuple<bool, PTEntry* const> PerftTable::probe(Key key, Depth depth) const n
     auto* const ptc = cluster(key);
     auto* const fte = &ptc->entry[0];
 
-    Key32 key32 = Key32(key);
+    Key32 key32 = compress_key32(key);
     for (auto& entry : ptc->entry)
         if (entry.key32 == key32 && entry.depth16 == depth)
             return {true, &entry};

@@ -134,6 +134,7 @@ ExtMove* MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
         if (ssPly < LOW_PLY_SIZE)
             m.value += 8 * LowPlyQuietHistory[ssPly][m.org_dst()] / (1 + ssPly);
 
+        // Bonus for checks
         if (pos.check(m))
             m.value += 0x4000 * (pos.see(m) >= -75) + 0x1000 * pos.dbl_check(m);
 

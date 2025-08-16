@@ -152,13 +152,12 @@ Worker::Worker(std::size_t               threadId,
     tt(sharedState.tt),
     numaAccessToken(accessToken),
     accCaches(networks[accessToken]) {
+
     init();
 }
 
 // Initialize the Worker
-void Worker::init() noexcept {  //
-    accCaches.init(networks[numaAccessToken]);
-}
+void Worker::init() noexcept { accCaches.init(networks[numaAccessToken]); }
 
 void Worker::ensure_network_replicated() noexcept {
     // Access once to force lazy initialization.
@@ -171,11 +170,10 @@ void Worker::start_search() noexcept {
 
     accStack.reset();
 
-    rootDepth      = DEPTH_ZERO;
-    completedDepth = DEPTH_ZERO;
-    nodes          = 0;
-    tbHits         = 0;
+    rootDepth = completedDepth = DEPTH_ZERO;
+    nodes = tbHits = 0;
     moveChanges    = 0;
+    nmpPly         = 0;
 
     multiPV = DEFAULT_MULTI_PV;
     if (mainManager)
@@ -407,7 +405,6 @@ void Worker::iterative_deepening() noexcept {
             std::uint16_t failHighCnt = 0;
             while (true)
             {
-                nmpPly    = 0;
                 rootDelta = beta - alpha;
                 assert(rootDelta > 0);
                 // Adjust the effective depth searched, but ensure at least one
@@ -441,7 +438,7 @@ void Worker::iterative_deepening() noexcept {
                 // otherwise exit the loop.
                 if (bestValue <= alpha)
                 {
-                    beta  = (3 * alpha + beta) / 4;
+                    beta  = alpha;
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;
@@ -680,7 +677,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     const bool exclude = excludedMove != Move::None;
 
     // Step 4. Transposition table lookup
-    Key16 key16 = compress_key(key);
+    Key16 key16 = compress_key16(key);
 
     auto [ttd, tte, ttc] = tt.probe(key, key16);
     TTUpdater ttu(tte, ttc, key16, ss->ply, tt.generation());
@@ -733,14 +730,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 && !is_decisive(ttd.value))
             {
                 pos.do_move(ttd.move, st);
-                Key nextPosKey                   = pos.key();
-                auto [nextTtd, nextTte, nextTtc] = tt.probe(nextPosKey);
+                auto [nextTtd, nextTte, nextTtc] = tt.probe(pos.key());
                 pos.undo_move(ttd.move);
 
                 // Check that the ttValue after the tt move would also trigger a cutoff
-                if (!is_valid(nextTtd.value))
-                    return ttd.value;
-                if ((ttd.value >= beta) == (-nextTtd.value >= beta))
+                if (!is_valid(nextTtd.value) || ((ttd.value >= beta) == (-nextTtd.value >= beta)))
                     return ttd.value;
             }
             else
@@ -1088,7 +1082,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             continue;
 
         ss->moveCount = ++moveCount;
-        promoCount += move.type_of() == PROMOTION && move.promotion_type() != QUEEN;
+        promoCount += move.type_of() == PROMOTION && move.promotion_type() < QUEEN;
 
         if (RootNode && is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
             main_manager()->updateCxt.onUpdateIter({rootDepth, move, curIdx + moveCount});
@@ -1104,8 +1098,6 @@ S_MOVES_LOOP:  // When in check, search starts here
         bool dblCheck = check && pos.dbl_check(move);
         bool capture  = pos.capture_promo(move);
         auto captured = capture ? pos.captured(move) : NO_PIECE_TYPE;
-
-        ss->quietMoveStreak = (!capture && !check) ? 1 + (ss - 1)->quietMoveStreak : 0;
 
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
@@ -1215,20 +1207,19 @@ S_MOVES_LOOP:  // When in check, search starts here
         }
 
         // Step 15. Extensions
-        // Singular extension search. If all moves but one
-        // fail low on a search of (alpha-s, beta-s), and just one fails high on
-        // (alpha, beta), then that move is singular and should be extended. To
-        // verify this we do a reduced search on the position excluding the ttMove
-        // and if the result is lower than ttValue minus a margin, then we will
+        // Singular extension search. If all moves but one fail low on a search
+        // of (alpha-s, beta-s), and just one fails high on (alpha, beta),
+        // then that move is singular and should be extended. To verify this
+        // do a reduced search on the position excluding the ttMove and
+        // if the result is lower than ttValue minus a margin, then will
         // extend the ttMove. Recursive singular search is avoided.
-        Depth extension = DEPTH_ZERO;
+        std::int8_t extension = 0;
 
         // (*Scaler) Generally, frequent extensions scales well.
         // This includes high singularBeta values (i.e closer to ttValue) and low extension margins.
-        if ((!RootNode || curIdx == 0) && !exclude && move == ttd.move
-            && depth > 5 + ss->pvHit - (completedDepth > 26)   //
-            && is_valid(ttd.value) && !is_decisive(ttd.value)  //
-            && ttd.depth >= depth - 3 && (ttd.bound & BOUND_LOWER))
+        if (!RootNode && !exclude && depth > 5 + ss->pvHit && move == ttd.move
+            && is_valid(ttd.value) && !is_decisive(ttd.value) && ttd.depth >= depth - 3
+            && (ttd.bound & BOUND_LOWER))
         {
             // clang-format off
             Value singularBeta  = ttd.value - (0.9655f + 1.3621f * (!PVNode && ss->pvHit)) * depth;
@@ -1282,6 +1273,8 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Add extension to new depth
         newDepth += extension;
 
+        std::uint8_t msbDepth = msb(depth);
+
         [[maybe_unused]] std::uint64_t preNodes;
         if constexpr (RootNode)
             preNodes = std::uint64_t(nodes);
@@ -1317,27 +1310,26 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Adjust reduction with move count and correction value
         // Base reduction offset to compensate for other tweaks
-        r += 650 - 69 * moveCount - absCorrectionValue / 27160 - 1024 * dblCheck;
+        r += 1000 - 6 * msbDepth - (67 - 2 * msbDepth) * moveCount - absCorrectionValue / 27160
+           - 1024 * dblCheck;
 
         // Increase reduction for CutNode
         if constexpr (CutNode)
-            r += 3000 + 1024 * (ttd.move == Move::None);
+            r += 2998 + 2 * msbDepth + (948 + 14 * msbDepth) * (ttd.move == Move::None);
 
         // Increase reduction if ttMove is a capture
-        r += 1350 * ttCapture;
+        r += (1402 - 39 * msbDepth) * ttCapture;
 
         // Increase reduction on repetition
         r += 2048 * (move == (ss - 4)->move && pos.repetition() == 4);
 
-        r += (935 + 763 * AllNode) * (ss->cutoffCount > 2);
-
-        r += 51 * ss->quietMoveStreak;
+        r += (925 + 33 * msbDepth + (701 + 224 * msbDepth) * AllNode) * (ss->cutoffCount > 2);
 
         // For first picked move (ttMove) reduce reduction
-        r -= 2043 * (move == ttd.move);
+        r -= (2121 + 28 * msbDepth) * (move == ttd.move);
 
         // Decrease/Increase reduction for moves with a good/bad history
-        r -= std::lround(96.3135e-3f * ss->history);
+        r -= (729 - 12 * msbDepth) * ss->history / 8192;
 
         // Step 17. Late moves reduction / extension (LMR)
         if (moveCount != 1 && depth > 1)
@@ -1373,14 +1365,13 @@ S_MOVES_LOOP:  // When in check, search starts here
         else if (!PVNode || moveCount != 1)
         {
             // Increase reduction if ttMove is not present
-            r += 1139 * (ttd.move == Move::None);
+            r += (1199 + 35 * msbDepth) * (ttd.move == Move::None);
 
-            int threshold1 = depth <= 4 ? 2000 : 3200;
-            int threshold2 = depth <= 4 ? 3500 : 4600;
+            r += 1150 * (depth <= 4);
 
             // Reduce search depth if expected reduction is high
             value = -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha,
-                                 newDepth - ((r > threshold1) + (r > threshold2 && newDepth > 2)));
+                                 newDepth - ((r > 3200) + (r > 4600 && newDepth > 2)));
         }
 
         // For PV nodes only, do a full PV search on the first move or after a fail high,
@@ -1391,7 +1382,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             (ss + 1)->pv = pv.data();
 
             // Extend if about to dive into qsearch
-            if (newDepth < 1 && rootDepth > 6 && move == ttd.move && tt.lastHashFull <= 960)
+            if (newDepth < 1 && rootDepth > 6 && move == ttd.move && tt.lastHashfull <= 960)
                 newDepth = 1;
 
             value = -search<PV>(pos, ss + 1, -beta, -alpha, newDepth);
@@ -1637,7 +1628,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
     // Step 3. Transposition table lookup
-    Key16 key16 = compress_key(key);
+    Key16 key16 = compress_key16(key);
 
     auto [ttd, tte, ttc] = tt.probe(key, key16);
     TTUpdater ttu(tte, ttc, key16, ss->ply, tt.generation());
@@ -1749,7 +1740,7 @@ QS_MOVES_LOOP:
             continue;
 
         ++moveCount;
-        promoCount += move.type_of() == PROMOTION && move.promotion_type() != QUEEN;
+        promoCount += move.type_of() == PROMOTION && move.promotion_type() < QUEEN;
 
         Square dst = move.dst_sq();
 
@@ -1770,7 +1761,7 @@ QS_MOVES_LOOP:
 
             // Futility pruning and moveCount pruning
             if (!check && dst != preSq && !is_loss(futilityBase)
-                && (move.type_of() != PROMOTION || (!ss->inCheck && move.promotion_type() != QUEEN))
+                && (move.type_of() != PROMOTION || (!ss->inCheck && move.promotion_type() < QUEEN))
                 && !pos.fork(move))
             {
                 if (moveCount > 2 + promoCount)
@@ -1879,10 +1870,10 @@ void Worker::do_move(
   Position& pos, const Move& m, State& st, bool check, Stack* const ss) noexcept {
     bool capture = pos.capture_promo(m);
     auto dp      = pos.do_move(m, st, check);
-    accStack.push(dp);
     // Speculative prefetch as early as possible
     tt.prefetch_key(pos.key());
     nodes.fetch_add(1, std::memory_order_relaxed);
+    accStack.push(dp);
     if (ss != nullptr)
     {
         auto dst = m.dst_sq();
@@ -2190,7 +2181,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
     auto time     = std::max(elapsed(), TimePoint(1));
     auto nodes    = worker.threads.nodes();
-    auto hashFull = worker.tt.hashFull();
+    auto hashfull = worker.tt.hashfull();
     auto tbHits   = worker.threads.tbHits() + worker.tbConfig.rootInTB * worker.rootMoves.size();
     bool wdlShow  = worker.options["UCI_ShowWDL"];
 
@@ -2228,7 +2219,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         info.wdlShow   = wdlShow;
         info.time      = time;
         info.nodes     = nodes;
-        info.hashFull  = hashFull;
+        info.hashfull  = hashfull;
         info.tbHits    = tbHits;
 
         updateCxt.onUpdateFull(info);
@@ -2241,7 +2232,7 @@ void Skill::init(const Options& options) noexcept {
     {
         std::uint16_t uciELO = options["UCI_ELO"];
 
-        auto e = float(uciELO - MinELO) / float(MaxELO - MinELO);
+        auto e = float(uciELO - MinELO) / (MaxELO - MinELO);
         level  = std::clamp(-311.4380e-3f + (22.2943f + (-40.8525f + 37.2473f * e) * e) * e,  //
                             MinLevel, MaxLevel - 0.01f);
     }
@@ -2344,10 +2335,9 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
     assert(pos.pseudo_legal(bm));
     assert(ss->moveCount != 0);
 
-    int quietBonus   = std::min(170 * depth - 87, 1598) + 332 * (ss->ttMove == bm);
-    int quietMalus   = std::min(743 * depth - 180, 2287) - 33 * moves[0].size();
-    int captureBonus = std::min(124 * depth - 62, 1245) + 336 * (ss->ttMove == bm);
-    int captureMalus = std::min(708 * depth - 148, 2287) - 29 * moves[1].size();
+    int bonus        = std::min(- 87 + 170 * depth, 1598) + 332 * (ss->ttMove == bm);
+    int quietMalus   = std::min(-180 + 743 * depth, 2287) - 33 * moves[0].size();
+    int captureMalus = std::min(-148 + 708 * depth, 2287) - 29 * moves[1].size();
 
     if (quietMalus < 1)
         quietMalus = 1;
@@ -2356,11 +2346,11 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
 
     if (pos.capture_promo(bm))
     {
-        update_capture_history(pos, bm, std::lround(+1.2578f * captureBonus));
+        update_capture_history(pos, bm, std::lround(+1.0000f * bonus));
     }
     else
     {
-        update_all_quiet_history(pos, ss, bm, std::lround(+0.9551f * quietBonus));
+        update_all_quiet_history(pos, ss, bm, std::lround(+0.9551f * bonus));
 
         // Decrease history for all non-best quiet moves
         for (const Move& qm : moves[0])

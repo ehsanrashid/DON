@@ -206,7 +206,7 @@ void Position::init() noexcept {
 // Initializes the position object with the given FEN string.
 // This function is not very robust - make sure that input FENs are correct,
 // this is assumed to be the responsibility of the GUI.
-void Position::set(std::string_view fenStr, State* newSt) noexcept {
+void Position::set(std::string_view fenStr, State* const newSt) noexcept {
     /*
    A FEN string defines a particular position using only the ASCII character set.
 
@@ -399,7 +399,7 @@ void Position::set(std::string_view fenStr, State* newSt) noexcept {
 
     // 4. En-passant square.
     // Ignore if square is invalid or not on side to move relative rank 6.
-    bool enpassant = false;
+    bool epCan = false;
 
     iss >> token;
     if (token != '-')
@@ -417,10 +417,10 @@ void Position::set(std::string_view fenStr, State* newSt) noexcept {
             // b) there is no piece on epSquare or behind epSquare
             // c) there is atleast one friend pawn threatening epSquare
             // d) there is no enemy Bishop, Rook or Queen pinning
-            enpassant = (pieces(~ac, PAWN) & (ep_sq() - pawn_spush(ac)))
-                     && !(pieces() & make_bitboard(ep_sq(), ep_sq() + pawn_spush(ac)))
-                     && (pieces(ac, PAWN) & attacks_bb<PAWN>(ep_sq(), ~ac))
-                     && can_enpassant(ac, ep_sq());
+            epCan = (pieces(~ac, PAWN) & (ep_sq() - pawn_spush(ac)))
+                 && !(pieces() & make_bitboard(ep_sq(), ep_sq() + pawn_spush(ac)))
+                 && (pieces(ac, PAWN) & attacks_bb<PAWN>(ep_sq(), ~ac))
+                 && can_enpassant(ac, ep_sq());
         }
         else
         {
@@ -442,7 +442,7 @@ void Position::set(std::string_view fenStr, State* newSt) noexcept {
     if (is_ok(ep_sq()))
     {
         reset_rule50_count();
-        if (!enpassant)
+        if (!epCan)
             reset_ep_sq();
     }
     assert(rule50_count() <= 100);
@@ -455,7 +455,7 @@ void Position::set(std::string_view fenStr, State* newSt) noexcept {
 
 // Overload to initialize the position object with the given endgame code string like "KBPKN".
 // It's mainly a helper to get the material key out of an endgame code.
-void Position::set(std::string_view code, Color c, State* newSt) noexcept {
+void Position::set(std::string_view code, Color c, State* const newSt) noexcept {
     assert(!code.empty() && code[0] == 'K');
 
     std::string sides[COLOR_NB]{
@@ -474,7 +474,7 @@ void Position::set(std::string_view code, Color c, State* newSt) noexcept {
     set(fenStr, newSt);
 }
 
-void Position::set(const Position& pos, State* newSt) noexcept {
+void Position::set(const Position& pos, State* const newSt) noexcept {
     assert(newSt != nullptr);
 
     *this = pos;
@@ -829,7 +829,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     // excluding those that will recomputed from scratch anyway and
     // then switch the state pointer to point to the new state.
     std::memcpy(&newSt, st, offsetof(State, key));
-    newSt.preState = st;
+    newSt.preSt = st;
 
     st = &newSt;
 
@@ -874,7 +874,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     {
         assert(pt == KING);
         assert(capturedPiece == make_piece(ac, ROOK));
-        assert(!st->castled[ac]);
+        assert(!castled(ac));
 
         Square rOrg, rDst;
         do_castling<true>(ac, org, dst, rOrg, rDst, &dp);
@@ -920,8 +920,8 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
                 assert(!(pieces() & make_bitboard(dst, dst + pawn_spush(ac))));
                 assert(!is_ok(ep_sq()));  // Already reset to SQ_NONE
                 assert(rule50_count() == 1);
-                assert(st->preState->epSq == dst);
-                assert(st->preState->rule50 == 0);
+                assert(st->preSt->epSq == dst);
+                assert(st->preSt->rule50 == 0);
             }
 
             st->pawnKey[~ac] ^= Zobrist::psq[capturedPiece][capSq];
@@ -1046,10 +1046,10 @@ DO_MOVE_END:
     auto end = std::min(rule50_count(), null_ply());
     if (end >= 4)
     {
-        auto* pSt = st->preState->preState;
+        auto* pSt = st->preSt->preSt;
         for (auto i = 4; i <= end; i += 2)
         {
-            pSt = pSt->preState->preState;
+            pSt = pSt->preSt->preSt;
             if (pSt->key == st->key)
             {
                 st->repetition = pSt->repetition != 0 ? -i : +i;
@@ -1087,7 +1087,7 @@ void Position::undo_move(const Move& m) noexcept {
         assert(pieces(ac, KING) & king_castle_sq(ac, org, dst));
         assert(pieces(ac, ROOK) & rook_castle_sq(ac, org, dst));
         assert(capturedPiece == NO_PIECE);
-        assert(st->castled[ac]);
+        assert(castled(ac));
 
         Square rOrg, rDst;
         do_castling<false>(ac, org, dst, rOrg, rDst);
@@ -1126,8 +1126,8 @@ void Position::undo_move(const Move& m) noexcept {
             assert(empty_on(capSq));
             assert(capturedPiece == make_piece(~ac, PAWN));
             assert(rule50_count() == 0);
-            assert(st->preState->epSq == dst);
-            assert(st->preState->rule50 == 0);
+            assert(st->preSt->epSq == dst);
+            assert(st->preSt->rule50 == 0);
         }
         // Restore the captured piece
         put_piece(capSq, capturedPiece);
@@ -1137,7 +1137,7 @@ UNDO_MOVE_END:
 
     --gamePly;
     // Finally point our state pointer back to the previous state
-    st = st->preState;
+    st = st->preSt;
 
     assert(legal(m));
     assert(pos_is_ok());
@@ -1149,8 +1149,8 @@ void Position::do_null_move(State& newSt) noexcept {
     assert(&newSt != st);
     assert(!checkers());
 
-    std::memcpy(&newSt, st, offsetof(State, preState));
-    newSt.preState = st;
+    std::memcpy(&newSt, st, offsetof(State, preSt));
+    newSt.preSt = st;
 
     st = &newSt;
 
@@ -1187,7 +1187,7 @@ void Position::undo_null_move() noexcept {
 
     activeColor = ~active_color();
 
-    st = st->preState;
+    st = st->preSt;
 
     assert(pos_is_ok());
 }
@@ -1840,12 +1840,12 @@ bool Position::has_repetition() const noexcept {
     if (end < 4)
         return false;
 
-    auto* cst = st;
+    auto* cSt = st;
     while (end-- >= 4)
     {
-        if (cst->repetition != 0)
+        if (cSt->repetition != 0)
             return true;
-        cst = cst->preState;
+        cSt = cSt->preSt;
     }
     return false;
 }
@@ -1858,15 +1858,15 @@ bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
     if (end < 3)
         return false;
 
-    auto* pSt = st->preState;
+    auto* pSt = st->preSt;
 
     Key baseKey = st->key;
     Key iterKey = baseKey ^ pSt->key ^ Zobrist::side;
 
     for (std::int16_t i = 3; i <= end; i += 2)
     {
-        iterKey ^= pSt->preState->key ^ pSt->preState->preState->key ^ Zobrist::side;
-        pSt = pSt->preState->preState;
+        iterKey ^= pSt->preSt->key ^ pSt->preSt->preSt->key ^ Zobrist::side;
+        pSt = pSt->preSt->preSt;
 
         // Opponent pieces have reverted
         if (iterKey != 0)

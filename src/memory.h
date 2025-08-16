@@ -111,14 +111,12 @@ memory_allocator(AllocFunc allocFunc, std::size_t num) noexcept {
 
 template<typename T>
 struct AlignedStdDeleter final {
-    void operator()(T* mem) const noexcept {  //
-        return memory_deleter<T>(mem, free_aligned_std);
-    }
+    void operator()(T* mem) const noexcept { return memory_deleter<T>(mem, free_aligned_std); }
 };
 
 template<typename T>
 struct AlignedStdArrayDeleter final {
-    void operator()(T* mem) const noexcept {  //
+    void operator()(T* mem) const noexcept {
         return memory_array_deleter<T>(mem, free_aligned_std);
     }
 };
@@ -163,16 +161,12 @@ make_unique_aligned_std(std::size_t num) noexcept {
 
 template<typename T>
 struct AlignedLPDeleter final {
-    void operator()(T* mem) const noexcept {  //
-        return memory_deleter<T>(mem, free_aligned_lp);
-    }
+    void operator()(T* mem) const noexcept { return memory_deleter<T>(mem, free_aligned_lp); }
 };
 
 template<typename T>
 struct AlignedLPArrayDeleter final {
-    void operator()(T* mem) const noexcept {  //
-        return memory_array_deleter<T>(mem, free_aligned_lp);
-    }
+    void operator()(T* mem) const noexcept { return memory_array_deleter<T>(mem, free_aligned_lp); }
 };
 
 template<typename T>

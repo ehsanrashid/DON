@@ -202,14 +202,14 @@ std::string compiler_info() noexcept {
 #elif defined(_MSC_VER)
     compiler += "MSVC ";
     compiler += STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD);
+#elif defined(__GNUC__)
+    compiler += "g++ (GNUC) ";
+    compiler += VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
 #elif defined(__e2k__) && defined(__LCC__)
     compiler += "MCST LCC ";
     compiler += std::to_string(__LCC__ / 100) + "."  //
               + std::to_string(__LCC__ % 100) + "."  //
               + std::to_string(__LCC_MINOR__);
-#elif __GNUC__
-    compiler += "g++ (GNUC) ";
-    compiler += VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
 #else
     compiler += "unknown compiler";
 #endif
@@ -291,6 +291,8 @@ std::string compiler_info() noexcept {
 #else
     compiler += "(undefined macro)";
 #endif
+
+#undef VERSION_STRING
 
     return compiler;
 }
@@ -571,7 +573,7 @@ std::streamsize get_file_size(std::ifstream& ifstream) noexcept {
 
 std::optional<std::string> read_file_to_string(const std::string& filePath) noexcept {
 
-    std::ifstream ifstream(filePath, std::ios_base::binary | std::ios_base::ate);
+    std::ifstream ifstream(filePath, std::ios_base::binary);
     if (!ifstream)
         return std::nullopt;
 

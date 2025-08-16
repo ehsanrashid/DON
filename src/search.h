@@ -355,7 +355,7 @@ struct FullInfo final {
     bool            wdlShow;
     TimePoint       time;
     std::uint64_t   nodes;
-    std::uint16_t   hashFull;
+    std::uint16_t   hashfull;
     std::uint64_t   tbHits;
 };
 struct IterInfo final {
@@ -448,7 +448,6 @@ struct Stack final {
     std::uint8_t cutoffCount;
     Value        staticEval;
     int          history;
-    int          quietMoveStreak;
 
     Move*                         pv;
     History<HPieceSq>*            pieceSqHistory;
