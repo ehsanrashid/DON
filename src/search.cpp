@@ -1139,7 +1139,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int captHist = CaptureHistory[movedPiece][dst][captured];
 
                 // Futility pruning for captures
-                if (lmrDepth < 7 && !check && !ss->inCheck && !pos.fork(move))
+                if (lmrDepth < 7 && !check && !ss->inCheck
+                    && !(pos.fork(move) && pos.see(move) >= -75))
                 {
                     futilityValue =
                       std::min((bestMove != Move::None ? 46 : 232) + ss->staticEval
@@ -1177,7 +1178,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 // Futility pruning for quiets
                 // (*Scaler) Generally, more frequent futility pruning scales well
-                if (lmrDepth < 11 && !check && !ss->inCheck && !pos.fork(move))
+                if (lmrDepth < 11 && !check && !ss->inCheck
+                    && !(pos.fork(move) && pos.see(move) >= -75))
                 {
                     futilityValue = std::min((bestMove != Move::None ? 46 : 230) + ss->staticEval
                                                + 131 * lmrDepth + 91 * (ss->staticEval > alpha),
@@ -1755,7 +1757,7 @@ QS_MOVES_LOOP:
             // Futility pruning and moveCount pruning
             if (!check && dst != preSq && !is_loss(futilityBase)
                 && (move.type_of() != PROMOTION || (!ss->inCheck && move.promotion_type() < QUEEN))
-                && !pos.fork(move))
+                && !(pos.fork(move) && pos.see(move) >= -75))
             {
                 if (moveCount > 2 + promoCount)
                     continue;
