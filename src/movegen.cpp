@@ -35,8 +35,7 @@ namespace {
 
 #if defined(USE_AVX512ICL)
 inline Move* write_moves(Move* moves, std::uint32_t mask, __m512i vector) noexcept {
-    _mm512_storeu_si512(reinterpret_cast<__m512i*>(moves),
-                        _mm512_maskz_compress_epi16(mask, vector));
+    _mm512_mask_compressstoreu_epi16(moves, mask, vector);
     return moves + popcount(mask);
 }
 #endif

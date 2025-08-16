@@ -1155,14 +1155,11 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for captures
-                int margin =
-                  std::clamp(158 * depth + int(std::lround(0.0323f * captHist)), 0, 283 * depth);
-                if (pos.see(move) < -(margin + 256 * dblCheck))
-                {
+                int margin = std::max(158 * depth + int(std::lround(0.0323f * captHist)), 0);
+                if (pos.see(move) < -(margin + 256 * dblCheck)
                     // Avoid pruning sacrifices of our last piece for stalemate
-                    if (!may_stalemate_trap())
-                        continue;
-                }
+                    && !may_stalemate_trap())
+                    continue;
             }
             else
             {
@@ -1198,11 +1195,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 // SEE based pruning for quiets
                 if (pos.see(move) < -(26 * sqr(lmrDepth) + 256 * dblCheck))
-                {
-                    // Avoid pruning sacrifices of our last piece for stalemate
-                    if (!may_stalemate_trap())
-                        continue;
-                }
+                    continue;
             }
         }
 

@@ -24,7 +24,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <vector>
 
 #include "../types.h"
 #include "nnue_architecture.h"
@@ -140,7 +139,6 @@ class FeatureTransformer;
 class AccumulatorStack final {
    public:
     AccumulatorStack() noexcept :
-        accStates(MAX_PLY + 1),
         size(1) {}
 
     [[nodiscard]] const AccumulatorState& clatest_state() const noexcept;
@@ -174,8 +172,8 @@ class AccumulatorStack final {
                                      const FeatureTransformer<Dimensions>& featureTransformer,
                                      std::size_t                           end) noexcept;
 
-    std::vector<AccumulatorState> accStates;
-    std::size_t                   size;
+    std::array<AccumulatorState, MAX_PLY + 1> accStates;
+    std::size_t                               size;
 };
 
 }  // namespace NNUE
