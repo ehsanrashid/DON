@@ -172,7 +172,7 @@ class AccumulatorStack final {
                                      const FeatureTransformer<Dimensions>& featureTransformer,
                                      std::size_t                           end) noexcept;
 
-    std::array<AccumulatorState, MAX_PLY + 1> accStates;
+    std::array<AccumulatorState, MAX_PLY + 1> accStates{};
     std::size_t                               size;
 };
 
