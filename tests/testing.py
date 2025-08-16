@@ -60,6 +60,7 @@ race:DON::TTEntry::clear
 race:DON::TTUpdater::update
 race:DON::TranspositionTable::probe
 race:DON::TranspositionTable::hashfull
+race:DON::TranspositionTable::lastHashfull
 """
             )
 

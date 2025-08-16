@@ -1310,18 +1310,18 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Adjust reduction with move count and correction value
         // Base reduction offset to compensate for other tweaks
-        r += 1000 - 6 * msbDepth - (67 - 2 * msbDepth) * moveCount - absCorrectionValue / 27160
+        r += (1000 - 6 * msbDepth) - (67 - 2 * msbDepth) * moveCount - absCorrectionValue / 27160
            - 1024 * dblCheck;
 
         // Increase reduction for CutNode
         if constexpr (CutNode)
-            r += 2998 + 2 * msbDepth + (948 + 14 * msbDepth) * (ttd.move == Move::None);
+            r += (2998 + 2 * msbDepth) + (948 + 14 * msbDepth) * (ttd.move == Move::None);
 
         // Increase reduction if ttMove is a capture
         r += (1402 - 39 * msbDepth) * ttCapture;
 
         // Increase reduction on repetition
-        r += 2048 * (move == (ss - 4)->move && pos.repetition() == 4);
+        r += (2048 + 2 * msbDepth) * (move == (ss - 4)->move && pos.repetition() == 4);
 
         r += (925 + 33 * msbDepth + (701 + 224 * msbDepth) * AllNode) * (ss->cutoffCount > 2);
 
