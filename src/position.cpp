@@ -973,9 +973,9 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
 
             promotedPiece = make_piece(ac, promoted);
 
+            dp.dst   = SQ_NONE;
             dp.addSq = dst;
             dp.addPc = promotedPiece;
-            dp.dst   = SQ_NONE;
 
             remove_piece(dst);
             put_piece(dst, promotedPiece);

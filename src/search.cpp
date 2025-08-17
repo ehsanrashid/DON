@@ -201,7 +201,7 @@ void Worker::start_search() noexcept {
     mainManager->sumMoveChanges = 0.0000f;
     mainManager->timeReduction  = 1.0000f;
     mainManager->skill.init(options);
-    mainManager->timeManager.init(limit, rootPos, options);
+    mainManager->timeManager.init(rootPos, options, limit);
 
     tt.update_generation(!limit.infinite);
 
@@ -277,7 +277,8 @@ void Worker::start_search() noexcept {
         if (mainManager->skill.enabled())
             rootMoves.swap_to_front(mainManager->skill.pick_move(rootMoves, multiPV, false));
 
-        else if (multiPV == 1 && threads.size() > 1 && limit.mate == 0
+        else if (multiPV == 1 && threads.size() > 1
+                 && limit.mate == 0  //&& limit.depth == DEPTH_ZERO
                  && rootMoves.front().pv[0] != Move::None)
         {
             bestWorker = threads.best_thread()->worker.get();
@@ -1139,7 +1140,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int captHist = CaptureHistory[movedPiece][dst][captured];
 
                 // Futility pruning for captures
-                if (lmrDepth < 7 && !check && !ss->inCheck && !pos.fork(move))
+                if (lmrDepth < 7 && !check && !ss->inCheck
+                    && !(pos.fork(move) && pos.see(move) >= -50))
                 {
                     futilityValue =
                       std::min((bestMove != Move::None ? 46 : 232) + ss->staticEval
@@ -1155,14 +1157,11 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for captures
-                int margin =
-                  std::clamp(158 * depth + int(std::lround(0.0323f * captHist)), 0, 283 * depth);
-                if (pos.see(move) < -(margin + 256 * dblCheck))
-                {
+                int margin = std::max(158 * depth + int(std::lround(0.0323f * captHist)), 0);
+                if (pos.see(move) < -(margin + 256 * dblCheck)
                     // Avoid pruning sacrifices of our last piece for stalemate
-                    if (!may_stalemate_trap())
-                        continue;
-                }
+                    && !may_stalemate_trap())
+                    continue;
             }
             else
             {
@@ -1180,7 +1179,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 // Futility pruning for quiets
                 // (*Scaler) Generally, more frequent futility pruning scales well
-                if (lmrDepth < 11 && !check && !ss->inCheck && !pos.fork(move))
+                if (lmrDepth < 11 && !check && !ss->inCheck
+                    && !(pos.fork(move) && pos.see(move) >= -50))
                 {
                     futilityValue = std::min((bestMove != Move::None ? 46 : 230) + ss->staticEval
                                                + 131 * lmrDepth + 91 * (ss->staticEval > alpha),
@@ -1198,11 +1198,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 // SEE based pruning for quiets
                 if (pos.see(move) < -(26 * sqr(lmrDepth) + 256 * dblCheck))
-                {
-                    // Avoid pruning sacrifices of our last piece for stalemate
-                    if (!may_stalemate_trap())
-                        continue;
-                }
+                    continue;
             }
         }
 
@@ -1762,7 +1758,7 @@ QS_MOVES_LOOP:
             // Futility pruning and moveCount pruning
             if (!check && dst != preSq && !is_loss(futilityBase)
                 && (move.type_of() != PROMOTION || (!ss->inCheck && move.promotion_type() < QUEEN))
-                && !pos.fork(move))
+                && !(pos.fork(move) && pos.see(move) >= -50))
             {
                 if (moveCount > 2 + promoCount)
                     continue;

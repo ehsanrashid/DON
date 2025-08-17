@@ -57,7 +57,7 @@ class TimeManager final {
         nodesTime   = 0;
         remainNodes = 0;
     }
-    void init(Limit& limit, const Position& pos, const Options& options) noexcept;
+    void init(const Position& pos, const Options& options, Limit& limit) noexcept;
 
     bool use_nodes_time() const noexcept { return bool(nodesTime); }
 

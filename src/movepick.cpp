@@ -138,7 +138,7 @@ ExtMove* MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
         if (pos.check(m))
             m.value += 0x4000 * (pos.see(m) >= -75) + 0x1000 * pos.dbl_check(m);
 
-        m.value += 0x1000 * pos.fork(m);
+        m.value += 0x1000 * (pos.fork(m) && pos.see(m) >= -50);
 
         if (KNIGHT < pt || pt > QUEEN)
             continue;
@@ -236,7 +236,8 @@ STAGE_SWITCH:
         MoveList<ENC_CAPTURE> moveList(pos);
 
         cur = endBadCaptures = moves;
-        endCur = endGenerated = score<ENC_CAPTURE>(moveList);
+        // NOTE:: endGenerated is not defined here, it will be set later
+        endCur = /* endGenerated =*/score<ENC_CAPTURE>(moveList);
 
         sort_partial();
 
@@ -390,8 +391,13 @@ STAGE_SWITCH:
 
 // Must be called after all captures and quiet moves have been generated
 bool MovePicker::can_move_king_or_pawn() const noexcept {
-    // SEE negative captures shouldn't be returned in STG_ENC_CAPTURE_GOOD stage
-    //assert(stage > STG_ENC_CAPTURE_GOOD && stage != STG_EVA_CAPTURE_INIT && stage != STG_EVA_QUIET_INIT);
+
+    // Until good capture stage no quiet moves are generated for comparison so simply assume king or pawns can move
+    if (stage <= STG_ENC_CAPTURE_GOOD)
+        return true;
+
+    // If condition not holds the endGenereted must be defined
+    assert(endGenerated != nullptr);
 
     for (const auto* m = moves; m < endGenerated; ++m)
     {

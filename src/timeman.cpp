@@ -45,7 +45,7 @@ void TimeManager::update_nodes(std::int64_t usedNodes) noexcept {
 // Currently support:
 //      1) x basetime (+ z increment)
 //      2) x moves in y seconds (+ z increment)
-void TimeManager::init(Limit& limit, const Position& pos, const Options& options) noexcept {
+void TimeManager::init(const Position& pos, const Options& options, Limit& limit) noexcept {
     // If have no time, no need to fully initialize TM.
     // startTime is used by movetime and nodesTime is used in elapsed calls.
     startTime       = limit.startTime;
