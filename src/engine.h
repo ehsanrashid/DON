@@ -21,7 +21,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <iosfwd>  // IWYU pragma: keep
 #include <optional>
 #include <string>
 #include <string_view>
