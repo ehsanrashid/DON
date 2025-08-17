@@ -50,6 +50,9 @@ using WeightType     = std::int16_t;
 using PSQTWeightType = std::int32_t;
 using IndexType      = std::uint32_t;
 
+// Type of input feature after conversion
+using TransformedFeatureType = std::uint8_t;
+
 // Version of the evaluation file
 constexpr std::uint32_t FILE_VERSION = 0x7AF32F20u;
 
@@ -63,18 +66,13 @@ constexpr std::size_t LEB128_MAGIC_STRING_SIZE = sizeof(LEB128_MAGIC_STRING) - 1
 // SIMD width (in bytes)
 #if defined(USE_AVX2)
 constexpr std::size_t SIMD_WIDTH = 32;
-
 #elif defined(USE_SSE2)
 constexpr std::size_t SIMD_WIDTH = 16;
-
 #elif defined(USE_NEON)
 constexpr std::size_t SIMD_WIDTH = 16;
 #endif
 
 constexpr std::size_t MAX_SIMD_WIDTH = 32;
-
-// Type of input feature after conversion
-using TransformedFeatureType = std::uint8_t;
 
 // Round n up to be a multiple of base
 template<typename IntType>
