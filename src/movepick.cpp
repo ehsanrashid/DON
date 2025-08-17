@@ -392,8 +392,13 @@ STAGE_SWITCH:
 // Must be called after all captures and quiet moves have been generated
 bool MovePicker::can_move_king_or_pawn() const noexcept {
 
-    // Until good capture stage no quiet moves are generated for comparison so simply assume king or pawns can move
-    if (stage <= STG_ENC_CAPTURE_GOOD)
+    assert((STG_ENC_CAPTURE_GOOD <= stage && stage <= STG_ENC_QUIET_BAD)
+           || (stage == STG_EVA_CAPTURE_ALL || stage == STG_EVA_QUIET_ALL));
+
+    // Until good capture stage no quiet moves are generated for comparison so simply assume king or pawns can move.
+    // Do the same for other stages that don't have a valid available move list.
+    if ((STG_ENC_CAPTURE_GOOD > stage || stage > STG_ENC_QUIET_BAD)  //
+        && stage != STG_EVA_CAPTURE_ALL && stage != STG_EVA_QUIET_ALL)
         return true;
 
     // If condition not holds the endGenereted must be defined
