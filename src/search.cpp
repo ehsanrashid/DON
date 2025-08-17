@@ -385,15 +385,16 @@ void Worker::iterative_deepening() noexcept {
             // Reset UCI info selDepth for each depth and each PV line
             selDepth = DEPTH_ZERO;
 
-            auto avgValue    = rootMoves[curIdx].avgValue;
-            auto avgSqrValue = rootMoves[curIdx].avgSqrValue;
+            auto avgValue = rootMoves[curIdx].avgValue;
             if (avgValue == -VALUE_INFINITE)
                 avgValue = VALUE_ZERO;
+
+            auto avgSqrValue = rootMoves[curIdx].avgSqrValue;
             if (avgSqrValue == sign_sqr(-VALUE_INFINITE))
                 avgSqrValue = VALUE_ZERO;
 
             // Reset aspiration window starting size
-            int   delta = 5 + 89.8392e-6f * std::abs(avgSqrValue);
+            int   delta = 5 + std::min<int>(threads.size(), 8) + std::abs(avgSqrValue) / 11131;
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
 
@@ -897,10 +898,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Step 8. Futility pruning: child node
     // The depth condition is important for mate finding.
     {
-        auto futility_margin = [&](Depth d, bool ttHit) noexcept {
-            Value futilityMult = 90 - 20 * (CutNode && !ttHit);
+        auto futility_margin = [&]() noexcept {
+            Value futilityMult = 90 - 20 * !ttd.hit;
 
-            return futilityMult * d             //
+            return futilityMult * depth         //
                  - futilityMult * improve * 2   //
                  - futilityMult * oppworse / 3  //
                  + (ss - 1)->history / 356      //
@@ -908,7 +909,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         };
 
         if (!ss->pvHit && depth < 14 && eval >= beta && (ttd.move == Move::None || ttCapture)
-            && !is_loss(beta) && !is_win(eval) && eval - futility_margin(depth, ttd.hit) >= beta)
+            && !is_loss(beta) && !is_win(eval) && eval - futility_margin() >= beta)
             return in_range((2 * eval + beta) / 3);
     }
 
