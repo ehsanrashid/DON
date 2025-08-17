@@ -201,7 +201,7 @@ void Worker::start_search() noexcept {
     mainManager->sumMoveChanges = 0.0000f;
     mainManager->timeReduction  = 1.0000f;
     mainManager->skill.init(options);
-    mainManager->timeManager.init(limit, rootPos, options);
+    mainManager->timeManager.init(rootPos, options, limit);
 
     tt.update_generation(!limit.infinite);
 
@@ -277,7 +277,8 @@ void Worker::start_search() noexcept {
         if (mainManager->skill.enabled())
             rootMoves.swap_to_front(mainManager->skill.pick_move(rootMoves, multiPV, false));
 
-        else if (multiPV == 1 && threads.size() > 1 && limit.mate == 0
+        else if (multiPV == 1 && threads.size() > 1
+                 && limit.mate == 0  //&& limit.depth == DEPTH_ZERO
                  && rootMoves.front().pv[0] != Move::None)
         {
             bestWorker = threads.best_thread()->worker.get();
