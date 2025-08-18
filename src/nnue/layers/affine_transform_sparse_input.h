@@ -304,6 +304,10 @@ class AffineTransformSparseInput {
         for (IndexType k = 0; k < RegCount; ++k)
             acc[k] = biasVec[k];
 
+    #if defined(__GNUC__)
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+    #endif
         for (IndexType j = 0; j < count; ++j)
         {
             const auto    i  = nnz[j];
@@ -314,6 +318,9 @@ class AffineTransformSparseInput {
             for (IndexType k = 0; k < RegCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
+    #if defined(__GNUC__)
+        #pragma GCC diagnostic pop
+    #endif
 
         auto* outVec = reinterpret_cast<outvec_t*>(output);
         for (IndexType k = 0; k < RegCount; ++k)

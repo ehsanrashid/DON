@@ -545,7 +545,7 @@ void Worker::iterative_deepening() noexcept {
             assert(stableDepth >= DEPTH_ZERO);
 
             // Use the stability factor to adjust the time reduction
-            mainManager->timeReduction = 0.7230f + 0.7900f / (1.1040f + std::exp(-0.5189f * (completedDepth - lastBestDepth - 11.57f)));
+            mainManager->timeReduction = 0.7230f + 0.7900f / (1.1040f + std::exp(-0.5189f * (stableDepth - 11.57f)));
 
             // Compute ease factor that factors in previous time reduction
             float easeFactor = 0.4469f * (1.4550f + mainManager->preTimeReduction) / mainManager->timeReduction;
@@ -556,7 +556,7 @@ void Worker::iterative_deepening() noexcept {
             // Compute node effort factor which slightly reduces effort if the completed depth is sufficiently high
             float nodeEffortFactor = 1.0f;
             if (completedDepth >= 10)
-                nodeEffortFactor -= 70.0929e-6f * std::max(-90425.0f + 100000.0f * (float(rootMoves.front().nodes) / std::max(std::uint64_t(nodes), std::uint64_t(1))), 0.0f);
+                nodeEffortFactor -= 44.0924e-6f * std::max(-92425.0f + 100000.0f * rootMoves.front().nodes / std::max(std::uint64_t(nodes), std::uint64_t(1)), 0.0f);
 
             // Compute recapture factor that reduces time if recapture conditions are met
             float recaptureFactor = 1.0f;
@@ -861,7 +861,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Use static evaluation difference to improve quiet move ordering
     if (is_ok(preSq) && !preCapture && !(ss - 1)->inCheck)
     {
-        int bonus = 583 + std::clamp(-10 * (ss->staticEval + (ss - 1)->staticEval), -1979, +1561);
+        int bonus = 583 + std::clamp(-10 * (ss->staticEval + (ss - 1)->staticEval), -2023, +1563);
 
         update_quiet_history(~ac, (ss - 1)->move, std::lround(+0.9219f * bonus));
         if (!ttd.hit && preNonPawn)

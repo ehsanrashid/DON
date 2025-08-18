@@ -401,9 +401,6 @@ bool MovePicker::can_move_king_or_pawn() const noexcept {
         && stage != STG_EVA_CAPTURE_ALL && stage != STG_EVA_QUIET_ALL)
         return true;
 
-    // If condition not holds the endGenereted must be defined
-    assert(endGenerated != nullptr);
-
     for (const auto* m = moves; m < endGenerated; ++m)
     {
         auto movedPieceType = type_of(pos.moved_piece(*m));
