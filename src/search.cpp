@@ -411,7 +411,7 @@ void Worker::iterative_deepening() noexcept {
                 assert(rootDelta > 0);
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
-                Depth adjustedDepth = rootDepth - failHighCnt - 0.75f * (1 + researchCnt);
+                Depth adjustedDepth = rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4;
                 if (adjustedDepth < 1)
                     adjustedDepth = 1;
 
@@ -877,7 +877,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Retroactive LMR adjustments
     // The ply after beginning an LMR search, adjust the reduced depth based on
     // how the opponent's move affected the static evaluation.
-    if (red >= (depth < 10 ? 2 : 3) && depth < MAX_PLY - 1 && !oppworse)
+    if (red >= 3 && depth < MAX_PLY - 1 && !oppworse)
         ++depth;
 
     if (red >= 2 && depth > 1 && ((ss - 1)->inCheck || ss->staticEval > 173 - (ss - 1)->staticEval))
@@ -943,7 +943,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             // Do verification search at high depths,
             // with null move pruning disabled until ply exceeds nmpMinPly.
-            nmpPly = ss->ply + 0.75f * (depth - R);
+            nmpPly = ss->ply + 3 * (depth - R) / 4;
 
             Value v = search<All>(pos, ss, beta - 1, beta, depth - R);
 
@@ -1144,11 +1144,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (lmrDepth < 7 && !check && !ss->inCheck
                     && !(pos.fork(move) && pos.see(move) >= -50))
                 {
-                    futilityValue =
-                      std::min((bestMove != Move::None ? 47 : 231) + ss->staticEval
-                                 + PIECE_VALUE[captured] + promotion_value(move)
-                                 + int(std::lround(0.1270f * captHist)) + 211 * lmrDepth,
-                               VALUE_TB_WIN_IN_MAX_PLY - 1);
+                    futilityValue = std::min((bestMove != Move::None ? 47 : 231) + ss->staticEval
+                                               + 211 * lmrDepth + 130 * captHist / 1024
+                                               + PIECE_VALUE[captured] + promotion_value(move),
+                                             VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
                     {
                         if (bestValue < futilityValue)
@@ -1158,7 +1157,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for captures
-                int margin = std::max(157 * depth + int(std::lround(0.0345f * captHist)), 0);
+                int margin = std::clamp(157 * depth + captHist / 29, 0, 279 * depth);
                 if (pos.see(move) < -(margin + 256 * dblCheck)
                     // Avoid pruning sacrifices of our last piece for stalemate
                     && !may_stalemate_trap())
@@ -1174,7 +1173,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (contHist < -4312 * depth)
                     continue;
 
-                contHist += std::lround(2.3750f * QuietHistory[ac][move.org_dst()]);
+                contHist += 76 * QuietHistory[ac][move.org_dst()] / 32;
 
                 lmrDepth += contHist / 3220;
 
@@ -1364,8 +1363,6 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             // Increase reduction if ttMove is not present
             r += (1178 + 35 * msbDepth) * (ttd.move == Move::None);
-
-            r += 1080 * (depth < 5);
 
             // Reduce search depth if expected reduction is high
             value = -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha,
@@ -2309,6 +2306,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
 
     for (auto &[i, weight] : ContHistoryWeights)
     {
+        // Only update the first 2 continuation histories if in check
         if ((i > 2 && ss->inCheck) || !(ss - i)->move.is_ok())
             break;
 
@@ -2322,6 +2320,7 @@ void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) 
 }
 void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& m, int bonus) noexcept {
     assert(m.is_ok());
+
     update_quiet_history(pos.active_color(), m, std::lround(+1.0000f * bonus));
     update_pawn_history(pos, pos.moved_piece(m), m.dst_sq(), 70 + std::lround((bonus > 0 ? +0.6875f : +0.4287f) * bonus));
     update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), std::lround((bonus > 0 ? +0.9717f : +0.8936f) * bonus));
