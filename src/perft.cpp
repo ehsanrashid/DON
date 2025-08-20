@@ -135,8 +135,6 @@ void Perft::operator+=(const Perft& perft) noexcept {
 
 // clang-format on
 
-class PerftTable;  // IWYU pragma: keep
-
 struct PTEntry final {
 
     constexpr std::uint64_t nodes() const noexcept { return nodes64; }
