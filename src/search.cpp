@@ -1157,7 +1157,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for captures
-                int margin = std::clamp(157 * depth + captHist / 29, 0, 279 * depth);
+                int margin = std::max(157 * depth + captHist / 29, 0);
                 if (pos.see(move) < -(margin + 256 * dblCheck)
                     // Avoid pruning sacrifices of our last piece for stalemate
                     && !may_stalemate_trap())
@@ -1306,8 +1306,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Adjust reduction with move count and correction value
         // Base reduction offset to compensate for other tweaks
-        r += (700 - 6 * msbDepth) - (64 - 2 * msbDepth) * moveCount - absCorrectionValue / 30450
-           - 1024 * dblCheck;
+        r += (700 - 6 * msbDepth) - 64 * std::min<int>(threads.size(), 8)
+           - (64 - 2 * msbDepth) * moveCount - absCorrectionValue / 30450 - 1024 * dblCheck;
 
         // Increase reduction for CutNode
         if constexpr (CutNode)
