@@ -71,7 +71,7 @@ const std::vector<std::string> Positions{
 
   // 5-man positions
   "8/8/8/8/5kp1/P7/8/1K1N4 w - - 0 1",     // Kc2 - mate
-  //"8/8/8/5N2/8/p7/8/2NK3k w - - 0 1",      // Na2 - mate
+  "8/8/8/5N2/8/p7/8/2NK3k w - - 0 1",      // Na2 - mate
   "8/3k4/8/8/8/4B3/4KB2/2B5 w - - 0 1",    // draw
 
   // 6-man positions
