@@ -885,7 +885,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     // Step 7. Razoring
     // If eval is really low, check with qsearch if can exceed alpha.
-    if (eval < -514 + alpha - 294 * sqr(depth))
+    if (!RootNode && eval < -514 + alpha - 294 * sqr(depth))
     {
         value = qsearch<PVNode>(pos, ss, alpha, beta);
 
