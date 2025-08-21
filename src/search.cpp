@@ -1750,7 +1750,7 @@ QS_MOVES_LOOP:
         if (!is_loss(bestValue))
         {
             // Skip quiet moves
-            mp.quietPick = mp.quietPick && moveCount < 4 + promoCount;
+            mp.quietPick = mp.quietPick && moveCount < 8 + promoCount;
 
             Value futilityValue;
 

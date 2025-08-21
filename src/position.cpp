@@ -1047,7 +1047,7 @@ DO_MOVE_END:
     if (end >= 4)
     {
         auto* pSt = st->preSt->preSt;
-        for (auto i = 4; i <= end; i += 2)
+        for (std::int16_t i = 4; i <= end; i += 2)
         {
             pSt = pSt->preSt->preSt;
             if (pSt->key == st->key)
@@ -1874,7 +1874,7 @@ bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
 
         Key moveKey = baseKey ^ pSt->key;
         // 'moveKey' is a single move
-        std::size_t index = Cuckoos.find_key(moveKey);
+        auto index = Cuckoos.find_key(moveKey);
         if (index >= Cuckoos.size())
             continue;
 
