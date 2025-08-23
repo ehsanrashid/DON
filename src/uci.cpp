@@ -566,6 +566,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     options().set("Threads", std::to_string(benchmark.threads));
     options().set("Hash", std::to_string(benchmark.ttSize));
     options().set("UCI_Chess960", bool_to_string(false));
+    options().set("NullMovePruning", bool_to_string(true));
 
     InfoStringStop = true;
 

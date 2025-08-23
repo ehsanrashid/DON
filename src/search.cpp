@@ -394,7 +394,7 @@ void Worker::iterative_deepening() noexcept {
                 avgSqrValue = VALUE_ZERO;
 
             // Reset aspiration window starting size
-            int   delta = 5 + std::min<int>(threads.size(), 8) + std::abs(avgSqrValue) / 9000;
+            int   delta = 5 + std::min<int>(threads.size() - 1, 8) + std::abs(avgSqrValue) / 9000;
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
 
@@ -915,8 +915,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     // Step 9. Null move search with verification search
     // The non-pawn condition is important for finding Zugzwangs.
-    if (CutNode && !exclude && pos.non_pawn_material(ac) && !is_loss(beta)  //
-        && ss->ply >= nmpPly && ss->staticEval >= 390 + beta - 18 * depth)
+    if (CutNode && options["NullMovePruning"] && !exclude && pos.non_pawn_material(ac)
+        && ss->ply >= nmpPly && !is_loss(beta) && ss->staticEval >= 390 + beta - 18 * depth)
     {
         assert((ss - 1)->move != Move::Null);
 
@@ -932,10 +932,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         undo_null_move(pos);
 
         // Do not return unproven mate or TB scores
-        if (nullValue >= beta)
+        if (nullValue >= beta && !is_win(nullValue))
         {
-            nullValue = in_range(nullValue);
-
             if (nmpPly != 0 || depth < 16)
                 return nullValue;
 
@@ -1101,6 +1099,8 @@ S_MOVES_LOOP:  // When in check, search starts here
         bool capture  = pos.capture_promo(move);
         auto captured = capture ? pos.captured(move) : NO_PIECE_TYPE;
 
+        ss->quietMoveStreak = (!capture && !check) ? 1 + (ss - 1)->quietMoveStreak : 0;
+
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
 
@@ -1231,9 +1231,10 @@ S_MOVES_LOOP:  // When in check, search starts here
             {
                 singularValue = value;
 
-                int corrValAdj   = absCorrectionValue / 229958;
-                int doubleMargin = -4 + 198 * PVNode - 212 * !ttCapture +  0 * ss->pvHit - corrValAdj - 45 * (ss->ply > rootDepth) - 921 * TTMoveHistory[ac] / 127649;
-                int tripleMargin = 76 + 308 * PVNode - 250 * !ttCapture + 92 * ss->pvHit - corrValAdj - 52 * (2 * ss->ply > 3 * rootDepth);
+                int corrValAdj = absCorrectionValue / 229958;
+
+                int doubleMargin = -4 + 198 * PVNode - 212 * !ttCapture - corrValAdj - 45 * (ss->ply >        rootDepth) - 921 * TTMoveHistory[ac] / 127649;
+                int tripleMargin = 76 + 308 * PVNode - 250 * !ttCapture - corrValAdj - 52 * (ss->ply > 1.5f * rootDepth) + 92 * ss->pvHit;
 
                 extension = 1 + (value < singularBeta - doubleMargin)
                               + (value < singularBeta - tripleMargin);
@@ -1248,8 +1249,8 @@ S_MOVES_LOOP:  // When in check, search starts here
             // if after excluding the ttMove with a reduced search fail high over the original beta,
             // assume this expected cut-node is not singular (multiple moves fail high),
             // and can prune the whole subtree by returning a soft-bound.
-            else if (value >= beta)
-                return in_range(value);
+            else if (value >= beta && !is_decisive(value))
+                return value;
 
             // Negative extensions
             // If other moves failed high over (ttValue - margin) without the ttMove on a reduced search,
@@ -1306,7 +1307,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Adjust reduction with move count and correction value
         // Base reduction offset to compensate for other tweaks
-        r += (700 - 6 * msbDepth) - 64 * std::min<int>(threads.size(), 8)
+        r += (700 - 6 * msbDepth) - 64 * std::min<int>(threads.size() - 1, 8)
            - (64 - 2 * msbDepth) * moveCount - absCorrectionValue / 30450 - 1024 * dblCheck;
 
         // Increase reduction for CutNode
@@ -1321,6 +1322,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Increase reduction if current ply has a lot of fail high
         r += ((1041 + 34 * msbDepth) + (752 + 226 * msbDepth) * AllNode) * (ss->cutoffCount > 2);
+
+        r += 50 * ss->quietMoveStreak;
 
         // For first picked move (ttMove) reduce reduction
         r -= (2096 + 27 * msbDepth) * (move == ttd.move);
@@ -1750,7 +1753,7 @@ QS_MOVES_LOOP:
         if (!is_loss(bestValue))
         {
             // Skip quiet moves
-            mp.quietPick = mp.quietPick && moveCount < 8 + promoCount;
+            mp.quietPick = mp.quietPick && moveCount < 4 + promoCount;
 
             Value futilityValue;
 

@@ -95,6 +95,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("UCI_ShowWDL",          Option(false));
     //options.add("UCI_ShowCurrLine",     Option(false));
     //options.add("UCI_ShowRefutations",  Option(false));
+    options.add("NullMovePruning",      Option(true));
     options.add("OwnBook",              Option(false));
     options.add("BookFile",             Option("", [](const Option& o) { Book.init(o); return std::nullopt; }));
     options.add("BookProbeDepth",       Option(100, 1, 256));
