@@ -88,11 +88,13 @@ using StateListPtr = std::unique_ptr<StateList>;
 constexpr std::uint16_t R50Offset = 14;
 constexpr std::uint16_t R50Factor = 8;
 
-extern std::uint8_t DrawMoveCount;
+extern std::uint16_t DrawMoveCount;
 
 extern bool Chess960;
 
-inline std::uint8_t rule50_threshold() noexcept { return -4 + 2 * DrawMoveCount; }
+inline std::uint16_t rule50_threshold(std::int16_t ply = -4) noexcept {
+    return ply + 2 * DrawMoveCount;
+}
 
 // Position class stores information regarding the board representation as
 // pieces, active color, hash keys, castling info, etc. (Size = 192)
@@ -214,8 +216,7 @@ class Position final {
 
     template<PieceType PT>
     Bitboard attacks(Color c) const noexcept;
-    Bitboard attacks(Color c, PieceType pt) const noexcept;
-    Bitboard threatens(Color c) const noexcept;
+    Bitboard attacks_lesser(Color c, PieceType pt) const noexcept;
     auto     mobility(Color c) const noexcept;
     Piece    captured_piece() const noexcept;
     Piece    promoted_piece() const noexcept;
@@ -569,9 +570,9 @@ inline Bitboard Position::blockers(Color c) const noexcept { return st->blockers
 
 template<PieceType PT>
 inline Bitboard Position::attacks(Color c) const noexcept { return st->attacks[c][PT]; }
-inline Bitboard Position::attacks(Color c, PieceType pt) const noexcept { return st->attacks[c][pt]; }
-
-inline Bitboard Position::threatens(Color c) const noexcept { return st->attacks[c][EXT_PIECE]; }
+inline Bitboard Position::attacks_lesser(Color c, PieceType pt) const noexcept {
+    return pt == KNIGHT || pt == BISHOP ? st->attacks[c][PAWN] : st->attacks[c][pt - 1];
+}
 
 inline auto Position::mobility(Color c) const noexcept { return st->mobility[c]; }
 

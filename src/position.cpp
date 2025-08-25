@@ -176,7 +176,7 @@ void init() noexcept {
 }
 }  // namespace Zobrist
 
-std::uint8_t DrawMoveCount = 50;
+std::uint16_t DrawMoveCount = 50;
 
 bool Chess960 = false;
 
@@ -654,6 +654,8 @@ void Position::set_ext_state() noexcept {
             }
         }
 
+        st->attacks[c][NO_PIECE_TYPE] = 0;
+
         st->mobility[c] = MobilityBonus[PAWN][popcount(push_pawn_bb(pieces(c, PAWN), c) & ~occupied)];
         st->attacks[c][PAWN] = attacks_mob_by<PAWN>(c, 0, pieces(~c), occupied);
     }
@@ -670,11 +672,7 @@ void Position::set_ext_state() noexcept {
         st->attacks[c][BISHOP] = st->attacks[c][KNIGHT] | attacks_mob_by<BISHOP>(c, blockers(c), target, occupied ^ ((pieces(c, QUEEN, BISHOP) & ~blockers(c)) | (pieces(~c, KING, QUEEN, ROOK) & ~pinners())));
         st->attacks[c][ROOK  ] = st->attacks[c][BISHOP] | attacks_mob_by<ROOK  >(c, blockers(c), target, occupied ^ ((pieces(c, QUEEN, ROOK  ) & ~blockers(c)) | (pieces(~c, KING, QUEEN      ) & ~pinners())));
         st->attacks[c][QUEEN ] = st->attacks[c][ROOK  ] | attacks_mob_by<QUEEN >(c, blockers(c), target, occupied ^ ((pieces(c, QUEEN        ) & ~blockers(c)) | (pieces(~c, KING             )             )));
-        st->attacks[c][KING  ] =                          attacks_mob_by<KING  >(c, blockers(c), target, occupied                                                                                             );
-
-        st->attacks[~c][EXT_PIECE] = (attacks<PAWN >(c) & pieces(~c, KNIGHT, BISHOP))
-                                   | (attacks<MINOR>(c) & pieces(~c, ROOK          ))
-                                   | (attacks<ROOK >(c) & pieces(~c, QUEEN         ));
+        st->attacks[c][KING  ] = st->attacks[c][QUEEN ] | attacks_mob_by<KING  >(c, blockers(c), target, occupied                                                                                             );
     }
     // clang-format on
 }

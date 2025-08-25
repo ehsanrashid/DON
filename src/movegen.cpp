@@ -247,7 +247,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
 
     if (b)
     {
-        b &= ~(pos.attacks<PAWN>(~AC) | pos.attacks<KING>(~AC));
+        b &= ~(pos.attacks<PAWN>(~AC) | attacks_bb<KING>(pos.king_sq(~AC)));
 
         Bitboard occupied = pos.pieces() ^ kingSq;
 

@@ -127,8 +127,6 @@ enum PieceType : std::int8_t {
     NO_PIECE_TYPE,
     PAWN = 1, KNIGHT, BISHOP, ROOK, QUEEN, KING,
     ALL_PIECE     = 0,
-    EXT_PIECE     = 7,
-    MINOR         = BISHOP,
     PIECE_TYPE_NB = 8
 };
 

@@ -28,14 +28,6 @@
 
 namespace DON {
 
-namespace {
-
-constexpr int Bonus[PIECE_TYPE_NB]{0, 0, 144, 144, 256, 517, 10000, 0};
-
-constexpr int GoodQuietThreshold = -13500;
-
-}  // namespace
-
 // History
 History<HCapture>      CaptureHistory;
 History<HQuiet>        QuietHistory;
@@ -58,9 +50,9 @@ MovePicker::MovePicker(const Position&           p,
     threshold(th) {
     assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
 
-    stage = pos.checkers() ? STG_EVA_TT : STG_ENC_TT;
-    if (ttMove == Move::None || !(pos.checkers() || threshold < 0 || pos.capture_promo(ttMove)))
-        ++stage;
+    stage = (pos.checkers() ? STG_EVA_TT : STG_ENC_TT)
+          + int(ttMove == Move::None
+                || !(pos.checkers() || threshold < 0 || pos.capture_promo(ttMove)));
 }
 
 MovePicker::MovePicker(const Position& p,  //
@@ -74,9 +66,9 @@ MovePicker::MovePicker(const Position& p,  //
     assert(!pos.checkers());
     assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
 
-    stage = STG_PROBCUT_TT;
-    if (ttMove == Move::None || !(pos.capture_promo(ttMove) && pos.see(ttMove) >= threshold))
-        ++stage;
+    stage =
+      STG_PROBCUT_TT
+      + int(ttMove == Move::None || !(pos.capture_promo(ttMove) && pos.see(ttMove) >= threshold));
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -106,6 +98,8 @@ ExtMove* MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveList) noexcep
 
 template<>
 ExtMove* MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
+    static constexpr int Bonus[PIECE_TYPE_NB]{0, 0, 144, 144, 256, 517, 10000, 0};
+
     Color ac        = pos.active_color();
     auto  pawnIndex = pawn_index(pos.pawn_key());
 
@@ -141,15 +135,15 @@ ExtMove* MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
 
         m.value += 0x1000 * (pos.fork(m) && pos.see(m) >= -50);
 
-        if (KNIGHT < pt || pt > QUEEN)
-            continue;
-
         // Penalty for moving to a square threatened by a lesser piece or
         // Bonus for escaping an attack by a lesser piece.
         m.value += Bonus[pt]
-                 * (((pos.attacks(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? -95
-                    : (pos.attacks(~ac, pt) & org)                               ? 100
-                                                                                 : 0);
+                 * (((pos.attacks_lesser(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? -95
+                    : (pos.attacks_lesser(~ac, pt) & org)                               ? 100
+                                                                                        : 0);
+
+        if (pt == KING)
+            continue;
 
         // Penalty for moving a pinner piece.
         m.value -= 0x400 * ((pos.pinners() & org) && !aligned(pos.king_sq(~ac), org, dst));
@@ -278,11 +272,13 @@ STAGE_SWITCH:
 
     case STG_ENC_QUIET_GOOD :
         if (quietPick)
+        {
             while (cur < endCur)
             {
                 if (*cur != ttMove)
                 {
-                    if (cur->value >= (GoodQuietThreshold + threshold / 8))
+                    // Good quiet threshold
+                    if (cur->value >= (-13500 + threshold / 8))
                         return *cur++;
                     // Remaining quiets are bad
                     break;
@@ -290,7 +286,8 @@ STAGE_SWITCH:
                 ++cur;
             }
 
-        begBadQuiets = cur;
+            begBadQuiets = cur;
+        }
 
         // Prepare the pointers to loop over the bad captures
         cur    = moves;

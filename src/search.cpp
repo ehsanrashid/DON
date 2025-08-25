@@ -732,11 +732,13 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 && !is_decisive(ttd.value))
             {
                 pos.do_move(ttd.move, st);
-                auto [nextTtd, nextTte, nextTtc] = tt.probe(pos.key());
+                auto [_ttd, _tte, _ttc] = tt.probe(pos.key());
+                _ttd.value =
+                  _ttd.hit ? value_from_tt(_ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
                 pos.undo_move(ttd.move);
 
-                // Check that the ttValue after the tt move would also trigger a cutoff
-                if (!is_valid(nextTtd.value) || ((ttd.value >= beta) == (-nextTtd.value >= beta)))
+                // Check that the ttValue after the ttMove would also trigger a cutoff
+                if (!is_valid(_ttd.value) || ((ttd.value >= beta) == (-_ttd.value >= beta)))
                     return ttd.value;
             }
             else
