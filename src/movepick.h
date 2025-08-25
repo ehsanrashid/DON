@@ -105,7 +105,6 @@ class MovePicker final {
     MovePicker& operator=(MovePicker&&) noexcept      = delete;
 
     Move next_move() noexcept;
-    bool can_move_king_or_pawn() const noexcept;
 
     Stage stage = STG_NONE;
 

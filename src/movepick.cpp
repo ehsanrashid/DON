@@ -30,7 +30,8 @@ namespace DON {
 
 namespace {
 
-constexpr int Bonus[PIECE_TYPE_NB]{0, 0, 144, 144, 256, 517, 0, 0};
+constexpr int Bonus[PIECE_TYPE_NB]{0, 0, 144, 144, 256, 517, 10000, 0};
+
 constexpr int GoodQuietThreshold = -13500;
 
 }  // namespace
@@ -387,25 +388,6 @@ STAGE_SWITCH:
     }
     assert(false);
     return Move::None;  // Silence warning
-}
-
-// Must be called after all captures and quiet moves have been generated
-bool MovePicker::can_move_king_or_pawn() const noexcept {
-
-    // Until good capture stage no quiet moves are generated for comparison so simply assume king or pawns can move.
-    // Do the same for other stages that don't have a valid available move list.
-    if (stage <= STG_ENC_CAPTURE_GOOD)
-        return true;
-
-    assert(endGenerated != nullptr);
-
-    for (const auto* m = moves; m < endGenerated; ++m)
-    {
-        auto movedPieceType = type_of(pos.moved_piece(*m));
-        if ((movedPieceType == PAWN || movedPieceType == KING) && pos.legal(*m))
-            return true;
-    }
-    return false;
 }
 
 }  // namespace DON
