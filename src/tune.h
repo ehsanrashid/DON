@@ -196,15 +196,13 @@ constexpr void check_tune_args(Args&&...) {
 }
 
 // Some macro magic :-) define a dummy int variable that the compiler initializes calling Tune::add()
-#if !defined(STRINGIFY)
-    #define STRINGIFY(x) #x
-#endif
+#define STRING_LITERAL(x) #x
 #define UNIQUE2(x, y) x##y
 #define UNIQUE(x, y) UNIQUE2(x, y)  // Two indirection levels to expand __LINE__
 #define TUNE(...) \
     int UNIQUE(p, __LINE__) = []() -> int { \
         check_tune_args(__VA_ARGS__); \
-        return Tune::add(STRINGIFY((__VA_ARGS__)), __VA_ARGS__); \
+        return Tune::add(STRING_LITERAL((__VA_ARGS__)), __VA_ARGS__); \
     }();
 
 #define ON_LAST_UPDATE() bool UNIQUE(p, __LINE__) = Tune::OnLastUpdate = true

@@ -38,24 +38,18 @@
     #include <xmmintrin.h>  // Microsoft header for _mm_prefetch()
 #endif
 
-#if !defined(STRINGIFY)
-    #define STRINGIFY(x) #x
-#endif
+#define STRING_LITERAL(x) #x
+#define STRINGIFY(x) STRING_LITERAL(x)
 
 #if defined(__GNUC__) && !defined(__clang__)
     #if __GNUC__ >= 13
         #define ASSUME(cond) __attribute__((assume(cond)))
     #else
-        #define ASSUME(cond) \
-            do \
-            { \
-                if (!(cond)) \
-                    __builtin_unreachable(); \
-            } while (0)
+        #define ASSUME(cond) ((cond) ? (void) 0 : __builtin_unreachable())
     #endif
 #else
     // do nothing for other compilers
-    #define ASSUME(cond)
+    #define ASSUME(cond) ((void) 0)
 #endif
 
 namespace DON {

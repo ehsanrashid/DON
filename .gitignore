@@ -22,5 +22,7 @@ tests/bench_tmp.epd
 
 *.bin
 *.txt
+
+# IDE files
 .vs/*
 .vscode/*
