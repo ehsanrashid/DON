@@ -92,8 +92,8 @@ extern std::uint16_t DrawMoveCount;
 
 extern bool Chess960;
 
-inline std::uint16_t rule50_threshold(std::int16_t ply = -4) noexcept {
-    return ply + 2 * DrawMoveCount;
+inline std::uint16_t rule50_threshold(std::int16_t r50 = -4) noexcept {
+    return r50 + 2 * DrawMoveCount;
 }
 
 // Position class stores information regarding the board representation as
@@ -466,7 +466,7 @@ inline Square Position::cap_sq() const noexcept { return st->capSq; }
 inline CastlingRights Position::castling_rights() const noexcept { return st->castlingRights; }
 
 inline bool Position::can_castle(CastlingRights cr) const noexcept {
-    return castling_rights() & cr;
+    return castling_rights() & int(cr);
 }
 
 inline bool Position::castling_impeded(CastlingRights cr) const noexcept {
@@ -571,7 +571,7 @@ inline Bitboard Position::blockers(Color c) const noexcept { return st->blockers
 template<PieceType PT>
 inline Bitboard Position::attacks(Color c) const noexcept { return st->attacks[c][PT]; }
 inline Bitboard Position::attacks_lesser(Color c, PieceType pt) const noexcept {
-    return pt == KNIGHT || pt == BISHOP ? st->attacks[c][PAWN] : st->attacks[c][pt - 1];
+    return st->attacks[c][pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
 }
 
 inline auto Position::mobility(Color c) const noexcept { return st->mobility[c]; }

@@ -88,7 +88,7 @@ ExtMove* MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveList) noexcep
         auto   pc       = pos.moved_piece(m);
         auto   captured = pos.captured(m);
 
-        m.value = 7 * PIECE_VALUE[captured] + 3 * promotion_value(m, true)  //
+        m.value = 7 * PIECE_VALUE[captured] + 3 * promotion_value<true>(m)  //
                 + CaptureHistory[pc][dst][captured]                         //
                 + 0x400 * bool(pos.check(m))                                //
                 + 0x100 * (pos.cap_sq() == dst);
@@ -98,7 +98,7 @@ ExtMove* MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveList) noexcep
 
 template<>
 ExtMove* MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
-    static constexpr int Bonus[PIECE_TYPE_NB]{0, 0, 144, 144, 256, 517, 10000, 0};
+    static constexpr int Bonus[PIECE_TYPE_NB]{0, 0, 144, 144, 256, 517, 10000};
 
     Color ac        = pos.active_color();
     auto  pawnIndex = pawn_index(pos.pawn_key());
@@ -164,7 +164,7 @@ ExtMove* MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveList) noexcep
 
         auto captured = pos.captured(m);
 
-        m.value = PIECE_VALUE[captured] + promotion_value(m, true);
+        m.value = PIECE_VALUE[captured] + promotion_value<true>(m);
     }
     return itr;
 }
@@ -179,6 +179,7 @@ ExtMove* MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList) noexcept {
         auto& m = *itr++;
         m       = move;
 
+        assert(m.type_of() != PROMOTION);
         assert(m.type_of() != CASTLING);
 
         Square dst = m.dst_sq();

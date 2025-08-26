@@ -517,7 +517,18 @@ std::string Position::fen(bool full) const noexcept {
             oss << '/';
     }
 
-    oss << (active_color() == WHITE ? " w " : active_color() == BLACK ? " b " : " - ");
+    switch (active_color())
+    {
+    case WHITE :
+        oss << " w ";
+        break;
+    case BLACK :
+        oss << " b ";
+        break;
+    default :
+        oss << " - ";
+        break;
+    }
 
     if (can_castle(ANY_CASTLING))
     {
@@ -531,7 +542,7 @@ std::string Position::fen(bool full) const noexcept {
             oss << (Chess960 ? UCI::file(file_of(castling_rook_sq(BLACK_OOO)), false) : 'q');
     }
     else
-        oss << "-";
+        oss << '-';
 
     oss << ' ' << (is_ok(ep_sq()) ? UCI::square(ep_sq()) : "-");
     if (full)
@@ -668,11 +679,11 @@ void Position::set_ext_state() noexcept {
                                          | (pieces(QUEEN, KING))
                                          | (pieces(PAWN) & (LOW_RANK_BB[c] | (push_pawn_bb(occupied, ~c) & ~attacks_pawn_bb(pieces(~c) & ~pieces(KING), ~c)))))));
 
-        st->attacks[c][KNIGHT] = st->attacks[c][PAWN  ] | attacks_mob_by<KNIGHT>(c, blockers(c), target, occupied                                                                                             );
-        st->attacks[c][BISHOP] = st->attacks[c][KNIGHT] | attacks_mob_by<BISHOP>(c, blockers(c), target, occupied ^ ((pieces(c, QUEEN, BISHOP) & ~blockers(c)) | (pieces(~c, KING, QUEEN, ROOK) & ~pinners())));
-        st->attacks[c][ROOK  ] = st->attacks[c][BISHOP] | attacks_mob_by<ROOK  >(c, blockers(c), target, occupied ^ ((pieces(c, QUEEN, ROOK  ) & ~blockers(c)) | (pieces(~c, KING, QUEEN      ) & ~pinners())));
-        st->attacks[c][QUEEN ] = st->attacks[c][ROOK  ] | attacks_mob_by<QUEEN >(c, blockers(c), target, occupied ^ ((pieces(c, QUEEN        ) & ~blockers(c)) | (pieces(~c, KING             )             )));
-        st->attacks[c][KING  ] = st->attacks[c][QUEEN ] | attacks_mob_by<KING  >(c, blockers(c), target, occupied                                                                                             );
+        st->attacks[c][KNIGHT] = attacks<PAWN  >(c) | attacks_mob_by<KNIGHT>(c, blockers(c), target, occupied                                                                                             );
+        st->attacks[c][BISHOP] = attacks<KNIGHT>(c) | attacks_mob_by<BISHOP>(c, blockers(c), target, occupied ^ ((pieces(c, QUEEN, BISHOP) & ~blockers(c)) | (pieces(~c, KING, QUEEN, ROOK) & ~pinners())));
+        st->attacks[c][ROOK  ] = attacks<BISHOP>(c) | attacks_mob_by<ROOK  >(c, blockers(c), target, occupied ^ ((pieces(c, QUEEN, ROOK  ) & ~blockers(c)) | (pieces(~c, KING, QUEEN      ) & ~pinners())));
+        st->attacks[c][QUEEN ] = attacks<ROOK  >(c) | attacks_mob_by<QUEEN >(c, blockers(c), target, occupied ^ ((pieces(c, QUEEN        ) & ~blockers(c)) | (pieces(~c, KING             )             )));
+        st->attacks[c][KING  ] = attacks<QUEEN >(c) | attacks_mob_by<KING  >(c, blockers(c), target, occupied                                                                                             );
     }
     // clang-format on
 }
@@ -881,7 +892,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
 
         // Update castling rights
         int cr = ac & ANY_CASTLING;
-        assert(castling_rights() & cr);
+        assert(can_castle(CastlingRights(cr)));
         k ^= Zobrist::castling[castling_rights() & cr];
         st->castlingRights &= ~cr;
 

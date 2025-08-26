@@ -706,11 +706,14 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     State st;
 
-    // Check for an early TT cutoff at non-pv nodes
+    // At non-pv nodes check for an early TT cutoff
     if (!PVNode && !exclude && is_valid(ttd.value)        //
         && (depth > 5 || CutNode == (ttd.value >= beta))  //
         && ttd.depth > depth - (ttd.value <= beta)        //
-        && (ttd.bound & fail_bound(ttd.value >= beta)) != 0)
+        && (ttd.bound & fail_bound(ttd.value >= beta)) != 0
+        // Avoid a TT cutoff if the rule50 count is high and the ttMove is zeroing
+        && (depth > 8 || ttd.move == Move::None || pos.rule50_count() < rule50_threshold(-10)
+            || !(ttCapture || type_of(pos.moved_piece(ttd.move)) == PAWN)))
     {
         // If ttMove fails high, update move sorting heuristics on TT hit
         if (ttd.move != Move::None && ttd.value >= beta)
@@ -813,7 +816,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     Value unadjustedStaticEval, eval;
 
-    bool improve, oppworse;
+    bool improve, worsen;
 
     Value probCutBeta;
 
@@ -826,7 +829,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         eval = ss->staticEval = (ss - 2)->staticEval;
 
-        improve = oppworse = false;
+        improve = worsen = false;
 
         // Skip early pruning when in check
         goto S_MOVES_LOOP;
@@ -870,19 +873,19 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             update_pawn_history(pos, pos.piece_on(preSq), preSq, std::lround(+1.4043f * bonus));
     }
 
-    // Set up the improve and oppworse flags.
+    // Set up the improve and worsen flags.
     // improve: if the static evaluation is better than it was at the our last turn (two plies ago)
-    // oppworse: if the static evaluation is better than it was at the opponent's last turn (one ply ago).
-    improve  = !(ss - 2)->inCheck && ss->staticEval > +(ss - 2)->staticEval;
-    oppworse = (ss - 1)->inCheck || ss->staticEval > -(ss - 1)->staticEval;
+    // worsen: if the static evaluation is better than it was at the opponent last turn (one ply ago).
+    improve = ss->staticEval > +(ss - 2)->staticEval;
+    worsen  = ss->staticEval > -(ss - 1)->staticEval;
 
     // Retroactive LMR adjustments
     // The ply after beginning an LMR search, adjust the reduced depth based on
     // how the opponent's move affected the static evaluation.
-    if (red >= 3 && depth < MAX_PLY - 1 && !oppworse)
+    if (red >= 3 && depth < MAX_PLY - 1 && !worsen)
         ++depth;
 
-    if (red >= 2 && depth > 1 && ((ss - 1)->inCheck || ss->staticEval > 173 - (ss - 1)->staticEval))
+    if (red >= 2 && depth > 1 && ss->staticEval > 173 - (ss - 1)->staticEval)
         --depth;
 
     // Step 7. Razoring
@@ -903,10 +906,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         auto futility_margin = [&](bool ttHit) noexcept {
             Value futilityMult = 91 - 21 * !ttHit;
 
-            return futilityMult * depth                   //
-                 - futilityMult * improve * 2094 / 1024   //
-                 - futilityMult * oppworse * 1324 / 4096  //
-                 + (ss - 1)->history / 331                //
+            return futilityMult * depth                  //
+                 - futilityMult * improve * 2094 / 1024  //
+                 - futilityMult * worsen * 1324 / 4096   //
+                 + (ss - 1)->history / 331               //
                  + absCorrectionValue / 158105;
         };
 
@@ -923,7 +926,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         assert((ss - 1)->move != Move::Null);
 
         // Null move dynamic reduction based on depth, eval and phase
-        Depth R = 5 + int(0.3333f * depth) + int(0.1111f * pos.phase());
+        Depth R = 5 + depth / 3 + pos.phase() / 9;
         if (R > depth - 1)
             R = depth - 1;
 

@@ -497,9 +497,10 @@ class Move {
 constexpr Move Move::None{SQ_A1, SQ_A1};
 constexpr Move Move::Null{SQ_B1, SQ_B1};
 
-constexpr Value promotion_value(const Move& m, bool mp = false) noexcept {
+template<bool MP = false>
+constexpr Value promotion_value(const Move& m) noexcept {
     return m.type_of() == PROMOTION
-           ? (mp && m.promotion_type() == KNIGHT ? VALUE_ROOK + 1 : PIECE_VALUE[m.promotion_type()])
+           ? (MP && m.promotion_type() == KNIGHT ? VALUE_ROOK + 1 : PIECE_VALUE[m.promotion_type()])
                - VALUE_PAWN
            : VALUE_ZERO;
 }
