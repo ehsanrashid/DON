@@ -466,9 +466,18 @@ inline std::string bool_to_string(bool b) noexcept {
 }
 
 inline bool string_to_bool(const std::string& str) noexcept {
-    bool               b = false;
+    bool b = false;
+
     std::istringstream iss(lower_case(str));
-    iss >> std::boolalpha >> b;
+    iss >> std::boolalpha >> b;  // enables reading "true"/"false"
+    if (iss.fail()) {
+        // Try as integer
+        iss.clear();
+        iss.str(str);
+        int i;
+        iss >> i;
+        b = (i != 0);
+    }
     return b;
 }
 
