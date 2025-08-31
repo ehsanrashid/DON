@@ -470,7 +470,8 @@ inline bool string_to_bool(const std::string& str) noexcept {
 
     std::istringstream iss(lower_case(str));
     iss >> std::boolalpha >> b;  // enables reading "true"/"false"
-    if (iss.fail()) {
+    if (iss.fail())
+    {
         // Try as integer
         iss.clear();
         iss.str(str);
