@@ -389,6 +389,7 @@ class Position final {
     Bitboard     colorBB[COLOR_NB];
     std::uint8_t pieceCount[PIECE_NB];
     Bitboard     castlingPath[COLOR_NB * CASTLING_SIDE_NB];
+    Bitboard     castlingKingPath[COLOR_NB * CASTLING_SIDE_NB];
     Square       castlingRookSq[COLOR_NB * CASTLING_SIDE_NB];
     std::uint8_t castlingRightsMask[COLOR_NB * FILE_NB + 1];
     Color        activeColor;
