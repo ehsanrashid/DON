@@ -562,6 +562,7 @@ void Position::set_castling_rights(Color c, Square rOrg) noexcept {
 
     castlingPath[crLsb] =
       (between_bb(kOrg, kDst) | between_bb(rOrg, rDst)) & ~make_bitboard(kOrg, rOrg);
+    castlingKingPath[crLsb] = between_bb(kOrg, kDst);
 }
 
 // Computes the hash keys of the position, and other data
