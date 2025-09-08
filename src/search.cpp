@@ -415,6 +415,8 @@ void Worker::iterative_deepening() noexcept {
                 if (adjustedDepth < 1)
                     adjustedDepth = 1;
 
+                std::uint16_t preMoveChanges = moveChanges;
+
                 bestValue = search<Root>(rootPos, ss, alpha, beta, adjustedDepth);
 
                 // Bring the best move to the front. It is critical that sorting
@@ -440,7 +442,9 @@ void Worker::iterative_deepening() noexcept {
                 // otherwise exit the loop.
                 if (bestValue <= alpha)
                 {
-                    beta  = alpha;
+                    beta =
+                      (123 * alpha + 9 * beta + 12 * std::min(bestValue + delta, +VALUE_INFINITE))
+                      / 144;
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;
@@ -449,6 +453,14 @@ void Worker::iterative_deepening() noexcept {
                 }
                 else if (bestValue >= beta)
                 {
+                    if (moveChanges > preMoveChanges)
+                        alpha = (116 * alpha + 1 * beta
+                                 + 7 * std::max(bestValue - delta, -VALUE_INFINITE))
+                              / 124;
+                    else
+                        alpha = (119 * alpha + 6 * beta
+                                 + 16 * std::max(bestValue - delta, -VALUE_INFINITE))
+                              / 141;
                     beta = std::min(bestValue + delta, +VALUE_INFINITE);
 
                     ++failHighCnt;
@@ -981,7 +993,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         assert(beta < probCutBeta && probCutBeta < +VALUE_INFINITE);
 
-        Depth probCutDepth     = std::max(depth - 5 - (ss->staticEval - beta) / 306, 0);
+        Depth probCutDepth = std::max(depth - 5 - std::max((ss->staticEval - beta) / 306, -1), 0);
         int   probCutThreshold = probCutBeta - ss->staticEval;
 
         MovePicker mp(pos, pttm, probCutThreshold);
@@ -1132,11 +1144,6 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             Value futilityValue;
 
-            auto may_stalemate_trap = [&]() noexcept {
-                return depth > 2 && alpha < VALUE_ZERO
-                    && pos.non_pawn_material(ac) == PIECE_VALUE[type_of(movedPiece)];
-            };
-
             if (capture)
             {
                 int captHist = CaptureHistory[movedPiece][dst][captured];
@@ -1158,9 +1165,10 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 // SEE based pruning for captures
                 int margin = std::max(157 * depth + captHist / 29, 0);
-                if (pos.see(move) < -(margin + 256 * dblCheck)
-                    // Avoid pruning sacrifices of our last piece for stalemate
-                    && !may_stalemate_trap())
+                if (  // Avoid pruning sacrifices of our last piece for stalemate
+                  (alpha >= VALUE_ZERO
+                   || pos.non_pawn_material(ac) != PIECE_VALUE[type_of(movedPiece)])
+                  && pos.see(move) < -(margin + 256 * dblCheck))
                     continue;
             }
             else
@@ -1302,10 +1310,10 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // These reduction adjustments have no proven non-linear scaling.
 
-        // Adjust reduction with move count and correction value
         // Base reduction offset to compensate for other tweaks
-        r += 671 - 64 * std::min<int>(threads.size() - 1, 8) - 66 * moveCount
-           - absCorrectionValue / 30450 - 1024 * dblCheck;
+        r += 543;
+        // Adjust reduction with move count and correction value
+        r += -66 * moveCount - absCorrectionValue / 30450 - 1024 * dblCheck;
 
         // Increase reduction for CutNode
         if constexpr (CutNode)
@@ -2322,7 +2330,7 @@ void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& 
 
     update_quiet_history(pos.active_color(), m, std::lround(+1.0000f * bonus));
     update_pawn_history(pos, pos.moved_piece(m), m.dst_sq(), 70 + std::lround((bonus > 0 ? +0.6875f : +0.4287f) * bonus));
-    update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), std::lround((bonus > 0 ? +0.9717f : +0.8936f) * bonus));
+    update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), std::lround(+0.9326 * bonus));
     update_low_ply_quiet_history(ss->ply, m, 38 + std::lround(+0.7236f * bonus));
 }
 
@@ -2379,6 +2387,8 @@ void update_correction_history(const Position& pos, Stack* const ss, int bonus) 
       (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on((ss - 1)->move.dst_sq())][(ss - 1)->move.dst_sq()] << int(std::lround(+1.0703f * bonus));
 }
 
+// (*Scaler) All tuned parameters at time controls shorter than
+// optimized for require verifications at longer time controls
 int correction_value(const Position& pos, const Stack* const ss) noexcept {
     Color ac = pos.active_color();
 
