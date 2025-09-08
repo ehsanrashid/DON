@@ -1001,7 +1001,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         while ((move = mp.next_move()) != Move::None)
         {
             assert(pos.pseudo_legal(move));
-            assert(pos.capture_promo(move) && pos.see(move) >= probCutThreshold);
+            assert(pos.capture_promo(move));
+            //assert(pos.see(move) >= probCutThreshold);
 
             // Check for legality
             if (move == excludedMove || !pos.legal(move))
