@@ -29,6 +29,7 @@ Cpp11BracedListStyle: true
 FixNamespaceComments: true
 IndentGotoLabels: false
 IndentPPDirectives: BeforeHash
+PPIndentWidth: 4
 IndentWidth: 4
 UseTab: Never
 MaxEmptyLinesToKeep: 2
