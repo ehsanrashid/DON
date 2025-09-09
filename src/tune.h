@@ -97,16 +97,16 @@ class Tune final {
     }
 
     // Use polymorphism to accommodate Entry of different types in the same vector
-    struct EntryBase {
+    struct BaseEntry {
        public:
-        virtual ~EntryBase() = default;
+        virtual ~BaseEntry() = default;
 
         virtual void init_option() noexcept = 0;
         virtual void read_option() noexcept = 0;
     };
 
     template<typename T>
-    struct Entry final: public EntryBase {
+    struct Entry final: public BaseEntry {
        public:
         static_assert(!std::is_const_v<T>, "Parameter cannot be const!");
         static_assert(std::is_same_v<T, int> || std::is_same_v<T, PostUpdate>,
@@ -145,7 +145,7 @@ class Tune final {
 
     template<typename T, typename... Args>
     int add(const RangeSetter& range, std::string&& names, T& value, Args&&... args) noexcept {
-        entries.push_back(std::unique_ptr<EntryBase>(new Entry<T>(next(names), value, range)));
+        entries.push_back(std::unique_ptr<BaseEntry>(new Entry<T>(next(names), value, range)));
         return add(range, std::move(names), args...);
     }
 
@@ -163,11 +163,11 @@ class Tune final {
         return add(value, (next(names), std::move(names)), args...);
     }
 
-    std::vector<std::unique_ptr<EntryBase>> entries;
+    std::vector<std::unique_ptr<BaseEntry>> entries;
 
    public:
     template<typename... Args>
-    static int add(const std::string& names, Args&&... args) noexcept {
+    static int add(std::string_view names, Args&&... args) noexcept {
         // Remove trailing parenthesis
         return instance().add(SetDefaultRange, names.substr(1, names.size() - 2), args...);
     }
