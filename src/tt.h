@@ -24,7 +24,7 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <string>
+#include <string_view>
 #include <tuple>
 
 #include "misc.h"
@@ -330,8 +330,8 @@ class TranspositionTable final {
     std::uint16_t hashfull(std::uint8_t maxAge) const noexcept;
     std::uint16_t hashfull() noexcept;
 
-    bool save(const std::string& hashFile) const noexcept;
-    bool load(const std::string& hashFile, ThreadPool& threads) noexcept;
+    bool save(std::string_view hashFile) const noexcept;
+    bool load(std::string_view hashFile, ThreadPool& threads) noexcept;
 
    private:
     void free() noexcept;

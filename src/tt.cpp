@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <string>
 
 #include "memory.h"
 #include "thread.h"
@@ -123,12 +124,12 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
 
 std::uint16_t TranspositionTable::hashfull() noexcept { return lastHashfull = hashfull(0); }
 
-bool TranspositionTable::save(const std::string& hashFile) const noexcept {
+bool TranspositionTable::save(std::string_view hashFile) const noexcept {
 
     if (hashFile.empty())
         return false;
 
-    std::ofstream ofstream(hashFile, std::ios_base::binary);
+    std::ofstream ofstream(std::string(hashFile), std::ios_base::binary);
     if (ofstream)
     {
         ofstream.write(reinterpret_cast<const char*>(clusters), clusterCount * sizeof(TTCluster));
@@ -136,12 +137,12 @@ bool TranspositionTable::save(const std::string& hashFile) const noexcept {
     return ofstream.good();
 }
 
-bool TranspositionTable::load(const std::string& hashFile, ThreadPool& threads) noexcept {
+bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) noexcept {
 
     if (hashFile.empty())
         return false;
 
-    std::ifstream ifstream(hashFile, std::ios_base::binary);
+    std::ifstream ifstream(std::string(hashFile), std::ios_base::binary);
     if (ifstream)
     {
         auto fileSize = get_file_size(ifstream);

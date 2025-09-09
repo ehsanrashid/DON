@@ -31,6 +31,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <unordered_map>
 #include <utility>
@@ -623,13 +624,13 @@ class NumaConfig final {
     // ','-separated cpu indices
     // supports "first-last" range syntax for cpu indices
     // For example "0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"
-    static NumaConfig from_string(const std::string& str) noexcept {
+    static NumaConfig from_string(std::string_view str) noexcept {
         NumaConfig numaCfg = empty();
 
         NumaIndex n = 0;
         for (auto&& nodeStr : split(str, ":"))
         {
-            auto indices = shortened_string_to_indices(std::string(nodeStr));
+            auto indices = shortened_string_to_indices(nodeStr);
             if (!indices.empty())
             {
                 for (auto c : indices)
@@ -911,13 +912,13 @@ class NumaConfig final {
     CpuIndex                                maxCpuIndex;
     bool                                    affinityCustom;
 
-    static std::vector<CpuIndex> shortened_string_to_indices(const std::string& s) noexcept {
+    static std::vector<CpuIndex> shortened_string_to_indices(std::string_view str) noexcept {
         std::vector<CpuIndex> indices;
 
-        if (s.empty())
+        if (str.empty())
             return indices;
 
-        for (const auto& ss : split(s, ","))
+        for (const auto& ss : split(str, ","))
         {
             if (ss.empty())
                 continue;
@@ -925,20 +926,18 @@ class NumaConfig final {
             auto parts = split(ss, "-");
             if (parts.size() == 1)
             {
-                auto c = CpuIndex{str_to_size_t(std::string(parts[0]))};
+                auto c = CpuIndex{str_to_size_t(parts[0])};
                 indices.emplace_back(c);
             }
             else if (parts.size() == 2)
             {
-                auto fstC = CpuIndex{str_to_size_t(std::string(parts[0]))};
-                auto lstC = CpuIndex{str_to_size_t(std::string(parts[1]))};
+                auto fstC = CpuIndex{str_to_size_t(parts[0])};
+                auto lstC = CpuIndex{str_to_size_t(parts[1])};
                 for (auto c = fstC; c <= lstC; ++c)
                     indices.emplace_back(c);
             }
             else
-            {
                 assert(false);
-            }
         }
 
         return indices;

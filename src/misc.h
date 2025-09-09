@@ -533,7 +533,7 @@ split(std::string_view str, std::string_view delimiter, bool doTrim = false) noe
     return parts;
 }
 
-std::size_t str_to_size_t(const std::string& str) noexcept;
+std::size_t str_to_size_t(std::string_view str) noexcept;
 
 std::streamsize get_file_size(std::ifstream& ifstream) noexcept;
 

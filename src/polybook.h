@@ -21,7 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>
-#include <string>
+#include <string_view>
 #include <tuple>
 
 #include "types.h"
@@ -74,7 +74,7 @@ class PolyBook final {
 
     void clear() noexcept;
 
-    void init(const std::string& bookFile) noexcept;
+    void init(std::string_view bookFile) noexcept;
 
     Move probe(Position& pos, bool bestPick = true) noexcept;
 

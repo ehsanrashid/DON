@@ -52,7 +52,7 @@ class Engine final {
     const Options& get_options() const noexcept;
     Options&       get_options() noexcept;
 
-    void set_numa_config(const std::string& str) noexcept;
+    void set_numa_config(std::string_view str) noexcept;
 
     std::string fen() const noexcept;
 
@@ -94,8 +94,8 @@ class Engine final {
     // Network related
     void verify_networks() const noexcept;
     void load_networks() noexcept;
-    void load_big_network(const std::string& netFile) noexcept;
-    void load_small_network(const std::string& netFile) noexcept;
+    void load_big_network(std::string_view netFile) noexcept;
+    void load_small_network(std::string_view netFile) noexcept;
     void save_networks(const std::array<std::optional<std::string>, 2>& netFiles) noexcept;
 
     void set_on_update_end(OnUpdateEnd&& f) noexcept;

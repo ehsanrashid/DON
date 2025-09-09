@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
+#include <string>
 
 #include "bitboard.h"
 #include "misc.h"
@@ -393,16 +394,16 @@ void PolyBook::clear() noexcept {
     failCount  = 0;
 }
 
-void PolyBook::init(const std::string& bookFile) noexcept {
+void PolyBook::init(std::string_view bookFile) noexcept {
     clear();
 
     if (bookFile.empty())
         return;
 
-    FILE* fptr = std::fopen(bookFile.c_str(), "rb");
+    FILE* fptr = std::fopen(bookFile.data(), "rb");
     if (fptr == nullptr)
     {
-        UCI::print_info_string("Could not open " + bookFile);
+        UCI::print_info_string("Could not open " + std::string(bookFile));
         return;
     }
 
@@ -413,7 +414,7 @@ void PolyBook::init(const std::string& bookFile) noexcept {
     entries = static_cast<PolyEntry*>(malloc(fileSize));
     if (entries == nullptr)
     {
-        UCI::print_info_string("Memory allocation failed: " + bookFile);
+        UCI::print_info_string("Memory allocation failed: " + std::string(bookFile));
         std::fclose(fptr);
         return;
     }
@@ -425,7 +426,7 @@ void PolyBook::init(const std::string& bookFile) noexcept {
 
     if (readSize != fileSize)
     {
-        UCI::print_info_string("Could not read " + bookFile);
+        UCI::print_info_string("Could not read " + std::string(bookFile));
         clear();
         return;
     }
@@ -436,8 +437,8 @@ void PolyBook::init(const std::string& bookFile) noexcept {
 
     enable = true;
 
-    std::string msg = "Book: " + bookFile + " with " + std::to_string(entryCount) + " entries";
-    UCI::print_info_string(msg);
+    UCI::print_info_string("Book: " + std::string(bookFile) + " with " + std::to_string(entryCount)
+                           + " entries");
 }
 
 Move PolyBook::probe(Position& pos, bool bestPick) noexcept {

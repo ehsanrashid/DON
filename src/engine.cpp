@@ -122,7 +122,7 @@ Engine::~Engine() noexcept { wait_finish(); }
 const Options& Engine::get_options() const noexcept { return options; }
 Options&       Engine::get_options() noexcept { return options; }
 
-void Engine::set_numa_config(const std::string& str) noexcept {
+void Engine::set_numa_config(std::string_view str) noexcept {
     if (str == "none")
         numaContext.set_numa_config(NumaConfig{});
 
@@ -285,16 +285,18 @@ void Engine::load_networks() noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::load_big_network(const std::string& netFile) noexcept {
-    networks.modify_and_replicate(
-      [this, &netFile](NNUE::Networks& nets) { nets.big.load(binaryDirectory, netFile); });
+void Engine::load_big_network(std::string_view netFile) noexcept {
+    networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) {
+        nets.big.load(binaryDirectory, std::string(netFile));
+    });
     threads.init();
     threads.ensure_network_replicated();
 }
 
-void Engine::load_small_network(const std::string& netFile) noexcept {
-    networks.modify_and_replicate(
-      [this, &netFile](NNUE::Networks& nets) { nets.small.load(binaryDirectory, netFile); });
+void Engine::load_small_network(std::string_view netFile) noexcept {
+    networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) {
+        nets.small.load(binaryDirectory, std::string(netFile));
+    });
     threads.init();
     threads.ensure_network_replicated();
 }

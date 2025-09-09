@@ -198,10 +198,6 @@ static_assert(sizeof(LR) == 3, "LR tree entry must be 3 bytes");
 // time only existence of the file is checked.
 class TBFile: public std::ifstream {
    public:
-    // Look for and open the file among the Paths directories
-    // where the .rtbw and .rtbz files can be found.
-    static std::vector<std::string> Paths;
-
     explicit TBFile(std::string_view file) noexcept {
 
         for (const auto& path : Paths)
@@ -311,6 +307,38 @@ class TBFile: public std::ifstream {
 #endif
     }
 
+    static bool init(std::string_view paths) noexcept {
+        // Multiple directories are separated
+        // by ";" on Windows and
+        // by ":" on Unix-based operating systems.
+        //
+        // Example:
+        // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
+        static constexpr char PathSeparator =
+#if defined(_WIN32)
+          ';'
+#else
+          ':'
+#endif
+          ;
+
+        Paths.clear();
+
+        if (!paths.empty())
+        {
+            std::istringstream iss{std::string(paths)};
+            std::string        path;
+            while (std::getline(iss, path, PathSeparator))
+                if (!path.empty())
+                    Paths.push_back(path);
+        }
+        return !Paths.empty();
+    }
+
+    // Look for and open the file among the Paths directories
+    // where the .rtbw and .rtbz files can be found.
+    static std::vector<std::string> Paths;
+
    private:
     std::string filename;
 };
@@ -372,7 +400,7 @@ struct TBTable final {
     TBTable() noexcept :
         ready(false),
         baseAddress(nullptr) {}
-    explicit TBTable(const std::string& code) noexcept;
+    explicit TBTable(std::string_view code) noexcept;
     explicit TBTable(const TBTable<WDL>& wdlTable) noexcept;
 
     ~TBTable() noexcept {
@@ -382,7 +410,7 @@ struct TBTable final {
 };
 
 template<>
-TBTable<WDL>::TBTable(const std::string& code) noexcept :
+TBTable<WDL>::TBTable(std::string_view code) noexcept :
     TBTable() {
 
     Position pos;
@@ -1475,31 +1503,7 @@ void init(std::string_view paths) noexcept {
     tbTables.clear();
     MaxCardinality = 0;
 
-    // Multiple directories are separated by ";" on Windows
-    // and by ":" on Unix-based operating systems.
-    //
-    // Example:
-    // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
-    static constexpr char PathSeparator =
-#if defined(_WIN32)
-      ';'
-#else
-      ':'
-#endif
-      ;
-
-    TBFile::Paths.clear();
-
-    if (paths.empty())
-        return;
-
-    std::istringstream iss{std::string(paths)};
-    std::string        path;
-    while (std::getline(iss, path, PathSeparator))
-        if (!path.empty())
-            TBFile::Paths.push_back(path);
-
-    if (TBFile::Paths.empty())
+    if (!TBFile::init(paths))
         return;
 
     // Add entries in TB-tables if the corresponding ".rtbw" file exists
@@ -1545,11 +1549,10 @@ void init(std::string_view paths) noexcept {
         }
     }
 
-    std::string msg = "Tablebase: "  //
-                    + std::to_string(tbTables.wdl_count()) + " WDL and "
-                    + std::to_string(tbTables.dtz_count()) + " DTZ found. "
-                    + "Tablebase files up to " + std::to_string(MaxCardinality) + "-man.";
-    UCI::print_info_string(msg);
+    UCI::print_info_string("Tablebase: "  //
+                           + std::to_string(tbTables.wdl_count()) + " WDL and "
+                           + std::to_string(tbTables.dtz_count()) + " DTZ found. "
+                           + "Tablebase files up to " + std::to_string(MaxCardinality) + "-man.");
 }
 
 // Probe the WDL table for a particular position.

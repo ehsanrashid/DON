@@ -547,9 +547,9 @@ std::string CommandLine::working_directory() noexcept {
     return workingDirectory;
 }
 
-std::size_t str_to_size_t(const std::string& str) noexcept {
+std::size_t str_to_size_t(std::string_view str) noexcept {
 
-    unsigned long long value = std::stoull(str);
+    unsigned long long value = std::stoull(std::string(str));
     if (value > std::numeric_limits<std::size_t>::max())
         std::exit(EXIT_FAILURE);
     return std::size_t(value);
