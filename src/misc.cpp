@@ -105,7 +105,7 @@ class Logger final {
     Tie           oTie;
 
    public:
-    static void start(const std::string& logFile) noexcept {
+    static void start(std::string_view logFile) noexcept {
         static Logger logger(std::cin, std::cout);  // Tie std::cin and std::cout to a file.
 
         if (logger.ofstream.is_open())
@@ -120,7 +120,7 @@ class Logger final {
         if (logFile.empty())
             return;
 
-        logger.ofstream.open(logFile, std::ios_base::out | std::ios_base::app);
+        logger.ofstream.open(std::string(logFile), std::ios_base::out | std::ios_base::app);
 
         if (!logger.ofstream.is_open())
         {
@@ -310,7 +310,7 @@ std::string format_time(const SystemClock::time_point& timePoint) {
 }
 
 // Trampoline helper to avoid moving Logger to misc.h
-void start_logger(const std::string& logFile) noexcept { Logger::start(logFile); }
+void start_logger(std::string_view logFile) noexcept { Logger::start(logFile); }
 
 #if !defined(NDEBUG)
 // Debug functions used mainly to collect run-time statistics
@@ -571,9 +571,9 @@ std::streamsize get_file_size(std::ifstream& ifstream) noexcept {
     return fileSize >= 0 ? fileSize : std::streamsize(-1);
 }
 
-std::optional<std::string> read_file_to_string(const std::string& filePath) noexcept {
+std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept {
 
-    std::ifstream ifstream(filePath, std::ios_base::binary);
+    std::ifstream ifstream(std::string(filePath), std::ios_base::binary);
     if (!ifstream)
         return std::nullopt;
 

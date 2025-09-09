@@ -164,12 +164,12 @@ Network<Arch, Transformer>::operator=(const Network<Arch, Transformer>& net) noe
 }
 
 template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::load(const std::string& rootDirectory,
-                                      std::string        evalFileName) noexcept {
+void Network<Arch, Transformer>::load(std::string_view rootDirectory,
+                                      std::string      evalFileName) noexcept {
 
-    const std::vector<std::string> dirs{"<internal>", "", rootDirectory
+    const std::vector<std::string> dirs{"<internal>", "", std::string(rootDirectory)
 #if defined(DEFAULT_NNUE_DIRECTORY)
-                                        ,
+                                                            ,
                                         STRINGIFY(DEFAULT_NNUE_DIRECTORY)
 #endif
     };

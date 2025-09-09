@@ -848,8 +848,8 @@ Move UCI::can_to_move(std::string can, const MoveList<LEGAL>& legalMoveList) noe
     return Move::None;
 }
 
-Move UCI::can_to_move(const std::string& can, const Position& pos) noexcept {
-    return can_to_move(can, MoveList<LEGAL>(pos));
+Move UCI::can_to_move(std::string_view can, const Position& pos) noexcept {
+    return can_to_move(std::string(can), MoveList<LEGAL>(pos));
 }
 
 namespace {
@@ -1038,11 +1038,11 @@ Move UCI::san_to_move(std::string            san,
     return Move::None;
 }
 
-Move UCI::san_to_move(const std::string& san, Position& pos) noexcept {
-    return san_to_move(san, pos, MoveList<LEGAL>(pos));
+Move UCI::san_to_move(std::string_view san, Position& pos) noexcept {
+    return san_to_move(std::string(san), pos, MoveList<LEGAL>(pos));
 }
 
-Move UCI::mix_to_move(const std::string&     mix,
+Move UCI::mix_to_move(std::string_view       mix,
                       Position&              pos,
                       const MoveList<LEGAL>& legalMoveList) noexcept {
     assert(2 <= mix.size() && mix.size() <= 9);
@@ -1050,12 +1050,13 @@ Move UCI::mix_to_move(const std::string&     mix,
 
     if (mix.size() >= 2)
     {
-        if (mix.size() < 4 || starts_with(lower_case(mix), "o-") || starts_with(mix, "0-"))
-            return san_to_move(mix, pos, legalMoveList);
+        if (mix.size() < 4 || starts_with(lower_case(std::string(mix)), "o-")
+            || starts_with(mix, "0-"))
+            return san_to_move(std::string(mix), pos, legalMoveList);
         if (mix.size() <= 5)
-            m = can_to_move(mix, legalMoveList);
+            m = can_to_move(std::string(mix), legalMoveList);
         if (m == Move::None && mix.size() <= 9)
-            m = san_to_move(mix, pos, legalMoveList);
+            m = san_to_move(std::string(mix), pos, legalMoveList);
     }
     return m;
 }

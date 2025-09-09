@@ -22,6 +22,7 @@
 #include <iosfwd>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include "../memory.h"
@@ -56,7 +57,7 @@ class Network final {
     Network<Arch, Transformer>& operator=(const Network<Arch, Transformer>& net) noexcept;
     Network<Arch, Transformer>& operator=(Network<Arch, Transformer>&&) noexcept = default;
 
-    void load(const std::string& rootDirectory, std::string evalFileName) noexcept;
+    void load(std::string_view rootDirectory, std::string evalFileName) noexcept;
     bool save(const std::optional<std::string>& fileName) const noexcept;
 
     void verify(std::string evalFileName) const noexcept;

@@ -234,7 +234,7 @@ inline TimePoint now() noexcept {
 
 std::string format_time(const SystemClock::time_point& timePoint);
 
-void start_logger(const std::string& logFile) noexcept;
+void start_logger(std::string_view logFile) noexcept;
 
 // XORShift64Star Pseudo-Random Number Generator
 // This class is based on original code written and dedicated
@@ -465,16 +465,16 @@ inline std::string bool_to_string(bool b) noexcept {
     return oss.str();
 }
 
-inline bool string_to_bool(const std::string& str) noexcept {
+inline bool string_to_bool(std::string_view str) noexcept {
     bool b = false;
 
-    std::istringstream iss{lower_case(str)};
+    std::istringstream iss{lower_case(std::string(str))};
     iss >> std::boolalpha >> b;  // enables reading "true"/"false"
     if (iss.fail())
     {
         // Try as integer
         iss.clear();
-        iss.str(str);
+        iss.str(std::string(str));
         int i;
         iss >> i;
         b = (i != 0);
@@ -539,7 +539,7 @@ std::streamsize get_file_size(std::ifstream& ifstream) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.
-std::optional<std::string> read_file_to_string(const std::string& filePath) noexcept;
+std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept;
 
 }  // namespace DON
 
