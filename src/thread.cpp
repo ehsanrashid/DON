@@ -94,7 +94,7 @@ void Thread::idle_func() noexcept {
 // Created and launched threads will immediately go to sleep in idle_func.
 // Upon resizing, threads are recreated to allow for binding if necessary.
 void ThreadPool::set(const NumaConfig&    numaConfig,
-                     SharedState          sharedState,
+                     const SharedState&   sharedState,
                      const UpdateContext& updateContext) noexcept {
     clear();
 
@@ -106,11 +106,11 @@ void ThreadPool::set(const NumaConfig&    numaConfig,
     // Binding threads may be problematic when there's multiple NUMA nodes and
     // multiple Stockfish instances running. In particular, if each instance
     // runs a single thread then they would all be mapped to the first NUMA node.
-    // This is undesirable, and so the default behaviour (i.e. when the user does not
+    // This is undesirable, and so the default behavior (i.e. when the user does not
     // change the NumaConfig UCI setting) is to not bind the threads to processors
     // unless we know for sure that we span NUMA nodes and replication is required.
-    std::string numaPolicy = lower_case(sharedState.options["NumaPolicy"]);
-    const bool  threadBind = [&]() {
+    const auto numaPolicy = lower_case(sharedState.options["NumaPolicy"]);
+    const auto threadBind = [&]() {
         if (numaPolicy == "none")
             return false;
 
@@ -125,7 +125,7 @@ void ThreadPool::set(const NumaConfig&    numaConfig,
                              ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
                              : std::vector<NumaIndex>{};
 
-    const NumaConfig* numaConfigPtr = threadBind ? &numaConfig : nullptr;
+    const auto* numaConfigPtr = threadBind ? &numaConfig : nullptr;
 
     for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
     {

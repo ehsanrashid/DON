@@ -162,7 +162,7 @@ class ThreadPool final {
     void clear() noexcept;
 
     void set(const NumaConfig&    numaConfig,
-             SharedState          sharedState,
+             const SharedState&   sharedState,
              const UpdateContext& updateContext) noexcept;
 
     void init() noexcept;
@@ -174,10 +174,8 @@ class ThreadPool final {
     auto nodes() const noexcept;
     auto tbHits() const noexcept;
 
-    void start(Position&      pos,  //
-               StateListPtr&  states,
-               const Limit&   limit,
-               const Options& options) noexcept;
+    void
+    start(Position& pos, StateListPtr& states, const Limit& limit, const Options& options) noexcept;
 
     void start_search() const noexcept;
     void wait_finish() const noexcept;

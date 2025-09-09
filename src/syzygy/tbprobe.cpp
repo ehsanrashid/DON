@@ -197,19 +197,16 @@ static_assert(sizeof(LR) == 3, "LR tree entry must be 3 bytes");
 // memory mapped for best performance. Files are mapped at first access: at init
 // time only existence of the file is checked.
 class TBFile: public std::ifstream {
-
-    std::string filename;
-
    public:
     // Look for and open the file among the Paths directories
     // where the .rtbw and .rtbz files can be found.
     static std::vector<std::string> Paths;
 
-    explicit TBFile(const std::string& file) noexcept {
+    explicit TBFile(std::string_view file) noexcept {
 
         for (const auto& path : Paths)
         {
-            filename = path + "/" + file;
+            filename = path + "/" + file.data();
             open(filename);
             if (is_open())
                 return;
@@ -313,6 +310,9 @@ class TBFile: public std::ifstream {
         CloseHandle((HANDLE) mapping);
 #endif
     }
+
+   private:
+    std::string filename;
 };
 
 std::vector<std::string> TBFile::Paths;
@@ -444,11 +444,11 @@ class TBTables final {
     // 4K table, indexed by key's 12 lsb
     static constexpr std::size_t Size = 1u << 12;
     // Number of elements allowed to map to the last bucket
-    static constexpr std::size_t OverFlow = 1;
+    static constexpr std::size_t OverFlow = 1u;
 
     static constexpr std::size_t index(Key key) noexcept { return key & (Size - 1); }
 
-    Entry entryTables[Size + OverFlow];
+    Entry entries[Size + OverFlow];
 
     std::deque<TBTable<WDL>> wdlTables;
     std::deque<TBTable<DTZ>> dtzTables;
@@ -463,10 +463,10 @@ class TBTables final {
         // Ensure last element is empty to avoid overflow when looking up
         for (auto bucket = homeBucket; bucket < Size + OverFlow - 1; ++bucket)
         {
-            Key otherKey = entryTables[bucket].key;
-            if (otherKey == key || !entryTables[bucket].get<WDL>())
+            Key otherKey = entries[bucket].key;
+            if (otherKey == key || !entries[bucket].get<WDL>())
             {
-                entryTables[bucket] = entry;
+                entries[bucket] = entry;
                 return;
             }
 
@@ -477,7 +477,7 @@ class TBTables final {
             {
                 homeBucket = otherHomeBucket;
                 key        = otherKey;
-                std::swap(entry, entryTables[bucket]);
+                std::swap(entry, entries[bucket]);
             }
         }
 
@@ -488,7 +488,7 @@ class TBTables final {
    public:
     template<TBType Type>
     TBTable<Type>* get(Key key) noexcept {
-        const Entry* entry = &entryTables[index(key)];
+        const auto* entry = &entries[index(key)];
         while (true)
         {
             if (entry->key == key || !entry->get<Type>())
@@ -498,7 +498,7 @@ class TBTables final {
     }
 
     void clear() noexcept {
-        std::memset(entryTables, 0, sizeof(entryTables));
+        std::memset(entries, 0, sizeof(entries));
         wdlTables.clear();
         dtzTables.clear();
         wdlCount = 0;
@@ -559,7 +559,7 @@ TBTables tbTables;
 // mostly-draw or mostly-win tables this can leave many 64-byte blocks only half-filled, so
 // in such cases blocks are 32 bytes long. The blocks of DTZ-tables are up to 1024 bytes long.
 // The generator picks the size that leads to the smallest table. The "book" of symbols and
-// Huffman codes are the same for all blocks in the table. A non-symmetric pawnless TB file
+// Huffman codes are the same for all blocks in the table. A non-symmetric pawn less TB file
 // will have one table for wtm and one for btm, a TB file with pawns will have tables per
 // file a,b,c,d also, in this case, one set for wtm and one for btm.
 int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
@@ -572,15 +572,15 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     // Because each block n stores blockLength[n] + 1 values, the index i of the block
     // that contains the value at position idx is:
     //
-    //                    for (i = -1, sum = 0; sum <= idx; ++i)
-    //                        sum += blockLength[i + 1] + 1;
+    //       for (i = -1, sum = 0; sum <= idx; ++i)
+    //           sum += blockLength[i + 1] + 1;
     //
     // This can be slow, so use SparseIndex[] populated with a set of SparseEntry that
     // point to known indices into blockLength[]. Namely SparseIndex[k] is a SparseEntry
     // that stores the blockLength[] index and the offset within that block of the value
     // with index I(k), where:
     //
-    //       I(k) = k * d->span + d->span / 2      (1)
+    //       I(k) = k * d->span + d->span / 2       (1)
 
     // First step is to get the 'k' of the I(k) nearest to our idx, using definition (1)
     auto k = std::uint32_t(idx / pd->span);
@@ -591,7 +591,7 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
 
     // Now compute the difference idx - I(k). From the definition of k,
     //
-    //       idx = k * d->span + idx % d->span    (2)
+    //       idx = k * d->span + idx % d->span      (2)
     //
     // So from (1) and (2) can compute idx - I(K):
     int diff = idx % pd->span - pd->span / 2;
@@ -802,7 +802,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
     assert(size >= 2);
 
-    PairsData* pd = entry->get(activeColor, tbFile);
+    auto* pd = entry->get(activeColor, tbFile);
 
     // Then reorder the pieces to have the same sequence as the one stored
     // in pieces[i]: the sequence that ensures the best compression.
@@ -922,8 +922,8 @@ ENCODE_END:
     while (pd->groupLen[++next])
     {
         std::stable_sort(groupSq, groupSq + pd->groupLen[next]);
-        std::uint64_t n = 0;
 
+        std::uint64_t n = 0;
         // Map down a square if "comes later" than a square in the previous
         // groups (similar to what was done earlier for leading group pieces).
         for (int i = 0; i < pd->groupLen[next]; ++i)
@@ -952,15 +952,15 @@ ENCODE_END:
 // The actual grouping depends on the TB generator and can be inferred from the
 // sequence of pieces in piece[] array.
 template<typename T>
-void set_groups(T& entry, PairsData* pd, int order[], File f) noexcept {
+void set_groups(T& entry, PairsData* pd, int order[2], File f) noexcept {
 
-    size_t n        = 0;
-    int    firstLen = entry.hasPawns ? 0 : entry.hasUniquePieces ? 3 : 2;
-    pd->groupLen[n] = 1;
+    std::size_t n        = 0;
+    int         firstLen = entry.hasPawns ? 0 : entry.hasUniquePieces ? 3 : 2;
+    pd->groupLen[n]      = 1;
 
     // Number of pieces per group is stored in groupLen[], for instance in KRKN
     // the encoder will default on '111', so groupLen[] will be (3, 1).
-    for (int i = 1; i < entry.pieceCount; ++i)
+    for (std::uint8_t i = 1; i < entry.pieceCount; ++i)
     {
         if (--firstLen > 0 || pd->pieces[i] == pd->pieces[i - 1])
             pd->groupLen[n]++;
@@ -973,18 +973,18 @@ void set_groups(T& entry, PairsData* pd, int order[], File f) noexcept {
     // they are encoded. If the pieces in a group g can be combined on the board
     // in N(g) different ways, then the position encoding will be of the form:
     //
-    //           g1 * N(g2) * N(g3) + g2 * N(g3) + g3
+    //       g1 * N(g2) * N(g3) + g2 * N(g3) + g3
     //
     // This ensures unique encoding for the whole position. The order of the
     // groups is a per-table parameter and could not follow the canonical leading
     // pawns/pieces -> remaining pawns -> remaining pieces. In particular the
     // first group is at order[0] position and the remaining pawns, when present,
     // are at order[1] position.
-    bool   pp = entry.hasPawns && entry.pawnCount[1] != 0;  // Pawns on both sides
-    size_t i  = pp ? 2 : 1;
+    bool        pp      = entry.hasPawns && entry.pawnCount[1] != 0;  // Pawns on both sides
+    std::size_t i       = pp ? 2 : 1;
+    std::size_t freeLen = 64 - pd->groupLen[0] - (pp ? pd->groupLen[1] : 0);
 
-    std::size_t   freeLen = 64 - pd->groupLen[0] - (pp ? pd->groupLen[1] : 0);
-    std::uint64_t idx     = 1;
+    std::uint64_t idx = 1;
 
     for (int k = 0; k == order[0] || k == order[1] || i < n; ++k)
         // Leading pawns or pieces
@@ -1169,8 +1169,8 @@ void set(T& entry, std::uint8_t* data) noexcept {
 
     ++data;  // First byte stores flags
 
-    const size_t sides   = T::SIDES == 2 && entry.key[WHITE] != entry.key[BLACK] ? 2 : 1;
-    const File   maxFile = entry.hasPawns ? FILE_D : FILE_A;
+    const std::size_t sides   = T::SIDES == 2 && entry.key[WHITE] != entry.key[BLACK] ? 2 : 1;
+    const File        maxFile = entry.hasPawns ? FILE_D : FILE_A;
 
     bool pp = entry.hasPawns && entry.pawnCount[BLACK];  // Pawns on both sides
 
@@ -1365,7 +1365,7 @@ std::uint8_t MaxCardinality;
 // Called at startup to create the various tables
 void init() noexcept {
 
-    size_t code;
+    std::size_t code;
     // B1H1H7Map[] encodes a square below a1-h8 diagonal to 0..27
     code = 0;
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
