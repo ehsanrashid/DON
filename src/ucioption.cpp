@@ -189,7 +189,7 @@ void Options::set_info_listener(InfoListener&& listener) noexcept {
 }
 
 // Add option and assigns idx in the correct insertion order
-void Options::add(const std::string& name, const Option& option) noexcept {
+void Options::add(std::string_view name, const Option& option) noexcept {
     static std::uint16_t insertOrder = 0;
 
     if (contains(name))
@@ -204,16 +204,16 @@ void Options::add(const std::string& name, const Option& option) noexcept {
     o.optionsPtr = this;
 }
 
-void Options::set(const std::string& name, const std::string& value) noexcept {
+void Options::set(std::string_view name, std::string_view value) noexcept {
     if (contains(name))
-        options.at(name) = value;
+        options.at(std::string(name)) = std::string(value);
     else
         std::cout << "No such option: '" << name << "'" << std::endl;
 }
 
-const Option& Options::operator[](const std::string& name) const noexcept {
+const Option& Options::operator[](const std::string_view name) const noexcept {
     assert(contains(name));
-    return options.at(name);
+    return options.at(std::string(name));
 }
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {

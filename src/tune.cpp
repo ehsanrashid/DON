@@ -64,15 +64,15 @@ std::string Tune::next(std::string& names, bool pop) noexcept {
 }
 
 void Tune::make_option(Options*           optionsPtr,
-                       const std::string& name,
+                       std::string_view   name,
                        int                value,
                        const RangeSetter& range) noexcept {
     // Do not generate option when there is nothing to tune (ie. min = max)
     if (range(value).first == range(value).second)
         return;
 
-    if (TuneResults.count(name))
-        value = TuneResults[name];
+    if (TuneResults.count(std::string(name)))
+        value = TuneResults[std::string(name)];
 
     optionsPtr->add(name, Option(value, range(value).first, range(value).second, on_tune));
     LastOption = &((*optionsPtr)[name]);

@@ -131,11 +131,11 @@ class Options final {
 
     void set_info_listener(InfoListener&& listener) noexcept;
 
-    void add(const std::string& name, const Option& option) noexcept;
+    void add(std::string_view name, const Option& option) noexcept;
 
-    void set(const std::string& name, const std::string& value) noexcept;
+    void set(std::string_view name, std::string_view value) noexcept;
 
-    const Option& operator[](const std::string& name) const noexcept;
+    const Option& operator[](std::string_view name) const noexcept;
 
     friend std::ostream& operator<<(std::ostream& os, const Options& options) noexcept;
 

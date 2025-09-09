@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <type_traits>  // IWYU pragma: keep
 #include <utility>
 #include <vector>
@@ -136,7 +137,7 @@ class Tune final {
     static std::string next(std::string& names, bool pop = true) noexcept;
 
     static void make_option(Options*           optionsPtr,
-                            const std::string& name,
+                            std::string_view   name,
                             int                value,
                             const RangeSetter& range) noexcept;
 
