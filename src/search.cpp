@@ -1442,7 +1442,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Record how often the best move has been changed in each iteration.
                 // This information is used for time management.
                 // In MultiPV mode, must take care to only do this for the first PV line.
-                if (curIdx == 0 && moveCount > 1 && limit.use_time_manager())
+                if (curIdx == 0 && moveCount > 1)
                     ++moveChanges;
             }
             else
@@ -2030,15 +2030,15 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     {
         const Move& pvMove = rootMove.pv[ply];
 
-        RootMoves localRootMoves;
+        RootMoves tmpRootMoves;
         for (const Move& m : MoveList<LEGAL>(rootPos))
-            localRootMoves.emplace_back(m);
+            tmpRootMoves.emplace_back(m);
 
-        auto localTbConfig = Tablebases::rank_root_moves(rootPos, localRootMoves, options);
+        auto tmpTbConfig = Tablebases::rank_root_moves(rootPos, tmpRootMoves, options);
 
-        auto& rm = *localRootMoves.find(pvMove);
+        auto& rm = *tmpRootMoves.find(pvMove);
 
-        if (rm.tbRank != localRootMoves.front().tbRank)
+        if (rm.tbRank != tmpRootMoves.front().tbRank)
             break;
 
         auto& st = states.emplace_back();
@@ -2046,7 +2046,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime
-        if (localTbConfig.rootInTB && rootPos.is_draw(ply, rule50Use))
+        if (tmpTbConfig.rootInTB && rootPos.is_draw(ply, rule50Use))
         {
             rootPos.undo_move(pvMove);
             --ply;
@@ -2064,10 +2064,10 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
     while (!rootPos.is_draw(0, rule50Use))
     {
-        RootMoves localRootMoves;
+        RootMoves tmpRootMoves;
         for (const Move& m : MoveList<LEGAL>(rootPos))
         {
-            auto& rm = localRootMoves.emplace_back(m);
+            auto& rm = tmpRootMoves.emplace_back(m);
 
             State st;
             rootPos.do_move(m, st);
@@ -2079,23 +2079,23 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         }
 
         // Mate found
-        if (localRootMoves.empty())
+        if (tmpRootMoves.empty())
             break;
 
         // Sort moves according to their above assigned TB rank.
         // This will break ties for moves with equal DTZ in rank_root_moves.
-        localRootMoves.sort([](const RootMove& rm1, const RootMove& rm2) noexcept {
+        tmpRootMoves.sort([](const RootMove& rm1, const RootMove& rm2) noexcept {
             return rm1.tbRank > rm2.tbRank;
         });
 
         // The winning side tries to minimize DTZ, the losing side maximizes it
-        auto localTbConfig = Tablebases::rank_root_moves(rootPos, localRootMoves, options, true);
+        auto tmpTbConfig = Tablebases::rank_root_moves(rootPos, tmpRootMoves, options, true);
 
         // If DTZ is not available might not find a mate, so bail out
-        if (!localTbConfig.rootInTB || localTbConfig.cardinality != 0)
+        if (!tmpTbConfig.rootInTB || tmpTbConfig.cardinality != 0)
             break;
 
-        const Move& pvMove = localRootMoves.front().pv[0];
+        const Move& pvMove = tmpRootMoves.front().pv[0];
         rootMove.pv.push_back(pvMove);
         auto& st = states.emplace_back();
         rootPos.do_move(pvMove, st);
@@ -2105,9 +2105,6 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         if (time_to_abort())
             break;
     }
-
-    if (time_to_abort())
-        UCI::print_info_string("PV extension requires more time, increase MoveOverhead as needed.");
 
     // Finding a draw in this function is an exceptional case,
     // that cannot happen when rule50 is false or during engine game play,
@@ -2125,6 +2122,10 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     // Undo the PV moves
     for (auto itr = rootMove.pv.rbegin(); itr != rootMove.pv.rend(); ++itr)
         rootPos.undo_move(*itr);
+
+    if (time_to_abort())
+        UCI::print_info_string(
+          "Syzygy based PV extension requires more time, increase MoveOverhead as needed.");
 }
 
 void MainSearchManager::init() noexcept {
