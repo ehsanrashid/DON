@@ -27,12 +27,12 @@
 #include <sstream>
 #include <utility>
 
-#include "position.h"
-#include "uci.h"
 #include "nnue/network.h"
 #include "nnue/nnue_accumulator.h"
 #include "nnue/nnue_common.h"
 #include "nnue/nnue_misc.h"
+#include "position.h"
+#include "uci.h"
 
 namespace DON {
 

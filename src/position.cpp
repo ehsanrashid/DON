@@ -31,8 +31,8 @@
 #include "memory.h"
 #include "misc.h"
 #include "movegen.h"
-#include "uci.h"
 #include "syzygy/tbprobe.h"
+#include "uci.h"
 
 namespace DON {
 

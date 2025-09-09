@@ -27,10 +27,10 @@
 
 #include "misc.h"
 #include "movegen.h"
+#include "syzygy/tbprobe.h"
 #include "types.h"
 #include "uci.h"
 #include "ucioption.h"
-#include "syzygy/tbprobe.h"
 
 namespace DON {
 

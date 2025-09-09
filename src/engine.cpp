@@ -32,8 +32,8 @@
 #include "numa.h"
 #include "perft.h"
 #include "polybook.h"
-#include "uci.h"
 #include "syzygy/tbprobe.h"
+#include "uci.h"
 
 namespace DON {
 

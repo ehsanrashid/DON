@@ -37,6 +37,14 @@ NamespaceIndentation: None
 PackConstructorInitializers: Never
 ReflowComments: false
 SortIncludes: false
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^<.*'
+    Priority: 1              # System headers (<iostream>, <vector>, etc.)
+  - Regex: '^"[^/]+\.h"$'    # Match "file.h" (no slash, just filename)
+    Priority: 2
+  - Regex: '^"'
+    Priority: 2              # Match other project includes ("dir/file.h")
 SortUsingDeclarations: false
 SpaceAfterCStyleCast: true
 SpaceAfterTemplateKeyword: false

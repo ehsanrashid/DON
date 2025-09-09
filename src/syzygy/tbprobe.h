@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef TBPROBE_H_INCLUDED
-#define TBPROBE_H_INCLUDED
+#ifndef SYZYGY_TBPROBE_H_INCLUDED
+#define SYZYGY_TBPROBE_H_INCLUDED
 
 #include <cstdint>
 #include <string_view>

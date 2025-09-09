@@ -29,11 +29,11 @@
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
+#include "nnue/network.h"
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
 #include "ucioption.h"
-#include "nnue/network.h"
 
 namespace DON {
 

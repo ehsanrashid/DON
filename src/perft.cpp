@@ -17,8 +17,8 @@
 
 #include "perft.h"
 
-#include <cassert>
 #include <algorithm>
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>

@@ -27,14 +27,14 @@
 #include <utility>
 #include <vector>
 
+#include "nnue/network.h"
+#include "numa.h"
 #include "position.h"
 #include "search.h"
 #include "thread.h"
 #include "tt.h"
 #include "types.h"
 #include "ucioption.h"
-#include "numa.h"
-#include "nnue/network.h"
 
 namespace DON {
 
