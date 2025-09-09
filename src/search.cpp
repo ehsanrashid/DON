@@ -801,8 +801,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
                 if (bound == BOUND_EXACT || bound == fail_bound(value >= beta, value <= alpha))
                 {
-                    depth = std::min(depth + 6, MAX_PLY - 1);
-                    ttu.update(depth, ss->pvHit, bound, Move::None, value, VALUE_NONE);
+                    ttu.update(std::min(depth + 6, MAX_PLY - 1), ss->pvHit, bound, Move::None,
+                               value, VALUE_NONE);
 
                     return value;
                 }

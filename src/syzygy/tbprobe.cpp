@@ -29,10 +29,11 @@
 #include <iostream>
 #include <mutex>
 #include <sstream>
+#include <string>
+#include <sys/stat.h>
 #include <type_traits>
 #include <utility>
 #include <vector>
-#include <sys/stat.h>
 
 #include "../bitboard.h"
 #include "../misc.h"

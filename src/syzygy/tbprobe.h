@@ -19,7 +19,6 @@
 #define TBPROBE_H_INCLUDED
 
 #include <cstdint>
-#include <string>
 #include <string_view>
 
 #include "../types.h"
