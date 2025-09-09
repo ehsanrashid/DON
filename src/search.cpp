@@ -659,7 +659,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     }
 
     // Step 1. Initialize node
-    ss->inCheck   = bool(pos.checkers());
+    ss->inCheck   = pos.checkers();
     ss->moveCount = 0;
     ss->history   = 0;
 
@@ -775,8 +775,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             && pos.rule50_count() == 0 && !pos.can_castle(ANY_CASTLING))
         {
             Tablebases::ProbeState ps;
-            Tablebases::WDLScore   wdl;
-            wdl = Tablebases::probe_wdl(pos, &ps);
+
+            auto wdlScore = Tablebases::probe_wdl(pos, &ps);
 
             // Force check of time on the next occasion
             if (is_main_worker())
@@ -791,13 +791,13 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 Value tbValue = VALUE_TB - ss->ply;
 
                 // Use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to value
-                value = wdl < -drawValue ? -tbValue
-                      : wdl > +drawValue ? +tbValue
-                                         : 2 * wdl * drawValue;
+                value = wdlScore < -drawValue ? -tbValue
+                      : wdlScore > +drawValue ? +tbValue
+                                              : 2 * wdlScore * drawValue;
 
-                Bound bound = wdl < -drawValue ? BOUND_UPPER
-                            : wdl > +drawValue ? BOUND_LOWER
-                                               : BOUND_EXACT;
+                Bound bound = wdlScore < -drawValue ? BOUND_UPPER
+                            : wdlScore > +drawValue ? BOUND_LOWER
+                                                    : BOUND_EXACT;
 
                 if (bound == BOUND_EXACT || bound == fail_bound(value >= beta, value <= alpha))
                 {
@@ -1001,8 +1001,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         while ((move = mp.next_move()) != Move::None)
         {
             assert(pos.pseudo_legal(move));
-            assert(pos.capture_promo(move));
-            //assert(pos.see(move) >= probCutThreshold);
+            assert(pos.capture_promo(move) && (move == pttm || pos.see(move) >= probCutThreshold));
 
             // Check for legality
             if (move == excludedMove || !pos.legal(move))
@@ -1622,7 +1621,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     }
 
     // Step 1. Initialize node
-    ss->inCheck = bool(pos.checkers());
+    ss->inCheck = pos.checkers();
 
     // Step 2. Check for an immediate draw or maximum ply reached
     if (ss->ply >= MAX_PLY || pos.is_draw(ss->ply))

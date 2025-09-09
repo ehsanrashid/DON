@@ -40,7 +40,7 @@ class UCI final {
 
     void run() noexcept;
 
-    void execute(const std::string& command) noexcept;
+    void execute(std::string_view command) noexcept;
 
     static void print_info_string(std::string_view infoStr) noexcept;
 

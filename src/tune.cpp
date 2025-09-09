@@ -50,12 +50,12 @@ std::string Tune::next(std::string& names, bool pop) noexcept {
 
     do
     {
-        std::string token = names.substr(0, names.find(','));
+        auto token = names.substr(0, names.find(','));
 
         if (pop)
             names.erase(0, 1 + token.size());
 
-        std::istringstream iss(token);
+        std::istringstream iss{token};
         name += (iss >> token, token);  // Remove trailing whitespace
 
     } while (std::count(name.begin(), name.end(), '(') - std::count(name.begin(), name.end(), ')'));

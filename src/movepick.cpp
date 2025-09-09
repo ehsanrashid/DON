@@ -90,7 +90,7 @@ ExtMove* MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveList) noexcep
 
         m.value = 7 * PIECE_VALUE[captured] + 3 * promotion_value<true>(m)  //
                 + CaptureHistory[pc][dst][captured]                         //
-                + 0x400 * bool(pos.check(m))                                //
+                + 0x400 * pos.check(m)                                      //
                 + 0x100 * (pos.cap_sq() == dst);
     }
     return itr;

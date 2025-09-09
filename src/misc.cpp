@@ -40,7 +40,7 @@ inline std::string format_date(std::string_view date) noexcept {
     constexpr std::array<std::string_view, 12> Months{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                                       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
-    std::istringstream iss(date.data());  // From compiler, format is "Sep 21 2008"
+    std::istringstream iss{std::string(date)};  // From compiler, format is "Sep 21 2008"
 
     std::string month, day, year;
     iss >> month >> day >> year;

@@ -73,6 +73,7 @@ class Option final {
 
     operator int() const noexcept;
     operator std::string() const noexcept;
+    operator std::string_view() const noexcept;
 
     void operator<<(const Option&) noexcept = delete;
 

@@ -259,9 +259,9 @@ void UCI::run() noexcept {
     }
 }
 
-void UCI::execute(const std::string& command) noexcept {
+void UCI::execute(std::string_view command) noexcept {
 
-    std::istringstream iss(command);
+    std::istringstream iss{std::string(command)};
     iss >> std::skipws;
 
     std::string token;

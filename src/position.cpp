@@ -251,7 +251,7 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
 
     st = newSt;
 
-    std::istringstream iss(fenStr.data());
+    std::istringstream iss{std::string(fenStr)};
     iss >> std::noskipws;
 
     std::uint8_t token;
@@ -1914,7 +1914,7 @@ bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
 // Flips the current position with the white and black sides reversed.
 // This is only useful for debugging e.g. for finding evaluation symmetry bugs.
 void Position::flip() noexcept {
-    std::istringstream iss(fen());
+    std::istringstream iss{fen()};
 
     std::string f, token;
     for (Rank r = RANK_8; r >= RANK_1; --r)  // Piece placement

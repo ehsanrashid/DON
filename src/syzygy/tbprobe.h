@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 #include "../types.h"
 
@@ -38,13 +39,13 @@ enum WDLScore : std::int8_t {
     WDL_CURSED_WIN   = +1,  // Win, but draw under 50-move rule
     WDL_WIN          = +2,  // Win
 };
-constexpr WDLScore operator-(WDLScore wdl) noexcept { return WDLScore(-int(wdl)); }
+constexpr WDLScore operator-(WDLScore wdlScore) noexcept { return WDLScore(-int(wdlScore)); }
 
 // Possible states after a probing operation
 enum ProbeState : std::int8_t {
     PS_FAIL              = 0,   // Probe failed (missing file table)
     PS_OK                = +1,  // Probe successful
-    PS_CHANGE_AC         = -1,  // DTZ should check the other side
+    PS_AC_CHANGED        = -1,  // DTZ should check the other side
     PS_BEST_MOVE_ZEROING = +2   // Best move zeroes DTZ (capture or pawn move)
 };
 
@@ -58,7 +59,7 @@ struct Config final {
 extern std::uint8_t MaxCardinality;
 
 void init() noexcept;
-void init(const std::string& paths) noexcept;
+void init(std::string_view paths) noexcept;
 
 WDLScore probe_wdl(Position& pos, ProbeState* ps) noexcept;
 int      probe_dtz(Position& pos, ProbeState* ps) noexcept;

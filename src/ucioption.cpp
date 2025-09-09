@@ -106,6 +106,11 @@ Option::operator std::string() const noexcept {
     return currentValue;
 }
 
+Option::operator std::string_view() const noexcept {
+    assert(type == OPT_STRING || type == OPT_COMBO);
+    return currentValue;
+}
+
 bool operator==(const Option& o1, const Option& o2) noexcept {
     return o1.idx == o2.idx && o1.type == o2.type;
 }
