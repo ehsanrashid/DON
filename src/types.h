@@ -285,25 +285,25 @@ ENABLE_INCR_OPERATORS_ON(Square)
     #undef ENABLE_INCR_OPERATORS_ON
 
 // clang-format off
-constexpr CastlingRights operator|(CastlingRights cr, int i) noexcept { return CastlingRights(int(cr) | i); }
-constexpr CastlingRights operator&(CastlingRights cr, int i) noexcept { return CastlingRights(int(cr) & i); }
-inline CastlingRights&   operator|=(CastlingRights& cr, int i) noexcept { return cr = cr | i; }
-inline CastlingRights&   operator&=(CastlingRights& cr, int i) noexcept { return cr = cr & i; }
-constexpr CastlingRights operator&(Color c, CastlingRights cr) noexcept {
+constexpr CastlingRights  operator|(CastlingRights cr, int i) noexcept { return CastlingRights(int(cr) | i); }
+constexpr CastlingRights  operator&(CastlingRights cr, int i) noexcept { return CastlingRights(int(cr) & i); }
+constexpr CastlingRights& operator|=(CastlingRights& cr, int i) noexcept { return cr = cr | i; }
+constexpr CastlingRights& operator&=(CastlingRights& cr, int i) noexcept { return cr = cr & i; }
+constexpr CastlingRights  operator&(Color c, CastlingRights cr) noexcept {
     assert(is_ok(c));
     return (c == WHITE ? WHITE_CASTLING : BLACK_CASTLING) & int(cr);
 }
 
 // Additional operators for File
-constexpr File operator+(File f, int i) noexcept { return File(int(f) + i); }
-constexpr File operator-(File f, int i) noexcept { return File(int(f) - i); }
-inline File&   operator+=(File& f, int i) noexcept { return f = f + i; }
-inline File&   operator-=(File& f, int i) noexcept { return f = f - i; }
+constexpr File  operator+(File f, int i) noexcept { return File(int(f) + i); }
+constexpr File  operator-(File f, int i) noexcept { return File(int(f) - i); }
+constexpr File& operator+=(File& f, int i) noexcept { return f = f + i; }
+constexpr File& operator-=(File& f, int i) noexcept { return f = f - i; }
 // Additional operators for Rank
-constexpr Rank operator+(Rank r, int i) noexcept { return Rank(int(r) + i); }
-constexpr Rank operator-(Rank r, int i) noexcept { return Rank(int(r) - i); }
-inline Rank&   operator+=(Rank& r, int i) noexcept { return r = r + i; }
-inline Rank&   operator-=(Rank& r, int i) noexcept { return r = r - i; }
+constexpr Rank  operator+(Rank r, int i) noexcept { return Rank(int(r) + i); }
+constexpr Rank  operator-(Rank r, int i) noexcept { return Rank(int(r) - i); }
+constexpr Rank& operator+=(Rank& r, int i) noexcept { return r = r + i; }
+constexpr Rank& operator-=(Rank& r, int i) noexcept { return r = r - i; }
 
 constexpr Direction operator+(Direction d1, Direction d2) noexcept { return Direction(int(d1) + int(d2)); }
 constexpr Direction operator-(Direction d1, Direction d2) noexcept { return Direction(int(d1) - int(d2)); }

@@ -54,8 +54,8 @@ enum Stage : std::uint8_t {
     STG_PROBCUT_ALL,
 };
 
-constexpr Stage operator+(Stage s, int i) noexcept { return Stage(int(s) + i); }
-inline Stage&   operator++(Stage& s) noexcept { return s = s + 1; }
+constexpr Stage  operator+(Stage s, int i) noexcept { return Stage(int(s) + i); }
+constexpr Stage& operator++(Stage& s) noexcept { return s = s + 1; }
 
 struct ExtMove final: public Move {
    public:
