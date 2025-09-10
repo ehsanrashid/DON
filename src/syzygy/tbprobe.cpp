@@ -146,7 +146,7 @@ T number(void* addr) noexcept {
 }
 
 // DTZ-tables don't store valid scores for moves that reset the rule50 counter
-// like captures and pawn moves but can easily recover the correct dtz of the
+// like captures and pawn moves but can easily recover the correct DTZ-score of the
 // previous move if know the position's WDL-score.
 int before_zeroing_dtz(WDLScore wdlScore) noexcept {
     switch (wdlScore)
@@ -1584,17 +1584,17 @@ WDLScore probe_wdl(Position& pos, ProbeState* ps) noexcept {
 // cannot happen for tables with positions exactly on the "edge" of
 // the 50-move rule.
 //
-// This implies that if dtz > 0 is returned, the position is certainly
-// a win if dtz + 50-move-counter < 100. Care must be taken that the engine
-// picks moves that preserve dtz + 50-move-counter < 100.
+// This implies that if DTZ-score > 0 is returned, the position is certainly
+// a win if DTZ-score + 50-move-counter < 100. Care must be taken that the engine
+// picks moves that preserve DTZ-score + 50-move-counter < 100.
 //
 // If n = 100 immediately after a capture or pawn move, then the position
 // is also certainly a win, and during the whole phase until the next
 // capture or pawn move, the inequality to be preserved is
-// dtz + 50-move-counter <= 100.
+// DTZ-score + 50-move-counter <= 100.
 //
-// In short, if a move is available resulting in dtz + 50-move-counter < 100,
-// then do not accept moves leading to dtz + 50-move-counter == 100.
+// In short, if a move is available resulting in DTZ-score + 50-move-counter < 100,
+// then do not accept moves leading to DTZ-score + 50-move-counter == 100.
 int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
     *ps           = PS_OK;
@@ -1608,18 +1608,18 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     if (*ps == PS_BEST_MOVE_ZEROING)
         return before_zeroing_dtz(wdlScore);
 
-    int dtz = probe_table<DTZ>(pos, ps, wdlScore);
+    int dtzScore = probe_table<DTZ>(pos, ps, wdlScore);
 
     if (*ps == PS_FAIL)
         return 0;
 
     if (*ps != PS_AC_CHANGED)
-        return (dtz + 100 * (wdlScore == WDL_BLESSED_LOSS || wdlScore == WDL_CURSED_WIN))
+        return (dtzScore + 100 * (wdlScore == WDL_BLESSED_LOSS || wdlScore == WDL_CURSED_WIN))
              * sign(wdlScore);
 
-    // DTZ stores results for the other side, so need to do a 1-ply search and
-    // find the winning move that minimizes DTZ.
-    int minDtz = INT_MAX;
+    // DTZ-score stores results for the other side, so need to do a 1-ply search
+    // and find the winning move that minimizes DTZ-score.
+    int minDtzScore = INT_MAX;
 
     State st;
     for (const Move& m : MoveList<LEGAL>(pos))
@@ -1628,24 +1628,24 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
         pos.do_move(m, st);
 
-        // For zeroing moves want the dtz of the move _before_ doing it,
-        // otherwise will get the dtz of the next move sequence. Search the
-        // position after the move to get the WDL-score sign (because even in a
-        // winning position could make a losing capture or go for a draw).
-        dtz = zeroing ? -before_zeroing_dtz(search<false>(pos, ps)) : -probe_dtz(pos, ps);
+        // For zeroing moves want the dtzScore of the move _before_ doing it,
+        // otherwise will get the dtzScore of the next move sequence.
+        // Search the position after the move to get the WDL-score sign
+        // (because even in a winning position could make a losing capture or go for a draw).
+        dtzScore = zeroing ? -before_zeroing_dtz(search<false>(pos, ps)) : -probe_dtz(pos, ps);
 
-        // If the move mates, force minDTZ to 1
-        if (dtz == 1 && pos.checkers() && MoveList<LEGAL, true>(pos).empty())
-            minDtz = 1;
+        // If the move mates, force min DTZ-score to 1
+        if (dtzScore == 1 && pos.checkers() && MoveList<LEGAL, true>(pos).empty())
+            minDtzScore = 1;
 
         // Convert result from 1-ply search. Zeroing moves are already accounted
         // by dtz_before_zeroing() that returns the DTZ of the previous move.
         if (!zeroing)
-            dtz += sign(dtz);
+            dtzScore += sign(dtzScore);
 
-        // Skip the draws and if winning only pick positive dtz
-        if (minDtz > dtz && sign(dtz) == sign(wdlScore))
-            minDtz = dtz;
+        // Skip the draws and if winning only pick positive DTZ-score
+        if (minDtzScore > dtzScore && sign(dtzScore) == sign(wdlScore))
+            minDtzScore = dtzScore;
 
         pos.undo_move(m);
 
@@ -1654,7 +1654,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     }
 
     // When there are no legal moves, the position is mate: return -1
-    return minDtz == INT_MAX ? -1 : minDtz;
+    return minDtzScore == INT_MAX ? -1 : minDtzScore;
 }
 
 // Use the DTZ-tables to rank root moves.
@@ -1677,30 +1677,30 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
     {
         pos.do_move(rm.pv[0], st);
 
-        int dtz;
-        // Calculate dtz for the current move counting from the root position
+        int dtzScore;
+        // Calculate dtzScore for the current move counting from the root position
         if (pos.rule50_count() == 0)
         {
-            // In case of a zeroing move, dtz is one of -101/-1/0/1/101
-            dtz = before_zeroing_dtz(-probe_wdl(pos, &ps));
+            // In case of a zeroing move, dtzScore is one of -101/-1/0/1/101
+            dtzScore = before_zeroing_dtz(-probe_wdl(pos, &ps));
         }
         else if (pos.is_draw(1, rule50Use))
         {
             // In case a root move leads to a draw by repetition or 50-move rule,
-            // set dtz to zero. Note: since are only 1 ply from the root,
+            // set dtzScore to zero. Note: since are only 1 ply from the root,
             // this must be a true 3-fold repetition inside the game history.
-            dtz = 0;
+            dtzScore = 0;
         }
         else
         {
-            // Otherwise, take dtz for the new position and correct by 1 ply
-            dtz = -probe_dtz(pos, &ps);
-            dtz = dtz > 0 ? dtz + 1 : dtz < 0 ? dtz - 1 : dtz;
+            // Otherwise, take dtzScore for the new position and correct by 1 ply
+            dtzScore = -probe_dtz(pos, &ps);
+            dtzScore = dtzScore > 0 ? dtzScore + 1 : dtzScore < 0 ? dtzScore - 1 : dtzScore;
         }
 
-        // Make sure that a mating move is assigned a dtz value of 1
-        if (dtz == 2 && pos.checkers() && MoveList<LEGAL, true>(pos).empty())
-            dtz = 1;
+        // Make sure that a mating move is assigned a dtzScore value of 1
+        if (dtzScore == 2 && pos.checkers() && MoveList<LEGAL, true>(pos).empty())
+            dtzScore = 1;
 
         pos.undo_move(rm.pv[0]);
 
@@ -1710,11 +1710,13 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
         // Better moves are ranked higher. Certain wins are ranked equally.
         // Losing moves are ranked equally unless a 50-move draw is in sight.
         int r =
-          dtz > 0   ? (+1 * dtz + rule50Count < 100 && !rep ? +MAX_DTZ - (dtzRank ? dtz : 0)
-                                                            : +MAX_DTZ / 2 - (+dtz + rule50Count))
-          : dtz < 0 ? (-2 * dtz + rule50Count < 100 /*   */ ? -MAX_DTZ - (dtzRank ? dtz : 0)
-                                                            : -MAX_DTZ / 2 + (-dtz + rule50Count))
-                    : 0;
+          dtzScore > 0
+            ? (+1 * dtzScore + rule50Count < 100 && !rep ? +MAX_DTZ - (dtzRank ? dtzScore : 0)
+                                                         : +MAX_DTZ / 2 - (+dtzScore + rule50Count))
+          : dtzScore < 0
+            ? (-2 * dtzScore + rule50Count < 100 /*   */ ? -MAX_DTZ - (dtzRank ? dtzScore : 0)
+                                                         : -MAX_DTZ / 2 + (-dtzScore + rule50Count))
+            : 0;
 
         rm.tbRank = r;
 

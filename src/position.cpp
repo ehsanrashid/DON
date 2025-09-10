@@ -309,8 +309,19 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
     // 2. Active color
     iss >> token;
     token = std::tolower(token);
-    assert((token == 'w' || token == 'b') && "Position::set(): Invalid Color");
-    activeColor = token == 'w' ? WHITE : token == 'b' ? BLACK : COLOR_NB;
+    switch (token)
+    {
+    case 'w' :
+        activeColor = WHITE;
+        break;
+    case 'b' :
+        activeColor = BLACK;
+        break;
+    default :
+        assert(false && "Position::set(): Invalid Color");
+        activeColor = COLOR_NB;
+        break;
+    }
 
     iss >> std::ws;
 
@@ -326,9 +337,11 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
             continue;
 
         ++castlingRightsCount;
-        assert(castlingRightsCount <= 4 && "Position::set(): Number of Castling Rights");
         if (castlingRightsCount > 4)
+        {
+            assert(false && "Position::set(): Number of Castling Rights");
             continue;
+        }
 
         Color c = std::isupper(token) ? WHITE : BLACK;
 
@@ -2022,7 +2035,7 @@ Key Position::compute_non_pawn_key() const noexcept {
 // This is meant to be helpful when debugging.
 bool Position::pos_is_ok() const noexcept {
 
-    constexpr bool Fast = true;  // Quick (default) or full check?
+    static constexpr bool Fast = true;  // Quick (default) or full check?
 
     if ((active_color() != WHITE && active_color() != BLACK)  //
         || count(W_KING) != 1 || count(B_KING) != 1           //
@@ -2142,10 +2155,10 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
         Tablebases::ProbeState wdlPs, dtzPs;
 
-        auto wdl = Tablebases::probe_wdl(p, &wdlPs);
-        auto dtz = Tablebases::probe_dtz(p, &dtzPs);
-        os << "\nTablebases WDL: " << std::setw(4) << wdl << " (" << wdlPs << ")"
-           << "\nTablebases DTZ: " << std::setw(4) << dtz << " (" << dtzPs << ")";
+        auto wdlScore = Tablebases::probe_wdl(p, &wdlPs);
+        auto dtzScore = Tablebases::probe_dtz(p, &dtzPs);
+        os << "\nTablebases WDL: " << std::setw(4) << wdlScore << " (" << wdlPs << ")"
+           << "\nTablebases DTZ: " << std::setw(4) << dtzScore << " (" << dtzPs << ")";
     }
 
     return os;
