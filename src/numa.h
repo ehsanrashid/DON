@@ -1221,28 +1221,28 @@ class NumaReplicationContext final {
             std::exit(EXIT_FAILURE);
     }
 
-    void attach(BaseNumaReplicated* rep) noexcept {
-        assert(trackedReplicated.count(rep) == 0);
-        trackedReplicated.insert(rep);
+    void attach(BaseNumaReplicated* numaRep) noexcept {
+        assert(trackedReplicated.count(numaRep) == 0);
+        trackedReplicated.insert(numaRep);
     }
 
-    void detach(BaseNumaReplicated* rep) noexcept {
-        assert(trackedReplicated.count(rep) == 1);
-        trackedReplicated.erase(rep);
+    void detach(BaseNumaReplicated* numaRep) noexcept {
+        assert(trackedReplicated.count(numaRep) == 1);
+        trackedReplicated.erase(numaRep);
     }
 
     // oldObj may be invalid at this point
-    void move_attached(BaseNumaReplicated* oldRep, BaseNumaReplicated* newRep) noexcept {
-        assert(trackedReplicated.count(oldRep) == 1);
-        assert(trackedReplicated.count(newRep) == 0);
-        trackedReplicated.erase(oldRep);
-        trackedReplicated.insert(newRep);
+    void move_attached(BaseNumaReplicated* oldNumaRep, BaseNumaReplicated* newNumaRep) noexcept {
+        assert(trackedReplicated.count(oldNumaRep) == 1);
+        assert(trackedReplicated.count(newNumaRep) == 0);
+        trackedReplicated.erase(oldNumaRep);
+        trackedReplicated.insert(newNumaRep);
     }
 
     void set_numa_config(NumaConfig&& numaCfg) noexcept {
         numaConfig = std::move(numaCfg);
-        for (auto&& rep : trackedReplicated)
-            rep->on_numa_config_changed();
+        for (auto&& numaRep : trackedReplicated)
+            numaRep->on_numa_config_changed();
     }
 
     const NumaConfig& numa_config() const noexcept { return numaConfig; }
