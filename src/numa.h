@@ -292,8 +292,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                 for (auto procGroupIndex : groupAffinity)
                 {
-                    const int activeProcessorCount =
-                      GetActiveProcessorCount(static_cast<WORD>(procGroupIndex));
+                    const int activeProcessorCount = GetActiveProcessorCount(WORD(procGroupIndex));
 
                     // Have to schedule to 2 different processors and the affinities.
                     // Otherwise processor choice could influence the resulting affinity.
@@ -305,8 +304,8 @@ inline WindowsAffinity get_process_affinity() noexcept {
                     {
                         GROUP_AFFINITY grpAffinity;
                         std::memset(&grpAffinity, 0, sizeof(GROUP_AFFINITY));
-                        grpAffinity.Group = static_cast<WORD>(procGroupIndex);
-                        grpAffinity.Mask  = static_cast<KAFFINITY>(1) << i;
+                        grpAffinity.Group = WORD(procGroupIndex);
+                        grpAffinity.Mask  = KAFFINITY(1) << i;
 
                         status = SetThreadGroupAffinity(GetCurrentThread(), &grpAffinity, nullptr);
                         if (status == 0)
