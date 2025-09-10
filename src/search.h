@@ -448,7 +448,6 @@ struct Stack final {
     std::uint8_t cutoffCount;
     Value        staticEval;
     int          history;
-    int          quietMoveStreak;
 
     Move*                         pv;
     History<HPieceSq>*            pieceSqHistory;

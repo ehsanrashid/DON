@@ -1116,8 +1116,6 @@ S_MOVES_LOOP:  // When in check, search starts here
         bool capture  = pos.capture_promo(move);
         auto captured = capture ? pos.captured(move) : NO_PIECE_TYPE;
 
-        ss->quietMoveStreak = capture ? 0 : 1 + (ss - 1)->quietMoveStreak;
-
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
 
@@ -1311,7 +1309,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // These reduction adjustments have no proven non-linear scaling.
 
         // Base reduction offset to compensate for other tweaks
-        r += 543;
+        r += 843;
         // Adjust reduction with move count and correction value
         r += -66 * moveCount - absCorrectionValue / 30450 - 1024 * dblCheck;
 
@@ -1327,8 +1325,6 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Increase reduction if current ply has a lot of fail high
         r += (1051 + 814 * AllNode) * (ss->cutoffCount > 2);
-
-        r += 50 * ss->quietMoveStreak;
 
         // For first picked move (ttMove) reduce reduction
         r -= 2018 * (move == ttd.move);

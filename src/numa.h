@@ -718,13 +718,13 @@ class NumaConfig final {
                 maxNodeSize = cpus.size();
 
         auto is_node_small = [maxNodeSize](const std::set<CpuIndex>& node) {
-            return float(node.size()) / float(maxNodeSize) <= 0.6;
+            return float(node.size()) / maxNodeSize <= 0.6;
         };
 
         std::size_t notSmallNodeCount = 0;
         for (auto&& cpus : nodes)
             if (!is_node_small(cpus))
-                notSmallNodeCount += 1;
+                ++notSmallNodeCount;
 
         return nodes_size() > 1
             && (threadCount > maxNodeSize / 2 || threadCount >= 4 * notSmallNodeCount);
@@ -745,24 +745,24 @@ class NumaConfig final {
             std::vector<std::size_t> occupation(nodes_size(), 0);
             for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
             {
-                NumaIndex bestNode = 0;
+                NumaIndex bestNumaIdx = 0;
 
                 float minFill = std::numeric_limits<float>::max();
-                for (NumaIndex node = 0; node < nodes_size(); ++node)
+                for (NumaIndex numaIdx = 0; numaIdx < nodes_size(); ++numaIdx)
                 {
-                    float fill = float(1 + occupation[node]) / node_cpus_size(node);
+                    float fill = float(1 + occupation[numaIdx]) / node_cpus_size(numaIdx);
                     // NOTE: Do want to perhaps fill the first available node up to 50% first before considering other nodes?
                     //       Probably not, because it would interfere with running multiple instances.
                     //       Basically shouldn't favor any particular node.
                     if (minFill > fill)
                     {
-                        minFill  = fill;
-                        bestNode = node;
+                        minFill     = fill;
+                        bestNumaIdx = numaIdx;
                     }
                 }
 
-                ns.emplace_back(bestNode);
-                occupation[bestNode] += 1;
+                ns.emplace_back(bestNumaIdx);
+                ++occupation[bestNumaIdx];
             }
         }
 
