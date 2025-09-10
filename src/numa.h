@@ -482,32 +482,32 @@ class NumaConfig final {
         };
 
         // /sys/devices/system/node/online contains information about active NUMA nodes
-        auto nodeIdsStr = read_file_to_string("/sys/devices/system/node/online");
-        if (!nodeIdsStr.has_value() || nodeIdsStr->empty())
+        auto nodeIdxStr = read_file_to_string("/sys/devices/system/node/online");
+        if (!nodeIdxStr.has_value() || nodeIdxStr->empty())
         {
             fallback();
         }
         else
         {
-            remove_whitespace(*nodeIdsStr);
-            for (CpuIndex n : shortened_string_to_indices(*nodeIdsStr))
+            remove_whitespace(*nodeIdxStr);
+            for (CpuIndex n : shortened_string_to_indices(*nodeIdxStr))
             {
                 // /sys/devices/system/node/node.../cpulist
                 std::string path =
                   std::string("/sys/devices/system/node/node") + std::to_string(n) + "/cpulist";
-                auto cpuIdsStr = read_file_to_string(path);
+                auto cpuIdxStr = read_file_to_string(path);
                 // Now, we only bail if the file does not exist. Some nodes may be
                 // empty, that's fine. An empty node still has a file that appears
                 // to have some whitespace, so we need to handle that.
-                if (!cpuIdsStr.has_value())
+                if (!cpuIdxStr.has_value())
                 {
                     fallback();
                     break;
                 }
                 else
                 {
-                    remove_whitespace(*cpuIdsStr);
-                    for (CpuIndex cpuIdx : shortened_string_to_indices(*cpuIdsStr))
+                    remove_whitespace(*cpuIdxStr);
+                    for (CpuIndex cpuIdx : shortened_string_to_indices(*cpuIdxStr))
                         if (is_cpu_allowed(cpuIdx))
                             numaCfg.add_cpu_to_node(n, cpuIdx);
                 }
@@ -530,8 +530,8 @@ class NumaConfig final {
         // but we at least guarantee that the number of allowed processors
         // is >= number of processors in the affinity mask. In case the user
         // is not satisfied they must set the processor numbers explicitly.
-        auto is_cpu_allowed = [&allowedCpus](CpuIndex c) {
-            return !allowedCpus.has_value() || allowedCpus->count(c) == 1;
+        auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuIdx) {
+            return !allowedCpus.has_value() || allowedCpus->count(cpuIdx) == 1;
         };
 
         WORD procGroupCount = GetActiveProcessorGroupCount();
@@ -575,29 +575,29 @@ class NumaConfig final {
         //
         // used to be guarded by if (STARTUP_OLD_AFFINITY_API_USE)
         {
-            NumaConfig splitCfg = empty();
+            NumaConfig splitNumaCfg = empty();
 
-            NumaIndex splitNodeIndex = 0;
+            NumaIndex splitNumaIdx = 0;
             for (const auto& cpus : numaCfg.nodes)
             {
                 if (cpus.empty())
                     continue;
 
-                std::size_t lastProcGroupIndex = *(cpus.begin()) / WIN_PROCESSOR_GROUP_SIZE;
+                std::size_t lstProcGroupIndex = *(cpus.begin()) / WIN_PROCESSOR_GROUP_SIZE;
                 for (CpuIndex cpuIdx : cpus)
                 {
                     std::size_t procGroupIndex = cpuIdx / WIN_PROCESSOR_GROUP_SIZE;
-                    if (lastProcGroupIndex != procGroupIndex)
+                    if (lstProcGroupIndex != procGroupIndex)
                     {
-                        lastProcGroupIndex = procGroupIndex;
-                        ++splitNodeIndex;
+                        lstProcGroupIndex = procGroupIndex;
+                        ++splitNumaIdx;
                     }
-                    splitCfg.add_cpu_to_node(splitNodeIndex, cpuIdx);
+                    splitNumaCfg.add_cpu_to_node(splitNumaIdx, cpuIdx);
                 }
-                ++splitNodeIndex;
+                ++splitNumaIdx;
             }
 
-            numaCfg = std::move(splitCfg);
+            numaCfg = std::move(splitNumaCfg);
         }
 
 #else
