@@ -1084,11 +1084,9 @@ class NumaReplicated final: public BaseNumaReplicated {
         if (numaCfg.requires_memory_replication())
         {
             for (NumaIndex numaIdx = 0; numaIdx < numaCfg.nodes_size(); ++numaIdx)
-            {
                 numaCfg.execute_on_numa_node(numaIdx, [this, &source]() {
                     instances.emplace_back(std::make_unique<T>(source));
                 });
-            }
         }
         else
         {
@@ -1124,13 +1122,11 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
     LazyNumaReplicated& operator=(LazyNumaReplicated&& lazyNumaRep) noexcept {
         BaseNumaReplicated::operator=(*this, std::move(lazyNumaRep));
         instances = std::exchange(lazyNumaRep.instances, {});
-
         return *this;
     }
 
     LazyNumaReplicated& operator=(T&& source) noexcept {
         prepare_replicate_from(std::move(source));
-
         return *this;
     }
 
