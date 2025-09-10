@@ -1157,9 +1157,6 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
     }
 
    private:
-    mutable std::vector<std::unique_ptr<T>> instances;
-    mutable std::mutex                      mutex;
-
     void ensure_present(NumaIndex numaIdx) const noexcept {
         assert(numaIdx < instances.size());
 
@@ -1203,6 +1200,9 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
             instances.emplace_back(std::make_unique<T>(std::move(source)));
         }
     }
+
+    mutable std::vector<std::unique_ptr<T>> instances;
+    mutable std::mutex                      mutex;
 };
 
 class NumaReplicationContext final {
