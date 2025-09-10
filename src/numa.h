@@ -262,7 +262,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
             std::set<CpuIndex> cpus;
             std::size_t        procGroupIndex = groupAffinity[0];
 
-            std::uint64_t mask = static_cast<std::uint64_t>(proc);
+            std::uint64_t mask = proc;
             for (std::size_t j = 0; j < WIN_PROCESSOR_GROUP_SIZE; ++j)
                 if (mask & (KAFFINITY(1) << j))
                     cpus.insert(procGroupIndex * WIN_PROCESSOR_GROUP_SIZE + j);
