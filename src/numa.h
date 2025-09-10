@@ -1003,9 +1003,9 @@ class BaseNumaReplicated {
     BaseNumaReplicated(NumaReplicationContext& ctx) noexcept;
 
     BaseNumaReplicated(const BaseNumaReplicated&) noexcept = delete;
-    BaseNumaReplicated(BaseNumaReplicated&& numaRepBase) noexcept;
+    BaseNumaReplicated(BaseNumaReplicated&& baseNumaRep) noexcept;
     BaseNumaReplicated& operator=(const BaseNumaReplicated&) noexcept = delete;
-    BaseNumaReplicated& operator=(BaseNumaReplicated&& numaRepBase) noexcept;
+    BaseNumaReplicated& operator=(BaseNumaReplicated&& baseNumaRep) noexcept;
     virtual ~BaseNumaReplicated() noexcept;
 
     virtual void on_numa_config_changed() noexcept = 0;
@@ -1259,15 +1259,15 @@ inline BaseNumaReplicated::BaseNumaReplicated(NumaReplicationContext& ctx) noexc
     context->attach(this);
 }
 
-inline BaseNumaReplicated::BaseNumaReplicated(BaseNumaReplicated&& numaRepBase) noexcept :
-    context(std::exchange(numaRepBase.context, nullptr)) {
-    context->move_attached(&numaRepBase, this);
+inline BaseNumaReplicated::BaseNumaReplicated(BaseNumaReplicated&& baseNumaRep) noexcept :
+    context(std::exchange(baseNumaRep.context, nullptr)) {
+    context->move_attached(&baseNumaRep, this);
 }
 
 inline BaseNumaReplicated&
-BaseNumaReplicated::operator=(BaseNumaReplicated&& numaRepBase) noexcept {
-    context = std::exchange(numaRepBase.context, nullptr);
-    context->move_attached(&numaRepBase, this);
+BaseNumaReplicated::operator=(BaseNumaReplicated&& baseNumaRep) noexcept {
+    context = std::exchange(baseNumaRep.context, nullptr);
+    context->move_attached(&baseNumaRep, this);
     return *this;
 }
 
