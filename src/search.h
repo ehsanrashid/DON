@@ -37,7 +37,7 @@
 #include "numa.h"
 #include "polybook.h"
 #include "position.h"
-#include "syzygy/tbprobe.h"
+#include "syzygy/tbbase.h"
 #include "timeman.h"
 #include "types.h"
 

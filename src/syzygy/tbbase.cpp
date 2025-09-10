@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "tbprobe.h"
+#include "tbbase.h"
 
 #include <algorithm>
 #include <atomic>

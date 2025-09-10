@@ -32,7 +32,7 @@
 #include "numa.h"
 #include "perft.h"
 #include "polybook.h"
-#include "syzygy/tbprobe.h"
+#include "syzygy/tbbase.h"
 #include "uci.h"
 
 namespace DON {

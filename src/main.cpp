@@ -21,7 +21,7 @@
 #include "bitboard.h"
 #include "misc.h"
 #include "position.h"
-#include "syzygy/tbprobe.h"
+#include "syzygy/tbbase.h"
 #include "tune.h"
 #include "types.h"
 #include "uci.h"
