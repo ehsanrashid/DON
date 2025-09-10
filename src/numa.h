@@ -324,8 +324,8 @@ inline WindowsAffinity get_process_affinity() noexcept {
                             return;
                         }
 
-                        procCombined &= static_cast<std::uint64_t>(proc2);
-                        sysCombined &= static_cast<std::uint64_t>(sys2);
+                        procCombined &= proc2;
+                        sysCombined &= sys2;
                     }
 
                     if (procCombined != sysCombined)
