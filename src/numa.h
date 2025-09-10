@@ -100,16 +100,6 @@ inline const CpuIndex SYSTEM_THREADS_NB = std::max<CpuIndex>(hardware_concurrenc
 #if defined(_WIN64)
 
 struct WindowsAffinity final {
-    std::optional<std::set<CpuIndex>> oldApi;
-    std::optional<std::set<CpuIndex>> newApi;
-
-    // We also provide diagnostic for when the affinity is set to nullopt
-    // whether it was due to being indeterminate. If affinity is indeterminate
-    // it is best to assume it is not set at all, so consistent with the meaning
-    // of the nullopt affinity.
-    bool isNewDeterminate = true;
-    bool isOldDeterminate = true;
-
     std::optional<std::set<CpuIndex>> get_combined() const {
         if (!oldApi.has_value())
             return newApi;
@@ -130,6 +120,16 @@ struct WindowsAffinity final {
     // cases where we detect not use but it has actually been used and vice versa.
 
     bool likely_used_old_api() const { return oldApi.has_value() || !isOldDeterminate; }
+
+    std::optional<std::set<CpuIndex>> oldApi;
+    std::optional<std::set<CpuIndex>> newApi;
+
+    // We also provide diagnostic for when the affinity is set to nullopt
+    // whether it was due to being indeterminate. If affinity is indeterminate
+    // it is best to assume it is not set at all, so consistent with the meaning
+    // of the nullopt affinity.
+    bool isNewDeterminate = true;
+    bool isOldDeterminate = true;
 };
 
 inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcept {
@@ -442,16 +442,6 @@ class NumaReplicatedAccessToken final {
 // are replaced by std::exit.
 class NumaConfig final {
    public:
-    NumaConfig(CpuIndex maxCpuIdx, bool affinityCtm) noexcept :
-        maxCpuIndex(maxCpuIdx),
-        affinityCustom(affinityCtm) {}
-
-    NumaConfig() noexcept :
-        NumaConfig(0, false) {
-        auto numCpus = SYSTEM_THREADS_NB;
-        add_cpu_range_to_node(NumaIndex{0}, CpuIndex{0}, numCpus - 1);
-    }
-
     // This function queries the system for the mapping of processors to NUMA nodes.
     // On Linux read from standardized kernel sysfs, with a fallback to single NUMA node.
     // On Windows utilize GetNumaProcessorNodeEx, which has its quirks, see
@@ -644,6 +634,16 @@ class NumaConfig final {
         numaCfg.affinityCustom = true;
 
         return numaCfg;
+    }
+
+    NumaConfig(CpuIndex maxCpuIdx, bool affinityCtm) noexcept :
+        maxCpuIndex(maxCpuIdx),
+        affinityCustom(affinityCtm) {}
+
+    NumaConfig() noexcept :
+        NumaConfig(0, false) {
+        auto numCpus = SYSTEM_THREADS_NB;
+        add_cpu_range_to_node(NumaIndex{0}, CpuIndex{0}, numCpus - 1);
     }
 
     NumaConfig(const NumaConfig&) noexcept            = delete;
@@ -907,11 +907,6 @@ class NumaConfig final {
    private:
     static NumaConfig empty() noexcept { return NumaConfig(0, false); }
 
-    std::vector<std::set<CpuIndex>>         nodes;
-    std::unordered_map<CpuIndex, NumaIndex> nodeByCpu;
-    CpuIndex                                maxCpuIndex;
-    bool                                    affinityCustom;
-
     static std::vector<CpuIndex> shortened_string_to_indices(std::string_view str) noexcept {
         std::vector<CpuIndex> indices;
 
@@ -992,6 +987,11 @@ class NumaConfig final {
 
         return true;
     }
+
+    std::vector<std::set<CpuIndex>>         nodes;
+    std::unordered_map<CpuIndex, NumaIndex> nodeByCpu;
+    CpuIndex                                maxCpuIndex;
+    bool                                    affinityCustom;
 };
 
 class NumaReplicationContext;
@@ -1075,8 +1075,6 @@ class NumaReplicated final: public BaseNumaReplicated {
     }
 
    private:
-    std::vector<std::unique_ptr<T>> instances;
-
     void replicate_from(T&& source) noexcept {
         instances.clear();
 
@@ -1096,6 +1094,8 @@ class NumaReplicated final: public BaseNumaReplicated {
             instances.emplace_back(std::make_unique<T>(std::move(source)));
         }
     }
+
+    std::vector<std::unique_ptr<T>> instances;
 };
 
 // Force boxing with a unique_ptr. If this becomes an issue due to added
