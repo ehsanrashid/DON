@@ -345,11 +345,11 @@ Move pg_to_move(std::uint16_t pg_move, const Position& pos) noexcept {
 
     Move move = fix_promotion(Move(pg_move));
 
-    std::uint16_t moveRaw = move.raw() & ~MOVETYPE_MASK;
+    std::uint16_t moveRaw = move.raw() & ~Move::MoveTypeMask;
     // Add 'Special move' flags and verify it is legal
     for (const Move& m : MoveList<LEGAL>(pos))
         // Compare with MoveType (bit 14-15) Masked-out
-        if ((m.raw() & ~MOVETYPE_MASK) == moveRaw)
+        if ((m.raw() & ~Move::MoveTypeMask) == moveRaw)
             return m;
 
     return Move::None;

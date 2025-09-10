@@ -430,11 +430,10 @@ constexpr auto is_all_same_v = is_all_same<Ts...>::value;
 // in any normal move destination square is always different from origin square
 // while Move::None and Move::Null have the same origin and destination square.
 enum MoveType : std::uint16_t {
-    NORMAL        = 0 << 14,
-    PROMOTION     = 1 << 14,
-    EN_PASSANT    = 2 << 14,
-    CASTLING      = 3 << 14,
-    MOVETYPE_MASK = CASTLING,
+    NORMAL     = 0 << 14,
+    PROMOTION  = 1 << 14,
+    EN_PASSANT = 2 << 14,
+    CASTLING   = 3 << 14,
 };
 
 class Move {
@@ -446,9 +445,10 @@ class Move {
     };
 
     // Bit masks for extracting parts of the move
-    static constexpr std::uint16_t SqrMask    = 0x3F;   // 6 bits for origin/destiny
-    static constexpr std::uint16_t SqrSqrMask = 0xFFF;  // 12 bits for combined origin/destiny
-    static constexpr std::uint16_t PromoMask  = 0x3;    // 2 bits for promotion type
+    static constexpr std::uint16_t SqrMask      = 0x3F;   // 6 bits for origin/destiny
+    static constexpr std::uint16_t SqrSqrMask   = 0xFFF;  // 12 bits for combined origin/destiny
+    static constexpr std::uint16_t PromoMask    = 0x3;    // 2 bits for promotion type
+    static constexpr std::uint16_t MoveTypeMask = CASTLING;
 
     // Constructors using delegating syntax
     constexpr explicit Move(std::uint16_t m) noexcept :
@@ -466,7 +466,7 @@ class Move {
     constexpr Square        org_sq() const noexcept { return Square((move >> 6) & SqrMask); }
     constexpr Square        dst_sq() const noexcept { return Square((move >> 0) & SqrMask); }
     constexpr std::uint16_t org_dst() const noexcept { return move & SqrSqrMask; }
-    constexpr MoveType      type_of() const noexcept { return MoveType(move & int(MOVETYPE_MASK)); }
+    constexpr MoveType      type_of() const noexcept { return MoveType(move & MoveTypeMask); }
     constexpr PieceType     promotion_type() const noexcept {
         return PieceType(((move >> 12) & PromoMask) + int(KNIGHT));
     }

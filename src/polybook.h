@@ -55,7 +55,7 @@ struct PolyEntry final {
     }
 
     friend bool operator==(const PolyEntry& pe, const Move& m) noexcept {
-        return pe.move == (m.raw() & ~MOVETYPE_MASK);
+        return pe.move == (m.raw() & ~Move::MoveTypeMask);
     }
     friend bool operator!=(const PolyEntry& pe, const Move& m) noexcept { return !(pe == m); }
 
