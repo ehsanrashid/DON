@@ -65,25 +65,25 @@ inline std::string format_date(std::string_view date) noexcept {
 class Tie final: public std::streambuf {
    public:
     Tie() noexcept = delete;
-    Tie(std::streambuf* b1, std::streambuf* b2) noexcept :
-        buf1(b1),
-        buf2(b2) {}
+    Tie(std::streambuf* sB1, std::streambuf* sB2) noexcept :
+        sBuf1(sB1),
+        sBuf2(sB2) {}
 
-    int sync() noexcept override { return buf2->pubsync(), buf1->pubsync(); }
-    int overflow(int ch) noexcept override { return log(buf1->sputc(char(ch)), "<< "); }
-    int underflow() noexcept override { return buf1->sgetc(); }
-    int uflow() noexcept override { return log(buf1->sbumpc(), ">> "); }
+    int sync() noexcept override { return sBuf2->pubsync(), sBuf1->pubsync(); }
+    int overflow(int ch) noexcept override { return log(sBuf1->sputc(char(ch)), "<< "); }
+    int underflow() noexcept override { return sBuf1->sgetc(); }
+    int uflow() noexcept override { return log(sBuf1->sbumpc(), ">> "); }
 
     int log(int ch, const char* prefix) noexcept {
         static int preCh = '\n';  // Single log file
 
         if (preCh == '\n')
-            buf2->sputn(prefix, std::strlen(prefix));
+            sBuf2->sputn(prefix, std::strlen(prefix));
 
-        return preCh = buf2->sputc(char(ch));
+        return preCh = sBuf2->sputc(char(ch));
     }
 
-    std::streambuf *buf1, *buf2;
+    std::streambuf *sBuf1, *sBuf2;
 };
 
 class Logger final {
@@ -93,8 +93,8 @@ class Logger final {
         istream(is),
         ostream(os),
         ofstream(),
-        iTie(is.rdbuf(), ofstream.rdbuf()),
-        oTie(os.rdbuf(), ofstream.rdbuf()) {}
+        iTie(istream.rdbuf(), ofstream.rdbuf()),
+        oTie(ostream.rdbuf(), ofstream.rdbuf()) {}
 
     ~Logger() noexcept { start(""); }
 
@@ -110,10 +110,10 @@ class Logger final {
 
         if (logger.ofstream.is_open())
         {
-            logger.istream.rdbuf(logger.iTie.buf1);
-            logger.ostream.rdbuf(logger.oTie.buf1);
-
             logger.ofstream << "[" << format_time(SystemClock::now()) << "] <-" << std::endl;
+
+            logger.istream.rdbuf(logger.iTie.sBuf1);
+            logger.ostream.rdbuf(logger.oTie.sBuf1);
             logger.ofstream.close();
         }
 
@@ -190,111 +190,111 @@ std::string compiler_info() noexcept {
     // _WIN32                  Building on Windows (any)
     // _WIN64                  Building on Windows 64 bit
 
-    std::string compiler;
+    std::ostringstream oss;
 
-    compiler = "\nCompiled by                : ";
+    oss << "\nCompiled by                : ";
 #if defined(__INTEL_LLVM_COMPILER)
-    compiler += "ICX ";
-    compiler += STRINGIFY(__INTEL_LLVM_COMPILER);
+    oss << "ICX ";
+    oss << STRINGIFY(__INTEL_LLVM_COMPILER);
 #elif defined(__clang__)
-    compiler += "clang++ ";
-    compiler += VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
+    oss << "clang++ ";
+    oss << VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
 #elif defined(_MSC_VER)
-    compiler += "MSVC ";
-    compiler += STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD);
+    oss << "MSVC ";
+    oss << STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD);
 #elif defined(__GNUC__)
-    compiler += "g++ (GNUC) ";
-    compiler += VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+    oss << "g++ (GNUC) ";
+    oss << VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
 #elif defined(__e2k__) && defined(__LCC__)
-    compiler += "MCST LCC ";
-    compiler += std::to_string(__LCC__ / 100) + "."  //
-              + std::to_string(__LCC__ % 100) + "."  //
-              + std::to_string(__LCC_MINOR__);
+    oss << "MCST LCC ";
+    oss << std::to_string(__LCC__ / 100) << "."  //
+        << std::to_string(__LCC__ % 100) << "."  //
+        << std::to_string(__LCC_MINOR__);
 #else
-    compiler += "unknown compiler";
+    oss << "unknown compiler";
 #endif
 
-    compiler += "\nCompiled on                : ";
+    oss << "\nCompiled on                : ";
 #if defined(__APPLE__)
-    compiler += "Apple";
+    oss << "Apple";
 #elif defined(__CYGWIN__)
-    compiler += "Cygwin";
+    oss << "Cygwin";
 #elif defined(__MINGW64__)
-    compiler += "MinGW64";
+    oss << "MinGW64";
 #elif defined(__MINGW32__)
-    compiler += "MinGW32";
+    oss << "MinGW32";
 #elif defined(__ANDROID__)
-    compiler += "Android";
+    oss << "Android";
 #elif defined(__linux__)
-    compiler += "Linux";
+    oss << "Linux";
 #elif defined(_WIN64)
-    compiler += "Microsoft Windows 64-bit";
+    oss << "Microsoft Windows 64-bit";
 #elif defined(_WIN32)
-    compiler += "Microsoft Windows 32-bit";
+    oss << "Microsoft Windows 32-bit";
 #else
-    compiler += "unknown system";
+    oss << "(unknown system)";
 #endif
 
-    compiler += "\nCompilation architecture   : ";
+    oss << "\nCompilation architecture   : ";
 #if defined(ARCH)
-    compiler += STRINGIFY(ARCH);
+    oss << STRINGIFY(ARCH);
 #else
-    compiler += "(undefined architecture)";
+    oss << "(undefined architecture)";
 #endif
 
-    compiler += "\nCompilation settings       : ";
+    oss << "\nCompilation settings       : ";
 #if defined(IS_64BIT)
-    compiler += "64bit";
+    oss << "64bit";
 #else
-    compiler += "32bit";
+    oss << "32bit";
 #endif
 #if defined(USE_AVX512ICL)
-    compiler += " AVX512ICL";
+    oss << " AVX512ICL";
 #endif
 #if defined(USE_VNNI)
-    compiler += " VNNI";
+    oss << " VNNI";
 #endif
 #if defined(USE_AVX512)
-    compiler += " AVX512";
+    oss << " AVX512";
 #endif
 #if defined(USE_PEXT)
-    compiler += " BMI2";
+    oss << " BMI2";
 #endif
 #if defined(USE_AVX2)
-    compiler += " AVX2";
+    oss << " AVX2";
 #endif
 #if defined(USE_SSE41)
-    compiler += " SSE41";
+    oss << " SSE41";
 #endif
 #if defined(USE_SSSE3)
-    compiler += " SSSE3";
+    oss << " SSSE3";
 #endif
 #if defined(USE_SSE2)
-    compiler += " SSE2";
+    oss << " SSE2";
 #endif
 #if defined(USE_POPCNT)
-    compiler += " POPCNT";
+    oss << " POPCNT";
 #endif
 #if defined(USE_NEON_DOTPROD)
-    compiler += " NEON_DOTPROD";
+    oss << " NEON_DOTPROD";
 #elif defined(USE_NEON)
-    compiler += " NEON";
+    oss << " NEON";
 #endif
 
 #if !defined(NDEBUG)
-    compiler += " DEBUG";
+    oss << " DEBUG";
 #endif
 
-    compiler += "\nCompiler __VERSION__ macro : ";
+    oss << "\nCompiler __VERSION__ macro : ";
 #if defined(__VERSION__)
-    compiler += __VERSION__;
+    oss << __VERSION__;
 #else
-    compiler += "(undefined macro)";
+    oss << "(undefined macro)";
 #endif
 
 #undef VERSION_STRING
 
-    return compiler;
+    return oss.str();
 }
 
 std::string format_time(const SystemClock::time_point& timePoint) {
