@@ -361,8 +361,8 @@ inline std::set<CpuIndex> get_process_affinity() noexcept {
     // For unsupported systems, or in case of a soft error, we may assume
     // all processors are available for use.
     [[maybe_unused]] auto set_to_all_cpus = [&]() {
-        for (CpuIndex c = 0; c < SYSTEM_THREADS_NB; ++c)
-            cpus.insert(c);
+        for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
+            cpus.insert(cpuIdx);
     };
 
     // cpu_set_t by default holds 1024 entries. This may not be enough soon,
