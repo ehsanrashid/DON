@@ -140,7 +140,7 @@ struct PTEntry final {
     constexpr std::uint64_t nodes() const noexcept { return nodes64; }
 
     void save(Key k, Depth d, std::uint64_t n) noexcept {
-        Key32 k32 = k & 0xFFFFFFFF;
+        Key32 k32 = compress_key32(k);
         if ((key32 == k32 && depth16 >= d) || nodes64 >= 10000 + n)
             return;
         key32   = k32;
