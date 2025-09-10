@@ -53,7 +53,7 @@ struct NetworkTrace final {
     std::size_t   correctBucket;
 };
 
-std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& caches) noexcept;
+std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& accCaches) noexcept;
 
 }  // namespace NNUE
 }  // namespace DON

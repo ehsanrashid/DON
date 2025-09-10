@@ -310,7 +310,7 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
         }
 
         const auto* lmoves = moves;
-        moves = generate_pawns_moves<AC, GT>    (pos, moves, target);
+        moves = generate_pawns_moves<AC, GT    >(pos, moves, target);
         if (Any && ((moves > lmoves + 0 && pos.legal(lmoves[0]))
                  || (moves > lmoves + 1 && pos.legal(lmoves[1]))
                  || (moves > lmoves + 2 && pos.legal(lmoves[2])))) return moves;
@@ -321,10 +321,10 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
         moves = generate_piece_moves<AC, BISHOP>(pos, moves, target);
         if (Any && moves > lmoves) return moves;
         lmoves = moves;
-        moves = generate_piece_moves<AC, ROOK>  (pos, moves, target);
+        moves = generate_piece_moves<AC, ROOK  >(pos, moves, target);
         if (Any && moves > lmoves) return moves;
         lmoves = moves;
-        moves = generate_piece_moves<AC, QUEEN> (pos, moves, target);
+        moves = generate_piece_moves<AC, QUEEN >(pos, moves, target);
         if (Any && moves > lmoves) return moves;
     }
 

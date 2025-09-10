@@ -91,7 +91,7 @@ void format_cp_aligned_dot(std::ostringstream& oss,
 
 // Returns a string with the value of each piece on a board,
 // and a table for (PSQT, Layers) values bucket by bucket.
-std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& caches) noexcept {
+std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& accCaches) noexcept {
     std::ostringstream oss;
 
     char board[3 * 8 + 1][8 * 8 + 2];
@@ -118,7 +118,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
 
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    auto         baseNetOut = networks.big.evaluate(pos, accStack, &caches.big);
+    auto         baseNetOut = networks.big.evaluate(pos, accStack, &accCaches.big);
     std::int32_t baseEval   = (baseNetOut.psqt + baseNetOut.positional) / OUTPUT_SCALE;
 
     baseEval = pos.active_color() == WHITE ? +baseEval : -baseEval;
@@ -135,7 +135,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
                 pos.remove_piece(sq);
 
                 accStack.reset();
-                auto netOut = networks.big.evaluate(pos, accStack, &caches.big);
+                auto netOut = networks.big.evaluate(pos, accStack, &accCaches.big);
 
                 std::int32_t eval = (netOut.psqt + netOut.positional) / OUTPUT_SCALE;
 
@@ -155,7 +155,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ca
     oss << '\n';
 
     accStack.reset();
-    auto trace = networks.big.trace(pos, accStack, &caches.big);
+    auto trace = networks.big.trace(pos, accStack, &accCaches.big);
 
     oss << " NNUE network contributions ("  //
         << (pos.active_color() == WHITE ? "White" : "Black") << " to move):\n"

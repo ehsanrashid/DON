@@ -513,8 +513,8 @@ inline Bitboard Position::slide_attackers_to(Square s) const noexcept {
 // Slider attacks use the occupied bitboard to indicate occupancy.
 inline Bitboard Position::attackers_to(Square s, Bitboard occupied) const noexcept {
     return slide_attackers_to(s, occupied)
-         | (pieces(WHITE, PAWN) & attacks_bb<PAWN> (s, BLACK))
-         | (pieces(BLACK, PAWN) & attacks_bb<PAWN> (s, WHITE))
+         | (pieces(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
+         | (pieces(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE))
          | (pieces(KNIGHT     ) & attacks_bb<KNIGHT>(s))
          | (pieces(KING       ) & attacks_bb<KING  >(s));
 }

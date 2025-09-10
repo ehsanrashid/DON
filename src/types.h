@@ -284,16 +284,6 @@ ENABLE_INCR_OPERATORS_ON(Square)
 
     #undef ENABLE_INCR_OPERATORS_ON
 
-// clang-format off
-constexpr CastlingRights  operator|(CastlingRights cr, int i) noexcept { return CastlingRights(int(cr) | i); }
-constexpr CastlingRights  operator&(CastlingRights cr, int i) noexcept { return CastlingRights(int(cr) & i); }
-constexpr CastlingRights& operator|=(CastlingRights& cr, int i) noexcept { return cr = cr | i; }
-constexpr CastlingRights& operator&=(CastlingRights& cr, int i) noexcept { return cr = cr & i; }
-constexpr CastlingRights  operator&(Color c, CastlingRights cr) noexcept {
-    assert(is_ok(c));
-    return (c == WHITE ? WHITE_CASTLING : BLACK_CASTLING) & int(cr);
-}
-
 // Additional operators for File
 constexpr File  operator+(File f, int i) noexcept { return File(int(f) + i); }
 constexpr File  operator-(File f, int i) noexcept { return File(int(f) - i); }
@@ -304,21 +294,32 @@ constexpr Rank  operator+(Rank r, int i) noexcept { return Rank(int(r) + i); }
 constexpr Rank  operator-(Rank r, int i) noexcept { return Rank(int(r) - i); }
 constexpr Rank& operator+=(Rank& r, int i) noexcept { return r = r + i; }
 constexpr Rank& operator-=(Rank& r, int i) noexcept { return r = r - i; }
-
-constexpr Direction operator+(Direction d1, Direction d2) noexcept { return Direction(int(d1) + int(d2)); }
-constexpr Direction operator-(Direction d1, Direction d2) noexcept { return Direction(int(d1) - int(d2)); }
-//constexpr Direction operator-(Square s1, Square s2) noexcept { return Direction(int(s1) - int(s2)); }
-constexpr Direction operator*(Direction d, int i) noexcept { return Direction(i * int(d)); }
-constexpr Direction operator*(int i, Direction d) noexcept { return d * i; }
-// clang-format on
-
-// Additional operators to add a Direction to a Square
+// Additional operators for Square to add a Direction
 constexpr Square  operator+(Square s, int i) noexcept { return Square(int(s) + i); }
 constexpr Square  operator-(Square s, int i) noexcept { return Square(int(s) - i); }
 constexpr Square  operator+(Square s, Direction d) noexcept { return s + int(d); }
 constexpr Square  operator-(Square s, Direction d) noexcept { return s - int(d); }
 constexpr Square& operator+=(Square& s, Direction d) noexcept { return s = s + d; }
 constexpr Square& operator-=(Square& s, Direction d) noexcept { return s = s - d; }
+
+// clang-format off
+
+constexpr Direction operator+(Direction d1, Direction d2) noexcept { return Direction(int(d1) + int(d2)); }
+constexpr Direction operator-(Direction d1, Direction d2) noexcept { return Direction(int(d1) - int(d2)); }
+//constexpr Direction operator-(Square s1, Square s2) noexcept { return Direction(int(s1) - int(s2)); }
+constexpr Direction operator*(Direction d, int i) noexcept { return Direction(i * int(d)); }
+constexpr Direction operator*(int i, Direction d) noexcept { return d * i; }
+
+constexpr CastlingRights  operator|(CastlingRights cr, int i) noexcept { return CastlingRights(int(cr) | i); }
+constexpr CastlingRights  operator&(CastlingRights cr, int i) noexcept { return CastlingRights(int(cr) & i); }
+constexpr CastlingRights& operator|=(CastlingRights& cr, int i) noexcept { return cr = cr | i; }
+constexpr CastlingRights& operator&=(CastlingRights& cr, int i) noexcept { return cr = cr & i; }
+constexpr CastlingRights  operator&(Color c, CastlingRights cr) noexcept {
+    assert(is_ok(c));
+    return (c == WHITE ? WHITE_CASTLING : BLACK_CASTLING) & int(cr);
+}
+
+// clang-format on
 
 constexpr bool is_ok(Color c) noexcept { return (c == WHITE || c == BLACK); }
 
