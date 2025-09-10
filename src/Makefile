@@ -1064,6 +1064,7 @@ config-sanity: net
 	echo "lsx: '$(lsx)'" && \
 	echo "lasx: '$(lasx)'" && \
 	echo "target_windows: '$(target_windows)'" && \
+	echo "comp: '$(comp)'" && \
 	echo "" && \
 	echo "Flags:" && \
 	echo "CXX: $(CXX)" && \
