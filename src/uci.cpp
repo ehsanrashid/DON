@@ -479,7 +479,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
     std::size_t cnt = 0;
     for (const auto& command : commands)
     {
-        std::istringstream is(command);
+        std::istringstream is{command};
         is >> std::skipws;
 
         std::string token;
@@ -575,7 +575,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     // Warmup
     for (const auto& command : benchmark.commands)
     {
-        std::istringstream is(command);
+        std::istringstream is{command};
         is >> std::skipws;
 
         std::string token;
@@ -647,7 +647,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
 
     for (const auto& command : benchmark.commands)
     {
-        std::istringstream is(command);
+        std::istringstream is{command};
         is >> std::skipws;
 
         std::string token;

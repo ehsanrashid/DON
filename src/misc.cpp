@@ -211,7 +211,7 @@ std::string compiler_info() noexcept {
         << std::to_string(__LCC__ % 100) << "."  //
         << std::to_string(__LCC_MINOR__);
 #else
-    oss << "unknown compiler";
+    oss << "(unknown compiler)";
 #endif
 
     oss << "\nCompiled on                : ";
@@ -446,9 +446,8 @@ void correl_of(std::int64_t value1, std::int64_t value2, std::size_t slot) noexc
 
 void print() noexcept {
 
-    std::int64_t n = 1;
-
-    auto avg = [&n](std::int64_t x) noexcept { return float(x) / n; };
+    std::int64_t n;
+    const auto   avg = [&n](std::int64_t x) noexcept { return float(x) / n; };
 
     for (std::size_t i = 0; i < MaxSlot; ++i)
         if ((n = hit[i][0]))
