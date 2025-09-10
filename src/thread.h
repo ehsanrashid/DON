@@ -43,20 +43,20 @@ class Options;
 // such that the recipient does not need to know whether the binding happened or not.
 class OptionalThreadToNumaNodeBinder final {
    public:
-    OptionalThreadToNumaNodeBinder(NumaIndex nId, const NumaConfig* nConfigPtr) noexcept :
-        numaId(nId),
-        numaConfigPtr(nConfigPtr) {}
+    OptionalThreadToNumaNodeBinder(NumaIndex numaId, const NumaConfig* numaCfgPtr) noexcept :
+        numaIdx(numaId),
+        numaConfigPtr(numaCfgPtr) {}
 
-    explicit OptionalThreadToNumaNodeBinder(NumaIndex nId) noexcept :
-        OptionalThreadToNumaNodeBinder(nId, nullptr) {}
+    explicit OptionalThreadToNumaNodeBinder(NumaIndex numaId) noexcept :
+        OptionalThreadToNumaNodeBinder(numaId, nullptr) {}
 
     NumaReplicatedAccessToken operator()() const noexcept {
-        return numaConfigPtr != nullptr ? numaConfigPtr->bind_current_thread_to_numa_node(numaId)
-                                        : NumaReplicatedAccessToken(numaId);
+        return numaConfigPtr != nullptr ? numaConfigPtr->bind_current_thread_to_numa_node(numaIdx)
+                                        : NumaReplicatedAccessToken(numaIdx);
     }
 
    private:
-    NumaIndex         numaId;
+    NumaIndex         numaIdx;
     const NumaConfig* numaConfigPtr;
 };
 
