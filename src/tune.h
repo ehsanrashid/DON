@@ -26,6 +26,8 @@
 #include <utility>
 #include <vector>
 
+#include "misc.h"
+
 namespace DON {
 
 class Options;
@@ -197,7 +199,6 @@ constexpr void check_tune_args(Args&&...) {
 }
 
 // Some macro magic :-) define a dummy int variable that the compiler initializes calling Tune::add()
-#define STRING_LITERAL(x) #x
 #define UNIQUE2(x, y) x##y
 #define UNIQUE(x, y) UNIQUE2(x, y)  // Two indirection levels to expand __LINE__
 #define TUNE(...) \
