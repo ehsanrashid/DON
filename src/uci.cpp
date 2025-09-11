@@ -405,7 +405,7 @@ void UCI::position(std::istringstream& iss) noexcept {
         return;
     }
 
-    std::vector<std::string> moves;
+    Strings moves;
     while (iss >> token)
         moves.push_back(token);
 

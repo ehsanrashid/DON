@@ -54,6 +54,9 @@
 
 namespace DON {
 
+using Strings     = std::vector<std::string>;
+using StringViews = std::vector<std::string_view>;
+
 std::string engine_info(bool uci = false) noexcept;
 std::string version_info() noexcept;
 std::string compiler_info() noexcept;
@@ -502,9 +505,9 @@ constexpr std::string_view trim(std::string_view str) noexcept {
     return str.substr(beg, end - beg + 1);
 }
 
-inline std::vector<std::string_view>
+inline StringViews
 split(std::string_view str, std::string_view delimiter, bool doTrim = false) noexcept {
-    std::vector<std::string_view> parts;
+    StringViews parts;
 
     if (str.empty())
         return parts;

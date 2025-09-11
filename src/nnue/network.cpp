@@ -167,10 +167,10 @@ template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load(std::string_view rootDirectory,
                                       std::string      evalFileName) noexcept {
 
-    const std::vector<std::string> dirs{"<internal>", "", std::string(rootDirectory)
+    const Strings dirs{"<internal>", "", std::string(rootDirectory)
 #if defined(DEFAULT_NNUE_DIRECTORY)
-                                                            ,
-                                        STRINGIFY(DEFAULT_NNUE_DIRECTORY)
+                                           ,
+                       STRINGIFY(DEFAULT_NNUE_DIRECTORY)
 #endif
     };
 

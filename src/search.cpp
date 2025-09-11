@@ -54,8 +54,6 @@ PolyBook Book;
 
 namespace {
 
-using Moves = std::array<std::vector<Move>, 2>;
-
 History<HTTMove> TTMoveHistory;
 
 // Correction History
@@ -105,8 +103,11 @@ void update_all_quiet_history(const Position& pos,
                               Stack* const    ss,
                               const Move&     m,
                               int             bonus) noexcept;
-void update_all_history(
-  const Position& pos, Stack* const ss, Depth depth, const Move& bm, const Moves& moves) noexcept;
+void update_all_history(const Position&      pos,
+                        Stack* const         ss,
+                        Depth                depth,
+                        const Move&          bm,
+                        const MovesArray<2>& movesArr) noexcept;
 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
 int  correction_value(const Position& pos, const Stack* const ss) noexcept;
@@ -341,7 +342,7 @@ void Worker::iterative_deepening() noexcept {
     assert(stack[0].ply == -StackOffset && stack[StackSize - 1].ply == MAX_PLY + 1);
     assert(ss->ply == 0);
 
-    std::vector<Move> pv(MAX_PLY + 1);
+    Moves pv(MAX_PLY + 1);
 
     ss->pv = pv.data();
 
@@ -644,7 +645,7 @@ Value Worker::search(Position&    pos,
     if (is_main_worker())
         main_manager()->check_time(*this);
 
-    std::vector<Move> pv(MAX_PLY + 1 - ss->ply);
+    Moves pv(MAX_PLY + 1 - ss->ply);
 
     if constexpr (PVNode)
     {
@@ -1075,7 +1076,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     Move bestMove = Move::None;
 
-    Moves moves;
+    MovesArray<2> movesArr;
 
     MovePicker mp(pos, pttm, contHistory, ss->ply, quietThreshold);
     mp.quietPick = true;
@@ -1483,7 +1484,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Collection of worse moves
         if (move != bestMove && moveCount <= 32)
-            moves[capture].push_back(move);
+            movesArr[capture].push_back(move);
     }
 
     // Step 21. Check for mate and stalemate
@@ -1502,7 +1503,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
     {
-        update_all_history(pos, ss, depth, bestMove, moves);
+        update_all_history(pos, ss, depth, bestMove, movesArr);
         if (!PVNode)
             TTMoveHistory[ac] << (bestMove == ttd.move ? 809 : -865);
     }
@@ -1602,7 +1603,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (is_main_worker() && main_manager()->callsCount > 1)
         main_manager()->callsCount--;
 
-    std::vector<Move> pv(MAX_PLY + 1 - ss->ply);
+    Moves pv(MAX_PLY + 1 - ss->ply);
 
     if constexpr (PVNode)
     {
@@ -2330,12 +2331,12 @@ void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& 
 }
 
 // Updates history at the end of search() when a bestMove is found
-void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const Moves& moves) noexcept {
+void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const MovesArray<2>& movesArr) noexcept {
     assert(pos.pseudo_legal(bm));
     assert(ss->moveCount != 0);
 
     int bonus = std::min(- 91 + 151 * depth, 1730) + 302 * (ss->ttMove == bm);
-    int malus = std::min(-156 + 951 * depth, 2468) - 30 * moves[0].size();
+    int malus = std::min(-156 + 951 * depth, 2468) - 30 * movesArr[0].size();
 
     if (malus < 1)
         malus = 1;
@@ -2349,12 +2350,12 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
         update_all_quiet_history(pos, ss, bm, std::lround(+0.9346f * bonus));
 
         // Decrease history for all non-best quiet moves
-        for (const Move& qm : moves[0])
+        for (const Move& qm : movesArr[0])
             update_all_quiet_history(pos, ss, qm, std::lround(-1.0000f * malus));
     }
 
     // Decrease history for all non-best capture moves
-    for (const Move& cm : moves[1])
+    for (const Move& cm : movesArr[1])
         update_capture_history(pos, cm, std::lround(-1.1299f * malus));
 
     Move m = (ss - 1)->move;

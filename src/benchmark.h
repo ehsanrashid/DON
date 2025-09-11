@@ -24,18 +24,17 @@
 #include <string_view>
 #include <vector>
 
+#include "misc.h"
 #include "types.h"
 
 namespace DON::Benchmark {
 
-using Commands = std::vector<std::string>;
-
-Commands setup_bench(std::istringstream& iss, std::string_view currentFen = START_FEN) noexcept;
+Strings setup_bench(std::istringstream& iss, std::string_view currentFen = START_FEN) noexcept;
 
 struct Benchmark final {
     std::size_t threads;
     std::size_t ttSize;
-    Commands    commands;
+    Strings     commands;
     std::string originalInvocation;
     std::string filledInvocation;
 };

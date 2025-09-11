@@ -29,6 +29,8 @@
 #include <utility>
 #include <vector>
 
+#include "misc.h"
+
 namespace DON {
 
 // Because the UCI options should be case-insensitive
@@ -88,12 +90,12 @@ class Option final {
     friend std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
 
    private:
-    OptionType                    type;
-    std::string                   defaultValue;
-    std::string                   currentValue;
-    int                           minValue = 0, maxValue = 0;
-    std::vector<std::string_view> comboValues;
-    OnChange                      onChange;
+    OptionType  type;
+    std::string defaultValue;
+    std::string currentValue;
+    int         minValue = 0, maxValue = 0;
+    StringViews comboValues;
+    OnChange    onChange;
 
     std::uint16_t  idx;
     const Options* optionsPtr = nullptr;

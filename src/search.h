@@ -52,6 +52,10 @@ namespace NNUE {
 struct Networks;
 }
 
+using Moves = std::vector<Move>;
+template<std::size_t N>
+using MovesArray = std::array<Moves, N>;
+
 constexpr std::size_t DEFAULT_MULTI_PV = 1;
 
 extern PolyBook Book;
@@ -103,13 +107,13 @@ struct RootMove final {
     Value    avgValue    = -VALUE_INFINITE;
     SqrValue avgSqrValue = sign_sqr(-VALUE_INFINITE);
 
-    bool              boundLower = false;
-    bool              boundUpper = false;
-    std::uint16_t     selDepth   = DEPTH_ZERO;
-    std::uint64_t     nodes      = 0;
-    std::int32_t      tbRank     = 0;
-    Value             tbValue    = -VALUE_INFINITE;
-    std::vector<Move> pv;
+    bool          boundLower = false;
+    bool          boundUpper = false;
+    std::uint16_t selDepth   = DEPTH_ZERO;
+    std::uint64_t nodes      = 0;
+    std::int32_t  tbRank     = 0;
+    Value         tbValue    = -VALUE_INFINITE;
+    Moves         pv;
 };
 
 class RootMoves final {
@@ -280,7 +284,7 @@ struct Limit final {
     bool          ponder;
     bool          perft, detail;
 
-    std::vector<std::string> searchMoves, ignoreMoves;
+    Strings searchMoves, ignoreMoves;
 };
 
 // Skill struct is used to implement engine strength limit.

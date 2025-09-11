@@ -325,13 +325,13 @@ class TBFile: public std::ifstream {
 
     // Look for and open the file among the Paths directories
     // where the .rtbw and .rtbz files can be found.
-    static std::vector<std::string> Paths;
+    static Strings Paths;
 
    private:
     std::string filename;
 };
 
-std::vector<std::string> TBFile::Paths;
+Strings TBFile::Paths;
 
 // struct PairsData contains low-level indexing information to access TB data.
 // There are 8, 4, or 2 PairsData records for each TBTable, according to the type

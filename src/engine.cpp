@@ -146,7 +146,7 @@ void Engine::set_numa_config(std::string_view str) noexcept {
 
 std::string Engine::fen() const noexcept { return pos.fen(); }
 
-void Engine::setup(std::string_view fen, const std::vector<std::string>& moves) noexcept {
+void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
     // Drop the old states and create a new one
     states = std::make_unique<StateList>(1);
     pos.set(fen, &states->back());

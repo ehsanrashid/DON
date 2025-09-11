@@ -24,8 +24,6 @@
 #include <iostream>
 #include <numeric>
 
-#include "misc.h"
-
 namespace DON {
 
 namespace {

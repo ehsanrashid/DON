@@ -23,7 +23,6 @@
 #include <iostream>
 #include <sstream>
 
-#include "misc.h"
 #include "numa.h"
 
 namespace DON::Benchmark {
@@ -31,7 +30,7 @@ namespace DON::Benchmark {
 namespace {
 
 // clang-format off
-const std::vector<std::string> Positions{
+const Strings Positions{
   "setoption name UCI_Chess960 value false",
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
   "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
@@ -96,7 +95,7 @@ const std::vector<std::string> Positions{
 };
 
 // Human-randomly picked 5 games with <60 moves only moves for one side
-const std::vector<std::vector<std::string>> Games{
+const std::vector<Strings> Games{
 {
     "rnbq1k1r/ppp1bppp/4pn2/8/2B5/2NP1N2/PPP2PPP/R1BQR1K1 b - - 2 8",
     "rnbq1k1r/pp2bppp/4pn2/2p5/2B2B2/2NP1N2/PPP2PPP/R2QR1K1 b - - 1 9",
@@ -384,7 +383,7 @@ const std::vector<std::vector<std::string>> Games{
 // bench 64 1 100000 default nodes  : search default positions with 1 thread for 100K nodes each (TT = 64MB)
 // bench 64 4 5000 current movetime : search current position  with 4 threads for 5 sec (TT = 64MB)
 // bench 16 1 5 blah perft          : run perft 5 on positions in fen filename "blah" (TT = 16MB)
-Commands setup_bench(std::istringstream& iss, std::string_view currentFen) noexcept {
+Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexcept {
 
     std::string token;
     // Assign default values to missing arguments
@@ -398,7 +397,7 @@ Commands setup_bench(std::istringstream& iss, std::string_view currentFen) noexc
 
     std::string command = isGo ? "go " + limitType + " " + limitVal : "eval";
 
-    std::vector<std::string> fens;
+    Strings fens;
 
     if (fenFile == "default")
         fens = Positions;
@@ -424,7 +423,7 @@ Commands setup_bench(std::istringstream& iss, std::string_view currentFen) noexc
         ifstream.close();
     }
 
-    Commands commands;
+    Strings commands;
 
     if (isGo)
     {
