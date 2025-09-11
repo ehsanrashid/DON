@@ -1023,10 +1023,10 @@ Value Worker::search(Position&    pos,
             if (threads.stop.load(std::memory_order_relaxed))
                 return VALUE_ZERO;
 
-            if (value >= probCutBeta)
+            if (value >= probCutBeta && !is_decisive(value))
             {
                 // Subtract the margin
-                value = in_range(value - (probCutBeta - beta));
+                value -= probCutBeta - beta;
 
                 // Save ProbCut data into transposition table
                 if (!exclude)
