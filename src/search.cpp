@@ -45,6 +45,13 @@ namespace DON {
 
 // clang-format off
 
+// History
+History<HCapture>      CaptureHistory;
+History<HQuiet>        QuietHistory;
+History<HPawn>         PawnHistory;
+History<HContinuation> ContinuationHistory[2][2];
+History<HLowPlyQuiet>  LowPlyQuietHistory;
+
 PolyBook Book;
 
 namespace {

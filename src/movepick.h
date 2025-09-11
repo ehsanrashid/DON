@@ -77,13 +77,6 @@ struct ExtMove final: public Move {
     int value;
 };
 
-// History
-extern History<HCapture>      CaptureHistory;
-extern History<HQuiet>        QuietHistory;
-extern History<HPawn>         PawnHistory;
-extern History<HContinuation> ContinuationHistory[2][2];
-extern History<HLowPlyQuiet>  LowPlyQuietHistory;
-
 // MovePicker class is used to pick one pseudo-legal move at a time from the given current position.
 // The most important method is next_move(), which returns a new pseudo-legal move each time it is called,
 // until there are no moves left, when Move::None is returned. In order to improve the efficiency of the

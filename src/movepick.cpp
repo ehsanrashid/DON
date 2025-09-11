@@ -29,11 +29,11 @@
 namespace DON {
 
 // History
-History<HCapture>      CaptureHistory;
-History<HQuiet>        QuietHistory;
-History<HPawn>         PawnHistory;
-History<HContinuation> ContinuationHistory[2][2];
-History<HLowPlyQuiet>  LowPlyQuietHistory;
+extern History<HCapture>      CaptureHistory;
+extern History<HQuiet>        QuietHistory;
+extern History<HPawn>         PawnHistory;
+extern History<HContinuation> ContinuationHistory[2][2];
+extern History<HLowPlyQuiet>  LowPlyQuietHistory;
 
 // Constructors of the MovePicker class. As arguments, pass information
 // to decide which class of moves to return, to help sorting the (presumably)
