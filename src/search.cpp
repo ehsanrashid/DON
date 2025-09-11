@@ -43,8 +43,6 @@ namespace DON {
 // so changing them or adding conditions that are similar requires
 // tests at these types of time controls.
 
-// clang-format off
-
 // History
 History<HCapture>      CaptureHistory;
 History<HQuiet>        QuietHistory;
@@ -56,13 +54,15 @@ PolyBook Book;
 
 namespace {
 
+using Moves = std::array<std::vector<Move>, 2>;
+
 History<HTTMove> TTMoveHistory;
 
 // Correction History
-CorrectionHistory<CHPawn>                 PawnCorrectionHistory;
-CorrectionHistory<CHMinor>               MinorCorrectionHistory;
-CorrectionHistory<CHMajor>               MajorCorrectionHistory;
-CorrectionHistory<CHNonPawn>           NonPawnCorrectionHistory;
+CorrectionHistory<CHPawn>         PawnCorrectionHistory;
+CorrectionHistory<CHMinor>        MinorCorrectionHistory;
+CorrectionHistory<CHMajor>        MajorCorrectionHistory;
+CorrectionHistory<CHNonPawn>      NonPawnCorrectionHistory;
 CorrectionHistory<CHContinuation> ContinuationCorrectionHistory;
 
 // Reductions lookup table initialized at startup
@@ -79,9 +79,7 @@ constexpr Value draw_value(Key key, std::uint64_t nodes) noexcept {
     return VALUE_DRAW + (key & 1) - (nodes & 1);
 }
 
-constexpr Bound fail_bound(bool failHigh) noexcept {
-    return failHigh ? BOUND_LOWER : BOUND_UPPER;
-}
+constexpr Bound fail_bound(bool failHigh) noexcept { return failHigh ? BOUND_LOWER : BOUND_UPPER; }
 constexpr Bound fail_bound(bool failHigh, bool failLow) noexcept {
     return failHigh ? BOUND_LOWER : failLow ? BOUND_UPPER : BOUND_NONE;
 }
@@ -99,14 +97,16 @@ void update_pv(Move* pv, const Move& move, const Move* childPv) noexcept {
 
 void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept;
 void update_capture_history(const Position& pos, const Move& m, int bonus) noexcept;
-
 void update_quiet_history(Color ac, const Move& m, int bonus) noexcept;
 void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) noexcept;
 void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept;
 void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) noexcept;
-void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& m, int bonus) noexcept;
-
-void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const std::array<std::vector<Move>, 2>& moves) noexcept;
+void update_all_quiet_history(const Position& pos,
+                              Stack* const    ss,
+                              const Move&     m,
+                              int             bonus) noexcept;
+void update_all_history(
+  const Position& pos, Stack* const ss, Depth depth, const Move& bm, const Moves& moves) noexcept;
 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
 int  correction_value(const Position& pos, const Stack* const ss) noexcept;
@@ -119,8 +119,8 @@ namespace Search {
 
 void init() noexcept {
     CaptureHistory.fill(-689);
-      QuietHistory.fill(68);
-       PawnHistory.fill(-1238);
+    QuietHistory.fill(68);
+    PawnHistory.fill(-1238);
     for (bool inCheck : {false, true})
         for (bool capture : {false, true})
             for (auto& toPieceSqHist : ContinuationHistory[inCheck][capture])
@@ -129,9 +129,9 @@ void init() noexcept {
 
     TTMoveHistory.fill(0);
 
-       PawnCorrectionHistory.fill(5);
-      MinorCorrectionHistory.fill(0);
-      MajorCorrectionHistory.fill(0);
+    PawnCorrectionHistory.fill(5);
+    MinorCorrectionHistory.fill(0);
+    MajorCorrectionHistory.fill(0);
     NonPawnCorrectionHistory.fill(0);
     for (auto& toPieceSqCorrHist : ContinuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
@@ -143,8 +143,6 @@ void init() noexcept {
 }
 
 }  // namespace Search
-
-// clang-format on
 
 Worker::Worker(std::size_t               threadId,
                const SharedState&        sharedState,
@@ -304,15 +302,15 @@ void Worker::start_search() noexcept {
         }
     }
 
-    // clang-format off
-    assert(!bestWorker->rootMoves.empty()
-        && !bestWorker->rootMoves.front().pv.empty());
-    const auto& rootMove  = bestWorker->rootMoves.front();
-    Move bestMove   = rootMove.pv[0];
-    Move ponderMove = bestMove != Move::None
-                  && (rootMove.pv.size() >= 2 || bestWorker->ponder_move_extracted())
-                    ? rootMove.pv[1] : Move::None;
-    // clang-format on
+    assert(!bestWorker->rootMoves.empty() && !bestWorker->rootMoves.front().pv.empty());
+    const auto& rootMove = bestWorker->rootMoves.front();
+
+    Move bestMove = rootMove.pv[0];
+    Move ponderMove =
+      bestMove != Move::None && (rootMove.pv.size() >= 2 || bestWorker->ponder_move_extracted())
+        ? rootMove.pv[1]
+        : Move::None;
+
     mainManager->updateCxt.onUpdateMove({bestMove, ponderMove});
 }
 
@@ -327,23 +325,21 @@ void Worker::iterative_deepening() noexcept {
     // (ss + 1) is needed for initialization of cutoffCount.
     constexpr std::uint16_t StackOffset = 9;
     constexpr std::uint16_t StackSize   = StackOffset + (MAX_PLY + 1) + 1;
-    // clang-format off
+
     Stack  stack[StackSize]{};
     Stack* ss = stack + StackOffset;
     for (std::int16_t i = 0 - StackOffset; i < StackSize - StackOffset; ++i)
     {
         (ss + i)->ply = i;
-        if (i < 0)
-        {
-            // Use as a sentinel
-            (ss + i)->staticEval               = VALUE_NONE;
-            (ss + i)->pieceSqHistory           = &ContinuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
-            (ss + i)->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[NO_PIECE][SQUARE_ZERO];
-        }
+        if (i >= 0)
+            continue;
+        // Use as a sentinel
+        (ss + i)->staticEval               = VALUE_NONE;
+        (ss + i)->pieceSqHistory           = &ContinuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
+        (ss + i)->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[NO_PIECE][SQUARE_ZERO];
     }
     assert(stack[0].ply == -StackOffset && stack[StackSize - 1].ply == MAX_PLY + 1);
     assert(ss->ply == 0);
-    // clang-format on
 
     std::vector<Move> pv(MAX_PLY + 1);
 
@@ -1087,7 +1083,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     Move bestMove = Move::None;
 
-    std::array<std::vector<Move>, 2> moves;
+    Moves moves;
 
     MovePicker mp(pos, pttm, contHistory, ss->ply, quietThreshold);
     mp.quietPick = true;
@@ -1229,14 +1225,13 @@ S_MOVES_LOOP:  // When in check, search starts here
             && is_valid(ttd.value) && !is_decisive(ttd.value) && ttd.depth >= depth - 3
             && (ttd.bound & BOUND_LOWER))
         {
-            // clang-format off
             Value singularBeta  = ttd.value - (0.9333f + 1.3500f * (!PVNode && ss->pvHit)) * depth;
             Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
 
             value = search<~~NT>(pos, ss, singularBeta - 1, singularBeta, singularDepth, 0, move);
 
-            ss->ttMove = ttd.move;
+            ss->ttMove    = ttd.move;
             ss->moveCount = moveCount;
 
             if (value < singularBeta)
@@ -1244,17 +1239,17 @@ S_MOVES_LOOP:  // When in check, search starts here
                 singularValue = value;
 
                 int corrValAdj = absCorrectionValue / 229958;
-
+                // clang-format off
                 int doubleMargin = -4 + 198 * PVNode - 212 * !ttCapture - corrValAdj - 45 * (ss->ply >        rootDepth) - 921 * TTMoveHistory[ac] / 127649;
                 int tripleMargin = 76 + 308 * PVNode - 250 * !ttCapture - corrValAdj - 52 * (ss->ply > 1.5f * rootDepth) + 92 * ss->pvHit;
 
                 extension = 1 + (value < singularBeta - doubleMargin)
                               + (value < singularBeta - tripleMargin);
+                // clang-format on
 
                 if (depth < MAX_PLY - 1)
                     ++depth;
             }
-            // clang-format on
 
             // Multi-cut pruning
             // If the ttMove is assumed to fail high based on the bound of the TT entry, and
@@ -2297,7 +2292,6 @@ void update_capture_history(const Position& pos, const Move& m, int bonus) noexc
     assert(pos.pseudo_legal(m));
     update_capture_history(pos.moved_piece(m), m.dst_sq(), pos.captured(m), bonus);
 }
-
 void update_quiet_history(Color ac, const Move& m, int bonus) noexcept {
     assert(m.is_ok());
     QuietHistory[ac][m.org_dst()] << bonus;
@@ -2341,7 +2335,7 @@ void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& 
 }
 
 // Updates history at the end of search() when a bestMove is found
-void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const std::array<std::vector<Move>, 2>& moves) noexcept {
+void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const Moves& moves) noexcept {
     assert(pos.pseudo_legal(bm));
     assert(ss->moveCount != 0);
 
@@ -2416,13 +2410,13 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
     return (+9536 * pcv + 8494 * micv + 4247 * mjcv + 10132 * npcv + 7156 * cntcv);
 }
 
+// clang-format on
+
 // Update raw staticEval according to various CorrectionHistory value
 // and guarantee evaluation does not hit the tablebase range.
 Value adjust_static_eval(Value ev, int cv) noexcept {
     return in_range(ev + std::lround(7.6294e-6f * cv));
 }
-
-// clang-format on
 
 }  // namespace
 }  // namespace DON

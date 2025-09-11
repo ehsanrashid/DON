@@ -66,9 +66,7 @@ MovePicker::MovePicker(const Position& p,  //
     assert(!pos.checkers());
     assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
 
-    stage = STG_PROBCUT_TT
-          + int(ttMove == Move::None
-                || !(pos.capture_promo(ttMove) /*&& pos.see(ttMove) >= threshold*/));
+    stage = STG_PROBCUT_TT + int(ttMove == Move::None || !(pos.capture_promo(ttMove)));
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.

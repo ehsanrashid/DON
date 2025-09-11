@@ -133,7 +133,7 @@ struct HistoryTypedef<HLowPlyQuiet> final {
 
 template<>
 struct HistoryTypedef<HTTMove> final {
-    using Type = StatsArray<PAWN_HISTORY_LIMIT, COLOR_NB>;
+    using Type = StatsArray<8192, COLOR_NB>;
 };
 }  // namespace Internal
 
