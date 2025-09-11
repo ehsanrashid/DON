@@ -119,7 +119,7 @@ struct WindowsAffinity final {
     // limitations of the old API we cannot detect its use reliably. There will be
     // cases where we detect not use but it has actually been used and vice versa.
 
-    bool likely_used_old_api() const { return oldApi.has_value() || !isOldDeterminate; }
+    bool likely_used_old_api() const { return oldApi.has_value() || !oldDeterminate; }
 
     std::optional<std::set<CpuIndex>> oldApi;
     std::optional<std::set<CpuIndex>> newApi;
@@ -128,8 +128,8 @@ struct WindowsAffinity final {
     // whether it was due to being indeterminate. If affinity is indeterminate
     // it is best to assume it is not set at all, so consistent with the meaning
     // of the nullopt affinity.
-    bool isNewDeterminate = true;
-    bool isOldDeterminate = true;
+    bool newDeterminate = true;
+    bool oldDeterminate = true;
 };
 
 inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcept {
@@ -192,7 +192,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
         // but other failure is an actual error.
         if (status == 0 && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         {
-            winAffinity.isNewDeterminate = false;
+            winAffinity.newDeterminate = false;
         }
         else if (requiredMaskCount > 0)
         {
@@ -204,7 +204,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                                                   requiredMaskCount, &requiredMaskCount);
 
             if (status == 0)
-                winAffinity.isNewDeterminate = false;
+                winAffinity.newDeterminate = false;
             else
             {
                 std::set<CpuIndex> cpus;
@@ -236,7 +236,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
     // So it will never be indeterminate here. We can only make assumptions later.
     if (status == 0 || proc == 0)
     {
-        winAffinity.isOldDeterminate = false;
+        winAffinity.oldDeterminate = false;
         return winAffinity;
     }
 
@@ -249,7 +249,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
     std::tie(status, groupAffinity) = get_process_group_affinity();
     if (status == 0)
     {
-        winAffinity.isOldDeterminate = false;
+        winAffinity.oldDeterminate = false;
         return winAffinity;
     }
 
@@ -288,7 +288,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
             std::thread th([&]() {
                 std::set<CpuIndex> cpus;
 
-                bool isAffinityFull = true;
+                bool affinityFull = true;
 
                 for (auto procGroupIndex : groupAffinity)
                 {
@@ -297,8 +297,8 @@ inline WindowsAffinity get_process_affinity() noexcept {
                     // Have to schedule to 2 different processors and the affinities.
                     // Otherwise processor choice could influence the resulting affinity.
                     // Assume the processor IDs within the group are filled sequentially from 0.
-                    std::uint64_t procCombined = std::numeric_limits<std::uint64_t>::max();
-                    std::uint64_t sysCombined  = std::numeric_limits<std::uint64_t>::max();
+                    std::uint64_t combinedProc = std::numeric_limits<std::uint64_t>::max();
+                    std::uint64_t combinedSys  = std::numeric_limits<std::uint64_t>::max();
 
                     for (int i = 0; i < std::min(activeProcessorCount, 2); ++i)
                     {
@@ -310,7 +310,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                         status = SetThreadGroupAffinity(GetCurrentThread(), &grpAffinity, nullptr);
                         if (status == 0)
                         {
-                            winAffinity.isOldDeterminate = false;
+                            winAffinity.oldDeterminate = false;
                             return;
                         }
 
@@ -320,26 +320,26 @@ inline WindowsAffinity get_process_affinity() noexcept {
                         status = GetProcessAffinityMask(GetCurrentProcess(), &proc2, &sys2);
                         if (status == 0)
                         {
-                            winAffinity.isOldDeterminate = false;
+                            winAffinity.oldDeterminate = false;
                             return;
                         }
 
-                        procCombined &= proc2;
-                        sysCombined &= sys2;
+                        combinedProc &= proc2;
+                        combinedSys &= sys2;
                     }
 
-                    if (procCombined != sysCombined)
-                        isAffinityFull = false;
+                    if (combinedProc != combinedSys)
+                        affinityFull = false;
 
                     for (std::size_t j = 0; j < WIN_PROCESSOR_GROUP_SIZE; ++j)
-                        if (procCombined & (KAFFINITY(1) << j))
+                        if (combinedProc & (KAFFINITY(1) << j))
                             cpus.insert(procGroupIndex * WIN_PROCESSOR_GROUP_SIZE + j);
                 }
 
                 // We have to detect the case where the affinity was not set,
                 // or is set to all processors so that we correctly produce as
                 // std::nullopt result.
-                if (!isAffinityFull)
+                if (!affinityFull)
                     winAffinity.oldApi = std::move(cpus);
             });
 
@@ -464,9 +464,9 @@ class NumaConfig final {
         // We try to gather this information from the sysfs first
         // https://www.kernel.org/doc/Documentation/ABI/stable/sysfs-devices-node
 
-        bool useFallback = false;
+        bool fallbackUse = false;
         auto fallback    = [&]() {
-            useFallback = true;
+            fallbackUse = true;
             numaCfg     = empty();
         };
 
@@ -503,7 +503,7 @@ class NumaConfig final {
             }
         }
 
-        if (useFallback)
+        if (fallbackUse)
             for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
                 if (is_cpu_allowed(cpuIdx))
                     numaCfg.add_cpu_to_node(NumaIndex{0}, cpuIdx);

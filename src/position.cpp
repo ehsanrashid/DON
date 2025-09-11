@@ -152,7 +152,7 @@ void init() noexcept {
     std::memset(psq, 0, sizeof(psq));
     for (Piece pc : Pieces)
     {
-        std::size_t offset = PawnOffset * (type_of(pc) == PAWN);
+        std::size_t offset = type_of(pc) == PAWN ? PawnOffset : 0;
         for (std::size_t s = 0 + offset; s < std::size(psq[pc]) - offset; ++s)
             psq[pc][s] = rng.rand<Key>();
     }
@@ -165,7 +165,7 @@ void init() noexcept {
         while (b)
         {
             Key k = castling[square_bb(pop_lsb(b))];
-            castling[cr] ^= (k != 0) ? k : rng.rand<Key>();
+            castling[cr] ^= k ? k : rng.rand<Key>();
         }
     }
 

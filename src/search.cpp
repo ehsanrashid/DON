@@ -1874,8 +1874,7 @@ void Worker::do_move(
     accStack.push(dp);
     if (ss != nullptr)
     {
-        auto dst = m.dst_sq();
-
+        auto dst                     = m.dst_sq();
         ss->move                     = m;
         ss->pieceSqHistory           = &ContinuationHistory[ss->inCheck][capture][dp.pc][dst];
         ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[dp.pc][dst];
@@ -1895,9 +1894,12 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
     // Speculative prefetch as early as possible
     tt.prefetch_key(pos.key());
     nodes.fetch_add(1, std::memory_order_relaxed);
-    ss->move                     = Move::Null;
-    ss->pieceSqHistory           = &ContinuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
-    ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[NO_PIECE][SQUARE_ZERO];
+    if (ss != nullptr)
+    {
+        ss->move                     = Move::Null;
+        ss->pieceSqHistory           = &ContinuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
+        ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[NO_PIECE][SQUARE_ZERO];
+    }
 }
 
 void Worker::undo_null_move(Position& pos) noexcept { pos.undo_null_move(); }
