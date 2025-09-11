@@ -32,7 +32,6 @@
 #include <sstream>
 #include <unordered_map>
 #include <utility>
-#include <vector>
 
 #include "benchmark.h"
 #include "bitboard.h"

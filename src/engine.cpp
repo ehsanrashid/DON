@@ -27,7 +27,6 @@
 #include <utility>
 
 #include "evaluate.h"
-#include "misc.h"
 #include "movegen.h"
 #include "numa.h"
 #include "perft.h"

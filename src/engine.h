@@ -27,6 +27,7 @@
 #include <utility>
 #include <vector>
 
+#include "misc.h"
 #include "nnue/network.h"
 #include "numa.h"
 #include "position.h"

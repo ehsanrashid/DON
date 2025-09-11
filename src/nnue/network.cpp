@@ -23,13 +23,13 @@
 #include <iostream>
 #include <memory>
 #include <type_traits>
-#include <vector>
 
 #define INCBIN_SILENCE_BITCODE_WARNING
 #include "../incbin/incbin.h"
 
 #include "../evaluate.h"
 #include "../memory.h"
+#include "../misc.h"
 #include "../position.h"
 #include "../types.h"
 #include "../uci.h"
