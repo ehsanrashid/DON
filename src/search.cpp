@@ -418,8 +418,6 @@ void Worker::iterative_deepening() noexcept {
                 if (adjustedDepth < 1)
                     adjustedDepth = 1;
 
-                std::uint16_t preMoveChanges = moveChanges;
-
                 bestValue = search<Root>(rootPos, ss, alpha, beta, adjustedDepth);
 
                 // Bring the best move to the front. It is critical that sorting
@@ -445,9 +443,7 @@ void Worker::iterative_deepening() noexcept {
                 // otherwise exit the loop.
                 if (bestValue <= alpha)
                 {
-                    beta =
-                      (123 * alpha + 9 * beta + 12 * std::min(bestValue + delta, +VALUE_INFINITE))
-                      / 144;
+                    beta  = alpha;
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;
@@ -456,14 +452,6 @@ void Worker::iterative_deepening() noexcept {
                 }
                 else if (bestValue >= beta)
                 {
-                    if (moveChanges > preMoveChanges)
-                        alpha = (116 * alpha + 1 * beta
-                                 + 7 * std::max(bestValue - delta, -VALUE_INFINITE))
-                              / 124;
-                    else
-                        alpha = (119 * alpha + 6 * beta
-                                 + 16 * std::max(bestValue - delta, -VALUE_INFINITE))
-                              / 141;
                     beta = std::min(bestValue + delta, +VALUE_INFINITE);
 
                     ++failHighCnt;
@@ -1000,7 +988,7 @@ Value Worker::search(Position&    pos,
     {
         assert(beta < probCutBeta && probCutBeta < +VALUE_INFINITE);
 
-        Depth probCutDepth = std::max(depth - 5 - std::max((ss->staticEval - beta) / 306, -1), 0);
+        Depth probCutDepth = std::clamp(depth - 5 - (ss->staticEval - beta) / 306, 0, int(depth));
         int   probCutThreshold = probCutBeta - ss->staticEval;
 
         MovePicker mp(pos, pttm, probCutThreshold);
@@ -1151,13 +1139,13 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             if (capture)
             {
-                int captHist = CaptureHistory[movedPiece][dst][captured];
+                int history = CaptureHistory[movedPiece][dst][captured];
 
                 // Futility pruning for captures
                 if (lmrDepth < 7 && !check && !(pos.fork(move) && pos.see(move) >= -50))
                 {
                     futilityValue = std::min(47 + ss->staticEval + 184 * (bestMove == Move::None)
-                                               + 211 * lmrDepth + 130 * captHist / 1024
+                                               + 211 * lmrDepth + 130 * history / 1024
                                                + PIECE_VALUE[captured] + promotion_value(move),
                                              VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
@@ -1169,7 +1157,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for captures
-                int margin = std::max(157 * depth + captHist / 29, 0);
+                int margin = std::max(157 * depth + history / 29, 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_ZERO
                    || pos.non_pawn_material(ac) != PIECE_VALUE[type_of(movedPiece)])
@@ -1178,17 +1166,18 @@ S_MOVES_LOOP:  // When in check, search starts here
             }
             else
             {
-                int contHist = PawnHistory[pawnIndex][movedPiece][dst]  //
-                             + (*contHistory[0])[movedPiece][dst]       //
-                             + (*contHistory[1])[movedPiece][dst];
+                int history = PawnHistory[pawnIndex][movedPiece][dst]  //
+                            + (*contHistory[0])[movedPiece][dst]       //
+                            + (*contHistory[1])[movedPiece][dst];
 
-                // Continuation history based pruning
-                if (contHist < -4312 * depth)
+                // History based pruning
+                if (history < -4312 * depth)
                     continue;
 
-                contHist += 76 * QuietHistory[ac][move.org_dst()] / 32;
+                history += 76 * QuietHistory[ac][move.org_dst()] / 32;
 
-                lmrDepth += contHist / 3220;
+                // (*Scaler) Generally, a lower divisor scales well
+                lmrDepth += history / 3220;
 
                 // Futility pruning for quiets
                 // (*Scaler) Generally, more frequent futility pruning scales well
@@ -1261,7 +1250,10 @@ S_MOVES_LOOP:  // When in check, search starts here
             // assume this expected cut-node is not singular (multiple moves fail high),
             // and can prune the whole subtree by returning a soft-bound.
             else if (value >= beta && !is_decisive(value))
+            {
+                TTMoveHistory[ac] << std::max(-400 - 100 * depth, -4000);
                 return value;
+            }
 
             // Negative extensions
             // If other moves failed high over (ttValue - margin) without the ttMove on a reduced search,
@@ -1795,10 +1787,9 @@ QS_MOVES_LOOP:
             if (!capture)
             {
                 assert(dst != preSq);
-                // Continuation history based pruning
-                int contHist = PawnHistory[pawnIndex][movedPiece][dst]  //
-                             + (*contHistory[0])[movedPiece][dst];
-                if (contHist <= 5475)
+                // History based pruning
+                int history = PawnHistory[pawnIndex][movedPiece][dst];
+                if (history < 7300)
                     continue;
             }
 
@@ -2333,9 +2324,9 @@ void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& 
     assert(m.is_ok());
 
     update_quiet_history(pos.active_color(), m, std::lround(+1.0000f * bonus));
-    update_pawn_history(pos, pos.moved_piece(m), m.dst_sq(), 70 + std::lround((bonus > 0 ? +0.6875f : +0.4287f) * bonus));
+    update_pawn_history(pos, pos.moved_piece(m), m.dst_sq(), 70 + std::lround((bonus > 0 ? +0.7813f : +0.4883f) * bonus));
     update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), std::lround(+0.9326 * bonus));
-    update_low_ply_quiet_history(ss->ply, m, 38 + std::lround(+0.7236f * bonus));
+    update_low_ply_quiet_history(ss->ply, m, std::lround(+0.7432f * bonus));
 }
 
 // Updates history at the end of search() when a bestMove is found

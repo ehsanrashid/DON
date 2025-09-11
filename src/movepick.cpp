@@ -186,7 +186,7 @@ ExtMove* MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList) noexcept {
         m.value = QuietHistory[ac][m.org_dst()] + (*continuationHistory[0])[pc][dst];
 
         if (ssPly < LOW_PLY_SIZE)
-            m.value += 2 * LowPlyQuietHistory[ssPly][m.org_dst()] / (1 + ssPly);
+            m.value += 2 * LowPlyQuietHistory[ssPly][m.org_dst()];
     }
     return itr;
 }

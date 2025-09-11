@@ -103,7 +103,7 @@ std::size_t LeadPawnSize[6][FILE_NB / 2];  // [leadPawnCnt][FILE_A..FILE_D]
 
 constexpr Square operator^(Square s, int i) noexcept { return Square(int(s) ^ i); }
 constexpr Piece  operator^(Piece pc, int i) noexcept { return Piece(int(pc) ^ i); }
-constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
+constexpr int    off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 
 // Comparison function to sort leading pawns in ascending PawnsMap[] order
 bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
