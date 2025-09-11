@@ -613,9 +613,13 @@ void Worker::iterative_deepening() noexcept {
 
 // Main search function for different type of nodes.
 template<NodeType NT>
-// clang-format off
-Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, Depth depth, std::int8_t red, const Move& excludedMove) noexcept {
-    // clang-format on
+Value Worker::search(Position&    pos,
+                     Stack* const ss,
+                     Value        alpha,
+                     Value        beta,
+                     Depth        depth,
+                     std::int8_t  red,
+                     const Move&  excludedMove) noexcept {
     constexpr bool RootNode = NT == Root;
     constexpr bool PVNode   = NT & PV;
     constexpr bool CutNode  = NT == Cut;  // !PVNode
@@ -2392,22 +2396,23 @@ void update_correction_history(const Position& pos, Stack* const ss, int bonus) 
 int correction_value(const Position& pos, const Stack* const ss) noexcept {
     Color ac = pos.active_color();
 
-    int pcv  = 0;
-    int micv = 0;
-    int mjcv = 0;
-    int npcv = 0;
+    int pCv  = 0;
+    int miCv = 0;
+    int mjCv = 0;
+    int npCv = 0;
     for (Color c : {WHITE, BLACK})
     {
-        pcv  +=    PawnCorrectionHistory[correction_index(pos.    pawn_key(c))][ac][c];
-        micv +=   MinorCorrectionHistory[correction_index(pos.   minor_key(c))][ac][c];
-        mjcv +=   MajorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c];
-        npcv += NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c];
+        pCv  +=    PawnCorrectionHistory[correction_index(pos.    pawn_key(c))][ac][c];
+        miCv +=   MinorCorrectionHistory[correction_index(pos.   minor_key(c))][ac][c];
+        mjCv +=   MajorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c];
+        npCv += NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c];
     }
-    int cntcv = (ss - 1)->move.is_ok()
-              ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on((ss - 1)->move.dst_sq())][(ss - 1)->move.dst_sq()]
+    Move m = (ss - 1)->move;
+    int cntCv = m.is_ok()
+              ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
               : 8;
 
-    return (+9536 * pcv + 8494 * micv + 4247 * mjcv + 10132 * npcv + 7156 * cntcv);
+    return (+9536 * pCv + 8494 * miCv + 4247 * mjCv + 10132 * npCv + 7156 * cntCv);
 }
 
 // clang-format on

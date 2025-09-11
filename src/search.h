@@ -485,15 +485,19 @@ class Worker final {
 
     void iterative_deepening() noexcept;
 
-    // clang-format off
     // Main search function for NodeType nodes
     template<NodeType NT>
-    Value search(Position& pos, Stack* const ss, Value alpha, Value beta, Depth depth, std::int8_t red = 0, const Move& excludedMove = Move::None) noexcept;
+    Value search(Position&    pos,
+                 Stack* const ss,
+                 Value        alpha,
+                 Value        beta,
+                 Depth        depth,
+                 std::int8_t  red          = 0,
+                 const Move&  excludedMove = Move::None) noexcept;
 
     // Quiescence search function, which is called by the main search
     template<bool PVNode>
     Value qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) noexcept;
-    // clang-format on
 
     void do_move(
       Position& pos, const Move& m, State& st, bool check, Stack* const ss = nullptr) noexcept;

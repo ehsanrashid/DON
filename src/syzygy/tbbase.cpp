@@ -62,11 +62,6 @@ namespace DON {
 
 namespace {
 
-// Max number of supported piece
-constexpr std::uint32_t TBPieces = 7;
-// Max DTZ supported (2 times), large enough to deal with the syzygy TB limit.
-constexpr int MAX_DTZ = 1 << 18;
-
 enum Endian {
     Big,
     Little
@@ -76,7 +71,6 @@ enum TBType {
     WDL,
     DTZ
 };
-
 // Each table has a set of flags: all of them refer to DTZ-tables, the last one to WDL-tables
 enum TBFlag {
     AC          = 1,
@@ -87,10 +81,16 @@ enum TBFlag {
     SingleValue = 128
 };
 
-constexpr Square operator^(Square s, int i) noexcept { return Square(int(s) ^ i); }
-constexpr Piece  operator^(Piece pc, int i) noexcept { return Piece(int(pc) ^ i); }
+// Max number of supported piece
+constexpr std::uint32_t TBPieces = 7;
+// Max DTZ supported (2 times), large enough to deal with the syzygy TB limit.
+constexpr int MAX_DTZ = 1 << 18;
 
 // clang-format off
+constexpr int          WDLMap    [5]{1, 3, 0, 2, 0};
+constexpr std::int32_t WDLToRank [5]{-MAX_DTZ, -MAX_DTZ + 101, 0, +MAX_DTZ - 101, +MAX_DTZ};
+constexpr Value        WDLToValue[5]{VALUE_MATED_IN_MAX_PLY + 1, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, VALUE_MATES_IN_MAX_PLY - 1};
+
 std::size_t  PawnsMap[SQUARE_NB];
 std::size_t B1H1H7Map[SQUARE_NB];
 std::size_t A1D1D4Map[SQUARE_NB];
@@ -101,24 +101,12 @@ std::size_t  LeadPawnIdx[6][SQUARE_NB];    // [leadPawnCnt][SQUARE_NB]
 std::size_t LeadPawnSize[6][FILE_NB / 2];  // [leadPawnCnt][FILE_A..FILE_D]
 // clang-format on
 
-// Comparison function to sort leading pawns in ascending PawnsMap[] order
-bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
-
+constexpr Square operator^(Square s, int i) noexcept { return Square(int(s) ^ i); }
+constexpr Piece  operator^(Piece pc, int i) noexcept { return Piece(int(pc) ^ i); }
 constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 
-// clang-format off
-constexpr int          WDLMap    [5] = {1, 3, 0, 2, 0};
-constexpr std::int32_t WDLToRank [5] = {-MAX_DTZ,
-                                        -MAX_DTZ + 101,
-                                        0,
-                                        +MAX_DTZ - 101,
-                                        +MAX_DTZ};
-constexpr Value        WDLToValue[5] = {VALUE_MATED_IN_MAX_PLY + 1,
-                                        VALUE_DRAW - 2,
-                                        VALUE_DRAW,
-                                        VALUE_DRAW + 2,
-                                        VALUE_MATES_IN_MAX_PLY - 1};
-// clang-format on
+// Comparison function to sort leading pawns in ascending PawnsMap[] order
+bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
 
 template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
 inline void swap_endian(T& x) noexcept {

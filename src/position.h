@@ -419,15 +419,17 @@ inline Bitboard Position::pieces(Color c, PieceTypes... pts) const noexcept {
 
 template<PieceType PT>
 inline Bitboard Position::pieces(Color c, Square s, Bitboard blockers) const noexcept {
-    // clang-format off
     switch (PT)
     {
-    case KNIGHT : return pieces(c, KNIGHT) & (~blockers);
-    case BISHOP : return pieces(c, BISHOP) & (~blockers | attacks_bb<BISHOP>(s));
-    case ROOK :   return pieces(c, ROOK  ) & (~blockers | attacks_bb<ROOK>  (s));
-    default :     return pieces(c, PT    );
+    case KNIGHT :
+        return pieces(c, KNIGHT) & (~blockers);
+    case BISHOP :
+        return pieces(c, BISHOP) & (~blockers | attacks_bb<BISHOP>(s));
+    case ROOK :
+        return pieces(c, ROOK) & (~blockers | attacks_bb<ROOK>(s));
+    default :
+        return pieces(c, PT);
     }
-    // clang-format on
 }
 
 template<PieceType PT>
@@ -666,13 +668,12 @@ inline Value Position::evaluate() const noexcept {
 
 inline Value Position::bonus() const noexcept {
     Color ac = active_color();
-    // clang-format off
-    return (0.8f * (mobility(ac) - mobility(~ac))
-           +  20 * (bishop_paired(ac) - bishop_paired(~ac))
-           +  56 * ((can_castle( ac & ANY_CASTLING) || castled( ac))
-                  - (can_castle(~ac & ANY_CASTLING) || castled(~ac))))
+    return (0.8f * (mobility(ac) - mobility(~ac))            //
+            + 20 * (bishop_paired(ac) - bishop_paired(~ac))  //
+            + 56
+                * ((can_castle(ac & ANY_CASTLING) || castled(ac))
+                   - (can_castle(~ac & ANY_CASTLING) || castled(~ac))))
          * (1.0f - 4.1250e-2f * phase());
-    // clang-format on
 }
 
 inline bool Position::capture(const Move& m) const noexcept {

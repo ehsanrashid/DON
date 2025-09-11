@@ -866,14 +866,15 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     Color ac = active_color();
 
     Square org = m.org_sq(), dst = m.dst_sq();
-    // clang-format off
-    Piece movedPiece    = piece_on(org);
-    Piece capturedPiece = m.type_of() != EN_PASSANT ? piece_on(dst) : piece_on(dst - pawn_spush(ac));
+    Piece  movedPiece = piece_on(org);
+    auto   pt         = type_of(movedPiece);
+    Piece  capturedPiece =
+      m.type_of() != EN_PASSANT ? piece_on(dst) : piece_on(dst - pawn_spush(ac));
     Piece promotedPiece = NO_PIECE;
     assert(color_of(movedPiece) == ac);
-    assert(capturedPiece == NO_PIECE || (color_of(capturedPiece) == (m.type_of() != CASTLING ? ~ac : ac) && type_of(capturedPiece) != KING));
-    auto pt = type_of(movedPiece);
-    // clang-format on
+    assert(capturedPiece == NO_PIECE
+           || (color_of(capturedPiece) == (m.type_of() != CASTLING ? ~ac : ac)
+               && type_of(capturedPiece) != KING));
 
     DirtyPiece dp;
     dp.pc    = movedPiece;

@@ -42,7 +42,6 @@ struct Perft final {
     void classify(Position& pos, const Move& m) noexcept;
 
     void operator+=(const Perft& perft) noexcept;
-    //void operator-=(const Perft& perft) noexcept;
 
     std::uint64_t nodes     = 0;
     std::uint64_t capture   = 0;
@@ -106,34 +105,18 @@ void Perft::classify(Position& pos, const Move& m) noexcept {
     pos.undo_move(m);
 }
 
-// clang-format off
-
 void Perft::operator+=(const Perft& perft) noexcept {
-    nodes     += perft.nodes;
-    capture   += perft.capture;
+    nodes += perft.nodes;
+    capture += perft.capture;
     enpassant += perft.enpassant;
-    anyCheck  += perft.anyCheck;
-    dscCheck  += perft.dscCheck;
-    dblCheck  += perft.dblCheck;
-    castle    += perft.castle;
+    anyCheck += perft.anyCheck;
+    dscCheck += perft.dscCheck;
+    dblCheck += perft.dblCheck;
+    castle += perft.castle;
     promotion += perft.promotion;
     checkmate += perft.checkmate;
     stalemate += perft.stalemate;
 }
-// void Perft::operator-=(const Perft& perft) noexcept {
-//     nodes     -= perft.nodes;
-//     capture   -= perft.capture;
-//     enpassant -= perft.enpassant;
-//     anyCheck  -= perft.anyCheck;
-//     dscCheck  -= perft.dscCheck;
-//     dblCheck  -= perft.dblCheck;
-//     castle    -= perft.castle;
-//     promotion -= perft.promotion;
-//     checkmate -= perft.checkmate;
-//     stalemate -= perft.stalemate;
-// }
-
-// clang-format on
 
 struct PTEntry final {
 
