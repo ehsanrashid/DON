@@ -2021,7 +2021,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     // Step 1. Walk the PV to the last position in TB with correct decisive score
     std::int16_t ply = 1;
-    while (std::size_t(ply) < rootMove.pv.size())
+    while (ply < std::int16_t(rootMove.pv.size()))
     {
         const auto& pvMove = rootMove.pv[ply];
 
