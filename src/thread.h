@@ -171,8 +171,8 @@ class ThreadPool final {
     Thread*            best_thread() const noexcept;
     MainSearchManager* main_manager() const noexcept;
 
-    auto nodes() const noexcept;
-    auto tbHits() const noexcept;
+    std::uint64_t nodes() const noexcept;
+    std::uint64_t tbHits() const noexcept;
 
     void
     start(Position& pos, StateListPtr& states, const Limit& limit, const Options& options) noexcept;
@@ -191,7 +191,7 @@ class ThreadPool final {
 
    private:
     template<typename T>
-    T accumulate(std::atomic<T> Worker::* member, T sum = T()) const noexcept {
+    T accumulate(std::atomic<T> Worker::* member, T sum = {}) const noexcept {
 
         for (auto&& th : threads)
             sum += (th->worker.get()->*member).load(std::memory_order_relaxed);
@@ -238,9 +238,9 @@ inline MainSearchManager* ThreadPool::main_manager() const noexcept {
     return main_thread()->worker->main_manager();
 }
 
-inline auto ThreadPool::nodes() const noexcept { return accumulate(&Worker::nodes); }
+inline std::uint64_t ThreadPool::nodes() const noexcept { return accumulate(&Worker::nodes); }
 
-inline auto ThreadPool::tbHits() const noexcept { return accumulate(&Worker::tbHits); }
+inline std::uint64_t ThreadPool::tbHits() const noexcept { return accumulate(&Worker::tbHits); }
 
 // Start non-main threads
 // Will be invoked by main thread after it has started searching
