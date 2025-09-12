@@ -298,7 +298,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
                 const MoveList<LEGAL> iLegalMoveList(pos);
                 iPerft.nodes += iLegalMoveList.size();
                 if (detail)
-                    for (const Move& im : iLegalMoveList)
+                    for (const auto& im : iLegalMoveList)
                         iPerft.classify(pos, im);
             }
             else
