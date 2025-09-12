@@ -53,20 +53,18 @@ template<IndexType Size>
 struct alignas(CACHE_LINE_SIZE) Cache final {
 
     struct alignas(CACHE_LINE_SIZE) Entry final {
+        // To initialize a refresh entry, set all its bitboards empty,
+        // so put the biases in the accumulation, without any weights on top
+        void init(const BiasType* biases) noexcept {
+            std::memcpy(accumulation, biases, sizeof(accumulation));
+            auto offset = offsetof(Entry, psqtAccumulation);
+            std::memset(reinterpret_cast<std::uint8_t*>(this) + offset, 0, sizeof(Entry) - offset);
+        }
 
         BiasType       accumulation[Size];
         PSQTWeightType psqtAccumulation[PSQTBuckets];
         Bitboard       colorBB[COLOR_NB];
         Bitboard       typeBB[PIECE_TYPE_NB];
-
-        // To initialize a refresh entry, set all its bitboards empty,
-        // so put the biases in the accumulation, without any weights on top
-        void init(const BiasType* biases) noexcept {
-
-            std::memcpy(accumulation, biases, sizeof(accumulation));
-            auto offset = offsetof(Entry, psqtAccumulation);
-            std::memset((std::uint8_t*) this + offset, 0, sizeof(Entry) - offset);
-        }
     };
 
     template<typename Network>
