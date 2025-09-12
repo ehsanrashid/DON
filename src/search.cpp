@@ -2026,7 +2026,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         const Move& pvMove = rootMove.pv[ply];
 
         RootMoves tmpRootMoves;
-        for (const Move& m : MoveList<LEGAL>(rootPos))
+        for (const auto& m : MoveList<LEGAL>(rootPos))
             tmpRootMoves.emplace_back(m);
 
         auto tmpTbConfig = Tablebases::rank_root_moves(rootPos, tmpRootMoves, options);
@@ -2060,7 +2060,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     while (!rootPos.is_draw(0, rule50Use))
     {
         RootMoves tmpRootMoves;
-        for (const Move& m : MoveList<LEGAL>(rootPos))
+        for (const auto& m : MoveList<LEGAL>(rootPos))
         {
             auto& rm = tmpRootMoves.emplace_back(m);
 

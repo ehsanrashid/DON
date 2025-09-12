@@ -278,7 +278,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
 
     Perft sPerft;
 
-    for (const Move& m : MoveList<LEGAL>(pos))
+    for (const auto& m : MoveList<LEGAL>(pos))
     {
         Perft iPerft;
         if (RootNode && depth <= 1)
