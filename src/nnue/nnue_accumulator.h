@@ -64,12 +64,12 @@ struct alignas(CACHE_LINE_SIZE) Cache final {
         // To initialize a refresh entry, set all its bitboards empty,
         // so put the biases in the accumulation, without any weights on top
         void init(const BiasType* biases) noexcept {
+            // Initialize accumulation with given biases
+            std::memcpy(accumulation, biases, sizeof(accumulation));
             // Safe because SubEntry is trivially copyable
             static_assert(std::is_trivially_copyable_v<SubEntry>);
             static_assert(std::is_standard_layout_v<SubEntry>);
             std::memset(static_cast<SubEntry*>(this), 0, sizeof(SubEntry));
-            // Initialize accumulation with given biases
-            std::memcpy(accumulation, biases, sizeof(accumulation));
         }
     };
 

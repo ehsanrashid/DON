@@ -2358,7 +2358,7 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
     for (const auto& cm : movesArr[1])
         update_capture_history(pos, cm, std::lround(-1.1299f * malus));
 
-    Move& m = (ss - 1)->move;
+    auto& m = (ss - 1)->move;
     // Extra penalty for a quiet early move that was not a TT move
     // in the previous ply when it gets refuted.
     if (m.is_ok() && pos.captured_piece() == NO_PIECE && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
