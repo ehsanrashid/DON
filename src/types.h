@@ -410,14 +410,6 @@ constexpr Key16 compress_key16(Key key) noexcept {
          ^ ((key >> 48) & 0xF000);
 }
 
-template<typename T, typename... Ts>
-struct is_all_same final {
-    static constexpr bool value = (std::is_same_v<T, Ts> && ...);
-};
-
-template<typename... Ts>
-constexpr auto is_all_same_v = is_all_same<Ts...>::value;
-
 // A move needs 16 bits to be stored
 //
 // bit  0- 5: destination square (from 0 to 63)
@@ -505,6 +497,14 @@ constexpr Value promotion_value(const Move& m) noexcept {
                - VALUE_PAWN
            : VALUE_ZERO;
 }
+
+template<typename T, typename... Ts>
+struct is_all_same final {
+    static constexpr bool value = (std::is_same_v<T, Ts> && ...);
+};
+
+template<typename... Ts>
+constexpr auto is_all_same_v = is_all_same<Ts...>::value;
 
 }  // namespace DON
 

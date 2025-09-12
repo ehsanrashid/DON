@@ -2026,7 +2026,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         const Move& pvMove = rootMove.pv[ply];
 
         RootMoves tmpRootMoves;
-        for (const Move& m : MoveList<LEGAL>(rootPos))
+        for (const auto& m : MoveList<LEGAL>(rootPos))
             tmpRootMoves.emplace_back(m);
 
         auto tmpTbConfig = Tablebases::rank_root_moves(rootPos, tmpRootMoves, options);
@@ -2060,7 +2060,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     while (!rootPos.is_draw(0, rule50Use))
     {
         RootMoves tmpRootMoves;
-        for (const Move& m : MoveList<LEGAL>(rootPos))
+        for (const auto& m : MoveList<LEGAL>(rootPos))
         {
             auto& rm = tmpRootMoves.emplace_back(m);
 
@@ -2068,7 +2068,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             rootPos.do_move(m, st);
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
-            for (const Move& om : MoveList<LEGAL>(rootPos))
+            for (const auto& om : MoveList<LEGAL>(rootPos))
                 rm.tbRank -= 1 + 99 * rootPos.capture(om);
             rootPos.undo_move(m);
         }
@@ -2350,12 +2350,12 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
         update_all_quiet_history(pos, ss, bm, std::lround(+0.9346f * bonus));
 
         // Decrease history for all non-best quiet moves
-        for (const Move& qm : movesArr[0])
+        for (const auto& qm : movesArr[0])
             update_all_quiet_history(pos, ss, qm, std::lround(-1.0000f * malus));
     }
 
     // Decrease history for all non-best capture moves
-    for (const Move& cm : movesArr[1])
+    for (const auto& cm : movesArr[1])
         update_capture_history(pos, cm, std::lround(-1.1299f * malus));
 
     Move m = (ss - 1)->move;
