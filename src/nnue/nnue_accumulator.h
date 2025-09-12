@@ -21,6 +21,8 @@
 #define NNUE_ACCUMULATOR_H_INCLUDED
 
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 
 #include "../types.h"
@@ -54,9 +56,10 @@ struct alignas(CACHE_LINE_SIZE) Cache final {
         // To initialize a refresh entry, set all its bitboards empty,
         // so put the biases in the accumulation, without any weights on top
         void init(const BiasType* biases) noexcept {
-            std::memset(this, 0, sizeof(Entry));
             // Initialize accumulation with given biases
             std::memcpy(accumulation, biases, sizeof(accumulation));
+            auto offset = offsetof(Entry, psqtAccumulation);
+            std::memset(reinterpret_cast<std::uint8_t*>(this) + offset, 0, sizeof(Entry) - offset);
         }
 
         BiasType       accumulation[Size];
