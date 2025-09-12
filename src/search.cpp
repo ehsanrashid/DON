@@ -86,10 +86,8 @@ constexpr Bound fail_bound(bool failHigh, bool failLow) noexcept {
 void update_pv(Move* pv, const Move& m, const Move* childPv) noexcept {
     assert(m.is_ok());
 
-    *pv++ = m;
-    if (childPv != nullptr)
-        while (*childPv != Move::None)
-            *pv++ = *childPv++;
+    for (*pv++ = m; childPv != nullptr && *childPv != Move::None;)
+        *pv++ = *childPv++;
     *pv = Move::None;
 }
 
@@ -1428,7 +1426,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 rm.pv.resize(1);
 
-                const Move* childPv = (ss + 1)->pv;
+                const auto* childPv = (ss + 1)->pv;
                 assert(childPv != nullptr);
                 while (*childPv != Move::None)
                     rm.pv.push_back(*childPv++);
@@ -1938,7 +1936,7 @@ bool Worker::ponder_move_extracted() noexcept {
     auto& rootMove = rootMoves.front();
     assert(rootMove.pv.size() == 1 && rootMove.pv[0] != Move::None);
 
-    const auto& bm = rootMove.pv[0];
+    auto bm = rootMove.pv[0];
 
     State st;
     rootPos.do_move(bm, st);
@@ -2021,7 +2019,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     // Step 1. Walk the PV to the last position in TB with correct decisive score
     std::int16_t ply = 1;
-    while (ply < std::int16_t(rootMove.pv.size()))
+    while (std::size_t(ply) < rootMove.pv.size())
     {
         const auto& pvMove = rootMove.pv[ply];
 
