@@ -302,12 +302,13 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                     for (int i = 0; i < std::min(activeProcessorCount, 2); ++i)
                     {
-                        GROUP_AFFINITY grpAffinity;
-                        std::memset(&grpAffinity, 0, sizeof(GROUP_AFFINITY));
-                        grpAffinity.Group = WORD(procGroupIndex);
-                        grpAffinity.Mask  = KAFFINITY(1) << i;
+                        GROUP_AFFINITY groupAffinity;
+                        std::memset(&groupAffinity, 0, sizeof(groupAffinity));
+                        groupAffinity.Group = WORD(procGroupIndex);
+                        groupAffinity.Mask  = KAFFINITY(1) << i;
 
-                        status = SetThreadGroupAffinity(GetCurrentThread(), &grpAffinity, nullptr);
+                        status =
+                          SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr);
                         if (status == 0)
                         {
                             winAffinity.oldDeterminate = false;
@@ -819,7 +820,7 @@ class NumaConfig final {
             auto procGroupCount =
               WORD(((maxCpuIndex + 1) + WIN_PROCESSOR_GROUP_SIZE - 1) / WIN_PROCESSOR_GROUP_SIZE);
             auto groupAffinities = std::make_unique<GROUP_AFFINITY[]>(procGroupCount);
-            std::memset(groupAffinities.get(), 0, procGroupCount * sizeof(GROUP_AFFINITY));
+            std::memset(groupAffinities.get(), 0, procGroupCount * sizeof(*groupAffinities.get()));
             for (WORD procGroup = 0; procGroup < procGroupCount; ++procGroup)
                 groupAffinities[procGroup].Group = procGroup;
 
@@ -860,7 +861,7 @@ class NumaConfig final {
             //
             // See https://learn.microsoft.com/en-us/windows/win32/procthread/numa-support
             GROUP_AFFINITY groupAffinity;
-            std::memset(&groupAffinity, 0, sizeof(GROUP_AFFINITY));
+            std::memset(&groupAffinity, 0, sizeof(groupAffinity));
             // Use an ordered set so guaranteed to get the smallest cpu number here.
             std::size_t forcedProcGroupIndex = *(nodes[numaIdx].begin()) / WIN_PROCESSOR_GROUP_SIZE;
             groupAffinity.Group              = static_cast<WORD>(forcedProcGroupIndex);

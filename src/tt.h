@@ -152,7 +152,7 @@ struct TTEntry final {
             --depth8;
     }
 
-    void clear() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(TTEntry)); }
+    void clear() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(*this)); }
 
     // The returned age is a multiple of GENERATION_DELTA
     std::uint8_t relative_age(std::uint8_t gen) const noexcept {

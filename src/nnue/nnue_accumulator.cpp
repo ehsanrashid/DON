@@ -55,13 +55,12 @@ void fused_row_reduce(const ElementType* in, ElementType* out, const Ts* const..
 template<Color Perspective, IndexType Dimensions>
 struct AccumulatorUpdateContext {
 
-
     AccumulatorUpdateContext(const FeatureTransformer<Dimensions>& ft,
-                             const AccumulatorState&               fSt,
-                             AccumulatorState&                     tSt) noexcept :
+                             const AccumulatorState&               frSt,
+                             AccumulatorState&                     toSt) noexcept :
         featureTransformer{ft},
-        fState{fSt},
-        tState{tSt} {}
+        frAccSt{frSt},
+        toAccSt{toSt} {}
 
     template<UpdateOperation... ops,
              typename... Ts,
@@ -76,45 +75,46 @@ struct AccumulatorUpdateContext {
         };
 
         fused_row_reduce<Vec16Wrapper, Dimensions, ops...>(
-          (fState.acc<Dimensions>()).accumulation[Perspective],
-          (tState.acc<Dimensions>()).accumulation[Perspective], to_weight_vector(indices)...);
+          (frAccSt.acc<Dimensions>()).accumulation[Perspective],
+          (toAccSt.acc<Dimensions>()).accumulation[Perspective], to_weight_vector(indices)...);
 
         fused_row_reduce<Vec32Wrapper, PSQTBuckets, ops...>(
-          (fState.acc<Dimensions>()).psqtAccumulation[Perspective],
-          (tState.acc<Dimensions>()).psqtAccumulation[Perspective],
+          (frAccSt.acc<Dimensions>()).psqtAccumulation[Perspective],
+          (toAccSt.acc<Dimensions>()).psqtAccumulation[Perspective],
           to_psqt_weight_vector(indices)...);
     }
 
     const FeatureTransformer<Dimensions>& featureTransformer;
-    const AccumulatorState&               fState;
-    AccumulatorState&                     tState;
+    const AccumulatorState&               frAccSt;
+    AccumulatorState&                     toAccSt;
 };
 
 template<Color Perspective, IndexType Dimensions>
-auto make_accumulator_update_context(const FeatureTransformer<Dimensions>& featureTransformer,
-                                     const AccumulatorState&               fState,
-                                     AccumulatorState&                     tState) noexcept {
-    return AccumulatorUpdateContext<Perspective, Dimensions>{featureTransformer, fState, tState};
+AccumulatorUpdateContext<Perspective, Dimensions>
+make_accumulator_update_context(const FeatureTransformer<Dimensions>& featureTransformer,
+                                const AccumulatorState&               frAccSt,
+                                AccumulatorState&                     toAccSt) noexcept {
+    return {featureTransformer, frAccSt, toAccSt};
 }
 
 template<Color Perspective, IndexType TransformedFeatureDimensions>
 void update_accumulator_incremental_double(
   const FeatureTransformer<TransformedFeatureDimensions>& featureTransformer,
   Square                                                  kingSq,
-  const AccumulatorState&                                 computedState,
-  AccumulatorState&                                       middleState,
-  AccumulatorState&                                       targetState) noexcept {
+  const AccumulatorState&                                 computedAccSt,
+  AccumulatorState&                                       middleAccSt,
+  AccumulatorState&                                       targetAccSt) noexcept {
 
-    assert(computedState.acc<TransformedFeatureDimensions>().computed[Perspective]);
-    assert(!middleState.acc<TransformedFeatureDimensions>().computed[Perspective]);
-    assert(!targetState.acc<TransformedFeatureDimensions>().computed[Perspective]);
+    assert(computedAccSt.acc<TransformedFeatureDimensions>().computed[Perspective]);
+    assert(!middleAccSt.acc<TransformedFeatureDimensions>().computed[Perspective]);
+    assert(!targetAccSt.acc<TransformedFeatureDimensions>().computed[Perspective]);
 
     FeatureSet::IndexList removed, added;
-    FeatureSet::append_changed_indices<Perspective>(kingSq, middleState.dirtyPiece, removed, added);
+    FeatureSet::append_changed_indices<Perspective>(kingSq, middleAccSt.dirtyPiece, removed, added);
     // Can't capture a piece that was just involved in castling since the rook ends up
     // in a square that the king passed
     assert(added.size() < 2);
-    FeatureSet::append_changed_indices<Perspective>(kingSq, targetState.dirtyPiece, removed, added);
+    FeatureSet::append_changed_indices<Perspective>(kingSq, targetAccSt.dirtyPiece, removed, added);
 
     assert(added.size() == 1);
     assert(removed.size() == 2 || removed.size() == 3);
@@ -126,31 +126,27 @@ void update_accumulator_incremental_double(
     ASSUME(removed.size() == 2 || removed.size() == 3);
 
     auto updateContext =
-      make_accumulator_update_context<Perspective>(featureTransformer, computedState, targetState);
+      make_accumulator_update_context<Perspective>(featureTransformer, computedAccSt, targetAccSt);
 
     if (removed.size() == 2)
-    {
         updateContext.template apply<Add, Sub, Sub>(added[0], removed[0], removed[1]);
-    }
     else
-    {
         updateContext.template apply<Add, Sub, Sub, Sub>(added[0], removed[0], removed[1],
                                                          removed[2]);
-    }
 
-    targetState.acc<TransformedFeatureDimensions>().computed[Perspective] = true;
+    targetAccSt.acc<TransformedFeatureDimensions>().computed[Perspective] = true;
 }
 
-// Computes the accumulator of the next position, on given computedState
+// Computes the accumulator of the next position, on given computedAccSt
 template<Color Perspective, bool Forward, IndexType TransformedFeatureDimensions>
 void update_accumulator_incremental(
   const FeatureTransformer<TransformedFeatureDimensions>& featureTransformer,
   Square                                                  kingSq,
-  const AccumulatorState&                                 computedState,
-  AccumulatorState&                                       targetState) noexcept {
+  const AccumulatorState&                                 computedAccSt,
+  AccumulatorState&                                       targetAccSt) noexcept {
 
-    assert((computedState.acc<TransformedFeatureDimensions>()).computed[Perspective]);
-    assert(!(targetState.acc<TransformedFeatureDimensions>()).computed[Perspective]);
+    assert((computedAccSt.acc<TransformedFeatureDimensions>()).computed[Perspective]);
+    assert(!(targetAccSt.acc<TransformedFeatureDimensions>()).computed[Perspective]);
 
     // The size must be enough to contain the largest possible update.
     // That might depend on the feature set and generally relies on the
@@ -160,10 +156,10 @@ void update_accumulator_incremental(
     // since incrementally updating one move at a time.
     FeatureSet::IndexList removed, added;
     if constexpr (Forward)
-        FeatureSet::append_changed_indices<Perspective>(kingSq, targetState.dirtyPiece, removed,
+        FeatureSet::append_changed_indices<Perspective>(kingSq, targetAccSt.dirtyPiece, removed,
                                                         added);
     else
-        FeatureSet::append_changed_indices<Perspective>(kingSq, computedState.dirtyPiece, added,
+        FeatureSet::append_changed_indices<Perspective>(kingSq, computedAccSt.dirtyPiece, added,
                                                         removed);
 
     assert(added.size() == 1 || added.size() == 2);
@@ -178,7 +174,7 @@ void update_accumulator_incremental(
     ASSUME(removed.size() == 1 || removed.size() == 2);
 
     auto updateContext =
-      make_accumulator_update_context<Perspective>(featureTransformer, computedState, targetState);
+      make_accumulator_update_context<Perspective>(featureTransformer, computedAccSt, targetAccSt);
 
     if ((Forward && removed.size() == 1) || (!Forward && added.size() == 1))
     {
@@ -202,7 +198,7 @@ void update_accumulator_incremental(
                                                          removed[1]);
     }
 
-    (targetState.acc<TransformedFeatureDimensions>()).computed[Perspective] = true;
+    (targetAccSt.acc<TransformedFeatureDimensions>()).computed[Perspective] = true;
 }
 
 template<Color Perspective, IndexType Dimensions>

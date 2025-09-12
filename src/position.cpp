@@ -243,9 +243,9 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
 */
     assert(!fenStr.empty());
     assert(newSt != nullptr);
-    std::memset(static_cast<void*>(this), 0, sizeof(Position));
+    std::memset(static_cast<void*>(this), 0, sizeof(*this));
     std::fill(std::begin(castlingRookSq), std::end(castlingRookSq), SQ_NONE);
-    std::memset(newSt, 0, sizeof(State));
+    std::memset(newSt, 0, sizeof(*newSt));
     newSt->epSq = newSt->capSq = SQ_NONE;
     newSt->kingSq[WHITE] = newSt->kingSq[BLACK] = SQ_NONE;
 

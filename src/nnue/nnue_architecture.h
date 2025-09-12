@@ -109,7 +109,7 @@ struct NetworkArchitecture final {
             alignas(CACHE_LINE_SIZE) typename decltype(ac_1)::OutputBuffer ac_1_out;
             alignas(CACHE_LINE_SIZE) typename decltype(fc_2)::OutputBuffer fc_2_out;
 
-            Buffer() noexcept { std::memset(this, 0, sizeof(Buffer)); }
+            Buffer() noexcept { std::memset(this, 0, sizeof(*this)); }
         };
 
 #if defined(__clang__) && defined(__APPLE__)
