@@ -114,15 +114,15 @@ void TimeManager::init(const Position& pos, const Options& options, Limit& limit
         {
         // Extra time according to initial remaining Time (Only once at game start)
         if (initialAdjust < 0.0f)
-            initialAdjust = std::max(-0.4126f + 0.2862f * std::log10(1.0000f * remainTime), 1.0000e-6f);
+            initialAdjust = std::max(-0.4126f + 0.2862f * std::log10(float(remainTime)), 1.0e-6f);
 
         // Calculate time constants based on current remaining time
-        auto logScaledTime = std::log10(1.0000e-3f * scaledTime);
+        auto logScaledTime = std::log10(1.0e-3f * scaledTime);
 
         optimumScale = initialAdjust
                      * std::min(11.29900e-3f + std::min(3.47750e-3f + 28.41880e-5f * logScaledTime, 4.06734e-3f)
                                              * std::pow(2.82122f + ply, 0.466422f),
-                                00.00000f + 0.213035f * clock.time / remainTime);
+                                0.213035f * clock.time / remainTime);
         maximumScale = std::min(std::max(3.66270f + 3.72690f * logScaledTime, 2.75068f) + 78.37482e-3f * ply, 6.35772f);
         }
         // 2) x basetime (+ z increment)
@@ -132,15 +132,15 @@ void TimeManager::init(const Position& pos, const Options& options, Limit& limit
         {
         // Extra time according to initial remaining Time (Only once at game start)
         if (initialAdjust < 0.0f)
-            initialAdjust = std::max(-0.4354f + 0.3128f * std::log10(1.0000f * remainTime), 1.0000e-6f);
+            initialAdjust = std::max(-0.4354f + 0.3128f * std::log10(float(remainTime)), 1.0e-6f);
 
         // Calculate time constants based on current remaining time
-        auto logScaledTime = std::log10(1.0000e-3f * scaledTime);
+        auto logScaledTime = std::log10(1.0e-3f * scaledTime);
 
         optimumScale = initialAdjust
                      * std::min(12.14310e-3f + std::min(3.21160e-3f + 32.11230e-5f * logScaledTime, 5.08017e-3f)
                                              * std::pow(2.94693f + ply, 0.461073f),
-                                00.00000f + 0.213035f * clock.time / remainTime);
+                                0.213035f * clock.time / remainTime);
         maximumScale = std::min(std::max(3.39770f + 3.03950f * logScaledTime, 2.94761f) + 83.43972e-3f * ply, 6.67704f);
         }
     }
@@ -148,7 +148,7 @@ void TimeManager::init(const Position& pos, const Options& options, Limit& limit
     else
     {
         optimumScale = std::min((0.88000f + 85.91065e-4f * ply) / mtg,
-                                 0.00000f +  0.88000f * clock.time / remainTime);
+                                 0.88000f * clock.time / remainTime);
         maximumScale = std::min( 1.30000f + 0.11000f * mtg, 8.45000f);
     }
 
