@@ -58,7 +58,7 @@ struct alignas(CACHE_LINE_SIZE) Cache final {
         void init(const BiasType* biases) noexcept {
             std::memcpy(accumulation, biases, sizeof(accumulation));
             auto offset = offsetof(Entry, psqtAccumulation);
-            std::memset((std::uint8_t*) (this) + offset, 0, sizeof(Entry) - offset);
+            std::memset(reinterpret_cast<std::uint8_t*>(this) + offset, 0, sizeof(Entry) - offset);
         }
 
         BiasType       accumulation[Size];
