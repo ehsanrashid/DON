@@ -197,19 +197,13 @@ Thread* ThreadPool::best_thread() const noexcept {
         if (bestThreadInProvenWin)
         {
             // Make sure pick the shortest mate / TB conversion
-            if (nextThreadInProvenWin
-                && (bestThreadValue < nextThreadValue
-                    || (bestThreadValue == nextThreadValue
-                        && bestThreadPV.size() < nextThreadPV.size())))
+            if (nextThreadInProvenWin && bestThreadValue < nextThreadValue)
                 bestThread = nextThread.get();
         }
         else if (bestThreadInProvenLoss)
         {
             // Make sure pick the shortest mated / TB conversion
-            if (nextThreadInProvenLoss
-                && (bestThreadValue > nextThreadValue
-                    || (bestThreadValue == nextThreadValue
-                        && bestThreadPV.size() < nextThreadPV.size())))
+            if (nextThreadInProvenLoss && bestThreadValue > nextThreadValue)
                 bestThread = nextThread.get();
         }
         // clang-format off
