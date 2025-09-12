@@ -302,13 +302,12 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                     for (int i = 0; i < std::min(activeProcessorCount, 2); ++i)
                     {
-                        GROUP_AFFINITY groupAffinity;
-                        std::memset(&groupAffinity, 0, sizeof(groupAffinity));
-                        groupAffinity.Group = WORD(procGroupIndex);
-                        groupAffinity.Mask  = KAFFINITY(1) << i;
+                        GROUP_AFFINITY grpAffinity;
+                        std::memset(&grpAffinity, 0, sizeof(grpAffinity));
+                        grpAffinity.Group = WORD(procGroupIndex);
+                        grpAffinity.Mask  = KAFFINITY(1) << i;
 
-                        status =
-                          SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr);
+                        status = SetThreadGroupAffinity(GetCurrentThread(), &grpAffinity, nullptr);
                         if (status == 0)
                         {
                             winAffinity.oldDeterminate = false;
