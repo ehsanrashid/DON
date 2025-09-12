@@ -2358,7 +2358,7 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
     for (const auto& cm : movesArr[1])
         update_capture_history(pos, cm, std::lround(-1.1299f * malus));
 
-    auto& m = (ss - 1)->move;
+    auto m = (ss - 1)->move;
     // Extra penalty for a quiet early move that was not a TT move
     // in the previous ply when it gets refuted.
     if (m.is_ok() && pos.captured_piece() == NO_PIECE && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
@@ -2379,7 +2379,7 @@ void update_correction_history(const Position& pos, Stack* const ss, int bonus) 
       MajorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c] << int(std::lround(+0.5664f * bonus));
     NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c] << int(std::lround(+1.2891f * bonus));
     }
-    auto& m = (ss - 1)->move;
+    auto m = (ss - 1)->move;
     if (m.is_ok())
         (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << int(std::lround(+1.0703f * bonus));
 }
@@ -2400,7 +2400,7 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
         mjCv +=   MajorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c];
         npCv += NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c];
     }
-    auto& m = (ss - 1)->move;
+    auto m = (ss - 1)->move;
     int cntCv = m.is_ok()
               ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
               : 8;
