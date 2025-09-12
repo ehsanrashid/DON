@@ -114,10 +114,10 @@ void TimeManager::init(const Position& pos, const Options& options, Limit& limit
         {
         // Extra time according to initial remaining Time (Only once at game start)
         if (initialAdjust < 0.0f)
-            initialAdjust = std::max(-0.4126f + 0.2862f * std::log10(float(remainTime)), 1.0e-6f);
+            initialAdjust = std::max(-0.4126f + 0.2862f * float(std::log10(remainTime)), 1.0e-6f);
 
         // Calculate time constants based on current remaining time
-        auto logScaledTime = std::log10(1.0e-3f * scaledTime);
+        auto logScaledTime = std::log10(scaledTime / 1000.0f);
 
         optimumScale = initialAdjust
                      * std::min(11.29900e-3f + std::min(3.47750e-3f + 28.41880e-5f * logScaledTime, 4.06734e-3f)
@@ -132,10 +132,10 @@ void TimeManager::init(const Position& pos, const Options& options, Limit& limit
         {
         // Extra time according to initial remaining Time (Only once at game start)
         if (initialAdjust < 0.0f)
-            initialAdjust = std::max(-0.4354f + 0.3128f * std::log10(float(remainTime)), 1.0e-6f);
+            initialAdjust = std::max(-0.4354f + 0.3128f * float(std::log10(remainTime)), 1.0e-6f);
 
         // Calculate time constants based on current remaining time
-        auto logScaledTime = std::log10(1.0e-3f * scaledTime);
+        auto logScaledTime = std::log10(scaledTime / 1000.0f);
 
         optimumScale = initialAdjust
                      * std::min(12.14310e-3f + std::min(3.21160e-3f + 32.11230e-5f * logScaledTime, 5.08017e-3f)
