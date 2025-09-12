@@ -52,24 +52,19 @@ using SmallAccumulator = Accumulator<SmallTransformedFeatureDimensions>;
 template<IndexType Size>
 struct alignas(CACHE_LINE_SIZE) Cache final {
 
-    struct alignas(CACHE_LINE_SIZE) SubEntry {
+    struct alignas(CACHE_LINE_SIZE) Entry final {
+        BiasType       accumulation[Size];
         PSQTWeightType psqtAccumulation[PSQTBuckets];
         Bitboard       colorBB[COLOR_NB];
         Bitboard       typeBB[PIECE_TYPE_NB];
-    };
-
-    struct alignas(CACHE_LINE_SIZE) Entry final: SubEntry {
-        BiasType accumulation[Size];
 
         // To initialize a refresh entry, set all its bitboards empty,
         // so put the biases in the accumulation, without any weights on top
         void init(const BiasType* biases) noexcept {
             // Initialize accumulation with given biases
             std::memcpy(accumulation, biases, sizeof(accumulation));
-            // Safe because SubEntry is trivially copyable
-            static_assert(std::is_trivially_copyable_v<SubEntry>);
-            static_assert(std::is_standard_layout_v<SubEntry>);
-            std::memset(static_cast<SubEntry*>(this), 0, sizeof(SubEntry));
+            auto offset = offsetof(Entry, psqtAccumulation);
+            std::memset(reinterpret_cast<std::uint8_t*>(this) + offset, 0, sizeof(Entry) - offset);
         }
     };
 
