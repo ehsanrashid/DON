@@ -120,8 +120,8 @@ struct Magic final {
 };
 
 #if !defined(USE_POPCNT)
-constexpr std::uint32_t POP_CNT_SIZE = 1 << 16;
-extern std::uint8_t     PopCnt[POP_CNT_SIZE];
+constexpr unsigned  POP_CNT_SIZE = 1u << 16;
+extern std::uint8_t PopCnt[POP_CNT_SIZE];
 #endif
 
 // clang-format off

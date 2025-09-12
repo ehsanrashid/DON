@@ -471,9 +471,9 @@ void UCI::bench(std::istringstream& iss) noexcept {
 
     auto commands = Benchmark::setup_bench(iss, engine.fen());
 
-    auto num = std::count_if(
-      commands.begin(), commands.end(),  //
-      [](const auto& command) { return command.find("go ") == 0 || command.find("eval") == 0; });
+    std::size_t num = std::count_if(commands.begin(), commands.end(), [](const auto& command) {
+        return command.find("go ") == 0 || command.find("eval") == 0;
+    });
 
     std::size_t cnt = 0;
     for (const auto& command : commands)
@@ -555,8 +555,8 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
 
     auto benchmark = Benchmark::setup_benchmark(iss);
 
-    auto num = std::count_if(benchmark.commands.begin(), benchmark.commands.end(),
-                             [](const auto& command) { return command.find("go ") == 0; });
+    std::size_t num = std::count_if(benchmark.commands.begin(), benchmark.commands.end(),
+                                    [](const auto& command) { return command.find("go ") == 0; });
 
     TimePoint startTime   = now();
     TimePoint elapsedTime = 0;
