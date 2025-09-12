@@ -61,7 +61,7 @@ struct ExtMove final: public Move {
    public:
     using Move::Move;
 
-    void operator=(const Move& m) { move = m.raw(); }
+    void operator=(Move m) { move = m.raw(); }
 
     friend bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept {
         return em1.value < em2.value;

@@ -840,7 +840,7 @@ Move UCI::can_to_move(std::string can, const MoveList<LEGAL>& legalMoveList) noe
     assert(4 <= can.size() && can.size() <= 5);
     can = lower_case(can);
 
-    for (const auto& m : legalMoveList)
+    for (const Move& m : legalMoveList)
         if (can == move_to_can(m))
             return m;
 
@@ -878,7 +878,7 @@ void on_update_full(const FullInfo& info) noexcept {
         << " hashfull " << info.hashfull             //
         << " tbhits " << info.tbHits                 //
         << " pv";
-    for (const auto& m : info.rootMove.pv)
+    for (const Move& m : info.rootMove.pv)
         oss << ' ' << UCI::move_to_can(m);
     std::cout << oss.str() << std::endl;
 }
@@ -1030,7 +1030,7 @@ Move UCI::san_to_move(std::string            san,
         for (char ch : {'o', '0'})
             std::replace(san.begin(), san.end(), ch, 'O');
 
-    for (const auto& m : legalMoveList)
+    for (const Move& m : legalMoveList)
         if (san == move_to_san(m, pos))
             return m;
 

@@ -124,29 +124,29 @@ struct TTEntry final {
     // Populates the TTEntry with a new node's data, possibly
     // overwriting an old position. The update is not atomic and can be racy.
     void save(Key16        k16,
-              Depth        d,
-              bool         pv,
-              Bound        b,
-              const Move&  m,
-              Value        v,
-              Value        ev,
+              Depth        depth,
+              bool         pvHit,
+              Bound        bnd,
+              const Move&  move,
+              Value        value,
+              Value        eval,
               std::uint8_t gen) noexcept {
-        assert(d > DEPTH_OFFSET);
-        assert(d <= std::numeric_limits<std::uint8_t>::max() + DEPTH_OFFSET);
+        assert(depth > DEPTH_OFFSET);
+        assert(depth <= std::numeric_limits<std::uint8_t>::max() + DEPTH_OFFSET);
 
         // Preserve the old move if don't have a new one
-        if (key16 != k16 || m != Move::None)
-            move16 = m;
+        if (key16 != k16 || move != Move::None)
+            move16 = move;
         // Overwrite less valuable entries (cheapest checks first)
-        if (key16 != k16 || b == BOUND_EXACT           //
-            || depth8 < 4 + d - DEPTH_OFFSET + 2 * pv  //
+        if (key16 != k16 || bnd == BOUND_EXACT                //
+            || depth8 < 4 + depth - DEPTH_OFFSET + 2 * pvHit  //
             || relative_age(gen))
         {
             key16    = k16;
-            depth8   = std::uint8_t(d - DEPTH_OFFSET);
-            genData8 = std::uint8_t(gen | std::uint8_t(pv) << 2 | b);
-            value16  = v;
-            eval16   = ev;
+            depth8   = std::uint8_t(depth - DEPTH_OFFSET);
+            genData8 = std::uint8_t(gen | std::uint8_t(pvHit) << 2 | bnd);
+            value16  = value;
+            eval16   = eval;
         }
         else if (depth8 + DEPTH_OFFSET >= 5 && bound() != BOUND_EXACT)
             --depth8;
@@ -262,7 +262,8 @@ class TTUpdater final {
         ssPly(ply),
         generation(gen) {}
 
-    void update(Depth d, bool pv, Bound b, const Move& m, Value v, Value ev) noexcept {
+    void update(
+      Depth depth, bool pvHit, Bound bound, const Move& move, Value value, Value eval) noexcept {
 
         if (tte->key16 != key16)
         {
@@ -285,12 +286,12 @@ class TTUpdater final {
                 tte->clear();
         }
 
-        tte->save(key16, d, pv, b, m, value_to_tt(v, ssPly), ev, generation);
+        tte->save(key16, depth, pvHit, bound, move, value_to_tt(value, ssPly), eval, generation);
 
-        if (m != Move::None
-            && d - DEPTH_OFFSET + 2 * pv + 4 * (b == BOUND_EXACT)
+        if (move != Move::None
+            && depth - DEPTH_OFFSET + 2 * pvHit + 4 * (bound == BOUND_EXACT)
                  >= std::max({ttc->entry[0].depth8, ttc->entry[1].depth8, ttc->entry[2].depth8}))
-            ttc->move = m;
+            ttc->move = move;
     }
 
    private:

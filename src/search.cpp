@@ -83,10 +83,10 @@ constexpr Bound fail_bound(bool failHigh, bool failLow) noexcept {
 }
 
 // Appends move and appends child Pv[]
-void update_pv(Move* pv, const Move& m, const Move* childPv) noexcept {
-    assert(m.is_ok());
+void update_pv(Move* pv, const Move& move, const Move* childPv) noexcept {
+    assert(move.is_ok());
 
-    *pv++ = m;
+    *pv++ = move;
     if (childPv != nullptr)
         while (*childPv != Move::None)
             *pv++ = *childPv++;
@@ -1938,7 +1938,7 @@ bool Worker::ponder_move_extracted() noexcept {
     auto& rootMove = rootMoves.front();
     assert(rootMove.pv.size() == 1 && rootMove.pv[0] != Move::None);
 
-    const auto& bm = rootMove.pv[0];
+    Move bm = rootMove.pv[0];
 
     State st;
     rootPos.do_move(bm, st);
@@ -2021,12 +2021,12 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     // Step 1. Walk the PV to the last position in TB with correct decisive score
     std::int16_t ply = 1;
-    while (std::size_t(ply) < rootMove.pv.size())
+    while (ply < std::int16_t(rootMove.pv.size()))
     {
-        auto& pvMove = rootMove.pv[ply];
+        const Move& pvMove = rootMove.pv[ply];
 
         RootMoves tmpRootMoves;
-        for (const auto& m : MoveList<LEGAL>(rootPos))
+        for (const Move& m : MoveList<LEGAL>(rootPos))
             tmpRootMoves.emplace_back(m);
 
         auto tmpTbConfig = Tablebases::rank_root_moves(rootPos, tmpRootMoves, options);
@@ -2060,7 +2060,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     while (!rootPos.is_draw(0, rule50Use))
     {
         RootMoves tmpRootMoves;
-        for (const auto& m : MoveList<LEGAL>(rootPos))
+        for (const Move& m : MoveList<LEGAL>(rootPos))
         {
             auto& rm = tmpRootMoves.emplace_back(m);
 
@@ -2068,7 +2068,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             rootPos.do_move(m, st);
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
-            for (const auto& om : MoveList<LEGAL>(rootPos))
+            for (const Move& om : MoveList<LEGAL>(rootPos))
                 rm.tbRank -= 1 + 99 * rootPos.capture(om);
             rootPos.undo_move(m);
         }
@@ -2350,15 +2350,15 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
         update_all_quiet_history(pos, ss, bm, std::lround(+0.9346f * bonus));
 
         // Decrease history for all non-best quiet moves
-        for (const auto& qm : movesArr[0])
+        for (const Move& qm : movesArr[0])
             update_all_quiet_history(pos, ss, qm, std::lround(-1.0000f * malus));
     }
 
     // Decrease history for all non-best capture moves
-    for (const auto& cm : movesArr[1])
+    for (const Move& cm : movesArr[1])
         update_capture_history(pos, cm, std::lround(-1.1299f * malus));
 
-    Move& m = (ss - 1)->move;
+    Move m = (ss - 1)->move;
     // Extra penalty for a quiet early move that was not a TT move
     // in the previous ply when it gets refuted.
     if (m.is_ok() && pos.captured_piece() == NO_PIECE && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
@@ -2379,9 +2379,8 @@ void update_correction_history(const Position& pos, Stack* const ss, int bonus) 
       MajorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c] << int(std::lround(+0.5664f * bonus));
     NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c] << int(std::lround(+1.2891f * bonus));
     }
-    auto& m = (ss - 1)->move;
-    if (m.is_ok())
-        (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << int(std::lround(+1.0703f * bonus));
+    if ((ss - 1)->move.is_ok())
+      (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on((ss - 1)->move.dst_sq())][(ss - 1)->move.dst_sq()] << int(std::lround(+1.0703f * bonus));
 }
 
 // (*Scaler) All tuned parameters at time controls shorter than
@@ -2400,7 +2399,7 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
         mjCv +=   MajorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c];
         npCv += NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c];
     }
-    auto& m = (ss - 1)->move;
+    Move m = (ss - 1)->move;
     int cntCv = m.is_ok()
               ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
               : 8;

@@ -278,7 +278,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
 
     Perft sPerft;
 
-    for (const auto& m : MoveList<LEGAL>(pos))
+    for (const Move& m : MoveList<LEGAL>(pos))
     {
         Perft iPerft;
         if (RootNode && depth <= 1)
@@ -298,7 +298,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
                 const MoveList<LEGAL> iLegalMoveList(pos);
                 iPerft.nodes += iLegalMoveList.size();
                 if (detail)
-                    for (const auto& im : iLegalMoveList)
+                    for (const Move& im : iLegalMoveList)
                         iPerft.classify(pos, im);
             }
             else

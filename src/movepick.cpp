@@ -77,10 +77,10 @@ template<>
 ExtMove* MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveList) noexcept {
 
     auto* itr = cur;
-    for (const auto& mm : moveList)
+    for (const auto& move : moveList)
     {
         auto& m = *itr++;
-        m       = mm;
+        m       = move;
 
         Square dst      = m.dst_sq();
         auto   pc       = pos.moved_piece(m);
@@ -102,10 +102,10 @@ ExtMove* MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
     auto  pawnIndex = pawn_index(pos.pawn_key());
 
     auto* itr = cur;
-    for (const auto& mm : moveList)
+    for (const auto& move : moveList)
     {
         auto& m = *itr++;
-        m       = mm;
+        m       = move;
 
         assert(m.type_of() != PROMOTION);
 
@@ -153,10 +153,10 @@ template<>
 ExtMove* MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveList) noexcept {
 
     auto* itr = cur;
-    for (const auto& mm : moveList)
+    for (const auto& move : moveList)
     {
         auto& m = *itr++;
-        m       = mm;
+        m       = move;
 
         assert(m.type_of() != CASTLING);
 
@@ -172,10 +172,10 @@ ExtMove* MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList) noexcept {
     Color ac = pos.active_color();
 
     auto* itr = cur;
-    for (const auto& mm : moveList)
+    for (const auto& move : moveList)
     {
         auto& m = *itr++;
-        m       = mm;
+        m       = move;
 
         assert(m.type_of() != PROMOTION);
         assert(m.type_of() != CASTLING);
