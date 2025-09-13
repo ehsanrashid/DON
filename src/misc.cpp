@@ -20,7 +20,6 @@
 #include <atomic>
 #include <cmath>
 #include <cstdlib>
-#include <cstring>
 #include <ctime>
 #include <fstream>
 #include <iomanip>
@@ -74,11 +73,11 @@ class Tie final: public std::streambuf {
     int underflow() noexcept override { return sBuf1->sgetc(); }
     int uflow() noexcept override { return log(sBuf1->sbumpc(), ">> "); }
 
-    int log(int ch, const char* prefix) noexcept {
+    int log(int ch, std::string_view prefix) noexcept {
         static int preCh = '\n';  // Single log file
 
         if (preCh == '\n')
-            sBuf2->sputn(prefix, std::strlen(prefix));
+            sBuf2->sputn(prefix.data(), prefix.size());
 
         return preCh = sBuf2->sputc(char(ch));
     }
