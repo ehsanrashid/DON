@@ -63,7 +63,8 @@ void TranspositionTable::resize(std::size_t ttSize, ThreadPool& threads) noexcep
 
 // Initializes the entire transposition table to zero, in a multi-threaded way.
 void TranspositionTable::init(ThreadPool& threads) noexcept {
-    generation8 = 0;
+    lastHashfull = 0;
+    generation8  = 0;
 
     std::size_t threadCount = threads.size();
 

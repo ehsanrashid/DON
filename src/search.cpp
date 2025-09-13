@@ -2092,8 +2092,6 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         auto& st = states.emplace_back();
         rootPos.do_move(pvMove, st);
 
-        //++ply;
-
         if (time_to_abort())
             break;
     }
@@ -2178,8 +2176,9 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     auto time     = std::max(elapsed(), TimePoint(1));
     auto nodes    = worker.threads.nodes();
     auto hashfull = worker.tt.hashfull();
-    auto tbHits   = worker.threads.tbHits() + worker.tbConfig.rootInTB * worker.rootMoves.size();
-    bool wdlShow  = worker.options["UCI_ShowWDL"];
+    auto tbHits =
+      worker.threads.tbHits() + (worker.tbConfig.rootInTB ? worker.rootMoves.size() : 0);
+    bool wdlShow = worker.options["UCI_ShowWDL"];
 
     for (std::size_t i = 0; i < worker.multiPV; ++i)
     {

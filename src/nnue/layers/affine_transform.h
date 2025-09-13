@@ -114,8 +114,8 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
     for (IndexType i = 0; i < InputDimensions; ++i)
         if (input[i])
         {
-            const std::int8_t* w  = &weights[i];
-            const int          in = input[i];
+            const auto* w  = &weights[i];
+            const int   in = input[i];
             for (IndexType j = 0; j < OutputDimensions; ++j)
                 output[j] += w[j * PaddedInputDimensions] * in;
         }
