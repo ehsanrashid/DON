@@ -64,16 +64,14 @@ inline Bitboard safe_destination(Square s, Direction d, std::uint8_t dist = 1) n
 template<PieceType PT>
 Bitboard sliding_attack(Square s, Bitboard occupied = 0) noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attack()");
-    constexpr bool Rook = PT == ROOK;
     assert(is_ok(s));
 
     Bitboard attacks = 0;
-    for (Direction d : Directions[Rook])
+    for (Direction d : Directions[PT - BISHOP])
     {
         Square sq = s;
 
-        Bitboard b;
-        while ((b = safe_destination(sq, d)))
+        for (Bitboard b; (b = safe_destination(sq, d));)
         {
             attacks |= b;
             if (occupied & (sq += d))
@@ -90,30 +88,29 @@ Bitboard sliding_attack(Square s, Bitboard occupied = 0) noexcept {
 template<PieceType PT>
 void init_magics() noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in init_magics()");
-    constexpr bool Rook = PT == ROOK;
 
-    constexpr std::size_t TABLE_SIZE = 0x1000;
+    static constexpr std::size_t TableSize = 0x1000;
 
 #if !defined(USE_PEXT)
     // Optimal PRNG seeds to pick the correct magics in the shortest time
+    static constexpr std::uint16_t MagicSeeds[RANK_NB]{
     // clang-format off
-    constexpr std::uint16_t MAGIC_SEEDS[RANK_NB]{
     #if defined(IS_64BIT)
       0x02D8, 0x284C, 0xD6E5, 0x8023, 0x2FF9, 0x3AFC, 0x4105, 0x00FF
     #else
       0x2311, 0xAE10, 0xD447, 0x9856, 0x1663, 0x73E5, 0x99D0, 0x427C
     #endif
-    };
     // clang-format on
+    };
 
-    Bitboard occupancy[TABLE_SIZE];
+    Bitboard occupancy[TableSize];
 
-    std::uint32_t epoch[TABLE_SIZE]{}, cnt = 0;
+    std::uint32_t epoch[TableSize]{}, cnt = 0;
 #endif
 
-    std::uint16_t size = 0;
+    Bitboard reference[TableSize];
 
-    Bitboard reference[TABLE_SIZE];
+    std::uint16_t size = 0;
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
@@ -124,7 +121,7 @@ void init_magics() noexcept {
         // The index must be big enough to contain all the attacks for each possible subset of the mask and so
         // is 2 power the number of 1's of the mask.
         // Hence, deduce the size of the shift to apply to the 64 or 32 bits word to get the index.
-        auto& magic = Magics[s][Rook];
+        auto& magic = Magics[s][PT - BISHOP];
 
         magic.mask = sliding_attack<PT>(s) & ~edges;
 #if !defined(USE_PEXT)
@@ -137,15 +134,17 @@ void init_magics() noexcept {
           - popcount(magic.mask);
 #endif
 
-        assert(size < AttacksSize[Rook]);
+        assert(size < AttacksSize[PT - BISHOP]);
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
-        magic.attacks = s == SQ_A1 ? Attacks[Rook] : Magics[s - 1][Rook].attacks + size;
+        magic.attacks =
+          s == SQ_A1 ? Attacks[PT - BISHOP] : Magics[s - 1][PT - BISHOP].attacks + size;
         assert(magic.attacks != nullptr);
+        size = 0;
 
         // Use Carry-Rippler trick to enumerate all subsets of masks[s] and
         // store the corresponding sliding attack bitboard in reference[].
-        Bitboard b = size = 0;
+        Bitboard b = 0;
         do
         {
             reference[size] = sliding_attack<PT>(s, b);
@@ -160,14 +159,14 @@ void init_magics() noexcept {
 
 #if !defined(USE_PEXT)
 
-        PRNG rng(MAGIC_SEEDS[rank_of(s)]);
+        PRNG rng(MagicSeeds[rank_of(s)]);
         // Find a magic for square 's' picking up an (almost) random number
         // until find the one that passes the verification test.
         for (std::uint16_t i = 0; i < size;)
         {
             do
                 magic.magic = rng.sparse_rand<Bitboard>();
-            while (popcount((magic.mask * magic.magic) >> 56) < 6);
+            while (popcount((magic.magic * magic.mask) >> 56) < 6);
 
             // A good magic must map every possible occupancy to an index that
             // looks up the correct sliding attack in the attacks[s] database.
@@ -184,8 +183,9 @@ void init_magics() noexcept {
                 {
                     epoch[idx]         = cnt;
                     magic.attacks[idx] = reference[i];
+                    continue;
                 }
-                else if (magic.attacks[idx] != reference[i])
+                if (magic.attacks[idx] != reference[i])
                     break;
             }
         }

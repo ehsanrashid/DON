@@ -1889,7 +1889,6 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
     pos.do_null_move(st);
     // Speculative prefetch as early as possible
     tt.prefetch_key(pos.key());
-    //nodes.fetch_add(1, std::memory_order_relaxed);
     if (ss != nullptr)
     {
         ss->move                     = Move::Null;

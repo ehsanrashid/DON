@@ -290,9 +290,9 @@ constexpr Bitboard attacks_bb(Square s, Color c = COLOR_NB) noexcept {
 }
 
 template<PieceType PT>
-constexpr Bitboard attacks_bb(const Magic (*magic)[2], Bitboard occupied = 0) noexcept {
+constexpr Bitboard attacks_bb(const Magic (*magic)[2], Bitboard occupied) noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in attacks_bb()");
-    return (*magic)[PT == ROOK].attacks_bb(occupied);
+    return (*magic)[PT - BISHOP].attacks_bb(occupied);
 }
 
 // Returns the attacks by the given piece type
