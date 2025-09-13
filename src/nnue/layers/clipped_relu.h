@@ -155,7 +155,7 @@ class ClippedReLU {
 #endif
 
         for (IndexType i = Start; i < InputDimensions; ++i)
-            output[i] = OutputType(std::clamp(input[i] >> WEIGHT_SCALE_BITS, 0, 127));
+            output[i] = static_cast<OutputType>(std::clamp(input[i] >> WEIGHT_SCALE_BITS, 0, 127));
     }
 };
 

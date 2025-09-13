@@ -59,10 +59,10 @@ constexpr std::uint8_t constexpr_lsb(std::uint64_t bb) noexcept {
     return LsbIndices[((bb ^ (bb - 1)) * Debruijn64) >> 58];
 }
 
-alignas(CACHE_LINE_SIZE) constexpr struct Lookup final {
+struct Lookup final {
 
-    static constexpr std::size_t Size      = 256;
-    static constexpr std::size_t IndexSize = 8;
+    static constexpr std::size_t  Size      = 256;
+    static constexpr std::uint8_t IndexSize = 8;
 
     std::uint16_t indices[Size][IndexSize]{};
     std::uint8_t  popcounts[Size]{};
@@ -85,8 +85,10 @@ alignas(CACHE_LINE_SIZE) constexpr struct Lookup final {
                 indices[i][c++] = 0;
         }
     }
+};
 
-} LookupInstance;
+// Single shared instance across all TUs
+alignas(CACHE_LINE_SIZE) constexpr Lookup LookupInstance{};
 
 // Find indices of nonzero numbers in an std::int32_t array
 template<IndexType InputDimensions>
@@ -306,8 +308,8 @@ class AffineTransformSparseInput {
 
         for (IndexType j = 0; j < count; ++j)
         {
-            const auto    i  = nnz[j];
-            const invec_t in = vec_set_32(input32[i]);
+            auto    i  = nnz[j];
+            invec_t in = vec_set_32(input32[i]);
 
             const auto* col =
               reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);

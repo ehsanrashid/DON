@@ -272,8 +272,8 @@ inline WindowsAffinity get_process_affinity() noexcept {
     }
     else
     {
-        // If we got here it means that either SetProcessAffinityMask was never set
-        // or we're on Windows 11/Server 2022.
+        // If got here it means that either SetProcessAffinityMask was never set
+        // or on Windows 11/Server 2022.
 
         // Since Windows 11 and Windows Server 2022 the behaviour of
         // GetProcessAffinityMask changed:
@@ -281,7 +281,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
         //     > the function always uses the calling thread's primary group
         //     > (which by default is the same as the process' primary group)
         //     > in order to set the lpProcessAffinityMask and lpSystemAffinityMask.
-        // In which case we can actually retrieve the full affinity.
+        // In which case can actually retrieve the full affinity.
 
         if (getThreadSelectedCpuSetMasks != nullptr)
         {
@@ -292,7 +292,8 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                 for (auto procGroupIndex : groupAffinity)
                 {
-                    const int activeProcessorCount = GetActiveProcessorCount(WORD(procGroupIndex));
+                    int activeProcessorCount =
+                      GetActiveProcessorCount(static_cast<WORD>(procGroupIndex));
 
                     // Have to schedule to 2 different processors and the affinities.
                     // Otherwise processor choice could influence the resulting affinity.
@@ -304,7 +305,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                     {
                         GROUP_AFFINITY grpAffinity;
                         std::memset(&grpAffinity, 0, sizeof(grpAffinity));
-                        grpAffinity.Group = WORD(procGroupIndex);
+                        grpAffinity.Group = static_cast<WORD>(procGroupIndex);
                         grpAffinity.Mask  = KAFFINITY(1) << i;
 
                         status = SetThreadGroupAffinity(GetCurrentThread(), &grpAffinity, nullptr);
@@ -336,7 +337,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                             cpus.insert(procGroupIndex * WIN_PROCESSOR_GROUP_SIZE + j);
                 }
 
-                // We have to detect the case where the affinity was not set,
+                // Have to detect the case where the affinity was not set,
                 // or is set to all processors so that we correctly produce as
                 // std::nullopt result.
                 if (!affinityFull)
@@ -816,8 +817,8 @@ class NumaConfig final {
         if (setThreadSelectedCpuSetMasks != nullptr)
         {
             // Only available on Windows 11 and Windows Server 2022 onwards.
-            auto procGroupCount =
-              WORD(((maxCpuIndex + 1) + WIN_PROCESSOR_GROUP_SIZE - 1) / WIN_PROCESSOR_GROUP_SIZE);
+            auto procGroupCount = static_cast<WORD>(
+              ((maxCpuIndex + 1) + WIN_PROCESSOR_GROUP_SIZE - 1) / WIN_PROCESSOR_GROUP_SIZE);
             auto groupAffinities = std::make_unique<GROUP_AFFINITY[]>(procGroupCount);
             std::memset(groupAffinities.get(), 0, procGroupCount * sizeof(*groupAffinities.get()));
             for (WORD procGroup = 0; procGroup < procGroupCount; ++procGroup)

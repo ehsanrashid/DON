@@ -490,20 +490,20 @@ Benchmark setup_benchmark(std::istringstream& iss) noexcept {
         return 50000.0f / (15 + ply);
     };
 
-    float totalTime = 0.0;
+    auto totalTime = 0.0f;
     for (const auto& game : Games)
     {
         std::uint16_t ply = 1;
         for (std::size_t i = 0; i < game.size(); ++i)
         {
-            float correctedTime = get_corrected_time(ply);
+            auto correctedTime = get_corrected_time(ply);
             totalTime += correctedTime;
 
             ++ply;
         }
     }
 
-    float timeScaleFactor = 1000.0f * moveTime / totalTime;
+    auto timeScaleFactor = 1000.0f * moveTime / totalTime;
     for (const auto& game : Games)
     {
         benchmark.commands.emplace_back("ucinewgame");
@@ -513,7 +513,8 @@ Benchmark setup_benchmark(std::istringstream& iss) noexcept {
         {
             benchmark.commands.emplace_back("position fen " + fen);
 
-            std::size_t correctedTime = get_corrected_time(ply) * timeScaleFactor;
+            auto correctedTime =
+              static_cast<std::size_t>(get_corrected_time(ply) * timeScaleFactor);
             benchmark.commands.emplace_back("go movetime " + std::to_string(correctedTime));
 
             ++ply;

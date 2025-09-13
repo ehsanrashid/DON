@@ -551,7 +551,7 @@ std::size_t str_to_size_t(std::string_view str) noexcept {
     unsigned long long value = std::stoull(std::string(str));
     if (value > std::numeric_limits<std::size_t>::max())
         std::exit(EXIT_FAILURE);
-    return std::size_t(value);
+    return static_cast<std::size_t>(value);
 }
 
 std::streamsize get_file_size(std::ifstream& ifstream) noexcept {

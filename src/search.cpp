@@ -2228,7 +2228,7 @@ void Skill::init(const Options& options) noexcept {
     {
         std::uint16_t uciELO = options["UCI_ELO"];
 
-        auto e = float(uciELO - MinELO) / (MaxELO - MinELO);
+        auto e = static_cast<float>(uciELO - MinELO) / (MaxELO - MinELO);
         level  = std::clamp(-311.4380e-3f + (22.2943f + (-40.8525f + 37.2473f * e) * e) * e,  //
                             MinLevel, MaxLevel - 0.01f);
     }
@@ -2250,8 +2250,8 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
     {
         // RootMoves are already sorted by value in descending order
         Value curValue = rootMoves[0].curValue;
-        int   delta    = std::min(curValue - rootMoves[multiPV - 1].curValue, +VALUE_PAWN);
-        float weakness = 2.0f * (3.0f * MaxLevel - level);
+        auto  delta    = std::min(curValue - rootMoves[multiPV - 1].curValue, int(VALUE_PAWN));
+        auto  weakness = 2.0f * (3.0f * MaxLevel - level);
 
         Value maxValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.
