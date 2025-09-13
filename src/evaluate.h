@@ -46,8 +46,7 @@ Value evaluate(const Position&          pos,
                NNUE::AccumulatorStack&  accStack,
                std::int32_t             optimism = 0) noexcept;
 
-std::string trace(Position&             pos,  //
-                  const NNUE::Networks& networks) noexcept;
+std::string trace(Position& pos, const NNUE::Networks& networks) noexcept;
 
 }  // namespace DON
 

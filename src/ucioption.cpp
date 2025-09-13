@@ -73,10 +73,11 @@ Option::Option(bool v, OnChange&& f) noexcept :
     defaultValue = currentValue = bool_to_string(v);
 }
 
-Option::Option(const char* v, OnChange&& f) noexcept :
+Option::Option(std::string_view v, OnChange&& f) noexcept :
     type(OPT_STRING),
     onChange(std::move(f)) {
-    defaultValue = currentValue = is_whitespace(v) || lower_case(v) == EMPTY_STRING ? "" : v;
+    defaultValue = currentValue =
+      is_whitespace(v) || lower_case(std::string(v)) == EMPTY_STRING ? "" : v;
 }
 
 Option::Option(int v, int minv, int maxv, OnChange&& f) noexcept :
@@ -87,10 +88,10 @@ Option::Option(int v, int minv, int maxv, OnChange&& f) noexcept :
     defaultValue = currentValue = std::to_string(v);
 }
 
-Option::Option(const char* v, const char* var, OnChange&& f) noexcept :
+Option::Option(std::string_view v, std::string_view var, OnChange&& f) noexcept :
     type(OPT_COMBO),
     onChange(std::move(f)) {
-    defaultValue = currentValue = is_whitespace(v) || lower_case(v) == EMPTY_STRING ? "" : v;
+    defaultValue = currentValue = v;
     comboValues                 = split(var, "var", true);
 }
 

@@ -69,9 +69,11 @@ class Option final {
 
     explicit Option(OnChange&& f) noexcept;
     explicit Option(bool v, OnChange&& f = nullptr) noexcept;
-    explicit Option(const char* v, OnChange&& f = nullptr) noexcept;
+    explicit Option(std::string_view v, OnChange&& f = nullptr) noexcept;
+    explicit Option(const char* v, OnChange&& f = nullptr) noexcept :
+        Option(std::string_view(v), std::forward<OnChange>(f)) {}
     explicit Option(int v, int minv, int maxv, OnChange&& f = nullptr) noexcept;
-    explicit Option(const char* v, const char* var, OnChange&& f = nullptr) noexcept;
+    explicit Option(std::string_view v, std::string_view var, OnChange&& f = nullptr) noexcept;
 
     operator int() const noexcept;
     operator std::string() const noexcept;
