@@ -100,7 +100,7 @@ void init_magics() noexcept {
     #else
       0x2311, 0xAE10, 0xD447, 0x9856, 0x1663, 0x73E5, 0x99D0, 0x427C
     #endif
-    // clang-format on
+      // clang-format on
     };
 
     Bitboard occupancy[TableSize];

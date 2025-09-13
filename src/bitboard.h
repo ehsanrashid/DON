@@ -286,7 +286,10 @@ constexpr Bitboard attacks_pawn_bb(Bitboard b, Color c) noexcept {
 template<PieceType PT>
 constexpr Bitboard attacks_bb(Square s, Color c = COLOR_NB) noexcept {
     assert(is_ok(s) && (PT != PAWN || c < COLOR_NB));
-    return PT == PAWN ? PieceAttacks[s][c] : PieceAttacks[s][PT];
+    if constexpr (PT == PAWN)
+        return PieceAttacks[s][c];
+    else
+        return PieceAttacks[s][PT];
 }
 
 template<PieceType PT>
