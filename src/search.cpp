@@ -2363,7 +2363,7 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
 }
 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept {
-    static constexpr int BonusLimit = CORRECTION_HISTORY_LIMIT / 4;
+    constexpr int BonusLimit = CORRECTION_HISTORY_LIMIT / 4;
 
     Color ac = pos.active_color();
 

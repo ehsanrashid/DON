@@ -286,7 +286,7 @@ class AffineTransformSparseInput {
         #define vec_add_dpbusd_32 SIMD::neon_m128_add_dpbusd_epi32
     #endif
 
-        static constexpr IndexType OutputSimdWidth = sizeof(outvec_t) / sizeof(OutputType);
+        constexpr IndexType OutputSimdWidth = sizeof(outvec_t) / sizeof(OutputType);
 
         constexpr IndexType ChunkCount =
           ceil_to_multiple<IndexType>(InputDimensions, 8) / ChunkSize;

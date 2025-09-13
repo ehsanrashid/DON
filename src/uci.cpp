@@ -545,7 +545,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
 
 void UCI::benchmark(std::istringstream& iss) noexcept {
     // Probably not very important for a test this long, but include for completeness and sanity.
-    static constexpr std::size_t WarmupPositionCount = 3;
+    constexpr std::size_t WarmupPositionCount = 3;
 
     std::uint64_t infoNodes = 0;
     engine.set_on_update_full([&](const auto& info) { infoNodes = info.nodes; });
@@ -728,8 +728,8 @@ struct WinRateParams final {
 WinRateParams win_rate_params(const Position& pos) noexcept {
 
     // clang-format off
-    static constexpr double as[4]{-13.50030198,   40.92780883, -36.82753545, 386.83004070};
-    static constexpr double bs[4]{ 96.53354896, -165.79058388,  90.89679019,  49.29561889};
+    constexpr double as[4]{-13.50030198,   40.92780883, -36.82753545, 386.83004070};
+    constexpr double bs[4]{ 96.53354896, -165.79058388,  90.89679019,  49.29561889};
     // clang-format on
 
     // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (17.2414e-3).

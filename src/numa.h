@@ -135,8 +135,8 @@ struct WindowsAffinity final {
 inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcept {
     // GetProcessGroupAffinity requires the arrGroup argument to be
     // aligned to 4 bytes instead of just 2.
-    static constexpr std::size_t ARR_GROUP_MIN_ALIGNMENT = 4;
-    static_assert(ARR_GROUP_MIN_ALIGNMENT >= alignof(USHORT));
+    constexpr std::size_t ArrGroupMinAlignment = 4;
+    static_assert(ArrGroupMinAlignment >= alignof(USHORT));
 
     // The function should succeed the second time, but it may fail if the
     // group affinity has changed between GetProcessGroupAffinity calls.
@@ -145,9 +145,9 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
     for (int i = 0; i < 2; ++i)
     {
         auto arrGroup =
-          std::make_unique<USHORT[]>(groupCount + (ARR_GROUP_MIN_ALIGNMENT / alignof(USHORT) - 1));
+          std::make_unique<USHORT[]>(groupCount + (ArrGroupMinAlignment / alignof(USHORT) - 1));
 
-        USHORT* alignedArrGroup = align_ptr_up<ARR_GROUP_MIN_ALIGNMENT>(arrGroup.get());
+        USHORT* alignedArrGroup = align_ptr_up<ArrGroupMinAlignment>(arrGroup.get());
 
         BOOL status = GetProcessGroupAffinity(GetCurrentProcess(), &groupCount, alignedArrGroup);
 

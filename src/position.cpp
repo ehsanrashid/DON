@@ -2036,7 +2036,7 @@ Key Position::compute_non_pawn_key() const noexcept {
 // This is meant to be helpful when debugging.
 bool Position::pos_is_ok() const noexcept {
 
-    static constexpr bool Fast = true;  // Quick (default) or full check?
+    constexpr bool Fast = true;  // Quick (default) or full check?
 
     if ((active_color() != WHITE && active_color() != BLACK)  //
         || count(W_KING) != 1 || count(B_KING) != 1           //
@@ -2117,7 +2117,7 @@ std::ostream& operator<<(std::ostream& os, const Position::Board::Cardinal& card
 }
 
 std::ostream& operator<<(std::ostream& os, const Position::Board& board) noexcept {
-    static constexpr std::string_view Sep = "\n  +---+---+---+---+---+---+---+---+\n";
+    constexpr std::string_view Sep = "\n  +---+---+---+---+---+---+---+---+\n";
 
     os << Sep;
     for (Rank r = RANK_8; r >= RANK_1; --r)

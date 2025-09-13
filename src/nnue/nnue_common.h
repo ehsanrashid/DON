@@ -170,7 +170,7 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
 
     static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
 
-    static constexpr std::size_t BuffSize = 4096;
+    constexpr std::size_t BuffSize = 4096;
 
     std::uint8_t buffer[BuffSize];
 
@@ -237,7 +237,7 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
 
     write_little_endian(ostream, byteCount);
 
-    static constexpr std::size_t BuffSize = 4096;
+    constexpr std::size_t BuffSize = 4096;
 
     std::uint8_t buffer[BuffSize];
 

@@ -274,7 +274,7 @@ class PRNG final {
 
     // Jump function for the XORShift64Star PRNG
     void jump() noexcept {
-        static constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ull;
+        constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ull;
 
         std::uint64_t t = 0;
         for (std::uint8_t m = 0; m < 64; ++m)
@@ -321,7 +321,7 @@ class PRNG1024 final {
 
     // Jump function for the XORShift1024Star PRNG
     void jump() noexcept {
-        static constexpr std::array<std::uint64_t, Size> JumpMask{
+        constexpr std::array<std::uint64_t, Size> JumpMask{
           // clang-format off
           0x84242F96ECA9C41Dull, 0xA3C65B8776F96855ull, 0x5B34A39F070B5837ull, 0x4489AFFCE4F31A1Eull,
           0x2FFEEB0A48316F40ull, 0xDC2D9891FE68C022ull, 0x3659132BB12FEA70ull, 0xAAC17D8EFA43CAB8ull,

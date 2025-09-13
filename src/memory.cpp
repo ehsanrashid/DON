@@ -205,17 +205,17 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept {
     return mem;
 #else
 
-    constexpr std::size_t ALIGNMENT =
+    constexpr std::size_t Alignment =
     #if defined(__linux__)
       2 * 1024 * 1024;  // Assume 2MB page size
     #else
       4 * 1024;  // Assume small page size
     #endif
 
-    // Round up to multiples of ALIGNMENT
-    std::size_t roundAllocSize = ((allocSize + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT;
+    // Round up to multiples of Alignment
+    std::size_t roundAllocSize = ((allocSize + Alignment - 1) / Alignment) * Alignment;
 
-    void* mem = alloc_aligned_std(roundAllocSize, ALIGNMENT);
+    void* mem = alloc_aligned_std(roundAllocSize, Alignment);
     #if defined(MADV_HUGEPAGE)
     if (mem != nullptr)
         madvise(mem, roundAllocSize, MADV_HUGEPAGE);

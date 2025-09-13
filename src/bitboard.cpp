@@ -89,11 +89,11 @@ template<PieceType PT>
 void init_magics() noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in init_magics()");
 
-    static constexpr std::size_t TableSize = 0x1000;
+    constexpr std::size_t TableSize = 0x1000;
 
 #if !defined(USE_PEXT)
     // Optimal PRNG seeds to pick the correct magics in the shortest time
-    static constexpr std::uint16_t MagicSeeds[RANK_NB]{
+    constexpr std::uint16_t MagicSeeds[RANK_NB]{
     // clang-format off
     #if defined(IS_64BIT)
       0x02D8, 0x284C, 0xD6E5, 0x8023, 0x2FF9, 0x3AFC, 0x4105, 0x00FF
@@ -249,7 +249,7 @@ void init() noexcept {
 // Returns an ASCII representation of a bitboard suitable
 // to be printed to standard output. Useful for debugging.
 std::string pretty(Bitboard b) noexcept {
-    static constexpr std::string_view Sep = "\n  +---+---+---+---+---+---+---+---+\n";
+    constexpr std::string_view Sep = "\n  +---+---+---+---+---+---+---+---+\n";
 
     std::ostringstream oss;
 

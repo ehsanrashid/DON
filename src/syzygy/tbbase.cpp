@@ -269,11 +269,11 @@ class TBFile: public std::ifstream {
         }
 #endif
 
-        static constexpr std::size_t  MagicSize            = 4;
-        static constexpr std::uint8_t Magics[2][MagicSize] = {{0xD7, 0x66, 0x0C, 0xA5},
-                                                              {0x71, 0xE8, 0x23, 0x5D}};
-
         auto* data = (std::uint8_t*) (*baseAddress);
+
+        constexpr std::size_t  MagicSize            = 4;
+        constexpr std::uint8_t Magics[2][MagicSize] = {{0xD7, 0x66, 0x0C, 0xA5},
+                                                       {0x71, 0xE8, 0x23, 0x5D}};
 
         if (std::memcmp(data, Magics[Type == WDL], MagicSize))
         {
@@ -302,7 +302,7 @@ class TBFile: public std::ifstream {
         //
         // Example:
         // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
-        static constexpr char PathSeparator =
+        constexpr char PathSeparator =
 #if defined(_WIN32)
           ';'
 #else
@@ -370,7 +370,7 @@ template<TBType Type>
 struct TBTable final {
     using Ret = std::conditional_t<Type == WDL, WDLScore, int>;
 
-    static constexpr unsigned SIDES = 1 + 1 * (Type == WDL);
+    static constexpr unsigned SIDES = Type == WDL ? 2 : 1;
 
     std::atomic<bool> ready;
     void*             baseAddress;
@@ -460,11 +460,11 @@ class TBTables final {
     // 4K table, indexed by key's 12 lsb
     static constexpr std::size_t Size = 1u << 12;
     // Number of elements allowed to map to the last bucket
-    static constexpr std::size_t OverFlow = 1u;
+    static constexpr std::size_t Overflow = 1u;
 
     static constexpr std::size_t index(Key key) noexcept { return key & (Size - 1); }
 
-    Entry entries[Size + OverFlow];
+    Entry entries[Size + Overflow];
 
     std::deque<TBTable<WDL>> wdlTables;
     std::deque<TBTable<DTZ>> dtzTables;
@@ -477,7 +477,7 @@ class TBTables final {
 
         auto homeBucket = index(key);
         // Ensure last element is empty to avoid overflow when looking up
-        for (auto bucket = homeBucket; bucket < Size + OverFlow - 1; ++bucket)
+        for (auto bucket = homeBucket; bucket < Size + Overflow - 1; ++bucket)
         {
             Key otherKey = entries[bucket].key;
             if (otherKey == key || !entries[bucket].get<WDL>())

@@ -205,7 +205,7 @@ class AffineTransform final {
                                                 vreinterpretq_s8_s32(b))
     #endif
 
-            static constexpr IndexType OutputSimdWidth = sizeof(vec_t) / sizeof(OutputType);
+            constexpr IndexType OutputSimdWidth = sizeof(vec_t) / sizeof(OutputType);
 
             static_assert(OutputDimensions % OutputSimdWidth == 0);
 
@@ -260,7 +260,7 @@ class AffineTransform final {
 
             const auto* inputVector = reinterpret_cast<const vec_t*>(input);
 
-            static constexpr IndexType InputSimdWidth = sizeof(vec_t) / sizeof(InputType);
+            constexpr IndexType InputSimdWidth = sizeof(vec_t) / sizeof(InputType);
 
             static_assert(PaddedInputDimensions % InputSimdWidth == 0);
 
