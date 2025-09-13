@@ -20,6 +20,7 @@
 #ifndef NNUE_ACCUMULATOR_H_INCLUDED
 #define NNUE_ACCUMULATOR_H_INCLUDED
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
