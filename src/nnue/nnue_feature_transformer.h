@@ -167,11 +167,11 @@ class FeatureTransformer final {
     }
 
     // Convert input features
-    std::int32_t transform(const Position&                      pos,
-                           AccumulatorStack&                    accStack,
-                           Cache<TransformedFeatureDimensions>* cache,
-                           OutputType*                          output,
-                           int                                  bucket) const noexcept {
+    std::int32_t transform(const Position&                                         pos,
+                           AccumulatorStack&                                       accStack,
+                           AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache,
+                           OutputType*                                             output,
+                           int bucket) const noexcept {
         using namespace SIMD;
 
         accStack.evaluate(pos, *this, *cache);

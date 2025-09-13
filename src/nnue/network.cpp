@@ -255,10 +255,10 @@ void Network<Arch, Transformer>::verify(std::string evalFileName) const noexcept
 }
 
 template<typename Arch, typename Transformer>
-NetworkOutput
-Network<Arch, Transformer>::evaluate(const Position&                      pos,
-                                     AccumulatorStack&                    accStack,
-                                     Cache<TransformedFeatureDimensions>* cache) const noexcept {
+NetworkOutput Network<Arch, Transformer>::evaluate(
+  const Position&                                         pos,
+  AccumulatorStack&                                       accStack,
+  AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
 
     constexpr std::size_t Alignment = CACHE_LINE_SIZE;
 
@@ -276,10 +276,10 @@ Network<Arch, Transformer>::evaluate(const Position&                      pos,
 }
 
 template<typename Arch, typename Transformer>
-NetworkTrace
-Network<Arch, Transformer>::trace(const Position&                      pos,
-                                  AccumulatorStack&                    accStack,
-                                  Cache<TransformedFeatureDimensions>* cache) const noexcept {
+NetworkTrace Network<Arch, Transformer>::trace(
+  const Position&                                         pos,
+  AccumulatorStack&                                       accStack,
+  AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
 
     constexpr std::size_t Alignment = CACHE_LINE_SIZE;
 

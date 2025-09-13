@@ -205,7 +205,7 @@ template<Color Perspective, IndexType Dimensions>
 void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& featureTransformer,
                                       const Position&                       pos,
                                       AccumulatorState&                     accState,
-                                      Cache<Dimensions>&                    cache) noexcept {
+                                      AccumulatorCaches::Cache<Dimensions>& cache) noexcept {
 #if defined(VECTOR)
     using Tiling = SIMDTiling<Dimensions, PSQTBuckets>;
 #endif
@@ -364,18 +364,17 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
 
 #undef assume
 
-void AccumulatorState::reset(const DirtyPiece& dp) noexcept {
-    dirtyPiece = dp;
-    big.computed.fill(false);
-    small.computed.fill(false);
-}
-
 void AccumulatorCaches::init(const Networks& networks) noexcept {
 
     big.init(networks.big);
     small.init(networks.small);
 }
 
+void AccumulatorState::reset(const DirtyPiece& dp) noexcept {
+    dirtyPiece = dp;
+    big.computed.fill(false);
+    small.computed.fill(false);
+}
 
 const AccumulatorState& AccumulatorStack::clatest_state() const noexcept {
     return accStates[size - 1];
@@ -401,7 +400,7 @@ void AccumulatorStack::pop() noexcept {
 template<IndexType Dimensions>
 void AccumulatorStack::evaluate(const Position&                       pos,
                                 const FeatureTransformer<Dimensions>& featureTransformer,
-                                Cache<Dimensions>&                    cache) noexcept {
+                                AccumulatorCaches::Cache<Dimensions>& cache) noexcept {
 
     evaluate_side<WHITE>(pos, featureTransformer, cache);
     evaluate_side<BLACK>(pos, featureTransformer, cache);
@@ -410,7 +409,7 @@ void AccumulatorStack::evaluate(const Position&                       pos,
 template<Color Perspective, IndexType Dimensions>
 void AccumulatorStack::evaluate_side(const Position&                       pos,
                                      const FeatureTransformer<Dimensions>& featureTransformer,
-                                     Cache<Dimensions>&                    cache) noexcept {
+                                     AccumulatorCaches::Cache<Dimensions>& cache) noexcept {
 
     auto lastUsableAcc = find_last_usable_accumulator<Perspective, Dimensions>();
 
@@ -502,10 +501,10 @@ void AccumulatorStack::backward_update_incremental(
 template void AccumulatorStack::evaluate<BigTransformedFeatureDimensions>(
   const Position&                                            pos,
   const FeatureTransformer<BigTransformedFeatureDimensions>& featureTransformer,
-  Cache<BigTransformedFeatureDimensions>&                    cache) noexcept;
+  AccumulatorCaches::Cache<BigTransformedFeatureDimensions>& cache) noexcept;
 template void AccumulatorStack::evaluate<SmallTransformedFeatureDimensions>(
   const Position&                                              pos,
   const FeatureTransformer<SmallTransformedFeatureDimensions>& featureTransformer,
-  Cache<SmallTransformedFeatureDimensions>&                    cache) noexcept;
+  AccumulatorCaches::Cache<SmallTransformedFeatureDimensions>& cache) noexcept;
 
 }  // namespace DON::NNUE

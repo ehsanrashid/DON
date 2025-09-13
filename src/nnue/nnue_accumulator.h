@@ -20,10 +20,10 @@
 #ifndef NNUE_ACCUMULATOR_H_INCLUDED
 #define NNUE_ACCUMULATOR_H_INCLUDED
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 #include "../types.h"
 #include "nnue_architecture.h"
@@ -37,6 +37,9 @@ namespace NNUE {
 
 struct Networks;
 
+template<IndexType TransformedFeatureDimensions>
+class FeatureTransformer;
+
 // Accumulator holds the result of affine transformation of input features
 template<IndexType Size>
 struct alignas(CACHE_LINE_SIZE) Accumulator final {
@@ -49,40 +52,57 @@ struct alignas(CACHE_LINE_SIZE) Accumulator final {
 using BigAccumulator   = Accumulator<BigTransformedFeatureDimensions>;
 using SmallAccumulator = Accumulator<SmallTransformedFeatureDimensions>;
 
-template<IndexType Size>
-struct alignas(CACHE_LINE_SIZE) Cache final {
+// AccumulatorCaches provides per-thread accumulator caches,
+// where each cache contains multiple entries for each of the possible king squares.
+// When the accumulator needs to be refreshed, the cached entry is used to more
+// efficiently update the accumulator, instead of rebuilding it from scratch.
+// This idea, was first described by Luecx (author of Koivisto) and
+// is commonly referred to as "Finny Tables".
+struct AccumulatorCaches final {
 
-    struct alignas(CACHE_LINE_SIZE) Entry final {
-        // To initialize a refresh entry, set all its bitboards empty,
-        // so put the biases in the accumulation, without any weights on top
-        void init(const BiasType* biases) noexcept {
-            // Initialize accumulation with given biases
-            std::memcpy(accumulation, biases, sizeof(accumulation));
-            auto offset = offsetof(Entry, psqtAccumulation);
-            std::memset(reinterpret_cast<std::uint8_t*>(this) + offset, 0, sizeof(*this) - offset);
+    template<IndexType Size>
+    struct alignas(CACHE_LINE_SIZE) Cache final {
+
+        struct alignas(CACHE_LINE_SIZE) Entry final {
+            // To initialize a refresh entry, set all its bitboards empty,
+            // so put the biases in the accumulation, without any weights on top
+            void init(const BiasType* biases) noexcept {
+                // Initialize accumulation with given biases
+                std::memcpy(accumulation, biases, sizeof(accumulation));
+                auto offset = offsetof(Entry, psqtAccumulation);
+                std::memset(reinterpret_cast<std::uint8_t*>(this) + offset, 0,
+                            sizeof(*this) - offset);
+            }
+
+            BiasType       accumulation[Size];
+            PSQTWeightType psqtAccumulation[PSQTBuckets];
+            Bitboard       colorBB[COLOR_NB];
+            Bitboard       typeBB[PIECE_TYPE_NB];
+        };
+
+        template<typename Network>
+        void init(const Network& network) noexcept {
+
+            for (auto& subEntry : entries)
+                for (auto& entry : subEntry)
+                    entry.init(network.featureTransformer->biases);
         }
 
-        BiasType       accumulation[Size];
-        PSQTWeightType psqtAccumulation[PSQTBuckets];
-        Bitboard       colorBB[COLOR_NB];
-        Bitboard       typeBB[PIECE_TYPE_NB];
+        auto& operator[](Square s) noexcept { return entries[s]; }
+
+        std::array<std::array<Entry, COLOR_NB>, SQUARE_NB> entries;
     };
 
-    template<typename Network>
-    void init(const Network& network) noexcept {
+    using BigCache   = Cache<BigTransformedFeatureDimensions>;
+    using SmallCache = Cache<SmallTransformedFeatureDimensions>;
 
-        for (auto& subEntry : entries)
-            for (auto& entry : subEntry)
-                entry.init(network.featureTransformer->biases);
-    }
+    explicit AccumulatorCaches(const Networks& networks) noexcept { init(networks); }
 
-    auto& operator[](Square s) noexcept { return entries[s]; }
+    void init(const Networks& networks) noexcept;
 
-    std::array<std::array<Entry, COLOR_NB>, SQUARE_NB> entries;
+    BigCache   big;
+    SmallCache small;
 };
-
-using BigCache   = Cache<BigTransformedFeatureDimensions>;
-using SmallCache = Cache<SmallTransformedFeatureDimensions>;
 
 struct AccumulatorState final {
 
@@ -116,28 +136,10 @@ struct AccumulatorState final {
     SmallAccumulator small;
 };
 
-// AccumulatorCaches provides per-thread accumulator caches,
-// where each cache contains multiple entries for each of the possible king squares.
-// When the accumulator needs to be refreshed, the cached entry is used to more
-// efficiently update the accumulator, instead of rebuilding it from scratch.
-// This idea, was first described by Luecx (author of Koivisto) and
-// is commonly referred to as "Finny Tables".
-struct AccumulatorCaches final {
-
-    explicit AccumulatorCaches(const Networks& networks) noexcept { init(networks); }
-
-    void init(const Networks& networks) noexcept;
-
-    BigCache   big;
-    SmallCache small;
-};
-
-template<IndexType TransformedFeatureDimensions>
-class FeatureTransformer;
-
 class AccumulatorStack final {
    public:
     AccumulatorStack() noexcept :
+        accStates(MAX_PLY + 1),
         size(1) {}
 
     [[nodiscard]] const AccumulatorState& clatest_state() const noexcept;
@@ -150,13 +152,13 @@ class AccumulatorStack final {
     template<IndexType Dimensions>
     void evaluate(const Position&                       pos,
                   const FeatureTransformer<Dimensions>& featureTransformer,
-                  Cache<Dimensions>&                    cache) noexcept;
+                  AccumulatorCaches::Cache<Dimensions>& cache) noexcept;
 
    private:
     template<Color Perspective, IndexType Dimensions>
     void evaluate_side(const Position&                       pos,
                        const FeatureTransformer<Dimensions>& featureTransformer,
-                       Cache<Dimensions>&                    cache) noexcept;
+                       AccumulatorCaches::Cache<Dimensions>& cache) noexcept;
 
     template<Color Perspective, IndexType Dimensions>
     [[nodiscard]] std::size_t find_last_usable_accumulator() const noexcept;
@@ -171,8 +173,8 @@ class AccumulatorStack final {
                                      const FeatureTransformer<Dimensions>& featureTransformer,
                                      std::size_t                           end) noexcept;
 
-    std::array<AccumulatorState, MAX_PLY + 1> accStates{};
-    std::size_t                               size;
+    std::vector<AccumulatorState> accStates;
+    std::size_t                   size;
 };
 
 }  // namespace NNUE

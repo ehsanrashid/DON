@@ -52,23 +52,25 @@ class Network final {
         evalFile(evFile),
         embeddedType(embType) {}
 
-    Network(const Network<Arch, Transformer>& net) noexcept;
-    Network(Network<Arch, Transformer>&&) noexcept = default;
-    Network<Arch, Transformer>& operator=(const Network<Arch, Transformer>& net) noexcept;
-    Network<Arch, Transformer>& operator=(Network<Arch, Transformer>&&) noexcept = default;
+    Network(const Network& net) noexcept;
+    Network(Network&&) noexcept = default;
+    Network& operator=(const Network& net) noexcept;
+    Network& operator=(Network&&) noexcept = default;
 
     void load(std::string_view rootDirectory, std::string evalFileName) noexcept;
     bool save(const std::optional<std::string>& fileName) const noexcept;
 
     void verify(std::string evalFileName) const noexcept;
 
-    NetworkOutput evaluate(const Position&                      pos,
-                           AccumulatorStack&                    accStack,
-                           Cache<TransformedFeatureDimensions>* cache) const noexcept;
+    NetworkOutput
+    evaluate(const Position&                                         pos,
+             AccumulatorStack&                                       accStack,
+             AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
-    NetworkTrace trace(const Position&                      pos,
-                       AccumulatorStack&                    accStack,
-                       Cache<TransformedFeatureDimensions>* cache) const noexcept;
+    NetworkTrace
+    trace(const Position&                                         pos,
+          AccumulatorStack&                                       accStack,
+          AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept;
 
    private:
     void load_user_net(const std::string& dir, const std::string& evalFileName) noexcept;
@@ -98,7 +100,7 @@ class Network final {
     EmbeddedType embeddedType;
 
     template<IndexType Size>
-    friend struct Cache;
+    friend struct AccumulatorCaches::Cache;
 
     friend class AccumulatorStack;
 };
