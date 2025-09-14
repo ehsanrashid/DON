@@ -51,7 +51,7 @@ Value evaluate(const Position&          pos,
     NNUE::NetworkOutput netOut{0, 0};
 
     const auto compute_nnue = [&netOut = std::as_const(netOut)]() noexcept -> std::int32_t {
-        return (125 * netOut.psqt + 131 * netOut.positional) / (128 * NNUE::OUTPUT_SCALE);
+        return (125 * netOut.psqt + 131 * netOut.positional) / 128;
     };
 
     std::int32_t nnue = 0;
@@ -80,7 +80,7 @@ Value evaluate(const Position&          pos,
 
     // Blend nnue and optimism with complexity
     // clang-format off
-    std::int32_t complexity = std::abs(netOut.psqt - netOut.positional) / NNUE::OUTPUT_SCALE;
+    std::int32_t complexity = std::abs(netOut.psqt - netOut.positional);
 
     nnue     = std::lround(nnue     * std::max(1.0f - 55.5555e-6f * complexity, 0.0001f));
     optimism = std::lround(optimism *         (1.0f + 21.3675e-4f * complexity));
@@ -120,7 +120,7 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     auto netOut = networks.big.evaluate(pos, accStack, &accCaches->big);
 
     Value v;
-    v = (netOut.psqt + netOut.positional) / NNUE::OUTPUT_SCALE;
+    v = netOut.psqt + netOut.positional;
     v = pos.active_color() == WHITE ? +v : -v;
     oss << "NNUE evaluation      : " << 0.01f * UCI::to_cp(v, pos) << " (white side)\n";
 

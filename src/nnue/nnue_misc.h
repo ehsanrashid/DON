@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <string>
 
+#include "../types.h"
 #include "nnue_architecture.h"
 
 namespace DON {
@@ -44,8 +45,8 @@ struct EvalFile final {
 };
 
 struct NetworkOutput final {
-    std::int32_t psqt;
-    std::int32_t positional;
+    Value psqt;
+    Value positional;
 };
 
 struct NetworkTrace final {

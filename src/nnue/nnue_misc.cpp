@@ -28,7 +28,6 @@
 
 #include "../misc.h"
 #include "../position.h"
-#include "../types.h"
 #include "../uci.h"
 #include "network.h"
 #include "nnue_accumulator.h"
@@ -114,7 +113,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
     auto  netOut   = networks.big.evaluate(pos, accStack, &accCaches.big);
-    Value baseEval = (netOut.psqt + netOut.positional) / OUTPUT_SCALE;
+    Value baseEval = netOut.psqt + netOut.positional;
 
     baseEval = pos.active_color() == WHITE ? +baseEval : -baseEval;
 
@@ -132,7 +131,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
                 accStack.reset();
 
                 netOut     = networks.big.evaluate(pos, accStack, &accCaches.big);
-                Value eval = (netOut.psqt + netOut.positional) / OUTPUT_SCALE;
+                Value eval = netOut.psqt + netOut.positional;
                 eval       = pos.active_color() == WHITE ? +eval : -eval;
 
                 v = baseEval - eval;
@@ -160,17 +159,13 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
     for (std::size_t bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        Value value;
-
         oss << "|  " << bucket << "         |  ";
-        value = trace.netOut[bucket].psqt / OUTPUT_SCALE;
-        format_cp_aligned_dot(oss, value, pos);
+        format_cp_aligned_dot(oss, trace.netOut[bucket].psqt, pos);
         oss << "   |  ";
-        value = trace.netOut[bucket].positional / OUTPUT_SCALE;
-        format_cp_aligned_dot(oss, value, pos);
+        format_cp_aligned_dot(oss, trace.netOut[bucket].positional, pos);
         oss << "   |  ";
-        value = (trace.netOut[bucket].psqt + trace.netOut[bucket].positional) / OUTPUT_SCALE;
-        format_cp_aligned_dot(oss, value, pos);
+        format_cp_aligned_dot(oss, trace.netOut[bucket].psqt + trace.netOut[bucket].positional,
+                              pos);
         oss << "   |";
         if (bucket == trace.correctBucket)
             oss << " <-- this bucket is used";
