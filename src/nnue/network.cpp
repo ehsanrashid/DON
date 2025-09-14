@@ -272,8 +272,7 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
     auto psqt = featureTransformer->transform(pos, accStack, cache, bucket, transformedFeatures);
     auto positional = network[bucket].propagate(transformedFeatures);
 
-    return {static_cast<std::int32_t>(psqt / OUTPUT_SCALE),
-            static_cast<std::int32_t>(positional / OUTPUT_SCALE)};
+    return {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
 }
 
 template<typename Arch, typename Transformer>
@@ -297,8 +296,7 @@ NetworkTrace Network<Arch, Transformer>::trace(
           featureTransformer->transform(pos, accStack, cache, bucket, transformedFeatures);
         auto positional = network[bucket].propagate(transformedFeatures);
 
-        netTrace.netOut[bucket] = {static_cast<std::int32_t>(psqt / OUTPUT_SCALE),
-                                   static_cast<std::int32_t>(positional / OUTPUT_SCALE)};
+        netTrace.netOut[bucket] = {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
     }
 
     return netTrace;

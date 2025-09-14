@@ -62,8 +62,8 @@ inline Move* splat_pawn_moves(Move* moves, Bitboard b) noexcept {
 
     const auto* table = reinterpret_cast<const __m512i*>(SplatTable.data());
 
-    moves = write_moves(moves, static_cast<uint32_t>(b >> 0), _mm512_load_si512(table + 0));
-    moves = write_moves(moves, static_cast<uint32_t>(b >> 32), _mm512_load_si512(table + 1));
+    moves = write_moves(moves, std::uint32_t(b >> 00), _mm512_load_si512(table + 0));
+    moves = write_moves(moves, std::uint32_t(b >> 32), _mm512_load_si512(table + 1));
 #else
     while (b)
     {
@@ -105,9 +105,9 @@ inline Move* splat_moves(Move* moves, Square s, Bitboard b) noexcept {
 
     const auto* table = reinterpret_cast<const __m512i*>(SplatTable.data());
 
-    moves = write_moves(moves, static_cast<uint32_t>(b >> 0),
+    moves = write_moves(moves, std::uint32_t(b >> 00),
                         _mm512_or_si512(_mm512_load_si512(table + 0), sVec));
-    moves = write_moves(moves, static_cast<uint32_t>(b >> 32),
+    moves = write_moves(moves, std::uint32_t(b >> 32),
                         _mm512_or_si512(_mm512_load_si512(table + 1), sVec));
 #else
     while (b)
