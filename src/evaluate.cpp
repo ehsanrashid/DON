@@ -55,13 +55,9 @@ Value evaluate(const Position&          pos,
 
     std::int32_t nnue = 0;
 
-    Value bonus = pos.bonus();
-
     if (smallNetUse)
     {
         netOut = networks.small.evaluate(pos, accStack, &accCaches.small);
-
-        netOut.positional += bonus;
 
         nnue = compute_nnue();
 
@@ -71,8 +67,6 @@ Value evaluate(const Position&          pos,
     if (!smallNetUse)
     {
         netOut = networks.big.evaluate(pos, accStack, &accCaches.big);
-
-        netOut.positional += bonus;
 
         nnue = compute_nnue();
     }

@@ -74,8 +74,11 @@ void format_cp_compact(char* buffer, Value v, const Position& pos) noexcept {
 }
 
 // Converts a value into pawns, always keeping two decimals
-void format_cp_aligned_dot(std::ostringstream& oss, Value v, const Position& pos) noexcept {
+void format_cp_aligned_dot(std::ostringstream& oss,
+                           std::int32_t        val,
+                           const Position&     pos) noexcept {
 
+    auto v    = in_range(val);
     char sign = (v < 0 ? '-' : v > 0 ? '+' : ' ');
     auto cp   = 0.01f * std::abs(UCI::to_cp(v, pos));
     oss << sign << std::setw(6) << std::fixed << std::setprecision(2) << cp;
@@ -112,8 +115,8 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    auto  netOut   = networks.big.evaluate(pos, accStack, &accCaches.big);
-    Value baseEval = netOut.psqt + netOut.positional;
+    auto netOut   = networks.big.evaluate(pos, accStack, &accCaches.big);
+    auto baseEval = netOut.psqt + netOut.positional;
 
     baseEval = pos.active_color() == WHITE ? +baseEval : -baseEval;
 
@@ -130,9 +133,9 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
                 accStack.reset();
 
-                netOut     = networks.big.evaluate(pos, accStack, &accCaches.big);
-                Value eval = netOut.psqt + netOut.positional;
-                eval       = pos.active_color() == WHITE ? +eval : -eval;
+                netOut    = networks.big.evaluate(pos, accStack, &accCaches.big);
+                auto eval = netOut.psqt + netOut.positional;
+                eval      = pos.active_color() == WHITE ? +eval : -eval;
 
                 v = baseEval - eval;
 
