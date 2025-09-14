@@ -396,7 +396,7 @@ constexpr Direction pawn_dpush(Color c) noexcept {
 // Linear Congruential Generator (LCG): X_{n+1} = (c + a * X_n)
 // Based on a congruential pseudo-random number generator
 constexpr std::uint64_t make_hash(std::uint64_t seed) noexcept {
-    return 0x14057B7EF767814Full + 0x5851F42D4C957F2Dull * seed;
+    return 0x14057B7EF767814FULL + 0x5851F42D4C957F2DULL * seed;
 }
 
 constexpr Key32 compress_key32(Key key) noexcept {
