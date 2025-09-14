@@ -25,6 +25,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <string_view>
 
 #include "../misc.h"
 #include "../position.h"
@@ -89,6 +90,8 @@ void format_cp_aligned_dot(std::ostringstream& oss,
 // Returns a string with the value of each piece on a board,
 // and a table for (PSQT, Layers) values bucket by bucket.
 std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& accCaches) noexcept {
+    constexpr std::string_view Sep = "+------------+------------+------------+------------+\n";
+
     std::ostringstream oss;
 
     char board[3 * 8 + 1][8 * 8 + 2];
@@ -155,10 +158,10 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
     oss << " NNUE network contributions ("  //
         << (pos.active_color() == WHITE ? "White" : "Black") << " to move):\n"
-        << "+------------+------------+------------+------------+\n"
+        << Sep  //
         << "|   Bucket   |  Material  | Positional |   Total    |\n"
         << "|            |   (PSQT)   |  (Layers)  |            |\n"
-        << "+------------+------------+------------+------------+\n";
+        << Sep;
 
     for (std::size_t bucket = 0; bucket < LayerStacks; ++bucket)
     {
@@ -175,7 +178,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
         oss << '\n';
     }
 
-    oss << "+------------+------------+------------+------------+\n";
+    oss << Sep;
 
     return oss.str();
 }
