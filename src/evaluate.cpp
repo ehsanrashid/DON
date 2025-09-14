@@ -117,10 +117,9 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
 
     oss << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
 
-    Value v;
-
     auto netOut = networks.big.evaluate(pos, accStack, &accCaches->big);
 
+    Value v;
     v = (netOut.psqt + netOut.positional) / NNUE::OUTPUT_SCALE;
     v = pos.active_color() == WHITE ? +v : -v;
     oss << "NNUE evaluation      : " << 0.01f * UCI::to_cp(v, pos) << " (white side)\n";
