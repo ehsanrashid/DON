@@ -147,7 +147,7 @@ Key enpassant[FILE_NB];
 Key side;
 
 void init() noexcept {
-    PRNG1024 rng(0x105524ull);
+    PRNG1024 rng(0x105524ULL);
 
     std::memset(psq, 0, sizeof(psq));
     for (Piece pc : Pieces)

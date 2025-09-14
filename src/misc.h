@@ -209,7 +209,7 @@ constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 #endif
 }
 
-static_assert(mul_hi64(0xDEADBEEFDEADBEEFull, 0xCAFEBABECAFEBABEull) == 0xB092AB7CE9F4B259ull,
+static_assert(mul_hi64(0xDEADBEEFDEADBEEFULL, 0xCAFEBABECAFEBABEULL) == 0xB092AB7CE9F4B259ULL,
               "Error in mul_hi64()");
 
 #if defined(USE_PREFETCH)
@@ -274,12 +274,12 @@ class PRNG final {
 
     // Jump function for the XORShift64Star PRNG
     void jump() noexcept {
-        constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ull;
+        constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
 
         std::uint64_t t = 0;
         for (std::uint8_t m = 0; m < 64; ++m)
         {
-            if (JumpMask & (1ull << m))
+            if (JumpMask & (1ULL << m))
                 t ^= s;
             rand64();
         }
@@ -290,7 +290,7 @@ class PRNG final {
     // XORShift64Star algorithm implementation
     constexpr std::uint64_t rand64() noexcept {
         s ^= s >> 12, s ^= s << 25, s ^= s >> 27;
-        return 0x2545F4914F6CDD1Dull * s;
+        return 0x2545F4914F6CDD1DULL * s;
     }
 
     std::uint64_t s;
@@ -304,7 +304,7 @@ class PRNG1024 final {
         assert(seed);
 
         for (auto& e : s)
-            e = seed = 0x9857FB32C9EFB5E4ull + 0x2545F4914F6CDD1Dull * seed;
+            e = seed = 0x9857FB32C9EFB5E4ULL + 0x2545F4914F6CDD1DULL * seed;
     }
 
     template<typename T>
@@ -323,10 +323,10 @@ class PRNG1024 final {
     void jump() noexcept {
         constexpr std::array<std::uint64_t, Size> JumpMask{
           // clang-format off
-          0x84242F96ECA9C41Dull, 0xA3C65B8776F96855ull, 0x5B34A39F070B5837ull, 0x4489AFFCE4F31A1Eull,
-          0x2FFEEB0A48316F40ull, 0xDC2D9891FE68C022ull, 0x3659132BB12FEA70ull, 0xAAC17D8EFA43CAB8ull,
-          0xC4CB815590989B13ull, 0x5EE975283D71C93Bull, 0x691548C86C1BD540ull, 0x7910C41D10A1E6A5ull,
-          0x0B5FC64563B3E2A8ull, 0x047F7684E9FC949Dull, 0xB99181F2D8F685CAull, 0x284600E3F30E38C3ull
+          0x84242F96ECA9C41DULL, 0xA3C65B8776F96855ULL, 0x5B34A39F070B5837ULL, 0x4489AFFCE4F31A1EULL,
+          0x2FFEEB0A48316F40ULL, 0xDC2D9891FE68C022ULL, 0x3659132BB12FEA70ULL, 0xAAC17D8EFA43CAB8ULL,
+          0xC4CB815590989B13ULL, 0x5EE975283D71C93BULL, 0x691548C86C1BD540ULL, 0x7910C41D10A1E6A5ULL,
+          0x0B5FC64563B3E2A8ULL, 0x047F7684E9FC949DULL, 0xB99181F2D8F685CAULL, 0x284600E3F30E38C3ULL
           // clang-format on
         };
 
@@ -334,7 +334,7 @@ class PRNG1024 final {
         for (const auto jumpMask : JumpMask)
             for (std::uint8_t m = 0; m < 64; ++m)
             {
-                if (jumpMask & (1ull << m))
+                if (jumpMask & (1ULL << m))
                     for (std::size_t i = 0; i < t.size(); ++i)
                         t[i] ^= s[index(i)];
                 rand64();
@@ -353,7 +353,7 @@ class PRNG1024 final {
         auto s1 = s[p = index(1)];
         s1 ^= s1 << 31;
         s[p] = s0 ^ s1 ^ (s0 >> 30) ^ (s1 >> 11);
-        return 0x106689D45497FDB5ull * s[p];
+        return 0x106689D45497FDB5ULL * s[p];
     }
 
     static constexpr std::size_t Size = 16;

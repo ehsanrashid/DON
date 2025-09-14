@@ -51,7 +51,7 @@ std::string pretty(Bitboard b) noexcept;
 
 }  // namespace BitBoard
 
-constexpr Bitboard FILE_A_BB = 0x0101010101010101ull;
+constexpr Bitboard FILE_A_BB = 0x0101010101010101ULL;
 constexpr Bitboard FILE_B_BB = FILE_A_BB << (1 * 1);
 constexpr Bitboard FILE_C_BB = FILE_A_BB << (1 * 2);
 constexpr Bitboard FILE_D_BB = FILE_A_BB << (1 * 3);
@@ -60,7 +60,7 @@ constexpr Bitboard FILE_F_BB = FILE_A_BB << (1 * 5);
 constexpr Bitboard FILE_G_BB = FILE_A_BB << (1 * 6);
 constexpr Bitboard FILE_H_BB = FILE_A_BB << (1 * 7);
 
-constexpr Bitboard RANK_1_BB = 0x00000000000000FFull;
+constexpr Bitboard RANK_1_BB = 0x00000000000000FFULL;
 constexpr Bitboard RANK_2_BB = RANK_1_BB << (8 * 1);
 constexpr Bitboard RANK_3_BB = RANK_1_BB << (8 * 2);
 constexpr Bitboard RANK_4_BB = RANK_1_BB << (8 * 3);
@@ -71,7 +71,7 @@ constexpr Bitboard RANK_8_BB = RANK_1_BB << (8 * 7);
 
 constexpr Bitboard EDGE_FILE_BB          = FILE_A_BB | FILE_H_BB;
 constexpr Bitboard PROMOTION_RANK_BB     = RANK_8_BB | RANK_1_BB;
-constexpr Bitboard COLOR_BB[COLOR_NB]    = {0x55AA55AA55AA55AAull, 0xAA55AA55AA55AA55ull};
+constexpr Bitboard COLOR_BB[COLOR_NB]    = {0x55AA55AA55AA55AAULL, 0xAA55AA55AA55AA55ULL};
 constexpr Bitboard LOW_RANK_BB[COLOR_NB] = {RANK_2_BB | RANK_3_BB, RANK_7_BB | RANK_6_BB};
 
 // Magic holds all magic bitboards relevant data for a single square
@@ -129,7 +129,7 @@ extern Magic          Magics[SQUARE_NB][2];  // BISHOP or ROOK
 
 constexpr Bitboard square_bb(Square s) noexcept {
     assert(is_ok(s));
-    return 1ull << s;
+    return (1ULL << s);
 }
 
 // Overloads of bitwise operators between a Bitboard and a Square for testing
