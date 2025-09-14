@@ -267,7 +267,7 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
 
     ASSERT_ALIGNED(transformedFeatures, Alignment);
 
-    int bucket = pos.bucket();
+    auto bucket = pos.bucket();
 
     auto psqt = featureTransformer->transform(pos, accStack, cache, bucket, transformedFeatures);
     auto positional = network[bucket].propagate(transformedFeatures);
