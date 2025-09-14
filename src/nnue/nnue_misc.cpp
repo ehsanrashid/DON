@@ -25,6 +25,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <string_view>
 
 #include "../misc.h"
 #include "../position.h"
@@ -74,8 +75,11 @@ void format_cp_compact(char* buffer, Value v, const Position& pos) noexcept {
 }
 
 // Converts a value into pawns, always keeping two decimals
-void format_cp_aligned_dot(std::ostringstream& oss, Value v, const Position& pos) noexcept {
+void format_cp_aligned_dot(std::ostringstream& oss,
+                           std::int32_t        val,
+                           const Position&     pos) noexcept {
 
+    auto v    = in_range(val);
     char sign = (v < 0 ? '-' : v > 0 ? '+' : ' ');
     auto cp   = 0.01f * std::abs(UCI::to_cp(v, pos));
     oss << sign << std::setw(6) << std::fixed << std::setprecision(2) << cp;
@@ -86,6 +90,8 @@ void format_cp_aligned_dot(std::ostringstream& oss, Value v, const Position& pos
 // Returns a string with the value of each piece on a board,
 // and a table for (PSQT, Layers) values bucket by bucket.
 std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& accCaches) noexcept {
+    constexpr std::string_view Sep = "+------------+------------+------------+------------+\n";
+
     std::ostringstream oss;
 
     char board[3 * 8 + 1][8 * 8 + 2];
@@ -112,8 +118,8 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    auto  netOut   = networks.big.evaluate(pos, accStack, &accCaches.big);
-    Value baseEval = netOut.psqt + netOut.positional;
+    auto netOut   = networks.big.evaluate(pos, accStack, &accCaches.big);
+    auto baseEval = netOut.psqt + netOut.positional;
 
     baseEval = pos.active_color() == WHITE ? +baseEval : -baseEval;
 
@@ -130,9 +136,9 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
                 accStack.reset();
 
-                netOut     = networks.big.evaluate(pos, accStack, &accCaches.big);
-                Value eval = netOut.psqt + netOut.positional;
-                eval       = pos.active_color() == WHITE ? +eval : -eval;
+                netOut    = networks.big.evaluate(pos, accStack, &accCaches.big);
+                auto eval = netOut.psqt + netOut.positional;
+                eval      = pos.active_color() == WHITE ? +eval : -eval;
 
                 v = baseEval - eval;
 
@@ -148,31 +154,31 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
     oss << '\n';
 
     accStack.reset();
-    auto trace = networks.big.trace(pos, accStack, &accCaches.big);
+    auto netTrace = networks.big.trace(pos, accStack, &accCaches.big);
 
     oss << " NNUE network contributions ("  //
         << (pos.active_color() == WHITE ? "White" : "Black") << " to move):\n"
-        << "+------------+------------+------------+------------+\n"
+        << Sep  //
         << "|   Bucket   |  Material  | Positional |   Total    |\n"
         << "|            |   (PSQT)   |  (Layers)  |            |\n"
-        << "+------------+------------+------------+------------+\n";
+        << Sep;
 
     for (std::size_t bucket = 0; bucket < LayerStacks; ++bucket)
     {
         oss << "|  " << bucket << "         |  ";
-        format_cp_aligned_dot(oss, trace.netOut[bucket].psqt, pos);
+        format_cp_aligned_dot(oss, netTrace.netOut[bucket].psqt, pos);
         oss << "   |  ";
-        format_cp_aligned_dot(oss, trace.netOut[bucket].positional, pos);
+        format_cp_aligned_dot(oss, netTrace.netOut[bucket].positional, pos);
         oss << "   |  ";
-        format_cp_aligned_dot(oss, trace.netOut[bucket].psqt + trace.netOut[bucket].positional,
-                              pos);
+        format_cp_aligned_dot(
+          oss, netTrace.netOut[bucket].psqt + netTrace.netOut[bucket].positional, pos);
         oss << "   |";
-        if (bucket == trace.correctBucket)
+        if (bucket == netTrace.correctBucket)
             oss << " <-- this bucket is used";
         oss << '\n';
     }
 
-    oss << "+------------+------------+------------+------------+\n";
+    oss << Sep;
 
     return oss.str();
 }

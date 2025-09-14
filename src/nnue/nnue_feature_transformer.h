@@ -170,7 +170,7 @@ class FeatureTransformer final {
     std::int32_t transform(const Position&                                         pos,
                            AccumulatorStack&                                       accStack,
                            AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache,
-                           int                                                     bucket,
+                           std::size_t                                             bucket,
                            OutputType*                                             output) const {
         using namespace SIMD;
 
