@@ -32,14 +32,8 @@
     #include <intrin.h>  // Microsoft header for _BitScanForward64() && _BitScanForward()
 #endif
 
-#if defined(USE_POPCNT)
-    #if defined(_MSC_VER)
-        #if defined(_WIN64)
-            #include <nmmintrin.h>  // Microsoft header for _mm_popcnt_u64()
-        #else
-            #include <intrin.h>  // Microsoft header for __popcnt()
-        #endif
-    #endif
+#if defined(USE_POPCNT) && defined(_MSC_VER)
+    #include <nmmintrin.h>  // Microsoft header for _mm_popcnt_u64()
 #endif
 
 #if defined(USE_PEXT)
@@ -352,11 +346,7 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
 #elif defined(__GNUC__) || defined(__clang__)  // (GCC, Clang, ICX)
     return __builtin_popcountll(b);
 #elif defined(_MSC_VER)
-    #if defined(_WIN64)  // (MSVC-> WIN64)
     return _mm_popcnt_u64(b);
-    #else                // (MSVC-> WIN32)
-    return __popcnt(std::uint32_t(b)) + __popcnt(std::uint32_t(b >> 32));
-    #endif
 #else  // Compiler is neither GCC nor MSVC compatible
     #error "Compiler not supported."
     // Using a fallback implementation
