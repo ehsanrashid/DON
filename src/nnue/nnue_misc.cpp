@@ -154,7 +154,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
     oss << '\n';
 
     accStack.reset();
-    auto trace = networks.big.trace(pos, accStack, &accCaches.big);
+    auto netTrace = networks.big.trace(pos, accStack, &accCaches.big);
 
     oss << " NNUE network contributions ("  //
         << (pos.active_color() == WHITE ? "White" : "Black") << " to move):\n"
@@ -166,14 +166,14 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
     for (std::size_t bucket = 0; bucket < LayerStacks; ++bucket)
     {
         oss << "|  " << bucket << "         |  ";
-        format_cp_aligned_dot(oss, trace.netOut[bucket].psqt, pos);
+        format_cp_aligned_dot(oss, netTrace.netOut[bucket].psqt, pos);
         oss << "   |  ";
-        format_cp_aligned_dot(oss, trace.netOut[bucket].positional, pos);
+        format_cp_aligned_dot(oss, netTrace.netOut[bucket].positional, pos);
         oss << "   |  ";
-        format_cp_aligned_dot(oss, trace.netOut[bucket].psqt + trace.netOut[bucket].positional,
-                              pos);
+        format_cp_aligned_dot(
+          oss, netTrace.netOut[bucket].psqt + netTrace.netOut[bucket].positional, pos);
         oss << "   |";
-        if (bucket == trace.correctBucket)
+        if (bucket == netTrace.correctBucket)
             oss << " <-- this bucket is used";
         oss << '\n';
     }
