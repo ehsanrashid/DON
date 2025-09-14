@@ -40,9 +40,7 @@ namespace {
 
 // Converts a Value into centi-pawns and writes it in a buffer.
 // The buffer must have capacity for at least 5 chars.
-void format_cp_compact(char*           buffer,  //
-                       Value           v,
-                       const Position& pos) noexcept {
+void format_cp_compact(char* buffer, Value v, const Position& pos) noexcept {
     // Set the sign character
     buffer[0] = (v < 0 ? '-' : v > 0 ? '+' : ' ');
     // Convert to centipawns and take absolute value
@@ -76,14 +74,11 @@ void format_cp_compact(char*           buffer,  //
     }
 }
 
-// Converts a Value into pawns, always keeping two decimals
-void format_cp_aligned_dot(std::ostringstream& oss,
-                           std::int32_t        val,
-                           const Position&     pos) noexcept {
+// Converts a value into pawns, always keeping two decimals
+void format_cp_aligned_dot(std::ostringstream& oss, Value v, const Position& pos) noexcept {
 
-    Value v    = in_range(val);
-    char  sign = (v < 0 ? '-' : v > 0 ? '+' : ' ');
-    float cp   = 0.01 * std::abs(UCI::to_cp(v, pos));
+    char sign = (v < 0 ? '-' : v > 0 ? '+' : ' ');
+    auto cp   = 0.01f * std::abs(UCI::to_cp(v, pos));
     oss << sign << std::setw(6) << std::fixed << std::setprecision(2) << cp;
 }
 
@@ -166,17 +161,17 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
     for (std::size_t bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        std::int32_t val;
+        Value value;
 
         oss << "|  " << bucket << "         |  ";
-        val = trace.netOut[bucket].psqt / OUTPUT_SCALE;
-        format_cp_aligned_dot(oss, val, pos);
+        value = trace.netOut[bucket].psqt / OUTPUT_SCALE;
+        format_cp_aligned_dot(oss, value, pos);
         oss << "   |  ";
-        val = trace.netOut[bucket].positional / OUTPUT_SCALE;
-        format_cp_aligned_dot(oss, val, pos);
+        value = trace.netOut[bucket].positional / OUTPUT_SCALE;
+        format_cp_aligned_dot(oss, value, pos);
         oss << "   |  ";
-        val = (trace.netOut[bucket].psqt + trace.netOut[bucket].positional) / OUTPUT_SCALE;
-        format_cp_aligned_dot(oss, val, pos);
+        value = (trace.netOut[bucket].psqt + trace.netOut[bucket].positional) / OUTPUT_SCALE;
+        format_cp_aligned_dot(oss, value, pos);
         oss << "   |";
         if (bucket == trace.correctBucket)
             oss << " <-- this bucket is used";
