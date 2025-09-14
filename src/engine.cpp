@@ -38,15 +38,15 @@ namespace DON {
 
 namespace {
 
-constexpr std::size_t    MIN_THREADS = 1u;
+constexpr std::size_t    MIN_THREADS = 1U;
 const inline std::size_t MAX_THREADS = std::max<std::size_t>(4 * hardware_concurrency(), 1024u);
 
-constexpr std::size_t MIN_HASH = 4u;
+constexpr std::size_t MIN_HASH = 4U;
 constexpr std::size_t MAX_HASH =
 #if defined(IS_64BIT)
-  0x2000000u
+  0x2000000U
 #else
-  0x800u
+  0x800U
 #endif
   ;
 

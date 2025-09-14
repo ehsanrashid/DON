@@ -458,9 +458,9 @@ class TBTables final {
     };
 
     // 4K table, indexed by key's 12 lsb
-    static constexpr std::size_t Size = 1u << 12;
+    static constexpr std::size_t Size = 1U << 12;
     // Number of elements allowed to map to the last bucket
-    static constexpr std::size_t Overflow = 1u;
+    static constexpr std::size_t Overflow = 1U;
 
     static constexpr std::size_t index(Key key) noexcept { return key & (Size - 1); }
 
@@ -1071,8 +1071,8 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     std::uint64_t tbSize =
       pd->groupIdx[std::find(pd->groupLen, pd->groupLen + 7, 0) - pd->groupLen];
 
-    pd->blockSize       = 1ull << *data++;
-    pd->span            = 1ull << *data++;
+    pd->blockSize       = 1ULL << *data++;
+    pd->span            = 1ULL << *data++;
     pd->sparseIndexSize = (tbSize + pd->span - 1) / pd->span;  // Round up
 
     auto padding = number<std::uint8_t, Little>(data);

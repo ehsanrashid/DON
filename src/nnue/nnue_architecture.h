@@ -72,7 +72,7 @@ struct NetworkArchitecture final {
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t get_hash_value() noexcept {
         // input slice hash
-        std::uint32_t hashValue = 0xEC42E90Du;
+        std::uint32_t hashValue = 0xEC42E90DU;
         hashValue ^= 2 * TransformedFeatureDimensions;
 
         hashValue = decltype(fc_0)::get_hash_value(hashValue);

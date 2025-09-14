@@ -69,16 +69,16 @@ class StatsEntry final {
 
 
 // clang-format off
-constexpr int  CAPTURE_HISTORY_LIMIT = 10692u;
-constexpr int    QUIET_HISTORY_LIMIT =  7183u;
-constexpr int PIECE_SQ_HISTORY_LIMIT = 30000u;
+constexpr int  CAPTURE_HISTORY_LIMIT = 10692U;
+constexpr int    QUIET_HISTORY_LIMIT =  7183U;
+constexpr int PIECE_SQ_HISTORY_LIMIT = 30000U;
 
-constexpr int         PAWN_HISTORY_LIMIT = 8192u;
-constexpr std::size_t PAWN_HISTORY_SIZE  = 0x400u;
+constexpr int         PAWN_HISTORY_LIMIT = 8192U;
+constexpr std::size_t PAWN_HISTORY_SIZE  = 0x400U;
 static_assert(exactly_one(PAWN_HISTORY_SIZE), "PAWN_HISTORY_SIZE has to be a power of 2");
 constexpr std::size_t pawn_index(Key pawnKey) noexcept { return pawnKey & (PAWN_HISTORY_SIZE - 1); }
 
-constexpr std::uint16_t LOW_PLY_SIZE = 5u;
+constexpr std::uint16_t LOW_PLY_SIZE = 5U;
 
 enum HistoryType : std::uint8_t {
     HCapture,       // By move's [piece][dst][captured piece type]
@@ -142,8 +142,8 @@ template<HistoryType T>
 using History = typename Internal::HistoryTypedef<T>::Type;
 
 
-constexpr int         CORRECTION_HISTORY_LIMIT = 1024u;
-constexpr std::size_t CORRECTION_HISTORY_SIZE  = 0x8000u;
+constexpr int         CORRECTION_HISTORY_LIMIT = 1024U;
+constexpr std::size_t CORRECTION_HISTORY_SIZE  = 0x8000U;
 static_assert(exactly_one(CORRECTION_HISTORY_SIZE), "CORRECTION_HISTORY_SIZE has to be a power of 2");
 constexpr std::size_t correction_index(Key corrKey) noexcept { return corrKey & (CORRECTION_HISTORY_SIZE - 1); }
 

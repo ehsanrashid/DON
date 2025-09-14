@@ -84,11 +84,11 @@ using Key      = std::uint64_t;
 using Key32    = std::uint32_t;
 using Key16    = std::uint16_t;
 
-constexpr std::uint16_t MAX_MOVES = 256u;
-constexpr std::uint16_t MAX_PLY   = 254u;
+constexpr std::uint16_t MAX_MOVES = 256U;
+constexpr std::uint16_t MAX_PLY   = 254U;
 
 // Size of cache line (in bytes)
-constexpr std::size_t CACHE_LINE_SIZE = 64u;
+constexpr std::size_t CACHE_LINE_SIZE = 64U;
 
 constexpr std::string_view START_FEN{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 

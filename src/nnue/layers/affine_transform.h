@@ -144,7 +144,7 @@ class AffineTransform final {
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t get_hash_value(std::uint32_t preHashValue) noexcept {
-        std::uint32_t hashValue = 0xCC03DAE4u;
+        std::uint32_t hashValue = 0xCC03DAE4U;
         hashValue += OutputDimensions;
         hashValue ^= preHashValue >> 1;
         hashValue ^= preHashValue << 31;

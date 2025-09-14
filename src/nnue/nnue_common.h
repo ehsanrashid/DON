@@ -54,7 +54,7 @@ using IndexType      = std::uint32_t;
 using TransformedFeatureType = std::uint8_t;
 
 // Version of the evaluation file
-constexpr std::uint32_t FILE_VERSION = 0x7AF32F20u;
+constexpr std::uint32_t FILE_VERSION = 0x7AF32F20U;
 
 // Constant used in evaluation value calculation
 constexpr int OUTPUT_SCALE      = 16;

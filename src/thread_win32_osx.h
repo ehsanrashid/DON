@@ -37,7 +37,7 @@ class NativeThread final {
     explicit NativeThread(Function&& func, Args&&... args) noexcept {
         pthread_attr_t attribute;
         pthread_attr_init(&attribute);
-        pthread_attr_setstacksize(&attribute, 8u * 1024 * 1024);
+        pthread_attr_setstacksize(&attribute, 8U * 1024 * 1024);
 
         using Func = std::function<void()>;
 
