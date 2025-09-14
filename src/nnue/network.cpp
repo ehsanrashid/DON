@@ -269,7 +269,7 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
 
     int bucket = pos.bucket();
 
-    auto psqt = featureTransformer->transform(pos, accStack, cache, transformedFeatures, bucket);
+    auto psqt = featureTransformer->transform(pos, accStack, cache, bucket, transformedFeatures);
     auto positional = network[bucket].propagate(transformedFeatures);
 
     return {psqt, positional};
@@ -293,7 +293,7 @@ NetworkTrace Network<Arch, Transformer>::trace(
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
         auto psqt =
-          featureTransformer->transform(pos, accStack, cache, transformedFeatures, bucket);
+          featureTransformer->transform(pos, accStack, cache, bucket, transformedFeatures);
         auto positional = network[bucket].propagate(transformedFeatures);
 
         trace.netOut[bucket] = {psqt, positional};

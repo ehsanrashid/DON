@@ -170,23 +170,22 @@ class FeatureTransformer final {
     std::int32_t transform(const Position&                                         pos,
                            AccumulatorStack&                                       accStack,
                            AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache,
-                           OutputType*                                             output,
-                           int bucket) const noexcept {
+                           int                                                     bucket,
+                           OutputType*                                             output) const {
         using namespace SIMD;
-
-        accStack.evaluate(pos, *this, *cache);
-        const auto& accumulatorState = accStack.clatest_state();
 
         const Color perspectives[COLOR_NB]{pos.active_color(), ~pos.active_color()};
 
-        const auto& accumulation =
-          (accumulatorState.acc<TransformedFeatureDimensions>()).accumulation;
-        const auto& psqtAccumulation =
-          (accumulatorState.acc<TransformedFeatureDimensions>()).psqtAccumulation;
+        accStack.evaluate(pos, *this, *cache);
 
-        std::int32_t psqt =
+        const auto& accState = accStack.clatest_state();
+        const auto& psqtAccumulation =
+          (accState.acc<TransformedFeatureDimensions>()).psqtAccumulation;
+        const auto psqt =
           (psqtAccumulation[perspectives[0]][bucket] - psqtAccumulation[perspectives[1]][bucket])
           / 2;
+
+        const auto& accumulation = (accState.acc<TransformedFeatureDimensions>()).accumulation;
 
         for (auto p = 0; p < COLOR_NB; ++p)
         {
