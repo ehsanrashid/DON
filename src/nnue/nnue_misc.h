@@ -19,9 +19,9 @@
 #define NNUE_MISC_H_INCLUDED
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 
-#include "../types.h"
 #include "nnue_architecture.h"
 
 namespace DON {
@@ -44,8 +44,8 @@ struct EvalFile final {
 };
 
 struct NetworkOutput final {
-    Value psqt;
-    Value positional;
+    std::int32_t psqt;
+    std::int32_t positional;
 };
 
 struct NetworkTrace final {
