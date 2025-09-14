@@ -19,7 +19,6 @@
 #define NNUE_MISC_H_INCLUDED
 
 #include <cstddef>
-#include <cstdint>
 #include <string>
 
 #include "../types.h"

@@ -28,10 +28,10 @@
 
 #include "../misc.h"
 #include "../position.h"
+#include "../types.h"
 #include "../uci.h"
 #include "network.h"
 #include "nnue_accumulator.h"
-#include "nnue_common.h"
 
 namespace DON::NNUE {
 
