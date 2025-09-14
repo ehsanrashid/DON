@@ -289,19 +289,19 @@ NetworkTrace Network<Arch, Transformer>::trace(
 
     ASSERT_ALIGNED(transformedFeatures, Alignment);
 
-    NetworkTrace trace{};
-    trace.correctBucket = pos.bucket();
+    NetworkTrace netTrace{};
+    netTrace.correctBucket = pos.bucket();
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
         auto psqt =
           featureTransformer->transform(pos, accStack, cache, bucket, transformedFeatures);
         auto positional = network[bucket].propagate(transformedFeatures);
 
-        trace.netOut[bucket] = {static_cast<std::int32_t>(psqt / OUTPUT_SCALE),
-                                static_cast<std::int32_t>(positional / OUTPUT_SCALE)};
+        netTrace.netOut[bucket] = {static_cast<std::int32_t>(psqt / OUTPUT_SCALE),
+                                   static_cast<std::int32_t>(positional / OUTPUT_SCALE)};
     }
 
-    return trace;
+    return netTrace;
 }
 
 template<typename Arch, typename Transformer>
