@@ -130,9 +130,9 @@ endif
 # the user can override with `make ARCH=x86-64-avx512icl SUPPORTED_ARCH=true`
 ifeq ($(ARCH), $(filter $(ARCH), \
                  x86-64-avx512icl x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni x86-64-bmi2 x86-64-avx2 \
-                 x86-64-sse41 x86-64-sse41-popcnt x86-64-modern x86-64-ssse3 x86-64-ssse3-popcnt x86-64 general-64 \
-                 x86-32-sse41 x86-32-sse41-popcnt x86-32-sse2 x86-32-sse2-popcnt x86-32-popcnt x86-32 general-32 \
-                 ppc-64 ppc-64-altivec ppc-64-vsx ppc-32 e2k \
+                 x86-64-sse41-popcnt x86-64-sse41 x86-64-modern x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
+                 x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2-popcnt x86-32-sse2 x86-32-popcnt x86-32 general-32 \
+                 ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k \
                  armv7 armv7-neon armv8 armv8-dotprod apple-silicon riscv64 \
                  loongarch64 loongarch64-lsx loongarch64-lasx))
    SUPPORTED_ARCH=true
@@ -911,28 +911,30 @@ help:
 	echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support" && \
 	echo "x86-64-bmi2             > x86 64-bit with bmi2 support" && \
 	echo "x86-64-avx2             > x86 64-bit with avx2 support" && \
-	echo "x86-64-sse41            > x86 64-bit with sse41 support" && \
 	echo "x86-64-sse41-popcnt     > x86 64-bit with sse41 and popcnt support" && \
+	echo "x86-64-sse41            > x86 64-bit with sse41 support" && \
 	echo "x86-64-modern           > deprecated, currently x86-64-sse41-popcnt" && \
-	echo "x86-64-ssse3            > x86 64-bit with ssse3 support" && \
 	echo "x86-64-ssse3-popcnt     > x86 64-bit with ssse3 and popcnt support" && \
+	echo "x86-64-ssse3            > x86 64-bit with ssse3 support" && \
 	echo "x86-64                  > x86 64-bit generic (with sse2 support)" && \
+	echo "general-64              > unspecified 64-bit" && \
 	echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support" && \
+	echo "x86-32-sse41            > x86 32-bit with sse41 support" && \
 	echo "x86-32-sse2-popcnt      > x86 32-bit with sse2 and popcnt support" && \
+	echo "x86-32-sse2             > x86 32-bit with sse2 support" && \
 	echo "x86-32-popcnt           > x86 32-bit with popcnt support" && \
 	echo "x86-32                  > x86 32-bit generic (with mmx compile support)" && \
-	echo "ppc-64                  > PPC 64-bit" && \
+	echo "general-32              > unspecified 32-bit" && \
 	echo "ppc-64-altivec          > PPC 64-bit with altivec support" && \
 	echo "ppc-64-vsx              > PPC 64-bit with vsx support" && \
+	echo "ppc-64                  > PPC 64-bit" && \
 	echo "ppc-32                  > PPC 32-bit" && \
+	echo "e2k                     > Elbrus 2000" && \
 	echo "armv7                   > ARMv7 32-bit" && \
 	echo "armv7-neon              > ARMv7 32-bit with popcnt and neon" && \
 	echo "armv8                   > ARMv8 64-bit with popcnt and neon" && \
 	echo "armv8-dotprod           > ARMv8 64-bit with popcnt, neon and dot product support" && \
-	echo "e2k                     > Elbrus 2000" && \
 	echo "apple-silicon           > Apple silicon ARM64" && \
-	echo "general-64              > unspecified 64-bit" && \
-	echo "general-32              > unspecified 32-bit" && \
 	echo "riscv64                 > RISC-V 64-bit" && \
 	echo "loongarch64             > LoongArch 64-bit" && \
 	echo "loongarch64-lsx         > LoongArch 64-bit with SIMD eXtension" && \
