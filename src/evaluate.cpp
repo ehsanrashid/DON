@@ -75,15 +75,15 @@ Value evaluate(const Position&          pos,
     // clang-format off
     std::int32_t complexity = std::abs(netOut.psqt - netOut.positional);
 
-    nnue     = std::lround(nnue     * std::max(1.0f - 55.5555e-6f * complexity, 0.0001f));
-    optimism = std::lround(optimism *         (1.0f + 21.3675e-4f * complexity));
+    nnue     = std::lround(nnue     * std::max(1.0 - 55.5555e-6 * complexity, 1.0e-4));
+    optimism = std::lround(optimism *         (1.0 + 21.3675e-4 * complexity));
 
-    std::int32_t v = (nnue + 0.09999f * optimism)
-                   + (nnue +            optimism) * pos.material() * 12.8572e-6f;
+    std::int32_t v = (nnue + 0.09999 * optimism)
+                   + (nnue +           optimism) * pos.material() * 12.8572e-6;
     // clang-format on
 
     // Damp down the evaluation linearly when shuffling
-    auto dampFactor = 1.0f - 4.7170e-3f * pos.rule50_count();
+    auto dampFactor = 1.0 - 4.7170e-3 * pos.rule50_count();
     if (dampFactor < 0)
         dampFactor = 0;
     v = std::lround(v * dampFactor);
@@ -115,11 +115,11 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     Value v;
     v = netOut.psqt + netOut.positional;
     v = pos.active_color() == WHITE ? +v : -v;
-    oss << "NNUE evaluation      : " << 0.01f * UCI::to_cp(v, pos) << " (white side)\n";
+    oss << "NNUE evaluation      : " << 0.01 * UCI::to_cp(v, pos) << " (white side)\n";
 
     v = evaluate(pos, networks, *accCaches, accStack);
     v = pos.active_color() == WHITE ? +v : -v;
-    oss << "Final evaluation     : " << 0.01f * UCI::to_cp(v, pos) << " (white side)";
+    oss << "Final evaluation     : " << 0.01 * UCI::to_cp(v, pos) << " (white side)";
     oss << " [with scaled NNUE, ...]\n";
 
     return oss.str();

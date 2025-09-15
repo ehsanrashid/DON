@@ -719,7 +719,7 @@ class NumaConfig final {
                 maxNodeSize = cpus.size();
 
         auto is_node_small = [maxNodeSize](const std::set<CpuIndex>& node) {
-            return float(node.size()) / maxNodeSize <= 0.6;
+            return double(node.size()) / maxNodeSize <= 0.6;
         };
 
         std::size_t notSmallNodeCount = 0;
@@ -748,10 +748,10 @@ class NumaConfig final {
             {
                 NumaIndex bestNumaIdx = 0;
 
-                float minFill = std::numeric_limits<float>::max();
+                auto minFill = std::numeric_limits<double>::max();
                 for (NumaIndex numaIdx = 0; numaIdx < nodes_size(); ++numaIdx)
                 {
-                    float fill = float(1 + occupation[numaIdx]) / node_cpus_size(numaIdx);
+                    auto fill = double(1 + occupation[numaIdx]) / node_cpus_size(numaIdx);
                     // NOTE: Do want to perhaps fill the first available node up to 50% first before considering other nodes?
                     //       Probably not, because it would interfere with running multiple instances.
                     //       Basically shouldn't favor any particular node.

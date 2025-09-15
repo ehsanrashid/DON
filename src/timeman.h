@@ -70,7 +70,7 @@ class TimeManager final {
 
     TimePoint startTime;
 
-    float initialAdjust;
+    double initialAdjust;
 
     TimePoint optimumTime;
     TimePoint maximumTime;

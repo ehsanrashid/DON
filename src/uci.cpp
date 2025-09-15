@@ -218,7 +218,7 @@ void on_update_move(const MoveInfo& info) noexcept;
 
 bool UCI::InfoStringStop = false;
 
-UCI::UCI(int argc, const char** argv) noexcept :
+UCI::UCI(int argc, const char* argv[]) noexcept :
     engine(argv[0]),
     commandLine(argc, argv) {
 
@@ -232,14 +232,14 @@ UCI::UCI(int argc, const char** argv) noexcept :
 
 void UCI::run() noexcept {
     std::string command;
-    for (int i = 1; i < commandLine.argc; ++i)
+    for (std::size_t i = 1; i < commandLine.arguments.size(); ++i)
     {
         if (!command.empty())
             command += ' ';
-        command += commandLine.argv[i];
+        command += commandLine.arguments[i];
     }
 
-    const bool running = commandLine.argc <= 1;
+    const bool running = commandLine.arguments.size() <= 1;
     if (running || !is_whitespace(command))
     {
         do
@@ -708,9 +708,9 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
               << "\nThread binding             : " << threadBinding
               << "\nTT size [MiB]              : " << benchmark.ttSize
               << "\nHash max, avg [per mille]  : "
-              << "\n    Single search          : " << maxHashfull[0] << ", " << float(sumHashfull[0]) / numHashfull
-              << "\n    Single game            : " << maxHashfull[1] << ", " << float(sumHashfull[1]) / numHashfull
-              << "\nTotal time [s]             : " << elapsedTime / 1000.0f
+              << "\n    Single search          : " << maxHashfull[0] << ", " << double(sumHashfull[0]) / numHashfull
+              << "\n    Single game            : " << maxHashfull[1] << ", " << double(sumHashfull[1]) / numHashfull
+              << "\nTotal time [s]             : " << elapsedTime / 1000.0
               << "\nTotal nodes                : " << nodes
               << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
     // clang-format on

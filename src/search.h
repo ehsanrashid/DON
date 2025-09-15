@@ -303,14 +303,14 @@ struct Skill final {
 
     Move pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick = true) noexcept;
 
-    static constexpr float         MinLevel = 00.0f;
-    static constexpr float         MaxLevel = 20.0f;
+    static constexpr double        MinLevel = 00.0;
+    static constexpr double        MaxLevel = 20.0;
     static constexpr std::uint16_t MinELO   = 1320;
     static constexpr std::uint16_t MaxELO   = 3190;
 
    private:
-    float level;
-    Move  move;
+    double level;
+    Move   move;
 };
 
 // SharedState struct stores the engine options, networks, thread pool, and transposition table.
@@ -409,15 +409,15 @@ class MainSearchManager final: public ISearchManager {
 
     bool        ponder;
     bool        ponderhitStop;
-    float       sumMoveChanges;
-    float       timeReduction;
+    double      sumMoveChanges;
+    double      timeReduction;
     Skill       skill;
     TimeManager timeManager;
 
-    bool  moveFirst;
-    Value preBestCurValue;
-    Value preBestAvgValue;
-    float preTimeReduction;
+    bool   moveFirst;
+    Value  preBestCurValue;
+    Value  preBestAvgValue;
+    double preTimeReduction;
 };
 
 class NullSearchManager final: public ISearchManager {

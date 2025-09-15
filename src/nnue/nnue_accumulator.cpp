@@ -53,7 +53,7 @@ void fused_row_reduce(const ElementType* in, ElementType* out, const Ts* const..
 }
 
 template<Color Perspective, IndexType Dimensions>
-struct AccumulatorUpdateContext {
+struct AccumulatorUpdateContext final {
 
     AccumulatorUpdateContext(const FeatureTransformer<Dimensions>& ft,
                              const AccumulatorState&               frSt,

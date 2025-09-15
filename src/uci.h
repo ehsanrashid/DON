@@ -34,7 +34,7 @@ class Score;
 
 class UCI final {
    public:
-    UCI(int argc, const char** argv) noexcept;
+    UCI(int argc, const char* argv[]) noexcept;
 
     auto& options() noexcept { return engine.get_options(); }
 

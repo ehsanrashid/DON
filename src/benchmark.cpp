@@ -434,7 +434,6 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexce
     }
 
     for (const auto& fen : fens)
-    {
         if (fen.find("setoption ") != std::string::npos)
             commands.emplace_back(fen);
         else
@@ -442,7 +441,6 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexce
             commands.emplace_back("position fen " + fen);
             commands.emplace_back(command);
         }
-    }
 
     return commands;
 }
@@ -487,10 +485,10 @@ Benchmark setup_benchmark(std::istringstream& iss) noexcept {
         // msec    = 50000 / (15 + ply)
         // with this fit 10th move gets 2000ms
         // adjust for desired 10th move time
-        return 50000.0f / (15 + ply);
+        return 50000.0 / (15 + ply);
     };
 
-    auto totalTime = 0.0f;
+    auto totalTime = 0.0;
     for (const auto& game : Games)
     {
         std::uint16_t ply = 1;
@@ -503,7 +501,7 @@ Benchmark setup_benchmark(std::istringstream& iss) noexcept {
         }
     }
 
-    auto timeScaleFactor = 1000.0f * moveTime / totalTime;
+    auto timeScaleFactor = 1000.0 * moveTime / totalTime;
     for (const auto& game : Games)
     {
         benchmark.commands.emplace_back("ucinewgame");

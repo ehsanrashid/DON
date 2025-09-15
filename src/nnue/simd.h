@@ -199,7 +199,7 @@ static constexpr std::uint32_t Mask[4] = {1, 2, 4, 8};
 
 #endif
 
-struct Vec16Wrapper {
+struct Vec16Wrapper final {
 #if defined(VECTOR)
     using type = vec_t;
     static type add(const type& lhs, const type& rhs) noexcept { return vec_add_16(lhs, rhs); }
@@ -211,7 +211,7 @@ struct Vec16Wrapper {
 #endif
 };
 
-struct Vec32Wrapper {
+struct Vec32Wrapper final {
 #if defined(VECTOR)
     using type = psqt_vec_t;
     static type add(const type& lhs, const type& rhs) noexcept { return vec_add_psqt_32(lhs, rhs); }

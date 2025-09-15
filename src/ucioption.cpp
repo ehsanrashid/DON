@@ -131,7 +131,7 @@ void Option::operator=(std::string value) noexcept {
     {
     case OPT_CHECK :
         value = lower_case(value);
-        if (!(value == "true" || value == "false"))
+        if (value != "true" && value != "false")
             return;
         break;
     case OPT_STRING :

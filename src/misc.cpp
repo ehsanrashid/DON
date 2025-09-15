@@ -446,12 +446,12 @@ void correl_of(std::int64_t value1, std::int64_t value2, std::size_t slot) noexc
 void print() noexcept {
 
     std::int64_t n;
-    const auto   avg = [&n](std::int64_t x) noexcept { return float(x) / n; };
+    const auto   avg = [&n](std::int64_t x) noexcept { return double(x) / n; };
 
     for (std::size_t i = 0; i < MaxSlot; ++i)
         if ((n = hit[i][0]))
             std::cerr << "Hit #" << i << ": Count " << n << " Hits " << hit[i][1]
-                      << " Hit Rate (%) " << 100.0f * avg(hit[i][1]) << std::endl;
+                      << " Hit Rate (%) " << 100 * avg(hit[i][1]) << std::endl;
 
     for (std::size_t i = 0; i < MaxSlot; ++i)
         if ((n = min[i][0]))
@@ -474,16 +474,16 @@ void print() noexcept {
     for (std::size_t i = 0; i < MaxSlot; ++i)
         if ((n = stdev[i][0]))
         {
-            float r = std::sqrt(avg(stdev[i][2]) - sqr(avg(stdev[i][1])));
+            auto r = std::sqrt(avg(stdev[i][2]) - sqr(avg(stdev[i][1])));
             std::cerr << "Stdev #" << i << ": Count " << n << " Stdev " << r << std::endl;
         }
 
     for (std::size_t i = 0; i < MaxSlot; ++i)
         if ((n = correl[i][0]))
         {
-            float r = (avg(correl[i][5]) - avg(correl[i][1]) * avg(correl[i][3]))
-                    / (std::sqrt(avg(correl[i][2]) - sqr(avg(correl[i][1])))
-                       * std::sqrt(avg(correl[i][4]) - sqr(avg(correl[i][3]))));
+            auto r = (avg(correl[i][5]) - avg(correl[i][1]) * avg(correl[i][3]))
+                   / (std::sqrt(avg(correl[i][2]) - sqr(avg(correl[i][1])))
+                      * std::sqrt(avg(correl[i][4]) - sqr(avg(correl[i][3]))));
             std::cerr << "Correl #" << i << ": Count " << n << " Coefficient " << r << std::endl;
         }
 }

@@ -584,7 +584,8 @@ void PolyBook::show_key_data() const noexcept {
                   << idx - keyData.begIndex + 1 << ' ' << entries[idx]  //
                   << " prob: " << std::setw(7) << std::setfill('0') << std::fixed
                   << std::setprecision(4)
-                  << (keyData.sumWeight != 0) * 100.0f * entries[idx].weight / keyData.sumWeight
+                  << (keyData.sumWeight != 0 ? 100.0 * entries[idx].weight / keyData.sumWeight
+                                             : 0.0)
                   << std::endl;
     }
     std::cout << std::endl;

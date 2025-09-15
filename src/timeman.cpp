@@ -87,12 +87,12 @@ void TimeManager::init(const Position& pos, const Options& options, Limit& limit
 
     // Maximum move horizon
     std::int16_t mtg = movesToGo != 0
-                     ? std::min<std::int16_t>(std::floor(MaxMovesToGo + 0.1f * std::max(movesToGo - MaxMovesToGo, 0)), movesToGo)
-                     : std::max<std::int16_t>(std::ceil (MaxMovesToGo - 0.1f * std::max(pos.move_num() - 20     , 0)), MaxMovesToGo - 10);
+                     ? std::min<std::int16_t>(std::floor(MaxMovesToGo + 0.1 * std::max(movesToGo - MaxMovesToGo, 0)), movesToGo)
+                     : std::max<std::int16_t>(std::ceil (MaxMovesToGo - 0.1 * std::max(pos.move_num() - 20     , 0)), MaxMovesToGo - 10);
 
     // If less than one second, gradually reduce mtg
     if (scaledTime < 1000)
-        mtg = std::max<std::int16_t>(0.05051f * scaledTime, 2);
+        mtg = std::max<std::int16_t>(0.05051 * scaledTime, 2);
 
     assert(mtg > 0);
 
@@ -104,7 +104,7 @@ void TimeManager::init(const Position& pos, const Options& options, Limit& limit
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
-    float optimumScale, maximumScale;
+    double optimumScale, maximumScale;
 
     if (movesToGo == 0)
     {
@@ -113,17 +113,17 @@ void TimeManager::init(const Position& pos, const Options& options, Limit& limit
         if (clock.inc == 0)
         {
         // Extra time according to initial remaining Time (Only once at game start)
-        if (initialAdjust < 0.0f)
-            initialAdjust = std::max(-0.4126f + 0.2862f * float(std::log10(remainTime)), 1.0e-6f);
+        if (initialAdjust < 0.0)
+            initialAdjust = std::max(-0.4126 + 0.2862 * std::log10(remainTime), 1.0e-6);
 
         // Calculate time constants based on current remaining time
-        auto logScaledTime = std::log10(scaledTime / 1000.0f);
+        auto logScaledTime = std::log10(scaledTime / 1000.0);
 
         optimumScale = initialAdjust
-                     * std::min(11.29900e-3f + std::min(3.47750e-3f + 28.41880e-5f * logScaledTime, 4.06734e-3f)
-                                             * std::pow(2.82122f + ply, 0.466422f),
-                                0.213035f * clock.time / remainTime);
-        maximumScale = std::min(std::max(3.66270f + 3.72690f * logScaledTime, 2.75068f) + 78.37482e-3f * ply, 6.35772f);
+                     * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * logScaledTime, 4.06734e-3)
+                                            * std::pow(2.82122 + ply, 0.466422),
+                                0.213035 * clock.time / remainTime);
+        maximumScale = std::min(std::max(3.66270 + 3.72690 * logScaledTime, 2.75068) + 78.37482e-3 * ply, 6.35772);
         }
         // 2) x basetime (+ z increment)
         // If there is a healthy increment, remaining time can exceed the actual available
@@ -131,37 +131,37 @@ void TimeManager::init(const Position& pos, const Options& options, Limit& limit
         else
         {
         // Extra time according to initial remaining Time (Only once at game start)
-        if (initialAdjust < 0.0f)
-            initialAdjust = std::max(-0.4354f + 0.3128f * float(std::log10(remainTime)), 1.0e-6f);
+        if (initialAdjust < 0.0)
+            initialAdjust = std::max(-0.4354 + 0.3128 * std::log10(remainTime), 1.0e-6);
 
         // Calculate time constants based on current remaining time
-        auto logScaledTime = std::log10(scaledTime / 1000.0f);
+        auto logScaledTime = std::log10(scaledTime / 1000.0);
 
         optimumScale = initialAdjust
-                     * std::min(12.14310e-3f + std::min(3.21160e-3f + 32.11230e-5f * logScaledTime, 5.08017e-3f)
-                                             * std::pow(2.94693f + ply, 0.461073f),
-                                0.213035f * clock.time / remainTime);
-        maximumScale = std::min(std::max(3.39770f + 3.03950f * logScaledTime, 2.94761f) + 83.43972e-3f * ply, 6.67704f);
+                     * std::min(12.14310e-3 + std::min(3.21160e-3 + 32.11230e-5 * logScaledTime, 5.08017e-3)
+                                            * std::pow(2.94693 + ply, 0.461073),
+                                0.213035 * clock.time / remainTime);
+        maximumScale = std::min(std::max(3.39770 + 3.03950 * logScaledTime, 2.94761) + 83.43972e-3 * ply, 6.67704);
         }
     }
     // 3) x moves in y time (+ z increment)
     else
     {
-        optimumScale = std::min((0.88000f + 85.91065e-4f * ply) / mtg,
-                                 0.88000f * clock.time / remainTime);
-        maximumScale = std::min( 1.30000f + 0.11000f * mtg, 8.45000f);
+        optimumScale = std::min((0.88000 + 85.91065e-4 * ply) / mtg,
+                                 0.88000 * clock.time / remainTime);
+        maximumScale = std::min( 1.30000 + 0.11000 * mtg, 8.45000);
     }
 
     // Limit the maximum possible time for this move
     optimumTime = TimePoint(optimumScale * remainTime);
-    maximumTime = std::max(mtg > 1 ? TimePoint(std::min(0.825179f * clock.time - moveOverhead, maximumScale * optimumTime)) - 10
+    maximumTime = std::max(mtg > 1 ? TimePoint(std::min(0.825179 * clock.time - moveOverhead, maximumScale * optimumTime)) - 10
                                    : clock.time - moveOverhead,
                            TimePoint(1));
 
     // clang-format on
 
     if (options["Ponder"])
-        optimumTime *= 1.2500f;
+        optimumTime *= 1.2500;
 }
 
 }  // namespace DON
