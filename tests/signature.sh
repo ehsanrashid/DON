@@ -33,7 +33,7 @@ if [ $# -gt 0 ]; then
       else
          echo "signature mismatch: reference $1 obtained: $signature ."
       fi
-      #exit 1
+      exit 1
    else
       echo "signature OK: $signature"
    fi
