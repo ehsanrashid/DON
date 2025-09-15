@@ -85,8 +85,8 @@ struct State final {
 using StateList    = std::deque<State>;
 using StateListPtr = std::unique_ptr<StateList>;
 
-constexpr std::uint16_t R50Offset = 14;
-constexpr std::uint16_t R50Factor = 8;
+constexpr std::uint16_t R50Offset = 14U;
+constexpr std::uint16_t R50Factor = 8U;
 
 extern std::uint16_t DrawMoveCount;
 

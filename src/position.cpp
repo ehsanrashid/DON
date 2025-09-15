@@ -176,7 +176,7 @@ void init() noexcept {
 }
 }  // namespace Zobrist
 
-std::uint16_t DrawMoveCount = 50;
+std::uint16_t DrawMoveCount = 50U;
 
 bool Chess960 = false;
 

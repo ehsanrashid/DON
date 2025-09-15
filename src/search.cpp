@@ -2203,7 +2203,8 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         bool exact = i != worker.curIdx || tb || !updated;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
-        if (is_decisive(v) && !is_mate(v) && (exact || !(rm.boundLower || rm.boundUpper)))
+        if (!(worker.threads.stop.load() && worker.limit.use_time_manager())  //
+            && is_decisive(v) && !is_mate(v) && (exact || !(rm.boundLower || rm.boundUpper)))
             worker.extend_tb_pv(i, v);
 
         FullInfo info(worker.rootPos, rm);
