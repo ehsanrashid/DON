@@ -503,7 +503,7 @@ ifeq ($(COMP), icx)
 	comp=icx
 	CXX=icpx
 	CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes \
-		-Wconditional-uninitialized -Wabi -Wdeprecated
+	            -Wconditional-uninitialized -Wabi -Wdeprecated
 endif
 
 ifeq ($(COMP), clang)
@@ -647,8 +647,8 @@ endif
 
 ### 3.2.2 Debugging with undefined behavior sanitizers
 ifneq ($(sanitize), none)
-        CXXFLAGS += -g3 $(addprefix -fsanitize=,$(sanitize))
-        LDFLAGS += $(addprefix -fsanitize=,$(sanitize))
+	CXXFLAGS += -g3 $(addprefix -fsanitize=,$(sanitize))
+	LDFLAGS += $(addprefix -fsanitize=,$(sanitize))
 endif
 
 ### 3.3 Optimization
@@ -666,7 +666,6 @@ ifeq ($(optimize), yes)
 		ifeq ($(comp), $(filter $(comp), clang icx))
 			CXXFLAGS += -mdynamic-no-pic
 		endif
-
 		ifeq ($(comp), gcc)
 			ifneq ($(arch), arm64)
 				CXXFLAGS += -mdynamic-no-pic
@@ -843,35 +842,35 @@ endif
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(optimize), yes)
-ifeq ($(debug), no)
-	ifeq ($(comp), $(filter $(comp), clang icx))
-		CXXFLAGS += -flto=full
-		ifeq ($(comp), icx)
-			CXXFLAGS += -fwhole-program-vtables
-		endif
-		ifeq ($(target_windows), yes)
-			CXXFLAGS += -fuse-ld=lld
-		endif
-		LDFLAGS += $(CXXFLAGS)
+	ifeq ($(debug), no)
+		ifeq ($(comp), $(filter $(comp), clang icx))
+			CXXFLAGS += -flto=full
+			ifeq ($(comp), icx)
+				CXXFLAGS += -fwhole-program-vtables
+			endif
+			ifeq ($(target_windows), yes)
+				CXXFLAGS += -fuse-ld=lld
+			endif
+			LDFLAGS += $(CXXFLAGS)
 
 # GCC and CLANG use different methods for parallelizing LTO and CLANG pretends to be
 # GCC on some systems.
-	else ifeq ($(comp), gcc)
-	ifeq ($(gccisclang), )
-		CXXFLAGS += -flto -flto-partition=one
-		LDFLAGS += $(CXXFLAGS) -flto=jobserver
-	else
-		CXXFLAGS += -flto=full
-		LDFLAGS += $(CXXFLAGS)
-	endif
+		else ifeq ($(comp), gcc)
+			ifeq ($(gccisclang), )
+				CXXFLAGS += -flto -flto-partition=one
+				LDFLAGS += $(CXXFLAGS) -flto=jobserver
+			else
+				CXXFLAGS += -flto=full
+				LDFLAGS += $(CXXFLAGS)
+			endif
 
 # To use LTO and static linking on Windows,
 # the tool chain requires gcc version 10.1 or later.
-	else ifeq ($(comp), mingw)
-		CXXFLAGS += -flto -flto-partition=one
-		LDFLAGS += $(CXXFLAGS) -save-temps
+		else ifeq ($(comp), mingw)
+			CXXFLAGS += -flto -flto-partition=one
+			LDFLAGS += $(CXXFLAGS) -save-temps
+		endif
 	endif
-endif
 endif
 
 ### 3.10 Android 5 can only run position independent executables. Note that this

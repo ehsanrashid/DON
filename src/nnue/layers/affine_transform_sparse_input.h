@@ -240,21 +240,21 @@ class AffineTransformSparseInput {
     }
 
     // Read network parameters
-    bool read_parameters(std::istream& stream) noexcept {
-        read_little_endian<BiasType>(stream, biases, OutputDimensions);
+    bool read_parameters(std::istream& istream) noexcept {
+        read_little_endian<BiasType>(istream, biases, OutputDimensions);
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
-            weights[get_weight_index(i)] = read_little_endian<WeightType>(stream);
+            weights[get_weight_index(i)] = read_little_endian<WeightType>(istream);
 
-        return !stream.fail();
+        return !istream.fail();
     }
 
     // Write network parameters
-    bool write_parameters(std::ostream& stream) const noexcept {
-        write_little_endian<BiasType>(stream, biases, OutputDimensions);
+    bool write_parameters(std::ostream& ostream) const noexcept {
+        write_little_endian<BiasType>(ostream, biases, OutputDimensions);
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
-            write_little_endian<WeightType>(stream, weights[get_weight_index(i)]);
+            write_little_endian<WeightType>(ostream, weights[get_weight_index(i)]);
 
-        return !stream.fail();
+        return !ostream.fail();
     }
 
     // Forward propagation
