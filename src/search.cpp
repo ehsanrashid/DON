@@ -573,7 +573,7 @@ void Worker::iterative_deepening() noexcept {
 
             // Cap totalTime in case of a single legal move for a better viewer experience
             if (rootMoves.size() == 1)
-                totalTime = std::min(0.5000 * totalTime, 502.0);
+                totalTime = std::min(0.50 * totalTime, 502.0);
 
             TimePoint elapsedTime = mainManager->elapsed(threads);
 

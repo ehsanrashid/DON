@@ -113,7 +113,6 @@ Command str_to_command(std::string_view command) noexcept {
 }
 
 Limit parse_limit(std::istringstream& iss) noexcept {
-
     Limit limit;
     // The search starts as early as possible
     limit.startTime = now();

@@ -246,44 +246,29 @@ class RootMoves final {
 struct Limit final {
    public:
     struct Clock final {
-        TimePoint time = TimePoint(0);
-        TimePoint inc  = TimePoint(0);
+        TimePoint time{0};
+        TimePoint inc{0};
     };
 
-    Limit() noexcept {
-        startTime = TimePoint(0);
-
-        clocks[WHITE].time = clocks[BLACK].time = TimePoint(0);
-        clocks[WHITE].inc = clocks[BLACK].inc = TimePoint(0);
-
-        movesToGo = 0;
-        mate      = 0;
-        moveTime  = TimePoint(0);
-        depth     = DEPTH_ZERO;
-        nodes     = 0;
-        hitRate   = 512;
-        infinite  = false;
-        ponder    = false;
-        perft = detail = false;
-    }
+    constexpr Limit() noexcept = default;
 
     bool use_time_manager() const noexcept { return clocks[WHITE].time || clocks[BLACK].time; }
 
-    TimePoint startTime;
+    TimePoint startTime{0};
 
-    std::array<Clock, COLOR_NB> clocks;
+    std::array<Clock, COLOR_NB> clocks{};
 
-    std::uint8_t  movesToGo;
-    std::uint8_t  mate;
-    TimePoint     moveTime;
-    Depth         depth;
-    std::uint64_t nodes;
-    std::uint16_t hitRate;
-    bool          infinite;
-    bool          ponder;
-    bool          perft, detail;
+    std::uint8_t  movesToGo{0};
+    std::uint8_t  mate{0};
+    TimePoint     moveTime{0};
+    Depth         depth{DEPTH_ZERO};
+    std::uint64_t nodes{0};
+    std::uint16_t hitRate{512};
+    bool          infinite{false};
+    bool          ponder{false};
+    bool          perft{false}, detail{false};
 
-    Strings searchMoves, ignoreMoves;
+    Strings searchMoves{}, ignoreMoves{};
 };
 
 // Skill struct is used to implement engine strength limit.
@@ -316,6 +301,7 @@ struct Skill final {
 // SharedState struct stores the engine options, networks, thread pool, and transposition table.
 // It is used to easily forward data to the Worker class.
 struct SharedState final {
+   public:
     SharedState(const Options&                            engOptions,
                 const LazyNumaReplicated<NNUE::Networks>& nnueNetworks,
                 ThreadPool&                               threadPool,
