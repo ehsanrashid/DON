@@ -46,8 +46,8 @@ namespace DON {
 
 namespace {
 
-constexpr std::string_view                     PieceChar{" PNBRQK  pnbrqk "};
-const inline std::array<std::string, PIECE_NB> PieceFigure{
+constexpr std::string_view              PieceChar{" PNBRQK  pnbrqk "};
+const std::array<std::string, PIECE_NB> PieceFigure{
   "", "\u2659", "\u2658", "\u2657", "\u2656", "\u2655", "\u2654", "",
   "", "\u265F", "\u265E", "\u265D", "\u265C", "\u265B", "\u265A", ""};
 
@@ -76,7 +76,7 @@ enum Command : std::uint8_t {
 };
 
 // clang-format off
-const inline std::unordered_map<std::string_view, Command> CommandMap{
+const std::unordered_map<std::string_view, Command> CommandMap{
   {"stop",       CMD_STOP},
   {"quit",       CMD_QUIT},
   {"ponderhit",  CMD_PONDERHIT},

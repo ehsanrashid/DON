@@ -46,7 +46,7 @@ constexpr std::array<Piece, COLOR_NB * KING> Pieces{
   B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING
 };
 
-const inline std::array<std::unique_ptr<const std::int8_t[]>, PIECE_TYPE_NB - 1> MobilityBonus{
+const std::array<std::unique_ptr<const std::int8_t[]>, PIECE_TYPE_NB - 1> MobilityBonus{
   nullptr,
   make_array<20>({ -2,  0,  2,  4,  6,  8, 10, 12, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26}),                                 // PAWN
   make_array< 9>({-75,-61,-14, -2,  9, 20, 31, 41, 48}),                                                                             // KNIGHT

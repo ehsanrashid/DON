@@ -425,22 +425,22 @@ constexpr NodeType operator~(NodeType nt) noexcept { return NodeType((int(nt) ^ 
 
 // Stack struct keeps track of the information need to remember from nodes
 // shallower and deeper in the tree during the search.
-// Each search thread has its own array of Stack objects, indexed by the ply.
+// Each search thread has its own array of Stack objects, indexed by the ply. (Size = 40)
 struct Stack final {
    public:
-    std::int16_t ply;
-    bool         inCheck;
-    bool         pvHit;
-    Move         ttMove;
-    Move         move;
-    std::uint8_t moveCount;
-    std::uint8_t cutoffCount;
-    Value        staticEval;
-    int          history;
-
     Move*                         pv;
     History<HPieceSq>*            pieceSqHistory;
     CorrectionHistory<CHPieceSq>* pieceSqCorrectionHistory;
+
+    int          history;
+    Value        staticEval;
+    std::int16_t ply;
+    Move         move;
+    Move         ttMove;
+    std::uint8_t moveCount;
+    std::uint8_t cutoffCount;
+    bool         inCheck;
+    bool         pvHit;
 };
 
 // Worker is the class that does the actual search.

@@ -1158,7 +1158,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // SEE based pruning for captures
                 int margin = std::max(157 * depth + history / 29, 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
-                  (alpha >= VALUE_ZERO
+                  (alpha >= VALUE_DRAW
                    || pos.non_pawn_material(ac) != PIECE_VALUE[type_of(movedPiece)])
                   && pos.see(move) < -(margin + 256 * dblCheck))
                     continue;
@@ -1230,10 +1230,10 @@ S_MOVES_LOOP:  // When in check, search starts here
             {
                 singularValue = value;
 
-                int corrValAdj = absCorrectionValue / 229958;
+                int corrValue = absCorrectionValue / 229958;
                 // clang-format off
-                int doubleMargin = -4 + 198 * PVNode - 212 * !ttCapture - corrValAdj - 45 * (ss->ply >       rootDepth) - 921 * TTMoveHistory[ac] / 127649;
-                int tripleMargin = 76 + 308 * PVNode - 250 * !ttCapture - corrValAdj - 52 * (ss->ply > 1.5 * rootDepth) + 92 * ss->pvHit;
+                int doubleMargin = -4 + 198 * PVNode - 212 * !ttCapture - corrValue - 45 * (ss->ply > 1.0 * rootDepth) - 921 * TTMoveHistory[ac] / 127649;
+                int tripleMargin = 76 + 308 * PVNode - 250 * !ttCapture - corrValue - 52 * (ss->ply > 1.5 * rootDepth) + 92 * ss->pvHit;
 
                 extension = 1 + (value < singularBeta - doubleMargin)
                               + (value < singularBeta - tripleMargin);
@@ -1377,7 +1377,8 @@ S_MOVES_LOOP:  // When in check, search starts here
             (ss + 1)->pv = pv.data();
 
             // Extend if about to dive into qsearch
-            if (newDepth < 1 && rootDepth > 6 && move == ttd.move && tt.lastHashfull <= 960)
+            if (newDepth < 1 && rootDepth > 6 && move == ttd.move && ttd.depth > 1
+                && tt.lastHashfull <= 960)
                 newDepth = 1;
 
             value = -search<PV>(pos, ss + 1, -beta, -alpha, newDepth);

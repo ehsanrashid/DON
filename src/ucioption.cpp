@@ -31,7 +31,7 @@ namespace {
 constexpr std::string_view EMPTY_STRING{"<empty>"};
 
 // clang-format off
-const inline std::unordered_map<OptionType, std::string_view> OptionTypeMap{
+const std::unordered_map<OptionType, std::string_view> OptionTypeMap{
   {OPT_BUTTON, "button"},
   {OPT_CHECK,  "check"},
   {OPT_STRING, "string"},

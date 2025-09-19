@@ -88,8 +88,7 @@ void TranspositionTable::init(ThreadPool& threads) noexcept {
 
 // Looks up the current position (key) in the transposition table.
 // It returns pointer to the TTEntry if the position is found.
-std::tuple<TTData, TTEntry*, TTCluster* const>
-TranspositionTable::probe(Key key, Key16 key16) const noexcept {
+ProbResult TranspositionTable::probe(Key key, Key16 key16) const noexcept {
 
     auto* const ttc = cluster(key);
 
@@ -102,7 +101,7 @@ TranspositionTable::probe(Key key, Key16 key16) const noexcept {
             ttc};
 }
 
-std::tuple<TTData, TTEntry*, TTCluster* const> TranspositionTable::probe(Key key) const noexcept {
+ProbResult TranspositionTable::probe(Key key) const noexcept {
     return probe(key, compress_key16(key));
 }
 

@@ -303,6 +303,8 @@ class TTUpdater final {
 
 class ThreadPool;
 
+using ProbResult = std::tuple<TTData, TTEntry*, TTCluster* const>;
+
 // TranspositionTable is an array of TTCluster, of size clusterCount.
 // Each non-empty TTEntry contains information on exactly one position.
 class TranspositionTable final {
@@ -323,8 +325,8 @@ class TranspositionTable final {
     void resize(std::size_t ttSize, ThreadPool& threads) noexcept;
     void init(ThreadPool& threads) noexcept;
 
-    std::tuple<TTData, TTEntry*, TTCluster* const> probe(Key key, Key16 key16) const noexcept;
-    std::tuple<TTData, TTEntry*, TTCluster* const> probe(Key key) const noexcept;
+    ProbResult probe(Key key, Key16 key16) const noexcept;
+    ProbResult probe(Key key) const noexcept;
 
     std::uint16_t hashfull(std::uint8_t maxAge) const noexcept;
     std::uint16_t hashfull() noexcept;
