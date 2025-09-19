@@ -34,13 +34,6 @@
 namespace DON::NNUE::Layers {
 
 #if defined(USE_SSSE3) || (defined(USE_NEON) && (USE_NEON >= 8))
-    #if defined(__GNUC__) || defined(__clang__)
-        #define RESTRICT __restrict__
-    #elif defined(_MSC_VER)
-        #define RESTRICT __restrict
-    #else
-        #define RESTRICT
-    #endif
 
 namespace {
 
@@ -53,10 +46,11 @@ constexpr std::uint8_t LsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
                                       25, 39, 14, 33, 19, 30, 9,  24,  //
                                       13, 18, 8,  12, 7,  6,  5,  63};
 
-constexpr std::uint8_t constexpr_lsb(std::uint64_t bb) noexcept {
-    assert(bb);
+constexpr std::uint8_t constexpr_lsb(std::uint64_t b) noexcept {
+    assert(b);
     constexpr std::uint64_t Debruijn64 = 0x03F79D71B4CB0A89ULL;
-    return LsbIndices[((bb ^ (bb - 1)) * Debruijn64) >> 58];
+
+    return LsbIndices[((b ^ (b - 1)) * Debruijn64) >> 58];
 }
 
 struct Lookup final {
@@ -89,6 +83,14 @@ struct Lookup final {
 
 // Single shared instance across all TUs
 alignas(CACHE_LINE_SIZE) constexpr Lookup LookupInstance{};
+
+    #if defined(__GNUC__) || defined(__clang__)
+        #define RESTRICT __restrict__
+    #elif defined(_MSC_VER)
+        #define RESTRICT __restrict
+    #else
+        #define RESTRICT
+    #endif
 
 // Find indices of nonzero numbers in an std::int32_t array
 template<IndexType InputDimensions>
@@ -187,6 +189,8 @@ void find_nnz(const std::int32_t* RESTRICT input,
     outCount = count;
     #endif
 }
+
+    #undef RESTRICT
 
 }  // namespace
 #endif

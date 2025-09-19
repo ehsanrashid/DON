@@ -82,8 +82,8 @@ struct Magic final {
     Magic& operator=(const Magic&) noexcept = delete;
     Magic& operator=(Magic&&) noexcept      = delete;
 
-    Bitboard  mask;
     Bitboard* attacks;
+    Bitboard  mask;
 #if !defined(USE_PEXT)
     Bitboard     magic;
     std::uint8_t shift;
@@ -113,8 +113,8 @@ struct Magic final {
 };
 
 #if !defined(USE_POPCNT)
-constexpr unsigned  POP_CNT_SIZE = 1u << 16;
-extern std::uint8_t PopCnt[POP_CNT_SIZE];
+constexpr unsigned  POPCNT_SIZE = 1U << 16;
+extern std::uint8_t PopCnt[POPCNT_SIZE];
 #endif
 
 // clang-format off
@@ -248,7 +248,10 @@ constexpr Bitboard shift(Bitboard b) noexcept {
     else if constexpr (D == SOUTH_WEST)
         return (b & ~FILE_A_BB) >> NORTH_EAST;
     else
-        return b;
+    {
+        assert(false);
+        return 0;
+    }
 }
 
 template<Color C>

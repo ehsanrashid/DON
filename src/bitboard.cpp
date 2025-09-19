@@ -29,7 +29,7 @@
 namespace DON {
 
 #if !defined(USE_POPCNT)
-alignas(CACHE_LINE_SIZE) std::uint8_t PopCnt[POP_CNT_SIZE];
+alignas(CACHE_LINE_SIZE) std::uint8_t PopCnt[POPCNT_SIZE];
 #endif
 // clang-format off
 alignas(CACHE_LINE_SIZE) std::uint8_t Distances[SQUARE_NB][SQUARE_NB];
@@ -93,7 +93,7 @@ void init_magics() noexcept {
 
 #if !defined(USE_PEXT)
     // Optimal PRNG seeds to pick the correct magics in the shortest time
-    constexpr std::uint16_t MagicSeeds[RANK_NB]{
+    static constexpr std::uint16_t MagicSeeds[RANK_NB]{
     // clang-format off
     #if defined(IS_64BIT)
       0x02D8, 0x284C, 0xD6E5, 0x8023, 0x2FF9, 0x3AFC, 0x4105, 0x00FF
@@ -110,37 +110,27 @@ void init_magics() noexcept {
 
     Bitboard reference[TableSize];
 
-    std::uint16_t size = 0;
+    std::uint16_t size;
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        // Board edges are not considered in the relevant occupancies
-        Bitboard edges = (EDGE_FILE_BB & ~file_bb(s)) | (PROMOTION_RANK_BB & ~rank_bb(s));
-
         // Given a square 's', the mask is the bitboard of sliding attacks from 's' computed on an empty board.
         // The index must be big enough to contain all the attacks for each possible subset of the mask and so
         // is 2 power the number of 1's of the mask.
         // Hence, deduce the size of the shift to apply to the 64 or 32 bits word to get the index.
-        auto& magic = Magics[s][PT - BISHOP];
+        auto& m = Magics[s][PT - BISHOP];
 
-        magic.mask = sliding_attack<PT>(s) & ~edges;
-#if !defined(USE_PEXT)
-        magic.shift =
-    #if defined(IS_64BIT)
-          64
-    #else
-          32
-    #endif
-          - popcount(magic.mask);
-#endif
-
-        assert(size < AttacksSize[PT - BISHOP]);
+        assert(s == SQ_A1 || size < AttacksSize[PT - BISHOP]);
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
-        magic.attacks =
-          s == SQ_A1 ? Attacks[PT - BISHOP] : Magics[s - 1][PT - BISHOP].attacks + size;
-        assert(magic.attacks != nullptr);
+        m.attacks = s == SQ_A1 ? Attacks[PT - BISHOP] : Magics[s - 1][PT - BISHOP].attacks + size;
+        assert(m.attacks != nullptr);
         size = 0;
+
+        // Board edges are not considered in the relevant occupancies
+        Bitboard edges = (EDGE_FILE_BB & ~file_bb(s)) | (PROMOTION_RANK_BB & ~rank_bb(s));
+
+        m.mask = sliding_attack<PT>(s) & ~edges;
 
         // Use Carry-Rippler trick to enumerate all subsets of masks[s] and
         // store the corresponding sliding attack bitboard in reference[].
@@ -151,13 +141,21 @@ void init_magics() noexcept {
 #if !defined(USE_PEXT)
             occupancy[size] = b;
 #else
-            magic.attacks_bb(b, reference[size]);
+            m.attacks_bb(b, reference[size]);
 #endif
             ++size;
-            b = (b - magic.mask) & magic.mask;
+            b = (b - m.mask) & m.mask;
         } while (b);
 
 #if !defined(USE_PEXT)
+
+        m.shift =
+    #if defined(IS_64BIT)
+          64
+    #else
+          32
+    #endif
+          - popcount(m.mask);
 
         PRNG rng(MagicSeeds[rank_of(s)]);
         // Find a magic for square 's' picking up an (almost) random number
@@ -165,8 +163,8 @@ void init_magics() noexcept {
         for (std::uint16_t i = 0; i < size;)
         {
             do
-                magic.magic = rng.sparse_rand<Bitboard>();
-            while (popcount((magic.magic * magic.mask) >> 56) < 6);
+                m.magic = rng.sparse_rand<Bitboard>();
+            while (popcount((m.magic * m.mask) >> 56) < 6);
 
             // A good magic must map every possible occupancy to an index that
             // looks up the correct sliding attack in the attacks[s] database.
@@ -174,18 +172,17 @@ void init_magics() noexcept {
             // of verifying the magic. Keep track of the attempt count and
             // save it in epoch[], little speed-up trick to avoid resetting
             // m.attacks[] after every failed attempt.
-            ++cnt;
-            for (i = 0; i < size; ++i)
+            for (++cnt, i = 0; i < size; ++i)
             {
-                auto idx = magic.index(occupancy[i]);
+                auto idx = m.index(occupancy[i]);
 
                 if (epoch[idx] < cnt)
                 {
-                    epoch[idx]         = cnt;
-                    magic.attacks[idx] = reference[i];
+                    epoch[idx]     = cnt;
+                    m.attacks[idx] = reference[i];
                     continue;
                 }
-                if (magic.attacks[idx] != reference[i])
+                if (m.attacks[idx] != reference[i])
                     break;
             }
         }
@@ -202,7 +199,7 @@ namespace BitBoard {
 void init() noexcept {
 
 #if !defined(USE_POPCNT)
-    for (unsigned i = 0; i < POP_CNT_SIZE; ++i)
+    for (unsigned i = 0; i < POPCNT_SIZE; ++i)
         PopCnt[i] = std::bitset<16>(i).count();
 #endif
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)

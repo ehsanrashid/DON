@@ -957,6 +957,8 @@ ENCODE_END:
     return map_score(entry, tbFile, decompress_pairs(pd, idx), wdlScore);
 }
 
+#undef CLANG_AVX512_BUG_FIX
+
 // Group together pieces that will be encoded together. The general rule is that
 // a group contains pieces of the same type and color. The exception is the leading
 // group that, in case of positions without pawns, can be formed by 3 different
