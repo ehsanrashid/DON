@@ -110,7 +110,7 @@ void init_magics() noexcept {
 
     Bitboard reference[TableSize];
 
-    std::uint16_t size;
+    std::uint16_t size = 0;
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
