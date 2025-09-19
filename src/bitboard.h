@@ -30,10 +30,9 @@
 
 #if defined(_MSC_VER)
     #include <intrin.h>  // Microsoft header for _BitScanForward64() && _BitScanForward()
-#endif
-
-#if defined(USE_POPCNT) && defined(_MSC_VER)
-    #include <nmmintrin.h>  // Microsoft header for _mm_popcnt_u64()
+    #if defined(USE_POPCNT)
+        #include <nmmintrin.h>  // Microsoft header for _mm_popcnt_u64()
+    #endif
 #endif
 
 #if defined(USE_PEXT)
@@ -343,7 +342,7 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
     std::uint16_t b16[4];
     std::memcpy(b16, &b, sizeof(b));
     return PopCnt[b16[0]] + PopCnt[b16[1]] + PopCnt[b16[2]] + PopCnt[b16[3]];
-#elif defined(__GNUC__) || defined(__clang__)  // (GCC, Clang, ICX)
+#elif defined(__GNUC__)  // (GCC, Clang, ICX)
     return __builtin_popcountll(b);
 #elif defined(_MSC_VER)
     return _mm_popcnt_u64(b);
@@ -364,7 +363,7 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
 inline Square lsb(Bitboard b) noexcept {
     assert(b);
 
-#if defined(__GNUC__) || defined(__clang__)  // (GCC, Clang, ICX)
+#if defined(__GNUC__)  // (GCC, Clang, ICX)
     return Square(__builtin_ctzll(b));
 #elif defined(_MSC_VER)
     unsigned long idx;
@@ -400,7 +399,7 @@ inline Square lsb(Bitboard b) noexcept {
 inline Square msb(Bitboard b) noexcept {
     assert(b);
 
-#if defined(__GNUC__) || defined(__clang__)  // (GCC, Clang, ICX)
+#if defined(__GNUC__)  // (GCC, Clang, ICX)
     return Square(__builtin_clzll(b) ^ 63);
 #elif defined(_MSC_VER)
     unsigned long idx;
