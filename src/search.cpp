@@ -416,7 +416,7 @@ void Worker::iterative_deepening() noexcept {
                 Depth adjustedDepth =
                   std::max(rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4, 1);
 
-                std::uint16_t preMoveChanges = moveChanges;
+                auto preMoveChanges = std::uint16_t(moveChanges);
 
                 bestValue = search<Root>(rootPos, ss, alpha, beta, adjustedDepth);
 
@@ -454,7 +454,7 @@ void Worker::iterative_deepening() noexcept {
                 }
                 else if (bestValue >= beta)
                 {
-                    alpha = moveChanges > preMoveChanges
+                    alpha = preMoveChanges < moveChanges
                             ? (116 * alpha + 1 * beta
                                + 7 * std::max(bestValue - delta, -VALUE_INFINITE))
                                 / 124
@@ -499,7 +499,7 @@ void Worker::iterative_deepening() noexcept {
             && (rootMoves.front().curValue != -VALUE_INFINITE
                 && is_loss(rootMoves.front().curValue)))
         {
-            // Bring the last best rootmove to the front for best thread selection.
+            // Bring the last best rootMove to the front for best thread selection.
             rootMoves.move_to_front([&lastBestPV = std::as_const(lastBestPV)](
                                       const auto& rm) noexcept { return rm == lastBestPV[0]; });
             rootMoves.front().pv       = lastBestPV;
@@ -552,7 +552,7 @@ void Worker::iterative_deepening() noexcept {
                                            0.9999 - 0.4311 * !mainManager->moveFirst,
                                            1.0001 + 0.5697 * !mainManager->moveFirst);
 
-            // Compute stable depth (differnce between the current search depth and the last best depth)
+            // Compute stable depth (difference between the current search depth and the last best depth)
             Depth stableDepth = completedDepth - lastBestDepth;
             assert(stableDepth >= DEPTH_ZERO);
 

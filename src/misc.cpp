@@ -63,26 +63,55 @@ inline std::string format_date(std::string_view date) noexcept {
 // MSVC requires split streambuf for std::cin and std::cout.
 class Tie final: public std::streambuf {
    public:
+    using traits_type = std::streambuf::traits_type;
+    using int_type    = traits_type::int_type;
+    using char_type   = traits_type::char_type;
+
     Tie() noexcept = delete;
-    Tie(std::streambuf* sB1, std::streambuf* sB2) noexcept :
-        sBuf1(sB1),
-        sBuf2(sB2) {}
+    Tie(std::streambuf* pBuf, std::streambuf* mBuf) noexcept :
+        primaryBuf(pBuf),
+        mirrorBuf(mBuf) {}
 
-    int sync() noexcept override { return sBuf2->pubsync(), sBuf1->pubsync(); }
-    int overflow(int ch) noexcept override { return log(sBuf1->sputc(char(ch)), "<< "); }
-    int underflow() noexcept override { return sBuf1->sgetc(); }
-    int uflow() noexcept override { return log(sBuf1->sbumpc(), ">> "); }
-
-    int log(int ch, std::string_view prefix) noexcept {
-        static int preCh = '\n';  // Single log file
-
-        if (preCh == '\n')
-            sBuf2->sputn(prefix.data(), prefix.size());
-
-        return preCh = sBuf2->sputc(char(ch));
+    int_type overflow(int_type ch) override {
+        if (!primaryBuf)
+            return traits_type::eof();
+        return log(primaryBuf->sputc(traits_type::to_char_type(ch)), "<< ", preOutCh);
     }
 
-    std::streambuf *sBuf1, *sBuf2;
+    int_type underflow() override {
+        if (!primaryBuf)
+            return traits_type::eof();
+        return primaryBuf->sgetc();
+    }
+
+    int_type uflow() override {
+        if (!primaryBuf)
+            return traits_type::eof();
+        int_type ch = primaryBuf->sbumpc();
+        if (traits_type::eq_int_type(ch, traits_type::eof()))
+            return ch;
+        return log(ch, ">> ", preInCh);
+    }
+
+    int sync() override {
+        int r1 = primaryBuf ? primaryBuf->pubsync() : 0;
+        int r2 = mirrorBuf ? mirrorBuf->pubsync() : 0;
+        return (r1 == 0 && r2 == 0) ? 0 : -1;
+    }
+
+    std::streambuf *primaryBuf, *mirrorBuf;
+
+   private:
+    int_type log(int_type ch, std::string_view prefix, char_type& preCh) noexcept {
+        if (!mirrorBuf)
+            return traits_type::not_eof(ch);
+        if (preCh == '\n')
+            mirrorBuf->sputn(prefix.data(), std::streamsize(prefix.size()));
+        return mirrorBuf->sputc(preCh = traits_type::to_char_type(ch));
+    }
+
+    char_type preOutCh = '\n';
+    char_type preInCh  = '\n';
 };
 
 class Logger final {
@@ -111,8 +140,8 @@ class Logger final {
         {
             logger.ofstream << "[" << format_time(SystemClock::now()) << "] <-" << std::endl;
 
-            logger.istream.rdbuf(logger.iTie.sBuf1);
-            logger.ostream.rdbuf(logger.oTie.sBuf1);
+            logger.istream.rdbuf(logger.iTie.primaryBuf);
+            logger.ostream.rdbuf(logger.oTie.primaryBuf);
             logger.ofstream.close();
         }
 
