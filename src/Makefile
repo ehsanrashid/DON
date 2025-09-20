@@ -1028,7 +1028,10 @@ format:
 	@[ -n "$(SRCS)$(HEADERS)" ] && $(CLANG-FORMAT) -i -style=file $(SRCS) $(HEADERS) || true
 
 install-hooks:
-	ln -sf ../.git-hooks/pre-commit ../.git/hooks/pre-commit
+	@root="$$(git rev-parse --show-toplevel)"; \
+	cp "$$root/.git-hooks/pre-commit" "$$root/.git/hooks/pre-commit"; \
+	chmod +x "$$root/.git/hooks/pre-commit"; \
+	echo "Installed pre-commit hook."
 
 ### ==========================================================================
 ### Section 5. Private Targets
