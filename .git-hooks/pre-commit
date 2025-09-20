@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Running clang-format…"
+
+# Always go to repo root (safe)
+cd "$(git rev-parse --show-toplevel)"
+
+# Run make in src/
+make -C src format
+
+# Re-stage any changes made by formatting
+if ! git diff --quiet; then
+  echo "pre-commit: Formatting changed files."
+  git add -A
+fi

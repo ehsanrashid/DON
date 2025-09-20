@@ -1376,7 +1376,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             pv[0]        = Move::None;
             (ss + 1)->pv = pv.data();
 
-            // Extend if about to dive into qsearch
+            // Extend deep enough ttMove entries if about to dive into qsearch
             if (newDepth < 1 && rootDepth > 6 && move == ttd.move && ttd.depth > 1
                 && tt.lastHashfull <= 960)
                 newDepth = 1;

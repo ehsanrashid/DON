@@ -202,7 +202,6 @@ jobs:
           export CXXFLAGS="-Werror -D_GLIBCXX_DEBUG"
           make clean
           make -j4 ARCH=x86-32-sse41-popcnt optimize=no debug=yes build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test x86-32-sse41-popcnt build
@@ -210,7 +209,6 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=x86-32-sse41-popcnt build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test x86-32-sse2 build
@@ -218,7 +216,6 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=x86-32-sse2 build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test x86-32-popcnt build
@@ -226,7 +223,6 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=x86-32-popcnt build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test x86-32 build
@@ -234,7 +230,6 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=x86-32 build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test general-32 build
@@ -242,7 +237,6 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=general-32 build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       # x86-64 tests
@@ -253,7 +247,6 @@ jobs:
           export CXXFLAGS="-Werror -D_GLIBCXX_DEBUG"
           make clean
           make -j4 ARCH=x86-64-avx2 optimize=no debug=yes build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test x86-64-bmi2 build
@@ -261,7 +254,6 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=x86-64-bmi2 build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test x86-64-avx2 build
@@ -269,7 +261,6 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=x86-64-avx2 build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       # Test a deprecated arch
@@ -278,7 +269,6 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=x86-64-modern build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test x86-64-sse41-popcnt build
@@ -286,7 +276,6 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=x86-64-sse41-popcnt build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test x86-64-ssse3-popcnt build
@@ -294,7 +283,6 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=x86-64-ssse3-popcnt build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test x86-64-ssse3 build
@@ -302,7 +290,6 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=x86-64-ssse3 build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test x86-64 build
@@ -310,7 +297,6 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=x86-64 build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test general-64 build
@@ -318,7 +304,6 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=general-64 build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test apple-silicon build
@@ -326,7 +311,6 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=apple-silicon build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       # armv8 tests
@@ -340,7 +324,6 @@ jobs:
           fi
           make clean
           make -j4 ARCH=armv8 build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test armv8-dotprod build
@@ -352,7 +335,6 @@ jobs:
           fi
           make clean
           make -j4 ARCH=armv8-dotprod build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       # armv7 tests
@@ -364,7 +346,6 @@ jobs:
           export LDFLAGS="-static -Wno-unused-command-line-argument"
           make clean
           make -j4 ARCH=armv7 build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       - name: Test armv7-neon build
@@ -374,7 +355,6 @@ jobs:
           export LDFLAGS="-static -Wno-unused-command-line-argument"
           make clean
           make -j4 ARCH=armv7-neon build
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       # riscv64 tests
@@ -384,7 +364,6 @@ jobs:
         run: |
           echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=riscv64 build" > script.sh
           docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       # ppc64 tests
@@ -394,7 +373,6 @@ jobs:
         run: |
           echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=ppc-64 build" > script.sh
           docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
-          chmod +x ../tests/signature.sh
           ../tests/signature.sh $benchref
 
       # Other tests
@@ -404,7 +382,5 @@ jobs:
         run: |
           make clean
           make -j4 ARCH=x86-64-avx2 build
-          chmod +x ../tests/perft.sh
           ../tests/perft.sh
-          chmod +x ../tests/reprosearch.sh
           ../tests/reprosearch.sh

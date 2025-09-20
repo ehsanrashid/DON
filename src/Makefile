@@ -970,7 +970,7 @@ endif
 	icx-profile-use icx-profile-make \
 	gcc-profile-use gcc-profile-make \
 	clang-profile-use clang-profile-make FORCE \
-	format analyze
+	format analyze install-hooks
 
 analyze: net config-sanity objclean
 	$(MAKE) -k ARCH=$(ARCH) COMP=$(COMP) $(OBJS)
@@ -1025,7 +1025,10 @@ net:
 	@$(SHELL) ../scripts/net.sh
 
 format:
-	$(CLANG-FORMAT) -i $(SRCS) $(HEADERS) -style=file
+	@[ -n "$(SRCS)$(HEADERS)" ] && $(CLANG-FORMAT) -i -style=file $(SRCS) $(HEADERS) || true
+
+install-hooks:
+	ln -sf ../.git-hooks/pre-commit ../.git/hooks/pre-commit
 
 ### ==========================================================================
 ### Section 5. Private Targets
