@@ -931,9 +931,7 @@ Value Worker::search(Position&    pos,
         assert((ss - 1)->move != Move::Null);
 
         // Null move dynamic reduction based on depth, eval and phase
-        Depth R = 5 + depth / 3 + pos.phase() / 9;
-        if (R > depth - 1)
-            R = depth - 1;
+        Depth R = std::min(5 + depth / 3 + pos.phase() / 9, depth - 1);
 
         do_null_move(pos, st, ss);
 
@@ -986,7 +984,7 @@ Value Worker::search(Position&    pos,
     {
         assert(beta < probCutBeta && probCutBeta < +VALUE_INFINITE);
 
-        Depth probCutDepth = std::clamp(depth - 5 - (ss->staticEval - beta) / 306, 0, int(depth));
+        Depth probCutDepth = std::clamp(depth - 5 - (ss->staticEval - beta) / 306, 0, depth + 0);
         int   probCutThreshold = probCutBeta - ss->staticEval;
 
         MovePicker mp(pos, pttm, probCutThreshold);
