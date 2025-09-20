@@ -1047,7 +1047,7 @@ Move UCI::mix_to_move(std::string_view       mix,
     assert(2 <= mix.size() && mix.size() <= 9);
     Move m = Move::None;
 
-    if (mix.size() >= 2)
+    if (!legalMoveList.empty() && mix.size() >= 2)
     {
         if (mix.size() < 4 || starts_with(lower_case(std::string(mix)), "o-")
             || starts_with(mix, "0-"))

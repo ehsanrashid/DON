@@ -39,7 +39,7 @@ namespace DON {
 namespace {
 
 constexpr std::size_t MIN_THREADS = 1U;
-const std::size_t     MAX_THREADS = std::max<std::size_t>(4 * hardware_concurrency(), 1024u);
+const std::size_t     MAX_THREADS = std::max<std::size_t>(4U * hardware_concurrency(), 1024U);
 
 constexpr std::size_t MIN_HASH = 4U;
 constexpr std::size_t MAX_HASH =
@@ -152,10 +152,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
 
     for (const auto& move : moves)
     {
-        const MoveList<LEGAL> legalMoveList(pos);
-        if (legalMoveList.empty())
-            break;
-        Move m = UCI::mix_to_move(move, pos, legalMoveList);
+        Move m = UCI::mix_to_move(move, pos, MoveList<LEGAL>(pos));
         if (m == Move::None)
         {
             assert(false);
@@ -168,6 +165,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
 }
 
 std::uint64_t Engine::perft(Depth depth, bool detail) noexcept {
+    //verify_networks();
     return Benchmark::perft(pos, options["Hash"], threads, depth, detail);
 }
 
