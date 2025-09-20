@@ -33,9 +33,9 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen = START
 struct Benchmark final {
     std::size_t threads;
     std::size_t ttSize;
-    Strings     commands;
     std::string originalInvocation;
     std::string filledInvocation;
+    Strings     commands;
 };
 
 Benchmark setup_benchmark(std::istringstream& iss) noexcept;

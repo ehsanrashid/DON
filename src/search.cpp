@@ -413,9 +413,8 @@ void Worker::iterative_deepening() noexcept {
                 assert(rootDelta > 0);
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
-                Depth adjustedDepth = rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4;
-                if (adjustedDepth < 1)
-                    adjustedDepth = 1;
+                Depth adjustedDepth =
+                  std::max(rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4, 1);
 
                 bestValue = search<Root>(rootPos, ss, alpha, beta, adjustedDepth);
 
@@ -458,7 +457,7 @@ void Worker::iterative_deepening() noexcept {
                 else
                     break;
 
-                delta *= 1.3333;
+                delta = std::lround(1.3333 * delta);
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
@@ -2333,11 +2332,8 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
     assert(pos.pseudo_legal(bm));
     assert(ss->moveCount != 0);
 
-    int bonus = std::min(- 91 + 151 * depth, 1730) + 302 * (ss->ttMove == bm);
-    int malus = std::min(-156 + 951 * depth, 2468) -  30 * movesArr[0].size();
-
-    if (malus < 1)
-        malus = 1;
+    int bonus =          std::min(- 91 + 151 * depth, 1730) + 302 * (bm == ss->ttMove);
+    int malus = std::max(std::min(-156 + 951 * depth, 2468) -  30 * int(movesArr[0].size()), 1);
 
     if (pos.capture_promo(bm))
     {

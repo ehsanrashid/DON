@@ -45,7 +45,8 @@ Value evaluate(const Position&          pos,
                std::int32_t             optimism) noexcept {
     assert(!pos.checkers());
 
-    bool smallNetUse = std::abs(pos.evaluate()) > 962;
+    auto absEvaluate = std::abs(pos.evaluate());
+    bool smallNetUse = absEvaluate > 962;
 
     NNUE::NetworkOutput netOut{0, 0};
 
@@ -62,7 +63,7 @@ Value evaluate(const Position&          pos,
         nnue = compute_nnue();
 
         // Re-evaluate with the big-net if the small-net's NNUE evaluation is below a certain threshold
-        smallNetUse = std::abs(nnue) >= 236;
+        smallNetUse = std::abs(nnue) >= 244 - 13 * (absEvaluate > 1400);
     }
     if (!smallNetUse)
     {
@@ -83,10 +84,9 @@ Value evaluate(const Position&          pos,
     // clang-format on
 
     // Damp down the evaluation linearly when shuffling
-    auto dampFactor = 1.0 - 4.7170e-3 * pos.rule50_count();
-    if (dampFactor < 0)
-        dampFactor = 0;
-    v = std::lround(v * dampFactor);
+    auto dampFactor = std::max(1.0 - 4.7170e-3 * pos.rule50_count(), 0.0);
+
+    v = std::lround(dampFactor * v);
 
     // Guarantee evaluation does not hit the table-base range
     return in_range(v);
