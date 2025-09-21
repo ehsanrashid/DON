@@ -45,7 +45,11 @@ enum EmbeddedType : std::uint8_t {
 
 template<typename Arch, typename Transformer>
 class Network final {
+   private:
     static constexpr IndexType TransformedFeatureDimensions = Arch::TransformedFeatureDimensions;
+    // Hash value of evaluation function structure
+    static constexpr std::uint32_t HashValue =
+      Arch::get_hash_value() ^ Transformer::get_hash_value();
 
    public:
     Network(EvalFile evFile, EmbeddedType embType) noexcept :
@@ -85,10 +89,6 @@ class Network final {
 
     bool read_parameters(std::istream&, std::string&) noexcept;
     bool write_parameters(std::ostream&, const std::string&) const noexcept;
-
-    // Hash value of evaluation function structure
-    static constexpr std::uint32_t HashValue =
-      Arch::get_hash_value() ^ Transformer::get_hash_value();
 
     // Input feature converter
     AlignedLPPtr<Transformer> featureTransformer;

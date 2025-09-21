@@ -64,12 +64,13 @@ CorrectionHistory<CHNonPawn>      NonPawnCorrectionHistory;
 CorrectionHistory<CHContinuation> ContinuationCorrectionHistory;
 
 // Reductions lookup table initialized at startup
-std::array<std::int16_t, MAX_MOVES> reductions;  // [depth or moveCount]
+std::array<std::int16_t, MAX_MOVES> Reductions;  // [depth or moveCount]
 
 constexpr int
 reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
-    int reductionScale = reductions[depth] * reductions[moveCount];
-    return 1200 + reductionScale - deltaRatio + 0.4258 * !improve * reductionScale;
+    int reductionScale = Reductions[depth] * Reductions[moveCount];
+    return 1200 + reductionScale - deltaRatio
+         + (improve ? 0 : int(std::round(0.4258 * reductionScale)));
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
@@ -136,9 +137,9 @@ void init() noexcept {
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(8);
 
-    reductions[0] = 0;
-    for (std::size_t i = 1; i < reductions.size(); ++i)
-        reductions[i] = std::round(21.9453f * std::log(i));
+    Reductions[0] = 0;
+    for (std::size_t i = 1; i < Reductions.size(); ++i)
+        Reductions[i] = std::int16_t(std::round(21.9453 * std::log(i)));
 }
 
 }  // namespace Search
@@ -180,7 +181,7 @@ void Worker::start_search() noexcept {
     nmpPly         = 0;
 
     multiPV = DEFAULT_MULTI_PV;
-    if (mainManager)
+    if (mainManager != nullptr)
     {
         multiPV = options["MultiPV"];
         // When playing with strength handicap enable MultiPV search that will
@@ -193,7 +194,7 @@ void Worker::start_search() noexcept {
         multiPV = rootMoves.size();
 
     // Non-main threads go directly to iterative_deepening()
-    if (!mainManager)
+    if (mainManager == nullptr)
     {
         iterative_deepening();
         return;
@@ -350,7 +351,7 @@ void Worker::iterative_deepening() noexcept {
 
     Value bestValue = -VALUE_INFINITE;
 
-    auto  lastBestPV       = std::vector{Move::None};
+    auto  lastBestPV       = Moves{Move::None};
     Value lastBestCurValue = -VALUE_INFINITE;
     Value lastBestPreValue = -VALUE_INFINITE;
     Value lastBestUciValue = -VALUE_INFINITE;
@@ -358,10 +359,10 @@ void Worker::iterative_deepening() noexcept {
 
     // Iterative deepening loop until requested to stop or the target depth is reached
     while (!threads.stop && ++rootDepth < MAX_PLY
-           && !(mainManager && limit.depth != DEPTH_ZERO && rootDepth > limit.depth))
+           && !(mainManager != nullptr && limit.depth != DEPTH_ZERO && rootDepth > limit.depth))
     {
         // Age out PV variability metric
-        if (mainManager && limit.use_time_manager())
+        if (mainManager != nullptr && limit.use_time_manager())
             mainManager->sumMoveChanges *= 0.50;
 
         // Save the last iteration's scores before the first PV line is searched and
@@ -435,7 +436,7 @@ void Worker::iterative_deepening() noexcept {
                     break;
 
                 // When failing high/low give some update before a re-search.
-                if (mainManager && multiPV == 1 && rootDepth > 30
+                if (mainManager != nullptr && multiPV == 1 && rootDepth > 30
                     && (alpha >= bestValue || bestValue >= beta))
                     mainManager->show_pv(*this, rootDepth);
 
@@ -449,7 +450,7 @@ void Worker::iterative_deepening() noexcept {
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;
-                    if (mainManager && mainManager->ponder)
+                    if (mainManager != nullptr && mainManager->ponder)
                         mainManager->ponderhitStop = false;
                 }
                 else if (bestValue >= beta)
@@ -477,7 +478,7 @@ void Worker::iterative_deepening() noexcept {
             rootMoves.sort(fstIdx, 1 + curIdx);
 
             // Give some update about the PV
-            if (mainManager
+            if (mainManager != nullptr
                 && (threads.stop || 1 + curIdx == multiPV || rootDepth > 30)
                 // A thread that aborted search can have mated-in/TB-loss PV and score
                 // that cannot be trusted, i.e. it can be delayed or refuted if have
@@ -516,7 +517,7 @@ void Worker::iterative_deepening() noexcept {
             lastBestDepth    = completedDepth;
         }
 
-        if (!mainManager)
+        if (mainManager == nullptr)
             continue;
 
         // Have found a "mate in x"?

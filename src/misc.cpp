@@ -73,19 +73,19 @@ class Tie final: public std::streambuf {
         mirrorBuf(mBuf) {}
 
     int_type overflow(int_type ch) override {
-        if (!primaryBuf)
+        if (primaryBuf == nullptr)
             return traits_type::eof();
         return log(primaryBuf->sputc(traits_type::to_char_type(ch)), "<< ", preOutCh);
     }
 
     int_type underflow() override {
-        if (!primaryBuf)
+        if (primaryBuf == nullptr)
             return traits_type::eof();
         return primaryBuf->sgetc();
     }
 
     int_type uflow() override {
-        if (!primaryBuf)
+        if (primaryBuf == nullptr)
             return traits_type::eof();
         int_type ch = primaryBuf->sbumpc();
         if (traits_type::eq_int_type(ch, traits_type::eof()))
@@ -94,8 +94,8 @@ class Tie final: public std::streambuf {
     }
 
     int sync() override {
-        int r1 = primaryBuf ? primaryBuf->pubsync() : 0;
-        int r2 = mirrorBuf ? mirrorBuf->pubsync() : 0;
+        int r1 = primaryBuf != nullptr ? primaryBuf->pubsync() : 0;
+        int r2 = mirrorBuf != nullptr ? mirrorBuf->pubsync() : 0;
         return (r1 == 0 && r2 == 0) ? 0 : -1;
     }
 
@@ -103,7 +103,7 @@ class Tie final: public std::streambuf {
 
    private:
     int_type log(int_type ch, std::string_view prefix, char_type& preCh) noexcept {
-        if (!mirrorBuf)
+        if (mirrorBuf == nullptr)
             return traits_type::not_eof(ch);
         if (preCh == '\n')
             mirrorBuf->sputn(prefix.data(), std::streamsize(prefix.size()));
