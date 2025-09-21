@@ -109,8 +109,8 @@ class MovePicker final {
 
     void sort_partial(int limit = std::numeric_limits<int>::min()) noexcept;
 
-    auto begin() noexcept { return cur; }
-    auto end() noexcept { return endCur; }
+    ExtMove* begin() noexcept { return cur; }
+    ExtMove* end() noexcept { return endCur; }
 
     const Position&           pos;
     const Move&               ttMove;

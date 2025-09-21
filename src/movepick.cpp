@@ -77,7 +77,7 @@ MovePicker::MovePicker(const Position& p,  //
 template<>
 ExtMove* MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveList) noexcept {
 
-    auto* itr = cur;
+    ExtMove* itr = cur;
     for (const auto& move : moveList)
     {
         auto& m = *itr++;
@@ -102,7 +102,7 @@ ExtMove* MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
     Color ac        = pos.active_color();
     auto  pawnIndex = pawn_index(pos.pawn_key());
 
-    auto* itr = cur;
+    ExtMove* itr = cur;
     for (const auto& move : moveList)
     {
         auto& m = *itr++;
@@ -153,7 +153,7 @@ ExtMove* MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
 template<>
 ExtMove* MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveList) noexcept {
 
-    auto* itr = cur;
+    ExtMove* itr = cur;
     for (const auto& move : moveList)
     {
         auto& m = *itr++;
@@ -170,9 +170,10 @@ ExtMove* MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveList) noexcep
 
 template<>
 ExtMove* MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList) noexcept {
+
     Color ac = pos.active_color();
 
-    auto* itr = cur;
+    ExtMove* itr = cur;
     for (const auto& move : moveList)
     {
         auto& m = *itr++;
@@ -196,7 +197,7 @@ ExtMove* MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList) noexcept {
 // The order of moves smaller than the limit is left unspecified.
 void MovePicker::sort_partial(int limit) noexcept {
 
-    for (auto *s = cur, *p = cur + 1; p < endCur; ++p)
+    for (ExtMove *s = cur, *p = cur + 1; p < endCur; ++p)
         if (p->value >= limit)
         {
             auto m = *p;
@@ -204,7 +205,7 @@ void MovePicker::sort_partial(int limit) noexcept {
             *p = *++s;
 
             // Find the correct position for 'm' using binary search
-            auto* q = std::upper_bound(cur, s, m, std::greater<>{});
+            ExtMove* q = std::upper_bound(cur, s, m, std::greater<>{});
             // Move elements to make space for 'm'
             std::move_backward(q, s, s + 1);
             // Insert the element in its correct position

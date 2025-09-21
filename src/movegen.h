@@ -55,8 +55,8 @@ struct MoveList final {
 
     const Move* begin() const noexcept { return moves; }
     const Move* end() const noexcept { return endCur; }
-    Move*       begin() noexcept { return moves; }
-    Move*       end() noexcept { return endCur; }
+    //Move*       begin() noexcept { return moves; }
+    //Move*       end() noexcept { return endCur; }
 
     std::size_t size() const noexcept { return end() - begin(); }
     bool        empty() const noexcept { return end() == begin(); }

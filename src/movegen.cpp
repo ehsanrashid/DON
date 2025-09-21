@@ -309,23 +309,23 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
         case EVA_QUIET :   target = between_ex_bb(pos.king_sq(AC), lsb(pos.checkers())); break;
         }
 
-        const auto* lmoves = moves;
+        const auto* pmoves = moves;
         moves = generate_pawns_moves<AC, GT    >(pos, moves, target);
-        if (Any && ((moves > lmoves + 0 && pos.legal(lmoves[0]))
-                 || (moves > lmoves + 1 && pos.legal(lmoves[1]))
-                 || (moves > lmoves + 2 && pos.legal(lmoves[2])))) return moves;
-        lmoves = moves;
+        if (Any && ((moves > pmoves + 0 && pos.legal(pmoves[0]))
+                 || (moves > pmoves + 1 && pos.legal(pmoves[1]))
+                 || (moves > pmoves + 2 && pos.legal(pmoves[2])))) return moves;
+        pmoves = moves;
         moves = generate_piece_moves<AC, KNIGHT>(pos, moves, target);
-        if (Any && moves > lmoves) return moves;
-        lmoves = moves;
+        if (Any && moves > pmoves) return moves;
+        pmoves = moves;
         moves = generate_piece_moves<AC, BISHOP>(pos, moves, target);
-        if (Any && moves > lmoves) return moves;
-        lmoves = moves;
+        if (Any && moves > pmoves) return moves;
+        pmoves = moves;
         moves = generate_piece_moves<AC, ROOK  >(pos, moves, target);
-        if (Any && moves > lmoves) return moves;
-        lmoves = moves;
+        if (Any && moves > pmoves) return moves;
+        pmoves = moves;
         moves = generate_piece_moves<AC, QUEEN >(pos, moves, target);
-        if (Any && moves > lmoves) return moves;
+        if (Any && moves > pmoves) return moves;
     }
 
     if constexpr (Evasion)
@@ -386,13 +386,14 @@ Move* generate_legal(const Position& pos, Move* moves) noexcept {
 
     auto* cur = moves;
 
-    moves = (pos.checkers()  //
-               ? generate<EVASION, Any>(pos, moves)
-               : generate<ENCOUNTER, Any>(pos, moves));
+    moves = pos.checkers()  //
+            ? generate<EVASION, Any>(pos, moves)
+            : generate<ENCOUNTER, Any>(pos, moves);
+
+    Bitboard blockers = pos.blockers(pos.active_color());
     // Filter legal moves
     while (cur != moves)
-        if (((type_of(pos.piece_on(cur->org_sq())) == PAWN
-              && (pos.blockers(pos.active_color()) & cur->org_sq()))
+        if (((type_of(pos.piece_on(cur->org_sq())) == PAWN && (blockers & cur->org_sq()))
              || cur->type_of() == CASTLING)
             && !pos.legal(*cur))
             *cur = *(--moves);
