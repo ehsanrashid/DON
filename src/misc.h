@@ -368,7 +368,6 @@ class PRNG1024 final {
 namespace Debug {
 
 void init() noexcept;
-void reset() noexcept;
 void hit_on(bool cond, std::size_t slot = 0) noexcept;
 void min_of(std::int64_t value, std::size_t slot = 0) noexcept;
 void max_of(std::int64_t value, std::size_t slot = 0) noexcept;

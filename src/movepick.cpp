@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <functional>
 #include <utility>
 
@@ -244,7 +245,7 @@ STAGE_SWITCH:
         {
             if (*cur != ttMove)
             {
-                if (threshold == 0 || pos.see(*cur) >= -55.5555e-3f * cur->value)
+                if (threshold == 0 || pos.see(*cur) >= std::round(-55.5555e-3 * cur->value))
                     return *cur++;
                 // Store bad captures
                 std::swap(*endBadCaptures++, *cur);

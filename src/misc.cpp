@@ -391,9 +391,7 @@ std::array<Info<6>, MaxSlot> correl;
 
 }  // namespace
 
-void init() noexcept { reset(); }
-
-void reset() noexcept {
+void init() noexcept {
     for (std::size_t i = 0; i < MaxSlot; ++i)
     {
         hit[i].init(0);

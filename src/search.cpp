@@ -138,7 +138,7 @@ void init() noexcept {
 
     reductions[0] = 0;
     for (std::size_t i = 1; i < reductions.size(); ++i)
-        reductions[i] = std::lround(21.9453f * std::log(i));
+        reductions[i] = std::round(21.9453f * std::log(i));
 }
 
 }  // namespace Search
@@ -468,7 +468,7 @@ void Worker::iterative_deepening() noexcept {
                 else
                     break;
 
-                delta = std::min(int(std::lround(1.3333 * delta)), 2 * VALUE_INFINITE);
+                delta = std::min(int(std::round(1.3333 * delta)), 2 * VALUE_INFINITE);
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
@@ -884,9 +884,9 @@ Value Worker::search(Position&    pos,
     {
         int bonus = 583 + std::clamp(-10 * (ss->staticEval + (ss - 1)->staticEval), -2023, +1563);
 
-        update_quiet_history(~ac, (ss - 1)->move, std::lround(0.9219 * bonus));
+        update_quiet_history(~ac, (ss - 1)->move, std::round(0.9219 * bonus));
         if (!ttd.hit && preNonPawn)
-            update_pawn_history(pos, pos.piece_on(preSq), preSq, std::lround(1.4043 * bonus));
+            update_pawn_history(pos, pos.piece_on(preSq), preSq, std::round(1.4043 * bonus));
     }
 
     // Set up the improve and worsen flags.
@@ -1140,7 +1140,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                                          - (!improve && singularValue < -80 + alpha);
 
             // Reduced depth of the next LMR search
-            Depth lmrDepth = newDepth - int(std::lround(r / 1024.0));
+            Depth lmrDepth = newDepth - int(std::round(r / 1024.0));
 
             Value futilityValue;
 
@@ -1345,7 +1345,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
             Depth redDepth =
-              std::max(std::min(newDepth - int(std::lround(r / 1024.0)), newDepth + 2), 1) + PVNode;
+              std::max(std::min(newDepth - int(std::round(r / 1024.0)), newDepth + 2), 1) + PVNode;
 
             value = -search<Cut>(pos, ss + 1, -(alpha + 1), -alpha, redDepth, newDepth - redDepth);
 
@@ -1537,12 +1537,12 @@ S_MOVES_LOOP:  // When in check, search starts here
             // clang-format on
             int bonus = bonusScale * std::min(-92 + 144 * depth, 1365);
 
-            update_quiet_history(~ac, (ss - 1)->move, std::lround(6.7139e-3 * bonus));
+            update_quiet_history(~ac, (ss - 1)->move, std::round(6.7139e-3 * bonus));
             update_continuation_history(ss - 1, pos.piece_on(preSq), preSq,
-                                        std::lround(12.2070e-3 * bonus));
+                                        std::round(12.2070e-3 * bonus));
             if (preNonPawn)
                 update_pawn_history(pos, pos.piece_on(preSq), preSq,
-                                    std::lround(35.5225e-3 * bonus));
+                                    std::round(35.5225e-3 * bonus));
         }
         // Bonus for prior capture move
         else
@@ -1581,7 +1581,7 @@ S_MOVES_LOOP:  // When in check, search starts here
           // positive correction & no fail low
           || (bestValue > ss->staticEval && bestMove != Move::None)))
     {
-        int bonus = std::lround(0.1250 * depth * (bestValue - ss->staticEval));
+        int bonus = std::round(0.1250 * depth * (bestValue - ss->staticEval));
         update_correction_history(pos, ss, bonus);
     }
 
@@ -2321,7 +2321,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
         if ((i > 2 && ss->inCheck) || !(ss - i)->move.is_ok())
             break;
 
-        (*(ss - i)->pieceSqHistory)[pc][dst] << int(std::lround(weight * bonus)) + 88 * (i < 2);
+        (*(ss - i)->pieceSqHistory)[pc][dst] << int(std::round(weight * bonus)) + 88 * (i < 2);
     }
 }
 void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) noexcept {
@@ -2332,10 +2332,10 @@ void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) 
 void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& m, int bonus) noexcept {
     assert(m.is_ok());
 
-    update_quiet_history(pos.active_color(), m, std::lround(1.0000 * bonus));
-    update_pawn_history(pos, pos.moved_piece(m), m.dst_sq(), 70 + std::lround((bonus > 0 ? 0.7813 : 0.4883) * bonus));
-    update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), std::lround(0.9326 * bonus));
-    update_low_ply_quiet_history(ss->ply, m, std::lround(0.7432 * bonus));
+    update_quiet_history(pos.active_color(), m, std::round(1.0000 * bonus));
+    update_pawn_history(pos, pos.moved_piece(m), m.dst_sq(), 70 + std::round((bonus > 0 ? 0.7813 : 0.4883) * bonus));
+    update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), std::round(0.9326 * bonus));
+    update_low_ply_quiet_history(ss->ply, m, std::round(0.7432 * bonus));
 }
 
 // Updates history at the end of search() when a bestMove is found
@@ -2348,26 +2348,26 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
 
     if (pos.capture_promo(bm))
     {
-        update_capture_history(pos, bm, std::lround(1.0000 * bonus));
+        update_capture_history(pos, bm, std::round(1.0000 * bonus));
     }
     else
     {
-        update_all_quiet_history(pos, ss, bm, std::lround(0.9346 * bonus));
+        update_all_quiet_history(pos, ss, bm, std::round(0.9346 * bonus));
 
         // Decrease history for all non-best quiet moves
         for (const auto& qm : movesArr[0])
-            update_all_quiet_history(pos, ss, qm, -std::lround(1.0000 * malus));
+            update_all_quiet_history(pos, ss, qm, -std::round(1.0000 * malus));
     }
 
     // Decrease history for all non-best capture moves
     for (const auto& cm : movesArr[1])
-        update_capture_history(pos, cm, -std::lround(1.1299 * malus));
+        update_capture_history(pos, cm, -std::round(1.1299 * malus));
 
     auto m = (ss - 1)->move;
     // Extra penalty for a quiet early move that was not a TT move
     // in the previous ply when it gets refuted.
     if (m.is_ok() && pos.captured_piece() == NO_PIECE && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
-        update_continuation_history(ss - 1, pos.piece_on(m.dst_sq()), m.dst_sq(), -std::lround(0.4912 * malus));
+        update_continuation_history(ss - 1, pos.piece_on(m.dst_sq()), m.dst_sq(), -std::round(0.4912 * malus));
 }
 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept {
@@ -2379,15 +2379,15 @@ void update_correction_history(const Position& pos, Stack* const ss, int bonus) 
 
     for (Color c : {WHITE, BLACK})
     {
-       PawnCorrectionHistory[correction_index(pos.    pawn_key(c))][ac][c] << int(std::lround(1.0000 * bonus));
-      MinorCorrectionHistory[correction_index(pos.   minor_key(c))][ac][c] << int(std::lround(1.1328 * bonus));
-      MajorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c] << int(std::lround(0.5664 * bonus));
-    NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c] << int(std::lround(1.2891 * bonus));
+       PawnCorrectionHistory[correction_index(pos.    pawn_key(c))][ac][c] << int(std::round(1.0000 * bonus));
+      MinorCorrectionHistory[correction_index(pos.   minor_key(c))][ac][c] << int(std::round(1.1328 * bonus));
+      MajorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c] << int(std::round(0.5664 * bonus));
+    NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c] << int(std::round(1.2891 * bonus));
     }
 
     auto m = (ss - 1)->move;
     if (m.is_ok())
-        (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << int(std::lround(1.0703 * bonus));
+        (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << int(std::round(1.0703 * bonus));
 }
 
 // (*Scaler) All tuned parameters at time controls shorter than
@@ -2420,7 +2420,7 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
 // Update raw staticEval according to various CorrectionHistory value
 // and guarantee evaluation does not hit the tablebase range.
 Value adjust_static_eval(Value ev, int cv) noexcept {
-    return in_range(ev + std::lround(cv / 131072.0));
+    return in_range(ev + int(std::round(cv / 131072.0)));
 }
 
 }  // namespace
