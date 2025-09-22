@@ -69,8 +69,7 @@ std::array<std::int16_t, MAX_MOVES> Reductions;  // [depth or moveCount]
 constexpr int
 reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
-    return 1200 + reductionScale - deltaRatio
-         + (improve ? 0 : int(std::round(0.4258 * reductionScale)));
+    return 1200 + reductionScale - deltaRatio + !improve * int(std::round(0.4258 * reductionScale));
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
