@@ -21,7 +21,7 @@
 #include <cstdint>
 
 #include "misc.h"
-#include "types.h"
+#include "types.h"  // IWYU pragma: keep
 
 namespace DON {
 
