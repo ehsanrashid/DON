@@ -2189,9 +2189,9 @@ TimePoint MainSearchManager::elapsed(const ThreadPool& threads) const noexcept {
 
 void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
-    auto& rootPos   = worker.rootPos;
-    auto& rootMoves = worker.rootMoves;
-    auto& tbConfig  = worker.tbConfig;
+    const auto& rootPos   = worker.rootPos;
+    const auto& rootMoves = worker.rootMoves;
+    const auto& tbConfig  = worker.tbConfig;
 
     std::uint64_t nodes    = worker.threads.nodes();
     std::uint16_t hashfull = worker.tt.hashfull();
@@ -2226,6 +2226,10 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
             worker.extend_tb_pv(i, v);
 
         auto score = UCI::score({v, rootPos});
+        auto bound = exact         ? ""
+                   : rm.boundLower ? " lowerbound"
+                   : rm.boundUpper ? " upperbound"
+                                   : "";
         auto wdl   = wdlShow ? UCI::to_wdl(v, rootPos) : "";
 
         std::string pv;
@@ -2238,8 +2242,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         info.selDepth = rm.selDepth;
         info.multiPV  = 1 + i;
         info.score    = score;
-        if (!exact)
-            info.bound = rm.boundLower ? " lowerbound" : rm.boundUpper ? " upperbound" : "";
+        info.bound    = bound;
         info.wdl      = wdl;
         info.time     = std::max(elapsed(), TimePoint(1));
         info.nodes    = nodes;
