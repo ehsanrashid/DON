@@ -516,8 +516,8 @@ void PolyBook::find_key(Key key) noexcept {
             endIndex = midIndex;
         else
         {
-            begIndex = std::max<size_t>(midIndex, 0 /*    */ + 4) - 4;
-            endIndex = std::min<size_t>(midIndex, entryCount - 4) + 4;
+            begIndex = std::max(midIndex, std::size_t(0) + 4) - 4;
+            endIndex = std::min(midIndex, entryCount - 4) + 4;
         }
 
         if (endIndex - begIndex <= 8)

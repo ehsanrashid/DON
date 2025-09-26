@@ -23,8 +23,12 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
-#include <string>
+#if !defined(USE_POPCNT)
+    #include <cstring>
+#endif
+#if !defined(NDEBUG)
+    #include <string>
+#endif
 
 #include "types.h"
 

@@ -550,8 +550,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     wdlFile.close();
     ++wdlCount;
 
-    if (MaxCardinality < pieces.size())
-        MaxCardinality = pieces.size();
+    MaxCardinality = std::max(MaxCardinality, std::uint8_t(pieces.size()));
 
     wdlTables.emplace_back(code);
     dtzTables.emplace_back(wdlTables.back());
@@ -1439,8 +1438,8 @@ void init() noexcept {
     // Binomial[] stores the Binomial Coefficients using Pascal rule. There
     // are Binomial[k][n] ways to choose k elements from a set of n elements.
     Binomial[0][0] = 1;
-    for (std::size_t n = SQ_B1; n <= SQ_H8; ++n)                   // Squares
-        for (std::size_t k = 0; k <= std::min<size_t>(n, 5); ++k)  // Pieces
+    for (std::size_t n = SQ_B1; n <= SQ_H8; ++n)                        // Squares
+        for (std::size_t k = 0; k <= std::min(n, std::size_t(5)); ++k)  // Pieces
             Binomial[k][n] =
               (k > 0 ? Binomial[k - 1][n - 1] : 0) + (k < n ? Binomial[k][n - 1] : 0);
 

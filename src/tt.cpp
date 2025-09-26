@@ -111,7 +111,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
 std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
     assert(maxAge < 32);
 
-    const auto   clusterCnt = std::min<std::size_t>(clusterCount, 1000);
+    const auto   clusterCnt = std::min(clusterCount, std::size_t(1000));
     std::uint8_t maxRelAge  = maxAge * GENERATION_DELTA;
 
     std::uint32_t cnt = 0;

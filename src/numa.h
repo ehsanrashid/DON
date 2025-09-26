@@ -87,9 +87,7 @@ inline CpuIndex hardware_concurrency() noexcept {
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
 #if defined(_WIN64)
-    auto activeProcessorCount = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
-    if (concurrency < activeProcessorCount)
-        concurrency = activeProcessorCount;
+    concurrency = std::max<CpuIndex>(concurrency, GetActiveProcessorCount(ALL_PROCESSOR_GROUPS));
 #endif
 
     return concurrency;

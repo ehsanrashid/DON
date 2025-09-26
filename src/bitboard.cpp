@@ -19,7 +19,9 @@
 
 #include <bitset>
 #include <initializer_list>
-#include <string_view>
+#if !defined(NDEBUG)
+    #include <string_view>
+#endif
 
 #include "misc.h"
 #include "uci.h"
