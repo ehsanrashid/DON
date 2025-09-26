@@ -461,9 +461,7 @@ inline void trim_trailing_whitespace(std::string& str) noexcept {
 }
 
 inline std::string bool_to_string(bool b) noexcept {
-    std::ostringstream oss;
-    oss << std::boolalpha << b;
-    return oss.str();
+    return (std::ostringstream{} << std::boolalpha << b).str();
 }
 
 inline bool string_to_bool(std::string_view str) noexcept {
@@ -484,9 +482,9 @@ inline bool string_to_bool(std::string_view str) noexcept {
 }
 
 inline std::string u64_to_string(std::uint64_t u64) noexcept {
-    std::ostringstream oss;
-    oss << std::setw(16) << std::hex << std::uppercase << std::setfill('0') << u64;
-    return oss.str();
+    return (std::ostringstream{} << std::setw(16) << std::hex << std::uppercase << std::setfill('0')
+                                 << u64)
+      .str();
 }
 
 constexpr std::string_view trim(std::string_view str) noexcept {

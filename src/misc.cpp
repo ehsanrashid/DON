@@ -44,14 +44,16 @@ inline std::string format_date(std::string_view date) noexcept {
     std::string month, day, year;
     iss >> month >> day >> year;
 
-    std::ostringstream oss;
-    oss << std::setfill('0')  //
-        << std::setw(4) << year
-        << std::setw(2)
-        //<< (1 + Months.find(month) / 4)
-        << (1 + std::distance(Months.begin(), std::find(Months.begin(), Months.end(), month)))
-        << std::setw(2) << day;
-    return oss.str();
+    if (iss.fail() || month.size() != 3 || day.size() > 2 || year.size() != 4)
+        return "00000000";
+    return (std::ostringstream{}
+            << std::setfill('0')  //
+            << std::setw(4) << year
+            << std::setw(2)
+            //<< (1 + Months.find(month) / 4)
+            << (1 + std::distance(Months.begin(), std::find(Months.begin(), Months.end(), month)))
+            << std::setw(2) << day)
+      .str();
 }
 #endif
 
@@ -165,11 +167,9 @@ class Logger final {
 }  // namespace
 
 std::string engine_info(bool uci) noexcept {
-    std::ostringstream oss;
-    oss << (uci ? "id name " : "");
-    oss << version_info();
-    oss << (uci ? "\nid author " : " by ") << "Ehsan Rashid";
-    return oss.str();
+    return (std::ostringstream{} << (uci ? "id name " : "") << version_info()
+                                 << (uci ? "\nid author " : " by ") << "Ehsan Rashid")
+      .str();
 }
 
 // Returns the full name of the current DON version.
@@ -183,7 +183,7 @@ std::string engine_info(bool uci) noexcept {
 //  - DON version
 std::string version_info() noexcept {
     std::ostringstream oss;
-    oss << "DON" << " " << Version;
+    oss << "DON " << Version;
 
     if constexpr (Version == "dev")
     {
@@ -326,15 +326,12 @@ std::string compiler_info() noexcept {
 }
 
 std::string format_time(const SystemClock::time_point& timePoint) {
-    std::ostringstream oss;
-
     auto time = SystemClock::to_time_t(timePoint);
     auto usec =
       std::chrono::duration_cast<MicroSeconds>(timePoint.time_since_epoch()).count() % 1000000;
-    oss << std::put_time(std::localtime(&time), "%Y.%m.%d-%H:%M:%S")  //
-        << '.' << std::setfill('0') << std::setw(6) << usec;
-
-    return oss.str();
+    return (std::ostringstream{} << std::put_time(std::localtime(&time), "%Y.%m.%d-%H:%M:%S") << '.'
+                                 << std::setfill('0') << std::setw(6) << usec)
+      .str();
 }
 
 // Trampoline helper to avoid moving Logger to misc.h

@@ -772,9 +772,7 @@ std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
     auto wdlL = win_rate_model(-v, pos);
     auto wdlD = 1000 - (wdlW + wdlL);
 
-    std::ostringstream oss;
-    oss << wdlW << " " << wdlD << " " << wdlL;
-    return oss.str();
+    return (std::ostringstream{} << wdlW << ' ' << wdlD << ' ' << wdlL).str();
 }
 
 std::string UCI::score(const Score& score) noexcept {

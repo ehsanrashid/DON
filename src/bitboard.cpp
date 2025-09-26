@@ -19,8 +19,6 @@
 
 #include <bitset>
 #include <initializer_list>
-#include <iostream>
-#include <sstream>
 #include <string_view>
 
 #include "misc.h"
@@ -248,21 +246,24 @@ void init() noexcept {
 std::string pretty(Bitboard b) noexcept {
     constexpr std::string_view Sep = "\n  +---+---+---+---+---+---+---+---+\n";
 
-    std::ostringstream oss;
-
-    oss << Sep;
+    std::string str;
+    str.reserve(646);
+    str += Sep;
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
-        oss << UCI::rank(r);
+        str += UCI::rank(r);
         for (File f = FILE_A; f <= FILE_H; ++f)
-            oss << " | " << ((b & make_square(f, r)) ? "X" : " ");
-        oss << " |" << Sep;
+            str += ((b & make_square(f, r)) ? " | X" : " |  ");
+        str += " |";
+        str += Sep;
     }
-    oss << " ";
+    str += " ";
     for (File f = FILE_A; f <= FILE_H; ++f)
-        oss << "   " << UCI::file(f, true);
-
-    return oss.str();
+    {
+        str += "   ";
+        str += UCI::file(f, true);
+    }
+    return str;
 }
 #endif
 

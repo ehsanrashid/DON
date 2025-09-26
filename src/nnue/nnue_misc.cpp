@@ -92,8 +92,6 @@ void format_cp_aligned_dot(std::ostringstream& oss,
 std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& accCaches) noexcept {
     constexpr std::string_view Sep = "+------------+------------+------------+------------+\n";
 
-    std::ostringstream oss;
-
     char board[3 * 8 + 1][8 * 8 + 2];
     std::memset(board, ' ', sizeof(board));
     for (auto& row : board)
@@ -147,6 +145,8 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
             write_square(f, r, pc, v);
         }
+
+    std::ostringstream oss;
 
     oss << " NNUE derived piece values:\n";
     for (const auto& row : board)
