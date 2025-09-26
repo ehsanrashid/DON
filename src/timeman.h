@@ -21,12 +21,12 @@
 #include <cstdint>
 
 #include "misc.h"
+#include "types.h"
 
 namespace DON {
 
-class Position;
-class Options;
 struct Limit;
+class Options;
 
 // TimeManager class computes the optimal time to think depending on
 // the maximum available time, the game move number, and other parameters.
@@ -49,7 +49,7 @@ class TimeManager final {
 
     void init() noexcept {
 
-        initialAdjust = -1.0;
+        timeAdjust = -1.0;
 
         optimumTime = 0;
         maximumTime = 0;
@@ -57,7 +57,11 @@ class TimeManager final {
         nodesTime   = 0;
         remainNodes = 0;
     }
-    void init(const Position& pos, const Options& options, Limit& limit) noexcept;
+    void init(Limit&         limit,
+              Color          ac,
+              std::int16_t   ply,
+              std::int32_t   moveNum,
+              const Options& options) noexcept;
 
     bool use_nodes_time() const noexcept { return bool(nodesTime); }
 
@@ -70,7 +74,7 @@ class TimeManager final {
 
     TimePoint startTime;
 
-    double initialAdjust;
+    double timeAdjust;
 
     TimePoint optimumTime;
     TimePoint maximumTime;

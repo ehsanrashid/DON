@@ -22,7 +22,6 @@
 #include <cassert>
 #include <cmath>
 
-#include "position.h"
 #include "search.h"
 #include "ucioption.h"
 
@@ -30,7 +29,7 @@ namespace DON {
 
 namespace {
 
-constexpr std::int16_t MaxMovesToGo = 50;
+constexpr std::uint8_t MaxMovesToGo = 50;
 
 }  // namespace
 
@@ -46,12 +45,12 @@ void TimeManager::update_nodes(std::int64_t usedNodes) noexcept {
 //      1) x basetime (sudden death)
 //      2) x basetime (+ z increment)
 //      3) x moves in y time (+ z increment)
-void TimeManager::init(const Position& pos, const Options& options, Limit& limit) noexcept {
+void TimeManager::init(
+  Limit& limit, Color ac, std::int16_t ply, std::int32_t moveNum, const Options& options) noexcept {
     // If have no time, no need to fully initialize TM.
     // startTime is used by movetime and nodesTime is used in elapsed calls.
-    startTime       = limit.startTime;
-    auto& clock     = limit.clocks[pos.active_color()];
-    auto  movesToGo = limit.movesToGo;
+    startTime   = limit.startTime;
+    auto& clock = limit.clocks[ac];
 
     nodesTime = options["NodesTime"];
 
@@ -86,40 +85,36 @@ void TimeManager::init(const Position& pos, const Options& options, Limit& limit
     // clang-format off
 
     // Maximum move horizon
-    std::int16_t mtg = movesToGo != 0
-                     ? std::min<std::int16_t>(std::floor(MaxMovesToGo + 0.1 * std::max(movesToGo - MaxMovesToGo, 0)), movesToGo)
-                     : std::max<std::int16_t>(std::ceil (MaxMovesToGo - 0.1 * std::max(pos.move_num() - 20     , 0)), MaxMovesToGo - 10);
+    std::uint8_t mtg = limit.movesToGo != 0
+                     ? std::min<std::uint8_t>(std::floor(MaxMovesToGo + 0.1 * std::max(limit.movesToGo - MaxMovesToGo, 0)), limit.movesToGo)
+                     : std::max<std::uint8_t>(std::ceil (MaxMovesToGo - 0.1 * std::max(moveNum - 20                  , 0)), MaxMovesToGo - 10);
 
     // If less than one second, gradually reduce mtg
     if (scaledTime < 1000)
-        mtg = std::max<std::int16_t>(0.05051 * scaledTime, 2);
-
-    assert(mtg > 0);
+        mtg = std::max<std::uint8_t>(0.05051 * scaledTime, 2);
 
     // Make sure remainTime > 0 since use it as a divisor
     TimePoint remainTime =
       std::max(clock.time + (-1 + mtg) * clock.inc - (+2 + mtg) * moveOverhead, TimePoint(1));
 
-    std::int16_t ply = pos.ply();
-
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
     double optimumScale, maximumScale;
 
-    if (movesToGo == 0)
+    if (limit.movesToGo == 0)
     {
         // 1) x basetime (sudden death)
         // Sudden death time control
         if (clock.inc == 0)
         {
         // Extra time according to initial remaining Time (Only once at game start)
-        if (initialAdjust < 0.0)
-            initialAdjust = std::max(-0.4126 + 0.2862 * std::log10(remainTime), 1.0e-6);
+        if (timeAdjust < 0.0)
+            timeAdjust = std::max(-0.4126 + 0.2862 * std::log10(remainTime), 1.0e-6);
 
         // Calculate time constants based on current remaining time
-        auto logScaledTime = std::log10(scaledTime / 1000.0);
+        double logScaledTime = std::log10(scaledTime / 1000.0);
 
-        optimumScale = initialAdjust
+        optimumScale = timeAdjust
                      * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * logScaledTime, 4.06734e-3)
                                             * std::pow(2.82122 + ply, 0.466422),
                                 0.213035 * clock.time / remainTime);
@@ -131,13 +126,13 @@ void TimeManager::init(const Position& pos, const Options& options, Limit& limit
         else
         {
         // Extra time according to initial remaining Time (Only once at game start)
-        if (initialAdjust < 0.0)
-            initialAdjust = std::max(-0.4354 + 0.3128 * std::log10(remainTime), 1.0e-6);
+        if (timeAdjust < 0.0)
+            timeAdjust = std::max(-0.4354 + 0.3128 * std::log10(remainTime), 1.0e-6);
 
         // Calculate time constants based on current remaining time
-        auto logScaledTime = std::log10(scaledTime / 1000.0);
+        double logScaledTime = std::log10(scaledTime / 1000.0);
 
-        optimumScale = initialAdjust
+        optimumScale = timeAdjust
                      * std::min(12.14310e-3 + std::min(3.21160e-3 + 32.11230e-5 * logScaledTime, 5.08017e-3)
                                             * std::pow(2.94693 + ply, 0.461073),
                                 0.213035 * clock.time / remainTime);

@@ -279,10 +279,10 @@ class Position final {
     auto see(const Move& m) const noexcept { return SEE(*this, m); }
 
     // Other properties
-    auto active_color() const noexcept;
-    auto ply() const noexcept;
-    auto move_num() const noexcept;
-    auto phase() const noexcept;
+    Color        active_color() const noexcept;
+    std::int16_t ply() const noexcept;
+    std::int32_t move_num() const noexcept;
+    std::int32_t phase() const noexcept;
 
     std::int16_t rule50_count() const noexcept;
     std::int16_t null_ply() const noexcept;
@@ -613,15 +613,15 @@ inline Value Position::non_pawn_material() const noexcept { return non_pawn_mate
 
 // clang-format on
 
-inline auto Position::active_color() const noexcept { return activeColor; }
+inline Color Position::active_color() const noexcept { return activeColor; }
 
-inline auto Position::ply() const noexcept { return gamePly; }
+inline std::int16_t Position::ply() const noexcept { return gamePly; }
 
-inline auto Position::move_num() const noexcept {
+inline std::int32_t Position::move_num() const noexcept {
     return 1 + (ply() - (active_color() == BLACK)) / 2;
 }
 
-inline auto Position::phase() const noexcept {
+inline std::int32_t Position::phase() const noexcept {
     constexpr int MaxPhase = 24;
 
     return std::max(

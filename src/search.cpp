@@ -205,7 +205,8 @@ void Worker::start_search() noexcept {
     mainManager->sumMoveChanges = 0.0;
     mainManager->timeReduction  = 1.0;
     mainManager->skill.init(options);
-    mainManager->timeManager.init(rootPos, options, limit);
+    mainManager->timeManager.init(limit, rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
+                                  options);
 
     tt.update_generation(!limit.infinite);
 
@@ -372,20 +373,20 @@ void Worker::iterative_deepening() noexcept {
         if (threads.research)
             ++researchCnt;
 
-        fstIdx = lstIdx = 0;
+        std::size_t begIdx = endIdx = 0;
         // MultiPV loop. Perform a full root search for each PV line
         for (curIdx = 0; curIdx < multiPV; ++curIdx)
         {
-            if (curIdx == lstIdx)
+            if (curIdx == endIdx)
             {
-                fstIdx = lstIdx++;
-                for (; lstIdx < rootMoves.size(); ++lstIdx)
-                    if (rootMoves[lstIdx].tbRank != rootMoves[fstIdx].tbRank)
+                begIdx = endIdx++;
+                for (; endIdx < rootMoves.size(); ++endIdx)
+                    if (rootMoves[endIdx].tbRank != rootMoves[begIdx].tbRank)
                         break;
             }
 
             // Reset UCI info selDepth for each depth and each PV line
-            selDepth = DEPTH_ZERO;
+            selDepth = 0;
 
             auto avgValue = rootMoves[curIdx].avgValue;
             if (avgValue == -VALUE_INFINITE)
@@ -426,7 +427,7 @@ void Worker::iterative_deepening() noexcept {
                 // and want to keep the same order for all the moves except the
                 // new PV that goes to the front. Note that in the case of MultiPV
                 // search the already searched PV lines are preserved.
-                rootMoves.sort(curIdx, lstIdx);
+                rootMoves.sort(curIdx, endIdx);
 
                 // If the search has been stopped, break immediately.
                 // Sorting is safe because RootMoves is still valid,
@@ -474,7 +475,7 @@ void Worker::iterative_deepening() noexcept {
             }
 
             // Sort the PV lines searched so far
-            rootMoves.sort(fstIdx, 1 + curIdx);
+            rootMoves.sort(begIdx, 1 + curIdx);
 
             // Give some update about the PV
             if (mainManager != nullptr
@@ -1011,7 +1012,7 @@ Value Worker::search(Position&    pos,
 
             // At root obey the "searchmoves" option and skip moves not listed in RootMove List.
             // In MultiPV mode also skip PV moves that have been already searched and those of lower "TB rank".
-            if (RootNode && !rootMoves.contains(curIdx, lstIdx, move))
+            if (RootNode && !rootMoves.contains(curIdx, endIdx, move))
                 continue;
 
             do_move(pos, move, st, ss);
@@ -1097,7 +1098,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // At root obey the "searchmoves" option and skip moves not listed in RootMove List.
         // In MultiPV mode also skip PV moves that have been already searched and those of lower "TB rank".
-        if (RootNode && !rootMoves.contains(curIdx, lstIdx, move))
+        if (RootNode && !rootMoves.contains(curIdx, endIdx, move))
             continue;
 
         ss->moveCount = ++moveCount;

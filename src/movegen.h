@@ -46,7 +46,7 @@ template<GenType GT, bool Any = false>
 struct MoveList final {
    public:
     explicit MoveList(const Position& pos) noexcept :
-        endCur(generate<GT, Any>(pos, moves)) {}
+        endMoves(generate<GT, Any>(pos, moves)) {}
     MoveList() noexcept                           = delete;
     MoveList(MoveList const&) noexcept            = delete;
     MoveList(MoveList&&) noexcept                 = delete;
@@ -54,9 +54,7 @@ struct MoveList final {
     MoveList& operator=(MoveList&&) noexcept      = delete;
 
     const Move* begin() const noexcept { return moves; }
-    const Move* end() const noexcept { return endCur; }
-    //Move*       begin() noexcept { return moves; }
-    //Move*       end() noexcept { return endCur; }
+    const Move* end() const noexcept { return endMoves; }
 
     std::size_t size() const noexcept { return end() - begin(); }
     bool        empty() const noexcept { return end() == begin(); }
@@ -66,7 +64,7 @@ struct MoveList final {
 
    private:
     Move  moves[MAX_MOVES];
-    Move* endCur;
+    Move* endMoves;
 };
 
 }  // namespace DON

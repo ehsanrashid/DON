@@ -108,7 +108,7 @@ struct RootMove final {
 
     bool          boundLower = false;
     bool          boundUpper = false;
-    std::uint16_t selDepth   = DEPTH_ZERO;
+    std::uint16_t selDepth   = 0;
     std::uint64_t nodes      = 0;
     std::int32_t  tbRank     = 0;
     Value         tbValue    = -VALUE_INFINITE;
@@ -153,12 +153,12 @@ class RootMoves final {
     void resize(std::size_t newSize) noexcept { rootMoves.resize(newSize); }
     void reserve(std::size_t newCapacity) noexcept { rootMoves.reserve(newCapacity); }
 
-    auto find(std::size_t fst, std::size_t lst, const Move& m) const noexcept {
-        assert(fst <= lst);
-        return std::find(begin() + fst, begin() + lst, m);
+    auto find(std::size_t beg, std::size_t end, const Move& m) const noexcept {
+        assert(beg <= end);
+        return std::find(begin() + beg, begin() + end, m);
     }
-    auto find(std::size_t fst, std::size_t lst, const RootMove& rm) const noexcept {
-        return !rm.pv.empty() ? find(fst, lst, rm.pv[0]) : begin() + lst;
+    auto find(std::size_t beg, std::size_t end, const RootMove& rm) const noexcept {
+        return !rm.pv.empty() ? find(beg, end, rm.pv[0]) : begin() + end;
     }
 
     auto find(const Move& m) const noexcept { return std::find(begin(), end(), m); }
@@ -172,11 +172,11 @@ class RootMoves final {
         return std::find_if(begin(), end(), pred);
     }
 
-    bool contains(std::size_t fst, std::size_t lst, const Move& m) const noexcept {
-        return find(fst, lst, m) != begin() + lst;
+    bool contains(std::size_t beg, std::size_t end, const Move& m) const noexcept {
+        return find(beg, end, m) != begin() + end;
     }
-    bool contains(std::size_t fst, std::size_t lst, const RootMove& rm) const noexcept {
-        return rm.pv.empty() || contains(fst, lst, rm.pv[0]);
+    bool contains(std::size_t beg, std::size_t end, const RootMove& rm) const noexcept {
+        return rm.pv.empty() || contains(beg, end, rm.pv[0]);
     }
 
     bool contains(const Move& m) const noexcept { return find(m) != end(); }
@@ -191,7 +191,7 @@ class RootMoves final {
     }
 
     auto erase(ConstItr where) noexcept { return rootMoves.erase(where); }
-    auto erase(ConstItr fst, ConstItr lst) noexcept { return rootMoves.erase(fst, lst); }
+    auto erase(ConstItr beg, ConstItr end) noexcept { return rootMoves.erase(beg, end); }
     bool erase(const Move& m) noexcept {
         auto itr = find(m);
         if (itr != end())
@@ -224,10 +224,10 @@ class RootMoves final {
             std::swap(*begin(), *itr);
     }
 
-    // Sorts within the range [fst, last)
-    void sort(std::size_t fst, std::size_t lst) noexcept {
-        assert(fst <= lst);
-        std::stable_sort(begin() + fst, begin() + lst);
+    // Sorts within the range [beg, end)
+    void sort(std::size_t beg, std::size_t end) noexcept {
+        assert(beg <= end);
+        std::stable_sort(begin() + beg, begin() + end);
     }
     template<typename Predicate>
     void sort(Predicate pred) noexcept {
@@ -515,7 +515,7 @@ class Worker final {
 
     int           rootDelta;
     std::int16_t  nmpPly;
-    std::size_t   multiPV, fstIdx, lstIdx, curIdx;
+    std::size_t   multiPV, curIdx, endIdx;
     std::uint16_t selDepth;
 
     std::array<std::int32_t, COLOR_NB> optimism;

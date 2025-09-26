@@ -232,8 +232,8 @@ STAGE_SWITCH:
         MoveList<ENC_CAPTURE> moveList(pos);
 
         cur = endBadCaptures = moves;
-        // NOTE:: endGenerated is not defined here, it will be set later
-        endCur = /* endGenerated =*/score<ENC_CAPTURE>(moveList);
+        // NOTE:: endMoves is not defined here, it will be set later
+        endCur = /* endMoves =*/score<ENC_CAPTURE>(moveList);
 
         sort_partial();
 
@@ -262,7 +262,7 @@ STAGE_SWITCH:
         {
             MoveList<ENC_QUIET> moveList(pos);
 
-            endCur = endGenerated = score<ENC_QUIET>(moveList);
+            endCur = endMoves = score<ENC_QUIET>(moveList);
 
             assert(threshold < 0);
             sort_partial(threshold);
@@ -308,7 +308,7 @@ STAGE_SWITCH:
         {
             // Prepare the pointers to loop over the bad quiets
             cur    = begBadQuiets;
-            endCur = endGenerated;
+            endCur = endMoves;
 
             sort_partial();
         }
@@ -330,7 +330,7 @@ STAGE_SWITCH:
         MoveList<EVA_CAPTURE> moveList(pos);
 
         cur    = moves;
-        endCur = endGenerated = score<EVA_CAPTURE>(moveList);
+        endCur = endMoves = score<EVA_CAPTURE>(moveList);
 
         sort_partial();
 
@@ -354,7 +354,7 @@ STAGE_SWITCH:
         {
             MoveList<EVA_QUIET> moveList(pos);
 
-            endCur = endGenerated = score<EVA_QUIET>(moveList);
+            endCur = endMoves = score<EVA_QUIET>(moveList);
 
             sort_partial();
         }
