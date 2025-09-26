@@ -209,7 +209,7 @@ Limit parse_limit(std::istringstream& iss) noexcept {
     return limit;
 }
 
-void on_update_end(const EndInfo& info) noexcept;
+void on_update_short(const ShortInfo& info) noexcept;
 void on_update_full(const FullInfo& info) noexcept;
 void on_update_iter(const IterInfo& info) noexcept;
 void on_update_move(const MoveInfo& info) noexcept;
@@ -363,7 +363,7 @@ void UCI::print_info_string(std::string_view infoStr) noexcept {
 }
 
 void UCI::set_update_listeners() noexcept {
-    engine.set_on_update_end(on_update_end);
+    engine.set_on_update_short(on_update_short);
     engine.set_on_update_full(on_update_full);
     engine.set_on_update_iter(on_update_iter);
     engine.set_on_update_move(on_update_move);
@@ -548,8 +548,8 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     constexpr std::size_t WarmupPositionCount = 3;
 
     std::uint64_t infoNodes = 0;
+    engine.set_on_update_short([](const auto&) {});
     engine.set_on_update_full([&](const auto& info) { infoNodes = info.nodes; });
-    engine.set_on_update_end([](const auto&) {});
     engine.set_on_update_iter([](const auto&) {});
     engine.set_on_update_move([](const auto&) {});
 
@@ -853,46 +853,40 @@ Move UCI::can_to_move(std::string_view can, const Position& pos) noexcept {
 
 namespace {
 
-void on_update_end(const EndInfo& info) noexcept {
-    std::cout << "info"  //
-              << " depth " << "0" << " score " << (info.inCheck ? "mate " : "cp ") << "0"
-              << std::endl;
+void on_update_short(const ShortInfo& info) noexcept {
+    std::cout << "info"                   //
+              << " depth " << info.depth  //
+              << " score " << info.score << std::endl;
 }
 
 void on_update_full(const FullInfo& info) noexcept {
-    std::ostringstream oss;
-    oss << "info"                                            //
-        << " depth " << info.depth                           //
-        << " seldepth " << info.rootMove.selDepth            //
-        << " multipv " << info.multiPV                       //
-        << " score " << UCI::score({info.value, info.pos});  //
-    if (info.boundShow)
-        oss << (info.rootMove.boundLower   ? " lowerbound"
-                : info.rootMove.boundUpper ? " upperbound"
-                                           : "");
-    if (info.wdlShow)
-        oss << " wdl " << UCI::to_wdl(info.value, info.pos);
-    oss << " time " << info.time                     //
-        << " nodes " << info.nodes                   //
-        << " nps " << 1000 * info.nodes / info.time  //
-        << " hashfull " << info.hashfull             //
-        << " tbhits " << info.tbHits                 //
-        << " pv";
-    for (const auto& m : info.rootMove.pv)
-        oss << ' ' << UCI::move_to_can(m);
-    std::cout << oss.str() << std::endl;
+    std::cout << "info"                         //
+              << " depth " << info.depth        //
+              << " seldepth " << info.selDepth  //
+              << " multipv " << info.multiPV    //
+              << " score " << info.score;       //
+    if (!info.bound.empty())
+        std::cout << info.bound;
+    if (!info.wdl.empty())
+        std::cout << " wdl " << info.wdl;
+    std::cout << " time " << info.time                     //
+              << " nodes " << info.nodes                   //
+              << " nps " << 1000 * info.nodes / info.time  //
+              << " hashfull " << info.hashfull             //
+              << " tbhits " << info.tbHits                 //
+              << " pv" << info.pv << std::endl;
 }
 
 void on_update_iter(const IterInfo& info) noexcept {
-    std::cout << "info"                                           //
-              << " depth " << info.depth                          //
-              << " currmove " << UCI::move_to_can(info.currMove)  //
+    std::cout << "info"                         //
+              << " depth " << info.depth        //
+              << " currmove " << info.currMove  //
               << " currmovenumber " << info.currMoveNumber << std::endl;
 }
 
 void on_update_move(const MoveInfo& info) noexcept {
-    std::cout << "bestmove " << UCI::move_to_can(info.bestMove)  //
-              << " ponder " << UCI::move_to_can(info.ponderMove) << std::endl;
+    std::cout << "bestmove " << info.bestMove  //
+              << " ponder " << info.ponderMove << std::endl;
 }
 
 enum Ambiguity : std::uint8_t {

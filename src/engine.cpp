@@ -305,8 +305,8 @@ void Engine::save_networks(const std::array<std::optional<std::string>, 2>& netF
     });
 }
 
-void Engine::set_on_update_end(OnUpdateEnd&& f) noexcept {
-    updateContext.onUpdateEnd = std::move(f);
+void Engine::set_on_update_short(OnUpdateShort&& f) noexcept {
+    updateContext.onUpdateShort = std::move(f);
 }
 
 void Engine::set_on_update_full(OnUpdateFull&& f) noexcept {

@@ -98,7 +98,7 @@ class Engine final {
     void load_small_network(std::string_view netFile) noexcept;
     void save_networks(const std::array<std::optional<std::string>, 2>& netFiles) noexcept;
 
-    void set_on_update_end(OnUpdateEnd&& f) noexcept;
+    void set_on_update_short(OnUpdateShort&& f) noexcept;
     void set_on_update_full(OnUpdateFull&& f) noexcept;
     void set_on_update_iter(OnUpdateIter&& f) noexcept;
     void set_on_update_move(OnUpdateMove&& f) noexcept;

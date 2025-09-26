@@ -42,7 +42,7 @@ class Score final {
         int ply;
     };
 
-    Score() noexcept = delete;
+    Score() noexcept = default;
     Score(Value v, const Position& pos) noexcept;
 
     template<typename T>

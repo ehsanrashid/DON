@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <string_view>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -45,7 +46,6 @@ namespace DON {
 class Options;
 class ThreadPool;
 class TranspositionTable;
-class Worker;
 
 namespace NNUE {
 struct Networks;
@@ -317,6 +317,8 @@ struct SharedState final {
     TranspositionTable&                       tt;
 };
 
+class Worker;
+
 // Null Object Pattern, implement a common interface for the SearchManagers.
 // A Null Object will be given to non-mainthread workers.
 class ISearchManager {
@@ -328,45 +330,41 @@ class ISearchManager {
 
 using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
 
-struct EndInfo final {
-    bool inCheck;
+struct ShortInfo {
+    Depth            depth;
+    std::string_view score;
 };
-struct FullInfo final {
-    FullInfo(const Position& p, const RootMove& rm) noexcept :
-        pos(p),
-        rootMove(rm) {}
-    const Position& pos;
-    const RootMove& rootMove;
-    Depth           depth;
-    Value           value;
-    std::size_t     multiPV;
-    bool            boundShow;
-    bool            wdlShow;
-    TimePoint       time;
-    std::uint64_t   nodes;
-    std::uint16_t   hashfull;
-    std::uint64_t   tbHits;
+struct FullInfo final: public ShortInfo {
+    std::uint16_t    selDepth;
+    std::size_t      multiPV;
+    std::string_view bound;
+    std::string_view wdl;
+    TimePoint        time;
+    std::uint64_t    nodes;
+    std::uint16_t    hashfull;
+    std::uint64_t    tbHits;
+    std::string_view pv;
 };
 struct IterInfo final {
-    Depth       depth;
-    Move        currMove;
-    std::size_t currMoveNumber;
+    Depth            depth;
+    std::string_view currMove;
+    std::size_t      currMoveNumber;
 };
 struct MoveInfo final {
-    Move bestMove;
-    Move ponderMove;
+    std::string_view bestMove;
+    std::string_view ponderMove;
 };
 
-using OnUpdateEnd  = std::function<void(const EndInfo&)>;
-using OnUpdateFull = std::function<void(const FullInfo&)>;
-using OnUpdateIter = std::function<void(const IterInfo&)>;
-using OnUpdateMove = std::function<void(const MoveInfo&)>;
+using OnUpdateShort = std::function<void(const ShortInfo&)>;
+using OnUpdateFull  = std::function<void(const FullInfo&)>;
+using OnUpdateIter  = std::function<void(const IterInfo&)>;
+using OnUpdateMove  = std::function<void(const MoveInfo&)>;
 
 struct UpdateContext final {
-    OnUpdateEnd  onUpdateEnd;
-    OnUpdateFull onUpdateFull;
-    OnUpdateIter onUpdateIter;
-    OnUpdateMove onUpdateMove;
+    OnUpdateShort onUpdateShort;
+    OnUpdateFull  onUpdateFull;
+    OnUpdateIter  onUpdateIter;
+    OnUpdateMove  onUpdateMove;
 };
 
 // MainSearchManager manages the search from the main thread.

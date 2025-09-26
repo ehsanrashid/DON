@@ -30,6 +30,7 @@
 #include "movegen.h"
 #include "movepick.h"
 #include "nnue/network.h"
+#include "score.h"
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
@@ -217,7 +218,9 @@ void Worker::start_search() noexcept {
     if (rootMoves.empty())
     {
         rootMoves.emplace_back(Move::None);
-        mainManager->updateCxt.onUpdateEnd({bool(rootPos.checkers())});
+        mainManager->updateCxt.onUpdateShort(
+          {DEPTH_ZERO,
+           UCI::score({Value(rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW), rootPos})});
     }
     else
     {
@@ -311,7 +314,7 @@ void Worker::start_search() noexcept {
         ? rootMove.pv[1]
         : Move::None;
 
-    mainManager->updateCxt.onUpdateMove({bestMove, ponderMove});
+    mainManager->updateCxt.onUpdateMove({UCI::move_to_can(bestMove), UCI::move_to_can(ponderMove)});
 }
 
 // Main iterative deepening loop. It calls search() repeatedly with increasing depth
@@ -1105,7 +1108,8 @@ S_MOVES_LOOP:  // When in check, search starts here
         promoCount += move.type_of() == PROMOTION && move.promotion_type() < QUEEN;
 
         if (RootNode && is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
-            main_manager()->updateCxt.onUpdateIter({rootDepth, move, curIdx + moveCount});
+            main_manager()->updateCxt.onUpdateIter(
+              {rootDepth, UCI::move_to_can(move), curIdx + moveCount});
 
         if constexpr (PVNode)
             (ss + 1)->pv = nullptr;
@@ -2185,16 +2189,18 @@ TimePoint MainSearchManager::elapsed(const ThreadPool& threads) const noexcept {
 
 void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
-    auto time     = std::max(elapsed(), TimePoint(1));
-    auto nodes    = worker.threads.nodes();
-    auto hashfull = worker.tt.hashfull();
-    auto tbHits =
-      worker.threads.tbHits() + (worker.tbConfig.rootInTB ? worker.rootMoves.size() : 0);
-    bool wdlShow = worker.options["UCI_ShowWDL"];
+    auto& rootPos   = worker.rootPos;
+    auto& rootMoves = worker.rootMoves;
+    auto& tbConfig  = worker.tbConfig;
+
+    std::uint64_t nodes    = worker.threads.nodes();
+    std::uint16_t hashfull = worker.tt.hashfull();
+    std::uint64_t tbHits   = worker.threads.tbHits() + (tbConfig.rootInTB ? rootMoves.size() : 0);
+    bool          wdlShow  = worker.options["UCI_ShowWDL"];
 
     for (std::size_t i = 0; i < worker.multiPV; ++i)
     {
-        auto& rm = worker.rootMoves[i];
+        auto& rm = rootMoves[i];
 
         bool updated = rm.curValue != -VALUE_INFINITE;
 
@@ -2207,7 +2213,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if (v == -VALUE_INFINITE)
             v = VALUE_ZERO;
 
-        bool tb = worker.tbConfig.rootInTB && !is_mate(v);
+        bool tb = tbConfig.rootInTB && !is_mate(v);
         if (tb)
             v = rm.tbValue;
 
@@ -2219,16 +2225,25 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
             && is_decisive(v) && !is_mate(v) && (exact || !(rm.boundLower || rm.boundUpper)))
             worker.extend_tb_pv(i, v);
 
-        FullInfo info(worker.rootPos, rm);
-        info.depth     = d;
-        info.value     = v;
-        info.multiPV   = 1 + i;
-        info.boundShow = !exact;
-        info.wdlShow   = wdlShow;
-        info.time      = time;
-        info.nodes     = nodes;
-        info.hashfull  = hashfull;
-        info.tbHits    = tbHits;
+        std::string pv;
+        pv.reserve(6 * rm.pv.size());
+        for (const auto& m : rm.pv)
+            pv += " " + UCI::move_to_can(m);
+
+        FullInfo info;
+        info.depth    = d;
+        info.selDepth = rm.selDepth;
+        info.multiPV  = 1 + i;
+        info.score    = UCI::score({v, rootPos});
+        if (!exact)
+            info.bound = rm.boundLower ? " lowerbound" : rm.boundUpper ? " upperbound" : "";
+        if (wdlShow)
+            info.wdl = UCI::to_wdl(v, rootPos);
+        info.time     = std::max(elapsed(), TimePoint(1));
+        info.nodes    = nodes;
+        info.hashfull = hashfull;
+        info.tbHits   = tbHits;
+        info.pv       = pv;
 
         updateCxt.onUpdateFull(info);
     }
