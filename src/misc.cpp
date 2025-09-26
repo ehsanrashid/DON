@@ -525,6 +525,12 @@ void print() noexcept {
     #define GETCWD getcwd
 #endif
 
+CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
+    arguments.reserve(argc);
+    for (int i = 0; i < argc; ++i)
+        arguments.emplace_back(argv[i]);  // no copy, just view
+}
+
 // Extract the binary directory path
 std::string CommandLine::binary_directory(std::string path) noexcept {
     std::string pathSeparator;

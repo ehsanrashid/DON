@@ -29,14 +29,19 @@ namespace DON {
 
 namespace {
 
-constexpr std::uint8_t MaxMovesToGo = 50;
+constexpr std::uint8_t MaxMovesToGo = 50U;
 
 }  // namespace
 
-// When in 'Nodes as Time' mode
-void TimeManager::update_nodes(std::int64_t usedNodes) noexcept {
-    assert(use_nodes_time());
-    remainNodes = std::max<std::int64_t>(remain_nodes() - usedNodes, 0) + OffsetNode;
+void TimeManager::init() noexcept {
+
+    timeAdjust = -1.0;
+
+    optimumTime = 0;
+    maximumTime = 0;
+
+    nodesTime   = 0;
+    remainNodes = OffsetNode;
 }
 
 // Called at the beginning of the search and calculates
@@ -74,7 +79,7 @@ void TimeManager::init(
             remainNodes = clock.time * nodesTime + OffsetNode;  // Time is in msec
 
         // Convert from milliseconds to nodes
-        clock.time = remain_nodes();
+        clock.time = TimePoint(remain_nodes());
         clock.inc *= nodesTime;
         moveOverhead *= nodesTime;
     }
@@ -157,6 +162,12 @@ void TimeManager::init(
 
     if (options["Ponder"])
         optimumTime *= 1.2500;
+}
+
+// When in 'Nodes as Time' mode
+void TimeManager::update_nodes(std::int64_t usedNodes) noexcept {
+    assert(use_nodes_time());
+    remainNodes = std::max(remain_nodes() - usedNodes, std::int64_t(0)) + OffsetNode;
 }
 
 }  // namespace DON

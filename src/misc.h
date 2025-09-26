@@ -382,11 +382,7 @@ void print() noexcept;
 
 struct CommandLine final {
    public:
-    CommandLine(int argc, const char* argv[]) noexcept {
-        arguments.reserve(argc);
-        for (int i = 0; i < argc; ++i)
-            arguments.emplace_back(argv[i]);  // no copy, just view
-    }
+    CommandLine(int argc, const char* argv[]) noexcept;
 
     static std::string binary_directory(std::string path) noexcept;
     static std::string working_directory() noexcept;

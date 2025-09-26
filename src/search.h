@@ -52,8 +52,8 @@ struct Networks;
 }
 
 using Moves = std::vector<Move>;
-template<std::size_t N>
-using MovesArray = std::array<Moves, N>;
+template<std::size_t Size>
+using MovesArray = std::array<Moves, Size>;
 
 constexpr std::size_t DEFAULT_MULTI_PV = 1;
 

@@ -32,8 +32,7 @@ class Options;
 // the maximum available time, the game move number, and other parameters.
 class TimeManager final {
    public:
-    TimeManager() noexcept { init(); }
-
+    TimeManager() noexcept                              = default;
     TimeManager(const TimeManager&) noexcept            = delete;
     TimeManager(TimeManager&&) noexcept                 = delete;
     TimeManager& operator=(const TimeManager&) noexcept = delete;
@@ -47,16 +46,7 @@ class TimeManager final {
         return use_nodes_time() ? TimePoint(nodes()) : elapsed();
     }
 
-    void init() noexcept {
-
-        timeAdjust = -1.0;
-
-        optimumTime = 0;
-        maximumTime = 0;
-
-        nodesTime   = 0;
-        remainNodes = 0;
-    }
+    void init() noexcept;
     void init(Limit&         limit,
               Color          ac,
               std::int16_t   ply,
@@ -65,7 +55,7 @@ class TimeManager final {
 
     bool use_nodes_time() const noexcept { return bool(nodesTime); }
 
-    auto remain_nodes() const noexcept { return remainNodes - OffsetNode; }
+    std::int64_t remain_nodes() const noexcept { return remainNodes - OffsetNode; }
 
     void update_nodes(std::int64_t usedNodes) noexcept;
 

@@ -268,16 +268,16 @@ void Worker::start_search() noexcept {
     // Wait until all threads have finished
     threads.wait_finish();
 
-    // When playing in 'Nodes as Time' mode,
-    // subtract the searched nodes from the start nodes before exiting.
-    if (mainManager->timeManager.use_nodes_time())
-        mainManager->timeManager.update_nodes(  //
-          threads.nodes() - limit.clocks[rootPos.active_color()].inc);
-
-    Worker* bestWorker = this;
+    auto* bestWorker = this;
 
     if (think)
     {
+        // When playing in 'Nodes as Time' mode,
+        // subtract the searched nodes from the start nodes before exiting.
+        if (mainManager->timeManager.use_nodes_time())
+            mainManager->timeManager.update_nodes(  //
+              threads.nodes() - limit.clocks[rootPos.active_color()].inc);
+
         // If the skill level is enabled, swap the best PV line with the sub-optimal one
         if (mainManager->skill.enabled())
             rootMoves.swap_to_front(mainManager->skill.pick_move(rootMoves, multiPV, false));
