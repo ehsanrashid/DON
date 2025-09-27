@@ -432,13 +432,10 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
             // d) there is no enemy Bishop, Rook or Queen pinning
             epCan = (pieces(~ac, PAWN) & (ep_sq() - pawn_spush(ac)))
                  && !(pieces() & make_bitboard(ep_sq(), ep_sq() + pawn_spush(ac)))
-                 && (pieces(ac, PAWN) & attacks_bb<PAWN>(ep_sq(), ~ac))
-                 && can_enpassant(ac, ep_sq());
+                 && (pieces(ac, PAWN) & attacks_bb<PAWN>(ep_sq(), ~ac));
         }
         else
-        {
             assert(false && "Position::set(): Invalid En-passant square");
-        }
     }
 
     // 5-6. Halfmove clock and fullmove number
@@ -451,11 +448,15 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
     // handle also common incorrect FEN with moveNum = 0.
     gamePly = std::max(2 * (std::abs(moveNum) - 1), 0) + (ac == BLACK);
 
+    st->checkers = attackers_to(king_sq(ac)) & pieces(~ac);
+
+    set_ext_state();
+
     // Reset illegal values
     if (is_ok(ep_sq()))
     {
         reset_rule50_count();
-        if (!epCan)
+        if (!(epCan && can_enpassant(ac, ep_sq())))
             reset_ep_sq();
     }
     assert(rule50_count() <= 100);
@@ -630,14 +631,8 @@ void Position::set_state() noexcept {
     if (is_ok(ep_sq()))
         st->key ^= Zobrist::enpassant[file_of(ep_sq())];
 
-    Color ac = active_color();
-
-    if (ac == BLACK)
+    if (active_color() == BLACK)
         st->key ^= Zobrist::side;
-
-    st->checkers = attackers_to(king_sq(ac)) & pieces(~ac);
-
-    set_ext_state();
 }
 
 // Set extra state to detect if a move is check
