@@ -56,6 +56,8 @@ class UCI final {
 
     static char file(File f, bool upper = false) noexcept;
     static char rank(Rank r) noexcept;
+    static char flip_file(char f) noexcept;
+    static char flip_rank(char r) noexcept;
 
     static std::string square(Square s) noexcept;
 

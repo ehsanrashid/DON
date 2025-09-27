@@ -155,7 +155,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
         Move m = UCI::mix_to_move(move, pos, MoveList<LEGAL>(pos));
         if (m == Move::None)
         {
-            assert(false);
+            assert(false && ("Engine::setup(): Invalid move in the moves list " + move).c_str());
             break;
         }
         assert(pos.rule50_count() <= 100);

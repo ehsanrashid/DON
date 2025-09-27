@@ -1931,7 +1931,8 @@ void Position::flip() noexcept {
     std::istringstream iss{fen()};
 
     std::string f, token;
-    for (Rank r = RANK_8; r >= RANK_1; --r)  // Piece placement
+    // Piece placement (vertical flip)
+    for (Rank r = RANK_8; r >= RANK_1; --r)
     {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
         f.insert(0, token + (f.empty() ? ' ' : '/'));
@@ -1959,7 +1960,7 @@ void Position::mirror() noexcept {
     std::istringstream iss{fen()};
 
     std::string f, token;
-    // Mirror piece placement (horizontal flip)
+    // Piece placement (horizontal flip)
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
@@ -1970,11 +1971,30 @@ void Position::mirror() noexcept {
     iss >> token;  // Active color (will remain the same)
     f += token + " ";
 
+    // Castling rights
     iss >> token;
-    f += "- ";  // Disable all Castling rights
+    if (token != "-")
+        for (auto& ch : token)
+        {
+            if (ch == 'K')
+                ch = 'Q';
+            else if (ch == 'Q')
+                ch = 'K';
+            else if (ch == 'k')
+                ch = 'q';
+            else if (ch == 'q')
+                ch = 'k';
+            // Handle Chess960: flip file (A ↔ H, B ↔ G, etc. for both upper and lower case)
+            else if (('A' <= ch && ch <= 'H') || ('a' <= ch && ch <= 'h'))
+                ch = UCI::flip_file(ch);
+        }
+    f += token + " ";
 
+    // En-passant square (flip the file)
     iss >> token;
-    f += "- ";  // Disable En-passant square
+    if (token != "-")
+        token[0] = UCI::flip_file(token[0]);
+    f += token + " ";
 
     std::getline(iss, token);  // Half and full moves
     f += token;
