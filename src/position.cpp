@@ -309,19 +309,10 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
     // 2. Active color
     iss >> token;
     token = std::tolower(token);
-    switch (token)
-    {
-    case 'w' :
-        activeColor = WHITE;
-        break;
-    case 'b' :
-        activeColor = BLACK;
-        break;
-    default :
-        assert(false && "Position::set(): Invalid Color");
-        activeColor = COLOR_NB;
-        break;
-    }
+
+    activeColor = token == 'w' ? WHITE
+                : token == 'b' ? BLACK
+                               : (assert(false && "Position::set(): Invalid Color"), COLOR_NB);
 
     iss >> std::ws;
 
@@ -393,18 +384,6 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
 
         set_castling_rights(c, rsq);
     }
-    // if (!can_castle(WHITE_CASTLING)
-    //    && ((king_sq(WHITE) == SQ_C1
-    //         && !(pieces(WHITE, ROOK) & SQ_A1))
-    //        || (king_sq(WHITE) == SQ_G1
-    //            && !(pieces(WHITE, ROOK) & SQ_H1))))
-    //    st->castled[WHITE] = true;
-    // if (!can_castle(BLACK_CASTLING)
-    //    && ((king_sq(BLACK) == SQ_C8
-    //         && !(pieces(BLACK, ROOK) & SQ_A8))
-    //        || (king_sq(BLACK) == SQ_G8
-    //            && !(pieces(BLACK, ROOK) & SQ_H8))))
-    //    st->castled[BLACK] = true;
 
     iss >> std::ws;
 
@@ -420,8 +399,9 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
         std::uint8_t epFile = std::tolower(token);
         std::uint8_t epRank;
         iss >> epRank;
-
-        if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
+        // clang-format off
+        if ('a' <= epFile && epFile <= 'h'
+            && epRank == (ac == WHITE ? '6' : ac == BLACK ? '3' : '-'))
         {
             st->epSq = make_square(File(epFile - 'a'), Rank(epRank - '1'));
 
@@ -436,6 +416,7 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
         }
         else
             assert(false && "Position::set(): Invalid En-passant square");
+        // clang-format on
     }
 
     // 5-6. Halfmove clock and fullmove number
