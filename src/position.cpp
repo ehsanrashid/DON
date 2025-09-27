@@ -512,7 +512,7 @@ std::string Position::fen(bool full) const noexcept {
             oss << '/';
     }
 
-    oss << (active_color() == WHITE ? " w " : active_color() == BLACK ? " b " : " - ");
+    oss << ' ' << (active_color() == WHITE ? 'w' : active_color() == BLACK ? 'b' : '-') << ' ';
 
     if (can_castle(ANY_CASTLING))
     {
