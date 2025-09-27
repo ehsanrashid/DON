@@ -1941,7 +1941,7 @@ void Position::flip() noexcept {
     f = toggle_case(f);
 
     iss >> token;  // En-passant square
-    f += (token[0] == '-' ? "-" : token.replace(1, 1, token[1] == '3' ? "6" : "3"));
+    f += (token == "-" ? token : token.replace(1, 1, token[1] == '3' ? "6" : "3"));
 
     std::getline(iss, token);  // Half and full moves
     f += token;
