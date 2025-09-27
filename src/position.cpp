@@ -1900,7 +1900,7 @@ void Position::flip() noexcept {
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
-        f.insert(0, token + (f.empty() ? ' ' : '/'));
+        f.insert(0, token + (r < RANK_8 ? '/' : ' '));
     }
 
     // Active color (will be lowercased later)

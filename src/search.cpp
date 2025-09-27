@@ -1074,8 +1074,6 @@ S_MOVES_LOOP:  // When in check, search starts here
                                             (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,
                                             (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory};
 
-    int quietThreshold = (-3560 - 10 * improve) * depth;
-
     value = bestValue;
 
     Value singularValue = +VALUE_INFINITE;
@@ -1086,6 +1084,8 @@ S_MOVES_LOOP:  // When in check, search starts here
     Move bestMove = Move::None;
 
     MovesArray<2> movesArr;
+
+    int quietThreshold = (-3560 - 10 * improve) * depth;
 
     MovePicker mp(pos, pttm, contHistory, ss->ply, quietThreshold);
     mp.quietPick = true;
@@ -1328,7 +1328,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r += 1415 * ttCapture;
 
         // Increase reduction on repetition
-        r += 2048 * (move == (ss - 4)->move && pos.repetition() == 4);
+        r += 2048 * (pos.repetition() == 4 && move == (ss - 4)->move);
 
         // Increase reduction if current ply has a lot of fail high
         r += (1051 + 814 * AllNode) * (ss->cutoffCount > 2);
