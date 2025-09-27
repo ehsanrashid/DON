@@ -306,13 +306,14 @@ void Worker::start_search() noexcept {
     assert(!bestWorker->rootMoves.empty() && !bestWorker->rootMoves.front().pv.empty());
     const auto& rootMove = bestWorker->rootMoves.front();
 
-    Move bestMove = rootMove.pv[0];
-    Move ponderMove =
-      bestMove != Move::None && (rootMove.pv.size() >= 2 || bestWorker->ponder_move_extracted())
-        ? rootMove.pv[1]
-        : Move::None;
+    auto bestMove = UCI::move_to_can(rootMove.pv[0]);
+    auto ponderMove =
+      UCI::move_to_can(rootMove.pv[0] != Move::None
+                           && (rootMove.pv.size() >= 2 || bestWorker->ponder_move_extracted())
+                         ? rootMove.pv[1]
+                         : Move::None);
 
-    mainManager->updateCxt.onUpdateMove({UCI::move_to_can(bestMove), UCI::move_to_can(ponderMove)});
+    mainManager->updateCxt.onUpdateMove({bestMove, ponderMove});
 }
 
 // Main iterative deepening loop. It calls search() repeatedly with increasing depth

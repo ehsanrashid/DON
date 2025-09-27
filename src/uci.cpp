@@ -803,7 +803,7 @@ Piece UCI::piece(char pc) noexcept {
 
 std::string UCI::piece_figure(Piece pc) noexcept { return is_ok(pc) ? PieceFigure[pc] : " "; }
 
-char UCI::file(File f, bool upper) noexcept { return int(f) + 'a' - 0x20 * upper; }
+char UCI::file(File f, bool upper) noexcept { return int(f) + 'a' - (upper ? 0x20 : 0x00); }
 
 char UCI::rank(Rank r) noexcept { return int(r) + '1'; }
 
