@@ -538,7 +538,7 @@ void Worker::iterative_deepening() noexcept {
             mainManager->skill.pick_move(rootMoves, multiPV);
 
         // Do have time for the next iteration? Can stop searching now?
-        if (!(mainManager->ponderhitStop || threads.stop) && limit.use_time_manager())
+        if (limit.use_time_manager() && !(mainManager->ponderhitStop || threads.stop))
         {
             // Use part of the gained time from a previous stable move for the current move
             for (auto&& th : threads)

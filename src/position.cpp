@@ -1124,7 +1124,7 @@ void Position::undo_move(const Move& m) noexcept {
 UNDO_MOVE_END:
 
     --gamePly;
-    // Finally point our state pointer back to the previous state
+    // Finally point state pointer back to the previous state
     st = st->preSt;
 
     assert(legal(m));
