@@ -188,7 +188,7 @@ void Worker::start_search() noexcept {
         // When playing with strength handicap enable MultiPV search that will
         // use behind-the-scenes to retrieve a set of possible moves.
         if (mainManager->skill.enabled())
-            multiPV = std::max(multiPV, size_t(4));
+            multiPV = std::max(multiPV, std::size_t(4));
     }
     multiPV = std::min(multiPV, rootMoves.size());
 
@@ -583,15 +583,16 @@ void Worker::iterative_deepening() noexcept {
             // Calculate total time by combining all factors with the optimum time
             TimePoint totalTime = mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor;
             assert(totalTime >= 0.0);
-
+            // Cap totalTime to the available maximum time
+            totalTime = std::min(totalTime, mainManager->timeManager.maximum());
             // Cap totalTime in case of a single legal move for a better viewer experience
             if (rootMoves.size() == 1)
                 totalTime = std::min(0.50 * totalTime, 502.0);
 
             TimePoint elapsedTime = mainManager->elapsed(threads);
 
-            // Stop the search if have exceeded the total time or maximum time
-            if (elapsedTime > std::min(totalTime, mainManager->timeManager.maximum()))
+            // Stop the search if have exceeded the total time
+            if (elapsedTime > totalTime)
             {
                 // If allowed to ponder do not stop the search now but
                 // keep pondering until the GUI sends "ponderhit" or "stop".
@@ -907,12 +908,12 @@ Value Worker::search(Position&    pos,
 
     // Step 7. Razoring
     // If eval is really low, check with qsearch if can exceed alpha.
-    if (!RootNode && eval < -514 + alpha - 294 * sqr(depth))
+    if (!PVNode && eval < -514 + alpha - 294 * sqr(depth))
     {
         value = qsearch<PVNode>(pos, ss, alpha, beta);
 
         if (value < alpha)
-            return in_range(value);
+            return value;
 
         ss->ttMove = ttd.move;
     }
@@ -932,7 +933,7 @@ Value Worker::search(Position&    pos,
 
         if (!ss->pvHit && depth < 14 && eval >= beta && (ttd.move == Move::None || ttCapture)
             && !is_loss(beta) && !is_win(eval) && eval - futility_margin(ttd.hit) >= beta)
-            return in_range((2 * eval + beta) / 3);
+            return (2 * eval + beta) / 3;
     }
 
     // Step 9. Null move search with verification search
@@ -1201,7 +1202,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                     }
                 }
 
-                lmrDepth = std::max(lmrDepth, DEPTH_ZERO);
+                lmrDepth = std::max(+lmrDepth, 0);
 
                 // SEE based pruning for quiets
                 if (pos.see(move) < -(27 * sqr(lmrDepth) + 256 * dblCheck))
@@ -1504,7 +1505,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_decisive(bestValue))
-        bestValue = in_range((depth * bestValue + beta) / (depth + 1));
+        bestValue = (depth * bestValue + beta) / (depth + 1);
 
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
@@ -1651,7 +1652,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         && pos.rule50_count() < (1.0 - 0.5 * pos.rule50_high()) * rule50_threshold())
     {
         if (ttd.value > beta && ttd.depth > DEPTH_ZERO && !is_decisive(ttd.value))
-            ttd.value = in_range((ttd.depth * ttd.value + beta) / (ttd.depth + 1));
+            ttd.value = (ttd.depth * ttd.value + beta) / (ttd.depth + 1);
 
         return ttd.value;
     }
@@ -1695,7 +1696,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (bestValue >= beta)
     {
         if (bestValue > beta && !is_decisive(bestValue))
-            bestValue = in_range((bestValue + beta) / 2);
+            bestValue = (bestValue + beta) / 2;
 
         if (!ttd.hit)
             ttu.update(DEPTH_NONE, false, BOUND_LOWER, Move::None, bestValue, unadjustedStaticEval);
@@ -1851,7 +1852,7 @@ QS_MOVES_LOOP:
     }
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_decisive(bestValue))
-        bestValue = in_range((bestValue + beta) / 2);
+        bestValue = (bestValue + beta) / 2;
 
     // Save gathered info in transposition table
     Bound bound = fail_bound(bestValue >= beta);

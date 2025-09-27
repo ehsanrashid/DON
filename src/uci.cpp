@@ -816,7 +816,7 @@ std::string UCI::move_to_can(const Move& m) noexcept {
     if (m == Move::None)
         return "(none)";
     if (m == Move::Null)
-        return "(null)";
+        return "0000";
 
     Square org = m.org_sq(), dst = m.dst_sq();
     if (m.type_of() == CASTLING && !Chess960)
@@ -941,7 +941,7 @@ std::string UCI::move_to_san(const Move& m, Position& pos) noexcept {
     if (m == Move::None)
         return "(none)";
     if (m == Move::Null)
-        return "(null)";
+        return "0000";
     assert(MoveList<LEGAL>(pos).contains(m));
 
     Square org = m.org_sq(), dst = m.dst_sq();
