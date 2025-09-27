@@ -327,11 +327,11 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
         {
             ++count;
 
-            std::cout << std::right << std::setfill('0')                  //
+            std::cout << std::setfill('0') << std::right                  //
                       << std::setw(2) << count                            //
-                      << std::left << std::setfill(' ')                   //
+                      << std::setfill(' ') << std::left                   //
                       << " " << std::setw(7) << UCI::move_to_san(m, pos)  //
-                      << std::right << std::setfill('.')                  //
+                      << std::setfill('.') << std::right                  //
                       << ": " << std::setw(16) << iPerft.nodes;
             if (detail)
                 std::cout << "   " << std::setw(14) << iPerft.capture    //
@@ -343,13 +343,13 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
                           << "   " << std::setw(12) << iPerft.promotion  //
                           << "   " << std::setw(12) << iPerft.checkmate  //
                           << "   " << std::setw(10) << iPerft.stalemate;
-            std::cout << std::endl;
+            std::cout << std::left << std::endl;
         }
     }
 
     if (RootNode)
     {
-        std::cout << std::right << std::setfill('.');
+        std::cout << std::setfill('.') << std::right;
         std::cout << "Total     : " << std::setw(16) << sPerft.nodes;
         if (detail)
             std::cout << " " << std::setw(16) << sPerft.capture    //
@@ -361,7 +361,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
                       << " " << std::setw(14) << sPerft.promotion  //
                       << " " << std::setw(14) << sPerft.checkmate  //
                       << " " << std::setw(12) << sPerft.stalemate;
-        std::cout << std::setfill(' ') << std::endl;
+        std::cout << std::setfill(' ') << std::left << std::endl;
     }
 
     return sPerft;

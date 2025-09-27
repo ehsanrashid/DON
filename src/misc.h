@@ -402,18 +402,14 @@ inline int char_to_digit(char ch) noexcept {
 
 inline std::string lower_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept {
-        if (std::isupper(ch))
-            return static_cast<char>(std::tolower(ch));
-        return static_cast<char>(ch);
+        return std::isupper(ch) ? static_cast<unsigned char>(std::tolower(ch)) : ch;
     });
     return str;
 }
 
 inline std::string upper_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept {
-        if (std::islower(ch))
-            return static_cast<char>(std::toupper(ch));
-        return static_cast<char>(ch);
+        return std::islower(ch) ? static_cast<unsigned char>(std::toupper(ch)) : ch;
     });
     return str;
 }
@@ -421,10 +417,10 @@ inline std::string upper_case(std::string str) noexcept {
 inline std::string toggle_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept {
         if (std::islower(ch))
-            return static_cast<char>(std::toupper(ch));
+            return static_cast<unsigned char>(std::toupper(ch));
         if (std::isupper(ch))
-            return static_cast<char>(std::tolower(ch));
-        return static_cast<char>(ch);
+            return static_cast<unsigned char>(std::tolower(ch));
+        return ch;
     });
     return str;
 }
@@ -438,24 +434,28 @@ inline bool ends_with(std::string_view str, std::string_view suffix) noexcept {
 }
 
 inline bool is_whitespace(std::string_view str) noexcept {
-    return str.empty()
-        || std::all_of(str.begin(), str.end(), [](char ch) { return std::isspace(ch); });
+    return str.empty()  //
+        || std::all_of(str.begin(), str.end(),
+                       [](unsigned char ch) noexcept { return std::isspace(ch) != 0; });
 }
 
 inline void remove_whitespace(std::string& str) noexcept {
-    str.erase(  //
-      std::remove_if(str.begin(), str.end(), [](char ch) { return std::isspace(ch); }), str.end());
+    str.erase(std::remove_if(str.begin(), str.end(),
+                             [](unsigned char ch) noexcept { return std::isspace(ch) != 0; }),
+              str.end());
 }
 
 inline void trim_leading_whitespace(std::string& str) noexcept {
-    str.erase(  //
-      str.begin(), std::find_if(str.begin(), str.end(), [](char ch) { return !std::isspace(ch); }));
+    str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](unsigned char ch) noexcept {
+                  return std::isspace(ch) == 0;
+              }));
 }
 
 inline void trim_trailing_whitespace(std::string& str) noexcept {
-    str.erase(  //
-      std::find_if(str.rbegin(), str.rend(), [](char ch) { return !std::isspace(ch); }).base(),
-      str.end());
+    str.erase(std::find_if(str.rbegin(), str.rend(),
+                           [](unsigned char ch) noexcept { return std::isspace(ch) == 0; })
+                .base(),
+              str.end());
 }
 
 inline std::string bool_to_string(bool b) noexcept {
@@ -465,13 +465,13 @@ inline std::string bool_to_string(bool b) noexcept {
 inline bool string_to_bool(std::string_view str) noexcept {
     bool b = false;
 
-    std::istringstream iss{lower_case(std::string(str))};
-    iss >> std::boolalpha >> b;  // enables reading "true"/"false"
+    std::istringstream iss{std::string(str)};
+    // Try parsing as bool using std::boolalpha
+    iss >> std::boolalpha >> b;
     if (iss.fail())
     {
-        // Try as integer
+        // If bool parsing fails, clear and parse as integer
         iss.clear();
-        iss.str(std::string(str));
         int i;
         iss >> i;
         b = (i != 0);
@@ -480,34 +480,35 @@ inline bool string_to_bool(std::string_view str) noexcept {
 }
 
 inline std::string u64_to_string(std::uint64_t u64) noexcept {
-    return (std::ostringstream{} << std::setw(16) << std::hex << std::uppercase << std::setfill('0')
+    return (std::ostringstream{} << std::setfill('0') << std::setw(16) << std::hex << std::uppercase
                                  << u64)
       .str();
 }
 
 constexpr std::string_view trim(std::string_view str) noexcept {
-    // Define white-space characters
     constexpr std::string_view WhiteSpace = " \t\r\n";
 
-    // Find first non-white-space character
+    // Find the first non-whitespace character
     std::size_t beg = str.find_first_not_of(WhiteSpace);
     if (beg == std::string_view::npos)
-        return {};  // All white-space
+        return {};  // All whitespace
 
-    // Find last non-white-space character
+    // Find the last non-whitespace character
     std::size_t end = str.find_last_not_of(WhiteSpace);
-    return str.substr(beg, end - beg + 1);
+
+    return str.substr(beg, end - beg + 1);  // Returns the trimmed substring
 }
 
 inline StringViews
 split(std::string_view str, std::string_view delimiter, bool doTrim = false) noexcept {
     StringViews parts;
 
-    if (str.empty())
-        return parts;
+    if (str.empty() || delimiter.empty())
+        return parts;  // Avoid infinite loop for empty delimiter
 
-    std::size_t      beg = 0;
     std::string_view part;
+
+    std::size_t beg = 0;
     while (true)
     {
         std::size_t end = str.find(delimiter, beg);
@@ -519,8 +520,11 @@ split(std::string_view str, std::string_view delimiter, bool doTrim = false) noe
             part = trim(part);
         if (!part.empty())
             parts.emplace_back(part);
+
         beg = end + delimiter.size();
     }
+
+    // Last part
     part = str.substr(beg);
     if (doTrim)
         part = trim(part);

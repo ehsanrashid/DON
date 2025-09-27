@@ -374,10 +374,10 @@ bool is_draw(Position& pos, const Move& m) noexcept {
 
 std::ostream& operator<<(std::ostream& os, const PolyEntry& pe) noexcept {
     // clang-format off
-    os << std::right << "key: "     << u64_to_string(pe.key)  //
-       << std::left  << " move: "   << std::setw(5) << std::setfill(' ') << UCI::move_to_can(fix_promotion(Move(pe.move)))
-       << std::right << " weight: " << std::setw(5) << std::setfill('0') << pe.weight
-       << std::right << " learn: "  << std::setw(2) << std::setfill('0') << pe.learn;
+    os << std::right << "key: "     << u64_to_string(pe.key)
+       << std::left  << " move: "   << std::setfill(' ') << std::setw(5) << UCI::move_to_can(fix_promotion(Move(pe.move)))
+       << std::right << " weight: " << std::setfill('0') << std::setw(5) << pe.weight
+       << std::right << " learn: "  << std::setfill('0') << std::setw(2) << pe.learn;
     // clang-format on
     return os;
 }
