@@ -531,18 +531,7 @@ std::string Position::fen(bool full) const noexcept {
             oss << '/';
     }
 
-    switch (active_color())
-    {
-    case WHITE :
-        oss << " w ";
-        break;
-    case BLACK :
-        oss << " b ";
-        break;
-    default :
-        oss << " - ";
-        break;
-    }
+    oss << (active_color() == WHITE ? " w " : active_color() == BLACK ? " b " : " - ");
 
     if (can_castle(ANY_CASTLING))
     {
@@ -1935,7 +1924,7 @@ void Position::flip() noexcept {
 
     // Active color (will be lowercased later)
     iss >> token;
-    token[0] = (token[0] == 'w' ? 'B' : token[0] == 'b' ? 'W' : ' ');
+    token[0] = (token[0] == 'w' ? 'B' : token[0] == 'b' ? 'W' : '-');
     f += token + " ";
 
     // Castling rights
