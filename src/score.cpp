@@ -39,7 +39,7 @@ Score::Score(Value v, const Position& pos) noexcept {
     else
     {
         auto ply = VALUE_MATE - std::abs(v);
-        score    = Mate{v > 0 ? +ply : -ply};
+        score    = v > 0 ? Mate{+ply} : Mate{-ply};
     }
 }
 

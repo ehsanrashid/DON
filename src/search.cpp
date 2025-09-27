@@ -792,7 +792,7 @@ Value Worker::search(Position&    pos,
             {
                 tbHits.fetch_add(1, std::memory_order_relaxed);
 
-                std::int8_t drawValue = 1 * tbConfig.rule50Use;
+                auto drawValue = tbConfig.rule50Use ? 1 : 0;
 
                 Value tbValue = VALUE_TB - ss->ply;
 
@@ -2016,8 +2016,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     std::list<State> states;
 
     // Step 0. Do the rootMove, no correction allowed, as needed for MultiPV in TB
-    auto& rootSt = states.emplace_back();
-    rootPos.do_move(rootMove.pv[0], rootSt);
+    rootPos.do_move(rootMove.pv[0], states.emplace_back());
 
     // Step 1. Walk the PV to the last position in TB with correct decisive score
     std::int16_t ply = 1;
@@ -2025,23 +2024,22 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     {
         const auto& pvMove = rootMove.pv[ply];
 
-        RootMoves tmpRootMoves;
+        RootMoves _rootMoves;
         for (const auto& m : MoveList<LEGAL>(rootPos))
-            tmpRootMoves.emplace_back(m);
+            _rootMoves.emplace_back(m);
 
-        auto tmpTbConfig = Tablebases::rank_root_moves(rootPos, tmpRootMoves, options);
+        auto _tbConfig = Tablebases::rank_root_moves(rootPos, _rootMoves, options);
 
-        auto& rm = *tmpRootMoves.find(pvMove);
+        auto& rm = *_rootMoves.find(pvMove);
 
-        if (rm.tbRank != tmpRootMoves.front().tbRank)
+        if (rm.tbRank != _rootMoves.front().tbRank)
             break;
 
-        auto& st = states.emplace_back();
-        rootPos.do_move(pvMove, st);
+        rootPos.do_move(pvMove, states.emplace_back());
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime
-        if (tmpTbConfig.rootInTB && rootPos.is_draw(ply, rule50Use))
+        if (_tbConfig.rootInTB && rootPos.is_draw(ply, rule50Use))
         {
             rootPos.undo_move(pvMove);
             --ply;
@@ -2059,10 +2057,10 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
     while (!rootPos.is_draw(0, rule50Use))
     {
-        RootMoves tmpRootMoves;
+        RootMoves _rootMoves;
         for (const auto& m : MoveList<LEGAL>(rootPos))
         {
-            auto& rm = tmpRootMoves.emplace_back(m);
+            auto& rm = _rootMoves.emplace_back(m);
 
             State st;
             rootPos.do_move(m, st);
@@ -2074,26 +2072,25 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         }
 
         // Mate found
-        if (tmpRootMoves.empty())
+        if (_rootMoves.empty())
             break;
 
         // Sort moves according to their above assigned TB rank.
         // This will break ties for moves with equal DTZ in rank_root_moves.
-        tmpRootMoves.sort([](const RootMove& rm1, const RootMove& rm2) noexcept {
+        _rootMoves.sort([](const RootMove& rm1, const RootMove& rm2) noexcept {
             return rm1.tbRank > rm2.tbRank;
         });
 
         // The winning side tries to minimize DTZ, the losing side maximizes it
-        auto tmpTbConfig = Tablebases::rank_root_moves(rootPos, tmpRootMoves, options, true);
+        auto _tbConfig = Tablebases::rank_root_moves(rootPos, _rootMoves, options, true);
 
         // If DTZ is not available might not find a mate, so bail out
-        if (!tmpTbConfig.rootInTB || tmpTbConfig.cardinality != 0)
+        if (!_tbConfig.rootInTB || _tbConfig.cardinality != 0)
             break;
 
-        const Move& pvMove = tmpRootMoves.front().pv[0];
+        const Move& pvMove = _rootMoves.front().pv[0];
         rootMove.pv.push_back(pvMove);
-        auto& st = states.emplace_back();
-        rootPos.do_move(pvMove, st);
+        rootPos.do_move(pvMove, states.emplace_back());
 
         if (time_to_abort())
             break;
@@ -2208,7 +2205,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         bool exact = i != worker.curIdx || tb || !updated;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
-        if (!(worker.threads.stop.load() && worker.limit.use_time_manager())  //
+        if (!(worker.threads.stop && worker.limit.use_time_manager())  //
             && is_decisive(v) && !is_mate(v) && (exact || !(rm.boundLower || rm.boundUpper)))
             worker.extend_tb_pv(i, v);
 
