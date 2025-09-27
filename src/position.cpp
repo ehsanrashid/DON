@@ -1933,15 +1933,21 @@ void Position::flip() noexcept {
         f.insert(0, token + (f.empty() ? ' ' : '/'));
     }
 
-    iss >> token;  // Active color (will be lowercased later)
+    // Active color (will be lowercased later)
+    iss >> token;
     f += (token[0] == 'w' ? "B " : "W ");
-    iss >> token;  // Castling rights
+
+    // Castling rights
+    iss >> token;
     f += token + " ";
 
     f = toggle_case(f);
 
-    iss >> token;  // En-passant square
-    f += (token == "-" ? token : token.replace(1, 1, token[1] == '3' ? "6" : "3"));
+    // En-passant square
+    iss >> token;
+    if (token != "-")
+        token[1] = UCI::flip_rank(token[1]);
+    f += token;
 
     std::getline(iss, token);  // Half and full moves
     f += token;
@@ -1963,7 +1969,8 @@ void Position::mirror() noexcept {
         f += token + (r > RANK_1 ? '/' : ' ');
     }
 
-    iss >> token;  // Active color (will remain the same)
+    // Active color (will remain the same)
+    iss >> token;
     f += token + " ";
 
     // Castling rights
