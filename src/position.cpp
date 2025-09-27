@@ -1935,7 +1935,7 @@ void Position::flip() noexcept {
 
     // Active color (will be lowercased later)
     iss >> token;
-    token[0] = (token[0] == 'w' ? 'B' : 'W');
+    token[0] = (token[0] == 'w' ? 'B' : token[0] == 'b' ? 'W' : ' ');
     f += token + " ";
 
     // Castling rights
