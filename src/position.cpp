@@ -1989,7 +1989,7 @@ void Position::mirror() noexcept {
     iss >> token;
     if (token != "-")
         token[0] = UCI::flip_file(token[0]);
-    f += token + " ";
+    f += token;
 
     std::getline(iss, token);  // Half and full moves
     f += token;
