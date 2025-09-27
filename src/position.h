@@ -312,6 +312,7 @@ class Position final {
     void remove_piece(Square s) noexcept;
 
     void flip() noexcept;
+    void mirror() noexcept;
 
     // Position consistency check, for debugging
 #if !defined(NDEBUG)

@@ -80,6 +80,7 @@ class Engine final {
     void show() const noexcept;
     void eval() noexcept;
     void flip() noexcept;
+    void mirror() noexcept;
 
     std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
 

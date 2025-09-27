@@ -215,6 +215,8 @@ void Engine::eval() noexcept {
 
 void Engine::flip() noexcept { pos.flip(); }
 
+void Engine::mirror() noexcept { pos.mirror(); }
+
 std::uint16_t Engine::hashfull(std::uint8_t maxAge) const noexcept { return tt.hashfull(maxAge); }
 
 std::string Engine::get_numa_config_str() const noexcept {

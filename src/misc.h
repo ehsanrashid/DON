@@ -401,42 +401,40 @@ inline int char_to_digit(char ch) noexcept {
 }
 
 inline std::string lower_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](char ch) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept {
         if (std::isupper(ch))
-            return char(std::tolower(ch));
-        return ch;
+            return static_cast<char>(std::tolower(ch));
+        return static_cast<char>(ch);
     });
     return str;
 }
 
 inline std::string upper_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](char ch) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept {
         if (std::islower(ch))
-            return char(std::toupper(ch));
-        return ch;
+            return static_cast<char>(std::toupper(ch));
+        return static_cast<char>(ch);
     });
     return str;
 }
 
 inline std::string toggle_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](char ch) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept {
         if (std::islower(ch))
-            return char(std::toupper(ch));
+            return static_cast<char>(std::toupper(ch));
         if (std::isupper(ch))
-            return char(std::tolower(ch));
-        return ch;
+            return static_cast<char>(std::tolower(ch));
+        return static_cast<char>(ch);
     });
     return str;
 }
 
 inline bool starts_with(std::string_view str, std::string_view prefix) noexcept {
-    return str.size() >= prefix.size()  //
-        && str.compare(0, prefix.size(), prefix) == 0;
+    return str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix;
 }
 
 inline bool ends_with(std::string_view str, std::string_view suffix) noexcept {
-    return str.size() >= suffix.size()  //
-        && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+    return str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix;
 }
 
 inline bool is_whitespace(std::string_view str) noexcept {

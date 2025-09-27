@@ -1934,18 +1934,47 @@ void Position::flip() noexcept {
     for (Rank r = RANK_8; r >= RANK_1; --r)  // Piece placement
     {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
-        f.insert(0, token + (f.empty() ? " " : "/"));
+        f.insert(0, token + (f.empty() ? ' ' : '/'));
     }
 
     iss >> token;  // Active color (will be lowercased later)
     f += (token[0] == 'w' ? "B " : "W ");
-    iss >> token;  // Castling availability
+    iss >> token;  // Castling rights
     f += token + " ";
 
     f = toggle_case(f);
 
     iss >> token;  // En-passant square
     f += (token[0] == '-' ? "-" : token.replace(1, 1, token[1] == '3' ? "6" : "3"));
+
+    std::getline(iss, token);  // Half and full moves
+    f += token;
+
+    set(f, st);
+
+    assert(pos_is_ok());
+}
+
+void Position::mirror() noexcept {
+    std::istringstream iss{fen()};
+
+    std::string f, token;
+    // Mirror piece placement (horizontal flip)
+    for (Rank r = RANK_8; r >= RANK_1; --r)
+    {
+        std::getline(iss, token, r > RANK_1 ? '/' : ' ');
+        std::reverse(token.begin(), token.end());
+        f += token + (r > RANK_1 ? '/' : ' ');
+    }
+
+    iss >> token;  // Active color (will remain the same)
+    f += token + " ";
+
+    iss >> token;
+    f += "- ";  // Disable all Castling rights
+
+    iss >> token;
+    f += "- ";  // Disable En-passant square
 
     std::getline(iss, token);  // Half and full moves
     f += token;

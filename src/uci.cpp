@@ -68,6 +68,7 @@ enum Command : std::uint8_t {
     CMD_SHOW,
     CMD_EVAL,
     CMD_FLIP,
+    CMD_MIRROR,
     CMD_COMPILER,
     CMD_EXPORT_NET,
     CMD_HELP,
@@ -91,6 +92,7 @@ const std::unordered_map<std::string_view, Command> CommandMap{
   {"show",       CMD_SHOW},
   {"eval",       CMD_EVAL},
   {"flip",       CMD_FLIP},
+  {"mirror",     CMD_MIRROR},
   {"compiler",   CMD_COMPILER},
   {"export_net", CMD_EXPORT_NET},
   {"--help",     CMD_HELP},
@@ -320,6 +322,9 @@ void UCI::execute(std::string_view command) noexcept {
         break;
     case CMD_FLIP :
         engine.flip();
+        break;
+    case CMD_MIRROR :
+        engine.mirror();
         break;
     case CMD_COMPILER :
         std::cout << compiler_info() << '\n' << std::endl;
