@@ -416,11 +416,9 @@ inline std::string upper_case(std::string str) noexcept {
 
 inline std::string toggle_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept {
-        if (std::islower(ch))
-            return static_cast<unsigned char>(std::toupper(ch));
-        if (std::isupper(ch))
-            return static_cast<unsigned char>(std::tolower(ch));
-        return ch;
+        return std::islower(ch) ? static_cast<unsigned char>(std::toupper(ch))
+             : std::isupper(ch) ? static_cast<unsigned char>(std::tolower(ch))
+                                : ch;
     });
     return str;
 }
