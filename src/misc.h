@@ -390,14 +390,14 @@ struct CommandLine final {
     std::vector<std::string_view> arguments;
 };
 
-
 inline char digit_to_char(int digit) noexcept {
     assert(0 <= digit && digit <= 9);
-    return '0' + digit;
+    return (0 <= digit && digit <= 9) ? '0' + digit : '\0';  // Return null char for invalid digit
 }
+
 inline int char_to_digit(char ch) noexcept {
     assert(std::isdigit(ch));
-    return ch - '0';
+    return std::isdigit(ch) ? ch - '0' : -1;  // Return -1 for non-digit characters
 }
 
 inline std::string lower_case(std::string str) noexcept {
