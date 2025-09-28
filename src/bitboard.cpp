@@ -246,7 +246,7 @@ void init() noexcept {
 // Returns an ASCII representation of a bitboard suitable
 // to be printed to standard output. Useful for debugging.
 std::string pretty(Bitboard b) noexcept {
-    constexpr std::string_view Sep = "\n  +---+---+---+---+---+---+---+---+\n";
+    constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
 
     std::string str;
     str.reserve(646);

@@ -90,7 +90,7 @@ void format_cp_aligned_dot(std::ostringstream& oss,
 // Returns a string with the value of each piece on a board,
 // and a table for (PSQT, Layers) values bucket by bucket.
 std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& accCaches) noexcept {
-    constexpr std::string_view Sep = "+------------+------------+------------+------------+\n";
+    constexpr std::string_view Sep{"+------------+------------+------------+------------+\n"};
 
     char board[3 * 8 + 1][8 * 8 + 2];
     std::memset(board, ' ', sizeof(board));

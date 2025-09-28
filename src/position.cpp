@@ -2139,7 +2139,7 @@ std::ostream& operator<<(std::ostream& os, const Position::Board::Cardinal& card
 }
 
 std::ostream& operator<<(std::ostream& os, const Position::Board& board) noexcept {
-    constexpr std::string_view Sep = "\n  +---+---+---+---+---+---+---+---+\n";
+    constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
 
     os << Sep;
     for (Rank r = RANK_8; r >= RANK_1; --r)

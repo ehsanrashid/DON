@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
+#include <locale>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -460,31 +461,41 @@ inline std::string bool_to_string(bool b) noexcept {
     return (std::ostringstream{} << std::boolalpha << b).str();
 }
 
-inline bool string_to_bool(std::string_view str) noexcept {
-    bool b = false;
-
+inline bool string_to_bool(std::string_view str) {
     std::istringstream iss{std::string(str)};
-    // Try parsing as bool using std::boolalpha
-    iss >> std::boolalpha >> b;
-    if (iss.fail())
+    iss.imbue(std::locale::classic());
+
+    // Try "true"/"false" (case-sensitive, C++ iostream semantics)
+    if (bool b{}; (iss >> std::boolalpha >> b))
     {
-        // If bool parsing fails, clear and parse as integer
-        iss.clear();
-        int i;
-        iss >> i;
-        b = (i != 0);
+        iss >> std::ws;  // allow trailing spaces
+        if (iss.eof())
+            return b;  // clean parse
+        // Had extra junk -> fall through to integer retry
     }
-    return b;
+
+    // Retry as integer
+    iss.clear();
+    iss.seekg(0);  // rewind to start
+    if (unsigned long long u{}; iss >> u)
+    {
+        iss >> std::ws;
+        if (iss.eof())
+            return u != 0;  // only accept clean numeric tokens
+    }
+
+    // Optional: common on/off/yes/no fallbacks
+    return false;
 }
 
 inline std::string u64_to_string(std::uint64_t u64) noexcept {
-    return (std::ostringstream{} << std::setfill('0') << std::setw(16) << std::hex << std::uppercase
-                                 << u64)
+    return (std::ostringstream{} << "0x" << std::hex << std::uppercase << std::setfill('0')
+                                 << std::setw(16) << u64)
       .str();
 }
 
-constexpr std::string_view trim(std::string_view str) noexcept {
-    constexpr std::string_view WhiteSpace = " \t\r\n";
+[[nodiscard]] constexpr std::string_view trim(std::string_view str) noexcept {
+    constexpr std::string_view WhiteSpace{" \t\n\r\f\v"};
 
     // Find the first non-whitespace character
     std::size_t beg = str.find_first_not_of(WhiteSpace);
