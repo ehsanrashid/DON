@@ -393,7 +393,7 @@ void PolyBook::clear() noexcept {
     }
     enable     = false;
     entryCount = 0;
-    pieces     = 0;
+    occupied   = 0;
     failCount  = 0;
 }
 
@@ -491,11 +491,11 @@ Move PolyBook::probe(Position& pos, bool bestPick) noexcept {
 
 bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
 
-    if (popcount(pieces ^ pos.pieces()) > 6 || popcount(pieces) > pos.count<ALL_PIECE>() + 2
+    if (popcount(occupied ^ pos.pieces()) > 6 || popcount(occupied) > pos.count<ALL_PIECE>() + 2
         || key == 0x463B96181691FC9CULL)
         failCount = 0;
 
-    pieces = pos.pieces();
+    occupied = pos.pieces();
     // Stop probe after 4 times not in the book till position changes
     return failCount <= 4;
 }

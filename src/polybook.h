@@ -101,7 +101,7 @@ class PolyBook final {
     bool        enable     = false;
 
     // Last probe info
-    Bitboard      pieces    = 0;
+    Bitboard      occupied  = 0;
     std::uint16_t failCount = 0;
 
     // Key data
