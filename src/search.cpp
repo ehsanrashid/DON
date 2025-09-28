@@ -2226,7 +2226,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
             pv += " " + UCI::move_to_can(m);
 
         updateCxt.onUpdateFull(
-          {d, score, rm.selDepth, i + 1, bound, wdl, time, nodes, hashfull, tbHits, pv});
+          {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, hashfull, tbHits, pv});
     }
 }
 
