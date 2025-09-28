@@ -273,9 +273,13 @@ struct DirtyPiece final {
     Piece  removePc, addPc;
 };
 
+// clang-format off
     #define ENABLE_INCR_OPERATORS_ON(T) \
-        constexpr T& operator++(T& t) noexcept { return t = T(int(t) + 1); } \
-        constexpr T& operator--(T& t) noexcept { return t = T(int(t) - 1); }
+        constexpr T& operator++(T& t) noexcept { return t = T(int(t) + 1); }    \
+        constexpr T& operator--(T& t) noexcept { return t = T(int(t) - 1); }    \
+        constexpr T  operator++(T& t, int) noexcept { T u = t; ++t; return u; } \
+        constexpr T  operator--(T& t, int) noexcept { T u = t; --t; return u; }
+// clang-format on
 
 ENABLE_INCR_OPERATORS_ON(PieceType)
 ENABLE_INCR_OPERATORS_ON(File)

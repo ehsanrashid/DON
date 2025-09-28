@@ -54,7 +54,7 @@ inline Move* splat_pawn_moves(Move* moves, Bitboard b) noexcept {
         std::array<Move, 64> table{};
         for (std::int8_t i = 0; i < 64; ++i)
         {
-            Square s{std::clamp<int8_t>(i - D, 0, 63)};
+            Square s{std::clamp<std::int8_t>(i - D, 0, 63)};
             table[i] = {Move(s, Square{i})};
         }
         return table;
