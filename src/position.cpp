@@ -144,7 +144,7 @@ namespace Zobrist {
 Key psq[PIECE_NB][SQUARE_NB];
 Key castling[CASTLING_RIGHTS_NB];
 Key enpassant[FILE_NB];
-Key side;
+Key turn;
 
 void init() noexcept {
     PRNG1024 rng(0x105524ULL);
@@ -172,7 +172,7 @@ void init() noexcept {
     for (std::size_t f = 0; f < std::size(enpassant); ++f)
         enpassant[f] = rng.rand<Key>();
 
-    side = rng.rand<Key>();
+    turn = rng.rand<Key>();
 }
 }  // namespace Zobrist
 
@@ -195,7 +195,7 @@ void Position::init() noexcept {
             for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
                 if (attacks_bb(type_of(pc), s1) & s2)
                 {
-                    Key  key  = Zobrist::psq[pc][s1] ^ Zobrist::psq[pc][s2] ^ Zobrist::side;
+                    Key  key  = Zobrist::psq[pc][s1] ^ Zobrist::psq[pc][s2] ^ Zobrist::turn;
                     Move move = Move(s1, s2);
                     Cuckoos.insert({key, move});
                 }
@@ -602,7 +602,7 @@ void Position::set_state() noexcept {
         st->key ^= Zobrist::enpassant[file_of(ep_sq())];
 
     if (active_color() == BLACK)
-        st->key ^= Zobrist::side;
+        st->key ^= Zobrist::turn;
 }
 
 // Set extra state to detect if a move is check
@@ -810,7 +810,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
-    Key k = st->key ^ Zobrist::side;
+    Key k = st->key ^ Zobrist::turn;
 
     // Copy relevant fields from the old state to the new state,
     // excluding those that will recomputed from scratch anyway and
@@ -1149,7 +1149,7 @@ void Position::do_null_move(State& newSt) noexcept {
     // NOTE: no ++st->rule50 here
     st->nullPly = 0;
 
-    st->key ^= Zobrist::side;
+    st->key ^= Zobrist::turn;
 
     if (is_ok(ep_sq()))
     {
@@ -1467,7 +1467,7 @@ Key Position::material_key() const noexcept {
 // Needed for speculative prefetch.
 // It does recognize special moves like castling, en-passant and promotions.
 Key Position::move_key(const Move& m) const noexcept {
-    Key moveKey = st->key ^ Zobrist::side;
+    Key moveKey = st->key ^ Zobrist::turn;
 
     if (is_ok(ep_sq()))
         moveKey ^= Zobrist::enpassant[file_of(ep_sq())];
@@ -1518,7 +1518,7 @@ Key Position::move_key(const Move& m) const noexcept {
 
     moveKey ^= Zobrist::psq[capturedPiece][capSq];
 
-    return capturedPiece || type_of(movedPiece) == PAWN ? moveKey : adjust_key(moveKey, 1);
+    return is_ok(capturedPiece) || type_of(movedPiece) == PAWN ? moveKey : adjust_key(moveKey, 1);
 }
 
 // Tests if the SEE (Static Exchange Evaluation) value of the move
@@ -1849,11 +1849,11 @@ bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
     auto* pSt = st->preSt;
 
     Key baseKey = st->key;
-    Key iterKey = baseKey ^ pSt->key ^ Zobrist::side;
+    Key iterKey = baseKey ^ pSt->key ^ Zobrist::turn;
 
     for (std::int16_t i = 3; i <= end; i += 2)
     {
-        iterKey ^= pSt->preSt->key ^ pSt->preSt->preSt->key ^ Zobrist::side;
+        iterKey ^= pSt->preSt->key ^ pSt->preSt->preSt->key ^ Zobrist::turn;
         pSt = pSt->preSt->preSt;
 
         // Opponent pieces have reverted
@@ -1997,7 +1997,7 @@ Key Position::compute_key() const noexcept {
         key ^= Zobrist::enpassant[file_of(ep_sq())];
 
     if (active_color() == BLACK)
-        key ^= Zobrist::side;
+        key ^= Zobrist::turn;
 
     return key;
 }

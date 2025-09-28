@@ -43,7 +43,7 @@ union PolyGlot {
         Key psq[COLOR_NB * 6][SQUARE_NB];  // [piece][square]
         Key castling[COLOR_NB * 2];        // [castle-right]
         Key enpassant[FILE_NB];            // [file]
-        Key side;
+        Key turn;
     } Zobrist;
 };
 
@@ -317,7 +317,7 @@ Key polyglot_key(const Position& pos) noexcept {
         key ^= PG.Zobrist.enpassant[file_of(pos.ep_sq())];
 
     if (pos.active_color() == WHITE)
-        key ^= PG.Zobrist.side;
+        key ^= PG.Zobrist.turn;
 
     return key;
 }

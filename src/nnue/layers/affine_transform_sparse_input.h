@@ -310,9 +310,11 @@ class AffineTransformSparseInput {
         for (IndexType k = 0; k < RegCount; ++k)
             acc[k] = biasVec[k];
 
-        for (IndexType j = 0; j < count; ++j)
+        auto* beg = nnz;
+        auto* end = nnz + count;
+        while (beg < end)
         {
-            auto    i  = nnz[j];
+            auto    i  = *beg++;
             invec_t in = vec_set_32(input32[i]);
 
             const auto* col =

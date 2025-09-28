@@ -41,7 +41,7 @@ namespace Zobrist {
 extern Key psq[PIECE_NB][SQUARE_NB];
 extern Key castling[CASTLING_RIGHTS_NB];
 extern Key enpassant[FILE_NB];
-extern Key side;
+extern Key turn;
 
 void init() noexcept;
 }  // namespace Zobrist
