@@ -813,14 +813,13 @@ char UCI::file(File f, bool upper) noexcept { return int(f) + 'a' - (upper ? 0x2
 char UCI::rank(Rank r) noexcept { return int(r) + '1'; }
 
 char UCI::flip_file(char f) noexcept {
-    return ('A' <= f && f <= 'H') ? 'A' + ('H' - f)  // For uppercase letters
-         : ('a' <= f && f <= 'h') ? 'a' + ('h' - f)  // For lowercase letters
-                                  : f;  // Return the character unchanged if it's not a valid file
+    // Flip file 'A'-'H' or 'a'-'h'; leave other characters unchanged
+    return ('A' <= f && f <= 'H') ? 'A' + ('H' - f) : ('a' <= f && f <= 'h') ? 'a' + ('h' - f) : f;
 }
 
 char UCI::flip_rank(char r) noexcept {
-    return ('1' <= r && r <= '8') ? '1' + ('8' - r)
-                                  : r;  // Return the character unchanged if it's not a valid rank
+    // Flip rank '1'-'8'; leave other characters unchanged
+    return ('1' <= r && r <= '8') ? '1' + ('8' - r) : r;
 }
 
 std::string UCI::square(Square s) noexcept {

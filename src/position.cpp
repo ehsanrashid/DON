@@ -1895,35 +1895,35 @@ bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
 void Position::flip() noexcept {
     std::istringstream iss{fen()};
 
-    std::string f, token;
+    std::string fs, token;
     // Piece placement (vertical flip)
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
-        f.insert(0, token + (r < RANK_8 ? '/' : ' '));
+        fs.insert(0, token + (r < RANK_8 ? '/' : ' '));
     }
 
     // Active color (will be lowercased later)
     iss >> token;
     token[0] = (token[0] == 'w' ? 'B' : token[0] == 'b' ? 'W' : '-');
-    f += token + " ";
+    fs += token + " ";
 
     // Castling rights
     iss >> token;
-    f += token + " ";
+    fs += token + " ";
 
-    f = toggle_case(f);
+    fs = toggle_case(fs);
 
     // En-passant square
     iss >> token;
     if (token != "-")
         token[1] = UCI::flip_rank(token[1]);
-    f += token;
+    fs += token;
 
     std::getline(iss, token);  // Half and full moves
-    f += token;
+    fs += token;
 
-    set(f, st);
+    set(fs, st);
 
     assert(pos_is_ok());
 }
@@ -1931,18 +1931,18 @@ void Position::flip() noexcept {
 void Position::mirror() noexcept {
     std::istringstream iss{fen()};
 
-    std::string f, token;
+    std::string fs, token;
     // Piece placement (horizontal flip)
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
         std::reverse(token.begin(), token.end());
-        f += token + (r > RANK_1 ? '/' : ' ');
+        fs += token + (r > RANK_1 ? '/' : ' ');
     }
 
     // Active color (will remain the same)
     iss >> token;
-    f += token + " ";
+    fs += token + " ";
 
     // Castling rights
     iss >> token;
@@ -1961,18 +1961,18 @@ void Position::mirror() noexcept {
             else if (('A' <= ch && ch <= 'H') || ('a' <= ch && ch <= 'h'))
                 ch = UCI::flip_file(ch);
         }
-    f += token + " ";
+    fs += token + " ";
 
     // En-passant square (flip the file)
     iss >> token;
     if (token != "-")
         token[0] = UCI::flip_file(token[0]);
-    f += token;
+    fs += token;
 
     std::getline(iss, token);  // Half and full moves
-    f += token;
+    fs += token;
 
-    set(f, st);
+    set(fs, st);
 
     assert(pos_is_ok());
 }

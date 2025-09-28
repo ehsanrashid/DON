@@ -217,6 +217,7 @@ void Worker::start_search() noexcept {
     if (rootMoves.empty())
     {
         rootMoves.emplace_back(Move::None);
+
         auto score = UCI::score({Value(rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW), rootPos});
         mainManager->updateCxt.onUpdateShort({DEPTH_ZERO, score});
     }
@@ -304,14 +305,11 @@ void Worker::start_search() noexcept {
     }
 
     assert(!bestWorker->rootMoves.empty() && !bestWorker->rootMoves.front().pv.empty());
-    const auto& rootMove = bestWorker->rootMoves.front();
+    const auto& rm = bestWorker->rootMoves.front();
 
-    auto bestMove = UCI::move_to_can(rootMove.pv[0]);
-    auto ponderMove =
-      UCI::move_to_can(rootMove.pv[0] != Move::None
-                           && (rootMove.pv.size() >= 2 || bestWorker->ponder_move_extracted())
-                         ? rootMove.pv[1]
-                         : Move::None);
+    auto bestMove   = UCI::move_to_can(rm.pv[0]);
+    auto ponderMove = UCI::move_to_can(
+      rm.pv.size() > 1 || bestWorker->ponder_move_extracted() ? rm.pv[1] : Move::None);
 
     mainManager->updateCxt.onUpdateMove({bestMove, ponderMove});
 }
@@ -1107,8 +1105,10 @@ S_MOVES_LOOP:  // When in check, search starts here
         promoCount += move.type_of() == PROMOTION && move.promotion_type() < QUEEN;
 
         if (RootNode && is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
-            main_manager()->updateCxt.onUpdateIter(
-              {rootDepth, UCI::move_to_can(move), curIdx + moveCount});
+        {
+            auto currMove = UCI::move_to_can(move);
+            main_manager()->updateCxt.onUpdateIter({rootDepth, currMove, curIdx + moveCount});
+        }
 
         if constexpr (PVNode)
             (ss + 1)->pv = nullptr;
@@ -1936,10 +1936,13 @@ Move Worker::extract_tt_move(const Position& pos, Move ttMove, bool deep) const 
 // Try hard to have a ponder move to return to the GUI,
 // otherwise in case of 'ponder on' have nothing to think about.
 bool Worker::ponder_move_extracted() noexcept {
-    auto& rootMove = rootMoves.front();
-    assert(rootMove.pv.size() == 1 && rootMove.pv[0] != Move::None);
+    auto& rm = rootMoves.front();
+    assert(rm.pv.size() == 1);
 
-    auto bm = rootMove.pv[0];
+    auto bm = rm.pv[0];
+
+    if (bm == Move::None)
+        return false;
 
     State st;
     rootPos.do_move(bm, st);
@@ -1958,20 +1961,20 @@ bool Worker::ponder_move_extracted() noexcept {
             pm = Move::None;
             for (auto&& th : threads)
                 if (th->worker.get() != this && th->worker->rootMoves.front().pv[0] == bm
-                    && th->worker->rootMoves.front().pv.size() >= 2)
+                    && th->worker->rootMoves.front().pv.size() > 1)
                 {
                     pm = th->worker->rootMoves.front().pv[1];
                     break;
                 }
-            if (pm == Move::None && rootMoves.size() >= 2)
+            if (pm == Move::None && rootMoves.size() > 1)
                 for (auto&& th : threads)
                 {
                     if (th->worker.get() == this || th->worker->completedDepth == DEPTH_ZERO)
                         continue;
-                    const auto& rm = *th->worker->rootMoves.find(bm);
-                    if (rm.pv.size() >= 2)
+                    const auto& trm = *th->worker->rootMoves.find(bm);
+                    if (trm.pv.size() > 1)
                     {
-                        pm = rm.pv[1];
+                        pm = trm.pv[1];
                         break;
                     }
                 }
@@ -1982,11 +1985,11 @@ bool Worker::ponder_move_extracted() noexcept {
             }
         }
 
-        rootMove.pv.push_back(pm);
+        rm.pv.push_back(pm);
     }
 
     rootPos.undo_move(bm);
-    return rootMove.pv.size() == 2;
+    return rm.pv.size() > 1;
 }
 
 // Used to correct and extend PVs for moves that have a TB (but not a mate) score.
@@ -2222,20 +2225,8 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         for (const auto& m : rm.pv)
             pv += " " + UCI::move_to_can(m);
 
-        FullInfo info;
-        info.depth    = d;
-        info.selDepth = rm.selDepth;
-        info.multiPV  = i + 1;
-        info.score    = score;
-        info.bound    = bound;
-        info.wdl      = wdl;
-        info.time     = time;
-        info.nodes    = nodes;
-        info.hashfull = hashfull;
-        info.tbHits   = tbHits;
-        info.pv       = pv;
-
-        updateCxt.onUpdateFull(info);
+        updateCxt.onUpdateFull(
+          {d, score, rm.selDepth, i + 1, bound, wdl, time, nodes, hashfull, tbHits, pv});
     }
 }
 

@@ -150,17 +150,22 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
     states = std::make_unique<StateList>(1);
     pos.set(fen, &states->back());
 
+    std::int16_t ply = 1;
     for (const auto& move : moves)
     {
         Move m = UCI::mix_to_move(move, pos, MoveList<LEGAL>(pos));
         if (m == Move::None)
         {
-            assert(false && ("Engine::setup(): Invalid move in the moves list " + move).c_str());
+            assert(false
+                   && ("Engine::setup(): Invalid move in the moves list at " + std::to_string(ply)
+                       + ": " + move)
+                        .c_str());
             break;
         }
         assert(pos.rule50_count() <= 100);
         states->emplace_back();
         pos.do_move(m, states->back());
+        ++ply;
     }
 }
 
