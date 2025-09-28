@@ -27,7 +27,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
-#include <locale>
+#include <locale>  // IWYU pragma: keep
 #include <optional>
 #include <sstream>
 #include <string>
