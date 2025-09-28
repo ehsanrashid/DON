@@ -274,7 +274,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
         std::cout << std::endl;
     }
 
-    [[maybe_unused]] std::uint16_t count = 0;
+    std::uint16_t count = 0;
 
     Perft sPerft;
 
