@@ -35,16 +35,19 @@ namespace DON {
 
 namespace {
 
+constexpr std::size_t PieceTypes = 6U;
+
 // Random numbers from PolyGlot, used to compute book hash keys
 union PolyGlot {
-    Key Randoms[781];
+    // Size = 6 * 2 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
+    Key keys[PieceTypes * COLOR_NB * SQUARE_NB + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1];
 
     struct {
-        Key psq[COLOR_NB * 6][SQUARE_NB];  // [piece][square]
-        Key castling[COLOR_NB * 2];        // [castle-right]
-        Key enpassant[FILE_NB];            // [file]
+        Key psq[PieceTypes * COLOR_NB][SQUARE_NB];  // [piece][square]
+        Key castling[COLOR_NB * CASTLING_SIDE_NB];  // [castle-right]
+        Key enpassant[FILE_NB];                     // [file]
         Key turn;
-    } Zobrist;
+    } zobrist;
 };
 
 constexpr PolyGlot PG{
@@ -245,48 +248,48 @@ constexpr PolyGlot PG{
    0xCF3145DE0ADD4289ULL, 0xD0E4427A5514FB72ULL, 0x77C621CC9FB3A483ULL, 0x67A34DAC4356550BULL,
    0xF8D626AAAF278509ULL}};
 
-std::uint16_t swap_uint16(std::uint16_t d) noexcept {
-    std::uint16_t r;
-
-    auto dst = (std::uint8_t*) (&r);
-    auto src = (std::uint8_t*) (&d);
-
-    dst[0] = src[1];
-    dst[1] = src[0];
-
-    return r;
+std::uint16_t swap_uint16(std::uint16_t n) noexcept {
+#if defined(__GNUC__) || defined(__clang__)
+    return __builtin_bswap16(n);
+#elif defined(_MSC_VER)
+    return _byteswap_ushort(n);
+#else
+    // Portable fallback
+    return ((n & 0x00FF) << 8)  //
+         | ((n & 0xFF00) >> 8);
+#endif
 }
 
-std::uint32_t swap_uint32(std::uint32_t d) noexcept {
-    std::uint32_t r;
-
-    auto dst = (std::uint8_t*) (&r);
-    auto src = (std::uint8_t*) (&d);
-
-    dst[0] = src[3];
-    dst[1] = src[2];
-    dst[2] = src[1];
-    dst[3] = src[0];
-
-    return r;
+std::uint32_t swap_uint32(std::uint32_t n) noexcept {
+#if defined(__GNUC__) || defined(__clang__)
+    return __builtin_bswap32(n);
+#elif defined(_MSC_VER)
+    return _byteswap_ulong(n);
+#else
+    // Portable fallback
+    return ((n & 0x000000FF) << 24)  //
+         | ((n & 0x0000FF00) << 8)   //
+         | ((n & 0x00FF0000) >> 8)   //
+         | ((n & 0xFF000000) >> 24);
+#endif
 }
 
-std::uint64_t swap_uint64(std::uint64_t d) noexcept {
-    std::uint64_t r;
-
-    auto dst = (std::uint8_t*) (&r);
-    auto src = (std::uint8_t*) (&d);
-
-    dst[0] = src[7];
-    dst[1] = src[6];
-    dst[2] = src[5];
-    dst[3] = src[4];
-    dst[4] = src[3];
-    dst[5] = src[2];
-    dst[6] = src[1];
-    dst[7] = src[0];
-
-    return r;
+std::uint64_t swap_uint64(std::uint64_t n) noexcept {
+#if defined(__GNUC__) || defined(__clang__)
+    return __builtin_bswap64(n);
+#elif defined(_MSC_VER)
+    return _byteswap_uint64(n);
+#else
+    // Portable fallback
+    return ((n & 0x00000000000000FFULL) << 56)  //
+         | ((n & 0x000000000000FF00ULL) << 40)  //
+         | ((n & 0x0000000000FF0000ULL) << 24)  //
+         | ((n & 0x00000000FF000000ULL) << 8)   //
+         | ((n & 0x000000FF00000000ULL) >> 8)   //
+         | ((n & 0x0000FF0000000000ULL) >> 24)  //
+         | ((n & 0x00FF000000000000ULL) >> 40)  //
+         | ((n & 0xFF00000000000000ULL) >> 56);
+#endif
 }
 
 void swap_polyEntry(PolyEntry* pe) noexcept {
@@ -306,18 +309,18 @@ Key polyglot_key(const Position& pos) noexcept {
         Piece  pc = pos.piece_on(s);
         assert(is_ok(pc));
         // PolyGlot pieces are: BP = 0, WP = 1, BN = 2, ... BK = 10, WK = 11
-        key ^= PG.Zobrist.psq[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
+        key ^= PG.zobrist.psq[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
     }
 
     Bitboard b = pos.castling_rights();
     while (b)
-        key ^= PG.Zobrist.castling[pop_lsb(b)];
+        key ^= PG.zobrist.castling[pop_lsb(b)];
 
     if (is_ok(pos.ep_sq()))
-        key ^= PG.Zobrist.enpassant[file_of(pos.ep_sq())];
+        key ^= PG.zobrist.enpassant[file_of(pos.ep_sq())];
 
     if (pos.active_color() == WHITE)
-        key ^= PG.Zobrist.turn;
+        key ^= PG.zobrist.turn;
 
     return key;
 }
