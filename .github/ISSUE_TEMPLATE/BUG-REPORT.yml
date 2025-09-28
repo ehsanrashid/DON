@@ -48,7 +48,7 @@ body:
       - All
       - Windows
       - Linux
-      - MacOS
+      - macOS
       - Android
       - Other or N/A
   validations:
@@ -60,6 +60,6 @@ body:
     description: |
       This can be found by running the engine.
       You can also use the commit ID.
-    placeholder: DON 15 / e6e324e
+    placeholder: DON
   validations:
     required: true
