@@ -27,7 +27,6 @@
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
-#include <locale>  // IWYU pragma: keep
 #include <optional>
 #include <sstream>
 #include <string>
@@ -463,7 +462,6 @@ inline std::string bool_to_string(bool b) noexcept {
 
 inline bool string_to_bool(std::string_view str) {
     std::istringstream iss{std::string(str)};
-    iss.imbue(std::locale::classic());
 
     // Try "true"/"false" (case-sensitive, C++ iostream semantics)
     if (bool b{}; (iss >> std::boolalpha >> b))
