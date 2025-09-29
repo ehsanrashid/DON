@@ -118,6 +118,11 @@ where the source code can be found) to generate the exact binary you are
 distributing. If you make any changes to the source code, these changes must
 also be made available under GPL v3.
 
+## Acknowledgements
+
+DON uses neural networks trained on data provided by the [Leela Chess Zero
+project][lc0-data-link], which is made available under the [Open Database License][odbl-link] (ODbL).
+
 
 [authors-link]:       https://github.com/ehsanrashid/DON/blob/master/AUTHORS
 [build-link]:         https://github.com/ehsanrashid/DON/actions/workflows/don.yml
@@ -133,7 +138,7 @@ also be made available under GPL v3.
 [readme-link]:        https://github.com/ehsanrashid/DON/blob/master/README.md
 [release-link]:       https://github.com/ehsanrashid/DON/releases/latest
 [src-link]:           https://github.com/ehsanrashid/DON/tree/master/src
-[don128-logo]:  https://donchess.org/images/logo/icon_128x128.png
+[don128-logo]:        https://donchess.org/images/logo/icon_128x128.png
 [uci-link]:           https://backscattering.de/chess/uci/
 [website-link]:       https://donchess.org
 [website-blog-link]:  https://donchess.org/blog/
@@ -142,6 +147,8 @@ also be made available under GPL v3.
 [wiki-uci-link]:      https://github.com/ehsanrashid/DON/wiki/UCI-&-Commands
 [wiki-usage-link]:    https://github.com/ehsanrashid/DON/wiki/Download-and-usage
 [worker-link]:        https://github.com/ehsanrashid/DON/fishtest/wiki/Running-the-worker
+[lc0-data-link]:      https://storage.lczero.org/files/training_data
+[odbl-link]:          https://opendatacommons.org/licenses/odbl/odbl-10.txt
 
 [build-badge]:        https://img.shields.io/github/actions/workflow/status/official-don/DON/don.yml?branch=master&style=for-the-badge&label=don&logo=github
 [commits-badge]:      https://img.shields.io/github/commits-since/official-don/DON/latest?style=for-the-badge
