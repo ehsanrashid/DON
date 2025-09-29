@@ -563,6 +563,10 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     std::size_t num = std::count_if(benchmark.commands.begin(), benchmark.commands.end(),
                                     [](const auto& command) { return command.find("go ") == 0; });
 
+#if !defined(NDEBUG)
+    Debug::init();
+#endif
+
     TimePoint startTime   = now();
     TimePoint elapsedTime = 0;
 

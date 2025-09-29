@@ -343,63 +343,61 @@ namespace Debug {
 namespace {
 
 template<std::size_t N>
-class Info final {
+class Info {
    public:
+    [[nodiscard]] constexpr std::atomic<std::int64_t>&  //
+    operator[](std::size_t index) noexcept {
+        assert(index < data.size() && "Index out of bounds");
+        return data[index];
+    }
+    [[nodiscard]] constexpr const std::atomic<std::int64_t>&  //
+    operator[](std::size_t index) const noexcept {
+        assert(index < data.size() && "Index out of bounds");
+        return data[index];
+    }
     constexpr Info& operator=(const Info& info) noexcept {
         for (std::size_t i = 0; i < N; ++i)
             data[i].store(info.data[i].load());
         return *this;
     }
 
-    [[nodiscard]] constexpr std::atomic<std::int64_t>&  //
-    operator[](std::size_t index) const noexcept {
-        return data[index];
-    }
-    [[nodiscard]] constexpr std::atomic<std::int64_t>&  //
-    operator[](std::size_t index) noexcept {
-        return data[index];
-    }
-
-    void init(std::int64_t value) noexcept {
-        data[0] = 0;
-        for (std::size_t i = 1; i < N; ++i)
-            data[i] = value;
-    }
-
-    void init(std::int64_t maxValue, std::int64_t minValue) noexcept {
-        data[0] = 0;
-        data[1] = maxValue;
-        data[2] = minValue;
-    }
-
-   private:
+   protected:
     std::array<std::atomic<std::int64_t>, N> data;
+};
+
+struct MinInfo final: public Info<2> {
+    MinInfo() noexcept { data[1] = std::numeric_limits<std::int64_t>::max(); }
+};
+struct MaxInfo final: public Info<2> {
+    MaxInfo() noexcept { data[1] = std::numeric_limits<std::int64_t>::min(); }
+};
+struct ExtremeInfo final: public Info<3> {
+    ExtremeInfo() noexcept {
+        data[1] = std::numeric_limits<std::int64_t>::max();
+        data[2] = std::numeric_limits<std::int64_t>::min();
+    }
 };
 
 constexpr std::size_t MaxSlot = 128;
 
-std::array<Info<2>, MaxSlot> hit;
-std::array<Info<2>, MaxSlot> min;
-std::array<Info<2>, MaxSlot> max;
-std::array<Info<3>, MaxSlot> extreme;
-std::array<Info<2>, MaxSlot> mean;
-std::array<Info<3>, MaxSlot> stdev;
-std::array<Info<6>, MaxSlot> correl;
+std::array<Info<2>, MaxSlot>     hit;
+std::array<MinInfo, MaxSlot>     min;
+std::array<MaxInfo, MaxSlot>     max;
+std::array<ExtremeInfo, MaxSlot> extreme;
+std::array<Info<2>, MaxSlot>     mean;
+std::array<Info<3>, MaxSlot>     stdev;
+std::array<Info<6>, MaxSlot>     correl;
 
 }  // namespace
 
 void init() noexcept {
-    for (std::size_t i = 0; i < MaxSlot; ++i)
-    {
-        hit[i].init(0);
-        min[i].init(std::numeric_limits<std::int64_t>::max());
-        max[i].init(std::numeric_limits<std::int64_t>::min());
-        extreme[i].init(std::numeric_limits<std::int64_t>::max(),
-                        std::numeric_limits<std::int64_t>::min());
-        mean[i].init(0);
-        stdev[i].init(0);
-        correl[i].init(0);
-    }
+    hit.fill({});
+    min.fill({});
+    max.fill({});
+    extreme.fill({});
+    mean.fill({});
+    stdev.fill({});
+    correl.fill({});
 }
 
 void hit_on(bool cond, std::size_t slot) noexcept {

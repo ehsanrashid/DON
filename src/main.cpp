@@ -32,10 +32,6 @@ int main(int argc, const char* argv[]) {
 
     std::cout << engine_info() << std::endl;
 
-#if !defined(NDEBUG)
-    Debug::init();
-#endif
-
     BitBoard::init();
     Position::init();
     Tablebases::init();
