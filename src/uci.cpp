@@ -812,20 +812,6 @@ Piece UCI::piece(char pc) noexcept {
 
 std::string UCI::piece_figure(Piece pc) noexcept { return is_ok(pc) ? PieceFigure[pc] : " "; }
 
-char UCI::file(File f, bool upper) noexcept { return int(f) + 'a' - (upper ? 0x20 : 0x00); }
-
-char UCI::rank(Rank r) noexcept { return int(r) + '1'; }
-
-char UCI::flip_file(char f) noexcept {
-    // Flip file 'A'-'H' or 'a'-'h'; leave other characters unchanged
-    return ('A' <= f && f <= 'H') ? 'A' + ('H' - f) : ('a' <= f && f <= 'h') ? 'a' + ('h' - f) : f;
-}
-
-char UCI::flip_rank(char r) noexcept {
-    // Flip rank '1'-'8'; leave other characters unchanged
-    return ('1' <= r && r <= '8') ? '1' + ('8' - r) : r;
-}
-
 std::string UCI::square(Square s) noexcept {
     assert(is_ok(s));
     return std::string{file(file_of(s)), rank(rank_of(s))};
