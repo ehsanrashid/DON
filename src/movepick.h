@@ -18,6 +18,7 @@
 #ifndef MOVEPICK_H_INCLUDED
 #define MOVEPICK_H_INCLUDED
 
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 
@@ -115,7 +116,7 @@ class MovePicker final {
 
    private:
     template<GenType GT>
-    ExtMove* score(MoveList<GT>& moveList) noexcept;
+    iterator score(MoveList<GT>& moveList) noexcept;
 
     void sort_partial(int limit = std::numeric_limits<int>::min()) noexcept;
 

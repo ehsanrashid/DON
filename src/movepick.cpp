@@ -75,9 +75,9 @@ MovePicker::MovePicker(const Position& p,  //
 // preferring captures moves with a good history.
 // Quiets moves are ordered by using the history tables.
 template<>
-ExtMove* MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveList) noexcept {
+MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveList) noexcept {
 
-    ExtMove* itr = cur;
+    iterator itr = cur;
     for (const auto& move : moveList)
     {
         auto& m = *itr++;
@@ -96,13 +96,13 @@ ExtMove* MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveList) noexcep
 }
 
 template<>
-ExtMove* MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
+MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
     constexpr int Bonus[PIECE_TYPE_NB]{0, 0, 144, 144, 256, 517, 10000};
 
     Color ac        = pos.active_color();
     auto  pawnIndex = pawn_index(pos.pawn_key());
 
-    ExtMove* itr = cur;
+    iterator itr = cur;
     for (const auto& move : moveList)
     {
         auto& m = *itr++;
@@ -151,9 +151,9 @@ ExtMove* MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
 }
 
 template<>
-ExtMove* MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveList) noexcept {
+MovePicker::iterator MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveList) noexcept {
 
-    ExtMove* itr = cur;
+    iterator itr = cur;
     for (const auto& move : moveList)
     {
         auto& m = *itr++;
@@ -169,11 +169,11 @@ ExtMove* MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveList) noexcep
 }
 
 template<>
-ExtMove* MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList) noexcept {
+MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList) noexcept {
 
     Color ac = pos.active_color();
 
-    ExtMove* itr = cur;
+    iterator itr = cur;
     for (const auto& move : moveList)
     {
         auto& m = *itr++;
