@@ -176,22 +176,25 @@ class MultiArray final {
 };
 
 // Return the sign of a number (-1, 0, +1)
-template<typename T>
+template<
+  typename T,
+  std::enable_if_t<std::is_arithmetic_v<T> || (std::is_enum_v<T> && std::is_convertible_v<T, int>),
+                   int> = 0>
 constexpr int sign(T x) noexcept {
-    //static_assert(std::is_arithmetic_v<T>, "Argument must be an arithmetic type");
+    // NaN -> 0; unsigned types never return -1
     return (T(0) < x) - (x < T(0));  // Returns 1 for positive, -1 for negative, and 0 for zero
 }
-
+// Return the square of a number, using a wider type to avoid overflow
 template<typename T>
 constexpr auto sqr(T x) noexcept {
-    static_assert(std::is_arithmetic_v<T>, "Argument must be an arithmetic type");
+    static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
     using Wider = std::conditional_t<std::is_integral_v<T>, long long, T>;
     return Wider(x) * x;
 }
-
+// Return the square of a number multiplied by its sign, using a wider type to avoid overflow
 template<typename T>
 constexpr auto sign_sqr(T x) noexcept {
-    static_assert(std::is_arithmetic_v<T>, "Argument must be an arithmetic type");
+    static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
     return sign(x) * sqr(x);
 }
 
