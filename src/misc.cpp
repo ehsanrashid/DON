@@ -394,7 +394,7 @@ class ExtremeInfo final: public Info<3> {
     }
 };
 
-constexpr std::size_t MaxSlot = 128;
+constexpr std::size_t MaxSlot = 64U;
 
 std::array<Info<2>, MaxSlot>     hit;
 std::array<MinInfo, MaxSlot>     min;
