@@ -87,7 +87,7 @@ class MovePicker final {
    public:
     using value_type      = ExtMove;
     using pointer         = value_type*;
-    using const_pointer   = const pointer;
+    using const_pointer   = const value_type*;
     using reference       = value_type&;
     using const_reference = const value_type&;
     using iterator        = pointer;
