@@ -342,20 +342,20 @@ void start_logger(std::string_view logFile) noexcept { Logger::start(logFile); }
 namespace Debug {
 namespace {
 
-template<std::size_t N>
+template<std::size_t Size>
 class alignas(64) Info {
    public:
     Info() noexcept {
-        for (std::size_t i = 0; i < N; ++i)
+        for (std::size_t i = 0; i < Size; ++i)
             data[i].store(0, std::memory_order_relaxed);
     }
     Info(const Info& info) noexcept {
-        for (std::size_t i = 0; i < N; ++i)
+        for (std::size_t i = 0; i < Size; ++i)
             data[i].store(info.data[i].load(std::memory_order_relaxed), std::memory_order_relaxed);
     }
     Info& operator=(const Info& info) noexcept {
         if (this != &info)
-            for (std::size_t i = 0; i < N; ++i)
+            for (std::size_t i = 0; i < Size; ++i)
                 data[i].store(info.data[i].load(std::memory_order_relaxed),
                               std::memory_order_relaxed);
         return *this;
@@ -363,17 +363,17 @@ class alignas(64) Info {
     Info(Info&&) noexcept            = delete;
     Info& operator=(Info&&) noexcept = delete;
 
-    [[nodiscard]] const std::atomic<std::int64_t>& operator[](std::size_t index) const noexcept {
-        assert(index < N && "Index out of bounds");
-        return data[index];
+    [[nodiscard]] decltype(auto) operator[](std::size_t index) const noexcept {
+        assert(index < Size && "Index out of bounds");
+        return (data[index]);
     }
-    [[nodiscard]] std::atomic<std::int64_t>& operator[](std::size_t index) noexcept {
-        assert(index < N && "Index out of bounds");
-        return data[index];
+    [[nodiscard]] decltype(auto) operator[](std::size_t index) noexcept {
+        assert(index < Size && "Index out of bounds");
+        return (data[index]);
     }
 
    protected:
-    std::array<std::atomic<std::int64_t>, N> data;
+    std::array<std::atomic<std::int64_t>, Size> data;
 };
 
 class MinInfo final: public Info<2> {

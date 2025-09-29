@@ -83,16 +83,20 @@ class CuckooTable final {
     CuckooTable& operator=(const CuckooTable&) noexcept = delete;
     CuckooTable& operator=(CuckooTable&&) noexcept      = delete;
 
-    constexpr auto begin() const noexcept { return cuckoos.begin(); }
-    constexpr auto end() const noexcept { return cuckoos.end(); }
-    constexpr auto begin() noexcept { return cuckoos.begin(); }
-    constexpr auto end() noexcept { return cuckoos.end(); }
+    [[nodiscard]] constexpr auto begin() noexcept { return cuckoos.begin(); }
+    [[nodiscard]] constexpr auto end() noexcept { return cuckoos.end(); }
+    [[nodiscard]] constexpr auto begin() const noexcept { return cuckoos.begin(); }
+    [[nodiscard]] constexpr auto end() const noexcept { return cuckoos.end(); }
 
-    constexpr auto size() const noexcept { return cuckoos.size(); }
-    constexpr auto empty() const noexcept { return cuckoos.empty(); }
+    [[nodiscard]] constexpr auto size() const noexcept { return cuckoos.size(); }
+    [[nodiscard]] constexpr bool empty() const noexcept { return cuckoos.empty(); }
 
-    constexpr auto& operator[](std::size_t idx) const noexcept { return cuckoos[idx]; }
-    constexpr auto& operator[](std::size_t idx) noexcept { return cuckoos[idx]; }
+    [[nodiscard]] constexpr decltype(auto) operator[](std::size_t idx) const noexcept {
+        return (cuckoos[idx]);
+    }
+    [[nodiscard]] constexpr decltype(auto) operator[](std::size_t idx) noexcept {
+        return (cuckoos[idx]);
+    }
 
     // Hash function for indexing the cuckoo table
     template<unsigned Index>

@@ -45,26 +45,50 @@ Move* generate(const Position& pos, Move* moves) noexcept;
 template<GenType GT, bool Any = false>
 struct MoveList final {
    public:
+    using value_type      = Move;
+    using const_pointer   = const value_type*;
+    using pointer         = const_pointer;
+    using const_reference = const value_type&;
+    using reference       = const_reference;
+    using const_iterator  = const_pointer;
+    using iterator        = const_iterator;
+    using size_type       = std::size_t;
+
+    // Generate moves into the internal buffer.
     explicit MoveList(const Position& pos) noexcept :
-        endMoves(generate<GT, Any>(pos, moves)) {}
+        endMoves(generate<GT, Any>(pos, moves)) {
+#if !defined(NDEBUG)
+        assert(moves <= endMoves && endMoves <= moves + MAX_MOVES);
+#endif
+    }
+
     MoveList() noexcept                           = delete;
-    MoveList(MoveList const&) noexcept            = delete;
+    MoveList(const MoveList&) noexcept            = delete;
     MoveList(MoveList&&) noexcept                 = delete;
     MoveList& operator=(const MoveList&) noexcept = delete;
     MoveList& operator=(MoveList&&) noexcept      = delete;
 
-    const Move* begin() const noexcept { return moves; }
-    const Move* end() const noexcept { return endMoves; }
+    [[nodiscard]] const_iterator begin() const noexcept { return moves; }
+    [[nodiscard]] const_iterator end() const noexcept { return endMoves; }
 
-    std::size_t size() const noexcept { return end() - begin(); }
-    bool        empty() const noexcept { return end() == begin(); }
+    [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
+    [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
 
-    auto find(const Move& m) const noexcept { return std::find(begin(), end(), m); }
-    bool contains(const Move& m) const noexcept { return find(m) != end(); }
+    [[nodiscard]] const_iterator find(const Move& m) const noexcept {
+        return std::find(begin(), end(), m);
+    }
+    [[nodiscard]] bool contains(const Move& m) const noexcept { return find(m) != end(); }
+
+    [[nodiscard]] const_pointer data() const noexcept { return moves; }
+
+    //#if defined(__cpp_lib_span) && __cpp_lib_span >= 202002L
+    //    // Optional: span view (C++20)
+    //    [[nodiscard]] std::span<const Move> view() const noexcept { return {moves, size()}; }
+    //#endif
 
    private:
-    Move  moves[MAX_MOVES];
-    Move* endMoves;
+    value_type     moves[MAX_MOVES];
+    const_iterator endMoves;
 };
 
 }  // namespace DON

@@ -59,9 +59,14 @@ constexpr Stage& operator++(Stage& s) noexcept { return s = s + 1; }
 
 struct ExtMove final: public Move {
    public:
-    using Move::Move;
+    //using Move::Move;
+    //using Move::operator=;
 
-    void operator=(const Move& m) { move = m.raw(); }
+    ExtMove& operator=(const Move& m) noexcept {
+        //move = m.raw();
+        Move::operator=(m);
+        return *this;
+    }
 
     friend bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept {
         return em1.value < em2.value;
@@ -70,11 +75,7 @@ struct ExtMove final: public Move {
     friend bool operator<=(const ExtMove& em1, const ExtMove& em2) noexcept { return !(em1 > em2); }
     friend bool operator>=(const ExtMove& em1, const ExtMove& em2) noexcept { return !(em1 < em2); }
 
-    // Inhibit unwanted implicit conversions to Move
-    // with an ambiguity that yields to a compile error.
-    operator float() const = delete;
-
-    int value;
+    int value = 0;
 };
 
 // MovePicker class is used to pick one pseudo-legal move at a time from the given current position.
@@ -83,6 +84,15 @@ struct ExtMove final: public Move {
 // alpha-beta algorithm, MovePicker attempts to return the moves which are most likely to get a cut-off first.
 class MovePicker final {
    public:
+    using value_type      = ExtMove;
+    using pointer         = value_type*;
+    using const_pointer   = const pointer;
+    using reference       = value_type&;
+    using const_reference = const reference;
+    using iterator        = pointer;
+    using const_iterator  = const_pointer;
+    using size_type       = std::size_t;
+
     MovePicker(const Position&           p,
                const Move&               ttm,
                const History<HPieceSq>** continuationHist,
@@ -109,8 +119,15 @@ class MovePicker final {
 
     void sort_partial(int limit = std::numeric_limits<int>::min()) noexcept;
 
-    ExtMove* begin() noexcept { return cur; }
-    ExtMove* end() noexcept { return endCur; }
+    //[[nodiscard]] const_iterator begin() const noexcept { return cur; }
+    //[[nodiscard]] const_iterator end() const noexcept { return endCur; }
+    [[nodiscard]] iterator begin() noexcept { return cur; }
+    [[nodiscard]] iterator end() noexcept { return endCur; }
+
+    [[nodiscard]] size_type size() const noexcept { return endCur - cur; }
+    [[nodiscard]] bool      empty() const noexcept { return cur == endCur; }
+
+    [[nodiscard]] pointer data() noexcept { return moves; }
 
     const Position&           pos;
     const Move&               ttMove;
@@ -118,8 +135,8 @@ class MovePicker final {
     const std::int16_t        ssPly;
     const int                 threshold;
 
-    ExtMove  moves[MAX_MOVES];
-    ExtMove *cur, *endCur, *endBadCaptures, *begBadQuiets, *endMoves = nullptr;
+    value_type  moves[MAX_MOVES];
+    value_type *cur, *endCur, *endBadCaptures, *begBadQuiets, *endMoves = nullptr;
 };
 
 }  // namespace DON
