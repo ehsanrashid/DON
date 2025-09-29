@@ -390,7 +390,7 @@ std::array<Info<6>, MaxSlot>     correl;
 
 }  // namespace
 
-void init() noexcept {
+void clear() noexcept {
     hit.fill({});
     min.fill({});
     max.fill({});

@@ -466,7 +466,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
     options().set("ReportMinimal", bool_to_string(true));
 
 #if !defined(NDEBUG)
-    Debug::init();
+    Debug::clear();
 #endif
 
     TimePoint startTime   = now();
@@ -564,7 +564,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
                                     [](const auto& command) { return command.find("go ") == 0; });
 
 #if !defined(NDEBUG)
-    Debug::init();
+    Debug::clear();
 #endif
 
     TimePoint startTime   = now();
