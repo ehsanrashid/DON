@@ -40,28 +40,31 @@ namespace DON {
 template<typename T, int D>
 class StatsEntry final {
    public:
-    static_assert(std::is_arithmetic_v<T>, "Not an arithmetic type");
+    static_assert(std::is_arithmetic_v<T>, "T must be arithmetic");
+    static_assert(std::is_signed_v<T> && std::is_integral_v<T>,
+                  "T must be a signed integral (expects [-D,+D])");
     static_assert(D > 0, "D must be positive");
     static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
 
-    void operator=(T v) noexcept { value = v; }
+    // Publish a value (release); pair with acquire on readers if needed.
+    void operator=(T v) noexcept { value.store(v, std::memory_order_release); }
 
-    operator T() const noexcept { return value.load(std::memory_order_relaxed); }
+    // Read (acquire) to observe published writes.
+    operator T() const noexcept { return value.load(std::memory_order_acquire); }
 
     // Overload operator<< to modify the value
     void operator<<(int bonus) noexcept {
         // Make sure that bonus is in range [-D, +D]
         bonus = std::clamp(bonus, -D, +D);
 
-        T oldValue = value.load(std::memory_order_acquire);
-        T newValue;
-
-        do
+        for (T oldValue = value.load(std::memory_order_relaxed);;)
         {
-            newValue = bonus + (oldValue * (D - std::abs(bonus))) / D;
-            assert(std::abs(newValue) <= D);
-        } while (!value.compare_exchange_weak(oldValue, newValue, std::memory_order_release,
-                                              std::memory_order_relaxed));
+            T newValue = bonus + (oldValue * (D - std::abs(bonus))) / D;
+            assert(static_cast<T>(-D) <= newValue && newValue <= static_cast<T>(+D));
+            if (value.compare_exchange_weak(oldValue, newValue, std::memory_order_release,
+                                            std::memory_order_relaxed))
+                break;
+        }
     }
 
    private:

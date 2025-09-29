@@ -343,27 +343,29 @@ namespace Debug {
 namespace {
 
 template<std::size_t N>
-class Info {
+class alignas(64) Info {
    public:
     Info() noexcept = default;
     Info(const Info& info) noexcept {
-        for (std::size_t i = 0; i < N; ++i)
+        for (std::size_t i = 0; i < data.size(); ++i)
             data[i].store(info.data[i].load(std::memory_order_relaxed), std::memory_order_relaxed);
     }
     Info& operator=(const Info& info) noexcept {
         if (this != &info)
-            for (std::size_t i = 0; i < N; ++i)
+            for (std::size_t i = 0; i < data.size(); ++i)
                 data[i].store(info.data[i].load(std::memory_order_relaxed),
                               std::memory_order_relaxed);
         return *this;
     }
+    Info(Info&&) noexcept            = delete;
+    Info& operator=(Info&&) noexcept = delete;
 
     // Not constexpr, no nodiscard
-    std::atomic<std::int64_t>& operator[](std::size_t index) noexcept {
+    [[nodiscard]] std::atomic<std::int64_t>& operator[](std::size_t index) noexcept {
         assert(index < data.size() && "Index out of bounds");
         return data[index];
     }
-    const std::atomic<std::int64_t>& operator[](std::size_t index) const noexcept {
+    [[nodiscard]] const std::atomic<std::int64_t>& operator[](std::size_t index) const noexcept {
         assert(index < data.size() && "Index out of bounds");
         return data[index];
     }
@@ -372,17 +374,20 @@ class Info {
     std::array<std::atomic<std::int64_t>, N> data{};
 };
 
-struct MinInfo final: Info<2> {
+class MinInfo final: public Info<2> {
+   public:
     MinInfo() noexcept {
         data[1].store(std::numeric_limits<std::int64_t>::max(), std::memory_order_relaxed);
     }
 };
-struct MaxInfo final: Info<2> {
+class MaxInfo final: public Info<2> {
+   public:
     MaxInfo() noexcept {
         data[1].store(std::numeric_limits<std::int64_t>::min(), std::memory_order_relaxed);
     }
 };
-struct ExtremeInfo final: Info<3> {
+class ExtremeInfo final: public Info<3> {
+   public:
     ExtremeInfo() noexcept {
         data[1].store(std::numeric_limits<std::int64_t>::max(), std::memory_order_relaxed);
         data[2].store(std::numeric_limits<std::int64_t>::min(), std::memory_order_relaxed);
@@ -413,6 +418,8 @@ void clear() noexcept {
 
 void hit_on(bool cond, std::size_t slot) noexcept {
     assert(slot < hit.size());
+    if (slot >= hit.size())
+        return;
     auto& item = hit[slot];
 
     item[0].fetch_add(1, std::memory_order_relaxed);
@@ -422,47 +429,67 @@ void hit_on(bool cond, std::size_t slot) noexcept {
 
 void min_of(std::int64_t value, std::size_t slot) noexcept {
     assert(slot < min.size());
+    if (slot >= min.size())
+        return;
     auto& item = min[slot];
 
     item[0].fetch_add(1, std::memory_order_relaxed);
-    auto minValue = item[1].load(std::memory_order_relaxed);
-    while (minValue > value
-           && !item[1].compare_exchange_weak(minValue, value, std::memory_order_relaxed,
-                                             std::memory_order_relaxed))
-        ;
+    {
+        auto& mn = item[1];
+        for (auto minValue = mn.load(std::memory_order_acquire);
+             minValue > value
+             && !mn.compare_exchange_weak(minValue, value, std::memory_order_release,
+                                          std::memory_order_relaxed);)
+            ;
+    }
 }
 
 void max_of(std::int64_t value, std::size_t slot) noexcept {
     assert(slot < max.size());
+    if (slot >= max.size())
+        return;
     auto& item = max[slot];
 
     item[0].fetch_add(1, std::memory_order_relaxed);
-    auto maxValue = item[1].load(std::memory_order_relaxed);
-    while (maxValue < value
-           && !item[1].compare_exchange_weak(maxValue, value, std::memory_order_relaxed,
-                                             std::memory_order_relaxed))
-        ;
+    {
+        auto& mx = item[1];
+        for (auto maxValue = mx.load(std::memory_order_acquire);
+             maxValue < value
+             && !mx.compare_exchange_weak(maxValue, value, std::memory_order_release,
+                                          std::memory_order_relaxed);)
+            ;
+    }
 }
 
 void extreme_of(std::int64_t value, std::size_t slot) noexcept {
     assert(slot < extreme.size());
+    if (slot >= extreme.size())
+        return;
     auto& item = extreme[slot];
 
     item[0].fetch_add(1, std::memory_order_relaxed);
-    auto minValue = item[1].load(std::memory_order_relaxed);
-    while (minValue > value
-           && !item[1].compare_exchange_weak(minValue, value, std::memory_order_relaxed,
-                                             std::memory_order_relaxed))
-        ;
-    auto maxValue = item[2].load(std::memory_order_relaxed);
-    while (maxValue < value
-           && !item[2].compare_exchange_weak(maxValue, value, std::memory_order_relaxed,
-                                             std::memory_order_relaxed))
-        ;
+    {
+        auto& mn = item[1];
+        for (auto minValue = mn.load(std::memory_order_acquire);
+             minValue > value
+             && !mn.compare_exchange_weak(minValue, value, std::memory_order_release,
+                                          std::memory_order_relaxed);)
+            ;
+    }
+    {
+        auto& mx = item[2];
+        for (auto maxValue = mx.load(std::memory_order_acquire);
+             maxValue < value
+             && !mx.compare_exchange_weak(maxValue, value, std::memory_order_release,
+                                          std::memory_order_relaxed);)
+            ;
+    }
 }
 
 void mean_of(std::int64_t value, std::size_t slot) noexcept {
     assert(slot < mean.size());
+    if (slot >= mean.size())
+        return;
     auto& item = mean[slot];
 
     item[0].fetch_add(1, std::memory_order_relaxed);
@@ -471,6 +498,8 @@ void mean_of(std::int64_t value, std::size_t slot) noexcept {
 
 void stdev_of(std::int64_t value, std::size_t slot) noexcept {
     assert(slot < stdev.size());
+    if (slot >= stdev.size())
+        return;
     auto& item = stdev[slot];
 
     item[0].fetch_add(1, std::memory_order_relaxed);
@@ -480,6 +509,8 @@ void stdev_of(std::int64_t value, std::size_t slot) noexcept {
 
 void correl_of(std::int64_t value1, std::int64_t value2, std::size_t slot) noexcept {
     assert(slot < correl.size());
+    if (slot >= correl.size())
+        return;
     auto& item = correl[slot];
 
     item[0].fetch_add(1, std::memory_order_relaxed);
