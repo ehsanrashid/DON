@@ -80,9 +80,6 @@ constexpr Value draw_value(Key key, std::uint64_t nodes) noexcept {
 }
 
 constexpr Bound fail_bound(bool failHigh) noexcept { return failHigh ? BOUND_LOWER : BOUND_UPPER; }
-constexpr Bound fail_bound(bool failHigh, bool failLow) noexcept {
-    return failHigh ? BOUND_LOWER : failLow ? BOUND_UPPER : BOUND_NONE;
-}
 
 // Appends move and appends child Pv[]
 void update_pv(Move* pv, const Move& m, const Move* childPv) noexcept {
@@ -798,13 +795,13 @@ Value Worker::search(Position&    pos,
                 // Use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to value
                 value = wdlScore < -drawValue ? -tbValue
                       : wdlScore > +drawValue ? +tbValue
-                                              : 2 * wdlScore * drawValue;
+                                              : VALUE_DRAW + 2 * wdlScore * drawValue;
 
                 Bound bound = wdlScore < -drawValue ? BOUND_UPPER
                             : wdlScore > +drawValue ? BOUND_LOWER
                                                     : BOUND_EXACT;
 
-                if (bound == BOUND_EXACT || bound == fail_bound(value >= beta, value <= alpha))
+                if (bound == BOUND_EXACT || (bound == BOUND_LOWER ? value >= beta : value <= alpha))
                 {
                     ttu.update(std::min(depth + 6, MAX_PLY - 1), ss->pvHit, bound, Move::None,
                                value, VALUE_NONE);
