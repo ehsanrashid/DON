@@ -35,8 +35,8 @@ jobs:
         working-directory: fastchess
         run: |
           ./fastchess -rounds 4 -games 2 -repeat -concurrency 4 -openings file=app/tests/data/openings.epd format=epd order=random -srand $RANDOM\
-               -engine name=don1 cmd=/home/runner/work/DON/DON/DON/src/DON\
-               -engine name=don2 cmd=/home/runner/work/DON/DON/DON/src/DON\
+               -engine name=DON1 cmd=/home/runner/work/DON/DON/DON/src/DON\
+               -engine name=DON2 cmd=/home/runner/work/DON/DON/DON/src/DON\
                -ratinginterval 1 -report penta=true -each proto=uci tc=4+0.04 -log file=fast.log | tee fast.out
           cat fast.log
           ! grep "Assertion" fast.log > /dev/null
