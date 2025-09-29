@@ -345,14 +345,17 @@ namespace {
 template<std::size_t N>
 class alignas(64) Info {
    public:
-    Info() noexcept = default;
+    Info() noexcept {
+        for (std::size_t i = 0; i < N; ++i)
+            data[i].store(0, std::memory_order_relaxed);
+    }
     Info(const Info& info) noexcept {
-        for (std::size_t i = 0; i < data.size(); ++i)
+        for (std::size_t i = 0; i < N; ++i)
             data[i].store(info.data[i].load(std::memory_order_relaxed), std::memory_order_relaxed);
     }
     Info& operator=(const Info& info) noexcept {
         if (this != &info)
-            for (std::size_t i = 0; i < data.size(); ++i)
+            for (std::size_t i = 0; i < N; ++i)
                 data[i].store(info.data[i].load(std::memory_order_relaxed),
                               std::memory_order_relaxed);
         return *this;
@@ -360,18 +363,17 @@ class alignas(64) Info {
     Info(Info&&) noexcept            = delete;
     Info& operator=(Info&&) noexcept = delete;
 
-    // Not constexpr, no nodiscard
-    [[nodiscard]] std::atomic<std::int64_t>& operator[](std::size_t index) noexcept {
-        assert(index < data.size() && "Index out of bounds");
+    [[nodiscard]] const std::atomic<std::int64_t>& operator[](std::size_t index) const noexcept {
+        assert(index < N && "Index out of bounds");
         return data[index];
     }
-    [[nodiscard]] const std::atomic<std::int64_t>& operator[](std::size_t index) const noexcept {
-        assert(index < data.size() && "Index out of bounds");
+    [[nodiscard]] std::atomic<std::int64_t>& operator[](std::size_t index) noexcept {
+        assert(index < N && "Index out of bounds");
         return data[index];
     }
 
    protected:
-    std::array<std::atomic<std::int64_t>, N> data{};
+    std::array<std::atomic<std::int64_t>, N> data;
 };
 
 class MinInfo final: public Info<2> {
@@ -420,22 +422,22 @@ void hit_on(bool cond, std::size_t slot) noexcept {
     assert(slot < hit.size());
     if (slot >= hit.size())
         return;
-    auto& item = hit[slot];
+    auto& info = hit[slot];
 
-    item[0].fetch_add(1, std::memory_order_relaxed);
+    info[0].fetch_add(1, std::memory_order_relaxed);
     if (cond)
-        item[1].fetch_add(1, std::memory_order_relaxed);
+        info[1].fetch_add(1, std::memory_order_relaxed);
 }
 
 void min_of(std::int64_t value, std::size_t slot) noexcept {
     assert(slot < min.size());
     if (slot >= min.size())
         return;
-    auto& item = min[slot];
+    auto& info = min[slot];
 
-    item[0].fetch_add(1, std::memory_order_relaxed);
+    info[0].fetch_add(1, std::memory_order_relaxed);
     {
-        auto& mn = item[1];
+        auto& mn = info[1];
         for (auto minValue = mn.load(std::memory_order_relaxed);
              minValue > value
              && !mn.compare_exchange_weak(minValue, value, std::memory_order_relaxed,
@@ -448,11 +450,11 @@ void max_of(std::int64_t value, std::size_t slot) noexcept {
     assert(slot < max.size());
     if (slot >= max.size())
         return;
-    auto& item = max[slot];
+    auto& info = max[slot];
 
-    item[0].fetch_add(1, std::memory_order_relaxed);
+    info[0].fetch_add(1, std::memory_order_relaxed);
     {
-        auto& mx = item[1];
+        auto& mx = info[1];
         for (auto maxValue = mx.load(std::memory_order_relaxed);
              maxValue < value
              && !mx.compare_exchange_weak(maxValue, value, std::memory_order_relaxed,
@@ -465,11 +467,11 @@ void extreme_of(std::int64_t value, std::size_t slot) noexcept {
     assert(slot < extreme.size());
     if (slot >= extreme.size())
         return;
-    auto& item = extreme[slot];
+    auto& info = extreme[slot];
 
-    item[0].fetch_add(1, std::memory_order_relaxed);
+    info[0].fetch_add(1, std::memory_order_relaxed);
     {
-        auto& mn = item[1];
+        auto& mn = info[1];
         for (auto minValue = mn.load(std::memory_order_relaxed);
              minValue > value
              && !mn.compare_exchange_weak(minValue, value, std::memory_order_relaxed,
@@ -477,7 +479,7 @@ void extreme_of(std::int64_t value, std::size_t slot) noexcept {
             ;
     }
     {
-        auto& mx = item[2];
+        auto& mx = info[2];
         for (auto maxValue = mx.load(std::memory_order_relaxed);
              maxValue < value
              && !mx.compare_exchange_weak(maxValue, value, std::memory_order_relaxed,
@@ -490,35 +492,35 @@ void mean_of(std::int64_t value, std::size_t slot) noexcept {
     assert(slot < mean.size());
     if (slot >= mean.size())
         return;
-    auto& item = mean[slot];
+    auto& info = mean[slot];
 
-    item[0].fetch_add(1, std::memory_order_relaxed);
-    item[1].fetch_add(value, std::memory_order_relaxed);
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    info[1].fetch_add(value, std::memory_order_relaxed);
 }
 
 void stdev_of(std::int64_t value, std::size_t slot) noexcept {
     assert(slot < stdev.size());
     if (slot >= stdev.size())
         return;
-    auto& item = stdev[slot];
+    auto& info = stdev[slot];
 
-    item[0].fetch_add(1, std::memory_order_relaxed);
-    item[1].fetch_add(value, std::memory_order_relaxed);
-    item[2].fetch_add(value * value, std::memory_order_relaxed);
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    info[1].fetch_add(value, std::memory_order_relaxed);
+    info[2].fetch_add(value * value, std::memory_order_relaxed);
 }
 
 void correl_of(std::int64_t value1, std::int64_t value2, std::size_t slot) noexcept {
     assert(slot < correl.size());
     if (slot >= correl.size())
         return;
-    auto& item = correl[slot];
+    auto& info = correl[slot];
 
-    item[0].fetch_add(1, std::memory_order_relaxed);
-    item[1].fetch_add(value1, std::memory_order_relaxed);
-    item[2].fetch_add(value1 * value1, std::memory_order_relaxed);
-    item[3].fetch_add(value2, std::memory_order_relaxed);
-    item[4].fetch_add(value2 * value2, std::memory_order_relaxed);
-    item[5].fetch_add(value1 * value2, std::memory_order_relaxed);
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    info[1].fetch_add(value1, std::memory_order_relaxed);
+    info[2].fetch_add(value1 * value1, std::memory_order_relaxed);
+    info[3].fetch_add(value2, std::memory_order_relaxed);
+    info[4].fetch_add(value2 * value2, std::memory_order_relaxed);
+    info[5].fetch_add(value1 * value2, std::memory_order_relaxed);
 }
 
 void print() noexcept {
@@ -528,12 +530,12 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < hit.size(); ++i)
     {
-        auto& item = hit[i];
+        auto& info = hit[i];
 
-        if (!(n = item[0].load(std::memory_order_relaxed)))
+        if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
 
-        auto hits = item[1].load(std::memory_order_relaxed);
+        auto hits = info[1].load(std::memory_order_relaxed);
 
         std::cerr << "Hit #" << i << ": Count=" << n  //
                   << " Hits=" << hits                 //
@@ -542,12 +544,12 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < min.size(); ++i)
     {
-        auto& item = min[i];
+        auto& info = min[i];
 
-        if (!(n = item[0].load(std::memory_order_relaxed)))
+        if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
 
-        auto minValue = item[1].load(std::memory_order_relaxed);
+        auto minValue = info[1].load(std::memory_order_relaxed);
 
         std::cerr << "Min #" << i << ": Count=" << n  //
                   << " Min=" << minValue << std::endl;
@@ -555,12 +557,12 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < max.size(); ++i)
     {
-        auto& item = max[i];
+        auto& info = max[i];
 
-        if (!(n = item[0].load(std::memory_order_relaxed)))
+        if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
 
-        auto maxValue = item[1].load(std::memory_order_relaxed);
+        auto maxValue = info[1].load(std::memory_order_relaxed);
 
         std::cerr << "Max #" << i << ": Count=" << n  //
                   << " Max=" << maxValue << std::endl;
@@ -568,13 +570,13 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < extreme.size(); ++i)
     {
-        auto& item = extreme[i];
+        auto& info = extreme[i];
 
-        if (!(n = item[0].load(std::memory_order_relaxed)))
+        if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
 
-        auto minValue = item[1].load(std::memory_order_relaxed);
-        auto maxValue = item[2].load(std::memory_order_relaxed);
+        auto minValue = info[1].load(std::memory_order_relaxed);
+        auto maxValue = info[2].load(std::memory_order_relaxed);
 
         std::cerr << "Extreme #" << i << ": Count=" << n  //
                   << " Min=" << minValue                  //
@@ -583,12 +585,12 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < mean.size(); ++i)
     {
-        auto& item = mean[i];
+        auto& info = mean[i];
 
-        if (!(n = item[0].load(std::memory_order_relaxed)))
+        if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
 
-        auto sum = item[1].load(std::memory_order_relaxed);
+        auto sum = info[1].load(std::memory_order_relaxed);
 
         std::cerr << "Mean #" << i << ": Count=" << n  //
                   << " Sum=" << sum                    //
@@ -597,13 +599,13 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < stdev.size(); ++i)
     {
-        auto& item = stdev[i];
+        auto& info = stdev[i];
 
-        if (!(n = item[0].load(std::memory_order_relaxed)))
+        if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
 
-        auto sum   = item[1].load(std::memory_order_relaxed);
-        auto sumSq = item[2].load(std::memory_order_relaxed);
+        auto sum   = info[1].load(std::memory_order_relaxed);
+        auto sumSq = info[2].load(std::memory_order_relaxed);
 
         auto r = std::sqrt(avg(sumSq) - sqr(avg(sum)));
 
@@ -613,19 +615,19 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < correl.size(); ++i)
     {
-        auto& item = correl[i];
+        auto& info = correl[i];
 
-        if (!(n = item[0].load(std::memory_order_relaxed)))
+        if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
 
-        auto sumX   = item[1].load(std::memory_order_relaxed);
-        auto sumSqX = item[2].load(std::memory_order_relaxed);
-        auto sumY   = item[3].load(std::memory_order_relaxed);
-        auto sumSqY = item[4].load(std::memory_order_relaxed);
-        auto sumXY  = item[5].load(std::memory_order_relaxed);
+        auto sumV1   = info[1].load(std::memory_order_relaxed);
+        auto sumSqV1 = info[2].load(std::memory_order_relaxed);
+        auto sumV2   = info[3].load(std::memory_order_relaxed);
+        auto sumSqV2 = info[4].load(std::memory_order_relaxed);
+        auto sumV1V2 = info[5].load(std::memory_order_relaxed);
 
-        auto r = (avg(sumXY) - avg(sumX) * avg(sumY))
-               / (std::sqrt(avg(sumSqX) - sqr(sumX)) * std::sqrt(avg(sumSqY) - sqr(avg(sumY))));
+        auto r = (avg(sumV1V2) - avg(sumV1) * avg(sumV2))
+               / (std::sqrt(avg(sumSqV1) - sqr(sumV1)) * std::sqrt(avg(sumSqV2) - sqr(avg(sumV2))));
 
         std::cerr << "Correl #" << i << ": Count=" << n  //
                   << " Coefficient=" << r << std::endl;
