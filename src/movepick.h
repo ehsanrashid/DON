@@ -136,8 +136,8 @@ class MovePicker final {
     const std::int16_t        ssPly;
     const int                 threshold;
 
-    value_type  moves[MAX_MOVES];
-    value_type *cur, *endCur, *endBadCaptures, *begBadQuiets, *endMoves = nullptr;
+    value_type moves[MAX_MOVES];
+    iterator   cur, endCur, endBadCaptures, begBadQuiets, endMoves = nullptr;
 };
 
 }  // namespace DON
