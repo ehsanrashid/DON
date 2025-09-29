@@ -527,43 +527,109 @@ void print() noexcept {
     const auto   avg = [&n](std::int64_t x) noexcept { return double(x) / n; };
 
     for (std::size_t i = 0; i < hit.size(); ++i)
-        if ((n = hit[i][0]))
-            std::cerr << "Hit #" << i << ": Count " << n << " Hits " << hit[i][1]
-                      << " Hit Rate (%) " << 100 * avg(hit[i][1]) << std::endl;
+    {
+        auto& item = hit[i];
+
+        if (!(n = item[0].load(std::memory_order_relaxed)))
+            continue;
+
+        auto hits = item[1].load(std::memory_order_relaxed);
+
+        std::cerr << "Hit #" << i << ": Count=" << n  //
+                  << " Hits=" << hits                 //
+                  << " Hit Rate (%)=" << 100 * avg(hits) << std::endl;
+    }
 
     for (std::size_t i = 0; i < min.size(); ++i)
-        if ((n = min[i][0]))
-            std::cerr << "Min #" << i << ": Count " << n << " Min " << min[i][1] << std::endl;
+    {
+        auto& item = min[i];
+
+        if (!(n = item[0].load(std::memory_order_relaxed)))
+            continue;
+
+        auto minValue = item[1].load(std::memory_order_relaxed);
+
+        std::cerr << "Min #" << i << ": Count=" << n  //
+                  << " Min=" << minValue << std::endl;
+    }
 
     for (std::size_t i = 0; i < max.size(); ++i)
-        if ((n = max[i][0]))
-            std::cerr << "Max #" << i << ": Count " << n << " Max " << max[i][1] << std::endl;
+    {
+        auto& item = max[i];
+
+        if (!(n = item[0].load(std::memory_order_relaxed)))
+            continue;
+
+        auto maxValue = item[1].load(std::memory_order_relaxed);
+
+        std::cerr << "Max #" << i << ": Count=" << n  //
+                  << " Max=" << maxValue << std::endl;
+    }
 
     for (std::size_t i = 0; i < extreme.size(); ++i)
-        if ((n = extreme[i][0]))
-            std::cerr << "Extreme #" << i << ": Count " << n  //
-                      << " Min " << extreme[i][1] << " Max " << extreme[i][2] << std::endl;
+    {
+        auto& item = extreme[i];
+
+        if (!(n = item[0].load(std::memory_order_relaxed)))
+            continue;
+
+        auto minValue = item[1].load(std::memory_order_relaxed);
+        auto maxValue = item[2].load(std::memory_order_relaxed);
+
+        std::cerr << "Extreme #" << i << ": Count=" << n  //
+                  << " Min=" << minValue                  //
+                  << " Max=" << maxValue << std::endl;
+    }
 
     for (std::size_t i = 0; i < mean.size(); ++i)
-        if ((n = mean[i][0]))
-            std::cerr << "Mean #" << i << ": Count " << n << " Mean " << avg(mean[i][1])
-                      << std::endl;
+    {
+        auto& item = mean[i];
+
+        if (!(n = item[0].load(std::memory_order_relaxed)))
+            continue;
+
+        auto sum = item[1].load(std::memory_order_relaxed);
+
+        std::cerr << "Mean #" << i << ": Count=" << n  //
+                  << " Sum=" << sum                    //
+                  << " Mean=" << avg(sum) << std::endl;
+    }
 
     for (std::size_t i = 0; i < stdev.size(); ++i)
-        if ((n = stdev[i][0]))
-        {
-            auto r = std::sqrt(avg(stdev[i][2]) - sqr(avg(stdev[i][1])));
-            std::cerr << "Stdev #" << i << ": Count " << n << " Stdev " << r << std::endl;
-        }
+    {
+        auto& item = stdev[i];
+
+        if (!(n = item[0].load(std::memory_order_relaxed)))
+            continue;
+
+        auto sum   = item[1].load(std::memory_order_relaxed);
+        auto sumSq = item[2].load(std::memory_order_relaxed);
+
+        auto r = std::sqrt(avg(sumSq) - sqr(avg(sum)));
+
+        std::cerr << "Stdev #" << i << ": Count=" << n  //
+                  << " Stdev=" << r << std::endl;
+    }
 
     for (std::size_t i = 0; i < correl.size(); ++i)
-        if ((n = correl[i][0]))
-        {
-            auto r = (avg(correl[i][5]) - avg(correl[i][1]) * avg(correl[i][3]))
-                   / (std::sqrt(avg(correl[i][2]) - sqr(avg(correl[i][1])))
-                      * std::sqrt(avg(correl[i][4]) - sqr(avg(correl[i][3]))));
-            std::cerr << "Correl #" << i << ": Count " << n << " Coefficient " << r << std::endl;
-        }
+    {
+        auto& item = correl[i];
+
+        if (!(n = item[0].load(std::memory_order_relaxed)))
+            continue;
+
+        auto sumX   = item[1].load(std::memory_order_relaxed);
+        auto sumSqX = item[2].load(std::memory_order_relaxed);
+        auto sumY   = item[3].load(std::memory_order_relaxed);
+        auto sumSqY = item[4].load(std::memory_order_relaxed);
+        auto sumXY  = item[5].load(std::memory_order_relaxed);
+
+        auto r = (avg(sumXY) - avg(sumX) * avg(sumY))
+               / (std::sqrt(avg(sumSqX) - sqr(sumX)) * std::sqrt(avg(sumSqY) - sqr(avg(sumY))));
+
+        std::cerr << "Correl #" << i << ": Count=" << n  //
+                  << " Coefficient=" << r << std::endl;
+    }
 }
 }  // namespace Debug
 #endif
