@@ -197,7 +197,7 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
 // The order of moves smaller than the limit is left unspecified.
 void MovePicker::sort_partial(int limit) noexcept {
 
-    for (ExtMove *s = cur, *p = cur + 1; p < endCur; ++p)
+    for (value_type *s = cur, *p = cur + 1; p < endCur; ++p)
         if (p->value >= limit)
         {
             auto m = *p;
@@ -205,7 +205,7 @@ void MovePicker::sort_partial(int limit) noexcept {
             *p = *++s;
 
             // Find the correct position for 'm' using binary search
-            ExtMove* q = std::upper_bound(cur, s, m, std::greater<>{});
+            value_type* q = std::upper_bound(cur, s, m, std::greater<>{});
             // Move elements to make space for 'm'
             std::move_backward(q, s, s + 1);
             // Insert the element in its correct position
