@@ -158,7 +158,6 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
         {
             UCI::print_info_string("Invalid move in the moves list at " + std::to_string(ply) + ": "
                                    + move);
-            assert(false);
             break;
         }
         assert(pos.rule50_count() <= 100);
