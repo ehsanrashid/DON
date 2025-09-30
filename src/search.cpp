@@ -918,8 +918,8 @@ Value Worker::search(Position&    pos,
                  + absCorrectionValue / 158105;
         };
 
-        if (!ss->pvHit && depth < 14 && eval >= beta && (ttd.move == Move::None || ttCapture)
-            && !is_loss(beta) && !is_win(eval) && eval - futility_margin(ttd.hit) >= beta)
+        if (!ss->pvHit && depth < 14 && eval >= beta && !is_decisive(eval) && !is_decisive(alpha)
+            && (ttd.move == Move::None || ttCapture) && eval - futility_margin(ttd.hit) >= beta)
             return (2 * eval + beta) / 3;
     }
 
@@ -1490,7 +1490,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (moveCount == 0)
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
-    else if (bestValue > beta && !is_decisive(bestValue))
+    else if (bestValue > beta && !is_decisive(bestValue) && !is_decisive(alpha))
         bestValue = (depth * bestValue + beta) / (depth + 1);
 
     // If there is a move that produces search value greater than alpha update the history of searched moves
