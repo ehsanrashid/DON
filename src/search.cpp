@@ -1039,12 +1039,6 @@ S_MOVES_LOOP:  // When in check, search starts here
         && ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
         return probCutBeta;
 
-    if (!ss->inCheck && ttd.hit && !exclude && ttd.move == Move::None && tte->move() != Move::None)
-    {
-        ttd.move   = extract_tt_move(pos, tte->move(), false);
-        ss->ttMove = ttd.move;
-        ttCapture  = ttd.move != Move::None && pos.capture_promo(ttd.move);
-    }
     assert(ss->ttMove == ttd.move);
 
     auto pawnIndex = pawn_index(pos.pawn_key());
