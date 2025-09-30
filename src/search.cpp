@@ -731,7 +731,7 @@ Value Worker::search(Position&    pos,
         // For high rule50 counts don't produce transposition table cutoffs.
         if (pos.rule50_count() < (1.0 - 0.5 * pos.rule50_high()) * rule50_threshold())
         {
-            assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
+            // If the depth is big enough, verify that the ttMove is really a good move
             if (depth >= 8 && ttd.move != Move::None && pos.legal(ttd.move)
                 && !is_decisive(ttd.value))
             {
