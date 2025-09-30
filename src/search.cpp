@@ -693,10 +693,6 @@ Value Worker::search(Position&    pos,
               : ttd.hit  ? extract_tt_move(pos, ttd.move)
                          : Move::None;
     assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
-
-    Move pttm      = ttd.move != Move::None   ? ttd.move
-                   : tte->move() != ttc->move ? extract_tt_move(pos, ttc->move, false)
-                                              : Move::None;
     ss->ttMove     = ttd.move;
     bool ttCapture = ttd.move != Move::None && pos.capture_promo(ttd.move);
 
@@ -987,12 +983,13 @@ Value Worker::search(Position&    pos,
         Depth probCutDepth = std::clamp(depth - 5 - (ss->staticEval - beta) / 306, 0, depth - 0);
         int   probCutThreshold = probCutBeta - ss->staticEval;
 
-        MovePicker mp(pos, pttm, probCutThreshold);
+        MovePicker mp(pos, ttd.move, probCutThreshold);
         // Loop through all pseudo-legal moves
         while ((move = mp.next_move()) != Move::None)
         {
             assert(pos.pseudo_legal(move));
-            assert(pos.capture_promo(move) && (move == pttm || pos.see(move) >= probCutThreshold));
+            assert(pos.capture_promo(move)
+                   && (move == ttd.move || pos.see(move) >= probCutThreshold));
 
             // Check for legality
             if (move == excludedMove || !pos.legal(move))
@@ -1045,9 +1042,6 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (!ss->inCheck && ttd.hit && !exclude && ttd.move == Move::None && tte->move() != Move::None)
     {
         ttd.move   = extract_tt_move(pos, tte->move(), false);
-        pttm       = ttd.move != Move::None   ? ttd.move
-                   : tte->move() != ttc->move ? extract_tt_move(pos, ttc->move, false)
-                                              : Move::None;
         ss->ttMove = ttd.move;
         ttCapture  = ttd.move != Move::None && pos.capture_promo(ttd.move);
     }
@@ -1073,7 +1067,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     int quietThreshold = (-3560 - 10 * improve) * depth;
 
-    MovePicker mp(pos, pttm, contHistory, ss->ply, quietThreshold);
+    MovePicker mp(pos, ttd.move, contHistory, ss->ply, quietThreshold);
     mp.quietPick = true;
     // Step 13. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
@@ -1624,10 +1618,6 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = ttd.hit ? extract_tt_move(pos, ttd.move) : Move::None;
     assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
-
-    Move pttm  = ttd.move != Move::None   ? ttd.move
-               : tte->move() != ttc->move ? extract_tt_move(pos, ttc->move, false)
-                                          : Move::None;
     ss->ttMove = ttd.move;
     bool pvHit = ttd.hit && ttd.pvHit;
 
@@ -1707,7 +1697,7 @@ QS_MOVES_LOOP:
 
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
-    MovePicker mp(pos, pttm, contHistory, ss->ply);
+    MovePicker mp(pos, ttd.move, contHistory, ss->ply);
     mp.quietPick = ss->inCheck;
     // Step 5. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
@@ -1825,7 +1815,8 @@ QS_MOVES_LOOP:
                  && type_of(pos.captured_piece()) >= ROOK
                  // No pawn pushes available
                  && !(push_pawn_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces())
-                 && (pttm == Move::None || !pos.legal(pttm)) && MoveList<LEGAL, true>(pos).empty())
+                 && (ttd.move == Move::None || !pos.legal(ttd.move))
+                 && MoveList<LEGAL, true>(pos).empty())
         {
             bestValue = VALUE_DRAW;
         }
