@@ -416,8 +416,6 @@ void Worker::iterative_deepening() noexcept {
                 Depth adjustedDepth =
                   std::max(rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4, 1);
 
-                auto preMoveChanges = std::uint16_t(moveChanges);
-
                 bestValue = search<Root>(rootPos, ss, alpha, beta, adjustedDepth);
 
                 // Bring the best move to the front. It is critical that sorting
@@ -443,9 +441,7 @@ void Worker::iterative_deepening() noexcept {
                 // otherwise exit the loop.
                 if (bestValue <= alpha)
                 {
-                    beta =
-                      (123 * alpha + 9 * beta + 12 * std ::min(bestValue + delta, +VALUE_INFINITE))
-                      / 144;
+                    beta  = alpha;
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;
@@ -454,14 +450,7 @@ void Worker::iterative_deepening() noexcept {
                 }
                 else if (bestValue >= beta)
                 {
-                    alpha = preMoveChanges < moveChanges
-                            ? (116 * alpha + 1 * beta
-                               + 7 * std::max(bestValue - delta, -VALUE_INFINITE))
-                                / 124
-                            : (119 * alpha + 6 * beta
-                               + 16 * std::max(bestValue - delta, -VALUE_INFINITE))
-                                / 141;
-                    beta  = std::min(bestValue + delta, +VALUE_INFINITE);
+                    beta = std::min(bestValue + delta, +VALUE_INFINITE);
 
                     ++failHighCnt;
                 }
