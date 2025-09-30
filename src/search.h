@@ -106,13 +106,15 @@ struct RootMove final {
     Value    avgValue    = -VALUE_INFINITE;
     SqrValue avgSqrValue = sign_sqr(-VALUE_INFINITE);
 
-    bool          boundLower = false;
-    bool          boundUpper = false;
-    std::uint16_t selDepth   = 0;
-    std::uint64_t nodes      = 0;
-    std::int32_t  tbRank     = 0;
-    Value         tbValue    = -VALUE_INFINITE;
-    Moves         pv;
+    bool boundLower = false;
+    bool boundUpper = false;
+
+    std::uint16_t selDepth = 0;
+    std::uint64_t nodes    = 0;
+    std::int32_t  tbRank   = 0;
+    Value         tbValue  = -VALUE_INFINITE;
+
+    Moves pv;
 };
 
 class RootMoves final {

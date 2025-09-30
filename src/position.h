@@ -59,7 +59,7 @@ struct State final {
     Square         epSq;
     Square         capSq;
     CastlingRights castlingRights;
-    std::uint8_t   rule50;
+    std::uint8_t   rule50Count;
     std::uint8_t   nullPly;  // Plies from Null-Move
     bool           rule50High;
 
@@ -85,14 +85,14 @@ struct State final {
 using StateList    = std::deque<State>;
 using StateListPtr = std::unique_ptr<StateList>;
 
-constexpr std::uint16_t R50Offset = 14U;
-constexpr std::uint16_t R50Factor = 8U;
+constexpr std::uint8_t R50Offset = 14U;
+constexpr std::uint8_t R50Factor = 8U;
 
-extern std::uint16_t DrawMoveCount;
+extern std::uint8_t DrawMoveCount;
 
 extern bool Chess960;
 
-inline std::uint16_t rule50_threshold(std::int16_t r50 = -4) noexcept {
+inline std::uint8_t rule50_threshold(std::int8_t r50 = -4) noexcept {
     return r50 + 2 * DrawMoveCount;
 }
 
@@ -585,9 +585,9 @@ inline Piece Position::captured_piece() const noexcept { return st->capturedPiec
 inline Piece Position::promoted_piece() const noexcept { return st->promotedPiece; }
 
 inline Key Position::adjust_key(Key k, std::int16_t ply) const noexcept {
-    return st->rule50 + ply - R50Offset < 0
+    return st->rule50Count + ply - R50Offset < 0
            ? k
-           : k ^ make_hash((st->rule50 + ply - R50Offset) / R50Factor);
+           : k ^ make_hash((st->rule50Count + ply - R50Offset) / R50Factor);
 }
 
 inline Key Position::key(std::int16_t ply) const noexcept { return adjust_key(st->key, ply); }
@@ -629,7 +629,7 @@ inline std::int32_t Position::phase() const noexcept {
       MaxPhase - count<KNIGHT>() - count<BISHOP>() - 2 * count<ROOK>() - 4 * count<QUEEN>(), 0);
 }
 
-inline std::int16_t Position::rule50_count() const noexcept { return st->rule50; }
+inline std::int16_t Position::rule50_count() const noexcept { return st->rule50Count; }
 
 inline std::int16_t Position::null_ply() const noexcept { return st->nullPly; }
 
@@ -702,7 +702,7 @@ inline auto Position::captured(const Move& m) const noexcept { return type_of(ca
 
 inline void Position::reset_ep_sq() noexcept { st->epSq = SQ_NONE; }
 
-inline void Position::reset_rule50_count() noexcept { st->rule50 = 0; }
+inline void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
 
 inline void Position::reset_repetitions() noexcept {
     auto* cSt = st;

@@ -180,7 +180,7 @@ void init() noexcept {
 }
 }  // namespace Zobrist
 
-std::uint16_t DrawMoveCount = 50U;
+std::uint8_t DrawMoveCount = 50U;
 
 bool Chess960 = false;
 
@@ -424,11 +424,11 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
     }
 
     // 5-6. Halfmove clock and fullmove number
-    std::int16_t rule50  = 0;
-    std::int16_t moveNum = 1;
-    iss >> std::skipws >> rule50 >> moveNum;
+    std::int16_t rule50Count = 0;
+    std::int16_t moveNum     = 1;
+    iss >> std::skipws >> rule50Count >> moveNum;
 
-    st->rule50 = std::abs(rule50);
+    st->rule50Count = std::abs(rule50Count);
     // Convert from moveNum starting from 1 to posPly starting from 0,
     // handle also common incorrect FEN with moveNum = 0.
     gamePly = std::max(2 * (std::abs(moveNum) - 1), 0) + (ac == BLACK);
@@ -824,11 +824,11 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
 
     st = &newSt;
 
-    // Increment ply counters. In particular, rule50 will be reset to zero later on
+    // Increment ply counters. rule50Count will be reset to zero later on
     // in case of a capture or a pawn move.
     ++gamePly;
-    ++st->rule50;
-    st->rule50High = st->rule50High || st->rule50 >= rule50_threshold();
+    ++st->rule50Count;
+    st->rule50High = st->rule50High || st->rule50Count >= rule50_threshold();
 
     ++st->nullPly;
 
@@ -913,7 +913,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
                 assert(!is_ok(ep_sq()));  // Already reset to SQ_NONE
                 assert(rule50_count() == 1);
                 assert(st->preSt->epSq == dst);
-                assert(st->preSt->rule50 == 0);
+                assert(st->preSt->rule50Count == 0);
             }
 
             st->pawnKey[~ac] ^= Zobrist::psq[capturedPiece][capSq];
@@ -1119,7 +1119,7 @@ void Position::undo_move(const Move& m) noexcept {
             assert(capturedPiece == make_piece(~ac, PAWN));
             assert(rule50_count() == 0);
             assert(st->preSt->epSq == dst);
-            assert(st->preSt->rule50 == 0);
+            assert(st->preSt->rule50Count == 0);
         }
         // Restore the captured piece
         put_piece(capSq, capturedPiece);
@@ -1150,7 +1150,7 @@ void Position::do_null_move(State& newSt) noexcept {
     st->promotedPiece = NO_PIECE;
     st->capSq         = SQ_NONE;
 
-    // NOTE: no ++st->rule50 here
+    // NOTE: no ++st->rule50Count here
     st->nullPly = 0;
 
     st->key ^= Zobrist::turn;

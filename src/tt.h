@@ -32,7 +32,7 @@
 
 namespace DON {
 
-extern std::uint16_t DrawMoveCount;
+extern std::uint8_t DrawMoveCount;
 
 // There is only one global hash table for the engine and all its threads.
 // For chess in particular, even allow racy updates between threads to and from the TT,
