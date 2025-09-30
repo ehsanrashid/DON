@@ -244,10 +244,10 @@ STAGE_SWITCH:
     case STG_ENC_CAPTURE_GOOD :
         while (!empty())
         {
-            if (*cur != ttMove)
+            if (valid())
             {
                 if (threshold == 0 || pos.see(*cur) >= std::round(-55.5555e-3 * cur->value))
-                    return *cur++;
+                    return value();
                 // Store bad captures
                 std::swap(*endBadCaptures++, *cur);
             }
@@ -276,11 +276,11 @@ STAGE_SWITCH:
         {
             while (!empty())
             {
-                if (*cur != ttMove)
+                if (valid())
                 {
                     // Good quiet threshold
                     if (cur->value >= (-13500 + threshold / 8))
-                        return *cur++;
+                        return value();
                     // Remaining quiets are bad
                     break;
                 }
@@ -300,8 +300,8 @@ STAGE_SWITCH:
     case STG_ENC_CAPTURE_BAD :
         while (!empty())
         {
-            assert(*cur != ttMove);
-            return *cur++;
+            assert(valid());
+            return value();
         }
 
         if (quietPick)
@@ -320,8 +320,8 @@ STAGE_SWITCH:
         if (quietPick)
             while (!empty())
             {
-                if (*cur != ttMove)
-                    return *cur++;
+                if (valid())
+                    return value();
                 next();
             }
         return Move::None;
@@ -341,8 +341,8 @@ STAGE_SWITCH:
     case STG_EVA_CAPTURE_ALL :
         while (!empty())
         {
-            if (*cur != ttMove)
-                return *cur++;
+            if (valid())
+                return value();
             next();
         }
 
@@ -366,8 +366,8 @@ STAGE_SWITCH:
         if (quietPick)
             while (!empty())
             {
-                if (*cur != ttMove)
-                    return *cur++;
+                if (valid())
+                    return value();
                 next();
             }
 
@@ -376,8 +376,8 @@ STAGE_SWITCH:
     case STG_PROBCUT_ALL :
         while (!empty())
         {
-            if (*cur != ttMove && pos.see(*cur) >= threshold)
-                return *cur++;
+            if (valid() && pos.see(*cur) >= threshold)
+                return value();
             next();
         }
         return Move::None;
