@@ -746,6 +746,7 @@ Value Worker::search(Position&    pos,
         // For high rule50 counts don't produce transposition table cutoffs.
         if (pos.rule50_count() < (1.0 - 0.5 * pos.rule50_high()) * rule50_threshold())
         {
+            assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
             if (depth >= 8 && ttd.move != Move::None && pos.legal(ttd.move)
                 && !is_decisive(ttd.value))
             {
@@ -1646,12 +1647,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         && (ttd.bound & fail_bound(ttd.value >= beta)) != 0
         // For high rule50 counts don't produce transposition table cutoffs.
         && pos.rule50_count() < (1.0 - 0.5 * pos.rule50_high()) * rule50_threshold())
-    {
-        if (ttd.value > beta && ttd.depth > DEPTH_ZERO && !is_decisive(ttd.value))
-            ttd.value = (ttd.depth * ttd.value + beta) / (ttd.depth + 1);
-
         return ttd.value;
-    }
 
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 

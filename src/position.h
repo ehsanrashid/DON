@@ -93,6 +93,7 @@ extern std::uint8_t DrawMoveCount;
 extern bool Chess960;
 
 inline std::uint8_t rule50_threshold(std::int8_t r50 = -4) noexcept {
+    assert(r50 >= -2 * DrawMoveCount);
     return r50 + 2 * DrawMoveCount;
 }
 
