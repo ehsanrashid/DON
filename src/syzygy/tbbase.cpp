@@ -401,9 +401,9 @@ template<>
 TBTable<WDL>::TBTable(std::string_view code) noexcept :
     TBTable() {
 
-    Position pos;
-    State    st;
+    State st;
 
+    Position pos;
     pos.set(code, WHITE, &st);
     key[WHITE] = pos.material_key();
     pieceCount = pos.count<ALL_PIECE>();
@@ -1316,8 +1316,6 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
     WDLScore wdlScore, bestWdlScore = WDL_LOSS;
 
-    State st;
-
     const MoveList<LEGAL> legalMoveList(pos);
     std::uint8_t          moveCount = 0;
 
@@ -1328,6 +1326,7 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
         ++moveCount;
 
+        State st;
         pos.do_move(m, st);
         wdlScore = -search<false>(pos, ps);
         pos.undo_move(m);
@@ -1610,11 +1609,11 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     // and find the winning move that minimizes DTZ-score.
     int minDtzScore = INT_MAX;
 
-    State st;
     for (const auto& m : MoveList<LEGAL>(pos))
     {
         bool zeroing = pos.capture(m) || type_of(pos.moved_piece(m)) == PAWN;
 
+        State st;
         pos.do_move(m, st);
 
         // For zeroing moves want the dtzScore of the move _before_ doing it,
@@ -1650,8 +1649,6 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 //
 // A return value false indicates that not all probes were successful.
 bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dtzRank) noexcept {
-    ProbeState ps = PS_OK;
-
     // Obtain 50-move counter for the root position
     std::int16_t rule50Count = pos.rule50_count();
 
@@ -1661,12 +1658,13 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
     int bound = rule50Use ? (MAX_DTZ / 2 - 100) : 1;
 
     // Probe and rank each move
-    State st;
     for (auto& rm : rootMoves)
     {
+        State st;
         pos.do_move(rm.pv[0], st);
 
-        int dtzScore;
+        ProbeState ps = PS_OK;
+        int        dtzScore;
         // Calculate dtzScore for the current move counting from the root position
         if (pos.rule50_count() == 0)
         {
@@ -1727,15 +1725,14 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
 //
 // A return value false indicates that not all probes were successful.
 bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Use) noexcept {
-    ProbeState ps = PS_OK;
-
     // Probe and rank each move
-    State st;
     for (auto& rm : rootMoves)
     {
+        State st;
         pos.do_move(rm.pv[0], st);
 
-        auto wdlScore = pos.is_draw(1) ? WDL_DRAW : -probe_wdl(pos, &ps);
+        ProbeState ps       = PS_OK;
+        WDLScore   wdlScore = pos.is_draw(1) ? WDL_DRAW : -probe_wdl(pos, &ps);
 
         pos.undo_move(rm.pv[0]);
 

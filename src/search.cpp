@@ -239,9 +239,10 @@ void Worker::start_search() noexcept {
 
             for (auto&& th : threads)
             {
-                th->worker->rootMoves.swap_to_front(bookBestMove);
+                auto& rms = th->worker->rootMoves;
+                rms.swap_to_front(bookBestMove);
                 if (bookPonderMove != Move::None)
-                    th->worker->rootMoves.front().pv.push_back(bookPonderMove);
+                    rms.front().pv.push_back(bookPonderMove);
             }
         }
         else
@@ -1719,8 +1720,6 @@ QS_MOVES_LOOP:
 
     Move bestMove = Move::None;
 
-    State st;
-
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
     MovePicker mp(pos, pttm, contHistory, ss->ply);
@@ -1795,6 +1794,7 @@ QS_MOVES_LOOP:
                 continue;
         }
 
+        State st;
         // Step 7. Make the move
         do_move(pos, move, st, check, ss);
 
@@ -1954,19 +1954,22 @@ bool Worker::ponder_move_extracted() noexcept {
         {
             pm = Move::None;
             for (auto&& th : threads)
-                if (th->worker.get() != this && th->worker->rootMoves.front().pv[0] == bm
-                    && th->worker->rootMoves.front().pv.size() > 1)
+            {
+                if (th->worker.get() == this || th->worker->completedDepth == DEPTH_ZERO)
+                    continue;
+                if (auto& rms = th->worker->rootMoves;
+                    rms.front().pv[0] == bm && rms.front().pv.size() > 1)
                 {
-                    pm = th->worker->rootMoves.front().pv[1];
+                    pm = rms.front().pv[1];
                     break;
                 }
+            }
             if (pm == Move::None && rootMoves.size() > 1)
                 for (auto&& th : threads)
                 {
                     if (th->worker.get() == this || th->worker->completedDepth == DEPTH_ZERO)
                         continue;
-                    const auto& trm = *th->worker->rootMoves.find(bm);
-                    if (trm.pv.size() > 1)
+                    if (const auto& trm = *th->worker->rootMoves.find(bm); trm.pv.size() > 1)
                     {
                         pm = trm.pv[1];
                         break;
@@ -2022,22 +2025,22 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     {
         const auto& pvMove = rootMove.pv[ply];
 
-        RootMoves _rootMoves;
+        RootMoves rms;
         for (const auto& m : MoveList<LEGAL>(rootPos))
-            _rootMoves.emplace_back(m);
+            rms.emplace_back(m);
 
-        auto _tbConfig = Tablebases::rank_root_moves(rootPos, _rootMoves, options);
+        auto tbc = Tablebases::rank_root_moves(rootPos, rms, options);
 
-        auto& rm = *_rootMoves.find(pvMove);
+        auto& rm = *rms.find(pvMove);
 
-        if (rm.tbRank != _rootMoves.front().tbRank)
+        if (rm.tbRank != rms.front().tbRank)
             break;
 
         rootPos.do_move(pvMove, states.emplace_back());
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime
-        if (_tbConfig.rootInTB && rootPos.is_draw(ply, rule50Use))
+        if (tbc.rootInTB && rootPos.is_draw(ply, rule50Use))
         {
             rootPos.undo_move(pvMove);
             --ply;
@@ -2055,10 +2058,10 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
     while (!rootPos.is_draw(0, rule50Use))
     {
-        RootMoves _rootMoves;
+        RootMoves rms;
         for (const auto& m : MoveList<LEGAL>(rootPos))
         {
-            auto& rm = _rootMoves.emplace_back(m);
+            auto& rm = rms.emplace_back(m);
 
             State st;
             rootPos.do_move(m, st);
@@ -2070,23 +2073,23 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         }
 
         // Mate found
-        if (_rootMoves.empty())
+        if (rms.empty())
             break;
 
         // Sort moves according to their above assigned TB rank.
         // This will break ties for moves with equal DTZ in rank_root_moves.
-        _rootMoves.sort([](const RootMove& rm1, const RootMove& rm2) noexcept {
+        rms.sort([](const RootMove& rm1, const RootMove& rm2) noexcept {
             return rm1.tbRank > rm2.tbRank;
         });
 
         // The winning side tries to minimize DTZ, the losing side maximizes it
-        auto _tbConfig = Tablebases::rank_root_moves(rootPos, _rootMoves, options, true);
+        auto tbc = Tablebases::rank_root_moves(rootPos, rms, options, true);
 
         // If DTZ is not available might not find a mate, so bail out
-        if (!_tbConfig.rootInTB || _tbConfig.cardinality != 0)
+        if (!tbc.rootInTB || tbc.cardinality != 0)
             break;
 
-        const Move& pvMove = _rootMoves.front().pv[0];
+        const auto& pvMove = rms.front().pv[0];
         rootMove.pv.push_back(pvMove);
         rootPos.do_move(pvMove, states.emplace_back());
 
