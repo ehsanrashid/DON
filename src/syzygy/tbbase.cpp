@@ -1653,7 +1653,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
     ProbeState ps = PS_OK;
 
     // Obtain 50-move counter for the root position
-    int rule50Count = pos.rule50_count();
+    std::int16_t rule50Count = pos.rule50_count();
 
     // Check whether a position was repeated since the last zeroing move.
     bool rep = pos.has_repetition();

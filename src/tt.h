@@ -211,7 +211,7 @@ constexpr Value value_to_tt(Value v, std::int16_t ply) noexcept {
 // current position) to "plies to mate/be mated (TB win/loss) from the root".
 // However, to avoid potentially false mate or TB scores related to the 50 moves rule
 // and the graph history interaction, return the highest non-TB score instead.
-constexpr Value value_from_tt(Value v, std::int16_t ply, std::uint16_t rule50Count) noexcept {
+constexpr Value value_from_tt(Value v, std::int16_t ply, std::int16_t rule50Count) noexcept {
 
     if (!is_valid(v))
         return v;

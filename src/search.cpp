@@ -1433,10 +1433,9 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 rm.pv.resize(1);
 
-                const auto* childPv = (ss + 1)->pv;
-                assert(childPv != nullptr);
-                while (*childPv != Move::None)
-                    rm.pv.push_back(*childPv++);
+                assert((ss + 1)->pv != nullptr);
+                for (const auto* childPv = (ss + 1)->pv; *childPv != Move::None; ++childPv)
+                    rm.pv.push_back(*childPv);
 
                 // Record how often the best move has been changed in each iteration.
                 // This information is used for time management.
@@ -1469,11 +1468,9 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 if (value >= beta)
                 {
+                    // (*Scaler) Less frequent cutoff increments scales well
                     if constexpr (!RootNode)
-                    {
-                        // (*Scaler) Less frequent cutoff increments scales well
                         (ss - 1)->cutoffCount += PVNode || (extension < 2);
-                    }
                     break;  // Fail-high
                 }
 
@@ -1911,12 +1908,12 @@ Move Worker::extract_tt_move(const Position& pos, Move ttMove, bool deep) const 
 
     if (deep)
     {
-        auto rule50 = pos.rule50_count();
-        while (rule50 >= R50Offset)
+        std::int16_t rule50Count = pos.rule50_count();
+        while (rule50Count >= R50Offset)
         {
-            rule50 -= R50Factor;
+            rule50Count -= R50Factor;
 
-            auto [ttd, tte, ttc] = tt.probe(pos.key(rule50 - pos.rule50_count()));
+            auto [ttd, tte, ttc] = tt.probe(pos.key(rule50Count - pos.rule50_count()));
 
             ttMove = ttd.hit ? ttd.move : Move::None;
 
