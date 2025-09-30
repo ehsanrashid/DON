@@ -1872,22 +1872,26 @@ Value Worker::evaluate(const Position& pos) noexcept {
                          optimism[pos.active_color()]);
 }
 
-Move Worker::extract_tt_move(const Position& pos, Move ttMove) const noexcept {
+Move Worker::extract_tt_move(const Position& pos, Move ttMove, bool deep) const noexcept {
     if (ttMove != Move::None && pos.pseudo_legal(ttMove))
         return ttMove;
 
-    std::int16_t rule50Count = pos.rule50_count();
-    while (rule50Count >= R50Offset)
+    if (deep)
     {
-        rule50Count -= R50Factor;
+        std::int16_t rule50Count = pos.rule50_count();
+        while (rule50Count >= R50Offset)
+        {
+            rule50Count -= R50Factor;
 
-        auto [ttd, tte, ttc] = tt.probe(pos.key(rule50Count - pos.rule50_count()));
+            auto [ttd, tte, ttc] = tt.probe(pos.key(rule50Count - pos.rule50_count()));
 
-        ttMove = ttd.hit ? ttd.move : Move::None;
+            ttMove = ttd.hit ? ttd.move : Move::None;
 
-        if (ttMove != Move::None && pos.pseudo_legal(ttMove))
-            return ttMove;
+            if (ttMove != Move::None && pos.pseudo_legal(ttMove))
+                return ttMove;
+        }
     }
+
     return Move::None;
 }
 
@@ -1915,7 +1919,7 @@ bool Worker::ponder_move_extracted() noexcept {
 
         auto [ttd, tte, ttc] = tt.probe(rootPos.key());
 
-        pm = ttd.hit ? extract_tt_move(rootPos, ttd.move) : Move::None;
+        pm = ttd.hit ? extract_tt_move(rootPos, ttd.move, true) : Move::None;
         if (pm == Move::None || !legalMoveList.contains(pm))
         {
             pm = Move::None;

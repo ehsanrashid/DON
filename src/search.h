@@ -497,7 +497,7 @@ class Worker final {
 
     Value evaluate(const Position& pos) noexcept;
 
-    Move extract_tt_move(const Position& pos, Move ttMove) const noexcept;
+    Move extract_tt_move(const Position& pos, Move ttMove, bool deep = false) const noexcept;
     bool ponder_move_extracted() noexcept;
 
     void extend_tb_pv(std::size_t index, Value& value) noexcept;
