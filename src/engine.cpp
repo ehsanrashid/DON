@@ -150,16 +150,15 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
     states = std::make_unique<StateList>(1);
     pos.set(fen, &states->back());
 
-    [[maybe_unused]] std::int16_t ply = 1;
+    std::int16_t ply = 1;
     for (const auto& move : moves)
     {
         Move m = UCI::mix_to_move(move, pos, MoveList<LEGAL>(pos));
         if (m == Move::None)
         {
-            assert(false
-                   && ("Engine::setup(): Invalid move in the moves list at " + std::to_string(ply)
-                       + ": " + move)
-                        .c_str());
+            UCI::print_info_string("Invalid move in the moves list at " + std::to_string(ply) + ": "
+                                   + move);
+            assert(false);
             break;
         }
         assert(pos.rule50_count() <= 100);
