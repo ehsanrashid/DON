@@ -918,7 +918,7 @@ Value Worker::search(Position&    pos,
                  + absCorrectionValue / 158105;
         };
 
-        if (!ss->pvHit && depth < 14 && eval >= beta && !is_decisive(eval) && !is_decisive(alpha)
+        if (!ss->pvHit && depth < 14 && eval >= beta && !is_win(eval) && !is_loss(beta)
             && (ttd.move == Move::None || ttCapture) && eval - futility_margin(ttd.hit) >= beta)
             return (2 * eval + beta) / 3;
     }
