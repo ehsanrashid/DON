@@ -60,11 +60,7 @@ constexpr Stage& operator++(Stage& s) noexcept { return s = s + 1; }
 
 struct ExtMove final: public Move {
    public:
-    //using Move::Move;
-    //using Move::operator=;
-
     ExtMove& operator=(const Move& m) noexcept {
-        //move = m.raw();
         Move::operator=(m);
         return *this;
     }
@@ -120,15 +116,15 @@ class MovePicker final {
 
     void sort_partial(int limit = std::numeric_limits<int>::min()) noexcept;
 
-    //[[nodiscard]] const_iterator begin() const noexcept { return cur; }
-    //[[nodiscard]] const_iterator end() const noexcept { return endCur; }
-    [[nodiscard]] iterator begin() noexcept { return cur; }
-    [[nodiscard]] iterator end() noexcept { return endCur; }
+    [[nodiscard]] const_iterator begin() const noexcept { return cur; }
+    [[nodiscard]] const_iterator end() const noexcept { return endCur; }
+    [[nodiscard]] iterator       begin() noexcept { return cur; }
+    [[nodiscard]] iterator       end() noexcept { return endCur; }
 
     [[nodiscard]] size_type size() const noexcept { return endCur - cur; }
     [[nodiscard]] bool      empty() const noexcept { return cur == endCur; }
 
-    [[nodiscard]] pointer data() noexcept { return moves; }
+    [[nodiscard]] const_pointer data() const noexcept { return moves; }
 
     const Position&           pos;
     const Move&               ttMove;

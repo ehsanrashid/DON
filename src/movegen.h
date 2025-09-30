@@ -71,6 +71,8 @@ struct MoveList final {
 
     [[nodiscard]] const_iterator begin() const noexcept { return moves; }
     [[nodiscard]] const_iterator end() const noexcept { return endMoves; }
+    [[nodiscard]] iterator       begin() noexcept { return moves; }
+    [[nodiscard]] iterator       end() noexcept { return endMoves; }
 
     [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
     [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
