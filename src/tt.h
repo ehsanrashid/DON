@@ -187,8 +187,7 @@ struct TTCluster final {
     static constexpr std::uint8_t EntryCount = 3;
 
     TTEntry entry[EntryCount];
-
-    std::atomic<Move> move{};  // Pad to 32 bytes
+    char    padding[2];  // Pad to 32 bytes
 };
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
@@ -286,11 +285,6 @@ class TTUpdater final {
         }
 
         tte->save(key16, d, pv, b, m, value_to_tt(v, ssPly), ev, generation);
-
-        if (m != Move::None
-            && d - DEPTH_OFFSET + 2 * pv + 4 * (b == BOUND_EXACT)
-                 >= std::max({ttc->entry[0].depth8, ttc->entry[1].depth8, ttc->entry[2].depth8}))
-            ttc->move = m;
     }
 
    private:
