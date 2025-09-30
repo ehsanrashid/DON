@@ -242,7 +242,7 @@ STAGE_SWITCH:
     }
 
     case STG_ENC_CAPTURE_GOOD :
-        while (cur < endCur)
+        while (!empty())
         {
             if (*cur != ttMove)
             {
@@ -251,7 +251,7 @@ STAGE_SWITCH:
                 // Store bad captures
                 std::swap(*endBadCaptures++, *cur);
             }
-            ++cur;
+            next();
         }
 
         ++stage;
@@ -274,7 +274,7 @@ STAGE_SWITCH:
     case STG_ENC_QUIET_GOOD :
         if (quietPick)
         {
-            while (cur < endCur)
+            while (!empty())
             {
                 if (*cur != ttMove)
                 {
@@ -284,7 +284,7 @@ STAGE_SWITCH:
                     // Remaining quiets are bad
                     break;
                 }
-                ++cur;
+                next();
             }
 
             begBadQuiets = cur;
@@ -298,7 +298,7 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case STG_ENC_CAPTURE_BAD :
-        while (cur < endCur)
+        while (!empty())
         {
             assert(*cur != ttMove);
             return *cur++;
@@ -318,11 +318,11 @@ STAGE_SWITCH:
 
     case STG_ENC_QUIET_BAD :
         if (quietPick)
-            while (cur < endCur)
+            while (!empty())
             {
                 if (*cur != ttMove)
                     return *cur++;
-                ++cur;
+                next();
             }
         return Move::None;
 
@@ -339,11 +339,11 @@ STAGE_SWITCH:
     }
 
     case STG_EVA_CAPTURE_ALL :
-        while (cur < endCur)
+        while (!empty())
         {
             if (*cur != ttMove)
                 return *cur++;
-            ++cur;
+            next();
         }
 
         ++stage;
@@ -364,21 +364,21 @@ STAGE_SWITCH:
 
     case STG_EVA_QUIET_ALL :
         if (quietPick)
-            while (cur < endCur)
+            while (!empty())
             {
                 if (*cur != ttMove)
                     return *cur++;
-                ++cur;
+                next();
             }
 
         return Move::None;
 
     case STG_PROBCUT_ALL :
-        while (cur < endCur)
+        while (!empty())
         {
             if (*cur != ttMove && pos.see(*cur) >= threshold)
                 return *cur++;
-            ++cur;
+            next();
         }
         return Move::None;
 
