@@ -1711,10 +1711,10 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
         // Assign at least 1 cp to cursed wins and let it grow to 49 cp
         // as the positions gets closer to a real win.
         rm.tbValue = r >= +bound ? VALUE_MATES_IN_MAX_PLY - 1
-                   : r > 0       ? (std::max(r - (+MAX_DTZ / 2 - 200), +3) * VALUE_PAWN) / 200
-                   : r == 0      ? VALUE_DRAW
-                   : r > -bound  ? (std::min(r + (+MAX_DTZ / 2 - 200), -3) * VALUE_PAWN) / 200
-                                 : VALUE_MATED_IN_MAX_PLY + 1;
+                   : r > 0      ? Value((std::max(r - (+MAX_DTZ / 2 - 200), +3) * VALUE_PAWN) / 200)
+                   : r == 0     ? VALUE_DRAW
+                   : r > -bound ? Value((std::min(r + (+MAX_DTZ / 2 - 200), -3) * VALUE_PAWN) / 200)
+                                : VALUE_MATED_IN_MAX_PLY + 1;
     }
 
     return true;
