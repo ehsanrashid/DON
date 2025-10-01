@@ -2043,7 +2043,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
             for (const auto& om : MoveList<LEGAL>(rootPos))
-                rm.tbRank -= 1 + 99 * rootPos.capture(om);
+                rm.tbRank -= rootPos.capture(om) ? 100 : 1;
             rootPos.undo_move(m);
         }
 
