@@ -63,8 +63,8 @@ void TranspositionTable::resize(std::size_t ttSize, ThreadPool& threads) noexcep
 
 // Initializes the entire transposition table to zero, in a multi-threaded way.
 void TranspositionTable::init(ThreadPool& threads) noexcept {
-    lastHashfull = 0;
-    generation8  = 0;
+    generation8 = 0;
+    lastHashfull.store(0, std::memory_order_relaxed);
 
     std::size_t threadCount = threads.size();
 
@@ -122,7 +122,10 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
     return (cnt + TTCluster::EntryCount / 2) / TTCluster::EntryCount;
 }
 
-std::uint16_t TranspositionTable::hashfull() noexcept { return lastHashfull = hashfull(0); }
+std::uint16_t TranspositionTable::hashfull() noexcept {
+    lastHashfull.store(hashfull(0), std::memory_order_relaxed);
+    return lastHashfull.load(std::memory_order_relaxed);
+}
 
 bool TranspositionTable::save(std::string_view hashFile) const noexcept {
 

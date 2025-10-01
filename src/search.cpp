@@ -1039,8 +1039,6 @@ S_MOVES_LOOP:  // When in check, search starts here
         && ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
         return probCutBeta;
 
-    assert(ss->ttMove == ttd.move);
-
     auto pawnIndex = pawn_index(pos.pawn_key());
 
     const History<HPieceSq>* contHistory[8]{(ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,
@@ -1363,7 +1361,8 @@ S_MOVES_LOOP:  // When in check, search starts here
             (ss + 1)->pv = pv.data();
 
             // Extend deep enough ttMove entries if about to dive into qsearch
-            if (rootDepth > 6 && move == ttd.move && ttd.depth > 1 && tt.lastHashfull <= 960)
+            if (rootDepth > 6 && move == ttd.move && ttd.depth > 1
+                && tt.lastHashfull.load(std::memory_order_relaxed) <= 960)
                 newDepth = std::max(+newDepth, 1);
 
             value = -search<PV>(pos, ss + 1, -beta, -alpha, newDepth);
@@ -1473,7 +1472,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     // it must be a mate or a stalemate.
     // If in a singular extension search then return a fail low score.
     assert(moveCount != 0 || !ss->inCheck || exclude || (MoveList<LEGAL, true>(pos).empty()));
-    assert(moveCount == ss->moveCount);
+    assert(ss->moveCount == moveCount && ss->ttMove == ttd.move);
 
     if (moveCount == 0)
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
