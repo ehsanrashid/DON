@@ -179,7 +179,7 @@ void Engine::start(const Limit& limit) noexcept {
     threads.start(pos, states, limit, options);
 }
 
-void Engine::stop() noexcept { threads.stop = true; }
+void Engine::stop() noexcept { threads.stop.store(true, std::memory_order_relaxed); }
 
 void Engine::ponderhit() noexcept { threads.main_manager()->ponder = false; }
 

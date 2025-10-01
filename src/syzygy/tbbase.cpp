@@ -1539,8 +1539,8 @@ void init(std::string_view paths) noexcept {
 
     UCI::print_info_string("Tablebase: "  //
                            + std::to_string(tbTables.wdl_count()) + " WDL and "
-                           + std::to_string(tbTables.dtz_count()) + " DTZ found. "
-                           + "Tablebase files up to " + std::to_string(MaxCardinality) + "-man.");
+                           + std::to_string(tbTables.dtz_count()) + " DTZ found (up to "
+                           + std::to_string(MaxCardinality) + "-man).");
 }
 
 // Probe the WDL table for a particular position.

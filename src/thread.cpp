@@ -229,7 +229,9 @@ void ThreadPool::start(Position&      pos,
                        const Options& options) noexcept {
     main_thread()->wait_finish();
 
-    stop = abort = research = false;
+    stop.store(false, std::memory_order_relaxed);
+    abort.store(false, std::memory_order_relaxed);
+    research.store(false, std::memory_order_relaxed);
 
     RootMoves rootMoves;
 
