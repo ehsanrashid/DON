@@ -86,7 +86,7 @@ more details.
 
 Thank you for contributing to DON and helping us make it even better!
 
-[copying-link]:           https://github.com/ehsanrashid/DON/blob/master/Copying.txt
+[copying-link]:           https://github.com/ehsanrashid/DON/blob/main/Copying.txt
 [discord-link]:           https://discord.gg/
 [discussions-link]:       https://github.com/ehsanrashid/DON/discussions/new
 [creating-my-first-test]: https://github.com/ehsanrashid/DON/fishtest/wiki/Creating-my-first-test#create-your-test

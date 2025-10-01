@@ -84,16 +84,16 @@ jobs:
         id: commit_date
         run: echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
 
-      # Make sure that an old ci that still runs on master doesn't recreate a prerelease
+      # Make sure that an old ci that still runs on main doesn't recreate a prerelease
       - name: Check Pullable Commits
         id: check_commits
         run: |
           git fetch
-          CHANGES=$(git rev-list HEAD..origin/master --count)
+          CHANGES=$(git rev-list HEAD..origin/main --count)
           echo "CHANGES=$CHANGES" >> $GITHUB_ENV
 
       - name: Prerelease
-        if: github.ref_name == 'master' && env.CHANGES == '0'
+        if: github.ref_name == 'main' && env.CHANGES == '0'
         continue-on-error: true
         uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
         with:

@@ -428,7 +428,7 @@ class TestSyzygy(metaclass=OrderedClassMembers):
             f"setoption name SyzygyPath value {os.path.join(PATH, 'syzygy')}"
         )
         self.engine.expect(
-            "info string Tablebase: 35 WDL and 35 DTZ found. Tablebase files up to 4-man."
+            "info string Tablebase: 35 WDL and 35 DTZ found (up to 4-man)."
         )
 
     def test_syzygy_bench(self):
