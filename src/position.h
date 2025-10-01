@@ -546,9 +546,16 @@ inline Bitboard Position::attacks_by(Color c) const noexcept {
     {
         Bitboard attacks = 0;
 
-        Bitboard pc = pieces(c, PT);
+        Square   kingSq = king_sq(c);
+        Bitboard pc     = pieces<PT>(c, kingSq, blockers(c));
         while (pc)
-            attacks |= attacks_bb<PT>(pop_lsb(pc), pieces());
+        {
+            Square   s = pop_lsb(pc);
+            Bitboard b = attacks_bb<PT>(s, pieces());
+            if (PT != KNIGHT && (blockers(c) & s))
+                b &= line_bb(kingSq, s);
+            attacks |= b;
+        }
         return attacks;
     }
 }
