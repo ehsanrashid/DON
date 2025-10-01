@@ -316,6 +316,7 @@ class Position final {
     StdArray<Bitboard, COLOR_NB>                    colorBB;
     StdArray<std::uint8_t, PIECE_NB>                pieceCount;
     StdArray<Bitboard, COLOR_NB * CASTLING_SIDE_NB> castlingPath;
+    StdArray<Bitboard, COLOR_NB * CASTLING_SIDE_NB> castlingKingPath;
     StdArray<Square, COLOR_NB * CASTLING_SIDE_NB>   castlingRookSq;
     StdArray<std::uint8_t, COLOR_NB * FILE_NB + 1>  castlingRightsMask;
     Color                                           activeColor;
