@@ -20,6 +20,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <limits>
 
 #include "history.h"
@@ -114,6 +115,8 @@ class MovePicker final {
     template<GenType GT>
     iterator score(MoveList<GT>& moveList) noexcept;
 
+    bool select(std::function<bool()> filter) noexcept;
+
     void sort_partial(int limit = std::numeric_limits<int>::min()) noexcept;
 
     [[nodiscard]] const_iterator begin() const noexcept { return cur; }
@@ -121,9 +124,10 @@ class MovePicker final {
     [[nodiscard]] iterator       begin() noexcept { return cur; }
     [[nodiscard]] iterator       end() noexcept { return endCur; }
 
-    bool       valid() const noexcept { return *cur != ttMove; }
-    value_type value() noexcept { return *cur++; }
-    void       next() noexcept { ++cur; }
+    bool valid() const noexcept { return *cur != ttMove; }
+    void next() noexcept { ++cur; }
+
+    Move move() noexcept { return *cur++; }
 
     [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
     [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
