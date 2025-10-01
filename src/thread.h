@@ -156,6 +156,7 @@ class ThreadPool final {
     auto end() noexcept { return threads.end(); }
 
     auto& front() const noexcept { return threads.front(); }
+    auto& back() const noexcept { return threads.back(); }
 
     auto size() const noexcept { return threads.size(); }
     auto empty() const noexcept { return threads.empty(); }
