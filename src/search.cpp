@@ -1890,9 +1890,7 @@ Move Worker::extract_tt_move(const Position& pos, Move ttMove, bool deep) const 
             rule50Count -= R50Factor;
 
             auto [ttd, tte, ttc] = tt.probe(pos.key(rule50Count - pos.rule50_count()));
-
-            ttMove = ttd.hit ? ttd.move : Move::None;
-
+            ttMove               = ttd.hit ? ttd.move : Move::None;
             if (ttMove != Move::None && pos.pseudo_legal(ttMove))
                 return ttMove;
         }
