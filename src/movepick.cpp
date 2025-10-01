@@ -205,7 +205,7 @@ bool MovePicker::select(std::function<bool()> filter) noexcept {
 // The order of moves smaller than the limit is left unspecified.
 void MovePicker::sort_partial(int limit) noexcept {
 
-    for (iterator s = cur, p = cur + 1; p < endCur; ++p)
+    for (iterator s = begin(), p = begin() + 1; p < end(); ++p)
         if (p->value >= limit)
         {
             auto m = *p;
@@ -213,7 +213,7 @@ void MovePicker::sort_partial(int limit) noexcept {
             *p = *++s;
 
             // Find the correct position for 'm' using binary search
-            iterator q = std::upper_bound(cur, s, m, std::greater<>{});
+            iterator q = std::upper_bound(begin(), s, m, std::greater<>{});
             // Move elements to make space for 'm'
             std::move_backward(q, s, s + 1);
             // Insert the element in its correct position

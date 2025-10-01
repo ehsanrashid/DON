@@ -40,22 +40,9 @@ namespace {
 
 constexpr std::size_t PawnOffset = 8;
 
-// clang-format off
 constexpr std::array<Piece, COLOR_NB * KING> Pieces{
-  W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
-  B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING
-};
-
-const std::array<std::unique_ptr<const std::int8_t[]>, PIECE_TYPE_NB - 1> MobilityBonus{
-  nullptr,
-  make_array<20>({ -2,  0,  2,  4,  6,  8, 10, 12, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26}),                                 // PAWN
-  make_array< 9>({-75,-61,-14, -2,  9, 20, 31, 41, 48}),                                                                             // KNIGHT
-  make_array<14>({-50,-24, 15, 30, 42, 55, 58, 63, 67, 73, 83, 88, 97,102}),                                                         // BISHOP
-  make_array<15>({-68,-25,  2, 23, 38, 57, 63, 76, 87, 90, 97,102,111,114,117}),                                                     // ROOK
-  make_array<28>({-40,-23, -9,  3, 19, 26, 32, 39, 45, 57, 69, 72, 73, 74, 76, 77, 78, 80, 83, 86,100,109,113,116,120,123,125,127}), // QUEEN
-  make_array< 9>({ -8, -4,  0,  4,  7,  9, 11, 13, 15})                                                                              // KING
-};
-// clang-format on
+  W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,  //
+  B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
 
 // Implements Marcel van Kervinck's cuckoo algorithm to detect repetition of positions for 3-fold repetition draws.
 // The algorithm uses hash tables with Zobrist hashes to allow fast detection of recurring positions.
@@ -615,6 +602,7 @@ void Position::set_ext_state() noexcept {
     Bitboard occupied = pieces();
 
     // clang-format off
+    st->checks[NO_PIECE_TYPE] = 0;
     st->checks[PAWN  ] = attacks_bb<PAWN>(king_sq(~active_color()), ~active_color());
     st->checks[KNIGHT] = attacks_bb<KNIGHT>(king_sq(~active_color()));
     st->checks[BISHOP] = attacks_bb<BISHOP>(king_sq(~active_color()), occupied);
@@ -646,59 +634,19 @@ void Position::set_ext_state() noexcept {
                 st->pinners[blocker & pieces(c) ? ~c : c] |= xsniper;
             }
         }
-
-        st->attacks[c][NO_PIECE_TYPE] = 0;
-
-        st->mobility[c] = MobilityBonus[PAWN][popcount(push_pawn_bb(pieces(c, PAWN), c) & ~occupied)];
-        st->attacks[c][PAWN] = attacks_mob_by<PAWN>(c, 0, pieces(~c), occupied);
     }
 
     for (Color c : {WHITE, BLACK})
     {
-        Bitboard target = ~((attacks<PAWN>(~c))
-                          | (pieces(~c) & (pinners()))
-                          | (pieces( c) & ((blockers(c))
-                                         | (pieces(QUEEN, KING))
-                                         | (pieces(PAWN) & (LOW_RANK_BB[c] | (push_pawn_bb(occupied, ~c) & ~attacks_pawn_bb(pieces(~c) & ~pieces(KING), ~c)))))));
-
-        st->attacks[c][KNIGHT] = attacks<PAWN  >(c) | attacks_mob_by<KNIGHT>(c, blockers(c), target, occupied                                                                                             );
-        st->attacks[c][BISHOP] = attacks<KNIGHT>(c) | attacks_mob_by<BISHOP>(c, blockers(c), target, occupied ^ ((pieces(c, QUEEN, BISHOP) & ~blockers(c)) | (pieces(~c, KING, QUEEN, ROOK) & ~pinners())));
-        st->attacks[c][ROOK  ] = attacks<BISHOP>(c) | attacks_mob_by<ROOK  >(c, blockers(c), target, occupied ^ ((pieces(c, QUEEN, ROOK  ) & ~blockers(c)) | (pieces(~c, KING, QUEEN      ) & ~pinners())));
-        st->attacks[c][QUEEN ] = attacks<ROOK  >(c) | attacks_mob_by<QUEEN >(c, blockers(c), target, occupied ^ ((pieces(c, QUEEN        ) & ~blockers(c)) | (pieces(~c, KING             )             )));
-        st->attacks[c][KING  ] = attacks<QUEEN >(c) | attacks_mob_by<KING  >(c, blockers(c), target, occupied                                                                                             );
+        st->attacks[c][NO_PIECE_TYPE] = 0;
+        st->attacks[c][PAWN  ] = attacks_by<PAWN  >(c);
+        st->attacks[c][KNIGHT] = attacks_by<KNIGHT>(c) | attacks<PAWN  >(c);
+        st->attacks[c][BISHOP] = attacks_by<BISHOP>(c) | attacks<KNIGHT>(c);
+        st->attacks[c][ROOK  ] = attacks_by<ROOK  >(c) | attacks<BISHOP>(c);
+        st->attacks[c][QUEEN ] = attacks_by<QUEEN >(c) | attacks<ROOK  >(c);
+        st->attacks[c][KING  ] = attacks_by<KING  >(c) | attacks<QUEEN >(c);
     }
     // clang-format on
-}
-
-template<PieceType PT>
-Bitboard
-Position::attacks_mob_by(Color c, Bitboard blockers, Bitboard target, Bitboard occupied) noexcept {
-
-    Bitboard attacks;
-    if constexpr (PT == PAWN)
-    {
-        attacks = attacks_pawn_bb(pieces(c, PAWN), c);
-        st->mobility[c] += MobilityBonus[PAWN][popcount(attacks & target)];
-    }
-    else
-    {
-        attacks = 0;
-
-        Square kingSq = king_sq(c);
-
-        Bitboard pc = pieces<PT>(c, kingSq, blockers);
-        while (pc)
-        {
-            Square s = pop_lsb(pc);
-
-            Bitboard atks = attacks_bb<PT>(s, occupied);
-            if (PT != KNIGHT && PT != KING && (blockers & s))
-                atks &= line_bb(kingSq, s);
-            st->mobility[c] += MobilityBonus[PT][popcount(atks & target)];
-            attacks |= atks;
-        }
-    }
-    return attacks;
 }
 
 // Check can do en-passant

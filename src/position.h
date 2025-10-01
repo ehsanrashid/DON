@@ -64,16 +64,15 @@ struct State final {
     bool           rule50High;
 
     // --- Not copied when making a move (will be recomputed anyhow)
-    Key          key;
-    Bitboard     checkers;
-    Bitboard     checks[PIECE_TYPE_NB];
-    Bitboard     pinners[COLOR_NB];
-    Bitboard     blockers[COLOR_NB];
-    Bitboard     attacks[COLOR_NB][PIECE_TYPE_NB];
-    std::int16_t mobility[COLOR_NB];
-    std::int8_t  repetition;
-    Piece        capturedPiece;
-    Piece        promotedPiece;
+    Key         key;
+    Bitboard    checkers;
+    Bitboard    checks[PIECE_TYPE_NB];
+    Bitboard    pinners[COLOR_NB];
+    Bitboard    blockers[COLOR_NB];
+    Bitboard    attacks[COLOR_NB][PIECE_TYPE_NB];
+    std::int8_t repetition;
+    Piece       capturedPiece;
+    Piece       promotedPiece;
 
     State* preSt;
 };
@@ -218,7 +217,6 @@ class Position final {
     template<PieceType PT>
     Bitboard attacks(Color c) const noexcept;
     Bitboard attacks_lesser(Color c, PieceType pt) const noexcept;
-    auto     mobility(Color c) const noexcept;
     Piece    captured_piece() const noexcept;
     Piece    promoted_piece() const noexcept;
 
@@ -236,12 +234,6 @@ class Position final {
     // Attacks from a piece type
     template<PieceType PT>
     Bitboard attacks_by(Color c) const noexcept;
-
-   private:
-    // Attacks and mobility from a piece type
-    template<PieceType PT>
-    Bitboard
-    attacks_mob_by(Color c, Bitboard blockers, Bitboard target, Bitboard occupied) noexcept;
 
    public:
     // Doing and undoing moves
@@ -579,8 +571,6 @@ inline Bitboard Position::attacks_lesser(Color c, PieceType pt) const noexcept {
     return st->attacks[c][pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
 }
 
-inline auto Position::mobility(Color c) const noexcept { return st->mobility[c]; }
-
 inline Piece Position::captured_piece() const noexcept { return st->capturedPiece; }
 
 inline Piece Position::promoted_piece() const noexcept { return st->promotedPiece; }
@@ -671,12 +661,12 @@ inline Value Position::evaluate() const noexcept {
 
 inline Value Position::bonus() const noexcept {
     Color ac = active_color();
-    return (0.8f * (mobility(ac) - mobility(~ac))            //
-            + 20 * (bishop_paired(ac) - bishop_paired(~ac))  //
-            + 56
-                * ((can_castle(ac & ANY_CASTLING) || castled(ac))
-                   - (can_castle(~ac & ANY_CASTLING) || castled(~ac))))
+    // clang-format off
+    return (+20 * (bishop_paired(ac) - bishop_paired(~ac))
+            +56 * ((can_castle(ac & ANY_CASTLING) || castled(ac))
+                 - (can_castle(~ac & ANY_CASTLING) || castled(~ac))))
          * (1.0f - 4.1250e-2f * phase());
+    // clang-format on
 }
 
 inline bool Position::capture(const Move& m) const noexcept {
