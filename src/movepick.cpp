@@ -278,8 +278,7 @@ STAGE_SWITCH:
     case STG_ENC_QUIET_GOOD :
         if (quietPick)
         {
-            while (!empty())
-            {
+            for (; !empty(); next())
                 if (valid())
                 {
                     // Good quiet threshold
@@ -288,9 +287,8 @@ STAGE_SWITCH:
                     // Remaining quiets are bad
                     break;
                 }
-                next();
-            }
 
+            // Mark the beginning of bad quiets
             begBadQuiets = cur;
         }
 
