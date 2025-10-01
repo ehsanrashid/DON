@@ -174,9 +174,10 @@ void Worker::start_search() noexcept {
     accStack.reset();
 
     rootDepth = completedDepth = DEPTH_ZERO;
-    nodes = tbHits = 0;
-    moveChanges    = 0;
-    nmpPly         = 0;
+    nodes.store(0, std::memory_order_relaxed);
+    tbHits.store(0, std::memory_order_relaxed);
+    moveChanges.store(0, std::memory_order_relaxed);
+    nmpPly = 0;
 
     multiPV = DEFAULT_MULTI_PV;
     if (mainManager != nullptr)
@@ -528,8 +529,9 @@ void Worker::iterative_deepening() noexcept {
             // Use part of the gained time from a previous stable move for the current move
             for (auto&& th : threads)
             {
-                mainManager->sumMoveChanges += th->worker->moveChanges;
-                th->worker->moveChanges = 0;
+                mainManager->sumMoveChanges +=
+                  th->worker->moveChanges.load(std::memory_order_relaxed);
+                th->worker->moveChanges.store(0, std::memory_order_relaxed);
             }
 
             // clang-format off
@@ -557,7 +559,7 @@ void Worker::iterative_deepening() noexcept {
             // Compute node effort factor which slightly reduces effort if the completed depth is sufficiently high
             auto nodeEffortFactor = 1.0;
             if (completedDepth >= 10)
-                nodeEffortFactor -= 44.0924e-6 * std::max(-92425.0 + 100000.0 * rootMoves.front().nodes / std::max(std::uint64_t(nodes), std::uint64_t(1)), 0.0);
+                nodeEffortFactor -= 44.0924e-6 * std::max(-92425.0 + 100000.0 * rootMoves.front().nodes / std::max(nodes.load(std::memory_order_relaxed), std::uint64_t(1)), 0.0);
 
             // Compute recapture factor that reduces time if recapture conditions are met
             auto recaptureFactor = 1.0;
@@ -628,7 +630,7 @@ Value Worker::search(Position&    pos,
         // Check if have an upcoming move that draws by repetition
         if (alpha < VALUE_DRAW && pos.upcoming_repetition(ss->ply))
         {
-            alpha = draw_value(key, nodes);
+            alpha = draw_value(key, nodes.load(std::memory_order_relaxed));
             if (alpha >= beta)
                 return alpha;
         }
@@ -660,7 +662,9 @@ Value Worker::search(Position&    pos,
         // Step 2. Check for stopped search and immediate draw
         if (threads.stop.load(std::memory_order_relaxed)  //
             || ss->ply >= MAX_PLY || pos.is_draw(ss->ply))
-            return ss->ply >= MAX_PLY && !ss->inCheck ? evaluate(pos) : draw_value(key, nodes);
+            return ss->ply >= MAX_PLY && !ss->inCheck
+                   ? evaluate(pos)
+                   : draw_value(key, nodes.load(std::memory_order_relaxed));
 
         // Step 3. Mate distance pruning. Even if mate at the next move score would be
         // at best mates_in(1 + ss->ply), but if alpha is already bigger because a
@@ -1256,7 +1260,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         [[maybe_unused]] std::uint64_t preNodes;
         if constexpr (RootNode)
-            preNodes = std::uint64_t(nodes);
+            preNodes = nodes.load(std::memory_order_relaxed);
 
         // Step 16. Make the move
         do_move(pos, move, st, check, ss);
@@ -1385,7 +1389,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             auto& rm = *rootMoves.find(move);
             assert(rm.pv[0] == move);
 
-            rm.nodes += nodes - preNodes;
+            rm.nodes += nodes.load(std::memory_order_relaxed) - preNodes;
             // clang-format off
             rm.avgValue    = rm.avgValue    !=          -VALUE_INFINITE  ? (         value  + rm.avgValue   ) / 2 :          value;
             rm.avgSqrValue = rm.avgSqrValue != sign_sqr(-VALUE_INFINITE) ? (sign_sqr(value) + rm.avgSqrValue) / 2 : sign_sqr(value);
@@ -1419,7 +1423,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // This information is used for time management.
                 // In MultiPV mode, must take care to only do this for the first PV line.
                 if (curIdx == 0 && moveCount > 1)
-                    ++moveChanges;
+                    moveChanges.fetch_add(1, std::memory_order_relaxed);
             }
             else
                 // All other moves but the PV, are set to the lowest value, this
@@ -1430,8 +1434,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // In case have an alternative move equal in eval to the current bestMove,
         // promote it to bestMove by pretending it just exceeds alpha (but not beta).
-        bool inc = value == bestValue && (nodes & 0xE) == 0 && 2 + ss->ply >= rootDepth
-                && !is_win(value + 1);
+        bool inc = value == bestValue && (nodes.load(std::memory_order_relaxed) & 0xE) == 0
+                && 2 + ss->ply >= rootDepth && !is_win(value + 1);
 
         if (bestValue < value + inc)
         {
@@ -1574,7 +1578,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Check if have an upcoming move that draws by repetition
     if (alpha < VALUE_DRAW && pos.upcoming_repetition(ss->ply))
     {
-        alpha = draw_value(key, nodes);
+        alpha = draw_value(key, nodes.load(std::memory_order_relaxed));
         if (alpha >= beta)
             return alpha;
     }
