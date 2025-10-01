@@ -1792,7 +1792,7 @@ Config rank_root_moves(Position&      pos,
             return rm1.tbRank > rm2.tbRank;
         });
         // Probe during search only if DTZ is not available and winning
-        if (dtzAvailable || rootMoves.front().tbValue <= VALUE_DRAW)
+        if (dtzAvailable || rootMoves[0].tbValue <= VALUE_DRAW)
             config.cardinality = 0;
     }
     else
