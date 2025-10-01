@@ -196,10 +196,7 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
 bool MovePicker::select(std::function<bool()> filter) noexcept {
     for (; !empty(); next())
         if (valid() && filter())
-        {
-            next();
             return true;
-        }
     return false;
 }
 
@@ -259,7 +256,7 @@ STAGE_SWITCH:
                 std::swap(*endBadCaptures++, *cur);
                 return false;
             }))
-            return *(cur - 1);
+            return move();
 
         ++stage;
         [[fallthrough]];
@@ -287,7 +284,7 @@ STAGE_SWITCH:
                 {
                     // Good quiet threshold
                     if (cur->value >= (-13500 + threshold / 8))
-                        return *cur++;
+                        return move();
                     // Remaining quiets are bad
                     break;
                 }
@@ -306,7 +303,7 @@ STAGE_SWITCH:
 
     case STG_ENC_CAPTURE_BAD :
         if (select([]() { return true; }))
-            return *(cur - 1);
+            return move();
 
         if (quietPick)
         {
@@ -323,7 +320,7 @@ STAGE_SWITCH:
     case STG_ENC_QUIET_BAD :
         if (quietPick)
             if (select([]() { return true; }))
-                return *(cur - 1);
+                return move();
 
         return Move::None;
 
@@ -341,7 +338,7 @@ STAGE_SWITCH:
 
     case STG_EVA_CAPTURE_ALL :
         if (select([]() { return true; }))
-            return *(cur - 1);
+            return move();
 
         ++stage;
         [[fallthrough]];
@@ -362,13 +359,13 @@ STAGE_SWITCH:
     case STG_EVA_QUIET_ALL :
         if (quietPick)
             if (select([]() { return true; }))
-                return *(cur - 1);
+                return move();
 
         return Move::None;
 
     case STG_PROBCUT_ALL :
         if (select([&]() { return pos.see(*cur) >= threshold; }))
-            return *(cur - 1);
+            return move();
 
         return Move::None;
 

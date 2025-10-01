@@ -127,6 +127,8 @@ class MovePicker final {
     bool valid() const noexcept { return *cur != ttMove; }
     void next() noexcept { ++cur; }
 
+    Move move() noexcept { return *cur++; }
+
     [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
     [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
 
