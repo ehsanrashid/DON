@@ -28,7 +28,6 @@
 #include <sstream>
 #include <utility>
 
-#include "memory.h"
 #include "misc.h"
 #include "movegen.h"
 #include "syzygy/tbbase.h"
