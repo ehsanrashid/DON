@@ -31,7 +31,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <type_traits>  // IWYU pragma: keep
+#include <type_traits>
 #include <vector>
 
 #if defined(_MSC_VER) && defined(USE_PREFETCH)
