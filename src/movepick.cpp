@@ -193,6 +193,16 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
     return itr;
 }
 
+bool MovePicker::select(std::function<bool()> filter) noexcept {
+    for (; !empty(); next())
+        if (valid() && filter())
+        {
+            next();
+            return true;
+        }
+    return false;
+}
+
 // Sort moves in descending order up to and including a given limit.
 // The order of moves smaller than the limit is left unspecified.
 void MovePicker::sort_partial(int limit) noexcept {
@@ -242,17 +252,14 @@ STAGE_SWITCH:
     }
 
     case STG_ENC_CAPTURE_GOOD :
-        while (!empty())
-        {
-            if (valid())
-            {
+        if (select([&]() {
                 if (threshold == 0 || pos.see(*cur) >= std::round(-55.5555e-3 * cur->value))
-                    return value();
+                    return true;
                 // Store bad captures
                 std::swap(*endBadCaptures++, *cur);
-            }
-            next();
-        }
+                return false;
+            }))
+            return *(cur - 1);
 
         ++stage;
         [[fallthrough]];
@@ -280,7 +287,7 @@ STAGE_SWITCH:
                 {
                     // Good quiet threshold
                     if (cur->value >= (-13500 + threshold / 8))
-                        return value();
+                        return *cur++;
                     // Remaining quiets are bad
                     break;
                 }
@@ -298,11 +305,8 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case STG_ENC_CAPTURE_BAD :
-        while (!empty())
-        {
-            assert(valid());
-            return value();
-        }
+        if (select([]() { return true; }))
+            return *(cur - 1);
 
         if (quietPick)
         {
@@ -318,12 +322,9 @@ STAGE_SWITCH:
 
     case STG_ENC_QUIET_BAD :
         if (quietPick)
-            while (!empty())
-            {
-                if (valid())
-                    return value();
-                next();
-            }
+            if (select([]() { return true; }))
+                return *(cur - 1);
+
         return Move::None;
 
     case STG_EVA_CAPTURE_INIT : {
@@ -339,12 +340,8 @@ STAGE_SWITCH:
     }
 
     case STG_EVA_CAPTURE_ALL :
-        while (!empty())
-        {
-            if (valid())
-                return value();
-            next();
-        }
+        if (select([]() { return true; }))
+            return *(cur - 1);
 
         ++stage;
         [[fallthrough]];
@@ -364,22 +361,15 @@ STAGE_SWITCH:
 
     case STG_EVA_QUIET_ALL :
         if (quietPick)
-            while (!empty())
-            {
-                if (valid())
-                    return value();
-                next();
-            }
+            if (select([]() { return true; }))
+                return *(cur - 1);
 
         return Move::None;
 
     case STG_PROBCUT_ALL :
-        while (!empty())
-        {
-            if (valid() && pos.see(*cur) >= threshold)
-                return value();
-            next();
-        }
+        if (select([&]() { return pos.see(*cur) >= threshold; }))
+            return *(cur - 1);
+
         return Move::None;
 
     case STG_NONE :;
