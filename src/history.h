@@ -25,7 +25,7 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
-#include <type_traits>  // IWYU pragma: keep
+#include <type_traits>
 
 #include "bitboard.h"
 #include "misc.h"
