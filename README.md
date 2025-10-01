@@ -124,20 +124,20 @@ DON uses neural networks trained on data provided by the [Leela Chess Zero
 project][lc0-data-link], which is made available under the [Open Database License][odbl-link] (ODbL).
 
 
-[authors-link]:       https://github.com/ehsanrashid/DON/blob/master/AUTHORS
+[authors-link]:       https://github.com/ehsanrashid/DON/blob/main/AUTHORS
 [build-link]:         https://github.com/ehsanrashid/DON/actions/workflows/don.yml
-[commits-link]:       https://github.com/ehsanrashid/DON/commits/master
+[commits-link]:       https://github.com/ehsanrashid/DON/commits/main
 [discord-link]:       https://discord.gg/GWDRS3kU6R
 [issue-link]:         https://github.com/ehsanrashid/DON/issues/new?assignees=&labels=&template=BUG-REPORT.yml
 [discussions-link]:   https://github.com/ehsanrashid/DON/discussions/new
 [fishtest-link]:      https://tests.donchess.org/tests
 [guideline-link]:     https://github.com/ehsanrashid/DON/fishtest/wiki/Creating-my-first-test
-[license-link]:       https://github.com/ehsanrashid/DON/blob/master/Copying.txt
+[license-link]:       https://github.com/ehsanrashid/DON/blob/main/Copying.txt
 [programming-link]:   https://www.chessprogramming.org/Main_Page
 [programmingsf-link]: https://www.chessprogramming.org/DON
-[readme-link]:        https://github.com/ehsanrashid/DON/blob/master/README.md
+[readme-link]:        https://github.com/ehsanrashid/DON/blob/main/README.md
 [release-link]:       https://github.com/ehsanrashid/DON/releases/latest
-[src-link]:           https://github.com/ehsanrashid/DON/tree/master/src
+[src-link]:           https://github.com/ehsanrashid/DON/tree/main/src
 [don128-logo]:        https://donchess.org/images/logo/icon_128x128.png
 [uci-link]:           https://backscattering.de/chess/uci/
 [website-link]:       https://donchess.org
