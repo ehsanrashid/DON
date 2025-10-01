@@ -5,12 +5,9 @@ on:
       - "*"
     branches:
       - main
-      - tools
-      - github_ci
   pull_request:
     branches:
       - main
-      - tools
 jobs:
   Prerelease:
     if: github.repository == 'ehsanrashid/DON' && (github.ref == 'refs/heads/main' || (startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'))
