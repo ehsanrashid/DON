@@ -183,9 +183,7 @@ class Position final {
     template<typename... PieceTypes>
     Bitboard pieces(Color c, PieceTypes... pts) const noexcept;
     template<PieceType PT>
-    Bitboard pieces(Color c, Square s, Bitboard blockers) const noexcept;
-    template<PieceType PT>
-    Bitboard pieces(Color c, Square s) const noexcept;
+    Bitboard pieces(Color c) const noexcept;
 
     std::uint8_t count(Piece pc) const noexcept;
     std::uint8_t count(Color c, PieceType pt) const noexcept;
@@ -413,19 +411,14 @@ inline Bitboard Position::pieces(Color c, PieceTypes... pts) const noexcept {
 }
 
 template<PieceType PT>
-inline Bitboard Position::pieces(Color c, Square s, Bitboard blockers) const noexcept {
+inline Bitboard Position::pieces(Color c) const noexcept {
     if constexpr (PT == KNIGHT)
-        return pieces(c, KNIGHT) & (~blockers);
+        return pieces(c, KNIGHT) & (~blockers(c));
     if constexpr (PT == BISHOP)
-        return pieces(c, BISHOP) & (~blockers | attacks_bb<BISHOP>(s));
+        return pieces(c, BISHOP) & (~blockers(c) | attacks_bb<BISHOP>(king_sq(c)));
     if constexpr (PT == ROOK)
-        return pieces(c, ROOK) & (~blockers | attacks_bb<ROOK>(s));
+        return pieces(c, ROOK) & (~blockers(c) | attacks_bb<ROOK>(king_sq(c)));
     return pieces(c, PT);
-}
-
-template<PieceType PT>
-inline Bitboard Position::pieces(Color c, Square s) const noexcept {
-    return pieces<PT>(c, s, blockers(c));
 }
 
 inline std::uint8_t Position::count(Piece pc) const noexcept { return pieceCount[pc]; }
@@ -535,22 +528,18 @@ inline bool Position::exist_attackers_to(Square s, Bitboard attackers) const noe
 template<PieceType PT>
 inline Bitboard Position::attacks_by(Color c) const noexcept {
     if constexpr (PT == PAWN)
-    {
         return attacks_pawn_bb(pieces(c, PAWN), c);
-    }
     else
     {
         Bitboard attacks = 0;
 
-        Square kingSq = king_sq(c);
-
-        Bitboard pc = pieces<PT>(c, kingSq);
+        Bitboard pc = pieces<PT>(c);
         while (pc)
         {
             Square   s = pop_lsb(pc);
             Bitboard b = attacks_bb<PT>(s, pieces());
             if (PT != KNIGHT && (blockers(c) & s))
-                b &= line_bb(kingSq, s);
+                b &= line_bb(king_sq(c), s);
             attacks |= b;
         }
         return attacks;
