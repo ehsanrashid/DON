@@ -205,8 +205,8 @@ void Worker::start_search() noexcept {
     mainManager->skill.init(options);
     mainManager->timeManager.init(limit, rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
                                   options);
-
-    tt.update_generation(!limit.infinite);
+    if (!limit.infinite)
+        tt.increment_generation();
 
     LowPlyQuietHistory.fill(97);
 
@@ -276,7 +276,7 @@ void Worker::start_search() noexcept {
         // When playing in 'Nodes as Time' mode,
         // subtract the searched nodes from the start nodes before exiting.
         if (mainManager->timeManager.use_nodes_time())
-            mainManager->timeManager.update_nodes(  //
+            mainManager->timeManager.decrement_remaining_nodes(
               threads.nodes() - limit.clocks[rootPos.active_color()].inc);
 
         // If the skill level is enabled, swap the best PV line with the sub-optimal one

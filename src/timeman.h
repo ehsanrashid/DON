@@ -53,11 +53,9 @@ class TimeManager final {
               std::int32_t   moveNum,
               const Options& options) noexcept;
 
-    bool use_nodes_time() const noexcept { return bool(nodesTime); }
+    bool use_nodes_time() const noexcept { return nodesTime > 0; }
 
-    std::int64_t remain_nodes() const noexcept { return remainNodes - OffsetNode; }
-
-    void update_nodes(std::int64_t usedNodes) noexcept;
+    void decrement_remaining_nodes(std::int64_t usedNodes) noexcept;
 
    private:
     static constexpr std::uint64_t OffsetNode = 1;

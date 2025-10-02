@@ -312,10 +312,7 @@ class TranspositionTable final {
 
     std::uint8_t generation() const noexcept { return generation8; }
 
-    void update_generation(bool update = true) noexcept {
-        if (update)
-            generation8 += GENERATION_DELTA;
-    }
+    void increment_generation() noexcept { generation8 += GENERATION_DELTA; }
 
     void resize(std::size_t ttSize, ThreadPool& threads) noexcept;
     void init(ThreadPool& threads) noexcept;

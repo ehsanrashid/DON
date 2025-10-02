@@ -41,7 +41,7 @@ void TimeManager::init() noexcept {
     maximumTime = 0;
 
     nodesTime   = 0;
-    remainNodes = OffsetNode;
+    remainNodes = 0;
 }
 
 // Called at the beginning of the search and calculates
@@ -79,7 +79,7 @@ void TimeManager::init(
             remainNodes = clock.time * nodesTime + OffsetNode;  // Time is in msec
 
         // Convert from milliseconds to nodes
-        clock.time = TimePoint(remain_nodes());
+        clock.time = TimePoint(remainNodes - OffsetNode);
         clock.inc *= nodesTime;
         moveOverhead *= nodesTime;
     }
@@ -164,9 +164,9 @@ void TimeManager::init(
 }
 
 // When in 'Nodes as Time' mode
-void TimeManager::update_nodes(std::int64_t usedNodes) noexcept {
+void TimeManager::decrement_remaining_nodes(std::int64_t usedNodes) noexcept {
     assert(use_nodes_time());
-    remainNodes = std::max(remain_nodes() - usedNodes, std::int64_t(0)) + OffsetNode;
+    remainNodes = std::max(remainNodes - usedNodes, OffsetNode);
 }
 
 }  // namespace DON
