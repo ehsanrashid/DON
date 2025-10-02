@@ -155,27 +155,26 @@ Thread* ThreadPool::best_thread() const noexcept {
     Value minCurValue = +VALUE_INFINITE;
     // Find the minimum value of all threads
     for (auto&& th : threads)
-        minCurValue = std::min(th->worker->rootMoves.front().curValue, minCurValue);
+        minCurValue = std::min(th->worker->rootMoves[0].curValue, minCurValue);
 
     // Vote according to value and depth, and select the best thread
     const auto thread_voting_value = [=](const Thread* th) noexcept -> std::uint32_t {
-        return (14 + th->worker->rootMoves.front().curValue - minCurValue)
-             * th->worker->completedDepth;
+        return (14 + th->worker->rootMoves[0].curValue - minCurValue) * th->worker->completedDepth;
     };
 
     std::unordered_map<Move, std::uint64_t, Move::Hash> votes(
       2 * std::min(size(), bestThread->worker->rootMoves.size()));
 
     for (auto&& th : threads)
-        votes[th->worker->rootMoves.front().pv[0]] += thread_voting_value(th.get());
+        votes[th->worker->rootMoves[0].pv[0]] += thread_voting_value(th.get());
 
     for (auto&& nextThread : threads)
     {
-        const auto bestThreadValue = bestThread->worker->rootMoves.front().curValue;
-        const auto nextThreadValue = nextThread->worker->rootMoves.front().curValue;
+        const auto bestThreadValue = bestThread->worker->rootMoves[0].curValue;
+        const auto nextThreadValue = nextThread->worker->rootMoves[0].curValue;
 
-        const auto& bestThreadPV = bestThread->worker->rootMoves.front().pv;
-        const auto& nextThreadPV = nextThread->worker->rootMoves.front().pv;
+        const auto& bestThreadPV = bestThread->worker->rootMoves[0].pv;
+        const auto& nextThreadPV = nextThread->worker->rootMoves[0].pv;
 
         const auto bestThreadMoveVote = votes[bestThreadPV[0]];
         const auto nextThreadMoveVote = votes[nextThreadPV[0]];

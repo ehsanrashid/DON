@@ -212,13 +212,6 @@ T* align_ptr_up(T* ptr) noexcept {
       reinterpret_cast<char*>((uintPtr + (Alignment - 1)) / Alignment * Alignment));
 }
 
-template<std::size_t N>
-inline std::unique_ptr<const std::int8_t[]> make_array(const std::int8_t (&data)[N]) noexcept {
-    auto arr = std::make_unique<std::int8_t[]>(N);
-    std::copy(std::begin(data), std::end(data), arr.get());
-    return arr;
-}
-
 }  // namespace DON
 
 #endif  // #ifndef MEMORY_H_INCLUDED

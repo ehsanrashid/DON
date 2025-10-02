@@ -1710,11 +1710,11 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
         // Determine the WDL-score to be displayed for this move.
         // Assign at least 1 cp to cursed wins and let it grow to 49 cp
         // as the positions gets closer to a real win.
-        rm.tbValue = r >= +bound ? VALUE_MATES_IN_MAX_PLY - 1
-                   : r > 0       ? (std::max(r - (+MAX_DTZ / 2 - 200), +3) * VALUE_PAWN) / 200
-                   : r == 0      ? VALUE_DRAW
-                   : r > -bound  ? (std::min(r + (+MAX_DTZ / 2 - 200), -3) * VALUE_PAWN) / 200
-                                 : VALUE_MATED_IN_MAX_PLY + 1;
+        rm.tbValue = r >= bound ? VALUE_MATES_IN_MAX_PLY - 1
+                   : r > 0      ? Value((std::max(r - (+MAX_DTZ / 2 - 200), +3) * VALUE_PAWN) / 200)
+                   : r == 0     ? VALUE_DRAW
+                   : r > -bound ? Value((std::min(r + (+MAX_DTZ / 2 - 200), -3) * VALUE_PAWN) / 200)
+                                : VALUE_MATED_IN_MAX_PLY + 1;
     }
 
     return true;
@@ -1792,7 +1792,7 @@ Config rank_root_moves(Position&      pos,
             return rm1.tbRank > rm2.tbRank;
         });
         // Probe during search only if DTZ is not available and winning
-        if (dtzAvailable || rootMoves.front().tbValue <= VALUE_DRAW)
+        if (dtzAvailable || rootMoves[0].tbValue <= VALUE_DRAW)
             config.cardinality = 0;
     }
     else

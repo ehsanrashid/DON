@@ -243,7 +243,7 @@ void Worker::start_search() noexcept {
                 auto& rms = th->worker->rootMoves;
                 rms.swap_to_front(bookBestMove);
                 if (bookPonderMove != Move::None)
-                    rms.front().pv.push_back(bookPonderMove);
+                    rms[0].pv.push_back(bookPonderMove);
             }
         }
         else
@@ -285,7 +285,7 @@ void Worker::start_search() noexcept {
 
         else if (multiPV == 1 && threads.size() > 1
                  && limit.mate == 0  //&& limit.depth == DEPTH_ZERO
-                 && rootMoves.front().pv[0] != Move::None)
+                 && rootMoves[0].pv[0] != Move::None)
         {
             bestWorker = threads.best_thread()->worker.get();
 
@@ -297,14 +297,14 @@ void Worker::start_search() noexcept {
         if (limit.use_time_manager())
         {
             mainManager->moveFirst        = false;
-            mainManager->preBestCurValue  = bestWorker->rootMoves.front().curValue;
-            mainManager->preBestAvgValue  = bestWorker->rootMoves.front().avgValue;
+            mainManager->preBestCurValue  = bestWorker->rootMoves[0].curValue;
+            mainManager->preBestAvgValue  = bestWorker->rootMoves[0].avgValue;
             mainManager->preTimeReduction = mainManager->timeReduction;
         }
     }
 
-    assert(!bestWorker->rootMoves.empty() && !bestWorker->rootMoves.front().pv.empty());
-    const auto& rm = bestWorker->rootMoves.front();
+    assert(!bestWorker->rootMoves.empty() && !bestWorker->rootMoves[0].pv.empty());
+    const auto& rm = bestWorker->rootMoves[0];
 
     auto bestMove   = UCI::move_to_can(rm.pv[0]);
     auto ponderMove = UCI::move_to_can(
@@ -475,7 +475,7 @@ void Worker::iterative_deepening() noexcept {
                 // had time to fully search other root-moves. Thus, suppress this output and
                 // below pick a proven score/PV for this thread (from the previous iteration).
                 && !(threads.abort.load(std::memory_order_relaxed)
-                     && is_loss(rootMoves.front().uciValue)))
+                     && is_loss(rootMoves[0].uciValue)))
                 mainManager->show_pv(*this, rootDepth);
 
             if (threads.stop.load(std::memory_order_relaxed))
@@ -488,23 +488,22 @@ void Worker::iterative_deepening() noexcept {
         // Make sure not to pick an unproven mated-in score,
         // in case this worker prematurely stopped the search (aborted-search).
         if (threads.abort.load(std::memory_order_relaxed) && lastBestPV[0] != Move::None
-            && (rootMoves.front().curValue != -VALUE_INFINITE
-                && is_loss(rootMoves.front().curValue)))
+            && rootMoves[0].curValue != -VALUE_INFINITE && is_loss(rootMoves[0].curValue))
         {
             // Bring the last best rootMove to the front for best thread selection.
             rootMoves.move_to_front([&lastBestPV = std::as_const(lastBestPV)](
                                       const auto& rm) noexcept { return rm == lastBestPV[0]; });
-            rootMoves.front().pv       = lastBestPV;
-            rootMoves.front().curValue = lastBestCurValue;
-            rootMoves.front().preValue = lastBestPreValue;
-            rootMoves.front().uciValue = lastBestUciValue;
+            rootMoves[0].pv       = lastBestPV;
+            rootMoves[0].curValue = lastBestCurValue;
+            rootMoves[0].preValue = lastBestPreValue;
+            rootMoves[0].uciValue = lastBestUciValue;
         }
-        else if (rootMoves.front().pv[0] != lastBestPV[0])
+        else if (rootMoves[0].pv[0] != lastBestPV[0])
         {
-            lastBestPV       = rootMoves.front().pv;
-            lastBestCurValue = rootMoves.front().curValue;
-            lastBestPreValue = rootMoves.front().preValue;
-            lastBestUciValue = rootMoves.front().uciValue;
+            lastBestPV       = rootMoves[0].pv;
+            lastBestCurValue = rootMoves[0].curValue;
+            lastBestPreValue = rootMoves[0].preValue;
+            lastBestUciValue = rootMoves[0].uciValue;
             lastBestDepth    = completedDepth;
         }
 
@@ -512,13 +511,11 @@ void Worker::iterative_deepening() noexcept {
             continue;
 
         // Have found a "mate in x"?
-        if (limit.mate != 0 && rootMoves.front().curValue == rootMoves.front().uciValue
-            && ((rootMoves.front().curValue != +VALUE_INFINITE
-                 && is_mate_win(rootMoves.front().curValue)
-                 && VALUE_MATE - rootMoves.front().curValue <= 2 * limit.mate)
-                || (rootMoves.front().curValue != -VALUE_INFINITE
-                    && is_mate_loss(rootMoves.front().curValue)
-                    && VALUE_MATE + rootMoves.front().curValue <= 2 * limit.mate)))
+        if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue
+            && ((rootMoves[0].curValue != +VALUE_INFINITE && is_mate_win(rootMoves[0].curValue)
+                 && VALUE_MATE - rootMoves[0].curValue <= 2 * limit.mate)
+                || (rootMoves[0].curValue != -VALUE_INFINITE && is_mate_loss(rootMoves[0].curValue)
+                    && VALUE_MATE + rootMoves[0].curValue <= 2 * limit.mate)))
             threads.stop.store(true, std::memory_order_relaxed);
 
         // If the skill level is enabled and time is up, pick a sub-optimal best move
@@ -562,13 +559,13 @@ void Worker::iterative_deepening() noexcept {
             // Compute node effort factor which slightly reduces effort if the completed depth is sufficiently high
             auto nodeEffortFactor = 1.0;
             if (completedDepth >= 10)
-                nodeEffortFactor -= 44.0924e-6 * std::max(-92425.0 + 100000.0 * rootMoves.front().nodes / std::max(nodes.load(std::memory_order_relaxed), std::uint64_t(1)), 0.0);
+                nodeEffortFactor -= 44.0924e-6 * std::max(-92425.0 + 100000.0 * rootMoves[0].nodes / std::max(nodes.load(std::memory_order_relaxed), std::uint64_t(1)), 0.0);
 
             // Compute recapture factor that reduces time if recapture conditions are met
             auto recaptureFactor = 1.0;
-            if ( rootPos.cap_sq() == rootMoves.front().pv[0].dst_sq()
+            if ( rootPos.cap_sq() == rootMoves[0].pv[0].dst_sq()
              && (rootPos.cap_sq() & rootPos.pieces(~ac))
-             && rootPos.see(rootMoves.front().pv[0]) >= 200)
+             && rootPos.see(rootMoves[0].pv[0]) >= 200)
                 recaptureFactor -= 13.8400e-3 * std::min(+stableDepth, 25);
 
             // Calculate total time by combining all factors with the optimum time
@@ -1905,7 +1902,7 @@ Move Worker::extract_tt_move(const Position& pos, Move ttMove, bool deep) const 
 // Try hard to have a ponder move to return to the GUI,
 // otherwise in case of 'ponder on' have nothing to think about.
 bool Worker::ponder_move_extracted() noexcept {
-    auto& rm = rootMoves.front();
+    auto& rm = rootMoves[0];
     assert(rm.pv.size() == 1);
 
     auto bm = rm.pv[0];
@@ -1932,10 +1929,9 @@ bool Worker::ponder_move_extracted() noexcept {
             {
                 if (th->worker.get() == this || th->worker->completedDepth == DEPTH_ZERO)
                     continue;
-                if (auto& rms = th->worker->rootMoves;
-                    rms.front().pv[0] == bm && rms.front().pv.size() > 1)
+                if (auto& rms = th->worker->rootMoves; rms[0].pv[0] == bm && rms[0].pv.size() > 1)
                 {
-                    pm = rms.front().pv[1];
+                    pm = rms[0].pv[1];
                     break;
                 }
             }
@@ -2008,7 +2004,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
         auto& rm = *rms.find(pvMove);
 
-        if (rm.tbRank != rms.front().tbRank)
+        if (rm.tbRank != rms[0].tbRank)
             break;
 
         rootPos.do_move(pvMove, states.emplace_back());
@@ -2043,7 +2039,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
             for (const auto& om : MoveList<LEGAL>(rootPos))
-                rm.tbRank -= 1 + 99 * rootPos.capture(om);
+                rm.tbRank -= rootPos.capture(om) ? 100 : 1;
             rootPos.undo_move(m);
         }
 
@@ -2064,7 +2060,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         if (!tbc.rootInTB || tbc.cardinality != 0)
             break;
 
-        const auto& pvMove = rms.front().pv[0];
+        const auto& pvMove = rms[0].pv[0];
         rootMove.pv.push_back(pvMove);
         rootPos.do_move(pvMove, states.emplace_back());
 
