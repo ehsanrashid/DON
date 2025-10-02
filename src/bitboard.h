@@ -233,29 +233,26 @@ template<Direction D>
 constexpr Bitboard shift(Bitboard b) noexcept {
     if constexpr (D == NORTH)
         return b << NORTH;
-    else if constexpr (D == SOUTH)
+    if constexpr (D == SOUTH)
         return b >> NORTH;
-    else if constexpr (D == NORTH_2)
+    if constexpr (D == NORTH_2)
         return b << NORTH_2;
-    else if constexpr (D == SOUTH_2)
+    if constexpr (D == SOUTH_2)
         return b >> NORTH_2;
-    else if constexpr (D == EAST)
+    if constexpr (D == EAST)
         return (b & ~FILE_H_BB) << EAST;
-    else if constexpr (D == WEST)
+    if constexpr (D == WEST)
         return (b & ~FILE_A_BB) >> EAST;
-    else if constexpr (D == NORTH_WEST)
+    if constexpr (D == NORTH_WEST)
         return (b & ~FILE_A_BB) << NORTH_WEST;
-    else if constexpr (D == SOUTH_EAST)
+    if constexpr (D == SOUTH_EAST)
         return (b & ~FILE_H_BB) >> NORTH_WEST;
-    else if constexpr (D == NORTH_EAST)
+    if constexpr (D == NORTH_EAST)
         return (b & ~FILE_H_BB) << NORTH_EAST;
-    else if constexpr (D == SOUTH_WEST)
+    if constexpr (D == SOUTH_WEST)
         return (b & ~FILE_A_BB) >> NORTH_EAST;
-    else
-    {
-        assert(false);
-        return 0;
-    }
+    assert(false);
+    return 0;
 }
 
 template<Color C>
@@ -307,16 +304,16 @@ constexpr Bitboard attacks_bb(Square s, Bitboard occupied) noexcept {
     assert(is_ok(s));
     if constexpr (PT == KNIGHT)
         return attacks_bb<KNIGHT>(s);
-    else if constexpr (PT == BISHOP)
+    if constexpr (PT == BISHOP)
         return attacks_bb<BISHOP>(&Magics[s], occupied);
-    else if constexpr (PT == ROOK)
+    if constexpr (PT == ROOK)
         return attacks_bb<ROOK>(&Magics[s], occupied);
-    else if constexpr (PT == QUEEN)
+    if constexpr (PT == QUEEN)
         return attacks_bb<BISHOP>(s, occupied) | attacks_bb<ROOK>(s, occupied);
-    else if constexpr (PT == KING)
+    if constexpr (PT == KING)
         return attacks_bb<KING>(s);
-    else
-        return 0;
+    assert(false);
+    return 0;
 }
 
 // Returns the attacks by the given piece type

@@ -414,17 +414,13 @@ inline Bitboard Position::pieces(Color c, PieceTypes... pts) const noexcept {
 
 template<PieceType PT>
 inline Bitboard Position::pieces(Color c, Square s, Bitboard blockers) const noexcept {
-    switch (PT)
-    {
-    case KNIGHT :
+    if constexpr (PT == KNIGHT)
         return pieces(c, KNIGHT) & (~blockers);
-    case BISHOP :
+    if constexpr (PT == BISHOP)
         return pieces(c, BISHOP) & (~blockers | attacks_bb<BISHOP>(s));
-    case ROOK :
+    if constexpr (PT == ROOK)
         return pieces(c, ROOK) & (~blockers | attacks_bb<ROOK>(s));
-    default :
-        return pieces(c, PT);
-    }
+    return pieces(c, PT);
 }
 
 template<PieceType PT>
@@ -548,7 +544,7 @@ inline Bitboard Position::attacks_by(Color c) const noexcept {
 
         Square kingSq = king_sq(c);
 
-        Bitboard pc = pieces<PT>(c, kingSq, blockers(c));
+        Bitboard pc = pieces<PT>(c, kingSq);
         while (pc)
         {
             Square   s = pop_lsb(pc);
