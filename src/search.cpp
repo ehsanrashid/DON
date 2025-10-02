@@ -274,10 +274,10 @@ void Worker::start_search() noexcept {
     if (think)
     {
         // When playing in 'Nodes as Time' mode,
-        // subtract the searched nodes from the start nodes before exiting.
-        if (mainManager->timeManager.use_nodes_time())
-            mainManager->timeManager.decrement_remaining_nodes(
-              threads.nodes() - limit.clocks[rootPos.active_color()].inc);
+        // subtract the searched nodes from the time nodes before exiting.
+        if (mainManager->timeManager.nodesTimeUse)
+            mainManager->timeManager.advance_time_nodes(threads.nodes()
+                                                        - limit.clocks[rootPos.active_color()].inc);
 
         // If the skill level is enabled, swap the best PV line with the sub-optimal one
         if (mainManager->skill.enabled())

@@ -37,11 +37,7 @@ void TimeManager::init() noexcept {
 
     timeAdjust = -1.0;
 
-    optimumTime = 0;
-    maximumTime = 0;
-
-    nodesTime   = 0;
-    remainNodes = 0;
+    timeNodes = 0;
 }
 
 // Called at the beginning of the search and calculates
@@ -57,7 +53,8 @@ void TimeManager::init(
     startTime   = limit.startTime;
     auto& clock = limit.clocks[ac];
 
-    nodesTime = options["NodesTime"];
+    TimePoint nodesTime = options["NodesTime"];
+    nodesTimeUse        = nodesTime > 0;
 
     if (clock.time == 0)
     {
@@ -72,19 +69,19 @@ void TimeManager::init(
     // and use resulting values in time management formulas.
     // WARNING: to avoid time losses, the given nodesTime (nodes per millisecond)
     // must be much lower than the real engine speed.
-    if (use_nodes_time())
+    if (nodesTimeUse)
     {
         // Only once at game start
-        if (remainNodes == 0)
-            remainNodes = clock.time * nodesTime + OffsetNode;  // Time is in msec
+        if (timeNodes == 0)
+            timeNodes = clock.time * nodesTime + OffsetNode;  // Time is in msec
 
         // Convert from milliseconds to nodes
-        clock.time = TimePoint(remainNodes - OffsetNode);
+        clock.time = timeNodes - OffsetNode;
         clock.inc *= nodesTime;
         moveOverhead *= nodesTime;
     }
 
-    const std::int64_t scaleFactor = std::max(nodesTime, TimePoint(1));
+    const std::uint64_t scaleFactor = std::max(nodesTime, TimePoint(1));
 
     const TimePoint scaledTime = clock.time / scaleFactor;
 
@@ -164,9 +161,9 @@ void TimeManager::init(
 }
 
 // When in 'Nodes as Time' mode
-void TimeManager::decrement_remaining_nodes(std::int64_t usedNodes) noexcept {
-    assert(use_nodes_time());
-    remainNodes = std::max(remainNodes - usedNodes, OffsetNode);
+void TimeManager::advance_time_nodes(std::uint64_t usedNodes) noexcept {
+    assert(nodesTimeUse);
+    timeNodes = std::max(std::int64_t(timeNodes - usedNodes), OffsetNode);
 }
 
 }  // namespace DON

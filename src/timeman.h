@@ -43,7 +43,7 @@ class TimeManager final {
     TimePoint elapsed() const noexcept { return now() - startTime; }
     template<typename Func>
     TimePoint elapsed(Func nodes) const noexcept {
-        return use_nodes_time() ? TimePoint(nodes()) : elapsed();
+        return nodesTimeUse ? TimePoint(nodes()) : elapsed();
     }
 
     void init() noexcept;
@@ -53,22 +53,20 @@ class TimeManager final {
               std::int32_t   moveNum,
               const Options& options) noexcept;
 
-    bool use_nodes_time() const noexcept { return nodesTime > 0; }
+    void advance_time_nodes(std::uint64_t usedNodes) noexcept;
 
-    void decrement_remaining_nodes(std::int64_t usedNodes) noexcept;
+    bool nodesTimeUse;
 
    private:
-    static constexpr std::uint64_t OffsetNode = 1;
+    static constexpr std::int64_t OffsetNode = 1;
 
     TimePoint startTime;
-
-    double timeAdjust;
-
     TimePoint optimumTime;
     TimePoint maximumTime;
 
-    TimePoint     nodesTime;
-    std::uint64_t remainNodes;
+    double timeAdjust;
+
+    std::uint64_t timeNodes;
 };
 
 }  // namespace DON
