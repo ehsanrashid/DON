@@ -53,7 +53,7 @@ class TimeManager final {
               std::int32_t   moveNum,
               const Options& options) noexcept;
 
-    void advance_time_nodes(std::int64_t usedNodes) noexcept;
+    void advance_time_nodes(std::int64_t nodes) noexcept;
 
     bool nodesTimeUse;
 

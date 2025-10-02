@@ -161,12 +161,9 @@ void TimeManager::init(
 }
 
 // When in 'Nodes as Time' mode
-void TimeManager::advance_time_nodes(std::int64_t usedNodes) noexcept {
+void TimeManager::advance_time_nodes(std::int64_t nodes) noexcept {
     assert(nodesTimeUse);
-    // If usedNodes is negative, set it to timeNodes
-    if (usedNodes < 0)
-        usedNodes = timeNodes;
-    timeNodes = timeNodes > usedNodes ? timeNodes - usedNodes : 0;
+    timeNodes = std::max(timeNodes - nodes, std::int64_t(0));
 }
 
 }  // namespace DON
