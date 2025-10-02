@@ -633,10 +633,7 @@ void Position::set_ext_state() noexcept {
                 st->pinners[blocker & pieces(c) ? ~c : c] |= xsniper;
             }
         }
-    }
 
-    for (Color c : {WHITE, BLACK})
-    {
         st->attacks[c][NO_PIECE_TYPE] = 0;
         st->attacks[c][PAWN  ] = attacks_by<PAWN  >(c);
         st->attacks[c][KNIGHT] = attacks_by<KNIGHT>(c) | attacks<PAWN  >(c);
