@@ -223,7 +223,7 @@ class RootMoves final {
     void swap_to_front(const Move& m) noexcept {
         auto itr = find(m);
         if (itr != end())
-            std::swap(*begin(), *itr);
+            std::swap(front(), *itr);
     }
 
     // Sorts within the range [beg, end)

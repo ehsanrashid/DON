@@ -504,13 +504,9 @@ class TBTables final {
    public:
     template<TBType Type>
     TBTable<Type>* get(Key key) noexcept {
-        const auto* entry = &entries[index(key)];
-        while (true)
-        {
+        for (const Entry* entry = &entries[index(key)];; ++entry)
             if (entry->key == key || !entry->get<Type>())
                 return entry->get<Type>();
-            ++entry;
-        }
     }
 
     void clear() noexcept {
@@ -860,12 +856,15 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // Look for the first piece of the leading group not on the A1-D4 diagonal
     // and ensure it is mapped below the diagonal.
     for (int i = 0; i < pd->groupLen[0]; ++i)
+    {
+        if (!off_A1H8(squares[i]))
+            continue;
+
         if (off_A1H8(squares[i]) > 0)  // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
-        {
             for (int j = i; j < size; ++j)
                 squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 0x3F);
-            break;
-        }
+        break;
+    }
 
     // Encode the leading group.
     //
@@ -1290,7 +1289,7 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRA
     if (materialKey == 0)  // KvK, pos.count<ALL_PIECE>() == 2
         return Ret(WDL_DRAW);
 
-    auto* entry = tbTables.get<Type>(materialKey);
+    TBTable<Type>* entry = tbTables.get<Type>(materialKey);
 
     if (entry == nullptr || mapped(pos, materialKey, *entry) == nullptr)
         return *ps = PS_FAIL, Ret();
