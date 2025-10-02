@@ -37,8 +37,6 @@
 #include <utility>
 #include <vector>
 
-#include "memory.h"
-
 // Support linux very well, but explicitly do NOT support Android,
 // because there is no affected systems, not worth maintaining.
 #if defined(__linux__) && !defined(__ANDROID__)
@@ -73,6 +71,7 @@ using GetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT, 
 
 #endif
 
+#include "memory.h"
 #include "misc.h"
 
 namespace DON {

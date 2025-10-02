@@ -18,15 +18,14 @@
 #include "movegen.h"
 
 #include <initializer_list>
-
-#include "bitboard.h"
-#include "position.h"
-
 #if defined(USE_AVX512ICL)
     #include <algorithm>
     #include <array>
     #include <immintrin.h>
 #endif
+
+#include "bitboard.h"
+#include "position.h"
 
 namespace DON {
 

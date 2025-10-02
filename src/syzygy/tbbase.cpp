@@ -35,15 +35,6 @@
 #include <utility>
 #include <vector>
 
-#include "../bitboard.h"
-#include "../misc.h"
-#include "../movegen.h"
-#include "../position.h"
-#include "../search.h"
-#include "../types.h"
-#include "../uci.h"
-#include "../ucioption.h"
-
 #if defined(_WIN32)
     #define WIN32_LEAN_AND_MEAN
     #if !defined(NOMINMAX)
@@ -55,6 +46,15 @@
     #include <sys/mman.h>
     #include <unistd.h>
 #endif
+
+#include "../bitboard.h"
+#include "../misc.h"
+#include "../movegen.h"
+#include "../position.h"
+#include "../search.h"
+#include "../types.h"
+#include "../uci.h"
+#include "../ucioption.h"
 
 using namespace DON::Tablebases;
 
