@@ -76,14 +76,14 @@ void TimeManager::init(
             timeNodes = clock.time * nodesTime;  // Time is in msec
 
         // Convert from milliseconds to nodes
-        clock.time = timeNodes;
+        clock.time = std::max(timeNodes, TimePoint(1));
         clock.inc *= nodesTime;
         moveOverhead *= nodesTime;
     }
 
-    const std::uint64_t scaleFactor = std::max(nodesTime, TimePoint(1));
+    const std::int64_t scaleFactor = std::max(nodesTime, TimePoint(1));
 
-    const TimePoint scaledTime = clock.time / scaleFactor;
+    const TimePoint scaledTime = std::max(clock.time / scaleFactor, TimePoint(1));
 
     // clang-format off
 
@@ -161,9 +161,12 @@ void TimeManager::init(
 }
 
 // When in 'Nodes as Time' mode
-void TimeManager::advance_time_nodes(std::uint64_t usedNodes) noexcept {
+void TimeManager::advance_time_nodes(std::int64_t usedNodes) noexcept {
     assert(nodesTimeUse);
-    timeNodes = std::uint64_t(timeNodes) > usedNodes ? timeNodes - usedNodes : 0;
+    // If usedNodes is negative, set it to timeNodes
+    if (usedNodes < 0)
+        usedNodes = timeNodes;
+    timeNodes = timeNodes > usedNodes ? timeNodes - usedNodes : 0;
 }
 
 }  // namespace DON
