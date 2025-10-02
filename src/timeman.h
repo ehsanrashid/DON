@@ -58,7 +58,7 @@ class TimeManager final {
     bool nodesTimeUse;
 
    private:
-    static constexpr std::int64_t OffsetNode = 1;
+    static constexpr std::uint64_t OffsetNode = 1;
 
     TimePoint startTime;
     TimePoint optimumTime;
