@@ -58,15 +58,13 @@ class TimeManager final {
     bool nodesTimeUse;
 
    private:
-    static constexpr std::uint64_t OffsetNode = 1;
-
     TimePoint startTime;
     TimePoint optimumTime;
     TimePoint maximumTime;
 
     double timeAdjust;
 
-    std::uint64_t timeNodes;
+    std::int64_t timeNodes;
 };
 
 }  // namespace DON

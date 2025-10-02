@@ -376,9 +376,7 @@ class MainSearchManager final: public ISearchManager {
    public:
     MainSearchManager() noexcept = delete;
     explicit MainSearchManager(const UpdateContext& updateContext) noexcept :
-        updateCxt(updateContext) {
-        init();
-    }
+        updateCxt(updateContext) {}
 
     void init() noexcept;
 

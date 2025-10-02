@@ -37,7 +37,7 @@ void TimeManager::init() noexcept {
 
     timeAdjust = -1.0;
 
-    timeNodes = 0;
+    timeNodes = -1;
 }
 
 // Called at the beginning of the search and calculates
@@ -72,11 +72,11 @@ void TimeManager::init(
     if (nodesTimeUse)
     {
         // Only once at game start
-        if (timeNodes == 0)
-            timeNodes = clock.time * nodesTime + OffsetNode;  // Time is in msec
+        if (timeNodes == -1)
+            timeNodes = clock.time * nodesTime;  // Time is in msec
 
         // Convert from milliseconds to nodes
-        clock.time = timeNodes - OffsetNode;
+        clock.time = timeNodes;
         clock.inc *= nodesTime;
         moveOverhead *= nodesTime;
     }
@@ -163,7 +163,7 @@ void TimeManager::init(
 // When in 'Nodes as Time' mode
 void TimeManager::advance_time_nodes(std::uint64_t usedNodes) noexcept {
     assert(nodesTimeUse);
-    timeNodes = timeNodes > usedNodes ? timeNodes - usedNodes : OffsetNode;
+    timeNodes = std::uint64_t(timeNodes) > usedNodes ? timeNodes - usedNodes : 0;
 }
 
 }  // namespace DON
