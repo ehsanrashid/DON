@@ -60,17 +60,14 @@ constexpr Stage& operator++(Stage& s) noexcept { return s = s + 1; }
 
 struct ExtMove final: public Move {
    public:
-    ExtMove& operator=(const Move& m) noexcept {
-        Move::operator=(m);
-        return *this;
-    }
+    using Move::operator=;
 
     bool operator<(const ExtMove& em) const noexcept { return value < em.value; }
     bool operator>(const ExtMove& em) const noexcept { return (em < *this); }
     bool operator<=(const ExtMove& em) const noexcept { return !(*this > em); }
     bool operator>=(const ExtMove& em) const noexcept { return !(*this < em); }
 
-    int value = 0;
+    int value;
 };
 
 // MovePicker class is used to pick one pseudo-legal move at a time from the given current position.
