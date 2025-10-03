@@ -53,8 +53,8 @@ void TimeManager::init(
     startTime   = limit.startTime;
     auto& clock = limit.clocks[ac];
 
-    TimePoint nodesTime = options["NodesTime"];
-    nodesTimeUse        = nodesTime > 0;
+    std::int64_t nodesTime = options["NodesTime"];
+    nodesTimeUse           = nodesTime > 0;
 
     if (clock.time == 0)
     {
@@ -76,12 +76,12 @@ void TimeManager::init(
             timeNodes = clock.time * nodesTime;  // Time is in msec
 
         // Convert from milliseconds to nodes
-        clock.time = std::max(timeNodes, TimePoint(1));
+        clock.time = std::max(timeNodes, std::int64_t(1));
         clock.inc *= nodesTime;
         moveOverhead *= nodesTime;
     }
 
-    const std::int64_t scaleFactor = std::max(nodesTime, TimePoint(1));
+    const std::int64_t scaleFactor = std::max(nodesTime, std::int64_t(1));
 
     const TimePoint scaledTime = std::max(clock.time / scaleFactor, TimePoint(1));
 

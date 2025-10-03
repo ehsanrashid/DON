@@ -273,19 +273,21 @@ void Worker::start_search() noexcept {
 
     if (think)
     {
-        // When playing in 'Nodes as Time' mode,
-        // subtract the searched nodes from the time nodes before exiting.
+        // When playing in 'Nodes as Time' mode, advance the time nodes before exiting.
         if (mainManager->timeManager.nodesTimeUse)
             mainManager->timeManager.advance_time_nodes(threads.nodes()
                                                         - limit.clocks[rootPos.active_color()].inc);
 
         // If the skill level is enabled, swap the best PV line with the sub-optimal one
         if (mainManager->skill.enabled())
-            rootMoves.swap_to_front(mainManager->skill.pick_move(rootMoves, multiPV, false));
+        {
+            Move m = mainManager->skill.pick_move(rootMoves, multiPV, false);
+            for (auto&& th : threads)
+                th->worker->rootMoves.swap_to_front(m);
+        }
 
-        else if (multiPV == 1 && threads.size() > 1
-                 && limit.mate == 0  //&& limit.depth == DEPTH_ZERO
-                 && rootMoves[0].pv[0] != Move::None)
+        if (multiPV == 1 && threads.size() > 1 && limit.mate == 0  //&& limit.depth == DEPTH_ZERO
+            && rootMoves[0].pv[0] != Move::None)
         {
             bestWorker = threads.best_thread()->worker.get();
 
@@ -451,7 +453,8 @@ void Worker::iterative_deepening() noexcept {
                 }
                 else if (bestValue >= beta)
                 {
-                    beta = std::min(bestValue + delta, +VALUE_INFINITE);
+                    alpha = std::max(+alpha, beta - delta);
+                    beta  = std::min(bestValue + delta, +VALUE_INFINITE);
 
                     ++failHighCnt;
                 }
@@ -610,7 +613,7 @@ Value Worker::search(Position&    pos,
                      std::int8_t  red,
                      const Move&  excludedMove) noexcept {
     constexpr bool RootNode = NT == Root;
-    constexpr bool PVNode   = NT & PV;
+    constexpr bool PVNode   = RootNode || NT == PV;
     constexpr bool CutNode  = NT == Cut;  // !PVNode
     constexpr bool AllNode  = NT == All;  // !PVNode
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);

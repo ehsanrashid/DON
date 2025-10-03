@@ -602,7 +602,7 @@ void Position::set_ext_state() noexcept {
 
     // clang-format off
     st->checks[NO_PIECE_TYPE] = 0;
-    st->checks[PAWN  ] = attacks_bb<PAWN>(king_sq(~active_color()), ~active_color());
+    st->checks[PAWN  ] = attacks_bb<PAWN  >(king_sq(~active_color()), ~active_color());
     st->checks[KNIGHT] = attacks_bb<KNIGHT>(king_sq(~active_color()));
     st->checks[BISHOP] = attacks_bb<BISHOP>(king_sq(~active_color()), occupied);
     st->checks[ROOK  ] = attacks_bb<ROOK  >(king_sq(~active_color()), occupied);
