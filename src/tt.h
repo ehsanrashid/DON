@@ -191,53 +191,6 @@ struct TTCluster final {
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
-// Adjusts a mate or TB score from "plies to mate from the root"
-// to "plies to mate from the current position". Standard scores are unchanged.
-// The function is called before storing a value in the transposition table.
-constexpr Value value_to_tt(Value v, std::int16_t ply) noexcept {
-    return is_win(v) ? v + ply : is_loss(v) ? v - ply : v;
-}
-
-// Inverse of value_to_tt(): it adjusts a mate or TB score
-// from the transposition table (which refers to the plies to mate/be mated from
-// current position) to "plies to mate/be mated (TB win/loss) from the root".
-// However, to avoid potentially false mate or TB scores related to the 50 moves rule
-// and the graph history interaction, return the highest non-TB score instead.
-constexpr Value value_from_tt(Value v, std::int16_t ply, std::int16_t rule50Count) noexcept {
-
-    if (!is_valid(v))
-        return v;
-    assert(is_ok(v));
-    // Handle TB win or better
-    if (is_win(v))
-    {
-        // Downgrade a potentially false mate value
-        if (is_mate_win(v) && VALUE_MATE - v > 2 * DrawMoveCount - rule50Count)
-            return VALUE_TB_WIN_IN_MAX_PLY - 1;
-
-        // Downgrade a potentially false TB value
-        if (VALUE_TB - v > 2 * DrawMoveCount - rule50Count)
-            return VALUE_TB_WIN_IN_MAX_PLY - 1;
-
-        return v - ply;
-    }
-    // Handle TB loss or worse
-    if (is_loss(v))
-    {
-        // Downgrade a potentially false mate value
-        if (is_mate_loss(v) && VALUE_MATE + v > 2 * DrawMoveCount - rule50Count)
-            return VALUE_TB_LOSS_IN_MAX_PLY + 1;
-
-        // Downgrade a potentially false TB value
-        if (VALUE_TB + v > 2 * DrawMoveCount - rule50Count)
-            return VALUE_TB_LOSS_IN_MAX_PLY + 1;
-
-        return v + ply;
-    }
-
-    return v;
-}
-
 class TTUpdater final {
    public:
     TTUpdater() noexcept                            = delete;
