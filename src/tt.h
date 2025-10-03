@@ -196,13 +196,7 @@ static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 // to "plies to mate from the current position". Standard scores are unchanged.
 // The function is called before storing a value in the transposition table.
 constexpr Value value_to_tt(Value v, std::int16_t ply) noexcept {
-
-    if (!is_valid(v))
-        return v;
-    assert(is_ok(v));
-    return is_win(v)  ? std::min(v + ply, +VALUE_MATE)
-         : is_loss(v) ? std::max(v - ply, -VALUE_MATE)
-                      : v;
+    return is_win(v) ? v + ply : is_loss(v) ? v - ply : v;
 }
 
 // Inverse of value_to_tt(): it adjusts a mate or TB score
@@ -253,12 +247,10 @@ class TTUpdater final {
     TTUpdater& operator=(const TTUpdater&) noexcept = delete;
     TTUpdater& operator=(TTUpdater&&) noexcept      = delete;
 
-    TTUpdater(
-      TTEntry* te, TTCluster* const tc, Key16 k16, std::int16_t ply, std::uint8_t gen) noexcept :
+    TTUpdater(TTEntry* te, TTCluster* const tc, Key16 k16, std::uint8_t gen) noexcept :
         tte(te),
         ttc(tc),
         key16(k16),
-        ssPly(ply),
         generation(gen) {}
 
     void update(Depth d, bool pv, Bound b, const Move& m, Value v, Value ev) noexcept {
@@ -284,14 +276,13 @@ class TTUpdater final {
                 tte->clear();
         }
 
-        tte->save(key16, d, pv, b, m, value_to_tt(v, ssPly), ev, generation);
+        tte->save(key16, d, pv, b, m, v, ev, generation);
     }
 
    private:
     TTEntry*         tte;
     TTCluster* const ttc;
     Key16            key16;
-    std::int16_t     ssPly;
     std::uint8_t     generation;
 };
 

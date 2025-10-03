@@ -693,7 +693,7 @@ Value Worker::search(Position&    pos,
     Key16 key16 = compress_key16(key);
 
     auto [ttd, tte, ttc] = tt.probe(key, key16);
-    TTUpdater ttu(tte, ttc, key16, ss->ply, tt.generation());
+    TTUpdater ttu(tte, ttc, key16, tt.generation());
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = RootNode ? rootMoves[curIdx].pv[0]
@@ -798,7 +798,7 @@ Value Worker::search(Position&    pos,
                 if (bound == BOUND_EXACT || (bound == BOUND_LOWER ? value >= beta : value <= alpha))
                 {
                     ttu.update(std::min(depth + 6, MAX_PLY - 1), ss->pvHit, bound, Move::None,
-                               value, VALUE_NONE);
+                               value_to_tt(value, ss->ply), VALUE_NONE);
 
                     return value;
                 }
@@ -1030,8 +1030,8 @@ Value Worker::search(Position&    pos,
 
                 // Save ProbCut data into transposition table
                 if (!exclude)
-                    ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move, value,
-                               unadjustedStaticEval);
+                    ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move,
+                               value_to_tt(value, ss->ply), unadjustedStaticEval);
 
                 return value;
             }
@@ -1546,7 +1546,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                     : PVNode && bestMove != Move::None ? BOUND_EXACT
                                                        : BOUND_UPPER;
         ttu.update(moveCount != 0 ? depth : std::min(depth + 6, MAX_PLY - 1), ss->pvHit, bound,
-                   bestMove, bestValue, unadjustedStaticEval);
+                   bestMove, value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
     }
 
     // Adjust correction history
@@ -1613,7 +1613,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     Key16 key16 = compress_key16(key);
 
     auto [ttd, tte, ttc] = tt.probe(key, key16);
-    TTUpdater ttu(tte, ttc, key16, ss->ply, tt.generation());
+    TTUpdater ttu(tte, ttc, key16, tt.generation());
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = ttd.hit ? extract_tt_move(pos, ttd.move) : Move::None;
@@ -1670,7 +1670,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             bestValue = (bestValue + beta) / 2;
 
         if (!ttd.hit)
-            ttu.update(DEPTH_NONE, false, BOUND_LOWER, Move::None, bestValue, unadjustedStaticEval);
+            ttu.update(DEPTH_NONE, false, BOUND_LOWER, Move::None, value_to_tt(bestValue, ss->ply),
+                       unadjustedStaticEval);
 
         return bestValue;
     }
@@ -1826,8 +1827,8 @@ QS_MOVES_LOOP:
         bestValue = (bestValue + beta) / 2;
 
     // Save gathered info in transposition table
-    Bound bound = fail_bound(bestValue >= beta);
-    ttu.update(DEPTH_ZERO, pvHit, bound, bestMove, bestValue, unadjustedStaticEval);
+    ttu.update(DEPTH_ZERO, pvHit, fail_bound(bestValue >= beta), bestMove,
+               value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
 
     assert(is_ok(bestValue));
 
