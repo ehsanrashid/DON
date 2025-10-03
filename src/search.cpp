@@ -1369,7 +1369,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             // Extend deep enough ttMove entries if about to dive into qsearch
             if (rootDepth > 6 && move == ttd.move && ttd.depth > 1
-                && tt.lastHashfull.load(std::memory_order_relaxed) <= 960)
+                && tt.hashFull.load(std::memory_order_relaxed) <= 960)
                 newDepth = std::max(+newDepth, 1);
 
             value = -search<PV>(pos, ss + 1, -beta, -alpha, newDepth);

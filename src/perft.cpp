@@ -150,6 +150,8 @@ struct PTCluster final {
 
 static_assert(sizeof(PTCluster) == 64, "Unexpected PTCluster size");
 
+using ProbResult = std::tuple<bool, PTEntry* const>;
+
 class PerftTable final {
 
    public:
@@ -164,41 +166,30 @@ class PerftTable final {
     void resize(std::size_t mbSize, ThreadPool& threads) noexcept;
     void init(ThreadPool& threads) noexcept;
 
-    std::tuple<bool, PTEntry* const> probe(Key key, Depth depth) const noexcept;
+    ProbResult probe(Key key, Depth depth) const noexcept;
 
    private:
     auto* cluster(Key key) const noexcept { return &clusters[mul_hi64(key, clusterCount)]; }
 
-    PTCluster*  clusters     = nullptr;
-    std::size_t clusterCount = 0;
+    PTCluster*  clusters;
+    std::size_t clusterCount;
 };
 
 PerftTable::~PerftTable() noexcept { free(); }
 
-void PerftTable::free() noexcept {
-    free_aligned_lp(clusters);
-    clusters     = nullptr;
-    clusterCount = 0;
-}
+void PerftTable::free() noexcept { free_aligned_lp(clusters); }
 
 void PerftTable::resize(std::size_t ptSize, ThreadPool& threads) noexcept {
+    free();
 
-    std::size_t newClusterCount = ptSize * 1024 * 1024 / sizeof(PTCluster);
-    assert(newClusterCount % 2 == 0);
+    clusterCount = ptSize * 1024 * 1024 / sizeof(PTCluster);
+    assert(clusterCount % 2 == 0);
 
-    if (clusterCount != newClusterCount)
+    clusters = static_cast<PTCluster*>(alloc_aligned_lp(clusterCount * sizeof(PTCluster)));
+    if (clusters == nullptr)
     {
-        free();
-
-        clusterCount = newClusterCount;
-
-        clusters = static_cast<PTCluster*>(alloc_aligned_lp(clusterCount * sizeof(PTCluster)));
-        if (clusters == nullptr)
-        {
-            clusterCount = 0;
-            std::cerr << "Failed to allocate " << ptSize << "MB for perft table." << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
+        std::cerr << "Failed to allocate " << ptSize << "MB for perft table." << std::endl;
+        std::exit(EXIT_FAILURE);
     }
 
     init(threads);
@@ -227,7 +218,7 @@ void PerftTable::init(ThreadPool& threads) noexcept {
         threads.wait_on_thread(threadId);
 }
 
-std::tuple<bool, PTEntry* const> PerftTable::probe(Key key, Depth depth) const noexcept {
+ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
     auto* const ptc = cluster(key);
     auto* const fte = &ptc->entry[0];

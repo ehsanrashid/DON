@@ -335,12 +335,12 @@ class TranspositionTable final {
     // Prefetch the cache line which includes this key's entry
     void prefetch_key(Key key) const noexcept { prefetch(cluster(key)); }
 
-    std::atomic<std::uint16_t> lastHashfull{0};
+    std::atomic<std::uint16_t> hashFull;
 
    private:
-    TTCluster*   clusters     = nullptr;
-    std::size_t  clusterCount = 0;
-    std::uint8_t generation8  = 0;  // Size must be not bigger than TTEntry::genData8
+    TTCluster*   clusters;
+    std::size_t  clusterCount;
+    std::uint8_t generation8;  // Size must be not bigger than TTEntry::genData8
 };
 
 }  // namespace DON

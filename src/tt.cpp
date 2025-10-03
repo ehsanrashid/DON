@@ -29,33 +29,21 @@ namespace DON {
 
 TranspositionTable::~TranspositionTable() noexcept { free(); }
 
-void TranspositionTable::free() noexcept {
-    free_aligned_lp(clusters);
-    clusters     = nullptr;
-    clusterCount = 0;
-}
+void TranspositionTable::free() noexcept { free_aligned_lp(clusters); }
 
 // Sets the size of the transposition table, measured in megabytes (MB).
 // Transposition table consists of even number of clusters.
 void TranspositionTable::resize(std::size_t ttSize, ThreadPool& threads) noexcept {
+    free();
 
-    std::size_t newClusterCount = ttSize * 1024 * 1024 / sizeof(TTCluster);
-    assert(newClusterCount % 2 == 0);
+    clusterCount = ttSize * 1024 * 1024 / sizeof(TTCluster);
+    assert(clusterCount % 2 == 0);
 
-    if (clusterCount != newClusterCount)
+    clusters = static_cast<TTCluster*>(alloc_aligned_lp(clusterCount * sizeof(TTCluster)));
+    if (clusters == nullptr)
     {
-        free();
-
-        clusterCount = newClusterCount;
-
-        clusters = static_cast<TTCluster*>(alloc_aligned_lp(clusterCount * sizeof(TTCluster)));
-        if (clusters == nullptr)
-        {
-            clusterCount = 0;
-            std::cerr << "Failed to allocate " << ttSize << "MB for transposition table."
-                      << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
+        std::cerr << "Failed to allocate " << ttSize << "MB for transposition table." << std::endl;
+        std::exit(EXIT_FAILURE);
     }
 
     init(threads);
@@ -64,7 +52,7 @@ void TranspositionTable::resize(std::size_t ttSize, ThreadPool& threads) noexcep
 // Initializes the entire transposition table to zero, in a multi-threaded way.
 void TranspositionTable::init(ThreadPool& threads) noexcept {
     generation8 = 0;
-    lastHashfull.store(0, std::memory_order_relaxed);
+    hashFull.store(0, std::memory_order_relaxed);
 
     std::size_t threadCount = threads.size();
 
@@ -123,8 +111,8 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
 }
 
 std::uint16_t TranspositionTable::hashfull() noexcept {
-    lastHashfull.store(hashfull(0), std::memory_order_relaxed);
-    return lastHashfull.load(std::memory_order_relaxed);
+    hashFull.store(hashfull(0), std::memory_order_relaxed);
+    return hashFull.load(std::memory_order_relaxed);
 }
 
 bool TranspositionTable::save(std::string_view hashFile) const noexcept {
