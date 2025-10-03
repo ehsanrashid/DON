@@ -1558,7 +1558,7 @@ S_MOVES_LOOP:  // When in check, search starts here
           // positive correction & no fail low
           || (bestValue > ss->staticEval && bestMove != Move::None)))
     {
-        int bonus = std::round(0.1250 * depth * (bestValue - ss->staticEval));
+        int bonus = (bestValue - ss->staticEval) * depth / 8;
         update_correction_history(pos, ss, bonus);
     }
 

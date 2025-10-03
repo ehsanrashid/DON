@@ -76,17 +76,15 @@ Value evaluate(const Position&          pos,
     // clang-format off
     std::int32_t complexity = std::abs(netOut.psqt - netOut.positional);
 
-    nnue     = std::round(nnue     * std::max(1.0 - 55.5555e-6 * complexity, 1.0e-4));
-    optimism = std::round(optimism *         (1.0 + 21.3675e-4 * complexity));
+    nnue     *= std::max(1.0 - 55.5555e-6 * complexity, 1.0e-4);
+    optimism *=         (1.0 + 21.3675e-4 * complexity);
 
     std::int32_t v = (nnue + 0.09999 * optimism)
                    + (nnue +           optimism) * pos.material() * 12.8572e-6;
     // clang-format on
 
     // Damp down the evaluation linearly when shuffling
-    auto dampFactor = std::max(1.0 - 4.7170e-3 * pos.rule50_count(), 0.0);
-
-    v = std::round(dampFactor * v);
+    v *= std::max(1.0 - 4.7170e-3 * pos.rule50_count(), 0.0);
 
     // Guarantee evaluation does not hit the table-base range
     return in_range(v);
