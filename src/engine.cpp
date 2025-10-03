@@ -169,7 +169,9 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
 
 std::uint64_t Engine::perft(Depth depth, bool detail) noexcept {
     //verify_networks();
-    return Benchmark::perft(pos, options["Hash"], threads, depth, detail);
+    if (Benchmark::use_perft_table(depth, detail))
+        Benchmark::resize_perft_table(options["Hash"], threads);
+    return Benchmark::perft(pos, depth, detail);
 }
 
 void Engine::start(const Limit& limit) noexcept {

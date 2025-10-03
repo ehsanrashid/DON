@@ -30,11 +30,11 @@ class ThreadPool;
 
 namespace Benchmark {
 
-std::uint64_t perft(Position&   pos,
-                    std::size_t ptSize,
-                    ThreadPool& threads,
-                    Depth       depth,
-                    bool        detail = false) noexcept;
+constexpr bool use_perft_table(Depth depth, bool detail) noexcept { return !detail && depth >= 4; }
+
+void resize_perft_table(std::size_t ptSize, ThreadPool& threads) noexcept;
+
+std::uint64_t perft(Position& pos, Depth depth, bool detail = false) noexcept;
 
 }  // namespace Benchmark
 }  // namespace DON
