@@ -239,6 +239,8 @@ ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
 PerftTable perftTable;
 
+constexpr bool use_perft_table(Depth depth, bool detail) noexcept { return !detail && depth >= 4; }
+
 // Utility to verify move generation.
 // All the leaf nodes up to the given depth are generated and counted,
 // and the sum is returned.
@@ -363,11 +365,11 @@ template Perft perft<false>(Position& pos, Depth depth, bool detail) noexcept;
 
 }  // namespace
 
-void resize_perft_table(std::size_t ptSize, ThreadPool& threads) noexcept {
-    perftTable.resize(ptSize, threads);
-}
+std::uint64_t
+perft(Position& pos, std::size_t ptSize, ThreadPool& threads, Depth depth, bool detail) noexcept {
 
-std::uint64_t perft(Position& pos, Depth depth, bool detail) noexcept {
+    if (use_perft_table(depth, detail))
+        perftTable.resize(ptSize, threads);
 
     auto nodes = perft<true>(pos, depth, detail).nodes;
     std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
