@@ -162,13 +162,14 @@ class PerftTable final {
     PerftTable& operator=(PerftTable&&) noexcept      = delete;
     ~PerftTable() noexcept;
 
-    void free() noexcept;
     void resize(std::size_t mbSize, ThreadPool& threads) noexcept;
     void init(ThreadPool& threads) noexcept;
 
     ProbResult probe(Key key, Depth depth) const noexcept;
 
    private:
+    void free() noexcept;
+
     auto* cluster(Key key) const noexcept { return &clusters[mul_hi64(key, clusterCount)]; }
 
     PTCluster*  clusters;
@@ -372,9 +373,6 @@ perft(Position& pos, std::size_t ptSize, ThreadPool& threads, Depth depth, bool 
 
     auto nodes = perft<true>(pos, depth, detail).nodes;
     std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
-
-    if (use_perft_table(depth, detail))
-        perftTable.free();
 
     return nodes;
 }
