@@ -20,7 +20,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <limits>
 
 #include "history.h"
@@ -115,7 +114,8 @@ class MovePicker final {
     template<GenType GT>
     iterator score(MoveList<GT>& moveList) noexcept;
 
-    bool select(std::function<bool()> filter) noexcept;
+    template<typename Predicate>
+    bool select(Predicate pred) noexcept;
 
     void sort_partial(int limit = std::numeric_limits<int>::min()) noexcept;
 

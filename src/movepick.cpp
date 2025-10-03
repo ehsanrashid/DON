@@ -193,10 +193,11 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
     return itr;
 }
 
-bool MovePicker::select(std::function<bool()> filter) noexcept {
+template<typename Predicate>
+bool MovePicker::select(Predicate pred) noexcept {
 
     for (; !empty(); next())
-        if (valid() && filter())
+        if (valid() && pred())
             return true;
     return false;
 }
