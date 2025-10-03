@@ -928,8 +928,8 @@ Value Worker::search(Position&    pos,
 
     // Step 9. Null move search with verification search
     // The non-pawn condition is important for finding Zugzwangs.
-    if (CutNode && options["NullMovePruning"] && !exclude && pos.non_pawn_material(ac) != VALUE_ZERO
-        && ss->ply >= nmpPly && !is_loss(beta) && ss->staticEval >= 390 + beta - 18 * depth)
+    if (CutNode && !exclude && pos.non_pawn_material(ac) != VALUE_ZERO && ss->ply >= nmpPly
+        && !is_loss(beta) && ss->staticEval >= 390 + beta - 18 * depth)
     {
         assert((ss - 1)->move != Move::Null);
 
