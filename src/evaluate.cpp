@@ -82,8 +82,8 @@ Value evaluate(const Position&          pos,
     // Blend nnue and optimism with complexity
     std::int32_t complexity = std::abs(netOut.psqt - netOut.positional);
 
-    nnue     *= std::max(1.0 - 55.5555e-6 * complexity, 1.0e-4);
-    optimism *=         (1.0 + 21.3675e-4 * complexity);
+    nnue     *= 1.0 - 55.5555e-6 * complexity;
+    optimism *= 1.0 + 21.3675e-4 * complexity;
 
     std::int32_t v = (nnue + 0.09999 * optimism)
                    + (nnue +           optimism) * pos.material() * 12.8572e-6;
