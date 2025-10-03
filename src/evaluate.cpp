@@ -60,21 +60,26 @@ Value evaluate(const Position&          pos,
     if (smallNetUse)
     {
         netOut = networks.small.evaluate(pos, accStack, &accCaches.small);
-
-        nnue = compute_nnue();
+        nnue   = compute_nnue();
 
         // Re-evaluate with the big-net if the small-net's NNUE evaluation is below a certain threshold
-        smallNetUse = std::abs(nnue) >= 236;
+        if (std::abs(nnue) < 236)
+        {
+            smallNetUse = false;
+
+            netOut = networks.big.evaluate(pos, accStack, &accCaches.big);
+            nnue   = compute_nnue();
+        }
     }
-    if (!smallNetUse)
+    else
     {
         netOut = networks.big.evaluate(pos, accStack, &accCaches.big);
-
-        nnue = compute_nnue();
+        nnue   = compute_nnue();
     }
 
-    // Blend nnue and optimism with complexity
     // clang-format off
+
+    // Blend nnue and optimism with complexity
     std::int32_t complexity = std::abs(netOut.psqt - netOut.positional);
 
     nnue     *= std::max(1.0 - 55.5555e-6 * complexity, 1.0e-4);
