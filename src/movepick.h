@@ -65,12 +65,10 @@ struct ExtMove final: public Move {
         return *this;
     }
 
-    friend bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept {
-        return em1.value < em2.value;
-    }
-    friend bool operator>(const ExtMove& em1, const ExtMove& em2) noexcept { return (em2 < em1); }
-    friend bool operator<=(const ExtMove& em1, const ExtMove& em2) noexcept { return !(em1 > em2); }
-    friend bool operator>=(const ExtMove& em1, const ExtMove& em2) noexcept { return !(em1 < em2); }
+    bool operator<(const ExtMove& em) const noexcept { return value < em.value; }
+    bool operator>(const ExtMove& em) const noexcept { return (em < *this); }
+    bool operator<=(const ExtMove& em) const noexcept { return !(*this > em); }
+    bool operator>=(const ExtMove& em) const noexcept { return !(*this < em); }
 
     int value = 0;
 };

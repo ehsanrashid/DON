@@ -81,11 +81,11 @@ class Option final {
 
     void operator<<(const Option&) noexcept = delete;
 
-    friend bool operator==(const Option& o1, const Option& o2) noexcept;
-    friend bool operator!=(const Option& o1, const Option& o2) noexcept;
+    bool operator==(const Option& o) const noexcept { return idx == o.idx && type == o.type; }
+    bool operator!=(const Option& o) const noexcept { return !(*this == o); }
 
-    friend bool operator<(const Option& o1, const Option& o2) noexcept;
-    friend bool operator>(const Option& o1, const Option& o2) noexcept;
+    bool operator<(const Option& o) const noexcept { return idx < o.idx; }
+    bool operator>(const Option& o) const noexcept { return (o < *this); }
 
     void operator=(std::string value) noexcept;
 

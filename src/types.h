@@ -470,12 +470,8 @@ class Move {
     constexpr auto raw() const noexcept { return move; }
 
     // Friend comparison operators
-    constexpr friend bool operator==(const Move& m1, const Move& m2) noexcept {
-        return m1.move == m2.move;
-    }
-    constexpr friend bool operator!=(const Move& m1, const Move& m2) noexcept {
-        return !(m1 == m2);
-    }
+    constexpr bool operator==(const Move& m) const noexcept { return move == m.move; }
+    constexpr bool operator!=(const Move& m) const noexcept { return !(*this == m); }
 
     // Validity check: ensures move is not None or Null
     constexpr bool is_ok() const noexcept { return org_sq() != dst_sq(); }

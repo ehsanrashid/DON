@@ -110,14 +110,6 @@ Option::operator std::string_view() const noexcept {
     return currentValue;
 }
 
-bool operator==(const Option& o1, const Option& o2) noexcept {
-    return o1.idx == o2.idx && o1.type == o2.type;
-}
-bool operator!=(const Option& o1, const Option& o2) noexcept { return !(o1 == o2); }
-
-bool operator<(const Option& o1, const Option& o2) noexcept { return o1.idx < o2.idx; }
-bool operator>(const Option& o1, const Option& o2) noexcept { return (o2 < o1); }
-
 // Updates currentValue and triggers onChange() action.
 // It's up to the GUI to check for option's limit,
 // but could receive the new value from the user, so let's check the bounds anyway.

@@ -74,30 +74,22 @@ struct RootMove final {
     explicit RootMove(const Move& m) noexcept :
         pv(1, m) {}
 
-    friend bool operator==(const RootMove& rm, const Move& m) noexcept {
-        return !rm.pv.empty() && rm.pv[0] == m;
-    }
-    friend bool operator!=(const RootMove& rm, const Move& m) noexcept { return !(rm == m); }
+    bool operator==(const Move& m) const noexcept { return !pv.empty() && pv.front() == m; }
+    bool operator!=(const Move& m) const noexcept { return !(*this == m); }
 
-    friend bool operator==(const RootMove& rm1, const RootMove& rm2) noexcept {
-        return !rm1.pv.empty() && !rm2.pv.empty() && rm1.pv[0] == rm2.pv[0];
+    bool operator==(const RootMove& rm) const noexcept {
+        return !pv.empty() && !rm.pv.empty() && pv.front() == rm.pv.front();
     }
-    friend bool operator!=(const RootMove& rm1, const RootMove& rm2) noexcept {
-        return !(rm1 == rm2);
-    }
+    bool operator!=(const RootMove& rm) const noexcept { return !(*this == rm); }
 
     // Sort in descending order
-    friend bool operator<(const RootMove& rm1, const RootMove& rm2) noexcept {
-        return std::tie(rm1.curValue, rm1.preValue, rm1.avgValue)
-             > std::tie(rm2.curValue, rm2.preValue, rm2.avgValue);
+    bool operator<(const RootMove& rm) const noexcept {
+        return std::tie(curValue, preValue, avgValue)
+             > std::tie(rm.curValue, rm.preValue, rm.avgValue);
     }
-    friend bool operator>(const RootMove& rm1, const RootMove& rm2) noexcept { return (rm2 < rm1); }
-    friend bool operator<=(const RootMove& rm1, const RootMove& rm2) noexcept {
-        return !(rm1 > rm2);
-    }
-    friend bool operator>=(const RootMove& rm1, const RootMove& rm2) noexcept {
-        return !(rm1 < rm2);
-    }
+    bool operator>(const RootMove& rm) const noexcept { return (rm < *this); }
+    bool operator<=(const RootMove& rm) const noexcept { return !(*this > rm); }
+    bool operator>=(const RootMove& rm) const noexcept { return !(*this < rm); }
 
     Value curValue = -VALUE_INFINITE;
     Value preValue = -VALUE_INFINITE;

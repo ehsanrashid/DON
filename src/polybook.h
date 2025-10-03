@@ -32,32 +32,22 @@ class Position;
 
 struct PolyEntry final {
 
-    friend bool operator==(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
-        return std::tie(pe1.key, pe1.move, pe1.weight)  //
-            == std::tie(pe2.key, pe2.move, pe2.weight);
+    bool operator==(const PolyEntry& pe) const noexcept {
+        return std::tie(key, move, weight) == std::tie(pe.key, pe.move, pe.weight);
     }
-    friend bool operator!=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
-        return !(pe1 == pe2);
-    }
+    bool operator!=(const PolyEntry& pe) const noexcept { return !(*this == pe); }
 
-    friend bool operator<(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
-        return std::tie(pe1.key, pe1.weight, pe1.move)  //
-             < std::tie(pe2.key, pe2.weight, pe2.move);
+    bool operator<(const PolyEntry& pe) const noexcept {
+        return std::tie(key, weight, move) < std::tie(pe.key, pe.weight, pe.move);
     }
-    friend bool operator>(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
-        return (pe2 < pe1);
-    }
-    friend bool operator<=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
-        return !(pe1 > pe2);
-    }
-    friend bool operator>=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
-        return !(pe1 < pe2);
-    }
+    bool operator>(const PolyEntry& pe) const noexcept { return (pe < *this); }
+    bool operator<=(const PolyEntry& pe) const noexcept { return !(*this > pe); }
+    bool operator>=(const PolyEntry& pe) const noexcept { return !(*this < pe); }
 
-    friend bool operator==(const PolyEntry& pe, const Move& m) noexcept {
-        return pe.move == (m.raw() & ~Move::MoveTypeMask);
+    bool operator==(const Move& m) const noexcept {
+        return move == (m.raw() & ~Move::MoveTypeMask);
     }
-    friend bool operator!=(const PolyEntry& pe, const Move& m) noexcept { return !(pe == m); }
+    bool operator!=(const Move& m) const noexcept { return !(*this == m); }
 
     friend std::ostream& operator<<(std::ostream& os, const PolyEntry& ph) noexcept;
 
