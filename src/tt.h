@@ -338,7 +338,7 @@ class TranspositionTable final {
     std::atomic<std::uint16_t> hashFull;
 
    private:
-    TTCluster*   clusters;
+    TTCluster*   clusters = nullptr;
     std::size_t  clusterCount;
     std::uint8_t generation8;  // Size must be not bigger than TTEntry::genData8
 };

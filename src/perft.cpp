@@ -172,7 +172,7 @@ class PerftTable final {
 
     auto* cluster(Key key) const noexcept { return &clusters[mul_hi64(key, clusterCount)]; }
 
-    PTCluster*  clusters;
+    PTCluster*  clusters = nullptr;
     std::size_t clusterCount;
 };
 
