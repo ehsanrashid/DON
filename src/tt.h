@@ -18,7 +18,6 @@
 #ifndef TT_H_INCLUDED
 #define TT_H_INCLUDED
 
-#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <cstdint>

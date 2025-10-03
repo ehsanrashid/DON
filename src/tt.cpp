@@ -17,6 +17,7 @@
 
 #include "tt.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
