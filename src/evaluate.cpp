@@ -45,7 +45,8 @@ Value evaluate(const Position&          pos,
                std::int32_t             optimism) noexcept {
     assert(!pos.checkers());
 
-    auto absEvaluate = std::abs(pos.evaluate());
+    Value absEvaluate = std::abs(pos.evaluate());
+
     bool smallNetUse = absEvaluate > 962;
 
     NNUE::NetworkOutput netOut{0, 0};
@@ -63,7 +64,7 @@ Value evaluate(const Position&          pos,
         nnue = compute_nnue();
 
         // Re-evaluate with the big-net if the small-net's NNUE evaluation is below a certain threshold
-        smallNetUse = std::abs(nnue) >= 244 - 13 * (absEvaluate > 1400);
+        smallNetUse = std::abs(nnue) >= 236;
     }
     if (!smallNetUse)
     {
