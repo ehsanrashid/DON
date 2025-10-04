@@ -45,14 +45,19 @@ enum Stage : std::uint8_t {
     // Generate evasion moves
     STG_EVA_TT,
     STG_EVA_CAPTURE_INIT,
-    STG_EVA_CAPTURE_ALL,
+    STG_EVA_CAPTURE,
     STG_EVA_QUIET_INIT,
-    STG_EVA_QUIET_ALL,
+    STG_EVA_QUIET,
+
+    // Generate qsearch moves
+    STG_QS_TT,
+    STG_QS_CAPTURE_INIT,
+    STG_QS_CAPTURE,
 
     // Generate probcut moves
     STG_PROBCUT_TT,
     STG_PROBCUT_INIT,
-    STG_PROBCUT_ALL,
+    STG_PROBCUT,
 };
 
 constexpr Stage  operator+(Stage s, int i) noexcept { return Stage(int(s) + i); }

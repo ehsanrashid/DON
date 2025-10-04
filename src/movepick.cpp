@@ -51,9 +51,11 @@ MovePicker::MovePicker(const Position&           p,
     threshold(th) {
     assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
 
-    stage = (pos.checkers() ? STG_EVA_TT : STG_ENC_TT)
-          + int(ttMove == Move::None
-                || !(pos.checkers() || threshold < 0 || pos.capture_promo(ttMove)));
+    if (pos.checkers())
+        stage = STG_EVA_TT + int(ttMove == Move::None);
+    else
+        stage = (threshold < 0 ? STG_ENC_TT : STG_QS_TT)
+              + int(ttMove == Move::None || !(threshold < 0 || pos.capture_promo(ttMove)));
 }
 
 MovePicker::MovePicker(const Position& p,  //
@@ -232,11 +234,13 @@ STAGE_SWITCH:
     {
     case STG_ENC_TT :
     case STG_EVA_TT :
+    case STG_QS_TT :
     case STG_PROBCUT_TT :
         ++stage;
         return ttMove;
 
     case STG_ENC_CAPTURE_INIT :
+    case STG_QS_CAPTURE_INIT :
     case STG_PROBCUT_INIT : {
         MoveList<ENC_CAPTURE> moveList(pos);
 
@@ -252,7 +256,7 @@ STAGE_SWITCH:
 
     case STG_ENC_CAPTURE_GOOD :
         if (select([&]() {
-                if (threshold == 0 || pos.see(*cur) >= std::round(-55.5555e-3 * cur->value))
+                if (pos.see(*cur) >= std::round(-55.5555e-3 * cur->value))
                     return true;
                 // Store bad captures
                 std::swap(*endBadCaptures++, *cur);
@@ -270,7 +274,6 @@ STAGE_SWITCH:
 
             endCur = endMoves = score<ENC_QUIET>(moveList);
 
-            assert(threshold < 0);
             sort_partial(threshold);
         }
 
@@ -335,7 +338,7 @@ STAGE_SWITCH:
         [[fallthrough]];
     }
 
-    case STG_EVA_CAPTURE_ALL :
+    case STG_EVA_CAPTURE :
         if (select([]() { return true; }))
             return move();
 
@@ -353,13 +356,14 @@ STAGE_SWITCH:
         ++stage;
         [[fallthrough]];
 
-    case STG_EVA_QUIET_ALL :
+    case STG_EVA_QUIET :
+    case STG_QS_CAPTURE :
         if (select([]() { return true; }))
             return move();
 
         return Move::None;
 
-    case STG_PROBCUT_ALL :
+    case STG_PROBCUT :
         if (select([&]() { return pos.see(*cur) >= threshold; }))
             return move();
 

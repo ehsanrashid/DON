@@ -1748,7 +1748,6 @@ QS_MOVES_LOOP:
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
     MovePicker mp(pos, ttd.move, contHistory, ss->ply);
-    mp.quietPick = false;
     // Step 5. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
     {
