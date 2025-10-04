@@ -103,7 +103,7 @@ class MovePicker final {
 
     Stage stage = STG_NONE;
 
-    bool quietPick = false;
+    bool quietPick = true;
 
    private:
     template<GenType GT>

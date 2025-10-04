@@ -1118,7 +1118,6 @@ S_MOVES_LOOP:  // When in check, search starts here
     int quietThreshold = (-3560 - 10 * improve) * depth;
 
     MovePicker mp(pos, ttd.move, contHistory, ss->ply, quietThreshold);
-    mp.quietPick = true;
     // Step 13. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
     {
@@ -1178,8 +1177,6 @@ S_MOVES_LOOP:  // When in check, search starts here
             // Reduced depth of the next LMR search
             Depth lmrDepth = newDepth - int(std::round(r / 1024.0));
 
-            Value futilityValue;
-
             if (capture)
             {
                 int history = CaptureHistory[movedPiece][dst][captured];
@@ -1187,10 +1184,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Futility pruning for captures
                 if (lmrDepth < 7 && !check && !(pos.fork(move) && pos.see(move) >= -50))
                 {
-                    futilityValue = std::min(47 + ss->staticEval + 184 * (bestMove == Move::None)
-                                               + 211 * lmrDepth + 130 * history / 1024
-                                               + PIECE_VALUE[captured] + promotion_value(move),
-                                             VALUE_TB_WIN_IN_MAX_PLY - 1);
+                    Value futilityValue = std::min(
+                      47 + ss->staticEval + 184 * (bestMove == Move::None) + 211 * lmrDepth
+                        + 130 * history / 1024 + PIECE_VALUE[captured] + promotion_value(move),
+                      VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
                     {
                         bestValue = std::max(bestValue, futilityValue);
@@ -1225,9 +1222,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // (*Scaler) Generally, more frequent futility pruning scales well
                 if (lmrDepth < 11 && !check && !(pos.fork(move) && pos.see(move) >= -50))
                 {
-                    futilityValue = std::min(47 + ss->staticEval + 171 * (bestMove == Move::None)
-                                               + 134 * lmrDepth + 90 * (ss->staticEval > alpha),
-                                             VALUE_TB_WIN_IN_MAX_PLY - 1);
+                    Value futilityValue =
+                      std::min(47 + ss->staticEval + 171 * (bestMove == Move::None) + 134 * lmrDepth
+                                 + 90 * (ss->staticEval > alpha),
+                               VALUE_TB_WIN_IN_MAX_PLY - 1);
                     if (futilityValue <= alpha)
                     {
                         bestValue = std::max(bestValue, futilityValue);
@@ -1750,7 +1748,7 @@ QS_MOVES_LOOP:
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
     MovePicker mp(pos, ttd.move, contHistory, ss->ply);
-    mp.quietPick = ss->inCheck;
+    mp.quietPick = false;
     // Step 5. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
     {
@@ -1776,11 +1774,6 @@ QS_MOVES_LOOP:
         // Step 6. Pruning
         if (!is_loss(bestValue))
         {
-            // Skip quiet moves
-            mp.quietPick = mp.quietPick && moveCount < 4 + promoCount;
-
-            Value futilityValue;
-
             // Futility pruning and moveCount pruning
             if (!check && dst != preSq && !is_loss(futilityBase)
                 && (move.type_of() != PROMOTION || (!ss->inCheck && move.promotion_type() < QUEEN))
@@ -1789,7 +1782,7 @@ QS_MOVES_LOOP:
                 if (moveCount > 2 + promoCount)
                     continue;
 
-                futilityValue =
+                Value futilityValue =
                   std::min(futilityBase + PIECE_VALUE[captured] + promotion_value(move),
                            VALUE_TB_WIN_IN_MAX_PLY - 1);
                 // If static evaluation + value of piece going to captured is much lower than alpha

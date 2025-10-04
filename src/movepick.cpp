@@ -318,9 +318,8 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case STG_ENC_QUIET_BAD :
-        if (quietPick)
-            if (select([]() { return true; }))
-                return move();
+        if (select([]() { return true; }))
+            return move();
 
         return Move::None;
 
@@ -343,23 +342,20 @@ STAGE_SWITCH:
         ++stage;
         [[fallthrough]];
 
-    case STG_EVA_QUIET_INIT :
-        if (quietPick)
-        {
-            MoveList<EVA_QUIET> moveList(pos);
+    case STG_EVA_QUIET_INIT : {
+        MoveList<EVA_QUIET> moveList(pos);
 
-            endCur = endMoves = score<EVA_QUIET>(moveList);
+        endCur = endMoves = score<EVA_QUIET>(moveList);
 
-            sort_partial();
-        }
+        sort_partial();
+    }
 
         ++stage;
         [[fallthrough]];
 
     case STG_EVA_QUIET_ALL :
-        if (quietPick)
-            if (select([]() { return true; }))
-                return move();
+        if (select([]() { return true; }))
+            return move();
 
         return Move::None;
 
