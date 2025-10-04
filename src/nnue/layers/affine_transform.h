@@ -112,10 +112,9 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
 
     // Traverse weights in transpose order to take advantage of input sparsity
     for (IndexType i = 0; i < InputDimensions; ++i)
-        if (input[i])
+        if (int in = input[i])
         {
-            const auto* w  = &weights[i];
-            const int   in = input[i];
+            const auto* w = &weights[i];
             for (IndexType j = 0; j < OutputDimensions; ++j)
                 output[j] += w[j * PaddedInputDimensions] * in;
         }
@@ -143,7 +142,7 @@ class AffineTransform final {
     using OutputBuffer = OutputType[PaddedOutputDimensions];
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t get_hash_value(std::uint32_t preHashValue) noexcept {
+    static constexpr std::uint32_t hash_value(std::uint32_t preHashValue) noexcept {
         std::uint32_t hashValue = 0xCC03DAE4U;
         hashValue += OutputDimensions;
         hashValue ^= preHashValue >> 1;
@@ -151,7 +150,7 @@ class AffineTransform final {
         return hashValue;
     }
 
-    static constexpr IndexType get_weight_index(IndexType i) noexcept {
+    static constexpr IndexType weight_index(IndexType i) noexcept {
 #if defined(ENABLE_SEQ_OPT)
         return (i / 4) % (PaddedInputDimensions / 4) * OutputDimensions * 4
              + i / PaddedInputDimensions * 4 + i % 4;
@@ -164,7 +163,7 @@ class AffineTransform final {
     bool read_parameters(std::istream& istream) noexcept {
         read_little_endian<BiasType>(istream, biases, OutputDimensions);
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
-            weights[get_weight_index(i)] = read_little_endian<WeightType>(istream);
+            weights[weight_index(i)] = read_little_endian<WeightType>(istream);
 
         return !istream.fail();
     }
@@ -173,7 +172,7 @@ class AffineTransform final {
     bool write_parameters(std::ostream& ostream) const noexcept {
         write_little_endian<BiasType>(ostream, biases, OutputDimensions);
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
-            write_little_endian<WeightType>(ostream, weights[get_weight_index(i)]);
+            write_little_endian<WeightType>(ostream, weights[weight_index(i)]);
 
         return !ostream.fail();
     }

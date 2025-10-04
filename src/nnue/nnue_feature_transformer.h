@@ -93,7 +93,7 @@ class FeatureTransformer final {
     static constexpr std::size_t BufferSize = OutputDimensions * sizeof(OutputType);
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t get_hash_value() noexcept {
+    static constexpr std::uint32_t hash_value() noexcept {
         return FeatureSet::HashValue ^ (2 * OutputDimensions);
     }
 

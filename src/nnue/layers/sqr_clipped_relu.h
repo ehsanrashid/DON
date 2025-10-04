@@ -45,7 +45,7 @@ class SqrClippedReLU {
     using OutputBuffer = OutputType[PaddedOutputDimensions];
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t get_hash_value(std::uint32_t preHashValue) noexcept {
+    static constexpr std::uint32_t hash_value(std::uint32_t preHashValue) noexcept {
         std::uint32_t hashValue = 0x538D24C7U;
         hashValue += preHashValue;
         return hashValue;

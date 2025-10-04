@@ -48,8 +48,7 @@ class Network final {
    private:
     static constexpr IndexType TransformedFeatureDimensions = Arch::TransformedFeatureDimensions;
     // Hash value of evaluation function structure
-    static constexpr std::uint32_t HashValue =
-      Arch::get_hash_value() ^ Transformer::get_hash_value();
+    static constexpr std::uint32_t HashValue = Arch::hash_value() ^ Transformer::hash_value();
 
    public:
     Network(EvalFile evFile, EmbeddedType embType) noexcept :

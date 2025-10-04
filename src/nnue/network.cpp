@@ -116,7 +116,7 @@ template<typename T>
 inline bool read_parameters(std::istream& istream, T& reference) noexcept {
     std::uint32_t hashValue;
     hashValue = read_little_endian<std::uint32_t>(istream);
-    if (!istream || hashValue != T::get_hash_value())
+    if (!istream || hashValue != T::hash_value())
         return false;
 
     return reference.read_parameters(istream);
@@ -125,7 +125,7 @@ inline bool read_parameters(std::istream& istream, T& reference) noexcept {
 // Write evaluation function parameters
 template<typename T>
 inline bool write_parameters(std::ostream& ostream, T& reference) noexcept {
-    write_little_endian<std::uint32_t>(ostream, T::get_hash_value());
+    write_little_endian<std::uint32_t>(ostream, T::hash_value());
 
     return reference.write_parameters(ostream);
 }

@@ -70,16 +70,16 @@ struct NetworkArchitecture final {
     Layers::AffineTransform<FC_1_Outputs, 1>                                           fc_2;
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t get_hash_value() noexcept {
+    static constexpr std::uint32_t hash_value() noexcept {
         // input slice hash
         std::uint32_t hashValue = 0xEC42E90DU;
         hashValue ^= 2 * TransformedFeatureDimensions;
 
-        hashValue = decltype(fc_0)::get_hash_value(hashValue);
-        hashValue = decltype(ac_0)::get_hash_value(hashValue);
-        hashValue = decltype(fc_1)::get_hash_value(hashValue);
-        hashValue = decltype(ac_1)::get_hash_value(hashValue);
-        hashValue = decltype(fc_2)::get_hash_value(hashValue);
+        hashValue = decltype(fc_0)::hash_value(hashValue);
+        hashValue = decltype(ac_0)::hash_value(hashValue);
+        hashValue = decltype(fc_1)::hash_value(hashValue);
+        hashValue = decltype(ac_1)::hash_value(hashValue);
+        hashValue = decltype(fc_2)::hash_value(hashValue);
 
         return hashValue;
     }

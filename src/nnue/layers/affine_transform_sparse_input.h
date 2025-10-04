@@ -226,7 +226,7 @@ class AffineTransformSparseInput {
     using OutputBuffer = OutputType[PaddedOutputDimensions];
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t get_hash_value(std::uint32_t preHashValue) noexcept {
+    static constexpr std::uint32_t hash_value(std::uint32_t preHashValue) noexcept {
         std::uint32_t hashValue = 0xCC03DAE4U;
         hashValue += OutputDimensions;
         hashValue ^= preHashValue >> 1;
@@ -234,7 +234,7 @@ class AffineTransformSparseInput {
         return hashValue;
     }
 
-    static constexpr IndexType get_weight_index(IndexType i) noexcept {
+    static constexpr IndexType weight_index(IndexType i) noexcept {
 #if defined(USE_SSSE3) || (defined(USE_NEON) && (USE_NEON >= 8))
         return (i / ChunkSize) % (PaddedInputDimensions / ChunkSize) * OutputDimensions * ChunkSize
              + i / PaddedInputDimensions * ChunkSize + i % ChunkSize;
@@ -247,7 +247,7 @@ class AffineTransformSparseInput {
     bool read_parameters(std::istream& istream) noexcept {
         read_little_endian<BiasType>(istream, biases, OutputDimensions);
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
-            weights[get_weight_index(i)] = read_little_endian<WeightType>(istream);
+            weights[weight_index(i)] = read_little_endian<WeightType>(istream);
 
         return !istream.fail();
     }
@@ -256,7 +256,7 @@ class AffineTransformSparseInput {
     bool write_parameters(std::ostream& ostream) const noexcept {
         write_little_endian<BiasType>(ostream, biases, OutputDimensions);
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
-            write_little_endian<WeightType>(ostream, weights[get_weight_index(i)]);
+            write_little_endian<WeightType>(ostream, weights[weight_index(i)]);
 
         return !ostream.fail();
     }
@@ -297,16 +297,16 @@ class AffineTransformSparseInput {
 
         constexpr IndexType ChunkCount =
           ceil_to_multiple<IndexType>(InputDimensions, 8) / ChunkSize;
-        constexpr IndexType AccumsCount = OutputDimensions / OutputSimdWidth;
+        constexpr IndexType AccCount = OutputDimensions / OutputSimdWidth;
         // If there's only one accumulator and using high-latency dot product instructions,
         // split it to create three separate dependency chains and merge at the end
-        constexpr bool AccumsSplit =
+        constexpr bool AccSplit =
     #if defined(USE_VNNI)
-          AccumsCount == 1;
+          AccCount == 1;
     #else
           false;
     #endif
-        constexpr IndexType RegCount = AccumsSplit ? 3 * AccumsCount : AccumsCount;
+        constexpr IndexType RegCount = AccSplit ? 3 * AccCount : AccCount;
 
         const auto* input32 = reinterpret_cast<const std::int32_t*>(input);
 
@@ -317,12 +317,12 @@ class AffineTransformSparseInput {
 
         const outvec_t* biasVec = reinterpret_cast<const outvec_t*>(biases);
         outvec_t        acc[RegCount];
-        for (IndexType k = 0; k < AccumsCount; ++k)
+        for (IndexType k = 0; k < AccCount; ++k)
             acc[k] = biasVec[k];
 
         const auto* beg = nnz;
         const auto* end = nnz + count;
-        if constexpr (AccumsSplit)
+        if constexpr (AccSplit)
         {
             acc[1] = acc[2] = vec_set_32(0);
             while (beg < end - 2)
@@ -353,12 +353,12 @@ class AffineTransformSparseInput {
 
             const auto* col =
               reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);
-            for (IndexType k = 0; k < AccumsCount; ++k)
+            for (IndexType k = 0; k < AccCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
 
         outvec_t* outVec = reinterpret_cast<outvec_t*>(output);
-        for (IndexType k = 0; k < AccumsCount; ++k)
+        for (IndexType k = 0; k < AccCount; ++k)
             outVec[k] = acc[k];
 
     #if defined(USE_AVX512)
