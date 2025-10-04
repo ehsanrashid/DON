@@ -55,7 +55,7 @@ MovePicker::MovePicker(const Position&           p,
         stage = STG_EVA_TT + int(ttMove == Move::None);
     else
         stage = (threshold < 0 ? STG_ENC_TT : STG_QS_TT)
-              + int(ttMove == Move::None || !(threshold < 0 || pos.capture_promo(ttMove)));
+              + !(ttMove != Move::None && (threshold < 0 || pos.capture_promo(ttMove)));
 }
 
 MovePicker::MovePicker(const Position& p,  //
@@ -69,7 +69,7 @@ MovePicker::MovePicker(const Position& p,  //
     assert(!pos.checkers());
     assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
 
-    stage = STG_PROBCUT_TT + int(ttMove == Move::None || !(pos.capture_promo(ttMove)));
+    stage = STG_PROBCUT_TT + !(ttMove != Move::None && pos.capture_promo(ttMove));
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
