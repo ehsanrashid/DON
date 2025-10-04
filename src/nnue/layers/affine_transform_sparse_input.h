@@ -268,6 +268,7 @@ class AffineTransformSparseInput {
     #if defined(USE_AVX512)
         using invec_t  = __m512i;
         using outvec_t = __m512i;
+        #define vec_add_32 _mm512_add_epi32
         #define vec_set_32 _mm512_set1_epi32
         #define vec_add_dpbusd_32 SIMD::m512_add_dpbusd_epi32
     #elif defined(USE_AVX2)
@@ -296,7 +297,16 @@ class AffineTransformSparseInput {
 
         constexpr IndexType ChunkCount =
           ceil_to_multiple<IndexType>(InputDimensions, 8) / ChunkSize;
-        constexpr IndexType RegCount = OutputDimensions / OutputSimdWidth;
+        constexpr IndexType AccumsCount = OutputDimensions / OutputSimdWidth;
+        // If there's only one accumulator and using high-latency dot product instructions,
+        // split it to create three separate dependency chains and merge at the end
+        constexpr bool AccumsSplit =
+    #if defined(USE_VNNI)
+          AccumsCount == 1;
+    #else
+          false;
+    #endif
+        constexpr IndexType RegCount = AccumsSplit ? 3 * AccumsCount : AccumsCount;
 
         const auto* input32 = reinterpret_cast<const std::int32_t*>(input);
 
@@ -305,13 +315,37 @@ class AffineTransformSparseInput {
         // Find indices of nonzero 32-bit blocks
         find_nnz<ChunkCount>(input32, nnz, count);
 
-        const auto* biasVec = reinterpret_cast<const outvec_t*>(biases);
-        outvec_t    acc[RegCount];
-        for (IndexType k = 0; k < RegCount; ++k)
+        const outvec_t* biasVec = reinterpret_cast<const outvec_t*>(biases);
+        outvec_t        acc[RegCount];
+        for (IndexType k = 0; k < AccumsCount; ++k)
             acc[k] = biasVec[k];
 
-        auto* beg = nnz;
-        auto* end = nnz + count;
+        const auto* beg = nnz;
+        const auto* end = nnz + count;
+        if constexpr (AccumsSplit)
+        {
+            acc[1] = acc[2] = vec_set_32(0);
+            while (beg < end - 2)
+            {
+                auto    i0  = *beg++;
+                auto    i1  = *beg++;
+                auto    i2  = *beg++;
+                invec_t in0 = vec_set_32(input32[i0]);
+                invec_t in1 = vec_set_32(input32[i1]);
+                invec_t in2 = vec_set_32(input32[i2]);
+
+                const auto* col0 =
+                  reinterpret_cast<const invec_t*>(&weights[i0 * OutputDimensions * ChunkSize]);
+                const auto* col1 =
+                  reinterpret_cast<const invec_t*>(&weights[i1 * OutputDimensions * ChunkSize]);
+                const auto* col2 =
+                  reinterpret_cast<const invec_t*>(&weights[i2 * OutputDimensions * ChunkSize]);
+                vec_add_dpbusd_32(acc[0], in0, *col0);
+                vec_add_dpbusd_32(acc[1], in1, *col1);
+                vec_add_dpbusd_32(acc[2], in2, *col2);
+            }
+            acc[0] = vec_add_32(vec_add_32(acc[0], acc[1]), acc[2]);
+        }
         while (beg < end)
         {
             auto    i  = *beg++;
@@ -319,14 +353,17 @@ class AffineTransformSparseInput {
 
             const auto* col =
               reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);
-            for (IndexType k = 0; k < RegCount; ++k)
+            for (IndexType k = 0; k < AccumsCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
 
-        auto* outVec = reinterpret_cast<outvec_t*>(output);
-        for (IndexType k = 0; k < RegCount; ++k)
+        outvec_t* outVec = reinterpret_cast<outvec_t*>(output);
+        for (IndexType k = 0; k < AccumsCount; ++k)
             outVec[k] = acc[k];
 
+    #if defined(USE_AVX512)
+        #undef vec_add_32
+    #endif
     #undef vec_set_32
     #undef vec_add_dpbusd_32
 #else
