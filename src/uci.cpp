@@ -469,18 +469,18 @@ void UCI::bench(std::istringstream& iss) noexcept {
     Debug::clear();
 #endif
 
-    TimePoint startTime   = now();
-    TimePoint elapsedTime = 0;
-
-    std::uint64_t nodes = 0;
-
     auto commands = Benchmark::setup_bench(iss, engine.fen());
 
     std::size_t num = std::count_if(commands.begin(), commands.end(), [](const auto& command) {
         return command.find("go ") == 0 || command.find("eval") == 0;
     });
 
-    std::size_t cnt = 0;
+    TimePoint startTime   = now();
+    TimePoint elapsedTime = 0;
+
+    std::size_t   cnt   = 0;
+    std::uint64_t nodes = 0;
+
     for (const auto& command : commands)
     {
         std::istringstream is{command};
@@ -567,9 +567,6 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     Debug::clear();
 #endif
 
-    TimePoint startTime   = now();
-    TimePoint elapsedTime = 0;
-
     // Set options once at the start
     options().set("Threads", std::to_string(benchmark.threads));
     options().set("Hash", std::to_string(benchmark.ttSize));
@@ -577,8 +574,11 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
 
     InfoStringStop = true;
 
-    std::uint64_t nodes = 0;
+    TimePoint startTime   = now();
+    TimePoint elapsedTime = 0;
+
     std::size_t   cnt   = 0;
+    std::uint64_t nodes = 0;
     // Warmup
     for (const auto& command : benchmark.commands)
     {
@@ -619,14 +619,10 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
             break;
     }
 
-    elapsedTime += now() - startTime;
-    // Ensure non-zero to avoid a 'divide by zero'
-    elapsedTime = std::max(elapsedTime, TimePoint(1));
-
     std::cerr << '\n';
 
-    nodes = 0;
     cnt   = 0;
+    nodes = 0;
 
     constexpr std::uint8_t HashfullAges[2]{0, 31};  // Only normal hashfull and touched hash
 
@@ -641,9 +637,8 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
         ++numHashfull;
         for (std::size_t i = 0; i < std::size(HashfullAges); ++i)
         {
-            auto hashfull = engine.hashfull(HashfullAges[i]);
-            if (maxHashfull[i] < hashfull)
-                maxHashfull[i] = hashfull;
+            auto hashfull  = engine.hashfull(HashfullAges[i]);
+            maxHashfull[i] = std::max(maxHashfull[i], hashfull);
             sumHashfull[i] += hashfull;
         }
     };
