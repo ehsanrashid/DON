@@ -349,23 +349,23 @@ struct MoveInfo final {
     std::string_view ponderMove;
 };
 
-using OnUpdateShort = std::function<void(const ShortInfo&)>;
-using OnUpdateFull  = std::function<void(const FullInfo&)>;
-using OnUpdateIter  = std::function<void(const IterInfo&)>;
-using OnUpdateMove  = std::function<void(const MoveInfo&)>;
-
-struct UpdateContext final {
-    OnUpdateShort onUpdateShort;
-    OnUpdateFull  onUpdateFull;
-    OnUpdateIter  onUpdateIter;
-    OnUpdateMove  onUpdateMove;
-};
-
 // MainSearchManager manages the search from the main thread.
 // It is responsible for keeping track of the time,
 // and storing data strictly related to the main thread.
 class MainSearchManager final: public ISearchManager {
    public:
+    using OnUpdateShort = std::function<void(const ShortInfo&)>;
+    using OnUpdateFull  = std::function<void(const FullInfo&)>;
+    using OnUpdateIter  = std::function<void(const IterInfo&)>;
+    using OnUpdateMove  = std::function<void(const MoveInfo&)>;
+
+    struct UpdateContext final {
+        OnUpdateShort onUpdateShort;
+        OnUpdateFull  onUpdateFull;
+        OnUpdateIter  onUpdateIter;
+        OnUpdateMove  onUpdateMove;
+    };
+
     MainSearchManager() noexcept = delete;
     explicit MainSearchManager(const UpdateContext& updateContext) noexcept :
         updateCxt(updateContext) {}

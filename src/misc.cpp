@@ -530,7 +530,7 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < hit.size(); ++i)
     {
-        auto& info = hit[i];
+        const auto& info = hit[i];
 
         if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
@@ -544,7 +544,7 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < min.size(); ++i)
     {
-        auto& info = min[i];
+        const auto& info = min[i];
 
         if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
@@ -557,7 +557,7 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < max.size(); ++i)
     {
-        auto& info = max[i];
+        const auto& info = max[i];
 
         if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
@@ -570,7 +570,7 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < extreme.size(); ++i)
     {
-        auto& info = extreme[i];
+        const auto& info = extreme[i];
 
         if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
@@ -585,7 +585,7 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < mean.size(); ++i)
     {
-        auto& info = mean[i];
+        const auto& info = mean[i];
 
         if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
@@ -599,7 +599,7 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < stdev.size(); ++i)
     {
-        auto& info = stdev[i];
+        const auto& info = stdev[i];
 
         if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
@@ -615,7 +615,7 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < correl.size(); ++i)
     {
-        auto& info = correl[i];
+        const auto& info = correl[i];
 
         if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;

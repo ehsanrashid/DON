@@ -163,9 +163,9 @@ class ThreadPool final {
 
     void clear() noexcept;
 
-    void set(const NumaConfig&    numaConfig,
-             const SharedState&   sharedState,
-             const UpdateContext& updateContext) noexcept;
+    void set(const NumaConfig&                       numaConfig,
+             const SharedState&                      sharedState,
+             const MainSearchManager::UpdateContext& updateContext) noexcept;
 
     void init() noexcept;
 

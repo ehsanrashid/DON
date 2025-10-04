@@ -309,19 +309,19 @@ void Engine::save_networks(const std::array<std::optional<std::string>, 2>& netF
     });
 }
 
-void Engine::set_on_update_short(OnUpdateShort&& f) noexcept {
+void Engine::set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept {
     updateContext.onUpdateShort = std::move(f);
 }
 
-void Engine::set_on_update_full(OnUpdateFull&& f) noexcept {
+void Engine::set_on_update_full(MainSearchManager::OnUpdateFull&& f) noexcept {
     updateContext.onUpdateFull = std::move(f);
 }
 
-void Engine::set_on_update_iter(OnUpdateIter&& f) noexcept {
+void Engine::set_on_update_iter(MainSearchManager::OnUpdateIter&& f) noexcept {
     updateContext.onUpdateIter = std::move(f);
 }
 
-void Engine::set_on_update_move(OnUpdateMove&& f) noexcept {
+void Engine::set_on_update_move(MainSearchManager::OnUpdateMove&& f) noexcept {
     updateContext.onUpdateMove = std::move(f);
 }
 

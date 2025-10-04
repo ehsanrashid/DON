@@ -99,10 +99,10 @@ class Engine final {
     void load_small_network(std::string_view netFile) noexcept;
     void save_networks(const std::array<std::optional<std::string>, 2>& netFiles) noexcept;
 
-    void set_on_update_short(OnUpdateShort&& f) noexcept;
-    void set_on_update_full(OnUpdateFull&& f) noexcept;
-    void set_on_update_iter(OnUpdateIter&& f) noexcept;
-    void set_on_update_move(OnUpdateMove&& f) noexcept;
+    void set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept;
+    void set_on_update_full(MainSearchManager::OnUpdateFull&& f) noexcept;
+    void set_on_update_iter(MainSearchManager::OnUpdateIter&& f) noexcept;
+    void set_on_update_move(MainSearchManager::OnUpdateMove&& f) noexcept;
 
    private:
     const std::string binaryDirectory;
@@ -114,10 +114,10 @@ class Engine final {
     TranspositionTable                 tt;
     LazyNumaReplicated<NNUE::Networks> networks;
 
-    Position     pos;
     StateListPtr states;
+    Position     pos;
 
-    UpdateContext updateContext;
+    MainSearchManager::UpdateContext updateContext;
 };
 
 }  // namespace DON

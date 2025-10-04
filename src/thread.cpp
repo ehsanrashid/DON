@@ -92,9 +92,9 @@ void Thread::idle_func() noexcept {
 // Creates/destroys threads to match the requested number.
 // Created and launched threads will immediately go to sleep in idle_func.
 // Upon resizing, threads are recreated to allow for binding if necessary.
-void ThreadPool::set(const NumaConfig&    numaConfig,
-                     const SharedState&   sharedState,
-                     const UpdateContext& updateContext) noexcept {
+void ThreadPool::set(const NumaConfig&                       numaConfig,
+                     const SharedState&                      sharedState,
+                     const MainSearchManager::UpdateContext& updateContext) noexcept {
     clear();
 
     std::size_t threadCount = sharedState.options["Threads"];
