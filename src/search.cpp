@@ -1200,7 +1200,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW
                    || pos.non_pawn_material(ac) != PIECE_VALUE[type_of(movedPiece)])
-                  && pos.see(move) < -(margin + 256 * dblCheck))
+                  && pos.see(move) < -(margin + 128 * dblCheck))
                     continue;
             }
             else
@@ -1236,7 +1236,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 lmrDepth = std::max(+lmrDepth, 0);
 
                 // SEE based pruning for quiets
-                if (pos.see(move) < -(27 * sqr(lmrDepth) + 256 * dblCheck))
+                if (pos.see(move) < -(27 * sqr(lmrDepth) + 128 * dblCheck))
                     continue;
             }
         }
