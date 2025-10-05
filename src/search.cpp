@@ -1624,8 +1624,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (1 + alpha == beta));
 
-    Color ac  = pos.active_color();
-    Key   key = pos.key();
+    Key key = pos.key();
 
     // Check if have an upcoming move that draws by repetition
     if (alpha < VALUE_DRAW && pos.upcoming_repetition(ss->ply))
@@ -1855,14 +1854,8 @@ QS_MOVES_LOOP:
             assert((MoveList<LEGAL, true>(pos).empty()));
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
-        else if (bestValue != VALUE_DRAW && pos.non_pawn_material(ac) == VALUE_ZERO
-                 && type_of(pos.captured_piece()) >= ROOK
-                 // No pawn pushes available
-                 && !(push_pawn_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces())
-                 && MoveList<LEGAL, true>(pos).empty())
-        {
+        else if (bestValue != VALUE_DRAW && MoveList<LEGAL, true>(pos).empty())
             bestValue = VALUE_DRAW;
-        }
     }
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
