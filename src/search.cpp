@@ -430,12 +430,9 @@ void Worker::iterative_deepening() noexcept {
         for (curIdx = 0; curIdx < multiPV; ++curIdx)
         {
             if (curIdx == endIdx)
-            {
-                begIdx = endIdx++;
-                for (; endIdx < rootMoves.size(); ++endIdx)
+                for (begIdx = endIdx++; endIdx < rootMoves.size(); ++endIdx)
                     if (rootMoves[endIdx].tbRank != rootMoves[begIdx].tbRank)
                         break;
-            }
 
             // Reset UCI info selDepth for each depth and each PV line
             selDepth = 0;
