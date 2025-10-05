@@ -1981,14 +1981,12 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     if (!options["SyzygyPVExtend"])
         return;
 
-    auto& rootMove = rootMoves[index];
-
     auto startTime = SteadyClock::now();
 
     TimePoint moveOverhead = options["MoveOverhead"];
 
     // Do not use more than (0.5 * moveOverhead) time, if time manager is active.
-    const auto time_to_abort = [&]() {
+    auto time_to_abort = [&]() -> bool {
         auto endTime = SteadyClock::now();
         return limit.use_time_manager()
             && 2 * std::chrono::duration<double, std::milli>(endTime - startTime).count()
@@ -1996,6 +1994,8 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     };
 
     bool rule50Use = options["Syzygy50MoveRule"];
+
+    auto& rootMove = rootMoves[index];
 
     std::list<State> states;
 
@@ -2030,7 +2030,9 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             break;
         }
 
-        if (time_to_abort())
+        // Full PV shown will thus be validated and end in TB.
+        // If we cannot validate the full PV in time, we do not show it.
+        if (tbc.rootInTB && time_to_abort())
             break;
     }
 
