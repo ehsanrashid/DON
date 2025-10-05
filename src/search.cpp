@@ -1986,7 +1986,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     TimePoint moveOverhead = options["MoveOverhead"];
 
     // Do not use more than (0.5 * moveOverhead) time, if time manager is active.
-    auto time_to_abort = [&]() -> bool {
+    const auto time_to_abort = [&]() -> bool {
         auto endTime = SteadyClock::now();
         return limit.use_time_manager()
             && 2 * std::chrono::duration<double, std::milli>(endTime - startTime).count()
@@ -2041,8 +2041,11 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     // Step 2. Now extend the PV to mate, as if the user explores syzygy-tables.info using
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
-    while (!rootPos.is_draw(0, rule50Use))
+    while (!(rule50Use && rootPos.is_draw(0)))
     {
+        if (time_to_abort())
+            break;
+
         RootMoves rms;
         for (const auto& m : MoveList<LEGAL>(rootPos))
         {
@@ -2077,9 +2080,6 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         const auto& pvMove = rms[0].pv[0];
         rootMove.pv.push_back(pvMove);
         rootPos.do_move(pvMove, states.emplace_back());
-
-        if (time_to_abort())
-            break;
     }
 
     // Finding a draw in this function is an exceptional case,
@@ -2092,7 +2092,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     // Adjust the score to match the found PV. Note that a TB loss score can be displayed
     // if the engine did not find a drawing move yet, but eventually search will figure it out.
     // (e.g. 1kq5/q2r4/5K2/8/8/8/8/7Q w - - 96 1)
-    if (rootPos.is_draw(0, rule50Use))
+    if (rootPos.is_draw(0))
         value = VALUE_DRAW;
 
     // Undo the PV moves
