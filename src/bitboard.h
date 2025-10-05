@@ -39,7 +39,7 @@
     #endif
 #endif
 
-#if defined(USE_PEXT)
+#if defined(USE_BMI2)
     #include <immintrin.h>  // Header for _pext_u64() intrinsic
 #endif
 
@@ -88,7 +88,7 @@ struct Magic final {
 
     Bitboard* attacks;
     Bitboard  mask;
-#if !defined(USE_PEXT)
+#if !defined(USE_BMI2)
     Bitboard     magic;
     std::uint8_t shift;
 #else
@@ -100,7 +100,7 @@ struct Magic final {
     // Compute the attack's index using the 'magic bitboards' approach
     std::uint16_t index(Bitboard occupied) const noexcept {
 
-#if defined(USE_PEXT)
+#if defined(USE_BMI2)
         // _pext_u64(Parallel Bits Extract) extracts bits from a 64-bit integer
         // according to a specified mask and compresses them into a contiguous block in the lower bits
         return _pext_u64(occupied, mask);

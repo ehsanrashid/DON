@@ -91,7 +91,7 @@ void init_magics() noexcept {
 
     constexpr std::size_t TableSize = 0x1000;
 
-#if !defined(USE_PEXT)
+#if !defined(USE_BMI2)
     // Optimal PRNG seeds to pick the correct magics in the shortest time
     static constexpr std::uint16_t MagicSeeds[RANK_NB]{
     // clang-format off
@@ -138,7 +138,7 @@ void init_magics() noexcept {
         do
         {
             reference[size] = sliding_attack<PT>(s, b);
-#if !defined(USE_PEXT)
+#if !defined(USE_BMI2)
             occupancy[size] = b;
 #else
             m.attacks_bb(b, reference[size]);
@@ -147,7 +147,7 @@ void init_magics() noexcept {
             b = (b - m.mask) & m.mask;
         } while (b);
 
-#if !defined(USE_PEXT)
+#if !defined(USE_BMI2)
 
         m.shift =
     #if defined(IS_64BIT)

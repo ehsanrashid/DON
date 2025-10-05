@@ -285,7 +285,7 @@ std::string compiler_info() noexcept {
 #if defined(USE_AVX512)
     oss << " AVX512";
 #endif
-#if defined(USE_PEXT)
+#if defined(USE_BMI2)
     oss << " BMI2";
 #endif
 #if defined(USE_AVX2)

@@ -89,13 +89,13 @@ VPATH := syzygy:nnue:nnue/features
 # bits = 64/32        --- -DIS_64BIT         --- 64-/32-bit operating system
 # prefetch = yes/no   --- -DUSE_PREFETCH     --- Use prefetch asm-instruction
 # popcnt = yes/no     --- -DUSE_POPCNT       --- Use popcnt asm-instruction
-# pext = yes/no       --- -DUSE_PEXT         --- Use pext x86_64 asm-instruction
 # sse = yes/no        --- -msse              --- Use Intel Streaming SIMD Extensions
 # mmx = yes/no        --- -mmmx              --- Use Intel MMX instructions
 # sse2 = yes/no       --- -msse2             --- Use Intel Streaming SIMD Extensions 2
 # ssse3 = yes/no      --- -mssse3            --- Use Intel Supplemental Streaming SIMD Extensions 3
 # sse41 = yes/no      --- -msse4.1           --- Use Intel Streaming SIMD Extensions 4.1
 # avx2 = yes/no       --- -mavx2             --- Use Intel Advanced Vector Extensions 2
+# bmi2 = yes/no       --- -DUSE_BMI2         --- Use pext x86_64 asm-instruction
 # avxvnni = yes/no    --- -mavxvnni          --- Use Intel Vector Neural Network Instructions AVX
 # avx512 = yes/no     --- -mavx512bw         --- Use Intel Advanced Vector Extensions 512
 # vnni512 = yes/no    --- -mavx512vnni       --- Use Intel Vector Neural Network Instructions 512
@@ -145,13 +145,13 @@ sanitize = none
 bits = 64
 prefetch = no
 popcnt = no
-pext = no
 sse = no
 mmx = no
 sse2 = no
 ssse3 = no
 sse41 = no
 avx2 = no
+bmi2 = no
 avxvnni = no
 avx512 = no
 vnni512 = no
@@ -244,7 +244,7 @@ ifeq ($(findstring -bmi2, $(ARCH)), -bmi2)
     ssse3 = yes
     sse41 = yes
     avx2 = yes
-    pext = yes
+    bmi2 = yes
 endif
 
 ifeq ($(findstring -avxvnni, $(ARCH)), -avxvnni)
@@ -254,7 +254,7 @@ ifeq ($(findstring -avxvnni, $(ARCH)), -avxvnni)
     ssse3 = yes
     sse41 = yes
     avx2 = yes
-    pext = yes
+    bmi2 = yes
     avxvnni = yes
 endif
 
@@ -265,7 +265,7 @@ ifeq ($(findstring -avx512, $(ARCH)), -avx512)
     ssse3 = yes
     sse41 = yes
     avx2 = yes
-    pext = yes
+    bmi2 = yes
     avx512 = yes
 endif
 
@@ -276,7 +276,7 @@ ifeq ($(findstring -vnni512, $(ARCH)), -vnni512)
     ssse3 = yes
     sse41 = yes
     avx2 = yes
-    pext = yes
+    bmi2 = yes
     avx512 = yes
     vnni512 = yes
 endif
@@ -288,7 +288,7 @@ ifeq ($(findstring -avx512icl, $(ARCH)), -avx512icl)
     ssse3 = yes
     sse41 = yes
     avx2 = yes
-    pext = yes
+    bmi2 = yes
     avx512 = yes
     vnni512 = yes
     avx512icl = yes
@@ -298,9 +298,9 @@ ifeq ($(sse), yes)
     prefetch = yes
 endif
 
-# 64-bit pext is not available on x86-32
+# 64-bit bmi2 is not available on x86-32
 ifeq ($(bits), 32)
-    pext = no
+    bmi2 = no
 endif
 
 else
@@ -793,9 +793,9 @@ ifeq ($(lsx), yes)
     endif
 endif
 
-### 3.7 pext
-ifeq ($(pext), yes)
-    CXXFLAGS += -DUSE_PEXT
+### 3.7 bmi2
+ifeq ($(bmi2), yes)
+    CXXFLAGS += -DUSE_BMI2
     ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
         CXXFLAGS += -mbmi2
     endif
@@ -1030,13 +1030,13 @@ config-sanity: net
 	echo "os: '$(OS)'" && \
 	echo "prefetch: '$(prefetch)'" && \
 	echo "popcnt: '$(popcnt)'" && \
-	echo "pext: '$(pext)'" && \
 	echo "sse: '$(sse)'" && \
 	echo "mmx: '$(mmx)'" && \
 	echo "sse2: '$(sse2)'" && \
 	echo "ssse3: '$(ssse3)'" && \
 	echo "sse41: '$(sse41)'" && \
 	echo "avx2: '$(avx2)'" && \
+	echo "bmi2: '$(bmi2)'" && \
 	echo "avxvnni: '$(avxvnni)'" && \
 	echo "avx512: '$(avx512)'" && \
 	echo "vnni512: '$(vnni512)'" && \
@@ -1068,13 +1068,13 @@ config-sanity: net
 	(test "$(bits)" = "32" || test "$(bits)" = "64") && \
 	(test "$(prefetch)" = "yes" || test "$(prefetch)" = "no") && \
 	(test "$(popcnt)" = "yes" || test "$(popcnt)" = "no") && \
-	(test "$(pext)" = "yes" || test "$(pext)" = "no") && \
 	(test "$(sse)" = "yes" || test "$(sse)" = "no") && \
 	(test "$(mmx)" = "yes" || test "$(mmx)" = "no") && \
 	(test "$(sse2)" = "yes" || test "$(sse2)" = "no") && \
 	(test "$(ssse3)" = "yes" || test "$(ssse3)" = "no") && \
 	(test "$(sse41)" = "yes" || test "$(sse41)" = "no") && \
 	(test "$(avx2)" = "yes" || test "$(avx2)" = "no") && \
+	(test "$(bmi2)" = "yes" || test "$(bmi2)" = "no") && \
 	(test "$(avx512)" = "yes" || test "$(avx512)" = "no") && \
 	(test "$(vnni512)" = "yes" || test "$(vnni512)" = "no") && \
 	(test "$(avx512icl)" = "yes" || test "$(avx512icl)" = "no") && \
