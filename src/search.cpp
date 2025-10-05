@@ -669,8 +669,7 @@ Value Worker::search(Position&    pos,
     assert(ss->ply >= 0);
     assert(!RootNode || (DEPTH_ZERO < depth && depth < MAX_PLY));
 
-    Color ac  = pos.active_color();
-    Key   key = pos.key();
+    Key key = pos.key();
 
     if constexpr (!RootNode)
     {
@@ -866,15 +865,15 @@ Value Worker::search(Position&    pos,
         }
     }
 
+    Color ac = pos.active_color();
+
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
     int absCorrectionValue = std::abs(correctionValue);
 
-    Value unadjustedStaticEval, eval;
+    Value unadjustedStaticEval, eval, probCutBeta;
 
     bool improve, worsen;
-
-    Value probCutBeta;
 
     Move move;
 
@@ -883,7 +882,7 @@ Value Worker::search(Position&    pos,
     {
         unadjustedStaticEval = VALUE_NONE;
 
-        eval = ss->staticEval = (ss - 2)->staticEval;
+        ss->staticEval = eval = (ss - 2)->staticEval;
 
         improve = worsen = false;
 
@@ -892,11 +891,7 @@ Value Worker::search(Position&    pos,
     }
 
     if (exclude)
-    {
-        assert(is_ok(ss->staticEval));
-
         unadjustedStaticEval = eval = ss->staticEval;
-    }
     else if (ttd.hit)
     {
         // Never assume anything about values stored in TT
@@ -904,7 +899,7 @@ Value Worker::search(Position&    pos,
         if (!is_valid(unadjustedStaticEval))
             unadjustedStaticEval = evaluate(pos);
 
-        eval = ss->staticEval = adjust_static_eval(unadjustedStaticEval, correctionValue);
+        ss->staticEval = eval = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
         // Can ttValue be used as a better position evaluation
         if (is_valid(ttd.value) && (ttd.bound & fail_bound(ttd.value > eval)) != 0)
@@ -914,7 +909,7 @@ Value Worker::search(Position&    pos,
     {
         unadjustedStaticEval = evaluate(pos);
 
-        eval = ss->staticEval = adjust_static_eval(unadjustedStaticEval, correctionValue);
+        ss->staticEval = eval = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
         ttu.update(DEPTH_NONE, ss->pvHit, BOUND_NONE, Move::None, VALUE_NONE, unadjustedStaticEval);
     }
@@ -1698,7 +1693,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         if (!is_valid(unadjustedStaticEval))
             unadjustedStaticEval = evaluate(pos);
 
-        bestValue = ss->staticEval = adjust_static_eval(unadjustedStaticEval, correctionValue);
+        ss->staticEval = bestValue = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
         // Can ttValue be used as a better position evaluation
         if (is_valid(ttd.value) && (ttd.bound & fail_bound(ttd.value > bestValue)) != 0)
@@ -1708,7 +1703,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     {
         unadjustedStaticEval = evaluate(pos);
 
-        bestValue = ss->staticEval = adjust_static_eval(unadjustedStaticEval, correctionValue);
+        ss->staticEval = bestValue = adjust_static_eval(unadjustedStaticEval, correctionValue);
     }
 
     // Stand pat. Return immediately if bestValue is at least beta
