@@ -54,8 +54,7 @@ MovePicker::MovePicker(const Position&           p,
     if (pos.checkers())
         stage = STG_EVA_TT + !(ttMove != Move::None);
     else
-        stage = (threshold < 0 ? STG_ENC_TT : STG_QS_TT)
-              + !(ttMove != Move::None && (threshold < 0 || pos.capture_promo(ttMove)));
+        stage = (threshold < 0 ? STG_ENC_TT : STG_QS_TT) + !(ttMove != Move::None);
 }
 
 MovePicker::MovePicker(const Position& p,  //

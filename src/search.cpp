@@ -1752,7 +1752,7 @@ QS_MOVES_LOOP:
     while ((move = mp.next_move()) != Move::None)
     {
         assert(pos.pseudo_legal(move));
-        assert(ss->inCheck || pos.capture_promo(move));
+        assert(ss->inCheck || move == ttd.move || pos.capture_promo(move));
 
         // Check for legality
         if (!pos.legal(move))
