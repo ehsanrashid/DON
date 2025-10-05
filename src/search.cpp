@@ -1859,7 +1859,6 @@ QS_MOVES_LOOP:
                  && type_of(pos.captured_piece()) >= ROOK
                  // No pawn pushes available
                  && !(push_pawn_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces())
-                 && (ttd.move == Move::None || !pos.legal(ttd.move))
                  && MoveList<LEGAL, true>(pos).empty())
         {
             bestValue = VALUE_DRAW;
