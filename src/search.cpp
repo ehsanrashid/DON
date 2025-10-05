@@ -1607,7 +1607,10 @@ S_MOVES_LOOP:  // When in check, search starts here
           // positive correction & no fail low
           || (bestValue > ss->staticEval && bestMove != Move::None)))
     {
-        int bonus = (bestValue - ss->staticEval) * depth / 8;
+        int bonus =
+          std::clamp((bestValue - ss->staticEval) * depth / (8 + (bestValue > ss->staticEval)),
+                     -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
+        bonus = (1088 - 180 * (bestValue > ss->staticEval)) * bonus / 1024;
         update_correction_history(pos, ss, bonus);
     }
 
@@ -2355,11 +2358,7 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
 }
 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept {
-    constexpr int BonusLimit = CORRECTION_HISTORY_LIMIT / 4;
-
     Color ac = pos.active_color();
-
-    bonus = std::clamp(bonus, -BonusLimit, +BonusLimit);
 
     for (Color c : {WHITE, BLACK})
     {
