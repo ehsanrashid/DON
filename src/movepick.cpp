@@ -248,10 +248,10 @@ STAGE_SWITCH:
         endCur = /* endMoves =*/score<ENC_CAPTURE>(moveList);
 
         sort_partial();
+    }
 
         ++stage;
         goto STAGE_SWITCH;
-    }
 
     case STG_ENC_CAPTURE_GOOD :
         if (select([&]() {
@@ -320,7 +320,7 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case STG_ENC_QUIET_BAD :
-        if (select([]() { return true; }))
+        if (quietPick && select([]() { return true; }))
             return move();
 
         return Move::None;
@@ -332,10 +332,10 @@ STAGE_SWITCH:
         endCur = endMoves = score<EVA_CAPTURE>(moveList);
 
         sort_partial();
+    }
 
         ++stage;
         [[fallthrough]];
-    }
 
     case STG_EVA_CAPTURE :
         if (select([]() { return true; }))
