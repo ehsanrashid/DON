@@ -1311,20 +1311,18 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         if (ss->inCheck)
         {
-            ss->history = capture
-                          ? 6.2734 * PIECE_VALUE[captured] + 2.9999 * promotion_value(move)  //
-                              + CaptureHistory[movedPiece][dst][captured]
-                          : 2 * QuietHistory[ac][move.org_dst()]  //
-                              + (*contHistory[0])[movedPiece][dst];
+            ss->history = capture ? 6.2734 * (PIECE_VALUE[captured] + promotion_value(move))  //
+                                      + CaptureHistory[movedPiece][dst][captured]
+                                  : 2 * QuietHistory[ac][move.org_dst()]  //
+                                      + (*contHistory[0])[movedPiece][dst];
         }
         else
         {
-            ss->history = capture
-                          ? 6.2734 * PIECE_VALUE[captured] + 2.9999 * promotion_value(move)  //
-                              + CaptureHistory[movedPiece][dst][captured]
-                          : 2 * QuietHistory[ac][move.org_dst()]    //
-                              + (*contHistory[0])[movedPiece][dst]  //
-                              + (*contHistory[1])[movedPiece][dst];
+            ss->history = capture ? 6.2734 * (PIECE_VALUE[captured] + promotion_value(move))  //
+                                      + CaptureHistory[movedPiece][dst][captured]
+                                  : 2 * QuietHistory[ac][move.org_dst()]    //
+                                      + (*contHistory[0])[movedPiece][dst]  //
+                                      + (*contHistory[1])[movedPiece][dst];
         }
 
         // (*Scaler) Decrease reduction if position is or has been on the PV
@@ -2025,8 +2023,8 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         // Don't allow for repetitions or drawing moves along the PV in TB regime
         if (tbc.rootInTB && rootPos.is_draw(ply, rule50Use))
         {
-            rootPos.undo_move(pvMove);
             --ply;
+            rootPos.undo_move(pvMove);
             break;
         }
 
