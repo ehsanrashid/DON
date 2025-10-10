@@ -1482,7 +1482,7 @@ bool Position::see_ge(const Move& m, int threshold) const noexcept {
     Color ac = active_color();
 
     Square org = m.org_sq(), dst = m.dst_sq();
-    assert(color_of(piece_on(org)) == ac);
+    assert(!empty_on(org) && color_of(piece_on(org)) == ac);
 
     Bitboard occupied = pieces();
 

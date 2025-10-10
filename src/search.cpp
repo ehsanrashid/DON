@@ -2362,7 +2362,10 @@ void update_correction_history(const Position& pos, Stack* const ss, int bonus) 
 
     auto m = (ss - 1)->move;
     if (m.is_ok())
+    {
         (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << int(std::round(1.0703 * bonus));
+        (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << int(std::round(0.5000 * bonus));
+    }
 }
 
 // (*Scaler) All tuned parameters at time controls shorter than
@@ -2385,6 +2388,7 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
     auto m = (ss - 1)->move;
     int cntCv = m.is_ok()
               ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
+              + (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
               : 8;
 
     return (+9536 * pCv + 8494 * miCv + 4247 * mjCv + 10132 * npCv + 7156 * cntCv);
