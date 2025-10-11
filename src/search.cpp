@@ -1725,8 +1725,6 @@ QS_MOVES_LOOP:
 
     auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
-    auto pawnIndex = pawn_index(pos.pawn_key());
-
     const History<HPieceSq>* contHistory[2]{(ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory};
 
     Move  move;
@@ -1754,8 +1752,6 @@ QS_MOVES_LOOP:
         promoCount += move.type_of() == PROMOTION && move.promotion_type() < QUEEN;
 
         Square dst = move.dst_sq();
-
-        Piece movedPiece = pos.moved_piece(move);
 
         bool check    = pos.check(move);
         bool dblCheck = check && pos.dbl_check(move);
@@ -1791,14 +1787,9 @@ QS_MOVES_LOOP:
                 }
             }
 
+            // Skip non-captures
             if (!capture)
-            {
-                assert(dst != preSq);
-                // History based pruning
-                int history = PawnHistory[pawnIndex][movedPiece][dst];
-                if (history < 7300)
-                    continue;
-            }
+                continue;
 
             // SEE based pruning
             if (pos.see(move) < -(78 + 64 * dblCheck))
