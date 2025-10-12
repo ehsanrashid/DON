@@ -42,9 +42,12 @@ class FeatureTransformer;
 // Accumulator holds the result of affine transformation of input features
 template<IndexType Size>
 struct alignas(CACHE_LINE_SIZE) Accumulator final {
-    BiasType       accumulation[COLOR_NB][Size];
-    PSQTWeightType psqtAccumulation[COLOR_NB][PSQTBuckets];
-    bool           computed[COLOR_NB];
+   public:
+    Accumulator() noexcept = default;
+
+    BiasType       accumulation[COLOR_NB][Size]{};
+    PSQTWeightType psqtAccumulation[COLOR_NB][PSQTBuckets]{};
+    bool           computed[COLOR_NB]{};
 };
 
 using BigAccumulator   = Accumulator<BigTransformedFeatureDimensions>;
@@ -79,10 +82,10 @@ struct AccumulatorCaches final {
                             sizeof(*this) - offset);
             }
 
-            BiasType       accumulation[Size];
-            PSQTWeightType psqtAccumulation[PSQTBuckets];
-            Bitboard       colorBB[COLOR_NB];
-            Bitboard       typeBB[PIECE_TYPE_NB];
+            BiasType       accumulation[Size]{};
+            PSQTWeightType psqtAccumulation[PSQTBuckets]{};
+            Bitboard       colorBB[COLOR_NB]{};
+            Bitboard       typeBB[PIECE_TYPE_NB]{};
         };
 
         template<typename Network>
@@ -95,7 +98,7 @@ struct AccumulatorCaches final {
 
         auto& operator[](Square s) noexcept { return entries[s]; }
 
-        Entry entries[SQUARE_NB][COLOR_NB];
+        Entry entries[SQUARE_NB][COLOR_NB]{};
     };
 
     using BigCache   = Cache<BigTransformedFeatureDimensions>;
@@ -179,7 +182,7 @@ struct AccumulatorStack final {
                                      const FeatureTransformer<Dimensions>& featureTransformer,
                                      std::size_t                           end) noexcept;
 
-    AccumulatorState accStates[MAX_PLY + 1];
+    AccumulatorState accStates[MAX_PLY + 1]{};
     std::size_t      size;
 };
 
