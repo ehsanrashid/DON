@@ -264,13 +264,16 @@ enum Direction : std::int8_t {
 
 // Keep track of what a move changes on the board (used by NNUE)
 struct DirtyPiece final {
-    Piece  pc;        // this is never allowed to be NO_PIECE
-    Square org, dst;  // dst should be SQ_NONE for promotions
+   public:
+    constexpr DirtyPiece() noexcept = default;
+
+    Piece  pc  = NO_PIECE;                // this is never allowed to be NO_PIECE
+    Square org = SQ_NONE, dst = SQ_NONE;  // dst should be SQ_NONE for promotions
 
     // if {add, remove}Sq is SQ_NONE, {add, remove}Pc is allowed to be uninitialized
     // castling uses addSq and removeSq to remove and add the rook
-    Square removeSq, addSq;
-    Piece  removePc, addPc;
+    Square removeSq = SQ_NONE, addSq = SQ_NONE;
+    Piece  removePc = NO_PIECE, addPc = NO_PIECE;
 };
 
 // clang-format off

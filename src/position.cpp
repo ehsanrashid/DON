@@ -881,11 +881,6 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
         // Reset rule 50 draw counter
         reset_rule50_count();
     }
-    else
-    {
-        dp.removeSq = SQ_NONE;
-        //dp.removePc = NO_PIECE;
-    }
 
     move_piece(org, dst);
 

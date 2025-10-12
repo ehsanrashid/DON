@@ -20,11 +20,9 @@
 #ifndef NNUE_ACCUMULATOR_H_INCLUDED
 #define NNUE_ACCUMULATOR_H_INCLUDED
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <vector>
 
 #include "../types.h"
 #include "nnue_architecture.h"
@@ -44,10 +42,12 @@ class FeatureTransformer;
 // Accumulator holds the result of affine transformation of input features
 template<IndexType Size>
 struct alignas(CACHE_LINE_SIZE) Accumulator final {
-    BiasType       accumulation[COLOR_NB][Size];
-    PSQTWeightType psqtAccumulation[COLOR_NB][PSQTBuckets];
+   public:
+    constexpr Accumulator() noexcept = default;
 
-    std::array<bool, COLOR_NB> computed;
+    BiasType       accumulation[COLOR_NB][Size]{};
+    PSQTWeightType psqtAccumulation[COLOR_NB][PSQTBuckets]{};
+    bool           computed[COLOR_NB]{};
 };
 
 using BigAccumulator   = Accumulator<BigTransformedFeatureDimensions>;
@@ -60,11 +60,16 @@ using SmallAccumulator = Accumulator<SmallTransformedFeatureDimensions>;
 // This idea, was first described by Luecx (author of Koivisto) and
 // is commonly referred to as "Finny Tables".
 struct AccumulatorCaches final {
-
+   public:
     template<IndexType Size>
     struct alignas(CACHE_LINE_SIZE) Cache final {
+       public:
+        constexpr Cache() noexcept = default;
 
         struct alignas(CACHE_LINE_SIZE) Entry final {
+           public:
+            constexpr Entry() noexcept = default;
+
             // To initialize a refresh entry, set all its bitboards empty,
             // so put the biases in the accumulation, without any weights on top
             void init(const BiasType* biases) noexcept {
@@ -75,10 +80,10 @@ struct AccumulatorCaches final {
                             sizeof(*this) - offset);
             }
 
-            BiasType       accumulation[Size];
-            PSQTWeightType psqtAccumulation[PSQTBuckets];
-            Bitboard       colorBB[COLOR_NB];
-            Bitboard       typeBB[PIECE_TYPE_NB];
+            BiasType       accumulation[Size]{};
+            PSQTWeightType psqtAccumulation[PSQTBuckets]{};
+            Bitboard       colorBB[COLOR_NB]{};
+            Bitboard       typeBB[PIECE_TYPE_NB]{};
         };
 
         template<typename Network>
@@ -91,7 +96,7 @@ struct AccumulatorCaches final {
 
         auto& operator[](Square s) noexcept { return entries[s]; }
 
-        std::array<std::array<Entry, COLOR_NB>, SQUARE_NB> entries;
+        Entry entries[SQUARE_NB][COLOR_NB]{};
     };
 
     using BigCache   = Cache<BigTransformedFeatureDimensions>;
@@ -101,11 +106,13 @@ struct AccumulatorCaches final {
 
     void init(const Networks& networks) noexcept;
 
-    BigCache   big;
-    SmallCache small;
+    BigCache   big{};
+    SmallCache small{};
 };
 
 struct AccumulatorState final {
+   public:
+    constexpr AccumulatorState() noexcept = default;
 
     template<IndexType Size>
     const auto& acc() const noexcept {
@@ -132,16 +139,14 @@ struct AccumulatorState final {
 
     void reset(const DirtyPiece& dp) noexcept;
 
-    DirtyPiece       dirtyPiece;
-    BigAccumulator   big;
-    SmallAccumulator small;
+    DirtyPiece       dirtyPiece{};
+    BigAccumulator   big{};
+    SmallAccumulator small{};
 };
 
-class AccumulatorStack final {
+struct AccumulatorStack final {
    public:
-    AccumulatorStack() noexcept :
-        accStates(MAX_PLY + 1),
-        size(1) {}
+    constexpr AccumulatorStack() noexcept = default;
 
     [[nodiscard]] const AccumulatorState& clatest_state() const noexcept;
     [[nodiscard]] AccumulatorState&       latest_state() noexcept;
@@ -174,8 +179,8 @@ class AccumulatorStack final {
                                      const FeatureTransformer<Dimensions>& featureTransformer,
                                      std::size_t                           end) noexcept;
 
-    std::vector<AccumulatorState> accStates;
-    std::size_t                   size;
+    AccumulatorState accStates[MAX_PLY + 1]{};
+    std::size_t      size{1};
 };
 
 }  // namespace NNUE

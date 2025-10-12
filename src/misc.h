@@ -260,7 +260,7 @@ void start_logger(std::string_view logFile) noexcept;
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class PRNG final {
    public:
-    explicit PRNG(std::uint64_t seed) noexcept :
+    explicit constexpr PRNG(std::uint64_t seed) noexcept :
         s(seed) {
         assert(seed);
     }
@@ -278,7 +278,7 @@ class PRNG final {
     }
 
     // Jump function for the XORShift64Star PRNG
-    void jump() noexcept {
+    constexpr void jump() noexcept {
         constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
 
         std::uint64_t t = 0;
@@ -298,14 +298,13 @@ class PRNG final {
         return 0x2545F4914F6CDD1DULL * s;
     }
 
-    std::uint64_t s;
+    std::uint64_t s{};
 };
 
 // XORShift1024Star Pseudo-Random Number Generator
 class PRNG1024 final {
    public:
-    explicit PRNG1024(std::uint64_t seed) noexcept :
-        p(0) {
+    explicit constexpr PRNG1024(std::uint64_t seed) noexcept {
         assert(seed);
 
         for (auto& e : s)
@@ -325,8 +324,8 @@ class PRNG1024 final {
     }
 
     // Jump function for the XORShift1024Star PRNG
-    void jump() noexcept {
-        constexpr std::array<std::uint64_t, Size> JumpMask{
+    constexpr void jump() noexcept {
+        constexpr std::uint64_t JumpMask[Size]{
           // clang-format off
           0x84242F96ECA9C41DULL, 0xA3C65B8776F96855ULL, 0x5B34A39F070B5837ULL, 0x4489AFFCE4F31A1EULL,
           0x2FFEEB0A48316F40ULL, 0xDC2D9891FE68C022ULL, 0x3659132BB12FEA70ULL, 0xAAC17D8EFA43CAB8ULL,
@@ -335,22 +334,22 @@ class PRNG1024 final {
           // clang-format on
         };
 
-        std::array<std::uint64_t, Size> t{};
+        std::uint64_t t[Size]{};
         for (const auto jumpMask : JumpMask)
             for (std::uint8_t m = 0; m < 64; ++m)
             {
                 if (jumpMask & (1ULL << m))
-                    for (std::size_t i = 0; i < t.size(); ++i)
+                    for (std::size_t i = 0; i < Size; ++i)
                         t[i] ^= s[index(i)];
                 rand64();
             }
 
-        for (std::size_t i = 0; i < t.size(); ++i)
+        for (std::size_t i = 0; i < Size; ++i)
             s[index(i)] = t[i];
     }
 
    private:
-    constexpr std::size_t index(std::size_t k) const noexcept { return (p + k) & (s.size() - 1); }
+    constexpr std::size_t index(std::size_t k) const noexcept { return (p + k) & (Size - 1); }
 
     // XORShift1024Star algorithm implementation
     constexpr std::uint64_t rand64() noexcept {
@@ -363,8 +362,8 @@ class PRNG1024 final {
 
     static constexpr std::size_t Size = 16;
 
-    std::array<std::uint64_t, Size> s;
-    std::size_t                     p;
+    std::uint64_t s[Size]{};
+    std::size_t   p{0};
 };
 
 #if !defined(NDEBUG)

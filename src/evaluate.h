@@ -37,7 +37,7 @@ class Position;
 namespace NNUE {
 struct Networks;
 struct AccumulatorCaches;
-class AccumulatorStack;
+struct AccumulatorStack;
 }  // namespace NNUE
 
 Value evaluate(const Position&          pos,

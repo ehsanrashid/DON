@@ -19,6 +19,7 @@
 
 #include <cassert>
 #include <initializer_list>
+#include <iterator>
 #include <type_traits>
 
 #include "../bitboard.h"
@@ -363,15 +364,14 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
 }  // namespace
 
 void AccumulatorCaches::init(const Networks& networks) noexcept {
-
     big.init(networks.big);
     small.init(networks.small);
 }
 
 void AccumulatorState::reset(const DirtyPiece& dp) noexcept {
-    dirtyPiece = dp;
-    big.computed.fill(false);
-    small.computed.fill(false);
+    dirtyPiece          = dp;
+    big.computed[WHITE] = big.computed[BLACK] = false;
+    small.computed[WHITE] = small.computed[BLACK] = false;
 }
 
 const AccumulatorState& AccumulatorStack::clatest_state() const noexcept {
@@ -385,7 +385,7 @@ void AccumulatorStack::reset() noexcept {
 }
 
 void AccumulatorStack::push(const DirtyPiece& dp) noexcept {
-    assert(size < accStates.size());
+    assert(size < std::size(accStates));
     accStates[size].reset(dp);
     ++size;
 }
@@ -444,7 +444,7 @@ void AccumulatorStack::forward_update_incremental(
   const FeatureTransformer<Dimensions>& featureTransformer,
   std::size_t                           begin) noexcept {
 
-    assert(begin < accStates.size());
+    assert(begin < size && size < std::size(accStates));
     assert((accStates[begin].acc<Dimensions>()).computed[Perspective]);
 
     Square kingSq = pos.king_sq(Perspective);
@@ -483,7 +483,7 @@ void AccumulatorStack::backward_update_incremental(
   const FeatureTransformer<Dimensions>& featureTransformer,
   std::size_t                           end) noexcept {
 
-    assert(end < size && end < accStates.size());
+    assert(end < size && size < std::size(accStates));
     assert((clatest_state().acc<Dimensions>()).computed[Perspective]);
 
     Square kingSq = pos.king_sq(Perspective);

@@ -100,8 +100,6 @@ class Network final {
 
     template<IndexType Size>
     friend struct AccumulatorCaches::Cache;
-
-    friend class AccumulatorStack;
 };
 
 // Definitions of the network types
@@ -116,6 +114,7 @@ using BigNetwork   = Network<BigNetworkArchitecture, BigFeatureTransformer>;
 using SmallNetwork = Network<SmallNetworkArchitecture, SmallFeatureTransformer>;
 
 struct Networks final {
+   public:
     Networks(BigNetwork&& bigNet, SmallNetwork&& smallNet) noexcept :
         big(std::move(bigNet)),
         small(std::move(smallNet)) {}
