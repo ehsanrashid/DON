@@ -2,16 +2,16 @@
 # obtain and optionally verify Bench / signature
 # if no reference is given, the output is deliberately limited to just the signature
 
-#STDOUT_FILE=$(mktemp)
-#STDERR_FILE=$(mktemp)
+#StdoutFile=$(mktemp)
+#StderrFile=$(mktemp)
 
 error() {
   echo "running bench for signature failed on line $1"
   #echo "===== STDOUT ====="
-  #cat "$STDOUT_FILE"
+  #cat "$StdoutFile"
   #echo "===== STDERR ====="
-  #cat "$STDERR_FILE"
-  #rm -f "$STDOUT_FILE" "$STDERR_FILE"
+  #cat "$StderrFile"
+  #rm -f "$StdoutFile" "$StderrFile"
   exit 1
 }
 
@@ -20,10 +20,10 @@ trap 'error ${LINENO}' ERR
 # obtain signature
 signature=`eval "$WINE_PATH ./DON bench 2>&1" | grep "Total nodes     : " | awk '{print $4}'`
 
-#eval "$WINE_PATH ./DON bench" > "$STDOUT_FILE" 2> "$STDERR_FILE" || error ${LINENO}
-#signature=$(grep "Total nodes     : " "$STDERR_FILE" | awk '{print $4}')
+#eval "$WINE_PATH ./DON bench" > "$StdoutFile" 2> "$StderrFile" || error ${LINENO}
+#signature=$(grep "Total nodes     : " "$StderrFile" | awk '{print $4}')
 
-#rm -f "$STDOUT_FILE" "$STDERR_FILE"
+#rm -f "$StdoutFile" "$StderrFile"
 
 if [ $# -gt 0 ]; then
    # compare to given reference

@@ -100,19 +100,19 @@ class Syzygy:
             url = "https://api.github.com/repos/niklasf/python-chess/tarball/9b9aa13f9f36d08aadfabff872882f4ab1494e95"
             file = "niklasf-python-chess-9b9aa13"
 
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                tarball_path = os.path.join(tmpdirname, f"{file}.tar.gz")
+            with tempfile.TemporaryDirectory() as tmpDirName:
+                tarballPath = os.path.join(tmpDirName, f"{file}.tar.gz")
 
                 response = requests.get(url, stream=True)
-                with open(tarball_path, "wb") as f:
+                with open(tarballPath, "wb") as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
 
-                with tarfile.open(tarball_path, "r:gz") as tar:
-                    tar.extractall(tmpdirname)
+                with tarfile.open(tarballPath, "r:gz") as tar:
+                    tar.extractall(tmpDirName)
 
                 shutil.move(
-                    os.path.join(tmpdirname, file), os.path.join(PATH, "syzygy")
+                    os.path.join(tmpDirName, file), os.path.join(PATH, "syzygy")
                 )
 
 
@@ -156,127 +156,127 @@ def timeout_decorator(timeout: float):
 
 class MiniTestFramework:
     def __init__(self):
-        self.test_suites_passed = 0
-        self.test_suites_failed = 0
-        self.tests_passed = 0
-        self.tests_failed = 0
-        self.failure_stop = True
+        self.testSuitesPassed = 0
+        self.testSuitesFailed = 0
+        self.testsPassed = 0
+        self.testsFailed = 0
+        self.failureStop = True
 
     def has_failed(self) -> bool:
-        return self.test_suites_failed > 0
+        return self.testSuitesFailed > 0
 
     def run(self, classes: List[type]) -> bool:
-        self.start_time = time.time()
+        self.startTime = time.time()
 
         for test_class in classes:
-            with tempfile.TemporaryDirectory() as tmpdirname:
-                original_cwd = os.getcwd()
-                os.chdir(tmpdirname)
+            with tempfile.TemporaryDirectory() as tmpDirName:
+                osCwd = os.getcwd()
+                os.chdir(tmpDirName)
 
                 try:
                     if self.__run(test_class):
-                        self.test_suites_failed += 1
+                        self.testSuitesFailed += 1
                     else:
-                        self.test_suites_passed += 1
+                        self.testSuitesPassed += 1
                 except Exception as e:
-                    self.test_suites_failed += 1
+                    self.testSuitesFailed += 1
                     print(f"\n{RED_COLOR}Error: {e}{RESET_COLOR}")
                 finally:
-                    os.chdir(original_cwd)
+                    os.chdir(osCwd)
 
-        self.__print_summary(round(time.time() - self.start_time, 2))
+        self.__print_summary(round(time.time() - self.startTime, 2))
         return self.has_failed()
 
     def __run(self, test_class) -> bool:
-        test_instance = test_class()
-        test_name = test_instance.__class__.__name__
-        test_methods = [m for m in test_instance.__ordered__ if m.startswith("test_")]
+        testInstance = test_class()
+        testName = testInstance.__class__.__name__
+        testMethods = [m for m in testInstance.__ordered__ if m.startswith("test_")]
 
-        print(f"\nTest Suite: {test_name}")
+        print(f"\nTest Suite: {testName}")
 
-        if hasattr(test_instance, "beforeAll"):
-            test_instance.beforeAll()
+        if hasattr(testInstance, "beforeAll"):
+            testInstance.beforeAll()
 
-        fails = 0
+        failed = 0
 
-        for method in test_methods:
-            fails += self.__run_test_method(test_instance, method)
+        for testMethod in testMethods:
+            failed += self.__run_test_method(testInstance, testMethod)
 
-        if hasattr(test_instance, "afterAll"):
-            test_instance.afterAll()
+        if hasattr(testInstance, "afterAll"):
+            testInstance.afterAll()
 
-        self.tests_failed += fails
+        self.testsFailed += failed
 
-        return fails > 0
+        return failed > 0
 
-    def __run_test_method(self, test_instance, method: str) -> int:
-        print(f"    Running {method}... \r", end="", flush=True)
+    def __run_test_method(self, testInstance, testMethod: str) -> int:
+        print(f"    Running {testMethod}... \r", end="", flush=True)
 
         buffer = io.StringIO()
-        fails = 0
+        failed = 0
 
         try:
             t0 = time.time()
 
             with redirect_stdout(buffer):
-                if hasattr(test_instance, "beforeEach"):
-                    test_instance.beforeEach()
+                if hasattr(testInstance, "beforeEach"):
+                    testInstance.beforeEach()
 
-                getattr(test_instance, method)()
+                getattr(testInstance, testMethod)()
 
-                if hasattr(test_instance, "afterEach"):
-                    test_instance.afterEach()
+                if hasattr(testInstance, "afterEach"):
+                    testInstance.afterEach()
 
             duration = time.time() - t0
 
-            self.print_success(f" {method} ({duration * 1000:.2f}ms)")
-            self.tests_passed += 1
+            self.print_success(f" {testMethod} ({duration * 1000:.2f}ms)")
+            self.testsPassed += 1
         except Exception as e:
             if isinstance(e, TimeoutException):
                 self.print_failure(
-                    f" {method} (hit execution limit of {e.timeout} seconds)"
+                    f" {testMethod} (hit execution limit of {e.timeout} seconds)"
                 )
 
             if isinstance(e, AssertionError):
-                self.__handle_assertion_error(t0, method)
+                self.__handle_assertion_error(t0, testMethod)
 
-            if self.failure_stop:
+            if self.failureStop:
                 self.__print_buffer_output(buffer)
                 raise e
 
-            fails += 1
+            failed += 1
         finally:
             self.__print_buffer_output(buffer)
 
-        return fails
+        return failed
 
-    def __handle_assertion_error(self, start_time, method: str):
-        duration = time.time() - start_time
-        self.print_failure(f" {method} ({duration * 1000:.2f}ms)")
-        traceback_output = "".join(traceback.format_tb(sys.exc_info()[2]))
+    def __handle_assertion_error(self, startTime, testMethod: str):
+        duration = time.time() - startTime
+        self.print_failure(f" {testMethod} ({duration * 1000:.2f}ms)")
+        tracebackOutput = "".join(traceback.format_tb(sys.exc_info()[2]))
 
-        colored_traceback = "\n".join(
+        coloredTraceback = "\n".join(
             f"  {CYAN_COLOR}{line}{RESET_COLOR}"
-            for line in traceback_output.splitlines()
+            for line in tracebackOutput.splitlines()
         )
 
-        print(colored_traceback)
+        print(coloredTraceback)
 
     def __print_buffer_output(self, buffer: io.StringIO):
         output = buffer.getvalue()
         if output:
-            indented_output = "\n".join(f"    {line}" for line in output.splitlines())
+            indentedOutput = "\n".join(f"    {line}" for line in output.splitlines())
             print(f"    {RED_COLOR}⎯⎯⎯⎯⎯OUTPUT⎯⎯⎯⎯⎯{RESET_COLOR}")
-            print(f"{GRAY_COLOR}{indented_output}{RESET_COLOR}")
+            print(f"{GRAY_COLOR}{indentedOutput}{RESET_COLOR}")
             print(f"    {RED_COLOR}⎯⎯⎯⎯⎯OUTPUT⎯⎯⎯⎯⎯{RESET_COLOR}")
 
     def __print_summary(self, duration: float):
         print(f"\n{WHITE_BOLD}Test Summary{RESET_COLOR}\n")
         print(
-            f"    Test Suites: {GREEN_COLOR}{self.test_suites_passed} passed{RESET_COLOR}, {RED_COLOR}{self.test_suites_failed} failed{RESET_COLOR}, {self.test_suites_passed + self.test_suites_failed} total"
+            f"    Test Suites: {GREEN_COLOR}{self.testSuitesPassed} passed{RESET_COLOR}, {RED_COLOR}{self.testSuitesFailed} failed{RESET_COLOR}, {self.testSuitesPassed + self.testSuitesFailed} total"
         )
         print(
-            f"    Tests:       {GREEN_COLOR}{self.tests_passed} passed{RESET_COLOR}, {RED_COLOR}{self.tests_failed} failed{RESET_COLOR}, {self.tests_passed + self.tests_failed} total"
+            f"    Tests:       {GREEN_COLOR}{self.testsPassed} passed{RESET_COLOR}, {RED_COLOR}{self.testsFailed} failed{RESET_COLOR}, {self.testsPassed + self.testsFailed} total"
         )
         print(f"    Time:        {duration}s\n")
 
@@ -346,27 +346,27 @@ class DON:
         self.process.stdin.flush()
 
     @timeout_decorator(MAX_TIMEOUT)
-    def equals(self, expected_output: str):
+    def equals(self, expectedOutput: str):
         for line in self.readline():
-            if line == expected_output:
+            if line == expectedOutput:
                 return
 
     @timeout_decorator(MAX_TIMEOUT)
-    def expect(self, expected_output: str):
+    def expect(self, expectedOutput: str):
         for line in self.readline():
-            if fnmatch.fnmatch(line, expected_output):
+            if fnmatch.fnmatch(line, expectedOutput):
                 return
 
     @timeout_decorator(MAX_TIMEOUT)
-    def contains(self, expected_output: str):
+    def contains(self, expectedOutput: str):
         for line in self.readline():
-            if expected_output in line:
+            if expectedOutput in line:
                 return
 
     @timeout_decorator(MAX_TIMEOUT)
-    def starts_with(self, expected_output: str):
+    def starts_with(self, expectedOutput: str):
         for line in self.readline():
-            if line.startswith(expected_output):
+            if line.startswith(expectedOutput):
                 return
 
     @timeout_decorator(MAX_TIMEOUT)
