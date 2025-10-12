@@ -19,7 +19,6 @@
 #define MISC_H_INCLUDED
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <cctype>
 #include <chrono>
@@ -64,116 +63,6 @@ std::string compiler_info() noexcept;
 template<typename To, typename From>
 constexpr bool is_strictly_assignable_v =
   std::is_assignable_v<To&, From> && (std::is_same_v<To, From> || !std::is_convertible_v<From, To>);
-
-template<typename T, std::size_t Size, std::size_t... Sizes>
-class MultiArray;
-
-namespace Internal {
-template<typename T, std::size_t Size, std::size_t... Sizes>
-struct [[maybe_unused]] MultiArrayTypedef;
-
-// Recursive template to define multi-dimensional MultiArray
-template<typename T, std::size_t Size, std::size_t... Sizes>
-struct MultiArrayTypedef final {
-    using Type = MultiArray<T, Sizes...>;
-};
-// Base case: single-dimensional MultiArray
-template<typename T, std::size_t Size>
-struct MultiArrayTypedef<T, Size> final {
-    using Type = T;
-};
-}  // namespace Internal
-
-// MultiArray is a generic N-dimensional array.
-// The first template parameter T is the base type of the MultiArray
-// The template parameters (Size and Sizes) encode the dimensions of the array.
-template<typename T, std::size_t Size, std::size_t... Sizes>
-class MultiArray final {
-   public:
-    using Array = std::array<typename Internal::MultiArrayTypedef<T, Size, Sizes...>::Type, Size>;
-
-    using value_type             = typename Array::value_type;
-    using size_type              = typename Array::size_type;
-    using difference_type        = typename Array::difference_type;
-    using reference              = typename Array::reference;
-    using const_reference        = typename Array::const_reference;
-    using pointer                = typename Array::pointer;
-    using const_pointer          = typename Array::const_pointer;
-    using iterator               = typename Array::iterator;
-    using const_iterator         = typename Array::const_iterator;
-    using reverse_iterator       = typename Array::reverse_iterator;
-    using const_reverse_iterator = typename Array::const_reverse_iterator;
-
-    constexpr auto begin() const noexcept { return array.begin(); }
-    constexpr auto end() const noexcept { return array.end(); }
-    constexpr auto begin() noexcept { return array.begin(); }
-    constexpr auto end() noexcept { return array.end(); }
-
-    constexpr auto cbegin() const noexcept { return array.cbegin(); }
-    constexpr auto cend() const noexcept { return array.cend(); }
-
-    constexpr auto rbegin() const noexcept { return array.rbegin(); }
-    constexpr auto rend() const noexcept { return array.rend(); }
-    constexpr auto rbegin() noexcept { return array.rbegin(); }
-    constexpr auto rend() noexcept { return array.rend(); }
-
-    constexpr auto crbegin() const noexcept { return array.crbegin(); }
-    constexpr auto crend() const noexcept { return array.crend(); }
-
-    constexpr auto&       front() noexcept { return array.front(); }
-    constexpr const auto& front() const noexcept { return array.front(); }
-    constexpr auto&       back() noexcept { return array.back(); }
-    constexpr const auto& back() const noexcept { return array.back(); }
-
-    auto*       data() { return array.data(); }
-    const auto* data() const { return array.data(); }
-
-    constexpr auto max_size() const noexcept { return array.max_size(); }
-
-    constexpr auto size() const noexcept { return array.size(); }
-    constexpr auto empty() const noexcept { return array.empty(); }
-
-    constexpr const auto& at(size_type idx) const noexcept { return array.at(idx); }
-    constexpr auto&       at(size_type idx) noexcept { return array.at(idx); }
-
-    constexpr auto& operator[](size_type idx) const noexcept { return array[idx]; }
-    constexpr auto& operator[](size_type idx) noexcept { return array[idx]; }
-
-    constexpr void swap(MultiArray<T, Size, Sizes...>& multiArray) noexcept {
-        array.swap(multiArray.array);
-    }
-
-    // Recursively fill all dimensions by calling the sub fill method
-    template<typename U>
-    void fill(U v) noexcept {
-        static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to entry type");
-
-        for (auto& entry : *this)
-        {
-            if constexpr (sizeof...(Sizes) == 0)
-                entry = v;
-            else
-                entry.fill(v);
-        }
-    }
-
-    /*
-    void print() const noexcept {
-        std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
-        for (auto& entry : *this)
-        {
-            if constexpr (sizeof...(Sizes) == 0)
-                std::cout << entry << ' ';
-            else
-                entry.print();
-        }
-        std::cout << std::endl;
-    }
-    */
-
-   private:
-    Array array;
-};
 
 // Return the sign of a number (-1, 0, +1)
 template<
@@ -307,8 +196,8 @@ class PRNG1024 final {
     explicit constexpr PRNG1024(std::uint64_t seed) noexcept {
         assert(seed);
 
-        for (auto& e : s)
-            e = seed = 0x9857FB32C9EFB5E4ULL + 0x2545F4914F6CDD1DULL * seed;
+        for (std::size_t i = 0; i < Size; ++i)
+            s[i] = seed = 0x9857FB32C9EFB5E4ULL + 0x2545F4914F6CDD1DULL * seed;
     }
 
     template<typename T>
@@ -325,7 +214,7 @@ class PRNG1024 final {
 
     // Jump function for the XORShift1024Star PRNG
     constexpr void jump() noexcept {
-        constexpr std::uint64_t JumpMask[Size]{
+        constexpr std::uint64_t JumpMasks[Size]{
           // clang-format off
           0x84242F96ECA9C41DULL, 0xA3C65B8776F96855ULL, 0x5B34A39F070B5837ULL, 0x4489AFFCE4F31A1EULL,
           0x2FFEEB0A48316F40ULL, 0xDC2D9891FE68C022ULL, 0x3659132BB12FEA70ULL, 0xAAC17D8EFA43CAB8ULL,
@@ -335,7 +224,7 @@ class PRNG1024 final {
         };
 
         std::uint64_t t[Size]{};
-        for (const auto jumpMask : JumpMask)
+        for (const auto jumpMask : JumpMasks)
             for (std::uint8_t m = 0; m < 64; ++m)
             {
                 if (jumpMask & (1ULL << m))

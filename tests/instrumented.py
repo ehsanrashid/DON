@@ -44,9 +44,8 @@ def postfix_check(output):
             if "runtime error:" in line:
                 # print next possible 50 lines
                 for i in range(50):
-                    debug_idx = idx + i
-                    if debug_idx < len(output):
-                        print(output[debug_idx])
+                    if idx + i < len(output):
+                        print(output[idx + i])
                 return False
 
     if args.sanitizer_thread:
@@ -54,9 +53,8 @@ def postfix_check(output):
             if "WARNING: ThreadSanitizer:" in line:
                 # print next possible 50 lines
                 for i in range(50):
-                    debug_idx = idx + i
-                    if debug_idx < len(output):
-                        print(output[debug_idx])
+                    if idx + i < len(output):
+                        print(output[idx + i])
                 return False
 
     return True
@@ -102,24 +100,15 @@ class TestCLI(metaclass=OrderedClassMembers):
         assert self.engine.process.returncode == 0
 
     def test_go_wtime_8000_btime_8000_winc_500_binc_500(self):
-        self.engine = DON(
-            "go wtime 8000 btime 8000 winc 500 binc 500".split(" "),
-            True,
-        )
+        self.engine = DON("go wtime 8000 btime 8000 winc 500 binc 500".split(" "), True)
         assert self.engine.process.returncode == 0
 
     def test_go_wtime_1000_btime_1000_winc_0_binc_0(self):
-        self.engine = DON(
-            "go wtime 1000 btime 1000 winc 0 binc 0".split(" "),
-            True,
-        )
+        self.engine = DON("go wtime 1000 btime 1000 winc 0 binc 0".split(" "), True)
         assert self.engine.process.returncode == 0
 
     def test_go_wtime_1000_btime_1000_winc_0_binc_0_movestogo_5(self):
-        self.engine = DON(
-            "go wtime 1000 btime 1000 winc 0 binc 0 movestogo 5".split(" "),
-            True,
-        )
+        self.engine = DON("go wtime 1000 btime 1000 winc 0 binc 0 movestogo 5".split(" "), True)
         assert self.engine.process.returncode == 0
 
     def test_go_movetime_200(self):
@@ -127,25 +116,15 @@ class TestCLI(metaclass=OrderedClassMembers):
         assert self.engine.process.returncode == 0
 
     def test_go_nodes_20000_searchmoves_e2e4_d2d4(self):
-        self.engine = DON(
-            "go nodes 20000 searchmoves e2e4 d2d4".split(" "), True
-        )
+        self.engine = DON("go nodes 20000 searchmoves e2e4 d2d4".split(" "), True)
         assert self.engine.process.returncode == 0
 
     def test_bench_128_threads_8_default_depth(self):
-        self.engine = DON(
-            f"bench 128 {get_threads()} 8 default depth".split(" "),
-            True,
-        )
+        self.engine = DON(f"bench 128 {get_threads()} 8 default depth".split(" "), True)
         assert self.engine.process.returncode == 0
 
     # def test_bench_128_threads_3_bench_tmp_epd_depth(self):
-    #     self.engine = DON(
-    #         f"bench 128 {get_threads()} 3 {os.path.join(PATH,'bench_tmp.epd')} depth".split(
-    #             " "
-    #         ),
-    #         True,
-    #     )
+    #     self.engine = DON(f"bench 128 {get_threads()} 3 {os.path.join(PATH,'tmp_bench.epd')} depth".split(" "), True)
     #     assert self.engine.process.returncode == 0
 
     def test_show(self):
@@ -165,25 +144,20 @@ class TestCLI(metaclass=OrderedClassMembers):
         assert self.engine.process.returncode == 0
 
     def test_export_net_verify_nnue(self):
-        current_path = os.path.abspath(os.getcwd())
-        self.engine = DON(
-            f"export_net {os.path.join(current_path, 'verify.nnue')}".split(" "), True
-        )
+        currentPath = os.path.abspath(os.getcwd())
+        self.engine = DON(f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "), True)
         assert self.engine.process.returncode == 0
 
     # verify the generated net equals the base net
 
     def test_network_equals_base(self):
-        self.engine = DON(
-            ["uci"],
-            True,
-        )
+        self.engine = DON(["uci"], True)
 
         output = self.engine.process.stdout
 
         # find line
         for line in output.split("\n"):
-            if "option name EvalFileBig type string default" in line:
+            if "option name BigEvalFile type string default" in line:
                 network = line.split(" ")[-1]
                 break
 
@@ -191,9 +165,7 @@ class TestCLI(metaclass=OrderedClassMembers):
         network = os.path.join(PATH.parent.resolve(), "src", network)
 
         if not os.path.exists(network):
-            print(
-                f"Network file {network} not found, please download the network file over the make command."
-            )
+            print(f"Network file {network} not found, please download the network file over the make command.")
             assert False
 
         diff = subprocess.run(["diff", network, f"verify.nnue"])
@@ -297,104 +269,81 @@ class TestInteractive(metaclass=OrderedClassMembers):
 
     def test_position_fen_mate_plus_1(self):
         self.engine.send_command("ucinewgame")
-        self.engine.send_command(
-            "position fen 5K2/8/2qk4/2nPp3/3r4/6B1/B7/3R4 w - e6 0 1"
-        )
+        self.engine.send_command("position fen 5K2/8/2qk4/2nPp3/3r4/6B1/B7/3R4 w - e6 0 1")
         self.engine.send_command("go depth 18")
         self.engine.expect("* score mate 1 * pv d5e6")
         self.engine.starts_with("bestmove d5e6")
 
     def test_position_fen_mate_minus_1(self):
         self.engine.send_command("ucinewgame")
-        self.engine.send_command(
-            "position fen 2brrb2/8/p7/Q7/1p1kpPp1/1P1pN1K1/3P4/8 b - - 0 1"
-        )
+        self.engine.send_command("position fen 2brrb2/8/p7/Q7/1p1kpPp1/1P1pN1K1/3P4/8 b - - 0 1")
         self.engine.send_command("go depth 18")
         self.engine.expect("* score mate -1 *")
         self.engine.starts_with("bestmove")
 
     def test_position_fen_go_nodes_500000(self):
         self.engine.send_command("ucinewgame")
-        self.engine.send_command(
-            "position fen 5K2/8/2P1P1Pk/6pP/3p2P1/1P6/3P4/8 w - - 0 1"
-        )
+        self.engine.send_command("position fen 5K2/8/2P1P1Pk/6pP/3p2P1/1P6/3P4/8 w - - 0 1")
         self.engine.send_command("go nodes 500000")
         self.engine.starts_with("bestmove")
 
     def test_position_fen_with_mate_go_depth_18_searchmoves(self):
         self.engine.send_command("ucinewgame")
-        self.engine.send_command(
-            "position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1"
-        )
+        self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
         self.engine.send_command("go depth 18 searchmoves c6d7")
         self.engine.expect("* score mate 2 * pv c6d7 * f7f5")
         self.engine.starts_with("bestmove")
 
     def test_position_fen_with_mate_go_mate_2_searchmoves(self):
         self.engine.send_command("ucinewgame")
-        self.engine.send_command(
-            "position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1"
-        )
+        self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
         self.engine.send_command("go mate 2 searchmoves c6d7")
         self.engine.expect("* score mate 2 * pv c6d7 *")
         self.engine.starts_with("bestmove")
 
     def test_position_fen_with_mate_go_nodes_500000_searchmoves(self):
         self.engine.send_command("ucinewgame")
-        self.engine.send_command(
-            "position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1"
-        )
+        self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
         self.engine.send_command("go nodes 500000 searchmoves c6d7")
         self.engine.expect("* score mate 2 * pv c6d7 * f7f5")
         self.engine.starts_with("bestmove")
 
     def test_position_fen_with_mate_go(self):
         self.engine.send_command("ucinewgame")
-        self.engine.send_command(
-            "position fen r1b2r1k/pp1p2pp/2p5/2B1q3/8/8/P1PN2PP/R4RK1 w - - 0 18"
-        )
+        self.engine.send_command("position fen r1b2r1k/pp1p2pp/2p5/2B1q3/8/8/P1PN2PP/R4RK1 w - - 0 18")
         self.engine.send_command("go")
         self.engine.contains("score mate 1")
         self.engine.starts_with("bestmove")
 
     def test_position_fen_moves_with_mate_go_depth_18(self):
         self.engine.send_command("ucinewgame")
-        self.engine.send_command(
-            "position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1 moves c6d7 f2f1q"
-        )
+        self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1 moves c6d7 f2f1q")
         self.engine.send_command("go depth 18")
         self.engine.expect("* score mate 1 * pv f7f5")
         self.engine.starts_with("bestmove f7f5")
 
     def test_position_fen_with_mate_go_depth_18_searchmoves(self):
         self.engine.send_command("ucinewgame")
-        self.engine.send_command(
-            "position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1"
-        )
+        self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
         self.engine.send_command("go depth 18 searchmoves c6d7")
         self.engine.expect("* score mate 2 * pv c6d7 * f7f5")
         self.engine.starts_with("bestmove c6d7")
 
     def test_position_fen_moves_with_mate_go_depth_18_searchmoves(self):
         self.engine.send_command("ucinewgame")
-        self.engine.send_command(
-            "position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1 moves c6d7"
-        )
+        self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1 moves c6d7")
         self.engine.send_command("go depth 18 searchmoves e3e2")
         self.engine.expect("* score mate -1 * pv e3e2 f7f5")
         self.engine.starts_with("bestmove e3e2")
 
     def test_verify_nnue_network_startpos_go_depth_5(self):
-        current_path = os.path.abspath(os.getcwd())
-        DON(
-            f"export_net {os.path.join(current_path, 'verify.nnue')}".split(" "),
-            True,
-        )
-        self.engine.send_command("setoption name EvalFileBig value verify.nnue")
+        # currentPath = os.path.abspath(os.getcwd())
+        # DON(f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "), True)
+        # self.engine.send_command("setoption name BigEvalFile value verify.nnue")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
-
+    
     def test_multipv_setting_startpos_go_depth_5(self):
         self.engine.send_command("setoption name MultiPV value 4")
         self.engine.send_command("position startpos")
@@ -424,12 +373,8 @@ class TestSyzygy(metaclass=OrderedClassMembers):
     def test_syzygy_setting(self):
         self.engine.starts_with("DON")
         self.engine.send_command("uci")
-        self.engine.send_command(
-            f"setoption name SyzygyPath value {os.path.join(PATH, 'syzygy')}"
-        )
-        self.engine.expect(
-            "info string Tablebase: 35 WDL and 35 DTZ found (up to 4-man)."
-        )
+        self.engine.send_command(f"setoption name SyzygyPath value {os.path.join(PATH, 'syzygy')}")
+        self.engine.expect("info string Tablebase: 35 WDL and 35 DTZ found (up to 4-man).")
 
     def test_syzygy_bench(self):
         self.engine.send_command("bench 128 1 8 default depth")

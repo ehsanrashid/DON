@@ -19,16 +19,15 @@
 #define HISTORY_H_INCLUDED
 
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <limits>
 #include <type_traits>
+#include <vector>
 
 #include "bitboard.h"
-#include "misc.h"
 #include "types.h"
 
 namespace DON {
@@ -71,6 +70,118 @@ class StatsEntry final {
     std::atomic<T> value{};
 };
 
+template<typename T, std::size_t Size, std::size_t... Sizes>
+class Entries;
+
+namespace Impl {
+template<typename T, std::size_t Size, std::size_t... Sizes>
+struct [[maybe_unused]] EntiresTypedef;
+
+// Recursive template to define multi-dimensional Entries
+template<typename T, std::size_t Size, std::size_t... Sizes>
+struct EntiresTypedef final {
+    using Type = Entries<T, Sizes...>;
+};
+// Base case: single-dimensional Entries
+template<typename T, std::size_t Size>
+struct EntiresTypedef<T, Size> final {
+    using Type = T;
+};
+}  // namespace Impl
+
+// Entries is a generic N-dimensional Entry.
+// The template parameter T is the base type of the Entries
+// The template parameters (Size and Sizes) is the dimensions of the Entries.
+template<typename T, std::size_t Size, std::size_t... Sizes>
+class Entries final {
+   public:
+    using Entry = std::vector<typename Impl::EntiresTypedef<T, Size, Sizes...>::Type>;
+
+    using value_type             = typename Entry::value_type;
+    using size_type              = typename Entry::size_type;
+    using difference_type        = typename Entry::difference_type;
+    using reference              = typename Entry::reference;
+    using const_reference        = typename Entry::const_reference;
+    using pointer                = typename Entry::pointer;
+    using const_pointer          = typename Entry::const_pointer;
+    using iterator               = typename Entry::iterator;
+    using const_iterator         = typename Entry::const_iterator;
+    using reverse_iterator       = typename Entry::reverse_iterator;
+    using const_reverse_iterator = typename Entry::const_reverse_iterator;
+
+    explicit Entries() noexcept :
+        entries(Size) {}
+
+    constexpr auto begin() const noexcept { return entries.begin(); }
+    constexpr auto end() const noexcept { return entries.end(); }
+    constexpr auto begin() noexcept { return entries.begin(); }
+    constexpr auto end() noexcept { return entries.end(); }
+
+    constexpr auto cbegin() const noexcept { return entries.cbegin(); }
+    constexpr auto cend() const noexcept { return entries.cend(); }
+
+    constexpr auto rbegin() const noexcept { return entries.rbegin(); }
+    constexpr auto rend() const noexcept { return entries.rend(); }
+    constexpr auto rbegin() noexcept { return entries.rbegin(); }
+    constexpr auto rend() noexcept { return entries.rend(); }
+
+    constexpr auto crbegin() const noexcept { return entries.crbegin(); }
+    constexpr auto crend() const noexcept { return entries.crend(); }
+
+    constexpr auto&       front() noexcept { return entries.front(); }
+    constexpr const auto& front() const noexcept { return entries.front(); }
+    constexpr auto&       back() noexcept { return entries.back(); }
+    constexpr const auto& back() const noexcept { return entries.back(); }
+
+    auto*       data() { return entries.data(); }
+    const auto* data() const { return entries.data(); }
+
+    constexpr auto max_size() const noexcept { return entries.max_size(); }
+
+    constexpr auto size() const noexcept { return entries.size(); }
+    constexpr auto empty() const noexcept { return entries.empty(); }
+
+    constexpr const auto& at(size_type idx) const noexcept { return entries.at(idx); }
+    constexpr auto&       at(size_type idx) noexcept { return entries.at(idx); }
+
+    constexpr auto& operator[](size_type idx) const noexcept { return entries[idx]; }
+    constexpr auto& operator[](size_type idx) noexcept { return entries[idx]; }
+
+    constexpr void swap(Entries<T, Size, Sizes...>& _entries) noexcept {
+        entries.swap(_entries.entries);
+    }
+
+    // Recursively fill all dimensions by calling the sub fill method
+    template<typename U>
+    void fill(U v) noexcept {
+        static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to entry type");
+
+        for (auto& entry : *this)
+        {
+            if constexpr (sizeof...(Sizes) == 0)
+                entry = v;
+            else
+                entry.fill(v);
+        }
+    }
+
+    /*
+    void print() const noexcept {
+        std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
+        for (auto& entry : *this)
+        {
+            if constexpr (sizeof...(Sizes) == 0)
+                std::cout << entry << ' ';
+            else
+                entry.print();
+        }
+        std::cout << std::endl;
+    }
+    */
+
+   private:
+    Entry entries;
+};
 
 // clang-format off
 constexpr int  CAPTURE_HISTORY_LIMIT = 10692U;
@@ -78,7 +189,7 @@ constexpr int    QUIET_HISTORY_LIMIT =  7183U;
 constexpr int PIECE_SQ_HISTORY_LIMIT = 30000U;
 
 constexpr int         PAWN_HISTORY_LIMIT = 8192U;
-constexpr std::size_t PAWN_HISTORY_SIZE  = 0x8000U;
+constexpr std::size_t PAWN_HISTORY_SIZE  = 0x4000U;
 static_assert(exactly_one(PAWN_HISTORY_SIZE), "PAWN_HISTORY_SIZE has to be a power of 2");
 constexpr std::size_t pawn_index(Key pawnKey) noexcept { return pawnKey & (PAWN_HISTORY_SIZE - 1); }
 
@@ -95,16 +206,16 @@ enum HistoryType : std::uint8_t {
     HTTMove,
 };
 
-namespace Internal {
+namespace Impl {
 template<int D, std::size_t... Sizes>
-using StatsArray = MultiArray<StatsEntry<std::int16_t, D>, Sizes...>;
+using StatsEntires = Entries<StatsEntry<std::int16_t, D>, Sizes...>;
 
 template<HistoryType T>
 struct HistoryTypedef;
 
 template<>
 struct HistoryTypedef<HCapture> final {
-    using Type = StatsArray<CAPTURE_HISTORY_LIMIT, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
+    using Type = StatsEntires<CAPTURE_HISTORY_LIMIT, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 };
 
 // It records how often quiet moves have been successful or not during the current search,
@@ -112,39 +223,39 @@ struct HistoryTypedef<HCapture> final {
 // see https://www.chessprogramming.org/Butterfly_Boards
 template<>
 struct HistoryTypedef<HQuiet> final {
-    using Type = StatsArray<QUIET_HISTORY_LIMIT, COLOR_NB, SQUARE_NB * SQUARE_NB>;
+    using Type = StatsEntires<QUIET_HISTORY_LIMIT, COLOR_NB, SQUARE_NB * SQUARE_NB>;
 };
 
 template<>
 struct HistoryTypedef<HPawn> final {
-    using Type = StatsArray<PAWN_HISTORY_LIMIT, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
+    using Type = StatsEntires<PAWN_HISTORY_LIMIT, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
 };
 
 template<>
 struct HistoryTypedef<HPieceSq> final {
-    using Type = StatsArray<PIECE_SQ_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
+    using Type = StatsEntires<PIECE_SQ_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
 };
 
 template<>
 struct HistoryTypedef<HContinuation> final {
-    using Type = MultiArray<HistoryTypedef<HPieceSq>::Type, PIECE_NB, SQUARE_NB>;
+    using Type = Entries<HistoryTypedef<HPieceSq>::Type, PIECE_NB, SQUARE_NB>;
 };
 
 // It is used to improve quiet move ordering near the root.
 template<>
 struct HistoryTypedef<HLowPlyQuiet> final {
-    using Type = StatsArray<QUIET_HISTORY_LIMIT, LOW_PLY_SIZE, SQUARE_NB * SQUARE_NB>;
+    using Type = StatsEntires<QUIET_HISTORY_LIMIT, LOW_PLY_SIZE, SQUARE_NB * SQUARE_NB>;
 };
 
 template<>
 struct HistoryTypedef<HTTMove> final {
-    using Type = StatsArray<8192, COLOR_NB>;
+    using Type = StatsEntires<8192, COLOR_NB>;
 };
-}  // namespace Internal
+}  // namespace Impl
 
 // Alias template for convenience
 template<HistoryType T>
-using History = typename Internal::HistoryTypedef<T>::Type;
+using History = typename Impl::HistoryTypedef<T>::Type;
 
 // clang-format off
 constexpr int         CORRECTION_HISTORY_LIMIT = 1024U;
@@ -167,47 +278,47 @@ enum CorrectionHistoryType : std::uint8_t {
     CHContinuation,  // By combination of pair of moves
 };
 
-namespace Internal {
+namespace Impl {
 template<std::size_t... Sizes>
-using CorrectionStatsArray = StatsArray<CORRECTION_HISTORY_LIMIT, Sizes...>;
+using CorrectionStatsEntires = StatsEntires<CORRECTION_HISTORY_LIMIT, Sizes...>;
 
 template<CorrectionHistoryType T>
 struct CorrectionHistoryTypedef;
 
 template<>
 struct CorrectionHistoryTypedef<CHPawn> final {
-    using Type = CorrectionStatsArray<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsEntires<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryTypedef<CHMinor> final {
-    using Type = CorrectionStatsArray<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsEntires<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryTypedef<CHMajor> final {
-    using Type = CorrectionStatsArray<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsEntires<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryTypedef<CHNonPawn> final {
-    using Type = CorrectionStatsArray<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsEntires<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryTypedef<CHPieceSq> final {
-    using Type = CorrectionStatsArray<PIECE_NB, SQUARE_NB>;
+    using Type = CorrectionStatsEntires<PIECE_NB, SQUARE_NB>;
 };
 
 template<>
 struct CorrectionHistoryTypedef<CHContinuation> final {
-    using Type = MultiArray<CorrectionHistoryTypedef<CHPieceSq>::Type, PIECE_NB, SQUARE_NB>;
+    using Type = Entries<CorrectionHistoryTypedef<CHPieceSq>::Type, PIECE_NB, SQUARE_NB>;
 };
-}  // namespace Internal
+}  // namespace Impl
 
 // Alias template for convenience
 template<CorrectionHistoryType T>
-using CorrectionHistory = typename Internal::CorrectionHistoryTypedef<T>::Type;
+using CorrectionHistory = typename Impl::CorrectionHistoryTypedef<T>::Type;
 
 }  // namespace DON
 

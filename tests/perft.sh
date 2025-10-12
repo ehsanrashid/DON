@@ -1,7 +1,7 @@
 #!/bin/bash
 # verify perft numbers (positions from https://www.chessprogramming.org/Perft_Results)
 
-TESTS_FAILED=0
+TestFailed=0
 
 error() {
   echo "perft testing failed on line $1"
@@ -11,9 +11,9 @@ trap 'error ${LINENO}' ERR
 
 echo "perft testing started"
 
-EXPECT_SCRIPT=$(mktemp)
+ExpectScript=$(mktemp)
 
-cat << 'EOF' > $EXPECT_SCRIPT
+cat << 'EOF' > $ExpectScript
 #!/usr/bin/expect -f
 set timeout 120
 lassign [lrange $argv 0 4] pos depth result chess960 logfile
@@ -32,28 +32,28 @@ send "quit\n"
 expect eof
 EOF
 
-chmod +x $EXPECT_SCRIPT
+chmod +x $ExpectScript
 
 run_test() {
   local pos="$1"
   local depth="$2"
   local expected="$3"
   local chess960="$4"
-  local tmp_file=$(mktemp)
+  local tmpFile=$(mktemp)
 
   echo -n "Testing depth $depth: ${pos:0:64}... "
 
-  if $EXPECT_SCRIPT "$pos" "$depth" "$expected" "$chess960" "$tmp_file" > /dev/null 2>&1; then
+  if $ExpectScript "$pos" "$depth" "$expected" "$chess960" "$tmpFile" > /dev/null 2>&1; then
     echo "OK"
-    rm -f "$tmp_file"
+    rm -f "$tmpFile"
   else
-    local exit_code=$?
-    echo "FAILED (exit code: $exit_code)"
+    local exitCode=$?
+    echo "FAILED (exit code: $exitCode)"
     echo "===== Output for failed test ====="
-    cat "$tmp_file"
+    cat "$tmpFile"
     echo "=================================="
-    rm -f "$tmp_file"
-    TESTS_FAILED=1
+    rm -f "$tmpFile"
+    TestFailed=1
   fi
 }
 
@@ -86,10 +86,10 @@ run_test "fen rr6/2kpp3/1ppnb1p1/p4q1p/P4P1P/1PNN2P1/2PP2Q1/1K2RR2 w E - 1 19" 5
 run_test "fen rr6/2kpp3/1ppnb1p1/p4q1p/P4P1P/1PNN2P1/2PP2Q1/1K2RR2 w E - 1 19" 6 2998685421 "true"
 run_test "fen bnn1qrkr/pp1ppp1p/2p5/b3Q1p1/8/5P1P/PPPPP1P1/BNNB1RKR w HFhf - 2 9" 6 702867204 "true"
 
-rm -f $EXPECT_SCRIPT
+rm -f $ExpectScript
 echo "perft testing completed"
 
-if [ $TESTS_FAILED -ne 0 ]; then
+if [ $TestFailed -ne 0 ]; then
   echo "Some tests failed"
   exit 1
 fi
