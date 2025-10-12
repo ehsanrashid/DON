@@ -61,8 +61,6 @@ using SmallAccumulator = Accumulator<SmallTransformedFeatureDimensions>;
 // is commonly referred to as "Finny Tables".
 struct AccumulatorCaches final {
    public:
-    constexpr AccumulatorCaches() noexcept = default;
-
     template<IndexType Size>
     struct alignas(CACHE_LINE_SIZE) Cache final {
        public:

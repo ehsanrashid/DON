@@ -365,7 +365,6 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
 }  // namespace
 
 void AccumulatorCaches::init(const Networks& networks) noexcept {
-
     big.init(networks.big);
     small.init(networks.small);
 }

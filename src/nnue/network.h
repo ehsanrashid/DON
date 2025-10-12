@@ -115,7 +115,7 @@ using SmallNetwork = Network<SmallNetworkArchitecture, SmallFeatureTransformer>;
 
 struct Networks final {
    public:
-    explicit Networks(BigNetwork&& bigNet, SmallNetwork&& smallNet) noexcept :
+    Networks(BigNetwork&& bigNet, SmallNetwork&& smallNet) noexcept :
         big(std::move(bigNet)),
         small(std::move(smallNet)) {}
 
