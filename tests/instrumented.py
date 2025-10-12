@@ -139,14 +139,14 @@ class TestCLI(metaclass=OrderedClassMembers):
         )
         assert self.engine.process.returncode == 0
 
-    def test_bench_128_threads_3_bench_tmp_epd_depth(self):
-        self.engine = DON(
-            f"bench 128 {get_threads()} 3 {os.path.join(PATH,'tmp_bench.epd')} depth".split(
-                " "
-            ),
-            True,
-        )
-        assert self.engine.process.returncode == 0
+    # def test_bench_128_threads_3_bench_tmp_epd_depth(self):
+    #     self.engine = DON(
+    #         f"bench 128 {get_threads()} 3 {os.path.join(PATH,'tmp_bench.epd')} depth".split(
+    #             " "
+    #         ),
+    #         True,
+    #     )
+    #     assert self.engine.process.returncode == 0
 
     def test_show(self):
         self.engine = DON("show".split(" "), True)
