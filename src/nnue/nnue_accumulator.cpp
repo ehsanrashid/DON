@@ -17,7 +17,6 @@
 
 #include "nnue_accumulator.h"
 
-#include <algorithm>
 #include <cassert>
 #include <initializer_list>
 #include <iterator>
@@ -370,9 +369,9 @@ void AccumulatorCaches::init(const Networks& networks) noexcept {
 }
 
 void AccumulatorState::reset(const DirtyPiece& dp) noexcept {
-    dirtyPiece = dp;
-    std::fill(std::begin(big.computed), std::end(big.computed), false);
-    std::fill(std::begin(small.computed), std::end(small.computed), false);
+    dirtyPiece          = dp;
+    big.computed[WHITE] = big.computed[BLACK] = false;
+    small.computed[WHITE] = small.computed[BLACK] = false;
 }
 
 const AccumulatorState& AccumulatorStack::clatest_state() const noexcept {
