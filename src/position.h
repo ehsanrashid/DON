@@ -102,12 +102,15 @@ inline std::uint8_t rule50_threshold(std::int8_t r50 = -4) noexcept {
 // used by the search to update node info when traversing the search tree.
 class Position final {
    public:
-    class Board final {
+    struct Board final {
        public:
         struct Cardinal final {
            public:
-            Cardinal() noexcept :
-                rankPieces(0) {}
+            constexpr Cardinal() noexcept                 = default;
+            Cardinal(const Cardinal&) noexcept            = default;
+            Cardinal(Cardinal&&) noexcept                 = delete;
+            Cardinal& operator=(const Cardinal&) noexcept = default;
+            Cardinal& operator=(Cardinal&&) noexcept      = delete;
 
             constexpr void piece_on(File f, Piece pc) noexcept {
                 auto shift = f << 2;
@@ -128,11 +131,11 @@ class Position final {
             friend std::ostream& operator<<(std::ostream& os, const Cardinal& cardinal) noexcept;
 
            private:
-            std::uint32_t rankPieces;
+            std::uint32_t rankPieces{0};
         };
 
-        Board() noexcept                        = default;
-        Board(const Board&) noexcept            = delete;
+        constexpr Board() noexcept              = default;
+        Board(const Board&) noexcept            = default;
         Board(Board&&) noexcept                 = delete;
         Board& operator=(const Board&) noexcept = default;
         Board& operator=(Board&&) noexcept      = delete;
@@ -153,7 +156,7 @@ class Position final {
         friend std::ostream& operator<<(std::ostream& os, const Board& board) noexcept;
 
        private:
-        Cardinal cardinals[RANK_NB];
+        Cardinal cardinals[RANK_NB]{};
     };
 
     static void init() noexcept;
