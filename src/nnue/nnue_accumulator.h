@@ -114,7 +114,7 @@ struct AccumulatorCaches final {
 
 struct AccumulatorState final {
    public:
-    AccumulatorState() noexcept = default;
+    constexpr AccumulatorState() noexcept = default;
 
     template<IndexType Size>
     const auto& acc() const noexcept {
@@ -141,9 +141,9 @@ struct AccumulatorState final {
 
     void reset(const DirtyPiece& dp) noexcept;
 
-    DirtyPiece       dirtyPiece;
-    BigAccumulator   big;
-    SmallAccumulator small;
+    DirtyPiece       dirtyPiece{};
+    BigAccumulator   big{};
+    SmallAccumulator small{};
 };
 
 struct AccumulatorStack final {
