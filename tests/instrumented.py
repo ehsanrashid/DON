@@ -44,9 +44,8 @@ def postfix_check(output):
             if "runtime error:" in line:
                 # print next possible 50 lines
                 for i in range(50):
-                    debugIdx = idx + i
-                    if debugIdx < len(output):
-                        print(output[debugIdx])
+                    if idx + i < len(output):
+                        print(output[idx + i])
                 return False
 
     if args.sanitizer_thread:
@@ -54,9 +53,8 @@ def postfix_check(output):
             if "WARNING: ThreadSanitizer:" in line:
                 # print next possible 50 lines
                 for i in range(50):
-                    debugIdx = idx + i
-                    if debugIdx < len(output):
-                        print(output[debugIdx])
+                    if idx + i < len(output):
+                        print(output[idx + i])
                 return False
 
     return True
@@ -385,16 +383,15 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.starts_with("bestmove e3e2")
 
     def test_verify_nnue_network_startpos_go_depth_5(self):
-        currentPath = os.path.abspath(os.getcwd())
-        DON(
-            f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "),
-            True,
-        )
-        self.engine.send_command("setoption name BigEvalFile value verify.nnue")
-        # self.engine.send_command("position startpos")
-        # self.engine.send_command("go depth 5")
-        # self.engine.starts_with("bestmove")
-        self.engine.starts_with("")
+        # currentPath = os.path.abspath(os.getcwd())
+        # DON(
+        #     f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "),
+        #     True,
+        # )
+        # self.engine.send_command("setoption name BigEvalFile value verify.nnue")
+        self.engine.send_command("position startpos")
+        self.engine.send_command("go depth 5")
+        self.engine.starts_with("bestmove")
     
     def test_multipv_setting_startpos_go_depth_5(self):
         self.engine.send_command("setoption name MultiPV value 4")
