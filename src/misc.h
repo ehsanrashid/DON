@@ -64,120 +64,6 @@ template<typename To, typename From>
 constexpr bool is_strictly_assignable_v =
   std::is_assignable_v<To&, From> && (std::is_same_v<To, From> || !std::is_convertible_v<From, To>);
 
-template<typename T, std::size_t Size, std::size_t... Sizes>
-class MultiVector;
-
-namespace Internal {
-template<typename T, std::size_t Size, std::size_t... Sizes>
-struct [[maybe_unused]] MultiVectorTypedef;
-
-// Recursive template to define multi-dimensional MultiVector
-template<typename T, std::size_t Size, std::size_t... Sizes>
-struct MultiVectorTypedef final {
-    using Type = MultiVector<T, Sizes...>;
-};
-// Base case: single-dimensional MultiVector
-template<typename T, std::size_t Size>
-struct MultiVectorTypedef<T, Size> final {
-    using Type = T;
-};
-}  // namespace Internal
-
-// MultiVector is a generic N-dimensional vector.
-// The first template parameter T is the base type of the MultiVector
-// The template parameters (Size and Sizes) encode the dimensions of the vector.
-template<typename T, std::size_t Size, std::size_t... Sizes>
-class MultiVector final {
-   public:
-    using Vector = std::vector<typename Internal::MultiVectorTypedef<T, Size, Sizes...>::Type>;
-
-    using value_type             = typename Vector::value_type;
-    using size_type              = typename Vector::size_type;
-    using difference_type        = typename Vector::difference_type;
-    using reference              = typename Vector::reference;
-    using const_reference        = typename Vector::const_reference;
-    using pointer                = typename Vector::pointer;
-    using const_pointer          = typename Vector::const_pointer;
-    using iterator               = typename Vector::iterator;
-    using const_iterator         = typename Vector::const_iterator;
-    using reverse_iterator       = typename Vector::reverse_iterator;
-    using const_reverse_iterator = typename Vector::const_reverse_iterator;
-
-    // Constructor: initialize vector with Size entries
-    explicit MultiVector() noexcept :
-        entries(Size) {}
-
-    constexpr auto begin() const noexcept { return entries.begin(); }
-    constexpr auto end() const noexcept { return entries.end(); }
-    constexpr auto begin() noexcept { return entries.begin(); }
-    constexpr auto end() noexcept { return entries.end(); }
-
-    constexpr auto cbegin() const noexcept { return entries.cbegin(); }
-    constexpr auto cend() const noexcept { return entries.cend(); }
-
-    constexpr auto rbegin() const noexcept { return entries.rbegin(); }
-    constexpr auto rend() const noexcept { return entries.rend(); }
-    constexpr auto rbegin() noexcept { return entries.rbegin(); }
-    constexpr auto rend() noexcept { return entries.rend(); }
-
-    constexpr auto crbegin() const noexcept { return entries.crbegin(); }
-    constexpr auto crend() const noexcept { return entries.crend(); }
-
-    constexpr auto&       front() noexcept { return entries.front(); }
-    constexpr const auto& front() const noexcept { return entries.front(); }
-    constexpr auto&       back() noexcept { return entries.back(); }
-    constexpr const auto& back() const noexcept { return entries.back(); }
-
-    auto*       data() { return entries.data(); }
-    const auto* data() const { return entries.data(); }
-
-    constexpr auto max_size() const noexcept { return entries.max_size(); }
-
-    constexpr auto size() const noexcept { return entries.size(); }
-    constexpr auto empty() const noexcept { return entries.empty(); }
-
-    constexpr const auto& at(size_type idx) const noexcept { return entries.at(idx); }
-    constexpr auto&       at(size_type idx) noexcept { return entries.at(idx); }
-
-    constexpr auto& operator[](size_type idx) const noexcept { return entries[idx]; }
-    constexpr auto& operator[](size_type idx) noexcept { return entries[idx]; }
-
-    constexpr void swap(MultiVector<T, Size, Sizes...>& multiArray) noexcept {
-        entries.swap(multiArray.entries);
-    }
-
-    // Recursively fill all dimensions by calling the sub fill method
-    template<typename U>
-    void fill(U v) noexcept {
-        static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to entry type");
-
-        for (auto& entry : *this)
-        {
-            if constexpr (sizeof...(Sizes) == 0)
-                entry = v;
-            else
-                entry.fill(v);
-        }
-    }
-
-    /*
-    void print() const noexcept {
-        std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
-        for (auto& entry : *this)
-        {
-            if constexpr (sizeof...(Sizes) == 0)
-                std::cout << entry << ' ';
-            else
-                entry.print();
-        }
-        std::cout << std::endl;
-    }
-    */
-
-   private:
-    Vector entries;
-};
-
 // Return the sign of a number (-1, 0, +1)
 template<
   typename T,
@@ -328,7 +214,7 @@ class PRNG1024 final {
 
     // Jump function for the XORShift1024Star PRNG
     constexpr void jump() noexcept {
-        constexpr std::uint64_t JumpMask[Size]{
+        constexpr std::uint64_t JumpMasks[Size]{
           // clang-format off
           0x84242F96ECA9C41DULL, 0xA3C65B8776F96855ULL, 0x5B34A39F070B5837ULL, 0x4489AFFCE4F31A1EULL,
           0x2FFEEB0A48316F40ULL, 0xDC2D9891FE68C022ULL, 0x3659132BB12FEA70ULL, 0xAAC17D8EFA43CAB8ULL,
@@ -338,7 +224,7 @@ class PRNG1024 final {
         };
 
         std::uint64_t t[Size]{};
-        for (const auto jumpMask : JumpMask)
+        for (const auto jumpMask : JumpMasks)
             for (std::uint8_t m = 0; m < 64; ++m)
             {
                 if (jumpMask & (1ULL << m))
