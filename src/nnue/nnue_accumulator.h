@@ -57,11 +57,18 @@ using SmallAccumulator = Accumulator<SmallTransformedFeatureDimensions>;
 // This idea, was first described by Luecx (author of Koivisto) and
 // is commonly referred to as "Finny Tables".
 struct AccumulatorCaches final {
+   public:
+    AccumulatorCaches() noexcept = default;
 
     template<IndexType Size>
     struct alignas(CACHE_LINE_SIZE) Cache final {
+       public:
+        Cache() noexcept = default;
 
         struct alignas(CACHE_LINE_SIZE) Entry final {
+           public:
+            Entry() noexcept = default;
+
             // To initialize a refresh entry, set all its bitboards empty,
             // so put the biases in the accumulation, without any weights on top
             void init(const BiasType* biases) noexcept {
@@ -88,7 +95,7 @@ struct AccumulatorCaches final {
 
         auto& operator[](Square s) noexcept { return entries[s]; }
 
-        std::array<std::array<Entry, COLOR_NB>, SQUARE_NB> entries;
+        Entry entries[SQUARE_NB][COLOR_NB];
     };
 
     using BigCache   = Cache<BigTransformedFeatureDimensions>;
@@ -103,6 +110,8 @@ struct AccumulatorCaches final {
 };
 
 struct AccumulatorState final {
+   public:
+    AccumulatorState() noexcept = default;
 
     template<IndexType Size>
     const auto& acc() const noexcept {
