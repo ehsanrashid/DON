@@ -19,7 +19,6 @@
 #define MISC_H_INCLUDED
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <cctype>
 #include <chrono>
@@ -66,81 +65,85 @@ constexpr bool is_strictly_assignable_v =
   std::is_assignable_v<To&, From> && (std::is_same_v<To, From> || !std::is_convertible_v<From, To>);
 
 template<typename T, std::size_t Size, std::size_t... Sizes>
-class MultiArray;
+class MultiVector;
 
 namespace Internal {
 template<typename T, std::size_t Size, std::size_t... Sizes>
-struct [[maybe_unused]] MultiArrayTypedef;
+struct [[maybe_unused]] MultiVectorTypedef;
 
-// Recursive template to define multi-dimensional MultiArray
+// Recursive template to define multi-dimensional MultiVector
 template<typename T, std::size_t Size, std::size_t... Sizes>
-struct MultiArrayTypedef final {
-    using Type = MultiArray<T, Sizes...>;
+struct MultiVectorTypedef final {
+    using Type = MultiVector<T, Sizes...>;
 };
-// Base case: single-dimensional MultiArray
+// Base case: single-dimensional MultiVector
 template<typename T, std::size_t Size>
-struct MultiArrayTypedef<T, Size> final {
+struct MultiVectorTypedef<T, Size> final {
     using Type = T;
 };
 }  // namespace Internal
 
-// MultiArray is a generic N-dimensional array.
-// The first template parameter T is the base type of the MultiArray
-// The template parameters (Size and Sizes) encode the dimensions of the array.
+// MultiVector is a generic N-dimensional vector.
+// The first template parameter T is the base type of the MultiVector
+// The template parameters (Size and Sizes) encode the dimensions of the vector.
 template<typename T, std::size_t Size, std::size_t... Sizes>
-class MultiArray final {
+class MultiVector final {
    public:
-    using Array = std::array<typename Internal::MultiArrayTypedef<T, Size, Sizes...>::Type, Size>;
+    using Vector = std::vector<typename Internal::MultiVectorTypedef<T, Size, Sizes...>::Type>;
 
-    using value_type             = typename Array::value_type;
-    using size_type              = typename Array::size_type;
-    using difference_type        = typename Array::difference_type;
-    using reference              = typename Array::reference;
-    using const_reference        = typename Array::const_reference;
-    using pointer                = typename Array::pointer;
-    using const_pointer          = typename Array::const_pointer;
-    using iterator               = typename Array::iterator;
-    using const_iterator         = typename Array::const_iterator;
-    using reverse_iterator       = typename Array::reverse_iterator;
-    using const_reverse_iterator = typename Array::const_reverse_iterator;
+    using value_type             = typename Vector::value_type;
+    using size_type              = typename Vector::size_type;
+    using difference_type        = typename Vector::difference_type;
+    using reference              = typename Vector::reference;
+    using const_reference        = typename Vector::const_reference;
+    using pointer                = typename Vector::pointer;
+    using const_pointer          = typename Vector::const_pointer;
+    using iterator               = typename Vector::iterator;
+    using const_iterator         = typename Vector::const_iterator;
+    using reverse_iterator       = typename Vector::reverse_iterator;
+    using const_reverse_iterator = typename Vector::const_reverse_iterator;
 
-    constexpr auto begin() const noexcept { return array.begin(); }
-    constexpr auto end() const noexcept { return array.end(); }
-    constexpr auto begin() noexcept { return array.begin(); }
-    constexpr auto end() noexcept { return array.end(); }
+    // Constructor: initialize vector with Size entries
+    explicit MultiVector() noexcept :
+        entries(Size) {}
 
-    constexpr auto cbegin() const noexcept { return array.cbegin(); }
-    constexpr auto cend() const noexcept { return array.cend(); }
+    constexpr auto begin() const noexcept { return entries.begin(); }
+    constexpr auto end() const noexcept { return entries.end(); }
+    constexpr auto begin() noexcept { return entries.begin(); }
+    constexpr auto end() noexcept { return entries.end(); }
 
-    constexpr auto rbegin() const noexcept { return array.rbegin(); }
-    constexpr auto rend() const noexcept { return array.rend(); }
-    constexpr auto rbegin() noexcept { return array.rbegin(); }
-    constexpr auto rend() noexcept { return array.rend(); }
+    constexpr auto cbegin() const noexcept { return entries.cbegin(); }
+    constexpr auto cend() const noexcept { return entries.cend(); }
 
-    constexpr auto crbegin() const noexcept { return array.crbegin(); }
-    constexpr auto crend() const noexcept { return array.crend(); }
+    constexpr auto rbegin() const noexcept { return entries.rbegin(); }
+    constexpr auto rend() const noexcept { return entries.rend(); }
+    constexpr auto rbegin() noexcept { return entries.rbegin(); }
+    constexpr auto rend() noexcept { return entries.rend(); }
 
-    constexpr auto&       front() noexcept { return array.front(); }
-    constexpr const auto& front() const noexcept { return array.front(); }
-    constexpr auto&       back() noexcept { return array.back(); }
-    constexpr const auto& back() const noexcept { return array.back(); }
+    constexpr auto crbegin() const noexcept { return entries.crbegin(); }
+    constexpr auto crend() const noexcept { return entries.crend(); }
 
-    auto*       data() { return array.data(); }
-    const auto* data() const { return array.data(); }
+    constexpr auto&       front() noexcept { return entries.front(); }
+    constexpr const auto& front() const noexcept { return entries.front(); }
+    constexpr auto&       back() noexcept { return entries.back(); }
+    constexpr const auto& back() const noexcept { return entries.back(); }
 
-    constexpr auto max_size() const noexcept { return array.max_size(); }
+    auto*       data() { return entries.data(); }
+    const auto* data() const { return entries.data(); }
 
-    constexpr auto size() const noexcept { return array.size(); }
-    constexpr auto empty() const noexcept { return array.empty(); }
+    constexpr auto max_size() const noexcept { return entries.max_size(); }
 
-    constexpr const auto& at(size_type idx) const noexcept { return array.at(idx); }
-    constexpr auto&       at(size_type idx) noexcept { return array.at(idx); }
+    constexpr auto size() const noexcept { return entries.size(); }
+    constexpr auto empty() const noexcept { return entries.empty(); }
 
-    constexpr auto& operator[](size_type idx) const noexcept { return array[idx]; }
-    constexpr auto& operator[](size_type idx) noexcept { return array[idx]; }
+    constexpr const auto& at(size_type idx) const noexcept { return entries.at(idx); }
+    constexpr auto&       at(size_type idx) noexcept { return entries.at(idx); }
 
-    constexpr void swap(MultiArray<T, Size, Sizes...>& multiArray) noexcept {
-        array.swap(multiArray.array);
+    constexpr auto& operator[](size_type idx) const noexcept { return entries[idx]; }
+    constexpr auto& operator[](size_type idx) noexcept { return entries[idx]; }
+
+    constexpr void swap(MultiVector<T, Size, Sizes...>& multiArray) noexcept {
+        entries.swap(multiArray.entries);
     }
 
     // Recursively fill all dimensions by calling the sub fill method
@@ -172,7 +175,7 @@ class MultiArray final {
     */
 
    private:
-    Array array;
+    Vector entries;
 };
 
 // Return the sign of a number (-1, 0, +1)
@@ -307,8 +310,8 @@ class PRNG1024 final {
     explicit constexpr PRNG1024(std::uint64_t seed) noexcept {
         assert(seed);
 
-        for (auto& e : s)
-            e = seed = 0x9857FB32C9EFB5E4ULL + 0x2545F4914F6CDD1DULL * seed;
+        for (std::size_t i = 0; i < Size; ++i)
+            s[i] = seed = 0x9857FB32C9EFB5E4ULL + 0x2545F4914F6CDD1DULL * seed;
     }
 
     template<typename T>

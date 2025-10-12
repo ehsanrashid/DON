@@ -97,7 +97,7 @@ enum HistoryType : std::uint8_t {
 
 namespace Internal {
 template<int D, std::size_t... Sizes>
-using StatsArray = MultiArray<StatsEntry<std::int16_t, D>, Sizes...>;
+using StatsArray = MultiVector<StatsEntry<std::int16_t, D>, Sizes...>;
 
 template<HistoryType T>
 struct HistoryTypedef;
@@ -127,7 +127,7 @@ struct HistoryTypedef<HPieceSq> final {
 
 template<>
 struct HistoryTypedef<HContinuation> final {
-    using Type = MultiArray<HistoryTypedef<HPieceSq>::Type, PIECE_NB, SQUARE_NB>;
+    using Type = MultiVector<HistoryTypedef<HPieceSq>::Type, PIECE_NB, SQUARE_NB>;
 };
 
 // It is used to improve quiet move ordering near the root.
@@ -201,7 +201,7 @@ struct CorrectionHistoryTypedef<CHPieceSq> final {
 
 template<>
 struct CorrectionHistoryTypedef<CHContinuation> final {
-    using Type = MultiArray<CorrectionHistoryTypedef<CHPieceSq>::Type, PIECE_NB, SQUARE_NB>;
+    using Type = MultiVector<CorrectionHistoryTypedef<CHPieceSq>::Type, PIECE_NB, SQUARE_NB>;
 };
 }  // namespace Internal
 
