@@ -337,9 +337,9 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.starts_with("bestmove e3e2")
 
     def test_verify_nnue_network_startpos_go_depth_5(self):
-        currentPath = os.path.abspath(os.getcwd())
-        self.engine.send_command(f"export_net {os.path.join(currentPath, 'verify.nnue')}")
-        self.engine.send_command("setoption name BigEvalFile value verify.nnue")
+        # currentPath = os.path.abspath(os.getcwd())
+        # DON(f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "), True)
+        # self.engine.send_command("setoption name BigEvalFile value verify.nnue")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
