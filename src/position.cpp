@@ -266,8 +266,7 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
         }
         else
         {
-            Piece pc = UCI::piece(token);
-            if (pc != NO_PIECE)
+            if (Piece pc = UCI::piece(token); is_ok(pc))
             {
                 assert(file < FILE_NB);
                 Square sq = make_square(file, rank);
@@ -280,9 +279,7 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
                 ++file;
             }
             else
-            {
                 assert(false && "Position::set(): Invalid Piece");
-            }
         }
     }
     assert(file <= FILE_NB && rank == RANK_1);
@@ -785,7 +782,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
       m.type_of() != EN_PASSANT ? piece_on(dst) : piece_on(dst - pawn_spush(ac));
     Piece promotedPiece = NO_PIECE;
     assert(color_of(movedPiece) == ac);
-    assert(capturedPiece == NO_PIECE
+    assert(!is_ok(capturedPiece)
            || (color_of(capturedPiece) == (m.type_of() != CASTLING ? ~ac : ac)
                && type_of(capturedPiece) != KING));
 
@@ -836,7 +833,7 @@ DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
         goto DO_MOVE_END;
     }
 
-    if (capturedPiece != NO_PIECE)
+    if (is_ok(capturedPiece))
     {
         auto captured = type_of(capturedPiece);
 
@@ -995,7 +992,7 @@ DO_MOVE_END:
     assert(is_ok(dp.org));
     assert(is_ok(dp.dst) ^ (m.type_of() == PROMOTION));
     // The way castling is implemented, this check may fail in Chess960.
-    //assert(is_ok(dp.removeSq) ^ (m.type_of() != CASTLING && capturedPiece == NO_PIECE));
+    //assert(is_ok(dp.removeSq) ^ (m.type_of() != CASTLING && !is_ok(capturedPiece)));
     //assert(is_ok(dp.addSq) ^ (m.type_of() != PROMOTION && m.type_of() != CASTLING));
     return dp;
 }
@@ -1011,13 +1008,13 @@ void Position::undo_move(const Move& m) noexcept {
     assert(empty_on(org) || m.type_of() == CASTLING);
 
     Piece capturedPiece = captured_piece();
-    assert(capturedPiece == NO_PIECE || type_of(capturedPiece) != KING);
+    assert(!is_ok(capturedPiece) || type_of(capturedPiece) != KING);
 
     if (m.type_of() == CASTLING)
     {
         assert(pieces(ac, KING) & king_castle_sq(ac, org, dst));
         assert(pieces(ac, ROOK) & rook_castle_sq(ac, org, dst));
-        assert(capturedPiece == NO_PIECE);
+        assert(!is_ok(capturedPiece));
         assert(castled(ac));
 
         Square rOrg, rDst;
@@ -1043,7 +1040,7 @@ void Position::undo_move(const Move& m) noexcept {
     // Move back the piece
     move_piece(dst, org);
 
-    if (capturedPiece != NO_PIECE)
+    if (is_ok(capturedPiece))
     {
         Square capSq = dst;
 
@@ -1427,7 +1424,7 @@ Key Position::move_key(const Move& m) const noexcept {
     Square capSq         = m.type_of() != EN_PASSANT ? dst : dst - pawn_spush(ac);
     Piece  capturedPiece = piece_on(capSq);
     assert(color_of(movedPiece) == ac);
-    assert(capturedPiece == NO_PIECE
+    assert(!is_ok(capturedPiece)
            || color_of(capturedPiece) == (m.type_of() != CASTLING ? ~ac : ac));
     assert(type_of(capturedPiece) != KING);
 

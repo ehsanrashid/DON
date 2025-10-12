@@ -107,7 +107,7 @@ class Position final {
         struct Cardinal final {
            public:
             constexpr Cardinal() noexcept                 = default;
-            Cardinal(const Cardinal&) noexcept            = default;
+            Cardinal(const Cardinal&) noexcept            = delete;
             Cardinal(Cardinal&&) noexcept                 = delete;
             Cardinal& operator=(const Cardinal&) noexcept = default;
             Cardinal& operator=(Cardinal&&) noexcept      = delete;
@@ -135,7 +135,7 @@ class Position final {
         };
 
         constexpr Board() noexcept              = default;
-        Board(const Board&) noexcept            = default;
+        Board(const Board&) noexcept            = delete;
         Board(Board&&) noexcept                 = delete;
         Board& operator=(const Board&) noexcept = default;
         Board& operator=(Board&&) noexcept      = delete;

@@ -83,6 +83,7 @@ static_assert(exactly_one(PAWN_HISTORY_SIZE), "PAWN_HISTORY_SIZE has to be a pow
 constexpr std::size_t pawn_index(Key pawnKey) noexcept { return pawnKey & (PAWN_HISTORY_SIZE - 1); }
 
 constexpr std::uint16_t LOW_PLY_SIZE = 5U;
+// clang-format on
 
 enum HistoryType : std::uint8_t {
     HCapture,       // By move's [piece][dst][captured piece type]
@@ -145,11 +146,12 @@ struct HistoryTypedef<HTTMove> final {
 template<HistoryType T>
 using History = typename Internal::HistoryTypedef<T>::Type;
 
-
+// clang-format off
 constexpr int         CORRECTION_HISTORY_LIMIT = 1024U;
 constexpr std::size_t CORRECTION_HISTORY_SIZE  = 0x8000U;
 static_assert(exactly_one(CORRECTION_HISTORY_SIZE), "CORRECTION_HISTORY_SIZE has to be a power of 2");
 constexpr std::size_t correction_index(Key corrKey) noexcept { return corrKey & (CORRECTION_HISTORY_SIZE - 1); }
+// clang-format on
 
 // Correction histories record differences between the static evaluation of
 // positions and their search score.
@@ -206,8 +208,6 @@ struct CorrectionHistoryTypedef<CHContinuation> final {
 // Alias template for convenience
 template<CorrectionHistoryType T>
 using CorrectionHistory = typename Internal::CorrectionHistoryTypedef<T>::Type;
-
-// clang-format on
 
 }  // namespace DON
 
