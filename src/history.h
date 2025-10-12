@@ -95,7 +95,7 @@ struct EntiresTypedef<T, Size> final {
 template<typename T, std::size_t Size, std::size_t... Sizes>
 class Entries final {
    public:
-    using Entry = std::vector<typename Impl::EntiresTypedef<T, Size, Sizes...>::Type>;
+    using Entry = std::array<typename Impl::EntiresTypedef<T, Size, Sizes...>::Type, Size>;
 
     using value_type             = typename Entry::value_type;
     using size_type              = typename Entry::size_type;
@@ -110,8 +110,7 @@ class Entries final {
     using const_reverse_iterator = typename Entry::const_reverse_iterator;
 
     // Constructor: initialize vector with Size entries
-    explicit Entries() noexcept :
-        entries(Size) {}
+    explicit Entries() noexcept = default;
 
     constexpr auto begin() const noexcept { return entries.begin(); }
     constexpr auto end() const noexcept { return entries.end(); }
@@ -190,7 +189,7 @@ constexpr int    QUIET_HISTORY_LIMIT =  7183U;
 constexpr int PIECE_SQ_HISTORY_LIMIT = 30000U;
 
 constexpr int         PAWN_HISTORY_LIMIT = 8192U;
-constexpr std::size_t PAWN_HISTORY_SIZE  = 0x4000U;
+constexpr std::size_t PAWN_HISTORY_SIZE  = 0x2000U;
 static_assert(exactly_one(PAWN_HISTORY_SIZE), "PAWN_HISTORY_SIZE has to be a power of 2");
 constexpr std::size_t pawn_index(Key pawnKey) noexcept { return pawnKey & (PAWN_HISTORY_SIZE - 1); }
 
