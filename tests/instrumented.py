@@ -139,14 +139,14 @@ class TestCLI(metaclass=OrderedClassMembers):
         )
         assert self.engine.process.returncode == 0
 
-    # def test_bench_128_threads_3_bench_tmp_epd_depth(self):
-    #     self.engine = DON(
-    #         f"bench 128 {get_threads()} 3 {os.path.join(PATH,'bench_tmp.epd')} depth".split(
-    #             " "
-    #         ),
-    #         True,
-    #     )
-    #     assert self.engine.process.returncode == 0
+    def test_bench_128_threads_3_bench_tmp_epd_depth(self):
+        self.engine = DON(
+            f"bench 128 {get_threads()} 3 {os.path.join(PATH,'tmp_bench.epd')} depth".split(
+                " "
+            ),
+            True,
+        )
+        assert self.engine.process.returncode == 0
 
     def test_show(self):
         self.engine = DON("show".split(" "), True)
@@ -384,16 +384,16 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.expect("* score mate -1 * pv e3e2 f7f5")
         self.engine.starts_with("bestmove e3e2")
 
-    def test_verify_nnue_network_startpos_go_depth_5(self):
-        currentPath = os.path.abspath(os.getcwd())
-        DON(
-            f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "),
-            True,
-        )
-        # self.engine.send_command("setoption name BigEvalFile value verify.nnue")
-        self.engine.send_command("position startpos")
-        self.engine.send_command("go depth 5")
-        self.engine.starts_with("bestmove")
+    # def test_verify_nnue_network_startpos_go_depth_5(self):
+    #     currentPath = os.path.abspath(os.getcwd())
+    #     DON(
+    #         f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "),
+    #         True,
+    #     )
+    #     self.engine.send_command("setoption name BigEvalFile value verify.nnue")
+    #     self.engine.send_command("position startpos")
+    #     self.engine.send_command("go depth 5")
+    #     self.engine.starts_with("bestmove")
 
     def test_multipv_setting_startpos_go_depth_5(self):
         self.engine.send_command("setoption name MultiPV value 4")

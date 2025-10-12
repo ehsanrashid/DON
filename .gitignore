@@ -18,7 +18,7 @@ src/-lstdc++.res
 tsan.supp
 __pycache__/
 tests/syzygy
-tests/bench_tmp.epd
+tests/tmp_bench.epd
 
 *.bin
 *.txt

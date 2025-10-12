@@ -74,7 +74,7 @@ race:DON::TranspositionTable::hashfull
 class EPD:
     @staticmethod
     def create_bench_epd():
-        with open(f"{os.path.join(PATH,'bench_tmp.epd')}", "w") as f:
+        with open(f"{os.path.join(PATH,'tmp_bench.epd')}", "w") as f:
             f.write(
                 """
 Rn6/1rbq1bk1/2p2n1p/2Bp1p2/3Pp1pP/1N2P1P1/2Q1NPB1/6K1 w - - 2 26
@@ -86,7 +86,7 @@ r4rk1/1b2ppbp/pq4pn/2pp1PB1/1p2P3/1P1P1NN1/1PP3PP/R2Q1RK1 w - - 0 13
 
     @staticmethod
     def delete_bench_epd():
-        os.remove(f"{os.path.join(PATH,'bench_tmp.epd')}")
+        os.remove(f"{os.path.join(PATH,'tmp_bench.epd')}")
 
 
 class Syzygy:
