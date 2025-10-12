@@ -43,7 +43,7 @@ class FeatureTransformer;
 template<IndexType Size>
 struct alignas(CACHE_LINE_SIZE) Accumulator final {
    public:
-    Accumulator() noexcept = default;
+    constexpr Accumulator() noexcept = default;
 
     BiasType       accumulation[COLOR_NB][Size]{};
     PSQTWeightType psqtAccumulation[COLOR_NB][PSQTBuckets]{};
@@ -61,16 +61,16 @@ using SmallAccumulator = Accumulator<SmallTransformedFeatureDimensions>;
 // is commonly referred to as "Finny Tables".
 struct AccumulatorCaches final {
    public:
-    AccumulatorCaches() noexcept = default;
+    constexpr AccumulatorCaches() noexcept = default;
 
     template<IndexType Size>
     struct alignas(CACHE_LINE_SIZE) Cache final {
        public:
-        Cache() noexcept = default;
+        constexpr Cache() noexcept = default;
 
         struct alignas(CACHE_LINE_SIZE) Entry final {
            public:
-            Entry() noexcept = default;
+            constexpr Entry() noexcept = default;
 
             // To initialize a refresh entry, set all its bitboards empty,
             // so put the biases in the accumulation, without any weights on top
@@ -148,8 +148,7 @@ struct AccumulatorState final {
 
 struct AccumulatorStack final {
    public:
-    AccumulatorStack() noexcept :
-        size{1} {};
+    constexpr AccumulatorStack() noexcept = default;
 
     [[nodiscard]] const AccumulatorState& clatest_state() const noexcept;
     [[nodiscard]] AccumulatorState&       latest_state() noexcept;
@@ -183,7 +182,7 @@ struct AccumulatorStack final {
                                      std::size_t                           end) noexcept;
 
     AccumulatorState accStates[MAX_PLY + 1]{};
-    std::size_t      size;
+    std::size_t      size{1};
 };
 
 }  // namespace NNUE
