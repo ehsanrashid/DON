@@ -19,13 +19,13 @@
 #define HISTORY_H_INCLUDED
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <limits>
 #include <type_traits>
-#include <vector>
 
 #include "bitboard.h"
 #include "types.h"
@@ -109,7 +109,6 @@ class Entries final {
     using reverse_iterator       = typename Entry::reverse_iterator;
     using const_reverse_iterator = typename Entry::const_reverse_iterator;
 
-    // Constructor: initialize vector with Size entries
     explicit Entries() noexcept = default;
 
     constexpr auto begin() const noexcept { return entries.begin(); }
