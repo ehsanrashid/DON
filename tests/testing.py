@@ -272,12 +272,8 @@ class MiniTestFramework:
 
     def __print_summary(self, duration: float):
         print(f"\n{WHITE_BOLD}Test Summary{RESET_COLOR}\n")
-        print(
-            f"    Test Suites: {GREEN_COLOR}{self.testSuitesPassed} passed{RESET_COLOR}, {RED_COLOR}{self.testSuitesFailed} failed{RESET_COLOR}, {self.testSuitesPassed + self.testSuitesFailed} total"
-        )
-        print(
-            f"    Tests:       {GREEN_COLOR}{self.testsPassed} passed{RESET_COLOR}, {RED_COLOR}{self.testsFailed} failed{RESET_COLOR}, {self.testsPassed + self.testsFailed} total"
-        )
+        print(f"    Test Suites: {GREEN_COLOR}{self.testSuitesPassed} passed{RESET_COLOR}, {RED_COLOR}{self.testSuitesFailed} failed{RESET_COLOR}, {self.testSuitesPassed + self.testSuitesFailed} total")
+        print(f"    Tests:       {GREEN_COLOR}{self.testsPassed} passed{RESET_COLOR}, {RED_COLOR}{self.testsFailed} failed{RESET_COLOR}, {self.testsPassed + self.testsFailed} total")
         print(f"    Time:        {duration}s\n")
 
     def print_failure(self, add: str):
