@@ -89,9 +89,9 @@ struct EntiresTypedef<T, Size> final {
 };
 }  // namespace Impl
 
-// Entries is a generic N-dimensional entry.
-// The first template parameter T is the base type of the Entries
-// The template parameters (Size and Sizes) encode the dimensions of the entry.
+// Entries is a generic N-dimensional Entry.
+// The template parameter T is the base type of the Entries
+// The template parameters (Size and Sizes) is the dimensions of the Entries.
 template<typename T, std::size_t Size, std::size_t... Sizes>
 class Entries final {
    public:
