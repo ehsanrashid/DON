@@ -124,7 +124,7 @@ class TestCLI(metaclass=OrderedClassMembers):
         assert self.engine.process.returncode == 0
 
     # def test_bench_128_threads_3_bench_tmp_epd_depth(self):
-    #     self.engine = DON(f"bench 128 {get_threads()} 3 {os.path.join(PATH,'tmp_bench.epd')} depth".split(" "), True)
+    #     self.engine = DON(f"bench 128 {get_threads()} 3 {os.path.join(PATH, 'tmp_bench.epd')} depth".split(" "), True)
     #     assert self.engine.process.returncode == 0
 
     def test_show(self):
@@ -193,7 +193,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.equals("uciok")
 
     def test_set_threads_option(self):
-        self.engine.send_command(f"setoption name Threads value {get_threads()}")
+        self.engine.setoption("Threads", get_threads())
 
     def test_ucinewgame_startpos_go_nodes_1000(self):
         self.engine.send_command("ucinewgame")
@@ -237,7 +237,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
 
     def test_ucinewgame_wdl_startpos_go_depth_9(self):
         self.engine.send_command("ucinewgame")
-        self.engine.send_command("setoption name UCI_ShowWDL value true")
+        self.engine.setoption("UCI_ShowWDL", "true")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 9")
 
@@ -339,23 +339,23 @@ class TestInteractive(metaclass=OrderedClassMembers):
     def test_verify_nnue_network_startpos_go_depth_5(self):
         # currentPath = os.path.abspath(os.getcwd())
         # DON(f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "), True)
-        # self.engine.send_command("setoption name BigEvalFile value verify.nnue")
+        # self.engine.setoption("BigEvalFile", "verify.nnue")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
     
     def test_multipv_setting_startpos_go_depth_5(self):
-        self.engine.send_command("setoption name MultiPV value 4")
+        self.engine.setoption("MultiPV", 4)
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
 
     def test_skilllevel_setting_startpos_go_depth_5(self):
-        self.engine.send_command("setoption name SkillLevel value 10")
+        self.engine.setoption("SkillLevel", 10)
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
-        self.engine.send_command("setoption name SkillLevel value 20")
+        self.engine.setoption("SkillLevel", 20)
 
 
 class TestSyzygy(metaclass=OrderedClassMembers):
@@ -373,7 +373,7 @@ class TestSyzygy(metaclass=OrderedClassMembers):
     def test_syzygy_setting(self):
         self.engine.starts_with("DON")
         self.engine.send_command("uci")
-        self.engine.send_command(f"setoption name SyzygyPath value {os.path.join(PATH, 'syzygy')}")
+        self.engine.setoption("SyzygyPath", os.path.join(PATH, "syzygy"))
         self.engine.expect("info string Tablebase: 35 WDL and 35 DTZ found (up to 4-man).")
 
     def test_syzygy_bench(self):
