@@ -103,8 +103,8 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("SyzygyProbeDepth",     Option(1, 1, 100));
     options.add("Syzygy50MoveRule",     Option(true));
     options.add("SyzygyPVExtend",       Option(true));
-    options.add("EvalFileBig",          Option(EvalFileDefaultNameBig  , [this](const Option& o) { load_big_network(o);   return std::nullopt; }));
-    options.add("EvalFileSmall",        Option(EvalFileDefaultNameSmall, [this](const Option& o) { load_small_network(o); return std::nullopt; }));
+    options.add("BigEvalFile",          Option(EvalFileDefaultNameBig  , [this](const Option& o) { load_big_network(o);   return std::nullopt; }));
+    options.add("SmallEvalFile",        Option(EvalFileDefaultNameSmall, [this](const Option& o) { load_small_network(o); return std::nullopt; }));
     options.add("ReportMinimal",        Option(false));
     options.add("DebugLogFile",         Option("", [](const Option& o) { start_logger(o); return std::nullopt; }));
     // clang-format on
@@ -273,14 +273,14 @@ std::string Engine::get_thread_allocation_info_str() const noexcept {
 }
 
 void Engine::verify_networks() const noexcept {
-    networks->big.verify(options["EvalFileBig"]);
-    networks->small.verify(options["EvalFileSmall"]);
+    networks->big.verify(options["BigEvalFile"]);
+    networks->small.verify(options["SmallEvalFile"]);
 }
 
 void Engine::load_networks() noexcept {
     networks.modify_and_replicate([this](NNUE::Networks& nets) {
-        nets.big.load(binaryDirectory, options["EvalFileBig"]);
-        nets.small.load(binaryDirectory, options["EvalFileSmall"]);
+        nets.big.load(binaryDirectory, options["BigEvalFile"]);
+        nets.small.load(binaryDirectory, options["SmallEvalFile"]);
     });
     threads.init();
     threads.ensure_network_replicated();
