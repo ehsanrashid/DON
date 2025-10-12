@@ -190,7 +190,7 @@ constexpr int    QUIET_HISTORY_LIMIT =  7183U;
 constexpr int PIECE_SQ_HISTORY_LIMIT = 30000U;
 
 constexpr int         PAWN_HISTORY_LIMIT = 8192U;
-constexpr std::size_t PAWN_HISTORY_SIZE  = 0x8000U;
+constexpr std::size_t PAWN_HISTORY_SIZE  = 0x4000U;
 static_assert(exactly_one(PAWN_HISTORY_SIZE), "PAWN_HISTORY_SIZE has to be a power of 2");
 constexpr std::size_t pawn_index(Key pawnKey) noexcept { return pawnKey & (PAWN_HISTORY_SIZE - 1); }
 
