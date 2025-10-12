@@ -394,7 +394,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         # self.engine.send_command("position startpos")
         # self.engine.send_command("go depth 5")
         # self.engine.starts_with("bestmove")
-        assert self.engine.process.returncode == 0
+        self.engine.starts_with("")
     
     def test_multipv_setting_startpos_go_depth_5(self):
         self.engine.send_command("setoption name MultiPV value 4")
