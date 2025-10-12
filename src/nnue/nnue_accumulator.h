@@ -108,8 +108,8 @@ struct AccumulatorCaches final {
 
     void init(const Networks& networks) noexcept;
 
-    BigCache   big;
-    SmallCache small;
+    BigCache   big{};
+    SmallCache small{};
 };
 
 struct AccumulatorState final {
