@@ -20,11 +20,9 @@
 #ifndef NNUE_ACCUMULATOR_H_INCLUDED
 #define NNUE_ACCUMULATOR_H_INCLUDED
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <vector>
 
 #include "../types.h"
 #include "nnue_architecture.h"
@@ -46,8 +44,7 @@ template<IndexType Size>
 struct alignas(CACHE_LINE_SIZE) Accumulator final {
     BiasType       accumulation[COLOR_NB][Size];
     PSQTWeightType psqtAccumulation[COLOR_NB][PSQTBuckets];
-
-    std::array<bool, COLOR_NB> computed;
+    bool           computed[COLOR_NB];
 };
 
 using BigAccumulator   = Accumulator<BigTransformedFeatureDimensions>;
@@ -137,11 +134,10 @@ struct AccumulatorState final {
     SmallAccumulator small;
 };
 
-class AccumulatorStack final {
+struct AccumulatorStack final {
    public:
     AccumulatorStack() noexcept :
-        accStates(MAX_PLY + 1),
-        size(1) {}
+        size{1} {};
 
     [[nodiscard]] const AccumulatorState& clatest_state() const noexcept;
     [[nodiscard]] AccumulatorState&       latest_state() noexcept;
@@ -174,8 +170,8 @@ class AccumulatorStack final {
                                      const FeatureTransformer<Dimensions>& featureTransformer,
                                      std::size_t                           end) noexcept;
 
-    std::vector<AccumulatorState> accStates;
-    std::size_t                   size;
+    AccumulatorState accStates[MAX_PLY + 1];
+    std::size_t      size;
 };
 
 }  // namespace NNUE
