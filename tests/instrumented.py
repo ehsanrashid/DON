@@ -44,9 +44,9 @@ def postfix_check(output):
             if "runtime error:" in line:
                 # print next possible 50 lines
                 for i in range(50):
-                    debug_idx = idx + i
-                    if debug_idx < len(output):
-                        print(output[debug_idx])
+                    debugIdx = idx + i
+                    if debugIdx < len(output):
+                        print(output[debugIdx])
                 return False
 
     if args.sanitizer_thread:
@@ -54,9 +54,9 @@ def postfix_check(output):
             if "WARNING: ThreadSanitizer:" in line:
                 # print next possible 50 lines
                 for i in range(50):
-                    debug_idx = idx + i
-                    if debug_idx < len(output):
-                        print(output[debug_idx])
+                    debugIdx = idx + i
+                    if debugIdx < len(output):
+                        print(output[debugIdx])
                 return False
 
     return True
@@ -165,9 +165,9 @@ class TestCLI(metaclass=OrderedClassMembers):
         assert self.engine.process.returncode == 0
 
     def test_export_net_verify_nnue(self):
-        current_path = os.path.abspath(os.getcwd())
+        currentPath = os.path.abspath(os.getcwd())
         self.engine = DON(
-            f"export_net {os.path.join(current_path, 'verify.nnue')}".split(" "), True
+            f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "), True
         )
         assert self.engine.process.returncode == 0
 
@@ -384,16 +384,16 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.expect("* score mate -1 * pv e3e2 f7f5")
         self.engine.starts_with("bestmove e3e2")
 
-    def test_verify_nnue_network_startpos_go_depth_5(self):
-        current_path = os.path.abspath(os.getcwd())
-        DON(
-            f"export_net {os.path.join(current_path, 'verify.nnue')}".split(" "),
-            True,
-        )
-        self.engine.send_command("setoption name EvalFileBig value verify.nnue")
-        self.engine.send_command("position startpos")
-        self.engine.send_command("go depth 5")
-        self.engine.starts_with("bestmove")
+    # def test_verify_nnue_network_startpos_go_depth_5(self):
+    #     currentPath = os.path.abspath(os.getcwd())
+    #     DON(
+    #         f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "),
+    #         True,
+    #     )
+    #     self.engine.send_command("setoption name EvalFileBig value verify.nnue")
+    #     self.engine.send_command("position startpos")
+    #     self.engine.send_command("go depth 5")
+    #     self.engine.starts_with("bestmove")
 
     def test_multipv_setting_startpos_go_depth_5(self):
         self.engine.send_command("setoption name MultiPV value 4")

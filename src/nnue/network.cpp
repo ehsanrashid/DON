@@ -81,7 +81,7 @@ inline EmbeddedNNUE get_embedded(EmbeddedType embType) noexcept {
     return EmbeddedNNUE(nullptr, nullptr, 0);
 }
 
-namespace Internal {
+namespace Impl {
 
 // Read network header
 inline bool read_header(std::istream&  istream,  //
@@ -130,7 +130,7 @@ inline bool write_parameters(std::ostream& ostream, T& reference) noexcept {
     return reference.write_parameters(ostream);
 }
 
-}  // namespace Internal
+}  // namespace Impl
 
 template<typename Arch, typename Transformer>
 Network<Arch, Transformer>::Network(const Network<Arch, Transformer>& net) noexcept :
@@ -369,14 +369,14 @@ template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::read_parameters(std::istream& istream,
                                                  std::string&  netDescription) noexcept {
     std::uint32_t hashValue;
-    if (!Internal::read_header(istream, hashValue, netDescription))
+    if (!Impl::read_header(istream, hashValue, netDescription))
         return false;
     if (hashValue != Network::HashValue)
         return false;
-    if (!Internal::read_parameters(istream, *featureTransformer))
+    if (!Impl::read_parameters(istream, *featureTransformer))
         return false;
     for (std::size_t i = 0; i < LayerStacks; ++i)
-        if (!Internal::read_parameters(istream, network[i]))
+        if (!Impl::read_parameters(istream, network[i]))
             return false;
 
     return bool(istream) && istream.peek() == std::ios::traits_type::eof();
@@ -385,12 +385,12 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& istream,
 template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::write_parameters(
   std::ostream& ostream, const std::string& netDescription) const noexcept {
-    if (!Internal::write_header(ostream, Network::HashValue, netDescription))
+    if (!Impl::write_header(ostream, Network::HashValue, netDescription))
         return false;
-    if (!Internal::write_parameters(ostream, *featureTransformer))
+    if (!Impl::write_parameters(ostream, *featureTransformer))
         return false;
     for (std::size_t i = 0; i < LayerStacks; ++i)
-        if (!Internal::write_parameters(ostream, network[i]))
+        if (!Impl::write_parameters(ostream, network[i]))
             return false;
 
     return bool(ostream);
