@@ -19,7 +19,6 @@
 
 #include <cassert>
 #include <initializer_list>
-#include <iterator>
 #include <type_traits>
 
 #include "../bitboard.h"
@@ -385,13 +384,17 @@ void AccumulatorStack::reset() noexcept {
 }
 
 void AccumulatorStack::push(const DirtyPiece& dp) noexcept {
-    assert(size < std::size(accStates));
+    assert(size < MaxSize);
+    if (size >= MaxSize)
+        return;
     accStates[size].reset(dp);
     ++size;
 }
 
 void AccumulatorStack::pop() noexcept {
     assert(size > 1);
+    if (size <= 1)
+        return;
     --size;
 }
 
@@ -444,7 +447,7 @@ void AccumulatorStack::forward_update_incremental(
   const FeatureTransformer<Dimensions>& featureTransformer,
   std::size_t                           begin) noexcept {
 
-    assert(begin < size && size < std::size(accStates));
+    assert(begin < size && size < MaxSize);
     assert((accStates[begin].acc<Dimensions>()).computed[Perspective]);
 
     Square kingSq = pos.king_sq(Perspective);
@@ -483,7 +486,7 @@ void AccumulatorStack::backward_update_incremental(
   const FeatureTransformer<Dimensions>& featureTransformer,
   std::size_t                           end) noexcept {
 
-    assert(end < size && size < std::size(accStates));
+    assert(end < size && size < MaxSize);
     assert((clatest_state().acc<Dimensions>()).computed[Perspective]);
 
     Square kingSq = pos.king_sq(Perspective);

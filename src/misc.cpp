@@ -34,30 +34,6 @@ namespace {
 // Version number or dev.
 constexpr std::string_view Version{"dev"};
 
-#if !defined(GIT_DATE)
-inline std::string format_date(std::string_view date) noexcept {
-    //constexpr std::string_view Months{"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"};
-    constexpr std::array<std::string_view, 12> Months{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-
-    std::istringstream iss{std::string(date)};  // From compiler, format is "Sep 21 2008"
-
-    std::string month, day, year;
-    iss >> month >> day >> year;
-
-    if (iss.fail() || month.size() != 3 || day.size() > 2 || year.size() != 4)
-        return "00000000";
-    return (std::ostringstream{}
-            << std::setfill('0')  //
-            << std::setw(4) << year
-            << std::setw(2)
-            //<< (1 + Months.find(month) / 4)
-            << (1 + std::distance(Months.begin(), std::find(Months.begin(), Months.end(), month)))
-            << std::setw(2) << day)
-      .str();
-}
-#endif
-
 // Fancy logging facility. The trick here is to replace cin.rdbuf() and cout.rdbuf()
 // with two Tie objects that tie std::cin and std::cout to a file stream.
 // Can toggle the logging of std::cout and std:cin at runtime whilst preserving
@@ -165,6 +141,30 @@ class Logger final {
     }
 };
 
+#if !defined(GIT_DATE)
+inline std::string format_date(std::string_view date) noexcept {
+    //static constexpr std::string_view Months{"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"};
+    static constexpr std::array<std::string_view, 12> Months{
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+    std::istringstream iss{std::string(date)};  // From compiler, format is "Sep 21 2008"
+
+    std::string month, day, year;
+    iss >> month >> day >> year;
+
+    if (iss.fail() || month.size() != 3 || day.size() > 2 || year.size() != 4)
+        return "00000000";
+    return (std::ostringstream{}
+            << std::setfill('0')  //
+            << std::setw(4) << year
+            << std::setw(2)
+            //<< (1 + Months.find(month) / 4)
+            << (1 + std::distance(Months.begin(), std::find(Months.begin(), Months.end(), month)))
+            << std::setw(2) << day)
+      .str();
+}
+#endif
+
 }  // namespace
 
 std::string engine_info(bool uci) noexcept {
@@ -188,13 +188,13 @@ std::string version_info() noexcept {
 
     if constexpr (Version == "dev")
     {
-        oss << "-";
+        oss << '-';
 #if defined(GIT_DATE)
         oss << STRINGIFY(GIT_DATE);
 #else
         oss << format_date(__DATE__);
 #endif
-        oss << "-";
+        oss << '-';
 #if defined(GIT_SHA)
         oss << STRINGIFY(GIT_SHA);
 #else
@@ -330,7 +330,16 @@ std::string format_time(const SystemClock::time_point& timePoint) {
     auto time = SystemClock::to_time_t(timePoint);
     auto usec =
       std::chrono::duration_cast<MicroSeconds>(timePoint.time_since_epoch()).count() % 1000000;
-    return (std::ostringstream{} << std::put_time(std::localtime(&time), "%Y.%m.%d-%H:%M:%S") << '.'
+    std::tm tm{};
+#if defined(_WIN32) || defined(_WIN64)  // Windows
+    localtime_s(&tm, &time);
+#elif defined(__unix__) || defined(__APPLE__)  // POSIX (Linux / macOS)
+    localtime_r(&time, &tm);
+#else
+    // Fallback (not thread-safe)
+    tm = *std::localtime(&time);
+#endif
+    return (std::ostringstream{} << std::put_time(&tm, "%Y.%m.%d-%H:%M:%S") << '.'
                                  << std::setfill('0') << std::setw(6) << usec)
       .str();
 }

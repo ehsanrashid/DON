@@ -451,6 +451,8 @@ void UCI::setoption(std::istringstream& iss) noexcept {
 
 void UCI::bench(std::istringstream& iss) noexcept {
 
+    auto commands = Benchmark::setup_bench(iss, engine.fen());
+
     std::uint64_t infoNodes = 0;
     engine.set_on_update_full([&infoNodes](const auto& info) {
         infoNodes = info.nodes;
@@ -461,15 +463,14 @@ void UCI::bench(std::istringstream& iss) noexcept {
 
     options().set("ReportMinimal", bool_to_string(true));
 
+    const std::size_t num =
+      std::count_if(commands.begin(), commands.end(), [](const auto& command) {
+          return command.find("go ") == 0 || command.find("eval") == 0;
+      });
+
 #if !defined(NDEBUG)
     Debug::clear();
 #endif
-
-    auto commands = Benchmark::setup_bench(iss, engine.fen());
-
-    std::size_t num = std::count_if(commands.begin(), commands.end(), [](const auto& command) {
-        return command.find("go ") == 0 || command.find("eval") == 0;
-    });
 
     TimePoint startTime   = now();
     TimePoint elapsedTime = 0;
@@ -534,7 +535,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
     Debug::print();
 #endif
 
-    std::cerr << "\n==========================="        //
+    std::cerr << "\n================"                   //
               << "\nTotal time [ms] : " << elapsedTime  //
               << "\nTotal nodes     : " << nodes        //
               << "\nnodes/second    : " << 1000 * nodes / elapsedTime << std::endl;
@@ -548,27 +549,28 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     // Probably not very important for a test this long, but include for completeness and sanity.
     constexpr std::size_t WarmupPositionCount = 3;
 
-    std::uint64_t infoNodes = 0;
-    engine.set_on_update_short([](const auto&) {});
-    engine.set_on_update_full([&](const auto& info) { infoNodes = info.nodes; });
-    engine.set_on_update_iter([](const auto&) {});
-    engine.set_on_update_move([](const auto&) {});
-
     auto benchmark = Benchmark::setup_benchmark(iss);
-
-    std::size_t num = std::count_if(benchmark.commands.begin(), benchmark.commands.end(),
-                                    [](const auto& command) { return command.find("go ") == 0; });
-
-#if !defined(NDEBUG)
-    Debug::clear();
-#endif
 
     // Set options once at the start
     options().set("Threads", std::to_string(benchmark.threads));
     options().set("Hash", std::to_string(benchmark.ttSize));
     options().set("UCI_Chess960", bool_to_string(false));
 
+    std::uint64_t infoNodes = 0;
+    engine.set_on_update_short([](const auto&) {});
+    engine.set_on_update_full([&](const auto& info) { infoNodes = info.nodes; });
+    engine.set_on_update_iter([](const auto&) {});
+    engine.set_on_update_move([](const auto&) {});
+
     InfoStringStop = true;
+
+    const std::size_t num =
+      std::count_if(benchmark.commands.begin(), benchmark.commands.end(),
+                    [](const auto& command) { return command.find("go ") == 0; });
+
+#if !defined(NDEBUG)
+    Debug::clear();
+#endif
 
     TimePoint startTime   = now();
     TimePoint elapsedTime = 0;
@@ -620,24 +622,28 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     cnt   = 0;
     nodes = 0;
 
-    constexpr std::size_t  Size = 2;
-    constexpr std::uint8_t HashfullAges[Size]{0, 31};  // Only normal hashfull and touched hash
+    // Only normal hashfull and touched hash
+    constexpr std::array<std::uint8_t, 2> HashfullAges{0, 31};
 
-    static_assert(Size == 2 && HashfullAges[0] == 0 && HashfullAges[1] == 31,
+    static_assert(HashfullAges.size() == 2 && HashfullAges[0] == 0 && HashfullAges[1] == 31,
                   "Incorrect HashfullAges[].");
 
-    std::uint16_t numHashfull{0};
-    std::uint16_t maxHashfull[Size]{};
-    std::uint32_t sumHashfull[Size]{};
+    std::uint16_t                                  hashfullCount{0};
+    std::array<std::uint16_t, HashfullAges.size()> maxHashfull{};
+    std::array<std::uint64_t, HashfullAges.size()> sumHashfull{};
 
     const auto update_hashfull = [&]() noexcept -> void {
-        ++numHashfull;
-        for (std::size_t i = 0; i < Size; ++i)
+        ++hashfullCount;
+        for (std::size_t i = 0; i < HashfullAges.size(); ++i)
         {
             auto hashfull  = engine.hashfull(HashfullAges[i]);
             maxHashfull[i] = std::max(maxHashfull[i], hashfull);
             sumHashfull[i] += hashfull;
         }
+    };
+
+    const auto avg = [&hashfullCount](std::uint64_t x) noexcept {
+        return double(x) / hashfullCount;
     };
 
     elapsedTime += now() - startTime;
@@ -707,9 +713,9 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
               << "\nThread count               : " << benchmark.threads
               << "\nThread binding             : " << threadBinding
               << "\nTT size [MiB]              : " << benchmark.ttSize
-              << "\nHash max, avg [per mille]  : "
-              << "\n    Single search          : " << maxHashfull[0] << ", " << double(sumHashfull[0]) / numHashfull
-              << "\n    Single game            : " << maxHashfull[1] << ", " << double(sumHashfull[1]) / numHashfull
+              << "\nHash max, sum, avg [mille] : Count=" << hashfullCount
+              << "\n    Single search          : " << maxHashfull[0] << ", " << sumHashfull[0] << ", " << avg(sumHashfull[0])
+              << "\n    Single game            : " << maxHashfull[1] << ", " << sumHashfull[1] << ", " << avg(sumHashfull[1])
               << "\nTotal time [s]             : " << elapsedTime / 1000.0
               << "\nTotal nodes                : " << nodes
               << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
@@ -776,17 +782,17 @@ std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
 }
 
 std::string UCI::score(const Score& score) noexcept {
-    constexpr int TB_CP = 20000;
+    static constexpr int TB_CP = 20000;
 
     const auto format =
-      Overload{[](Score::Unit unit) -> std::string {  //
-                   return "cp " + std::to_string(unit.value);
+      Overload{[](Score::Unit unit) -> std::string {
+                   return std::string("cp ") + std::to_string(unit.value);
                },
                [](Score::Tablebase tb) -> std::string {
-                   return "cp " + std::to_string((tb.win ? +TB_CP : -TB_CP) - tb.ply);
+                   return std::string("cp ") + std::to_string((tb.win ? +TB_CP : -TB_CP) - tb.ply);
                },
                [](Score::Mate mate) -> std::string {
-                   return "mate " + std::to_string(((mate.ply > 0) + mate.ply) / 2);
+                   return std::string("mate ") + std::to_string((mate.ply + (mate.ply > 0)) / 2);
                }};
 
     return score.visit(format);
@@ -821,7 +827,7 @@ std::string UCI::move_to_can(const Move& m) noexcept {
 
     std::string can = square(org) + square(dst);
     if (m.type_of() == PROMOTION)
-        can += char(std::tolower(piece(m.promotion_type())));
+        can += char(std::tolower(static_cast<unsigned char>(piece(m.promotion_type()))));
 
     return can;
 }
