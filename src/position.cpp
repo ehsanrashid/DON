@@ -39,9 +39,8 @@ namespace {
 
 constexpr std::size_t PawnOffset = 8;
 
-constexpr std::array<Piece, COLOR_NB * KING> Pieces{
-  W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,  //
-  B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
+constexpr Piece Pieces[COLOR_NB * KING]{W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,  //
+                                        B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
 
 // Implements Marcel van Kervinck's cuckoo algorithm to detect repetition of positions for 3-fold repetition draws.
 // The algorithm uses hash tables with Zobrist hashes to allow fast detection of recurring positions.
@@ -1537,7 +1536,7 @@ bool Position::see_ge(const Move& m, int threshold) const noexcept {
 
     Magic(*magic)[2] = &Magics[dst];
 
-    std::array<bool, COLOR_NB> discovery{true, true};
+    bool discovery[COLOR_NB]{true, true};
 
     while (attackers)
     {
