@@ -175,12 +175,11 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
 
     constexpr std::size_t Size = sizeof(IntType);
 
-    constexpr std::size_t BuffSize = 4096;
-    std::uint8_t          buffer[BuffSize];
+    constexpr std::uint32_t BuffSize = 4096;
+    std::uint8_t            buffer[BuffSize];
+    std::uint32_t           buffPos = BuffSize;
 
-    std::size_t buffPos = BuffSize;
-
-    std::size_t byteCount = read_little_endian<std::uint32_t>(istream);
+    std::uint32_t byteCount = read_little_endian<std::uint32_t>(istream);
 
     for (std::size_t i = 0; i < count; ++i)
     {
@@ -202,7 +201,7 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
             if ((byt & 0x80) == 0)
             {
                 out[i] =
-                  (8 * Size <= shift || (byt & 0x40) == 0) ? result : result | ~((1 << shift) - 1);
+                  (shift >= 8 * Size || (byt & 0x40) == 0) ? result : result | ~((1 << shift) - 1);
                 break;
             }
         } while (shift < 8 * Size);
@@ -223,7 +222,7 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
     // Write our LEB128 magic string
     ostream.write(LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE);
 
-    std::size_t byteCount = 0;
+    std::uint32_t byteCount = 0;
     for (std::size_t i = 0; i < count; ++i)
     {
         IntType value = values[i];
@@ -239,10 +238,9 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
 
     write_little_endian(ostream, byteCount);
 
-    constexpr std::size_t BuffSize = 4096;
-    std::uint8_t          buffer[BuffSize];
-
-    std::size_t buffPos = 0;
+    constexpr std::uint32_t BuffSize = 4096;
+    std::uint8_t            buffer[BuffSize];
+    std::uint32_t           buffPos = 0;
 
     auto flush = [&]() {
         if (buffPos == 0)
