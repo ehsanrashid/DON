@@ -227,7 +227,7 @@ class MiniTestFramework:
 
             duration = time.time() - t0
 
-            self.print_success(f" {testMethod} ({duration * 1000:.2f}ms)")
+            self.print_success(f" {testMethod} ({1000 * duration:.2f}ms)")
             self.testsPassed += 1
         except Exception as e:
             if isinstance(e, TimeoutException):
@@ -248,7 +248,7 @@ class MiniTestFramework:
 
     def __handle_assertion_error(self, startTime, testMethod: str):
         duration = time.time() - startTime
-        self.print_failure(f" {testMethod} ({duration * 1000:.2f}ms)")
+        self.print_failure(f" {testMethod} ({1000 * duration:.2f}ms)")
         tracebackOutput = "".join(traceback.format_tb(sys.exc_info()[2]))
         coloredTraceback = "\n".join(f"  {CYAN_COLOR}{line}{RESET_COLOR}" for line in tracebackOutput.splitlines())
         print(coloredTraceback)
