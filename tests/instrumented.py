@@ -123,8 +123,8 @@ class TestCLI(metaclass=OrderedClassMembers):
         self.engine = DON(f"bench 128 {get_threads()} 8 default depth".split(" "), True)
         assert self.engine.process.returncode == 0
 
-    # def test_bench_128_threads_3_bench_tmp_epd_depth(self):
-    #     self.engine = DON(f"bench 128 {get_threads()} 3 {os.path.join(PATH,'tmp_bench.epd')} depth".split(" "), True)
+    # def test_bench_128_threads_3_tmp_bench_epd_depth(self):
+    #     self.engine = DON(f"bench 128 {get_threads()} 3 {os.path.join(PATH, 'tmp_bench.epd')} depth".split(" "), True)
     #     assert self.engine.process.returncode == 0
 
     def test_show(self):
@@ -193,7 +193,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.equals("uciok")
 
     def test_set_threads_option(self):
-        self.engine.send_command(f"setoption name Threads value {get_threads()}")
+        self.engine.setoption("Threads", str(get_threads()))
 
     def test_ucinewgame_startpos_go_nodes_1000(self):
         self.engine.send_command("ucinewgame")
@@ -220,7 +220,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.send_command("go nodes 1000")
         self.engine.starts_with("bestmove")
 
-    def test_ucinewgame_startpos_go_depth_5(self):
+    def test_ucinewgame_startpos_go_depth_5_callback(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
@@ -235,9 +235,9 @@ class TestInteractive(metaclass=OrderedClassMembers):
 
         self.engine.check_output(callback)
 
-    def test_ucinewgame_wdl_startpos_go_depth_9(self):
+    def test_ucinewgame_wdl_startpos_go_depth_9_callback(self):
         self.engine.send_command("ucinewgame")
-        self.engine.send_command("setoption name UCI_ShowWDL value true")
+        self.engine.setoption("UCI_ShowWDL", "true")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 9")
 
@@ -265,7 +265,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.check_output(callback)
 
     def test_clear_hash(self):
-        self.engine.send_command("setoption name Clear Hash")
+        self.engine.setoption("Clear Hash")
 
     def test_position_fen_mate_plus_1(self):
         self.engine.send_command("ucinewgame")
@@ -339,23 +339,23 @@ class TestInteractive(metaclass=OrderedClassMembers):
     def test_verify_nnue_network_startpos_go_depth_5(self):
         # currentPath = os.path.abspath(os.getcwd())
         # DON(f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "), True)
-        # self.engine.send_command("setoption name BigEvalFile value verify.nnue")
+        # self.engine.setoption("BigEvalFile", "verify.nnue")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
     
     def test_multipv_setting_startpos_go_depth_5(self):
-        self.engine.send_command("setoption name MultiPV value 4")
+        self.engine.setoption("MultiPV", "4")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
 
     def test_skilllevel_setting_startpos_go_depth_5(self):
-        self.engine.send_command("setoption name SkillLevel value 10")
+        self.engine.setoption("SkillLevel", "10")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
-        self.engine.send_command("setoption name SkillLevel value 20")
+        self.engine.setoption("SkillLevel", "20")
 
 
 class TestSyzygy(metaclass=OrderedClassMembers):
@@ -373,14 +373,14 @@ class TestSyzygy(metaclass=OrderedClassMembers):
     def test_syzygy_setting(self):
         self.engine.starts_with("DON")
         self.engine.send_command("uci")
-        self.engine.send_command(f"setoption name SyzygyPath value {os.path.join(PATH, 'syzygy')}")
+        self.engine.setoption("SyzygyPath", os.path.join(PATH, "syzygy"))
         self.engine.expect("info string Tablebase: 35 WDL and 35 DTZ found (up to 4-man).")
 
     def test_syzygy_bench(self):
         self.engine.send_command("bench 128 1 8 default depth")
         self.engine.expect("Total nodes     :*")
 
-    def test_syzygy_position_fen_1_go_depth_5(self):
+    def test_syzygy_position_fen_1_go_depth_5_callback(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 4k3/PP6/8/8/8/8/8/4K3 w - - 0 1")
         self.engine.send_command("go depth 5")
@@ -392,7 +392,7 @@ class TestSyzygy(metaclass=OrderedClassMembers):
         self.engine.check_output(callback)
         self.engine.expect("bestmove *")
 
-    def test_syzygy_position_fen_2_go_depth_5(self):
+    def test_syzygy_position_fen_2_go_depth_5_callback(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 8/1P6/2B5/8/4K3/8/6k1/8 w - - 0 1")
         self.engine.send_command("go depth 5")
@@ -404,7 +404,7 @@ class TestSyzygy(metaclass=OrderedClassMembers):
         self.engine.check_output(callback)
         self.engine.expect("bestmove *")
 
-    def test_syzygy_position_fen_3_go_depth_5(self):
+    def test_syzygy_position_fen_3_go_depth_5_callback(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 8/1P6/2B5/8/4K3/8/6k1/8 b - - 0 1")
         self.engine.send_command("go depth 5")
@@ -445,9 +445,7 @@ def parse_args():
         action="store_true",
         help="Run without any options testing",
     )
-    parser.add_argument(
-        "engine_path", type=str, help="Path to Engine binary"
-    )
+    parser.add_argument("engine_path", type=str, help="Path to Engine binary")
 
     return parser.parse_args()
 

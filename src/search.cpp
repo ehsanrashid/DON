@@ -46,11 +46,12 @@ namespace DON {
 // tests at these types of time controls.
 
 // History
-History<HCapture>      CaptureHistory;
-History<HQuiet>        QuietHistory;
-History<HPawn>         PawnHistory;
+History<HCapture>     CaptureHistory;
+History<HQuiet>       QuietHistory;
+History<HPawn>        PawnHistory;
+History<HLowPlyQuiet> LowPlyQuietHistory;
+
 History<HContinuation> ContinuationHistory[2][2];
-History<HLowPlyQuiet>  LowPlyQuietHistory;
 
 PolyBook Book;
 
@@ -128,7 +129,7 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::int16_t rule50Coun
 
 constexpr Bound fail_bound(bool failHigh) noexcept { return failHigh ? BOUND_LOWER : BOUND_UPPER; }
 
-Move validate_tt_move(const Move& ttMove, const Position& pos) noexcept {
+Move pseudo_legal_tt_move(const Move& ttMove, const Position& pos) noexcept {
     return ttMove != Move::None && pos.pseudo_legal(ttMove) ? ttMove : Move::None;
 }
 
@@ -744,7 +745,7 @@ Value Worker::search(Position&    pos,
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = RootNode ? rootMoves[curIdx].pv[0]
-              : ttd.hit  ? validate_tt_move(ttd.move, pos)
+              : ttd.hit  ? pseudo_legal_tt_move(ttd.move, pos)
                          : Move::None;
     assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
     ss->ttMove     = ttd.move;
@@ -754,7 +755,7 @@ Value Worker::search(Position&    pos,
 
     auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
-    bool preCapture = pos.captured_piece() != NO_PIECE;
+    bool preCapture = is_ok(pos.captured_piece());
     bool preNonPawn =
       is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && (ss - 1)->move.type_of() != PROMOTION;
 
@@ -1657,7 +1658,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     TTUpdater ttu(tte, ttc, key16, tt.generation());
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
-    ttd.move  = ttd.hit ? validate_tt_move(ttd.move, pos) : Move::None;
+    ttd.move  = ttd.hit ? pseudo_legal_tt_move(ttd.move, pos) : Move::None;
     assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
     ss->ttMove = ttd.move;
     bool pvHit = ttd.hit && ttd.pvHit;
@@ -1903,10 +1904,10 @@ Value Worker::evaluate(const Position& pos) noexcept {
 // Try hard to have a ponder move to return to the GUI,
 // otherwise in case of 'ponder on' have nothing to think about.
 bool Worker::ponder_move_extracted() noexcept {
-    auto& rm = rootMoves[0];
-    assert(rm.pv.size() == 1);
+    auto& rm0 = rootMoves[0];
+    assert(rm0.pv.size() == 1);
 
-    auto bm = rm.pv[0];
+    auto bm = rm0.pv[0];
 
     if (bm == Move::None)
         return false;
@@ -1922,7 +1923,7 @@ bool Worker::ponder_move_extracted() noexcept {
 
         auto [ttd, tte, ttc] = tt.probe(rootPos.key());
 
-        pm = ttd.hit ? validate_tt_move(ttd.move, rootPos) : Move::None;
+        pm = ttd.hit ? pseudo_legal_tt_move(ttd.move, rootPos) : Move::None;
         if (pm == Move::None || !legalMoveList.contains(pm))
         {
             pm = Move::None;
@@ -1930,20 +1931,20 @@ bool Worker::ponder_move_extracted() noexcept {
             {
                 if (th->worker.get() == this || th->worker->completedDepth == DEPTH_ZERO)
                     continue;
-                if (auto& rms = th->worker->rootMoves; rms[0].pv[0] == bm && rms[0].pv.size() > 1)
+                if (const auto& rm = th->worker->rootMoves[0]; rm.pv[0] == bm && rm.pv.size() > 1)
                 {
-                    pm = rms[0].pv[1];
+                    pm = rm.pv[1];
                     break;
                 }
             }
-            if (pm == Move::None && rootMoves.size() > 1)
+            if (pm == Move::None)
                 for (auto&& th : threads)
                 {
                     if (th->worker.get() == this || th->worker->completedDepth == DEPTH_ZERO)
                         continue;
-                    if (const auto& trm = *th->worker->rootMoves.find(bm); trm.pv.size() > 1)
+                    if (const auto& rm = *th->worker->rootMoves.find(bm); rm.pv.size() > 1)
                     {
-                        pm = trm.pv[1];
+                        pm = rm.pv[1];
                         break;
                     }
                 }
@@ -1954,11 +1955,11 @@ bool Worker::ponder_move_extracted() noexcept {
             }
         }
 
-        rm.pv.push_back(pm);
+        rm0.pv.push_back(pm);
     }
 
     rootPos.undo_move(bm);
-    return rm.pv.size() > 1;
+    return rm0.pv.size() > 1;
 }
 
 // Used to correct and extend PVs for moves that have a TB (but not a mate) score.
@@ -1989,7 +1990,8 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     std::list<State> states;
 
     // Step 0. Do the rootMove, no correction allowed, as needed for MultiPV in TB
-    rootPos.do_move(rootMove.pv[0], states.emplace_back());
+    auto& rootSt = states.emplace_back();
+    rootPos.do_move(rootMove.pv[0], rootSt);
 
     // Step 1. Walk the PV to the last position in TB with correct decisive score
     std::int16_t ply = 1;
@@ -2003,12 +2005,11 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
         auto tbc = Tablebases::rank_root_moves(rootPos, rms, options);
 
-        auto& rm = *rms.find(pvMove);
-
-        if (rm.tbRank != rms[0].tbRank)
+        if (rms.find(pvMove)->tbRank != rms[0].tbRank)
             break;
 
-        rootPos.do_move(pvMove, states.emplace_back());
+        auto& st = states.emplace_back();
+        rootPos.do_move(pvMove, st);
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime
@@ -2068,7 +2069,8 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
         const auto& pvMove = rms[0].pv[0];
         rootMove.pv.push_back(pvMove);
-        rootPos.do_move(pvMove, states.emplace_back());
+        auto& st = states.emplace_back();
+        rootPos.do_move(pvMove, st);
     }
 
     // Finding a draw in this function is an exceptional case,
@@ -2281,9 +2283,9 @@ void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) n
 void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept {
     assert(is_ok(dst));
 
-    static constexpr std::array<std::pair<std::int16_t, double>, 8> ContHistoryWeights{
-      {{1, 1.1299}, {2, 0.6328}, {3, 0.2812}, {4, 0.5625},
-       {5, 0.1367}, {6, 0.4307}, {7, 0.2222}, {8, 0.2167}}};
+    static constexpr std::pair<std::uint8_t, double> ContHistoryWeights[8]{
+        {1, 1.1299}, {2, 0.6328}, {3, 0.2812}, {4, 0.5625},
+        {5, 0.1367}, {6, 0.4307}, {7, 0.2222}, {8, 0.2167}};
 
     for (auto &[i, weight] : ContHistoryWeights)
     {
@@ -2336,7 +2338,7 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
     auto m = (ss - 1)->move;
     // Extra penalty for a quiet early move that was not a TT move
     // in the previous ply when it gets refuted.
-    if (m.is_ok() && pos.captured_piece() == NO_PIECE && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
+    if (m.is_ok() && !is_ok(pos.captured_piece()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
         update_continuation_history(ss - 1, pos.piece_on(m.dst_sq()), m.dst_sq(), -std::round(0.4912 * malus));
 }
 

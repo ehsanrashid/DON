@@ -366,11 +366,11 @@ class alignas(64) Info {
 
     [[nodiscard]] decltype(auto) operator[](std::size_t index) const noexcept {
         assert(index < Size && "Index out of bounds");
-        return (data[index]);
+        return data[index];
     }
     [[nodiscard]] decltype(auto) operator[](std::size_t index) noexcept {
         assert(index < Size && "Index out of bounds");
-        return (data[index]);
+        return data[index];
     }
 
    protected:

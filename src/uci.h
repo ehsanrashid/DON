@@ -52,8 +52,6 @@ class UCI final {
     [[nodiscard]] static char  piece(Piece pc) noexcept;
     [[nodiscard]] static Piece piece(char pc) noexcept;
 
-    [[nodiscard]] static std::string piece_figure(Piece pc) noexcept;
-
     [[nodiscard]] static constexpr char file(File f, bool upper = false) noexcept;
     [[nodiscard]] static constexpr char rank(Rank r) noexcept;
     [[nodiscard]] static constexpr char flip_file(char f) noexcept;

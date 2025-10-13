@@ -18,7 +18,6 @@
 #include "timeman.h"
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <cmath>
 

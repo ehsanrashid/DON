@@ -17,7 +17,6 @@
 
 #include "position.h"
 
-#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
@@ -39,9 +38,8 @@ namespace {
 
 constexpr std::size_t PawnOffset = 8;
 
-constexpr std::array<Piece, COLOR_NB * KING> Pieces{
-  W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,  //
-  B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
+constexpr Piece Pieces[COLOR_NB * KING]{W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,  //
+                                        B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
 
 // Implements Marcel van Kervinck's cuckoo algorithm to detect repetition of positions for 3-fold repetition draws.
 // The algorithm uses hash tables with Zobrist hashes to allow fast detection of recurring positions.
@@ -63,7 +61,7 @@ class CuckooTable final {
     static_assert(exactly_one(Size), "Size has to be a power of 2");
 
    public:
-    CuckooTable() noexcept                              = default;
+    explicit constexpr CuckooTable() noexcept           = default;
     CuckooTable(const CuckooTable&) noexcept            = delete;
     CuckooTable(CuckooTable&&) noexcept                 = delete;
     CuckooTable& operator=(const CuckooTable&) noexcept = delete;
@@ -78,10 +76,10 @@ class CuckooTable final {
     [[nodiscard]] constexpr bool empty() const noexcept { return cuckoos.empty(); }
 
     [[nodiscard]] constexpr decltype(auto) operator[](std::size_t idx) const noexcept {
-        return (cuckoos[idx]);
+        return cuckoos[idx];
     }
     [[nodiscard]] constexpr decltype(auto) operator[](std::size_t idx) noexcept {
-        return (cuckoos[idx]);
+        return cuckoos[idx];
     }
 
     // Hash function for indexing the cuckoo table
@@ -118,11 +116,10 @@ class CuckooTable final {
         return size();
     }
 
+    std::size_t count{0};
+
    private:
     std::array<Cuckoo, Size> cuckoos;
-
-   public:
-    std::size_t count = 0;
 };
 
 CuckooTable<0x2000> Cuckoos;
@@ -1537,7 +1534,7 @@ bool Position::see_ge(const Move& m, int threshold) const noexcept {
 
     Magic(*magic)[2] = &Magics[dst];
 
-    std::array<bool, COLOR_NB> discovery{true, true};
+    bool discovery[COLOR_NB]{true, true};
 
     while (attackers)
     {

@@ -349,9 +349,9 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
     // The accumulator of the refresh entry has been updated.
     // Now copy its content to the actual accumulator were refreshing.
     std::memcpy(accumulator.accumulation[Perspective], entry.accumulation,
-                Dimensions * sizeof(BiasType));
+                sizeof(accumulator.accumulation[Perspective]));
     std::memcpy(accumulator.psqtAccumulation[Perspective], entry.psqtAccumulation,
-                PSQTBuckets * sizeof(PSQTWeightType));
+                sizeof(accumulator.psqtAccumulation[Perspective]));
 #endif
 
     for (Color c : {WHITE, BLACK})

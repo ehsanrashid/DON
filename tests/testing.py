@@ -74,7 +74,7 @@ race:DON::TranspositionTable::hashfull
 class EPD:
     @staticmethod
     def create_bench_epd():
-        with open(f"{os.path.join(PATH,'tmp_bench.epd')}", "w") as f:
+        with open(f"{os.path.join(PATH, 'tmp_bench.epd')}", "w") as f:
             f.write(
                 """
 Rn6/1rbq1bk1/2p2n1p/2Bp1p2/3Pp1pP/1N2P1P1/2Q1NPB1/6K1 w - - 2 26
@@ -86,7 +86,7 @@ r4rk1/1b2ppbp/pq4pn/2pp1PB1/1p2P3/1P1P1NN1/1PP3PP/R2Q1RK1 w - - 0 13
 
     @staticmethod
     def delete_bench_epd():
-        os.remove(f"{os.path.join(PATH,'tmp_bench.epd')}")
+        os.remove(f"{os.path.join(PATH, 'tmp_bench.epd')}")
 
 
 class Syzygy:
@@ -111,9 +111,7 @@ class Syzygy:
                 with tarfile.open(tarballPath, "r:gz") as tar:
                     tar.extractall(tmpDirName)
 
-                shutil.move(
-                    os.path.join(tmpDirName, file), os.path.join(PATH, "syzygy")
-                )
+                shutil.move(os.path.join(tmpDirName, file), os.path.join(PATH, "syzygy"))
 
 
 class OrderedClassMembers(type):
@@ -229,13 +227,11 @@ class MiniTestFramework:
 
             duration = time.time() - t0
 
-            self.print_success(f" {testMethod} ({duration * 1000:.2f}ms)")
+            self.print_success(f" {testMethod} ({1000 * duration:.2f}ms)")
             self.testsPassed += 1
         except Exception as e:
             if isinstance(e, TimeoutException):
-                self.print_failure(
-                    f" {testMethod} (hit execution limit of {e.timeout} seconds)"
-                )
+                self.print_failure(f" {testMethod} (hit execution limit of {e.timeout} seconds)")
 
             if isinstance(e, AssertionError):
                 self.__handle_assertion_error(t0, testMethod)
@@ -252,14 +248,9 @@ class MiniTestFramework:
 
     def __handle_assertion_error(self, startTime, testMethod: str):
         duration = time.time() - startTime
-        self.print_failure(f" {testMethod} ({duration * 1000:.2f}ms)")
+        self.print_failure(f" {testMethod} ({1000 * duration:.2f}ms)")
         tracebackOutput = "".join(traceback.format_tb(sys.exc_info()[2]))
-
-        coloredTraceback = "\n".join(
-            f"  {CYAN_COLOR}{line}{RESET_COLOR}"
-            for line in tracebackOutput.splitlines()
-        )
-
+        coloredTraceback = "\n".join(f"  {CYAN_COLOR}{line}{RESET_COLOR}" for line in tracebackOutput.splitlines())
         print(coloredTraceback)
 
     def __print_buffer_output(self, buffer: io.StringIO):
@@ -329,8 +320,11 @@ class DON:
             bufsize=1,
         )
 
-    def setoption(self, name: str, value: str):
-        self.send_command(f"setoption name {name} value {value}")
+    def setoption(self, name: str, value: str = None):
+        if value is None:
+            self.send_command(f"setoption name {name}")
+        else:
+            self.send_command(f"setoption name {name} value {value}")
 
     def send_command(self, command: str):
         if not self.process:
@@ -371,7 +365,7 @@ class DON:
             raise ValueError("Callback function is required")
 
         for line in self.readline():
-            if callback(line) == True:
+            if callback(line):
                 return
 
     def readline(self):

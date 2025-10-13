@@ -46,10 +46,7 @@ namespace DON {
 
 namespace {
 
-constexpr std::string_view              PieceChar{" PNBRQK  pnbrqk "};
-const std::array<std::string, PIECE_NB> PieceFigure{
-  "", "\u2659", "\u2658", "\u2657", "\u2656", "\u2655", "\u2654", "",
-  "", "\u265F", "\u265E", "\u265D", "\u265C", "\u265B", "\u265A", ""};
+constexpr std::string_view PieceChar{" PNBRQK  pnbrqk "};
 
 enum Command : std::uint8_t {
     CMD_STOP,
@@ -803,8 +800,6 @@ Piece UCI::piece(char pc) noexcept {
     auto pos = PieceChar.find(pc);
     return pos != std::string_view::npos ? Piece(pos) : NO_PIECE;
 }
-
-std::string UCI::piece_figure(Piece pc) noexcept { return is_ok(pc) ? PieceFigure[pc] : " "; }
 
 std::string UCI::square(Square s) noexcept {
     assert(is_ok(s));
