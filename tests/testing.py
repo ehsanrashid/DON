@@ -365,7 +365,7 @@ class DON:
             raise ValueError("Callback function is required")
 
         for line in self.readline():
-            if callback(line) == True:
+            if callback(line):
                 return
 
     def readline(self):
