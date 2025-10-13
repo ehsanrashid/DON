@@ -46,11 +46,12 @@ namespace DON {
 // tests at these types of time controls.
 
 // History
-History<HCapture>      CaptureHistory;
-History<HQuiet>        QuietHistory;
-History<HPawn>         PawnHistory;
+History<HCapture>     CaptureHistory;
+History<HQuiet>       QuietHistory;
+History<HPawn>        PawnHistory;
+History<HLowPlyQuiet> LowPlyQuietHistory;
+
 History<HContinuation> ContinuationHistory[2][2];
-History<HLowPlyQuiet>  LowPlyQuietHistory;
 
 PolyBook Book;
 
