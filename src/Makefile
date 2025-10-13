@@ -129,10 +129,9 @@ endif
 # the user can override with `make ARCH=x86-64-avx512icl SUPPORTED_ARCH=true`
 ifeq ($(ARCH), $(filter $(ARCH), \
                  x86-64-avx512icl x86-64-vnni512 x86-64-avx512 x86-64-avxvnni x86-64-bmi2 x86-64-avx2 \
-                 x86-64-sse41-popcnt x86-64-sse41 x86-64-modern x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
+                 x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
                  x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2-popcnt x86-32-sse2 x86-32-popcnt x86-32 general-32 \
-                 ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k \
-                 armv7 armv7-neon armv8 armv8-dotprod apple-silicon riscv64 \
+                 ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7 armv7-neon armv8 armv8-dotprod apple-silicon riscv64 \
                  loongarch64 loongarch64-lsx loongarch64-lasx))
    SUPPORTED_ARCH=true
 else
@@ -437,7 +436,7 @@ endif
 ifeq ($(COMP), gcc)
     comp=gcc
     CXX=g++
-    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
+    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -Wno-maybe-uninitialized
 
     ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64))
         ifeq ($(OS), Android)
