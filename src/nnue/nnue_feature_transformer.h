@@ -19,6 +19,7 @@
 #define NNUE_FEATURE_TRANSFORMER_H_INCLUDED
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>

@@ -66,7 +66,7 @@ CorrectionHistory<CHNonPawn>      NonPawnCorrectionHistory;
 CorrectionHistory<CHContinuation> ContinuationCorrectionHistory;
 
 // Reductions lookup table initialized at startup
-std::array<std::int16_t, MAX_MOVES> Reductions;  // [depth or moveCount]
+std::int16_t Reductions[MAX_MOVES];  // [depth or moveCount]
 
 constexpr int
 reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
@@ -187,7 +187,7 @@ void init() noexcept {
             pieceSqCorrHist.fill(8);
 
     Reductions[0] = 0;
-    for (std::size_t i = 1; i < Reductions.size(); ++i)
+    for (std::size_t i = 1; i < std::size(Reductions); ++i)
         Reductions[i] = 21.9453 * std::log(i);
 }
 
@@ -2281,9 +2281,9 @@ void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) n
 void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept {
     assert(is_ok(dst));
 
-    static constexpr std::array<std::pair<std::int16_t, double>, 8> ContHistoryWeights{
-      {{1, 1.1299}, {2, 0.6328}, {3, 0.2812}, {4, 0.5625},
-       {5, 0.1367}, {6, 0.4307}, {7, 0.2222}, {8, 0.2167}}};
+    static constexpr std::pair<std::int16_t, double> ContHistoryWeights[8]{
+        {1, 1.1299}, {2, 0.6328}, {3, 0.2812}, {4, 0.5625},
+        {5, 0.1367}, {6, 0.4307}, {7, 0.2222}, {8, 0.2167}};
 
     for (auto &[i, weight] : ContHistoryWeights)
     {
