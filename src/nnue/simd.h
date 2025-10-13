@@ -35,9 +35,8 @@
 
 namespace DON::NNUE::SIMD {
 
-// If vector instructions are enabled, we update and refresh the
-// accumulator tile by tile such that each tile fits in the CPU's
-// vector registers.
+// If vector instructions are enabled, update and refresh the accumulator tile by tile
+// such that each tile fits in the CPU's vector registers.
 #define VECTOR
 
 #if defined(USE_AVX512)
