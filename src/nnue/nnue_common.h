@@ -169,18 +169,18 @@ template<typename IntType>
 inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count) noexcept {
     static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
 
-    // Check the presence of our LEB128 magic string
+    // Read and check the presence of our LEB128 magic string
     char leb128MagicString[LEB128_MAGIC_STRING_SIZE];
     istream.read(leb128MagicString, LEB128_MAGIC_STRING_SIZE);
     assert(strncmp(leb128MagicString, LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE) == 0);
 
     constexpr std::size_t Size = sizeof(IntType);
 
-    constexpr std::uint32_t BuffSize = 4096;
-    std::uint8_t            buffer[BuffSize];
-    std::uint32_t           buffPos = BuffSize;
+    constexpr std::size_t BuffSize = 4096;
+    std::uint8_t          buffer[BuffSize];
+    std::size_t           buffPos = BuffSize;
 
-    std::uint32_t byteCount = read_little_endian<std::uint32_t>(istream);
+    std::size_t byteCount = read_little_endian<std::uint32_t>(istream);
 
     for (std::size_t i = 0; i < count; ++i)
     {
@@ -223,7 +223,7 @@ inline void write_leb_128(std::ostream& ostream, const IntType* in, std::size_t 
     // Write our LEB128 magic string
     ostream.write(LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE);
 
-    std::uint32_t byteCount = 0;
+    std::size_t byteCount = 0;
     for (std::size_t i = 0; i < count; ++i)
     {
         IntType value = in[i];
@@ -237,11 +237,11 @@ inline void write_leb_128(std::ostream& ostream, const IntType* in, std::size_t 
         } while ((byt & 0x40) == 0 ? value != 0 : value != -1);
     }
 
-    write_little_endian(ostream, byteCount);
+    write_little_endian<std::uint32_t>(ostream, byteCount);
 
-    constexpr std::uint32_t BuffSize = 4096;
-    std::uint8_t            buffer[BuffSize];
-    std::uint32_t           buffPos = 0;
+    constexpr std::size_t BuffSize = 4096;
+    std::uint8_t          buffer[BuffSize];
+    std::size_t           buffPos = 0;
 
     auto flush = [&]() {
         if (buffPos == 0)
