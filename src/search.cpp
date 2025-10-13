@@ -1990,7 +1990,8 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     std::list<State> states;
 
     // Step 0. Do the rootMove, no correction allowed, as needed for MultiPV in TB
-    rootPos.do_move(rootMove.pv[0], states.emplace_back());
+    auto& rootSt = states.emplace_back();
+    rootPos.do_move(rootMove.pv[0], rootSt);
 
     // Step 1. Walk the PV to the last position in TB with correct decisive score
     std::int16_t ply = 1;
@@ -2007,7 +2008,8 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         if (rms.find(pvMove)->tbRank != rms[0].tbRank)
             break;
 
-        rootPos.do_move(pvMove, states.emplace_back());
+        auto& st = states.emplace_back();
+        rootPos.do_move(pvMove, st);
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime
@@ -2067,7 +2069,8 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
         const auto& pvMove = rms[0].pv[0];
         rootMove.pv.push_back(pvMove);
-        rootPos.do_move(pvMove, states.emplace_back());
+        auto& st = states.emplace_back();
+        rootPos.do_move(pvMove, st);
     }
 
     // Finding a draw in this function is an exceptional case,
