@@ -123,9 +123,9 @@ class TestCLI(metaclass=OrderedClassMembers):
         self.engine = DON(f"bench 128 {get_threads()} 8 default depth".split(" "), True)
         assert self.engine.process.returncode == 0
 
-    # def test_bench_128_threads_3_bench_tmp_epd_depth(self):
-    #     self.engine = DON(f"bench 128 {get_threads()} 3 {os.path.join(PATH, 'tmp_bench.epd')} depth".split(" "), True)
-    #     assert self.engine.process.returncode == 0
+    def test_bench_128_threads_3_tmp_bench_epd_depth(self):
+        self.engine = DON(f"bench 128 {get_threads()} 3 {os.path.join(PATH, 'tmp_bench.epd')} depth".split(" "), True)
+        assert self.engine.process.returncode == 0
 
     def test_show(self):
         self.engine = DON("show".split(" "), True)
@@ -445,9 +445,7 @@ def parse_args():
         action="store_true",
         help="Run without any options testing",
     )
-    parser.add_argument(
-        "engine_path", type=str, help="Path to Engine binary"
-    )
+    parser.add_argument("engine_path", type=str, help="Path to Engine binary")
 
     return parser.parse_args()
 
