@@ -17,7 +17,6 @@
 
 #include "position.h"
 
-#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
