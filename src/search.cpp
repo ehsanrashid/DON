@@ -67,9 +67,10 @@ CorrectionHistory<CHNonPawn>      NonPawnCorrectionHistory;
 CorrectionHistory<CHContinuation> ContinuationCorrectionHistory;
 
 // Reductions lookup table initialized at startup
-std::int16_t Reductions[MAX_MOVES];  // [depth or moveCount]
+std::array<std::int16_t, MAX_MOVES> Reductions;  // [depth or moveCount]
 
-int reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
+constexpr int
+reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
     return 1200 + reductionScale - deltaRatio + !improve * int(0.4258 * reductionScale);
 }
@@ -187,7 +188,7 @@ void init() noexcept {
             pieceSqCorrHist.fill(8);
 
     Reductions[0] = 0;
-    for (std::size_t i = 1; i < std::size(Reductions); ++i)
+    for (std::size_t i = 1; i < Reductions.size(); ++i)
         Reductions[i] = 21.9453 * std::log(i);
 }
 
