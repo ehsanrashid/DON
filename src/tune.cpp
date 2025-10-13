@@ -27,17 +27,17 @@
 
 namespace DON {
 
-bool     Tune::OnLastUpdate = false;
+bool     Tune::IsLastUpdate = false;
 Options* Tune::OptionsPtr   = nullptr;
 
 namespace {
 
 const Option* LastOption = nullptr;
 
-std::unordered_map<std::string, int> TuneResults;
+std::unordered_map<std::string_view, int> TuneResults;
 
 std::optional<std::string> on_tune(const Option& option) noexcept {
-    if (!Tune::OnLastUpdate || LastOption == &option)
+    if (!Tune::IsLastUpdate || LastOption == &option)
         Tune::read_options();
 
     return std::nullopt;
@@ -71,17 +71,19 @@ void Tune::make_option(Options*           optionsPtr,
     if (range(value).first == range(value).second)
         return;
 
-    if (TuneResults.count(std::string(name)))
-        value = TuneResults[std::string(name)];
+    if (TuneResults.count(name))
+        value = TuneResults[name];
 
     optionsPtr->add(name, Option(value, range(value).first, range(value).second, on_tune));
     LastOption = &((*optionsPtr)[name]);
 
     // Print formatted parameters, ready to be copy-pasted in Fishtest
-    std::cout << name << ',' << value << ','                               //
-              << range(value).first << ',' << range(value).second << ','   //
+    std::cout << name << ','                                               //
+              << value << ','                                              //
+              << range(value).first << ','                                 //
+              << range(value).second << ','                                //
               << (range(value).second - range(value).first) / 20.0 << ','  //
-              << "0.0020" << '\n';
+              << "0.0020" << std::endl;
 }
 
 template<>
@@ -91,10 +93,9 @@ void Tune::Entry<int>::init_option() noexcept {
 
 template<>
 void Tune::Entry<int>::read_option() noexcept {
+    value = 0;  // default
     if (OptionsPtr->contains(name))
         value = int((*OptionsPtr)[name]);
-    //else
-    //    value = 0;
 }
 
 // Instead of a variable here have a PostUpdate function: just call it

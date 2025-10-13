@@ -168,12 +168,10 @@ class PRNG final {
 
     // Jump function for the XORShift64Star PRNG
     constexpr void jump() noexcept {
-        constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
-
         std::uint64_t t = 0;
         for (std::uint8_t m = 0; m < 64; ++m)
         {
-            if (JumpMask & (1ULL << m))
+            if (0x9E3779B97F4A7C15ULL & (1ULL << m))
                 t ^= s;
             rand64();
         }

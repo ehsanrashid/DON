@@ -26,7 +26,6 @@
 #include <cstdlib>
 #include <initializer_list>
 #include <iostream>
-#include <iterator>
 #include <limits>
 #include <optional>
 #include <sstream>
@@ -621,18 +620,19 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     cnt   = 0;
     nodes = 0;
 
-    constexpr std::uint8_t HashfullAges[2]{0, 31};  // Only normal hashfull and touched hash
+    constexpr std::size_t  Size = 2;
+    constexpr std::uint8_t HashfullAges[Size]{0, 31};  // Only normal hashfull and touched hash
 
-    static_assert(std::size(HashfullAges) == 2 && HashfullAges[0] == 0 && HashfullAges[1] == 31,
+    static_assert(Size == 2 && HashfullAges[0] == 0 && HashfullAges[1] == 31,
                   "Incorrect HashfullAges[].");
 
-    std::uint16_t numHashfull                          = 0;
-    std::uint16_t maxHashfull[std::size(HashfullAges)] = {0};
-    std::uint32_t sumHashfull[std::size(HashfullAges)] = {0};
+    std::uint16_t numHashfull{0};
+    std::uint16_t maxHashfull[Size]{};
+    std::uint32_t sumHashfull[Size]{};
 
-    auto update_hashfull = [&]() {
+    const auto update_hashfull = [&]() noexcept -> void {
         ++numHashfull;
-        for (std::size_t i = 0; i < std::size(HashfullAges); ++i)
+        for (std::size_t i = 0; i < Size; ++i)
         {
             auto hashfull  = engine.hashfull(HashfullAges[i]);
             maxHashfull[i] = std::max(maxHashfull[i], hashfull);

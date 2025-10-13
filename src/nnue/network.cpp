@@ -69,16 +69,9 @@ struct EmbeddedNNUE final {
 };
 
 inline EmbeddedNNUE get_embedded(EmbeddedType embType) noexcept {
-    switch (embType)
-    {
-    case BIG :
-        return EmbeddedNNUE(gBigEmbeddedData, gBigEmbeddedEnd, gBigEmbeddedSize);
-    case SMALL :
-        return EmbeddedNNUE(gSmallEmbeddedData, gSmallEmbeddedEnd, gSmallEmbeddedSize);
-    default :;
-    }
-    assert(false);
-    return EmbeddedNNUE(nullptr, nullptr, 0);
+    assert(embType == BIG || embType == SMALL);
+    return embType == BIG ? EmbeddedNNUE(gBigEmbeddedData, gBigEmbeddedEnd, gBigEmbeddedSize)
+                          : EmbeddedNNUE(gSmallEmbeddedData, gSmallEmbeddedEnd, gSmallEmbeddedSize);
 }
 
 namespace Impl {
@@ -178,16 +171,17 @@ void Network<Arch, Transformer>::load(std::string_view rootDirectory,
         evalFileName = evalFile.defaultName;
 
     for (const auto& directory : dirs)
-    {
         if (evalFileName != evalFile.current)
         {
             if (directory != "<internal>")
+            {
                 load_user_net(directory, evalFileName);
-
-            if (directory == "<internal>" && evalFileName == evalFile.defaultName)
+            }
+            else if (evalFileName == evalFile.defaultName)
+            {
                 load_internal();
+            }
         }
-    }
 }
 
 template<typename Arch, typename Transformer>

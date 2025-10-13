@@ -662,7 +662,7 @@ std::string CommandLine::binary_directory(std::string path) noexcept {
     // Also _get_pgmptr() had issues in some Windows 10 versions,
     // so check returned values carefully.
     char* pgmptr = nullptr;
-    if (!_get_pgmptr(&pgmptr) && pgmptr != nullptr && *pgmptr)
+    if (_get_pgmptr(&pgmptr) == 0 && pgmptr != nullptr && *pgmptr)
         path = pgmptr;
     #endif
 #else
@@ -687,8 +687,8 @@ std::string CommandLine::binary_directory(std::string path) noexcept {
 std::string CommandLine::working_directory() noexcept {
 
     constexpr std::size_t BuffSize = 4096;
+    char                  buffer[BuffSize];
 
-    char  buffer[BuffSize];
     char* cwd = GETCWD(buffer, BuffSize);
 
     std::string workingDirectory;

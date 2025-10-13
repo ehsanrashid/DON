@@ -73,7 +73,7 @@ inline Range default_range(int v) noexcept { return v > 0 ? Range(0, 2 * v) : Ra
 //
 // In case update function is slow and you have many parameters, you can add:
 //
-//   ON_LAST_UPDATE();
+//   IS_LAST_UPDATE();
 //
 // And the values update, including post update function call, will be done only
 // once, after the engine receives the last UCI option, that is the one defined
@@ -189,13 +189,13 @@ class Tune final {
             entry->read_option();
     }
 
-    static bool     OnLastUpdate;
+    static bool     IsLastUpdate;
     static Options* OptionsPtr;
 };
 
 template<typename... Args>
 constexpr void check_tune_args(Args&&...) {
-    static_assert((!std::is_fundamental_v<Args> && ...), "TUNE macro arguments wrong");
+    static_assert((!std::is_fundamental_v<Args> && ...), "Tune macro arguments wrong");
 }
 
 // Some macro magic :-) define a dummy int variable that the compiler initializes calling Tune::add()
@@ -207,7 +207,7 @@ constexpr void check_tune_args(Args&&...) {
         return Tune::add(STRING_LITERAL((__VA_ARGS__)), __VA_ARGS__); \
     }();
 
-#define ON_LAST_UPDATE() bool UNIQUE(p, __LINE__) = Tune::OnLastUpdate = true
+#define IS_LAST_UPDATE() bool UNIQUE(p, __LINE__) = Tune::IsLastUpdate = true
 
 }  // namespace DON
 

@@ -61,7 +61,7 @@ class CuckooTable final {
     static_assert(exactly_one(Size), "Size has to be a power of 2");
 
    public:
-    explicit constexpr CuckooTable() noexcept           = default;
+    constexpr CuckooTable() noexcept                    = default;
     CuckooTable(const CuckooTable&) noexcept            = delete;
     CuckooTable(CuckooTable&&) noexcept                 = delete;
     CuckooTable& operator=(const CuckooTable&) noexcept = delete;
