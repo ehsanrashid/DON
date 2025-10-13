@@ -1931,7 +1931,7 @@ bool Worker::ponder_move_extracted() noexcept {
             {
                 if (th->worker.get() == this || th->worker->completedDepth == DEPTH_ZERO)
                     continue;
-                if (auto& rm = th->worker->rootMoves[0]; rm.pv[0] == bm && rm.pv.size() > 1)
+                if (const auto& rm = th->worker->rootMoves[0]; rm.pv[0] == bm && rm.pv.size() > 1)
                 {
                     pm = rm.pv[1];
                     break;
@@ -2004,9 +2004,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
         auto tbc = Tablebases::rank_root_moves(rootPos, rms, options);
 
-        auto& rm = *rms.find(pvMove);
-
-        if (rm.tbRank != rms[0].tbRank)
+        if (rms.find(pvMove)->tbRank != rms[0].tbRank)
             break;
 
         rootPos.do_move(pvMove, states.emplace_back());
