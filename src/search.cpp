@@ -755,7 +755,7 @@ Value Worker::search(Position&    pos,
 
     auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
-    bool preCapture = pos.captured_piece() != NO_PIECE;
+    bool preCapture = is_ok(pos.captured_piece());
     bool preNonPawn =
       is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && (ss - 1)->move.type_of() != PROMOTION;
 
@@ -2337,7 +2337,7 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, const
     auto m = (ss - 1)->move;
     // Extra penalty for a quiet early move that was not a TT move
     // in the previous ply when it gets refuted.
-    if (m.is_ok() && pos.captured_piece() == NO_PIECE && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
+    if (m.is_ok() && !is_ok(pos.captured_piece()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
         update_continuation_history(ss - 1, pos.piece_on(m.dst_sq()), m.dst_sq(), -std::round(0.4912 * malus));
 }
 
