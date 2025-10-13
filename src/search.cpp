@@ -1904,10 +1904,10 @@ Value Worker::evaluate(const Position& pos) noexcept {
 // Try hard to have a ponder move to return to the GUI,
 // otherwise in case of 'ponder on' have nothing to think about.
 bool Worker::ponder_move_extracted() noexcept {
-    auto& rm = rootMoves[0];
-    assert(rm.pv.size() == 1);
+    auto& rm0 = rootMoves[0];
+    assert(rm0.pv.size() == 1);
 
-    auto bm = rm.pv[0];
+    auto bm = rm0.pv[0];
 
     if (bm == Move::None)
         return false;
@@ -1931,20 +1931,20 @@ bool Worker::ponder_move_extracted() noexcept {
             {
                 if (th->worker.get() == this || th->worker->completedDepth == DEPTH_ZERO)
                     continue;
-                if (auto& rms = th->worker->rootMoves; rms[0].pv[0] == bm && rms[0].pv.size() > 1)
+                if (auto& rm = th->worker->rootMoves[0]; rm.pv[0] == bm && rm.pv.size() > 1)
                 {
-                    pm = rms[0].pv[1];
+                    pm = rm.pv[1];
                     break;
                 }
             }
-            if (pm == Move::None && rootMoves.size() > 1)
+            if (pm == Move::None)
                 for (auto&& th : threads)
                 {
                     if (th->worker.get() == this || th->worker->completedDepth == DEPTH_ZERO)
                         continue;
-                    if (const auto& trm = *th->worker->rootMoves.find(bm); trm.pv.size() > 1)
+                    if (const auto& rm = *th->worker->rootMoves.find(bm); rm.pv.size() > 1)
                     {
-                        pm = trm.pv[1];
+                        pm = rm.pv[1];
                         break;
                     }
                 }
@@ -1955,11 +1955,11 @@ bool Worker::ponder_move_extracted() noexcept {
             }
         }
 
-        rm.pv.push_back(pm);
+        rm0.pv.push_back(pm);
     }
 
     rootPos.undo_move(bm);
-    return rm.pv.size() > 1;
+    return rm0.pv.size() > 1;
 }
 
 // Used to correct and extend PVs for moves that have a TB (but not a mate) score.
