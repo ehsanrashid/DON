@@ -1976,7 +1976,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     TimePoint moveOverhead = options["MoveOverhead"];
 
     // Do not use more than (0.5 * moveOverhead) time, if time manager is active.
-    const auto time_to_abort = [&]() -> bool {
+    const auto time_to_abort = [&]() noexcept -> bool {
         auto endTime = SteadyClock::now();
         return limit.use_time_manager()
             && 2 * std::chrono::duration<double, std::milli>(endTime - startTime).count()

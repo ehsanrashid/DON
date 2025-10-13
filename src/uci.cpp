@@ -630,7 +630,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     std::uint16_t maxHashfull[Size]{};
     std::uint32_t sumHashfull[Size]{};
 
-    const auto update_hashfull = [&]() {
+    const auto update_hashfull = [&]() noexcept -> void {
         ++numHashfull;
         for (std::size_t i = 0; i < Size; ++i)
         {
