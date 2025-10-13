@@ -95,19 +95,20 @@ struct EntiresTypedef<T, Size> final {
 template<typename T, std::size_t Size, std::size_t... Sizes>
 class Entries final {
    public:
-    using Entry = std::vector<typename Impl::EntiresTypedef<T, Size, Sizes...>::Type>;
+    using ChildType = typename Impl::EntiresTypedef<T, Size, Sizes...>::Type;
+    using EntryType = std::vector<ChildType>;
 
-    using value_type             = typename Entry::value_type;
-    using size_type              = typename Entry::size_type;
-    using difference_type        = typename Entry::difference_type;
-    using reference              = typename Entry::reference;
-    using const_reference        = typename Entry::const_reference;
-    using pointer                = typename Entry::pointer;
-    using const_pointer          = typename Entry::const_pointer;
-    using iterator               = typename Entry::iterator;
-    using const_iterator         = typename Entry::const_iterator;
-    using reverse_iterator       = typename Entry::reverse_iterator;
-    using const_reverse_iterator = typename Entry::const_reverse_iterator;
+    using value_type             = typename EntryType::value_type;
+    using size_type              = typename EntryType::size_type;
+    using difference_type        = typename EntryType::difference_type;
+    using reference              = typename EntryType::reference;
+    using const_reference        = typename EntryType::const_reference;
+    using pointer                = typename EntryType::pointer;
+    using const_pointer          = typename EntryType::const_pointer;
+    using iterator               = typename EntryType::iterator;
+    using const_iterator         = typename EntryType::const_iterator;
+    using reverse_iterator       = typename EntryType::reverse_iterator;
+    using const_reverse_iterator = typename EntryType::const_reverse_iterator;
 
     Entries() noexcept :
         entries(Size) {}
@@ -180,7 +181,7 @@ class Entries final {
     */
 
    private:
-    Entry entries;
+    EntryType entries;
 };
 
 // clang-format off
