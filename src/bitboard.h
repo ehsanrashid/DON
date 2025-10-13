@@ -72,10 +72,9 @@ constexpr Bitboard RANK_6_BB = RANK_1_BB << (8 * 5);
 constexpr Bitboard RANK_7_BB = RANK_1_BB << (8 * 6);
 constexpr Bitboard RANK_8_BB = RANK_1_BB << (8 * 7);
 
-constexpr Bitboard EDGE_FILE_BB          = FILE_A_BB | FILE_H_BB;
-constexpr Bitboard PROMOTION_RANK_BB     = RANK_8_BB | RANK_1_BB;
-constexpr Bitboard COLOR_BB[COLOR_NB]    = {0x55AA55AA55AA55AAULL, 0xAA55AA55AA55AA55ULL};
-constexpr Bitboard LOW_RANK_BB[COLOR_NB] = {RANK_2_BB | RANK_3_BB, RANK_7_BB | RANK_6_BB};
+constexpr Bitboard EDGE_FILE_BB       = FILE_A_BB | FILE_H_BB;
+constexpr Bitboard PROMOTION_RANK_BB  = RANK_8_BB | RANK_1_BB;
+constexpr Bitboard COLOR_BB[COLOR_NB] = {0x55AA55AA55AA55AAULL, 0xAA55AA55AA55AA55ULL};
 
 // Magic holds all magic bitboards relevant data for a single square
 struct Magic final {
@@ -269,10 +268,8 @@ constexpr Bitboard push_pawn_bb(Bitboard b, Color c) noexcept {
 template<Color C>
 constexpr Bitboard attacks_pawn_bb(Bitboard b) noexcept {
     static_assert(is_ok(C), "Invalid color for attacks_pawn_bb()");
-    if constexpr (C == WHITE)
-        return shift<NORTH_WEST>(b) | shift<NORTH_EAST>(b);
-    else
-        return shift<SOUTH_WEST>(b) | shift<SOUTH_EAST>(b);
+    return shift<(C == WHITE ? NORTH_WEST : SOUTH_WEST)>(b)
+         | shift<(C == WHITE ? NORTH_EAST : SOUTH_EAST)>(b);
 }
 constexpr Bitboard attacks_pawn_bb(Bitboard b, Color c) noexcept {
     assert(is_ok(c));
@@ -282,11 +279,11 @@ constexpr Bitboard attacks_pawn_bb(Bitboard b, Color c) noexcept {
 // Returns the pseudo attacks of the given piece type assuming an empty board.
 template<PieceType PT>
 constexpr Bitboard attacks_bb(Square s, Color c = COLOR_NB) noexcept {
+    static_assert(is_ok(PT), "Unsupported piece type in attacks_bb()");
     assert(is_ok(s) && (PT != PAWN || c < COLOR_NB));
     if constexpr (PT == PAWN)
         return PieceAttacks[s][c];
-    else
-        return PieceAttacks[s][PT];
+    return PieceAttacks[s][PT];
 }
 
 template<PieceType PT>
@@ -335,6 +332,7 @@ constexpr Bitboard attacks_bb(PieceType pt, Square s, Bitboard occupied = 0) noe
     case KING :
         return attacks_bb<KING>(s);
     default :
+        assert(false);
         return 0;
     }
 }

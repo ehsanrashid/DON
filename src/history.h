@@ -109,7 +109,7 @@ class Entries final {
     using reverse_iterator       = typename Entry::reverse_iterator;
     using const_reverse_iterator = typename Entry::const_reverse_iterator;
 
-    explicit Entries() noexcept :
+    Entries() noexcept :
         entries(Size) {}
 
     constexpr auto begin() const noexcept { return entries.begin(); }
