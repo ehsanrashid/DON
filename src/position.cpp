@@ -62,7 +62,7 @@ class CuckooTable final {
     static_assert(exactly_one(Size), "Size has to be a power of 2");
 
    public:
-    CuckooTable() noexcept                              = default;
+    explicit constexpr CuckooTable() noexcept           = default;
     CuckooTable(const CuckooTable&) noexcept            = delete;
     CuckooTable(CuckooTable&&) noexcept                 = delete;
     CuckooTable& operator=(const CuckooTable&) noexcept = delete;
@@ -77,10 +77,10 @@ class CuckooTable final {
     [[nodiscard]] constexpr bool empty() const noexcept { return cuckoos.empty(); }
 
     [[nodiscard]] constexpr decltype(auto) operator[](std::size_t idx) const noexcept {
-        return (cuckoos[idx]);
+        return cuckoos[idx];
     }
     [[nodiscard]] constexpr decltype(auto) operator[](std::size_t idx) noexcept {
-        return (cuckoos[idx]);
+        return cuckoos[idx];
     }
 
     // Hash function for indexing the cuckoo table
@@ -117,11 +117,10 @@ class CuckooTable final {
         return size();
     }
 
+    std::size_t count{0};
+
    private:
     std::array<Cuckoo, Size> cuckoos;
-
-   public:
-    std::size_t count = 0;
 };
 
 CuckooTable<0x2000> Cuckoos;
