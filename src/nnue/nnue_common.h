@@ -98,7 +98,7 @@ inline IntType read_little_endian(std::istream& istream) noexcept {
         for (std::size_t i = 0; i < sizeof(IntType); ++i)
             v = (v << 8) | u[sizeof(IntType) - i - 1];
 
-        std::memcpy(&result, &v, sizeof(IntType));
+        std::memcpy(&result, &v, sizeof(result));
     }
 
     return result;

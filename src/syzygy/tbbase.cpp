@@ -124,7 +124,7 @@ T number(void* addr) noexcept {
     T v;
 
     if (std::uintptr_t(addr) & (alignof(T) - 1))  // Unaligned pointer (very rare)
-        std::memcpy(&v, addr, sizeof(T));
+        std::memcpy(&v, addr, sizeof(v));
     else
         v = *((T*) (addr));
 
