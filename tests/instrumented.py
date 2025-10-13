@@ -265,7 +265,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.check_output(callback)
 
     def test_clear_hash(self):
-        self.engine.send_command("setoption name Clear Hash")
+        self.engine.setoption("Clear Hash")
 
     def test_position_fen_mate_plus_1(self):
         self.engine.send_command("ucinewgame")
@@ -345,17 +345,17 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.starts_with("bestmove")
     
     def test_multipv_setting_startpos_go_depth_5(self):
-        self.engine.setoption("MultiPV", 4)
+        self.engine.setoption("MultiPV", "4")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
 
     def test_skilllevel_setting_startpos_go_depth_5(self):
-        self.engine.setoption("SkillLevel", 10)
+        self.engine.setoption("SkillLevel", "10")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
-        self.engine.setoption("SkillLevel", 20)
+        self.engine.setoption("SkillLevel", "20")
 
 
 class TestSyzygy(metaclass=OrderedClassMembers):

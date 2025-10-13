@@ -327,8 +327,11 @@ class DON:
             bufsize=1,
         )
 
-    def setoption(self, name: str, value: str):
-        self.send_command(f"setoption name {name} value {value}")
+    def setoption(self, name: str, value: str = None):
+        if value is None:
+            self.send_command(f"setoption name {name}")
+        else:
+            self.send_command(f"setoption name {name} value {value}")
 
     def send_command(self, command: str):
         if not self.process:
