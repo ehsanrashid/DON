@@ -129,7 +129,7 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::int16_t rule50Coun
 
 constexpr Bound fail_bound(bool failHigh) noexcept { return failHigh ? BOUND_LOWER : BOUND_UPPER; }
 
-Move validate_tt_move(const Move& ttMove, const Position& pos) noexcept {
+Move pseudo_legal_tt_move(const Move& ttMove, const Position& pos) noexcept {
     return ttMove != Move::None && pos.pseudo_legal(ttMove) ? ttMove : Move::None;
 }
 
@@ -745,7 +745,7 @@ Value Worker::search(Position&    pos,
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = RootNode ? rootMoves[curIdx].pv[0]
-              : ttd.hit  ? validate_tt_move(ttd.move, pos)
+              : ttd.hit  ? pseudo_legal_tt_move(ttd.move, pos)
                          : Move::None;
     assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
     ss->ttMove     = ttd.move;
@@ -1658,7 +1658,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     TTUpdater ttu(tte, ttc, key16, tt.generation());
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
-    ttd.move  = ttd.hit ? validate_tt_move(ttd.move, pos) : Move::None;
+    ttd.move  = ttd.hit ? pseudo_legal_tt_move(ttd.move, pos) : Move::None;
     assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
     ss->ttMove = ttd.move;
     bool pvHit = ttd.hit && ttd.pvHit;
@@ -1923,7 +1923,7 @@ bool Worker::ponder_move_extracted() noexcept {
 
         auto [ttd, tte, ttc] = tt.probe(rootPos.key());
 
-        pm = ttd.hit ? validate_tt_move(ttd.move, rootPos) : Move::None;
+        pm = ttd.hit ? pseudo_legal_tt_move(ttd.move, rootPos) : Move::None;
         if (pm == Move::None || !legalMoveList.contains(pm))
         {
             pm = Move::None;
