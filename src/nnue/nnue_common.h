@@ -178,7 +178,8 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
     constexpr std::size_t BuffSize = 4096;
     std::uint8_t          buffer[BuffSize];
 
-    std::uint32_t buffPos   = BuffSize;
+    std::size_t buffPos = BuffSize;
+
     std::uint32_t byteCount = read_little_endian<std::uint32_t>(istream);
 
     for (std::size_t i = 0; i < count; ++i)
@@ -240,10 +241,9 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
     write_little_endian(ostream, byteCount);
 
     constexpr std::size_t BuffSize = 4096;
+    std::uint8_t          buffer[BuffSize];
 
-    std::uint8_t buffer[BuffSize];
-
-    std::uint32_t buffPos = 0;
+    std::size_t buffPos = 0;
 
     auto flush = [&]() {
         if (buffPos == 0)
