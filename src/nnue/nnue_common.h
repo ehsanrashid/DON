@@ -191,7 +191,7 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
         {
             if (buffPos == BuffSize)
             {
-                istream.read(reinterpret_cast<char*>(buffer), std::min(byteCount, BuffSize));
+                istream.read(reinterpret_cast<char*>(buffer), std::min(buffPos, byteCount));
                 buffPos = 0;
             }
 
