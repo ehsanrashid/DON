@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <initializer_list>
+#include <iterator>
 #include <list>
 #include <ratio>
 #include <string>
@@ -68,8 +69,7 @@ CorrectionHistory<CHContinuation> ContinuationCorrectionHistory;
 // Reductions lookup table initialized at startup
 std::int16_t Reductions[MAX_MOVES];  // [depth or moveCount]
 
-constexpr int
-reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
+int reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
     return 1200 + reductionScale - deltaRatio + !improve * int(0.4258 * reductionScale);
 }
