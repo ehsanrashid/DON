@@ -161,8 +161,9 @@ write_little_endian(std::ostream& ostream, const IntType* values, std::size_t co
             write_little_endian<IntType>(ostream, values[i]);
 }
 
-// Read N signed integers from the istream, putting them in the array out.
-// The istream is assumed to be compressed using the signed LEB128 format.
+// Read signed integers from a istream with LEB128 compression.
+// This puts N signed integers in the array out, compresses them with
+// the LEB128 algorithm and read the value from the istream.
 // See https://en.wikipedia.org/wiki/LEB128 for a description of the compression scheme.
 template<typename IntType>
 inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count) noexcept {
@@ -183,8 +184,9 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
 
     for (std::size_t i = 0; i < count; ++i)
     {
-        IntType     result = 0;
-        std::size_t shift  = 0;
+        IntType value = 0;
+
+        std::size_t shift = 0;
         do
         {
             if (buffPos == BuffSize)
@@ -195,13 +197,13 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
 
             std::uint8_t byt = buffer[buffPos++];
             --byteCount;
-            result |= (byt & 0x7F) << shift;
+            value |= (byt & 0x7F) << shift;
             shift += 7;
 
             if ((byt & 0x80) == 0)
             {
                 out[i] =
-                  (shift >= 8 * Size || (byt & 0x40) == 0) ? result : result | ~((1 << shift) - 1);
+                  (shift >= 8 * Size || (byt & 0x40) == 0) ? value : value | ~((1 << shift) - 1);
                 break;
             }
         } while (shift < 8 * Size);
@@ -211,12 +213,11 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
 }
 
 // Write signed integers to a ostream with LEB128 compression.
-// This takes N integers from array values, compresses them with
-// the LEB128 algorithm and writes the result on the ostream.
+// This takes N integers from array in, compresses them with
+// the LEB128 algorithm and writes the value to the ostream.
 // See https://en.wikipedia.org/wiki/LEB128 for a description of the compression scheme.
 template<typename IntType>
-inline void
-write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) noexcept {
+inline void write_leb_128(std::ostream& ostream, const IntType* in, std::size_t count) noexcept {
     static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
 
     // Write our LEB128 magic string
@@ -225,7 +226,7 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
     std::uint32_t byteCount = 0;
     for (std::size_t i = 0; i < count; ++i)
     {
-        IntType value = values[i];
+        IntType value = in[i];
 
         std::uint8_t byt;
         do
@@ -257,7 +258,8 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
 
     for (std::size_t i = 0; i < count; ++i)
     {
-        IntType value = values[i];
+        IntType value = in[i];
+
         while (true)
         {
             std::uint8_t byt = value & 0x7F;
