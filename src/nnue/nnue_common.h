@@ -180,7 +180,7 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
 
     std::size_t buffPos = BuffSize;
 
-    std::uint32_t byteCount = read_little_endian<std::uint32_t>(istream);
+    std::size_t byteCount = read_little_endian<std::uint32_t>(istream);
 
     for (std::size_t i = 0; i < count; ++i)
     {
@@ -190,8 +190,7 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
         {
             if (buffPos == BuffSize)
             {
-                istream.read(reinterpret_cast<char*>(buffer),
-                             std::min(byteCount, uint32_t(BuffSize)));
+                istream.read(reinterpret_cast<char*>(buffer), std::min(byteCount, BuffSize));
                 buffPos = 0;
             }
 
@@ -224,7 +223,7 @@ write_leb_128(std::ostream& ostream, const IntType* values, std::size_t count) n
     // Write our LEB128 magic string
     ostream.write(LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE);
 
-    std::uint32_t byteCount = 0;
+    std::size_t byteCount = 0;
     for (std::size_t i = 0; i < count; ++i)
     {
         IntType value = values[i];
