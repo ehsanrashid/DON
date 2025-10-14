@@ -129,10 +129,9 @@ endif
 # the user can override with `make ARCH=x86-64-avx512icl SUPPORTED_ARCH=true`
 ifeq ($(ARCH), $(filter $(ARCH), \
                  x86-64-avx512icl x86-64-vnni512 x86-64-avx512 x86-64-avxvnni x86-64-bmi2 x86-64-avx2 \
-                 x86-64-sse41-popcnt x86-64-sse41 x86-64-modern x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
+                 x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
                  x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2-popcnt x86-32-sse2 x86-32-popcnt x86-32 general-32 \
-                 ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k \
-                 armv7 armv7-neon armv8 armv8-dotprod apple-silicon riscv64 \
+                 ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7 armv7-neon armv8 armv8-dotprod apple-silicon riscv64 \
                  loongarch64 loongarch64-lsx loongarch64-lasx))
    SUPPORTED_ARCH=true
 else
@@ -578,7 +577,7 @@ endif
 # make -j profile-build CXX=clang++-20 COMP=clang
 # Locate the version in the same directory as the compiler used,
 # with fallback to a generic one if it can't be located
-LLVM_PROFDATA := $(dir $(realpath $(shell which $(CXX))))llvm-profdata
+LLVM_PROFDATA := $(dir $(realpath $(shell which $(CXX) 2> /dev/null)))llvm-profdata
 # for icx
 ifeq ($(wildcard $(LLVM_PROFDATA)), )
     LLVM_PROFDATA := $(dir $(realpath $(shell which $(CXX) 2> /dev/null)))/compiler/llvm-profdata
@@ -890,8 +889,8 @@ help:
 	echo "x86-64-bmi2             > x86 64-bit with bmi2 support" && \
 	echo "x86-64-avx2             > x86 64-bit with avx2 support" && \
 	echo "x86-64-sse41-popcnt     > x86 64-bit with sse41 and popcnt support" && \
-	echo "x86-64-sse41            > x86 64-bit with sse41 support" && \
 	echo "x86-64-modern           > deprecated, currently x86-64-sse41-popcnt" && \
+	echo "x86-64-sse41            > x86 64-bit with sse41 support" && \
 	echo "x86-64-ssse3-popcnt     > x86 64-bit with ssse3 and popcnt support" && \
 	echo "x86-64-ssse3            > x86 64-bit with ssse3 support" && \
 	echo "x86-64                  > x86 64-bit generic (with sse2 support)" && \

@@ -435,8 +435,8 @@ class NumaReplicatedAccessToken final {
 //
 // We use startup affinities so as not to modify its own behaviour in time.
 //
-// Until DON doesn't support exceptions all places where an exception should be thrown
-// are replaced by std::exit.
+// Since DON doesn't support exceptions all places where an exception
+// should be thrown are replaced by std::exit.
 class NumaConfig final {
    public:
     // This function queries the system for the mapping of processors to NUMA nodes.
@@ -525,7 +525,7 @@ class NumaConfig final {
         for (WORD procGroup = 0; procGroup < procGroupCount; ++procGroup)
             for (BYTE number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
             {
-                PROCESSOR_NUMBER procNumber{};
+                PROCESSOR_NUMBER procNumber;
                 procNumber.Group    = procGroup;
                 procNumber.Number   = number;
                 procNumber.Reserved = 0;

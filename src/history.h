@@ -38,13 +38,13 @@ namespace DON {
 // the second template parameter D limits the range of updates in [-D, D] when update values with the << operator
 template<typename T, int D>
 class StatsEntry final {
-   public:
     static_assert(std::is_arithmetic_v<T>, "T must be arithmetic");
     static_assert(std::is_signed_v<T> && std::is_integral_v<T>,
                   "T must be a signed integral (expects [-D,+D])");
     static_assert(D > 0, "D must be positive");
     static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
 
+   public:
     // Publish a value (release); pair with acquire on readers if needed.
     void operator=(T v) noexcept { value.store(v, std::memory_order_release); }
 
@@ -94,20 +94,22 @@ struct EntiresTypedef<T, Size> final {
 // The template parameters (Size and Sizes) is the dimensions of the Entries.
 template<typename T, std::size_t Size, std::size_t... Sizes>
 class Entries final {
-   public:
-    using Entry = std::vector<typename Impl::EntiresTypedef<T, Size, Sizes...>::Type>;
+   private:
+    using ChildType = typename Impl::EntiresTypedef<T, Size, Sizes...>::Type;
+    using EntryType = std::vector<ChildType>;
 
-    using value_type             = typename Entry::value_type;
-    using size_type              = typename Entry::size_type;
-    using difference_type        = typename Entry::difference_type;
-    using reference              = typename Entry::reference;
-    using const_reference        = typename Entry::const_reference;
-    using pointer                = typename Entry::pointer;
-    using const_pointer          = typename Entry::const_pointer;
-    using iterator               = typename Entry::iterator;
-    using const_iterator         = typename Entry::const_iterator;
-    using reverse_iterator       = typename Entry::reverse_iterator;
-    using const_reverse_iterator = typename Entry::const_reverse_iterator;
+   public:
+    using value_type             = typename EntryType::value_type;
+    using size_type              = typename EntryType::size_type;
+    using difference_type        = typename EntryType::difference_type;
+    using reference              = typename EntryType::reference;
+    using const_reference        = typename EntryType::const_reference;
+    using pointer                = typename EntryType::pointer;
+    using const_pointer          = typename EntryType::const_pointer;
+    using iterator               = typename EntryType::iterator;
+    using const_iterator         = typename EntryType::const_iterator;
+    using reverse_iterator       = typename EntryType::reverse_iterator;
+    using const_reverse_iterator = typename EntryType::const_reverse_iterator;
 
     Entries() noexcept :
         entries(Size) {}
@@ -180,7 +182,7 @@ class Entries final {
     */
 
    private:
-    Entry entries;
+    EntryType entries;
 };
 
 // clang-format off

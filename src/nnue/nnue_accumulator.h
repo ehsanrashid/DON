@@ -89,12 +89,13 @@ struct AccumulatorCaches final {
         template<typename Network>
         void init(const Network& network) noexcept {
 
-            for (auto& subEntry : entries)
-                for (auto& entry : subEntry)
+            for (auto& sqEntries : entries)
+                for (auto& entry : sqEntries)
                     entry.init(network.featureTransformer->biases);
         }
 
-        auto& operator[](Square s) noexcept { return entries[s]; }
+        const Entry (&operator[](Square s) const noexcept)[COLOR_NB] { return entries[s]; }
+        Entry (&operator[](Square s) noexcept)[COLOR_NB] { return entries[s]; }
 
         Entry entries[SQUARE_NB][COLOR_NB]{};
     };
@@ -122,7 +123,7 @@ struct AccumulatorState final {
 
         if constexpr (Size == BigTransformedFeatureDimensions)
             return big;
-        else if constexpr (Size == SmallTransformedFeatureDimensions)
+        if constexpr (Size == SmallTransformedFeatureDimensions)
             return small;
     }
     template<IndexType Size>
@@ -133,7 +134,7 @@ struct AccumulatorState final {
 
         if constexpr (Size == BigTransformedFeatureDimensions)
             return big;
-        else if constexpr (Size == SmallTransformedFeatureDimensions)
+        if constexpr (Size == SmallTransformedFeatureDimensions)
             return small;
     }
 
@@ -179,7 +180,9 @@ struct AccumulatorStack final {
                                      const FeatureTransformer<Dimensions>& featureTransformer,
                                      std::size_t                           end) noexcept;
 
-    AccumulatorState accStates[MAX_PLY + 1]{};
+    static constexpr std::size_t MaxSize = MAX_PLY + 1;
+
+    AccumulatorState accStates[MaxSize]{};
     std::size_t      size{1};
 };
 

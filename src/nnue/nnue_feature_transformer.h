@@ -124,18 +124,24 @@ class FeatureTransformer final {
 
     template<bool Read>
     void permute_weights() noexcept {
-        permute<16>(biases, Read ? PackusEpi16Order : InversePackusEpi16Order);
-        permute<16>(weights, Read ? PackusEpi16Order : InversePackusEpi16Order);
+        constexpr auto& order = Read ? PackusEpi16Order : InversePackusEpi16Order;
+        permute<16>(biases, order);
+        permute<16>(weights, order);
     }
 
     template<bool Read>
     void scale_weights() noexcept {
         for (IndexType i = 0; i < TransformedFeatureDimensions; ++i)
-            biases[i] *= (Read ? 2.0f : 0.5f);
+            if constexpr (Read)
+                biases[i] *= 2;
+            else
+                biases[i] /= 2;
 
-        for (IndexType j = 0; j < InputDimensions; ++j)
-            for (IndexType i = 0; i < TransformedFeatureDimensions; ++i)
-                weights[j * TransformedFeatureDimensions + i] *= (Read ? 2.0f : 0.5f);
+        for (IndexType i = 0; i < TransformedFeatureDimensions * InputDimensions; ++i)
+            if constexpr (Read)
+                weights[i] *= 2;
+            else
+                weights[i] /= 2;
     }
 
     // Read network parameters

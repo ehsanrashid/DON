@@ -20,9 +20,9 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
-#include <ctime>
 #include <initializer_list>
 #include <list>
+#include <random>
 #include <ratio>
 #include <string>
 
@@ -1090,8 +1090,6 @@ S_MOVES_LOOP:  // When in check, search starts here
         && ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
         return probCutBeta;
 
-    auto pawnIndex = pawn_index(pos.pawn_key());
-
     const History<HPieceSq>* contHistory[8]{(ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,
                                             (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,
                                             (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,
@@ -1198,8 +1196,8 @@ S_MOVES_LOOP:  // When in check, search starts here
             }
             else
             {
-                int history = PawnHistory[pawnIndex][movedPiece][dst]  //
-                            + (*contHistory[0])[movedPiece][dst]       //
+                int history = PawnHistory[pawn_index(pos.pawn_key())][movedPiece][dst]  //
+                            + (*contHistory[0])[movedPiece][dst]                        //
                             + (*contHistory[1])[movedPiece][dst];
 
                 // History based pruning
@@ -1904,6 +1902,8 @@ Value Worker::evaluate(const Position& pos) noexcept {
 // Try hard to have a ponder move to return to the GUI,
 // otherwise in case of 'ponder on' have nothing to think about.
 bool Worker::ponder_move_extracted() noexcept {
+    static std::mt19937 rng(std::random_device{}());
+
     auto& rm0 = rootMoves[0];
     assert(rm0.pv.size() == 1);
 
@@ -1950,8 +1950,8 @@ bool Worker::ponder_move_extracted() noexcept {
                 }
             if (pm == Move::None)
             {
-                std::srand(std::time(nullptr));
-                pm = *(legalMoveList.begin() + (std::rand() % legalMoveList.size()));
+                std::uniform_int_distribution<std::size_t> distribute(0, legalMoveList.size() - 1);
+                pm = *(legalMoveList.begin() + distribute(rng));
             }
         }
 
