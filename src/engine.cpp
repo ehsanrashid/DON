@@ -24,7 +24,6 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
-#include <utility>
 
 #include "evaluate.h"
 #include "movegen.h"
