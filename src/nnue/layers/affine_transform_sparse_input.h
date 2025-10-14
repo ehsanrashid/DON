@@ -161,7 +161,7 @@ void find_nnz(const std::int32_t* RESTRICT input,
     constexpr IndexType InputsPerChunk  = ChunkSize / InputSimdWidth;
     constexpr IndexType OutputsPerChunk = ChunkSize / 8;
 
-    const auto* inputVector = reinterpret_cast<const vec_uint_t*>(input);
+    const vec_uint_t* inputVector = reinterpret_cast<const vec_uint_t*>(input);
 
     vec128_t base      = vec128_zero;
     vec128_t increment = vec128_set_16(8);

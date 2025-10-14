@@ -65,8 +65,8 @@ class SqrClippedReLU {
 
         static_assert(WEIGHT_SCALE_BITS == 6);
 
-        const auto* in  = reinterpret_cast<const __m128i*>(input);
-        auto*       out = reinterpret_cast<__m128i*>(output);
+        const __m128i* in  = reinterpret_cast<const __m128i*>(input);
+        __m128i*       out = reinterpret_cast<__m128i*>(output);
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
             __m128i words0 =

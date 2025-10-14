@@ -65,9 +65,9 @@ class ClippedReLU {
         {
             constexpr IndexType ChunkCount = InputDimensions / SIMD_WIDTH;
 
-            __m256i     Offsets = _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0);
-            const auto* in      = reinterpret_cast<const __m256i*>(input);
-            auto*       out     = reinterpret_cast<__m256i*>(output);
+            __m256i        Offsets = _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0);
+            const __m256i* in      = reinterpret_cast<const __m256i*>(input);
+            __m256i*       out     = reinterpret_cast<__m256i*>(output);
             for (IndexType i = 0; i < ChunkCount; ++i)
             {
                 __m256i words0 =
@@ -86,8 +86,8 @@ class ClippedReLU {
         {
             constexpr IndexType ChunkCount = InputDimensions / (SIMD_WIDTH / 2);
 
-            const auto* in  = reinterpret_cast<const __m128i*>(input);
-            auto*       out = reinterpret_cast<__m128i*>(output);
+            const __m128i* in  = reinterpret_cast<const __m128i*>(input);
+            __m128i*       out = reinterpret_cast<__m128i*>(output);
             for (IndexType i = 0; i < ChunkCount; ++i)
             {
                 __m128i words0 = _mm_srli_epi16(
