@@ -270,9 +270,7 @@ struct Limit final {
 // Skill 0..19 covers CCRL Blitz Elo from 1320 to 3190, approximately.
 struct Skill final {
    public:
-    Skill() noexcept :
-        level(MaxLevel),
-        move(Move::None) {}
+    constexpr Skill() noexcept = default;
 
     void init(const Options& options) noexcept;
 
@@ -288,8 +286,8 @@ struct Skill final {
     static constexpr std::uint16_t MaxELO   = 3190;
 
    private:
-    double level;
-    Move   move;
+    double level{MaxLevel};
+    Move   move{Move::None};
 };
 
 // SharedState struct stores the engine options, networks, thread pool, and transposition table.
@@ -366,8 +364,8 @@ class MainSearchManager final: public ISearchManager {
         OnUpdateMove  onUpdateMove;
     };
 
-    MainSearchManager() noexcept = delete;
-    explicit MainSearchManager(const UpdateContext& updateContext) noexcept :
+    constexpr MainSearchManager() noexcept = delete;
+    explicit constexpr MainSearchManager(const UpdateContext& updateContext) noexcept :
         updateCxt(updateContext) {}
 
     void init() noexcept;
@@ -381,24 +379,24 @@ class MainSearchManager final: public ISearchManager {
 
     const UpdateContext& updateCxt;
 
-    std::uint16_t callsCount;
+    std::uint16_t callsCount{};
 
-    bool        ponder;
-    bool        ponderhitStop;
-    double      sumMoveChanges;
-    double      timeReduction;
-    Skill       skill;
-    TimeManager timeManager;
+    bool        ponder{};
+    bool        ponderhitStop{};
+    double      sumMoveChanges{};
+    double      timeReduction{};
+    Skill       skill{};
+    TimeManager timeManager{};
 
-    bool   moveFirst;
-    Value  preBestCurValue;
-    Value  preBestAvgValue;
-    double preTimeReduction;
+    bool   moveFirst{};
+    Value  preBestCurValue{};
+    Value  preBestAvgValue{};
+    double preTimeReduction{};
 };
 
 class NullSearchManager final: public ISearchManager {
    public:
-    NullSearchManager() noexcept = default;
+    constexpr NullSearchManager() noexcept = default;
 
     void check_time(Worker&) noexcept override {}
 };
