@@ -99,49 +99,50 @@ class ArrayList final {
    public:
     constexpr ArrayList() noexcept = default;
 
-    [[nodiscard]] constexpr std::size_t        size() const noexcept { return _size; }
     [[nodiscard]] static constexpr std::size_t capacity() noexcept { return MaxSize; }
-    [[nodiscard]] constexpr bool               empty() const noexcept { return _size == 0; }
-    [[nodiscard]] constexpr bool               full() const noexcept { return _size == MaxSize; }
+
+    [[nodiscard]] constexpr std::size_t size() const noexcept { return _size; }
+    [[nodiscard]] constexpr bool        empty() const noexcept { return size() == 0; }
+    [[nodiscard]] constexpr bool        full() const noexcept { return size() == capacity(); }
 
     constexpr T*       begin() noexcept { return _data; }
-    constexpr T*       end() noexcept { return _data + _size; }
+    constexpr T*       end() noexcept { return _data + size(); }
     constexpr const T* begin() const noexcept { return _data; }
-    constexpr const T* end() const noexcept { return _data + _size; }
+    constexpr const T* end() const noexcept { return _data + size(); }
     constexpr const T* cbegin() const noexcept { return _data; }
-    constexpr const T* cend() const noexcept { return _data + _size; }
+    constexpr const T* cend() const noexcept { return _data + size(); }
 
     bool push_back(const T& value) noexcept {
-        if (_size >= MaxSize)
+        if (size() >= capacity())
             return false;
         _data[_size++] = value;  // copy-assign into pre-initialized slot
         return true;
     }
     bool push_back(T&& value) noexcept {
-        if (_size >= MaxSize)
+        if (size() >= capacity())
             return false;
         _data[_size++] = std::move(value);
         return true;
     }
     template<class... Args>
     bool emplace_back(Args&&... args) noexcept {
-        if (_size >= MaxSize)
+        if (size() >= capacity())
             return false;
         _data[_size++] = T(std::forward<Args>(args)...);
         return true;
     }
 
-    constexpr const T& operator[](std::size_t i) const noexcept {
-        assert(i < _size);
-        return _data[i];
+    constexpr const T& operator[](std::size_t idx) const noexcept {
+        assert(idx < size());
+        return _data[idx];
     }
-    constexpr T& operator[](std::size_t i) noexcept {
-        assert(i < _size);
-        return _data[i];
+    constexpr T& operator[](std::size_t idx) noexcept {
+        assert(idx < size());
+        return _data[idx];
     }
 
     bool set_size(std::size_t newSize) noexcept {
-        if (newSize > MaxSize)
+        if (newSize > capacity())
             return false;
         _size = newSize;  // Note: doesn't construct/destroy elements
         return true;
