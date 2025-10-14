@@ -205,9 +205,9 @@ class FeatureTransformer final {
               TransformedFeatureDimensions / 2 / OutputChunkSize;
 
             // clang-format off
-            const auto* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
-            const auto* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][TransformedFeatureDimensions / 2]));
-            auto*       out = reinterpret_cast<      vec_t*>(output + offset);
+            const vec_t* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
+            const vec_t* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][TransformedFeatureDimensions / 2]));
+            vec_t*       out = reinterpret_cast<      vec_t*>(output + offset);
             // clang-format on
 
             // Per the NNUE architecture, here we want to multiply pairs of
