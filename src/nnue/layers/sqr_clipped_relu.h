@@ -92,7 +92,7 @@ class SqrClippedReLU {
             output[i] = static_cast<OutputType>(
               // Really should be /127 but need to make it fast so right-shift
               // by an extra 7 bits instead. Needs to be accounted for in the trainer.
-              std::min(((long long) (input[i]) * input[i]) >> (7 + 2 * WEIGHT_SCALE_BITS), 127ll));
+              std::min(((long long) (input[i]) * input[i]) >> (7 + 2 * WEIGHT_SCALE_BITS), 127LL));
         }
     }
 };

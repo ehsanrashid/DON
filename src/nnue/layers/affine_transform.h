@@ -205,7 +205,7 @@ class AffineTransform final {
         #define vec_hadd SIMD::neon_m128_hadd
     #endif
 
-            const auto* inputVector = reinterpret_cast<const vec_t*>(input);
+            const vec_t* inputVector = reinterpret_cast<const vec_t*>(input);
 
             constexpr IndexType InputSimdWidth = sizeof(vec_t) / sizeof(InputType);
 
@@ -213,8 +213,8 @@ class AffineTransform final {
 
             constexpr IndexType ChunkCount = PaddedInputDimensions / InputSimdWidth;
 
-            vec_t       sum0 = vec_setzero();
-            const auto* row0 = reinterpret_cast<const vec_t*>(&weights[0]);
+            vec_t        sum0 = vec_setzero();
+            const vec_t* row0 = reinterpret_cast<const vec_t*>(&weights[0]);
 
             for (IndexType i = 0; i < ChunkCount; ++i)
             {
@@ -257,16 +257,17 @@ class AffineTransform final {
             constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 8) / 4;
             constexpr IndexType RegCount   = OutputDimensions / OutputSimdWidth;
 
-            const auto* input32 = reinterpret_cast<const std::int32_t*>(input);
-            const auto* biasVec = reinterpret_cast<const vec_t*>(biases);
-            vec_t       acc[RegCount];
+            const auto*  input32 = reinterpret_cast<const std::int32_t*>(input);
+            const vec_t* biasVec = reinterpret_cast<const vec_t*>(biases);
+
+            vec_t acc[RegCount];
             for (IndexType k = 0; k < RegCount; ++k)
                 acc[k] = biasVec[k];
 
             for (IndexType i = 0; i < ChunkCount; ++i)
             {
-                const vec_t in = vec_set_32(input32[i]);
-                const auto* col =
+                const vec_t  in = vec_set_32(input32[i]);
+                const vec_t* col =
                   reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
 
                 for (IndexType k = 0; k < RegCount; ++k)
