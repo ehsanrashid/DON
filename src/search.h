@@ -111,128 +111,158 @@ struct RootMove final {
 
 class RootMoves final {
    public:
-    using Vector   = std::vector<RootMove>;
-    using Itr      = Vector::iterator;
-    using ConstItr = Vector::const_iterator;
+    using value_type      = RootMove;
+    using container_type  = std::vector<value_type>;
+    using size_type       = container_type::size_type;
+    using iterator        = container_type::iterator;
+    using const_iterator  = container_type::const_iterator;
+    using reference       = container_type::reference;
+    using const_reference = container_type::const_reference;
 
     RootMoves() noexcept = default;
 
-    auto begin() const noexcept { return rootMoves.begin(); }
-    auto end() const noexcept { return rootMoves.end(); }
-    auto begin() noexcept { return rootMoves.begin(); }
-    auto end() noexcept { return rootMoves.end(); }
+    iterator       begin() noexcept { return rootMoves.begin(); }
+    const_iterator begin() const noexcept { return rootMoves.begin(); }
+    const_iterator cbegin() const noexcept { return rootMoves.cbegin(); }
+    iterator       end() noexcept { return rootMoves.end(); }
+    const_iterator end() const noexcept { return rootMoves.end(); }
+    const_iterator cend() const noexcept { return rootMoves.cend(); }
 
-    auto& front() noexcept { return rootMoves.front(); }
-    auto& back() noexcept { return rootMoves.back(); }
+    [[nodiscard]] reference       front() noexcept { return rootMoves.front(); }
+    [[nodiscard]] const_reference front() const noexcept { return rootMoves.front(); }
+    [[nodiscard]] reference       back() noexcept { return rootMoves.back(); }
+    [[nodiscard]] const_reference back() const noexcept { return rootMoves.back(); }
 
-    auto size() const noexcept { return rootMoves.size(); }
-    auto empty() const noexcept { return rootMoves.empty(); }
+    [[nodiscard]] bool      empty() const noexcept { return rootMoves.empty(); }
+    [[nodiscard]] size_type size() const noexcept { return rootMoves.size(); }
+    [[nodiscard]] size_type capacity() const noexcept { return rootMoves.capacity(); }
 
     template<typename... Args>
-    auto& emplace_back(Args&&... args) noexcept {
+    reference emplace_back(Args&&... args) noexcept {
         return rootMoves.emplace_back(std::forward<Args>(args)...);
     }
     template<typename... Args>
-    auto& emplace(ConstItr where, Args&&... args) noexcept {
+    iterator emplace(const_iterator where, Args&&... args) noexcept {
         return rootMoves.emplace(where, std::forward<Args>(args)...);
     }
 
-    void push_back(const RootMove& rm) noexcept { rootMoves.push_back(rm); }
-    void push_back(RootMove&& rm) noexcept { rootMoves.push_back(std::move(rm)); }
+    void push_back(const value_type& v) { rootMoves.push_back(v); }
+    void push_back(value_type&& v) { rootMoves.push_back(std::move(v)); }
 
     void pop_back() noexcept { rootMoves.pop_back(); }
 
     void clear() noexcept { rootMoves.clear(); }
 
-    void resize(std::size_t newSize) noexcept { rootMoves.resize(newSize); }
-    void reserve(std::size_t newCapacity) noexcept { rootMoves.reserve(newCapacity); }
+    void resize(size_type newSize) noexcept { rootMoves.resize(newSize); }
+    void reserve(size_type newCapacity) noexcept { rootMoves.reserve(newCapacity); }
 
-    auto find(std::size_t beg, std::size_t end, const Move& m) const noexcept {
-        assert(beg <= end);
+    const_iterator find(size_type beg, size_type end, const Move& m) const noexcept {
+        assert(beg <= end && end <= size());
         return std::find(begin() + beg, begin() + end, m);
     }
-    auto find(std::size_t beg, std::size_t end, const RootMove& rm) const noexcept {
-        return !rm.pv.empty() ? find(beg, end, rm.pv[0]) : begin() + end;
+    const_iterator find(size_type beg, size_type end, const value_type& v) const noexcept {
+        return !v.pv.empty() ? find(beg, end, v.pv[0]) : begin() + end;
     }
 
-    auto find(const Move& m) const noexcept { return std::find(begin(), end(), m); }
-    auto find(const RootMove& rm) const noexcept { return !rm.pv.empty() ? find(rm.pv[0]) : end(); }
+    const_iterator find(const Move& m) const noexcept { return std::find(begin(), end(), m); }
+    const_iterator find(const value_type& v) const noexcept {
+        return !v.pv.empty() ? find(v.pv[0]) : end();
+    }
 
-    auto find(const Move& m) noexcept { return std::find(begin(), end(), m); }
-    auto find(const RootMove& rm) noexcept { return !rm.pv.empty() ? find(rm.pv[0]) : end(); }
+    iterator find(const Move& m) noexcept { return std::find(begin(), end(), m); }
+    iterator find(const value_type& v) noexcept { return !v.pv.empty() ? find(v.pv[0]) : end(); }
 
     template<typename Predicate>
-    auto find_if(Predicate pred) noexcept {
-        return std::find_if(begin(), end(), pred);
+    iterator find_if(Predicate&& pred) noexcept {
+        return std::find_if(begin(), end(), std::forward<Predicate>(pred));
+    }
+    template<class Predicate>
+    const_iterator find_if(Predicate&& pred) const noexcept {
+        return std::find_if(begin(), end(), std::forward<Predicate>(pred));
     }
 
-    bool contains(std::size_t beg, std::size_t end, const Move& m) const noexcept {
+    bool contains(size_type beg, size_type end, const Move& m) const noexcept {
+        assert(beg <= end && end <= size());
         return find(beg, end, m) != begin() + end;
     }
-    bool contains(std::size_t beg, std::size_t end, const RootMove& rm) const noexcept {
-        return rm.pv.empty() || contains(beg, end, rm.pv[0]);
+    bool contains(size_type beg, size_type end, const value_type& v) const noexcept {
+        assert(beg <= end && end <= size());
+        return v.pv.empty() || contains(beg, end, v.pv[0]);
     }
 
     bool contains(const Move& m) const noexcept { return find(m) != end(); }
-    bool contains(const RootMove& rm) const noexcept { return rm.pv.empty() || contains(rm.pv[0]); }
+    bool contains(const value_type& v) const noexcept { return v.pv.empty() || contains(v.pv[0]); }
 
-    auto remove(const Move& m) noexcept { return std::remove(begin(), end(), m); }
-    auto remove(const RootMove& rm) noexcept { return std::remove(begin(), end(), rm); }
+    iterator remove(const Move& m) noexcept { return std::remove(begin(), end(), m); }
+    iterator remove(const value_type& v) noexcept { return std::remove(begin(), end(), v); }
 
-    template<typename Predicate>
-    auto remove_if(Predicate pred) noexcept {
-        return std::remove_if(begin(), end(), pred);
+    template<class Predicate>
+    iterator remove_if(Predicate&& pred) noexcept {
+        // moves kept elements forward; does NOT shrink the vector
+        return std::remove_if(begin(), end(), std::forward<Predicate>(pred));
     }
 
-    auto erase(ConstItr where) noexcept { return rootMoves.erase(where); }
-    auto erase(ConstItr beg, ConstItr end) noexcept { return rootMoves.erase(beg, end); }
+    iterator erase(const_iterator where) noexcept { return rootMoves.erase(where); }
+    iterator erase(const_iterator beg, const_iterator end) noexcept {
+        return rootMoves.erase(beg, end);
+    }
     bool erase(const Move& m) noexcept {
         auto itr = find(m);
-        if (itr != end())
-        {
-            erase(itr);
-            return true;
-        }
-        return false;
+        if (itr == end())
+            return false;
+        erase(itr);
+        return true;
     }
-    bool erase(const RootMove& rm) noexcept {
-        auto itr = find(rm);
-        if (itr != end())
-        {
-            erase(itr);
-            return true;
-        }
-        return false;
+    bool erase(const value_type& v) noexcept {
+        auto itr = find(v);
+        if (itr == end())
+            return false;
+        erase(itr);
+        return true;
     }
 
     template<typename Predicate>
-    void move_to_front(Predicate pred) noexcept {
-        auto itr = find_if(pred);
-        if (itr != end())
+    bool move_to_front(Predicate&& pred) noexcept {
+        auto itr = find_if(std::forward<Predicate>(pred));
+        if (itr == end())
+            return false;
+        if (itr != begin())
             std::rotate(begin(), itr, itr + 1);
+        return true;
     }
 
-    void swap_to_front(const Move& m) noexcept {
+    bool swap_to_front(const Move& m) noexcept {
         auto itr = find(m);
-        if (itr != end())
-            std::swap(front(), *itr);
+        if (itr == end() || itr == begin())
+            return false;
+        std::iter_swap(begin(), itr);
+        return true;
     }
 
     // Sorts within the range [beg, end)
-    void sort(std::size_t beg, std::size_t end) noexcept {
-        assert(beg <= end);
+    void sort(size_type beg, size_type end) noexcept {
+        assert(beg <= end && end <= size());
         std::stable_sort(begin() + beg, begin() + end);
     }
     template<typename Predicate>
-    void sort(Predicate pred) noexcept {
-        std::stable_sort(begin(), end(), pred);
+    void sort(Predicate&& pred) noexcept {
+        std::stable_sort(begin(), end(), std::forward<Predicate>(pred));
     }
 
-    auto& operator[](std::size_t idx) const noexcept { return rootMoves[idx]; }
-    auto& operator[](std::size_t idx) noexcept { return rootMoves[idx]; }
+    [[nodiscard]] reference operator[](size_type idx) noexcept {  //
+        assert(idx < size());
+        return rootMoves[idx];
+    }
+    [[nodiscard]] const_reference operator[](size_type idx) const noexcept {
+        assert(idx < size());
+        return rootMoves[idx];
+    }
+
+    [[nodiscard]] reference       at(size_type idx) { return rootMoves.at(idx); }
+    [[nodiscard]] const_reference at(size_type idx) const { return rootMoves.at(idx); }
 
    private:
-    Vector rootMoves;
+    container_type rootMoves;
 };
 
 // Limit struct stores information sent by GUI about available time to
