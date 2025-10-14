@@ -361,9 +361,7 @@ class AffineTransformSparseInput {
         for (IndexType k = 0; k < AccCount; ++k)
             outVec[k] = acc[k];
 
-    #if defined(USE_AVX512)
-        #undef vec_add_32
-    #endif
+    #undef vec_add_32
     #undef vec_set_32
     #undef vec_add_dpbusd_32
 #else

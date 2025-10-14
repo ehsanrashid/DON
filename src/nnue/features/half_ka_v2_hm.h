@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "../../misc.h"
 #include "../../types.h"
 #include "../nnue_common.h"
 
@@ -31,25 +32,6 @@ namespace DON {
 class Position;
 
 namespace NNUE::Features {
-
-template<typename T, std::size_t Size>
-class ArrayList final {
-
-   public:
-    void push_back(const T& value) noexcept { data[count++] = value; }
-
-    std::size_t size() const noexcept { return count; }
-
-    const T* begin() const noexcept { return data; }
-    const T* end() const noexcept { return data + count; }
-
-    const T& operator[](std::size_t index) const noexcept { return data[index]; }
-    T&       operator[](std::size_t index) noexcept { return data[index]; }
-
-   private:
-    T           data[Size];
-    std::size_t count = 0;
-};
 
 // Feature HalfKAv2_hm: Combination of the position of own king and the
 // position of pieces. Position mirrored such that king is always on e..h files.

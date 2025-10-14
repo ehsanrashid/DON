@@ -31,6 +31,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #if defined(_MSC_VER) && defined(USE_PREFETCH)
@@ -90,6 +91,68 @@ constexpr auto sign_sqr(T x) noexcept {
 // True if and only if the binary is compiled on a little-endian machine
 constexpr std::uint16_t  LittleEndianValue = 1;
 static inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;
+
+template<typename T, std::size_t MaxSize>
+class ArrayList final {
+    static_assert(MaxSize > 0, "MaxSize must be > 0");
+
+   public:
+    constexpr ArrayList() noexcept = default;
+
+    [[nodiscard]] constexpr std::size_t        size() const noexcept { return _size; }
+    [[nodiscard]] static constexpr std::size_t capacity() noexcept { return MaxSize; }
+    [[nodiscard]] constexpr bool               empty() const noexcept { return _size == 0; }
+    [[nodiscard]] constexpr bool               full() const noexcept { return _size == MaxSize; }
+
+    constexpr T*       begin() noexcept { return _data; }
+    constexpr T*       end() noexcept { return _data + _size; }
+    constexpr const T* begin() const noexcept { return _data; }
+    constexpr const T* end() const noexcept { return _data + _size; }
+    constexpr const T* cbegin() const noexcept { return _data; }
+    constexpr const T* cend() const noexcept { return _data + _size; }
+
+    bool push_back(const T& value) noexcept {
+        if (_size >= MaxSize)
+            return false;
+        _data[_size++] = value;  // copy-assign into pre-initialized slot
+        return true;
+    }
+    bool push_back(T&& value) noexcept {
+        if (_size >= MaxSize)
+            return false;
+        _data[_size++] = std::move(value);
+        return true;
+    }
+    template<class... Args>
+    bool emplace_back(Args&&... args) noexcept {
+        if (_size >= MaxSize)
+            return false;
+        _data[_size++] = T(std::forward<Args>(args)...);
+        return true;
+    }
+
+    constexpr const T& operator[](std::size_t i) const noexcept {
+        assert(i < _size);
+        return _data[i];
+    }
+    constexpr T& operator[](std::size_t i) noexcept {
+        assert(i < _size);
+        return _data[i];
+    }
+
+    bool set_size(std::size_t newSize) noexcept {
+        if (newSize > MaxSize)
+            return false;
+        _size = newSize;  // Note: doesn't construct/destroy elements
+        return true;
+    }
+
+    void clear() noexcept { _size = 0; }
+
+   private:
+    T           _data[MaxSize]{};
+    std::size_t _size{0};
+};
 
 constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 #if defined(IS_64BIT) && defined(__GNUC__)
