@@ -255,7 +255,7 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
   AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
 
     alignas(CACHE_LINE_SIZE) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions>::BufferSize];
+      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions>::BufferSize]{};
 
     ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
 
@@ -274,7 +274,7 @@ NetworkTrace Network<Arch, Transformer>::trace(
   AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
 
     alignas(CACHE_LINE_SIZE) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions>::BufferSize];
+      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions>::BufferSize]{};
 
     ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
 
