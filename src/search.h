@@ -176,7 +176,7 @@ class RootMoves final {
     iterator find_if(Predicate&& pred) noexcept {
         return std::find_if(begin(), end(), std::forward<Predicate>(pred));
     }
-    template<class Predicate>
+    template<typename Predicate>
     const_iterator find_if(Predicate&& pred) const noexcept {
         return std::find_if(begin(), end(), std::forward<Predicate>(pred));
     }
@@ -196,7 +196,7 @@ class RootMoves final {
     iterator remove(const Move& m) noexcept { return std::remove(begin(), end(), m); }
     iterator remove(const value_type& v) noexcept { return std::remove(begin(), end(), v); }
 
-    template<class Predicate>
+    template<typename Predicate>
     iterator remove_if(Predicate&& pred) noexcept {
         // moves kept elements forward; does NOT shrink the vector
         return std::remove_if(begin(), end(), std::forward<Predicate>(pred));

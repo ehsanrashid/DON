@@ -29,6 +29,7 @@
 #include <utility>
 #include <vector>
 
+#include "memory.h"
 #include "numa.h"
 #include "position.h"
 #include "search.h"
@@ -62,7 +63,7 @@ class OptionalThreadToNumaNodeBinder final {
 };
 
 using JobFunc   = std::function<void()>;
-using WorkerPtr = std::unique_ptr<Worker>;
+using WorkerPtr = AlignedLPPtr<Worker>;
 
 // Abstraction of a thread. It contains a pointer to the worker and a native thread.
 // After construction, the native thread is started with idle_func()

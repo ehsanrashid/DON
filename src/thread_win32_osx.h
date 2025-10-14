@@ -33,7 +33,7 @@ namespace DON {
 
 class NativeThread final {
    public:
-    template<class Function, class... Args>
+    template<typename Function, typename... Args>
     explicit NativeThread(Function&& func, Args&&... args) noexcept {
         pthread_attr_t attribute;
         pthread_attr_init(&attribute);

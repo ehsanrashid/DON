@@ -124,7 +124,7 @@ class ArrayList final {
         _data[_size++] = std::move(value);
         return true;
     }
-    template<class... Args>
+    template<typename... Args>
     bool emplace_back(Args&&... args) noexcept {
         if (size() >= capacity())
             return false;
