@@ -329,7 +329,7 @@ class AffineTransformSparseInput {
         for (IndexType k = AccCount; k < RegCount; ++k)
             acc[k] = vec_zero();
 
-        while (beg < end - 2)
+        while (end - beg >= 3)
         {
             auto    i0  = *beg++;
             auto    i1  = *beg++;
@@ -358,7 +358,7 @@ class AffineTransformSparseInput {
                                 acc[k + 2 * AccCount]);
     #endif
 
-        while (beg < end)
+        while (beg != end)
         {
             auto    i  = *beg++;
             invec_t in = vec_set_32(input32[i]);
