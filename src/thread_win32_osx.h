@@ -18,8 +18,6 @@
 #ifndef THREAD_WIN32_OSX_H_INCLUDED
 #define THREAD_WIN32_OSX_H_INCLUDED
 
-#include <thread>
-
 // On OSX threads other than the main thread are created with a reduced stack
 // size of 512KB by default, this is too low for deep searches, which require
 // somewhat more than 1MB stack, so adjust it to 8MB.
@@ -28,42 +26,85 @@
 
     #include <functional>
     #include <pthread.h>
+    #include <utility>
 
 namespace DON {
 
 class NativeThread final {
    public:
+    NativeThread() = delete;
+
     template<typename Function, typename... Args>
-    explicit NativeThread(Function&& func, Args&&... args) noexcept {
-        pthread_attr_t attribute;
-        pthread_attr_init(&attribute);
-        pthread_attr_setstacksize(&attribute, 8U * 1024 * 1024);
-
+    NativeThread(Function&& func, Args&&... args) {
         using Func = std::function<void()>;
-
-        const auto start_routine = [](void* funcPtr) noexcept -> void* {
-            auto* f = reinterpret_cast<Func*>(funcPtr);
-            // Call the function
-            (*f)();
-            delete f;
-            return nullptr;
-        };
-
         auto* funcPtr =
           new Func(std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
 
-        pthread_create(&thread, &attribute, start_routine, funcPtr);
+        const auto start_routine = [](void* ptr) noexcept -> void* {
+            auto* fnPtr = reinterpret_cast<Func*>(ptr);
+            // Call the function
+            (*fnPtr)();
+            delete fnPtr;
+            return nullptr;
+        };
+
+        pthread_attr_t attribute;
+        pthread_attr_init(&attribute);
+        pthread_attr_setstacksize(&attribute, 8U * 1024 * 1024);
+        if (pthread_create(&thread, &attribute, start_routine, funcPtr) != 0)
+            delete funcPtr;
+        pthread_attr_destroy(&attribute);
     }
 
-    void join() const noexcept { pthread_join(thread, nullptr); }
+    // RAII: join on destruction if thread is joinable
+    ~NativeThread() {
+        if (joinable())
+            join();
+    }
+
+    bool joinable() const noexcept { return !joined; }
+
+    void join() {
+        if (joined)
+            return;
+        pthread_join(thread, nullptr);
+        joined = true;
+    }
+
+    // Non-copyable
+    NativeThread(const NativeThread&)            = delete;
+    NativeThread& operator=(const NativeThread&) = delete;
+
+    // Movable
+    NativeThread(NativeThread&& nativeThread) noexcept :
+        thread(nativeThread.thread),
+        joined(nativeThread.joined) {
+        nativeThread.joined = true;
+    }
+
+    NativeThread& operator=(NativeThread&& nativeThread) noexcept {
+        if (this != &nativeThread)
+        {
+            if (joinable())
+                join();
+            thread = nativeThread.thread;
+            joined = nativeThread.joined;
+
+            nativeThread.joined = true;
+        }
+        return *this;
+    }
 
    private:
     pthread_t thread;
+    bool      joined = false;
 };
 
 }  // namespace DON
 
 #else  // Default case: use STL classes
+
+    #include <thread>
 
 namespace DON {
 
