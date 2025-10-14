@@ -452,7 +452,7 @@ void AccumulatorStack::forward_update_incremental(
 
     Square kingSq = pos.king_sq(Perspective);
 
-    for (std::size_t idx = begin + 1; idx < size; ++idx)
+    for (std::size_t idx = begin; ++idx < size;)
     {
         if (idx + 1 < size)
         {
@@ -490,10 +490,10 @@ void AccumulatorStack::backward_update_incremental(
     assert((clatest_state().acc<Dimensions>()).computed[Perspective]);
 
     Square kingSq = pos.king_sq(Perspective);
-    if (size > 0)
-        for (std::size_t idx = size - 1; idx-- > end;)
-            update_accumulator_incremental<Perspective, false>(featureTransformer, kingSq,
-                                                               accStates[idx + 1], accStates[idx]);
+
+    for (std::size_t idx = size ? size - 1 : 0; idx-- > end;)
+        update_accumulator_incremental<Perspective, false>(featureTransformer, kingSq,
+                                                           accStates[idx + 1], accStates[idx]);
 
     assert((accStates[end].acc<Dimensions>()).computed[Perspective]);
 }

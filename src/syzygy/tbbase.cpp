@@ -163,14 +163,17 @@ static_assert(sizeof(SparseEntry) == 6, "SparseEntry must be 6 bytes");
 using Sym = std::uint16_t;  // Huffman symbol
 
 struct LR final {
+    template<bool Left>
+    constexpr Sym get() const noexcept {
+        if constexpr (Left)
+            return ((data[1] & 0xF) << 8) | data[0];
+        else
+            return (data[2] << 4) | (data[1] >> 4);
+    }
+
     // First 12 bits is the left-hand symbol, second 12 bits is the right-hand symbol.
     // If the symbol has length 1, then the left-hand symbol is the stored value.
     std::uint8_t data[3];
-
-    template<bool Left>
-    Sym get() const noexcept {
-        return Left ? ((data[1] & 0xF) << 8) | data[0] : (data[2] << 4) | (data[1] >> 4);
-    }
 };
 
 static_assert(sizeof(LR) == 3, "LR tree entry must be 3 bytes");
@@ -271,9 +274,9 @@ class TBFile: public std::ifstream {
 
         auto* data = (std::uint8_t*) (*baseAddress);
 
-        constexpr std::size_t  MagicSize            = 4;
-        constexpr std::uint8_t Magics[2][MagicSize] = {{0xD7, 0x66, 0x0C, 0xA5},
-                                                       {0x71, 0xE8, 0x23, 0x5D}};
+        static constexpr std::size_t  MagicSize = 4;
+        static constexpr std::uint8_t Magics[2][MagicSize]{{0xD7, 0x66, 0x0C, 0xA5},
+                                                           {0x71, 0xE8, 0x23, 0x5D}};
 
         if (std::memcmp(data, Magics[Type == WDL], MagicSize))
         {
@@ -370,7 +373,7 @@ template<TBType Type>
 struct TBTable final {
     using Ret = std::conditional_t<Type == WDL, WDLScore, int>;
 
-    static constexpr unsigned SIDES = Type == WDL ? 2 : 1;
+    static constexpr unsigned Sides = Type == WDL ? 2 : 1;
 
     std::atomic<bool> ready;
     void*             baseAddress;
@@ -381,9 +384,9 @@ struct TBTable final {
     bool              hasPawns;
     bool              hasUniquePieces;
     std::uint8_t      pawnCount[COLOR_NB];        // [Lead color / other color]
-    PairsData         items[SIDES][FILE_NB / 2];  // [wtm / btm][FILE_A..FILE_D or 0]
+    PairsData         items[Sides][FILE_NB / 2];  // [wtm / btm][FILE_A..FILE_D or 0]
 
-    PairsData* get(int ac, int f) noexcept { return &items[ac % SIDES][hasPawns * f]; }
+    PairsData* get(int ac, int f) noexcept { return &items[ac % Sides][hasPawns * f]; }
 
     TBTable() noexcept :
         ready(false),
@@ -404,6 +407,7 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept :
     State st;
 
     Position pos;
+
     pos.set(code, WHITE, &st);
     key[WHITE] = pos.material_key();
     pieceCount = pos.count<ALL_PIECE>();
@@ -447,30 +451,20 @@ TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept :
 class TBTables final {
 
     struct Entry final {
+        template<TBType Type>
+        TBTable<Type>* get() const noexcept {
+            if constexpr (Type == WDL)
+                return wdlTable;
+            else
+                return dtzTable;
+        }
+
         Key           key;
         TBTable<WDL>* wdlTable;
         TBTable<DTZ>* dtzTable;
-
-        template<TBType Type>
-        TBTable<Type>* get() const noexcept {
-            return static_cast<TBTable<Type>*>(Type == WDL ? (void*) wdlTable : (void*) dtzTable);
-        }
     };
 
-    // 4K table, indexed by key's 12 lsb
-    static constexpr std::size_t Size = 1U << 12;
-    // Number of elements allowed to map to the last bucket
-    static constexpr std::size_t Overflow = 1U;
-
     static constexpr std::size_t index(Key key) noexcept { return key & (Size - 1); }
-
-    Entry entries[Size + Overflow];
-
-    std::deque<TBTable<WDL>> wdlTables;
-    std::deque<TBTable<DTZ>> dtzTables;
-
-    std::size_t wdlCount = 0;
-    std::size_t dtzCount = 0;
 
     void insert(Key key, TBTable<WDL>* wdlTable, TBTable<DTZ>* dtzTable) noexcept {
         Entry entry{key, wdlTable, dtzTable};
@@ -500,6 +494,19 @@ class TBTables final {
         UCI::print_info_string("TB hash table size too low!");
         std::exit(EXIT_FAILURE);
     }
+
+    // 4K table, indexed by key's 12 lsb
+    static constexpr std::size_t Size = 1U << 12;
+    // Number of elements allowed to map to the last bucket
+    static constexpr std::size_t Overflow = 1U;
+
+    Entry entries[Size + Overflow];
+
+    std::deque<TBTable<WDL>> wdlTables;
+    std::deque<TBTable<DTZ>> dtzTables;
+
+    std::size_t wdlCount = 0;
+    std::size_t dtzCount = 0;
 
    public:
     template<TBType Type>
@@ -777,9 +784,9 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     {
         // In all the 4 tables, pawns are at the beginning of the piece sequence and
         // their color is the reference one. So just pick the first one.
-        Piece pc = entry->get(0, 0)->pieces[0];
+        Piece pc = Piece(entry->get(0, 0)->pieces[0] ^ flipColor);
+
         assert(type_of(pc) == PAWN);
-        pc = pc ^ flipColor;
 
         leadPawns = b = pos.pieces(color_of(pc), PAWN);
         do
@@ -901,15 +908,14 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
         // triangle to 0...5. There are 63 squares for second piece and 62
         // (mapped to 0...61) for the third.
         if (off_A1H8(squares[0]))
-            idx =
-              (A1D1D4Map[squares[0]] * 63 + (squares[1] - adjust1)) * 62 + (squares[2] - adjust2);
+            idx = (A1D1D4Map[squares[0]] * 63 + (squares[1] - adjust1)) * 62 + squares[2] - adjust2;
 
         // First piece is on a1-h8 diagonal, second below: map this occurrence to
         // 6 to differentiate from the above case, rank_of() maps a1-d4 diagonal
         // to 0...3 and finally B1H1H7Map[] maps the b1-h1-h7 triangle to 0..27.
         else if (off_A1H8(squares[1]))
-            idx = (6 * 63 + rank_of(squares[0]) * 28 + B1H1H7Map[squares[1]]) * 62
-                + (squares[2] - adjust2);
+            idx = (6 * 63 + rank_of(squares[0]) * 28 + B1H1H7Map[squares[1]]) * 62 + squares[2]
+                - adjust2;
 
         // First two pieces are on a1-h8 diagonal, third below
         else if (off_A1H8(squares[2]))
@@ -930,9 +936,9 @@ ENCODE_END:
     Square* groupSq = squares + pd->groupLen[0];
 
     // Encode remaining pawns and then pieces according to square, in ascending order
-    bool pawnsRemaining = entry->hasPawns && entry->pawnCount[1];
+    bool pawnsRemaining = entry->hasPawns && entry->pawnCount[BLACK];
 
-    int next = 0;
+    std::size_t next = 0;
     while (pd->groupLen[++next])
     {
         std::stable_sort(groupSq, groupSq + pd->groupLen[next]);
@@ -996,7 +1002,7 @@ void set_groups(T& entry, PairsData* pd, int order[2], File f) noexcept {
     // pawns/pieces -> remaining pawns -> remaining pieces. In particular the
     // first group is at order[0] position and the remaining pawns, when present,
     // are at order[1] position.
-    bool        pp      = entry.hasPawns && entry.pawnCount[1] != 0;  // Pawns on both sides
+    bool        pp      = entry.hasPawns && entry.pawnCount[BLACK] != 0;  // Pawns on both sides
     std::size_t i       = pp ? 2 : 1;
     std::size_t freeLen = 64 - pd->groupLen[0] - (pp ? pd->groupLen[1] : 0);
 
@@ -1098,16 +1104,15 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     // avoiding unsigned overflow warnings.
 
     std::size_t base64Size = pd->base64.size();
-    if (base64Size > 0)
-        for (std::size_t i = base64Size - 1; i > 0; --i)
-        {
-            pd->base64[i - 1] = (pd->base64[i]                                 //
-                                 + number<Sym, Little>(&pd->lowestSym[i - 1])  //
-                                 - number<Sym, Little>(&pd->lowestSym[i]))
-                              / 2;
+    for (std::size_t i = base64Size ? base64Size - 1 : 0; i-- > 0;)
+    {
+        pd->base64[i] = (pd->base64[i + 1]                         //
+                         + number<Sym, Little>(&pd->lowestSym[i])  //
+                         - number<Sym, Little>(&pd->lowestSym[i + 1]))
+                      / 2;
 
-            assert(2 * pd->base64[i - 1] >= pd->base64[i]);
-        }
+        assert(2 * pd->base64[i] >= pd->base64[i + 1]);
+    }
 
     // Now left-shift by an amount so that d->base64[i] gets shifted 1 bit more
     // than d->base64[i+1] and given the above assert condition, ensure that
@@ -1178,14 +1183,12 @@ void set(T& entry, std::uint8_t* data) noexcept {
 
     PairsData* pd;
 
-    [[maybe_unused]] bool Split = *data & 1, HasPawns = *data & 2;
-
-    assert((entry.key[WHITE] != entry.key[BLACK]) == Split);
-    assert(entry.hasPawns == HasPawns);
+    assert((entry.key[WHITE] != entry.key[BLACK]) == bool(*data & 1));
+    assert(entry.hasPawns == bool(*data & 2));
 
     ++data;  // First byte stores flags
 
-    const std::size_t sides   = T::SIDES == 2 && entry.key[WHITE] != entry.key[BLACK] ? 2 : 1;
+    const std::size_t sides   = T::Sides == 2 && entry.key[WHITE] != entry.key[BLACK] ? 2 : 1;
     const File        maxFile = entry.hasPawns ? FILE_D : FILE_A;
 
     bool pp = entry.hasPawns && entry.pawnCount[BLACK];  // Pawns on both sides
@@ -1266,9 +1269,8 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
         b += std::string(popcount(pos.pieces(BLACK, pt)), UCI::piece(pt));
     }
 
-    bool isWhite = materialKey == entry.key[WHITE];
-
-    std::string fname = (isWhite ? w + 'v' + b : b + 'v' + w) + (Type == WDL ? ".rtbw" : ".rtbz");
+    std::string fname = (materialKey == entry.key[WHITE] ? w + 'v' + b : b + 'v' + w)
+                      + (Type == WDL ? ".rtbw" : ".rtbz");
 
     auto tbFile = TBFile(fname);
 
@@ -1381,6 +1383,7 @@ std::uint8_t MaxCardinality;
 void init() noexcept {
 
     std::size_t code;
+
     // B1H1H7Map[] encodes a square below a1-h8 diagonal to 0..27
     code = 0;
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -1414,19 +1417,17 @@ void init() noexcept {
             if (A1D1D4Map[s1] == idx && (idx || s1 == SQ_B1))  // SQ_B1 is mapped to 0
             {
                 for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-                {
                     if ((attacks_bb<KING>(s1) | s1) & s2)
                         continue;  // Illegal position
 
-                    if (!off_A1H8(s1) && off_A1H8(s2) > 0)
+                    else if (!off_A1H8(s1) && off_A1H8(s2) > 0)
                         continue;  // First on diagonal, second above
 
-                    if (!off_A1H8(s1) && !off_A1H8(s2))
+                    else if (!off_A1H8(s1) && !off_A1H8(s2))
                         bothOnDiagonal.emplace_back(idx, s2);
 
                     else
                         KKMap[idx][s2] = code++;
-                }
             }
 
     // Legal positions with both kings on a diagonal are encoded as last ones
@@ -1436,18 +1437,18 @@ void init() noexcept {
     // Binomial[] stores the Binomial Coefficients using Pascal rule. There
     // are Binomial[k][n] ways to choose k elements from a set of n elements.
     Binomial[0][0] = 1;
-    for (std::size_t n = SQ_B1; n <= SQ_H8; ++n)                        // Squares
+    for (std::size_t n = 1; n < 64; ++n)                                // Squares
         for (std::size_t k = 0; k <= std::min(n, std::size_t(5)); ++k)  // Pieces
             Binomial[k][n] =
               (k > 0 ? Binomial[k - 1][n - 1] : 0) + (k < n ? Binomial[k][n - 1] : 0);
 
     std::memset(LeadPawnIdx, 0, sizeof(LeadPawnIdx));
     std::memset(LeadPawnSize, 0, sizeof(LeadPawnSize));
-    // PawnsMap[s] encodes squares a2-h7 to a1-h6 (0..47).
-    // This is the number of possible available squares when the leading one
-    // is in 's'. Moreover the pawn with highest PawnsMap[] is the leading pawn,
-    // the one nearest the edge, and among pawns with the same file, the one with the lowest rank.
-    code = SQ_H6;  // Available squares (47) when lead pawn is in a2-h7
+    // PawnsMap[s] encodes squares a2-h7 to (0..47).
+    // This is the number of possible available squares when the leading one is in 's'.
+    // Moreover the pawn with highest PawnsMap[] is the leading pawn, the one nearest the edge,
+    // and among pawns with the same file, the one with the lowest rank.
+    code = 47;  // Available squares when lead pawn is in a2
 
     // Init the tables for the encoding of leading pawn group:
     // with 7-men TB can have up to 5 leading pawns (KPPPPPK).
