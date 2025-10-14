@@ -194,7 +194,7 @@ class FeatureTransformer final {
 
         const auto& accumulation = (accState.acc<TransformedFeatureDimensions>()).accumulation;
 
-        for (auto p = 0; p < COLOR_NB; ++p)
+        for (IndexType p = 0; p < 2; ++p)
         {
             IndexType offset = p * (TransformedFeatureDimensions / 2);
 
