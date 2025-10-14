@@ -20,7 +20,6 @@
 #ifndef NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED
 #define NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED
 
-#include <cstddef>
 #include <cstdint>
 
 #include "../../misc.h"
@@ -54,14 +53,6 @@ class HalfKAv2_hm final {
         PS_NB       = 11 * SQUARE_NB
     };
 
-    static constexpr IndexType PieceSquareIndex[COLOR_NB][PIECE_NB]{
-      // Convention: W - us, B - them
-      // Viewed from other side, W and B are reversed
-      {PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE,
-       PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_KING, PS_NONE},
-      {PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_KING, PS_NONE,
-       PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE}};
-
    public:
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t HashValue = 0x7F234CB8U;
@@ -69,9 +60,17 @@ class HalfKAv2_hm final {
     // Number of feature dimensions
     static constexpr IndexType Dimensions = (PS_NB * SQUARE_NB) / 2;
 
+    static constexpr std::int16_t PieceSquareIndex[COLOR_NB][PIECE_NB]{
+      // Convention: W - us, B - them
+      // Viewed from other side, W and B are reversed
+      {PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE,
+       PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_KING, PS_NONE},
+      {PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_KING, PS_NONE,
+       PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE}};
+
     // clang-format off
 #define B(v) (v * PS_NB)
-    static constexpr int KingBuckets[COLOR_NB][SQUARE_NB]{
+    static constexpr std::int16_t KingBuckets[COLOR_NB][SQUARE_NB]{
       { B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28),
         B(24), B(25), B(26), B(27), B(27), B(26), B(25), B(24),
         B(20), B(21), B(22), B(23), B(23), B(22), B(21), B(20),
@@ -92,7 +91,7 @@ class HalfKAv2_hm final {
 #undef B
 
     // Orient a square according to perspective (rotates by 180 for black)
-    static constexpr int OrientTable[COLOR_NB][SQUARE_NB]{
+    static constexpr std::int16_t OrientTable[COLOR_NB][SQUARE_NB]{
       { SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,
         SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,
         SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,
