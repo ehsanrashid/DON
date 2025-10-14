@@ -469,7 +469,7 @@ inline Square Position::castling_rook_sq(CastlingRights cr) const noexcept {
 }
 
 inline auto Position::castling_rights_mask(Square org, Square dst) const noexcept {
-    static constexpr auto Indices = []() {
+    alignas(CACHE_LINE_SIZE) static constexpr auto Indices = []() {
         std::array<std::size_t, SQUARE_NB> indices{};
         for (std::size_t s = 0; s < indices.size(); ++s)
         {

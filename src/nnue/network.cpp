@@ -257,7 +257,7 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
     constexpr std::size_t Alignment = CACHE_LINE_SIZE;
 
     alignas(Alignment) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions>::BufferSize]{};
+      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions>::BufferSize];
 
     ASSERT_ALIGNED(transformedFeatures, Alignment);
 
@@ -278,7 +278,7 @@ NetworkTrace Network<Arch, Transformer>::trace(
     constexpr std::size_t Alignment = CACHE_LINE_SIZE;
 
     alignas(Alignment) TransformedFeatureType
-      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions>::BufferSize]{};
+      transformedFeatures[FeatureTransformer<TransformedFeatureDimensions>::BufferSize];
 
     ASSERT_ALIGNED(transformedFeatures, Alignment);
 
