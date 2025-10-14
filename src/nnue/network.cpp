@@ -254,12 +254,10 @@ NetworkOutput Network<Arch, Transformer>::evaluate(
   AccumulatorStack&                                       accStack,
   AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
 
-    constexpr std::size_t Alignment = CACHE_LINE_SIZE;
-
-    alignas(Alignment) TransformedFeatureType
+    alignas(CACHE_LINE_SIZE) TransformedFeatureType
       transformedFeatures[FeatureTransformer<TransformedFeatureDimensions>::BufferSize];
 
-    ASSERT_ALIGNED(transformedFeatures, Alignment);
+    ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
 
     auto bucket = pos.bucket();
 
@@ -275,12 +273,10 @@ NetworkTrace Network<Arch, Transformer>::trace(
   AccumulatorStack&                                       accStack,
   AccumulatorCaches::Cache<TransformedFeatureDimensions>* cache) const noexcept {
 
-    constexpr std::size_t Alignment = CACHE_LINE_SIZE;
-
-    alignas(Alignment) TransformedFeatureType
+    alignas(CACHE_LINE_SIZE) TransformedFeatureType
       transformedFeatures[FeatureTransformer<TransformedFeatureDimensions>::BufferSize];
 
-    ASSERT_ALIGNED(transformedFeatures, Alignment);
+    ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
 
     NetworkTrace netTrace{};
     netTrace.correctBucket = pos.bucket();
