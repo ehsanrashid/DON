@@ -131,11 +131,13 @@ class FeatureTransformer final {
     template<bool Read>
     void scale_weights() noexcept {
         for (IndexType i = 0; i < TransformedFeatureDimensions; ++i)
-            biases[i] *= (Read ? 2.0f : 0.5f);
+            biases[i] = Read ? biases[i] * 2 : biases[i] / 2;
 
         for (IndexType j = 0; j < InputDimensions; ++j)
             for (IndexType i = 0; i < TransformedFeatureDimensions; ++i)
-                weights[j * TransformedFeatureDimensions + i] *= (Read ? 2.0f : 0.5f);
+                weights[j * TransformedFeatureDimensions + i] =
+                  Read ? weights[j * TransformedFeatureDimensions + i] * 2
+                       : weights[j * TransformedFeatureDimensions + i] / 2;
     }
 
     // Read network parameters
