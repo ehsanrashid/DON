@@ -447,7 +447,7 @@ void AccumulatorStack::forward_update_incremental(
   const FeatureTransformer<Dimensions>& featureTransformer,
   std::size_t                           begin) noexcept {
 
-    assert(begin < size && size < MaxSize);
+    assert(begin < size && 0 < size && size < MaxSize);
     assert((accStates[begin].acc<Dimensions>()).computed[Perspective]);
 
     Square kingSq = pos.king_sq(Perspective);
@@ -486,14 +486,14 @@ void AccumulatorStack::backward_update_incremental(
   const FeatureTransformer<Dimensions>& featureTransformer,
   std::size_t                           end) noexcept {
 
-    assert(end < size && size < MaxSize);
+    assert(end < size && 0 < size && size < MaxSize);
     assert((clatest_state().acc<Dimensions>()).computed[Perspective]);
 
     Square kingSq = pos.king_sq(Perspective);
-
-    for (std::int64_t idx = std::int64_t(size) - 2; idx >= std::int64_t(end); --idx)
-        update_accumulator_incremental<Perspective, false>(featureTransformer, kingSq,
-                                                           accStates[idx + 1], accStates[idx]);
+    if (size > 0)
+        for (std::size_t idx = size - 1; idx-- > end;)
+            update_accumulator_incremental<Perspective, false>(featureTransformer, kingSq,
+                                                               accStates[idx + 1], accStates[idx]);
 
     assert((accStates[end].acc<Dimensions>()).computed[Perspective]);
 }
