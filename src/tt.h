@@ -183,9 +183,9 @@ static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");
 // as the cache-line is prefetched when possible.
 struct TTCluster final {
    public:
-    static constexpr std::uint8_t EntryCount = 3;
+    static constexpr std::size_t EntryCount = 3;
 
-    TTEntry entry[EntryCount];
+    TTEntry entries[EntryCount];
     char    padding[2];  // Pad to 32 bytes
 };
 
@@ -209,24 +209,27 @@ class TTUpdater final {
 
         if (tte->key16 != key16)
         {
-            tte = &ttc->entry[0];
-            for (auto& entry : ttc->entry)
-            {
+            bool found = false;
+            for (auto& entry : ttc->entries)
                 if (entry.key16 == key16)
                 {
-                    tte = &entry;
+                    tte   = &entry;
+                    found = true;
                     break;
                 }
+
+            if (!found)
+            {
                 // Find an entry to be replaced according to the replacement strategy
-                if (tte->worth(generation) > entry.worth(generation))
-                    tte = &entry;
+                tte = &ttc->entries[0];
+                for (std::size_t i = 1; i < TTCluster::EntryCount; ++i)
+                    if (tte->worth(generation) > ttc->entries[i].worth(generation))
+                        tte = &ttc->entries[i];
             }
         }
         else
-        {
-            for (; tte > &ttc->entry[0] && (tte - 1)->key16 == key16; --tte)
+            for (; tte != &ttc->entries[0] && (tte - 1)->key16 == key16; --tte)
                 tte->clear();
-        }
 
         tte->save(key16, d, pv, b, m, v, ev, generation);
     }

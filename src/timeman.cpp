@@ -104,6 +104,9 @@ void TimeManager::init(
 
     if (limit.movesToGo == 0)
     {
+        // Calculate time constants based on current remaining time
+        double logScaledTime = std::log10(scaledTime / 1000.0);
+
         // 1) x basetime (sudden death)
         // Sudden death time control
         if (clock.inc == 0)
@@ -111,9 +114,6 @@ void TimeManager::init(
         // Extra time according to initial remaining Time (Only once at game start)
         if (timeAdjust < 0.0)
             timeAdjust = std::max(-0.4126 + 0.2862 * std::log10(remainTime), 1.0e-6);
-
-        // Calculate time constants based on current remaining time
-        double logScaledTime = std::log10(scaledTime / 1000.0);
 
         optimumScale = timeAdjust
                      * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * logScaledTime, 4.06734e-3)
@@ -129,9 +129,6 @@ void TimeManager::init(
         // Extra time according to initial remaining Time (Only once at game start)
         if (timeAdjust < 0.0)
             timeAdjust = std::max(-0.4354 + 0.3128 * std::log10(remainTime), 1.0e-6);
-
-        // Calculate time constants based on current remaining time
-        double logScaledTime = std::log10(scaledTime / 1000.0);
 
         optimumScale = timeAdjust
                      * std::min(12.14310e-3 + std::min(3.21160e-3 + 32.11230e-5 * logScaledTime, 5.08017e-3)

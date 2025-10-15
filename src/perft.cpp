@@ -143,9 +143,9 @@ static_assert(sizeof(PTEntry) == 16, "Unexpected PTEntry size");
 
 struct PTCluster final {
    public:
-    static constexpr std::uint8_t EntryCount = 4;
+    static constexpr std::size_t EntryCount = 4;
 
-    PTEntry entry[EntryCount];
+    PTEntry entries[EntryCount];
 };
 
 static_assert(sizeof(PTCluster) == 64, "Unexpected PTCluster size");
@@ -222,17 +222,17 @@ void PerftTable::init(ThreadPool& threads) noexcept {
 ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
     auto* const ptc = cluster(key);
-    auto* const fte = &ptc->entry[0];
+    auto* const fte = &ptc->entries[0];
 
     Key32 key32 = compress_key32(key);
-    for (auto& entry : ptc->entry)
+    for (auto& entry : ptc->entries)
         if (entry.key32 == key32 && entry.depth16 == depth)
             return {true, &entry};
 
     auto* rte = fte;
-    for (auto& entry : ptc->entry)
-        if (rte->depth16 > entry.depth16)
-            rte = &entry;
+    for (std::size_t i = 1; i < PTCluster::EntryCount; ++i)
+        if (rte->depth16 > ptc->entries[i].depth16)
+            rte = &ptc->entries[i];
 
     return {false, rte->depth16 <= depth ? rte : fte + PTCluster::EntryCount - 1};
 }
