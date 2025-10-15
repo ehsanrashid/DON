@@ -497,7 +497,7 @@ void Worker::iterative_deepening() noexcept {
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;
-                    if (mainManager != nullptr && mainManager->ponder)
+                    if (mainManager != nullptr)
                         mainManager->ponderhitStop = false;
                 }
                 else if (bestValue >= beta)
@@ -1014,11 +1014,8 @@ Value Worker::search(Position&    pos,
     // Step 10. Internal iterative reductions
     // For deep enough nodes without ttMoves, reduce search depth.
     // (*Scaler) Making the reduction less aggressive scales well.
-    if constexpr (!AllNode)
-        if (depth > 5 && red <= 3 && ttd.move == Move::None)
-            --depth;
-
-    assert(depth > DEPTH_ZERO);
+    if (!AllNode && depth > 5 && red <= 3 && ttd.move == Move::None)
+        --depth;
 
     // Step 11. ProbCut
     // If have a good enough capture or any promotion and a reduced search
@@ -1027,7 +1024,7 @@ Value Worker::search(Position&    pos,
     if (depth >= 3
         && !is_decisive(beta)
         // If value from transposition table is less than probCutBeta, don't attempt probCut
-        && (!is_valid(ttd.value) || ttd.value >= probCutBeta))
+        && !(is_valid(ttd.value) && ttd.value < probCutBeta))
     {
         assert(beta < probCutBeta && probCutBeta < +VALUE_INFINITE);
 
@@ -2189,10 +2186,10 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
             worker.extend_tb_pv(i, v);
 
         auto score = UCI::score({v, rootPos});
-        auto bound = exact         ? ""
-                   : rm.boundLower ? " lowerbound"
-                   : rm.boundUpper ? " upperbound"
-                                   : "";
+        auto bound = std::string_view{exact           ? ""
+                                      : rm.boundLower ? " lowerbound"
+                                      : rm.boundUpper ? " upperbound"
+                                                      : ""};
         auto wdl   = worker.options["UCI_ShowWDL"] ? UCI::to_wdl(v, rootPos) : "";
 
         std::string pv;

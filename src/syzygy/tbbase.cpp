@@ -20,13 +20,13 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
-#include <climits>
 #include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <fstream>
 #include <initializer_list>
 #include <iostream>
+#include <limits>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -1192,17 +1192,17 @@ void set(T& entry, std::uint8_t* data) noexcept {
     const std::size_t sides   = T::Sides == 2 && entry.key[WHITE] != entry.key[BLACK] ? 2 : 1;
     const File        maxFile = entry.hasPawns ? FILE_D : FILE_A;
 
-    bool pp = entry.hasPawns && entry.pawnCount[BLACK];  // Pawns on both sides
+    bool pp = entry.hasPawns && entry.pawnCount[BLACK] != 0;  // Pawns on both sides
 
-    assert(!pp || entry.pawnCount[WHITE]);
+    assert(!pp || entry.pawnCount[WHITE] != 0);
 
     for (File f = FILE_A; f <= maxFile; ++f)
     {
         for (std::size_t i = 0; i < sides; ++i)
             *entry.get(i, f) = PairsData();
 
-        int order[2][2] = {{*data & 0xF, pp ? *(data + 1) & 0xF : 0xF},
-                           {*data >> 4, pp ? *(data + 1) >> 4 : 0xF}};
+        int order[2][2]{{*data & 0xF, pp ? *(data + 1) & 0xF : 0xF},
+                        {*data >> 4, pp ? *(data + 1) >> 4 : 0xF}};
         data += 1 + pp;
 
         for (std::uint8_t k = 0; k < entry.pieceCount; ++k, ++data)
@@ -1274,9 +1274,7 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
     std::string fname = (materialKey == entry.key[WHITE] ? w + 'v' + b : b + 'v' + w)
                       + (Type == WDL ? ".rtbw" : ".rtbz");
 
-    auto tbFile = TBFile(fname);
-
-    auto* data = tbFile.map<Type>(&entry.baseAddress, &entry.mapping);
+    uint8_t* data = TBFile(fname).map<Type>(&entry.baseAddress, &entry.mapping);
 
     if (data != nullptr)
         set(entry, data);
@@ -1456,7 +1454,7 @@ void init() noexcept {
         {
             // Restart the index at every file because TB table is split
             // by file, so can reuse the same index for different files.
-            int idx = 0;
+            std::size_t idx = 0;
 
             // Sum all possible combinations for a given file, starting with
             // the leading pawn on rank 2 and increasing the rank.
@@ -1603,7 +1601,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
     // DTZ-score stores results for the other side, so need to do a 1-ply search
     // and find the winning move that minimizes DTZ-score.
-    int minDtzScore = INT_MAX;
+    int minDtzScore = std::numeric_limits<int>::max();
 
     for (const auto& m : MoveList<LEGAL>(pos))
     {
@@ -1638,7 +1636,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     }
 
     // When there are no legal moves, the position is mate: return -1
-    return minDtzScore == INT_MAX ? -1 : minDtzScore;
+    return minDtzScore == std::numeric_limits<int>::max() ? -1 : minDtzScore;
 }
 
 // Use the DTZ-tables to rank root moves.

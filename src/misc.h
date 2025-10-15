@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
+#include <mutex>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -91,6 +92,63 @@ constexpr auto sign_sqr(T x) noexcept {
 // True if and only if the binary is compiled on a little-endian machine
 constexpr std::uint16_t  LittleEndianValue = 1;
 static inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;
+
+class sync_ostream final {
+   public:
+    explicit sync_ostream(std::ostream& os) noexcept :
+        ostream(&os),
+        uniqueLock(mutex) {}
+    sync_ostream(const sync_ostream&) noexcept = delete;
+    // Move-constructible so factories can return by value
+    sync_ostream(sync_ostream&& syncOs) noexcept :
+        ostream(syncOs.ostream),
+        uniqueLock(std::move(syncOs.uniqueLock)) {}
+
+    sync_ostream& operator=(const sync_ostream&) noexcept = delete;
+    // Prefer deleting move-assignment to avoid unlock window.
+    sync_ostream& operator=(sync_ostream&&) noexcept = delete;
+
+    ~sync_ostream() noexcept = default;
+
+    template<class T>
+    sync_ostream& operator<<(T&& x) & noexcept {
+        *ostream << std::forward<T>(x);
+        return *this;
+    }
+    template<class T>
+    sync_ostream&& operator<<(T&& x) && noexcept {
+        *ostream << std::forward<T>(x);
+        return std::move(*this);
+    }
+
+    using ostream_manip = std::ostream& (*) (std::ostream&);
+    sync_ostream& operator<<(ostream_manip manip) & noexcept {
+        manip(*ostream);
+        return *this;
+    }
+    sync_ostream&& operator<<(ostream_manip manip) && noexcept {
+        manip(*ostream);
+        return std::move(*this);
+    }
+
+    using ios_manip = std::ios_base& (*) (std::ios_base&);
+    sync_ostream& operator<<(ios_manip manip) & noexcept {
+        manip(*ostream);
+        return *this;
+    }
+    sync_ostream&& operator<<(ios_manip manip) && noexcept {
+        manip(*ostream);
+        return std::move(*this);
+    }
+
+   private:
+    static inline std::mutex mutex;
+
+    std::ostream*                ostream;
+    std::unique_lock<std::mutex> uniqueLock;
+};
+
+inline sync_ostream sync_os(std::ostream& os = std::cout) { return sync_ostream(os); }
 
 template<typename T, std::size_t MaxSize>
 class ArrayList final {
