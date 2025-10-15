@@ -370,13 +370,15 @@ constexpr bool color_opposite(Square s1, Square s2) noexcept {
 }
 
 // Swap A1 <-> H1
-constexpr Square flip_file(Square s) noexcept { return Square(int(s) ^ 0x07); }
+constexpr Square flip_file(Square s) noexcept { return Square(int(s) ^ int(SQ_H1)); }
 // Swap A1 <-> A8
-constexpr Square flip_rank(Square s) noexcept { return Square(int(s) ^ 0x38); }
+constexpr Square flip_rank(Square s) noexcept { return Square(int(s) ^ int(SQ_A8)); }
 
-constexpr Square relative_sq(Color c, Square s) noexcept { return Square(int(s) ^ (c * 0x38)); }
+constexpr Square relative_sq(Color c, Square s) noexcept {
+    return Square(int(s) ^ (c * int(SQ_A8)));
+}
 
-constexpr Rank relative_rank(Color c, Rank r) noexcept { return Rank(int(r) ^ (c * 0x7)); }
+constexpr Rank relative_rank(Color c, Rank r) noexcept { return Rank(int(r) ^ (c * int(SQ_H1))); }
 
 constexpr Rank relative_rank(Color c, Square s) noexcept { return relative_rank(c, rank_of(s)); }
 

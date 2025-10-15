@@ -375,8 +375,8 @@ struct TBTable final {
 
     static constexpr unsigned Sides = Type == WDL ? 2 : 1;
 
-    std::atomic<bool> ready;
-    void*             baseAddress;
+    std::atomic<bool> ready{false};
+    void*             baseAddress = nullptr;
     std::uint8_t*     map;
     std::uint64_t     mapping;
     Key               key[COLOR_NB];
@@ -386,11 +386,9 @@ struct TBTable final {
     std::uint8_t      pawnCount[COLOR_NB];        // [Lead color / other color]
     PairsData         items[Sides][FILE_NB / 2];  // [wtm / btm][FILE_A..FILE_D or 0]
 
-    PairsData* get(int ac, int f) noexcept { return &items[ac % Sides][hasPawns * f]; }
+    PairsData* get(int ac, int f) noexcept { return &items[ac % Sides][hasPawns ? f : 0]; }
 
-    TBTable() noexcept :
-        ready(false),
-        baseAddress(nullptr) {}
+    TBTable() noexcept = default;
     explicit TBTable(std::string_view code) noexcept;
     explicit TBTable(const TBTable<WDL>& wdlTable) noexcept;
 
@@ -524,8 +522,13 @@ class TBTables final {
         dtzCount = 0;
     }
 
-    std::size_t wdl_count() const noexcept { return wdlCount; }
-    std::size_t dtz_count() const noexcept { return dtzCount; }
+    std::string info() const noexcept {
+        return (std::ostringstream{} << "Tablebase: "             //
+                                     << wdlCount << " WDL and "   //
+                                     << dtzCount << " DTZ found"  //
+                                     << " (up to " << int(MaxCardinality) << "-man).")
+          .str();
+    }
 
     void add(const std::vector<PieceType>& pieces) noexcept;
 };
@@ -553,7 +556,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     wdlFile.close();
     ++wdlCount;
 
-    MaxCardinality = std::max(MaxCardinality, std::uint8_t(pieces.size()));
+    MaxCardinality = std::max<std::size_t>(MaxCardinality, pieces.size());
 
     wdlTables.emplace_back(code);
     dtzTables.emplace_back(wdlTables.back());
@@ -771,11 +774,11 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     int flipSquare  = (blackSymmetric || blackStronger) * 56;
     int activeColor = (blackSymmetric || blackStronger) ^ pos.active_color();
 
-    Bitboard leadPawns   = 0, b;
-    int      leadPawnCnt = 0, size = 0;
-    File     tbFile = FILE_A;
-    Square   squares[TBPieces]{};
-    Piece    pieces[TBPieces]{};
+    Bitboard    b, leadPawns = 0;
+    std::size_t size = 0, leadPawnCnt = 0;
+    File        tbFile = FILE_A;
+    Square      squares[TBPieces]{};
+    Piece       pieces[TBPieces]{};
 
     // For pawns, TB files store 4 separate tables according if leading pawn is on
     // file a, b, c or d after reordering. The leading pawn is the one with maximum
@@ -820,12 +823,12 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
     assert(size >= 2);
 
-    auto* pd = entry->get(activeColor, tbFile);
+    PairsData* pd = entry->get(activeColor, tbFile);
 
     // Then reorder the pieces to have the same sequence as the one stored
     // in pieces[i]: the sequence that ensures the best compression.
-    for (int i = leadPawnCnt; i < size - 1; ++i)
-        for (int j = i + 1; j < size; ++j)
+    for (std::size_t i = leadPawnCnt; i + 1 < size; ++i)
+        for (std::size_t j = i + 1; j < size; ++j)
             if (pd->pieces[i] == pieces[j])
             {
                 std::swap(pieces[i], pieces[j]);
@@ -836,7 +839,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // Now map again the squares so that the square of the lead piece is in
     // the triangle A1-D1-D4.
     if (file_of(squares[0]) > FILE_D)
-        for (int i = 0; i < size; ++i)
+        for (std::size_t i = 0; i < size; ++i)
             squares[i] = flip_file(squares[i]);
 
     std::uint64_t idx = 0;
@@ -848,7 +851,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
         std::stable_sort(squares + 1, squares + leadPawnCnt, pawns_comp);
 
-        for (int i = 1; i < leadPawnCnt; ++i)
+        for (std::size_t i = 1; i < leadPawnCnt; ++i)
             idx += Binomial[i][PawnsMap[squares[i]]];
 
         goto ENCODE_END;  // With pawns have finished special treatments
@@ -857,18 +860,18 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // In positions without pawns, further flip the squares to ensure leading
     // piece is below RANK_5.
     if (rank_of(squares[0]) > RANK_4)
-        for (int i = 0; i < size; ++i)
+        for (std::size_t i = 0; i < size; ++i)
             squares[i] = flip_rank(squares[i]);
 
     // Look for the first piece of the leading group not on the A1-D4 diagonal
     // and ensure it is mapped below the diagonal.
-    for (int i = 0; i < pd->groupLen[0]; ++i)
+    for (std::int32_t i = 0; i < pd->groupLen[0]; ++i)
     {
         if (!off_A1H8(squares[i]))
             continue;
 
         if (off_A1H8(squares[i]) > 0)  // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
-            for (int j = i; j < size; ++j)
+            for (std::size_t j = i; j < size; ++j)
                 squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 0x3F);
         break;
     }
@@ -946,7 +949,7 @@ ENCODE_END:
         std::uint64_t n = 0;
         // Map down a square if "comes later" than a square in the previous
         // groups (similar to what was done earlier for leading group pieces).
-        for (int i = 0; i < pd->groupLen[next]; ++i)
+        for (std::int32_t i = 0; i < pd->groupLen[next]; ++i)
         {
             auto adjust = std::count_if(squares, groupSq, [&](Square s) { return groupSq[i] > s; });
             n += Binomial[i + 1][int(groupSq[i]) - adjust - 8 * pawnsRemaining];
@@ -976,19 +979,18 @@ ENCODE_END:
 template<typename T>
 void set_groups(T& entry, PairsData* pd, int order[2], File f) noexcept {
 
-    std::size_t n        = 0;
-    int         firstLen = entry.hasPawns ? 0 : entry.hasUniquePieces ? 3 : 2;
-    pd->groupLen[n]      = 1;
+    std::size_t n = 0;
 
+    pd->groupLen[n] = 1;
+
+    std::int32_t firstLen = entry.hasPawns ? 0 : entry.hasUniquePieces ? 3 : 2;
     // Number of pieces per group is stored in groupLen[], for instance in KRKN
     // the encoder will default on '111', so groupLen[] will be (3, 1).
-    for (std::uint8_t i = 1; i < entry.pieceCount; ++i)
-    {
+    for (std::int32_t i = 1; i < entry.pieceCount; ++i)
         if (--firstLen > 0 || pd->pieces[i] == pd->pieces[i - 1])
             pd->groupLen[n]++;
         else
             pd->groupLen[++n] = 1;
-    }
     pd->groupLen[++n] = 0;  // Zero-terminated
 
     // The sequence in pieces[] defines the groups, but not the order in which
@@ -1003,12 +1005,12 @@ void set_groups(T& entry, PairsData* pd, int order[2], File f) noexcept {
     // first group is at order[0] position and the remaining pawns, when present,
     // are at order[1] position.
     bool        pp      = entry.hasPawns && entry.pawnCount[BLACK] != 0;  // Pawns on both sides
-    std::size_t i       = pp ? 2 : 1;
+    std::size_t next    = pp ? 2 : 1;
     std::size_t freeLen = 64 - pd->groupLen[0] - (pp ? pd->groupLen[1] : 0);
 
     std::uint64_t idx = 1;
 
-    for (int k = 0; k == order[0] || k == order[1] || i < n; ++k)
+    for (int k = 0; k == order[0] || k == order[1] || next < n; ++k)
         // Leading pawns or pieces
         if (k == order[0])
         {
@@ -1026,10 +1028,11 @@ void set_groups(T& entry, PairsData* pd, int order[2], File f) noexcept {
         // Remaining pieces
         else
         {
-            pd->groupIdx[i] = idx;
-            idx *= Binomial[pd->groupLen[i]][freeLen];
-            freeLen -= pd->groupLen[i];
-            ++i;
+            pd->groupIdx[next] = idx;
+            idx *= Binomial[pd->groupLen[next]][freeLen];
+            assert(int(freeLen) >= pd->groupLen[next]);
+            freeLen -= pd->groupLen[next];
+            ++next;
         }
 
     pd->groupIdx[n] = idx;
@@ -1181,8 +1184,6 @@ std::uint8_t* set_dtz_map(TBTable<DTZ>& entry, std::uint8_t* data, File maxFile)
 template<typename T>
 void set(T& entry, std::uint8_t* data) noexcept {
 
-    PairsData* pd;
-
     assert((entry.key[WHITE] != entry.key[BLACK]) == bool(*data & 1));
     assert(entry.hasPawns == bool(*data & 2));
 
@@ -1220,6 +1221,7 @@ void set(T& entry, std::uint8_t* data) noexcept {
 
     data = set_dtz_map(entry, data, maxFile);
 
+    PairsData* pd;
     for (File f = FILE_A; f <= maxFile; ++f)
         for (std::size_t i = 0; i < sides; ++i)
         {
@@ -1434,22 +1436,19 @@ void init() noexcept {
     for (const auto& [idx, s] : bothOnDiagonal)
         KKMap[idx][s] = code++;
 
-    // Binomial[] stores the Binomial Coefficients using Pascal rule. There
-    // are Binomial[k][n] ways to choose k elements from a set of n elements.
+    // Binomial[] stores the Binomial Coefficients using Pascal rule.
+    // There are Binomial[k][n] ways to choose k elements from a set of n elements.
     Binomial[0][0] = 1;
-    for (std::size_t n = 1; n < 64; ++n)                                // Squares
+    for (std::size_t n = 1; n < SQUARE_NB; ++n)                         // Squares
         for (std::size_t k = 0; k <= std::min(n, std::size_t(5)); ++k)  // Pieces
             Binomial[k][n] =
               (k > 0 ? Binomial[k - 1][n - 1] : 0) + (k < n ? Binomial[k][n - 1] : 0);
 
-    std::memset(LeadPawnIdx, 0, sizeof(LeadPawnIdx));
-    std::memset(LeadPawnSize, 0, sizeof(LeadPawnSize));
     // PawnsMap[s] encodes squares a2-h7 to (0..47).
     // This is the number of possible available squares when the leading one is in 's'.
     // Moreover the pawn with highest PawnsMap[] is the leading pawn, the one nearest the edge,
     // and among pawns with the same file, the one with the lowest rank.
     code = 47;  // Available squares when lead pawn is in a2
-
     // Init the tables for the encoding of leading pawn group:
     // with 7-men TB can have up to 5 leading pawns (KPPPPPK).
     for (std::size_t leadPawnCnt = 1; leadPawnCnt <= 5; ++leadPawnCnt)
@@ -1488,8 +1487,8 @@ void init() noexcept {
 // It is not thread safe, nor it needs to be.
 void init(std::string_view paths) noexcept {
 
-    tbTables.clear();
     MaxCardinality = 0;
+    tbTables.clear();
 
     if (!TBFile::init(paths))
         return;
@@ -1537,10 +1536,7 @@ void init(std::string_view paths) noexcept {
         }
     }
 
-    UCI::print_info_string("Tablebase: "  //
-                           + std::to_string(tbTables.wdl_count()) + " WDL and "
-                           + std::to_string(tbTables.dtz_count()) + " DTZ found (up to "
-                           + std::to_string(MaxCardinality) + "-man).");
+    UCI::print_info_string(tbTables.info());
 }
 
 // Probe the WDL table for a particular position.

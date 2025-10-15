@@ -978,7 +978,7 @@ Value Worker::search(Position&    pos,
         assert((ss - 1)->move != Move::Null);
 
         // Null move dynamic reduction based on depth and phase
-        Depth R = std::min(5 + depth / 3 + pos.phase() / 9, depth - 1);
+        Depth R = std::min(5 + depth / 3 + pos.phase() / 9 + improve, depth - 1);
 
         do_null_move(pos, st, ss);
 
