@@ -1388,7 +1388,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         }
 
         // Step 18. Full-depth search when LMR is skipped
-        else if (!PVNode || moveCount != 1)
+        else if (!PVNode || moveCount > 1)
         {
             // Increase reduction if ttMove is not present
             r += 1118 * (ttd.move == Move::None);

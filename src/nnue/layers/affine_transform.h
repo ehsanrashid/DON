@@ -55,13 +55,13 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
     // At least a multiple of 16, with SSE2.
     constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
 
-    const auto* inputVector = reinterpret_cast<const __m128i*>(input);
+    const __m128i* inputVector = reinterpret_cast<const __m128i*>(input);
 
     const __m128i Zeros = _mm_setzero_si128();
         #elif defined(USE_NEON)
     constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
 
-    const auto* inputVector = reinterpret_cast<const int8x8_t*>(input);
+    const int8x8_t* inputVector = reinterpret_cast<const int8x8_t*>(input);
         #endif
 
     for (IndexType i = 0; i < OutputDimensions; ++i)
@@ -69,9 +69,9 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
         IndexType offset = i * PaddedInputDimensions;
 
         #if defined(USE_SSE2)
-        __m128i     sumLo = _mm_cvtsi32_si128(biases[i]);
-        __m128i     sumHi = Zeros;
-        const auto* row   = reinterpret_cast<const __m128i*>(&weights[offset]);
+        __m128i        sumLo = _mm_cvtsi32_si128(biases[i]);
+        __m128i        sumHi = Zeros;
+        const __m128i* row   = reinterpret_cast<const __m128i*>(&weights[offset]);
         for (IndexType j = 0; j < ChunkCount; ++j)
         {
             __m128i row_j           = _mm_load_si128(&row[j]);
@@ -94,8 +94,8 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
 
         #elif defined(USE_NEON)
 
-        int32x4_t   sum = {biases[i]};
-        const auto* row = reinterpret_cast<const int8x8_t*>(&weights[offset]);
+        int32x4_t       sum = {biases[i]};
+        const int8x8_t* row = reinterpret_cast<const int8x8_t*>(&weights[offset]);
         for (IndexType j = 0; j < ChunkCount; ++j)
         {
             int16x8_t product = vmull_s8(inputVector[j * 2], row[j * 2]);
@@ -114,7 +114,7 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
     for (IndexType i = 0; i < InputDimensions; ++i)
         if (int in = input[i])
         {
-            const auto* w = &weights[i];
+            const std::int8_t* w = &weights[i];
             for (IndexType j = 0; j < OutputDimensions; ++j)
                 output[j] += w[j * PaddedInputDimensions] * in;
         }
@@ -205,7 +205,7 @@ class AffineTransform final {
         #define vec_hadd SIMD::neon_m128_hadd
     #endif
 
-            const auto* inputVector = reinterpret_cast<const vec_t*>(input);
+            const vec_t* inputVector = reinterpret_cast<const vec_t*>(input);
 
             constexpr IndexType InputSimdWidth = sizeof(vec_t) / sizeof(InputType);
 
@@ -213,8 +213,8 @@ class AffineTransform final {
 
             constexpr IndexType ChunkCount = PaddedInputDimensions / InputSimdWidth;
 
-            vec_t       sum0 = vec_setzero();
-            const auto* row0 = reinterpret_cast<const vec_t*>(&weights[0]);
+            vec_t        sum0 = vec_setzero();
+            const vec_t* row0 = reinterpret_cast<const vec_t*>(&weights[0]);
 
             for (IndexType i = 0; i < ChunkCount; ++i)
             {
@@ -257,16 +257,17 @@ class AffineTransform final {
             constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 8) / 4;
             constexpr IndexType RegCount   = OutputDimensions / OutputSimdWidth;
 
-            const auto* input32 = reinterpret_cast<const std::int32_t*>(input);
-            const auto* biasVec = reinterpret_cast<const vec_t*>(biases);
-            vec_t       acc[RegCount];
+            const auto*  input32 = reinterpret_cast<const std::int32_t*>(input);
+            const vec_t* biasVec = reinterpret_cast<const vec_t*>(biases);
+
+            vec_t acc[RegCount];
             for (IndexType k = 0; k < RegCount; ++k)
                 acc[k] = biasVec[k];
 
             for (IndexType i = 0; i < ChunkCount; ++i)
             {
-                const vec_t in = vec_set_32(input32[i]);
-                const auto* col =
+                const vec_t  in = vec_set_32(input32[i]);
+                const vec_t* col =
                   reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
 
                 for (IndexType k = 0; k < RegCount; ++k)

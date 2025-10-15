@@ -65,8 +65,8 @@ class SqrClippedReLU {
 
         static_assert(WEIGHT_SCALE_BITS == 6);
 
-        const auto* in  = reinterpret_cast<const __m128i*>(input);
-        auto*       out = reinterpret_cast<__m128i*>(output);
+        const __m128i* in  = reinterpret_cast<const __m128i*>(input);
+        __m128i*       out = reinterpret_cast<__m128i*>(output);
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
             __m128i words0 =
@@ -92,7 +92,7 @@ class SqrClippedReLU {
             output[i] = static_cast<OutputType>(
               // Really should be /127 but need to make it fast so right-shift
               // by an extra 7 bits instead. Needs to be accounted for in the trainer.
-              std::min(((long long) (input[i]) * input[i]) >> (7 + 2 * WEIGHT_SCALE_BITS), 127ll));
+              std::min(((long long) (input[i]) * input[i]) >> (7 + 2 * WEIGHT_SCALE_BITS), 127LL));
         }
     }
 };

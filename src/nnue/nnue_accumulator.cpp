@@ -90,11 +90,10 @@ struct AccumulatorUpdateContext final {
 };
 
 template<Color Perspective, IndexType Dimensions>
-AccumulatorUpdateContext<Perspective, Dimensions>
-make_accumulator_update_context(const FeatureTransformer<Dimensions>& featureTransformer,
-                                const AccumulatorState&               frAccSt,
-                                AccumulatorState&                     toAccSt) noexcept {
-    return {featureTransformer, frAccSt, toAccSt};
+auto make_accumulator_update_context(const FeatureTransformer<Dimensions>& featureTransformer,
+                                     const AccumulatorState&               frAccSt,
+                                     AccumulatorState&                     toAccSt) noexcept {
+    return AccumulatorUpdateContext<Perspective, Dimensions>{featureTransformer, frAccSt, toAccSt};
 }
 
 template<Color Perspective, IndexType TransformedFeatureDimensions>

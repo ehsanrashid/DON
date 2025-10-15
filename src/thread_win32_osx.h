@@ -32,10 +32,10 @@ namespace DON {
 
 class NativeThread final {
    public:
-    NativeThread() = delete;
+    NativeThread() noexcept = delete;
 
     template<typename Function, typename... Args>
-    NativeThread(Function&& func, Args&&... args) {
+    NativeThread(Function&& func, Args&&... args) noexcept {
         using Func = std::function<void()>;
         auto* funcPtr =
           new Func(std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
@@ -56,24 +56,9 @@ class NativeThread final {
         pthread_attr_destroy(&attribute);
     }
 
-    // RAII: join on destruction if thread is joinable
-    ~NativeThread() {
-        if (joinable())
-            join();
-    }
-
-    bool joinable() const noexcept { return !joined; }
-
-    void join() {
-        if (joined)
-            return;
-        pthread_join(thread, nullptr);
-        joined = true;
-    }
-
     // Non-copyable
-    NativeThread(const NativeThread&)            = delete;
-    NativeThread& operator=(const NativeThread&) = delete;
+    NativeThread(const NativeThread&) noexcept            = delete;
+    NativeThread& operator=(const NativeThread&) noexcept = delete;
 
     // Movable
     NativeThread(NativeThread&& nativeThread) noexcept :
@@ -81,18 +66,29 @@ class NativeThread final {
         joined(nativeThread.joined) {
         nativeThread.joined = true;
     }
-
     NativeThread& operator=(NativeThread&& nativeThread) noexcept {
         if (this != &nativeThread)
         {
-            if (joinable())
-                join();
+            join();
             thread = nativeThread.thread;
             joined = nativeThread.joined;
 
             nativeThread.joined = true;
         }
         return *this;
+    }
+
+    // RAII: join on destruction if thread is joinable
+    ~NativeThread() noexcept { join(); }
+
+    bool joinable() const noexcept { return !joined; }
+
+    void join() noexcept {
+        if (joinable())
+        {
+            pthread_join(thread, nullptr);
+            joined = true;
+        }
     }
 
    private:
