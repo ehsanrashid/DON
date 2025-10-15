@@ -31,23 +31,23 @@ namespace DON {
 class Position;
 
 struct PolyEntry final {
-
-    bool operator==(const PolyEntry& pe) const noexcept {
+   public:
+    constexpr bool operator==(const PolyEntry& pe) const noexcept {
         return std::tie(key, move, weight) == std::tie(pe.key, pe.move, pe.weight);
     }
-    bool operator!=(const PolyEntry& pe) const noexcept { return !(*this == pe); }
+    constexpr bool operator!=(const PolyEntry& pe) const noexcept { return !(*this == pe); }
 
-    bool operator<(const PolyEntry& pe) const noexcept {
+    constexpr bool operator<(const PolyEntry& pe) const noexcept {
         return std::tie(key, weight, move) < std::tie(pe.key, pe.weight, pe.move);
     }
-    bool operator>(const PolyEntry& pe) const noexcept { return (pe < *this); }
-    bool operator<=(const PolyEntry& pe) const noexcept { return !(*this > pe); }
-    bool operator>=(const PolyEntry& pe) const noexcept { return !(*this < pe); }
+    constexpr bool operator>(const PolyEntry& pe) const noexcept { return (pe < *this); }
+    constexpr bool operator<=(const PolyEntry& pe) const noexcept { return !(*this > pe); }
+    constexpr bool operator>=(const PolyEntry& pe) const noexcept { return !(*this < pe); }
 
-    bool operator==(const Move& m) const noexcept {
+    constexpr bool operator==(const Move& m) const noexcept {
         return move == (m.raw() & ~Move::MoveTypeMask);
     }
-    bool operator!=(const Move& m) const noexcept { return !(*this == m); }
+    constexpr bool operator!=(const Move& m) const noexcept { return !(*this == m); }
 
     friend std::ostream& operator<<(std::ostream& os, const PolyEntry& ph) noexcept;
 
@@ -62,13 +62,13 @@ class PolyBook final {
     PolyBook() = default;
     ~PolyBook() noexcept;
 
-    void clear() noexcept;
+    void free() noexcept;
 
     void init(std::string_view bookFile) noexcept;
 
-    Move probe(Position& pos, bool bestPick = true) noexcept;
+    bool active() const noexcept { return entries != nullptr; }
 
-    bool enabled() const noexcept { return enable; }
+    Move probe(Position& pos, bool bestPick = true) noexcept;
 
    private:
     struct KeyData final {
@@ -86,13 +86,12 @@ class PolyBook final {
 
     void show_key_data() const noexcept;
 
-    PolyEntry*  entries    = nullptr;
-    std::size_t entryCount = 0;
-    bool        enable     = false;
+    PolyEntry*  entries = nullptr;
+    std::size_t entryCount;
 
     // Last probe info
-    Bitboard      occupied  = 0;
-    std::uint16_t failCount = 0;
+    Bitboard      occupied;
+    std::uint16_t failCount;
 
     // Key data
     KeyData keyData;

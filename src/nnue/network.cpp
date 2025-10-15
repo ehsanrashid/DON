@@ -233,7 +233,7 @@ void Network<Arch, Transformer>::verify(std::string evalFileName) const noexcept
                         + "ERROR: " + msg3 + '\n'  //
                         + "ERROR: " + msg4 + '\n'  //
                         + "ERROR: " + msg5 + '\n';
-        UCI::print_info_string(msg);
+        std::cerr << msg << std::endl;
         std::exit(EXIT_FAILURE);
     }
 

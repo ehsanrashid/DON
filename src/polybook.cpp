@@ -386,54 +386,51 @@ std::ostream& operator<<(std::ostream& os, const PolyEntry& pe) noexcept {
 }
 
 
-PolyBook::~PolyBook() noexcept { clear(); }
+PolyBook::~PolyBook() noexcept { free(); }
 
-void PolyBook::clear() noexcept {
-    if (entries != nullptr)
-    {
-        free(entries);
-        entries = nullptr;
-    }
-    enable     = false;
-    entryCount = 0;
-    occupied   = 0;
-    failCount  = 0;
+void PolyBook::free() noexcept {
+    ::free(entries);
+    entries = nullptr;
 }
 
 void PolyBook::init(std::string_view bookFile) noexcept {
-    clear();
+    free();
 
     if (bookFile.empty())
         return;
 
-    FILE* fptr = std::fopen(bookFile.data(), "rb");
-    if (fptr == nullptr)
+    FILE* file = std::fopen(bookFile.data(), "rb");
+    if (file == nullptr)
     {
-        UCI::print_info_string("Could not open " + std::string(bookFile));
+        std::cerr << "Failed to open file " << bookFile << std::endl;
         return;
     }
 
-    std::fseek(fptr, 0L, SEEK_END);
-    std::size_t fileSize = std::ftell(fptr);
-    std::rewind(fptr);
-
-    entries = static_cast<PolyEntry*>(malloc(fileSize));
-    if (entries == nullptr)
-    {
-        UCI::print_info_string("Memory allocation failed: " + std::string(bookFile));
-        std::fclose(fptr);
-        return;
-    }
+    std::fseek(file, 0L, SEEK_END);
+    std::size_t fileSize = std::ftell(file);
+    std::rewind(file);
 
     entryCount = fileSize / sizeof(PolyEntry);
+    occupied   = 0;
+    failCount  = 0;
 
-    std::size_t readSize = std::fread(entries, 1, fileSize, fptr);
-    std::fclose(fptr);
-
-    if (readSize != fileSize)
+    fileSize = entryCount * sizeof(PolyEntry);
+    entries  = static_cast<PolyEntry*>(malloc(fileSize));
+    if (entries == nullptr)
     {
-        UCI::print_info_string("Could not read " + std::string(bookFile));
-        clear();
+        std::cerr << "Failed to allocate memory: " << fileSize << " for file " << bookFile
+                  << std::endl;
+        std::fclose(file);
+        return;
+    }
+
+    std::size_t bytesRead = std::fread(entries, 1, fileSize, file);
+    std::fclose(file);
+
+    if (bytesRead != fileSize)
+    {
+        std::cerr << "Failed to read complete file " << bookFile << std::endl;
+        free();
         return;
     }
 
@@ -441,14 +438,12 @@ void PolyBook::init(std::string_view bookFile) noexcept {
         for (std::size_t i = 0; i < entryCount; ++i)
             swap_polyEntry(&entries[i]);
 
-    enable = true;
-
     UCI::print_info_string("Book: " + std::string(bookFile) + " with " + std::to_string(entryCount)
                            + " entries");
 }
 
 Move PolyBook::probe(Position& pos, bool bestPick) noexcept {
-    assert(enabled());
+    assert(active());
 
     Key key = polyglot_key(pos);
 

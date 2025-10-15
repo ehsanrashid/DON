@@ -218,7 +218,7 @@ class TBFile: public std::ifstream {
 
         if (bufStat.st_size % 64 != 16)
         {
-            UCI::print_info_string("Corrupt tablebase file " + filename);
+            std::cerr << "Corrupt tablebase file " << filename << std::endl;
             std::exit(EXIT_FAILURE);
         }
 
@@ -231,7 +231,7 @@ class TBFile: public std::ifstream {
 
         if (*baseAddress == MAP_FAILED)
         {
-            UCI::print_info_string("Could not mmap(), name = " + filename);
+            std::cerr << "Could not mmap(), name = " << filename << std::endl;
             std::exit(EXIT_FAILURE);
         }
 #else
@@ -247,7 +247,7 @@ class TBFile: public std::ifstream {
 
         if (lowSize % 64 != 16)
         {
-            UCI::print_info_string("Corrupt tablebase file " + filename);
+            std::cerr << "Corrupt tablebase file " << filename << std::endl;
             std::exit(EXIT_FAILURE);
         }
 
@@ -257,7 +257,7 @@ class TBFile: public std::ifstream {
 
         if (!mapHandle)
         {
-            UCI::print_info_string("CreateFileMapping() failed, name = " + filename);
+            std::cerr << "CreateFileMapping() failed, name = " << filename << std::endl;
             std::exit(EXIT_FAILURE);
         }
 
@@ -266,8 +266,8 @@ class TBFile: public std::ifstream {
 
         if (!*baseAddress)
         {
-            UCI::print_info_string("MapViewOfFile() failed, name = " + filename
-                                   + ", error = " + std::to_string(GetLastError()));
+            std::cerr << "MapViewOfFile() failed, name = " << filename
+                      << ", error = " << GetLastError() << std::endl;
             std::exit(EXIT_FAILURE);
         }
 #endif
@@ -280,7 +280,7 @@ class TBFile: public std::ifstream {
 
         if (std::memcmp(data, Magics[Type == WDL], MagicSize))
         {
-            UCI::print_info_string("Corrupted table in file " + filename);
+            std::cerr << "Corrupted table in file " << filename << std::endl;
             unmap(*baseAddress, *mapping);
             return *baseAddress = nullptr, nullptr;
         }
@@ -491,7 +491,7 @@ class TBTables final {
             }
         }
 
-        UCI::print_info_string("TB hash table size too low!");
+        std::cerr << "TB hash table size too low!" << std::endl;
         std::exit(EXIT_FAILURE);
     }
 

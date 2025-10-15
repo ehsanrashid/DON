@@ -472,7 +472,6 @@ class Move {
 
     constexpr auto raw() const noexcept { return move; }
 
-    // Friend comparison operators
     constexpr bool operator==(const Move& m) const noexcept { return move == m.move; }
     constexpr bool operator!=(const Move& m) const noexcept { return !(*this == m); }
 

@@ -278,7 +278,7 @@ void Worker::start_search() noexcept {
         if (!limit.infinite && limit.mate == 0)
         {
             // Check polyglot book
-            if (options["OwnBook"] && Book.enabled()
+            if (options["OwnBook"] && Book.active()
                 && rootPos.move_num() < options["BookProbeDepth"])
                 bookBestMove = Book.probe(rootPos, options["BookBestPick"]);
         }

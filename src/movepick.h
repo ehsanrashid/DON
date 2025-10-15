@@ -67,10 +67,10 @@ struct ExtMove final: public Move {
    public:
     using Move::operator=;
 
-    bool operator<(const ExtMove& em) const noexcept { return value < em.value; }
-    bool operator>(const ExtMove& em) const noexcept { return (em < *this); }
-    bool operator<=(const ExtMove& em) const noexcept { return !(*this > em); }
-    bool operator>=(const ExtMove& em) const noexcept { return !(*this < em); }
+    constexpr bool operator<(const ExtMove& em) const noexcept { return value < em.value; }
+    constexpr bool operator>(const ExtMove& em) const noexcept { return (em < *this); }
+    constexpr bool operator<=(const ExtMove& em) const noexcept { return !(*this > em); }
+    constexpr bool operator>=(const ExtMove& em) const noexcept { return !(*this < em); }
 
     int value;
 };
