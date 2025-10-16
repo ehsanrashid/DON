@@ -451,11 +451,10 @@ class Move {
     static constexpr std::uint16_t PromoMask    = 0x3;    // 2 bits for promotion type
     static constexpr std::uint16_t MoveTypeMask = CASTLING;
 
+    constexpr Move() noexcept = default;
     // Constructors using delegating syntax
     constexpr explicit Move(std::uint16_t m) noexcept :
         move(m) {}
-    constexpr Move() noexcept :
-        Move(0) {}
     constexpr Move(MoveType T, Square org, Square dst) noexcept :
         Move(T | (int(org) << 6) | (int(dst) << 0)) {}
     constexpr Move(Square org, Square dst) noexcept :
@@ -472,7 +471,7 @@ class Move {
         return PieceType(((move >> 12) & PromoMask) + int(KNIGHT));
     }
 
-    constexpr auto raw() const noexcept { return move; }
+    constexpr std::uint16_t raw() const noexcept { return move; }
 
     constexpr bool operator==(const Move& m) const noexcept { return move == m.move; }
     constexpr bool operator!=(const Move& m) const noexcept { return !(*this == m); }
@@ -489,7 +488,7 @@ class Move {
     static const Move Null;
 
    protected:
-    std::uint16_t move;
+    std::uint16_t move{0};
 };
 
 // **Define the constexpr static members outside the class**

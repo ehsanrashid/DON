@@ -96,6 +96,7 @@ class CuckooTable final {
     }
 
     void insert(Cuckoo cuckoo) noexcept {
+        assert(!cuckoo.empty());
         std::size_t index = H<0>(cuckoo.key);
         while (true)
         {
@@ -104,6 +105,7 @@ class CuckooTable final {
                 break;
             index ^= H<0>(cuckoo.key) ^ H<1>(cuckoo.key);  // Push victim to alternative slot
         }
+        assert(cuckoo.empty());
         ++count;
     }
 
