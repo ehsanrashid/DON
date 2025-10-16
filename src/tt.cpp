@@ -85,9 +85,13 @@ ProbResult TranspositionTable::probe(Key key, Key16 key16) const noexcept {
         if (entry.key16 == key16)
             return {entry.read(), &entry, ttc};
 
-    return {{false, false, BOUND_NONE, Move::None, DEPTH_OFFSET, VALUE_NONE, VALUE_NONE},
-            &ttc->entries[0],
-            ttc};
+    // Find an entry to be replaced according to the replacement strategy
+    auto* tte = &ttc->entries[0];
+    for (std::size_t i = 1; i < TTCluster::EntryCount; ++i)
+        if (tte->worth(generation8) > ttc->entries[i].worth(generation8))
+            tte = &ttc->entries[i];
+
+    return {{false, false, BOUND_NONE, Move::None, DEPTH_OFFSET, VALUE_NONE, VALUE_NONE}, tte, ttc};
 }
 
 ProbResult TranspositionTable::probe(Key key) const noexcept {

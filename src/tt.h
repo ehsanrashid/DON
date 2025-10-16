@@ -206,30 +206,8 @@ class TTUpdater final {
         generation(gen) {}
 
     void update(Depth d, bool pv, Bound b, const Move& m, Value v, Value ev) noexcept {
-
-        if (tte->key16 != key16)
-        {
-            bool found = false;
-            for (auto& entry : ttc->entries)
-                if (entry.key16 == key16)
-                {
-                    tte   = &entry;
-                    found = true;
-                    break;
-                }
-
-            if (!found)
-            {
-                // Find an entry to be replaced according to the replacement strategy
-                tte = &ttc->entries[0];
-                for (std::size_t i = 1; i < TTCluster::EntryCount; ++i)
-                    if (tte->worth(generation) > ttc->entries[i].worth(generation))
-                        tte = &ttc->entries[i];
-            }
-        }
-        else
-            for (; tte != &ttc->entries[0] && (tte - 1)->key16 == key16; --tte)
-                tte->clear();
+        for (; tte != &ttc->entries[0] && (tte - 1)->key16 == key16; --tte)
+            tte->clear();
 
         tte->save(key16, d, pv, b, m, v, ev, generation);
     }
