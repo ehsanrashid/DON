@@ -86,12 +86,12 @@ ProbResult TranspositionTable::probe(Key key, Key16 key16) const noexcept {
             return {entry.read(), &entry, ttc};
 
     // Find an entry to be replaced according to the replacement strategy
-    auto* tte = &ttc->entries[0];
+    auto* rte = &ttc->entries[0];
     for (std::size_t i = 1; i < TTCluster::EntryCount; ++i)
-        if (tte->worth(generation8) > ttc->entries[i].worth(generation8))
-            tte = &ttc->entries[i];
+        if (rte->worth(generation8) > ttc->entries[i].worth(generation8))
+            rte = &ttc->entries[i];
 
-    return {{false, false, BOUND_NONE, Move::None, DEPTH_OFFSET, VALUE_NONE, VALUE_NONE}, tte, ttc};
+    return {{false, false, BOUND_NONE, Move::None, DEPTH_OFFSET, VALUE_NONE, VALUE_NONE}, rte, ttc};
 }
 
 ProbResult TranspositionTable::probe(Key key) const noexcept {
@@ -112,7 +112,7 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
         for (const auto& entry : clusters[idx].entries)
             cnt += entry.occupied() && entry.relative_age(generation8) <= maxRelAge;
 
-    return (cnt + TTCluster::EntryCount / 2) / TTCluster::EntryCount;
+    return cnt / TTCluster::EntryCount;
 }
 
 std::uint16_t TranspositionTable::hashfull() noexcept {

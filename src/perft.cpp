@@ -222,14 +222,14 @@ void PerftTable::init(ThreadPool& threads) noexcept {
 ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
     auto* const ptc = cluster(key);
-    auto* const fte = &ptc->entries[0];
 
     Key32 key32 = compress_key32(key);
     for (auto& entry : ptc->entries)
         if (entry.key32 == key32 && entry.depth16 == depth)
             return {true, &entry};
 
-    auto* rte = fte;
+    auto* const fte = &ptc->entries[0];
+    auto*       rte = fte;
     for (std::size_t i = 1; i < PTCluster::EntryCount; ++i)
         if (rte->depth16 > ptc->entries[i].depth16)
             rte = &ptc->entries[i];
