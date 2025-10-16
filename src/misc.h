@@ -151,11 +151,11 @@ class sync_ostream final {
 inline sync_ostream sync_os(std::ostream& os = std::cout) { return sync_ostream(os); }
 
 template<typename T, std::size_t MaxSize>
-class ArrayList final {
+class FixedVector final {
     static_assert(MaxSize > 0, "MaxSize must be > 0");
 
    public:
-    constexpr ArrayList() noexcept = default;
+    constexpr FixedVector() noexcept = default;
 
     [[nodiscard]] static constexpr std::size_t capacity() noexcept { return MaxSize; }
 

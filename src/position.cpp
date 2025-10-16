@@ -88,7 +88,7 @@ class CuckooTable final {
         return (key >> (16 * Index)) & (size() - 1);
     }
 
-    constexpr void fill(Cuckoo&& cuckoo) noexcept { cuckoos.fill(std::move(cuckoo)); }
+    constexpr void fill(const Cuckoo& cuckoo) noexcept { cuckoos.fill(cuckoo); }
 
     constexpr void init() noexcept {
         fill({0, Move::None});
@@ -1805,17 +1805,15 @@ bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
 
         Move m = Cuckoos[index].move;
         assert(m != Move::None);
-        Square s1 = m.org_sq();
-        Square s2 = m.dst_sq();
 
         // Move path is obstructed
-        if (pieces() & between_ex_bb(s1, s2))
+        if (pieces() & between_ex_bb(m.org_sq(), m.dst_sq()))
             continue;
 
 #if !defined(NDEBUG)
         // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location
-        if (empty_on(s1))
-            m = Move(s2, s1);
+        if (empty_on(m.org_sq()))
+            m = m.reverse();
         assert(pseudo_legal(m) && legal(m) && MoveList<LEGAL>(*this).contains(m));
 #endif
         if (i < ply
