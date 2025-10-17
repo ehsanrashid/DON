@@ -738,10 +738,7 @@ Value Worker::search(Position&    pos,
     const bool exclude = excludedMove != Move::None;
 
     // Step 4. Transposition table lookup
-    Key16 key16 = compress_key16(key);
-
-    auto [ttd, tte, ttc] = tt.probe(key, key16);
-    TTUpdater ttu(tte, ttc, key16, tt.generation());
+    auto [ttd, ttu] = tt.probe(key);
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = RootNode ? rootMoves[curIdx].pv[0]
@@ -791,7 +788,7 @@ Value Worker::search(Position&    pos,
                 && !is_decisive(ttd.value))
             {
                 pos.do_move(ttd.move, st);
-                auto [_ttd, _tte, _ttc] = tt.probe(pos.key());
+                auto [_ttd, _ttu] = tt.probe(pos.key());
                 _ttd.value =
                   _ttd.hit ? value_from_tt(_ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
                 pos.undo_move(ttd.move);
@@ -1647,10 +1644,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
     // Step 3. Transposition table lookup
-    Key16 key16 = compress_key16(key);
-
-    auto [ttd, tte, ttc] = tt.probe(key, key16);
-    TTUpdater ttu(tte, ttc, key16, tt.generation());
+    auto [ttd, ttu] = tt.probe(key);
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = ttd.hit ? pseudo_legal_tt_move(ttd.move, pos) : Move::None;
@@ -1918,7 +1912,7 @@ bool Worker::ponder_move_extracted() noexcept {
     {
         Move pm;
 
-        auto [ttd, tte, ttc] = tt.probe(rootPos.key());
+        auto [ttd, ttu] = tt.probe(rootPos.key());
 
         pm = ttd.hit ? pseudo_legal_tt_move(ttd.move, rootPos) : Move::None;
         if (pm == Move::None || !legalMoveList.contains(pm))

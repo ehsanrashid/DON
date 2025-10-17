@@ -195,13 +195,13 @@ class TestInteractive(metaclass=OrderedClassMembers):
     def test_set_threads_option(self):
         self.engine.setoption("Threads", str(get_threads()))
 
-    def test_ucinewgame_startpos_go_nodes_1000(self):
+    def test_startpos_go_nodes_1000(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position startpos")
         self.engine.send_command("go nodes 1000")
         self.engine.starts_with("bestmove")
 
-    def test_ucinewgame_startpos_moves_go_nodes_1000(self):
+    def test_startpos_moves_go_nodes_1000(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position startpos moves e2e4 e7e6")
         self.engine.send_command("go nodes 1000")
@@ -220,7 +220,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.send_command("go nodes 1000")
         self.engine.starts_with("bestmove")
 
-    def test_ucinewgame_startpos_go_depth_5_callback(self):
+    def test_startpos_go_depth_5_callback(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
@@ -235,7 +235,23 @@ class TestInteractive(metaclass=OrderedClassMembers):
 
         self.engine.check_output(callback)
 
-    def test_ucinewgame_wdl_startpos_go_depth_9_callback(self):
+    def test_wdl_startpos_go_depth_5_callback(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.setoption("UCI_ShowWDL", "true")
+        self.engine.send_command("position startpos")
+        self.engine.send_command("go depth 5")
+
+        def callback(output):
+            regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp \d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            if output.startswith("info depth") and not re.match(regex, output):
+                assert False
+            if output.startswith("bestmove"):
+                return True
+            return False
+
+        self.engine.check_output(callback)
+
+    def test_wdl_startpos_go_depth_9_callback(self):
         self.engine.send_command("ucinewgame")
         self.engine.setoption("UCI_ShowWDL", "true")
         self.engine.send_command("position startpos")

@@ -122,8 +122,7 @@ struct PTEntry final {
 
     constexpr std::uint64_t nodes() const noexcept { return nodes64; }
 
-    void save(Key k, Depth d, std::uint64_t n) noexcept {
-        Key32 k32 = compress_key32(k);
+    void save(Key32 k32, Depth d, std::uint64_t n) noexcept {
         if ((key32 == k32 && depth16 >= d) || nodes64 >= 10000 + n)
             return;
         key32   = k32;
@@ -304,7 +303,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
                     else
                     {
                         iPerft = perft<false>(pos, depth - 1, detail);
-                        pte->save(key, depth - 1, iPerft.nodes);
+                        pte->save(compress_key32(key), depth - 1, iPerft.nodes);
                     }
                 }
                 else
