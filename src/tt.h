@@ -19,7 +19,7 @@
 #define TT_H_INCLUDED
 
 #include <atomic>
-#include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <string_view>
 #include <tuple>
