@@ -38,8 +38,8 @@ namespace {
 
 constexpr std::size_t PawnOffset = 8;
 
-constexpr Piece Pieces[COLOR_NB * KING]{W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,  //
-                                        B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
+constexpr Piece Pieces[]{W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,  //
+                         B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
 
 // Implements Marcel van Kervinck's cuckoo algorithm to detect repetition of positions for 3-fold repetition draws.
 // The algorithm uses hash tables with Zobrist hashes to allow fast detection of recurring positions.
@@ -164,10 +164,6 @@ void init() noexcept {
     turn = rng.rand<Key>();
 }
 }  // namespace Zobrist
-
-std::uint8_t DrawMoveCount = 50U;
-
-bool Chess960 = false;
 
 // Called at startup to initialize the Zobrist arrays used to compute hash keys
 void Position::init() noexcept {

@@ -214,8 +214,6 @@ void on_update_move(const MoveInfo& info) noexcept;
 
 }  // namespace
 
-bool UCI::InfoStringStop = false;
-
 UCI::UCI(int argc, const char* argv[]) noexcept :
     engine(argv[0]),
     commandLine(argc, argv) {
@@ -819,7 +817,7 @@ std::string UCI::move_to_can(const Move& m) noexcept {
         return "0000";
 
     Square org = m.org_sq(), dst = m.dst_sq();
-    if (m.type_of() == CASTLING && !Chess960)
+    if (m.type_of() == CASTLING && !Position::Chess960)
     {
         assert(rank_of(org) == rank_of(dst));
         dst = make_square(org < dst ? FILE_G : FILE_C, rank_of(org));

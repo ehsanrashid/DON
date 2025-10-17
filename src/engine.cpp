@@ -86,8 +86,8 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("SkillLevel",           Option(Skill::MaxLevel, Skill::MinLevel, Skill::MaxLevel));
     options.add("MoveOverhead",         Option(10, 0, 5000));
     options.add("NodesTime",            Option(0, 0, 10000));
-    options.add("DrawMoveCount",        Option(DrawMoveCount, 5, 50, [](const Option& o) { DrawMoveCount = int(o); return std::nullopt; }));
-    options.add("UCI_Chess960",         Option(Chess960,             [](const Option& o) { Chess960 = bool(o); return std::nullopt; }));
+    options.add("DrawMoveCount",        Option(Position::DrawMoveCount, 5, 50, [](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; }));
+    options.add("UCI_Chess960",         Option(Position::Chess960,             [](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; }));
     options.add("UCI_LimitStrength",    Option(false));
     options.add("UCI_ELO",              Option(Skill::MaxELO, Skill::MinELO, Skill::MaxELO));
     options.add("UCI_ShowWDL",          Option(false));
@@ -154,8 +154,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
         Move m = UCI::mix_to_move(move, pos, MoveList<LEGAL>(pos));
         if (m == Move::None)
         {
-            UCI::print_info_string("Invalid move in the moves list at " + std::to_string(ply) + ": "
-                                   + move);
+            std::cerr << "Invalid move in the moves list at " << ply << ": " << move << std::endl;
             break;
         }
         assert(pos.rule50_count() <= 100);

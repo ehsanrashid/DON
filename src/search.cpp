@@ -101,11 +101,11 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::int16_t rule50Coun
     if (is_win(v))
     {
         // Downgrade a potentially false mate value
-        if (is_mate_win(v) && VALUE_MATE - v > 2 * DrawMoveCount - rule50Count)
+        if (is_mate_win(v) && VALUE_MATE - v > 2 * Position::DrawMoveCount - rule50Count)
             return VALUE_TB_WIN_IN_MAX_PLY - 1;
 
         // Downgrade a potentially false TB value
-        if (VALUE_TB - v > 2 * DrawMoveCount - rule50Count)
+        if (VALUE_TB - v > 2 * Position::DrawMoveCount - rule50Count)
             return VALUE_TB_WIN_IN_MAX_PLY - 1;
 
         return v - ply;
@@ -114,11 +114,11 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::int16_t rule50Coun
     if (is_loss(v))
     {
         // Downgrade a potentially false mate value
-        if (is_mate_loss(v) && VALUE_MATE + v > 2 * DrawMoveCount - rule50Count)
+        if (is_mate_loss(v) && VALUE_MATE + v > 2 * Position::DrawMoveCount - rule50Count)
             return VALUE_TB_LOSS_IN_MAX_PLY + 1;
 
         // Downgrade a potentially false TB value
-        if (VALUE_TB + v > 2 * DrawMoveCount - rule50Count)
+        if (VALUE_TB + v > 2 * Position::DrawMoveCount - rule50Count)
             return VALUE_TB_LOSS_IN_MAX_PLY + 1;
 
         return v + ply;

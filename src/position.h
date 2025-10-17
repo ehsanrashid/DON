@@ -87,15 +87,6 @@ using StateListPtr = std::unique_ptr<StateList>;
 constexpr std::uint8_t R50Offset = 14U;
 constexpr std::uint8_t R50Factor = 8U;
 
-extern std::uint8_t DrawMoveCount;
-
-extern bool Chess960;
-
-inline std::uint8_t rule50_threshold(std::int8_t r50 = -4) noexcept {
-    assert(r50 >= -2 * DrawMoveCount);
-    return r50 + 2 * DrawMoveCount;
-}
-
 // Position class stores information regarding the board representation as
 // pieces, active color, hash keys, castling info, etc. (Size = 192)
 // Important methods are do_move() and undo_move(),
@@ -160,6 +151,9 @@ class Position final {
     };
 
     static void init() noexcept;
+
+    static inline bool         Chess960      = false;
+    static inline std::uint8_t DrawMoveCount = 50U;
 
     Position() noexcept = default;
 
@@ -257,7 +251,7 @@ class Position final {
     auto  captured(const Move& m) const noexcept;
 
     // Hash keys
-    Key key(std::int16_t ply = 0) const noexcept;
+    Key key(std::int8_t r50 = 0) const noexcept;
     Key pawn_key(Color c) const noexcept;
     Key pawn_key() const noexcept;
     Key minor_key(Color c) const noexcept;
@@ -370,7 +364,7 @@ class Position final {
                      Square&           rDst,
                      DirtyPiece* const dp = nullptr) noexcept;
 
-    Key adjust_key(Key k, std::int16_t ply = 0) const noexcept;
+    Key adjust_key(Key k, std::int8_t r50 = 0) const noexcept;
 
     void reset_ep_sq() noexcept;
     void reset_rule50_count() noexcept;
@@ -571,13 +565,13 @@ inline Piece Position::captured_piece() const noexcept { return st->capturedPiec
 
 inline Piece Position::promoted_piece() const noexcept { return st->promotedPiece; }
 
-inline Key Position::adjust_key(Key k, std::int16_t ply) const noexcept {
-    return st->rule50Count + ply - R50Offset < 0
+inline Key Position::adjust_key(Key k, std::int8_t r50) const noexcept {
+    return st->rule50Count + r50 - R50Offset < 0
            ? k
-           : k ^ make_hash((st->rule50Count + ply - R50Offset) / R50Factor);
+           : k ^ make_hash((st->rule50Count + r50 - R50Offset) / R50Factor);
 }
 
-inline Key Position::key(std::int16_t ply) const noexcept { return adjust_key(st->key, ply); }
+inline Key Position::key(std::int8_t r50) const noexcept { return adjust_key(st->key, r50); }
 
 inline Key Position::pawn_key(Color c) const noexcept { return st->pawnKey[c]; }
 
@@ -752,6 +746,11 @@ inline bool Position::SEE::operator>(int threshold) const noexcept {
 }
 inline bool Position::SEE::operator<=(int threshold) const noexcept { return !(*this > threshold); }
 inline bool Position::SEE::operator<(int threshold) const noexcept { return !(*this >= threshold); }
+
+inline std::uint8_t rule50_threshold(std::int8_t r50 = -4) noexcept {
+    assert(r50 >= -2 * Position::DrawMoveCount);
+    return r50 + 2 * Position::DrawMoveCount;
+}
 
 }  // namespace DON
 
