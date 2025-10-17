@@ -24,7 +24,6 @@
 #include <string_view>
 #include <tuple>
 
-#include "misc.h"
 #include "types.h"
 
 namespace DON {
@@ -116,6 +115,7 @@ class TranspositionTable final {
     void init(ThreadPool& threads) noexcept;
 
     ProbResult probe(Key key) const noexcept;
+    void       prefetch_key(Key key) const noexcept;
 
     std::uint16_t hashfull(std::uint8_t maxAge) const noexcept;
     std::uint16_t hashfull() noexcept;
@@ -123,18 +123,13 @@ class TranspositionTable final {
     bool save(std::string_view hashFile) const noexcept;
     bool load(std::string_view hashFile, ThreadPool& threads) noexcept;
 
+    std::atomic<std::uint16_t> hashFull;
+
    private:
     void free() noexcept;
 
     TTCluster* cluster(Key key) const noexcept;
 
-   public:
-    // Prefetch the cache line which includes this key's entry
-    void prefetch_key(Key key) const noexcept { prefetch(cluster(key)); }
-
-    std::atomic<std::uint16_t> hashFull;
-
-   private:
     TTCluster*   clusters = nullptr;
     std::size_t  clusterCount;
     std::uint8_t generation8;  // Size must be not bigger than TTEntry::genData8

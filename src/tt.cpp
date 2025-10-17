@@ -26,6 +26,7 @@
 #include <limits>
 #include <string>
 
+#include "misc.h"
 #include "memory.h"
 #include "thread.h"
 
@@ -231,6 +232,9 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
     return {TTData{false, false, BOUND_NONE, Move::None, DEPTH_OFFSET, VALUE_NONE, VALUE_NONE},
             TTUpdater{rte, ttc, key16, generation8}};
 }
+
+// Prefetch the cache line which includes this key's entry
+void TranspositionTable::prefetch_key(Key key) const noexcept { prefetch(cluster(key)); }
 
 // Returns an approximation of the hashtable occupation during a search.
 // The hash is x permill full, as per UCI protocol.
