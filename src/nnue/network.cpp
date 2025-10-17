@@ -255,7 +255,7 @@ Network<Arch, Transformer>::evaluate(const Position&                         pos
                                      AccumulatorCaches::Cache<TFDimensions>* cache) const noexcept {
 
     alignas(CACHE_LINE_SIZE)
-      TransformedFeatureType transformedFeatures[FeatureTransformer<TFDimensions>::BufferSize]{};
+      TransformedFeatureType transformedFeatures[FeatureTransformer<TFDimensions>::BufferSize];
 
     ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
 
@@ -274,11 +274,11 @@ Network<Arch, Transformer>::trace(const Position&                         pos,
                                   AccumulatorCaches::Cache<TFDimensions>* cache) const noexcept {
 
     alignas(CACHE_LINE_SIZE)
-      TransformedFeatureType transformedFeatures[FeatureTransformer<TFDimensions>::BufferSize]{};
+      TransformedFeatureType transformedFeatures[FeatureTransformer<TFDimensions>::BufferSize];
 
     ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
 
-    NetworkTrace netTrace{};
+    NetworkTrace netTrace;
     netTrace.correctBucket = pos.bucket();
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
