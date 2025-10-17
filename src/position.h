@@ -604,10 +604,8 @@ inline std::int32_t Position::move_num() const noexcept {
 }
 
 inline std::int32_t Position::phase() const noexcept {
-    constexpr int MaxPhase = 24;
-
-    return std::max(
-      MaxPhase - count<KNIGHT>() - count<BISHOP>() - 2 * count<ROOK>() - 4 * count<QUEEN>(), 0);
+    return std::max(24 - count<KNIGHT>() - count<BISHOP>() - 2 * count<ROOK>() - 4 * count<QUEEN>(),
+                    0);
 }
 
 inline std::int16_t Position::rule50_count() const noexcept { return st->rule50Count; }
@@ -653,9 +651,9 @@ inline Value Position::bonus() const noexcept {
     Color ac = active_color();
     // clang-format off
     return (+20 * (bishop_paired(ac) - bishop_paired(~ac))
-            +56 * ((can_castle(ac & ANY_CASTLING) || castled(ac))
+            +56 * ((can_castle( ac & ANY_CASTLING) || castled( ac))
                  - (can_castle(~ac & ANY_CASTLING) || castled(~ac))))
-         * (1.0f - 4.1250e-2f * phase());
+         * (1.0 - 4.1250e-2 * phase());
     // clang-format on
 }
 

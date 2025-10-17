@@ -149,6 +149,7 @@ class ClippedReLU {
             pack[1]        = vqshrn_n_s32(in[i * 2 + 1], WEIGHT_SCALE_BITS);
             out[i]         = vmax_s8(vqmovn_s16(shifted), Zero);
         }
+
         constexpr IndexType Start = (SIMD_WIDTH / 2) * ChunkCount;
 #else
         constexpr IndexType Start = 0;

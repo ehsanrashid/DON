@@ -176,9 +176,9 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
 
     constexpr std::size_t Size = sizeof(IntType);
 
-    constexpr std::size_t BuffSize = 4096;
-    std::uint8_t          buffer[BuffSize];
-    std::size_t           buffPos = BuffSize;
+    constexpr std::size_t BufSize = 4096;
+    std::uint8_t          buffer[BufSize];
+    std::size_t           bufPos = BufSize;
 
     std::size_t byteCount = read_little_endian<std::uint32_t>(istream);
 
@@ -189,13 +189,13 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
         std::size_t shift = 0;
         do
         {
-            if (buffPos == BuffSize)
+            if (bufPos == BufSize)
             {
-                istream.read(reinterpret_cast<char*>(buffer), std::min(buffPos, byteCount));
-                buffPos = 0;
+                istream.read(reinterpret_cast<char*>(buffer), std::min(bufPos, byteCount));
+                bufPos = 0;
             }
 
-            std::uint8_t byt = buffer[buffPos++];
+            std::uint8_t byt = buffer[bufPos++];
             --byteCount;
             value |= (byt & 0x7F) << shift;
             shift += 7;
@@ -239,20 +239,20 @@ inline void write_leb_128(std::ostream& ostream, const IntType* in, std::size_t 
 
     write_little_endian<std::uint32_t>(ostream, byteCount);
 
-    constexpr std::size_t BuffSize = 4096;
-    std::uint8_t          buffer[BuffSize];
-    std::size_t           buffPos = 0;
+    constexpr std::size_t BufSize = 4096;
+    std::uint8_t          buffer[BufSize];
+    std::size_t           bufPos = 0;
 
     auto flush = [&]() {
-        if (buffPos == 0)
+        if (bufPos == 0)
             return;
-        ostream.write(reinterpret_cast<char*>(buffer), buffPos);
-        buffPos = 0;
+        ostream.write(reinterpret_cast<char*>(buffer), bufPos);
+        bufPos = 0;
     };
 
     auto write = [&](std::uint8_t byt) {
-        buffer[buffPos++] = byt;
-        if (buffPos == BuffSize)
+        buffer[bufPos++] = byt;
+        if (bufPos == BufSize)
             flush();
     };
 

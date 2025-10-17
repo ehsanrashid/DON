@@ -96,17 +96,17 @@ struct TTEntry final {
         if (key16 != k16 || m != Move::None)
             move16 = m;
         // Overwrite less valuable entries (cheapest checks first)
-        if (key16 != k16 || b == BOUND_EXACT           //
-            || depth8 < 4 + d - DEPTH_OFFSET + 2 * pv  //
+        if (key16 != k16 || b == BOUND_EXACT  //
+            || depth() < 4 + d + (pv << 1)    //
             || relative_age(gen))
         {
             key16    = k16;
-            depth8   = std::uint8_t(d - DEPTH_OFFSET);
-            genData8 = std::uint8_t(gen | std::uint8_t(pv) << 2 | b);
+            depth8   = d - DEPTH_OFFSET;
+            genData8 = gen | (pv << 2) | b;
             value16  = v;
             eval16   = ev;
         }
-        else if (depth8 + DEPTH_OFFSET >= 5 && bound() != BOUND_EXACT)
+        else if (depth() > 4 && bound() != BOUND_EXACT)
             --depth8;
     }
 
