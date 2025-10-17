@@ -76,7 +76,7 @@ class TTUpdater final {
     TTUpdater(const TTUpdater&) noexcept            = delete;
     TTUpdater(TTUpdater&&) noexcept                 = default;
     TTUpdater& operator=(const TTUpdater&) noexcept = delete;
-    TTUpdater& operator=(TTUpdater&&) noexcept      = default;
+    TTUpdater& operator=(TTUpdater&&) noexcept      = delete;
 
     TTUpdater(TTEntry* te, TTCluster* const tc, Key16 k16, std::uint8_t gen) noexcept :
         tte(te),
