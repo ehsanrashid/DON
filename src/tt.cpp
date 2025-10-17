@@ -58,7 +58,7 @@ constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 // These fields are in the same order as accessed by TT::probe(), since memory is fastest sequentially.
 // Equally, the store order in save() matches this order.
 struct TTEntry final {
-   public:
+   private:
     TTEntry() noexcept                          = delete;
     TTEntry(const TTEntry&) noexcept            = delete;
     TTEntry(TTEntry&&) noexcept                 = delete;
@@ -66,13 +66,11 @@ struct TTEntry final {
     TTEntry& operator=(TTEntry&&) noexcept      = delete;
 
     constexpr auto move() const noexcept { return move16; }
-
-   private:
     constexpr auto occupied() const noexcept { return bool(depth8); }
     constexpr auto depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
     constexpr auto pv_hit() const noexcept { return bool(genData8 & 0x4); }
     constexpr auto bound() const noexcept { return Bound(genData8 & 0x3); }
-    constexpr auto generation() const noexcept { return std::uint8_t(genData8 & GENERATION_MASK); }
+    //constexpr auto generation() const noexcept { return std::uint8_t(genData8 & GENERATION_MASK); }
     constexpr auto value() const noexcept { return value16; }
     constexpr auto eval() const noexcept { return eval16; }
 
@@ -125,7 +123,6 @@ struct TTEntry final {
 
     std::int16_t worth(std::uint8_t gen) const noexcept { return depth8 - relative_age(gen); }
 
-   private:
     Key16        key16;
     Move         move16;
     std::uint8_t depth8;

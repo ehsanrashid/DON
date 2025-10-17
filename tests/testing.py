@@ -53,7 +53,6 @@ class TSAN:
         with open(f"tsan.supp", "w") as f:
             f.write(
                 """
-race:DON::TTEntry::move
 race:DON::TTEntry::read
 race:DON::TTEntry::save
 race:DON::TTEntry::clear

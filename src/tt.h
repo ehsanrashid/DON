@@ -46,7 +46,11 @@ struct TTCluster;
 // A copy of the data already in the entry (possibly collided). `probe` may be racy, resulting in inconsistent data.
 struct TTData final {
    public:
-    TTData() noexcept = delete;
+    TTData() noexcept                         = delete;
+    TTData(const TTData&) noexcept            = delete;
+    TTData(TTData&&) noexcept                 = default;
+    TTData& operator=(const TTData&) noexcept = delete;
+    TTData& operator=(TTData&&) noexcept      = delete;
     TTData(bool ht, bool pv, Bound b, const Move& m, Depth d, Value v, Value ev) noexcept :
         hit(ht),
         pvHit(pv),
@@ -76,7 +80,6 @@ class TTUpdater final {
     TTUpdater(TTUpdater&&) noexcept                 = default;
     TTUpdater& operator=(const TTUpdater&) noexcept = delete;
     TTUpdater& operator=(TTUpdater&&) noexcept      = delete;
-
     TTUpdater(TTEntry* te, TTCluster* const tc, Key16 k16, std::uint8_t gen) noexcept :
         tte(te),
         ttc(tc),
