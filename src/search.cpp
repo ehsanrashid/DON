@@ -436,7 +436,7 @@ void Worker::iterative_deepening() noexcept {
                         break;
 
             // Reset UCI info selDepth for each depth and each PV line
-            selDepth = 0;
+            selDepth = 1;
 
             auto avgValue = rootMoves[curIdx].avgValue;
             if (avgValue == -VALUE_INFINITE)
