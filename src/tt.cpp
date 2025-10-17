@@ -26,8 +26,8 @@
 #include <limits>
 #include <string>
 
-#include "misc.h"
 #include "memory.h"
+#include "misc.h"
 #include "thread.h"
 
 namespace DON {
