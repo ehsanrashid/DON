@@ -2314,12 +2314,12 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, Move 
         update_all_quiet_history(pos, ss, bm, std::round(0.9346 * bonus));
 
         // Decrease history for all non-best quiet moves
-        for (const auto& qm : movesArr[0])
+        for (auto qm : movesArr[0])
             update_all_quiet_history(pos, ss, qm, -std::round(1.0000 * malus));
     }
 
     // Decrease history for all non-best capture moves
-    for (const auto& cm : movesArr[1])
+    for (auto cm : movesArr[1])
         update_capture_history(pos, cm, -std::round(1.1299 * malus));
 
     auto m = (ss - 1)->move;
