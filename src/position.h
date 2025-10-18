@@ -144,6 +144,13 @@ class Position final {
               [=](std::uint8_t cnt, const Cardinal& cardinal) { return cnt + cardinal.count(pc); });
         }
 
+        [[nodiscard]] std::array<Piece, SQUARE_NB> piece_array() const noexcept {
+            std::array<Piece, SQUARE_NB> pieceArr{};
+            for (std::size_t s = 0; s < SQUARE_NB; ++s)
+                pieceArr[s] = piece_on(Square(s));
+            return pieceArr;
+        }
+
         friend std::ostream& operator<<(std::ostream& os, const Board& board) noexcept;
 
        private:
@@ -182,15 +189,14 @@ class Position final {
     template<PieceType PT>
     Bitboard pieces(Color c) const noexcept;
 
-    //[[nodiscard]] Board                        piece_board() const noexcept;
-    [[nodiscard]] std::array<Piece, SQUARE_NB> piece_array() const noexcept;
-
     std::uint8_t count(Piece pc) const noexcept;
     std::uint8_t count(Color c, PieceType pt) const noexcept;
     template<PieceType PT>
     std::uint8_t count(Color c) const noexcept;
     template<PieceType PT>
     std::uint8_t count() const noexcept;
+
+    [[nodiscard]] std::array<Piece, SQUARE_NB> piece_array() const noexcept;
 
     template<PieceType PT>
     Square square(Color c) const noexcept;
@@ -421,15 +427,6 @@ inline Bitboard Position::pieces(Color c) const noexcept {
     return pieces(c, PT);
 }
 
-//inline Position::Board Position::piece_board() const noexcept { return board; }
-
-inline std::array<Piece, SQUARE_NB> Position::piece_array() const noexcept {
-    std::array<Piece, SQUARE_NB> pieceArr{};
-    for (std::size_t s = 0; s < pieceArr.size(); ++s)
-        pieceArr[s] = piece_on(Square(s));
-    return pieceArr;
-}
-
 inline std::uint8_t Position::count(Piece pc) const noexcept { return pieceCount[pc]; }
 
 inline std::uint8_t Position::count(Color c, PieceType pt) const noexcept {
@@ -444,6 +441,10 @@ inline std::uint8_t Position::count(Color c) const noexcept {
 template<PieceType PT>
 inline std::uint8_t Position::count() const noexcept {
     return count<PT>(WHITE) + count<PT>(BLACK);
+}
+
+inline std::array<Piece, SQUARE_NB> Position::piece_array() const noexcept {
+    return board.piece_array();
 }
 
 template<PieceType PT>
