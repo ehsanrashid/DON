@@ -22,7 +22,6 @@
 #include <cstdint>
 #include <iosfwd>
 #include <string_view>
-#include <tuple>
 
 #include "types.h"
 
@@ -32,22 +31,34 @@ class Position;
 
 struct PolyEntry final {
    public:
-    constexpr bool operator==(const PolyEntry& pe) const noexcept {
-        return std::tie(key, move, weight) == std::tie(pe.key, pe.move, pe.weight);
+    friend constexpr bool operator==(const PolyEntry& pe, Move m) noexcept {
+        return pe.move == (m.raw() & ~Move::MoveTypeMask);
     }
-    constexpr bool operator!=(const PolyEntry& pe) const noexcept { return !(*this == pe); }
+    friend constexpr bool operator!=(const PolyEntry& pe, Move m) noexcept { return !(pe == m); }
+    friend constexpr bool operator==(Move m, const PolyEntry& pe) noexcept { return pe == m; }
+    friend constexpr bool operator!=(Move m, const PolyEntry& pe) noexcept { return !(pe == m); }
 
-    constexpr bool operator<(const PolyEntry& pe) const noexcept {
-        return std::tie(key, weight, move) < std::tie(pe.key, pe.weight, pe.move);
+    friend constexpr bool operator==(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
+        return pe1.key == pe2.key && pe1.move == pe2.move && pe1.weight == pe2.weight;
     }
-    constexpr bool operator>(const PolyEntry& pe) const noexcept { return (pe < *this); }
-    constexpr bool operator<=(const PolyEntry& pe) const noexcept { return !(*this > pe); }
-    constexpr bool operator>=(const PolyEntry& pe) const noexcept { return !(*this < pe); }
+    friend constexpr bool operator!=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
+        return !(pe1 == pe2);
+    }
 
-    constexpr bool operator==(Move m) const noexcept {
-        return move == (m.raw() & ~Move::MoveTypeMask);
+    friend constexpr bool operator<(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
+        return pe1.key != pe2.key       ? pe1.key < pe2.key
+             : pe1.weight != pe2.weight ? pe1.weight < pe2.weight
+                                        : pe1.move < pe2.move;
     }
-    constexpr bool operator!=(Move m) const noexcept { return !(*this == m); }
+    friend constexpr bool operator>(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
+        return (pe2 < pe1);
+    }
+    friend constexpr bool operator<=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
+        return !(pe2 < pe1);
+    }
+    friend constexpr bool operator>=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
+        return !(pe1 < pe2);
+    }
 
     friend std::ostream& operator<<(std::ostream& os, const PolyEntry& ph) noexcept;
 

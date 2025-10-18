@@ -27,7 +27,6 @@
 #include <functional>
 #include <memory>
 #include <string_view>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -74,22 +73,33 @@ struct RootMove final {
     explicit RootMove(Move m) noexcept :
         pv(1, m) {}
 
-    bool operator==(Move m) const noexcept { return !pv.empty() && pv.front() == m; }
-    bool operator!=(Move m) const noexcept { return !(*this == m); }
-
-    bool operator==(const RootMove& rm) const noexcept {
-        return !pv.empty() && !rm.pv.empty() && pv.front() == rm.pv.front();
+    friend bool operator==(const RootMove& rm, Move m) noexcept {
+        return !rm.pv.empty() && rm.pv.front() == m;
     }
-    bool operator!=(const RootMove& rm) const noexcept { return !(*this == rm); }
+    friend bool operator!=(const RootMove& rm, Move m) noexcept { return !(rm == m); }
+    friend bool operator==(Move m, const RootMove& rm) noexcept { return (rm == m); }
+    friend bool operator!=(Move m, const RootMove& rm) noexcept { return !(rm == m); }
+
+    friend bool operator==(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return !rm1.pv.empty() && !rm2.pv.empty() && rm1.pv.front() == rm2.pv.front();
+    }
+    friend bool operator!=(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return !(rm1 == rm2);
+    }
 
     // Sort in descending order
-    bool operator<(const RootMove& rm) const noexcept {
-        return std::tie(curValue, preValue, avgValue)
-             > std::tie(rm.curValue, rm.preValue, rm.avgValue);
+    friend bool operator<(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return rm1.curValue != rm2.curValue ? rm1.curValue > rm2.curValue
+             : rm1.preValue != rm2.preValue ? rm1.preValue > rm2.preValue
+                                            : rm1.avgValue > rm2.avgValue;
     }
-    bool operator>(const RootMove& rm) const noexcept { return (rm < *this); }
-    bool operator<=(const RootMove& rm) const noexcept { return !(*this > rm); }
-    bool operator>=(const RootMove& rm) const noexcept { return !(*this < rm); }
+    friend bool operator>(const RootMove& rm1, const RootMove& rm2) noexcept { return (rm2 < rm1); }
+    friend bool operator<=(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return !(rm2 < rm1);
+    }
+    friend bool operator>=(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return !(rm1 < rm2);
+    }
 
     Value curValue = -VALUE_INFINITE;
     Value preValue = -VALUE_INFINITE;
