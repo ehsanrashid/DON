@@ -38,7 +38,7 @@ extern History<HLowPlyQuiet> LowPlyQuietHistory;
 // to decide which class of moves to return, to help sorting the (presumably)
 // good moves first, and how important move ordering is at the current node.
 MovePicker::MovePicker(const Position&           p,
-                       const Move&               ttm,
+                       Move                      ttm,
                        const History<HPieceSq>** continuationHist,
                        std::int16_t              ply,
                        int                       th) noexcept :
@@ -56,7 +56,7 @@ MovePicker::MovePicker(const Position&           p,
 }
 
 MovePicker::MovePicker(const Position& p,  //
-                       const Move&     ttm,
+                       Move            ttm,
                        int             th) noexcept :
     pos(p),
     ttMove(ttm),
@@ -77,7 +77,7 @@ template<>
 MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveList) noexcept {
 
     iterator itr = cur;
-    for (const auto& move : moveList)
+    for (auto move : moveList)
     {
         auto& m = *itr++;
         m       = move;
@@ -102,7 +102,7 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
     auto  pawnIndex = pawn_index(pos.pawn_key());
 
     iterator itr = cur;
-    for (const auto& move : moveList)
+    for (auto move : moveList)
     {
         auto& m = *itr++;
         m       = move;
@@ -153,7 +153,7 @@ template<>
 MovePicker::iterator MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveList) noexcept {
 
     iterator itr = cur;
-    for (const auto& move : moveList)
+    for (auto move : moveList)
     {
         auto& m = *itr++;
         m       = move;
@@ -173,7 +173,7 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
     Color ac = pos.active_color();
 
     iterator itr = cur;
-    for (const auto& move : moveList)
+    for (auto move : moveList)
     {
         auto& m = *itr++;
         m       = move;
@@ -208,16 +208,16 @@ void MovePicker::sort_partial(int limit) noexcept {
     for (iterator s = begin(), p = begin() + 1; p < end(); ++p)
         if (p->value >= limit)
         {
-            auto m = *p;
+            auto em = *p;
 
             *p = *++s;
 
             // Find the correct position for 'm' using binary search
-            iterator q = std::upper_bound(begin(), s, m, std::greater<>{});
+            iterator q = std::upper_bound(begin(), s, em, std::greater<>{});
             // Move elements to make space for 'm'
             std::move_backward(q, s, s + 1);
             // Insert the element in its correct position
-            *q = m;
+            *q = em;
         }
 }
 

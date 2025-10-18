@@ -746,7 +746,7 @@ void Position::do_castling(
 
 // Makes a move, and saves all necessary information to new state.
 // The move is assumed to be legal.
-DirtyPiece Position::do_move(const Move& m, State& newSt, bool check) noexcept {
+DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
@@ -993,7 +993,7 @@ DO_MOVE_END:
 }
 
 // Unmakes a move, restoring the position to its exact state before the move was made.
-void Position::undo_move(const Move& m) noexcept {
+void Position::undo_move(Move m) noexcept {
 
     Color ac = activeColor = ~active_color();
 
@@ -1118,7 +1118,7 @@ void Position::undo_null_move() noexcept {
 // Takes a random move and tests whether the move is pseudo-legal.
 // It is used to validate moves from TT that can be corrupted
 // due to SMP concurrent access or hash position key aliasing.
-bool Position::pseudo_legal(const Move& m) const noexcept {
+bool Position::pseudo_legal(Move m) const noexcept {
     assert(m.is_ok());
 
     Color ac = active_color();
@@ -1211,7 +1211,7 @@ bool Position::pseudo_legal(const Move& m) const noexcept {
 }
 
 // Tests whether a pseudo-legal move is legal
-bool Position::legal(const Move& m) const noexcept {
+bool Position::legal(Move m) const noexcept {
     assert(pseudo_legal(m));
 
     Color ac = active_color();
@@ -1287,7 +1287,7 @@ bool Position::legal(const Move& m) const noexcept {
 }
 
 // Tests whether a pseudo-legal move is a check
-bool Position::check(const Move& m) const noexcept {
+bool Position::check(Move m) const noexcept {
     assert(pseudo_legal(m));
 
     Color ac = active_color();
@@ -1327,7 +1327,7 @@ bool Position::check(const Move& m) const noexcept {
     return false;
 }
 
-bool Position::dbl_check(const Move& m) const noexcept {
+bool Position::dbl_check(Move m) const noexcept {
     assert(pseudo_legal(m));
 
     Color ac = active_color();
@@ -1361,7 +1361,7 @@ bool Position::dbl_check(const Move& m) const noexcept {
     return false;
 }
 
-bool Position::fork(const Move& m) const noexcept {
+bool Position::fork(Move m) const noexcept {
     assert(pseudo_legal(m));
 
     Color ac = active_color();
@@ -1401,7 +1401,7 @@ Key Position::material_key() const noexcept {
 // Computes the new hash key after the given move.
 // Needed for speculative prefetch.
 // It does recognize special moves like castling, en-passant and promotions.
-Key Position::move_key(const Move& m) const noexcept {
+Key Position::move_key(Move m) const noexcept {
     Key moveKey = st->key ^ Zobrist::turn;
 
     if (is_ok(ep_sq()))
@@ -1459,7 +1459,7 @@ Key Position::move_key(const Move& m) const noexcept {
 // Tests if the SEE (Static Exchange Evaluation) value of the move
 // is greater or equal to the given threshold.
 // An algorithm similar to alpha-beta pruning with a null window.
-bool Position::see_ge(const Move& m, int threshold) const noexcept {
+bool Position::see_ge(Move m, int threshold) const noexcept {
     assert(pseudo_legal(m));
 
     // Not deal with castling, can't win any material, nor can lose any.

@@ -91,12 +91,12 @@ class MovePicker final {
     using size_type       = std::size_t;
 
     MovePicker(const Position&           p,
-               const Move&               ttm,
+               Move                      ttm,
                const History<HPieceSq>** continuationHist,
                std::int16_t              ply,
                int                       th = 0) noexcept;
     MovePicker(const Position& p,  //
-               const Move&     ttm,
+               Move            ttm,
                int             th) noexcept;
     MovePicker() noexcept                             = delete;
     MovePicker(const MovePicker&) noexcept            = delete;
@@ -135,7 +135,7 @@ class MovePicker final {
     [[nodiscard]] const_pointer data() const noexcept { return moves; }
 
     const Position&           pos;
-    const Move&               ttMove;
+    Move                      ttMove;
     const History<HPieceSq>** continuationHistory;
     const std::int16_t        ssPly;
     const int                 threshold;

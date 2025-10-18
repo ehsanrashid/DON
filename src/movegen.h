@@ -77,10 +77,10 @@ struct MoveList final {
     [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
     [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
 
-    [[nodiscard]] const_iterator find(const Move& m) const noexcept {
+    [[nodiscard]] const_iterator find(Move m) const noexcept {
         return std::find(begin(), end(), m);
     }
-    [[nodiscard]] bool contains(const Move& m) const noexcept { return find(m) != end(); }
+    [[nodiscard]] bool contains(Move m) const noexcept { return find(m) != end(); }
 
     [[nodiscard]] const_pointer data() const noexcept { return moves; }
 

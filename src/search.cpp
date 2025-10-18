@@ -129,12 +129,12 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::int16_t rule50Coun
 
 constexpr Bound fail_bound(bool failHigh) noexcept { return failHigh ? BOUND_LOWER : BOUND_UPPER; }
 
-Move pseudo_legal_tt_move(const Move& ttMove, const Position& pos) noexcept {
+Move pseudo_legal_tt_move(Move ttMove, const Position& pos) noexcept {
     return ttMove != Move::None && pos.pseudo_legal(ttMove) ? ttMove : Move::None;
 }
 
 // Appends move and appends child Pv[]
-void update_pv(Move* pv, const Move& m, const Move* childPv) noexcept {
+void update_pv(Move* pv, Move m, const Move* childPv) noexcept {
     assert(m.is_ok());
 
     for (*pv++ = m; childPv != nullptr && *childPv != Move::None;)
@@ -143,19 +143,16 @@ void update_pv(Move* pv, const Move& m, const Move* childPv) noexcept {
 }
 
 void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept;
-void update_capture_history(const Position& pos, const Move& m, int bonus) noexcept;
-void update_quiet_history(Color ac, const Move& m, int bonus) noexcept;
+void update_capture_history(const Position& pos, Move m, int bonus) noexcept;
+void update_quiet_history(Color ac, Move m, int bonus) noexcept;
 void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) noexcept;
 void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept;
-void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) noexcept;
-void update_all_quiet_history(const Position& pos,
-                              Stack* const    ss,
-                              const Move&     m,
-                              int             bonus) noexcept;
+void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
+void update_all_quiet_history(const Position& pos, Stack* const ss, Move m, int bonus) noexcept;
 void update_all_history(const Position&      pos,
                         Stack* const         ss,
                         Depth                depth,
-                        const Move&          bm,
+                        Move                 bm,
                         const MovesArray<2>& movesArr) noexcept;
 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
@@ -660,7 +657,7 @@ Value Worker::search(Position&    pos,
                      Value        beta,
                      Depth        depth,
                      std::int8_t  red,
-                     const Move&  excludedMove) noexcept {
+                     Move         excludedMove) noexcept {
     constexpr bool RootNode = NT == Root;
     constexpr bool PVNode   = RootNode || NT == PV;
     constexpr bool CutNode  = NT == Cut;  // !PVNode
@@ -1844,8 +1841,7 @@ QS_MOVES_LOOP:
     return bestValue;
 }
 
-void Worker::do_move(
-  Position& pos, const Move& m, State& st, bool check, Stack* const ss) noexcept {
+void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const ss) noexcept {
     bool capture = pos.capture_promo(m);
     auto dp      = pos.do_move(m, st, check);
     // Speculative prefetch as early as possible
@@ -1860,11 +1856,11 @@ void Worker::do_move(
         ss->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[dp.pc][dst];
     }
 }
-void Worker::do_move(Position& pos, const Move& m, State& st, Stack* const ss) noexcept {
+void Worker::do_move(Position& pos, Move m, State& st, Stack* const ss) noexcept {
     do_move(pos, m, st, pos.check(m), ss);
 }
 
-void Worker::undo_move(Position& pos, const Move& m) noexcept {
+void Worker::undo_move(Position& pos, Move m) noexcept {
     pos.undo_move(m);
     accStack.pop();
 }
@@ -1991,7 +1987,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         const auto& pvMove = rootMove.pv[ply];
 
         RootMoves rms;
-        for (const auto& m : MoveList<LEGAL>(rootPos))
+        for (auto m : MoveList<LEGAL>(rootPos))
             rms.emplace_back(m);
 
         auto tbc = Tablebases::rank_root_moves(rootPos, rms, options);
@@ -2028,7 +2024,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             break;
 
         RootMoves rms;
-        for (const auto& m : MoveList<LEGAL>(rootPos))
+        for (auto m : MoveList<LEGAL>(rootPos))
         {
             auto& rm = rms.emplace_back(m);
 
@@ -2036,7 +2032,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             rootPos.do_move(m, st);
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
-            for (const auto& om : MoveList<LEGAL>(rootPos))
+            for (auto om : MoveList<LEGAL>(rootPos))
                 rm.tbRank -= rootPos.capture(om) ? 100 : 1;
             rootPos.undo_move(m);
         }
@@ -2188,7 +2184,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
         std::string pv;
         pv.reserve(6 * rm.pv.size());
-        for (const auto& m : rm.pv)
+        for (auto m : rm.pv)
             pv += " " + UCI::move_to_can(m);
 
         updateCxt.onUpdateFull(
@@ -2255,11 +2251,11 @@ namespace {
 void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept {
     CaptureHistory[pc][dst][captured] << bonus;
 }
-void update_capture_history(const Position& pos, const Move& m, int bonus) noexcept {
+void update_capture_history(const Position& pos, Move m, int bonus) noexcept {
     assert(pos.pseudo_legal(m));
     update_capture_history(pos.moved_piece(m), m.dst_sq(), pos.captured(m), bonus);
 }
-void update_quiet_history(Color ac, const Move& m, int bonus) noexcept {
+void update_quiet_history(Color ac, Move m, int bonus) noexcept {
     assert(m.is_ok());
     QuietHistory[ac][m.org_dst()] << bonus;
 }
@@ -2287,12 +2283,12 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
         (*(ss - i)->pieceSqHistory)[pc][dst] << int(std::round(weight * bonus)) + 88 * (i < 2);
     }
 }
-void update_low_ply_quiet_history(std::int16_t ssPly, const Move& m, int bonus) noexcept {
+void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept {
     assert(m.is_ok());
     if (ssPly < LOW_PLY_SIZE)
         LowPlyQuietHistory[ssPly][m.org_dst()] << bonus;
 }
-void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& m, int bonus) noexcept {
+void update_all_quiet_history(const Position& pos, Stack* const ss, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
     update_quiet_history(pos.active_color(), m, std::round(1.0000 * bonus));
@@ -2302,7 +2298,7 @@ void update_all_quiet_history(const Position& pos, Stack* const ss, const Move& 
 }
 
 // Updates history at the end of search() when a bestMove is found
-void update_all_history(const Position& pos, Stack* const ss, Depth depth, const Move& bm, const MovesArray<2>& movesArr) noexcept {
+void update_all_history(const Position& pos, Stack* const ss, Depth depth, Move bm, const MovesArray<2>& movesArr) noexcept {
     assert(pos.pseudo_legal(bm));
     assert(ss->moveCount != 0);
 

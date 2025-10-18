@@ -1320,7 +1320,7 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
     const MoveList<LEGAL> legalMoveList(pos);
     std::uint8_t          moveCount = 0;
 
-    for (const auto& m : legalMoveList)
+    for (auto m : legalMoveList)
     {
         if (!pos.capture(m) && (!CheckZeroingMoves || type_of(pos.moved_piece(m)) != PAWN))
             continue;
@@ -1603,7 +1603,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     // and find the winning move that minimizes DTZ-score.
     int minDtzScore = std::numeric_limits<int>::max();
 
-    for (const auto& m : MoveList<LEGAL>(pos))
+    for (auto m : MoveList<LEGAL>(pos))
     {
         bool zeroing = pos.capture(m) || type_of(pos.moved_piece(m)) == PAWN;
 

@@ -59,12 +59,12 @@ class UCI final {
 
     [[nodiscard]] static std::string square(Square s) noexcept;
 
-    [[nodiscard]] static std::string move_to_can(const Move& m) noexcept;
+    [[nodiscard]] static std::string move_to_can(Move m) noexcept;
 
     [[nodiscard]] static Move can_to_move(std::string can, const MoveList<LEGAL>&) noexcept;
     [[nodiscard]] static Move can_to_move(std::string_view can, const Position& pos) noexcept;
 
-    [[nodiscard]] static std::string move_to_san(const Move& m, Position& pos) noexcept;
+    [[nodiscard]] static std::string move_to_san(Move m, Position& pos) noexcept;
 
     [[nodiscard]] static Move
     san_to_move(std::string san, Position& pos, const MoveList<LEGAL>&) noexcept;

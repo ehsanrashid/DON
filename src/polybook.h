@@ -44,10 +44,10 @@ struct PolyEntry final {
     constexpr bool operator<=(const PolyEntry& pe) const noexcept { return !(*this > pe); }
     constexpr bool operator>=(const PolyEntry& pe) const noexcept { return !(*this < pe); }
 
-    constexpr bool operator==(const Move& m) const noexcept {
+    constexpr bool operator==(Move m) const noexcept {
         return move == (m.raw() & ~Move::MoveTypeMask);
     }
-    constexpr bool operator!=(const Move& m) const noexcept { return !(*this == m); }
+    constexpr bool operator!=(Move m) const noexcept { return !(*this == m); }
 
     friend std::ostream& operator<<(std::ostream& os, const PolyEntry& ph) noexcept;
 
