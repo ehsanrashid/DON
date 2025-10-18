@@ -25,13 +25,12 @@
 #include <cstdint>
 #include <cstring>
 
+#include "../position.h"
 #include "../types.h"
 #include "nnue_architecture.h"
 #include "nnue_common.h"
 
 namespace DON {
-
-class Position;
 
 namespace NNUE {
 
@@ -81,10 +80,10 @@ struct AccumulatorCaches final {
                             sizeof(*this) - offset);
             }
 
-            BiasType                     accumulation[Size]{};
-            PSQTWeightType               psqtAccumulation[PSQTBuckets]{};
-            Bitboard                     pieces{};
-            std::array<Piece, SQUARE_NB> pieceArr{};
+            BiasType       accumulation[Size]{};
+            PSQTWeightType psqtAccumulation[PSQTBuckets]{};
+            Bitboard       pieces{};
+            PieceArray     pieceArr{};
         };
 
         template<typename Network>

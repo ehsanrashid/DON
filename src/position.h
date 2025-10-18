@@ -83,6 +83,7 @@ struct State final {
 // Use a std::deque because pointers to elements are not invalidated upon list resizing.
 using StateList    = std::deque<State>;
 using StateListPtr = std::unique_ptr<StateList>;
+using PieceArray   = std::array<Piece, SQUARE_NB>;
 
 constexpr std::uint8_t R50Offset = 14U;
 constexpr std::uint8_t R50Factor = 8U;
@@ -144,8 +145,8 @@ class Position final {
               [=](std::uint8_t cnt, const Cardinal& cardinal) { return cnt + cardinal.count(pc); });
         }
 
-        [[nodiscard]] std::array<Piece, SQUARE_NB> piece_array() const noexcept {
-            std::array<Piece, SQUARE_NB> pieceArr{};
+        [[nodiscard]] PieceArray piece_array() const noexcept {
+            PieceArray pieceArr{};
             for (std::size_t s = 0; s < SQUARE_NB; ++s)
                 pieceArr[s] = piece_on(Square(s));
             return pieceArr;
@@ -196,7 +197,7 @@ class Position final {
     template<PieceType PT>
     std::uint8_t count() const noexcept;
 
-    [[nodiscard]] std::array<Piece, SQUARE_NB> piece_array() const noexcept;
+    [[nodiscard]] PieceArray piece_array() const noexcept;
 
     template<PieceType PT>
     Square square(Color c) const noexcept;
@@ -443,9 +444,7 @@ inline std::uint8_t Position::count() const noexcept {
     return count<PT>(WHITE) + count<PT>(BLACK);
 }
 
-inline std::array<Piece, SQUARE_NB> Position::piece_array() const noexcept {
-    return board.piece_array();
-}
+inline PieceArray Position::piece_array() const noexcept { return board.piece_array(); }
 
 template<PieceType PT>
 inline Square Position::square(Color c) const noexcept {

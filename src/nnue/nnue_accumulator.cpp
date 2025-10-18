@@ -22,7 +22,6 @@
 
 #include "../bitboard.h"
 #include "../misc.h"
-#include "../position.h"
 #include "../types.h"
 #include "network.h"
 #include "nnue_feature_transformer.h"  // IWYU pragma: keep
@@ -199,8 +198,7 @@ void update_accumulator_incremental(
     (targetAccSt.acc<TransformedFeatureDimensions>()).computed[Perspective] = true;
 }
 
-Bitboard changed_bb(const std::array<Piece, SQUARE_NB>& oldArr,
-                    const std::array<Piece, SQUARE_NB>& newArr) noexcept {
+Bitboard changed_bb(const PieceArray& oldArr, const PieceArray& newArr) noexcept {
 #if defined(USE_AVX512) || defined(USE_AVX2)
     Bitboard samedBB = 0;
     for (std::size_t s = 0; s < SQUARE_NB; s += 32)
