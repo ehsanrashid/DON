@@ -199,8 +199,8 @@ void update_accumulator_incremental(
     (targetAccSt.acc<TransformedFeatureDimensions>()).computed[Perspective] = true;
 }
 
-Bitboard get_changed_bb(const std::array<Piece, SQUARE_NB>& oldBoard,
-                        const std::array<Piece, SQUARE_NB>& newBoard) noexcept {
+Bitboard changed_bb(const std::array<Piece, SQUARE_NB>& oldBoard,
+                    const std::array<Piece, SQUARE_NB>& newBoard) noexcept {
 #if defined(USE_AVX512) || defined(USE_AVX2)
     Bitboard samedBB = 0;
     for (std::size_t s = 0; s < SQUARE_NB; s += 32)
@@ -235,15 +235,15 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
 
     FeatureSet::IndexList removed, added;
 
-    Bitboard changedBB = get_changed_bb(entry.pieceArr, pos.piece_array());
-    Bitboard removedBB = changedBB & entry.pieces;
-    Bitboard addedBB   = changedBB & pos.pieces();
+    Bitboard changedBB = changed_bb(entry.pieceArr, pos.piece_array());
 
+    Bitboard removedBB = changedBB & entry.pieces;
     while (removedBB)
     {
         Square s = pop_lsb(removedBB);
         removed.push_back(FeatureSet::make_index<Perspective>(s, entry.pieceArr[s], kingSq));
     }
+    Bitboard addedBB = changedBB & pos.pieces();
     while (addedBB)
     {
         Square s = pop_lsb(addedBB);
