@@ -719,7 +719,7 @@ inline void Position::remove_piece(Square s) noexcept {
     assert(is_ok(s));
 
     Piece pc = board.piece_on(s);
-    assert(is_ok(pc));
+    assert(is_ok(pc) && count(pc) != 0);
     board.piece_on(s, NO_PIECE);
     typeBB[ALL_PIECE] ^= s;
     typeBB[type_of(pc)] ^= s;
