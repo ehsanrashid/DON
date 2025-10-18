@@ -248,7 +248,7 @@ void ThreadPool::start(Position&      pos,
     }
 
     if (limit.searchMoves.empty())
-        for (const auto& m : legalMoveList)
+        for (auto m : legalMoveList)
             rootMoves.emplace_back(m);
 
     bool erase = true;

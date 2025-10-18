@@ -810,7 +810,7 @@ std::string UCI::square(Square s) noexcept {
     return std::string{file(file_of(s)), rank(rank_of(s))};
 }
 
-std::string UCI::move_to_can(const Move& m) noexcept {
+std::string UCI::move_to_can(Move m) noexcept {
     if (m == Move::None)
         return "(none)";
     if (m == Move::Null)
@@ -836,7 +836,7 @@ Move UCI::can_to_move(std::string can, const MoveList<LEGAL>& legalMoveList) noe
     assert(4 <= can.size() && can.size() <= 5);
     can = lower_case(can);
 
-    for (const auto& m : legalMoveList)
+    for (auto m : legalMoveList)
         if (can == move_to_can(m))
             return m;
 
@@ -894,7 +894,7 @@ enum Ambiguity : std::uint8_t {
 
 // Ambiguity if more then one piece of same type can reach 'to' with a legal move.
 // NOTE: for pawns it is not needed because 'org' file is explicit.
-Ambiguity ambiguity(const Move& m, const Position& pos) noexcept {
+Ambiguity ambiguity(Move m, const Position& pos) noexcept {
     assert(pos.pseudo_legal(m) && pos.legal(m));
 
     Color ac = pos.active_color();
@@ -935,7 +935,7 @@ Ambiguity ambiguity(const Move& m, const Position& pos) noexcept {
 
 }  // namespace
 
-std::string UCI::move_to_san(const Move& m, Position& pos) noexcept {
+std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     if (m == Move::None)
         return "(none)";
     if (m == Move::Null)
@@ -1020,7 +1020,7 @@ Move UCI::san_to_move(std::string            san,
         for (char ch : {'o', '0'})
             std::replace(san.begin(), san.end(), ch, 'O');
 
-    for (const auto& m : legalMoveList)
+    for (auto m : legalMoveList)
         if (san == move_to_san(m, pos))
             return m;
 

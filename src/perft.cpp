@@ -39,7 +39,7 @@ namespace {
 
 struct Perft final {
 
-    void classify(Position& pos, const Move& m) noexcept;
+    void classify(Position& pos, Move m) noexcept;
 
     void operator+=(const Perft& perft) noexcept;
 
@@ -55,7 +55,7 @@ struct Perft final {
     std::uint64_t stalemate = 0;
 };
 
-void Perft::classify(Position& pos, const Move& m) noexcept {
+void Perft::classify(Position& pos, Move m) noexcept {
 
     Square org = m.org_sq(), dst = m.dst_sq();
 
@@ -269,7 +269,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
 
     Perft sPerft;
 
-    for (const auto& m : MoveList<LEGAL>(pos))
+    for (auto m : MoveList<LEGAL>(pos))
     {
         Perft iPerft;
         if (RootNode && depth <= 1)
@@ -289,7 +289,7 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
                 const MoveList<LEGAL> iLegalMoveList(pos);
                 iPerft.nodes += iLegalMoveList.size();
                 if (detail)
-                    for (const auto& im : iLegalMoveList)
+                    for (auto im : iLegalMoveList)
                         iPerft.classify(pos, im);
             }
             else

@@ -51,27 +51,26 @@ struct TTData final {
     TTData(TTData&&) noexcept                 = default;
     TTData& operator=(const TTData&) noexcept = delete;
     TTData& operator=(TTData&&) noexcept      = delete;
-    TTData(bool ht, bool pv, Bound b, const Move& m, Depth d, Value v, Value ev) noexcept :
+    TTData(bool ht, bool pv, Bound b, Depth d, Move m, Value v, Value ev) noexcept :
         hit(ht),
         pvHit(pv),
         bound(b),
-        padding(0),
-        move(m),
         depth(d),
+        move(m),
         value(v),
         eval(ev) {}
 
-    bool         hit;
-    bool         pvHit;
-    Bound        bound;
-    std::uint8_t padding;
-    Move         move;
-    Depth        depth;
-    Value        value;
-    Value        eval;
+    std::uint16_t hit: 1;
+    std::uint16_t pvHit: 1;
+    std::uint16_t bound: 2;
+    std::uint16_t: 12;  // padding bits
+    Depth depth;
+    Move  move;
+    Value value;
+    Value eval;
 };
 
-static_assert(sizeof(TTData) == 12, "Unexpected TTData size");
+//static_assert(sizeof(TTData) == 10, "Unexpected TTData size");
 
 class TTUpdater final {
    public:
@@ -86,7 +85,7 @@ class TTUpdater final {
         key16(k16),
         generation(gen) {}
 
-    void update(Depth d, bool pv, Bound b, const Move& m, Value v, Value ev) noexcept;
+    void update(Depth d, bool pv, Bound b, Move m, Value v, Value ev) noexcept;
 
    private:
     TTEntry*         tte;

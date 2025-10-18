@@ -76,19 +76,13 @@ struct TTEntry final {
 
     // Convert internal bitfields to TTData
     TTData read() const noexcept {
-        return {occupied(), pv_hit(), bound(), move(), depth(), value(), eval()};
+        return {occupied(), pv_hit(), bound(), depth(), move(), value(), eval()};
     }
 
     // Populates the TTEntry with a new node's data, possibly
     // overwriting an old position. The update is not atomic and can be racy.
-    void save(Key16        k16,
-              Depth        d,
-              bool         pv,
-              Bound        b,
-              const Move&  m,
-              Value        v,
-              Value        ev,
-              std::uint8_t gen) noexcept {
+    void save(
+      Key16 k16, Depth d, bool pv, Bound b, Move m, Value v, Value ev, std::uint8_t gen) noexcept {
         assert(d > DEPTH_OFFSET);
         assert(d <= std::numeric_limits<std::uint8_t>::max() + DEPTH_OFFSET);
 
@@ -97,7 +91,7 @@ struct TTEntry final {
             move16 = m;
         // Overwrite less valuable entries (cheapest checks first)
         if (key16 != k16 || b == BOUND_EXACT  //
-            || depth() < 4 + d + (pv << 1)    //
+            || depth() < 4 + d + 2 * pv       //
             || relative_age(gen))
         {
             key16    = k16;
@@ -149,7 +143,7 @@ struct TTCluster final {
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
-void TTUpdater::update(Depth d, bool pv, Bound b, const Move& m, Value v, Value ev) noexcept {
+void TTUpdater::update(Depth d, bool pv, Bound b, Move m, Value v, Value ev) noexcept {
     for (; tte != &ttc->entries[0] && (tte - 1)->key16 == key16; --tte)
         tte->clear();
 
@@ -226,7 +220,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
         if (rte->worth(generation8) > ttc->entries[i].worth(generation8))
             rte = &ttc->entries[i];
 
-    return {TTData{false, false, BOUND_NONE, Move::None, DEPTH_OFFSET, VALUE_NONE, VALUE_NONE},
+    return {TTData{false, false, BOUND_NONE, DEPTH_OFFSET, Move::None, VALUE_NONE, VALUE_NONE},
             TTUpdater{rte, ttc, key16, generation8}};
 }
 

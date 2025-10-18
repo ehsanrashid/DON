@@ -232,23 +232,23 @@ class Position final {
 
    public:
     // Doing and undoing moves
-    DirtyPiece do_move(const Move& m, State& newSt, bool check) noexcept;
-    DirtyPiece do_move(const Move& m, State& newSt) noexcept;
-    void       undo_move(const Move& m) noexcept;
+    DirtyPiece do_move(Move m, State& newSt, bool check) noexcept;
+    DirtyPiece do_move(Move m, State& newSt) noexcept;
+    void       undo_move(Move m) noexcept;
     void       do_null_move(State& newSt) noexcept;
     void       undo_null_move() noexcept;
 
     // Properties of moves
-    bool  pseudo_legal(const Move& m) const noexcept;
-    bool  legal(const Move& m) const noexcept;
-    bool  capture(const Move& m) const noexcept;
-    bool  capture_promo(const Move& m) const noexcept;
-    bool  check(const Move& m) const noexcept;
-    bool  dbl_check(const Move& m) const noexcept;
-    bool  fork(const Move& m) const noexcept;
-    Piece moved_piece(const Move& m) const noexcept;
-    Piece captured_piece(const Move& m) const noexcept;
-    auto  captured(const Move& m) const noexcept;
+    bool  pseudo_legal(Move m) const noexcept;
+    bool  legal(Move m) const noexcept;
+    bool  capture(Move m) const noexcept;
+    bool  capture_promo(Move m) const noexcept;
+    bool  check(Move m) const noexcept;
+    bool  dbl_check(Move m) const noexcept;
+    bool  fork(Move m) const noexcept;
+    Piece moved_piece(Move m) const noexcept;
+    Piece captured_piece(Move m) const noexcept;
+    auto  captured(Move m) const noexcept;
 
     // Hash keys
     Key key(std::int8_t r50 = 0) const noexcept;
@@ -261,10 +261,10 @@ class Position final {
     Key non_pawn_key(Color c) const noexcept;
     Key non_pawn_key() const noexcept;
     Key material_key() const noexcept;
-    Key move_key(const Move& m) const noexcept;
+    Key move_key(Move m) const noexcept;
 
     // Static Exchange Evaluation
-    auto see(const Move& m) const noexcept { return SEE(*this, m); }
+    auto see(Move m) const noexcept { return SEE(*this, m); }
 
     // Other properties
     Color        active_color() const noexcept;
@@ -329,18 +329,18 @@ class Position final {
         SEE& operator=(const SEE&) noexcept = delete;
         SEE& operator=(SEE&&) noexcept      = delete;
 
-        constexpr SEE(const Position& p, const Move& m) noexcept :
+        constexpr SEE(const Position& p, Move m) noexcept :
             pos(p),
             move(m) {}
 
-        bool operator>=(int threshold) const noexcept;
-        bool operator>(int threshold) const noexcept;
-        bool operator<=(int threshold) const noexcept;
-        bool operator<(int threshold) const noexcept;
+        [[nodiscard]] bool operator>=(int threshold) const noexcept;
+        [[nodiscard]] bool operator>(int threshold) const noexcept;
+        [[nodiscard]] bool operator<=(int threshold) const noexcept;
+        [[nodiscard]] bool operator<(int threshold) const noexcept;
 
        private:
         const Position& pos;
-        const Move&     move;
+        Move            move;
     };
 
     // Initialization helpers (used while setting up a position)
@@ -371,7 +371,7 @@ class Position final {
     void reset_repetitions() noexcept;
 
     // Static Exchange Evaluation
-    bool see_ge(const Move& m, int threshold) const noexcept;
+    bool see_ge(Move m, int threshold) const noexcept;
 
     // Data members
     Board        board;
@@ -657,27 +657,27 @@ inline Value Position::bonus() const noexcept {
     // clang-format on
 }
 
-inline bool Position::capture(const Move& m) const noexcept {
+inline bool Position::capture(Move m) const noexcept {
     assert(pseudo_legal(m));
     return (m.type_of() != CASTLING && !empty_on(m.dst_sq())) || m.type_of() == EN_PASSANT;
 }
 
-inline bool Position::capture_promo(const Move& m) const noexcept {
+inline bool Position::capture_promo(Move m) const noexcept {
     return capture(m) || m.type_of() == PROMOTION;
 }
 
-inline Piece Position::moved_piece(const Move& m) const noexcept {
+inline Piece Position::moved_piece(Move m) const noexcept {
     assert(pseudo_legal(m));
     return piece_on(m.org_sq());
 }
 
-inline Piece Position::captured_piece(const Move& m) const noexcept {
+inline Piece Position::captured_piece(Move m) const noexcept {
     assert(pseudo_legal(m));
     assert(m.type_of() != CASTLING);
     return m.type_of() == EN_PASSANT ? make_piece(~active_color(), PAWN) : piece_on(m.dst_sq());
 }
 
-inline auto Position::captured(const Move& m) const noexcept { return type_of(captured_piece(m)); }
+inline auto Position::captured(Move m) const noexcept { return type_of(captured_piece(m)); }
 
 inline void Position::reset_ep_sq() noexcept { st->epSq = SQ_NONE; }
 
@@ -729,7 +729,7 @@ inline void Position::move_piece(Square s1, Square s2) noexcept {
     colorBB[color_of(pc)] ^= s1s2;
 }
 
-inline DirtyPiece Position::do_move(const Move& m, State& newSt) noexcept {
+inline DirtyPiece Position::do_move(Move m, State& newSt) noexcept {
     return do_move(m, newSt, check(m));
 }
 

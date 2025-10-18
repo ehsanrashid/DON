@@ -442,7 +442,7 @@ class Move {
     // Hash function for unordered containers (e.g., std::unordered_set, std::unordered_map).
     // Uses make_hash function to produce a unique hash value for move
     struct Hash final {
-        std::size_t operator()(const Move& m) const noexcept { return make_hash(m.move); }
+        std::size_t operator()(Move m) const noexcept { return make_hash(m.move); }
     };
 
     // Bit masks for extracting parts of the move
@@ -473,8 +473,8 @@ class Move {
 
     constexpr std::uint16_t raw() const noexcept { return move; }
 
-    constexpr bool operator==(const Move& m) const noexcept { return move == m.move; }
-    constexpr bool operator!=(const Move& m) const noexcept { return !(*this == m); }
+    friend constexpr bool operator==(Move m1, Move m2) noexcept { return m1.move == m2.move; }
+    friend constexpr bool operator!=(Move m1, Move m2) noexcept { return !(m1 == m2); }
 
     // Validity check: ensures move is not None or Null
     constexpr bool is_ok() const noexcept { return org_sq() != dst_sq(); }
@@ -496,7 +496,7 @@ constexpr Move Move::None{SQ_A1, SQ_A1};
 constexpr Move Move::Null{SQ_B1, SQ_B1};
 
 template<bool MP = false>
-constexpr Value promotion_value(const Move& m) noexcept {
+constexpr Value promotion_value(Move m) noexcept {
     return m.type_of() == PROMOTION
            ? (MP && m.promotion_type() == KNIGHT ? VALUE_ROOK + 1 : PIECE_VALUE[m.promotion_type()])
                - VALUE_PAWN

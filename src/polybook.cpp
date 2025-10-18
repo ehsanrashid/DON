@@ -325,7 +325,7 @@ Key polyglot_key(const Position& pos) noexcept {
     return key;
 }
 
-Move fix_promotion(const Move& m) noexcept {
+Move fix_promotion(Move m) noexcept {
     if (int pt = (m.raw() >> 12) & 0x7)
         return Move(m.org_sq(), m.dst_sq(), PieceType(pt + 1));
     return m;
@@ -353,7 +353,7 @@ Move pg_to_move(std::uint16_t pg_move, const Position& pos) noexcept {
 
     std::uint16_t moveRaw = move.raw() & ~Move::MoveTypeMask;
     // Add 'Special move' flags and verify it is legal
-    for (const auto& m : MoveList<LEGAL>(pos))
+    for (auto m : MoveList<LEGAL>(pos))
         // Compare with MoveType (bit 14-15) Masked-out
         if ((m.raw() & ~Move::MoveTypeMask) == moveRaw)
             return m;
@@ -361,7 +361,7 @@ Move pg_to_move(std::uint16_t pg_move, const Position& pos) noexcept {
     return Move::None;
 }
 
-bool is_draw(Position& pos, const Move& m) noexcept {
+bool is_draw(Position& pos, Move m) noexcept {
     if (m == Move::None)
         return true;
 

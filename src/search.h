@@ -27,7 +27,6 @@
 #include <functional>
 #include <memory>
 #include <string_view>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -71,25 +70,36 @@ void init() noexcept;
 struct RootMove final {
    public:
     RootMove() noexcept = default;
-    explicit RootMove(const Move& m) noexcept :
+    explicit RootMove(Move m) noexcept :
         pv(1, m) {}
 
-    bool operator==(const Move& m) const noexcept { return !pv.empty() && pv.front() == m; }
-    bool operator!=(const Move& m) const noexcept { return !(*this == m); }
-
-    bool operator==(const RootMove& rm) const noexcept {
-        return !pv.empty() && !rm.pv.empty() && pv.front() == rm.pv.front();
+    friend bool operator==(const RootMove& rm, Move m) noexcept {
+        return !rm.pv.empty() && rm.pv.front() == m;
     }
-    bool operator!=(const RootMove& rm) const noexcept { return !(*this == rm); }
+    friend bool operator!=(const RootMove& rm, Move m) noexcept { return !(rm == m); }
+    friend bool operator==(Move m, const RootMove& rm) noexcept { return (rm == m); }
+    friend bool operator!=(Move m, const RootMove& rm) noexcept { return !(rm == m); }
+
+    friend bool operator==(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return !rm1.pv.empty() && !rm2.pv.empty() && rm1.pv.front() == rm2.pv.front();
+    }
+    friend bool operator!=(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return !(rm1 == rm2);
+    }
 
     // Sort in descending order
-    bool operator<(const RootMove& rm) const noexcept {
-        return std::tie(curValue, preValue, avgValue)
-             > std::tie(rm.curValue, rm.preValue, rm.avgValue);
+    friend bool operator<(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return rm1.curValue != rm2.curValue ? rm1.curValue > rm2.curValue
+             : rm1.preValue != rm2.preValue ? rm1.preValue > rm2.preValue
+                                            : rm1.avgValue > rm2.avgValue;
     }
-    bool operator>(const RootMove& rm) const noexcept { return (rm < *this); }
-    bool operator<=(const RootMove& rm) const noexcept { return !(*this > rm); }
-    bool operator>=(const RootMove& rm) const noexcept { return !(*this < rm); }
+    friend bool operator>(const RootMove& rm1, const RootMove& rm2) noexcept { return (rm2 < rm1); }
+    friend bool operator<=(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return !(rm2 < rm1);
+    }
+    friend bool operator>=(const RootMove& rm1, const RootMove& rm2) noexcept {
+        return !(rm1 < rm2);
+    }
 
     Value curValue = -VALUE_INFINITE;
     Value preValue = -VALUE_INFINITE;
@@ -156,7 +166,7 @@ class RootMoves final {
     void resize(size_type newSize) noexcept { rootMoves.resize(newSize); }
     void reserve(size_type newCapacity) noexcept { rootMoves.reserve(newCapacity); }
 
-    const_iterator find(size_type beg, size_type end, const Move& m) const noexcept {
+    const_iterator find(size_type beg, size_type end, Move m) const noexcept {
         assert(beg <= end && end <= size());
         return std::find(begin() + beg, begin() + end, m);
     }
@@ -164,12 +174,12 @@ class RootMoves final {
         return !v.pv.empty() ? find(beg, end, v.pv[0]) : begin() + end;
     }
 
-    const_iterator find(const Move& m) const noexcept { return std::find(begin(), end(), m); }
+    const_iterator find(Move m) const noexcept { return std::find(begin(), end(), m); }
     const_iterator find(const value_type& v) const noexcept {
         return !v.pv.empty() ? find(v.pv[0]) : end();
     }
 
-    iterator find(const Move& m) noexcept { return std::find(begin(), end(), m); }
+    iterator find(Move m) noexcept { return std::find(begin(), end(), m); }
     iterator find(const value_type& v) noexcept { return !v.pv.empty() ? find(v.pv[0]) : end(); }
 
     template<typename Predicate>
@@ -181,7 +191,7 @@ class RootMoves final {
         return std::find_if(begin(), end(), std::forward<Predicate>(pred));
     }
 
-    bool contains(size_type beg, size_type end, const Move& m) const noexcept {
+    bool contains(size_type beg, size_type end, Move m) const noexcept {
         assert(beg <= end && end <= size());
         return find(beg, end, m) != begin() + end;
     }
@@ -190,10 +200,10 @@ class RootMoves final {
         return v.pv.empty() || contains(beg, end, v.pv[0]);
     }
 
-    bool contains(const Move& m) const noexcept { return find(m) != end(); }
+    bool contains(Move m) const noexcept { return find(m) != end(); }
     bool contains(const value_type& v) const noexcept { return v.pv.empty() || contains(v.pv[0]); }
 
-    iterator remove(const Move& m) noexcept { return std::remove(begin(), end(), m); }
+    iterator remove(Move m) noexcept { return std::remove(begin(), end(), m); }
     iterator remove(const value_type& v) noexcept { return std::remove(begin(), end(), v); }
 
     template<typename Predicate>
@@ -206,7 +216,7 @@ class RootMoves final {
     iterator erase(const_iterator beg, const_iterator end) noexcept {
         return rootMoves.erase(beg, end);
     }
-    bool erase(const Move& m) noexcept {
+    bool erase(Move m) noexcept {
         auto itr = find(m);
         if (itr == end())
             return false;
@@ -231,7 +241,7 @@ class RootMoves final {
         return true;
     }
 
-    bool swap_to_front(const Move& m) noexcept {
+    bool swap_to_front(Move m) noexcept {
         auto itr = find(m);
         if (itr == end() || itr == begin())
             return false;
@@ -500,16 +510,15 @@ class Worker final {
                  Value        beta,
                  Depth        depth,
                  std::int8_t  red          = 0,
-                 const Move&  excludedMove = Move::None) noexcept;
+                 Move         excludedMove = Move::None) noexcept;
 
     // Quiescence search function, which is called by the main search
     template<bool PVNode>
     Value qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) noexcept;
 
-    void do_move(
-      Position& pos, const Move& m, State& st, bool check, Stack* const ss = nullptr) noexcept;
-    void do_move(Position& pos, const Move& m, State& st, Stack* const ss = nullptr) noexcept;
-    void undo_move(Position& pos, const Move& m) noexcept;
+    void do_move(Position& pos, Move m, State& st, bool check, Stack* const ss = nullptr) noexcept;
+    void do_move(Position& pos, Move m, State& st, Stack* const ss = nullptr) noexcept;
+    void undo_move(Position& pos, Move m) noexcept;
     void do_null_move(Position& pos, State& st, Stack* const ss) noexcept;
     void undo_null_move(Position& pos) noexcept;
 
