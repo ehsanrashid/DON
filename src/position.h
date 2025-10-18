@@ -274,7 +274,7 @@ class Position final {
     Key move_key(Move m) const noexcept;
 
     // Static Exchange Evaluation
-    auto see(Move m) const noexcept { return SEE(*this, m); }
+    [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }
 
     // Other properties
     Color        active_color() const noexcept;
