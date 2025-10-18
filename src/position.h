@@ -83,6 +83,7 @@ struct State final {
 // Use a std::deque because pointers to elements are not invalidated upon list resizing.
 using StateList    = std::deque<State>;
 using StateListPtr = std::unique_ptr<StateList>;
+using PieceArray   = std::array<Piece, SQUARE_NB>;
 
 constexpr std::uint8_t R50Offset = 14U;
 constexpr std::uint8_t R50Factor = 8U;
@@ -98,7 +99,7 @@ class Position final {
         struct Cardinal final {
            public:
             constexpr Cardinal() noexcept                 = default;
-            Cardinal(const Cardinal&) noexcept            = delete;
+            Cardinal(const Cardinal&) noexcept            = default;
             Cardinal(Cardinal&&) noexcept                 = delete;
             Cardinal& operator=(const Cardinal&) noexcept = default;
             Cardinal& operator=(Cardinal&&) noexcept      = delete;
@@ -126,7 +127,7 @@ class Position final {
         };
 
         constexpr Board() noexcept              = default;
-        Board(const Board&) noexcept            = delete;
+        Board(const Board&) noexcept            = default;
         Board(Board&&) noexcept                 = delete;
         Board& operator=(const Board&) noexcept = default;
         Board& operator=(Board&&) noexcept      = delete;
@@ -142,6 +143,13 @@ class Position final {
             return std::accumulate(
               std::begin(cardinals), std::end(cardinals), 0,
               [=](std::uint8_t cnt, const Cardinal& cardinal) { return cnt + cardinal.count(pc); });
+        }
+
+        [[nodiscard]] PieceArray piece_array() const noexcept {
+            PieceArray pieceArr{};
+            for (std::size_t s = 0; s < SQUARE_NB; ++s)
+                pieceArr[s] = piece_on(Square(s));
+            return pieceArr;
         }
 
         friend std::ostream& operator<<(std::ostream& os, const Board& board) noexcept;
@@ -188,6 +196,8 @@ class Position final {
     std::uint8_t count(Color c) const noexcept;
     template<PieceType PT>
     std::uint8_t count() const noexcept;
+
+    [[nodiscard]] PieceArray piece_array() const noexcept;
 
     template<PieceType PT>
     Square square(Color c) const noexcept;
@@ -264,7 +274,7 @@ class Position final {
     Key move_key(Move m) const noexcept;
 
     // Static Exchange Evaluation
-    auto see(Move m) const noexcept { return SEE(*this, m); }
+    [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }
 
     // Other properties
     Color        active_color() const noexcept;
@@ -433,6 +443,8 @@ template<PieceType PT>
 inline std::uint8_t Position::count() const noexcept {
     return count<PT>(WHITE) + count<PT>(BLACK);
 }
+
+inline PieceArray Position::piece_array() const noexcept { return board.piece_array(); }
 
 template<PieceType PT>
 inline Square Position::square(Color c) const noexcept {
@@ -707,7 +719,7 @@ inline void Position::remove_piece(Square s) noexcept {
     assert(is_ok(s));
 
     Piece pc = board.piece_on(s);
-    assert(is_ok(pc));
+    assert(is_ok(pc) && count(pc) != 0);
     board.piece_on(s, NO_PIECE);
     typeBB[ALL_PIECE] ^= s;
     typeBB[type_of(pc)] ^= s;
