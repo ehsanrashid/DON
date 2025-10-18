@@ -473,8 +473,8 @@ class Move {
 
     constexpr std::uint16_t raw() const noexcept { return move; }
 
-    constexpr bool operator==(Move m) const noexcept { return move == m.move; }
-    constexpr bool operator!=(Move m) const noexcept { return !(*this == m); }
+    friend constexpr bool operator==(Move m1, Move m2) noexcept { return m1.move == m2.move; }
+    friend constexpr bool operator!=(Move m1, Move m2) noexcept { return !(m1 == m2); }
 
     // Validity check: ensures move is not None or Null
     constexpr bool is_ok() const noexcept { return org_sq() != dst_sq(); }
