@@ -98,7 +98,7 @@ class Position final {
         struct Cardinal final {
            public:
             constexpr Cardinal() noexcept                 = default;
-            Cardinal(const Cardinal&) noexcept            = delete;
+            Cardinal(const Cardinal&) noexcept            = default;
             Cardinal(Cardinal&&) noexcept                 = delete;
             Cardinal& operator=(const Cardinal&) noexcept = default;
             Cardinal& operator=(Cardinal&&) noexcept      = delete;
@@ -126,7 +126,7 @@ class Position final {
         };
 
         constexpr Board() noexcept              = default;
-        Board(const Board&) noexcept            = delete;
+        Board(const Board&) noexcept            = default;
         Board(Board&&) noexcept                 = delete;
         Board& operator=(const Board&) noexcept = default;
         Board& operator=(Board&&) noexcept      = delete;
@@ -181,6 +181,9 @@ class Position final {
     Bitboard pieces(Color c, PieceTypes... pts) const noexcept;
     template<PieceType PT>
     Bitboard pieces(Color c) const noexcept;
+
+    [[nodiscard]] Board                        piece_board() const noexcept;
+    [[nodiscard]] std::array<Piece, SQUARE_NB> piece_array() const noexcept;
 
     std::uint8_t count(Piece pc) const noexcept;
     std::uint8_t count(Color c, PieceType pt) const noexcept;
@@ -416,6 +419,15 @@ inline Bitboard Position::pieces(Color c) const noexcept {
     if constexpr (PT == ROOK)
         return pieces(c, ROOK) & (~blockers(c) | attacks_bb<ROOK>(king_sq(c)));
     return pieces(c, PT);
+}
+
+inline Position::Board Position::piece_board() const noexcept { return board; }
+
+inline std::array<Piece, SQUARE_NB> Position::piece_array() const noexcept {
+    std::array<Piece, SQUARE_NB> pieceArr{};
+    for (std::size_t s = 0; s < pieceArr.size(); ++s)
+        pieceArr[s] = piece_on(Square(s));
+    return pieceArr;
 }
 
 inline std::uint8_t Position::count(Piece pc) const noexcept { return pieceCount[pc]; }
