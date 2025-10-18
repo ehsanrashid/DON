@@ -333,10 +333,10 @@ class Position final {
             pos(p),
             move(m) {}
 
-        bool operator>=(int threshold) const noexcept;
-        bool operator>(int threshold) const noexcept;
-        bool operator<=(int threshold) const noexcept;
-        bool operator<(int threshold) const noexcept;
+        [[nodiscard]] bool operator>=(int threshold) const noexcept;
+        [[nodiscard]] bool operator>(int threshold) const noexcept;
+        [[nodiscard]] bool operator<=(int threshold) const noexcept;
+        [[nodiscard]] bool operator<(int threshold) const noexcept;
 
        private:
         const Position& pos;
