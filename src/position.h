@@ -182,7 +182,7 @@ class Position final {
     template<PieceType PT>
     Bitboard pieces(Color c) const noexcept;
 
-    [[nodiscard]] Board                        piece_board() const noexcept;
+    //[[nodiscard]] Board                        piece_board() const noexcept;
     [[nodiscard]] std::array<Piece, SQUARE_NB> piece_array() const noexcept;
 
     std::uint8_t count(Piece pc) const noexcept;
@@ -421,7 +421,7 @@ inline Bitboard Position::pieces(Color c) const noexcept {
     return pieces(c, PT);
 }
 
-inline Position::Board Position::piece_board() const noexcept { return board; }
+//inline Position::Board Position::piece_board() const noexcept { return board; }
 
 inline std::array<Piece, SQUARE_NB> Position::piece_array() const noexcept {
     std::array<Piece, SQUARE_NB> pieceArr{};
