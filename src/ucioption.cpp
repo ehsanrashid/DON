@@ -41,11 +41,13 @@ const std::unordered_map<OptionType, std::string_view> OptionTypeMap{
 }  // namespace
 
 std::size_t CaseInsensitiveHash::operator()(std::string_view str) const noexcept {
-    return std::hash<std::string>()(lower_case(std::string(str)));
+    auto lowerStr = lower_case(std::string(str));
+    return std::hash<std::string_view>{}(std::string_view{lowerStr});
 }
 
 bool CaseInsensitiveEqual::operator()(std::string_view s1, std::string_view s2) const noexcept {
-    return std::equal(s1.begin(), s1.end(), s2.begin(), s2.end(),
+    return s1.size() == s2.size()
+        && std::equal(s1.begin(), s1.end(), s2.begin(), s2.end(),
                       [](unsigned char c1, unsigned char c2) noexcept {
                           return std::tolower(c1) == std::tolower(c2);
                       });
@@ -153,7 +155,7 @@ void Option::operator=(std::string value) noexcept {
 }
 
 std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
-    os << " type " << to_string(option.type);
+    os << "type " << to_string(option.type);
 
     if (option.type == OPT_BUTTON)
         return os;
@@ -197,14 +199,14 @@ void Options::add(std::string_view name, const Option& option) noexcept {
 
 void Options::set(std::string_view name, std::string_view value) noexcept {
     if (contains(name))
-        options.at(std::string(name)) = std::string(value);
+        options.at(name) = std::string(value);
     else
         std::cout << "No such option: '" << name << "'" << std::endl;
 }
 
 const Option& Options::operator[](const std::string_view name) const noexcept {
     assert(contains(name));
-    return options.at(std::string(name));
+    return options.at(name);
 }
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {
@@ -213,7 +215,7 @@ std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {
     std::sort(optionPairs.begin(), optionPairs.end(),
               [](const auto& op1, const auto& op2) noexcept { return op1.second < op2.second; });
     for (const auto& [name, option] : optionPairs)
-        os << "\noption name " << name << option;
+        os << "\noption name " << name << ' ' << option;
 
     return os;
 }

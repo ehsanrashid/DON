@@ -115,7 +115,7 @@ class Options final {
    public:
     // The options container is defined as a std::unordered_map<>
     using UnorderedMap =
-      std::unordered_map<std::string, Option, CaseInsensitiveHash, CaseInsensitiveEqual>;
+      std::unordered_map<std::string_view, Option, CaseInsensitiveHash, CaseInsensitiveEqual>;
     using Pair = std::pair<UnorderedMap::key_type, UnorderedMap::mapped_type>;
 
     using InfoListener = std::function<void(const std::optional<std::string>&)>;
@@ -135,9 +135,9 @@ class Options final {
     auto empty() const noexcept { return options.empty(); }
 
     auto contains(std::string_view name) const noexcept {
-        return options.find(std::string(name)) != options.end();
+        return options.find(name) != options.end();
     }
-    auto count(std::string_view name) const noexcept { return options.count(std::string(name)); }
+    auto count(std::string_view name) const noexcept { return options.count(name); }
 
     void set_info_listener(InfoListener&& listener) noexcept;
 
