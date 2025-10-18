@@ -199,15 +199,15 @@ void update_accumulator_incremental(
     (targetAccSt.acc<TransformedFeatureDimensions>()).computed[Perspective] = true;
 }
 
-Bitboard changed_bb(const std::array<Piece, SQUARE_NB>& oldBoard,
-                    const std::array<Piece, SQUARE_NB>& newBoard) noexcept {
+Bitboard changed_bb(const std::array<Piece, SQUARE_NB>& oldArr,
+                    const std::array<Piece, SQUARE_NB>& newArr) noexcept {
 #if defined(USE_AVX512) || defined(USE_AVX2)
     Bitboard samedBB = 0;
     for (std::size_t s = 0; s < SQUARE_NB; s += 32)
     {
-        __m256i oldV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(oldBoard.data() + s));
-        __m256i newV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(newBoard.data() + s));
-        __m256i cmpEqual        = _mm256_cmpeq_epi8(oldV, newV);
+        __m256i oldV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(oldArr.data() + s));
+        __m256i newV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(newArr.data() + s));
+        __m256i cmpEqual = _mm256_cmpeq_epi8(oldV, newV);
         std::uint32_t equalMask = _mm256_movemask_epi8(cmpEqual);
         samedBB |= Bitboard(equalMask) << s;
     }
@@ -215,7 +215,7 @@ Bitboard changed_bb(const std::array<Piece, SQUARE_NB>& oldBoard,
 #else
     Bitboard changedBB = 0;
     for (std::size_t s = 0; s < SQUARE_NB; ++s)
-        changedBB |= Bitboard(oldBoard[s] != newBoard[s]) << s;
+        changedBB |= Bitboard(oldArr[s] != newArr[s]) << s;
     return changedBB;
 #endif
 }
