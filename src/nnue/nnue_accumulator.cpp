@@ -234,7 +234,10 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
 
     FeatureSet::IndexList removed, added;
 
-    Bitboard changedBB = changed_bb(entry.pieceArr, pos.piece_array());
+    auto pieces   = pos.pieces();
+    auto pieceArr = pos.piece_array();
+
+    Bitboard changedBB = changed_bb(entry.pieceArr, pieceArr);
 
     Bitboard removedBB = changedBB & entry.pieces;
     while (removedBB)
@@ -242,15 +245,15 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
         Square s = pop_lsb(removedBB);
         removed.push_back(FeatureSet::make_index<Perspective>(s, entry.pieceArr[s], kingSq));
     }
-    Bitboard addedBB = changedBB & pos.pieces();
+    Bitboard addedBB = changedBB & pieces;
     while (addedBB)
     {
         Square s = pop_lsb(addedBB);
         added.push_back(FeatureSet::make_index<Perspective>(s, pos.piece_on(s), kingSq));
     }
 
-    entry.pieces   = pos.pieces();
-    entry.pieceArr = pos.piece_array();
+    entry.pieces   = pieces;
+    entry.pieceArr = pieceArr;
 
     auto& accumulator = accState.acc<Dimensions>();
 
