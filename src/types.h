@@ -139,6 +139,7 @@ enum Piece : std::uint8_t {
     PIECE_NB = 16
 };
 // clang-format on
+static_assert(sizeof(Piece) == 1);
 
 // Value is used as an alias for std::int16_t, this is done to differentiate between
 // a search value and any other integer value. The values used in search are always
