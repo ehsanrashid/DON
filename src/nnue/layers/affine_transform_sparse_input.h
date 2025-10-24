@@ -37,7 +37,7 @@ namespace DON::NNUE::Layers {
 
 namespace {
 
-constexpr std::uint8_t LsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
+constexpr std::uint8_t MsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
                                       57, 49, 41, 37, 28, 16, 3,  61,  //
                                       54, 58, 35, 52, 50, 42, 21, 44,  //
                                       38, 32, 29, 23, 17, 11, 4,  62,  //
@@ -48,7 +48,8 @@ constexpr std::uint8_t LsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
 
 constexpr std::uint8_t constexpr_lsb(std::uint64_t b) noexcept {
     assert(b);
-    return LsbIndices[((b ^ (b - 1)) * 0x03F79D71B4CB0A89ULL) >> 58];
+    b ^= (b - 1);
+    return MsbIndices[(b * 0x03F79D71B4CB0A89ULL) >> 58];
 }
 
 struct Lookup final {

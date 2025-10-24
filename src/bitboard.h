@@ -399,7 +399,7 @@ inline Square lsb(Bitboard b) noexcept {
     //     b >>= 1;
     // }
     // return Square(idx);
-    static constexpr std::uint8_t LsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
+    static constexpr std::uint8_t MsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
                                                  57, 49, 41, 37, 28, 16, 3,  61,  //
                                                  54, 58, 35, 52, 50, 42, 21, 44,  //
                                                  38, 32, 29, 23, 17, 11, 4,  62,  //
@@ -407,8 +407,8 @@ inline Square lsb(Bitboard b) noexcept {
                                                  34, 51, 20, 43, 31, 22, 10, 45,  //
                                                  25, 39, 14, 33, 19, 30, 9,  24,  //
                                                  13, 18, 8,  12, 7,  6,  5,  63};
-
-    return Square(LsbIndices[((b ^ (b - 1)) * 0x03F79D71B4CB0A89ULL) >> 58]);
+    b ^= (b - 1);
+    return Square(MsbIndices[(b * 0x03F79D71B4CB0A89ULL) >> 58]);
 #endif
 }
 
@@ -442,21 +442,16 @@ inline Square msb(Bitboard b) noexcept {
     // while (b >>= 1)
     //     ++idx;
     // return Square(idx);
-    static constexpr std::uint8_t MsbIndices[64]{0,  1,  2,  53, 3,  7,  54, 27,  //
-                                                 4,  38, 41, 8,  55, 48, 28, 62,  //
-                                                 5,  39, 46, 44, 42, 22, 9,  24,  //
-                                                 56, 33, 49, 18, 29, 11, 63, 15,  //
-                                                 6,  52, 26, 37, 40, 47, 61, 45,  //
-                                                 43, 21, 23, 32, 17, 10, 14, 51,  //
-                                                 25, 36, 60, 20, 31, 16, 13, 35,  //
-                                                 59, 19, 30, 12, 34, 58, 57, 50};
+    static constexpr std::uint8_t MsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
+                                                 57, 49, 41, 37, 28, 16, 3,  61,  //
+                                                 54, 58, 35, 52, 50, 42, 21, 44,  //
+                                                 38, 32, 29, 23, 17, 11, 4,  62,  //
+                                                 46, 55, 26, 59, 40, 36, 15, 53,  //
+                                                 34, 51, 20, 43, 31, 22, 10, 45,  //
+                                                 25, 39, 14, 33, 19, 30, 9,  24,  //
+                                                 13, 18, 8,  12, 7,  6,  5,  63};
 
-    b |= b >> 1;
-    b |= b >> 2;
-    b |= b >> 4;
-    b |= b >> 8;
-    b |= b >> 16;
-    b |= b >> 32;
+    b |= b >> 1, b |= b >> 2, b |= b >> 4, b |= b >> 8, b |= b >> 16, b |= b >> 32;
     return Square(MsbIndices[(b * 0x03F79D71B4CB0A89ULL) >> 58]);
 #endif
 }
@@ -473,6 +468,8 @@ inline Square pop_lsb(Bitboard& b) noexcept {
 inline Square pop_msb(Bitboard& b) noexcept {
     assert(b);
     Square s = msb(b);
+    //b &= ~(((b | (b >> 1) | (b >> 2) | (b >> 4) | (b >> 8) | (b >> 16) | (b >> 32))
+    //    & ~((b | (b >> 1) | (b >> 2) | (b >> 4) | (b >> 8) | (b >> 16) | (b >> 32)) >> 1)));
     b ^= s;
     return s;
 }
