@@ -357,6 +357,10 @@ constexpr Bitboard attacks_bb(PieceType pt, Square s, Bitboard occupied = 0) noe
     }
 }
 
+constexpr Bitboard fill_prefix(Bitboard b) noexcept {
+    return b |= b >> 1, b |= b >> 2, b |= b >> 4, b |= b >> 8, b |= b >> 16, b |= b >> 32;
+}
+
 // Counts the number of non-zero bits in the bitboard.
 inline std::uint8_t popcount(Bitboard b) noexcept {
 
@@ -469,7 +473,7 @@ inline Square msb(Bitboard b) noexcept {
     // asm ("bsrq %0, %0" : "+r" (b) :: "cc");
     // return Square(b);
 
-    b |= b >> 1, b |= b >> 2, b |= b >> 4, b |= b >> 8, b |= b >> 16, b |= b >> 32;
+    b = fill_prefix(b);
     return Square(msb_index(b));
 #endif
 }
@@ -486,9 +490,7 @@ inline Square pop_lsb(Bitboard& b) noexcept {
 inline Square pop_msb(Bitboard& b) noexcept {
     assert(b);
     Square s = msb(b);
-    // Bitboard x = b;
-    // x |= x >> 1, x |= x >> 2, x |= x >> 4, x |= x >> 8, x |= x >> 16, x |= x >> 32;
-    // b &= x >> 1; // b ^= x ^ (x >> 1);
+    // b &= fill_prefix(b) >> 1; // b ^= fill_prefix(b) ^ (fill_prefix(b) >> 1);
     b ^= s;
     return s;
 }
