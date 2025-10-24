@@ -361,6 +361,9 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
     // }
     // return count;
 
+    //asm volatile ("popcnt %0, %0" : "+r" (b) :: "cc");
+    //return b;
+
     b = b - ((b >> 1) & 0x5555555555555555ULL);
     b = (b & 0x3333333333333333ULL) + ((b >> 2) & 0x3333333333333333ULL);
     b = (b + (b >> 4)) & 0x0F0F0F0F0F0F0F0FULL;
@@ -403,7 +406,7 @@ inline Square lsb(Bitboard b) noexcept {
     // }
     // return Square(idx);
 
-    // asm ("bsfq %0, %0" : "+r" (b) :: "cc");
+    // asm volatile ("bsfq %0, %0" : "+r" (b) :: "cc");
     // return Square(b);
 
     static constexpr std::uint8_t MsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
@@ -451,7 +454,7 @@ inline Square msb(Bitboard b) noexcept {
     //     ++idx;
     // return Square(idx);
 
-    // asm ("bsrq %0, %0" : "+r" (b) :: "cc");
+    // asm volatile ("bsrq %0, %0" : "+r" (b) :: "cc");
     // return Square(b);
 
     static constexpr std::uint8_t MsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
