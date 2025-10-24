@@ -76,6 +76,19 @@ constexpr Bitboard EDGE_FILE_BB       = FILE_A_BB | FILE_H_BB;
 constexpr Bitboard PROMOTION_RANK_BB  = RANK_8_BB | RANK_1_BB;
 constexpr Bitboard COLOR_BB[COLOR_NB] = {0x55AA55AA55AA55AAULL, 0xAA55AA55AA55AA55ULL};
 
+constexpr std::uint8_t MsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
+                                      57, 49, 41, 37, 28, 16, 3,  61,  //
+                                      54, 58, 35, 52, 50, 42, 21, 44,  //
+                                      38, 32, 29, 23, 17, 11, 4,  62,  //
+                                      46, 55, 26, 59, 40, 36, 15, 53,  //
+                                      34, 51, 20, 43, 31, 22, 10, 45,  //
+                                      25, 39, 14, 33, 19, 30, 9,  24,  //
+                                      13, 18, 8,  12, 7,  6,  5,  63};
+
+constexpr std::uint8_t msb_index(Bitboard b) noexcept {
+    return MsbIndices[(b * 0x03F79D71B4CB0A89ULL) >> 58];
+}
+
 // Magic holds all magic bitboards relevant data for a single square
 struct Magic final {
    public:
@@ -409,16 +422,8 @@ inline Square lsb(Bitboard b) noexcept {
     // asm volatile ("bsfq %0, %0" : "+r" (b) :: "cc");
     // return Square(b);
 
-    static constexpr std::uint8_t MsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
-                                                 57, 49, 41, 37, 28, 16, 3,  61,  //
-                                                 54, 58, 35, 52, 50, 42, 21, 44,  //
-                                                 38, 32, 29, 23, 17, 11, 4,  62,  //
-                                                 46, 55, 26, 59, 40, 36, 15, 53,  //
-                                                 34, 51, 20, 43, 31, 22, 10, 45,  //
-                                                 25, 39, 14, 33, 19, 30, 9,  24,  //
-                                                 13, 18, 8,  12, 7,  6,  5,  63};
     b ^= b - 1;
-    return Square(MsbIndices[(b * 0x03F79D71B4CB0A89ULL) >> 58]);
+    return Square(msb_index(b));
 #endif
 }
 
@@ -457,16 +462,8 @@ inline Square msb(Bitboard b) noexcept {
     // asm volatile ("bsrq %0, %0" : "+r" (b) :: "cc");
     // return Square(b);
 
-    static constexpr std::uint8_t MsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
-                                                 57, 49, 41, 37, 28, 16, 3,  61,  //
-                                                 54, 58, 35, 52, 50, 42, 21, 44,  //
-                                                 38, 32, 29, 23, 17, 11, 4,  62,  //
-                                                 46, 55, 26, 59, 40, 36, 15, 53,  //
-                                                 34, 51, 20, 43, 31, 22, 10, 45,  //
-                                                 25, 39, 14, 33, 19, 30, 9,  24,  //
-                                                 13, 18, 8,  12, 7,  6,  5,  63};
     b |= b >> 1, b |= b >> 2, b |= b >> 4, b |= b >> 8, b |= b >> 16, b |= b >> 32;
-    return Square(MsbIndices[(b * 0x03F79D71B4CB0A89ULL) >> 58]);
+    return Square(msb_index(b));
 #endif
 }
 
