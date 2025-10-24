@@ -17,6 +17,7 @@
 
 #include "misc.h"
 
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <cstdlib>
