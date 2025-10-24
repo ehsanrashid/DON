@@ -25,6 +25,7 @@
 
 #include "misc.h"
 #include "movegen.h"
+#include "position.h"
 #include "syzygy/tbbase.h"
 #include "types.h"
 #include "uci.h"

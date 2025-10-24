@@ -31,12 +31,12 @@
 
 #include "memory.h"
 #include "numa.h"
-#include "position.h"
 #include "search.h"
 #include "thread_win32_osx.h"
 
 namespace DON {
 
+class Position;
 class Options;
 
 // Sometimes we don't want to actually bind the threads, but the recipient still
@@ -136,6 +136,13 @@ inline void Thread::start_search() noexcept {
     assert(worker != nullptr);
     run_custom_job([this]() { worker->start_search(); });
 }
+
+// A list to keep track of the position states along the setup moves
+// (from the start position to the position just before the search starts).
+// Needed by 'draw by repetition' detection.
+// Use a std::deque because pointers to elements are not invalidated upon list resizing.
+using StateList    = std::deque<State>;
+using StateListPtr = std::unique_ptr<StateList>;
 
 using ThreadPtr = std::unique_ptr<Thread>;
 

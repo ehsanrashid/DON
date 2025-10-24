@@ -77,13 +77,7 @@ struct State final {
     State* preSt;
 };
 
-// A list to keep track of the position states along the setup moves
-// (from the start position to the position just before the search starts).
-// Needed by 'draw by repetition' detection.
-// Use a std::deque because pointers to elements are not invalidated upon list resizing.
-using StateList    = std::deque<State>;
-using StateListPtr = std::unique_ptr<StateList>;
-using PieceArray   = std::array<Piece, SQUARE_NB>;
+using PieceArray = std::array<Piece, SQUARE_NB>;
 
 constexpr std::uint8_t R50Offset = 14U;
 constexpr std::uint8_t R50Factor = 8U;
