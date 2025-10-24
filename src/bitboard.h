@@ -352,13 +352,15 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
 #else  // Compiler is neither GCC nor MSVC compatible
     #error "Compiler not supported."
     // Using a fallback implementation
+
     // std::uint8_t count = 0;
     // while (b)
     // {
-    //     count += (b & 1);
+    //     count += b & 1;
     //     b >>= 1;
     // }
     // return count;
+
     b = b - ((b >> 1) & 0x5555555555555555ULL);
     b = (b & 0x3333333333333333ULL) + ((b >> 2) & 0x3333333333333333ULL);
     b = (b + (b >> 4)) & 0x0F0F0F0F0F0F0F0FULL;
