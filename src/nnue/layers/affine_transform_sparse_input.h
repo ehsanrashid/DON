@@ -48,7 +48,7 @@ constexpr std::uint8_t MsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
 
 constexpr std::uint8_t constexpr_lsb(std::uint64_t b) noexcept {
     assert(b);
-    b ^= (b - 1);
+    b ^= b - 1;
     return MsbIndices[(b * 0x03F79D71B4CB0A89ULL) >> 58];
 }
 
