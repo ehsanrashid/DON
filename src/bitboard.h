@@ -450,7 +450,6 @@ inline Square msb(Bitboard b) noexcept {
                                                  34, 51, 20, 43, 31, 22, 10, 45,  //
                                                  25, 39, 14, 33, 19, 30, 9,  24,  //
                                                  13, 18, 8,  12, 7,  6,  5,  63};
-
     b |= b >> 1, b |= b >> 2, b |= b >> 4, b |= b >> 8, b |= b >> 16, b |= b >> 32;
     return Square(MsbIndices[(b * 0x03F79D71B4CB0A89ULL) >> 58]);
 #endif
