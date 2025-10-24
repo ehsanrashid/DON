@@ -140,7 +140,7 @@ void init() noexcept {
 
     const auto rng_key = [&] { return rng.template rand<Key>(); };
 
-    std::memset(psq, 0, sizeof(psq));
+    std::fill_n(&psq[0][0], sizeof(psq) / sizeof(psq[0][0]), Key{});
     for (Piece pc : Pieces)
     {
         std::size_t offset = type_of(pc) == PAWN ? PawnOffset : 0;
