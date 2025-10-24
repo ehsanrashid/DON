@@ -211,6 +211,8 @@ void init() noexcept {
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
+        assert(msb_index(square_bb(s) ^ (square_bb(s) - 1)) == s);
+
         for (Color c : {WHITE, BLACK})
             PieceAttacks[s][c] = attacks_pawn_bb(square_bb(s), c);
 
