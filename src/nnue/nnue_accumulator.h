@@ -25,12 +25,14 @@
 #include <cstdint>
 #include <cstring>
 
-#include "../position.h"
 #include "../types.h"
 #include "nnue_architecture.h"
 #include "nnue_common.h"
 
 namespace DON {
+
+using PieceArray = std::array<Piece, SQUARE_NB>;
+class Position;
 
 namespace NNUE {
 

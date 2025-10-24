@@ -450,7 +450,7 @@ class Move {
     static constexpr std::uint16_t SqrMask      = 0x3F;   // 6 bits for origin/destiny
     static constexpr std::uint16_t SqrSqrMask   = 0xFFF;  // 12 bits for combined origin/destiny
     static constexpr std::uint16_t PromoMask    = 0x3;    // 2 bits for promotion type
-    static constexpr std::uint16_t MoveTypeMask = CASTLING;
+    static constexpr std::uint16_t MoveTypeMask = 0xC000;
 
     constexpr Move() noexcept = default;
     // Constructors using delegating syntax
