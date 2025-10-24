@@ -57,7 +57,7 @@ alignas(CACHE_LINE_SIZE) Bitboard* Attacks[2]{BishopAttacks, RookAttacks};
 inline Bitboard safe_destination(Square s, Direction d, std::uint8_t dist = 1) noexcept {
     assert(is_ok(s));
     Square sq = s + d;
-    return SQ_A1 <= sq && sq <= SQ_H8 && distance(s, sq) <= dist ? square_bb(sq) : 0;
+    return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
 }
 
 // Computes sliding attack
@@ -74,7 +74,8 @@ Bitboard sliding_attack(Square s, Bitboard occupied = 0) noexcept {
         for (Bitboard b; (b = safe_destination(sq, d));)
         {
             attacks |= b;
-            if (occupied & (sq += d))
+            sq += d;
+            if (occupied & sq)
                 break;
         }
     }

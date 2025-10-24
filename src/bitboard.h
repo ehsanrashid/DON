@@ -384,9 +384,9 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
     // asm ("popcnt %0, %0" : "+r" (b) :: "cc");
     // return b;
 
-    b = b - ((b >> 1) & 0x5555555555555555ULL);
-    b = (b & 0x3333333333333333ULL) + ((b >> 2) & 0x3333333333333333ULL);
-    b = (b + (b >> 4)) & 0x0F0F0F0F0F0F0F0FULL;
+    b -= ((b >> 1) & 0x5555555555555555ULL);
+    b = ((b >> 2) & 0x3333333333333333ULL) + (b & 0x3333333333333333ULL);
+    b = ((b >> 4) + b) & 0x0F0F0F0F0F0F0F0FULL;
     return (b * 0x0101010101010101ULL) >> 56;
 #endif
 }
