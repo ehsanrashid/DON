@@ -623,7 +623,7 @@ inline bool Position::rule50_high() const noexcept { return st->rule50High; }
 inline bool Position::castled(Color c) const noexcept { return st->castled[c]; }
 
 inline bool Position::bishop_paired(Color c) const noexcept {
-    return (pieces(c, BISHOP) & COLOR_BB[WHITE]) && (pieces(c, BISHOP) & COLOR_BB[BLACK]);
+    return (pieces(c, BISHOP) & color_bb<WHITE>()) && (pieces(c, BISHOP) & color_bb<BLACK>());
 }
 
 inline bool Position::bishop_opposite() const noexcept {

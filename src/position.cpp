@@ -2023,12 +2023,12 @@ bool Position::pos_is_ok() const noexcept {
         assert(false && "Position::pos_is_ok(): Pawns");
 
     for (Color c : {WHITE, BLACK})
-        if (count<PAWN>(c)                                                      //
-              + std::max(count<KNIGHT>(c) - 2, 0)                               //
-              + std::max(popcount(pieces(c, BISHOP) & COLOR_BB[WHITE]) - 1, 0)  //
-              + std::max(popcount(pieces(c, BISHOP) & COLOR_BB[BLACK]) - 1, 0)  //
-              + std::max(count<ROOK>(c) - 2, 0)                                 //
-              + std::max(count<QUEEN>(c) - 1, 0)                                //
+        if (count<PAWN>(c)                                                        //
+              + std::max(count<KNIGHT>(c) - 2, 0)                                 //
+              + std::max(popcount(pieces(c, BISHOP) & color_bb<WHITE>()) - 1, 0)  //
+              + std::max(popcount(pieces(c, BISHOP) & color_bb<BLACK>()) - 1, 0)  //
+              + std::max(count<ROOK>(c) - 2, 0)                                   //
+              + std::max(count<QUEEN>(c) - 1, 0)                                  //
             > 8)
             assert(false && "Position::pos_is_ok(): Piece Count");
 

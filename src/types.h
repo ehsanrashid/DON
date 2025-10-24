@@ -84,6 +84,8 @@ using Key      = std::uint64_t;
 using Key32    = std::uint32_t;
 using Key16    = std::uint16_t;
 
+static_assert(sizeof(Bitboard) == 8);
+
 constexpr std::uint16_t MAX_MOVES = 256U;
 constexpr std::uint16_t MAX_PLY   = 254U;
 
@@ -170,7 +172,7 @@ constexpr Value VALUE_BISHOP = 825;
 constexpr Value VALUE_ROOK   = 1276;
 constexpr Value VALUE_QUEEN  = 2538;
 // clang-format off
-constexpr Value PIECE_VALUE[PIECE_TYPE_NB] = {
+constexpr Value PIECE_VALUE[PIECE_TYPE_NB]{
   VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO, VALUE_ZERO
 };
 // clang-format on

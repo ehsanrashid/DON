@@ -72,9 +72,17 @@ constexpr Bitboard RANK_6_BB = RANK_1_BB << (8 * 5);
 constexpr Bitboard RANK_7_BB = RANK_1_BB << (8 * 6);
 constexpr Bitboard RANK_8_BB = RANK_1_BB << (8 * 7);
 
-constexpr Bitboard EDGE_FILE_BB       = FILE_A_BB | FILE_H_BB;
-constexpr Bitboard PROMOTION_RANK_BB  = RANK_8_BB | RANK_1_BB;
-constexpr Bitboard COLOR_BB[COLOR_NB] = {0x55AA55AA55AA55AAULL, 0xAA55AA55AA55AA55ULL};
+constexpr Bitboard EDGE_FILE_BB      = FILE_A_BB | FILE_H_BB;
+constexpr Bitboard PROMOTION_RANK_BB = RANK_8_BB | RANK_1_BB;
+
+constexpr Bitboard WHITE_BB = 0x55AA55AA55AA55AAULL;
+constexpr Bitboard BLACK_BB = ~WHITE_BB;
+
+template<Color C>
+constexpr Bitboard color_bb() noexcept {
+    static_assert(is_ok(C), "Invalid color for color_bb()");
+    return C == WHITE ? WHITE_BB : BLACK_BB;
+}
 
 constexpr std::uint8_t MSB_INDICES[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
                                        57, 49, 41, 37, 28, 16, 3,  61,  //
