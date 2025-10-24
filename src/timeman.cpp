@@ -93,7 +93,7 @@ void TimeManager::init(
 
     // If less than one second, gradually reduce mtg
     if (scaledTime < 1000)
-        centiMTG = std::max<std::uint16_t>(5.0510 * scaledTime, 200);
+        centiMTG = std::max<std::uint16_t>(5.0510 * scaledTime, 101);
 
     // Make sure remainTime > 0 since use it as a divisor
     const TimePoint remainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * moveOverhead) / 100, TimePoint(1));

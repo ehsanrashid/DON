@@ -225,8 +225,8 @@ class Position final {
     Bitboard attackers_to(Square s, Bitboard occupied) const noexcept;
     Bitboard attackers_to(Square s) const noexcept;
 
-    bool exist_attackers_to(Square s, Bitboard attackers, Bitboard occupied) const noexcept;
-    bool exist_attackers_to(Square s, Bitboard attackers) const noexcept;
+    bool has_attackers_to(Square s, Bitboard attackers, Bitboard occupied) const noexcept;
+    bool has_attackers_to(Square s, Bitboard attackers) const noexcept;
 
     // Attacks from a piece type
     template<PieceType PT>
@@ -509,18 +509,18 @@ inline Bitboard Position::attackers_to(Square s) const noexcept {
     return attackers_to(s, pieces());
 }
 
-inline bool Position::exist_attackers_to(Square s, Bitboard attackers, Bitboard occupied) const noexcept {
-    return  (attackers & pieces(KNIGHT       ) & attacks_bb<KNIGHT>(s))
-        || ((attackers & pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(s))
+inline bool Position::has_attackers_to(Square s, Bitboard attackers, Bitboard occupied) const noexcept {
+    return ((attackers & pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(s))
          && (attackers & pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupied)))
         || ((attackers & pieces(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s))
          && (attackers & pieces(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupied)))
-        ||  (attackers & pieces(KING         ) & attacks_bb<KING  >(s))
         ||  (attackers & ((pieces(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
-                        | (pieces(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE))));
+                        | (pieces(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE))))
+        ||  (attackers & pieces(KNIGHT       ) & attacks_bb<KNIGHT>(s))
+        ||  (attackers & pieces(KING         ) & attacks_bb<KING  >(s));
 }
-inline bool Position::exist_attackers_to(Square s, Bitboard attackers) const noexcept {
-    return exist_attackers_to(s, attackers, pieces());
+inline bool Position::has_attackers_to(Square s, Bitboard attackers) const noexcept {
+    return has_attackers_to(s, attackers, pieces());
 }
 
 // clang-format on
@@ -711,7 +711,7 @@ inline void Position::remove_piece(Square s) noexcept {
     assert(is_ok(s));
 
     Piece pc = board.piece_on(s);
-    assert(is_ok(pc) && count(pc) != 0);
+    assert(is_ok(pc) && count(pc));
     board.piece_on(s, NO_PIECE);
     typeBB[ALL_PIECE] ^= s;
     typeBB[type_of(pc)] ^= s;

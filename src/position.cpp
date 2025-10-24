@@ -570,7 +570,7 @@ void Position::set_state() noexcept {
 
         if (pt == PAWN)
         {
-            assert(Zobrist::psq[pc][s] != 0);
+            assert(Zobrist::psq[pc][s]);
             st->pawnKey[color_of(pc)] ^= Zobrist::psq[pc][s];
         }
         else if (pt != KING)
@@ -904,8 +904,8 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
 
             remove_piece(dst);
             put_piece(dst, promotedPiece);
-            assert(count(promotedPiece) != 0);
-            assert(Zobrist::psq[movedPiece][dst] == 0);
+            assert(count(promotedPiece));
+            assert(!Zobrist::psq[movedPiece][dst]);
             // Update hash keys
             // clang-format off
             k                                    ^= Zobrist::psq[promotedPiece][dst];
@@ -977,7 +977,7 @@ DO_MOVE_END:
             pSt = pSt->preSt->preSt;
             if (pSt->key == st->key)
             {
-                st->repetition = pSt->repetition != 0 ? -i : +i;
+                st->repetition = pSt->repetition ? -i : +i;
                 break;
             }
         }
@@ -1171,7 +1171,7 @@ bool Position::pseudo_legal(Move m) const noexcept {
 
         // For king moves, check whether the destination square is attacked by the enemies.
         if (type_of(pc) == KING)
-            return !exist_attackers_to(dst, pieces(~ac), pieces() ^ org);
+            return !has_attackers_to(dst, pieces(~ac), pieces() ^ org);
         break;
 
     case PROMOTION :
@@ -1258,7 +1258,7 @@ bool Position::legal(Move m) const noexcept {
         Square    kDst = king_castle_sq(ac, org, dst);
         Direction step = org < kDst ? WEST : EAST;
         for (Square s = kDst; s != org; s += step)
-            if (exist_attackers_to(s, pieces(~ac)))
+            if (has_attackers_to(s, pieces(~ac)))
                 return false;
 
         // In case of Chess960, verify if the Rook blocks some checks.
@@ -1269,7 +1269,7 @@ bool Position::legal(Move m) const noexcept {
         // For king moves, return true
         if (type_of(piece_on(org)) == KING)
         {
-            assert(!exist_attackers_to(dst, pieces(~ac), pieces() ^ org));
+            assert(!has_attackers_to(dst, pieces(~ac), pieces() ^ org));
             return true;
         }
         break;
@@ -1394,7 +1394,7 @@ Key Position::material_key() const noexcept {
     Key materialKey = 0;
 
     for (Piece pc : Pieces)
-        if (pc != W_KING && pc != B_KING && count(pc) != 0)
+        if (pc != W_KING && pc != B_KING && count(pc))
             materialKey ^= Zobrist::psq[pc][PawnOffset + count(pc) - 1];
 
     return materialKey;
@@ -1725,14 +1725,14 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         acAttackers = pieces(ac) & occupied;
 
         sq = king_sq(~ac);
-        if ((occupied & sq) && exist_attackers_to(sq, acAttackers, occupied))
+        if ((occupied & sq) && has_attackers_to(sq, acAttackers, occupied))
             return true;
 
         // Even when one of our non-queen pieces attacks opponent queen after exchanges
         Bitboard queen = pieces(~ac, QUEEN) & ~attackers & occupied;
 
         sq = queen ? lsb(queen) : SQ_NONE;
-        if (is_ok(sq) && exist_attackers_to(sq, acAttackers & ~pieces(QUEEN), occupied))
+        if (is_ok(sq) && has_attackers_to(sq, acAttackers & ~pieces(QUEEN), occupied))
             return true;
     }
 
@@ -1742,7 +1742,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 // Draw by Repetition: position repeats once earlier but strictly
 // after the root, or repeats twice before or at the root.
 bool Position::is_repetition(std::int16_t ply) const noexcept {
-    return repetition() != 0 && repetition() < ply;
+    return repetition() && repetition() < ply;
 }
 
 // Tests whether the current position is drawn by repetition or by 50-move rule.
@@ -1768,7 +1768,7 @@ bool Position::has_repetition() const noexcept {
     auto* cSt = st;
     while (end-- >= 4)
     {
-        if (cSt->repetition != 0)
+        if (cSt->repetition)
             return true;
         cSt = cSt->preSt;
     }
@@ -1783,10 +1783,9 @@ bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
     if (end < 3)
         return false;
 
-    auto* pSt = st->preSt;
-
-    Key baseKey = st->key;
-    Key iterKey = baseKey ^ pSt->key ^ Zobrist::turn;
+    Key   baseKey = st->key;
+    auto* pSt     = st->preSt;
+    Key   iterKey = baseKey ^ pSt->key ^ Zobrist::turn;
 
     for (std::int16_t i = 3; i <= end; i += 2)
     {
@@ -1794,7 +1793,7 @@ bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
         pSt = pSt->preSt->preSt;
 
         // Opponent pieces have reverted
-        if (iterKey != 0)
+        if (iterKey)
             continue;
 
         Key moveKey = baseKey ^ pSt->key;
@@ -1819,7 +1818,7 @@ bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
         if (i < ply
             // For nodes before or at the root, check that the move is
             // a repetition rather than a move to the current position.
-            || pSt->repetition != 0)
+            || pSt->repetition)
             return true;
     }
     return false;
@@ -2018,7 +2017,7 @@ bool Position::pos_is_ok() const noexcept {
     if (non_pawn_key() != compute_non_pawn_key())
         assert(false && "Position::pos_is_ok(): NonPawn Key");
 
-    if (exist_attackers_to(king_sq(~active_color()), pieces(active_color())))
+    if (has_attackers_to(king_sq(~active_color()), pieces(active_color())))
         assert(false && "Position::pos_is_ok(): King Checker");
 
     if ((pieces(PAWN) & PROMOTION_RANK_BB) || count(W_PAWN) > 8 || count(B_PAWN) > 8)

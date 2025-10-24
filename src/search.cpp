@@ -804,7 +804,7 @@ Value Worker::search(Position&    pos,
     [[maybe_unused]] Value maxValue = +VALUE_INFINITE;
 
     // Step 5. Tablebases probe
-    if (!RootNode && !exclude && tbConfig.cardinality != 0)
+    if (!RootNode && !exclude && tbConfig.cardinality)
     {
         auto pieceCount = pos.count<ALL_PIECE>();
 
@@ -1507,7 +1507,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     // All legal moves have been searched and if there are no legal moves,
     // it must be a mate or a stalemate.
     // If in a singular extension search then return a fail low score.
-    assert(moveCount != 0 || !ss->inCheck || exclude || (MoveList<LEGAL, true>(pos).empty()));
+    assert(moveCount || !ss->inCheck || exclude || (MoveList<LEGAL, true>(pos).empty()));
     assert(ss->moveCount == moveCount && ss->ttMove == ttd.move);
 
     if (moveCount == 0)
@@ -1574,8 +1574,8 @@ S_MOVES_LOOP:  // When in check, search starts here
         Bound bound = bestValue >= beta                ? BOUND_LOWER
                     : PVNode && bestMove != Move::None ? BOUND_EXACT
                                                        : BOUND_UPPER;
-        ttu.update(moveCount != 0 ? depth : std::min(depth + 6, MAX_PLY - 1), ss->pvHit, bound,
-                   bestMove, value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
+        ttu.update(moveCount ? depth : std::min(depth + 6, MAX_PLY - 1), ss->pvHit, bound, bestMove,
+                   value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
     }
 
     // Adjust correction history
@@ -2051,7 +2051,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         auto tbc = Tablebases::rank_root_moves(rootPos, rms, options, true);
 
         // If DTZ is not available might not find a mate, so bail out
-        if (!tbc.rootInTB || tbc.cardinality != 0)
+        if (!tbc.rootInTB || tbc.cardinality)
             break;
 
         const auto& pvMove = rms[0].pv[0];
@@ -2300,7 +2300,7 @@ void update_all_quiet_history(const Position& pos, Stack* const ss, Move m, int 
 // Updates history at the end of search() when a bestMove is found
 void update_all_history(const Position& pos, Stack* const ss, Depth depth, Move bm, const MovesArray<2>& movesArr) noexcept {
     assert(pos.pseudo_legal(bm));
-    assert(ss->moveCount != 0);
+    assert(ss->moveCount);
 
     int bonus =          std::min(- 91 + 151 * depth, 1730) + 302 * (bm == ss->ttMove);
     int malus = std::max(std::min(-156 + 951 * depth, 2468) -  30 * int(movesArr[0].size()), 1);
