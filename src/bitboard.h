@@ -403,7 +403,7 @@ inline Square lsb(Bitboard b) noexcept {
     // }
     // return Square(idx);
 
-    // asm("bsfq %0, %0" : "+r" (b) :: "cc");
+    // asm ("bsfq %0, %0" : "+r" (b) :: "cc");
     // return Square(b);
 
     static constexpr std::uint8_t MsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
@@ -451,7 +451,7 @@ inline Square msb(Bitboard b) noexcept {
     //     ++idx;
     // return Square(idx);
 
-    // asm("bsrq %0, %0" : "+r" (b) :: "cc");
+    // asm ("bsrq %0, %0" : "+r" (b) :: "cc");
     // return Square(b);
 
     static constexpr std::uint8_t MsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
