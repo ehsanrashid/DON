@@ -392,6 +392,7 @@ inline Square lsb(Bitboard b) noexcept {
 #else  // Compiler is neither GCC nor MSVC compatible
     #error "Compiler not supported."
     // Using a fallback implementation
+
     // std::uint8_t idx = 0;
     // while (!(b & 1))
     // {
@@ -399,6 +400,10 @@ inline Square lsb(Bitboard b) noexcept {
     //     b >>= 1;
     // }
     // return Square(idx);
+
+    // asm("bsfq %0, %0" : "+r" (b) :: "cc");
+    // return Square(b);
+
     static constexpr std::uint8_t MsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
                                                  57, 49, 41, 37, 28, 16, 3,  61,  //
                                                  54, 58, 35, 52, 50, 42, 21, 44,  //
@@ -438,10 +443,15 @@ inline Square msb(Bitboard b) noexcept {
 #else  // Compiler is neither GCC nor MSVC compatible
     #error "Compiler not supported."
     // Using a fallback implementation
+
     // std::uint8_t idx = 0;
     // while (b >>= 1)
     //     ++idx;
     // return Square(idx);
+
+    // asm("bsrq %0, %0" : "+r" (b) :: "cc");
+    // return Square(b);
+
     static constexpr std::uint8_t MsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
                                                  57, 49, 41, 37, 28, 16, 3,  61,  //
                                                  54, 58, 35, 52, 50, 42, 21, 44,  //
