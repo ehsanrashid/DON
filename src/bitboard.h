@@ -486,8 +486,9 @@ inline Square pop_lsb(Bitboard& b) noexcept {
 inline Square pop_msb(Bitboard& b) noexcept {
     assert(b);
     Square s = msb(b);
-    //b ^= (b | (b >> 1) | (b >> 2) | (b >> 4) | (b >> 8) | (b >> 16) | (b >> 32))
-    //  ^ ((b | (b >> 1) | (b >> 2) | (b >> 4) | (b >> 8) | (b >> 16) | (b >> 32)) >> 1);
+    // Bitboard x = b;
+    // x |= x >> 1, x |= x >> 2, x |= x >> 4, x |= x >> 8, x |= x >> 16, x |= x >> 32;
+    // b &= x >> 1; // b ^= x ^ (x >> 1);
     b ^= s;
     return s;
 }
