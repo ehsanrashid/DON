@@ -138,30 +138,32 @@ Key turn;
 void init() noexcept {
     PRNG1024 rng(0x105524ULL);
 
+    const auto rng_key = [&] { return rng.template rand<Key>(); };
+
     std::memset(psq, 0, sizeof(psq));
     for (Piece pc : Pieces)
     {
         std::size_t offset = type_of(pc) == PAWN ? PawnOffset : 0;
-        for (std::size_t s = 0 + offset; s < std::size(psq[pc]) - offset; ++s)
-            psq[pc][s] = rng.rand<Key>();
+        std::generate(std::begin(psq[pc]) + offset, std::end(psq[pc]) - offset, rng_key);
     }
 
-    for (std::size_t cr = 0; cr < std::size(castling); ++cr)
-    {
-        castling[cr] = 0;
+    std::size_t cr = 0;
+    std::generate(std::begin(castling), std::end(castling), [&] {
+        Key acc = 0;
 
         Bitboard b = cr;
         while (b)
         {
             Key k = castling[square_bb(pop_lsb(b))];
-            castling[cr] ^= k ? k : rng.rand<Key>();
+            acc ^= k ? k : rng_key();
         }
-    }
+        ++cr;        // advance to next index
+        return acc;  // sets castling[old_cr]
+    });
 
-    for (std::size_t f = 0; f < std::size(enpassant); ++f)
-        enpassant[f] = rng.rand<Key>();
+    std::generate(std::begin(enpassant), std::end(enpassant), rng_key);
 
-    turn = rng.rand<Key>();
+    turn = rng_key();
 }
 }  // namespace Zobrist
 

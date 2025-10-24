@@ -93,6 +93,7 @@ constexpr std::uint8_t MSB_INDICES[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
                                        25, 39, 14, 33, 19, 30, 9,  24,  //
                                        13, 18, 8,  12, 7,  6,  5,  63};
 constexpr std::uint8_t msb_index(Bitboard b) noexcept {
+    assert(b);
     return MSB_INDICES[(b * 0x03F79D71B4CB0A89ULL) >> 58];
 }
 
