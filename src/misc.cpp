@@ -19,7 +19,6 @@
 
 #include <atomic>
 #include <cmath>
-#include <cstddef>
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
@@ -695,10 +694,9 @@ std::string CommandLine::binary_directory(std::string path) noexcept {
 // Extract the working directory
 std::string CommandLine::working_directory() noexcept {
 
-    constexpr std::size_t BuffSize = 4096;
-    char                  buffer[BuffSize];
+    std::array<char, 4096> buffer{};
 
-    char* cwd = GETCWD(buffer, BuffSize);
+    char* cwd = GETCWD(buffer.data(), buffer.size());
 
     std::string workingDirectory;
     if (cwd != nullptr)

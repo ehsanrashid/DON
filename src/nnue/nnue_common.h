@@ -176,9 +176,9 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
 
     constexpr std::size_t Size = sizeof(IntType);
 
-    constexpr std::size_t BufSize = 4096;
-    std::uint8_t          buffer[BufSize];
-    std::size_t           bufPos = BufSize;
+    std::array<std::uint8_t, 4096> buffer{};
+
+    std::size_t bufferIdx = buffer.size();
 
     std::size_t byteCount = read_little_endian<std::uint32_t>(istream);
 
@@ -189,13 +189,14 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
         std::size_t shift = 0;
         do
         {
-            if (bufPos == BufSize)
+            if (bufferIdx == buffer.size())
             {
-                istream.read(reinterpret_cast<char*>(buffer), std::min(bufPos, byteCount));
-                bufPos = 0;
+                istream.read(reinterpret_cast<char*>(buffer.data()),
+                             std::min(bufferIdx, byteCount));
+                bufferIdx = 0;
             }
 
-            std::uint8_t byt = buffer[bufPos++];
+            std::uint8_t byt = buffer[bufferIdx++];
             --byteCount;
             value |= (byt & 0x7F) << shift;
             shift += 7;
@@ -239,20 +240,20 @@ inline void write_leb_128(std::ostream& ostream, const IntType* in, std::size_t 
 
     write_little_endian<std::uint32_t>(ostream, byteCount);
 
-    constexpr std::size_t BufSize = 4096;
-    std::uint8_t          buffer[BufSize];
-    std::size_t           bufPos = 0;
+    std::array<std::uint8_t, 4096> buffer{};
+
+    std::size_t bufferIdx = 0;
 
     auto flush = [&]() {
-        if (bufPos == 0)
+        if (bufferIdx == 0)
             return;
-        ostream.write(reinterpret_cast<char*>(buffer), bufPos);
-        bufPos = 0;
+        ostream.write(reinterpret_cast<char*>(buffer.data()), bufferIdx);
+        bufferIdx = 0;
     };
 
     auto write = [&](std::uint8_t byt) {
-        buffer[bufPos++] = byt;
-        if (bufPos == BufSize)
+        buffer[bufferIdx++] = byt;
+        if (bufferIdx == buffer.size())
             flush();
     };
 
