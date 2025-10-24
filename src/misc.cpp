@@ -167,9 +167,13 @@ inline std::string format_date(std::string_view date) noexcept {
 }  // namespace
 
 std::string engine_info(bool uci) noexcept {
-    return (std::ostringstream{} << (uci ? "id name " : "") << version_info()
-                                 << (uci ? "\nid author " : " by ") << "Ehsan Rashid")
-      .str();
+    std::string str;
+    str.reserve(64);
+    str += uci ? "id name " : "";
+    str += version_info();
+    str += uci ? "\nid author " : " by ";
+    str += "Ehsan Rashid";
+    return str;
 }
 
 // Returns the full name of the current DON version.
@@ -182,25 +186,29 @@ std::string engine_info(bool uci) noexcept {
 // For releases (non-dev builds) only include the version number:
 //  - DON version
 std::string version_info() noexcept {
-    std::ostringstream oss;
-    oss << "DON " << Version;
+    std::string str;
+    str.reserve(32);
+
+    str += "DON";
+    str += ' ';
+    str += Version;
 
     if constexpr (Version == "dev")
     {
-        oss << '-';
+        str += '-';
 #if defined(GIT_DATE)
-        oss << STRINGIFY(GIT_DATE);
+        str += STRINGIFY(GIT_DATE);
 #else
-        oss << format_date(__DATE__);
+        str += format_date(__DATE__);
 #endif
-        oss << '-';
+        str += '-';
 #if defined(GIT_SHA)
-        oss << STRINGIFY(GIT_SHA);
+        str += STRINGIFY(GIT_SHA);
 #else
-        oss << "nogit";
+        str += "nogit";
 #endif
     }
-    return oss.str();
+    return str;
 }
 
 // Returns a string trying to describe the compiler used
