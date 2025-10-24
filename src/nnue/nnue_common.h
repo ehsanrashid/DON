@@ -80,16 +80,16 @@ constexpr IntType ceil_to_multiple(IntType n, IntType base) noexcept {
 
 // Utility to read an integer (signed or unsigned, any size)
 // from a istream in little-endian order. Swap the byte order after the read
-// if necessary to return a result with the byte ordering of the compiling machine.
+// if necessary to return a value with the byte ordering of the compiling machine.
 template<typename IntType>
 inline IntType read_little_endian(std::istream& istream) noexcept {
 
     constexpr std::size_t Size = sizeof(IntType);
 
-    IntType result;
+    IntType value;
 
     if (IsLittleEndian)
-        istream.read(reinterpret_cast<char*>(&result), Size);
+        istream.read(reinterpret_cast<char*>(&value), Size);
     else
     {
         std::uint8_t                  u[Size];
@@ -99,10 +99,10 @@ inline IntType read_little_endian(std::istream& istream) noexcept {
         for (std::size_t i = 0; i < Size; ++i)
             v = (v << 8) | u[Size - i - 1];
 
-        std::memcpy(&result, &v, Size);
+        std::memcpy(&value, &v, Size);
     }
 
-    return result;
+    return value;
 }
 
 // Utility to write an integer (signed or unsigned, any size)
@@ -152,18 +152,18 @@ inline void read_little_endian(std::istream& istream, IntType* out, std::size_t 
 }
 
 // Write integers in bulk to a little-endian ostream.
-// This takes N integers from array values and writes them on ostream.
+// This takes N integers from array in and writes them on ostream.
 template<typename IntType>
 inline void
-write_little_endian(std::ostream& ostream, const IntType* values, std::size_t count) noexcept {
+write_little_endian(std::ostream& ostream, const IntType* in, std::size_t count) noexcept {
 
     constexpr std::size_t Size = sizeof(IntType);
 
     if (IsLittleEndian)
-        ostream.write(reinterpret_cast<const char*>(values), count * Size);
+        ostream.write(reinterpret_cast<const char*>(in), count * Size);
     else
         for (std::size_t i = 0; i < count; ++i)
-            write_little_endian<IntType>(ostream, values[i]);
+            write_little_endian<IntType>(ostream, in[i]);
 }
 
 // Read signed integers from a istream with LEB128 compression.
