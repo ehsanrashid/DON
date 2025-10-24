@@ -48,9 +48,7 @@ constexpr std::uint8_t LsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
 
 constexpr std::uint8_t constexpr_lsb(std::uint64_t b) noexcept {
     assert(b);
-    constexpr std::uint64_t Debruijn64 = 0x03F79D71B4CB0A89ULL;
-
-    return LsbIndices[((b ^ (b - 1)) * Debruijn64) >> 58];
+    return LsbIndices[((b ^ (b - 1)) * 0x03F79D71B4CB0A89ULL) >> 58];
 }
 
 struct Lookup final {
