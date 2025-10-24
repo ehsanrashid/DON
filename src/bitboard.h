@@ -298,9 +298,9 @@ constexpr Bitboard attacks_pawn_bb(Bitboard b, Color c) noexcept {
 
 // Returns the pseudo attacks of the given piece type assuming an empty board.
 template<PieceType PT>
-constexpr Bitboard attacks_bb(Square s, Color c = COLOR_NB) noexcept {
+constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Color c = COLOR_NB) noexcept {
     static_assert(is_ok(PT), "Unsupported piece type in attacks_bb()");
-    assert(is_ok(s) && (PT != PAWN || c < COLOR_NB));
+    assert(is_ok(s) && (PT != PAWN || is_ok(c)));
     if constexpr (PT == PAWN)
         return PieceAttacks[s][c];
     return PieceAttacks[s][PT];
