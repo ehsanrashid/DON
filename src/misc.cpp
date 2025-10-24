@@ -226,111 +226,112 @@ std::string compiler_info() noexcept {
     // _WIN32                  Building on Windows (any)
     // _WIN64                  Building on Windows 64 bit
 
-    std::ostringstream oss;
+    std::string str;
+    str.reserve(256);
 
-    oss << "\nCompiled by                : ";
+    str += "\nCompiled by                : ";
 #if defined(__INTEL_LLVM_COMPILER)
-    oss << "ICX ";
-    oss << STRINGIFY(__INTEL_LLVM_COMPILER);
+    str += "ICX ";
+    str += STRINGIFY(__INTEL_LLVM_COMPILER);
 #elif defined(__clang__)
-    oss << "clang++ ";
-    oss << VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
+    str += "clang++ ";
+    str += VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
 #elif defined(_MSC_VER)
-    oss << "MSVC ";
-    oss << STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD);
+    str += "MSVC ";
+    str += STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD);
 #elif defined(__GNUC__)
-    oss << "g++ (GNUC) ";
-    oss << VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+    str += "g++ (GNUC) ";
+    str += VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
 #elif defined(__e2k__) && defined(__LCC__)
-    oss << "MCST LCC ";
-    oss << std::to_string(__LCC__ / 100) << "."  //
-        << std::to_string(__LCC__ % 100) << "."  //
-        << std::to_string(__LCC_MINOR__);
+    str += "MCST LCC ";
+    str += std::to_string(__LCC__ / 100) + "."  //
+         + std::to_string(__LCC__ % 100) + "."  //
+         + std::to_string(__LCC_MINOR__);
 #else
-    oss << "(unknown compiler)";
+    str += "(unknown compiler)";
 #endif
 
-    oss << "\nCompiled on                : ";
+    str += "\nCompiled on                : ";
 #if defined(__APPLE__)
-    oss << "Apple";
+    str += "Apple";
 #elif defined(__CYGWIN__)
-    oss << "Cygwin";
+    str += "Cygwin";
 #elif defined(__MINGW64__)
-    oss << "MinGW64";
+    str += "MinGW64";
 #elif defined(__MINGW32__)
-    oss << "MinGW32";
+    str += "MinGW32";
 #elif defined(__ANDROID__)
-    oss << "Android";
+    str += "Android";
 #elif defined(__linux__)
-    oss << "Linux";
+    str += "Linux";
 #elif defined(_WIN64)
-    oss << "Microsoft Windows 64-bit";
+    str += "Microsoft Windows 64-bit";
 #elif defined(_WIN32)
-    oss << "Microsoft Windows 32-bit";
+    str += "Microsoft Windows 32-bit";
 #else
-    oss << "(unknown system)";
+    str += "(unknown system)";
 #endif
 
-    oss << "\nCompilation architecture   : ";
+    str += "\nCompilation architecture   : ";
 #if defined(ARCH)
-    oss << STRINGIFY(ARCH);
+    str += STRINGIFY(ARCH);
 #else
-    oss << "(undefined architecture)";
+    str += "(undefined architecture)";
 #endif
 
-    oss << "\nCompilation settings       : ";
+    str += "\nCompilation settings       : ";
 #if defined(IS_64BIT)
-    oss << "64bit";
+    str += "64bit";
 #else
-    oss << "32bit";
+    str += "32bit";
 #endif
 #if defined(USE_AVX512ICL)
-    oss << " AVX512ICL";
+    str += " AVX512ICL";
 #endif
 #if defined(USE_VNNI)
-    oss << " VNNI";
+    str += " VNNI";
 #endif
 #if defined(USE_AVX512)
-    oss << " AVX512";
+    str += " AVX512";
 #endif
 #if defined(USE_BMI2)
-    oss << " BMI2";
+    str += " BMI2";
 #endif
 #if defined(USE_AVX2)
-    oss << " AVX2";
+    str += " AVX2";
 #endif
 #if defined(USE_SSE41)
-    oss << " SSE41";
+    str += " SSE41";
 #endif
 #if defined(USE_SSSE3)
-    oss << " SSSE3";
+    str += " SSSE3";
 #endif
 #if defined(USE_SSE2)
-    oss << " SSE2";
+    str += " SSE2";
 #endif
 #if defined(USE_POPCNT)
-    oss << " POPCNT";
+    str += " POPCNT";
 #endif
 #if defined(USE_NEON_DOTPROD)
-    oss << " NEON_DOTPROD";
+    str += " NEON_DOTPROD";
 #elif defined(USE_NEON)
-    oss << " NEON";
+    str += " NEON";
 #endif
 
 #if !defined(NDEBUG)
-    oss << " DEBUG";
+    str += " DEBUG";
 #endif
 
-    oss << "\nCompiler __VERSION__ macro : ";
+    str += "\nCompiler __VERSION__ macro : ";
 #if defined(__VERSION__)
-    oss << __VERSION__;
+    str += __VERSION__;
 #else
-    oss << "(undefined macro)";
+    str += "(undefined macro)";
 #endif
 
 #undef VERSION_STRING
 
-    return oss.str();
+    return str;
 }
 
 std::string format_time(const SystemClock::time_point& timePoint) {
