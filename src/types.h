@@ -447,9 +447,9 @@ class Move {
     };
 
     // Bit masks for extracting parts of the move
-    static constexpr std::uint16_t SqrMask      = 0x3F;   // 6 bits for origin/destiny
-    static constexpr std::uint16_t SqrSqrMask   = 0xFFF;  // 12 bits for combined origin/destiny
-    static constexpr std::uint16_t PromoMask    = 0x3;    // 2 bits for promotion type
+    static constexpr std::uint16_t SqrMask      = 0x003F;  // 6 bits for origin/destiny
+    static constexpr std::uint16_t SqrSqrMask   = 0x0FFF;  // 12 bits for combined origin/destiny
+    static constexpr std::uint16_t PromoMask    = 0x0003;  // 2 bits for promotion type
     static constexpr std::uint16_t MoveTypeMask = 0xC000;
 
     constexpr Move() noexcept = default;
