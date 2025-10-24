@@ -381,7 +381,7 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
     // }
     // return count;
 
-    // asm volatile ("popcnt %0, %0" : "+r" (b) :: "cc");
+    // asm ("popcnt %0, %0" : "+r" (b) :: "cc");
     // return b;
 
     b = b - ((b >> 1) & 0x5555555555555555ULL);
@@ -426,7 +426,7 @@ inline Square lsb(Bitboard b) noexcept {
     // }
     // return Square(idx);
 
-    // asm volatile ("bsfq %0, %0" : "+r" (b) :: "cc");
+    // asm ("bsfq %0, %0" : "+r" (b) :: "cc");
     // return Square(b);
 
     b ^= b - 1;
@@ -466,7 +466,7 @@ inline Square msb(Bitboard b) noexcept {
     //     ++idx;
     // return Square(idx);
 
-    // asm volatile ("bsrq %0, %0" : "+r" (b) :: "cc");
+    // asm ("bsrq %0, %0" : "+r" (b) :: "cc");
     // return Square(b);
 
     b |= b >> 1, b |= b >> 2, b |= b >> 4, b |= b >> 8, b |= b >> 16, b |= b >> 32;
