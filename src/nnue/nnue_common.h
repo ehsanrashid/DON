@@ -21,15 +21,13 @@
 #define NNUE_COMMON_H_INCLUDED
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <type_traits>
-
-#include "../misc.h"
-#include "../types.h"
 
 #if defined(USE_AVX2)
     #include <immintrin.h>
