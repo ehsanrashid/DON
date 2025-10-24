@@ -229,7 +229,7 @@ constexpr Rank edge_distance(Rank r) noexcept { return std::min(r, Rank(RANK_8 -
 
 // Shifts a bitboard as specified by the direction
 template<Direction D>
-constexpr Bitboard shift(Bitboard b) noexcept {
+constexpr Bitboard shift_bb(Bitboard b) noexcept {
     if constexpr (D == NORTH)
         return b << NORTH;
     if constexpr (D == SOUTH)
@@ -257,7 +257,7 @@ constexpr Bitboard shift(Bitboard b) noexcept {
 template<Color C>
 constexpr Bitboard push_pawn_bb(Bitboard b) noexcept {
     static_assert(is_ok(C), "Invalid color for push_pawn_bb()");
-    return shift<pawn_spush(C)>(b);
+    return shift_bb<pawn_spush(C)>(b);
 }
 constexpr Bitboard push_pawn_bb(Bitboard b, Color c) noexcept {
     assert(is_ok(c));
@@ -268,8 +268,8 @@ constexpr Bitboard push_pawn_bb(Bitboard b, Color c) noexcept {
 template<Color C>
 constexpr Bitboard attacks_pawn_bb(Bitboard b) noexcept {
     static_assert(is_ok(C), "Invalid color for attacks_pawn_bb()");
-    return shift<(C == WHITE ? NORTH_WEST : SOUTH_WEST)>(b)
-         | shift<(C == WHITE ? NORTH_EAST : SOUTH_EAST)>(b);
+    return shift_bb<(C == WHITE ? NORTH_WEST : SOUTH_WEST)>(b)
+         | shift_bb<(C == WHITE ? NORTH_EAST : SOUTH_EAST)>(b);
 }
 constexpr Bitboard attacks_pawn_bb(Bitboard b, Color c) noexcept {
     assert(is_ok(c));

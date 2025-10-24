@@ -140,8 +140,8 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
     // Single and double pawn pushes, no promotions
     if constexpr (!Capture)
     {
-        Bitboard b1 = shift<Push1>(non7Pawns) & empties;
-        Bitboard b2 = shift<Push1>(b1 & relative_rank(AC, RANK_3)) & empties;
+        Bitboard b1 = shift_bb<Push1>(non7Pawns) & empties;
+        Bitboard b2 = shift_bb<Push1>(b1 & relative_rank(AC, RANK_3)) & empties;
 
         // Consider only blocking squares
         if constexpr (Evasion)
@@ -161,23 +161,23 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
 
         if (on7Pawns)
         {
-            b = shift<Push1>(on7Pawns) & empties;
+            b = shift_bb<Push1>(on7Pawns) & empties;
             // Consider only blocking and capture squares
             if constexpr (Evasion)
                 b &= between_bb(pos.king_sq(AC), lsb(pos.checkers()));
             moves = splat_promotion_moves<Push1>(moves, b);
 
-            b     = shift<CaptL>(on7Pawns) & enemies;
+            b     = shift_bb<CaptL>(on7Pawns) & enemies;
             moves = splat_promotion_moves<CaptL>(moves, b);
 
-            b     = shift<CaptR>(on7Pawns) & enemies;
+            b     = shift_bb<CaptR>(on7Pawns) & enemies;
             moves = splat_promotion_moves<CaptR>(moves, b);
         }
 
-        b     = shift<CaptL>(non7Pawns) & enemies;
+        b     = shift_bb<CaptL>(non7Pawns) & enemies;
         moves = splat_pawn_moves<CaptL>(moves, b);
 
-        b     = shift<CaptR>(non7Pawns) & enemies;
+        b     = shift_bb<CaptR>(non7Pawns) & enemies;
         moves = splat_pawn_moves<CaptR>(moves, b);
 
         if (is_ok(pos.ep_sq()))
