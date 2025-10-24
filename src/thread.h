@@ -23,6 +23,7 @@
 #include <condition_variable>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -31,12 +32,12 @@
 
 #include "memory.h"
 #include "numa.h"
+#include "position.h"
 #include "search.h"
 #include "thread_win32_osx.h"
 
 namespace DON {
 
-class Position;
 class Options;
 
 // Sometimes we don't want to actually bind the threads, but the recipient still

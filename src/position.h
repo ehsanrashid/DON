@@ -23,10 +23,8 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <deque>
 #include <iosfwd>
 #include <iterator>
-#include <memory>
 #include <numeric>
 #include <string>
 #include <string_view>
