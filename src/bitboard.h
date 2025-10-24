@@ -381,8 +381,8 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
     // }
     // return count;
 
-    //asm volatile ("popcnt %0, %0" : "+r" (b) :: "cc");
-    //return b;
+    // asm volatile ("popcnt %0, %0" : "+r" (b) :: "cc");
+    // return b;
 
     b = b - ((b >> 1) & 0x5555555555555555ULL);
     b = (b & 0x3333333333333333ULL) + ((b >> 2) & 0x3333333333333333ULL);
