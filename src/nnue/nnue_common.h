@@ -252,7 +252,7 @@ inline void write_leb_128(std::ostream& ostream, const IntType* in, std::size_t 
     auto flush = [&]() {
         if (bufferIdx == 0)
             return;
-        ostream.write(reinterpret_cast<char*>(buffer.data()), bufferIdx);
+        ostream.write(reinterpret_cast<const char*>(buffer.data()), bufferIdx);
         bufferIdx = 0;
     };
 
