@@ -24,9 +24,8 @@
 #include <cctype>
 #include <chrono>
 #include <cinttypes>
-#include <cstddef>
 #include <cstdint>
-#include <iomanip>
+#include <cstdio>
 #include <iostream>
 #include <mutex>
 #include <optional>
@@ -497,9 +496,6 @@ inline bool string_to_bool(std::string_view str) {
 }
 
 inline std::string u64_to_string(std::uint64_t u64) noexcept {
-    //return (std::ostringstream{} << "0x" << std::hex << std::uppercase << std::setfill('0')
-    //                             << std::setw(16) << u64)
-    //  .str();
     std::array<char, 19> buffer{};  // "0x" + 16 hex + '\0'
     std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, u64);
     return std::string(buffer.data());
