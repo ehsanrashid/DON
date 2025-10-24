@@ -85,9 +85,10 @@ constexpr IntType ceil_to_multiple(IntType n, IntType base) noexcept {
 // if necessary to return a result with the byte ordering of the compiling machine.
 template<typename IntType>
 inline IntType read_little_endian(std::istream& istream) noexcept {
-    IntType result;
 
     constexpr std::size_t Size = sizeof(IntType);
+
+    IntType result;
 
     if (IsLittleEndian)
         istream.read(reinterpret_cast<char*>(&result), Size);
@@ -134,7 +135,7 @@ inline void write_little_endian(std::ostream& ostream, IntType value) noexcept {
         }
         u[i] = std::uint8_t(v);
 
-        ostream.write(reinterpret_cast<char*>(u), Size);
+        ostream.write(reinterpret_cast<const char*>(u), Size);
     }
 }
 
@@ -142,8 +143,11 @@ inline void write_little_endian(std::ostream& ostream, IntType value) noexcept {
 // This reads N integers from istream and puts them in array out.
 template<typename IntType>
 inline void read_little_endian(std::istream& istream, IntType* out, std::size_t count) noexcept {
+
+    constexpr std::size_t Size = sizeof(IntType);
+
     if (IsLittleEndian)
-        istream.read(reinterpret_cast<char*>(out), count * sizeof(IntType));
+        istream.read(reinterpret_cast<char*>(out), count * Size);
     else
         for (std::size_t i = 0; i < count; ++i)
             out[i] = read_little_endian<IntType>(istream);
@@ -154,8 +158,11 @@ inline void read_little_endian(std::istream& istream, IntType* out, std::size_t 
 template<typename IntType>
 inline void
 write_little_endian(std::ostream& ostream, const IntType* values, std::size_t count) noexcept {
+
+    constexpr std::size_t Size = sizeof(IntType);
+
     if (IsLittleEndian)
-        ostream.write(reinterpret_cast<const char*>(values), count * sizeof(IntType));
+        ostream.write(reinterpret_cast<const char*>(values), count * Size);
     else
         for (std::size_t i = 0; i < count; ++i)
             write_little_endian<IntType>(ostream, values[i]);
