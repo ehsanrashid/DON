@@ -84,7 +84,8 @@ using Key      = std::uint64_t;
 using Key32    = std::uint32_t;
 using Key16    = std::uint16_t;
 
-static_assert(sizeof(Bitboard) == 8);
+static_assert(sizeof(Bitboard) == 8, "Expected 64-bit Bitboard");
+static_assert(sizeof(Key) == 8, "Expected 64-bit Key");
 
 constexpr std::uint16_t MAX_MOVES = 256U;
 constexpr std::uint16_t MAX_PLY   = 254U;
