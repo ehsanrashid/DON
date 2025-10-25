@@ -77,9 +77,9 @@ namespace {
 
 void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept {
 
-    // POSIX requires power-of-two and >= sizeof(void*). Windows tolerates more,
-    // but normalizing helps keep behavior consistent.
-    alignment = std::max(alignment, sizeof(void*));
+    // POSIX requires power-of-two and >= alignof(void*).
+    // Windows tolerates more, but normalizing helps keep behavior consistent.
+    alignment = std::max(alignment, alignof(void*));
 
 #if defined(_ISOC11_SOURCE)
     return std::aligned_alloc(alignment, allocSize);
