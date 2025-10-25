@@ -42,11 +42,12 @@ class TimeManager final {
     TimePoint maximum() const noexcept { return maximumTime; }
     TimePoint elapsed() const noexcept { return now() - startTime; }
     template<typename Func>
-    TimePoint elapsed(Func nodes) const noexcept {
+    TimePoint elapsed(Func&& nodes) const noexcept {
         return nodesTimeUse ? TimePoint(nodes()) : elapsed();
     }
 
-    void init() noexcept;
+    void clear() noexcept;
+
     void init(Limit&         limit,
               Color          ac,
               std::int16_t   ply,

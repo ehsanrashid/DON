@@ -2083,7 +2083,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
 void MainSearchManager::init() noexcept {
 
-    timeManager.init();
+    timeManager.clear();
     moveFirst        = true;
     preBestCurValue  = VALUE_ZERO;
     preBestAvgValue  = VALUE_ZERO;

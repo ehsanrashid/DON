@@ -193,7 +193,7 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
 }
 
 template<typename Predicate>
-bool MovePicker::select(Predicate pred) noexcept {
+bool MovePicker::select(Predicate&& pred) noexcept {
 
     for (; !empty(); next())
         if (valid() && pred())
@@ -241,9 +241,9 @@ STAGE_SWITCH:
     case STG_PROBCUT_INIT : {
         MoveList<ENC_CAPTURE> moveList(pos);
 
-        cur = endBadCaptures = moves;
-        // NOTE:: endMoves is not defined here, it will be set later
-        endCur = /* endMoves =*/score<ENC_CAPTURE>(moveList);
+        cur = endBadCapture = moves;
+        // NOTE:: endMove is not defined here, it will be set later
+        endCur = /* endMove =*/score<ENC_CAPTURE>(moveList);
 
         sort_partial();
     }
@@ -256,7 +256,7 @@ STAGE_SWITCH:
                 if (pos.see(*cur) >= std::round(-55.5555e-3 * cur->value))
                     return true;
                 // Store bad captures
-                std::swap(*endBadCaptures++, *cur);
+                std::swap(*endBadCapture++, *cur);
                 return false;
             }))
             return move();
@@ -269,7 +269,7 @@ STAGE_SWITCH:
         {
             MoveList<ENC_QUIET> moveList(pos);
 
-            endCur = endMoves = score<ENC_QUIET>(moveList);
+            endCur = endMove = score<ENC_QUIET>(moveList);
 
             sort_partial(threshold);
         }
@@ -291,12 +291,12 @@ STAGE_SWITCH:
                 }
 
             // Mark the beginning of bad quiets
-            begBadQuiets = cur;
+            begBadQuiet = cur;
         }
 
         // Prepare the pointers to loop over the bad captures
         cur    = moves;
-        endCur = endBadCaptures;
+        endCur = endBadCapture;
 
         ++stage;
         [[fallthrough]];
@@ -308,8 +308,8 @@ STAGE_SWITCH:
         if (quietPick)
         {
             // Prepare the pointers to loop over the bad quiets
-            cur    = begBadQuiets;
-            endCur = endMoves;
+            cur    = begBadQuiet;
+            endCur = endMove;
 
             sort_partial();
         }
@@ -327,7 +327,7 @@ STAGE_SWITCH:
         MoveList<EVA_CAPTURE> moveList(pos);
 
         cur    = moves;
-        endCur = endMoves = score<EVA_CAPTURE>(moveList);
+        endCur = endMove = score<EVA_CAPTURE>(moveList);
 
         sort_partial();
     }
@@ -345,7 +345,7 @@ STAGE_SWITCH:
     case STG_EVA_QUIET_INIT : {
         MoveList<EVA_QUIET> moveList(pos);
 
-        endCur = endMoves = score<EVA_QUIET>(moveList);
+        endCur = endMove = score<EVA_QUIET>(moveList);
 
         sort_partial();
     }

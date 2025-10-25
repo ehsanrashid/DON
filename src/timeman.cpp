@@ -32,7 +32,7 @@ constexpr std::uint16_t MaxCentiMTG = 5051U;
 
 }  // namespace
 
-void TimeManager::init() noexcept {
+void TimeManager::clear() noexcept {
 
     timeAdjust = -1.0;
 
