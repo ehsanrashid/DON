@@ -80,8 +80,7 @@ void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept {
 
     // POSIX requires power-of-two and >= sizeof(void*). Windows tolerates more,
     // but normalizing helps keep behavior consistent.
-    if (alignment < sizeof(void*))
-        alignment = sizeof(void*);
+    alignment = std::max(alignment, sizeof(void*));
 
 #if defined(_ISOC11_SOURCE)
     return std::aligned_alloc(alignment, allocSize);
@@ -163,16 +162,17 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
 
     if (LUID luid{}; lookupPrivilegeValueA(nullptr, "SeLockMemoryPrivilege", &luid))
     {
-        TOKEN_PRIVILEGES curTp{};
-        curTp.PrivilegeCount           = 1;
-        curTp.Privileges[0].Luid       = luid;
-        curTp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+        TOKEN_PRIVILEGES oldTp{};
+        DWORD            oldTpLen{};
 
-        TOKEN_PRIVILEGES preTp{};
-        DWORD            preTpLen{};
+        TOKEN_PRIVILEGES newTp{};
+        newTp.PrivilegeCount           = 1;
+        newTp.Privileges[0].Luid       = luid;
+        newTp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
         // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
         // Still need to query GetLastError() to ensure that the privileges were actually obtained.
-        if (adjustTokenPrivileges(processHandle, FALSE, &curTp, sizeof(curTp), &preTp, &preTpLen)
+        if (adjustTokenPrivileges(processHandle, FALSE, &newTp, sizeof(newTp), &oldTp, &oldTpLen)
             && GetLastError() == ERROR_SUCCESS)
         {
             // Round up size to full pages and allocate
@@ -181,14 +181,14 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
             mem = VirtualAlloc(nullptr, allocSize, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES,
                                PAGE_READWRITE);
 
-            // Privilege no longer needed, restore previous state
-            adjustTokenPrivileges(processHandle, FALSE, &preTp, 0, nullptr, nullptr);
+            // Privilege no longer needed, restore the privileges
+            adjustTokenPrivileges(processHandle, FALSE, &oldTp, 0, nullptr, nullptr);
         }
     }
 
     CloseHandle(processHandle);
 
-    if (GetModuleHandle(TEXT("advapi32.dll")) == nullptr)
+    if (GetModuleHandle(advapi32Name) == nullptr)
         FreeLibrary(advapi32Module);
 
     // if (mem == nullptr)
