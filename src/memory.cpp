@@ -71,15 +71,14 @@ void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept {
 
     // POSIX requires power-of-two and >= sizeof(void*). Windows tolerates more,
     // but normalizing helps keep behavior consistent.
-    // if (alignment < sizeof(void*))
-    //     alignment = sizeof(void*);
+    if (alignment < sizeof(void*))
+        alignment = sizeof(void*);
 
 #if defined(_ISOC11_SOURCE)
     return std::aligned_alloc(alignment, allocSize);
 #elif defined(POSIX_ALIGNED)
     void* mem = nullptr;
-    if (posix_memalign(&mem, alignment, allocSize) != 0)
-        return nullptr;
+    posix_memalign(&mem, alignment, allocSize);
     return mem;
 #elif defined(_WIN32)
     #if !defined(_M_ARM) && !defined(_M_ARM64)
