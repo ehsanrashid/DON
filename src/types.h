@@ -332,18 +332,18 @@ constexpr CastlingRights  operator&(Color c, CastlingRights cr) noexcept {
 
 // clang-format on
 
-constexpr bool is_ok(Color c) noexcept { return (c == WHITE || c == BLACK); }
+[[nodiscard]] constexpr bool is_ok(Color c) noexcept { return (c == WHITE || c == BLACK); }
 
 // Toggle color
 constexpr Color operator~(Color c) noexcept { return Color((int(c) ^ 1) & 1); }
 
-constexpr bool is_ok(PieceType pt) noexcept { return (PAWN <= pt && pt <= KING); }
+[[nodiscard]] constexpr bool is_ok(PieceType pt) noexcept { return (PAWN <= pt && pt <= KING); }
 
-constexpr bool is_major(PieceType pt) noexcept { return (pt >= ROOK); }
+[[nodiscard]] constexpr bool is_major(PieceType pt) noexcept { return (pt >= ROOK); }
 
 constexpr Piece make_piece(Color c, PieceType pt) noexcept { return Piece((c << 3) | int(pt)); }
 
-constexpr bool is_ok(Piece pc) noexcept {
+[[nodiscard]] constexpr bool is_ok(Piece pc) noexcept {
     return (W_PAWN <= pc && pc <= W_KING) || (B_PAWN <= pc && pc <= B_KING);
 }
 
@@ -360,7 +360,7 @@ constexpr Value mated_in(std::int16_t ply) noexcept { return -VALUE_MATE + ply; 
 
 constexpr Square make_square(File f, Rank r) noexcept { return Square((r << 3) | int(f)); }
 
-constexpr bool is_ok(Square s) noexcept { return (SQ_A1 <= s && s <= SQ_H8); }
+[[nodiscard]] constexpr bool is_ok(Square s) noexcept { return (SQ_A1 <= s && s <= SQ_H8); }
 
 constexpr File file_of(Square s) noexcept { return File(int(s) & 7); }
 
