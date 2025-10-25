@@ -529,7 +529,7 @@ inline bool Position::has_attackers_to(Bitboard attackers, Square s) const noexc
 template<PieceType PT>
 inline Bitboard Position::attacks_by(Color c) const noexcept {
     if constexpr (PT == PAWN)
-        return attacks_pawn_bb(pieces(c, PAWN), c);
+        return pawn_attacks_bb(pieces(c, PAWN), c);
     else
     {
         Bitboard attacks = 0;

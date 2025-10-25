@@ -366,8 +366,11 @@ constexpr File file_of(Square s) noexcept { return File(int(s) & 7); }
 
 constexpr Rank rank_of(Square s) noexcept { return Rank((s >> 3) & 7); }
 
-constexpr bool color_opposite(Square s1, Square s2) noexcept {
-    return (int(s1) + rank_of(s1) + int(s2) + rank_of(s2)) & 1;
+[[nodiscard]] constexpr bool is_light(Square s) noexcept {
+    return (int(/*file_of*/ s) ^ int(rank_of(s))) & 1;
+}
+[[nodiscard]] constexpr bool color_opposite(Square s1, Square s2) noexcept {
+    return is_light(s1) != is_light(s2);
 }
 
 // Swap A1 <-> H1

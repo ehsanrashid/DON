@@ -276,25 +276,25 @@ constexpr Bitboard shift_bb(Bitboard b) noexcept {
 }
 
 template<Color C>
-constexpr Bitboard push_pawn_bb(Bitboard b) noexcept {
-    static_assert(is_ok(C), "Invalid color for push_pawn_bb()");
+constexpr Bitboard pawn_push_bb(Bitboard b) noexcept {
+    static_assert(is_ok(C), "Invalid color for pawn_push_bb()");
     return shift_bb<pawn_spush(C)>(b);
 }
-constexpr Bitboard push_pawn_bb(Bitboard b, Color c) noexcept {
+constexpr Bitboard pawn_push_bb(Bitboard b, Color c) noexcept {
     assert(is_ok(c));
-    return c == WHITE ? push_pawn_bb<WHITE>(b) : push_pawn_bb<BLACK>(b);
+    return c == WHITE ? pawn_push_bb<WHITE>(b) : pawn_push_bb<BLACK>(b);
 }
 
 // Returns the squares attacked by pawns of the given color from the given bitboard.
 template<Color C>
-constexpr Bitboard attacks_pawn_bb(Bitboard b) noexcept {
-    static_assert(is_ok(C), "Invalid color for attacks_pawn_bb()");
+constexpr Bitboard pawn_attacks_bb(Bitboard b) noexcept {
+    static_assert(is_ok(C), "Invalid color for pawn_attacks_bb()");
     return shift_bb<(C == WHITE ? NORTH_WEST : SOUTH_WEST)>(b)
          | shift_bb<(C == WHITE ? NORTH_EAST : SOUTH_EAST)>(b);
 }
-constexpr Bitboard attacks_pawn_bb(Bitboard b, Color c) noexcept {
+constexpr Bitboard pawn_attacks_bb(Bitboard b, Color c) noexcept {
     assert(is_ok(c));
-    return c == WHITE ? attacks_pawn_bb<WHITE>(b) : attacks_pawn_bb<BLACK>(b);
+    return c == WHITE ? pawn_attacks_bb<WHITE>(b) : pawn_attacks_bb<BLACK>(b);
 }
 
 // Returns the pseudo attacks of the given piece type assuming an empty board.

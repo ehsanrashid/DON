@@ -204,45 +204,46 @@ void init() noexcept {
         PopCnt[i] = std::bitset<16>(i).count();
 #endif
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+    {
+        assert(msb_index(fill_prefix_bb(square_bb(s1))) == s1);
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             Distances[s1][s2] = std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
+    }
 
     init_magics<BISHOP>();
     init_magics<ROOK>();
 
-    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
     {
-        assert(msb_index(square_bb(s) ^ (square_bb(s) - 1)) == s);
+        PieceAttacks[s1][WHITE] = pawn_attacks_bb<WHITE>(square_bb(s1));
+        PieceAttacks[s1][BLACK] = pawn_attacks_bb<BLACK>(square_bb(s1));
 
-        for (Color c : {WHITE, BLACK})
-            PieceAttacks[s][c] = attacks_pawn_bb(square_bb(s), c);
-
-        PieceAttacks[s][KNIGHT] = 0;
+        PieceAttacks[s1][KNIGHT] = 0;
         for (auto dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
                          WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
-            PieceAttacks[s][KNIGHT] |= safe_destination(s, dir, 2);
+            PieceAttacks[s1][KNIGHT] |= safe_destination(s1, dir, 2);
 
-        PieceAttacks[s][BISHOP] = attacks_bb<BISHOP>(s, 0);
-        PieceAttacks[s][ROOK]   = attacks_bb<ROOK>(s, 0);
-        PieceAttacks[s][QUEEN]  = PieceAttacks[s][BISHOP] | PieceAttacks[s][ROOK];
+        PieceAttacks[s1][BISHOP] = attacks_bb<BISHOP>(s1, 0);
+        PieceAttacks[s1][ROOK]   = attacks_bb<ROOK>(s1, 0);
+        PieceAttacks[s1][QUEEN]  = PieceAttacks[s1][BISHOP] | PieceAttacks[s1][ROOK];
 
-        PieceAttacks[s][KING] = 0;
+        PieceAttacks[s1][KING] = 0;
         for (auto dir : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
-            PieceAttacks[s][KING] |= safe_destination(s, dir);
-    }
-    for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+            PieceAttacks[s1][KING] |= safe_destination(s1, dir);
+
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
             Lines[s1][s2] = Betweens[s1][s2] = 0;
             for (PieceType pt : {BISHOP, ROOK})
                 if (PieceAttacks[s1][pt] & s2)
                 {
-                    Lines[s1][s2] = (PieceAttacks[s1][pt] & PieceAttacks[s2][pt]) | s1 | s2;
+                    Lines[s1][s2] = (attacks_bb(pt, s1, 0) & attacks_bb(pt, s2, 0)) | s1 | s2;
                     Betweens[s1][s2] =
                       attacks_bb(pt, s1, square_bb(s2)) & attacks_bb(pt, s2, square_bb(s1));
                 }
             Betweens[s1][s2] |= s2;
         }
+    }
 }
 
 #if !defined(NDEBUG)
