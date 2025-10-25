@@ -244,15 +244,12 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
         Bitboard occupied = pos.pieces() ^ kingSq;
 
         while (b)
-        {
-            Square s = pop_lsb(b);
-            if (!(pos.slide_attackers_to(s, occupied) & pos.pieces(~AC)))
+            if (Square s = pop_lsb(b); !(pos.slide_attackers_to(s, occupied) & pos.pieces(~AC)))
             {
                 *moves++ = Move(kingSq, s);
                 if constexpr (Any)
                     return moves;
             }
-        }
     }
 
     if constexpr (Castle)
