@@ -65,7 +65,7 @@ namespace {
 // Round up to multiples of alignment
 [[nodiscard]] constexpr std::size_t round_up_pow2(std::size_t size,
                                                   std::size_t alignment) noexcept {
-    assert(alignment && ((alignment & (alignment - 1)) == 0));
+    assert(alignment && !(alignment & (alignment - 1)));
     std::size_t mask = alignment - 1;
     return (size + mask) & ~mask;
 }
@@ -219,7 +219,7 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
         SetLastError(ERROR_SUCCESS);
         if (advapi.adjustTokenPrivileges(tokenHandle, FALSE, &newTp, sizeof(oldTp), &oldTp,
                                          &oldTpLen)
-            && (err = GetLastError()) == ERROR_SUCCESS)
+            && GetLastError() == ERROR_SUCCESS)
         {
             mem = VirtualAlloc(nullptr, allocSize, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES,
                                PAGE_READWRITE);
@@ -260,7 +260,13 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept {
     void* mem = alloc_aligned_lp_windows(allocSize);
     // Fall back to regular, page-aligned, allocation if necessary
     if (mem == nullptr)
+    {
+        constexpr std::size_t Alignment = 4 * 1024;
+
+        allocSize = round_up_pow2(allocSize, Alignment);
+
         mem = VirtualAlloc(nullptr, allocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    }
     return mem;
 #else
     constexpr std::size_t Alignment =
