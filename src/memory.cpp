@@ -17,6 +17,7 @@
 
 #include "memory.h"
 
+#include <cassert>
 #include <cstdlib>
 
 #if __has_include("features.h")
@@ -50,27 +51,27 @@
         // Force to include needed API prototypes
         #define _WIN32_WINNT _WIN32_WINNT_WIN7  // or _WIN32_WINNT_WIN10
     #endif
+    #define UNICODE
     #include <windows.h>
     #if defined(small)
         #undef small
     #endif
-
-// The needed Windows API for processor groups could be missed from old Windows
-// versions, so instead of calling them directly (forcing the linker to resolve
-// the calls at compile time), try to load them at runtime. To do this we need
-// first to define the corresponding function pointers.
-extern "C" {
-// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocesstoken
-using OpenProcessToken_ = BOOL (*)(HANDLE, DWORD, PHANDLE);
-// https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-lookupprivilegevaluea
-using LookupPrivilegeValueA_ = BOOL (*)(LPCSTR, LPCSTR, PLUID);
-// https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
-using AdjustTokenPrivileges_ =
-  BOOL (*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
-}
 #endif
 
 namespace DON {
+
+namespace {
+
+constexpr bool is_pow2(std::size_t x) noexcept { return x && ((x & (x - 1)) == 0); }
+
+// Round up to multiples of alignment
+[[nodiscard]] constexpr std::size_t round_up_pow2(std::size_t size,
+                                                  std::size_t alignment) noexcept {
+    assert(is_pow2(alignment));
+    std::size_t mask = alignment - 1;
+    return (size + mask) & ~mask;
+}
+}  // namespace
 
 // Wrapper for systems where the c++17 implementation
 // does not guarantee the availability of aligned_alloc().
@@ -119,51 +120,96 @@ void free_aligned_std(void* mem) noexcept {
 
 namespace {
 
+struct Advapi final {
+    // clang-format off
+    // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocesstoken
+    using OpenProcessToken      = BOOL(WINAPI*)(HANDLE, DWORD, PHANDLE);
+    // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-lookupprivilegevaluew
+    using LookupPrivilegeValueW = BOOL(WINAPI*)(LPCWSTR, LPCWSTR, PLUID);
+    // https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
+    using AdjustTokenPrivileges = BOOL(WINAPI*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
+    // clang-format on
+
+    static constexpr LPCWSTR Name = TEXT("advapi32.dll");
+
+    // The needed Windows API for processor groups could be missed from old Windows versions,
+    // so instead of calling them directly (forcing the linker to resolve the calls at compile time),
+    // try to load them at runtime.
+    bool load() noexcept {
+
+        module = GetModuleHandle(Name);
+        if (module == nullptr)
+            module = LoadLibraryEx(Name, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        if (module == nullptr)
+            module = LoadLibrary(Name);
+        if (module == nullptr)
+            return false;
+
+        openProcessToken =
+          OpenProcessToken((void (*)()) GetProcAddress(module, "OpenProcessToken"));
+        if (openProcessToken == nullptr)
+            return false;
+        lookupPrivilegeValueW =
+          LookupPrivilegeValueW((void (*)()) GetProcAddress(module, "LookupPrivilegeValueW"));
+        if (lookupPrivilegeValueW == nullptr)
+            return false;
+        adjustTokenPrivileges =
+          AdjustTokenPrivileges((void (*)()) GetProcAddress(module, "AdjustTokenPrivileges"));
+        if (adjustTokenPrivileges == nullptr)
+            return false;
+
+        return true;
+    }
+
+    void unload() noexcept {
+        if (module == nullptr)
+            return;
+        if (GetModuleHandle(Name) == nullptr)
+            FreeLibrary(module);
+        module = nullptr;
+    }
+
+    HMODULE module = nullptr;
+
+    OpenProcessToken      openProcessToken      = nullptr;
+    LookupPrivilegeValueW lookupPrivilegeValueW = nullptr;
+    AdjustTokenPrivileges adjustTokenPrivileges = nullptr;
+};
+
 void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept {
 
     #if !defined(_WIN64)
     return nullptr;
     #else
-    std::size_t lpSize = GetLargePageMinimum();
-    if (lpSize == 0)
-        return nullptr;
-
-    constexpr LPCTSTR advapi32Name   = TEXT("advapi32.dll");
-    HMODULE           advapi32Module = GetModuleHandle(advapi32Name);
-    if (advapi32Module == nullptr)
-        advapi32Module = LoadLibraryEx(advapi32Name, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-    if (advapi32Module == nullptr)
-        advapi32Module = LoadLibrary(advapi32Name);
-    if (advapi32Module == nullptr)
-        return nullptr;
-
-    // Dynamically link OpenProcessToken, LookupPrivilegeValue and AdjustTokenPrivileges
-
-    auto openProcessToken =
-      OpenProcessToken_((void (*)()) GetProcAddress(advapi32Module, "OpenProcessToken"));
-    if (openProcessToken == nullptr)
-        return nullptr;
-    auto lookupPrivilegeValueA =
-      LookupPrivilegeValueA_((void (*)()) GetProcAddress(advapi32Module, "LookupPrivilegeValueA"));
-    if (lookupPrivilegeValueA == nullptr)
-        return nullptr;
-    auto adjustTokenPrivileges =
-      AdjustTokenPrivileges_((void (*)()) GetProcAddress(advapi32Module, "AdjustTokenPrivileges"));
-    if (adjustTokenPrivileges == nullptr)
-        return nullptr;
-
-    HANDLE processHandle{};
-    // Need SeLockMemoryPrivilege, so try to enable it for the process
-    if (!openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
-                          &processHandle))
-        return nullptr;
 
     void* mem = nullptr;
 
-    if (LUID luid{}; lookupPrivilegeValueA(nullptr, "SeLockMemoryPrivilege", &luid))
+    const SIZE_T largePageSize = GetLargePageMinimum();
+    if (largePageSize == 0)
+    {
+        SetLastError(ERROR_NOT_SUPPORTED);
+        return mem;
+    }
+
+    Advapi advapi;
+    if (!advapi.load())
+        return mem;
+
+    HANDLE tokenHandle = nullptr;
+    // Need SeLockMemoryPrivilege, so try to enable it for the process
+    if (!advapi.openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
+                                 &tokenHandle))
+        return mem;
+
+    // Round up size to full pages and allocate
+    allocSize = round_up_pow2(allocSize, largePageSize);
+
+    DWORD err = ERROR_SUCCESS;
+
+    if (LUID luid{}; advapi.lookupPrivilegeValueW(nullptr, SE_LOCK_MEMORY_NAME, &luid))
     {
         TOKEN_PRIVILEGES oldTp{};
-        DWORD            oldTpLen{};
+        DWORD            oldTpLen = 0;
 
         TOKEN_PRIVILEGES newTp{};
         newTp.PrivilegeCount           = 1;
@@ -172,28 +218,33 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
 
         // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
         // Still need to query GetLastError() to ensure that the privileges were actually obtained.
-        if (adjustTokenPrivileges(processHandle, FALSE, &newTp, sizeof(newTp), &oldTp, &oldTpLen)
-            && GetLastError() == ERROR_SUCCESS)
+        SetLastError(ERROR_SUCCESS);
+        if (advapi.adjustTokenPrivileges(tokenHandle, FALSE, &newTp, sizeof(oldTp), &oldTp,
+                                         &oldTpLen)
+            && (err = GetLastError()) == ERROR_SUCCESS)
         {
-            // Round up size to full pages and allocate
-            allocSize = (allocSize + lpSize - 1) & ~(lpSize - 1);
-
             mem = VirtualAlloc(nullptr, allocSize, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES,
                                PAGE_READWRITE);
 
+            if (mem == nullptr)
+                err = GetLastError();
+
             // Privilege no longer needed, restore the privileges
-            adjustTokenPrivileges(processHandle, FALSE, &oldTp, 0, nullptr, nullptr);
+            if (!advapi.adjustTokenPrivileges(tokenHandle, FALSE, &oldTp, 0, nullptr, nullptr))
+                if (err == ERROR_SUCCESS)
+                    err = GetLastError();
         }
+        else
+            err = GetLastError();
     }
 
-    CloseHandle(processHandle);
+    CloseHandle(tokenHandle);
 
-    if (GetModuleHandle(advapi32Name) == nullptr)
-        FreeLibrary(advapi32Module);
+    advapi.unload();
 
-    // if (mem == nullptr)
-    //     std::cerr << "Failed to allocate large page memory.\n"
-    //               << "Error code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
+    if (mem == nullptr)
+        std::cerr << "Failed to allocate " << allocSize << "B for large page memory.\n"
+                  << "Error code: 0x" << std::hex << err << std::dec << std::endl;
 
     return mem;
     #endif
@@ -220,13 +271,13 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept {
     #else
       4 * 1024;  // Assume small page-size
     #endif
-    // Round up to multiples of Alignment
-    std::size_t roundAllocSize = ((allocSize + Alignment - 1) / Alignment) * Alignment;
 
-    void* mem = alloc_aligned_std(roundAllocSize, Alignment);
+    allocSize = round_up_pow2(allocSize, Alignment);
+
+    void* mem = alloc_aligned_std(allocSize, Alignment);
     #if defined(MADV_HUGEPAGE)
     if (mem != nullptr)
-        madvise(mem, roundAllocSize, MADV_HUGEPAGE);
+        madvise(mem, allocSize, MADV_HUGEPAGE);
     #endif
     return mem;
 #endif
@@ -237,11 +288,13 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept {
 void free_aligned_lp(void* mem) noexcept {
 
 #if defined(_WIN32)
-    if (mem != nullptr && !VirtualFree(mem, 0, MEM_RELEASE))
+    if (mem != nullptr)
     {
-        std::cerr << "Failed to free large page memory.\n"
-                  << "Error code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
-        std::exit(EXIT_FAILURE);
+        if (!VirtualFree(mem, 0, MEM_RELEASE))
+            std::cerr << "Failed to free large page memory.\n"
+                      << "Error code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
+        else
+            mem = nullptr;
     }
 #else
     free_aligned_std(mem);
