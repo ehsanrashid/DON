@@ -46,22 +46,27 @@
     #include <sched.h>
 #elif defined(_WIN64)
 
-    #if !defined(_WIN32_WINNT) || _WIN32_WINNT < 0x0601
+    #if defined(_WIN32_WINNT) && _WIN32_WINNT < _WIN32_WINNT_WIN7
         #undef _WIN32_WINNT
-        #define _WIN32_WINNT 0x0601  // Force to include needed API prototypes
     #endif
-
-// On Windows each processor group can have up to 64 processors.
-// https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
-constexpr std::size_t WIN_PROCESSOR_GROUP_SIZE = 64;
-
+    #if !defined(_WIN32_WINNT)
+        // Force to include needed API prototypes
+        #define _WIN32_WINNT _WIN32_WINNT_WIN7  // or _WIN32_WINNT_WIN10
+    #endif
     #if !defined(NOMINMAX)
-        #define NOMINMAX
+        #define NOMINMAX  // Disable macros min() and max()
+    #endif
+    #if !defined(WIN32_LEAN_AND_MEAN)
+        #define WIN32_LEAN_AND_MEAN
     #endif
     #include <windows.h>
     #if defined(small)
         #undef small
     #endif
+
+// On Windows each processor group can have up to 64 processors.
+// https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
+constexpr std::size_t WIN_PROCESSOR_GROUP_SIZE = 64;
 
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadselectedcpusetmasks
 using SetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT);

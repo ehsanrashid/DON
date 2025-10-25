@@ -31,23 +31,28 @@
   || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) && !defined(_WIN32)) \
   || defined(__e2k__)
     #define POSIX_ALIGNED
-    #include <stdlib.h>
 #endif
 
 #if defined(_WIN32)
-    #if !defined(_WIN32_WINNT) || _WIN32_WINNT < 0x0601
-        #undef _WIN32_WINNT
-        #define _WIN32_WINNT 0x0601  // Force to include needed API prototypes
-    #endif
-
-    #if !defined(NOMINMAX)
-        #define NOMINMAX
-    #endif
-
-    #include <ios>
     #include <iostream>
-    #include <ostream>
+
+    #if defined(_WIN32_WINNT) && _WIN32_WINNT < _WIN32_WINNT_WIN7
+        #undef _WIN32_WINNT
+    #endif
+    #if !defined(_WIN32_WINNT)
+        // Force to include needed API prototypes
+        #define _WIN32_WINNT _WIN32_WINNT_WIN7  // or _WIN32_WINNT_WIN10
+    #endif
+    #if !defined(NOMINMAX)
+        #define NOMINMAX  // Disable macros min() and max()
+    #endif
+    #if !defined(WIN32_LEAN_AND_MEAN)
+        #define WIN32_LEAN_AND_MEAN
+    #endif
     #include <windows.h>
+    #if defined(small)
+        #undef small
+    #endif
 
 // The needed Windows API for processor groups could be missed from old Windows
 // versions, so instead of calling them directly (forcing the linker to resolve
@@ -78,7 +83,7 @@ void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept {
     return std::aligned_alloc(alignment, allocSize);
 #elif defined(POSIX_ALIGNED)
     void* mem = nullptr;
-    posix_memalign(&mem, alignment, allocSize);
+    ::posix_memalign(&mem, alignment, allocSize);
     return mem;
 #elif defined(_WIN32)
     #if !defined(_M_ARM) && !defined(_M_ARM64)

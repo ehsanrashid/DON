@@ -36,11 +36,23 @@
 #include <vector>
 
 #if defined(_WIN32)
-    #define WIN32_LEAN_AND_MEAN
+    #if defined(_WIN32_WINNT) && _WIN32_WINNT < _WIN32_WINNT_WIN7
+        #undef _WIN32_WINNT
+    #endif
+    #if !defined(_WIN32_WINNT)
+        // Force to include needed API prototypes
+        #define _WIN32_WINNT _WIN32_WINNT_WIN7  // or _WIN32_WINNT_WIN10
+    #endif
     #if !defined(NOMINMAX)
         #define NOMINMAX  // Disable macros min() and max()
     #endif
+    #if !defined(WIN32_LEAN_AND_MEAN)
+        #define WIN32_LEAN_AND_MEAN
+    #endif
     #include <windows.h>
+    #if defined(small)
+        #undef small
+    #endif
 #else
     #include <fcntl.h>
     #include <sys/mman.h>
