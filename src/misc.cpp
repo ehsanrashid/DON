@@ -461,7 +461,7 @@ void min_of(std::int64_t value, std::size_t slot) noexcept {
              minValue > value
              && !mn.compare_exchange_weak(minValue, value, std::memory_order_relaxed,
                                           std::memory_order_relaxed);)
-            ;
+        {}
     }
 }
 
@@ -478,7 +478,7 @@ void max_of(std::int64_t value, std::size_t slot) noexcept {
              maxValue < value
              && !mx.compare_exchange_weak(maxValue, value, std::memory_order_relaxed,
                                           std::memory_order_relaxed);)
-            ;
+        {}
     }
 }
 
@@ -495,7 +495,7 @@ void extreme_of(std::int64_t value, std::size_t slot) noexcept {
              minValue > value
              && !mn.compare_exchange_weak(minValue, value, std::memory_order_relaxed,
                                           std::memory_order_relaxed);)
-            ;
+        {}
     }
     {
         auto& mx = info[2];
@@ -503,7 +503,7 @@ void extreme_of(std::int64_t value, std::size_t slot) noexcept {
              maxValue < value
              && !mx.compare_exchange_weak(maxValue, value, std::memory_order_relaxed,
                                           std::memory_order_relaxed);)
-            ;
+        {}
     }
 }
 

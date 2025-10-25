@@ -128,46 +128,49 @@ struct Advapi final {
     using AdjustTokenPrivileges = BOOL(WINAPI*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
     // clang-format on
 
-    static constexpr LPCWSTR Name = TEXT("advapi32.dll");
+    static constexpr LPCWSTR ModuleName = TEXT("advapi32.dll");
 
     // The needed Windows API for processor groups could be missed from old Windows versions,
     // so instead of calling them directly (forcing the linker to resolve the calls at compile time),
     // try to load them at runtime.
     bool load() noexcept {
 
-        module = GetModuleHandle(Name);
-        if (module == nullptr)
-            module = LoadLibraryEx(Name, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-        if (module == nullptr)
-            module = LoadLibrary(Name);
-        if (module == nullptr)
-            return false;
+        hModule = GetModuleHandle(ModuleName);
+        if (hModule == nullptr)
+        {
+            hModule = LoadLibraryEx(ModuleName, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+            if (hModule == nullptr)
+                hModule = LoadLibrary(ModuleName);  // optional last resort
+            if (hModule == nullptr)
+                return false;
+            loaded = true;
+        }
 
         openProcessToken =
-          OpenProcessToken((void (*)()) GetProcAddress(module, "OpenProcessToken"));
+          OpenProcessToken((void (*)()) GetProcAddress(hModule, "OpenProcessToken"));
         if (openProcessToken == nullptr)
             return false;
         lookupPrivilegeValueW =
-          LookupPrivilegeValueW((void (*)()) GetProcAddress(module, "LookupPrivilegeValueW"));
+          LookupPrivilegeValueW((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueW"));
         if (lookupPrivilegeValueW == nullptr)
             return false;
         adjustTokenPrivileges =
-          AdjustTokenPrivileges((void (*)()) GetProcAddress(module, "AdjustTokenPrivileges"));
+          AdjustTokenPrivileges((void (*)()) GetProcAddress(hModule, "AdjustTokenPrivileges"));
         if (adjustTokenPrivileges == nullptr)
             return false;
 
         return true;
     }
 
-    void unload() noexcept {
-        if (module == nullptr)
-            return;
-        if (GetModuleHandle(Name) == nullptr)
-            FreeLibrary(module);
-        module = nullptr;
+    void free() noexcept {
+        if (loaded && hModule != nullptr)
+            FreeLibrary(hModule);
+        hModule = nullptr;
+        loaded  = false;
     }
 
-    HMODULE module = nullptr;
+    HMODULE hModule = nullptr;
+    bool    loaded  = false;
 
     OpenProcessToken      openProcessToken      = nullptr;
     LookupPrivilegeValueW lookupPrivilegeValueW = nullptr;
@@ -199,7 +202,7 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
                                  &tokenHandle))
         return mem;
 
-    // Round up size to full pages and allocate
+    // Round up size to full pages
     allocSize = round_up_pow2(allocSize, largePageSize);
 
     DWORD err = ERROR_SUCCESS;
@@ -221,6 +224,7 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
                                          &oldTpLen)
             && GetLastError() == ERROR_SUCCESS)
         {
+            // Allocate memory
             mem = VirtualAlloc(nullptr, allocSize, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES,
                                PAGE_READWRITE);
 
@@ -238,11 +242,13 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
 
     CloseHandle(tokenHandle);
 
-    advapi.unload();
+    advapi.free();
 
     if (mem == nullptr)
+    {
         std::cerr << "Failed to allocate " << allocSize << "B for large page memory.\n"
                   << "Error code: 0x" << std::hex << err << std::dec << std::endl;
+    }
 
     return mem;
     #endif
@@ -271,11 +277,11 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept {
 #else
     constexpr std::size_t Alignment =
     #if defined(__linux__)
-      2 * 1024 * 1024;  // Assume 2MB page-size
+      2 * 1024 * 1024  // Assume 2MB page-size
     #else
-      4 * 1024;  // Assume small page-size
+      4 * 1024  // Assume small page-size
     #endif
-
+      ;
     allocSize = round_up_pow2(allocSize, Alignment);
 
     void* mem = alloc_aligned_std(allocSize, Alignment);
@@ -292,13 +298,15 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept {
 void free_aligned_lp(void* mem) noexcept {
 
 #if defined(_WIN32)
-    if (mem != nullptr)
+    if (void* ptr = std::exchange(mem, nullptr);
+        ptr != nullptr && !VirtualFree(ptr, 0, MEM_RELEASE))
     {
-        if (!VirtualFree(mem, 0, MEM_RELEASE))
-            std::cerr << "Failed to free large page memory.\n"
-                      << "Error code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
-        else
-            mem = nullptr;
+        // Restore pointer on failure so caller knows it wasn't freed
+        mem = ptr;
+
+        DWORD err = GetLastError();
+        std::cerr << "Failed to free memory.\n"
+                  << "Error code: 0x " << std::hex << err << std::dec << std::endl;
     }
 #else
     free_aligned_std(mem);
