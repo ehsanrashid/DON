@@ -62,12 +62,10 @@ namespace DON {
 
 namespace {
 
-constexpr bool is_pow2(std::size_t x) noexcept { return x && ((x & (x - 1)) == 0); }
-
 // Round up to multiples of alignment
 [[nodiscard]] constexpr std::size_t round_up_pow2(std::size_t size,
                                                   std::size_t alignment) noexcept {
-    assert(is_pow2(alignment));
+    assert(alignment && ((alignment & (alignment - 1)) == 0));
     std::size_t mask = alignment - 1;
     return (size + mask) & ~mask;
 }
