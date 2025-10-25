@@ -294,21 +294,18 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
 
         const auto* pmoves = moves;
         moves = generate_pawns_moves<AC, GT    >(pos, moves, target);
-        if (Any && ((moves > pmoves + 0 && pos.legal(pmoves[0]))
-                 || (moves > pmoves + 1 && pos.legal(pmoves[1]))
-                 || (moves > pmoves + 2 && pos.legal(pmoves[2])))) return moves;
+        if (Any && ((pmoves + 0 < moves && pos.legal(pmoves[0]))
+                 || (pmoves + 1 < moves && pos.legal(pmoves[1]))
+                 || (pmoves + 2 < moves && pos.legal(pmoves[2])))) return moves;
         pmoves = moves;
         moves = generate_piece_moves<AC, KNIGHT>(pos, moves, target);
-        if (Any && moves > pmoves) return moves;
-        pmoves = moves;
+        if (Any && pmoves != moves) return moves;
         moves = generate_piece_moves<AC, BISHOP>(pos, moves, target);
-        if (Any && moves > pmoves) return moves;
-        pmoves = moves;
+        if (Any && pmoves != moves) return moves;
         moves = generate_piece_moves<AC, ROOK  >(pos, moves, target);
-        if (Any && moves > pmoves) return moves;
-        pmoves = moves;
+        if (Any && pmoves != moves) return moves;
         moves = generate_piece_moves<AC, QUEEN >(pos, moves, target);
-        if (Any && moves > pmoves) return moves;
+        if (Any && pmoves != moves) return moves;
     }
 
     if constexpr (Evasion)
