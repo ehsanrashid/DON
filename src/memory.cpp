@@ -60,8 +60,11 @@
 // the calls at compile time), try to load them at runtime. To do this we need
 // first to define the corresponding function pointers.
 extern "C" {
-using OpenProcessToken_      = BOOL (*)(HANDLE, DWORD, PHANDLE);
+// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocesstoken
+using OpenProcessToken_ = BOOL (*)(HANDLE, DWORD, PHANDLE);
+// https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-lookupprivilegevaluea
 using LookupPrivilegeValueA_ = BOOL (*)(LPCSTR, LPCSTR, PLUID);
+// https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
 using AdjustTokenPrivileges_ =
   BOOL (*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
 }

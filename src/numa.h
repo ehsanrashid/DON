@@ -70,7 +70,6 @@ constexpr std::size_t WIN_PROCESSOR_GROUP_SIZE = 64;
 
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadselectedcpusetmasks
 using SetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT);
-
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadselectedcpusetmasks
 using GetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT, PUSHORT);
 #endif
@@ -197,7 +196,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
         }
         else if (requiredMaskCount > 0)
         {
-            // If RequiredMaskCount then these affinities were never set, but it's not consistent
+            // If requiredMaskCount then these affinities were never set, but it's not consistent
             // so GetProcessAffinityMask may still return some affinity.
             auto groupAffinities = std::make_unique<GROUP_AFFINITY[]>(requiredMaskCount);
 
@@ -960,8 +959,7 @@ class NumaConfig final {
         nodes[numaIdx].insert(cpuIdx);
         nodeByCpu[cpuIdx] = numaIdx;
 
-        if (maxCpuIndex < cpuIdx)
-            maxCpuIndex = cpuIdx;
+        maxCpuIndex = std::max(maxCpuIndex, cpuIdx);
 
         return true;
     }
@@ -983,8 +981,7 @@ class NumaConfig final {
             nodeByCpu[cpuIdx] = numaIdx;
         }
 
-        if (maxCpuIndex < lstCpuIdx)
-            maxCpuIndex = lstCpuIdx;
+        maxCpuIndex = std::max(maxCpuIndex, lstCpuIdx);
 
         return true;
     }
