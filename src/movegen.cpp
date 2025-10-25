@@ -239,25 +239,19 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
 
     if (b)
     {
-        b &= ~(pos.attacks<PAWN>(~AC) | attacks_bb<KING>(pos.king_sq(~AC)));
+        b &= ~(pos.attacks<KNIGHT>(~AC) | attacks_bb<KING>(pos.king_sq(~AC)));
 
         Bitboard occupied = pos.pieces() ^ kingSq;
 
         while (b)
         {
             Square s = pop_lsb(b);
-            // clang-format off
-            if (!((pos.pieces(~AC, KNIGHT       ) & attacks_bb<KNIGHT>(s))
-              || ((pos.pieces(~AC, QUEEN, BISHOP) & attacks_bb<BISHOP>(s))
-               && (pos.pieces(~AC, QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupied)))
-              || ((pos.pieces(~AC, QUEEN, ROOK  ) & attacks_bb<ROOK  >(s))
-               && (pos.pieces(~AC, QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupied)))))
+            if (!(pos.slide_attackers_to(s, occupied) & pos.pieces(~AC)))
             {
                 *moves++ = Move(kingSq, s);
                 if constexpr (Any)
                     return moves;
             }
-            // clang-format on
         }
     }
 

@@ -225,8 +225,8 @@ class Position final {
     Bitboard attackers_to(Square s, Bitboard occupied) const noexcept;
     Bitboard attackers_to(Square s) const noexcept;
 
-    bool has_attackers_to(Square s, Bitboard attackers, Bitboard occupied) const noexcept;
-    bool has_attackers_to(Square s, Bitboard attackers) const noexcept;
+    bool has_attackers_to(Bitboard attackers, Square s, Bitboard occupied) const noexcept;
+    bool has_attackers_to(Bitboard attackers, Square s) const noexcept;
 
     // Attacks from a piece type
     template<PieceType PT>
@@ -509,7 +509,7 @@ inline Bitboard Position::attackers_to(Square s) const noexcept {
     return attackers_to(s, pieces());
 }
 
-inline bool Position::has_attackers_to(Square s, Bitboard attackers, Bitboard occupied) const noexcept {
+inline bool Position::has_attackers_to(Bitboard attackers, Square s, Bitboard occupied) const noexcept {
     return ((attackers & pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(s))
          && (attackers & pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupied)))
         || ((attackers & pieces(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s))
@@ -519,8 +519,8 @@ inline bool Position::has_attackers_to(Square s, Bitboard attackers, Bitboard oc
         ||  (attackers & pieces(KNIGHT       ) & attacks_bb<KNIGHT>(s))
         ||  (attackers & pieces(KING         ) & attacks_bb<KING  >(s));
 }
-inline bool Position::has_attackers_to(Square s, Bitboard attackers) const noexcept {
-    return has_attackers_to(s, attackers, pieces());
+inline bool Position::has_attackers_to(Bitboard attackers, Square s) const noexcept {
+    return has_attackers_to(attackers, s, pieces());
 }
 
 // clang-format on
@@ -534,7 +534,7 @@ inline Bitboard Position::attacks_by(Color c) const noexcept {
     {
         Bitboard attacks = 0;
 
-        Bitboard pc = pieces<PT>(c);
+        Bitboard pc = pieces(c, PT);
         while (pc)
         {
             Square   s = pop_lsb(pc);

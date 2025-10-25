@@ -1171,7 +1171,7 @@ bool Position::pseudo_legal(Move m) const noexcept {
 
         // For king moves, check whether the destination square is attacked by the enemies.
         if (type_of(pc) == KING)
-            return !has_attackers_to(dst, pieces(~ac), pieces() ^ org);
+            return !has_attackers_to(pieces(~ac), dst, pieces() ^ org);
         break;
 
     case PROMOTION :
@@ -1258,7 +1258,7 @@ bool Position::legal(Move m) const noexcept {
         Square    kDst = king_castle_sq(ac, org, dst);
         Direction step = org < kDst ? WEST : EAST;
         for (Square s = kDst; s != org; s += step)
-            if (has_attackers_to(s, pieces(~ac)))
+            if (has_attackers_to(pieces(~ac), s))
                 return false;
 
         // In case of Chess960, verify if the Rook blocks some checks.
@@ -1269,7 +1269,7 @@ bool Position::legal(Move m) const noexcept {
         // For king moves, return true
         if (type_of(piece_on(org)) == KING)
         {
-            assert(!has_attackers_to(dst, pieces(~ac), pieces() ^ org));
+            assert(!has_attackers_to(pieces(~ac), dst, pieces() ^ org));
             return true;
         }
         break;
@@ -1725,14 +1725,14 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         acAttackers = pieces(ac) & occupied;
 
         sq = king_sq(~ac);
-        if ((occupied & sq) && has_attackers_to(sq, acAttackers, occupied))
+        if ((occupied & sq) && has_attackers_to(acAttackers, sq, occupied))
             return true;
 
         // Even when one of our non-queen pieces attacks opponent queen after exchanges
         Bitboard queen = pieces(~ac, QUEEN) & ~attackers & occupied;
 
         sq = queen ? lsb(queen) : SQ_NONE;
-        if (is_ok(sq) && has_attackers_to(sq, acAttackers & ~pieces(QUEEN), occupied))
+        if (is_ok(sq) && has_attackers_to(acAttackers & ~pieces(QUEEN), sq, occupied))
             return true;
     }
 
@@ -2017,7 +2017,7 @@ bool Position::pos_is_ok() const noexcept {
     if (non_pawn_key() != compute_non_pawn_key())
         assert(false && "Position::pos_is_ok(): NonPawn Key");
 
-    if (has_attackers_to(king_sq(~active_color()), pieces(active_color())))
+    if (has_attackers_to(pieces(active_color()), king_sq(~active_color())))
         assert(false && "Position::pos_is_ok(): King Checker");
 
     if ((pieces(PAWN) & PROMOTION_RANK_BB) || count(W_PAWN) > 8 || count(B_PAWN) > 8)
