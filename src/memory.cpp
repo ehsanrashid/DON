@@ -66,13 +66,20 @@ namespace DON {
 // Wrapper for systems where the c++17 implementation
 // does not guarantee the availability of aligned_alloc().
 // Memory allocated with alloc_aligned_std() must be freed with free_aligned_std().
+
 void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept {
 
+    // POSIX requires power-of-two and >= sizeof(void*). Windows tolerates more,
+    // but normalizing helps keep behavior consistent.
+    if (alignment < sizeof(void*))
+        alignment = sizeof(void*);
+
 #if defined(_ISOC11_SOURCE)
-    return aligned_alloc(alignment, allocSize);
+    return std::aligned_alloc(alignment, allocSize);
 #elif defined(POSIX_ALIGNED)
     void* mem = nullptr;
-    posix_memalign(&mem, alignment, allocSize);
+    if (posix_memalign(&mem, alignment, allocSize) != 0)
+        return nullptr;
     return mem;
 #elif defined(_WIN32)
     #if !defined(_M_ARM) && !defined(_M_ARM64)
@@ -81,14 +88,14 @@ void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept {
     return _aligned_malloc(allocSize, alignment);
     #endif
 #else
-    return aligned_alloc(alignment, allocSize);
+    return std::aligned_alloc(alignment, allocSize);
 #endif
 }
 
 void free_aligned_std(void* mem) noexcept {
 
 #if defined(POSIX_ALIGNED)
-    free(mem);
+    std::free(mem);
 #elif defined(_WIN32)
     #if !defined(_M_ARM) && !defined(_M_ARM64)
     _mm_free(mem);
@@ -96,7 +103,7 @@ void free_aligned_std(void* mem) noexcept {
     _aligned_free(mem);
     #endif
 #else
-    free(mem);
+    std::free(mem);
 #endif
 }
 
@@ -197,21 +204,17 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept {
 #if defined(_WIN32)
     // Try to allocate large pages
     void* mem = alloc_aligned_lp_windows(allocSize);
-
     // Fall back to regular, page-aligned, allocation if necessary
     if (mem == nullptr)
         mem = VirtualAlloc(nullptr, allocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-
     return mem;
 #else
-
     constexpr std::size_t Alignment =
     #if defined(__linux__)
-      2 * 1024 * 1024;  // Assume 2MB page size
+      2 * 1024 * 1024;  // Assume 2MB page-size
     #else
-      4 * 1024;  // Assume small page size
+      4 * 1024;  // Assume small page-size
     #endif
-
     // Round up to multiples of Alignment
     std::size_t roundAllocSize = ((allocSize + Alignment - 1) / Alignment) * Alignment;
 
@@ -228,10 +231,8 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept {
 // The effect is a nop if mem == nullptr
 void free_aligned_lp(void* mem) noexcept {
 
-    if (mem == nullptr)
-        return;
 #if defined(_WIN32)
-    if (!VirtualFree(mem, 0, MEM_RELEASE))
+    if (mem != nullptr && !VirtualFree(mem, 0, MEM_RELEASE))
     {
         std::cerr << "Failed to free large page memory.\n"
                   << "Error code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
@@ -246,9 +247,7 @@ void free_aligned_lp(void* mem) noexcept {
 bool has_lp() noexcept {
 
 #if defined(_WIN32)
-    constexpr std::size_t PageSize = 2 * 1024 * 1024;  // 2MB page size assumed
-
-    void* mem = alloc_aligned_lp_windows(PageSize);
+    void* mem = alloc_aligned_lp_windows(2 * 1024 * 1024);  // 2MB page-size assumed
     if (mem == nullptr)
         return false;
     free_aligned_lp(mem);
