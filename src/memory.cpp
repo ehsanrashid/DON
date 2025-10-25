@@ -225,14 +225,15 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
             && GetLastError() == ERROR_SUCCESS)
         {
             // Allocate memory
-            mem = VirtualAlloc(nullptr, allocSize, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES,
+            mem = VirtualAlloc(nullptr, allocSize, MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT,
                                PAGE_READWRITE);
 
             if (mem == nullptr)
                 err = GetLastError();
 
             // Privilege no longer needed, restore the privileges
-            if (!advapi.adjustTokenPrivileges(tokenHandle, FALSE, &oldTp, 0, nullptr, nullptr))
+            if (  //oldTp.PrivilegeCount > 0 &&
+              !advapi.adjustTokenPrivileges(tokenHandle, FALSE, &oldTp, 0, nullptr, nullptr))
                 if (err == ERROR_SUCCESS)
                     err = GetLastError();
         }
@@ -240,7 +241,7 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
             err = GetLastError();
     }
 
-    if (!CloseHandle(tokenHandle))
+    if (tokenHandle != nullptr && !CloseHandle(tokenHandle))
         err = GetLastError();
 
     advapi.free();
