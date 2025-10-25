@@ -36,18 +36,19 @@
 #if defined(_WIN32)
     #include <iostream>
 
+    #if !defined(NOMINMAX)
+        #define NOMINMAX  // Disable min()/max() macros
+    #endif
+    #if !defined(WIN32_LEAN_AND_MEAN)
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #include <sdkddkver.h>
     #if defined(_WIN32_WINNT) && _WIN32_WINNT < _WIN32_WINNT_WIN7
         #undef _WIN32_WINNT
     #endif
     #if !defined(_WIN32_WINNT)
         // Force to include needed API prototypes
         #define _WIN32_WINNT _WIN32_WINNT_WIN7  // or _WIN32_WINNT_WIN10
-    #endif
-    #if !defined(NOMINMAX)
-        #define NOMINMAX  // Disable macros min() and max()
-    #endif
-    #if !defined(WIN32_LEAN_AND_MEAN)
-        #define WIN32_LEAN_AND_MEAN
     #endif
     #include <windows.h>
     #if defined(small)
@@ -59,10 +60,10 @@
 // the calls at compile time), try to load them at runtime. To do this we need
 // first to define the corresponding function pointers.
 extern "C" {
-using OpenProcessToken_      = bool (*)(HANDLE, DWORD, PHANDLE);
-using LookupPrivilegeValueA_ = bool (*)(LPCSTR, LPCSTR, PLUID);
+using OpenProcessToken_      = BOOL (*)(HANDLE, DWORD, PHANDLE);
+using LookupPrivilegeValueA_ = BOOL (*)(LPCSTR, LPCSTR, PLUID);
 using AdjustTokenPrivileges_ =
-  bool (*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
+  BOOL (*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
 }
 #endif
 
@@ -125,17 +126,16 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
     if (lpSize == 0)
         return nullptr;
 
+    constexpr LPCTSTR advapi32Name   = TEXT("advapi32.dll");
+    HMODULE           advapi32Module = GetModuleHandle(advapi32Name);
+    if (advapi32Module == nullptr)
+        advapi32Module = LoadLibraryEx(advapi32Name, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    if (advapi32Module == nullptr)
+        advapi32Module = LoadLibrary(advapi32Name);
+    if (advapi32Module == nullptr)
+        return nullptr;
+
     // Dynamically link OpenProcessToken, LookupPrivilegeValue and AdjustTokenPrivileges
-
-    HMODULE advapi32Module = GetModuleHandle(TEXT("advapi32.dll"));
-
-    bool freeNeeded = false;
-
-    if (!advapi32Module)
-    {
-        advapi32Module = LoadLibrary(TEXT("advapi32.dll"));
-        freeNeeded     = true;
-    }
 
     auto openProcessToken =
       OpenProcessToken_((void (*)()) GetProcAddress(advapi32Module, "OpenProcessToken"));
@@ -158,8 +158,7 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
 
     void* mem = nullptr;
 
-    LUID luid{};
-    if (lookupPrivilegeValueA(nullptr, "SeLockMemoryPrivilege", &luid))
+    if (LUID luid{}; lookupPrivilegeValueA(nullptr, "SeLockMemoryPrivilege", &luid))
     {
         TOKEN_PRIVILEGES curTp{};
         curTp.PrivilegeCount           = 1;
@@ -170,12 +169,11 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
         DWORD            preTpLen{};
         // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
         // Still need to query GetLastError() to ensure that the privileges were actually obtained.
-        if (adjustTokenPrivileges(processHandle, FALSE, &curTp, sizeof(TOKEN_PRIVILEGES), &preTp,
-                                  &preTpLen)
+        if (adjustTokenPrivileges(processHandle, FALSE, &curTp, sizeof(curTp), &preTp, &preTpLen)
             && GetLastError() == ERROR_SUCCESS)
         {
             // Round up size to full pages and allocate
-            allocSize = (allocSize + lpSize - 1) & ~std::size_t(lpSize - 1);
+            allocSize = (allocSize + lpSize - 1) & ~(lpSize - 1);
 
             mem = VirtualAlloc(nullptr, allocSize, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES,
                                PAGE_READWRITE);
@@ -187,12 +185,12 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
 
     CloseHandle(processHandle);
 
-    if (freeNeeded)
+    if (GetModuleHandle(TEXT("advapi32.dll")) == nullptr)
         FreeLibrary(advapi32Module);
 
-    //if (mem == nullptr)
-    //    std::cerr << "Failed to allocate large page memory.\n"
-    //              << "Error code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
+    // if (mem == nullptr)
+    //     std::cerr << "Failed to allocate large page memory.\n"
+    //               << "Error code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
 
     return mem;
     #endif

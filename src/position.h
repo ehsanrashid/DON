@@ -232,7 +232,6 @@ class Position final {
     template<PieceType PT>
     Bitboard attacks_by(Color c) const noexcept;
 
-   public:
     // Doing and undoing moves
     DirtyPiece do_move(Move m, State& newSt, bool check) noexcept;
     DirtyPiece do_move(Move m, State& newSt) noexcept;

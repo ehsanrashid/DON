@@ -45,19 +45,19 @@
     #endif
     #include <sched.h>
 #elif defined(_WIN64)
-
+    #if !defined(NOMINMAX)
+        #define NOMINMAX  // Disable min()/max() macros
+    #endif
+    #if !defined(WIN32_LEAN_AND_MEAN)
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #include <sdkddkver.h>
     #if defined(_WIN32_WINNT) && _WIN32_WINNT < _WIN32_WINNT_WIN7
         #undef _WIN32_WINNT
     #endif
     #if !defined(_WIN32_WINNT)
         // Force to include needed API prototypes
         #define _WIN32_WINNT _WIN32_WINNT_WIN7  // or _WIN32_WINNT_WIN10
-    #endif
-    #if !defined(NOMINMAX)
-        #define NOMINMAX  // Disable macros min() and max()
-    #endif
-    #if !defined(WIN32_LEAN_AND_MEAN)
-        #define WIN32_LEAN_AND_MEAN
     #endif
     #include <windows.h>
     #if defined(small)
@@ -73,7 +73,6 @@ using SetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT);
 
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadselectedcpusetmasks
 using GetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT, PUSHORT);
-
 #endif
 
 #include "memory.h"
