@@ -240,7 +240,8 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
             err = GetLastError();
     }
 
-    CloseHandle(tokenHandle);
+    if (!CloseHandle(tokenHandle))
+        err = GetLastError();
 
     advapi.free();
 
@@ -295,22 +296,20 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept {
 
 // Free Aligned Large Pages.
 // The effect is a nop if mem == nullptr
-void free_aligned_lp(void* mem) noexcept {
+bool free_aligned_lp(void* mem) noexcept {
 
 #if defined(_WIN32)
-    if (void* ptr = std::exchange(mem, nullptr);
-        ptr != nullptr && !VirtualFree(ptr, 0, MEM_RELEASE))
+    if (mem != nullptr && !VirtualFree(mem, 0, MEM_RELEASE))
     {
-        // Restore pointer on failure so caller knows it wasn't freed
-        mem = ptr;
-
         DWORD err = GetLastError();
         std::cerr << "Failed to free memory.\n"
                   << "Error code: 0x " << std::hex << err << std::dec << std::endl;
+        return false;
     }
 #else
     free_aligned_std(mem);
 #endif
+    return true;
 }
 
 // Check Large Pages support
@@ -320,7 +319,8 @@ bool has_lp() noexcept {
     void* mem = alloc_aligned_lp_windows(2 * 1024 * 1024);  // 2MB page-size assumed
     if (mem == nullptr)
         return false;
-    free_aligned_lp(mem);
+    [[maybe_unused]] bool freed = free_aligned_lp(mem);
+    assert(freed);
     return true;
 #elif defined(__linux__)
     #if defined(MADV_HUGEPAGE)

@@ -34,14 +34,14 @@ void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept;
 void  free_aligned_std(void* mem) noexcept;
 // memory aligned by page size, min alignment: 4096 bytes
 void* alloc_aligned_lp(std::size_t allocSize) noexcept;
-void  free_aligned_lp(void* mem) noexcept;
+bool  free_aligned_lp(void* mem) noexcept;
 
 bool has_lp() noexcept;
 
 // Frees memory which was placed there with placement new.
 // Works for both single objects and arrays of unknown bound.
 template<typename T, typename FreeFunc>
-void memory_deleter(T* mem, FreeFunc freeFunc) noexcept {
+void memory_deleter(T* mem, FreeFunc&& freeFunc) noexcept {
     if (mem == nullptr)
         return;
 
@@ -55,7 +55,7 @@ void memory_deleter(T* mem, FreeFunc freeFunc) noexcept {
 // Frees memory which was placed there with placement new.
 // Works for both single objects and arrays of unknown bound.
 template<typename T, typename FreeFunc>
-void memory_array_deleter(T* mem, FreeFunc freeFunc) noexcept {
+void memory_array_deleter(T* mem, FreeFunc&& freeFunc) noexcept {
     if (mem == nullptr)
         return;
 
