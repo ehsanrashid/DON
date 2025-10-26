@@ -19,6 +19,7 @@
 #define MEMORY_H_INCLUDED
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
@@ -165,9 +166,9 @@ make_unique_aligned_std(std::size_t size) noexcept {
         return alloc_aligned_std(allocSize, alignof(ElementType));
     };
 
-    auto* memory = memory_allocator<T>(allocFunc, size);
+    auto* mem = memory_allocator<T>(allocFunc, size);
 
-    return AlignedStdPtr<T>(memory);
+    return AlignedStdPtr<T>(mem);
 }
 
 //
@@ -210,9 +211,9 @@ std::enable_if_t<std::is_array_v<T>, AlignedLPPtr<T>> make_unique_aligned_lp(std
     static_assert(alignof(ElementType) <= 4096,
                   "alloc_aligned_lp() may fail for such a big alignment requirement of T");
 
-    auto* memory = memory_allocator<T>(alloc_aligned_lp, size);
+    auto* mem = memory_allocator<T>(alloc_aligned_lp, size);
 
-    return AlignedLPPtr<T>(memory);
+    return AlignedLPPtr<T>(mem);
 }
 
 // Get the first aligned element of an array.

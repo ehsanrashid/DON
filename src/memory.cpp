@@ -17,11 +17,12 @@
 
 #include "memory.h"
 
-#include <cassert>
 #include <cstdlib>
 
-#if __has_include("features.h")
-    #include <features.h>
+#if defined(__has_include)
+    #if __has_include(<features.h>)
+        #include <features.h>
+    #endif
 #endif
 
 #if defined(__linux__) && !defined(__ANDROID__)
