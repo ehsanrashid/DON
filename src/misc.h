@@ -225,7 +225,7 @@ constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 }
 
 static_assert(mul_hi64(0xDEADBEEFDEADBEEFULL, 0xCAFEBABECAFEBABEULL) == 0xB092AB7CE9F4B259ULL,
-              "Error in mul_hi64()");
+              "mul_hi64(): Failed");
 
 #if defined(USE_PREFETCH)
 inline void prefetch(const void* const addr) noexcept {

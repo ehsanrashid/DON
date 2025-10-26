@@ -113,10 +113,12 @@ class TranspositionTable final {
     void increment_generation() noexcept;
 
     void resize(std::size_t ttSize, ThreadPool& threads) noexcept;
+
     void init(ThreadPool& threads) noexcept;
 
     ProbResult probe(Key key) const noexcept;
-    void       prefetch_key(Key key) const noexcept;
+
+    void prefetch_key(Key key) const noexcept;
 
     std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
 

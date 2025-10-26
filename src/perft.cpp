@@ -162,6 +162,7 @@ class PerftTable final {
     ~PerftTable() noexcept;
 
     void resize(std::size_t mbSize, ThreadPool& threads) noexcept;
+
     void init(ThreadPool& threads) noexcept;
 
     ProbResult probe(Key key, Depth depth) const noexcept;
