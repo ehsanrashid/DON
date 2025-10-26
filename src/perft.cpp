@@ -358,9 +358,9 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
     return sPerft;
 }
 
-// Explicit template instantiations
-template Perft perft<true>(Position& pos, Depth depth, bool detail) noexcept;
+// Explicit template instantiations:
 template Perft perft<false>(Position& pos, Depth depth, bool detail) noexcept;
+template Perft perft<true>(Position& pos, Depth depth, bool detail) noexcept;
 
 }  // namespace
 

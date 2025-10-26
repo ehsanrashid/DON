@@ -41,7 +41,6 @@ extern Key castling[CASTLING_RIGHTS_NB];
 extern Key enpassant[FILE_NB];
 extern Key turn;
 
-void init() noexcept;
 }  // namespace Zobrist
 
 // State struct stores information needed to restore Position object
@@ -349,10 +348,8 @@ class Position final {
     void set_state() noexcept;
     void set_ext_state() noexcept;
 
-    bool can_enpassant(Color           ac,
-                       Square          epSq,
-                       bool            before      = false,
-                       Bitboard* const epAttackers = nullptr) const noexcept;
+    template<bool After = true>
+    bool can_enpassant(Color ac, Square epSq, Bitboard* const epAttackers = nullptr) const noexcept;
 
     // Other helpers
     void move_piece(Square s1, Square s2) noexcept;

@@ -386,7 +386,7 @@ bool Network<Arch, Transformer>::write_parameters(
     return bool(ostream);
 }
 
-// Explicit template instantiations
+// Explicit template instantiations:
 template class Network<  //
   NetworkArchitecture<BigTransformedFeatureDimensions, BigL2, BigL3>,
   FeatureTransformer<BigTransformedFeatureDimensions>>;

@@ -34,6 +34,15 @@
 
 namespace DON {
 
+namespace Zobrist {
+
+Key psq[PIECE_NB][SQUARE_NB];
+Key castling[CASTLING_RIGHTS_NB];
+Key enpassant[FILE_NB];
+Key turn;
+
+}  // namespace Zobrist
+
 namespace {
 
 constexpr std::size_t PawnOffset = 8;
@@ -128,49 +137,38 @@ CuckooTable<0x2000> Cuckoos;
 
 }  // namespace
 
-namespace Zobrist {
-
-Key psq[PIECE_NB][SQUARE_NB];
-Key castling[CASTLING_RIGHTS_NB];
-Key enpassant[FILE_NB];
-Key turn;
-
-void init() noexcept {
+// Called at startup to initialize the Zobrist arrays used to compute hash keys
+void Position::init() noexcept {
     PRNG1024 rng(0x105524ULL);
 
     const auto rng_key = [&] { return rng.template rand<Key>(); };
 
-    std::fill_n(&psq[0][0], sizeof(psq) / sizeof(psq[0][0]), Key{});
+    std::memset(Zobrist::psq, 0, sizeof(Zobrist::psq));
+    //std::fill_n(&Zobrist::psq[0][0], sizeof(Zobrist::psq) / sizeof(Zobrist::psq[0][0]), Key{});
     for (Piece pc : Pieces)
     {
         std::size_t offset = type_of(pc) == PAWN ? PawnOffset : 0;
-        std::generate(std::begin(psq[pc]) + offset, std::end(psq[pc]) - offset, rng_key);
+        std::generate(std::begin(Zobrist::psq[pc]) + offset,  //
+                      std::end(Zobrist::psq[pc]) - offset, rng_key);
     }
 
     std::size_t cr = 0;
-    std::generate(std::begin(castling), std::end(castling), [&] {
-        Key acc = 0;
+    std::generate(std::begin(Zobrist::castling), std::end(Zobrist::castling), [&] {
+        Key key = 0;
 
         Bitboard b = cr;
         while (b)
         {
-            Key k = castling[square_bb(pop_lsb(b))];
-            acc ^= k ? k : rng_key();
+            Key k = Zobrist::castling[square_bb(pop_lsb(b))];
+            key ^= k ? k : rng_key();
         }
         ++cr;        // advance to next index
-        return acc;  // sets castling[old_cr]
+        return key;  // sets castling[old_cr]
     });
 
-    std::generate(std::begin(enpassant), std::end(enpassant), rng_key);
+    std::generate(std::begin(Zobrist::enpassant), std::end(Zobrist::enpassant), rng_key);
 
-    turn = rng_key();
-}
-}  // namespace Zobrist
-
-// Called at startup to initialize the Zobrist arrays used to compute hash keys
-void Position::init() noexcept {
-
-    Zobrist::init();
+    Zobrist::turn = rng_key();
 
     // Prepare the cuckoo tables
     Cuckoos.init();
@@ -640,10 +638,8 @@ void Position::set_ext_state() noexcept {
 }
 
 // Check can do en-passant
-bool Position::can_enpassant(Color           ac,
-                             Square          epSq,
-                             bool            before,
-                             Bitboard* const epAttackers) const noexcept {
+template<bool After>
+bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackers) const noexcept {
     assert(is_ok(epSq));
 
     // En-passant attackers
@@ -653,12 +649,16 @@ bool Position::can_enpassant(Color           ac,
     if (!attackers)
         return false;
 
-    Square capSq = epSq + (before ? +1 : -1) * pawn_spush(ac);
+    Square capSq;
+    if constexpr (After)
+        capSq = epSq - pawn_spush(ac);
+    else
+        capSq = epSq + pawn_spush(ac);
     assert(pieces(~ac, PAWN) & capSq);
 
     Square kingSq = king_sq(ac);
 
-    if (!before)
+    if constexpr (After)
     {
         // If there are checkers other than the to be captured pawn, ep is never legal
         if (checkers() & ~square_bb(capSq))
@@ -699,6 +699,12 @@ bool Position::can_enpassant(Color           ac,
     }
     return epCan;
 }
+
+// Explicit template instantiations:
+template bool
+Position::can_enpassant<false>(Color ac, Square epSq, Bitboard* const epAttackers) const noexcept;
+template bool
+Position::can_enpassant<true>(Color ac, Square epSq, Bitboard* const epAttackers) const noexcept;
 
 // Helper used to do/undo a castling move.
 // This is a bit tricky in Chess960 where org/dst squares can overlap.
@@ -1443,7 +1449,7 @@ Key Position::move_key(Move m) const noexcept {
     }
 
     if (type_of(movedPiece) == PAWN && (int(dst) ^ int(org)) == NORTH_2
-        && can_enpassant(~ac, dst - pawn_spush(ac), true))
+        && can_enpassant<false>(~ac, dst - pawn_spush(ac)))
     {
         assert(relative_rank(ac, org) == RANK_2);
         assert(relative_rank(ac, dst) == RANK_4);
@@ -1511,7 +1517,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     Square   epSq = SQ_NONE;
     Bitboard epAttackers;
     if (moved == PAWN && (int(dst) ^ int(org)) == NORTH_2
-        && can_enpassant(~ac, dst - pawn_spush(ac), true, &epAttackers))
+        && can_enpassant<false>(~ac, dst - pawn_spush(ac), &epAttackers))
     {
         assert(relative_rank(ac, org) == RANK_2);
         assert(relative_rank(ac, dst) == RANK_4);

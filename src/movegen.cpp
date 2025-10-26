@@ -345,7 +345,7 @@ Move* generate(const Position& pos, Move* moves) noexcept {
                                        : generate_moves<BLACK, GT, Any>(pos, moves);
 }
 
-// Explicit template instantiations
+// Explicit template instantiations:
 template Move* generate<ENCOUNTER, false>(const Position& pos, Move* moves) noexcept;
 template Move* generate<ENCOUNTER, true>(const Position& pos, Move* moves) noexcept;
 template Move* generate<ENC_CAPTURE, false>(const Position& pos, Move* moves) noexcept;
@@ -383,7 +383,7 @@ Move* generate_legal(const Position& pos, Move* moves) noexcept {
     return moves;
 }
 
-// Explicit template instantiations
+// Explicit template instantiations:
 template Move* generate_legal<false>(const Position& pos, Move* moves) noexcept;
 template Move* generate_legal<true>(const Position& pos, Move* moves) noexcept;
 

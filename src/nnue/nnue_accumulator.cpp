@@ -508,7 +508,7 @@ void AccumulatorStack::backward_update_incremental(
     assert((accStates[end].acc<Dimensions>()).computed[Perspective]);
 }
 
-// Explicit template instantiations
+// Explicit template instantiations:
 template void AccumulatorStack::evaluate<BigTransformedFeatureDimensions>(
   const Position&                                            pos,
   const FeatureTransformer<BigTransformedFeatureDimensions>& featureTransformer,
