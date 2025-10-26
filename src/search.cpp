@@ -1983,7 +1983,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     std::int16_t ply = 1;
     while (std::size_t(ply) < rootMove.pv.size())
     {
-        const auto& pvMove = rootMove.pv[ply];
+        auto pvMove = rootMove.pv[ply];
 
         RootMoves rms;
         for (auto m : MoveList<LEGAL>(rootPos))
@@ -2053,7 +2053,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         if (!tbc.rootInTB || tbc.cardinality)
             break;
 
-        const auto& pvMove = rms[0].pv[0];
+        auto pvMove = rms[0].pv[0];
         rootMove.pv.push_back(pvMove);
         auto& st = states.emplace_back();
         rootPos.do_move(pvMove, st);
