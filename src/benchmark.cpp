@@ -391,8 +391,8 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexce
     std::string ttSize    = (iss >> token) ? token : "16";
     std::string threads   = (iss >> token) ? token : "1";
     std::string limitVal  = (iss >> token) ? token : "13";
-    std::string fenFile   = (iss >> token) ? lower_case(token) : "default";
-    std::string limitType = (iss >> token) ? lower_case(token) : "depth";
+    std::string fenFile   = (iss >> token) ? token : "default";
+    std::string limitType = (iss >> token) ? token : "depth";
 
     bool isGo = limitType != "eval";
 
