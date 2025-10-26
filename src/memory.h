@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <memory>
 #include <new>
 #include <type_traits>
@@ -37,6 +38,15 @@ void* alloc_aligned_lp(std::size_t allocSize) noexcept;
 bool  free_aligned_lp(void* mem) noexcept;
 
 bool has_lp() noexcept;
+
+// Round up to multiples of alignment
+template<typename T>
+[[nodiscard]] constexpr T round_up_pow2(T size, T alignment) noexcept {
+    static_assert(std::is_unsigned_v<T>);
+    assert(alignment && !(alignment & (alignment - 1)));
+    std::size_t mask = alignment - 1;
+    return (size + mask) & ~mask;
+}
 
 // Frees memory which was placed there with placement new.
 // Works for both single objects and arrays of unknown bound.
@@ -61,48 +71,53 @@ void memory_array_deleter(T* mem, FreeFunc&& freeFunc) noexcept {
 
     constexpr std::size_t ArrayOffset = std::max(sizeof(std::size_t), alignof(T));
     // Move back on the pointer to where the size is allocated.
-    auto* rawMemory = reinterpret_cast<char*>(mem) - ArrayOffset;
+    auto* rawMem = reinterpret_cast<char*>(mem) - ArrayOffset;
 
     if constexpr (!std::is_trivially_destructible_v<T>)
     {
-        std::size_t size = *reinterpret_cast<std::size_t*>(rawMemory);
+        std::size_t size = *reinterpret_cast<std::size_t*>(rawMem);
 
-        // Explicitly call the destructor for each element in reverse order
-        for (std::size_t i = size; i-- > 0;)
-            std::destroy_at(&mem[i]);
+        //// Explicitly call the destructor for each element in reverse order
+        //for (std::size_t i = size; i-- > 0;)
+        //    std::destroy_at(&mem[i]);  // mem[i].~T();
+
+        //// Forward order
+        //std::destroy(mem, mem + size);
+        // Reverse order
+        std::destroy(std::make_reverse_iterator(mem + size), std::make_reverse_iterator(mem));
     }
 
-    freeFunc(rawMemory);
+    freeFunc(rawMem);
 }
 
 // Allocates memory for a single object and places it there with placement new.
 template<typename T, typename AllocFunc, typename... Args>
-inline std::enable_if_t<!std::is_array_v<T>, T*> memory_allocator(AllocFunc allocFunc,
+inline std::enable_if_t<!std::is_array_v<T>, T*> memory_allocator(AllocFunc&& allocFunc,
                                                                   Args&&... args) noexcept {
-    void* rawMemory = allocFunc(sizeof(T));
-    ASSERT_ALIGNED(rawMemory, alignof(T));
-    return new (rawMemory) T(std::forward<Args>(args)...);
+    void* rawMem = allocFunc(sizeof(T));
+    ASSERT_ALIGNED(rawMem, alignof(T));
+    return new (rawMem) T(std::forward<Args>(args)...);
 }
 
 // Allocates memory for an array of unknown bound and places it there with placement new.
 template<typename T, typename AllocFunc>
 inline std::enable_if_t<std::is_array_v<T>, std::remove_extent_t<T>*>
-memory_allocator(AllocFunc allocFunc, std::size_t num) noexcept {
+memory_allocator(AllocFunc&& allocFunc, std::size_t size) noexcept {
     using ElementType = std::remove_extent_t<T>;
 
     constexpr std::size_t ArrayOffset = std::max(sizeof(std::size_t), alignof(ElementType));
 
     // Save the array size in the memory location
-    auto* rawMemory = reinterpret_cast<char*>(allocFunc(ArrayOffset + num * sizeof(ElementType)));
-    ASSERT_ALIGNED(rawMemory, alignof(T));
+    auto* rawMem = reinterpret_cast<char*>(allocFunc(ArrayOffset + size * sizeof(ElementType)));
+    ASSERT_ALIGNED(rawMem, alignof(T));
 
-    new (rawMemory) std::size_t(num);
+    new (rawMem) std::size_t(size);
 
-    for (std::size_t i = 0; i < num; ++i)
-        new (rawMemory + ArrayOffset + i * sizeof(ElementType)) ElementType();
+    for (std::size_t i = 0; i < size; ++i)
+        new (rawMem + ArrayOffset + i * sizeof(ElementType)) ElementType();
 
     // Need to return the pointer at the start of the array so that the indexing in unique_ptr<T[]> works
-    return reinterpret_cast<ElementType*>(rawMemory + ArrayOffset);
+    return reinterpret_cast<ElementType*>(rawMem + ArrayOffset);
 }
 
 //
@@ -143,14 +158,14 @@ make_unique_aligned_std(Args&&... args) noexcept {
 // make_unique_aligned_std() for arrays of unknown bound
 template<typename T>
 std::enable_if_t<std::is_array_v<T>, AlignedStdPtr<T>>
-make_unique_aligned_std(std::size_t num) noexcept {
+make_unique_aligned_std(std::size_t size) noexcept {
     using ElementType = std::remove_extent_t<T>;
 
     const auto allocFunc = [](std::size_t allocSize) {
         return alloc_aligned_std(allocSize, alignof(ElementType));
     };
 
-    auto* memory = memory_allocator<T>(allocFunc, num);
+    auto* memory = memory_allocator<T>(allocFunc, size);
 
     return AlignedStdPtr<T>(memory);
 }
@@ -189,13 +204,13 @@ make_unique_aligned_lp(Args&&... args) noexcept {
 
 // make_unique_aligned_lp() for arrays of unknown bound
 template<typename T>
-std::enable_if_t<std::is_array_v<T>, AlignedLPPtr<T>> make_unique_aligned_lp(std::size_t num) {
+std::enable_if_t<std::is_array_v<T>, AlignedLPPtr<T>> make_unique_aligned_lp(std::size_t size) {
     using ElementType = std::remove_extent_t<T>;
 
     static_assert(alignof(ElementType) <= 4096,
                   "alloc_aligned_lp() may fail for such a big alignment requirement of T");
 
-    auto* memory = memory_allocator<T>(alloc_aligned_lp, num);
+    auto* memory = memory_allocator<T>(alloc_aligned_lp, size);
 
     return AlignedLPPtr<T>(memory);
 }
@@ -203,13 +218,20 @@ std::enable_if_t<std::is_array_v<T>, AlignedLPPtr<T>> make_unique_aligned_lp(std
 // Get the first aligned element of an array.
 // ptr must point to an array of size at least `sizeof(T) * N + alignment` bytes,
 // where N is the number of elements in the array.
-template<std::uintptr_t Alignment, typename T>
-T* align_ptr_up(T* ptr) noexcept {
-    static_assert(alignof(T) < Alignment);
+template<std::size_t Alignment, typename T>
+[[nodiscard]] constexpr T* align_ptr_up(T* ptr) noexcept {
+    static_assert(Alignment && !(Alignment & (Alignment - 1)),
+                  "Alignment must be a non-zero power of two");
+    static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
 
-    const auto uintPtr = reinterpret_cast<std::uintptr_t>(reinterpret_cast<char*>(ptr));
-    return reinterpret_cast<T*>(
-      reinterpret_cast<char*>((uintPtr + (Alignment - 1)) / Alignment * Alignment));
+    auto ptrInt = reinterpret_cast<std::uintptr_t>(ptr);
+    ptrInt      = round_up_pow2(ptrInt, static_cast<std::uintptr_t>(Alignment));
+    return reinterpret_cast<T*>(ptrInt);
+}
+template<std::size_t Alignment, typename T>
+[[nodiscard]] constexpr const T* align_ptr_up(const T* ptr) noexcept {
+    using U = std::remove_const_t<T>;
+    return const_cast<const T*>(align_ptr_up<Alignment>(const_cast<U*>(ptr)));
 }
 
 }  // namespace DON

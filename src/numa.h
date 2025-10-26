@@ -59,6 +59,7 @@
         // Force to include needed API prototypes
         #define _WIN32_WINNT _WIN32_WINNT_WIN7  // or _WIN32_WINNT_WIN10
     #endif
+    #define UNICODE
     #include <windows.h>
     #if defined(small)
         #undef small
@@ -114,17 +115,17 @@ struct WindowsAffinity final {
 
     // Since Windows 11 and Windows Server 2022 thread affinities can span
     // processor groups and can be set as such by a new WinAPI function. However,
-    // we may need to force using the old API if we detect that the process has
-    // affinity set by the old API already and we want to override that. Due to the
-    // limitations of the old API we cannot detect its use reliably. There will be
-    // cases where we detect not use but it has actually been used and vice versa.
+    // may need to force using the old API if detect that the process has
+    // affinity set by the old API already and want to override that.
+    // Due to the limitations of the old API cannot detect its use reliably.
+    // There will be cases where detect not use but it has actually been used and vice versa.
 
     bool likely_used_old_api() const { return oldApi.has_value() || !oldDeterminate; }
 
     std::optional<std::set<CpuIndex>> oldApi;
     std::optional<std::set<CpuIndex>> newApi;
 
-    // We also provide diagnostic for when the affinity is set to nullopt
+    // Also provide diagnostic for when the affinity is set to nullopt
     // whether it was due to being indeterminate. If affinity is indeterminate
     // it is best to assume it is not set at all, so consistent with the meaning
     // of the nullopt affinity.
@@ -163,23 +164,23 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
 }
 
 // On Windows there are two ways to set affinity, and therefore 2 ways to get it.
-// These are not consistent, so we have to check both. In some cases it is actually
+// These are not consistent, so have to check both. In some cases it is actually
 // not possible to determine affinity. For example when two different threads have
-// affinity on different processor groups, set using SetThreadAffinityMask, we cannot
-// retrieve the actual affinities.
+// affinity on different processor groups, set using SetThreadAffinityMask,
+// cannot retrieve the actual affinities.
 // From documentation on GetProcessAffinityMask:
 //     > If the calling process contains threads in multiple groups,
 //     > the function returns zero for both affinity masks.
-// In such cases we just give up and assume we have affinity for all processors.
+// In such cases just give up and assume have affinity for all processors.
 // nullopt means no affinity is set, that is, all processors are allowed
 inline WindowsAffinity get_process_affinity() noexcept {
 
-    HMODULE k32Module = GetModuleHandle(TEXT("Kernel32.dll"));
+    HMODULE k32hModule = GetModuleHandle(TEXT("kernel32.dll"));
 
     auto getThreadSelectedCpuSetMasks = GetThreadSelectedCpuSetMasks_(
-      (void (*)()) GetProcAddress(k32Module, "GetThreadSelectedCpuSetMasks"));
+      (void (*)()) GetProcAddress(k32hModule, "GetThreadSelectedCpuSetMasks"));
 
-    WindowsAffinity winAffinity;
+    WindowsAffinity winAffinity{};
 
     BOOL status;
 
@@ -188,7 +189,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
         USHORT requiredMaskCount;
         status = getThreadSelectedCpuSetMasks(GetCurrentThread(), nullptr, 0, &requiredMaskCount);
 
-        // We expect ERROR_INSUFFICIENT_BUFFER from GetThreadSelectedCpuSetMasks,
+        // Expect ERROR_INSUFFICIENT_BUFFER from GetThreadSelectedCpuSetMasks,
         // but other failure is an actual error.
         if (status == 0 && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         {
@@ -221,8 +222,8 @@ inline WindowsAffinity get_process_affinity() noexcept {
         }
     }
 
-    // NOTE: There is no way to determine full affinity using the old API if
-    //       individual threads set affinity on different processor groups.
+    // NOTE: There is no way to determine full affinity using the old API
+    //        if individual threads set affinity on different processor groups.
 
     DWORD_PTR proc, sys;
     status = GetProcessAffinityMask(GetCurrentProcess(), &proc, &sys);
@@ -233,7 +234,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
     //     > always uses the calling thread's primary group (which by default is the same
     //     > as the process' primary group) in order to set the
     //     > lpProcessAffinityMask and lpSystemAffinityMask.
-    // So it will never be indeterminate here. We can only make assumptions later.
+    // So it will never be indeterminate here. Can only make assumptions later.
     if (status == 0 || proc == 0)
     {
         winAffinity.oldDeterminate = false;
@@ -243,7 +244,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
     // If SetProcessAffinityMask was never called the affinity must span
     // all processor groups, but if it was called it must only span one.
 
-    std::vector<USHORT> groupAffinity;  // We need to capture this later and capturing
+    std::vector<USHORT> groupAffinity;  // Need to capture this later and capturing
                                         // from structured bindings requires c++20.
 
     std::tie(status, groupAffinity) = get_process_group_affinity();
@@ -255,7 +256,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
     if (groupAffinity.size() == 1)
     {
-        // We detect the case when affinity is set to all processors and correctly
+        // Detect the case when affinity is set to all processors and correctly
         // leave affinity.oldApi as nullopt.
         if (GetActiveProcessorGroupCount() != 1 || proc != sys)
         {
@@ -275,7 +276,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
         // If got here it means that either SetProcessAffinityMask was never set
         // or on Windows 11/Server 2022.
 
-        // Since Windows 11 and Windows Server 2022 the behaviour of
+        // Since Windows 11 and Windows Server 2022 the behavior of
         // GetProcessAffinityMask changed:
         //     > If, however, hHandle specifies a handle to the current process,
         //     > the function always uses the calling thread's primary group
@@ -338,7 +339,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                 }
 
                 // Have to detect the case where the affinity was not set,
-                // or is set to all processors so that we correctly produce as
+                // or is set to all processors so that correctly produce as
                 // std::nullopt result.
                 if (!affinityFull)
                     winAffinity.oldApi = std::move(cpus);
@@ -359,8 +360,8 @@ inline std::set<CpuIndex> get_process_affinity() noexcept {
 
     std::set<CpuIndex> cpus;
 
-    // For unsupported systems, or in case of a soft error, we may assume
-    // all processors are available for use.
+    // For unsupported systems, or in case of a soft error,
+    // may assume all processors are available for use.
     [[maybe_unused]] auto set_to_all_cpus = [&]() {
         for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
             cpus.insert(cpuIdx);
@@ -368,7 +369,7 @@ inline std::set<CpuIndex> get_process_affinity() noexcept {
 
     // cpu_set_t by default holds 1024 entries. This may not be enough soon,
     // but there is no easy way to determine how many threads there actually is.
-    // In this case we just choose a reasonable upper bound.
+    // In this case just choose a reasonable upper bound.
     constexpr CpuIndex MaxCpusCount = 64 * 1024;
 
     cpu_set_t* mask = CPU_ALLOC(MaxCpusCount);
@@ -410,7 +411,7 @@ inline static const auto STARTUP_OLD_AFFINITY_API_USE =
 
 #endif
 
-// We want to abstract the purpose of storing the numa node index somewhat.
+// Want to abstract the purpose of storing the numa node index somewhat.
 // Whoever is using this does not need to know the specifics of the replication
 // machinery to be able to access NUMA replicated memory.
 class NumaReplicatedAccessToken final {
@@ -436,7 +437,7 @@ class NumaReplicatedAccessToken final {
 // the user may create custom nodes. It is guaranteed that NUMA nodes are NOT
 // empty: every node exposed by NumaConfig has at least one processor assigned.
 //
-// We use startup affinities so as not to modify its own behaviour in time.
+// Use startup affinities so as not to modify its own behavior in time.
 //
 // Since DON doesn't support exceptions all places where an exception
 // should be thrown are replaced by std::exit.
@@ -444,8 +445,8 @@ class NumaConfig final {
    public:
     // This function queries the system for the mapping of processors to NUMA nodes.
     // On Linux read from standardized kernel sysfs, with a fallback to single NUMA node.
-    // On Windows utilize GetNumaProcessorNodeEx, which has its quirks, see
-    // comment for Windows implementation of get_process_affinity()
+    // On Windows utilize GetNumaProcessorNodeEx, which has its quirks,
+    // see comment for Windows implementation of get_process_affinity()
     static NumaConfig from_system([[maybe_unused]] bool processAffinityRespect = true) noexcept {
         NumaConfig numaCfg = empty();
 
@@ -462,7 +463,7 @@ class NumaConfig final {
 
         // On Linux things are straightforward, since there's no processor groups and
         // any thread can be scheduled on all processors.
-        // We try to gather this information from the sysfs first
+        // Try to gather this information from the sysfs first
         // https://www.kernel.org/doc/Documentation/ABI/stable/sysfs-devices-node
 
         bool fallbackUse = false;
@@ -486,9 +487,9 @@ class NumaConfig final {
                 std::string path =
                   std::string("/sys/devices/system/node/node") + std::to_string(n) + "/cpulist";
                 auto cpuIdxStr = read_file_to_string(path);
-                // Now, we only bail if the file does not exist. Some nodes may be
+                // Now, only bail if the file does not exist. Some nodes may be
                 // empty, that's fine. An empty node still has a file that appears
-                // to have some whitespace, so we need to handle that.
+                // to have some whitespace, so need to handle that.
                 if (!cpuIdxStr.has_value())
                 {
                     fallback();
@@ -517,7 +518,7 @@ class NumaConfig final {
             allowedCpus = STARTUP_PROCESSOR_AFFINITY.get_combined();
 
         // The affinity cannot be determined in all cases on Windows,
-        // but we at least guarantee that the number of allowed processors
+        // but at least guarantee that the number of allowed processors
         // is >= number of processors in the affinity mask. In case the user
         // is not satisfied they must set the processor numbers explicitly.
         auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuIdx) {
@@ -546,12 +547,12 @@ class NumaConfig final {
 
         // Split the NUMA nodes to be contained within a group if necessary.
         // This is needed between Windows 10 Build 20348 and Windows 11, because
-        // the new NUMA allocation behaviour was introduced while there was
+        // the new NUMA allocation behavior was introduced while there was
         // still no way to set thread affinity spanning multiple processor groups.
         // See https://learn.microsoft.com/en-us/windows/win32/procthread/numa-support
         // Also do this is if need to force old API for some reason.
         //
-        // Later it appears that needed to actually always force this behaviour.
+        // Later it appears that needed to actually always force this behavior.
         // While Windows allows this to work now, such assignments have bad interaction
         // with the scheduler - in particular it still prefers scheduling on the thread's
         // "primary" node, even if it means scheduling SMT processors first.
@@ -598,12 +599,12 @@ class NumaConfig final {
 
 #endif
 
-        // We have to ensure no empty NUMA nodes persist.
+        // Have to ensure no empty NUMA nodes persist.
         numaCfg.remove_empty_numa_nodes();
 
         // If the user explicitly opts out from respecting the current process affinity
-        // then it may be inconsistent with the current affinity (obviously), so we
-        // consider it custom.
+        // then it may be inconsistent with the current affinity (obviously),
+        // so consider it custom.
         if (!processAffinityRespect)
             numaCfg.affinityCustom = true;
 
@@ -708,8 +709,7 @@ class NumaConfig final {
         if (affinityCustom)
             return true;
 
-        // We obviously cannot distribute a single thread, so a single thread
-        // should never be bound.
+        // Obviously cannot distribute a single thread, so a single thread should never be bound.
         if (threadCount <= 1)
             return false;
 
@@ -794,25 +794,25 @@ class NumaConfig final {
         if (status != 0)
             std::exit(EXIT_FAILURE);
 
-        // We yield this thread just to be sure it gets rescheduled.
+        // Yield this thread just to be sure it gets rescheduled.
         // This is defensive, allowed because this code is not performance critical.
         sched_yield();
 
 #elif defined(_WIN64)
 
         // Requires Windows 11. No good way to set thread affinity spanning processor groups before that.
-        HMODULE k32Module = GetModuleHandle(TEXT("Kernel32.dll"));
+        HMODULE k32hModule = GetModuleHandle(TEXT("kernel32.dll"));
 
         auto setThreadSelectedCpuSetMasks = SetThreadSelectedCpuSetMasks_(
-          (void (*)()) GetProcAddress(k32Module, "SetThreadSelectedCpuSetMasks"));
+          (void (*)()) GetProcAddress(k32hModule, "SetThreadSelectedCpuSetMasks"));
 
         HANDLE threadHandle;
 
         BOOL status;
 
         // ALWAYS set affinity with the new API if available,
-        // because there's no downsides, and we forcibly keep it consistent with
-        // the old API should need to use it. I.e. always keep this as a superset
+        // because there's no downsides, and forcibly keep it consistent with
+        // the old API should need to use it. i.e. always keep this as a superset
         // of what set with SetThreadGroupAffinity.
         if (setThreadSelectedCpuSetMasks != nullptr)
         {
@@ -851,7 +851,7 @@ class NumaConfig final {
             // Assume the group of the first processor listed for this node.
             // Processors from outside this group will not be assigned for this thread.
             // Normally this won't be an issue because windows used to assign NUMA nodes such that
-            // they cannot span processor groups. However, since Windows 10 Build 20348 the behaviour changed,
+            // they cannot span processor groups. However, since Windows 10 Build 20348 the behavior changed,
             // so there's a small window of versions between this and Windows 11 that might exhibit problems
             // with not all processors being utilized.
             //
@@ -1148,7 +1148,7 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
     }
 
     void on_numa_config_changed() noexcept override {
-        // Use the first one as the source. It doesn't matter which one we use,
+        // Use the first one as the source. It doesn't matter which one use,
         // because they all must be identical, but the first one is guaranteed to exist.
         auto source = std::move(instances[0]);
         prepare_replicate_from(std::move(*source));

@@ -711,6 +711,7 @@ Position::can_enpassant<true>(Color ac, Square epSq, Bitboard* const epAttackers
 template<bool Do>
 void Position::do_castling(
   Color ac, Square org, Square& dst, Square& rOrg, Square& rDst, DirtyPiece* const dp) noexcept {
+    assert(!Do || dp != nullptr);
 
     rOrg = dst;  // Castling is encoded as "king captures rook"
     rDst = rook_castle_sq(ac, org, dst);
@@ -723,8 +724,6 @@ void Position::do_castling(
 
     bool kingMoved = org != dst;
     bool rookMoved = rOrg != rDst;
-
-    assert(!Do || dp != nullptr);
 
     if constexpr (Do)
     {

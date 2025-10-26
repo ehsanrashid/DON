@@ -60,17 +60,6 @@
 
 namespace DON {
 
-namespace {
-
-// Round up to multiples of alignment
-[[nodiscard]] constexpr std::size_t round_up_pow2(std::size_t size,
-                                                  std::size_t alignment) noexcept {
-    assert(alignment && !(alignment & (alignment - 1)));
-    std::size_t mask = alignment - 1;
-    return (size + mask) & ~mask;
-}
-}  // namespace
-
 // Wrapper for systems where the c++17 implementation
 // does not guarantee the availability of aligned_alloc().
 // Memory allocated with alloc_aligned_std() must be freed with free_aligned_std().
@@ -121,14 +110,17 @@ namespace {
 struct Advapi final {
     // clang-format off
     // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocesstoken
-    using OpenProcessToken      = BOOL(WINAPI*)(HANDLE, DWORD, PHANDLE);
+    using OpenProcessToken_      = BOOL(WINAPI*)(HANDLE, DWORD, PHANDLE);
     // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-lookupprivilegevaluew
-    using LookupPrivilegeValueW = BOOL(WINAPI*)(LPCWSTR, LPCWSTR, PLUID);
+    using LookupPrivilegeValueW_ = BOOL(WINAPI*)(LPCWSTR, LPCWSTR, PLUID);
     // https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
-    using AdjustTokenPrivileges = BOOL(WINAPI*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
+    using AdjustTokenPrivileges_ = BOOL(WINAPI*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
     // clang-format on
 
     static constexpr LPCWSTR ModuleName = TEXT("advapi32.dll");
+
+    constexpr Advapi() noexcept = default;
+    ~Advapi() noexcept { free(); }
 
     // The needed Windows API for processor groups could be missed from old Windows versions,
     // so instead of calling them directly (forcing the linker to resolve the calls at compile time),
@@ -147,15 +139,15 @@ struct Advapi final {
         }
 
         openProcessToken =
-          OpenProcessToken((void (*)()) GetProcAddress(hModule, "OpenProcessToken"));
+          OpenProcessToken_((void (*)()) GetProcAddress(hModule, "OpenProcessToken"));
         if (openProcessToken == nullptr)
             return false;
         lookupPrivilegeValueW =
-          LookupPrivilegeValueW((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueW"));
+          LookupPrivilegeValueW_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueW"));
         if (lookupPrivilegeValueW == nullptr)
             return false;
         adjustTokenPrivileges =
-          AdjustTokenPrivileges((void (*)()) GetProcAddress(hModule, "AdjustTokenPrivileges"));
+          AdjustTokenPrivileges_((void (*)()) GetProcAddress(hModule, "AdjustTokenPrivileges"));
         if (adjustTokenPrivileges == nullptr)
             return false;
 
@@ -172,9 +164,9 @@ struct Advapi final {
     HMODULE hModule = nullptr;
     bool    loaded  = false;
 
-    OpenProcessToken      openProcessToken      = nullptr;
-    LookupPrivilegeValueW lookupPrivilegeValueW = nullptr;
-    AdjustTokenPrivileges adjustTokenPrivileges = nullptr;
+    OpenProcessToken_      openProcessToken      = nullptr;
+    LookupPrivilegeValueW_ lookupPrivilegeValueW = nullptr;
+    AdjustTokenPrivileges_ adjustTokenPrivileges = nullptr;
 };
 
 void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept {
@@ -224,7 +216,7 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
                                          &oldTpLen)
             && GetLastError() == ERROR_SUCCESS)
         {
-            // Allocate memory
+            // Allocate large page memory
             mem = VirtualAlloc(nullptr, allocSize, MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT,
                                PAGE_READWRITE);
 
