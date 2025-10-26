@@ -400,10 +400,10 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexce
 
     Strings fens;
 
-    if (fenFile == "default")
+    if (lower_case(fenFile) == "default")
         fens = Positions;
 
-    else if (fenFile == "current")
+    else if (lower_case(fenFile) == "current")
         fens.emplace_back(currentFen);
 
     else
