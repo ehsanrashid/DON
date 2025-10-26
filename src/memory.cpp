@@ -241,8 +241,8 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
 
     if (mem == nullptr)
     {
-        std::cerr << "Failed to allocate " << allocSize << "B for large page memory. "
-                  << "Error code: 0x" << std::hex << err << std::dec << std::endl;
+        std::cerr << "Failed to allocate " << allocSize << "B for large page memory."
+                  << " Error code: 0x" << std::hex << err << std::dec << std::endl;
     }
 
     return mem;
@@ -296,8 +296,8 @@ bool free_aligned_lp(void* mem) noexcept {
     if (mem != nullptr && !VirtualFree(mem, 0, MEM_RELEASE))
     {
         DWORD err = GetLastError();
-        std::cerr << "Failed to free memory. "
-                  << "Error code: 0x " << std::hex << err << std::dec << std::endl;
+        std::cerr << "Failed to free memory."
+                  << " Error code: 0x " << std::hex << err << std::dec << std::endl;
         return false;
     }
 #else
