@@ -433,20 +433,25 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
 // Overload to initialize the position object with the given endgame code string like "KBPKN".
 // It's mainly a helper to get the material key out of an endgame code.
 void Position::set(std::string_view code, Color c, State* const newSt) noexcept {
-    assert(!code.empty() && code[0] == 'K');
+    assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string_view::npos);
 
-    std::string sides[COLOR_NB]{
-      std::string(code.substr(code.find('K', 1))),                                // Weak
-      std::string(code.substr(0, std::min(code.find('v'), code.find('K', 1))))};  // Strong
+    std::string sides[2]{std::string{code.substr(code.find('K', 1))},                // Weak
+                         std::string{code.substr(0, code.find_first_of("vK", 1))}};  // Strong
 
-    assert(0 < sides[WHITE].length() && sides[WHITE].length() < 8);
-    assert(0 < sides[BLACK].length() && sides[BLACK].length() < 8);
+    assert(0 < sides[0].size() && sides[0].size() < 8);
+    assert(0 < sides[1].size() && sides[1].size() < 8);
 
     sides[c] = lower_case(sides[c]);
 
-    std::string fenStr = "8/" + sides[WHITE] + digit_to_char(8 - sides[WHITE].length())
-                       + "/8/8/8/8/" + sides[BLACK] + digit_to_char(8 - sides[BLACK].length())
-                       + "/8 w - - 0 1";
+    std::string fenStr;
+    fenStr.reserve(64);
+    fenStr += "8/";
+    fenStr += sides[0];
+    fenStr += digit_to_char(8 - sides[0].size());
+    fenStr += "/8/8/8/8/";
+    fenStr += sides[1];
+    fenStr += digit_to_char(8 - sides[1].size());
+    fenStr += "/8 w - - 0 1";
 
     set(fenStr, newSt);
 }
