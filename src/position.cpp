@@ -143,27 +143,25 @@ void Position::init() noexcept {
 
     const auto rng_key = [&] { return rng.template rand<Key>(); };
 
-    std::memset(Zobrist::psq, 0, sizeof(Zobrist::psq));
     for (Piece pc : Pieces)
+        std::generate(std::begin(Zobrist::psq[pc]), std::end(Zobrist::psq[pc]), rng_key);
+    for (Piece pc : {W_PAWN, B_PAWN})
     {
-        std::size_t offset = type_of(pc) == PAWN ? PawnOffset : 0;
-        std::generate(std::begin(Zobrist::psq[pc]) + offset, std::end(Zobrist::psq[pc]) - offset,
-                      rng_key);
+        std::fill_n(Zobrist::psq[pc] + SQ_A1, PawnOffset, Key{});
+        std::fill_n(Zobrist::psq[pc] + SQ_A8, PawnOffset, Key{});
     }
 
-    std::memset(Zobrist::castling, 0, sizeof(Zobrist::castling));
     std::size_t cr = 0;
     std::generate(std::begin(Zobrist::castling), std::end(Zobrist::castling), [&] {
-        Key key = 0;
+        Zobrist::castling[cr] = 0;
 
         Bitboard b = cr;
         while (b)
         {
             Key k = Zobrist::castling[square_bb(pop_lsb(b))];
-            key ^= k ? k : rng_key();
+            Zobrist::castling[cr] ^= k ? k : rng_key();
         }
-        ++cr;        // advance to next index
-        return key;  // sets castling[old_cr]
+        return Zobrist::castling[cr++];
     });
 
     std::generate(std::begin(Zobrist::enpassant), std::end(Zobrist::enpassant), rng_key);
