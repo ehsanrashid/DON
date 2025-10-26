@@ -147,12 +147,12 @@ void Position::init() noexcept {
         std::generate(std::begin(Zobrist::psq[pc]), std::end(Zobrist::psq[pc]), rng_key);
     for (Piece pc : {W_PAWN, B_PAWN})
     {
-        std::fill_n(Zobrist::psq[pc] + SQ_A1, PawnOffset, Key{});
-        std::fill_n(Zobrist::psq[pc] + SQ_A8, PawnOffset, Key{});
+        std::fill_n(&Zobrist::psq[pc][SQ_A1], PawnOffset, Key{});
+        std::fill_n(&Zobrist::psq[pc][SQ_A8], PawnOffset, Key{});
     }
 
-    std::size_t cr = 0;
-    std::generate(std::begin(Zobrist::castling), std::end(Zobrist::castling), [&] {
+    for (std::size_t cr = 0; cr < std::size(Zobrist::castling); ++cr)
+    {
         Zobrist::castling[cr] = 0;
 
         Bitboard b = cr;
@@ -161,8 +161,7 @@ void Position::init() noexcept {
             Key k = Zobrist::castling[square_bb(pop_lsb(b))];
             Zobrist::castling[cr] ^= k ? k : rng_key();
         }
-        return Zobrist::castling[cr++];
-    });
+    }
 
     std::generate(std::begin(Zobrist::enpassant), std::end(Zobrist::enpassant), rng_key);
 
