@@ -480,7 +480,7 @@ class NumaConfig final {
         }
         else
         {
-            remove_whitespace(*nodeIdxStr);
+            *nodeIdxStr = remove_whitespace(*nodeIdxStr);
             for (CpuIndex n : shortened_string_to_indices(*nodeIdxStr))
             {
                 // /sys/devices/system/node/node.../cpulist
@@ -497,7 +497,7 @@ class NumaConfig final {
                 }
                 else
                 {
-                    remove_whitespace(*cpuIdxStr);
+                    *cpuIdxStr = remove_whitespace(*cpuIdxStr);
                     for (CpuIndex cpuIdx : shortened_string_to_indices(*cpuIdxStr))
                         if (is_cpu_allowed(cpuIdx))
                             numaCfg.add_cpu_to_node(n, cpuIdx);

@@ -409,113 +409,85 @@ inline int char_to_digit(char ch) noexcept {
 }
 
 inline std::string lower_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept {
-        return std::isupper(ch) ? static_cast<unsigned char>(std::tolower(ch)) : ch;
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept -> char {
+        return static_cast<char>(std::tolower(ch));
     });
     return str;
 }
 
 inline std::string upper_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept {
-        return std::islower(ch) ? static_cast<unsigned char>(std::toupper(ch)) : ch;
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept -> char {
+        return static_cast<char>(std::toupper(ch));
     });
     return str;
 }
 
 inline std::string toggle_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept {
-        return std::islower(ch) ? static_cast<unsigned char>(std::toupper(ch))
-             : std::isupper(ch) ? static_cast<unsigned char>(std::tolower(ch))
-                                : ch;
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept -> char {
+        if (std::islower(ch))
+            return static_cast<char>(std::toupper(ch));
+        if (std::isupper(ch))
+            return static_cast<char>(std::tolower(ch));
+        return static_cast<char>(ch);
     });
     return str;
 }
 
-inline bool starts_with(std::string_view str, std::string_view prefix) noexcept {
-    return str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix;
-}
-
-inline bool ends_with(std::string_view str, std::string_view suffix) noexcept {
-    return str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix;
-}
-
-inline bool is_whitespace(std::string_view str) noexcept {
-    return str.empty()  //
-        || std::all_of(str.begin(), str.end(),
-                       [](unsigned char ch) noexcept { return std::isspace(ch) != 0; });
-}
-
-inline void remove_whitespace(std::string& str) noexcept {
+inline std::string remove_whitespace(std::string str) noexcept {
     str.erase(std::remove_if(str.begin(), str.end(),
                              [](unsigned char ch) noexcept { return std::isspace(ch) != 0; }),
               str.end());
-}
-
-inline void trim_leading_whitespace(std::string& str) noexcept {
-    str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](unsigned char ch) noexcept {
-                  return std::isspace(ch) == 0;
-              }));
-}
-
-inline void trim_trailing_whitespace(std::string& str) noexcept {
-    str.erase(std::find_if(str.rbegin(), str.rend(),
-                           [](unsigned char ch) noexcept { return std::isspace(ch) == 0; })
-                .base(),
-              str.end());
-}
-
-inline std::string bool_to_string(bool b) noexcept {
-    return (std::ostringstream{} << std::boolalpha << b).str();
-}
-
-inline bool string_to_bool(std::string_view str) {
-    std::istringstream iss{std::string(str)};
-
-    // Try "true"/"false" (case-sensitive, C++ iostream semantics)
-    if (bool b{}; (iss >> std::boolalpha >> b))
-    {
-        iss >> std::ws;  // allow trailing spaces
-        if (iss.eof())
-            return b;  // clean parse
-        // Had extra junk -> fall through to integer retry
-    }
-
-    // Retry as integer
-    iss.clear();
-    iss.seekg(0);  // rewind to start
-    if (unsigned long long u{}; iss >> u)
-    {
-        iss >> std::ws;
-        if (iss.eof())
-            return u != 0;  // only accept clean numeric tokens
-    }
-
-    // Optional: common on/off/yes/no fallbacks
-    return false;
-}
-
-inline std::string u64_to_string(std::uint64_t u64) noexcept {
-    std::string str(19, '\0');  // "0x" + 16 hex + '\0'
-    std::snprintf(str.data(), str.size(), "0x%016" PRIX64, u64);
     return str;
 }
 
-[[nodiscard]] constexpr std::string_view trim(std::string_view str) noexcept {
-    constexpr std::string_view WhiteSpace{" \t\n\r\f\v"};
+inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 
-    // Find the first non-whitespace character
-    std::size_t beg = str.find_first_not_of(WhiteSpace);
-    if (beg == std::string_view::npos)
-        return {};  // All whitespace
-
-    // Find the last non-whitespace character
-    std::size_t end = str.find_last_not_of(WhiteSpace);
-
-    return str.substr(beg, end - beg + 1);  // Returns the trimmed substring
+[[nodiscard]] constexpr bool starts_with(std::string_view str, std::string_view prefix) noexcept {
+    return str.size() >= prefix.size()  //
+        && str.compare(0, prefix.size(), prefix) == 0;
 }
 
+[[nodiscard]] constexpr bool ends_with(std::string_view str, std::string_view suffix) noexcept {
+    return str.size() >= suffix.size()  //
+        && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+[[nodiscard]] constexpr bool is_whitespace(std::string_view str) noexcept {
+    //return str.empty()  //
+    //    || std::all_of(str.begin(), str.end(),
+    //                   [](unsigned char ch) noexcept { return std::isspace(ch) != 0; });
+    return str.find_first_not_of(WHITE_SPACE) == std::string_view::npos;
+}
+
+[[nodiscard]] constexpr std::string_view ltrim(std::string_view str) noexcept {
+    // Find the first non-whitespace character
+    std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+    return (beg == std::string_view::npos) ? std::string_view{} : str.substr(beg);
+}
+
+[[nodiscard]] constexpr std::string_view rtrim(std::string_view str) noexcept {
+    // Find the last non-whitespace character
+    std::size_t end = str.find_last_not_of(WHITE_SPACE);
+    return (end == std::string_view::npos) ? std::string_view{} : str.substr(0, end + 1);
+}
+
+[[nodiscard]] constexpr std::string_view trim(std::string_view str) noexcept {
+    std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+    if (beg == std::string_view::npos)
+        return {};
+    std::size_t end = str.find_last_not_of(WHITE_SPACE);
+    return str.substr(beg, end - beg + 1);
+    //return ltrim(rtrim(str));
+}
+
+[[nodiscard]] constexpr std::string_view bool_to_string(bool b) noexcept {
+    return std::string_view{b ? "true" : "false"};
+}
+
+[[nodiscard]] constexpr bool string_to_bool(std::string_view str) { return (trim(str) == "true"); }
+
 inline StringViews
-split(std::string_view str, std::string_view delimiter, bool doTrim = false) noexcept {
+split(std::string_view str, std::string_view delimiter, bool trimEnabled = false) noexcept {
     StringViews parts;
 
     if (str.empty() || delimiter.empty())
@@ -531,7 +503,7 @@ split(std::string_view str, std::string_view delimiter, bool doTrim = false) noe
             break;
 
         part = str.substr(beg, end - beg);
-        if (doTrim)
+        if (trimEnabled)
             part = trim(part);
         if (!part.empty())
             parts.emplace_back(part);
@@ -541,12 +513,18 @@ split(std::string_view str, std::string_view delimiter, bool doTrim = false) noe
 
     // Last part
     part = str.substr(beg);
-    if (doTrim)
+    if (trimEnabled)
         part = trim(part);
     if (!part.empty())
         parts.emplace_back(part);
 
     return parts;
+}
+
+inline std::string u64_to_string(std::uint64_t u64) noexcept {
+    std::string str(19, '\0');  // "0x" + 16 hex + '\0'
+    std::snprintf(str.data(), str.size(), "0x%016" PRIX64, u64);
+    return str;
 }
 
 std::size_t str_to_size_t(std::string_view str) noexcept;

@@ -93,7 +93,8 @@ constexpr std::uint16_t MAX_PLY   = 254U;
 // Size of cache line (in bytes)
 constexpr std::size_t CACHE_LINE_SIZE = 64U;
 
-constexpr std::string_view START_FEN{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
+inline constexpr std::string_view START_FEN{
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 
 enum Color : std::uint8_t {
     WHITE,
