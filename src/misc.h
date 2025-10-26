@@ -292,7 +292,7 @@ class PRNG final {
         std::uint64_t t = 0;
         for (std::uint8_t m = 0; m < 64; ++m)
         {
-            if (0x9E3779B97F4A7C15ULL & (1ULL << m))
+            if (JumpMask & (1ULL << m))
                 t ^= s;
             rand64();
         }
@@ -305,6 +305,8 @@ class PRNG final {
         s ^= s >> 12, s ^= s << 25, s ^= s >> 27;
         return 0x2545F4914F6CDD1DULL * s;
     }
+
+    static constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
 
     std::uint64_t s{};
 };
@@ -334,7 +336,7 @@ class PRNG1024 final {
     // Jump function for the XORShift1024Star PRNG
     constexpr void jump() noexcept {
         std::uint64_t t[Size]{};
-        for (const auto jumpMask : JumpMasks)
+        for (const std::uint64_t jumpMask : JumpMasks)
             for (std::uint8_t m = 0; m < 64; ++m)
             {
                 if (jumpMask & (1ULL << m))
@@ -352,8 +354,8 @@ class PRNG1024 final {
 
     // XORShift1024Star algorithm implementation
     constexpr std::uint64_t rand64() noexcept {
-        auto s0 = s[p];
-        auto s1 = s[p = index(1)];
+        std::uint64_t s0 = s[p];
+        std::uint64_t s1 = s[p = index(1)];
         s1 ^= s1 << 31;
         s[p] = s0 ^ s1 ^ (s0 >> 30) ^ (s1 >> 11);
         return 0x106689D45497FDB5ULL * s[p];
