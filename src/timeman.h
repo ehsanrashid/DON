@@ -43,7 +43,7 @@ class TimeManager final {
     TimePoint elapsed() const noexcept { return now() - startTime; }
     template<typename Func>
     TimePoint elapsed(Func&& nodes) const noexcept {
-        return nodesTimeUse ? TimePoint(nodes()) : elapsed();
+        return nodeTimeEnabled ? TimePoint(nodes()) : elapsed();
     }
 
     void clear() noexcept;
@@ -56,7 +56,7 @@ class TimeManager final {
 
     void advance_time_nodes(std::int64_t nodes) noexcept;
 
-    bool nodesTimeUse;
+    bool nodeTimeEnabled;
 
    private:
     TimePoint startTime;

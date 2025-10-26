@@ -323,7 +323,7 @@ void Worker::start_search() noexcept {
     if (think)
     {
         // When playing in 'Nodes as Time' mode, advance the time nodes before exiting.
-        if (mainManager->timeManager.nodesTimeUse)
+        if (mainManager->timeManager.nodeTimeEnabled)
             mainManager->timeManager.advance_time_nodes(threads.nodes()
                                                         - limit.clocks[rootPos.active_color()].inc);
 
@@ -676,7 +676,7 @@ Value Worker::search(Position&    pos,
             return qsearch<PVNode>(pos, ss, alpha, beta);
 
         // Check if have an upcoming move that draws by repetition
-        if (alpha < VALUE_DRAW && pos.upcoming_repetition(ss->ply))
+        if (alpha < VALUE_DRAW && pos.is_repetition_upcoming(ss->ply))
         {
             alpha = draw_value(key, nodes.load(std::memory_order_relaxed));
             if (alpha >= beta)
@@ -778,7 +778,7 @@ Value Worker::search(Position&    pos,
 
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
-        if (pos.rule50_count() < (1.0 - 0.5 * pos.rule50_high()) * rule50_threshold())
+        if (pos.rule50_count() < (1.0 - 0.5 * pos.is_rule50_high()) * rule50_threshold())
         {
             // If the depth is big enough, verify that the ttMove is really a good move
             if (depth >= 8 && ttd.move != Move::None && pos.legal(ttd.move)
@@ -824,7 +824,7 @@ Value Worker::search(Position&    pos,
             {
                 tbHits.fetch_add(1, std::memory_order_relaxed);
 
-                auto drawValue = tbConfig.rule50Use ? 1 : 0;
+                auto drawValue = tbConfig.rule50Enabled ? 1 : 0;
 
                 Value tbValue = VALUE_TB - ss->ply;
 
@@ -1609,7 +1609,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     Key key = pos.key();
 
     // Check if have an upcoming move that draws by repetition
-    if (alpha < VALUE_DRAW && pos.upcoming_repetition(ss->ply))
+    if (alpha < VALUE_DRAW && pos.is_repetition_upcoming(ss->ply))
     {
         alpha = draw_value(key, nodes.load(std::memory_order_relaxed));
         if (alpha >= beta)
@@ -1652,7 +1652,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (!PVNode && is_valid(ttd.value) && ttd.depth >= DEPTH_ZERO
         && (ttd.bound & fail_bound(ttd.value >= beta)) != 0
         // For high rule50 counts don't produce transposition table cutoffs.
-        && pos.rule50_count() < (1.0 - 0.5 * pos.rule50_high()) * rule50_threshold())
+        && pos.rule50_count() < (1.0 - 0.5 * pos.is_rule50_high()) * rule50_threshold())
         return ttd.value;
 
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
@@ -1969,7 +1969,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
                  > moveOverhead;
     };
 
-    bool rule50Use = options["Syzygy50MoveRule"];
+    bool rule50Enabled = options["Syzygy50MoveRule"];
 
     auto& rootMove = rootMoves[index];
 
@@ -1999,7 +1999,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime
-        if (tbc.rootInTB && rootPos.is_draw(ply, rule50Use))
+        if (tbc.rootInTB && rootPos.is_draw(ply, rule50Enabled))
         {
             --ply;
             rootPos.undo_move(pvMove);
@@ -2017,7 +2017,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     // Step 2. Now extend the PV to mate, as if the user explores syzygy-tables.info using
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
-    while (!(rule50Use && rootPos.is_draw(0)))
+    while (!(rule50Enabled && rootPos.is_draw(0)))
     {
         if (time_to_abort())
             break;

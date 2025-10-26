@@ -58,7 +58,7 @@ struct State final {
     CastlingRights castlingRights;
     std::uint8_t   rule50Count;
     std::uint8_t   nullPly;  // Plies from Null-Move
-    bool           rule50High;
+    bool           isRule50High;
 
     // --- Not copied when making a move (will be recomputed anyhow)
     Key         key;
@@ -276,11 +276,13 @@ class Position final {
     std::int16_t null_ply() const noexcept;
     std::int16_t repetition() const noexcept;
 
-    bool rule50_high() const noexcept;
+    bool is_rule50_high() const noexcept;
     bool is_repetition(std::int16_t ply) const noexcept;
-    bool is_draw(std::int16_t ply, bool rule50Use = true, bool stalemateUse = false) const noexcept;
-    bool has_repetition() const noexcept;
-    bool upcoming_repetition(std::int16_t ply) const noexcept;
+    bool is_draw(std::int16_t ply,
+                 bool         rule50Enabled    = true,
+                 bool         stalemateEnabled = false) const noexcept;
+    bool has_repeated() const noexcept;
+    bool is_repetition_upcoming(std::int16_t ply) const noexcept;
 
     Value non_pawn_material(Color c) const noexcept;
     Value non_pawn_material() const noexcept;
@@ -607,7 +609,7 @@ inline std::int16_t Position::null_ply() const noexcept { return st->nullPly; }
 
 inline std::int16_t Position::repetition() const noexcept { return st->repetition; }
 
-inline bool Position::rule50_high() const noexcept { return st->rule50High; }
+inline bool Position::is_rule50_high() const noexcept { return st->isRule50High; }
 
 inline bool Position::castled(Color c) const noexcept { return st->castled[c]; }
 

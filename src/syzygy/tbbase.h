@@ -49,10 +49,10 @@ enum ProbeState : std::int8_t {
 };
 
 struct Config final {
-    bool         rootInTB    = false;
-    std::uint8_t cardinality = 0;
-    Depth        probeDepth  = DEPTH_ZERO;
-    bool         rule50Use   = false;
+    bool         rootInTB      = false;
+    std::uint8_t cardinality   = 0;
+    Depth        probeDepth    = DEPTH_ZERO;
+    bool         rule50Enabled = false;
 };
 
 extern std::uint8_t MaxCardinality;
@@ -63,13 +63,14 @@ void init(std::string_view paths) noexcept;
 WDLScore probe_wdl(Position& pos, ProbeState* ps) noexcept;
 int      probe_dtz(Position& pos, ProbeState* ps) noexcept;
 
-bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dtzRank) noexcept;
-bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Use) noexcept;
+// clang-format off
 
-Config rank_root_moves(Position&      pos,
-                       RootMoves&     rootMoves,
-                       const Options& options,
-                       bool           dtzRank = false) noexcept;
+bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Enabled, bool dtzRankEnabled) noexcept;
+bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Enabled) noexcept;
+
+Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool dtzRankEnabled = false) noexcept;
+
+// clang-format on
 
 }  // namespace Tablebases
 }  // namespace DON

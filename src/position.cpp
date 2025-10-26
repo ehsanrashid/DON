@@ -771,7 +771,7 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
     // in case of a capture or a pawn move.
     ++gamePly;
     ++st->rule50Count;
-    st->rule50High = st->rule50High || st->rule50Count >= rule50_threshold();
+    st->isRule50High = st->isRule50High || st->rule50Count >= rule50_threshold();
 
     ++st->nullPly;
 
@@ -1752,20 +1752,20 @@ bool Position::is_repetition(std::int16_t ply) const noexcept {
 
 // Tests whether the current position is drawn by repetition or by 50-move rule.
 // It also detect stalemates.
-bool Position::is_draw(std::int16_t ply, bool rule50Use, bool stalemateUse) const noexcept {
+bool Position::is_draw(std::int16_t ply, bool rule50Enabled, bool stalemateEnabled) const noexcept {
     return
       // Draw by Repetition
       is_repetition(ply)
       // Draw by 50-move rule
-      || (rule50Use && rule50_count() >= 2 * DrawMoveCount
+      || (rule50Enabled && rule50_count() >= 2 * DrawMoveCount
           && (!checkers() || !MoveList<LEGAL, true>(*this).empty()))
       // Draw by Stalemate
-      || (stalemateUse && !checkers() && MoveList<LEGAL, true>(*this).empty());
+      || (stalemateEnabled && !checkers() && MoveList<LEGAL, true>(*this).empty());
 }
 
 // Tests whether there has been at least one repetition
 // of positions since the last capture or pawn move.
-bool Position::has_repetition() const noexcept {
+bool Position::has_repeated() const noexcept {
     auto end = std::min(rule50_count(), null_ply());
     if (end < 4)
         return false;
@@ -1782,7 +1782,7 @@ bool Position::has_repetition() const noexcept {
 
 // Tests if the current position has a move which draws by repetition.
 // Accurately matches the outcome of is_draw() over all legal moves.
-bool Position::upcoming_repetition(std::int16_t ply) const noexcept {
+bool Position::is_repetition_upcoming(std::int16_t ply) const noexcept {
     auto end = std::min(rule50_count(), null_ply());
     // Enough reversible moves played
     if (end < 3)
