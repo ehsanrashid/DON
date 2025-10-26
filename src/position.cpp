@@ -736,8 +736,8 @@ void Position::do_castling(
             dp->removePc = dp->addPc = rook;
         }
 
-        st->kingSq[ac]  = dst;
-        st->castled[ac] = true;
+        st->kingSq[ac]     = dst;
+        st->hasCastled[ac] = true;
     }
 
     // Remove both pieces first since squares could overlap in Chess960
@@ -771,7 +771,7 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
     // in case of a capture or a pawn move.
     ++gamePly;
     ++st->rule50Count;
-    st->isRule50High = st->isRule50High || st->rule50Count >= rule50_threshold();
+    st->hasRule50High = st->hasRule50High || st->rule50Count >= rule50_threshold();
 
     ++st->nullPly;
 
@@ -809,7 +809,7 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
     {
         assert(pt == KING);
         assert(capturedPiece == make_piece(ac, ROOK));
-        assert(!castled(ac));
+        assert(!has_castled(ac));
 
         Square rOrg, rDst;
         do_castling<true>(ac, org, dst, rOrg, rDst, &dp);
@@ -830,7 +830,7 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
 
         // Calculate checker only one ROOK possible (if move is check)
         st->checkers = check ? square_bb(rDst) : 0;
-        assert(!check || (checkers() & rDst));
+        assert(!check || (checkers() && popcount(checkers()) == 1));
 
         goto DO_MOVE_END;
     }
@@ -1017,7 +1017,7 @@ void Position::undo_move(Move m) noexcept {
         assert(pieces(ac, KING) & king_castle_sq(ac, org, dst));
         assert(pieces(ac, ROOK) & rook_castle_sq(ac, org, dst));
         assert(!is_ok(capturedPiece));
-        assert(castled(ac));
+        assert(has_castled(ac));
 
         Square rOrg, rDst;
         do_castling<false>(ac, org, dst, rOrg, rDst);

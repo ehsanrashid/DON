@@ -52,13 +52,13 @@ struct State final {
     Value nonPawnMaterial[COLOR_NB];
 
     Square         kingSq[COLOR_NB];
-    bool           castled[COLOR_NB];
     Square         epSq;
     Square         capSq;
     CastlingRights castlingRights;
     std::uint8_t   rule50Count;
     std::uint8_t   nullPly;  // Plies from Null-Move
-    bool           isRule50High;
+    bool           hasCastled[COLOR_NB];
+    bool           hasRule50High;
 
     // --- Not copied when making a move (will be recomputed anyhow)
     Key         key;
@@ -276,7 +276,6 @@ class Position final {
     std::int16_t null_ply() const noexcept;
     std::int16_t repetition() const noexcept;
 
-    bool is_rule50_high() const noexcept;
     bool is_repetition(std::int16_t ply) const noexcept;
     bool is_draw(std::int16_t ply,
                  bool         rule50Enabled    = true,
@@ -286,7 +285,8 @@ class Position final {
 
     Value non_pawn_material(Color c) const noexcept;
     Value non_pawn_material() const noexcept;
-    bool  castled(Color c) const noexcept;
+    bool  has_castled(Color c) const noexcept;
+    bool  has_rule50_high() const noexcept;
     bool  bishop_paired(Color c) const noexcept;
     bool  bishop_opposite() const noexcept;
 
@@ -609,9 +609,9 @@ inline std::int16_t Position::null_ply() const noexcept { return st->nullPly; }
 
 inline std::int16_t Position::repetition() const noexcept { return st->repetition; }
 
-inline bool Position::is_rule50_high() const noexcept { return st->isRule50High; }
+inline bool Position::has_castled(Color c) const noexcept { return st->hasCastled[c]; }
 
-inline bool Position::castled(Color c) const noexcept { return st->castled[c]; }
+inline bool Position::has_rule50_high() const noexcept { return st->hasRule50High; }
 
 inline bool Position::bishop_paired(Color c) const noexcept {
     return (pieces(c, BISHOP) & color_bb<WHITE>()) && (pieces(c, BISHOP) & color_bb<BLACK>());
@@ -646,8 +646,8 @@ inline Value Position::bonus() const noexcept {
     Color ac = active_color();
     // clang-format off
     return (+20 * (bishop_paired(ac) - bishop_paired(~ac))
-            +56 * ((can_castle( ac & ANY_CASTLING) || castled( ac))
-                 - (can_castle(~ac & ANY_CASTLING) || castled(~ac))))
+            +56 * ((can_castle( ac & ANY_CASTLING) || has_castled( ac))
+                 - (can_castle(~ac & ANY_CASTLING) || has_castled(~ac))))
          * (1.0 - 4.1250e-2 * phase());
     // clang-format on
 }

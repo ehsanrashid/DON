@@ -778,7 +778,7 @@ Value Worker::search(Position&    pos,
 
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
-        if (pos.rule50_count() < (1.0 - 0.5 * pos.is_rule50_high()) * rule50_threshold())
+        if (pos.rule50_count() < (1.0 - 0.5 * pos.has_rule50_high()) * rule50_threshold())
         {
             // If the depth is big enough, verify that the ttMove is really a good move
             if (depth >= 8 && ttd.move != Move::None && pos.legal(ttd.move)
@@ -1652,7 +1652,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (!PVNode && is_valid(ttd.value) && ttd.depth >= DEPTH_ZERO
         && (ttd.bound & fail_bound(ttd.value >= beta)) != 0
         // For high rule50 counts don't produce transposition table cutoffs.
-        && pos.rule50_count() < (1.0 - 0.5 * pos.is_rule50_high()) * rule50_threshold())
+        && pos.rule50_count() < (1.0 - 0.5 * pos.has_rule50_high()) * rule50_threshold())
         return ttd.value;
 
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
