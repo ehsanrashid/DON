@@ -28,7 +28,6 @@
 #include <iostream>
 #include <mutex>
 #include <optional>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -398,14 +397,14 @@ struct CommandLine final {
     std::vector<std::string_view> arguments;
 };
 
-inline char digit_to_char(int digit) noexcept {
-    assert(0 <= digit && digit <= 9);
-    return (0 <= digit && digit <= 9) ? '0' + digit : '\0';  // Return null char for invalid digit
+[[nodiscard]] constexpr char digit_to_char(int digit) noexcept {
+    assert(0 <= digit && digit <= 9 && "digit_to_char: non-digit integer");
+    return (0 <= digit && digit <= 9) ? digit + '0' : '\0';
 }
 
-inline int char_to_digit(char ch) noexcept {
-    assert(std::isdigit(ch));
-    return std::isdigit(ch) ? ch - '0' : -1;  // Return -1 for non-digit characters
+[[nodiscard]] constexpr int char_to_digit(char ch) noexcept {
+    assert('0' <= ch && ch <= '9' && "char_to_digit: non-digit character");
+    return ('0' <= ch && ch <= '9') ? ch - '0' : -1;
 }
 
 inline std::string lower_case(std::string str) noexcept {

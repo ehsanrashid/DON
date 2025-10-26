@@ -26,6 +26,7 @@
 #include <iomanip>
 #include <iterator>
 #include <limits>
+#include <sstream>
 
 namespace DON {
 
