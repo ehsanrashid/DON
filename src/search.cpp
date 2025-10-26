@@ -1509,7 +1509,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     assert(moveCount || !ss->inCheck || exclude || (MoveList<LEGAL, true>(pos).empty()));
     assert(ss->moveCount == moveCount && ss->ttMove == ttd.move);
 
-    if (moveCount == 0)
+    if (!moveCount)
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
@@ -1815,7 +1815,7 @@ QS_MOVES_LOOP:
 
     // Step 10. Check for checkmate & stalemate
     // All legal moves have been searched.
-    if (moveCount == 0)
+    if (!moveCount)
     {
         // A special case: if in check and no legal moves were found, it is checkmate.
         if (ss->inCheck)
