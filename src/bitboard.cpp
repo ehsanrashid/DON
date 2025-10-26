@@ -206,6 +206,7 @@ void init() noexcept {
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
     {
         assert(msb_index(fill_prefix_bb(square_bb(s1))) == s1);
+
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             Distances[s1][s2] = std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
     }
@@ -239,7 +240,7 @@ void init() noexcept {
                 {
                     Lines[s1][s2] = (attacks_bb(pt, s1, 0) & attacks_bb(pt, s2, 0)) | s1 | s2;
                     Betweens[s1][s2] =
-                      attacks_bb(pt, s1, square_bb(s2)) & attacks_bb(pt, s2, square_bb(s1));
+                      (attacks_bb(pt, s1, square_bb(s2)) & attacks_bb(pt, s2, square_bb(s1)));
                 }
             Betweens[s1][s2] |= s2;
         }

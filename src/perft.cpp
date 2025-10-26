@@ -177,7 +177,10 @@ class PerftTable final {
 
 PerftTable::~PerftTable() noexcept { free(); }
 
-void PerftTable::free() noexcept { free_aligned_lp(clusters); }
+void PerftTable::free() noexcept {
+    [[maybe_unused]] bool success = free_aligned_lp(clusters);
+    assert(success);
+}
 
 void PerftTable::resize(std::size_t ptSize, ThreadPool& threads) noexcept {
     free();

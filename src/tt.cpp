@@ -152,7 +152,10 @@ void TTUpdater::update(Depth d, bool pv, Bound b, Move m, Value v, Value ev) noe
 
 TranspositionTable::~TranspositionTable() noexcept { free(); }
 
-void TranspositionTable::free() noexcept { free_aligned_lp(clusters); }
+void TranspositionTable::free() noexcept {
+    [[maybe_unused]] bool success = free_aligned_lp(clusters);
+    assert(success);
+}
 
 void TranspositionTable::increment_generation() noexcept { generation8 += GENERATION_DELTA; }
 

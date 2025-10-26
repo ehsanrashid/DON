@@ -313,8 +313,8 @@ bool has_lp() noexcept {
     void* mem = alloc_aligned_lp_windows(2 * 1024 * 1024);  // 2MB page-size assumed
     if (mem == nullptr)
         return false;
-    [[maybe_unused]] bool freed = free_aligned_lp(mem);
-    assert(freed);
+    [[maybe_unused]] bool success = free_aligned_lp(mem);
+    assert(success);
     return true;
 #elif defined(__linux__)
     #if defined(MADV_HUGEPAGE)
