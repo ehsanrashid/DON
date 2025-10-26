@@ -144,14 +144,14 @@ void Position::init() noexcept {
     const auto rng_key = [&] { return rng.template rand<Key>(); };
 
     std::memset(Zobrist::psq, 0, sizeof(Zobrist::psq));
-    //std::fill_n(&Zobrist::psq[0][0], sizeof(Zobrist::psq) / sizeof(Zobrist::psq[0][0]), Key{});
     for (Piece pc : Pieces)
     {
         std::size_t offset = type_of(pc) == PAWN ? PawnOffset : 0;
-        std::generate(std::begin(Zobrist::psq[pc]) + offset,  //
-                      std::end(Zobrist::psq[pc]) - offset, rng_key);
+        std::generate(std::begin(Zobrist::psq[pc]) + offset, std::end(Zobrist::psq[pc]) - offset,
+                      rng_key);
     }
 
+    std::memset(Zobrist::castling, 0, sizeof(Zobrist::castling));
     std::size_t cr = 0;
     std::generate(std::begin(Zobrist::castling), std::end(Zobrist::castling), [&] {
         Key key = 0;
