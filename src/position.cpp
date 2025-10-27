@@ -127,7 +127,7 @@ class CuckooTable final {
         return size();
     }
 
-    std::size_t count{0};
+    std::size_t count;
 
    private:
     std::array<Cuckoo, Size> cuckoos;
