@@ -442,7 +442,10 @@ void UCI::go(std::istringstream& iss) noexcept {
     if (limit.perft)
         perft(limit.depth, limit.detail);
     else
+    {
         engine.start(limit);
+        // Not wait here
+    }
 }
 
 void UCI::setoption(std::istringstream& iss) noexcept {
@@ -619,8 +622,10 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
             // One new line is produced by the search, so omit it here
             std::cerr << "\rWarmup position " << ++cnt << '/' << WarmupPositionCount;
 
+            auto limit = parse_limit(is);
+
             // Run with silenced network verification
-            engine.start(parse_limit(is));
+            engine.start(limit);
             engine.wait_finish();
 
             nodes += infoNodes;
@@ -691,8 +696,10 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
             // One new line is produced by the search, so omit it here
             std::cerr << "\rPosition " << ++cnt << '/' << num;
 
+            auto limit = parse_limit(is);
+
             // Run with silenced network verification
-            engine.start(parse_limit(is));
+            engine.start(limit);
             engine.wait_finish();
 
             update_hashfull();
