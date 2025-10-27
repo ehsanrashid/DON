@@ -100,6 +100,9 @@ constexpr std::uint32_t TBPieces = 7;
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit.
 constexpr int MAX_DTZ = 1 << 18;
 
+constexpr std::string_view WDLExt = ".rtbw";
+constexpr std::string_view DTZExt = ".rtbz";
+
 // clang-format off
 constexpr int          WDLMap    [5]{1, 3, 0, 2, 0};
 constexpr std::int32_t WDLToRank [5]{-MAX_DTZ, -MAX_DTZ + 101, 0, +MAX_DTZ - 101, +MAX_DTZ};
@@ -123,7 +126,7 @@ constexpr int    off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file
 bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
 
 template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
-inline void swap_endian(T& x) noexcept {
+void swap_endian(T& x) noexcept {
     static_assert(std::is_unsigned_v<T>, "Argument of swap_endian not unsigned");
 
     std::uint8_t tmp, *c = (std::uint8_t*) (&x);
@@ -131,7 +134,7 @@ inline void swap_endian(T& x) noexcept {
         tmp = c[i], c[i] = c[End - i], c[End - i] = tmp;
 }
 template<>
-inline void swap_endian<std::uint8_t>(std::uint8_t&) noexcept {}
+void swap_endian<std::uint8_t>(std::uint8_t&) noexcept {}
 
 template<typename T, Endian Endian>
 T number(void* addr) noexcept {
@@ -552,19 +555,20 @@ class TBTables final {
 void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     std::string code;
+    code.reserve(pieces.size() + 2);
     for (PieceType pt : pieces)
         code += UCI::to_char(pt);
     assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string::npos);
     code.insert(code.find('K', 1), "v");  // KRK -> KRvK
 
-    TBFile dtzFile(code + ".rtbz");
+    TBFile dtzFile(code + DTZExt.data());
     if (dtzFile.is_open())
     {
         dtzFile.close();
         ++dtzCount;
     }
 
-    TBFile wdlFile(code + ".rtbw");
+    TBFile wdlFile(code + WDLExt.data());
     if (!wdlFile.is_open())  // Only WDL file is checked
         return;
 
@@ -1286,7 +1290,7 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
 
     std::string fname = (materialKey == entry.key[WHITE] ? pieces[WHITE] + 'v' + pieces[BLACK]
                                                          : pieces[BLACK] + 'v' + pieces[WHITE])
-                      + (Type == WDL ? ".rtbw" : ".rtbz");
+                      + (Type == WDL ? WDLExt : DTZExt).data();
 
     uint8_t* data = TBFile(fname).map<Type>(&entry.baseAddress, &entry.mapping);
 
@@ -1505,7 +1509,7 @@ void init(std::string_view paths) noexcept {
     if (!TBFile::init(paths))
         return;
 
-    // Add entries in TB-tables if the corresponding ".rtbw" file exists
+    // Add entries in TB-tables if the corresponding WDL file exists
     for (PieceType p1 = PAWN; p1 < KING; ++p1)
     {
         tbTables.add({KING, p1, KING});
