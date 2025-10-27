@@ -76,8 +76,8 @@ struct State final {
 
 using PieceArray = std::array<Piece, SQUARE_NB>;
 
-constexpr std::uint8_t R50Offset = 14U;
-constexpr std::uint8_t R50Factor = 8U;
+inline constexpr std::uint8_t R50_OFFSET = 14U;
+inline constexpr std::uint8_t R50_FACTOR = 8U;
 
 // Position class stores information regarding the board representation as
 // pieces, active color, hash keys, castling info, etc. (Size = 192)
@@ -561,9 +561,9 @@ inline Piece Position::captured_piece() const noexcept { return st->capturedPiec
 inline Piece Position::promoted_piece() const noexcept { return st->promotedPiece; }
 
 inline Key Position::adjust_key(Key k, std::int8_t r50) const noexcept {
-    return st->rule50Count + r50 - R50Offset < 0
+    return st->rule50Count + r50 - R50_OFFSET < 0
            ? k
-           : k ^ make_hash((st->rule50Count + r50 - R50Offset) / R50Factor);
+           : k ^ make_hash((st->rule50Count + r50 - R50_OFFSET) / R50_FACTOR);
 }
 
 inline Key Position::key(std::int8_t r50) const noexcept { return adjust_key(st->key, r50); }

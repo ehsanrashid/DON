@@ -54,29 +54,29 @@ std::string pretty(Bitboard b) noexcept;
 
 }  // namespace BitBoard
 
-constexpr Bitboard FILE_A_BB = 0x0101010101010101ULL;
-constexpr Bitboard FILE_B_BB = FILE_A_BB << (1 * 1);
-constexpr Bitboard FILE_C_BB = FILE_A_BB << (1 * 2);
-constexpr Bitboard FILE_D_BB = FILE_A_BB << (1 * 3);
-constexpr Bitboard FILE_E_BB = FILE_A_BB << (1 * 4);
-constexpr Bitboard FILE_F_BB = FILE_A_BB << (1 * 5);
-constexpr Bitboard FILE_G_BB = FILE_A_BB << (1 * 6);
-constexpr Bitboard FILE_H_BB = FILE_A_BB << (1 * 7);
+inline constexpr Bitboard FILE_A_BB = 0x0101010101010101ULL;
+inline constexpr Bitboard FILE_B_BB = FILE_A_BB << (1 * 1);
+inline constexpr Bitboard FILE_C_BB = FILE_A_BB << (1 * 2);
+inline constexpr Bitboard FILE_D_BB = FILE_A_BB << (1 * 3);
+inline constexpr Bitboard FILE_E_BB = FILE_A_BB << (1 * 4);
+inline constexpr Bitboard FILE_F_BB = FILE_A_BB << (1 * 5);
+inline constexpr Bitboard FILE_G_BB = FILE_A_BB << (1 * 6);
+inline constexpr Bitboard FILE_H_BB = FILE_A_BB << (1 * 7);
 
-constexpr Bitboard RANK_1_BB = 0x00000000000000FFULL;
-constexpr Bitboard RANK_2_BB = RANK_1_BB << (8 * 1);
-constexpr Bitboard RANK_3_BB = RANK_1_BB << (8 * 2);
-constexpr Bitboard RANK_4_BB = RANK_1_BB << (8 * 3);
-constexpr Bitboard RANK_5_BB = RANK_1_BB << (8 * 4);
-constexpr Bitboard RANK_6_BB = RANK_1_BB << (8 * 5);
-constexpr Bitboard RANK_7_BB = RANK_1_BB << (8 * 6);
-constexpr Bitboard RANK_8_BB = RANK_1_BB << (8 * 7);
+inline constexpr Bitboard RANK_1_BB = 0x00000000000000FFULL;
+inline constexpr Bitboard RANK_2_BB = RANK_1_BB << (8 * 1);
+inline constexpr Bitboard RANK_3_BB = RANK_1_BB << (8 * 2);
+inline constexpr Bitboard RANK_4_BB = RANK_1_BB << (8 * 3);
+inline constexpr Bitboard RANK_5_BB = RANK_1_BB << (8 * 4);
+inline constexpr Bitboard RANK_6_BB = RANK_1_BB << (8 * 5);
+inline constexpr Bitboard RANK_7_BB = RANK_1_BB << (8 * 6);
+inline constexpr Bitboard RANK_8_BB = RANK_1_BB << (8 * 7);
 
-constexpr Bitboard EDGE_FILE_BB      = FILE_A_BB | FILE_H_BB;
-constexpr Bitboard PROMOTION_RANK_BB = RANK_8_BB | RANK_1_BB;
+inline constexpr Bitboard EDGE_FILE_BB      = FILE_A_BB | FILE_H_BB;
+inline constexpr Bitboard PROMOTION_RANK_BB = RANK_8_BB | RANK_1_BB;
 
-constexpr Bitboard WHITE_BB = 0x55AA55AA55AA55AAULL;
-constexpr Bitboard BLACK_BB = ~WHITE_BB;
+inline constexpr Bitboard WHITE_BB = 0x55AA55AA55AA55AAULL;
+inline constexpr Bitboard BLACK_BB = ~WHITE_BB;
 
 template<Color C>
 constexpr Bitboard color_bb() noexcept {
@@ -84,15 +84,15 @@ constexpr Bitboard color_bb() noexcept {
     return C == WHITE ? WHITE_BB : BLACK_BB;
 }
 
-constexpr std::uint8_t MSB_INDICES[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
-                                       57, 49, 41, 37, 28, 16, 3,  61,  //
-                                       54, 58, 35, 52, 50, 42, 21, 44,  //
-                                       38, 32, 29, 23, 17, 11, 4,  62,  //
-                                       46, 55, 26, 59, 40, 36, 15, 53,  //
-                                       34, 51, 20, 43, 31, 22, 10, 45,  //
-                                       25, 39, 14, 33, 19, 30, 9,  24,  //
-                                       13, 18, 8,  12, 7,  6,  5,  63};
-constexpr std::uint8_t msb_index(Bitboard b) noexcept {
+inline constexpr std::uint8_t MSB_INDICES[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
+                                              57, 49, 41, 37, 28, 16, 3,  61,  //
+                                              54, 58, 35, 52, 50, 42, 21, 44,  //
+                                              38, 32, 29, 23, 17, 11, 4,  62,  //
+                                              46, 55, 26, 59, 40, 36, 15, 53,  //
+                                              34, 51, 20, 43, 31, 22, 10, 45,  //
+                                              25, 39, 14, 33, 19, 30, 9,  24,  //
+                                              13, 18, 8,  12, 7,  6,  5,  63};
+constexpr std::uint8_t        msb_index(Bitboard b) noexcept {
     assert(b);
     return MSB_INDICES[(b * 0x03F79D71B4CB0A89ULL) >> 58];
 }
@@ -137,8 +137,8 @@ struct Magic final {
 };
 
 #if !defined(USE_POPCNT)
-constexpr unsigned  POPCNT_SIZE = 1U << 16;
-extern std::uint8_t PopCnt[POPCNT_SIZE];
+inline constexpr std::size_t POPCNT_SIZE = 1U << 16;
+extern std::uint8_t          PopCnt[POPCNT_SIZE];
 #endif
 
 // clang-format off

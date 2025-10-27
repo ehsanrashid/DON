@@ -54,7 +54,7 @@ using Moves = std::vector<Move>;
 template<std::size_t Size>
 using MovesArray = std::array<Moves, Size>;
 
-constexpr std::size_t DEFAULT_MULTI_PV = 1;
+inline constexpr std::size_t DEFAULT_MULTI_PV = 1;
 
 extern PolyBook Book;
 

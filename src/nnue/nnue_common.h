@@ -52,25 +52,25 @@ using IndexType      = std::uint32_t;
 using TransformedFeatureType = std::uint8_t;
 
 // Version of the evaluation file
-constexpr std::uint32_t FILE_VERSION = 0x7AF32F20U;
+inline constexpr std::uint32_t FILE_VERSION = 0x7AF32F20U;
 
 // Constant used in evaluation value calculation
-constexpr int OUTPUT_SCALE      = 16;
-constexpr int WEIGHT_SCALE_BITS = 6;
+inline constexpr int OUTPUT_SCALE      = 16;
+inline constexpr int WEIGHT_SCALE_BITS = 6;
 
-constexpr const char  LEB128_MAGIC_STRING[]    = "COMPRESSED_LEB128";
-constexpr std::size_t LEB128_MAGIC_STRING_SIZE = sizeof(LEB128_MAGIC_STRING) - 1;
+inline constexpr const char  LEB128_MAGIC_STRING[]    = "COMPRESSED_LEB128";
+inline constexpr std::size_t LEB128_MAGIC_STRING_SIZE = sizeof(LEB128_MAGIC_STRING) - 1;
 
 // SIMD width (in bytes)
 #if defined(USE_AVX2)
-constexpr std::size_t SIMD_WIDTH = 32;
+inline constexpr std::size_t SIMD_WIDTH = 32;
 #elif defined(USE_SSE2)
-constexpr std::size_t SIMD_WIDTH = 16;
+inline constexpr std::size_t SIMD_WIDTH = 16;
 #elif defined(USE_NEON)
-constexpr std::size_t SIMD_WIDTH = 16;
+inline constexpr std::size_t SIMD_WIDTH = 16;
 #endif
 
-constexpr std::size_t MAX_SIMD_WIDTH = 32;
+inline constexpr std::size_t MAX_SIMD_WIDTH = 32;
 
 // Round n up to be a multiple of base
 template<typename IntType>

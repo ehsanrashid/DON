@@ -89,7 +89,7 @@ constexpr auto sign_sqr(T x) noexcept {
 }
 
 // True if and only if the binary is compiled on a little-endian machine
-constexpr std::uint16_t  LittleEndianValue = 1;
+inline constexpr std::uint16_t LittleEndianValue = 1;
 static inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;
 
 class sync_ostream final {

@@ -1658,7 +1658,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 // Use the DTZ-tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool probe_root_dtz(Position&  pos, RootMoves& rootMoves, bool rule50Enabled, bool dtzRankEnabled) noexcept {
+bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Enabled, bool dtzRankEnabled) noexcept {
     // Obtain 50-move counter for the root position
     std::int16_t rule50Count = pos.rule50_count();
 

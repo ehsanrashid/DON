@@ -37,16 +37,16 @@ namespace DON::NNUE {
 using FeatureSet = Features::HalfKAv2_hm;
 
 // Number of input feature dimensions after conversion
-constexpr IndexType     BigTransformedFeatureDimensions = 3072;
-constexpr std::uint32_t BigL2                           = 15;
-constexpr std::uint32_t BigL3                           = 32;
+inline constexpr IndexType     BigTransformedFeatureDimensions = 3072;
+inline constexpr std::uint32_t BigL2                           = 15;
+inline constexpr std::uint32_t BigL3                           = 32;
 
-constexpr IndexType     SmallTransformedFeatureDimensions = 128;
-constexpr std::uint32_t SmallL2                           = 15;
-constexpr std::uint32_t SmallL3                           = 32;
+inline constexpr IndexType     SmallTransformedFeatureDimensions = 128;
+inline constexpr std::uint32_t SmallL2                           = 15;
+inline constexpr std::uint32_t SmallL3                           = 32;
 
-constexpr IndexType PSQTBuckets = 8;
-constexpr IndexType LayerStacks = 8;
+inline constexpr IndexType PSQTBuckets = 8;
+inline constexpr IndexType LayerStacks = 8;
 
 static_assert(LayerStacks == PSQTBuckets);
 
