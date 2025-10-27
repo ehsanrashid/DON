@@ -1279,7 +1279,7 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
         return entry.baseAddress;
 
     // Pieces strings in decreasing order for each color, like ("KPP","KR")
-    std::string pieces[2]{};
+    std::string pieces[COLOR_NB]{};
     for (Color c : {WHITE, BLACK})
         for (PieceType pt = KING; pt >= PAWN; --pt)
             pieces[c].append(pos.count(c, pt), UCI::to_char(pt));
