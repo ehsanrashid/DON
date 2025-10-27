@@ -248,7 +248,7 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
         }
         else
         {
-            if (Piece pc = UCI::piece(token); is_ok(pc))
+            if (Piece pc = UCI::to_piece(token); is_ok(pc))
             {
                 assert(file < FILE_NB);
                 Square sq = make_square(file, rank);
@@ -372,7 +372,7 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
         if ('a' <= epFile && epFile <= 'h'
             && epRank == (ac == WHITE ? '6' : ac == BLACK ? '3' : '-'))
         {
-            st->epSq = make_square(File(epFile - 'a'), Rank(epRank - '1'));
+            st->epSq = make_square(UCI::to_file(epFile), UCI::to_rank(epRank));
 
             // En-passant square will be considered only if
             // a) there is an enemy pawn in front of epSquare
@@ -477,7 +477,7 @@ std::string Position::fen(bool full) const noexcept {
                     oss << emptyCount;
                     emptyCount = 0;
                 }
-                oss << UCI::piece(piece_on(s));
+                oss << UCI::to_char(piece_on(s));
             }
         }
 
@@ -494,18 +494,18 @@ std::string Position::fen(bool full) const noexcept {
     if (can_castle(ANY_CASTLING))
     {
         if (can_castle(WHITE_OO))
-            oss << (Chess960 ? UCI::file(file_of(castling_rook_sq(WHITE_OO)), true) : 'K');
+            oss << (Chess960 ? UCI::to_char(file_of(castling_rook_sq(WHITE_OO)), true) : 'K');
         if (can_castle(WHITE_OOO))
-            oss << (Chess960 ? UCI::file(file_of(castling_rook_sq(WHITE_OOO)), true) : 'Q');
+            oss << (Chess960 ? UCI::to_char(file_of(castling_rook_sq(WHITE_OOO)), true) : 'Q');
         if (can_castle(BLACK_OO))
-            oss << (Chess960 ? UCI::file(file_of(castling_rook_sq(BLACK_OO)), false) : 'k');
+            oss << (Chess960 ? UCI::to_char(file_of(castling_rook_sq(BLACK_OO)), false) : 'k');
         if (can_castle(BLACK_OOO))
-            oss << (Chess960 ? UCI::file(file_of(castling_rook_sq(BLACK_OOO)), false) : 'q');
+            oss << (Chess960 ? UCI::to_char(file_of(castling_rook_sq(BLACK_OOO)), false) : 'q');
     }
     else
         oss << '-';
 
-    oss << ' ' << (is_ok(ep_sq()) ? UCI::square(ep_sq()) : "-");
+    oss << ' ' << (is_ok(ep_sq()) ? UCI::to_string(ep_sq()) : "-");
     if (full)
         oss << ' ' << rule50_count() << ' ' << move_num();
 
@@ -2070,7 +2070,7 @@ bool Position::pos_is_ok() const noexcept {
 
 std::ostream& operator<<(std::ostream& os, const Position::Board::Cardinal& cardinal) noexcept {
     for (File f = FILE_A; f <= FILE_H; ++f)
-        os << " | " << UCI::piece(cardinal.piece_on(f));
+        os << " | " << UCI::to_char(cardinal.piece_on(f));
     os << " | ";
 
     return os;
@@ -2081,10 +2081,10 @@ std::ostream& operator<<(std::ostream& os, const Position::Board& board) noexcep
 
     os << Sep;
     for (Rank r = RANK_8; r >= RANK_1; --r)
-        os << UCI::rank(r) << board.cardinals[r] << Sep;
+        os << UCI::to_char(r) << board.cardinals[r] << Sep;
     os << " ";
     for (File f = FILE_A; f <= FILE_H; ++f)
-        os << "   " << UCI::file(f, true);
+        os << "   " << UCI::to_char(f, true);
     os << "\n";
 
     return os;
@@ -2093,17 +2093,17 @@ std::ostream& operator<<(std::ostream& os, const Position::Board& board) noexcep
 // Returns an ASCII representation of the position
 std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
-    os << pos.board                                             //
-       << "\nFen: " << pos.fen()                                //
-       << "\nKey: " << u64_to_string(pos.key())                 //
-       << "\nKing Squares: "                                    //
-       << UCI::square(pos.king_sq(pos.active_color())) << ", "  //
-       << UCI::square(pos.king_sq(~pos.active_color()))         //
+    os << pos.board                                                //
+       << "\nFen: " << pos.fen()                                   //
+       << "\nKey: " << u64_to_string(pos.key())                    //
+       << "\nKing Squares: "                                       //
+       << UCI::to_string(pos.king_sq(pos.active_color())) << ", "  //
+       << UCI::to_string(pos.king_sq(~pos.active_color()))         //
        << "\nCheckers: ";
     Bitboard checkers = pos.checkers();
     if (checkers)
         while (checkers)
-            os << UCI::square(pop_lsb(checkers)) << " ";
+            os << UCI::to_string(pop_lsb(checkers)) << " ";
     else
         os << "(none)";
     os << "\nRepetition: " << pos.repetition();

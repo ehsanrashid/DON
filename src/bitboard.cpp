@@ -258,7 +258,7 @@ std::string pretty(Bitboard b) noexcept {
     str += Sep;
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
-        str += UCI::rank(r);
+        str += UCI::to_char(r);
         for (File f = FILE_A; f <= FILE_H; ++f)
             str += ((b & make_square(f, r)) ? " | X" : " |  ");
         str += " |";
@@ -268,7 +268,7 @@ std::string pretty(Bitboard b) noexcept {
     for (File f = FILE_A; f <= FILE_H; ++f)
     {
         str += "   ";
-        str += UCI::file(f, true);
+        str += UCI::to_char(f, true);
     }
     return str;
 }

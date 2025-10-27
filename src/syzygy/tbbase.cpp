@@ -553,7 +553,8 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     std::string code;
     for (PieceType pt : pieces)
-        code += UCI::piece(pt);
+        code += UCI::to_char(pt);
+    assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string::npos);
     code.insert(code.find('K', 1), "v");  // KRK -> KRvK
 
     TBFile dtzFile(code + ".rtbz");
@@ -1281,8 +1282,8 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
     std::string w, b;
     for (PieceType pt = KING; pt >= PAWN; --pt)
     {
-        w += std::string(popcount(pos.pieces(WHITE, pt)), UCI::piece(pt));
-        b += std::string(popcount(pos.pieces(BLACK, pt)), UCI::piece(pt));
+        w += std::string(popcount(pos.pieces(WHITE, pt)), UCI::to_char(pt));
+        b += std::string(popcount(pos.pieces(BLACK, pt)), UCI::to_char(pt));
     }
 
     std::string fname = (materialKey == entry.key[WHITE] ? w + 'v' + b : b + 'v' + w)

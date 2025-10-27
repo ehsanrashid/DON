@@ -45,8 +45,6 @@ namespace DON {
 
 namespace {
 
-constexpr std::string_view PieceChar{" PNBRQK  pnbrqk "};
-
 enum Command : std::uint8_t {
     CMD_STOP,
     CMD_QUIT,
@@ -96,14 +94,6 @@ const std::unordered_map<std::string_view, Command> CommandMap{
   {"--license",  CMD_HELP},
   {"license",    CMD_HELP}};
 // clang-format on
-
-template<typename... Ts>
-struct Overload final: Ts... {
-    using Ts::operator()...;
-};
-
-template<typename... Ts>
-Overload(Ts...) -> Overload<Ts...>;
 
 Command str_to_command(std::string_view command) noexcept {
     auto itr = CommandMap.find(command);
@@ -206,11 +196,6 @@ Limit parse_limit(std::istringstream& iss) noexcept {
     }
     return limit;
 }
-
-void on_update_short(const ShortInfo& info) noexcept;
-void on_update_full(const FullInfo& info) noexcept;
-void on_update_iter(const IterInfo& info) noexcept;
-void on_update_move(const MoveInfo& info) noexcept;
 
 }  // namespace
 
@@ -353,13 +338,53 @@ void UCI::execute(std::string_view command) noexcept {
 }
 
 void UCI::print_info_string(std::string_view infoStr) noexcept {
-    if (InfoStringStop)
+    if (!InfoStringEnabled)
         return;
 
     for (const auto& info : split(infoStr, "\n"))
         if (!is_whitespace(info))
             std::cout << "info string " << info << std::endl;
 }
+
+namespace {
+
+void on_update_short(const ShortInfo& info) noexcept {
+    std::cout << "info"                   //
+              << " depth " << info.depth  //
+              << " score " << info.score << std::endl;
+}
+
+void on_update_full(const FullInfo& info) noexcept {
+    std::cout << "info"                         //
+              << " depth " << info.depth        //
+              << " seldepth " << info.selDepth  //
+              << " multipv " << info.multiPV    //
+              << " score " << info.score;       //
+    if (!info.bound.empty())
+        std::cout << info.bound;
+    if (!info.wdl.empty())
+        std::cout << " wdl " << info.wdl;
+    std::cout << " time " << info.time                     //
+              << " nodes " << info.nodes                   //
+              << " nps " << 1000 * info.nodes / info.time  //
+              << " hashfull " << info.hashfull             //
+              << " tbhits " << info.tbHits                 //
+              << " pv" << info.pv << std::endl;
+}
+
+void on_update_iter(const IterInfo& info) noexcept {
+    std::cout << "info"                         //
+              << " depth " << info.depth        //
+              << " currmove " << info.currMove  //
+              << " currmovenumber " << info.currMoveNumber << std::endl;
+}
+
+void on_update_move(const MoveInfo& info) noexcept {
+    std::cout << "bestmove " << info.bestMove  //
+              << " ponder " << info.ponderMove << std::endl;
+}
+
+}  // namespace
 
 void UCI::set_update_listeners() noexcept {
     engine.set_on_update_short(on_update_short);
@@ -560,7 +585,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     engine.set_on_update_iter([](const auto&) {});
     engine.set_on_update_move([](const auto&) {});
 
-    InfoStringStop = true;
+    InfoStringEnabled = false;
 
     const std::size_t num =
       std::count_if(benchmark.commands.begin(), benchmark.commands.end(),
@@ -719,8 +744,28 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
               << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
     // clang-format on
 
-    InfoStringStop = false;
+    InfoStringEnabled = true;
     set_update_listeners();
+}
+
+std::string UCI::to_string(Square s) noexcept {
+    assert(is_ok(s));
+    return std::string({to_char(file_of(s)), to_char(rank_of(s))});
+}
+
+namespace {
+
+constexpr std::string_view PieceChar{" PNBRQK  pnbrqk "};
+
+}  // namespace
+
+char UCI::to_char(PieceType pt) noexcept { return is_ok(pt) ? PieceChar[pt] : ' '; }
+
+char UCI::to_char(Piece pc) noexcept { return is_ok(pc) ? PieceChar[pc] : ' '; }
+
+Piece UCI::to_piece(char pc) noexcept {
+    auto pos = PieceChar.find(pc);
+    return pos != std::string_view::npos ? Piece(pos) : NO_PIECE;
 }
 
 namespace {
@@ -754,6 +799,14 @@ int win_rate_model(Value v, const Position& pos) noexcept {
     return int(0.5 + 1000 / (1 + std::exp((a - v) / b)));
 }
 
+template<typename... Ts>
+struct Overload final: Ts... {
+    using Ts::operator()...;
+};
+
+template<typename... Ts>
+Overload(Ts...) -> Overload<Ts...>;
+
 }  // namespace
 
 // Turns a Value to an integer centipawn number,
@@ -769,17 +822,17 @@ int UCI::to_cp(Value v, const Position& pos) noexcept {
     return std::round(100 * int(v) / a);
 }
 
-std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
+std::string UCI::to_string(Value v, const Position& pos) noexcept {
     assert(is_ok(v));
 
     auto wdlW = win_rate_model(+v, pos);
     auto wdlL = win_rate_model(-v, pos);
     auto wdlD = 1000 - (wdlW + wdlL);
 
-    return (std::ostringstream{} << wdlW << ' ' << wdlD << ' ' << wdlL).str();
+    return std::to_string(wdlW) + ' ' + std::to_string(wdlD) + ' ' + std::to_string(wdlL);
 }
 
-std::string UCI::score(const Score& score) noexcept {
+std::string UCI::to_string(const Score& score) noexcept {
     static constexpr int TB_CP = 20000;
 
     const auto format =
@@ -796,20 +849,6 @@ std::string UCI::score(const Score& score) noexcept {
     return score.visit(format);
 }
 
-char UCI::piece(PieceType pt) noexcept { return is_ok(pt) ? PieceChar[pt] : ' '; }
-
-char UCI::piece(Piece pc) noexcept { return is_ok(pc) ? PieceChar[pc] : ' '; }
-
-Piece UCI::piece(char pc) noexcept {
-    auto pos = PieceChar.find(pc);
-    return pos != std::string_view::npos ? Piece(pos) : NO_PIECE;
-}
-
-std::string UCI::square(Square s) noexcept {
-    assert(is_ok(s));
-    return std::string{file(file_of(s)), rank(rank_of(s))};
-}
-
 std::string UCI::move_to_can(Move m) noexcept {
     if (m == Move::None)
         return "(none)";
@@ -823,9 +862,9 @@ std::string UCI::move_to_can(Move m) noexcept {
         dst = make_square(org < dst ? FILE_G : FILE_C, rank_of(org));
     }
 
-    std::string can = square(org) + square(dst);
+    std::string can = to_string(org) + to_string(dst);
     if (m.type_of() == PROMOTION)
-        can += char(std::tolower(static_cast<unsigned char>(piece(m.promotion_type()))));
+        can += char(std::tolower(to_char(m.promotion_type())));
 
     return can;
 }
@@ -848,42 +887,6 @@ Move UCI::can_to_move(std::string_view can, const Position& pos) noexcept {
 }
 
 namespace {
-
-void on_update_short(const ShortInfo& info) noexcept {
-    std::cout << "info"                   //
-              << " depth " << info.depth  //
-              << " score " << info.score << std::endl;
-}
-
-void on_update_full(const FullInfo& info) noexcept {
-    std::cout << "info"                         //
-              << " depth " << info.depth        //
-              << " seldepth " << info.selDepth  //
-              << " multipv " << info.multiPV    //
-              << " score " << info.score;       //
-    if (!info.bound.empty())
-        std::cout << info.bound;
-    if (!info.wdl.empty())
-        std::cout << " wdl " << info.wdl;
-    std::cout << " time " << info.time                     //
-              << " nodes " << info.nodes                   //
-              << " nps " << 1000 * info.nodes / info.time  //
-              << " hashfull " << info.hashfull             //
-              << " tbhits " << info.tbHits                 //
-              << " pv" << info.pv << std::endl;
-}
-
-void on_update_iter(const IterInfo& info) noexcept {
-    std::cout << "info"                         //
-              << " depth " << info.depth        //
-              << " currmove " << info.currMove  //
-              << " currmovenumber " << info.currMoveNumber << std::endl;
-}
-
-void on_update_move(const MoveInfo& info) noexcept {
-    std::cout << "bestmove " << info.bestMove  //
-              << " ponder " << info.ponderMove << std::endl;
-}
 
 enum Ambiguity : std::uint8_t {
     AMB_NONE,
@@ -958,20 +961,20 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     {
         if (pt != PAWN)
         {
-            san = piece(pt);
+            san = to_char(pt);
             if (pt != KING)
             {
                 // Disambiguation if have more then one piece of type 'pt' that can reach 'to' with a legal move.
                 switch (ambiguity(m, pos))
                 {
                 case AMB_RANK :
-                    san += file(file_of(org));
+                    san += to_char(file_of(org));
                     break;
                 case AMB_FILE :
-                    san += rank(rank_of(org));
+                    san += to_char(rank_of(org));
                     break;
                 case AMB_SQUARE :
-                    san += square(org);
+                    san += to_string(org);
                     break;
                 default :;
                 }
@@ -981,16 +984,16 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
         if (pos.capture(m))
         {
             if (pt == PAWN)
-                san = file(file_of(org));
+                san = to_char(file_of(org));
             san += 'x';
         }
 
-        san += square(dst);
+        san += to_string(dst);
 
         if (m.type_of() == PROMOTION)
         {
             assert(pt == PAWN);
-            san += std::string{'=', char(std::toupper(piece(m.promotion_type())))};
+            san += std::string{'=', char(std::toupper(to_char(m.promotion_type())))};
         }
     }
 
