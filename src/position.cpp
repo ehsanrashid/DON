@@ -92,9 +92,9 @@ class CuckooTable final {
     }
 
     // Hash function for indexing the cuckoo table
-    template<unsigned Index>
+    template<std::size_t Part>
     constexpr std::size_t H(Key key) const noexcept {
-        return (key >> (16 * Index)) & (size() - 1);
+        return (key >> (16 * Part)) & (size() - 1);
     }
 
     constexpr void fill(const Cuckoo& cuckoo) noexcept { cuckoos.fill(cuckoo); }
@@ -119,10 +119,9 @@ class CuckooTable final {
     }
 
     std::size_t find_key(Key key) const noexcept {
-        std::size_t index;
-        if (index = H<0>(key); cuckoos[index].key == key)
-            return index;
-        if (index = H<1>(key); cuckoos[index].key == key)
+        if (std::size_t index;  //
+            (index = H<0>(key), cuckoos[index].key == key)
+            || (index = H<1>(key), cuckoos[index].key == key))
             return index;
         return size();
     }
