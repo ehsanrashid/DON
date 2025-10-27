@@ -164,7 +164,7 @@ class Position final {
 
    public:
     // FEN string input/output
-    void        set(std::string_view fenStr, State* const newSt) noexcept;
+    void        set(std::string_view fens, State* const newSt) noexcept;
     void        set(std::string_view code, Color c, State* const newSt) noexcept;
     void        set(const Position& pos, State* const newSt) noexcept;
     std::string fen(bool full = true) const noexcept;

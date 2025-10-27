@@ -177,7 +177,7 @@ void Position::init() noexcept {
 // Initializes the position object with the given FEN string.
 // This function is not very robust - make sure that input FENs are correct,
 // this is assumed to be the responsibility of the GUI.
-void Position::set(std::string_view fenStr, State* const newSt) noexcept {
+void Position::set(std::string_view fens, State* const newSt) noexcept {
     /*
    A FEN string defines a particular position using only the ASCII character set.
 
@@ -212,7 +212,7 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
    6) Fullmove number. The number of the full move. It starts at 1, and is
       incremented after Black's move.
 */
-    assert(!fenStr.empty());
+    assert(!fens.empty());
     assert(newSt != nullptr);
     std::memset(static_cast<void*>(this), 0, sizeof(*this));
     std::fill(std::begin(castlingRookSq), std::end(castlingRookSq), SQ_NONE);
@@ -222,7 +222,7 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
 
     st = newSt;
 
-    std::istringstream iss{std::string(fenStr)};
+    std::istringstream iss{std::string(fens)};
     iss >> std::noskipws;
 
     std::uint8_t token;
@@ -430,19 +430,19 @@ void Position::set(std::string_view code, Color c, State* const newSt) noexcept 
 
     sides[c] = lower_case(sides[c]);
 
-    std::string fenStr;
-    fenStr.reserve(64);
-    fenStr += "8/";
-    fenStr += sides[0];
-    fenStr += digit_to_char(8 - sides[0].size());
-    fenStr += "/8/8/8/8/";
-    fenStr += sides[1];
-    fenStr += digit_to_char(8 - sides[1].size());
-    fenStr += "/8 ";
-    fenStr += (c == WHITE ? 'w' : c == BLACK ? 'b' : '-');
-    fenStr += " - - 0 1";
+    std::string fens;
+    fens.reserve(64);
+    fens += "8/";
+    fens += sides[0];
+    fens += digit_to_char(8 - sides[0].size());
+    fens += "/8/8/8/8/";
+    fens += sides[1];
+    fens += digit_to_char(8 - sides[1].size());
+    fens += "/8 ";
+    fens += (c == WHITE ? 'w' : c == BLACK ? 'b' : '-');
+    fens += " - - 0 1";
 
-    set(fenStr, newSt);
+    set(fens, newSt);
 }
 
 void Position::set(const Position& pos, State* const newSt) noexcept {
@@ -1833,35 +1833,35 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
 void Position::flip() noexcept {
     std::istringstream iss{fen()};
 
-    std::string fs, token;
+    std::string fens, token;
     // Piece placement (vertical flip)
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
-        fs.insert(0, token + (r < RANK_8 ? '/' : ' '));
+        fens.insert(0, token + (r < RANK_8 ? '/' : ' '));
     }
 
     // Active color (will be lowercased later)
     iss >> token;
     token[0] = (token[0] == 'w' ? 'B' : token[0] == 'b' ? 'W' : '-');
-    fs += token + " ";
+    fens += token + " ";
 
     // Castling rights
     iss >> token;
-    fs += token + " ";
+    fens += token + " ";
 
-    fs = toggle_case(fs);
+    fens = toggle_case(fens);
 
     // En-passant square
     iss >> token;
     if (token != "-")
         token[1] = UCI::flip_rank(token[1]);
-    fs += token;
+    fens += token;
 
     std::getline(iss, token);  // Half and full moves
-    fs += token;
+    fens += token;
 
-    set(fs, st);
+    set(fens, st);
 
     assert(pos_is_ok());
 }
@@ -1869,18 +1869,18 @@ void Position::flip() noexcept {
 void Position::mirror() noexcept {
     std::istringstream iss{fen()};
 
-    std::string fs, token;
+    std::string fens, token;
     // Piece placement (horizontal flip)
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
         std::reverse(token.begin(), token.end());
-        fs += token + (r > RANK_1 ? '/' : ' ');
+        fens += token + (r > RANK_1 ? '/' : ' ');
     }
 
     // Active color (will remain the same)
     iss >> token;
-    fs += token + " ";
+    fens += token + " ";
 
     // Castling rights
     iss >> token;
@@ -1898,18 +1898,18 @@ void Position::mirror() noexcept {
                 // clang-format on
             }
         }
-    fs += token + " ";
+    fens += token + " ";
 
     // En-passant square (flip the file)
     iss >> token;
     if (token != "-")
         token[0] = UCI::flip_file(token[0]);
-    fs += token;
+    fens += token;
 
     std::getline(iss, token);  // Half and full moves
-    fs += token;
+    fens += token;
 
-    set(fs, st);
+    set(fens, st);
 
     assert(pos_is_ok());
 }
