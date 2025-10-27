@@ -119,13 +119,6 @@ enum CastlingRights : std::uint8_t {
     CASTLING_RIGHTS_NB = 16
 };
 
-enum Bound : std::uint8_t {
-    BOUND_NONE,
-    BOUND_UPPER,
-    BOUND_LOWER,
-    BOUND_EXACT = BOUND_UPPER | BOUND_LOWER
-};
-
 // clang-format off
 enum PieceType : std::int8_t {
     NO_PIECE_TYPE,
@@ -265,6 +258,13 @@ enum Direction : std::int8_t {
     WEST_2  = WEST + WEST,
     NORTH_2 = NORTH + NORTH,
     SOUTH_2 = SOUTH + SOUTH,
+};
+
+enum Bound : std::uint8_t {
+    BOUND_NONE,
+    BOUND_UPPER,
+    BOUND_LOWER,
+    BOUND_EXACT = BOUND_UPPER | BOUND_LOWER
 };
 
 // Keep track of what a move changes on the board (used by NNUE)
