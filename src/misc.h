@@ -410,33 +410,31 @@ struct CommandLine final {
 }
 
 inline std::string lower_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept -> char {
-        return static_cast<char>(std::tolower(ch));
-    });
+    std::transform(str.begin(), str.end(), str.begin(),
+                   [](unsigned char ch) noexcept -> char { return std::tolower(ch); });
     return str;
 }
 
 inline std::string upper_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept -> char {
-        return static_cast<char>(std::toupper(ch));
-    });
+    std::transform(str.begin(), str.end(), str.begin(),
+                   [](unsigned char ch) noexcept -> char { return std::toupper(ch); });
     return str;
 }
 
 inline std::string toggle_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept -> char {
         if (std::islower(ch))
-            return static_cast<char>(std::toupper(ch));
+            return std::toupper(ch);
         if (std::isupper(ch))
-            return static_cast<char>(std::tolower(ch));
-        return static_cast<char>(ch);
+            return std::tolower(ch);
+        return ch;
     });
     return str;
 }
 
 inline std::string remove_whitespace(std::string str) noexcept {
     str.erase(std::remove_if(str.begin(), str.end(),
-                             [](unsigned char ch) noexcept { return std::isspace(ch) != 0; }),
+                             [](unsigned char ch) noexcept { return std::isspace(ch); }),
               str.end());
     return str;
 }

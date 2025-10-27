@@ -359,7 +359,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 
     // 4. En-passant square.
     // Ignore if square is invalid or not on side to move relative rank 6.
-    bool epCan = false;
+    bool epCheck = false;
 
     iss >> token;
     if (token != '-')
@@ -378,9 +378,9 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             // b) there is no piece on epSquare or behind epSquare
             // c) there is atleast one friend pawn threatening epSquare
             // d) there is no enemy Bishop, Rook or Queen pinning
-            epCan = (pieces(~ac, PAWN) & (ep_sq() - pawn_spush(ac)))
-                 && !(pieces() & make_bitboard(ep_sq(), ep_sq() + pawn_spush(ac)))
-                 && (pieces(ac, PAWN) & attacks_bb<PAWN>(ep_sq(), ~ac));
+            epCheck = (pieces(~ac, PAWN) & (ep_sq() - pawn_spush(ac)))
+                   && !(pieces() & make_bitboard(ep_sq(), ep_sq() + pawn_spush(ac)))
+                   && (pieces(ac, PAWN) & attacks_bb<PAWN>(ep_sq(), ~ac));
         }
         else
             assert(false && "Position::set(): Invalid En-passant square");
@@ -405,7 +405,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     if (is_ok(ep_sq()))
     {
         reset_rule50_count();
-        if (!(epCan && can_enpassant(ac, ep_sq())))
+        if (!(epCheck && can_enpassant(ac, ep_sq())))
             reset_ep_sq();
     }
     assert(rule50_count() <= 100);
@@ -676,7 +676,7 @@ bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackers)
         }
     }
 
-    bool epCan = false;
+    bool epCheck = false;
     // Check en-passant is legal for the position
     Bitboard occupied = pieces() ^ make_bitboard(capSq, epSq);
     while (attackers)
@@ -684,14 +684,14 @@ bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackers)
         Square s = pop_lsb(attackers);
         if (!(slide_attackers_to(kingSq, occupied ^ s) & pieces(~ac)))
         {
-            epCan = true;
+            epCheck = true;
             if (epAttackers == nullptr)
                 break;
         }
         else if (epAttackers != nullptr)
             *epAttackers ^= s;
     }
-    return epCan;
+    return epCheck;
 }
 
 // Helper used to do/undo a castling move.
