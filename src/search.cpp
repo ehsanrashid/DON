@@ -265,8 +265,7 @@ void Worker::start_search() noexcept {
     {
         rootMoves.emplace_back(Move::None);
 
-        auto score =
-          UCI::to_string({Value(rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW), rootPos});
+        auto score = UCI::to_score({Value(rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW), rootPos});
         mainManager->updateCxt.onUpdateShort({DEPTH_ZERO, score});
     }
     else
@@ -2175,12 +2174,12 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if (is_decisive(v) && !is_mate(v) && (exact || !(rm.boundLower || rm.boundUpper)))
             worker.extend_tb_pv(i, v);
 
-        auto score = UCI::to_string({v, rootPos});
+        auto score = UCI::to_score({v, rootPos});
         auto bound = std::string_view{exact           ? ""
                                       : rm.boundLower ? " lowerbound"
                                       : rm.boundUpper ? " upperbound"
                                                       : ""};
-        auto wdl   = worker.options["UCI_ShowWDL"] ? UCI::to_string(v, rootPos) : "";
+        auto wdl   = worker.options["UCI_ShowWDL"] ? UCI::to_wdl(v, rootPos) : "";
 
         std::string pv;
         pv.reserve(6 * rm.pv.size());

@@ -45,25 +45,9 @@ class UCI final {
 
     static void print_info_string(std::string_view infoStr) noexcept;
 
-    template<bool Upper = false>
-    [[nodiscard]] static constexpr char to_char(File f) noexcept;
-    [[nodiscard]] static constexpr char to_char(Rank r) noexcept;
-
-    [[nodiscard]] static constexpr File to_file(char f) noexcept;
-    [[nodiscard]] static constexpr Rank to_rank(char r) noexcept;
-
-    [[nodiscard]] static constexpr char flip_file(char f) noexcept;
-    [[nodiscard]] static constexpr char flip_rank(char r) noexcept;
-
-    [[nodiscard]] static std::string to_string(Square s) noexcept;
-
-    [[nodiscard]] static char  to_char(PieceType pt) noexcept;
-    [[nodiscard]] static char  to_char(Piece pc) noexcept;
-    [[nodiscard]] static Piece to_piece(char pc) noexcept;
-
     [[nodiscard]] static int         to_cp(Value v, const Position& pos) noexcept;
-    [[nodiscard]] static std::string to_string(Value v, const Position& pos) noexcept;
-    [[nodiscard]] static std::string to_string(const Score& score) noexcept;
+    [[nodiscard]] static std::string to_wdl(Value v, const Position& pos) noexcept;
+    [[nodiscard]] static std::string to_score(const Score& score) noexcept;
 
     [[nodiscard]] static std::string move_to_can(Move m) noexcept;
 
@@ -95,27 +79,6 @@ class UCI final {
     Engine      engine;
     CommandLine commandLine;
 };
-
-template<bool Upper>
-inline constexpr char UCI::to_char(File f) noexcept {
-    return int(f) + (Upper ? 'A' : 'a');
-}
-
-inline constexpr char UCI::to_char(Rank r) noexcept { return int(r) + '1'; }
-
-inline constexpr File UCI::to_file(char f) noexcept { return File(f - 'a'); }
-
-inline constexpr Rank UCI::to_rank(char r) noexcept { return Rank(r - '1'); }
-
-inline constexpr char UCI::flip_file(char f) noexcept {
-    // Flip file 'A'-'H' or 'a'-'h'; otherwise unchanged
-    return ('A' <= f && f <= 'H') ? 'A' + ('H' - f) : ('a' <= f && f <= 'h') ? 'a' + ('h' - f) : f;
-}
-
-inline constexpr char UCI::flip_rank(char r) noexcept {
-    // Flip rank '1'-'8'; otherwise unchanged
-    return ('1' <= r && r <= '8') ? '1' + ('8' - r) : r;
-}
 
 }  // namespace DON
 

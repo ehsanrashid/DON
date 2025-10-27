@@ -247,7 +247,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
         }
         else
         {
-            if (Piece pc = UCI::to_piece(token); is_ok(pc))
+            if (Piece pc = to_piece(token); is_ok(pc))
             {
                 assert(file < FILE_NB);
                 Square sq = make_square(file, rank);
@@ -371,7 +371,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
         if ('a' <= epFile && epFile <= 'h'
             && epRank == (ac == WHITE ? '6' : ac == BLACK ? '3' : '-'))
         {
-            st->epSq = make_square(UCI::to_file(epFile), UCI::to_rank(epRank));
+            st->epSq = make_square(to_file(epFile), to_rank(epRank));
 
             // En-passant square will be considered only if
             // a) there is an enemy pawn in front of epSquare
@@ -476,7 +476,7 @@ std::string Position::fen(bool full) const noexcept {
                     oss << emptyCount;
                     emptyCount = 0;
                 }
-                oss << UCI::to_char(piece_on(s));
+                oss << to_char(piece_on(s));
             }
         }
 
@@ -493,18 +493,18 @@ std::string Position::fen(bool full) const noexcept {
     if (can_castle(ANY_CASTLING))
     {
         if (can_castle(WHITE_OO))
-            oss << (Chess960 ? UCI::to_char<true>(file_of(castling_rook_sq(WHITE_OO))) : 'K');
+            oss << (Chess960 ? to_char<true>(file_of(castling_rook_sq(WHITE_OO))) : 'K');
         if (can_castle(WHITE_OOO))
-            oss << (Chess960 ? UCI::to_char<true>(file_of(castling_rook_sq(WHITE_OOO))) : 'Q');
+            oss << (Chess960 ? to_char<true>(file_of(castling_rook_sq(WHITE_OOO))) : 'Q');
         if (can_castle(BLACK_OO))
-            oss << (Chess960 ? UCI::to_char<false>(file_of(castling_rook_sq(BLACK_OO))) : 'k');
+            oss << (Chess960 ? to_char<false>(file_of(castling_rook_sq(BLACK_OO))) : 'k');
         if (can_castle(BLACK_OOO))
-            oss << (Chess960 ? UCI::to_char<false>(file_of(castling_rook_sq(BLACK_OOO))) : 'q');
+            oss << (Chess960 ? to_char<false>(file_of(castling_rook_sq(BLACK_OOO))) : 'q');
     }
     else
         oss << '-';
 
-    oss << ' ' << (is_ok(ep_sq()) ? UCI::to_string(ep_sq()) : "-");
+    oss << ' ' << (is_ok(ep_sq()) ? to_square(ep_sq()) : "-");
     if (full)
         oss << ' ' << rule50_count() << ' ' << move_num();
 
@@ -1849,7 +1849,7 @@ void Position::flip() noexcept {
     // En-passant square
     iss >> token;
     if (token != "-")
-        token[1] = UCI::flip_rank(token[1]);
+        token[1] = flip_rank(token[1]);
     fens += token;
 
     std::getline(iss, token);  // Half and full moves
@@ -1888,7 +1888,7 @@ void Position::mirror() noexcept {
             case 'Q' : ch = 'K'; break;
             case 'k' : ch = 'q'; break;
             case 'q' : ch = 'k'; break;
-            default :  ch = UCI::flip_file(ch);
+            default :  ch = flip_file(ch);
                 // clang-format on
             }
         }
@@ -1897,7 +1897,7 @@ void Position::mirror() noexcept {
     // En-passant square (flip the file)
     iss >> token;
     if (token != "-")
-        token[0] = UCI::flip_file(token[0]);
+        token[0] = flip_file(token[0]);
     fens += token;
 
     std::getline(iss, token);  // Half and full moves
@@ -2063,7 +2063,7 @@ bool Position::pos_is_ok() const noexcept {
 
 std::ostream& operator<<(std::ostream& os, const Position::Board::Cardinal& cardinal) noexcept {
     for (File f = FILE_A; f <= FILE_H; ++f)
-        os << " | " << UCI::to_char(cardinal.piece_on(f));
+        os << " | " << to_char(cardinal.piece_on(f));
     os << " | ";
 
     return os;
@@ -2074,10 +2074,10 @@ std::ostream& operator<<(std::ostream& os, const Position::Board& board) noexcep
 
     os << Sep;
     for (Rank r = RANK_8; r >= RANK_1; --r)
-        os << UCI::to_char(r) << board.cardinals[r] << Sep;
+        os << to_char(r) << board.cardinals[r] << Sep;
     os << " ";
     for (File f = FILE_A; f <= FILE_H; ++f)
-        os << "   " << UCI::to_char<true>(f);
+        os << "   " << to_char<true>(f);
     os << "\n";
 
     return os;
@@ -2086,17 +2086,17 @@ std::ostream& operator<<(std::ostream& os, const Position::Board& board) noexcep
 // Returns an ASCII representation of the position
 std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
-    os << pos.board                                                //
-       << "\nFen: " << pos.fen()                                   //
-       << "\nKey: " << u64_to_string(pos.key())                    //
-       << "\nKing Squares: "                                       //
-       << UCI::to_string(pos.king_sq(pos.active_color())) << ", "  //
-       << UCI::to_string(pos.king_sq(~pos.active_color()))         //
+    os << pos.board                                           //
+       << "\nFen: " << pos.fen()                              //
+       << "\nKey: " << u64_to_string(pos.key())               //
+       << "\nKing Squares: "                                  //
+       << to_square(pos.king_sq(pos.active_color())) << ", "  //
+       << to_square(pos.king_sq(~pos.active_color()))         //
        << "\nCheckers: ";
     Bitboard checkers = pos.checkers();
     if (checkers)
         while (checkers)
-            os << UCI::to_string(pop_lsb(checkers)) << " ";
+            os << to_square(pop_lsb(checkers)) << " ";
     else
         os << "(none)";
     os << "\nRepetition: " << pos.repetition();

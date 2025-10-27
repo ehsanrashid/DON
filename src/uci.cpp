@@ -763,26 +763,6 @@ std::uint64_t UCI::perft(Depth depth, bool detail) noexcept {
     return nodes;
 }
 
-std::string UCI::to_string(Square s) noexcept {
-    assert(is_ok(s));
-    return std::string{to_char(file_of(s)), to_char(rank_of(s))};
-}
-
-namespace {
-
-constexpr std::string_view PieceChar{" PNBRQK  pnbrqk "};
-
-}  // namespace
-
-char UCI::to_char(PieceType pt) noexcept { return is_ok(pt) ? PieceChar[pt] : ' '; }
-
-char UCI::to_char(Piece pc) noexcept { return is_ok(pc) ? PieceChar[pc] : ' '; }
-
-Piece UCI::to_piece(char pc) noexcept {
-    auto pos = PieceChar.find(pc);
-    return pos != std::string_view::npos ? Piece(pos) : NO_PIECE;
-}
-
 namespace {
 
 struct WinRateParams final {
@@ -837,7 +817,7 @@ int UCI::to_cp(Value v, const Position& pos) noexcept {
     return std::round(100 * int(v) / a);
 }
 
-std::string UCI::to_string(Value v, const Position& pos) noexcept {
+std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
     assert(is_ok(v));
 
     auto wdlW = win_rate_model(+v, pos);
@@ -854,7 +834,7 @@ std::string UCI::to_string(Value v, const Position& pos) noexcept {
     return wdl;
 }
 
-std::string UCI::to_string(const Score& score) noexcept {
+std::string UCI::to_score(const Score& score) noexcept {
     static constexpr int TB_CP = 20000;
 
     const auto format =
@@ -886,8 +866,8 @@ std::string UCI::move_to_can(Move m) noexcept {
 
     std::string can;
     can.reserve(5);
-    can += to_string(org);
-    can += to_string(dst);
+    can += to_square(org);
+    can += to_square(dst);
     if (m.type_of() == PROMOTION)
         can += char(std::tolower(to_char(m.promotion_type())));
 
@@ -1000,7 +980,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
                     san += to_char(rank_of(org));
                     break;
                 case AMB_SQUARE :
-                    san += to_string(org);
+                    san += to_square(org);
                     break;
                 default :;
                 }
@@ -1014,7 +994,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
             san += 'x';
         }
 
-        san += to_string(dst);
+        san += to_square(dst);
 
         if (m.type_of() == PROMOTION)
         {

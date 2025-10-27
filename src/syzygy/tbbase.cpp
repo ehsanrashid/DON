@@ -557,7 +557,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     std::string code;
     code.reserve(pieces.size() + 2);
     for (PieceType pt : pieces)
-        code += UCI::to_char(pt);
+        code += to_char(pt);
     assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string::npos);
     code.insert(code.find('K', 1), "v");  // KRK -> KRvK
 
@@ -1286,7 +1286,7 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
     std::string pieces[COLOR_NB]{};
     for (Color c : {WHITE, BLACK})
         for (PieceType pt = KING; pt >= PAWN; --pt)
-            pieces[c].append(pos.count(c, pt), UCI::to_char(pt));
+            pieces[c].append(pos.count(c, pt), to_char(pt));
 
     std::string fname = (materialKey == entry.key[WHITE] ? pieces[WHITE] + 'v' + pieces[BLACK]
                                                          : pieces[BLACK] + 'v' + pieces[WHITE])

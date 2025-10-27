@@ -40,6 +40,7 @@
     #include <cstddef>
     #include <cstdint>
     #include <limits>
+    #include <string>
     #include <string_view>
     #include <type_traits>
 
@@ -93,6 +94,7 @@ inline constexpr std::uint16_t MAX_PLY   = 254U;
 // Size of cache line (in bytes)
 inline constexpr std::size_t CACHE_LINE_SIZE = 64U;
 
+inline constexpr std::string_view PieceChar{" PNBRQK  pnbrqk "};
 inline constexpr std::string_view START_FEN{
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 
@@ -405,6 +407,43 @@ constexpr Direction pawn_spush(Color c) noexcept {
 constexpr Direction pawn_dpush(Color c) noexcept {
     assert(is_ok(c));
     return c == WHITE ? NORTH_2 : SOUTH_2;
+}
+
+[[nodiscard]] constexpr char to_char(PieceType pt) noexcept {
+    return is_ok(pt) ? PieceChar[pt] : ' ';
+}
+
+[[nodiscard]] constexpr char to_char(Piece pc) noexcept { return is_ok(pc) ? PieceChar[pc] : ' '; }
+
+[[nodiscard]] constexpr Piece to_piece(char pc) noexcept {
+    auto pos = PieceChar.find(pc);
+    return pos != std::string_view::npos ? Piece(pos) : NO_PIECE;
+}
+
+template<bool Upper = false>
+[[nodiscard]] constexpr char to_char(File f) noexcept {
+    return int(f) + (Upper ? 'A' : 'a');
+}
+
+[[nodiscard]] constexpr char to_char(Rank r) noexcept { return int(r) + '1'; }
+
+[[nodiscard]] constexpr File to_file(char f) noexcept { return File(f - 'a'); }
+
+[[nodiscard]] constexpr Rank to_rank(char r) noexcept { return Rank(r - '1'); }
+
+[[nodiscard]] constexpr char flip_file(char f) noexcept {
+    // Flip file 'A'-'H' or 'a'-'h'; otherwise unchanged
+    return ('A' <= f && f <= 'H') ? 'A' + ('H' - f) : ('a' <= f && f <= 'h') ? 'a' + ('h' - f) : f;
+}
+
+[[nodiscard]] constexpr char flip_rank(char r) noexcept {
+    // Flip rank '1'-'8'; otherwise unchanged
+    return ('1' <= r && r <= '8') ? '1' + ('8' - r) : r;
+}
+
+[[nodiscard]] inline std::string to_square(Square s) noexcept {
+    assert(is_ok(s));
+    return std::string{to_char(file_of(s)), to_char(rank_of(s))};
 }
 
 // Linear Congruential Generator (LCG): X_{n+1} = (c + a * X_n)
