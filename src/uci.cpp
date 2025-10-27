@@ -405,18 +405,21 @@ void UCI::position(std::istringstream& iss) noexcept {
     }
     else if (starts_with(token, "f"))  // "fen"
     {
+        fen.reserve(64);
         std::size_t i = 0;
         while (iss >> token && i < 6)  // Consume the "moves" token, if any
         {
             if (i >= 2 && starts_with(lower_case(token), "m"))  // "moves"
                 break;
 
-            fen += token + " ";
+            fen += token;
+            fen += ' ';
             ++i;
         }
         while (i < 4)
         {
-            fen += "- ";
+            fen += '-';
+            fen += ' ';
             ++i;
         }
     }
