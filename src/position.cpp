@@ -30,7 +30,6 @@
 #include "misc.h"
 #include "movegen.h"
 #include "syzygy/tbbase.h"
-#include "uci.h"
 
 namespace DON {
 

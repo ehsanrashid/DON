@@ -24,7 +24,6 @@
 #endif
 
 #include "misc.h"
-#include "uci.h"
 
 namespace DON {
 
