@@ -18,7 +18,6 @@
 #include "benchmark.h"
 
 #include <cstdint>
-#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -400,10 +399,12 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexce
 
     Strings fens;
 
-    if (lower_case(fenFile) == "default")
+    std::string option = lower_case(fenFile);
+
+    if (option == "default")
         fens = Positions;
 
-    else if (lower_case(fenFile) == "current")
+    else if (option == "current")
         fens.emplace_back(currentFen);
 
     else
@@ -411,17 +412,16 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexce
         std::ifstream ifstream(fenFile);
 
         if (!ifstream.is_open())
-        {
             std::cerr << "Unable to open fen filename " << fenFile << std::endl;
-            std::exit(EXIT_FAILURE);
+        else
+        {
+            std::string fen;
+            while (std::getline(ifstream, fen))
+                if (!is_whitespace(fen))
+                    fens.push_back(fen);
+
+            ifstream.close();
         }
-
-        std::string fen;
-        while (std::getline(ifstream, fen))
-            if (!is_whitespace(fen))
-                fens.push_back(fen);
-
-        ifstream.close();
     }
 
     Strings commands;
