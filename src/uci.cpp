@@ -403,13 +403,13 @@ void UCI::position(std::istringstream& iss) noexcept {
         fen = START_FEN;
         iss >> token;  // Consume the "moves" token, if any
     }
-    else if (starts_with(token, "f"))  // "fen"
+    else if (token.size() >= 1 && token[0] == 'f')  // "fen"
     {
         fen.reserve(64);
         std::size_t i = 0;
         while (iss >> token && i < 6)  // Consume the "moves" token, if any
         {
-            if (i >= 2 && starts_with(lower_case(token), "m"))  // "moves"
+            if (i >= 2 && token.size() >= 1 && std::tolower(token[0]) == 'm')  // "moves"
                 break;
 
             fen += token;
@@ -425,7 +425,7 @@ void UCI::position(std::istringstream& iss) noexcept {
     }
     else
     {
-        assert(false);
+        assert(false && "Invalid position command");
         return;
     }
 
