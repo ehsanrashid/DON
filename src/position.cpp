@@ -694,12 +694,6 @@ bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackers)
     return epCan;
 }
 
-// Explicit template instantiations:
-template bool
-Position::can_enpassant<false>(Color ac, Square epSq, Bitboard* const epAttackers) const noexcept;
-template bool
-Position::can_enpassant<true>(Color ac, Square epSq, Bitboard* const epAttackers) const noexcept;
-
 // Helper used to do/undo a castling move.
 // This is a bit tricky in Chess960 where org/dst squares can overlap.
 template<bool Do>
