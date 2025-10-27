@@ -750,7 +750,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
 
 std::string UCI::to_string(Square s) noexcept {
     assert(is_ok(s));
-    return std::string({to_char(file_of(s)), to_char(rank_of(s))});
+    return std::string{to_char(file_of(s)), to_char(rank_of(s))};
 }
 
 namespace {
@@ -829,7 +829,14 @@ std::string UCI::to_string(Value v, const Position& pos) noexcept {
     auto wdlL = win_rate_model(-v, pos);
     auto wdlD = 1000 - (wdlW + wdlL);
 
-    return std::to_string(wdlW) + ' ' + std::to_string(wdlD) + ' ' + std::to_string(wdlL);
+    std::string wdl;
+    wdl.reserve(16);
+    wdl += std::to_string(wdlW);
+    wdl += ' ';
+    wdl += std::to_string(wdlD);
+    wdl += ' ';
+    wdl += std::to_string(wdlL);
+    return wdl;
 }
 
 std::string UCI::to_string(const Score& score) noexcept {
@@ -862,7 +869,10 @@ std::string UCI::move_to_can(Move m) noexcept {
         dst = make_square(org < dst ? FILE_G : FILE_C, rank_of(org));
     }
 
-    std::string can = to_string(org) + to_string(dst);
+    std::string can;
+    can.reserve(5);
+    can += to_string(org);
+    can += to_string(dst);
     if (m.type_of() == PROMOTION)
         can += char(std::tolower(to_char(m.promotion_type())));
 
@@ -951,17 +961,18 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     auto pt = type_of(pos.piece_on(org));
 
     std::string san;
+    san.reserve(8);
 
     if (m.type_of() == CASTLING)
     {
         assert(pt == KING && rank_of(org) == rank_of(dst));
-        san = (org < dst ? "O-O" : "O-O-O");
+        san += (org < dst ? "O-O" : "O-O-O");
     }
     else
     {
         if (pt != PAWN)
         {
-            san = to_char(pt);
+            san += to_char(pt);
             if (pt != KING)
             {
                 // Disambiguation if have more then one piece of type 'pt' that can reach 'to' with a legal move.
@@ -984,7 +995,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
         if (pos.capture(m))
         {
             if (pt == PAWN)
-                san = to_char(file_of(org));
+                san += to_char(file_of(org));
             san += 'x';
         }
 
