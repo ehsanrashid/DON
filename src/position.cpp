@@ -421,6 +421,7 @@ void Position::set(std::string_view fenStr, State* const newSt) noexcept {
 // It's mainly a helper to get the material key out of an endgame code.
 void Position::set(std::string_view code, Color c, State* const newSt) noexcept {
     assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string_view::npos);
+    assert(is_ok(c));
 
     std::string sides[2]{std::string{code.substr(code.find('K', 1))},                // Weak
                          std::string{code.substr(0, code.find_first_of("vK", 1))}};  // Strong
@@ -438,7 +439,9 @@ void Position::set(std::string_view code, Color c, State* const newSt) noexcept 
     fenStr += "/8/8/8/8/";
     fenStr += sides[1];
     fenStr += digit_to_char(8 - sides[1].size());
-    fenStr += "/8 w - - 0 1";
+    fenStr += "/8 ";
+    fenStr += (c == WHITE ? 'w' : c == BLACK ? 'b' : '-');
+    fenStr += " - - 0 1";
 
     set(fenStr, newSt);
 }
@@ -1885,17 +1888,16 @@ void Position::mirror() noexcept {
     if (token != "-")
         for (auto& ch : token)
         {
-            if (ch == 'K')
-                ch = 'Q';
-            else if (ch == 'Q')
-                ch = 'K';
-            else if (ch == 'k')
-                ch = 'q';
-            else if (ch == 'q')
-                ch = 'k';
-            // Handle Chess960: flip file (A ↔ H, B ↔ G, etc. for both upper and lower case)
-            else if (('A' <= ch && ch <= 'H') || ('a' <= ch && ch <= 'h'))
-                ch = UCI::flip_file(ch);
+            switch (ch)
+            {
+                // clang-format off
+            case 'K' : ch = 'Q'; break;
+            case 'Q' : ch = 'K'; break;
+            case 'k' : ch = 'q'; break;
+            case 'q' : ch = 'k'; break;
+            default :  ch = UCI::flip_file(ch);
+                // clang-format on
+            }
         }
     fs += token + " ";
 
