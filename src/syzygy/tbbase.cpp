@@ -1279,14 +1279,13 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
         return entry.baseAddress;
 
     // Pieces strings in decreasing order for each color, like ("KPP","KR")
-    std::string w, b;
-    for (PieceType pt = KING; pt >= PAWN; --pt)
-    {
-        w += std::string(popcount(pos.pieces(WHITE, pt)), UCI::to_char(pt));
-        b += std::string(popcount(pos.pieces(BLACK, pt)), UCI::to_char(pt));
-    }
+    std::string pieces[2]{};
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt = KING; pt >= PAWN; --pt)
+            pieces[c].append(pos.count(c, pt), UCI::to_char(pt));
 
-    std::string fname = (materialKey == entry.key[WHITE] ? w + 'v' + b : b + 'v' + w)
+    std::string fname = (materialKey == entry.key[WHITE] ? pieces[WHITE] + 'v' + pieces[BLACK]
+                                                         : pieces[BLACK] + 'v' + pieces[WHITE])
                       + (Type == WDL ? ".rtbw" : ".rtbz");
 
     uint8_t* data = TBFile(fname).map<Type>(&entry.baseAddress, &entry.mapping);
