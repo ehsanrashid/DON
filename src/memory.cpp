@@ -226,15 +226,15 @@ void* alloc_aligned_lp_windows([[maybe_unused]] std::size_t allocSize) noexcept 
 
             // Privilege no longer needed, restore the privileges
             if (  //oldTp.PrivilegeCount > 0 &&
-              !advapi.adjustTokenPrivileges(tokenHandle, FALSE, &oldTp, 0, nullptr, nullptr))
-                if (err == ERROR_SUCCESS)
-                    err = GetLastError();
+              !advapi.adjustTokenPrivileges(tokenHandle, FALSE, &oldTp, 0, nullptr, nullptr)
+              && err == ERROR_SUCCESS)
+                err = GetLastError();
         }
         else
             err = GetLastError();
     }
 
-    if (tokenHandle != nullptr && !CloseHandle(tokenHandle))
+    if (tokenHandle != nullptr && !CloseHandle(tokenHandle) && err == ERROR_SUCCESS)
         err = GetLastError();
 
     advapi.free();
