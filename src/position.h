@@ -61,15 +61,15 @@ struct State final {
     bool           hasRule50High;
 
     // --- Not copied when making a move (will be recomputed anyhow)
-    Key         key;
-    Bitboard    checkers;
-    Bitboard    checks[PIECE_TYPE_NB];
-    Bitboard    pinners[COLOR_NB];
-    Bitboard    blockers[COLOR_NB];
-    Bitboard    attacks[COLOR_NB][PIECE_TYPE_NB];
-    std::int8_t repetition;
-    Piece       capturedPiece;
-    Piece       promotedPiece;
+    Key          key;
+    Bitboard     checkers;
+    Bitboard     checks[PIECE_TYPE_NB];
+    Bitboard     pinners[COLOR_NB];
+    Bitboard     blockers[COLOR_NB];
+    Bitboard     attacks[COLOR_NB][PIECE_TYPE_NB];
+    std::int16_t repetition;
+    Piece        capturedPiece;
+    Piece        promotedPiece;
 
     State* preSt;
 };
