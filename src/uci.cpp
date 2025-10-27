@@ -439,7 +439,7 @@ void UCI::go(std::istringstream& iss) noexcept {
     auto limit = parse_limit(iss);
 
     if (limit.perft)
-        engine.perft(limit.depth, limit.detail);
+        perft(limit);
     else
         engine.start(limit);
 }
@@ -520,11 +520,12 @@ void UCI::bench(std::istringstream& iss) noexcept {
             auto limit = parse_limit(is);
 
             if (limit.perft)
-                infoNodes = engine.perft(limit.depth, limit.detail);
+                infoNodes = perft(limit);
             else
+            {
                 engine.start(limit);
-
-            engine.wait_finish();
+                engine.wait_finish();
+            }
 
             nodes += infoNodes;
             infoNodes = 0;
@@ -746,6 +747,12 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
 
     InfoStringEnabled = true;
     set_update_listeners();
+}
+
+std::uint64_t UCI::perft(const Limit& limit) noexcept {
+    auto nodes = engine.perft(limit.depth, limit.detail);
+    std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
+    return nodes;
 }
 
 std::string UCI::to_string(Square s) noexcept {

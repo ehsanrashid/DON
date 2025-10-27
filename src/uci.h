@@ -29,6 +29,7 @@
 
 namespace DON {
 
+struct Limit;
 class Position;
 class Score;
 
@@ -88,6 +89,8 @@ class UCI final {
     void setoption(std::istringstream& iss) noexcept;
     void bench(std::istringstream& iss) noexcept;
     void benchmark(std::istringstream& iss) noexcept;
+
+    std::uint64_t perft(const Limit& limit) noexcept;
 
     Engine      engine;
     CommandLine commandLine;

@@ -374,10 +374,7 @@ perft(Position& pos, std::size_t ptSize, ThreadPool& threads, Depth depth, bool 
     if (use_perft_table(depth, detail))
         perftTable.resize(ptSize, threads);
 
-    auto nodes = perft<true>(pos, depth, detail).nodes;
-    std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
-
-    return nodes;
+    return perft<true>(pos, depth, detail).nodes;
 }
 
 }  // namespace DON::Benchmark
