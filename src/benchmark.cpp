@@ -426,7 +426,7 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexce
 
     Strings commands;
 
-    if (isGo)
+    if (isGo && !fens.empty())
     {
         commands.emplace_back("setoption name Threads value " + threads);
         commands.emplace_back("setoption name Hash value " + ttSize);
