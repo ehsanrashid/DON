@@ -292,6 +292,19 @@ Network<Arch, Transformer>::trace(const Position&                         pos,
     return netTrace;
 }
 
+namespace {
+
+// C++ way to prepare a buffer for a memory stream
+class MemoryBuf final: public std::streambuf {
+   public:
+    MemoryBuf(char* p, std::size_t n) noexcept {
+        setg(p, p, p + n);
+        setp(p, p + n);
+    }
+};
+
+}  // namespace
+
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_user_net(const std::string& dir,
                                                const std::string& evalFileName) noexcept {
@@ -307,19 +320,10 @@ void Network<Arch, Transformer>::load_user_net(const std::string& dir,
 
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_internal() noexcept {
-    // C++ way to prepare a buffer for a memory stream
-    class MemoryBuffer final: public std::streambuf {
-       public:
-        MemoryBuffer(char* p, std::size_t n) noexcept {
-            setg(p, p, p + n);
-            setp(p, p + n);
-        }
-    };
-
     const auto embedded = get_embedded(embeddedType);
 
-    MemoryBuffer buffer(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
-                        std::size_t(embedded.size));
+    MemoryBuf buffer(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
+                     std::size_t(embedded.size));
 
     std::istream istream(&buffer);
 
@@ -387,11 +391,9 @@ bool Network<Arch, Transformer>::write_parameters(
 }
 
 // Explicit template instantiations:
-template class Network<  //
-  NetworkArchitecture<BigTransformedFeatureDimensions, BigL2, BigL3>,
-  FeatureTransformer<BigTransformedFeatureDimensions>>;
-template class Network<  //
-  NetworkArchitecture<SmallTransformedFeatureDimensions, SmallL2, SmallL3>,
-  FeatureTransformer<SmallTransformedFeatureDimensions>>;
+template class Network<NetworkArchitecture<BigTransformedFeatureDimensions, BigL2, BigL3>,
+                       FeatureTransformer<BigTransformedFeatureDimensions>>;
+template class Network<NetworkArchitecture<SmallTransformedFeatureDimensions, SmallL2, SmallL3>,
+                       FeatureTransformer<SmallTransformedFeatureDimensions>>;
 
 }  // namespace DON::NNUE

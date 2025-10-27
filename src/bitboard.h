@@ -56,21 +56,21 @@ std::string pretty(Bitboard b) noexcept;
 
 inline constexpr Bitboard FILE_A_BB = 0x0101010101010101ULL;
 inline constexpr Bitboard FILE_B_BB = FILE_A_BB << (1 * 1);
-inline constexpr Bitboard FILE_C_BB = FILE_A_BB << (1 * 2);
-inline constexpr Bitboard FILE_D_BB = FILE_A_BB << (1 * 3);
-inline constexpr Bitboard FILE_E_BB = FILE_A_BB << (1 * 4);
-inline constexpr Bitboard FILE_F_BB = FILE_A_BB << (1 * 5);
-inline constexpr Bitboard FILE_G_BB = FILE_A_BB << (1 * 6);
-inline constexpr Bitboard FILE_H_BB = FILE_A_BB << (1 * 7);
+inline constexpr Bitboard FILE_C_BB = FILE_A_BB << (2 * 1);
+inline constexpr Bitboard FILE_D_BB = FILE_A_BB << (3 * 1);
+inline constexpr Bitboard FILE_E_BB = FILE_A_BB << (4 * 1);
+inline constexpr Bitboard FILE_F_BB = FILE_A_BB << (5 * 1);
+inline constexpr Bitboard FILE_G_BB = FILE_A_BB << (6 * 1);
+inline constexpr Bitboard FILE_H_BB = FILE_A_BB << (7 * 1);
 
 inline constexpr Bitboard RANK_1_BB = 0x00000000000000FFULL;
-inline constexpr Bitboard RANK_2_BB = RANK_1_BB << (8 * 1);
-inline constexpr Bitboard RANK_3_BB = RANK_1_BB << (8 * 2);
-inline constexpr Bitboard RANK_4_BB = RANK_1_BB << (8 * 3);
-inline constexpr Bitboard RANK_5_BB = RANK_1_BB << (8 * 4);
-inline constexpr Bitboard RANK_6_BB = RANK_1_BB << (8 * 5);
-inline constexpr Bitboard RANK_7_BB = RANK_1_BB << (8 * 6);
-inline constexpr Bitboard RANK_8_BB = RANK_1_BB << (8 * 7);
+inline constexpr Bitboard RANK_2_BB = RANK_1_BB << (1 * 8);
+inline constexpr Bitboard RANK_3_BB = RANK_1_BB << (2 * 8);
+inline constexpr Bitboard RANK_4_BB = RANK_1_BB << (3 * 8);
+inline constexpr Bitboard RANK_5_BB = RANK_1_BB << (4 * 8);
+inline constexpr Bitboard RANK_6_BB = RANK_1_BB << (5 * 8);
+inline constexpr Bitboard RANK_7_BB = RANK_1_BB << (6 * 8);
+inline constexpr Bitboard RANK_8_BB = RANK_1_BB << (7 * 8);
 
 inline constexpr Bitboard EDGE_FILE_BB      = FILE_A_BB | FILE_H_BB;
 inline constexpr Bitboard PROMOTION_RANK_BB = RANK_8_BB | RANK_1_BB;
@@ -84,17 +84,19 @@ constexpr Bitboard color_bb() noexcept {
     return C == WHITE ? WHITE_BB : BLACK_BB;
 }
 
-inline constexpr std::uint8_t MSB_INDICES[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
-                                              57, 49, 41, 37, 28, 16, 3,  61,  //
-                                              54, 58, 35, 52, 50, 42, 21, 44,  //
-                                              38, 32, 29, 23, 17, 11, 4,  62,  //
-                                              46, 55, 26, 59, 40, 36, 15, 53,  //
-                                              34, 51, 20, 43, 31, 22, 10, 45,  //
-                                              25, 39, 14, 33, 19, 30, 9,  24,  //
-                                              13, 18, 8,  12, 7,  6,  5,  63};
-constexpr std::uint8_t        msb_index(Bitboard b) noexcept {
-    assert(b);
-    return MSB_INDICES[(b * 0x03F79D71B4CB0A89ULL) >> 58];
+inline constexpr std::uint8_t MSB_INDICES[SQUARE_NB]  //
+  {0,  47, 1,  56, 48, 27, 2,  60,                    //
+   57, 49, 41, 37, 28, 16, 3,  61,                    //
+   54, 58, 35, 52, 50, 42, 21, 44,                    //
+   38, 32, 29, 23, 17, 11, 4,  62,                    //
+   46, 55, 26, 59, 40, 36, 15, 53,                    //
+   34, 51, 20, 43, 31, 22, 10, 45,                    //
+   25, 39, 14, 33, 19, 30, 9,  24,                    //
+   13, 18, 8,  12, 7,  6,  5,  63};
+inline constexpr std::uint64_t DEBRUIJN_64 = 0x03F79D71B4CB0A89ULL;
+
+constexpr std::uint8_t msb_index(Bitboard b) noexcept {
+    return MSB_INDICES[(b * DEBRUIJN_64) >> 58];
 }
 
 // Magic holds all magic bitboards relevant data for a single square
