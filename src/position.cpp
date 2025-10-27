@@ -493,13 +493,13 @@ std::string Position::fen(bool full) const noexcept {
     if (can_castle(ANY_CASTLING))
     {
         if (can_castle(WHITE_OO))
-            oss << (Chess960 ? UCI::to_char(file_of(castling_rook_sq(WHITE_OO)), true) : 'K');
+            oss << (Chess960 ? UCI::to_char<true>(file_of(castling_rook_sq(WHITE_OO))) : 'K');
         if (can_castle(WHITE_OOO))
-            oss << (Chess960 ? UCI::to_char(file_of(castling_rook_sq(WHITE_OOO)), true) : 'Q');
+            oss << (Chess960 ? UCI::to_char<true>(file_of(castling_rook_sq(WHITE_OOO))) : 'Q');
         if (can_castle(BLACK_OO))
-            oss << (Chess960 ? UCI::to_char(file_of(castling_rook_sq(BLACK_OO)), false) : 'k');
+            oss << (Chess960 ? UCI::to_char<false>(file_of(castling_rook_sq(BLACK_OO))) : 'k');
         if (can_castle(BLACK_OOO))
-            oss << (Chess960 ? UCI::to_char(file_of(castling_rook_sq(BLACK_OOO)), false) : 'q');
+            oss << (Chess960 ? UCI::to_char<false>(file_of(castling_rook_sq(BLACK_OOO))) : 'q');
     }
     else
         oss << '-';
@@ -2083,7 +2083,7 @@ std::ostream& operator<<(std::ostream& os, const Position::Board& board) noexcep
         os << UCI::to_char(r) << board.cardinals[r] << Sep;
     os << " ";
     for (File f = FILE_A; f <= FILE_H; ++f)
-        os << "   " << UCI::to_char(f, true);
+        os << "   " << UCI::to_char<true>(f);
     os << "\n";
 
     return os;

@@ -54,7 +54,7 @@ alignas(CACHE_LINE_SIZE) Bitboard* Attacks[2]{BishopAttacks, RookAttacks};
 
 // Returns the bitboard of target square from the given square for the given step.
 // If the step is off the board, returns empty bitboard.
-inline Bitboard safe_destination(Square s, Direction d, std::uint8_t dist = 1) noexcept {
+Bitboard safe_destination(Square s, Direction d, std::uint8_t dist = 1) noexcept {
     assert(is_ok(s));
     Square sq = s + d;
     return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
@@ -268,7 +268,7 @@ std::string pretty(Bitboard b) noexcept {
     for (File f = FILE_A; f <= FILE_H; ++f)
     {
         str += "   ";
-        str += UCI::to_char(f, true);
+        str += UCI::to_char<true>(f);
     }
     return str;
 }

@@ -44,7 +44,8 @@ class UCI final {
 
     static void print_info_string(std::string_view infoStr) noexcept;
 
-    [[nodiscard]] static constexpr char to_char(File f, bool upper = false) noexcept;
+    template<bool Upper = false>
+    [[nodiscard]] static constexpr char to_char(File f) noexcept;
     [[nodiscard]] static constexpr char to_char(Rank r) noexcept;
 
     [[nodiscard]] static constexpr File to_file(char f) noexcept;
@@ -92,8 +93,9 @@ class UCI final {
     CommandLine commandLine;
 };
 
-inline constexpr char UCI::to_char(File f, bool upper) noexcept {
-    return int(f) + (upper ? 'A' : 'a');
+template<bool Upper>
+inline constexpr char UCI::to_char(File f) noexcept {
+    return int(f) + (Upper ? 'A' : 'a');
 }
 
 inline constexpr char UCI::to_char(Rank r) noexcept { return int(r) + '1'; }
