@@ -22,7 +22,6 @@
 #include <cassert>
 #include <cctype>
 #include <cmath>
-#include <cstdint>
 #include <cstdlib>
 #include <initializer_list>
 #include <iostream>
@@ -439,7 +438,7 @@ void UCI::go(std::istringstream& iss) noexcept {
     auto limit = parse_limit(iss);
 
     if (limit.perft)
-        perft(limit);
+        perft(limit.depth, limit.detail);
     else
         engine.start(limit);
 }
@@ -520,7 +519,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
             auto limit = parse_limit(is);
 
             if (limit.perft)
-                infoNodes = perft(limit);
+                infoNodes = perft(limit.depth, limit.detail);
             else
             {
                 engine.start(limit);
@@ -749,8 +748,8 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     set_update_listeners();
 }
 
-std::uint64_t UCI::perft(const Limit& limit) noexcept {
-    auto nodes = engine.perft(limit.depth, limit.detail);
+std::uint64_t UCI::perft(Depth depth, bool detail) noexcept {
+    auto nodes = engine.perft(depth, detail);
     std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
     return nodes;
 }

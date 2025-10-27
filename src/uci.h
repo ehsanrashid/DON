@@ -18,6 +18,7 @@
 #ifndef UCI_H_INCLUDED
 #define UCI_H_INCLUDED
 
+#include <cstdint>
 #include <iosfwd>
 #include <string>
 #include <string_view>
@@ -29,7 +30,6 @@
 
 namespace DON {
 
-struct Limit;
 class Position;
 class Score;
 
@@ -90,7 +90,7 @@ class UCI final {
     void bench(std::istringstream& iss) noexcept;
     void benchmark(std::istringstream& iss) noexcept;
 
-    std::uint64_t perft(const Limit& limit) noexcept;
+    std::uint64_t perft(Depth depth, bool detail = false) noexcept;
 
     Engine      engine;
     CommandLine commandLine;
