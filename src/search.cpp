@@ -677,7 +677,7 @@ Value Worker::search(Position&    pos,
             return qsearch<PVNode>(pos, ss, alpha, beta);
 
         // Check if have an upcoming move that draws by repetition
-        if (alpha < VALUE_DRAW && pos.is_repetition_upcoming(ss->ply))
+        if (alpha < VALUE_DRAW && pos.is_upcoming_repetition(ss->ply))
         {
             alpha = draw_value(key, nodes.load(std::memory_order_relaxed));
             if (alpha >= beta)
@@ -1610,7 +1610,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     Key key = pos.key();
 
     // Check if have an upcoming move that draws by repetition
-    if (alpha < VALUE_DRAW && pos.is_repetition_upcoming(ss->ply))
+    if (alpha < VALUE_DRAW && pos.is_upcoming_repetition(ss->ply))
     {
         alpha = draw_value(key, nodes.load(std::memory_order_relaxed));
         if (alpha >= beta)

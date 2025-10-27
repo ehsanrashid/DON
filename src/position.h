@@ -281,7 +281,7 @@ class Position final {
                  bool         rule50Enabled    = true,
                  bool         stalemateEnabled = false) const noexcept;
     bool has_repeated() const noexcept;
-    bool is_repetition_upcoming(std::int16_t ply) const noexcept;
+    bool is_upcoming_repetition(std::int16_t ply) const noexcept;
 
     Value non_pawn_material(Color c) const noexcept;
     Value non_pawn_material() const noexcept;

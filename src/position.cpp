@@ -1781,7 +1781,7 @@ bool Position::has_repeated() const noexcept {
 
 // Tests if the current position has a move which draws by repetition.
 // Accurately matches the outcome of is_draw() over all legal moves.
-bool Position::is_repetition_upcoming(std::int16_t ply) const noexcept {
+bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
     auto end = std::min(rule50_count(), null_ply());
     // Enough reversible moves played
     if (end < 3)
