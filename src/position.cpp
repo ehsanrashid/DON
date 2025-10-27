@@ -151,17 +151,7 @@ void Position::init() noexcept {
         std::fill_n(&Zobrist::psq[pc][SQ_A8], PawnOffset, Key{});
     }
 
-    for (std::size_t cr = 0; cr < std::size(Zobrist::castling); ++cr)
-    {
-        Zobrist::castling[cr] = 0;
-
-        Bitboard b = cr;
-        while (b)
-        {
-            Key k = Zobrist::castling[square_bb(pop_lsb(b))];
-            Zobrist::castling[cr] ^= k ? k : rng_key();
-        }
-    }
+    std::generate(std::begin(Zobrist::castling), std::end(Zobrist::castling), rng_key);
 
     std::generate(std::begin(Zobrist::enpassant), std::end(Zobrist::enpassant), rng_key);
 
@@ -811,6 +801,7 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
     {
         assert(pt == KING);
         assert(capturedPiece == make_piece(ac, ROOK));
+        assert(castling_rights());
         assert(!has_castled(ac));
 
         Square rOrg, rDst;
@@ -821,8 +812,9 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
         // Update castling rights
         int cr = ac & ANY_CASTLING;
         assert(can_castle(CastlingRights(cr)));
-        k ^= Zobrist::castling[castling_rights() & cr];
+        k ^= Zobrist::castling[castling_rights()];
         st->castlingRights &= ~cr;
+        k ^= Zobrist::castling[castling_rights()];
 
         // clang-format off
         k                   ^= Zobrist::psq[capturedPiece][rOrg] ^ Zobrist::psq[capturedPiece][rDst];
@@ -888,8 +880,9 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
     // Update castling rights if needed
     if (int cr; castling_rights() && (cr = castling_rights_mask(org, dst)))
     {
-        k ^= Zobrist::castling[castling_rights() & cr];
+        k ^= Zobrist::castling[castling_rights()];
         st->castlingRights &= ~cr;
+        k ^= Zobrist::castling[castling_rights()];
     }
 
     // If the moving piece is a pawn do some special extra work
@@ -1435,8 +1428,10 @@ Key Position::move_key(Move m) const noexcept {
     moveKey ^=
       Zobrist::psq[movedPiece][org]
       ^ Zobrist::psq[m.type_of() != PROMOTION ? movedPiece : make_piece(ac, m.promotion_type())]
-                    [m.type_of() != CASTLING ? dst : king_castle_sq(ac, org, dst)]
-      ^ Zobrist::castling[castling_rights() & castling_rights_mask(org, dst)];
+                    [m.type_of() != CASTLING ? dst : king_castle_sq(ac, org, dst)];
+    if (int cr; castling_rights() && (cr = castling_rights_mask(org, dst)))
+        moveKey ^= Zobrist::castling[castling_rights()]  //
+                 ^ Zobrist::castling[castling_rights() & ~cr];
 
     if (m.type_of() == CASTLING)
     {
