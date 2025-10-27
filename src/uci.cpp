@@ -23,7 +23,6 @@
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
-#include <initializer_list>
 #include <iostream>
 #include <limits>
 #include <optional>
@@ -898,8 +897,8 @@ Move UCI::can_to_move(std::string can, const MoveList<LEGAL>& legalMoveList) noe
     return Move::None;
 }
 
-Move UCI::can_to_move(std::string_view can, const Position& pos) noexcept {
-    return can_to_move(std::string(can), MoveList<LEGAL>(pos));
+Move UCI::can_to_move(std::string can, const Position& pos) noexcept {
+    return can_to_move(can, MoveList<LEGAL>(pos));
 }
 
 namespace {
@@ -1036,9 +1035,8 @@ Move UCI::san_to_move(std::string            san,
                       Position&              pos,
                       const MoveList<LEGAL>& legalMoveList) noexcept {
     assert(2 <= san.size() && san.size() <= 9);
-    if (starts_with(lower_case(san), "o-") || starts_with(san, "0-"))
-        for (char ch : {'o', '0'})
-            std::replace(san.begin(), san.end(), ch, 'O');
+    if (san.size() >= 2 && san[1] == '-' && (san[0] == '0' || std::tolower(san[0]) == 'o'))
+        std::replace_if(san.begin(), san.end(), [](char c) { return c == 'o' || c == '0'; }, 'O');
 
     for (auto m : legalMoveList)
         if (san == move_to_san(m, pos))
@@ -1047,11 +1045,11 @@ Move UCI::san_to_move(std::string            san,
     return Move::None;
 }
 
-Move UCI::san_to_move(std::string_view san, Position& pos) noexcept {
-    return san_to_move(std::string(san), pos, MoveList<LEGAL>(pos));
+Move UCI::san_to_move(std::string san, Position& pos) noexcept {
+    return san_to_move(san, pos, MoveList<LEGAL>(pos));
 }
 
-Move UCI::mix_to_move(std::string_view       mix,
+Move UCI::mix_to_move(std::string            mix,
                       Position&              pos,
                       const MoveList<LEGAL>& legalMoveList) noexcept {
     assert(2 <= mix.size() && mix.size() <= 9);
@@ -1059,13 +1057,12 @@ Move UCI::mix_to_move(std::string_view       mix,
 
     if (!legalMoveList.empty() && mix.size() >= 2)
     {
-        if (mix.size() < 4 || starts_with(lower_case(std::string(mix)), "o-")
-            || starts_with(mix, "0-"))
-            return san_to_move(std::string(mix), pos, legalMoveList);
+        if (mix.size() < 4 || (mix[1] == '-' && (mix[0] == '0' || std::tolower(mix[0]) == 'o')))
+            return san_to_move(mix, pos, legalMoveList);
         if (mix.size() <= 5)
-            m = can_to_move(std::string(mix), legalMoveList);
+            m = can_to_move(mix, legalMoveList);
         if (m == Move::None && mix.size() <= 9)
-            m = san_to_move(std::string(mix), pos, legalMoveList);
+            m = san_to_move(mix, pos, legalMoveList);
     }
     return m;
 }
