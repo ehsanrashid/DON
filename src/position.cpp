@@ -794,22 +794,15 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
     // If the move is a castling, do some special work
     if (m.type_of() == CASTLING)
     {
-        assert(pt == KING);
+        assert(movedPiece == make_piece(ac, KING));
         assert(capturedPiece == make_piece(ac, ROOK));
-        assert(castling_rights());
+        assert(can_castle(ac & ANY_CASTLING));
         assert(!has_castled(ac));
 
         Square rOrg, rDst;
         do_castling<true>(ac, org, dst, rOrg, rDst, &dp);
         assert(rOrg == m.dst_sq());
         //rookMoved = rOrg != rDst;
-
-        // Update castling rights
-        int cr = ac & ANY_CASTLING;
-        assert(can_castle(CastlingRights(cr)));
-        k ^= Zobrist::castling[castling_rights()];
-        st->castlingRights &= ~cr;
-        k ^= Zobrist::castling[castling_rights()];
 
         // clang-format off
         k                   ^= Zobrist::psq[capturedPiece][rOrg] ^ Zobrist::psq[capturedPiece][rDst];
@@ -837,9 +830,9 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
             {
                 capSq -= pawn_spush(ac);
 
+                assert(movedPiece == make_piece(ac, PAWN));
                 assert(relative_rank(ac, org) == RANK_5);
                 assert(relative_rank(ac, dst) == RANK_6);
-                assert(pt == PAWN);
                 assert(pieces(~ac, PAWN) & capSq);
                 assert(!(pieces() & make_bitboard(dst, dst + pawn_spush(ac))));
                 assert(!is_ok(ep_sq()));  // Already reset to SQ_NONE
@@ -871,14 +864,6 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
     }
 
     move_piece(org, dst);
-
-    // Update castling rights if needed
-    if (int cr; castling_rights() && (cr = castling_rights_mask(org, dst)))
-    {
-        k ^= Zobrist::castling[castling_rights()];
-        st->castlingRights &= ~cr;
-        k ^= Zobrist::castling[castling_rights()];
-    }
 
     // If the moving piece is a pawn do some special extra work
     if (pt == PAWN)
@@ -937,6 +922,14 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
     assert(!check || (checkers() && popcount(checkers()) <= 2));
 
 DO_MOVE_END:
+
+    // Update castling rights if needed
+    if (int cr; castling_rights() && (cr = castling_rights_mask(org, dst)))
+    {
+        k ^= Zobrist::castling[castling_rights()];
+        st->castlingRights &= ~cr;
+        k ^= Zobrist::castling[castling_rights()];
+    }
 
     // Update hash key
     k ^= Zobrist::psq[movedPiece][org] ^ Zobrist::psq[movedPiece][dst];
