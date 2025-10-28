@@ -779,8 +779,8 @@ WinRateParams win_rate_params(const Position& pos) noexcept {
     // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (17.2414e-3).
     double m = 17.2414e-3 * std::clamp(pos.std_material(), 17, 78);
     // Return a = p_a(material) and b = p_b(material).
-    double a = m * (m * (m * as[0] + as[1]) + as[2]) + as[3];
-    double b = m * (m * (m * bs[0] + bs[1]) + bs[2]) + bs[3];
+    double a = ((as[0] * m + as[1]) * m + as[2]) * m + as[3];
+    double b = ((bs[0] * m + bs[1]) * m + bs[2]) * m + bs[3];
 
     return {a, b};
 }
