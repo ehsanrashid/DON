@@ -414,13 +414,12 @@ void UCI::position(std::istringstream& iss) noexcept {
                 break;
 
             fen += token;
-            fen += ' ';
+            fen.push_back(' ');
             ++i;
         }
         while (i < 4)
         {
-            fen += '-';
-            fen += ' ';
+            fen += "- ";
             ++i;
         }
     }
