@@ -72,8 +72,8 @@ struct Lookup final {
     }
 };
 
-// Single shared instance across all TUs
 alignas(CACHE_LINE_SIZE) constexpr Lookup LookupInstance{};
+
 
     #if defined(__GNUC__) || defined(__clang__)
         #define RESTRICT __restrict__
@@ -152,7 +152,7 @@ void find_nnz(const std::int32_t* RESTRICT input,
     constexpr IndexType InputsPerChunk  = ChunkSize / InputSimdWidth;
     constexpr IndexType OutputsPerChunk = ChunkSize / 8;
 
-    const vec_uint_t* inputVector = reinterpret_cast<const vec_uint_t*>(input);
+    const auto* inputVector = reinterpret_cast<const vec_uint_t*>(input);
 
     vec128_t base      = vec128_zero;
     vec128_t increment = vec128_set_16(8);
