@@ -2198,8 +2198,8 @@ void Skill::init(const Options& options) noexcept {
         std::uint16_t uciELO = options["UCI_ELO"];
 
         auto e = double(uciELO - MinELO) / (MaxELO - MinELO);
-        level  = std::clamp(-311.4380e-3 + (22.2943 + (-40.8525 + 37.2473 * e) * e) * e,  //
-                            MinLevel, MaxLevel - 0.01);
+        auto x = ((37.2473 * e - 40.8525) * e + 22.2943) * e - 0.311438;
+        level  = std::clamp(x, MinLevel, MaxLevel - 0.01);
     }
     else
     {
