@@ -170,10 +170,10 @@ Limit parse_limit(std::istringstream& iss) noexcept {
             iss >> std::boolalpha >> limit.detail;
         }
         // "searchmoves" needs to be the last command on the line
-        else if (starts_with(token, "search"))
+        else if (token.size() >= 1 && token[0] == 's')  // "searchmoves"
         {
             auto pos = iss.tellg();
-            while (iss >> token && !starts_with(lower_case(token), "ignore"))
+            while (iss >> token && !(token.size() >= 1 && std::tolower(token[0]) == 'i'))
             {
                 limit.searchMoves.push_back(token);
                 pos = iss.tellg();
@@ -181,10 +181,10 @@ Limit parse_limit(std::istringstream& iss) noexcept {
             iss.seekg(pos);
         }
         // "ignoremoves" needs to be the last command on the line
-        else if (starts_with(token, "ignore"))
+        else if (token.size() >= 1 && token[0] == 'i')  // "ignoremoves"
         {
             auto pos = iss.tellg();
-            while (iss >> token && !starts_with(lower_case(token), "search"))
+            while (iss >> token && !(token.size() >= 1 && std::tolower(token[0]) == 's'))
             {
                 limit.ignoreMoves.push_back(token);
                 pos = iss.tellg();
@@ -399,7 +399,7 @@ void UCI::position(std::istringstream& iss) noexcept {
     token = lower_case(token);
 
     std::string fen;
-    if (starts_with(token, "start"))  // "startpos"
+    if (token.size() >= 1 && token[0] == 's')  // "startpos"
     {
         fen = START_FEN;
         iss >> token;  // Consume the "moves" token, if any
