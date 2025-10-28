@@ -68,18 +68,21 @@ struct EmbeddedNNUE final {
     const unsigned int         size;
 };
 
-inline EmbeddedNNUE get_embedded(EmbeddedType embType) noexcept {
+namespace {
+EmbeddedNNUE get_embedded(EmbeddedType embType) noexcept {
     assert(embType == BIG || embType == SMALL);
     return embType == BIG ? EmbeddedNNUE(gBigEmbeddedData, gBigEmbeddedEnd, gBigEmbeddedSize)
                           : EmbeddedNNUE(gSmallEmbeddedData, gSmallEmbeddedEnd, gSmallEmbeddedSize);
 }
+}  // namespace
 
 namespace Impl {
 
+namespace {
 // Read network header
-inline bool read_header(std::istream&  istream,  //
-                        std::uint32_t& hashValue,
-                        std::string&   netDescription) noexcept {
+bool read_header(std::istream&  istream,  //
+                 std::uint32_t& hashValue,
+                 std::string&   netDescription) noexcept {
     std::uint32_t fileVersion, descSize;
     fileVersion = read_little_endian<std::uint32_t>(istream);
     hashValue   = read_little_endian<std::uint32_t>(istream);
@@ -93,9 +96,9 @@ inline bool read_header(std::istream&  istream,  //
 }
 
 // Write network header
-inline bool write_header(std::ostream&      ostream,  //
-                         std::uint32_t      hashValue,
-                         const std::string& netDescription) noexcept {
+bool write_header(std::ostream&      ostream,  //
+                  std::uint32_t      hashValue,
+                  const std::string& netDescription) noexcept {
     write_little_endian<std::uint32_t>(ostream, FILE_VERSION);
     write_little_endian<std::uint32_t>(ostream, hashValue);
     write_little_endian<std::uint32_t>(ostream, netDescription.size());
@@ -106,7 +109,7 @@ inline bool write_header(std::ostream&      ostream,  //
 
 // Read evaluation function parameters
 template<typename T>
-inline bool read_parameters(std::istream& istream, T& reference) noexcept {
+bool read_parameters(std::istream& istream, T& reference) noexcept {
     std::uint32_t hashValue;
     hashValue = read_little_endian<std::uint32_t>(istream);
     if (!istream || hashValue != T::hash_value())
@@ -117,12 +120,12 @@ inline bool read_parameters(std::istream& istream, T& reference) noexcept {
 
 // Write evaluation function parameters
 template<typename T>
-inline bool write_parameters(std::ostream& ostream, T& reference) noexcept {
+bool write_parameters(std::ostream& ostream, T& reference) noexcept {
     write_little_endian<std::uint32_t>(ostream, T::hash_value());
 
     return reference.write_parameters(ostream);
 }
-
+}  // namespace
 }  // namespace Impl
 
 template<typename Arch, typename Transformer>
