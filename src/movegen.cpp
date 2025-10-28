@@ -32,7 +32,7 @@ namespace DON {
 namespace {
 
 #if defined(USE_AVX512ICL)
-inline Move* write_moves(Move* moves, std::uint32_t mask, __m512i vector) noexcept {
+Move* write_moves(Move* moves, std::uint32_t mask, __m512i vector) noexcept {
     // Avoid _mm512_mask_compressstoreu_epi16() as it's 256 uOps on Zen4
     _mm512_storeu_si512(reinterpret_cast<__m512i*>(moves),
                         _mm512_maskz_compress_epi16(mask, vector));
@@ -42,7 +42,7 @@ inline Move* write_moves(Move* moves, std::uint32_t mask, __m512i vector) noexce
 
 // Splat pawn moves
 template<Direction D>
-inline Move* splat_pawn_moves(Move* moves, Bitboard b) noexcept {
+Move* splat_pawn_moves(Move* moves, Bitboard b) noexcept {
     static_assert(D == NORTH || D == SOUTH || D == NORTH_2 || D == SOUTH_2  //
                     || D == NORTH_EAST || D == SOUTH_EAST || D == NORTH_WEST || D == SOUTH_WEST,
                   "D is invalid");
@@ -74,7 +74,7 @@ inline Move* splat_pawn_moves(Move* moves, Bitboard b) noexcept {
 
 // Splat promotion moves
 template<Direction D>
-inline Move* splat_promotion_moves(Move* moves, Bitboard b) noexcept {
+Move* splat_promotion_moves(Move* moves, Bitboard b) noexcept {
     static_assert(D == NORTH || D == SOUTH || D == NORTH_2 || D == SOUTH_2  //
                     || D == NORTH_EAST || D == SOUTH_EAST || D == NORTH_WEST || D == SOUTH_WEST,
                   "D is invalid");
@@ -89,7 +89,7 @@ inline Move* splat_promotion_moves(Move* moves, Bitboard b) noexcept {
 }
 
 // Splat moves for a given square and bitboard
-inline Move* splat_moves(Move* moves, Square s, Bitboard b) noexcept {
+Move* splat_moves(Move* moves, Square s, Bitboard b) noexcept {
 
 #if defined(USE_AVX512ICL)
     alignas(CACHE_LINE_SIZE) static constexpr auto SplatTable = []() constexpr {

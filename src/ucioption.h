@@ -56,7 +56,7 @@ enum OptionType : std::uint8_t {
     OPT_COMBO
 };
 
-inline bool is_ok(OptionType ot) noexcept { return OPT_BUTTON <= ot && ot <= OPT_COMBO; }
+constexpr bool is_ok(OptionType ot) noexcept { return OPT_BUTTON <= ot && ot <= OPT_COMBO; }
 
 std::string_view to_string(OptionType ot) noexcept;
 
