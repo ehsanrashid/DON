@@ -1125,8 +1125,8 @@ bool Position::pseudo_legal(Move m) const noexcept {
     if (m.type_of() == CASTLING)
     {
         CastlingRights cr = make_castling_rights(ac, org, dst);
-        return relative_rank(ac, org) == RANK_1 && relative_rank(ac, dst) == RANK_1
-            && type_of(pc) == KING && (pieces(ac, ROOK) & dst) && !checkers()  //
+        return pc == make_piece(ac, KING) && (pieces(ac, ROOK) & dst) && !checkers()
+            && relative_rank(ac, org) == RANK_1 && relative_rank(ac, dst) == RANK_1
             && can_castle(cr) && !castling_impeded(cr) && castling_rook_sq(cr) == dst;
     }
 
@@ -1157,21 +1157,21 @@ bool Position::pseudo_legal(Move m) const noexcept {
             return false;
 
         // For king moves, check whether the destination square is attacked by the enemies.
-        if (type_of(pc) == KING)
+        if (pc == make_piece(ac, KING))
             return !has_attackers_to(pieces(~ac), dst, pieces() ^ org);
         break;
 
     case PROMOTION :
-        if (!(relative_rank(ac, org) == RANK_7 && relative_rank(ac, dst) == RANK_8
-              && type_of(pc) == PAWN  //&& (PROMOTION_RANK_BB & dst)
+        if (!(pc == make_piece(ac, PAWN)  //&& (PROMOTION_RANK_BB & dst)
+              && relative_rank(ac, org) == RANK_7 && relative_rank(ac, dst) == RANK_8
               && ((org + pawn_spush(ac) == dst && !(pieces() & dst))
                   || ((attacks_bb<PAWN>(org, ac) & pieces(~ac)) & dst))))
             return false;
         break;
 
     case EN_PASSANT :
-        if (!(relative_rank(ac, org) == RANK_5 && relative_rank(ac, dst) == RANK_6
-              && type_of(pc) == PAWN && ep_sq() == dst && rule50_count() == 0
+        if (!(pc == make_piece(ac, PAWN) && ep_sq() == dst && rule50_count() == 0
+              && relative_rank(ac, org) == RANK_5 && relative_rank(ac, dst) == RANK_6
               && (pieces(~ac, PAWN) & (dst - pawn_spush(ac)))
               && !(pieces() & make_bitboard(dst, dst + pawn_spush(ac)))
               && ((attacks_bb<PAWN>(org, ac) /*& ~pieces()*/) & dst)
@@ -1213,11 +1213,11 @@ bool Position::legal(Move m) const noexcept {
     // En-passant captures are a tricky special case. Because they are rather uncommon,
     // Simply by testing whether the king is attacked after the move is made.
     case EN_PASSANT :
-        assert(relative_rank(ac, org) == RANK_5);
-        assert(relative_rank(ac, dst) == RANK_6);
-        assert(type_of(piece_on(org)) == PAWN);
+        assert(piece_on(org) == make_piece(ac, PAWN));
         assert(ep_sq() == dst);
         assert(rule50_count() == 0);
+        assert(relative_rank(ac, org) == RANK_5);
+        assert(relative_rank(ac, dst) == RANK_6);
         assert(pieces(~ac, PAWN) & (dst - pawn_spush(ac)));
         assert(!(pieces() & make_bitboard(dst, dst + pawn_spush(ac))));
         assert((attacks_bb<PAWN>(org, ac) /*& ~pieces()*/) & dst);
@@ -1230,12 +1230,12 @@ bool Position::legal(Move m) const noexcept {
     // Castling moves generation does not check if the castling path is clear of
     // enemy attacks, it is delayed at a later time: now!
     case CASTLING : {
-        assert(relative_rank(ac, org) == RANK_1);
-        assert(relative_rank(ac, dst) == RANK_1);
-        assert(type_of(piece_on(org)) == KING);
+        assert(piece_on(org) == make_piece(ac, KING));
         assert(org == king_sq(ac));
         assert(pieces(ac, ROOK) & dst);
         assert(!checkers());
+        assert(relative_rank(ac, org) == RANK_1);
+        assert(relative_rank(ac, dst) == RANK_1);
         assert(can_castle(make_castling_rights(ac, org, dst)));
         assert(!castling_impeded(make_castling_rights(ac, org, dst)));
         assert(castling_rook_sq(make_castling_rights(ac, org, dst)) == dst);
@@ -1254,7 +1254,7 @@ bool Position::legal(Move m) const noexcept {
     }
     case NORMAL :
         // For king moves, return true
-        if (type_of(piece_on(org)) == KING)
+        if (piece_on(org) == make_piece(ac, KING))
         {
             assert(!has_attackers_to(pieces(~ac), dst, pieces() ^ org));
             return true;
@@ -1262,9 +1262,9 @@ bool Position::legal(Move m) const noexcept {
         break;
 
     case PROMOTION :
+        assert(piece_on(org) == make_piece(ac, PAWN));
         assert(relative_rank(ac, org) == RANK_7);
         assert(relative_rank(ac, dst) == RANK_8);
-        assert(type_of(piece_on(org)) == PAWN);
         assert((org + pawn_spush(ac) == dst && !(pieces() & dst))
                || ((attacks_bb<PAWN>(org, ac) & pieces(~ac)) & dst));
         break;
@@ -1422,7 +1422,7 @@ Key Position::move_key(Move m) const noexcept {
 
     if (m.type_of() == CASTLING)
     {
-        assert(type_of(movedPiece) == KING);
+        assert(movedPiece == make_piece(ac, KING));
         assert(capturedPiece == make_piece(ac, ROOK));
         // ROOK
         moveKey ^= Zobrist::psq[capturedPiece][dst]
