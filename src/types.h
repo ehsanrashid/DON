@@ -36,11 +36,11 @@
 //                | only in 64-bit mode and requires hardware with pext support.
 
     #include <algorithm>
+    #include <array>
     #include <cassert>
     #include <cstddef>
     #include <cstdint>
     #include <limits>
-    #include <string>
     #include <string_view>
     #include <type_traits>
 
@@ -94,7 +94,7 @@ inline constexpr std::uint16_t MAX_PLY   = 254U;
 // Size of cache line (in bytes)
 inline constexpr std::size_t CACHE_LINE_SIZE = 64U;
 
-inline constexpr std::string_view PieceChar{" PNBRQK  pnbrqk "};
+inline constexpr std::string_view PIECE_CHAR{" PNBRQK  pnbrqk "};
 inline constexpr std::string_view START_FEN{
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 
@@ -410,13 +410,13 @@ constexpr Direction pawn_dpush(Color c) noexcept {
 }
 
 [[nodiscard]] constexpr char to_char(PieceType pt) noexcept {
-    return is_ok(pt) ? PieceChar[pt] : ' ';
+    return is_ok(pt) ? PIECE_CHAR[pt] : ' ';
 }
 
-[[nodiscard]] constexpr char to_char(Piece pc) noexcept { return is_ok(pc) ? PieceChar[pc] : ' '; }
+[[nodiscard]] constexpr char to_char(Piece pc) noexcept { return is_ok(pc) ? PIECE_CHAR[pc] : ' '; }
 
 [[nodiscard]] constexpr Piece to_piece(char pc) noexcept {
-    auto pos = PieceChar.find(pc);
+    auto pos = PIECE_CHAR.find(pc);
     return pos != std::string_view::npos ? Piece(pos) : NO_PIECE;
 }
 
@@ -441,10 +441,24 @@ template<bool Upper = false>
     return ('1' <= r && r <= '8') ? '1' + ('8' - r) : r;
 }
 
-[[nodiscard]] inline std::string to_square(Square s) noexcept {
+// Build a compile-time table: "a1", "b1", ..., "h8"
+alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARE_TEXT = []() {
+    std::array<std::array<char, 2>, SQUARE_NB> squareText{};
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    {
+        squareText[s][0] = to_char(file_of(s));
+        squareText[s][1] = to_char(rank_of(s));
+    }
+    return squareText;
+}();
+
+[[nodiscard]] constexpr std::string_view to_square(Square s) noexcept {
     assert(is_ok(s));
-    return std::string{to_char(file_of(s)), to_char(rank_of(s))};
+    return {SQUARE_TEXT[s].data(), 2};
 }
+
+static_assert(to_square(SQ_A1) == "a1" && to_square(SQ_H8) == "h8",
+              "to_square(): broken, expected 'a1' & 'h8'");
 
 // Linear Congruential Generator (LCG): X_{n+1} = (c + a * X_n)
 // Based on a congruential pseudo-random number generator
