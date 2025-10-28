@@ -442,16 +442,16 @@ template<bool Upper = false>
 }
 
 // Build a compile-time table: "a1", "b1", ..., "h8"
-alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARE_TEXT = []() {
-    std::array<std::array<char, 2>, SQUARE_NB> squareText{};
+alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARE_CHARS = []() {
+    std::array<std::array<char, 2>, SQUARE_NB> squareChars{};
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
-        squareText[s] = {to_char(file_of(s)), to_char(rank_of(s))};
-    return squareText;
+        squareChars[s] = {to_char(file_of(s)), to_char(rank_of(s))};
+    return squareChars;
 }();
 
 [[nodiscard]] constexpr std::string_view to_square(Square s) noexcept {
     assert(is_ok(s));
-    return {SQUARE_TEXT[s].data(), 2};
+    return {SQUARE_CHARS[s].data(), 2};
 }
 
 static_assert(to_square(SQ_A1) == "a1" && to_square(SQ_H8) == "h8",
