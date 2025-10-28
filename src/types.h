@@ -445,10 +445,7 @@ template<bool Upper = false>
 alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARE_TEXT = []() {
     std::array<std::array<char, 2>, SQUARE_NB> squareText{};
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
-    {
-        squareText[s][0] = to_char(file_of(s));
-        squareText[s][1] = to_char(rank_of(s));
-    }
+        squareText[s] = {to_char(file_of(s)), to_char(rank_of(s))};
     return squareText;
 }();
 
