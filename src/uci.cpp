@@ -414,7 +414,7 @@ void UCI::position(std::istringstream& iss) noexcept {
                 break;
 
             fen += token;
-            fen.push_back(' ');
+            fen += ' ';
             ++i;
         }
         while (i < 4)
