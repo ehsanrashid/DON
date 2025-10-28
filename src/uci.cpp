@@ -211,30 +211,31 @@ UCI::UCI(int argc, const char* argv[]) noexcept :
 
 void UCI::run() noexcept {
     std::string command;
+    command.reserve(256);
     for (std::size_t i = 1; i < commandLine.arguments.size(); ++i)
     {
         if (!command.empty())
-            command += ' ';
-        command += commandLine.arguments[i];
+            command.push_back(' ');
+        command.append(commandLine.arguments[i].data(), commandLine.arguments[i].size());
     }
 
     const bool running = commandLine.arguments.size() <= 1;
-    if (running || !is_whitespace(command))
+    if (!running && is_whitespace(command))
+        return;
+
+    do
     {
-        do
-        {
-            // The command-line arguments are one-shot
-            if (running
-                // Wait for an input or an end-of-file (EOF) indication
-                && !std::getline(std::cin, command))
-                command = "quit";
+        // The command-line arguments are one-shot
+        if (running
+            // Wait for an input or an end-of-file (EOF) indication
+            && !std::getline(std::cin, command))
+            command = "quit";
 
-            execute(command);
+        execute(command);
 
-            if (command == "quit")
-                break;
-        } while (running);
-    }
+        if (command == "quit")
+            break;
+    } while (running);
 }
 
 void UCI::execute(std::string_view command) noexcept {
