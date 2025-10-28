@@ -766,7 +766,6 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
 
     Square org = m.org_sq(), dst = m.dst_sq();
     Piece  movedPiece = piece_on(org);
-    auto   pt         = type_of(movedPiece);
     Piece  capturedPiece =
       m.type_of() != EN_PASSANT ? piece_on(dst) : piece_on(dst - pawn_spush(ac));
     Piece promotedPiece = NO_PIECE;
@@ -866,7 +865,7 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
     move_piece(org, dst);
 
     // If the moving piece is a pawn do some special extra work
-    if (pt == PAWN)
+    if (type_of(movedPiece) == PAWN)
     {
         if (m.type_of() == PROMOTION)
         {
@@ -910,10 +909,10 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
     }
     else
     {
-        if (pt == KING)
+        if (type_of(movedPiece) == KING)
             st->kingSq[ac] = dst;
         else
-            st->groupKey[ac][is_major(pt)] ^=
+            st->groupKey[ac][is_major(type_of(movedPiece))] ^=
               Zobrist::psq[movedPiece][org] ^ Zobrist::psq[movedPiece][dst];
     }
 
