@@ -1,6 +1,9 @@
 #!/usr/bin/env sh
+# Enable pipefail only if the shell supports it (bash, zsh, ksh); harmless on dash.
+case "$(set -o 2>/dev/null)" in
+  *" pipefail "*) set -o pipefail ;;
+esac
 set -eu
-set -o pipefail 2>/dev/null || true
 
 echo "Running clang-format…"
 
