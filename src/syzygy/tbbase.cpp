@@ -76,17 +76,17 @@ namespace DON {
 
 namespace {
 
-enum Endian {
+enum Endian : std::uint8_t {
     Big,
     Little
 };
 // Used as template parameter
-enum TBType {
+enum TBType : std::uint8_t {
     WDL,
     DTZ
 };
 // Each table has a set of flags: all of them refer to DTZ-tables, the last one to WDL-tables
-enum TBFlag {
+enum TBFlag : std::uint8_t {
     AC          = 1,
     Mapped      = 2,
     WinPlies    = 4,

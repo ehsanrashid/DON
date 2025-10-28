@@ -218,7 +218,7 @@ struct Vec32Wrapper final {
 #endif
 };
 
-enum UpdateOperation {
+enum UpdateOperation : std::uint8_t {
     Add,
     Sub
 };
