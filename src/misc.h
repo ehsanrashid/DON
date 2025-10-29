@@ -423,11 +423,7 @@ inline std::string upper_case(std::string str) noexcept {
 
 inline std::string toggle_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept -> char {
-        if (std::islower(ch))
-            return std::toupper(ch);
-        if (std::isupper(ch))
-            return std::tolower(ch);
-        return ch;
+        return std::islower(ch) ? std::toupper(ch) : std::isupper(ch) ? std::tolower(ch) : ch;
     });
     return str;
 }
@@ -452,29 +448,28 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 }
 
 [[nodiscard]] constexpr bool is_whitespace(std::string_view str) noexcept {
-    //return str.empty()  //
-    //    || std::all_of(str.begin(), str.end(),
-    //                   [](unsigned char ch) noexcept { return std::isspace(ch) != 0; });
+    //return str.empty()
+    //    || std::all_of(str.begin(), str.end(), [](unsigned char ch) { return std::isspace(ch); });
     return str.find_first_not_of(WHITE_SPACE) == std::string_view::npos;
 }
 
 [[nodiscard]] constexpr std::string_view ltrim(std::string_view str) noexcept {
     // Find the first non-whitespace character
-    std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+    const std::size_t beg = str.find_first_not_of(WHITE_SPACE);
     return (beg == std::string_view::npos) ? std::string_view{} : str.substr(beg);
 }
 
 [[nodiscard]] constexpr std::string_view rtrim(std::string_view str) noexcept {
     // Find the last non-whitespace character
-    std::size_t end = str.find_last_not_of(WHITE_SPACE);
+    const std::size_t end = str.find_last_not_of(WHITE_SPACE);
     return (end == std::string_view::npos) ? std::string_view{} : str.substr(0, end + 1);
 }
 
 [[nodiscard]] constexpr std::string_view trim(std::string_view str) noexcept {
-    std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+    const std::size_t beg = str.find_first_not_of(WHITE_SPACE);
     if (beg == std::string_view::npos)
         return {};
-    std::size_t end = str.find_last_not_of(WHITE_SPACE);
+    const std::size_t end = str.find_last_not_of(WHITE_SPACE);
     return str.substr(beg, end - beg + 1);
     //return ltrim(rtrim(str));
 }

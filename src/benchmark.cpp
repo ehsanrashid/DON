@@ -436,14 +436,15 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexce
         commands.emplace_back("ucinewgame");
     }
 
-    for (const auto& fen : fens)
-        if (fen.find("setoption ") != std::string::npos)
-            commands.emplace_back(fen);
-        else
-        {
-            commands.emplace_back("position fen " + fen);
+    for (auto& fen : fens)
+    {
+        fen = std::string(trim(fen));
+
+        bool setOption = fen.rfind("setoption ", 0) == 0;
+        commands.emplace_back(setOption ? fen : "position fen " + fen);
+        if (!setOption)
             commands.emplace_back(command);
-        }
+    }
 
     return commands;
 }

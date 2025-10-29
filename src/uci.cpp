@@ -491,8 +491,8 @@ void UCI::bench(std::istringstream& iss) noexcept {
     options().set("ReportMinimal", bool_to_string(true));
 
     const std::size_t num =
-      std::count_if(commands.begin(), commands.end(), [](const auto& command) {
-          return command.find("go ") == 0 || command.find("eval") == 0;
+      std::count_if(commands.begin(), commands.end(), [](std::string_view command) {
+          return starts_with(command, "go ") || starts_with(command, "eval");
       });
 
 #if !defined(NDEBUG)
@@ -594,7 +594,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
 
     const std::size_t num =
       std::count_if(benchmark.commands.begin(), benchmark.commands.end(),
-                    [](const auto& command) { return command.find("go ") == 0; });
+                    [](std::string_view command) { return starts_with(command, "go "); });
 
 #if !defined(NDEBUG)
     Debug::clear();
