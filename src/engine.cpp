@@ -96,7 +96,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("OwnBook",              Option(false));
     options.add("BookFile",             Option("", [](const Option& o) { Book.init(o); return std::nullopt; }));
     options.add("BookProbeDepth",       Option(100, 1, 256));
-    options.add("BookBestPick",         Option(true));
+    options.add("BookPickBest",         Option(true));
     options.add("SyzygyPath",           Option("", [](const Option& o) { Tablebases::init(o); return std::nullopt; }));
     options.add("SyzygyProbeLimit",     Option(7, 0, 7));
     options.add("SyzygyProbeDepth",     Option(1, 1, 100));

@@ -79,7 +79,7 @@ class PolyBook final {
 
     bool active() const noexcept { return entries != nullptr; }
 
-    Move probe(Position& pos, bool bestPick = true) noexcept;
+    Move probe(Position& pos, bool pickBestEnabled = true) noexcept;
 
    private:
     struct KeyData final {

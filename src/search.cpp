@@ -275,14 +275,14 @@ void Worker::start_search() noexcept {
             // Check polyglot book
             if (options["OwnBook"] && Book.active()
                 && rootPos.move_num() < options["BookProbeDepth"])
-                bookBestMove = Book.probe(rootPos, options["BookBestPick"]);
+                bookBestMove = Book.probe(rootPos, options["BookPickBest"]);
         }
 
         if (bookBestMove != Move::None && rootMoves.contains(bookBestMove))
         {
             State st;
             rootPos.do_move(bookBestMove, st);
-            Move bookPonderMove = Book.probe(rootPos, options["BookBestPick"]);
+            Move bookPonderMove = Book.probe(rootPos, options["BookPickBest"]);
             rootPos.undo_move(bookBestMove);
 
             for (auto&& th : threads)
@@ -2204,16 +2204,16 @@ void Skill::init(const Options& options) noexcept {
         level = options["SkillLevel"];
     }
 
-    move = Move::None;
+    bestMove = Move::None;
 }
 
 // When playing with strength handicap, choose the best move among a set of RootMoves
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick) noexcept {
+Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickEnabled) noexcept {
     assert(1 <= multiPV && multiPV <= rootMoves.size());
     static PRNG rng(now());  // PRNG sequence should be non-deterministic
 
-    if (pick || move == Move::None)
+    if (pickEnabled || bestMove == Move::None)
     {
         // RootMoves are already sorted by value in descending order
         Value curValue = rootMoves[0].curValue;
@@ -2235,12 +2235,12 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
             if (maxValue <= value)
             {
                 maxValue = value;
-                move     = rootMoves[i].pv[0];
+                bestMove = rootMoves[i].pv[0];
             }
         }
     }
 
-    return move;
+    return bestMove;
 }
 
 namespace {
