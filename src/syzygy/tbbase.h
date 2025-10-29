@@ -55,7 +55,7 @@ struct Config final {
     bool         rule50Enabled = false;
 };
 
-extern std::uint8_t MaxCardinality;
+inline std::uint8_t MaxCardinality;
 
 void init() noexcept;
 void init(std::string_view paths) noexcept;

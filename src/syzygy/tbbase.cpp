@@ -1395,8 +1395,6 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
 namespace Tablebases {
 
-std::uint8_t MaxCardinality;
-
 // Called at startup to create the various tables
 void init() noexcept {
 
