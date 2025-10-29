@@ -23,21 +23,11 @@
     #include <string_view>
 #endif
 
-#include "misc.h"
+#if !defined(USE_BMI2)
+    #include "misc.h"
+#endif
 
 namespace DON {
-
-#if !defined(USE_POPCNT)
-alignas(CACHE_LINE_SIZE) std::uint8_t PopCnt[POPCNT_SIZE];
-#endif
-// clang-format off
-alignas(CACHE_LINE_SIZE) std::uint8_t Distances[SQUARE_NB][SQUARE_NB];
-
-alignas(CACHE_LINE_SIZE) Bitboard        Lines[SQUARE_NB][SQUARE_NB];
-alignas(CACHE_LINE_SIZE) Bitboard     Betweens[SQUARE_NB][SQUARE_NB];
-alignas(CACHE_LINE_SIZE) Bitboard PieceAttacks[SQUARE_NB][PIECE_TYPE_NB];
-alignas(CACHE_LINE_SIZE) Magic          Magics[SQUARE_NB][2];
-// clang-format on
 
 namespace {
 
@@ -218,7 +208,6 @@ void init() noexcept {
         PieceAttacks[s1][WHITE] = pawn_attacks_bb<WHITE>(square_bb(s1));
         PieceAttacks[s1][BLACK] = pawn_attacks_bb<BLACK>(square_bb(s1));
 
-        PieceAttacks[s1][KNIGHT] = 0;
         for (auto dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
                          WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
             PieceAttacks[s1][KNIGHT] |= safe_destination(s1, dir, 2);
@@ -227,13 +216,11 @@ void init() noexcept {
         PieceAttacks[s1][ROOK]   = attacks_bb<ROOK>(s1, 0);
         PieceAttacks[s1][QUEEN]  = PieceAttacks[s1][BISHOP] | PieceAttacks[s1][ROOK];
 
-        PieceAttacks[s1][KING] = 0;
         for (auto dir : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
             PieceAttacks[s1][KING] |= safe_destination(s1, dir);
 
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
-            Lines[s1][s2] = Betweens[s1][s2] = 0;
             for (PieceType pt : {BISHOP, ROOK})
                 if (PieceAttacks[s1][pt] & s2)
                 {

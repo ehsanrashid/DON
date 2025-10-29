@@ -140,16 +140,16 @@ struct Magic final {
 
 #if !defined(USE_POPCNT)
 inline constexpr std::size_t POPCNT_SIZE = 1U << 16;
-extern std::uint8_t          PopCnt[POPCNT_SIZE];
+alignas(CACHE_LINE_SIZE) inline std::uint8_t PopCnt[POPCNT_SIZE]{};
 #endif
 
 // clang-format off
-extern std::uint8_t Distances[SQUARE_NB][SQUARE_NB];
+alignas(CACHE_LINE_SIZE) inline std::uint8_t Distances[SQUARE_NB][SQUARE_NB]{};
 
-extern Bitboard        Lines[SQUARE_NB][SQUARE_NB];
-extern Bitboard     Betweens[SQUARE_NB][SQUARE_NB];
-extern Bitboard PieceAttacks[SQUARE_NB][PIECE_TYPE_NB];
-extern Magic          Magics[SQUARE_NB][2];  // BISHOP or ROOK
+alignas(CACHE_LINE_SIZE) inline Bitboard        Lines[SQUARE_NB][SQUARE_NB]{};
+alignas(CACHE_LINE_SIZE) inline Bitboard     Betweens[SQUARE_NB][SQUARE_NB]{};
+alignas(CACHE_LINE_SIZE) inline Bitboard PieceAttacks[SQUARE_NB][PIECE_TYPE_NB]{};
+alignas(CACHE_LINE_SIZE) inline Magic          Magics[SQUARE_NB][2]{};  // BISHOP or ROOK
 // clang-format on
 
 constexpr Bitboard square_bb(Square s) noexcept {
