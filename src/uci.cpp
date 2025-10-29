@@ -835,7 +835,7 @@ std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
 }
 
 std::string UCI::to_score(const Score& score) noexcept {
-    static constexpr int TB_CP = 20000;
+    constexpr int TB_CP = 20000;
 
     const auto format =
       Overload{[](Score::Unit unit) -> std::string {

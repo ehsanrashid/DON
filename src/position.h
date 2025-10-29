@@ -465,7 +465,7 @@ inline Square Position::castling_rook_sq(CastlingRights cr) const noexcept {
 }
 
 inline auto Position::castling_rights_mask(Square org, Square dst) const noexcept {
-    static constexpr auto Indices = []() constexpr {
+    constexpr auto Indices = []() constexpr {
         std::array<std::uint8_t, SQUARE_NB> indices{};
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {

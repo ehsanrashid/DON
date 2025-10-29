@@ -2267,7 +2267,7 @@ void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) n
 void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept {
     assert(is_ok(dst));
 
-    static constexpr std::pair<std::uint8_t, double> ContHistoryWeights[8]{
+    constexpr std::pair<std::uint8_t, double> ContHistoryWeights[8]{
         {1, 1.1299}, {2, 0.6328}, {3, 0.2812}, {4, 0.5625},
         {5, 0.1367}, {6, 0.4307}, {7, 0.2222}, {8, 0.2167}};
 

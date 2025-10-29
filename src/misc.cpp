@@ -37,9 +37,9 @@ constexpr std::string_view Version{"dev"};
 
 #if !defined(GIT_DATE)
 std::string format_date(std::string_view date) noexcept {
-    //static constexpr std::string_view Months{"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"};
-    static constexpr std::array<std::string_view, 12> Months{
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    //constexpr std::string_view Months{"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"};
+    constexpr std::array<std::string_view, 12> Months{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
     std::istringstream iss{std::string(date)};  // From compiler, format is "Sep 21 2008"
 

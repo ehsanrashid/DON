@@ -48,7 +48,7 @@ Move* splat_pawn_moves(Move* moves, Bitboard b) noexcept {
                   "D is invalid");
 
 #if defined(USE_AVX512ICL)
-    alignas(CACHE_LINE_SIZE) static constexpr auto SplatTable = []() constexpr {
+    alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr {
         std::array<Move, 64> table{};
         for (std::int8_t i = 0; i < 64; ++i)
         {
@@ -92,7 +92,7 @@ Move* splat_promotion_moves(Move* moves, Bitboard b) noexcept {
 Move* splat_moves(Move* moves, Square s, Bitboard b) noexcept {
 
 #if defined(USE_AVX512ICL)
-    alignas(CACHE_LINE_SIZE) static constexpr auto SplatTable = []() constexpr {
+    alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr {
         std::array<Move, 64> table{};
         for (std::int8_t i = 0; i < 64; ++i)
             table[i] = {Move(SQUARE_ZERO, Square{i})};

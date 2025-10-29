@@ -291,9 +291,9 @@ class TBFile: public std::ifstream {
 
         auto* data = (std::uint8_t*) (*baseAddress);
 
-        static constexpr std::size_t  MagicSize = 4;
-        static constexpr std::uint8_t Magics[2][MagicSize]{{0xD7, 0x66, 0x0C, 0xA5},
-                                                           {0x71, 0xE8, 0x23, 0x5D}};
+        constexpr std::size_t  MagicSize = 4;
+        constexpr std::uint8_t Magics[2][MagicSize]{{0xD7, 0x66, 0x0C, 0xA5},
+                                                    {0x71, 0xE8, 0x23, 0x5D}};
 
         if (std::memcmp(data, Magics[Type == WDL], MagicSize))
         {
