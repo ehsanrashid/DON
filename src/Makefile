@@ -427,7 +427,7 @@ endif
 
 CXXFLAGS = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
 DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17
-LDFLAGS = $(ENV_LDFLAGS) -fno-exceptions -std=c++17 $(EXTRACXXFLAGS) $(EXTRALDFLAGS)
+LDFLAGS = $(ENV_LDFLAGS) $(EXTRALDFLAGS)
 
 ifeq ($(COMP), )
     COMP=gcc
@@ -824,14 +824,13 @@ ifeq ($(optimize), yes)
     ifeq ($(debug), no)
         ifeq ($(comp), $(filter $(comp), clang icx))
             CXXFLAGS += -flto=full
-            LDFLAGS += -flto=full
             ifeq ($(comp), icx)
                 CXXFLAGS += -fwhole-program-vtables
             endif
             ifeq ($(target_windows), yes)
                 CXXFLAGS += -fuse-ld=lld
-                LDFLAGS  += -fuse-ld=lld
             endif
+            LDFLAGS += $(CXXFLAGS)
 
 # GCC and CLANG use different methods for parallelizing LTO and CLANG pretends to be
 # GCC on some systems.
@@ -841,10 +840,10 @@ ifeq ($(optimize), yes)
             else
                 ifeq ($(gccisclang), )
                     CXXFLAGS += -flto -flto-partition=one
-                    LDFLAGS += -flto -flto-partition=one -flto=jobserver
+                    LDFLAGS += $(CXXFLAGS) -flto=jobserver
                 else
                     CXXFLAGS += -flto=full
-                    LDFLAGS += -flto=full
+                    LDFLAGS += $(CXXFLAGS)
                 endif
             endif
 
@@ -852,7 +851,7 @@ ifeq ($(optimize), yes)
 # the tool chain requires gcc version 10.1 or later.
         else ifeq ($(comp), mingw)
             CXXFLAGS += -flto -flto-partition=one
-            LDFLAGS += -flto -flto-partition=one -flto=jobserver -save-temps
+            LDFLAGS += $(CXXFLAGS) -flto=jobserver -save-temps
         endif
     endif
 endif
