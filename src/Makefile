@@ -835,12 +835,16 @@ ifeq ($(optimize), yes)
 # GCC and CLANG use different methods for parallelizing LTO and CLANG pretends to be
 # GCC on some systems.
         else ifeq ($(comp), gcc)
-            ifeq ($(gccisclang), )
-                CXXFLAGS += -flto -flto-partition=one
-                LDFLAGS += $(CXXFLAGS) -flto=jobserver
+            ifeq ($(KERNEL), Darwin)
+                # macOS + GCC: do NOT add LTO
             else
-                CXXFLAGS += -flto=full
-                LDFLAGS += $(CXXFLAGS)
+                ifeq ($(gccisclang), )
+                    CXXFLAGS += -flto -flto-partition=one
+                    LDFLAGS += $(CXXFLAGS) -flto=jobserver
+                else
+                    CXXFLAGS += -flto=full
+                    LDFLAGS += $(CXXFLAGS)
+                endif
             endif
 
 # To use LTO and static linking on Windows,
