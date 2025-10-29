@@ -390,7 +390,7 @@ template<TBType Type>
 struct TBTable final {
     using Ret = std::conditional_t<Type == WDL, WDLScore, int>;
 
-    static constexpr unsigned Sides = Type == WDL ? 2 : 1;
+    static constexpr std::size_t Sides = Type == WDL ? 2 : 1;
 
     std::atomic<bool> ready{false};
     void*             baseAddress = nullptr;
@@ -511,9 +511,9 @@ class TBTables final {
     }
 
     // 4K table, indexed by key's 12 lsb
-    static constexpr std::size_t Size = 1U << 12;
+    static constexpr std::size_t Size = 1 << 12;
     // Number of elements allowed to map to the last bucket
-    static constexpr std::size_t Overflow = 1U;
+    static constexpr std::size_t Overflow = 1;
 
     Entry entries[Size + Overflow];
 
