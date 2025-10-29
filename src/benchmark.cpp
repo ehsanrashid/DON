@@ -402,11 +402,14 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexce
     Strings fens;
 
     if (option == "default")
-        fens = Positions;
-
+    {
+        fens.reserve(Positions.size());
+        for (const auto& fen : Positions)
+            if (!is_whitespace(fen))
+                fens.emplace_back(fen);
+    }
     else if (option == "current")
         fens.emplace_back(currentFen);
-
     else
     {
         std::ifstream ifstream(fenFile);
