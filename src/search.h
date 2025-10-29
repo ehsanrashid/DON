@@ -56,7 +56,7 @@ using MovesArray = std::array<Moves, Size>;
 
 inline constexpr std::size_t DEFAULT_MULTI_PV = 1;
 
-extern PolyBook Book;
+inline PolyBook Book;
 
 namespace Search {
 

@@ -51,9 +51,7 @@ History<HQuiet>       QuietHistory;
 History<HPawn>        PawnHistory;
 History<HLowPlyQuiet> LowPlyQuietHistory;
 
-History<HContinuation> ContinuationHistory[2][2];
-
-PolyBook Book;
+History<HContinuation> ContinuationHistory[2][2];  // [inCheck][capture]
 
 namespace {
 
