@@ -837,6 +837,7 @@ ifeq ($(optimize), yes)
         else ifeq ($(comp), gcc)
             ifeq ($(KERNEL), Darwin)
                 # macOS + GCC: do NOT add LTO
+                LDFLAGS += $(CXXFLAGS)
             else
                 ifeq ($(gccisclang), )
                     CXXFLAGS += -flto -flto-partition=one
