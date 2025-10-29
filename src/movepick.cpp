@@ -208,15 +208,15 @@ void MovePicker::sort_partial(int limit) noexcept {
     for (iterator s = begin(), p = begin() + 1; p < end(); ++p)
         if (p->value >= limit)
         {
-            auto em = *p;
+            value_type em = *p;
 
             *p = *++s;
 
-            // Find the correct position for 'm' using binary search
+            // Find the correct position for 'em' using binary search
             iterator q = std::upper_bound(begin(), s, em, std::greater<>{});
-            // Move elements to make space for 'm'
+            // Move elements to make space for 'em'
             std::move_backward(q, s, s + 1);
-            // Insert the element in its correct position
+            // Insert the 'em' in its correct position
             *q = em;
         }
 }
