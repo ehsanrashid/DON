@@ -649,14 +649,13 @@ ifeq ($(optimize), yes)
     endif
 
     ifeq ($(KERNEL), Darwin)
+        ifeq ($(comp), gcc)
+            # Remove LTO completely for GCC on macOS
+            CXXFLAGS := $(filter-out -flto -flto-partition=one, $(CXXFLAGS))
+            LDFLAGS  := $(filter-out -flto -flto-partition=one -flto=jobserver, $(LDFLAGS))
+        endif
         ifeq ($(comp), $(filter $(comp), clang icx))
             CXXFLAGS += -mdynamic-no-pic
-        endif
-        # GCC on macOS: do NOT add -mdynamic-no-pic
-        # GCC 11 on macOS: remove -flto to disable LTO & prevent runtime crashes
-        ifeq ($(comp), gcc)
-            CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
-            LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
         endif
     endif
 
