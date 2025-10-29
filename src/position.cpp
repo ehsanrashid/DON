@@ -35,10 +35,10 @@ namespace DON {
 
 namespace Zobrist {
 
-Key psq[PIECE_NB][SQUARE_NB];
-Key castling[CASTLING_RIGHTS_NB];
-Key enpassant[FILE_NB];
-Key turn;
+Key psq[PIECE_NB][SQUARE_NB]{};
+Key castling[CASTLING_RIGHTS_NB]{};
+Key enpassant[FILE_NB]{};
+Key turn{};
 
 }  // namespace Zobrist
 
