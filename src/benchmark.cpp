@@ -393,13 +393,13 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexce
     std::string fenFile   = (iss >> token) ? token : "default";
     std::string limitType = (iss >> token) ? token : "depth";
 
-    bool isGo = limitType != "eval";
+    const bool isGo = limitType != "eval";
 
     std::string command = isGo ? "go " + limitType + " " + limitVal : "eval";
 
-    Strings fens;
+    std::string_view option = lower_case(fenFile);
 
-    std::string option = lower_case(fenFile);
+    Strings fens;
 
     if (option == "default")
         fens = Positions;
@@ -418,7 +418,7 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexce
             std::string fen;
             while (std::getline(ifstream, fen))
                 if (!is_whitespace(fen))
-                    fens.push_back(fen);
+                    fens.emplace_back(fen);
 
             ifstream.close();
         }
