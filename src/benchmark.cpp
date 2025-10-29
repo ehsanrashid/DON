@@ -397,7 +397,7 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexce
 
     std::string command = isGo ? "go " + limitType + " " + limitVal : "eval";
 
-    std::string_view option = lower_case(fenFile);
+    std::string option = lower_case(fenFile);
 
     Strings fens;
 
