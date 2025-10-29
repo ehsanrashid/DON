@@ -652,12 +652,12 @@ ifeq ($(optimize), yes)
         ifeq ($(comp), $(filter $(comp), clang icx))
             CXXFLAGS += -mdynamic-no-pic
         endif
-        # Do NOT add -mdynamic-no-pic for GCC on macOS, as it generates invalid code
-        # ifeq ($(comp), gcc)
-        #     ifneq ($(arch), arm64)
-        #         CXXFLAGS += -mdynamic-no-pic
-        #     endif
-        # endif
+        # GCC on macOS: do NOT add -mdynamic-no-pic
+        # GCC 11 on macOS: remove -flto to disable LTO & prevent runtime crashes
+        ifeq ($(comp), gcc)
+            CXXFLAGS := $(filter-out -flto, $(CXXFLAGS))
+            LDFLAGS  := $(filter-out -flto, $(LDFLAGS))
+        endif
     endif
 
     ifeq ($(comp), clang)
