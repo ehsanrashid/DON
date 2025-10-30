@@ -49,8 +49,6 @@ further discussion._
 - Provide a clear and concise description of the changes in the pull request
   description.
 
-_First time contributors should add their name to [AUTHORS](./AUTHORS)._
-
 _DON's development is not focused on adding new features. Thus any pull
 request introducing new features will potentially be closed without further
 discussion._
