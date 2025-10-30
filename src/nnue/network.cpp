@@ -231,12 +231,12 @@ void Network<Arch, Transformer>::verify(std::string evalFileName) const noexcept
                          + evalFile.defaultName;
         std::string msg5 = "The engine will be terminated now.";
 
-        std::string msg = "ERROR: " + msg1 + '\n'  //
-                        + "ERROR: " + msg2 + '\n'  //
-                        + "ERROR: " + msg3 + '\n'  //
-                        + "ERROR: " + msg4 + '\n'  //
-                        + "ERROR: " + msg5 + '\n';
-        std::cerr << msg << std::endl;
+        std::cerr << "ERROR: " << msg1 << '\n'  //
+                  << "ERROR: " << msg2 << '\n'  //
+                  << "ERROR: " << msg3 << '\n'  //
+                  << "ERROR: " << msg4 << '\n'  //
+                  << "ERROR: " << msg5 << '\n'
+                  << std::endl;
         std::exit(EXIT_FAILURE);
     }
 

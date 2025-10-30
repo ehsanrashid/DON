@@ -161,7 +161,7 @@ void Position::init() noexcept {
                     Cuckoos.insert({key, move});
                 }
     }
-    assert(Cuckoos.count == 3668U);
+    assert(Cuckoos.count == 3668);
 }
 
 // Initializes the position object with the given FEN string.
