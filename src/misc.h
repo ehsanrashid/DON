@@ -403,21 +403,13 @@ class PRNG1024 final {
     std::size_t   p{0};
 };
 
-// Modern xoshiro256** Pseudo-Random Number Generator
+// Modern Xoshiro256** Pseudo-Random Number Generator
 class Xoshiro256 final {
    public:
     explicit constexpr Xoshiro256(std::uint64_t seed = 1ULL) noexcept {
-        SplitMix64 sm64(seed != 0 ? seed : 1ULL);
-        // As a safeguard, ensure the state is not all zeros
-        bool allZero = true;
+        SplitMix64 sm64(seed);
         for (std::size_t i = 0; i < Size; ++i)
-        {
             s[i] = sm64.next();
-            if (s[i] != 0)
-                allZero = false;
-        }
-        if (allZero)
-            s[0] = 1;
     }
 
     template<typename T>
