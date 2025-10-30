@@ -20,7 +20,8 @@
 #include <bitset>
 #include <initializer_list>
 #if !defined(NDEBUG)
-    #include <string_view>
+    #include <mutex>
+    #include <unordered_map>
 #endif
 
 #if !defined(USE_BMI2)
@@ -236,7 +237,7 @@ void init() noexcept {
 #if !defined(NDEBUG)
 // Returns an ASCII representation of a bitboard suitable
 // to be printed to standard output. Useful for debugging.
-std::string pretty(Bitboard b) noexcept {
+std::string pretty_str(Bitboard b) noexcept {
     constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
 
     std::string str;
@@ -257,6 +258,25 @@ std::string pretty(Bitboard b) noexcept {
         str += to_char<true>(f);
     }
     return str;
+}
+
+std::string_view pretty(Bitboard b) noexcept {
+    static std::mutex                                mutex;
+    static std::unordered_map<Bitboard, std::string> cache;
+
+    {
+        std::lock_guard lockGuard(mutex);
+        if (auto itr = cache.find(b); itr != cache.end())
+            return std::string_view{itr->second};
+    }
+
+    std::string str = pretty_str(b);
+
+    {
+        std::lock_guard lockGuard(mutex);
+        auto [itr, inserted] = cache.emplace(b, std::move(str));
+        return std::string_view{itr->second};
+    }
 }
 #endif
 
