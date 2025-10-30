@@ -948,11 +948,11 @@ endif
 
 
 .PHONY: help analyze build profile-build strip install clean net \
-	objclean profileclean config-sanity \
-	icx-profile-use icx-profile-make \
-	gcc-profile-use gcc-profile-make \
-	clang-profile-use clang-profile-make FORCE \
-	format analyze install-hooks
+	objclean profileclean config-sanity FORCE \
+	clang-profile-make clang-profile-use \
+	gcc-profile-make gcc-profile-use \
+	icx-profile-make icx-profile-use \
+	format install-hooks
 
 analyze: net config-sanity objclean
 	$(MAKE) -k ARCH=$(ARCH) COMP=$(COMP) $(OBJS)
