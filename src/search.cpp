@@ -1886,7 +1886,7 @@ Value Worker::evaluate(const Position& pos) noexcept {
 // Try hard to have a ponder move to return to the GUI,
 // otherwise in case of 'ponder on' have nothing to think about.
 bool Worker::ponder_move_extracted() noexcept {
-    static std::mt19937 rng(std::random_device{}());
+    static std::mt19937 prng(std::random_device{}());
 
     auto& rm0 = rootMoves[0];
     assert(rm0.pv.size() == 1);
@@ -1935,7 +1935,7 @@ bool Worker::ponder_move_extracted() noexcept {
             if (pm == Move::None)
             {
                 std::uniform_int_distribution<std::size_t> distribute(0, legalMoveList.size() - 1);
-                pm = *(legalMoveList.begin() + distribute(rng));
+                pm = *(legalMoveList.begin() + distribute(prng));
             }
         }
 
@@ -2211,7 +2211,7 @@ void Skill::init(const Options& options) noexcept {
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickEnabled) noexcept {
     assert(1 <= multiPV && multiPV <= rootMoves.size());
-    static PRNG rng(now());  // PRNG sequence should be non-deterministic
+    static PRNG<XORShift64Star> prng(now());  // PRNG sequence should be non-deterministic
 
     if (pickEnabled || bestMove == Move::None)
     {
@@ -2229,7 +2229,7 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
             Value value = rootMoves[i].curValue
                         // This is magic formula for Push
                         + int(weakness * (curValue - rootMoves[i].curValue)
-                              + delta * (rng.rand<std::uint32_t>() % int(weakness)))
+                              + delta * (prng.rand<std::uint32_t>() % int(weakness)))
                             / 128;
 
             if (maxValue <= value)

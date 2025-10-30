@@ -537,7 +537,7 @@ void PolyBook::find_key(Key key) noexcept {
 }
 
 void PolyBook::get_key_data(std::size_t begIndex) noexcept {
-    static PRNG rng(now());
+    static PRNG<XORShift64Star> prng(now());
 
     keyData.entryCount = 1;
     keyData.begIndex   = begIndex;
@@ -562,7 +562,7 @@ void PolyBook::get_key_data(std::size_t begIndex) noexcept {
 
     keyData.randIndex = keyData.bestIndex;
 
-    std::uint16_t randWeight = rng.rand<std::uint16_t>() % keyData.sumWeight;
+    std::uint16_t randWeight = prng.rand<std::uint16_t>() % keyData.sumWeight;
     std::uint32_t sumWeight  = 0;
     for (std::size_t idx = begIndex; idx < begIndex + keyData.entryCount; ++idx)
     {

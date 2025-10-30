@@ -129,23 +129,23 @@ CuckooTable<0x2000> Cuckoos;
 
 // Called at startup to initialize the Zobrist arrays used to compute hash keys
 void Position::init() noexcept {
-    Xoshiro256 rng(0x105524ULL);
+    PRNG<Xoshiro256> prng(0x105524ULL);
 
-    const auto rng_key = [&] { return rng.template rand<Key>(); };
+    const auto prng_key = [&] { return prng.template rand<Key>(); };
 
     for (Piece pc : Pieces)
-        std::generate(std::begin(Zobrist::psq[pc]), std::end(Zobrist::psq[pc]), rng_key);
+        std::generate(std::begin(Zobrist::psq[pc]), std::end(Zobrist::psq[pc]), prng_key);
     for (Piece pc : {W_PAWN, B_PAWN})
     {
         std::fill_n(&Zobrist::psq[pc][SQ_A1], PawnOffset, Key{});
         std::fill_n(&Zobrist::psq[pc][SQ_A8], PawnOffset, Key{});
     }
 
-    std::generate(std::begin(Zobrist::castling), std::end(Zobrist::castling), rng_key);
+    std::generate(std::begin(Zobrist::castling), std::end(Zobrist::castling), prng_key);
 
-    std::generate(std::begin(Zobrist::enpassant), std::end(Zobrist::enpassant), rng_key);
+    std::generate(std::begin(Zobrist::enpassant), std::end(Zobrist::enpassant), prng_key);
 
-    Zobrist::turn = rng_key();
+    Zobrist::turn = prng_key();
 
     // Prepare the cuckoo tables
     Cuckoos.init();

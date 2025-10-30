@@ -293,9 +293,9 @@ class SplitMix64 final {
 //
 // For further analysis see
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
-class PRNG final {
+class XORShift64Star final {
    public:
-    explicit constexpr PRNG(std::uint64_t seed = 1ULL) noexcept :
+    explicit constexpr XORShift64Star(std::uint64_t seed = 1ULL) noexcept :
         s{seed != 0 ? seed : 1ULL} {}
 
     template<typename T>
@@ -336,9 +336,9 @@ class PRNG final {
 };
 
 // XORShift1024Star Pseudo-Random Number Generator
-class PRNG1024 final {
+class XORShift1024Star final {
    public:
-    explicit constexpr PRNG1024(std::uint64_t seed = 1ULL) noexcept {
+    explicit constexpr XORShift1024Star(std::uint64_t seed = 1ULL) noexcept {
         for (std::size_t i = 0; i < Size; ++i)
         {
             seed = (seed != 0 ? seed : 1ULL);
@@ -459,6 +459,29 @@ class Xoshiro256 final {
     static constexpr std::size_t Size = 4;
 
     std::uint64_t s[Size]{};
+};
+
+// Template PRNG wrapper class
+template<typename Generator>
+class PRNG {
+   public:
+    explicit constexpr PRNG(std::uint64_t seed = 1ULL) noexcept :
+        generator(seed) {}
+
+    template<typename T = std::uint64_t>
+    constexpr T rand() noexcept {
+        return generator.template rand<T>();
+    }
+
+    template<typename T = std::uint64_t>
+    constexpr T sparse_rand() noexcept {
+        return generator.template sparse_rand<T>();
+    }
+
+    constexpr void jump() noexcept { generator.jump(); }
+
+   private:
+    Generator generator;
 };
 
 #if !defined(NDEBUG)

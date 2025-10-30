@@ -87,7 +87,7 @@ void init_magics() noexcept {
 
 #if !defined(USE_BMI2)
     // Optimal PRNG seeds to pick the correct magics in the shortest time
-    constexpr std::uint16_t MagicSeeds[RANK_NB]{
+    constexpr std::uint16_t Seeds[RANK_NB]{
     // clang-format off
     #if defined(IS_64BIT)
       0x02D8, 0x284C, 0xD6E5, 0x8023, 0x2FF9, 0x3AFC, 0x4105, 0x00FF
@@ -151,13 +151,13 @@ void init_magics() noexcept {
     #endif
           - popcount(m.mask);
 
-        PRNG rng(MagicSeeds[rank_of(s)]);
+        PRNG<Xoshiro256> prng(Seeds[rank_of(s)]);
         // Find a magic for square 's' picking up an (almost) random number
         // until find the one that passes the verification test.
         for (std::uint16_t i = 0; i < size;)
         {
             do
-                m.magic = rng.sparse_rand<Bitboard>();
+                m.magic = prng.sparse_rand<Bitboard>();
             while (popcount((m.magic * m.mask) >> 56) < 6);
 
             // A good magic must map every possible occupancy to an index that
