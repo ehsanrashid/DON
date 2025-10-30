@@ -139,7 +139,7 @@ struct Magic final {
 };
 
 #if !defined(USE_POPCNT)
-inline constexpr std::size_t POPCNT_SIZE = 1U << 16;
+inline constexpr unsigned int POPCNT_SIZE = 1 << 16;
 alignas(CACHE_LINE_SIZE) inline std::uint8_t PopCnt[POPCNT_SIZE]{};
 #endif
 

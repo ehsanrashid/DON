@@ -189,7 +189,7 @@ namespace BitBoard {
 void init() noexcept {
 
 #if !defined(USE_POPCNT)
-    for (std::size_t i = 0; i < POPCNT_SIZE; ++i)
+    for (unsigned int i = 0; i < POPCNT_SIZE; ++i)
         PopCnt[i] = std::bitset<16>(i).count();
 #endif
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
