@@ -109,12 +109,12 @@ class sync_ostream final {
 
     ~sync_ostream() noexcept = default;
 
-    template<class T>
+    template<typename T>
     sync_ostream& operator<<(T&& x) & noexcept {
         *ostream << std::forward<T>(x);
         return *this;
     }
-    template<class T>
+    template<typename T>
     sync_ostream&& operator<<(T&& x) && noexcept {
         *ostream << std::forward<T>(x);
         return std::move(*this);

@@ -139,9 +139,11 @@ std::string compiler_info() noexcept {
     str += VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
 #elif defined(__e2k__) && defined(__LCC__)
     str += "MCST LCC ";
-    str += std::to_string(__LCC__ / 100) + "."  //
-         + std::to_string(__LCC__ % 100) + "."  //
-         + std::to_string(__LCC_MINOR__);
+    str += std::to_string(__LCC__ / 100);
+    str += ".";
+    str += std::to_string(__LCC__ % 100);
+    str += ".";
+    str += std::to_string(__LCC_MINOR__);
 #else
     str += "(unknown compiler)";
 #endif
