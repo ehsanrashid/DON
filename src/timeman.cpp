@@ -28,7 +28,7 @@ namespace DON {
 
 namespace {
 
-constexpr std::uint16_t MaxCentiMTG = 5051U;
+constexpr std::uint16_t MaxCentiMTG = 5051;
 
 }  // namespace
 

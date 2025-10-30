@@ -88,11 +88,11 @@ using Key16    = std::uint16_t;
 static_assert(sizeof(Bitboard) == 8, "Expected 64-bit Bitboard");
 static_assert(sizeof(Key) == 8, "Expected 64-bit Key");
 
-inline constexpr std::uint16_t MAX_MOVES = 256U;
-inline constexpr std::uint16_t MAX_PLY   = 254U;
+inline constexpr std::uint16_t MAX_MOVES = 256;
+inline constexpr std::uint16_t MAX_PLY   = 254;
 
 // Size of cache line (in bytes)
-inline constexpr std::size_t CACHE_LINE_SIZE = 64U;
+inline constexpr std::size_t CACHE_LINE_SIZE = 64;
 
 inline constexpr std::string_view PIECE_CHAR{" PNBRQK  pnbrqk "};
 inline constexpr std::string_view START_FEN{

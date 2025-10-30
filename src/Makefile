@@ -644,7 +644,7 @@ ifeq ($(optimize), yes)
 
     ifeq ($(KERNEL), Darwin)
         ifeq ($(comp), gcc)
-            # Remove LTO completely for GCC on macOS
+            # macOS + GCC: Remove LTO completely to avoid runtime crashes
             CXXFLAGS := $(filter-out -flto -flto-partition=one, $(CXXFLAGS))
             LDFLAGS  := $(filter-out -flto -flto-partition=one -flto=jobserver, $(LDFLAGS))
         else ifeq ($(comp), $(filter $(comp), clang icx))
@@ -835,7 +835,8 @@ ifeq ($(optimize), yes)
 # GCC on some systems.
         else ifeq ($(comp), gcc)
             ifeq ($(KERNEL), Darwin)
-                # macOS + GCC: do NOT add LTO
+                # macOS + GCC: Don't add LTO
+                LDFLAGS += $(CXXFLAGS)
             else
                 ifeq ($(gccisclang), )
                     CXXFLAGS += -flto -flto-partition=one

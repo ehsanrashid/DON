@@ -35,7 +35,7 @@ namespace DON {
 
 namespace {
 
-constexpr std::size_t PieceTypes = 6U;
+constexpr std::size_t PieceTypes = 6;
 
 // Random numbers from PolyGlot, used to compute book hash keys
 union PolyGlot {

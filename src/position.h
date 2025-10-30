@@ -76,8 +76,8 @@ struct State final {
 
 using PieceArray = std::array<Piece, SQUARE_NB>;
 
-inline constexpr std::uint8_t R50_OFFSET = 14U;
-inline constexpr std::uint8_t R50_FACTOR = 8U;
+inline constexpr std::uint8_t R50_OFFSET = 14;
+inline constexpr std::uint8_t R50_FACTOR = 8;
 
 // Position class stores information regarding the board representation as
 // pieces, active color, hash keys, castling info, etc. (Size = 192)
@@ -152,7 +152,7 @@ class Position final {
     static void init() noexcept;
 
     static inline bool         Chess960      = false;
-    static inline std::uint8_t DrawMoveCount = 50U;
+    static inline std::uint8_t DrawMoveCount = 50;
 
     Position() noexcept = default;
 

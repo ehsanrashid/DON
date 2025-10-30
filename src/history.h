@@ -186,16 +186,16 @@ class Entries final {
 };
 
 // clang-format off
-inline constexpr int  CAPTURE_HISTORY_LIMIT = 10692U;
-inline constexpr int    QUIET_HISTORY_LIMIT =  7183U;
-inline constexpr int PIECE_SQ_HISTORY_LIMIT = 30000U;
+inline constexpr int  CAPTURE_HISTORY_LIMIT = 10692;
+inline constexpr int    QUIET_HISTORY_LIMIT =  7183;
+inline constexpr int PIECE_SQ_HISTORY_LIMIT = 30000;
 
-inline constexpr int         PAWN_HISTORY_LIMIT = 8192U;
-inline constexpr std::size_t PAWN_HISTORY_SIZE  = 0x4000U;
+inline constexpr int         PAWN_HISTORY_LIMIT = 8192;
+inline constexpr std::size_t PAWN_HISTORY_SIZE  = 0x4000;
 static_assert(exactly_one(PAWN_HISTORY_SIZE), "PAWN_HISTORY_SIZE has to be a power of 2");
 constexpr std::size_t pawn_index(Key pawnKey) noexcept { return pawnKey & (PAWN_HISTORY_SIZE - 1); }
 
-inline constexpr std::uint16_t LOW_PLY_SIZE = 5U;
+inline constexpr std::uint16_t LOW_PLY_SIZE = 5;
 // clang-format on
 
 enum HistoryType : std::uint8_t {
@@ -260,8 +260,8 @@ template<HistoryType T>
 using History = typename Impl::HistoryTypedef<T>::Type;
 
 // clang-format off
-inline constexpr int         CORRECTION_HISTORY_LIMIT = 1024U;
-inline constexpr std::size_t CORRECTION_HISTORY_SIZE  = 0x8000U;
+inline constexpr int         CORRECTION_HISTORY_LIMIT = 1024;
+inline constexpr std::size_t CORRECTION_HISTORY_SIZE  = 0x8000;
 static_assert(exactly_one(CORRECTION_HISTORY_SIZE), "CORRECTION_HISTORY_SIZE has to be a power of 2");
 constexpr std::size_t correction_index(Key corrKey) noexcept { return corrKey & (CORRECTION_HISTORY_SIZE - 1); }
 // clang-format on

@@ -37,11 +37,11 @@ namespace DON {
 
 namespace {
 
-constexpr std::size_t MIN_THREADS = 1;
-const std::size_t     MAX_THREADS = std::max(4 * int(hardware_concurrency()), 1024);
+constexpr unsigned MIN_THREADS = 1;
+const unsigned     MAX_THREADS = std::max(4 * int(hardware_concurrency()), 1024);
 
-constexpr std::size_t MIN_HASH = 4;
-constexpr std::size_t MAX_HASH =
+constexpr unsigned MIN_HASH = 4;
+constexpr unsigned MAX_HASH =
 #if defined(IS_64BIT)
   0x2000000
 #else
