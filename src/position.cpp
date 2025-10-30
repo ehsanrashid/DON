@@ -131,21 +131,21 @@ CuckooTable<0x2000> Cuckoos;
 void Position::init() noexcept {
     PRNG<Xoshiro256> prng(0x105524ULL);
 
-    const auto prng_key = [&] { return prng.template rand<Key>(); };
+    const auto prng_rand = [&] { return prng.template rand<Key>(); };
 
     for (Piece pc : Pieces)
-        std::generate(std::begin(Zobrist::psq[pc]), std::end(Zobrist::psq[pc]), prng_key);
+        std::generate(std::begin(Zobrist::psq[pc]), std::end(Zobrist::psq[pc]), prng_rand);
     for (Piece pc : {W_PAWN, B_PAWN})
     {
         std::fill_n(&Zobrist::psq[pc][SQ_A1], PawnOffset, Key{});
         std::fill_n(&Zobrist::psq[pc][SQ_A8], PawnOffset, Key{});
     }
 
-    std::generate(std::begin(Zobrist::castling), std::end(Zobrist::castling), prng_key);
+    std::generate(std::begin(Zobrist::castling), std::end(Zobrist::castling), prng_rand);
 
-    std::generate(std::begin(Zobrist::enpassant), std::end(Zobrist::enpassant), prng_key);
+    std::generate(std::begin(Zobrist::enpassant), std::end(Zobrist::enpassant), prng_rand);
 
-    Zobrist::turn = prng_key();
+    Zobrist::turn = prng_rand();
 
     // Prepare the cuckoo tables
     Cuckoos.init();
