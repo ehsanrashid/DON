@@ -269,8 +269,9 @@ class SplitMix64 final {
 
     constexpr std::uint64_t next() noexcept {
         std::uint64_t z = (s += 0x9E3779B97F4A7C15ULL);
-        z               = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
-        z               = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+
+        z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+        z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
         return z ^ (z >> 31);
     }
 
@@ -302,8 +303,7 @@ class PRNG final {
         return T(rand64());
     }
 
-    // Special generator used to fast init magic numbers.
-    // Output values only have 1/8th of their bits set on average.
+    // Sparse random (1/8 bits set on average)
     template<typename T>
     constexpr T sparse_rand() noexcept {
         return T(rand64() & rand64() & rand64());
@@ -314,13 +314,13 @@ class PRNG final {
         constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
 
         std::uint64_t t = 0;
-        for (std::uint8_t m = 0; m < 64; ++m)
+        for (std::uint8_t b = 0; b < 64; ++b)
         {
-            if ((JumpMask >> m) & 1)
+            if ((JumpMask >> b) & 1)
                 t ^= s;
             rand64();
         }
-        s = t;
+        s = t != 0 ? t : 1ULL;
     }
 
    private:
@@ -352,8 +352,7 @@ class PRNG1024 final {
         return T(rand64());
     }
 
-    // Special generator used to fast init magic numbers.
-    // Output values only have 1/8th of their bits set on average.
+    // Sparse random (1/8 bits set on average)
     template<typename T>
     constexpr T sparse_rand() noexcept {
         return T(rand64() & rand64() & rand64());
@@ -373,9 +372,9 @@ class PRNG1024 final {
 
         std::uint64_t t[Size]{};
         for (const std::uint64_t jumpMask : JumpMasks)
-            for (std::uint8_t m = 0; m < 64; ++m)
+            for (std::uint8_t b = 0; b < 64; ++b)
             {
-                if ((jumpMask >> m) & 1)
+                if ((jumpMask >> b) & 1)
                     for (std::size_t i = 0; i < Size; ++i)
                         t[i] ^= s[index(i)];
                 rand64();
@@ -417,8 +416,7 @@ class Xoshiro256 final {
         return T(rand64());
     }
 
-    // Special generator used to fast init magic numbers.
-    // Output values only have 1/8th of their bits set on average.
+    // Sparse random (1/8 bits set on average)
     template<typename T>
     constexpr T sparse_rand() noexcept {
         return T(rand64() & rand64() & rand64());
@@ -428,14 +426,17 @@ class Xoshiro256 final {
     constexpr void jump() noexcept {
         constexpr std::uint64_t JumpMasks[Size]           //
           {0x180EC6D33CFD0ABAULL, 0xD5A61266F0C9392CULL,  //
-           0xA956640C7D488219ULL, 0x7338A659B855F973ULL};
+           0xA958261307077B31ULL, 0x63C7F9B7A1A1A11FULL};
 
         std::uint64_t t[Size]{};
         for (const std::uint64_t jumpMask : JumpMasks)
-            for (std::uint8_t m = 0; m < 64; ++m)
-                if ((jumpMask >> m) & 1)
+            for (std::uint8_t b = 0; b < 64; ++b)
+            {
+                if ((jumpMask >> b) & 1)
                     for (std::size_t i = 0; i < Size; ++i)
                         t[i] ^= s[i];
+                rand64();
+            }
 
         for (std::size_t i = 0; i < Size; ++i)
             s[i] = t[i];
