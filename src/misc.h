@@ -254,6 +254,30 @@ std::string format_time(const SystemClock::time_point& timePoint);
 
 void start_logger(std::string_view logFile) noexcept;
 
+// Bitwise rotate left function
+constexpr std::uint64_t rotl(std::uint64_t x, int k) noexcept { return (x << k) | (x >> (64 - k)); }
+
+// Bitwise rotate right function
+constexpr std::uint64_t rotr(std::uint64_t x, int k) noexcept { return (x >> k) | (x << (64 - k)); }
+
+// SplitMix64 is used to initialize the state of the main generator.
+// This is the standard, high-quality way to expand a single seed.
+class SplitMix64 final {
+   public:
+    explicit constexpr SplitMix64(std::uint64_t seed = 1ULL) noexcept :
+        s{seed != 0 ? seed : 1ULL} {}
+
+    constexpr std::uint64_t next() noexcept {
+        std::uint64_t z = (s += 0x9E3779B97F4A7C15ULL);
+        z               = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+        z               = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+        return z ^ (z >> 31);
+    }
+
+   private:
+    std::uint64_t s;
+};
+
 // XORShift64Star Pseudo-Random Number Generator
 // This class is based on original code written and dedicated
 // to the public domain by Sebastiano Vigna (2014).
@@ -270,7 +294,8 @@ void start_logger(std::string_view logFile) noexcept;
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class PRNG final {
    public:
-    explicit constexpr PRNG(std::uint64_t seed = 1ULL) noexcept { s = seed != 0 ? seed : 1ULL; }
+    explicit constexpr PRNG(std::uint64_t seed = 1ULL) noexcept :
+        s{seed != 0 ? seed : 1ULL} {}
 
     template<typename T>
     constexpr T rand() noexcept {
@@ -291,7 +316,7 @@ class PRNG final {
         std::uint64_t t = 0;
         for (std::uint8_t m = 0; m < 64; ++m)
         {
-            if (JumpMask & (1ULL << m))
+            if ((JumpMask >> m) & 1)
                 t ^= s;
             rand64();
         }
@@ -314,12 +339,11 @@ class PRNG final {
 class PRNG1024 final {
    public:
     explicit constexpr PRNG1024(std::uint64_t seed = 1ULL) noexcept {
-        if (seed == 0)
-            seed = 1ULL;
         for (std::size_t i = 0; i < Size; ++i)
         {
+            seed = (seed != 0 ? seed : 1ULL);
             seed = 0x9857FB32C9EFB5E4ULL + 0x2545F4914F6CDD1DULL * seed;
-            s[i] = seed != 0 ? seed : 1ULL;
+            s[i] = (seed != 0 ? seed : 1ULL);
         }
     }
 
@@ -351,7 +375,7 @@ class PRNG1024 final {
         for (const std::uint64_t jumpMask : JumpMasks)
             for (std::uint8_t m = 0; m < 64; ++m)
             {
-                if (jumpMask & (1ULL << m))
+                if ((jumpMask >> m) & 1)
                     for (std::size_t i = 0; i < Size; ++i)
                         t[i] ^= s[index(i)];
                 rand64();
@@ -377,6 +401,71 @@ class PRNG1024 final {
 
     std::uint64_t s[Size]{};
     std::size_t   p{0};
+};
+
+// Modern xoshiro256** Pseudo-Random Number Generator
+class Xoshiro256 final {
+   public:
+    explicit constexpr Xoshiro256(std::uint64_t seed = 1ULL) noexcept {
+        SplitMix64 sm64(seed != 0 ? seed : 1ULL);
+        // As a safeguard, ensure the state is not all zeros
+        bool allZero = true;
+        for (std::size_t i = 0; i < Size; ++i)
+        {
+            s[i] = sm64.next();
+            if (s[i] != 0)
+                allZero = false;
+        }
+        if (allZero)
+            s[0] = 1;
+    }
+
+    template<typename T>
+    constexpr T rand() noexcept {
+        return T(rand64());
+    }
+
+    // Special generator used to fast init magic numbers.
+    // Output values only have 1/8th of their bits set on average.
+    template<typename T>
+    constexpr T sparse_rand() noexcept {
+        return T(rand64() & rand64() & rand64());
+    }
+
+    // Jump function for the Xoshiro256** PRNG
+    constexpr void jump() noexcept {
+        constexpr std::uint64_t JumpMasks[Size]           //
+          {0x180EC6D33CFD0ABAULL, 0xD5A61266F0C9392CULL,  //
+           0xA956640C7D488219ULL, 0x7338A659B855F973ULL};
+
+        std::uint64_t t[Size]{};
+        for (const std::uint64_t jumpMask : JumpMasks)
+            for (std::uint8_t m = 0; m < 64; ++m)
+                if ((jumpMask >> m) & 1)
+                    for (std::size_t i = 0; i < Size; ++i)
+                        t[i] ^= s[i];
+
+        for (std::size_t i = 0; i < Size; ++i)
+            s[i] = t[i];
+    }
+
+   private:
+    // Xoshiro256** algorithm implementation
+    constexpr std::uint64_t rand64() noexcept {
+        const std::uint64_t rs1 = rotl(s[1] * 5, 7) * 9;
+        const std::uint64_t ss1 = s[1] << 17;
+        s[2] ^= s[0];
+        s[3] ^= s[1];
+        s[1] ^= s[2];
+        s[0] ^= s[3];
+        s[2] ^= ss1;
+        s[3] = rotl(s[3], 45);
+        return rs1;
+    }
+
+    static constexpr std::size_t Size = 4;
+
+    std::uint64_t s[Size]{};
 };
 
 #if !defined(NDEBUG)
