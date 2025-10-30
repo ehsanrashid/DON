@@ -270,10 +270,7 @@ void start_logger(std::string_view logFile) noexcept;
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class PRNG final {
    public:
-    explicit constexpr PRNG(std::uint64_t seed) noexcept :
-        s(seed) {
-        assert(seed);
-    }
+    explicit constexpr PRNG(std::uint64_t seed = 1ULL) noexcept { s = seed != 0 ? seed : 1ULL; }
 
     template<typename T>
     constexpr T rand() noexcept {
@@ -304,7 +301,9 @@ class PRNG final {
    private:
     // XORShift64Star algorithm implementation
     constexpr std::uint64_t rand64() noexcept {
-        s ^= s >> 12, s ^= s << 25, s ^= s >> 27;
+        s ^= s >> 12;
+        s ^= s << 25;
+        s ^= s >> 27;
         return 0x2545F4914F6CDD1DULL * s;
     }
 
@@ -314,11 +313,14 @@ class PRNG final {
 // XORShift1024Star Pseudo-Random Number Generator
 class PRNG1024 final {
    public:
-    explicit constexpr PRNG1024(std::uint64_t seed) noexcept {
-        assert(seed);
-
+    explicit constexpr PRNG1024(std::uint64_t seed = 1ULL) noexcept {
+        if (seed == 0)
+            seed = 1ULL;
         for (std::size_t i = 0; i < Size; ++i)
-            s[i] = seed = 0x9857FB32C9EFB5E4ULL + 0x2545F4914F6CDD1DULL * seed;
+        {
+            seed = 0x9857FB32C9EFB5E4ULL + 0x2545F4914F6CDD1DULL * seed;
+            s[i] = seed != 0 ? seed : 1ULL;
+        }
     }
 
     template<typename T>
