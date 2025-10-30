@@ -642,20 +642,19 @@ ifeq ($(optimize), yes)
 
     CXXFLAGS += -O3 -funroll-loops
 
-    ifeq ($(comp), gcc)
-        ifeq ($(OS), Android)
-            CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
-        endif
-    endif
-
     ifeq ($(KERNEL), Darwin)
         ifeq ($(comp), gcc)
             # Remove LTO completely for GCC on macOS
             CXXFLAGS := $(filter-out -flto -flto-partition=one, $(CXXFLAGS))
             LDFLAGS  := $(filter-out -flto -flto-partition=one -flto=jobserver, $(LDFLAGS))
-        endif
-        ifeq ($(comp), $(filter $(comp), clang icx))
+        else ifeq ($(comp), $(filter $(comp), clang icx))
             CXXFLAGS += -mdynamic-no-pic
+        endif
+    endif
+
+    ifeq ($(OS), Android)
+        ifeq ($(comp), gcc)
+            CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
         endif
     endif
 
