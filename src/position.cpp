@@ -45,7 +45,7 @@ constexpr Piece Pieces[]{W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,  /
 // For details see:
 // http://web.archive.org/web/20201107002606/https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
 
-// Cuckoo table with Zobrist hashes of valid reversible moves, and the moves themselves
+// Cuckoo Entry: stores a Zobrist hash key and the associated move
 struct Cuckoo final {
 
     constexpr bool empty() const noexcept { return key == 0; }
@@ -54,7 +54,8 @@ struct Cuckoo final {
     Move move;
 };
 
-// Cuckoo table with Zobrist hashes of valid reversible moves, and the moves themselves
+// Cuckoo Table: fixed-size hash table with two hash functions and cuckoo eviction,
+// contains Zobrist hashes of valid reversible moves, and the moves themselves
 template<std::size_t Size>
 class CuckooTable final {
     static_assert(exactly_one(Size), "Size has to be a power of 2");
