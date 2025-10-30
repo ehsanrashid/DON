@@ -276,8 +276,7 @@ std::string_view pretty(Bitboard b) noexcept {
 
     // Fast path: shared (read) lock
     {
-        // Read Lock
-        std::shared_lock sharedLock(mutex);
+        std::shared_lock readLock(mutex);
         if (auto itr = cache.find(b); itr != cache.end())
             return std::string_view{*itr->second};
     }
@@ -287,8 +286,7 @@ std::string_view pretty(Bitboard b) noexcept {
 
     // Slow path: exclusive (write) lock to insert (double-check to avoid races)
     {
-        // Write Lock
-        std::unique_lock uniqueLock(mutex);
+        std::unique_lock writeLock(mutex);
         // Check again to avoid duplicate insertion if another thread inserted meanwhile
         if (auto itr = cache.find(b); itr != cache.end())
             return std::string_view{*itr->second};
