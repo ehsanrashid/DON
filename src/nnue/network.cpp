@@ -76,7 +76,7 @@ EmbeddedNNUE get_embedded(EmbeddedType embType) noexcept {
 }
 }  // namespace
 
-namespace Impl {
+namespace internal {
 
 namespace {
 // Read network header
@@ -126,7 +126,7 @@ bool write_parameters(std::ostream& ostream, T& reference) noexcept {
     return reference.write_parameters(ostream);
 }
 }  // namespace
-}  // namespace Impl
+}  // namespace internal
 
 template<typename Arch, typename Transformer>
 Network<Arch, Transformer>::Network(const Network<Arch, Transformer>& net) noexcept :
@@ -366,14 +366,14 @@ template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::read_parameters(std::istream& istream,
                                                  std::string&  netDescription) noexcept {
     std::uint32_t hashValue;
-    if (!Impl::read_header(istream, hashValue, netDescription))
+    if (!internal::read_header(istream, hashValue, netDescription))
         return false;
     if (hashValue != Network::HashValue)
         return false;
-    if (!Impl::read_parameters(istream, *featureTransformer))
+    if (!internal::read_parameters(istream, *featureTransformer))
         return false;
     for (std::size_t i = 0; i < LayerStacks; ++i)
-        if (!Impl::read_parameters(istream, network[i]))
+        if (!internal::read_parameters(istream, network[i]))
             return false;
 
     return bool(istream) && istream.peek() == std::ios::traits_type::eof();
@@ -382,12 +382,12 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& istream,
 template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::write_parameters(
   std::ostream& ostream, const std::string& netDescription) const noexcept {
-    if (!Impl::write_header(ostream, Network::HashValue, netDescription))
+    if (!internal::write_header(ostream, Network::HashValue, netDescription))
         return false;
-    if (!Impl::write_parameters(ostream, *featureTransformer))
+    if (!internal::write_parameters(ostream, *featureTransformer))
         return false;
     for (std::size_t i = 0; i < LayerStacks; ++i)
-        if (!Impl::write_parameters(ostream, network[i]))
+        if (!internal::write_parameters(ostream, network[i]))
             return false;
 
     return bool(ostream);

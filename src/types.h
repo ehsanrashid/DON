@@ -285,10 +285,12 @@ struct DirtyPiece final {
 
 // clang-format off
     #define ENABLE_INCR_OPERATORS_ON(T) \
-        constexpr T& operator++(T& t) noexcept { return t = T(int(t) + 1); }    \
-        constexpr T& operator--(T& t) noexcept { return t = T(int(t) - 1); }    \
-        constexpr T  operator++(T& t, int) noexcept { T u = t; ++t; return u; } \
-        constexpr T  operator--(T& t, int) noexcept { T u = t; --t; return u; }
+        static_assert(std::is_enum_v<T>, "ENABLE_INCR_OPERATORS_ON requires an enum"); \
+        static_assert(std::is_convertible_v<T, int>, "ENABLE_INCR_OPERATORS_ON requires an *unscoped* enum (plain enum)"); \
+        constexpr T& operator++(T& v) noexcept { return v = T(int(v) + 1); }    \
+        constexpr T& operator--(T& v) noexcept { return v = T(int(v) - 1); }    \
+        constexpr T  operator++(T& v, int) noexcept { T u = v; ++v; return u; } \
+        constexpr T  operator--(T& v, int) noexcept { T u = v; --v; return u; }
 // clang-format on
 
 ENABLE_INCR_OPERATORS_ON(PieceType)
