@@ -20,8 +20,11 @@
 #include <bitset>
 #include <initializer_list>
 #if !defined(NDEBUG)
+    #include <memory>
     #include <mutex>
+    #include <shared_mutex>
     #include <unordered_map>
+    #include <utility>
 #endif
 
 #if !defined(USE_BMI2)
@@ -261,21 +264,36 @@ std::string pretty_str(Bitboard b) noexcept {
 }
 
 std::string_view pretty(Bitboard b) noexcept {
-    static std::mutex                                mutex;
-    static std::unordered_map<Bitboard, std::string> cache;
+    static std::shared_mutex                                          mutex;
+    static std::unordered_map<Bitboard, std::unique_ptr<std::string>> cache;
+    // One-time reserve to reduce rehashes (runs once, thread-safe since C++11)
+    [[maybe_unused]] static const bool reserved = []() {
+        cache.reserve(1024);           // choose an appropriate capacity
+        cache.max_load_factor(0.75f);  // optional: tune load factor
+        return true;
+    }();
+    assert(reserved);
 
+    // Fast path: shared (read) lock
     {
-        std::lock_guard lockGuard(mutex);
+        // Read Lock
+        std::shared_lock sharedLock(mutex);
         if (auto itr = cache.find(b); itr != cache.end())
-            return std::string_view{itr->second};
+            return std::string_view{*itr->second};
     }
 
-    std::string str = pretty_str(b);
+    // Build outside locks (may throw) — reduces lock contention
+    auto str = std::make_unique<std::string>(pretty_str(b));
 
+    // Slow path: exclusive (write) lock to insert (double-check to avoid races)
     {
-        std::lock_guard lockGuard(mutex);
+        // Write Lock
+        std::unique_lock uniqueLock(mutex);
+        // Check again to avoid duplicate insertion if another thread inserted meanwhile
+        if (auto itr = cache.find(b); itr != cache.end())
+            return std::string_view{*itr->second};
         auto [itr, inserted] = cache.emplace(b, std::move(str));
-        return std::string_view{itr->second};
+        return std::string_view{*itr->second};
     }
 }
 #endif

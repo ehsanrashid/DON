@@ -49,8 +49,10 @@ namespace DON {
 namespace BitBoard {
 
 void init() noexcept;
+
 #if !defined(NDEBUG)
-std::string      pretty_str(Bitboard b) noexcept;
+std::string pretty_str(Bitboard b) noexcept;
+
 std::string_view pretty(Bitboard b) noexcept;
 #endif
 
