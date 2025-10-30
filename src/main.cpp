@@ -15,7 +15,6 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cstdlib>
 #include <iostream>
 
 #include "bitboard.h"
@@ -42,5 +41,5 @@ int main(int argc, const char* argv[]) {
 
     uci.run();
 
-    return EXIT_SUCCESS;
+    return 0;
 }
