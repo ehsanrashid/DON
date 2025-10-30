@@ -289,6 +289,8 @@ class PRNG final {
 
     // Jump function for the XORShift64Star PRNG
     constexpr void jump() noexcept {
+        constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
+
         std::uint64_t t = 0;
         for (std::uint8_t m = 0; m < 64; ++m)
         {
@@ -305,8 +307,6 @@ class PRNG final {
         s ^= s >> 12, s ^= s << 25, s ^= s >> 27;
         return 0x2545F4914F6CDD1DULL * s;
     }
-
-    static constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
 
     std::uint64_t s{};
 };
@@ -335,6 +335,16 @@ class PRNG1024 final {
 
     // Jump function for the XORShift1024Star PRNG
     constexpr void jump() noexcept {
+        constexpr std::uint64_t JumpMasks[Size]           //
+          {0x84242F96ECA9C41DULL, 0xA3C65B8776F96855ULL,  //
+           0x5B34A39F070B5837ULL, 0x4489AFFCE4F31A1EULL,  //
+           0x2FFEEB0A48316F40ULL, 0xDC2D9891FE68C022ULL,  //
+           0x3659132BB12FEA70ULL, 0xAAC17D8EFA43CAB8ULL,  //
+           0xC4CB815590989B13ULL, 0x5EE975283D71C93BULL,  //
+           0x691548C86C1BD540ULL, 0x7910C41D10A1E6A5ULL,  //
+           0x0B5FC64563B3E2A8ULL, 0x047F7684E9FC949DULL,  //
+           0xB99181F2D8F685CAULL, 0x284600E3F30E38C3ULL};
+
         std::uint64_t t[Size]{};
         for (const std::uint64_t jumpMask : JumpMasks)
             for (std::uint8_t m = 0; m < 64; ++m)
@@ -362,12 +372,6 @@ class PRNG1024 final {
     }
 
     static constexpr std::size_t Size = 16;
-
-    static constexpr std::uint64_t JumpMasks[Size]{
-      0x84242F96ECA9C41DULL, 0xA3C65B8776F96855ULL, 0x5B34A39F070B5837ULL, 0x4489AFFCE4F31A1EULL,
-      0x2FFEEB0A48316F40ULL, 0xDC2D9891FE68C022ULL, 0x3659132BB12FEA70ULL, 0xAAC17D8EFA43CAB8ULL,
-      0xC4CB815590989B13ULL, 0x5EE975283D71C93BULL, 0x691548C86C1BD540ULL, 0x7910C41D10A1E6A5ULL,
-      0x0B5FC64563B3E2A8ULL, 0x047F7684E9FC949DULL, 0xB99181F2D8F685CAULL, 0x284600E3F30E38C3ULL};
 
     std::uint64_t s[Size]{};
     std::size_t   p{0};
