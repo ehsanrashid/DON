@@ -52,6 +52,65 @@ class SplitMix64 final {
     std::uint64_t s;
 };
 
+class RKISS final {
+   public:
+    explicit RKISS(std::uint64_t seed = 1ULL) noexcept {
+        SplitMix64 sm64(seed);
+        bool       allZero = true;
+        for (std::size_t i = 0; i < 4; ++i)
+        {
+            s[i] = sm64.next();
+            if (s[i] != 0)
+                allZero = false;
+        }
+        // Avoid all-zero state
+        if (allZero)
+        {
+            s[0] = 0xF1EA5EEDULL;
+            s[1] = s[2] = s[3] = 0xD4E12C77ULL;
+        }
+    }
+
+    template<typename T>
+    constexpr T rand() noexcept {
+        return T(rand64());
+    }
+
+    // Sparse random (1/8 bits set on average)
+    template<typename T>
+    constexpr T sparse_rand() noexcept {
+        return T(rand64() & rand64() & rand64());
+    }
+
+    constexpr void jump() noexcept {}
+
+    // Magic generator used to initialize magic numbers
+    // 'k' encodes rotation amounts; function consumes several PRNs
+    template<typename T>
+    T magic_rand(unsigned k) noexcept {
+        const std::uint64_t r1 = rand64();
+        const std::uint64_t r2 = rand64();
+        const std::uint64_t r3 = rand64();
+
+        std::uint64_t x = rotl(r1, k >> 0) & r2;
+        x               = rotl(x, k >> 6) & r3;
+        return T(x);
+    }
+
+   private:
+    // RKISS algorithm implementation
+    inline uint64_t rand64() noexcept {
+        const std::uint64_t x = s[0] - rotl(s[1], 7);
+        s[0]                  = s[1] ^ rotl(s[2], 13);
+        s[1]                  = s[2] + rotl(s[3], 37);
+        s[2]                  = s[3] + x;
+        s[3]                  = x + s[0];
+        return s[3];
+    }
+
+    std::uint64_t s[4]{};
+};
+
 // XorShift64* Pseudo-Random Number Generator
 // This class is based on original code written and dedicated
 // to the public domain by Sebastiano Vigna (2014).
@@ -71,8 +130,9 @@ class XorShift64Star final {
     explicit constexpr XorShift64Star(std::uint64_t seed = 1ULL) noexcept {
         SplitMix64 sm64(seed);
         s = sm64.next();
+        // Avoid zero state
         if (s == 0)
-            s = 1ULL;  // avoid zero state
+            s = 1ULL;
     }
 
     template<typename T>
@@ -118,14 +178,15 @@ class XorShift1024Star final {
     explicit constexpr XorShift1024Star(std::uint64_t seed = 1ULL) noexcept {
         SplitMix64 sm64(seed);
         bool       allZero = true;
-        for (std::size_t i = 0; i < Size; ++i)
+        for (std::size_t i = 0; i < 16; ++i)
         {
             s[i] = sm64.next();
             if (s[i] != 0)
                 allZero = false;
         }
+        // Avoid all-zero state
         if (allZero)
-            s[0] = 1ULL;  // avoid all-zero state
+            s[0] = 1ULL;
     }
 
     template<typename T>
@@ -141,7 +202,7 @@ class XorShift1024Star final {
 
     // XorShift1024* jump implementation
     constexpr void jump() noexcept {
-        constexpr std::uint64_t JumpMasks[Size]           //
+        constexpr std::uint64_t JumpMasks[16]             //
           {0x84242F96ECA9C41DULL, 0xA3C65B8776F96855ULL,  //
            0x5B34A39F070B5837ULL, 0x4489AFFCE4F31A1EULL,  //
            0x2FFEEB0A48316F40ULL, 0xDC2D9891FE68C022ULL,  //
@@ -151,22 +212,22 @@ class XorShift1024Star final {
            0x0B5FC64563B3E2A8ULL, 0x047F7684E9FC949DULL,  //
            0xB99181F2D8F685CAULL, 0x284600E3F30E38C3ULL};
 
-        std::uint64_t t[Size]{};
+        std::uint64_t t[16]{};
         for (const std::uint64_t jumpMask : JumpMasks)
             for (std::uint8_t b = 0; b < 64; ++b)
             {
                 if ((jumpMask >> b) & 1)
-                    for (std::size_t i = 0; i < Size; ++i)
+                    for (std::size_t i = 0; i < 16; ++i)
                         t[i] ^= s[index(i)];
                 rand64();
             }
 
-        for (std::size_t i = 0; i < Size; ++i)
+        for (std::size_t i = 0; i < 16; ++i)
             s[index(i)] = t[i];
     }
 
    private:
-    constexpr std::size_t index(std::size_t k) const noexcept { return (p + k) & (Size - 1); }
+    constexpr std::size_t index(std::size_t k) const noexcept { return (p + k) & (16 - 1); }
 
     // XorShift1024* algorithm implementation
     constexpr std::uint64_t rand64() noexcept {
@@ -177,9 +238,7 @@ class XorShift1024Star final {
         return 0x106689D45497FDB5ULL * s[p];
     }
 
-    static constexpr std::size_t Size = 16;
-
-    std::uint64_t s[Size]{};
+    std::uint64_t s[16]{};
     std::size_t   p{0};
 };
 
@@ -189,14 +248,15 @@ class XoShiRo256Plus final {
     explicit constexpr XoShiRo256Plus(std::uint64_t seed = 1ULL) noexcept {
         SplitMix64 sm64(seed);
         bool       allZero = true;
-        for (std::size_t i = 0; i < Size; ++i)
+        for (std::size_t i = 0; i < 4; ++i)
         {
             s[i] = sm64.next();
             if (s[i] != 0)
                 allZero = false;
         }
+        // Avoid all-zero state
         if (allZero)
-            s[0] = 1ULL;  // avoid all-zero state
+            s[0] = 1ULL;
     }
 
     template<typename T>
@@ -212,21 +272,21 @@ class XoShiRo256Plus final {
 
     // XoShiRo256++ jump implementation
     constexpr void jump() noexcept {
-        constexpr std::uint64_t JumpMasks[Size]           //
+        constexpr std::uint64_t JumpMasks[4]              //
           {0x180EC6D33CFD0ABAULL, 0xD5A61266F0C9392CULL,  //
            0xA9582618E03FC9AAULL, 0x39ABDC4529B1661CULL};
 
-        std::uint64_t t[Size]{};
+        std::uint64_t t[4]{};
         for (const std::uint64_t jumpMask : JumpMasks)
             for (std::uint8_t b = 0; b < 64; ++b)
             {
                 if ((jumpMask >> b) & 1)
-                    for (std::size_t i = 0; i < Size; ++i)
+                    for (std::size_t i = 0; i < 4; ++i)
                         t[i] ^= s[i];
                 rand64();
             }
 
-        for (std::size_t i = 0; i < Size; ++i)
+        for (std::size_t i = 0; i < 4; ++i)
             s[i] = t[i];
     }
 
@@ -244,9 +304,7 @@ class XoShiRo256Plus final {
         return rs0;
     }
 
-    static constexpr std::size_t Size = 4;
-
-    std::uint64_t s[Size]{};
+    std::uint64_t s[4]{};
 };
 
 // Modern XoShiRo256** (short for "xor, shift, rotate") Pseudo-Random Number Generator
@@ -255,14 +313,15 @@ class XoShiRo256Star final {
     explicit constexpr XoShiRo256Star(std::uint64_t seed = 1ULL) noexcept {
         SplitMix64 sm64(seed);
         bool       allZero = true;
-        for (std::size_t i = 0; i < Size; ++i)
+        for (std::size_t i = 0; i < 4; ++i)
         {
             s[i] = sm64.next();
             if (s[i] != 0)
                 allZero = false;
         }
+        // Avoid all-zero state
         if (allZero)
-            s[0] = 1ULL;  // avoid all-zero state
+            s[0] = 1ULL;
     }
 
     template<typename T>
@@ -278,21 +337,21 @@ class XoShiRo256Star final {
 
     // XoShiRo256** jump implementation
     constexpr void jump() noexcept {
-        constexpr std::uint64_t JumpMasks[Size]           //
+        constexpr std::uint64_t JumpMasks[4]              //
           {0x180EC6D33CFD0ABAULL, 0xD5A61266F0C9392CULL,  //
            0xA9582618E03FC9AAULL, 0x39ABDC4529B1661CULL};
 
-        std::uint64_t t[Size]{};
+        std::uint64_t t[4]{};
         for (const std::uint64_t jumpMask : JumpMasks)
             for (std::uint8_t b = 0; b < 64; ++b)
             {
                 if ((jumpMask >> b) & 1)
-                    for (std::size_t i = 0; i < Size; ++i)
+                    for (std::size_t i = 0; i < 4; ++i)
                         t[i] ^= s[i];
                 rand64();
             }
 
-        for (std::size_t i = 0; i < Size; ++i)
+        for (std::size_t i = 0; i < 4; ++i)
             s[i] = t[i];
     }
 
@@ -310,9 +369,7 @@ class XoShiRo256Star final {
         return rs1;
     }
 
-    static constexpr std::size_t Size = 4;
-
-    std::uint64_t s[Size]{};
+    std::uint64_t s[4]{};
 };
 
 // Template PRNG wrapper class
