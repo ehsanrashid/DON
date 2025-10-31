@@ -2211,7 +2211,7 @@ void Skill::init(const Options& options) noexcept {
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickEnabled) noexcept {
     assert(1 <= multiPV && multiPV <= rootMoves.size());
-    static PRNG<XORShift64Star> prng(now());  // PRNG sequence should be non-deterministic
+    static PRNG<XorShift64Star> prng(now());  // PRNG sequence should be non-deterministic
 
     if (pickEnabled || bestMove == Move::None)
     {

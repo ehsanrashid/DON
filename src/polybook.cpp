@@ -537,7 +537,7 @@ void PolyBook::find_key(Key key) noexcept {
 }
 
 void PolyBook::get_key_data(std::size_t begIndex) noexcept {
-    static PRNG<XORShift64Star> prng(now());
+    static PRNG<XorShift64Star> prng(now());
 
     keyData.entryCount = 1;
     keyData.begIndex   = begIndex;

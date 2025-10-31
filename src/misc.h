@@ -279,7 +279,7 @@ class SplitMix64 final {
     std::uint64_t s;
 };
 
-// XORShift64Star Pseudo-Random Number Generator
+// XorShift64* Pseudo-Random Number Generator
 // This class is based on original code written and dedicated
 // to the public domain by Sebastiano Vigna (2014).
 // It has the following characteristics:
@@ -293,10 +293,14 @@ class SplitMix64 final {
 //
 // For further analysis see
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
-class XORShift64Star final {
+class XorShift64Star final {
    public:
-    explicit constexpr XORShift64Star(std::uint64_t seed = 1ULL) noexcept :
-        s{seed != 0 ? seed : 1ULL} {}
+    explicit constexpr XorShift64Star(std::uint64_t seed = 1ULL) noexcept {
+        SplitMix64 sm64(seed);
+        s = sm64.next();
+        if (s == 0)
+            s = 1ULL;  // avoid zero state
+    }
 
     template<typename T>
     constexpr T rand() noexcept {
@@ -309,7 +313,7 @@ class XORShift64Star final {
         return T(rand64() & rand64() & rand64());
     }
 
-    // Jump function for the XORShift64Star PRNG
+    // XorShift64* jump implementation
     constexpr void jump() noexcept {
         constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
 
@@ -324,7 +328,7 @@ class XORShift64Star final {
     }
 
    private:
-    // XORShift64Star algorithm implementation
+    // XorShift64* algorithm implementation
     constexpr std::uint64_t rand64() noexcept {
         s ^= s >> 12;
         s ^= s << 25;
@@ -335,16 +339,20 @@ class XORShift64Star final {
     std::uint64_t s{};
 };
 
-// XORShift1024Star Pseudo-Random Number Generator
-class XORShift1024Star final {
+// XorShift1024* Pseudo-Random Number Generator
+class XorShift1024Star final {
    public:
-    explicit constexpr XORShift1024Star(std::uint64_t seed = 1ULL) noexcept {
+    explicit constexpr XorShift1024Star(std::uint64_t seed = 1ULL) noexcept {
+        SplitMix64 sm64(seed);
+        bool       allZero = true;
         for (std::size_t i = 0; i < Size; ++i)
         {
-            seed = (seed != 0 ? seed : 1ULL);
-            seed = 0x9857FB32C9EFB5E4ULL + 0x2545F4914F6CDD1DULL * seed;
-            s[i] = (seed != 0 ? seed : 1ULL);
+            s[i] = sm64.next();
+            if (s[i] != 0)
+                allZero = false;
         }
+        if (allZero)
+            s[0] = 1ULL;  // avoid all-zero state
     }
 
     template<typename T>
@@ -358,7 +366,7 @@ class XORShift1024Star final {
         return T(rand64() & rand64() & rand64());
     }
 
-    // Jump function for the XORShift1024Star PRNG
+    // XorShift1024* jump implementation
     constexpr void jump() noexcept {
         constexpr std::uint64_t JumpMasks[Size]           //
           {0x84242F96ECA9C41DULL, 0xA3C65B8776F96855ULL,  //
@@ -387,7 +395,7 @@ class XORShift1024Star final {
    private:
     constexpr std::size_t index(std::size_t k) const noexcept { return (p + k) & (Size - 1); }
 
-    // XORShift1024Star algorithm implementation
+    // XorShift1024* algorithm implementation
     constexpr std::uint64_t rand64() noexcept {
         std::uint64_t s0 = s[p];
         std::uint64_t s1 = s[p = index(1)];
@@ -402,13 +410,20 @@ class XORShift1024Star final {
     std::size_t   p{0};
 };
 
-// Modern Xoshiro256** Pseudo-Random Number Generator
-class Xoshiro256 final {
+// Modern XoShiRo256** (short for "xor, shift, rotate") Pseudo-Random Number Generator
+class XoShiRo256Star final {
    public:
-    explicit constexpr Xoshiro256(std::uint64_t seed = 1ULL) noexcept {
+    explicit constexpr XoShiRo256Star(std::uint64_t seed = 1ULL) noexcept {
         SplitMix64 sm64(seed);
+        bool       allZero = true;
         for (std::size_t i = 0; i < Size; ++i)
+        {
             s[i] = sm64.next();
+            if (s[i] != 0)
+                allZero = false;
+        }
+        if (allZero)
+            s[0] = 1ULL;  // avoid all-zero state
     }
 
     template<typename T>
@@ -422,7 +437,7 @@ class Xoshiro256 final {
         return T(rand64() & rand64() & rand64());
     }
 
-    // Jump function for the Xoshiro256** PRNG
+    // XoShiRo256** jump implementation
     constexpr void jump() noexcept {
         constexpr std::uint64_t JumpMasks[Size]           //
           {0x180EC6D33CFD0ABAULL, 0xD5A61266F0C9392CULL,  //
@@ -443,7 +458,7 @@ class Xoshiro256 final {
     }
 
    private:
-    // Xoshiro256** algorithm implementation
+    // XoShiRo256** algorithm implementation
     constexpr std::uint64_t rand64() noexcept {
         const std::uint64_t rs1 = rotl(s[1] * 5, 7) * 9;
         const std::uint64_t ss1 = s[1] << 17;

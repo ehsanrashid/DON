@@ -151,7 +151,7 @@ void init_magics() noexcept {
     #endif
           - popcount(m.mask);
 
-        PRNG<Xoshiro256> prng(Seeds[rank_of(s)]);
+        PRNG<XoShiRo256Star> prng(Seeds[rank_of(s)]);
         // Find a magic for square 's' picking up an (almost) random number
         // until find the one that passes the verification test.
         for (std::uint16_t i = 0; i < size;)

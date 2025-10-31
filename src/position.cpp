@@ -129,7 +129,7 @@ CuckooTable<0x2000> Cuckoos;
 
 // Called at startup to initialize the Zobrist arrays used to compute hash keys
 void Position::init() noexcept {
-    PRNG<Xoshiro256> prng(0x105524ULL);
+    PRNG<XoShiRo256Star> prng(0x105524ULL);
 
     const auto prng_rand = [&] { return prng.template rand<Key>(); };
 
