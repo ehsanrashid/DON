@@ -19,7 +19,6 @@
 #define BITBOARD_H_INCLUDED
 
 #include <cassert>
-#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #if !defined(USE_POPCNT)
