@@ -79,13 +79,12 @@ inline constexpr Bitboard RANK_8_BB = RANK_1_BB << (7 * 8);
 inline constexpr Bitboard EDGE_FILE_BB      = FILE_A_BB | FILE_H_BB;
 inline constexpr Bitboard PROMOTION_RANK_BB = RANK_8_BB | RANK_1_BB;
 
-inline constexpr Bitboard WHITE_BB = 0x55AA55AA55AA55AAULL;
-inline constexpr Bitboard BLACK_BB = ~WHITE_BB;
-
 template<Color C>
 constexpr Bitboard color_bb() noexcept {
     static_assert(is_ok(C), "Invalid color for color_bb()");
-    return C == WHITE ? WHITE_BB : BLACK_BB;
+    constexpr Bitboard WhiteBB = 0x55AA55AA55AA55AAULL;
+    constexpr Bitboard BlackBB = ~WhiteBB;
+    return C == WHITE ? WhiteBB : BlackBB;
 }
 
 inline constexpr std::uint8_t MSB_INDICES[SQUARE_NB]  //

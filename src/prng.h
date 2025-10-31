@@ -91,7 +91,7 @@ class XorShift64Star final {
                 t ^= s;
             rand64();
         }
-        s = t != 0 ? t : 1ULL;
+        s = t;
     }
 
    private:
@@ -227,7 +227,7 @@ class XoShiRo256Plus final {
    private:
     // XoShiRo256++ algorithm implementation
     constexpr std::uint64_t rand64() noexcept {
-        const std::uint64_t rs1 = rotl(s[0] + s[3], 23) + s[0];
+        const std::uint64_t rs0 = rotl(s[0] + s[3], 23) + s[0];
         const std::uint64_t ss1 = s[1] << 17;
         s[2] ^= s[0];
         s[3] ^= s[1];
@@ -235,7 +235,7 @@ class XoShiRo256Plus final {
         s[0] ^= s[3];
         s[2] ^= ss1;
         s[3] = rotl(s[3], 45);
-        return rs1;
+        return rs0;
     }
 
     static constexpr std::size_t Size = 4;
