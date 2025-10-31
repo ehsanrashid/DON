@@ -311,7 +311,7 @@ class XoShiRo256Star final {
 
 // Template PRNG wrapper class
 template<typename Generator>
-class PRNG {
+class PRNG final {
    public:
     explicit constexpr PRNG(std::uint64_t seed = 1ULL) noexcept :
         generator(seed) {}
