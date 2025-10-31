@@ -209,6 +209,10 @@ constexpr bool is_mate_loss(Value value) noexcept {
 
 constexpr bool is_mate(Value value) noexcept { return is_mate_win(value) || is_mate_loss(value); }
 
+constexpr Value mates_in(std::int16_t ply) noexcept { return +VALUE_MATE - ply; }
+
+constexpr Value mated_in(std::int16_t ply) noexcept { return -VALUE_MATE + ply; }
+
 // Depth is used as an alias for std::int16_t
 using Depth = std::int16_t;
 
@@ -340,13 +344,15 @@ constexpr CastlingRights  operator&(Color c, CastlingRights cr) noexcept {
 [[nodiscard]] constexpr bool is_ok(Color c) noexcept { return (c == WHITE || c == BLACK); }
 
 // Toggle color
-constexpr Color operator~(Color c) noexcept { return Color((int(c) ^ 1) & 1); }
+constexpr Color operator~(Color c) noexcept { return Color(int(c) ^ 1); }
 
 [[nodiscard]] constexpr bool is_ok(PieceType pt) noexcept { return (PAWN <= pt && pt <= KING); }
 
 [[nodiscard]] constexpr bool is_major(PieceType pt) noexcept { return (pt >= ROOK); }
 
-constexpr Piece make_piece(Color c, PieceType pt) noexcept { return Piece((c << 3) | int(pt)); }
+constexpr Piece make_piece(Color c, PieceType pt) noexcept {
+    return Piece((int(c) << 3) + int(pt));
+}
 
 [[nodiscard]] constexpr bool is_ok(Piece pc) noexcept {
     return (W_PAWN <= pc && pc <= W_KING) || (B_PAWN <= pc && pc <= B_KING);
@@ -354,22 +360,18 @@ constexpr Piece make_piece(Color c, PieceType pt) noexcept { return Piece((c << 
 
 constexpr PieceType type_of(Piece pc) noexcept { return PieceType(int(pc) & 7); }
 
-constexpr Color color_of(Piece pc) noexcept { return Color(pc >> 3); }
+constexpr Color color_of(Piece pc) noexcept { return Color(int(pc) >> 3); }
 
 // Swap color of piece B_KNIGHT <-> W_KNIGHT
-constexpr Piece operator~(Piece pc) noexcept { return Piece(pc ^ 8); }
+constexpr Piece operator~(Piece pc) noexcept { return Piece(int(pc) ^ 8); }
 
-constexpr Value mates_in(std::int16_t ply) noexcept { return +VALUE_MATE - ply; }
-
-constexpr Value mated_in(std::int16_t ply) noexcept { return -VALUE_MATE + ply; }
-
-constexpr Square make_square(File f, Rank r) noexcept { return Square((r << 3) | int(f)); }
+constexpr Square make_square(File f, Rank r) noexcept { return Square((int(r) << 3) + int(f)); }
 
 [[nodiscard]] constexpr bool is_ok(Square s) noexcept { return (SQ_A1 <= s && s <= SQ_H8); }
 
 constexpr File file_of(Square s) noexcept { return File(int(s) & 7); }
 
-constexpr Rank rank_of(Square s) noexcept { return Rank((s >> 3) & 7); }
+constexpr Rank rank_of(Square s) noexcept { return Rank((int(s) >> 3) & 7); }
 
 [[nodiscard]] constexpr bool is_light(Square s) noexcept {
     return (int(/*file_of*/ s) ^ int(rank_of(s))) & 1;
