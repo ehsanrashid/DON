@@ -26,9 +26,9 @@
 #include <string>
 
 #include "bitboard.h"
-#include "misc.h"
 #include "movegen.h"
 #include "position.h"
+#include "prng.h"
 #include "uci.h"
 
 namespace DON {

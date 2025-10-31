@@ -30,6 +30,7 @@
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
+#include "prng.h"
 #include "nnue/network.h"
 #include "score.h"  // IWYU pragma: keep
 #include "thread.h"

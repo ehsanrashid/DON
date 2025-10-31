@@ -59,7 +59,7 @@ SRCS := benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp \
     nnue/features/half_ka_v2_hm.cpp syzygy/tbbase.cpp
 
 HEADERS := benchmark.h bitboard.h engine.h evaluate.h history.h memory.h misc.h \
-    movegen.h movepick.h numa.h perft.h polybook.h position.h score.h search.h \
+    movegen.h movepick.h numa.h perft.h polybook.h position.h prng.h score.h search.h \
     thread.h thread_win32_osx.h timeman.h tt.h tune.h types.h uci.h ucioption.h \
     nnue/nnue_accumulator.h nnue/nnue_architecture.h nnue/nnue_common.h \
     nnue/nnue_feature_transformer.h nnue/nnue_misc.h nnue/network.h nnue/simd.h \

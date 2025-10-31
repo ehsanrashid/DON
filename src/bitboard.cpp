@@ -28,7 +28,7 @@
 #endif
 
 #if !defined(USE_BMI2)
-    #include "misc.h"
+    #include "prng.h"
 #endif
 
 namespace DON {
