@@ -17,7 +17,9 @@
 
 #include "bitboard.h"
 
-#include <bitset>
+#if !defined(USE_POPCNT)
+    #include <bitset>
+#endif
 #include <initializer_list>
 #if !defined(NDEBUG)
     #include <memory>
