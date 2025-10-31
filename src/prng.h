@@ -56,7 +56,7 @@ class SplitMix64 final {
 // This class is based on original code written and dedicated
 // to the public domain by George Marsaglia (1999).
 // George Marsaglia died in 2011.
-// This is specifc version derived by Heinz van Saanen (2006).
+// This is specific version derived by Heinz van Saanen (2006).
 // It has the following characteristics:
 //
 //  - Outputs 64-bit numbers
