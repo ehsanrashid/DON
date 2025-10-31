@@ -23,11 +23,13 @@
 
 // Bitwise rotate left
 constexpr std::uint64_t rotl(std::uint64_t x, unsigned k) noexcept {
+    k &= 63;
     return (x << k) | (x >> (64 - k));
 }
 
 // Bitwise rotate right
 constexpr std::uint64_t rotr(std::uint64_t x, unsigned k) noexcept {
+    k &= 63;
     return (x >> k) | (x << (64 - k));
 }
 
