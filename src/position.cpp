@@ -27,6 +27,7 @@
 #include <sstream>
 #include <utility>
 
+#include "misc.h"
 #include "movegen.h"
 #include "prng.h"
 #include "syzygy/tbbase.h"
