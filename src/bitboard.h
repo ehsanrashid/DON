@@ -19,6 +19,7 @@
 #define BITBOARD_H_INCLUDED
 
 #include <cassert>
+#include <cmath>  // IWYU pragma: keep
 #include <cstdint>
 #include <cstdlib>
 #if !defined(USE_POPCNT)
