@@ -17,6 +17,7 @@
 
 #include "bitboard.h"
 
+#include <algorithm>
 #if !defined(USE_POPCNT)
     #include <bitset>
 #endif
