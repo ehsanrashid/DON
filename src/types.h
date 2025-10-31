@@ -383,6 +383,9 @@ constexpr Square flip_file(Square s) noexcept { return Square(int(s) ^ int(SQ_H1
 // Swap A1 <-> A8
 constexpr Square flip_rank(Square s) noexcept { return Square(int(s) ^ int(SQ_A8)); }
 
+constexpr File fold_to_edge(File f) noexcept { return std::min(f, File(FILE_H - f)); }
+constexpr Rank fold_to_edge(Rank r) noexcept { return std::min(r, Rank(RANK_8 - r)); }
+
 constexpr Square relative_sq(Color c, Square s) noexcept {
     return Square(int(s) ^ (c * int(SQ_A8)));
 }

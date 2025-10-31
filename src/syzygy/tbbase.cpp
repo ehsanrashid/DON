@@ -819,7 +819,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
         std::swap(squares[0], *std::max_element(squares, squares + leadPawnCnt, pawns_comp));
 
-        tbFile = edge_distance(file_of(squares[0]));
+        tbFile = fold_to_edge(file_of(squares[0]));
     }
 
     // DTZ-tables are one-sided, i.e. they store positions only for white to

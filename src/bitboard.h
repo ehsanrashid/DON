@@ -250,9 +250,6 @@ inline std::uint8_t distance<Square>(Square s1, Square s2) noexcept {
     return Distances[s1][s2];
 }
 
-constexpr File edge_distance(File f) noexcept { return std::min(f, File(FILE_H - f)); }
-constexpr Rank edge_distance(Rank r) noexcept { return std::min(r, Rank(RANK_8 - r)); }
-
 // Shifts a bitboard as specified by the direction
 template<Direction D>
 constexpr Bitboard shift_bb(Bitboard b) noexcept {
