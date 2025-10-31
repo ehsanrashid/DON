@@ -410,6 +410,72 @@ class XorShift1024Star final {
     std::size_t   p{0};
 };
 
+// Modern XoShiRo256++ (short for "xor, shift, rotate") Pseudo-Random Number Generator
+class XoShiRo256Plus final {
+   public:
+    explicit constexpr XoShiRo256Plus(std::uint64_t seed = 1ULL) noexcept {
+        SplitMix64 sm64(seed);
+        bool       allZero = true;
+        for (std::size_t i = 0; i < Size; ++i)
+        {
+            s[i] = sm64.next();
+            if (s[i] != 0)
+                allZero = false;
+        }
+        if (allZero)
+            s[0] = 1ULL;  // avoid all-zero state
+    }
+
+    template<typename T>
+    constexpr T rand() noexcept {
+        return T(rand64());
+    }
+
+    // Sparse random (1/8 bits set on average)
+    template<typename T>
+    constexpr T sparse_rand() noexcept {
+        return T(rand64() & rand64() & rand64());
+    }
+
+    // XoShiRo256++ jump implementation
+    constexpr void jump() noexcept {
+        constexpr std::uint64_t JumpMasks[Size]           //
+          {0x180EC6D33CFD0ABAULL, 0xD5A61266F0C9392CULL,  //
+           0xA9582618E03FC9AAULL, 0x39ABDC4529B1661CULL};
+
+        std::uint64_t t[Size]{};
+        for (const std::uint64_t jumpMask : JumpMasks)
+            for (std::uint8_t b = 0; b < 64; ++b)
+            {
+                if ((jumpMask >> b) & 1)
+                    for (std::size_t i = 0; i < Size; ++i)
+                        t[i] ^= s[i];
+                rand64();
+            }
+
+        for (std::size_t i = 0; i < Size; ++i)
+            s[i] = t[i];
+    }
+
+   private:
+    // XoShiRo256++ algorithm implementation
+    constexpr std::uint64_t rand64() noexcept {
+        const std::uint64_t rs1 = rotl(s[0] + s[3], 23) + s[0];
+        const std::uint64_t ss1 = s[1] << 17;
+        s[2] ^= s[0];
+        s[3] ^= s[1];
+        s[1] ^= s[2];
+        s[0] ^= s[3];
+        s[2] ^= ss1;
+        s[3] = rotl(s[3], 45);
+        return rs1;
+    }
+
+    static constexpr std::size_t Size = 4;
+
+    std::uint64_t s[Size]{};
+};
+
 // Modern XoShiRo256** (short for "xor, shift, rotate") Pseudo-Random Number Generator
 class XoShiRo256Star final {
    public:
@@ -441,7 +507,7 @@ class XoShiRo256Star final {
     constexpr void jump() noexcept {
         constexpr std::uint64_t JumpMasks[Size]           //
           {0x180EC6D33CFD0ABAULL, 0xD5A61266F0C9392CULL,  //
-           0xA958261307077B31ULL, 0x63C7F9B7A1A1A11FULL};
+           0xA9582618E03FC9AAULL, 0x39ABDC4529B1661CULL};
 
         std::uint64_t t[Size]{};
         for (const std::uint64_t jumpMask : JumpMasks)
