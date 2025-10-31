@@ -43,8 +43,8 @@ constexpr Direction Directions[2][4]{{NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_
 
 constexpr std::size_t AttacksSize[2]{0x1480, 0x19000};
 
-alignas(CACHE_LINE_SIZE) Bitboard BishopAttacks[AttacksSize[0]];  // Stores bishop attacks
-alignas(CACHE_LINE_SIZE) Bitboard RookAttacks[AttacksSize[1]];    // Stores rook attacks
+alignas(CACHE_LINE_SIZE) Bitboard BishopAttacks[AttacksSize[0]]{};  // Stores bishop attacks
+alignas(CACHE_LINE_SIZE) Bitboard RookAttacks[AttacksSize[1]]{};    // Stores rook attacks
 
 alignas(CACHE_LINE_SIZE) Bitboard* Attacks[2]{BishopAttacks, RookAttacks};
 
@@ -93,9 +93,9 @@ void init_magics() noexcept {
     constexpr std::uint16_t Seeds[RANK_NB]{
     // clang-format off
     #if defined(IS_64BIT)
-      0x02D8, 0x284C, 0xD6E5, 0x8023, 0x2FF9, 0x3AFC, 0x4105, 0x00FF
+      0x076F, 0x3763, 0x1048, 0x0B94, 0x2CC3, 0x04FE, 0x161F, 0x60F9
     #else
-      0x2311, 0xAE10, 0xD447, 0x9856, 0x1663, 0x73E5, 0x99D0, 0x427C
+      0x5307, 0x125E, 0x0951, 0x01F5, 0x015A, 0x1B4A, 0x00CE, 0x142A
     #endif
       // clang-format on
     };
@@ -186,6 +186,10 @@ void init_magics() noexcept {
 #endif
     }
 }
+
+// Explicit template instantiations:
+template void init_magics<BISHOP>() noexcept;
+template void init_magics<ROOK>() noexcept;
 
 }  // namespace
 
