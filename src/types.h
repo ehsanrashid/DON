@@ -350,7 +350,7 @@ constexpr Color operator~(Color c) noexcept { return Color(int(c) ^ 1); }
 
 [[nodiscard]] constexpr bool is_major(PieceType pt) noexcept { return (pt >= ROOK); }
 
-constexpr Piece make_piece(Color c, PieceType pt) noexcept {
+[[nodiscard]] constexpr Piece make_piece(Color c, PieceType pt) noexcept {
     return Piece((int(c) << 3) + int(pt));
 }
 
@@ -365,7 +365,9 @@ constexpr Color color_of(Piece pc) noexcept { return Color(int(pc) >> 3); }
 // Swap color of piece B_KNIGHT <-> W_KNIGHT
 constexpr Piece operator~(Piece pc) noexcept { return Piece(int(pc) ^ 8); }
 
-constexpr Square make_square(File f, Rank r) noexcept { return Square((int(r) << 3) + int(f)); }
+[[nodiscard]] constexpr Square make_square(File f, Rank r) noexcept {
+    return Square((int(r) << 3) + int(f));
+}
 
 [[nodiscard]] constexpr bool is_ok(Square s) noexcept { return (SQ_A1 <= s && s <= SQ_H8); }
 
@@ -438,13 +440,12 @@ template<bool Upper = false>
 
 [[nodiscard]] constexpr Rank to_rank(char r) noexcept { return Rank(r - '1'); }
 
+// Flip file 'A'-'H' or 'a'-'h'; otherwise unchanged
 [[nodiscard]] constexpr char flip_file(char f) noexcept {
-    // Flip file 'A'-'H' or 'a'-'h'; otherwise unchanged
     return ('A' <= f && f <= 'H') ? 'A' + ('H' - f) : ('a' <= f && f <= 'h') ? 'a' + ('h' - f) : f;
 }
-
+// Flip rank '1'-'8'; otherwise unchanged
 [[nodiscard]] constexpr char flip_rank(char r) noexcept {
-    // Flip rank '1'-'8'; otherwise unchanged
     return ('1' <= r && r <= '8') ? '1' + ('8' - r) : r;
 }
 
