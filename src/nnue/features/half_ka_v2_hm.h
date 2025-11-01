@@ -60,7 +60,7 @@ class HalfKAv2_hm final {
     // Number of feature dimensions
     static constexpr IndexType Dimensions = (PS_NB * SQUARE_NB) / 2;
 
-    static constexpr std::int16_t PieceSquareIndex[COLOR_NB][PIECE_NB]{
+    static constexpr IndexType PieceSquareIndex[COLOR_NB][PIECE_NB]{
       // Convention: W - us, B - them
       // Viewed from other side, W and B are reversed
       {PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE,
@@ -70,44 +70,28 @@ class HalfKAv2_hm final {
 
     // clang-format off
 #define B(v) (v * PS_NB)
-    static constexpr std::int16_t KingBuckets[COLOR_NB][SQUARE_NB]{
-      { B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28),
+    static constexpr IndexType KingBuckets[SQUARE_NB]{
+        B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28),
         B(24), B(25), B(26), B(27), B(27), B(26), B(25), B(24),
         B(20), B(21), B(22), B(23), B(23), B(22), B(21), B(20),
         B(16), B(17), B(18), B(19), B(19), B(18), B(17), B(16),
         B(12), B(13), B(14), B(15), B(15), B(14), B(13), B(12),
         B( 8), B( 9), B(10), B(11), B(11), B(10), B( 9), B( 8),
         B( 4), B( 5), B( 6), B( 7), B( 7), B( 6), B( 5), B( 4),
-        B( 0), B( 1), B( 2), B( 3), B( 3), B( 2), B( 1), B( 0) },
-      { B( 0), B( 1), B( 2), B( 3), B( 3), B( 2), B( 1), B( 0),
-        B( 4), B( 5), B( 6), B( 7), B( 7), B( 6), B( 5), B( 4),
-        B( 8), B( 9), B(10), B(11), B(11), B(10), B( 9), B( 8),
-        B(12), B(13), B(14), B(15), B(15), B(14), B(13), B(12),
-        B(16), B(17), B(18), B(19), B(19), B(18), B(17), B(16),
-        B(20), B(21), B(22), B(23), B(23), B(22), B(21), B(20),
-        B(24), B(25), B(26), B(27), B(27), B(26), B(25), B(24),
-        B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28) }
+        B( 0), B( 1), B( 2), B( 3), B( 3), B( 2), B( 1), B( 0)
     };
 #undef B
 
     // Orient a square according to perspective (rotates by 180 for black)
-    static constexpr std::int16_t OrientTable[COLOR_NB][SQUARE_NB]{
-      { SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,
+    static constexpr IndexType OrientTable[SQUARE_NB]{
         SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,
         SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,
         SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,
         SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,
         SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,
         SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,
-        SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1 },
-      { SQ_H8, SQ_H8, SQ_H8, SQ_H8, SQ_A8, SQ_A8, SQ_A8, SQ_A8,
-        SQ_H8, SQ_H8, SQ_H8, SQ_H8, SQ_A8, SQ_A8, SQ_A8, SQ_A8,
-        SQ_H8, SQ_H8, SQ_H8, SQ_H8, SQ_A8, SQ_A8, SQ_A8, SQ_A8,
-        SQ_H8, SQ_H8, SQ_H8, SQ_H8, SQ_A8, SQ_A8, SQ_A8, SQ_A8,
-        SQ_H8, SQ_H8, SQ_H8, SQ_H8, SQ_A8, SQ_A8, SQ_A8, SQ_A8,
-        SQ_H8, SQ_H8, SQ_H8, SQ_H8, SQ_A8, SQ_A8, SQ_A8, SQ_A8,
-        SQ_H8, SQ_H8, SQ_H8, SQ_H8, SQ_A8, SQ_A8, SQ_A8, SQ_A8,
-        SQ_H8, SQ_H8, SQ_H8, SQ_H8, SQ_A8, SQ_A8, SQ_A8, SQ_A8 }
+        SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,
+        SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1
     };
     // clang-format on
 
