@@ -351,6 +351,7 @@ constexpr Color operator~(Color c) noexcept { return Color(int(c) ^ 1); }
 [[nodiscard]] constexpr bool is_major(PieceType pt) noexcept { return (pt >= ROOK); }
 
 [[nodiscard]] constexpr Piece make_piece(Color c, PieceType pt) noexcept {
+    assert(is_ok(c) && (is_ok(pt) || pt == ALL_PIECE));
     return Piece((int(c) << 3) | int(pt));
 }
 
@@ -365,7 +366,12 @@ constexpr Color color_of(Piece pc) noexcept { return Color(int(pc) >> 3); }
 // Swap color of piece B_KNIGHT <-> W_KNIGHT
 constexpr Piece operator~(Piece pc) noexcept { return Piece(int(pc) ^ 8); }
 
+[[nodiscard]] constexpr bool is_ok(File f) noexcept { return (FILE_A <= f && f <= FILE_H); }
+
+[[nodiscard]] constexpr bool is_ok(Rank r) noexcept { return (RANK_1 <= r && r <= RANK_8); }
+
 [[nodiscard]] constexpr Square make_square(File f, Rank r) noexcept {
+    assert(is_ok(f) && is_ok(r));
     return Square((int(r) << 3) | int(f));
 }
 
