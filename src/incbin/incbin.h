@@ -4,37 +4,37 @@
  * @brief Utility for including binary files
  *
  * Facilities for including binary files into the current translation unit
- * and making use of them externally in other translation units.
+ * and access them externally from other translation units.
  */
 #ifndef INCBIN_HDR_INCLUDED
 #define INCBIN_HDR_INCLUDED
 
 #include <limits.h>
-#if   defined(__AVX512BW__) || \
-      defined(__AVX512CD__) || \
-      defined(__AVX512DQ__) || \
-      defined(__AVX512ER__) || \
-      defined(__AVX512PF__) || \
-      defined(__AVX512VL__) || \
-      defined(__AVX512F__)
-# define INCBIN_ALIGNMENT_INDEX 6
-#elif defined(__AVX__)      || \
-      defined(__AVX2__)
-# define INCBIN_ALIGNMENT_INDEX 5
-#elif defined(__SSE__)      || \
-      defined(__SSE2__)     || \
-      defined(__SSE3__)     || \
-      defined(__SSSE3__)    || \
-      defined(__SSE4_1__)   || \
-      defined(__SSE4_2__)   || \
-      defined(__neon__)     || \
-      defined(__ARM_NEON)   || \
-      defined(__ALTIVEC__)
-# define INCBIN_ALIGNMENT_INDEX 4
+#if   defined(__AVX512BW__) \
+   || defined(__AVX512CD__) \
+   || defined(__AVX512DQ__) \
+   || defined(__AVX512ER__) \
+   || defined(__AVX512PF__) \
+   || defined(__AVX512VL__) \
+   || defined(__AVX512F__)
+#  define INCBIN_ALIGNMENT_INDEX 6
+#elif defined(__AVX__) \
+   || defined(__AVX2__)
+#  define INCBIN_ALIGNMENT_INDEX 5
+#elif defined(__SSE__)    \
+   || defined(__SSE2__)   \
+   || defined(__SSE3__)   \
+   || defined(__SSSE3__)  \
+   || defined(__SSE4_1__) \
+   || defined(__SSE4_2__) \
+   || defined(__neon__)   \
+   || defined(__ARM_NEON) \
+   || defined(__ALTIVEC__)
+#  define INCBIN_ALIGNMENT_INDEX 4
 #elif ULONG_MAX != 0xFFFFFFFFU
-# define INCBIN_ALIGNMENT_INDEX 3
+#  define INCBIN_ALIGNMENT_INDEX 3
 # else
-# define INCBIN_ALIGNMENT_INDEX 2
+#  define INCBIN_ALIGNMENT_INDEX 2
 #endif
 
 /* Lookup table of (1 << n) where `n' is `INCBIN_ALIGNMENT_INDEX' */
@@ -90,9 +90,9 @@
     __attribute__((aligned(INCBIN_ALIGNMENT)))
 #endif
 
-#if defined(__arm__) || /* GNU C and RealView */ \
-    defined(__arm) || /* Diab */ \
-    defined(_ARM) /* ImageCraft */
+#if defined(__arm__) /* GNU C and RealView */ \
+ || defined(__arm)   /* Diab */ \
+ || defined(_ARM)    /* ImageCraft */
 #  define INCBIN_ARM
 #endif
 

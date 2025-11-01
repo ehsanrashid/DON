@@ -172,7 +172,7 @@ struct AccumulatorStack final {
                   AccumulatorCaches::Cache<Dimensions>& cache) noexcept;
 
     template<IndexType Dimensions>
-    [[nodiscard]] std::size_t find_last_usable_accumulator(Color perspective) const noexcept;
+    [[nodiscard]] std::size_t last_usable_accumulator_index(Color perspective) const noexcept;
 
     template<IndexType Dimensions>
     void forward_update_incremental(Color                                 perspective,
