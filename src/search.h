@@ -54,9 +54,9 @@ using Moves = std::vector<Move>;
 template<std::size_t Size>
 using MovesArray = std::array<Moves, Size>;
 
-constexpr std::size_t DEFAULT_MULTI_PV = 1;
+inline constexpr std::size_t DEFAULT_MULTI_PV = 1;
 
-extern PolyBook Book;
+inline PolyBook Book;
 
 namespace Search {
 
@@ -318,7 +318,8 @@ struct Skill final {
 
     bool time_to_pick(Depth depth) const noexcept { return depth == 1 + int(level); }
 
-    Move pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick = true) noexcept;
+    Move
+    pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickEnabled = true) noexcept;
 
     static constexpr double        MinLevel = 00.0;
     static constexpr double        MaxLevel = 20.0;
@@ -327,7 +328,7 @@ struct Skill final {
 
    private:
     double level{MaxLevel};
-    Move   move{Move::None};
+    Move   bestMove{Move::None};
 };
 
 // SharedState struct stores the engine options, networks, thread pool, and transposition table.

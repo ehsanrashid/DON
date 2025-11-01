@@ -22,13 +22,12 @@
 #include <cassert>
 #include <cctype>
 #include <chrono>
-#include <cstddef>
+#include <cinttypes>
 #include <cstdint>
-#include <iomanip>
+#include <cstdio>
 #include <iostream>
 #include <mutex>
 #include <optional>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -90,8 +89,8 @@ constexpr auto sign_sqr(T x) noexcept {
 }
 
 // True if and only if the binary is compiled on a little-endian machine
-constexpr std::uint16_t  LittleEndianValue = 1;
-static inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;
+inline constexpr std::uint16_t LittleEndianValue = 1;
+inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;
 
 class sync_ostream final {
    public:
@@ -110,12 +109,12 @@ class sync_ostream final {
 
     ~sync_ostream() noexcept = default;
 
-    template<class T>
+    template<typename T>
     sync_ostream& operator<<(T&& x) & noexcept {
         *ostream << std::forward<T>(x);
         return *this;
     }
-    template<class T>
+    template<typename T>
     sync_ostream&& operator<<(T&& x) && noexcept {
         *ostream << std::forward<T>(x);
         return std::move(*this);
@@ -226,7 +225,7 @@ constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 }
 
 static_assert(mul_hi64(0xDEADBEEFDEADBEEFULL, 0xCAFEBABECAFEBABEULL) == 0xB092AB7CE9F4B259ULL,
-              "Error in mul_hi64()");
+              "mul_hi64(): Failed");
 
 #if defined(USE_PREFETCH)
 inline void prefetch(const void* const addr) noexcept {
@@ -255,123 +254,6 @@ std::string format_time(const SystemClock::time_point& timePoint);
 
 void start_logger(std::string_view logFile) noexcept;
 
-// XORShift64Star Pseudo-Random Number Generator
-// This class is based on original code written and dedicated
-// to the public domain by Sebastiano Vigna (2014).
-// It has the following characteristics:
-//
-//  - Outputs 64-bit numbers
-//  - Passes Dieharder and SmallCrush test batteries
-//  - Does not require warm-up, no zero-land to escape
-//  - Internal state is a single 64-bit integer
-//  - Period is 2^64 - 1
-//  - Speed: 1.60 ns/call (measured on a Core i7 @3.40GHz)
-//
-// For further analysis see
-//   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
-class PRNG final {
-   public:
-    explicit constexpr PRNG(std::uint64_t seed) noexcept :
-        s(seed) {
-        assert(seed);
-    }
-
-    template<typename T>
-    constexpr T rand() noexcept {
-        return T(rand64());
-    }
-
-    // Special generator used to fast init magic numbers.
-    // Output values only have 1/8th of their bits set on average.
-    template<typename T>
-    constexpr T sparse_rand() noexcept {
-        return T(rand64() & rand64() & rand64());
-    }
-
-    // Jump function for the XORShift64Star PRNG
-    constexpr void jump() noexcept {
-        std::uint64_t t = 0;
-        for (std::uint8_t m = 0; m < 64; ++m)
-        {
-            if (0x9E3779B97F4A7C15ULL & (1ULL << m))
-                t ^= s;
-            rand64();
-        }
-        s = t;
-    }
-
-   private:
-    // XORShift64Star algorithm implementation
-    constexpr std::uint64_t rand64() noexcept {
-        s ^= s >> 12, s ^= s << 25, s ^= s >> 27;
-        return 0x2545F4914F6CDD1DULL * s;
-    }
-
-    std::uint64_t s{};
-};
-
-// XORShift1024Star Pseudo-Random Number Generator
-class PRNG1024 final {
-   public:
-    explicit constexpr PRNG1024(std::uint64_t seed) noexcept {
-        assert(seed);
-
-        for (std::size_t i = 0; i < Size; ++i)
-            s[i] = seed = 0x9857FB32C9EFB5E4ULL + 0x2545F4914F6CDD1DULL * seed;
-    }
-
-    template<typename T>
-    constexpr T rand() noexcept {
-        return T(rand64());
-    }
-
-    // Special generator used to fast init magic numbers.
-    // Output values only have 1/8th of their bits set on average.
-    template<typename T>
-    constexpr T sparse_rand() noexcept {
-        return T(rand64() & rand64() & rand64());
-    }
-
-    // Jump function for the XORShift1024Star PRNG
-    constexpr void jump() noexcept {
-        std::uint64_t t[Size]{};
-        for (const auto jumpMask : JumpMasks)
-            for (std::uint8_t m = 0; m < 64; ++m)
-            {
-                if (jumpMask & (1ULL << m))
-                    for (std::size_t i = 0; i < Size; ++i)
-                        t[i] ^= s[index(i)];
-                rand64();
-            }
-
-        for (std::size_t i = 0; i < Size; ++i)
-            s[index(i)] = t[i];
-    }
-
-   private:
-    constexpr std::size_t index(std::size_t k) const noexcept { return (p + k) & (Size - 1); }
-
-    // XORShift1024Star algorithm implementation
-    constexpr std::uint64_t rand64() noexcept {
-        auto s0 = s[p];
-        auto s1 = s[p = index(1)];
-        s1 ^= s1 << 31;
-        s[p] = s0 ^ s1 ^ (s0 >> 30) ^ (s1 >> 11);
-        return 0x106689D45497FDB5ULL * s[p];
-    }
-
-    static constexpr std::size_t Size = 16;
-
-    static constexpr std::uint64_t JumpMasks[Size]{
-      0x84242F96ECA9C41DULL, 0xA3C65B8776F96855ULL, 0x5B34A39F070B5837ULL, 0x4489AFFCE4F31A1EULL,
-      0x2FFEEB0A48316F40ULL, 0xDC2D9891FE68C022ULL, 0x3659132BB12FEA70ULL, 0xAAC17D8EFA43CAB8ULL,
-      0xC4CB815590989B13ULL, 0x5EE975283D71C93BULL, 0x691548C86C1BD540ULL, 0x7910C41D10A1E6A5ULL,
-      0x0B5FC64563B3E2A8ULL, 0x047F7684E9FC949DULL, 0xB99181F2D8F685CAULL, 0x284600E3F30E38C3ULL};
-
-    std::uint64_t s[Size]{};
-    std::size_t   p{0};
-};
-
 #if !defined(NDEBUG)
 namespace Debug {
 
@@ -398,124 +280,89 @@ struct CommandLine final {
     std::vector<std::string_view> arguments;
 };
 
-inline char digit_to_char(int digit) noexcept {
-    assert(0 <= digit && digit <= 9);
-    return (0 <= digit && digit <= 9) ? '0' + digit : '\0';  // Return null char for invalid digit
+[[nodiscard]] constexpr char digit_to_char(int digit) noexcept {
+    assert(0 <= digit && digit <= 9 && "digit_to_char: non-digit integer");
+    return (0 <= digit && digit <= 9) ? digit + '0' : '\0';
 }
 
-inline int char_to_digit(char ch) noexcept {
-    assert(std::isdigit(ch));
-    return std::isdigit(ch) ? ch - '0' : -1;  // Return -1 for non-digit characters
+[[nodiscard]] constexpr int char_to_digit(char ch) noexcept {
+    assert('0' <= ch && ch <= '9' && "char_to_digit: non-digit character");
+    return ('0' <= ch && ch <= '9') ? ch - '0' : -1;
 }
 
 inline std::string lower_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept {
-        return std::isupper(ch) ? static_cast<unsigned char>(std::tolower(ch)) : ch;
-    });
+    std::transform(str.begin(), str.end(), str.begin(),
+                   [](unsigned char ch) noexcept -> char { return std::tolower(ch); });
     return str;
 }
 
 inline std::string upper_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept {
-        return std::islower(ch) ? static_cast<unsigned char>(std::toupper(ch)) : ch;
-    });
+    std::transform(str.begin(), str.end(), str.begin(),
+                   [](unsigned char ch) noexcept -> char { return std::toupper(ch); });
     return str;
 }
 
 inline std::string toggle_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept {
-        return std::islower(ch) ? static_cast<unsigned char>(std::toupper(ch))
-             : std::isupper(ch) ? static_cast<unsigned char>(std::tolower(ch))
-                                : ch;
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept -> char {
+        return std::islower(ch) ? std::toupper(ch) : std::isupper(ch) ? std::tolower(ch) : ch;
     });
     return str;
 }
 
-inline bool starts_with(std::string_view str, std::string_view prefix) noexcept {
-    return str.size() >= prefix.size() && str.substr(0, prefix.size()) == prefix;
-}
-
-inline bool ends_with(std::string_view str, std::string_view suffix) noexcept {
-    return str.size() >= suffix.size() && str.substr(str.size() - suffix.size()) == suffix;
-}
-
-inline bool is_whitespace(std::string_view str) noexcept {
-    return str.empty()  //
-        || std::all_of(str.begin(), str.end(),
-                       [](unsigned char ch) noexcept { return std::isspace(ch) != 0; });
-}
-
-inline void remove_whitespace(std::string& str) noexcept {
+inline std::string remove_whitespace(std::string str) noexcept {
     str.erase(std::remove_if(str.begin(), str.end(),
-                             [](unsigned char ch) noexcept { return std::isspace(ch) != 0; }),
+                             [](unsigned char ch) noexcept { return std::isspace(ch); }),
               str.end());
+    return str;
 }
 
-inline void trim_leading_whitespace(std::string& str) noexcept {
-    str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](unsigned char ch) noexcept {
-                  return std::isspace(ch) == 0;
-              }));
+inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
+
+[[nodiscard]] constexpr bool starts_with(std::string_view str, std::string_view prefix) noexcept {
+    return str.size() >= prefix.size()  //
+        && str.compare(0, prefix.size(), prefix) == 0;
 }
 
-inline void trim_trailing_whitespace(std::string& str) noexcept {
-    str.erase(std::find_if(str.rbegin(), str.rend(),
-                           [](unsigned char ch) noexcept { return std::isspace(ch) == 0; })
-                .base(),
-              str.end());
+[[nodiscard]] constexpr bool ends_with(std::string_view str, std::string_view suffix) noexcept {
+    return str.size() >= suffix.size()  //
+        && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
-inline std::string bool_to_string(bool b) noexcept {
-    return (std::ostringstream{} << std::boolalpha << b).str();
+[[nodiscard]] constexpr bool is_whitespace(std::string_view str) noexcept {
+    //return str.empty()
+    //    || std::all_of(str.begin(), str.end(), [](unsigned char ch) { return std::isspace(ch); });
+    return str.find_first_not_of(WHITE_SPACE) == std::string_view::npos;
 }
 
-inline bool string_to_bool(std::string_view str) {
-    std::istringstream iss{std::string(str)};
-
-    // Try "true"/"false" (case-sensitive, C++ iostream semantics)
-    if (bool b{}; (iss >> std::boolalpha >> b))
-    {
-        iss >> std::ws;  // allow trailing spaces
-        if (iss.eof())
-            return b;  // clean parse
-        // Had extra junk -> fall through to integer retry
-    }
-
-    // Retry as integer
-    iss.clear();
-    iss.seekg(0);  // rewind to start
-    if (unsigned long long u{}; iss >> u)
-    {
-        iss >> std::ws;
-        if (iss.eof())
-            return u != 0;  // only accept clean numeric tokens
-    }
-
-    // Optional: common on/off/yes/no fallbacks
-    return false;
+[[nodiscard]] constexpr std::string_view ltrim(std::string_view str) noexcept {
+    // Find the first non-whitespace character
+    const std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+    return (beg == std::string_view::npos) ? std::string_view{} : str.substr(beg);
 }
 
-inline std::string u64_to_string(std::uint64_t u64) noexcept {
-    return (std::ostringstream{} << "0x" << std::hex << std::uppercase << std::setfill('0')
-                                 << std::setw(16) << u64)
-      .str();
+[[nodiscard]] constexpr std::string_view rtrim(std::string_view str) noexcept {
+    // Find the last non-whitespace character
+    const std::size_t end = str.find_last_not_of(WHITE_SPACE);
+    return (end == std::string_view::npos) ? std::string_view{} : str.substr(0, end + 1);
 }
 
 [[nodiscard]] constexpr std::string_view trim(std::string_view str) noexcept {
-    constexpr std::string_view WhiteSpace{" \t\n\r\f\v"};
-
-    // Find the first non-whitespace character
-    std::size_t beg = str.find_first_not_of(WhiteSpace);
+    const std::size_t beg = str.find_first_not_of(WHITE_SPACE);
     if (beg == std::string_view::npos)
-        return {};  // All whitespace
-
-    // Find the last non-whitespace character
-    std::size_t end = str.find_last_not_of(WhiteSpace);
-
-    return str.substr(beg, end - beg + 1);  // Returns the trimmed substring
+        return {};
+    const std::size_t end = str.find_last_not_of(WHITE_SPACE);
+    return str.substr(beg, end - beg + 1);
+    //return ltrim(rtrim(str));
 }
 
+[[nodiscard]] constexpr std::string_view bool_to_string(bool b) noexcept {
+    return std::string_view{b ? "true" : "false"};
+}
+
+[[nodiscard]] constexpr bool string_to_bool(std::string_view str) { return (trim(str) == "true"); }
+
 inline StringViews
-split(std::string_view str, std::string_view delimiter, bool doTrim = false) noexcept {
+split(std::string_view str, std::string_view delimiter, bool trimEnabled = false) noexcept {
     StringViews parts;
 
     if (str.empty() || delimiter.empty())
@@ -531,7 +378,7 @@ split(std::string_view str, std::string_view delimiter, bool doTrim = false) noe
             break;
 
         part = str.substr(beg, end - beg);
-        if (doTrim)
+        if (trimEnabled)
             part = trim(part);
         if (!part.empty())
             parts.emplace_back(part);
@@ -541,12 +388,18 @@ split(std::string_view str, std::string_view delimiter, bool doTrim = false) noe
 
     // Last part
     part = str.substr(beg);
-    if (doTrim)
+    if (trimEnabled)
         part = trim(part);
     if (!part.empty())
         parts.emplace_back(part);
 
     return parts;
+}
+
+inline std::string u64_to_string(std::uint64_t u64) noexcept {
+    std::string str(19, '\0');  // "0x" + 16 hex + '\0'
+    std::snprintf(str.data(), str.size(), "0x%016" PRIX64, u64);
+    return str;
 }
 
 std::size_t str_to_size_t(std::string_view str) noexcept;

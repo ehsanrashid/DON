@@ -29,13 +29,14 @@
 #include "misc.h"
 #include "movegen.h"
 #include "position.h"
+#include "prng.h"
 #include "uci.h"
 
 namespace DON {
 
 namespace {
 
-constexpr std::size_t PieceTypes = 6U;
+constexpr std::size_t PieceTypes = 6;
 
 // Random numbers from PolyGlot, used to compute book hash keys
 union PolyGlot {
@@ -351,11 +352,11 @@ Move pg_to_move(std::uint16_t pg_move, const Position& pos) noexcept {
 
     Move move = fix_promotion(Move(pg_move));
 
-    std::uint16_t moveRaw = move.raw() & ~Move::MoveTypeMask;
+    std::uint16_t moveRaw = move.raw() & ~Move::TypeMask;
     // Add 'Special move' flags and verify it is legal
     for (auto m : MoveList<LEGAL>(pos))
         // Compare with MoveType (bit 14-15) Masked-out
-        if ((m.raw() & ~Move::MoveTypeMask) == moveRaw)
+        if ((m.raw() & ~Move::TypeMask) == moveRaw)
             return m;
 
     return Move::None;
@@ -442,7 +443,7 @@ void PolyBook::init(std::string_view bookFile) noexcept {
                            + " entries");
 }
 
-Move PolyBook::probe(Position& pos, bool bestPick) noexcept {
+Move PolyBook::probe(Position& pos, bool pickBestEnabled) noexcept {
     assert(active());
 
     Key key = polyglot_key(pos);
@@ -462,7 +463,7 @@ Move PolyBook::probe(Position& pos, bool bestPick) noexcept {
 #endif
 
     std::size_t idx;
-    idx = bestPick || keyData.entryCount == 1 ? keyData.bestIndex : keyData.randIndex;
+    idx = pickBestEnabled || keyData.entryCount == 1 ? keyData.bestIndex : keyData.randIndex;
 
     Move m;
     m = pg_to_move(entries[idx].move, pos);
@@ -537,7 +538,7 @@ void PolyBook::find_key(Key key) noexcept {
 }
 
 void PolyBook::get_key_data(std::size_t begIndex) noexcept {
-    static PRNG rng(now());
+    static PRNG<XorShift64Star> prng(now());
 
     keyData.entryCount = 1;
     keyData.begIndex   = begIndex;
@@ -562,7 +563,7 @@ void PolyBook::get_key_data(std::size_t begIndex) noexcept {
 
     keyData.randIndex = keyData.bestIndex;
 
-    std::uint16_t randWeight = rng.rand<std::uint16_t>() % keyData.sumWeight;
+    std::uint16_t randWeight = prng.rand<std::uint16_t>() % keyData.sumWeight;
     std::uint32_t sumWeight  = 0;
     for (std::size_t idx = begIndex; idx < begIndex + keyData.entryCount; ++idx)
     {

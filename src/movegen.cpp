@@ -32,7 +32,7 @@ namespace DON {
 namespace {
 
 #if defined(USE_AVX512ICL)
-inline Move* write_moves(Move* moves, std::uint32_t mask, __m512i vector) noexcept {
+Move* write_moves(Move* moves, std::uint32_t mask, __m512i vector) noexcept {
     // Avoid _mm512_mask_compressstoreu_epi16() as it's 256 uOps on Zen4
     _mm512_storeu_si512(reinterpret_cast<__m512i*>(moves),
                         _mm512_maskz_compress_epi16(mask, vector));
@@ -42,13 +42,13 @@ inline Move* write_moves(Move* moves, std::uint32_t mask, __m512i vector) noexce
 
 // Splat pawn moves
 template<Direction D>
-inline Move* splat_pawn_moves(Move* moves, Bitboard b) noexcept {
+Move* splat_pawn_moves(Move* moves, Bitboard b) noexcept {
     static_assert(D == NORTH || D == SOUTH || D == NORTH_2 || D == SOUTH_2  //
                     || D == NORTH_EAST || D == SOUTH_EAST || D == NORTH_WEST || D == SOUTH_WEST,
                   "D is invalid");
 
 #if defined(USE_AVX512ICL)
-    alignas(CACHE_LINE_SIZE) static constexpr auto SplatTable = []() {
+    alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr {
         std::array<Move, 64> table{};
         for (std::int8_t i = 0; i < 64; ++i)
         {
@@ -74,7 +74,7 @@ inline Move* splat_pawn_moves(Move* moves, Bitboard b) noexcept {
 
 // Splat promotion moves
 template<Direction D>
-inline Move* splat_promotion_moves(Move* moves, Bitboard b) noexcept {
+Move* splat_promotion_moves(Move* moves, Bitboard b) noexcept {
     static_assert(D == NORTH || D == SOUTH || D == NORTH_2 || D == SOUTH_2  //
                     || D == NORTH_EAST || D == SOUTH_EAST || D == NORTH_WEST || D == SOUTH_WEST,
                   "D is invalid");
@@ -89,10 +89,10 @@ inline Move* splat_promotion_moves(Move* moves, Bitboard b) noexcept {
 }
 
 // Splat moves for a given square and bitboard
-inline Move* splat_moves(Move* moves, Square s, Bitboard b) noexcept {
+Move* splat_moves(Move* moves, Square s, Bitboard b) noexcept {
 
 #if defined(USE_AVX512ICL)
-    alignas(CACHE_LINE_SIZE) static constexpr auto SplatTable = []() {
+    alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr {
         std::array<Move, 64> table{};
         for (std::int8_t i = 0; i < 64; ++i)
             table[i] = {Move(SQUARE_ZERO, Square{i})};
@@ -140,8 +140,8 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
     // Single and double pawn pushes, no promotions
     if constexpr (!Capture)
     {
-        Bitboard b1 = shift<Push1>(non7Pawns) & empties;
-        Bitboard b2 = shift<Push1>(b1 & relative_rank(AC, RANK_3)) & empties;
+        Bitboard b1 = shift_bb<Push1>(non7Pawns) & empties;
+        Bitboard b2 = shift_bb<Push1>(b1 & relative_rank(AC, RANK_3)) & empties;
 
         // Consider only blocking squares
         if constexpr (Evasion)
@@ -161,23 +161,23 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
 
         if (on7Pawns)
         {
-            b = shift<Push1>(on7Pawns) & empties;
+            b = shift_bb<Push1>(on7Pawns) & empties;
             // Consider only blocking and capture squares
             if constexpr (Evasion)
                 b &= between_bb(pos.king_sq(AC), lsb(pos.checkers()));
             moves = splat_promotion_moves<Push1>(moves, b);
 
-            b     = shift<CaptL>(on7Pawns) & enemies;
+            b     = shift_bb<CaptL>(on7Pawns) & enemies;
             moves = splat_promotion_moves<CaptL>(moves, b);
 
-            b     = shift<CaptR>(on7Pawns) & enemies;
+            b     = shift_bb<CaptR>(on7Pawns) & enemies;
             moves = splat_promotion_moves<CaptR>(moves, b);
         }
 
-        b     = shift<CaptL>(non7Pawns) & enemies;
+        b     = shift_bb<CaptL>(non7Pawns) & enemies;
         moves = splat_pawn_moves<CaptL>(moves, b);
 
-        b     = shift<CaptR>(non7Pawns) & enemies;
+        b     = shift_bb<CaptR>(non7Pawns) & enemies;
         moves = splat_pawn_moves<CaptR>(moves, b);
 
         if (is_ok(pos.ep_sq()))
@@ -239,26 +239,17 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
 
     if (b)
     {
-        b &= ~(pos.attacks<PAWN>(~AC) | attacks_bb<KING>(pos.king_sq(~AC)));
+        b &= ~(pos.attacks<KNIGHT>(~AC) | attacks_bb<KING>(pos.king_sq(~AC)));
 
         Bitboard occupied = pos.pieces() ^ kingSq;
 
         while (b)
-        {
-            Square s = pop_lsb(b);
-            // clang-format off
-            if (!((pos.pieces(~AC, KNIGHT       ) & attacks_bb<KNIGHT>(s))
-              || ((pos.pieces(~AC, QUEEN, BISHOP) & attacks_bb<BISHOP>(s))
-               && (pos.pieces(~AC, QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupied)))
-              || ((pos.pieces(~AC, QUEEN, ROOK  ) & attacks_bb<ROOK  >(s))
-               && (pos.pieces(~AC, QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupied)))))
+            if (Square s = pop_lsb(b); !(pos.slide_attackers_to(s, occupied) & pos.pieces(~AC)))
             {
                 *moves++ = Move(kingSq, s);
                 if constexpr (Any)
                     return moves;
             }
-            // clang-format on
-        }
     }
 
     if constexpr (Castle)
@@ -303,21 +294,18 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
 
         const auto* pmoves = moves;
         moves = generate_pawns_moves<AC, GT    >(pos, moves, target);
-        if (Any && ((moves > pmoves + 0 && pos.legal(pmoves[0]))
-                 || (moves > pmoves + 1 && pos.legal(pmoves[1]))
-                 || (moves > pmoves + 2 && pos.legal(pmoves[2])))) return moves;
+        if (Any && ((pmoves + 0 < moves && pos.legal(pmoves[0]))
+                 || (pmoves + 1 < moves && pos.legal(pmoves[1]))
+                 || (pmoves + 2 < moves && pos.legal(pmoves[2])))) return moves;
         pmoves = moves;
         moves = generate_piece_moves<AC, KNIGHT>(pos, moves, target);
-        if (Any && moves > pmoves) return moves;
-        pmoves = moves;
+        if (Any && pmoves != moves) return moves;
         moves = generate_piece_moves<AC, BISHOP>(pos, moves, target);
-        if (Any && moves > pmoves) return moves;
-        pmoves = moves;
+        if (Any && pmoves != moves) return moves;
         moves = generate_piece_moves<AC, ROOK  >(pos, moves, target);
-        if (Any && moves > pmoves) return moves;
-        pmoves = moves;
+        if (Any && pmoves != moves) return moves;
         moves = generate_piece_moves<AC, QUEEN >(pos, moves, target);
-        if (Any && moves > pmoves) return moves;
+        if (Any && pmoves != moves) return moves;
     }
 
     if constexpr (Evasion)
@@ -357,7 +345,7 @@ Move* generate(const Position& pos, Move* moves) noexcept {
                                        : generate_moves<BLACK, GT, Any>(pos, moves);
 }
 
-// Explicit template instantiations
+// Explicit template instantiations:
 template Move* generate<ENCOUNTER, false>(const Position& pos, Move* moves) noexcept;
 template Move* generate<ENCOUNTER, true>(const Position& pos, Move* moves) noexcept;
 template Move* generate<ENC_CAPTURE, false>(const Position& pos, Move* moves) noexcept;
@@ -395,7 +383,7 @@ Move* generate_legal(const Position& pos, Move* moves) noexcept {
     return moves;
 }
 
-// Explicit template instantiations
+// Explicit template instantiations:
 template Move* generate_legal<false>(const Position& pos, Move* moves) noexcept;
 template Move* generate_legal<true>(const Position& pos, Move* moves) noexcept;
 

@@ -32,7 +32,7 @@ class Position;
 struct PolyEntry final {
    public:
     friend constexpr bool operator==(const PolyEntry& pe, Move m) noexcept {
-        return pe.move == (m.raw() & ~Move::MoveTypeMask);
+        return pe.move == (m.raw() & ~Move::TypeMask);
     }
     friend constexpr bool operator!=(const PolyEntry& pe, Move m) noexcept { return !(pe == m); }
     friend constexpr bool operator==(Move m, const PolyEntry& pe) noexcept { return pe == m; }
@@ -79,7 +79,7 @@ class PolyBook final {
 
     bool active() const noexcept { return entries != nullptr; }
 
-    Move probe(Position& pos, bool bestPick = true) noexcept;
+    Move probe(Position& pos, bool pickBestEnabled = true) noexcept;
 
    private:
     struct KeyData final {

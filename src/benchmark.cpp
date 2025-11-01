@@ -18,7 +18,6 @@
 #include "benchmark.h"
 
 #include <cstdint>
-#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -391,56 +390,61 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexce
     std::string ttSize    = (iss >> token) ? token : "16";
     std::string threads   = (iss >> token) ? token : "1";
     std::string limitVal  = (iss >> token) ? token : "13";
-    std::string fenFile   = (iss >> token) ? lower_case(token) : "default";
-    std::string limitType = (iss >> token) ? lower_case(token) : "depth";
+    std::string fenFile   = (iss >> token) ? token : "default";
+    std::string limitType = (iss >> token) ? token : "depth";
 
-    bool isGo = limitType != "eval";
+    const bool isGo = limitType != "eval";
 
     std::string command = isGo ? "go " + limitType + " " + limitVal : "eval";
 
+    std::string option = lower_case(fenFile);
+
     Strings fens;
 
-    if (fenFile == "default")
-        fens = Positions;
-
-    else if (fenFile == "current")
+    if (option == "default")
+    {
+        fens.reserve(Positions.size());
+        for (const auto& fen : Positions)
+            if (!is_whitespace(fen))
+                fens.emplace_back(fen);
+    }
+    else if (option == "current")
         fens.emplace_back(currentFen);
-
     else
     {
         std::ifstream ifstream(fenFile);
 
         if (!ifstream.is_open())
-        {
             std::cerr << "Unable to open fen filename " << fenFile << std::endl;
-            std::exit(EXIT_FAILURE);
+        else
+        {
+            std::string fen;
+            while (std::getline(ifstream, fen))
+                if (!is_whitespace(fen))
+                    fens.emplace_back(fen);
+
+            ifstream.close();
         }
-
-        std::string fen;
-        while (std::getline(ifstream, fen))
-            if (!is_whitespace(fen))
-                fens.push_back(fen);
-
-        ifstream.close();
     }
 
     Strings commands;
 
-    if (isGo)
+    if (isGo && !fens.empty())
     {
         commands.emplace_back("setoption name Threads value " + threads);
         commands.emplace_back("setoption name Hash value " + ttSize);
         commands.emplace_back("ucinewgame");
     }
 
-    for (const auto& fen : fens)
-        if (fen.find("setoption ") != std::string::npos)
-            commands.emplace_back(fen);
-        else
-        {
-            commands.emplace_back("position fen " + fen);
+    for (auto& fen : fens)
+    {
+        fen = std::string(trim(fen));
+
+        bool setOption = fen.rfind("setoption ", 0) == 0;
+        commands.emplace_back(setOption ? fen : "position fen " + fen);
+        if (!setOption)
             commands.emplace_back(command);
-        }
+    }
 
     return commands;
 }

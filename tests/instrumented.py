@@ -123,9 +123,9 @@ class TestCLI(metaclass=OrderedClassMembers):
         self.engine = DON(f"bench 128 {get_threads()} 8 default depth".split(" "), True)
         assert self.engine.process.returncode == 0
 
-    # def test_bench_128_threads_3_tmp_bench_epd_depth(self):
-    #     self.engine = DON(f"bench 128 {get_threads()} 3 {os.path.join(PATH, 'tmp_bench.epd')} depth".split(" "), True)
-    #     assert self.engine.process.returncode == 0
+    def test_bench_128_threads_3_tmp_bench_epd_depth(self):
+        self.engine = DON(f"bench 128 {get_threads()} 3 {os.path.join(PATH, 'tmp_bench.epd')} depth".split(" "), True)
+        assert self.engine.process.returncode == 0
 
     def test_show(self):
         self.engine = DON("show".split(" "), True)
@@ -469,8 +469,8 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    EPD.create_bench_epd()
     TSAN.set_tsan_option()
+    EPD.create_bench_epd()
     Syzygy.download_syzygy()
 
     framework = MiniTestFramework()

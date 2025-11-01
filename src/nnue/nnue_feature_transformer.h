@@ -53,7 +53,7 @@ invert_permutation(const std::array<std::size_t, Size>& order) noexcept {
 // Divide a byte region of size TotalSize to chunks of size BlockSize,
 // and permute the blocks by a given order
 template<std::size_t BlockSize, typename T, std::size_t N, std::size_t OrderSize>
-void permute(T (&data)[N], const std::array<std::size_t, OrderSize>& order) noexcept {
+constexpr void permute(T (&data)[N], const std::array<std::size_t, OrderSize>& order) noexcept {
     constexpr std::size_t TotalSize = N * sizeof(T);
     constexpr std::size_t ChunkSize = BlockSize * OrderSize;
     static_assert(TotalSize % ChunkSize == 0, "ChunkSize must perfectly divide TotalSize");

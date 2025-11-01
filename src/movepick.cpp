@@ -96,7 +96,7 @@ MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveL
 
 template<>
 MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
-    static constexpr int Bonus[PIECE_TYPE_NB]{0, 0, 144, 144, 256, 517, 10000};
+    constexpr int Bonus[PIECE_TYPE_NB]{0, 0, 144, 144, 256, 517, 10000};
 
     Color ac        = pos.active_color();
     auto  pawnIndex = pawn_index(pos.pawn_key());
@@ -133,8 +133,8 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
 
         m.value += 0x1000 * (pos.fork(m) && pos.see(m) >= -50);
 
-        // Penalty for moving to a square threatened by a lesser piece or
-        // Bonus for escaping an attack by a lesser piece.
+        // Penalty for moving to square attacked by lesser piece or
+        // Bonus for escaping from square attacked by lesser piece.
         m.value += Bonus[pt]
                  * (((pos.attacks_lesser(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? -95
                     : (pos.attacks_lesser(~ac, pt) & org)                               ? 100
@@ -143,7 +143,7 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
         if (pt == KING)
             continue;
 
-        // Penalty for moving a pinner piece.
+        // Penalty for moving pinner piece.
         m.value -= 0x400 * ((pos.pinners() & org) && !aligned(pos.king_sq(~ac), org, dst));
     }
     return itr;
@@ -193,7 +193,7 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
 }
 
 template<typename Predicate>
-bool MovePicker::select(Predicate pred) noexcept {
+bool MovePicker::select(Predicate&& pred) noexcept {
 
     for (; !empty(); next())
         if (valid() && pred())
@@ -208,15 +208,15 @@ void MovePicker::sort_partial(int limit) noexcept {
     for (iterator s = begin(), p = begin() + 1; p < end(); ++p)
         if (p->value >= limit)
         {
-            auto em = *p;
+            value_type em = *p;
 
             *p = *++s;
 
-            // Find the correct position for 'm' using binary search
+            // Find the correct position for 'em' using binary search
             iterator q = std::upper_bound(begin(), s, em, std::greater<>{});
-            // Move elements to make space for 'm'
+            // Move elements to make space for 'em'
             std::move_backward(q, s, s + 1);
-            // Insert the element in its correct position
+            // Insert the 'em' in its correct position
             *q = em;
         }
 }
@@ -241,9 +241,9 @@ STAGE_SWITCH:
     case STG_PROBCUT_INIT : {
         MoveList<ENC_CAPTURE> moveList(pos);
 
-        cur = endBadCaptures = moves;
-        // NOTE:: endMoves is not defined here, it will be set later
-        endCur = /* endMoves =*/score<ENC_CAPTURE>(moveList);
+        cur = endBadCapture = moves;
+        // NOTE:: endMove is not defined here, it will be set later
+        endCur = /* endMove =*/score<ENC_CAPTURE>(moveList);
 
         sort_partial();
     }
@@ -256,7 +256,7 @@ STAGE_SWITCH:
                 if (pos.see(*cur) >= std::round(-55.5555e-3 * cur->value))
                     return true;
                 // Store bad captures
-                std::swap(*endBadCaptures++, *cur);
+                std::swap(*endBadCapture++, *cur);
                 return false;
             }))
             return move();
@@ -269,7 +269,7 @@ STAGE_SWITCH:
         {
             MoveList<ENC_QUIET> moveList(pos);
 
-            endCur = endMoves = score<ENC_QUIET>(moveList);
+            endCur = endMove = score<ENC_QUIET>(moveList);
 
             sort_partial(threshold);
         }
@@ -291,12 +291,12 @@ STAGE_SWITCH:
                 }
 
             // Mark the beginning of bad quiets
-            begBadQuiets = cur;
+            begBadQuiet = cur;
         }
 
         // Prepare the pointers to loop over the bad captures
         cur    = moves;
-        endCur = endBadCaptures;
+        endCur = endBadCapture;
 
         ++stage;
         [[fallthrough]];
@@ -308,8 +308,8 @@ STAGE_SWITCH:
         if (quietPick)
         {
             // Prepare the pointers to loop over the bad quiets
-            cur    = begBadQuiets;
-            endCur = endMoves;
+            cur    = begBadQuiet;
+            endCur = endMove;
 
             sort_partial();
         }
@@ -327,7 +327,7 @@ STAGE_SWITCH:
         MoveList<EVA_CAPTURE> moveList(pos);
 
         cur    = moves;
-        endCur = endMoves = score<EVA_CAPTURE>(moveList);
+        endCur = endMove = score<EVA_CAPTURE>(moveList);
 
         sort_partial();
     }
@@ -345,7 +345,7 @@ STAGE_SWITCH:
     case STG_EVA_QUIET_INIT : {
         MoveList<EVA_QUIET> moveList(pos);
 
-        endCur = endMoves = score<EVA_QUIET>(moveList);
+        endCur = endMove = score<EVA_QUIET>(moveList);
 
         sort_partial();
     }

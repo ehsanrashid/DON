@@ -24,6 +24,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "../../bitboard.h"
 #include "../nnue_common.h"
 #include "../simd.h"
 
@@ -37,20 +38,10 @@ namespace DON::NNUE::Layers {
 
 namespace {
 
-constexpr std::uint8_t LsbIndices[64]{0,  47, 1,  56, 48, 27, 2,  60,  //
-                                      57, 49, 41, 37, 28, 16, 3,  61,  //
-                                      54, 58, 35, 52, 50, 42, 21, 44,  //
-                                      38, 32, 29, 23, 17, 11, 4,  62,  //
-                                      46, 55, 26, 59, 40, 36, 15, 53,  //
-                                      34, 51, 20, 43, 31, 22, 10, 45,  //
-                                      25, 39, 14, 33, 19, 30, 9,  24,  //
-                                      13, 18, 8,  12, 7,  6,  5,  63};
-
 constexpr std::uint8_t constexpr_lsb(std::uint64_t b) noexcept {
     assert(b);
-    constexpr std::uint64_t Debruijn64 = 0x03F79D71B4CB0A89ULL;
-
-    return LsbIndices[((b ^ (b - 1)) * Debruijn64) >> 58];
+    b ^= b - 1;
+    return msb_index(b);
 }
 
 struct Lookup final {
@@ -81,8 +72,8 @@ struct Lookup final {
     }
 };
 
-// Single shared instance across all TUs
 alignas(CACHE_LINE_SIZE) constexpr Lookup LookupInstance{};
+
 
     #if defined(__GNUC__) || defined(__clang__)
         #define RESTRICT __restrict__
@@ -161,7 +152,7 @@ void find_nnz(const std::int32_t* RESTRICT input,
     constexpr IndexType InputsPerChunk  = ChunkSize / InputSimdWidth;
     constexpr IndexType OutputsPerChunk = ChunkSize / 8;
 
-    const vec_uint_t* inputVector = reinterpret_cast<const vec_uint_t*>(input);
+    const auto* inputVector = reinterpret_cast<const vec_uint_t*>(input);
 
     vec128_t base      = vec128_zero;
     vec128_t increment = vec128_set_16(8);
@@ -331,9 +322,10 @@ class AffineTransformSparseInput {
 
         while (end - beg >= 3)
         {
-            auto    i0  = *beg++;
-            auto    i1  = *beg++;
-            auto    i2  = *beg++;
+            auto i0 = *beg++;
+            auto i1 = *beg++;
+            auto i2 = *beg++;
+
             invec_t in0 = vec_set_32(input32[i0]);
             invec_t in1 = vec_set_32(input32[i1]);
             invec_t in2 = vec_set_32(input32[i2]);
@@ -358,9 +350,10 @@ class AffineTransformSparseInput {
                                 acc[k + 2 * AccCount]);
     #endif
 
-        while (beg != end)
+        while (beg < end)
         {
-            auto    i  = *beg++;
+            auto i = *beg++;
+
             invec_t in = vec_set_32(input32[i]);
 
             const invec_t* col =

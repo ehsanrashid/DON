@@ -152,7 +152,10 @@ void TTUpdater::update(Depth d, bool pv, Bound b, Move m, Value v, Value ev) noe
 
 TranspositionTable::~TranspositionTable() noexcept { free(); }
 
-void TranspositionTable::free() noexcept { free_aligned_lp(clusters); }
+void TranspositionTable::free() noexcept {
+    [[maybe_unused]] bool success = free_aligned_lp(clusters);
+    assert(success);
+}
 
 void TranspositionTable::increment_generation() noexcept { generation8 += GENERATION_DELTA; }
 
@@ -177,7 +180,6 @@ void TranspositionTable::resize(std::size_t ttSize, ThreadPool& threads) noexcep
 // Initializes the entire transposition table to zero, in a multi-threaded way.
 void TranspositionTable::init(ThreadPool& threads) noexcept {
     generation8 = 0;
-    hashFull.store(0, std::memory_order_relaxed);
 
     std::size_t threadCount = threads.size();
 
@@ -242,11 +244,6 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
             cnt += entry.occupied() && entry.relative_age(generation8) <= maxRelAge;
 
     return cnt / TTCluster::EntryCount;
-}
-
-std::uint16_t TranspositionTable::hashfull() noexcept {
-    hashFull.store(hashfull(0), std::memory_order_relaxed);
-    return hashFull.load(std::memory_order_relaxed);
 }
 
 bool TranspositionTable::save(std::string_view hashFile) const noexcept {

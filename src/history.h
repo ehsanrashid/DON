@@ -73,7 +73,7 @@ class StatsEntry final {
 template<typename T, std::size_t Size, std::size_t... Sizes>
 class Entries;
 
-namespace Impl {
+namespace internal {
 template<typename T, std::size_t Size, std::size_t... Sizes>
 struct [[maybe_unused]] EntiresTypedef;
 
@@ -87,7 +87,7 @@ template<typename T, std::size_t Size>
 struct EntiresTypedef<T, Size> final {
     using Type = T;
 };
-}  // namespace Impl
+}  // namespace internal
 
 // Entries is a generic N-dimensional Entry.
 // The template parameter T is the base type of the Entries
@@ -95,7 +95,7 @@ struct EntiresTypedef<T, Size> final {
 template<typename T, std::size_t Size, std::size_t... Sizes>
 class Entries final {
    private:
-    using ChildType = typename Impl::EntiresTypedef<T, Size, Sizes...>::Type;
+    using ChildType = typename internal::EntiresTypedef<T, Size, Sizes...>::Type;
     using EntryType = std::vector<ChildType>;
 
    public:
@@ -186,16 +186,16 @@ class Entries final {
 };
 
 // clang-format off
-constexpr int  CAPTURE_HISTORY_LIMIT = 10692U;
-constexpr int    QUIET_HISTORY_LIMIT =  7183U;
-constexpr int PIECE_SQ_HISTORY_LIMIT = 30000U;
+inline constexpr int  CAPTURE_HISTORY_LIMIT = 10692;
+inline constexpr int    QUIET_HISTORY_LIMIT =  7183;
+inline constexpr int PIECE_SQ_HISTORY_LIMIT = 30000;
 
-constexpr int         PAWN_HISTORY_LIMIT = 8192U;
-constexpr std::size_t PAWN_HISTORY_SIZE  = 0x4000U;
+inline constexpr int         PAWN_HISTORY_LIMIT = 8192;
+inline constexpr std::size_t PAWN_HISTORY_SIZE  = 0x4000;
 static_assert(exactly_one(PAWN_HISTORY_SIZE), "PAWN_HISTORY_SIZE has to be a power of 2");
 constexpr std::size_t pawn_index(Key pawnKey) noexcept { return pawnKey & (PAWN_HISTORY_SIZE - 1); }
 
-constexpr std::uint16_t LOW_PLY_SIZE = 5U;
+inline constexpr std::uint16_t LOW_PLY_SIZE = 5;
 // clang-format on
 
 enum HistoryType : std::uint8_t {
@@ -208,7 +208,7 @@ enum HistoryType : std::uint8_t {
     HTTMove,
 };
 
-namespace Impl {
+namespace internal {
 template<int D, std::size_t... Sizes>
 using StatsEntires = Entries<StatsEntry<std::int16_t, D>, Sizes...>;
 
@@ -253,15 +253,15 @@ template<>
 struct HistoryTypedef<HTTMove> final {
     using Type = StatsEntires<8192, COLOR_NB>;
 };
-}  // namespace Impl
+}  // namespace internal
 
 // Alias template for convenience
 template<HistoryType T>
-using History = typename Impl::HistoryTypedef<T>::Type;
+using History = typename internal::HistoryTypedef<T>::Type;
 
 // clang-format off
-constexpr int         CORRECTION_HISTORY_LIMIT = 1024U;
-constexpr std::size_t CORRECTION_HISTORY_SIZE  = 0x8000U;
+inline constexpr int         CORRECTION_HISTORY_LIMIT = 1024;
+inline constexpr std::size_t CORRECTION_HISTORY_SIZE  = 0x8000;
 static_assert(exactly_one(CORRECTION_HISTORY_SIZE), "CORRECTION_HISTORY_SIZE has to be a power of 2");
 constexpr std::size_t correction_index(Key corrKey) noexcept { return corrKey & (CORRECTION_HISTORY_SIZE - 1); }
 // clang-format on
@@ -280,7 +280,7 @@ enum CorrectionHistoryType : std::uint8_t {
     CHContinuation,  // By combination of pair of moves
 };
 
-namespace Impl {
+namespace internal {
 template<std::size_t... Sizes>
 using CorrectionStatsEntires = StatsEntires<CORRECTION_HISTORY_LIMIT, Sizes...>;
 
@@ -316,11 +316,11 @@ template<>
 struct CorrectionHistoryTypedef<CHContinuation> final {
     using Type = Entries<CorrectionHistoryTypedef<CHPieceSq>::Type, PIECE_NB, SQUARE_NB>;
 };
-}  // namespace Impl
+}  // namespace internal
 
 // Alias template for convenience
 template<CorrectionHistoryType T>
-using CorrectionHistory = typename Impl::CorrectionHistoryTypedef<T>::Type;
+using CorrectionHistory = typename internal::CorrectionHistoryTypedef<T>::Type;
 
 }  // namespace DON
 

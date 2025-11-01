@@ -30,6 +30,7 @@
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
+#include "prng.h"
 #include "nnue/network.h"
 #include "score.h"  // IWYU pragma: keep
 #include "thread.h"
@@ -51,9 +52,7 @@ History<HQuiet>       QuietHistory;
 History<HPawn>        PawnHistory;
 History<HLowPlyQuiet> LowPlyQuietHistory;
 
-History<HContinuation> ContinuationHistory[2][2];
-
-PolyBook Book;
+History<HContinuation> ContinuationHistory[2][2];  // [inCheck][capture]
 
 namespace {
 
@@ -265,7 +264,7 @@ void Worker::start_search() noexcept {
     {
         rootMoves.emplace_back(Move::None);
 
-        auto score = UCI::score({Value(rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW), rootPos});
+        auto score = UCI::to_score({Value(rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW), rootPos});
         mainManager->updateCxt.onUpdateShort({DEPTH_ZERO, score});
     }
     else
@@ -277,14 +276,14 @@ void Worker::start_search() noexcept {
             // Check polyglot book
             if (options["OwnBook"] && Book.active()
                 && rootPos.move_num() < options["BookProbeDepth"])
-                bookBestMove = Book.probe(rootPos, options["BookBestPick"]);
+                bookBestMove = Book.probe(rootPos, options["BookPickBest"]);
         }
 
         if (bookBestMove != Move::None && rootMoves.contains(bookBestMove))
         {
             State st;
             rootPos.do_move(bookBestMove, st);
-            Move bookPonderMove = Book.probe(rootPos, options["BookBestPick"]);
+            Move bookPonderMove = Book.probe(rootPos, options["BookPickBest"]);
             rootPos.undo_move(bookBestMove);
 
             for (auto&& th : threads)
@@ -323,7 +322,7 @@ void Worker::start_search() noexcept {
     if (think)
     {
         // When playing in 'Nodes as Time' mode, advance the time nodes before exiting.
-        if (mainManager->timeManager.nodesTimeUse)
+        if (mainManager->timeManager.nodeTimeEnabled)
             mainManager->timeManager.advance_time_nodes(threads.nodes()
                                                         - limit.clocks[rootPos.active_color()].inc);
 
@@ -676,7 +675,7 @@ Value Worker::search(Position&    pos,
             return qsearch<PVNode>(pos, ss, alpha, beta);
 
         // Check if have an upcoming move that draws by repetition
-        if (alpha < VALUE_DRAW && pos.upcoming_repetition(ss->ply))
+        if (alpha < VALUE_DRAW && pos.is_upcoming_repetition(ss->ply))
         {
             alpha = draw_value(key, nodes.load(std::memory_order_relaxed));
             if (alpha >= beta)
@@ -778,7 +777,7 @@ Value Worker::search(Position&    pos,
 
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
-        if (pos.rule50_count() < (1.0 - 0.5 * pos.rule50_high()) * rule50_threshold())
+        if (pos.rule50_count() < (1.0 - 0.5 * pos.has_rule50_high()) * rule50_threshold())
         {
             // If the depth is big enough, verify that the ttMove is really a good move
             if (depth >= 8 && ttd.move != Move::None && pos.legal(ttd.move)
@@ -804,7 +803,7 @@ Value Worker::search(Position&    pos,
     [[maybe_unused]] Value maxValue = +VALUE_INFINITE;
 
     // Step 5. Tablebases probe
-    if (!RootNode && !exclude && tbConfig.cardinality != 0)
+    if (!RootNode && !exclude && tbConfig.cardinality)
     {
         auto pieceCount = pos.count<ALL_PIECE>();
 
@@ -824,7 +823,7 @@ Value Worker::search(Position&    pos,
             {
                 tbHits.fetch_add(1, std::memory_order_relaxed);
 
-                auto drawValue = tbConfig.rule50Use ? 1 : 0;
+                auto drawValue = tbConfig.rule50Enabled ? 1 : 0;
 
                 Value tbValue = VALUE_TB - ss->ply;
 
@@ -1397,8 +1396,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             (ss + 1)->pv = pv.data();
 
             // Extend deep enough ttMove entries if about to dive into qsearch
-            if (rootDepth > 6 && move == ttd.move && ttd.depth > 1
-                && tt.hashFull.load(std::memory_order_relaxed) <= 960)
+            if (rootDepth > 6 && move == ttd.move && ttd.depth > 1 && tt.hashfull() <= 960)
                 newDepth = std::max(+newDepth, 1);
 
             value = -search<PV>(pos, ss + 1, -beta, -alpha, newDepth);
@@ -1507,10 +1505,10 @@ S_MOVES_LOOP:  // When in check, search starts here
     // All legal moves have been searched and if there are no legal moves,
     // it must be a mate or a stalemate.
     // If in a singular extension search then return a fail low score.
-    assert(moveCount != 0 || !ss->inCheck || exclude || (MoveList<LEGAL, true>(pos).empty()));
+    assert(moveCount || !ss->inCheck || exclude || (MoveList<LEGAL, true>(pos).empty()));
     assert(ss->moveCount == moveCount && ss->ttMove == ttd.move);
 
-    if (moveCount == 0)
+    if (!moveCount)
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
@@ -1574,8 +1572,8 @@ S_MOVES_LOOP:  // When in check, search starts here
         Bound bound = bestValue >= beta                ? BOUND_LOWER
                     : PVNode && bestMove != Move::None ? BOUND_EXACT
                                                        : BOUND_UPPER;
-        ttu.update(moveCount != 0 ? depth : std::min(depth + 6, MAX_PLY - 1), ss->pvHit, bound,
-                   bestMove, value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
+        ttu.update(moveCount ? depth : std::min(depth + 6, MAX_PLY - 1), ss->pvHit, bound, bestMove,
+                   value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
     }
 
     // Adjust correction history
@@ -1610,7 +1608,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     Key key = pos.key();
 
     // Check if have an upcoming move that draws by repetition
-    if (alpha < VALUE_DRAW && pos.upcoming_repetition(ss->ply))
+    if (alpha < VALUE_DRAW && pos.is_upcoming_repetition(ss->ply))
     {
         alpha = draw_value(key, nodes.load(std::memory_order_relaxed));
         if (alpha >= beta)
@@ -1653,7 +1651,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (!PVNode && is_valid(ttd.value) && ttd.depth >= DEPTH_ZERO
         && (ttd.bound & fail_bound(ttd.value >= beta)) != 0
         // For high rule50 counts don't produce transposition table cutoffs.
-        && pos.rule50_count() < (1.0 - 0.5 * pos.rule50_high()) * rule50_threshold())
+        && pos.rule50_count() < (1.0 - 0.5 * pos.has_rule50_high()) * rule50_threshold())
         return ttd.value;
 
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
@@ -1816,7 +1814,7 @@ QS_MOVES_LOOP:
 
     // Step 10. Check for checkmate & stalemate
     // All legal moves have been searched.
-    if (moveCount == 0)
+    if (!moveCount)
     {
         // A special case: if in check and no legal moves were found, it is checkmate.
         if (ss->inCheck)
@@ -1889,7 +1887,7 @@ Value Worker::evaluate(const Position& pos) noexcept {
 // Try hard to have a ponder move to return to the GUI,
 // otherwise in case of 'ponder on' have nothing to think about.
 bool Worker::ponder_move_extracted() noexcept {
-    static std::mt19937 rng(std::random_device{}());
+    static std::mt19937 prng(std::random_device{}());
 
     auto& rm0 = rootMoves[0];
     assert(rm0.pv.size() == 1);
@@ -1938,7 +1936,7 @@ bool Worker::ponder_move_extracted() noexcept {
             if (pm == Move::None)
             {
                 std::uniform_int_distribution<std::size_t> distribute(0, legalMoveList.size() - 1);
-                pm = *(legalMoveList.begin() + distribute(rng));
+                pm = *(legalMoveList.begin() + distribute(prng));
             }
         }
 
@@ -1970,7 +1968,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
                  > moveOverhead;
     };
 
-    bool rule50Use = options["Syzygy50MoveRule"];
+    bool rule50Enabled = options["Syzygy50MoveRule"];
 
     auto& rootMove = rootMoves[index];
 
@@ -1984,7 +1982,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     std::int16_t ply = 1;
     while (std::size_t(ply) < rootMove.pv.size())
     {
-        const auto& pvMove = rootMove.pv[ply];
+        auto pvMove = rootMove.pv[ply];
 
         RootMoves rms;
         for (auto m : MoveList<LEGAL>(rootPos))
@@ -2000,7 +1998,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime
-        if (tbc.rootInTB && rootPos.is_draw(ply, rule50Use))
+        if (tbc.rootInTB && rootPos.is_draw(ply, rule50Enabled))
         {
             --ply;
             rootPos.undo_move(pvMove);
@@ -2018,7 +2016,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     // Step 2. Now extend the PV to mate, as if the user explores syzygy-tables.info using
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
-    while (!(rule50Use && rootPos.is_draw(0)))
+    while (!(rule50Enabled && rootPos.is_draw(0)))
     {
         if (time_to_abort())
             break;
@@ -2051,10 +2049,10 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         auto tbc = Tablebases::rank_root_moves(rootPos, rms, options, true);
 
         // If DTZ is not available might not find a mate, so bail out
-        if (!tbc.rootInTB || tbc.cardinality != 0)
+        if (!tbc.rootInTB || tbc.cardinality)
             break;
 
-        const auto& pvMove = rms[0].pv[0];
+        auto pvMove = rms[0].pv[0];
         rootMove.pv.push_back(pvMove);
         auto& st = states.emplace_back();
         rootPos.do_move(pvMove, st);
@@ -2084,7 +2082,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
 void MainSearchManager::init() noexcept {
 
-    timeManager.init();
+    timeManager.clear();
     moveFirst        = true;
     preBestCurValue  = VALUE_ZERO;
     preBestAvgValue  = VALUE_ZERO;
@@ -2175,7 +2173,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if (is_decisive(v) && !is_mate(v) && (exact || !(rm.boundLower || rm.boundUpper)))
             worker.extend_tb_pv(i, v);
 
-        auto score = UCI::score({v, rootPos});
+        auto score = UCI::to_score({v, rootPos});
         auto bound = std::string_view{exact           ? ""
                                       : rm.boundLower ? " lowerbound"
                                       : rm.boundUpper ? " upperbound"
@@ -2199,24 +2197,24 @@ void Skill::init(const Options& options) noexcept {
         std::uint16_t uciELO = options["UCI_ELO"];
 
         auto e = double(uciELO - MinELO) / (MaxELO - MinELO);
-        level  = std::clamp(-311.4380e-3 + (22.2943 + (-40.8525 + 37.2473 * e) * e) * e,  //
-                            MinLevel, MaxLevel - 0.01);
+        auto x = ((37.2473 * e - 40.8525) * e + 22.2943) * e - 0.311438;
+        level  = std::clamp(x, MinLevel, MaxLevel - 0.01);
     }
     else
     {
         level = options["SkillLevel"];
     }
 
-    move = Move::None;
+    bestMove = Move::None;
 }
 
 // When playing with strength handicap, choose the best move among a set of RootMoves
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick) noexcept {
+Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickEnabled) noexcept {
     assert(1 <= multiPV && multiPV <= rootMoves.size());
-    static PRNG rng(now());  // PRNG sequence should be non-deterministic
+    static PRNG<XorShift64Star> prng(now());  // PRNG sequence should be non-deterministic
 
-    if (pick || move == Move::None)
+    if (pickEnabled || bestMove == Move::None)
     {
         // RootMoves are already sorted by value in descending order
         Value curValue = rootMoves[0].curValue;
@@ -2232,18 +2230,18 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
             Value value = rootMoves[i].curValue
                         // This is magic formula for Push
                         + int(weakness * (curValue - rootMoves[i].curValue)
-                              + delta * (rng.rand<std::uint32_t>() % int(weakness)))
+                              + delta * (prng.rand<std::uint32_t>() % int(weakness)))
                             / 128;
 
             if (maxValue <= value)
             {
                 maxValue = value;
-                move     = rootMoves[i].pv[0];
+                bestMove = rootMoves[i].pv[0];
             }
         }
     }
 
-    return move;
+    return bestMove;
 }
 
 namespace {
@@ -2270,7 +2268,7 @@ void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) n
 void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept {
     assert(is_ok(dst));
 
-    static constexpr std::pair<std::uint8_t, double> ContHistoryWeights[8]{
+    constexpr std::pair<std::uint8_t, double> ContHistoryWeights[8]{
         {1, 1.1299}, {2, 0.6328}, {3, 0.2812}, {4, 0.5625},
         {5, 0.1367}, {6, 0.4307}, {7, 0.2222}, {8, 0.2167}};
 
@@ -2300,7 +2298,7 @@ void update_all_quiet_history(const Position& pos, Stack* const ss, Move m, int 
 // Updates history at the end of search() when a bestMove is found
 void update_all_history(const Position& pos, Stack* const ss, Depth depth, Move bm, const MovesArray<2>& movesArr) noexcept {
     assert(pos.pseudo_legal(bm));
-    assert(ss->moveCount != 0);
+    assert(ss->moveCount);
 
     int bonus =          std::min(- 91 + 151 * depth, 1730) + 302 * (bm == ss->ttMove);
     int malus = std::max(std::min(-156 + 951 * depth, 2468) -  30 * int(movesArr[0].size()), 1);

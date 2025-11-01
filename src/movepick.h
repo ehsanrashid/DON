@@ -118,7 +118,7 @@ class MovePicker final {
     iterator score(MoveList<GT>& moveList) noexcept;
 
     template<typename Predicate>
-    bool select(Predicate pred) noexcept;
+    bool select(Predicate&& pred) noexcept;
 
     void sort_partial(int limit = std::numeric_limits<int>::min()) noexcept;
 
@@ -144,7 +144,7 @@ class MovePicker final {
     const int                 threshold;
 
     value_type moves[MAX_MOVES];
-    iterator   cur, endCur, endBadCaptures, begBadQuiets, endMoves = nullptr;
+    iterator   cur, endCur, endBadCapture, begBadQuiet, endMove = nullptr;
 };
 
 }  // namespace DON

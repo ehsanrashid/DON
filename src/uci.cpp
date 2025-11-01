@@ -22,9 +22,7 @@
 #include <cassert>
 #include <cctype>
 #include <cmath>
-#include <cstdint>
 #include <cstdlib>
-#include <initializer_list>
 #include <iostream>
 #include <limits>
 #include <optional>
@@ -44,8 +42,6 @@
 namespace DON {
 
 namespace {
-
-constexpr std::string_view PieceChar{" PNBRQK  pnbrqk "};
 
 enum Command : std::uint8_t {
     CMD_STOP,
@@ -96,14 +92,6 @@ const std::unordered_map<std::string_view, Command> CommandMap{
   {"--license",  CMD_HELP},
   {"license",    CMD_HELP}};
 // clang-format on
-
-template<typename... Ts>
-struct Overload final: Ts... {
-    using Ts::operator()...;
-};
-
-template<typename... Ts>
-Overload(Ts...) -> Overload<Ts...>;
 
 Command str_to_command(std::string_view command) noexcept {
     auto itr = CommandMap.find(command);
@@ -182,10 +170,10 @@ Limit parse_limit(std::istringstream& iss) noexcept {
             iss >> std::boolalpha >> limit.detail;
         }
         // "searchmoves" needs to be the last command on the line
-        else if (starts_with(token, "search"))
+        else if (token.size() >= 1 && token[0] == 's')  // "searchmoves"
         {
             auto pos = iss.tellg();
-            while (iss >> token && !starts_with(lower_case(token), "ignore"))
+            while (iss >> token && !(token.size() >= 1 && std::tolower(token[0]) == 'i'))
             {
                 limit.searchMoves.push_back(token);
                 pos = iss.tellg();
@@ -193,10 +181,10 @@ Limit parse_limit(std::istringstream& iss) noexcept {
             iss.seekg(pos);
         }
         // "ignoremoves" needs to be the last command on the line
-        else if (starts_with(token, "ignore"))
+        else if (token.size() >= 1 && token[0] == 'i')  // "ignoremoves"
         {
             auto pos = iss.tellg();
-            while (iss >> token && !starts_with(lower_case(token), "search"))
+            while (iss >> token && !(token.size() >= 1 && std::tolower(token[0]) == 's'))
             {
                 limit.ignoreMoves.push_back(token);
                 pos = iss.tellg();
@@ -206,11 +194,6 @@ Limit parse_limit(std::istringstream& iss) noexcept {
     }
     return limit;
 }
-
-void on_update_short(const ShortInfo& info) noexcept;
-void on_update_full(const FullInfo& info) noexcept;
-void on_update_iter(const IterInfo& info) noexcept;
-void on_update_move(const MoveInfo& info) noexcept;
 
 }  // namespace
 
@@ -228,30 +211,31 @@ UCI::UCI(int argc, const char* argv[]) noexcept :
 
 void UCI::run() noexcept {
     std::string command;
+    command.reserve(256);
     for (std::size_t i = 1; i < commandLine.arguments.size(); ++i)
     {
         if (!command.empty())
-            command += ' ';
-        command += commandLine.arguments[i];
+            command.push_back(' ');
+        command.append(commandLine.arguments[i].data(), commandLine.arguments[i].size());
     }
 
     const bool running = commandLine.arguments.size() <= 1;
-    if (running || !is_whitespace(command))
+    if (!running && is_whitespace(command))
+        return;
+
+    do
     {
-        do
-        {
-            // The command-line arguments are one-shot
-            if (running
-                // Wait for an input or an end-of-file (EOF) indication
-                && !std::getline(std::cin, command))
-                command = "quit";
+        // The command-line arguments are one-shot
+        if (running
+            // Wait for an input or an end-of-file (EOF) indication
+            && !std::getline(std::cin, command))
+            command = "quit";
 
-            execute(command);
+        execute(command);
 
-            if (command == "quit")
-                break;
-        } while (running);
-    }
+        if (command == "quit")
+            break;
+    } while (running);
 }
 
 void UCI::execute(std::string_view command) noexcept {
@@ -353,13 +337,53 @@ void UCI::execute(std::string_view command) noexcept {
 }
 
 void UCI::print_info_string(std::string_view infoStr) noexcept {
-    if (InfoStringStop)
+    if (!InfoStringEnabled)
         return;
 
     for (const auto& info : split(infoStr, "\n"))
         if (!is_whitespace(info))
             std::cout << "info string " << info << std::endl;
 }
+
+namespace {
+
+void on_update_short(const ShortInfo& info) noexcept {
+    std::cout << "info"                   //
+              << " depth " << info.depth  //
+              << " score " << info.score << std::endl;
+}
+
+void on_update_full(const FullInfo& info) noexcept {
+    std::cout << "info"                         //
+              << " depth " << info.depth        //
+              << " seldepth " << info.selDepth  //
+              << " multipv " << info.multiPV    //
+              << " score " << info.score;       //
+    if (!info.bound.empty())
+        std::cout << info.bound;
+    if (!info.wdl.empty())
+        std::cout << " wdl " << info.wdl;
+    std::cout << " time " << info.time                     //
+              << " nodes " << info.nodes                   //
+              << " nps " << 1000 * info.nodes / info.time  //
+              << " hashfull " << info.hashfull             //
+              << " tbhits " << info.tbHits                 //
+              << " pv" << info.pv << std::endl;
+}
+
+void on_update_iter(const IterInfo& info) noexcept {
+    std::cout << "info"                         //
+              << " depth " << info.depth        //
+              << " currmove " << info.currMove  //
+              << " currmovenumber " << info.currMoveNumber << std::endl;
+}
+
+void on_update_move(const MoveInfo& info) noexcept {
+    std::cout << "bestmove " << info.bestMove  //
+              << " ponder " << info.ponderMove << std::endl;
+}
+
+}  // namespace
 
 void UCI::set_update_listeners() noexcept {
     engine.set_on_update_short(on_update_short);
@@ -375,20 +399,22 @@ void UCI::position(std::istringstream& iss) noexcept {
     token = lower_case(token);
 
     std::string fen;
-    if (starts_with(token, "start"))  // "startpos"
+    if (token.size() >= 1 && token[0] == 's')  // "startpos"
     {
         fen = START_FEN;
         iss >> token;  // Consume the "moves" token, if any
     }
-    else if (starts_with(token, "f"))  // "fen"
+    else if (token.size() >= 1 && token[0] == 'f')  // "fen"
     {
+        fen.reserve(64);
         std::size_t i = 0;
         while (iss >> token && i < 6)  // Consume the "moves" token, if any
         {
-            if (i >= 2 && starts_with(lower_case(token), "m"))  // "moves"
+            if (i >= 2 && token.size() >= 1 && std::tolower(token[0]) == 'm')  // "moves"
                 break;
 
-            fen += token + " ";
+            fen += token;
+            fen += ' ';
             ++i;
         }
         while (i < 4)
@@ -399,7 +425,7 @@ void UCI::position(std::istringstream& iss) noexcept {
     }
     else
     {
-        assert(false);
+        assert(false && "Invalid position command");
         return;
     }
 
@@ -414,9 +440,12 @@ void UCI::go(std::istringstream& iss) noexcept {
     auto limit = parse_limit(iss);
 
     if (limit.perft)
-        engine.perft(limit.depth, limit.detail);
+        perft(limit.depth, limit.detail);
     else
+    {
         engine.start(limit);
+        // Not wait here
+    }
 }
 
 void UCI::setoption(std::istringstream& iss) noexcept {
@@ -462,8 +491,8 @@ void UCI::bench(std::istringstream& iss) noexcept {
     options().set("ReportMinimal", bool_to_string(true));
 
     const std::size_t num =
-      std::count_if(commands.begin(), commands.end(), [](const auto& command) {
-          return command.find("go ") == 0 || command.find("eval") == 0;
+      std::count_if(commands.begin(), commands.end(), [](std::string_view command) {
+          return starts_with(command, "go ") || starts_with(command, "eval");
       });
 
 #if !defined(NDEBUG)
@@ -495,11 +524,12 @@ void UCI::bench(std::istringstream& iss) noexcept {
             auto limit = parse_limit(is);
 
             if (limit.perft)
-                infoNodes = engine.perft(limit.depth, limit.detail);
+                infoNodes = perft(limit.depth, limit.detail);
             else
+            {
                 engine.start(limit);
-
-            engine.wait_finish();
+                engine.wait_finish();
+            }
 
             nodes += infoNodes;
             infoNodes = 0;
@@ -560,11 +590,11 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     engine.set_on_update_iter([](const auto&) {});
     engine.set_on_update_move([](const auto&) {});
 
-    InfoStringStop = true;
+    InfoStringEnabled = false;
 
     const std::size_t num =
       std::count_if(benchmark.commands.begin(), benchmark.commands.end(),
-                    [](const auto& command) { return command.find("go ") == 0; });
+                    [](std::string_view command) { return starts_with(command, "go "); });
 
 #if !defined(NDEBUG)
     Debug::clear();
@@ -592,8 +622,10 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
             // One new line is produced by the search, so omit it here
             std::cerr << "\rWarmup position " << ++cnt << '/' << WarmupPositionCount;
 
+            auto limit = parse_limit(is);
+
             // Run with silenced network verification
-            engine.start(parse_limit(is));
+            engine.start(limit);
             engine.wait_finish();
 
             nodes += infoNodes;
@@ -664,8 +696,10 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
             // One new line is produced by the search, so omit it here
             std::cerr << "\rPosition " << ++cnt << '/' << num;
 
+            auto limit = parse_limit(is);
+
             // Run with silenced network verification
-            engine.start(parse_limit(is));
+            engine.start(limit);
             engine.wait_finish();
 
             update_hashfull();
@@ -719,8 +753,14 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
               << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
     // clang-format on
 
-    InfoStringStop = false;
+    InfoStringEnabled = true;
     set_update_listeners();
+}
+
+std::uint64_t UCI::perft(Depth depth, bool detail) noexcept {
+    auto nodes = engine.perft(depth, detail);
+    std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
+    return nodes;
 }
 
 namespace {
@@ -739,8 +779,8 @@ WinRateParams win_rate_params(const Position& pos) noexcept {
     // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (17.2414e-3).
     double m = 17.2414e-3 * std::clamp(pos.std_material(), 17, 78);
     // Return a = p_a(material) and b = p_b(material).
-    double a = m * (m * (m * as[0] + as[1]) + as[2]) + as[3];
-    double b = m * (m * (m * bs[0] + bs[1]) + bs[2]) + bs[3];
+    double a = ((as[0] * m + as[1]) * m + as[2]) * m + as[3];
+    double b = ((bs[0] * m + bs[1]) * m + bs[2]) * m + bs[3];
 
     return {a, b};
 }
@@ -753,6 +793,14 @@ int win_rate_model(Value v, const Position& pos) noexcept {
     // Return the win rate in per mille units, rounded to the nearest integer
     return int(0.5 + 1000 / (1 + std::exp((a - v) / b)));
 }
+
+template<typename... Ts>
+struct Overload final: Ts... {
+    using Ts::operator()...;
+};
+
+template<typename... Ts>
+Overload(Ts...) -> Overload<Ts...>;
 
 }  // namespace
 
@@ -776,11 +824,18 @@ std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
     auto wdlL = win_rate_model(-v, pos);
     auto wdlD = 1000 - (wdlW + wdlL);
 
-    return (std::ostringstream{} << wdlW << ' ' << wdlD << ' ' << wdlL).str();
+    std::string wdl;
+    wdl.reserve(16);
+    wdl += std::to_string(wdlW);
+    wdl += ' ';
+    wdl += std::to_string(wdlD);
+    wdl += ' ';
+    wdl += std::to_string(wdlL);
+    return wdl;
 }
 
-std::string UCI::score(const Score& score) noexcept {
-    static constexpr int TB_CP = 20000;
+std::string UCI::to_score(const Score& score) noexcept {
+    constexpr int TB_CP = 20000;
 
     const auto format =
       Overload{[](Score::Unit unit) -> std::string {
@@ -796,20 +851,6 @@ std::string UCI::score(const Score& score) noexcept {
     return score.visit(format);
 }
 
-char UCI::piece(PieceType pt) noexcept { return is_ok(pt) ? PieceChar[pt] : ' '; }
-
-char UCI::piece(Piece pc) noexcept { return is_ok(pc) ? PieceChar[pc] : ' '; }
-
-Piece UCI::piece(char pc) noexcept {
-    auto pos = PieceChar.find(pc);
-    return pos != std::string_view::npos ? Piece(pos) : NO_PIECE;
-}
-
-std::string UCI::square(Square s) noexcept {
-    assert(is_ok(s));
-    return std::string{file(file_of(s)), rank(rank_of(s))};
-}
-
 std::string UCI::move_to_can(Move m) noexcept {
     if (m == Move::None)
         return "(none)";
@@ -823,9 +864,12 @@ std::string UCI::move_to_can(Move m) noexcept {
         dst = make_square(org < dst ? FILE_G : FILE_C, rank_of(org));
     }
 
-    std::string can = square(org) + square(dst);
+    std::string can;
+    can.reserve(5);
+    can += to_square(org);
+    can += to_square(dst);
     if (m.type_of() == PROMOTION)
-        can += char(std::tolower(static_cast<unsigned char>(piece(m.promotion_type()))));
+        can += char(std::tolower(to_char(m.promotion_type())));
 
     return can;
 }
@@ -843,47 +887,11 @@ Move UCI::can_to_move(std::string can, const MoveList<LEGAL>& legalMoveList) noe
     return Move::None;
 }
 
-Move UCI::can_to_move(std::string_view can, const Position& pos) noexcept {
-    return can_to_move(std::string(can), MoveList<LEGAL>(pos));
+Move UCI::can_to_move(std::string can, const Position& pos) noexcept {
+    return can_to_move(can, MoveList<LEGAL>(pos));
 }
 
 namespace {
-
-void on_update_short(const ShortInfo& info) noexcept {
-    std::cout << "info"                   //
-              << " depth " << info.depth  //
-              << " score " << info.score << std::endl;
-}
-
-void on_update_full(const FullInfo& info) noexcept {
-    std::cout << "info"                         //
-              << " depth " << info.depth        //
-              << " seldepth " << info.selDepth  //
-              << " multipv " << info.multiPV    //
-              << " score " << info.score;       //
-    if (!info.bound.empty())
-        std::cout << info.bound;
-    if (!info.wdl.empty())
-        std::cout << " wdl " << info.wdl;
-    std::cout << " time " << info.time                     //
-              << " nodes " << info.nodes                   //
-              << " nps " << 1000 * info.nodes / info.time  //
-              << " hashfull " << info.hashfull             //
-              << " tbhits " << info.tbHits                 //
-              << " pv" << info.pv << std::endl;
-}
-
-void on_update_iter(const IterInfo& info) noexcept {
-    std::cout << "info"                         //
-              << " depth " << info.depth        //
-              << " currmove " << info.currMove  //
-              << " currmovenumber " << info.currMoveNumber << std::endl;
-}
-
-void on_update_move(const MoveInfo& info) noexcept {
-    std::cout << "bestmove " << info.bestMove  //
-              << " ponder " << info.ponderMove << std::endl;
-}
 
 enum Ambiguity : std::uint8_t {
     AMB_NONE,
@@ -948,30 +956,31 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     auto pt = type_of(pos.piece_on(org));
 
     std::string san;
+    san.reserve(8);
 
     if (m.type_of() == CASTLING)
     {
         assert(pt == KING && rank_of(org) == rank_of(dst));
-        san = (org < dst ? "O-O" : "O-O-O");
+        san += (org < dst ? "O-O" : "O-O-O");
     }
     else
     {
         if (pt != PAWN)
         {
-            san = piece(pt);
+            san += to_char(pt);
             if (pt != KING)
             {
                 // Disambiguation if have more then one piece of type 'pt' that can reach 'to' with a legal move.
                 switch (ambiguity(m, pos))
                 {
                 case AMB_RANK :
-                    san += file(file_of(org));
+                    san += to_char(file_of(org));
                     break;
                 case AMB_FILE :
-                    san += rank(rank_of(org));
+                    san += to_char(rank_of(org));
                     break;
                 case AMB_SQUARE :
-                    san += square(org);
+                    san += to_square(org);
                     break;
                 default :;
                 }
@@ -981,16 +990,16 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
         if (pos.capture(m))
         {
             if (pt == PAWN)
-                san = file(file_of(org));
+                san += to_char(file_of(org));
             san += 'x';
         }
 
-        san += square(dst);
+        san += to_square(dst);
 
         if (m.type_of() == PROMOTION)
         {
             assert(pt == PAWN);
-            san += std::string{'=', char(std::toupper(piece(m.promotion_type())))};
+            san += std::string{'=', char(std::toupper(to_char(m.promotion_type())))};
         }
     }
 
@@ -1016,9 +1025,8 @@ Move UCI::san_to_move(std::string            san,
                       Position&              pos,
                       const MoveList<LEGAL>& legalMoveList) noexcept {
     assert(2 <= san.size() && san.size() <= 9);
-    if (starts_with(lower_case(san), "o-") || starts_with(san, "0-"))
-        for (char ch : {'o', '0'})
-            std::replace(san.begin(), san.end(), ch, 'O');
+    if (san.size() >= 2 && san[1] == '-' && (san[0] == '0' || std::tolower(san[0]) == 'o'))
+        std::replace_if(san.begin(), san.end(), [](char c) { return c == 'o' || c == '0'; }, 'O');
 
     for (auto m : legalMoveList)
         if (san == move_to_san(m, pos))
@@ -1027,11 +1035,11 @@ Move UCI::san_to_move(std::string            san,
     return Move::None;
 }
 
-Move UCI::san_to_move(std::string_view san, Position& pos) noexcept {
-    return san_to_move(std::string(san), pos, MoveList<LEGAL>(pos));
+Move UCI::san_to_move(std::string san, Position& pos) noexcept {
+    return san_to_move(san, pos, MoveList<LEGAL>(pos));
 }
 
-Move UCI::mix_to_move(std::string_view       mix,
+Move UCI::mix_to_move(std::string            mix,
                       Position&              pos,
                       const MoveList<LEGAL>& legalMoveList) noexcept {
     assert(2 <= mix.size() && mix.size() <= 9);
@@ -1039,13 +1047,12 @@ Move UCI::mix_to_move(std::string_view       mix,
 
     if (!legalMoveList.empty() && mix.size() >= 2)
     {
-        if (mix.size() < 4 || starts_with(lower_case(std::string(mix)), "o-")
-            || starts_with(mix, "0-"))
-            return san_to_move(std::string(mix), pos, legalMoveList);
+        if (mix.size() < 4 || (mix[1] == '-' && (mix[0] == '0' || std::tolower(mix[0]) == 'o')))
+            return san_to_move(mix, pos, legalMoveList);
         if (mix.size() <= 5)
-            m = can_to_move(std::string(mix), legalMoveList);
+            m = can_to_move(mix, legalMoveList);
         if (m == Move::None && mix.size() <= 9)
-            m = san_to_move(std::string(mix), pos, legalMoveList);
+            m = san_to_move(mix, pos, legalMoveList);
     }
     return m;
 }

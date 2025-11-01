@@ -36,11 +36,25 @@
 #include <vector>
 
 #if defined(_WIN32)
-    #define WIN32_LEAN_AND_MEAN
     #if !defined(NOMINMAX)
-        #define NOMINMAX  // Disable macros min() and max()
+        #define NOMINMAX  // Disable min()/max() macros
     #endif
+    #if !defined(WIN32_LEAN_AND_MEAN)
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #include <sdkddkver.h>
+    #if defined(_WIN32_WINNT) && _WIN32_WINNT < _WIN32_WINNT_WIN7
+        #undef _WIN32_WINNT
+    #endif
+    #if !defined(_WIN32_WINNT)
+        // Force to include needed API prototypes
+        #define _WIN32_WINNT _WIN32_WINNT_WIN7  // or _WIN32_WINNT_WIN10
+    #endif
+    #define UNICODE
     #include <windows.h>
+    #if defined(small)
+        #undef small
+    #endif
 #else
     #include <fcntl.h>
     #include <sys/mman.h>
@@ -62,17 +76,17 @@ namespace DON {
 
 namespace {
 
-enum Endian {
+enum Endian : std::uint8_t {
     Big,
     Little
 };
 // Used as template parameter
-enum TBType {
+enum TBType : std::uint8_t {
     WDL,
     DTZ
 };
 // Each table has a set of flags: all of them refer to DTZ-tables, the last one to WDL-tables
-enum TBFlag {
+enum TBFlag : std::uint8_t {
     AC          = 1,
     Mapped      = 2,
     WinPlies    = 4,
@@ -85,6 +99,9 @@ enum TBFlag {
 constexpr std::uint32_t TBPieces = 7;
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit.
 constexpr int MAX_DTZ = 1 << 18;
+
+constexpr std::string_view WDLExt = ".rtbw";
+constexpr std::string_view DTZExt = ".rtbz";
 
 // clang-format off
 constexpr int          WDLMap    [5]{1, 3, 0, 2, 0};
@@ -109,7 +126,7 @@ constexpr int    off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file
 bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
 
 template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
-inline void swap_endian(T& x) noexcept {
+void swap_endian(T& x) noexcept {
     static_assert(std::is_unsigned_v<T>, "Argument of swap_endian not unsigned");
 
     std::uint8_t tmp, *c = (std::uint8_t*) (&x);
@@ -117,7 +134,7 @@ inline void swap_endian(T& x) noexcept {
         tmp = c[i], c[i] = c[End - i], c[End - i] = tmp;
 }
 template<>
-inline void swap_endian<std::uint8_t>(std::uint8_t&) noexcept {}
+void swap_endian<std::uint8_t>(std::uint8_t&) noexcept {}
 
 template<typename T, Endian Endian>
 T number(void* addr) noexcept {
@@ -274,9 +291,9 @@ class TBFile: public std::ifstream {
 
         auto* data = (std::uint8_t*) (*baseAddress);
 
-        static constexpr std::size_t  MagicSize = 4;
-        static constexpr std::uint8_t Magics[2][MagicSize]{{0xD7, 0x66, 0x0C, 0xA5},
-                                                           {0x71, 0xE8, 0x23, 0x5D}};
+        constexpr std::size_t  MagicSize = 4;
+        constexpr std::uint8_t Magics[2][MagicSize]{{0xD7, 0x66, 0x0C, 0xA5},
+                                                    {0x71, 0xE8, 0x23, 0x5D}};
 
         if (std::memcmp(data, Magics[Type == WDL], MagicSize))
         {
@@ -373,7 +390,7 @@ template<TBType Type>
 struct TBTable final {
     using Ret = std::conditional_t<Type == WDL, WDLScore, int>;
 
-    static constexpr unsigned Sides = Type == WDL ? 2 : 1;
+    static constexpr std::size_t Sides = Type == WDL ? 2 : 1;
 
     std::atomic<bool> ready{false};
     void*             baseAddress = nullptr;
@@ -494,9 +511,9 @@ class TBTables final {
     }
 
     // 4K table, indexed by key's 12 lsb
-    static constexpr std::size_t Size = 1U << 12;
+    static constexpr std::size_t Size = 1 << 12;
     // Number of elements allowed to map to the last bucket
-    static constexpr std::size_t Overflow = 1U;
+    static constexpr std::size_t Overflow = 1;
 
     Entry entries[Size + Overflow];
 
@@ -538,18 +555,20 @@ class TBTables final {
 void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     std::string code;
+    code.reserve(pieces.size() + 2);
     for (PieceType pt : pieces)
-        code += UCI::piece(pt);
+        code += to_char(pt);
+    assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string::npos);
     code.insert(code.find('K', 1), "v");  // KRK -> KRvK
 
-    TBFile dtzFile(code + ".rtbz");
+    TBFile dtzFile(code + DTZExt.data());
     if (dtzFile.is_open())
     {
         dtzFile.close();
         ++dtzCount;
     }
 
-    TBFile wdlFile(code + ".rtbw");
+    TBFile wdlFile(code + WDLExt.data());
     if (!wdlFile.is_open())  // Only WDL file is checked
         return;
 
@@ -800,7 +819,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
         std::swap(squares[0], *std::max_element(squares, squares + leadPawnCnt, pawns_comp));
 
-        tbFile = edge_distance(file_of(squares[0]));
+        tbFile = fold_to_edge(file_of(squares[0]));
     }
 
     // DTZ-tables are one-sided, i.e. they store positions only for white to
@@ -1264,15 +1283,14 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
         return entry.baseAddress;
 
     // Pieces strings in decreasing order for each color, like ("KPP","KR")
-    std::string w, b;
-    for (PieceType pt = KING; pt >= PAWN; --pt)
-    {
-        w += std::string(popcount(pos.pieces(WHITE, pt)), UCI::piece(pt));
-        b += std::string(popcount(pos.pieces(BLACK, pt)), UCI::piece(pt));
-    }
+    std::string pieces[COLOR_NB]{};
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt = KING; pt >= PAWN; --pt)
+            pieces[c].append(pos.count(c, pt), to_char(pt));
 
-    std::string fname = (materialKey == entry.key[WHITE] ? w + 'v' + b : b + 'v' + w)
-                      + (Type == WDL ? ".rtbw" : ".rtbz");
+    std::string fname = (materialKey == entry.key[WHITE] ? pieces[WHITE] + 'v' + pieces[BLACK]
+                                                         : pieces[BLACK] + 'v' + pieces[WHITE])
+                      + (Type == WDL ? WDLExt : DTZExt).data();
 
     uint8_t* data = TBFile(fname).map<Type>(&entry.baseAddress, &entry.mapping);
 
@@ -1376,8 +1394,6 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 }  // namespace
 
 namespace Tablebases {
-
-std::uint8_t MaxCardinality;
 
 // Called at startup to create the various tables
 void init() noexcept {
@@ -1491,7 +1507,7 @@ void init(std::string_view paths) noexcept {
     if (!TBFile::init(paths))
         return;
 
-    // Add entries in TB-tables if the corresponding ".rtbw" file exists
+    // Add entries in TB-tables if the corresponding WDL file exists
     for (PieceType p1 = PAWN; p1 < KING; ++p1)
     {
         tbTables.add({KING, p1, KING});
@@ -1639,17 +1655,19 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     return minDtzScore == std::numeric_limits<int>::max() ? -1 : minDtzScore;
 }
 
+// clang-format off
+
 // Use the DTZ-tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dtzRank) noexcept {
+bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Enabled, bool dtzRankEnabled) noexcept {
     // Obtain 50-move counter for the root position
     std::int16_t rule50Count = pos.rule50_count();
 
-    // Check whether a position was repeated since the last zeroing move.
-    bool rep = pos.has_repetition();
+    // Check whether the position was repeated since the last zeroing move
+    bool rep = pos.has_repeated();
 
-    int bound = rule50Use ? (MAX_DTZ / 2 - 100) : 1;
+    int bound = rule50Enabled ? (MAX_DTZ / 2 - 100) : 1;
 
     // Probe and rank each move
     for (auto& rm : rootMoves)
@@ -1665,7 +1683,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
             // In case of a zeroing move, dtzScore is one of -101/-1/0/1/101
             dtzScore = before_zeroing_dtz(-probe_wdl(pos, &ps));
         }
-        else if (pos.is_draw(1, rule50Use))
+        else if (pos.is_draw(1, rule50Enabled))
         {
             // In case a root move leads to a draw by repetition or 50-move rule,
             // set dtzScore to zero. Note: since are only 1 ply from the root,
@@ -1690,14 +1708,13 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
 
         // Better moves are ranked higher. Certain wins are ranked equally.
         // Losing moves are ranked equally unless a 50-move draw is in sight.
-        int r =
-          dtzScore > 0
-            ? (+1 * dtzScore + rule50Count < 100 && !rep ? +MAX_DTZ - (dtzRank ? dtzScore : 0)
-                                                         : +MAX_DTZ / 2 - (+dtzScore + rule50Count))
-          : dtzScore < 0
-            ? (-2 * dtzScore + rule50Count < 100 /*   */ ? -MAX_DTZ - (dtzRank ? dtzScore : 0)
-                                                         : -MAX_DTZ / 2 + (-dtzScore + rule50Count))
-            : 0;
+        int r = dtzScore > 0 ? (+1 * dtzScore + rule50Count < 100 && !rep  //
+                                  ? +MAX_DTZ - (dtzRankEnabled ? dtzScore : 0)
+                                  : +MAX_DTZ / 2 - (+dtzScore + rule50Count))
+              : dtzScore < 0 ? (-2 * dtzScore + rule50Count < 100  //
+                                  ? -MAX_DTZ - (dtzRankEnabled ? dtzScore : 0)
+                                  : -MAX_DTZ / 2 + (-dtzScore + rule50Count))
+                             : 0;
 
         rm.tbRank = r;
 
@@ -1718,7 +1735,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Use, bool dt
 // This is a fallback for the case that some or all DTZ-tables are missing.
 //
 // A return value false indicates that not all probes were successful.
-bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Use) noexcept {
+bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Enabled) noexcept {
     // Probe and rank each move
     for (auto& rm : rootMoves)
     {
@@ -1735,7 +1752,7 @@ bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Use) noexcep
 
         rm.tbRank = WDLToRank[wdlScore + 2];
 
-        if (!rule50Use)
+        if (!rule50Enabled)
             wdlScore = wdlScore > WDL_DRAW ? WDL_WIN : wdlScore < WDL_DRAW ? WDL_LOSS : WDL_DRAW;
         rm.tbValue = WDLToValue[wdlScore + 2];
     }
@@ -1743,18 +1760,15 @@ bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Use) noexcep
     return true;
 }
 
-Config rank_root_moves(Position&      pos,
-                       RootMoves&     rootMoves,
-                       const Options& options,
-                       bool           dtzRank) noexcept {
+Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool dtzRankEnabled) noexcept {
     Config config;
 
     if (rootMoves.empty())
         return config;
 
-    config.cardinality = options["SyzygyProbeLimit"];
-    config.probeDepth  = options["SyzygyProbeDepth"];
-    config.rule50Use   = options["Syzygy50MoveRule"];
+    config.cardinality   = options["SyzygyProbeLimit"];
+    config.probeDepth    = options["SyzygyProbeDepth"];
+    config.rule50Enabled = options["Syzygy50MoveRule"];
 
     bool dtzAvailable = true;
 
@@ -1769,13 +1783,13 @@ Config rank_root_moves(Position&      pos,
     if (config.cardinality >= pos.count<ALL_PIECE>() && !pos.can_castle(ANY_CASTLING))
     {
         // Rank moves using DTZ-tables
-        config.rootInTB = probe_root_dtz(pos, rootMoves, config.rule50Use, dtzRank);
+        config.rootInTB = probe_root_dtz(pos, rootMoves, config.rule50Enabled, dtzRankEnabled);
 
         if (!config.rootInTB)
         {
             // DTZ-tables are missing; try to rank moves using WDL-tables
             dtzAvailable    = false;
-            config.rootInTB = probe_root_wdl(pos, rootMoves, config.rule50Use);
+            config.rootInTB = probe_root_wdl(pos, rootMoves, config.rule50Enabled);
         }
     }
 
@@ -1798,5 +1812,8 @@ Config rank_root_moves(Position&      pos,
 
     return config;
 }
+
+// clang-format on
+
 }  // namespace Tablebases
 }  // namespace DON

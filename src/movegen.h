@@ -57,9 +57,9 @@ struct MoveList final {
 
     // Generate moves into the internal buffer.
     explicit MoveList(const Position& pos) noexcept :
-        endMoves(generate<GT, Any>(pos, moves)) {
+        endMove(generate<GT, Any>(pos, moves)) {
 #if !defined(NDEBUG)
-        assert(moves <= endMoves && endMoves <= moves + MAX_MOVES);
+        assert(moves <= endMove && endMove <= moves + MAX_MOVES);
 #endif
     }
 
@@ -70,9 +70,9 @@ struct MoveList final {
     MoveList& operator=(MoveList&&) noexcept      = delete;
 
     [[nodiscard]] const_iterator begin() const noexcept { return moves; }
-    [[nodiscard]] const_iterator end() const noexcept { return endMoves; }
+    [[nodiscard]] const_iterator end() const noexcept { return endMove; }
     [[nodiscard]] iterator       begin() noexcept { return moves; }
-    [[nodiscard]] iterator       end() noexcept { return endMoves; }
+    [[nodiscard]] iterator       end() noexcept { return endMove; }
 
     [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
     [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
@@ -91,7 +91,7 @@ struct MoveList final {
 
    private:
     value_type     moves[MAX_MOVES];
-    const_iterator endMoves;
+    const_iterator endMove;
 };
 
 }  // namespace DON

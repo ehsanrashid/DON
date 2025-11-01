@@ -36,6 +36,7 @@
 //                | only in 64-bit mode and requires hardware with pext support.
 
     #include <algorithm>
+    #include <array>
     #include <cassert>
     #include <cstddef>
     #include <cstdint>
@@ -84,13 +85,18 @@ using Key      = std::uint64_t;
 using Key32    = std::uint32_t;
 using Key16    = std::uint16_t;
 
-constexpr std::uint16_t MAX_MOVES = 256U;
-constexpr std::uint16_t MAX_PLY   = 254U;
+static_assert(sizeof(Bitboard) == 8, "Expected 64-bit Bitboard");
+static_assert(sizeof(Key) == 8, "Expected 64-bit Key");
+
+inline constexpr std::uint16_t MAX_MOVES = 256;
+inline constexpr std::uint16_t MAX_PLY   = 254;
 
 // Size of cache line (in bytes)
-constexpr std::size_t CACHE_LINE_SIZE = 64U;
+inline constexpr std::size_t CACHE_LINE_SIZE = 64;
 
-constexpr std::string_view START_FEN{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
+inline constexpr std::string_view PIECE_CHAR{" PNBRQK  pnbrqk "};
+inline constexpr std::string_view START_FEN{
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 
 enum Color : std::uint8_t {
     WHITE,
@@ -115,13 +121,6 @@ enum CastlingRights : std::uint8_t {
     CASTLING_RIGHTS_NB = 16
 };
 
-enum Bound : std::uint8_t {
-    BOUND_NONE,
-    BOUND_UPPER,
-    BOUND_LOWER,
-    BOUND_EXACT = BOUND_UPPER | BOUND_LOWER
-};
-
 // clang-format off
 enum PieceType : std::int8_t {
     NO_PIECE_TYPE,
@@ -139,6 +138,7 @@ enum Piece : std::uint8_t {
     PIECE_NB = 16
 };
 // clang-format on
+static_assert(sizeof(Piece) == 1);
 
 // Value is used as an alias for std::int16_t, this is done to differentiate between
 // a search value and any other integer value. The values used in search are always
@@ -146,30 +146,30 @@ enum Piece : std::uint8_t {
 using Value    = std::int16_t;
 using SqrValue = std::int32_t;
 
-constexpr Value VALUE_ZERO = 0;
-constexpr Value VALUE_DRAW = VALUE_ZERO;
+inline constexpr Value VALUE_ZERO = 0;
+inline constexpr Value VALUE_DRAW = VALUE_ZERO;
 
-constexpr Value VALUE_NONE     = std::numeric_limits<Value>::max();
-constexpr Value VALUE_INFINITE = VALUE_NONE - 1;
+inline constexpr Value VALUE_NONE     = std::numeric_limits<Value>::max();
+inline constexpr Value VALUE_INFINITE = VALUE_NONE - 1;
 
-constexpr Value VALUE_MATE             = VALUE_INFINITE - 1;
-constexpr Value VALUE_MATES_IN_MAX_PLY = VALUE_MATE - MAX_PLY;
-constexpr Value VALUE_MATED_IN_MAX_PLY = -VALUE_MATES_IN_MAX_PLY;
+inline constexpr Value VALUE_MATE             = VALUE_INFINITE - 1;
+inline constexpr Value VALUE_MATES_IN_MAX_PLY = VALUE_MATE - MAX_PLY;
+inline constexpr Value VALUE_MATED_IN_MAX_PLY = -VALUE_MATES_IN_MAX_PLY;
 
-constexpr Value VALUE_TB                 = VALUE_MATES_IN_MAX_PLY - 1;
-constexpr Value VALUE_TB_WIN_IN_MAX_PLY  = VALUE_TB - MAX_PLY;
-constexpr Value VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_TB_WIN_IN_MAX_PLY;
+inline constexpr Value VALUE_TB                 = VALUE_MATES_IN_MAX_PLY - 1;
+inline constexpr Value VALUE_TB_WIN_IN_MAX_PLY  = VALUE_TB - MAX_PLY;
+inline constexpr Value VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_TB_WIN_IN_MAX_PLY;
 
 // In the code, make the assumption that these values
 // are such that non_pawn_material() can be used to uniquely
 // identify the material on the board.
-constexpr Value VALUE_PAWN   = 208;
-constexpr Value VALUE_KNIGHT = 781;
-constexpr Value VALUE_BISHOP = 825;
-constexpr Value VALUE_ROOK   = 1276;
-constexpr Value VALUE_QUEEN  = 2538;
+inline constexpr Value VALUE_PAWN   = 208;
+inline constexpr Value VALUE_KNIGHT = 781;
+inline constexpr Value VALUE_BISHOP = 825;
+inline constexpr Value VALUE_ROOK   = 1276;
+inline constexpr Value VALUE_QUEEN  = 2538;
 // clang-format off
-constexpr Value PIECE_VALUE[PIECE_TYPE_NB] = {
+inline constexpr Value PIECE_VALUE[PIECE_TYPE_NB]{
   VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO, VALUE_ZERO
 };
 // clang-format on
@@ -209,13 +209,17 @@ constexpr bool is_mate_loss(Value value) noexcept {
 
 constexpr bool is_mate(Value value) noexcept { return is_mate_win(value) || is_mate_loss(value); }
 
+constexpr Value mates_in(std::int16_t ply) noexcept { return +VALUE_MATE - ply; }
+
+constexpr Value mated_in(std::int16_t ply) noexcept { return -VALUE_MATE + ply; }
+
 // Depth is used as an alias for std::int16_t
 using Depth = std::int16_t;
 
-constexpr Depth DEPTH_ZERO = 0;
-constexpr Depth DEPTH_NONE = -1;
+inline constexpr Depth DEPTH_ZERO = 0;
+inline constexpr Depth DEPTH_NONE = -1;
 // Depth used only for TT entry occupancy check
-constexpr Depth DEPTH_OFFSET = DEPTH_NONE - 1;
+inline constexpr Depth DEPTH_OFFSET = DEPTH_NONE - 1;
 static_assert(DEPTH_OFFSET == MAX_PLY - 1 - std::numeric_limits<std::uint8_t>::max(),
               "DEPTH_OFFSET == MAX_PLY - 1 - std::numeric_limits<std::uint8_t>::max()");
 
@@ -262,6 +266,13 @@ enum Direction : std::int8_t {
     SOUTH_2 = SOUTH + SOUTH,
 };
 
+enum Bound : std::uint8_t {
+    BOUND_NONE,
+    BOUND_UPPER,
+    BOUND_LOWER,
+    BOUND_EXACT = BOUND_UPPER | BOUND_LOWER
+};
+
 // Keep track of what a move changes on the board (used by NNUE)
 struct DirtyPiece final {
    public:
@@ -278,10 +289,12 @@ struct DirtyPiece final {
 
 // clang-format off
     #define ENABLE_INCR_OPERATORS_ON(T) \
-        constexpr T& operator++(T& t) noexcept { return t = T(int(t) + 1); }    \
-        constexpr T& operator--(T& t) noexcept { return t = T(int(t) - 1); }    \
-        constexpr T  operator++(T& t, int) noexcept { T u = t; ++t; return u; } \
-        constexpr T  operator--(T& t, int) noexcept { T u = t; --t; return u; }
+        static_assert(std::is_enum_v<T>, "ENABLE_INCR_OPERATORS_ON requires an enum"); \
+        static_assert(std::is_convertible_v<T, int>, "ENABLE_INCR_OPERATORS_ON requires an *unscoped* enum (plain enum)"); \
+        constexpr T& operator++(T& v) noexcept { return v = T(int(v) + 1); }    \
+        constexpr T& operator--(T& v) noexcept { return v = T(int(v) - 1); }    \
+        constexpr T  operator++(T& v, int) noexcept { T u = v; ++v; return u; } \
+        constexpr T  operator--(T& v, int) noexcept { T u = v; --v; return u; }
 // clang-format on
 
 ENABLE_INCR_OPERATORS_ON(PieceType)
@@ -328,45 +341,51 @@ constexpr CastlingRights  operator&(Color c, CastlingRights cr) noexcept {
 
 // clang-format on
 
-constexpr bool is_ok(Color c) noexcept { return (c == WHITE || c == BLACK); }
+[[nodiscard]] constexpr bool is_ok(Color c) noexcept { return (c == WHITE || c == BLACK); }
 
 // Toggle color
-constexpr Color operator~(Color c) noexcept { return Color((int(c) ^ 1) & 1); }
+constexpr Color operator~(Color c) noexcept { return Color(int(c) ^ 1); }
 
-constexpr bool is_ok(PieceType pt) noexcept { return (PAWN <= pt && pt <= KING); }
+[[nodiscard]] constexpr bool is_ok(PieceType pt) noexcept { return (PAWN <= pt && pt <= KING); }
 
-constexpr bool is_major(PieceType pt) noexcept { return (pt >= ROOK); }
+[[nodiscard]] constexpr bool is_major(PieceType pt) noexcept { return (pt >= ROOK); }
 
-constexpr Piece make_piece(Color c, PieceType pt) noexcept { return Piece((c << 3) | int(pt)); }
+[[nodiscard]] constexpr Piece make_piece(Color c, PieceType pt) noexcept {
+    assert(is_ok(c) && (is_ok(pt) || pt == ALL_PIECE));
+    return Piece((int(c) << 3) | int(pt));
+}
 
-constexpr bool is_ok(Piece pc) noexcept {
+[[nodiscard]] constexpr bool is_ok(Piece pc) noexcept {
     return (W_PAWN <= pc && pc <= W_KING) || (B_PAWN <= pc && pc <= B_KING);
 }
 
 constexpr PieceType type_of(Piece pc) noexcept { return PieceType(int(pc) & 7); }
 
-constexpr Color color_of(Piece pc) noexcept { return Color(pc >> 3); }
+constexpr Color color_of(Piece pc) noexcept { return Color(int(pc) >> 3); }
 
 // Swap color of piece B_KNIGHT <-> W_KNIGHT
-constexpr Piece operator~(Piece pc) noexcept { return Piece(pc ^ 8); }
+constexpr Piece operator~(Piece pc) noexcept { return Piece(int(pc) ^ 8); }
 
-constexpr Value mates_in(std::int16_t ply) noexcept { return +VALUE_MATE - ply; }
+[[nodiscard]] constexpr bool is_ok(File f) noexcept { return (FILE_A <= f && f <= FILE_H); }
 
-constexpr Value mated_in(std::int16_t ply) noexcept { return -VALUE_MATE + ply; }
+[[nodiscard]] constexpr bool is_ok(Rank r) noexcept { return (RANK_1 <= r && r <= RANK_8); }
 
-constexpr Square make_square(File f, Rank r) noexcept { return Square((r << 3) | int(f)); }
-
-constexpr bool is_ok(Square s) noexcept {
-    return s != SQ_NONE;
-    //return (SQ_A1 <= s && s <= SQ_H8);
+[[nodiscard]] constexpr Square make_square(File f, Rank r) noexcept {
+    assert(is_ok(f) && is_ok(r));
+    return Square((int(r) << 3) | int(f));
 }
+
+[[nodiscard]] constexpr bool is_ok(Square s) noexcept { return (SQ_A1 <= s && s <= SQ_H8); }
 
 constexpr File file_of(Square s) noexcept { return File(int(s) & 7); }
 
-constexpr Rank rank_of(Square s) noexcept { return Rank((s >> 3) & 7); }
+constexpr Rank rank_of(Square s) noexcept { return Rank((int(s) >> 3) & 7); }
 
-constexpr bool color_opposite(Square s1, Square s2) noexcept {
-    return (int(s1) + rank_of(s1) + int(s2) + rank_of(s2)) & 1;
+[[nodiscard]] constexpr bool is_light(Square s) noexcept {
+    return (int(/*file_of*/ s) ^ int(rank_of(s))) & 1;
+}
+[[nodiscard]] constexpr bool color_opposite(Square s1, Square s2) noexcept {
+    return is_light(s1) != is_light(s2);
 }
 
 // Swap A1 <-> H1
@@ -374,11 +393,14 @@ constexpr Square flip_file(Square s) noexcept { return Square(int(s) ^ int(SQ_H1
 // Swap A1 <-> A8
 constexpr Square flip_rank(Square s) noexcept { return Square(int(s) ^ int(SQ_A8)); }
 
+constexpr File fold_to_edge(File f) noexcept { return std::min(f, File(FILE_H - f)); }
+constexpr Rank fold_to_edge(Rank r) noexcept { return std::min(r, Rank(RANK_8 - r)); }
+
 constexpr Square relative_sq(Color c, Square s) noexcept {
     return Square(int(s) ^ (c * int(SQ_A8)));
 }
 
-constexpr Rank relative_rank(Color c, Rank r) noexcept { return Rank(int(r) ^ (c * int(SQ_H1))); }
+constexpr Rank relative_rank(Color c, Rank r) noexcept { return Rank(int(r) ^ (c * int(RANK_8))); }
 
 constexpr Rank relative_rank(Color c, Square s) noexcept { return relative_rank(c, rank_of(s)); }
 
@@ -401,6 +423,53 @@ constexpr Direction pawn_dpush(Color c) noexcept {
     assert(is_ok(c));
     return c == WHITE ? NORTH_2 : SOUTH_2;
 }
+
+[[nodiscard]] constexpr char to_char(PieceType pt) noexcept {
+    return is_ok(pt) ? PIECE_CHAR[pt] : ' ';
+}
+
+[[nodiscard]] constexpr char to_char(Piece pc) noexcept { return is_ok(pc) ? PIECE_CHAR[pc] : ' '; }
+
+[[nodiscard]] constexpr Piece to_piece(char pc) noexcept {
+    const std::size_t pos = PIECE_CHAR.find(pc);
+    return pos != std::string_view::npos ? Piece(pos) : NO_PIECE;
+}
+
+template<bool Upper = false>
+[[nodiscard]] constexpr char to_char(File f) noexcept {
+    return int(f) + (Upper ? 'A' : 'a');
+}
+
+[[nodiscard]] constexpr char to_char(Rank r) noexcept { return int(r) + '1'; }
+
+[[nodiscard]] constexpr File to_file(char f) noexcept { return File(f - 'a'); }
+
+[[nodiscard]] constexpr Rank to_rank(char r) noexcept { return Rank(r - '1'); }
+
+// Flip file 'A'-'H' or 'a'-'h'; otherwise unchanged
+[[nodiscard]] constexpr char flip_file(char f) noexcept {
+    return ('A' <= f && f <= 'H') ? 'A' + ('H' - f) : ('a' <= f && f <= 'h') ? 'a' + ('h' - f) : f;
+}
+// Flip rank '1'-'8'; otherwise unchanged
+[[nodiscard]] constexpr char flip_rank(char r) noexcept {
+    return ('1' <= r && r <= '8') ? '1' + ('8' - r) : r;
+}
+
+// Build a compile-time table: "a1", "b1", ..., "h8"
+alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARE_CHARS = []() constexpr {
+    std::array<std::array<char, 2>, SQUARE_NB> squareChars{};
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+        squareChars[s] = {to_char(file_of(s)), to_char(rank_of(s))};
+    return squareChars;
+}();
+
+[[nodiscard]] constexpr std::string_view to_square(Square s) noexcept {
+    assert(is_ok(s));
+    return {SQUARE_CHARS[s].data(), 2};
+}
+
+static_assert(to_square(SQ_A1) == "a1" && to_square(SQ_H8) == "h8",
+              "to_square(): broken, expected 'a1' & 'h8'");
 
 // Linear Congruential Generator (LCG): X_{n+1} = (c + a * X_n)
 // Based on a congruential pseudo-random number generator
@@ -446,10 +515,10 @@ class Move {
     };
 
     // Bit masks for extracting parts of the move
-    static constexpr std::uint16_t SqrMask      = 0x3F;   // 6 bits for origin/destiny
-    static constexpr std::uint16_t SqrSqrMask   = 0xFFF;  // 12 bits for combined origin/destiny
-    static constexpr std::uint16_t PromoMask    = 0x3;    // 2 bits for promotion type
-    static constexpr std::uint16_t MoveTypeMask = CASTLING;
+    static constexpr std::uint16_t SqrMask    = 0x003F;  // 6 bits for origin/destiny
+    static constexpr std::uint16_t SqrSqrMask = 0x0FFF;  // 12 bits for combined origin/destiny
+    static constexpr std::uint16_t TypeMask   = 0xC000;  // 2 bits for move type
+    static constexpr std::uint16_t PromoMask  = 0x0003;  // 2 bits for promotion type
 
     constexpr Move() noexcept = default;
     // Constructors using delegating syntax
@@ -466,7 +535,7 @@ class Move {
     constexpr Square        org_sq() const noexcept { return Square((move >> 6) & SqrMask); }
     constexpr Square        dst_sq() const noexcept { return Square((move >> 0) & SqrMask); }
     constexpr std::uint16_t org_dst() const noexcept { return move & SqrSqrMask; }
-    constexpr MoveType      type_of() const noexcept { return MoveType(move & MoveTypeMask); }
+    constexpr MoveType      type_of() const noexcept { return MoveType(move & TypeMask); }
     constexpr PieceType     promotion_type() const noexcept {
         return PieceType(((move >> 12) & PromoMask) + int(KNIGHT));
     }
@@ -492,8 +561,8 @@ class Move {
 };
 
 // **Define the constexpr static members outside the class**
-constexpr Move Move::None{SQ_A1, SQ_A1};
-constexpr Move Move::Null{SQ_B1, SQ_B1};
+inline constexpr Move Move::None{SQ_A1, SQ_A1};
+inline constexpr Move Move::Null{SQ_B1, SQ_B1};
 
 template<bool MP = false>
 constexpr Value promotion_value(Move m) noexcept {

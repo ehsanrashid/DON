@@ -18,6 +18,7 @@
 #ifndef UCI_H_INCLUDED
 #define UCI_H_INCLUDED
 
+#include <cstdint>
 #include <iosfwd>
 #include <string>
 #include <string_view>
@@ -46,34 +47,23 @@ class UCI final {
 
     [[nodiscard]] static int         to_cp(Value v, const Position& pos) noexcept;
     [[nodiscard]] static std::string to_wdl(Value v, const Position& pos) noexcept;
-    [[nodiscard]] static std::string score(const Score& score) noexcept;
-
-    [[nodiscard]] static char  piece(PieceType pt) noexcept;
-    [[nodiscard]] static char  piece(Piece pc) noexcept;
-    [[nodiscard]] static Piece piece(char pc) noexcept;
-
-    [[nodiscard]] static constexpr char file(File f, bool upper = false) noexcept;
-    [[nodiscard]] static constexpr char rank(Rank r) noexcept;
-    [[nodiscard]] static constexpr char flip_file(char f) noexcept;
-    [[nodiscard]] static constexpr char flip_rank(char r) noexcept;
-
-    [[nodiscard]] static std::string square(Square s) noexcept;
+    [[nodiscard]] static std::string to_score(const Score& score) noexcept;
 
     [[nodiscard]] static std::string move_to_can(Move m) noexcept;
 
     [[nodiscard]] static Move can_to_move(std::string can, const MoveList<LEGAL>&) noexcept;
-    [[nodiscard]] static Move can_to_move(std::string_view can, const Position& pos) noexcept;
+    [[nodiscard]] static Move can_to_move(std::string can, const Position& pos) noexcept;
 
     [[nodiscard]] static std::string move_to_san(Move m, Position& pos) noexcept;
 
     [[nodiscard]] static Move
     san_to_move(std::string san, Position& pos, const MoveList<LEGAL>&) noexcept;
-    [[nodiscard]] static Move san_to_move(std::string_view san, Position& pos) noexcept;
+    [[nodiscard]] static Move san_to_move(std::string san, Position& pos) noexcept;
 
     [[nodiscard]] static Move
-    mix_to_move(std::string_view mix, Position& pos, const MoveList<LEGAL>&) noexcept;
+    mix_to_move(std::string mix, Position& pos, const MoveList<LEGAL>&) noexcept;
 
-    static inline bool InfoStringStop = false;
+    static inline bool InfoStringEnabled = true;
 
    private:
     void set_update_listeners() noexcept;
@@ -84,25 +74,11 @@ class UCI final {
     void bench(std::istringstream& iss) noexcept;
     void benchmark(std::istringstream& iss) noexcept;
 
+    std::uint64_t perft(Depth depth, bool detail = false) noexcept;
+
     Engine      engine;
     CommandLine commandLine;
 };
-
-inline constexpr char UCI::file(File f, bool upper) noexcept {
-    return int(f) + (upper ? 'A' : 'a');
-}
-
-inline constexpr char UCI::rank(Rank r) noexcept { return int(r) + '1'; }
-
-inline constexpr char UCI::flip_file(char f) noexcept {
-    // Flip file 'A'-'H' or 'a'-'h'; otherwise unchanged
-    return ('A' <= f && f <= 'H') ? 'A' + ('H' - f) : ('a' <= f && f <= 'h') ? 'a' + ('h' - f) : f;
-}
-
-inline constexpr char UCI::flip_rank(char r) noexcept {
-    // Flip rank '1'-'8'; otherwise unchanged
-    return ('1' <= r && r <= '8') ? '1' + ('8' - r) : r;
-}
 
 }  // namespace DON
 

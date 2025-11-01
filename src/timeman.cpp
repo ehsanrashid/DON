@@ -28,11 +28,11 @@ namespace DON {
 
 namespace {
 
-constexpr std::uint16_t MaxCentiMTG = 5051U;
+constexpr std::uint16_t MaxCentiMTG = 5051;
 
 }  // namespace
 
-void TimeManager::init() noexcept {
+void TimeManager::clear() noexcept {
 
     timeAdjust = -1.0;
 
@@ -53,7 +53,7 @@ void TimeManager::init(
     auto& clock = limit.clocks[ac];
 
     std::int64_t nodesTime = options["NodesTime"];
-    nodesTimeUse           = nodesTime > 0;
+    nodeTimeEnabled        = nodesTime > 0;
 
     if (clock.time == 0)
     {
@@ -68,7 +68,7 @@ void TimeManager::init(
     // and use resulting values in time management formulas.
     // WARNING: to avoid time losses, the given nodesTime (nodes per millisecond)
     // must be much lower than the real engine speed.
-    if (nodesTimeUse)
+    if (nodeTimeEnabled)
     {
         // Only once at game start
         if (timeNodes == -1)
@@ -93,7 +93,7 @@ void TimeManager::init(
 
     // If less than one second, gradually reduce mtg
     if (scaledTime < 1000)
-        centiMTG = std::max<std::uint16_t>(5.0510 * scaledTime, 200);
+        centiMTG = std::max<std::uint16_t>(5.0510 * scaledTime, 101);
 
     // Make sure remainTime > 0 since use it as a divisor
     const TimePoint remainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * moveOverhead) / 100, TimePoint(1));
@@ -158,7 +158,7 @@ void TimeManager::init(
 
 // When in 'Nodes as Time' mode
 void TimeManager::advance_time_nodes(std::int64_t nodes) noexcept {
-    assert(nodesTimeUse);
+    assert(nodeTimeEnabled);
     timeNodes = std::max(timeNodes - nodes, std::int64_t(0));
 }
 

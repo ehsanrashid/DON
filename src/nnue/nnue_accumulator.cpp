@@ -18,7 +18,6 @@
 #include "nnue_accumulator.h"
 
 #include <cassert>
-#include <initializer_list>
 #include <type_traits>
 
 #include "../bitboard.h"
@@ -200,6 +199,26 @@ void update_accumulator_incremental(
     (targetAccSt.acc<TransformedFeatureDimensions>()).computed[Perspective] = true;
 }
 
+Bitboard changed_bb(const PieceArray& oldArr, const PieceArray& newArr) noexcept {
+#if defined(USE_AVX512) || defined(USE_AVX2)
+    Bitboard samedBB = 0;
+    for (std::size_t s = 0; s < SQUARE_NB; s += 32)
+    {
+        __m256i oldV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(oldArr.data() + s));
+        __m256i newV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(newArr.data() + s));
+        __m256i cmpEqual = _mm256_cmpeq_epi8(oldV, newV);
+        std::uint32_t equalMask = _mm256_movemask_epi8(cmpEqual);
+        samedBB |= Bitboard(equalMask) << s;
+    }
+    return ~samedBB;
+#else
+    Bitboard changedBB = 0;
+    for (std::size_t s = 0; s < SQUARE_NB; ++s)
+        changedBB |= Bitboard(oldArr[s] != newArr[s]) << s;
+    return changedBB;
+#endif
+}
+
 template<Color Perspective, IndexType Dimensions>
 void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& featureTransformer,
                                       const Position&                       pos,
@@ -215,28 +234,26 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
 
     FeatureSet::IndexList removed, added;
 
-    for (Color c : {WHITE, BLACK})
-    {
-        for (PieceType pt = PAWN; pt <= KING; ++pt)
-        {
-            Piece    piece    = make_piece(c, pt);
-            Bitboard oldBB    = entry.colorBB[c] & entry.typeBB[pt];
-            Bitboard newBB    = pos.pieces(c, pt);
-            Bitboard removeBB = oldBB & ~newBB;
-            Bitboard addBB    = newBB & ~oldBB;
+    auto pieces   = pos.pieces();
+    auto pieceArr = pos.piece_array();
 
-            while (removeBB)
-            {
-                Square s = pop_lsb(removeBB);
-                removed.push_back(FeatureSet::make_index<Perspective>(s, piece, kingSq));
-            }
-            while (addBB)
-            {
-                Square s = pop_lsb(addBB);
-                added.push_back(FeatureSet::make_index<Perspective>(s, piece, kingSq));
-            }
-        }
+    Bitboard changedBB = changed_bb(entry.pieceArr, pieceArr);
+
+    Bitboard removedBB = changedBB & entry.pieces;
+    while (removedBB)
+    {
+        Square s = pop_lsb(removedBB);
+        removed.push_back(FeatureSet::make_index<Perspective>(s, entry.pieceArr[s], kingSq));
     }
+    Bitboard addedBB = changedBB & pieces;
+    while (addedBB)
+    {
+        Square s = pop_lsb(addedBB);
+        added.push_back(FeatureSet::make_index<Perspective>(s, pos.piece_on(s), kingSq));
+    }
+
+    entry.pieces   = pieces;
+    entry.pieceArr = pieceArr;
 
     auto& accumulator = accState.acc<Dimensions>();
 
@@ -351,12 +368,6 @@ void update_accumulator_refresh_cache(const FeatureTransformer<Dimensions>& feat
     std::memcpy(accumulator.psqtAccumulation[Perspective], entry.psqtAccumulation,
                 sizeof(accumulator.psqtAccumulation[Perspective]));
 #endif
-
-    for (Color c : {WHITE, BLACK})
-        entry.colorBB[c] = pos.pieces(c);
-
-    for (PieceType pt = PAWN; pt <= KING; ++pt)
-        entry.typeBB[pt] = pos.pieces(pt);
 }
 
 }  // namespace
@@ -383,8 +394,8 @@ void AccumulatorStack::reset() noexcept {
 }
 
 void AccumulatorStack::push(const DirtyPiece& dp) noexcept {
-    assert(size < MaxSize);
-    if (size >= MaxSize)
+    assert(size < accStates.size());
+    if (size >= accStates.size())
         return;
     accStates[size].reset(dp);
     ++size;
@@ -446,7 +457,7 @@ void AccumulatorStack::forward_update_incremental(
   const FeatureTransformer<Dimensions>& featureTransformer,
   std::size_t                           begin) noexcept {
 
-    assert(begin < size && 0 < size && size < MaxSize);
+    assert(begin < size && 0 < size && size < accStates.size());
     assert((accStates[begin].acc<Dimensions>()).computed[Perspective]);
 
     Square kingSq = pos.king_sq(Perspective);
@@ -485,7 +496,7 @@ void AccumulatorStack::backward_update_incremental(
   const FeatureTransformer<Dimensions>& featureTransformer,
   std::size_t                           end) noexcept {
 
-    assert(end < size && 0 < size && size < MaxSize);
+    assert(end < size && 0 < size && size < accStates.size());
     assert((clatest_state().acc<Dimensions>()).computed[Perspective]);
 
     Square kingSq = pos.king_sq(Perspective);
@@ -497,7 +508,7 @@ void AccumulatorStack::backward_update_incremental(
     assert((accStates[end].acc<Dimensions>()).computed[Perspective]);
 }
 
-// Explicit template instantiations
+// Explicit template instantiations:
 template void AccumulatorStack::evaluate<BigTransformedFeatureDimensions>(
   const Position&                                            pos,
   const FeatureTransformer<BigTransformedFeatureDimensions>& featureTransformer,

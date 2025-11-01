@@ -37,15 +37,15 @@ namespace DON {
 
 namespace {
 
-constexpr std::size_t MIN_THREADS = 1U;
-const std::size_t     MAX_THREADS = std::max(4U * hardware_concurrency(), std::size_t(1024));
+constexpr unsigned MIN_THREADS = 1;
+const unsigned     MAX_THREADS = std::max(4 * int(hardware_concurrency()), 1024);
 
-constexpr std::size_t MIN_HASH = 4U;
-constexpr std::size_t MAX_HASH =
+constexpr unsigned MIN_HASH = 4;
+constexpr unsigned MAX_HASH =
 #if defined(IS_64BIT)
-  0x2000000U
+  0x2000000
 #else
-  0x800U
+  0x800
 #endif
   ;
 
@@ -96,7 +96,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("OwnBook",              Option(false));
     options.add("BookFile",             Option("", [](const Option& o) { Book.init(o); return std::nullopt; }));
     options.add("BookProbeDepth",       Option(100, 1, 256));
-    options.add("BookBestPick",         Option(true));
+    options.add("BookPickBest",         Option(true));
     options.add("SyzygyPath",           Option("", [](const Option& o) { Tablebases::init(o); return std::nullopt; }));
     options.add("SyzygyProbeLimit",     Option(7, 0, 7));
     options.add("SyzygyProbeDepth",     Option(1, 1, 100));

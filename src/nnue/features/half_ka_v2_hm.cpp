@@ -47,7 +47,7 @@ void HalfKAv2_hm::append_active_indices(const Position& pos, IndexList& active) 
     }
 }
 
-// Explicit template instantiations
+// Explicit template instantiations:
 template IndexType HalfKAv2_hm::make_index<WHITE>(Square s, Piece pc, Square kingSq) noexcept;
 template IndexType HalfKAv2_hm::make_index<BLACK>(Square s, Piece pc, Square kingSq) noexcept;
 
@@ -74,7 +74,7 @@ void HalfKAv2_hm::append_changed_indices(Square            kingSq,
         added.push_back(make_index<Perspective>(dp.addSq, dp.addPc, kingSq));
 }
 
-// Explicit template instantiations
+// Explicit template instantiations:
 template void HalfKAv2_hm::append_changed_indices<WHITE>(Square            kingSq,
                                                          const DirtyPiece& dp,
                                                          IndexList&        removed,

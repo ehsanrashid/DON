@@ -20,6 +20,7 @@
 #ifndef NNUE_ACCUMULATOR_H_INCLUDED
 #define NNUE_ACCUMULATOR_H_INCLUDED
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -30,6 +31,7 @@
 
 namespace DON {
 
+using PieceArray = std::array<Piece, SQUARE_NB>;
 class Position;
 
 namespace NNUE {
@@ -82,8 +84,8 @@ struct AccumulatorCaches final {
 
             BiasType       accumulation[Size]{};
             PSQTWeightType psqtAccumulation[PSQTBuckets]{};
-            Bitboard       colorBB[COLOR_NB]{};
-            Bitboard       typeBB[PIECE_TYPE_NB]{};
+            Bitboard       pieces{};
+            PieceArray     pieceArr{};
         };
 
         template<typename Network>
@@ -180,10 +182,8 @@ struct AccumulatorStack final {
                                      const FeatureTransformer<Dimensions>& featureTransformer,
                                      std::size_t                           end) noexcept;
 
-    static constexpr std::size_t MaxSize = MAX_PLY + 1;
-
-    AccumulatorState accStates[MaxSize]{};
-    std::size_t      size{1};
+    std::array<AccumulatorState, MAX_PLY + 1> accStates{};
+    std::size_t                               size{1};
 };
 
 }  // namespace NNUE

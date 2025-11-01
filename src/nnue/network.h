@@ -84,8 +84,8 @@ class Network final {
                                     const std::string& netDescription) const noexcept;
     std::optional<std::string> load(std::istream& istream) noexcept;
 
-    bool read_parameters(std::istream&, std::string&) noexcept;
-    bool write_parameters(std::ostream&, const std::string&) const noexcept;
+    bool read_parameters(std::istream& istream, std::string& netDescription) noexcept;
+    bool write_parameters(std::ostream& ostream, const std::string& netDescription) const noexcept;
 
     // Input feature converter
     AlignedLPPtr<Transformer> featureTransformer;

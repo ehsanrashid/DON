@@ -68,18 +68,21 @@ struct EmbeddedNNUE final {
     const unsigned int         size;
 };
 
-inline EmbeddedNNUE get_embedded(EmbeddedType embType) noexcept {
+namespace {
+EmbeddedNNUE get_embedded(EmbeddedType embType) noexcept {
     assert(embType == BIG || embType == SMALL);
     return embType == BIG ? EmbeddedNNUE(gBigEmbeddedData, gBigEmbeddedEnd, gBigEmbeddedSize)
                           : EmbeddedNNUE(gSmallEmbeddedData, gSmallEmbeddedEnd, gSmallEmbeddedSize);
 }
+}  // namespace
 
-namespace Impl {
+namespace internal {
 
+namespace {
 // Read network header
-inline bool read_header(std::istream&  istream,  //
-                        std::uint32_t& hashValue,
-                        std::string&   netDescription) noexcept {
+bool read_header(std::istream&  istream,  //
+                 std::uint32_t& hashValue,
+                 std::string&   netDescription) noexcept {
     std::uint32_t fileVersion, descSize;
     fileVersion = read_little_endian<std::uint32_t>(istream);
     hashValue   = read_little_endian<std::uint32_t>(istream);
@@ -93,9 +96,9 @@ inline bool read_header(std::istream&  istream,  //
 }
 
 // Write network header
-inline bool write_header(std::ostream&      ostream,  //
-                         std::uint32_t      hashValue,
-                         const std::string& netDescription) noexcept {
+bool write_header(std::ostream&      ostream,  //
+                  std::uint32_t      hashValue,
+                  const std::string& netDescription) noexcept {
     write_little_endian<std::uint32_t>(ostream, FILE_VERSION);
     write_little_endian<std::uint32_t>(ostream, hashValue);
     write_little_endian<std::uint32_t>(ostream, netDescription.size());
@@ -106,7 +109,7 @@ inline bool write_header(std::ostream&      ostream,  //
 
 // Read evaluation function parameters
 template<typename T>
-inline bool read_parameters(std::istream& istream, T& reference) noexcept {
+bool read_parameters(std::istream& istream, T& reference) noexcept {
     std::uint32_t hashValue;
     hashValue = read_little_endian<std::uint32_t>(istream);
     if (!istream || hashValue != T::hash_value())
@@ -117,13 +120,13 @@ inline bool read_parameters(std::istream& istream, T& reference) noexcept {
 
 // Write evaluation function parameters
 template<typename T>
-inline bool write_parameters(std::ostream& ostream, T& reference) noexcept {
+bool write_parameters(std::ostream& ostream, T& reference) noexcept {
     write_little_endian<std::uint32_t>(ostream, T::hash_value());
 
     return reference.write_parameters(ostream);
 }
-
-}  // namespace Impl
+}  // namespace
+}  // namespace internal
 
 template<typename Arch, typename Transformer>
 Network<Arch, Transformer>::Network(const Network<Arch, Transformer>& net) noexcept :
@@ -228,12 +231,12 @@ void Network<Arch, Transformer>::verify(std::string evalFileName) const noexcept
                          + evalFile.defaultName;
         std::string msg5 = "The engine will be terminated now.";
 
-        std::string msg = "ERROR: " + msg1 + '\n'  //
-                        + "ERROR: " + msg2 + '\n'  //
-                        + "ERROR: " + msg3 + '\n'  //
-                        + "ERROR: " + msg4 + '\n'  //
-                        + "ERROR: " + msg5 + '\n';
-        std::cerr << msg << std::endl;
+        std::cerr << "ERROR: " << msg1 << '\n'  //
+                  << "ERROR: " << msg2 << '\n'  //
+                  << "ERROR: " << msg3 << '\n'  //
+                  << "ERROR: " << msg4 << '\n'  //
+                  << "ERROR: " << msg5 << '\n'
+                  << std::endl;
         std::exit(EXIT_FAILURE);
     }
 
@@ -292,6 +295,19 @@ Network<Arch, Transformer>::trace(const Position&                         pos,
     return netTrace;
 }
 
+namespace {
+
+// C++ way to prepare a buffer for a memory stream
+class MemoryBuf final: public std::streambuf {
+   public:
+    MemoryBuf(char* p, std::size_t n) noexcept {
+        setg(p, p, p + n);
+        setp(p, p + n);
+    }
+};
+
+}  // namespace
+
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_user_net(const std::string& dir,
                                                const std::string& evalFileName) noexcept {
@@ -307,19 +323,10 @@ void Network<Arch, Transformer>::load_user_net(const std::string& dir,
 
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_internal() noexcept {
-    // C++ way to prepare a buffer for a memory stream
-    class MemoryBuffer final: public std::streambuf {
-       public:
-        MemoryBuffer(char* p, std::size_t n) noexcept {
-            setg(p, p, p + n);
-            setp(p, p + n);
-        }
-    };
-
     const auto embedded = get_embedded(embeddedType);
 
-    MemoryBuffer buffer(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
-                        std::size_t(embedded.size));
+    MemoryBuf buffer(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
+                     std::size_t(embedded.size));
 
     std::istream istream(&buffer);
 
@@ -359,14 +366,14 @@ template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::read_parameters(std::istream& istream,
                                                  std::string&  netDescription) noexcept {
     std::uint32_t hashValue;
-    if (!Impl::read_header(istream, hashValue, netDescription))
+    if (!internal::read_header(istream, hashValue, netDescription))
         return false;
     if (hashValue != Network::HashValue)
         return false;
-    if (!Impl::read_parameters(istream, *featureTransformer))
+    if (!internal::read_parameters(istream, *featureTransformer))
         return false;
     for (std::size_t i = 0; i < LayerStacks; ++i)
-        if (!Impl::read_parameters(istream, network[i]))
+        if (!internal::read_parameters(istream, network[i]))
             return false;
 
     return bool(istream) && istream.peek() == std::ios::traits_type::eof();
@@ -375,23 +382,21 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& istream,
 template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::write_parameters(
   std::ostream& ostream, const std::string& netDescription) const noexcept {
-    if (!Impl::write_header(ostream, Network::HashValue, netDescription))
+    if (!internal::write_header(ostream, Network::HashValue, netDescription))
         return false;
-    if (!Impl::write_parameters(ostream, *featureTransformer))
+    if (!internal::write_parameters(ostream, *featureTransformer))
         return false;
     for (std::size_t i = 0; i < LayerStacks; ++i)
-        if (!Impl::write_parameters(ostream, network[i]))
+        if (!internal::write_parameters(ostream, network[i]))
             return false;
 
     return bool(ostream);
 }
 
-// Explicit template instantiations
-template class Network<  //
-  NetworkArchitecture<BigTransformedFeatureDimensions, BigL2, BigL3>,
-  FeatureTransformer<BigTransformedFeatureDimensions>>;
-template class Network<  //
-  NetworkArchitecture<SmallTransformedFeatureDimensions, SmallL2, SmallL3>,
-  FeatureTransformer<SmallTransformedFeatureDimensions>>;
+// Explicit template instantiations:
+template class Network<NetworkArchitecture<BigTransformedFeatureDimensions, BigL2, BigL3>,
+                       FeatureTransformer<BigTransformedFeatureDimensions>>;
+template class Network<NetworkArchitecture<SmallTransformedFeatureDimensions, SmallL2, SmallL3>,
+                       FeatureTransformer<SmallTransformedFeatureDimensions>>;
 
 }  // namespace DON::NNUE

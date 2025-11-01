@@ -65,9 +65,9 @@ class ClippedReLU {
         {
             constexpr IndexType ChunkCount = InputDimensions / SIMD_WIDTH;
 
-            __m256i        Offsets = _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0);
-            const __m256i* in      = reinterpret_cast<const __m256i*>(input);
-            __m256i*       out     = reinterpret_cast<__m256i*>(output);
+            __m256i     Offsets = _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0);
+            const auto* in      = reinterpret_cast<const __m256i*>(input);
+            auto*       out     = reinterpret_cast<__m256i*>(output);
             for (IndexType i = 0; i < ChunkCount; ++i)
             {
                 __m256i words0 =
@@ -86,8 +86,8 @@ class ClippedReLU {
         {
             constexpr IndexType ChunkCount = InputDimensions / (SIMD_WIDTH / 2);
 
-            const __m128i* in  = reinterpret_cast<const __m128i*>(input);
-            __m128i*       out = reinterpret_cast<__m128i*>(output);
+            const auto* in  = reinterpret_cast<const __m128i*>(input);
+            auto*       out = reinterpret_cast<__m128i*>(output);
             for (IndexType i = 0; i < ChunkCount; ++i)
             {
                 __m128i words0 = _mm_srli_epi16(
@@ -99,6 +99,7 @@ class ClippedReLU {
                 _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
             }
         }
+
         constexpr IndexType Start = InputDimensions % SIMD_WIDTH == 0
                                     ? InputDimensions / SIMD_WIDTH * SIMD_WIDTH
                                     : InputDimensions / (SIMD_WIDTH / 2) * (SIMD_WIDTH / 2);
@@ -133,6 +134,7 @@ class ClippedReLU {
             _mm_store_si128(&out[i], _mm_subs_epi8(_mm_adds_epi8(packedbytes, k0x80s), k0x80s));
     #endif
         }
+
         constexpr IndexType Start = SIMD_WIDTH * ChunkCount;
 
 #elif defined(USE_NEON)
@@ -144,10 +146,11 @@ class ClippedReLU {
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
             int16x8_t shifted;
-            auto*     pack = reinterpret_cast<int16x4_t*>(&shifted);
-            pack[0]        = vqshrn_n_s32(in[i * 2 + 0], WEIGHT_SCALE_BITS);
-            pack[1]        = vqshrn_n_s32(in[i * 2 + 1], WEIGHT_SCALE_BITS);
-            out[i]         = vmax_s8(vqmovn_s16(shifted), Zero);
+
+            auto* pack = reinterpret_cast<int16x4_t*>(&shifted);
+            pack[0]    = vqshrn_n_s32(in[i * 2 + 0], WEIGHT_SCALE_BITS);
+            pack[1]    = vqshrn_n_s32(in[i * 2 + 1], WEIGHT_SCALE_BITS);
+            out[i]     = vmax_s8(vqmovn_s16(shifted), Zero);
         }
 
         constexpr IndexType Start = (SIMD_WIDTH / 2) * ChunkCount;

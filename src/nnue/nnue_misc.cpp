@@ -107,7 +107,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
             board[y + j][x] = board[y + j][x + 8] = '|';
         board[y][x] = board[y][x + 8] = board[y + 3][x + 8] = board[y + 3][x] = '+';
         if (is_ok(pc))
-            board[y + 1][x + 4] = UCI::piece(pc);
+            board[y + 1][x + 4] = to_char(pc);
         if (is_valid(value))
             format_cp_compact(&board[y + 2][x + 2], value, pos);
     };

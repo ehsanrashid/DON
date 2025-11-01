@@ -23,7 +23,6 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include "misc.h"
 #include "movegen.h"
 #include "syzygy/tbbase.h"
 #include "types.h"
@@ -108,8 +107,9 @@ void ThreadPool::set(const NumaConfig&                       numaConfig,
     // This is undesirable, and so the default behavior (i.e. when the user does not
     // change the NumaConfig UCI setting) is to not bind the threads to processors
     // unless we know for sure that we span NUMA nodes and replication is required.
-    const auto numaPolicy = lower_case(sharedState.options["NumaPolicy"]);
-    const auto threadBind = [&]() {
+    const std::string numaPolicy = sharedState.options["NumaPolicy"];
+
+    const bool threadBindEnabled = [&]() {
         if (numaPolicy == "none")
             return false;
 
@@ -120,15 +120,15 @@ void ThreadPool::set(const NumaConfig&                       numaConfig,
         return true;
     }();
 
-    numaNodeBoundThreadIds = threadBind
+    numaNodeBoundThreadIds = threadBindEnabled
                              ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
                              : std::vector<NumaIndex>{};
 
-    const auto* numaConfigPtr = threadBind ? &numaConfig : nullptr;
+    const auto* numaConfigPtr = threadBindEnabled ? &numaConfig : nullptr;
 
     for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
     {
-        NumaIndex numaIdx = threadBind ? numaNodeBoundThreadIds[threadId] : 0;
+        NumaIndex numaIdx = threadBindEnabled ? numaNodeBoundThreadIds[threadId] : 0;
 
         ISearchManagerPtr searchManager;
         if (threadId == 0)

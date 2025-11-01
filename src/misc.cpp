@@ -26,6 +26,7 @@
 #include <iomanip>
 #include <iterator>
 #include <limits>
+#include <sstream>
 
 namespace DON {
 
@@ -33,6 +34,222 @@ namespace {
 
 // Version number or dev.
 constexpr std::string_view Version{"dev"};
+
+#if !defined(GIT_DATE)
+std::string format_date(std::string_view date) noexcept {
+    //constexpr std::string_view Months{"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"};
+    constexpr std::array<std::string_view, 12> Months{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+    std::istringstream iss{std::string(date)};  // From compiler, format is "Sep 21 2008"
+
+    std::string month, day, year;
+    iss >> month >> day >> year;
+
+    if (iss.fail() || month.size() != 3 || day.size() > 2 || year.size() != 4)
+        return "00000000";
+    return (std::ostringstream{}
+            << std::setfill('0')  //
+            << std::setw(4) << year
+            << std::setw(2)
+            //<< (1 + Months.find(month) / 4)
+            << (1 + std::distance(Months.begin(), std::find(Months.begin(), Months.end(), month)))
+            << std::setw(2) << day)
+      .str();
+}
+#endif
+
+}  // namespace
+
+std::string engine_info(bool uci) noexcept {
+    std::string str;
+    str.reserve(64);
+    str += uci ? "id name " : "";
+    str += version_info();
+    str += uci ? "\nid author " : " by ";
+    str += "Ehsan Rashid";
+    return str;
+}
+
+// Returns the full name of the current DON version.
+// For local dev compiles try to append the commit sha and commit date from git.
+// If that fails only the local compilation date is set and "nogit" is specified:
+//  - DON dev-YYYYMMDD-SHA
+// or
+//  - DON dev-YYYYMMDD-nogit
+//
+// For releases (non-dev builds) only include the version number:
+//  - DON version
+std::string version_info() noexcept {
+    std::string str;
+    str.reserve(32);
+
+    str += "DON";
+    str += ' ';
+    str += Version;
+
+    if constexpr (Version == "dev")
+    {
+        str += '-';
+#if defined(GIT_DATE)
+        str += STRINGIFY(GIT_DATE);
+#else
+        str += format_date(__DATE__);
+#endif
+        str += '-';
+#if defined(GIT_SHA)
+        str += STRINGIFY(GIT_SHA);
+#else
+        str += "nogit";
+#endif
+    }
+    return str;
+}
+
+// Returns a string trying to describe the compiler used
+std::string compiler_info() noexcept {
+
+#define VERSION_STRING(major, minor, patch) \
+    STRINGIFY(major) "." STRINGIFY(minor) "." STRINGIFY(patch)
+
+    // Predefined macros hell:
+    //
+    // __GNUC__                Compiler is GCC, Clang or ICX
+    // __clang__               Compiler is Clang or ICX
+    // __INTEL_LLVM_COMPILER   Compiler is ICX
+    // _MSC_VER                Compiler is MSVC
+    // _WIN32                  Building on Windows (any)
+    // _WIN64                  Building on Windows 64 bit
+
+    std::string str;
+    str.reserve(256);
+
+    str += "\nCompiled by                : ";
+#if defined(__INTEL_LLVM_COMPILER)
+    str += "ICX ";
+    str += STRINGIFY(__INTEL_LLVM_COMPILER);
+#elif defined(__clang__)
+    str += "clang++ ";
+    str += VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
+#elif defined(_MSC_VER)
+    str += "MSVC ";
+    str += STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD);
+#elif defined(__GNUC__)
+    str += "g++ (GNUC) ";
+    str += VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#elif defined(__e2k__) && defined(__LCC__)
+    str += "MCST LCC ";
+    str += std::to_string(__LCC__ / 100);
+    str += ".";
+    str += std::to_string(__LCC__ % 100);
+    str += ".";
+    str += std::to_string(__LCC_MINOR__);
+#else
+    str += "(unknown compiler)";
+#endif
+
+    str += "\nCompiled on                : ";
+#if defined(__APPLE__)
+    str += "Apple";
+#elif defined(__CYGWIN__)
+    str += "Cygwin";
+#elif defined(__MINGW64__)
+    str += "MinGW64";
+#elif defined(__MINGW32__)
+    str += "MinGW32";
+#elif defined(__ANDROID__)
+    str += "Android";
+#elif defined(__linux__)
+    str += "Linux";
+#elif defined(_WIN64)
+    str += "Microsoft Windows 64-bit";
+#elif defined(_WIN32)
+    str += "Microsoft Windows 32-bit";
+#else
+    str += "(unknown system)";
+#endif
+
+    str += "\nCompilation architecture   : ";
+#if defined(ARCH)
+    str += STRINGIFY(ARCH);
+#else
+    str += "(undefined architecture)";
+#endif
+
+    str += "\nCompilation settings       : ";
+#if defined(IS_64BIT)
+    str += "64bit";
+#else
+    str += "32bit";
+#endif
+#if defined(USE_AVX512ICL)
+    str += " AVX512ICL";
+#endif
+#if defined(USE_VNNI)
+    str += " VNNI";
+#endif
+#if defined(USE_AVX512)
+    str += " AVX512";
+#endif
+#if defined(USE_BMI2)
+    str += " BMI2";
+#endif
+#if defined(USE_AVX2)
+    str += " AVX2";
+#endif
+#if defined(USE_SSE41)
+    str += " SSE41";
+#endif
+#if defined(USE_SSSE3)
+    str += " SSSE3";
+#endif
+#if defined(USE_SSE2)
+    str += " SSE2";
+#endif
+#if defined(USE_POPCNT)
+    str += " POPCNT";
+#endif
+#if defined(USE_NEON_DOTPROD)
+    str += " NEON_DOTPROD";
+#elif defined(USE_NEON)
+    str += " NEON";
+#endif
+
+#if !defined(NDEBUG)
+    str += " DEBUG";
+#endif
+
+    str += "\nCompiler __VERSION__ macro : ";
+#if defined(__VERSION__)
+    str += __VERSION__;
+#else
+    str += "(undefined macro)";
+#endif
+
+#undef VERSION_STRING
+
+    return str;
+}
+
+std::string format_time(const SystemClock::time_point& timePoint) {
+    auto time = SystemClock::to_time_t(timePoint);
+    auto usec =
+      std::chrono::duration_cast<MicroSeconds>(timePoint.time_since_epoch()).count() % 1000000;
+    std::tm tm{};
+#if defined(_WIN32) || defined(_WIN64)  // Windows
+    localtime_s(&tm, &time);
+#elif defined(__unix__) || defined(__APPLE__)  // POSIX (Linux / macOS)
+    localtime_r(&time, &tm);
+#else
+    // Fallback (not thread-safe)
+    tm = *std::localtime(&time);
+#endif
+    return (std::ostringstream{} << std::put_time(&tm, "%Y.%m.%d-%H:%M:%S") << '.'
+                                 << std::setfill('0') << std::setw(6) << usec)
+      .str();
+}
+
+namespace {
 
 // Fancy logging facility. The trick here is to replace cin.rdbuf() and cout.rdbuf()
 // with two Tie objects that tie std::cin and std::cout to a file stream.
@@ -141,208 +358,7 @@ class Logger final {
     }
 };
 
-#if !defined(GIT_DATE)
-inline std::string format_date(std::string_view date) noexcept {
-    //static constexpr std::string_view Months{"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"};
-    static constexpr std::array<std::string_view, 12> Months{
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-
-    std::istringstream iss{std::string(date)};  // From compiler, format is "Sep 21 2008"
-
-    std::string month, day, year;
-    iss >> month >> day >> year;
-
-    if (iss.fail() || month.size() != 3 || day.size() > 2 || year.size() != 4)
-        return "00000000";
-    return (std::ostringstream{}
-            << std::setfill('0')  //
-            << std::setw(4) << year
-            << std::setw(2)
-            //<< (1 + Months.find(month) / 4)
-            << (1 + std::distance(Months.begin(), std::find(Months.begin(), Months.end(), month)))
-            << std::setw(2) << day)
-      .str();
-}
-#endif
-
 }  // namespace
-
-std::string engine_info(bool uci) noexcept {
-    return (std::ostringstream{} << (uci ? "id name " : "") << version_info()
-                                 << (uci ? "\nid author " : " by ") << "Ehsan Rashid")
-      .str();
-}
-
-// Returns the full name of the current DON version.
-// For local dev compiles try to append the commit sha and commit date from git.
-// If that fails only the local compilation date is set and "nogit" is specified:
-//  - DON dev-YYYYMMDD-SHA
-// or
-//  - DON dev-YYYYMMDD-nogit
-//
-// For releases (non-dev builds) only include the version number:
-//  - DON version
-std::string version_info() noexcept {
-    std::ostringstream oss;
-    oss << "DON " << Version;
-
-    if constexpr (Version == "dev")
-    {
-        oss << '-';
-#if defined(GIT_DATE)
-        oss << STRINGIFY(GIT_DATE);
-#else
-        oss << format_date(__DATE__);
-#endif
-        oss << '-';
-#if defined(GIT_SHA)
-        oss << STRINGIFY(GIT_SHA);
-#else
-        oss << "nogit";
-#endif
-    }
-    return oss.str();
-}
-
-// Returns a string trying to describe the compiler used
-std::string compiler_info() noexcept {
-
-#define VERSION_STRING(major, minor, patch) \
-    STRINGIFY(major) "." STRINGIFY(minor) "." STRINGIFY(patch)
-
-    // Predefined macros hell:
-    //
-    // __GNUC__                Compiler is GCC, Clang or ICX
-    // __clang__               Compiler is Clang or ICX
-    // __INTEL_LLVM_COMPILER   Compiler is ICX
-    // _MSC_VER                Compiler is MSVC
-    // _WIN32                  Building on Windows (any)
-    // _WIN64                  Building on Windows 64 bit
-
-    std::ostringstream oss;
-
-    oss << "\nCompiled by                : ";
-#if defined(__INTEL_LLVM_COMPILER)
-    oss << "ICX ";
-    oss << STRINGIFY(__INTEL_LLVM_COMPILER);
-#elif defined(__clang__)
-    oss << "clang++ ";
-    oss << VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
-#elif defined(_MSC_VER)
-    oss << "MSVC ";
-    oss << STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD);
-#elif defined(__GNUC__)
-    oss << "g++ (GNUC) ";
-    oss << VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
-#elif defined(__e2k__) && defined(__LCC__)
-    oss << "MCST LCC ";
-    oss << std::to_string(__LCC__ / 100) << "."  //
-        << std::to_string(__LCC__ % 100) << "."  //
-        << std::to_string(__LCC_MINOR__);
-#else
-    oss << "(unknown compiler)";
-#endif
-
-    oss << "\nCompiled on                : ";
-#if defined(__APPLE__)
-    oss << "Apple";
-#elif defined(__CYGWIN__)
-    oss << "Cygwin";
-#elif defined(__MINGW64__)
-    oss << "MinGW64";
-#elif defined(__MINGW32__)
-    oss << "MinGW32";
-#elif defined(__ANDROID__)
-    oss << "Android";
-#elif defined(__linux__)
-    oss << "Linux";
-#elif defined(_WIN64)
-    oss << "Microsoft Windows 64-bit";
-#elif defined(_WIN32)
-    oss << "Microsoft Windows 32-bit";
-#else
-    oss << "(unknown system)";
-#endif
-
-    oss << "\nCompilation architecture   : ";
-#if defined(ARCH)
-    oss << STRINGIFY(ARCH);
-#else
-    oss << "(undefined architecture)";
-#endif
-
-    oss << "\nCompilation settings       : ";
-#if defined(IS_64BIT)
-    oss << "64bit";
-#else
-    oss << "32bit";
-#endif
-#if defined(USE_AVX512ICL)
-    oss << " AVX512ICL";
-#endif
-#if defined(USE_VNNI)
-    oss << " VNNI";
-#endif
-#if defined(USE_AVX512)
-    oss << " AVX512";
-#endif
-#if defined(USE_BMI2)
-    oss << " BMI2";
-#endif
-#if defined(USE_AVX2)
-    oss << " AVX2";
-#endif
-#if defined(USE_SSE41)
-    oss << " SSE41";
-#endif
-#if defined(USE_SSSE3)
-    oss << " SSSE3";
-#endif
-#if defined(USE_SSE2)
-    oss << " SSE2";
-#endif
-#if defined(USE_POPCNT)
-    oss << " POPCNT";
-#endif
-#if defined(USE_NEON_DOTPROD)
-    oss << " NEON_DOTPROD";
-#elif defined(USE_NEON)
-    oss << " NEON";
-#endif
-
-#if !defined(NDEBUG)
-    oss << " DEBUG";
-#endif
-
-    oss << "\nCompiler __VERSION__ macro : ";
-#if defined(__VERSION__)
-    oss << __VERSION__;
-#else
-    oss << "(undefined macro)";
-#endif
-
-#undef VERSION_STRING
-
-    return oss.str();
-}
-
-std::string format_time(const SystemClock::time_point& timePoint) {
-    auto time = SystemClock::to_time_t(timePoint);
-    auto usec =
-      std::chrono::duration_cast<MicroSeconds>(timePoint.time_since_epoch()).count() % 1000000;
-    std::tm tm{};
-#if defined(_WIN32) || defined(_WIN64)  // Windows
-    localtime_s(&tm, &time);
-#elif defined(__unix__) || defined(__APPLE__)  // POSIX (Linux / macOS)
-    localtime_r(&time, &tm);
-#else
-    // Fallback (not thread-safe)
-    tm = *std::localtime(&time);
-#endif
-    return (std::ostringstream{} << std::put_time(&tm, "%Y.%m.%d-%H:%M:%S") << '.'
-                                 << std::setfill('0') << std::setw(6) << usec)
-      .str();
-}
 
 // Trampoline helper to avoid moving Logger to misc.h
 void start_logger(std::string_view logFile) noexcept { Logger::start(logFile); }
@@ -406,7 +422,7 @@ class ExtremeInfo final: public Info<3> {
     }
 };
 
-constexpr std::size_t MaxSlot = 64U;
+constexpr std::size_t MaxSlot = 64;
 
 std::array<Info<2>, MaxSlot>     hit;
 std::array<MinInfo, MaxSlot>     min;
@@ -452,7 +468,7 @@ void min_of(std::int64_t value, std::size_t slot) noexcept {
              minValue > value
              && !mn.compare_exchange_weak(minValue, value, std::memory_order_relaxed,
                                           std::memory_order_relaxed);)
-            ;
+        {}
     }
 }
 
@@ -469,7 +485,7 @@ void max_of(std::int64_t value, std::size_t slot) noexcept {
              maxValue < value
              && !mx.compare_exchange_weak(maxValue, value, std::memory_order_relaxed,
                                           std::memory_order_relaxed);)
-            ;
+        {}
     }
 }
 
@@ -486,7 +502,7 @@ void extreme_of(std::int64_t value, std::size_t slot) noexcept {
              minValue > value
              && !mn.compare_exchange_weak(minValue, value, std::memory_order_relaxed,
                                           std::memory_order_relaxed);)
-            ;
+        {}
     }
     {
         auto& mx = info[2];
@@ -494,7 +510,7 @@ void extreme_of(std::int64_t value, std::size_t slot) noexcept {
              maxValue < value
              && !mx.compare_exchange_weak(maxValue, value, std::memory_order_relaxed,
                                           std::memory_order_relaxed);)
-            ;
+        {}
     }
 }
 
@@ -695,10 +711,9 @@ std::string CommandLine::binary_directory(std::string path) noexcept {
 // Extract the working directory
 std::string CommandLine::working_directory() noexcept {
 
-    constexpr std::size_t BuffSize = 4096;
-    char                  buffer[BuffSize];
+    std::array<char, 4096> buffer{};
 
-    char* cwd = GETCWD(buffer, BuffSize);
+    char* cwd = GETCWD(buffer.data(), buffer.size());
 
     std::string workingDirectory;
     if (cwd != nullptr)

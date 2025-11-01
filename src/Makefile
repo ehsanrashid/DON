@@ -59,7 +59,7 @@ SRCS := benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp \
     nnue/features/half_ka_v2_hm.cpp syzygy/tbbase.cpp
 
 HEADERS := benchmark.h bitboard.h engine.h evaluate.h history.h memory.h misc.h \
-    movegen.h movepick.h numa.h perft.h polybook.h position.h score.h search.h \
+    movegen.h movepick.h numa.h perft.h polybook.h position.h prng.h score.h search.h \
     thread.h thread_win32_osx.h timeman.h tt.h tune.h types.h uci.h ucioption.h \
     nnue/nnue_accumulator.h nnue/nnue_architecture.h nnue/nnue_common.h \
     nnue/nnue_feature_transformer.h nnue/nnue_misc.h nnue/network.h nnue/simd.h \
@@ -642,20 +642,19 @@ ifeq ($(optimize), yes)
 
     CXXFLAGS += -O3 -funroll-loops
 
-    ifeq ($(comp), gcc)
-        ifeq ($(OS), Android)
-            CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
+    ifeq ($(KERNEL), Darwin)
+        ifeq ($(comp), gcc)
+            # macOS + GCC: Remove LTO completely to avoid runtime crashes
+            CXXFLAGS := $(filter-out -flto -flto-partition=one, $(CXXFLAGS))
+            LDFLAGS  := $(filter-out -flto -flto-partition=one -flto=jobserver, $(LDFLAGS))
+        else ifeq ($(comp), $(filter $(comp), clang icx))
+            CXXFLAGS += -mdynamic-no-pic
         endif
     endif
 
-    ifeq ($(KERNEL), Darwin)
-        ifeq ($(comp), $(filter $(comp), clang icx))
-            CXXFLAGS += -mdynamic-no-pic
-        endif
+    ifeq ($(OS), Android)
         ifeq ($(comp), gcc)
-            ifneq ($(arch), arm64)
-                CXXFLAGS += -mdynamic-no-pic
-            endif
+            CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
         endif
     endif
 
@@ -835,19 +834,24 @@ ifeq ($(optimize), yes)
 # GCC and CLANG use different methods for parallelizing LTO and CLANG pretends to be
 # GCC on some systems.
         else ifeq ($(comp), gcc)
-            ifeq ($(gccisclang), )
-                CXXFLAGS += -flto -flto-partition=one
-                LDFLAGS += $(CXXFLAGS) -flto=jobserver
-            else
-                CXXFLAGS += -flto=full
+            ifeq ($(KERNEL), Darwin)
+                # macOS + GCC: Don't add LTO
                 LDFLAGS += $(CXXFLAGS)
+            else
+                ifeq ($(gccisclang), )
+                    CXXFLAGS += -flto -flto-partition=one
+                    LDFLAGS += $(CXXFLAGS) -flto=jobserver
+                else
+                    CXXFLAGS += -flto=full
+                    LDFLAGS += $(CXXFLAGS)
+                endif
             endif
 
 # To use LTO and static linking on Windows,
 # the tool chain requires gcc version 10.1 or later.
         else ifeq ($(comp), mingw)
             CXXFLAGS += -flto -flto-partition=one
-            LDFLAGS += $(CXXFLAGS) -save-temps
+            LDFLAGS += $(CXXFLAGS) -flto=jobserver -save-temps
         endif
     endif
 endif
@@ -944,11 +948,11 @@ endif
 
 
 .PHONY: help analyze build profile-build strip install clean net \
-	objclean profileclean config-sanity \
-	icx-profile-use icx-profile-make \
-	gcc-profile-use gcc-profile-make \
-	clang-profile-use clang-profile-make FORCE \
-	format analyze install-hooks
+	objclean profileclean config-sanity FORCE \
+	clang-profile-make clang-profile-use \
+	gcc-profile-make gcc-profile-use \
+	icx-profile-make icx-profile-use \
+	format install-hooks
 
 analyze: net config-sanity objclean
 	$(MAKE) -k ARCH=$(ARCH) COMP=$(COMP) $(OBJS)

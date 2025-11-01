@@ -162,6 +162,7 @@ class PerftTable final {
     ~PerftTable() noexcept;
 
     void resize(std::size_t mbSize, ThreadPool& threads) noexcept;
+
     void init(ThreadPool& threads) noexcept;
 
     ProbResult probe(Key key, Depth depth) const noexcept;
@@ -177,7 +178,10 @@ class PerftTable final {
 
 PerftTable::~PerftTable() noexcept { free(); }
 
-void PerftTable::free() noexcept { free_aligned_lp(clusters); }
+void PerftTable::free() noexcept {
+    [[maybe_unused]] bool success = free_aligned_lp(clusters);
+    assert(success);
+}
 
 void PerftTable::resize(std::size_t ptSize, ThreadPool& threads) noexcept {
     free();
@@ -358,9 +362,9 @@ Perft perft(Position& pos, Depth depth, bool detail) noexcept {
     return sPerft;
 }
 
-// Explicit template instantiations
-template Perft perft<true>(Position& pos, Depth depth, bool detail) noexcept;
+// Explicit template instantiations:
 template Perft perft<false>(Position& pos, Depth depth, bool detail) noexcept;
+template Perft perft<true>(Position& pos, Depth depth, bool detail) noexcept;
 
 }  // namespace
 
@@ -370,10 +374,7 @@ perft(Position& pos, std::size_t ptSize, ThreadPool& threads, Depth depth, bool 
     if (use_perft_table(depth, detail))
         perftTable.resize(ptSize, threads);
 
-    auto nodes = perft<true>(pos, depth, detail).nodes;
-    std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
-
-    return nodes;
+    return perft<true>(pos, depth, detail).nodes;
 }
 
 }  // namespace DON::Benchmark
