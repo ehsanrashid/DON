@@ -774,8 +774,8 @@ Value Worker::search(Position&    pos,
         if (pos.rule50_count() < (1.0 - 0.5 * pos.has_rule50_high()) * rule50_threshold())
         {
             // If the depth is big enough, verify that the ttMove is really a good move
-            if (depth >= 8 && ttd.move != Move::None && pos.legal(ttd.move)
-                && !is_decisive(ttd.value))
+            if (depth >= 8 && !is_decisive(ttd.value) && ttd.move != Move::None
+                && pos.legal(ttd.move))
             {
                 pos.do_move(ttd.move, st);
                 auto [_ttd, _ttu] = tt.probe(pos.key());
@@ -1050,17 +1050,14 @@ Value Worker::search(Position&    pos,
             if (threads.stop.load(std::memory_order_relaxed))
                 return VALUE_ZERO;
 
-            if (value >= probCutBeta && !is_decisive(value))
+            if (value >= probCutBeta)
             {
-                // Subtract the margin
-                value -= probCutBeta - beta;
-
                 // Save ProbCut data into transposition table
-                if (!exclude)
-                    ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move,
-                               value_to_tt(value, ss->ply), unadjustedStaticEval);
+                ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move,
+                           value_to_tt(value, ss->ply), unadjustedStaticEval);
 
-                return value;
+                if (!is_decisive(value))
+                    return value - (probCutBeta - beta);
             }
         }
     }
