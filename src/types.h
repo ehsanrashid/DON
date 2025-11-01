@@ -351,7 +351,7 @@ constexpr Color operator~(Color c) noexcept { return Color(int(c) ^ 1); }
 [[nodiscard]] constexpr bool is_major(PieceType pt) noexcept { return (pt >= ROOK); }
 
 [[nodiscard]] constexpr Piece make_piece(Color c, PieceType pt) noexcept {
-    return Piece((int(c) << 3) + int(pt));
+    return Piece((int(c) << 3) | int(pt));
 }
 
 [[nodiscard]] constexpr bool is_ok(Piece pc) noexcept {
@@ -366,7 +366,7 @@ constexpr Color color_of(Piece pc) noexcept { return Color(int(pc) >> 3); }
 constexpr Piece operator~(Piece pc) noexcept { return Piece(int(pc) ^ 8); }
 
 [[nodiscard]] constexpr Square make_square(File f, Rank r) noexcept {
-    return Square((int(r) << 3) + int(f));
+    return Square((int(r) << 3) | int(f));
 }
 
 [[nodiscard]] constexpr bool is_ok(Square s) noexcept { return (SQ_A1 <= s && s <= SQ_H8); }
@@ -394,7 +394,7 @@ constexpr Square relative_sq(Color c, Square s) noexcept {
     return Square(int(s) ^ (c * int(SQ_A8)));
 }
 
-constexpr Rank relative_rank(Color c, Rank r) noexcept { return Rank(int(r) ^ (c * int(SQ_H1))); }
+constexpr Rank relative_rank(Color c, Rank r) noexcept { return Rank(int(r) ^ (c * int(RANK_8))); }
 
 constexpr Rank relative_rank(Color c, Square s) noexcept { return relative_rank(c, rank_of(s)); }
 
@@ -509,10 +509,10 @@ class Move {
     };
 
     // Bit masks for extracting parts of the move
-    static constexpr std::uint16_t SqrMask      = 0x003F;  // 6 bits for origin/destiny
-    static constexpr std::uint16_t SqrSqrMask   = 0x0FFF;  // 12 bits for combined origin/destiny
-    static constexpr std::uint16_t PromoMask    = 0x0003;  // 2 bits for promotion type
-    static constexpr std::uint16_t MoveTypeMask = 0xC000;
+    static constexpr std::uint16_t SqrMask    = 0x003F;  // 6 bits for origin/destiny
+    static constexpr std::uint16_t SqrSqrMask = 0x0FFF;  // 12 bits for combined origin/destiny
+    static constexpr std::uint16_t TypeMask   = 0xC000;  // 2 bits for move type
+    static constexpr std::uint16_t PromoMask  = 0x0003;  // 2 bits for promotion type
 
     constexpr Move() noexcept = default;
     // Constructors using delegating syntax
@@ -529,7 +529,7 @@ class Move {
     constexpr Square        org_sq() const noexcept { return Square((move >> 6) & SqrMask); }
     constexpr Square        dst_sq() const noexcept { return Square((move >> 0) & SqrMask); }
     constexpr std::uint16_t org_dst() const noexcept { return move & SqrSqrMask; }
-    constexpr MoveType      type_of() const noexcept { return MoveType(move & MoveTypeMask); }
+    constexpr MoveType      type_of() const noexcept { return MoveType(move & TypeMask); }
     constexpr PieceType     promotion_type() const noexcept {
         return PieceType(((move >> 12) & PromoMask) + int(KNIGHT));
     }

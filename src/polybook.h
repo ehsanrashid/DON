@@ -32,7 +32,7 @@ class Position;
 struct PolyEntry final {
    public:
     friend constexpr bool operator==(const PolyEntry& pe, Move m) noexcept {
-        return pe.move == (m.raw() & ~Move::MoveTypeMask);
+        return pe.move == (m.raw() & ~Move::TypeMask);
     }
     friend constexpr bool operator!=(const PolyEntry& pe, Move m) noexcept { return !(pe == m); }
     friend constexpr bool operator==(Move m, const PolyEntry& pe) noexcept { return pe == m; }
