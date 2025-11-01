@@ -100,24 +100,23 @@ class HalfKAv2_hm final {
 
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
-    // Index of a feature for a given king position and another piece on some square
-    template<Color Perspective>
-    static IndexType make_index(Square s, Piece pc, Square kingSq) noexcept;
+    // Index of a feature for king position and piece on square
+    static IndexType make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept;
 
     // Get a list of indices for active features
-    template<Color Perspective>
-    static void append_active_indices(const Position& pos, IndexList& active) noexcept;
+    static void
+    append_active_indices(Color perspective, const Position& pos, IndexList& active) noexcept;
 
     // Get a list of indices for recently changed features
-    template<Color Perspective>
-    static void append_changed_indices(Square            kingSq,
+    static void append_changed_indices(Color             perspective,
+                                       Square            kingSq,
                                        const DirtyPiece& dp,
                                        IndexList&        removed,
                                        IndexList&        added) noexcept;
 
-    // Returns whether the change stored in this State means
+    // Returns whether the change stored in this DirtyPiece means
     // that a full accumulator refresh is required.
-    static bool requires_refresh(const DirtyPiece& dp, Color perspective) noexcept;
+    static bool requires_refresh(Color perspective, const DirtyPiece& dp) noexcept;
 };
 
 }  // namespace NNUE::Features

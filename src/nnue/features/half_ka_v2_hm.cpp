@@ -26,65 +26,46 @@
 
 namespace DON::NNUE::Features {
 
-// Index of a feature for a given king position and another piece on some square
-template<Color Perspective>
-IndexType HalfKAv2_hm::make_index(Square s, Piece pc, Square kingSq) noexcept {
-    return PieceSquareIndex[Perspective][pc]  //
-         + KingBuckets[relative_sq(Perspective, kingSq)]
-         + (OrientTable[kingSq] ^ IndexType(relative_sq(Perspective, s)));
+// Index of a feature for king position and piece on square
+IndexType HalfKAv2_hm::make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
+    return PieceSquareIndex[perspective][pc]  //
+         + KingBuckets[relative_sq(perspective, kingSq)]
+         + (OrientTable[kingSq] ^ IndexType(relative_sq(perspective, s)));
 }
 
 // Get a list of indices for active features
-template<Color Perspective>
-void HalfKAv2_hm::append_active_indices(const Position& pos, IndexList& active) noexcept {
-    Square kingSq = pos.king_sq(Perspective);
+void HalfKAv2_hm::append_active_indices(Color           perspective,
+                                        const Position& pos,
+                                        IndexList&      active) noexcept {
+    Square kingSq = pos.king_sq(perspective);
 
     Bitboard occupied = pos.pieces();
     while (occupied)
     {
         Square s = pop_lsb(occupied);
-        active.push_back(make_index<Perspective>(s, pos.piece_on(s), kingSq));
+        active.push_back(make_index(perspective, kingSq, s, pos.piece_on(s)));
     }
 }
 
-// Explicit template instantiations:
-template IndexType HalfKAv2_hm::make_index<WHITE>(Square s, Piece pc, Square kingSq) noexcept;
-template IndexType HalfKAv2_hm::make_index<BLACK>(Square s, Piece pc, Square kingSq) noexcept;
-
-template void HalfKAv2_hm::append_active_indices<WHITE>(const Position& pos,
-                                                        IndexList&      active) noexcept;
-template void HalfKAv2_hm::append_active_indices<BLACK>(const Position& pos,
-                                                        IndexList&      active) noexcept;
-
 // Get a list of indices for recently changed features
-template<Color Perspective>
-void HalfKAv2_hm::append_changed_indices(Square            kingSq,
+void HalfKAv2_hm::append_changed_indices(Color             perspective,
+                                         Square            kingSq,
                                          const DirtyPiece& dp,
                                          IndexList&        removed,
                                          IndexList&        added) noexcept {
-    removed.push_back(make_index<Perspective>(dp.org, dp.pc, kingSq));
+    removed.push_back(make_index(perspective, kingSq, dp.org, dp.pc));
 
     if (is_ok(dp.dst))
-        added.push_back(make_index<Perspective>(dp.dst, dp.pc, kingSq));
+        added.push_back(make_index(perspective, kingSq, dp.dst, dp.pc));
 
     if (is_ok(dp.removeSq))
-        removed.push_back(make_index<Perspective>(dp.removeSq, dp.removePc, kingSq));
+        removed.push_back(make_index(perspective, kingSq, dp.removeSq, dp.removePc));
 
     if (is_ok(dp.addSq))
-        added.push_back(make_index<Perspective>(dp.addSq, dp.addPc, kingSq));
+        added.push_back(make_index(perspective, kingSq, dp.addSq, dp.addPc));
 }
 
-// Explicit template instantiations:
-template void HalfKAv2_hm::append_changed_indices<WHITE>(Square            kingSq,
-                                                         const DirtyPiece& dp,
-                                                         IndexList&        removed,
-                                                         IndexList&        added) noexcept;
-template void HalfKAv2_hm::append_changed_indices<BLACK>(Square            kingSq,
-                                                         const DirtyPiece& dp,
-                                                         IndexList&        removed,
-                                                         IndexList&        added) noexcept;
-
-bool HalfKAv2_hm::requires_refresh(const DirtyPiece& dp, Color perspective) noexcept {
+bool HalfKAv2_hm::requires_refresh(Color perspective, const DirtyPiece& dp) noexcept {
     return dp.pc == make_piece(perspective, KING);
 }
 
