@@ -202,9 +202,9 @@ constexpr bool more_than_one(Bitboard b) noexcept { return b & (b - 1); }
 constexpr bool exactly_one(Bitboard b) noexcept { return b && !more_than_one(b); }
 
 // Returns a bitboard representing an entire line (from board edge to board edge)
-// that intersects the two given squares. If the given squares are not on a same
-// file/rank/diagonal, the function returns 0. For instance, line_bb(SQ_C4, SQ_F7)
-// will return a bitboard with the A2-G8 diagonal.
+// passing through the squares s1 and s2.
+// If the given squares are not on a same file/rank/diagonal, the function returns 0.
+// For instance, line_bb(SQ_C4, SQ_F7) will return a bitboard with the A2-G8 diagonal.
 inline Bitboard line_bb(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
     return Lines[s1][s2];
@@ -221,13 +221,13 @@ inline Bitboard between_bb(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
     return Betweens[s1][s2];
 }
-// Returns a bitboard between the squares s1 and s2 (excluding s1 and s2)
+// Returns a bitboard between the squares s1 and s2 (excluding s1 and s2).
 inline Bitboard between_ex_bb(Square s1, Square s2) noexcept { return between_bb(s1, s2) ^ s2; }
 
-// Returns true if the squares s1, s2 and s3 are aligned either on a straight or on a diagonal line.
+// Returns true if the squares s1, s2 and s3 are aligned on straight or diagonal line.
 inline bool aligned(Square s1, Square s2, Square s3) noexcept { return line_bb(s1, s2) & s3; }
 
-// Return the distance between x and y, defined as the number of steps for a king in x to reach y.
+// Return the distance between s1 and s2, defined as the number of steps for a king in s1 to reach s2.
 template<typename T = Square>
 inline std::uint8_t distance(Square s1, Square s2) noexcept;
 
