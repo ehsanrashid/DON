@@ -928,16 +928,9 @@ Value Worker::search(Position&    pos,
         depth = std::max(depth - 1, 1);
 
     // Step 7. Razoring
-    // If eval is really low, check with qsearch if can exceed alpha.
+    // If eval is really low, skip search entirely and return the qsearch value.
     if (!PVNode && eval < -514 + alpha - 294 * sqr(depth))
-    {
-        value = qsearch<PVNode>(pos, ss, alpha, beta);
-
-        if (value < alpha)
-            return value;
-
-        ss->ttMove = ttd.move;
-    }
+        return qsearch<PVNode>(pos, ss, alpha, beta);
 
     // Step 8. Futility pruning: child node
     // The depth condition is important for mate finding.
@@ -973,8 +966,10 @@ Value Worker::search(Position&    pos,
         undo_null_move(pos);
 
         // Do not return unproven mate or TB scores
-        if (nullValue >= beta && !is_win(nullValue))
+        if (nullValue >= beta)
         {
+            nullValue = std::min(+nullValue, VALUE_TB_WIN_IN_MAX_PLY - 1);
+
             if (nmpPly != 0 || depth < 16)
                 return nullValue;
 
