@@ -41,12 +41,13 @@ namespace {
 constexpr Direction Directions[2][4]{{NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},
                                      {NORTH, SOUTH, EAST, WEST}};
 
-constexpr std::size_t AttacksSize[2]{0x1480, 0x19000};
+constexpr std::size_t TableSizes[2]{0x1480, 0x19000};
+constexpr std::size_t RefSizes[2]{0x200, 0x1000};
 
-alignas(CACHE_LINE_SIZE) Bitboard BishopAttacks[AttacksSize[0]]{};  // Stores bishop attacks
-alignas(CACHE_LINE_SIZE) Bitboard RookAttacks[AttacksSize[1]]{};    // Stores rook attacks
+alignas(CACHE_LINE_SIZE) Bitboard BishopTable[TableSizes[0]]{};  // Stores bishop attacks
+alignas(CACHE_LINE_SIZE) Bitboard RookTable[TableSizes[1]]{};    // Stores rook attacks
 
-alignas(CACHE_LINE_SIZE) Bitboard* Attacks[2]{BishopAttacks, RookAttacks};
+alignas(CACHE_LINE_SIZE) Bitboard* Tables[2]{BishopTable, RookTable};
 
 // Returns the bitboard of target square from the given square for the given step.
 // If the step is off the board, returns empty bitboard.
@@ -86,8 +87,6 @@ template<PieceType PT>
 void init_magics() noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in init_magics()");
 
-    constexpr std::size_t TableSize = 0x1000;
-
 #if !defined(USE_BMI2)
     // Optimal PRNG seeds to pick the correct magics in the shortest time
     constexpr std::uint16_t Seeds[RANK_NB]{
@@ -100,12 +99,12 @@ void init_magics() noexcept {
       // clang-format on
     };
 
-    Bitboard occupancy[TableSize];
+    Bitboard occupancy[RefSizes[PT - BISHOP]];
 
-    std::uint32_t epoch[TableSize]{}, cnt = 0;
+    std::uint32_t epoch[RefSizes[PT - BISHOP]]{}, cnt = 0;
 #endif
 
-    Bitboard reference[TableSize];
+    Bitboard reference[RefSizes[PT - BISHOP]];
 
     std::uint16_t size = 0;
 
@@ -117,10 +116,10 @@ void init_magics() noexcept {
         // Hence, deduce the size of the shift to apply to the 64 or 32 bits word to get the index.
         auto& m = Magics[s][PT - BISHOP];
 
-        assert(s == SQ_A1 || size < AttacksSize[PT - BISHOP]);
+        assert(s == SQ_A1 || size <= RefSizes[PT - BISHOP]);
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
-        m.attacks = s == SQ_A1 ? Attacks[PT - BISHOP] : Magics[s - 1][PT - BISHOP].attacks + size;
+        m.attacks = s == SQ_A1 ? Tables[PT - BISHOP] : Magics[s - 1][PT - BISHOP].attacks + size;
         assert(m.attacks != nullptr);
         size = 0;
 
