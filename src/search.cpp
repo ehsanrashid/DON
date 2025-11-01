@@ -1833,9 +1833,7 @@ QS_MOVES_LOOP:
 
 void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const ss) noexcept {
     bool capture = pos.capture_promo(m);
-    auto dp      = pos.do_move(m, st, check);
-    // Speculative prefetch as early as possible
-    tt.prefetch_key(pos.key());
+    auto dp      = pos.do_move(m, st, check, &tt);
     nodes.fetch_add(1, std::memory_order_relaxed);
     accStack.push(dp);
     if (ss != nullptr)
@@ -1855,10 +1853,8 @@ void Worker::undo_move(Position& pos, Move m) noexcept {
     accStack.pop();
 }
 
-void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
-    pos.do_null_move(st);
-    // Speculative prefetch as early as possible
-    tt.prefetch_key(pos.key());
+void Worker::do_null_move(Position& pos, State& st, Stack* const ss) const noexcept {
+    pos.do_null_move(st, &tt);
     if (ss != nullptr)
     {
         ss->move                     = Move::Null;
@@ -1867,7 +1863,7 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
     }
 }
 
-void Worker::undo_null_move(Position& pos) noexcept { pos.undo_null_move(); }
+void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }
 
 Value Worker::evaluate(const Position& pos) noexcept {
     return DON::evaluate(pos, networks[numaAccessToken], accCaches, accStack,
@@ -1890,7 +1886,7 @@ bool Worker::ponder_move_extracted() noexcept {
         return false;
 
     State st;
-    rootPos.do_move(bm, st);
+    rootPos.do_move(bm, st, &tt);
 
     // Legal moves for the opponent
     const MoveList<LEGAL> legalMoveList(rootPos);

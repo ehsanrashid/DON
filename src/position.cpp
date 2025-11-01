@@ -31,6 +31,7 @@
 #include "movegen.h"
 #include "prng.h"
 #include "syzygy/tbbase.h"
+#include "tt.h"
 
 namespace DON {
 
@@ -733,7 +734,8 @@ void Position::do_castling(
 
 // Makes a move, and saves all necessary information to new state.
 // The move is assumed to be legal.
-DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
+DirtyPiece
+Position::do_move(Move m, State& newSt, bool check, const TranspositionTable* tt) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
@@ -915,6 +917,9 @@ DirtyPiece Position::do_move(Move m, State& newSt, bool check) noexcept {
 
 DO_MOVE_END:
 
+    // Update hash key
+    k ^= Zobrist::psq[movedPiece][org] ^ Zobrist::psq[movedPiece][dst];
+
     // Update castling rights if needed
     if (int cr; castling_rights() && (cr = castling_rights_mask(org, dst)))
     {
@@ -922,9 +927,9 @@ DO_MOVE_END:
         st->castlingRights &= ~cr;
         k ^= Zobrist::castling[castling_rights()];
     }
-
-    // Update hash key
-    k ^= Zobrist::psq[movedPiece][org] ^ Zobrist::psq[movedPiece][dst];
+    // Speculative prefetch as early as possible
+    if (tt != nullptr && !epCheck)
+        tt->prefetch_key(adjust_key(k));
 
     st->capturedPiece = capturedPiece;
     st->promotedPiece = promotedPiece;
@@ -942,6 +947,9 @@ DO_MOVE_END:
 
     // Set the key with the updated key
     st->key = k;
+    // Speculative prefetch as early as possible
+    if (tt != nullptr)
+        tt->prefetch_key(key());
 
     // Calculate the repetition info.
     // It is the ply distance from the previous occurrence of the same position,
@@ -1050,7 +1058,7 @@ UNDO_MOVE_END:
 
 // Makes a null move
 // It flips the active color without executing any move on the board.
-void Position::do_null_move(State& newSt) noexcept {
+void Position::do_null_move(State& newSt, const TranspositionTable* tt) noexcept {
     assert(&newSt != st);
     assert(!checkers());
 
@@ -1073,6 +1081,9 @@ void Position::do_null_move(State& newSt) noexcept {
         st->key ^= Zobrist::enpassant[file_of(ep_sq())];
         reset_ep_sq();
     }
+    // Speculative prefetch as early as possible
+    if (tt != nullptr)
+        tt->prefetch_key(key());
 
     activeColor = ~active_color();
 
