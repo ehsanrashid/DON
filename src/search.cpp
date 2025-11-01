@@ -1671,7 +1671,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         ss->staticEval = bestValue = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
         // Can ttValue be used as a better position evaluation
-        if (is_valid(ttd.value) && (ttd.bound & fail_bound(ttd.value > bestValue)) != 0)
+        if (is_valid(ttd.value) && !is_decisive(ttd.value)
+            && (ttd.bound & fail_bound(ttd.value > bestValue)) != 0)
             bestValue = ttd.value;
     }
     else
@@ -2037,7 +2038,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         auto tbc = Tablebases::rank_root_moves(rootPos, rms, options, true);
 
         // If DTZ is not available might not find a mate, so bail out
-        if (!tbc.rootInTB || tbc.cardinality)
+        if (!tbc.rootInTB || tbc.cardinality > 0)
             break;
 
         auto pvMove = rms[0].pv[0];
