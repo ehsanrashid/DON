@@ -56,13 +56,13 @@ struct AccumulatorUpdateContext final {
 
     AccumulatorUpdateContext(Color                                 perspective,
                              const FeatureTransformer<Dimensions>& ft,
-                             const AccumulatorState&               frAccSt,
-                             AccumulatorState&                     toAccSt) noexcept :
+                             const AccumulatorState&               computedAccSt,
+                             AccumulatorState&                     targetAccSt) noexcept :
         featureTransformer{ft},
-        frAcc{(frAccSt.acc<Dimensions>()).accumulation[perspective]},
-        toAcc{(toAccSt.acc<Dimensions>()).accumulation[perspective]},
-        frPsqt{(frAccSt.acc<Dimensions>()).psqtAccumulation[perspective]},
-        toPsqt{(toAccSt.acc<Dimensions>()).psqtAccumulation[perspective]} {}
+        computedAcc{(computedAccSt.acc<Dimensions>()).accumulation[perspective]},
+        computedPsqt{(computedAccSt.acc<Dimensions>()).psqtAccumulation[perspective]},
+        targetAcc{(targetAccSt.acc<Dimensions>()).accumulation[perspective]},
+        targetPsqt{(targetAccSt.acc<Dimensions>()).psqtAccumulation[perspective]} {}
 
     template<UpdateOperation... ops,
              typename... Ts,
@@ -76,25 +76,26 @@ struct AccumulatorUpdateContext final {
             return &featureTransformer.psqtWeights[index * PSQTBuckets];
         };
 
-        fused_row_reduce<Vec16Wrapper, Dimensions, ops...>(frAcc, toAcc,
+        fused_row_reduce<Vec16Wrapper, Dimensions, ops...>(computedAcc, targetAcc,
                                                            to_weight_vector(indices)...);
-        fused_row_reduce<Vec32Wrapper, PSQTBuckets, ops...>(frPsqt, toPsqt,
+        fused_row_reduce<Vec32Wrapper, PSQTBuckets, ops...>(computedPsqt, targetPsqt,
                                                             to_psqt_weight_vector(indices)...);
     }
 
     const FeatureTransformer<Dimensions>& featureTransformer;
-    const BiasType (&frAcc)[Dimensions];
-    BiasType (&toAcc)[Dimensions];
-    const PSQTWeightType (&frPsqt)[PSQTBuckets];
-    PSQTWeightType (&toPsqt)[PSQTBuckets];
+    const BiasType (&computedAcc)[Dimensions];
+    const PSQTWeightType (&computedPsqt)[PSQTBuckets];
+    BiasType (&targetAcc)[Dimensions];
+    PSQTWeightType (&targetPsqt)[PSQTBuckets];
 };
 
 template<IndexType Dimensions>
-auto make_accumulator_update_context(Color                                 perspective,
-                                     const FeatureTransformer<Dimensions>& featureTransformer,
-                                     const AccumulatorState&               frAccSt,
-                                     AccumulatorState&                     toAccSt) noexcept {
-    return AccumulatorUpdateContext<Dimensions>{perspective, featureTransformer, frAccSt, toAccSt};
+AccumulatorUpdateContext<Dimensions>
+make_accumulator_update_context(Color                                 perspective,
+                                const FeatureTransformer<Dimensions>& featureTransformer,
+                                const AccumulatorState&               computedAccSt,
+                                AccumulatorState&                     targetAccSt) noexcept {
+    return {perspective, featureTransformer, computedAccSt, targetAccSt};
 }
 
 template<IndexType TransformedFeatureDimensions>
@@ -464,7 +465,7 @@ void AccumulatorStack::forward_update_incremental(
   const FeatureTransformer<Dimensions>& featureTransformer,
   std::size_t                           begin) noexcept {
 
-    assert(begin < size && 0 < size && size < accStates.size());
+    assert(begin < size && 0 < size && size <= accStates.size());
     assert((accStates[begin].acc<Dimensions>()).computed[perspective]);
 
     Square kingSq = pos.king_sq(perspective);
@@ -504,7 +505,7 @@ void AccumulatorStack::backward_update_incremental(
   const FeatureTransformer<Dimensions>& featureTransformer,
   std::size_t                           end) noexcept {
 
-    assert(end < size && 0 < size && size < accStates.size());
+    assert(end < size && 0 < size && size <= accStates.size());
     assert((clatest_state().acc<Dimensions>()).computed[perspective]);
 
     Square kingSq = pos.king_sq(perspective);
