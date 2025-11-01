@@ -222,10 +222,7 @@ void Worker::start_search() noexcept {
     accStack.reset();
 
     rootDepth = completedDepth = DEPTH_ZERO;
-    nodes.store(0, std::memory_order_relaxed);
-    tbHits.store(0, std::memory_order_relaxed);
-    moveChanges.store(0, std::memory_order_relaxed);
-    nmpPly = 0;
+    nmpPly                     = 0;
 
     multiPV = DEFAULT_MULTI_PV;
     if (mainManager != nullptr)
@@ -489,7 +486,7 @@ void Worker::iterative_deepening() noexcept {
                 // otherwise exit the loop.
                 if (bestValue <= alpha)
                 {
-                    beta  = alpha;
+                    beta  = std::max(+alpha, -VALUE_INFINITE + 1);
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;

@@ -283,6 +283,9 @@ void ThreadPool::start(Position&      pos,
             th->worker->rootMoves = rootMoves;
             th->worker->limit     = limit;
             th->worker->tbConfig  = tbConfig;
+            th->worker->nodes.store(0, std::memory_order_relaxed);
+            th->worker->tbHits.store(0, std::memory_order_relaxed);
+            th->worker->moveChanges.store(0, std::memory_order_relaxed);
         });
     }
 
