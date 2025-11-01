@@ -47,7 +47,7 @@ constexpr std::size_t RefSizes[2]{0x200, 0x1000};
 alignas(CACHE_LINE_SIZE) Bitboard BishopTable[TableSizes[0]]{};  // Stores bishop attacks
 alignas(CACHE_LINE_SIZE) Bitboard RookTable[TableSizes[1]]{};    // Stores rook attacks
 
-alignas(CACHE_LINE_SIZE) Bitboard* Tables[2]{BishopTable, RookTable};
+alignas(CACHE_LINE_SIZE) constexpr Bitboard* Tables[2]{BishopTable, RookTable};
 
 // Returns the bitboard of target square from the given square for the given step.
 // If the step is off the board, returns empty bitboard.
