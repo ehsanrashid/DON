@@ -177,10 +177,11 @@ void init_magics() noexcept {
                 {
                     epoch[idx]     = cnt;
                     m.attacks[idx] = reference[i];
-                    continue;
                 }
-                if (m.attacks[idx] != reference[i])
+                else if (m.attacks[idx] != reference[i])
+                {
                     break;
+                }
             }
         }
 #endif
