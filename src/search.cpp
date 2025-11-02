@@ -1153,7 +1153,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                                +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                     {
-                        if (!is_win(futilityValue))
+                        if (!is_decisive(bestValue) && !is_decisive(futilityValue))
                             bestValue = std::max(bestValue, futilityValue);
                         continue;
                     }
@@ -1192,7 +1192,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                                +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                     {
-                        if (!is_win(futilityValue))
+                        if (!is_decisive(bestValue) && !is_decisive(futilityValue))
                             bestValue = std::max(bestValue, futilityValue);
                         continue;
                     }
@@ -1665,7 +1665,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         ss->staticEval = bestValue = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
         // Can ttValue be used as a better position evaluation
-        if (is_valid(ttd.value) && !is_win(ttd.value)
+        if (is_valid(ttd.value) && !is_decisive(ttd.value)
             && (ttd.bound & fail_bound(ttd.value > bestValue)) != 0)
             bestValue = ttd.value;
     }
@@ -1747,17 +1747,14 @@ QS_MOVES_LOOP:
                 // If static evaluation + value of piece going to captured is much lower than alpha
                 if (futilityValue <= alpha)
                 {
-                    if (!is_win(futilityValue))
-                        bestValue = std::max(bestValue, futilityValue);
+                    bestValue = std::max(bestValue, futilityValue);
                     continue;
                 }
 
                 // SEE based pruning
                 if (pos.see(move) < (alpha - futilityBase))
                 {
-                    Value margin = std::min(alpha, futilityBase);
-                    if (!is_win(margin))
-                        bestValue = std::max(bestValue, margin);
+                    bestValue = std::min(alpha, futilityBase);
                     continue;
                 }
             }
