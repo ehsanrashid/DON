@@ -997,13 +997,13 @@ Value Worker::search(Position&    pos,
     // Step 11. ProbCut
     // If have a good enough capture or any promotion and a reduced search
     // returns a value much above beta, can (almost) safely prune previous move.
-    probCutBeta = std::min(224 + beta - 64 * improve, +VALUE_INFINITE - 1);
+    probCutBeta = std::min(224 + beta - 64 * improve, +VALUE_INFINITE);
     if (depth >= 3
         && !is_decisive(beta)
         // If value from transposition table is less than probCutBeta, don't attempt probCut
         && !(is_valid(ttd.value) && ttd.value < probCutBeta))
     {
-        assert(beta < probCutBeta && probCutBeta < +VALUE_INFINITE);
+        assert(beta < probCutBeta && probCutBeta <= +VALUE_INFINITE);
 
         Depth probCutDepth = std::clamp(depth - 5 - (ss->staticEval - beta) / 306, 0, depth - 0);
         int   probCutThreshold = probCutBeta - ss->staticEval;
@@ -1056,7 +1056,7 @@ Value Worker::search(Position&    pos,
 S_MOVES_LOOP:  // When in check, search starts here
 
     // Step 12. Small ProbCut idea
-    probCutBeta = std::min(418 + beta, +VALUE_INFINITE - 1);
+    probCutBeta = std::min(418 + beta, +VALUE_INFINITE);
     if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value)
         && ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
         return probCutBeta;
@@ -1146,13 +1146,15 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Futility pruning for captures
                 if (lmrDepth < 7 && !check && !(pos.fork(move) && pos.see(move) >= -50))
                 {
-                    Value futilityValue = std::min(
-                      47 + ss->staticEval + 184 * (bestMove == Move::None) + 211 * lmrDepth
-                        + 130 * history / 1024 + PIECE_VALUE[captured] + promotion_value(move),
-                      VALUE_TB_WIN_IN_MAX_PLY - 1);
+                    Value futilityValue =  //
+                      std::min(47 + ss->staticEval + 184 * (bestMove == Move::None) + 211 * lmrDepth
+                                 + 130 * history / 1024 + PIECE_VALUE[captured]
+                                 + promotion_value(move),
+                               +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                     {
-                        bestValue = std::max(bestValue, futilityValue);
+                        if (!is_win(futilityValue))
+                            bestValue = std::max(bestValue, futilityValue);
                         continue;
                     }
                 }
@@ -1187,10 +1189,11 @@ S_MOVES_LOOP:  // When in check, search starts here
                     Value futilityValue =
                       std::min(47 + ss->staticEval + 171 * (bestMove == Move::None) + 134 * lmrDepth
                                  + 90 * (ss->staticEval > alpha),
-                               VALUE_TB_WIN_IN_MAX_PLY - 1);
+                               +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                     {
-                        bestValue = std::max(bestValue, futilityValue);
+                        if (!is_win(futilityValue))
+                            bestValue = std::max(bestValue, futilityValue);
                         continue;
                     }
                 }
@@ -1688,7 +1691,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     alpha = std::max(alpha, bestValue);
 
-    futilityBase = std::min(352 + ss->staticEval, VALUE_TB_WIN_IN_MAX_PLY - 1);
+    futilityBase = std::min(352 + ss->staticEval, +VALUE_INFINITE);
 
 QS_MOVES_LOOP:
 
@@ -1738,20 +1741,23 @@ QS_MOVES_LOOP:
                 if (moveCount > 2 + promoCount)
                     continue;
 
-                Value futilityValue =
+                Value futilityValue =  //
                   std::min(futilityBase + PIECE_VALUE[captured] + promotion_value(move),
-                           VALUE_TB_WIN_IN_MAX_PLY - 1);
+                           +VALUE_INFINITE);
                 // If static evaluation + value of piece going to captured is much lower than alpha
                 if (futilityValue <= alpha)
                 {
-                    bestValue = std::max(bestValue, futilityValue);
+                    if (!is_win(futilityValue))
+                        bestValue = std::max(bestValue, futilityValue);
                     continue;
                 }
 
                 // SEE based pruning
                 if (pos.see(move) < (alpha - futilityBase))
                 {
-                    bestValue = std::max(bestValue, std::min(alpha, futilityBase));
+                    Value margin = std::min(alpha, futilityBase);
+                    if (!is_win(margin))
+                        bestValue = std::max(bestValue, margin);
                     continue;
                 }
             }
