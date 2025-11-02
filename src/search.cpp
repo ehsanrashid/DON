@@ -703,7 +703,7 @@ Value Worker::search(Position&    pos,
 
     if constexpr (!RootNode)
     {
-        // Step 2. Check for stopped search and immediate draw
+        // Step 2. Check for stopped search or maximum ply reached or immediate draw
         if (threads.stop.load(std::memory_order_relaxed)  //
             || ss->ply >= MAX_PLY || pos.is_draw(ss->ply))
             return ss->ply >= MAX_PLY && !ss->inCheck
@@ -777,7 +777,7 @@ Value Worker::search(Position&    pos,
             if (depth >= 8 && !is_decisive(ttd.value) && ttd.move != Move::None
                 && pos.legal(ttd.move))
             {
-                pos.do_move(ttd.move, st);
+                pos.do_move(ttd.move, st, &tt);
                 auto [_ttd, _ttu] = tt.probe(pos.key());
                 _ttd.value =
                   _ttd.hit ? value_from_tt(_ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
@@ -819,11 +819,9 @@ Value Worker::search(Position&    pos,
 
                 auto drawValue = tbConfig.rule50Enabled ? 1 : 0;
 
-                Value tbValue = VALUE_TB - ss->ply;
-
                 // Use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to value
-                value = wdlScore < -drawValue ? -tbValue
-                      : wdlScore > +drawValue ? +tbValue
+                value = wdlScore < -drawValue ? -VALUE_TB + ss->ply
+                      : wdlScore > +drawValue ? +VALUE_TB - ss->ply
                                               : VALUE_DRAW + 2 * wdlScore * drawValue;
 
                 Bound bound = wdlScore < -drawValue ? BOUND_UPPER
@@ -946,7 +944,7 @@ Value Worker::search(Position&    pos,
 
         if (!ss->pvHit && depth < 14 && eval >= beta && !is_win(eval) && !is_loss(beta)
             && (ttd.move == Move::None || ttCapture) && eval - futility_margin(ttd.hit) >= beta)
-            return (2 * eval + beta) / 3;
+            return (2 * beta + eval) / 3;
     }
 
     // Step 9. Null move search with verification search
@@ -1617,7 +1615,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Step 1. Initialize node
     ss->inCheck = pos.checkers();
 
-    // Step 2. Check for an immediate draw or maximum ply reached
+    // Step 2. Check for maximum ply reached or immediate draw
     if (ss->ply >= MAX_PLY || pos.is_draw(ss->ply))
         return ss->ply >= MAX_PLY && !ss->inCheck ? evaluate(pos) : VALUE_DRAW;
 
@@ -2031,7 +2029,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         auto tbc = Tablebases::rank_root_moves(rootPos, rms, options, true);
 
         // If DTZ is not available might not find a mate, so bail out
-        if (!tbc.rootInTB || tbc.cardinality > 0)
+        if (!tbc.rootInTB || tbc.cardinality)
             break;
 
         auto pvMove = rms[0].pv[0];
