@@ -173,7 +173,7 @@ void init() noexcept {
                 for (auto& pieceSqHist : toPieceSqHist)
                     pieceSqHist.fill(-529);
 
-    TTMoveHistory.fill(0);
+    TTMoveHistory = 0;
 
     PawnCorrectionHistory.fill(5);
     MinorCorrectionHistory.fill(0);
@@ -1237,8 +1237,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 int corrValue = 4.3486e-6 * absCorrectionValue;
                 // clang-format off
-                int doubleMargin = -4 + 198 * PVNode - 212 * !ttCapture - corrValue - 45 * (ss->ply > 1.0 * rootDepth) - 921 * TTMoveHistory[ac] / 127649;
-                int tripleMargin = 76 + 308 * PVNode - 250 * !ttCapture - corrValue - 52 * (ss->ply > 1.5 * rootDepth) + 92 * ss->pvHit;
+                int doubleMargin = -4 + 198 * PVNode - 212 * !ttCapture - corrValue - 45 * (ss->ply > 1.0 * rootDepth) - 921 * TTMoveHistory / 127649;
+                int tripleMargin = 76 + 308 * PVNode - 250 * !ttCapture - corrValue - 52 * (ss->ply > 1.5 * rootDepth) +  92 * ss->pvHit;
 
                 extension = 1 + (value < singularBeta - doubleMargin)
                               + (value < singularBeta - tripleMargin);
@@ -1252,9 +1252,10 @@ S_MOVES_LOOP:  // When in check, search starts here
             // if after excluding the ttMove with a reduced search fail high over the original beta,
             // assume this expected cut-node is not singular (multiple moves fail high),
             // and can prune the whole subtree by returning a soft-bound.
-            else if (value >= beta && !is_decisive(value))
+            else if (value >= beta)
             {
-                TTMoveHistory[ac] << std::max(-400 - 100 * depth, -4000);
+                value = std::min(+value, VALUE_TB_WIN_IN_MAX_PLY - 1);
+                TTMoveHistory << std::max(-400 - 100 * depth, -4000);
                 return value;
             }
 
@@ -1508,7 +1509,10 @@ S_MOVES_LOOP:  // When in check, search starts here
     {
         update_all_history(pos, ss, depth, bestMove, movesArr);
         if (!PVNode)
-            TTMoveHistory[ac] << (bestMove == ttd.move ? 809 : -865);
+        {
+            int bonus = std::min(-77 + 110 * depth, 1853);
+            TTMoveHistory << (bestMove == ttd.move ? +bonus : -bonus);
+        }
     }
     // If prior move is valid, that caused the fail low
     else if (is_ok(preSq))
