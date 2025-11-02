@@ -1070,7 +1070,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     Value singularValue = +VALUE_INFINITE;
 
-    std::uint8_t moveCount = 0;
+    std::uint8_t moveCount  = 0;
+    std::uint8_t promoCount = 0;
 
     Move bestMove = Move::None;
 
@@ -1094,6 +1095,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             continue;
 
         ss->moveCount = ++moveCount;
+        promoCount += move.type_of() == PROMOTION && move.promotion_type() < QUEEN;
 
         if (RootNode && is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
         {
@@ -1131,8 +1133,8 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
             mp.quietPick = mp.quietPick
-                        && moveCount < ((3 + sqr(depth)) >> (!improve))
-                                         - (!improve && singularValue < -80 + alpha);
+                        && moveCount - promoCount < ((3 + sqr(depth)) >> (!improve))
+                                                      - (!improve && singularValue < -80 + alpha);
 
             // Reduced depth of the next LMR search
             Depth lmrDepth = newDepth - r / 1024;
@@ -1691,7 +1693,8 @@ QS_MOVES_LOOP:
     Move  move;
     Value value;
 
-    std::uint8_t moveCount = 0;
+    std::uint8_t moveCount  = 0;
+    std::uint8_t promoCount = 0;
 
     Move bestMove = Move::None;
 
@@ -1709,6 +1712,7 @@ QS_MOVES_LOOP:
             continue;
 
         ++moveCount;
+        promoCount += move.type_of() == PROMOTION && move.promotion_type() < QUEEN;
 
         Square dst = move.dst_sq();
 
@@ -1721,10 +1725,10 @@ QS_MOVES_LOOP:
         if (!is_loss(bestValue))
         {
             // Futility pruning and moveCount pruning
-            if (!check && dst != preSq && !is_loss(futilityBase)
+            if (!is_loss(futilityBase) && dst != preSq && !check
                 && (move.type_of() != PROMOTION || (!ss->inCheck && move.promotion_type() < QUEEN)))
             {
-                if (moveCount > 2)
+                if (moveCount - promoCount > 2)
                     continue;
 
                 Value futilityValue =  //
