@@ -51,6 +51,12 @@ class SqrClippedReLU {
         return hashValue;
     }
 
+    std::size_t get_content_hash() const noexcept {
+        std::size_t h = 0;
+        combine_hash(h, hash_value(0));
+        return h;
+    }
+
     // Read network parameters
     bool read_parameters(std::istream&) noexcept { return true; }
 

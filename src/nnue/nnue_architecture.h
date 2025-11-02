@@ -84,6 +84,18 @@ struct NetworkArchitecture final {
         return hashValue;
     }
 
+    std::size_t get_content_hash() const noexcept {
+        std::size_t h = 0;
+        combine_hash(h, fc_0.get_content_hash());
+        combine_hash(h, ac_sqr_0.get_content_hash());
+        combine_hash(h, ac_0.get_content_hash());
+        combine_hash(h, fc_1.get_content_hash());
+        combine_hash(h, ac_1.get_content_hash());
+        combine_hash(h, fc_2.get_content_hash());
+        combine_hash(h, hash_value());
+        return h;
+    }
+
     // Read network parameters
     bool read_parameters(std::istream& istream) noexcept {
         return fc_0.read_parameters(istream) && ac_0.read_parameters(istream)
@@ -99,7 +111,7 @@ struct NetworkArchitecture final {
     }
 
     // Forward propagation
-    std::int32_t propagate(const TransformedFeatureType* transformedFeatures) noexcept {
+    std::int32_t propagate(const TransformedFeatureType* transformedFeatures) const noexcept {
         struct alignas(CACHE_LINE_SIZE) Buffer final {
             alignas(CACHE_LINE_SIZE) typename decltype(fc_0)::OutputBuffer fc_0_out;
             alignas(CACHE_LINE_SIZE) typename decltype(ac_sqr_0)::OutputType
@@ -141,5 +153,12 @@ struct NetworkArchitecture final {
 };
 
 }  // namespace DON::NNUE
+
+template<DON::NNUE::IndexType L1, std::uint32_t L2, std::uint32_t L3>
+struct std::hash<DON::NNUE::NetworkArchitecture<L1, L2, L3>> {
+    std::size_t operator()(const DON::NNUE::NetworkArchitecture<L1, L2, L3>& arch) const noexcept {
+        return arch.get_content_hash();
+    }
+};
 
 #endif  // #ifndef NNUE_ARCHITECTURE_H_INCLUDED

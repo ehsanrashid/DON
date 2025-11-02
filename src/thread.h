@@ -64,7 +64,7 @@ class OptionalThreadToNumaNodeBinder final {
 };
 
 using JobFunc   = std::function<void()>;
-using WorkerPtr = AlignedLPPtr<Worker>;
+using WorkerPtr = LargePagePtr<Worker>;
 
 // Abstraction of a thread. It contains a pointer to the worker and a native thread.
 // After construction, the native thread is started with idle_func()

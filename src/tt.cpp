@@ -153,7 +153,7 @@ void TTUpdater::update(Depth d, bool pv, Bound b, Move m, Value v, Value ev) noe
 TranspositionTable::~TranspositionTable() noexcept { free(); }
 
 void TranspositionTable::free() noexcept {
-    [[maybe_unused]] bool success = free_aligned_lp(clusters);
+    [[maybe_unused]] bool success = free_aligned_large_pages(clusters);
     assert(success);
 }
 
@@ -167,7 +167,7 @@ void TranspositionTable::resize(std::size_t ttSize, ThreadPool& threads) noexcep
     clusterCount = ttSize * 1024 * 1024 / sizeof(TTCluster);
     assert(clusterCount % 2 == 0);
 
-    clusters = static_cast<TTCluster*>(alloc_aligned_lp(clusterCount * sizeof(TTCluster)));
+    clusters = static_cast<TTCluster*>(alloc_aligned_large_pages(clusterCount * sizeof(TTCluster)));
     if (clusters == nullptr)
     {
         std::cerr << "Failed to allocate " << ttSize << "MB for transposition table." << std::endl;

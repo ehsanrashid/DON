@@ -335,19 +335,19 @@ struct Skill final {
 // It is used to easily forward data to the Worker class.
 struct SharedState final {
    public:
-    SharedState(const Options&                            engOptions,
-                const LazyNumaReplicated<NNUE::Networks>& nnueNetworks,
-                ThreadPool&                               threadPool,
-                TranspositionTable&                       transpositionTable) noexcept :
+    SharedState(const Options&                                      engOptions,
+                const SystemWideLazyNumaReplicated<NNUE::Networks>& nnueNetworks,
+                ThreadPool&                                         threadPool,
+                TranspositionTable&                                 transpositionTable) noexcept :
         options(engOptions),
         networks(nnueNetworks),
         threads(threadPool),
         tt(transpositionTable) {}
 
-    const Options&                            options;
-    const LazyNumaReplicated<NNUE::Networks>& networks;
-    ThreadPool&                               threads;
-    TranspositionTable&                       tt;
+    const Options&                                      options;
+    const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
+    ThreadPool&                                         threads;
+    TranspositionTable&                                 tt;
 };
 
 class Worker;
@@ -552,15 +552,15 @@ class Worker final {
     // The main thread has a MainSearchManager, the others have a NullSearchManager
     ISearchManagerPtr manager;
 
-    const Options&                            options;
-    const LazyNumaReplicated<NNUE::Networks>& networks;
-    ThreadPool&                               threads;
-    TranspositionTable&                       tt;
+    const Options&                                      options;
+    const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
+    ThreadPool&                                         threads;
+    TranspositionTable&                                 tt;
     // Used by NNUE
     NumaReplicatedAccessToken numaAccessToken;
 
-    NNUE::AccumulatorCaches accCaches;
     NNUE::AccumulatorStack  accStack;
+    NNUE::AccumulatorCaches accCaches;
 
     friend class ThreadPool;
     friend class MainSearchManager;

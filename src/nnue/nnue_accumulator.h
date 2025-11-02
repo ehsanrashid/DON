@@ -93,7 +93,7 @@ struct AccumulatorCaches final {
 
             for (auto& sqEntries : entries)
                 for (auto& entry : sqEntries)
-                    entry.init(network.featureTransformer->biases);
+                    entry.init(network.featureTransformer.biases);
         }
 
         const Entry (&operator[](Square s) const noexcept)[COLOR_NB] { return entries[s]; }

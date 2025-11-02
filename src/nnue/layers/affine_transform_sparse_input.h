@@ -225,6 +225,14 @@ class AffineTransformSparseInput {
         return hashValue;
     }
 
+    std::size_t get_content_hash() const noexcept {
+        std::size_t h = 0;
+        combine_hash(h, raw_data_hash(biases));
+        combine_hash(h, raw_data_hash(weights));
+        combine_hash(h, hash_value(0));
+        return h;
+    }
+
     static constexpr IndexType weight_index(IndexType i) noexcept {
 #if defined(USE_SSSE3) || (defined(USE_NEON) && (USE_NEON >= 8))
         return (i / ChunkSize) % (PaddedInputDimensions / ChunkSize) * OutputDimensions * ChunkSize
