@@ -34,6 +34,8 @@
 
 namespace DON {
 
+class TranspositionTable;
+
 namespace Zobrist {
 
 inline Key psq[PIECE_NB][SQUARE_NB]{};
@@ -232,10 +234,11 @@ class Position final {
     Bitboard attacks_by(Color c) const noexcept;
 
     // Doing and undoing moves
-    DirtyPiece do_move(Move m, State& newSt, bool check) noexcept;
-    DirtyPiece do_move(Move m, State& newSt) noexcept;
+    DirtyPiece
+    do_move(Move m, State& newSt, bool check, const TranspositionTable* tt = nullptr) noexcept;
+    DirtyPiece do_move(Move m, State& newSt, const TranspositionTable* tt = nullptr) noexcept;
     void       undo_move(Move m) noexcept;
-    void       do_null_move(State& newSt) noexcept;
+    void       do_null_move(State& newSt, const TranspositionTable* tt = nullptr) noexcept;
     void       undo_null_move() noexcept;
 
     // Properties of moves
@@ -724,8 +727,8 @@ inline void Position::move_piece(Square s1, Square s2) noexcept {
     colorBB[color_of(pc)] ^= s1s2;
 }
 
-inline DirtyPiece Position::do_move(Move m, State& newSt) noexcept {
-    return do_move(m, newSt, check(m));
+inline DirtyPiece Position::do_move(Move m, State& newSt, const TranspositionTable* tt) noexcept {
+    return do_move(m, newSt, check(m), tt);
 }
 
 inline State* Position::state() const noexcept { return st; }

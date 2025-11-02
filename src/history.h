@@ -251,7 +251,7 @@ struct HistoryTypedef<HLowPlyQuiet> final {
 
 template<>
 struct HistoryTypedef<HTTMove> final {
-    using Type = StatsEntires<8192, COLOR_NB>;
+    using Type = StatsEntry<std::int16_t, 8192>;
 };
 }  // namespace internal
 

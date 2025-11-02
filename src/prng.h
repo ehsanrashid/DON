@@ -109,9 +109,9 @@ class KISS final {
     // 'k' encodes rotation amounts; function consumes several PRNs
     template<typename T>
     T magic_rand(unsigned k) noexcept {
-        const std::uint64_t r1 = rand64();
-        const std::uint64_t r2 = rand64();
-        const std::uint64_t r3 = rand64();
+        std::uint64_t r1 = rand64();
+        std::uint64_t r2 = rand64();
+        std::uint64_t r3 = rand64();
 
         std::uint64_t x = rotl(r1, k >> 0) & r2;
         x               = rotl(x, k >> 6) & r3;
@@ -121,11 +121,11 @@ class KISS final {
    private:
     // RKISS algorithm implementation
     inline std::uint64_t rand64() noexcept {
-        const std::uint64_t x = s[0] - rotl(s[1], 7);
-        s[0]                  = s[1] ^ rotl(s[2], 13);
-        s[1]                  = s[2] + rotl(s[3], 37);
-        s[2]                  = s[3] + x;
-        s[3]                  = x + s[0];
+        std::uint64_t x = s[0] - rotl(s[1], 7);
+        s[0]            = s[1] ^ rotl(s[2], 13);
+        s[1]            = s[2] + rotl(s[3], 37);
+        s[2]            = s[3] + x;
+        s[3]            = x + s[0];
         return s[3];
     }
 
@@ -234,7 +234,7 @@ class XorShift1024Star final {
            0xB99181F2D8F685CAULL, 0x284600E3F30E38C3ULL};
 
         std::uint64_t t[16]{};
-        for (const std::uint64_t jumpMask : JumpMasks)
+        for (std::uint64_t jumpMask : JumpMasks)
             for (std::uint8_t b = 0; b < 64; ++b)
             {
                 if ((jumpMask >> b) & 1)
@@ -248,7 +248,7 @@ class XorShift1024Star final {
     }
 
    private:
-    constexpr std::size_t index(std::size_t k) const noexcept { return (p + k) & (16 - 1); }
+    constexpr std::size_t index(std::size_t k) const noexcept { return (p + k) & 15; }
 
     // XorShift1024* algorithm implementation
     constexpr std::uint64_t rand64() noexcept {
@@ -298,7 +298,7 @@ class XoShiRo256Plus final {
            0xA9582618E03FC9AAULL, 0x39ABDC4529B1661CULL};
 
         std::uint64_t t[4]{};
-        for (const std::uint64_t jumpMask : JumpMasks)
+        for (std::uint64_t jumpMask : JumpMasks)
             for (std::uint8_t b = 0; b < 64; ++b)
             {
                 if ((jumpMask >> b) & 1)
@@ -314,8 +314,8 @@ class XoShiRo256Plus final {
    private:
     // XoShiRo256++ algorithm implementation
     constexpr std::uint64_t rand64() noexcept {
-        const std::uint64_t rs0 = rotl(s[0] + s[3], 23) + s[0];
-        const std::uint64_t ss1 = s[1] << 17;
+        std::uint64_t rs0 = rotl(s[0] + s[3], 23) + s[0];
+        std::uint64_t ss1 = s[1] << 17;
         s[2] ^= s[0];
         s[3] ^= s[1];
         s[1] ^= s[2];
@@ -363,7 +363,7 @@ class XoShiRo256Star final {
            0xA9582618E03FC9AAULL, 0x39ABDC4529B1661CULL};
 
         std::uint64_t t[4]{};
-        for (const std::uint64_t jumpMask : JumpMasks)
+        for (std::uint64_t jumpMask : JumpMasks)
             for (std::uint8_t b = 0; b < 64; ++b)
             {
                 if ((jumpMask >> b) & 1)
@@ -379,8 +379,8 @@ class XoShiRo256Star final {
    private:
     // XoShiRo256** algorithm implementation
     constexpr std::uint64_t rand64() noexcept {
-        const std::uint64_t rs1 = rotl(s[1] * 5, 7) * 9;
-        const std::uint64_t ss1 = s[1] << 17;
+        std::uint64_t rs1 = rotl(s[1] * 5, 7) * 9;
+        std::uint64_t ss1 = s[1] << 17;
         s[2] ^= s[0];
         s[3] ^= s[1];
         s[1] ^= s[2];

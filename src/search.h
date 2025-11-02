@@ -520,8 +520,8 @@ class Worker final {
     void do_move(Position& pos, Move m, State& st, bool check, Stack* const ss = nullptr) noexcept;
     void do_move(Position& pos, Move m, State& st, Stack* const ss = nullptr) noexcept;
     void undo_move(Position& pos, Move m) noexcept;
-    void do_null_move(Position& pos, State& st, Stack* const ss) noexcept;
-    void undo_null_move(Position& pos) noexcept;
+    void do_null_move(Position& pos, State& st, Stack* const ss) const noexcept;
+    void undo_null_move(Position& pos) const noexcept;
 
     Value evaluate(const Position& pos) noexcept;
 

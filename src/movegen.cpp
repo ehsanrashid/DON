@@ -364,23 +364,26 @@ namespace {
 template<bool Any>
 Move* generate_legal(const Position& pos, Move* moves) noexcept {
 
-    auto* cur = moves;
+    Move *read, *write;
+    read = write = moves;
 
     moves = pos.checkers()  //
             ? generate<EVASION, Any>(pos, moves)
             : generate<ENCOUNTER, Any>(pos, moves);
 
     Bitboard blockers = pos.blockers(pos.active_color());
-    // Filter legal moves
-    while (cur != moves)
-        if (((type_of(pos.piece_on(cur->org_sq())) == PAWN && (blockers & cur->org_sq()))
-             || cur->type_of() == CASTLING)
-            && !pos.legal(*cur))
-            *cur = *(--moves);
-        else
-            ++cur;
+    // Filter illegal moves (preserve order)
+    while (read != moves)
+    {
+        Move m = *read++;
+        if (((type_of(pos.piece_on(m.org_sq())) == PAWN && (blockers & m.org_sq()))
+             || m.type_of() == CASTLING)
+            && !pos.legal(m))
+            continue;  // skip illegal
+        *write++ = m;
+    }
 
-    return moves;
+    return write;
 }
 
 // Explicit template instantiations:
