@@ -1369,7 +1369,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             // Reduce search depth if expected reduction is high
             value = -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha,
-                                 newDepth - ((r > 3212) + (r > 4784 && newDepth > 2)));
+                                 newDepth - (r > 3212) - (r > 4784 && newDepth > 2));
         }
 
         // For PV nodes only, do a full PV search on the first move or after a fail high,
@@ -1499,7 +1499,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (!moveCount)
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
-    else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
+    else if (bestValue > beta && !is_decisive(bestValue) && !is_decisive(alpha))
         bestValue = (depth * bestValue + beta) / (depth + 1);
 
     // If there is a move that produces search value greater than alpha update the history of searched moves
@@ -1679,7 +1679,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Stand pat. Return immediately if bestValue is at least beta
     if (bestValue >= beta)
     {
-        if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
+        if (bestValue > beta && !is_decisive(bestValue))
             bestValue = (bestValue + beta) / 2;
 
         if (!ttd.hit)
@@ -1817,7 +1817,7 @@ QS_MOVES_LOOP:
             bestValue = VALUE_DRAW;
     }
     // Adjust best value for fail high cases
-    else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
+    else if (bestValue > beta && !is_decisive(bestValue))
         bestValue = (bestValue + beta) / 2;
 
     // Save gathered info in transposition table
