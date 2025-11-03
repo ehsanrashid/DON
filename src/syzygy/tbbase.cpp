@@ -558,8 +558,11 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     code.reserve(pieces.size() + 2);
     for (PieceType pt : pieces)
         code += to_char(pt);
-    assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string::npos);
-    code.insert(code.find('K', 1), "v");  // KRK -> KRvK
+    std::size_t pos = code.find('K', 1);
+    assert(!code.empty() && code[0] == 'K' && pos != std::string::npos);
+    if (pos == std::string::npos)
+        return;
+    code.insert(pos, 1, 'v');  // KRK -> KRvK
 
     TBFile dtzFile(code + DTZExt.data());
     if (dtzFile.is_open())
