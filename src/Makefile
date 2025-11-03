@@ -619,8 +619,10 @@ ifneq ($(comp), mingw)
         ifneq ($(KERNEL), Haiku)
             ifneq ($(COMP), ndk)
                 LDFLAGS += -lpthread
-                ifeq ($(target_windows), no) && ifneq ($(KERNEL), Darwin)
-                    LDFLAGS += -lrt
+                ifeq ($(target_windows), no)
+                    ifneq ($(KERNEL), Darwin)
+                        LDFLAGS += -lrt
+                    endif
                 endif
             endif
         endif
