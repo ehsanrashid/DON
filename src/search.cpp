@@ -1152,7 +1152,11 @@ S_MOVES_LOOP:  // When in check, search starts here
                                  + promotion_value(move),
                                +VALUE_INFINITE);
                     if (futilityValue <= alpha)
+                    {
+                        if (!is_decisive(bestValue) && !is_decisive(futilityValue))
+                            bestValue = std::max(bestValue, futilityValue);
                         continue;
+                    }
                 }
 
                 // SEE based pruning for captures
@@ -1187,7 +1191,11 @@ S_MOVES_LOOP:  // When in check, search starts here
                                  + 90 * (ss->staticEval > alpha),
                                +VALUE_INFINITE);
                     if (futilityValue <= alpha)
+                    {
+                        if (!is_decisive(bestValue) && !is_decisive(futilityValue))
+                            bestValue = std::max(bestValue, futilityValue);
                         continue;
+                    }
                 }
 
                 lmrDepth = std::max(+lmrDepth, 0);
@@ -1736,11 +1744,19 @@ QS_MOVES_LOOP:
                            +VALUE_INFINITE);
                 // If static evaluation + value of piece going to captured is much lower than alpha
                 if (futilityValue <= alpha)
+                {
+                    if (!is_decisive(bestValue) && !is_decisive(futilityValue))
+                        bestValue = std::max(bestValue, futilityValue);
                     continue;
+                }
 
                 // SEE based pruning
                 if (pos.see(move) < (alpha - futilityBase))
+                {
+                    if (!is_decisive(bestValue))
+                        bestValue = std::max(bestValue, std::min(alpha, futilityBase));
                     continue;
+                }
             }
 
             // Skip non-captures
