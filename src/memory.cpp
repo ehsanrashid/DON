@@ -87,7 +87,7 @@ void free_aligned_std(void* mem) noexcept {
 #if defined(_WIN32)
 namespace {
 
-void* alloc_windows_aligned_large_pages([[maybe_unused]] std::size_t allocSize) noexcept {
+void* alloc_windows_aligned_large_pages(std::size_t allocSize) noexcept {
 
     return try_with_windows_large_page_privileges(
       [&](std::size_t largePageSize) {
@@ -150,9 +150,8 @@ bool free_aligned_large_pages(void* mem) noexcept {
 #if defined(_WIN32)
     if (mem != nullptr && !VirtualFree(mem, 0, MEM_RELEASE))
     {
-        DWORD err = GetLastError();
         std::cerr << "Failed to free memory."
-                  << " Error code: 0x " << std::hex << err << std::dec << std::endl;
+                  << " Error code: 0x " << std::hex << GetLastError() << std::dec << std::endl;
         return false;
     }
 #else

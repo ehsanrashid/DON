@@ -373,8 +373,8 @@ auto try_with_windows_large_page_privileges([[maybe_unused]] FuncSuccess&& funcS
     auto&& ret = funcSuccess(largePageSize);
 
     // Privilege no longer needed, restore the privileges
-    if (oldTp.PrivilegeCount > 0)
-        advapi.adjustTokenPrivileges(tokenHandle, FALSE, &oldTp, 0, nullptr, nullptr);
+    //if (oldTp.PrivilegeCount > 0)
+    advapi.adjustTokenPrivileges(tokenHandle, FALSE, &oldTp, 0, nullptr, nullptr);
 
     if (tokenHandle != nullptr)
         CloseHandle(tokenHandle);

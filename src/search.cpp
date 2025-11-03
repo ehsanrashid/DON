@@ -1733,8 +1733,8 @@ QS_MOVES_LOOP:
         if (!is_loss(bestValue))
         {
             // Futility pruning and moveCount pruning
-            if (!is_loss(futilityBase) && dst != preSq && !check
-                && (move.type_of() != PROMOTION || (!ss->inCheck && move.promotion_type() < QUEEN)))
+            if (dst != preSq && !check && !is_loss(futilityBase)
+                && (move.type_of() != PROMOTION || move.promotion_type() < QUEEN))
             {
                 if (moveCount - promoCount > 2)
                     continue;
