@@ -68,9 +68,10 @@ struct EmbeddedNNUE final {
 
 namespace {
 EmbeddedNNUE get_embedded(EmbeddedType embType) noexcept {
-    assert(embType == BIG || embType == SMALL);
-    return embType == BIG ? EmbeddedNNUE(gBigEmbeddedData, gBigEmbeddedEnd, gBigEmbeddedSize)
-                          : EmbeddedNNUE(gSmallEmbeddedData, gSmallEmbeddedEnd, gSmallEmbeddedSize);
+    assert(embType == EmbeddedType::BIG || embType == EmbeddedType::SMALL);
+    return embType == EmbeddedType::BIG
+           ? EmbeddedNNUE(gBigEmbeddedData, gBigEmbeddedEnd, gBigEmbeddedSize)
+           : EmbeddedNNUE(gSmallEmbeddedData, gSmallEmbeddedEnd, gSmallEmbeddedSize);
 }
 }  // namespace
 
@@ -79,11 +80,11 @@ namespace internal {
 namespace {
 // Read network header
 bool read_header(std::istream&  istream,  //
-                 std::uint32_t& hashValue,
+                 std::uint32_t& hash,
                  std::string&   netDescription) noexcept {
     std::uint32_t fileVersion, descSize;
     fileVersion = read_little_endian<std::uint32_t>(istream);
-    hashValue   = read_little_endian<std::uint32_t>(istream);
+    hash        = read_little_endian<std::uint32_t>(istream);
     descSize    = read_little_endian<std::uint32_t>(istream);
     if (!istream || fileVersion != FILE_VERSION)
         return false;
@@ -95,10 +96,10 @@ bool read_header(std::istream&  istream,  //
 
 // Write network header
 bool write_header(std::ostream&      ostream,  //
-                  std::uint32_t      hashValue,
+                  std::uint32_t      hash,
                   const std::string& netDescription) noexcept {
     write_little_endian<std::uint32_t>(ostream, FILE_VERSION);
-    write_little_endian<std::uint32_t>(ostream, hashValue);
+    write_little_endian<std::uint32_t>(ostream, hash);
     write_little_endian<std::uint32_t>(ostream, netDescription.size());
     ostream.write(&netDescription[0], netDescription.size());
 
@@ -108,9 +109,9 @@ bool write_header(std::ostream&      ostream,  //
 // Read evaluation function parameters
 template<typename T>
 bool read_parameters(std::istream& istream, T& reference) noexcept {
-    std::uint32_t hashValue;
-    hashValue = read_little_endian<std::uint32_t>(istream);
-    if (!istream || hashValue != T::hash_value())
+    std::uint32_t hash;
+    hash = read_little_endian<std::uint32_t>(istream);
+    if (!istream || hash != T::hash())
         return false;
 
     return reference.read_parameters(istream);
@@ -119,7 +120,7 @@ bool read_parameters(std::istream& istream, T& reference) noexcept {
 // Write evaluation function parameters
 template<typename T>
 bool write_parameters(std::ostream& ostream, const T& reference) noexcept {
-    write_little_endian<std::uint32_t>(ostream, T::hash_value());
+    write_little_endian<std::uint32_t>(ostream, T::hash());
 
     return reference.write_parameters(ostream);
 }
@@ -219,7 +220,7 @@ void Network<Arch, Transformer>::verify(std::string evalFileName) const noexcept
 }
 
 template<typename Arch, typename Transformer>
-std::size_t Network<Arch, Transformer>::get_content_hash() const noexcept {
+std::size_t Network<Arch, Transformer>::content_hash() const noexcept {
     if (!initialized)
         return 0;
 
@@ -344,10 +345,10 @@ std::optional<std::string> Network<Arch, Transformer>::load(std::istream& istrea
 template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::read_parameters(std::istream& istream,
                                                  std::string&  netDescription) noexcept {
-    std::uint32_t hashValue;
-    if (!internal::read_header(istream, hashValue, netDescription))
+    std::uint32_t hash;
+    if (!internal::read_header(istream, hash, netDescription))
         return false;
-    if (hashValue != Network::HashValue)
+    if (hash != Network::Hash)
         return false;
     if (!internal::read_parameters(istream, featureTransformer))
         return false;
@@ -361,7 +362,7 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& istream,
 template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::write_parameters(
   std::ostream& ostream, const std::string& netDescription) const noexcept {
-    if (!internal::write_header(ostream, Network::HashValue, netDescription))
+    if (!internal::write_header(ostream, Network::Hash, netDescription))
         return false;
     if (!internal::write_parameters(ostream, featureTransformer))
         return false;

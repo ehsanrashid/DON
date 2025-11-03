@@ -94,16 +94,16 @@ class FeatureTransformer final {
     static constexpr std::size_t BufferSize = OutputDimensions * sizeof(OutputType);
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t hash_value() noexcept {
-        return FeatureSet::HashValue ^ (2 * OutputDimensions);
+    static constexpr std::uint32_t hash() noexcept {
+        return FeatureSet::Hash ^ (2 * OutputDimensions);
     }
 
-    std::size_t get_content_hash() const noexcept {
+    std::size_t content_hash() const noexcept {
         std::size_t h = 0;
         combine_hash(h, raw_data_hash(biases));
         combine_hash(h, raw_data_hash(weights));
         combine_hash(h, raw_data_hash(psqtWeights));
-        combine_hash(h, hash_value());
+        combine_hash(h, hash());
         return h;
     }
 
@@ -319,7 +319,7 @@ template<DON::NNUE::IndexType TransformedFeatureDimensions>
 struct std::hash<DON::NNUE::FeatureTransformer<TransformedFeatureDimensions>> {
     std::size_t operator()(
       const DON::NNUE::FeatureTransformer<TransformedFeatureDimensions>& ft) const noexcept {
-        return ft.get_content_hash();
+        return ft.content_hash();
     }
 };
 

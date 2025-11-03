@@ -91,11 +91,11 @@ void* alloc_windows_aligned_large_pages([[maybe_unused]] std::size_t allocSize) 
 
     return try_with_windows_large_page_privileges(
       [&](std::size_t largePageSize) {
-          // Round up size to full pages
-          allocSize = round_up_pow2(allocSize, largePageSize);
+          // Round up size to full large pages
+          std::size_t roundedAllocSize = round_up_pow2(allocSize, largePageSize);
           // Allocate large page memory
-          void* mem = VirtualAlloc(nullptr, allocSize, MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT,
-                                   PAGE_READWRITE);
+          void* mem = VirtualAlloc(nullptr, roundedAllocSize,
+                                   MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
           if (mem == nullptr)
               std::cerr << "Failed to allocate " << allocSize << "B for large page memory."
                         << " Error code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
@@ -118,9 +118,9 @@ void* alloc_aligned_large_pages(std::size_t allocSize) noexcept {
     {
         constexpr std::size_t Alignment = 4 * 1024;
 
-        allocSize = round_up_pow2(allocSize, Alignment);
+        std::size_t roundedAllocSize = round_up_pow2(allocSize, Alignment);
 
-        mem = VirtualAlloc(nullptr, allocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+        mem = VirtualAlloc(nullptr, roundedAllocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     }
     return mem;
 #else
@@ -131,12 +131,13 @@ void* alloc_aligned_large_pages(std::size_t allocSize) noexcept {
       4 * 1024  // Assume small page-size
     #endif
       ;
-    allocSize = round_up_pow2(allocSize, Alignment);
 
-    void* mem = alloc_aligned_std(allocSize, Alignment);
+    std::size_t roundedAllocSize = round_up_pow2(allocSize, Alignment);
+
+    void* mem = alloc_aligned_std(roundedAllocSize, Alignment);
     #if defined(MADV_HUGEPAGE)
     if (mem != nullptr)
-        madvise(mem, allocSize, MADV_HUGEPAGE);
+        madvise(mem, roundedAllocSize, MADV_HUGEPAGE);
     #endif
     return mem;
 #endif

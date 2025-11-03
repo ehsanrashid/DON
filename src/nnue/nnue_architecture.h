@@ -70,29 +70,28 @@ struct NetworkArchitecture final {
     Layers::AffineTransform<FC_1_Outputs, 1>                                           fc_2;
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t hash_value() noexcept {
+    static constexpr std::uint32_t hash() noexcept {
         // input slice hash
-        std::uint32_t hashValue = 0xEC42E90DU;
-        hashValue ^= 2 * TransformedFeatureDimensions;
+        std::uint32_t h = 0xEC42E90DU;
+        h ^= 2 * TransformedFeatureDimensions;
 
-        hashValue = decltype(fc_0)::hash_value(hashValue);
-        hashValue = decltype(ac_0)::hash_value(hashValue);
-        hashValue = decltype(fc_1)::hash_value(hashValue);
-        hashValue = decltype(ac_1)::hash_value(hashValue);
-        hashValue = decltype(fc_2)::hash_value(hashValue);
-
-        return hashValue;
+        h = decltype(fc_0)::hash(h);
+        h = decltype(ac_0)::hash(h);
+        h = decltype(fc_1)::hash(h);
+        h = decltype(ac_1)::hash(h);
+        h = decltype(fc_2)::hash(h);
+        return h;
     }
 
-    std::size_t get_content_hash() const noexcept {
+    std::size_t content_hash() const noexcept {
         std::size_t h = 0;
-        combine_hash(h, fc_0.get_content_hash());
-        combine_hash(h, ac_sqr_0.get_content_hash());
-        combine_hash(h, ac_0.get_content_hash());
-        combine_hash(h, fc_1.get_content_hash());
-        combine_hash(h, ac_1.get_content_hash());
-        combine_hash(h, fc_2.get_content_hash());
-        combine_hash(h, hash_value());
+        combine_hash(h, fc_0.content_hash());
+        combine_hash(h, ac_sqr_0.content_hash());
+        combine_hash(h, ac_0.content_hash());
+        combine_hash(h, fc_1.content_hash());
+        combine_hash(h, ac_1.content_hash());
+        combine_hash(h, fc_2.content_hash());
+        combine_hash(h, hash());
         return h;
     }
 
@@ -157,7 +156,7 @@ struct NetworkArchitecture final {
 template<DON::NNUE::IndexType L1, std::uint32_t L2, std::uint32_t L3>
 struct std::hash<DON::NNUE::NetworkArchitecture<L1, L2, L3>> {
     std::size_t operator()(const DON::NNUE::NetworkArchitecture<L1, L2, L3>& arch) const noexcept {
-        return arch.get_content_hash();
+        return arch.content_hash();
     }
 };
 

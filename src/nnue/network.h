@@ -40,9 +40,9 @@ class Position;
 
 namespace NNUE {
 
-enum EmbeddedType : std::uint8_t {
+enum class EmbeddedType {
     BIG,
-    SMALL,
+    SMALL
 };
 
 template<typename Arch, typename Transformer>
@@ -50,7 +50,7 @@ class Network final {
    private:
     static constexpr IndexType TFDimensions = Arch::TransformedFeatureDimensions;
     // Hash value of evaluation function structure
-    static constexpr std::uint32_t HashValue = Arch::hash_value() ^ Transformer::hash_value();
+    static constexpr std::uint32_t Hash = Arch::hash() ^ Transformer::hash();
 
    public:
     Network(EvalFile evFile, EmbeddedType embType) noexcept :
@@ -67,7 +67,7 @@ class Network final {
 
     void verify(std::string evalFileName) const noexcept;
 
-    std::size_t get_content_hash() const noexcept;
+    std::size_t content_hash() const noexcept;
 
     NetworkOutput evaluate(const Position&                         pos,
                            AccumulatorStack&                       accStack,
@@ -135,7 +135,7 @@ template<typename ArchT, typename FeatureTransformerT>
 struct std::hash<DON::NNUE::Network<ArchT, FeatureTransformerT>> {
     std::size_t
     operator()(const DON::NNUE::Network<ArchT, FeatureTransformerT>& network) const noexcept {
-        return network.get_content_hash();
+        return network.content_hash();
     }
 };
 

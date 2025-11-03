@@ -210,10 +210,10 @@ class SharedMemoryBackend {
     SharedMemoryBackend() :
         status(Status::NotInitialized) {};
 
-    SharedMemoryBackend(const std::string& shm_name, const T& value) :
+    SharedMemoryBackend(const std::string& shmName, const T& value) :
         status(Status::NotInitialized) {
 
-        initialize(shm_name, value);
+        initialize(shmName, value);
     }
 
     bool is_valid() const { return status == Status::Success; }
@@ -282,25 +282,25 @@ class SharedMemoryBackend {
     }
 
    private:
-    void initialize(const std::string& shm_name, const T& value) {
+    void initialize(const std::string& shmName, const T& value) {
         const size_t totalSize = sizeof(T) + sizeof(IS_INITIALIZED_VALUE);
 
         // Try allocating with large pages first.
         hMapFile = try_with_windows_large_page_privileges(
           [&](size_t largePageSize) {
-              const size_t roundTotalSize = round_up_pow2(totalSize, largePageSize);
+              const size_t roundedTotalSize = round_up_pow2(totalSize, largePageSize);
 
     #if defined(_WIN64)
-              DWORD loTotalSize = roundTotalSize & 0xFFFFFFFFU;
-              DWORD hiTotalSize = roundTotalSize >> 32;
+              DWORD hiTotalSize = roundedTotalSize >> 32;
+              DWORD loTotalSize = roundedTotalSize & 0xFFFFFFFFU;
     #else
-              DWORD loTotalSize = roundTotalSize;
               DWORD hiTotalSize = 0;
+              DWORD loTotalSize = roundedTotalSize;
     #endif
 
               return CreateFileMappingA(INVALID_HANDLE_VALUE, NULL,
-                                        PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES, hiTotalSize,
-                                        loTotalSize, shm_name.c_str());
+                                        PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,  //
+                                        hiTotalSize, loTotalSize, shmName.c_str());
           },
           []() { return (void*) nullptr; });
 
@@ -308,7 +308,7 @@ class SharedMemoryBackend {
         if (!hMapFile)
         {
             hMapFile = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0,
-                                          static_cast<DWORD>(totalSize), shm_name.c_str());
+                                          static_cast<DWORD>(totalSize), shmName.c_str());
         }
 
         if (!hMapFile)
@@ -330,7 +330,7 @@ class SharedMemoryBackend {
         }
 
         // Use named mutex to ensure only one initializer
-        std::string mutex_name = shm_name + "$mutex";
+        std::string mutex_name = shmName + "$mutex";
         HANDLE      hMutex     = CreateMutexA(NULL, FALSE, mutex_name.c_str());
         if (!hMutex)
         {
@@ -418,8 +418,8 @@ class SharedMemoryBackend {
    public:
     SharedMemoryBackend() = default;
 
-    SharedMemoryBackend(const std::string& shm_name, const T& value) :
-        shm(create_shared<T>(shm_name, value)) {}
+    SharedMemoryBackend(const std::string& shmName, const T& value) :
+        shm(create_shared<T>(shmName, value)) {}
 
     void* get() const {
         const T* ptr = &shm->get();
@@ -460,7 +460,7 @@ class SharedMemoryBackend {
    public:
     SharedMemoryBackend() = default;
 
-    SharedMemoryBackend(const std::string& shm_name, const T& value) {}
+    SharedMemoryBackend(const std::string& shmName, const T& value) {}
 
     void* get() const { return nullptr; }
 
@@ -540,25 +540,24 @@ struct SystemWideSharedConstant {
         std::size_t content_hash    = std::hash<T>{}(value);
         std::size_t executable_hash = std::hash<std::string>{}(getExecutablePathHash());
 
-        std::string shm_name = std::string("Local\\sf_") + std::to_string(content_hash) + "$"
-                             + std::to_string(executable_hash) + "$"
-                             + std::to_string(discriminator);
+        std::string shmName = std::string("Local\\sf_") + std::to_string(content_hash) + "$"
+                            + std::to_string(executable_hash) + "$" + std::to_string(discriminator);
 
 #if !defined(_WIN32)
         // POSIX shared memory names must start with a slash
-        shm_name = "/sf_" + createHashString(shm_name);
+        shmName = "/sf_" + createHashString(shmName);
 
         // hash name and make sure it is not longer than MAX_SEM_NAME_LEN
-        if (shm_name.size() > MAX_SEM_NAME_LEN)
-            shm_name = shm_name.substr(0, MAX_SEM_NAME_LEN - 1);
+        if (shmName.size() > MAX_SEM_NAME_LEN)
+            shmName = shmName.substr(0, MAX_SEM_NAME_LEN - 1);
 #endif
 
-        SharedMemoryBackend<T> shm_backend(shm_name, value);
+        SharedMemoryBackend<T> shm_backend(shmName, value);
 
         if (shm_backend.is_valid())
             backend = std::move(shm_backend);
         else
-            backend = SharedMemoryBackendFallback<T>(shm_name, value);
+            backend = SharedMemoryBackendFallback<T>(shmName, value);
     }
 
     SystemWideSharedConstant(const SystemWideSharedConstant&)            = delete;

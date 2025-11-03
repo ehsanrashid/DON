@@ -64,8 +64,8 @@ Engine::Engine(std::optional<std::string> path) noexcept :
       numaContext,
       // Heap-allocate because sizeof(NNUE::Networks) is large
       std::make_unique<NNUE::Networks>(
-        std::make_unique<NNUE::BigNetwork>  (NNUE::EvalFile{EvalFileDefaultNameBig  , "None", ""}, NNUE::BIG),
-        std::make_unique<NNUE::SmallNetwork>(NNUE::EvalFile{EvalFileDefaultNameSmall, "None", ""}, NNUE::SMALL))) {
+        std::make_unique<NNUE::BigNetwork>  (NNUE::EvalFile{EvalFileDefaultNameBig  , "None", ""}, NNUE::EmbeddedType::BIG),
+        std::make_unique<NNUE::SmallNetwork>(NNUE::EvalFile{EvalFileDefaultNameSmall, "None", ""}, NNUE::EmbeddedType::SMALL))) {
 
     options.add("NumaPolicy",           Option("auto", "var none var auto var system var hardware var default", [this](const Option& o) {
         set_numa_config(o);
