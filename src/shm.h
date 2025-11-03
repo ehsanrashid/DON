@@ -168,20 +168,23 @@ inline std::string GetLastErrorAsString(DWORD errorId) {
     if (errorId == 0)
         return {};
 
-    LPSTR messageBuffer = nullptr;
-
+    LPSTR buffer = nullptr;
     // Ask Win32 to give us the string version of that message ID.
-    // The parameters we pass in, tell Win32 to create the buffer that holds the message for us
+    // The parameters pass in, tell Win32 to create the buffer that holds the message
     // (because don't yet know how long the message string will be).
-    std::size_t size = FormatMessageA(
+    std::size_t len = FormatMessageA(
       FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-      NULL, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR) &messageBuffer, 0, NULL);
+      NULL, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+      reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
+      0, NULL);
 
     // Copy the error message into a std::string.
-    std::string message(messageBuffer, size);
-
+    std::string message(buffer, len);
+    // Trim trailing CR/LF that many system messages include
+    while (!message.empty() && (message.back() == '\r' || message.back() == '\n'))
+        message.pop_back();
     // Free the Win32's string's buffer.
-    LocalFree(messageBuffer);
+    LocalFree(buffer);
 
     return message;
 }
@@ -245,30 +248,30 @@ class SharedMemoryBackend {
     SharedMemoryBackend(const SharedMemoryBackend&)            = delete;
     SharedMemoryBackend& operator=(const SharedMemoryBackend&) = delete;
 
-    SharedMemoryBackend(SharedMemoryBackend&& other) noexcept :
-        pMap(other.pMap),
-        hMapFile(other.hMapFile),
-        status(other.status),
-        lastErrorMsg(std::move(other.lastErrorMsg)) {
+    SharedMemoryBackend(SharedMemoryBackend&& shmBackend) noexcept :
+        pMap(shmBackend.pMap),
+        hMapFile(shmBackend.hMapFile),
+        status(shmBackend.status),
+        lastErrorMsg(std::move(shmBackend.lastErrorMsg)) {
 
-        other.pMap     = nullptr;
-        other.hMapFile = 0;
-        other.status   = Status::NotInitialized;
+        shmBackend.pMap     = nullptr;
+        shmBackend.hMapFile = nullptr;
+        shmBackend.status   = Status::NotInitialized;
     }
 
-    SharedMemoryBackend& operator=(SharedMemoryBackend&& other) noexcept {
-        if (this != &other)
-        {
-            cleanup();
-            pMap         = other.pMap;
-            hMapFile     = other.hMapFile;
-            status       = other.status;
-            lastErrorMsg = std::move(other.lastErrorMsg);
+    SharedMemoryBackend& operator=(SharedMemoryBackend&& shmBackend) noexcept {
+        if (this == &shmBackend)
+            return *this;
 
-            other.pMap     = nullptr;
-            other.hMapFile = 0;
-            other.status   = Status::NotInitialized;
-        }
+        cleanup();
+        pMap         = shmBackend.pMap;
+        hMapFile     = shmBackend.hMapFile;
+        status       = shmBackend.status;
+        lastErrorMsg = std::move(shmBackend.lastErrorMsg);
+
+        shmBackend.pMap     = nullptr;
+        shmBackend.hMapFile = nullptr;
+        shmBackend.status   = Status::NotInitialized;
         return *this;
     }
 
@@ -301,24 +304,22 @@ class SharedMemoryBackend {
           []() { return (void*) nullptr; });
 
         // Fallback to normal allocation if no large pages available.
-        if (!hMapFile)
-        {
-            hMapFile = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0,
-                                          DWORD(totalSize), shmName.c_str());
-        }
+        if (hMapFile == nullptr)
+            hMapFile = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0,  //
+                                          totalSize, shmName.c_str());
 
-        if (!hMapFile)
+        if (hMapFile == nullptr)
         {
-            lastErrorMsg = GetLastErrorAsString(GetLastError());
             status       = Status::FileMappingError;
+            lastErrorMsg = GetLastErrorAsString(GetLastError());
             return;
         }
 
         pMap = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, totalSize);
-        if (!pMap)
+        if (pMap == nullptr)
         {
-            lastErrorMsg = GetLastErrorAsString(GetLastError());
             status       = Status::MapViewError;
+            lastErrorMsg = GetLastErrorAsString(GetLastError());
             cleanup_partial();
             return;
         }
@@ -326,18 +327,18 @@ class SharedMemoryBackend {
         // Use named mutex to ensure only one initializer
         std::string mutexName = shmName + "$mutex";
         HANDLE      hMutex    = CreateMutexA(NULL, FALSE, mutexName.c_str());
-        if (!hMutex)
+        if (hMutex == nullptr)
         {
-            lastErrorMsg = GetLastErrorAsString(GetLastError());
             status       = Status::MutexCreateError;
+            lastErrorMsg = GetLastErrorAsString(GetLastError());
             cleanup_partial();
             return;
         }
 
         if (WaitForSingleObject(hMutex, INFINITE) != WAIT_OBJECT_0)
         {
-            lastErrorMsg = GetLastErrorAsString(GetLastError());
             status       = Status::MutexWaitError;
+            lastErrorMsg = GetLastErrorAsString(GetLastError());
             cleanup_partial();
             CloseHandle(hMutex);
             return;
@@ -357,8 +358,8 @@ class SharedMemoryBackend {
 
         if (!ReleaseMutex(hMutex))
         {
-            lastErrorMsg = GetLastErrorAsString(GetLastError());
             status       = Status::MutexReleaseError;
+            lastErrorMsg = GetLastErrorAsString(GetLastError());
             cleanup_partial();
             CloseHandle(hMutex);
             return;
@@ -375,10 +376,10 @@ class SharedMemoryBackend {
             UnmapViewOfFile(pMap);
             pMap = nullptr;
         }
-        if (hMapFile)
+        if (hMapFile != nullptr)
         {
             CloseHandle(hMapFile);
-            hMapFile = 0;
+            hMapFile = nullptr;
         }
     }
 
@@ -388,15 +389,15 @@ class SharedMemoryBackend {
             UnmapViewOfFile(pMap);
             pMap = nullptr;
         }
-        if (hMapFile)
+        if (hMapFile != nullptr)
         {
             CloseHandle(hMapFile);
-            hMapFile = 0;
+            hMapFile = nullptr;
         }
     }
 
     void*       pMap     = nullptr;
-    HANDLE      hMapFile = 0;
+    HANDLE      hMapFile = nullptr;
     Status      status   = Status::NotInitialized;
     std::string lastErrorMsg;
 };
