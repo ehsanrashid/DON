@@ -40,7 +40,7 @@
 
 #if defined(__ANDROID__)
     #include <limits.h>
-    #define SF_MAX_SEM_NAME_LEN NAME_MAX
+    #define MAX_SEM_NAME_LEN NAME_MAX
 #endif
 
 #include "types.h"
@@ -421,14 +421,14 @@ class SharedMemoryBackend {
     SharedMemoryBackend() = default;
 
     SharedMemoryBackend(const std::string& shm_name, const T& value) :
-        shm1(shm::create_shared<T>(shm_name, value)) {}
+        shm(create_shared<T>(shm_name, value)) {}
 
     void* get() const {
-        const T* ptr = &shm1->get();
+        const T* ptr = &shm->get();
         return reinterpret_cast<void*>(const_cast<T*>(ptr));
     }
 
-    bool is_valid() const { return shm1 && shm1->is_open() && shm1->is_initialized(); }
+    bool is_valid() const { return shm && shm->is_open() && shm->is_initialized(); }
 
     SystemWideSharedConstantAllocationStatus get_status() const {
         return is_valid() ? SystemWideSharedConstantAllocationStatus::SharedMemory
@@ -436,20 +436,20 @@ class SharedMemoryBackend {
     }
 
     std::optional<std::string> get_error_message() const {
-        if (!shm1)
+        if (!shm)
             return "Shared memory not initialized";
 
-        if (!shm1->is_open())
+        if (!shm->is_open())
             return "Shared memory is not open";
 
-        if (!shm1->is_initialized())
+        if (!shm->is_initialized())
             return "Not initialized";
 
         return std::nullopt;
     }
 
    private:
-    std::optional<shm::SharedMemory<T>> shm1;
+    std::optional<SharedMemory<T>> shm;
 };
 
 #else
@@ -482,35 +482,35 @@ struct SharedMemoryBackendFallback {
     SharedMemoryBackendFallback() = default;
 
     SharedMemoryBackendFallback(const std::string&, const T& value) :
-        fallback_object(make_unique_aligned_large_pages<T>(value)) {}
+        fallbackObj(make_unique_aligned_large_pages<T>(value)) {}
 
-    void* get() const { return fallback_object.get(); }
+    void* get() const { return fallbackObj.get(); }
 
     SharedMemoryBackendFallback(const SharedMemoryBackendFallback&)            = delete;
     SharedMemoryBackendFallback& operator=(const SharedMemoryBackendFallback&) = delete;
 
-    SharedMemoryBackendFallback(SharedMemoryBackendFallback&& other) noexcept :
-        fallback_object(std::move(other.fallback_object)) {}
+    SharedMemoryBackendFallback(SharedMemoryBackendFallback&& shmFallback) noexcept :
+        fallbackObj(std::move(shmFallback.fallbackObj)) {}
 
-    SharedMemoryBackendFallback& operator=(SharedMemoryBackendFallback&& other) noexcept {
-        fallback_object = std::move(other.fallback_object);
+    SharedMemoryBackendFallback& operator=(SharedMemoryBackendFallback&& shmFallback) noexcept {
+        fallbackObj = std::move(shmFallback.fallbackObj);
         return *this;
     }
 
     SystemWideSharedConstantAllocationStatus get_status() const {
-        return fallback_object == nullptr ? SystemWideSharedConstantAllocationStatus::NoAllocation
-                                          : SystemWideSharedConstantAllocationStatus::LocalMemory;
+        return fallbackObj == nullptr ? SystemWideSharedConstantAllocationStatus::NoAllocation
+                                      : SystemWideSharedConstantAllocationStatus::LocalMemory;
     }
 
     std::optional<std::string> get_error_message() const {
-        if (fallback_object == nullptr)
+        if (fallbackObj == nullptr)
             return "Not initialized";
 
         return "Shared memory not supported by the OS. Local allocation fallback.";
     }
 
    private:
-    LargePagePtr<T> fallback_object;
+    LargePagePtr<T> fallbackObj;
 };
 
 // Platform-independent wrapper
@@ -550,9 +550,9 @@ struct SystemWideSharedConstant {
         // POSIX shared memory names must start with a slash
         shm_name = "/sf_" + createHashString(shm_name);
 
-        // hash name and make sure it is not longer than SF_MAX_SEM_NAME_LEN
-        if (shm_name.size() > SF_MAX_SEM_NAME_LEN)
-            shm_name = shm_name.substr(0, SF_MAX_SEM_NAME_LEN - 1);
+        // hash name and make sure it is not longer than MAX_SEM_NAME_LEN
+        if (shm_name.size() > MAX_SEM_NAME_LEN)
+            shm_name = shm_name.substr(0, MAX_SEM_NAME_LEN - 1);
 #endif
 
         SharedMemoryBackend<T> shm_backend(shm_name, value);
