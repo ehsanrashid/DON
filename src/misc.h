@@ -29,7 +29,9 @@
 #include <exception>  // IWYU pragma: keep
 // IWYU pragma: no_include <__exception/terminate.h>
 #include <functional>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -216,6 +218,12 @@ class FixedVector final {
     T           _data[MaxSize]{};
     std::size_t _size{0};
 };
+
+inline std::string create_hash_string(std::string_view str) {
+    return (std::ostringstream{} << std::hex << std::setfill('0')
+                                 << std::hash<std::string_view>{}(str))
+      .str();
+}
 
 template<typename T>
 inline void combine_hash(std::size_t& seed, const T& v) {
@@ -507,8 +515,8 @@ std::optional<std::string> read_file_to_string(std::string_view filePath) noexce
 
 template<std::size_t N>
 struct std::hash<DON::FixedString<N>> {
-    std::size_t operator()(const DON::FixedString<N>& fstr) const noexcept {
-        return std::hash<std::string_view>{}((std::string_view) fstr);
+    std::size_t operator()(const DON::FixedString<N>& fixStr) const noexcept {
+        return std::hash<std::string_view>{}((std::string_view) fixStr);
     }
 };
 

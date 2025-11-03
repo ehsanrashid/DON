@@ -1219,12 +1219,12 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         prepare_replicate_from(std::move(source));
     }
 
-    SystemWideLazyNumaReplicated(const SystemWideLazyNumaReplicated&) = delete;
+    SystemWideLazyNumaReplicated(const SystemWideLazyNumaReplicated&) noexcept = delete;
     SystemWideLazyNumaReplicated(SystemWideLazyNumaReplicated&& sysNumaRep) noexcept :
         BaseNumaReplicated(std::move(sysNumaRep)),
         instances(std::exchange(sysNumaRep.instances, {})) {}
 
-    SystemWideLazyNumaReplicated& operator=(const SystemWideLazyNumaReplicated&) = delete;
+    SystemWideLazyNumaReplicated& operator=(const SystemWideLazyNumaReplicated&) noexcept = delete;
     SystemWideLazyNumaReplicated& operator=(SystemWideLazyNumaReplicated&& sysNumaRep) noexcept {
         BaseNumaReplicated::operator=(*this, std::move(sysNumaRep));
         instances = std::exchange(sysNumaRep.instances, {});
@@ -1236,7 +1236,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         return *this;
     }
 
-    ~SystemWideLazyNumaReplicated() override = default;
+    ~SystemWideLazyNumaReplicated() noexcept override = default;
 
     const T& operator[](NumaReplicatedAccessToken token) const noexcept {
         assert(token.numa_index() < instances.size());
