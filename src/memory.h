@@ -265,6 +265,7 @@ template<std::size_t Alignment, typename T>
 #if defined(_WIN32)
 
 struct Advapi final {
+   public:
     // clang-format off
     // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocesstoken
     using OpenProcessToken_      = BOOL(WINAPI*)(HANDLE, DWORD, PHANDLE);
@@ -318,12 +319,13 @@ struct Advapi final {
         loaded  = false;
     }
 
-    HMODULE hModule = nullptr;
-    bool    loaded  = false;
-
     OpenProcessToken_      openProcessToken      = nullptr;
     LookupPrivilegeValueW_ lookupPrivilegeValueW = nullptr;
     AdjustTokenPrivileges_ adjustTokenPrivileges = nullptr;
+
+   private:
+    HMODULE hModule = nullptr;
+    bool    loaded  = false;
 };
 
 template<typename FuncSuccess, typename FuncFailure>

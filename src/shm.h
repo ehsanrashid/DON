@@ -34,9 +34,7 @@
 #include <utility>
 #include <variant>
 
-#if !defined(_WIN32) && !defined(__ANDROID__)
-    #include "shm_linux.h"
-#endif
+#include "shm_linux.h"
 
 #if defined(__ANDROID__)
     #include <limits.h>

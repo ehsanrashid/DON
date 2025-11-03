@@ -18,37 +18,38 @@
 #ifndef SHM_LINUX_H_INCLUDED
 #define SHM_LINUX_H_INCLUDED
 
-#include <atomic>
-#include <cassert>
-#include <cerrno>
-#include <cstdlib>
-#include <cstring>
-#include <cstdio>
-#include <dirent.h>
-#include <mutex>
-#include <new>
-#include <optional>
-#include <pthread.h>
-#include <string>
-#include <inttypes.h>
-#include <type_traits>
-#include <unordered_set>
+#if !defined(_WIN32) && !defined(__ANDROID__)
+    #include <atomic>
+    #include <cassert>
+    #include <cerrno>
+    #include <cstdlib>
+    #include <cstring>
+    #include <cstdio>
+    #include <dirent.h>
+    #include <mutex>
+    #include <new>
+    #include <optional>
+    #include <pthread.h>
+    #include <string>
+    #include <inttypes.h>
+    #include <type_traits>
+    #include <unordered_set>
 
-#include <fcntl.h>
-#include <signal.h>
-#include <sys/file.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <unistd.h>
+    #include <fcntl.h>
+    #include <signal.h>
+    #include <sys/file.h>
+    #include <sys/mman.h>
+    #include <sys/stat.h>
+    #include <unistd.h>
 
-#if defined(__NetBSD__) || defined(__DragonFly__) || defined(__linux__)
-    #include <limits.h>
-    #define MAX_SEM_NAME_LEN NAME_MAX
-#elif defined(__APPLE__)
-    #define MAX_SEM_NAME_LEN 31
-#else
-    #define MAX_SEM_NAME_LEN 255
-#endif
+    #if defined(__NetBSD__) || defined(__DragonFly__) || defined(__linux__)
+        #include <limits.h>
+        #define MAX_SEM_NAME_LEN NAME_MAX
+    #elif defined(__APPLE__)
+        #define MAX_SEM_NAME_LEN 31
+    #else
+        #define MAX_SEM_NAME_LEN 255
+    #endif
 
 namespace DON {
 
@@ -124,7 +125,7 @@ class CleanupHooks final {
 };
 
 inline int portable_fallocate(int fd, off_t offset, off_t length) {
-#ifdef __APPLE__
+    #if defined(__APPLE__)
     fstore_t store = {F_ALLOCATECONTIG, F_PEOFPOSMODE, offset, length, 0};
     int      ret   = fcntl(fd, F_PREALLOCATE, &store);
     if (ret == -1)
@@ -135,9 +136,9 @@ inline int portable_fallocate(int fd, off_t offset, off_t length) {
     if (ret != -1)
         ret = ftruncate(fd, offset + length);
     return ret;
-#else
+    #else
     return posix_fallocate(fd, offset, length);
-#endif
+    #endif
 }
 
 }  // namespace internal
@@ -484,10 +485,10 @@ class SharedMemory final: public internal::BaseSharedMemory {
             return false;
 
         bool success = pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED) == 0;
-#ifdef PTHREAD_MUTEX_ROBUST
+    #if defined(PTHREAD_MUTEX_ROBUST)
         if (success)
             success = pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST) == 0;
-#endif
+    #endif
 
         if (success)
             success = pthread_mutex_init(&shmHeader->mutex, &attr) == 0;
@@ -506,14 +507,14 @@ class SharedMemory final: public internal::BaseSharedMemory {
             if (rc == 0)
                 return true;
 
-#ifdef PTHREAD_MUTEX_ROBUST
+    #if defined(PTHREAD_MUTEX_ROBUST)
             if (rc == EOWNERDEAD)
             {
                 if (pthread_mutex_consistent(&shmHeader->mutex) == 0)
                     return true;
                 return false;
             }
-#endif
+    #endif
 
             if (rc == EINTR)
                 continue;
@@ -541,10 +542,10 @@ class SharedMemory final: public internal::BaseSharedMemory {
             if (name.rfind(prefix, 0) != 0)
                 continue;
 
-            auto  pid_str = name.substr(prefix.size());
-            char* end     = nullptr;
-            long  value   = std::strtol(pid_str.c_str(), &end, 10);
-            if (!end || *end != '\0')
+            auto  pidStr = name.substr(prefix.size());
+            char* end    = nullptr;
+            long  value  = std::strtol(pidStr.c_str(), &end, 10);
+            if (end == nullptr || *end != '\0')
                 continue;
 
             pid_t pid = static_cast<pid_t>(value);
@@ -554,8 +555,8 @@ class SharedMemory final: public internal::BaseSharedMemory {
                 break;
             }
 
-            std::string stale_path = std::string("/dev/shm/") + name;
-            ::unlink(stale_path.c_str());
+            std::string stalePath = std::string("/dev/shm/") + name;
+            ::unlink(stalePath.c_str());
             const_cast<SharedMemory*>(this)->decrement_refcount_relaxed();
         }
 
@@ -647,4 +648,5 @@ template<typename T>
 
 }  // namespace DON
 
+#endif  // !defined(_WIN32) && !defined(__ANDROID__)
 #endif  // #ifndef SHM_LINUX_H_INCLUDED
