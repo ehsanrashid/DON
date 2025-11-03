@@ -22,25 +22,24 @@
     #include <atomic>
     #include <cassert>
     #include <cerrno>
+    #include <cstdio>
     #include <cstdlib>
     #include <cstring>
-    #include <cstdio>
     #include <dirent.h>
+    #include <fcntl.h>
+    #include <inttypes.h>
     #include <mutex>
     #include <new>
     #include <optional>
     #include <pthread.h>
-    #include <string>
-    #include <inttypes.h>
-    #include <type_traits>
-    #include <unordered_set>
-
-    #include <fcntl.h>
     #include <signal.h>
+    #include <string>
     #include <sys/file.h>
     #include <sys/mman.h>
     #include <sys/stat.h>
+    #include <type_traits>
     #include <unistd.h>
+    #include <unordered_set>
 
     #if defined(__NetBSD__) || defined(__DragonFly__) || defined(__linux__)
         #include <limits.h>
@@ -56,7 +55,7 @@ namespace DON {
 namespace internal {
 
 struct ShmHeader final {
-    static constexpr std::uint32_t SHM_MAGIC = 0xAD5F1A12;
+    static constexpr std::uint32_t SHM_MAGIC = 0xAD5F1A12U;
     pthread_mutex_t                mutex;
     std::atomic<std::uint32_t>     refCount{0};
     std::atomic<bool>              initialized{false};
@@ -124,7 +123,7 @@ class CleanupHooks final {
     static inline std::once_flag registerOnce;
 };
 
-inline int portable_fallocate(int fd, off_t offset, off_t length) {
+inline int portable_fallocate(int fd, off_t offset, off_t length) noexcept {
     #if defined(__APPLE__)
     fstore_t store = {F_ALLOCATECONTIG, F_PEOFPOSMODE, offset, length, 0};
     int      ret   = fcntl(fd, F_PREALLOCATE, &store);
@@ -632,7 +631,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
     void*                mappedPtr = nullptr;
     T*                   dataPtr   = nullptr;
     internal::ShmHeader* shmHeader = nullptr;
-    size_t               totalSize = 0;
+    std::size_t          totalSize = 0;
     std::string          sentinelBase;
     std::string          sentinelPath;
 };

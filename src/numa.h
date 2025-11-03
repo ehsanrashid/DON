@@ -75,8 +75,8 @@ using SetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT);
 using GetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT, PUSHORT);
 #endif
 
-#include "shm.h"
 #include "misc.h"
+#include "shm.h"
 
 namespace DON {
 

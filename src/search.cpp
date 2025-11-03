@@ -30,8 +30,8 @@
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
-#include "prng.h"
 #include "nnue/network.h"
+#include "prng.h"
 #include "score.h"  // IWYU pragma: keep
 #include "thread.h"
 #include "tt.h"
@@ -1696,7 +1696,7 @@ QS_MOVES_LOOP:
 
     auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
-    const History<HPieceSq>* contHistory[2]{(ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory};
+    const History<HPieceSq>* contHistory[1]{(ss - 1)->pieceSqHistory};
 
     Move  move;
     Value value;
