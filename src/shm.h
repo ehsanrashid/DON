@@ -563,13 +563,9 @@ struct SystemWideSharedConstant final {
         return std::visit(
           [](const auto& end) -> SystemWideSharedConstantAllocationStatus {
               if constexpr (std::is_same_v<std::decay_t<decltype(end)>, std::monostate>)
-              {
                   return SystemWideSharedConstantAllocationStatus::NoAllocation;
-              }
               else
-              {
                   return end.get_status();
-              }
           },
           backend);
     }
@@ -578,13 +574,9 @@ struct SystemWideSharedConstant final {
         return std::visit(
           [](const auto& end) -> std::optional<std::string> {
               if constexpr (std::is_same_v<std::decay_t<decltype(end)>, std::monostate>)
-              {
                   return std::nullopt;
-              }
               else
-              {
                   return end.get_error_message();
-              }
           },
           backend);
     }
@@ -594,13 +586,9 @@ struct SystemWideSharedConstant final {
         return std::visit(
           [](const auto& end) -> void* {
               if constexpr (std::is_same_v<std::decay_t<decltype(end)>, std::monostate>)
-              {
                   return nullptr;
-              }
               else
-              {
                   return end.get();
-              }
           },
           backend);
     }
