@@ -97,7 +97,7 @@ void* alloc_windows_aligned_large_pages([[maybe_unused]] std::size_t allocSize) 
           void* mem = VirtualAlloc(nullptr, roundedAllocSize,
                                    MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
           if (mem == nullptr)
-              std::cerr << "Failed to allocate " << allocSize << "B for large page memory."
+              std::cerr << "Failed to allocate " << roundedAllocSize << "B for large page memory."
                         << " Error code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
           return mem;
       },

@@ -40,10 +40,6 @@
     #define MAX_SEM_NAME_LEN NAME_MAX
 #endif
 
-#include "types.h"
-
-#include "memory.h"
-
 #if defined(_WIN32)
 
     #if !defined(NOMINMAX)
@@ -92,6 +88,9 @@
     #include <limits.h>
     #include <unistd.h>
 #endif
+
+#include "memory.h"
+#include "misc.h"
 
 namespace DON {
 
@@ -518,12 +517,12 @@ struct SystemWideSharedConstant final {
     // Content is addressed by its hash. An additional discriminator can be added to account for differences
     // that are not present in the content, for example NUMA node allocation.
     SystemWideSharedConstant(const T& value, std::size_t discriminator = 0) {
-        std::size_t content_hash    = std::hash<T>{}(value);
-        std::size_t executable_hash = std::hash<std::string>{}(getExecutablePathHash());
+        std::size_t contentHash    = std::hash<T>{}(value);
+        std::size_t executableHash = std::hash<std::string>{}(getExecutablePathHash());
 
-        std::string shmName = std::string("Local\\don_") + std::to_string(content_hash) + "$"
-                            + std::to_string(executable_hash) + "$" + std::to_string(discriminator);
-
+        std::string shmName = "Local\\don_" + std::to_string(contentHash)  //
+                            + "$" + std::to_string(executableHash)         //
+                            + "$" + std::to_string(discriminator);
 #if !defined(_WIN32)
         // POSIX shared memory names must start with a slash
         shmName = "/don_" + create_hash_string(shmName);
