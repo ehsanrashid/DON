@@ -964,7 +964,7 @@ Value Worker::search(Position&    pos,
         undo_null_move(pos);
 
         // Do not return unproven mate or TB scores
-        if (nullValue >= beta && !is_win(nullValue))
+        if (nullValue >= beta && !is_decisive(nullValue))
         {
             if (nmpPly != 0 || depth < 16)
                 return nullValue;
@@ -1047,8 +1047,8 @@ Value Worker::search(Position&    pos,
                 ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move,
                            value_to_tt(value, ss->ply), unadjustedStaticEval);
 
-                if (!is_win(value))
-                    return value - (probCutBeta - beta);
+                if (!is_decisive(value))
+                    return in_range(value - (probCutBeta - beta));
             }
         }
     }
@@ -1251,7 +1251,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             // if after excluding the ttMove with a reduced search fail high over the original beta,
             // assume this expected cut-node is not singular (multiple moves fail high),
             // and can prune the whole subtree by returning a soft-bound.
-            else if (value >= beta && !is_win(value))
+            else if (value >= beta && !is_decisive(value))
             {
                 TTMoveHistory << std::max(-400 - 100 * depth, -4000);
                 return value;
