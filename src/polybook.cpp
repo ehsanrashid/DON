@@ -17,7 +17,6 @@
 
 #include "polybook.h"
 
-#include <fcntl.h>
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
@@ -25,6 +24,9 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
+#if !defined(_WIN32)
+    #include <fcntl.h>
+#endif
 
 #include "bitboard.h"
 #include "misc.h"
