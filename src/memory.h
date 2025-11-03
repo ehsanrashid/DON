@@ -327,8 +327,8 @@ struct Advapi final {
 };
 
 template<typename FuncSuccess, typename FuncFailure>
-auto try_with_windows_large_page_privileges(FuncSuccess&& funcSuccess,
-                                            FuncFailure&& funcFailure) noexcept {
+auto try_with_windows_large_page_privileges([[maybe_unused]] FuncSuccess&& funcSuccess,
+                                            FuncFailure&&                  funcFailure) noexcept {
 
     #if !defined(_WIN64)
     return funcFailure();

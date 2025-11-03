@@ -17,6 +17,7 @@
 
 #include "polybook.h"
 
+#include <fcntl.h>
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
