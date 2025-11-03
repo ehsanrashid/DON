@@ -190,7 +190,7 @@ inline std::string GetLastErrorAsString(DWORD errorId) {
 
 // Utilizes shared memory to store the value. It is deduplicated system-wide (for the single user).
 template<typename T>
-class SharedMemoryBackend {
+class SharedMemoryBackend final {
    public:
     enum class Status {
         Success,
@@ -205,18 +205,18 @@ class SharedMemoryBackend {
 
     static constexpr DWORD IS_INITIALIZED_VALUE = 1;
 
-    SharedMemoryBackend() :
+    SharedMemoryBackend() noexcept :
         status(Status::NotInitialized) {};
 
-    SharedMemoryBackend(const std::string& shmName, const T& value) :
+    SharedMemoryBackend(const std::string& shmName, const T& value) noexcept :
         status(Status::NotInitialized) {
 
         initialize(shmName, value);
     }
 
-    bool is_valid() const { return status == Status::Success; }
+    bool is_valid() const noexcept { return status == Status::Success; }
 
-    std::optional<std::string> get_error_message() const {
+    std::optional<std::string> get_error_message() const noexcept {
         switch (status)
         {
         case Status::Success :
@@ -240,12 +240,12 @@ class SharedMemoryBackend {
         }
     }
 
-    void* get() const { return is_valid() ? pMap : nullptr; }
+    void* get() const noexcept { return is_valid() ? pMap : nullptr; }
 
-    ~SharedMemoryBackend() { cleanup(); }
+    ~SharedMemoryBackend() noexcept { cleanup(); }
 
-    SharedMemoryBackend(const SharedMemoryBackend&)            = delete;
-    SharedMemoryBackend& operator=(const SharedMemoryBackend&) = delete;
+    SharedMemoryBackend(const SharedMemoryBackend&) noexcept            = delete;
+    SharedMemoryBackend& operator=(const SharedMemoryBackend&) noexcept = delete;
 
     SharedMemoryBackend(SharedMemoryBackend&& shmBackend) noexcept :
         pMap(shmBackend.pMap),
@@ -274,13 +274,13 @@ class SharedMemoryBackend {
         return *this;
     }
 
-    SystemWideSharedConstantAllocationStatus get_status() const {
+    SystemWideSharedConstantAllocationStatus get_status() const noexcept {
         return status == Status::Success ? SystemWideSharedConstantAllocationStatus::SharedMemory
                                          : SystemWideSharedConstantAllocationStatus::NoAllocation;
     }
 
    private:
-    void initialize(const std::string& shmName, const T& value) {
+    void initialize(const std::string& shmName, const T& value) noexcept {
         size_t totalSize = sizeof(T) + sizeof(IS_INITIALIZED_VALUE);
 
         // Try allocating with large pages first.
@@ -369,7 +369,7 @@ class SharedMemoryBackend {
         status = Status::Success;
     }
 
-    void cleanup_partial() {
+    void cleanup_partial() noexcept {
         if (pMap != nullptr)
         {
             UnmapViewOfFile(pMap);
@@ -382,7 +382,7 @@ class SharedMemoryBackend {
         }
     }
 
-    void cleanup() {
+    void cleanup() noexcept {
         if (pMap != nullptr)
         {
             UnmapViewOfFile(pMap);
@@ -466,16 +466,16 @@ class SharedMemoryBackend {
 #endif
 
 template<typename T>
-struct SharedMemoryBackendFallback {
-    SharedMemoryBackendFallback() = default;
+struct SharedMemoryBackendFallback final {
+    SharedMemoryBackendFallback() noexcept = default;
 
-    SharedMemoryBackendFallback(const std::string&, const T& value) :
+    SharedMemoryBackendFallback(const std::string&, const T& value) noexcept :
         fallbackObj(make_unique_aligned_large_pages<T>(value)) {}
 
     void* get() const { return fallbackObj.get(); }
 
-    SharedMemoryBackendFallback(const SharedMemoryBackendFallback&)            = delete;
-    SharedMemoryBackendFallback& operator=(const SharedMemoryBackendFallback&) = delete;
+    SharedMemoryBackendFallback(const SharedMemoryBackendFallback&) noexcept            = delete;
+    SharedMemoryBackendFallback& operator=(const SharedMemoryBackendFallback&) noexcept = delete;
 
     SharedMemoryBackendFallback(SharedMemoryBackendFallback&& shmFallback) noexcept :
         fallbackObj(std::move(shmFallback.fallbackObj)) {}
@@ -485,12 +485,12 @@ struct SharedMemoryBackendFallback {
         return *this;
     }
 
-    SystemWideSharedConstantAllocationStatus get_status() const {
+    SystemWideSharedConstantAllocationStatus get_status() const noexcept {
         return fallbackObj == nullptr ? SystemWideSharedConstantAllocationStatus::NoAllocation
                                       : SystemWideSharedConstantAllocationStatus::LocalMemory;
     }
 
-    std::optional<std::string> get_error_message() const {
+    std::optional<std::string> get_error_message() const noexcept {
         if (fallbackObj == nullptr)
             return "Not initialized";
 
@@ -516,7 +516,7 @@ struct SystemWideSharedConstant final {
 
     // Content is addressed by its hash. An additional discriminator can be added to account for differences
     // that are not present in the content, for example NUMA node allocation.
-    SystemWideSharedConstant(const T& value, std::size_t discriminator = 0) {
+    SystemWideSharedConstant(const T& value, std::size_t discriminator = 0) noexcept {
         std::size_t contentHash    = std::hash<T>{}(value);
         std::size_t executableHash = std::hash<std::string>{}(getExecutablePathHash());
 
@@ -590,7 +590,7 @@ struct SystemWideSharedConstant final {
     }
 
    private:
-    auto get_ptr() const {
+    auto get_ptr() const noexcept {
         return std::visit(
           [](const auto& end) -> void* {
               if constexpr (std::is_same_v<std::decay_t<decltype(end)>, std::monostate>)
