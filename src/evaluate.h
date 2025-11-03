@@ -42,8 +42,8 @@ struct AccumulatorStack;
 
 Value evaluate(const Position&          pos,
                const NNUE::Networks&    networks,
-               NNUE::AccumulatorCaches& accCaches,
                NNUE::AccumulatorStack&  accStack,
+               NNUE::AccumulatorCaches& accCaches,
                std::int32_t             optimism = 0) noexcept;
 
 std::string trace(Position& pos, const NNUE::Networks& networks) noexcept;

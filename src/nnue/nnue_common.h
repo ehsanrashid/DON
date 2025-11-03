@@ -201,15 +201,15 @@ inline void read_leb_128(std::istream& istream, IntType* out, std::size_t count)
                 bufferIdx = 0;
             }
 
-            std::uint8_t byt = buffer[bufferIdx++];
+            std::uint8_t b = buffer[bufferIdx++];
             --byteCount;
-            value |= (byt & 0x7F) << shift;
+            value |= (b & 0x7F) << shift;
             shift += 7;
 
-            if ((byt & 0x80) == 0)
+            if ((b & 0x80) == 0)
             {
                 out[i] =
-                  (shift >= 8 * Size || (byt & 0x40) == 0) ? value : value | ~((1 << shift) - 1);
+                  (shift >= 8 * Size || (b & 0x40) == 0) ? value : value | ~((1 << shift) - 1);
                 break;
             }
         } while (shift < 8 * Size);
@@ -234,13 +234,13 @@ inline void write_leb_128(std::ostream& ostream, const IntType* in, std::size_t 
     {
         IntType value = in[i];
 
-        std::uint8_t byt;
+        std::uint8_t b;
         do
         {
-            byt = value & 0x7F;
+            b = value & 0x7F;
             value >>= 7;
             ++byteCount;
-        } while ((byt & 0x40) == 0 ? value != 0 : value != -1);
+        } while ((b & 0x40) == 0 ? value != 0 : value != -1);
     }
 
     write_little_endian<std::uint32_t>(ostream, byteCount);
@@ -256,8 +256,8 @@ inline void write_leb_128(std::ostream& ostream, const IntType* in, std::size_t 
         bufferIdx = 0;
     };
 
-    auto write = [&](std::uint8_t byt) {
-        buffer[bufferIdx++] = byt;
+    auto write = [&](std::uint8_t b) {
+        buffer[bufferIdx++] = b;
         if (bufferIdx == buffer.size())
             flush();
     };
@@ -268,14 +268,14 @@ inline void write_leb_128(std::ostream& ostream, const IntType* in, std::size_t 
 
         while (true)
         {
-            std::uint8_t byt = value & 0x7F;
+            std::uint8_t b = value & 0x7F;
             value >>= 7;
-            if ((byt & 0x40) == 0 ? value == 0 : value == -1)
+            if ((b & 0x40) == 0 ? value == 0 : value == -1)
             {
-                write(byt);
+                write(b);
                 break;
             }
-            write(byt | 0x80);
+            write(b | 0x80);
         }
     }
 

@@ -964,7 +964,7 @@ Value Worker::search(Position&    pos,
         undo_null_move(pos);
 
         // Do not return unproven mate or TB scores
-        if (nullValue >= beta && !is_win(nullValue))
+        if (nullValue >= beta && !is_decisive(nullValue))
         {
             if (nmpPly != 0 || depth < 16)
                 return nullValue;
@@ -1047,8 +1047,8 @@ Value Worker::search(Position&    pos,
                 ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move,
                            value_to_tt(value, ss->ply), unadjustedStaticEval);
 
-                if (!is_win(value))
-                    return value - (probCutBeta - beta);
+                if (!is_decisive(value))
+                    return in_range(value - (probCutBeta - beta));
             }
         }
     }
@@ -1152,7 +1152,11 @@ S_MOVES_LOOP:  // When in check, search starts here
                                  + promotion_value(move),
                                +VALUE_INFINITE);
                     if (futilityValue <= alpha)
+                    {
+                        if (!is_decisive(bestValue) && !is_decisive(futilityValue))
+                            bestValue = std::max(bestValue, futilityValue);
                         continue;
+                    }
                 }
 
                 // SEE based pruning for captures
@@ -1187,7 +1191,11 @@ S_MOVES_LOOP:  // When in check, search starts here
                                  + 90 * (ss->staticEval > alpha),
                                +VALUE_INFINITE);
                     if (futilityValue <= alpha)
+                    {
+                        if (!is_decisive(bestValue) && !is_decisive(futilityValue))
+                            bestValue = std::max(bestValue, futilityValue);
                         continue;
+                    }
                 }
 
                 lmrDepth = std::max(+lmrDepth, 0);
@@ -1243,7 +1251,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             // if after excluding the ttMove with a reduced search fail high over the original beta,
             // assume this expected cut-node is not singular (multiple moves fail high),
             // and can prune the whole subtree by returning a soft-bound.
-            else if (value >= beta && !is_win(value))
+            else if (value >= beta && !is_decisive(value))
             {
                 TTMoveHistory << std::max(-400 - 100 * depth, -4000);
                 return value;
@@ -1736,11 +1744,19 @@ QS_MOVES_LOOP:
                            +VALUE_INFINITE);
                 // If static evaluation + value of piece going to captured is much lower than alpha
                 if (futilityValue <= alpha)
+                {
+                    if (!is_decisive(bestValue) && !is_decisive(futilityValue))
+                        bestValue = std::max(bestValue, futilityValue);
                     continue;
+                }
 
                 // SEE based pruning
                 if (pos.see(move) < (alpha - futilityBase))
+                {
+                    if (!is_decisive(bestValue))
+                        bestValue = std::max(bestValue, std::min(alpha, futilityBase));
                     continue;
+                }
             }
 
             // Skip non-captures
@@ -1845,7 +1861,7 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) const noexc
 void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }
 
 Value Worker::evaluate(const Position& pos) noexcept {
-    return DON::evaluate(pos, networks[numaAccessToken], accCaches, accStack,
+    return DON::evaluate(pos, networks[numaAccessToken], accStack, accCaches,
                          optimism[pos.active_color()]);
 }
 

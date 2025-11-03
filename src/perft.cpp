@@ -179,7 +179,7 @@ class PerftTable final {
 PerftTable::~PerftTable() noexcept { free(); }
 
 void PerftTable::free() noexcept {
-    [[maybe_unused]] bool success = free_aligned_lp(clusters);
+    [[maybe_unused]] bool success = free_aligned_large_pages(clusters);
     assert(success);
 }
 
@@ -189,7 +189,7 @@ void PerftTable::resize(std::size_t ptSize, ThreadPool& threads) noexcept {
     clusterCount = ptSize * 1024 * 1024 / sizeof(PTCluster);
     assert(clusterCount % 2 == 0);
 
-    clusters = static_cast<PTCluster*>(alloc_aligned_lp(clusterCount * sizeof(PTCluster)));
+    clusters = static_cast<PTCluster*>(alloc_aligned_large_pages(clusterCount * sizeof(PTCluster)));
     if (clusters == nullptr)
     {
         std::cerr << "Failed to allocate " << ptSize << "MB for perft table." << std::endl;

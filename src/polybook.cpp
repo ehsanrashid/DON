@@ -24,6 +24,9 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
+#if !defined(_WIN32)
+    #include <fcntl.h>
+#endif
 
 #include "bitboard.h"
 #include "misc.h"

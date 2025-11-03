@@ -20,8 +20,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 
+#include "../misc.h"
 #include "nnue_architecture.h"
 
 namespace DON {
@@ -33,14 +35,15 @@ namespace NNUE {
 struct Networks;
 struct AccumulatorCaches;
 
+// EvalFile uses fixed string types because it's part of the network structure which must be trivial.
 struct EvalFile final {
     // Default net name, will use one of the EvalFileDefaultName* macros defined
     // in evaluate.h
-    std::string defaultName;
+    FixedString<256> defaultName;
     // Selected net name, either via uci option or default
-    std::string current;
+    FixedString<256> current;
     // Net description extracted from the net file
-    std::string netDescription;
+    FixedString<256> netDescription;
 };
 
 struct NetworkOutput final {
@@ -57,5 +60,16 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
 }  // namespace NNUE
 }  // namespace DON
+
+template<>
+struct std::hash<DON::NNUE::EvalFile> {
+    std::size_t operator()(const DON::NNUE::EvalFile& evalFile) const noexcept {
+        std::size_t h = 0;
+        DON::combine_hash(h, evalFile.defaultName);
+        DON::combine_hash(h, evalFile.current);
+        DON::combine_hash(h, evalFile.netDescription);
+        return h;
+    }
+};
 
 #endif  // #ifndef NNUE_MISC_H_INCLUDED

@@ -18,14 +18,16 @@
 #ifndef NETWORK_H_INCLUDED
 #define NETWORK_H_INCLUDED
 
+#include <cstddef>
 #include <cstdint>
 #include <iosfwd>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
 
-#include "../memory.h"
+#include "../misc.h"
 #include "nnue_accumulator.h"
 #include "nnue_architecture.h"
 #include "nnue_common.h"
@@ -38,9 +40,9 @@ class Position;
 
 namespace NNUE {
 
-enum EmbeddedType : std::uint8_t {
+enum class EmbeddedType {
     BIG,
-    SMALL,
+    SMALL
 };
 
 template<typename Arch, typename Transformer>
@@ -48,22 +50,24 @@ class Network final {
    private:
     static constexpr IndexType TFDimensions = Arch::TransformedFeatureDimensions;
     // Hash value of evaluation function structure
-    static constexpr std::uint32_t HashValue = Arch::hash_value() ^ Transformer::hash_value();
+    static constexpr std::uint32_t Hash = Arch::hash() ^ Transformer::hash();
 
    public:
     Network(EvalFile evFile, EmbeddedType embType) noexcept :
         evalFile(evFile),
         embeddedType(embType) {}
 
-    Network(const Network& net) noexcept;
-    Network(Network&&) noexcept = default;
-    Network& operator=(const Network& net) noexcept;
+    Network(const Network& net)            = default;
+    Network(Network&&) noexcept            = default;
+    Network& operator=(const Network& net) = default;
     Network& operator=(Network&&) noexcept = default;
 
     void load(std::string_view rootDirectory, std::string evalFileName) noexcept;
     bool save(const std::optional<std::string>& fileName) const noexcept;
 
     void verify(std::string evalFileName) const noexcept;
+
+    std::size_t content_hash() const noexcept;
 
     NetworkOutput evaluate(const Position&                         pos,
                            AccumulatorStack&                       accStack,
@@ -88,13 +92,15 @@ class Network final {
     bool write_parameters(std::ostream& ostream, const std::string& netDescription) const noexcept;
 
     // Input feature converter
-    AlignedLPPtr<Transformer> featureTransformer;
+    Transformer featureTransformer;
 
     // Evaluation function
-    AlignedStdPtr<Arch[]> network;
+    Arch network[LayerStacks];
 
     EvalFile     evalFile;
     EmbeddedType embeddedType;
+
+    bool initialized = false;
 
     template<IndexType Size>
     friend struct AccumulatorCaches::Cache;
@@ -113,9 +119,10 @@ using SmallNetwork = Network<SmallNetworkArchitecture, SmallFeatureTransformer>;
 
 struct Networks final {
    public:
-    Networks(BigNetwork&& bigNet, SmallNetwork&& smallNet) noexcept :
-        big(std::move(bigNet)),
-        small(std::move(smallNet)) {}
+    Networks(std::unique_ptr<BigNetwork>&&   bigNet,
+             std::unique_ptr<SmallNetwork>&& smallNet) noexcept :
+        big(std::move(*bigNet)),
+        small(std::move(*smallNet)) {}
 
     BigNetwork   big;
     SmallNetwork small;
@@ -123,5 +130,23 @@ struct Networks final {
 
 }  // namespace NNUE
 }  // namespace DON
+
+template<typename ArchT, typename FeatureTransformerT>
+struct std::hash<DON::NNUE::Network<ArchT, FeatureTransformerT>> {
+    std::size_t
+    operator()(const DON::NNUE::Network<ArchT, FeatureTransformerT>& network) const noexcept {
+        return network.content_hash();
+    }
+};
+
+template<>
+struct std::hash<DON::NNUE::Networks> {
+    std::size_t operator()(const DON::NNUE::Networks& networks) const noexcept {
+        std::size_t h = 0;
+        DON::combine_hash(h, networks.big);
+        DON::combine_hash(h, networks.small);
+        return h;
+    }
+};
 
 #endif  // #ifndef NETWORK_H_INCLUDED

@@ -109,10 +109,10 @@ class Engine final {
 
     NumaReplicationContext numaContext;
 
-    Options                            options;
-    ThreadPool                         threads;
-    TranspositionTable                 tt;
-    LazyNumaReplicated<NNUE::Networks> networks;
+    Options                                      options;
+    ThreadPool                                   threads;
+    TranspositionTable                           tt;
+    SystemWideLazyNumaReplicated<NNUE::Networks> networks;
 
     StateListPtr states;
     Position     pos;

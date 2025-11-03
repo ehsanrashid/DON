@@ -25,7 +25,14 @@
 #include <cinttypes>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
+#include <exception>  // IWYU pragma: keep
+// IWYU pragma: no_include <__exception/terminate.h>
+#include <functional>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -210,6 +217,100 @@ class FixedVector final {
    private:
     T           _data[MaxSize]{};
     std::size_t _size{0};
+};
+
+inline std::string create_hash_string(std::string_view str) {
+    return (std::ostringstream{} << std::hex << std::setfill('0')
+                                 << std::hash<std::string_view>{}(str))
+      .str();
+}
+
+template<typename T>
+inline void combine_hash(std::size_t& seed, const T& v) {
+    std::hash<T> hasher;
+    seed ^= hasher(v) + 0x9E3779B9U + (seed << 6) + (seed >> 2);
+}
+
+template<>
+inline void combine_hash(std::size_t& seed, const std::size_t& v) {
+    seed ^= v + 0x9E3779B9U + (seed << 6) + (seed >> 2);
+}
+
+template<typename T>
+inline std::size_t raw_data_hash(const T& value) {
+    return std::hash<std::string_view>{}(
+      std::string_view(reinterpret_cast<const char*>(&value), sizeof(value)));
+}
+
+template<std::size_t Capacity>
+class FixedString {
+   public:
+    FixedString() :
+        length_(0) {
+        data_[0] = '\0';
+    }
+
+    FixedString(const char* str) {
+        size_t len = std::strlen(str);
+        if (len > Capacity)
+            std::terminate();
+        std::memcpy(data_, str, len);
+        length_        = len;
+        data_[length_] = '\0';
+    }
+
+    FixedString(const std::string& str) {
+        if (str.size() > Capacity)
+            std::terminate();
+        std::memcpy(data_, str.data(), str.size());
+        length_        = str.size();
+        data_[length_] = '\0';
+    }
+
+    std::size_t size() const { return length_; }
+    std::size_t capacity() const { return Capacity; }
+
+    const char* c_str() const { return data_; }
+    const char* data() const { return data_; }
+
+    char& operator[](std::size_t i) { return data_[i]; }
+
+    const char& operator[](std::size_t i) const { return data_[i]; }
+
+    FixedString& operator+=(const char* str) {
+        size_t len = std::strlen(str);
+        if (length_ + len > Capacity)
+            std::terminate();
+        std::memcpy(data_ + length_, str, len);
+        length_ += len;
+        data_[length_] = '\0';
+        return *this;
+    }
+
+    FixedString& operator+=(const FixedString& other) { return (*this += other.c_str()); }
+
+    operator std::string() const { return std::string(data_, length_); }
+
+    operator std::string_view() const { return std::string_view(data_, length_); }
+
+    template<typename T>
+    bool operator==(const T& other) const noexcept {
+        return (std::string_view) (*this) == other;
+    }
+
+    template<typename T>
+    bool operator!=(const T& other) const noexcept {
+        return (std::string_view) (*this) != other;
+    }
+
+    void clear() {
+        length_  = 0;
+        data_[0] = '\0';
+    }
+
+   private:
+    char        data_[Capacity + 1];  // +1 for null terminator
+    std::size_t length_;
 };
 
 constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
@@ -411,5 +512,12 @@ std::streamsize get_file_size(std::ifstream& ifstream) noexcept;
 std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept;
 
 }  // namespace DON
+
+template<std::size_t N>
+struct std::hash<DON::FixedString<N>> {
+    std::size_t operator()(const DON::FixedString<N>& fixStr) const noexcept {
+        return std::hash<std::string_view>{}((std::string_view) fixStr);
+    }
+};
 
 #endif  // #ifndef MISC_H_INCLUDED

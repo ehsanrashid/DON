@@ -738,7 +738,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     std::cerr << "\n==========================="
               << "\nVersion                    : " << version_info()
               << "\nCompiler                   : " << compiler_info()
-              << "\nLarge pages                : " << bool_to_string(has_lp())
+              << "\nLarge pages                : " << bool_to_string(has_large_pages())
               << "\nOriginal invocation        : " << "benchmark " << benchmark.originalInvocation
               << "\nFilled invocation          : " << "benchmark " << benchmark.filledInvocation
               << "\nAvailable processors       : " << engine.get_numa_config_str()

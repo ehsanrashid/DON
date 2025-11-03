@@ -94,8 +94,17 @@ class FeatureTransformer final {
     static constexpr std::size_t BufferSize = OutputDimensions * sizeof(OutputType);
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t hash_value() noexcept {
-        return FeatureSet::HashValue ^ (2 * OutputDimensions);
+    static constexpr std::uint32_t hash() noexcept {
+        return FeatureSet::Hash ^ (2 * OutputDimensions);
+    }
+
+    std::size_t content_hash() const noexcept {
+        std::size_t h = 0;
+        combine_hash(h, raw_data_hash(biases));
+        combine_hash(h, raw_data_hash(weights));
+        combine_hash(h, raw_data_hash(psqtWeights));
+        combine_hash(h, hash());
+        return h;
     }
 
     // Store the order by which 128-bit blocks of a 1024-bit data must
@@ -158,17 +167,15 @@ class FeatureTransformer final {
     }
 
     // Write network parameters
-    bool write_parameters(std::ostream& ostream) noexcept {
+    bool write_parameters(std::ostream& ostream) const noexcept {
+        std::unique_ptr<FeatureTransformer> copy = std::make_unique<FeatureTransformer>(*this);
 
-        permute_weights<false>();
-        scale_weights<false>();
+        copy->template permute_weights<false>();
+        copy->template scale_weights<false>();
 
-        write_leb_128(ostream, biases, std::size(biases));
-        write_leb_128(ostream, weights, std::size(weights));
-        write_leb_128(ostream, psqtWeights, std::size(psqtWeights));
-
-        permute_weights<true>();
-        scale_weights<true>();
+        write_leb_128(ostream, copy->biases, std::size(copy->biases));
+        write_leb_128(ostream, copy->weights, std::size(copy->weights));
+        write_leb_128(ostream, copy->psqtWeights, std::size(copy->psqtWeights));
 
         return !ostream.fail();
     }
@@ -307,5 +314,13 @@ class FeatureTransformer final {
 };
 
 }  // namespace DON::NNUE
+
+template<DON::NNUE::IndexType TransformedFeatureDimensions>
+struct std::hash<DON::NNUE::FeatureTransformer<TransformedFeatureDimensions>> {
+    std::size_t operator()(
+      const DON::NNUE::FeatureTransformer<TransformedFeatureDimensions>& ft) const noexcept {
+        return ft.content_hash();
+    }
+};
 
 #endif  // #ifndef NNUE_FEATURE_TRANSFORMER_H_INCLUDED

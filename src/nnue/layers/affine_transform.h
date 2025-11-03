@@ -142,12 +142,20 @@ class AffineTransform final {
     using OutputBuffer = OutputType[PaddedOutputDimensions];
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t hash_value(std::uint32_t preHashValue) noexcept {
-        std::uint32_t hashValue = 0xCC03DAE4U;
-        hashValue += OutputDimensions;
-        hashValue ^= preHashValue >> 1;
-        hashValue ^= preHashValue << 31;
-        return hashValue;
+    static constexpr std::uint32_t hash(std::uint32_t preHash) noexcept {
+        std::uint32_t h = 0xCC03DAE4U;
+        h += OutputDimensions;
+        h ^= preHash >> 1;
+        h ^= preHash << 31;
+        return h;
+    }
+
+    std::size_t content_hash() const noexcept {
+        std::size_t h = 0;
+        combine_hash(h, raw_data_hash(biases));
+        combine_hash(h, raw_data_hash(weights));
+        combine_hash(h, hash(0));
+        return h;
     }
 
     static constexpr IndexType weight_index(IndexType i) noexcept {
