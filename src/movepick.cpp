@@ -88,7 +88,6 @@ MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveL
 
         m.value = 7 * (PIECE_VALUE[captured] + promotion_value<true>(m))  //
                 + CaptureHistory[pc][dst][captured]                       //
-                + 0x400 * pos.check(m)                                    //
                 + 0x100 * (pos.cap_sq() == dst);
     }
     return itr;
