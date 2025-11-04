@@ -1465,8 +1465,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 alpha = value;  // Update alpha! Always alpha < beta
 
                 // Reduce depth for other moves if have found at least one score improvement
-                if (depth < 14 && !is_decisive(value))
-                    depth = std::max(depth - 2, 1);
+                if (2 < depth && !is_decisive(value))
+                    depth = std::max(depth - 2, 2);
 
                 assert(depth > DEPTH_ZERO);
             }
@@ -2269,7 +2269,7 @@ void update_all_quiet_history(const Position& pos, Stack* const ss, Move m, int 
 
 // Updates history at the end of search() when a bestMove is found
 void update_all_history(const Position& pos, Stack* const ss, Depth depth, Move bm, const MovesArray<2>& movesArr) noexcept {
-    assert(pos.pseudo_legal(bm));
+    assert(pos.legal(bm));
     assert(ss->moveCount);
 
     int bonus =          std::min(- 77 + 121 * depth, 1633) + 375 * (bm == ss->ttMove);
