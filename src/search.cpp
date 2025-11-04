@@ -1282,26 +1282,15 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Step 16. Make the move
         do_move(pos, move, st, check, ss);
 
-        if (ss->inCheck)
-        {
-            ss->history = capture ? 6.2734 * (PIECE_VALUE[captured] + promotion_value(move))  //
-                                      + CaptureHistory[movedPiece][dst][captured]
-                                  : 2 * QuietHistory[ac][move.raw()]  //
-                                      + (*contHistory[0])[movedPiece][dst];
-        }
-        else
-        {
-            ss->history = capture ? 6.2734 * (PIECE_VALUE[captured] + promotion_value(move))  //
-                                      + CaptureHistory[movedPiece][dst][captured]
-                                  : 2 * QuietHistory[ac][move.raw()]        //
-                                      + (*contHistory[0])[movedPiece][dst]  //
-                                      + (*contHistory[1])[movedPiece][dst];
-        }
+        ss->history = capture ? 6.2734 * (PIECE_VALUE[captured] + promotion_value(move))
+                                  + CaptureHistory[movedPiece][dst][captured]
+                              : 2 * QuietHistory[ac][move.raw()]  //
+                                  + (*contHistory[0])[movedPiece][dst]
+                                  + (!ss->inCheck ? (*contHistory[1])[movedPiece][dst] : 0);
 
         // (*Scaler) Decrease reduction if position is or has been on the PV
-        r -= (2618 + 991 * PVNode                                 //
-              + 903 * (is_valid(ttd.value) && ttd.value > alpha)  //
-              + (978 + 1051 * CutNode) * (ttd.hit && ttd.depth >= depth))
+        r -= (2618 + 991 * PVNode + 903 * (is_valid(ttd.value) && ttd.value > alpha)
+              + (978 + 1051 * CutNode) * (ttd.depth >= depth))
            * ss->pvHit;
 
         // These reduction adjustments have no proven non-linear scaling.

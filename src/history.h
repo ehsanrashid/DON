@@ -201,7 +201,7 @@ static_assert(exactly_one(PAWN_HISTORY_SIZE), "PAWN_HISTORY_SIZE has to be a pow
 // clang-format on
 
 constexpr std::uint16_t pawn_index(Key pawnKey) noexcept {
-    return pawnKey & (PAWN_HISTORY_SIZE - 1);
+    return compress_key16(pawnKey) & (PAWN_HISTORY_SIZE - 1);
 }
 
 inline constexpr std::uint16_t LOW_PLY_SIZE = 5;
@@ -274,7 +274,7 @@ inline constexpr std::size_t CORRECTION_HISTORY_SIZE  = 0x10000;
 static_assert(exactly_one(CORRECTION_HISTORY_SIZE), "CORRECTION_HISTORY_SIZE has to be a power of 2");
 // clang-format on
 
-constexpr std::uint16_t correction_index(Key corrKey) noexcept { return corrKey; }
+constexpr std::uint16_t correction_index(Key corrKey) noexcept { return compress_key16(corrKey); }
 
 // Correction histories record differences between the static evaluation of
 // positions and their search score.
