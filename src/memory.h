@@ -43,7 +43,7 @@
         // Force to include needed API prototypes
         #define _WIN32_WINNT _WIN32_WINNT_WIN7  // or _WIN32_WINNT_WIN10
     #endif
-    #define UNICODE
+    #undef UNICODE
     #include <windows.h>
     #if defined(small)
         #undef small
@@ -269,13 +269,13 @@ struct Advapi final {
     // clang-format off
     // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocesstoken
     using OpenProcessToken_      = BOOL(WINAPI*)(HANDLE, DWORD, PHANDLE);
-    // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-lookupprivilegevaluew
-    using LookupPrivilegeValueW_ = BOOL(WINAPI*)(LPCWSTR, LPCWSTR, PLUID);
+    // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-lookupprivilegevaluea
+    using LookupPrivilegeValue_  = BOOL(WINAPI*)(LPCSTR, LPCSTR, PLUID);
     // https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
     using AdjustTokenPrivileges_ = BOOL(WINAPI*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
     // clang-format on
 
-    static constexpr LPCWSTR ModuleName = TEXT("advapi32.dll");
+    static constexpr LPCSTR ModuleName = TEXT("advapi32.dll");
 
     constexpr Advapi() noexcept = default;
     ~Advapi() noexcept { free(); }
@@ -300,9 +300,9 @@ struct Advapi final {
           OpenProcessToken_((void (*)()) GetProcAddress(hModule, "OpenProcessToken"));
         if (openProcessToken == nullptr)
             return false;
-        lookupPrivilegeValueW =
-          LookupPrivilegeValueW_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueW"));
-        if (lookupPrivilegeValueW == nullptr)
+        lookupPrivilegeValue =
+          LookupPrivilegeValue_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValue"));
+        if (lookupPrivilegeValue == nullptr)
             return false;
         adjustTokenPrivileges =
           AdjustTokenPrivileges_((void (*)()) GetProcAddress(hModule, "AdjustTokenPrivileges"));
@@ -320,7 +320,7 @@ struct Advapi final {
     }
 
     OpenProcessToken_      openProcessToken      = nullptr;
-    LookupPrivilegeValueW_ lookupPrivilegeValueW = nullptr;
+    LookupPrivilegeValue_  lookupPrivilegeValue  = nullptr;
     AdjustTokenPrivileges_ adjustTokenPrivileges = nullptr;
 
    private:
@@ -336,7 +336,7 @@ auto try_with_windows_large_page_privileges([[maybe_unused]] FuncSuccess&& funcS
     return funcFailure();
     #else
 
-    const SIZE_T largePageSize = GetLargePageMinimum();
+    const std::size_t largePageSize = GetLargePageMinimum();
     if (largePageSize == 0)
         return funcFailure();
 
@@ -344,14 +344,14 @@ auto try_with_windows_large_page_privileges([[maybe_unused]] FuncSuccess&& funcS
     if (!advapi.load())
         return funcFailure();
 
-    HANDLE tokenHandle = nullptr;
+    HANDLE hProcess = nullptr;
     // Need SeLockMemoryPrivilege, so try to enable it for the process
     if (!advapi.openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
-                                 &tokenHandle))
+                                 &hProcess))
         return funcFailure();
 
     LUID luid{};
-    if (!advapi.lookupPrivilegeValueW(nullptr, SE_LOCK_MEMORY_NAME, &luid))
+    if (!advapi.lookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &luid))
         return funcFailure();
 
     TOKEN_PRIVILEGES oldTp{};
@@ -365,7 +365,7 @@ auto try_with_windows_large_page_privileges([[maybe_unused]] FuncSuccess&& funcS
     // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
     // Still need to query GetLastError() to ensure that the privileges were actually obtained.
     SetLastError(ERROR_SUCCESS);
-    if (!advapi.adjustTokenPrivileges(tokenHandle, FALSE, &newTp, sizeof(oldTp), &oldTp, &oldTpLen)
+    if (!advapi.adjustTokenPrivileges(hProcess, FALSE, &newTp, sizeof(oldTp), &oldTp, &oldTpLen)
         || GetLastError() != ERROR_SUCCESS)
         return funcFailure();
 
@@ -374,10 +374,10 @@ auto try_with_windows_large_page_privileges([[maybe_unused]] FuncSuccess&& funcS
 
     // Privilege no longer needed, restore the privileges
     //if (oldTp.PrivilegeCount > 0)
-    advapi.adjustTokenPrivileges(tokenHandle, FALSE, &oldTp, 0, nullptr, nullptr);
+    advapi.adjustTokenPrivileges(hProcess, FALSE, &oldTp, 0, nullptr, nullptr);
 
-    if (tokenHandle != nullptr)
-        CloseHandle(tokenHandle);
+    if (hProcess != nullptr)
+        CloseHandle(hProcess);
 
     advapi.free();
 

@@ -177,25 +177,25 @@ class SharedMemory final: public internal::BaseSharedMemory {
     }
 
     SharedMemory& operator=(SharedMemory&& sharedMem) noexcept {
-        if (this != &sharedMem)
-        {
-            internal::SharedMemoryRegistry::unregister_instance(this);
-            close();
+        if (this == &sharedMem)
+            return *this;
 
-            _name        = std::move(sharedMem._name);
-            _fd          = sharedMem._fd;
-            mappedPtr    = sharedMem.mappedPtr;
-            dataPtr      = sharedMem.dataPtr;
-            shmHeader    = sharedMem.shmHeader;
-            totalSize    = sharedMem.totalSize;
-            sentinelBase = std::move(sharedMem.sentinelBase);
-            sentinelPath = std::move(sharedMem.sentinelPath);
+        internal::SharedMemoryRegistry::unregister_instance(this);
+        close();
 
-            internal::SharedMemoryRegistry::unregister_instance(&sharedMem);
-            internal::SharedMemoryRegistry::register_instance(this);
+        _name        = std::move(sharedMem._name);
+        _fd          = sharedMem._fd;
+        mappedPtr    = sharedMem.mappedPtr;
+        dataPtr      = sharedMem.dataPtr;
+        shmHeader    = sharedMem.shmHeader;
+        totalSize    = sharedMem.totalSize;
+        sentinelBase = std::move(sharedMem.sentinelBase);
+        sentinelPath = std::move(sharedMem.sentinelPath);
 
-            sharedMem.reset();
-        }
+        internal::SharedMemoryRegistry::unregister_instance(&sharedMem);
+        internal::SharedMemoryRegistry::register_instance(this);
+
+        sharedMem.reset();
         return *this;
     }
 
@@ -293,21 +293,21 @@ class SharedMemory final: public internal::BaseSharedMemory {
         if (_fd == -1 && mappedPtr == nullptr)
             return;
 
-        bool remove_region = false;
-        bool file_locked   = lock_file(LOCK_EX);
-        bool mutex_locked  = false;
+        bool regionRemove = false;
+        bool fileLocked   = lock_file(LOCK_EX);
+        bool mutexLocked  = false;
 
-        if (file_locked && shmHeader != nullptr)
-            mutex_locked = lock_shared_mutex();
+        if (fileLocked && shmHeader != nullptr)
+            mutexLocked = lock_shared_mutex();
 
-        if (mutex_locked)
+        if (mutexLocked)
         {
             if (shmHeader)
             {
                 shmHeader->refCount.fetch_sub(1, std::memory_order_acq_rel);
             }
             remove_sentinel_file();
-            remove_region = !has_other_live_sentinels_locked();
+            regionRemove = !has_other_live_sentinels_locked();
             unlock_shared_mutex();
         }
         else
@@ -318,10 +318,10 @@ class SharedMemory final: public internal::BaseSharedMemory {
 
         unmap_region();
 
-        if (remove_region)
+        if (regionRemove)
             shm_unlink(_name.c_str());
 
-        if (file_locked)
+        if (fileLocked)
             unlock_file();
 
         if (_fd != -1)
@@ -359,9 +359,9 @@ class SharedMemory final: public internal::BaseSharedMemory {
     }
 
     static std::string make_sentinel_base(const std::string& name) {
-        uint64_t hash = std::hash<std::string>{}(name);
-        char     buf[32];
-        std::snprintf(buf, sizeof(buf), "sfshm_%016" PRIx64, static_cast<uint64_t>(hash));
+        std::uint64_t hash = std::hash<std::string>{}(name);
+        char          buf[32];
+        std::snprintf(buf, sizeof(buf), "don_shm_%016" PRIx64, hash);
         return buf;
     }
 

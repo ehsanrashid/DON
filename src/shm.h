@@ -56,7 +56,7 @@
         // Force to include needed API prototypes
         #define _WIN32_WINNT _WIN32_WINNT_WIN7  // or _WIN32_WINNT_WIN10
     #endif
-    #define UNICODE
+    #undef UNICODE
     #include <windows.h>
     #if defined(small)
         #undef small
@@ -102,12 +102,12 @@ namespace DON {
 // If the path is longer than 4095 bytes the hash will be computed from an unspecified
 // amount of bytes of the path; in particular it can a hash of an empty string.
 
-inline std::string getExecutablePathHash() {
+inline std::string executable_path_hash() noexcept {
     char        executablePath[4096] = {0};
     std::size_t pathLength           = 0;
 
 #if defined(_WIN32)
-    pathLength = GetModuleFileNameA(NULL, executablePath, sizeof(executablePath));
+    pathLength = GetModuleFileName(NULL, executablePath, sizeof(executablePath));
 
 #elif defined(__APPLE__)
     std::uint32_t size = sizeof(executablePath);
@@ -163,7 +163,7 @@ enum class SystemWideSharedConstantAllocationStatus {
 #if defined(_WIN32)
 
 // Get the error message string, if any.
-inline std::string GetLastErrorAsString(DWORD errorId) {
+inline std::string error_to_string(DWORD errorId) noexcept {
     if (errorId == 0)
         return {};
 
@@ -171,7 +171,7 @@ inline std::string GetLastErrorAsString(DWORD errorId) {
     // Ask Win32 to give us the string version of that message ID.
     // The parameters pass in, tell Win32 to create the buffer that holds the message
     // (because don't yet know how long the message string will be).
-    std::size_t len = FormatMessageA(
+    std::size_t len = FormatMessage(
       FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
       NULL, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
       reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
@@ -224,15 +224,15 @@ class SharedMemoryBackend final {
         case Status::LargePageAllocationError :
             return "Failed to allocate large page memory";
         case Status::FileMappingError :
-            return "Failed to create file mapping: " + lastErrorMsg;
+            return "Failed to create file mapping: " + lastErrorStr;
         case Status::MapViewError :
-            return "Failed to map view: " + lastErrorMsg;
+            return "Failed to map view: " + lastErrorStr;
         case Status::MutexCreateError :
-            return "Failed to create mutex: " + lastErrorMsg;
+            return "Failed to create mutex: " + lastErrorStr;
         case Status::MutexWaitError :
-            return "Failed to wait on mutex: " + lastErrorMsg;
+            return "Failed to wait on mutex: " + lastErrorStr;
         case Status::MutexReleaseError :
-            return "Failed to release mutex: " + lastErrorMsg;
+            return "Failed to release mutex: " + lastErrorStr;
         case Status::NotInitialized :
             return "Not initialized";
         default :
@@ -240,7 +240,7 @@ class SharedMemoryBackend final {
         }
     }
 
-    void* get() const noexcept { return is_valid() ? pMap : nullptr; }
+    void* get() const noexcept { return is_valid() ? pMapAddr : nullptr; }
 
     ~SharedMemoryBackend() noexcept { cleanup(); }
 
@@ -248,27 +248,26 @@ class SharedMemoryBackend final {
     SharedMemoryBackend& operator=(const SharedMemoryBackend&) noexcept = delete;
 
     SharedMemoryBackend(SharedMemoryBackend&& shmBackend) noexcept :
-        pMap(shmBackend.pMap),
         hMapFile(shmBackend.hMapFile),
+        pMapAddr(shmBackend.pMapAddr),
         status(shmBackend.status),
-        lastErrorMsg(std::move(shmBackend.lastErrorMsg)) {
+        lastErrorStr(std::move(shmBackend.lastErrorStr)) {
 
-        shmBackend.pMap     = nullptr;
+        shmBackend.pMapAddr = nullptr;
         shmBackend.hMapFile = nullptr;
         shmBackend.status   = Status::NotInitialized;
     }
-
     SharedMemoryBackend& operator=(SharedMemoryBackend&& shmBackend) noexcept {
         if (this == &shmBackend)
             return *this;
 
         cleanup();
-        pMap         = shmBackend.pMap;
         hMapFile     = shmBackend.hMapFile;
+        pMapAddr     = shmBackend.pMapAddr;
         status       = shmBackend.status;
-        lastErrorMsg = std::move(shmBackend.lastErrorMsg);
+        lastErrorStr = std::move(shmBackend.lastErrorStr);
 
-        shmBackend.pMap     = nullptr;
+        shmBackend.pMapAddr = nullptr;
         shmBackend.hMapFile = nullptr;
         shmBackend.status   = Status::NotInitialized;
         return *this;
@@ -281,7 +280,7 @@ class SharedMemoryBackend final {
 
    private:
     void initialize(const std::string& shmName, const T& value) noexcept {
-        size_t totalSize = sizeof(T) + sizeof(IS_INITIALIZED_VALUE);
+        std::size_t totalSize = sizeof(T) + sizeof(IS_INITIALIZED_VALUE);
 
         // Try allocating with large pages first.
         hMapFile = try_with_windows_large_page_privileges(
@@ -296,40 +295,40 @@ class SharedMemoryBackend final {
               DWORD loTotalSize = roundedTotalSize;
     #endif
 
-              return CreateFileMappingA(INVALID_HANDLE_VALUE, NULL,
-                                        PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,  //
-                                        hiTotalSize, loTotalSize, shmName.c_str());
+              return CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
+                                       PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,  //
+                                       hiTotalSize, loTotalSize, shmName.c_str());
           },
           []() { return (void*) nullptr; });
 
         // Fallback to normal allocation if no large pages available.
         if (hMapFile == nullptr)
-            hMapFile = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0,  //
-                                          totalSize, shmName.c_str());
+            hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0,  //
+                                         totalSize, shmName.c_str());
 
         if (hMapFile == nullptr)
         {
             status       = Status::FileMappingError;
-            lastErrorMsg = GetLastErrorAsString(GetLastError());
+            lastErrorStr = error_to_string(GetLastError());
             return;
         }
 
-        pMap = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, totalSize);
-        if (pMap == nullptr)
+        pMapAddr = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, totalSize);
+        if (pMapAddr == nullptr)
         {
             status       = Status::MapViewError;
-            lastErrorMsg = GetLastErrorAsString(GetLastError());
+            lastErrorStr = error_to_string(GetLastError());
             cleanup_partial();
             return;
         }
 
         // Use named mutex to ensure only one initializer
         std::string mutexName = shmName + "$mutex";
-        HANDLE      hMutex    = CreateMutexA(NULL, FALSE, mutexName.c_str());
+        HANDLE      hMutex    = CreateMutex(NULL, FALSE, mutexName.c_str());
         if (hMutex == nullptr)
         {
             status       = Status::MutexCreateError;
-            lastErrorMsg = GetLastErrorAsString(GetLastError());
+            lastErrorStr = error_to_string(GetLastError());
             cleanup_partial();
             return;
         }
@@ -337,7 +336,7 @@ class SharedMemoryBackend final {
         if (WaitForSingleObject(hMutex, INFINITE) != WAIT_OBJECT_0)
         {
             status       = Status::MutexWaitError;
-            lastErrorMsg = GetLastErrorAsString(GetLastError());
+            lastErrorStr = error_to_string(GetLastError());
             cleanup_partial();
             CloseHandle(hMutex);
             return;
@@ -345,8 +344,8 @@ class SharedMemoryBackend final {
 
         // Crucially, we place the object first to ensure alignment.
         volatile DWORD* isInitialized =
-          std::launder(reinterpret_cast<DWORD*>(reinterpret_cast<char*>(pMap) + sizeof(T)));
-        T* object = std::launder(reinterpret_cast<T*>(pMap));
+          std::launder(reinterpret_cast<DWORD*>(reinterpret_cast<char*>(pMapAddr) + sizeof(T)));
+        T* object = std::launder(reinterpret_cast<T*>(pMapAddr));
 
         if (*isInitialized != IS_INITIALIZED_VALUE)
         {
@@ -358,7 +357,7 @@ class SharedMemoryBackend final {
         if (!ReleaseMutex(hMutex))
         {
             status       = Status::MutexReleaseError;
-            lastErrorMsg = GetLastErrorAsString(GetLastError());
+            lastErrorStr = error_to_string(GetLastError());
             cleanup_partial();
             CloseHandle(hMutex);
             return;
@@ -370,10 +369,10 @@ class SharedMemoryBackend final {
     }
 
     void cleanup_partial() noexcept {
-        if (pMap != nullptr)
+        if (pMapAddr != nullptr)
         {
-            UnmapViewOfFile(pMap);
-            pMap = nullptr;
+            UnmapViewOfFile(pMapAddr);
+            pMapAddr = nullptr;
         }
         if (hMapFile != nullptr)
         {
@@ -383,10 +382,10 @@ class SharedMemoryBackend final {
     }
 
     void cleanup() noexcept {
-        if (pMap != nullptr)
+        if (pMapAddr != nullptr)
         {
-            UnmapViewOfFile(pMap);
-            pMap = nullptr;
+            UnmapViewOfFile(pMapAddr);
+            pMapAddr = nullptr;
         }
         if (hMapFile != nullptr)
         {
@@ -395,10 +394,10 @@ class SharedMemoryBackend final {
         }
     }
 
-    void*       pMap     = nullptr;
     HANDLE      hMapFile = nullptr;
+    void*       pMapAddr = nullptr;
     Status      status   = Status::NotInitialized;
-    std::string lastErrorMsg;
+    std::string lastErrorStr;
 };
 
 #elif !defined(__ANDROID__)
@@ -479,7 +478,6 @@ struct SharedMemoryBackendFallback final {
 
     SharedMemoryBackendFallback(SharedMemoryBackendFallback&& shmFallback) noexcept :
         fallbackObj(std::move(shmFallback.fallbackObj)) {}
-
     SharedMemoryBackendFallback& operator=(SharedMemoryBackendFallback&& shmFallback) noexcept {
         fallbackObj = std::move(shmFallback.fallbackObj);
         return *this;
@@ -518,7 +516,7 @@ struct SystemWideSharedConstant final {
     // that are not present in the content, for example NUMA node allocation.
     SystemWideSharedConstant(const T& value, std::size_t discriminator = 0) noexcept {
         std::size_t contentHash    = std::hash<T>{}(value);
-        std::size_t executableHash = std::hash<std::string>{}(getExecutablePathHash());
+        std::size_t executableHash = std::hash<std::string>{}(executable_path_hash());
 
         std::string shmName = "Local\\don_" + std::to_string(contentHash)  //
                             + "$" + std::to_string(executableHash)         //
@@ -545,7 +543,6 @@ struct SystemWideSharedConstant final {
 
     SystemWideSharedConstant(SystemWideSharedConstant&& sysConstant) noexcept :
         backend(std::move(sysConstant.backend)) {}
-
     SystemWideSharedConstant& operator=(SystemWideSharedConstant&& sysConstant) noexcept {
         backend = std::move(sysConstant.backend);
         return *this;

@@ -50,7 +50,7 @@
         // Force to include needed API prototypes
         #define _WIN32_WINNT _WIN32_WINNT_WIN7  // or _WIN32_WINNT_WIN10
     #endif
-    #define UNICODE
+    #undef UNICODE
     #include <windows.h>
     #if defined(small)
         #undef small

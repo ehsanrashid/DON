@@ -1129,7 +1129,7 @@ bool Position::pseudo_legal(Move m) const noexcept {
     if (m.type_of() == CASTLING)
     {
         CastlingRights cr = make_castling_rights(ac, org, dst);
-        return pc == make_piece(ac, KING) && (pieces(ac, ROOK) & dst) && !checkers()
+        return type_of(pc) == KING && (pieces(ac, ROOK) & dst) && !checkers()
             && relative_rank(ac, org) == RANK_1 && relative_rank(ac, dst) == RANK_1
             && can_castle(cr) && !castling_impeded(cr) && castling_rook_sq(cr) == dst;
     }
@@ -1161,12 +1161,12 @@ bool Position::pseudo_legal(Move m) const noexcept {
             return false;
 
         // For king moves, check whether the destination square is attacked by the enemies.
-        if (pc == make_piece(ac, KING))
+        if (type_of(pc) == KING)
             return !has_attackers_to(pieces(~ac), dst, pieces() ^ org);
         break;
 
     case PROMOTION :
-        if (!(pc == make_piece(ac, PAWN)  //&& (PROMOTION_RANK_BB & dst)
+        if (!(type_of(pc) == PAWN  //&& (PROMOTION_RANK_BB & dst)
               && relative_rank(ac, org) == RANK_7 && relative_rank(ac, dst) == RANK_8
               && ((org + pawn_spush(ac) == dst && !(pieces() & dst))
                   || ((attacks_bb<PAWN>(org, ac) & pieces(~ac)) & dst))))
@@ -1174,7 +1174,7 @@ bool Position::pseudo_legal(Move m) const noexcept {
         break;
 
     case EN_PASSANT :
-        if (!(pc == make_piece(ac, PAWN) && ep_sq() == dst && rule50_count() == 0
+        if (!(type_of(pc) == PAWN && ep_sq() == dst && rule50_count() == 0
               && relative_rank(ac, org) == RANK_5 && relative_rank(ac, dst) == RANK_6
               && (pieces(~ac, PAWN) & (dst - pawn_spush(ac)))
               && !(pieces() & make_bitboard(dst, dst + pawn_spush(ac)))
@@ -1258,7 +1258,7 @@ bool Position::legal(Move m) const noexcept {
     }
     case NORMAL :
         // For king moves, return true
-        if (piece_on(org) == make_piece(ac, KING))
+        if (type_of(piece_on(org)) == KING)
         {
             assert(!has_attackers_to(pieces(~ac), dst, pieces() ^ org));
             return true;
