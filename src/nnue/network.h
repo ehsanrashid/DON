@@ -131,10 +131,10 @@ struct Networks final {
 }  // namespace NNUE
 }  // namespace DON
 
-template<typename ArchT, typename FeatureTransformerT>
-struct std::hash<DON::NNUE::Network<ArchT, FeatureTransformerT>> {
+template<typename Arch, typename FeatureTransformer>
+struct std::hash<DON::NNUE::Network<Arch, FeatureTransformer>> {
     std::size_t
-    operator()(const DON::NNUE::Network<ArchT, FeatureTransformerT>& network) const noexcept {
+    operator()(const DON::NNUE::Network<Arch, FeatureTransformer>& network) const noexcept {
         return network.content_hash();
     }
 };

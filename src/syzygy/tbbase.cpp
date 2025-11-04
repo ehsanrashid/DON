@@ -225,61 +225,60 @@ class TBFile: public std::ifstream {
             close();  // Need to re-open to get native file descriptor
 
 #if !defined(_WIN32)
-        int fileHandle = ::open(filename.c_str(), O_RDONLY);
+        int fd = ::open(filename.c_str(), O_RDONLY);
 
-        if (fileHandle == -1)
+        if (fd == -1)
             return *baseAddress = nullptr, nullptr;
 
-        struct stat bufStat;
-        fstat(fileHandle, &bufStat);
+        struct stat st;
+        fstat(fd, &st);
 
-        if (bufStat.st_size % 64 != 16)
+        if (st.st_size % 64 != 16)
         {
             std::cerr << "Corrupt tablebase file " << filename << std::endl;
             std::exit(EXIT_FAILURE);
         }
 
-        *mapping     = bufStat.st_size;
-        *baseAddress = mmap(nullptr, bufStat.st_size, PROT_READ, MAP_SHARED, fileHandle, 0);
+        *mapping     = st.st_size;
+        *baseAddress = mmap(nullptr, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
     #if defined(MADV_RANDOM)
-        madvise(*baseAddress, bufStat.st_size, MADV_RANDOM);
+        madvise(*baseAddress, st.st_size, MADV_RANDOM);
     #endif
-        ::close(fileHandle);
+        ::close(fd);
 
         if (*baseAddress == MAP_FAILED)
         {
-            std::cerr << "Could not mmap(), name = " << filename << std::endl;
+            std::cerr << "mmap() failed, name = " << filename << std::endl;
             std::exit(EXIT_FAILURE);
         }
 #else
         // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
-        HANDLE fileHandle = CreateFileA(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
-                                        OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
+        HANDLE fd = CreateFile(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+                               OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
 
-        if (fileHandle == INVALID_HANDLE_VALUE)
+        if (fd == INVALID_HANDLE_VALUE)
             return *baseAddress = nullptr, nullptr;
 
-        DWORD highSize;
-        DWORD lowSize = GetFileSize(fileHandle, &highSize);
+        DWORD hiSize;
+        DWORD loSize = GetFileSize(fd, &hiSize);
 
-        if (lowSize % 64 != 16)
+        if (loSize % 64 != 16)
         {
             std::cerr << "Corrupt tablebase file " << filename << std::endl;
             std::exit(EXIT_FAILURE);
         }
 
-        HANDLE mapHandle =
-          CreateFileMapping(fileHandle, nullptr, PAGE_READONLY, highSize, lowSize, nullptr);
-        CloseHandle(fileHandle);
+        HANDLE hMapFile = CreateFileMapping(fd, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
+        CloseHandle(fd);
 
-        if (!mapHandle)
+        if (hMapFile == nullptr)
         {
             std::cerr << "CreateFileMapping() failed, name = " << filename << std::endl;
             std::exit(EXIT_FAILURE);
         }
 
-        *mapping     = std::uint64_t(mapHandle);
-        *baseAddress = MapViewOfFile(mapHandle, FILE_MAP_READ, 0, 0, 0);
+        *mapping     = std::uint64_t(hMapFile);
+        *baseAddress = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
 
         if (!*baseAddress)
         {

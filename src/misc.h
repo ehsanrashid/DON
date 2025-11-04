@@ -156,14 +156,14 @@ class sync_ostream final {
 
 inline sync_ostream sync_os(std::ostream& os = std::cout) { return sync_ostream(os); }
 
-template<typename T, std::size_t MaxSize>
+template<typename T, std::size_t Capacity>
 class FixedVector final {
-    static_assert(MaxSize > 0, "MaxSize must be > 0");
+    static_assert(Capacity > 0, "Capacity must be > 0");
 
    public:
     constexpr FixedVector() noexcept = default;
 
-    [[nodiscard]] static constexpr std::size_t capacity() noexcept { return MaxSize; }
+    [[nodiscard]] static constexpr std::size_t capacity() noexcept { return Capacity; }
 
     [[nodiscard]] constexpr std::size_t size() const noexcept { return _size; }
     [[nodiscard]] constexpr bool        empty() const noexcept { return size() == 0; }
@@ -215,20 +215,88 @@ class FixedVector final {
     void clear() noexcept { _size = 0; }
 
    private:
-    T           _data[MaxSize]{};
+    T           _data[Capacity]{};
     std::size_t _size{0};
 };
 
-inline std::string create_hash_string(std::string_view str) {
-    return (std::ostringstream{} << std::hex << std::setfill('0')
-                                 << std::hash<std::string_view>{}(str))
-      .str();
-}
+template<std::size_t Capacity>
+class FixedString final {
+    static_assert(Capacity > 0, "Capacity must be > 0");
+
+   public:
+    FixedString() noexcept :
+        _size(0) {
+        null_terminate();
+    }
+
+    FixedString(const char* str) {
+        size_t size = std::strlen(str);
+        if (size > capacity())
+            std::terminate();
+        std::memcpy(_data, str, size);
+        _size = size;
+        null_terminate();
+    }
+
+    FixedString(const std::string& str) {
+        if (str.size() > capacity())
+            std::terminate();
+        std::memcpy(_data, str.data(), str.size());
+        _size = str.size();
+        null_terminate();
+    }
+
+    static constexpr std::size_t capacity() { return Capacity; }
+
+    [[nodiscard]] constexpr std::size_t size() const noexcept { return _size; }
+    [[nodiscard]] constexpr bool        empty() const noexcept { return size() == 0; }
+    [[nodiscard]] constexpr bool        full() const noexcept { return size() == capacity(); }
+
+    constexpr const char* c_str() const noexcept { return _data; }
+    constexpr const char* data() const noexcept { return _data; }
+
+    constexpr const char& operator[](std::size_t idx) const { return _data[idx]; }
+    constexpr char&       operator[](std::size_t idx) { return _data[idx]; }
+
+    void null_terminate() noexcept { _data[_size] = '\0'; }
+
+    FixedString& operator+=(const char* str) {
+        std::size_t size = std::strlen(str);
+        if (_size + size > capacity())
+            std::terminate();
+        std::memcpy(_data + _size, str, size);
+        _size += size;
+        null_terminate();
+        return *this;
+    }
+
+    FixedString& operator+=(const FixedString& fixStr) { return (*this += fixStr.c_str()); }
+
+    operator std::string() const noexcept { return std::string(data(), size()); }
+    operator std::string_view() const noexcept { return std::string_view(data(), size()); }
+
+    template<typename T>
+    bool operator==(const T& other) const noexcept {
+        return (std::string_view) (*this) == other;
+    }
+    template<typename T>
+    bool operator!=(const T& other) const noexcept {
+        return !(*this == other);
+    }
+
+    void clear() noexcept {
+        _size = 0;
+        null_terminate();
+    }
+
+   private:
+    char        _data[Capacity + 1];  // +1 for null terminator
+    std::size_t _size;
+};
 
 template<typename T>
 inline void combine_hash(std::size_t& seed, const T& v) {
-    std::hash<T> hasher;
-    seed ^= hasher(v) + 0x9E3779B9U + (seed << 6) + (seed >> 2);
+    seed ^= std::hash<T>{}(v) + 0x9E3779B9U + (seed << 6) + (seed >> 2);
 }
 
 template<>
@@ -242,76 +310,11 @@ inline std::size_t raw_data_hash(const T& value) {
       std::string_view(reinterpret_cast<const char*>(&value), sizeof(value)));
 }
 
-template<std::size_t Capacity>
-class FixedString {
-   public:
-    FixedString() :
-        length_(0) {
-        data_[0] = '\0';
-    }
-
-    FixedString(const char* str) {
-        size_t len = std::strlen(str);
-        if (len > Capacity)
-            std::terminate();
-        std::memcpy(data_, str, len);
-        length_        = len;
-        data_[length_] = '\0';
-    }
-
-    FixedString(const std::string& str) {
-        if (str.size() > Capacity)
-            std::terminate();
-        std::memcpy(data_, str.data(), str.size());
-        length_        = str.size();
-        data_[length_] = '\0';
-    }
-
-    std::size_t size() const { return length_; }
-    std::size_t capacity() const { return Capacity; }
-
-    const char* c_str() const { return data_; }
-    const char* data() const { return data_; }
-
-    char& operator[](std::size_t i) { return data_[i]; }
-
-    const char& operator[](std::size_t i) const { return data_[i]; }
-
-    FixedString& operator+=(const char* str) {
-        size_t len = std::strlen(str);
-        if (length_ + len > Capacity)
-            std::terminate();
-        std::memcpy(data_ + length_, str, len);
-        length_ += len;
-        data_[length_] = '\0';
-        return *this;
-    }
-
-    FixedString& operator+=(const FixedString& other) { return (*this += other.c_str()); }
-
-    operator std::string() const { return std::string(data_, length_); }
-
-    operator std::string_view() const { return std::string_view(data_, length_); }
-
-    template<typename T>
-    bool operator==(const T& other) const noexcept {
-        return (std::string_view) (*this) == other;
-    }
-
-    template<typename T>
-    bool operator!=(const T& other) const noexcept {
-        return (std::string_view) (*this) != other;
-    }
-
-    void clear() {
-        length_  = 0;
-        data_[0] = '\0';
-    }
-
-   private:
-    char        data_[Capacity + 1];  // +1 for null terminator
-    std::size_t length_;
-};
+inline std::string create_hash_string(std::string_view str) {
+    return (std::ostringstream{} << std::hex << std::setfill('0')
+                                 << std::hash<std::string_view>{}(str))
+      .str();
+}
 
 constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 #if defined(IS_64BIT) && defined(__GNUC__)

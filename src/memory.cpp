@@ -89,7 +89,7 @@ namespace {
 
 void* alloc_windows_aligned_large_pages(std::size_t allocSize) noexcept {
 
-    return try_with_windows_large_page_privileges(
+    return try_with_windows_lock_memory_privilege(
       [&](std::size_t largePageSize) {
           // Round up size to full large pages
           std::size_t roundedAllocSize = round_up_pow2(allocSize, largePageSize);

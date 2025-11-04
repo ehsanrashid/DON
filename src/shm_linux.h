@@ -125,16 +125,16 @@ class CleanupHooks final {
 
 inline int portable_fallocate(int fd, off_t offset, off_t length) noexcept {
     #if defined(__APPLE__)
-    fstore_t store = {F_ALLOCATECONTIG, F_PEOFPOSMODE, offset, length, 0};
-    int      ret   = fcntl(fd, F_PREALLOCATE, &store);
-    if (ret == -1)
+    fstore_t store  = {F_ALLOCATECONTIG, F_PEOFPOSMODE, offset, length, 0};
+    int      status = fcntl(fd, F_PREALLOCATE, &store);
+    if (status == -1)
     {
         store.fst_flags = F_ALLOCATEALL;
-        ret             = fcntl(fd, F_PREALLOCATE, &store);
+        status          = fcntl(fd, F_PREALLOCATE, &store);
     }
-    if (ret != -1)
-        ret = ftruncate(fd, offset + length);
-    return ret;
+    if (status != -1)
+        status = ftruncate(fd, offset + length);
+    return status;
     #else
     return posix_fallocate(fd, offset, length);
     #endif
@@ -529,7 +529,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
 
     bool has_other_live_sentinels_locked() const noexcept {
         DIR* dir = opendir("/dev/shm");
-        if (!dir)
+        if (dir == nullptr)
             return false;
 
         std::string prefix = sentinelBase + ".";
@@ -542,9 +542,9 @@ class SharedMemory final: public internal::BaseSharedMemory {
                 continue;
 
             auto  pidStr = name.substr(prefix.size());
-            char* end    = nullptr;
-            long  value  = std::strtol(pidStr.c_str(), &end, 10);
-            if (end == nullptr || *end != '\0')
+            char* endPtr = nullptr;
+            long  value  = std::strtol(pidStr.c_str(), &endPtr, 10);
+            if (endPtr == nullptr || *endPtr != '\0')
                 continue;
 
             pid_t pid = static_cast<pid_t>(value);
@@ -554,7 +554,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
                 break;
             }
 
-            std::string stalePath = std::string("/dev/shm/") + name;
+            std::string stalePath = "/dev/shm/" + name;
             ::unlink(stalePath.c_str());
             const_cast<SharedMemory*>(this)->decrement_refcount_relaxed();
         }
@@ -564,10 +564,10 @@ class SharedMemory final: public internal::BaseSharedMemory {
     }
 
     [[nodiscard]] bool setup_new_region(const T& initialValue) noexcept {
-        if (ftruncate(_fd, static_cast<off_t>(totalSize)) == -1)
+        if (ftruncate(_fd, off_t(totalSize)) == -1)
             return false;
 
-        if (internal::portable_fallocate(_fd, 0, static_cast<off_t>(totalSize)) != 0)
+        if (internal::portable_fallocate(_fd, 0, off_t(totalSize)) != 0)
             return false;
 
         mappedPtr = mmap(nullptr, totalSize, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
