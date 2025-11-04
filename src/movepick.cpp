@@ -113,7 +113,7 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
         auto   pc = pos.moved_piece(m);
         auto   pt = type_of(pc);
 
-        m.value = 2 * QuietHistory[ac][m.org_dst()]    //
+        m.value = 2 * QuietHistory[ac][m.raw()]        //
                 + 2 * PawnHistory[pawnIndex][pc][dst]  //
                 + (*continuationHistory[0])[pc][dst]   //
                 + (*continuationHistory[1])[pc][dst]   //
@@ -125,7 +125,7 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
                 + (*continuationHistory[7])[pc][dst];
 
         if (ssPly < LOW_PLY_SIZE)
-            m.value += 8 * LowPlyQuietHistory[ssPly][m.org_dst()] / (1 + ssPly);
+            m.value += 8 * LowPlyQuietHistory[ssPly][m.raw()] / (1 + ssPly);
 
         // Bonus for checks
         if (pos.check(m))
@@ -184,10 +184,10 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
         Square dst = m.dst_sq();
         auto   pc  = pos.moved_piece(m);
 
-        m.value = QuietHistory[ac][m.org_dst()] + (*continuationHistory[0])[pc][dst];
+        m.value = QuietHistory[ac][m.raw()] + (*continuationHistory[0])[pc][dst];
 
         if (ssPly < LOW_PLY_SIZE)
-            m.value += LowPlyQuietHistory[ssPly][m.org_dst()];
+            m.value += LowPlyQuietHistory[ssPly][m.raw()];
     }
     return itr;
 }

@@ -279,31 +279,22 @@ void Engine::verify_networks() const noexcept {
     networks->small.verify(options["SmallEvalFile"]);
 
     auto statuses = networks.get_status_and_errors();
-    for (size_t i = 0; i < statuses.size(); ++i)
+    for (std::size_t i = 0; i < statuses.size(); ++i)
     {
-        const auto [status, error] = statuses[i];
-        std::string message        = "Network replica " + std::to_string(i + 1) + ": ";
+        const auto& [status, error] = statuses[i];
+
+        std::string message = "Network replica " + std::to_string(i + 1) + ": ";
         if (status == SystemWideSharedConstantAllocationStatus::NoAllocation)
-        {
             message += "No allocation.";
-        }
         else if (status == SystemWideSharedConstantAllocationStatus::LocalMemory)
-        {
             message += "Local memory.";
-        }
         else if (status == SystemWideSharedConstantAllocationStatus::SharedMemory)
-        {
             message += "Shared memory.";
-        }
         else
-        {
             message += "Unknown status.";
-        }
 
         if (error.has_value())
-        {
             message += " " + *error;
-        }
 
         UCI::print_info_string(message);
     }

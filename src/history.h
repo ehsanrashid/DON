@@ -190,13 +190,21 @@ inline constexpr int  CAPTURE_HISTORY_LIMIT = 10692;
 inline constexpr int    QUIET_HISTORY_LIMIT =  7183;
 inline constexpr int PIECE_SQ_HISTORY_LIMIT = 30000;
 
+inline constexpr std::size_t QUIET_HISTORY_SIZE = 0x10000;
+
+static_assert(exactly_one(QUIET_HISTORY_SIZE), "QUIET_HISTORY_SIZE has to be a power of 2");
+
 inline constexpr int         PAWN_HISTORY_LIMIT = 8192;
 inline constexpr std::size_t PAWN_HISTORY_SIZE  = 0x4000;
+
 static_assert(exactly_one(PAWN_HISTORY_SIZE), "PAWN_HISTORY_SIZE has to be a power of 2");
-constexpr std::size_t pawn_index(Key pawnKey) noexcept { return pawnKey & (PAWN_HISTORY_SIZE - 1); }
+// clang-format on
+
+constexpr std::uint16_t pawn_index(Key pawnKey) noexcept {
+    return pawnKey & (PAWN_HISTORY_SIZE - 1);
+}
 
 inline constexpr std::uint16_t LOW_PLY_SIZE = 5;
-// clang-format on
 
 enum HistoryType : std::uint8_t {
     HCapture,       // By move's [piece][dst][captured piece type]
@@ -225,7 +233,7 @@ struct HistoryTypedef<HCapture> final {
 // see https://www.chessprogramming.org/Butterfly_Boards
 template<>
 struct HistoryTypedef<HQuiet> final {
-    using Type = StatsEntires<QUIET_HISTORY_LIMIT, COLOR_NB, SQUARE_NB * SQUARE_NB>;
+    using Type = StatsEntires<QUIET_HISTORY_LIMIT, COLOR_NB, QUIET_HISTORY_SIZE>;
 };
 
 template<>
@@ -246,7 +254,7 @@ struct HistoryTypedef<HContinuation> final {
 // It is used to improve quiet move ordering near the root.
 template<>
 struct HistoryTypedef<HLowPlyQuiet> final {
-    using Type = StatsEntires<QUIET_HISTORY_LIMIT, LOW_PLY_SIZE, SQUARE_NB * SQUARE_NB>;
+    using Type = StatsEntires<QUIET_HISTORY_LIMIT, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
 };
 
 template<>
@@ -261,10 +269,12 @@ using History = typename internal::HistoryTypedef<T>::Type;
 
 // clang-format off
 inline constexpr int         CORRECTION_HISTORY_LIMIT = 1024;
-inline constexpr std::size_t CORRECTION_HISTORY_SIZE  = 0x8000;
+inline constexpr std::size_t CORRECTION_HISTORY_SIZE  = 0x10000;
+
 static_assert(exactly_one(CORRECTION_HISTORY_SIZE), "CORRECTION_HISTORY_SIZE has to be a power of 2");
-constexpr std::size_t correction_index(Key corrKey) noexcept { return corrKey & (CORRECTION_HISTORY_SIZE - 1); }
 // clang-format on
+
+constexpr std::uint16_t correction_index(Key corrKey) noexcept { return corrKey; }
 
 // Correction histories record differences between the static evaluation of
 // positions and their search score.

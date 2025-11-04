@@ -48,12 +48,12 @@ class NativeThread final {
             return nullptr;
         };
 
-        pthread_attr_t attribute;
-        pthread_attr_init(&attribute);
-        pthread_attr_setstacksize(&attribute, 8U * 1024 * 1024);
-        if (pthread_create(&thread, &attribute, start_routine, funcPtr) != 0)
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
+        if (pthread_create(&thread, &attr, start_routine, funcPtr) != 0)
             delete funcPtr;
-        pthread_attr_destroy(&attribute);
+        pthread_attr_destroy(&attr);
     }
 
     // Non-copyable
@@ -67,14 +67,14 @@ class NativeThread final {
         nativeThread.joined = true;
     }
     NativeThread& operator=(NativeThread&& nativeThread) noexcept {
-        if (this != &nativeThread)
-        {
-            join();
-            thread = nativeThread.thread;
-            joined = nativeThread.joined;
+        if (this == &nativeThread)
+            return *this;
 
-            nativeThread.joined = true;
-        }
+        join();
+        thread = nativeThread.thread;
+        joined = nativeThread.joined;
+
+        nativeThread.joined = true;
         return *this;
     }
 

@@ -1255,9 +1255,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         status.reserve(instances.size());
 
         for (const auto& instance : instances)
-        {
             status.emplace_back(instance.get_status(), instance.get_error_message());
-        }
 
         return status;
     }

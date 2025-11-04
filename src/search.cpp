@@ -1177,7 +1177,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (history < -4312 * depth)
                     continue;
 
-                history += 76 * QuietHistory[ac][move.org_dst()] / 32;
+                history += 76 * QuietHistory[ac][move.raw()] / 32;
 
                 // (*Scaler) Generally, a lower divisor scales well
                 lmrDepth += history / 3220;
@@ -1286,14 +1286,14 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             ss->history = capture ? 6.2734 * (PIECE_VALUE[captured] + promotion_value(move))  //
                                       + CaptureHistory[movedPiece][dst][captured]
-                                  : 2 * QuietHistory[ac][move.org_dst()]  //
+                                  : 2 * QuietHistory[ac][move.raw()]  //
                                       + (*contHistory[0])[movedPiece][dst];
         }
         else
         {
             ss->history = capture ? 6.2734 * (PIECE_VALUE[captured] + promotion_value(move))  //
                                       + CaptureHistory[movedPiece][dst][captured]
-                                  : 2 * QuietHistory[ac][move.org_dst()]    //
+                                  : 2 * QuietHistory[ac][move.raw()]        //
                                       + (*contHistory[0])[movedPiece][dst]  //
                                       + (*contHistory[1])[movedPiece][dst];
         }
@@ -2238,7 +2238,7 @@ void update_capture_history(const Position& pos, Move m, int bonus) noexcept {
 }
 void update_quiet_history(Color ac, Move m, int bonus) noexcept {
     assert(m.is_ok());
-    QuietHistory[ac][m.org_dst()] << bonus;
+    QuietHistory[ac][m.raw()] << bonus;
 }
 void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) noexcept {
     PawnHistory[pawn_index(pos.pawn_key())][pc][dst] << bonus;
@@ -2267,7 +2267,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
 void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept {
     assert(m.is_ok());
     if (ssPly < LOW_PLY_SIZE)
-        LowPlyQuietHistory[ssPly][m.org_dst()] << bonus;
+        LowPlyQuietHistory[ssPly][m.raw()] << bonus;
 }
 void update_all_quiet_history(const Position& pos, Stack* const ss, Move m, int bonus) noexcept {
     assert(m.is_ok());

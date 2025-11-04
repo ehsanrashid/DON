@@ -515,10 +515,9 @@ class Move {
     };
 
     // Bit masks for extracting parts of the move
-    static constexpr std::uint16_t SqrMask    = 0x003F;  // 6 bits for origin/destiny
-    static constexpr std::uint16_t SqrSqrMask = 0x0FFF;  // 12 bits for combined origin/destiny
-    static constexpr std::uint16_t TypeMask   = 0xC000;  // 2 bits for move type
-    static constexpr std::uint16_t PromoMask  = 0x0003;  // 2 bits for promotion type
+    static constexpr std::uint16_t SqrMask   = 0x003F;  // 6 bits for origin/destiny
+    static constexpr std::uint16_t TypeMask  = 0xC000;  // 2 bits for move type
+    static constexpr std::uint16_t PromoMask = 0x0003;  // 2 bits for promotion type
 
     constexpr Move() noexcept = default;
     // Constructors using delegating syntax
@@ -532,11 +531,10 @@ class Move {
         Move(MoveType(PROMOTION | ((int(promo) - int(KNIGHT)) << 12)), org, dst) {}
 
     // Accessors: extract parts of the move
-    constexpr Square        org_sq() const noexcept { return Square((move >> 6) & SqrMask); }
-    constexpr Square        dst_sq() const noexcept { return Square((move >> 0) & SqrMask); }
-    constexpr std::uint16_t org_dst() const noexcept { return move & SqrSqrMask; }
-    constexpr MoveType      type_of() const noexcept { return MoveType(move & TypeMask); }
-    constexpr PieceType     promotion_type() const noexcept {
+    constexpr Square    org_sq() const noexcept { return Square((move >> 6) & SqrMask); }
+    constexpr Square    dst_sq() const noexcept { return Square((move >> 0) & SqrMask); }
+    constexpr MoveType  type_of() const noexcept { return MoveType(move & TypeMask); }
+    constexpr PieceType promotion_type() const noexcept {
         return PieceType(((move >> 12) & PromoMask) + int(KNIGHT));
     }
 

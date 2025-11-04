@@ -56,10 +56,11 @@ namespace internal {
 
 struct ShmHeader final {
     static constexpr std::uint32_t SHM_MAGIC = 0xAD5F1A12U;
-    pthread_mutex_t                mutex;
-    std::atomic<std::uint32_t>     refCount{0};
-    std::atomic<bool>              initialized{false};
-    std::uint32_t                  magic = SHM_MAGIC;
+
+    pthread_mutex_t            mutex;
+    std::atomic<std::uint32_t> refCount{0};
+    std::atomic<bool>          initialized{false};
+    std::uint32_t              magic = SHM_MAGIC;
 };
 
 class BaseSharedMemory {
@@ -125,16 +126,16 @@ class CleanupHooks final {
 
 inline int portable_fallocate(int fd, off_t offset, off_t length) noexcept {
     #if defined(__APPLE__)
-    fstore_t store  = {F_ALLOCATECONTIG, F_PEOFPOSMODE, offset, length, 0};
-    int      status = fcntl(fd, F_PREALLOCATE, &store);
-    if (status == -1)
+    fstore_t store = {F_ALLOCATECONTIG, F_PEOFPOSMODE, offset, length, 0};
+    int      rc    = fcntl(fd, F_PREALLOCATE, &store);
+    if (rc == -1)
     {
         store.fst_flags = F_ALLOCATEALL;
-        status          = fcntl(fd, F_PREALLOCATE, &store);
+        rc              = fcntl(fd, F_PREALLOCATE, &store);
     }
-    if (status != -1)
-        status = ftruncate(fd, offset + length);
-    return status;
+    if (rc != -1)
+        rc = ftruncate(fd, offset + length);
+    return rc;
     #else
     return posix_fallocate(fd, offset, length);
     #endif
@@ -210,7 +211,8 @@ class SharedMemory final: public internal::BaseSharedMemory {
                 return false;
 
             bool newCreated = false;
-            _fd             = shm_open(_name.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
+
+            _fd = shm_open(_name.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
 
             if (_fd == -1)
             {
@@ -303,9 +305,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
         if (mutexLocked)
         {
             if (shmHeader)
-            {
                 shmHeader->refCount.fetch_sub(1, std::memory_order_acq_rel);
-            }
             remove_sentinel_file();
             regionRemove = !has_other_live_sentinels_locked();
             unlock_shared_mutex();
@@ -430,7 +430,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
         if (!shmHeader)
             return;
 
-        uint32_t expected = shmHeader->refCount.load(std::memory_order_relaxed);
+        std::uint32_t expected = shmHeader->refCount.load(std::memory_order_relaxed);
         while (expected != 0
                && !shmHeader->refCount.compare_exchange_weak(
                  expected, expected - 1, std::memory_order_acq_rel, std::memory_order_relaxed))
@@ -483,17 +483,16 @@ class SharedMemory final: public internal::BaseSharedMemory {
         if (pthread_mutexattr_init(&attr) != 0)
             return false;
 
-        bool success = pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED) == 0;
+        int rc = pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
     #if defined(PTHREAD_MUTEX_ROBUST)
-        if (success)
-            success = pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST) == 0;
+        if (rc == 0)
+            rc = pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
     #endif
-
-        if (success)
-            success = pthread_mutex_init(&shmHeader->mutex, &attr) == 0;
+        if (rc == 0)
+            rc = pthread_mutex_init(&shmHeader->mutex, &attr);
 
         pthread_mutexattr_destroy(&attr);
-        return success;
+        return rc == 0;
     }
 
     [[nodiscard]] bool lock_shared_mutex() noexcept {
@@ -547,7 +546,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
             if (endPtr == nullptr || *endPtr != '\0')
                 continue;
 
-            pid_t pid = static_cast<pid_t>(value);
+            pid_t pid = pid_t(value);
             if (pid_is_alive(pid))
             {
                 found = true;
@@ -597,7 +596,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
 
         struct stat st;
         fstat(_fd, &st);
-        if (static_cast<size_t>(st.st_size) < totalSize)
+        if (std::size_t(st.st_size) < totalSize)
         {
             headerInvalid = true;
             return false;
