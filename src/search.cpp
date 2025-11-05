@@ -857,7 +857,7 @@ Value Worker::search(Position&    pos,
 
     int absCorrectionValue = std::abs(correctionValue);
 
-    Value unadjustedStaticEval, eval, probCutBeta;
+    Value unadjustedStaticEval, eval, razorAlpha, probCutBeta;
 
     bool improve, worsen;
 
@@ -927,8 +927,16 @@ Value Worker::search(Position&    pos,
 
     // Step 7. Razoring
     // If eval is really low, skip search entirely and return the qsearch value.
-    if (!PVNode && eval < -514 + alpha - 294 * sqr(depth))
-        return qsearch<PVNode>(pos, ss, alpha, beta);
+    razorAlpha = std::max(-514 + alpha - 294 * depth * depth, -VALUE_INFINITE);
+    if (!PVNode && eval <= razorAlpha)
+    {
+        value = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
+
+        if (value <= razorAlpha)
+            return value;
+
+        ss->ttMove = ttd.move;
+    }
 
     // Step 8. Futility pruning: child node
     // The depth condition is important for mate finding.
@@ -955,7 +963,7 @@ Value Worker::search(Position&    pos,
         assert((ss - 1)->move != Move::Null);
 
         // Null move dynamic reduction based on depth and phase
-        Depth R = std::min(5 + depth / 3 + pos.phase() / 9 + improve, depth - 1);
+        Depth R = 5 + depth / 3 + pos.phase() / 9 + improve;
 
         do_null_move(pos, st, ss);
 
@@ -975,7 +983,7 @@ Value Worker::search(Position&    pos,
             // with null move pruning disabled until ply exceeds nmpMinPly.
             nmpPly = ss->ply + 3 * (depth - R) / 4;
 
-            Value v = search<All>(pos, ss, beta - 1, beta, depth - R);
+            Value v = search<All>(pos, ss, beta - 1, beta, depth - R, 0, excludedMove);
 
             nmpPly = 0;
 
@@ -1465,8 +1473,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 alpha = value;  // Update alpha! Always alpha < beta
 
                 // Reduce depth for other moves if have found at least one score improvement
-                if (2 < depth && !is_decisive(value))
-                    depth = std::max(depth - 2, 2);
+                if (depth > 2 && !is_decisive(value))
+                    depth = std::max(depth - 1 - (depth < 16), 2);
 
                 assert(depth > DEPTH_ZERO);
             }
