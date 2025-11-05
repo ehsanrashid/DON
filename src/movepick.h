@@ -20,7 +20,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 
 #include "history.h"
 #include "movegen.h"
