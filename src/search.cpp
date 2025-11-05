@@ -1085,9 +1085,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     MovesArray<2> movesArr;
 
-    int quietThreshold = (-3560 - 10 * improve) * depth;
-
-    MovePicker mp(pos, ttd.move, contHistory, ss->ply, quietThreshold);
+    MovePicker mp(pos, ttd.move, contHistory, ss->ply, -1);
     // Step 13. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
     {
@@ -1473,8 +1471,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 alpha = value;  // Update alpha! Always alpha < beta
 
                 // Reduce depth for other moves if have found at least one score improvement
-                if (depth > 2 && !is_decisive(value))
-                    depth = std::max(depth - 1 - (depth < 16), 2);
+                if (depth > 2 && depth < 24 && !is_decisive(value))
+                    depth = std::max(depth - 1 - (depth < 12), 2);
 
                 assert(depth > DEPTH_ZERO);
             }
@@ -1568,9 +1566,8 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (!ss->inCheck && (bestMove == Move::None || !pos.capture(bestMove))
         && (bestValue < ss->staticEval) == (bestMove == Move::None))
     {
-        int bonus =
-          std::clamp((bestValue - ss->staticEval) * depth / (8 + (bestValue > ss->staticEval)),
-                     -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
+        int bonus = (bestValue - ss->staticEval) * depth / (8 + (bestValue > ss->staticEval));
+        bonus     = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
         update_correction_history(pos, ss, bonus);
     }
 
@@ -1800,6 +1797,7 @@ QS_MOVES_LOOP:
     // All legal moves have been searched.
     if (!moveCount)
     {
+        Color ac = pos.active_color();
         // A special case: if in check and no legal moves were found, it is checkmate.
         if (ss->inCheck)
         {
@@ -1807,8 +1805,13 @@ QS_MOVES_LOOP:
             assert((MoveList<LEGAL, true>(pos).empty()));
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
-        else if (bestValue != VALUE_DRAW && MoveList<LEGAL, true>(pos).empty())
+        else if (std::abs(bestValue) > 50
+                 // No pawn pushes available
+                 && !(pawn_push_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces())
+                 && MoveList<LEGAL, true>(pos).empty())
+        {
             bestValue = VALUE_DRAW;
+        }
     }
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_decisive(bestValue))

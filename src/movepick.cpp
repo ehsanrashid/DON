@@ -281,7 +281,7 @@ STAGE_SWITCH:
                 if (valid())
                 {
                     // Good quiet threshold
-                    if (cur->value >= (-13500 + threshold / 8))
+                    if (cur->value >= -14000)
                         return move();
                     // Remaining quiets are bad
                     break;
