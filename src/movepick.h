@@ -120,7 +120,7 @@ class MovePicker final {
     template<typename Predicate>
     bool select(Predicate&& pred) noexcept;
 
-    void sort_partial(int limit = std::numeric_limits<int>::min()) noexcept;
+    void sort() noexcept;
 
     [[nodiscard]] const_iterator begin() const noexcept { return cur; }
     [[nodiscard]] const_iterator end() const noexcept { return endCur; }

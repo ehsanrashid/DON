@@ -175,10 +175,10 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
 // nullopt means no affinity is set, that is, all processors are allowed
 inline WindowsAffinity get_process_affinity() noexcept {
 
-    HMODULE k32hModule = GetModuleHandle(TEXT("kernel32.dll"));
+    HMODULE hK32Module = GetModuleHandle(TEXT("kernel32.dll"));
 
     auto getThreadSelectedCpuSetMasks = GetThreadSelectedCpuSetMasks_(
-      (void (*)()) GetProcAddress(k32hModule, "GetThreadSelectedCpuSetMasks"));
+      (void (*)()) GetProcAddress(hK32Module, "GetThreadSelectedCpuSetMasks"));
 
     WindowsAffinity winAffinity{};
 
@@ -801,10 +801,10 @@ class NumaConfig final {
 #elif defined(_WIN64)
 
         // Requires Windows 11. No good way to set thread affinity spanning processor groups before that.
-        HMODULE k32hModule = GetModuleHandle(TEXT("kernel32.dll"));
+        HMODULE hK32Module = GetModuleHandle(TEXT("kernel32.dll"));
 
         auto setThreadSelectedCpuSetMasks = SetThreadSelectedCpuSetMasks_(
-          (void (*)()) GetProcAddress(k32hModule, "SetThreadSelectedCpuSetMasks"));
+          (void (*)()) GetProcAddress(hK32Module, "SetThreadSelectedCpuSetMasks"));
 
         HANDLE threadHandle;
 
@@ -1038,7 +1038,9 @@ class NumaReplicated final: public BaseNumaReplicated {
 
     NumaReplicated& operator=(const NumaReplicated&) noexcept = delete;
     NumaReplicated& operator=(NumaReplicated&& numaRep) noexcept {
-        BaseNumaReplicated::operator=(*this, std::move(numaRep));
+        if (this == &numaRep)
+            return *this;
+        BaseNumaReplicated::operator=(std::move(numaRep));
         instances = std::exchange(numaRep.instances, {});
         return *this;
     }
@@ -1119,7 +1121,9 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
 
     LazyNumaReplicated& operator=(const LazyNumaReplicated&) noexcept = delete;
     LazyNumaReplicated& operator=(LazyNumaReplicated&& lazyNumaRep) noexcept {
-        BaseNumaReplicated::operator=(*this, std::move(lazyNumaRep));
+        if (this == &lazyNumaRep)
+            return *this;
+        BaseNumaReplicated::operator=(std::move(lazyNumaRep));
         instances = std::exchange(lazyNumaRep.instances, {});
         return *this;
     }
@@ -1226,7 +1230,9 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
     SystemWideLazyNumaReplicated& operator=(const SystemWideLazyNumaReplicated&) noexcept = delete;
     SystemWideLazyNumaReplicated& operator=(SystemWideLazyNumaReplicated&& sysNumaRep) noexcept {
-        BaseNumaReplicated::operator=(*this, std::move(sysNumaRep));
+        if (this == &sysNumaRep)
+            return *this;
+        BaseNumaReplicated::operator=(std::move(sysNumaRep));
         instances = std::exchange(sysNumaRep.instances, {});
         return *this;
     }

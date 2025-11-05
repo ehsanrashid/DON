@@ -1244,8 +1244,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 int corrValue = 4.3486e-6 * absCorrectionValue;
                 // clang-format off
-                int doubleMargin = -4 + 198 * PVNode - 212 * !ttCapture - corrValue - 45 * (ss->ply > 1.0 * rootDepth) - 921 * TTMoveHistory / 127649;
-                int tripleMargin = 76 + 308 * PVNode - 250 * !ttCapture - corrValue - 52 * (ss->ply > 1.5 * rootDepth) +  92 * ss->pvHit;
+                int doubleMargin = -4 + 198 * PVNode - 212 * !ttCapture - corrValue - 45 * (ss->ply > 1.0 * rootDepth) - 7.2151e-3 * TTMoveHistory;
+                int tripleMargin = 76 + 308 * PVNode - 250 * !ttCapture - corrValue - 52 * (ss->ply > 1.5 * rootDepth) + 92 * ss->pvHit;
 
                 extension = 1 + (value < singularBeta - doubleMargin)
                               + (value < singularBeta - tripleMargin);

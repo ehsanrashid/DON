@@ -201,22 +201,21 @@ bool MovePicker::select(Predicate&& pred) noexcept {
 
 // Sort moves in descending order up to and including a given limit.
 // The order of moves smaller than the limit is left unspecified.
-void MovePicker::sort_partial(int limit) noexcept {
+void MovePicker::sort() noexcept {
 
     for (iterator s = begin(), p = begin() + 1; p < end(); ++p)
-        if (p->value >= limit)
-        {
-            value_type em = *p;
+    {
+        value_type em = *p;
 
-            *p = *++s;
+        *p = *++s;
 
-            // Find the correct position for 'em' using binary search
-            iterator q = std::upper_bound(begin(), s, em, std::greater<>{});
-            // Move elements to make space for 'em'
-            std::move_backward(q, s, s + 1);
-            // Insert the 'em' in its correct position
-            *q = em;
-        }
+        // Find the correct position for 'em' using binary search
+        iterator q = std::upper_bound(begin(), s, em, std::greater<>{});
+        // Move elements to make space for 'em'
+        std::move_backward(q, s, s + 1);
+        // Insert the 'em' in its correct position
+        *q = em;
+    }
 }
 
 // Most important method of the MovePicker class.
@@ -243,7 +242,7 @@ STAGE_SWITCH:
         // NOTE:: endMove is not defined here, it will be set later
         endCur = /* endMove =*/score<ENC_CAPTURE>(moveList);
 
-        sort_partial();
+        sort();
     }
 
         ++stage;
@@ -269,7 +268,7 @@ STAGE_SWITCH:
 
             endCur = endMove = score<ENC_QUIET>(moveList);
 
-            sort_partial(threshold);
+            sort();
         }
 
         ++stage;
@@ -308,8 +307,6 @@ STAGE_SWITCH:
             // Prepare the pointers to loop over the bad quiets
             cur    = begBadQuiet;
             endCur = endMove;
-
-            sort_partial();
         }
 
         ++stage;
@@ -327,7 +324,7 @@ STAGE_SWITCH:
         cur    = moves;
         endCur = endMove = score<EVA_CAPTURE>(moveList);
 
-        sort_partial();
+        sort();
     }
 
         ++stage;
@@ -345,7 +342,7 @@ STAGE_SWITCH:
 
         endCur = endMove = score<EVA_QUIET>(moveList);
 
-        sort_partial();
+        sort();
     }
 
         ++stage;
