@@ -1076,8 +1076,6 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     value = bestValue;
 
-    Value singularValue = +VALUE_INFINITE;
-
     std::uint8_t moveCount  = 0;
     std::uint8_t promoCount = 0;
 
@@ -1117,7 +1115,6 @@ S_MOVES_LOOP:  // When in check, search starts here
         Piece movedPiece = pos.moved_piece(move);
 
         bool check    = pos.check(move);
-        bool dblCheck = check && pos.dbl_check(move);
         bool capture  = pos.capture_promo(move);
         auto captured = capture ? pos.captured(move) : NO_PIECE_TYPE;
 
@@ -1139,14 +1136,12 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
             if (mp.quietAllowed)
-                mp.quietAllowed =
-                  (moveCount - promoCount)
-                  < ((3 + sqr(depth)) >> (!improve)) - (!improve && singularValue < -80 + alpha);
+                mp.quietAllowed = (moveCount - promoCount) < ((3 + sqr(depth)) >> (!improve));
 
             // Reduced depth of the next LMR search
             Depth lmrDepth = newDepth - r / 1024;
 
-            if (capture)
+            if (capture || check)
             {
                 int history = CaptureHistory[movedPiece][dst][captured];
 
@@ -1154,24 +1149,19 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (lmrDepth < 7 && !check)
                 {
                     Value futilityValue =  //
-                      std::min(47 + ss->staticEval + 184 * (bestMove == Move::None) + 211 * lmrDepth
-                                 + 130 * history / 1024 + PIECE_VALUE[captured]
-                                 + promotion_value(move),
+                      std::min(231 + ss->staticEval + 211 * lmrDepth + 130 * history / 1024
+                                 + PIECE_VALUE[captured] + promotion_value(move),
                                +VALUE_INFINITE);
                     if (futilityValue <= alpha)
-                    {
-                        if (!is_decisive(bestValue) && !is_decisive(futilityValue))
-                            bestValue = std::max(bestValue, futilityValue);
                         continue;
-                    }
                 }
 
-                // SEE based pruning for captures
+                // SEE based pruning for captures and checks
                 int margin = std::max(157 * depth + history / 29, 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW
                    || pos.non_pawn_material(ac) != PIECE_VALUE[type_of(movedPiece)])
-                  && pos.see(move) < -(margin + 128 * dblCheck))
+                  && pos.see(move) < -margin)
                     continue;
             }
             else
@@ -1191,7 +1181,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 // Futility pruning for quiets
                 // (*Scaler) Generally, more frequent futility pruning scales well
-                if (lmrDepth < 11 && !check && !ss->inCheck)
+                if (lmrDepth < 11 && !ss->inCheck)
                 {
                     Value futilityValue =
                       std::min(47 + ss->staticEval + 171 * (bestMove == Move::None) + 134 * lmrDepth
@@ -1208,10 +1198,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 lmrDepth = std::max(+lmrDepth, 0);
 
                 // SEE based pruning for quiets
-                if (  // Avoid pruning sacrifices of our last piece for stalemate
-                  (alpha >= VALUE_DRAW
-                   || pos.non_pawn_material(ac) != PIECE_VALUE[type_of(movedPiece)])
-                  && pos.see(move) < -(27 * sqr(lmrDepth) + 128 * dblCheck))
+                if (pos.see(move) < -27 * sqr(lmrDepth))
                     continue;
             }
         }
@@ -1242,12 +1229,10 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             if (value < singularBeta)
             {
-                singularValue = value;
-
                 int corrValue = 4.3486e-6 * absCorrectionValue;
                 // clang-format off
-                int doubleMargin = -4 + 198 * PVNode - 212 * !ttCapture - corrValue - 45 * (ss->ply > 1.0 * rootDepth) - 7.2151e-3 * TTMoveHistory;
-                int tripleMargin = 76 + 308 * PVNode - 250 * !ttCapture - corrValue - 52 * (ss->ply > 1.5 * rootDepth) + 92 * ss->pvHit;
+                int doubleMargin = -4 + 198 * PVNode - 212 * !ttCapture - corrValue - 45 * (1 * ss->ply > 1 * rootDepth) - 7.2151e-3 * TTMoveHistory;
+                int tripleMargin = 76 + 308 * PVNode - 250 * !ttCapture - corrValue - 52 * (2 * ss->ply > 3 * rootDepth) + 92 * ss->pvHit;
 
                 extension = 1 + (value < singularBeta - doubleMargin)
                               + (value < singularBeta - tripleMargin);
@@ -1310,7 +1295,6 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Adjust reduction with move count and correction value
         r -= 66 * moveCount;
         r -= 32.8407e-6 * absCorrectionValue;
-        r -= 1024 * dblCheck;
 
         // Increase reduction for CutNode
         if constexpr (CutNode)
@@ -1542,8 +1526,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             auto captured = type_of(pos.captured_piece());
             assert(captured != NO_PIECE_TYPE);
-            int bonus = std::min(-140 + 250 * depth, +1550);
-            update_capture_history(pos.piece_on(preSq), preSq, captured, bonus);
+            update_capture_history(pos.piece_on(preSq), preSq, captured, 964);
         }
     }
 
@@ -1724,7 +1707,6 @@ QS_MOVES_LOOP:
         Square dst = move.dst_sq();
 
         bool check    = pos.check(move);
-        bool dblCheck = check && pos.dbl_check(move);
         bool capture  = pos.capture_promo(move);
         auto captured = capture ? pos.captured(move) : NO_PIECE_TYPE;
 
@@ -1763,7 +1745,7 @@ QS_MOVES_LOOP:
                 continue;
 
             // SEE based pruning
-            if (pos.see(move) < -(78 + 64 * dblCheck))
+            if (pos.see(move) < -78)
                 continue;
         }
 
@@ -1810,14 +1792,15 @@ QS_MOVES_LOOP:
             assert((MoveList<LEGAL, true>(pos).empty()));
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
-        else if (std::abs(bestValue) > 5  //
-                 && pos.non_pawn_material(ac) == VALUE_ZERO
+        else if (bestValue != VALUE_DRAW && pos.non_pawn_material(ac) == VALUE_ZERO
                  && type_of(pos.captured_piece()) >= ROOK
                  // No pawn pushes available
-                 && !(pawn_push_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces())
-                 && MoveList<LEGAL, true>(pos).empty())
+                 && !(pawn_push_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces()))
         {
-            bestValue = VALUE_DRAW;
+            pos.state()->checkers = PROMOTION_RANK_BB;
+            if (MoveList<LEGAL, true>(pos).empty())
+                bestValue = VALUE_DRAW;
+            pos.state()->checkers = 0;
         }
     }
     // Adjust best value for fail high cases

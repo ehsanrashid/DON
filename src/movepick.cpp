@@ -244,7 +244,7 @@ STAGE_SWITCH:
 
     case STG_ENC_CAPTURE_GOOD :
         if (select([&]() {
-                if (pos.see(*cur) >= std::round(-55.5555e-3 * cur->value))
+                if (pos.see(*cur) >= -cur->value / 18)
                     return true;
                 // Store bad captures
                 std::iter_swap(endBadCapture++, cur);
