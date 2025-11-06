@@ -740,7 +740,8 @@ Value Worker::search(Position&    pos,
     ss->ttMove     = ttd.move;
     bool ttCapture = ttd.move != Move::None && pos.capture_promo(ttd.move);
 
-    ss->pvHit = exclude ? ss->pvHit : PVNode || (ttd.hit && ttd.pvHit);
+    if (!exclude)
+        ss->pvHit = PVNode || (ttd.hit && ttd.pvHit);
 
     auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
@@ -1547,9 +1548,10 @@ S_MOVES_LOOP:  // When in check, search starts here
     if constexpr (PVNode)
         bestValue = std::min(bestValue, maxValue);
 
-    // If no good move is found and the previous position was ttPv, then the previous
+    // If no good move is found and the previous position was pvHit, then the previous
     // opponent move is probably good and the new position is added to the search tree.
-    ss->pvHit = ss->pvHit || (bestValue <= alpha && (ss - 1)->pvHit);
+    if (!ss->pvHit && !exclude)
+        ss->pvHit = bestValue <= alpha && (ss - 1)->pvHit;
 
     // Save gathered information in transposition table
     if ((!RootNode || curIdx == 0) && !exclude)
