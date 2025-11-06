@@ -1472,8 +1472,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 alpha = value;  // Update alpha! Always alpha < beta
 
                 // Reduce depth for other moves if have found at least one score improvement
-                if (depth > 2 && depth < 24 && !is_decisive(value))
-                    depth = std::max(depth - 1 - (depth < 12), 2);
+                if (depth > 2 && depth < 16 && !is_decisive(value))
+                    depth = std::max(depth - 1 - (depth < 8), 2);
 
                 assert(depth > DEPTH_ZERO);
             }
@@ -1550,8 +1550,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // If no good move is found and the previous position was pvHit, then the previous
     // opponent move is probably good and the new position is added to the search tree.
-    if (!ss->pvHit && !exclude)
-        ss->pvHit = bestValue <= alpha && (ss - 1)->pvHit;
+    if (!ss->pvHit && bestValue <= alpha)
+        ss->pvHit = (ss - 1)->pvHit;
 
     // Save gathered information in transposition table
     if ((!RootNode || curIdx == 0) && !exclude)
