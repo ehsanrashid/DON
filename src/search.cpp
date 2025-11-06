@@ -1191,7 +1191,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 // Futility pruning for quiets
                 // (*Scaler) Generally, more frequent futility pruning scales well
-                if (lmrDepth < 11 && !check)
+                if (lmrDepth < 11 && !check && !ss->inCheck)
                 {
                     Value futilityValue =
                       std::min(47 + ss->staticEval + 171 * (bestMove == Move::None) + 134 * lmrDepth
@@ -1208,7 +1208,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                 lmrDepth = std::max(+lmrDepth, 0);
 
                 // SEE based pruning for quiets
-                if (pos.see(move) < -(27 * sqr(lmrDepth) + 128 * dblCheck))
+                if (  // Avoid pruning sacrifices of our last piece for stalemate
+                  (alpha >= VALUE_DRAW
+                   || pos.non_pawn_material(ac) != PIECE_VALUE[type_of(movedPiece)])
+                  && pos.see(move) < -(27 * sqr(lmrDepth) + 128 * dblCheck))
                     continue;
             }
         }
@@ -1559,8 +1562,8 @@ S_MOVES_LOOP:  // When in check, search starts here
         Bound bound = bestValue >= beta                ? BOUND_LOWER
                     : PVNode && bestMove != Move::None ? BOUND_EXACT
                                                        : BOUND_UPPER;
-        ttu.update(moveCount ? depth : std::min(depth + 6, MAX_PLY - 1), ss->pvHit, bound, bestMove,
-                   value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
+        ttu.update(moveCount != 0 ? depth : std::min(depth + 6, MAX_PLY - 1), ss->pvHit, bound,
+                   bestMove, value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
     }
 
     // Adjust correction history if the best move is none or not a capture
@@ -1807,7 +1810,9 @@ QS_MOVES_LOOP:
             assert((MoveList<LEGAL, true>(pos).empty()));
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
-        else if (std::abs(bestValue) > 50
+        else if (std::abs(bestValue) > 5  //
+                 && pos.non_pawn_material(ac) == VALUE_ZERO
+                 && type_of(pos.captured_piece()) >= ROOK
                  // No pawn pushes available
                  && !(pawn_push_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces())
                  && MoveList<LEGAL, true>(pos).empty())
