@@ -155,8 +155,6 @@ Limit parse_limit(std::istringstream& iss) noexcept {
         {
             iss >> limit.nodes;
             limit.nodes = std::max(limit.nodes, std::uint64_t(1));
-            // When using nodes, ensure checking rate is not lower than 0.1% of nodes
-            limit.hitRate = std::min(+limit.hitRate, 1 + int(std::ceil(limit.nodes / 1024.0f)));
         }
         else if (token == "infinite")
             limit.infinite = true;

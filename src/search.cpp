@@ -242,7 +242,7 @@ void Worker::start_search() noexcept {
         return;
     }
 
-    mainManager->callsCount     = limit.hitRate;
+    mainManager->callsCount     = limit.calls_count();
     mainManager->ponder         = limit.ponder;
     mainManager->ponderhitStop  = false;
     mainManager->sumMoveChanges = 0.0;
@@ -2079,7 +2079,8 @@ void MainSearchManager::check_time(Worker& worker) noexcept {
     assert(callsCount > 0);
     if (--callsCount > 0)
         return;
-    callsCount = worker.limit.hitRate;
+    // When using nodes, ensure checking rate is not lower than 0.1% of nodes
+    callsCount = worker.limit.calls_count();
 
     TimePoint elapsedTime = elapsed(worker.threads);
 

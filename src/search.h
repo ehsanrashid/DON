@@ -288,6 +288,10 @@ struct Limit final {
 
     bool use_time_manager() const noexcept { return clocks[WHITE].time || clocks[BLACK].time; }
 
+    std::uint16_t calls_count() const noexcept {
+        return nodes ? std::min(1 + int(std::ceil(nodes / 1024.0)), 512) : 512;
+    }
+
     TimePoint startTime{0};
 
     Clock clocks[COLOR_NB]{};
@@ -297,7 +301,6 @@ struct Limit final {
     TimePoint     moveTime{0};
     Depth         depth{DEPTH_ZERO};
     std::uint64_t nodes{0};
-    std::uint16_t hitRate{512};
     bool          infinite{false};
     bool          ponder{false};
     bool          perft{false}, detail{false};
@@ -421,13 +424,12 @@ class MainSearchManager final: public ISearchManager {
     const UpdateContext& updateCxt;
 
     std::uint16_t callsCount{};
-
-    bool        ponder{};
-    bool        ponderhitStop{};
-    double      sumMoveChanges{};
-    double      timeReduction{};
-    Skill       skill{};
-    TimeManager timeManager{};
+    bool          ponder{};
+    bool          ponderhitStop{};
+    double        sumMoveChanges{};
+    double        timeReduction{};
+    Skill         skill{};
+    TimeManager   timeManager{};
 
     bool   moveFirst{};
     Value  preBestCurValue{};
