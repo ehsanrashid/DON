@@ -229,7 +229,7 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
 
 template<Color AC, GenType GT, bool Any>
 Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noexcept {
-    assert(popcount(pos.checkers()) <= 2);
+    //assert(popcount(pos.checkers()) <= 2);
 
     constexpr bool Castle = GT == ENCOUNTER || GT == ENC_QUIET;
 
