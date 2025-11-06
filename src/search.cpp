@@ -761,7 +761,7 @@ Value Worker::search(Position&    pos,
         {
             // Bonus for a quiet ttMove
             if (!ttCapture)
-                update_all_quiet_history(pos, ss, ttd.move, std::min(-71 + 130 * depth, 1043));
+                update_all_quiet_history(pos, ss, ttd.move, std::min(-71 + 130 * depth, +1043));
 
             // Extra penalty for early quiet moves of the previous ply
             if (is_ok(preSq) && !preCapture && (ss - 1)->moveCount < 4)
@@ -1259,7 +1259,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             // and can prune the whole subtree by returning a soft-bound.
             else if (value >= beta && !is_decisive(value))
             {
-                TTMoveHistory << std::max(-400 - 100 * depth, -4000);
+                TTMoveHistory << -std::min(+400 + 100 * depth, +4000);
                 return value;
             }
 
@@ -1524,7 +1524,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                             // Increase bonus if the previous move has a bad history
                             + -9.6154e-3 * (ss - 1)->history, 1);
             // clang-format on
-            int bonus = bonusScale * std::min(-92 + 144 * depth, 1365);
+            int bonus = bonusScale * std::min(-92 + 144 * depth, +1365);
 
             update_quiet_history(~ac, (ss - 1)->move, std::round(6.7139e-3 * bonus));
             update_continuation_history(ss - 1, pos.piece_on(preSq), preSq,
@@ -1538,7 +1538,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             auto captured = type_of(pos.captured_piece());
             assert(captured != NO_PIECE_TYPE);
-            int bonus = std::min(-146 + 250 * depth, 1650);
+            int bonus = std::min(-140 + 250 * depth, +1550);
             update_capture_history(pos.piece_on(preSq), preSq, captured, bonus);
         }
     }
@@ -2284,8 +2284,8 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, Move 
     assert(pos.legal(bm));
     assert(ss->moveCount);
 
-    int bonus =          std::min(- 77 + 121 * depth, 1633) + 375 * (bm == ss->ttMove);
-    int malus = std::max(std::min(-196 + 825 * depth, 2159) -  16 * ss->moveCount, 1);
+    int bonus =          std::min(- 77 + 121 * depth, +1633) + 375 * (bm == ss->ttMove);
+    int malus = std::max(std::min(-196 + 825 * depth, +2159) -  16 * ss->moveCount, 1);
 
     if (pos.capture_promo(bm))
     {
