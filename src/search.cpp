@@ -18,7 +18,6 @@
 #include "search.h"
 
 #include <chrono>
-#include <cmath>
 #include <cstdlib>
 #include <initializer_list>
 #include <list>
