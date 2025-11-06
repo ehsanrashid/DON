@@ -21,7 +21,6 @@
 #include <cassert>
 #include <cmath>
 #include <functional>
-#include <utility>
 
 #include "bitboard.h"
 #include "position.h"
