@@ -1138,9 +1138,10 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (!RootNode && !is_loss(bestValue) && pos.non_pawn_material(ac) != VALUE_ZERO)
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
-            mp.quietPick = mp.quietPick
-                        && moveCount - promoCount < ((3 + sqr(depth)) >> (!improve))
-                                                      - (!improve && singularValue < -80 + alpha);
+            if (mp.quietAllowed)
+                mp.quietAllowed =
+                  (moveCount - promoCount)
+                  < ((3 + sqr(depth)) >> (!improve)) - (!improve && singularValue < -80 + alpha);
 
             // Reduced depth of the next LMR search
             Depth lmrDepth = newDepth - r / 1024;
@@ -1500,10 +1501,9 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (bestMove != Move::None)
     {
         update_all_history(pos, ss, depth, bestMove, movesArr);
-        if (!PVNode)
+        if constexpr (!RootNode)
         {
-            int bonus = std::min(-77 + 110 * depth, 1853);
-            TTMoveHistory << (bestMove == ttd.move ? +bonus : -bonus);
+            TTMoveHistory << (bestMove == ttd.move ? +809 : -865);
         }
     }
     // If prior move is valid, that caused the fail low
@@ -1513,7 +1513,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (!preCapture)
         {
             // clang-format off
-            int bonusScale = std::max(-228
+            int bonusScale = std::max<int>(-228
                             // Increase bonus when depth is high
                             + std::min(63 * depth, 508)
                             // Increase bonus when bestValue is lower than current static evaluation
@@ -1523,7 +1523,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                             // Increase bonus when the previous moveCount is high
                             +  21 * ((ss - 1)->moveCount - 1)
                             // Increase bonus if the previous move has a bad history
-                            + -(ss - 1)->history / 104, 1);
+                            + -9.6154e-3 * (ss - 1)->history, 1);
             // clang-format on
             int bonus = bonusScale * std::min(-92 + 144 * depth, 1365);
 
@@ -1539,7 +1539,8 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             auto captured = type_of(pos.captured_piece());
             assert(captured != NO_PIECE_TYPE);
-            update_capture_history(pos.piece_on(preSq), preSq, captured, 964);
+            int bonus = std::min(-146 + 250 * depth, 1650);
+            update_capture_history(pos.piece_on(preSq), preSq, captured, bonus);
         }
     }
 
@@ -1730,7 +1731,7 @@ QS_MOVES_LOOP:
             if (dst != preSq && !check && !is_loss(futilityBase)
                 && (move.type_of() != PROMOTION || move.promotion_type() < QUEEN))
             {
-                if (moveCount - promoCount > 2)
+                if ((moveCount - promoCount) > 2)
                     continue;
 
                 Value futilityValue =  //

@@ -49,15 +49,12 @@ MovePicker::MovePicker(const Position&           p,
     threshold(th) {
     assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
 
-    if (pos.checkers())
-        stage = STG_EVA_TT + !(ttMove != Move::None);
-    else
-        stage = (threshold < 0 ? STG_ENC_TT : STG_QS_TT) + !(ttMove != Move::None);
+    stage = pos.checkers()
+            ? STG_EVA_TT + int(!(ttMove != Move::None))
+            : (threshold < 0 ? STG_ENC_TT : STG_QS_TT) + int(!(ttMove != Move::None));
 }
 
-MovePicker::MovePicker(const Position& p,  //
-                       Move            ttm,
-                       int             th) noexcept :
+MovePicker::MovePicker(const Position& p, Move ttm, int th) noexcept :
     pos(p),
     ttMove(ttm),
     continuationHistory(nullptr),
@@ -66,7 +63,7 @@ MovePicker::MovePicker(const Position& p,  //
     assert(!pos.checkers());
     assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
 
-    stage = STG_PROBCUT_TT + !(ttMove != Move::None && pos.capture_promo(ttMove));
+    stage = STG_PROBCUT_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -203,16 +200,14 @@ bool MovePicker::select(Predicate&& pred) noexcept {
 // The order of moves smaller than the limit is left unspecified.
 void MovePicker::sort() noexcept {
 
-    for (iterator s = begin(), p = begin() + 1; p < end(); ++p)
+    for (iterator p = begin() + 1; p < end(); ++p)
     {
         value_type em = *p;
 
-        *p = *++s;
-
         // Find the correct position for 'em' using binary search
-        iterator q = std::upper_bound(begin(), s, em, std::greater<>{});
+        iterator q = std::upper_bound(begin(), p, em, std::greater<>{});
         // Move elements to make space for 'em'
-        std::move_backward(q, s, s + 1);
+        std::move_backward(q, p, p + 1);
         // Insert the 'em' in its correct position
         *q = em;
     }
@@ -253,7 +248,7 @@ STAGE_SWITCH:
                 if (pos.see(*cur) >= std::round(-55.5555e-3 * cur->value))
                     return true;
                 // Store bad captures
-                std::swap(*endBadCapture++, *cur);
+                std::iter_swap(endBadCapture++, cur);
                 return false;
             }))
             return move();
@@ -262,7 +257,7 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case STG_ENC_QUIET_INIT :
-        if (quietPick)
+        if (quietAllowed)
         {
             MoveList<ENC_QUIET> moveList(pos);
 
@@ -275,7 +270,7 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case STG_ENC_QUIET_GOOD :
-        if (quietPick)
+        if (quietAllowed)
         {
             for (; !empty(); next())
                 if (valid())
@@ -302,7 +297,7 @@ STAGE_SWITCH:
         if (select([]() { return true; }))
             return move();
 
-        if (quietPick)
+        if (quietAllowed)
         {
             // Prepare the pointers to loop over the bad quiets
             cur    = begBadQuiet;
@@ -313,7 +308,7 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case STG_ENC_QUIET_BAD :
-        if (quietPick && select([]() { return true; }))
+        if (quietAllowed && select([]() { return true; }))
             return move();
 
         return Move::None;
