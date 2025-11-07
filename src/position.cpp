@@ -1519,7 +1519,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     bool win = true;
 
-    Bitboard acAttackers, b = 0;
+    Bitboard acAttackers, b;
     Square   sq;
 
     Bitboard qB = pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(dst) & occupied;
@@ -1541,10 +1541,9 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         PieceType pt;
         // Don't allow pinned pieces to attack as long as
         // there are pinners on their original square.
-        if ((b = pinners(~ac) & pieces(~ac) & occupied))
+        if (pinners(~ac) & pieces(~ac) & occupied)
         {
-            while (b && acAttackers)
-                acAttackers &= ~between_bb(king_sq(ac), pop_lsb(b));
+            acAttackers &= ~blockers(ac);
 
             if (!acAttackers)
                 break;

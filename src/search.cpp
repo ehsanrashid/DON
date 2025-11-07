@@ -1795,19 +1795,15 @@ QS_MOVES_LOOP:
         else
         {
             if (bestValue != VALUE_DRAW  //
+                && pos.non_pawn_material(ac) == VALUE_ZERO
                 && type_of(pos.captured_piece()) >= ROOK
                 // No pawn pushes available
                 && !(pawn_push_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces()))
             {
-                if (pos.non_pawn_material(ac) == VALUE_ZERO)
-                {
-                    pos.state()->checkers = PROMOTION_RANK_BB;
-                    if (MoveList<LEGAL, true>(pos).empty())
-                        bestValue = VALUE_DRAW;
-                    pos.state()->checkers = 0;
-                }
-                else if (MoveList<LEGAL, true>(pos).empty())
+                pos.state()->checkers = PROMOTION_RANK_BB;
+                if (MoveList<LEGAL, true>(pos).empty())
                     bestValue = VALUE_DRAW;
+                pos.state()->checkers = 0;
             }
         }
     }
