@@ -71,86 +71,86 @@ class StatsEntry final {
 };
 
 template<typename T, std::size_t Size, std::size_t... Sizes>
-class Entries;
+class MultiVector;
 
 namespace internal {
 template<typename T, std::size_t Size, std::size_t... Sizes>
-struct [[maybe_unused]] EntiresTypedef;
+struct [[maybe_unused]] MultiVectorTypedef;
 
-// Recursive template to define multi-dimensional Entries
+// Recursive template to define multi-dimensional vector
 template<typename T, std::size_t Size, std::size_t... Sizes>
-struct EntiresTypedef final {
-    using Type = Entries<T, Sizes...>;
+struct MultiVectorTypedef final {
+    using Type = MultiVector<T, Sizes...>;
 };
-// Base case: single-dimensional Entries
+// Base case: single-dimensional vector
 template<typename T, std::size_t Size>
-struct EntiresTypedef<T, Size> final {
+struct MultiVectorTypedef<T, Size> final {
     using Type = T;
 };
 }  // namespace internal
 
-// Entries is a generic N-dimensional Entry.
-// The template parameter T is the base type of the Entries
-// The template parameters (Size and Sizes) is the dimensions of the Entries.
+// MultiVector is a generic N-dimensional vector.
+// The template parameter T is the base type of the MultiVector
+// The template parameters (Size and Sizes) is the dimensions of the MultiVector.
 template<typename T, std::size_t Size, std::size_t... Sizes>
-class Entries final {
+class MultiVector final {
    private:
-    using ChildType = typename internal::EntiresTypedef<T, Size, Sizes...>::Type;
-    using EntryType = std::vector<ChildType>;
+    using ElementType = typename internal::MultiVectorTypedef<T, Size, Sizes...>::Type;
+    using VectorType  = std::vector<ElementType>;
 
    public:
-    using value_type             = typename EntryType::value_type;
-    using size_type              = typename EntryType::size_type;
-    using difference_type        = typename EntryType::difference_type;
-    using reference              = typename EntryType::reference;
-    using const_reference        = typename EntryType::const_reference;
-    using pointer                = typename EntryType::pointer;
-    using const_pointer          = typename EntryType::const_pointer;
-    using iterator               = typename EntryType::iterator;
-    using const_iterator         = typename EntryType::const_iterator;
-    using reverse_iterator       = typename EntryType::reverse_iterator;
-    using const_reverse_iterator = typename EntryType::const_reverse_iterator;
+    using value_type             = typename VectorType::value_type;
+    using size_type              = typename VectorType::size_type;
+    using difference_type        = typename VectorType::difference_type;
+    using reference              = typename VectorType::reference;
+    using const_reference        = typename VectorType::const_reference;
+    using pointer                = typename VectorType::pointer;
+    using const_pointer          = typename VectorType::const_pointer;
+    using iterator               = typename VectorType::iterator;
+    using const_iterator         = typename VectorType::const_iterator;
+    using reverse_iterator       = typename VectorType::reverse_iterator;
+    using const_reverse_iterator = typename VectorType::const_reverse_iterator;
 
-    Entries() noexcept :
-        entries(Size) {}
+    MultiVector() noexcept :
+        _data(Size) {}
 
-    constexpr auto begin() const noexcept { return entries.begin(); }
-    constexpr auto end() const noexcept { return entries.end(); }
-    constexpr auto begin() noexcept { return entries.begin(); }
-    constexpr auto end() noexcept { return entries.end(); }
+    constexpr auto begin() const noexcept { return _data.begin(); }
+    constexpr auto end() const noexcept { return _data.end(); }
+    constexpr auto begin() noexcept { return _data.begin(); }
+    constexpr auto end() noexcept { return _data.end(); }
 
-    constexpr auto cbegin() const noexcept { return entries.cbegin(); }
-    constexpr auto cend() const noexcept { return entries.cend(); }
+    constexpr auto cbegin() const noexcept { return _data.cbegin(); }
+    constexpr auto cend() const noexcept { return _data.cend(); }
 
-    constexpr auto rbegin() const noexcept { return entries.rbegin(); }
-    constexpr auto rend() const noexcept { return entries.rend(); }
-    constexpr auto rbegin() noexcept { return entries.rbegin(); }
-    constexpr auto rend() noexcept { return entries.rend(); }
+    constexpr auto rbegin() const noexcept { return _data.rbegin(); }
+    constexpr auto rend() const noexcept { return _data.rend(); }
+    constexpr auto rbegin() noexcept { return _data.rbegin(); }
+    constexpr auto rend() noexcept { return _data.rend(); }
 
-    constexpr auto crbegin() const noexcept { return entries.crbegin(); }
-    constexpr auto crend() const noexcept { return entries.crend(); }
+    constexpr auto crbegin() const noexcept { return _data.crbegin(); }
+    constexpr auto crend() const noexcept { return _data.crend(); }
 
-    constexpr auto&       front() noexcept { return entries.front(); }
-    constexpr const auto& front() const noexcept { return entries.front(); }
-    constexpr auto&       back() noexcept { return entries.back(); }
-    constexpr const auto& back() const noexcept { return entries.back(); }
+    constexpr auto&       front() noexcept { return _data.front(); }
+    constexpr const auto& front() const noexcept { return _data.front(); }
+    constexpr auto&       back() noexcept { return _data.back(); }
+    constexpr const auto& back() const noexcept { return _data.back(); }
 
-    auto*       data() { return entries.data(); }
-    const auto* data() const { return entries.data(); }
+    auto*       data() { return _data.data(); }
+    const auto* data() const { return _data.data(); }
 
-    constexpr auto max_size() const noexcept { return entries.max_size(); }
+    constexpr auto max_size() const noexcept { return _data.max_size(); }
 
-    constexpr auto size() const noexcept { return entries.size(); }
-    constexpr auto empty() const noexcept { return entries.empty(); }
+    constexpr auto size() const noexcept { return _data.size(); }
+    constexpr auto empty() const noexcept { return _data.empty(); }
 
-    constexpr const auto& at(size_type idx) const noexcept { return entries.at(idx); }
-    constexpr auto&       at(size_type idx) noexcept { return entries.at(idx); }
+    constexpr const auto& at(size_type idx) const noexcept { return _data.at(idx); }
+    constexpr auto&       at(size_type idx) noexcept { return _data.at(idx); }
 
-    constexpr auto& operator[](size_type idx) const noexcept { return entries[idx]; }
-    constexpr auto& operator[](size_type idx) noexcept { return entries[idx]; }
+    constexpr auto& operator[](size_type idx) const noexcept { return _data[idx]; }
+    constexpr auto& operator[](size_type idx) noexcept { return _data[idx]; }
 
-    constexpr void swap(Entries<T, Size, Sizes...>& _entries) noexcept {
-        entries.swap(_entries.entries);
+    constexpr void swap(MultiVector<T, Size, Sizes...>& _entries) noexcept {
+        _data.swap(_entries._data);
     }
 
     // Recursively fill all dimensions by calling the sub fill method
@@ -158,31 +158,31 @@ class Entries final {
     void fill(U v) noexcept {
         static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to entry type");
 
-        for (auto& entry : *this)
+        for (auto& element : *this)
         {
             if constexpr (sizeof...(Sizes) == 0)
-                entry = v;
+                element = v;
             else
-                entry.fill(v);
+                element.fill(v);
         }
     }
 
     /*
     void print() const noexcept {
         std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
-        for (auto& entry : *this)
+        for (auto& element : *this)
         {
             if constexpr (sizeof...(Sizes) == 0)
-                std::cout << entry << ' ';
+                std::cout << element << ' ';
             else
-                entry.print();
+                element.print();
         }
         std::cout << std::endl;
     }
     */
 
    private:
-    EntryType entries;
+    VectorType _data;
 };
 
 // clang-format off
@@ -218,7 +218,7 @@ enum HistoryType : std::uint8_t {
 
 namespace internal {
 template<int D, std::size_t... Sizes>
-using StatsEntires = Entries<StatsEntry<std::int16_t, D>, Sizes...>;
+using StatsEntires = MultiVector<StatsEntry<std::int16_t, D>, Sizes...>;
 
 template<HistoryType T>
 struct HistoryTypedef;
@@ -248,7 +248,7 @@ struct HistoryTypedef<HPieceSq> final {
 
 template<>
 struct HistoryTypedef<HContinuation> final {
-    using Type = Entries<HistoryTypedef<HPieceSq>::Type, PIECE_NB, SQUARE_NB>;
+    using Type = MultiVector<HistoryTypedef<HPieceSq>::Type, PIECE_NB, SQUARE_NB>;
 };
 
 // It is used to improve quiet move ordering near the root.
@@ -324,7 +324,7 @@ struct CorrectionHistoryTypedef<CHPieceSq> final {
 
 template<>
 struct CorrectionHistoryTypedef<CHContinuation> final {
-    using Type = Entries<CorrectionHistoryTypedef<CHPieceSq>::Type, PIECE_NB, SQUARE_NB>;
+    using Type = MultiVector<CorrectionHistoryTypedef<CHPieceSq>::Type, PIECE_NB, SQUARE_NB>;
 };
 }  // namespace internal
 

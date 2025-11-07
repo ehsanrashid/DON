@@ -1284,7 +1284,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
     std::size_t get_discriminator(NumaIndex idx) const noexcept {
         const NumaConfig& cfg     = numa_config();
         const NumaConfig& cfg_sys = NumaConfig::from_system(false);
-        // as a descriminator, locate the hardware/system numadomain this cpuindex belongs to
+        // as a discriminator, locate the hardware/system numadomain this cpuindex belongs to
         CpuIndex    cpu     = *cfg.nodes[idx].begin();  // get a CpuIndex from NumaIndex
         NumaIndex   sys_idx = cfg_sys.is_cpu_assigned(cpu) ? cfg_sys.nodeByCpu.at(cpu) : 0;
         std::string s       = cfg_sys.to_string() + "$" + std::to_string(sys_idx);

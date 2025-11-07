@@ -371,52 +371,57 @@ class alignas(64) Info {
    public:
     Info() noexcept {
         for (std::size_t i = 0; i < Size; ++i)
-            data[i].store(0, std::memory_order_relaxed);
+            _data[i].store(0, std::memory_order_relaxed);
     }
+
     Info(const Info& info) noexcept {
         for (std::size_t i = 0; i < Size; ++i)
-            data[i].store(info.data[i].load(std::memory_order_relaxed), std::memory_order_relaxed);
+            _data[i].store(info._data[i].load(std::memory_order_relaxed),
+                           std::memory_order_relaxed);
     }
     Info& operator=(const Info& info) noexcept {
-        if (this != &info)
-            for (std::size_t i = 0; i < Size; ++i)
-                data[i].store(info.data[i].load(std::memory_order_relaxed),
-                              std::memory_order_relaxed);
+        if (this == &info)
+            return *this;
+
+        for (std::size_t i = 0; i < Size; ++i)
+            _data[i].store(info._data[i].load(std::memory_order_relaxed),
+                           std::memory_order_relaxed);
         return *this;
     }
+
     Info(Info&&) noexcept            = delete;
     Info& operator=(Info&&) noexcept = delete;
 
     [[nodiscard]] decltype(auto) operator[](std::size_t index) const noexcept {
         assert(index < Size && "Index out of bounds");
-        return data[index];
+        return _data[index];
     }
     [[nodiscard]] decltype(auto) operator[](std::size_t index) noexcept {
         assert(index < Size && "Index out of bounds");
-        return data[index];
+        return _data[index];
     }
 
    protected:
-    std::array<std::atomic<std::int64_t>, Size> data;
+    std::array<std::atomic<std::int64_t>, Size> _data;
 };
 
 class MinInfo final: public Info<2> {
    public:
     MinInfo() noexcept {
-        data[1].store(std::numeric_limits<std::int64_t>::max(), std::memory_order_relaxed);
+        _data[1].store(std::numeric_limits<std::int64_t>::max(), std::memory_order_relaxed);
     }
 };
 class MaxInfo final: public Info<2> {
    public:
     MaxInfo() noexcept {
-        data[1].store(std::numeric_limits<std::int64_t>::min(), std::memory_order_relaxed);
+        _data[1].store(std::numeric_limits<std::int64_t>::min(), std::memory_order_relaxed);
     }
 };
 class ExtremeInfo final: public Info<3> {
    public:
     ExtremeInfo() noexcept {
-        data[1].store(std::numeric_limits<std::int64_t>::max(), std::memory_order_relaxed);
-        data[2].store(std::numeric_limits<std::int64_t>::min(), std::memory_order_relaxed);
+        _data[1].store(std::numeric_limits<std::int64_t>::max(), std::memory_order_relaxed);
+        _data[2].store(std::numeric_limits<std::int64_t>::min(), std::memory_order_relaxed);
     }
 };
 
