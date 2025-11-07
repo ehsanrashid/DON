@@ -1148,7 +1148,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Futility pruning for captures
                 if (lmrDepth < 7 && !check)
                 {
-                    Value futilityValue =  //
+                    Value futilityValue =
                       std::min(231 + ss->staticEval + 211 * lmrDepth + 130 * history / 1024
                                  + PIECE_VALUE[captured] + promotion_value(move),
                                +VALUE_INFINITE);
@@ -1276,6 +1276,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Step 16. Make the move
         do_move(pos, move, st, check, ss);
+
+        assert(captured == type_of(pos.captured_piece()));
 
         ss->history = capture ? 6.2734 * (PIECE_VALUE[captured] + promotion_value(move))
                                   + CaptureHistory[movedPiece][dst][captured]
@@ -1484,6 +1486,10 @@ S_MOVES_LOOP:  // When in check, search starts here
     else if (bestValue > beta && !is_decisive(bestValue) && !is_decisive(alpha))
         bestValue = (depth * bestValue + beta) / (depth + 1);
 
+    // Don't let best value inflate too high (tb)
+    if constexpr (PVNode)
+        bestValue = std::min(bestValue, maxValue);
+
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
     {
@@ -1530,13 +1536,9 @@ S_MOVES_LOOP:  // When in check, search starts here
         }
     }
 
-    // Don't let best value inflate too high (tb)
-    if constexpr (PVNode)
-        bestValue = std::min(bestValue, maxValue);
-
     // If no good move is found and the previous position was pvHit, then the previous
     // opponent move is probably good and the new position is added to the search tree.
-    if (!ss->pvHit && bestValue <= alpha)
+    if (bestValue <= alpha && !ss->pvHit)
         ss->pvHit = (ss - 1)->pvHit;
 
     // Save gathered information in transposition table
@@ -1784,7 +1786,6 @@ QS_MOVES_LOOP:
     // All legal moves have been searched.
     if (!moveCount)
     {
-        Color ac = pos.active_color();
         // A special case: if in check and no legal moves were found, it is checkmate.
         if (ss->inCheck)
         {
@@ -1794,6 +1795,7 @@ QS_MOVES_LOOP:
         }
         else
         {
+            Color ac = pos.active_color();
             if (bestValue != VALUE_DRAW  //
                 && pos.non_pawn_material(ac) == VALUE_ZERO
                 && type_of(pos.captured_piece()) >= ROOK

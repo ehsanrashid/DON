@@ -1499,7 +1499,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     // xoring to is important for pinned piece logic
     occupied ^= make_bitboard(org, dst);
 
-    Bitboard attackers = attackers_to(dst, occupied) & occupied;
+    Bitboard attackers = attackers_to(dst, occupied);
 
     Square   epSq = SQ_NONE;
     Bitboard epAttackers;
@@ -1514,10 +1514,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         attackers |= epAttackers;
     }
 
-    if (!attackers)
-        return true;
-
-    bool win = true;
+    bool ge = true;
 
     Bitboard acAttackers, b;
     Square   sq;
@@ -1529,9 +1526,10 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     bool discovery[COLOR_NB]{true, true};
 
-    while (attackers)
+    while (true)
     {
         ac = ~ac;
+        attackers &= occupied;
 
         acAttackers = pieces(ac) & attackers;
         // If ac has no more attackers then give up: ac loses
@@ -1559,7 +1557,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             {
                 dst  = lsb(b);
                 swap = PIECE_VALUE[type_of(piece_on(org))] - swap;
-                if ((swap = PIECE_VALUE[type_of(piece_on(dst))] - swap) < win)
+                if ((swap = PIECE_VALUE[type_of(piece_on(dst))] - swap) < ge)
                     break;
 
                 occupied ^= dst;
@@ -1580,7 +1578,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 break;
         }
 
-        win = !win;
+        ge = !ge;
 
         if (!is_ok(epSq) && discovery[ac] && (b = blockers(~ac) & acAttackers))
         {
@@ -1599,8 +1597,8 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
                 discovery[ac] = false;
 
-                ac  = ~ac;
-                win = !win;
+                ac = ~ac;
+                ge = !ge;
                 continue;  // Resume without considering discovery
             }
 
@@ -1608,13 +1606,13 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             {
                 discovery[ac] = false;
 
-                ac  = ~ac;
-                win = !win;
+                ac = ~ac;
+                ge = !ge;
                 continue;  // Resume without considering discovery
             }
 
             occupied ^= org = sq;
-            if ((swap = PIECE_VALUE[pt] - swap) < win)
+            if ((swap = PIECE_VALUE[pt] - swap) < ge)
                 break;
             switch (pt)
             {
@@ -1640,7 +1638,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         else if ((b = pieces(PAWN) & acAttackers))
         {
             occupied ^= org = lsb(b);
-            if ((swap = VALUE_PAWN - swap) < win)
+            if ((swap = VALUE_PAWN - swap) < ge)
                 break;
             if (qB)
                 attackers |= qB & attacks_bb<BISHOP>(magic, occupied);
@@ -1664,13 +1662,13 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         else if ((b = pieces(KNIGHT) & acAttackers))
         {
             occupied ^= org = lsb(b);
-            if ((swap = VALUE_KNIGHT - swap) < win)
+            if ((swap = VALUE_KNIGHT - swap) < ge)
                 break;
         }
         else if ((b = pieces(BISHOP) & acAttackers))
         {
             occupied ^= org = lsb(b);
-            if ((swap = VALUE_BISHOP - swap) < win)
+            if ((swap = VALUE_BISHOP - swap) < ge)
                 break;
             qB &= occupied;
             if (qB)
@@ -1679,7 +1677,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         else if ((b = pieces(ROOK) & acAttackers))
         {
             occupied ^= org = lsb(b);
-            if ((swap = VALUE_ROOK - swap) < win)
+            if ((swap = VALUE_ROOK - swap) < ge)
                 break;
             qR &= occupied;
             if (qR)
@@ -1688,7 +1686,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         else if ((b = pieces(QUEEN) & acAttackers))
         {
             occupied ^= org = lsb(b);
-            if ((swap = VALUE_QUEEN - swap) < win)
+            if ((swap = VALUE_QUEEN - swap) < ge)
                 break;
             qB &= occupied;
             qR &= occupied;
@@ -1701,14 +1699,12 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         {
             occupied ^= acAttackers;
             // If "capture" with the king but the opponent still has attackers, reverse the result.
-            win ^= bool(pieces(~ac) & attackers);
+            ge ^= bool(pieces(~ac) & attackers);
             break;
         }
-
-        attackers &= occupied;
     }
 
-    return win;
+    return ge;
 }
 
 // Draw by Repetition: position repeats once earlier but strictly
