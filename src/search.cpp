@@ -1188,11 +1188,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                                  + 90 * (ss->staticEval > alpha),
                                +VALUE_INFINITE);
                     if (futilityValue <= alpha)
-                    {
-                        if (!is_decisive(bestValue) && !is_decisive(futilityValue))
-                            bestValue = std::max(bestValue, futilityValue);
                         continue;
-                    }
                 }
 
                 lmrDepth = std::max(+lmrDepth, 0);
@@ -1324,7 +1320,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             // std::clamp has been replaced by a more robust implementation.
             Depth redDepth = std::max(std::min(newDepth - r / 1024, newDepth + 2), 1) + PVNode;
 
-            value = -search<Cut>(pos, ss + 1, -(alpha + 1), -alpha, redDepth, newDepth - redDepth);
+            value = -search<Cut>(pos, ss + 1, -alpha - 1, -alpha, redDepth, newDepth - redDepth);
 
             // (*Scaler) Do a full-depth search when reduced LMR search fails high
             // Usually doing more shallower searches doesn't scale well to longer TCs
@@ -1338,7 +1334,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                   - (value < 9 + bestValue);
 
                 if (redDepth < newDepth)
-                    value = -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha, newDepth);
+                    value = -search<~NT>(pos, ss + 1, -alpha - 1, -alpha, newDepth);
 
                 // Post LMR continuation history updates
                 update_continuation_history(ss, movedPiece, dst, 1365);
@@ -1352,7 +1348,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             r += 1118 * (ttd.move == Move::None);
 
             // Reduce search depth if expected reduction is high
-            value = -search<~NT>(pos, ss + 1, -(alpha + 1), -alpha,
+            value = -search<~NT>(pos, ss + 1, -alpha - 1, -alpha,
                                  newDepth - (r > 3212) - (r > 4784 && newDepth > 2));
         }
 
