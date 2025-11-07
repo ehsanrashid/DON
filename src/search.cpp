@@ -1279,9 +1279,9 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         ss->history = capture ? 6.2734 * (PIECE_VALUE[captured] + promotion_value(move))
                                   + CaptureHistory[movedPiece][dst][captured]
-                              : 2 * QuietHistory[ac][move.raw()]  //
-                                  + (*contHistory[0])[movedPiece][dst]
-                                  + (!ss->inCheck ? (*contHistory[1])[movedPiece][dst] : 0);
+                              : 2 * QuietHistory[ac][move.raw()]        //
+                                  + (*contHistory[0])[movedPiece][dst]  //
+                                  + (*contHistory[1])[movedPiece][dst];
 
         // (*Scaler) Decrease reduction if position is or has been on the PV
         r -= (2618 + 991 * PVNode + 903 * (is_valid(ttd.value) && ttd.value > alpha)
@@ -1792,15 +1792,23 @@ QS_MOVES_LOOP:
             assert((MoveList<LEGAL, true>(pos).empty()));
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
-        else if (bestValue != VALUE_DRAW && pos.non_pawn_material(ac) == VALUE_ZERO
-                 && type_of(pos.captured_piece()) >= ROOK
-                 // No pawn pushes available
-                 && !(pawn_push_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces()))
+        else
         {
-            pos.state()->checkers = PROMOTION_RANK_BB;
-            if (MoveList<LEGAL, true>(pos).empty())
-                bestValue = VALUE_DRAW;
-            pos.state()->checkers = 0;
+            if (bestValue != VALUE_DRAW  //
+                && type_of(pos.captured_piece()) >= ROOK
+                // No pawn pushes available
+                && !(pawn_push_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces()))
+            {
+                if (pos.non_pawn_material(ac) == VALUE_ZERO)
+                {
+                    pos.state()->checkers = PROMOTION_RANK_BB;
+                    if (MoveList<LEGAL, true>(pos).empty())
+                        bestValue = VALUE_DRAW;
+                    pos.state()->checkers = 0;
+                }
+                else if (MoveList<LEGAL, true>(pos).empty())
+                    bestValue = VALUE_DRAW;
+            }
         }
     }
     // Adjust best value for fail high cases
