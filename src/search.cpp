@@ -853,7 +853,7 @@ Value Worker::search(Position&    pos,
 
     Color ac = pos.active_color();
 
-    int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
+    int correctionValue = correction_value(pos, ss);
 
     int absCorrectionValue = std::abs(correctionValue);
 
@@ -1148,10 +1148,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Futility pruning for captures
                 if (lmrDepth < 7 && !check)
                 {
-                    Value futilityValue =
-                      std::min(231 + ss->staticEval + 211 * lmrDepth + 130 * history / 1024
-                                 + PIECE_VALUE[captured] + promotion_value(move),
-                               +VALUE_INFINITE);
+                    Value seeGain       = PIECE_VALUE[captured] + promotion_value(move);
+                    Value futilityValue = std::min(231 + ss->staticEval + 211 * lmrDepth
+                                                     + 130 * history / 1024 + seeGain,
+                                                   +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                         continue;
                 }
@@ -1188,7 +1188,11 @@ S_MOVES_LOOP:  // When in check, search starts here
                                  + 90 * (ss->staticEval > alpha),
                                +VALUE_INFINITE);
                     if (futilityValue <= alpha)
+                    {
+                        if (!is_decisive(bestValue) && !is_decisive(futilityValue))
+                            bestValue = std::max(bestValue, futilityValue);
                         continue;
+                    }
                 }
 
                 lmrDepth = std::max(+lmrDepth, 0);
@@ -1619,7 +1623,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         && pos.rule50_count() < (1.0 - 0.5 * pos.has_rule50_high()) * rule50_threshold())
         return ttd.value;
 
-    int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
+    int correctionValue;
 
     Value unadjustedStaticEval, bestValue;
     Value futilityBase;
@@ -1633,6 +1637,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
         goto QS_MOVES_LOOP;
     }
+
+    correctionValue = correction_value(pos, ss);
 
     if (ttd.hit)
     {
@@ -1718,22 +1724,19 @@ QS_MOVES_LOOP:
                 if ((moveCount - promoCount) > 2)
                     continue;
 
-                Value futilityValue =  //
-                  std::min(futilityBase + PIECE_VALUE[captured] + promotion_value(move),
-                           +VALUE_INFINITE);
+                Value seeGain       = PIECE_VALUE[captured] + promotion_value(move);
+                Value futilityValue = std::min(futilityBase + seeGain, +VALUE_INFINITE);
                 // If static evaluation + value of piece going to captured is much lower than alpha
                 if (futilityValue <= alpha)
                 {
-                    if (!is_decisive(bestValue) && !is_decisive(futilityValue))
-                        bestValue = std::max(bestValue, futilityValue);
+                    bestValue = std::max(bestValue, futilityValue);
                     continue;
                 }
 
                 // SEE based pruning
                 if (pos.see(move) < (alpha - futilityBase))
                 {
-                    if (!is_decisive(bestValue))
-                        bestValue = std::max(bestValue, std::min(alpha, futilityBase));
+                    bestValue = std::min(alpha, futilityBase);
                     continue;
                 }
             }
