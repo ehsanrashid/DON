@@ -79,6 +79,7 @@ struct AccumulatorCaches final {
                 // Initialize accumulation with given biases
                 accumulation = biases;
                 auto offset  = offsetof(Entry, psqtAccumulation);
+                assert(offset <= sizeof(*this) && "offset exceeds object size");
                 std::memset(reinterpret_cast<std::uint8_t*>(this) + offset, 0,
                             sizeof(*this) - offset);
             }

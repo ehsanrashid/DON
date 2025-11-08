@@ -90,7 +90,6 @@ MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveL
 
 template<>
 MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
-    constexpr StdArray<int, PIECE_TYPE_NB> Bonus{0, 0, 144, 144, 256, 517, 10000};
 
     Color ac        = pos.active_color();
     auto  pawnIndex = pawn_index(pos.pawn_key());
@@ -129,9 +128,9 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
 
         // Penalty for moving to square attacked by lesser piece or
         // Bonus for escaping from square attacked by lesser piece.
-        m.value += Bonus[pt]
-                 * (((pos.attacks_lesser(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? -95
-                    : (pos.attacks_lesser(~ac, pt) & org)                               ? 100
+        m.value += PIECE_VALUE[pt]
+                 * (((pos.attacks_lesser(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? -19
+                    : (pos.attacks_lesser(~ac, pt) & org)                               ? +20
                                                                                         : 0);
 
         if (pt == KING)
