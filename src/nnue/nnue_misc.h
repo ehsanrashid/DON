@@ -52,8 +52,8 @@ struct NetworkOutput final {
 };
 
 struct NetworkTrace final {
-    NetworkOutput netOut[LayerStacks];
-    std::size_t   correctBucket;
+    StdArray<NetworkOutput, LayerStacks> netOut;
+    std::size_t                          correctBucket;
 };
 
 std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& accCaches) noexcept;

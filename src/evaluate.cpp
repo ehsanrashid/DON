@@ -59,7 +59,7 @@ Value evaluate(const Position&          pos,
 
     if (smallNetUse)
     {
-        netOut = networks.small.evaluate(pos, accStack, &accCaches.small);
+        netOut = networks.small.evaluate(pos, accStack, accCaches.small);
         nnue   = compute_nnue();
 
         // Re-evaluate with the big-net if the small-net's NNUE evaluation is below a certain threshold
@@ -67,13 +67,13 @@ Value evaluate(const Position&          pos,
         {
             smallNetUse = false;
 
-            netOut = networks.big.evaluate(pos, accStack, &accCaches.big);
+            netOut = networks.big.evaluate(pos, accStack, accCaches.big);
             nnue   = compute_nnue();
         }
     }
     else
     {
-        netOut = networks.big.evaluate(pos, accStack, &accCaches.big);
+        netOut = networks.big.evaluate(pos, accStack, accCaches.big);
         nnue   = compute_nnue();
     }
 
@@ -114,7 +114,7 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
 
     oss << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
 
-    auto netOut = networks.big.evaluate(pos, *accStack, &accCaches->big);
+    auto netOut = networks.big.evaluate(pos, *accStack, accCaches->big);
 
     Value v;
     v = netOut.psqt + netOut.positional;

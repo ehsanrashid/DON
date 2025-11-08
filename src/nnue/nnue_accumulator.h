@@ -48,9 +48,9 @@ struct alignas(CACHE_LINE_SIZE) Accumulator final {
    public:
     constexpr Accumulator() noexcept = default;
 
-    BiasType       accumulation[COLOR_NB][Size]{};
-    PSQTWeightType psqtAccumulation[COLOR_NB][PSQTBuckets]{};
-    bool           computed[COLOR_NB]{};
+    StdArray<BiasType, COLOR_NB, Size>              accumulation{};
+    StdArray<PSQTWeightType, COLOR_NB, PSQTBuckets> psqtAccumulation{};
+    StdArray<bool, COLOR_NB>                        computed{};
 };
 
 using BigAccumulator   = Accumulator<BigTransformedFeatureDimensions>;
@@ -75,18 +75,18 @@ struct AccumulatorCaches final {
 
             // To initialize a refresh entry, set all its bitboards empty,
             // so put the biases in the accumulation, without any weights on top
-            void init(const BiasType* biases) noexcept {
+            void init(const StdArray<BiasType, Size>& biases) noexcept {
                 // Initialize accumulation with given biases
-                std::memcpy(accumulation, biases, sizeof(accumulation));
-                auto offset = offsetof(Entry, psqtAccumulation);
+                accumulation = biases;
+                auto offset  = offsetof(Entry, psqtAccumulation);
                 std::memset(reinterpret_cast<std::uint8_t*>(this) + offset, 0,
                             sizeof(*this) - offset);
             }
 
-            BiasType       accumulation[Size]{};
-            PSQTWeightType psqtAccumulation[PSQTBuckets]{};
-            Bitboard       pieces{};
-            PieceArray     pieceArr{};
+            StdArray<BiasType, Size>              accumulation{};
+            StdArray<PSQTWeightType, PSQTBuckets> psqtAccumulation{};
+            Bitboard                              pieces{};
+            PieceArray                            pieceArr{};
         };
 
         template<typename Network>
@@ -97,10 +97,10 @@ struct AccumulatorCaches final {
                     entry.init(network.featureTransformer.biases);
         }
 
-        const Entry (&operator[](Square s) const noexcept)[COLOR_NB] { return entries[s]; }
-        Entry (&operator[](Square s) noexcept)[COLOR_NB] { return entries[s]; }
+        const StdArray<Entry, COLOR_NB>& operator[](Square s) const noexcept { return entries[s]; }
+        StdArray<Entry, COLOR_NB>&       operator[](Square s) noexcept { return entries[s]; }
 
-        Entry entries[SQUARE_NB][COLOR_NB]{};
+        StdArray<Entry, SQUARE_NB, COLOR_NB> entries{};
     };
 
     using BigCache   = Cache<BigTransformedFeatureDimensions>;

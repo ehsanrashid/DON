@@ -59,10 +59,10 @@ struct AccumulatorUpdateContext final {
                              const AccumulatorState&               computedAccSt,
                              AccumulatorState&                     targetAccSt) noexcept :
         featureTransformer{ft},
-        computedAcc{(computedAccSt.acc<Dimensions>()).accumulation[perspective]},
-        computedPsqt{(computedAccSt.acc<Dimensions>()).psqtAccumulation[perspective]},
-        targetAcc{(targetAccSt.acc<Dimensions>()).accumulation[perspective]},
-        targetPsqt{(targetAccSt.acc<Dimensions>()).psqtAccumulation[perspective]} {}
+        computedAcc((computedAccSt.acc<Dimensions>()).accumulation[perspective]),
+        computedPsqt((computedAccSt.acc<Dimensions>()).psqtAccumulation[perspective]),
+        targetAcc((targetAccSt.acc<Dimensions>()).accumulation[perspective]),
+        targetPsqt((targetAccSt.acc<Dimensions>()).psqtAccumulation[perspective]) {}
 
     template<UpdateOperation... ops,
              typename... Ts,
@@ -76,17 +76,17 @@ struct AccumulatorUpdateContext final {
             return &featureTransformer.psqtWeights[index * PSQTBuckets];
         };
 
-        fused_row_reduce<Vec16Wrapper, Dimensions, ops...>(computedAcc, targetAcc,
+        fused_row_reduce<Vec16Wrapper, Dimensions, ops...>(computedAcc.data(), targetAcc.data(),
                                                            to_weight_vector(indices)...);
-        fused_row_reduce<Vec32Wrapper, PSQTBuckets, ops...>(computedPsqt, targetPsqt,
+        fused_row_reduce<Vec32Wrapper, PSQTBuckets, ops...>(computedPsqt.data(), targetPsqt.data(),
                                                             to_psqt_weight_vector(indices)...);
     }
 
-    const FeatureTransformer<Dimensions>& featureTransformer;
-    const BiasType (&computedAcc)[Dimensions];
-    const PSQTWeightType (&computedPsqt)[PSQTBuckets];
-    BiasType (&targetAcc)[Dimensions];
-    PSQTWeightType (&targetPsqt)[PSQTBuckets];
+    const FeatureTransformer<Dimensions>&          featureTransformer;
+    const std::array<BiasType, Dimensions>&        computedAcc;
+    const std::array<PSQTWeightType, PSQTBuckets>& computedPsqt;
+    std::array<BiasType, Dimensions>&              targetAcc;
+    std::array<PSQTWeightType, PSQTBuckets>&       targetPsqt;
 };
 
 template<IndexType Dimensions>
@@ -369,10 +369,8 @@ void update_accumulator_refresh_cache(Color                                 pers
 
     // The accumulator of the refresh entry has been updated.
     // Now copy its content to the actual accumulator were refreshing.
-    std::memcpy(accumulator.accumulation[perspective], entry.accumulation,
-                sizeof(accumulator.accumulation[perspective]));
-    std::memcpy(accumulator.psqtAccumulation[perspective], entry.psqtAccumulation,
-                sizeof(accumulator.psqtAccumulation[perspective]));
+    accumulator.accumulation[perspective]     = entry.accumulation;
+    accumulator.psqtAccumulation[perspective] = entry.psqtAccumulation;
 #endif
 }
 
@@ -384,9 +382,9 @@ void AccumulatorCaches::init(const Networks& networks) noexcept {
 }
 
 void AccumulatorState::reset(const DirtyPiece& dp) noexcept {
-    dirtyPiece          = dp;
-    big.computed[WHITE] = big.computed[BLACK] = false;
-    small.computed[WHITE] = small.computed[BLACK] = false;
+    dirtyPiece = dp;
+    big.computed.fill(false);
+    small.computed.fill(false);
 }
 
 const AccumulatorState& AccumulatorStack::clatest_state() const noexcept {

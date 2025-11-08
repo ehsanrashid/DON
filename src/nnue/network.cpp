@@ -89,7 +89,7 @@ bool read_header(std::istream&  istream,  //
     if (!istream || fileVersion != FILE_VERSION)
         return false;
     netDescription.resize(descSize);
-    istream.read(&netDescription[0], descSize);
+    istream.read(netDescription.data(), descSize);
 
     return !istream.fail();
 }
@@ -101,7 +101,7 @@ bool write_header(std::ostream&      ostream,  //
     write_little_endian<std::uint32_t>(ostream, FILE_VERSION);
     write_little_endian<std::uint32_t>(ostream, hash);
     write_little_endian<std::uint32_t>(ostream, netDescription.size());
-    ostream.write(&netDescription[0], netDescription.size());
+    ostream.write(netDescription.data(), netDescription.size());
 
     return !ostream.fail();
 }
@@ -237,12 +237,13 @@ template<typename Arch, typename Transformer>
 NetworkOutput
 Network<Arch, Transformer>::evaluate(const Position&                         pos,
                                      AccumulatorStack&                       accStack,
-                                     AccumulatorCaches::Cache<TFDimensions>* cache) const noexcept {
+                                     AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept {
 
     alignas(CACHE_LINE_SIZE)
-      TransformedFeatureType transformedFeatures[FeatureTransformer<TFDimensions>::BufferSize];
+      StdArray<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
+        transformedFeatures;
 
-    ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
+    ASSERT_ALIGNED(transformedFeatures.data(), CACHE_LINE_SIZE);
 
     auto bucket = pos.bucket();
 
@@ -256,12 +257,13 @@ template<typename Arch, typename Transformer>
 NetworkTrace
 Network<Arch, Transformer>::trace(const Position&                         pos,
                                   AccumulatorStack&                       accStack,
-                                  AccumulatorCaches::Cache<TFDimensions>* cache) const noexcept {
+                                  AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept {
 
     alignas(CACHE_LINE_SIZE)
-      TransformedFeatureType transformedFeatures[FeatureTransformer<TFDimensions>::BufferSize];
+      StdArray<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
+        transformedFeatures;
 
-    ASSERT_ALIGNED(transformedFeatures, CACHE_LINE_SIZE);
+    ASSERT_ALIGNED(transformedFeatures.data(), CACHE_LINE_SIZE);
 
     NetworkTrace netTrace;
     netTrace.correctBucket = pos.bucket();

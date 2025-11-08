@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "misc.h"
 #include "types.h"
 
 namespace DON {
@@ -59,7 +60,7 @@ struct MoveList final {
     explicit MoveList(const Position& pos) noexcept :
         endMove(generate<GT, Any>(pos, moves.data())) {
 #if !defined(NDEBUG)
-        assert(&moves[0] <= endMove && endMove <= &moves[MAX_MOVES - 1]);
+        assert(moves.data() <= endMove && endMove <= moves.data() + MAX_MOVES);
 #endif
     }
 

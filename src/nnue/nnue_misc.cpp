@@ -116,7 +116,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    auto netOut   = networks.big.evaluate(pos, *accStack, &accCaches.big);
+    auto netOut   = networks.big.evaluate(pos, *accStack, accCaches.big);
     auto baseEval = netOut.psqt + netOut.positional;
 
     baseEval = pos.active_color() == WHITE ? +baseEval : -baseEval;
@@ -134,7 +134,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
                 accStack->reset();
 
-                netOut    = networks.big.evaluate(pos, *accStack, &accCaches.big);
+                netOut    = networks.big.evaluate(pos, *accStack, accCaches.big);
                 auto eval = netOut.psqt + netOut.positional;
                 eval      = pos.active_color() == WHITE ? +eval : -eval;
 
@@ -154,7 +154,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
     oss << '\n';
 
     accStack->reset();
-    auto netTrace = networks.big.trace(pos, *accStack, &accCaches.big);
+    auto netTrace = networks.big.trace(pos, *accStack, accCaches.big);
 
     oss << " NNUE network contributions ("  //
         << (pos.active_color() == WHITE ? "White" : "Black") << " to move):\n"
