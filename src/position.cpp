@@ -1477,19 +1477,16 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     int swap;
 
-    swap = PIECE_VALUE[type_of(piece_on(cap))] - threshold;
-    // If promotion, get the promoted piece and lose the pawn
-    if (m.type_of() == PROMOTION)
-        swap += PIECE_VALUE[m.promotion_type()] - VALUE_PAWN;
+    swap = PIECE_VALUE[type_of(piece_on(cap))] + promotion_value(m) - threshold;
+
     // If can't beat the threshold despite capturing the piece,
     // it is impossible to beat the threshold.
     if (swap < 0)
         return false;
 
-    auto moved = m.type_of() == PROMOTION ? m.promotion_type() : type_of(piece_on(org));
-    assert(is_ok(moved));
+    swap =
+      PIECE_VALUE[m.type_of() == PROMOTION ? m.promotion_type() : type_of(piece_on(org))] - swap;
 
-    swap = PIECE_VALUE[moved] - swap;
     // If still beat the threshold after losing the piece,
     // it is guaranteed to beat the threshold.
     if (swap <= 0)
@@ -1503,7 +1500,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     Square   epSq = SQ_NONE;
     Bitboard epAttackers;
-    if (moved == PAWN && (int(dst) ^ int(org)) == NORTH_2
+    if (type_of(piece_on(org)) == PAWN && (int(dst) ^ int(org)) == NORTH_2
         && can_enpassant<false>(~ac, dst - pawn_spush(ac), &epAttackers))
     {
         assert(relative_rank(ac, org) == RANK_2);

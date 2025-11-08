@@ -1282,12 +1282,12 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
    private:
     std::size_t get_discriminator(NumaIndex idx) const noexcept {
-        const NumaConfig& cfg     = numa_config();
-        const NumaConfig& cfg_sys = NumaConfig::from_system(false);
-        // as a discriminator, locate the hardware/system numadomain this cpuindex belongs to
+        const NumaConfig& cfg    = numa_config();
+        const NumaConfig& sysCfg = NumaConfig::from_system(false);
+        // as a discriminator, locate the hardware/system numa-domain this CpuIndex belongs to
         CpuIndex    cpu     = *cfg.nodes[idx].begin();  // get a CpuIndex from NumaIndex
-        NumaIndex   sys_idx = cfg_sys.is_cpu_assigned(cpu) ? cfg_sys.nodeByCpu.at(cpu) : 0;
-        std::string s       = cfg_sys.to_string() + "$" + std::to_string(sys_idx);
+        NumaIndex   sys_idx = sysCfg.is_cpu_assigned(cpu) ? sysCfg.nodeByCpu.at(cpu) : 0;
+        std::string s       = sysCfg.to_string() + "$" + std::to_string(sys_idx);
         return std::hash<std::string>{}(s);
     }
 
@@ -1299,7 +1299,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
         assert(idx != 0);
 
-        std::unique_lock<std::mutex> lock(mutex);
+        std::unique_lock<std::mutex> uniqueLock(mutex);
         // Check again for races.
         if (instances[idx] != nullptr)
             return;
