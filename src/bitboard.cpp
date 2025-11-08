@@ -38,16 +38,17 @@ namespace DON {
 
 namespace {
 
-constexpr Direction Directions[2][4]{{NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},
-                                     {NORTH, SOUTH, EAST, WEST}};
+constexpr StdArray<Direction, 2, 4> Directions{
+  {{NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST}, {NORTH, SOUTH, EAST, WEST}}};
 
-constexpr std::size_t TableSizes[2]{0x1480, 0x19000};
-constexpr std::size_t RefSizes[2]{0x200, 0x1000};
+constexpr StdArray<std::size_t, 2> TableSizes{0x1480, 0x19000};
+constexpr StdArray<std::size_t, 2> RefSizes{0x200, 0x1000};
 
-alignas(CACHE_LINE_SIZE) Bitboard BishopTable[TableSizes[0]]{};  // Stores bishop attacks
-alignas(CACHE_LINE_SIZE) Bitboard RookTable[TableSizes[1]]{};    // Stores rook attacks
+alignas(CACHE_LINE_SIZE) StdArray<Bitboard, TableSizes[0]> BishopTable{};  // Stores bishop attacks
+alignas(CACHE_LINE_SIZE) StdArray<Bitboard, TableSizes[1]> RookTable{};    // Stores rook attacks
 
-alignas(CACHE_LINE_SIZE) constexpr Bitboard* Tables[2]{BishopTable, RookTable};
+alignas(CACHE_LINE_SIZE) constexpr StdArray<Bitboard*, 2> Tables{BishopTable.data(),
+                                                                 RookTable.data()};
 
 // Returns the bitboard of target square from the given square for the given step.
 // If the step is off the board, returns empty bitboard.
@@ -89,7 +90,7 @@ void init_magics() noexcept {
 
 #if !defined(USE_BMI2)
     // Optimal PRNG seeds to pick the correct magics in the shortest time
-    constexpr std::uint16_t Seeds[RANK_NB]{
+    constexpr StdArray<std::uint16_t, RANK_NB> Seeds{
     // clang-format off
     #if defined(IS_64BIT)
       0x076F, 0x3763, 0x1048, 0x0B94, 0x2CC3, 0x04FE, 0x161F, 0x60F9
@@ -99,12 +100,12 @@ void init_magics() noexcept {
       // clang-format on
     };
 
-    Bitboard occupancy[RefSizes[PT - BISHOP]];
+    StdArray<Bitboard, RefSizes[PT - BISHOP]> occupancy;
 
-    std::uint32_t epoch[RefSizes[PT - BISHOP]]{}, cnt = 0;
+    StdArray<std::uint32_t, RefSizes[PT - BISHOP]> epoch{}, cnt = 0;
 #endif
 
-    Bitboard reference[RefSizes[PT - BISHOP]];
+    StdArray<Bitboard, RefSizes[PT - BISHOP]> reference;
 
     std::uint16_t size = 0;
 
@@ -119,7 +120,7 @@ void init_magics() noexcept {
         assert(s == SQ_A1 || size <= RefSizes[PT - BISHOP]);
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
-        m.attacks = s == SQ_A1 ? Tables[PT - BISHOP] : Magics[s - 1][PT - BISHOP].attacks + size;
+        m.attacks = s == SQ_A1 ? Tables[PT - BISHOP] : &Magics[s - 1][PT - BISHOP].attacks[size];
         assert(m.attacks != nullptr);
         size = 0;
 
@@ -200,7 +201,7 @@ namespace BitBoard {
 void init() noexcept {
 
 #if !defined(USE_POPCNT)
-    for (unsigned int i = 0; i < POPCNT_SIZE; ++i)
+    for (unsigned int i = 0; i < PopCnt.size(); ++i)
         PopCnt[i] = std::bitset<16>(i).count();
 #endif
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)

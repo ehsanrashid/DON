@@ -30,6 +30,7 @@
     #include <string_view>
 #endif
 
+#include "misc.h"
 #include "types.h"
 
 #if defined(_MSC_VER)
@@ -86,14 +87,14 @@ constexpr Bitboard color_bb() noexcept {
     return C == WHITE ? WhiteBB : BlackBB;
 }
 
-inline constexpr std::uint8_t MSB_INDICES[SQUARE_NB]  //
-  {0,  47, 1,  56, 48, 27, 2,  60,                    //
-   57, 49, 41, 37, 28, 16, 3,  61,                    //
-   54, 58, 35, 52, 50, 42, 21, 44,                    //
-   38, 32, 29, 23, 17, 11, 4,  62,                    //
-   46, 55, 26, 59, 40, 36, 15, 53,                    //
-   34, 51, 20, 43, 31, 22, 10, 45,                    //
-   25, 39, 14, 33, 19, 30, 9,  24,                    //
+inline constexpr StdArray<std::uint8_t, SQUARE_NB> MSB_INDICES  //
+  {0,  47, 1,  56, 48, 27, 2,  60,                              //
+   57, 49, 41, 37, 28, 16, 3,  61,                              //
+   54, 58, 35, 52, 50, 42, 21, 44,                              //
+   38, 32, 29, 23, 17, 11, 4,  62,                              //
+   46, 55, 26, 59, 40, 36, 15, 53,                              //
+   34, 51, 20, 43, 31, 22, 10, 45,                              //
+   25, 39, 14, 33, 19, 30, 9,  24,                              //
    13, 18, 8,  12, 7,  6,  5,  63};
 inline constexpr std::uint64_t DEBRUIJN_64 = 0x03F79D71B4CB0A89ULL;
 
@@ -105,9 +106,9 @@ constexpr std::uint8_t msb_index(Bitboard b) noexcept {
 struct Magic final {
    public:
     Magic() noexcept                        = default;
-    Magic(const Magic&) noexcept            = delete;
+    Magic(const Magic&) noexcept            = default;
     Magic(Magic&&) noexcept                 = delete;
-    Magic& operator=(const Magic&) noexcept = delete;
+    Magic& operator=(const Magic&) noexcept = default;
     Magic& operator=(Magic&&) noexcept      = delete;
 
     Bitboard* attacks;
@@ -141,17 +142,16 @@ struct Magic final {
 };
 
 #if !defined(USE_POPCNT)
-inline constexpr unsigned int POPCNT_SIZE = 1 << 16;
-alignas(CACHE_LINE_SIZE) inline std::uint8_t PopCnt[POPCNT_SIZE]{};
+alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, 1 << 16> PopCnt{};
 #endif
 
 // clang-format off
-alignas(CACHE_LINE_SIZE) inline std::uint8_t Distances[SQUARE_NB][SQUARE_NB]{};
+alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB> Distances{};
 
-alignas(CACHE_LINE_SIZE) inline Bitboard        Lines[SQUARE_NB][SQUARE_NB]{};
-alignas(CACHE_LINE_SIZE) inline Bitboard     Betweens[SQUARE_NB][SQUARE_NB]{};
-alignas(CACHE_LINE_SIZE) inline Bitboard PieceAttacks[SQUARE_NB][PIECE_TYPE_NB]{};
-alignas(CACHE_LINE_SIZE) inline Magic          Magics[SQUARE_NB][2]{};  // BISHOP or ROOK
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     Lines{};
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     Betweens{};
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, PIECE_TYPE_NB> PieceAttacks{};
+alignas(CACHE_LINE_SIZE) inline StdArray<Magic   , SQUARE_NB, 2>             Magics{};  // BISHOP or ROOK
 // clang-format on
 
 constexpr Bitboard square_bb(Square s) noexcept {
@@ -309,9 +309,9 @@ constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Color c = COLOR_NB) noe
 }
 
 template<PieceType PT>
-constexpr Bitboard attacks_bb(const Magic (*magic)[2], Bitboard occupied) noexcept {
+constexpr Bitboard attacks_bb(const StdArray<Magic, 2>& magic, Bitboard occupied) noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in attacks_bb()");
-    return (*magic)[PT - BISHOP].attacks_bb(occupied);
+    return magic[PT - BISHOP].attacks_bb(occupied);
 }
 
 // Returns the attacks by the given piece type
@@ -324,9 +324,9 @@ constexpr Bitboard attacks_bb(Square s, Bitboard occupied) noexcept {
     if constexpr (PT == KNIGHT)
         return attacks_bb<KNIGHT>(s);
     if constexpr (PT == BISHOP)
-        return attacks_bb<BISHOP>(&Magics[s], occupied);
+        return attacks_bb<BISHOP>(Magics[s], occupied);
     if constexpr (PT == ROOK)
-        return attacks_bb<ROOK>(&Magics[s], occupied);
+        return attacks_bb<ROOK>(Magics[s], occupied);
     if constexpr (PT == QUEEN)
         return attacks_bb<BISHOP>(s, occupied) | attacks_bb<ROOK>(s, occupied);
     if constexpr (PT == KING)
@@ -374,9 +374,9 @@ constexpr Bitboard fill_postfix_bb(Bitboard b) noexcept {
 inline std::uint8_t popcount(Bitboard b) noexcept {
 
 #if !defined(USE_POPCNT)
-    std::uint16_t b16[4];
+    StdArray<std::uint16_t, 4> b16;
     static_assert(sizeof(b16) == sizeof(b));
-    std::memcpy(b16, &b, sizeof(b16));
+    std::memcpy(b16.data(), &b, sizeof(b16));
     return PopCnt[b16[0]] + PopCnt[b16[1]] + PopCnt[b16[2]] + PopCnt[b16[3]];
 #elif defined(__GNUC__)  // (GCC, Clang, ICX)
     return __builtin_popcountll(b);
