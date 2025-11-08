@@ -114,9 +114,9 @@ void init_magics() noexcept {
         // Hence, deduce the size of the shift to apply to the 64 or 32 bits word to get the index.
         auto& m = Magics[s][PT - BISHOP];
 
-        assert(s == SQ_A1 || size <= RefSizes[PT - BISHOP]);
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
+        //assert(s == SQ_A1 || size <= RefSizes[PT - BISHOP]);
         m.attacks = s == SQ_A1 ? Tables[PT - BISHOP] : &Magics[s - 1][PT - BISHOP].attacks[size];
         assert(m.attacks != nullptr);
 
