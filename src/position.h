@@ -24,7 +24,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>
-#include <iterator>
 #include <numeric>
 #include <string>
 #include <string_view>

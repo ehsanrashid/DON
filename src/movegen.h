@@ -57,9 +57,9 @@ struct MoveList final {
 
     // Generate moves into the internal buffer.
     explicit MoveList(const Position& pos) noexcept :
-        endMove(generate<GT, Any>(pos, moves)) {
+        endMove(generate<GT, Any>(pos, moves.data())) {
 #if !defined(NDEBUG)
-        assert(moves <= endMove && endMove <= moves + MAX_MOVES);
+        assert(&moves[0] <= endMove && endMove <= &moves[MAX_MOVES - 1]);
 #endif
     }
 
@@ -69,9 +69,9 @@ struct MoveList final {
     MoveList& operator=(const MoveList&) noexcept = delete;
     MoveList& operator=(MoveList&&) noexcept      = delete;
 
-    [[nodiscard]] const_iterator begin() const noexcept { return moves; }
+    [[nodiscard]] const_iterator begin() const noexcept { return moves.data(); }
     [[nodiscard]] const_iterator end() const noexcept { return endMove; }
-    [[nodiscard]] iterator       begin() noexcept { return moves; }
+    [[nodiscard]] iterator       begin() noexcept { return moves.data(); }
     [[nodiscard]] iterator       end() noexcept { return endMove; }
 
     [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
@@ -82,16 +82,16 @@ struct MoveList final {
     }
     [[nodiscard]] bool contains(Move m) const noexcept { return find(m) != end(); }
 
-    [[nodiscard]] const_pointer data() const noexcept { return moves; }
+    [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }
 
     //#if defined(__cpp_lib_span) && __cpp_lib_span >= 202002L
     //    // Optional: span view (C++20)
-    //    [[nodiscard]] std::span<const Move> view() const noexcept { return {moves, size()}; }
+    //    [[nodiscard]] std::span<const Move> view() const noexcept { return {data(), size()}; }
     //#endif
 
    private:
-    value_type     moves[MAX_MOVES];
-    const_iterator endMove;
+    StdArray<value_type, MAX_MOVES> moves;
+    const_iterator                  endMove;
 };
 
 }  // namespace DON
