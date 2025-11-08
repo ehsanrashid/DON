@@ -21,6 +21,7 @@
 #define NNUE_ACCUMULATOR_H_INCLUDED
 
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
