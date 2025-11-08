@@ -17,7 +17,6 @@
 
 #include "search.h"
 
-#include <array>
 #include <chrono>
 #include <cstdlib>
 #include <initializer_list>

@@ -18,7 +18,6 @@
 #ifndef ENGINE_H_INCLUDED
 #define ENGINE_H_INCLUDED
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
