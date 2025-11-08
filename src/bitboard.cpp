@@ -42,7 +42,6 @@ constexpr StdArray<Direction, 2, 4> Directions{
   {{NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST}, {NORTH, SOUTH, EAST, WEST}}};
 
 constexpr StdArray<std::size_t, 2> TableSizes{0x1480, 0x19000};
-constexpr StdArray<std::size_t, 2> RefSizes{0x200, 0x1000};
 
 alignas(CACHE_LINE_SIZE) StdArray<Bitboard, TableSizes[0]> BishopTable{};  // Stores bishop attacks
 alignas(CACHE_LINE_SIZE) StdArray<Bitboard, TableSizes[1]> RookTable{};    // Stores rook attacks
@@ -99,6 +98,8 @@ void init_magics() noexcept {
     #endif
       // clang-format on
     };
+
+    constexpr StdArray<std::size_t, 2> RefSizes{0x200, 0x1000};
 #endif
 
     [[maybe_unused]] std::size_t totalSize = 0;

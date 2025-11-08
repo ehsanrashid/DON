@@ -997,7 +997,8 @@ Value Worker::search(Position&    pos,
         }
     }
 
-    improve = improve || ss->staticEval >= beta;
+    if (!improve)
+        improve = ss->staticEval >= beta;
 
     // Step 10. Internal iterative reductions
     // For deep enough nodes without ttMoves, reduce search depth.
