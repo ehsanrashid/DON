@@ -22,7 +22,6 @@
 #include <functional>
 
 #include "bitboard.h"
-#include "misc.h"
 #include "position.h"
 
 namespace DON {
@@ -90,7 +89,7 @@ MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveL
 
 template<>
 MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
-    constexpr int Bonus[PIECE_TYPE_NB]{0, 0, 144, 144, 256, 517, 10000};
+    constexpr StdArray<int, PIECE_TYPE_NB> Bonus{0, 0, 144, 144, 256, 517, 10000};
 
     Color ac        = pos.active_color();
     auto  pawnIndex = pawn_index(pos.pawn_key());
@@ -232,7 +231,7 @@ STAGE_SWITCH:
     case STG_PROBCUT_INIT : {
         MoveList<ENC_CAPTURE> moveList(pos);
 
-        cur = endBadCapture = moves;
+        cur = endBadCapture = moves.data();
         // NOTE:: endMove is not defined here, it will be set later
         endCur = /* endMove =*/score<ENC_CAPTURE>(moveList);
 
@@ -286,7 +285,7 @@ STAGE_SWITCH:
         }
 
         // Prepare the pointers to loop over the bad captures
-        cur    = moves;
+        cur    = moves.data();
         endCur = endBadCapture;
 
         ++stage;
@@ -315,7 +314,7 @@ STAGE_SWITCH:
     case STG_EVA_CAPTURE_INIT : {
         MoveList<EVA_CAPTURE> moveList(pos);
 
-        cur    = moves;
+        cur    = moves.data();
         endCur = endMove = score<EVA_CAPTURE>(moveList);
 
         sort();

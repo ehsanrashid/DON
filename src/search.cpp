@@ -17,6 +17,7 @@
 
 #include "search.h"
 
+#include <array>
 #include <chrono>
 #include <cstdlib>
 #include <initializer_list>
@@ -65,7 +66,7 @@ CorrectionHistory<CHNonPawn>      NonPawnCorrectionHistory;
 CorrectionHistory<CHContinuation> ContinuationCorrectionHistory;
 
 // Reductions lookup table initialized at startup
-std::array<std::int16_t, MAX_MOVES> Reductions;  // [depth or moveCount]
+StdArray<std::int16_t, MAX_MOVES> Reductions;  // [depth or moveCount]
 
 constexpr int
 reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
