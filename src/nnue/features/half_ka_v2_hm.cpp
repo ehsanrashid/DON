@@ -19,6 +19,8 @@
 
 #include "half_ka_v2_hm.h"
 
+#include <array>
+
 #include "../../bitboard.h"
 #include "../../position.h"
 #include "../../types.h"

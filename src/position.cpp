@@ -27,7 +27,6 @@
 #include <sstream>
 #include <utility>
 
-#include "misc.h"
 #include "movegen.h"
 #include "prng.h"
 #include "syzygy/tbbase.h"
@@ -39,8 +38,8 @@ namespace {
 
 constexpr std::size_t PawnOffset = 8;
 
-constexpr Piece Pieces[]{W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,  //
-                         B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
+constexpr StdArray<Piece, 12> Pieces{W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,  //
+                                     B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING};
 
 // Implements Marcel van Kervinck's cuckoo algorithm to detect repetition of positions for 3-fold repetition draws.
 // The algorithm uses hash tables with Zobrist hashes to allow fast detection of recurring positions.
@@ -122,7 +121,7 @@ class CuckooTable final {
     std::size_t count;
 
    private:
-    std::array<Cuckoo, Size> cuckoos;
+    StdArray<Cuckoo, Size> cuckoos;
 };
 
 CuckooTable<0x2000> Cuckoos;
@@ -136,16 +135,16 @@ void Position::init() noexcept {
     const auto prng_rand = [&] { return prng.template rand<Key>(); };
 
     for (Piece pc : Pieces)
-        std::generate(std::begin(Zobrist::psq[pc]), std::end(Zobrist::psq[pc]), prng_rand);
+        std::generate(Zobrist::psq[pc].begin(), Zobrist::psq[pc].end(), prng_rand);
     for (Piece pc : {W_PAWN, B_PAWN})
     {
         std::fill_n(&Zobrist::psq[pc][SQ_A1], PawnOffset, Key{});
         std::fill_n(&Zobrist::psq[pc][SQ_A8], PawnOffset, Key{});
     }
 
-    std::generate(std::begin(Zobrist::castling), std::end(Zobrist::castling), prng_rand);
+    std::generate(Zobrist::castling.begin(), Zobrist::castling.end(), prng_rand);
 
-    std::generate(std::begin(Zobrist::enpassant), std::end(Zobrist::enpassant), prng_rand);
+    std::generate(Zobrist::enpassant.begin(), Zobrist::enpassant.end(), prng_rand);
 
     Zobrist::turn = prng_rand();
 
@@ -208,10 +207,10 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     assert(!fens.empty());
     assert(newSt != nullptr);
     std::memset(static_cast<void*>(this), 0, sizeof(*this));
-    std::fill(std::begin(castlingRookSq), std::end(castlingRookSq), SQ_NONE);
+    castlingRookSq.fill(SQ_NONE);
     std::memset(newSt, 0, sizeof(*newSt));
+    newSt->kingSq.fill(SQ_NONE);
     newSt->epSq = newSt->capSq = SQ_NONE;
-    newSt->kingSq[WHITE] = newSt->kingSq[BLACK] = SQ_NONE;
 
     st = newSt;
 
@@ -517,7 +516,7 @@ void Position::set_castling_rights(Color c, Square rOrg) noexcept {
     int cr = make_castling_rights(c, kOrg, rOrg);
 
     std::size_t crLsb = lsb(cr);
-    assert(crLsb < std::size(castlingRookSq));
+    assert(crLsb < castlingRookSq.size());
     assert(!is_ok(castlingRookSq[crLsb]));
 
     st->castlingRights |= cr;
@@ -588,7 +587,7 @@ void Position::set_ext_state() noexcept {
     st->checks[QUEEN ] = checks(BISHOP) | checks(ROOK);
     st->checks[KING  ] = 0;
 
-    st->pinners[WHITE] = st->pinners[BLACK] = 0;
+    st->pinners.fill(0);
 
     for (Color c : {WHITE, BLACK})
     {
@@ -1477,19 +1476,17 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     int swap;
 
-    swap = PIECE_VALUE[type_of(piece_on(cap))] - threshold;
-    // If promotion, get the promoted piece and lose the pawn
-    if (m.type_of() == PROMOTION)
-        swap += PIECE_VALUE[m.promotion_type()] - VALUE_PAWN;
+    swap = PIECE_VALUE[type_of(piece_on(cap))] + promotion_value(m) - threshold;
+
     // If can't beat the threshold despite capturing the piece,
     // it is impossible to beat the threshold.
     if (swap < 0)
         return false;
 
-    auto moved = m.type_of() == PROMOTION ? m.promotion_type() : type_of(piece_on(org));
-    assert(is_ok(moved));
+    auto moved = type_of(piece_on(org));
 
-    swap = PIECE_VALUE[moved] - swap;
+    swap = PIECE_VALUE[m.type_of() == PROMOTION ? m.promotion_type() : moved] - swap;
+
     // If still beat the threshold after losing the piece,
     // it is guaranteed to beat the threshold.
     if (swap <= 0)
@@ -1522,9 +1519,9 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     Bitboard qB = pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(dst) & occupied;
     Bitboard qR = pieces(QUEEN, ROOK) & attacks_bb<ROOK>(dst) & occupied;
 
-    Magic(*magic)[2] = &Magics[dst];
+    const auto* magic = &Magics[dst];
 
-    bool discovery[COLOR_NB]{true, true};
+    StdArray<bool, COLOR_NB> discovery{true, true};
 
     while (true)
     {
@@ -1620,12 +1617,12 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             case BISHOP :
                 qB &= occupied;
                 if (qB)
-                    attackers |= qB & attacks_bb<BISHOP>(magic, occupied);
+                    attackers |= qB & attacks_bb<BISHOP>(*magic, occupied);
                 break;
             case ROOK :
                 qR &= occupied;
                 if (qR)
-                    attackers |= qR & attacks_bb<ROOK>(magic, occupied);
+                    attackers |= qR & attacks_bb<ROOK>(*magic, occupied);
                 break;
             case QUEEN :
                 assert(false);
@@ -1641,7 +1638,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             if ((swap = VALUE_PAWN - swap) < ge)
                 break;
             if (qB)
-                attackers |= qB & attacks_bb<BISHOP>(magic, occupied);
+                attackers |= qB & attacks_bb<BISHOP>(*magic, occupied);
 
             if (is_ok(epSq) && rank_of(org) == rank_of(dst))
             {
@@ -1672,7 +1669,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 break;
             qB &= occupied;
             if (qB)
-                attackers |= qB & attacks_bb<BISHOP>(magic, occupied);
+                attackers |= qB & attacks_bb<BISHOP>(*magic, occupied);
         }
         else if ((b = pieces(ROOK) & acAttackers))
         {
@@ -1681,7 +1678,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 break;
             qR &= occupied;
             if (qR)
-                attackers |= qR & attacks_bb<ROOK>(magic, occupied);
+                attackers |= qR & attacks_bb<ROOK>(*magic, occupied);
         }
         else if ((b = pieces(QUEEN) & acAttackers))
         {
@@ -1691,9 +1688,9 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             qB &= occupied;
             qR &= occupied;
             if (qB)
-                attackers |= qB & attacks_bb<BISHOP>(magic, occupied);
+                attackers |= qB & attacks_bb<BISHOP>(*magic, occupied);
             if (qR)
-                attackers |= qR & attacks_bb<ROOK>(magic, occupied);
+                attackers |= qR & attacks_bb<ROOK>(*magic, occupied);
         }
         else  // KING
         {

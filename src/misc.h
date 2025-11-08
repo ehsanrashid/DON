@@ -19,6 +19,7 @@
 #define MISC_H_INCLUDED
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cctype>
 #include <chrono>
@@ -156,6 +157,276 @@ class sync_ostream final {
 
 inline sync_ostream sync_os(std::ostream& os = std::cout) { return sync_ostream(os); }
 
+template<typename T, std::size_t Size, std::size_t... Sizes>
+class MultiArray;
+
+namespace internal {
+
+template<typename T, std::size_t Size, std::size_t... Sizes>
+struct StdArrayDef final {
+    static_assert(Size > 0, "dimension must be > 0");
+    using type = std::array<typename StdArrayDef<T, Sizes...>::type, Size>;
+};
+
+template<typename T, std::size_t Size>
+struct StdArrayDef<T, Size> final {
+    static_assert(Size > 0, "dimension must be > 0");
+    using type = std::array<T, Size>;
+};
+
+// Recursive template to define multi-dimensional array
+template<typename T, std::size_t Size, std::size_t... Sizes>
+struct MultiArrayDef final {
+    static_assert(Size > 0, "dimension must be > 0");
+    using Type = MultiArray<T, Sizes...>;
+};
+// Base case: single-dimensional array
+template<typename T, std::size_t Size>
+struct MultiArrayDef<T, Size> final {
+    static_assert(Size > 0, "dimension must be > 0");
+    using Type = T;
+};
+}  // namespace internal
+
+template<typename T, std::size_t Size, std::size_t... Sizes>
+using StdArray = typename internal::StdArrayDef<T, Size, Sizes...>::type;
+
+// MultiArray is a generic N-dimensional array.
+// The template parameter T is the base type of the MultiArray
+// The template parameters (Size and Sizes) is the dimensions of the MultiArray.
+template<typename T, std::size_t Size, std::size_t... Sizes>
+class MultiArray {
+    using ElementType = typename internal::MultiArrayDef<T, Size, Sizes...>::Type;
+    using ArrayType   = StdArray<ElementType, Size>;
+
+   public:
+    using value_type             = typename ArrayType::value_type;
+    using size_type              = typename ArrayType::size_type;
+    using difference_type        = typename ArrayType::difference_type;
+    using reference              = typename ArrayType::reference;
+    using const_reference        = typename ArrayType::const_reference;
+    using pointer                = typename ArrayType::pointer;
+    using const_pointer          = typename ArrayType::const_pointer;
+    using iterator               = typename ArrayType::iterator;
+    using const_iterator         = typename ArrayType::const_iterator;
+    using reverse_iterator       = typename ArrayType::reverse_iterator;
+    using const_reverse_iterator = typename ArrayType::const_reverse_iterator;
+
+    constexpr MultiArray() noexcept = default;
+
+    constexpr auto begin() const noexcept { return _data.begin(); }
+    constexpr auto end() const noexcept { return _data.end(); }
+    constexpr auto begin() noexcept { return _data.begin(); }
+    constexpr auto end() noexcept { return _data.end(); }
+
+    constexpr auto cbegin() const noexcept { return _data.cbegin(); }
+    constexpr auto cend() const noexcept { return _data.cend(); }
+
+    constexpr auto rbegin() const noexcept { return _data.rbegin(); }
+    constexpr auto rend() const noexcept { return _data.rend(); }
+    constexpr auto rbegin() noexcept { return _data.rbegin(); }
+    constexpr auto rend() noexcept { return _data.rend(); }
+
+    constexpr auto crbegin() const noexcept { return _data.crbegin(); }
+    constexpr auto crend() const noexcept { return _data.crend(); }
+
+    constexpr auto&       front() noexcept { return _data.front(); }
+    constexpr const auto& front() const noexcept { return _data.front(); }
+    constexpr auto&       back() noexcept { return _data.back(); }
+    constexpr const auto& back() const noexcept { return _data.back(); }
+
+    auto*       data() { return _data.data(); }
+    const auto* data() const { return _data.data(); }
+
+    constexpr auto max_size() const noexcept { return _data.max_size(); }
+
+    constexpr auto size() const noexcept { return _data.size(); }
+    constexpr auto empty() const noexcept { return _data.empty(); }
+
+    constexpr const auto& at(size_type idx) const noexcept { return _data.at(idx); }
+    constexpr auto&       at(size_type idx) noexcept { return _data.at(idx); }
+
+    constexpr auto& operator[](size_type idx) const noexcept { return _data[idx]; }
+    constexpr auto& operator[](size_type idx) noexcept { return _data[idx]; }
+
+    // Recursively fill all dimensions by calling the sub fill method
+    template<typename U>
+    void fill(const U& v) {
+        static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
+        for (auto& element : *this)
+        {
+            if constexpr (sizeof...(Sizes) == 0)
+                element = v;
+            else
+                element.fill(v);
+        }
+    }
+
+    /*
+    void print() const noexcept {
+        std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
+        for (auto& element : *this)
+        {
+            if constexpr (sizeof...(Sizes) == 0)
+                std::cout << element << ' ';
+            else
+                element.print();
+        }
+        std::cout << std::endl;
+    }
+    */
+
+    template<bool NoExtraDimension = sizeof...(Sizes) == 0,
+             typename              = typename std::enable_if_t<NoExtraDimension, bool>>
+    constexpr operator StdArray<T, Size>&() noexcept {
+        return _data;
+    }
+    template<bool NoExtraDimension = sizeof...(Sizes) == 0,
+             typename              = typename std::enable_if_t<NoExtraDimension, bool>>
+    constexpr operator const StdArray<T, Size>&() const noexcept {
+        return _data;
+    }
+
+    constexpr void swap(MultiArray<T, Size, Sizes...>& multiArr) noexcept {
+        _data.swap(multiArr._data);
+    }
+
+    constexpr MultiArray& operator=(const StdArray<T, Size, Sizes...>& stdArr) {
+        for (std::size_t i = 0; i < Size; ++i)
+            _data[i] = stdArr[i];
+        return *this;
+    }
+
+   private:
+    ArrayType _data;
+};
+
+template<typename T, std::size_t Size, std::size_t... Sizes>
+class MultiVector;
+
+namespace internal {
+
+// Recursive template to define multi-dimensional vector
+template<typename T, std::size_t Size, std::size_t... Sizes>
+struct MultiVectorDef final {
+    using Type = MultiVector<T, Sizes...>;
+};
+// Base case: single-dimensional vector
+template<typename T, std::size_t Size>
+struct MultiVectorDef<T, Size> final {
+    using Type = T;
+};
+}  // namespace internal
+
+// Base: only one size argument -> vector<T>
+template<typename T>
+inline std::vector<T> make_std_vector(std::size_t size) noexcept {
+    return std::vector<T>(size);
+}
+
+// Recursive: size, then sizes...
+template<typename T, typename... Sizes>
+inline auto make_std_vector(std::size_t size, Sizes... sizes) noexcept {
+    static_assert(sizeof...(Sizes) >= 1, "provide at least one size in recursive overload");
+    using Inner = decltype(make_std_vector<T>(sizes...));
+    return std::vector<Inner>(size, make_std_vector<T>(sizes...));
+}
+
+// MultiVector is a generic N-dimensional vector.
+// The template parameter T is the base type of the MultiVector
+// The template parameters (Size and Sizes) is the dimensions of the MultiVector.
+template<typename T, std::size_t Size, std::size_t... Sizes>
+class MultiVector final {
+   private:
+    using ElementType = typename internal::MultiVectorDef<T, Size, Sizes...>::Type;
+    using VectorType  = std::vector<ElementType>;
+
+   public:
+    using value_type             = typename VectorType::value_type;
+    using size_type              = typename VectorType::size_type;
+    using difference_type        = typename VectorType::difference_type;
+    using reference              = typename VectorType::reference;
+    using const_reference        = typename VectorType::const_reference;
+    using pointer                = typename VectorType::pointer;
+    using const_pointer          = typename VectorType::const_pointer;
+    using iterator               = typename VectorType::iterator;
+    using const_iterator         = typename VectorType::const_iterator;
+    using reverse_iterator       = typename VectorType::reverse_iterator;
+    using const_reverse_iterator = typename VectorType::const_reverse_iterator;
+
+    MultiVector() noexcept = default;
+
+    constexpr auto begin() const noexcept { return _data.begin(); }
+    constexpr auto end() const noexcept { return _data.end(); }
+    constexpr auto begin() noexcept { return _data.begin(); }
+    constexpr auto end() noexcept { return _data.end(); }
+
+    constexpr auto cbegin() const noexcept { return _data.cbegin(); }
+    constexpr auto cend() const noexcept { return _data.cend(); }
+
+    constexpr auto rbegin() const noexcept { return _data.rbegin(); }
+    constexpr auto rend() const noexcept { return _data.rend(); }
+    constexpr auto rbegin() noexcept { return _data.rbegin(); }
+    constexpr auto rend() noexcept { return _data.rend(); }
+
+    constexpr auto crbegin() const noexcept { return _data.crbegin(); }
+    constexpr auto crend() const noexcept { return _data.crend(); }
+
+    constexpr auto&       front() noexcept { return _data.front(); }
+    constexpr const auto& front() const noexcept { return _data.front(); }
+    constexpr auto&       back() noexcept { return _data.back(); }
+    constexpr const auto& back() const noexcept { return _data.back(); }
+
+    auto*       data() { return _data.data(); }
+    const auto* data() const { return _data.data(); }
+
+    constexpr auto max_size() const noexcept { return _data.max_size(); }
+
+    constexpr auto size() const noexcept { return _data.size(); }
+    constexpr auto empty() const noexcept { return _data.empty(); }
+
+    constexpr const auto& at(size_type idx) const noexcept { return _data.at(idx); }
+    constexpr auto&       at(size_type idx) noexcept { return _data.at(idx); }
+
+    constexpr auto& operator[](size_type idx) const noexcept { return _data[idx]; }
+    constexpr auto& operator[](size_type idx) noexcept { return _data[idx]; }
+
+    // Recursively fill all dimensions by calling the sub fill method
+    template<typename U>
+    void fill(U v) noexcept {
+        static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
+
+        for (auto& element : *this)
+        {
+            if constexpr (sizeof...(Sizes) == 0)
+                element = v;
+            else
+                element.fill(v);
+        }
+    }
+
+    /*
+    void print() const noexcept {
+        std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
+        for (auto& element : *this)
+        {
+            if constexpr (sizeof...(Sizes) == 0)
+                std::cout << element << ' ';
+            else
+                element.print();
+        }
+        std::cout << std::endl;
+    }
+    */
+
+    constexpr void swap(MultiVector<T, Size, Sizes...>& multiVec) noexcept {
+        _data.swap(multiVec._data);
+    }
+
+   private:
+    VectorType _data = make_std_vector<ElementType>(Size);
+};
+
 template<typename T, std::size_t Capacity>
 class FixedVector final {
     static_assert(Capacity > 0, "Capacity must be > 0");
@@ -169,12 +440,12 @@ class FixedVector final {
     [[nodiscard]] constexpr bool        empty() const noexcept { return size() == 0; }
     [[nodiscard]] constexpr bool        full() const noexcept { return size() == capacity(); }
 
-    constexpr T*       begin() noexcept { return _data; }
-    constexpr T*       end() noexcept { return _data + size(); }
-    constexpr const T* begin() const noexcept { return _data; }
-    constexpr const T* end() const noexcept { return _data + size(); }
-    constexpr const T* cbegin() const noexcept { return _data; }
-    constexpr const T* cend() const noexcept { return _data + size(); }
+    constexpr T*       begin() noexcept { return data(); }
+    constexpr T*       end() noexcept { return begin() + size(); }
+    constexpr const T* begin() const noexcept { return data(); }
+    constexpr const T* end() const noexcept { return begin() + size(); }
+    constexpr const T* cbegin() const noexcept { return data(); }
+    constexpr const T* cend() const noexcept { return cbegin() + size(); }
 
     bool push_back(const T& value) noexcept {
         if (size() >= capacity())
@@ -196,6 +467,9 @@ class FixedVector final {
         return true;
     }
 
+    constexpr const T* data() const noexcept { return _data.data(); }
+    constexpr T*       data() noexcept { return _data.data(); }
+
     constexpr const T& operator[](std::size_t idx) const noexcept {
         assert(idx < size());
         return _data[idx];
@@ -215,8 +489,8 @@ class FixedVector final {
     void clear() noexcept { _size = 0; }
 
    private:
-    T           _data[Capacity]{};
-    std::size_t _size{0};
+    StdArray<T, Capacity> _data;
+    std::size_t           _size{0};
 };
 
 template<std::size_t Capacity>
@@ -233,7 +507,7 @@ class FixedString final {
         size_t size = std::strlen(str);
         if (size > capacity())
             std::terminate();
-        std::memcpy(_data, str, size);
+        std::memcpy(_data.data(), str, size);
         _size = size;
         null_terminate();
     }
@@ -241,7 +515,7 @@ class FixedString final {
     FixedString(const std::string& str) {
         if (str.size() > capacity())
             std::terminate();
-        std::memcpy(_data, str.data(), str.size());
+        std::memcpy(_data.data(), str.data(), str.size());
         _size = str.size();
         null_terminate();
     }
@@ -252,8 +526,8 @@ class FixedString final {
     [[nodiscard]] constexpr bool        empty() const noexcept { return size() == 0; }
     [[nodiscard]] constexpr bool        full() const noexcept { return size() == capacity(); }
 
-    constexpr const char* c_str() const noexcept { return _data; }
-    constexpr const char* data() const noexcept { return _data; }
+    constexpr const char* c_str() const noexcept { return _data.data(); }
+    constexpr const char* data() const noexcept { return _data.data(); }
 
     constexpr const char& operator[](std::size_t idx) const { return _data[idx]; }
     constexpr char&       operator[](std::size_t idx) { return _data[idx]; }
@@ -264,7 +538,7 @@ class FixedString final {
         std::size_t size = std::strlen(str);
         if (_size + size > capacity())
             std::terminate();
-        std::memcpy(_data + _size, str, size);
+        std::memcpy(_data.data() + _size, str, size);
         _size += size;
         null_terminate();
         return *this;
@@ -290,8 +564,8 @@ class FixedString final {
     }
 
    private:
-    char        _data[Capacity + 1];  // +1 for null terminator
-    std::size_t _size;
+    StdArray<char, Capacity + 1> _data;  // +1 for null terminator
+    std::size_t                  _size;
 };
 
 template<typename T>

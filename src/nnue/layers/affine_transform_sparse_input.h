@@ -25,6 +25,7 @@
 #include <iostream>
 
 #include "../../bitboard.h"
+#include "../../misc.h"
 #include "../nnue_common.h"
 #include "../simd.h"
 
@@ -49,8 +50,8 @@ struct Lookup final {
     static constexpr std::size_t  Size      = 256;
     static constexpr std::uint8_t IndexSize = 8;
 
-    std::uint16_t indices[Size][IndexSize]{};
-    std::uint8_t  popcounts[Size]{};
+    StdArray<std::uint16_t, Size, IndexSize> indices{};
+    StdArray<std::uint8_t, Size>             popcounts{};
 
     constexpr Lookup() noexcept {
         for (std::size_t i = 0; i < Size; ++i)
@@ -214,7 +215,7 @@ class AffineTransformSparseInput {
 #endif
       ;
 
-    using OutputBuffer = OutputType[PaddedOutputDimensions];
+    using OutputBuffer = StdArray<OutputType, PaddedOutputDimensions>;
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t hash(std::uint32_t preHash) noexcept {
@@ -244,7 +245,7 @@ class AffineTransformSparseInput {
 
     // Read network parameters
     bool read_parameters(std::istream& istream) noexcept {
-        read_little_endian<BiasType>(istream, biases, OutputDimensions);
+        read_little_endian<BiasType>(istream, biases);
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
             weights[weight_index(i)] = read_little_endian<WeightType>(istream);
 
@@ -253,7 +254,7 @@ class AffineTransformSparseInput {
 
     // Write network parameters
     bool write_parameters(std::ostream& ostream) const noexcept {
-        write_little_endian<BiasType>(ostream, biases, OutputDimensions);
+        write_little_endian<BiasType>(ostream, biases);
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
             write_little_endian<WeightType>(ostream, weights[weight_index(i)]);
 
@@ -315,7 +316,7 @@ class AffineTransformSparseInput {
         // Find indices of nonzero 32-bit blocks
         find_nnz<ChunkCount>(input32, nnz, count);
 
-        const outvec_t* biasVec = reinterpret_cast<const outvec_t*>(biases);
+        const outvec_t* biasVec = reinterpret_cast<const outvec_t*>(biases.data());
 
         outvec_t acc[RegCount];
         for (IndexType k = 0; k < AccCount; ++k)
@@ -389,8 +390,10 @@ class AffineTransformSparseInput {
     using BiasType   = OutputType;
     using WeightType = std::int8_t;
 
-    alignas(CACHE_LINE_SIZE) BiasType biases[OutputDimensions];
-    alignas(CACHE_LINE_SIZE) WeightType weights[OutputDimensions * PaddedInputDimensions];
+    // clang-format off
+    alignas(CACHE_LINE_SIZE) std::array<BiasType, OutputDimensions> biases;
+    alignas(CACHE_LINE_SIZE) std::array<WeightType, OutputDimensions * PaddedInputDimensions> weights;
+    // clang-format on
 };
 
 }  // namespace DON::NNUE::Layers

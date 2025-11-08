@@ -17,6 +17,7 @@
 
 #include "search.h"
 
+#include <array>
 #include <chrono>
 #include <cstdlib>
 #include <initializer_list>
@@ -51,7 +52,7 @@ History<HQuiet>       QuietHistory;
 History<HPawn>        PawnHistory;
 History<HLowPlyQuiet> LowPlyQuietHistory;
 
-History<HContinuation> ContinuationHistory[2][2];  // [inCheck][capture]
+StdArray<History<HContinuation>, 2, 2> ContinuationHistory;  // [inCheck][capture]
 
 namespace {
 
@@ -65,7 +66,7 @@ CorrectionHistory<CHNonPawn>      NonPawnCorrectionHistory;
 CorrectionHistory<CHContinuation> ContinuationCorrectionHistory;
 
 // Reductions lookup table initialized at startup
-std::array<std::int16_t, MAX_MOVES> Reductions;  // [depth or moveCount]
+StdArray<std::int16_t, MAX_MOVES> Reductions;  // [depth or moveCount]
 
 constexpr int
 reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
@@ -369,11 +370,10 @@ void Worker::iterative_deepening() noexcept {
     // (ss - 9) is needed for update_continuation_history(ss - 1) which accesses (ss - 8),
     // (ss + 1) is needed for initialization of cutoffCount.
     constexpr std::uint16_t StackOffset = 9;
-    constexpr std::uint16_t StackSize   = StackOffset + (MAX_PLY + 1) + 1;
 
-    Stack  stack[StackSize]{};
-    Stack* ss = stack + StackOffset;
-    for (std::int16_t i = 0 - StackOffset; i < StackSize - StackOffset; ++i)
+    StdArray<Stack, StackOffset + (MAX_PLY + 1) + 1> stack{};
+    Stack*                                           ss = &stack[StackOffset];
+    for (std::int16_t i = 0 - StackOffset; i < std::int16_t(stack.size() - StackOffset); ++i)
     {
         (ss + i)->ply = i;
         if (i >= 0)
@@ -383,10 +383,10 @@ void Worker::iterative_deepening() noexcept {
         (ss + i)->pieceSqHistory           = &ContinuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
         (ss + i)->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[NO_PIECE][SQUARE_ZERO];
     }
-    assert(stack[0].ply == -StackOffset && stack[StackSize - 1].ply == MAX_PLY + 1);
+    assert(stack[0].ply == -StackOffset && stack[stack.size() - 1].ply == MAX_PLY + 1);
     assert(ss->ply == 0);
 
-    Moves pv(MAX_PLY + 1);
+    StdArray<Move, MAX_PLY + 1> pv;
 
     ss->pv = pv.data();
 
@@ -687,7 +687,7 @@ Value Worker::search(Position&    pos,
     if (is_main_worker())
         main_manager()->check_time(*this);
 
-    Moves pv(MAX_PLY + 1 - ss->ply);
+    StdArray<Move, MAX_PLY + 1> pv;
 
     if constexpr (PVNode)
     {
@@ -771,7 +771,7 @@ Value Worker::search(Position&    pos,
 
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
-        if (pos.rule50_count() < (1.0 - 0.5 * pos.has_rule50_high()) * rule50_threshold())
+        if (pos.rule50_count() < (1.0 - 0.20 * pos.has_rule50_high()) * rule50_threshold())
         {
             // If the depth is big enough, verify that the ttMove is really a good move
             if (depth >= 8 && !is_decisive(ttd.value) && ttd.move != Move::None
@@ -1587,7 +1587,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (is_main_worker() && main_manager()->callsCount > 1)
         main_manager()->callsCount--;
 
-    Moves pv(MAX_PLY + 1 - ss->ply);
+    StdArray<Move, MAX_PLY + 1> pv;
 
     if constexpr (PVNode)
     {
@@ -1618,9 +1618,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && is_valid(ttd.value) && ttd.depth >= DEPTH_ZERO
-        && (ttd.bound & fail_bound(ttd.value >= beta)) != 0
-        // For high rule50 counts don't produce transposition table cutoffs.
-        && pos.rule50_count() < (1.0 - 0.5 * pos.has_rule50_high()) * rule50_threshold())
+        && (ttd.bound & fail_bound(ttd.value >= beta)) != 0)
         return ttd.value;
 
     int correctionValue;
@@ -1790,7 +1788,7 @@ QS_MOVES_LOOP:
         {
             assert(bestValue == -VALUE_INFINITE);
             assert((MoveList<LEGAL, true>(pos).empty()));
-            bestValue = mated_in(ss->ply);  // Plies to mate from the root
+            return mated_in(ss->ply);  // Plies to mate from the root
         }
         else
         {
@@ -2247,9 +2245,9 @@ void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) n
 void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept {
     assert(is_ok(dst));
 
-    constexpr std::pair<std::uint8_t, double> ContHistoryWeights[8]{
+    constexpr StdArray<std::pair<std::uint8_t, double>, 8> ContHistoryWeights{{
         {1, 1.1299}, {2, 0.6328}, {3, 0.2812}, {4, 0.5625},
-        {5, 0.1367}, {6, 0.4307}, {7, 0.2222}, {8, 0.2167}};
+        {5, 0.1367}, {6, 0.4307}, {7, 0.2222}, {8, 0.2167}}};
 
     for (auto &[i, weight] : ContHistoryWeights)
     {

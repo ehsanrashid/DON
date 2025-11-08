@@ -18,7 +18,6 @@
 #include "uci.h"
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <cctype>
 #include <cmath>
@@ -306,7 +305,7 @@ void UCI::execute(std::string_view command) noexcept {
         std::cout << compiler_info() << '\n' << std::endl;
         break;
     case CMD_EXPORT_NET : {
-        std::array<std::optional<std::string>, 2> netFiles;
+        StdArray<std::optional<std::string>, 2> netFiles;
 
         std::string input;
         for (std::size_t i = 0; i < netFiles.size() && iss >> input; ++i)
@@ -651,14 +650,14 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     nodes = 0;
 
     // Only normal hashfull and touched hash
-    constexpr std::array<std::uint8_t, 2> HashfullAges{0, 31};
+    constexpr StdArray<std::uint8_t, 2> HashfullAges{0, 31};
 
     static_assert(HashfullAges.size() == 2 && HashfullAges[0] == 0 && HashfullAges[1] == 31,
                   "Incorrect HashfullAges[].");
 
-    std::uint16_t                                  hashfullCount{0};
-    std::array<std::uint16_t, HashfullAges.size()> maxHashfull{};
-    std::array<std::uint64_t, HashfullAges.size()> sumHashfull{};
+    std::uint16_t                                hashfullCount{0};
+    StdArray<std::uint16_t, HashfullAges.size()> maxHashfull{};
+    StdArray<std::uint64_t, HashfullAges.size()> sumHashfull{};
 
     const auto update_hashfull = [&]() noexcept -> void {
         ++hashfullCount;
@@ -770,8 +769,8 @@ struct WinRateParams final {
 WinRateParams win_rate_params(const Position& pos) noexcept {
 
     // clang-format off
-    constexpr double as[4]{-13.50030198,   40.92780883, -36.82753545, 386.83004070};
-    constexpr double bs[4]{ 96.53354896, -165.79058388,  90.89679019,  49.29561889};
+    constexpr StdArray<double, 4> as{-13.50030198,   40.92780883, -36.82753545, 386.83004070};
+    constexpr StdArray<double, 4> bs{ 96.53354896, -165.79058388,  90.89679019,  49.29561889};
     // clang-format on
 
     // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (17.2414e-3).

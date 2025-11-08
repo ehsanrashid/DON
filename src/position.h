@@ -24,12 +24,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>
-#include <iterator>
 #include <numeric>
 #include <string>
 #include <string_view>
 
 #include "bitboard.h"
+#include "misc.h"
 #include "types.h"
 
 namespace DON {
@@ -38,10 +38,10 @@ class TranspositionTable;
 
 namespace Zobrist {
 
-inline Key psq[PIECE_NB][SQUARE_NB]{};
-inline Key castling[CASTLING_RIGHTS_NB]{};
-inline Key enpassant[FILE_NB]{};
-inline Key turn{};
+inline StdArray<Key, PIECE_NB, SQUARE_NB> psq{};
+inline StdArray<Key, CASTLING_RIGHTS_NB>  castling{};
+inline StdArray<Key, FILE_NB>             enpassant{};
+inline Key                                turn{};
 
 }  // namespace Zobrist
 
@@ -49,34 +49,34 @@ inline Key turn{};
 // to its previous state when retract any move.
 struct State final {
     // --- Copied when making a move
-    Key   pawnKey[COLOR_NB];
-    Key   groupKey[COLOR_NB][2];
-    Value nonPawnMaterial[COLOR_NB];
+    StdArray<Key, COLOR_NB>    pawnKey;
+    StdArray<Key, COLOR_NB, 2> groupKey;
+    StdArray<Value, COLOR_NB>  nonPawnMaterial;
+    StdArray<Square, COLOR_NB> kingSq;
+    StdArray<bool, COLOR_NB>   hasCastled;
 
-    Square         kingSq[COLOR_NB];
     Square         epSq;
     Square         capSq;
     CastlingRights castlingRights;
     std::uint8_t   rule50Count;
     std::uint8_t   nullPly;  // Plies from Null-Move
-    bool           hasCastled[COLOR_NB];
     bool           hasRule50High;
 
     // --- Not copied when making a move (will be recomputed anyhow)
-    Key          key;
-    Bitboard     checkers;
-    Bitboard     checks[PIECE_TYPE_NB];
-    Bitboard     pinners[COLOR_NB];
-    Bitboard     blockers[COLOR_NB];
-    Bitboard     attacks[COLOR_NB][PIECE_TYPE_NB];
-    std::int16_t repetition;
-    Piece        capturedPiece;
-    Piece        promotedPiece;
+    Key                                         key;
+    Bitboard                                    checkers;
+    StdArray<Bitboard, PIECE_TYPE_NB>           checks;
+    StdArray<Bitboard, COLOR_NB>                pinners;
+    StdArray<Bitboard, COLOR_NB>                blockers;
+    StdArray<Bitboard, COLOR_NB, PIECE_TYPE_NB> attacks;
+    std::int16_t                                repetition;
+    Piece                                       capturedPiece;
+    Piece                                       promotedPiece;
 
     State* preSt;
 };
 
-using PieceArray = std::array<Piece, SQUARE_NB>;
+using PieceArray = StdArray<Piece, SQUARE_NB>;
 
 inline constexpr std::uint8_t R50_OFFSET = 14;
 inline constexpr std::uint8_t R50_FACTOR = 8;
@@ -134,7 +134,7 @@ class Position final {
 
         std::uint8_t count(Piece pc) const noexcept {
             return std::accumulate(
-              std::begin(cardinals), std::end(cardinals), 0,
+              cardinals.begin(), cardinals.end(), 0,
               [=](std::uint8_t cnt, const Cardinal& cardinal) { return cnt + cardinal.count(pc); });
         }
 
@@ -148,7 +148,7 @@ class Position final {
         friend std::ostream& operator<<(std::ostream& os, const Board& board) noexcept;
 
        private:
-        Cardinal cardinals[RANK_NB]{};
+        StdArray<Cardinal, RANK_NB> cardinals{};
     };
 
     static void init() noexcept;
@@ -377,16 +377,16 @@ class Position final {
     bool see_ge(Move m, int threshold) const noexcept;
 
     // Data members
-    Board        board;
-    Bitboard     typeBB[PIECE_TYPE_NB];
-    Bitboard     colorBB[COLOR_NB];
-    std::uint8_t pieceCount[PIECE_NB];
-    Bitboard     castlingPath[COLOR_NB * CASTLING_SIDE_NB];
-    Square       castlingRookSq[COLOR_NB * CASTLING_SIDE_NB];
-    std::uint8_t castlingRightsMask[COLOR_NB * FILE_NB + 1];
-    Color        activeColor;
-    std::int16_t gamePly;
-    State*       st;
+    Board                                           board;
+    StdArray<Bitboard, PIECE_TYPE_NB>               typeBB;
+    StdArray<Bitboard, COLOR_NB>                    colorBB;
+    StdArray<std::uint8_t, PIECE_NB>                pieceCount;
+    StdArray<Bitboard, COLOR_NB * CASTLING_SIDE_NB> castlingPath;
+    StdArray<Square, COLOR_NB * CASTLING_SIDE_NB>   castlingRookSq;
+    StdArray<std::uint8_t, COLOR_NB * FILE_NB + 1>  castlingRightsMask;
+    Color                                           activeColor;
+    std::int16_t                                    gamePly;
+    State*                                          st;
 };
 
 inline Piece Position::piece_on(Square s) const noexcept {
@@ -469,7 +469,7 @@ inline Square Position::castling_rook_sq(CastlingRights cr) const noexcept {
 
 inline auto Position::castling_rights_mask(Square org, Square dst) const noexcept {
     constexpr auto Indices = []() constexpr {
-        std::array<std::uint8_t, SQUARE_NB> indices{};
+        StdArray<std::uint8_t, SQUARE_NB> indices{};
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
             auto rank  = rank_of(s);

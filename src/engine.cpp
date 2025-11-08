@@ -325,7 +325,7 @@ void Engine::load_small_network(std::string_view netFile) noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::save_networks(const std::array<std::optional<std::string>, 2>& netFiles) noexcept {
+void Engine::save_networks(const StdArray<std::optional<std::string>, 2>& netFiles) noexcept {
     networks.modify_and_replicate([&](const NNUE::Networks& nets) {
         nets.big.save(netFiles[0]);
         nets.small.save(netFiles[1]);

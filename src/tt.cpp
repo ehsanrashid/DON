@@ -135,10 +135,8 @@ static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");
 // as the cache-line is prefetched when possible.
 struct TTCluster final {
    public:
-    static constexpr std::size_t EntryCount = 3;
-
-    TTEntry entries[EntryCount];
-    char    padding[2];  // Pad to 32 bytes
+    StdArray<TTEntry, 3> entries;
+    StdArray<char, 2>    padding;  // Pad to 32 bytes
 };
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
@@ -218,7 +216,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
 
     // Find an entry to be replaced according to the replacement strategy
     auto* rte = &ttc->entries[0];
-    for (std::size_t i = 1; i < TTCluster::EntryCount; ++i)
+    for (std::size_t i = 1; i < ttc->entries.size(); ++i)
         if (rte->worth(generation8) > ttc->entries[i].worth(generation8))
             rte = &ttc->entries[i];
 
@@ -243,7 +241,7 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
         for (const auto& entry : clusters[idx].entries)
             cnt += entry.occupied() && entry.relative_age(generation8) <= maxRelAge;
 
-    return cnt / TTCluster::EntryCount;
+    return cnt / clusters[0].entries.size();
 }
 
 bool TranspositionTable::save(std::string_view hashFile) const noexcept {

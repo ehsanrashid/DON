@@ -18,7 +18,6 @@
 #ifndef ENGINE_H_INCLUDED
 #define ENGINE_H_INCLUDED
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -97,7 +96,7 @@ class Engine final {
     void load_networks() noexcept;
     void load_big_network(std::string_view netFile) noexcept;
     void load_small_network(std::string_view netFile) noexcept;
-    void save_networks(const std::array<std::optional<std::string>, 2>& netFiles) noexcept;
+    void save_networks(const StdArray<std::optional<std::string>, 2>& netFiles) noexcept;
 
     void set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept;
     void set_on_update_full(MainSearchManager::OnUpdateFull&& f) noexcept;

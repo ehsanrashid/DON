@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <iosfwd>
 
+#include "../../misc.h"
 #include "../nnue_common.h"
 
 namespace DON::NNUE::Layers {
@@ -42,7 +43,7 @@ class SqrClippedReLU {
     static constexpr IndexType PaddedOutputDimensions =
       ceil_to_multiple<IndexType>(OutputDimensions, 32);
 
-    using OutputBuffer = OutputType[PaddedOutputDimensions];
+    using OutputBuffer = StdArray<OutputType, PaddedOutputDimensions>;
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t hash(std::uint32_t preHash) noexcept {

@@ -71,11 +71,11 @@ class Network final {
 
     NetworkOutput evaluate(const Position&                         pos,
                            AccumulatorStack&                       accStack,
-                           AccumulatorCaches::Cache<TFDimensions>* cache) const noexcept;
+                           AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept;
 
     NetworkTrace trace(const Position&                         pos,
                        AccumulatorStack&                       accStack,
-                       AccumulatorCaches::Cache<TFDimensions>* cache) const noexcept;
+                       AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept;
 
    private:
     void load_user_net(const std::string& dir, const std::string& evalFileName) noexcept;
@@ -95,7 +95,7 @@ class Network final {
     Transformer featureTransformer;
 
     // Evaluation function
-    Arch network[LayerStacks];
+    StdArray<Arch, LayerStacks> network;
 
     EvalFile     evalFile;
     EmbeddedType embeddedType;

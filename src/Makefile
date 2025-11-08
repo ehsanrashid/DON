@@ -165,9 +165,9 @@ lasx = no
 STRIP = strip
 
 ifneq ($(shell which clang-format-20 2> /dev/null),)
-    CLANG-FORMAT = clang-format-20
+    CLANG_FORMAT = clang-format-20
 else
-    CLANG-FORMAT = clang-format
+    CLANG_FORMAT = clang-format
 endif
 
 ### 2.2 Architecture specific
@@ -1013,13 +1013,20 @@ net:
 	@$(SHELL) ../scripts/net.sh
 
 format:
-	@[ -n "$(SRCS)$(HEADERS)" ] && $(CLANG-FORMAT) -i -style=file $(SRCS) $(HEADERS) || true
+	@if [ -n "$(SRCS)$(HEADERS)" ]; then \
+	    $(CLANG_FORMAT) -i -style=file $(SRCS) $(HEADERS); \
+	fi
 
 install-hooks:
-	@root="$$(git rev-parse --show-toplevel)"; \
-	cp "$$root/.git-hooks/pre-commit" "$$root/.git/hooks/pre-commit"; \
-	chmod +x "$$root/.git/hooks/pre-commit"; \
-	echo "Installed pre-commit hook."
+	@root="$$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "Not a git repo"; exit 1; }; \
+	src="$$root/.git-hooks/pre-commit"; \
+	dst="$$root/.git/hooks/pre-commit"; \
+	if [ ! -f "$$src" ]; then echo "Hook source not found: $$src"; exit 1; fi; \
+	if [ -f "$$dst" ]; then \
+	  bak="$$dst.bak.$$(date +%Y%m%d%H%M%S)"; \
+	  mv "$$dst" "$$bak" && echo "Existing hook moved to $$bak"; \
+	fi; \
+	cp "$$src" "$$dst" && chmod +x "$$dst" && echo "Installed pre-commit hook: $$dst"
 
 ### ==========================================================================
 ### Section 5. Private Targets

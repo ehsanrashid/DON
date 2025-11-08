@@ -142,9 +142,7 @@ static_assert(sizeof(PTEntry) == 16, "Unexpected PTEntry size");
 
 struct PTCluster final {
    public:
-    static constexpr std::size_t EntryCount = 4;
-
-    PTEntry entries[EntryCount];
+    StdArray<PTEntry, 4> entries;
 };
 
 static_assert(sizeof(PTCluster) == 64, "Unexpected PTCluster size");
@@ -233,11 +231,11 @@ ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
     auto* const fte = &ptc->entries[0];
     auto*       rte = fte;
-    for (std::size_t i = 1; i < PTCluster::EntryCount; ++i)
+    for (std::size_t i = 1; i < ptc->entries.size(); ++i)
         if (rte->depth16 > ptc->entries[i].depth16)
             rte = &ptc->entries[i];
 
-    return {false, rte->depth16 <= depth ? rte : fte + PTCluster::EntryCount - 1};
+    return {false, rte->depth16 <= depth ? rte : fte + ptc->entries.size() - 1};
 }
 
 PerftTable perftTable;

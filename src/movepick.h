@@ -22,6 +22,7 @@
 #include <cstdint>
 
 #include "history.h"
+#include "misc.h"
 #include "movegen.h"
 #include "types.h"
 
@@ -133,7 +134,7 @@ class MovePicker final {
     [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
     [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
 
-    [[nodiscard]] const_pointer data() const noexcept { return moves; }
+    [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }
 
     const Position&           pos;
     Move                      ttMove;
@@ -141,8 +142,8 @@ class MovePicker final {
     const std::int16_t        ssPly;
     const int                 threshold;
 
-    value_type moves[MAX_MOVES];
-    iterator   cur, endCur, endBadCapture, begBadQuiet, endMove = nullptr;
+    StdArray<value_type, MAX_MOVES> moves;
+    iterator                        cur, endCur, endBadCapture, begBadQuiet, endMove = nullptr;
 };
 
 }  // namespace DON

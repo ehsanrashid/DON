@@ -18,6 +18,7 @@
 #include "tbbase.h"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cassert>
 #include <cstdlib>
@@ -104,18 +105,18 @@ constexpr std::string_view WDLExt = ".rtbw";
 constexpr std::string_view DTZExt = ".rtbz";
 
 // clang-format off
-constexpr int          WDLMap    [5]{1, 3, 0, 2, 0};
-constexpr std::int32_t WDLToRank [5]{-MAX_DTZ, -MAX_DTZ + 101, 0, +MAX_DTZ - 101, +MAX_DTZ};
-constexpr Value        WDLToValue[5]{VALUE_MATED_IN_MAX_PLY + 1, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, VALUE_MATES_IN_MAX_PLY - 1};
+constexpr StdArray<int, 5>          WDLMap{1, 3, 0, 2, 0};
+constexpr StdArray<std::int32_t, 5> WDLToRank{-MAX_DTZ, -MAX_DTZ + 101, 0, +MAX_DTZ - 101, +MAX_DTZ};
+constexpr StdArray<Value, 5>        WDLToValue{VALUE_MATED_IN_MAX_PLY + 1, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, VALUE_MATES_IN_MAX_PLY - 1};
 
-std::size_t  PawnsMap[SQUARE_NB];
-std::size_t B1H1H7Map[SQUARE_NB];
-std::size_t A1D1D4Map[SQUARE_NB];
-std::size_t KKMap[10][SQUARE_NB];  // [A1D1D4Map][SQUARE_NB]
+StdArray<std::size_t, SQUARE_NB>     PawnsMap;
+StdArray<std::size_t, SQUARE_NB>     B1H1H7Map;
+StdArray<std::size_t, SQUARE_NB>     A1D1D4Map;
+StdArray<std::size_t, 10, SQUARE_NB> KKMap;  // [A1D1D4Map][SQUARE_NB]
 
-std::size_t     Binomial[6][SQUARE_NB];    // [k][n] k elements from a set of n elements
-std::size_t  LeadPawnIdx[6][SQUARE_NB];    // [leadPawnCnt][SQUARE_NB]
-std::size_t LeadPawnSize[6][FILE_NB / 2];  // [leadPawnCnt][FILE_A..FILE_D]
+StdArray<std::size_t, 6, SQUARE_NB>   Binomial;     // [k][n] k elements from a set of n elements
+StdArray<std::size_t, 6, SQUARE_NB>   LeadPawnIdx;  // [leadPawnCnt][SQUARE_NB]
+StdArray<std::size_t, 6, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE_A..FILE_D]
 // clang-format on
 
 constexpr Square operator^(Square s, int i) noexcept { return Square(int(s) ^ i); }
@@ -373,12 +374,14 @@ struct PairsData final {
     std::vector<std::uint64_t>
       base64;  // base64[l - minSymLen] is the 64bit-padded lowest symbol of length l
     std::vector<std::uint8_t>
-          symLen;            // Number of values (-1) represented by a given Huffman symbol: 1..256
-    Piece pieces[TBPieces];  // Position pieces: the order of pieces defines the groups
-    std::uint64_t
-                 groupIdx[TBPieces + 1];  // Start index used for the encoding of the group's pieces
-    std::int32_t groupLen[TBPieces + 1];  // Number of pieces in a given group: KRKN -> (3, 1)
-    std::uint16_t mapIdx[4];  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
+      symLen;  // Number of values (-1) represented by a given Huffman symbol: 1..256
+    StdArray<Piece, TBPieces> pieces;  // Position pieces: the order of pieces defines the groups
+    StdArray<std::uint64_t, TBPieces + 1>
+      groupIdx;  // Start index used for the encoding of the group's pieces
+    StdArray<std::int32_t, TBPieces + 1>
+      groupLen;  // Number of pieces in a given group: KRKN -> (3, 1)
+    StdArray<std::uint16_t, 4>
+      mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
 };
 
 // struct TBTable contains indexing information to access the corresponding TBFile.
@@ -741,7 +744,7 @@ int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdlScore) noexcep
     auto* pd     = entry->get(0, f);
     auto  flags  = pd->flags;
     auto* map    = entry->map;
-    auto* mapIdx = pd->mapIdx;
+    auto* mapIdx = pd->mapIdx.data();
 
     auto idx = mapIdx[WDLMap[wdlScore + 2]] + value;
 
@@ -1099,7 +1102,7 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     // groupLen[] is a zero-terminated list of group lengths, the last groupIdx[]
     // element stores the biggest index that is the tb size.
     std::uint64_t tbSize =
-      pd->groupIdx[std::find(pd->groupLen, pd->groupLen + 7, 0) - pd->groupLen];
+      pd->groupIdx[std::find(pd->groupLen.begin(), pd->groupLen.end(), 0) - pd->groupLen.begin()];
 
     pd->blockSize       = 1ULL << *data++;
     pd->span            = 1ULL << *data++;

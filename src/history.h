@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "bitboard.h"
+#include "misc.h"
 #include "types.h"
 
 namespace DON {
@@ -70,121 +71,6 @@ class StatsEntry final {
     std::atomic<T> value{};
 };
 
-template<typename T, std::size_t Size, std::size_t... Sizes>
-class MultiVector;
-
-namespace internal {
-template<typename T, std::size_t Size, std::size_t... Sizes>
-struct [[maybe_unused]] MultiVectorTypedef;
-
-// Recursive template to define multi-dimensional vector
-template<typename T, std::size_t Size, std::size_t... Sizes>
-struct MultiVectorTypedef final {
-    using Type = MultiVector<T, Sizes...>;
-};
-// Base case: single-dimensional vector
-template<typename T, std::size_t Size>
-struct MultiVectorTypedef<T, Size> final {
-    using Type = T;
-};
-}  // namespace internal
-
-// MultiVector is a generic N-dimensional vector.
-// The template parameter T is the base type of the MultiVector
-// The template parameters (Size and Sizes) is the dimensions of the MultiVector.
-template<typename T, std::size_t Size, std::size_t... Sizes>
-class MultiVector final {
-   private:
-    using ElementType = typename internal::MultiVectorTypedef<T, Size, Sizes...>::Type;
-    using VectorType  = std::vector<ElementType>;
-
-   public:
-    using value_type             = typename VectorType::value_type;
-    using size_type              = typename VectorType::size_type;
-    using difference_type        = typename VectorType::difference_type;
-    using reference              = typename VectorType::reference;
-    using const_reference        = typename VectorType::const_reference;
-    using pointer                = typename VectorType::pointer;
-    using const_pointer          = typename VectorType::const_pointer;
-    using iterator               = typename VectorType::iterator;
-    using const_iterator         = typename VectorType::const_iterator;
-    using reverse_iterator       = typename VectorType::reverse_iterator;
-    using const_reverse_iterator = typename VectorType::const_reverse_iterator;
-
-    MultiVector() noexcept :
-        _data(Size) {}
-
-    constexpr auto begin() const noexcept { return _data.begin(); }
-    constexpr auto end() const noexcept { return _data.end(); }
-    constexpr auto begin() noexcept { return _data.begin(); }
-    constexpr auto end() noexcept { return _data.end(); }
-
-    constexpr auto cbegin() const noexcept { return _data.cbegin(); }
-    constexpr auto cend() const noexcept { return _data.cend(); }
-
-    constexpr auto rbegin() const noexcept { return _data.rbegin(); }
-    constexpr auto rend() const noexcept { return _data.rend(); }
-    constexpr auto rbegin() noexcept { return _data.rbegin(); }
-    constexpr auto rend() noexcept { return _data.rend(); }
-
-    constexpr auto crbegin() const noexcept { return _data.crbegin(); }
-    constexpr auto crend() const noexcept { return _data.crend(); }
-
-    constexpr auto&       front() noexcept { return _data.front(); }
-    constexpr const auto& front() const noexcept { return _data.front(); }
-    constexpr auto&       back() noexcept { return _data.back(); }
-    constexpr const auto& back() const noexcept { return _data.back(); }
-
-    auto*       data() { return _data.data(); }
-    const auto* data() const { return _data.data(); }
-
-    constexpr auto max_size() const noexcept { return _data.max_size(); }
-
-    constexpr auto size() const noexcept { return _data.size(); }
-    constexpr auto empty() const noexcept { return _data.empty(); }
-
-    constexpr const auto& at(size_type idx) const noexcept { return _data.at(idx); }
-    constexpr auto&       at(size_type idx) noexcept { return _data.at(idx); }
-
-    constexpr auto& operator[](size_type idx) const noexcept { return _data[idx]; }
-    constexpr auto& operator[](size_type idx) noexcept { return _data[idx]; }
-
-    constexpr void swap(MultiVector<T, Size, Sizes...>& _entries) noexcept {
-        _data.swap(_entries._data);
-    }
-
-    // Recursively fill all dimensions by calling the sub fill method
-    template<typename U>
-    void fill(U v) noexcept {
-        static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to entry type");
-
-        for (auto& element : *this)
-        {
-            if constexpr (sizeof...(Sizes) == 0)
-                element = v;
-            else
-                element.fill(v);
-        }
-    }
-
-    /*
-    void print() const noexcept {
-        std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
-        for (auto& element : *this)
-        {
-            if constexpr (sizeof...(Sizes) == 0)
-                std::cout << element << ' ';
-            else
-                element.print();
-        }
-        std::cout << std::endl;
-    }
-    */
-
-   private:
-    VectorType _data;
-};
-
 // clang-format off
 inline constexpr int  CAPTURE_HISTORY_LIMIT = 10692;
 inline constexpr int    QUIET_HISTORY_LIMIT =  7183;
@@ -218,54 +104,54 @@ enum HistoryType : std::uint8_t {
 
 namespace internal {
 template<int D, std::size_t... Sizes>
-using StatsEntires = MultiVector<StatsEntry<std::int16_t, D>, Sizes...>;
+using StatsVector = MultiVector<StatsEntry<std::int16_t, D>, Sizes...>;
 
 template<HistoryType T>
-struct HistoryTypedef;
+struct HistoryDef;
 
 template<>
-struct HistoryTypedef<HCapture> final {
-    using Type = StatsEntires<CAPTURE_HISTORY_LIMIT, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
+struct HistoryDef<HCapture> final {
+    using Type = StatsVector<CAPTURE_HISTORY_LIMIT, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 };
 
 // It records how often quiet moves have been successful or not during the current search,
 // and is used for reduction and move ordering decisions.
 // see https://www.chessprogramming.org/Butterfly_Boards
 template<>
-struct HistoryTypedef<HQuiet> final {
-    using Type = StatsEntires<QUIET_HISTORY_LIMIT, COLOR_NB, QUIET_HISTORY_SIZE>;
+struct HistoryDef<HQuiet> final {
+    using Type = StatsVector<QUIET_HISTORY_LIMIT, COLOR_NB, QUIET_HISTORY_SIZE>;
 };
 
 template<>
-struct HistoryTypedef<HPawn> final {
-    using Type = StatsEntires<PAWN_HISTORY_LIMIT, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
+struct HistoryDef<HPawn> final {
+    using Type = StatsVector<PAWN_HISTORY_LIMIT, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
 };
 
 template<>
-struct HistoryTypedef<HPieceSq> final {
-    using Type = StatsEntires<PIECE_SQ_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
+struct HistoryDef<HPieceSq> final {
+    using Type = StatsVector<PIECE_SQ_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
 };
 
 template<>
-struct HistoryTypedef<HContinuation> final {
-    using Type = MultiVector<HistoryTypedef<HPieceSq>::Type, PIECE_NB, SQUARE_NB>;
+struct HistoryDef<HContinuation> final {
+    using Type = MultiVector<HistoryDef<HPieceSq>::Type, PIECE_NB, SQUARE_NB>;
 };
 
 // It is used to improve quiet move ordering near the root.
 template<>
-struct HistoryTypedef<HLowPlyQuiet> final {
-    using Type = StatsEntires<QUIET_HISTORY_LIMIT, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
+struct HistoryDef<HLowPlyQuiet> final {
+    using Type = StatsVector<QUIET_HISTORY_LIMIT, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
 };
 
 template<>
-struct HistoryTypedef<HTTMove> final {
+struct HistoryDef<HTTMove> final {
     using Type = StatsEntry<std::int16_t, 8192>;
 };
 }  // namespace internal
 
 // Alias template for convenience
 template<HistoryType T>
-using History = typename internal::HistoryTypedef<T>::Type;
+using History = typename internal::HistoryDef<T>::Type;
 
 // clang-format off
 inline constexpr int         CORRECTION_HISTORY_LIMIT = 1024;
@@ -292,45 +178,45 @@ enum CorrectionHistoryType : std::uint8_t {
 
 namespace internal {
 template<std::size_t... Sizes>
-using CorrectionStatsEntires = StatsEntires<CORRECTION_HISTORY_LIMIT, Sizes...>;
+using CorrectionStatsVector = StatsVector<CORRECTION_HISTORY_LIMIT, Sizes...>;
 
 template<CorrectionHistoryType T>
-struct CorrectionHistoryTypedef;
+struct CorrectionHistoryDef;
 
 template<>
-struct CorrectionHistoryTypedef<CHPawn> final {
-    using Type = CorrectionStatsEntires<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+struct CorrectionHistoryDef<CHPawn> final {
+    using Type = CorrectionStatsVector<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
-struct CorrectionHistoryTypedef<CHMinor> final {
-    using Type = CorrectionStatsEntires<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+struct CorrectionHistoryDef<CHMinor> final {
+    using Type = CorrectionStatsVector<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
-struct CorrectionHistoryTypedef<CHMajor> final {
-    using Type = CorrectionStatsEntires<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+struct CorrectionHistoryDef<CHMajor> final {
+    using Type = CorrectionStatsVector<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
-struct CorrectionHistoryTypedef<CHNonPawn> final {
-    using Type = CorrectionStatsEntires<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+struct CorrectionHistoryDef<CHNonPawn> final {
+    using Type = CorrectionStatsVector<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
-struct CorrectionHistoryTypedef<CHPieceSq> final {
-    using Type = CorrectionStatsEntires<PIECE_NB, SQUARE_NB>;
+struct CorrectionHistoryDef<CHPieceSq> final {
+    using Type = CorrectionStatsVector<PIECE_NB, SQUARE_NB>;
 };
 
 template<>
-struct CorrectionHistoryTypedef<CHContinuation> final {
-    using Type = MultiVector<CorrectionHistoryTypedef<CHPieceSq>::Type, PIECE_NB, SQUARE_NB>;
+struct CorrectionHistoryDef<CHContinuation> final {
+    using Type = MultiVector<CorrectionHistoryDef<CHPieceSq>::Type, PIECE_NB, SQUARE_NB>;
 };
 }  // namespace internal
 
 // Alias template for convenience
 template<CorrectionHistoryType T>
-using CorrectionHistory = typename internal::CorrectionHistoryTypedef<T>::Type;
+using CorrectionHistory = typename internal::CorrectionHistoryDef<T>::Type;
 
 }  // namespace DON
 

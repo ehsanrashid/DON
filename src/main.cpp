@@ -23,7 +23,6 @@
 #include "position.h"
 #include "syzygy/tbbase.h"
 #include "tune.h"
-#include "types.h"
 #include "uci.h"
 
 using namespace DON;

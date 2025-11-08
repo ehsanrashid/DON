@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <iostream>
 
+#include "../../misc.h"
 #include "../nnue_common.h"
 #include "../simd.h"
 
@@ -46,10 +47,11 @@ namespace DON::NNUE::Layers {
 #if !defined(ENABLE_SEQ_OPT)
 namespace {
 template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType OutputDimensions>
-void affine_transform_non_ssse3(const std::int32_t* biases,
-                                const std::int8_t*  weights,
-                                const std::uint8_t* input,
-                                std::int32_t*       output) noexcept {
+void affine_transform_non_ssse3(
+  const std::array<std::int32_t, OutputDimensions>&                        biases,
+  const std::array<std::int8_t, OutputDimensions * PaddedInputDimensions>& weights,
+  const std::uint8_t*                                                      input,
+  std::int32_t*                                                            output) noexcept {
     #if defined(USE_SSE2) || defined(USE_NEON)
         #if defined(USE_SSE2)
     // At least a multiple of 16, with SSE2.
@@ -108,7 +110,7 @@ void affine_transform_non_ssse3(const std::int32_t* biases,
     }
     #else
 
-    std::memcpy(output, biases, OutputDimensions * sizeof(std::int32_t));
+    std::memcpy(output, biases.data(), OutputDimensions * sizeof(std::int32_t));
 
     // Traverse weights in transpose order to take advantage of input sparsity
     for (IndexType i = 0; i < InputDimensions; ++i)
@@ -139,7 +141,7 @@ class AffineTransform final {
     static constexpr IndexType PaddedOutputDimensions =
       ceil_to_multiple<IndexType>(OutputDimensions, MAX_SIMD_WIDTH);
 
-    using OutputBuffer = OutputType[PaddedOutputDimensions];
+    using OutputBuffer = StdArray<OutputType, PaddedOutputDimensions>;
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t hash(std::uint32_t preHash) noexcept {
@@ -169,7 +171,7 @@ class AffineTransform final {
 
     // Read network parameters
     bool read_parameters(std::istream& istream) noexcept {
-        read_little_endian<BiasType>(istream, biases, OutputDimensions);
+        read_little_endian<BiasType>(istream, biases);
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
             weights[weight_index(i)] = read_little_endian<WeightType>(istream);
 
@@ -178,7 +180,7 @@ class AffineTransform final {
 
     // Write network parameters
     bool write_parameters(std::ostream& ostream) const noexcept {
-        write_little_endian<BiasType>(ostream, biases, OutputDimensions);
+        write_little_endian<BiasType>(ostream, biases);
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
             write_little_endian<WeightType>(ostream, weights[weight_index(i)]);
 
@@ -266,7 +268,7 @@ class AffineTransform final {
             constexpr IndexType RegCount   = OutputDimensions / OutputSimdWidth;
 
             const auto*  input32 = reinterpret_cast<const std::int32_t*>(input);
-            const vec_t* biasVec = reinterpret_cast<const vec_t*>(biases);
+            const vec_t* biasVec = reinterpret_cast<const vec_t*>(biases.data());
 
             vec_t acc[RegCount];
             for (IndexType k = 0; k < RegCount; ++k)
@@ -300,8 +302,8 @@ class AffineTransform final {
     using BiasType   = OutputType;
     using WeightType = std::int8_t;
 
-    alignas(CACHE_LINE_SIZE) BiasType biases[OutputDimensions];
-    alignas(CACHE_LINE_SIZE) WeightType weights[OutputDimensions * PaddedInputDimensions];
+    alignas(CACHE_LINE_SIZE) StdArray<BiasType, OutputDimensions> biases;
+    alignas(CACHE_LINE_SIZE) StdArray<WeightType, OutputDimensions * PaddedInputDimensions> weights;
 };
 
 }  // namespace DON::NNUE::Layers
