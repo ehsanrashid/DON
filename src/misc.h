@@ -19,6 +19,7 @@
 #define MISC_H_INCLUDED
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cctype>
 #include <chrono>
@@ -162,13 +163,13 @@ class MultiArray;
 namespace internal {
 
 template<typename T, std::size_t Size, std::size_t... Sizes>
-struct StdArrayDef {
+struct StdArrayDef final {
     static_assert(Size > 0, "dimension must be > 0");
     using type = std::array<typename StdArrayDef<T, Sizes...>::type, Size>;
 };
 
 template<typename T, std::size_t Size>
-struct StdArrayDef<T, Size> {
+struct StdArrayDef<T, Size> final {
     static_assert(Size > 0, "dimension must be > 0");
     using type = std::array<T, Size>;
 };
@@ -323,7 +324,7 @@ inline std::vector<T> StdVector(std::size_t size) noexcept {
     return std::vector<T>(size);
 }
 
-// Recursive: first size, then rest...
+// Recursive: size, then sizes...
 template<typename T, typename... Sizes>
 inline auto StdVector(std::size_t size, Sizes... sizes) noexcept {
     static_assert(sizeof...(Sizes) >= 1, "provide at least one size in recursive overload");
@@ -468,6 +469,7 @@ class FixedVector final {
     }
 
     constexpr const T* data() const noexcept { return _data.data(); }
+    constexpr T*       data() noexcept { return _data.data(); }
 
     constexpr const T& operator[](std::size_t idx) const noexcept {
         assert(idx < size());
