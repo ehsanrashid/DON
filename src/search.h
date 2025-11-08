@@ -53,7 +53,7 @@ struct Networks;
 
 using Moves = std::vector<Move>;
 template<std::size_t Size>
-using MovesArray = std::array<Moves, Size>;
+using MovesArray = StdArray<Moves, Size>;
 
 inline constexpr std::size_t DEFAULT_MULTI_PV = 1;
 

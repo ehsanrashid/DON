@@ -320,16 +320,16 @@ struct MultiVectorDef<T, Size> final {
 
 // Base: only one size argument -> vector<T>
 template<typename T>
-inline std::vector<T> StdVector(std::size_t size) noexcept {
+inline std::vector<T> make_std_vector(std::size_t size) noexcept {
     return std::vector<T>(size);
 }
 
 // Recursive: size, then sizes...
 template<typename T, typename... Sizes>
-inline auto StdVector(std::size_t size, Sizes... sizes) noexcept {
+inline auto make_std_vector(std::size_t size, Sizes... sizes) noexcept {
     static_assert(sizeof...(Sizes) >= 1, "provide at least one size in recursive overload");
-    using Inner = decltype(StdVector<T>(sizes...));
-    return std::vector<Inner>(size, StdVector<T>(sizes...));
+    using Inner = decltype(make_std_vector<T>(sizes...));
+    return std::vector<Inner>(size, make_std_vector<T>(sizes...));
 }
 
 // MultiVector is a generic N-dimensional vector.
@@ -354,8 +354,7 @@ class MultiVector final {
     using reverse_iterator       = typename VectorType::reverse_iterator;
     using const_reverse_iterator = typename VectorType::const_reverse_iterator;
 
-    MultiVector() noexcept :
-        _data(Size) {}
+    MultiVector() noexcept = default;
 
     constexpr auto begin() const noexcept { return _data.begin(); }
     constexpr auto end() const noexcept { return _data.end(); }
@@ -425,7 +424,7 @@ class MultiVector final {
     }
 
    private:
-    VectorType _data;
+    VectorType _data = make_std_vector<ElementType>(Size);
 };
 
 template<typename T, std::size_t Capacity>
