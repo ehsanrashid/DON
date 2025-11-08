@@ -102,7 +102,8 @@ void init_magics() noexcept {
 
     StdArray<Bitboard, RefSizes[PT - BISHOP]> occupancy;
 
-    StdArray<std::uint32_t, RefSizes[PT - BISHOP]> epoch{}, cnt = 0;
+    StdArray<std::uint32_t, RefSizes[PT - BISHOP]> epoch{};
+    std::uint32_t                                  cnt = 0;
 #endif
 
     StdArray<Bitboard, RefSizes[PT - BISHOP]> reference;
