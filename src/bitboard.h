@@ -107,9 +107,9 @@ constexpr std::uint8_t msb_index(Bitboard b) noexcept {
 struct Magic final {
    public:
     Magic() noexcept                        = default;
-    Magic(const Magic&) noexcept            = default;
+    Magic(const Magic&) noexcept            = delete;
     Magic(Magic&&) noexcept                 = delete;
-    Magic& operator=(const Magic&) noexcept = default;
+    Magic& operator=(const Magic&) noexcept = delete;
     Magic& operator=(Magic&&) noexcept      = delete;
 
     Bitboard* attacks;

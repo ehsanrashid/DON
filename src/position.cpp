@@ -414,8 +414,9 @@ void Position::set(std::string_view code, Color c, State* const newSt) noexcept 
     assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string_view::npos);
     assert(is_ok(c));
 
-    std::string sides[2]{std::string{code.substr(code.find('K', 1))},                // Weak
-                         std::string{code.substr(0, code.find_first_of("vK", 1))}};  // Strong
+    StdArray<std::string, 2> sides{
+      std::string{code.substr(code.find('K', 1))},                // Weak
+      std::string{code.substr(0, code.find_first_of("vK", 1))}};  // Strong
 
     assert(0 < sides[0].size() && sides[0].size() < 8);
     assert(0 < sides[1].size() && sides[1].size() < 8);

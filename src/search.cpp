@@ -751,7 +751,7 @@ Value Worker::search(Position&    pos,
 
     State st;
 
-    // At non-pv nodes check for an early TT cutoff
+    // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && !exclude && is_valid(ttd.value)        //
         && ttd.depth > depth - (ttd.value <= beta)        //
         && (depth > 5 || CutNode == (ttd.value >= beta))  //
@@ -857,7 +857,7 @@ Value Worker::search(Position&    pos,
 
     int absCorrectionValue = std::abs(correctionValue);
 
-    Value unadjustedStaticEval, eval, razorAlpha, probCutBeta;
+    Value unadjustedStaticEval, eval;
 
     bool improve, worsen;
 
@@ -926,16 +926,19 @@ Value Worker::search(Position&    pos,
         depth = std::max(depth - 1, 1);
 
     // Step 7. Razoring
-    // If eval is really low, skip search entirely and return the qsearch value.
-    razorAlpha = std::max(-514 + alpha - 294 * depth * depth, -VALUE_INFINITE);
-    if (!PVNode && eval <= razorAlpha)
+    // If eval is really low, check with qsearch then return a speculative fail low.
+    if constexpr (!PVNode)
     {
-        value = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
+        Value razorAlpha = std::max(-514 + alpha - 294 * depth * depth, -VALUE_INFINITE);
+        if (eval <= razorAlpha)
+        {
+            value = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
 
-        if (value <= razorAlpha)
-            return value;
+            if (value <= razorAlpha)
+                return value;
 
-        ss->ttMove = ttd.move;
+            ss->ttMove = ttd.move;
+        }
     }
 
     // Step 8. Futility pruning: child node
@@ -1005,12 +1008,13 @@ Value Worker::search(Position&    pos,
     // Step 11. ProbCut
     // If have a good enough capture or any promotion and a reduced search
     // returns a value much above beta, can (almost) safely prune previous move.
-    probCutBeta = std::min(224 + beta - 64 * improve, +VALUE_INFINITE);
-    if (depth >= 3
-        && !is_decisive(beta)
-        // If value from transposition table is less than probCutBeta, don't attempt probCut
-        && !(is_valid(ttd.value) && ttd.value < probCutBeta))
+    if (depth >= 3 && !is_decisive(beta))
     {
+        // clang-format off
+        Value probCutBeta = std::min(224 + beta - 64 * improve, +VALUE_INFINITE);
+        // If value from transposition table is less than probCutBeta, don't attempt probCut
+        if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
+        {
         assert(beta < probCutBeta && probCutBeta <= +VALUE_INFINITE);
 
         Depth probCutDepth = std::clamp(depth - 5 - (ss->staticEval - beta) / 306, 0, depth - 0);
@@ -1059,15 +1063,19 @@ Value Worker::search(Position&    pos,
                     return in_range(value - (probCutBeta - beta));
             }
         }
+        }
+        // clang-format on
     }
 
 S_MOVES_LOOP:  // When in check, search starts here
 
     // Step 12. Small ProbCut idea
-    probCutBeta = std::min(418 + beta, +VALUE_INFINITE);
-    if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value)
-        && ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
-        return probCutBeta;
+    if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value))
+    {
+        Value probCutBeta = std::min(418 + beta, +VALUE_INFINITE);
+        if (ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
+            return probCutBeta;
+    }
 
     const History<HPieceSq>* contHistory[8]{(ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,
                                             (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,
@@ -1365,10 +1373,10 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             // Extends ttMove if about to dive into qsearch
             if (move == ttd.move
-                // Handles decisive score. Improves mate finding and retrograde analysis.
-                && ((is_valid(ttd.value) && is_decisive(ttd.value) && ttd.depth >= 1)
-                    // Root depth is high & TT entry is deep & hashfull is not too high
-                    || (rootDepth > 6 && ttd.depth > 1 && tt.hashfull() <= 960)))
+                && (  // Root depth is high & TT entry is deep
+                  (rootDepth > 6 && ttd.depth > 1)
+                  // Handles decisive score. Improves mate finding and retrograde analysis.
+                  || (is_valid(ttd.value) && is_decisive(ttd.value) && ttd.depth >= 1)))
                 newDepth = std::max(+newDepth, 1);
 
             value = -search<PV>(pos, ss + 1, -beta, -alpha, newDepth);
@@ -1617,7 +1625,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     bool pvHit = ttd.hit && ttd.pvHit;
 
     // Check for an early TT cutoff at non-pv nodes
-    if (!PVNode && is_valid(ttd.value) && ttd.depth >= DEPTH_ZERO
+    if (!PVNode && ttd.depth >= DEPTH_ZERO && is_valid(ttd.value)
         && (ttd.bound & fail_bound(ttd.value >= beta)) != 0)
         return ttd.value;
 
@@ -1708,9 +1716,8 @@ QS_MOVES_LOOP:
 
         Square dst = move.dst_sq();
 
-        bool check    = pos.check(move);
-        bool capture  = pos.capture_promo(move);
-        auto captured = capture ? pos.captured(move) : NO_PIECE_TYPE;
+        bool check   = pos.check(move);
+        bool capture = pos.capture_promo(move);
 
         // Step 6. Pruning
         if (!is_loss(bestValue))
@@ -1722,6 +1729,7 @@ QS_MOVES_LOOP:
                 if ((moveCount - promoCount) > 2)
                     continue;
 
+                auto  captured      = capture ? pos.captured(move) : NO_PIECE_TYPE;
                 Value seeGain       = PIECE_VALUE[captured] + promotion_value(move);
                 Value futilityValue = std::min(futilityBase + seeGain, +VALUE_INFINITE);
                 // If static evaluation + value of piece going to captured is much lower than alpha

@@ -99,14 +99,9 @@ void init_magics() noexcept {
     #endif
       // clang-format on
     };
-
-    StdArray<Bitboard, RefSizes[PT - BISHOP]> occupancy;
-
-    StdArray<std::uint32_t, RefSizes[PT - BISHOP]> epoch{};
-    std::uint32_t                                  cnt = 0;
 #endif
 
-    StdArray<Bitboard, RefSizes[PT - BISHOP]> reference;
+    [[maybe_unused]] std::size_t totalSize = 0;
 
     std::uint16_t size = 0;
 
@@ -123,27 +118,33 @@ void init_magics() noexcept {
         // Individual table sizes for each square with "Fancy Magic Bitboards".
         m.attacks = s == SQ_A1 ? Tables[PT - BISHOP] : &Magics[s - 1][PT - BISHOP].attacks[size];
         assert(m.attacks != nullptr);
-        size = 0;
 
         // Board edges are not considered in the relevant occupancies
         Bitboard edges = (EDGE_FILE_BB & ~file_bb(s)) | (PROMOTION_RANK_BB & ~rank_bb(s));
-
+        // Mask excludes edges
         m.mask = sliding_attack<PT>(s) & ~edges;
 
+#if !defined(USE_BMI2)
+        StdArray<Bitboard, RefSizes[PT - BISHOP]> reference;
+        StdArray<Bitboard, RefSizes[PT - BISHOP]> occupancy;
+#endif
+        size = 0;
         // Use Carry-Rippler trick to enumerate all subsets of masks[s] and
         // store the corresponding sliding attack bitboard in reference[].
         Bitboard b = 0;
         do
         {
-            reference[size] = sliding_attack<PT>(s, b);
 #if !defined(USE_BMI2)
+            reference[size] = sliding_attack<PT>(s, b);
             occupancy[size] = b;
 #else
-            m.attacks_bb(b, reference[size]);
+            m.attacks_bb(b, sliding_attack<PT>(s, b));
 #endif
             ++size;
             b = (b - m.mask) & m.mask;
         } while (b);
+
+        totalSize += size;
 
 #if !defined(USE_BMI2)
 
@@ -156,21 +157,28 @@ void init_magics() noexcept {
           - popcount(m.mask);
 
         PRNG<XoShiRo256Star> prng(Seeds[rank_of(s)]);
+
+        StdArray<std::uint32_t, RefSizes[PT - BISHOP]> epoch{};
+        std::uint32_t                                  cnt = 0;
+
         // Find a magic for square 's' picking up an (almost) random number
         // until find the one that passes the verification test.
-        for (std::uint16_t i = 0; i < size;)
+        while (true)
         {
+            // Pick a candidate magic until it is "sparse enough"
             do
                 m.magic = prng.sparse_rand<Bitboard>();
             while (popcount((m.magic * m.mask) >> 56) < 6);
 
+            bool valid = true;
             // A good magic must map every possible occupancy to an index that
             // looks up the correct sliding attack in the attacks[s] database.
             // Note that build up the database for square 's' as a side effect
-            // of verifying the magic. Keep track of the attempt count and
-            // save it in epoch[], little speed-up trick to avoid resetting
-            // m.attacks[] after every failed attempt.
-            for (++cnt, i = 0; i < size; ++i)
+            // of verifying the magic.
+            // Keep track of the attempt count and save it in epoch[], little speed-up
+            // trick to avoid resetting m.attacks[] after every failed attempt.
+            ++cnt;
+            for (std::uint16_t i = 0; i < size; ++i)
             {
                 auto idx = m.index(occupancy[i]);
 
@@ -181,12 +189,17 @@ void init_magics() noexcept {
                 }
                 else if (m.attacks[idx] != reference[i])
                 {
+                    valid = false;
                     break;
                 }
             }
+
+            if (valid)
+                break;  // Found magic
         }
 #endif
     }
+    assert(totalSize == TableSizes[PT - BISHOP]);
 }
 
 // Explicit template instantiations:
@@ -202,7 +215,7 @@ namespace BitBoard {
 void init() noexcept {
 
 #if !defined(USE_POPCNT)
-    for (unsigned int i = 0; i < PopCnt.size(); ++i)
+    for (std::size_t i = 0; i < PopCnt.size(); ++i)
         PopCnt[i] = std::bitset<16>(i).count();
 #endif
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
