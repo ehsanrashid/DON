@@ -22,6 +22,7 @@
 #include <functional>
 
 #include "bitboard.h"
+#include "misc.h"
 #include "position.h"
 
 namespace DON {
