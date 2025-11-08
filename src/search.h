@@ -294,7 +294,7 @@ struct Limit final {
 
     TimePoint startTime{0};
 
-    Clock clocks[COLOR_NB]{};
+    StdArray<Clock, COLOR_NB> clocks{};
 
     std::uint8_t  movesToGo{0};
     std::uint8_t  mate{0};
@@ -547,7 +547,7 @@ class Worker final {
     std::size_t   multiPV, curIdx, endIdx;
     std::uint16_t selDepth;
 
-    std::int32_t optimism[COLOR_NB];
+    StdArray<std::int32_t, COLOR_NB> optimism;
 
     const std::size_t threadIdx;
 

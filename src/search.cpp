@@ -51,7 +51,7 @@ History<HQuiet>       QuietHistory;
 History<HPawn>        PawnHistory;
 History<HLowPlyQuiet> LowPlyQuietHistory;
 
-History<HContinuation> ContinuationHistory[2][2];  // [inCheck][capture]
+StdArray<History<HContinuation>, 2, 2> ContinuationHistory;  // [inCheck][capture]
 
 namespace {
 
@@ -369,11 +369,10 @@ void Worker::iterative_deepening() noexcept {
     // (ss - 9) is needed for update_continuation_history(ss - 1) which accesses (ss - 8),
     // (ss + 1) is needed for initialization of cutoffCount.
     constexpr std::uint16_t StackOffset = 9;
-    constexpr std::uint16_t StackSize   = StackOffset + (MAX_PLY + 1) + 1;
 
-    Stack  stack[StackSize]{};
-    Stack* ss = stack + StackOffset;
-    for (std::int16_t i = 0 - StackOffset; i < StackSize - StackOffset; ++i)
+    StdArray<Stack, StackOffset + (MAX_PLY + 1) + 1> stack{};
+    Stack*                                           ss = &stack[StackOffset];
+    for (std::int16_t i = 0 - StackOffset; i < std::int16_t(stack.size() - StackOffset); ++i)
     {
         (ss + i)->ply = i;
         if (i >= 0)
@@ -383,10 +382,10 @@ void Worker::iterative_deepening() noexcept {
         (ss + i)->pieceSqHistory           = &ContinuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
         (ss + i)->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[NO_PIECE][SQUARE_ZERO];
     }
-    assert(stack[0].ply == -StackOffset && stack[StackSize - 1].ply == MAX_PLY + 1);
+    assert(stack[0].ply == -StackOffset && stack[stack.size() - 1].ply == MAX_PLY + 1);
     assert(ss->ply == 0);
 
-    Moves pv(MAX_PLY + 1);
+    StdArray<Move, MAX_PLY + 1> pv;
 
     ss->pv = pv.data();
 
@@ -687,7 +686,7 @@ Value Worker::search(Position&    pos,
     if (is_main_worker())
         main_manager()->check_time(*this);
 
-    Moves pv(MAX_PLY + 1 - ss->ply);
+    StdArray<Move, MAX_PLY + 1> pv;
 
     if constexpr (PVNode)
     {
@@ -1587,7 +1586,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (is_main_worker() && main_manager()->callsCount > 1)
         main_manager()->callsCount--;
 
-    Moves pv(MAX_PLY + 1 - ss->ply);
+    StdArray<Move, MAX_PLY + 1> pv;
 
     if constexpr (PVNode)
     {
@@ -2245,9 +2244,9 @@ void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) n
 void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept {
     assert(is_ok(dst));
 
-    constexpr std::pair<std::uint8_t, double> ContHistoryWeights[8]{
+    constexpr StdArray<std::pair<std::uint8_t, double>, 8> ContHistoryWeights{{
         {1, 1.1299}, {2, 0.6328}, {3, 0.2812}, {4, 0.5625},
-        {5, 0.1367}, {6, 0.4307}, {7, 0.2222}, {8, 0.2167}};
+        {5, 0.1367}, {6, 0.4307}, {7, 0.2222}, {8, 0.2167}}};
 
     for (auto &[i, weight] : ContHistoryWeights)
     {
