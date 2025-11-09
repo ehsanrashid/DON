@@ -102,6 +102,7 @@ class MovePicker final {
                const History<HPieceSq>**    continuationHist,
                std::int16_t                 ply,
                int                          th = 0) noexcept;
+
     MovePicker(const Position& p, Move ttm, const History<HCapture>* captureHist, int th) noexcept;
 
     MovePicker() noexcept                             = delete;

@@ -55,7 +55,6 @@ class TSAN:
                 """
 race:DON::TTEntry::read
 race:DON::TTEntry::save
-race:DON::TTEntry::clear
 race:DON::TranspositionTable::probe
 race:DON::TranspositionTable::hashfull
 """

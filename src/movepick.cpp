@@ -285,10 +285,10 @@ STAGE_SWITCH:
                     // Remaining quiets are bad
                     break;
                 }
-
-            // Mark the beginning of bad quiets
-            begBadQuiet = cur;
         }
+
+        // Mark the beginning of bad quiets
+        begBadQuiet = cur;
 
         // Prepare the pointers to loop over the bad captures
         cur    = moves.data();

@@ -104,8 +104,6 @@ struct TTEntry final {
             --depth8;
     }
 
-    void clear() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(*this)); }
-
     // The returned age is a multiple of GENERATION_DELTA
     std::uint8_t relative_age(std::uint8_t gen) const noexcept {
         // Due to packed storage format for generation and its cyclic nature
@@ -142,9 +140,6 @@ struct TTCluster final {
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
 void TTUpdater::update(Depth d, bool pv, Bound b, Move m, Value v, Value ev) noexcept {
-    for (; tte != &ttc->entries[0] && (tte - 1)->key16 == key16; --tte)
-        tte->clear();
-
     tte->save(key16, d, pv, b, m, v, ev, generation);
 }
 
