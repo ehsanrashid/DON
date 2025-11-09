@@ -143,7 +143,7 @@ void update_pv(Move* pv, Move m, const Move* childPv) noexcept {
 void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept;
 void update_capture_history(const Position& pos, Move m, int bonus) noexcept;
 void update_quiet_history(Color ac, Move m, int bonus) noexcept;
-void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) noexcept;
+void update_pawn_history(Key pawnKey, Piece pc, Square dst, int bonus) noexcept;
 void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept;
 void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
 void update_all_quiet_history(const Position& pos, Stack* const ss, Move m, int bonus) noexcept;
@@ -905,7 +905,7 @@ Value Worker::search(Position&    pos,
 
         update_quiet_history(~ac, (ss - 1)->move, 9.0000 * bonus);
         if (!ttd.hit && preNonPawn)
-            update_pawn_history(pos, pos.piece_on(preSq), preSq, 14.0000 * bonus);
+            update_pawn_history(pos.pawn_key(), pos.piece_on(preSq), preSq, 14.0000 * bonus);
     }
 
     // Set up the improve and worsen flags.
@@ -1519,14 +1519,14 @@ S_MOVES_LOOP:  // When in check, search starts here
                             // Increase bonus when the previous moveCount is high
                             +  21 * ((ss - 1)->moveCount - 1)
                             // Increase bonus if the previous move has a bad history
-                            + -9.6154e-3 * (ss - 1)->history, 1);
+                            + -9.6154e-3 * (ss - 1)->history, 0);
             // clang-format on
             int bonus = bonusScale * std::min(-92 + 144 * depth, +1365);
 
             update_quiet_history(~ac, (ss - 1)->move, 6.7139e-3 * bonus);
             update_continuation_history(ss - 1, pos.piece_on(preSq), preSq, 12.2070e-3 * bonus);
             if (preNonPawn)
-                update_pawn_history(pos, pos.piece_on(preSq), preSq, 35.5225e-3 * bonus);
+                update_pawn_history(pos.pawn_key(), pos.piece_on(preSq), preSq, 35.5225e-3 * bonus);
         }
         // Bonus for prior capture move
         else
@@ -1627,6 +1627,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Step 4. Static evaluation of the position
     if (ss->inCheck)
     {
+        correctionValue = 0;
+
         unadjustedStaticEval = VALUE_NONE;
 
         bestValue = futilityBase = -VALUE_INFINITE;
@@ -2232,8 +2234,8 @@ void update_quiet_history(Color ac, Move m, int bonus) noexcept {
     assert(m.is_ok());
     QuietHistory[ac][m.raw()] << bonus;
 }
-void update_pawn_history(const Position& pos, Piece pc, Square dst, int bonus) noexcept {
-    PawnHistory[pawn_index(pos.pawn_key())][pc][dst] << bonus;
+void update_pawn_history(Key pawnKey, Piece pc, Square dst, int bonus) noexcept {
+    PawnHistory[pawn_index(pawnKey)][pc][dst] << bonus;
 }
 
 // clang-format off
@@ -2265,7 +2267,7 @@ void update_all_quiet_history(const Position& pos, Stack* const ss, Move m, int 
     assert(m.is_ok());
 
     update_quiet_history(pos.active_color(), m, 1.0000 * bonus);
-    update_pawn_history(pos, pos.moved_piece(m), m.dst_sq(), (bonus > 0 ? 0.8301 : 0.5371) * bonus);
+    update_pawn_history(pos.pawn_key(), pos.moved_piece(m), m.dst_sq(), (bonus > 0 ? 0.8301 : 0.5371) * bonus);
     update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), 0.9326 * bonus);
     update_low_ply_quiet_history(ss->ply, m, 0.7432 * bonus);
 }
@@ -2305,8 +2307,9 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, Move 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept {
     Color ac = pos.active_color();
 
-    PawnCorrectionHistory[correction_index(pos.pawn_key())][ac] << 1.0000 * bonus;
-    MinorCorrectionHistory[correction_index(pos.minor_key())][ac] << 1.1328 * bonus;
+       PawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]     << 1.0000 * bonus;
+       PawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac]     << 1.0000 * bonus;
+      MinorCorrectionHistory[correction_index(pos.minor_key())][ac]                << 1.1328 * bonus;
     NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac] << 1.2891 * bonus;
     NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac] << 1.2891 * bonus;
 
@@ -2325,8 +2328,9 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
 
     auto m = (ss - 1)->move;
 
-    return + 9536 * PawnCorrectionHistory[correction_index(pos.pawn_key())][ac]
-           + 8494 * MinorCorrectionHistory[correction_index(pos.minor_key())][ac]
+    return + 9536 * (   PawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
+                   +    PawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac])
+           + 8494 * (  MinorCorrectionHistory[correction_index(pos.minor_key())][ac])
            +10132 * (NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac]
                    + NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac])
            + 7156 * (m.is_ok()

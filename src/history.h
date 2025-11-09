@@ -184,7 +184,7 @@ struct CorrectionHistoryDef;
 
 template<>
 struct CorrectionHistoryDef<CHPawn> final {
-    using Type = CorrectionStatsVector<CORRECTION_HISTORY_SIZE, COLOR_NB>;
+    using Type = CorrectionStatsVector<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
