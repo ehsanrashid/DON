@@ -1503,7 +1503,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         return true;
 
     // It doesn't matter if the destination square is occupied or not
-    // xoring to is important for pinned piece logic
+    // xoring dst is important for pinned piece logic
     occupied ^= make_bitboard(org, dst);
 
     Bitboard attackers = attackers_to(dst, occupied);

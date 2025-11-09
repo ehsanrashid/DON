@@ -21,6 +21,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <initializer_list>
+#include <limits>
 #include <list>
 #include <random>
 #include <ratio>
@@ -65,7 +66,7 @@ CorrectionHistory<CHNonPawn>      NonPawnCorrectionHistory;
 CorrectionHistory<CHContinuation> ContinuationCorrectionHistory;
 
 // Reductions lookup table initialized at startup
-StdArray<std::int16_t, MAX_MOVES> Reductions;  // [depth or moveCount]
+StdArray<std::int16_t, MAX_MOVES> Reductions{};  // [depth or moveCount]
 
 constexpr int
 reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
@@ -181,7 +182,6 @@ void init() noexcept {
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(8);
 
-    Reductions[0] = 0;
     for (std::size_t i = 1; i < Reductions.size(); ++i)
         Reductions[i] = 21.9453 * std::log(i);
 }
@@ -1519,7 +1519,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                             // Increase bonus when the previous moveCount is high
                             +  21 * ((ss - 1)->moveCount - 1)
                             // Increase bonus if the previous move has a bad history
-                            + -9.6154e-3 * (ss - 1)->history, 0);
+                            + -9.6154e-3 * (ss - 1)->history, 1);
             // clang-format on
             int bonus = bonusScale * std::min(-92 + 144 * depth, +1365);
 
@@ -2328,7 +2328,8 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
 
     auto m = (ss - 1)->move;
 
-    return + 9536 * (   PawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
+    return std::clamp<std::int64_t>(
+           + 5536 * (   PawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
                    +    PawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac])
            + 8494 * (  MinorCorrectionHistory[correction_index(pos.minor_key())][ac])
            +10132 * (NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac]
@@ -2336,7 +2337,8 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
            + 7156 * (m.is_ok()
                     ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
                     + (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
-                    : 8);
+                    : 8),
+        std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
 }
 
 // clang-format on
