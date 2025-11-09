@@ -369,9 +369,9 @@ void Worker::iterative_deepening() noexcept {
     // (ss + 1) is needed for initialization of cutoffCount.
     constexpr std::uint16_t StackOffset = 9;
 
-    StdArray<Stack, StackOffset + (MAX_PLY + 1) + 1> stack{};
-    Stack*                                           ss = &stack[StackOffset];
-    for (std::int16_t i = 0 - StackOffset; i < std::int16_t(stack.size() - StackOffset); ++i)
+    StdArray<Stack, StackOffset + (MAX_PLY + 1) + 1> stacks{};
+    Stack*                                           ss = &stacks[StackOffset];
+    for (std::int16_t i = 0 - StackOffset; i < std::int16_t(stacks.size() - StackOffset); ++i)
     {
         (ss + i)->ply = i;
         if (i >= 0)
@@ -381,7 +381,7 @@ void Worker::iterative_deepening() noexcept {
         (ss + i)->pieceSqHistory           = &ContinuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
         (ss + i)->pieceSqCorrectionHistory = &ContinuationCorrectionHistory[NO_PIECE][SQUARE_ZERO];
     }
-    assert(stack[0].ply == -StackOffset && stack[stack.size() - 1].ply == MAX_PLY + 1);
+    assert(stacks[0].ply == -StackOffset && stacks[stacks.size() - 1].ply == MAX_PLY + 1);
     assert(ss->ply == 0);
 
     StdArray<Move, MAX_PLY + 1> pv;
@@ -1427,7 +1427,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Record how often the best move has been changed in each iteration.
                 // This information is used for time management.
                 // In MultiPV mode, must take care to only do this for the first PV line.
-                if (curIdx == 0 && moveCount > 1)
+                if (moveCount > 1 && curIdx == 0)
                     moveChanges.fetch_add(1, std::memory_order_relaxed);
             }
             else
@@ -1558,7 +1558,6 @@ S_MOVES_LOOP:  // When in check, search starts here
         && (bestValue < ss->staticEval) == (bestMove == Move::None))
     {
         int bonus = (bestValue - ss->staticEval) * depth / (8 + (bestValue > ss->staticEval));
-        bonus     = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
         update_correction_history(pos, ss, bonus);
     }
 
@@ -1662,7 +1661,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Stand pat. Return immediately if bestValue is at least beta
     if (bestValue >= beta)
     {
-        if (bestValue > beta && !is_decisive(bestValue))
+        if (bestValue > beta && !is_decisive(bestValue) && !is_decisive(alpha))
             bestValue = (bestValue + beta) / 2;
 
         if (!ttd.hit)
@@ -1715,8 +1714,7 @@ QS_MOVES_LOOP:
         if (!is_loss(bestValue))
         {
             // Futility pruning and moveCount pruning
-            if (dst != preSq && !check && !is_loss(futilityBase)
-                && (move.type_of() != PROMOTION || move.promotion_type() < QUEEN))
+            if (!check && dst != preSq && !is_loss(futilityBase) && move.type_of() != PROMOTION)
             {
                 if ((moveCount - promoCount) > 2)
                     continue;
@@ -1807,7 +1805,7 @@ QS_MOVES_LOOP:
         }
     }
     // Adjust best value for fail high cases
-    else if (bestValue > beta && !is_decisive(bestValue))
+    else if (bestValue > beta && !is_decisive(bestValue) && !is_decisive(alpha))
         bestValue = (bestValue + beta) / 2;
 
     // Save gathered info in transposition table
@@ -2306,6 +2304,8 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, Move 
 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept {
     Color ac = pos.active_color();
+
+    bonus = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
 
        PawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]     << 1.0000 * bonus;
        PawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac]     << 1.0000 * bonus;
