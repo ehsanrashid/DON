@@ -170,7 +170,6 @@ constexpr std::uint16_t correction_index(Key corrKey) noexcept { return compress
 enum CorrectionHistoryType : std::uint8_t {
     CHPawn,          // By color and pawn structure
     CHMinor,         // By color and minor piece (Knight, Bishop) structure
-    CHMajor,         // By color and major piece (Rook, Queen) structure
     CHNonPawn,       // By color and non-pawn structure
     CHPieceSq,       // By move's [piece][sq]
     CHContinuation,  // By combination of pair of moves
@@ -185,17 +184,12 @@ struct CorrectionHistoryDef;
 
 template<>
 struct CorrectionHistoryDef<CHPawn> final {
-    using Type = CorrectionStatsVector<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsVector<CORRECTION_HISTORY_SIZE, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryDef<CHMinor> final {
-    using Type = CorrectionStatsVector<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
-};
-
-template<>
-struct CorrectionHistoryDef<CHMajor> final {
-    using Type = CorrectionStatsVector<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsVector<CORRECTION_HISTORY_SIZE, COLOR_NB>;
 };
 
 template<>

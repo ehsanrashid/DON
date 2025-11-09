@@ -61,7 +61,6 @@ History<HTTMove> TTMoveHistory;
 // Correction History
 CorrectionHistory<CHPawn>         PawnCorrectionHistory;
 CorrectionHistory<CHMinor>        MinorCorrectionHistory;
-CorrectionHistory<CHMajor>        MajorCorrectionHistory;
 CorrectionHistory<CHNonPawn>      NonPawnCorrectionHistory;
 CorrectionHistory<CHContinuation> ContinuationCorrectionHistory;
 
@@ -177,7 +176,6 @@ void init() noexcept {
 
     PawnCorrectionHistory.fill(5);
     MinorCorrectionHistory.fill(0);
-    MajorCorrectionHistory.fill(0);
     NonPawnCorrectionHistory.fill(0);
     for (auto& toPieceSqCorrHist : ContinuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
@@ -903,7 +901,7 @@ Value Worker::search(Position&    pos,
     // Use static evaluation difference to improve quiet move ordering
     if (is_ok(preSq) && !preCapture && !(ss - 1)->inCheck)
     {
-        int bonus = 58 + std::clamp(-(ss->staticEval + (ss - 1)->staticEval), -200, +156);
+        int bonus = 58 + std::clamp(-((ss - 1)->staticEval + (ss - 0)->staticEval), -200, +156);
 
         update_quiet_history(~ac, (ss - 1)->move, std::round(9.0000 * bonus));
         if (!ttd.hit && preNonPawn)
@@ -927,18 +925,14 @@ Value Worker::search(Position&    pos,
 
     // Step 7. Razoring
     // If eval is really low, check with qsearch then return a speculative fail low.
-    if constexpr (!PVNode)
+    if (!RootNode && eval <= -514 + alpha - 294 * depth * depth)
     {
-        Value razorAlpha = std::max(-514 + alpha - 294 * depth * depth, -VALUE_INFINITE);
-        if (eval <= razorAlpha)
-        {
-            value = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
+        value = qsearch<PVNode>(pos, ss, alpha, beta);
 
-            if (value <= razorAlpha)
-                return value;
+        if (value <= alpha && (!PVNode || !is_decisive(value)))
+            return value;
 
-            ss->ttMove = ttd.move;
-        }
+        ss->ttMove = ttd.move;
     }
 
     // Step 8. Futility pruning: child node
@@ -966,7 +960,7 @@ Value Worker::search(Position&    pos,
         assert((ss - 1)->move != Move::Null);
 
         // Null move dynamic reduction based on depth and phase
-        Depth R = 5 + depth / 3 + pos.phase() / 9 + improve;
+        Depth R = 6 + depth / 3 + pos.phase() / 9 + improve;
 
         do_null_move(pos, st, ss);
 
@@ -1592,9 +1586,6 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         if (alpha >= beta)
             return alpha;
     }
-
-    if (is_main_worker() && main_manager()->callsCount > 1)
-        main_manager()->callsCount--;
 
     StdArray<Move, MAX_PLY + 1> pv;
 
@@ -2316,13 +2307,10 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, Move 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept {
     Color ac = pos.active_color();
 
-    for (Color c : {WHITE, BLACK})
-    {
-       PawnCorrectionHistory[correction_index(pos.    pawn_key(c))][ac][c] << int(std::round(1.0000 * bonus));
-      MinorCorrectionHistory[correction_index(pos.   minor_key(c))][ac][c] << int(std::round(1.1328 * bonus));
-      MajorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c] << int(std::round(0.5664 * bonus));
-    NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c] << int(std::round(1.2891 * bonus));
-    }
+    PawnCorrectionHistory[correction_index(pos.pawn_key())][ac] << int(std::round(1.0000 * bonus));
+    MinorCorrectionHistory[correction_index(pos.minor_key())][ac] << int(std::round(1.1328 * bonus));
+    NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac] << int(std::round(1.2891 * bonus));
+    NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac] << int(std::round(1.2891 * bonus));
 
     auto m = (ss - 1)->move;
     if (m.is_ok())
@@ -2337,25 +2325,16 @@ void update_correction_history(const Position& pos, Stack* const ss, int bonus) 
 int correction_value(const Position& pos, const Stack* const ss) noexcept {
     Color ac = pos.active_color();
 
-    int pCv  = 0;
-    int miCv = 0;
-    int mjCv = 0;
-    int npCv = 0;
-    for (Color c : {WHITE, BLACK})
-    {
-        pCv  +=    PawnCorrectionHistory[correction_index(pos.    pawn_key(c))][ac][c];
-        miCv +=   MinorCorrectionHistory[correction_index(pos.   minor_key(c))][ac][c];
-        mjCv +=   MajorCorrectionHistory[correction_index(pos.   major_key(c))][ac][c];
-        npCv += NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(c))][ac][c];
-    }
-
     auto m = (ss - 1)->move;
-    int cntCv = m.is_ok()
-              ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
-              + (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
-              : 8;
 
-    return (+9536 * pCv + 8494 * miCv + 4247 * mjCv + 10132 * npCv + 7156 * cntCv);
+    return + 9536 * PawnCorrectionHistory[correction_index(pos.pawn_key())][ac]
+           + 8494 * MinorCorrectionHistory[correction_index(pos.minor_key())][ac]
+           +10132 * (NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac]
+                   + NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac])
+           + 7156 * (m.is_ok()
+                    ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
+                    + (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
+                    : 8);
 }
 
 // clang-format on
