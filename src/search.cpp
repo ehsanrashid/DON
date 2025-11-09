@@ -2329,15 +2329,15 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
     auto m = (ss - 1)->move;
 
     return std::clamp<std::int64_t>(
-           + 5536 * (   PawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
-                   +    PawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac])
-           + 8494 * (  MinorCorrectionHistory[correction_index(pos.minor_key())][ac])
-           +10132 * (NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac]
-                   + NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac])
-           + 7156 * (m.is_ok()
-                    ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
-                    + (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
-                    : 8),
+           + 5536LL * (   PawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
+                     +    PawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac])
+           + 8494LL * (  MinorCorrectionHistory[correction_index(pos.minor_key())][ac])
+           +10132LL * (NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac]
+                     + NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac])
+           + 7156LL * (m.is_ok()
+                     ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
+                     + (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
+                     : 8),
         std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
 }
 
