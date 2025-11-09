@@ -924,7 +924,7 @@ Value Worker::search(Position&    pos,
         depth = std::max(depth - 1, 1);
 
     // Step 7. Razoring
-    // If eval is really low, check with qsearch then return a speculative fail low.
+    // If eval is really low, check with qsearch then return speculative fail low.
     if (!RootNode && eval <= -514 + alpha - 294 * depth * depth)
     {
         value = qsearch<PVNode>(pos, ss, alpha, beta);
