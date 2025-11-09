@@ -903,9 +903,9 @@ Value Worker::search(Position&    pos,
     {
         int bonus = 58 + std::clamp(-((ss - 1)->staticEval + (ss - 0)->staticEval), -200, +156);
 
-        update_quiet_history(~ac, (ss - 1)->move, std::round(9.0000 * bonus));
+        update_quiet_history(~ac, (ss - 1)->move, 9.0000 * bonus);
         if (!ttd.hit && preNonPawn)
-            update_pawn_history(pos, pos.piece_on(preSq), preSq, std::round(14.0000 * bonus));
+            update_pawn_history(pos, pos.piece_on(preSq), preSq, 14.0000 * bonus);
     }
 
     // Set up the improve and worsen flags.
@@ -1523,12 +1523,10 @@ S_MOVES_LOOP:  // When in check, search starts here
             // clang-format on
             int bonus = bonusScale * std::min(-92 + 144 * depth, +1365);
 
-            update_quiet_history(~ac, (ss - 1)->move, std::round(6.7139e-3 * bonus));
-            update_continuation_history(ss - 1, pos.piece_on(preSq), preSq,
-                                        std::round(12.2070e-3 * bonus));
+            update_quiet_history(~ac, (ss - 1)->move, 6.7139e-3 * bonus);
+            update_continuation_history(ss - 1, pos.piece_on(preSq), preSq, 12.2070e-3 * bonus);
             if (preNonPawn)
-                update_pawn_history(pos, pos.piece_on(preSq), preSq,
-                                    std::round(35.5225e-3 * bonus));
+                update_pawn_history(pos, pos.piece_on(preSq), preSq, 35.5225e-3 * bonus);
         }
         // Bonus for prior capture move
         else
@@ -2255,7 +2253,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
         if ((i > 2 && ss->inCheck) || !(ss - i)->move.is_ok())
             break;
 
-        (*(ss - i)->pieceSqHistory)[pc][dst] << int(std::round(weight * bonus)) + 88 * (i < 2);
+        (*(ss - i)->pieceSqHistory)[pc][dst] << weight * bonus + 88 * (i < 2);
     }
 }
 void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept {
@@ -2266,10 +2264,10 @@ void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcep
 void update_all_quiet_history(const Position& pos, Stack* const ss, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
-    update_quiet_history(pos.active_color(), m, std::round(1.0000 * bonus));
-    update_pawn_history(pos, pos.moved_piece(m), m.dst_sq(), std::round((bonus > 0 ? 0.8301 : 0.5371) * bonus));
-    update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), std::round(0.9326 * bonus));
-    update_low_ply_quiet_history(ss->ply, m, std::round(0.7432 * bonus));
+    update_quiet_history(pos.active_color(), m, 1.0000 * bonus);
+    update_pawn_history(pos, pos.moved_piece(m), m.dst_sq(), (bonus > 0 ? 0.8301 : 0.5371) * bonus);
+    update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), 0.9326 * bonus);
+    update_low_ply_quiet_history(ss->ply, m, 0.7432 * bonus);
 }
 
 // Updates history at the end of search() when a bestMove is found
@@ -2282,41 +2280,41 @@ void update_all_history(const Position& pos, Stack* const ss, Depth depth, Move 
 
     if (pos.capture_promo(bm))
     {
-        update_capture_history(pos, bm, std::round(1.4473 * bonus));
+        update_capture_history(pos, bm, 1.4473 * bonus);
     }
     else
     {
-        update_all_quiet_history(pos, ss, bm, std::round(0.8604 * bonus));
+        update_all_quiet_history(pos, ss, bm, 0.8604 * bonus);
 
         // Decrease history for all non-best quiet moves
         for (auto qm : movesArr[0])
-            update_all_quiet_history(pos, ss, qm, -std::round(1.0576 * malus));
+            update_all_quiet_history(pos, ss, qm, -1.0576 * malus);
     }
 
     // Decrease history for all non-best capture moves
     for (auto cm : movesArr[1])
-        update_capture_history(pos, cm, -std::round(1.3643 * malus));
+        update_capture_history(pos, cm, -1.3643 * malus);
 
     auto m = (ss - 1)->move;
     // Extra penalty for a quiet early move that was not a TT move
     // in the previous ply when it gets refuted.
     if (m.is_ok() && !is_ok(pos.captured_piece()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
-        update_continuation_history(ss - 1, pos.piece_on(m.dst_sq()), m.dst_sq(), -std::round(0.5996 * malus));
+        update_continuation_history(ss - 1, pos.piece_on(m.dst_sq()), m.dst_sq(), -0.5996 * malus);
 }
 
 void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept {
     Color ac = pos.active_color();
 
-    PawnCorrectionHistory[correction_index(pos.pawn_key())][ac] << int(std::round(1.0000 * bonus));
-    MinorCorrectionHistory[correction_index(pos.minor_key())][ac] << int(std::round(1.1328 * bonus));
-    NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac] << int(std::round(1.2891 * bonus));
-    NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac] << int(std::round(1.2891 * bonus));
+    PawnCorrectionHistory[correction_index(pos.pawn_key())][ac] << 1.0000 * bonus;
+    MinorCorrectionHistory[correction_index(pos.minor_key())][ac] << 1.1328 * bonus;
+    NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac] << 1.2891 * bonus;
+    NonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac] << 1.2891 * bonus;
 
     auto m = (ss - 1)->move;
     if (m.is_ok())
     {
-        (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << int(std::round(1.0703 * bonus));
-        (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << int(std::round(0.5000 * bonus));
+        (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << 1.0703 * bonus;
+        (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << 0.5000 * bonus;
     }
 }
 
@@ -2341,9 +2339,7 @@ int correction_value(const Position& pos, const Stack* const ss) noexcept {
 
 // Update raw staticEval according to various CorrectionHistory value
 // and guarantee evaluation does not hit the tablebase range.
-Value adjust_static_eval(Value ev, int cv) noexcept {
-    return in_range(ev + int(std::round(7.6294e-6 * cv)));
-}
+Value adjust_static_eval(Value ev, int cv) noexcept { return in_range(ev + 7.6294e-6 * cv); }
 
 }  // namespace
 }  // namespace DON
