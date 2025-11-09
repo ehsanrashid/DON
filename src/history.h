@@ -46,29 +46,22 @@ class StatsEntry final {
     static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
 
    public:
-    // Publish a value (release); pair with acquire on readers if needed.
-    void operator=(T v) noexcept { value.store(v, std::memory_order_release); }
+    void operator=(T v) noexcept { value = v; }
 
-    // Read (acquire) to observe published writes.
-    operator T() const noexcept { return value.load(std::memory_order_acquire); }
+    operator T() const noexcept { return value; }
 
     // Overload operator<< to modify the value
     void operator<<(int bonus) noexcept {
         // Make sure that bonus is in range [-D, +D]
-        bonus = std::clamp(bonus, -D, +D);
+        int clampedBonus = std::clamp(bonus, -D, +D);
 
-        for (T oldValue = value.load(std::memory_order_relaxed);;)
-        {
-            T newValue = bonus + (oldValue * (D - std::abs(bonus))) / D;
-            assert(static_cast<T>(-D) <= newValue && newValue <= static_cast<T>(+D));
-            if (value.compare_exchange_weak(oldValue, newValue, std::memory_order_release,
-                                            std::memory_order_relaxed))
-                break;
-        }
+        value += clampedBonus - value * std::abs(clampedBonus) / D;
+
+        assert(std::abs(value) <= D);
     }
 
    private:
-    std::atomic<T> value{};
+    T value;
 };
 
 // clang-format off
