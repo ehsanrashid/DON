@@ -907,8 +907,11 @@ Position::do_move(Move m, State& newSt, bool check, const TranspositionTable* tt
         if (type_of(movedPiece) == KING)
             st->kingSq[ac] = dst;
         else
-            st->groupKey[ac][is_major(type_of(movedPiece))] ^=
-              Zobrist::psq[movedPiece][org] ^ Zobrist::psq[movedPiece][dst];
+        {
+            // clang-format off
+            st->groupKey[ac][is_major(type_of(movedPiece))] ^= Zobrist::psq[movedPiece][org] ^ Zobrist::psq[movedPiece][dst];
+            // clang-format on
+        }
     }
 
     // Calculate checkers (if move is check)
@@ -1062,7 +1065,12 @@ void Position::do_null_move(State& newSt, const TranspositionTable* tt) noexcept
     assert(&newSt != st);
     assert(!checkers());
 
-    std::memcpy(&newSt, st, offsetof(State, preSt));
+    Key k = st->key ^ Zobrist::turn;
+
+    // Copy relevant fields from the old state to the new state,
+    // excluding those that will recomputed from scratch anyway and
+    // then switch the state pointer to point to the new state.
+    std::memcpy(&newSt, st, offsetof(State, key));
     newSt.preSt = st;
 
     st = &newSt;
@@ -1070,17 +1078,18 @@ void Position::do_null_move(State& newSt, const TranspositionTable* tt) noexcept
     // NOTE: no ++st->rule50Count here
     st->nullPly = 0;
 
-    st->key ^= Zobrist::turn;
-
     if (is_ok(ep_sq()))
     {
-        st->key ^= Zobrist::enpassant[file_of(ep_sq())];
+        k ^= Zobrist::enpassant[file_of(ep_sq())];
         reset_ep_sq();
     }
+
+    st->key = k;
     // Speculative prefetch as early as possible
     if (tt != nullptr)
         tt->prefetch_key(key());
 
+    st->checkers      = 0;
     st->capturedPiece = NO_PIECE;
     st->promotedPiece = NO_PIECE;
     st->capSq         = SQ_NONE;
