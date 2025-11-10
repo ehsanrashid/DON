@@ -934,7 +934,7 @@ Value Worker::search(Position&    pos,
         assert((ss - 1)->move != Move::Null);
 
         // Null move dynamic reduction based on depth and phase
-        Depth R = 5 + depth / 3 + pos.phase() / 9 + improve;
+        Depth R = 6 + depth / 3 + pos.phase() / 9 + improve;
 
         do_null_move(pos, st, ss);
 
@@ -1833,7 +1833,7 @@ void Worker::update_capture_history(Piece pc, Square dst, PieceType captured, in
     captureHistory[pc][dst][captured] << bonus;
 }
 void Worker::update_capture_history(const Position& pos, Move m, int bonus) noexcept {
-    assert(pos.pseudo_legal(m));
+    assert(pos.legal(m));
     update_capture_history(pos.moved_piece(m), m.dst_sq(), pos.captured(m), bonus);
 }
 void Worker::update_quiet_history(Color ac, Move m, int bonus) noexcept {

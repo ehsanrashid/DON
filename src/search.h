@@ -493,22 +493,6 @@ class Worker final {
     // It searches from the root position and outputs the "bestmove".
     void start_search() noexcept;
 
-    // History
-    History<HCapture>     captureHistory;
-    History<HQuiet>       quietHistory;
-    History<HPawn>        pawnHistory;
-    History<HLowPlyQuiet> lowPlyQuietHistory;
-
-    StdArray<History<HContinuation>, 2, 2> continuationHistory;  // [inCheck][capture]
-
-    // Correction History
-    CorrectionHistory<CHPawn>         pawnCorrectionHistory;
-    CorrectionHistory<CHMinor>        minorCorrectionHistory;
-    CorrectionHistory<CHNonPawn>      nonPawnCorrectionHistory;
-    CorrectionHistory<CHContinuation> continuationCorrectionHistory;
-
-    History<HTTMove> ttMoveHistory;
-
    private:
     bool is_main_worker() const noexcept { return threadIdx == 0; }
 
@@ -577,6 +561,22 @@ class Worker final {
     std::int16_t  nmpPly;
     std::size_t   multiPV, curIdx, endIdx;
     std::uint16_t selDepth;
+
+    // History
+    History<HCapture>     captureHistory;
+    History<HQuiet>       quietHistory;
+    History<HPawn>        pawnHistory;
+    History<HLowPlyQuiet> lowPlyQuietHistory;
+
+    StdArray<History<HContinuation>, 2, 2> continuationHistory;  // [inCheck][capture]
+
+    // Correction History
+    CorrectionHistory<CHPawn>         pawnCorrectionHistory;
+    CorrectionHistory<CHMinor>        minorCorrectionHistory;
+    CorrectionHistory<CHNonPawn>      nonPawnCorrectionHistory;
+    CorrectionHistory<CHContinuation> continuationCorrectionHistory;
+
+    History<HTTMove> ttMoveHistory;
 
     StdArray<std::int32_t, COLOR_NB> optimism;
 
