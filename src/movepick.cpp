@@ -62,8 +62,6 @@ MovePicker::MovePicker(const Position&          p,
     pos(p),
     ttMove(ttm),
     captureHistory(captureHist),
-    continuationHistory(nullptr),
-    ssPly(0),
     threshold(th) {
     assert(!pos.checkers());
     assert(ttMove == Move::None || pos.pseudo_legal(ttMove));

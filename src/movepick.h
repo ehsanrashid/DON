@@ -143,12 +143,12 @@ class MovePicker final {
 
     const Position&              pos;
     Move                         ttMove;
-    const History<HCapture>*     captureHistory;
-    const History<HQuiet>*       quietHistory;
-    const History<HPawn>*        pawnHistory;
-    const History<HLowPlyQuiet>* lowPlyQuietHistory;
-    const History<HPieceSq>**    continuationHistory;
-    const std::int16_t           ssPly;
+    const History<HCapture>*     captureHistory      = nullptr;
+    const History<HQuiet>*       quietHistory        = nullptr;
+    const History<HPawn>*        pawnHistory         = nullptr;
+    const History<HLowPlyQuiet>* lowPlyQuietHistory  = nullptr;
+    const History<HPieceSq>**    continuationHistory = nullptr;
+    const std::int16_t           ssPly               = LOW_PLY_SIZE;
     const int                    threshold;
 
     StdArray<value_type, MAX_MOVES> moves;
