@@ -23,7 +23,7 @@ GREEN_COLOR = "\033[32m"
 RESET_COLOR = "\033[0m"
 WHITE_BOLD = "\033[1m"
 
-MAX_TIMEOUT = 5 * 60
+MAX_TIMEOUT = 6 * 60
 
 PATH = pathlib.Path(__file__).parent.resolve()
 

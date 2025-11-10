@@ -1536,7 +1536,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (!ss->inCheck && (bestMove == Move::None || !pos.capture(bestMove))
         && (bestValue < ss->staticEval) == (bestMove == Move::None))
     {
-        int bonus = (bestValue - ss->staticEval) * depth / (8 + (bestValue > ss->staticEval));
+        int bonus = (bestValue - ss->staticEval) * depth / (8 + 2 * (bestValue > ss->staticEval));
         update_correction_history(pos, ss, bonus);
     }
 
