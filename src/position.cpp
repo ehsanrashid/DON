@@ -1093,10 +1093,10 @@ void Position::do_null_move(State& newSt, const TranspositionTable* tt) noexcept
     if (tt != nullptr)
         tt->prefetch_key(key());
 
+    st->capSq         = SQ_NONE;
     st->checkers      = 0;
     st->capturedPiece = NO_PIECE;
     st->promotedPiece = NO_PIECE;
-    st->capSq         = SQ_NONE;
 
     activeColor = ~active_color();
 
