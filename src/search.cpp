@@ -928,8 +928,8 @@ Value Worker::search(Position&    pos,
 
     // Step 9. Null move search with verification search
     // The non-pawn condition is important for finding Zugzwangs.
-    if (CutNode && !exclude && pos.non_pawn_value(ac) != VALUE_ZERO && ss->ply >= nmpPly
-        && !is_loss(beta) && ss->staticEval >= 390 + beta - 18 * depth)
+    if (CutNode && !exclude && pos.has_non_pawn(ac) && ss->ply >= nmpPly && !is_loss(beta)
+        && ss->staticEval >= 390 + beta - 18 * depth)
     {
         assert((ss - 1)->move != Move::Null);
 
@@ -1110,7 +1110,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Step 14. Pruning at shallow depth
         // Depth conditions are important for mate finding.
-        if (!RootNode && !is_loss(bestValue) && pos.non_pawn_value(ac) != VALUE_ZERO)
+        if (!RootNode && !is_loss(bestValue) && pos.has_non_pawn(ac))
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
             if (mp.quietAllowed)
@@ -1765,7 +1765,7 @@ QS_MOVES_LOOP:
         {
             Color ac = pos.active_color();
             if (bestValue != VALUE_DRAW  //
-                && pos.non_pawn_value(ac) == VALUE_ZERO
+                && !pos.has_non_pawn(ac)
                 && type_of(pos.captured_piece()) >= ROOK
                 // No pawn pushes available
                 && !(pawn_push_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces()))

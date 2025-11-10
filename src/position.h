@@ -287,6 +287,7 @@ class Position final {
 
     Value non_pawn_value(Color c) const noexcept;
     Value non_pawn_value() const noexcept;
+    bool  has_non_pawn(Color c) const noexcept;
     bool  has_castled(Color c) const noexcept;
     bool  has_rule50_high() const noexcept;
     bool  bishop_paired(Color c) const noexcept;

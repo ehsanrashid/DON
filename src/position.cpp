@@ -38,7 +38,7 @@ namespace {
 
 constexpr std::size_t PawnOffset = 8;
 
-constexpr StdArray<Piece, 12> Pieces{
+constexpr StdArray<Piece, COLOR_NB * 6> Pieces{
   W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,  //
   B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING   //
 };
@@ -1467,7 +1467,16 @@ Value Position::non_pawn_value(Color c) const noexcept {
 
     for (Piece pc : NonPawnPieces[c])
         nonPawnValue += PIECE_VALUE[type_of(pc)] * count(pc);
+
     return nonPawnValue;
+}
+
+bool Position::has_non_pawn(Color c) const noexcept {
+
+    for (Piece pc : NonPawnPieces[c])
+        if (count(pc))
+            return true;
+    return false;
 }
 
 // Tests if the SEE (Static Exchange Evaluation) value of the move
