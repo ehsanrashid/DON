@@ -30,6 +30,8 @@ namespace DON {
 // Constructors of the MovePicker class. As arguments, pass information
 // to decide which class of moves to return, to help sorting the (presumably)
 // good moves first, and how important move ordering is at the current node.
+
+// MovePicker constructor for the main search and for the quiescence search
 MovePicker::MovePicker(const Position&              p,
                        Move                         ttm,
                        const History<HCapture>*     captureHist,
@@ -55,6 +57,8 @@ MovePicker::MovePicker(const Position&              p,
             : (threshold < 0 ? STG_ENC_TT : STG_QS_TT) + int(!(ttMove != Move::None));
 }
 
+// MovePicker constructor for ProbCut:
+// Generate captures with Static Exchange Evaluation (SEE) >= threshold.
 MovePicker::MovePicker(const Position&          p,
                        Move                     ttm,
                        const History<HCapture>* captureHist,
