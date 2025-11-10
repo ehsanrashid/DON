@@ -1121,7 +1121,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             // Reduced depth of the next LMR search
             Depth lmrDepth = newDepth - r / 1024;
 
-            if (capture || check)
+            if (capture)
             {
                 int history = captureHistory[movedPiece][dst][captured];
 
@@ -1151,7 +1151,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                             + (*contHistory[1])[movedPiece][dst];
 
                 // History based pruning
-                if (history < -4312 * depth)
+                if (history < -4312 * depth && !check)
                     continue;
 
                 history += 76 * quietHistory[ac][move.raw()] / 32;
@@ -1161,7 +1161,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 // Futility pruning for quiets
                 // (*Scaler) Generally, more frequent futility pruning scales well
-                if (lmrDepth < 11 && !ss->inCheck)
+                if (lmrDepth < 11 && !check && !ss->inCheck)
                 {
                     Value futilityValue =
                       std::min(47 + ss->staticEval + 171 * (bestMove == Move::None) + 134 * lmrDepth
@@ -1177,7 +1177,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 lmrDepth = std::max(+lmrDepth, 0);
 
-                // SEE based pruning for quiets
+                // SEE based pruning for quiets and checks
                 if (pos.see(move) < -27 * sqr(lmrDepth))
                     continue;
             }

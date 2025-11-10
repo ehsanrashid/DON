@@ -104,6 +104,8 @@ struct TTEntry final {
             --depth8;
     }
 
+    void clear() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(*this)); }
+
     // The returned age is a multiple of GENERATION_DELTA
     std::uint8_t relative_age(std::uint8_t gen) const noexcept {
         // Due to packed storage format for generation and its cyclic nature
@@ -140,6 +142,9 @@ struct TTCluster final {
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
 void TTUpdater::update(Depth d, bool pv, Bound b, Move m, Value v, Value ev) noexcept {
+    for (; tte != &ttc->entries[0] && (tte - 1)->key16 == key16; --tte)
+        tte->clear();
+
     tte->save(key16, d, pv, b, m, v, ev, generation);
 }
 
@@ -207,7 +212,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
 
     for (auto& entry : ttc->entries)
         if (entry.key16 == key16)
-            return {entry.read(), TTUpdater{&entry, key16, generation8}};
+            return {entry.read(), TTUpdater{&entry, ttc, key16, generation8}};
 
     // Find an entry to be replaced according to the replacement strategy
     auto* rte = &ttc->entries[0];
@@ -216,7 +221,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
             rte = &ttc->entries[i];
 
     return {TTData{false, false, BOUND_NONE, DEPTH_OFFSET, Move::None, VALUE_NONE, VALUE_NONE},
-            TTUpdater{rte, key16, generation8}};
+            TTUpdater{rte, ttc, key16, generation8}};
 }
 
 // Prefetch the cache line which includes this key's entry
