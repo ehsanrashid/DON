@@ -1046,10 +1046,12 @@ S_MOVES_LOOP:  // When in check, search starts here
             return probCutBeta;
     }
 
-    const History<HPieceSq>* contHistory[8]{(ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,
-                                            (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,
-                                            (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,
-                                            (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory};
+    const History<HPieceSq>* contHistory[8]{
+      (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
+      (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,  //
+      (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,  //
+      (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory   //
+    };
 
     value = bestValue;
 
@@ -1144,8 +1146,8 @@ S_MOVES_LOOP:  // When in check, search starts here
             }
             else
             {
-                int history = pawnHistory[pawn_index(pos.pawn_key())][movedPiece][dst]  //
-                            + (*contHistory[0])[movedPiece][dst]                        //
+                int history = pawnHistory[pawn_index(pos.pawn_key())][movedPiece][dst]
+                            + (*contHistory[0])[movedPiece][dst]  //
                             + (*contHistory[1])[movedPiece][dst];
 
                 // History based pruning
@@ -1651,7 +1653,9 @@ QS_MOVES_LOOP:
 
     auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
-    const History<HPieceSq>* contHistory[1]{(ss - 1)->pieceSqHistory};
+    const History<HPieceSq>* contHistory[1]{
+      (ss - 1)->pieceSqHistory  //
+    };
 
     Move  move;
     Value value;
