@@ -19,13 +19,11 @@
 #define HISTORY_H_INCLUDED
 
 #include <algorithm>
-#include <atomic>
 #include <cassert>
 #include <cmath>
 #include <cstdint>
 #include <limits>
 #include <type_traits>
-#include <vector>
 
 #include "bitboard.h"
 #include "misc.h"

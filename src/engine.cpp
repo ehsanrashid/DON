@@ -83,8 +83,8 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("Clear Hash",           Option([this](const Option&) { init(); return std::nullopt; }));
     options.add("HashRetain",           Option(false));
     options.add("HashFile",             Option(""));
-    options.add("Save Hash",            Option([this](const Option& o) { tt.save(o);          return std::nullopt; }));
-    options.add("Load Hash",            Option([this](const Option& o) { tt.load(o, threads); return std::nullopt; }));
+    options.add("Save Hash",            Option([this](const Option&) { save_hash(); return std::nullopt; }));
+    options.add("Load Hash",            Option([this](const Option&) { load_hash(); return std::nullopt; }));
     options.add("Ponder",               Option(false));
     options.add("MultiPV",              Option(DEFAULT_MULTI_PV, 1, MAX_MOVES));
     options.add("SkillLevel",           Option(Skill::MaxLevel, Skill::MinLevel, Skill::MaxLevel));
@@ -331,6 +331,10 @@ void Engine::save_networks(const StdArray<std::optional<std::string>, 2>& netFil
         nets.small.save(netFiles[1]);
     });
 }
+
+bool Engine::save_hash() const noexcept { return tt.save(options["HashFile"]); }
+
+bool Engine::load_hash() noexcept { return tt.load(options["HashFile"], threads); }
 
 void Engine::set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept {
     updateContext.onUpdateShort = std::move(f);
