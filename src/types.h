@@ -364,7 +364,7 @@ constexpr PieceType type_of(Piece pc) noexcept { return PieceType(int(pc) & 7); 
 constexpr Color color_of(Piece pc) noexcept { return Color(int(pc) >> 3); }
 
 // Swap color of piece B_KNIGHT <-> W_KNIGHT
-constexpr Piece operator~(Piece pc) noexcept { return Piece(int(pc) ^ 8); }
+constexpr Piece flip_color(Piece pc) noexcept { return Piece(int(pc) ^ int(PIECE_TYPE_NB)); }
 
 [[nodiscard]] constexpr bool is_ok(File f) noexcept { return (FILE_A <= f && f <= FILE_H); }
 

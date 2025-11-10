@@ -176,9 +176,9 @@ std::string compiler_info() noexcept {
 
     str += "\nCompilation settings       : ";
 #if defined(IS_64BIT)
-    str += "64bit";
+    str += "64-bit";
 #else
-    str += "32bit";
+    str += "32-bit";
 #endif
 #if defined(USE_AVX512ICL)
     str += " AVX512ICL";

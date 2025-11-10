@@ -191,7 +191,7 @@ struct LR final {
 
     // First 12 bits is the left-hand symbol, second 12 bits is the right-hand symbol.
     // If the symbol has length 1, then the left-hand symbol is the stored value.
-    std::uint8_t data[3];
+    StdArray<std::uint8_t, 3> data;
 };
 
 static_assert(sizeof(LR) == 3, "LR tree entry must be 3 bytes");
@@ -398,12 +398,13 @@ struct TBTable final {
     void*             baseAddress = nullptr;
     std::uint8_t*     map;
     std::uint64_t     mapping;
-    Key               key[COLOR_NB];
-    std::uint8_t      pieceCount;
-    bool              hasPawns;
-    bool              hasUniquePieces;
-    std::uint8_t      pawnCount[COLOR_NB];        // [Lead color / other color]
-    PairsData         items[Sides][FILE_NB / 2];  // [wtm / btm][FILE_A..FILE_D or 0]
+
+    StdArray<Key, COLOR_NB>                 key;
+    std::uint8_t                            pieceCount;
+    bool                                    hasPawns;
+    bool                                    hasUniquePieces;
+    StdArray<std::uint8_t, COLOR_NB>        pawnCount;  // [Lead color / other color]
+    StdArray<PairsData, Sides, FILE_NB / 2> items;      // [wtm / btm][FILE_A..FILE_D or 0]
 
     PairsData* get(int ac, int f) noexcept { return &items[ac % Sides][hasPawns ? f : 0]; }
 
@@ -517,7 +518,7 @@ class TBTables final {
     // Number of elements allowed to map to the last bucket
     static constexpr std::size_t Overflow = 1;
 
-    Entry entries[Size + Overflow];
+    StdArray<Entry, Size + Overflow> entries;
 
     std::deque<TBTable<WDL>> wdlTables;
     std::deque<TBTable<DTZ>> dtzTables;
@@ -534,7 +535,8 @@ class TBTables final {
     }
 
     void clear() noexcept {
-        std::memset(entries, 0, sizeof(entries));
+        //std::memset(entries.data(), 0, sizeof(entries));
+        entries.fill({});
         wdlTables.clear();
         dtzTables.clear();
         wdlCount = 0;
@@ -793,15 +795,18 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // and flip the squares before to lookup.
     bool blackStronger = materialKey != entry->key[WHITE];
 
-    int flipColor   = (blackSymmetric || blackStronger) * 8;
-    int flipSquare  = (blackSymmetric || blackStronger) * 56;
-    int activeColor = (blackSymmetric || blackStronger) ^ pos.active_color();
+    bool flip = (blackSymmetric || blackStronger);
 
-    Bitboard    b, leadPawns = 0;
-    std::size_t size = 0, leadPawnCnt = 0;
+    int activeColor = flip ? ~pos.active_color() : pos.active_color();
+
+    StdArray<Square, TBPieces> squares{};
+    StdArray<Piece, TBPieces>  pieces;
+
+    Bitboard    leadPawns   = 0;
+    std::size_t leadPawnCnt = 0;
+
+    std::size_t size   = 0;
     File        tbFile = FILE_A;
-    Square      squares[TBPieces]{};
-    Piece       pieces[TBPieces]{};
 
     // For pawns, TB files store 4 separate tables according if leading pawn is on
     // file a, b, c or d after reordering. The leading pawn is the one with maximum
@@ -810,18 +815,25 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     {
         // In all the 4 tables, pawns are at the beginning of the piece sequence and
         // their color is the reference one. So just pick the first one.
-        Piece pc = Piece(entry->get(0, 0)->pieces[0] ^ flipColor);
+        Piece pc = entry->get(0, 0)->pieces[0];
+        if (flip)
+            pc = flip_color(pc);
 
         assert(type_of(pc) == PAWN);
 
-        leadPawns = b = pos.pieces(color_of(pc), PAWN);
-        do
-            squares[size++] = pop_lsb(b) ^ flipSquare;
-        while (b);
+        Bitboard b = leadPawns = pos.pieces(color_of(pc), PAWN);
+        while (b)
+        {
+            Square s = pop_lsb(b);
+
+            squares[size] = flip ? flip_rank(s) : s;
+            ++size;
+        }
 
         leadPawnCnt = size;
 
-        std::swap(squares[0], *std::max_element(squares, squares + leadPawnCnt, pawns_comp));
+        std::swap(squares[0],
+                  *std::max_element(squares.begin(), squares.begin() + leadPawnCnt, pawns_comp));
 
         tbFile = fold_to_edge(file_of(squares[0]));
     }
@@ -834,13 +846,14 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
     // Now ready to get all the position pieces (but the lead pawns)
     // and directly map them to the correct square and color.
-    b = pos.pieces() ^ leadPawns;
+    Bitboard b = pos.pieces() ^ leadPawns;
     while (b)
     {
-        Square s = pop_lsb(b);
+        Square s  = pop_lsb(b);
+        Piece  pc = pos.piece_on(s);
 
-        squares[size] = s ^ flipSquare;
-        pieces[size]  = pos.piece_on(s) ^ flipColor;
+        squares[size] = flip ? flip_rank(s) : s;
+        pieces[size]  = flip ? flip_color(pc) : pc;
         ++size;
     }
 
@@ -850,7 +863,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
     // Then reorder the pieces to have the same sequence as the one stored
     // in pieces[i]: the sequence that ensures the best compression.
-    for (std::size_t i = leadPawnCnt; i + 1 < size; ++i)
+    for (std::size_t i = leadPawnCnt; i < size - 1; ++i)
         for (std::size_t j = i + 1; j < size; ++j)
             if (pd->pieces[i] == pieces[j])
             {
@@ -872,7 +885,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     {
         idx = LeadPawnIdx[leadPawnCnt][squares[0]];
 
-        std::stable_sort(squares + 1, squares + leadPawnCnt, pawns_comp);
+        std::stable_sort(squares.begin() + 1, squares.begin() + leadPawnCnt, pawns_comp);
 
         for (std::size_t i = 1; i < leadPawnCnt; ++i)
             idx += Binomial[i][PawnsMap[squares[i]]];
@@ -959,7 +972,8 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
 ENCODE_END:
     idx *= pd->groupIdx[0];
-    Square* groupSq = squares + pd->groupLen[0];
+
+    Square* groupSq = squares.data() + pd->groupLen[0];
 
     // Encode remaining pawns and then pieces according to square, in ascending order
     bool pawnsRemaining = entry->hasPawns && entry->pawnCount[BLACK];
@@ -974,7 +988,8 @@ ENCODE_END:
         // groups (similar to what was done earlier for leading group pieces).
         for (std::int32_t i = 0; i < pd->groupLen[next]; ++i)
         {
-            auto adjust = std::count_if(squares, groupSq, [&](Square s) { return groupSq[i] > s; });
+            auto adjust =
+              std::count_if(squares.data(), groupSq, [&](Square s) { return groupSq[i] > s; });
             n += Binomial[i + 1][int(groupSq[i]) - adjust - 8 * pawnsRemaining];
         }
 

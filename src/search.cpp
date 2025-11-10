@@ -1201,24 +1201,26 @@ S_MOVES_LOOP:  // When in check, search starts here
             && is_valid(ttd.value) && !is_decisive(ttd.value) && ttd.depth >= depth - 3
             && (ttd.bound & BOUND_LOWER))
         {
-            Value singularBeta  = ttd.value - (0.9333 + 1.3500 * (!PVNode && ss->pvHit)) * depth;
+            Value singularBeta = std::max(
+              ttd.value - int((0.9333 + 1.3500 * (!PVNode && ss->pvHit)) * depth), -VALUE_INFINITE);
+            assert(singularBeta >= -VALUE_INFINITE);
             Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
 
-            value = search<~~NT>(pos, ss, singularBeta - 1, singularBeta, singularDepth, 0, move);
+            value = search<~~NT>(pos, ss, singularBeta, singularBeta + 1, singularDepth, 0, move);
 
             ss->ttMove    = ttd.move;
             ss->moveCount = moveCount;
 
-            if (value < singularBeta)
+            if (value <= singularBeta)
             {
                 int corrValue = 4.3486e-6 * absCorrectionValue;
                 // clang-format off
                 int doubleMargin = -4 + 198 * PVNode - 212 * !ttCapture - corrValue - 45 * (1 * ss->ply > 1 * rootDepth) - 7.2151e-3 * ttMoveHistory;
                 int tripleMargin = 76 + 308 * PVNode - 250 * !ttCapture - corrValue - 52 * (2 * ss->ply > 3 * rootDepth) + 92 * ss->pvHit;
 
-                extension = 1 + (value < singularBeta - doubleMargin)
-                              + (value < singularBeta - tripleMargin);
+                extension = 1 + (value <= singularBeta - doubleMargin)
+                              + (value <= singularBeta - tripleMargin);
                 // clang-format on
 
                 depth = std::min(depth + 1, MAX_PLY - 1);
