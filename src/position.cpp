@@ -38,10 +38,10 @@ namespace {
 
 constexpr std::size_t PawnOffset = 8;
 
-constexpr StdArray<Piece, COLOR_NB * 6> Pieces{
-  W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,  //
-  B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING   //
-};
+constexpr StdArray<Piece, COLOR_NB, 6> Pieces{{
+  {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING},  //
+  {B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING}   //
+}};
 constexpr StdArray<Piece, COLOR_NB, 4> NonPawnPieces{{
   {W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN},  //
   {B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN}   //
@@ -140,8 +140,9 @@ void Position::init() noexcept {
 
     const auto prng_rand = [&] { return prng.template rand<Key>(); };
 
-    for (Piece pc : Pieces)
-        std::generate(Zobrist::psq[pc].begin(), Zobrist::psq[pc].end(), prng_rand);
+    for (Color c : {WHITE, BLACK})
+        for (Piece pc : Pieces[c])
+            std::generate(Zobrist::psq[pc].begin(), Zobrist::psq[pc].end(), prng_rand);
     for (Piece pc : {W_PAWN, B_PAWN})
     {
         std::fill_n(&Zobrist::psq[pc][SQ_A1], PawnOffset, Key{});
@@ -156,19 +157,20 @@ void Position::init() noexcept {
 
     // Prepare the cuckoo tables
     Cuckoos.init();
-    for (Piece pc : Pieces)
-    {
-        if (type_of(pc) == PAWN)
-            continue;
-        for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
-            for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
-                if (attacks_bb(type_of(pc), s1) & s2)
-                {
-                    Key  key  = Zobrist::psq[pc][s1] ^ Zobrist::psq[pc][s2] ^ Zobrist::turn;
-                    Move move = Move(s1, s2);
-                    Cuckoos.insert({key, move});
-                }
-    }
+    for (Color c : {WHITE, BLACK})
+        for (Piece pc : Pieces[c])
+        {
+            if (type_of(pc) == PAWN)
+                continue;
+            for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
+                for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
+                    if (attacks_bb(type_of(pc), s1) & s2)
+                    {
+                        Key  key  = Zobrist::psq[pc][s1] ^ Zobrist::psq[pc][s2] ^ Zobrist::turn;
+                        Move move = Move(s1, s2);
+                        Cuckoos.insert({key, move});
+                    }
+        }
     assert(Cuckoos.count == 3668);
 }
 
@@ -1395,9 +1397,10 @@ bool Position::fork(Move m) const noexcept {
 Key Position::material_key() const noexcept {
     Key materialKey = 0;
 
-    for (Piece pc : Pieces)
-        if (pc != W_KING && pc != B_KING && count(pc))
-            materialKey ^= Zobrist::psq[pc][PawnOffset + count(pc) - 1];
+    for (Color c : {WHITE, BLACK})
+        for (Piece pc : Pieces[c])
+            if (type_of(pc) != KING && count(pc))
+                materialKey ^= Zobrist::psq[pc][PawnOffset + count(pc) - 1];
 
     return materialKey;
 }
@@ -2035,10 +2038,11 @@ bool Position::pos_is_ok() const noexcept {
             if (p1 != p2 && (pieces(p1) & pieces(p2)))
                 assert(false && "Position::pos_is_ok(): Bitboards");
 
-    for (Piece pc : Pieces)
-        if (count(pc) != popcount(pieces(color_of(pc), type_of(pc)))
-            || count(pc) != board.count(pc))
-            assert(false && "Position::pos_is_ok(): Pieces");
+    for (Color c : {WHITE, BLACK})
+        for (Piece pc : Pieces[c])
+            if (count(pc) != popcount(pieces(color_of(pc), type_of(pc)))
+                || count(pc) != board.count(pc))
+                assert(false && "Position::pos_is_ok(): Pieces");
 
     for (Color c : {WHITE, BLACK})
         for (CastlingRights cr : {c & KING_SIDE, c & QUEEN_SIDE})
