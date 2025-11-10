@@ -50,8 +50,7 @@ inline Key                                turn{};
 struct State final {
     // --- Copied when making a move
     StdArray<Key, COLOR_NB>    pawnKey;
-    StdArray<Key, COLOR_NB, 2> groupKey;
-    StdArray<Value, COLOR_NB>  nonPawnMaterial;
+    StdArray<Key, COLOR_NB, 2> nonPawnKey;
     StdArray<Square, COLOR_NB> kingSq;
     StdArray<bool, COLOR_NB>   hasCastled;
 
@@ -286,17 +285,16 @@ class Position final {
     bool has_repeated() const noexcept;
     bool is_upcoming_repetition(std::int16_t ply) const noexcept;
 
-    Value non_pawn_material(Color c) const noexcept;
-    Value non_pawn_material() const noexcept;
+    Value non_pawn_value(Color c) const noexcept;
+    Value non_pawn_value() const noexcept;
     bool  has_castled(Color c) const noexcept;
     bool  has_rule50_high() const noexcept;
     bool  bishop_paired(Color c) const noexcept;
     bool  bishop_opposite() const noexcept;
 
-    int std_material() const noexcept;
-
     std::size_t bucket() const noexcept;
 
+    int   std_material() const noexcept;
     Value material() const noexcept;
     Value evaluate() const noexcept;
     Value bonus() const noexcept;
@@ -575,11 +573,11 @@ inline Key Position::pawn_key(Color c) const noexcept { return st->pawnKey[c]; }
 
 inline Key Position::pawn_key() const noexcept { return pawn_key(WHITE) ^ pawn_key(BLACK); }
 
-inline Key Position::minor_key(Color c) const noexcept { return st->groupKey[c][0]; }
+inline Key Position::minor_key(Color c) const noexcept { return st->nonPawnKey[c][0]; }
 
 inline Key Position::minor_key() const noexcept { return minor_key(WHITE) ^ minor_key(BLACK); }
 
-inline Key Position::major_key(Color c) const noexcept { return st->groupKey[c][1]; }
+inline Key Position::major_key(Color c) const noexcept { return st->nonPawnKey[c][1]; }
 
 inline Key Position::major_key() const noexcept { return major_key(WHITE) ^ major_key(BLACK); }
 
@@ -587,9 +585,7 @@ inline Key Position::non_pawn_key(Color c) const noexcept { return minor_key(c) 
 
 inline Key Position::non_pawn_key() const noexcept { return non_pawn_key(WHITE) ^ non_pawn_key(BLACK); }
 
-inline Value Position::non_pawn_material(Color c) const noexcept { return st->nonPawnMaterial[c]; }
-
-inline Value Position::non_pawn_material() const noexcept { return non_pawn_material(WHITE) + non_pawn_material(BLACK); }
+inline Value Position::non_pawn_value() const noexcept { return non_pawn_value(WHITE) + non_pawn_value(BLACK); }
 
 // clang-format on
 
@@ -625,16 +621,16 @@ inline bool Position::bishop_opposite() const noexcept {
         && color_opposite(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
 }
 
-inline int Position::std_material() const noexcept {
-    return 1.0469f * count<PAWN>() + 2.8438f * count<KNIGHT>() + 2.8438f * count<BISHOP>()
-         + 5.2656f * count<ROOK>() + 8.6406f * count<QUEEN>();
-}
-
 inline std::size_t Position::bucket() const noexcept { return (count<ALL_PIECE>() - 1) / 4; }
 
-inline Value Position::material() const noexcept {
-    return 535 * count<PAWN>() + non_pawn_material();
+inline int Position::std_material() const noexcept {
+    return 1 * count<PAWN>()                          //
+         + 3 * count<KNIGHT>() + 3 * count<BISHOP>()  //
+         + 5 * count<ROOK>()                          //
+         + 8 * count<QUEEN>();
 }
+
+inline Value Position::material() const noexcept { return 535 * count<PAWN>() + non_pawn_value(); }
 
 // Returns a static, purely materialistic evaluation of the position from
 // the point of view of the side to move. It can be divided by VALUE_PAWN to get
@@ -642,7 +638,7 @@ inline Value Position::material() const noexcept {
 inline Value Position::evaluate() const noexcept {
     Color ac = active_color();
     return VALUE_PAWN * (count<PAWN>(ac) - count<PAWN>(~ac))
-         + (non_pawn_material(ac) - non_pawn_material(~ac));
+         + (non_pawn_value(ac) - non_pawn_value(~ac));
 }
 
 inline Value Position::bonus() const noexcept {

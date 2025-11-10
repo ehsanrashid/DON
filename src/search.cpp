@@ -928,13 +928,13 @@ Value Worker::search(Position&    pos,
 
     // Step 9. Null move search with verification search
     // The non-pawn condition is important for finding Zugzwangs.
-    if (CutNode && !exclude && pos.non_pawn_material(ac) != VALUE_ZERO && ss->ply >= nmpPly
+    if (CutNode && !exclude && pos.non_pawn_value(ac) != VALUE_ZERO && ss->ply >= nmpPly
         && !is_loss(beta) && ss->staticEval >= 390 + beta - 18 * depth)
     {
         assert((ss - 1)->move != Move::Null);
 
         // Null move dynamic reduction based on depth and phase
-        Depth R = 6 + depth / 3 + pos.phase() / 9 + improve;
+        Depth R = 5 + depth / 3 + pos.phase() / 9 + improve;
 
         do_null_move(pos, st, ss);
 
@@ -1110,7 +1110,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Step 14. Pruning at shallow depth
         // Depth conditions are important for mate finding.
-        if (!RootNode && !is_loss(bestValue) && pos.non_pawn_material(ac) != VALUE_ZERO)
+        if (!RootNode && !is_loss(bestValue) && pos.non_pawn_value(ac) != VALUE_ZERO)
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
             if (mp.quietAllowed)
@@ -1138,7 +1138,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int margin = std::max(157 * depth + history / 29, 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW
-                   || pos.non_pawn_material(ac) != PIECE_VALUE[type_of(movedPiece)])
+                   || pos.non_pawn_value(ac) != PIECE_VALUE[type_of(movedPiece)])
                   && pos.see(move) < -margin)
                     continue;
             }
@@ -1765,7 +1765,7 @@ QS_MOVES_LOOP:
         {
             Color ac = pos.active_color();
             if (bestValue != VALUE_DRAW  //
-                && pos.non_pawn_material(ac) == VALUE_ZERO
+                && pos.non_pawn_value(ac) == VALUE_ZERO
                 && type_of(pos.captured_piece()) >= ROOK
                 // No pawn pushes available
                 && !(pawn_push_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces()))
