@@ -161,7 +161,7 @@ inline constexpr Value VALUE_TB_WIN_IN_MAX_PLY  = VALUE_TB - MAX_PLY;
 inline constexpr Value VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_TB_WIN_IN_MAX_PLY;
 
 // In the code, make the assumption that these values
-// are such that non_pawn_material() can be used to uniquely
+// are such that non_pawn_value() can be used to uniquely
 // identify the material on the board.
 inline constexpr Value VALUE_PAWN   = 208;
 inline constexpr Value VALUE_KNIGHT = 781;

@@ -88,6 +88,8 @@ void init_magics() noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in init_magics()");
 
 #if !defined(USE_BMI2)
+    constexpr StdArray<std::size_t, 2> RefSizes{0x200, 0x1000};
+
     // Optimal PRNG seeds to pick the correct magics in the shortest time
     constexpr StdArray<std::uint16_t, RANK_NB> Seeds{
     // clang-format off
@@ -98,8 +100,6 @@ void init_magics() noexcept {
     #endif
       // clang-format on
     };
-
-    constexpr StdArray<std::size_t, 2> RefSizes{0x200, 0x1000};
 #endif
 
     [[maybe_unused]] std::size_t totalSize = 0;

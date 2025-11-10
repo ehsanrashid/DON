@@ -522,10 +522,25 @@ class Worker final {
     void do_move(Position& pos, Move m, State& st, bool check, Stack* const ss = nullptr) noexcept;
     void do_move(Position& pos, Move m, State& st, Stack* const ss = nullptr) noexcept;
     void undo_move(Position& pos, Move m) noexcept;
-    void do_null_move(Position& pos, State& st, Stack* const ss) const noexcept;
+    void do_null_move(Position& pos, State& st, Stack* const ss) noexcept;
     void undo_null_move(Position& pos) const noexcept;
 
     Value evaluate(const Position& pos) noexcept;
+
+    void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept;
+    void update_capture_history(const Position& pos, Move m, int bonus) noexcept;
+    void update_quiet_history(Color ac, Move m, int bonus) noexcept;
+    void update_pawn_history(Key pawnKey, Piece pc, Square dst, int bonus) noexcept;
+    void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
+    void update_all_quiet_history(const Position& pos, Stack* const ss, Move m, int bonus) noexcept;
+    void update_all_history(const Position&      pos,
+                            Stack* const         ss,
+                            Depth                depth,
+                            Move                 bm,
+                            const MovesArray<2>& movesArr) noexcept;
+
+    void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
+    int  correction_value(const Position& pos, const Stack* const ss) noexcept;
 
     bool ponder_move_extracted() noexcept;
 
@@ -546,6 +561,22 @@ class Worker final {
     std::int16_t  nmpPly;
     std::size_t   multiPV, curIdx, endIdx;
     std::uint16_t selDepth;
+
+    // History
+    History<HCapture>     captureHistory;
+    History<HQuiet>       quietHistory;
+    History<HPawn>        pawnHistory;
+    History<HLowPlyQuiet> lowPlyQuietHistory;
+
+    StdArray<History<HContinuation>, 2, 2> continuationHistory;  // [inCheck][capture]
+
+    // Correction History
+    CorrectionHistory<CHPawn>         pawnCorrectionHistory;
+    CorrectionHistory<CHMinor>        minorCorrectionHistory;
+    CorrectionHistory<CHNonPawn>      nonPawnCorrectionHistory;
+    CorrectionHistory<CHContinuation> continuationCorrectionHistory;
+
+    History<HTTMove> ttMoveHistory;
 
     StdArray<std::int32_t, COLOR_NB> optimism;
 

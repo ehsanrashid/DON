@@ -160,7 +160,7 @@ class FeatureTransformer final {
 
         read_leb_128(istream, biases);
         read_leb_128(istream, weights);
-        read_leb_128<PSQTWeightType>(istream, psqtWeights);
+        read_leb_128(istream, psqtWeights);
 
         permute_weights<true>();
         scale_weights<true>();
