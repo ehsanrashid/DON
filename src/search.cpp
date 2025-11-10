@@ -1496,9 +1496,9 @@ S_MOVES_LOOP:  // When in check, search starts here
             int bonus = bonusScale * std::min(-92 + 144 * depth, +1365);
 
             update_quiet_history(~ac, (ss - 1)->move, 6.7139e-3 * bonus);
-            update_continuation_history(ss - 1, pos.piece_on(preSq), preSq, 12.2070e-3 * bonus);
             if (preNonPawn)
                 update_pawn_history(pos.pawn_key(), pos.piece_on(preSq), preSq, 35.5225e-3 * bonus);
+            update_continuation_history(ss - 1, pos.piece_on(preSq), preSq, 12.2070e-3 * bonus);
         }
         // Bonus for prior capture move
         else
@@ -1511,7 +1511,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // If no good move is found and the previous position was pvHit, then the previous
     // opponent move is probably good and the new position is added to the search tree.
-    if (bestValue <= alpha && !ss->pvHit)
+    if (!ss->pvHit && bestValue <= alpha)
         ss->pvHit = (ss - 1)->pvHit;
 
     // Save gathered information in transposition table
@@ -1859,8 +1859,8 @@ void Worker::update_all_quiet_history(const Position& pos,
 
     update_quiet_history(pos.active_color(), m, 1.0000 * bonus);
     update_pawn_history(pos.pawn_key(), pos.moved_piece(m), m.dst_sq(), (bonus > 0 ? 0.8301 : 0.5371) * bonus);
-    update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), 0.9326 * bonus);
     update_low_ply_quiet_history(ss->ply, m, 0.7432 * bonus);
+    update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), 0.9326 * bonus);
 }
 
 // Updates history at the end of search() when a bestMove is found
@@ -2302,21 +2302,19 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
 namespace {
 
 // Updates histories of the move pairs formed by
-// move at ply -1, -2, -3, -4, -5 and -6 with move at ply 0.
+// move at ply -1, -2, -3, -4, -5, -6, -7 and -8 with move at ply 0.
 void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept {
     assert(is_ok(dst));
 
-    constexpr StdArray<std::pair<std::uint8_t, double>, 8> ContHistoryWeights{{{1, 1.1299},
-                                                                               {2, 0.6328},
-                                                                               {3, 0.2812},
-                                                                               {4, 0.5625},
-                                                                               {5, 0.1367},
-                                                                               {6, 0.4307},
-                                                                               {7, 0.2222},
-                                                                               {8, 0.2167}}};
+    constexpr StdArray<double, 8> ContHistoryWeights{
+      1.1299, 0.6328, 0.2812, 0.5625, 0.1367, 0.4307, 0.2222, 0.2167  //
+    };
 
-    for (auto& [i, weight] : ContHistoryWeights)
+    for (std::size_t idx = 0; idx < ContHistoryWeights.size(); ++idx)
     {
+        std::int16_t i      = idx + 1;
+        double       weight = ContHistoryWeights[idx];
+
         // Only update the first 2 continuation histories if in check
         if ((i > 2 && ss->inCheck) || !(ss - i)->move.is_ok())
             break;
