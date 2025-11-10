@@ -903,7 +903,7 @@ Value Worker::search(Position&    pos,
     {
         value = qsearch<PVNode>(pos, ss, alpha, beta);
 
-        if (value <= alpha && (!PVNode || !is_decisive(value)))
+        if (value <= alpha && !is_decisive(value))
             return value;
 
         ss->ttMove = ttd.move;
