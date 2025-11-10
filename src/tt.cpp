@@ -250,10 +250,32 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
         return false;
 
     std::ofstream ofstream(std::string(hashFile), std::ios_base::binary);
-    if (ofstream)
+
+    if (!ofstream)
+        return false;
+
+    const char* data  = reinterpret_cast<const char*>(clusters);
+    std::size_t total = clusterCount * sizeof(TTCluster);
+
+    // Choose a chunk that balances system call overhead and memory pressure.
+    // 1 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
+    constexpr std::size_t Chunk = 1024 * 1024;  // 1 MiB
+
+    std::size_t written = 0;
+    while (written < total)
     {
-        ofstream.write(reinterpret_cast<const char*>(clusters), clusterCount * sizeof(TTCluster));
+        std::size_t write = std::min(Chunk, total - written);
+
+        ofstream.write(data + written, write);
+
+        if (!ofstream)  // write failed
+            return false;
+
+        written += write;
     }
+
+    ofstream.flush();
+
     return ofstream.good();
 }
 
@@ -263,15 +285,54 @@ bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) no
         return false;
 
     std::ifstream ifstream(std::string(hashFile), std::ios_base::binary);
-    if (ifstream)
-    {
-        auto fileSize = get_file_size(ifstream);
-        if (fileSize < 0)
+
+    if (!ifstream)
+        return false;
+
+    std::int64_t fileSize = get_file_size(ifstream);  // your helper
+    if (fileSize < 0)
+    {  // fallback
+        ifstream.clear();
+        ifstream.seekg(0, std::ios::end);
+        std::streamoff pos = ifstream.tellg();
+        if (pos < 0)
             return false;
-        std::size_t ttSize = fileSize / (1024 * 1024);
-        resize(ttSize, threads);
-        ifstream.read(reinterpret_cast<char*>(clusters), clusterCount * sizeof(TTCluster));
+        fileSize = std::int64_t(pos);
+        ifstream.seekg(0, std::ios::beg);
     }
+
+    if (fileSize == 0)
+        return false;  // empty file -> nothing to load
+
+    std::size_t ttSize = fileSize / (1024 * 1024);
+
+    resize(ttSize, threads);
+
+    char*       data  = reinterpret_cast<char*>(clusters);
+    std::size_t total = clusterCount * sizeof(TTCluster);
+
+    // Choose a chunk that balances system call overhead and memory pressure.
+    // 1 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
+    constexpr std::size_t Chunk = 1024 * 1024;  // 1 MiB
+
+    std::size_t readed = 0;
+    while (readed < total)
+    {
+        std::size_t read = std::min(Chunk, total - readed);
+
+        ifstream.read(data + readed, read);
+
+        if (!ifstream)
+            return false;
+
+        auto got = ifstream.gcount();
+
+        if (got <= 0)  // read failed or EOF without data
+            return false;
+
+        readed += got;
+    }
+
     return ifstream.good();
 }
 

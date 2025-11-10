@@ -83,8 +83,8 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("Clear Hash",           Option([this](const Option&) { init(); return std::nullopt; }));
     options.add("HashRetain",           Option(false));
     options.add("HashFile",             Option(""));
-    options.add("Save Hash",            Option([this](const Option& o) { tt.save(o);          return std::nullopt; }));
-    options.add("Load Hash",            Option([this](const Option& o) { tt.load(o, threads); return std::nullopt; }));
+    options.add("Save Hash",            Option([this](const Option&) { return save_hash() ? "Save succeeded" : "Save failed"; }));
+    options.add("Load Hash",            Option([this](const Option&) { return load_hash() ? "Load succeeded" : "Load failed"; }));
     options.add("Ponder",               Option(false));
     options.add("MultiPV",              Option(DEFAULT_MULTI_PV, 1, MAX_MOVES));
     options.add("SkillLevel",           Option(Skill::MaxLevel, Skill::MinLevel, Skill::MaxLevel));
@@ -95,8 +95,6 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("UCI_LimitStrength",    Option(false));
     options.add("UCI_ELO",              Option(Skill::MaxELO, Skill::MinELO, Skill::MaxELO));
     options.add("UCI_ShowWDL",          Option(false));
-    //options.add("UCI_ShowCurrLine",     Option(false));
-    //options.add("UCI_ShowRefutations",  Option(false));
     options.add("OwnBook",              Option(false));
     options.add("BookFile",             Option("", [](const Option& o) { Book.init(o); return std::nullopt; }));
     options.add("BookProbeDepth",       Option(100, 1, 256));
@@ -169,7 +167,6 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
 }
 
 std::uint64_t Engine::perft(Depth depth, bool detail) noexcept {
-    //verify_networks();
     return Benchmark::perft(pos, options["Hash"], threads, depth, detail);
 }
 
@@ -331,6 +328,10 @@ void Engine::save_networks(const StdArray<std::optional<std::string>, 2>& netFil
         nets.small.save(netFiles[1]);
     });
 }
+
+bool Engine::save_hash() const noexcept { return tt.save(options["HashFile"]); }
+
+bool Engine::load_hash() noexcept { return tt.load(options["HashFile"], threads); }
 
 void Engine::set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept {
     updateContext.onUpdateShort = std::move(f);
