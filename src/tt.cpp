@@ -207,7 +207,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
 
     for (auto& entry : ttc->entries)
         if (entry.key16 == key16)
-            return {entry.read(), TTUpdater{&entry, ttc, key16, generation8}};
+            return {entry.read(), TTUpdater{&entry, key16, generation8}};
 
     // Find an entry to be replaced according to the replacement strategy
     auto* rte = &ttc->entries[0];
@@ -216,7 +216,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
             rte = &ttc->entries[i];
 
     return {TTData{false, false, BOUND_NONE, DEPTH_OFFSET, Move::None, VALUE_NONE, VALUE_NONE},
-            TTUpdater{rte, ttc, key16, generation8}};
+            TTUpdater{rte, key16, generation8}};
 }
 
 // Prefetch the cache line which includes this key's entry
