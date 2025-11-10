@@ -474,7 +474,7 @@ void Worker::iterative_deepening() noexcept {
                 else
                     break;
 
-                delta = std::min(int(1.3333 * delta), 2 * +VALUE_INFINITE);
+                delta *= 1.3333;
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
