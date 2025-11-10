@@ -95,14 +95,14 @@ enum HistoryType : std::uint8_t {
 
 namespace internal {
 template<int D, std::size_t... Sizes>
-using StatsVector = MultiVector<StatsEntry<std::int16_t, D>, Sizes...>;
+using StatsContainer = MultiArray<StatsEntry<std::int16_t, D>, Sizes...>;
 
 template<HistoryType T>
 struct HistoryDef;
 
 template<>
 struct HistoryDef<HCapture> final {
-    using Type = StatsVector<CAPTURE_HISTORY_LIMIT, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
+    using Type = StatsContainer<CAPTURE_HISTORY_LIMIT, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 };
 
 // It records how often quiet moves have been successful or not during the current search,
@@ -110,28 +110,28 @@ struct HistoryDef<HCapture> final {
 // see https://www.chessprogramming.org/Butterfly_Boards
 template<>
 struct HistoryDef<HQuiet> final {
-    using Type = StatsVector<QUIET_HISTORY_LIMIT, COLOR_NB, QUIET_HISTORY_SIZE>;
+    using Type = StatsContainer<QUIET_HISTORY_LIMIT, COLOR_NB, QUIET_HISTORY_SIZE>;
 };
 
 template<>
 struct HistoryDef<HPawn> final {
-    using Type = StatsVector<PAWN_HISTORY_LIMIT, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
+    using Type = StatsContainer<PAWN_HISTORY_LIMIT, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
 };
 
 template<>
 struct HistoryDef<HPieceSq> final {
-    using Type = StatsVector<PIECE_SQ_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
+    using Type = StatsContainer<PIECE_SQ_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
 };
 
 template<>
 struct HistoryDef<HContinuation> final {
-    using Type = MultiVector<HistoryDef<HPieceSq>::Type, PIECE_NB, SQUARE_NB>;
+    using Type = MultiArray<HistoryDef<HPieceSq>::Type, PIECE_NB, SQUARE_NB>;
 };
 
 // It is used to improve quiet move ordering near the root.
 template<>
 struct HistoryDef<HLowPlyQuiet> final {
-    using Type = StatsVector<QUIET_HISTORY_LIMIT, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
+    using Type = StatsContainer<QUIET_HISTORY_LIMIT, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
 };
 
 template<>
@@ -168,34 +168,34 @@ enum CorrectionHistoryType : std::uint8_t {
 
 namespace internal {
 template<std::size_t... Sizes>
-using CorrectionStatsVector = StatsVector<CORRECTION_HISTORY_LIMIT, Sizes...>;
+using CorrectionStatsContainer = StatsContainer<CORRECTION_HISTORY_LIMIT, Sizes...>;
 
 template<CorrectionHistoryType T>
 struct CorrectionHistoryDef;
 
 template<>
 struct CorrectionHistoryDef<CHPawn> final {
-    using Type = CorrectionStatsVector<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsContainer<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryDef<CHMinor> final {
-    using Type = CorrectionStatsVector<CORRECTION_HISTORY_SIZE, COLOR_NB>;
+    using Type = CorrectionStatsContainer<CORRECTION_HISTORY_SIZE, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryDef<CHNonPawn> final {
-    using Type = CorrectionStatsVector<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsContainer<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryDef<CHPieceSq> final {
-    using Type = CorrectionStatsVector<PIECE_NB, SQUARE_NB>;
+    using Type = CorrectionStatsContainer<PIECE_NB, SQUARE_NB>;
 };
 
 template<>
 struct CorrectionHistoryDef<CHContinuation> final {
-    using Type = MultiVector<CorrectionHistoryDef<CHPieceSq>::Type, PIECE_NB, SQUARE_NB>;
+    using Type = MultiArray<CorrectionHistoryDef<CHPieceSq>::Type, PIECE_NB, SQUARE_NB>;
 };
 }  // namespace internal
 
