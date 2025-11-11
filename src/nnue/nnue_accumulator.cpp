@@ -239,8 +239,8 @@ void update_accumulator_refresh_cache(Color                                 pers
 
     FeatureSet::IndexList removed, added;
 
-    auto pieces   = pos.pieces();
-    auto pieceArr = pos.piece_array();
+    auto  pieces   = pos.pieces();
+    auto& pieceArr = pos.piece_arr();
 
     Bitboard changedBB = changed_bb(entry.pieceArr, pieceArr);
 

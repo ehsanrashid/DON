@@ -86,70 +86,6 @@ inline constexpr std::uint8_t R50_FACTOR = 8;
 // used by the search to update node info when traversing the search tree.
 class Position final {
    public:
-    struct Board final {
-       public:
-        struct Cardinal final {
-           public:
-            constexpr Cardinal() noexcept                 = default;
-            Cardinal(const Cardinal&) noexcept            = default;
-            Cardinal(Cardinal&&) noexcept                 = delete;
-            Cardinal& operator=(const Cardinal&) noexcept = default;
-            Cardinal& operator=(Cardinal&&) noexcept      = delete;
-
-            constexpr void piece_on(File f, Piece pc) noexcept {
-                auto shift = f << 2;
-                rankPieces = (rankPieces & ~(0xF << shift)) | (pc << shift);
-            }
-
-            constexpr Piece piece_on(File f) const noexcept {
-                return Piece((rankPieces >> (f << 2)) & 0xF);
-            }
-
-            std::uint8_t count(Piece pc) const noexcept {
-                std::uint8_t cnt = 0;
-                for (File f = FILE_A; f <= FILE_H; ++f)
-                    cnt += piece_on(f) == pc;
-                return cnt;
-            }
-
-            friend std::ostream& operator<<(std::ostream& os, const Cardinal& cardinal) noexcept;
-
-           private:
-            std::uint32_t rankPieces{0};
-        };
-
-        constexpr Board() noexcept              = default;
-        Board(const Board&) noexcept            = default;
-        Board(Board&&) noexcept                 = delete;
-        Board& operator=(const Board&) noexcept = default;
-        Board& operator=(Board&&) noexcept      = delete;
-
-        constexpr void piece_on(Square s, Piece pc) noexcept {
-            cardinals[rank_of(s)].piece_on(file_of(s), pc);
-        }
-        constexpr Piece piece_on(Square s) const noexcept {
-            return cardinals[rank_of(s)].piece_on(file_of(s));
-        }
-
-        std::uint8_t count(Piece pc) const noexcept {
-            return std::accumulate(
-              cardinals.begin(), cardinals.end(), 0,
-              [=](std::uint8_t cnt, const Cardinal& cardinal) { return cnt + cardinal.count(pc); });
-        }
-
-        [[nodiscard]] PieceArray piece_array() const noexcept {
-            PieceArray pieceArr{};
-            for (std::size_t s = 0; s < SQUARE_NB; ++s)
-                pieceArr[s] = piece_on(Square(s));
-            return pieceArr;
-        }
-
-        friend std::ostream& operator<<(std::ostream& os, const Board& board) noexcept;
-
-       private:
-        StdArray<Cardinal, RANK_NB> cardinals{};
-    };
-
     static void init() noexcept;
 
     static inline bool         Chess960      = false;
@@ -171,9 +107,10 @@ class Position final {
     std::string fen(bool full = true) const noexcept;
 
     // Position representation
-    Piece    piece_on(Square s) const noexcept;
-    bool     empty_on(Square s) const noexcept;
-    Bitboard pieces() const noexcept;
+    [[nodiscard]] const PieceArray& piece_arr() const noexcept;
+    Piece                           piece_on(Square s) const noexcept;
+    bool                            empty_on(Square s) const noexcept;
+    Bitboard                        pieces() const noexcept;
     template<typename... PieceTypes>
     Bitboard pieces(PieceTypes... pts) const noexcept;
     Bitboard pieces(Color c) const noexcept;
@@ -188,8 +125,6 @@ class Position final {
     std::uint8_t count(Color c) const noexcept;
     template<PieceType PT>
     std::uint8_t count() const noexcept;
-
-    [[nodiscard]] PieceArray piece_array() const noexcept;
 
     template<PieceType PT>
     Square square(Color c) const noexcept;
@@ -376,7 +311,7 @@ class Position final {
     bool see_ge(Move m, int threshold) const noexcept;
 
     // Data members
-    Board                                           board;
+    PieceArray                                      pieceArr;
     StdArray<Bitboard, PIECE_TYPE_NB>               typeBB;
     StdArray<Bitboard, COLOR_NB>                    colorBB;
     StdArray<std::uint8_t, PIECE_NB>                pieceCount;
@@ -388,9 +323,11 @@ class Position final {
     State*                                          st;
 };
 
+inline const PieceArray& Position::piece_arr() const noexcept { return pieceArr; }
+
 inline Piece Position::piece_on(Square s) const noexcept {
     assert(is_ok(s));
-    return board.piece_on(s);
+    return pieceArr[s];
 }
 
 inline bool Position::empty_on(Square s) const noexcept { return piece_on(s) == NO_PIECE; }
@@ -435,8 +372,6 @@ template<PieceType PT>
 inline std::uint8_t Position::count() const noexcept {
     return count<PT>(WHITE) + count<PT>(BLACK);
 }
-
-inline PieceArray Position::piece_array() const noexcept { return board.piece_array(); }
 
 template<PieceType PT>
 inline Square Position::square(Color c) const noexcept {
@@ -691,7 +626,7 @@ inline void Position::reset_repetitions() noexcept {
 inline void Position::put_piece(Square s, Piece pc) noexcept {
     assert(is_ok(s) && is_ok(pc));
 
-    board.piece_on(s, pc);
+    pieceArr[s] = pc;
     typeBB[ALL_PIECE] |= typeBB[type_of(pc)] |= s;
     colorBB[color_of(pc)] |= s;
     ++pieceCount[pc];
@@ -701,9 +636,9 @@ inline void Position::put_piece(Square s, Piece pc) noexcept {
 inline void Position::remove_piece(Square s) noexcept {
     assert(is_ok(s));
 
-    Piece pc = board.piece_on(s);
+    Piece pc = pieceArr[s];
     assert(is_ok(pc) && count(pc));
-    board.piece_on(s, NO_PIECE);
+    pieceArr[s] = NO_PIECE;
     typeBB[ALL_PIECE] ^= s;
     typeBB[type_of(pc)] ^= s;
     colorBB[color_of(pc)] ^= s;
@@ -714,10 +649,10 @@ inline void Position::remove_piece(Square s) noexcept {
 inline void Position::move_piece(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    Piece pc = board.piece_on(s1);
+    Piece pc = pieceArr[s1];
     assert(is_ok(pc));
-    board.piece_on(s1, NO_PIECE);
-    board.piece_on(s2, pc);
+    pieceArr[s1]  = NO_PIECE;
+    pieceArr[s2]  = pc;
     Bitboard s1s2 = s1 | s2;
     typeBB[ALL_PIECE] ^= s1s2;
     typeBB[type_of(pc)] ^= s1s2;
