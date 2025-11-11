@@ -231,8 +231,6 @@ inline void ThreadPool::clear() noexcept {
 // Sets threadPool data to initial values
 inline void ThreadPool::init() noexcept {
 
-    Search::init();
-
     if (empty())
         return;
 

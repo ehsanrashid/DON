@@ -203,14 +203,15 @@ void update_accumulator_incremental(
     (targetAccSt.acc<TransformedFeatureDimensions>()).computed[perspective] = true;
 }
 
-Bitboard changed_bb(const PieceArray& oldArr, const PieceArray& newArr) noexcept {
+Bitboard changed_bb(const Position::PieceArray& oldPieces,
+                    const Position::PieceArray& newPieces) noexcept {
 #if defined(USE_AVX512) || defined(USE_AVX2)
     Bitboard samedBB = 0;
     for (std::size_t s = 0; s < SQUARE_NB; s += 32)
     {
-        __m256i oldV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(oldArr.data() + s));
-        __m256i newV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(newArr.data() + s));
-        __m256i cmpEqual = _mm256_cmpeq_epi8(oldV, newV);
+        __m256i oldV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(oldPieces.data() + s));
+        __m256i newV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(newPieces.data() + s));
+        __m256i cmpEqual        = _mm256_cmpeq_epi8(oldV, newV);
         std::uint32_t equalMask = _mm256_movemask_epi8(cmpEqual);
         samedBB |= Bitboard(equalMask) << s;
     }
@@ -218,7 +219,7 @@ Bitboard changed_bb(const PieceArray& oldArr, const PieceArray& newArr) noexcept
 #else
     Bitboard changedBB = 0;
     for (std::size_t s = 0; s < SQUARE_NB; ++s)
-        changedBB |= Bitboard(oldArr[s] != newArr[s]) << s;
+        changedBB |= Bitboard(oldPieces[s] != newPieces[s]) << s;
     return changedBB;
 #endif
 }
@@ -239,8 +240,8 @@ void update_accumulator_refresh_cache(Color                                 pers
 
     FeatureSet::IndexList removed, added;
 
-    auto pieces   = pos.pieces();
-    auto pieceArr = pos.piece_array();
+    auto  pieces   = pos.pieces();
+    auto& pieceArr = pos.piece_arr();
 
     Bitboard changedBB = changed_bb(entry.pieceArr, pieceArr);
 

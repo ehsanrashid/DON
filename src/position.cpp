@@ -741,7 +741,7 @@ void Position::do_castling(
 // Makes a move, and saves all necessary information to new state.
 // The move is assumed to be legal.
 DirtyPiece
-Position::do_move(Move m, State& newSt, bool check, const TranspositionTable* tt) noexcept {
+Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* tt) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
@@ -810,9 +810,9 @@ Position::do_move(Move m, State& newSt, bool check, const TranspositionTable* tt
         // clang-format on
         capturedPiece = NO_PIECE;
 
-        // Calculate checker only one ROOK possible (if move is check)
-        st->checkers = check ? square_bb(rDst) : 0;
-        assert(!check || (checkers() && popcount(checkers()) == 1));
+        // Calculate checker only one ROOK possible
+        st->checkers = inCheck ? square_bb(rDst) : 0;
+        assert(!inCheck || (checkers() && popcount(checkers()) == 1));
 
         goto DO_MOVE_END;
     }
@@ -918,9 +918,9 @@ Position::do_move(Move m, State& newSt, bool check, const TranspositionTable* tt
         }
     }
 
-    // Calculate checkers (if move is check)
-    st->checkers = check ? attackers_to(king_sq(~ac)) & pieces(ac) : 0;
-    assert(!check || (checkers() && popcount(checkers()) <= 2));
+    // Calculate checkers
+    st->checkers = inCheck ? attackers_to(king_sq(~ac)) & pieces(ac) : 0;
+    assert(!inCheck || (checkers() && popcount(checkers()) <= 2));
 
 DO_MOVE_END:
 
@@ -2041,7 +2041,7 @@ bool Position::pos_is_ok() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (Piece pc : Pieces[c])
             if (count(pc) != popcount(pieces(color_of(pc), type_of(pc)))
-                || count(pc) != board.count(pc))
+                || count(pc) != std::count(pieceArr.begin(), pieceArr.end(), pc))
                 assert(false && "Position::pos_is_ok(): Pieces");
 
     for (Color c : {WHITE, BLACK})
@@ -2061,44 +2061,30 @@ bool Position::pos_is_ok() const noexcept {
 }
 #endif
 
-std::ostream& operator<<(std::ostream& os, const Position::Board::Cardinal& cardinal) noexcept {
-    for (File f = FILE_A; f <= FILE_H; ++f)
-        os << " | " << to_char(cardinal.piece_on(f));
-    os << " | ";
-
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const Position::Board& board) noexcept {
+// Returns an ASCII representation of the position
+std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
     constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
 
     os << Sep;
     for (Rank r = RANK_8; r >= RANK_1; --r)
-        os << to_char(r) << board.cardinals[r] << Sep;
+    {
+        os << to_char(r);
+        for (File f = FILE_A; f <= FILE_H; ++f)
+            os << " | " << to_char(pos.piece_on(make_square(f, r)));
+        os << " | " << Sep;
+    }
     os << " ";
     for (File f = FILE_A; f <= FILE_H; ++f)
         os << "   " << to_char<true>(f);
     os << "\n";
 
-    return os;
-}
-
-// Returns an ASCII representation of the position
-std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
-
-    os << pos.board                                           //
-       << "\nFen: " << pos.fen()                              //
-       << "\nKey: " << u64_to_string(pos.key())               //
-       << "\nKing Squares: "                                  //
-       << to_square(pos.king_sq(pos.active_color())) << ", "  //
-       << to_square(pos.king_sq(~pos.active_color()))         //
-       << "\nCheckers: ";
-    Bitboard checkers = pos.checkers();
-    if (checkers)
-        while (checkers)
-            os << to_square(pop_lsb(checkers)) << " ";
-    else
-        os << "(none)";
+    os << "\nFen: " << pos.fen();
+    os << "\nKey: " << u64_to_string(pos.key());
+    os << "\nKing Squares: " << to_square(pos.king_sq(pos.active_color()))  //
+       << ", " << to_square(pos.king_sq(~pos.active_color()));
+    os << "\nCheckers: ";
+    for (Bitboard checkers = pos.checkers(); checkers;)
+        os << to_square(pop_lsb(checkers)) << " ";
     os << "\nRepetition: " << pos.repetition();
 
     if (Tablebases::MaxCardinality >= pos.count<ALL_PIECE>() && !pos.can_castle(ANY_CASTLING))
