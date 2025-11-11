@@ -134,8 +134,7 @@ struct HistoryDef<HContinuation> final {
 // It is used to improve quiet move ordering near the root.
 template<>
 struct HistoryDef<HLowPlyQuiet> final {
-    using Type =
-      MultiVector<StatsEntry<std::int16_t, QUIET_HISTORY_LIMIT>, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
+    using Type = StatsContainer<QUIET_HISTORY_LIMIT, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
 };
 
 template<>
