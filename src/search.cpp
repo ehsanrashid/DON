@@ -1497,9 +1497,9 @@ S_MOVES_LOOP:  // When in check, search starts here
                             // Increase bonus when bestValue is higher than previous static evaluation
                             + 149 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 70)
                             // Increase bonus when the previous moveCount is high
-                            +  21 * ((ss - 1)->moveCount - 1)
+                            +  64 * std::min((ss - 1)->moveCount / 4, 4)
                             // Increase bonus if the previous move has a bad history
-                            + int(-9.6154e-3 * (ss - 1)->history), 0);
+                            - int(9.6154e-3 * (ss - 1)->history), 0);
             // clang-format on
             int bonus = bonusScale * std::min(-92 + 144 * depth, +1365);
 
