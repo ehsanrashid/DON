@@ -21,6 +21,7 @@
 #include "bitboard.h"
 #include "misc.h"
 #include "position.h"
+#include "search.h"
 #include "syzygy/tbbase.h"
 #include "tune.h"
 #include "uci.h"
@@ -33,6 +34,7 @@ int main(int argc, const char* argv[]) {
 
     BitBoard::init();
     Position::init();
+    Search::init();
     Tablebases::init();
 
     auto uci = std::make_unique<UCI>(argc, argv);

@@ -527,20 +527,19 @@ class Worker final {
 
     Value evaluate(const Position& pos) noexcept;
 
+    // clang-format off
     void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept;
     void update_capture_history(const Position& pos, Move m, int bonus) noexcept;
     void update_quiet_history(Color ac, Move m, int bonus) noexcept;
     void update_pawn_history(Key pawnKey, Piece pc, Square dst, int bonus) noexcept;
     void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
-    void update_all_quiet_history(const Position& pos, Stack* const ss, Move m, int bonus) noexcept;
-    void update_all_history(const Position&      pos,
-                            Stack* const         ss,
-                            Depth                depth,
-                            Move                 bm,
-                            const MovesArray<2>& movesArr) noexcept;
+
+    void update_quiet_histories(const Position& pos, Stack* const ss, Move m, int bonus) noexcept;
+    void update_histories(const Position& pos, Stack* const ss, Depth depth, Move bm, const MovesArray<2>& movesArr) noexcept;
 
     void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* const ss) noexcept;
+    // clang-format on
 
     bool ponder_move_extracted() noexcept;
 

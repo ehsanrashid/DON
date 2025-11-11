@@ -125,9 +125,31 @@ void update_pv(Move* pv, Move m, const Move* childPv) noexcept {
     *pv = Move::None;
 }
 
-void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept;
+// Updates histories of the move pairs formed by
+// move at ply -1, -2, -3, -4, -5, -6, -7 and -8 with move at ply 0.
+void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept {
+    assert(is_ok(dst));
 
-Value adjust_static_eval(Value ev, int cv) noexcept;
+    constexpr StdArray<double, 8> ContHistoryWeights{
+      1.1299, 0.6328, 0.2812, 0.5625, 0.1367, 0.4307, 0.2222, 0.2167  //
+    };
+
+    for (std::size_t idx = 0; idx < ContHistoryWeights.size(); ++idx)
+    {
+        std::int16_t i      = idx + 1;
+        double       weight = ContHistoryWeights[idx];
+
+        // Only update the first 2 continuation histories if in check
+        if ((i > 2 && ss->inCheck) || !(ss - i)->move.is_ok())
+            break;
+
+        (*(ss - i)->pieceSqHistory)[pc][dst] << weight * bonus + 88 * (i < 2);
+    }
+}
+
+// Update raw staticEval according to various CorrectionHistory value
+// and guarantee evaluation does not hit the tablebase range.
+Value adjust_static_eval(Value ev, int cv) noexcept { return in_range(ev + 7.6294e-6 * cv); }
 
 }  // namespace
 
@@ -734,7 +756,7 @@ Value Worker::search(Position&    pos,
         {
             // Bonus for a quiet ttMove
             if (!ttCapture)
-                update_all_quiet_history(pos, ss, ttd.move, std::min(-71 + 130 * depth, +1043));
+                update_quiet_histories(pos, ss, ttd.move, std::min(-71 + 130 * depth, +1043));
 
             // Extra penalty for early quiet moves of the previous ply
             if (is_ok(preSq) && !preCapture && (ss - 1)->moveCount < 4)
@@ -1476,7 +1498,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
     {
-        update_all_history(pos, ss, depth, bestMove, movesArr);
+        update_histories(pos, ss, depth, bestMove, movesArr);
         if constexpr (!RootNode)
         {
             ttMoveHistory << (bestMove == ttd.move ? +809 : -865);
@@ -1839,6 +1861,8 @@ Value Worker::evaluate(const Position& pos) noexcept {
                          optimism[pos.active_color()]);
 }
 
+// clang-format off
+
 void Worker::update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept {
     captureHistory[pc][dst][captured] << bonus;
 }
@@ -1859,12 +1883,8 @@ void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus)
         lowPlyQuietHistory[ssPly][m.raw()] << bonus;
 }
 
-// clang-format off
-
-void Worker::update_all_quiet_history(const Position& pos,
-                                      Stack* const    ss,
-                                      Move            m,
-                                      int             bonus) noexcept {
+// Updates quiet histories (move sorting heuristics)
+void Worker::update_quiet_histories(const Position& pos, Stack* const ss, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
     update_quiet_history(pos.active_color(), m, 1.0000 * bonus);
@@ -1874,7 +1894,7 @@ void Worker::update_all_quiet_history(const Position& pos,
 }
 
 // Updates history at the end of search() when a bestMove is found
-void Worker::update_all_history(const Position& pos, Stack* const ss, Depth depth, Move bm, const MovesArray<2>& movesArr) noexcept {
+void Worker::update_histories(const Position& pos, Stack* const ss, Depth depth, Move bm, const MovesArray<2>& movesArr) noexcept {
     assert(pos.legal(bm));
     assert(ss->moveCount);
 
@@ -1887,11 +1907,11 @@ void Worker::update_all_history(const Position& pos, Stack* const ss, Depth dept
     }
     else
     {
-        update_all_quiet_history(pos, ss, bm, 0.8604 * bonus);
+        update_quiet_histories(pos, ss, bm, 0.8604 * bonus);
 
         // Decrease history for all non-best quiet moves
         for (auto qm : movesArr[0])
-            update_all_quiet_history(pos, ss, qm, -1.0576 * malus);
+            update_quiet_histories(pos, ss, qm, -1.0576 * malus);
     }
 
     // Decrease history for all non-best capture moves
@@ -2309,33 +2329,4 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
     return bestMove;
 }
 
-namespace {
-
-// Updates histories of the move pairs formed by
-// move at ply -1, -2, -3, -4, -5, -6, -7 and -8 with move at ply 0.
-void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept {
-    assert(is_ok(dst));
-
-    constexpr StdArray<double, 8> ContHistoryWeights{
-      1.1299, 0.6328, 0.2812, 0.5625, 0.1367, 0.4307, 0.2222, 0.2167  //
-    };
-
-    for (std::size_t idx = 0; idx < ContHistoryWeights.size(); ++idx)
-    {
-        std::int16_t i      = idx + 1;
-        double       weight = ContHistoryWeights[idx];
-
-        // Only update the first 2 continuation histories if in check
-        if ((i > 2 && ss->inCheck) || !(ss - i)->move.is_ok())
-            break;
-
-        (*(ss - i)->pieceSqHistory)[pc][dst] << weight * bonus + 88 * (i < 2);
-    }
-}
-
-// Update raw staticEval according to various CorrectionHistory value
-// and guarantee evaluation does not hit the tablebase range.
-Value adjust_static_eval(Value ev, int cv) noexcept { return in_range(ev + 7.6294e-6 * cv); }
-
-}  // namespace
 }  // namespace DON
