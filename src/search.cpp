@@ -1489,7 +1489,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (!preCapture)
         {
             // clang-format off
-            int bonusScale = std::max<int>(-228
+            int bonusScale = std::max(-228
                             // Increase bonus when depth is high
                             + std::min(63 * depth, 508)
                             // Increase bonus when bestValue is lower than current static evaluation
@@ -1499,7 +1499,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                             // Increase bonus when the previous moveCount is high
                             +  21 * ((ss - 1)->moveCount - 1)
                             // Increase bonus if the previous move has a bad history
-                            + -9.6154e-3 * (ss - 1)->history, 1);
+                            + int(-9.6154e-3 * (ss - 1)->history), 0);
             // clang-format on
             int bonus = bonusScale * std::min(-92 + 144 * depth, +1365);
 
