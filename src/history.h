@@ -115,10 +115,7 @@ struct HistoryDef<HQuiet> final {
 
 template<>
 struct HistoryDef<HPawn> final {
-    using Type = MultiVector<StatsEntry<std::int16_t, PAWN_HISTORY_LIMIT>,
-                             PAWN_HISTORY_SIZE,
-                             PIECE_NB,
-                             SQUARE_NB>;
+    using Type = StatsContainer<PAWN_HISTORY_LIMIT, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
 };
 
 template<>

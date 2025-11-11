@@ -207,6 +207,8 @@ void Worker::start_search() noexcept {
     }
     multiPV = std::min(multiPV, rootMoves.size());
 
+    lowPlyQuietHistory.fill(97);
+
     // Non-main threads go directly to iterative_deepening()
     if (mainManager == nullptr)
     {
@@ -224,8 +226,6 @@ void Worker::start_search() noexcept {
                                   options);
     if (!limit.infinite)
         tt.increment_generation();
-
-    lowPlyQuietHistory.fill(97);
 
     bool think = false;
 
