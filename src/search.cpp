@@ -604,7 +604,7 @@ void Worker::iterative_deepening() noexcept {
             if ( rootPos.cap_sq() == rootMoves[0].pv[0].dst_sq()
              && (rootPos.cap_sq() & rootPos.pieces(~ac))
              && rootPos.see(rootMoves[0].pv[0]) >= 200)
-                recaptureFactor -= 13.8400e-3 * std::min(+stableDepth, 25);
+                recaptureFactor -= 12.1350e-3 * std::min(+stableDepth, 25);
 
             // Calculate total time by combining all factors with the optimum time
             TimePoint totalTime = mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor;
