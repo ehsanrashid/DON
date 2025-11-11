@@ -943,8 +943,8 @@ Value Worker::search(Position&    pos,
                  + 6.3249e-6 * absCorrectionValue;
         };
 
-        if (!ss->pvHit && depth < 14 && eval >= beta && !is_win(eval) && !is_loss(beta)
-            && (ttd.move == Move::None || ttCapture) && eval - futility_margin(ttd.hit) >= beta)
+        if (!ss->pvHit && depth < 14 && eval >= beta && !is_loss(alpha) && !is_win(eval)
+            && (ttd.move == Move::None || !ttCapture) && eval - futility_margin(ttd.hit) >= beta)
             return (2 * beta + eval) / 3;
     }
 
@@ -1488,7 +1488,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (!moveCount)
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
-    else if (bestValue > beta && !is_decisive(bestValue) && !is_decisive(alpha))
+    else if (bestValue > beta && !is_loss(alpha) && !is_win(bestValue))
         bestValue = (depth * bestValue + beta) / (depth + 1);
 
     // Don't let best value inflate too high (tb)
@@ -1663,7 +1663,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Stand pat. Return immediately if bestValue is at least beta
     if (bestValue >= beta)
     {
-        if (bestValue > beta && !is_decisive(bestValue) && !is_decisive(alpha))
+        if (bestValue > beta && !is_loss(alpha) && !is_win(bestValue))
             bestValue = (bestValue + beta) / 2;
 
         if (!ttd.hit)
@@ -1810,7 +1810,7 @@ QS_MOVES_LOOP:
         }
     }
     // Adjust best value for fail high cases
-    else if (bestValue > beta && !is_decisive(bestValue) && !is_decisive(alpha))
+    else if (bestValue > beta && !is_loss(alpha) && !is_win(bestValue))
         bestValue = (bestValue + beta) / 2;
 
     // Save gathered info in transposition table
