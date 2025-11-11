@@ -44,6 +44,8 @@
     #include <string_view>
     #include <type_traits>
 
+    #include "misc.h"
+
 // Predefined macros hell:
 //
 // __GNUC__                Compiler is GCC, Clang or ICX
@@ -285,6 +287,49 @@ struct DirtyPiece final {
     // castling uses addSq and removeSq to remove and add the rook
     Square removeSq = SQ_NONE, addSq = SQ_NONE;
     Piece  removePc = NO_PIECE, addPc = NO_PIECE;
+};
+
+// Keep track of what threats change on the board (used by NNUE)
+struct DirtyThreat final {
+   public:
+    DirtyThreat() { /* don't initialize data */ }
+    DirtyThreat(Piece pc, Piece threatened_pc, Square pc_sq, Square threatened_sq, bool add) {
+        data = (add << 28) | (pc << 20) | (threatened_pc << 16) | (threatened_sq << 8) | (pc_sq);
+    }
+
+    Piece  pc() const { return static_cast<Piece>(data >> 20 & 0xF); }
+    Piece  threatened_pc() const { return static_cast<Piece>(data >> 16 & 0xF); }
+    Square threatened_sq() const { return static_cast<Square>(data >> 8 & 0xFF); }
+    Square pc_sq() const { return static_cast<Square>(data & 0xFF); }
+    bool   add() const {
+        uint32_t b = data >> 28;
+        ASSUME(b == 0 || b == 1);
+        return b;
+    }
+
+   private:
+    uint32_t data;
+};
+
+using DirtyThreatList = FixedVector<DirtyThreat, 64>;
+
+// A piece can be involved in at most 16 threat features, or 9 if it lies on the edge of the board.
+// This implies that a non-castling move can change at most 16 * 3 = 48 features.
+// A castling move can change at most 9 * 4 = 36 features.
+// Thus, 48 should work as an upper bound, but we use 64 to be safe.
+
+struct DirtyThreats final {
+   public:
+    DirtyThreatList list;
+    Color           ac;
+    Square          kingSq, preKingSq;
+
+    Bitboard threatenedBB, threateningBB;
+};
+
+struct DirtyBoardData final {
+    DirtyPiece   dp;
+    DirtyThreats dts;
 };
 
 // clang-format off
