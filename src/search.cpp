@@ -207,6 +207,8 @@ void Worker::start_search() noexcept {
     }
     multiPV = std::min(multiPV, rootMoves.size());
 
+    lowPlyQuietHistory.fill(97);
+
     // Non-main threads go directly to iterative_deepening()
     if (mainManager == nullptr)
     {
@@ -224,8 +226,6 @@ void Worker::start_search() noexcept {
                                   options);
     if (!limit.infinite)
         tt.increment_generation();
-
-    lowPlyQuietHistory.fill(97);
 
     bool think = false;
 
@@ -474,7 +474,7 @@ void Worker::iterative_deepening() noexcept {
                 else
                     break;
 
-                delta = std::min(int(1.3333 * delta), 2 * +VALUE_INFINITE);
+                delta *= 1.3333;
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
@@ -1116,7 +1116,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
             if (mp.quietAllowed)
-                mp.quietAllowed = (moveCount - promoCount) < ((3 + sqr(depth)) >> (!improve));
+                mp.quietAllowed = (moveCount - promoCount) < ((3 + depth * depth) >> (!improve));
 
             // Reduced depth of the next LMR search
             Depth lmrDepth = newDepth - r / 1024;
@@ -1178,10 +1178,11 @@ S_MOVES_LOOP:  // When in check, search starts here
                 lmrDepth = std::max(+lmrDepth, 0);
 
                 // SEE based pruning for quiets and checks
+                int margin = (check ? 50 * depth : 0) + 27 * lmrDepth * lmrDepth;
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW
                    || pos.non_pawn_value(ac) != PIECE_VALUE[type_of(movedPiece)])
-                  && pos.see(move) < -27 * sqr(lmrDepth))
+                  && pos.see(move) < -margin)
                     continue;
             }
         }
