@@ -107,9 +107,10 @@ class Position final {
 
     // Position representation
     [[nodiscard]] const PieceArray& piece_arr() const noexcept;
-    Piece                           piece_on(Square s) const noexcept;
-    bool                            empty_on(Square s) const noexcept;
-    Bitboard                        pieces() const noexcept;
+
+    Piece    piece_on(Square s) const noexcept;
+    bool     empty_on(Square s) const noexcept;
+    Bitboard pieces() const noexcept;
     template<typename... PieceTypes>
     Bitboard pieces(PieceTypes... pts) const noexcept;
     Bitboard pieces(Color c) const noexcept;
