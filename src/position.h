@@ -497,9 +497,8 @@ inline Piece Position::captured_piece() const noexcept { return st->capturedPiec
 inline Piece Position::promoted_piece() const noexcept { return st->promotedPiece; }
 
 inline Key Position::adjust_key(Key k, std::int8_t r50) const noexcept {
-    return st->rule50Count + r50 - R50_OFFSET < 0
-           ? k
-           : k ^ make_hash((st->rule50Count + r50 - R50_OFFSET) / R50_FACTOR);
+    std::int16_t idx = st->rule50Count + r50 - R50_OFFSET;
+    return idx < 0 ? k : k ^ make_hash(idx / R50_FACTOR);
 }
 
 inline Key Position::key(std::int8_t r50) const noexcept { return adjust_key(st->key, r50); }
@@ -625,9 +624,10 @@ inline void Position::reset_repetitions() noexcept {
 inline void Position::put_piece(Square s, Piece pc) noexcept {
     assert(is_ok(s) && is_ok(pc));
 
-    pieceArr[s] = pc;
-    typeBB[ALL_PIECE] |= typeBB[type_of(pc)] |= s;
-    colorBB[color_of(pc)] |= s;
+    pieceArr[s]  = pc;
+    Bitboard sBB = square_bb(s);
+    typeBB[ALL_PIECE] |= typeBB[type_of(pc)] |= sBB;
+    colorBB[color_of(pc)] |= sBB;
     ++pieceCount[pc];
     ++pieceCount[pc & PIECE_TYPE_NB];
 }
@@ -637,10 +637,11 @@ inline void Position::remove_piece(Square s) noexcept {
 
     Piece pc = pieceArr[s];
     assert(is_ok(pc) && count(pc));
-    pieceArr[s] = NO_PIECE;
-    typeBB[ALL_PIECE] ^= s;
-    typeBB[type_of(pc)] ^= s;
-    colorBB[color_of(pc)] ^= s;
+    pieceArr[s]  = NO_PIECE;
+    Bitboard sBB = square_bb(s);
+    typeBB[ALL_PIECE] ^= sBB;
+    typeBB[type_of(pc)] ^= sBB;
+    colorBB[color_of(pc)] ^= sBB;
     --pieceCount[pc];
     --pieceCount[pc & PIECE_TYPE_NB];
 }
@@ -650,12 +651,12 @@ inline void Position::move_piece(Square s1, Square s2) noexcept {
 
     Piece pc = pieceArr[s1];
     assert(is_ok(pc));
-    pieceArr[s1]  = NO_PIECE;
-    pieceArr[s2]  = pc;
-    Bitboard s1s2 = s1 | s2;
-    typeBB[ALL_PIECE] ^= s1s2;
-    typeBB[type_of(pc)] ^= s1s2;
-    colorBB[color_of(pc)] ^= s1s2;
+    pieceArr[s1]    = NO_PIECE;
+    pieceArr[s2]    = pc;
+    Bitboard s1s2BB = make_bitboard(s1, s2);
+    typeBB[ALL_PIECE] ^= s1s2BB;
+    typeBB[type_of(pc)] ^= s1s2BB;
+    colorBB[color_of(pc)] ^= s1s2BB;
 }
 
 inline DirtyPiece Position::do_move(Move m, State& newSt, const TranspositionTable* tt) noexcept {

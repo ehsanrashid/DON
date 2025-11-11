@@ -741,7 +741,7 @@ void Position::do_castling(
 // Makes a move, and saves all necessary information to new state.
 // The move is assumed to be legal.
 DirtyPiece
-Position::do_move(Move m, State& newSt, bool check, const TranspositionTable* tt) noexcept {
+Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* tt) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
@@ -810,9 +810,9 @@ Position::do_move(Move m, State& newSt, bool check, const TranspositionTable* tt
         // clang-format on
         capturedPiece = NO_PIECE;
 
-        // Calculate checker only one ROOK possible (if move is check)
-        st->checkers = check ? square_bb(rDst) : 0;
-        assert(!check || (checkers() && popcount(checkers()) == 1));
+        // Calculate checker only one ROOK possible
+        st->checkers = inCheck ? square_bb(rDst) : 0;
+        assert(!inCheck || (checkers() && popcount(checkers()) == 1));
 
         goto DO_MOVE_END;
     }
@@ -918,9 +918,9 @@ Position::do_move(Move m, State& newSt, bool check, const TranspositionTable* tt
         }
     }
 
-    // Calculate checkers (if move is check)
-    st->checkers = check ? attackers_to(king_sq(~ac)) & pieces(ac) : 0;
-    assert(!check || (checkers() && popcount(checkers()) <= 2));
+    // Calculate checkers
+    st->checkers = inCheck ? attackers_to(king_sq(~ac)) & pieces(ac) : 0;
+    assert(!inCheck || (checkers() && popcount(checkers()) <= 2));
 
 DO_MOVE_END:
 
