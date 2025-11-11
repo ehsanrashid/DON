@@ -24,7 +24,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>
-#include <numeric>
 #include <string>
 #include <string_view>
 
@@ -75,8 +74,6 @@ struct State final {
     State* preSt;
 };
 
-using PieceArray = StdArray<Piece, SQUARE_NB>;
-
 inline constexpr std::uint8_t R50_OFFSET = 14;
 inline constexpr std::uint8_t R50_FACTOR = 8;
 
@@ -86,6 +83,8 @@ inline constexpr std::uint8_t R50_FACTOR = 8;
 // used by the search to update node info when traversing the search tree.
 class Position final {
    public:
+    using PieceArray = StdArray<Piece, SQUARE_NB>;
+
     static void init() noexcept;
 
     static inline bool         Chess960      = false;
@@ -323,7 +322,7 @@ class Position final {
     State*                                          st;
 };
 
-inline const PieceArray& Position::piece_arr() const noexcept { return pieceArr; }
+inline const Position::PieceArray& Position::piece_arr() const noexcept { return pieceArr; }
 
 inline Piece Position::piece_on(Square s) const noexcept {
     assert(is_ok(s));

@@ -27,14 +27,12 @@
 #include <cstring>
 
 #include "../misc.h"
+#include "../position.h"
 #include "../types.h"
 #include "nnue_architecture.h"
 #include "nnue_common.h"
 
 namespace DON {
-
-using PieceArray = StdArray<Piece, SQUARE_NB>;
-class Position;
 
 namespace NNUE {
 
@@ -88,7 +86,7 @@ struct AccumulatorCaches final {
             StdArray<BiasType, Size>              accumulation{};
             StdArray<PSQTWeightType, PSQTBuckets> psqtAccumulation{};
             Bitboard                              pieces{};
-            PieceArray                            pieceArr{};
+            Position::PieceArray                  pieceArr{};
         };
 
         template<typename Network>
