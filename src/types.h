@@ -293,8 +293,8 @@ struct DirtyPiece final {
 struct DirtyThreat final {
    public:
     DirtyThreat() { /* don't initialize data */ }
-    DirtyThreat(Piece pc, Piece threatenedPc, Square pcSq, Square threatenedSq, bool add) noexcept {
-        data = (add << 28) | (threatenedPc << 20) | (pc << 16) | (threatenedSq << 8) | (pcSq << 0);
+    DirtyThreat(Piece pc, Piece threatenedPc, Square sq, Square threatenedSq, bool add) noexcept {
+        data = (add << 28) | (threatenedPc << 20) | (pc << 16) | (threatenedSq << 8) | (sq << 0);
     }
 
     Piece  threatened_pc() const noexcept { return Piece((data >> 20) & 0xF); }
@@ -324,13 +324,13 @@ struct DirtyThreats final {
     Color           ac;
     Square          kingSq, preKingSq;
 
-    Bitboard threatenedBB, threateningBB;
+    Bitboard threateningBB, threatenedBB;
 
     template<bool PutPiece>
-    void add_dirty_threat(Piece pc, Piece threatenedPc, Square pcSq, Square threatenedSq) noexcept;
+    void add(Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept;
 };
 
-struct DirtyBoardData final {
+struct DirtyBoard final {
     DirtyPiece   dp;
     DirtyThreats dts;
 };

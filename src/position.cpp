@@ -745,7 +745,7 @@ void Position::do_castling(Color               ac,
 
 // Makes a move, and saves all necessary information to new state.
 // The move is assumed to be legal.
-DirtyPiece
+DirtyBoard
 Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* tt) noexcept {
     assert(legal(m));
     assert(&newSt != st);
@@ -785,6 +785,12 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
     dp.org   = org;
     dp.dst   = dst;
     dp.addSq = SQ_NONE;
+    DirtyThreats dts;
+    dts.ac            = ac;
+    dts.preKingSq     = king_sq(ac);
+    dts.threateningBB = 0;
+    dts.threatenedBB  = 0;
+    assert(is_ok(dts.preKingSq));
 
     // Reset en-passant square
     if (is_ok(ep_sq()))
@@ -805,7 +811,7 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
         assert(!has_castled(ac));
 
         Square rOrg, rDst;
-        do_castling<true>(ac, org, dst, rOrg, rDst, &dp);
+        do_castling<true>(ac, org, dst, rOrg, rDst, &dp, &dts);
         assert(rOrg == m.dst_sq());
         //rookMoved = rOrg != rDst;
 
@@ -844,6 +850,9 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
                 assert(rule50_count() == 1);
                 assert(st->preSt->epSq == dst);
                 assert(st->preSt->rule50Count == 0);
+
+                // Remove the captured pawn
+                remove_piece(capSq);
             }
 
             st->pawnKey[~ac] ^= Zobrist::psq[capturedPiece][capSq];
@@ -859,15 +868,21 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
         dp.removePc = capturedPiece;
 
         st->capSq = dst;
-        // Remove the captured piece
-        remove_piece(capSq);
+
         // Update hash key
         k ^= Zobrist::psq[capturedPiece][capSq];
         // Reset rule 50 draw counter
         reset_rule50_count();
     }
 
-    move_piece(org, dst);
+    if (is_ok(capturedPiece) && m.type_of() != EN_PASSANT)
+    {
+        // Remove the captured piece
+        remove_piece(org, &dts);
+        swap_piece(dst, movedPiece, &dts);
+    }
+    else
+        move_piece(org, dst, &dts);
 
     // If the moving piece is a pawn do some special extra work
     if (type_of(movedPiece) == PAWN)
@@ -886,8 +901,7 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
             dp.addSq = dst;
             dp.addPc = promotedPiece;
 
-            remove_piece(dst);
-            put_piece(dst, promotedPiece);
+            swap_piece(dst, promotedPiece, &dts);
             assert(count(promotedPiece));
             assert(Zobrist::psq[movedPiece][dst] == 0);
             // Update hash keys
@@ -928,6 +942,8 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
     assert(!inCheck || (checkers() && popcount(checkers()) <= 2));
 
 DO_MOVE_END:
+
+    dts.kingSq = king_sq(ac);
 
     // Update hash key
     k ^= Zobrist::psq[movedPiece][org] ^ Zobrist::psq[movedPiece][dst];
@@ -991,7 +1007,7 @@ DO_MOVE_END:
     // The way castling is implemented, this check may fail in Chess960.
     assert(is_ok(dp.removeSq) ^ !(is_ok(capturedPiece) || m.type_of() == CASTLING));
     assert(is_ok(dp.addSq) ^ !(m.type_of() == PROMOTION || m.type_of() == CASTLING));
-    return dp;
+    return {dp, dts};
 }
 
 // Unmakes a move, restoring the position to its exact state before the move was made.

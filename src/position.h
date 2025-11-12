@@ -168,9 +168,9 @@ class Position final {
     Bitboard attacks_by(Color c) const noexcept;
 
     // Doing and undoing moves
-    DirtyPiece
-    do_move(Move m, State& newSt, bool check, const TranspositionTable* tt = nullptr) noexcept;
-    DirtyPiece do_move(Move m, State& newSt, const TranspositionTable* tt = nullptr) noexcept;
+    DirtyBoard
+    do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* tt = nullptr) noexcept;
+    DirtyBoard do_move(Move m, State& newSt, const TranspositionTable* tt = nullptr) noexcept;
     void       undo_move(Move m) noexcept;
     void       do_null_move(State& newSt, const TranspositionTable* tt = nullptr) noexcept;
     void       undo_null_move() noexcept;
@@ -293,9 +293,10 @@ class Position final {
 
     // Other helpers
     Piece move_piece(Square s1, Square s2, DirtyThreats* const dts = nullptr) noexcept;
+    void swap_piece(Square s, Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
 
     template<bool PutPiece, bool ComputeRay = true>
-    void update_piece_threats(Piece pc, Square s, DirtyThreats* const dts);
+    void update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept;
 
     template<bool Do>
     void do_castling(Color               ac,
@@ -682,23 +683,34 @@ inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts)
     return pc;
 }
 
+inline void Position::swap_piece(Square s, Piece newPc, DirtyThreats* const dts) noexcept {
+
+    Piece oldPc = remove_piece(s);
+
+    if (dts != nullptr)
+        update_piece_threats<false, false>(oldPc, s, dts);
+
+    put_piece(s, newPc);
+
+    if (dts != nullptr)
+        update_piece_threats<true, false>(newPc, s, dts);
+}
+
 template<bool PutPiece>
-inline void DirtyThreats::add_dirty_threat(Piece  pc,
-                                           Piece  threatenedPc,
-                                           Square pcSq,
-                                           Square threatenedSq) noexcept {
+inline void
+DirtyThreats::add(Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept {
     if (PutPiece)
     {
+        threateningBB |= sq;
         threatenedBB |= threatenedSq;
-        threateningBB |= pcSq;
     }
 
-    list.push_back({pc, threatenedPc, pcSq, threatenedSq, PutPiece});
+    list.push_back({pc, threatenedPc, sq, threatenedSq, PutPiece});
 }
 
 // Add newly threatened pieces
 template<bool PutPiece, bool ComputeRay>
-inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) {
+inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept {
     Bitboard occupied = pieces();
 
     Bitboard rAttacks = attacks_bb<ROOK>(s, occupied);
@@ -710,7 +722,10 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
     switch (type_of(pc))
     {
     case PAWN :
-        threatened = AttacksBBs[color_of(pc)][s];
+        threatened = attacks_bb<PAWN>(s, color_of(pc));
+        break;
+    case KNIGHT :
+        threatened = attacks_bb<KNIGHT>(s);
         break;
     case BISHOP :
         threatened = bAttacks;
@@ -721,8 +736,12 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
     case QUEEN :
         threatened = qAttacks;
         break;
+    case KING :
+        threatened = attacks_bb<KING>(s);
+        break;
     default :
-        threatened = AttacksBBs[type_of(pc)][s];
+        assert(false);
+        threatened = 0;
     }
 
     threatened &= occupied;
@@ -735,10 +754,11 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
         assert(threatenedSq != s);
         assert(is_ok(threatenedPc));
 
-        dts->add_dirty_threat<PutPiece>(pc, threatenedPc, s, threatenedSq);
+        dts->add<PutPiece>(pc, threatenedPc, s, threatenedSq);
     }
 
-    Bitboard sliders = (pieces(ROOK, QUEEN) & rAttacks) | (pieces(BISHOP, QUEEN) & bAttacks);
+    Bitboard sliders = (pieces(QUEEN, BISHOP) & bAttacks)  //
+                     | (pieces(QUEEN, ROOK) & rAttacks);
 
     Bitboard incomingThreats = (attacks_bb<KNIGHT>(s) & pieces(KNIGHT))            //
                              | (attacks_bb<PAWN>(s, WHITE) & pieces(BLACK, PAWN))  //
@@ -759,9 +779,9 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
             Square threatenedSq = lsb(threatened);
             Piece  threatenedPc = piece_on(threatenedSq);
 
-            dts->add_dirty_threat<!PutPiece>(sliderPc, threatenedPc, sliderSq, threatenedSq);
+            dts->add<!PutPiece>(sliderPc, threatenedPc, sliderSq, threatenedSq);
         }
-        dts->add_dirty_threat<PutPiece>(sliderPc, pc, sliderSq, s);
+        dts->add<PutPiece>(sliderPc, pc, sliderSq, s);
     }
 
     // Add threats of sliders that were already threatening s,
@@ -774,11 +794,11 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
         assert(srcSq != s);
         assert(is_ok(srcPc));
 
-        dts->add_dirty_threat<PutPiece>(srcPc, pc, srcSq, s);
+        dts->add<PutPiece>(srcPc, pc, srcSq, s);
     }
 }
 
-inline DirtyPiece Position::do_move(Move m, State& newSt, const TranspositionTable* tt) noexcept {
+inline DirtyBoard Position::do_move(Move m, State& newSt, const TranspositionTable* tt) noexcept {
     return do_move(m, newSt, check(m), tt);
 }
 
