@@ -91,12 +91,11 @@ void init_threat_offsets() {
     int cumulativeOffset = 0;
     for (Piece piece : Pieces)
     {
-        int pieceIdx              = piece;
         int cumulativePieceOffset = 0;
 
         for (Square org = SQ_A1; org <= SQ_H8; ++org)
         {
-            offsets[pieceIdx][org] = cumulativePieceOffset;
+            offsets[piece][org] = cumulativePieceOffset;
 
             if (type_of(piece) != PAWN)
             {
@@ -105,16 +104,17 @@ void init_threat_offsets() {
             }
             else if (SQ_A2 <= org && org <= SQ_H7)
             {
-                Bitboard attacks = (pieceIdx < 8) ? pawn_attacks_bb<WHITE>(square_bb(org))
-                                                  : pawn_attacks_bb<BLACK>(square_bb(org));
+                Bitboard attacks = color_of(piece) == WHITE
+                                   ? pawn_attacks_bb<WHITE>(square_bb(org))
+                                   : pawn_attacks_bb<BLACK>(square_bb(org));
                 cumulativePieceOffset += popcount(attacks);
             }
         }
 
-        offsets[pieceIdx][64] = cumulativePieceOffset;
-        offsets[pieceIdx][65] = cumulativeOffset;
+        offsets[piece][64] = cumulativePieceOffset;
+        offsets[piece][65] = cumulativeOffset;
 
-        cumulativeOffset += numValidTargets[pieceIdx] * cumulativePieceOffset;
+        cumulativeOffset += numValidTargets[piece] * cumulativePieceOffset;
     }
 
     init_index_luts();
