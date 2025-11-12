@@ -19,6 +19,7 @@
 
 #include "full_threats.h"
 
+#include <array>
 #include <initializer_list>
 
 #include "../../bitboard.h"
@@ -92,14 +93,15 @@ void FullThreats::init() noexcept {
     for (Color attackerC : {WHITE, BLACK})
         for (Piece attacker : Pieces[attackerC])
         {
+            PieceType attackerType = type_of(attacker);
+
             for (Color attackedC : {WHITE, BLACK})
                 for (Piece attacked : Pieces[attackedC])
                 {
                     bool      enemy        = (attacker ^ attacked) == 8;
-                    PieceType attackerType = type_of(attacker);
                     PieceType attackedType = type_of(attacked);
 
-                    int map = FullThreats::map[attackerType - 1][attackedType - 1];
+                    int map = FullThreats::Map[attackerType - 1][attackedType - 1];
 
                     bool excluded = map < 0;
                     bool semiExcluded =

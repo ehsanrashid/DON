@@ -41,7 +41,7 @@ class FullThreats final {
 
     // clang-format off
     // Orient a square according to perspective (rotates by 180 for black)
-    static constexpr int OrientTBL[COLOR_NB][SQUARE_NB] = {
+    static constexpr StdArray<int, COLOR_NB, SQUARE_NB> OrientTBL{{
       { SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
         SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
         SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
@@ -58,16 +58,16 @@ class FullThreats final {
         SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
         SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
         SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8 }
-    };
+    }};
 
-    static constexpr int map[PIECE_TYPE_NB-2][PIECE_TYPE_NB-2] = {
+    static constexpr StdArray<int, PIECE_TYPE_NB - 2, PIECE_TYPE_NB - 2> Map{{
       {0,  1, -1,  2, -1, -1},
       {0,  1,  2,  3,  4,  5},
       {0,  1,  2,  3, -1,  4},
       {0,  1,  2,  3, -1,  4},
       {0,  1,  2,  3,  4,  5},
       {0,  1,  2,  3, -1, -1}
-    };
+    }};
     // clang-format on
 
     struct FusedUpdateData final {
