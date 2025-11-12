@@ -212,7 +212,7 @@ void Network<Arch, Transformer>::verify(std::string evalFileName) const noexcept
 
     std::string msg = "NNUE evaluation using " + evalFileName + " ("
                     + std::to_string(size / (1024 * 1024)) + "MiB, ("
-                    + std::to_string(featureTransformer.InputDimensions) + ", "
+                    + std::to_string(featureTransformer.TotalInputDimensions) + ", "
                     + std::to_string(network[0].TransformedFeatureDimensions) + ", "
                     + std::to_string(network[0].FC_0_Outputs) + ", "  //
                     + std::to_string(network[0].FC_1_Outputs) + ", 1))";

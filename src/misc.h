@@ -164,26 +164,26 @@ namespace internal {
 
 template<typename T, std::size_t Size, std::size_t... Sizes>
 struct StdArrayDef final {
-    static_assert(Size > 0, "dimension must be > 0");
+    static_assert(Size >= 0, "dimension must be >= 0");
     using type = std::array<typename StdArrayDef<T, Sizes...>::type, Size>;
 };
 
 template<typename T, std::size_t Size>
 struct StdArrayDef<T, Size> final {
-    static_assert(Size > 0, "dimension must be > 0");
+    static_assert(Size >= 0, "dimension must be >= 0");
     using type = std::array<T, Size>;
 };
 
 // Recursive template to define multi-dimensional array
 template<typename T, std::size_t Size, std::size_t... Sizes>
 struct MultiArrayDef final {
-    static_assert(Size > 0, "dimension must be > 0");
+    static_assert(Size >= 0, "dimension must be >= 0");
     using Type = MultiArray<T, Sizes...>;
 };
 // Base case: single-dimensional array
 template<typename T, std::size_t Size>
 struct MultiArrayDef<T, Size> final {
-    static_assert(Size > 0, "dimension must be > 0");
+    static_assert(Size >= 0, "dimension must be >= 0");
     using Type = T;
 };
 }  // namespace internal

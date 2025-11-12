@@ -31,12 +31,6 @@ namespace DON {
 
 namespace NNUE::Features {
 
-static constexpr int numValidTargets[PIECE_NB]{0, 6, 12, 10, 10, 12, 8, 0,
-                                               0, 6, 12, 10, 10, 12, 8, 0};
-extern IndexType     offsets[PIECE_NB][SQUARE_NB + 2];
-
-void init() noexcept;
-
 class FullThreats final {
    public:
     // Hash value embedded in the evaluation file
@@ -77,10 +71,10 @@ class FullThreats final {
     // clang-format on
 
     struct FusedUpdateData final {
-        Bitboard dp2removedOriginBoard = 0;
-        Bitboard dp2removedTargetBoard = 0;
+        Bitboard dp2removedOriginBB = 0;
+        Bitboard dp2removedTargetBB = 0;
 
-        Square dp2removed;
+        Square dp2removedSq;
     };
 
     // Maximum number of simultaneously active features.
@@ -89,20 +83,23 @@ class FullThreats final {
     using DirtyType = DirtyThreats;
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
-    static IndexType
-    make_index(Color perspective, Piece attkr, Square from, Square to, Piece attkd, Square ksq);
+    static void init() noexcept;
+
+    static IndexType make_index(
+      Color perspective, Piece attkr, Square from, Square to, Piece attkd, Square ksq) noexcept;
 
     // Get a list of indices for active features
-    static void append_active_indices(Color perspective, const Position& pos, IndexList& active);
+    static void
+    append_active_indices(Color perspective, const Position& pos, IndexList& active) noexcept;
 
     // Get a list of indices for recently changed features
     static void append_changed_indices(Color            perspective,
-                                       Square           ksq,
+                                       Square           kingSq,
                                        const DirtyType& dt,
                                        IndexList&       removed,
                                        IndexList&       added,
                                        FusedUpdateData* fd    = nullptr,
-                                       bool             first = false);
+                                       bool             first = false) noexcept;
 
     // Returns whether the change stored in this DirtyType means
     // that a full accumulator refresh is required.

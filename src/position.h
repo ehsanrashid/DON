@@ -293,7 +293,7 @@ class Position final {
 
     // Other helpers
     Piece move_piece(Square s1, Square s2, DirtyThreats* const dts = nullptr) noexcept;
-    void swap_piece(Square s, Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
+    void  swap_piece(Square s, Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
 
     template<bool PutPiece, bool ComputeRay = true>
     void update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept;

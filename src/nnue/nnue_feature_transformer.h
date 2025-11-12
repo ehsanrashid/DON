@@ -60,13 +60,13 @@ constexpr void permute(std::array<T, N>&                         data,
     constexpr std::size_t ChunkSize = BlockSize * OrderSize;
     static_assert(TotalSize % ChunkSize == 0, "ChunkSize must perfectly divide TotalSize");
 
-    std::byte* const byts = reinterpret_cast<std::byte*>(data.data());
+    std::uint8_t* const byts = reinterpret_cast<std::uint8_t*>(data.data());
 
     for (std::size_t i = 0; i < TotalSize; i += ChunkSize)
     {
-        std::array<std::byte, ChunkSize> buffer{};
+        std::array<std::uint8_t, ChunkSize> buffer{};
 
-        std::byte* const values = &byts[i];
+        std::uint8_t* const values = &byts[i];
 
         for (std::size_t j = 0; j < OrderSize; ++j)
         {
@@ -84,7 +84,7 @@ constexpr void permute(std::array<T, N>&                         data,
 template<IndexType TransformedFeatureDimensions>
 class FeatureTransformer final {
 
-    static constexpr bool use_threats =
+    static constexpr bool UseThreats =
       (TransformedFeatureDimensions == BigTransformedFeatureDimensions);
 
     // Number of output dimensions for one side
@@ -98,7 +98,7 @@ class FeatureTransformer final {
     static constexpr IndexType InputDimensions       = PSQFeatureSet::Dimensions;
     static constexpr IndexType ThreatInputDimensions = ThreatFeatureSet::Dimensions;
     static constexpr IndexType TotalInputDimensions =
-      InputDimensions + (use_threats ? ThreatInputDimensions : 0);
+      InputDimensions + (UseThreats ? ThreatInputDimensions : 0);
 
     static constexpr IndexType OutputDimensions = HalfDimensions;
 
@@ -107,8 +107,7 @@ class FeatureTransformer final {
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t hash() noexcept {
-        return (use_threats ? ThreatFeatureSet::Hash : PSQFeatureSet::Hash)
-             ^ (OutputDimensions * 2);
+        return (UseThreats ? ThreatFeatureSet::Hash : PSQFeatureSet::Hash) ^ (OutputDimensions * 2);
     }
 
     std::size_t content_hash() const noexcept {
@@ -146,11 +145,11 @@ class FeatureTransformer final {
 
     template<bool Read>
     void permute_weights() noexcept {
-        constexpr auto& order = Read ? PackusEpi16Order : InversePackusEpi16Order;
-        permute<16>(biases, order);
-        permute<16>(weights, order);
-        if (use_threats)
-            permute<8>(threatWeights, order);
+        constexpr auto& Order = Read ? PackusEpi16Order : InversePackusEpi16Order;
+        permute<16>(biases, Order);
+        permute<16>(weights, Order);
+        if (UseThreats)
+            permute<8>(threatWeights, Order);
     }
 
     template<bool Read>
@@ -173,7 +172,7 @@ class FeatureTransformer final {
 
         read_leb_128(istream, biases);
 
-        if (use_threats)
+        if (UseThreats)
         {
             auto combinedWeights =
               std::make_unique<std::array<WeightType, TotalInputDimensions * HalfDimensions>>();
@@ -207,7 +206,7 @@ class FeatureTransformer final {
         }
 
         permute_weights<true>();
-        if (use_threats)
+        if (UseThreats)
         {}
         else
         {
@@ -222,7 +221,7 @@ class FeatureTransformer final {
         std::unique_ptr<FeatureTransformer> copy = std::make_unique<FeatureTransformer>(*this);
 
         copy->template permute_weights<false>();
-        if (use_threats)
+        if (UseThreats)
         {}
         else
         {
@@ -231,7 +230,7 @@ class FeatureTransformer final {
 
         write_leb_128(ostream, copy->biases);
 
-        if (use_threats)
+        if (UseThreats)
         {
             auto combinedWeights =
               std::make_unique<std::array<WeightType, TotalInputDimensions * HalfDimensions>>();
@@ -272,10 +271,10 @@ class FeatureTransformer final {
                            AccumulatorStack&                         accStack,
                            AccumulatorCaches::Cache<HalfDimensions>& cache,
                            std::size_t                               bucket,
-                           std::array<OutputType, BufferSize>&       output) const {
+                           StdArray<OutputType, BufferSize>&         output) const {
         using namespace SIMD;
 
-        const std::array<Color, COLOR_NB> perspectives{pos.active_color(), ~pos.active_color()};
+        const StdArray<Color, COLOR_NB> perspectives{pos.active_color(), ~pos.active_color()};
 
         accStack.evaluate(pos, *this, cache);
 
@@ -288,7 +287,7 @@ class FeatureTransformer final {
 
         auto psqt = psqtAccumulation[perspectives[0]][bucket]  //
                   - psqtAccumulation[perspectives[1]][bucket];
-        if (use_threats)
+        if (UseThreats)
             psqt += threatPsqtAccumulation[perspectives[0]][bucket]
                   - threatPsqtAccumulation[perspectives[1]][bucket];
 
@@ -365,7 +364,7 @@ class FeatureTransformer final {
             // to the left by 1, so we compensate by shifting less before
             // the multiplication.
             const vec_t Zero = vec_zero();
-            const vec_t One  = vec_set_16(use_threats ? 255 : 127 * 2);
+            const vec_t One  = vec_set_16(UseThreats ? 255 : 127 * 2);
 
             constexpr int shift =
     #if defined(USE_SSE2)
@@ -375,7 +374,7 @@ class FeatureTransformer final {
     #endif
               ;
 
-            if (use_threats)
+            if (UseThreats)
             {
                 const vec_t* tin0 =
                   reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
@@ -422,7 +421,7 @@ class FeatureTransformer final {
                 BiasType sum0 = accumulation[perspectives[p]][j + 0];
                 BiasType sum1 = accumulation[perspectives[p]][j + HalfDimensions / 2];
 
-                if (use_threats)
+                if (UseThreats)
                 {
                     BiasType tsum0 = threatAccumulation[perspectives[p]][j + 0];
                     BiasType tsum1 = threatAccumulation[perspectives[p]][j + HalfDimensions / 2];
@@ -445,11 +444,11 @@ class FeatureTransformer final {
     }
 
     // clang-format off
-    alignas(CACHE_LINE_SIZE) std::array<BiasType, HalfDimensions> biases;
-    alignas(CACHE_LINE_SIZE) std::array<WeightType, InputDimensions * HalfDimensions> weights;
-    alignas(CACHE_LINE_SIZE) std::array<PSQTWeightType, InputDimensions * PSQTBuckets> psqtWeights;
-    alignas(CACHE_LINE_SIZE) std::array<ThreatWeightType, use_threats ? ThreatInputDimensions * HalfDimensions : 0> threatWeights;
-    alignas(CACHE_LINE_SIZE) std::array<PSQTWeightType, use_threats ? ThreatInputDimensions * PSQTBuckets : 0> threatPsqtWeights;
+    alignas(CACHE_LINE_SIZE) StdArray<BiasType, HalfDimensions> biases;
+    alignas(CACHE_LINE_SIZE) StdArray<WeightType, InputDimensions * HalfDimensions> weights;
+    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType, InputDimensions * PSQTBuckets> psqtWeights;
+    alignas(CACHE_LINE_SIZE) StdArray<ThreatWeightType, UseThreats ? ThreatInputDimensions * HalfDimensions : 0> threatWeights;
+    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType, UseThreats ? ThreatInputDimensions * PSQTBuckets : 0> threatPsqtWeights;
     // clang-format on
 };
 

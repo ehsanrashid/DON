@@ -38,10 +38,6 @@ namespace {
 
 constexpr std::size_t PawnOffset = 8;
 
-constexpr StdArray<Piece, COLOR_NB, 6> Pieces{{
-  {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING},  //
-  {B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING}   //
-}};
 constexpr StdArray<Piece, COLOR_NB, 4> NonPawnPieces{{
   {W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN},  //
   {B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN}   //

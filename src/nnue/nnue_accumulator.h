@@ -36,8 +36,6 @@ namespace DON {
 
 namespace NNUE {
 
-struct Networks;
-
 template<IndexType TransformedFeatureDimensions>
 class FeatureTransformer;
 
@@ -106,9 +104,16 @@ struct AccumulatorCaches final {
     using BigCache   = Cache<BigTransformedFeatureDimensions>;
     using SmallCache = Cache<SmallTransformedFeatureDimensions>;
 
-    explicit AccumulatorCaches(const Networks& networks) noexcept { init(networks); }
+    template<typename Networks>
+    explicit AccumulatorCaches(const Networks& networks) noexcept {
+        init(networks);
+    }
 
-    void init(const Networks& networks) noexcept;
+    template<typename Networks>
+    void init(const Networks& networks) noexcept {
+        big.init(networks.big);
+        small.init(networks.small);
+    }
 
     BigCache   big{};
     SmallCache small{};
@@ -160,7 +165,7 @@ struct AccumulatorStack final {
     constexpr AccumulatorStack() noexcept = default;
 
     template<typename T>
-    [[nodiscard]] const std::array<AccumulatorState<T>, MaxSize>& accumulators() const noexcept;
+    [[nodiscard]] const StdArray<AccumulatorState<T>, MaxSize>& accumulators() const noexcept;
 
     template<typename T>
     [[nodiscard]] const AccumulatorState<T>& state() const noexcept;
@@ -176,7 +181,7 @@ struct AccumulatorStack final {
 
    private:
     template<typename T>
-    [[nodiscard]] std::array<AccumulatorState<T>, MaxSize>& mut_accumulators() noexcept;
+    [[nodiscard]] StdArray<AccumulatorState<T>, MaxSize>& mut_accumulators() noexcept;
 
     template<typename T>
     [[nodiscard]] AccumulatorState<T>& mut_state() noexcept;
@@ -203,9 +208,9 @@ struct AccumulatorStack final {
                                      const FeatureTransformer<Dimensions>& featureTransformer,
                                      std::size_t                           end) noexcept;
 
-    std::array<AccumulatorState<PSQFeatureSet>, MaxSize>    psq_accumulators;
-    std::array<AccumulatorState<ThreatFeatureSet>, MaxSize> threat_accumulators;
-    std::size_t                                             size{1};
+    StdArray<AccumulatorState<PSQFeatureSet>, MaxSize>    psqAccumulators;
+    StdArray<AccumulatorState<ThreatFeatureSet>, MaxSize> threatAccumulators;
+    std::size_t                                           size{1};
 };
 
 }  // namespace NNUE

@@ -35,7 +35,7 @@ int main(int argc, const char* argv[]) {
 
     BitBoard::init();
     Position::init();
-    NNUE::Features::init();
+    NNUE::Features::FullThreats::init();
     Search::init();
     Tablebases::init();
 

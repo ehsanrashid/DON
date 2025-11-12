@@ -142,6 +142,11 @@ enum Piece : std::uint8_t {
 // clang-format on
 static_assert(sizeof(Piece) == 1);
 
+constexpr StdArray<Piece, COLOR_NB, 6> Pieces{{
+  {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING},  //
+  {B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING}   //
+}};
+
 // Value is used as an alias for std::int16_t, this is done to differentiate between
 // a search value and any other integer value. The values used in search are always
 // supposed to be in the range (-VALUE_NONE, +VALUE_NONE] and should not exceed this range.
@@ -300,7 +305,7 @@ struct DirtyThreat final {
     Piece  threatened_pc() const noexcept { return Piece((data >> 20) & 0xF); }
     Piece  pc() const noexcept { return Piece((data >> 16) & 0xF); }
     Square threatened_sq() const noexcept { return Square((data >> 8) & 0xFF); }
-    Square pc_sq() const noexcept { return Square((data >> 0) & 0xFF); }
+    Square sq() const noexcept { return Square((data >> 0) & 0xFF); }
     bool   add() const noexcept {
         std::uint32_t b = data >> 28;
         ASSUME(b == 0 || b == 1);
@@ -311,12 +316,12 @@ struct DirtyThreat final {
     std::uint32_t data;
 };
 
-using DirtyThreatList = FixedVector<DirtyThreat, 64>;
-
-// A piece can be involved in at most 16 threat features, or 9 if it lies on the edge of the board.
-// This implies that a non-castling move can change at most 16 * 3 = 48 features.
-// A castling move can change at most 9 * 4 = 36 features.
-// Thus, 48 should work as an upper bound, but we use 64 to be safe.
+// A piece can be involved in at most 8 outgoing attacks and 16 incoming attacks.
+// Moving a piece also can reveal at most 8 discovered attacks.
+// This implies that a non-castling move can change at most (8 + 16) * 3 + 8 = 80 features.
+// By similar logic, a castling move can change at most (5 + 1 + 3 + 9) * 2 = 36 features.
+// Thus, 80 should work as an upper bound.
+using DirtyThreatList = FixedVector<DirtyThreat, 80>;
 
 struct DirtyThreats final {
    public:
