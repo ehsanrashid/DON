@@ -197,8 +197,9 @@ class Position final {
     Key major_key() const noexcept;
     Key non_pawn_key(Color c) const noexcept;
     Key non_pawn_key() const noexcept;
-    Key material_key() const noexcept;
-    Key move_key(Move m) const noexcept;
+
+    Key compute_material_key() const noexcept;
+    Key compute_move_key(Move m) const noexcept;
 
     // Static Exchange Evaluation
     [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }
@@ -235,8 +236,8 @@ class Position final {
     Value evaluate() const noexcept;
     Value bonus() const noexcept;
 
-    void put_piece(Square s, Piece pc) noexcept;
-    void remove_piece(Square s) noexcept;
+    void  put_piece(Square s, Piece pc) noexcept;
+    Piece remove_piece(Square s) noexcept;
 
     void flip() noexcept;
     void mirror() noexcept;
@@ -291,7 +292,7 @@ class Position final {
     bool can_enpassant(Color ac, Square epSq, Bitboard* const epAttackers = nullptr) const noexcept;
 
     // Other helpers
-    void move_piece(Square s1, Square s2) noexcept;
+    Piece move_piece(Square s1, Square s2) noexcept;
 
     template<bool Do>
     void do_castling(Color             ac,
@@ -633,7 +634,7 @@ inline void Position::put_piece(Square s, Piece pc) noexcept {
     ++pieceCount[pc & PIECE_TYPE_NB];
 }
 
-inline void Position::remove_piece(Square s) noexcept {
+inline Piece Position::remove_piece(Square s) noexcept {
     assert(is_ok(s));
 
     Piece pc = pieceArr[s];
@@ -645,9 +646,10 @@ inline void Position::remove_piece(Square s) noexcept {
     colorBB[color_of(pc)] ^= sBB;
     --pieceCount[pc];
     --pieceCount[pc & PIECE_TYPE_NB];
+    return pc;
 }
 
-inline void Position::move_piece(Square s1, Square s2) noexcept {
+inline Piece Position::move_piece(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
     Piece pc = pieceArr[s1];
@@ -658,6 +660,7 @@ inline void Position::move_piece(Square s1, Square s2) noexcept {
     typeBB[ALL_PIECE] ^= s1s2BB;
     typeBB[type_of(pc)] ^= s1s2BB;
     colorBB[color_of(pc)] ^= s1s2BB;
+    return pc;
 }
 
 inline DirtyPiece Position::do_move(Move m, State& newSt, const TranspositionTable* tt) noexcept {

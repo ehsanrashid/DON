@@ -164,7 +164,7 @@ void Position::init() noexcept {
                 continue;
             for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
                 for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
-                    if (attacks_bb(type_of(pc), s1) & s2)
+                    if (attacks_bb(s1, type_of(pc)) & s2)
                     {
                         Key  key  = Zobrist::psq[pc][s1] ^ Zobrist::psq[pc][s2] ^ Zobrist::turn;
                         Move move = Move(s1, s2);
@@ -709,14 +709,14 @@ void Position::do_castling(
     Piece rook = piece_on(Do ? rOrg : rDst);
     assert(rook == make_piece(ac, ROOK));
 
-    bool kingMoved = org != dst;
-    bool rookMoved = rOrg != rDst;
+    //bool kingMoved = org != dst;
+    //bool rookMoved = rOrg != rDst;
 
     if constexpr (Do)
     {
         dp->dst = dst;
 
-        if (rookMoved)
+        //if (rookMoved)
         {
             dp->removeSq = rOrg;
             dp->addSq    = rDst;
@@ -728,14 +728,14 @@ void Position::do_castling(
     }
 
     // Remove both pieces first since squares could overlap in Chess960
-    if (kingMoved)
-        remove_piece(Do ? org : dst);
-    if (rookMoved)
-        remove_piece(Do ? rOrg : rDst);
-    if (kingMoved)
-        put_piece(Do ? dst : org, king);
-    if (rookMoved)
-        put_piece(Do ? rDst : rOrg, rook);
+    //if (kingMoved)
+    remove_piece(Do ? org : dst);
+    //if (rookMoved)
+    remove_piece(Do ? rOrg : rDst);
+    //if (kingMoved)
+    put_piece(Do ? dst : org, king);
+    //if (rookMoved)
+    put_piece(Do ? rDst : rOrg, rook);
 }
 
 // Makes a move, and saves all necessary information to new state.
@@ -884,7 +884,7 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
             remove_piece(dst);
             put_piece(dst, promotedPiece);
             assert(count(promotedPiece));
-            assert(!Zobrist::psq[movedPiece][dst]);
+            assert(Zobrist::psq[movedPiece][dst] == 0);
             // Update hash keys
             // clang-format off
             k                                      ^= Zobrist::psq[promotedPiece][dst];
@@ -982,10 +982,10 @@ DO_MOVE_END:
 
     assert(is_ok(dp.pc));
     assert(is_ok(dp.org));
-    assert(is_ok(dp.dst) ^ (m.type_of() == PROMOTION));
+    assert(is_ok(dp.dst) ^ !(m.type_of() != PROMOTION));
     // The way castling is implemented, this check may fail in Chess960.
-    //assert(is_ok(dp.removeSq) ^ (m.type_of() != CASTLING && !is_ok(capturedPiece)));
-    //assert(is_ok(dp.addSq) ^ (m.type_of() != PROMOTION && m.type_of() != CASTLING));
+    assert(is_ok(dp.removeSq) ^ !(is_ok(capturedPiece) || m.type_of() == CASTLING));
+    assert(is_ok(dp.addSq) ^ !(m.type_of() == PROMOTION || m.type_of() == CASTLING));
     return dp;
 }
 
@@ -1170,7 +1170,7 @@ bool Position::pseudo_legal(Move m) const noexcept {
                      && !(pieces() & make_bitboard(dst, dst - pawn_spush(ac)))))
                 return false;
         }
-        else if (!(attacks_bb(type_of(pc), org, pieces()) & dst))
+        else if (!(attacks_bb(org, type_of(pc), pieces()) & dst))
             return false;
 
         // For king moves, check whether the destination square is attacked by the enemies.
@@ -1315,7 +1315,7 @@ bool Position::check(Move m) const noexcept {
         return false;
 
     case PROMOTION :
-        return attacks_bb(m.promotion_type(), dst, pieces() ^ org) & king_sq(~ac);
+        return attacks_bb(dst, m.promotion_type(), pieces() ^ org) & king_sq(~ac);
 
     // En-passant capture with check? Already handled the case of direct check
     // and ordinary discovered check, so the only case need to handle is
@@ -1352,7 +1352,7 @@ bool Position::dbl_check(Move m) const noexcept {
 
     case PROMOTION :
         return (blockers(~ac) & org)  //
-            && (attacks_bb(m.promotion_type(), dst, pieces() ^ org) & king_sq(~ac));
+            && (attacks_bb(dst, m.promotion_type(), pieces() ^ org) & king_sq(~ac));
 
     case EN_PASSANT : {
         Bitboard checkers =
@@ -1394,7 +1394,7 @@ bool Position::fork(Move m) const noexcept {
     return false;
 }
 
-Key Position::material_key() const noexcept {
+Key Position::compute_material_key() const noexcept {
     Key materialKey = 0;
 
     for (Color c : {WHITE, BLACK})
@@ -1408,7 +1408,7 @@ Key Position::material_key() const noexcept {
 // Computes the new hash key after the given move.
 // Needed for speculative prefetch.
 // It does recognize special moves like castling, en-passant and promotions.
-Key Position::move_key(Move m) const noexcept {
+Key Position::compute_move_key(Move m) const noexcept {
     Key moveKey = st->key ^ Zobrist::turn;
 
     if (is_ok(ep_sq()))
@@ -1582,7 +1582,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             acAttackers &= king_sq(ac);
 
             if (!acAttackers  //
-                && (pt == PAWN || !(attacks_bb(pt, dst, occupied) & king_sq(ac))))
+                && (pt == PAWN || !(attacks_bb(dst, pt, occupied) & king_sq(ac))))
             {
                 dst  = lsb(b);
                 swap = PIECE_VALUE[type_of(piece_on(org))] - swap;
@@ -1917,7 +1917,7 @@ Key Position::compute_key() const noexcept {
     {
         Square s  = pop_lsb(occupied);
         Piece  pc = piece_on(s);
-        assert(is_ok(pc));
+
         key ^= Zobrist::psq[pc][s];
     }
 
@@ -1940,10 +1940,8 @@ Key Position::compute_minor_key() const noexcept {
     {
         Square s  = pop_lsb(occupied);
         Piece  pc = piece_on(s);
-        auto   pt = type_of(pc);
-        assert(is_ok(pc));
 
-        if (pt != PAWN && pt != KING && !is_major(pt))
+        if (type_of(pc) != PAWN && type_of(pc) != KING && !is_major(type_of(pc)))
             minorKey ^= Zobrist::psq[pc][s];
     }
     return minorKey;
@@ -1957,10 +1955,8 @@ Key Position::compute_major_key() const noexcept {
     {
         Square s  = pop_lsb(occupied);
         Piece  pc = piece_on(s);
-        auto   pt = type_of(pc);
-        assert(is_ok(pc));
 
-        if (pt != PAWN && pt != KING && is_major(pt))
+        if (type_of(pc) != PAWN && type_of(pc) != KING && is_major(type_of(pc)))
             majorKey ^= Zobrist::psq[pc][s];
     }
     return majorKey;
@@ -1974,10 +1970,8 @@ Key Position::compute_non_pawn_key() const noexcept {
     {
         Square s  = pop_lsb(occupied);
         Piece  pc = piece_on(s);
-        auto   pt = type_of(pc);
-        assert(is_ok(pc));
 
-        if (pt != PAWN)
+        if (type_of(pc) != PAWN)
             nonPawnKey ^= Zobrist::psq[pc][s];
     }
     return nonPawnKey;

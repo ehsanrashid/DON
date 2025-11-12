@@ -38,29 +38,52 @@ namespace DON {
 
 namespace {
 
-constexpr StdArray<Direction, 2, 4> Directions{
-  {{NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST}, {NORTH, SOUTH, EAST, WEST}}};
-
 constexpr StdArray<std::size_t, 2> TableSizes{0x1480, 0x19000};
 
 alignas(CACHE_LINE_SIZE) StdArray<Bitboard, TableSizes[0]> BishopTable{};  // Stores bishop attacks
 alignas(CACHE_LINE_SIZE) StdArray<Bitboard, TableSizes[1]> RookTable{};    // Stores rook attacks
 
-alignas(CACHE_LINE_SIZE) constexpr StdArray<Bitboard*, 2> Tables{BishopTable.data(),
-                                                                 RookTable.data()};
+template<typename T>
+class TableView final {
+   public:
+    constexpr TableView() noexcept = default;
 
-// Returns the bitboard of target square from the given square for the given step.
-// If the step is off the board, returns empty bitboard.
-Bitboard safe_destination(Square s, Direction d, std::uint8_t dist = 1) noexcept {
-    assert(is_ok(s));
-    Square sq = s + d;
-    return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
-}
+    constexpr TableView(T* data, std::size_t size) noexcept :
+        _data(data),
+        _size(size) {}
+
+    constexpr T*          data() const noexcept { return _data; }
+    constexpr std::size_t size() const noexcept { return _size; }
+
+    constexpr T& operator[](std::size_t idx) const noexcept {
+        assert(idx < _size);
+        return _data[idx];
+    }
+
+    constexpr T* begin() const noexcept { return _data; }
+    constexpr T* end() const noexcept { return _data + _size; }
+
+   private:
+    T*          _data = nullptr;
+    std::size_t _size = 0;
+};
+
+using TableSpan = StdArray<TableView<Bitboard>, 2>;
+
+alignas(CACHE_LINE_SIZE) constexpr TableSpan Tables{
+  TableView{BishopTable.data(), BishopTable.size()},  //
+  TableView{RookTable.data(), RookTable.size()}       //
+};
+
+constexpr StdArray<Direction, 2, 4> Directions{{
+  {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},  //
+  {NORTH, SOUTH, EAST, WEST}                         //
+}};
 
 // Computes sliding attack
 template<PieceType PT>
-Bitboard sliding_attack(Square s, Bitboard occupied = 0) noexcept {
-    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attack()");
+Bitboard sliding_attacks_bb(Square s, Bitboard occupied = 0) noexcept {
+    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attacks_bb()");
     assert(is_ok(s));
 
     Bitboard attacks = 0;
@@ -68,7 +91,7 @@ Bitboard sliding_attack(Square s, Bitboard occupied = 0) noexcept {
     {
         Square sq = s;
 
-        for (Bitboard b; (b = safe_destination(sq, d));)
+        for (Bitboard b; (b = destination_bb(sq, d));)
         {
             attacks |= b;
             sq += d;
@@ -117,13 +140,14 @@ void init_magics() noexcept {
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
         //assert(s == SQ_A1 || size <= RefSizes[PT - BISHOP]);
-        m.attacks = s == SQ_A1 ? Tables[PT - BISHOP] : &Magics[s - 1][PT - BISHOP].attacks[size];
+        m.attacks =
+          s == SQ_A1 ? Tables[PT - BISHOP].data() : &Magics[s - 1][PT - BISHOP].attacks[size];
         assert(m.attacks != nullptr);
 
         // Board edges are not considered in the relevant occupancies
         Bitboard edges = (EDGE_FILE_BB & ~file_bb(s)) | (PROMOTION_RANK_BB & ~rank_bb(s));
         // Mask excludes edges
-        m.mask = sliding_attack<PT>(s) & ~edges;
+        m.mask = sliding_attacks_bb<PT>(s) & ~edges;
 
 #if !defined(USE_BMI2)
         StdArray<Bitboard, RefSizes[PT - BISHOP]> reference;
@@ -136,10 +160,10 @@ void init_magics() noexcept {
         do
         {
 #if !defined(USE_BMI2)
-            reference[size] = sliding_attack<PT>(s, b);
+            reference[size] = sliding_attacks_bb<PT>(s, b);
             occupancy[size] = b;
 #else
-            m.attacks_bb(b, sliding_attack<PT>(s, b));
+            m.attacks_bb(b, sliding_attacks_bb<PT>(s, b));
 #endif
             ++size;
             b = (b - m.mask) & m.mask;
@@ -229,30 +253,32 @@ void init() noexcept {
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
     {
-        PieceAttacks[s1][WHITE] = pawn_attacks_bb<WHITE>(square_bb(s1));
-        PieceAttacks[s1][BLACK] = pawn_attacks_bb<BLACK>(square_bb(s1));
+        AttacksBBs[s1][WHITE] = pawn_attacks_bb<WHITE>(square_bb(s1));
+        AttacksBBs[s1][BLACK] = pawn_attacks_bb<BLACK>(square_bb(s1));
 
         for (auto dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
                          WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
-            PieceAttacks[s1][KNIGHT] |= safe_destination(s1, dir, 2);
+            AttacksBBs[s1][KNIGHT] |= destination_bb(s1, dir, 2);
 
-        PieceAttacks[s1][BISHOP] = attacks_bb<BISHOP>(s1, 0);
-        PieceAttacks[s1][ROOK]   = attacks_bb<ROOK>(s1, 0);
-        PieceAttacks[s1][QUEEN]  = PieceAttacks[s1][BISHOP] | PieceAttacks[s1][ROOK];
+        AttacksBBs[s1][BISHOP] = attacks_bb<BISHOP>(s1, 0);
+        AttacksBBs[s1][ROOK]   = attacks_bb<ROOK>(s1, 0);
+        AttacksBBs[s1][QUEEN]  = AttacksBBs[s1][BISHOP] | AttacksBBs[s1][ROOK];
 
         for (auto dir : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
-            PieceAttacks[s1][KING] |= safe_destination(s1, dir);
+            AttacksBBs[s1][KING] |= destination_bb(s1, dir);
 
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
             for (PieceType pt : {BISHOP, ROOK})
-                if (PieceAttacks[s1][pt] & s2)
+                if (AttacksBBs[s1][pt] & s2)
                 {
-                    Lines[s1][s2] = (attacks_bb(pt, s1, 0) & attacks_bb(pt, s2, 0)) | s1 | s2;
-                    Betweens[s1][s2] =
-                      (attacks_bb(pt, s1, square_bb(s2)) & attacks_bb(pt, s2, square_bb(s1)));
+                    // clang-format off
+                    LineBBs   [s1][s2] = (attacks_bb(s1, pt, 0) & attacks_bb(s2, pt, 0)) | s1 | s2;
+                    BetweenBBs[s1][s2] = (attacks_bb(s1, pt, square_bb(s2)) & attacks_bb(s2, pt, square_bb(s1)));
+                    PassRayBBs[s1][s2] = (attacks_bb(s1, pt, 0) & (attacks_bb(s2, pt, square_bb(s1)) | s2));
+                    // clang-format on
                 }
-            Betweens[s1][s2] |= s2;
+            BetweenBBs[s1][s2] |= s2;
         }
     }
 }

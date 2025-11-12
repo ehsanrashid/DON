@@ -914,12 +914,12 @@ Ambiguity ambiguity(Move m, const Position& pos) noexcept {
 
     // Disambiguation if have more then one piece with destination
     // note that for pawns is not needed because starting file is explicit.
-    Bitboard piece = (attacks_bb(pt, dst, pos.pieces()) & pos.pieces(ac, pt)) ^ org;
+    Bitboard pieces = (attacks_bb(dst, pt, pos.pieces()) & pos.pieces(ac, pt)) ^ org;
 
-    if (!piece)
+    if (!pieces)
         return AMB_NONE;
 
-    Bitboard b = piece;
+    Bitboard b = pieces;
     // If pinned piece is considered as ambiguous
     //& ~pos.blockers(ac);
     while (b)
@@ -928,11 +928,11 @@ Ambiguity ambiguity(Move m, const Position& pos) noexcept {
 
         Move mm = Move(sq, dst);
         if (!(pos.pseudo_legal(mm) && pos.legal(mm)))
-            piece ^= sq;
+            pieces ^= sq;
     }
-    if (!(piece & file_bb(org)))
+    if (!(pieces & file_of(org)))
         return AMB_RANK;
-    if (!(piece & rank_bb(org)))
+    if (!(pieces & rank_of(org)))
         return AMB_FILE;
 
     return AMB_SQUARE;
