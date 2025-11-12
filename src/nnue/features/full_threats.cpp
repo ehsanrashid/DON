@@ -30,6 +30,7 @@
 
 namespace DON::NNUE::Features {
 
+namespace {
 // Information on a particular pair of pieces and whether they should be excluded
 struct PiecePairData final {
    public:
@@ -49,13 +50,12 @@ struct PiecePairData final {
 constexpr StdArray<int, PIECE_NB> TargetCount{0, 6, 12, 10, 10, 12, 8, 0,
                                               0, 6, 12, 10, 10, 12, 8, 0};
 
-// Lookup array for indexing threats
-StdArray<IndexType, PIECE_NB, SQUARE_NB + 2> Offsets;
-
 // The final index is calculated from summing data found in these two LUTs,
 // as well as Offsets[attacker][from]
 StdArray<PiecePairData, PIECE_NB, PIECE_NB>       Lut1Index;  // [attacker][attacked]
 StdArray<uint8_t, PIECE_NB, SQUARE_NB, SQUARE_NB> Lut2Index;  // [attacker][org][dst]
+
+}  // namespace
 
 void FullThreats::init() noexcept {
 
@@ -233,7 +233,7 @@ void FullThreats::append_changed_indices(Color            perspective,
                                          const DirtyType& dt,
                                          IndexList&       removed,
                                          IndexList&       added,
-                                         FusedUpdateData* fusedData,
+                                         FusedData*       fusedData,
                                          bool             first) noexcept {
     for (const auto& dirty : dt.list)
     {
@@ -243,7 +243,7 @@ void FullThreats::append_changed_indices(Color            perspective,
         auto dst      = dirty.threatened_sq();
         auto add      = dirty.add();
 
-        if (fusedData)
+        if (fusedData != nullptr)
         {
             if (org == fusedData->dp2removedSq)
             {

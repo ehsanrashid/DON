@@ -277,7 +277,7 @@ void update_accumulator_incremental_double(
     assert(!middleAccSt.acc<TransformedFeatureDimensions>().computed[perspective]);
     assert(!targetAccSt.acc<TransformedFeatureDimensions>().computed[perspective]);
 
-    ThreatFeatureSet::FusedUpdateData fusedData;
+    ThreatFeatureSet::FusedData fusedData;
 
     fusedData.dp2removedSq = dp2.removeSq;
 
@@ -341,7 +341,6 @@ void update_accumulator_incremental(
         ASSUME(added.size() == 1 || added.size() == 2);
         ASSUME(removed.size() == 1 || removed.size() == 2);
 
-
         if ((Forward && removed.size() == 1) || (!Forward && added.size() == 1))
         {
             assert(added.size() == 1 && removed.size() == 1);
@@ -401,8 +400,8 @@ void update_accumulator_refresh_cache(Color                                 pers
 
     PSQFeatureSet::IndexList removed, added;
 
-    auto  pieces   = pos.pieces();
     auto& pieceArr = pos.piece_arr();
+    auto  pieces   = pos.pieces();
 
     Bitboard changedBB = changed_bb(entry.pieceArr, pieceArr);
 
@@ -419,8 +418,8 @@ void update_accumulator_refresh_cache(Color                                 pers
         added.push_back(PSQFeatureSet::make_index(perspective, kingSq, s, pos.piece_on(s)));
     }
 
-    entry.pieces   = pieces;
     entry.pieceArr = pieceArr;
+    entry.pieces   = pieces;
 
     auto& accumulator = accState.acc<Dimensions>();
 
@@ -545,7 +544,8 @@ void update_threats_accumulator_full(Color                                 persp
     ThreatFeatureSet::IndexList active;
     ThreatFeatureSet::append_active_indices(perspective, pos, active);
 
-    auto& accumulator                 = accState.acc<Dimensions>();
+    auto& accumulator = accState.acc<Dimensions>();
+
     accumulator.computed[perspective] = true;
 
 #if defined(VECTOR)

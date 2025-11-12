@@ -70,7 +70,10 @@ class FullThreats final {
     }};
     // clang-format on
 
-    struct FusedUpdateData final {
+    // Lookup array for indexing threats
+    static inline StdArray<IndexType, PIECE_NB, SQUARE_NB + 2> Offsets;
+
+    struct FusedData final {
         Bitboard dp2removedOriginBB = 0;
         Bitboard dp2removedTargetBB = 0;
 
@@ -98,7 +101,7 @@ class FullThreats final {
                                        const DirtyType& dt,
                                        IndexList&       removed,
                                        IndexList&       added,
-                                       FusedUpdateData* fd    = nullptr,
+                                       FusedData*       fd    = nullptr,
                                        bool             first = false) noexcept;
 
     // Returns whether the change stored in this DirtyType means

@@ -82,8 +82,8 @@ struct AccumulatorCaches final {
 
             StdArray<BiasType, Size>              accumulation{};
             StdArray<PSQTWeightType, PSQTBuckets> psqtAccumulation{};
-            Bitboard                              pieces{};
             Position::PieceArray                  pieceArr{};
+            Bitboard                              pieces{};
         };
 
         template<typename Network>
