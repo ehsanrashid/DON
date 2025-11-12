@@ -38,11 +38,6 @@ namespace {
 
 constexpr std::size_t PawnOffset = 8;
 
-constexpr StdArray<Piece, COLOR_NB, 4> NonPawnPieces{{
-  {W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN},  //
-  {B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN}   //
-}};
-
 // Implements Marcel van Kervinck's cuckoo algorithm to detect repetition of positions for 3-fold repetition draws.
 // The algorithm uses hash tables with Zobrist hashes to allow fast detection of recurring positions.
 // For details see:

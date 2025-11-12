@@ -47,8 +47,8 @@ struct PiecePairData final {
     uint32_t data;
 };
 
-constexpr StdArray<int, PIECE_NB> TargetCount{0, 6, 12, 10, 10, 12, 8, 0,
-                                              0, 6, 12, 10, 10, 12, 8, 0};
+// Lookup array for indexing threats
+StdArray<IndexType, PIECE_NB, SQUARE_NB + 2> Offsets;
 
 // The final index is calculated from summing data found in these two LUTs,
 // as well as Offsets[attacker][from]
@@ -58,6 +58,8 @@ StdArray<uint8_t, PIECE_NB, SQUARE_NB, SQUARE_NB> Lut2Index;  // [attacker][org]
 }  // namespace
 
 void FullThreats::init() noexcept {
+    constexpr StdArray<int, PIECE_NB> TargetCount{0, 6, 12, 10, 10, 12, 8, 0,
+                                                  0, 6, 12, 10, 10, 12, 8, 0};
 
     int cumulativeOffset = 0;
     for (Color c : {WHITE, BLACK})
@@ -93,15 +95,15 @@ void FullThreats::init() noexcept {
     for (Color attackerC : {WHITE, BLACK})
         for (Piece attacker : Pieces[attackerC])
         {
-            PieceType attackerType = type_of(attacker);
+            auto attackerType = type_of(attacker);
 
             for (Color attackedC : {WHITE, BLACK})
                 for (Piece attacked : Pieces[attackedC])
                 {
-                    bool      enemy        = (attacker ^ attacked) == 8;
-                    PieceType attackedType = type_of(attacked);
+                    bool enemy        = (attacker ^ attacked) == 8;
+                    auto attackedType = type_of(attacked);
 
-                    int map = FullThreats::Map[attackerType - 1][attackedType - 1];
+                    int map = Map[attackerType - 1][attackedType - 1];
 
                     bool excluded = map < 0;
                     bool semiExcluded =

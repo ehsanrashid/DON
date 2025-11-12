@@ -70,9 +70,6 @@ class FullThreats final {
     }};
     // clang-format on
 
-    // Lookup array for indexing threats
-    static inline StdArray<IndexType, PIECE_NB, SQUARE_NB + 2> Offsets;
-
     struct FusedData final {
         Bitboard dp2removedOriginBB = 0;
         Bitboard dp2removedTargetBB = 0;

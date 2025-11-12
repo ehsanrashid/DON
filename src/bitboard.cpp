@@ -75,16 +75,15 @@ alignas(CACHE_LINE_SIZE) constexpr TableSpan Tables{
   TableView{RookTable.data(), RookTable.size()}       //
 };
 
-constexpr StdArray<Direction, 2, 4> Directions{{
-  {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},  //
-  {NORTH, SOUTH, EAST, WEST}                         //
-}};
-
 // Computes sliding attack
 template<PieceType PT>
 Bitboard sliding_attacks_bb(Square s, Bitboard occupied = 0) noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attacks_bb()");
     assert(is_ok(s));
+    constexpr StdArray<Direction, 2, 4> Directions{{
+      {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},  //
+      {NORTH, SOUTH, EAST, WEST}                         //
+    }};
 
     Bitboard attacks = 0;
     for (Direction d : Directions[PT - BISHOP])
