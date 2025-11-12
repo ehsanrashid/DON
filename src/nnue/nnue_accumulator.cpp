@@ -55,10 +55,10 @@ template<typename FeatureSet, IndexType Dimensions>
 struct AccumulatorUpdateContext final {
 
     AccumulatorUpdateContext(Color                                 perspective,
-                             const FeatureTransformer<Dimensions>& ft,
+                             const FeatureTransformer<Dimensions>& featureTrans,
                              const AccumulatorState<FeatureSet>&   computedState,
                              AccumulatorState<FeatureSet>&         targetState) noexcept :
-        featureTransformer{ft},
+        featureTransformer{featureTrans},
         computedAcc((computedState.template acc<Dimensions>()).accumulation[perspective]),
         computedPsqtAcc((computedState.template acc<Dimensions>()).psqtAccumulation[perspective]),
         targetAcc((targetState.template acc<Dimensions>()).accumulation[perspective]),
@@ -68,6 +68,7 @@ struct AccumulatorUpdateContext final {
              typename... Ts,
              std::enable_if_t<is_all_same_v<IndexType, Ts...>, bool> = true>
     void apply(const Ts... indices) noexcept {
+
         auto to_weight_vector = [&](IndexType index) {
             return &featureTransformer.weights[index * Dimensions];
         };
@@ -76,13 +77,15 @@ struct AccumulatorUpdateContext final {
             return &featureTransformer.psqtWeights[index * PSQTBuckets];
         };
 
-        fused_row_reduce<Vec16Wrapper, Dimensions, ops...>(computedAcc.data(), targetAcc.data(),
-                                                           to_weight_vector(indices)...);
-        fused_row_reduce<Vec32Wrapper, PSQTBuckets, ops...>(
+        fused_row_reduce<Vec16Wrapper, Dimensions, ops...>(  //
+          computedAcc.data(), targetAcc.data(), to_weight_vector(indices)...);
+        fused_row_reduce<Vec32Wrapper, PSQTBuckets, ops...>(  //
           computedPsqtAcc.data(), targetPsqtAcc.data(), to_psqt_weight_vector(indices)...);
     }
 
-    void apply(typename FeatureSet::IndexList added, typename FeatureSet::IndexList removed) {
+    void apply(typename FeatureSet::IndexList added,
+               typename FeatureSet::IndexList removed) noexcept {
+
 #if defined(VECTOR)
         using Tiling [[maybe_unused]] = SIMDTiling<Dimensions, PSQTBuckets>;
 
@@ -561,7 +564,7 @@ void update_threats_accumulator_full(Color                                 persp
     #if defined(USE_NEON)
             for (IndexType k = 0; k < Tiling::RegCount; k += 2)
             {
-                acc[k]     = vec_add_16(acc[k], vmovl_s8(vget_low_s8(column[k / 2])));
+                acc[k + 0] = vec_add_16(acc[k + 0], vmovl_s8(vget_low_s8(column[k / 2])));
                 acc[k + 1] = vec_add_16(acc[k + 1], vmovl_high_s8(column[k / 2]));
             }
     #else
