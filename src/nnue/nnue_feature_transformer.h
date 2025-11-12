@@ -64,7 +64,7 @@ constexpr void permute(std::array<T, N>&                         data,
 
     for (std::size_t i = 0; i < TotalSize; i += ChunkSize)
     {
-        std::array<std::uint8_t, ChunkSize> buffer{};
+        StdArray<std::uint8_t, ChunkSize> buffer{};
 
         std::uint8_t* const values = &byts[i];
 
@@ -76,7 +76,7 @@ constexpr void permute(std::array<T, N>&                         data,
             std::copy(valueChunk, valueChunk + BlockSize, bufferChunk);
         }
 
-        std::copy(std::begin(buffer), std::end(buffer), values);
+        std::copy(buffer.begin(), buffer.end(), values);
     }
 }
 
@@ -85,7 +85,7 @@ template<IndexType TransformedFeatureDimensions>
 class FeatureTransformer final {
 
     static constexpr bool UseThreats =
-      (TransformedFeatureDimensions == BigTransformedFeatureDimensions);
+      TransformedFeatureDimensions == BigTransformedFeatureDimensions;
 
     // Number of output dimensions for one side
     static constexpr IndexType HalfDimensions = TransformedFeatureDimensions;
@@ -175,29 +175,29 @@ class FeatureTransformer final {
         if (UseThreats)
         {
             auto combinedWeights =
-              std::make_unique<std::array<WeightType, TotalInputDimensions * HalfDimensions>>();
+              std::make_unique<StdArray<WeightType, TotalInputDimensions * HalfDimensions>>();
             auto combinedPsqtWeights =
-              std::make_unique<std::array<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
+              std::make_unique<StdArray<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
 
             read_leb_128(istream, *combinedWeights);
 
             std::copy(combinedWeights->begin(),
                       combinedWeights->begin() + ThreatInputDimensions * HalfDimensions,
-                      std::begin(threatWeights));
+                      threatWeights.begin());
 
             std::copy(combinedWeights->begin() + ThreatInputDimensions * HalfDimensions,
                       combinedWeights->begin() + TotalInputDimensions * HalfDimensions,
-                      std::begin(weights));
+                      weights.begin());
 
             read_leb_128(istream, *combinedPsqtWeights);
 
             std::copy(combinedPsqtWeights->begin(),
                       combinedPsqtWeights->begin() + ThreatInputDimensions * PSQTBuckets,
-                      std::begin(threatPsqtWeights));
+                      threatPsqtWeights.begin());
 
             std::copy(combinedPsqtWeights->begin() + ThreatInputDimensions * PSQTBuckets,
                       combinedPsqtWeights->begin() + TotalInputDimensions * PSQTBuckets,
-                      std::begin(psqtWeights));
+                      psqtWeights.begin());
         }
         else
         {
@@ -233,26 +233,26 @@ class FeatureTransformer final {
         if (UseThreats)
         {
             auto combinedWeights =
-              std::make_unique<std::array<WeightType, TotalInputDimensions * HalfDimensions>>();
+              std::make_unique<StdArray<WeightType, TotalInputDimensions * HalfDimensions>>();
             auto combinedPsqtWeights =
-              std::make_unique<std::array<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
+              std::make_unique<StdArray<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
 
-            std::copy(std::begin(copy->threatWeights),
-                      std::begin(copy->threatWeights) + ThreatInputDimensions * HalfDimensions,
+            std::copy(copy->threatWeights.begin(),
+                      copy->threatWeights.begin() + ThreatInputDimensions * HalfDimensions,
                       combinedWeights->begin());
 
-            std::copy(std::begin(copy->weights),
-                      std::begin(copy->weights) + InputDimensions * HalfDimensions,
+            std::copy(copy->weights.begin(),
+                      copy->weights.begin() + InputDimensions * HalfDimensions,
                       combinedWeights->begin() + ThreatInputDimensions * HalfDimensions);
 
             write_leb_128(ostream, *combinedWeights);
 
-            std::copy(std::begin(copy->threatPsqtWeights),
-                      std::begin(copy->threatPsqtWeights) + ThreatInputDimensions * PSQTBuckets,
+            std::copy(copy->threatPsqtWeights.begin(),
+                      copy->threatPsqtWeights.begin() + ThreatInputDimensions * PSQTBuckets,
                       combinedPsqtWeights->begin());
 
-            std::copy(std::begin(copy->psqtWeights),
-                      std::begin(copy->psqtWeights) + InputDimensions * PSQTBuckets,
+            std::copy(copy->psqtWeights.begin(),
+                      copy->psqtWeights.begin() + InputDimensions * PSQTBuckets,
                       combinedPsqtWeights->begin() + ThreatInputDimensions * PSQTBuckets);
 
             write_leb_128(ostream, *combinedPsqtWeights);
