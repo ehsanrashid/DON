@@ -293,22 +293,22 @@ struct DirtyPiece final {
 struct DirtyThreat final {
    public:
     DirtyThreat() { /* don't initialize data */ }
-    DirtyThreat(Piece pc, Piece threatened_pc, Square pc_sq, Square threatened_sq, bool add) {
-        data = (add << 28) | (pc << 20) | (threatened_pc << 16) | (threatened_sq << 8) | (pc_sq);
+    DirtyThreat(Piece pc, Piece threatenedPc, Square pcSq, Square threatenedSq, bool add) noexcept {
+        data = (add << 28) | (threatenedPc << 20) | (pc << 16) | (threatenedSq << 8) | (pcSq << 0);
     }
 
-    Piece  pc() const { return static_cast<Piece>(data >> 20 & 0xF); }
-    Piece  threatened_pc() const { return static_cast<Piece>(data >> 16 & 0xF); }
-    Square threatened_sq() const { return static_cast<Square>(data >> 8 & 0xFF); }
-    Square pc_sq() const { return static_cast<Square>(data & 0xFF); }
-    bool   add() const {
-        uint32_t b = data >> 28;
+    Piece  threatened_pc() const noexcept { return Piece((data >> 20) & 0xF); }
+    Piece  pc() const noexcept { return Piece((data >> 16) & 0xF); }
+    Square threatened_sq() const noexcept { return Square((data >> 8) & 0xFF); }
+    Square pc_sq() const noexcept { return Square((data >> 0) & 0xFF); }
+    bool   add() const noexcept {
+        std::uint32_t b = data >> 28;
         ASSUME(b == 0 || b == 1);
         return b;
     }
 
    private:
-    uint32_t data;
+    std::uint32_t data;
 };
 
 using DirtyThreatList = FixedVector<DirtyThreat, 64>;
@@ -325,6 +325,9 @@ struct DirtyThreats final {
     Square          kingSq, preKingSq;
 
     Bitboard threatenedBB, threateningBB;
+
+    template<bool PutPiece>
+    void add_dirty_threat(Piece pc, Piece threatenedPc, Square pcSq, Square threatenedSq) noexcept;
 };
 
 struct DirtyBoardData final {

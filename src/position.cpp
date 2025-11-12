@@ -696,8 +696,13 @@ bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackers)
 // Helper used to do/undo a castling move.
 // This is a bit tricky in Chess960 where org/dst squares can overlap.
 template<bool Do>
-void Position::do_castling(
-  Color ac, Square org, Square& dst, Square& rOrg, Square& rDst, DirtyPiece* const dp) noexcept {
+void Position::do_castling(Color               ac,
+                           Square              org,
+                           Square&             dst,
+                           Square&             rOrg,
+                           Square&             rDst,
+                           DirtyPiece* const   dp,
+                           DirtyThreats* const dts) noexcept {
     assert(!Do || dp != nullptr);
 
     rOrg = dst;  // Castling is encoded as "king captures rook"
@@ -729,13 +734,13 @@ void Position::do_castling(
 
     // Remove both pieces first since squares could overlap in Chess960
     //if (kingMoved)
-    remove_piece(Do ? org : dst);
+    remove_piece(Do ? org : dst, dts);
     //if (rookMoved)
-    remove_piece(Do ? rOrg : rDst);
+    remove_piece(Do ? rOrg : rDst, dts);
     //if (kingMoved)
-    put_piece(Do ? dst : org, king);
+    put_piece(Do ? dst : org, king, dts);
     //if (rookMoved)
-    put_piece(Do ? rDst : rOrg, rook);
+    put_piece(Do ? rDst : rOrg, rook, dts);
 }
 
 // Makes a move, and saves all necessary information to new state.
