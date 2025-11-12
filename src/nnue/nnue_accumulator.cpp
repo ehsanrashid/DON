@@ -17,6 +17,7 @@
 
 #include "nnue_accumulator.h"
 
+#include <algorithm>
 #include <type_traits>
 
 #include "../bitboard.h"
@@ -176,8 +177,8 @@ struct AccumulatorUpdateContext final {
 
 #else
 
-        std::copy_n(computedAcc, Dimensions, targetAcc);
-        std::copy_n(computedPsqtAcc, PSQTBuckets, targetPsqtAcc);
+        std::copy_n(computedAcc.begin(), Dimensions, targetAcc.begin());
+        std::copy_n(computedPsqtAcc.begin(), PSQTBuckets, targetPsqtAcc.begin());
 
         for (const auto index : removed)
         {

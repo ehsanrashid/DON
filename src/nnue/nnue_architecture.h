@@ -20,10 +20,12 @@
 #ifndef NNUE_ARCHITECTURE_H_INCLUDED
 #define NNUE_ARCHITECTURE_H_INCLUDED
 
+#include <array>
 #include <cstdint>
 #include <cstring>
 #include <iosfwd>
 
+#include "../misc.h"
 #include "features/half_ka_v2_hm.h"
 #include "features/full_threats.h"
 #include "layers/affine_transform.h"
@@ -117,8 +119,8 @@ struct NetworkArchitecture final {
         struct alignas(CACHE_LINE_SIZE) Buffer final {
             alignas(CACHE_LINE_SIZE) typename decltype(fc_0)::OutputBuffer fc_0_out;
             alignas(CACHE_LINE_SIZE)
-              std::array<typename decltype(ac_sqr_0)::OutputType,
-                         ceil_to_multiple<IndexType>(FC_0_Outputs * 2, 32)> ac_sqr_0_out;
+              StdArray<typename decltype(ac_sqr_0)::OutputType,
+                       ceil_to_multiple<IndexType>(FC_0_Outputs * 2, 32)> ac_sqr_0_out;
             alignas(CACHE_LINE_SIZE) typename decltype(ac_0)::OutputBuffer ac_0_out;
             alignas(CACHE_LINE_SIZE) typename decltype(fc_1)::OutputBuffer fc_1_out;
             alignas(CACHE_LINE_SIZE) typename decltype(ac_1)::OutputBuffer ac_1_out;
