@@ -176,29 +176,25 @@ struct AccumulatorUpdateContext final {
 
 #else
 
-        std::copy_n(computedAcc.begin(), Dimensions, targetAcc.begin());
-        std::copy_n(computedPsqtAcc.begin(), PSQTBuckets, targetPsqtAcc.begin());
+        targetAcc     = computedAcc;
+        targetPsqtAcc = computedPsqtAcc;
 
         for (const auto index : removed)
         {
-            const IndexType offset = Dimensions * index;
+            for (IndexType i = 0; i < Dimensions; ++i)
+                targetAcc[i] -= featureTransformer.threatWeights[index * Dimensions + i];
 
-            for (IndexType j = 0; j < Dimensions; ++j)
-                targetAcc[j] -= featureTransformer.threatWeights[offset + j];
-
-            for (IndexType k = 0; k < PSQTBuckets; ++k)
-                targetPsqtAcc[k] -= featureTransformer.threatPsqtWeights[index * PSQTBuckets + k];
+            for (IndexType i = 0; i < PSQTBuckets; ++i)
+                targetPsqtAcc[i] -= featureTransformer.threatPsqtWeights[index * PSQTBuckets + i];
         }
 
         for (const auto index : added)
         {
-            const IndexType offset = Dimensions * index;
+            for (IndexType i = 0; i < Dimensions; ++i)
+                targetAcc[i] += featureTransformer.threatWeights[index * Dimensions + i];
 
-            for (IndexType j = 0; j < Dimensions; ++j)
-                targetAcc[j] += featureTransformer.threatWeights[offset + j];
-
-            for (IndexType k = 0; k < PSQTBuckets; ++k)
-                targetPsqtAcc[k] += featureTransformer.threatPsqtWeights[index * PSQTBuckets + k];
+            for (IndexType i = 0; i < PSQTBuckets; ++i)
+                targetPsqtAcc[i] += featureTransformer.threatPsqtWeights[index * PSQTBuckets + i];
         }
 
 #endif
@@ -607,21 +603,18 @@ void update_threats_accumulator_full(Color                                 persp
     // clang-format on
 #else
 
-    for (IndexType j = 0; j < Dimensions; ++j)
-        accumulator.accumulation[perspective][j] = 0;
-
-    for (IndexType j = 0; j < PSQTBuckets; ++j)
-        accumulator.psqtAccumulation[perspective][j] = 0;
+    accumulator.accumulation[perspective].fill(0);
+    accumulator.psqtAccumulation[perspective].fill(0);
 
     for (const auto index : active)
     {
-        for (IndexType j = 0; j < Dimensions; ++j)
-            accumulator.accumulation[perspective][j] +=
-              featureTransformer.threatWeights[index * Dimensions + j];
+        for (IndexType i = 0; i < Dimensions; ++i)
+            accumulator.accumulation[perspective][i] +=
+              featureTransformer.threatWeights[index * Dimensions + i];
 
-        for (IndexType j = 0; j < PSQTBuckets; ++j)
-            accumulator.psqtAccumulation[perspective][j] +=
-              featureTransformer.threatPsqtWeights[index * PSQTBuckets + j];
+        for (IndexType i = 0; i < PSQTBuckets; ++i)
+            accumulator.psqtAccumulation[perspective][i] +=
+              featureTransformer.threatPsqtWeights[index * PSQTBuckets + i];
     }
 #endif
 }
