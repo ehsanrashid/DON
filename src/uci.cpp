@@ -475,7 +475,7 @@ void UCI::setoption(std::istringstream& iss) noexcept {
 
 void UCI::bench(std::istringstream& iss) noexcept {
 
-    auto commands = Benchmark::setup_bench(iss, engine.fen());
+    auto commands = Benchmark::bench(iss, engine.fen());
 
     std::uint64_t infoNodes = 0;
     engine.set_on_update_full([&infoNodes](const auto& info) {
@@ -574,11 +574,11 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     // Probably not very important for a test this long, but include for completeness and sanity.
     constexpr std::size_t WarmupPositionCount = 3;
 
-    auto benchmark = Benchmark::setup_benchmark(iss);
+    auto setup = Benchmark::benchmark(iss);
 
     // Set options once at the start
-    options().set("Threads", std::to_string(benchmark.threads));
-    options().set("Hash", std::to_string(benchmark.ttSize));
+    options().set("Threads", std::to_string(setup.threads));
+    options().set("Hash", std::to_string(setup.ttSize));
     options().set("UCI_Chess960", bool_to_string(false));
 
     std::uint64_t infoNodes = 0;
@@ -590,7 +590,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     InfoStringEnabled = false;
 
     const std::size_t num =
-      std::count_if(benchmark.commands.begin(), benchmark.commands.end(),
+      std::count_if(setup.commands.begin(), setup.commands.end(),
                     [](std::string_view command) { return starts_with(command, "go "); });
 
 #if !defined(NDEBUG)
@@ -603,7 +603,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     std::size_t   cnt   = 0;
     std::uint64_t nodes = 0;
     // Warmup
-    for (const auto& command : benchmark.commands)
+    for (const auto& command : setup.commands)
     {
         std::istringstream is{command};
         is >> std::skipws;
@@ -677,7 +677,7 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
     engine.init();  // May take a while
     startTime = now();
 
-    for (const auto& command : benchmark.commands)
+    for (const auto& command : setup.commands)
     {
         std::istringstream is{command};
         is >> std::skipws;
@@ -736,12 +736,12 @@ void UCI::benchmark(std::istringstream& iss) noexcept {
               << "\nVersion                    : " << version_info()
               << "\nCompiler                   : " << compiler_info()
               << "\nLarge pages                : " << bool_to_string(has_large_pages())
-              << "\nOriginal invocation        : " << "benchmark " << benchmark.originalInvocation
-              << "\nFilled invocation          : " << "benchmark " << benchmark.filledInvocation
+              << "\nOriginal invocation        : " << "benchmark " << setup.originalInvocation
+              << "\nFilled invocation          : " << "benchmark " << setup.filledInvocation
               << "\nAvailable processors       : " << engine.get_numa_config_str()
-              << "\nThread count               : " << benchmark.threads
+              << "\nThread count               : " << setup.threads
               << "\nThread binding             : " << threadBinding
-              << "\nTT size [MiB]              : " << benchmark.ttSize
+              << "\nTT size [MiB]              : " << setup.ttSize
               << "\nHash max, sum, avg [mille] : Count=" << hashfullCount
               << "\n    Single search          : " << maxHashfull[0] << ", " << sumHashfull[0] << ", " << avg(sumHashfull[0])
               << "\n    Single game            : " << maxHashfull[1] << ", " << sumHashfull[1] << ", " << avg(sumHashfull[1])
