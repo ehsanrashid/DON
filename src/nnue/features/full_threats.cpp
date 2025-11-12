@@ -31,6 +31,7 @@
 namespace DON::NNUE::Features {
 
 namespace {
+
 // Information on a particular pair of pieces and whether they should be excluded
 struct PiecePairData final {
    public:
@@ -87,8 +88,11 @@ StdArray<uint8_t, PIECE_NB, SQUARE_NB, SQUARE_NB> Lut2Index;  // [attacker][org]
 }  // namespace
 
 void FullThreats::init() noexcept {
-    constexpr StdArray<int, PIECE_NB> TargetCount{0, 6, 12, 10, 10, 12, 8, 0,
-                                                  0, 6, 12, 10, 10, 12, 8, 0};
+
+    constexpr StdArray<int, PIECE_NB> MaxTargets{
+      0, 6, 12, 10, 10, 12, 8, 0,  //
+      0, 6, 12, 10, 10, 12, 8, 0   //
+    };
 
     int cumulativeOffset = 0;
     for (Color c : {WHITE, BLACK})
@@ -117,7 +121,7 @@ void FullThreats::init() noexcept {
             Offsets[pc][64] = cumulativePieceOffset;
             Offsets[pc][65] = cumulativeOffset;
 
-            cumulativeOffset += TargetCount[pc] * cumulativePieceOffset;
+            cumulativeOffset += MaxTargets[pc] * cumulativePieceOffset;
         }
 
     // Initialize lut index
@@ -139,7 +143,7 @@ void FullThreats::init() noexcept {
                       attackerType == attackedType && (enemy || attackerType != PAWN);
                     IndexType feature =
                       Offsets[attacker][65]
-                      + (attackedC * (TargetCount[attacker] / 2) + map) * Offsets[attacker][64];
+                      + (attackedC * (MaxTargets[attacker] / 2) + map) * Offsets[attacker][64];
 
                     Lut1Index[attacker][attacked] = PiecePairData(feature, excluded, semiExcluded);
                 }
@@ -194,7 +198,11 @@ IndexType FullThreats::make_index(Color  perspective,
 void FullThreats::append_active_indices(Color           perspective,
                                         const Position& pos,
                                         IndexList&      active) noexcept {
-    constexpr StdArray<Color, 2, 2> Order{{{WHITE, BLACK}, {BLACK, WHITE}}};
+
+    constexpr StdArray<Color, COLOR_NB, COLOR_NB> Order{{
+      {WHITE, BLACK},  //
+      {BLACK, WHITE}   //
+    }};
 
     Square kingSq = pos.king_sq(perspective);
 

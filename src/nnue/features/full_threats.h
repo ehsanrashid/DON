@@ -23,11 +23,12 @@
 #include <cstdint>
 
 #include "../../misc.h"
-#include "../../position.h"
 #include "../../types.h"
 #include "../nnue_common.h"
 
 namespace DON {
+
+class Position;
 
 namespace NNUE::Features {
 
