@@ -84,20 +84,31 @@ constexpr void permute(std::array<T, N>&                         data,
 template<IndexType TransformedFeatureDimensions>
 class FeatureTransformer final {
 
+    static constexpr bool use_threats =
+      (TransformedFeatureDimensions == BigTransformedFeatureDimensions);
+
+    // Number of output dimensions for one side
+    static constexpr IndexType HalfDimensions = TransformedFeatureDimensions;
+
    public:
     // Output type
     using OutputType = TransformedFeatureType;
 
     // Number of input/output dimensions
-    static constexpr IndexType InputDimensions  = FeatureSet::Dimensions;
-    static constexpr IndexType OutputDimensions = TransformedFeatureDimensions;
+    static constexpr IndexType InputDimensions       = PSQFeatureSet::Dimensions;
+    static constexpr IndexType ThreatInputDimensions = ThreatFeatureSet::Dimensions;
+    static constexpr IndexType TotalInputDimensions =
+      InputDimensions + (use_threats ? ThreatInputDimensions : 0);
+
+    static constexpr IndexType OutputDimensions = HalfDimensions;
 
     // Size of forward propagation buffer
     static constexpr std::size_t BufferSize = OutputDimensions * sizeof(OutputType);
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t hash() noexcept {
-        return FeatureSet::Hash ^ (2 * OutputDimensions);
+        return (use_threats ? ThreatFeatureSet::Hash : PSQFeatureSet::Hash)
+             ^ (OutputDimensions * 2);
     }
 
     std::size_t content_hash() const noexcept {
@@ -138,17 +149,19 @@ class FeatureTransformer final {
         constexpr auto& order = Read ? PackusEpi16Order : InversePackusEpi16Order;
         permute<16>(biases, order);
         permute<16>(weights, order);
+        if (use_threats)
+            permute<8>(threatWeights, order);
     }
 
     template<bool Read>
     void scale_weights() noexcept {
-        for (IndexType i = 0; i < TransformedFeatureDimensions; ++i)
+        for (IndexType i = 0; i < HalfDimensions; ++i)
             if constexpr (Read)
                 biases[i] *= 2;
             else
                 biases[i] /= 2;
 
-        for (IndexType i = 0; i < TransformedFeatureDimensions * InputDimensions; ++i)
+        for (IndexType i = 0; i < HalfDimensions * InputDimensions; ++i)
             if constexpr (Read)
                 weights[i] *= 2;
             else
@@ -159,11 +172,47 @@ class FeatureTransformer final {
     bool read_parameters(std::istream& istream) noexcept {
 
         read_leb_128(istream, biases);
-        read_leb_128(istream, weights);
-        read_leb_128(istream, psqtWeights);
+
+        if (use_threats)
+        {
+            auto combinedWeights =
+              std::make_unique<std::array<WeightType, TotalInputDimensions * HalfDimensions>>();
+            auto combinedPsqtWeights =
+              std::make_unique<std::array<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
+
+            read_leb_128(istream, *combinedWeights);
+
+            std::copy(combinedWeights->begin(),
+                      combinedWeights->begin() + ThreatInputDimensions * HalfDimensions,
+                      std::begin(threatWeights));
+
+            std::copy(combinedWeights->begin() + ThreatInputDimensions * HalfDimensions,
+                      combinedWeights->begin() + TotalInputDimensions * HalfDimensions,
+                      std::begin(weights));
+
+            read_leb_128(istream, *combinedPsqtWeights);
+
+            std::copy(combinedPsqtWeights->begin(),
+                      combinedPsqtWeights->begin() + ThreatInputDimensions * PSQTBuckets,
+                      std::begin(threatPsqtWeights));
+
+            std::copy(combinedPsqtWeights->begin() + ThreatInputDimensions * PSQTBuckets,
+                      combinedPsqtWeights->begin() + TotalInputDimensions * PSQTBuckets,
+                      std::begin(psqtWeights));
+        }
+        else
+        {
+            read_leb_128(istream, weights);
+            read_leb_128(istream, psqtWeights);
+        }
 
         permute_weights<true>();
-        scale_weights<true>();
+        if (use_threats)
+        {}
+        else
+        {
+            scale_weights<true>();
+        }
 
         return !istream.fail();
     }
@@ -173,49 +222,93 @@ class FeatureTransformer final {
         std::unique_ptr<FeatureTransformer> copy = std::make_unique<FeatureTransformer>(*this);
 
         copy->template permute_weights<false>();
-        copy->template scale_weights<false>();
+        if (use_threats)
+        {}
+        else
+        {
+            copy->template scale_weights<false>();
+        }
 
         write_leb_128(ostream, copy->biases);
-        write_leb_128(ostream, copy->weights);
-        write_leb_128(ostream, copy->psqtWeights);
+
+        if (use_threats)
+        {
+            auto combinedWeights =
+              std::make_unique<std::array<WeightType, TotalInputDimensions * HalfDimensions>>();
+            auto combinedPsqtWeights =
+              std::make_unique<std::array<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
+
+            std::copy(std::begin(copy->threatWeights),
+                      std::begin(copy->threatWeights) + ThreatInputDimensions * HalfDimensions,
+                      combinedWeights->begin());
+
+            std::copy(std::begin(copy->weights),
+                      std::begin(copy->weights) + InputDimensions * HalfDimensions,
+                      combinedWeights->begin() + ThreatInputDimensions * HalfDimensions);
+
+            write_leb_128(ostream, *combinedWeights);
+
+            std::copy(std::begin(copy->threatPsqtWeights),
+                      std::begin(copy->threatPsqtWeights) + ThreatInputDimensions * PSQTBuckets,
+                      combinedPsqtWeights->begin());
+
+            std::copy(std::begin(copy->psqtWeights),
+                      std::begin(copy->psqtWeights) + InputDimensions * PSQTBuckets,
+                      combinedPsqtWeights->begin() + ThreatInputDimensions * PSQTBuckets);
+
+            write_leb_128(ostream, *combinedPsqtWeights);
+        }
+        else
+        {
+            write_leb_128(ostream, copy->weights);
+            write_leb_128(ostream, copy->psqtWeights);
+        }
 
         return !ostream.fail();
     }
 
     // Convert input features
-    std::int32_t transform(const Position&                                         pos,
-                           AccumulatorStack&                                       accStack,
-                           AccumulatorCaches::Cache<TransformedFeatureDimensions>& cache,
-                           std::size_t                                             bucket,
-                           std::array<OutputType, BufferSize>&                     output) const {
+    std::int32_t transform(const Position&                           pos,
+                           AccumulatorStack&                         accStack,
+                           AccumulatorCaches::Cache<HalfDimensions>& cache,
+                           std::size_t                               bucket,
+                           std::array<OutputType, BufferSize>&       output) const {
         using namespace SIMD;
 
         const std::array<Color, COLOR_NB> perspectives{pos.active_color(), ~pos.active_color()};
 
         accStack.evaluate(pos, *this, cache);
 
-        const auto& accState = accStack.clatest_state();
-        const auto& psqtAccumulation =
-          (accState.acc<TransformedFeatureDimensions>()).psqtAccumulation;
-        const auto psqt =
-          (psqtAccumulation[perspectives[0]][bucket] - psqtAccumulation[perspectives[1]][bucket])
-          / 2;
+        const auto& accState       = accStack.state<PSQFeatureSet>();
+        const auto& threatAccState = accStack.state<ThreatFeatureSet>();
 
-        const auto& accumulation = (accState.acc<TransformedFeatureDimensions>()).accumulation;
+        const auto& psqtAccumulation = (accState.acc<HalfDimensions>()).psqtAccumulation;
+        const auto& threatPsqtAccumulation =
+          (threatAccState.acc<HalfDimensions>()).psqtAccumulation;
+
+        auto psqt = psqtAccumulation[perspectives[0]][bucket]  //
+                  - psqtAccumulation[perspectives[1]][bucket];
+        if (use_threats)
+            psqt += threatPsqtAccumulation[perspectives[0]][bucket]
+                  - threatPsqtAccumulation[perspectives[1]][bucket];
+
+        psqt /= 2;
+
+        const auto& accumulation       = (accState.acc<HalfDimensions>()).accumulation;
+        const auto& threatAccumulation = (threatAccState.acc<HalfDimensions>()).accumulation;
 
         for (IndexType p = 0; p < 2; ++p)
         {
-            IndexType offset = p * (TransformedFeatureDimensions / 2);
+            IndexType offset = p * (HalfDimensions / 2);
 
 #if defined(VECTOR)
             constexpr IndexType OutputChunkSize = MaxChunkSize;
-            static_assert((TransformedFeatureDimensions / 2) % OutputChunkSize == 0);
-            constexpr IndexType NumOutputChunks =
-              TransformedFeatureDimensions / 2 / OutputChunkSize;
+            static_assert((HalfDimensions / 2) % OutputChunkSize == 0);
+            constexpr IndexType NumOutputChunks = HalfDimensions / 2 / OutputChunkSize;
 
             // clang-format off
             const vec_t* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
-            const vec_t* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][TransformedFeatureDimensions / 2]));
+            const vec_t* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
             vec_t*       out = reinterpret_cast<      vec_t*>(&output[offset]);
             // clang-format on
 
@@ -272,7 +365,7 @@ class FeatureTransformer final {
             // to the left by 1, so we compensate by shifting less before
             // the multiplication.
             const vec_t Zero = vec_zero();
-            const vec_t One  = vec_set_16(127 * 2);
+            const vec_t One  = vec_set_16(use_threats ? 255 : 127 * 2);
 
             constexpr int shift =
     #if defined(USE_SSE2)
@@ -282,26 +375,67 @@ class FeatureTransformer final {
     #endif
               ;
 
-            for (IndexType j = 0; j < NumOutputChunks; ++j)
+            if (use_threats)
             {
-                vec_t sum0a = vec_slli_16(vec_max_16(vec_min_16(in0[j * 2 + 0], One), Zero), shift);
-                vec_t sum0b = vec_slli_16(vec_max_16(vec_min_16(in0[j * 2 + 1], One), Zero), shift);
-                vec_t sum1a = vec_min_16(in1[j * 2 + 0], One);
-                vec_t sum1b = vec_min_16(in1[j * 2 + 1], One);
+                const vec_t* tin0 =
+                  reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
+                const vec_t* tin1 = reinterpret_cast<const vec_t*>(
+                  &(threatAccumulation[perspectives[p]][HalfDimensions / 2]));
+                for (IndexType j = 0; j < NumOutputChunks; ++j)
+                {
+                    vec_t acc0a = vec_add_16(in0[j * 2 + 0], tin0[j * 2 + 0]);
+                    vec_t acc0b = vec_add_16(in0[j * 2 + 1], tin0[j * 2 + 1]);
+                    vec_t acc1a = vec_add_16(in1[j * 2 + 0], tin1[j * 2 + 0]);
+                    vec_t acc1b = vec_add_16(in1[j * 2 + 1], tin1[j * 2 + 1]);
 
-                vec_t pa = vec_mulhi_16(sum0a, sum1a);
-                vec_t pb = vec_mulhi_16(sum0b, sum1b);
+                    vec_t sum0a = vec_slli_16(vec_max_16(vec_min_16(acc0a, One), Zero), shift);
+                    vec_t sum0b = vec_slli_16(vec_max_16(vec_min_16(acc0b, One), Zero), shift);
+                    vec_t sum1a = vec_min_16(acc1a, One);
+                    vec_t sum1b = vec_min_16(acc1b, One);
 
-                out[j] = vec_packus_16(pa, pb);
+                    vec_t pa = vec_mulhi_16(sum0a, sum1a);
+                    vec_t pb = vec_mulhi_16(sum0b, sum1b);
+
+                    out[j] = vec_packus_16(pa, pb);
+                }
+            }
+            else
+            {
+                for (IndexType j = 0; j < NumOutputChunks; ++j)
+                {
+                    vec_t sum0a =
+                      vec_slli_16(vec_max_16(vec_min_16(in0[j * 2 + 0], One), Zero), shift);
+                    vec_t sum0b =
+                      vec_slli_16(vec_max_16(vec_min_16(in0[j * 2 + 1], One), Zero), shift);
+                    vec_t sum1a = vec_min_16(in1[j * 2 + 0], One);
+                    vec_t sum1b = vec_min_16(in1[j * 2 + 1], One);
+
+                    vec_t pa = vec_mulhi_16(sum0a, sum1a);
+                    vec_t pb = vec_mulhi_16(sum0b, sum1b);
+
+                    out[j] = vec_packus_16(pa, pb);
+                }
             }
 #else
-            for (IndexType j = 0; j < TransformedFeatureDimensions / 2; ++j)
+            for (IndexType j = 0; j < HalfDimensions / 2; ++j)
             {
                 BiasType sum0 = accumulation[perspectives[p]][j + 0];
-                BiasType sum1 = accumulation[perspectives[p]][j + TransformedFeatureDimensions / 2];
+                BiasType sum1 = accumulation[perspectives[p]][j + HalfDimensions / 2];
 
-                sum0               = std::clamp<BiasType>(sum0, 0, 127 * 2);
-                sum1               = std::clamp<BiasType>(sum1, 0, 127 * 2);
+                if (use_threats)
+                {
+                    BiasType tsum0 = threatAccumulation[perspectives[p]][j + 0];
+                    BiasType tsum1 = threatAccumulation[perspectives[p]][j + HalfDimensions / 2];
+
+                    sum0 = std::clamp<BiasType>(sum0 + tsum0, 0, 255);
+                    sum1 = std::clamp<BiasType>(sum1 + tsum1, 0, 255);
+                }
+                else
+                {
+                    sum0 = std::clamp<BiasType>(sum0, 0, 127 * 2);
+                    sum1 = std::clamp<BiasType>(sum1, 0, 127 * 2);
+                }
+
                 output[offset + j] = static_cast<OutputType>(unsigned(sum0 * sum1) / 512);
             }
 #endif
@@ -311,9 +445,11 @@ class FeatureTransformer final {
     }
 
     // clang-format off
-    alignas(CACHE_LINE_SIZE) std::array<BiasType, TransformedFeatureDimensions> biases;
-    alignas(CACHE_LINE_SIZE) std::array<WeightType, TransformedFeatureDimensions * InputDimensions> weights;
-    alignas(CACHE_LINE_SIZE) std::array<PSQTWeightType, PSQTBuckets * InputDimensions> psqtWeights;
+    alignas(CACHE_LINE_SIZE) std::array<BiasType, HalfDimensions> biases;
+    alignas(CACHE_LINE_SIZE) std::array<WeightType, InputDimensions * HalfDimensions> weights;
+    alignas(CACHE_LINE_SIZE) std::array<PSQTWeightType, InputDimensions * PSQTBuckets> psqtWeights;
+    alignas(CACHE_LINE_SIZE) std::array<ThreatWeightType, use_threats ? ThreatInputDimensions * HalfDimensions : 0> threatWeights;
+    alignas(CACHE_LINE_SIZE) std::array<PSQTWeightType, use_threats ? ThreatInputDimensions * PSQTBuckets : 0> threatPsqtWeights;
     // clang-format on
 };
 

@@ -34,12 +34,13 @@ namespace NNUE::Features {
 static constexpr int numValidTargets[PIECE_NB]{0, 6, 12, 10, 10, 12, 8, 0,
                                                0, 6, 12, 10, 10, 12, 8, 0};
 extern IndexType     offsets[PIECE_NB][SQUARE_NB + 2];
-void                 init_threat_offsets();
+
+void init() noexcept;
 
 class FullThreats final {
    public:
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t HashValue = 0x8F234CB8U;
+    static constexpr std::uint32_t Hash = 0x8F234CB8U;
 
     // Number of feature dimensions
     static constexpr IndexType Dimensions = 79856;
@@ -75,7 +76,7 @@ class FullThreats final {
     };
     // clang-format on
 
-    struct FusedUpdateData {
+    struct FusedUpdateData final {
         Bitboard dp2removedOriginBoard = 0;
         Bitboard dp2removedTargetBoard = 0;
 
@@ -88,16 +89,15 @@ class FullThreats final {
     using DirtyType = DirtyThreats;
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
-    template<Color Perspective>
-    static IndexType make_index(Piece attkr, Square from, Square to, Piece attkd, Square ksq);
+    static IndexType
+    make_index(Color perspective, Piece attkr, Square from, Square to, Piece attkd, Square ksq);
 
     // Get a list of indices for active features
-    template<Color Perspective>
-    static void append_active_indices(const Position& pos, IndexList& active);
+    static void append_active_indices(Color perspective, const Position& pos, IndexList& active);
 
     // Get a list of indices for recently changed features
-    template<Color Perspective>
-    static void append_changed_indices(Square           ksq,
+    static void append_changed_indices(Color            perspective,
+                                       Square           ksq,
                                        const DirtyType& dt,
                                        IndexList&       removed,
                                        IndexList&       added,
@@ -106,7 +106,7 @@ class FullThreats final {
 
     // Returns whether the change stored in this DirtyType means
     // that a full accumulator refresh is required.
-    static bool requires_refresh(const DirtyType& dt, Color perspective) noexcept;
+    static bool requires_refresh(Color perspective, const DirtyType& dt) noexcept;
 };
 
 }  // namespace NNUE::Features

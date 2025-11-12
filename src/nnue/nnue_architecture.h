@@ -25,6 +25,7 @@
 #include <iosfwd>
 
 #include "features/half_ka_v2_hm.h"
+#include "features/full_threats.h"
 #include "layers/affine_transform.h"
 #include "layers/affine_transform_sparse_input.h"
 #include "layers/clipped_relu.h"
@@ -34,10 +35,11 @@
 namespace DON::NNUE {
 
 // Input features used in evaluation function
-using FeatureSet = Features::HalfKAv2_hm;
+using PSQFeatureSet    = Features::HalfKAv2_hm;
+using ThreatFeatureSet = Features::FullThreats;
 
 // Number of input feature dimensions after conversion
-inline constexpr IndexType     BigTransformedFeatureDimensions = 3072;
+inline constexpr IndexType     BigTransformedFeatureDimensions = 1024;
 inline constexpr std::uint32_t BigL2                           = 15;
 inline constexpr std::uint32_t BigL3                           = 32;
 

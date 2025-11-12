@@ -20,6 +20,7 @@
 
 #include "bitboard.h"
 #include "misc.h"
+#include "nnue/features/full_threats.h"
 #include "position.h"
 #include "search.h"
 #include "syzygy/tbbase.h"
@@ -34,6 +35,7 @@ int main(int argc, const char* argv[]) {
 
     BitBoard::init();
     Position::init();
+    NNUE::Features::init();
     Search::init();
     Tablebases::init();
 
