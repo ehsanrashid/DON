@@ -44,6 +44,8 @@
     #include <string_view>
     #include <type_traits>
 
+    #include "misc.h"
+
 // Predefined macros hell:
 //
 // __GNUC__                Compiler is GCC, Clang or ICX
@@ -139,6 +141,15 @@ enum Piece : std::uint8_t {
 };
 // clang-format on
 static_assert(sizeof(Piece) == 1);
+
+constexpr StdArray<Piece, COLOR_NB, 6> Pieces{{
+  {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING},  //
+  {B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING}   //
+}};
+constexpr StdArray<Piece, COLOR_NB, 4> NonPawnPieces{{
+  {W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN},  //
+  {B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN}   //
+}};
 
 // Value is used as an alias for std::int16_t, this is done to differentiate between
 // a search value and any other integer value. The values used in search are always
@@ -285,6 +296,52 @@ struct DirtyPiece final {
     // castling uses addSq and removeSq to remove and add the rook
     Square removeSq = SQ_NONE, addSq = SQ_NONE;
     Piece  removePc = NO_PIECE, addPc = NO_PIECE;
+};
+
+// Keep track of what threats change on the board (used by NNUE)
+struct DirtyThreat final {
+   public:
+    DirtyThreat() { /* don't initialize data */ }
+    DirtyThreat(Piece pc, Piece threatenedPc, Square sq, Square threatenedSq, bool add) noexcept {
+        data = (add << 28) | (threatenedPc << 20) | (pc << 16) | (threatenedSq << 8) | (sq << 0);
+    }
+
+    Piece  threatened_pc() const noexcept { return Piece((data >> 20) & 0xF); }
+    Piece  pc() const noexcept { return Piece((data >> 16) & 0xF); }
+    Square threatened_sq() const noexcept { return Square((data >> 8) & 0xFF); }
+    Square sq() const noexcept { return Square((data >> 0) & 0xFF); }
+    bool   add() const noexcept {
+        std::uint32_t b = data >> 28;
+        ASSUME(b == 0 || b == 1);
+        return b;
+    }
+
+   private:
+    std::uint32_t data;
+};
+
+// A piece can be involved in at most 8 outgoing attacks and 16 incoming attacks.
+// Moving a piece also can reveal at most 8 discovered attacks.
+// This implies that a non-castling move can change at most (8 + 16) * 3 + 8 = 80 features.
+// By similar logic, a castling move can change at most (5 + 1 + 3 + 9) * 2 = 36 features.
+// Thus, 80 should work as an upper bound.
+using DirtyThreatList = FixedVector<DirtyThreat, 80>;
+
+struct DirtyThreats final {
+   public:
+    DirtyThreatList list;
+    Color           ac;
+    Square          kingSq, preKingSq;
+
+    Bitboard threateningBB, threatenedBB;
+
+    template<bool PutPiece>
+    void add(Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept;
+};
+
+struct DirtyBoard final {
+    DirtyPiece   dp;
+    DirtyThreats dts;
 };
 
 // clang-format off

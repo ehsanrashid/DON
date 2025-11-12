@@ -15,41 +15,51 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Definition of input features HalfKP of NNUE evaluation function
+// Definition of input features FullThreats of NNUE evaluation function
 
-#ifndef NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED
-#define NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED
+#ifndef NNUE_FEATURES_FULL_THREATS_INCLUDED
+#define NNUE_FEATURES_FULL_THREATS_INCLUDED
 
 #include <cstdint>
 
 #include "../../misc.h"
+#include "../../position.h"
 #include "../../types.h"
 #include "../nnue_common.h"
 
 namespace DON {
 
-class Position;
-
 namespace NNUE::Features {
 
-// Feature HalfKAv2_hm: Combination of the position of own king and the position of pieces.
-// Position mirrored such that king is always on e..h files.
-class HalfKAv2_hm final {
+class FullThreats final {
    public:
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t Hash = 0x7F234CB8U;
+    static constexpr std::uint32_t Hash = 0x8F234CB8U;
 
-    // Number of feature dimensions -> (PS_NB * SQUARE_NB) / 2
-    static constexpr IndexType Dimensions = (11 * SQUARE_NB * SQUARE_NB) / 2;
+    // Number of feature dimensions
+    static constexpr IndexType Dimensions = 79856;
+
+    struct FusedData final {
+        Bitboard dp2removedOriginBB = 0;
+        Bitboard dp2removedTargetBB = 0;
+
+        Square dp2removedSq;
+    };
 
     // Maximum number of simultaneously active features.
-    static constexpr IndexType MaxActiveDimensions = 32;
+    static constexpr IndexType MaxActiveDimensions = 128;
 
-    using DirtyType = DirtyPiece;
+    using DirtyType = DirtyThreats;
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
-    // Index of a feature for king position and piece on square
-    static IndexType make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept;
+    static void init() noexcept;
+
+    static IndexType make_index(Color  perspective,
+                                Square kingSq,
+                                Square org,
+                                Square dst,
+                                Piece  attacker,
+                                Piece  attacked) noexcept;
 
     // Get a list of indices for active features
     static void
@@ -60,7 +70,9 @@ class HalfKAv2_hm final {
                                        Square           kingSq,
                                        const DirtyType& dt,
                                        IndexList&       removed,
-                                       IndexList&       added) noexcept;
+                                       IndexList&       added,
+                                       FusedData*       fd    = nullptr,
+                                       bool             first = false) noexcept;
 
     // Returns whether the change stored in this DirtyType means
     // that a full accumulator refresh is required.
@@ -70,4 +82,4 @@ class HalfKAv2_hm final {
 }  // namespace NNUE::Features
 }  // namespace DON
 
-#endif  // #ifndef NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED
+#endif  // #ifndef NNUE_FEATURES_FULL_THREATS_INCLUDED

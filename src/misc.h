@@ -164,26 +164,26 @@ namespace internal {
 
 template<typename T, std::size_t Size, std::size_t... Sizes>
 struct StdArrayDef final {
-    static_assert(Size > 0, "dimension must be > 0");
+    static_assert(Size >= 0, "dimension must be >= 0");
     using type = std::array<typename StdArrayDef<T, Sizes...>::type, Size>;
 };
 
 template<typename T, std::size_t Size>
 struct StdArrayDef<T, Size> final {
-    static_assert(Size > 0, "dimension must be > 0");
+    static_assert(Size >= 0, "dimension must be >= 0");
     using type = std::array<T, Size>;
 };
 
 // Recursive template to define multi-dimensional array
 template<typename T, std::size_t Size, std::size_t... Sizes>
 struct MultiArrayDef final {
-    static_assert(Size > 0, "dimension must be > 0");
+    static_assert(Size >= 0, "dimension must be >= 0");
     using Type = MultiArray<T, Sizes...>;
 };
 // Base case: single-dimensional array
 template<typename T, std::size_t Size>
 struct MultiArrayDef<T, Size> final {
-    static_assert(Size > 0, "dimension must be > 0");
+    static_assert(Size >= 0, "dimension must be >= 0");
     using Type = T;
 };
 }  // namespace internal
@@ -448,12 +448,14 @@ class FixedVector final {
     constexpr const T* cend() const noexcept { return cbegin() + size(); }
 
     bool push_back(const T& value) noexcept {
+        assert(size() < capacity());
         if (size() >= capacity())
             return false;
         _data[_size++] = value;  // copy-assign into pre-initialized slot
         return true;
     }
     bool push_back(T&& value) noexcept {
+        assert(size() < capacity());
         if (size() >= capacity())
             return false;
         _data[_size++] = std::move(value);
@@ -461,6 +463,7 @@ class FixedVector final {
     }
     template<typename... Args>
     bool emplace_back(Args&&... args) noexcept {
+        assert(size() < capacity());
         if (size() >= capacity())
             return false;
         _data[_size++] = T(std::forward<Args>(args)...);
@@ -472,10 +475,12 @@ class FixedVector final {
 
     constexpr const T& operator[](std::size_t idx) const noexcept {
         assert(idx < size());
+        assert(size() <= capacity());
         return _data[idx];
     }
     constexpr T& operator[](std::size_t idx) noexcept {
         assert(idx < size());
+        assert(size() <= capacity());
         return _data[idx];
     }
 

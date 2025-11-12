@@ -41,11 +41,13 @@ namespace DON::NNUE::SIMD {
 
 #if defined(USE_AVX512)
 using vec_t      = __m512i;
+using vec_i8_t   = __m256i;
 using vec128_t   = __m128i;
 using psqt_vec_t = __m256i;
 using vec_uint_t = __m512i;
     #define vec_load(a) _mm512_load_si512(a)
     #define vec_store(a, b) _mm512_store_si512(a, b)
+    #define vec_convert_8_16(a) _mm512_cvtepi8_epi16(a)
     #define vec_add_16(a, b) _mm512_add_epi16(a, b)
     #define vec_sub_16(a, b) _mm512_sub_epi16(a, b)
     #define vec_mulhi_16(a, b) _mm512_mulhi_epi16(a, b)
@@ -76,11 +78,13 @@ using vec_uint_t = __m512i;
 
 #elif defined(USE_AVX2)
 using vec_t      = __m256i;
+using vec_i8_t   = __m128i;
 using vec128_t   = __m128i;
 using psqt_vec_t = __m256i;
 using vec_uint_t = __m256i;
     #define vec_load(a) _mm256_load_si256(a)
     #define vec_store(a, b) _mm256_store_si256(a, b)
+    #define vec_convert_8_16(a) _mm256_cvtepi8_epi16(a)
     #define vec_add_16(a, b) _mm256_add_epi16(a, b)
     #define vec_sub_16(a, b) _mm256_sub_epi16(a, b)
     #define vec_mulhi_16(a, b) _mm256_mulhi_epi16(a, b)
@@ -113,16 +117,33 @@ using vec_uint_t = __m256i;
     #define vec128_storeu(a, b) _mm_storeu_si128(a, b)
     #define vec128_add(a, b) _mm_add_epi16(a, b)
 
-    #define MaxRegisterCount 16
+    #define MaxRegisterCount 12
     #define MaxChunkSize 32
 
 #elif defined(USE_SSE2)
 using vec_t      = __m128i;
+using vec_i8_t   = std::uint64_t;  // for the correct size -- will be loaded into an xmm reg
 using vec128_t   = __m128i;
 using psqt_vec_t = __m128i;
 using vec_uint_t = __m128i;
     #define vec_load(a) (*(a))
     #define vec_store(a, b) *(a) = (b)
+
+    #if defined(__i386__)
+inline __m128i _mm_cvtsi64_si128(std::int64_t a) noexcept {
+    return _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&a));
+}
+    #endif
+    #if defined(USE_SSE41)
+        #define vec_convert_8_16(a) _mm_cvtepi8_epi16(_mm_cvtsi64_si128(std::int64_t(a)))
+    #else
+inline __m128i vec_convert_8_16(std::uint64_t a) noexcept {
+    __m128i v8   = _mm_cvtsi64_si128(std::int64_t(a));
+    __m128i sign = _mm_cmpgt_epi8(_mm_setzero_si128(), v8);
+    return _mm_unpacklo_epi8(v8, sign);
+}
+    #endif
+
     #define vec_add_16(a, b) _mm_add_epi16(a, b)
     #define vec_sub_16(a, b) _mm_sub_epi16(a, b)
     #define vec_mulhi_16(a, b) _mm_mulhi_epi16(a, b)
@@ -158,6 +179,7 @@ using vec_uint_t = __m128i;
 
 #elif defined(USE_NEON)
 using vec_t      = int16x8_t;
+using vec_i8_t   = int8x16_t;
 using psqt_vec_t = int32x4_t;
 using vec128_t   = uint16x8_t;
 using vec_uint_t = uint32x4_t;
@@ -188,6 +210,11 @@ inline constexpr std::uint32_t Mask[4]{1, 2, 4, 8};
 
     #define MaxRegisterCount 16
     #define MaxChunkSize 16
+
+    #if !defined(__aarch64__)
+// Single instruction doesn't exist on 32-bit ARM
+inline int8x16_t vmovl_high_s8(int8x16_t val) noexcept { return vmovl_s8(vget_high_s8(val)); }
+    #endif
 
 #else
     #undef VECTOR

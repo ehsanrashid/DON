@@ -20,11 +20,14 @@
 #ifndef NNUE_ARCHITECTURE_H_INCLUDED
 #define NNUE_ARCHITECTURE_H_INCLUDED
 
+#include <array>
 #include <cstdint>
 #include <cstring>
 #include <iosfwd>
 
+#include "../misc.h"
 #include "features/half_ka_v2_hm.h"
+#include "features/full_threats.h"
 #include "layers/affine_transform.h"
 #include "layers/affine_transform_sparse_input.h"
 #include "layers/clipped_relu.h"
@@ -34,10 +37,11 @@
 namespace DON::NNUE {
 
 // Input features used in evaluation function
-using FeatureSet = Features::HalfKAv2_hm;
+using PSQFeatureSet    = Features::HalfKAv2_hm;
+using ThreatFeatureSet = Features::FullThreats;
 
 // Number of input feature dimensions after conversion
-inline constexpr IndexType     BigTransformedFeatureDimensions = 3072;
+inline constexpr IndexType     BigTransformedFeatureDimensions = 1024;
 inline constexpr std::uint32_t BigL2                           = 15;
 inline constexpr std::uint32_t BigL3                           = 32;
 
@@ -110,13 +114,14 @@ struct NetworkArchitecture final {
     }
 
     // Forward propagation
-    std::int32_t propagate(const std::array<TransformedFeatureType, TransformedFeatureDimensions>&
+    std::int32_t propagate(const StdArray<TransformedFeatureType, TransformedFeatureDimensions>&
                              transformedFeatures) const noexcept {
+
         struct alignas(CACHE_LINE_SIZE) Buffer final {
             alignas(CACHE_LINE_SIZE) typename decltype(fc_0)::OutputBuffer fc_0_out;
             alignas(CACHE_LINE_SIZE)
-              std::array<typename decltype(ac_sqr_0)::OutputType,
-                         ceil_to_multiple<IndexType>(FC_0_Outputs * 2, 32)> ac_sqr_0_out;
+              StdArray<typename decltype(ac_sqr_0)::OutputType,
+                       ceil_to_multiple<IndexType>(FC_0_Outputs * 2, 32)> ac_sqr_0_out;
             alignas(CACHE_LINE_SIZE) typename decltype(ac_0)::OutputBuffer ac_0_out;
             alignas(CACHE_LINE_SIZE) typename decltype(fc_1)::OutputBuffer fc_1_out;
             alignas(CACHE_LINE_SIZE) typename decltype(ac_1)::OutputBuffer ac_1_out;

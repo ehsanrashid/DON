@@ -168,9 +168,9 @@ class Position final {
     Bitboard attacks_by(Color c) const noexcept;
 
     // Doing and undoing moves
-    DirtyPiece
-    do_move(Move m, State& newSt, bool check, const TranspositionTable* tt = nullptr) noexcept;
-    DirtyPiece do_move(Move m, State& newSt, const TranspositionTable* tt = nullptr) noexcept;
+    DirtyBoard
+    do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* tt = nullptr) noexcept;
+    DirtyBoard do_move(Move m, State& newSt, const TranspositionTable* tt = nullptr) noexcept;
     void       undo_move(Move m) noexcept;
     void       do_null_move(State& newSt, const TranspositionTable* tt = nullptr) noexcept;
     void       undo_null_move() noexcept;
@@ -236,8 +236,8 @@ class Position final {
     Value evaluate() const noexcept;
     Value bonus() const noexcept;
 
-    void  put_piece(Square s, Piece pc) noexcept;
-    Piece remove_piece(Square s) noexcept;
+    void  put_piece(Square s, Piece pc, DirtyThreats* const dts = nullptr) noexcept;
+    Piece remove_piece(Square s, DirtyThreats* const dts = nullptr) noexcept;
 
     void flip() noexcept;
     void mirror() noexcept;
@@ -292,15 +292,20 @@ class Position final {
     bool can_enpassant(Color ac, Square epSq, Bitboard* const epAttackers = nullptr) const noexcept;
 
     // Other helpers
-    Piece move_piece(Square s1, Square s2) noexcept;
+    Piece move_piece(Square s1, Square s2, DirtyThreats* const dts = nullptr) noexcept;
+    void  swap_piece(Square s, Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
+
+    template<bool PutPiece, bool ComputeRay = true>
+    void update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept;
 
     template<bool Do>
-    void do_castling(Color             ac,
-                     Square            org,
-                     Square&           dst,
-                     Square&           rOrg,
-                     Square&           rDst,
-                     DirtyPiece* const dp = nullptr) noexcept;
+    void do_castling(Color               ac,
+                     Square              org,
+                     Square&             dst,
+                     Square&             rOrg,
+                     Square&             rDst,
+                     DirtyPiece* const   dp  = nullptr,
+                     DirtyThreats* const dts = nullptr) noexcept;
 
     Key adjust_key(Key k, std::int8_t r50 = 0) const noexcept;
 
@@ -623,7 +628,7 @@ inline void Position::reset_repetitions() noexcept {
     }
 }
 
-inline void Position::put_piece(Square s, Piece pc) noexcept {
+inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && is_ok(pc));
 
     pieceArr[s]  = pc;
@@ -632,13 +637,20 @@ inline void Position::put_piece(Square s, Piece pc) noexcept {
     colorBB[color_of(pc)] |= sBB;
     ++pieceCount[pc];
     ++pieceCount[pc & PIECE_TYPE_NB];
+
+    if (dts != nullptr)
+        update_piece_threats<true>(pc, s, dts);
 }
 
-inline Piece Position::remove_piece(Square s) noexcept {
+inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept {
     assert(is_ok(s));
 
     Piece pc = pieceArr[s];
     assert(is_ok(pc) && count(pc));
+
+    if (dts != nullptr)
+        update_piece_threats<false>(pc, s, dts);
+
     pieceArr[s]  = NO_PIECE;
     Bitboard sBB = square_bb(s);
     typeBB[ALL_PIECE] ^= sBB;
@@ -649,21 +661,144 @@ inline Piece Position::remove_piece(Square s) noexcept {
     return pc;
 }
 
-inline Piece Position::move_piece(Square s1, Square s2) noexcept {
+inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
     Piece pc = pieceArr[s1];
     assert(is_ok(pc));
+
+    if (dts != nullptr)
+        update_piece_threats<false>(pc, s1, dts);
+
     pieceArr[s1]    = NO_PIECE;
     pieceArr[s2]    = pc;
     Bitboard s1s2BB = make_bitboard(s1, s2);
     typeBB[ALL_PIECE] ^= s1s2BB;
     typeBB[type_of(pc)] ^= s1s2BB;
     colorBB[color_of(pc)] ^= s1s2BB;
+
+    if (dts != nullptr)
+        update_piece_threats<true>(pc, s2, dts);
+
     return pc;
 }
 
-inline DirtyPiece Position::do_move(Move m, State& newSt, const TranspositionTable* tt) noexcept {
+inline void Position::swap_piece(Square s, Piece newPc, DirtyThreats* const dts) noexcept {
+
+    Piece oldPc = remove_piece(s);
+
+    if (dts != nullptr)
+        update_piece_threats<false, false>(oldPc, s, dts);
+
+    put_piece(s, newPc);
+
+    if (dts != nullptr)
+        update_piece_threats<true, false>(newPc, s, dts);
+}
+
+template<bool PutPiece>
+inline void
+DirtyThreats::add(Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept {
+    if (PutPiece)
+    {
+        threateningBB |= sq;
+        threatenedBB |= threatenedSq;
+    }
+
+    list.push_back({pc, threatenedPc, sq, threatenedSq, PutPiece});
+}
+
+// Add newly threatened pieces
+template<bool PutPiece, bool ComputeRay>
+inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept {
+    Bitboard occupied = pieces();
+
+    Bitboard rAttacks = attacks_bb<ROOK>(s, occupied);
+    Bitboard bAttacks = attacks_bb<BISHOP>(s, occupied);
+    Bitboard qAttacks = rAttacks | bAttacks;
+
+    Bitboard threatened;
+
+    switch (type_of(pc))
+    {
+    case PAWN :
+        threatened = attacks_bb<PAWN>(s, color_of(pc));
+        break;
+    case KNIGHT :
+        threatened = attacks_bb<KNIGHT>(s);
+        break;
+    case BISHOP :
+        threatened = bAttacks;
+        break;
+    case ROOK :
+        threatened = rAttacks;
+        break;
+    case QUEEN :
+        threatened = qAttacks;
+        break;
+    case KING :
+        threatened = attacks_bb<KING>(s);
+        break;
+    default :
+        assert(false);
+        threatened = 0;
+    }
+
+    threatened &= occupied;
+
+    while (threatened)
+    {
+        Square threatenedSq = pop_lsb(threatened);
+        Piece  threatenedPc = piece_on(threatenedSq);
+
+        assert(threatenedSq != s);
+        assert(is_ok(threatenedPc));
+
+        dts->add<PutPiece>(pc, threatenedPc, s, threatenedSq);
+    }
+
+    Bitboard sliders = (pieces(QUEEN, BISHOP) & bAttacks)  //
+                     | (pieces(QUEEN, ROOK) & rAttacks);
+
+    Bitboard incomingThreats = (attacks_bb<KNIGHT>(s) & pieces(KNIGHT))            //
+                             | (attacks_bb<PAWN>(s, WHITE) & pieces(BLACK, PAWN))  //
+                             | (attacks_bb<PAWN>(s, BLACK) & pieces(WHITE, PAWN))  //
+                             | (attacks_bb<KING>(s) & pieces(KING));
+
+    while (sliders)
+    {
+        Square sliderSq = pop_lsb(sliders);
+        Piece  sliderPc = piece_on(sliderSq);
+
+        Bitboard ray = pass_ray_bb(sliderSq, s) & ~between_bb(sliderSq, s);
+        threatened   = ray & qAttacks & occupied;
+
+        assert(!more_than_one(threatened));
+        if (ComputeRay && threatened)
+        {
+            Square threatenedSq = lsb(threatened);
+            Piece  threatenedPc = piece_on(threatenedSq);
+
+            dts->add<!PutPiece>(sliderPc, threatenedPc, sliderSq, threatenedSq);
+        }
+        dts->add<PutPiece>(sliderPc, pc, sliderSq, s);
+    }
+
+    // Add threats of sliders that were already threatening s,
+    // sliders are already handled in the loop above
+    while (incomingThreats)
+    {
+        Square srcSq = pop_lsb(incomingThreats);
+        Piece  srcPc = piece_on(srcSq);
+
+        assert(srcSq != s);
+        assert(is_ok(srcPc));
+
+        dts->add<PutPiece>(srcPc, pc, srcSq, s);
+    }
+}
+
+inline DirtyBoard Position::do_move(Move m, State& newSt, const TranspositionTable* tt) noexcept {
     return do_move(m, newSt, check(m), tt);
 }
 
