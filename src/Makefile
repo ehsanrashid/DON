@@ -55,17 +55,19 @@ PGOBENCH := $(WINE_PATH) ./$(EXE) bench
 SRCS := benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp \
     misc.cpp movegen.cpp movepick.cpp perft.cpp polybook.cpp position.cpp score.cpp \
     search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp \
-    nnue/nnue_accumulator.cpp nnue/nnue_misc.cpp nnue/network.cpp \
-    nnue/features/half_ka_v2_hm.cpp syzygy/tbbase.cpp
+    nnue/features/full_threats.cpp nnue/features/half_ka_v2_hm.cpp \
+    nnue/network.cpp nnue/nnue_accumulator.cpp nnue/nnue_misc.cpp \
+    syzygy/tbbase.cpp
 
 HEADERS := benchmark.h bitboard.h engine.h evaluate.h history.h memory.h misc.h movegen.h \
     movepick.h numa.h perft.h polybook.h position.h prng.h score.h search.h shm.h shm_linux.h \
     thread.h thread_win32_osx.h timeman.h tt.h tune.h types.h uci.h ucioption.h \
-    nnue/nnue_accumulator.h nnue/nnue_architecture.h nnue/nnue_common.h \
-    nnue/nnue_feature_transformer.h nnue/nnue_misc.h nnue/network.h nnue/simd.h \
-    nnue/features/half_ka_v2_hm.h nnue/layers/affine_transform.h \
-    nnue/layers/affine_transform_sparse_input.h nnue/layers/clipped_relu.h \
-    nnue/layers/sqr_clipped_relu.h syzygy/tbbase.h
+    nnue/features/full_threats.h nnue/features/half_ka_v2_hm.h \
+    nnue/layers/affine_transform_sparse_input.h nnue/layers/affine_transform.h \
+    nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h \
+    nnue/network.h nnue/nnue_accumulator.h nnue/nnue_architecture.h nnue/nnue_common.h \
+    nnue/nnue_feature_transformer.h nnue/nnue_misc.h nnue/simd.h \
+    syzygy/tbbase.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
 

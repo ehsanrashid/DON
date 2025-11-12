@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-//Definition of input features HalfKP of NNUE evaluation function
+// Definition of input features HalfKP of NNUE evaluation function
 
 #ifndef NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED
 #define NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED
@@ -96,6 +96,7 @@ class HalfKAv2_hm final {
     // Maximum number of simultaneously active features.
     static constexpr IndexType MaxActiveDimensions = 32;
 
+    using DirtyType = DirtyPiece;
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
     // Index of a feature for king position and piece on square
@@ -106,15 +107,15 @@ class HalfKAv2_hm final {
     append_active_indices(Color perspective, const Position& pos, IndexList& active) noexcept;
 
     // Get a list of indices for recently changed features
-    static void append_changed_indices(Color             perspective,
-                                       Square            kingSq,
-                                       const DirtyPiece& dp,
-                                       IndexList&        removed,
-                                       IndexList&        added) noexcept;
+    static void append_changed_indices(Color            perspective,
+                                       Square           kingSq,
+                                       const DirtyType& dt,
+                                       IndexList&       removed,
+                                       IndexList&       added) noexcept;
 
-    // Returns whether the change stored in this DirtyPiece means
+    // Returns whether the change stored in this DirtyType means
     // that a full accumulator refresh is required.
-    static bool requires_refresh(Color perspective, const DirtyPiece& dp) noexcept;
+    static bool requires_refresh(Color perspective, const DirtyType& dt) noexcept;
 };
 
 }  // namespace NNUE::Features

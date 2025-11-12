@@ -15,13 +15,12 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-//Definition of input features HalfKAv2_hm of NNUE evaluation function
+// Definition of input features HalfKAv2_hm of NNUE evaluation function
 
 #include "half_ka_v2_hm.h"
 
-#include <array>
-
 #include "../../bitboard.h"
+#include "../../misc.h"
 #include "../../position.h"
 #include "../../types.h"
 #include "../nnue_common.h"
@@ -50,25 +49,25 @@ void HalfKAv2_hm::append_active_indices(Color           perspective,
 }
 
 // Get a list of indices for recently changed features
-void HalfKAv2_hm::append_changed_indices(Color             perspective,
-                                         Square            kingSq,
-                                         const DirtyPiece& dp,
-                                         IndexList&        removed,
-                                         IndexList&        added) noexcept {
-    removed.push_back(make_index(perspective, kingSq, dp.org, dp.pc));
+void HalfKAv2_hm::append_changed_indices(Color            perspective,
+                                         Square           kingSq,
+                                         const DirtyType& dt,
+                                         IndexList&       removed,
+                                         IndexList&       added) noexcept {
+    removed.push_back(make_index(perspective, kingSq, dt.org, dt.pc));
 
-    if (is_ok(dp.dst))
-        added.push_back(make_index(perspective, kingSq, dp.dst, dp.pc));
+    if (is_ok(dt.dst))
+        added.push_back(make_index(perspective, kingSq, dt.dst, dt.pc));
 
-    if (is_ok(dp.removeSq))
-        removed.push_back(make_index(perspective, kingSq, dp.removeSq, dp.removePc));
+    if (is_ok(dt.removeSq))
+        removed.push_back(make_index(perspective, kingSq, dt.removeSq, dt.removePc));
 
-    if (is_ok(dp.addSq))
-        added.push_back(make_index(perspective, kingSq, dp.addSq, dp.addPc));
+    if (is_ok(dt.addSq))
+        added.push_back(make_index(perspective, kingSq, dt.addSq, dt.addPc));
 }
 
-bool HalfKAv2_hm::requires_refresh(Color perspective, const DirtyPiece& dp) noexcept {
-    return dp.pc == make_piece(perspective, KING);
+bool HalfKAv2_hm::requires_refresh(Color perspective, const DirtyType& dt) noexcept {
+    return dt.pc == make_piece(perspective, KING);
 }
 
 }  // namespace DON::NNUE::Features

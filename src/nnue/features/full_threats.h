@@ -1,0 +1,116 @@
+/*
+  DON, a UCI chess playing engine derived from Stockfish
+
+  DON is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  DON is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+// Definition of input features FullThreats of NNUE evaluation function
+
+#ifndef NNUE_FEATURES_FULL_THREATS_INCLUDED
+#define NNUE_FEATURES_FULL_THREATS_INCLUDED
+
+#include <cstdint>
+
+#include "../../misc.h"
+#include "../../types.h"
+#include "../nnue_common.h"
+
+namespace DON {
+
+class Position;
+
+namespace NNUE::Features {
+
+static constexpr int numValidTargets[PIECE_NB] = {0, 6, 12, 10, 10, 12, 8, 0,
+                                                  0, 6, 12, 10, 10, 12, 8, 0};
+extern IndexType     offsets[PIECE_NB][SQUARE_NB + 2];
+void                 init_threat_offsets();
+
+class FullThreats final {
+   public:
+    // Hash value embedded in the evaluation file
+    static constexpr std::uint32_t HashValue = 0x8F234CB8U;
+
+    // Number of feature dimensions
+    static constexpr IndexType Dimensions = 79856;
+
+    // clang-format off
+    // Orient a square according to perspective (rotates by 180 for black)
+    static constexpr int OrientTBL[COLOR_NB][SQUARE_NB] = {
+      { SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
+        SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
+        SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
+        SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
+        SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
+        SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
+        SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
+        SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1 },
+      { SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
+        SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
+        SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
+        SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
+        SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
+        SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
+        SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
+        SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8 }
+    };
+
+    static constexpr int map[PIECE_TYPE_NB-2][PIECE_TYPE_NB-2] = {
+      {0,  1, -1,  2, -1, -1},
+      {0,  1,  2,  3,  4,  5},
+      {0,  1,  2,  3, -1,  4},
+      {0,  1,  2,  3, -1,  4},
+      {0,  1,  2,  3,  4,  5},
+      {0,  1,  2,  3, -1, -1}
+    };
+    // clang-format on
+
+    struct FusedUpdateData {
+        Bitboard dp2removedOriginBoard = 0;
+        Bitboard dp2removedTargetBoard = 0;
+
+        Square dp2removed;
+    };
+
+    // Maximum number of simultaneously active features.
+    static constexpr IndexType MaxActiveDimensions = 128;
+
+    using DirtyType = DirtyThreats;
+    using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
+
+    template<Color Perspective>
+    static IndexType make_index(Piece attkr, Square from, Square to, Piece attkd, Square ksq);
+
+    // Get a list of indices for active features
+    template<Color Perspective>
+    static void append_active_indices(const Position& pos, IndexList& active);
+
+    // Get a list of indices for recently changed features
+    template<Color Perspective>
+    static void append_changed_indices(Square           ksq,
+                                       const DirtyType& dt,
+                                       IndexList&       removed,
+                                       IndexList&       added,
+                                       FusedUpdateData* fd    = nullptr,
+                                       bool             first = false);
+
+    // Returns whether the change stored in this DirtyType means
+    // that a full accumulator refresh is required.
+    static bool requires_refresh(const DirtyType& dt, Color perspective) noexcept;
+};
+
+}  // namespace NNUE::Features
+}  // namespace DON
+
+#endif  // #ifndef NNUE_FEATURES_FULL_THREATS_INCLUDED
