@@ -43,9 +43,9 @@ namespace DON::NNUE {
 
 // Returns the inverse of a permutation
 template<std::size_t Size>
-constexpr std::array<std::size_t, Size>
+constexpr StdArray<std::size_t, Size>
 invert_permutation(const std::array<std::size_t, Size>& order) noexcept {
-    std::array<std::size_t, Size> inverse{};
+    StdArray<std::size_t, Size> inverse{};
     for (std::size_t i = 0; i < order.size(); ++i)
         inverse[order[i]] = i;
     return inverse;
@@ -122,7 +122,7 @@ class FeatureTransformer final {
     // Store the order by which 128-bit blocks of a 1024-bit data must
     // be permuted so that calling packus on adjacent vectors of 16-bit
     // integers loaded from the data results in the pre-permutation order
-    static constexpr auto PackusEpi16Order = []() -> std::array<std::size_t, 8> {
+    static constexpr auto PackusEpi16Order = []() -> StdArray<std::size_t, 8> {
 #if defined(USE_AVX512)
         // _mm512_packus_epi16 after permutation:
         // |   0   |   2   |   4   |   6   | // Vector 0
