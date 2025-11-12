@@ -387,7 +387,7 @@ const std::vector<Strings> Games{
 // bench 64 1 100000 default nodes  : search default positions with 1 thread for 100K nodes each (TT = 64MB)
 // bench 64 4 5000 current movetime : search current position  with 4 threads for 5 sec (TT = 64MB)
 // bench 16 1 5 blah perft          : run perft 5 on positions in fen filename "blah" (TT = 16MB)
-Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexcept {
+Strings bench(std::istringstream& iss, std::string_view currentFen) noexcept {
 
     std::string token;
     // Assign default values to missing arguments
@@ -455,37 +455,37 @@ Strings setup_bench(std::istringstream& iss, std::string_view currentFen) noexce
 
 // Examples:
 // benchmark [threads] [hash_MiB = 128] [time_s = 150]
-Benchmark setup_benchmark(std::istringstream& iss) noexcept {
+Setup benchmark(std::istringstream& iss) noexcept {
     // TT_SIZE_PER_THREAD is chosen such that roughly half of the hash is
     // used all positions for the current sequence have been searched.
     constexpr std::size_t ThreadTTSize = 128;
     constexpr std::size_t MoveTime     = 150;
 
-    Benchmark benchmark;
+    Setup setup;
 
     // Assign default values to missing arguments
 
     // Desired time in seconds
     std::size_t moveTime;
 
-    if (iss >> benchmark.threads)
-        benchmark.originalInvocation += std::to_string(benchmark.threads);
+    if (iss >> setup.threads)
+        setup.originalInvocation += std::to_string(setup.threads);
     else
-        benchmark.threads = hardware_concurrency();
+        setup.threads = hardware_concurrency();
 
-    if (iss >> benchmark.ttSize)
-        benchmark.originalInvocation += ' ' + std::to_string(benchmark.ttSize);
+    if (iss >> setup.ttSize)
+        setup.originalInvocation += ' ' + std::to_string(setup.ttSize);
     else
-        benchmark.ttSize = ThreadTTSize * benchmark.threads;
+        setup.ttSize = ThreadTTSize * setup.threads;
 
     if (iss >> moveTime)
-        benchmark.originalInvocation += ' ' + std::to_string(moveTime);
+        setup.originalInvocation += ' ' + std::to_string(moveTime);
     else
         moveTime = MoveTime;
 
-    benchmark.filledInvocation += std::to_string(benchmark.threads) + ' '  //
-                                + std::to_string(benchmark.ttSize) + ' '   //
-                                + std::to_string(moveTime);
+    setup.filledInvocation += std::to_string(setup.threads) + ' '  //
+                            + std::to_string(setup.ttSize) + ' '   //
+                            + std::to_string(moveTime);
 
     const auto get_corrected_time = [](std::uint16_t ply) noexcept {
         // time per move is fit roughly based on LTC games
@@ -512,22 +512,22 @@ Benchmark setup_benchmark(std::istringstream& iss) noexcept {
     auto timeScaleFactor = 1000.0 * moveTime / totalTime;
     for (const auto& game : Games)
     {
-        benchmark.commands.emplace_back("ucinewgame");
+        setup.commands.emplace_back("ucinewgame");
 
         std::uint16_t ply = 1;
         for (const auto& fen : game)
         {
-            benchmark.commands.emplace_back("position fen " + fen);
+            setup.commands.emplace_back("position fen " + fen);
 
             auto correctedTime =
               static_cast<std::size_t>(get_corrected_time(ply) * timeScaleFactor);
-            benchmark.commands.emplace_back("go movetime " + std::to_string(correctedTime));
+            setup.commands.emplace_back("go movetime " + std::to_string(correctedTime));
 
             ++ply;
         }
     }
 
-    return benchmark;
+    return setup;
 }
 
 }  // namespace DON::Benchmark

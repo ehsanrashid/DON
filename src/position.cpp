@@ -1477,23 +1477,6 @@ Key Position::compute_move_key(Move m) const noexcept {
     return is_ok(capturedPiece) || type_of(movedPiece) == PAWN ? moveKey : adjust_key(moveKey, 1);
 }
 
-Value Position::non_pawn_value(Color c) const noexcept {
-    Value nonPawnValue = VALUE_ZERO;
-
-    for (Piece pc : NonPawnPieces[c])
-        nonPawnValue += PIECE_VALUE[type_of(pc)] * count(pc);
-
-    return nonPawnValue;
-}
-
-bool Position::has_non_pawn(Color c) const noexcept {
-
-    for (Piece pc : NonPawnPieces[c])
-        if (count(pc))
-            return true;
-    return false;
-}
-
 // Tests if the SEE (Static Exchange Evaluation) value of the move
 // is greater or equal to the given threshold.
 // An algorithm similar to alpha-beta pruning with a null window.
