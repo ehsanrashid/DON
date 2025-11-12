@@ -526,7 +526,24 @@ inline Key Position::non_pawn_key(Color c) const noexcept { return minor_key(c) 
 
 inline Key Position::non_pawn_key() const noexcept { return non_pawn_key(WHITE) ^ non_pawn_key(BLACK); }
 
+inline Value Position::non_pawn_value(Color c) const noexcept {
+    Value nonPawnValue = VALUE_ZERO;
+
+    for (Piece pc : NonPawnPieces[c])
+        nonPawnValue += PIECE_VALUE[type_of(pc)] * count(pc);
+
+    return nonPawnValue;
+}
+
 inline Value Position::non_pawn_value() const noexcept { return non_pawn_value(WHITE) + non_pawn_value(BLACK); }
+
+inline bool Position::has_non_pawn(Color c) const noexcept {
+
+    for (Piece pc : NonPawnPieces[c])
+        if (count(pc))
+            return true;
+    return false;
+}
 
 // clang-format on
 
