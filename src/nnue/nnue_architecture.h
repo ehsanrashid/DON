@@ -114,8 +114,9 @@ struct NetworkArchitecture final {
     }
 
     // Forward propagation
-    std::int32_t propagate(const std::array<TransformedFeatureType, TransformedFeatureDimensions>&
+    std::int32_t propagate(const StdArray<TransformedFeatureType, TransformedFeatureDimensions>&
                              transformedFeatures) const noexcept {
+
         struct alignas(CACHE_LINE_SIZE) Buffer final {
             alignas(CACHE_LINE_SIZE) typename decltype(fc_0)::OutputBuffer fc_0_out;
             alignas(CACHE_LINE_SIZE)

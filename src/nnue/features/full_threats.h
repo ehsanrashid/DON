@@ -39,37 +39,6 @@ class FullThreats final {
     // Number of feature dimensions
     static constexpr IndexType Dimensions = 79856;
 
-    // clang-format off
-    // Orient a square according to perspective (rotates by 180 for black)
-    static constexpr StdArray<int, COLOR_NB, SQUARE_NB> OrientTBL{{
-      { SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
-        SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
-        SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
-        SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
-        SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
-        SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
-        SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,
-        SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1 },
-      { SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
-        SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
-        SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
-        SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
-        SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
-        SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
-        SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,
-        SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8 }
-    }};
-
-    static constexpr StdArray<int, PIECE_TYPE_NB - 2, PIECE_TYPE_NB - 2> Map{{
-      {0,  1, -1,  2, -1, -1},
-      {0,  1,  2,  3,  4,  5},
-      {0,  1,  2,  3, -1,  4},
-      {0,  1,  2,  3, -1,  4},
-      {0,  1,  2,  3,  4,  5},
-      {0,  1,  2,  3, -1, -1}
-    }};
-    // clang-format on
-
     struct FusedData final {
         Bitboard dp2removedOriginBB = 0;
         Bitboard dp2removedTargetBB = 0;
@@ -85,8 +54,12 @@ class FullThreats final {
 
     static void init() noexcept;
 
-    static IndexType make_index(
-      Color perspective, Piece attkr, Square from, Square to, Piece attkd, Square ksq) noexcept;
+    static IndexType make_index(Color  perspective,
+                                Square kingSq,
+                                Square org,
+                                Square dst,
+                                Piece  attacker,
+                                Piece  attacked) noexcept;
 
     // Get a list of indices for active features
     static void

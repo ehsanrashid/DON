@@ -47,6 +47,35 @@ struct PiecePairData final {
     uint32_t data;
 };
 
+// Orient a square according to perspective (rotates by 180 for black)
+constexpr StdArray<int, COLOR_NB, SQUARE_NB> OrientTBL{{
+  {SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
+   SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
+   SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
+   SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
+   SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
+   SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
+   SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
+   SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1},  //
+  {SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,   //
+   SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,   //
+   SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,   //
+   SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,   //
+   SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,   //
+   SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,   //
+   SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,   //
+   SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8}   //
+}};
+
+constexpr StdArray<int, PIECE_TYPE_NB - 2, PIECE_TYPE_NB - 2> Map{{
+  {0, +1, -1, +2, -1, -1},  //
+  {0, +1, +2, +3, +4, +5},  //
+  {0, +1, +2, +3, -1, +4},  //
+  {0, +1, +2, +3, -1, +4},  //
+  {0, +1, +2, +3, +4, +5},  //
+  {0, +1, +2, +3, -1, -1}   //
+}};
+
 // Lookup array for indexing threats
 StdArray<IndexType, PIECE_NB, SQUARE_NB + 2> Offsets;
 
@@ -128,11 +157,11 @@ void FullThreats::init() noexcept {
 
 // Index of a feature for a given king position and another piece on some square
 IndexType FullThreats::make_index(Color  perspective,
-                                  Piece  attacker,
+                                  Square kingSq,
                                   Square org,
                                   Square dst,
-                                  Piece  attacked,
-                                  Square kingSq) noexcept {
+                                  Piece  attacker,
+                                  Piece  attacked) noexcept {
 
     org = Square(int(org) ^ OrientTBL[perspective][kingSq]);
     dst = Square(int(dst) ^ OrientTBL[perspective][kingSq]);
@@ -187,7 +216,7 @@ void FullThreats::append_active_indices(Color           perspective,
                     Square    dst      = pop_lsb(lAttacks);
                     Square    org      = dst - rDir;
                     Piece     attacked = pos.piece_on(dst);
-                    IndexType index = make_index(perspective, attacker, org, dst, attacked, kingSq);
+                    IndexType index = make_index(perspective, kingSq, org, dst, attacker, attacked);
 
                     if (index < Dimensions)
                         active.push_back(index);
@@ -201,7 +230,7 @@ void FullThreats::append_active_indices(Color           perspective,
                     Square    dst      = pop_lsb(rAttacks);
                     Square    org      = dst - lDir;
                     Piece     attacked = pos.piece_on(dst);
-                    IndexType index = make_index(perspective, attacker, org, dst, attacked, kingSq);
+                    IndexType index = make_index(perspective, kingSq, org, dst, attacker, attacked);
 
                     if (index < Dimensions)
                         active.push_back(index);
@@ -219,7 +248,7 @@ void FullThreats::append_active_indices(Color           perspective,
                         Square    dst      = pop_lsb(attacks);
                         Piece     attacked = pos.piece_on(dst);
                         IndexType index =
-                          make_index(perspective, attacker, org, dst, attacked, kingSq);
+                          make_index(perspective, kingSq, org, dst, attacker, attacked);
 
                         if (index < Dimensions)
                             active.push_back(index);
@@ -267,16 +296,16 @@ void FullThreats::append_changed_indices(Color            perspective,
                 {
                     if (first)
                     {
-                        fusedData->dp2removedTargetBB |= square_bb(org);
+                        fusedData->dp2removedTargetBB |= org;
                         continue;
                     }
                 }
-                else if (fusedData->dp2removedTargetBB & square_bb(org))
+                else if (fusedData->dp2removedTargetBB & org)
                     continue;
             }
         }
 
-        IndexType index = make_index(perspective, attacker, org, dst, attacked, kingSq);
+        IndexType index = make_index(perspective, kingSq, org, dst, attacker, attacked);
 
         if (index != Dimensions)
             (add ? added : removed).push_back(index);
