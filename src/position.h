@@ -293,7 +293,7 @@ class Position final {
 
     // Other helpers
     Piece move_piece(Square s1, Square s2, DirtyThreats* const dts = nullptr) noexcept;
-    void  swap_piece(Square s, Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
+    Piece swap_piece(Square s, Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
 
     template<bool PutPiece, bool ComputeRay = true>
     void update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept;
@@ -662,7 +662,7 @@ inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noe
 inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept {
     assert(is_ok(s));
 
-    Piece pc = pieceArr[s];
+    Piece pc = piece_on(s);
     assert(is_ok(pc) && count(pc));
 
     if (dts != nullptr)
@@ -681,7 +681,7 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
 inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    Piece pc = pieceArr[s1];
+    Piece pc = piece_on(s1);
     assert(is_ok(pc));
 
     if (dts != nullptr)
@@ -700,7 +700,7 @@ inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts)
     return pc;
 }
 
-inline void Position::swap_piece(Square s, Piece newPc, DirtyThreats* const dts) noexcept {
+inline Piece Position::swap_piece(Square s, Piece newPc, DirtyThreats* const dts) noexcept {
 
     Piece oldPc = remove_piece(s);
 
@@ -711,6 +711,8 @@ inline void Position::swap_piece(Square s, Piece newPc, DirtyThreats* const dts)
 
     if (dts != nullptr)
         update_piece_threats<true, false>(newPc, s, dts);
+
+    return oldPc;
 }
 
 template<bool PutPiece>
