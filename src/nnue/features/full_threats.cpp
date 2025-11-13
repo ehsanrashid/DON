@@ -82,17 +82,14 @@ StdArray<IndexType, PIECE_NB, SQUARE_NB + 2> Offsets;
 
 // The final index is calculated from summing data found in these two LUTs,
 // as well as Offsets[attacker][from]
-StdArray<PiecePairData, PIECE_NB, PIECE_NB>       Lut1Index;  // [attacker][attacked]
-StdArray<uint8_t, PIECE_NB, SQUARE_NB, SQUARE_NB> Lut2Index;  // [attacker][org][dst]
+StdArray<PiecePairData, PIECE_NB, PIECE_NB>       LutData;   // [attacker][attacked]
+StdArray<uint8_t, PIECE_NB, SQUARE_NB, SQUARE_NB> LutIndex;  // [attacker][org][dst]
 
 }  // namespace
 
 void FullThreats::init() noexcept {
 
-    constexpr StdArray<int, PIECE_NB> MaxTargets{
-      0, 6, 12, 10, 10, 12, 8, 0,  //
-      0, 6, 12, 10, 10, 12, 8, 0   //
-    };
+    constexpr StdArray<int, PIECE_TYPE_NB> MaxTargets{0, 6, 12, 10, 10, 12, 8, 0};
 
     int cumulativeOffset = 0;
     for (Color c : {WHITE, BLACK})
@@ -121,10 +118,10 @@ void FullThreats::init() noexcept {
             Offsets[pc][64] = cumulativePieceOffset;
             Offsets[pc][65] = cumulativeOffset;
 
-            cumulativeOffset += MaxTargets[pc] * cumulativePieceOffset;
+            cumulativeOffset += MaxTargets[type_of(pc)] * cumulativePieceOffset;
         }
 
-    // Initialize lut index
+    // Initialize Lut data & index
     for (Color attackerC : {WHITE, BLACK})
         for (Piece attacker : Pieces[attackerC])
         {
@@ -138,23 +135,19 @@ void FullThreats::init() noexcept {
 
                     int map = Map[attackerType - 1][attackedType - 1];
 
+                    IndexType feature =
+                      Offsets[attacker][65]
+                      + (attackedC * (MaxTargets[attackerType] / 2) + map) * Offsets[attacker][64];
                     bool excluded = map < 0;
                     bool semiExcluded =
                       attackerType == attackedType && (enemy || attackerType != PAWN);
-                    IndexType feature =
-                      Offsets[attacker][65]
-                      + (attackedC * (MaxTargets[attacker] / 2) + map) * Offsets[attacker][64];
 
-                    Lut1Index[attacker][attacked] = PiecePairData(feature, excluded, semiExcluded);
+                    LutData[attacker][attacked] = PiecePairData(feature, excluded, semiExcluded);
                 }
-        }
 
-    for (Color c : {WHITE, BLACK})
-        for (Piece attacker : Pieces[c])
-        {
             for (Square org = SQ_A1; org <= SQ_H8; ++org)
                 for (Square dst = SQ_A1; dst <= SQ_H8; ++dst)
-                    Lut2Index[attacker][org][dst] =
+                    LutIndex[attacker][org][dst] =
                       popcount((square_bb(dst) - 1) & attacks_bb(org, attacker));
         }
 }
@@ -176,7 +169,7 @@ IndexType FullThreats::make_index(Color  perspective,
         attacked = flip_color(attacked);
     }
 
-    auto& piecePairData = Lut1Index[attacker][attacked];
+    auto& piecePairData = LutData[attacker][attacked];
 
     // Some threats imply the existence of the corresponding ones in the opposite direction.
     // Filter them here to ensure only one such threat is active.
@@ -188,7 +181,7 @@ IndexType FullThreats::make_index(Color  perspective,
         return Dimensions;
 
     IndexType index =
-      piecePairData.feature_index_base() + Offsets[attacker][org] + Lut2Index[attacker][org][dst];
+      piecePairData.feature_index_base() + Offsets[attacker][org] + LutIndex[attacker][org][dst];
 
     ASSUME(index != Dimensions);
     return index;
@@ -208,13 +201,13 @@ void FullThreats::append_active_indices(Color           perspective,
 
     Bitboard occupied = pos.pieces();
     for (Color color : {WHITE, BLACK})
-        for (Piece pc : Pieces[color])
+        for (PieceType pt = PAWN; pt <= KING; ++pt)
         {
             Color    c        = Order[perspective][color];
-            Piece    attacker = make_piece(c, type_of(pc));
-            Bitboard bb       = pos.pieces(c, type_of(pc));
+            Piece    attacker = make_piece(c, pt);
+            Bitboard bb       = pos.pieces(c, pt);
 
-            if (type_of(pc) == PAWN)
+            if (pt == PAWN)
             {
                 Bitboard lAttacks =
                   (c == WHITE ? shift_bb<NORTH_EAST>(bb) : shift_bb<SOUTH_WEST>(bb)) & occupied;
@@ -249,7 +242,7 @@ void FullThreats::append_active_indices(Color           perspective,
                 while (bb)
                 {
                     Square   org     = pop_lsb(bb);
-                    Bitboard attacks = attacks_bb(org, type_of(pc), occupied) & occupied;
+                    Bitboard attacks = attacks_bb(org, pt, occupied) & occupied;
 
                     while (attacks)
                     {

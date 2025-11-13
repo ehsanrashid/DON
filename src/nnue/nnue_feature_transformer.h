@@ -305,10 +305,10 @@ class FeatureTransformer final {
             static_assert((HalfDimensions / 2) % OutputChunkSize == 0);
             constexpr IndexType NumOutputChunks = HalfDimensions / 2 / OutputChunkSize;
 
+            vec_t* out = reinterpret_cast<vec_t*>(&output[offset]);
             // clang-format off
             const vec_t* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
             const vec_t* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
-            vec_t*       out = reinterpret_cast<      vec_t*>(&output[offset]);
             // clang-format on
 
             // Per the NNUE architecture, here we want to multiply pairs of
@@ -376,43 +376,46 @@ class FeatureTransformer final {
 
             if (UseThreats)
             {
-                const vec_t* tin0 =
-                  reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
-                const vec_t* tin1 = reinterpret_cast<const vec_t*>(
-                  &(threatAccumulation[perspectives[p]][HalfDimensions / 2]));
+                // clang-format off
+                const vec_t* tin0 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
+                const vec_t* tin1 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][HalfDimensions / 2]));
+                // clang-format on
                 for (IndexType j = 0; j < NumOutputChunks; ++j)
                 {
-                    vec_t acc0a = vec_add_16(in0[j * 2 + 0], tin0[j * 2 + 0]);
-                    vec_t acc0b = vec_add_16(in0[j * 2 + 1], tin0[j * 2 + 1]);
-                    vec_t acc1a = vec_add_16(in1[j * 2 + 0], tin1[j * 2 + 0]);
-                    vec_t acc1b = vec_add_16(in1[j * 2 + 1], tin1[j * 2 + 1]);
+                    vec_t acc00 = vec_add_16(in0[j * 2 + 0], tin0[j * 2 + 0]);
+                    vec_t acc01 = vec_add_16(in0[j * 2 + 1], tin0[j * 2 + 1]);
+                    vec_t acc10 = vec_add_16(in1[j * 2 + 0], tin1[j * 2 + 0]);
+                    vec_t acc11 = vec_add_16(in1[j * 2 + 1], tin1[j * 2 + 1]);
 
-                    vec_t sum0a = vec_slli_16(vec_max_16(vec_min_16(acc0a, One), Zero), shift);
-                    vec_t sum0b = vec_slli_16(vec_max_16(vec_min_16(acc0b, One), Zero), shift);
-                    vec_t sum1a = vec_min_16(acc1a, One);
-                    vec_t sum1b = vec_min_16(acc1b, One);
+                    vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, One), Zero), shift);
+                    vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, One), Zero), shift);
+                    vec_t sum10 = vec_min_16(acc10, One);
+                    vec_t sum11 = vec_min_16(acc11, One);
 
-                    vec_t pa = vec_mulhi_16(sum0a, sum1a);
-                    vec_t pb = vec_mulhi_16(sum0b, sum1b);
+                    vec_t p0 = vec_mulhi_16(sum00, sum10);
+                    vec_t p1 = vec_mulhi_16(sum01, sum11);
 
-                    out[j] = vec_packus_16(pa, pb);
+                    out[j] = vec_packus_16(p0, p1);
                 }
             }
             else
             {
                 for (IndexType j = 0; j < NumOutputChunks; ++j)
                 {
-                    vec_t sum0a =
-                      vec_slli_16(vec_max_16(vec_min_16(in0[j * 2 + 0], One), Zero), shift);
-                    vec_t sum0b =
-                      vec_slli_16(vec_max_16(vec_min_16(in0[j * 2 + 1], One), Zero), shift);
-                    vec_t sum1a = vec_min_16(in1[j * 2 + 0], One);
-                    vec_t sum1b = vec_min_16(in1[j * 2 + 1], One);
+                    vec_t acc00 = in0[j * 2 + 0];
+                    vec_t acc01 = in0[j * 2 + 1];
+                    vec_t acc10 = in1[j * 2 + 0];
+                    vec_t acc11 = in1[j * 2 + 1];
 
-                    vec_t pa = vec_mulhi_16(sum0a, sum1a);
-                    vec_t pb = vec_mulhi_16(sum0b, sum1b);
+                    vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, One), Zero), shift);
+                    vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, One), Zero), shift);
+                    vec_t sum10 = vec_min_16(acc10, One);
+                    vec_t sum11 = vec_min_16(acc11, One);
 
-                    out[j] = vec_packus_16(pa, pb);
+                    vec_t p0 = vec_mulhi_16(sum00, sum10);
+                    vec_t p1 = vec_mulhi_16(sum01, sum11);
+
+                    out[j] = vec_packus_16(p0, p1);
                 }
             }
 #else
@@ -435,7 +438,7 @@ class FeatureTransformer final {
                     sum1 = std::clamp<BiasType>(sum1, 0, 127 * 2);
                 }
 
-                output[offset + j] = static_cast<OutputType>(unsigned(sum0 * sum1) / 512);
+                output[offset + j] = OutputType(unsigned(sum0 * sum1) / 512);
             }
 #endif
         }

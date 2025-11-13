@@ -171,9 +171,9 @@ inline __m128i vec_convert_8_16(std::uint64_t a) noexcept {
     #define vec128_add(a, b) _mm_add_epi16(a, b)
 
     #if defined(IS_64BIT)
-        #define MaxRegisterCount 16
+        #define MaxRegisterCount 12
     #else
-        #define MaxRegisterCount 8
+        #define MaxRegisterCount 6
     #endif
     #define MaxChunkSize 16
 
@@ -213,7 +213,7 @@ inline constexpr std::uint32_t Mask[4]{1, 2, 4, 8};
 
     #if !defined(__aarch64__)
 // Single instruction doesn't exist on 32-bit ARM
-inline int8x16_t vmovl_high_s8(int8x16_t val) noexcept { return vmovl_s8(vget_high_s8(val)); }
+inline int8x16_t vmovl_high_s8(int8x16_t a) noexcept { return vmovl_s8(vget_high_s8(a)); }
     #endif
 
 #else
