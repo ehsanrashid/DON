@@ -20,7 +20,6 @@
 #include <array>
 #include <chrono>
 #include <cstdlib>
-#include <initializer_list>
 #include <limits>
 #include <list>
 #include <random>
