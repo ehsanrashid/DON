@@ -278,6 +278,7 @@ void init() noexcept {
                     // clang-format on
                 }
             BetweenBBs[s1][s2] |= s2;
+            PassRayBBs[s1][s2] &= ~BetweenBBs[s1][s2];
         }
     }
 }

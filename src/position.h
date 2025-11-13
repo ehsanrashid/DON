@@ -730,20 +730,20 @@ DirtyThreats::add(Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) 
 // Add newly threatened pieces
 template<bool PutPiece, bool ComputeRay>
 inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept {
-    constexpr auto piece_index = [](PieceType pt) noexcept -> std::size_t { return pt - KNIGHT; };
 
     Bitboard occupied = pieces();
 
-    StdArray<Bitboard, 5> attacks;
-    attacks[piece_index(KNIGHT)] = attacks_bb<KNIGHT>(s);
-    attacks[piece_index(BISHOP)] = attacks_bb<BISHOP>(s, occupied);
-    attacks[piece_index(ROOK)]   = attacks_bb<ROOK>(s, occupied);
-    attacks[piece_index(QUEEN)]  = attacks[piece_index(BISHOP)] | attacks[piece_index(ROOK)];
-    attacks[piece_index(KING)]   = attacks_bb<KING>(s);
+    StdArray<Bitboard, 7> attacks;
+    attacks[WHITE]  = attacks_bb<PAWN>(s, WHITE);
+    attacks[BLACK]  = attacks_bb<PAWN>(s, BLACK);
+    attacks[KNIGHT] = attacks_bb<KNIGHT>(s);
+    attacks[BISHOP] = attacks_bb<BISHOP>(s, occupied);
+    attacks[ROOK]   = attacks_bb<ROOK>(s, occupied);
+    attacks[QUEEN]  = attacks[BISHOP] | attacks[ROOK];
+    attacks[KING]   = attacks_bb<KING>(s);
 
-    Bitboard threatened =
-      type_of(pc) == PAWN ? attacks_bb<PAWN>(s, color_of(pc)) : attacks[piece_index(type_of(pc))];
-
+    Bitboard threatened = type_of(pc) == PAWN ? attacks[color_of(pc)]  //
+                                              : attacks[type_of(pc)];
     threatened &= occupied;
 
     while (threatened)
@@ -757,17 +757,17 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
         dts->add<PutPiece>(pc, threatenedPc, s, threatenedSq);
     }
 
-    Bitboard sliders = (pieces(QUEEN, BISHOP) & attacks[piece_index(BISHOP)])
-                     | (pieces(QUEEN, ROOK) & attacks[piece_index(ROOK)]);
-
+    // clang-format off
+    Bitboard sliders = (pieces(QUEEN, BISHOP) & attacks[BISHOP])
+                     | (pieces(QUEEN, ROOK)   & attacks[ROOK]);
+    // clang-format on
     if constexpr (ComputeRay)
         while (sliders)
         {
             Square sliderSq = pop_lsb(sliders);
             Piece  sliderPc = piece_on(sliderSq);
 
-            Bitboard passRay    = pass_ray_bb(sliderSq, s) & ~between_bb(sliderSq, s);
-            Bitboard discovered = passRay & attacks[piece_index(QUEEN)] & occupied;
+            Bitboard discovered = pass_ray_bb(sliderSq, s) & attacks[QUEEN] & occupied;
 
             if (discovered)
             {
@@ -793,17 +793,14 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
         }
 
     // clang-format off
-    Bitboard incomingThreats = (pieces(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
-                             | (pieces(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE))
-                             | (pieces(KNIGHT)      & attacks[piece_index(KNIGHT)])
-                             | (pieces(KING)        & attacks[piece_index(KING)]);
+    Bitboard nonSliders = (pieces(WHITE, PAWN) & attacks[BLACK])
+                        | (pieces(BLACK, PAWN) & attacks[WHITE])
+                        | (pieces(KNIGHT)      & attacks[KNIGHT])
+                        | (pieces(KING)        & attacks[KING]);
     // clang-format on
-
-    // Add threats of sliders that were already threatening s,
-    // sliders are already handled in the loop above
-    while (incomingThreats)
+    while (nonSliders)
     {
-        Square srcSq = pop_lsb(incomingThreats);
+        Square srcSq = pop_lsb(nonSliders);
         Piece  srcPc = piece_on(srcSq);
 
         assert(srcSq != s);
