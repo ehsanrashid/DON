@@ -767,8 +767,7 @@ Value Worker::search(Position&    pos,
         if (pos.rule50_count() < (1.0 - 0.20 * pos.has_rule50_high()) * rule50_threshold())
         {
             // If the depth is big enough, verify that the ttMove is really a good move
-            if (depth >= 8 && !is_decisive(ttd.value) && ttd.move != Move::None
-                && pos.legal(ttd.move))
+            if (depth >= 8 && ttd.move != Move::None && pos.legal(ttd.move))
             {
                 pos.do_move(ttd.move, st, &tt);
                 auto [_ttd, _ttu] = tt.probe(pos.key());
@@ -924,8 +923,8 @@ Value Worker::search(Position&    pos,
     {
         value = qsearch<PVNode>(pos, ss, alpha, beta);
 
-        if (value <= alpha && !is_decisive(value))
-            return value;
+        if (value <= alpha)
+            return in_range(value);
 
         ss->ttMove = ttd.move;
     }
@@ -964,8 +963,10 @@ Value Worker::search(Position&    pos,
         undo_null_move(pos);
 
         // Do not return unproven mate or TB scores
-        if (nullValue >= beta && !is_win(nullValue))
+        if (nullValue >= beta)
         {
+            nullValue = in_range(nullValue);
+
             if (nmpPly != 0 || depth < 16)
                 return nullValue;
 
@@ -1049,8 +1050,7 @@ Value Worker::search(Position&    pos,
                 ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move,
                            value_to_tt(value, ss->ply), unadjustedStaticEval);
 
-                if (!is_decisive(value))
-                    return in_range(value - (probCutBeta - beta));
+                return in_range(value - (probCutBeta - beta));
             }
         }
         }
@@ -1199,7 +1199,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 lmrDepth = std::max(+lmrDepth, 0);
 
                 // SEE based pruning for quiets and checks
-                int margin = 64 * depth * check + 27 * lmrDepth * lmrDepth;
+                int margin = 96 * depth * check + 27 * lmrDepth * lmrDepth;
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW
                    || pos.non_pawn_value(ac) != PIECE_VALUE[type_of(movedPiece)])
@@ -1253,10 +1253,10 @@ S_MOVES_LOOP:  // When in check, search starts here
             // if after excluding the ttMove with a reduced search fail high over the original beta,
             // assume this expected cut-node is not singular (multiple moves fail high),
             // and can prune the whole subtree by returning a soft-bound.
-            else if (value >= beta && !is_decisive(value))
+            else if (value >= beta)
             {
                 ttMoveHistory << -std::min(+400 + 100 * depth, +4000);
-                return value;
+                return in_range(value);
             }
 
             // Negative extensions
@@ -1648,9 +1648,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         ss->staticEval = bestValue = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
         // Can ttValue be used as a better position evaluation
-        if (is_valid(ttd.value) && !is_decisive(ttd.value)
-            && (ttd.bound & fail_bound(ttd.value > bestValue)) != 0)
-            bestValue = ttd.value;
+        if (is_valid(ttd.value) && (ttd.bound & fail_bound(ttd.value > bestValue)) != 0)
+            bestValue = in_range(ttd.value);
     }
     else
     {
