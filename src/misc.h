@@ -262,19 +262,17 @@ class MultiArray {
         }
     }
 
-    /*
-    void print() const noexcept {
-        std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
-        for (auto& element : *this)
-        {
-            if constexpr (sizeof...(Sizes) == 0)
-                std::cout << element << ' ';
-            else
-                element.print();
-        }
-        std::cout << std::endl;
-    }
-    */
+    // void print() const noexcept {
+    //     std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
+    //     for (auto& element : *this)
+    //     {
+    //         if constexpr (sizeof...(Sizes) == 0)
+    //             std::cout << element << ' ';
+    //         else
+    //             element.print();
+    //     }
+    //     std::cout << std::endl;
+    // }
 
     template<bool NoExtraDimension = sizeof...(Sizes) == 0,
              typename              = typename std::enable_if_t<NoExtraDimension, bool>>
@@ -405,19 +403,17 @@ class MultiVector final {
         }
     }
 
-    /*
-    void print() const noexcept {
-        std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
-        for (auto& element : *this)
-        {
-            if constexpr (sizeof...(Sizes) == 0)
-                std::cout << element << ' ';
-            else
-                element.print();
-        }
-        std::cout << std::endl;
-    }
-    */
+    // void print() const noexcept {
+    //     std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
+    //     for (auto& element : *this)
+    //     {
+    //         if constexpr (sizeof...(Sizes) == 0)
+    //             std::cout << element << ' ';
+    //         else
+    //             element.print();
+    //     }
+    //     std::cout << std::endl;
+    // }
 
     constexpr void swap(MultiVector<T, Size, Sizes...>& multiVec) noexcept {
         _data.swap(multiVec._data);
