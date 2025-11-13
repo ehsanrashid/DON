@@ -335,7 +335,7 @@ struct DirtyThreats final {
 
     Bitboard threateningBB, threatenedBB;
 
-    template<bool PutPiece>
+    template<bool Add>
     void add(Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept;
 };
 

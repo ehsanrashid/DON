@@ -295,7 +295,7 @@ class Position final {
     Piece move_piece(Square s1, Square s2, DirtyThreats* const dts = nullptr) noexcept;
     Piece swap_piece(Square s, Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
 
-    template<bool PutPiece, bool ComputeRay = true>
+    template<bool Add, bool ComputeRay = true>
     void update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept;
 
     template<bool Do>
@@ -647,9 +647,9 @@ inline void Position::reset_repetitions() noexcept {
 
 inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && is_ok(pc));
-
-    pieceArr[s]  = pc;
     Bitboard sBB = square_bb(s);
+
+    pieceArr[s] = pc;
     typeBB[ALL_PIECE] |= typeBB[type_of(pc)] |= sBB;
     colorBB[color_of(pc)] |= sBB;
     ++pieceCount[pc];
@@ -664,12 +664,12 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
 
     Piece pc = piece_on(s);
     assert(is_ok(pc) && count(pc));
+    Bitboard sBB = square_bb(s);
 
     if (dts != nullptr)
         update_piece_threats<false>(pc, s, dts);
 
-    pieceArr[s]  = NO_PIECE;
-    Bitboard sBB = square_bb(s);
+    pieceArr[s] = NO_PIECE;
     typeBB[ALL_PIECE] ^= sBB;
     typeBB[type_of(pc)] ^= sBB;
     colorBB[color_of(pc)] ^= sBB;
@@ -683,13 +683,13 @@ inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts)
 
     Piece pc = piece_on(s1);
     assert(is_ok(pc));
+    Bitboard s1s2BB = make_bitboard(s1, s2);
 
     if (dts != nullptr)
         update_piece_threats<false>(pc, s1, dts);
 
-    pieceArr[s1]    = NO_PIECE;
-    pieceArr[s2]    = pc;
-    Bitboard s1s2BB = make_bitboard(s1, s2);
+    pieceArr[s1] = NO_PIECE;
+    pieceArr[s2] = pc;
     typeBB[ALL_PIECE] ^= s1s2BB;
     typeBB[type_of(pc)] ^= s1s2BB;
     colorBB[color_of(pc)] ^= s1s2BB;
@@ -715,32 +715,35 @@ inline Piece Position::swap_piece(Square s, Piece newPc, DirtyThreats* const dts
     return oldPc;
 }
 
-template<bool PutPiece>
+template<bool Add>
 inline void
 DirtyThreats::add(Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept {
-    if (PutPiece)
+    if constexpr (Add)
     {
         threateningBB |= sq;
         threatenedBB |= threatenedSq;
     }
 
-    list.push_back({pc, threatenedPc, sq, threatenedSq, PutPiece});
+    list.push_back({pc, threatenedPc, sq, threatenedSq, Add});
 }
 
 // Add newly threatened pieces
-template<bool PutPiece, bool ComputeRay>
+template<bool Add, bool ComputeRay>
 inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept {
 
     Bitboard occupied = pieces();
 
-    StdArray<Bitboard, 7> attacks;
-    attacks[WHITE]  = attacks_bb<PAWN>(s, WHITE);
-    attacks[BLACK]  = attacks_bb<PAWN>(s, BLACK);
-    attacks[KNIGHT] = attacks_bb<KNIGHT>(s);
-    attacks[BISHOP] = attacks_bb<BISHOP>(s, occupied);
-    attacks[ROOK]   = attacks_bb<ROOK>(s, occupied);
-    attacks[QUEEN]  = attacks[BISHOP] | attacks[ROOK];
-    attacks[KING]   = attacks_bb<KING>(s);
+    const auto attacks = [&]() noexcept {
+        StdArray<Bitboard, 7> a{};
+        a[WHITE]  = attacks_bb<PAWN>(s, WHITE);
+        a[BLACK]  = attacks_bb<PAWN>(s, BLACK);
+        a[KNIGHT] = attacks_bb<KNIGHT>(s);
+        a[BISHOP] = attacks_bb<BISHOP>(s, occupied);
+        a[ROOK]   = attacks_bb<ROOK>(s, occupied);
+        a[QUEEN]  = a[BISHOP] | a[ROOK];
+        a[KING]   = attacks_bb<KING>(s);
+        return a;
+    }();
 
     Bitboard threatened = type_of(pc) == PAWN ? attacks[color_of(pc)]  //
                                               : attacks[type_of(pc)];
@@ -754,7 +757,7 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
         assert(threatenedSq != s);
         assert(is_ok(threatenedPc));
 
-        dts->add<PutPiece>(pc, threatenedPc, s, threatenedSq);
+        dts->add<Add>(pc, threatenedPc, s, threatenedSq);
     }
 
     // clang-format off
@@ -767,6 +770,8 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
             Square sliderSq = pop_lsb(sliders);
             Piece  sliderPc = piece_on(sliderSq);
 
+            assert(is_ok(sliderPc));
+
             Bitboard discovered = pass_ray_bb(sliderSq, s) & attacks[QUEEN] & occupied;
 
             if (discovered)
@@ -777,9 +782,9 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
 
                 assert(is_ok(threatenedPc));
 
-                dts->add<!PutPiece>(sliderPc, threatenedPc, sliderSq, threatenedSq);
+                dts->add<!Add>(sliderPc, threatenedPc, sliderSq, threatenedSq);
             }
-            dts->add<PutPiece>(sliderPc, pc, sliderSq, s);
+            dts->add<Add>(sliderPc, pc, sliderSq, s);
         }
     else
         while (sliders)
@@ -789,7 +794,7 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
 
             assert(is_ok(sliderPc));
 
-            dts->add<PutPiece>(sliderPc, pc, sliderSq, s);
+            dts->add<Add>(sliderPc, pc, sliderSq, s);
         }
 
     // clang-format off
@@ -806,7 +811,7 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
         assert(srcSq != s);
         assert(is_ok(srcPc));
 
-        dts->add<PutPiece>(srcPc, pc, srcSq, s);
+        dts->add<Add>(srcPc, pc, srcSq, s);
     }
 }
 

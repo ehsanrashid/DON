@@ -920,7 +920,7 @@ Value Worker::search(Position&    pos,
 
     // Step 7. Razoring
     // If eval is really low, check with qsearch then return speculative fail low.
-    if (!RootNode && !is_decisive(alpha) && eval <= -514 + alpha - 294 * depth * depth)
+    if (!RootNode && !is_decisive(alpha) && eval + 514 + 294 * depth * depth <= alpha)
     {
         value = qsearch<PVNode>(pos, ss, alpha, beta);
 
@@ -933,18 +933,18 @@ Value Worker::search(Position&    pos,
     // Step 8. Futility pruning: child node
     // The depth condition is important for mate finding.
     {
-        auto futility_margin = [&](bool ttHit) noexcept {
+        const auto futility_margin = [&](bool ttHit) noexcept {
             Value futilityMult = 70 + 21 * ttHit;
 
-            return futilityMult * depth             //
-                 - 2.0449 * futilityMult * improve  //
-                 - 0.3232 * futilityMult * worsen   //
-                 + 6.3249e-6 * absCorrectionValue;
+            return futilityMult * depth                  //
+                 - improve * int(2.0449 * futilityMult)  //
+                 - worsen * int(0.3232 * futilityMult)   //
+                 + int(6.3249e-6 * absCorrectionValue);
         };
 
-        if (!ss->pvHit && depth < 14 && eval >= beta && !is_loss(alpha) && !is_win(eval)
-            && (ttd.move == Move::None || ttCapture) && eval - futility_margin(ttd.hit) >= beta)
-            return (2 * beta + eval) / 3;
+        if (!ss->pvHit && !exclude && depth < 14 && !is_loss(alpha) && !is_win(eval)
+            && eval - std::max(futility_margin(ttd.hit), 0) >= beta)
+            return (eval + beta) / 2;
     }
 
     // Step 9. Null move search with verification search

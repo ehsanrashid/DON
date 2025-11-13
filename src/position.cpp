@@ -762,10 +762,9 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
     Color ac = active_color();
 
     Square org = m.org_sq(), dst = m.dst_sq();
-    Piece  movedPiece = piece_on(org);
-    Piece  capturedPiece =
-      m.type_of() != EN_PASSANT ? piece_on(dst) : piece_on(dst - pawn_spush(ac));
-    Piece promotedPiece = NO_PIECE;
+    Piece  movedPiece    = piece_on(org);
+    Piece  capturedPiece = piece_on(m.type_of() != EN_PASSANT ? dst : dst - pawn_spush(ac));
+    Piece  promotedPiece = NO_PIECE;
     assert(color_of(movedPiece) == ac);
     assert(!is_ok(capturedPiece)
            || (color_of(capturedPiece) == (m.type_of() != CASTLING ? ~ac : ac)
