@@ -23,8 +23,6 @@
 #include "../misc.h"
 #include "../position.h"
 #include "../types.h"
-#include "features/half_ka_v2_hm.h"
-#include "nnue_common.h"
 #include "nnue_feature_transformer.h"  // IWYU pragma: keep
 #include "simd.h"
 
