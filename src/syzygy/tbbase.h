@@ -19,6 +19,7 @@
 #define SYZYGY_TBBASE_H_INCLUDED
 
 #include <cstdint>
+#include <functional>
 #include <string_view>
 
 #include "../types.h"
@@ -69,6 +70,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Enabled, boo
 bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Enabled) noexcept;
 
 Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool dtzRankEnabled = false) noexcept;
+Config rank_root_moves_timed(Position& pos, RootMoves& rootMoves, const Options& options, const std::function<bool()>& time_to_abort, bool dtzRankEnabled = false) noexcept;
 
 // clang-format on
 

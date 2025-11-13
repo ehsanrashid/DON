@@ -2072,7 +2072,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         for (auto m : MoveList<LEGAL>(rootPos))
             rms.emplace_back(m);
 
-        auto tbc = Tablebases::rank_root_moves(rootPos, rms, options);
+        auto tbc = Tablebases::rank_root_moves_timed(rootPos, rms, options, time_to_abort);
 
         if (rms.find(pvMove)->tbRank != rms[0].tbRank)
             break;
@@ -2130,7 +2130,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         });
 
         // The winning side tries to minimize DTZ, the losing side maximizes it
-        auto tbc = Tablebases::rank_root_moves(rootPos, rms, options, true);
+        auto tbc = Tablebases::rank_root_moves_timed(rootPos, rms, options, time_to_abort, true);
 
         // If DTZ is not available might not find a mate, so bail out
         if (!tbc.rootInTB || tbc.cardinality)

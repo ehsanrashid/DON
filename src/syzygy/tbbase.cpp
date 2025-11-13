@@ -1830,6 +1830,40 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
     return config;
 }
 
+Config rank_root_moves_timed(Position& pos, RootMoves& rootMoves, const Options& options, const std::function<bool()>& time_to_abort, bool dtzRankEnabled) noexcept {
+    Config config;
+
+    for (auto& rm : rootMoves)
+    {
+        RootMoves rms{rm};
+
+        config    = rank_root_moves(pos, rms, options, dtzRankEnabled);
+        rm.tbRank = rms[0].tbRank;
+
+        if (time_to_abort())
+            config.rootInTB = false;
+
+        if (!config.rootInTB)
+            break;
+    }
+
+    if (config.rootInTB)
+    {
+        // Sort moves according to TB rank
+        rootMoves.sort([](const RootMove& rm1, const RootMove& rm2) noexcept {
+            return rm1.tbRank > rm2.tbRank;
+        });
+    }
+    else
+    {
+        // Clean up if probe_root_dtz() and probe_root_wdl() have failed
+        for (auto& rm : rootMoves)
+            rm.tbRank = 0;
+    }
+
+    return config;
+}
+
 // clang-format on
 
 }  // namespace Tablebases

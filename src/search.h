@@ -130,6 +130,12 @@ class RootMoves final {
     using const_reference = container_type::const_reference;
 
     RootMoves() noexcept = default;
+    // Construct from existing vector
+    explicit RootMoves(container_type rms) noexcept :
+        rootMoves(std::move(rms)) {}
+    // Construct from initializer list
+    RootMoves(std::initializer_list<value_type> initList) noexcept :
+        rootMoves(initList) {}
 
     iterator       begin() noexcept { return rootMoves.begin(); }
     const_iterator begin() const noexcept { return rootMoves.begin(); }
