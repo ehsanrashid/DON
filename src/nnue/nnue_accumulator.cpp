@@ -83,8 +83,8 @@ struct AccumulatorUpdateContext final {
           computedPsqtAcc.data(), targetPsqtAcc.data(), to_psqt_weight_vector(indices)...);
     }
 
-    void apply(typename FeatureSet::IndexList added,
-               typename FeatureSet::IndexList removed) noexcept {
+    void apply(typename FeatureSet::IndexList& added,
+               typename FeatureSet::IndexList& removed) noexcept {
 
 #if defined(VECTOR)
         using Tiling [[maybe_unused]] = SIMDTiling<Dimensions, PSQTBuckets>;

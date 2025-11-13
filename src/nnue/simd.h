@@ -73,6 +73,7 @@ using vec_uint_t = __m512i;
     #define vec128_load(a) _mm_load_si128(a)
     #define vec128_storeu(a, b) _mm_storeu_si128(a, b)
     #define vec128_add(a, b) _mm_add_epi16(a, b)
+
     #define MaxRegisterCount 16
     #define MaxChunkSize 64
 
@@ -207,14 +208,13 @@ inline constexpr std::uint32_t Mask[4]{1, 2, 4, 8};
     #define vec128_load(a) vld1q_u16(reinterpret_cast<const std::uint16_t*>(a))
     #define vec128_storeu(a, b) vst1q_u16(reinterpret_cast<std::uint16_t*>(a), b)
     #define vec128_add(a, b) vaddq_u16(a, b)
-
-    #define MaxRegisterCount 16
-    #define MaxChunkSize 16
-
     #if !defined(__aarch64__)
 // Single instruction doesn't exist on 32-bit ARM
 inline int8x16_t vmovl_high_s8(int8x16_t a) noexcept { return vmovl_s8(vget_high_s8(a)); }
     #endif
+
+    #define MaxRegisterCount 16
+    #define MaxChunkSize 16
 
 #else
     #undef VECTOR
@@ -253,7 +253,7 @@ enum UpdateOperation : std::uint8_t {
 template<typename VecWrapper,
          UpdateOperation... ops,
          std::enable_if_t<sizeof...(ops) == 0, bool> = true>
-typename VecWrapper::type fused(const typename VecWrapper::type& in) {
+typename VecWrapper::type fused(const typename VecWrapper::type& in) noexcept {
     return in;
 }
 
@@ -265,7 +265,7 @@ template<typename VecWrapper,
          std::enable_if_t<is_all_same_v<typename VecWrapper::type, T, Ts...>, bool> = true,
          std::enable_if_t<sizeof...(ops) == sizeof...(Ts), bool>                    = true>
 typename VecWrapper::type
-fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operands) {
+fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operands) noexcept {
     static_assert(updateOp == Add || updateOp == Sub, "Unsupported updateOp.");
     if constexpr (updateOp == Add)
         return fused<VecWrapper, ops...>(VecWrapper::add(in, operand), operands...);

@@ -730,38 +730,19 @@ DirtyThreats::add(Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) 
 // Add newly threatened pieces
 template<bool PutPiece, bool ComputeRay>
 inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept {
+    constexpr auto piece_index = [](PieceType pt) noexcept -> std::size_t { return pt - KNIGHT; };
+
     Bitboard occupied = pieces();
 
-    Bitboard rAttacks = attacks_bb<ROOK>(s, occupied);
-    Bitboard bAttacks = attacks_bb<BISHOP>(s, occupied);
-    Bitboard qAttacks = rAttacks | bAttacks;
+    StdArray<Bitboard, 5> attacks;
+    attacks[piece_index(KNIGHT)] = attacks_bb<KNIGHT>(s);
+    attacks[piece_index(BISHOP)] = attacks_bb<BISHOP>(s, occupied);
+    attacks[piece_index(ROOK)]   = attacks_bb<ROOK>(s, occupied);
+    attacks[piece_index(QUEEN)]  = attacks[piece_index(BISHOP)] | attacks[piece_index(ROOK)];
+    attacks[piece_index(KING)]   = attacks_bb<KING>(s);
 
-    Bitboard threatened;
-
-    switch (type_of(pc))
-    {
-    case PAWN :
-        threatened = attacks_bb<PAWN>(s, color_of(pc));
-        break;
-    case KNIGHT :
-        threatened = attacks_bb<KNIGHT>(s);
-        break;
-    case BISHOP :
-        threatened = bAttacks;
-        break;
-    case ROOK :
-        threatened = rAttacks;
-        break;
-    case QUEEN :
-        threatened = qAttacks;
-        break;
-    case KING :
-        threatened = attacks_bb<KING>(s);
-        break;
-    default :
-        assert(false);
-        threatened = 0;
-    }
+    Bitboard threatened =
+      type_of(pc) == PAWN ? attacks_bb<PAWN>(s, color_of(pc)) : attacks[piece_index(type_of(pc))];
 
     threatened &= occupied;
 
@@ -776,32 +757,47 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
         dts->add<PutPiece>(pc, threatenedPc, s, threatenedSq);
     }
 
-    Bitboard sliders = (pieces(QUEEN, BISHOP) & bAttacks)  //
-                     | (pieces(QUEEN, ROOK) & rAttacks);
+    Bitboard sliders = (pieces(QUEEN, BISHOP) & attacks[piece_index(BISHOP)])
+                     | (pieces(QUEEN, ROOK) & attacks[piece_index(ROOK)]);
 
-    Bitboard incomingThreats = (attacks_bb<KNIGHT>(s) & pieces(KNIGHT))            //
-                             | (attacks_bb<PAWN>(s, WHITE) & pieces(BLACK, PAWN))  //
-                             | (attacks_bb<PAWN>(s, BLACK) & pieces(WHITE, PAWN))  //
-                             | (attacks_bb<KING>(s) & pieces(KING));
-
-    while (sliders)
-    {
-        Square sliderSq = pop_lsb(sliders);
-        Piece  sliderPc = piece_on(sliderSq);
-
-        Bitboard ray = pass_ray_bb(sliderSq, s) & ~between_bb(sliderSq, s);
-        threatened   = ray & qAttacks & occupied;
-
-        assert(!more_than_one(threatened));
-        if (ComputeRay && threatened)
+    if constexpr (ComputeRay)
+        while (sliders)
         {
-            Square threatenedSq = lsb(threatened);
-            Piece  threatenedPc = piece_on(threatenedSq);
+            Square sliderSq = pop_lsb(sliders);
+            Piece  sliderPc = piece_on(sliderSq);
 
-            dts->add<!PutPiece>(sliderPc, threatenedPc, sliderSq, threatenedSq);
+            Bitboard passRay    = pass_ray_bb(sliderSq, s) & ~between_bb(sliderSq, s);
+            Bitboard discovered = passRay & attacks[piece_index(QUEEN)] & occupied;
+
+            if (discovered)
+            {
+                assert(!more_than_one(discovered));
+                Square threatenedSq = lsb(discovered);
+                Piece  threatenedPc = piece_on(threatenedSq);
+
+                assert(is_ok(threatenedPc));
+
+                dts->add<!PutPiece>(sliderPc, threatenedPc, sliderSq, threatenedSq);
+            }
+            dts->add<PutPiece>(sliderPc, pc, sliderSq, s);
         }
-        dts->add<PutPiece>(sliderPc, pc, sliderSq, s);
-    }
+    else
+        while (sliders)
+        {
+            Square sliderSq = pop_lsb(sliders);
+            Piece  sliderPc = piece_on(sliderSq);
+
+            assert(is_ok(sliderPc));
+
+            dts->add<PutPiece>(sliderPc, pc, sliderSq, s);
+        }
+
+    // clang-format off
+    Bitboard incomingThreats = (pieces(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
+                             | (pieces(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE))
+                             | (pieces(KNIGHT)      & attacks[piece_index(KNIGHT)])
+                             | (pieces(KING)        & attacks[piece_index(KING)]);
+    // clang-format on
 
     // Add threats of sliders that were already threatening s,
     // sliders are already handled in the loop above

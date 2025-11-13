@@ -31,6 +31,7 @@ namespace DON {
 
 namespace NNUE::Features {
 
+// Feature FullThreats:
 class FullThreats final {
    public:
     // Hash value embedded in the evaluation file

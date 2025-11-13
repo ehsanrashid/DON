@@ -36,20 +36,20 @@ namespace {
 struct PiecePairData final {
    public:
     PiecePairData() {}
-    PiecePairData(IndexType featureIndexBase, bool excluded, bool semiExcluded) noexcept {
-        data = (featureIndexBase << 8) | (excluded << 1) | (semiExcluded && !excluded);
+    PiecePairData(IndexType featureBaseIndex, bool excluded, bool semiExcluded) noexcept {
+        data = (featureBaseIndex << 8) | (excluded << 1) | (semiExcluded && !excluded);
     }
 
     // lsb: excluded if from < dst; 2nd lsb: always excluded
     uint8_t   excluded_pair_info() const { return (data >> 0) & 0xFF; }
-    IndexType feature_index_base() const { return (data >> 8); }
+    IndexType feature_base_index() const { return (data >> 8); }
 
     // Layout: bits 8..31 are the index contribution of this piece pair, bits 0 and 1 are exclusion info
     uint32_t data;
 };
 
 // Orient a square according to perspective (rotates by 180 for black)
-constexpr StdArray<int, COLOR_NB, SQUARE_NB> OrientTBL{{
+constexpr StdArray<IndexType, COLOR_NB, SQUARE_NB> OrientTable{{
   {SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
    SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
    SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
@@ -78,10 +78,10 @@ constexpr StdArray<int, PIECE_TYPE_NB - 2, PIECE_TYPE_NB - 2> Map{{
 }};
 
 // Lookup array for indexing threats
-StdArray<IndexType, PIECE_NB, SQUARE_NB + 2> Offsets;
+StdArray<IndexType, PIECE_NB, SQUARE_NB + 2> OffsetIndex;
 
 // The final index is calculated from summing data found in these two LUTs,
-// as well as Offsets[attacker][from]
+// as well as OffsetIndex[attacker][from]
 StdArray<PiecePairData, PIECE_NB, PIECE_NB>       LutData;   // [attacker][attacked]
 StdArray<uint8_t, PIECE_NB, SQUARE_NB, SQUARE_NB> LutIndex;  // [attacker][org][dst]
 
@@ -99,7 +99,7 @@ void FullThreats::init() noexcept {
 
             for (Square org = SQ_A1; org <= SQ_H8; ++org)
             {
-                Offsets[pc][org] = cumulativePieceOffset;
+                OffsetIndex[pc][org] = cumulativePieceOffset;
 
                 if (type_of(pc) != PAWN)
                 {
@@ -115,8 +115,8 @@ void FullThreats::init() noexcept {
                 }
             }
 
-            Offsets[pc][64] = cumulativePieceOffset;
-            Offsets[pc][65] = cumulativeOffset;
+            OffsetIndex[pc][64] = cumulativePieceOffset;
+            OffsetIndex[pc][65] = cumulativeOffset;
 
             cumulativeOffset += MaxTargets[type_of(pc)] * cumulativePieceOffset;
         }
@@ -135,9 +135,9 @@ void FullThreats::init() noexcept {
 
                     int map = Map[attackerType - 1][attackedType - 1];
 
-                    IndexType feature =
-                      Offsets[attacker][65]
-                      + (attackedC * (MaxTargets[attackerType] / 2) + map) * Offsets[attacker][64];
+                    IndexType feature = OffsetIndex[attacker][65]
+                                      + (attackedC * (MaxTargets[attackerType] / 2) + map)
+                                          * OffsetIndex[attacker][64];
                     bool excluded = map < 0;
                     bool semiExcluded =
                       attackerType == attackedType && (enemy || attackerType != PAWN);
@@ -159,9 +159,10 @@ IndexType FullThreats::make_index(Color  perspective,
                                   Square dst,
                                   Piece  attacker,
                                   Piece  attacked) noexcept {
+    auto orientation = OrientTable[perspective][kingSq];
 
-    org = Square(int(org) ^ OrientTBL[perspective][kingSq]);
-    dst = Square(int(dst) ^ OrientTBL[perspective][kingSq]);
+    org = Square(int(org) ^ orientation);
+    dst = Square(int(dst) ^ orientation);
 
     if (perspective == BLACK)
     {
@@ -180,18 +181,14 @@ IndexType FullThreats::make_index(Color  perspective,
     if ((piecePairData.excluded_pair_info() + (org < dst)) & 0x2)
         return Dimensions;
 
-    IndexType index =
-      piecePairData.feature_index_base() + Offsets[attacker][org] + LutIndex[attacker][org][dst];
-
-    ASSUME(index != Dimensions);
-    return index;
+    return piecePairData.feature_base_index() + OffsetIndex[attacker][org]
+         + LutIndex[attacker][org][dst];
 }
 
 // Get a list of indices for active features in ascending order
 void FullThreats::append_active_indices(Color           perspective,
                                         const Position& pos,
                                         IndexList&      active) noexcept {
-
     constexpr StdArray<Color, COLOR_NB, COLOR_NB> Order{{
       {WHITE, BLACK},  //
       {BLACK, WHITE}   //
@@ -308,13 +305,14 @@ void FullThreats::append_changed_indices(Color            perspective,
 
         IndexType index = make_index(perspective, kingSq, org, dst, attacker, attacked);
 
-        if (index != Dimensions)
+        if (index < Dimensions)
             (add ? added : removed).push_back(index);
     }
 }
 
 bool FullThreats::requires_refresh(Color perspective, const DirtyType& dt) noexcept {
-    return perspective == dt.ac && OrientTBL[dt.ac][dt.kingSq] != OrientTBL[dt.ac][dt.preKingSq];
+    return perspective == dt.ac
+        && OrientTable[dt.ac][dt.kingSq] != OrientTable[dt.ac][dt.preKingSq];
 }
 
 }  // namespace DON::NNUE::Features
