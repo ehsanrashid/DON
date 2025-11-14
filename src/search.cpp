@@ -965,7 +965,7 @@ Value Worker::search(Position&    pos,
         undo_null_move(pos);
 
         // Do not return unproven mate or TB scores
-        if (nullValue >= beta && !is_decisive(nullValue))
+        if (nullValue >= beta && !is_win(nullValue))
         {
             if (nmpPly != 0 || depth < 16)
                 return nullValue;
