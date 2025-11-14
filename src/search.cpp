@@ -1052,7 +1052,8 @@ Value Worker::search(Position&    pos,
                 ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move,
                            value_to_tt(value, ss->ply), unadjustedStaticEval);
 
-                return in_range(value - (probCutBeta - beta));
+                if (!is_decisive(value))
+                    return in_range(value - (probCutBeta - beta));
             }
         }
         }
