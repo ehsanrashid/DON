@@ -925,8 +925,8 @@ Value Worker::search(Position&    pos,
     {
         value = qsearch<PVNode>(pos, ss, alpha, beta);
 
-        if (value <= alpha)
-            return in_range(value);
+        if (value <= alpha && !is_decisive(value))
+            return value;
 
         ss->ttMove = ttd.move;
     }
@@ -965,10 +965,8 @@ Value Worker::search(Position&    pos,
         undo_null_move(pos);
 
         // Do not return unproven mate or TB scores
-        if (nullValue >= beta)
+        if (nullValue >= beta && !is_decisive(nullValue))
         {
-            nullValue = in_range(nullValue);
-
             if (nmpPly != 0 || depth < 16)
                 return nullValue;
 
@@ -1053,7 +1051,7 @@ Value Worker::search(Position&    pos,
                            value_to_tt(value, ss->ply), unadjustedStaticEval);
 
                 if (!is_decisive(value))
-                    return in_range(value - (probCutBeta - beta));
+                    return value - (probCutBeta - beta);
             }
         }
         }
@@ -1191,7 +1189,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                                +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                     {
-                        if (!is_decisive(bestValue) && !is_decisive(futilityValue))
+                        if (!is_decisive(bestValue) && !is_win(futilityValue))
                             bestValue = std::max(bestValue, futilityValue);
                         continue;
                     }
@@ -1254,10 +1252,11 @@ S_MOVES_LOOP:  // When in check, search starts here
             // if after excluding the ttMove with a reduced search fail high over the original beta,
             // assume this expected cut-node is not singular (multiple moves fail high),
             // and can prune the whole subtree by returning a soft-bound.
-            else if (value >= beta)
+            else if (value >= beta && !is_decisive(value))
             {
                 ttMoveHistory << -std::min(+400 + 100 * depth, +4000);
-                return in_range(value);
+
+                return value;
             }
 
             // Negative extensions
@@ -1649,8 +1648,9 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         ss->staticEval = bestValue = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
         // Can ttValue be used as a better position evaluation
-        if (is_valid(ttd.value) && (ttd.bound & fail_bound(ttd.value > bestValue)) != 0)
-            bestValue = in_range(ttd.value);
+        if (is_valid(ttd.value) && !is_decisive(ttd.value)
+            && (ttd.bound & fail_bound(ttd.value > bestValue)) != 0)
+            bestValue = ttd.value;
     }
     else
     {
