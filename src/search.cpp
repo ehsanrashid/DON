@@ -767,7 +767,8 @@ Value Worker::search(Position&    pos,
         if (pos.rule50_count() < (1.0 - 0.20 * pos.has_rule50_high()) * rule50_threshold())
         {
             // If the depth is big enough, verify that the ttMove is really a good move
-            if (depth >= 8 && ttd.move != Move::None && pos.legal(ttd.move))
+            if (depth >= 8 && !is_decisive(ttd.value) && ttd.move != Move::None
+                && pos.legal(ttd.move))
             {
                 pos.do_move(ttd.move, st, &tt);
                 auto [_ttd, _ttu] = tt.probe(pos.key());
