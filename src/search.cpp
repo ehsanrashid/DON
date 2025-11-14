@@ -943,15 +943,15 @@ Value Worker::search(Position&    pos,
                  + int(6.3249e-6 * absCorrectionValue);
         };
 
-        if (!ss->pvHit && !exclude && depth < 14 && !is_win(eval) && !is_loss(alpha)
+        if (!ss->pvHit && !exclude && depth < 14 && !is_win(eval)
             && eval - std::max(futility_margin(ttd.hit), 0) >= beta)
             return (eval + beta) / 2;
     }
 
     // Step 9. Null move search with verification search
     // The non-pawn condition is important for finding Zugzwangs.
-    if (CutNode && !exclude && pos.has_non_pawn(ac) && ss->ply >= nmpPly && !is_loss(beta)
-        && ss->staticEval >= 390 + beta - 18 * depth)
+    if (CutNode && !exclude && pos.has_non_pawn(ac) && ss->ply >= nmpPly
+        && eval - 390 + 18 * depth >= beta)
     {
         assert((ss - 1)->move != Move::Null);
 
@@ -965,7 +965,7 @@ Value Worker::search(Position&    pos,
         undo_null_move(pos);
 
         // Do not return unproven mate or TB scores
-        if (nullValue >= beta && !is_win(nullValue))
+        if (nullValue >= beta && !is_decisive(nullValue))
         {
             if (nmpPly != 0 || depth < 16)
                 return nullValue;
@@ -976,7 +976,7 @@ Value Worker::search(Position&    pos,
             // with null move pruning disabled until ply exceeds nmpMinPly.
             nmpPly = ss->ply + 3 * (depth - R) / 4;
 
-            Value v = search<All>(pos, ss, beta - 1, beta, depth - R, 0, excludedMove);
+            Value v = search<All>(pos, ss, beta - 1, beta, depth - R);
 
             nmpPly = 0;
 
@@ -2050,6 +2050,8 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
                  > moveOverhead;
     };
 
+    bool aborted = false;
+
     bool rule50Enabled = options["Syzygy50MoveRule"];
 
     auto& rootMove = rootMoves[index];
@@ -2089,7 +2091,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
         // Full PV shown will thus be validated and end in TB.
         // If we cannot validate the full PV in time, we do not show it.
-        if (tbCfg.rootInTB && time_to_abort())
+        if (tbCfg.rootInTB && (aborted = time_to_abort()))
             break;
     }
 
@@ -2100,7 +2102,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
     while (!(rule50Enabled && rootPos.is_draw(0)))
     {
-        if (time_to_abort())
+        if (aborted || (aborted = time_to_abort()))
             break;
 
         RootMoves rms;
@@ -2113,7 +2115,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
             for (auto om : MoveList<LEGAL>(rootPos))
-                rm.tbRank -= rootPos.capture(om) ? 100 : 1;
+                rm.tbRank -= 1 + 99 * rootPos.capture(om);
             rootPos.undo_move(m);
         }
 
@@ -2157,7 +2159,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     for (auto itr = rootMove.pv.rbegin(); itr != rootMove.pv.rend(); ++itr)
         rootPos.undo_move(*itr);
 
-    if (time_to_abort())
+    if (aborted)
         UCI::print_info_string(
           "Syzygy based PV extension requires more time, increase MoveOverhead as needed.");
 }

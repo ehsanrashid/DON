@@ -262,7 +262,17 @@ void ThreadPool::start(Position&      pos,
             erase = rootMoves.erase(m);
     }
 
-    auto tbConfig = Tablebases::rank_root_moves(pos, rootMoves, options);
+    auto startTime = SteadyClock::now();
+
+    // Do not use more than 10% of clock time, if time manager is active.
+    const auto time_to_abort = [&]() noexcept -> bool {
+        auto endTime = SteadyClock::now();
+        return limit.use_time_manager()
+            && 10 * std::chrono::duration<double, std::milli>(endTime - startTime).count()
+                 > limit.clocks[pos.active_color()].time;
+    };
+
+    auto tbConfig = Tablebases::rank_root_moves(pos, rootMoves, options, false, time_to_abort);
 
     // After ownership transfer 'states' becomes empty, so if stop the search
     // and call 'go' again without setting a new position states.get() == nullptr.

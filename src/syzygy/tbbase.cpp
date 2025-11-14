@@ -1677,7 +1677,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 // Use the DTZ-tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Enabled, bool dtzRankEnabled, const std::function<bool()>& time_to_abort) noexcept {
+bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Enabled, bool dtzRankEnabled, std::function<bool()> time_to_abort) noexcept {
     // Obtain 50-move counter for the root position
     std::int16_t rule50Count = pos.rule50_count();
 
@@ -1777,7 +1777,7 @@ bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Enabled) noe
     return true;
 }
 
-Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool dtzRankEnabled, const std::function<bool()>& time_to_abort) noexcept {
+Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool dtzRankEnabled, std::function<bool()> time_to_abort) noexcept {
     Config config;
 
     if (rootMoves.empty())
@@ -1786,6 +1786,8 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
     config.cardinality   = options["SyzygyProbeLimit"];
     config.probeDepth    = options["SyzygyProbeDepth"];
     config.rule50Enabled = options["Syzygy50MoveRule"];
+
+    bool aborted = false;
 
     bool dtzAvailable = true;
 
@@ -1802,7 +1804,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
         config.rootInTB = probe_root_dtz(pos, rootMoves, config.rule50Enabled, dtzRankEnabled, time_to_abort);
 
-        if (!(config.rootInTB || time_to_abort()))
+        if (!(config.rootInTB || (aborted = time_to_abort())))
         {
             // DTZ-tables are missing; try to rank moves using WDL-tables
             dtzAvailable    = false;
@@ -1825,6 +1827,9 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
         // Clean up if probe_root_dtz() and probe_root_wdl() have failed
         for (auto& rm : rootMoves)
             rm.tbRank = 0;
+
+        if (aborted)
+            UCI::print_info_string("Unable to fully probe Syzygy DTZ due to time pressure.");
     }
 
     return config;
