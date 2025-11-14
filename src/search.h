@@ -51,9 +51,10 @@ namespace NNUE {
 struct Networks;
 }
 
-using Moves = std::vector<Move>;
-template<std::size_t Size>
-using MovesArray = StdArray<Moves, Size>;
+using MoveVector = std::vector<Move>;
+
+inline constexpr std::size_t WORSE_MOVE_CAPACITY = 32;
+using WorseMoveVector                            = FixedVector<Move, WORSE_MOVE_CAPACITY>;
 
 inline constexpr std::size_t DEFAULT_MULTI_PV = 1;
 
@@ -117,7 +118,7 @@ struct RootMove final {
     std::int32_t  tbRank   = 0;
     Value         tbValue  = -VALUE_INFINITE;
 
-    Moves pv;
+    MoveVector pv;
 };
 
 class RootMoves final {
@@ -542,7 +543,7 @@ class Worker final {
     void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
 
     void update_quiet_histories(const Position& pos, Stack* const ss, Move m, int bonus) noexcept;
-    void update_histories(const Position& pos, Stack* const ss, Depth depth, Move bm, const MovesArray<2>& movesArr) noexcept;
+    void update_histories(const Position& pos, Stack* const ss, Depth depth, Move bm, const StdArray<WorseMoveVector, 2>& worseMoves) noexcept;
 
     void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* const ss) noexcept;

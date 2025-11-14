@@ -35,7 +35,6 @@ namespace DON {
 
 class TranspositionTable;
 
-
 namespace Zobrist {
 
 inline StdArray<Key, PIECE_NB, SQUARE_NB> PieceSquare{};

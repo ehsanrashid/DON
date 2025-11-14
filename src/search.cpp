@@ -389,7 +389,7 @@ void Worker::iterative_deepening() noexcept {
 
     Value bestValue = -VALUE_INFINITE;
 
-    auto  lastBestPV       = Moves{Move::None};
+    auto  lastBestPV       = MoveVector{Move::None};
     Value lastBestCurValue = -VALUE_INFINITE;
     Value lastBestPreValue = -VALUE_INFINITE;
     Value lastBestUciValue = -VALUE_INFINITE;
@@ -1082,7 +1082,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     Move bestMove = Move::None;
 
-    MovesArray<2> movesArr;
+    StdArray<WorseMoveVector, 2> worseMoves;
 
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &pawnHistory, &lowPlyQuietHistory,
                   contHistory, ss->ply, -1);
@@ -1473,17 +1473,16 @@ S_MOVES_LOOP:  // When in check, search starts here
         }
 
         // Collection of worse moves
-        if (move != bestMove && moveCount <= 32)
-            movesArr[capture].push_back(move);
+        if (move != bestMove && moveCount <= WORSE_MOVE_CAPACITY)
+            worseMoves[capture].push_back(move);
     }
 
-    // Step 21. Check for mate and stalemate
-    // All legal moves have been searched and if there are no legal moves,
-    // it must be a mate or a stalemate.
-    // If in a singular extension search then return a fail low score.
     assert(moveCount || !ss->inCheck || exclude || (MoveList<LEGAL, true>(pos).empty()));
     assert(ss->moveCount == moveCount && ss->ttMove == ttd.move);
 
+    // Step 21. Check for mate and stalemate
+    // All legal moves have been searched and if there are no legal moves, it must be a mate or a stalemate.
+    // If in a singular extension search then return a fail low score.
     if (!moveCount)
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
@@ -1497,7 +1496,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
     {
-        update_histories(pos, ss, depth, bestMove, movesArr);
+        update_histories(pos, ss, depth, bestMove, worseMoves);
         if constexpr (!RootNode)
         {
             ttMoveHistory << (bestMove == ttd.move ? +809 : -865);
@@ -1893,7 +1892,7 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, Move m
 }
 
 // Updates history at the end of search() when a bestMove is found
-void Worker::update_histories(const Position& pos, Stack* const ss, Depth depth, Move bm, const MovesArray<2>& movesArr) noexcept {
+void Worker::update_histories(const Position& pos, Stack* const ss, Depth depth, Move bm, const StdArray<WorseMoveVector, 2>& worseMoves) noexcept {
     assert(pos.legal(bm));
     assert(ss->moveCount);
 
@@ -1909,12 +1908,12 @@ void Worker::update_histories(const Position& pos, Stack* const ss, Depth depth,
         update_quiet_histories(pos, ss, bm, 0.8604 * bonus);
 
         // Decrease history for all non-best quiet moves
-        for (auto qm : movesArr[0])
+        for (auto qm : worseMoves[0])
             update_quiet_histories(pos, ss, qm, -1.0576 * malus);
     }
 
     // Decrease history for all non-best capture moves
-    for (auto cm : movesArr[1])
+    for (auto cm : worseMoves[1])
         update_capture_history(pos, cm, -1.3643 * malus);
 
     auto m = (ss - 1)->move;
@@ -2071,7 +2070,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         for (auto m : MoveList<LEGAL>(rootPos))
             rms.emplace_back(m);
 
-        auto tbc = Tablebases::rank_root_moves(rootPos, rms, options, false, time_to_abort);
+        auto tbCfg = Tablebases::rank_root_moves(rootPos, rms, options, false, time_to_abort);
 
         if (rms.find(pvMove)->tbRank != rms[0].tbRank)
             break;
@@ -2081,7 +2080,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime
-        if (tbc.rootInTB && rootPos.is_draw(ply, rule50Enabled))
+        if (tbCfg.rootInTB && rootPos.is_draw(ply, rule50Enabled))
         {
             --ply;
             rootPos.undo_move(pvMove);
@@ -2090,7 +2089,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
         // Full PV shown will thus be validated and end in TB.
         // If we cannot validate the full PV in time, we do not show it.
-        if (tbc.rootInTB && time_to_abort())
+        if (tbCfg.rootInTB && time_to_abort())
             break;
     }
 
@@ -2129,10 +2128,10 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         });
 
         // The winning side tries to minimize DTZ, the losing side maximizes it
-        auto tbc = Tablebases::rank_root_moves(rootPos, rms, options, true, time_to_abort);
+        auto tbCfg = Tablebases::rank_root_moves(rootPos, rms, options, true, time_to_abort);
 
         // If DTZ is not available might not find a mate, so bail out
-        if (!tbc.rootInTB || tbc.cardinality)
+        if (!tbCfg.rootInTB || tbCfg.cardinality)
             break;
 
         auto pvMove = rms[0].pv[0];

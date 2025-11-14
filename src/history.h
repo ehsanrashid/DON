@@ -25,7 +25,6 @@
 #include <limits>
 #include <type_traits>
 
-#include "bitboard.h"
 #include "misc.h"
 #include "types.h"
 
@@ -63,25 +62,26 @@ class StatsEntry final {
 };
 
 // clang-format off
-inline constexpr int  CAPTURE_HISTORY_LIMIT = 10692;
-inline constexpr int    QUIET_HISTORY_LIMIT =  7183;
-inline constexpr int PIECE_SQ_HISTORY_LIMIT = 30000;
-
-inline constexpr std::size_t QUIET_HISTORY_SIZE = 0x10000;
-
-static_assert(exactly_one(QUIET_HISTORY_SIZE), "QUIET_HISTORY_SIZE has to be a power of 2");
-
-inline constexpr int         PAWN_HISTORY_LIMIT = 8192;
-inline constexpr std::size_t PAWN_HISTORY_SIZE  = 0x4000;
-
-static_assert(exactly_one(PAWN_HISTORY_SIZE), "PAWN_HISTORY_SIZE has to be a power of 2");
-// clang-format on
-
-constexpr std::uint16_t pawn_index(Key pawnKey) noexcept {
-    return compress_key16(pawnKey) & (PAWN_HISTORY_SIZE - 1);
-}
+inline constexpr int    CAPTURE_HISTORY_LIMIT = 10692;
+inline constexpr int      QUIET_HISTORY_LIMIT = 7183;
+inline constexpr int   PIECE_SQ_HISTORY_LIMIT = 30000;
+inline constexpr int       PAWN_HISTORY_LIMIT = 8192;
+inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 
 inline constexpr std::uint16_t LOW_PLY_SIZE = 5;
+
+inline constexpr std::size_t UINT_16_HISTORY_SIZE = 0x10000;
+static_assert((UINT_16_HISTORY_SIZE & (UINT_16_HISTORY_SIZE - 1)) == 0,
+              "UINT_16_HISTORY_SIZE has to be a power of 2");
+
+inline constexpr std::size_t PAWN_HISTORY_SIZE = 0x4000;
+static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
+              "PAWN_HISTORY_SIZE has to be a power of 2");
+
+constexpr std::uint16_t pawn_index      (Key pawnKey) noexcept { return compress_key16(pawnKey) & (PAWN_HISTORY_SIZE - 1); }
+
+constexpr std::uint16_t correction_index(Key corrKey) noexcept { return compress_key16(corrKey); }
+// clang-format on
 
 enum HistoryType : std::uint8_t {
     HCapture,       // By move's [piece][dst][captured piece type]
@@ -110,7 +110,7 @@ struct HistoryDef<HCapture> final {
 // see https://www.chessprogramming.org/Butterfly_Boards
 template<>
 struct HistoryDef<HQuiet> final {
-    using Type = StatsContainer<QUIET_HISTORY_LIMIT, COLOR_NB, QUIET_HISTORY_SIZE>;
+    using Type = StatsContainer<QUIET_HISTORY_LIMIT, COLOR_NB, UINT_16_HISTORY_SIZE>;
 };
 
 template<>
@@ -131,7 +131,7 @@ struct HistoryDef<HContinuation> final {
 // It is used to improve quiet move ordering near the root.
 template<>
 struct HistoryDef<HLowPlyQuiet> final {
-    using Type = StatsContainer<QUIET_HISTORY_LIMIT, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
+    using Type = StatsContainer<QUIET_HISTORY_LIMIT, LOW_PLY_SIZE, UINT_16_HISTORY_SIZE>;
 };
 
 template<>
@@ -143,15 +143,6 @@ struct HistoryDef<HTTMove> final {
 // Alias template for convenience
 template<HistoryType T>
 using History = typename internal::HistoryDef<T>::Type;
-
-// clang-format off
-inline constexpr int         CORRECTION_HISTORY_LIMIT = 1024;
-inline constexpr std::size_t CORRECTION_HISTORY_SIZE  = 0x10000;
-
-static_assert(exactly_one(CORRECTION_HISTORY_SIZE), "CORRECTION_HISTORY_SIZE has to be a power of 2");
-// clang-format on
-
-constexpr std::uint16_t correction_index(Key corrKey) noexcept { return compress_key16(corrKey); }
 
 // Correction histories record differences between the static evaluation of
 // positions and their search score.
@@ -175,17 +166,17 @@ struct CorrectionHistoryDef;
 
 template<>
 struct CorrectionHistoryDef<CHPawn> final {
-    using Type = CorrectionStatsContainer<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsContainer<UINT_16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryDef<CHMinor> final {
-    using Type = CorrectionStatsContainer<CORRECTION_HISTORY_SIZE, COLOR_NB>;
+    using Type = CorrectionStatsContainer<UINT_16_HISTORY_SIZE, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryDef<CHNonPawn> final {
-    using Type = CorrectionStatsContainer<CORRECTION_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsContainer<UINT_16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>

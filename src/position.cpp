@@ -56,7 +56,7 @@ struct Cuckoo final {
 // contains Zobrist hashes of valid reversible moves, and the moves themselves
 template<std::size_t Size>
 class CuckooTable final {
-    static_assert(exactly_one(Size), "Size has to be a power of 2");
+    static_assert((Size & (Size - 1)) == 0, "Size has to be a power of 2");
 
    public:
     constexpr CuckooTable() noexcept                    = default;
