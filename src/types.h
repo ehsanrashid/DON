@@ -528,7 +528,7 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARE_CHARS = []() constexpr {
 static_assert(to_square(SQ_A1) == "a1" && to_square(SQ_H8) == "h8",
               "to_square(): broken, expected 'a1' & 'h8'");
 
-// Linear Congruential Generator (LCG): X_{n+1} = (c + a * X_n)
+// Linear Congruential Generator (LCG): X{n+1} = (c + a * X{n})
 // Based on a congruential pseudo-random number generator
 constexpr std::uint64_t make_hash(std::uint64_t seed) noexcept {
     return 0x14057B7EF767814FULL + 0x5851F42D4C957F2DULL * seed;

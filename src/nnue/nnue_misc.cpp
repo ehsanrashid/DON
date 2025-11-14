@@ -121,8 +121,8 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
     baseEval = pos.active_color() == WHITE ? +baseEval : -baseEval;
 
-    for (Rank r = RANK_8; r >= RANK_1; --r)
-        for (File f = FILE_A; f <= FILE_H; ++f)
+    for (File f = FILE_A; f <= FILE_H; ++f)
+        for (Rank r = RANK_1; r <= RANK_8; ++r)
         {
             Square sq = make_square(f, r);
             Piece  pc = pos.piece_on(sq);

@@ -35,12 +35,24 @@ namespace DON {
 
 class TranspositionTable;
 
+
 namespace Zobrist {
 
-inline StdArray<Key, PIECE_NB, SQUARE_NB> psq{};
-inline StdArray<Key, CASTLING_RIGHTS_NB>  castling{};
-inline StdArray<Key, FILE_NB>             enpassant{};
-inline Key                                turn{};
+inline StdArray<Key, PIECE_NB, SQUARE_NB> PieceSquare{};
+inline StdArray<Key, CASTLING_RIGHTS_NB>  Castling{};
+inline StdArray<Key, FILE_NB>             Enpassant{};
+inline Key                                Turn{};
+
+inline constexpr std::uint16_t MAX_50MR   = MAX_PLY + 1;
+inline constexpr std::uint8_t  R50_OFFSET = 14;
+inline constexpr std::uint8_t  R50_FACTOR = 8;
+
+inline StdArray<Key, (MAX_50MR - R50_OFFSET) / R50_FACTOR + 2> MR50{};
+
+constexpr Key adjust_key(Key key, std::int16_t rule50Count) noexcept {
+    std::int16_t idx = rule50Count - R50_OFFSET;
+    return idx < 0 ? key : key ^ MR50[std::min(idx / R50_FACTOR, int(MR50.size()) - 1)];
+}
 
 }  // namespace Zobrist
 
@@ -73,9 +85,6 @@ struct State final {
 
     State* preSt;
 };
-
-inline constexpr std::uint8_t R50_OFFSET = 14;
-inline constexpr std::uint8_t R50_FACTOR = 8;
 
 // Position class stores information regarding the board representation as
 // pieces, active color, hash keys, castling info, etc. (Size = 192)
@@ -188,7 +197,7 @@ class Position final {
     auto  captured(Move m) const noexcept;
 
     // Hash keys
-    Key key(std::int8_t r50 = 0) const noexcept;
+    Key key(std::int16_t r50 = 0) const noexcept;
     Key pawn_key(Color c) const noexcept;
     Key pawn_key() const noexcept;
     Key minor_key(Color c) const noexcept;
@@ -306,8 +315,6 @@ class Position final {
                      Square&             rDst,
                      DirtyPiece* const   dp  = nullptr,
                      DirtyThreats* const dts = nullptr) noexcept;
-
-    Key adjust_key(Key k, std::int8_t r50 = 0) const noexcept;
 
     void reset_ep_sq() noexcept;
     void reset_rule50_count() noexcept;
@@ -503,12 +510,7 @@ inline Piece Position::captured_piece() const noexcept { return st->capturedPiec
 
 inline Piece Position::promoted_piece() const noexcept { return st->promotedPiece; }
 
-inline Key Position::adjust_key(Key k, std::int8_t r50) const noexcept {
-    std::int16_t idx = st->rule50Count + r50 - R50_OFFSET;
-    return idx < 0 ? k : k ^ make_hash(idx / R50_FACTOR);
-}
-
-inline Key Position::key(std::int8_t r50) const noexcept { return adjust_key(st->key, r50); }
+inline Key Position::key(std::int16_t r50) const noexcept { return Zobrist::adjust_key(st->key, st->rule50Count + r50); }
 
 inline Key Position::pawn_key(Color c) const noexcept { return st->pawnKey[c]; }
 
@@ -522,7 +524,7 @@ inline Key Position::major_key(Color c) const noexcept { return st->nonPawnKey[c
 
 inline Key Position::major_key() const noexcept { return major_key(WHITE) ^ major_key(BLACK); }
 
-inline Key Position::non_pawn_key(Color c) const noexcept { return minor_key(c) ^ major_key(c) ^ Zobrist::psq[make_piece(c, KING)][king_sq(c)]; }
+inline Key Position::non_pawn_key(Color c) const noexcept { return minor_key(c) ^ major_key(c) ^ Zobrist::PieceSquare[make_piece(c, KING)][king_sq(c)]; }
 
 inline Key Position::non_pawn_key() const noexcept { return non_pawn_key(WHITE) ^ non_pawn_key(BLACK); }
 

@@ -22,7 +22,6 @@
 
 #include <cassert>
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 
 #include "../misc.h"
@@ -76,7 +75,7 @@ struct AccumulatorCaches final {
                 accumulation = biases;
                 auto offset  = offsetof(Entry, psqtAccumulation);
                 assert(offset <= sizeof(*this) && "offset exceeds object size");
-                std::memset(reinterpret_cast<std::uint8_t*>(this) + offset, 0,
+                std::memset(reinterpret_cast<unsigned char*>(this) + offset, 0,
                             sizeof(*this) - offset);
             }
 

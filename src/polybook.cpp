@@ -18,6 +18,7 @@
 #include "polybook.h"
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
@@ -39,19 +40,19 @@ namespace DON {
 
 namespace {
 
-constexpr std::size_t PieceTypes = 6;
-
 // Random numbers from PolyGlot, used to compute book hash keys
 union PolyGlot {
+    static constexpr std::size_t PieceTypes = 6;
+
     // Size = 6 * 2 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
-    Key keys[PieceTypes * COLOR_NB * SQUARE_NB + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1];
+    StdArray<Key, PieceTypes * COLOR_NB * SQUARE_NB + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1> _;
 
     struct {
-        Key psq[PieceTypes * COLOR_NB][SQUARE_NB];  // [piece][square]
-        Key castling[COLOR_NB * CASTLING_SIDE_NB];  // [castle-right]
-        Key enpassant[FILE_NB];                     // [file]
-        Key turn;
-    } zobrist;
+        StdArray<Key, PieceTypes * COLOR_NB, SQUARE_NB> PieceSquare;  // [piece][square]
+        StdArray<Key, COLOR_NB * CASTLING_SIDE_NB>      Castling;     // [castle-right]
+        StdArray<Key, FILE_NB>                          Enpassant;    // [file]
+        Key                                             Turn;
+    } Zobrist;
 };
 
 constexpr PolyGlot PG{
@@ -304,7 +305,7 @@ void swap_polyEntry(PolyEntry* pe) noexcept {
 }
 
 Key polyglot_key(const Position& pos) noexcept {
-    Key key = 0;
+    Key polyglotKey = 0;
 
     Bitboard occupied = pos.pieces();
     while (occupied)
@@ -313,20 +314,20 @@ Key polyglot_key(const Position& pos) noexcept {
         Piece  pc = pos.piece_on(s);
         assert(is_ok(pc));
         // PolyGlot pieces are: BP = 0, WP = 1, BN = 2, ... BK = 10, WK = 11
-        key ^= PG.zobrist.psq[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
+        polyglotKey ^= PG.Zobrist.PieceSquare[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
     }
 
-    Bitboard b = pos.castling_rights();
-    while (b)
-        key ^= PG.zobrist.castling[pop_lsb(b)];
+    Bitboard castling = pos.castling_rights();
+    while (castling)
+        polyglotKey ^= PG.Zobrist.Castling[pop_lsb(castling)];
 
     if (is_ok(pos.ep_sq()))
-        key ^= PG.zobrist.enpassant[file_of(pos.ep_sq())];
+        polyglotKey ^= PG.Zobrist.Enpassant[file_of(pos.ep_sq())];
 
     if (pos.active_color() == WHITE)
-        key ^= PG.zobrist.turn;
+        polyglotKey ^= PG.Zobrist.Turn;
 
-    return key;
+    return polyglotKey;
 }
 
 Move fix_promotion(Move m) noexcept {

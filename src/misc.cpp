@@ -204,13 +204,13 @@ std::string compiler_info() noexcept {
 #if defined(USE_SSE2)
     str += " SSE2";
 #endif
-#if defined(USE_POPCNT)
-    str += " POPCNT";
-#endif
 #if defined(USE_NEON_DOTPROD)
     str += " NEON_DOTPROD";
 #elif defined(USE_NEON)
     str += " NEON";
+#endif
+#if defined(USE_POPCNT)
+    str += " POPCNT";
 #endif
 
 #if !defined(NDEBUG)
