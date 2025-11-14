@@ -909,6 +909,7 @@ Value Worker::search(Position&    pos,
     worsen  = ss->staticEval > -(ss - 1)->staticEval;
 
     // Retroactive LMR adjustments
+    // Hindsight adjustment of reductions based on static evaluation difference.
     // The ply after beginning an LMR search, adjust the reduced depth based on
     // how the opponent's move affected the static evaluation.
     if (red >= 3 && !worsen)
@@ -992,7 +993,7 @@ Value Worker::search(Position&    pos,
 
     // Step 10. Internal iterative reductions
     // For deep enough nodes without ttMoves, reduce search depth.
-    // (*Scaler) Making the reduction less aggressive scales well.
+    // (*Scaler) Making IIR more aggressive scales poorly.
     if (!AllNode && depth > 5 && red <= 3 && ttd.move == Move::None)
         --depth;
 
@@ -1126,12 +1127,10 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         int r = reduction(depth, moveCount, deltaRatio, improve);
 
-        // (*Scaler) Increase reduction for pvHit nodes
-        // Smaller or even negative value is better for short time controls
-        // Bigger value is better for long time controls
+        // (*Scaler) Increase reduction for pvHit nodes, Larger values scales well
         r += 946 * ss->pvHit;
 
-        // Step 14. Pruning at shallow depth
+        // Step 14. Pruning at shallow depths
         // Depth conditions are important for mate finding.
         if (!RootNode && !is_loss(bestValue) && pos.has_non_pawn(ac))
         {
@@ -1177,7 +1176,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 history += 76 * quietHistory[ac][move.raw()] / 32;
 
-                // (*Scaler) Generally, a lower divisor scales well
+                // (*Scaler) Generally, lower divisors scales well
                 lmrDepth += history / 3220;
 
                 // Futility pruning for quiets
@@ -1331,7 +1330,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             value = -search<Cut>(pos, ss + 1, -alpha - 1, -alpha, redDepth, newDepth - redDepth);
 
             // (*Scaler) Do a full-depth search when reduced LMR search fails high
-            // Usually doing more shallower searches doesn't scale well to longer TCs
+            // Shallower searches here don't scales well.
             if (value > alpha)
             {
                 // Adjust full-depth search based on LMR value
@@ -1456,7 +1455,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 if (value >= beta)
                 {
-                    // (*Scaler) Less frequent cutoff increments scales well
+                    // (*Scaler) Infrequent and small cutoff increments scales well
                     if constexpr (!RootNode)
                         (ss - 1)->cutoffCount += PVNode || (extension < 2);
                     break;  // Fail-high
@@ -1556,9 +1555,9 @@ S_MOVES_LOOP:  // When in check, search starts here
     // Adjust correction history if the best move is none or not a capture
     // and the error direction matches whether the above/below bounds.
     if (!ss->inCheck && (bestMove == Move::None || !pos.capture(bestMove))
-        && (bestValue < ss->staticEval) == (bestMove == Move::None))
+        && (bestValue > ss->staticEval) == (bestMove != Move::None))
     {
-        int bonus = (bestValue - ss->staticEval) * depth / (8 + 2 * (bestValue > ss->staticEval));
+        int bonus = (bestValue - ss->staticEval) * depth / (8 + 2 * (bestMove != Move::None));
         update_correction_history(pos, ss, bonus);
     }
 
@@ -2070,7 +2069,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         for (auto m : MoveList<LEGAL>(rootPos))
             rms.emplace_back(m);
 
-        auto tbc = Tablebases::rank_root_moves_timed(rootPos, rms, options, time_to_abort);
+        auto tbc = Tablebases::rank_root_moves(rootPos, rms, options, false, time_to_abort);
 
         if (rms.find(pvMove)->tbRank != rms[0].tbRank)
             break;
@@ -2128,7 +2127,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         });
 
         // The winning side tries to minimize DTZ, the losing side maximizes it
-        auto tbc = Tablebases::rank_root_moves_timed(rootPos, rms, options, time_to_abort, true);
+        auto tbc = Tablebases::rank_root_moves(rootPos, rms, options, true, time_to_abort);
 
         // If DTZ is not available might not find a mate, so bail out
         if (!tbc.rootInTB || tbc.cardinality)

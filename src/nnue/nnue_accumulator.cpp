@@ -374,10 +374,10 @@ Bitboard changed_bb(const Position::PieceArray& oldPieces,
     Bitboard samedBB = 0;
     for (std::size_t s = 0; s < SQUARE_NB; s += 32)
     {
-        __m256i oldV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(oldPieces.data() + s));
-        __m256i newV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(newPieces.data() + s));
-        __m256i cmpEqual        = _mm256_cmpeq_epi8(oldV, newV);
-        std::uint32_t equalMask = _mm256_movemask_epi8(cmpEqual);
+        __m256i oldV      = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
+        __m256i newV      = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
+        __m256i cmpEqual  = _mm256_cmpeq_epi8(oldV, newV);
+        auto    equalMask = _mm256_movemask_epi8(cmpEqual);
         samedBB |= Bitboard(equalMask) << s;
     }
     return ~samedBB;

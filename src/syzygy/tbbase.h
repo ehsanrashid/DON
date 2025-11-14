@@ -66,11 +66,10 @@ int      probe_dtz(Position& pos, ProbeState* ps) noexcept;
 
 // clang-format off
 
-bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Enabled, bool dtzRankEnabled) noexcept;
+bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Enabled, bool dtzRankEnabled, const std::function<bool()>& time_to_abort) noexcept;
 bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Enabled) noexcept;
 
-Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool dtzRankEnabled = false) noexcept;
-Config rank_root_moves_timed(Position& pos, RootMoves& rootMoves, const Options& options, const std::function<bool()>& time_to_abort, bool dtzRankEnabled = false) noexcept;
+Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool dtzRankEnabled = false, const std::function<bool()>& time_to_abort = []() { return false; }) noexcept;
 
 // clang-format on
 
