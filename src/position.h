@@ -35,9 +35,6 @@ namespace DON {
 
 class TranspositionTable;
 
-inline constexpr std::uint16_t MAX_50MR   = MAX_PLY + 1;
-inline constexpr std::uint8_t  R50_OFFSET = 14;
-inline constexpr std::uint8_t  R50_FACTOR = 8;
 
 namespace Zobrist {
 
@@ -46,7 +43,11 @@ inline StdArray<Key, CASTLING_RIGHTS_NB>  Castling{};
 inline StdArray<Key, FILE_NB>             Enpassant{};
 inline Key                                Turn{};
 
-inline StdArray<Key, (MAX_50MR - R50_OFFSET) / R50_FACTOR + 1> MR50{};
+inline constexpr std::uint16_t MAX_50MR   = MAX_PLY + 1;
+inline constexpr std::uint8_t  R50_OFFSET = 14;
+inline constexpr std::uint8_t  R50_FACTOR = 8;
+
+inline StdArray<Key, (MAX_50MR - R50_OFFSET) / R50_FACTOR + 2> MR50{};
 
 constexpr Key adjust_key(Key key, std::int16_t rule50Count) noexcept {
     std::int16_t idx = rule50Count - R50_OFFSET;
