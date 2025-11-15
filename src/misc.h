@@ -618,18 +618,17 @@ inline void prefetch(const void* const addr) noexcept {
 inline void prefetch(const void* const) noexcept {}
 #endif
 
-using SystemClock  = std::chrono::system_clock;
-using SteadyClock  = std::chrono::steady_clock;
-using MilliSeconds = std::chrono::milliseconds;
-using MicroSeconds = std::chrono::microseconds;
+using SteadyClock = std::chrono::steady_clock;
 
-using TimePoint = MilliSeconds::rep;  // A value in milliseconds
+using TimePoint = std::chrono::milliseconds::rep;  // A value in milliseconds
 static_assert(sizeof(TimePoint) == sizeof(std::int64_t), "TimePoint should be 64 bits");
 inline TimePoint now() noexcept {
-    return std::chrono::duration_cast<MilliSeconds>(SteadyClock::now().time_since_epoch()).count();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now().time_since_epoch())
+      .count();
 }
 
-std::string format_time(const SystemClock::time_point& timePoint);
+std::string format_time(const std::chrono::system_clock::time_point& timePoint);
 
 void start_logger(std::string_view logFile) noexcept;
 

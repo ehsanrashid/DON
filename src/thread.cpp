@@ -18,7 +18,9 @@
 #include "thread.h"
 
 #include <algorithm>
+#include <chrono>
 #include <deque>
+#include <ratio>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -262,11 +264,11 @@ void ThreadPool::start(Position&      pos,
             erase = rootMoves.erase(m);
     }
 
-    auto startTime = SteadyClock::now();
+    auto startTime = std::chrono::steady_clock::now();
 
     // Do not use more than 10% of clock time, if time manager is active.
     const auto time_to_abort = [&]() noexcept -> bool {
-        auto endTime = SteadyClock::now();
+        auto endTime = std::chrono::steady_clock::now();
         return limit.use_time_manager()
             && 10 * std::chrono::duration<double, std::milli>(endTime - startTime).count()
                  > limit.clocks[pos.active_color()].time;
