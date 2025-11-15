@@ -945,7 +945,7 @@ Value Worker::search(Position&    pos,
 
         if (!ss->pvHit && !exclude && depth < 14 && !is_win(eval) && !is_loss(alpha)
             && eval - std::max(futility_margin(ttd.hit), 0) >= beta)
-            return (eval + beta) / 2;
+            return (2 * beta + eval) / 3;
     }
 
     // Step 9. Null move search with verification search
