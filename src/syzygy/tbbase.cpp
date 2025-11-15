@@ -427,7 +427,7 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept :
     pos.set(code, WHITE, &st);
     key[WHITE] = pos.compute_material_key();
     pieceCount = pos.count<ALL_PIECE>();
-    hasPawns   = pos.count<PAWN>();
+    hasPawns   = pos.count<PAWN>() != 0;
 
     hasUniquePieces = false;
     for (Color c : {WHITE, BLACK})

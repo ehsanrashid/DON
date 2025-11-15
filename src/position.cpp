@@ -417,22 +417,22 @@ void Position::set(std::string_view code, Color c, State* const newSt) noexcept 
     assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string_view::npos);
     assert(is_ok(c));
 
-    StdArray<std::string, 2> sides{
+    StdArray<std::string, COLOR_NB> sides{
       std::string{code.substr(code.find('K', 1))},                // Weak
       std::string{code.substr(0, code.find_first_of("vK", 1))}};  // Strong
 
-    assert(0 < sides[0].size() && sides[0].size() < 8);
-    assert(0 < sides[1].size() && sides[1].size() < 8);
+    assert(0 < sides[WHITE].size() && sides[WHITE].size() < 8);
+    assert(0 < sides[BLACK].size() && sides[BLACK].size() < 8);
 
     sides[c] = lower_case(sides[c]);
 
     std::string fens;
     fens.reserve(64);
     fens += "8/";
-    fens += sides[0];
-    fens += digit_to_char(8 - sides[0].size());
+    fens += sides[WHITE];
+    fens += digit_to_char(8 - sides[WHITE].size());
     fens += "/8/8/8/8/";
-    fens += sides[1];
+    fens += sides[BLACK];
     fens += digit_to_char(8 - sides[1].size());
     fens += "/8 ";
     fens += (c == WHITE ? 'w' : c == BLACK ? 'b' : '-');
