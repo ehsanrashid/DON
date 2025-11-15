@@ -944,14 +944,15 @@ Value Worker::search(Position&    pos,
         };
 
         if (!ss->pvHit && !exclude && depth < 14 && !is_win(eval) && !is_loss(alpha)
+            && (ttd.move == Move::None || !ttCapture)
             && eval - std::max(futility_margin(ttd.hit), 0) >= beta)
-            return (2 * beta + eval) / 3;
+            return (3 * beta + eval) / 4;
     }
 
     // Step 9. Null move search with verification search
     // The non-pawn condition is important for finding Zugzwangs.
-    if (CutNode && !exclude && pos.has_non_pawn(ac) && ss->ply >= nmpPly
-        && eval - 390 + 18 * depth >= beta)
+    if (CutNode && !exclude && ss->ply >= nmpPly && eval - 390 + 18 * depth >= beta
+        && pos.has_non_pawn(ac))
     {
         assert((ss - 1)->move != Move::Null);
 
