@@ -1198,7 +1198,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 lmrDepth = std::max(+lmrDepth, 0);
 
                 // SEE based pruning for quiets and checks
-                int margin = 96 * depth * check + 27 * lmrDepth * lmrDepth;
+                int margin = 64 * depth * check + 27 * lmrDepth * lmrDepth;
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW
                    || pos.non_pawn_value(ac) != PIECE_VALUE[type_of(movedPiece)])
@@ -1473,7 +1473,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         }
 
         // Collection of worse moves
-        if (move != bestMove && moveCount <= WORSE_MOVE_CAPACITY)
+        if (move != bestMove && moveCount <= MOVE_CAPACITY)
             worseMoves[capture].push_back(move);
     }
 
@@ -1795,8 +1795,8 @@ QS_MOVES_LOOP:
         {
             Color ac = pos.active_color();
             if (bestValue != VALUE_DRAW  //
-                && !pos.has_non_pawn(ac)
                 && type_of(pos.captured_piece()) >= ROOK
+                && !pos.has_non_pawn(ac)
                 // No pawn pushes available
                 && !(pawn_push_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces()))
             {

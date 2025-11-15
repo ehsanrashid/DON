@@ -53,8 +53,8 @@ struct Networks;
 
 using MoveVector = std::vector<Move>;
 
-inline constexpr std::size_t WORSE_MOVE_CAPACITY = 32;
-using MoveFixedVector                            = FixedVector<Move, WORSE_MOVE_CAPACITY>;
+inline constexpr std::size_t MOVE_CAPACITY = 32;
+using MoveFixedVector                      = FixedVector<Move, MOVE_CAPACITY>;
 
 inline constexpr std::size_t DEFAULT_MULTI_PV = 1;
 
