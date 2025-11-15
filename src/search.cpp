@@ -2038,14 +2038,16 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     auto startTime = std::chrono::steady_clock::now();
 
+    bool timeManagerActive = limit.use_time_manager() && options["NodesTime"] == 0;
+
     TimePoint moveOverhead = options["MoveOverhead"];
 
-    // Do not use more than (0.5 * moveOverhead) time, if time manager is active.
+    // If time manager is active, don't use more than 50% of moveOverhead time.
     const auto time_to_abort = [&]() noexcept -> bool {
         auto endTime = std::chrono::steady_clock::now();
-        return limit.use_time_manager()
-            && 2 * std::chrono::duration<double, std::milli>(endTime - startTime).count()
-                 > moveOverhead;
+        return timeManagerActive
+            && std::chrono::duration<double, std::milli>(endTime - startTime).count()
+                 > 0.5000 * moveOverhead;
     };
 
     bool aborted = false;
@@ -2088,7 +2090,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         }
 
         // Full PV shown will thus be validated and end in TB.
-        // If we cannot validate the full PV in time, we do not show it.
+        // If can not validate the full PV in time, do not show it.
         if (tbCfg.rootInTB && (aborted = time_to_abort()))
             break;
     }

@@ -1720,8 +1720,13 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Enabled, boo
 
         pos.undo_move(rm.pv[0]);
 
-        if (ps == PS_FAIL || time_to_abort())
+        if (ps == PS_FAIL)
             return false;
+        if (time_to_abort())
+        {
+            UCI::print_info_string("Unable to completely probe Syzygy DTZ tables due to time pressure.");
+            return false;
+        }
 
         // Better moves are ranked higher. Certain wins are ranked equally.
         // Losing moves are ranked equally unless a 50-move draw is in sight.
@@ -1787,8 +1792,6 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
     config.probeDepth    = options["SyzygyProbeDepth"];
     config.rule50Enabled = options["Syzygy50MoveRule"];
 
-    bool aborted = false;
-
     bool dtzAvailable = true;
 
     // Tables with fewer pieces than SyzygyProbeLimit are searched with
@@ -1804,9 +1807,9 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
         config.rootInTB = probe_root_dtz(pos, rootMoves, config.rule50Enabled, dtzRankEnabled, time_to_abort);
 
-        if (!(config.rootInTB || (aborted = time_to_abort())))
+        if (!(config.rootInTB || time_to_abort()))
         {
-            // DTZ-tables are missing; try to rank moves using WDL-tables
+            // DTZ-tables are missing/aborted; try to rank moves using WDL-tables
             dtzAvailable    = false;
             config.rootInTB = probe_root_wdl(pos, rootMoves, config.rule50Enabled);
         }
@@ -1827,9 +1830,6 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
         // Clean up if probe_root_dtz() and probe_root_wdl() have failed
         for (auto& rm : rootMoves)
             rm.tbRank = 0;
-
-        if (aborted)
-            UCI::print_info_string("Unable to fully probe Syzygy DTZ due to time pressure.");
     }
 
     return config;
