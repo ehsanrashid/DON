@@ -618,8 +618,6 @@ inline void prefetch(const void* const addr) noexcept {
 inline void prefetch(const void* const) noexcept {}
 #endif
 
-using SteadyClock = std::chrono::steady_clock;
-
 using TimePoint = std::chrono::milliseconds::rep;  // A value in milliseconds
 static_assert(sizeof(TimePoint) == sizeof(std::int64_t), "TimePoint should be 64 bits");
 inline TimePoint now() noexcept {
