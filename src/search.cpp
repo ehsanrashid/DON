@@ -950,8 +950,8 @@ Value Worker::search(Position&    pos,
 
     // Step 9. Null move search with verification search
     // The non-pawn condition is important for finding Zugzwangs.
-    if (CutNode && !exclude && ss->ply >= nmpPly && eval - 390 + 18 * depth >= beta
-        && pos.has_non_pawn(ac))
+    if (CutNode && !exclude && ss->ply >= nmpPly  //
+        && ss->staticEval - 390 + 18 * depth >= beta && pos.has_non_pawn(ac))
     {
         assert((ss - 1)->move != Move::Null);
 
@@ -1082,7 +1082,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     Move bestMove = Move::None;
 
-    StdArray<WorseMoveVector, 2> worseMoves;
+    StdArray<MoveFixedVector, 2> worseMoves;
 
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &pawnHistory, &lowPlyQuietHistory,
                   contHistory, ss->ply, -1);
@@ -1892,7 +1892,7 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, Move m
 }
 
 // Updates history at the end of search() when a bestMove is found
-void Worker::update_histories(const Position& pos, Stack* const ss, Depth depth, Move bm, const StdArray<WorseMoveVector, 2>& worseMoves) noexcept {
+void Worker::update_histories(const Position& pos, Stack* const ss, Depth depth, Move bm, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept {
     assert(pos.legal(bm));
     assert(ss->moveCount);
 
