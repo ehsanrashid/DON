@@ -275,8 +275,7 @@ void ThreadPool::start(Position&      pos,
         auto endTime = std::chrono::steady_clock::now();
         return timeManagerActive
             && std::chrono::duration<double, std::milli>(endTime - startTime).count()
-                 > (0.0500
-                    + 0.0005 * std::clamp(clock.inc - clock.time, TimePoint(0), TimePoint(100)))
+                 > (0.0500 + 0.0500 * std::clamp((clock.inc - clock.time) / 100.0, 0.0, 1.0))
                      * clock.time;
     };
 
