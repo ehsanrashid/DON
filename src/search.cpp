@@ -943,7 +943,7 @@ Value Worker::search(Position&    pos,
                  + int(6.3249e-6 * absCorrectionValue);
         };
 
-        if (!ss->pvHit && !exclude && depth < 14 && !is_win(eval)
+        if (!ss->pvHit && !exclude && depth < 14 && !is_win(eval) && !is_loss(alpha)
             && eval - std::max(futility_margin(ttd.hit), 0) >= beta)
             return (eval + beta) / 2;
     }
