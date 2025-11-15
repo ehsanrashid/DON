@@ -50,10 +50,10 @@ enum ProbeState : std::int8_t {
 };
 
 struct Config final {
-    bool         rootInTB      = false;
-    std::uint8_t cardinality   = 0;
-    Depth        probeDepth    = DEPTH_ZERO;
-    bool         rule50Enabled = false;
+    bool         rootInTB     = false;
+    std::uint8_t cardinality  = 0;
+    Depth        probeDepth   = DEPTH_ZERO;
+    bool         rule50Active = false;
 };
 
 inline std::uint8_t MaxCardinality;
@@ -66,10 +66,10 @@ int      probe_dtz(Position& pos, ProbeState* ps) noexcept;
 
 // clang-format off
 
-bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Enabled, bool dtzRankEnabled = false, std::function<bool()> time_to_abort = []() { return false; }) noexcept;
-bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Enabled) noexcept;
+bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Active, bool dtzRankActive = false, std::function<bool()> time_to_abort = []() { return false; }) noexcept;
+bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Active) noexcept;
 
-Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool dtzRankEnabled = false, std::function<bool()> time_to_abort = []() { return false; }) noexcept;
+Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool dtzRankActive = false, std::function<bool()> time_to_abort = []() { return false; }) noexcept;
 
 // clang-format on
 

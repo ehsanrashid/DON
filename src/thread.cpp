@@ -264,18 +264,20 @@ void ThreadPool::start(Position&      pos,
             erase = rootMoves.erase(m);
     }
 
-    auto startTime = std::chrono::steady_clock::now();
-
     bool timeManagerActive = limit.use_time_manager() && options["NodesTime"] == 0;
 
     auto& clock = limit.clocks[pos.active_color()];
 
     // If time manager is active, don't use more than 5% of clock time.
+    auto startTime = std::chrono::steady_clock::now();
+
     const auto time_to_abort = [&]() noexcept -> bool {
         auto endTime = std::chrono::steady_clock::now();
         return timeManagerActive
             && std::chrono::duration<double, std::milli>(endTime - startTime).count()
-                 > (0.0500 + 0.0300 * (clock.inc > clock.time)) * clock.time;
+                 > (0.0500
+                    + 0.0005 * std::clamp(clock.inc - clock.time, TimePoint(0), TimePoint(100)))
+                     * clock.time;
     };
 
     auto tbConfig = Tablebases::rank_root_moves(pos, rootMoves, options, false, time_to_abort);

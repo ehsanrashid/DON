@@ -1677,14 +1677,14 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 // Use the DTZ-tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Enabled, bool dtzRankEnabled, std::function<bool()> time_to_abort) noexcept {
+bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Active, bool dtzRankActive, std::function<bool()> time_to_abort) noexcept {
     // Obtain 50-move counter for the root position
     std::int16_t rule50Count = pos.rule50_count();
 
     // Check whether the position was repeated since the last zeroing move
     bool rep = pos.has_repeated();
 
-    int bound = rule50Enabled ? (MAX_DTZ / 2 - 100) : 1;
+    int bound = rule50Active ? (MAX_DTZ / 2 - 100) : 1;
 
     // Probe and rank each move
     for (auto& rm : rootMoves)
@@ -1700,7 +1700,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Enabled, boo
             // In case of a zeroing move, dtzScore is one of -101/-1/0/1/101
             dtzScore = before_zeroing_dtz(-probe_wdl(pos, &ps));
         }
-        else if (pos.is_draw(1, rule50Enabled))
+        else if (pos.is_draw(1, rule50Active))
         {
             // In case a root move leads to a draw by repetition or 50-move rule,
             // set dtzScore to zero. Note: since are only 1 ply from the root,
@@ -1731,10 +1731,10 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Enabled, boo
         // Better moves are ranked higher. Certain wins are ranked equally.
         // Losing moves are ranked equally unless a 50-move draw is in sight.
         int r = dtzScore > 0 ? (+1 * dtzScore + rule50Count < 100 && !rep  //
-                                  ? +MAX_DTZ - (dtzRankEnabled ? dtzScore : 0)
+                                  ? +MAX_DTZ - (dtzRankActive ? dtzScore : 0)
                                   : +MAX_DTZ / 2 - (+dtzScore + rule50Count))
               : dtzScore < 0 ? (-2 * dtzScore + rule50Count < 100  //
-                                  ? -MAX_DTZ - (dtzRankEnabled ? dtzScore : 0)
+                                  ? -MAX_DTZ - (dtzRankActive ? dtzScore : 0)
                                   : -MAX_DTZ / 2 + (-dtzScore + rule50Count))
                              : 0;
 
@@ -1757,7 +1757,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Enabled, boo
 // This is a fallback for the case that some or all DTZ-tables are missing.
 //
 // A return value false indicates that not all probes were successful.
-bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Enabled) noexcept {
+bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Active) noexcept {
     // Probe and rank each move
     for (auto& rm : rootMoves)
     {
@@ -1774,7 +1774,7 @@ bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Enabled) noe
 
         rm.tbRank = WDLToRank[wdlScore + 2];
 
-        if (!rule50Enabled)
+        if (!rule50Active)
             wdlScore = wdlScore > WDL_DRAW ? WDL_WIN : wdlScore < WDL_DRAW ? WDL_LOSS : WDL_DRAW;
         rm.tbValue = WDLToValue[wdlScore + 2];
     }
@@ -1782,15 +1782,15 @@ bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Enabled) noe
     return true;
 }
 
-Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool dtzRankEnabled, std::function<bool()> time_to_abort) noexcept {
+Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool dtzRankActive, std::function<bool()> time_to_abort) noexcept {
     Config config;
 
     if (rootMoves.empty())
         return config;
 
-    config.cardinality   = options["SyzygyProbeLimit"];
-    config.probeDepth    = options["SyzygyProbeDepth"];
-    config.rule50Enabled = options["Syzygy50MoveRule"];
+    config.cardinality  = options["SyzygyProbeLimit"];
+    config.probeDepth   = options["SyzygyProbeDepth"];
+    config.rule50Active = options["Syzygy50MoveRule"];
 
     bool dtzAvailable = true;
 
@@ -1805,13 +1805,13 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
     if (config.cardinality >= pos.count<ALL_PIECE>() && !pos.can_castle(ANY_CASTLING))
     {
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
-        config.rootInTB = probe_root_dtz(pos, rootMoves, config.rule50Enabled, dtzRankEnabled, time_to_abort);
+        config.rootInTB = probe_root_dtz(pos, rootMoves, config.rule50Active, dtzRankActive, time_to_abort);
 
         if (!(config.rootInTB || time_to_abort()))
         {
             // DTZ-tables are missing/aborted; try to rank moves using WDL-tables
             dtzAvailable    = false;
-            config.rootInTB = probe_root_wdl(pos, rootMoves, config.rule50Enabled);
+            config.rootInTB = probe_root_wdl(pos, rootMoves, config.rule50Active);
         }
     }
 

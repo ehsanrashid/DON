@@ -77,9 +77,9 @@ class PolyBook final {
 
     void init(std::string_view bookFile) noexcept;
 
-    bool active() const noexcept { return entries != nullptr; }
+    bool enabled() const noexcept { return entries != nullptr; }
 
-    Move probe(Position& pos, bool pickBestEnabled = true) noexcept;
+    Move probe(Position& pos, bool pickBestActive = true) noexcept;
 
    private:
     struct KeyData final {

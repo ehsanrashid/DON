@@ -217,18 +217,18 @@ void Worker::start_search() noexcept {
     rootDepth = completedDepth = DEPTH_ZERO;
     nmpPly                     = 0;
 
+    lowPlyQuietHistory.fill(97);
+
     multiPV = DEFAULT_MULTI_PV;
     if (mainManager != nullptr)
     {
         multiPV = options["MultiPV"];
-        // When playing with strength handicap enable MultiPV search that will
-        // use behind-the-scenes to retrieve a set of possible moves.
+        // When playing with strength handicap enable MultiPV search that
+        // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
             multiPV = std::max(multiPV, std::size_t(4));
     }
     multiPV = std::min(multiPV, rootMoves.size());
-
-    lowPlyQuietHistory.fill(97);
 
     // Non-main threads go directly to iterative_deepening()
     if (mainManager == nullptr)
@@ -264,7 +264,7 @@ void Worker::start_search() noexcept {
         if (!limit.infinite && limit.mate == 0)
         {
             // Check polyglot book
-            if (options["OwnBook"] && Book.active()
+            if (options["OwnBook"] && Book.enabled()
                 && rootPos.move_num() < options["BookProbeDepth"])
                 bookBestMove = Book.probe(rootPos, options["BookPickBest"]);
         }
@@ -312,11 +312,11 @@ void Worker::start_search() noexcept {
     if (think)
     {
         // When playing in 'Nodes as Time' mode, advance the time nodes before exiting.
-        if (mainManager->timeManager.nodeTimeEnabled)
+        if (mainManager->timeManager.nodeTimeActive)
             mainManager->timeManager.advance_time_nodes(threads.nodes()
                                                         - limit.clocks[rootPos.active_color()].inc);
 
-        // If the skill level is enabled, swap the best PV line with the sub-optimal one
+        // If the skill is enabled, swap the best PV line with the sub-optimal one
         if (mainManager->skill.enabled())
         {
             Move m = mainManager->skill.pick_move(rootMoves, multiPV, false);
@@ -555,7 +555,7 @@ void Worker::iterative_deepening() noexcept {
                     && VALUE_MATE + rootMoves[0].curValue <= 2 * limit.mate)))
             threads.stop.store(true, std::memory_order_relaxed);
 
-        // If the skill level is enabled and time is up, pick a sub-optimal best move
+        // If the skill is enabled and time is up, pick a sub-optimal best move
         if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))
             mainManager->skill.pick_move(rootMoves, multiPV);
 
@@ -810,7 +810,7 @@ Value Worker::search(Position&    pos,
             {
                 tbHits.fetch_add(1, std::memory_order_relaxed);
 
-                auto drawValue = tbConfig.rule50Enabled ? 1 : 0;
+                auto drawValue = tbConfig.rule50Active ? 1 : 0;
 
                 // Use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to value
                 value = wdlScore < -drawValue ? -VALUE_TB + ss->ply
@@ -2036,13 +2036,13 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     if (!options["SyzygyPVExtend"])
         return;
 
-    auto startTime = std::chrono::steady_clock::now();
-
     bool timeManagerActive = limit.use_time_manager() && options["NodesTime"] == 0;
 
     TimePoint moveOverhead = options["MoveOverhead"];
 
     // If time manager is active, don't use more than 50% of moveOverhead time.
+    auto startTime = std::chrono::steady_clock::now();
+
     const auto time_to_abort = [&]() noexcept -> bool {
         auto endTime = std::chrono::steady_clock::now();
         return timeManagerActive
@@ -2052,7 +2052,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     bool aborted = false;
 
-    bool rule50Enabled = options["Syzygy50MoveRule"];
+    bool rule50Active = options["Syzygy50MoveRule"];
 
     auto& rootMove = rootMoves[index];
 
@@ -2082,7 +2082,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime
-        if (tbCfg.rootInTB && rootPos.is_draw(ply, rule50Enabled))
+        if (tbCfg.rootInTB && rootPos.is_draw(ply, rule50Active))
         {
             --ply;
             rootPos.undo_move(pvMove);
@@ -2100,7 +2100,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     // Step 2. Now extend the PV to mate, as if the user explores syzygy-tables.info using
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
-    while (!(rule50Enabled && rootPos.is_draw(0)))
+    while (!(rule50Active && rootPos.is_draw(0)))
     {
         if (aborted || (aborted = time_to_abort()))
             break;
@@ -2295,11 +2295,11 @@ void Skill::init(const Options& options) noexcept {
 
 // When playing with strength handicap, choose the best move among a set of RootMoves
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickEnabled) noexcept {
+Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickActive) noexcept {
     assert(1 <= multiPV && multiPV <= rootMoves.size());
     static PRNG<XorShift64Star> prng(now());  // PRNG sequence should be non-deterministic
 
-    if (pickEnabled || bestMove == Move::None)
+    if (pickActive || bestMove == Move::None)
     {
         // RootMoves are already sorted by value in descending order
         Value curValue = rootMoves[0].curValue;

@@ -330,7 +330,7 @@ struct Skill final {
     bool time_to_pick(Depth depth) const noexcept { return depth == 1 + int(level); }
 
     Move
-    pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickEnabled = true) noexcept;
+    pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickActive = true) noexcept;
 
     static constexpr double        MinLevel = 00.0;
     static constexpr double        MaxLevel = 20.0;

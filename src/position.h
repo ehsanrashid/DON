@@ -224,8 +224,8 @@ class Position final {
 
     bool is_repetition(std::int16_t ply) const noexcept;
     bool is_draw(std::int16_t ply,
-                 bool         rule50Enabled    = true,
-                 bool         stalemateEnabled = false) const noexcept;
+                 bool         rule50Active    = true,
+                 bool         stalemateActive = false) const noexcept;
     bool has_repeated() const noexcept;
     bool is_upcoming_repetition(std::int16_t ply) const noexcept;
 

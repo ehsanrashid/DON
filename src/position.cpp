@@ -1745,15 +1745,15 @@ bool Position::is_repetition(std::int16_t ply) const noexcept {
 
 // Tests whether the current position is drawn by repetition or by 50-move rule.
 // It also detect stalemates.
-bool Position::is_draw(std::int16_t ply, bool rule50Enabled, bool stalemateEnabled) const noexcept {
+bool Position::is_draw(std::int16_t ply, bool rule50Active, bool stalemateActive) const noexcept {
     return
       // Draw by Repetition
       is_repetition(ply)
       // Draw by 50-move rule
-      || (rule50Enabled && rule50_count() >= 2 * DrawMoveCount
+      || (rule50Active && rule50_count() >= 2 * DrawMoveCount
           && (!checkers() || !MoveList<LEGAL, true>(*this).empty()))
       // Draw by Stalemate
-      || (stalemateEnabled && !checkers() && MoveList<LEGAL, true>(*this).empty());
+      || (stalemateActive && !checkers() && MoveList<LEGAL, true>(*this).empty());
 }
 
 // Tests whether there has been at least one repetition

@@ -738,7 +738,7 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 [[nodiscard]] constexpr bool string_to_bool(std::string_view str) { return (trim(str) == "true"); }
 
 inline StringViews
-split(std::string_view str, std::string_view delimiter, bool trimEnabled = false) noexcept {
+split(std::string_view str, std::string_view delimiter, bool trimActive = false) noexcept {
     StringViews parts;
 
     if (str.empty() || delimiter.empty())
@@ -754,7 +754,7 @@ split(std::string_view str, std::string_view delimiter, bool trimEnabled = false
             break;
 
         part = str.substr(beg, end - beg);
-        if (trimEnabled)
+        if (trimActive)
             part = trim(part);
         if (!part.empty())
             parts.emplace_back(part);
@@ -764,7 +764,7 @@ split(std::string_view str, std::string_view delimiter, bool trimEnabled = false
 
     // Last part
     part = str.substr(beg);
-    if (trimEnabled)
+    if (trimActive)
         part = trim(part);
     if (!part.empty())
         parts.emplace_back(part);
