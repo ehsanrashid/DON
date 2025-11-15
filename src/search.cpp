@@ -987,8 +987,7 @@ Value Worker::search(Position&    pos,
         }
     }
 
-    if (!improve)
-        improve = ss->staticEval >= beta;
+    improve |= (ss->staticEval >= beta);
 
     // Step 10. Internal iterative reductions
     // For deep enough nodes without ttMoves, reduce search depth.
@@ -1136,8 +1135,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (!RootNode && !is_loss(bestValue) && pos.has_non_pawn(ac))
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
-            if (mp.quietAllowed)
-                mp.quietAllowed = (moveCount - promoCount) < ((3 + depth * depth) >> (!improve));
+            mp.quietAllowed &= ((moveCount - promoCount) < ((3 + depth * depth) >> (!improve)));
 
             // Reduced depth of the next LMR search
             Depth lmrDepth = newDepth - r / 1024;
@@ -1538,8 +1536,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // If no good move is found and the previous position was pvHit, then the previous
     // opponent move is probably good and the new position is added to the search tree.
-    if (!ss->pvHit && bestValue <= alpha)
-        ss->pvHit = (ss - 1)->pvHit;
+    ss->pvHit |= (bestValue <= alpha && (ss - 1)->pvHit);
 
     // Save gathered information in transposition table
     if ((!RootNode || curIdx == 0) && !exclude)
