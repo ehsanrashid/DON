@@ -217,18 +217,18 @@ void Worker::start_search() noexcept {
     rootDepth = completedDepth = DEPTH_ZERO;
     nmpPly                     = 0;
 
+    lowPlyQuietHistory.fill(97);
+
     multiPV = DEFAULT_MULTI_PV;
     if (mainManager != nullptr)
     {
         multiPV = options["MultiPV"];
-        // When playing with strength handicap enable MultiPV search that will
-        // use behind-the-scenes to retrieve a set of possible moves.
+        // When playing with strength handicap enable MultiPV search that
+        // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
             multiPV = std::max(multiPV, std::size_t(4));
     }
     multiPV = std::min(multiPV, rootMoves.size());
-
-    lowPlyQuietHistory.fill(97);
 
     // Non-main threads go directly to iterative_deepening()
     if (mainManager == nullptr)
@@ -264,7 +264,7 @@ void Worker::start_search() noexcept {
         if (!limit.infinite && limit.mate == 0)
         {
             // Check polyglot book
-            if (options["OwnBook"] && Book.active()
+            if (options["OwnBook"] && Book.enabled()
                 && rootPos.move_num() < options["BookProbeDepth"])
                 bookBestMove = Book.probe(rootPos, options["BookPickBest"]);
         }
@@ -312,11 +312,11 @@ void Worker::start_search() noexcept {
     if (think)
     {
         // When playing in 'Nodes as Time' mode, advance the time nodes before exiting.
-        if (mainManager->timeManager.nodeTimeEnabled)
+        if (mainManager->timeManager.nodeTimeActive)
             mainManager->timeManager.advance_time_nodes(threads.nodes()
                                                         - limit.clocks[rootPos.active_color()].inc);
 
-        // If the skill level is enabled, swap the best PV line with the sub-optimal one
+        // If the skill is enabled, swap the best PV line with the sub-optimal one
         if (mainManager->skill.enabled())
         {
             Move m = mainManager->skill.pick_move(rootMoves, multiPV, false);
@@ -555,7 +555,7 @@ void Worker::iterative_deepening() noexcept {
                     && VALUE_MATE + rootMoves[0].curValue <= 2 * limit.mate)))
             threads.stop.store(true, std::memory_order_relaxed);
 
-        // If the skill level is enabled and time is up, pick a sub-optimal best move
+        // If the skill is enabled and time is up, pick a sub-optimal best move
         if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))
             mainManager->skill.pick_move(rootMoves, multiPV);
 
@@ -810,7 +810,7 @@ Value Worker::search(Position&    pos,
             {
                 tbHits.fetch_add(1, std::memory_order_relaxed);
 
-                auto drawValue = tbConfig.rule50Enabled ? 1 : 0;
+                auto drawValue = tbConfig.rule50Active ? 1 : 0;
 
                 // Use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to value
                 value = wdlScore < -drawValue ? -VALUE_TB + ss->ply
@@ -943,15 +943,15 @@ Value Worker::search(Position&    pos,
                  + int(6.3249e-6 * absCorrectionValue);
         };
 
-        if (!ss->pvHit && !exclude && depth < 14 && !is_win(eval) && !is_loss(alpha)
+        if (!ss->pvHit && !exclude && !ttCapture && depth < 14 && !is_win(eval) && !is_loss(alpha)
             && eval - std::max(futility_margin(ttd.hit), 0) >= beta)
-            return (eval + beta) / 2;
+            return (3 * beta + eval) / 4;
     }
 
     // Step 9. Null move search with verification search
     // The non-pawn condition is important for finding Zugzwangs.
-    if (CutNode && !exclude && pos.has_non_pawn(ac) && ss->ply >= nmpPly && !is_loss(beta)
-        && ss->staticEval >= 390 + beta - 18 * depth)
+    if (CutNode && !exclude && ss->ply >= nmpPly  //
+        && ss->staticEval - 390 + 18 * depth >= beta && pos.has_non_pawn(ac))
     {
         assert((ss - 1)->move != Move::Null);
 
@@ -965,7 +965,7 @@ Value Worker::search(Position&    pos,
         undo_null_move(pos);
 
         // Do not return unproven mate or TB scores
-        if (nullValue >= beta && !is_win(nullValue))
+        if (nullValue >= beta && !is_decisive(nullValue))
         {
             if (nmpPly != 0 || depth < 16)
                 return nullValue;
@@ -976,7 +976,7 @@ Value Worker::search(Position&    pos,
             // with null move pruning disabled until ply exceeds nmpMinPly.
             nmpPly = ss->ply + 3 * (depth - R) / 4;
 
-            Value v = search<All>(pos, ss, beta - 1, beta, depth - R, 0, excludedMove);
+            Value v = search<All>(pos, ss, beta - 1, beta, depth - R);
 
             nmpPly = 0;
 
@@ -987,8 +987,7 @@ Value Worker::search(Position&    pos,
         }
     }
 
-    if (!improve)
-        improve = ss->staticEval >= beta;
+    improve |= (ss->staticEval >= beta);
 
     // Step 10. Internal iterative reductions
     // For deep enough nodes without ttMoves, reduce search depth.
@@ -1047,8 +1046,9 @@ Value Worker::search(Position&    pos,
             if (value >= probCutBeta)
             {
                 // Save ProbCut data into transposition table
-                ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move,
-                           value_to_tt(value, ss->ply), unadjustedStaticEval);
+                if (!exclude)
+                    ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move,
+                               value_to_tt(value, ss->ply), unadjustedStaticEval);
 
                 if (!is_decisive(value))
                     return value - (probCutBeta - beta);
@@ -1082,7 +1082,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     Move bestMove = Move::None;
 
-    StdArray<WorseMoveVector, 2> worseMoves;
+    StdArray<MoveFixedVector, 2> worseMoves;
 
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &pawnHistory, &lowPlyQuietHistory,
                   contHistory, ss->ply, -1);
@@ -1135,8 +1135,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (!RootNode && !is_loss(bestValue) && pos.has_non_pawn(ac))
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
-            if (mp.quietAllowed)
-                mp.quietAllowed = (moveCount - promoCount) < ((3 + depth * depth) >> (!improve));
+            mp.quietAllowed &= ((moveCount - promoCount) < ((3 + depth * depth) >> (!improve)));
 
             // Reduced depth of the next LMR search
             Depth lmrDepth = newDepth - r / 1024;
@@ -1195,10 +1194,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                     }
                 }
 
-                lmrDepth = std::max(+lmrDepth, 0);
-
                 // SEE based pruning for quiets and checks
-                int margin = 96 * depth * check + 27 * lmrDepth * lmrDepth;
+                int margin = std::max(64 * depth * check + 27 * lmrDepth * std::abs(lmrDepth), 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW
                    || pos.non_pawn_value(ac) != PIECE_VALUE[type_of(movedPiece)])
@@ -1473,7 +1470,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         }
 
         // Collection of worse moves
-        if (move != bestMove && moveCount <= WORSE_MOVE_CAPACITY)
+        if (move != bestMove && moveCount <= MOVE_CAPACITY)
             worseMoves[capture].push_back(move);
     }
 
@@ -1539,8 +1536,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // If no good move is found and the previous position was pvHit, then the previous
     // opponent move is probably good and the new position is added to the search tree.
-    if (!ss->pvHit && bestValue <= alpha)
-        ss->pvHit = (ss - 1)->pvHit;
+    ss->pvHit |= (bestValue <= alpha && (ss - 1)->pvHit);
 
     // Save gathered information in transposition table
     if ((!RootNode || curIdx == 0) && !exclude)
@@ -1795,8 +1791,8 @@ QS_MOVES_LOOP:
         {
             Color ac = pos.active_color();
             if (bestValue != VALUE_DRAW  //
-                && !pos.has_non_pawn(ac)
                 && type_of(pos.captured_piece()) >= ROOK
+                && !pos.has_non_pawn(ac)
                 // No pawn pushes available
                 && !(pawn_push_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces()))
             {
@@ -1892,7 +1888,7 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, Move m
 }
 
 // Updates history at the end of search() when a bestMove is found
-void Worker::update_histories(const Position& pos, Stack* const ss, Depth depth, Move bm, const StdArray<WorseMoveVector, 2>& worseMoves) noexcept {
+void Worker::update_histories(const Position& pos, Stack* const ss, Depth depth, Move bm, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept {
     assert(pos.legal(bm));
     assert(ss->moveCount);
 
@@ -2038,19 +2034,23 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     if (!options["SyzygyPVExtend"])
         return;
 
-    auto startTime = SteadyClock::now();
+    bool timeManagerActive = limit.use_time_manager() && options["NodesTime"] == 0;
 
     TimePoint moveOverhead = options["MoveOverhead"];
 
-    // Do not use more than (0.5 * moveOverhead) time, if time manager is active.
+    // If time manager is active, don't use more than 50% of moveOverhead time.
+    auto startTime = std::chrono::steady_clock::now();
+
     const auto time_to_abort = [&]() noexcept -> bool {
-        auto endTime = SteadyClock::now();
-        return limit.use_time_manager()
-            && 2 * std::chrono::duration<double, std::milli>(endTime - startTime).count()
-                 > moveOverhead;
+        auto endTime = std::chrono::steady_clock::now();
+        return timeManagerActive
+            && std::chrono::duration<double, std::milli>(endTime - startTime).count()
+                 > 0.5000 * moveOverhead;
     };
 
-    bool rule50Enabled = options["Syzygy50MoveRule"];
+    bool aborted = false;
+
+    bool rule50Active = options["Syzygy50MoveRule"];
 
     auto& rootMove = rootMoves[index];
 
@@ -2080,7 +2080,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime
-        if (tbCfg.rootInTB && rootPos.is_draw(ply, rule50Enabled))
+        if (tbCfg.rootInTB && rootPos.is_draw(ply, rule50Active))
         {
             --ply;
             rootPos.undo_move(pvMove);
@@ -2088,8 +2088,8 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         }
 
         // Full PV shown will thus be validated and end in TB.
-        // If we cannot validate the full PV in time, we do not show it.
-        if (tbCfg.rootInTB && time_to_abort())
+        // If can not validate the full PV in time, do not show it.
+        if (tbCfg.rootInTB && (aborted = time_to_abort()))
             break;
     }
 
@@ -2098,9 +2098,9 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     // Step 2. Now extend the PV to mate, as if the user explores syzygy-tables.info using
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
-    while (!(rule50Enabled && rootPos.is_draw(0)))
+    while (!(rule50Active && rootPos.is_draw(0)))
     {
-        if (time_to_abort())
+        if (aborted || (aborted = time_to_abort()))
             break;
 
         RootMoves rms;
@@ -2113,7 +2113,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
             for (auto om : MoveList<LEGAL>(rootPos))
-                rm.tbRank -= rootPos.capture(om) ? 100 : 1;
+                rm.tbRank -= 1 + 99 * rootPos.capture(om);
             rootPos.undo_move(m);
         }
 
@@ -2157,7 +2157,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     for (auto itr = rootMove.pv.rbegin(); itr != rootMove.pv.rend(); ++itr)
         rootPos.undo_move(*itr);
 
-    if (time_to_abort())
+    if (aborted)
         UCI::print_info_string(
           "Syzygy based PV extension requires more time, increase MoveOverhead as needed.");
 }
@@ -2293,11 +2293,11 @@ void Skill::init(const Options& options) noexcept {
 
 // When playing with strength handicap, choose the best move among a set of RootMoves
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickEnabled) noexcept {
+Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickActive) noexcept {
     assert(1 <= multiPV && multiPV <= rootMoves.size());
     static PRNG<XorShift64Star> prng(now());  // PRNG sequence should be non-deterministic
 
-    if (pickEnabled || bestMove == Move::None)
+    if (pickActive || bestMove == Move::None)
     {
         // RootMoves are already sorted by value in descending order
         Value curValue = rootMoves[0].curValue;

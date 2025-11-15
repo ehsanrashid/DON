@@ -53,7 +53,7 @@ void TimeManager::init(
     auto& clock = limit.clocks[ac];
 
     std::int64_t nodesTime = options["NodesTime"];
-    nodeTimeEnabled        = nodesTime > 0;
+    nodeTimeActive         = nodesTime > 0;
 
     if (clock.time == 0)
     {
@@ -68,7 +68,7 @@ void TimeManager::init(
     // and use resulting values in time management formulas.
     // WARNING: to avoid time losses, the given nodesTime (nodes per millisecond)
     // must be much lower than the real engine speed.
-    if (nodeTimeEnabled)
+    if (nodeTimeActive)
     {
         // Only once at game start
         if (timeNodes == -1)
@@ -158,7 +158,7 @@ void TimeManager::init(
 
 // When in 'Nodes as Time' mode
 void TimeManager::advance_time_nodes(std::int64_t nodes) noexcept {
-    assert(nodeTimeEnabled);
+    assert(nodeTimeActive);
     timeNodes = std::max(timeNodes - nodes, std::int64_t(0));
 }
 

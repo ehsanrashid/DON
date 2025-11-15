@@ -229,10 +229,11 @@ std::string compiler_info() noexcept {
     return str;
 }
 
-std::string format_time(const SystemClock::time_point& timePoint) {
-    auto time = SystemClock::to_time_t(timePoint);
+std::string format_time(const std::chrono::system_clock::time_point& timePoint) {
+    auto time = std::chrono::system_clock::to_time_t(timePoint);
     auto usec =
-      std::chrono::duration_cast<MicroSeconds>(timePoint.time_since_epoch()).count() % 1000000;
+      std::chrono::duration_cast<std::chrono::microseconds>(timePoint.time_since_epoch()).count()
+      % 1000000;
     std::tm tm{};
 #if defined(_WIN32) || defined(_WIN64)  // Windows
     localtime_s(&tm, &time);
@@ -332,7 +333,8 @@ class Logger final {
 
         if (logger.ofstream.is_open())
         {
-            logger.ofstream << "[" << format_time(SystemClock::now()) << "] <-" << std::endl;
+            logger.ofstream << "[" << format_time(std::chrono::system_clock::now()) << "] <-"
+                            << std::endl;
 
             logger.istream.rdbuf(logger.iTie.primaryBuf);
             logger.ostream.rdbuf(logger.oTie.primaryBuf);
@@ -349,7 +351,8 @@ class Logger final {
             std::cerr << "Unable to open debug log file: " << logFile << std::endl;
             std::exit(EXIT_FAILURE);
         }
-        logger.ofstream << "[" << format_time(SystemClock::now()) << "] ->" << std::endl;
+        logger.ofstream << "[" << format_time(std::chrono::system_clock::now()) << "] ->"
+                        << std::endl;
 
         logger.istream.rdbuf(&logger.iTie);
         logger.ostream.rdbuf(&logger.oTie);

@@ -342,7 +342,7 @@ class SharedMemoryBackend final {
             return;
         }
 
-        // Crucially, we place the object first to ensure alignment.
+        // Crucially, place the object first to ensure alignment.
         volatile DWORD* isInitialized =
           std::launder(reinterpret_cast<DWORD*>(reinterpret_cast<char*>(pMapAddr) + sizeof(T)));
         T* object = std::launder(reinterpret_cast<T*>(pMapAddr));
@@ -403,26 +403,26 @@ class SharedMemoryBackend final {
 #elif !defined(__ANDROID__)
 
 template<typename T>
-class SharedMemoryBackend {
+class SharedMemoryBackend final {
    public:
     SharedMemoryBackend() = default;
 
-    SharedMemoryBackend(const std::string& shmName, const T& value) :
+    SharedMemoryBackend(const std::string& shmName, const T& value) noexcept :
         shm(create_shared<T>(shmName, value)) {}
 
-    void* get() const {
+    void* get() const noexcept {
         const T* ptr = &shm->get();
         return reinterpret_cast<void*>(const_cast<T*>(ptr));
     }
 
-    bool is_valid() const { return shm && shm->is_open() && shm->is_initialized(); }
+    bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
 
-    SystemWideSharedConstantAllocationStatus get_status() const {
+    SystemWideSharedConstantAllocationStatus get_status() const noexcept {
         return is_valid() ? SystemWideSharedConstantAllocationStatus::SharedMemory
                           : SystemWideSharedConstantAllocationStatus::NoAllocation;
     }
 
-    std::optional<std::string> get_error_message() const {
+    std::optional<std::string> get_error_message() const noexcept {
         if (!shm)
             return "Shared memory not initialized";
 
@@ -442,24 +442,26 @@ class SharedMemoryBackend {
 #else
 
 // For systems that don't have shared memory, or support is troublesome.
-// The way fallback is done is that we need a dummy backend.
-
+// The way fallback is done is that need a dummy backend.
 template<typename T>
-class SharedMemoryBackend {
+class SharedMemoryBackend final {
    public:
     SharedMemoryBackend() = default;
 
-    SharedMemoryBackend(const std::string& shmName, const T& value) {}
+    SharedMemoryBackend([[maybe_unused]] const std::string& shmName,
+                        [[maybe_unused]] const T&           value) noexcept {}
 
-    void* get() const { return nullptr; }
+    void* get() const noexcept { return nullptr; }
 
-    bool is_valid() const { return false; }
+    bool is_valid() const noexcept { return false; }
 
-    SystemWideSharedConstantAllocationStatus get_status() const {
+    SystemWideSharedConstantAllocationStatus get_status() const noexcept {
         return SystemWideSharedConstantAllocationStatus::NoAllocation;
     }
 
-    std::optional<std::string> get_error_message() const { return "Dummy SharedMemoryBackend"; }
+    std::optional<std::string> get_error_message() const noexcept {
+        return "Dummy SharedMemoryBackend";
+    }
 };
 
 #endif

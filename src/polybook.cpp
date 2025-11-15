@@ -447,8 +447,8 @@ void PolyBook::init(std::string_view bookFile) noexcept {
                            + " entries");
 }
 
-Move PolyBook::probe(Position& pos, bool pickBestEnabled) noexcept {
-    assert(active());
+Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
+    assert(enabled());
 
     Key key = polyglot_key(pos);
 
@@ -467,7 +467,7 @@ Move PolyBook::probe(Position& pos, bool pickBestEnabled) noexcept {
 #endif
 
     std::size_t idx;
-    idx = pickBestEnabled || keyData.entryCount == 1 ? keyData.bestIndex : keyData.randIndex;
+    idx = pickBestActive || keyData.entryCount == 1 ? keyData.bestIndex : keyData.randIndex;
 
     Move m;
     m = pg_to_move(entries[idx].move, pos);

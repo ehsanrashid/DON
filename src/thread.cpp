@@ -18,7 +18,9 @@
 #include "thread.h"
 
 #include <algorithm>
+#include <chrono>
 #include <deque>
+#include <ratio>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -262,7 +264,22 @@ void ThreadPool::start(Position&      pos,
             erase = rootMoves.erase(m);
     }
 
-    auto tbConfig = Tablebases::rank_root_moves(pos, rootMoves, options);
+    bool timeManagerActive = limit.use_time_manager() && options["NodesTime"] == 0;
+
+    auto& clock = limit.clocks[pos.active_color()];
+
+    // If time manager is active, don't use more than 5% of clock time.
+    auto startTime = std::chrono::steady_clock::now();
+
+    const auto time_to_abort = [&]() noexcept -> bool {
+        auto endTime = std::chrono::steady_clock::now();
+        return timeManagerActive
+            && std::chrono::duration<double, std::milli>(endTime - startTime).count()
+                 > (0.0500 + 0.0500 * std::clamp((clock.inc - clock.time) / 100.0, 0.0, 1.0))
+                     * clock.time;
+    };
+
+    auto tbConfig = Tablebases::rank_root_moves(pos, rootMoves, options, false, time_to_abort);
 
     // After ownership transfer 'states' becomes empty, so if stop the search
     // and call 'go' again without setting a new position states.get() == nullptr.

@@ -53,8 +53,8 @@ struct Networks;
 
 using MoveVector = std::vector<Move>;
 
-inline constexpr std::size_t WORSE_MOVE_CAPACITY = 32;
-using WorseMoveVector                            = FixedVector<Move, WORSE_MOVE_CAPACITY>;
+inline constexpr std::size_t MOVE_CAPACITY = 32;
+using MoveFixedVector                      = FixedVector<Move, MOVE_CAPACITY>;
 
 inline constexpr std::size_t DEFAULT_MULTI_PV = 1;
 
@@ -330,7 +330,7 @@ struct Skill final {
     bool time_to_pick(Depth depth) const noexcept { return depth == 1 + int(level); }
 
     Move
-    pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickEnabled = true) noexcept;
+    pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickActive = true) noexcept;
 
     static constexpr double        MinLevel = 00.0;
     static constexpr double        MaxLevel = 20.0;
@@ -543,7 +543,7 @@ class Worker final {
     void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
 
     void update_quiet_histories(const Position& pos, Stack* const ss, Move m, int bonus) noexcept;
-    void update_histories(const Position& pos, Stack* const ss, Depth depth, Move bm, const StdArray<WorseMoveVector, 2>& worseMoves) noexcept;
+    void update_histories(const Position& pos, Stack* const ss, Depth depth, Move bm, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept;
 
     void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* const ss) noexcept;

@@ -224,8 +224,8 @@ class Position final {
 
     bool is_repetition(std::int16_t ply) const noexcept;
     bool is_draw(std::int16_t ply,
-                 bool         rule50Enabled    = true,
-                 bool         stalemateEnabled = false) const noexcept;
+                 bool         rule50Active    = true,
+                 bool         stalemateActive = false) const noexcept;
     bool has_repeated() const noexcept;
     bool is_upcoming_repetition(std::int16_t ply) const noexcept;
 
@@ -735,21 +735,20 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
     Bitboard occupied = pieces();
 
     const auto attacks = [&]() noexcept {
-        StdArray<Bitboard, 7> a{};
-        a[WHITE]  = attacks_bb<PAWN>(s, WHITE);
-        a[BLACK]  = attacks_bb<PAWN>(s, BLACK);
-        a[KNIGHT] = attacks_bb<KNIGHT>(s);
-        a[BISHOP] = attacks_bb<BISHOP>(s, occupied);
-        a[ROOK]   = attacks_bb<ROOK>(s, occupied);
-        a[QUEEN]  = a[BISHOP] | a[ROOK];
-        a[KING]   = attacks_bb<KING>(s);
-        return a;
+        StdArray<Bitboard, 7> _{};
+        _[WHITE]  = attacks_bb<PAWN>(s, WHITE);
+        _[BLACK]  = attacks_bb<PAWN>(s, BLACK);
+        _[KNIGHT] = attacks_bb<KNIGHT>(s);
+        _[BISHOP] = attacks_bb<BISHOP>(s, occupied);
+        _[ROOK]   = attacks_bb<ROOK>(s, occupied);
+        _[QUEEN]  = _[BISHOP] | _[ROOK];
+        _[KING]   = attacks_bb<KING>(s);
+        return _;
     }();
 
-    Bitboard threatened = type_of(pc) == PAWN ? attacks[color_of(pc)]  //
-                                              : attacks[type_of(pc)];
-    threatened &= occupied;
-
+    Bitboard threatened = (type_of(pc) == PAWN ? attacks[color_of(pc)]  //
+                                               : attacks[type_of(pc)])
+                        & occupied;
     while (threatened)
     {
         Square threatenedSq = pop_lsb(threatened);
