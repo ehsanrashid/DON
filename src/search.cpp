@@ -1047,8 +1047,9 @@ Value Worker::search(Position&    pos,
             if (value >= probCutBeta)
             {
                 // Save ProbCut data into transposition table
-                ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move,
-                           value_to_tt(value, ss->ply), unadjustedStaticEval);
+                if (!exclude)
+                    ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move,
+                               value_to_tt(value, ss->ply), unadjustedStaticEval);
 
                 if (!is_decisive(value))
                     return value - (probCutBeta - beta);
