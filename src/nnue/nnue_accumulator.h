@@ -169,7 +169,7 @@ struct AccumulatorStack final {
     [[nodiscard]] const AccumulatorState<T>& state() const noexcept;
 
     void reset() noexcept;
-    void push(const DirtyBoard& db) noexcept;
+    void push(DirtyBoard&& db) noexcept;
     void pop() noexcept;
 
     template<IndexType Dimensions>

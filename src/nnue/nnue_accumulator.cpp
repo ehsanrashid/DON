@@ -667,19 +667,15 @@ void AccumulatorStack::reset() noexcept {
     size = 1;
 }
 
-void AccumulatorStack::push(const DirtyBoard& db) noexcept {
+void AccumulatorStack::push(DirtyBoard&& db) noexcept {
     assert(size < MaxSize);
-    if (size >= MaxSize)
-        return;
-    psqAccumulators[size].reset(db.dp);
-    threatAccumulators[size].reset(db.dts);
+    psqAccumulators[size].reset(std::move(db.dp));
+    threatAccumulators[size].reset(std::move(db.dts));
     ++size;
 }
 
 void AccumulatorStack::pop() noexcept {
     assert(size > 1);
-    if (size <= 1)
-        return;
     --size;
 }
 

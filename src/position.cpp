@@ -736,7 +736,7 @@ void Position::do_castling(Color               ac,
 // Makes a move, and saves all necessary information to new state.
 // The move is assumed to be legal.
 DirtyBoard
-Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* tt) noexcept {
+Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* const tt) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
@@ -769,17 +769,18 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
            || (color_of(capturedPiece) == (m.type_of() != CASTLING ? ~ac : ac)
                && type_of(capturedPiece) != KING));
 
-    DirtyPiece dp;
-    dp.pc    = movedPiece;
-    dp.org   = org;
-    dp.dst   = dst;
-    dp.addSq = SQ_NONE;
+    DirtyPiece   dp;
     DirtyThreats dts;
+    dp.pc             = movedPiece;
+    dp.org            = org;
+    dp.dst            = dst;
+    dp.addSq          = SQ_NONE;
     dts.ac            = ac;
     dts.preKingSq     = king_sq(ac);
     dts.threateningBB = 0;
     dts.threatenedBB  = 0;
     assert(is_ok(dts.preKingSq));
+    assert(dts.list.empty());
 
     // Reset en-passant square
     if (is_ok(ep_sq()))
@@ -1076,7 +1077,7 @@ UNDO_MOVE_END:
 
 // Makes a null move
 // It flips the active color without executing any move on the board.
-void Position::do_null_move(State& newSt, const TranspositionTable* tt) noexcept {
+void Position::do_null_move(State& newSt, const TranspositionTable* const tt) noexcept {
     assert(&newSt != st);
     assert(!checkers());
 

@@ -49,7 +49,7 @@ inline constexpr std::uint8_t  R50_FACTOR = 8;
 inline StdArray<Key, (MAX_MR50 - R50_OFFSET) / R50_FACTOR + 2> MR50{};
 
 constexpr Key piece_square(Piece pc, Square s) noexcept {
-    assert(is_ok(s));
+    assert(is_ok(pc) && is_ok(s));
     return PieceSquare[pc][s];
 }
 
@@ -186,11 +186,13 @@ class Position final {
     Bitboard attacks_by(Color c) const noexcept;
 
     // Doing and undoing moves
-    DirtyBoard
-    do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* tt = nullptr) noexcept;
-    DirtyBoard do_move(Move m, State& newSt, const TranspositionTable* tt = nullptr) noexcept;
+    DirtyBoard do_move(Move                            m,
+                       State&                          newSt,
+                       bool                            inCheck,
+                       const TranspositionTable* const tt = nullptr) noexcept;
+    DirtyBoard do_move(Move m, State& newSt, const TranspositionTable* const tt = nullptr) noexcept;
     void       undo_move(Move m) noexcept;
-    void       do_null_move(State& newSt, const TranspositionTable* tt = nullptr) noexcept;
+    void       do_null_move(State& newSt, const TranspositionTable* const tt = nullptr) noexcept;
     void       undo_null_move() noexcept;
 
     // Properties of moves
@@ -825,7 +827,8 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
     }
 }
 
-inline DirtyBoard Position::do_move(Move m, State& newSt, const TranspositionTable* tt) noexcept {
+inline DirtyBoard
+Position::do_move(Move m, State& newSt, const TranspositionTable* const tt) noexcept {
     return do_move(m, newSt, check(m), tt);
 }
 
