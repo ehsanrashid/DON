@@ -23,7 +23,6 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
-#include <utility>
 
 #include "../misc.h"
 #include "../position.h"

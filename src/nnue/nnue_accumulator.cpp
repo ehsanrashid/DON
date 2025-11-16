@@ -18,6 +18,7 @@
 #include "nnue_accumulator.h"
 
 #include <type_traits>
+#include <utility>
 
 #include "../bitboard.h"
 #include "../misc.h"
