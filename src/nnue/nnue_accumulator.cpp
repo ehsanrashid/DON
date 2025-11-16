@@ -18,6 +18,7 @@
 #include "nnue_accumulator.h"
 
 #include <type_traits>
+#include <utility>
 
 #include "../bitboard.h"
 #include "../misc.h"
@@ -310,17 +311,6 @@ void update_accumulator_incremental(
     else
         FeatureSet::append_changed_indices(perspective, kingSq, computedState.dirtyType, added,
                                            removed);
-
-    if (added.empty() && removed.empty())
-    {
-        const auto& computedAcc = computedState.template acc<TransformedFeatureDimensions>();
-        auto&       targetAcc   = targetState.template acc<TransformedFeatureDimensions>();
-
-        targetAcc.accumulation[perspective]     = computedAcc.accumulation[perspective];
-        targetAcc.psqtAccumulation[perspective] = computedAcc.psqtAccumulation[perspective];
-        targetAcc.computed[perspective]         = true;
-        return;
-    }
 
     auto updateContext =
       make_accumulator_update_context(perspective, featureTransformer, computedState, targetState);
@@ -678,19 +668,15 @@ void AccumulatorStack::reset() noexcept {
     size = 1;
 }
 
-void AccumulatorStack::push(const DirtyBoard& db) noexcept {
+void AccumulatorStack::push(DirtyBoard&& db) noexcept {
     assert(size < MaxSize);
-    if (size >= MaxSize)
-        return;
-    psqAccumulators[size].reset(db.dp);
-    threatAccumulators[size].reset(db.dts);
+    psqAccumulators[size].reset(std::move(db.dp));
+    threatAccumulators[size].reset(std::move(db.dts));
     ++size;
 }
 
 void AccumulatorStack::pop() noexcept {
     assert(size > 1);
-    if (size <= 1)
-        return;
     --size;
 }
 

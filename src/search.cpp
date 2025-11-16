@@ -987,7 +987,7 @@ Value Worker::search(Position&    pos,
         }
     }
 
-    improve |= (ss->staticEval >= beta);
+    improve |= ss->staticEval >= beta;
 
     // Step 10. Internal iterative reductions
     // For deep enough nodes without ttMoves, reduce search depth.
@@ -1106,7 +1106,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (RootNode && is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
         {
             auto currMove = UCI::move_to_can(move);
-            main_manager()->updateCxt.onUpdateIter({rootDepth, currMove, curIdx + moveCount});
+            main_manager()->updateCxt.onUpdateIter({rootDepth, currMove, moveCount + curIdx});
         }
 
         if constexpr (PVNode)
@@ -1820,7 +1820,6 @@ void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const 
     bool capture = pos.capture_promo(m);
     auto db      = pos.do_move(m, st, check, &tt);
     nodes.fetch_add(1, std::memory_order_relaxed);
-    accStack.push(db);
     if (ss != nullptr)
     {
         auto dst                     = m.dst_sq();
@@ -1828,14 +1827,15 @@ void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const 
         ss->pieceSqHistory           = &continuationHistory[ss->inCheck][capture][db.dp.pc][dst];
         ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[db.dp.pc][dst];
     }
+    accStack.push(std::move(db));
 }
 void Worker::do_move(Position& pos, Move m, State& st, Stack* const ss) noexcept {
     do_move(pos, m, st, pos.check(m), ss);
 }
 
 void Worker::undo_move(Position& pos, Move m) noexcept {
-    pos.undo_move(m);
     accStack.pop();
+    pos.undo_move(m);
 }
 
 void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {

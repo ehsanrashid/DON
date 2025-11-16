@@ -65,7 +65,6 @@ def DON(*args, **kwargs):
 
 
 class TestCLI(metaclass=OrderedClassMembers):
-
     def beforeAll(self):
         pass
 
@@ -226,7 +225,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.send_command("go depth 5")
 
         def callback(output):
-            regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp \d+(?: lowerbound| upperbound)? time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
             if output.startswith("info depth") and not re.match(regex, output):
                 assert False
             if output.startswith("bestmove"):
@@ -242,7 +241,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.send_command("go depth 5")
 
         def callback(output):
-            regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp \d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
             if output.startswith("info depth") and not re.match(regex, output):
                 assert False
             if output.startswith("bestmove"):
@@ -262,8 +261,8 @@ class TestInteractive(metaclass=OrderedClassMembers):
         def callback(output):
             # nonlocal depth
 
-            # regex = rf"info depth {depth} seldepth \d+ multipv \d+ score cp \d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
-            regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp \d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            # regex = rf"info depth {depth} seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
             # if output.startswith("info depth"):
             #     if not re.match(regex, output):
             #         assert False
@@ -353,9 +352,9 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.starts_with("bestmove e3e2")
 
     def test_verify_nnue_network_startpos_go_depth_5(self):
-        # currentPath = os.path.abspath(os.getcwd())
-        # DON(f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "), True)
-        # self.engine.setoption("BigEvalFile", "verify.nnue")
+        currentPath = os.path.abspath(os.getcwd())
+        DON(f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "), True)
+        self.engine.setoption("BigEvalFile", "verify.nnue")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
@@ -426,7 +425,7 @@ class TestSyzygy(metaclass=OrderedClassMembers):
         self.engine.send_command("go depth 5")
 
         def callback(output):
-            if "score cp -20000" in output or "score mate" in output:
+            if "score cp -20000" in output or "score mate -" in output:
                 return True
 
         self.engine.check_output(callback)

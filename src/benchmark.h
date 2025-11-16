@@ -28,7 +28,7 @@
 
 namespace DON::Benchmark {
 
-Strings bench(std::istringstream& iss, std::string_view currentFen = START_FEN) noexcept;
+Strings bench(std::istream& istream, std::string_view currentFen = START_FEN) noexcept;
 
 struct Setup final {
     std::size_t threads;
@@ -38,7 +38,7 @@ struct Setup final {
     Strings     commands;
 };
 
-Setup benchmark(std::istringstream& iss) noexcept;
+Setup benchmark(std::istream& istream) noexcept;
 
 }  // namespace DON::Benchmark
 

@@ -145,8 +145,8 @@ struct AccumulatorState final {
             return small;
     }
 
-    void reset(const typename FeatureSet::DirtyType& dt) noexcept {
-        dirtyType = dt;
+    void reset(typename FeatureSet::DirtyType&& dt) noexcept {
+        dirtyType = std::move(dt);
         big.computed.fill(false);
         small.computed.fill(false);
     }
@@ -169,7 +169,7 @@ struct AccumulatorStack final {
     [[nodiscard]] const AccumulatorState<T>& state() const noexcept;
 
     void reset() noexcept;
-    void push(const DirtyBoard& db) noexcept;
+    void push(DirtyBoard&& db) noexcept;
     void pop() noexcept;
 
     template<IndexType Dimensions>
