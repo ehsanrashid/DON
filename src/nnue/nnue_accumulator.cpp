@@ -311,17 +311,6 @@ void update_accumulator_incremental(
         FeatureSet::append_changed_indices(perspective, kingSq, computedState.dirtyType, added,
                                            removed);
 
-    if (added.empty() && removed.empty())
-    {
-        const auto& computedAcc = computedState.template acc<TransformedFeatureDimensions>();
-        auto&       targetAcc   = targetState.template acc<TransformedFeatureDimensions>();
-
-        targetAcc.accumulation[perspective]     = computedAcc.accumulation[perspective];
-        targetAcc.psqtAccumulation[perspective] = computedAcc.psqtAccumulation[perspective];
-        targetAcc.computed[perspective]         = true;
-        return;
-    }
-
     auto updateContext =
       make_accumulator_update_context(perspective, featureTransformer, computedState, targetState);
 
