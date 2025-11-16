@@ -987,7 +987,7 @@ Value Worker::search(Position&    pos,
         }
     }
 
-    improve |= (ss->staticEval >= beta);
+    improve |= ss->staticEval >= beta;
 
     // Step 10. Internal iterative reductions
     // For deep enough nodes without ttMoves, reduce search depth.
@@ -1106,7 +1106,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (RootNode && is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
         {
             auto currMove = UCI::move_to_can(move);
-            main_manager()->updateCxt.onUpdateIter({rootDepth, currMove, curIdx + moveCount});
+            main_manager()->updateCxt.onUpdateIter({rootDepth, currMove, moveCount + curIdx});
         }
 
         if constexpr (PVNode)

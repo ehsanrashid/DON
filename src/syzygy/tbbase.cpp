@@ -1807,7 +1807,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
         config.rootInTB = probe_root_dtz(pos, rootMoves, config.rule50Active, dtzRankActive, time_to_abort);
 
-        if (!(config.rootInTB || time_to_abort()))
+        if (!config.rootInTB)
         {
             // DTZ-tables are missing/aborted; try to rank moves using WDL-tables
             dtzAvailable    = false;

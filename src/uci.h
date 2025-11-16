@@ -63,16 +63,16 @@ class UCI final {
     [[nodiscard]] static Move
     mix_to_move(std::string mix, Position& pos, const MoveList<LEGAL>&) noexcept;
 
-    static inline bool InfoStringEnabled = true;
+    static inline bool InfoStringActive = true;
 
    private:
     void set_update_listeners() noexcept;
 
-    void position(std::istringstream& iss) noexcept;
-    void go(std::istringstream& iss) noexcept;
-    void setoption(std::istringstream& iss) noexcept;
-    void bench(std::istringstream& iss) noexcept;
-    void benchmark(std::istringstream& iss) noexcept;
+    void position(std::istream& istream) noexcept;
+    void go(std::istream& istream) noexcept;
+    void setoption(std::istream& istream) noexcept;
+    void bench(std::istream& istream) noexcept;
+    void benchmark(std::istream& istream) noexcept;
 
     std::uint64_t perft(Depth depth, bool detail = false) noexcept;
 
