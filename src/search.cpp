@@ -1834,8 +1834,8 @@ void Worker::do_move(Position& pos, Move m, State& st, Stack* const ss) noexcept
 }
 
 void Worker::undo_move(Position& pos, Move m) noexcept {
-    pos.undo_move(m);
     accStack.pop();
+    pos.undo_move(m);
 }
 
 void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {

@@ -58,6 +58,8 @@ constexpr Key enpassant(Square ep) noexcept {
     return Enpassant[file_of(ep)];
 }
 
+constexpr Key castling(CastlingRights cr) noexcept { return Castling[cr]; }
+
 constexpr Key mr50(std::int16_t rule50Count) noexcept {
     std::int16_t idx = rule50Count - R50_OFFSET;
     return idx < 0 ? 0 : MR50[std::min(idx / R50_FACTOR, int(MR50.size()) - 1)];

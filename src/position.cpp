@@ -561,7 +561,7 @@ void Position::set_state() noexcept {
             st->nonPawnKey[color_of(pc)][is_major(type_of(pc))] ^= Zobrist::piece_square(pc, s);
     }
 
-    st->key ^= Zobrist::Castling[castling_rights()];
+    st->key ^= Zobrist::castling(castling_rights());
 
     if (is_ok(ep_sq()))
         st->key ^= Zobrist::enpassant(ep_sq());
@@ -942,9 +942,9 @@ DO_MOVE_END:
     // Update castling rights if needed
     if (int cr; castling_rights() && (cr = castling_rights_mask(org, dst)))
     {
-        k ^= Zobrist::Castling[castling_rights()];
+        k ^= Zobrist::castling(castling_rights());
         st->castlingRights &= ~cr;
-        k ^= Zobrist::Castling[castling_rights()];
+        k ^= Zobrist::castling(castling_rights());
     }
     // Speculative prefetch as early as possible
     if (tt != nullptr && !epCheck)
@@ -1447,8 +1447,8 @@ Key Position::compute_move_key(Move m) const noexcept {
                                                               : make_piece(ac, m.promotion_type()),
                                      m.type_of() != CASTLING ? dst : king_castle_sq(ac, org, dst));
     if (int cr; castling_rights() && (cr = castling_rights_mask(org, dst)))
-        moveKey ^= Zobrist::Castling[castling_rights()]  //
-                 ^ Zobrist::Castling[castling_rights() & ~cr];
+        moveKey ^= Zobrist::castling(castling_rights())  //
+                 ^ Zobrist::castling(castling_rights() & ~cr);
 
     if (m.type_of() == CASTLING)
     {
@@ -1914,7 +1914,7 @@ Key Position::compute_key() const noexcept {
         key ^= Zobrist::piece_square(pc, s);
     }
 
-    key ^= Zobrist::Castling[castling_rights()];
+    key ^= Zobrist::castling(castling_rights());
 
     if (is_ok(ep_sq()))
         key ^= Zobrist::enpassant(ep_sq());
