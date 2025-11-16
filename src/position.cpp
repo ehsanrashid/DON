@@ -1455,10 +1455,9 @@ Key Position::compute_move_key(Move m) const noexcept {
         assert(movedPiece == make_piece(ac, KING));
         assert(capturedPiece == make_piece(ac, ROOK));
         // ROOK
-        moveKey ^= Zobrist::piece_square(capturedPiece, dst)
-                 ^ Zobrist::piece_square(capturedPiece, rook_castle_sq(ac, org, dst));
-        //capturedPiece = NO_PIECE;
-        return moveKey ^ Zobrist::mr50(rule50_count() + 1);
+        return moveKey ^ Zobrist::piece_square(capturedPiece, dst)
+             ^ Zobrist::piece_square(capturedPiece, rook_castle_sq(ac, org, dst))
+             ^ Zobrist::mr50(rule50_count() + 1);
     }
 
     if (type_of(movedPiece) == PAWN && (int(dst) ^ int(org)) == NORTH_2
@@ -1467,16 +1466,13 @@ Key Position::compute_move_key(Move m) const noexcept {
         assert(relative_rank(ac, org) == RANK_2);
         assert(relative_rank(ac, dst) == RANK_4);
 
-        moveKey ^= Zobrist::enpassant(dst);
-
-        return moveKey;
+        return moveKey ^ Zobrist::enpassant(dst);
     }
 
-    moveKey ^= Zobrist::piece_square(capturedPiece, capSq)
-             ^ Zobrist::mr50(!is_ok(capturedPiece) && type_of(movedPiece) != PAWN  //
-                               ? rule50_count() + 1                                //
-                               : 0);
-    return moveKey;
+    return moveKey ^ Zobrist::piece_square(capturedPiece, capSq)
+         ^ Zobrist::mr50(!is_ok(capturedPiece) && type_of(movedPiece) != PAWN  //
+                           ? rule50_count() + 1                                //
+                           : 0);
 }
 
 // Tests if the SEE (Static Exchange Evaluation) value of the move
