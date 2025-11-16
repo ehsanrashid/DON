@@ -42,15 +42,25 @@ inline StdArray<Key, CASTLING_RIGHTS_NB>  Castling{};
 inline StdArray<Key, FILE_NB>             Enpassant{};
 inline Key                                Turn{};
 
-inline constexpr std::uint16_t MAX_50MR   = MAX_PLY + 1;
+inline constexpr std::uint16_t MAX_MR50   = MAX_PLY + 1;
 inline constexpr std::uint8_t  R50_OFFSET = 14;
 inline constexpr std::uint8_t  R50_FACTOR = 8;
 
-inline StdArray<Key, (MAX_50MR - R50_OFFSET) / R50_FACTOR + 2> MR50{};
+inline StdArray<Key, (MAX_MR50 - R50_OFFSET) / R50_FACTOR + 2> MR50{};
 
-constexpr Key adjust_key(Key key, std::int16_t rule50Count) noexcept {
+constexpr Key piece_square(Piece pc, Square s) noexcept {
+    assert(is_ok(s));
+    return PieceSquare[pc][s];
+}
+
+constexpr Key enpassant(Square ep) noexcept {
+    assert(is_ok(ep));
+    return Enpassant[file_of(ep)];
+}
+
+constexpr Key mr50(std::int16_t rule50Count) noexcept {
     std::int16_t idx = rule50Count - R50_OFFSET;
-    return idx < 0 ? key : key ^ MR50[std::min(idx / R50_FACTOR, int(MR50.size()) - 1)];
+    return idx < 0 ? 0 : MR50[std::min(idx / R50_FACTOR, int(MR50.size()) - 1)];
 }
 
 }  // namespace Zobrist
@@ -509,7 +519,7 @@ inline Piece Position::captured_piece() const noexcept { return st->capturedPiec
 
 inline Piece Position::promoted_piece() const noexcept { return st->promotedPiece; }
 
-inline Key Position::key(std::int16_t r50) const noexcept { return Zobrist::adjust_key(st->key, st->rule50Count + r50); }
+inline Key Position::key(std::int16_t r50) const noexcept { return st->key ^ Zobrist::mr50(rule50_count() + r50); }
 
 inline Key Position::pawn_key(Color c) const noexcept { return st->pawnKey[c]; }
 
@@ -523,7 +533,7 @@ inline Key Position::major_key(Color c) const noexcept { return st->nonPawnKey[c
 
 inline Key Position::major_key() const noexcept { return major_key(WHITE) ^ major_key(BLACK); }
 
-inline Key Position::non_pawn_key(Color c) const noexcept { return minor_key(c) ^ major_key(c) ^ Zobrist::PieceSquare[make_piece(c, KING)][king_sq(c)]; }
+inline Key Position::non_pawn_key(Color c) const noexcept { return minor_key(c) ^ major_key(c) ^ Zobrist::piece_square(make_piece(c, KING), king_sq(c)); }
 
 inline Key Position::non_pawn_key() const noexcept { return non_pawn_key(WHITE) ^ non_pawn_key(BLACK); }
 
