@@ -1472,11 +1472,10 @@ Key Position::compute_move_key(Move m) const noexcept {
         return moveKey;
     }
 
-    moveKey ^= Zobrist::piece_square(capturedPiece, capSq);
-
-    moveKey ^=
-      Key(!is_ok(capturedPiece) && type_of(movedPiece) != PAWN) * Zobrist::mr50(rule50_count() + 1);
-
+    moveKey ^= Zobrist::piece_square(capturedPiece, capSq)
+             ^ Zobrist::mr50(!is_ok(capturedPiece) && type_of(movedPiece) != PAWN  //
+                               ? rule50_count() + 1                                //
+                               : 0);
     return moveKey;
 }
 
