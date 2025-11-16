@@ -23,6 +23,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
+#include <utility>
 
 #include "../misc.h"
 #include "../position.h"
@@ -145,8 +146,8 @@ struct AccumulatorState final {
             return small;
     }
 
-    void reset(const typename FeatureSet::DirtyType& dt) noexcept {
-        dirtyType = dt;
+    void reset(typename FeatureSet::DirtyType&& dt) noexcept {
+        dirtyType = std::move(dt);
         big.computed.fill(false);
         small.computed.fill(false);
     }
