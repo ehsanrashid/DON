@@ -49,6 +49,15 @@
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
 
+#if defined(__GNUC__) || defined(__clang__)
+    #define ALWAYS_INLINE inline __attribute__((always_inline))
+#elif defined(__MSVC)
+    #define ALWAYS_INLINE __forceinline
+#else
+    // fallback: keep `inline`
+    #define ALWAYS_INLINE inline
+#endif
+
 #if defined(__GNUC__) && !defined(__clang__)
     #if __GNUC__ >= 13
         #define ASSUME(cond) __attribute__((assume(cond)))

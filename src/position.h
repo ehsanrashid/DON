@@ -778,14 +778,15 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
     Bitboard sliders = (pieces(QUEEN, BISHOP) & attacks[BISHOP])
                      | (pieces(QUEEN, ROOK)   & attacks[ROOK]);
     // clang-format on
-    if constexpr (ComputeRay)
-        while (sliders)
+    while (sliders)
+    {
+        Square sliderSq = pop_lsb(sliders);
+        Piece  sliderPc = piece_on(sliderSq);
+
+        assert(is_ok(sliderPc));
+
+        if constexpr (ComputeRay)
         {
-            Square sliderSq = pop_lsb(sliders);
-            Piece  sliderPc = piece_on(sliderSq);
-
-            assert(is_ok(sliderPc));
-
             Bitboard discovered = pass_ray_bb(sliderSq, s) & attacks[QUEEN] & occupied;
 
             if (discovered)
@@ -798,18 +799,10 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
 
                 dts->add<!Add>(sliderPc, threatenedPc, sliderSq, threatenedSq);
             }
-            dts->add<Add>(sliderPc, pc, sliderSq, s);
         }
-    else
-        while (sliders)
-        {
-            Square sliderSq = pop_lsb(sliders);
-            Piece  sliderPc = piece_on(sliderSq);
 
-            assert(is_ok(sliderPc));
-
-            dts->add<Add>(sliderPc, pc, sliderSq, s);
-        }
+        dts->add<Add>(sliderPc, pc, sliderSq, s);
+    }
 
     // clang-format off
     Bitboard nonSliders = (pieces(WHITE, PAWN) & attacks[BLACK])
@@ -819,13 +812,13 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
     // clang-format on
     while (nonSliders)
     {
-        Square srcSq = pop_lsb(nonSliders);
-        Piece  srcPc = piece_on(srcSq);
+        Square nonSliderSq = pop_lsb(nonSliders);
+        Piece  nonSliderPc = piece_on(nonSliderSq);
 
-        assert(srcSq != s);
-        assert(is_ok(srcPc));
+        assert(nonSliderSq != s);
+        assert(is_ok(nonSliderPc));
 
-        dts->add<Add>(srcPc, pc, srcSq, s);
+        dts->add<Add>(nonSliderPc, pc, nonSliderSq, s);
     }
 }
 
