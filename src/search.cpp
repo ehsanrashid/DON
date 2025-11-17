@@ -929,8 +929,8 @@ Value Worker::search(Position&    pos,
     // Step 8. Futility pruning: child node
     // The depth condition is important for mate finding.
     {
-        const auto futility_margin = [&](bool ttHit) noexcept {
-            Value futilityMult = 60 + 21 * ttHit;
+        const auto futility_margin = [&](bool cond) noexcept {
+            Value futilityMult = 60 + 21 * cond;
 
             return futilityMult * depth                  //
                  - int(2.0449 * futilityMult) * improve  //
@@ -938,9 +938,9 @@ Value Worker::search(Position&    pos,
                  + int(6.3249e-6 * absCorrectionValue);
         };
 
-        if (!ss->pvHit && !exclude && !ttCapture && depth < 14 && !is_win(eval) && !is_loss(alpha)
-            && eval - std::max(futility_margin(ttd.hit), 0) >= beta)
-            return (3 * beta + eval) / 4;
+        if (!ss->pvHit && !exclude && depth < 14 && !is_win(eval) && !is_loss(beta)
+            && eval - std::max(futility_margin(ttd.move != Move::None), 0) >= beta)
+            return (depth * eval + beta) / (depth + 1);
     }
 
     // Step 9. Null move search with verification search
@@ -1478,7 +1478,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (!moveCount)
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
-    else if (bestValue > beta && !is_win(bestValue) && !is_loss(alpha))
+    else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
         bestValue = (depth * bestValue + beta) / (depth + 1);
 
     // Don't let best value inflate too high (tb)
@@ -1652,7 +1652,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Stand pat. Return immediately if bestValue is at least beta
     if (bestValue >= beta)
     {
-        if (bestValue > beta && !is_win(bestValue) && !is_loss(alpha))
+        if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
             bestValue = (bestValue + beta) / 2;
 
         if (!ttd.hit)
@@ -1799,7 +1799,7 @@ QS_MOVES_LOOP:
         }
     }
     // Adjust best value for fail high cases
-    else if (bestValue > beta && !is_win(bestValue) && !is_loss(alpha))
+    else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
         bestValue = (bestValue + beta) / 2;
 
     // Save gathered info in transposition table
