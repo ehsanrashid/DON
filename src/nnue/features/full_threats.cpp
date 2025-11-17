@@ -145,12 +145,12 @@ void FullThreats::init() noexcept {
 }
 
 // Index of a feature for a given king position and another piece on some square
-IndexType FullThreats::make_index(Color  perspective,
-                                  Square kingSq,
-                                  Square org,
-                                  Square dst,
-                                  Piece  attacker,
-                                  Piece  attacked) noexcept {
+ALWAYS_INLINE IndexType FullThreats::make_index(Color  perspective,
+                                                Square kingSq,
+                                                Square org,
+                                                Square dst,
+                                                Piece  attacker,
+                                                Piece  attacked) noexcept {
     int orientation = relative_sq(perspective, Orientations[kingSq]);
 
     org = Square(int(org) ^ orientation);

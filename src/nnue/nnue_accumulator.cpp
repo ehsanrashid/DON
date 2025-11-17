@@ -399,17 +399,9 @@ void update_accumulator_refresh_cache(Color                                 pers
     Bitboard changedBB = changed_bb(entry.pieceArr, pieceArr);
 
     Bitboard removedBB = changedBB & entry.pieces;
-    while (removedBB)
-    {
-        Square s = pop_lsb(removedBB);
-        removed.push_back(PSQFeatureSet::make_index(perspective, kingSq, s, entry.pieceArr[s]));
-    }
+    PSQFeatureSet::append_active_indices(perspective, kingSq, entry.pieceArr, removedBB, removed);
     Bitboard addedBB = changedBB & pieces;
-    while (addedBB)
-    {
-        Square s = pop_lsb(addedBB);
-        added.push_back(PSQFeatureSet::make_index(perspective, kingSq, s, pos.piece_on(s)));
-    }
+    PSQFeatureSet::append_active_indices(perspective, kingSq, pieceArr, addedBB, added);
 
     entry.pieceArr = pieceArr;
     entry.pieces   = pieces;
