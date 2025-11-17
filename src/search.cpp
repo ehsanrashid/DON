@@ -939,7 +939,7 @@ Value Worker::search(Position&    pos,
         };
 
         if (!ss->pvHit && !exclude && depth < 14 && !is_win(eval) && !is_loss(alpha)
-            && eval - std::max(futility_margin(!RootNode && ttd.move != Move::None), 0) >= beta)
+            && eval - std::max(futility_margin(!RootNode && !ttCapture), 0) >= beta)
             return (3 * beta + eval) / 4;
     }
 
