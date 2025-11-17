@@ -1941,7 +1941,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
     auto m = (ss - 1)->move;
 
     return std::clamp<std::int64_t>(
-           + 4769LL * (   pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
+           + 4768LL * (   pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
                      +    pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac])
            + 8494LL * (  minorCorrectionHistory[correction_index(pos.minor_key())][ac])
            +10132LL * (nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac]
