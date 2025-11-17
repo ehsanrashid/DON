@@ -47,9 +47,6 @@ class HalfKAv2_hm final {
     using DirtyType = DirtyPiece;
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
-    // Index of a feature for king position and piece on square
-    static IndexType make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept;
-
     // Get a list of indices for active features
     static void append_active_indices(Color                       perspective,
                                       Square                      kingSq,

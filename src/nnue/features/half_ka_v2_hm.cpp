@@ -80,17 +80,14 @@ constexpr StdArray<Square, SQUARE_NB> Orientations{
   SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1   //
 };
 
-}  // namespace
-
 // Index of a feature for king position and piece on square
-ALWAYS_INLINE IndexType HalfKAv2_hm::make_index(Color  perspective,
-                                                Square kingSq,
-                                                Square s,
-                                                Piece  pc) noexcept {
+ALWAYS_INLINE IndexType make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
     int orientation = relative_sq(perspective, Orientations[kingSq]);
     return (int(s) ^ orientation) + PieceSquareIndices[perspective][pc]  //
          + KingBuckets[relative_sq(perspective, kingSq)];
 }
+
+}  // namespace
 
 // Get a list of indices for active features
 void HalfKAv2_hm::append_active_indices(Color                       perspective,
