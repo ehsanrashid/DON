@@ -55,13 +55,6 @@ class FullThreats final {
 
     static void init() noexcept;
 
-    static IndexType make_index(Color  perspective,
-                                Square kingSq,
-                                Square org,
-                                Square dst,
-                                Piece  attacker,
-                                Piece  attacked) noexcept;
-
     // Get a list of indices for active features
     static void
     append_active_indices(Color perspective, const Position& pos, IndexList& active) noexcept;

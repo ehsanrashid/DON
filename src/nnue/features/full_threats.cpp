@@ -50,14 +50,14 @@ struct PiecePairData final {
 
 // Orient a square according to perspective (rotates by 180 for black)
 constexpr StdArray<Square, SQUARE_NB> Orientations{
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1   //
+  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,  //
+  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,  //
+  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,  //
+  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,  //
+  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,  //
+  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,  //
+  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,  //
+  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1   //
 };
 
 constexpr StdArray<int, PIECE_TYPE_NB - 2, PIECE_TYPE_NB - 2> Map{{
@@ -76,6 +76,36 @@ StdArray<IndexType, PIECE_NB, SQUARE_NB + 2> OffsetIndex;
 // as well as OffsetIndex[attacker][from]
 StdArray<PiecePairData, PIECE_NB, PIECE_NB>       LutData;   // [attacker][attacked]
 StdArray<uint8_t, PIECE_NB, SQUARE_NB, SQUARE_NB> LutIndex;  // [attacker][org][dst]
+
+// Index of a feature for a given king position and another piece on square
+ALWAYS_INLINE IndexType make_index(Color  perspective,
+                                   Square kingSq,
+                                   Square org,
+                                   Square dst,
+                                   Piece  attacker,
+                                   Piece  attacked) noexcept {
+    int orientation = relative_sq(perspective, Orientations[kingSq]);
+
+    org = Square(int(org) ^ orientation);
+    dst = Square(int(dst) ^ orientation);
+
+    attacker = relative_piece(perspective, attacker);
+    attacked = relative_piece(perspective, attacked);
+
+    auto& piecePairData = LutData[attacker][attacked];
+
+    // Some threats imply the existence of the corresponding ones in the opposite direction.
+    // Filter them here to ensure only one such threat is active.
+
+    // In the below addition, the 2nd lsb gets set iff either the pair is always excluded,
+    // or the pair is semi-excluded and org < dst. By using an unsigned compare, the following
+    // sequence can use an add-with-carry instruction.
+    if ((piecePairData.excluded_pair_info() + (org < dst)) & 0x2)
+        return FullThreats::Dimensions;
+
+    return piecePairData.feature_base_index() + OffsetIndex[attacker][org]
+         + LutIndex[attacker][org][dst];
+}
 
 }  // namespace
 
@@ -142,36 +172,6 @@ void FullThreats::init() noexcept {
                     LutIndex[attacker][org][dst] =
                       popcount((square_bb(dst) - 1) & attacks_bb(org, attacker));
         }
-}
-
-// Index of a feature for a given king position and another piece on some square
-IndexType FullThreats::make_index(Color  perspective,
-                                  Square kingSq,
-                                  Square org,
-                                  Square dst,
-                                  Piece  attacker,
-                                  Piece  attacked) noexcept {
-    int orientation = relative_sq(perspective, Orientations[kingSq]);
-
-    org = Square(int(org) ^ orientation);
-    dst = Square(int(dst) ^ orientation);
-
-    attacker = relative_piece(perspective, attacker);
-    attacked = relative_piece(perspective, attacked);
-
-    auto& piecePairData = LutData[attacker][attacked];
-
-    // Some threats imply the existence of the corresponding ones in the opposite direction.
-    // Filter them here to ensure only one such threat is active.
-
-    // In the below addition, the 2nd lsb gets set iff either the pair is always excluded,
-    // or the pair is semi-excluded and org < dst. By using an unsigned compare, the following
-    // sequence can use an add-with-carry instruction.
-    if ((piecePairData.excluded_pair_info() + (org < dst)) & 0x2)
-        return Dimensions;
-
-    return piecePairData.feature_base_index() + OffsetIndex[attacker][org]
-         + LutIndex[attacker][org][dst];
 }
 
 // Get a list of indices for active features in ascending order

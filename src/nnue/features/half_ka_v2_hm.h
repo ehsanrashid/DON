@@ -23,12 +23,11 @@
 #include <cstdint>
 
 #include "../../misc.h"
+#include "../../position.h"
 #include "../../types.h"
 #include "../nnue_common.h"
 
 namespace DON {
-
-class Position;
 
 namespace NNUE::Features {
 
@@ -48,12 +47,12 @@ class HalfKAv2_hm final {
     using DirtyType = DirtyPiece;
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
-    // Index of a feature for king position and piece on square
-    static IndexType make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept;
-
     // Get a list of indices for active features
-    static void
-    append_active_indices(Color perspective, const Position& pos, IndexList& active) noexcept;
+    static void append_active_indices(Color                       perspective,
+                                      Square                      kingSq,
+                                      const Position::PieceArray& pieceArr,
+                                      Bitboard                    occupied,
+                                      IndexList&                  active) noexcept;
 
     // Get a list of indices for recently changed features
     static void append_changed_indices(Color            perspective,
