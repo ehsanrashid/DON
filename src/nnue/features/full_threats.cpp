@@ -49,24 +49,16 @@ struct PiecePairData final {
 };
 
 // Orient a square according to perspective (rotates by 180 for black)
-constexpr StdArray<IndexType, COLOR_NB, SQUARE_NB> OrientTable{{
-  {SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
-   SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
-   SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
-   SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
-   SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
-   SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
-   SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,   //
-   SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1},  //
-  {SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,   //
-   SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,   //
-   SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,   //
-   SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,   //
-   SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,   //
-   SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,   //
-   SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8,   //
-   SQ_A8, SQ_A8, SQ_A8, SQ_A8, SQ_H8, SQ_H8, SQ_H8, SQ_H8}   //
-}};
+constexpr StdArray<Square, SQUARE_NB> Orientations{
+  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
+  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
+  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
+  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
+  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
+  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
+  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
+  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1   //
+};
 
 constexpr StdArray<int, PIECE_TYPE_NB - 2, PIECE_TYPE_NB - 2> Map{{
   {0, +1, -1, +2, -1, -1},  //
@@ -159,16 +151,13 @@ IndexType FullThreats::make_index(Color  perspective,
                                   Square dst,
                                   Piece  attacker,
                                   Piece  attacked) noexcept {
-    auto orientation = OrientTable[perspective][kingSq];
+    int orientation = relative_sq(perspective, Orientations[kingSq]);
 
     org = Square(int(org) ^ orientation);
     dst = Square(int(dst) ^ orientation);
 
-    if (perspective == BLACK)
-    {
-        attacker = flip_color(attacker);
-        attacked = flip_color(attacked);
-    }
+    attacker = relative_piece(perspective, attacker);
+    attacked = relative_piece(perspective, attacked);
 
     auto& piecePairData = LutData[attacker][attacked];
 
@@ -311,8 +300,7 @@ void FullThreats::append_changed_indices(Color            perspective,
 }
 
 bool FullThreats::requires_refresh(Color perspective, const DirtyType& dt) noexcept {
-    return perspective == dt.ac
-        && OrientTable[dt.ac][dt.kingSq] != OrientTable[dt.ac][dt.preKingSq];
+    return perspective == dt.ac && Orientations[dt.kingSq] != Orientations[dt.preKingSq];
 }
 
 }  // namespace DON::NNUE::Features

@@ -423,6 +423,10 @@ constexpr Color color_of(Piece pc) noexcept { return Color(int(pc) >> 3); }
 // Swap color of piece B_KNIGHT <-> W_KNIGHT
 constexpr Piece flip_color(Piece pc) noexcept { return Piece(int(pc) ^ int(PIECE_TYPE_NB)); }
 
+constexpr Piece relative_piece(Color c, Piece pc) noexcept {
+    return Piece(int(pc) ^ (c * int(PIECE_TYPE_NB)));
+}
+
 [[nodiscard]] constexpr bool is_ok(File f) noexcept { return (FILE_A <= f && f <= FILE_H); }
 
 [[nodiscard]] constexpr bool is_ok(Rank r) noexcept { return (RANK_1 <= r && r <= RANK_8); }

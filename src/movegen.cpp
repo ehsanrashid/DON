@@ -364,8 +364,7 @@ namespace {
 template<bool Any>
 Move* generate_legal(const Position& pos, Move* moves) noexcept {
 
-    Move *read, *write;
-    read = write = moves;
+    Move *read = moves, *write = moves;
 
     moves = pos.checkers()  //
             ? generate<EVASION, Any>(pos, moves)

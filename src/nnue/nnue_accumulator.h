@@ -184,7 +184,6 @@ struct AccumulatorStack final {
     template<typename T>
     [[nodiscard]] AccumulatorState<T>& mut_state() noexcept;
 
-
     template<typename FeatureSet, IndexType Dimensions>
     void evaluate(Color                                 perspective,
                   const Position&                       pos,

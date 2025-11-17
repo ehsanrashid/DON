@@ -46,7 +46,7 @@ constexpr IndexType PS_B_QUEEN  = 9 * SQUARE_NB;
 constexpr IndexType PS_KING     = 10 * SQUARE_NB;
 constexpr IndexType PS_NB       = 11 * SQUARE_NB;
 
-constexpr StdArray<IndexType, COLOR_NB, PIECE_NB> PieceSquareIndex{{
+constexpr StdArray<IndexType, COLOR_NB, PIECE_NB> PieceSquareIndices{{
   // Convention: W - us, B - them
   // Viewed from other side, W and B are reversed
   {PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE,   //
@@ -69,7 +69,7 @@ constexpr StdArray<IndexType, SQUARE_NB> KingBuckets{
 #undef B
 
 // Orient a square according to perspective (rotates by 180 for black)
-constexpr StdArray<IndexType, SQUARE_NB> OrientTable{
+constexpr StdArray<Square, SQUARE_NB> Orientations{
   SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
   SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
   SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
@@ -84,9 +84,9 @@ constexpr StdArray<IndexType, SQUARE_NB> OrientTable{
 
 // Index of a feature for king position and piece on square
 IndexType HalfKAv2_hm::make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
-    return PieceSquareIndex[perspective][pc]  //
-         + KingBuckets[relative_sq(perspective, kingSq)]
-         + (OrientTable[kingSq] ^ IndexType(relative_sq(perspective, s)));
+    int orientation = relative_sq(perspective, Orientations[kingSq]);
+    return (int(s) ^ orientation) + PieceSquareIndices[perspective][pc]  //
+         + KingBuckets[relative_sq(perspective, kingSq)];
 }
 
 // Get a list of indices for active features

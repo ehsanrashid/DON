@@ -423,17 +423,12 @@ void Worker::iterative_deepening() noexcept {
             // Reset UCI info selDepth for each depth and each PV line
             selDepth = 1;
 
-            auto avgValue = rootMoves[curIdx].avgValue;
-            if (avgValue == -VALUE_INFINITE)
-                avgValue = VALUE_ZERO;
-
+            auto avgValue    = rootMoves[curIdx].avgValue;
             auto avgSqrValue = rootMoves[curIdx].avgSqrValue;
-            if (avgSqrValue == sign_sqr(-VALUE_INFINITE))
-                avgSqrValue = VALUE_ZERO;
 
             // Reset aspiration window starting size
-            int delta =
-              5 + std::min(threads.size() - 1, std::size_t(8)) + std::abs(avgSqrValue) / 9000;
+            int delta = 5 + std::min(threads.size() - 1, std::size_t(8))  //
+                      + int(1.1111e-4 * std ::abs(avgSqrValue));
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
 
@@ -913,11 +908,11 @@ Value Worker::search(Position&    pos,
     // Hindsight adjustment of reductions based on static evaluation difference.
     // The ply after beginning an LMR search, adjust the reduced depth based on
     // how the opponent's move affected the static evaluation.
-    if (red >= 3 && !worsen)
-        depth = std::min(depth + 1, MAX_PLY - 1);
+    if (depth < MAX_PLY - 1 && red >= 3 && !worsen)
+        ++depth;
 
-    if (red >= 2 && ss->staticEval > 173 - (ss - 1)->staticEval)
-        depth = std::max(depth - 1, 1);
+    if (depth > 1 && red >= 2 && ss->staticEval > 173 - (ss - 1)->staticEval)
+        --depth;
 
     // Step 7. Razoring
     // If eval is really low, check with qsearch then return speculative fail low.
@@ -935,7 +930,7 @@ Value Worker::search(Position&    pos,
     // The depth condition is important for mate finding.
     {
         const auto futility_margin = [&](bool ttHit) noexcept {
-            Value futilityMult = 70 + 21 * ttHit;
+            Value futilityMult = 60 + 21 * ttHit;
 
             return futilityMult * depth                  //
                  - int(2.0449 * futilityMult) * improve  //
@@ -992,7 +987,7 @@ Value Worker::search(Position&    pos,
     // Step 10. Internal iterative reductions
     // For deep enough nodes without ttMoves, reduce search depth.
     // (*Scaler) Making IIR more aggressive scales poorly.
-    if (!AllNode && depth > 5 && red <= 3 && ttd.move == Move::None)
+    if (depth > 5 && !AllNode && red <= 3 && ttd.move == Move::None)
         --depth;
 
     // Step 11. ProbCut
@@ -1240,8 +1235,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 extension = 1 + (value <= singularBeta - doubleMargin)
                               + (value <= singularBeta - tripleMargin);
                 // clang-format on
-
-                depth = std::min(depth + 1, MAX_PLY - 1);
+                if (depth < MAX_PLY - 1)
+                    ++depth;
             }
 
             // Multi-cut pruning
@@ -1334,7 +1329,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Adjust full-depth search based on LMR value
                 newDepth +=
                   // - if the value was good enough search deeper
-                  +(redDepth < newDepth && value > 43 + bestValue + 2 * newDepth)
+                  +(value > 43 + bestValue + 2 * newDepth && redDepth < newDepth)
                   // - if the value was bad enough search shallower
                   - (value < 9 + bestValue);
 
@@ -1365,12 +1360,12 @@ S_MOVES_LOOP:  // When in check, search starts here
             (ss + 1)->pv = pv.data();
 
             // Extends ttMove if about to dive into qsearch
-            if (move == ttd.move
+            if (newDepth <= DEPTH_ZERO && move == ttd.move
                 && (  // Root depth is high & TT entry is deep
                   (rootDepth > 6 && ttd.depth > 1)
                   // Handles decisive score. Improves mate finding and retrograde analysis.
                   || (is_valid(ttd.value) && is_decisive(ttd.value) && ttd.depth >= 1)))
-                newDepth = std::max(+newDepth, 1);
+                newDepth = 1;
 
             value = -search<PV>(pos, ss + 1, -beta, -alpha, newDepth);
         }
@@ -1462,8 +1457,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 alpha = value;  // Update alpha! Always alpha < beta
 
                 // Reduce depth for other moves if have found at least one score improvement
-                if (depth > 2 && depth < 16 && !is_decisive(value))
-                    depth = std::max(depth - 1 - (depth < 8), 2);
+                if (depth > 1 && depth < 16 && !is_decisive(value))
+                    depth = std::max(depth - 1 - (depth < 8), 1);
 
                 assert(depth > DEPTH_ZERO);
             }

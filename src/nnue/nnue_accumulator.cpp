@@ -317,7 +317,18 @@ void update_accumulator_incremental(
 
     if constexpr (std::is_same_v<FeatureSet, ThreatFeatureSet>)
     {
-        updateContext.apply(added, removed);
+        if (added.empty() && removed.empty())
+        {
+            const auto& computedAcc = computedState.template acc<TransformedFeatureDimensions>();
+            auto&       targetAcc   = targetState.template acc<TransformedFeatureDimensions>();
+
+            targetAcc.accumulation[perspective]     = computedAcc.accumulation[perspective];
+            targetAcc.psqtAccumulation[perspective] = computedAcc.psqtAccumulation[perspective];
+        }
+        else
+        {
+            updateContext.apply(added, removed);
+        }
     }
     else
     {
