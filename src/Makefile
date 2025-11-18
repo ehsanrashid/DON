@@ -24,7 +24,7 @@ ifeq ($(KERNEL), Linux)
     OS := $(shell uname -o)
 endif
 
-target_windows = no
+target_windows := no
 ### Target Windows OS
 ifeq ($(OS), Windows_NT)
     ifneq ($(COMP), ndk)
@@ -221,8 +221,8 @@ ifeq ($(findstring -sse41, $(ARCH)), -sse41)
 endif
 
 ifeq ($(findstring -modern, $(ARCH)), -modern)
-        $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute `make help` for a list of available architectures. ***)
-        $(shell sleep 5)
+    $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute `make help` for a list of available architectures. ***)
+    $(shell sleep 5)
     popcnt = yes
     sse = yes
     sse2 = yes
