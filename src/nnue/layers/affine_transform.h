@@ -45,9 +45,9 @@ namespace DON::NNUE::Layers {
 // Fallback implementation for older/other architectures.
 // Requires the input to be padded to at least 16 values.
 #if !defined(ENABLE_SEQ_OPT)
-namespace {
+
 template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType OutputDimensions>
-void affine_transform_non_ssse3(
+inline void affine_transform_non_ssse3(
   const std::array<std::int32_t, OutputDimensions>&                        biases,
   const std::array<std::int8_t, OutputDimensions * PaddedInputDimensions>& weights,
   const std::uint8_t*                                                      input,
@@ -122,7 +122,7 @@ void affine_transform_non_ssse3(
         }
     #endif
 }
-}  // namespace
+
 #endif  // #if !defined(ENABLE_SEQ_OPT)
 
 template<IndexType InDims, IndexType OutDims>

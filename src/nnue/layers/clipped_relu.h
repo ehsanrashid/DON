@@ -31,7 +31,7 @@ namespace DON::NNUE::Layers {
 
 // Clipped ReLU
 template<IndexType InDims>
-class ClippedReLU {
+class ClippedReLU final {
    public:
     // Input/output type
     using InputType  = std::int32_t;

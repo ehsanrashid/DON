@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef NETWORK_H_INCLUDED
-#define NETWORK_H_INCLUDED
+#ifndef NNUE_NETWORK_H_INCLUDED
+#define NNUE_NETWORK_H_INCLUDED
 
 #include <cstddef>
 #include <cstdint>
@@ -149,4 +149,4 @@ struct std::hash<DON::NNUE::Networks> {
     }
 };
 
-#endif  // #ifndef NETWORK_H_INCLUDED
+#endif  // #ifndef NNUE_NETWORK_H_INCLUDED
