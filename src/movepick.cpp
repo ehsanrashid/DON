@@ -141,8 +141,8 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
         // Bonus for escaping from square attacked by lesser piece.
         m.value += PIECE_VALUE[pt]
                  * (((pos.less_attacks(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? -19
-                    : (pos.less_attacks(~ac, pt) & org)                               ? +20
                     : (threats & org)                                                 ? +25
+                    : (pos.less_attacks(~ac, pt) & org)                               ? +20
                                                                                       : 0);
 
         if (pt == KING)
