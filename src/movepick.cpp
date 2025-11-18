@@ -142,7 +142,7 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
         m.value += PIECE_VALUE[pt]
                  * (((pos.less_attacks(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? -19
                     : (pos.less_attacks(~ac, pt) & org)                               ? +20
-                    : (threats & org)                                                 ? +20
+                    : (threats & org)                                                 ? +25
                                                                                       : 0);
 
         if (pt == KING)
