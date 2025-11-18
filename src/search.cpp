@@ -667,7 +667,8 @@ Value Worker::search(Position&    pos,
         }
 
         // Limit the depth if extensions made it too large
-        depth = std::min(+depth, MAX_PLY - 1);
+        if (depth > MAX_PLY - 1)
+            depth = MAX_PLY - 1;
         assert(DEPTH_ZERO < depth && depth < MAX_PLY);
     }
 
@@ -680,7 +681,8 @@ Value Worker::search(Position&    pos,
     if constexpr (PVNode)
     {
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max(+selDepth, 1 + ss->ply);
+        if (selDepth < 1 + ss->ply)
+            selDepth = 1 + ss->ply;
     }
 
     // Step 1. Initialize node
@@ -1360,7 +1362,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             (ss + 1)->pv = pv.data();
 
             // Extends ttMove if about to dive into qsearch
-            if (newDepth <= DEPTH_ZERO && move == ttd.move
+            if (newDepth < 1 && move == ttd.move
                 && (  // Root depth is high & TT entry is deep
                   (rootDepth > 6 && ttd.depth > 1)
                   // Handles decisive score. Improves mate finding and retrograde analysis.
@@ -1458,7 +1460,11 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 // Reduce depth for other moves if have found at least one score improvement
                 if (depth > 1 && depth < 16 && !is_decisive(value))
-                    depth = std::max(depth - 1 - (depth < 8), 1);
+                {
+                    depth -= 1 + (depth < 8);
+                    if (depth < 1)
+                        depth = 1;
+                }
 
                 assert(depth > DEPTH_ZERO);
             }
@@ -1583,7 +1589,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         (ss + 1)->pv = pv.data();
 
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max(+selDepth, 1 + ss->ply);
+        if (selDepth < 1 + ss->ply)
+            selDepth = 1 + ss->ply;
     }
 
     // Step 1. Initialize node
@@ -1940,7 +1947,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
 
     auto m = (ss - 1)->move;
     return std::clamp<std::int64_t>(
-           + 4768LL * (   pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
+           + 4740LL * (   pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
                      +    pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac])
            + 8494LL * (  minorCorrectionHistory[correction_index(pos.minor_key())][ac])
            +10132LL * (nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac]

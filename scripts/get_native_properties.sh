@@ -26,17 +26,6 @@ check_znver_1_2() {
   [ "$vendor_id" = "AuthenticAMD" ] && [ "$cpu_family" = "23" ] && znver_1_2=true
 }
 
-# Set the file CPU loongarch64 architecture
-set_arch_loongarch64() {
-  if check_flags 'lasx'; then
-    true_arch='loongarch64-lasx'
-  elif check_flags 'lsx'; then
-    true_arch='loongarch64-lsx'
-  else
-    true_arch='loongarch64'
-  fi
-}
-
 # Set the file CPU x86_64 architecture
 set_arch_x86_64() {
   if check_flags 'avx512f' 'avx512cd' 'avx512vl' 'avx512dq' 'avx512bw' 'avx512ifma' 'avx512vbmi' 'avx512vbmi2' 'avx512vpopcntdq' 'avx512bitalg' 'avx512vnni' 'vpclmulqdq' 'gfni' 'vaes'; then
@@ -69,6 +58,17 @@ set_arch_ppc_64() {
     fi
   else
     true_arch='ppc-64'
+  fi
+}
+
+# Set the file CPU loongarch64 architecture
+set_arch_loongarch64() {
+  if check_flags 'lasx'; then
+    true_arch='loongarch64-lasx'
+  elif check_flags 'lsx'; then
+    true_arch='loongarch64-lsx'
+  else
+    true_arch='loongarch64'
   fi
 }
 
