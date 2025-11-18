@@ -24,6 +24,7 @@ ifeq ($(KERNEL), Linux)
     OS := $(shell uname -o)
 endif
 
+target_windows = no
 ### Target Windows OS
 ifeq ($(OS), Windows_NT)
     ifneq ($(COMP), ndk)

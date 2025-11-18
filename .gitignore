@@ -6,6 +6,7 @@ src/.depend
 # Built binary
 src/DON*
 src/-lstdc++.res
+/src/profdir
 
 # Neural network for the NNUE evaluation
 *.nnue
@@ -26,3 +27,4 @@ tests/tmp_bench.epd
 # IDE files
 .vs/*
 .vscode/*
+CppProperties.json
