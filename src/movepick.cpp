@@ -99,8 +99,11 @@ MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveL
 template<>
 MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
 
-    Color ac        = pos.active_color();
-    auto  pawnIndex = pawn_index(pos.pawn_key());
+    Color ac = pos.active_color();
+
+    Bitboard threats = pos.threats(~ac);
+
+    std::uint16_t pawnIndex = pawn_index(pos.pawn_key());
 
     iterator itr = cur;
     for (auto move : moveList)
@@ -137,9 +140,10 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
         // Penalty for moving to square attacked by lesser piece or
         // Bonus for escaping from square attacked by lesser piece.
         m.value += PIECE_VALUE[pt]
-                 * (((pos.attacks_lesser(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? -19
-                    : (pos.attacks_lesser(~ac, pt) & org)                               ? +20
-                                                                                        : 0);
+                 * (((pos.less_attacks(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? -19
+                    : (threats & org)                                                 ? +23
+                    : (pos.less_attacks(~ac, pt) & org)                               ? +20
+                                                                                      : 0);
 
         if (pt == KING)
             continue;

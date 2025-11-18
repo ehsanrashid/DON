@@ -168,9 +168,11 @@ class Position final {
 
     template<PieceType PT>
     Bitboard attacks(Color c) const noexcept;
-    Bitboard attacks_lesser(Color c, PieceType pt) const noexcept;
-    Piece    captured_piece() const noexcept;
-    Piece    promoted_piece() const noexcept;
+    Bitboard less_attacks(Color c, PieceType pt) const noexcept;
+    Bitboard threats(Color c) const noexcept;
+
+    Piece captured_piece() const noexcept;
+    Piece promoted_piece() const noexcept;
 
     // Slide attacker to a given square
     Bitboard xslide_attackers_to(Square s) const noexcept;
@@ -515,8 +517,11 @@ inline Bitboard Position::blockers(Color c) const noexcept { return st->blockers
 
 template<PieceType PT>
 inline Bitboard Position::attacks(Color c) const noexcept { return st->attacks[c][PT]; }
-inline Bitboard Position::attacks_lesser(Color c, PieceType pt) const noexcept {
+inline Bitboard Position::less_attacks(Color c, PieceType pt) const noexcept {
     return st->attacks[c][pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
+}
+inline Bitboard Position::threats(Color c) const noexcept {
+    return st->attacks[c][KING] & ~st->attacks[~c][KING];
 }
 
 inline Piece Position::captured_piece() const noexcept { return st->capturedPiece; }
