@@ -140,6 +140,7 @@ class MovePicker final {
     [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
 
     [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }
+    [[nodiscard]] pointer       data() noexcept { return moves.data(); }
 
     const Position&              pos;
     Move                         ttMove;

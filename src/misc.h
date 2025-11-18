@@ -445,12 +445,12 @@ class FixedVector final {
     [[nodiscard]] constexpr bool        empty() const noexcept { return size() == 0; }
     [[nodiscard]] constexpr bool        full() const noexcept { return size() == capacity(); }
 
-    constexpr T*       begin() noexcept { return data(); }
-    constexpr T*       end() noexcept { return begin() + size(); }
     constexpr const T* begin() const noexcept { return data(); }
     constexpr const T* end() const noexcept { return begin() + size(); }
     constexpr const T* cbegin() const noexcept { return data(); }
     constexpr const T* cend() const noexcept { return cbegin() + size(); }
+    constexpr T*       begin() noexcept { return data(); }
+    constexpr T*       end() noexcept { return begin() + size(); }
 
     bool push_back(const T& value) noexcept {
         assert(size() < capacity());

@@ -580,7 +580,7 @@ void Worker::iterative_deepening() noexcept {
             assert(stableDepth >= DEPTH_ZERO);
 
             // Use the stability factor to adjust the time reduction
-            mainManager->timeReduction = 0.7230 + 0.7900 / (1.1040 + std::exp(-0.5189 * (stableDepth - 11.57)));
+            mainManager->timeReduction = 0.7230 + 0.7900 / (1.1040 + std::exp(0.5189 * (11.57 - stableDepth)));
 
             // Compute ease factor that factors in previous time reduction
             auto easeFactor = 0.4469 * (1.4550 + mainManager->preTimeReduction) / mainManager->timeReduction;
@@ -603,6 +603,7 @@ void Worker::iterative_deepening() noexcept {
             // Calculate total time by combining all factors with the optimum time
             TimePoint totalTime = mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor;
             assert(totalTime >= 0.0);
+            // clang-format on
             // Cap totalTime to the available maximum time
             totalTime = std::min(totalTime, mainManager->timeManager.maximum());
             // Cap totalTime in case of a single legal move for a better viewer experience
@@ -622,10 +623,9 @@ void Worker::iterative_deepening() noexcept {
                     threads.stop.store(true, std::memory_order_relaxed);
             }
 
-            if (!mainManager->ponder)
-                threads.research.store(elapsedTime > 0.5030 * totalTime, std::memory_order_relaxed);
+            if (!mainManager->ponder && elapsedTime > 0.5030 * totalTime)
+                threads.research.store(true, std::memory_order_relaxed);
 
-            // clang-format on
 
             mainManager->preBestCurValue = bestValue;
         }
@@ -715,8 +715,6 @@ Value Worker::search(Position&    pos,
 
     (ss + 1)->cutoffCount = 0;
 
-    // At this point, if excludedMove, skip straight to step 6, static evaluation.
-    // However, to save indentation, list the condition in all code between here and there.
     const bool exclude = excludedMove != Move::None;
 
     // Step 4. Transposition table lookup
@@ -739,6 +737,63 @@ Value Worker::search(Position&    pos,
     bool preNonPawn =
       is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && (ss - 1)->move.type_of() != PROMOTION;
 
+    int correctionValue = correction_value(pos, ss);
+
+    int absCorrectionValue = std::abs(correctionValue);
+
+    Value unadjustedStaticEval, eval;
+
+    bool improve, worsen;
+
+    // Step 5. Static evaluation of the position
+    if (ss->inCheck)
+    {
+        unadjustedStaticEval = VALUE_NONE;
+
+        ss->staticEval = eval = (ss - 2)->staticEval;
+    }
+    else if (exclude)
+        unadjustedStaticEval = eval = ss->staticEval;
+    else if (ttd.hit)
+    {
+        // Never assume anything about values stored in TT
+        unadjustedStaticEval = ttd.eval;
+        if (!is_valid(unadjustedStaticEval))
+            unadjustedStaticEval = evaluate(pos);
+
+        ss->staticEval = eval = adjust_static_eval(unadjustedStaticEval, correctionValue);
+
+        // Can ttValue be used as a better position evaluation
+        if (is_valid(ttd.value) && (ttd.bound & fail_bound(ttd.value > eval)) != 0)
+            eval = ttd.value;
+    }
+    else
+    {
+        unadjustedStaticEval = evaluate(pos);
+
+        ss->staticEval = eval = adjust_static_eval(unadjustedStaticEval, correctionValue);
+
+        ttu.update(DEPTH_NONE, ss->pvHit, BOUND_NONE, Move::None, VALUE_NONE, unadjustedStaticEval);
+    }
+
+    // Set up the improve and worsen flags.
+    // improve: if the static evaluation is better than it was at the our last turn (two plies ago)
+    // worsen: if the static evaluation is better than it was at the opponent last turn (one ply ago).
+    improve = ss->staticEval > +(ss - 2)->staticEval;
+    worsen  = ss->staticEval > -(ss - 1)->staticEval;
+
+    // Retroactive LMR adjustments
+    // Hindsight adjustment of reductions based on static evaluation difference.
+    // The ply after beginning an LMR search, adjust the reduced depth based on
+    // how the opponent's move affected the static evaluation.
+    if (depth < MAX_PLY - 1 && red >= 3 && !worsen)
+        ++depth;
+
+    if (depth > 1 && red >= 2 && ss->staticEval > 173 - (ss - 1)->staticEval)
+        --depth;
+
+    std::uint16_t pawnIndex = pawn_index(pos.pawn_key());
+
     State st;
 
     // Check for an early TT cutoff at non-pv nodes
@@ -752,7 +807,8 @@ Value Worker::search(Position&    pos,
         {
             // Bonus for a quiet ttMove
             if (!ttCapture)
-                update_quiet_histories(pos, ss, ttd.move, std::min(-71 + 130 * depth, +1043));
+                update_quiet_histories(pos, ss, pawnIndex, ttd.move,
+                                       std::min(-71 + 130 * depth, +1043));
 
             // Extra penalty for early quiet moves of the previous ply
             if (is_ok(preSq) && !preCapture && (ss - 1)->moveCount < 4)
@@ -782,11 +838,15 @@ Value Worker::search(Position&    pos,
         }
     }
 
-    Value value, bestValue = -VALUE_INFINITE;
+    Color ac = pos.active_color();
 
     [[maybe_unused]] Value maxValue = +VALUE_INFINITE;
 
-    // Step 5. Tablebases probe
+    Value value, bestValue = -VALUE_INFINITE;
+
+    Move move, bestMove = Move::None;
+
+    // Step 6. Tablebases probe
     if (!RootNode && !exclude && tbConfig.cardinality)
     {
         auto pieceCount = pos.count<ALL_PIECE>();
@@ -841,54 +901,9 @@ Value Worker::search(Position&    pos,
         }
     }
 
-    Color ac = pos.active_color();
-
-    int correctionValue = correction_value(pos, ss);
-
-    int absCorrectionValue = std::abs(correctionValue);
-
-    Value unadjustedStaticEval, eval;
-
-    bool improve, worsen;
-
-    Move move;
-
-    // Step 6. Static evaluation of the position
+    // Skip early pruning when in check
     if (ss->inCheck)
-    {
-        unadjustedStaticEval = VALUE_NONE;
-
-        ss->staticEval = eval = (ss - 2)->staticEval;
-
-        improve = worsen = false;
-
-        // Skip early pruning when in check
         goto S_MOVES_LOOP;
-    }
-
-    if (exclude)
-        unadjustedStaticEval = eval = ss->staticEval;
-    else if (ttd.hit)
-    {
-        // Never assume anything about values stored in TT
-        unadjustedStaticEval = ttd.eval;
-        if (!is_valid(unadjustedStaticEval))
-            unadjustedStaticEval = evaluate(pos);
-
-        ss->staticEval = eval = adjust_static_eval(unadjustedStaticEval, correctionValue);
-
-        // Can ttValue be used as a better position evaluation
-        if (is_valid(ttd.value) && (ttd.bound & fail_bound(ttd.value > eval)) != 0)
-            eval = ttd.value;
-    }
-    else
-    {
-        unadjustedStaticEval = evaluate(pos);
-
-        ss->staticEval = eval = adjust_static_eval(unadjustedStaticEval, correctionValue);
-
-        ttu.update(DEPTH_NONE, ss->pvHit, BOUND_NONE, Move::None, VALUE_NONE, unadjustedStaticEval);
-    }
 
     // Use static evaluation difference to improve quiet move ordering
     if (is_ok(preSq) && !preCapture && !(ss - 1)->inCheck)
@@ -897,24 +912,8 @@ Value Worker::search(Position&    pos,
 
         update_quiet_history(~ac, (ss - 1)->move, 9.0000 * bonus);
         if (!ttd.hit && preNonPawn)
-            update_pawn_history(pos.pawn_key(), pos.piece_on(preSq), preSq, 14.0000 * bonus);
+            update_pawn_history(pawnIndex, pos.piece_on(preSq), preSq, 14.0000 * bonus);
     }
-
-    // Set up the improve and worsen flags.
-    // improve: if the static evaluation is better than it was at the our last turn (two plies ago)
-    // worsen: if the static evaluation is better than it was at the opponent last turn (one ply ago).
-    improve = ss->staticEval > +(ss - 2)->staticEval;
-    worsen  = ss->staticEval > -(ss - 1)->staticEval;
-
-    // Retroactive LMR adjustments
-    // Hindsight adjustment of reductions based on static evaluation difference.
-    // The ply after beginning an LMR search, adjust the reduced depth based on
-    // how the opponent's move affected the static evaluation.
-    if (depth < MAX_PLY - 1 && red >= 3 && !worsen)
-        ++depth;
-
-    if (depth > 1 && red >= 2 && ss->staticEval > 173 - (ss - 1)->staticEval)
-        --depth;
 
     // Step 7. Razoring
     // If eval is really low, check with qsearch then return speculative fail low.
@@ -1077,8 +1076,6 @@ S_MOVES_LOOP:  // When in check, search starts here
     std::uint8_t moveCount  = 0;
     std::uint8_t promoCount = 0;
 
-    Move bestMove = Move::None;
-
     StdArray<MoveFixedVector, 2> worseMoves;
 
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &pawnHistory, &lowPlyQuietHistory,
@@ -1162,7 +1159,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             }
             else
             {
-                int history = pawnHistory[pawn_index(pos.pawn_key())][movedPiece][dst]
+                int history = pawnHistory[pawnIndex][movedPiece][dst]
                             + (*contHistory[0])[movedPiece][dst]  //
                             + (*contHistory[1])[movedPiece][dst];
 
@@ -1489,12 +1486,13 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // Don't let best value inflate too high (tb)
     if constexpr (PVNode)
-        bestValue = std::min(bestValue, maxValue);
+        if (bestValue > maxValue)
+            bestValue = maxValue;
 
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
     {
-        update_histories(pos, ss, depth, bestMove, worseMoves);
+        update_histories(pos, ss, pawnIndex, depth, bestMove, worseMoves);
         if constexpr (!RootNode)
         {
             ttMoveHistory << (bestMove == ttd.move ? +809 : -865);
@@ -1523,7 +1521,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             update_quiet_history(~ac, (ss - 1)->move, 6.7139e-3 * bonus);
             if (preNonPawn)
-                update_pawn_history(pos.pawn_key(), pos.piece_on(preSq), preSq, 35.5225e-3 * bonus);
+                update_pawn_history(pawnIndex, pos.piece_on(preSq), preSq, 35.5225e-3 * bonus);
             update_continuation_history(ss - 1, pos.piece_on(preSq), preSq, 12.2070e-3 * bonus);
         }
         // Bonus for prior capture move
@@ -1870,8 +1868,8 @@ void Worker::update_quiet_history(Color ac, Move m, int bonus) noexcept {
     assert(m.is_ok());
     quietHistory[ac][m.raw()] << bonus;
 }
-void Worker::update_pawn_history(Key pawnKey, Piece pc, Square dst, int bonus) noexcept {
-    pawnHistory[pawn_index(pawnKey)][pc][dst] << bonus;
+void Worker::update_pawn_history(std::uint16_t pawnIndex, Piece pc, Square dst, int bonus) noexcept {
+    pawnHistory[pawnIndex][pc][dst] << bonus;
 }
 void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept {
     assert(m.is_ok());
@@ -1880,17 +1878,17 @@ void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus)
 }
 
 // Updates quiet histories (move sorting heuristics)
-void Worker::update_quiet_histories(const Position& pos, Stack* const ss, Move m, int bonus) noexcept {
+void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
     update_quiet_history(pos.active_color(), m, 1.0000 * bonus);
-    update_pawn_history(pos.pawn_key(), pos.moved_piece(m), m.dst_sq(), (bonus > 0 ? 0.8301 : 0.5371) * bonus);
+    update_pawn_history(pawnIndex, pos.moved_piece(m), m.dst_sq(), (bonus > 0 ? 0.8301 : 0.5371) * bonus);
     update_low_ply_quiet_history(ss->ply, m, 0.7432 * bonus);
     update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), 0.9326 * bonus);
 }
 
 // Updates history at the end of search() when a bestMove is found
-void Worker::update_histories(const Position& pos, Stack* const ss, Depth depth, Move bm, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept {
+void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bm, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept {
     assert(pos.legal(bm));
     assert(ss->moveCount);
 
@@ -1903,11 +1901,11 @@ void Worker::update_histories(const Position& pos, Stack* const ss, Depth depth,
     }
     else
     {
-        update_quiet_histories(pos, ss, bm, 0.8604 * bonus);
+        update_quiet_histories(pos, ss, pawnIndex, bm, 0.8604 * bonus);
 
         // Decrease history for all non-best quiet moves
         for (auto qm : worseMoves[0])
-            update_quiet_histories(pos, ss, qm, -1.0576 * malus);
+            update_quiet_histories(pos, ss, pawnIndex, qm, -1.0576 * malus);
     }
 
     // Decrease history for all non-best capture moves

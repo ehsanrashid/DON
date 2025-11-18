@@ -84,6 +84,7 @@ struct MoveList final {
     [[nodiscard]] bool contains(Move m) const noexcept { return find(m) != end(); }
 
     [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }
+    [[nodiscard]] pointer       data() noexcept { return moves.data(); }
 
     //#if defined(__cpp_lib_span) && __cpp_lib_span >= 202002L
     //    // Optional: span view (C++20)

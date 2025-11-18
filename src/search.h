@@ -139,17 +139,17 @@ class RootMoves final {
     RootMoves(std::initializer_list<value_type> initList) noexcept :
         rootMoves(initList) {}
 
-    iterator       begin() noexcept { return rootMoves.begin(); }
     const_iterator begin() const noexcept { return rootMoves.begin(); }
-    const_iterator cbegin() const noexcept { return rootMoves.cbegin(); }
-    iterator       end() noexcept { return rootMoves.end(); }
     const_iterator end() const noexcept { return rootMoves.end(); }
+    const_iterator cbegin() const noexcept { return rootMoves.cbegin(); }
     const_iterator cend() const noexcept { return rootMoves.cend(); }
+    iterator       begin() noexcept { return rootMoves.begin(); }
+    iterator       end() noexcept { return rootMoves.end(); }
 
-    [[nodiscard]] reference       front() noexcept { return rootMoves.front(); }
     [[nodiscard]] const_reference front() const noexcept { return rootMoves.front(); }
-    [[nodiscard]] reference       back() noexcept { return rootMoves.back(); }
     [[nodiscard]] const_reference back() const noexcept { return rootMoves.back(); }
+    [[nodiscard]] reference       front() noexcept { return rootMoves.front(); }
+    [[nodiscard]] reference       back() noexcept { return rootMoves.back(); }
 
     [[nodiscard]] bool      empty() const noexcept { return rootMoves.empty(); }
     [[nodiscard]] size_type size() const noexcept { return rootMoves.size(); }
@@ -267,17 +267,17 @@ class RootMoves final {
         std::stable_sort(begin(), end(), std::forward<Predicate>(pred));
     }
 
-    [[nodiscard]] reference operator[](size_type idx) noexcept {  //
-        assert(idx < size());
-        return rootMoves[idx];
-    }
     [[nodiscard]] const_reference operator[](size_type idx) const noexcept {
         assert(idx < size());
         return rootMoves[idx];
     }
+    [[nodiscard]] reference operator[](size_type idx) noexcept {  //
+        assert(idx < size());
+        return rootMoves[idx];
+    }
 
-    [[nodiscard]] reference       at(size_type idx) { return rootMoves.at(idx); }
     [[nodiscard]] const_reference at(size_type idx) const { return rootMoves.at(idx); }
+    [[nodiscard]] reference       at(size_type idx) { return rootMoves.at(idx); }
 
    private:
     container_type rootMoves;
@@ -539,11 +539,11 @@ class Worker final {
     void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept;
     void update_capture_history(const Position& pos, Move m, int bonus) noexcept;
     void update_quiet_history(Color ac, Move m, int bonus) noexcept;
-    void update_pawn_history(Key pawnKey, Piece pc, Square dst, int bonus) noexcept;
+    void update_pawn_history(std::uint16_t pawnIndex, Piece pc, Square dst, int bonus) noexcept;
     void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
 
-    void update_quiet_histories(const Position& pos, Stack* const ss, Move m, int bonus) noexcept;
-    void update_histories(const Position& pos, Stack* const ss, Depth depth, Move bm, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept;
+    void update_quiet_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Move m, int bonus) noexcept;
+    void update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bm, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept;
 
     void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* const ss) noexcept;
