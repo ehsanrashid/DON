@@ -1360,7 +1360,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             (ss + 1)->pv = pv.data();
 
             // Extends ttMove if about to dive into qsearch
-            if (newDepth <= DEPTH_ZERO && move == ttd.move
+            if (newDepth < 1 && move == ttd.move
                 && (  // Root depth is high & TT entry is deep
                   (rootDepth > 6 && ttd.depth > 1)
                   // Handles decisive score. Improves mate finding and retrograde analysis.
@@ -1458,7 +1458,11 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 // Reduce depth for other moves if have found at least one score improvement
                 if (depth > 1 && depth < 16 && !is_decisive(value))
-                    depth = std::max(depth - 1 - (depth < 8), 1);
+                {
+                    depth -= 1 + (depth < 8);
+                    if (depth < 1)
+                        depth = 1;
+                }
 
                 assert(depth > DEPTH_ZERO);
             }
