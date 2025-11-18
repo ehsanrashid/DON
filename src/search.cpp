@@ -667,7 +667,8 @@ Value Worker::search(Position&    pos,
         }
 
         // Limit the depth if extensions made it too large
-        depth = std::min(+depth, MAX_PLY - 1);
+        if (depth > MAX_PLY - 1)
+            depth = MAX_PLY - 1;
         assert(DEPTH_ZERO < depth && depth < MAX_PLY);
     }
 
