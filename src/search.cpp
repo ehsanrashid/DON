@@ -681,7 +681,8 @@ Value Worker::search(Position&    pos,
     if constexpr (PVNode)
     {
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max(+selDepth, 1 + ss->ply);
+        if (selDepth < 1 + ss->ply)
+            selDepth = 1 + ss->ply;
     }
 
     // Step 1. Initialize node
@@ -1588,7 +1589,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         (ss + 1)->pv = pv.data();
 
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max(+selDepth, 1 + ss->ply);
+        if (selDepth < 1 + ss->ply)
+            selDepth = 1 + ss->ply;
     }
 
     // Step 1. Initialize node
