@@ -1064,19 +1064,19 @@ S_MOVES_LOOP:  // When in check, search starts here
             return probCutBeta;
     }
 
-    const History<HPieceSq>* contHistory[8]{
-      (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
-      (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,  //
-      (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,  //
-      (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory   //
-    };
-
     value = bestValue;
 
     std::uint8_t moveCount  = 0;
     std::uint8_t promoCount = 0;
 
     StdArray<MoveFixedVector, 2> worseMoves;
+
+    const History<HPieceSq>* contHistory[8]{
+      (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
+      (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,  //
+      (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,  //
+      (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory   //
+    };
 
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &pawnHistory, &lowPlyQuietHistory,
                   contHistory, ss->ply, -1);
@@ -1675,10 +1675,6 @@ QS_MOVES_LOOP:
 
     auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
-    const History<HPieceSq>* contHistory[1]{
-      (ss - 1)->pieceSqHistory  //
-    };
-
     Move  move;
     Value value;
 
@@ -1686,6 +1682,10 @@ QS_MOVES_LOOP:
     std::uint8_t promoCount = 0;
 
     Move bestMove = Move::None;
+
+    const History<HPieceSq>* contHistory[1]{
+      (ss - 1)->pieceSqHistory  //
+    };
 
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
