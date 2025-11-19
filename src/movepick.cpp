@@ -212,9 +212,6 @@ namespace {
 template<typename Iterator, typename T, typename Compare>
 Iterator
 exponential_upper_bound(Iterator begin, Iterator end, const T& value, Compare comp) noexcept {
-    if (begin == end)
-        return end;
-
     Iterator hi = end;
     Iterator lo = end - 1;
 
