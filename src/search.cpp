@@ -226,9 +226,11 @@ void Worker::start_search() noexcept {
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
-            multiPV = std::max(multiPV, std::size_t(4));
+            if (multiPV < 4)
+                multiPV = 4;
     }
-    multiPV = std::min(multiPV, rootMoves.size());
+    if (multiPV > rootMoves.size())
+        multiPV = rootMoves.size();
 
     // Non-main threads go directly to iterative_deepening()
     if (mainManager == nullptr)
@@ -625,7 +627,6 @@ void Worker::iterative_deepening() noexcept {
 
             if (!mainManager->ponder && elapsedTime > 0.5030 * totalTime)
                 threads.research.store(true, std::memory_order_relaxed);
-
 
             mainManager->preBestCurValue = bestValue;
         }

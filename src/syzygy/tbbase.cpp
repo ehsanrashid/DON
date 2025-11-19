@@ -1724,7 +1724,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Active, bool
             return false;
         if (time_to_abort())
         {
-            UCI::print_info_string("Unable to completely probe Syzygy DTZ tables due to time pressure.");
+            //UCI::print_info_string("Unable to completely probe Syzygy DTZ tables due to time pressure.");
             return false;
         }
 

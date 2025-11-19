@@ -157,7 +157,11 @@ Thread* ThreadPool::best_thread() const noexcept {
     Value minCurValue = +VALUE_INFINITE;
     // Find the minimum value of all threads
     for (auto&& th : threads)
-        minCurValue = std::min(th->worker->rootMoves[0].curValue, minCurValue);
+    {
+        auto curValue = th->worker->rootMoves[0].curValue;
+        if (minCurValue > curValue)
+            minCurValue = curValue;
+    }
 
     // Vote according to value and depth, and select the best thread
     const auto thread_voting_value = [=](const Thread* th) noexcept -> std::uint32_t {

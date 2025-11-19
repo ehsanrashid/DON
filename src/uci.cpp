@@ -657,19 +657,20 @@ void UCI::benchmark(std::istream& istream) noexcept {
 
     std::uint16_t                                hashfullCount{0};
     StdArray<std::uint16_t, HashfullAges.size()> maxHashfull{};
-    StdArray<std::uint64_t, HashfullAges.size()> sumHashfull{};
+    StdArray<std::uint32_t, HashfullAges.size()> sumHashfull{};
 
     const auto update_hashfull = [&]() noexcept -> void {
         ++hashfullCount;
         for (std::size_t i = 0; i < HashfullAges.size(); ++i)
         {
-            auto hashfull  = engine.hashfull(HashfullAges[i]);
-            maxHashfull[i] = std::max(maxHashfull[i], hashfull);
+            auto hashfull = engine.hashfull(HashfullAges[i]);
+            if (maxHashfull[i] < hashfull)
+                maxHashfull[i] = hashfull;
             sumHashfull[i] += hashfull;
         }
     };
 
-    const auto avg = [&hashfullCount](std::uint64_t x) noexcept {
+    const auto avg = [&hashfullCount](std::uint32_t x) noexcept {
         return double(x) / hashfullCount;
     };
 

@@ -759,7 +759,7 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
     // in case of a capture or a pawn move.
     ++gamePly;
     ++st->rule50Count;
-    st->hasRule50High = st->hasRule50High || st->rule50Count >= rule50_threshold();
+    st->hasRule50High |= st->rule50Count >= rule50_threshold();
 
     ++st->nullPly;
 

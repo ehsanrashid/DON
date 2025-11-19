@@ -226,11 +226,13 @@ exponential_upper_bound(Iterator begin, Iterator end, const T& value, Compare co
     std::size_t step = 1;
     while (lo != begin && !comp(*(lo - 1), value))
     {
-        if (step > std::size_t(lo - begin))
+        if (lo - step <= begin)
+        {
             lo = begin;
-        else
-            lo -= step;
+            break;
+        }
 
+        lo -= step;
         step <<= 1;
     }
 
