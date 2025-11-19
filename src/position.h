@@ -35,37 +35,41 @@ namespace DON {
 
 class TranspositionTable;
 
-namespace Zobrist {
+struct Zobrist final {
+   public:
+    static void init() noexcept;
 
-inline StdArray<Key, PIECE_NB, SQUARE_NB> PieceSquare{};
-inline StdArray<Key, CASTLING_RIGHTS_NB>  Castling{};
-inline StdArray<Key, FILE_NB>             Enpassant{};
-inline Key                                Turn{};
+    static Key piece_square(Piece pc, Square s) noexcept {
+        assert(is_ok(pc) && is_ok(s));
+        return PieceSquare[pc][s];
+    }
 
-inline constexpr std::uint16_t MAX_MR50   = MAX_PLY + 1;
-inline constexpr std::uint8_t  R50_OFFSET = 14;
-inline constexpr std::uint8_t  R50_FACTOR = 8;
+    static Key castling(CastlingRights cr) noexcept { return Castling[cr]; }
 
-inline StdArray<Key, (MAX_MR50 - R50_OFFSET) / R50_FACTOR + 2> MR50{};
+    static Key enpassant(Square ep) noexcept {
+        assert(is_ok(ep));
+        return Enpassant[file_of(ep)];
+    }
 
-constexpr Key piece_square(Piece pc, Square s) noexcept {
-    assert(is_ok(pc) && is_ok(s));
-    return PieceSquare[pc][s];
-}
+    static Key turn() noexcept { return Turn; }
 
-constexpr Key enpassant(Square ep) noexcept {
-    assert(is_ok(ep));
-    return Enpassant[file_of(ep)];
-}
+    static Key mr50(std::int16_t rule50Count) noexcept {
+        std::int16_t idx = rule50Count - R50_OFFSET;
+        return idx < 0 ? 0 : MR50[std::min(idx / R50_FACTOR, int(MR50.size()) - 1)];
+    }
 
-constexpr Key castling(CastlingRights cr) noexcept { return Castling[cr]; }
+   private:
+    static inline StdArray<Key, PIECE_NB, SQUARE_NB> PieceSquare{};
+    static inline StdArray<Key, CASTLING_RIGHTS_NB>  Castling{};
+    static inline StdArray<Key, FILE_NB>             Enpassant{};
+    static inline Key                                Turn{};
 
-constexpr Key mr50(std::int16_t rule50Count) noexcept {
-    std::int16_t idx = rule50Count - R50_OFFSET;
-    return idx < 0 ? 0 : MR50[std::min(idx / R50_FACTOR, int(MR50.size()) - 1)];
-}
+    static constexpr std::uint16_t MAX_MR50   = MAX_PLY + 1;
+    static constexpr std::uint8_t  R50_OFFSET = 14;
+    static constexpr std::uint8_t  R50_FACTOR = 8;
 
-}  // namespace Zobrist
+    static inline StdArray<Key, (MAX_MR50 - R50_OFFSET) / R50_FACTOR + 2> MR50{};
+};
 
 // State struct stores information needed to restore Position object
 // to its previous state when retract any move.

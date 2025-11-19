@@ -1066,6 +1066,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     value = bestValue;
 
+    Value nonPawnValue = pos.non_pawn_value(ac);
+
     std::uint8_t moveCount  = 0;
     std::uint8_t promoCount = 0;
 
@@ -1152,8 +1154,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // SEE based pruning for captures and checks
                 int margin = std::max(157 * depth + history / 29, 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
-                  (alpha >= VALUE_DRAW
-                   || pos.non_pawn_value(ac) != PIECE_VALUE[type_of(movedPiece)])
+                  (alpha >= VALUE_DRAW || nonPawnValue != PIECE_VALUE[type_of(movedPiece)])
                   && pos.see(move) < -margin)
                     continue;
             }
@@ -1191,8 +1192,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // SEE based pruning for quiets and checks
                 int margin = std::max(64 * depth * check + 27 * lmrDepth * std::abs(lmrDepth), 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
-                  (alpha >= VALUE_DRAW
-                   || pos.non_pawn_value(ac) != PIECE_VALUE[type_of(movedPiece)])
+                  (alpha >= VALUE_DRAW || nonPawnValue != PIECE_VALUE[type_of(movedPiece)])
                   && pos.see(move) < -margin)
                     continue;
             }

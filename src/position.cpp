@@ -86,13 +86,6 @@ class CuckooTable final {
         return (key >> (16 * Part)) & (size() - 1);
     }
 
-    constexpr void fill(const Cuckoo& cuckoo) noexcept { cuckoos.fill(cuckoo); }
-
-    constexpr void init() noexcept {
-        fill({0, Move::None});
-        count = 0;
-    }
-
     void insert(Cuckoo cuckoo) noexcept {
         assert(!cuckoo.empty());
         std::size_t index = H<0>(cuckoo.key);
@@ -103,8 +96,34 @@ class CuckooTable final {
                 break;
             index ^= H<0>(cuckoo.key) ^ H<1>(cuckoo.key);  // Push victim to alternative slot
         }
-        assert(cuckoo.empty());
         ++count;
+    }
+
+    void clear() noexcept {
+        cuckoos.fill({0, Move::None});
+        count = 0;
+    }
+
+    // Prepare the cuckoo tables
+    void init() noexcept {
+        clear();
+
+        for (Color c : {WHITE, BLACK})
+            for (Piece pc : Pieces[c])
+            {
+                if (type_of(pc) == PAWN)
+                    continue;
+                for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
+                    for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
+                        if (attacks_bb(s1, type_of(pc)) & s2)
+                        {
+                            Key key = Zobrist::piece_square(pc, s1) ^ Zobrist::piece_square(pc, s2)
+                                    ^ Zobrist::turn();
+                            Move move = Move(s1, s2);
+                            insert({key, move});
+                        }
+            }
+        assert(count == 3668);
     }
 
     std::size_t find_key(Key key) const noexcept {
@@ -115,58 +134,44 @@ class CuckooTable final {
         return size();
     }
 
-    std::size_t count;
-
    private:
     StdArray<Cuckoo, Size> cuckoos;
+    std::size_t            count;
 };
 
 CuckooTable<0x2000> Cuckoos;
 
 }  // namespace
 
-// Called at startup to initialize the Zobrist arrays used to compute hash keys
-void Position::init() noexcept {
+void Zobrist::init() noexcept {
     PRNG<XoShiRo256Star> prng(0x105524ULL);
 
     const auto prng_rand = [&] { return prng.template rand<Key>(); };
 
     for (Color c : {WHITE, BLACK})
         for (Piece pc : Pieces[c])
-            std::generate(Zobrist::PieceSquare[pc].begin(), Zobrist::PieceSquare[pc].end(),
-                          prng_rand);
+            std::generate(PieceSquare[pc].begin(), PieceSquare[pc].end(), prng_rand);
     for (Piece pc : {W_PAWN, B_PAWN})
     {
-        std::fill_n(&Zobrist::PieceSquare[pc][SQ_A1], PawnOffset, Key{});
-        std::fill_n(&Zobrist::PieceSquare[pc][SQ_A8], PawnOffset, Key{});
+        std::fill_n(&PieceSquare[pc][SQ_A1], PawnOffset, Key{});
+        std::fill_n(&PieceSquare[pc][SQ_A8], PawnOffset, Key{});
     }
 
-    std::generate(Zobrist::Castling.begin(), Zobrist::Castling.end(), prng_rand);
+    std::generate(Castling.begin(), Castling.end(), prng_rand);
 
-    std::generate(Zobrist::Enpassant.begin(), Zobrist::Enpassant.end(), prng_rand);
+    std::generate(Enpassant.begin(), Enpassant.end(), prng_rand);
 
-    Zobrist::Turn = prng_rand();
+    Turn = prng_rand();
 
-    std::generate(Zobrist::MR50.begin(), Zobrist::MR50.end(), prng_rand);
+    std::generate(MR50.begin(), MR50.end(), prng_rand);
+}
 
-    // Prepare the cuckoo tables
+// Called at startup to initialize the Zobrist and Cuckoo tables.
+void Position::init() noexcept {
+
+    Zobrist::init();
+
     Cuckoos.init();
-    for (Color c : {WHITE, BLACK})
-        for (Piece pc : Pieces[c])
-        {
-            if (type_of(pc) == PAWN)
-                continue;
-            for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
-                for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
-                    if (attacks_bb(s1, type_of(pc)) & s2)
-                    {
-                        Key key = Zobrist::piece_square(pc, s1) ^ Zobrist::piece_square(pc, s2)
-                                ^ Zobrist::Turn;
-                        Move move = Move(s1, s2);
-                        Cuckoos.insert({key, move});
-                    }
-        }
-    assert(Cuckoos.count == 3668);
 }
 
 // Initializes the position object with the given FEN string.
@@ -567,7 +572,7 @@ void Position::set_state() noexcept {
         st->key ^= Zobrist::enpassant(ep_sq());
 
     if (active_color() == BLACK)
-        st->key ^= Zobrist::Turn;
+        st->key ^= Zobrist::turn();
 }
 
 // Set extra state to detect if a move is check
@@ -740,7 +745,7 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
     assert(legal(m));
     assert(&newSt != st);
 
-    Key k = st->key ^ Zobrist::Turn;
+    Key k = st->key ^ Zobrist::turn();
 
     // Copy relevant fields from the old state to the new state,
     // excluding those that will recomputed from scratch anyway and
@@ -1081,7 +1086,7 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
     assert(&newSt != st);
     assert(!checkers());
 
-    Key k = st->key ^ Zobrist::Turn;
+    Key k = st->key ^ Zobrist::turn();
 
     // Copy relevant fields from the old state to the new state,
     // excluding those that will recomputed from scratch anyway and
@@ -1421,7 +1426,7 @@ Key Position::compute_material_key() const noexcept {
 // Needed for speculative prefetch.
 // It does recognize special moves like castling, en-passant and promotions.
 Key Position::compute_move_key(Move m) const noexcept {
-    Key moveKey = st->key ^ Zobrist::Turn;
+    Key moveKey = st->key ^ Zobrist::turn();
 
     if (is_ok(ep_sq()))
         moveKey ^= Zobrist::enpassant(ep_sq());
@@ -1775,11 +1780,11 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
 
     Key   baseKey = st->key;
     auto* pSt     = st->preSt;
-    Key   iterKey = baseKey ^ pSt->key ^ Zobrist::Turn;
+    Key   iterKey = baseKey ^ pSt->key ^ Zobrist::turn();
 
     for (std::int16_t i = 3; i <= end; i += 2)
     {
-        iterKey ^= pSt->preSt->key ^ pSt->preSt->preSt->key ^ Zobrist::Turn;
+        iterKey ^= pSt->preSt->key ^ pSt->preSt->preSt->key ^ Zobrist::turn();
         pSt = pSt->preSt->preSt;
 
         // Opponent pieces have reverted
@@ -1920,7 +1925,7 @@ Key Position::compute_key() const noexcept {
         key ^= Zobrist::enpassant(ep_sq());
 
     if (active_color() == BLACK)
-        key ^= Zobrist::Turn;
+        key ^= Zobrist::turn();
 
     return key;
 }

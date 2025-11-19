@@ -70,7 +70,9 @@ constexpr StdArray<int, PIECE_TYPE_NB - 2, PIECE_TYPE_NB - 2> Map{{
 }};
 
 // Lookup array for indexing threats
-StdArray<IndexType, PIECE_NB, SQUARE_NB + 2> OffsetIndex;
+StdArray<IndexType, PIECE_NB, SQUARE_NB> OffsetIndex;
+// [cumulativePieceOffset, cumulativeOffset]
+StdArray<IndexType, PIECE_NB, 2> CumulativeOffset;
 
 // The final index is calculated from summing data found in these two LUTs,
 // as well as OffsetIndex[attacker][from]
@@ -137,8 +139,8 @@ void FullThreats::init() noexcept {
                 }
             }
 
-            OffsetIndex[pc][64] = cumulativePieceOffset;
-            OffsetIndex[pc][65] = cumulativeOffset;
+            CumulativeOffset[pc][0] = cumulativePieceOffset;
+            CumulativeOffset[pc][1] = cumulativeOffset;
 
             cumulativeOffset += MaxTargets[type_of(pc)] * cumulativePieceOffset;
         }
@@ -157,9 +159,9 @@ void FullThreats::init() noexcept {
 
                     int map = Map[attackerType - 1][attackedType - 1];
 
-                    IndexType feature = OffsetIndex[attacker][65]
+                    IndexType feature = CumulativeOffset[attacker][1]
                                       + (attackedC * (MaxTargets[attackerType] / 2) + map)
-                                          * OffsetIndex[attacker][64];
+                                          * CumulativeOffset[attacker][0];
                     bool excluded = map < 0;
                     bool semiExcluded =
                       attackerType == attackedType && (enemy || attackerType != PAWN);
