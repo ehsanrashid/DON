@@ -239,7 +239,7 @@ exponential_upper_bound(Iterator begin, Iterator end, const T& value, Compare co
 
 // Sort moves in descending order.
 template<typename Iterator>
-void sort(Iterator begin, Iterator end) noexcept {
+void insertion_sort(Iterator begin, Iterator end) noexcept {
 
     for (Iterator p = begin + 1; p < end; ++p)
     {
@@ -280,7 +280,7 @@ STAGE_SWITCH:
         // NOTE:: endMove is not defined here, it will be set later
         endCur = /* endMove =*/score<ENC_CAPTURE>(moveList);
 
-        sort(cur, endCur);
+        insertion_sort(cur, endCur);
     }
 
         ++stage;
@@ -306,7 +306,7 @@ STAGE_SWITCH:
 
             endCur = endMove = score<ENC_QUIET>(moveList);
 
-            sort(cur, endCur);
+            insertion_sort(cur, endCur);
         }
 
         ++stage;
@@ -362,7 +362,7 @@ STAGE_SWITCH:
         cur    = moves.data();
         endCur = endMove = score<EVA_CAPTURE>(moveList);
 
-        sort(cur, endCur);
+        insertion_sort(cur, endCur);
     }
 
         ++stage;
@@ -380,7 +380,7 @@ STAGE_SWITCH:
 
         endCur = endMove = score<EVA_QUIET>(moveList);
 
-        sort(cur, endCur);
+        insertion_sort(cur, endCur);
     }
 
         ++stage;
