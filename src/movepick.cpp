@@ -137,13 +137,14 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
 
         m.value += 0x1000 * (pos.fork(m) && pos.see(m) >= -50);
 
-        // Penalty for moving to square attacked by lesser piece or
         // Bonus for escaping from square attacked by lesser piece.
-        m.value += PIECE_VALUE[pt]
-                 * (((pos.less_attacks(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? -19
-                    : (threats & org)                                                 ? +23
-                    : (pos.less_attacks(~ac, pt) & org)                               ? +20
-                                                                                      : 0);
+        m.value += ((threats & org)                     ? 23
+                    : (pos.less_attacks(~ac, pt) & org) ? 20
+                                                        : 0)
+                 * PIECE_VALUE[pt];
+        // Penalty for moving to square attacked by lesser piece.
+        m.value -= (((pos.less_attacks(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? 19 : 0)
+                 * PIECE_VALUE[pt];
 
         if (pt == KING)
             continue;
