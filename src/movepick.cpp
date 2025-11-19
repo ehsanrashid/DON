@@ -137,17 +137,17 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
 
         m.value += 0x1000 * (pos.fork(m) && pos.see(m) >= -50);
 
-        // Bonus for escaping from square attacked by lesser piece.
-        m.value += ((threats & org)                     ? 23
-                    : (pos.less_attacks(~ac, pt) & org) ? 20
-                                                        : 0)
-                 * PIECE_VALUE[pt];
-        // Penalty for moving to square attacked by lesser piece.
-        m.value -= (((pos.less_attacks(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? 19 : 0)
-                 * PIECE_VALUE[pt];
-
         if (pt == KING)
             continue;
+
+        m.value +=
+          PIECE_VALUE[pt]
+          * (  // Bonus for escaping from square attacked by lesser piece.
+            +((threats & org)                     ? 23
+              : (pos.less_attacks(~ac, pt) & org) ? 20
+                                                  : 0)
+            // Penalty for moving to square attacked by lesser piece.
+            - (((pos.less_attacks(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? 19 : 0));
 
         // Penalty for moving pinner piece.
         m.value -= 0x400 * ((pos.pinners() & org) && !aligned(pos.king_sq(~ac), org, dst));
