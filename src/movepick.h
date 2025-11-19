@@ -124,8 +124,6 @@ class MovePicker final {
     template<typename Predicate>
     bool select(Predicate&& pred) noexcept;
 
-    void sort() noexcept;
-
     [[nodiscard]] const_iterator begin() const noexcept { return cur; }
     [[nodiscard]] const_iterator end() const noexcept { return endCur; }
     [[nodiscard]] iterator       begin() noexcept { return cur; }
