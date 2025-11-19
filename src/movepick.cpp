@@ -21,6 +21,7 @@
 #include <array>
 #include <cassert>
 #include <functional>
+#include <iterator>
 
 #include "bitboard.h"
 #include "position.h"
@@ -212,29 +213,31 @@ namespace {
 template<typename Iterator, typename T, typename Compare>
 Iterator
 exponential_upper_bound(Iterator begin, Iterator end, const T& value, Compare comp) noexcept {
-    Iterator hi = end;
-    Iterator lo = end - 1;
+    Iterator lo_bound = end - 1;
 
-    // value > last element? insert at end
-    if (comp(*lo, value))
+    // Insert at end, if value > last element
+    if (comp(*lo_bound, value))
         return end;
 
-    // exponential backward search
-    std::size_t step = 1;
-    while (lo != begin && !comp(*(lo - 1), value))
+    using DiffType = typename std::iterator_traits<Iterator>::difference_type;
+
+    // Exponential backward search
+    DiffType step = 1;
+    while (lo_bound != begin && !comp(*(lo_bound - 1), value))
     {
-        if (lo - step <= begin)
+        if (step >= (lo_bound - begin))
         {
-            lo = begin;
+            lo_bound = begin;
             break;
         }
 
-        lo -= step;
+        lo_bound -= step;
         step <<= 1;
     }
 
-    // binary search inside [lo, hi)
-    return std::upper_bound(lo, hi, value, comp);
+    // Now [lo_bound..end) is a sorted subrange containing the insertion point.
+    // binary search inside [lo_bound, end)
+    return std::upper_bound(lo_bound, end, value, comp);
 }
 
 // Sort moves in descending order.
