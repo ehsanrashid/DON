@@ -223,7 +223,7 @@ exponential_upper_bound(Iterator begin, Iterator end, const T& value, Compare co
 
     // Exponential backward search
     DiffType step = 1;
-    while (lo_bound != begin && !comp(*(lo_bound - 1), value))
+    while (!comp(*(lo_bound - 1), value))
     {
         if (step >= (lo_bound - begin))
         {
