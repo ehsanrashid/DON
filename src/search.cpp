@@ -1493,10 +1493,9 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (bestMove != Move::None)
     {
         update_histories(pos, ss, pawnIndex, depth, bestMove, worseMoves);
+
         if constexpr (!RootNode)
-        {
             ttMoveHistory << (bestMove == ttd.move ? +809 : -865);
-        }
     }
     // If prior move is valid, that caused the fail low
     else if (is_ok(preSq))

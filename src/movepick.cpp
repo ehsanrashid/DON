@@ -137,16 +137,17 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
 
         m.value += 0x1000 * (pos.fork(m) && pos.see(m) >= -50);
 
-        // Penalty for moving to square attacked by lesser piece or
-        // Bonus for escaping from square attacked by lesser piece.
-        m.value += PIECE_VALUE[pt]
-                 * (((pos.less_attacks(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? -19
-                    : (threats & org)                                                 ? +23
-                    : (pos.less_attacks(~ac, pt) & org)                               ? +20
-                                                                                      : 0);
-
         if (pt == KING)
             continue;
+
+        m.value +=
+          PIECE_VALUE[pt]
+          * (  // Bonus for escaping from square attacked by lesser piece.
+            +((threats & org)                     ? 23
+              : (pos.less_attacks(~ac, pt) & org) ? 20
+                                                  : 0)
+            // Penalty for moving to square attacked by lesser piece.
+            - (((pos.less_attacks(~ac, pt) & dst) && !(pos.blockers(~ac) & org)) ? 19 : 0));
 
         // Penalty for moving pinner piece.
         m.value -= 0x400 * ((pos.pinners() & org) && !aligned(pos.king_sq(~ac), org, dst));
@@ -206,22 +207,55 @@ bool MovePicker::select(Predicate&& pred) noexcept {
     return false;
 }
 
-// Sort moves in descending order up to and including a given limit.
-// The order of moves smaller than the limit is left unspecified.
-void MovePicker::sort() noexcept {
+namespace {
 
-    for (iterator p = begin() + 1; p < end(); ++p)
+template<typename Iterator, typename T, typename Compare>
+Iterator
+exponential_upper_bound(Iterator begin, Iterator end, const T& value, Compare comp) noexcept {
+    if (begin == end)
+        return end;
+
+    Iterator hi = end;
+    Iterator lo = end - 1;
+
+    // value > last element? insert at end
+    if (comp(*lo, value))
+        return end;
+
+    // exponential backward search
+    std::size_t step = 1;
+    while (lo != begin && !comp(*(lo - 1), value))
     {
-        value_type em = *p;
+        if (step > std::size_t(lo - begin))
+            lo = begin;
+        else
+            lo -= step;
 
-        // Find the correct position for 'em' using binary search
-        iterator q = std::upper_bound(begin(), p, em, std::greater<>{});
-        // Move elements to make space for 'em'
+        step <<= 1;
+    }
+
+    // binary search inside [lo, hi)
+    return std::upper_bound(lo, hi, value, comp);
+}
+
+// Sort moves in descending order.
+template<typename Iterator>
+void insertion_sort(Iterator begin, Iterator end) noexcept {
+
+    for (Iterator p = begin + 1; p < end; ++p)
+    {
+        auto value = *p;
+
+        // Find the correct position for 'value' using binary search
+        Iterator q = exponential_upper_bound(begin, p, value, std::greater<>{});
+        // Move elements to make space for 'value'
         std::move_backward(q, p, p + 1);
-        // Insert the 'em' in its correct position
-        *q = em;
+        // Insert the 'value' in its correct position
+        *q = value;
     }
 }
+
+}  // namespace
 
 // Most important method of the MovePicker class.
 // It emits a new pseudo-legal move every time it is called until there are no more moves left,
@@ -247,7 +281,7 @@ STAGE_SWITCH:
         // NOTE:: endMove is not defined here, it will be set later
         endCur = /* endMove =*/score<ENC_CAPTURE>(moveList);
 
-        sort();
+        insertion_sort(cur, endCur);
     }
 
         ++stage;
@@ -273,7 +307,7 @@ STAGE_SWITCH:
 
             endCur = endMove = score<ENC_QUIET>(moveList);
 
-            sort();
+            insertion_sort(cur, endCur);
         }
 
         ++stage;
@@ -329,7 +363,7 @@ STAGE_SWITCH:
         cur    = moves.data();
         endCur = endMove = score<EVA_CAPTURE>(moveList);
 
-        sort();
+        insertion_sort(cur, endCur);
     }
 
         ++stage;
@@ -347,7 +381,7 @@ STAGE_SWITCH:
 
         endCur = endMove = score<EVA_QUIET>(moveList);
 
-        sort();
+        insertion_sort(cur, endCur);
     }
 
         ++stage;
