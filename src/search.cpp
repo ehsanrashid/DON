@@ -951,7 +951,8 @@ Value Worker::search(Position&    pos,
         };
 
         if (!ss->pvHit && !exclude && depth < 14 && !is_win(eval) && !is_loss(beta)
-            && (ttd.move == Move::None) && eval - std::max(futility_margin(ttd.hit), 0) >= beta)
+            && (ttd.move == Move::None || ttCapture)
+            && eval - std::max(futility_margin(ttd.hit), 0) >= beta)
             return (depth * eval + beta) / (depth + 1);
     }
 
