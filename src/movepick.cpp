@@ -250,7 +250,8 @@ void insertion_sort(Iterator begin, Iterator end) noexcept {
         // Find the correct position for 'value' using binary search
         Iterator q = exponential_upper_bound(begin, p, value, std::greater<>{});
         // Move elements to make space for 'value'
-        std::move_backward(q, p, p + 1);
+        for (Iterator r = p; r != q; --r)
+            *r = *(r - 1);
         // Insert the 'value' in its correct position
         *q = value;
     }
