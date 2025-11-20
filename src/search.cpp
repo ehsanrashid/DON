@@ -1146,14 +1146,14 @@ S_MOVES_LOOP:  // When in check, search starts here
                 {
                     Value seeGain       = PIECE_VALUE[captured] + promotion_value(move);
                     Value futilityValue = std::min(231 + ss->staticEval + 211 * lmrDepth
-                                                     + 130 * history / 1024 + seeGain,
+                                                     + int(0.1270 * history) + seeGain,
                                                    +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                         continue;
                 }
 
                 // SEE based pruning for captures and checks
-                int margin = std::max(157 * depth + history / 29, 0);
+                int margin = std::max(157 * depth + int(34.4828e-3 * history), 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != PIECE_VALUE[type_of(movedPiece)])
                   && pos.see(move) < -margin)
@@ -1169,10 +1169,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (history < -4312 * depth && !check)
                     continue;
 
-                history += 76 * quietHistory[ac][move.raw()] / 32;
+                history += int(2.3750 * quietHistory[ac][move.raw()]);
 
                 // (*Scaler) Generally, lower divisors scales well
-                lmrDepth += history / 3220;
+                lmrDepth += int(3.1056e-4 * history);
 
                 // Futility pruning for quiets
                 // (*Scaler) Generally, more frequent futility pruning scales well
