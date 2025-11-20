@@ -110,9 +110,10 @@ void* alloc_windows_aligned_large_pages(std::size_t allocSize) noexcept {
 // Alloc Aligned Large Pages
 void* alloc_aligned_large_pages(std::size_t allocSize) noexcept {
 
+    void* mem;
 #if defined(_WIN32)
     // Try to allocate large pages
-    void* mem = alloc_windows_aligned_large_pages(allocSize);
+    mem = alloc_windows_aligned_large_pages(allocSize);
     // Fall back to regular, page-aligned, allocation if necessary
     if (mem == nullptr)
     {
@@ -122,7 +123,6 @@ void* alloc_aligned_large_pages(std::size_t allocSize) noexcept {
 
         mem = VirtualAlloc(nullptr, roundedAllocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     }
-    return mem;
 #else
     constexpr std::size_t Alignment =
     #if defined(__linux__)
@@ -134,13 +134,13 @@ void* alloc_aligned_large_pages(std::size_t allocSize) noexcept {
 
     std::size_t roundedAllocSize = round_up_pow2(allocSize, Alignment);
 
-    void* mem = alloc_aligned_std(roundedAllocSize, Alignment);
+    mem = alloc_aligned_std(roundedAllocSize, Alignment);
     #if defined(MADV_HUGEPAGE)
     if (mem != nullptr)
         madvise(mem, roundedAllocSize, MADV_HUGEPAGE);
     #endif
-    return mem;
 #endif
+    return mem;
 }
 
 // Free Aligned Large Pages.

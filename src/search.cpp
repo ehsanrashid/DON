@@ -150,6 +150,17 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
 // and guarantee evaluation does not hit the tablebase range.
 Value adjust_static_eval(Value ev, int cv) noexcept { return in_range(ev + 7.6294e-6 * cv); }
 
+// rule50 count >= 20 and one side moving same piece more times in a row
+bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcept {
+    if (type_of(pos.moved_piece(move)) == PAWN || pos.capture_promo(move)
+        || pos.rule50_count() < 10)
+        return false;
+    if (pos.state()->nullPly <= 6 || ss->ply < 20)
+        return false;
+    return move.org_sq() == (ss - 2)->move.dst_sq()
+        && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq();
+}
+
 }  // namespace
 
 namespace Search {
@@ -1212,7 +1223,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // This includes high singularBeta values (i.e closer to ttValue) and low extension margins.
         if (!RootNode && !exclude && depth > 5 + ss->pvHit && move == ttd.move
             && is_valid(ttd.value) && !is_decisive(ttd.value) && ttd.depth >= depth - 3
-            && (ttd.bound & BOUND_LOWER))
+            && (ttd.bound & BOUND_LOWER) && !is_shuffling(pos, ss, move))
         {
             Value singularBeta = std::max(
               ttd.value - int((0.9333 + 1.3500 * (!PVNode && ss->pvHit)) * depth), -VALUE_INFINITE);

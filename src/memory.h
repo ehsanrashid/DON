@@ -66,8 +66,8 @@ bool has_large_pages() noexcept;
 template<typename T>
 [[nodiscard]] constexpr T round_up_pow2(T size, T alignment) noexcept {
     static_assert(std::is_unsigned_v<T>);
-    assert(alignment && !(alignment & (alignment - 1)));
-    std::size_t mask = alignment - 1;
+    assert(alignment && (alignment & (alignment - 1)) == 0);
+    T mask = alignment - 1;
     return (size + mask) & ~mask;
 }
 
@@ -333,20 +333,26 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] FuncSuccess&& funcS
                                             FuncFailure&&                  funcFailure) noexcept {
 
     const std::size_t largePageSize = GetLargePageMinimum();
+
     if (largePageSize == 0)
         return funcFailure();
 
+    assert((largePageSize & (largePageSize - 1)) == 0);
+
     Advapi advapi;
+
     if (!advapi.load())
         return funcFailure();
 
     HANDLE hProcess = nullptr;
+
     // Need SeLockMemoryPrivilege, so try to enable it for the process
     if (!advapi.openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
                                  &hProcess))
         return funcFailure();
 
     LUID luid{};
+
     if (!advapi.lookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &luid))
         return funcFailure();
 
