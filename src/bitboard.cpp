@@ -171,6 +171,7 @@ void init_magics() noexcept {
         totalSize += size;
 
 #if !defined(USE_BMI2)
+        assert(size <= RefSizes[PT - BISHOP]);
 
         m.shift =
     #if defined(IS_64BIT)

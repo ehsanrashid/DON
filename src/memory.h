@@ -301,7 +301,7 @@ struct Advapi final {
         if (openProcessToken == nullptr)
             return false;
         lookupPrivilegeValue =
-          LookupPrivilegeValue_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValue"));
+          LookupPrivilegeValue_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueA"));
         if (lookupPrivilegeValue == nullptr)
             return false;
         adjustTokenPrivileges =
