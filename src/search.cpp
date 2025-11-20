@@ -1135,7 +1135,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             mp.quietAllowed &= ((moveCount - promoCount) < ((3 + depth * depth) >> (!improve)));
 
             // Reduced depth of the next LMR search
-            Depth lmrDepth = newDepth - r / 1024;
+            Depth lmrDepth = newDepth - int(9.7656e-4 * r);
 
             if (capture)
             {
@@ -1311,14 +1311,15 @@ S_MOVES_LOOP:  // When in check, search starts here
         r -= 2018 * (move == ttd.move);
 
         // Decrease/Increase reduction for moves with a good/bad history
-        r -= 794 * ss->history / 8192;
+        r -= int(96.9238e-3 * ss->history);
 
         // Step 17. Late moves reduction / extension (LMR)
         if (moveCount != 1 && depth > 1)
         {
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
-            Depth redDepth = std::max(std::min(newDepth - r / 1024, newDepth + 2), 1) + PVNode;
+            Depth redDepth =
+              std::max(std::min(newDepth - int(9.7656e-4 * r), newDepth + 2), 1) + PVNode;
 
             value = -search<Cut>(pos, ss + 1, -alpha - 1, -alpha, redDepth, newDepth - redDepth);
 
