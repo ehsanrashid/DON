@@ -546,7 +546,10 @@ inline Key Position::major_key(Color c) const noexcept { return st->nonPawnKey[c
 
 inline Key Position::major_key() const noexcept { return major_key(WHITE) ^ major_key(BLACK); }
 
-inline Key Position::non_pawn_key(Color c) const noexcept { return minor_key(c) ^ major_key(c) ^ Zobrist::piece_square(make_piece(c, KING), king_sq(c)); }
+inline Key Position::non_pawn_key(Color c) const noexcept {
+    Square kingSq = king_sq(c);
+    return minor_key(c) ^ major_key(c) ^ Zobrist::piece_square(piece_on(kingSq), kingSq);
+}
 
 inline Key Position::non_pawn_key() const noexcept { return non_pawn_key(WHITE) ^ non_pawn_key(BLACK); }
 
