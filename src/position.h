@@ -741,14 +741,14 @@ inline Piece Position::swap_piece(Square s, Piece newPc, DirtyThreats* const dts
 
 template<bool Add>
 inline void
-DirtyThreats::add(Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept {
+DirtyThreats::add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept {
     if constexpr (Add)
     {
         threateningBB |= sq;
         threatenedBB |= threatenedSq;
     }
 
-    list.push_back({pc, threatenedPc, sq, threatenedSq, Add});
+    list.push_back({sq, threatenedSq, pc, threatenedPc, Add});
 }
 
 // Add newly threatened pieces
@@ -780,7 +780,7 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
         assert(threatenedSq != s);
         assert(is_ok(threatenedPc));
 
-        dts->add<Add>(pc, threatenedPc, s, threatenedSq);
+        dts->add<Add>(s, threatenedSq, pc, threatenedPc);
     }
 
     // clang-format off
@@ -806,11 +806,11 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
 
                 assert(is_ok(threatenedPc));
 
-                dts->add<!Add>(sliderPc, threatenedPc, sliderSq, threatenedSq);
+                dts->add<!Add>(sliderSq, threatenedSq, sliderPc, threatenedPc);
             }
         }
 
-        dts->add<Add>(sliderPc, pc, sliderSq, s);
+        dts->add<Add>(sliderSq, s, sliderPc, pc);
     }
 
     // clang-format off
@@ -827,7 +827,7 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
         assert(nonSliderSq != s);
         assert(is_ok(nonSliderPc));
 
-        dts->add<Add>(nonSliderPc, pc, nonSliderSq, s);
+        dts->add<Add>(nonSliderSq, s, nonSliderPc, pc);
     }
 }
 

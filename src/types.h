@@ -301,17 +301,17 @@ struct DirtyPiece final {
 // Keep track of what threats change on the board (used by NNUE)
 struct DirtyThreat final {
    public:
-    DirtyThreat() { /* don't initialize data */ }
-    DirtyThreat(Piece pc, Piece threatenedPc, Square sq, Square threatenedSq, bool add) noexcept {
-        data = (add << 28) | (threatenedPc << 20) | (pc << 16) | (threatenedSq << 8) | (sq << 0);
+    DirtyThreat() { /* Don't initialize data */ }
+    DirtyThreat(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool add) noexcept {
+        data = (add << 24) | (threatenedPc << 20) | (pc << 16) | (threatenedSq << 8) | (sq << 0);
     }
 
-    Piece  threatened_pc() const noexcept { return Piece((data >> 20) & 0xF); }
-    Piece  pc() const noexcept { return Piece((data >> 16) & 0xF); }
-    Square threatened_sq() const noexcept { return Square((data >> 8) & 0xFF); }
     Square sq() const noexcept { return Square((data >> 0) & 0xFF); }
+    Square threatened_sq() const noexcept { return Square((data >> 8) & 0xFF); }
+    Piece  pc() const noexcept { return Piece((data >> 16) & 0xF); }
+    Piece  threatened_pc() const noexcept { return Piece((data >> 20) & 0xF); }
     bool   add() const noexcept {
-        std::uint32_t b = data >> 28;
+        std::uint32_t b = data >> 24;
         ASSUME(b == 0 || b == 1);
         return b;
     }
@@ -336,7 +336,7 @@ struct DirtyThreats final {
     Bitboard threateningBB, threatenedBB;
 
     template<bool Add>
-    void add(Piece pc, Piece threatenedPc, Square sq, Square threatenedSq) noexcept;
+    void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept;
 };
 
 struct DirtyBoard final {

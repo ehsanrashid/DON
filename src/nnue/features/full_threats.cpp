@@ -40,12 +40,12 @@ struct PiecePairData final {
         data = (featureBaseIndex << 8) | (excluded << 1) | (semiExcluded && !excluded);
     }
 
-    // lsb: excluded if from < dst; 2nd lsb: always excluded
-    uint8_t   excluded_pair_info() const { return (data >> 0) & 0xFF; }
-    IndexType feature_base_index() const { return (data >> 8); }
+    // lsb: excluded if org < dst; 2nd lsb: always excluded
+    std::uint8_t excluded_pair_info() const { return (data >> 0) & 0xFF; }
+    IndexType    feature_base_index() const { return (data >> 8); }
 
     // Layout: bits 8..31 are the index contribution of this piece pair, bits 0 and 1 are exclusion info
-    uint32_t data;
+    std::uint32_t data;
 };
 
 // Orient a square according to perspective (rotates by 180 for black)
@@ -76,8 +76,8 @@ StdArray<IndexType, PIECE_NB, 2> CumulativeOffset;
 
 // The final index is calculated from summing data found in these two LUTs,
 // as well as OffsetIndex[attacker][from]
-StdArray<PiecePairData, PIECE_NB, PIECE_NB>       LutData;   // [attacker][attacked]
-StdArray<uint8_t, PIECE_NB, SQUARE_NB, SQUARE_NB> LutIndex;  // [attacker][org][dst]
+StdArray<PiecePairData, PIECE_NB, PIECE_NB>            LutData;   // [attacker][attacked]
+StdArray<std::uint8_t, PIECE_NB, SQUARE_NB, SQUARE_NB> LutIndex;  // [attacker][org][dst]
 
 // Index of a feature for a given king position and another piece on square
 ALWAYS_INLINE IndexType make_index(Color  perspective,
@@ -115,11 +115,12 @@ void FullThreats::init() noexcept {
 
     constexpr StdArray<int, PIECE_TYPE_NB> MaxTargets{0, 6, 12, 10, 10, 12, 8, 0};
 
-    int cumulativeOffset = 0;
+    IndexType cumulativeOffset = 0;
+
     for (Color c : {WHITE, BLACK})
         for (Piece pc : Pieces[c])
         {
-            int cumulativePieceOffset = 0;
+            IndexType cumulativePieceOffset = 0;
 
             for (Square org = SQ_A1; org <= SQ_H8; ++org)
             {
@@ -257,10 +258,10 @@ void FullThreats::append_changed_indices(Color            perspective,
                                          bool             first) noexcept {
     for (const auto& dirty : dt.list)
     {
-        auto attacker = dirty.pc();
-        auto attacked = dirty.threatened_pc();
         auto org      = dirty.sq();
         auto dst      = dirty.threatened_sq();
+        auto attacker = dirty.pc();
+        auto attacked = dirty.threatened_pc();
         auto add      = dirty.add();
 
         if (fusedData != nullptr)
