@@ -1125,7 +1125,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         Piece movedPiece = pos.moved_piece(move);
 
         bool check    = pos.check(move);
-        bool capture  = pos.capture_promo(move);
+        bool capture  = pos.capture(move);
         auto captured = capture ? pos.captured(move) : NO_PIECE_TYPE;
 
         // Calculate new depth for this move
@@ -1707,7 +1707,7 @@ QS_MOVES_LOOP:
     while ((move = mp.next_move()) != Move::None)
     {
         assert(pos.pseudo_legal(move));
-        assert(ss->inCheck || move == ttd.move || pos.capture_promo(move));
+        assert(ss->inCheck || pos.capture_promo(move));
 
         // Check for legality
         if (!pos.legal(move))
@@ -1719,7 +1719,7 @@ QS_MOVES_LOOP:
         Square dst = move.dst_sq();
 
         bool check   = pos.check(move);
-        bool capture = pos.capture_promo(move);
+        bool capture = pos.capture(move);
 
         // Step 6. Pruning
         if (!is_loss(bestValue))
@@ -1829,7 +1829,7 @@ QS_MOVES_LOOP:
 }
 
 void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const ss) noexcept {
-    bool capture = pos.capture_promo(m);
+    bool capture = pos.capture(m);
     auto db      = pos.do_move(m, st, check, &tt);
     nodes.fetch_add(1, std::memory_order_relaxed);
     if (ss != nullptr)
@@ -1907,7 +1907,7 @@ void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_
     int bonus =          std::min(- 77 + 121 * depth, +1633) + 375 * (bm == ss->ttMove);
     int malus = std::max(std::min(-196 + 825 * depth, +2159) -  16 * ss->moveCount, 1);
 
-    if (pos.capture_promo(bm))
+    if (pos.capture(bm))
     {
         update_capture_history(pos, bm, 1.4473 * bonus);
     }
