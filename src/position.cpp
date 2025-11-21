@@ -370,6 +370,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
         // clang-format off
         if ('a' <= epFile && epFile <= 'h'
             && epRank == (ac == WHITE ? '6' : ac == BLACK ? '3' : '-'))
+        // clang-format on
         {
             st->epSq = make_square(to_file(epFile), to_rank(epRank));
 
@@ -379,12 +380,11 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             // c) there is atleast one friend pawn threatening epSquare
             // d) there is no enemy Bishop, Rook or Queen pinning
             epCheck = (pieces(~ac, PAWN) & (ep_sq() - pawn_spush(ac)))
-                   && !(pieces() & make_bitboard(ep_sq(), ep_sq() + pawn_spush(ac)))
+                   && !(pieces() & make_bb(ep_sq(), ep_sq() + pawn_spush(ac)))
                    && (pieces(ac, PAWN) & attacks_bb<PAWN>(ep_sq(), ~ac));
         }
         else
             assert(false && "Position::set(): Invalid En-passant square");
-        // clang-format on
     }
 
     // 5-6. Halfmove clock and fullmove number
@@ -537,8 +537,7 @@ void Position::set_castling_rights(Color c, Square rOrg) noexcept {
     Square kDst = king_castle_sq(c, kOrg, rOrg);
     Square rDst = rook_castle_sq(c, kOrg, rOrg);
 
-    castlingPath[crLsb] =
-      (between_bb(kOrg, kDst) | between_bb(rOrg, rDst)) & ~make_bitboard(kOrg, rOrg);
+    castlingPath[crLsb] = (between_bb(kOrg, kDst) | between_bb(rOrg, rDst)) & ~make_bb(kOrg, rOrg);
 }
 
 // Computes the hash keys of the position, and other data
@@ -672,7 +671,7 @@ bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackers)
 
     bool epCheck = false;
     // Check en-passant is legal for the position
-    Bitboard occupied = pieces() ^ make_bitboard(capSq, epSq);
+    Bitboard occupied = pieces() ^ make_bb(capSq, epSq);
     while (attackers)
     {
         Square s = pop_lsb(attackers);
@@ -840,7 +839,7 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
                 assert(relative_rank(ac, org) == RANK_5);
                 assert(relative_rank(ac, dst) == RANK_6);
                 assert(pieces(~ac, PAWN) & capSq);
-                assert(!(pieces() & make_bitboard(dst, dst + pawn_spush(ac))));
+                assert(!(pieces() & make_bb(dst, dst + pawn_spush(ac))));
                 assert(!is_ok(ep_sq()));  // Already reset to SQ_NONE
                 assert(rule50_count() == 1);
                 assert(st->preSt->epSq == dst);
@@ -1177,14 +1176,14 @@ bool Position::pseudo_legal(Move m) const noexcept {
         if (type_of(pc) == PAWN)
         {
             // Already handled promotion moves, so origin & destination cannot be on the 8th/1st rank
-            if (PROMOTION_RANK_BB & make_bitboard(org, dst))
+            if (PROMOTION_RANK_BB & make_bb(org, dst))
                 return false;
             if (!(relative_rank(ac, org) < RANK_7 && relative_rank(ac, dst) < RANK_8
                   && ((org + pawn_spush(ac) == dst && !(pieces() & dst))    // Single push
                       || (attacks_bb<PAWN>(org, ac) & pieces(~ac) & dst)))  // Capture
                 && !(relative_rank(ac, org) == RANK_2 && relative_rank(ac, dst) == RANK_4
                      && org + pawn_dpush(ac) == dst  // Double push
-                     && !(pieces() & make_bitboard(dst, dst - pawn_spush(ac)))))
+                     && !(pieces() & make_bb(dst, dst - pawn_spush(ac)))))
                 return false;
         }
         else if (!(attacks_bb(org, type_of(pc), pieces()) & dst))
@@ -1207,11 +1206,11 @@ bool Position::pseudo_legal(Move m) const noexcept {
         if (!(type_of(pc) == PAWN && ep_sq() == dst && rule50_count() == 0
               && relative_rank(ac, org) == RANK_5 && relative_rank(ac, dst) == RANK_6
               && (pieces(~ac, PAWN) & (dst - pawn_spush(ac)))
-              && !(pieces() & make_bitboard(dst, dst + pawn_spush(ac)))
+              && !(pieces() & make_bb(dst, dst + pawn_spush(ac)))
               && ((attacks_bb<PAWN>(org, ac) /*& ~pieces()*/) & dst)
-              && !(slide_attackers_to(king_sq(ac),
-                                      pieces() ^ make_bitboard(org, dst, dst - pawn_spush(ac)))
-                   & pieces(~ac))))
+              && !(
+                slide_attackers_to(king_sq(ac), pieces() ^ make_bb(org, dst, dst - pawn_spush(ac)))
+                & pieces(~ac))))
             return false;
         break;
 
@@ -1253,11 +1252,10 @@ bool Position::legal(Move m) const noexcept {
         assert(relative_rank(ac, org) == RANK_5);
         assert(relative_rank(ac, dst) == RANK_6);
         assert(pieces(~ac, PAWN) & (dst - pawn_spush(ac)));
-        assert(!(pieces() & make_bitboard(dst, dst + pawn_spush(ac))));
+        assert(!(pieces() & make_bb(dst, dst + pawn_spush(ac))));
         assert((attacks_bb<PAWN>(org, ac) /*& ~pieces()*/) & dst);
-        assert(!(
-          slide_attackers_to(king_sq(ac), pieces() ^ make_bitboard(org, dst, dst - pawn_spush(ac)))
-          & pieces(~ac)));
+        assert(!(slide_attackers_to(king_sq(ac), pieces() ^ make_bb(org, dst, dst - pawn_spush(ac)))
+                 & pieces(~ac)));
 
         return true;
 
@@ -1338,8 +1336,7 @@ bool Position::check(Move m) const noexcept {
     // and ordinary discovered check, so the only case need to handle is
     // the unusual case of a discovered check through the captured pawn.
     case EN_PASSANT :
-        return slide_attackers_to(king_sq(~ac),
-                                  pieces() ^ make_bitboard(org, dst, dst - pawn_spush(ac)))
+        return slide_attackers_to(king_sq(~ac), pieces() ^ make_bb(org, dst, dst - pawn_spush(ac)))
              & pieces(ac);
 
     case CASTLING :
@@ -1373,7 +1370,7 @@ bool Position::dbl_check(Move m) const noexcept {
 
     case EN_PASSANT : {
         Bitboard checkers =
-          slide_attackers_to(king_sq(~ac), pieces() ^ make_bitboard(org, dst, dst - pawn_spush(ac)))
+          slide_attackers_to(king_sq(~ac), pieces() ^ make_bb(org, dst, dst - pawn_spush(ac)))
           & pieces(ac);
         return more_than_one(checkers) || (checkers && (checks(PAWN) & dst));
     }
@@ -1524,7 +1521,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     // It doesn't matter if the destination square is occupied or not
     // xoring dst is important for pinned piece logic
-    occupied ^= make_bitboard(org, dst);
+    occupied ^= make_bb(org, dst);
 
     Bitboard attackers = attackers_to(dst, occupied);
 
@@ -1672,7 +1669,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
             if (is_ok(epSq) && rank_of(org) == rank_of(dst))
             {
-                occupied ^= make_bitboard(dst, epSq);
+                occupied ^= make_bb(dst, epSq);
 
                 dst       = epSq;
                 epSq      = SQ_NONE;

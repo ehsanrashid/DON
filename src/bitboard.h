@@ -180,7 +180,7 @@ constexpr Bitboard operator|(Square s1, Square s2) noexcept { return square_bb(s
 
 // Returns a bitboard from a list of squares
 template<typename... Squares>
-constexpr Bitboard make_bitboard(Squares... squares) noexcept {
+constexpr Bitboard make_bb(Squares... squares) noexcept {
     return (square_bb(squares) | ...);
 }
 

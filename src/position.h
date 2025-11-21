@@ -710,7 +710,7 @@ inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts)
 
     Piece pc = piece_on(s1);
     assert(is_ok(pc));
-    Bitboard s1s2BB = make_bitboard(s1, s2);
+    Bitboard s1s2BB = make_bb(s1, s2);
 
     if (dts != nullptr)
         update_piece_threats<false>(pc, s1, dts);

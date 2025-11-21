@@ -84,7 +84,7 @@ void PerftInfo::classify(Position& pos, Move m) noexcept {
                 dscCheck += 1;
             else if (m.type_of() == EN_PASSANT)
             {
-                Bitboard occupied = pos.pieces() ^ make_bitboard(org, dst, dst - pawn_spush(ac));
+                Bitboard occupied = pos.pieces() ^ make_bb(org, dst, dst - pawn_spush(ac));
                 dscCheck += !!(pos.slide_attackers_to(pos.king_sq(~ac), occupied) & pos.pieces(ac));
             }
             //else if (m.type_of() == CASTLING)
