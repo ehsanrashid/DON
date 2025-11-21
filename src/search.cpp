@@ -202,14 +202,14 @@ void Worker::init() noexcept {
                 for (auto& pieceSqHist : toPieceSqHist)
                     pieceSqHist.fill(-529);
 
+    ttMoveHistory = 0;
+
     pawnCorrectionHistory.fill(5);
     minorCorrectionHistory.fill(0);
     nonPawnCorrectionHistory.fill(0);
     for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(8);
-
-    ttMoveHistory = 0;
 
     accCaches.init(networks[numaAccessToken]);
 }

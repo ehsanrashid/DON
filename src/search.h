@@ -577,13 +577,13 @@ class Worker final {
 
     StdArray<History<HContinuation>, 2, 2> continuationHistory;  // [inCheck][capture]
 
+    History<HTTMove> ttMoveHistory;
+
     // Correction History
     CorrectionHistory<CHPawn>         pawnCorrectionHistory;
     CorrectionHistory<CHMinor>        minorCorrectionHistory;
     CorrectionHistory<CHNonPawn>      nonPawnCorrectionHistory;
     CorrectionHistory<CHContinuation> continuationCorrectionHistory;
-
-    History<HTTMove> ttMoveHistory;
 
     StdArray<std::int32_t, COLOR_NB> optimism;
 

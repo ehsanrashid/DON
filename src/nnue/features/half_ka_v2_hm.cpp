@@ -68,22 +68,16 @@ constexpr StdArray<IndexType, SQUARE_NB> KingBuckets{
 };
 #undef B
 
-// Orient a square according to perspective (rotates by 180 for black)
-constexpr StdArray<Square, SQUARE_NB> Orientations{
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1,  //
-  SQ_H1, SQ_H1, SQ_H1, SQ_H1, SQ_A1, SQ_A1, SQ_A1, SQ_A1   //
-};
+// (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
+constexpr Square orientation(Square s) noexcept {
+    return Square(((file_of(s) >> 2) ^ 1) * int(FILE_H));
+}
 
 // Index of a feature for king position and piece on square
 ALWAYS_INLINE IndexType make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
-    int orientation = relative_sq(perspective, Orientations[kingSq]);
-    return (int(s) ^ orientation) + PieceSquareIndices[perspective][pc]  //
+    int relOrientation = relative_sq(perspective, orientation(kingSq));
+    return (int(s) ^ relOrientation)            //
+         + PieceSquareIndices[perspective][pc]  //
          + KingBuckets[relative_sq(perspective, kingSq)];
 }
 

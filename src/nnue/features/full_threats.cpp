@@ -32,6 +32,20 @@ namespace DON::NNUE::Features {
 
 namespace {
 
+constexpr StdArray<int, PIECE_TYPE_NB - 2, PIECE_TYPE_NB - 2> Map{{
+  {0, +1, -1, +2, -1, -1},  //
+  {0, +1, +2, +3, +4, +5},  //
+  {0, +1, +2, +3, -1, +4},  //
+  {0, +1, +2, +3, -1, +4},  //
+  {0, +1, +2, +3, +4, +5},  //
+  {0, +1, +2, +3, -1, -1}   //
+}};
+
+// Lookup array for indexing threats
+StdArray<IndexType, PIECE_NB, SQUARE_NB> OffsetIndex;
+// [cumulativePieceOffset, cumulativeOffset]
+StdArray<IndexType, PIECE_NB, 2> CumulativeOffset;
+
 // Information on a particular pair of pieces and whether they should be excluded
 struct PiecePairData final {
    public:
@@ -48,36 +62,15 @@ struct PiecePairData final {
     std::uint32_t data;
 };
 
-// Orient a square according to perspective (rotates by 180 for black)
-constexpr StdArray<Square, SQUARE_NB> Orientations{
-  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,  //
-  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,  //
-  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,  //
-  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,  //
-  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,  //
-  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,  //
-  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1,  //
-  SQ_A1, SQ_A1, SQ_A1, SQ_A1, SQ_H1, SQ_H1, SQ_H1, SQ_H1   //
-};
-
-constexpr StdArray<int, PIECE_TYPE_NB - 2, PIECE_TYPE_NB - 2> Map{{
-  {0, +1, -1, +2, -1, -1},  //
-  {0, +1, +2, +3, +4, +5},  //
-  {0, +1, +2, +3, -1, +4},  //
-  {0, +1, +2, +3, -1, +4},  //
-  {0, +1, +2, +3, +4, +5},  //
-  {0, +1, +2, +3, -1, -1}   //
-}};
-
-// Lookup array for indexing threats
-StdArray<IndexType, PIECE_NB, SQUARE_NB> OffsetIndex;
-// [cumulativePieceOffset, cumulativeOffset]
-StdArray<IndexType, PIECE_NB, 2> CumulativeOffset;
-
 // The final index is calculated from summing data found in these two LUTs,
 // as well as OffsetIndex[attacker][from]
 StdArray<PiecePairData, PIECE_NB, PIECE_NB>            LutData;   // [attacker][attacked]
 StdArray<std::uint8_t, PIECE_NB, SQUARE_NB, SQUARE_NB> LutIndex;  // [attacker][org][dst]
+
+// (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
+constexpr Square orientation(Square s) noexcept {
+    return Square(((file_of(s) >> 2) ^ 0) * int(FILE_H));
+}
 
 // Index of a feature for a given king position and another piece on square
 ALWAYS_INLINE IndexType make_index(Color  perspective,
@@ -86,10 +79,10 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
                                    Square dst,
                                    Piece  attacker,
                                    Piece  attacked) noexcept {
-    int orientation = relative_sq(perspective, Orientations[kingSq]);
+    int relOrientation = relative_sq(perspective, orientation(kingSq));
 
-    org = Square(int(org) ^ orientation);
-    dst = Square(int(dst) ^ orientation);
+    org = Square(int(org) ^ relOrientation);
+    dst = Square(int(dst) ^ relOrientation);
 
     attacker = relative_piece(perspective, attacker);
     attacked = relative_piece(perspective, attacked);
@@ -302,7 +295,7 @@ void FullThreats::append_changed_indices(Color            perspective,
 }
 
 bool FullThreats::requires_refresh(Color perspective, const DirtyType& dt) noexcept {
-    return perspective == dt.ac && Orientations[dt.kingSq] != Orientations[dt.preKingSq];
+    return perspective == dt.ac && orientation(dt.kingSq) != orientation(dt.preKingSq);
 }
 
 }  // namespace DON::NNUE::Features
