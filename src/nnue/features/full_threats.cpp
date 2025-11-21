@@ -72,6 +72,13 @@ constexpr Square orientation(Square s) noexcept {
     return Square(((file_of(s) >> 2) ^ 0) * int(FILE_H));
 }
 
+static_assert(orientation(SQ_A1) == SQ_A1);
+static_assert(orientation(SQ_D1) == SQ_A1);
+static_assert(orientation(SQ_E1) == SQ_H1);
+static_assert(orientation(SQ_H1) == SQ_H1);
+static_assert(orientation(SQ_A8) == SQ_A1);
+static_assert(orientation(SQ_H8) == SQ_H1);
+
 // Index of a feature for a given king position and another piece on square
 ALWAYS_INLINE IndexType make_index(Color  perspective,
                                    Square kingSq,
@@ -295,7 +302,7 @@ void FullThreats::append_changed_indices(Color            perspective,
 }
 
 bool FullThreats::requires_refresh(Color perspective, const DirtyType& dt) noexcept {
-    return perspective == dt.ac && orientation(dt.kingSq) != orientation(dt.preKingSq);
+    return dt.ac == perspective && orientation(dt.kingSq) != orientation(dt.preKingSq);
 }
 
 }  // namespace DON::NNUE::Features
