@@ -53,9 +53,9 @@ MovePicker::MovePicker(const Position&              p,
     threshold(th) {
     assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
 
-    stage = pos.checkers()
-            ? STG_EVA_TT + int(!(ttMove != Move::None))
-            : (threshold < 0 ? STG_ENC_TT : STG_QS_TT) + int(!(ttMove != Move::None));
+    stage = pos.checkers() ? STG_EVA_TT + int(!(ttMove != Move::None))
+          : threshold < 0  ? STG_ENC_TT + int(!(ttMove != Move::None))
+                           : STG_QS_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
 }
 
 // MovePicker constructor for ProbCut:
