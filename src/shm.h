@@ -71,19 +71,15 @@
     #include <unistd.h>
 #endif
 
-
 #if defined(__APPLE__)
     #include <mach-o/dyld.h>
     #include <sys/syslimits.h>
-
 #elif defined(__sun)
     #include <stdlib.h>
-
 #elif defined(__FreeBSD__)
     #include <sys/sysctl.h>
     #include <sys/types.h>
     #include <unistd.h>
-
 #elif defined(__NetBSD__) || defined(__DragonFly__) || defined(__linux__)
     #include <limits.h>
     #include <unistd.h>
@@ -94,15 +90,14 @@
 
 namespace DON {
 
-// argv[0] CANNOT be used because we need to identify the executable.
+// argv[0] CANNOT be used because need to identify the executable.
 // argv[0] contains the command used to invoke it, which does not involve the full path.
 // Just using a path is not fully resilient either, as the executable could
-// have changed if it wasn't locked by the OS. Ideally we would hash the executable
-// but it's not really that important at this point.
+// have changed if it wasn't locked by the OS.
 // If the path is longer than 4095 bytes the hash will be computed from an unspecified
 // amount of bytes of the path; in particular it can a hash of an empty string.
 
-inline std::string executable_path_hash() noexcept {
+inline std::string executable_path() noexcept {
     char        executablePath[4096] = {0};
     std::size_t pathLength           = 0;
 
@@ -518,7 +513,7 @@ struct SystemWideSharedConstant final {
     // that are not present in the content, for example NUMA node allocation.
     SystemWideSharedConstant(const T& value, std::size_t discriminator = 0) noexcept {
         std::size_t contentHash    = std::hash<T>{}(value);
-        std::size_t executableHash = std::hash<std::string>{}(executable_path_hash());
+        std::size_t executableHash = std::hash<std::string>{}(executable_path());
 
         std::string shmName = "Local\\don_" + std::to_string(contentHash)  //
                             + "$" + std::to_string(executableHash)         //

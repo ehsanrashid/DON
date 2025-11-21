@@ -152,12 +152,13 @@ Value adjust_static_eval(Value ev, int cv) noexcept { return in_range(ev + 7.629
 
 // rule50 count >= 20 and one side moving same piece more times in a row
 bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcept {
-    if (pos.capture(move) || type_of(pos.moved_piece(move)) == PAWN || pos.rule50_count() < 10)
-        return false;
-    if (pos.state()->nullPly <= 6 || ss->ply < 20)
+    if (pos.capture(move) || type_of(pos.moved_piece(move)) == PAWN || pos.rule50_count() < 10
+        || pos.null_ply() < 6 || ss->ply < 20)
         return false;
     return move.org_sq() == (ss - 2)->move.dst_sq()
-        && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq();
+        && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq()
+        && (ss - 4)->move.org_sq() == (ss - 6)->move.dst_sq()
+        && (ss - 6)->move.org_sq() == (ss - 8)->move.dst_sq();
 }
 
 }  // namespace
