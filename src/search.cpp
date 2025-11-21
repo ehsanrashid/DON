@@ -737,7 +737,7 @@ Value Worker::search(Position&    pos,
                          : Move::None;
     assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
     ss->ttMove     = ttd.move;
-    bool ttCapture = ttd.move != Move::None && pos.capture(ttd.move);
+    bool ttCapture = ttd.move != Move::None && pos.capture_promo(ttd.move);
 
     if (!exclude)
         ss->pvHit = PVNode || (ttd.hit && ttd.pvHit);
