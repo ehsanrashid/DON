@@ -40,7 +40,6 @@
     #include <cassert>
     #include <cstddef>
     #include <cstdint>
-    #include <limits>
     #include <string_view>
     #include <type_traits>
 
@@ -160,7 +159,7 @@ using SqrValue = std::int32_t;
 inline constexpr Value VALUE_ZERO = 0;
 inline constexpr Value VALUE_DRAW = VALUE_ZERO;
 
-inline constexpr Value VALUE_NONE     = std::numeric_limits<Value>::max();
+inline constexpr Value VALUE_NONE     = 0x7FFF;
 inline constexpr Value VALUE_INFINITE = VALUE_NONE - 1;
 
 inline constexpr Value VALUE_MATE             = VALUE_INFINITE - 1;
@@ -231,8 +230,7 @@ inline constexpr Depth DEPTH_ZERO = 0;
 inline constexpr Depth DEPTH_NONE = -1;
 // Depth used only for TT entry occupancy check
 inline constexpr Depth DEPTH_OFFSET = DEPTH_NONE - 1;
-static_assert(DEPTH_OFFSET == MAX_PLY - 1 - std::numeric_limits<std::uint8_t>::max(),
-              "DEPTH_OFFSET == MAX_PLY - 1 - std::numeric_limits<std::uint8_t>::max()");
+static_assert(DEPTH_OFFSET == MAX_PLY - 1 - 0xFF, "DEPTH_OFFSET == MAX_PLY - 1 - 0xFF");
 
 // clang-format off
 enum File : std::int8_t {
