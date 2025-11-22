@@ -20,7 +20,6 @@
 #include <array>
 #include <chrono>
 #include <cstdlib>
-#include <limits>
 #include <list>
 #include <random>
 #include <ratio>
@@ -1941,6 +1940,7 @@ void Worker::update_correction_history(const Position& pos, Stack* const ss, int
     nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac] << 1.3906 * bonus;
 
     auto m = (ss - 1)->move;
+
     if (m.is_ok())
     {
         (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << 0.9922 * bonus;
@@ -1948,12 +1948,13 @@ void Worker::update_correction_history(const Position& pos, Stack* const ss, int
     }
 }
 
-// (*Scaler) All tuned parameters at time controls shorter than
-// optimized for require verifications at longer time controls
 int Worker::correction_value(const Position& pos, const Stack* const ss) noexcept {
+    constexpr int Limit = 0x7FFFFFFF;
+
     Color ac = pos.active_color();
 
     auto m = (ss - 1)->move;
+
     return std::clamp<std::int64_t>(
            + 5174LL * (   pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
                      +    pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac])
@@ -1964,7 +1965,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
                      ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
                      + (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
                      : 8),
-        std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+            -Limit, +Limit);
 }
 
 // clang-format on

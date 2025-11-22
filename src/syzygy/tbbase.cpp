@@ -1633,7 +1633,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
     // DTZ-score stores results for the other side, so need to do a 1-ply search
     // and find the winning move that minimizes DTZ-score.
-    int minDtzScore = VALUE_NONE;
+    int minDtzScore = 0xFFFF;
 
     for (auto m : MoveList<LEGAL>(pos))
     {
@@ -1658,8 +1658,9 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
             dtzScore += sign(dtzScore);
 
         // Skip the draws and if winning only pick positive DTZ-score
-        if (minDtzScore > dtzScore && sign(dtzScore) == sign(wdlScore))
-            minDtzScore = dtzScore;
+        if (sign(dtzScore) == sign(wdlScore))
+            if (minDtzScore > dtzScore)
+                minDtzScore = dtzScore;
 
         pos.undo_move(m);
 
@@ -1668,7 +1669,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     }
 
     // When there are no legal moves, the position is mate: return -1
-    return minDtzScore == VALUE_NONE ? -1 : minDtzScore;
+    return minDtzScore == 0xFFFF ? -1 : minDtzScore;
 }
 
 // clang-format off
