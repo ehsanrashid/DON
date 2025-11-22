@@ -146,7 +146,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
 
 // Update raw staticEval according to various CorrectionHistory value
 // and guarantee evaluation does not hit the tablebase range.
-Value adjust_static_eval(Value ev, int cv) noexcept { return in_range(ev + 7.6294e-6 * cv); }
+Value adjust_static_eval(Value ev, int cv) noexcept { return in_range(ev + int(7.6294e-6 * cv)); }
 
 // rule50 count >= 20 and one side moving same piece more times in a row
 bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcept {
@@ -1239,7 +1239,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             if (value <= singularBeta)
             {
-                int corrValue = 4.3351e-6 * absCorrectionValue;
+                int corrValue = int(4.3351e-6 * absCorrectionValue);
                 // clang-format off
                 int doubleMargin = -4 + 199 * PVNode - 201 * !ttCapture - corrValue - 42 * (1 * ss->ply > 1 * rootDepth) - 7.0271e-3 * ttMoveHistory;
                 int tripleMargin = 73 + 302 * PVNode - 248 * !ttCapture - corrValue - 50 * (2 * ss->ply > 3 * rootDepth) + 90 * ss->pvHit;
@@ -1299,7 +1299,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Base reduction offset to compensate for other tweaks
         r += 714;
         r -= 73 * moveCount;
-        r -= 32.9272e-6 * absCorrectionValue;
+        r -= int(32.9272e-6 * absCorrectionValue);
 
         // (*Scaler) Decrease reduction if position is or has been on the PV
         r -= (2719 + 983 * PVNode + 922 * (is_valid(ttd.value) && ttd.value > alpha)
