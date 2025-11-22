@@ -57,7 +57,7 @@ Move* splat_pawn_moves(Bitboard b, Move* moves) noexcept {
         StdArray<Move, SQUARE_NB> table{};
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
-            Square sq = std::clamp(s - D, SQUARE_ZERO, SQUARE_NB - 1);
+            Square sq = std::clamp(s - D, SQ_A1, SQ_H8);
             table[s]  = Move(sq, s);
         }
         return table;

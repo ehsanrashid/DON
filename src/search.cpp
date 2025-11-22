@@ -1007,15 +1007,15 @@ Value Worker::search(Position&    pos,
     // Step 11. ProbCut
     // If have a good enough capture or any promotion and a reduced search
     // returns a value much above beta, can (almost) safely prune previous move.
-    if (depth >= 3 && !is_decisive(beta))
+    if (depth > 2 && !is_decisive(beta))
     {
         // clang-format off
         Value probCutBeta = std::min(235 + beta - 63 * improve, +VALUE_INFINITE);
+        assert(beta < probCutBeta && probCutBeta <= +VALUE_INFINITE);
+
         // If value from transposition table is less than probCutBeta, don't attempt probCut
         if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
         {
-        assert(beta < probCutBeta && probCutBeta <= +VALUE_INFINITE);
-
         Depth probCutDepth = std::clamp(depth - 5 - (ss->staticEval - beta) / 315, 0, depth - 0);
         int   probCutThreshold = probCutBeta - ss->staticEval;
 
@@ -1153,7 +1153,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             {
                 int history = captureHistory[movedPiece][dst][captured];
 
-                // Futility pruning for captures
+                // Futility pruning: for captures
                 if (lmrDepth < 7 && !check)
                 {
                     Value seeGain       = PIECE_VALUE[captured] + promotion_value(move);
@@ -1165,10 +1165,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for captures and checks
-                int margin = std::max(166 * depth + int(34.4828e-3 * history), 0);
+                int margin = -std::max(166 * depth + int(34.4828e-3 * history), 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != PIECE_VALUE[type_of(movedPiece)])
-                  && pos.see(move) < -margin)
+                  && pos.see(move) < margin)
                     continue;
             }
             else
@@ -1183,10 +1183,10 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 history += int(2.1563 * quietHistory[ac][move.raw()]);
 
-                // (*Scaler) Generally, lower divisors scales well
+                // (*Scaler) Generally, higher history scales well
                 lmrDepth += int(3.1172e-4 * history);
 
-                // Futility pruning for quiets
+                // Futility pruning: for quiets
                 // (*Scaler) Generally, more frequent futility pruning scales well
                 if (lmrDepth < 13 && !check && !ss->inCheck)
                 {
@@ -1203,10 +1203,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for quiets and checks
-                int margin = std::max(64 * depth * check + 25 * lmrDepth * std::abs(lmrDepth), 0);
+                int margin = -std::max(64 * depth * check + 25 * lmrDepth * std::abs(lmrDepth), 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != PIECE_VALUE[type_of(movedPiece)])
-                  && pos.see(move) < -margin)
+                  && pos.see(move) < margin)
                     continue;
             }
         }
@@ -1473,8 +1473,6 @@ S_MOVES_LOOP:  // When in check, search starts here
                     if (depth < 1)
                         depth = 1;
                 }
-
-                assert(depth > DEPTH_ZERO);
             }
         }
 
