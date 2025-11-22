@@ -304,8 +304,8 @@ struct DirtyThreat final {
         data = (add << 31) | (threatenedPc << 20) | (pc << 16) | (threatenedSq << 8) | (sq << 0);
     }
 
-    Square sq() const noexcept { return Square((data >> 0) & 0xFF); }
-    Square threatened_sq() const noexcept { return Square((data >> 8) & 0xFF); }
+    Square sq() const noexcept { return Square((data >> 0) & 0x3F); }
+    Square threatened_sq() const noexcept { return Square((data >> 8) & 0x3F); }
     Piece  pc() const noexcept { return Piece((data >> 16) & 0xF); }
     Piece  threatened_pc() const noexcept { return Piece((data >> 20) & 0xF); }
     bool   add() const noexcept { return data >> 31; }

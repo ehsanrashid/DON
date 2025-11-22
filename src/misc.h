@@ -51,10 +51,10 @@
 
 #if defined(__GNUC__) || defined(__clang__)
     #define ALWAYS_INLINE inline __attribute__((always_inline))
-#elif defined(__MSVC)
+#elif defined(_MSC_VER)
     #define ALWAYS_INLINE __forceinline
 #else
-    // fallback: keep `inline`
+    // fallback: keep 'inline'
     #define ALWAYS_INLINE inline
 #endif
 
@@ -109,50 +109,50 @@ constexpr auto sign_sqr(T x) noexcept {
 inline constexpr std::uint16_t LittleEndianValue = 1;
 inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;
 
-class sync_ostream final {
+class SyncOstream final {
    public:
-    explicit sync_ostream(std::ostream& os) noexcept :
+    explicit SyncOstream(std::ostream& os) noexcept :
         ostream(&os),
         uniqueLock(mutex) {}
-    sync_ostream(const sync_ostream&) noexcept = delete;
+    SyncOstream(const SyncOstream&) noexcept = delete;
     // Move-constructible so factories can return by value
-    sync_ostream(sync_ostream&& syncOs) noexcept :
+    SyncOstream(SyncOstream&& syncOs) noexcept :
         ostream(syncOs.ostream),
         uniqueLock(std::move(syncOs.uniqueLock)) {}
 
-    sync_ostream& operator=(const sync_ostream&) noexcept = delete;
+    SyncOstream& operator=(const SyncOstream&) noexcept = delete;
     // Prefer deleting move-assignment to avoid unlock window.
-    sync_ostream& operator=(sync_ostream&&) noexcept = delete;
+    SyncOstream& operator=(SyncOstream&&) noexcept = delete;
 
-    ~sync_ostream() noexcept = default;
+    ~SyncOstream() noexcept = default;
 
     template<typename T>
-    sync_ostream& operator<<(T&& x) & noexcept {
+    SyncOstream& operator<<(T&& x) & noexcept {
         *ostream << std::forward<T>(x);
         return *this;
     }
     template<typename T>
-    sync_ostream&& operator<<(T&& x) && noexcept {
+    SyncOstream&& operator<<(T&& x) && noexcept {
         *ostream << std::forward<T>(x);
         return std::move(*this);
     }
 
-    using ostream_manip = std::ostream& (*) (std::ostream&);
-    sync_ostream& operator<<(ostream_manip manip) & noexcept {
+    using OstreamManip = std::ostream& (*) (std::ostream&);
+    SyncOstream& operator<<(OstreamManip manip) & noexcept {
         manip(*ostream);
         return *this;
     }
-    sync_ostream&& operator<<(ostream_manip manip) && noexcept {
+    SyncOstream&& operator<<(OstreamManip manip) && noexcept {
         manip(*ostream);
         return std::move(*this);
     }
 
-    using ios_manip = std::ios_base& (*) (std::ios_base&);
-    sync_ostream& operator<<(ios_manip manip) & noexcept {
+    using IosManip = std::ios_base& (*) (std::ios_base&);
+    SyncOstream& operator<<(IosManip manip) & noexcept {
         manip(*ostream);
         return *this;
     }
-    sync_ostream&& operator<<(ios_manip manip) && noexcept {
+    SyncOstream&& operator<<(IosManip manip) && noexcept {
         manip(*ostream);
         return std::move(*this);
     }
@@ -164,7 +164,7 @@ class sync_ostream final {
     std::unique_lock<std::mutex> uniqueLock;
 };
 
-inline sync_ostream sync_os(std::ostream& os = std::cout) { return sync_ostream(os); }
+inline SyncOstream sync_os(std::ostream& os = std::cout) { return SyncOstream(os); }
 
 template<typename T, std::size_t Size, std::size_t... Sizes>
 class MultiArray;
