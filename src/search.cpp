@@ -1932,7 +1932,8 @@ void Worker::update_correction_history(const Position& pos, Stack* const ss, int
 
        pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]     << 1.0000 * bonus;
        pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac]     << 1.0000 * bonus;
-      minorCorrectionHistory[correction_index(pos.minor_key())][ac]                << 1.2188 * bonus;
+      minorCorrectionHistory[correction_index(pos.minor_key(WHITE))][WHITE][ac]    << 1.2188 * bonus;
+      minorCorrectionHistory[correction_index(pos.minor_key(BLACK))][BLACK][ac]    << 1.2188 * bonus;
     nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac] << 1.3906 * bonus;
     nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac] << 1.3906 * bonus;
 
@@ -1955,7 +1956,8 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
     return std::clamp<std::int64_t>(
            + 5174LL * (   pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
                      +    pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac])
-           + 8821LL * (  minorCorrectionHistory[correction_index(pos.minor_key())][ac])
+           + 4411LL * (  minorCorrectionHistory[correction_index(pos.minor_key(WHITE))][WHITE][ac]
+                     +   minorCorrectionHistory[correction_index(pos.minor_key(BLACK))][BLACK][ac])
            +11168LL * (nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac]
                      + nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac])
            + 7841LL * (m.is_ok()
