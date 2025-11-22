@@ -23,7 +23,6 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <limits>
 #include <string>
 
 #include "memory.h"
@@ -84,7 +83,7 @@ struct TTEntry final {
     void save(
       Key16 k16, Depth d, bool pv, Bound b, Move m, Value v, Value ev, std::uint8_t gen) noexcept {
         assert(d > DEPTH_OFFSET);
-        assert(d <= std::numeric_limits<std::uint8_t>::max() + DEPTH_OFFSET);
+        assert(d <= 0xFF + DEPTH_OFFSET);
 
         // Preserve the old move if don't have a new one
         if (key16 != k16 || m != Move::None)

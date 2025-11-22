@@ -27,7 +27,6 @@
 #include <fstream>
 #include <initializer_list>
 #include <iostream>
-#include <limits>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -1634,7 +1633,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
     // DTZ-score stores results for the other side, so need to do a 1-ply search
     // and find the winning move that minimizes DTZ-score.
-    int minDtzScore = std::numeric_limits<int>::max();
+    int minDtzScore = VALUE_NONE;
 
     for (auto m : MoveList<LEGAL>(pos))
     {
@@ -1669,7 +1668,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     }
 
     // When there are no legal moves, the position is mate: return -1
-    return minDtzScore == std::numeric_limits<int>::max() ? -1 : minDtzScore;
+    return minDtzScore == VALUE_NONE ? -1 : minDtzScore;
 }
 
 // clang-format off
