@@ -1406,8 +1406,8 @@ S_MOVES_LOOP:  // When in check, search starts here
             // PV move or new best move?
             if (moveCount == 1 || value > alpha)
             {
+                rm.selDepth = selDepth;
                 rm.curValue = rm.uciValue = value;
-                rm.selDepth               = selDepth;
                 rm.boundLower = rm.boundUpper = false;
 
                 if (value >= beta)
@@ -1679,13 +1679,14 @@ QS_MOVES_LOOP:
 
     auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
-    Move  move;
+    State st;
+
     Value value;
 
     std::uint8_t moveCount  = 0;
     std::uint8_t promoCount = 0;
 
-    Move bestMove = Move::None;
+    Move move, bestMove = Move::None;
 
     const History<HPieceSq>* contHistory[1]{
       (ss - 1)->pieceSqHistory  //
@@ -1749,7 +1750,6 @@ QS_MOVES_LOOP:
                 continue;
         }
 
-        State st;
         // Step 7. Make the move
         do_move(pos, move, st, check, ss);
 
@@ -2263,12 +2263,13 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if (is_decisive(v) && !is_mate(v) && (exact || !(rm.boundLower || rm.boundUpper)))
             worker.extend_tb_pv(i, v);
 
-        auto score = UCI::to_score({v, rootPos});
-        auto bound = std::string_view{exact           ? ""
-                                      : rm.boundLower ? " lowerbound"
-                                      : rm.boundUpper ? " upperbound"
-                                                      : ""};
-        auto wdl   = worker.options["UCI_ShowWDL"] ? UCI::to_wdl(v, rootPos) : "";
+        std::string score = UCI::to_score({v, rootPos});
+        std::string bound = "";
+        if (!exact)
+            bound = rm.boundLower ? " lowerbound" : rm.boundUpper ? " upperbound" : "";
+        std::string wdl = "";
+        if (worker.options["UCI_ShowWDL"])
+            wdl = UCI::to_wdl(v, rootPos);
 
         std::string pv;
         pv.reserve(6 * rm.pv.size());
