@@ -25,6 +25,9 @@
 #endif
 
 #include "bitboard.h"
+#if defined(USE_AVX512ICL)
+    #include "misc.h"
+#endif
 #include "position.h"
 
 namespace DON {
@@ -32,7 +35,7 @@ namespace DON {
 namespace {
 
 #if defined(USE_AVX512ICL)
-Move* write_moves(Move* moves, std::uint32_t mask, __m512i vector) noexcept {
+Move* write_moves(std::uint32_t mask, __m512i vector, Move* moves) noexcept {
     // Avoid _mm512_mask_compressstoreu_epi16() as it's 256 uOps on Zen4
     _mm512_storeu_si512(reinterpret_cast<__m512i*>(moves),
                         _mm512_maskz_compress_epi16(mask, vector));
@@ -42,26 +45,28 @@ Move* write_moves(Move* moves, std::uint32_t mask, __m512i vector) noexcept {
 
 // Splat pawn moves
 template<Direction D>
-Move* splat_pawn_moves(Move* moves, Bitboard b) noexcept {
-    static_assert(D == NORTH || D == SOUTH || D == NORTH_2 || D == SOUTH_2  //
-                    || D == NORTH_EAST || D == SOUTH_EAST || D == NORTH_WEST || D == SOUTH_WEST,
+Move* splat_pawn_moves(Bitboard b, Move* moves) noexcept {
+    static_assert(D == NORTH || D == SOUTH                 //
+                    || D == NORTH_2 || D == SOUTH_2        //
+                    || D == NORTH_EAST || D == SOUTH_EAST  //
+                    || D == NORTH_WEST || D == SOUTH_WEST,
                   "D is invalid");
 
 #if defined(USE_AVX512ICL)
     alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr {
-        std::array<Move, 64> table{};
-        for (std::int8_t i = 0; i < 64; ++i)
+        StdArray<Move, SQUARE_NB> table{};
+        for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
-            Square s{std::clamp<std::int8_t>(i - D, 0, 63)};
-            table[i] = {Move(s, Square{i})};
+            Square sq = std::clamp(s - D, SQUARE_ZERO, SQUARE_NB - 1);
+            table[s]  = Move(sq, s);
         }
         return table;
     }();
 
     const auto* table = reinterpret_cast<const __m512i*>(SplatTable.data());
 
-    moves = write_moves(moves, std::uint32_t(b >> 00), _mm512_load_si512(table + 0));
-    moves = write_moves(moves, std::uint32_t(b >> 32), _mm512_load_si512(table + 1));
+    moves = write_moves(std::uint32_t(b >> 00), _mm512_load_si512(table + 0), moves);
+    moves = write_moves(std::uint32_t(b >> 32), _mm512_load_si512(table + 1), moves);
 #else
     while (b)
     {
@@ -74,9 +79,10 @@ Move* splat_pawn_moves(Move* moves, Bitboard b) noexcept {
 
 // Splat promotion moves
 template<Direction D>
-Move* splat_promotion_moves(Move* moves, Bitboard b) noexcept {
-    static_assert(D == NORTH || D == SOUTH || D == NORTH_2 || D == SOUTH_2  //
-                    || D == NORTH_EAST || D == SOUTH_EAST || D == NORTH_WEST || D == SOUTH_WEST,
+Move* splat_promotion_moves(Bitboard b, Move* moves) noexcept {
+    static_assert(D == NORTH || D == SOUTH                 //
+                    || D == NORTH_EAST || D == SOUTH_EAST  //
+                    || D == NORTH_WEST || D == SOUTH_WEST,
                   "D is invalid");
 
     while (b)
@@ -88,28 +94,28 @@ Move* splat_promotion_moves(Move* moves, Bitboard b) noexcept {
     return moves;
 }
 
-// Splat moves for a given square and bitboard
-Move* splat_moves(Move* moves, Square s, Bitboard b) noexcept {
+// Splat moves
+Move* splat_moves(Square org, Bitboard b, Move* moves) noexcept {
 
 #if defined(USE_AVX512ICL)
     alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr {
-        std::array<Move, 64> table{};
-        for (std::int8_t i = 0; i < 64; ++i)
-            table[i] = {Move(SQUARE_ZERO, Square{i})};
+        StdArray<Move, SQUARE_NB> table{};
+        for (Square s = SQ_A1; s <= SQ_H8; ++s)
+            table[s] = Move(SQUARE_ZERO, s);
         return table;
     }();
 
-    __m512i sVec = _mm512_set1_epi16(Move(s, SQUARE_ZERO).raw());
+    __m512i orgVec = _mm512_set1_epi16(Move(org, SQUARE_ZERO).raw());
 
     const auto* table = reinterpret_cast<const __m512i*>(SplatTable.data());
 
-    moves = write_moves(moves, std::uint32_t(b >> 00),
-                        _mm512_or_si512(_mm512_load_si512(table + 0), sVec));
-    moves = write_moves(moves, std::uint32_t(b >> 32),
-                        _mm512_or_si512(_mm512_load_si512(table + 1), sVec));
+    moves = write_moves(std::uint32_t(b >> 00),
+                        _mm512_or_si512(_mm512_load_si512(table + 0), orgVec), moves);
+    moves = write_moves(std::uint32_t(b >> 32),
+                        _mm512_or_si512(_mm512_load_si512(table + 1), orgVec), moves);
 #else
     while (b)
-        *moves++ = Move(s, pop_lsb(b));
+        *moves++ = Move(org, pop_lsb(b));
 #endif
     return moves;
 }
@@ -150,8 +156,8 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
             b2 &= target;
         }
 
-        moves = splat_pawn_moves<Push1>(moves, b1);
-        moves = splat_pawn_moves<Push2>(moves, b2);
+        moves = splat_pawn_moves<Push1>(b1, moves);
+        moves = splat_pawn_moves<Push2>(b2, moves);
     }
 
     // Promotions and under-promotions & Standard and en-passant captures
@@ -165,20 +171,20 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
             // Consider only blocking and capture squares
             if constexpr (Evasion)
                 b &= between_bb(pos.king_sq(AC), lsb(pos.checkers()));
-            moves = splat_promotion_moves<Push1>(moves, b);
+            moves = splat_promotion_moves<Push1>(b, moves);
 
             b     = shift_bb<CaptL>(on7Pawns) & enemies;
-            moves = splat_promotion_moves<CaptL>(moves, b);
+            moves = splat_promotion_moves<CaptL>(b, moves);
 
             b     = shift_bb<CaptR>(on7Pawns) & enemies;
-            moves = splat_promotion_moves<CaptR>(moves, b);
+            moves = splat_promotion_moves<CaptR>(b, moves);
         }
 
         b     = shift_bb<CaptL>(non7Pawns) & enemies;
-        moves = splat_pawn_moves<CaptL>(moves, b);
+        moves = splat_pawn_moves<CaptL>(b, moves);
 
         b     = shift_bb<CaptR>(non7Pawns) & enemies;
-        moves = splat_pawn_moves<CaptR>(moves, b);
+        moves = splat_pawn_moves<CaptR>(b, moves);
 
         if (is_ok(pos.ep_sq()))
         {
@@ -216,13 +222,13 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
     Bitboard pc = pos.pieces<PT>(AC);
     while (pc)
     {
-        Square s = pop_lsb(pc);
+        Square org = pop_lsb(pc);
 
-        Bitboard b = attacks_bb<PT>(s, pos.pieces()) & target;
-        if (PT != KNIGHT && (pos.blockers(AC) & s))
-            b &= line_bb(pos.king_sq(AC), s);
+        Bitboard b = attacks_bb<PT>(org, pos.pieces()) & target;
+        if (PT != KNIGHT && (pos.blockers(AC) & org))
+            b &= line_bb(pos.king_sq(AC), org);
 
-        moves = splat_moves(moves, s, b);
+        moves = splat_moves(org, b, moves);
     }
     return moves;
 }
@@ -325,7 +331,6 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
 }
 
 }  // namespace
-
 
 // <ENCOUNTER  > Generates all pseudo-legal captures and non-captures moves
 // <ENC_CAPTURE> Generates all pseudo-legal captures and promotions moves
