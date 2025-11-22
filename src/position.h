@@ -236,7 +236,6 @@ class Position final {
     Color        active_color() const noexcept;
     std::int16_t ply() const noexcept;
     std::int32_t move_num() const noexcept;
-    std::int32_t phase() const noexcept;
 
     std::int16_t rule50_count() const noexcept;
     std::int16_t null_ply() const noexcept;
@@ -262,7 +261,6 @@ class Position final {
     int   std_material() const noexcept;
     Value material() const noexcept;
     Value evaluate() const noexcept;
-    Value bonus() const noexcept;
 
     void  put_piece(Square s, Piece pc, DirtyThreats* const dts = nullptr) noexcept;
     Piece remove_piece(Square s, DirtyThreats* const dts = nullptr) noexcept;
@@ -582,11 +580,6 @@ inline std::int32_t Position::move_num() const noexcept {
     return 1 + (ply() - (active_color() == BLACK)) / 2;
 }
 
-inline std::int32_t Position::phase() const noexcept {
-    return std::max(24 - count<KNIGHT>() - count<BISHOP>() - 2 * count<ROOK>() - 4 * count<QUEEN>(),
-                    0);
-}
-
 inline std::int16_t Position::rule50_count() const noexcept { return st->rule50Count; }
 
 inline std::int16_t Position::null_ply() const noexcept { return st->nullPly; }
@@ -624,16 +617,6 @@ inline Value Position::evaluate() const noexcept {
     Color ac = active_color();
     return VALUE_PAWN * (count<PAWN>(ac) - count<PAWN>(~ac))
          + (non_pawn_value(ac) - non_pawn_value(~ac));
-}
-
-inline Value Position::bonus() const noexcept {
-    Color ac = active_color();
-    // clang-format off
-    return (+20 * (bishop_paired(ac) - bishop_paired(~ac))
-            +56 * ((can_castle( ac & ANY_CASTLING) || has_castled( ac))
-                 - (can_castle(~ac & ANY_CASTLING) || has_castled(~ac))))
-         * (1.0 - 4.1250e-2 * phase());
-    // clang-format on
 }
 
 inline bool Position::capture(Move m) const noexcept {
