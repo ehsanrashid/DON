@@ -747,7 +747,7 @@ Value Worker::search(Position&    pos,
     bool preNonPawn =
       is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && (ss - 1)->move.type_of() != PROMOTION;
 
-    int correctionValue = correction_value(pos, ss);
+    int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
     int absCorrectionValue = std::abs(correctionValue);
 
@@ -763,11 +763,14 @@ Value Worker::search(Position&    pos,
         ss->staticEval = eval = (ss - 2)->staticEval;
     }
     else if (exclude)
+    {
         unadjustedStaticEval = eval = ss->staticEval;
+    }
     else if (ttd.hit)
     {
         // Never assume anything about values stored in TT
         unadjustedStaticEval = ttd.eval;
+
         if (!is_valid(unadjustedStaticEval))
             unadjustedStaticEval = evaluate(pos);
 
@@ -1624,8 +1627,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     int correctionValue;
 
-    Value unadjustedStaticEval, bestValue;
-    Value futilityBase;
+    Value unadjustedStaticEval, bestValue, futilityBase;
 
     // Step 4. Static evaluation of the position
     if (ss->inCheck)
