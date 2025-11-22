@@ -1948,8 +1948,6 @@ void Worker::update_correction_history(const Position& pos, Stack* const ss, int
     }
 }
 
-// (*Scaler) All tuned parameters at time controls shorter than
-// optimized for require verifications at longer time controls
 int Worker::correction_value(const Position& pos, const Stack* const ss) noexcept {
     constexpr int Limit = 0x7FFFFFFF;
 
