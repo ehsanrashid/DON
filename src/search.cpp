@@ -749,8 +749,6 @@ Value Worker::search(Position&    pos,
 
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
-    int absCorrectionValue = std::abs(correctionValue);
-
     Value unadjustedStaticEval, eval;
 
     bool improve, worsen;
@@ -913,6 +911,8 @@ Value Worker::search(Position&    pos,
             }
         }
     }
+
+    int absCorrectionValue = std::abs(correctionValue);
 
     // Skip early pruning when in check
     if (ss->inCheck)
@@ -1625,23 +1625,19 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         && (ttd.bound & fail_bound(ttd.value >= beta)) != 0)
         return ttd.value;
 
-    int correctionValue;
+    int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
     Value unadjustedStaticEval, bestValue, futilityBase;
 
     // Step 4. Static evaluation of the position
     if (ss->inCheck)
     {
-        correctionValue = 0;
-
         unadjustedStaticEval = VALUE_NONE;
 
         bestValue = futilityBase = -VALUE_INFINITE;
 
         goto QS_MOVES_LOOP;
     }
-
-    correctionValue = correction_value(pos, ss);
 
     if (ttd.hit)
     {
