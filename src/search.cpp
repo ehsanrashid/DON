@@ -152,10 +152,10 @@ Value adjust_static_eval(Value ev, int cv) noexcept { return in_range(ev + 7.629
 bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcept {
     return !(pos.capture(move) || type_of(pos.moved_piece(move)) == PAWN || pos.rule50_count() < 10
              || pos.null_ply() < 6 || ss->ply < 20)
-        && move.org_sq() == (ss - 2)->move.dst_sq()
-        && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq()
-        && (ss - 4)->move.org_sq() == (ss - 6)->move.dst_sq()
-        && (ss - 6)->move.org_sq() == (ss - 8)->move.dst_sq();
+        && (ss - 2)->move.is_ok() && move.org_sq() == (ss - 2)->move.dst_sq()
+        && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq()
+        && (ss - 6)->move.is_ok() && (ss - 4)->move.org_sq() == (ss - 6)->move.dst_sq()
+        && (ss - 8)->move.is_ok() && (ss - 6)->move.org_sq() == (ss - 8)->move.dst_sq();
 }
 
 }  // namespace
