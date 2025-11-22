@@ -63,7 +63,7 @@ Value evaluate(const Position&          pos,
         nnue   = compute_nnue();
 
         // Re-evaluate with the big-net if the small-net's NNUE evaluation is below a certain threshold
-        if (std::abs(nnue) < 236)
+        if (std::abs(nnue) < 277)
         {
             smallNetUse = false;
 
@@ -82,15 +82,15 @@ Value evaluate(const Position&          pos,
     // Blend nnue and optimism with complexity
     std::int32_t complexity = std::abs(netOut.psqt - netOut.positional);
 
-    nnue     *= 1.0 - 55.5555e-6 * complexity;
-    optimism *= 1.0 + 21.3675e-4 * complexity;
+    nnue     *= 1.0 - 54.8366e-6 * complexity;
+    optimism *= 1.0 + 21.0084e-4 * complexity;
 
-    std::int32_t v = (nnue + 0.09999 * optimism)
-                   + (nnue +           optimism) * pos.material() * 12.8572e-6;
+    std::int32_t v = (nnue + 92.3450e-3 * optimism)
+                   + (nnue +              optimism) * pos.material() * 12.8417e-6;
     // clang-format on
 
     // Damp down the evaluation linearly when shuffling
-    v *= std::max(1.0 - 4.7170e-3 * pos.rule50_count(), 0.0);
+    v *= std::max(1.0 - 5.0505e-3 * pos.rule50_count(), 0.0);
 
     // Guarantee evaluation does not hit the table-base range
     return in_range(v);

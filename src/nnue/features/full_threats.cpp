@@ -181,18 +181,13 @@ void FullThreats::init() noexcept {
 void FullThreats::append_active_indices(Color           perspective,
                                         const Position& pos,
                                         IndexList&      active) noexcept {
-    constexpr StdArray<Color, COLOR_NB, COLOR_NB> Order{{
-      {WHITE, BLACK},  //
-      {BLACK, WHITE}   //
-    }};
-
     Square kingSq = pos.king_sq(perspective);
 
     Bitboard occupied = pos.pieces();
     for (Color color : {WHITE, BLACK})
         for (PieceType pt = PAWN; pt <= KING; ++pt)
         {
-            Color    c        = Order[perspective][color];
+            Color    c        = Color(perspective ^ color);
             Piece    attacker = make_piece(c, pt);
             Bitboard bb       = pos.pieces(c, pt);
 
