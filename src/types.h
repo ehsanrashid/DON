@@ -301,18 +301,14 @@ struct DirtyThreat final {
    public:
     DirtyThreat() { /* Don't initialize data */ }
     DirtyThreat(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool add) noexcept {
-        data = (add << 24) | (threatenedPc << 20) | (pc << 16) | (threatenedSq << 8) | (sq << 0);
+        data = (add << 31) | (threatenedPc << 20) | (pc << 16) | (threatenedSq << 8) | (sq << 0);
     }
 
     Square sq() const noexcept { return Square((data >> 0) & 0xFF); }
     Square threatened_sq() const noexcept { return Square((data >> 8) & 0xFF); }
     Piece  pc() const noexcept { return Piece((data >> 16) & 0xF); }
     Piece  threatened_pc() const noexcept { return Piece((data >> 20) & 0xF); }
-    bool   add() const noexcept {
-        std::uint32_t b = data >> 24;
-        ASSUME(b == 0 || b == 1);
-        return b;
-    }
+    bool   add() const noexcept { return data >> 31; }
 
    private:
     std::uint32_t data;

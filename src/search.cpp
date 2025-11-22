@@ -1646,6 +1646,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     {
         // Never assume anything about values stored in TT
         unadjustedStaticEval = ttd.eval;
+
         if (!is_valid(unadjustedStaticEval))
             unadjustedStaticEval = evaluate(pos);
 
