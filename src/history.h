@@ -171,7 +171,7 @@ struct CorrectionHistoryDef<CHPawn> final {
 
 template<>
 struct CorrectionHistoryDef<CHMinor> final {
-    using Type = CorrectionStatsContainer<UINT_16_HISTORY_SIZE, COLOR_NB>;
+    using Type = CorrectionStatsContainer<UINT_16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
