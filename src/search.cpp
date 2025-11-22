@@ -747,7 +747,7 @@ Value Worker::search(Position&    pos,
     bool preNonPawn =
       is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && (ss - 1)->move.type_of() != PROMOTION;
 
-    int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
+    int correctionValue = correction_value(pos, ss);
 
     Value unadjustedStaticEval, eval;
 
@@ -1625,7 +1625,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         && (ttd.bound & fail_bound(ttd.value >= beta)) != 0)
         return ttd.value;
 
-    int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
+    int correctionValue = correction_value(pos, ss);
 
     Value unadjustedStaticEval, bestValue, futilityBase;
 
