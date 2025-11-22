@@ -1964,7 +1964,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
                      ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
                      + (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
                      : 8),
-        std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+            -0x7FFFFFFF, +0x7FFFFFFF);
 }
 
 // clang-format on
