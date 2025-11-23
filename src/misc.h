@@ -508,10 +508,7 @@ class FixedString final {
     static_assert(Capacity > 0, "Capacity must be > 0");
 
    public:
-    FixedString() noexcept :
-        _size(0) {
-        null_terminate();
-    }
+    FixedString() noexcept { clear(); }
 
     FixedString(const char* str) {
         size_t size = std::strlen(str);

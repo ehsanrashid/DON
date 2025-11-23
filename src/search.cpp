@@ -850,6 +850,9 @@ Value Worker::search(Position&    pos,
 
     Color ac = pos.active_color();
 
+    bool  hasNonPawn   = pos.has_non_pawn(ac);
+    Value nonPawnValue = hasNonPawn ? pos.non_pawn_value(ac) : VALUE_ZERO;
+
     [[maybe_unused]] Value maxValue = +VALUE_INFINITE;
 
     Value value, bestValue = -VALUE_INFINITE;
@@ -959,8 +962,8 @@ Value Worker::search(Position&    pos,
 
     // Step 9. Null move search with verification search
     // The non-pawn condition is important for finding Zugzwangs.
-    if (CutNode && !exclude && ss->ply >= nmpPly  //
-        && ss->staticEval - 350 + 18 * depth >= beta && pos.has_non_pawn(ac))
+    if (CutNode && !exclude && hasNonPawn && ss->ply >= nmpPly
+        && ss->staticEval - 350 + 18 * depth >= beta)
     {
         assert((ss - 1)->move != Move::Null);
 
@@ -1079,8 +1082,6 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     value = bestValue;
 
-    Value nonPawnValue = pos.non_pawn_value(ac);
-
     std::uint8_t moveCount  = 0;
     std::uint8_t promoCount = 0;
 
@@ -1141,7 +1142,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Step 14. Pruning at shallow depths
         // Depth conditions are important for mate finding.
-        if (!RootNode && !is_loss(bestValue) && pos.has_non_pawn(ac))
+        if (!RootNode && hasNonPawn && !is_loss(bestValue))
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
             mp.quietAllowed &= ((moveCount - promoCount) < ((3 + depth * depth) >> (!improve)));
@@ -1290,7 +1291,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         assert(captured == type_of(pos.captured_piece()));
 
-        ss->history = capture ? 6.7813 * (PIECE_VALUE[captured] + promotion_value(move))
+        ss->history = capture ? int(6.7813 * (PIECE_VALUE[captured] + promotion_value(move)))
                                   + captureHistory[movedPiece][dst][captured]
                               : 2 * quietHistory[ac][move.raw()]        //
                                   + (*contHistory[0])[movedPiece][dst]  //
@@ -1671,7 +1672,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         return bestValue;
     }
 
-    alpha = std::max(alpha, bestValue);
+    if (alpha < bestValue)
+        alpha = bestValue;
 
     futilityBase = std::min(351 + ss->staticEval, +VALUE_INFINITE);
 

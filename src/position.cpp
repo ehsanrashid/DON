@@ -577,18 +577,20 @@ void Position::set_state() noexcept {
 // Set extra state to detect if a move is check
 void Position::set_ext_state() noexcept {
 
+    Square kingSq = king_sq(~active_color());
+
     Bitboard occupied = pieces();
 
     // clang-format off
     st->checks[NO_PIECE_TYPE] = 0;
-    st->checks[PAWN  ] = attacks_bb<PAWN  >(king_sq(~active_color()), ~active_color());
-    st->checks[KNIGHT] = attacks_bb<KNIGHT>(king_sq(~active_color()));
-    st->checks[BISHOP] = attacks_bb<BISHOP>(king_sq(~active_color()), occupied);
-    st->checks[ROOK  ] = attacks_bb<ROOK  >(king_sq(~active_color()), occupied);
+    st->checks[PAWN  ] = attacks_bb<PAWN  >(kingSq, ~active_color());
+    st->checks[KNIGHT] = attacks_bb<KNIGHT>(kingSq);
+    st->checks[BISHOP] = attacks_bb<BISHOP>(kingSq, occupied);
+    st->checks[ROOK  ] = attacks_bb<ROOK  >(kingSq, occupied);
     st->checks[QUEEN ] = checks(BISHOP) | checks(ROOK);
     st->checks[KING  ] = 0;
 
-    st->pinners.fill(0);
+    st->pinners[WHITE] = st->pinners[BLACK] = 0;
 
     for (Color c : {WHITE, BLACK})
     {
@@ -597,15 +599,16 @@ void Position::set_ext_state() noexcept {
         // and the slider pieces of color ~c pinning pieces of color c to the king.
         st->blockers[c] = 0;
 
+        kingSq = king_sq(c);
         // Snipers are xsliders enemies that attack 'king' when other snipers are removed
-        Bitboard xsnipers  = xslide_attackers_to(king_sq(c)) & pieces(~c);
+        Bitboard xsnipers  = xslide_attackers_to(kingSq) & pieces(~c);
         Bitboard xoccupied = occupied ^ xsnipers;
 
         while (xsnipers)
         {
             Square xsniper = pop_lsb(xsnipers);
 
-            Bitboard blocker = between_bb(king_sq(c), xsniper) & xoccupied;
+            Bitboard blocker = between_bb(kingSq, xsniper) & xoccupied;
             if (exactly_one(blocker))
             {
                 st->blockers[c] |= blocker;
