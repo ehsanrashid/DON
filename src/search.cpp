@@ -1856,8 +1856,8 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
 void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }
 
 Value Worker::evaluate(const Position& pos) noexcept {
-    return DON::evaluate(pos, networks[numaAccessToken], accStack, accCaches,
-                         optimism[pos.active_color()]);
+    return Evaluate::evaluate(pos, networks[numaAccessToken], accStack, accCaches,
+                              optimism[pos.active_color()]);
 }
 
 // clang-format off

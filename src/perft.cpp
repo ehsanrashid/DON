@@ -33,7 +33,7 @@
 #include "thread.h"
 #include "uci.h"
 
-namespace DON::Benchmark {
+namespace DON::Perft {
 
 namespace {
 
@@ -398,4 +398,4 @@ perft(Position& pos, std::size_t ptSize, ThreadPool& threads, Depth depth, bool 
     return perft<true>(pos, depth, detail).nodes;
 }
 
-}  // namespace DON::Benchmark
+}  // namespace DON::Perft

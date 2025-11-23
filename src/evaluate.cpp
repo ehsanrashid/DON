@@ -33,7 +33,7 @@
 #include "position.h"
 #include "uci.h"
 
-namespace DON {
+namespace DON::Evaluate {
 
 // Evaluate is the evaluator for the outer world.
 // It returns a static evaluation of the position
@@ -129,4 +129,4 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     return oss.str();
 }
 
-}  // namespace DON
+}  // namespace DON::Evaluate
