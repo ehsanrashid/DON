@@ -28,7 +28,7 @@ namespace DON {
 class Position;
 class ThreadPool;
 
-namespace Benchmark {
+namespace Perft {
 
 std::uint64_t perft(Position&   pos,
                     std::size_t ptSize,
@@ -36,7 +36,7 @@ std::uint64_t perft(Position&   pos,
                     Depth       depth,
                     bool        detail = false) noexcept;
 
-}  // namespace Benchmark
+}  // namespace Perft
 }  // namespace DON
 
 #endif  // #ifndef PERFT_H_INCLUDED

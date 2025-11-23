@@ -33,7 +33,7 @@
 #include "thread.h"
 #include "uci.h"
 
-namespace DON::Benchmark {
+namespace DON::Perft {
 
 namespace {
 
@@ -66,13 +66,15 @@ void PerftInfo::classify(Position& pos, Move m) noexcept {
 
     if (pos.capture(m))
     {
-        capture += 1;
-        enpassant += m.type_of() == EN_PASSANT;
+        ++capture;
+
+        if (m.type_of() == EN_PASSANT)
+            ++enpassant;
     }
 
     if (pos.check(m))
     {
-        anyCheck += 1;
+        ++anyCheck;
 
         if (!(pos.checks(m.type_of() != PROMOTION ? type_of(pos.piece_on(org))  //
                                                   : m.promotion_type())
@@ -81,28 +83,44 @@ void PerftInfo::classify(Position& pos, Move m) noexcept {
             Color ac = pos.active_color();
 
             if (pos.blockers(~ac) & org)
-                dscCheck += 1;
+            {
+                ++dscCheck;
+            }
             else if (m.type_of() == EN_PASSANT)
             {
                 Bitboard occupied = pos.pieces() ^ make_bb(org, dst, dst - pawn_spush(ac));
-                dscCheck += !!(pos.slide_attackers_to(pos.king_sq(~ac), occupied) & pos.pieces(ac));
+                if (pos.slide_attackers_to(pos.king_sq(~ac), occupied) & pos.pieces(ac))
+                    ++dscCheck;
             }
             //else if (m.type_of() == CASTLING)
-            //    dscCheck += !!(pos.checks(ROOK) & rook_castle_sq(ac, org, dst));
+            //{
+            //    if (pos.checks(ROOK) & rook_castle_sq(ac, org, dst))
+            //        ++dscCheck;
+            //}
         }
 
-        dblCheck += pos.dbl_check(m);
+        if (pos.dbl_check(m))
+            ++dblCheck;
 
         pos.do_move(m, st, true);
-        //dblCheck += more_than_one(pos.checkers());
-        checkmate += MoveList<LEGAL, true>(pos).empty();
+
+        //if (more_than_one(pos.checkers()))
+        //    ++dblCheck;
+
+        if (MoveList<LEGAL, true>(pos).empty())
+            ++checkmate;
+
+        pos.undo_move(m);
     }
     else
     {
         pos.do_move(m, st, false);
-        stalemate += MoveList<LEGAL, true>(pos).empty();
+
+        if (MoveList<LEGAL, true>(pos).empty())
+            ++stalemate;
+
+        pos.undo_move(m);
     }
-    pos.undo_move(m);
 }
 
 void PerftInfo::operator+=(const PerftInfo& perftInfo) noexcept {
@@ -380,4 +398,4 @@ perft(Position& pos, std::size_t ptSize, ThreadPool& threads, Depth depth, bool 
     return perft<true>(pos, depth, detail).nodes;
 }
 
-}  // namespace DON::Benchmark
+}  // namespace DON::Perft

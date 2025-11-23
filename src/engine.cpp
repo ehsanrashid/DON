@@ -167,7 +167,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
 }
 
 std::uint64_t Engine::perft(Depth depth, bool detail) noexcept {
-    return Benchmark::perft(pos, options["Hash"], threads, depth, detail);
+    return Perft::perft(pos, options["Hash"], threads, depth, detail);
 }
 
 void Engine::start(const Limit& limit) noexcept {
@@ -211,7 +211,7 @@ void Engine::show() const noexcept { std::cout << pos << std::endl; }
 
 void Engine::eval() noexcept {
     verify_networks();
-    std::cout << '\n' << trace(pos, *networks) << std::endl;
+    std::cout << '\n' << Evaluate::trace(pos, *networks) << std::endl;
 }
 
 void Engine::flip() noexcept { pos.flip(); }

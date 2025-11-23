@@ -40,6 +40,8 @@ struct AccumulatorCaches;
 struct AccumulatorStack;
 }  // namespace NNUE
 
+namespace Evaluate {
+
 Value evaluate(const Position&          pos,
                const NNUE::Networks&    networks,
                NNUE::AccumulatorStack&  accStack,
@@ -48,6 +50,7 @@ Value evaluate(const Position&          pos,
 
 std::string trace(Position& pos, const NNUE::Networks& networks) noexcept;
 
+}  // namespace Evaluate
 }  // namespace DON
 
 #endif  // #ifndef EVALUATE_H_INCLUDED

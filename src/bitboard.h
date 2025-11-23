@@ -405,17 +405,6 @@ constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupied) noexcept {
     return attacks_bb(s, type_of(pc), occupied);
 }
 
-// Fills from the MSB down to bit 0.
-// e.g. 0001'0010 -> 0001'1111
-constexpr Bitboard fill_prefix_bb(Bitboard b) noexcept {
-    return b |= b >> 1, b |= b >> 2, b |= b >> 4, b |= b >> 8, b |= b >> 16, b |= b >> 32;
-}
-// Fills from the LSB up to bit 63.
-// e.g. 0001'0010 -> 1111'1110
-constexpr Bitboard fill_postfix_bb(Bitboard b) noexcept {
-    return b |= b << 1, b |= b << 2, b |= b << 4, b |= b << 8, b |= b << 16, b |= b << 32;
-}
-
 // Counts the number of non-zero bits in the bitboard.
 inline std::uint8_t popcount(Bitboard b) noexcept {
 
@@ -448,6 +437,28 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
     b = ((b >> 4) + b) & 0x0F0F0F0F0F0F0F0FULL;
     return (b * 0x0101010101010101ULL) >> 56;
 #endif
+}
+
+// Fills from the MSB down to bit 0.
+// e.g. 0001'0010 -> 0001'1111
+constexpr Bitboard fill_prefix_bb(Bitboard b) noexcept {
+    return b |= b >> 1, b |= b >> 2, b |= b >> 4, b |= b >> 8, b |= b >> 16, b |= b >> 32;
+}
+// Fills from the LSB up to bit 63.
+// e.g. 0001'0010 -> 1111'1110
+constexpr Bitboard fill_postfix_bb(Bitboard b) noexcept {
+    return b |= b << 1, b |= b << 2, b |= b << 4, b |= b << 8, b |= b << 16, b |= b << 32;
+}
+
+constexpr std::uint8_t constexpr_lsb(Bitboard b) noexcept {
+    assert(b);
+    b ^= b - 1;
+    return msb_index(b);
+}
+constexpr std::uint8_t constexpr_msb(Bitboard b) noexcept {
+    assert(b);
+    b = fill_prefix_bb(b);
+    return msb_index(b);
 }
 
 // Returns the least significant bit in the non-zero bitboard
@@ -488,8 +499,7 @@ inline Square lsb(Bitboard b) noexcept {
     // asm ("bsfq %0, %0" : "+r" (b) :: "cc");
     // return Square(b);
 
-    b ^= b - 1;
-    return Square(msb_index(b));
+    return Square(constexpr_lsb(b));
 #endif
 }
 
@@ -528,8 +538,7 @@ inline Square msb(Bitboard b) noexcept {
     // asm ("bsrq %0, %0" : "+r" (b) :: "cc");
     // return Square(b);
 
-    b = fill_prefix_bb(b);
-    return Square(msb_index(b));
+    return Square(constexpr_msb(b));
 #endif
 }
 
@@ -545,7 +554,6 @@ inline Square pop_lsb(Bitboard& b) noexcept {
 inline Square pop_msb(Bitboard& b) noexcept {
     assert(b);
     Square s = msb(b);
-    // b &= fill_prefix_bb(b) >> 1; // b ^= fill_prefix_bb(b) ^ (fill_prefix_bb(b) >> 1);
     b ^= s;
     return s;
 }

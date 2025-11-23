@@ -967,7 +967,7 @@ Value Worker::search(Position&    pos,
     {
         assert((ss - 1)->move != Move::Null);
 
-        // Null move dynamic reduction based on depth and phase
+        // Null move dynamic reduction
         Depth R = 7 + depth / 3;
 
         do_null_move(pos, st, ss);
@@ -985,7 +985,7 @@ Value Worker::search(Position&    pos,
             assert(nmpPly == 0);  // Recursive verification is not allowed
 
             // Do verification search at high depths,
-            // with null move pruning disabled until ply exceeds nmpMinPly.
+            // with null move pruning disabled until ply exceeds nmpPly.
             nmpPly = ss->ply + 3 * (depth - R) / 4;
 
             Value v = search<All>(pos, ss, beta - 1, beta, depth - R);
@@ -1215,10 +1215,10 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Step 15. Extensions
         // Singular extension search. If all moves but one fail low on a search
         // of (alpha-s, beta-s), and just one fails high on (alpha, beta),
-        // then that move is singular and should be extended. To verify this
-        // do a reduced search on the position excluding the ttMove and
-        // if the result is lower than ttValue minus a margin, then will
-        // extend the ttMove. Recursive singular search is avoided.
+        // then that move is singular and should be extended.
+        // To verify this do a reduced search on the position excluding the ttMove and
+        // if the result is lower than ttValue minus a margin, then will extend the ttMove.
+        // Recursive singular search is avoided.
         std::int8_t extension = 0;
 
         // (*Scaler) Generally, frequent extensions scales well.
@@ -1351,7 +1351,6 @@ S_MOVES_LOOP:  // When in check, search starts here
                 update_continuation_history(ss, movedPiece, dst, 1365);
             }
         }
-
         // Step 18. Full-depth search when LMR is skipped
         else if (!PVNode || moveCount > 1)
         {
@@ -1857,8 +1856,8 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
 void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }
 
 Value Worker::evaluate(const Position& pos) noexcept {
-    return DON::evaluate(pos, networks[numaAccessToken], accStack, accCaches,
-                         optimism[pos.active_color()]);
+    return Evaluate::evaluate(pos, networks[numaAccessToken], accStack, accCaches,
+                              optimism[pos.active_color()]);
 }
 
 // clang-format off
