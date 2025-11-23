@@ -479,7 +479,7 @@ struct Stack final {
     std::uint8_t moveCount;
     std::uint8_t cutoffCount;
     bool         inCheck;
-    bool         pvHit;
+    bool         ttPv;
 };
 
 // Worker is the class that does the actual search.

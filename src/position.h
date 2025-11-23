@@ -23,6 +23,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
 #include <iosfwd>
 #include <string>
 #include <string_view>
@@ -617,7 +618,7 @@ inline int Position::std_material() const noexcept {
     return 1 * count<PAWN>()                          //
          + 3 * count<KNIGHT>() + 3 * count<BISHOP>()  //
          + 5 * count<ROOK>()                          //
-         + 8 * count<QUEEN>();
+         + 9 * count<QUEEN>();
 }
 
 inline Value Position::material() const noexcept { return 534 * count<PAWN>() + non_pawn_value(); }

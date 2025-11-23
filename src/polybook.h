@@ -93,7 +93,7 @@ class PolyBook final {
 
     void find_key(Key key) noexcept;
 
-    void get_key_data(std::size_t begIndex) noexcept;
+    void get_key_data(std::size_t index) noexcept;
 
     void show_key_data() const noexcept;
 

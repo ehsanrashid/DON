@@ -75,7 +75,7 @@ struct TTEntry final {
 
     // Convert internal bitfields to TTData
     TTData read() const noexcept {
-        return {occupied(), pv_hit(), bound(), depth(), move(), value(), eval()};
+        return {value(), eval(), move(), depth(), bound(), occupied(), pv_hit()};
     }
 
     // Populates the TTEntry with a new node's data, possibly
@@ -219,7 +219,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
         if (rte->worth(generation8) > ttc->entries[i].worth(generation8))
             rte = &ttc->entries[i];
 
-    return {TTData{false, false, BOUND_NONE, DEPTH_OFFSET, Move::None, VALUE_NONE, VALUE_NONE},
+    return {TTData{VALUE_NONE, VALUE_NONE, Move::None, DEPTH_OFFSET, BOUND_NONE, false, false},
             TTUpdater{rte, ttc, key16, generation8}};
 }
 

@@ -738,7 +738,7 @@ Value Worker::search(Position&    pos,
     bool ttCapture = ttd.move != Move::None && pos.capture_promo(ttd.move);
 
     if (!exclude)
-        ss->pvHit = PVNode || (ttd.hit && ttd.pvHit);
+        ss->ttPv = PVNode || (ttd.hit && ttd.isPv);
 
     auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
@@ -783,7 +783,7 @@ Value Worker::search(Position&    pos,
 
         ss->staticEval = eval = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
-        ttu.update(DEPTH_NONE, ss->pvHit, BOUND_NONE, Move::None, VALUE_NONE, unadjustedStaticEval);
+        ttu.update(DEPTH_NONE, ss->ttPv, BOUND_NONE, Move::None, VALUE_NONE, unadjustedStaticEval);
     }
 
     // Set up the improve and worsen flags.
@@ -893,7 +893,7 @@ Value Worker::search(Position&    pos,
 
                 if (bound == BOUND_EXACT || (bound == BOUND_LOWER ? value >= beta : value <= alpha))
                 {
-                    ttu.update(std::min(depth + 6, MAX_PLY - 1), ss->pvHit, bound, Move::None,
+                    ttu.update(std::min(depth + 6, MAX_PLY - 1), ss->ttPv, bound, Move::None,
                                value_to_tt(value, ss->ply), VALUE_NONE);
 
                     return value;
@@ -954,7 +954,7 @@ Value Worker::search(Position&    pos,
                  + int(5.7252e-6 * absCorrectionValue);
         };
 
-        if (!ss->pvHit && !exclude && depth < 14 && !is_win(eval) && !is_loss(beta)
+        if (!ss->ttPv && !exclude && depth < 14 && !is_win(eval) && !is_loss(beta)
             && (ttd.move == Move::None || ttCapture)
             && eval - std::max(futility_margin(ttd.hit), 0) >= beta)
             return (depth * eval + beta) / (depth + 1);
@@ -1059,7 +1059,7 @@ Value Worker::search(Position&    pos,
             {
                 // Save ProbCut data into transposition table
                 if (!exclude)
-                    ttu.update(probCutDepth + 1, ss->pvHit, BOUND_LOWER, move,
+                    ttu.update(probCutDepth + 1, ss->ttPv, BOUND_LOWER, move,
                                value_to_tt(value, ss->ply), unadjustedStaticEval);
 
                 if (!is_decisive(value))
@@ -1138,7 +1138,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         int r = reduction(depth, moveCount, deltaRatio, improve);
 
         // (*Scaler) Increase reduction for pvHit nodes, Larger values scales well
-        r += 946 * ss->pvHit;
+        r += 946 * ss->ttPv;
 
         // Step 14. Pruning at shallow depths
         // Depth conditions are important for mate finding.
@@ -1223,12 +1223,12 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // (*Scaler) Generally, frequent extensions scales well.
         // This includes high singularBeta values (i.e closer to ttValue) and low extension margins.
-        if (!RootNode && !exclude && depth > 5 + ss->pvHit && move == ttd.move
-            && is_valid(ttd.value) && !is_decisive(ttd.value) && ttd.depth >= depth - 3
-            && (ttd.bound & BOUND_LOWER) && !is_shuffling(pos, ss, move))
+        if (!RootNode && !exclude && depth > 5 + ss->ttPv && move == ttd.move && is_valid(ttd.value)
+            && !is_decisive(ttd.value) && ttd.depth >= depth - 3 && (ttd.bound & BOUND_LOWER)
+            && !is_shuffling(pos, ss, move))
         {
             Value singularBeta = std::max(
-              ttd.value - int((0.8833 + 1.2500 * (!PVNode && ss->pvHit)) * depth), -VALUE_INFINITE);
+              ttd.value - int((0.8833 + 1.2500 * (!PVNode && ss->ttPv)) * depth), -VALUE_INFINITE);
             assert(singularBeta >= -VALUE_INFINITE);
             Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
@@ -1243,7 +1243,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int corrValue = int(4.3351e-6 * absCorrectionValue);
                 // clang-format off
                 int doubleMargin = -4 + 199 * PVNode - 201 * !ttCapture - corrValue - 42 * (1 * ss->ply > 1 * rootDepth) - 7.0271e-3 * ttMoveHistory;
-                int tripleMargin = 73 + 302 * PVNode - 248 * !ttCapture - corrValue - 50 * (2 * ss->ply > 3 * rootDepth) + 90 * ss->pvHit;
+                int tripleMargin = 73 + 302 * PVNode - 248 * !ttCapture - corrValue - 50 * (2 * ss->ply > 3 * rootDepth) + 90 * ss->ttPv;
 
                 extension = 1 + (value <= singularBeta - doubleMargin)
                               + (value <= singularBeta - tripleMargin);
@@ -1305,7 +1305,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // (*Scaler) Decrease reduction if position is or has been on the PV
         r -= (2719 + 983 * PVNode + 922 * (is_valid(ttd.value) && ttd.value > alpha)
               + (934 + 1011 * CutNode) * (ttd.depth >= depth))
-           * ss->pvHit;
+           * ss->ttPv;
 
         // Increase reduction for CutNode
         if constexpr (CutNode)
@@ -1543,7 +1543,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // If no good move is found and the previous position was pvHit, then the previous
     // opponent move is probably good and the new position is added to the search tree.
-    ss->pvHit |= (bestValue <= alpha && (ss - 1)->pvHit);
+    ss->ttPv |= (bestValue <= alpha && (ss - 1)->ttPv);
 
     // Save gathered information in transposition table
     if ((!RootNode || curIdx == 0) && !exclude)
@@ -1551,7 +1551,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         Bound bound = bestValue >= beta                ? BOUND_LOWER
                     : PVNode && bestMove != Move::None ? BOUND_EXACT
                                                        : BOUND_UPPER;
-        ttu.update(moveCount != 0 ? depth : std::min(depth + 6, MAX_PLY - 1), ss->pvHit, bound,
+        ttu.update(moveCount != 0 ? depth : std::min(depth + 6, MAX_PLY - 1), ss->ttPv, bound,
                    bestMove, value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
     }
 
@@ -1615,7 +1615,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     ttd.move  = ttd.hit ? pseudo_legal_tt_move(ttd.move, pos) : Move::None;
     assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
     ss->ttMove = ttd.move;
-    bool pvHit = ttd.hit && ttd.pvHit;
+    bool ttPv  = ttd.hit && ttd.isPv;
 
     // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && ttd.depth >= DEPTH_ZERO && is_valid(ttd.value)
@@ -1813,7 +1813,7 @@ QS_MOVES_LOOP:
         bestValue = (bestValue + beta) / 2;
 
     // Save gathered info in transposition table
-    ttu.update(DEPTH_ZERO, pvHit, fail_bound(bestValue >= beta), bestMove,
+    ttu.update(DEPTH_ZERO, ttPv, fail_bound(bestValue >= beta), bestMove,
                value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
 
     assert(is_ok(bestValue));

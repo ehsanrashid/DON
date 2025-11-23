@@ -50,26 +50,25 @@ struct TTData final {
     TTData(TTData&&) noexcept                 = default;
     TTData& operator=(const TTData&) noexcept = delete;
     TTData& operator=(TTData&&) noexcept      = delete;
-    TTData(bool ht, bool pv, Bound b, Depth d, Move m, Value v, Value ev) noexcept :
-        hit(ht),
-        pvHit(pv),
-        bound(b),
-        depth(d),
-        move(m),
+    TTData(Value v, Value ev, Move m, Depth d, Bound b, bool ht, bool pv) noexcept :
         value(v),
-        eval(ev) {}
+        eval(ev),
+        move(m),
+        depth(d),
+        bound(b),
+        hit(ht),
+        isPv(pv) {}
 
-    std::uint16_t hit: 1;
-    std::uint16_t pvHit: 1;
-    std::uint16_t bound: 2;
-    std::uint16_t: 12;  // padding bits
-    Depth depth;
-    Move  move;
     Value value;
     Value eval;
+    Move  move;
+    Depth depth;
+    Bound bound;
+    bool  hit;
+    bool  isPv;
 };
 
-//static_assert(sizeof(TTData) == 10, "Unexpected TTData size");
+//static_assert(sizeof(TTData) == 12, "Unexpected TTData size");
 
 class TTUpdater final {
    public:
