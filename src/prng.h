@@ -18,23 +18,31 @@
 #ifndef PRNG_H_INCLUDED
 #define PRNG_H_INCLUDED
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 #include "misc.h"
 
 namespace DON {
 
 // Bitwise rotate left
-constexpr std::uint64_t rotl(std::uint64_t x, unsigned k) noexcept {
-    k &= 63;
-    return (x << k) | (x >> (64 - k));
+template<typename T>
+constexpr T rotl(T v, unsigned k) noexcept {
+    static_assert(std::is_unsigned_v<T>, "rotl requires unsigned type");
+    constexpr unsigned B = 8 * sizeof(T);
+    k %= B;
+    return T((v << k) | (v >> (B - k)));
 }
 
 // Bitwise rotate right
-constexpr std::uint64_t rotr(std::uint64_t x, unsigned k) noexcept {
-    k &= 63;
-    return (x >> k) | (x << (64 - k));
+template<typename T>
+constexpr T rotr(T v, unsigned k) noexcept {
+    static_assert(std::is_unsigned_v<T>, "rotr requires unsigned type");
+    constexpr unsigned B = 8 * sizeof(T);
+    k %= B;
+    return T((v >> k) | (v << (B - k)));
 }
 
 // SplitMix64 is used to initialize the state of the main generator.
@@ -57,7 +65,7 @@ class SplitMix64 final {
 };
 
 // XorShift64* Pseudo-Random Number Generator
-// This class is based on original code written and dedicated
+// It is based on original code written and dedicated
 // to the public domain by Sebastiano Vigna (2014).
 // It has the following characteristics:
 //
@@ -117,7 +125,7 @@ class XorShift64Star final {
     std::uint64_t s{};
 };
 
-// Modern XoShiRo256** (short for "xor, shift, rotate") Pseudo-Random Number Generator
+// XoShiRo256** (short for "xor, shift, rotate") Pseudo-Random Number Generator
 class XoShiRo256Star final {
    public:
     explicit constexpr XoShiRo256Star(std::uint64_t seed = 1ULL) noexcept {
@@ -185,7 +193,7 @@ class XoShiRo256Star final {
     StdArray<std::uint64_t, Size> s{};
 };
 
-// Template PRNG wrapper class
+// Template PRNG wrapper
 template<typename Generator>
 class PRNG final {
    public:

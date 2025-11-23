@@ -46,6 +46,8 @@
     #include <xmmintrin.h>  // Microsoft header for _mm_prefetch()
 #endif
 
+namespace DON {
+
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
 
@@ -68,8 +70,6 @@
     // do nothing for other compilers
     #define ASSUME(cond) ((void) 0)
 #endif
-
-namespace DON {
 
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;

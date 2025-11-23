@@ -45,6 +45,8 @@
 
     #include "misc.h"
 
+namespace DON {
+
 // Predefined macros hell:
 //
 // __GNUC__                Compiler is GCC, Clang or ICX
@@ -78,8 +80,6 @@
             #define IS_64BIT
         #endif
     #endif
-
-namespace DON {
 
 using Bitboard = std::uint64_t;
 using Key      = std::uint64_t;
