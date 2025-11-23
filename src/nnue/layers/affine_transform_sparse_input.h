@@ -39,12 +39,6 @@ namespace DON::NNUE::Layers {
 
 namespace {
 
-constexpr std::uint8_t constexpr_lsb(std::uint64_t b) noexcept {
-    assert(b);
-    b ^= b - 1;
-    return msb_index(b);
-}
-
 struct Lookup final {
 
     static constexpr std::size_t  Size      = 256;
@@ -57,8 +51,7 @@ struct Lookup final {
         for (std::size_t i = 0; i < Size; ++i)
         {
             std::uint8_t c = 0;
-            // Bitmask
-            std::uint64_t b = i;
+            Bitboard     b = i;
             while (b)
             {
                 indices[i][c++] = constexpr_lsb(b);
