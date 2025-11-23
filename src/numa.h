@@ -64,15 +64,6 @@
     #if defined(small)
         #undef small
     #endif
-
-// On Windows each processor group can have up to 64 processors.
-// https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
-inline constexpr std::size_t WIN_PROCESSOR_GROUP_SIZE = 64;
-
-// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadselectedcpusetmasks
-using SetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT);
-// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadselectedcpusetmasks
-using GetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT, PUSHORT);
 #endif
 
 #include "misc.h"
@@ -82,6 +73,17 @@ namespace DON {
 
 using CpuIndex  = std::size_t;
 using NumaIndex = std::size_t;
+
+#if defined(_WIN64)
+// On Windows each processor group can have up to 64 processors.
+// https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
+inline constexpr std::size_t WIN_PROCESSOR_GROUP_SIZE = 64;
+
+// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadselectedcpusetmasks
+using SetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT);
+// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadselectedcpusetmasks
+using GetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT, PUSHORT);
+#endif
 
 inline CpuIndex hardware_concurrency() noexcept {
     CpuIndex concurrency = std::thread::hardware_concurrency();
