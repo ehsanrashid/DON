@@ -756,7 +756,7 @@ void UCI::benchmark(std::istream& istream) noexcept {
 }
 
 std::uint64_t UCI::perft(Depth depth, bool detail) noexcept {
-    auto nodes = engine.perft(depth, detail);
+    std::uint64_t nodes = engine.perft(depth, detail);
     std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
     return nodes;
 }
@@ -859,7 +859,7 @@ std::string UCI::move_to_can(Move m) noexcept {
     if (m.type_of() == CASTLING && !Position::Chess960)
     {
         assert(rank_of(org) == rank_of(dst));
-        dst = make_square(org < dst ? FILE_G : FILE_C, rank_of(org));
+        dst = make_square(org < dst ? FILE_G : FILE_C, rank_of(dst));
     }
 
     std::string can;

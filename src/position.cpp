@@ -36,8 +36,6 @@ namespace DON {
 
 namespace {
 
-constexpr std::size_t PawnOffset = 8;
-
 // Implements Marcel van Kervinck's cuckoo algorithm to detect repetition of positions for 3-fold repetition draws.
 // The algorithm uses hash tables with Zobrist hashes to allow fast detection of recurring positions.
 // For details see:
@@ -367,10 +365,8 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
         std::uint8_t epFile = std::tolower(token);
         std::uint8_t epRank;
         iss >> epRank;
-        // clang-format off
-        if ('a' <= epFile && epFile <= 'h'
-            && epRank == (ac == WHITE ? '6' : ac == BLACK ? '3' : '-'))
-        // clang-format on
+
+        if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
         {
             st->epSq = make_square(to_file(epFile), to_rank(epRank));
 
@@ -440,7 +436,7 @@ void Position::set(std::string_view code, Color c, State* const newSt) noexcept 
     fens += sides[BLACK];
     fens += digit_to_char(8 - sides[BLACK].size());
     fens += "/8 ";
-    fens += (c == WHITE ? 'w' : c == BLACK ? 'b' : '-');
+    fens += c == WHITE ? 'w' : 'b';
     fens += " - - 0 1";
 
     set(fens, newSt);
@@ -458,7 +454,8 @@ void Position::set(const Position& pos, State* const newSt) noexcept {
 // In case of Chess960 the Shredder-FEN notation is used.
 // This is mainly a debugging function.
 std::string Position::fen(bool full) const noexcept {
-    std::ostringstream oss;
+    std::string fens;
+    fens.reserve(64);
 
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
@@ -474,42 +471,52 @@ std::string Position::fen(bool full) const noexcept {
             {
                 if (emptyCount)
                 {
-                    oss << emptyCount;
+                    fens += digit_to_char(emptyCount);
                     emptyCount = 0;
                 }
-                oss << to_char(piece_on(s));
+                fens += to_char(piece_on(s));
             }
         }
 
         // Handle trailing empty squares
         if (emptyCount)
-            oss << emptyCount;
+            fens += digit_to_char(emptyCount);
 
         if (r > RANK_1)
-            oss << '/';
+            fens += '/';
     }
 
-    oss << ' ' << (active_color() == WHITE ? 'w' : active_color() == BLACK ? 'b' : '-') << ' ';
+    fens += active_color() == WHITE ? " w " : " b ";
 
     if (can_castle(ANY_CASTLING))
     {
         if (can_castle(WHITE_OO))
-            oss << (Chess960 ? to_char<true>(file_of(castling_rook_sq(WHITE_OO))) : 'K');
+            fens += Chess960 ? to_char<true>(file_of(castling_rook_sq(WHITE_OO))) : 'K';
         if (can_castle(WHITE_OOO))
-            oss << (Chess960 ? to_char<true>(file_of(castling_rook_sq(WHITE_OOO))) : 'Q');
+            fens += Chess960 ? to_char<true>(file_of(castling_rook_sq(WHITE_OOO))) : 'Q';
         if (can_castle(BLACK_OO))
-            oss << (Chess960 ? to_char<false>(file_of(castling_rook_sq(BLACK_OO))) : 'k');
+            fens += Chess960 ? to_char<false>(file_of(castling_rook_sq(BLACK_OO))) : 'k';
         if (can_castle(BLACK_OOO))
-            oss << (Chess960 ? to_char<false>(file_of(castling_rook_sq(BLACK_OOO))) : 'q');
+            fens += Chess960 ? to_char<false>(file_of(castling_rook_sq(BLACK_OOO))) : 'q';
     }
     else
-        oss << '-';
+        fens += '-';
 
-    oss << ' ' << (is_ok(ep_sq()) ? to_square(ep_sq()) : "-");
+    fens += ' ';
+    if (is_ok(ep_sq()))
+        fens += to_square(ep_sq());
+    else
+        fens += '-';
+
     if (full)
-        oss << ' ' << rule50_count() << ' ' << move_num();
+    {
+        fens += ' ';
+        fens += std::to_string(rule50_count());
+        fens += ' ';
+        fens += std::to_string(move_num());
+    }
 
-    return oss.str();
+    return fens;
 }
 
 // Sets castling rights given the corresponding color and the rook starting square.
@@ -743,7 +750,7 @@ void Position::do_castling(Color               ac,
 // Makes a move, and saves all necessary information to new state.
 // The move is assumed to be legal.
 DirtyBoard
-Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* const tt) noexcept {
+Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* const tt) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
@@ -761,7 +768,7 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
     // in case of a capture or a pawn move.
     ++gamePly;
     ++st->rule50Count;
-    st->hasRule50High |= st->rule50Count >= rule50_threshold();
+    st->hasRule50High |= rule50_count() >= rule50_threshold();
 
     ++st->nullPly;
 
@@ -819,8 +826,8 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
         capturedPiece = NO_PIECE;
 
         // Calculate checker only one ROOK possible
-        st->checkers = inCheck ? square_bb(rDst) : 0;
-        assert(!inCheck || (checkers() && popcount(checkers()) == 1));
+        st->checkers = isCheck ? square_bb(rDst) : 0;
+        assert(!isCheck || (checkers() && popcount(checkers()) == 1));
 
         goto DO_MOVE_END;
     }
@@ -936,8 +943,8 @@ Position::do_move(Move m, State& newSt, bool inCheck, const TranspositionTable* 
     }
 
     // Calculate checkers
-    st->checkers = inCheck ? attackers_to(king_sq(~ac)) & pieces(ac) : 0;
-    assert(!inCheck || (checkers() && popcount(checkers()) <= 2));
+    st->checkers = isCheck ? attackers_to(king_sq(~ac)) & pieces(ac) : 0;
+    assert(!isCheck || (checkers() && popcount(checkers()) <= 2));
 
 DO_MOVE_END:
 
@@ -1098,7 +1105,6 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
 
     st = &newSt;
 
-    // NOTE: no ++st->rule50Count here
     st->nullPly = 0;
 
     if (is_ok(ep_sq()))
@@ -1128,10 +1134,10 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
 
 // Unmakes a null move
 void Position::undo_null_move() noexcept {
+    assert(!is_ok(cap_sq()));
     assert(!checkers());
     assert(!is_ok(captured_piece()));
     assert(!is_ok(promoted_piece()));
-    assert(!is_ok(cap_sq()));
 
     activeColor = ~active_color();
 
@@ -1411,21 +1417,10 @@ bool Position::fork(Move m) const noexcept {
     return false;
 }
 
-Key Position::compute_material_key() const noexcept {
-    Key materialKey = 0;
-
-    for (Color c : {WHITE, BLACK})
-        for (Piece pc : Pieces[c])
-            if (type_of(pc) != KING && count(pc))
-                materialKey ^= Zobrist::piece_square(pc, Square(PawnOffset + count(pc) - 1));
-
-    return materialKey;
-}
-
 // Computes the new hash key after the given move.
 // Needed for speculative prefetch.
 // It does recognize special moves like castling, en-passant and promotions.
-Key Position::compute_move_key(Move m) const noexcept {
+Key Position::move_key(Move m) const noexcept {
     Key moveKey = st->key ^ Zobrist::turn();
 
     if (is_ok(ep_sq()))
@@ -1834,12 +1829,14 @@ void Position::flip() noexcept {
 
     // Active color (will be lowercased later)
     iss >> token;
-    token[0] = (token[0] == 'w' ? 'B' : token[0] == 'b' ? 'W' : '-');
-    fens += token + " ";
+    token[0] = token[0] == 'w' ? 'B' : 'W';
+    fens += token;
+    fens += ' ';
 
     // Castling rights
     iss >> token;
-    fens += token + " ";
+    fens += token;
+    fens += ' ';
 
     fens = toggle_case(fens);
 
@@ -1871,7 +1868,8 @@ void Position::mirror() noexcept {
 
     // Active color (will remain the same)
     iss >> token;
-    fens += token + " ";
+    fens += token;
+    fens += ' ';
 
     // Castling rights
     iss >> token;
@@ -1889,7 +1887,8 @@ void Position::mirror() noexcept {
                 // clang-format on
             }
         }
-    fens += token + " ";
+    fens += token;
+    fens += ' ';
 
     // En-passant square (flip the file)
     iss >> token;

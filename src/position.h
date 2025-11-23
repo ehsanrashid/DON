@@ -54,9 +54,11 @@ struct Zobrist final {
     static Key turn() noexcept { return Turn; }
 
     static Key mr50(std::int16_t rule50Count) noexcept {
-        std::int16_t idx = rule50Count - R50_OFFSET;
-        return idx < 0 ? 0 : MR50[std::min(idx / R50_FACTOR, int(MR50.size()) - 1)];
+        std::int16_t idx = rule50Count - R50Offset;
+        return idx < 0 ? 0 : MR50[std::min(idx / R50Factor, int(MR50.size()) - 1)];
     }
+
+    static constexpr std::size_t PawnOffset = 8;
 
    private:
     static inline StdArray<Key, PIECE_NB, SQUARE_NB> PieceSquare{};
@@ -64,11 +66,10 @@ struct Zobrist final {
     static inline StdArray<Key, FILE_NB>             Enpassant{};
     static inline Key                                Turn{};
 
-    static constexpr std::uint16_t MAX_MR50   = MAX_PLY + 1;
-    static constexpr std::uint8_t  R50_OFFSET = 14;
-    static constexpr std::uint8_t  R50_FACTOR = 8;
+    static constexpr std::uint8_t R50Offset = 14;
+    static constexpr std::uint8_t R50Factor = 8;
 
-    static inline StdArray<Key, (MAX_MR50 - R50_OFFSET) / R50_FACTOR + 2> MR50{};
+    static inline StdArray<Key, (MAX_PLY + 1 - R50Offset) / R50Factor + 2> MR50{};
 };
 
 // State struct stores information needed to restore Position object
@@ -193,15 +194,14 @@ class Position final {
     template<PieceType PT>
     Bitboard attacks_by(Color c) const noexcept;
 
+    // clang-format off
     // Doing and undoing moves
-    DirtyBoard do_move(Move                            m,
-                       State&                          newSt,
-                       bool                            inCheck,
-                       const TranspositionTable* const tt = nullptr) noexcept;
+    DirtyBoard do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* const tt = nullptr) noexcept;
     DirtyBoard do_move(Move m, State& newSt, const TranspositionTable* const tt = nullptr) noexcept;
     void       undo_move(Move m) noexcept;
     void       do_null_move(State& newSt, const TranspositionTable* const tt = nullptr) noexcept;
     void       undo_null_move() noexcept;
+    // clang-format on
 
     // Properties of moves
     bool  pseudo_legal(Move m) const noexcept;
@@ -226,11 +226,12 @@ class Position final {
     Key non_pawn_key(Color c) const noexcept;
     Key non_pawn_key() const noexcept;
 
-    Key compute_material_key() const noexcept;
-    Key compute_move_key(Move m) const noexcept;
+    Key material_key() const noexcept;
+    Key move_key(Move m) const noexcept;
 
-    // Static Exchange Evaluation
-    [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }
+    Value non_pawn_value(Color c) const noexcept;
+    Value non_pawn_value() const noexcept;
+    bool  has_non_pawn(Color c) const noexcept;
 
     // Other properties
     Color        active_color() const noexcept;
@@ -241,26 +242,26 @@ class Position final {
     std::int16_t null_ply() const noexcept;
     std::int16_t repetition() const noexcept;
 
-    bool is_repetition(std::int16_t ply) const noexcept;
-    bool is_draw(std::int16_t ply,
-                 bool         rule50Active    = true,
-                 bool         stalemateActive = false) const noexcept;
-    bool has_repeated() const noexcept;
-    bool is_upcoming_repetition(std::int16_t ply) const noexcept;
-
-    Value non_pawn_value(Color c) const noexcept;
-    Value non_pawn_value() const noexcept;
-    bool  has_non_pawn(Color c) const noexcept;
-    bool  has_castled(Color c) const noexcept;
-    bool  has_rule50_high() const noexcept;
-    bool  bishop_paired(Color c) const noexcept;
-    bool  bishop_opposite() const noexcept;
+    bool has_castled(Color c) const noexcept;
+    bool has_rule50_high() const noexcept;
+    bool bishop_paired(Color c) const noexcept;
+    bool bishop_opposite() const noexcept;
 
     std::size_t bucket() const noexcept;
 
     int   std_material() const noexcept;
     Value material() const noexcept;
     Value evaluate() const noexcept;
+
+    // Static Exchange Evaluation
+    [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }
+
+    bool is_repetition(std::int16_t ply) const noexcept;
+    bool is_draw(std::int16_t ply,
+                 bool         rule50Active    = true,
+                 bool         stalemateActive = false) const noexcept;
+    bool has_repeated() const noexcept;
+    bool is_upcoming_repetition(std::int16_t ply) const noexcept;
 
     void  put_piece(Square s, Piece pc, DirtyThreats* const dts = nullptr) noexcept;
     Piece remove_piece(Square s, DirtyThreats* const dts = nullptr) noexcept;
@@ -550,6 +551,17 @@ inline Key Position::non_pawn_key(Color c) const noexcept {
 }
 
 inline Key Position::non_pawn_key() const noexcept { return non_pawn_key(WHITE) ^ non_pawn_key(BLACK); }
+
+inline Key Position::material_key() const noexcept {
+    Key materialKey = 0;
+
+    for (Color c : {WHITE, BLACK})
+        for (Piece pc : Pieces[c])
+            if (type_of(pc) != KING && count(pc))
+                materialKey ^= Zobrist::piece_square(pc, Square(Zobrist::PawnOffset + count(pc) - 1));
+
+    return materialKey;
+}
 
 inline Value Position::non_pawn_value(Color c) const noexcept {
     Value nonPawnValue = VALUE_ZERO;

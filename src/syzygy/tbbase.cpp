@@ -424,7 +424,7 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept :
     Position pos;
 
     pos.set(code, WHITE, &st);
-    key[WHITE] = pos.compute_material_key();
+    key[WHITE] = pos.material_key();
     pieceCount = pos.count<ALL_PIECE>();
     hasPawns   = pos.count<PAWN>() != 0;
 
@@ -443,7 +443,7 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept :
     pawnCount[BLACK] = pos.count<PAWN>(c ? BLACK : WHITE);
 
     pos.set(code, BLACK, &st);
-    key[BLACK] = pos.compute_material_key();
+    key[BLACK] = pos.material_key();
 }
 
 template<>
@@ -1320,7 +1320,7 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
 template<TBType Type, typename Ret = typename TBTable<Type>::Ret>
 Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRAW) noexcept {
 
-    Key materialKey = pos.compute_material_key();
+    Key materialKey = pos.material_key();
 
     if (materialKey == 0)  // KvK, pos.count<ALL_PIECE>() == 2
         return Ret(WDL_DRAW);

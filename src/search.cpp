@@ -1321,7 +1321,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r -= 2151 * (move == ttd.move);
 
         // Decrease/Increase reduction for moves with a good/bad history
-        r -= int(103.7597e-3 * ss->history);
+        r -= int(103.7598e-3 * ss->history);
 
         // Step 17. Late moves reduction / extension (LMR)
         if (moveCount != 1 && depth > 1)

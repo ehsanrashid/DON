@@ -282,16 +282,16 @@ void Engine::verify_networks() const noexcept {
 
         std::string message = "Network replica " + std::to_string(i + 1) + ": ";
         if (status == SystemWideSharedConstantAllocationStatus::NoAllocation)
-            message += "No allocation.";
+            message += "No allocation";
         else if (status == SystemWideSharedConstantAllocationStatus::LocalMemory)
-            message += "Local memory.";
+            message += "Local memory";
         else if (status == SystemWideSharedConstantAllocationStatus::SharedMemory)
-            message += "Shared memory.";
+            message += "Shared memory";
         else
-            message += "Unknown status.";
+            message += "Unknown status";
 
         if (error.has_value())
-            message += " " + *error;
+            message += ". " + *error;
 
         UCI::print_info_string(message);
     }

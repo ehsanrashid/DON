@@ -328,33 +328,36 @@ struct Advapi final {
     bool    loaded  = false;
 };
 
-template<typename FuncSuccess, typename FuncFailure>
-auto try_with_windows_lock_memory_privilege([[maybe_unused]] FuncSuccess&& funcSuccess,
-                                            FuncFailure&&                  funcFailure) noexcept {
+template<typename SuccessFunc, typename FailureFunc>
+auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& successFunc,
+                                            FailureFunc&&                  failureFunc) noexcept {
+    #if !defined(_WIN64)
+    return failureFunc();
+    #else
 
     const std::size_t largePageSize = GetLargePageMinimum();
 
     if (largePageSize == 0)
-        return funcFailure();
+        return failureFunc();
 
     assert((largePageSize & (largePageSize - 1)) == 0);
 
     Advapi advapi;
 
     if (!advapi.load())
-        return funcFailure();
+        return failureFunc();
 
     HANDLE hProcess = nullptr;
 
     // Need SeLockMemoryPrivilege, so try to enable it for the process
     if (!advapi.openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
                                  &hProcess))
-        return funcFailure();
+        return failureFunc();
 
     LUID luid{};
 
     if (!advapi.lookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &luid))
-        return funcFailure();
+        return failureFunc();
 
     TOKEN_PRIVILEGES oldTp{};
     DWORD            oldTpLen = 0;
@@ -369,10 +372,10 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] FuncSuccess&& funcS
     SetLastError(ERROR_SUCCESS);
     if (!advapi.adjustTokenPrivileges(hProcess, FALSE, &newTp, sizeof(oldTp), &oldTp, &oldTpLen)
         || GetLastError() != ERROR_SUCCESS)
-        return funcFailure();
+        return failureFunc();
 
     // Call the provided function with the privilege enabled
-    auto&& ret = funcSuccess(largePageSize);
+    auto&& ret = successFunc(largePageSize);
 
     // Privilege no longer needed, restore the privileges
     //if (oldTp.PrivilegeCount > 0)
@@ -384,6 +387,7 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] FuncSuccess&& funcS
     advapi.free();
 
     return std::forward<decltype(ret)>(ret);
+    #endif
 }
 
 #endif

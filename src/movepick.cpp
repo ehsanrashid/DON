@@ -190,7 +190,8 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
         Square dst = m.dst_sq();
         auto   pc  = pos.moved_piece(m);
 
-        m.value = (*quietHistory)[ac][m.raw()] + (*continuationHistory[0])[pc][dst];
+        m.value = (*quietHistory)[ac][m.raw()]  //
+                + (*continuationHistory[0])[pc][dst];
 
         if (ssPly < LOW_PLY_SIZE)
             m.value += (*lowPlyQuietHistory)[ssPly][m.raw()];
