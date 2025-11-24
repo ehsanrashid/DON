@@ -143,9 +143,9 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
             break;
 
         double weight = ContHistoryWeights[i - 1];
-        int    extra  = i < 2 ? 88 : 0;
+        int    offset = i <= 1 ? 88 : 0;
 
-        (*slot->pieceSqHistory)[pc][dst] << weight * bonus + extra;
+        (*slot->pieceSqHistory)[pc][dst] << weight * bonus + offset;
     }
 }
 
