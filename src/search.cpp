@@ -1153,7 +1153,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             mp.quietAllowed &= ((moveCount - promoCount) < ((3 + depth * depth) >> (!improve)));
 
             // Reduced depth of the next LMR search
-            Depth lmrDepth = newDepth - int(9.7656e-4 * r);
+            Depth lmrDepth = newDepth - r / 1024;
 
             if (capture)
             {
@@ -1334,8 +1334,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
-            Depth redDepth =
-              std::max(std::min(newDepth - int(9.7656e-4 * r), newDepth + 2), 1) + PVNode;
+            Depth redDepth = std::max(std::min(newDepth - r / 1024, newDepth + 2), 1) + PVNode;
 
             value = -search<Cut>(pos, ss + 1, -alpha - 1, -alpha, redDepth, newDepth - redDepth);
 
