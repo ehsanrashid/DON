@@ -67,7 +67,7 @@ struct TTEntry final {
     constexpr auto move() const noexcept { return move16; }
     constexpr auto occupied() const noexcept { return bool(depth8); }
     constexpr auto depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
-    constexpr auto pv_hit() const noexcept { return bool(genData8 & 0x4); }
+    constexpr auto pv() const noexcept { return bool(genData8 & 0x4); }
     constexpr auto bound() const noexcept { return Bound(genData8 & 0x3); }
     //constexpr auto generation() const noexcept { return std::uint8_t(genData8 & GENERATION_MASK); }
     constexpr auto value() const noexcept { return value16; }
@@ -75,7 +75,7 @@ struct TTEntry final {
 
     // Convert internal bitfields to TTData
     TTData read() const noexcept {
-        return {value(), eval(), move(), depth(), bound(), occupied(), pv_hit()};
+        return {value(), eval(), move(), depth(), bound(), occupied(), pv()};
     }
 
     // Populates the TTEntry with a new node's data, possibly

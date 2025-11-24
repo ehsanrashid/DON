@@ -738,7 +738,7 @@ Value Worker::search(Position&    pos,
     bool ttCapture = ttd.move != Move::None && pos.capture_promo(ttd.move);
 
     if (!exclude)
-        ss->ttPv = PVNode || (ttd.hit && ttd.isPv);
+        ss->ttPv = PVNode || (ttd.hit && ttd.pv);
 
     auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
@@ -1615,7 +1615,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     ttd.move  = ttd.hit ? pseudo_legal_tt_move(ttd.move, pos) : Move::None;
     assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
     ss->ttMove = ttd.move;
-    bool ttPv  = ttd.hit && ttd.isPv;
+    bool ttPv  = ttd.hit && ttd.pv;
 
     // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && ttd.depth >= DEPTH_ZERO && is_valid(ttd.value)

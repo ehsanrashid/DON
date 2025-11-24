@@ -50,14 +50,6 @@ struct TTData final {
     TTData(TTData&&) noexcept                 = default;
     TTData& operator=(const TTData&) noexcept = delete;
     TTData& operator=(TTData&&) noexcept      = delete;
-    TTData(Value v, Value ev, Move m, Depth d, Bound b, bool ht, bool pv) noexcept :
-        value(v),
-        eval(ev),
-        move(m),
-        depth(d),
-        bound(b),
-        hit(ht),
-        isPv(pv) {}
 
     Value value;
     Value eval;
@@ -65,7 +57,7 @@ struct TTData final {
     Depth depth;
     Bound bound;
     bool  hit;
-    bool  isPv;
+    bool  pv;
 };
 
 //static_assert(sizeof(TTData) == 12, "Unexpected TTData size");
