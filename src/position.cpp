@@ -2023,8 +2023,8 @@ bool Position::pos_is_ok() const noexcept {
         || popcount(pieces(WHITE)) > 16 || popcount(pieces(BLACK)) > 16)
         assert(false && "Position::pos_is_ok(): Bitboards");
 
-    for (PieceType p1 = PAWN; p1 <= KING; ++p1)
-        for (PieceType p2 = PAWN; p2 <= KING; ++p2)
+    for (PieceType p1 : PieceTypes)
+        for (PieceType p2 : PieceTypes)
             if (p1 != p2 && (pieces(p1) & pieces(p2)))
                 assert(false && "Position::pos_is_ok(): Bitboards");
 

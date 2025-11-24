@@ -130,6 +130,10 @@ enum PieceType : std::int8_t {
     PIECE_TYPE_NB = 8
 };
 
+constexpr StdArray<PieceType, 6> PieceTypes{
+  PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
+};
+
 enum Piece : std::uint8_t {
     NO_PIECE,
     W_ALL = 0,

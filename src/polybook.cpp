@@ -41,7 +41,16 @@ namespace {
 
 // Random numbers from PolyGlot, used to compute book hash keys
 union PolyGlot {
+   private:
+    static constexpr std::size_t PieceTypes = 6;
+    // Size = 6 * 2 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
+    static constexpr std::size_t Size =
+      PieceTypes * COLOR_NB * SQUARE_NB + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1;
+
    public:
+    constexpr PolyGlot(const StdArray<Key, Size>& __) noexcept :
+        _{__} {}
+
     Key key(const Position& pos) const noexcept {
         Key key = 0;
 
@@ -68,10 +77,8 @@ union PolyGlot {
         return key;
     }
 
-    static constexpr std::size_t PieceTypes = 6;
-
-    // Size = 6 * 2 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
-    StdArray<Key, PieceTypes * COLOR_NB * SQUARE_NB + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1> _;
+   private:
+    StdArray<Key, Size> _;
 
     struct {
         StdArray<Key, PieceTypes * COLOR_NB, SQUARE_NB> PieceSquare;  // [piece][square]
