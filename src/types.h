@@ -303,7 +303,9 @@ struct DirtyPiece final {
 // Keep track of what threats change on the board (used by NNUE)
 struct DirtyThreat final {
    public:
-    DirtyThreat() { /* Don't initialize data */ }
+    DirtyThreat() noexcept {
+        // Don't initialize data
+    }
     DirtyThreat(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool add) noexcept {
         data = (add << 31) | (threatenedPc << 20) | (pc << 16) | (threatenedSq << 8) | (sq << 0);
     }
@@ -563,6 +565,7 @@ enum MoveType : std::uint16_t {
     PROMOTION  = 1 << 14,
     EN_PASSANT = 2 << 14,
     CASTLING   = 3 << 14,
+    TYPE_MASK  = 0xC000
 };
 
 class Move {
@@ -572,11 +575,6 @@ class Move {
     struct Hash final {
         std::size_t operator()(Move m) const noexcept { return make_hash(m.move); }
     };
-
-    // Bit masks for extracting parts of the move
-    static constexpr std::uint16_t SqrMask   = 0x003F;  // 6 bits for origin/destiny
-    static constexpr std::uint16_t TypeMask  = 0xC000;  // 2 bits for move type
-    static constexpr std::uint16_t PromoMask = 0x0003;  // 2 bits for promotion type
 
     constexpr Move() noexcept = default;
     // Constructors using delegating syntax
@@ -590,11 +588,11 @@ class Move {
         Move(MoveType(PROMOTION | ((int(promo) - int(KNIGHT)) << 12)), org, dst) {}
 
     // Accessors: extract parts of the move
-    constexpr Square    org_sq() const noexcept { return Square((move >> 6) & SqrMask); }
-    constexpr Square    dst_sq() const noexcept { return Square((move >> 0) & SqrMask); }
-    constexpr MoveType  type_of() const noexcept { return MoveType(move & TypeMask); }
+    constexpr Square    org_sq() const noexcept { return Square((move >> 6) & 0x3F); }
+    constexpr Square    dst_sq() const noexcept { return Square((move >> 0) & 0x3F); }
+    constexpr MoveType  type_of() const noexcept { return MoveType(move & TYPE_MASK); }
     constexpr PieceType promotion_type() const noexcept {
-        return PieceType(((move >> 12) & PromoMask) + int(KNIGHT));
+        return PieceType(((move >> 12) & 0x3) + int(KNIGHT));
     }
 
     constexpr std::uint16_t raw() const noexcept { return move; }

@@ -363,9 +363,9 @@ Move pg_to_move(std::uint16_t pgMove, const MoveList<LEGAL>& legalMoveList) noex
     if (int pt = (move.raw() >> 12) & 0x7)
         move = Move(move.org_sq(), move.dst_sq(), PieceType(pt + 1));
 
-    std::uint16_t moveRaw = move.raw() & ~Move::TypeMask;
+    std::uint16_t moveRaw = move.raw() & ~TYPE_MASK;
     for (auto m : legalMoveList)
-        if ((m.raw() & ~Move::TypeMask) == moveRaw)
+        if ((m.raw() & ~TYPE_MASK) == moveRaw)
             return m;
 
     return Move::None;

@@ -836,14 +836,14 @@ std::string UCI::to_score(const Score& score) noexcept {
     constexpr int TB_CP = 20000;
 
     const auto format =
-      Overload{[](Score::Unit unit) -> std::string {
-                   return std::string("cp ") + std::to_string(unit.value);
+      Overload{[](Score::Unit unit) -> std::string {  //
+                   return "cp " + std::to_string(unit.value);
                },
-               [](Score::Tablebase tb) -> std::string {
-                   return std::string("cp ") + std::to_string((tb.win ? +TB_CP : -TB_CP) - tb.ply);
+               [](Score::Tablebase tb) -> std::string {  //
+                   return "cp " + std::to_string((tb.win ? +TB_CP : -TB_CP) - tb.ply);
                },
-               [](Score::Mate mate) -> std::string {
-                   return std::string("mate ") + std::to_string((mate.ply + (mate.ply > 0)) / 2);
+               [](Score::Mate mate) -> std::string {  //
+                   return "mate " + std::to_string((mate.ply + (mate.ply > 0)) / 2);
                }};
 
     return score.visit(format);

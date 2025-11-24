@@ -61,14 +61,10 @@ class StatsEntry final {
     T value;
 };
 
-// clang-format off
-inline constexpr int    CAPTURE_HISTORY_LIMIT = 10692;
-inline constexpr int      QUIET_HISTORY_LIMIT = 7183;
-inline constexpr int   PIECE_SQ_HISTORY_LIMIT = 30000;
-inline constexpr int       PAWN_HISTORY_LIMIT = 8192;
-inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 
 inline constexpr std::uint16_t LOW_PLY_SIZE = 5;
+
+inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 
 inline constexpr std::size_t UINT_16_HISTORY_SIZE = 0x10000;
 static_assert((UINT_16_HISTORY_SIZE & (UINT_16_HISTORY_SIZE - 1)) == 0,
@@ -78,10 +74,13 @@ inline constexpr std::size_t PAWN_HISTORY_SIZE = 0x4000;
 static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
               "PAWN_HISTORY_SIZE has to be a power of 2");
 
-constexpr std::uint16_t pawn_index      (Key pawnKey) noexcept { return compress_key16(pawnKey) & (PAWN_HISTORY_SIZE - 1); }
+constexpr std::uint16_t pawn_index(Key pawnKey) noexcept {  //
+    return compress_key16(pawnKey) & (PAWN_HISTORY_SIZE - 1);
+}
 
-constexpr std::uint16_t correction_index(Key corrKey) noexcept { return compress_key16(corrKey); }
-// clang-format on
+constexpr std::uint16_t correction_index(Key corrKey) noexcept {  //
+    return compress_key16(corrKey);
+}
 
 enum HistoryType : std::uint8_t {
     HCapture,       // By move's [piece][dst][captured piece type]
@@ -102,25 +101,25 @@ struct HistoryDef;
 
 template<>
 struct HistoryDef<HCapture> final {
-    using Type = StatsContainer<CAPTURE_HISTORY_LIMIT, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
+    using Type = StatsContainer<10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 };
 
 // It records how often quiet moves have been successful or not during the current search,
-// and is used for reduction and move ordering decisions.
+// It is used for reduction and move ordering decisions.
 // see https://www.chessprogramming.org/Butterfly_Boards
 template<>
 struct HistoryDef<HQuiet> final {
-    using Type = StatsContainer<QUIET_HISTORY_LIMIT, COLOR_NB, UINT_16_HISTORY_SIZE>;
+    using Type = StatsContainer<7183, COLOR_NB, UINT_16_HISTORY_SIZE>;
 };
 
 template<>
 struct HistoryDef<HPawn> final {
-    using Type = StatsContainer<PAWN_HISTORY_LIMIT, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
+    using Type = StatsContainer<8192, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
 };
 
 template<>
 struct HistoryDef<HPieceSq> final {
-    using Type = StatsContainer<PIECE_SQ_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
+    using Type = StatsContainer<30000, PIECE_NB, SQUARE_NB>;
 };
 
 template<>
@@ -131,7 +130,7 @@ struct HistoryDef<HContinuation> final {
 // It is used to improve quiet move ordering near the root.
 template<>
 struct HistoryDef<HLowPlyQuiet> final {
-    using Type = StatsContainer<QUIET_HISTORY_LIMIT, LOW_PLY_SIZE, UINT_16_HISTORY_SIZE>;
+    using Type = StatsContainer<7183, LOW_PLY_SIZE, UINT_16_HISTORY_SIZE>;
 };
 
 template<>
@@ -144,8 +143,7 @@ struct HistoryDef<HTTMove> final {
 template<HistoryType T>
 using History = typename internal::HistoryDef<T>::Type;
 
-// Correction histories record differences between the static evaluation of
-// positions and their search score.
+// Correction histories record differences between the static evaluation of positions and their search score.
 // It is used to improve the static evaluation used by some search heuristics.
 // see https://www.chessprogramming.org/Static_Evaluation_Correction_History
 
