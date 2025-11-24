@@ -41,7 +41,6 @@
 #endif
 
 #if defined(_WIN32)
-
     #if !defined(NOMINMAX)
         #define NOMINMAX  // Disable min()/max() macros
     #endif
