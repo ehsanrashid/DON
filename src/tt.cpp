@@ -75,7 +75,7 @@ struct TTEntry final {
 
     // Convert internal bitfields to TTData
     TTData read() const noexcept {
-        return {value(), eval(), move(), depth(), bound(), occupied(), pv()};
+        return TTData{value(), eval(), move(), depth(), bound(), occupied(), pv()};
     }
 
     // Populates the TTEntry with a new node's data, possibly
