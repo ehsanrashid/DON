@@ -832,7 +832,7 @@ Value Worker::search(Position&    pos,
 
         // Partial workaround for the graph history interaction problem
         // For high rule50 counts don't produce transposition table cutoffs.
-        if (pos.rule50_count() < (1.0 - 0.20 * pos.has_rule50_high()) * rule50_threshold())
+        if (pos.rule50_count() < int((1.0 - 0.20 * pos.has_rule50_high()) * rule50_threshold()))
         {
             // If the depth is big enough, verify that the ttMove is really a good move
             if (depth >= 8 && !is_decisive(ttd.value) && ttd.move != Move::None
@@ -1009,8 +1009,9 @@ Value Worker::search(Position&    pos,
     // Step 10. Internal iterative reductions
     // For deep enough nodes without ttMoves, reduce search depth.
     // (*Scaler) Making IIR more aggressive scales poorly.
-    if (depth > 5 && !AllNode && red <= 3 && ttd.move == Move::None)
-        --depth;
+    if constexpr (!AllNode)
+        if (depth > 5 && red <= 3 && ttd.move == Move::None)
+            --depth;
 
     // Step 11. ProbCut
     // If have a good enough capture or any promotion and a reduced search
