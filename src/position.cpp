@@ -236,7 +236,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             file = FILE_A;
             --rank;
         }
-        else if (std::isdigit(token))
+        else if ('1' <= token && token <= '8')
         {
             int f = char_to_digit(token);
             assert(1 <= f && f <= 8 - file && "Position::set(): Invalid File");
