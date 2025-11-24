@@ -1472,7 +1472,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 alpha = value;  // Update alpha! Always alpha < beta
 
                 // Reduce depth for other moves if have found at least one score improvement
-                if (depth > 1 && depth < 16 && !is_decisive(value))
+                if (depth < 16 && !is_decisive(value))
                 {
                     depth -= 1 + (depth < 8);
                     if (depth < 1)
