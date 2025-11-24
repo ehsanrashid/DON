@@ -460,6 +460,8 @@ bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
 }
 
 std::size_t PolyBook::find_key(Key key) const noexcept {
+    constexpr std::size_t Radius = 4;
+
     std::size_t begIndex = 0;
     std::size_t endIndex = entryCount - 1;
     std::size_t window   = endIndex - begIndex + 1;
@@ -471,8 +473,8 @@ std::size_t PolyBook::find_key(Key key) const noexcept {
 
         if (midKey == key)
         {
-            begIndex = (midIndex >= 5) ? midIndex - 4 : 0;
-            endIndex = (midIndex < entryCount - 5) ? midIndex + 4 : entryCount - 1;
+            begIndex = (midIndex >= (Radius + 1)) ? midIndex - Radius : 0;
+            endIndex = (midIndex < entryCount - (Radius + 1)) ? midIndex + Radius : entryCount - 1;
             break;
         }
 
