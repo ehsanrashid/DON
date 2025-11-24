@@ -469,11 +469,10 @@ std::string Position::fen(bool full) const noexcept {
             else
             {
                 if (emptyCount)
-                {
                     fens += digit_to_char(emptyCount);
-                    emptyCount = 0;
-                }
+
                 fens += to_char(piece_on(s));
+                emptyCount = 0;
             }
         }
 
