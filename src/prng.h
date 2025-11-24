@@ -18,6 +18,7 @@
 #ifndef PRNG_H_INCLUDED
 #define PRNG_H_INCLUDED
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -131,15 +132,10 @@ class XoShiRo256Star final {
    public:
     explicit XoShiRo256Star(std::uint64_t seed = 1ULL) noexcept {
         SplitMix64 sm64(seed);
-        bool       allZero = true;
         for (std::size_t i = 0; i < Size; ++i)
-        {
             s[i] = sm64.next();
-            if (s[i] != 0)
-                allZero = false;
-        }
         // Avoid all-zero state
-        if (allZero)
+        if (std::all_of(s.begin(), s.end(), [](auto x) { return x == 0; }))
             s[0] = 1ULL;
     }
 
