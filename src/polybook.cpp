@@ -17,7 +17,6 @@
 
 #include "polybook.h"
 
-#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstdio>
@@ -298,7 +297,9 @@ std::uint64_t swap_uint64(std::uint64_t n) noexcept {
 #endif
 }
 
-void swap_polyEntry(PolyEntry* pe) noexcept {
+void swap_polyentry(PolyEntry* pe) noexcept {
+    if (pe == nullptr)
+        return;
     pe->key    = swap_uint64(pe->key);
     pe->move   = swap_uint16(pe->move);
     pe->weight = swap_uint16(pe->weight);
@@ -396,7 +397,9 @@ PolyBook::~PolyBook() noexcept { free(); }
 
 void PolyBook::free() noexcept {
     ::free(entries);
-    entries = nullptr;
+    entries    = nullptr;
+    entryCount = 0;
+    filename.clear();
 }
 
 void PolyBook::init(std::string_view bookFile) noexcept {
@@ -405,47 +408,53 @@ void PolyBook::init(std::string_view bookFile) noexcept {
     if (bookFile.empty())
         return;
 
-    FILE* file = std::fopen(bookFile.data(), "rb");
-    if (file == nullptr)
+    FILE* bookFp = std::fopen(bookFile.data(), "rb");
+    if (bookFp == nullptr)
     {
         std::cerr << "Failed to open file " << bookFile << std::endl;
         return;
     }
 
-    std::fseek(file, 0L, SEEK_END);
-    std::size_t fileSize = std::ftell(file);
-    std::rewind(file);
+    filename = bookFile;
 
-    entryCount = fileSize / sizeof(PolyEntry);
+    std::fseek(bookFp, 0L, SEEK_END);
+    std::size_t bookSize = std::ftell(bookFp);
+    std::rewind(bookFp);
+
+    entryCount = bookSize / sizeof(PolyEntry);
     occupied   = 0;
     failCount  = 0;
 
-    fileSize = entryCount * sizeof(PolyEntry);
-    entries  = static_cast<PolyEntry*>(malloc(fileSize));
+    bookSize = entryCount * sizeof(PolyEntry);
+    entries  = static_cast<PolyEntry*>(malloc(bookSize));
     if (entries == nullptr)
     {
-        std::cerr << "Failed to allocate memory: " << fileSize << " for file " << bookFile
+        std::cerr << "Failed to allocate memory: " << bookSize << " for file " << filename
                   << std::endl;
-        std::fclose(file);
+        std::fclose(bookFp);
+        free();
         return;
     }
 
-    std::size_t bytesRead = std::fread(entries, 1, fileSize, file);
-    std::fclose(file);
+    std::size_t bytesRead = std::fread(entries, 1, bookSize, bookFp);
+    std::fclose(bookFp);
 
-    if (bytesRead != fileSize)
+    if (bytesRead != bookSize)
     {
-        std::cerr << "Failed to read complete file " << bookFile << std::endl;
+        std::cerr << "Failed to read complete file " << filename << std::endl;
         free();
         return;
     }
 
     if (IsLittleEndian)
         for (std::size_t i = 0; i < entryCount; ++i)
-            swap_polyEntry(&entries[i]);
+            swap_polyentry(&entries[i]);
 
-    UCI::print_info_string("Book: " + std::string(bookFile) + " with " + std::to_string(entryCount)
-                           + " entries");
+    UCI::print_info_string(info());
+}
+
+std::string PolyBook::info() const noexcept {
+    return "Book: " + filename + " with " + std::to_string(entryCount) + " entries";
 }
 
 Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
@@ -467,30 +476,22 @@ Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
     show_key_data();
 #endif
 
-    std::size_t idx;
-    idx = pickBestActive || keyData.entryCount == 1 ? keyData.bestIndex : keyData.randIndex;
+    std::vector<std::size_t> indices;
 
-    Move m;
-    m = pg_to_move(entries[idx].move, pos);
-    if (keyData.entryCount == 1 || !is_draw(pos, m))
-        return m;
+    indices.push_back(pickBestActive ? keyData.bestIndex : keyData.randIndex);
+    // add remaining indices sequentially, skipping duplicates
+    for (std::size_t idx = keyData.begIndex; idx < keyData.begIndex + keyData.entryCount; ++idx)
+        if (idx != indices[0])
+            indices.push_back(idx);
 
-    idx = idx == keyData.begIndex ? keyData.begIndex + 1 : keyData.begIndex;
-
-    m = pg_to_move(entries[idx].move, pos);
-    if (keyData.entryCount == 2 || !is_draw(pos, m))
-        return m;
-
-    idx = idx != keyData.randIndex ? keyData.begIndex + 2
-        : keyData.entryCount > 3   ? keyData.begIndex + 3
-                                   : keyData.randIndex;
-
-    m = pg_to_move(entries[idx].move, pos);
-    if (keyData.entryCount == 3 || !is_draw(pos, m))
-        return m;
-
-    return keyData.entryCount > 3 ? pg_to_move(entries[keyData.begIndex + 3].move, pos)
-                                  : Move::None;
+    for (std::size_t i = 0, n = indices.size(); i < n; ++i)
+    {
+        Move move = pg_to_move(entries[indices[i]].move, pos);
+        if (i == n - 1 || !is_draw(pos, move))
+            return move;
+    }
+    assert(false);
+    return Move::None;
 }
 
 bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
@@ -508,34 +509,36 @@ void PolyBook::find_key(Key key) noexcept {
     keyData = {0, 0, 0, 0, 0, 0};
 
     std::size_t begIndex = 0;
-    std::size_t endIndex = entryCount;
-    std::size_t window   = endIndex - begIndex;
+    std::size_t endIndex = entryCount - 1;
+    std::size_t window   = endIndex - begIndex + 1;
     // Binary scan
     while (window > 8)
     {
         std::size_t midIndex = begIndex + window / 2;
         Key         midKey   = entries[midIndex].key;
 
-        if (midKey < key)
-            begIndex = midIndex + 1;
-        else if (midKey > key)
-            endIndex = midIndex;
-        else
+        if (midKey == key)
         {
             begIndex = (midIndex > 4) ? midIndex - 4 : 0;
             endIndex = (midIndex + 4 < entryCount) ? midIndex + 4 : entryCount - 1;
             break;
         }
 
-        window = endIndex - begIndex;
+        if (midKey < key)
+            begIndex = midIndex + 1;
+        else
+            endIndex = midIndex - 1;
+
+        window = endIndex - begIndex + 1;
     }
+    // Goto 1st index of key
+    std::size_t index = begIndex;
+    while (index > 0 && entries[index - 1].key == key)
+        --index;
     // Linear scan
-    for (std::size_t index = begIndex; index <= endIndex; ++index)
+    for (; index <= endIndex; ++index)
         if (entries[index].key == key)
         {
-            while (index > 0 && entries[index - 1].key == key)
-                --index;
-
             get_key_data(index);
             break;
         }

@@ -79,6 +79,8 @@ class PolyBook final {
 
     bool enabled() const noexcept { return entries != nullptr; }
 
+    std::string info() const noexcept;
+
     Move probe(Position& pos, bool pickBestActive = true) noexcept;
 
    private:
@@ -96,6 +98,8 @@ class PolyBook final {
     void get_key_data(std::size_t index) noexcept;
 
     void show_key_data() const noexcept;
+
+    std::string filename;
 
     PolyEntry*  entries = nullptr;
     std::size_t entryCount;

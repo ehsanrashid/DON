@@ -541,10 +541,10 @@ class TBTables final {
     }
 
     std::string info() const noexcept {
-        return std::string("Tablebase: ")                       //
-             + std::to_string(wdlCount) + " WDL and "           //
-             + std::to_string(dtzCount) + " DTZ found (up to "  //
-             + std::to_string(int(MaxCardinality)) + "-man).";
+        return "Tablebase: "                            //
+             + std::to_string(wdlCount) + " WDL and "   //
+             + std::to_string(dtzCount) + " DTZ found"  //
+             + " (up to " + std::to_string(int(MaxCardinality)) + "-man).";
     }
 
     void add(const std::vector<PieceType>& pieces) noexcept;
