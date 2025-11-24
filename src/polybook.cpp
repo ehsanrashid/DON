@@ -346,9 +346,9 @@ void swap_polyentry(PolyEntry* pe) noexcept {
 // bit  6-11: origin square (from 0 to 63)
 // bit 12-14: promotion piece (from KNIGHT == 1 to QUEEN == 4)
 //
-// Castling moves follow "king captures rook" representation. So in case book
-// move is a promotion have to convert the representation, in all the
-// other cases can directly compare with a Move after having masked out
+// Castling moves follow "king captures rook" representation.
+// So in case book move is a promotion have to convert the representation,
+// in all the other cases can directly compare with a Move after having masked out
 // the special Move's flags (bit 14-15) that are not supported by PolyGlot.
 //
 // DON:

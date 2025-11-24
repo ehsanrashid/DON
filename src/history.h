@@ -51,7 +51,7 @@ class StatsEntry final {
     void operator<<(int bonus) noexcept {
         // Make sure that bonus is in range [-D, +D]
         int clampedBonus = std::clamp(bonus, -D, +D);
-
+        // Apply gravity-based adjustment
         value += clampedBonus - value * std::abs(clampedBonus) / D;
 
         assert(std::abs(value) <= D);
