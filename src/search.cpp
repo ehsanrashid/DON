@@ -133,9 +133,9 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
     };
 
     // If in check only first 2 continuation weights are allowed
-    std::size_t maxIndex = ss->inCheck ? 2 : ContHistoryWeights.size();
+    std::size_t size = ss->inCheck ? 2 : ContHistoryWeights.size();
 
-    for (std::size_t i = 1; i <= maxIndex; ++i)
+    for (std::size_t i = 1; i <= size; ++i)
     {
         Stack* const slot = ss - i;
 
