@@ -1163,8 +1163,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (lmrDepth < 7 && !check)
                 {
                     Value seeGain       = PIECE_VALUE[captured] + promotion_value(move);
-                    Value futilityValue = std::min(232 + ss->staticEval + 217 * lmrDepth
-                                                     + int(0.1279 * history) + seeGain,
+                    Value futilityValue = std::min(232 + ss->staticEval + seeGain + 217 * lmrDepth
+                                                     + int(0.1279 * history),
                                                    +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                         continue;
@@ -1203,7 +1203,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                     if (futilityValue <= alpha)
                     {
                         if (!is_decisive(bestValue) && !is_win(futilityValue))
-                            bestValue = std::max(bestValue, futilityValue);
+                            if (bestValue < futilityValue)
+                                bestValue = futilityValue;
                         continue;
                     }
                 }
@@ -1735,7 +1736,8 @@ QS_MOVES_LOOP:
                 // If static evaluation + value of piece going to captured is much lower than alpha
                 if (futilityValue <= alpha)
                 {
-                    bestValue = std::max(bestValue, futilityValue);
+                    if (bestValue < futilityValue)
+                        bestValue = futilityValue;
                     continue;
                 }
 
