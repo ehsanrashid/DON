@@ -101,6 +101,7 @@ struct AccumulatorCaches final {
         const StdArray<Entry, COLOR_NB>& operator[](Square s) const noexcept { return entries[s]; }
         StdArray<Entry, COLOR_NB>&       operator[](Square s) noexcept { return entries[s]; }
 
+       private:
         StdArray<Entry, SQUARE_NB, COLOR_NB> entries;
     };
 
