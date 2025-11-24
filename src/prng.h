@@ -80,7 +80,7 @@ class SplitMix64 final {
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class XorShift64Star final {
    public:
-    explicit constexpr XorShift64Star(std::uint64_t seed = 1ULL) noexcept {
+    explicit XorShift64Star(std::uint64_t seed = 1ULL) noexcept {
         SplitMix64 sm64(seed);
         s = sm64.next();
         // Avoid zero state
@@ -129,7 +129,7 @@ class XorShift64Star final {
 // XoShiRo256** (short for "xor, shift, rotate") Pseudo-Random Number Generator
 class XoShiRo256Star final {
    public:
-    explicit constexpr XoShiRo256Star(std::uint64_t seed = 1ULL) noexcept {
+    explicit XoShiRo256Star(std::uint64_t seed = 1ULL) noexcept {
         SplitMix64 sm64(seed);
         bool       allZero = true;
         for (std::size_t i = 0; i < Size; ++i)
