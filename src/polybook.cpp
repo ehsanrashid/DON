@@ -466,7 +466,7 @@ std::size_t PolyBook::find_key(Key key) const noexcept {
     std::size_t endIndex = entryCount - 1;
     std::size_t window   = endIndex - begIndex + 1;
     // Binary scan
-    while (window > 8)
+    while (window > 2 * Radius)
     {
         std::size_t midIndex = begIndex + window / 2;
         Key         midKey   = entries[midIndex].key;
