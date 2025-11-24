@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>
+#include <string>
 #include <string_view>
 
 #include "types.h"
@@ -60,8 +61,6 @@ struct PolyEntry final {
         return !(pe1 < pe2);
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const PolyEntry& ph) noexcept;
-
     Key           key;
     std::uint16_t move;
     std::uint16_t weight;
@@ -86,18 +85,18 @@ class PolyBook final {
    private:
     struct KeyData final {
         std::size_t   begIndex, bestIndex, randIndex;
-        std::uint16_t entryCount;
+        std::uint16_t count;
         std::uint16_t bestWeight;
         std::uint32_t sumWeight;
     };
 
     bool can_probe(const Position& pos, Key key) noexcept;
 
-    void find_key(Key key) noexcept;
+    std::size_t find_key(Key key) const noexcept;
 
-    void get_key_data(std::size_t index) noexcept;
+    KeyData get_key_data(std::size_t index) const noexcept;
 
-    void show_key_data() const noexcept;
+    void show_key_data(const KeyData& keyData, Position& pos) const noexcept;
 
     std::string filename;
 
@@ -107,9 +106,6 @@ class PolyBook final {
     // Last probe info
     Bitboard      occupied;
     std::uint16_t failCount;
-
-    // Key data
-    KeyData keyData;
 };
 
 }  // namespace DON

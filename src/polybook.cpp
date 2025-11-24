@@ -23,7 +23,6 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
-#include <string>
 #include <vector>
 #if !defined(_WIN32)
     #include <fcntl.h>
@@ -42,6 +41,33 @@ namespace {
 
 // Random numbers from PolyGlot, used to compute book hash keys
 union PolyGlot {
+   public:
+    Key key(const Position& pos) const noexcept {
+        Key key = 0;
+
+        Bitboard occupied = pos.pieces();
+        while (occupied)
+        {
+            Square s  = pop_lsb(occupied);
+            Piece  pc = pos.piece_on(s);
+            assert(is_ok(pc));
+            // PolyGlot pieces are: BP = 0, WP = 1, BN = 2, ... BK = 10, WK = 11
+            key ^= Zobrist.PieceSquare[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
+        }
+
+        Bitboard castling = pos.castling_rights();
+        while (castling)
+            key ^= Zobrist.Castling[pop_lsb(castling)];
+
+        if (is_ok(pos.ep_sq()))
+            key ^= Zobrist.Enpassant[file_of(pos.ep_sq())];
+
+        if (pos.active_color() == WHITE)
+            key ^= Zobrist.Turn;
+
+        return key;
+    }
+
     static constexpr std::size_t PieceTypes = 6;
 
     // Size = 6 * 2 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
@@ -307,38 +333,6 @@ void swap_polyentry(PolyEntry* pe) noexcept {
     pe->learn  = swap_uint32(pe->learn);
 }
 
-Key polyglot_key(const Position& pos) noexcept {
-    Key polyglotKey = 0;
-
-    Bitboard occupied = pos.pieces();
-    while (occupied)
-    {
-        Square s  = pop_lsb(occupied);
-        Piece  pc = pos.piece_on(s);
-        assert(is_ok(pc));
-        // PolyGlot pieces are: BP = 0, WP = 1, BN = 2, ... BK = 10, WK = 11
-        polyglotKey ^= PG.Zobrist.PieceSquare[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
-    }
-
-    Bitboard castling = pos.castling_rights();
-    while (castling)
-        polyglotKey ^= PG.Zobrist.Castling[pop_lsb(castling)];
-
-    if (is_ok(pos.ep_sq()))
-        polyglotKey ^= PG.Zobrist.Enpassant[file_of(pos.ep_sq())];
-
-    if (pos.active_color() == WHITE)
-        polyglotKey ^= PG.Zobrist.Turn;
-
-    return polyglotKey;
-}
-
-Move fix_promotion(Move m) noexcept {
-    if (int pt = (m.raw() >> 12) & 0x7)
-        return Move(m.org_sq(), m.dst_sq(), PieceType(pt + 1));
-    return m;
-}
-
 // A PolyGlot book move is encoded as follows:
 //
 // bit  0- 5: destination square (from 0 to 63)
@@ -355,14 +349,15 @@ Move fix_promotion(Move m) noexcept {
 // bit  6-11: origin square (from 0 to 63)
 // bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
 // bit 14-15: special move flag: promotion (1), en-passant (2), castling (3)
-Move pg_to_move(std::uint16_t pg_move, const Position& pos) noexcept {
+Move pg_to_move(std::uint16_t pgMove, const Position& pos) noexcept {
 
-    Move move = fix_promotion(Move(pg_move));
+    Move move = Move(pgMove);
+
+    if (int pt = (move.raw() >> 12) & 0x7)
+        move = Move(move.org_sq(), move.dst_sq(), PieceType(pt + 1));
 
     std::uint16_t moveRaw = move.raw() & ~Move::TypeMask;
-    // Add 'Special move' flags and verify it is legal
     for (auto m : MoveList<LEGAL>(pos))
-        // Compare with MoveType (bit 14-15) Masked-out
         if ((m.raw() & ~Move::TypeMask) == moveRaw)
             return m;
 
@@ -382,17 +377,6 @@ bool is_draw(Position& pos, Move m) noexcept {
 }
 
 }  // namespace
-
-std::ostream& operator<<(std::ostream& os, const PolyEntry& pe) noexcept {
-    // clang-format off
-    os << std::right << "key: "     << u64_to_string(pe.key)
-       << std::left  << " move: "   << std::setfill(' ') << std::setw(5) << UCI::move_to_can(fix_promotion(Move(pe.move)))
-       << std::right << " weight: " << std::setfill('0') << std::setw(5) << pe.weight
-       << std::right << " learn: "  << std::setfill('0') << std::setw(2) << pe.learn;
-    // clang-format on
-    return os;
-}
-
 
 PolyBook::~PolyBook() noexcept { free(); }
 
@@ -458,48 +442,9 @@ std::string PolyBook::info() const noexcept {
     return "Book: " + filename + " with " + std::to_string(entryCount) + " entries";
 }
 
-Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
-    assert(enabled());
-
-    Key key = polyglot_key(pos);
-
-    if (!can_probe(pos, key))
-        return Move::None;
-
-    find_key(key);
-
-    if (keyData.entryCount == 0)
-    {
-        ++failCount;
-        return Move::None;
-    }
-#if !defined(NDEBUG)
-    show_key_data();
-#endif
-
-    std::vector<std::size_t> indices;
-
-    indices.push_back(pickBestActive ? keyData.bestIndex : keyData.randIndex);
-    // add remaining indices sequentially, skipping duplicates
-    for (std::size_t index = keyData.begIndex; index < keyData.begIndex + keyData.entryCount;
-         ++index)
-        if (index != indices[0])
-            indices.push_back(index);
-
-    for (std::size_t i = 0, n = indices.size(); i < n; ++i)
-    {
-        Move move = pg_to_move(entries[indices[i]].move, pos);
-        if (i == n - 1 || !is_draw(pos, move))
-            return move;
-    }
-    assert(false);
-    return Move::None;
-}
-
 bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
 
-    if (popcount(occupied ^ pos.pieces()) > 6 || popcount(occupied) > pos.count<ALL_PIECE>() + 2
-        || key == 0x463B96181691FC9CULL)
+    if (popcount(occupied ^ pos.pieces()) > 6 || key == 0x463B96181691FC9CULL)
         failCount = 0;
 
     occupied = pos.pieces();
@@ -507,9 +452,7 @@ bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
     return failCount <= 4;
 }
 
-void PolyBook::find_key(Key key) noexcept {
-    keyData = {0, 0, 0, 0, 0, 0};
-
+std::size_t PolyBook::find_key(Key key) const noexcept {
     std::size_t begIndex = 0;
     std::size_t endIndex = entryCount - 1;
     std::size_t window   = endIndex - begIndex + 1;
@@ -540,26 +483,24 @@ void PolyBook::find_key(Key key) noexcept {
     // Linear scan
     for (; index <= endIndex; ++index)
         if (entries[index].key == key)
-        {
-            get_key_data(index);
-            break;
-        }
+            return index;
+
+    return entryCount;
 }
 
-void PolyBook::get_key_data(std::size_t index) noexcept {
+PolyBook::KeyData PolyBook::get_key_data(std::size_t index) const noexcept {
     static PRNG<XorShift64Star> prng(now());
 
-    keyData.entryCount = 1;
+    KeyData keyData{};
     keyData.begIndex   = index;
-    keyData.bestIndex  = index;
-    keyData.bestWeight = entries[index].weight;
-    keyData.sumWeight  = keyData.bestWeight;
-    for (std::size_t idx = index + 1; idx < entryCount; ++idx)
+    keyData.bestWeight = 0;
+    keyData.sumWeight  = 0;
+    for (std::size_t idx = index; idx < entryCount; ++idx)
     {
         if (entries[idx].key != entries[index].key)
             break;
 
-        ++keyData.entryCount;
+        ++keyData.count;
 
         auto weight = entries[idx].weight;
         if (keyData.bestWeight < weight)
@@ -572,36 +513,86 @@ void PolyBook::get_key_data(std::size_t index) noexcept {
 
     keyData.randIndex = keyData.bestIndex;
 
-    if (keyData.sumWeight == 0)
-        return;
-
-    std::uint32_t randWeight = prng.rand<std::uint32_t>() % keyData.sumWeight;
-    std::uint32_t sumWeight  = 0;
-    for (std::size_t idx = index; idx < index + keyData.entryCount; ++idx)
+    if (keyData.sumWeight != 0)
     {
-        sumWeight += entries[idx].weight;
-        if (randWeight < sumWeight)
+        std::uint32_t randWeight = prng.rand<std::uint32_t>() % keyData.sumWeight;
+        std::uint32_t sumWeight  = 0;
+        for (std::size_t idx = index; idx < index + keyData.count; ++idx)
         {
-            keyData.randIndex = idx;
-            break;
+            sumWeight += entries[idx].weight;
+            if (randWeight < sumWeight)
+            {
+                keyData.randIndex = idx;
+                break;
+            }
         }
     }
+
+    return keyData;
 }
 
-void PolyBook::show_key_data() const noexcept {
+void PolyBook::show_key_data(const KeyData& keyData, Position& pos) const noexcept {
 
-    std::cout << "\nBook entries: " << keyData.entryCount << std::endl;
-    for (std::size_t idx = keyData.begIndex; idx < keyData.begIndex + keyData.entryCount; ++idx)
+    std::cout << "\nCount: " << keyData.count << '\n';
+
+    for (std::size_t idx = keyData.begIndex; idx < keyData.begIndex + keyData.count; ++idx)
     {
-        std::cout << std::setw(2) << std::setfill('0')                  //
-                  << idx - keyData.begIndex + 1 << ' ' << entries[idx]  //
-                  << " prob: " << std::setw(7) << std::setfill('0') << std::fixed
-                  << std::setprecision(4)
-                  << (keyData.sumWeight != 0 ? 100.0 * entries[idx].weight / keyData.sumWeight
-                                             : 0.0)
-                  << std::endl;
+        const auto& pe = entries[idx];
+
+        std::cout << std::right << std::setfill('0')             //
+                  << std::setw(2) << idx - keyData.begIndex + 1  //
+                  << " key: " << u64_to_string(pe.key)           //
+                  << std::left << std::setfill(' ')              //
+                  << " move: " << std::setw(8)
+                  << UCI::move_to_san(pg_to_move(pe.move, pos), pos)                  //
+                  << std::right << std::setfill('0')                                  //
+                  << " weight: " << std::setw(5) << pe.weight                         //
+                  << " learn: " << std::setw(2) << pe.learn                           //
+                  << " prob: " << std::fixed << std::setprecision(4) << std::setw(7)  //
+                  << (keyData.sumWeight != 0 ? 100.0 * pe.weight / keyData.sumWeight : 0.0) << '\n';
     }
-    std::cout << std::endl;
+
+    std::cout << std::left << std::setfill(' ') << std::endl;
+}
+
+Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
+    assert(enabled());
+
+    Key key = PG.key(pos);
+
+    if (!can_probe(pos, key))
+        return Move::None;
+
+    std::size_t index = find_key(key);
+
+    if (index >= entryCount)
+    {
+        ++failCount;
+        return Move::None;
+    }
+
+    KeyData keyData = get_key_data(index);
+
+#if !defined(NDEBUG)
+    show_key_data(keyData, pos);
+#endif
+
+    std::vector<std::size_t> indices;
+
+    indices.push_back(pickBestActive ? keyData.bestIndex : keyData.randIndex);
+    // add remaining indices sequentially, skipping duplicates
+    for (index = keyData.begIndex; index < keyData.begIndex + keyData.count; ++index)
+        if (index != indices[0])
+            indices.push_back(index);
+
+    for (std::size_t i = 0, n = indices.size(); i < n; ++i)
+    {
+        Move move = pg_to_move(entries[indices[i]].move, pos);
+        if (i == n - 1 || !is_draw(pos, move))
+            return move;
+    }
+    assert(false);
+    return Move::None;
 }
 
 }  // namespace DON
