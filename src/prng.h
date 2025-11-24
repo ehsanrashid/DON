@@ -103,13 +103,14 @@ class XorShift64Star final {
     constexpr void jump() noexcept {
         constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
 
-        std::uint64_t t = 0;
+        std::uint64_t t{0};
         for (std::uint8_t b = 0; b < 64; ++b)
         {
             if ((JumpMask >> b) & 1)
                 t ^= s;
             rand64();
         }
+
         s = t;
     }
 
@@ -122,7 +123,7 @@ class XorShift64Star final {
         return 0x2545F4914F6CDD1DULL * s;
     }
 
-    std::uint64_t s{};
+    std::uint64_t s;
 };
 
 // XoShiRo256** (short for "xor, shift, rotate") Pseudo-Random Number Generator
@@ -190,7 +191,7 @@ class XoShiRo256Star final {
 
     static constexpr std::size_t Size = 4;
 
-    StdArray<std::uint64_t, Size> s{};
+    StdArray<std::uint64_t, Size> s;
 };
 
 // Template PRNG wrapper
