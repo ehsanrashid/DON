@@ -472,7 +472,7 @@ std::size_t PolyBook::find_key(Key key) const noexcept {
         if (midKey == key)
         {
             begIndex = (midIndex > 4) ? midIndex - 4 : 0;
-            endIndex = (midIndex + 4 < entryCount) ? midIndex + 4 : entryCount - 1;
+            endIndex = (midIndex < entryCount - 5) ? midIndex + 4 : entryCount - 1;
             break;
         }
 
