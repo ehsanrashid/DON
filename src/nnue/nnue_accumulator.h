@@ -25,12 +25,13 @@
 #include <cstring>
 
 #include "../misc.h"
-#include "../position.h"
 #include "../types.h"
 #include "nnue_architecture.h"
 #include "nnue_common.h"
 
 namespace DON {
+
+class Position;
 
 namespace NNUE {
 
@@ -43,9 +44,9 @@ struct alignas(CACHE_LINE_SIZE) Accumulator final {
    public:
     constexpr Accumulator() noexcept = default;
 
-    StdArray<BiasType, COLOR_NB, Size>              accumulation{};
-    StdArray<PSQTWeightType, COLOR_NB, PSQTBuckets> psqtAccumulation{};
-    StdArray<bool, COLOR_NB>                        computed{};
+    StdArray<BiasType, COLOR_NB, Size>              accumulation;
+    StdArray<PSQTWeightType, COLOR_NB, PSQTBuckets> psqtAccumulation;
+    StdArray<bool, COLOR_NB>                        computed;
 };
 
 using BigAccumulator   = Accumulator<BigTransformedFeatureDimensions>;
@@ -79,10 +80,14 @@ struct AccumulatorCaches final {
                             sizeof(*this) - offset);
             }
 
-            StdArray<BiasType, Size>              accumulation{};
-            StdArray<PSQTWeightType, PSQTBuckets> psqtAccumulation{};
-            Position::PieceArray                  pieceArr{};
-            Bitboard                              pieces{};
+            Bitboard pieces(Color c, PieceType pt) const noexcept {
+                return colorBB[c] & typeBB[pt];
+            }
+
+            StdArray<BiasType, Size>              accumulation;
+            StdArray<PSQTWeightType, PSQTBuckets> psqtAccumulation;
+            StdArray<Bitboard, PIECE_TYPE_NB>     typeBB;
+            StdArray<Bitboard, COLOR_NB>          colorBB;
         };
 
         template<typename Network>
@@ -96,7 +101,7 @@ struct AccumulatorCaches final {
         const StdArray<Entry, COLOR_NB>& operator[](Square s) const noexcept { return entries[s]; }
         StdArray<Entry, COLOR_NB>&       operator[](Square s) noexcept { return entries[s]; }
 
-        StdArray<Entry, SQUARE_NB, COLOR_NB> entries{};
+        StdArray<Entry, SQUARE_NB, COLOR_NB> entries;
     };
 
     using BigCache   = Cache<BigTransformedFeatureDimensions>;
@@ -113,8 +118,8 @@ struct AccumulatorCaches final {
         small.init(networks.small);
     }
 
-    BigCache   big{};
-    SmallCache small{};
+    BigCache   big;
+    SmallCache small;
 };
 
 template<typename FeatureSet>
@@ -151,16 +156,16 @@ struct AccumulatorState final {
         small.computed.fill(false);
     }
 
-    typename FeatureSet::DirtyType dirtyType{};
-    BigAccumulator                 big{};
-    SmallAccumulator               small{};
+    typename FeatureSet::DirtyType dirtyType;
+    BigAccumulator                 big;
+    SmallAccumulator               small;
 };
 
 struct AccumulatorStack final {
    public:
     static constexpr std::size_t MaxSize = MAX_PLY + 1;
 
-    constexpr AccumulatorStack() noexcept = default;
+    AccumulatorStack() noexcept = default;
 
     template<typename T>
     [[nodiscard]] const StdArray<AccumulatorState<T>, MaxSize>& accumulators() const noexcept;
