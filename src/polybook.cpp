@@ -488,10 +488,12 @@ std::size_t PolyBook::find_key(Key key) const noexcept {
 
         window = endIndex - begIndex + 1;
     }
-    // Goto 1st index of key
+
+    // Rewind to first occurrence if multiple identical keys
     std::size_t index = begIndex;
     while (index > 0 && entries[index - 1].key == key)
         --index;
+
     // Linear scan
     for (; index <= endIndex; ++index)
         if (entries[index].key == key)
