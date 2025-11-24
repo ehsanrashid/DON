@@ -24,6 +24,7 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
+#include <vector>
 #if !defined(_WIN32)
     #include <fcntl.h>
 #endif
@@ -480,9 +481,10 @@ Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
 
     indices.push_back(pickBestActive ? keyData.bestIndex : keyData.randIndex);
     // add remaining indices sequentially, skipping duplicates
-    for (std::size_t idx = keyData.begIndex; idx < keyData.begIndex + keyData.entryCount; ++idx)
-        if (idx != indices[0])
-            indices.push_back(idx);
+    for (std::size_t index = keyData.begIndex; index < keyData.begIndex + keyData.entryCount;
+         ++index)
+        if (index != indices[0])
+            indices.push_back(index);
 
     for (std::size_t i = 0, n = indices.size(); i < n; ++i)
     {
@@ -570,17 +572,19 @@ void PolyBook::get_key_data(std::size_t index) noexcept {
 
     keyData.randIndex = keyData.bestIndex;
 
-    std::uint16_t randWeight = prng.rand<std::uint16_t>() % keyData.sumWeight;
+    if (keyData.sumWeight == 0)
+        return;
+
+    std::uint32_t randWeight = prng.rand<std::uint32_t>() % keyData.sumWeight;
     std::uint32_t sumWeight  = 0;
     for (std::size_t idx = index; idx < index + keyData.entryCount; ++idx)
     {
-        auto weight = entries[idx].weight;
-        if (sumWeight <= randWeight && randWeight < sumWeight + weight)
+        sumWeight += entries[idx].weight;
+        if (randWeight < sumWeight)
         {
             keyData.randIndex = idx;
             break;
         }
-        sumWeight += weight;
     }
 }
 
