@@ -17,6 +17,7 @@
 
 #include "nnue_accumulator.h"
 
+#include <initializer_list>
 #include <type_traits>
 #include <utility>
 
@@ -385,10 +386,8 @@ void update_accumulator_refresh_cache(Color                                 pers
             PSQFeatureSet::append_active_indices(perspective, kingSq, pc, addedBB, added);
         }
 
-    for (PieceType pt : PieceTypes)
-        entry.typeBB[pt] = pos.pieces(pt);
-    for (Color c : {WHITE, BLACK})
-        entry.colorBB[c] = pos.pieces(c);
+    entry.typeBB  = pos.type_bb();
+    entry.colorBB = pos.color_bb();
 
     auto& accumulator = accState.acc<Dimensions>();
 

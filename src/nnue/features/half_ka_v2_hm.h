@@ -28,8 +28,6 @@
 
 namespace DON {
 
-class Position;
-
 namespace NNUE::Features {
 
 // Feature HalfKAv2_hm: Combination of the position of own king and the position of pieces.

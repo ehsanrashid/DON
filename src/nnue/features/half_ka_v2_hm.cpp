@@ -23,7 +23,6 @@
 
 #include "../../bitboard.h"
 #include "../../misc.h"
-#include "../../position.h"
 #include "../../types.h"
 #include "../nnue_common.h"
 

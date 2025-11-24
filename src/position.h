@@ -109,8 +109,6 @@ struct State final {
 // used by the search to update node info when traversing the search tree.
 class Position final {
    public:
-    using PieceArray = StdArray<Piece, SQUARE_NB>;
-
     static void init() noexcept;
 
     static inline bool         Chess960      = false;
@@ -132,7 +130,9 @@ class Position final {
     std::string fen(bool full = true) const noexcept;
 
     // Position representation
-    [[nodiscard]] const PieceArray& piece_arr() const noexcept;
+    [[nodiscard]] const StdArray<Piece, SQUARE_NB>&        piece_arr() const noexcept;
+    [[nodiscard]] const StdArray<Bitboard, PIECE_TYPE_NB>& type_bb() const noexcept;
+    [[nodiscard]] const StdArray<Bitboard, COLOR_NB>&      color_bb() const noexcept;
 
     Piece    piece_on(Square s) const noexcept;
     bool     empty_on(Square s) const noexcept;
@@ -343,7 +343,7 @@ class Position final {
     bool see_ge(Move m, int threshold) const noexcept;
 
     // Data members
-    PieceArray                                      pieceArr;
+    StdArray<Piece, SQUARE_NB>                      pieceArr;
     StdArray<Bitboard, PIECE_TYPE_NB>               typeBB;
     StdArray<Bitboard, COLOR_NB>                    colorBB;
     StdArray<std::uint8_t, PIECE_NB>                pieceCount;
@@ -355,7 +355,15 @@ class Position final {
     State*                                          st;
 };
 
-inline const Position::PieceArray& Position::piece_arr() const noexcept { return pieceArr; }
+// clang-format off
+
+inline const StdArray<Piece, SQUARE_NB>& Position::piece_arr() const noexcept { return pieceArr; }
+
+inline const StdArray<Bitboard, PIECE_TYPE_NB>& Position::type_bb() const noexcept { return typeBB; }
+
+inline const StdArray<Bitboard, COLOR_NB>& Position::color_bb() const noexcept { return colorBB; }
+
+// clang-format on
 
 inline Piece Position::piece_on(Square s) const noexcept {
     assert(is_ok(s));
@@ -604,7 +612,7 @@ inline bool Position::has_castled(Color c) const noexcept { return st->hasCastle
 inline bool Position::has_rule50_high() const noexcept { return st->hasRule50High; }
 
 inline bool Position::bishop_paired(Color c) const noexcept {
-    return (pieces(c, BISHOP) & color_bb<WHITE>()) && (pieces(c, BISHOP) & color_bb<BLACK>());
+    return (pieces(c, BISHOP) & colors_bb<WHITE>()) && (pieces(c, BISHOP) & colors_bb<BLACK>());
 }
 
 inline bool Position::bishop_opposite() const noexcept {
