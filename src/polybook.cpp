@@ -349,7 +349,7 @@ void swap_polyentry(PolyEntry* pe) noexcept {
 // bit  6-11: origin square (from 0 to 63)
 // bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
 // bit 14-15: special move flag: promotion (1), en-passant (2), castling (3)
-Move pg_to_move(std::uint16_t pgMove, const Position& pos) noexcept {
+Move pg_to_move(std::uint16_t pgMove, const MoveList<LEGAL>& legalMoveList) noexcept {
 
     Move move = Move(pgMove);
 
@@ -357,7 +357,7 @@ Move pg_to_move(std::uint16_t pgMove, const Position& pos) noexcept {
         move = Move(move.org_sq(), move.dst_sq(), PieceType(pt + 1));
 
     std::uint16_t moveRaw = move.raw() & ~Move::TypeMask;
-    for (auto m : MoveList<LEGAL>(pos))
+    for (auto m : legalMoveList)
         if ((m.raw() & ~Move::TypeMask) == moveRaw)
             return m;
 
@@ -535,6 +535,8 @@ void PolyBook::show_key_data(const KeyData& keyData, Position& pos) const noexce
 
     std::cout << "\nCount: " << keyData.count << '\n';
 
+    const MoveList<LEGAL> legalMoveList(pos);
+
     for (std::size_t idx = keyData.begIndex; idx < keyData.begIndex + keyData.count; ++idx)
     {
         const auto& pe = entries[idx];
@@ -544,7 +546,7 @@ void PolyBook::show_key_data(const KeyData& keyData, Position& pos) const noexce
                   << " key: " << u64_to_string(pe.key)           //
                   << std::left << std::setfill(' ')              //
                   << " move: " << std::setw(8)
-                  << UCI::move_to_san(pg_to_move(pe.move, pos), pos)                  //
+                  << UCI::move_to_san(pg_to_move(pe.move, legalMoveList), pos)        //
                   << std::right << std::setfill('0')                                  //
                   << " weight: " << std::setw(5) << pe.weight                         //
                   << " learn: " << std::setw(2) << pe.learn                           //
@@ -585,9 +587,11 @@ Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
         if (index != indices[0])
             indices.push_back(index);
 
+    const MoveList<LEGAL> legalMoveList(pos);
+
     for (std::size_t i = 0, n = indices.size(); i < n; ++i)
     {
-        Move move = pg_to_move(entries[indices[i]].move, pos);
+        Move move = pg_to_move(entries[indices[i]].move, legalMoveList);
         if (i == n - 1 || !is_draw(pos, move))
             return move;
     }

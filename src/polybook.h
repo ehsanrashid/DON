@@ -20,7 +20,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <iosfwd>
 #include <string>
 #include <string_view>
 
@@ -32,13 +31,6 @@ class Position;
 
 struct PolyEntry final {
    public:
-    friend constexpr bool operator==(const PolyEntry& pe, Move m) noexcept {
-        return pe.move == (m.raw() & ~Move::TypeMask);
-    }
-    friend constexpr bool operator!=(const PolyEntry& pe, Move m) noexcept { return !(pe == m); }
-    friend constexpr bool operator==(Move m, const PolyEntry& pe) noexcept { return pe == m; }
-    friend constexpr bool operator!=(Move m, const PolyEntry& pe) noexcept { return !(pe == m); }
-
     friend constexpr bool operator==(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
         return pe1.key == pe2.key && pe1.move == pe2.move && pe1.weight == pe2.weight;
     }
@@ -72,11 +64,9 @@ class PolyBook final {
     PolyBook() = default;
     ~PolyBook() noexcept;
 
-    void free() noexcept;
-
     void init(std::string_view bookFile) noexcept;
 
-    bool enabled() const noexcept { return entries != nullptr; }
+    bool enabled() const noexcept { return entries != nullptr && entryCount != 0; }
 
     std::string info() const noexcept;
 
@@ -89,6 +79,8 @@ class PolyBook final {
         std::uint16_t bestWeight;
         std::uint32_t sumWeight;
     };
+
+    void free() noexcept;
 
     bool can_probe(const Position& pos, Key key) noexcept;
 
