@@ -85,8 +85,8 @@ Value evaluate(const Position&          pos,
     nnue     *= 1.0 - 54.8366e-6 * complexity;
     optimism *= 1.0 + 21.0084e-4 * complexity;
 
-    std::int32_t v = (nnue + 92.3450e-3 * optimism)
-                   + (nnue +              optimism) * pos.material() * 12.8417e-6;
+    std::int32_t v = int( nnue + int(92.3450e-3 * optimism))
+                   + int((nnue +                  optimism) * pos.material() * 12.8417e-6);
     // clang-format on
 
     // Damp down the evaluation linearly when shuffling

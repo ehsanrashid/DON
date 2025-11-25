@@ -31,6 +31,7 @@
 #include "movegen.h"
 #include "position.h"
 #include "prng.h"
+#include "search.h"
 #include "uci.h"
 #include "ucioption.h"
 
@@ -381,10 +382,10 @@ bool is_draw(Position& pos, Move m) noexcept {
 
     State st;
     pos.do_move(m, st);
-    bool draw = pos.is_draw(pos.ply(), true, true);
+    bool isDraw = pos.is_draw(pos.ply(), true, true);
     pos.undo_move(m);
 
-    return draw;
+    return isDraw;
 }
 
 }  // namespace
@@ -555,10 +556,13 @@ PolyEntryVector PolyBook::key_candidates(Key key) const noexcept {
     return candidates;
 }
 
-Move PolyBook::probe(Position& pos, const Options& options) noexcept {
+Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& options) noexcept {
     static PRNG<XorShift64Star> prng(now());
 
-    if (!(options["OwnBook"] && enabled() && pos.move_num() < options["BookProbeDepth"]))
+    if (!(options["OwnBook"] && enabled() && pos.move_num() <= options["BookProbeDepth"]))
+        return Move::None;
+
+    if (rootMoves.empty())
         return Move::None;
 
     Key key = PGZob.key(pos);
@@ -596,47 +600,60 @@ Move PolyBook::probe(Position& pos, const Options& options) noexcept {
     std::cout << std::left << std::setfill(' ') << std::endl;
 #endif
 
-    MoveVector candidateMoves;
+    Move move, bestMove = Move::None;
 
-    bool pickBest = options["BookPickBest"];
-
-    Move bestMove = Move::None;
-
-    if (pickBest)
+    if (options["BookPickBest"])
     {
         std::uint16_t bestWeight = 0;
         for (const auto& candidate : candidates)
             if (bestWeight < candidate.weight)
             {
                 bestWeight = candidate.weight;
-                bestMove   = pg_to_move(candidate.move, legalMoveList);
+
+                move = pg_to_move(candidate.move, legalMoveList);
+                if (rootMoves.contains(move))
+                    bestMove = move;
             }
     }
-    else
+    else if (sumWeight != 0)
     {
-        if (sumWeight != 0)
-        {
-            std::uint64_t randWeight = prng.rand<std::uint64_t>() % sumWeight;
+        std::uint64_t randWeight = prng.rand<std::uint64_t>() % sumWeight;
 
-            sumWeight = 0;
-            for (const auto& candidate : candidates)
+        sumWeight = 0;
+        for (const auto& candidate : candidates)
+        {
+            sumWeight += candidate.weight;
+            if (randWeight < sumWeight)
             {
-                sumWeight += candidate.weight;
-                if (randWeight < sumWeight)
+                move = pg_to_move(candidate.move, legalMoveList);
+                if (rootMoves.contains(move))
                 {
-                    bestMove = pg_to_move(candidate.move, legalMoveList);
+                    bestMove = move;
                     break;
                 }
             }
         }
     }
 
-    candidateMoves.push_back(
-      bestMove != Move::None ? bestMove : pg_to_move(candidates[0].move, legalMoveList));
+    if (bestMove == Move::None)
+        for (const auto& candidate : candidates)
+        {
+            move = pg_to_move(candidate.move, legalMoveList);
+            if (rootMoves.contains(move))
+            {
+                bestMove = move;
+                break;
+            }
+        }
 
+    if (bestMove == Move::None)
+        return Move::None;
+
+    MoveVector candidateMoves;
+    candidateMoves.push_back(bestMove);
     for (const auto& candidate : candidates)
     {
-        Move move = pg_to_move(candidate.move, legalMoveList);
+        move = pg_to_move(candidate.move, legalMoveList);
         if (move != candidateMoves[0])
             candidateMoves.push_back(move);
     }

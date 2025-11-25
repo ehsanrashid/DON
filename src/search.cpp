@@ -277,14 +277,20 @@ void Worker::start_search() noexcept {
         Move bookBestMove = Move::None;
 
         // Check polyglot book
-        if (!limit.infinite && limit.mate == 0)
-            bookBestMove = Book.probe(rootPos, options);
+        if (!(limit.infinite || limit.mate != 0))
+            bookBestMove = Book.probe(rootPos, rootMoves, options);
 
-        if (bookBestMove != Move::None && rootMoves.contains(bookBestMove))
+        if (bookBestMove != Move::None)
         {
             State st;
-            rootPos.do_move(bookBestMove, st);
-            Move bookPonderMove = Book.probe(rootPos, options);
+            rootPos.do_move(bookBestMove, st, &tt);
+
+            RootMoves _rootMoves;
+            for (auto m : MoveList<LEGAL>(rootPos))
+                _rootMoves.emplace_back(m);
+
+            Move bookPonderMove = Book.probe(rootPos, _rootMoves, options);
+
             rootPos.undo_move(bookBestMove);
 
             for (auto&& th : threads)
