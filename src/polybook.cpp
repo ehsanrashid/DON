@@ -39,22 +39,14 @@ namespace DON {
 
 namespace {
 
-union Zobrist {
-   private:
-    static constexpr std::size_t PieceTypes = 6;
-    // Size = 6 * 2 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
-    static constexpr std::size_t Size =
-      PieceTypes * COLOR_NB * SQUARE_NB + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1;
-
-    Zobrist() noexcept                          = delete;
-    Zobrist(const Zobrist&) noexcept            = delete;
-    Zobrist(Zobrist&&) noexcept                 = delete;
-    Zobrist& operator=(const Zobrist&) noexcept = delete;
-    Zobrist& operator=(Zobrist&&) noexcept      = delete;
-
+union Zobrist final {
    public:
-    constexpr Zobrist(const StdArray<Key, Size>& __) noexcept :
-        _{__} {}
+    // Size = 6 * 2 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
+    static constexpr std::size_t Size = (PIECE_TYPE_NB - 2) * COLOR_NB * SQUARE_NB  //
+                                      + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1;
+
+    constexpr Zobrist(const StdArray<Key, Size>& keys) noexcept :
+        Keys{keys} {}
 
     Key key(const Position& pos) const noexcept {
         Key key = 0;
@@ -66,31 +58,37 @@ union Zobrist {
             Piece  pc = pos.piece_on(s);
             assert(is_ok(pc));
             // PolyGlot pieces are: BP = 0, WP = 1, BN = 2, ... BK = 10, WK = 11
-            key ^= Z.PieceSquare[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
+            key ^= _.PieceSquare[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
         }
 
         Bitboard castling = pos.castling_rights();
         while (castling)
-            key ^= Z.Castling[pop_lsb(castling)];
+            key ^= _.Castling[pop_lsb(castling)];
 
         if (is_ok(pos.ep_sq()))
-            key ^= Z.Enpassant[file_of(pos.ep_sq())];
+            key ^= _.Enpassant[file_of(pos.ep_sq())];
 
         if (pos.active_color() == WHITE)
-            key ^= Z.Turn;
+            key ^= _.Turn;
 
         return key;
     }
 
    private:
-    StdArray<Key, Size> _;
+    Zobrist() noexcept                          = delete;
+    Zobrist(const Zobrist&) noexcept            = delete;
+    Zobrist(Zobrist&&) noexcept                 = delete;
+    Zobrist& operator=(const Zobrist&) noexcept = delete;
+    Zobrist& operator=(Zobrist&&) noexcept      = delete;
+
+    StdArray<Key, Size> Keys;
 
     struct {
-        StdArray<Key, PieceTypes * COLOR_NB, SQUARE_NB> PieceSquare;  // [piece][square]
-        StdArray<Key, COLOR_NB * CASTLING_SIDE_NB>      Castling;     // [castle-right]
-        StdArray<Key, FILE_NB>                          Enpassant;    // [file]
-        Key                                             Turn;
-    } Z;
+        StdArray<Key, (PIECE_TYPE_NB - 2) * COLOR_NB, SQUARE_NB> PieceSquare;  // [piece][square]
+        StdArray<Key, COLOR_NB * CASTLING_SIDE_NB>               Castling;     // [castle-right]
+        StdArray<Key, FILE_NB>                                   Enpassant;    // [file]
+        Key                                                      Turn;
+    } _;
 };
 
 // Random numbers from PolyGlot, used to compute book hash keys
