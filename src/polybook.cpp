@@ -339,6 +339,23 @@ void swap_polyentry(PolyEntry* pe) noexcept {
     pe->learn  = swap_uint32(pe->learn);
 }
 
+
+// Last probe info
+
+Bitboard occupied = 0;
+
+std::uint8_t failCount = 0;
+
+bool can_probe(const Position& pos, Key key) noexcept {
+
+    if (popcount(occupied ^ pos.pieces()) > 6 || key == 0x463B96181691FC9CULL)
+        failCount = 0;
+
+    occupied = pos.pieces();
+    // Stop probe after 4 times not in the book till position changes
+    return failCount <= 4;
+}
+
 // A PolyGlot book move is encoded as follows:
 //
 // bit  0- 5: destination square (from 0 to 63)
@@ -403,13 +420,16 @@ void PolyBook::init(std::string_view bookFile) noexcept {
         return;
     }
 
+    filename = bookFile;
+
     // Get file size
     auto fileSize = get_file_size(ifstream);
 
-    filename = bookFile;
+    ifstream.seekg(0, std::ios_base::beg);
 
     // Number of entries
     std::size_t entryCount = fileSize / sizeof(PolyEntry);
+
     entries.resize(entryCount);
 
     // Read all entries
@@ -432,16 +452,6 @@ void PolyBook::init(std::string_view bookFile) noexcept {
 
 std::string PolyBook::info() const noexcept {
     return "Book: " + filename + " with " + std::to_string(entries.size()) + " entries";
-}
-
-bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
-
-    if (popcount(occupied ^ pos.pieces()) > 6 || key == 0x463B96181691FC9CULL)
-        failCount = 0;
-
-    occupied = pos.pieces();
-    // Stop probe after 4 times not in the book till position changes
-    return failCount <= 4;
 }
 
 std::size_t PolyBook::key_index(Key key) const noexcept {

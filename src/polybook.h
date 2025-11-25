@@ -76,8 +76,6 @@ class PolyBook final {
    private:
     void clear() noexcept;
 
-    bool can_probe(const Position& pos, Key key) noexcept;
-
     std::size_t key_index(Key key) const noexcept;
 
     std::vector<PolyEntry> key_candidates(Key key) const noexcept;
@@ -85,10 +83,6 @@ class PolyBook final {
     std::string filename;
 
     std::vector<PolyEntry> entries;
-
-    // Last probe info
-    Bitboard     occupied;
-    std::uint8_t failCount;
 };
 
 }  // namespace DON
