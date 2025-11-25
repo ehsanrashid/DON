@@ -136,9 +136,9 @@ ifeq ($(ARCH), $(filter $(ARCH), \
                  x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2-popcnt x86-32-sse2 x86-32-popcnt x86-32 general-32 \
                  ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7 armv7-neon armv8 armv8-dotprod apple-silicon riscv64 \
                  loongarch64 loongarch64-lsx loongarch64-lasx))
-   SUPPORTED_ARCH=yes
+   SUPPORTED_ARCH = yes
 else
-   SUPPORTED_ARCH=no
+   SUPPORTED_ARCH = no
 endif
 
 optimize = yes
