@@ -489,10 +489,10 @@ std::size_t PolyBook::key_index(Key key) const noexcept {
 std::vector<PolyEntry> PolyBook::key_candidates(Key key) const noexcept {
     std::size_t index = key_index(key);
 
-    if (index >= entries.size())
-        return {};
-
     std::vector<PolyEntry> candidates;
+
+    if (index >= entries.size())
+        return candidates;
 
     for (std::size_t idx = index; idx < entries.size(); ++idx)
     {
