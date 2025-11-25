@@ -475,7 +475,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
         if (gotSize <= 0)  // read failed or EOF without data
             return false;
 
-        //if (gotSize != readSize)  // partial read — treat as error for complete-file read
+        //if (gotSize != readSize)  // partial read - treat as error for complete-file read
         //{
         //    std::cerr << "Partial read: expected " << readSize << " got " << gotSize << std::endl;
         //    return false;
