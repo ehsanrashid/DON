@@ -80,14 +80,10 @@ struct AccumulatorCaches final {
                             sizeof(*this) - offset);
             }
 
-            Bitboard pieces(Color c, PieceType pt) const noexcept {
-                return colorBB[c] & typeBB[pt];
-            }
-
             StdArray<BiasType, Size>              accumulation;
             StdArray<PSQTWeightType, PSQTBuckets> psqtAccumulation;
-            StdArray<Bitboard, PIECE_TYPE_NB>     typeBB;
-            StdArray<Bitboard, COLOR_NB>          colorBB;
+            StdArray<Piece, SQUARE_NB>            pieceArr;
+            Bitboard                              pieces;
         };
 
         template<typename Network>

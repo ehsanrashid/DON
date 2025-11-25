@@ -17,7 +17,6 @@
 
 #include "nnue_accumulator.h"
 
-#include <initializer_list>
 #include <type_traits>
 #include <utility>
 
@@ -358,6 +357,28 @@ void update_accumulator_incremental(
     (targetState.template acc<TransformedFeatureDimensions>()).computed[perspective] = true;
 }
 
+Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
+                    const StdArray<Piece, SQUARE_NB>& newPieces) noexcept {
+#if defined(USE_AVX512) || defined(USE_AVX2)
+    Bitboard samedBB = 0;
+    for (std::size_t s = 0; s < SQUARE_NB; s += 32)
+    {
+        __m256i oldV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
+        __m256i newV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
+        __m256i cmpEqual = _mm256_cmpeq_epi8(oldV, newV);
+
+        std::uint32_t equalMask = _mm256_movemask_epi8(cmpEqual);
+        samedBB |= Bitboard(equalMask) << s;
+    }
+    return ~samedBB;
+#else
+    Bitboard changedBB = 0;
+    for (std::size_t s = 0; s < SQUARE_NB; ++s)
+        changedBB |= Bitboard(oldPieces[s] != newPieces[s]) << s;
+    return changedBB;
+#endif
+}
+
 template<IndexType Dimensions>
 void update_accumulator_refresh_cache(Color                                 perspective,
                                       const FeatureTransformer<Dimensions>& featureTransformer,
@@ -371,23 +392,18 @@ void update_accumulator_refresh_cache(Color                                 pers
 
     PSQFeatureSet::IndexList removed, added;
 
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
-        {
-            Piece pc = make_piece(c, pt);
+    const auto& pieceArr = pos.piece_arr();
+    const auto  pieces   = pos.pieces();
 
-            Bitboard oldBB = entry.pieces(c, pt);
-            Bitboard newBB = pos.pieces(c, pt);
+    Bitboard changedBB = changed_bb(entry.pieceArr, pieceArr);
 
-            Bitboard removedBB = oldBB & ~newBB;
-            PSQFeatureSet::append_active_indices(perspective, kingSq, pc, removedBB, removed);
+    Bitboard removedBB = changedBB & entry.pieces;
+    PSQFeatureSet::append_active_indices(perspective, kingSq, entry.pieceArr, removedBB, removed);
+    Bitboard addedBB = changedBB & pieces;
+    PSQFeatureSet::append_active_indices(perspective, kingSq, pieceArr, addedBB, added);
 
-            Bitboard addedBB = newBB & ~oldBB;
-            PSQFeatureSet::append_active_indices(perspective, kingSq, pc, addedBB, added);
-        }
-
-    entry.typeBB  = pos.type_bb();
-    entry.colorBB = pos.color_bb();
+    entry.pieceArr = pieceArr;
+    entry.pieces   = pieces;
 
     auto& accumulator = accState.acc<Dimensions>();
 

@@ -719,8 +719,12 @@ Value Worker::search(Position&    pos,
         // because will never beat the current alpha. Same logic but with a reversed signs
         // apply also in the opposite condition of being mated instead of giving mate.
         // In this case, return a fail-high score.
-        alpha = std::max(mated_in(0 + ss->ply), alpha);
-        beta  = std::min(mates_in(1 + ss->ply), beta);
+        Value mated = mated_in(0 + ss->ply);
+        if (alpha < mated)
+            alpha = mated;
+        Value mates = mates_in(1 + ss->ply);
+        if (beta > mates)
+            beta = mates;
         if (alpha >= beta)
             return alpha;
     }
