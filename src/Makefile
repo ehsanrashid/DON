@@ -129,16 +129,16 @@ ifeq ($(ARCH), native)
 endif
 
 # explicitly check for the list of supported architectures (as listed with make help),
-# the user can override with `make ARCH=x86-64-avx512icl SUPPORTED_ARCH=true`
+# the user can override with `make ARCH=x86-64-avx512icl SUPPORTED_ARCH=yes`
 ifeq ($(ARCH), $(filter $(ARCH), \
                  x86-64-avx512icl x86-64-vnni512 x86-64-avx512 x86-64-avxvnni x86-64-bmi2 x86-64-avx2 \
                  x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
                  x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2-popcnt x86-32-sse2 x86-32-popcnt x86-32 general-32 \
                  ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7 armv7-neon armv8 armv8-dotprod apple-silicon riscv64 \
                  loongarch64 loongarch64-lsx loongarch64-lasx))
-   SUPPORTED_ARCH=true
+   SUPPORTED_ARCH=yes
 else
-   SUPPORTED_ARCH=false
+   SUPPORTED_ARCH=no
 endif
 
 optimize = yes
@@ -950,7 +950,7 @@ help:
 	echo "make -j profile-build ARCH=x86-64-avxvnni COMP=gcc COMPCXX=g++-12.0" && \
 	echo "make -j build ARCH=x86-64-ssse3 COMP=clang" && \
 	echo ""
-ifneq ($(SUPPORTED_ARCH), true)
+ifneq ($(SUPPORTED_ARCH), yes)
 	@echo "Specify a supported architecture with the ARCH option for more details"
 	@echo ""
 endif
@@ -1079,7 +1079,7 @@ config-sanity: net
 	echo "" && \
 	(test "$(debug)" = "yes" || test "$(debug)" = "no") && \
 	(test "$(optimize)" = "yes" || test "$(optimize)" = "no") && \
-	(test "$(SUPPORTED_ARCH)" = "true") && \
+	(test "$(SUPPORTED_ARCH)" = "yes") && \
 	(test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
 	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc" || test "$(arch)" = "e2k" || \
 	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
