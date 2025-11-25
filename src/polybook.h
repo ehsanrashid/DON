@@ -74,22 +74,13 @@ class PolyBook final {
     Move probe(Position& pos, bool pickBestActive = true) noexcept;
 
    private:
-    struct KeyData final {
-        std::size_t   begIndex, bestIndex, randIndex;
-        std::uint16_t count;
-        std::uint16_t bestWeight;
-        std::uint32_t sumWeight;
-    };
-
     void clear() noexcept;
 
     bool can_probe(const Position& pos, Key key) noexcept;
 
     std::size_t get_key_index(Key key) const noexcept;
 
-    KeyData get_key_data(std::size_t index) const noexcept;
-
-    void show_key_data(const KeyData& keyData, Position& pos) const noexcept;
+    std::vector<PolyEntry> get_key_entries(Key key) const noexcept;
 
     std::string filename;
 

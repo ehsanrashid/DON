@@ -19,14 +19,9 @@
 
 #include <array>
 #include <cassert>
-#include <cstdio>
-#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <fstream>
-#if !defined(_WIN32)
-    #include <fcntl.h>
-#endif
 
 #include "bitboard.h"
 #include "misc.h"
@@ -491,113 +486,118 @@ std::size_t PolyBook::get_key_index(Key key) const noexcept {
     return entries.size();
 }
 
-PolyBook::KeyData PolyBook::get_key_data(std::size_t index) const noexcept {
-    static PRNG<XorShift64Star> prng(now());
+std::vector<PolyEntry> PolyBook::get_key_entries(Key key) const noexcept {
+    std::size_t index = get_key_index(key);
 
-    KeyData keyData{};
-    keyData.begIndex   = index;
-    keyData.bestWeight = 0;
-    keyData.sumWeight  = 0;
+    if (index >= entries.size())
+        return {};
+
+    std::vector<PolyEntry> candidates;
+
     for (std::size_t idx = index; idx < entries.size(); ++idx)
     {
         if (entries[idx].key != entries[index].key)
             break;
 
-        ++keyData.count;
-
-        auto weight = entries[idx].weight;
-        if (keyData.bestWeight < weight)
-        {
-            keyData.bestWeight = weight;
-            keyData.bestIndex  = idx;
-        }
-        keyData.sumWeight += weight;
+        candidates.push_back(entries[idx]);
     }
 
-    keyData.randIndex = keyData.bestIndex;
-
-    if (keyData.sumWeight != 0)
-    {
-        std::uint32_t randWeight = prng.rand<std::uint32_t>() % keyData.sumWeight;
-        std::uint32_t sumWeight  = 0;
-        for (std::size_t idx = index; idx < index + keyData.count; ++idx)
-        {
-            sumWeight += entries[idx].weight;
-            if (randWeight < sumWeight)
-            {
-                keyData.randIndex = idx;
-                break;
-            }
-        }
-    }
-
-    return keyData;
-}
-
-void PolyBook::show_key_data(const KeyData& keyData, Position& pos) const noexcept {
-
-    std::cout << "\nCount: " << keyData.count << '\n';
-
-    const MoveList<LEGAL> legalMoveList(pos);
-
-    for (std::size_t idx = keyData.begIndex; idx < keyData.begIndex + keyData.count; ++idx)
-    {
-        const auto& pe = entries[idx];
-
-        std::cout << std::right << std::setfill('0')             //
-                  << std::setw(2) << idx - keyData.begIndex + 1  //
-                  << " key: " << u64_to_string(pe.key)           //
-                  << std::left << std::setfill(' ')              //
-                  << " move: " << std::setw(8)
-                  << UCI::move_to_san(pg_to_move(pe.move, legalMoveList), pos)        //
-                  << std::right << std::setfill('0')                                  //
-                  << " weight: " << std::setw(5) << pe.weight                         //
-                  << " learn: " << std::setw(2) << pe.learn                           //
-                  << " prob: " << std::fixed << std::setprecision(4) << std::setw(7)  //
-                  << (keyData.sumWeight != 0 ? 100.0 * pe.weight / keyData.sumWeight : 0.0) << '\n';
-    }
-
-    std::cout << std::left << std::setfill(' ') << std::endl;
+    return candidates;
 }
 
 Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
     assert(enabled());
+
+    static PRNG<XorShift64Star> prng(now());
 
     Key key = PGZob.key(pos);
 
     if (!can_probe(pos, key))
         return Move::None;
 
-    std::size_t index = get_key_index(key);
+    std::vector<PolyEntry> candidates = get_key_entries(key);
 
-    if (index >= entries.size())
+    if (candidates.empty())
     {
         ++failCount;
         return Move::None;
     }
 
-    KeyData keyData = get_key_data(index);
-
-#if !defined(NDEBUG)
-    show_key_data(keyData, pos);
-#endif
-
-    std::vector<PolyEntry> candidates;
-
-    candidates.push_back(pickBestActive ? entries[keyData.bestIndex] : entries[keyData.randIndex]);
-    // add remaining candidates sequentially, skipping duplicates
-    for (index = keyData.begIndex; index < keyData.begIndex + keyData.count; ++index)
-        if (entries[index].move != candidates[0].move)
-            candidates.push_back(entries[index]);
-
     const MoveList<LEGAL> legalMoveList(pos);
 
-    for (std::size_t i = 0, n = candidates.size(); i < n; ++i)
+    std::uint64_t sumWeight = 0;
+    for (const auto& candidate : candidates)
+        sumWeight += candidate.weight;
+
+#if !defined(NDEBUG)
+    std::cout << "\nCount: " << candidates.size() << ", Weight Sum: " << sumWeight << '\n';
+
+    std::size_t cnt = 0;
+    for (const auto& candidate : candidates)
     {
-        Move move = pg_to_move(candidates[i].move, legalMoveList);
-        if (i == n - 1 || !is_draw(pos, move))
-            return move;
+        // clang-format off
+        std::cout << std::right << std::setfill('0')
+                  << std::setw(2) << ++cnt
+                  << " key: "    << u64_to_string(candidate.key)
+                  << std::left << std::setfill(' ')
+                  << " move: "   << std::setw(8) << UCI::move_to_san(pg_to_move(candidate.move, legalMoveList), pos)
+                  << std::right << std::setfill('0')
+                  << " weight: " << std::setw(5) << candidate.weight
+                  << " learn: "  << std::setw(2) << candidate.learn
+                  << " prob: "   << std::fixed << std::setprecision(4) << std::setw(7) << (sumWeight != 0 ? 100.0 * candidate.weight / sumWeight : 0.0) << '\n';
+        // clang-format on
     }
+
+    std::cout << std::left << std::setfill(' ') << std::endl;
+#endif
+
+    std::vector<Move> candidateMoves;
+
+    Move bestMove = Move::None;
+
+    if (pickBestActive)
+    {
+        std::uint16_t bestWeight = 0;
+        for (const auto& candidate : candidates)
+            if (bestWeight < candidate.weight)
+            {
+                bestWeight = candidate.weight;
+                bestMove   = pg_to_move(candidate.move, legalMoveList);
+            }
+    }
+    else
+    {
+        if (sumWeight != 0)
+        {
+            std::uint64_t randWeight = prng.rand<std::uint64_t>() % sumWeight;
+
+            sumWeight = 0;
+            for (const auto& candidate : candidates)
+            {
+                sumWeight += candidate.weight;
+                if (randWeight < sumWeight)
+                {
+                    bestMove = pg_to_move(candidate.move, legalMoveList);
+                    break;
+                }
+            }
+        }
+    }
+
+    candidateMoves.push_back(
+      bestMove != Move::None ? bestMove : pg_to_move(candidates[0].move, legalMoveList));
+
+    for (const auto& candidate : candidates)
+    {
+        Move move = pg_to_move(candidate.move, legalMoveList);
+        if (move != candidateMoves[0])
+            candidateMoves.push_back(move);
+    }
+
+    for (std::size_t i = 0, n = candidateMoves.size(); i < n; ++i)
+        if (i == n - 1 || !is_draw(pos, candidateMoves[i]))
+            return candidateMoves[i];
+
     assert(false);
     return Move::None;
 }
