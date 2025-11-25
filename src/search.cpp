@@ -719,12 +719,12 @@ Value Worker::search(Position&    pos,
                    ? evaluate(pos)
                    : draw_value(key, nodes.load(std::memory_order_relaxed));
 
-        // Step 3. Mate distance pruning. Even if mate at the next move score would be
-        // at best mates_in(1 + ss->ply), but if alpha is already bigger because a
-        // shorter mate was found upward in the tree then there is no need to search further
-        // because will never beat the current alpha. Same logic but with a reversed signs
-        // apply also in the opposite condition of being mated instead of giving mate.
-        // In this case, return a fail-high score.
+        // Step 3. Mate distance pruning.
+        // Even if mate at the next move score would be at best mates_in(1 + ss->ply),
+        // but if alpha is already bigger because a shorter mate was found upward in the tree
+        // then there is no need to search further because will never beat the current alpha.
+        // Same logic but with a reversed signs apply also in the opposite condition of being mated
+        // instead of giving mate. In this case, return a fail-high score.
         Value mated = mated_in(0 + ss->ply);
         if (alpha < mated)
             alpha = mated;
@@ -1563,13 +1563,11 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // Save gathered information in transposition table
     if ((!RootNode || curIdx == 0) && !exclude)
-    {
-        Bound bound = bestValue >= beta                ? BOUND_LOWER
-                    : PVNode && bestMove != Move::None ? BOUND_EXACT
-                                                       : BOUND_UPPER;
-        ttu.update(moveCount != 0 ? depth : std::min(depth + 6, MAX_PLY - 1), ss->ttPv, bound,
+        ttu.update(moveCount ? depth : std::min(depth + 6, MAX_PLY - 1), ss->ttPv,
+                   bestValue >= beta                  ? BOUND_LOWER
+                   : PVNode && bestMove != Move::None ? BOUND_EXACT
+                                                      : BOUND_UPPER,
                    bestMove, value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
-    }
 
     // Adjust correction history if the best move is none or not a capture
     // and the error direction matches whether the above/below bounds.
