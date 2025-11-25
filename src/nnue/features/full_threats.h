@@ -33,6 +33,13 @@ namespace NNUE::Features {
 
 // Feature FullThreats:
 class FullThreats final {
+   private:
+    FullThreats() noexcept                              = delete;
+    FullThreats(const FullThreats&) noexcept            = delete;
+    FullThreats(FullThreats&&) noexcept                 = delete;
+    FullThreats& operator=(const FullThreats&) noexcept = delete;
+    FullThreats& operator=(FullThreats&&) noexcept      = delete;
+
    public:
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t Hash = 0x8F234CB8U;

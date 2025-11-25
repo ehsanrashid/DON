@@ -62,6 +62,12 @@ struct Zobrist final {
     static constexpr std::size_t PawnOffset = 8;
 
    private:
+    Zobrist() noexcept                          = delete;
+    Zobrist(const Zobrist&) noexcept            = delete;
+    Zobrist(Zobrist&&) noexcept                 = delete;
+    Zobrist& operator=(const Zobrist&) noexcept = delete;
+    Zobrist& operator=(Zobrist&&) noexcept      = delete;
+
     static inline StdArray<Key, PIECE_NB, SQUARE_NB> PieceSquare{};
     static inline StdArray<Key, CASTLING_RIGHTS_NB>  Castling{};
     static inline StdArray<Key, FILE_NB>             Enpassant{};
