@@ -1734,7 +1734,7 @@ QS_MOVES_LOOP:
         {
             // Futility pruning and moveCount pruning
             if (!check && dst != preSq && !is_loss(futilityBase)
-                && (move.type_of() != PROMOTION || (!ss->inCheck && move.promotion_type() < QUEEN)))
+                && (move.type_of() != PROMOTION || move.promotion_type() < QUEEN))
             {
                 if ((moveCount - promoCount) > 2)
                     continue;

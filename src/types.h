@@ -619,12 +619,8 @@ class Move {
 inline constexpr Move Move::None{SQ_A1, SQ_A1};
 inline constexpr Move Move::Null{SQ_B1, SQ_B1};
 
-template<bool MP = false>
 constexpr Value promotion_value(Move m) noexcept {
-    return m.type_of() == PROMOTION
-           ? (MP && m.promotion_type() == KNIGHT ? VALUE_ROOK + 1 : PIECE_VALUE[m.promotion_type()])
-               - VALUE_PAWN
-           : VALUE_ZERO;
+    return m.type_of() == PROMOTION ? PIECE_VALUE[m.promotion_type()] - VALUE_PAWN : VALUE_ZERO;
 }
 
 template<typename T, typename... Ts>
