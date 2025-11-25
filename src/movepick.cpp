@@ -91,8 +91,8 @@ MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveL
         auto   pc       = pos.moved_piece(m);
         auto   captured = pos.captured(m);
 
-        m.value =
-          7 * (PIECE_VALUE[captured] + promotion_value(m)) + (*captureHistory)[pc][dst][captured];
+        m.value = 7 * (PIECE_VALUE[captured] + promotion_value(m))  //
+                + (*captureHistory)[pc][dst][captured];
     }
     return itr;
 }
