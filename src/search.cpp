@@ -2290,7 +2290,10 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         std::string pv;
         pv.reserve(6 * rm.pv.size());
         for (auto m : rm.pv)
-            pv += " " + UCI::move_to_can(m);
+        {
+            pv += ' ';
+            pv += UCI::move_to_can(m);
+        }
 
         updateCxt.onUpdateFull(
           {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, hashfull, tbHits, pv});
