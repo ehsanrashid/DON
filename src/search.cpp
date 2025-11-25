@@ -2280,10 +2280,17 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
             worker.extend_tb_pv(i, v);
 
         std::string score = UCI::to_score({v, rootPos});
-        std::string bound = "";
+
+        std::string bound;
         if (!exact)
-            bound = rm.boundLower ? " lowerbound" : rm.boundUpper ? " upperbound" : "";
-        std::string wdl = "";
+        {
+            if (rm.boundLower)
+                bound = " lowerbound";
+            else if (rm.boundUpper)
+                bound = " upperbound";
+        }
+
+        std::string wdl;
         if (worker.options["UCI_ShowWDL"])
             wdl = UCI::to_wdl(v, rootPos);
 
