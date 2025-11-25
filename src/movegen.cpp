@@ -88,7 +88,7 @@ Move* splat_promotion_moves(Bitboard b, Move* moves) noexcept {
     while (b)
     {
         Square s = pop_lsb(b);
-        for (PieceType promo : {QUEEN, KNIGHT, ROOK, BISHOP})
+        for (PieceType promo : {QUEEN, ROOK, BISHOP, KNIGHT})
             *moves++ = Move(s - D, s, promo);
     }
     return moves;
