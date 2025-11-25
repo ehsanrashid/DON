@@ -551,7 +551,7 @@ Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
     std::cout << std::left << std::setfill(' ') << std::endl;
 #endif
 
-    std::vector<Move> candidateMoves;
+    MoveVector candidateMoves;
 
     Move bestMove = Move::None;
 

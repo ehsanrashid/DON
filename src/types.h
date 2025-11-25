@@ -42,6 +42,7 @@
     #include <cstdint>
     #include <string_view>
     #include <type_traits>
+    #include <vector>
 
     #include "misc.h"
 
@@ -618,6 +619,8 @@ class Move {
 // **Define the constexpr static members outside the class**
 inline constexpr Move Move::None{SQ_A1, SQ_A1};
 inline constexpr Move Move::Null{SQ_B1, SQ_B1};
+
+using MoveVector = std::vector<Move>;
 
 constexpr Value promotion_value(Move m) noexcept {
     return m.type_of() == PROMOTION ? PIECE_VALUE[m.promotion_type()] - VALUE_PAWN : VALUE_ZERO;
