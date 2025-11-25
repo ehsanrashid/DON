@@ -714,11 +714,7 @@ void Position::do_castling(
     // Remove both pieces first since squares could overlap in Chess960
     if constexpr (Do)
     {
-        st->kingSq[ac]     = dst;
-        st->hasCastled[ac] = true;
-
-        db->dp.dst = dst;
-
+        db->dp.dst      = dst;
         db->dp.removeSq = rOrg;
         db->dp.addSq    = rDst;
         db->dp.removePc = db->dp.addPc = rook;
@@ -727,6 +723,9 @@ void Position::do_castling(
         remove_piece(rOrg, &db->dts);
         put_piece(dst, king, &db->dts);
         put_piece(rDst, rook, &db->dts);
+
+        st->kingSq[ac]     = dst;
+        st->hasCastled[ac] = true;
     }
     else
     {
