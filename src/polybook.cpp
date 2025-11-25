@@ -17,6 +17,7 @@
 
 #include "polybook.h"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <iomanip>
@@ -31,6 +32,7 @@
 #include "position.h"
 #include "prng.h"
 #include "uci.h"
+#include "ucioption.h"
 
 namespace DON {
 
@@ -534,10 +536,10 @@ std::size_t PolyBook::key_index(Key key) const noexcept {
     return entries.size();
 }
 
-std::vector<PolyEntry> PolyBook::key_candidates(Key key) const noexcept {
+PolyEntryVector PolyBook::key_candidates(Key key) const noexcept {
     std::size_t index = key_index(key);
 
-    std::vector<PolyEntry> candidates;
+    PolyEntryVector candidates;
 
     if (index >= entries.size())
         return candidates;
@@ -561,7 +563,7 @@ Move PolyBook::probe(Position& pos, const Options& options) noexcept {
 
     Key key = PGZob.key(pos);
 
-    std::vector<PolyEntry> candidates = key_candidates(key);
+    PolyEntryVector candidates = key_candidates(key);
 
     if (candidates.empty())
         return Move::None;

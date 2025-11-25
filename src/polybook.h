@@ -61,6 +61,8 @@ struct PolyEntry final {
     std::uint32_t learn;
 };
 
+using PolyEntryVector = std::vector<PolyEntry>;
+
 class PolyBook final {
    public:
     PolyBook() noexcept  = default;
@@ -79,11 +81,11 @@ class PolyBook final {
 
     std::size_t key_index(Key key) const noexcept;
 
-    std::vector<PolyEntry> key_candidates(Key key) const noexcept;
+    PolyEntryVector key_candidates(Key key) const noexcept;
 
     std::string bookName;
 
-    std::vector<PolyEntry> entries;
+    PolyEntryVector entries;
 };
 
 }  // namespace DON
