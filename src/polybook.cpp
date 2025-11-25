@@ -23,7 +23,7 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
-#include <vector>
+#include <fstream>
 #if !defined(_WIN32)
     #include <fcntl.h>
 #endif
@@ -389,68 +389,54 @@ bool is_draw(Position& pos, Move m) noexcept {
 
 }  // namespace
 
-PolyBook::~PolyBook() noexcept { free(); }
-
-void PolyBook::free() noexcept {
-    ::free(entries);
-    entries    = nullptr;
-    entryCount = 0;
+void PolyBook::clear() noexcept {
+    entries.clear();
     filename.clear();
 }
 
 void PolyBook::init(std::string_view bookFile) noexcept {
-    free();
+    clear();
 
     if (bookFile.empty())
         return;
 
-    FILE* bookFp = std::fopen(bookFile.data(), "rb");
-    if (bookFp == nullptr)
+    std::ifstream ifstream(std::string(bookFile), std::ios_base::binary);
+
+    if (!ifstream.is_open())
     {
         std::cerr << "Failed to open file " << bookFile << std::endl;
         return;
     }
 
+    // Get file size
+    auto fileSize = get_file_size(ifstream);
+
     filename = bookFile;
 
-    std::fseek(bookFp, 0L, SEEK_END);
-    std::size_t bookSize = std::ftell(bookFp);
-    std::rewind(bookFp);
+    // Number of entries
+    std::size_t entryCount = fileSize / sizeof(PolyEntry);
+    entries.resize(entryCount);
 
-    entryCount = bookSize / sizeof(PolyEntry);
-    occupied   = 0;
-    failCount  = 0;
+    // Read all entries
+    ifstream.read(reinterpret_cast<char*>(entries.data()), fileSize);
 
-    bookSize = entryCount * sizeof(PolyEntry);
-    entries  = static_cast<PolyEntry*>(malloc(bookSize));
-    if (entries == nullptr)
-    {
-        std::cerr << "Failed to allocate memory: " << bookSize << " for file " << filename
-                  << std::endl;
-        std::fclose(bookFp);
-        free();
-        return;
-    }
-
-    std::size_t bytesRead = std::fread(entries, 1, bookSize, bookFp);
-    std::fclose(bookFp);
-
-    if (bytesRead != bookSize)
-    {
+    if (!ifstream.good())
         std::cerr << "Failed to read complete file " << filename << std::endl;
-        free();
-        return;
-    }
+
+    ifstream.close();
+
+    occupied  = 0;
+    failCount = 0;
 
     if (IsLittleEndian)
-        for (std::size_t i = 0; i < entryCount; ++i)
+        for (std::size_t i = 0; i < entries.size(); ++i)
             swap_polyentry(&entries[i]);
 
     UCI::print_info_string(info());
 }
 
 std::string PolyBook::info() const noexcept {
-    return "Book: " + filename + " with " + std::to_string(entryCount) + " entries";
+    return "Book: " + filename + " with " + std::to_string(entries.size()) + " entries";
 }
 
 bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
@@ -463,11 +449,11 @@ bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
     return failCount <= 4;
 }
 
-std::size_t PolyBook::find_key(Key key) const noexcept {
+std::size_t PolyBook::get_key_index(Key key) const noexcept {
     constexpr std::size_t Radius = 4;
 
     std::size_t begIndex = 0;
-    std::size_t endIndex = entryCount - 1;
+    std::size_t endIndex = entries.size() - 1;
     std::size_t window   = endIndex - begIndex + 1;
     // Binary scan
     while (window > 2 * Radius)
@@ -502,7 +488,7 @@ std::size_t PolyBook::find_key(Key key) const noexcept {
         if (entries[index].key == key)
             return index;
 
-    return entryCount;
+    return entries.size();
 }
 
 PolyBook::KeyData PolyBook::get_key_data(std::size_t index) const noexcept {
@@ -512,7 +498,7 @@ PolyBook::KeyData PolyBook::get_key_data(std::size_t index) const noexcept {
     keyData.begIndex   = index;
     keyData.bestWeight = 0;
     keyData.sumWeight  = 0;
-    for (std::size_t idx = index; idx < entryCount; ++idx)
+    for (std::size_t idx = index; idx < entries.size(); ++idx)
     {
         if (entries[idx].key != entries[index].key)
             break;
@@ -582,9 +568,9 @@ Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
     if (!can_probe(pos, key))
         return Move::None;
 
-    std::size_t index = find_key(key);
+    std::size_t index = get_key_index(key);
 
-    if (index >= entryCount)
+    if (index >= entries.size())
     {
         ++failCount;
         return Move::None;
@@ -596,19 +582,19 @@ Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
     show_key_data(keyData, pos);
 #endif
 
-    std::vector<std::size_t> indices;
+    std::vector<PolyEntry> candidates;
 
-    indices.push_back(pickBestActive ? keyData.bestIndex : keyData.randIndex);
-    // add remaining indices sequentially, skipping duplicates
+    candidates.push_back(pickBestActive ? entries[keyData.bestIndex] : entries[keyData.randIndex]);
+    // add remaining candidates sequentially, skipping duplicates
     for (index = keyData.begIndex; index < keyData.begIndex + keyData.count; ++index)
-        if (index != indices[0])
-            indices.push_back(index);
+        if (entries[index].move != candidates[0].move)
+            candidates.push_back(entries[index]);
 
     const MoveList<LEGAL> legalMoveList(pos);
 
-    for (std::size_t i = 0, n = indices.size(); i < n; ++i)
+    for (std::size_t i = 0, n = candidates.size(); i < n; ++i)
     {
-        Move move = pg_to_move(entries[indices[i]].move, legalMoveList);
+        Move move = pg_to_move(candidates[i].move, legalMoveList);
         if (i == n - 1 || !is_draw(pos, move))
             return move;
     }

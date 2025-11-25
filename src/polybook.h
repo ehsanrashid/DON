@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "types.h"
 
@@ -61,12 +62,12 @@ struct PolyEntry final {
 
 class PolyBook final {
    public:
-    PolyBook() = default;
-    ~PolyBook() noexcept;
+    PolyBook() noexcept  = default;
+    ~PolyBook() noexcept = default;
 
     void init(std::string_view bookFile) noexcept;
 
-    bool enabled() const noexcept { return entries != nullptr && entryCount != 0; }
+    bool enabled() const noexcept { return !entries.empty(); }
 
     std::string info() const noexcept;
 
@@ -80,11 +81,11 @@ class PolyBook final {
         std::uint32_t sumWeight;
     };
 
-    void free() noexcept;
+    void clear() noexcept;
 
     bool can_probe(const Position& pos, Key key) noexcept;
 
-    std::size_t find_key(Key key) const noexcept;
+    std::size_t get_key_index(Key key) const noexcept;
 
     KeyData get_key_data(std::size_t index) const noexcept;
 
@@ -92,12 +93,11 @@ class PolyBook final {
 
     std::string filename;
 
-    PolyEntry*  entries = nullptr;
-    std::size_t entryCount;
+    std::vector<PolyEntry> entries;
 
     // Last probe info
-    Bitboard      occupied;
-    std::uint16_t failCount;
+    Bitboard     occupied;
+    std::uint8_t failCount;
 };
 
 }  // namespace DON
