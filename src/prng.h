@@ -18,6 +18,7 @@
 #ifndef PRNG_H_INCLUDED
 #define PRNG_H_INCLUDED
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -80,7 +81,7 @@ class SplitMix64 final {
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class XorShift64Star final {
    public:
-    explicit constexpr XorShift64Star(std::uint64_t seed = 1ULL) noexcept {
+    explicit XorShift64Star(std::uint64_t seed = 1ULL) noexcept {
         SplitMix64 sm64(seed);
         s = sm64.next();
         // Avoid zero state
@@ -103,13 +104,14 @@ class XorShift64Star final {
     constexpr void jump() noexcept {
         constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
 
-        std::uint64_t t = 0;
+        std::uint64_t t{0};
         for (std::uint8_t b = 0; b < 64; ++b)
         {
             if ((JumpMask >> b) & 1)
                 t ^= s;
             rand64();
         }
+
         s = t;
     }
 
@@ -122,23 +124,18 @@ class XorShift64Star final {
         return 0x2545F4914F6CDD1DULL * s;
     }
 
-    std::uint64_t s{};
+    std::uint64_t s;
 };
 
 // XoShiRo256** (short for "xor, shift, rotate") Pseudo-Random Number Generator
 class XoShiRo256Star final {
    public:
-    explicit constexpr XoShiRo256Star(std::uint64_t seed = 1ULL) noexcept {
+    explicit XoShiRo256Star(std::uint64_t seed = 1ULL) noexcept {
         SplitMix64 sm64(seed);
-        bool       allZero = true;
         for (std::size_t i = 0; i < Size; ++i)
-        {
             s[i] = sm64.next();
-            if (s[i] != 0)
-                allZero = false;
-        }
         // Avoid all-zero state
-        if (allZero)
+        if (std::all_of(s.begin(), s.end(), [](auto x) { return x == 0; }))
             s[0] = 1ULL;
     }
 
@@ -190,7 +187,7 @@ class XoShiRo256Star final {
 
     static constexpr std::size_t Size = 4;
 
-    StdArray<std::uint64_t, Size> s{};
+    StdArray<std::uint64_t, Size> s;
 };
 
 // Template PRNG wrapper

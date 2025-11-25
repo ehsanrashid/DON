@@ -39,9 +39,23 @@ namespace DON {
 
 namespace {
 
-// Random numbers from PolyGlot, used to compute book hash keys
-union PolyGlot {
+union Zobrist {
+   private:
+    static constexpr std::size_t PieceTypes = 6;
+    // Size = 6 * 2 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
+    static constexpr std::size_t Size =
+      PieceTypes * COLOR_NB * SQUARE_NB + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1;
+
+    Zobrist() noexcept                          = delete;
+    Zobrist(const Zobrist&) noexcept            = delete;
+    Zobrist(Zobrist&&) noexcept                 = delete;
+    Zobrist& operator=(const Zobrist&) noexcept = delete;
+    Zobrist& operator=(Zobrist&&) noexcept      = delete;
+
    public:
+    constexpr Zobrist(const StdArray<Key, Size>& __) noexcept :
+        _{__} {}
+
     Key key(const Position& pos) const noexcept {
         Key key = 0;
 
@@ -52,36 +66,35 @@ union PolyGlot {
             Piece  pc = pos.piece_on(s);
             assert(is_ok(pc));
             // PolyGlot pieces are: BP = 0, WP = 1, BN = 2, ... BK = 10, WK = 11
-            key ^= Zobrist.PieceSquare[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
+            key ^= Z.PieceSquare[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
         }
 
         Bitboard castling = pos.castling_rights();
         while (castling)
-            key ^= Zobrist.Castling[pop_lsb(castling)];
+            key ^= Z.Castling[pop_lsb(castling)];
 
         if (is_ok(pos.ep_sq()))
-            key ^= Zobrist.Enpassant[file_of(pos.ep_sq())];
+            key ^= Z.Enpassant[file_of(pos.ep_sq())];
 
         if (pos.active_color() == WHITE)
-            key ^= Zobrist.Turn;
+            key ^= Z.Turn;
 
         return key;
     }
 
-    static constexpr std::size_t PieceTypes = 6;
-
-    // Size = 6 * 2 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
-    StdArray<Key, PieceTypes * COLOR_NB * SQUARE_NB + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1> _;
+   private:
+    StdArray<Key, Size> _;
 
     struct {
         StdArray<Key, PieceTypes * COLOR_NB, SQUARE_NB> PieceSquare;  // [piece][square]
         StdArray<Key, COLOR_NB * CASTLING_SIDE_NB>      Castling;     // [castle-right]
         StdArray<Key, FILE_NB>                          Enpassant;    // [file]
         Key                                             Turn;
-    } Zobrist;
+    } Z;
 };
 
-constexpr PolyGlot PG{{
+// Random numbers from PolyGlot, used to compute book hash keys
+constexpr Zobrist PGZob{{
   0x9D39247E33776D41ULL, 0x2AF7398005AAA5C7ULL, 0x44DB015024623547ULL, 0x9C15F73E62A76AE2ULL,
   0x75834465489C0C89ULL, 0x3290AC3A203001BFULL, 0x0FBBAD1F61042279ULL, 0xE83A908FF2FB60CAULL,
   0x0D7E765D58755C10ULL, 0x1A083822CEAFE02DULL, 0x9605D5F0E25EC3B0ULL, 0xD021FF5CD13A2ED5ULL,
@@ -339,9 +352,9 @@ void swap_polyentry(PolyEntry* pe) noexcept {
 // bit  6-11: origin square (from 0 to 63)
 // bit 12-14: promotion piece (from KNIGHT == 1 to QUEEN == 4)
 //
-// Castling moves follow "king captures rook" representation. So in case book
-// move is a promotion have to convert the representation, in all the
-// other cases can directly compare with a Move after having masked out
+// Castling moves follow "king captures rook" representation.
+// So in case book move is a promotion have to convert the representation,
+// in all the other cases can directly compare with a Move after having masked out
 // the special Move's flags (bit 14-15) that are not supported by PolyGlot.
 //
 // DON:
@@ -356,9 +369,9 @@ Move pg_to_move(std::uint16_t pgMove, const MoveList<LEGAL>& legalMoveList) noex
     if (int pt = (move.raw() >> 12) & 0x7)
         move = Move(move.org_sq(), move.dst_sq(), PieceType(pt + 1));
 
-    std::uint16_t moveRaw = move.raw() & ~Move::TypeMask;
+    std::uint16_t moveRaw = move.raw() & ~TYPE_MASK;
     for (auto m : legalMoveList)
-        if ((m.raw() & ~Move::TypeMask) == moveRaw)
+        if ((m.raw() & ~TYPE_MASK) == moveRaw)
             return m;
 
     return Move::None;
@@ -453,19 +466,23 @@ bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
 }
 
 std::size_t PolyBook::find_key(Key key) const noexcept {
+    constexpr std::size_t Radius = 4;
+
     std::size_t begIndex = 0;
     std::size_t endIndex = entryCount - 1;
     std::size_t window   = endIndex - begIndex + 1;
     // Binary scan
-    while (window > 8)
+    while (window > 2 * Radius)
     {
         std::size_t midIndex = begIndex + window / 2;
         Key         midKey   = entries[midIndex].key;
 
         if (midKey == key)
         {
-            begIndex = (midIndex > 4) ? midIndex - 4 : 0;
-            endIndex = (midIndex + 4 < entryCount) ? midIndex + 4 : entryCount - 1;
+            // Include some number of entries before the match
+            begIndex = midIndex > Radius ? midIndex - Radius : 0;
+            // Stop at the match
+            endIndex = midIndex;
             break;
         }
 
@@ -476,10 +493,12 @@ std::size_t PolyBook::find_key(Key key) const noexcept {
 
         window = endIndex - begIndex + 1;
     }
-    // Goto 1st index of key
+
+    // Rewind to first occurrence if multiple identical keys
     std::size_t index = begIndex;
     while (index > 0 && entries[index - 1].key == key)
         --index;
+
     // Linear scan
     for (; index <= endIndex; ++index)
         if (entries[index].key == key)
@@ -560,7 +579,7 @@ void PolyBook::show_key_data(const KeyData& keyData, Position& pos) const noexce
 Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
     assert(enabled());
 
-    Key key = PG.key(pos);
+    Key key = PGZob.key(pos);
 
     if (!can_probe(pos, key))
         return Move::None;

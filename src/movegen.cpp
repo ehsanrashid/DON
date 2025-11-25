@@ -130,8 +130,8 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
 
     constexpr Direction Push1 = pawn_spush(AC);
     constexpr Direction Push2 = pawn_dpush(AC);
-    constexpr Direction CaptL = AC == WHITE ? NORTH_WEST : SOUTH_EAST;
-    constexpr Direction CaptR = AC == WHITE ? NORTH_EAST : SOUTH_WEST;
+    constexpr Direction LCap  = AC == WHITE ? NORTH_WEST : SOUTH_EAST;
+    constexpr Direction RCap  = AC == WHITE ? NORTH_EAST : SOUTH_WEST;
 
     Bitboard acPawns   = pos.pieces(AC, PAWN);
     Bitboard on7Pawns  = acPawns & relative_rank(AC, RANK_7);
@@ -173,18 +173,18 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
                 b &= between_bb(pos.king_sq(AC), lsb(pos.checkers()));
             moves = splat_promotion_moves<Push1>(b, moves);
 
-            b     = shift_bb<CaptL>(on7Pawns) & enemies;
-            moves = splat_promotion_moves<CaptL>(b, moves);
+            b     = shift_bb<LCap>(on7Pawns) & enemies;
+            moves = splat_promotion_moves<LCap>(b, moves);
 
-            b     = shift_bb<CaptR>(on7Pawns) & enemies;
-            moves = splat_promotion_moves<CaptR>(b, moves);
+            b     = shift_bb<RCap>(on7Pawns) & enemies;
+            moves = splat_promotion_moves<RCap>(b, moves);
         }
 
-        b     = shift_bb<CaptL>(non7Pawns) & enemies;
-        moves = splat_pawn_moves<CaptL>(b, moves);
+        b     = shift_bb<LCap>(non7Pawns) & enemies;
+        moves = splat_pawn_moves<LCap>(b, moves);
 
-        b     = shift_bb<CaptR>(non7Pawns) & enemies;
-        moves = splat_pawn_moves<CaptR>(b, moves);
+        b     = shift_bb<RCap>(non7Pawns) & enemies;
+        moves = splat_pawn_moves<RCap>(b, moves);
 
         if (is_ok(pos.ep_sq()))
         {

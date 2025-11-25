@@ -62,6 +62,12 @@ struct Zobrist final {
     static constexpr std::size_t PawnOffset = 8;
 
    private:
+    Zobrist() noexcept                          = delete;
+    Zobrist(const Zobrist&) noexcept            = delete;
+    Zobrist(Zobrist&&) noexcept                 = delete;
+    Zobrist& operator=(const Zobrist&) noexcept = delete;
+    Zobrist& operator=(Zobrist&&) noexcept      = delete;
+
     static inline StdArray<Key, PIECE_NB, SQUARE_NB> PieceSquare{};
     static inline StdArray<Key, CASTLING_RIGHTS_NB>  Castling{};
     static inline StdArray<Key, FILE_NB>             Enpassant{};
@@ -109,8 +115,6 @@ struct State final {
 // used by the search to update node info when traversing the search tree.
 class Position final {
    public:
-    using PieceArray = StdArray<Piece, SQUARE_NB>;
-
     static void init() noexcept;
 
     static inline bool         Chess960      = false;
@@ -132,7 +136,9 @@ class Position final {
     std::string fen(bool full = true) const noexcept;
 
     // Position representation
-    [[nodiscard]] const PieceArray& piece_arr() const noexcept;
+    [[nodiscard]] const StdArray<Piece, SQUARE_NB>&        piece_arr() const noexcept;
+    [[nodiscard]] const StdArray<Bitboard, PIECE_TYPE_NB>& type_bb() const noexcept;
+    [[nodiscard]] const StdArray<Bitboard, COLOR_NB>&      color_bb() const noexcept;
 
     Piece    piece_on(Square s) const noexcept;
     bool     empty_on(Square s) const noexcept;
@@ -327,13 +333,12 @@ class Position final {
     void update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept;
 
     template<bool Do>
-    void do_castling(Color               ac,
-                     Square              org,
-                     Square&             dst,
-                     Square&             rOrg,
-                     Square&             rDst,
-                     DirtyPiece* const   dp  = nullptr,
-                     DirtyThreats* const dts = nullptr) noexcept;
+    void do_castling(Color             ac,
+                     Square            org,
+                     Square&           dst,
+                     Square&           rOrg,
+                     Square&           rDst,
+                     DirtyBoard* const db = nullptr) noexcept;
 
     void reset_ep_sq() noexcept;
     void reset_rule50_count() noexcept;
@@ -343,7 +348,7 @@ class Position final {
     bool see_ge(Move m, int threshold) const noexcept;
 
     // Data members
-    PieceArray                                      pieceArr;
+    StdArray<Piece, SQUARE_NB>                      pieceArr;
     StdArray<Bitboard, PIECE_TYPE_NB>               typeBB;
     StdArray<Bitboard, COLOR_NB>                    colorBB;
     StdArray<std::uint8_t, PIECE_NB>                pieceCount;
@@ -355,7 +360,15 @@ class Position final {
     State*                                          st;
 };
 
-inline const Position::PieceArray& Position::piece_arr() const noexcept { return pieceArr; }
+// clang-format off
+
+inline const StdArray<Piece, SQUARE_NB>& Position::piece_arr() const noexcept { return pieceArr; }
+
+inline const StdArray<Bitboard, PIECE_TYPE_NB>& Position::type_bb() const noexcept { return typeBB; }
+
+inline const StdArray<Bitboard, COLOR_NB>& Position::color_bb() const noexcept { return colorBB; }
+
+// clang-format on
 
 inline Piece Position::piece_on(Square s) const noexcept {
     assert(is_ok(s));
@@ -604,7 +617,7 @@ inline bool Position::has_castled(Color c) const noexcept { return st->hasCastle
 inline bool Position::has_rule50_high() const noexcept { return st->hasRule50High; }
 
 inline bool Position::bishop_paired(Color c) const noexcept {
-    return (pieces(c, BISHOP) & color_bb<WHITE>()) && (pieces(c, BISHOP) & color_bb<BLACK>());
+    return (pieces(c, BISHOP) & colors_bb<WHITE>()) && (pieces(c, BISHOP) & colors_bb<BLACK>());
 }
 
 inline bool Position::bishop_opposite() const noexcept {
@@ -615,9 +628,7 @@ inline bool Position::bishop_opposite() const noexcept {
 inline std::size_t Position::bucket() const noexcept { return (count<ALL_PIECE>() - 1) / 4; }
 
 inline int Position::std_material() const noexcept {
-    return 1 * count<PAWN>()                          //
-         + 3 * count<KNIGHT>() + 3 * count<BISHOP>()  //
-         + 5 * count<ROOK>()                          //
+    return 1 * count<PAWN>() + 3 * (count<KNIGHT>() + count<BISHOP>()) + 5 * count<ROOK>()
          + 9 * count<QUEEN>();
 }
 

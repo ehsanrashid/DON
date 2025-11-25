@@ -23,7 +23,6 @@
 #include <cstdint>
 
 #include "../../misc.h"
-#include "../../position.h"
 #include "../../types.h"
 #include "../nnue_common.h"
 
@@ -34,6 +33,13 @@ namespace NNUE::Features {
 // Feature HalfKAv2_hm: Combination of the position of own king and the position of pieces.
 // Position mirrored such that king is always on e..h files.
 class HalfKAv2_hm final {
+   private:
+    HalfKAv2_hm() noexcept                              = delete;
+    HalfKAv2_hm(const HalfKAv2_hm&) noexcept            = delete;
+    HalfKAv2_hm(HalfKAv2_hm&&) noexcept                 = delete;
+    HalfKAv2_hm& operator=(const HalfKAv2_hm&) noexcept = delete;
+    HalfKAv2_hm& operator=(HalfKAv2_hm&&) noexcept      = delete;
+
    public:
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t Hash = 0x7F234CB8U;
@@ -48,11 +54,11 @@ class HalfKAv2_hm final {
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
     // Get a list of indices for active features
-    static void append_active_indices(Color                       perspective,
-                                      Square                      kingSq,
-                                      const Position::PieceArray& pieceArr,
-                                      Bitboard                    occupied,
-                                      IndexList&                  active) noexcept;
+    static void append_active_indices(Color                             perspective,
+                                      Square                            kingSq,
+                                      const StdArray<Piece, SQUARE_NB>& pieceArr,
+                                      Bitboard                          occupied,
+                                      IndexList&                        active) noexcept;
 
     // Get a list of indices for recently changed features
     static void append_changed_indices(Color            perspective,

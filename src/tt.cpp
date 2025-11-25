@@ -67,7 +67,7 @@ struct TTEntry final {
     constexpr auto move() const noexcept { return move16; }
     constexpr auto occupied() const noexcept { return bool(depth8); }
     constexpr auto depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
-    constexpr auto pv_hit() const noexcept { return bool(genData8 & 0x4); }
+    constexpr auto pv() const noexcept { return bool(genData8 & 0x4); }
     constexpr auto bound() const noexcept { return Bound(genData8 & 0x3); }
     //constexpr auto generation() const noexcept { return std::uint8_t(genData8 & GENERATION_MASK); }
     constexpr auto value() const noexcept { return value16; }
@@ -75,7 +75,7 @@ struct TTEntry final {
 
     // Convert internal bitfields to TTData
     TTData read() const noexcept {
-        return {value(), eval(), move(), depth(), bound(), occupied(), pv_hit()};
+        return TTData{value(), eval(), move(), depth(), bound(), occupied(), pv()};
     }
 
     // Populates the TTEntry with a new node's data, possibly
@@ -232,15 +232,15 @@ void TranspositionTable::prefetch_key(Key key) const noexcept { prefetch(cluster
 std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
     assert(maxAge < 32);
 
-    const auto   clusterCnt = std::min(clusterCount, std::size_t(1000));
-    std::uint8_t maxRelAge  = maxAge * GENERATION_DELTA;
+    std::size_t  clusterCnt = std::min(clusterCount, std::size_t(1000));
+    std::uint8_t relMaxAge  = maxAge * GENERATION_DELTA;
 
     std::uint32_t cnt = 0;
     for (std::size_t idx = 0; idx < clusterCnt; ++idx)
         for (const auto& entry : clusters[idx].entries)
-            cnt += entry.occupied() && entry.relative_age(generation8) <= maxRelAge;
+            cnt += entry.occupied() && entry.relative_age(generation8) <= relMaxAge;
 
-    return cnt / clusters[0].entries.size();
+    return cnt / clusters->entries.size();
 }
 
 bool TranspositionTable::save(std::string_view hashFile) const noexcept {

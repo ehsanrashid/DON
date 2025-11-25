@@ -33,15 +33,12 @@
 #include <utility>
 #include <variant>
 
-#include "shm_linux.h"
-
 #if defined(__ANDROID__)
     #include <limits.h>
     #define MAX_SEM_NAME_LEN NAME_MAX
 #endif
 
 #if defined(_WIN32)
-
     #if !defined(NOMINMAX)
         #define NOMINMAX  // Disable min()/max() macros
     #endif
@@ -84,6 +81,8 @@
     #include <limits.h>
     #include <unistd.h>
 #endif
+
+#include "shm_linux.h"
 
 #include "memory.h"
 #include "misc.h"

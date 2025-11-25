@@ -130,7 +130,7 @@ void Option::operator=(std::string value) noexcept {
         break;
     case OPT_STRING :
         if (is_whitespace(value) || lower_case(value) == EMPTY_STRING)
-            value = "";
+            value.clear();
         break;
     case OPT_SPIN :
         value = std::to_string(std::clamp(std::stoi(value), minValue, maxValue));

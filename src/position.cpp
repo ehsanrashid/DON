@@ -236,7 +236,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             file = FILE_A;
             --rank;
         }
-        else if (std::isdigit(token))
+        else if ('1' <= token && token <= '8')
         {
             int f = char_to_digit(token);
             assert(1 <= f && f <= 8 - file && "Position::set(): Invalid File");
@@ -469,11 +469,10 @@ std::string Position::fen(bool full) const noexcept {
             else
             {
                 if (emptyCount)
-                {
                     fens += digit_to_char(emptyCount);
-                    emptyCount = 0;
-                }
+
                 fens += to_char(piece_on(s));
+                emptyCount = 0;
             }
         }
 
@@ -699,14 +698,9 @@ bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackers)
 // Helper used to do/undo a castling move.
 // This is a bit tricky in Chess960 where org/dst squares can overlap.
 template<bool Do>
-void Position::do_castling(Color               ac,
-                           Square              org,
-                           Square&             dst,
-                           Square&             rOrg,
-                           Square&             rDst,
-                           DirtyPiece* const   dp,
-                           DirtyThreats* const dts) noexcept {
-    assert(!Do || dp != nullptr);
+void Position::do_castling(
+  Color ac, Square org, Square& dst, Square& rOrg, Square& rDst, DirtyBoard* const db) noexcept {
+    assert(!Do || db != nullptr);
 
     rOrg = dst;  // Castling is encoded as "king captures rook"
     rDst = rook_castle_sq(ac, org, dst);
@@ -717,33 +711,29 @@ void Position::do_castling(Color               ac,
     Piece rook = piece_on(Do ? rOrg : rDst);
     assert(rook == make_piece(ac, ROOK));
 
-    //bool kingMoved = org != dst;
-    //bool rookMoved = rOrg != rDst;
-
+    // Remove both pieces first since squares could overlap in Chess960
     if constexpr (Do)
     {
-        dp->dst = dst;
+        db->dp.dst      = dst;
+        db->dp.removeSq = rOrg;
+        db->dp.addSq    = rDst;
+        db->dp.removePc = db->dp.addPc = rook;
 
-        //if (rookMoved)
-        {
-            dp->removeSq = rOrg;
-            dp->addSq    = rDst;
-            dp->removePc = dp->addPc = rook;
-        }
+        remove_piece(org, &db->dts);
+        remove_piece(rOrg, &db->dts);
+        put_piece(dst, king, &db->dts);
+        put_piece(rDst, rook, &db->dts);
 
         st->kingSq[ac]     = dst;
         st->hasCastled[ac] = true;
     }
-
-    // Remove both pieces first since squares could overlap in Chess960
-    //if (kingMoved)
-    remove_piece(Do ? org : dst, dts);
-    //if (rookMoved)
-    remove_piece(Do ? rOrg : rDst, dts);
-    //if (kingMoved)
-    put_piece(Do ? dst : org, king, dts);
-    //if (rookMoved)
-    put_piece(Do ? rDst : rOrg, rook, dts);
+    else
+    {
+        remove_piece(dst);
+        remove_piece(rDst);
+        put_piece(org, king);
+        put_piece(rOrg, rook);
+    }
 }
 
 // Makes a move, and saves all necessary information to new state.
@@ -782,18 +772,18 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
            || (color_of(capturedPiece) == (m.type_of() != CASTLING ? ~ac : ac)
                && type_of(capturedPiece) != KING));
 
-    DirtyPiece   dp;
-    DirtyThreats dts;
-    dp.pc             = movedPiece;
-    dp.org            = org;
-    dp.dst            = dst;
-    dp.addSq          = SQ_NONE;
-    dts.ac            = ac;
-    dts.preKingSq     = king_sq(ac);
-    dts.threateningBB = 0;
-    dts.threatenedBB  = 0;
-    assert(is_ok(dts.preKingSq));
-    assert(dts.list.empty());
+    DirtyBoard db;
+
+    db.dp.pc             = movedPiece;
+    db.dp.org            = org;
+    db.dp.dst            = dst;
+    db.dp.addSq          = SQ_NONE;
+    db.dts.ac            = ac;
+    db.dts.preKingSq     = king_sq(ac);
+    db.dts.threateningBB = 0;
+    db.dts.threatenedBB  = 0;
+    assert(is_ok(db.dts.preKingSq));
+    assert(db.dts.list.empty());
 
     // Reset en-passant square
     if (is_ok(ep_sq()))
@@ -803,7 +793,6 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     }
 
     bool epCheck = false;
-    //bool rookMoved = false;
 
     // If the move is a castling, do some special work
     if (m.type_of() == CASTLING)
@@ -814,9 +803,8 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
         assert(!has_castled(ac));
 
         Square rOrg, rDst;
-        do_castling<true>(ac, org, dst, rOrg, rDst, &dp, &dts);
+        do_castling<true>(ac, org, dst, rOrg, rDst, &db);
         assert(rOrg == m.dst_sq());
-        //rookMoved = rOrg != rDst;
 
         // clang-format off
         k                     ^= Zobrist::piece_square(capturedPiece, rOrg) ^ Zobrist::piece_square(capturedPiece, rDst);
@@ -867,8 +855,8 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
             // clang-format on
         }
 
-        dp.removeSq = capSq;
-        dp.removePc = capturedPiece;
+        db.dp.removeSq = capSq;
+        db.dp.removePc = capturedPiece;
 
         st->capSq = dst;
 
@@ -881,11 +869,11 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     if (is_ok(capturedPiece) && m.type_of() != EN_PASSANT)
     {
         // Remove the captured piece
-        remove_piece(org, &dts);
-        swap_piece(dst, movedPiece, &dts);
+        remove_piece(org, &db.dts);
+        swap_piece(dst, movedPiece, &db.dts);
     }
     else
-        move_piece(org, dst, &dts);
+        move_piece(org, dst, &db.dts);
 
     // If the moving piece is a pawn do some special extra work
     if (type_of(movedPiece) == PAWN)
@@ -900,11 +888,11 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
 
             promotedPiece = make_piece(ac, promoted);
 
-            dp.dst   = SQ_NONE;
-            dp.addSq = dst;
-            dp.addPc = promotedPiece;
+            db.dp.dst   = SQ_NONE;
+            db.dp.addSq = dst;
+            db.dp.addPc = promotedPiece;
 
-            swap_piece(dst, promotedPiece, &dts);
+            swap_piece(dst, promotedPiece, &db.dts);
             assert(count(promotedPiece));
             assert(Zobrist::piece_square(movedPiece, dst) == 0);
             // Update hash keys
@@ -947,7 +935,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
 
 DO_MOVE_END:
 
-    dts.kingSq = king_sq(ac);
+    db.dts.kingSq = king_sq(ac);
 
     // Update hash key
     k ^= Zobrist::piece_square(movedPiece, org) ^ Zobrist::piece_square(movedPiece, dst);
@@ -1005,13 +993,12 @@ DO_MOVE_END:
 
     assert(pos_is_ok());
 
-    assert(is_ok(dp.pc));
-    assert(is_ok(dp.org));
-    assert(is_ok(dp.dst) ^ !(m.type_of() != PROMOTION));
-    // The way castling is implemented, this check may fail in Chess960.
-    assert(is_ok(dp.removeSq) ^ !(is_ok(capturedPiece) || m.type_of() == CASTLING));
-    assert(is_ok(dp.addSq) ^ !(m.type_of() == PROMOTION || m.type_of() == CASTLING));
-    return {dp, dts};
+    assert(is_ok(db.dp.pc));
+    assert(is_ok(db.dp.org));
+    assert(is_ok(db.dp.dst) ^ !(m.type_of() != PROMOTION));
+    assert(is_ok(db.dp.removeSq) ^ !(is_ok(capturedPiece) || m.type_of() == CASTLING));
+    assert(is_ok(db.dp.addSq) ^ !(m.type_of() == PROMOTION || m.type_of() == CASTLING));
+    return db;
 }
 
 // Unmakes a move, restoring the position to its exact state before the move was made.
@@ -2010,12 +1997,12 @@ bool Position::pos_is_ok() const noexcept {
         assert(false && "Position::pos_is_ok(): Pawns");
 
     for (Color c : {WHITE, BLACK})
-        if (count<PAWN>(c)                                                        //
-              + std::max(count<KNIGHT>(c) - 2, 0)                                 //
-              + std::max(popcount(pieces(c, BISHOP) & color_bb<WHITE>()) - 1, 0)  //
-              + std::max(popcount(pieces(c, BISHOP) & color_bb<BLACK>()) - 1, 0)  //
-              + std::max(count<ROOK>(c) - 2, 0)                                   //
-              + std::max(count<QUEEN>(c) - 1, 0)                                  //
+        if (count<PAWN>(c)                                                         //
+              + std::max(count<KNIGHT>(c) - 2, 0)                                  //
+              + std::max(popcount(pieces(c, BISHOP) & colors_bb<WHITE>()) - 1, 0)  //
+              + std::max(popcount(pieces(c, BISHOP) & colors_bb<BLACK>()) - 1, 0)  //
+              + std::max(count<ROOK>(c) - 2, 0)                                    //
+              + std::max(count<QUEEN>(c) - 1, 0)                                   //
             > 8)
             assert(false && "Position::pos_is_ok(): Piece Count");
 
@@ -2023,8 +2010,8 @@ bool Position::pos_is_ok() const noexcept {
         || popcount(pieces(WHITE)) > 16 || popcount(pieces(BLACK)) > 16)
         assert(false && "Position::pos_is_ok(): Bitboards");
 
-    for (PieceType p1 = PAWN; p1 <= KING; ++p1)
-        for (PieceType p2 = PAWN; p2 <= KING; ++p2)
+    for (PieceType p1 : PieceTypes)
+        for (PieceType p2 : PieceTypes)
             if (p1 != p2 && (pieces(p1) & pieces(p2)))
                 assert(false && "Position::pos_is_ok(): Bitboards");
 

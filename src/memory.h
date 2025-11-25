@@ -48,6 +48,8 @@
     #if defined(small)
         #undef small
     #endif
+
+    #include <psapi.h>
 #endif
 
 #include "types.h"

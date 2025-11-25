@@ -357,8 +357,8 @@ void update_accumulator_incremental(
     (targetState.template acc<TransformedFeatureDimensions>()).computed[perspective] = true;
 }
 
-Bitboard changed_bb(const Position::PieceArray& oldPieces,
-                    const Position::PieceArray& newPieces) noexcept {
+Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
+                    const StdArray<Piece, SQUARE_NB>& newPieces) noexcept {
 #if defined(USE_AVX512) || defined(USE_AVX2)
     Bitboard samedBB = 0;
     for (std::size_t s = 0; s < SQUARE_NB; s += 32)
@@ -392,8 +392,8 @@ void update_accumulator_refresh_cache(Color                                 pers
 
     PSQFeatureSet::IndexList removed, added;
 
-    auto& pieceArr = pos.piece_arr();
-    auto  pieces   = pos.pieces();
+    const auto& pieceArr = pos.piece_arr();
+    const auto  pieces   = pos.pieces();
 
     Bitboard changedBB = changed_bb(entry.pieceArr, pieceArr);
 
