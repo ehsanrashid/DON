@@ -938,11 +938,11 @@ help:
 	echo "icx                     > Intel oneAPI DPC++/C++ Compiler" && \
 	echo "ndk                     > Google NDK to cross-compile for Android" && \
 	echo "" && \
-	echo "Simple examples. If you don't know what to do, you likely want to run one of: " && \
+	echo "Simple examples. If you don't know what to do, you likely want to run one of:" && \
 	echo "" && \
-	echo "make -j profile-build ARCH=x86-64-avx2    # typically a fast compile for common systems " && \
-	echo "make -j profile-build ARCH=x86-64-sse41-popcnt  # A more portable compile for 64-bit systems " && \
-	echo "make -j profile-build ARCH=x86-64         # A portable compile for 64-bit systems " && \
+	echo "make -j profile-build ARCH=x86-64-avx2          # Typically fast compile for 64-bit systems" && \
+	echo "make -j profile-build ARCH=x86-64-sse41-popcnt  # More portable compile for 64-bit systems" && \
+	echo "make -j profile-build ARCH=x86-64               # Portable compile for 64-bit systems" && \
 	echo "" && \
 	echo "Advanced examples, for experienced users: " && \
 	echo "" && \
