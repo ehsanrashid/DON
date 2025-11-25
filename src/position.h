@@ -327,13 +327,12 @@ class Position final {
     void update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept;
 
     template<bool Do>
-    void do_castling(Color               ac,
-                     Square              org,
-                     Square&             dst,
-                     Square&             rOrg,
-                     Square&             rDst,
-                     DirtyPiece* const   dp  = nullptr,
-                     DirtyThreats* const dts = nullptr) noexcept;
+    void do_castling(Color             ac,
+                     Square            org,
+                     Square&           dst,
+                     Square&           rOrg,
+                     Square&           rDst,
+                     DirtyBoard* const db = nullptr) noexcept;
 
     void reset_ep_sq() noexcept;
     void reset_rule50_count() noexcept;
