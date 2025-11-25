@@ -460,8 +460,9 @@ void Worker::iterative_deepening() noexcept {
                 assert(rootDelta > 0);
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
-                Depth adjustedDepth =
-                  std::max(rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4, 1);
+                Depth adjustedDepth = rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4;
+                if (adjustedDepth < 1)
+                    adjustedDepth = 1;
 
                 bestValue = search<Root>(rootPos, ss, alpha, beta, adjustedDepth);
 
@@ -595,7 +596,7 @@ void Worker::iterative_deepening() noexcept {
             assert(stableDepth >= DEPTH_ZERO);
 
             // Use the stability factor to adjust the time reduction
-            mainManager->timeReduction = 0.6600 + 0.8500 / (0.9800 + std::exp(0.5100 * (12.15 - stableDepth)));
+            mainManager->timeReduction = 0.6600 + 0.8500 / (0.9800 + std::exp(0.5100 * (12.1500 - stableDepth)));
 
             // Compute ease factor that factors in previous time reduction
             auto easeFactor = 0.4386 * (1.4300 + mainManager->preTimeReduction) / mainManager->timeReduction;
@@ -620,10 +621,15 @@ void Worker::iterative_deepening() noexcept {
             assert(totalTime >= 0.0);
             // clang-format on
             // Cap totalTime to the available maximum time
-            totalTime = std::min(totalTime, mainManager->timeManager.maximum());
+            if (totalTime > mainManager->timeManager.maximum())
+                totalTime = mainManager->timeManager.maximum();
             // Cap totalTime in case of a single legal move for a better viewer experience
             if (rootMoves.size() == 1)
-                totalTime = std::min(0.50 * totalTime, 502.0);
+            {
+                totalTime *= 0.5500;
+                if (totalTime > 502)
+                    totalTime = 502;
+            }
 
             TimePoint elapsedTime = mainManager->elapsed(threads);
 
