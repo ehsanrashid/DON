@@ -23,6 +23,7 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <system_error>
 
 #include "bitboard.h"
 #include "misc.h"
