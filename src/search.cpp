@@ -276,19 +276,15 @@ void Worker::start_search() noexcept {
     {
         Move bookBestMove = Move::None;
 
+        // Check polyglot book
         if (!limit.infinite && limit.mate == 0)
-        {
-            // Check polyglot book
-            if (options["OwnBook"] && Book.enabled()
-                && rootPos.move_num() < options["BookProbeDepth"])
-                bookBestMove = Book.probe(rootPos, options["BookPickBest"]);
-        }
+            bookBestMove = Book.probe(rootPos, options);
 
         if (bookBestMove != Move::None && rootMoves.contains(bookBestMove))
         {
             State st;
             rootPos.do_move(bookBestMove, st);
-            Move bookPonderMove = Book.probe(rootPos, options["BookPickBest"]);
+            Move bookPonderMove = Book.probe(rootPos, options);
             rootPos.undo_move(bookBestMove);
 
             for (auto&& th : threads)
@@ -327,7 +323,7 @@ void Worker::start_search() noexcept {
     if (think)
     {
         // When playing in 'Nodes as Time' mode, advance the time nodes before exiting.
-        if (mainManager->timeManager.nodeTimeActive)
+        if (mainManager->timeManager.nodesTimeActive)
             mainManager->timeManager.advance_time_nodes(threads.nodes()
                                                         - limit.clocks[rootPos.active_color()].inc);
 
@@ -2328,11 +2324,11 @@ void Skill::init(const Options& options) noexcept {
 
 // When playing with strength handicap, choose the best move among a set of RootMoves
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickActive) noexcept {
+Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickBest) noexcept {
     assert(1 <= multiPV && multiPV <= rootMoves.size());
     static PRNG<XorShift64Star> prng(now());  // PRNG sequence should be non-deterministic
 
-    if (pickActive || bestMove == Move::None)
+    if (pickBest || bestMove == Move::None)
     {
         // RootMoves are already sorted by value in descending order
         Value curValue = rootMoves[0].curValue;

@@ -334,7 +334,7 @@ void UCI::execute(std::string_view command) noexcept {
 }
 
 void UCI::print_info_string(std::string_view infoStr) noexcept {
-    if (!InfoStringActive)
+    if (InfoStringStop)
         return;
 
     for (const auto& info : split(infoStr, "\n"))
@@ -587,7 +587,7 @@ void UCI::benchmark(std::istream& istream) noexcept {
     engine.set_on_update_iter([](const auto&) {});
     engine.set_on_update_move([](const auto&) {});
 
-    InfoStringActive = false;
+    InfoStringStop = true;
 
     const std::size_t num =
       std::count_if(setup.commands.begin(), setup.commands.end(),
@@ -751,7 +751,7 @@ void UCI::benchmark(std::istream& istream) noexcept {
               << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
     // clang-format on
 
-    InfoStringActive = true;
+    InfoStringStop = false;
     set_update_listeners();
 }
 

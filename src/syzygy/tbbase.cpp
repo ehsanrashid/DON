@@ -1677,7 +1677,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 // Use the DTZ-tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Active, bool dtzRankActive, std::function<bool()> time_to_abort) noexcept {
+bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Active, bool dtzRank, std::function<bool()> time_to_abort) noexcept {
     // Obtain 50-move counter for the root position
     std::int16_t rule50Count = pos.rule50_count();
 
@@ -1731,10 +1731,10 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Active, bool
         // Better moves are ranked higher. Certain wins are ranked equally.
         // Losing moves are ranked equally unless a 50-move draw is in sight.
         int r = dtzScore > 0 ? (+1 * dtzScore + rule50Count < 100 && !rep  //
-                                  ? +MAX_DTZ - (dtzRankActive ? dtzScore : 0)
+                                  ? +MAX_DTZ - (dtzRank ? dtzScore : 0)
                                   : +MAX_DTZ / 2 - (+dtzScore + rule50Count))
               : dtzScore < 0 ? (-2 * dtzScore + rule50Count < 100  //
-                                  ? -MAX_DTZ - (dtzRankActive ? dtzScore : 0)
+                                  ? -MAX_DTZ - (dtzRank ? dtzScore : 0)
                                   : -MAX_DTZ / 2 + (-dtzScore + rule50Count))
                              : 0;
 
@@ -1782,7 +1782,7 @@ bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Active) noex
     return true;
 }
 
-Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool dtzRankActive, std::function<bool()> time_to_abort) noexcept {
+Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool dtzRank, std::function<bool()> time_to_abort) noexcept {
     Config config;
 
     if (rootMoves.empty())
@@ -1805,7 +1805,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
     if (config.cardinality >= pos.count<ALL_PIECE>() && !pos.can_castle(ANY_CASTLING))
     {
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
-        config.rootInTB = probe_root_dtz(pos, rootMoves, config.rule50Active, dtzRankActive, time_to_abort);
+        config.rootInTB = probe_root_dtz(pos, rootMoves, config.rule50Active, dtzRank, time_to_abort);
 
         if (!config.rootInTB)
         {

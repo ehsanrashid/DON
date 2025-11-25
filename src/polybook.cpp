@@ -89,6 +89,7 @@ union Zobrist final {
 };
 
 // Random numbers from PolyGlot, used to compute book hash keys
+// startpos key == 0x463B96181691FC9CULL
 constexpr Zobrist PGZob{{
   0x9D39247E33776D41ULL, 0x2AF7398005AAA5C7ULL, 0x44DB015024623547ULL, 0x9C15F73E62A76AE2ULL,
   0x75834465489C0C89ULL, 0x3290AC3A203001BFULL, 0x0FBBAD1F61042279ULL, 0xE83A908FF2FB60CAULL,
@@ -341,23 +342,6 @@ void swap_polyentry(PolyEntry* pe) noexcept {
     pe->learn  = swap_uint32(pe->learn);
 }
 
-
-// Last probe info
-
-Bitboard occupied = 0;
-
-std::uint8_t failCount = 0;
-
-bool can_probe(const Position& pos, Key key) noexcept {
-
-    if (popcount(occupied ^ pos.pieces()) > 6 || key == 0x463B96181691FC9CULL)
-        failCount = 0;
-
-    occupied = pos.pieces();
-    // Stop probe after 4 times not in the book till position changes
-    return failCount <= 4;
-}
-
 // A PolyGlot book move is encoded as follows:
 //
 // bit  0- 5: destination square (from 0 to 63)
@@ -442,8 +426,8 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
     std::size_t remainder  = fileSize % EntrySize;
 
     if (remainder != 0)
-        std::cerr << "Warning: Book file size is bad, ignoring " << remainder << " trailing bytes"
-                  << std::endl;
+        std::cerr << "Warning: Bad size Book file " << bookName << ", ignoring " << remainder
+                  << " trailing bytes" << std::endl;
 
     std::ifstream ifstream(bookName, std::ios_base::binary);
 
@@ -569,23 +553,18 @@ std::vector<PolyEntry> PolyBook::key_candidates(Key key) const noexcept {
     return candidates;
 }
 
-Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
-    assert(enabled());
-
+Move PolyBook::probe(Position& pos, const Options& options) noexcept {
     static PRNG<XorShift64Star> prng(now());
 
-    Key key = PGZob.key(pos);
-
-    if (!can_probe(pos, key))
+    if (!(options["OwnBook"] && enabled() && pos.move_num() < options["BookProbeDepth"]))
         return Move::None;
+
+    Key key = PGZob.key(pos);
 
     std::vector<PolyEntry> candidates = key_candidates(key);
 
     if (candidates.empty())
-    {
-        ++failCount;
         return Move::None;
-    }
 
     const MoveList<LEGAL> legalMoveList(pos);
 
@@ -617,9 +596,11 @@ Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
 
     MoveVector candidateMoves;
 
+    bool pickBest = options["BookPickBest"];
+
     Move bestMove = Move::None;
 
-    if (pickBestActive)
+    if (pickBest)
     {
         std::uint16_t bestWeight = 0;
         for (const auto& candidate : candidates)

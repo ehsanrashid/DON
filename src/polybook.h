@@ -29,6 +29,7 @@
 namespace DON {
 
 class Position;
+class Options;
 
 struct PolyEntry final {
    public:
@@ -71,7 +72,7 @@ class PolyBook final {
 
     std::string info() const noexcept;
 
-    Move probe(Position& pos, bool pickBestActive = true) noexcept;
+    Move probe(Position& pos, const Options& options) noexcept;
 
    private:
     void clear() noexcept;
