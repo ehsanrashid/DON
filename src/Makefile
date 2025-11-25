@@ -404,13 +404,13 @@ ifeq ($(findstring loongarch64, $(ARCH)), loongarch64)
     arch = loongarch64
     prefetch = yes
 
+    ifeq ($(findstring -lsx, $(ARCH)), -lsx)
+        lsx = yes
+    endif
+
     ifeq ($(findstring -lasx, $(ARCH)), -lasx)
         lsx = yes
         lasx = yes
-    endif
-
-    ifeq ($(findstring -lsx, $(ARCH)), -lsx)
-        lsx = yes
     endif
 endif
 
