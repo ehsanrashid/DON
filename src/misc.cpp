@@ -736,22 +736,6 @@ std::size_t str_to_size_t(std::string_view str) noexcept {
     return static_cast<std::size_t>(value);
 }
 
-std::streamsize get_file_size(std::ifstream& ifstream) noexcept {
-    // Return -1 if the file stream is not open
-    if (!ifstream.is_open())
-        return std::streamsize(-1);
-
-    // Store the current position
-    auto curPos = ifstream.tellg();
-    // Move to the end to get the size
-    ifstream.seekg(0, std::ios_base::end);
-    std::streamsize fileSize = ifstream.tellg();
-    // Restore the original position
-    ifstream.seekg(curPos, std::ios_base::beg);
-    // Return file size or -1 if tellg() fails
-    return fileSize >= 0 ? fileSize : std::streamsize(-1);
-}
-
 std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept {
 
     std::ifstream ifstream(std::string(filePath), std::ios_base::binary);

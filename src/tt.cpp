@@ -21,6 +21,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -253,29 +254,33 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
     if (!ofstream)
         return false;
 
-    const char* data  = reinterpret_cast<const char*>(clusters);
-    std::size_t total = clusterCount * sizeof(TTCluster);
+    constexpr std::size_t ClusterSize = sizeof(TTCluster);
+    static_assert(ClusterSize > 0, "Cluster must have non-zero size");
 
     // Choose a chunk that balances system call overhead and memory pressure.
-    // 1 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr std::size_t Chunk = 1024 * 1024;  // 1 MiB
+    // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
+    constexpr std::size_t ChunkSize = (2ULL * 1024 * 1024 / ClusterSize) * ClusterSize;
 
-    std::size_t written = 0;
-    while (written < total)
+    std::size_t totalSize = clusterCount * ClusterSize;
+
+    const char* data = reinterpret_cast<const char*>(clusters);
+
+    std::size_t writtenSize = 0;
+    while (writtenSize < totalSize)
     {
-        std::size_t write = std::min(Chunk, total - written);
+        std::size_t writeSize = std::min(ChunkSize, totalSize - writtenSize);
 
-        ofstream.write(data + written, write);
+        ofstream.write(data + writtenSize, std::streamsize(writeSize));
 
         if (!ofstream)  // write failed
             return false;
 
-        written += write;
+        writtenSize += writeSize;
     }
 
     ofstream.flush();
 
-    return ofstream.good();
+    return writtenSize == totalSize && ofstream.good();
 }
 
 bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) noexcept {
@@ -283,56 +288,73 @@ bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) no
     if (hashFile.empty())
         return false;
 
-    std::ifstream ifstream(std::string(hashFile), std::ios_base::binary);
+    std::error_code ec;
 
-    if (!ifstream)
+    std::uint64_t fileSize = std::filesystem::file_size(std::string(hashFile), ec);
+
+    if (ec)
+    {
+        std::cerr << "Failed to stat Hash file " << hashFile << ": " << ec.message() << std::endl;
         return false;
-
-    std::int64_t fileSize = get_file_size(ifstream);  // your helper
-    if (fileSize < 0)
-    {  // fallback
-        ifstream.clear();
-        ifstream.seekg(0, std::ios::end);
-        std::streamoff pos = ifstream.tellg();
-        if (pos < 0)
-            return false;
-        fileSize = std::int64_t(pos);
-        ifstream.seekg(0, std::ios::beg);
     }
 
     if (fileSize == 0)
-        return false;  // empty file -> nothing to load
+    {
+        std::cerr << "Warning: Empty Hash file " << hashFile << std::endl;
+        return true;
+    }
+
+    std::ifstream ifstream(std::string(hashFile), std::ios_base::binary);
+
+    if (!ifstream)
+    {
+        std::cerr << "Failed to open Hash file " << hashFile << std::endl;
+        return false;
+    }
 
     std::size_t ttSize = fileSize / (1024 * 1024);
 
     resize(ttSize, threads);
 
-    char*       data  = reinterpret_cast<char*>(clusters);
-    std::size_t total = clusterCount * sizeof(TTCluster);
+    constexpr std::size_t ClusterSize = sizeof(TTCluster);
+    static_assert(ClusterSize > 0, "Cluster must have non-zero size");
 
     // Choose a chunk that balances system call overhead and memory pressure.
-    // 1 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr std::size_t Chunk = 1024 * 1024;  // 1 MiB
+    // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
+    constexpr std::size_t ChunkSize = (2ULL * 1024 * 1024 / ClusterSize) * ClusterSize;
 
-    std::size_t readed = 0;
-    while (readed < total)
+    std::size_t totalSize = clusterCount * ClusterSize;
+
+    char* data = reinterpret_cast<char*>(clusters);
+
+    std::size_t readedSize = 0;
+    while (readedSize < totalSize)
     {
-        std::size_t read = std::min(Chunk, total - readed);
+        std::size_t readSize = std::min(ChunkSize, totalSize - readedSize);
 
-        ifstream.read(data + readed, read);
+        ifstream.read(data + readedSize, std::streamsize(readSize));
 
-        if (!ifstream)
+        std::streamsize gotSize = ifstream.gcount();
+
+        if (gotSize <= 0)  // read failed or EOF without data
             return false;
 
-        auto got = ifstream.gcount();
+        //if (gotSize != readSize)  // partial read — treat as error for complete-file read
+        //{
+        //    std::cerr << "Partial read: expected " << readSize << " got " << gotSize << std::endl;
+        //    return false;
+        //}
 
-        if (got <= 0)  // read failed or EOF without data
-            return false;
-
-        readed += got;
+        readedSize += gotSize;
     }
 
-    return ifstream.good();
+    if (ifstream.fail() || ifstream.bad())
+    {
+        std::cerr << "I/O error while reading Hash file " << hashFile << std::endl;
+        return false;
+    }
+
+    return readedSize == totalSize && ifstream.good();
 }
 
 }  // namespace DON

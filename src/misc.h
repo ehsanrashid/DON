@@ -786,8 +786,6 @@ inline std::string u64_to_string(std::uint64_t u64) noexcept {
 
 std::size_t str_to_size_t(std::string_view str) noexcept;
 
-std::streamsize get_file_size(std::ifstream& ifstream) noexcept;
-
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.
 std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept;

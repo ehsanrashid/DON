@@ -21,6 +21,7 @@
 #include <cassert>
 #include <iomanip>
 #include <iostream>
+#include <filesystem>
 #include <fstream>
 
 #include "bitboard.h"
@@ -401,57 +402,109 @@ bool is_draw(Position& pos, Move m) noexcept {
 
 }  // namespace
 
-void PolyBook::clear() noexcept {
-    entries.clear();
-    filename.clear();
-}
+void PolyBook::clear() noexcept { entries.clear(); }
 
-void PolyBook::init(std::string_view bookFile) noexcept {
+bool PolyBook::load(std::string_view bookFile) noexcept {
     clear();
 
     if (bookFile.empty())
-        return;
+        return false;
 
-    std::ifstream ifstream(std::string(bookFile), std::ios_base::binary);
+    bookName = bookFile;
+
+    std::error_code ec;
+
+    std::uint64_t fileSize = std::filesystem::file_size(bookName, ec);
+
+    if (ec)
+    {
+        std::cerr << "Failed to stat Book file " << bookName << ": " << ec.message() << std::endl;
+        return false;
+    }
+
+    if (fileSize == 0)
+    {
+        std::cerr << "Warning: Empty Book file " << bookName << std::endl;
+        return true;
+    }
+
+    constexpr std::size_t EntrySize = sizeof(PolyEntry);
+    static_assert(EntrySize > 0, "PolyEntry must have non-zero size");
+
+    if (fileSize < EntrySize)
+    {
+        std::cerr << "Too small Book file " << bookName << std::endl;
+        return false;
+    }
+
+    std::size_t entryCount = fileSize / EntrySize;
+    std::size_t remainder  = fileSize % EntrySize;
+
+    if (remainder != 0)
+        std::cerr << "Warning: Book file size is bad, ignoring " << remainder << " trailing bytes"
+                  << std::endl;
+
+    std::ifstream ifstream(bookName, std::ios_base::binary);
 
     if (!ifstream.is_open())
     {
-        std::cerr << "Failed to open file " << bookFile << std::endl;
-        return;
+        std::cerr << "Failed to open Book file " << bookName << std::endl;
+        return false;
     }
-
-    filename = bookFile;
-
-    // Get file size
-    auto fileSize = get_file_size(ifstream);
-
-    ifstream.seekg(0, std::ios_base::beg);
-
-    // Number of entries
-    std::size_t entryCount = fileSize / sizeof(PolyEntry);
 
     entries.resize(entryCount);
 
-    // Read all entries
-    ifstream.read(reinterpret_cast<char*>(entries.data()), fileSize);
+    // Choose a chunk that balances system call overhead and memory pressure.
+    // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
+    constexpr std::size_t ChunkSize = (2ULL * 1024 * 1024 / EntrySize) * EntrySize;
 
-    if (!ifstream.good())
-        std::cerr << "Failed to read complete file " << filename << std::endl;
+    std::size_t totalSize = entryCount * EntrySize;
+
+    char* data = reinterpret_cast<char*>(entries.data());
+
+    std::size_t readedSize = 0;
+    while (readedSize < totalSize)
+    {
+        std::size_t readSize = std::min(ChunkSize, totalSize - readedSize);
+
+        ifstream.read(data + readedSize, readSize);
+
+        std::streamsize gotSize = ifstream.gcount();
+
+        if (gotSize <= 0)  // read failed or EOF without data
+            return false;
+
+        //if (gotSize != readSize)  // partial read — treat as error for complete-file read
+        //{
+        //    std::cerr << "Partial read: expected " << readSize << " got " << gotSize << std::endl;
+        //    return false;
+        //}
+
+        readedSize += gotSize;
+    }
+
+    if (ifstream.fail() || ifstream.bad())
+    {
+        std::cerr << "I/O error while reading Book file " << bookName << std::endl;
+        return false;
+    }
+
+    if (readedSize != totalSize || !ifstream.good())
+        std::cerr << "Failed to read complete Book file " << bookName << std::endl;
 
     ifstream.close();
-
-    occupied  = 0;
-    failCount = 0;
 
     if (IsLittleEndian)
         for (std::size_t i = 0; i < entries.size(); ++i)
             swap_polyentry(&entries[i]);
 
     UCI::print_info_string(info());
+
+    return true;
 }
 
 std::string PolyBook::info() const noexcept {
-    return "Book: " + filename + " with " + std::to_string(entries.size()) + " entries";
+    return "Book: " + bookName + " with " + std::to_string(entries.size()) + " entries";
 }
 
 std::size_t PolyBook::key_index(Key key) const noexcept {
