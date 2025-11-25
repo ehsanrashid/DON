@@ -444,7 +444,7 @@ bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
     return failCount <= 4;
 }
 
-std::size_t PolyBook::get_key_index(Key key) const noexcept {
+std::size_t PolyBook::key_index(Key key) const noexcept {
     constexpr std::size_t Radius = 4;
 
     std::size_t begIndex = 0;
@@ -486,8 +486,8 @@ std::size_t PolyBook::get_key_index(Key key) const noexcept {
     return entries.size();
 }
 
-std::vector<PolyEntry> PolyBook::get_key_entries(Key key) const noexcept {
-    std::size_t index = get_key_index(key);
+std::vector<PolyEntry> PolyBook::key_candidates(Key key) const noexcept {
+    std::size_t index = key_index(key);
 
     if (index >= entries.size())
         return {};
@@ -515,7 +515,7 @@ Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
     if (!can_probe(pos, key))
         return Move::None;
 
-    std::vector<PolyEntry> candidates = get_key_entries(key);
+    std::vector<PolyEntry> candidates = key_candidates(key);
 
     if (candidates.empty())
     {

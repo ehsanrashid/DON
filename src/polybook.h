@@ -78,9 +78,9 @@ class PolyBook final {
 
     bool can_probe(const Position& pos, Key key) noexcept;
 
-    std::size_t get_key_index(Key key) const noexcept;
+    std::size_t key_index(Key key) const noexcept;
 
-    std::vector<PolyEntry> get_key_entries(Key key) const noexcept;
+    std::vector<PolyEntry> key_candidates(Key key) const noexcept;
 
     std::string filename;
 
