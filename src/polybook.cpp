@@ -39,16 +39,21 @@ namespace DON {
 
 namespace {
 
-// Random numbers from PolyGlot, used to compute book hash keys
-union PolyGlot {
+union Zobrist {
    private:
     static constexpr std::size_t PieceTypes = 6;
     // Size = 6 * 2 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
     static constexpr std::size_t Size =
       PieceTypes * COLOR_NB * SQUARE_NB + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1;
 
+    Zobrist() noexcept                          = delete;
+    Zobrist(const Zobrist&) noexcept            = delete;
+    Zobrist(Zobrist&&) noexcept                 = delete;
+    Zobrist& operator=(const Zobrist&) noexcept = delete;
+    Zobrist& operator=(Zobrist&&) noexcept      = delete;
+
    public:
-    constexpr PolyGlot(const StdArray<Key, Size>& __) noexcept :
+    constexpr Zobrist(const StdArray<Key, Size>& __) noexcept :
         _{__} {}
 
     Key key(const Position& pos) const noexcept {
@@ -61,18 +66,18 @@ union PolyGlot {
             Piece  pc = pos.piece_on(s);
             assert(is_ok(pc));
             // PolyGlot pieces are: BP = 0, WP = 1, BN = 2, ... BK = 10, WK = 11
-            key ^= Zobrist.PieceSquare[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
+            key ^= Z.PieceSquare[2 * (type_of(pc) - 1) + (color_of(pc) == WHITE)][s];
         }
 
         Bitboard castling = pos.castling_rights();
         while (castling)
-            key ^= Zobrist.Castling[pop_lsb(castling)];
+            key ^= Z.Castling[pop_lsb(castling)];
 
         if (is_ok(pos.ep_sq()))
-            key ^= Zobrist.Enpassant[file_of(pos.ep_sq())];
+            key ^= Z.Enpassant[file_of(pos.ep_sq())];
 
         if (pos.active_color() == WHITE)
-            key ^= Zobrist.Turn;
+            key ^= Z.Turn;
 
         return key;
     }
@@ -85,10 +90,11 @@ union PolyGlot {
         StdArray<Key, COLOR_NB * CASTLING_SIDE_NB>      Castling;     // [castle-right]
         StdArray<Key, FILE_NB>                          Enpassant;    // [file]
         Key                                             Turn;
-    } Zobrist;
+    } Z;
 };
 
-constexpr PolyGlot PG{{
+// Random numbers from PolyGlot, used to compute book hash keys
+constexpr Zobrist PGZob{{
   0x9D39247E33776D41ULL, 0x2AF7398005AAA5C7ULL, 0x44DB015024623547ULL, 0x9C15F73E62A76AE2ULL,
   0x75834465489C0C89ULL, 0x3290AC3A203001BFULL, 0x0FBBAD1F61042279ULL, 0xE83A908FF2FB60CAULL,
   0x0D7E765D58755C10ULL, 0x1A083822CEAFE02DULL, 0x9605D5F0E25EC3B0ULL, 0xD021FF5CD13A2ED5ULL,
@@ -573,7 +579,7 @@ void PolyBook::show_key_data(const KeyData& keyData, Position& pos) const noexce
 Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
     assert(enabled());
 
-    Key key = PG.key(pos);
+    Key key = PGZob.key(pos);
 
     if (!can_probe(pos, key))
         return Move::None;
