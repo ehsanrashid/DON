@@ -28,10 +28,6 @@
 
 namespace DON {
 
-class Position;
-class RootMoves;
-class Options;
-
 struct PolyEntry final {
    public:
     friend constexpr bool operator==(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
@@ -64,6 +60,10 @@ struct PolyEntry final {
 
 using PolyEntryVector = std::vector<PolyEntry>;
 
+class Position;
+class RootMoves;
+class Options;
+
 class PolyBook final {
    public:
     PolyBook() noexcept  = default;
@@ -71,7 +71,7 @@ class PolyBook final {
 
     bool load(std::string_view bookFile) noexcept;
 
-    bool enabled() const noexcept { return !entries.empty(); }
+    bool loaded() const noexcept { return !entries.empty(); }
 
     std::string info() const noexcept;
 

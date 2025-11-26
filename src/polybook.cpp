@@ -557,12 +557,10 @@ PolyEntryVector PolyBook::key_candidates(Key key) const noexcept {
 }
 
 Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& options) noexcept {
+    assert(!rootMoves.empty());
     static PRNG<XorShift64Star> prng(now());
 
-    if (!(options["OwnBook"] && enabled() && pos.move_num() <= options["BookProbeDepth"]))
-        return Move::None;
-
-    if (rootMoves.empty())
+    if (!(options["OwnBook"] && loaded() && pos.move_num() <= options["BookProbeDepth"]))
         return Move::None;
 
     Key key = PGZob.key(pos);
@@ -574,18 +572,25 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
     const MoveList<LEGAL> legalMoveList(pos);
 
+    std::uint32_t maxWeight = 0;
     std::uint64_t sumWeight = 0;
     for (const auto& candidate : candidates)
+    {
+        if (maxWeight < candidate.weight)
+            maxWeight = candidate.weight;
         sumWeight += candidate.weight;
+    }
 
 #if !defined(NDEBUG)
-    std::cout << "\nCount: " << candidates.size() << ", Weight Sum: " << sumWeight << '\n';
+    std::cerr << "\nCount     : " << candidates.size()  //
+              << "\nWeight Max: " << maxWeight          //
+              << "\nWeight Sum: " << sumWeight << '\n';
 
     std::size_t cnt = 0;
     for (const auto& candidate : candidates)
     {
         // clang-format off
-        std::cout << std::right << std::setfill('0')
+        std::cerr << std::right << std::setfill('0')
                   << std::setw(2) << ++cnt
                   << " key: "    << u64_to_string(candidate.key)
                   << std::left << std::setfill(' ')
@@ -597,14 +602,14 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
         // clang-format on
     }
 
-    std::cout << std::left << std::setfill(' ') << std::endl;
+    std::cerr << std::left << std::setfill(' ') << std::endl;
 #endif
 
     Move move, bestMove = Move::None;
 
     if (options["BookPickBest"])
     {
-        std::uint16_t bestWeight = 0;
+        std::int32_t bestWeight = -0xFFFF;
         for (const auto& candidate : candidates)
             if (bestWeight < candidate.weight)
             {
