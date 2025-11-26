@@ -33,8 +33,6 @@
 
 namespace DON {
 
-// Constants used to manipulate generation bits
-
 // Number of bits reserved for data
 constexpr std::uint8_t DATA_BITS = 3;
 // Increment for generation field
@@ -46,15 +44,16 @@ constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 
 // TTEntry struct is the 10 bytes transposition table entry, defined as below:
 //
-// key        16 bit
-// depth       8 bit
-// generation  5 bit
-// data        3 bit
-//  - pv       1 bit
-//  - bound    2 bit
-// move       16 bit
-// value      16 bit
-// eval       16 bit
+// key          16 bit
+// move         16 bit
+// depth         8 bit
+// genData       8 bit
+//  - generation 5 bit
+//  - data       3 bit
+//   - pv        1 bit
+//   - bound     2 bit
+// value        16 bit
+// eval         16 bit
 //
 // These fields are in the same order as accessed by TT::probe(), since memory is fastest sequentially.
 // Equally, the store order in save() matches this order.
@@ -75,11 +74,24 @@ struct TTEntry final {
     constexpr auto value() const noexcept { return value16; }
     constexpr auto eval() const noexcept { return eval16; }
 
+   public:
     // Convert internal bitfields to TTData
     TTData read() const noexcept {
         return TTData{value(), eval(), move(), depth(), bound(), occupied(), pv()};
     }
 
+    // The returned age is a multiple of GENERATION_DELTA
+    std::uint8_t relative_age(std::uint8_t gen) const noexcept {
+        // Due to packed storage format for generation and its cyclic nature
+        // add GENERATION_CYCLE (256 is the modulus, plus what is needed to keep
+        // the unrelated lowest n bits from affecting the relative age)
+        // to calculate the entry age correctly even after gen overflows into the next cycle.
+        return (GENERATION_CYCLE + gen - genData8) & GENERATION_MASK;
+    }
+
+    std::int16_t worth(std::uint8_t gen) const noexcept { return depth8 - relative_age(gen); }
+
+   private:
     // Populates the TTEntry with a new node's data, possibly
     // overwriting an old position. The update is not atomic and can be racy.
     void save(
@@ -107,17 +119,6 @@ struct TTEntry final {
 
     void clear() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(*this)); }
 
-    // The returned age is a multiple of GENERATION_DELTA
-    std::uint8_t relative_age(std::uint8_t gen) const noexcept {
-        // Due to packed storage format for generation and its cyclic nature
-        // add GENERATION_CYCLE (256 is the modulus, plus what is needed to keep
-        // the unrelated lowest n bits from affecting the relative age)
-        // to calculate the entry age correctly even after gen overflows into the next cycle.
-        return (GENERATION_CYCLE + gen - genData8) & GENERATION_MASK;
-    }
-
-    std::int16_t worth(std::uint8_t gen) const noexcept { return depth8 - relative_age(gen); }
-
     Key16        key16;
     Move         move16;
     std::uint8_t depth8;
@@ -135,6 +136,13 @@ static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");
 // The size of a TTCluster should divide the size of a cache-line for best performance,
 // as the cache-line is prefetched when possible.
 struct TTCluster final {
+   private:
+    TTCluster() noexcept                            = delete;
+    TTCluster(const TTCluster&) noexcept            = delete;
+    TTCluster(TTCluster&&) noexcept                 = delete;
+    TTCluster& operator=(const TTCluster&) noexcept = delete;
+    TTCluster& operator=(TTCluster&&) noexcept      = delete;
+
    public:
     StdArray<TTEntry, 3> entries;
     StdArray<char, 2>    padding;  // Pad to 32 bytes
