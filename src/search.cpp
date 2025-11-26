@@ -1215,16 +1215,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                 {
                     Value seeGain       = promotion_value(move);
                     Value futilityValue = std::min(42 + ss->staticEval + seeGain + 127 * lmrDepth
-                                                     + 161 * (bestMove == Move::None)  //
-                                                     + 85 * (ss->staticEval > alpha),
+                                                     + 161 * (bestMove == Move::None),
                                                    +VALUE_INFINITE);
                     if (futilityValue <= alpha)
-                    {
-                        if (!is_decisive(bestValue) && !is_win(futilityValue))
-                            if (bestValue < futilityValue)
-                                bestValue = futilityValue;
                         continue;
-                    }
                 }
 
                 // SEE based pruning for quiets and checks
