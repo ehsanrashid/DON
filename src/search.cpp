@@ -128,24 +128,27 @@ void update_pv(Move* pv, Move m, const Move* childPv) noexcept {
 void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept {
     assert(is_ok(dst));
 
-    constexpr StdArray<double, 8> ContHistoryWeights{
-      1.1064, 0.6670, 0.3047, 0.5684, 0.1455, 0.4629, 0.2222, 0.2167  //
+    constexpr std::size_t MaxContHistorySize = 8;
+
+    constexpr StdArray<double, MaxContHistorySize> ContHistoryWeights{
+      1.1064, 0.6670, 0.3047, 0.5684, 0.1455, 0.4629, 0.1092, 0.2167  //
+    };
+    constexpr StdArray<int, MaxContHistorySize> ContHistoryOffsets{
+      88, 00, 00, 00, 00, 00, 00, 00  //
     };
 
     // If in check only first 2 continuation weights are allowed
-    std::size_t size = ss->inCheck ? 2 : ContHistoryWeights.size();
+    std::size_t contHistorySize = ss->inCheck ? 2 : MaxContHistorySize;
 
-    for (std::size_t i = 1; i <= size; ++i)
+    for (std::size_t i = 1; i <= contHistorySize; ++i)
     {
-        Stack* const slot = ss - i;
+        Stack* const stack = ss - i;
 
-        if (!slot->move.is_ok())
+        if (!stack->move.is_ok())
             break;
 
-        double weight = ContHistoryWeights[i - 1];
-        int    offset = i <= 1 ? 88 : 0;
-
-        (*slot->pieceSqHistory)[pc][dst] << int(weight * bonus) + offset;
+        (*stack->pieceSqHistory)[pc][dst]
+          << int(ContHistoryWeights[i - 1] * bonus) + ContHistoryOffsets[i - 1];
     }
 }
 

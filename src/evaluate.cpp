@@ -47,7 +47,7 @@ Value evaluate(const Position&          pos,
 
     Value absEvaluate = std::abs(pos.evaluate());
 
-    bool smallNetUse = absEvaluate > 962;
+    bool smallNet = absEvaluate > 962;
 
     NNUE::NetworkOutput netOut{0, 0};
 
@@ -57,7 +57,7 @@ Value evaluate(const Position&          pos,
 
     std::int32_t nnue = 0;
 
-    if (smallNetUse)
+    if (smallNet)
     {
         netOut = networks.small.evaluate(pos, accStack, accCaches.small);
         nnue   = compute_nnue();
@@ -65,7 +65,7 @@ Value evaluate(const Position&          pos,
         // Re-evaluate with the big-net if the small-net's NNUE evaluation is below a certain threshold
         if (std::abs(nnue) < 277)
         {
-            smallNetUse = false;
+            smallNet = false;
 
             netOut = networks.big.evaluate(pos, accStack, accCaches.big);
             nnue   = compute_nnue();
@@ -77,11 +77,11 @@ Value evaluate(const Position&          pos,
         nnue   = compute_nnue();
     }
 
+    std::int32_t complexity = std::abs(netOut.psqt - netOut.positional);
+
     // clang-format off
 
     // Blend nnue and optimism with complexity
-    std::int32_t complexity = std::abs(netOut.psqt - netOut.positional);
-
     nnue     *= 1.0 - 54.8366e-6 * complexity;
     optimism *= 1.0 + 21.0084e-4 * complexity;
 
