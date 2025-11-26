@@ -612,10 +612,8 @@ void Worker::iterative_deepening() noexcept {
             // Compute move instability factor based on the total move changes and the number of threads
             auto instabilityFactor = 1.0200 + 2.1400 * mainManager->sumMoveChanges / threads.size();
 
-            // Compute node effort factor which slightly reduces effort if the completed depth is sufficiently high
-            auto nodeEffortFactor = 1.0;
-            if (completedDepth >= 10)
-                nodeEffortFactor -= 37.5206e-6 * std::max(-93337.0 + 100000.0 * rootMoves[0].nodes / std::max(nodes.load(std::memory_order_relaxed), std::uint64_t(1)), 0.0);
+            // Compute node effort factor that reduces time if effort is sufficiently high
+            auto nodeEffortFactor = 1.0 - 37.5206e-6 * std::max(-93340.0 + 100000.0 * rootMoves[0].nodes / std::max(nodes.load(std::memory_order_relaxed), std::uint64_t(1)), 0.0);
 
             // Compute recapture factor that reduces time if recapture conditions are met
             auto recaptureFactor = 1.0;
