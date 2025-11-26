@@ -33,28 +33,29 @@
 
 namespace DON {
 
-// Number of bits reserved for data
-constexpr std::uint8_t DATA_BITS = 3;
-// Increment for generation field
-constexpr std::uint8_t GENERATION_DELTA = 1 << DATA_BITS;
-// Mask to pull out generation field
-constexpr std::uint8_t GENERATION_MASK = (0xFF << DATA_BITS) & 0xFF;
-// Generation cycle length
+// Number of bits reserved for other fields in the data8 byte
+constexpr std::uint8_t RESERVE_BITS = 3;
+// Increment for generation field (on each new search)
+constexpr std::uint8_t GENERATION_DELTA = 1 << RESERVE_BITS;
+// Mask to pull out generation field (from data8)
+constexpr std::uint8_t GENERATION_MASK = (0xFF << RESERVE_BITS) & 0xFF;
+// Generation cycle length (to handle overflow correctly)
 constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 
-// TTEntry struct is the 10 bytes transposition table entry, defined as below:
-//
+// TTEntry struct is the 10 bytes transposition table entry
+// Defined as below:
 // key          16 bit
 // move         16 bit
 // depth         8 bit
-// genData       8 bit
+// data          8 bit
 //  - generation 5 bit
 //  - pv         1 bit
 //  - bound      2 bit
 // value        16 bit
 // eval         16 bit
 //
-// These fields are in the same order as accessed by TT::probe(), since memory is fastest sequentially.
+// These fields are in the same order as accessed by TT::probe(),
+// since memory is fastest sequentially.
 // Equally, the store order in save() matches this order.
 struct TTEntry final {
    private:
@@ -67,9 +68,9 @@ struct TTEntry final {
     constexpr auto move() const noexcept { return move16; }
     constexpr auto occupied() const noexcept { return bool(depth8); }
     constexpr auto depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
-    constexpr auto pv() const noexcept { return bool(genData8 & 0x4); }
-    constexpr auto bound() const noexcept { return Bound(genData8 & 0x3); }
-    //constexpr auto generation() const noexcept { return std::uint8_t(genData8 & GENERATION_MASK); }
+    constexpr auto pv() const noexcept { return bool(data8 & 0x4); }
+    constexpr auto bound() const noexcept { return Bound(data8 & 0x3); }
+    //constexpr auto generation() const noexcept { return std::uint8_t(data8 & GENERATION_MASK); }
     constexpr auto value() const noexcept { return value16; }
     constexpr auto eval() const noexcept { return eval16; }
 
@@ -85,7 +86,7 @@ struct TTEntry final {
         // add GENERATION_CYCLE (256 is the modulus, plus what is needed to keep
         // the unrelated lowest n bits from affecting the relative age)
         // to calculate the entry age correctly even after gen overflows into the next cycle.
-        return (GENERATION_CYCLE + gen - genData8) & GENERATION_MASK;
+        return (GENERATION_CYCLE + gen - data8) & GENERATION_MASK;
     }
 
     std::int16_t worth(std::uint8_t gen) const noexcept { return depth8 - relative_age(gen); }
@@ -106,11 +107,11 @@ struct TTEntry final {
             || depth() < 4 + d + 2 * pv       //
             || relative_age(gen))
         {
-            key16    = k16;
-            depth8   = d - DEPTH_OFFSET;
-            genData8 = gen | (pv << 2) | b;
-            value16  = v;
-            eval16   = ev;
+            key16   = k16;
+            depth8  = d - DEPTH_OFFSET;
+            data8   = gen | (pv << 2) | b;
+            value16 = v;
+            eval16  = ev;
         }
         else if (depth() > 4 && bound() != BOUND_EXACT)
             --depth8;
@@ -121,7 +122,7 @@ struct TTEntry final {
     Key16        key16;
     Move         move16;
     std::uint8_t depth8;
-    std::uint8_t genData8;
+    std::uint8_t data8;
     Value        value16;
     Value        eval16;
 
@@ -131,8 +132,8 @@ struct TTEntry final {
 
 static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");
 
-// TTCluster consists of EntryCount number of TTEntry.
-// The size of a TTCluster should divide the size of a cache-line for best performance,
+// TTCluster consists of bunch of TTEntry.
+// TTCluster size should divide the size of a cache-line for best performance,
 // as the cache-line is prefetched when possible.
 struct TTCluster final {
    private:
