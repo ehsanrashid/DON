@@ -1764,7 +1764,7 @@ QS_MOVES_LOOP:
             }
 
             // Skip quiets (non-captures, non-promotions)
-            if (!(capture || move.type_of() == PROMOTION))
+            if (!capture && move.type_of() != PROMOTION)
                 continue;
 
             // SEE based pruning
