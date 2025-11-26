@@ -25,6 +25,13 @@
 #include <fstream>
 #include <iterator>
 #include <limits>
+#if defined(_WIN32)
+    #include <direct.h>
+    #define GETCWD _getcwd
+#else
+    #include <unistd.h>
+    #define GETCWD getcwd
+#endif
 
 namespace DON {
 
@@ -666,14 +673,6 @@ void print() noexcept {
     }
 }
 }  // namespace Debug
-#endif
-
-#if defined(_WIN32)
-    #include <direct.h>
-    #define GETCWD _getcwd
-#else
-    #include <unistd.h>
-    #define GETCWD getcwd
 #endif
 
 CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
