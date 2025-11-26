@@ -696,36 +696,18 @@ class Tie final: public std::streambuf {
 
 class Logger final {
    public:
-    static void set(std::string_view logFile) noexcept {
-        static Logger logger(std::cin, std::cout);  // Tie std::cin and std::cout to a file.
+    // Start logging to `logFile`. Returns true on success.
+    static bool start(std::string_view logFile) noexcept {
+        std::scoped_lock scopedLock(instance().mutex);
 
-        if (logger.ofstream.is_open())
-        {
-            logger.ofstream << "[" << format_time(std::chrono::system_clock::now()) << "] <-"
-                            << std::endl;
+        return instance().open(logFile);
+    }
 
-            logger.istream.rdbuf(logger.iTie.primaryBuf);
-            logger.ostream.rdbuf(logger.oTie.primaryBuf);
-            logger.ofstream.close();
-        }
+    // Stop logging. Restores original streams and closes the file.
+    static void stop() noexcept {
+        std::scoped_lock scopedLock(instance().mutex);
 
-        if (logFile.empty())
-            return;
-
-        LogFileName = logFile;
-
-        logger.ofstream.open(LogFileName, std::ios_base::out | std::ios_base::app);
-
-        if (!logger.ofstream.is_open())
-        {
-            std::cerr << "Unable to open debug log file: " << logFile << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
-        logger.ofstream << "[" << format_time(std::chrono::system_clock::now()) << "] ->"
-                        << std::endl;
-
-        logger.istream.rdbuf(&logger.iTie);
-        logger.ostream.rdbuf(&logger.oTie);
+        instance().close();
     }
 
     static inline std::string LogFileName;
@@ -739,13 +721,59 @@ class Logger final {
         iTie(istream.rdbuf(), ofstream.rdbuf()),
         oTie(ostream.rdbuf(), ofstream.rdbuf()) {}
 
-    ~Logger() noexcept { set(""); }
+    ~Logger() noexcept { stop(); }
+
+    // Single shared instance
+    static Logger& instance() noexcept {
+        static Logger logger(std::cin, std::cout);  // Tie std::cin and std::cout to a file.
+        return logger;
+    }
+
+    // Open log file; caller must hold mutex
+    // If another file is already open, it will be closed first.
+    bool open(std::string_view logFile) noexcept {
+        close();  // Close any previous log file
+
+        if (logFile.empty())
+            return true;
+
+        LogFileName = logFile;
+
+        ofstream.open(LogFileName, std::ios_base::out | std::ios_base::app);
+        if (!ofstream.is_open())
+        {
+            std::cerr << "Unable to open Debug log file: " << LogFileName << std::endl;
+            return false;
+        }
+
+        ofstream << "[" << format_time(std::chrono::system_clock::now()) << "] ->" << std::endl;
+
+        istream.rdbuf(&iTie);
+        ostream.rdbuf(&oTie);
+
+        return true;
+    }
+
+    // Close log file if open; caller must hold mutex
+    void close() noexcept {
+        if (!ofstream.is_open())
+            return;
+
+        ofstream << "[" << format_time(std::chrono::system_clock::now()) << "] <-" << std::endl;
+
+        istream.rdbuf(iTie.primaryBuf);
+        ostream.rdbuf(oTie.primaryBuf);
+        ofstream.close();
+
+        LogFileName.clear();
+    }
 
     std::istream& istream;
     std::ostream& ostream;
     std::ofstream ofstream;
     Tie           iTie;
     Tie           oTie;
+    std::mutex    mutex;
 };
 
 #if !defined(NDEBUG)
