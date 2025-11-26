@@ -1744,8 +1744,7 @@ QS_MOVES_LOOP:
                 if ((moveCount - promoCount) > 2)
                     continue;
 
-                auto  captured      = capture ? pos.captured(move) : NO_PIECE_TYPE;
-                Value seeGain       = PIECE_VALUE[captured];
+                Value seeGain       = PIECE_VALUE[capture ? pos.captured(move) : NO_PIECE_TYPE];
                 Value futilityValue = std::min(futilityBase + seeGain, +VALUE_INFINITE);
                 // If static evaluation + value of piece going to captured is much lower than alpha
                 if (futilityValue <= alpha)
