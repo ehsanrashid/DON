@@ -49,9 +49,8 @@ constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 // depth         8 bit
 // genData       8 bit
 //  - generation 5 bit
-//  - data       3 bit
-//   - pv        1 bit
-//   - bound     2 bit
+//  - pv         1 bit
+//  - bound      2 bit
 // value        16 bit
 // eval         16 bit
 //
