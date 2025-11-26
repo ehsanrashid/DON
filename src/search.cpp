@@ -137,18 +137,18 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
       88, 00, 00, 00, 00, 00, 00, 00  //
     };
 
-    // If in check only first 2 continuation weights are allowed
+    // In check only update 2-ply continuation history
     std::size_t contHistorySize = ss->inCheck ? 2 : MaxContHistorySize;
 
-    for (std::size_t i = 1; i <= contHistorySize; ++i)
+    for (std::size_t i = 0; i < contHistorySize; ++i)
     {
-        Stack* const stack = ss - i;
+        Stack* const stack = (ss - 1) - i;
 
         if (!stack->move.is_ok())
             break;
 
         (*stack->pieceSqHistory)[pc][dst]
-          << int(ContHistoryWeights[i - 1] * bonus) + ContHistoryOffsets[i - 1];
+          << int(ContHistoryWeights[i] * bonus) + ContHistoryOffsets[i];
     }
 }
 
@@ -385,10 +385,13 @@ void Worker::iterative_deepening() noexcept {
     constexpr std::uint16_t StackOffset = 9;
 
     StdArray<Stack, StackOffset + (MAX_PLY + 1) + 1> stacks{};
-    Stack*                                           ss = &stacks[StackOffset];
+
+    Stack* const ss = &stacks[StackOffset];
+
     for (std::int16_t i = 0 - StackOffset; i < std::int16_t(stacks.size() - StackOffset); ++i)
     {
         (ss + i)->ply = i;
+
         if (i >= 0)
             continue;
         // Use as a sentinel
@@ -760,7 +763,7 @@ Value Worker::search(Position&    pos,
     if (!exclude)
         ss->ttPv = PVNode || (ttd.hit && ttd.pv);
 
-    auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
     bool preCapture = is_ok(pos.captured_piece());
     bool preNonPawn =
@@ -1697,7 +1700,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
 QS_MOVES_LOOP:
 
-    auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
     State st;
 
@@ -1938,11 +1941,10 @@ void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_
     for (auto cm : worseMoves[1])
         update_capture_history(pos, cm, -1.4141 * malus);
 
-    auto m = (ss - 1)->move;
-    // Extra penalty for a quiet early move that was not a TT move
-    // in the previous ply when it gets refuted.
-    if (m.is_ok() && !is_ok(pos.captured_piece()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
-        update_continuation_history(ss - 1, pos.piece_on(m.dst_sq()), m.dst_sq(), -0.5879 * malus);
+    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+    // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted.
+    if (is_ok(preSq) && !is_ok(pos.captured_piece()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
+        update_continuation_history(ss - 1, pos.piece_on(preSq), preSq, -0.5879 * malus);
 }
 
 void Worker::update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept {
