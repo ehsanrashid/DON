@@ -1214,9 +1214,10 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (lmrDepth < 13 && !check && !ss->inCheck)
                 {
                     Value seeGain       = promotion_value(move);
-                    Value futilityValue = std::min(42 + ss->staticEval + seeGain + 127 * lmrDepth
-                                                     + 161 * (bestMove == Move::None)  //
-                                                     + 85 * (ss->staticEval > alpha),
+                    Value futilityValue = std::min(42 + ss->staticEval + seeGain / 2  //
+                                                     + 127 * lmrDepth                 //
+                                                     + 85 * (ss->staticEval > alpha)  //
+                                                     + 161 * (bestMove == Move::None),
                                                    +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                     {
