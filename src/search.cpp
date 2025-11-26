@@ -1213,10 +1213,12 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // (*Scaler) Generally, more frequent futility pruning scales well
                 if (lmrDepth < 13 && !check && !ss->inCheck)
                 {
-                    Value futilityValue =
-                      std::min(42 + ss->staticEval + 161 * (bestMove == Move::None) + 127 * lmrDepth
-                                 + 85 * (ss->staticEval > alpha),
-                               +VALUE_INFINITE);
+                    Value seeGain       = promotion_value(move);
+                    Value futilityValue = std::min(42 + ss->staticEval + seeGain / 2  //
+                                                     + 127 * lmrDepth                 //
+                                                     + 85 * (ss->staticEval > alpha)  //
+                                                     + 161 * (bestMove == Move::None),
+                                                   +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                     {
                         if (!is_decisive(bestValue) && !is_win(futilityValue))
@@ -1739,14 +1741,12 @@ QS_MOVES_LOOP:
         if (!is_loss(bestValue))
         {
             // Futility pruning and moveCount pruning
-            if (!check && dst != preSq && !is_loss(futilityBase)
-                && (move.type_of() != PROMOTION || move.promotion_type() < QUEEN))
+            if (!check && dst != preSq && move.type_of() != PROMOTION && !is_loss(futilityBase))
             {
                 if ((moveCount - promoCount) > 2)
                     continue;
 
-                auto  captured      = capture ? pos.captured(move) : NO_PIECE_TYPE;
-                Value seeGain       = PIECE_VALUE[captured] + promotion_value(move);
+                Value seeGain       = PIECE_VALUE[capture ? pos.captured(move) : NO_PIECE_TYPE];
                 Value futilityValue = std::min(futilityBase + seeGain, +VALUE_INFINITE);
                 // If static evaluation + value of piece going to captured is much lower than alpha
                 if (futilityValue <= alpha)
@@ -1764,8 +1764,8 @@ QS_MOVES_LOOP:
                 }
             }
 
-            // Skip non-captures
-            if (!capture)
+            // Skip quiets (non-captures, non-promotions)
+            if (!capture && move.type_of() != PROMOTION)
                 continue;
 
             // SEE based pruning
