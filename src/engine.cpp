@@ -107,7 +107,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("BigEvalFile",          Option(EvalFileDefaultNameBig  , [this](const Option& o) { load_big_network(o);   return std::nullopt; }));
     options.add("SmallEvalFile",        Option(EvalFileDefaultNameSmall, [this](const Option& o) { load_small_network(o); return std::nullopt; }));
     options.add("ReportMinimal",        Option(false));
-    options.add("DebugLogFile",         Option("", [](const Option& o) { start_logger(o); return std::nullopt; }));
+    options.add("DebugLogFile",         Option("", [](const Option& o) { Logger::set(o); return std::nullopt; }));
     // clang-format on
 
     load_networks();
