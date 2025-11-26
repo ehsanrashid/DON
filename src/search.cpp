@@ -1216,7 +1216,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                     Value seeGain       = promotion_value(move);
                     Value futilityValue = std::min(42 + ss->staticEval + seeGain + 127 * lmrDepth
                                                      + 161 * (bestMove == Move::None)  //
-                                                     + std::max(ss->staticEval - alpha, 0),
+                                                     + 85 * (ss->staticEval > alpha),
                                                    +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                     {
