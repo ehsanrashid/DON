@@ -1218,7 +1218,12 @@ S_MOVES_LOOP:  // When in check, search starts here
                                                      + 161 * (bestMove == Move::None),
                                                    +VALUE_INFINITE);
                     if (futilityValue <= alpha)
+                    {
+                        if (!is_decisive(bestValue) && !is_win(futilityValue))
+                            if (bestValue < futilityValue)
+                                bestValue = futilityValue;
                         continue;
+                    }
                 }
 
                 // SEE based pruning for quiets and checks
@@ -1967,7 +1972,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
     return std::clamp<std::int64_t>(
-           + 5172LL * (   pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
+           + 5174LL * (   pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
                      +    pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac])
            + 4411LL * (  minorCorrectionHistory[correction_index(pos.minor_key(WHITE))][WHITE][ac]
                      +   minorCorrectionHistory[correction_index(pos.minor_key(BLACK))][BLACK][ac])
