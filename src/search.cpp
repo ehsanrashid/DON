@@ -612,8 +612,9 @@ void Worker::iterative_deepening() noexcept {
             // Compute move instability factor based on the total move changes and the number of threads
             auto instabilityFactor = 1.0200 + 2.1400 * mainManager->sumMoveChanges / threads.size();
 
-            // Compute node effort factor that reduces time if effort is sufficiently high
-            auto nodeEffortFactor = 1.0 - 37.5206e-6 * std::max(-93340.0 + 100000.0 * rootMoves[0].nodes / std::max(nodes.load(std::memory_order_relaxed), std::uint64_t(1)), 0.0);
+            // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
+            auto nodeEffortExcess = -933.40 + 1000.0 * rootMoves[0].nodes / std::max(nodes.load(std::memory_order_relaxed), std::uint64_t(1));
+            auto nodeEffortFactor = 1.0 - 37.5207e-4 * std::max(nodeEffortExcess, 0.0);
 
             // Compute recapture factor that reduces time if recapture conditions are met
             auto recaptureFactor = 1.0;
@@ -1179,7 +1180,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Futility pruning: for captures
                 if (lmrDepth < 7 && !check)
                 {
-                    Value seeGain       = PIECE_VALUE[captured] + promotion_value(move);
+                    Value seeGain = (capture ? PIECE_VALUE[captured] : VALUE_ZERO)  //
+                                  + promotion_value(move);
                     Value futilityValue = std::min(232 + ss->staticEval + seeGain + 217 * lmrDepth
                                                      + int(0.1279 * history),
                                                    +VALUE_INFINITE);
@@ -1746,7 +1748,7 @@ QS_MOVES_LOOP:
                 if ((moveCount - promoCount) > 2)
                     continue;
 
-                Value seeGain       = PIECE_VALUE[capture ? pos.captured(move) : NO_PIECE_TYPE];
+                Value seeGain       = (capture ? PIECE_VALUE[pos.captured(move)] : VALUE_ZERO);
                 Value futilityValue = std::min(futilityBase + seeGain, +VALUE_INFINITE);
                 // If static evaluation + value of piece going to captured is much lower than alpha
                 if (futilityValue <= alpha)
