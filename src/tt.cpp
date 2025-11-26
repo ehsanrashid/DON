@@ -34,12 +34,13 @@
 namespace DON {
 
 // Number of bits reserved for other fields in the data8 byte
-constexpr std::uint8_t RESERVE_BITS = 3;
-// Increment for generation field (on each new search)
-constexpr std::uint8_t GENERATION_DELTA = 1 << RESERVE_BITS;
-// Mask to pull out generation field (from data8)
-constexpr std::uint8_t GENERATION_MASK = (0xFF << RESERVE_BITS) & 0xFF;
-// Generation cycle length (to handle overflow correctly)
+constexpr std::uint8_t RESERVED_BITS = 3;
+// Increment value for the generation field, used to bump generation
+constexpr std::uint8_t GENERATION_DELTA = 1 << RESERVED_BITS;
+// Mask to extract the generation field from data8 upper bits only
+constexpr std::uint8_t GENERATION_MASK = (0xFF << RESERVED_BITS) & 0xFF;
+// Generation cycle length, handles overflow correctly
+// Maximum generation value before wrapping around
 constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 
 // TTEntry struct is the 10 bytes transposition table entry
