@@ -632,7 +632,7 @@ inline TimePoint now() noexcept {
       .count();
 }
 
-std::string format_time(const std::chrono::system_clock::time_point& timePoint);
+std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept;
 
 void start_logger(std::string_view logFile) noexcept;
 

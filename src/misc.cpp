@@ -236,13 +236,14 @@ std::string compiler_info() noexcept {
     return str;
 }
 
-std::string format_time(const std::chrono::system_clock::time_point& timePoint) {
-    auto time = std::chrono::system_clock::to_time_t(timePoint);
-    auto usec =
+std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept {
+    std::time_t  time = std::chrono::system_clock::to_time_t(timePoint);
+    std::int64_t usec =
       std::chrono::duration_cast<std::chrono::microseconds>(timePoint.time_since_epoch()).count()
       % 1000000;
+
     std::tm tm{};
-#if defined(_WIN32) || defined(_WIN64)  // Windows
+#if defined(_WIN32)  // Windows
     localtime_s(&tm, &time);
 #elif defined(__unix__) || defined(__APPLE__)  // POSIX (Linux / macOS)
     localtime_r(&time, &tm);
@@ -250,6 +251,7 @@ std::string format_time(const std::chrono::system_clock::time_point& timePoint) 
     // Fallback (not thread-safe)
     tm = *std::localtime(&time);
 #endif
+
     return (std::ostringstream{} << std::put_time(&tm, "%Y.%m.%d-%H:%M:%S") << '.'
                                  << std::setfill('0') << std::setw(6) << usec)
       .str();
