@@ -806,7 +806,7 @@ Value Worker::search(Position&    pos,
 
         ss->staticEval = eval = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
-        ttu.update(DEPTH_NONE, ss->ttPv, BOUND_NONE, Move::None, VALUE_NONE, unadjustedStaticEval);
+        ttu.update(DEPTH_NONE, Move::None, ss->ttPv, BOUND_NONE, VALUE_NONE, unadjustedStaticEval);
     }
 
     // Set up the improve and worsen flags.
@@ -916,7 +916,7 @@ Value Worker::search(Position&    pos,
 
                 if (bound == BOUND_EXACT || (bound == BOUND_LOWER ? value >= beta : value <= alpha))
                 {
-                    ttu.update(std::min(depth + 6, MAX_PLY - 1), ss->ttPv, bound, Move::None,
+                    ttu.update(std::min(depth + 6, MAX_PLY - 1), Move::None, ss->ttPv, bound,
                                value_to_tt(value, ss->ply), VALUE_NONE);
 
                     return value;
@@ -1083,7 +1083,7 @@ Value Worker::search(Position&    pos,
             {
                 // Save ProbCut data into transposition table
                 if (!exclude)
-                    ttu.update(probCutDepth + 1, ss->ttPv, BOUND_LOWER, move,
+                    ttu.update(probCutDepth + 1, move, ss->ttPv, BOUND_LOWER,
                                value_to_tt(value, ss->ply), unadjustedStaticEval);
 
                 if (!is_decisive(value))
@@ -1571,11 +1571,11 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // Save gathered information in transposition table
     if ((!RootNode || curIdx == 0) && !exclude)
-        ttu.update(moveCount ? depth : std::min(depth + 6, MAX_PLY - 1), ss->ttPv,
+        ttu.update(moveCount ? depth : std::min(depth + 6, MAX_PLY - 1), bestMove, ss->ttPv,
                    bestValue >= beta                  ? BOUND_LOWER
                    : PVNode && bestMove != Move::None ? BOUND_EXACT
                                                       : BOUND_UPPER,
-                   bestMove, value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
+                   value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
 
     // Adjust correction history if the best move is none or not a capture
     // and the error direction matches whether the above/below bounds.
@@ -1687,7 +1687,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             bestValue = (bestValue + beta) / 2;
 
         if (!ttd.hit)
-            ttu.update(DEPTH_NONE, false, BOUND_LOWER, Move::None, value_to_tt(bestValue, ss->ply),
+            ttu.update(DEPTH_NONE, Move::None, false, BOUND_LOWER, value_to_tt(bestValue, ss->ply),
                        unadjustedStaticEval);
 
         return bestValue;
@@ -1837,7 +1837,7 @@ QS_MOVES_LOOP:
         bestValue = (bestValue + beta) / 2;
 
     // Save gathered info in transposition table
-    ttu.update(DEPTH_ZERO, ttPv, fail_bound(bestValue >= beta), bestMove,
+    ttu.update(DEPTH_ZERO, bestMove, ttPv, fail_bound(bestValue >= beta),
                value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
 
     assert(is_ok(bestValue));

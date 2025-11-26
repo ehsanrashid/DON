@@ -95,7 +95,7 @@ struct TTEntry final {
     // Populates the TTEntry with a new node's data, possibly
     // overwriting an old position. The update is not atomic and can be racy.
     void save(
-      Key16 k16, Depth d, bool pv, Bound b, Move m, Value v, Value ev, std::uint8_t gen) noexcept {
+      Key16 k16, Depth d, Move m, bool pv, Bound b, Value v, Value ev, std::uint8_t gen) noexcept {
         assert(d > DEPTH_OFFSET);
         assert(d <= 0xFF + DEPTH_OFFSET);
 
@@ -150,11 +150,11 @@ struct TTCluster final {
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
-void TTUpdater::update(Depth d, bool pv, Bound b, Move m, Value v, Value ev) noexcept {
+void TTUpdater::update(Depth d, Move m, bool pv, Bound b, Value v, Value ev) noexcept {
     for (; tte != &ttc->entries[0] && (tte - 1)->key16 == key16; --tte)
         tte->clear();
 
-    tte->save(key16, d, pv, b, m, v, ev, generation);
+    tte->save(key16, d, m, pv, b, v, ev, generation);
 }
 
 TranspositionTable::~TranspositionTable() noexcept { free(); }

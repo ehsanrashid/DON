@@ -997,7 +997,8 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
         if (m.type_of() == PROMOTION)
         {
             assert(pt == PAWN);
-            san += std::string{'=', char(std::toupper(to_char(m.promotion_type())))};
+            san += '=';
+            san += char(std::toupper(to_char(m.promotion_type())));
         }
     }
 
