@@ -913,8 +913,7 @@ Ambiguity ambiguity(Move m, const Position& pos) noexcept {
     if (pos.count(ac, pt) == 1)
         return AMB_NONE;
 
-    // Disambiguation if have more then one piece with destination
-    // note that for pawns is not needed because starting file is explicit.
+    // Disambiguation if have more then one piece with same destination
     Bitboard pieces = (attacks_bb(dst, pt, pos.pieces()) & pos.pieces(ac, pt)) ^ org;
 
     if (!pieces)
@@ -931,6 +930,7 @@ Ambiguity ambiguity(Move m, const Position& pos) noexcept {
         if (!(pos.pseudo_legal(mm) && pos.legal(mm)))
             pieces ^= sq;
     }
+
     if (!(pieces & file_of(org)))
         return AMB_RANK;
     if (!(pieces & rank_of(org)))
@@ -963,12 +963,14 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     }
     else
     {
+        // Note:: For pawns is not needed because starting file is explicit.
         if (pt != PAWN)
         {
             san += to_char(pt);
             if (pt != KING)
             {
-                // Disambiguation if have more then one piece of type 'pt' that can reach 'to' with a legal move.
+                // Disambiguation if have more then one piece of type 'pt'
+                // that can reach 'dst' with any legal move.
                 switch (ambiguity(m, pos))
                 {
                 case AMB_RANK :
@@ -1007,15 +1009,13 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     State st;
     pos.do_move(m, st, check);
 
-    bool legalMovesEmpty = MoveList<LEGAL, true>(pos).empty();
+    // Marker for check & checkmate & stalemate
+    if (check)
+        san += MoveList<LEGAL, true>(pos).empty() ? '#' : '+';
+    else if (MoveList<LEGAL, true>(pos).empty())
+        san += '=';
 
     pos.undo_move(m);
-
-    // Marker for check & checkmate
-    if (check)
-        san += legalMovesEmpty ? '#' : '+';
-    else if (legalMovesEmpty)
-        san += '=';
 
     return san;
 }
