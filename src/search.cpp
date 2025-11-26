@@ -1959,12 +1959,12 @@ void Worker::update_correction_history(const Position& pos, Stack* const ss, int
     nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac] << 1.3906 * bonus;
     nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac] << 1.3906 * bonus;
 
-    auto m = (ss - 1)->move;
+    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
-    if (m.is_ok())
+    if (is_ok(preSq))
     {
-        (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << 0.9922 * bonus;
-        (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()] << 0.4609 * bonus;
+        (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(preSq)][preSq]          << 0.9922 * bonus;
+        (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(preSq)][preSq]          << 0.4609 * bonus;
     }
 }
 
@@ -1973,7 +1973,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
 
     Color ac = pos.active_color();
 
-    auto m = (ss - 1)->move;
+    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
     return std::clamp<std::int64_t>(
            + 5174LL * (   pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
@@ -1982,10 +1982,10 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
                      +   minorCorrectionHistory[correction_index(pos.minor_key(BLACK))][BLACK][ac])
            +11168LL * (nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac]
                      + nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac])
-           + 7841LL * (m.is_ok()
-                     ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
-                     + (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(m.dst_sq())][m.dst_sq()]
-                     : 8),
+           + 7841LL * (is_ok(preSq)
+                      ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(preSq)][preSq]
+                      + (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(preSq)][preSq]
+                      : 8),
             -Limit, +Limit);
 }
 
