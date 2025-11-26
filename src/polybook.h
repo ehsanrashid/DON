@@ -28,46 +28,50 @@
 
 namespace DON {
 
-struct PolyEntry final {
-   public:
-    friend constexpr bool operator==(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
-        return pe1.key == pe2.key && pe1.move == pe2.move && pe1.weight == pe2.weight;
-    }
-    friend constexpr bool operator!=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
-        return !(pe1 == pe2);
-    }
-
-    friend constexpr bool operator<(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
-        return pe1.key != pe2.key       ? pe1.key < pe2.key
-             : pe1.weight != pe2.weight ? pe1.weight < pe2.weight
-                                        : pe1.move < pe2.move;
-    }
-    friend constexpr bool operator>(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
-        return (pe2 < pe1);
-    }
-    friend constexpr bool operator<=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
-        return !(pe2 < pe1);
-    }
-    friend constexpr bool operator>=(const PolyEntry& pe1, const PolyEntry& pe2) noexcept {
-        return !(pe1 < pe2);
-    }
-
-    Key           key;
-    std::uint16_t move;
-    std::uint16_t weight;
-    std::uint32_t learn;
-};
-
-using PolyEntryVector = std::vector<PolyEntry>;
-
 class Position;
 class RootMoves;
 class Options;
 
 class PolyBook final {
    public:
-    PolyBook() noexcept  = default;
-    ~PolyBook() noexcept = default;
+    struct Entry final {
+       public:
+        friend constexpr bool operator==(const Entry& e1, const Entry& e2) noexcept {
+            return e1.key == e2.key && e1.move == e2.move && e1.weight == e2.weight;
+        }
+        friend constexpr bool operator!=(const Entry& e1, const Entry& e2) noexcept {
+            return !(e1 == e2);
+        }
+
+        friend constexpr bool operator<(const Entry& e1, const Entry& e2) noexcept {
+            return e1.key != e2.key       ? e1.key < e2.key
+                 : e1.weight != e2.weight ? e1.weight < e2.weight
+                                          : e1.move < e2.move;
+        }
+        friend constexpr bool operator>(const Entry& e1, const Entry& e2) noexcept {
+            return (e2 < e1);
+        }
+        friend constexpr bool operator<=(const Entry& e1, const Entry& e2) noexcept {
+            return !(e2 < e1);
+        }
+        friend constexpr bool operator>=(const Entry& e1, const Entry& e2) noexcept {
+            return !(e1 < e2);
+        }
+
+        Key           key;
+        std::uint16_t move;
+        std::uint16_t weight;
+        std::uint32_t learn;
+    };
+
+    using EntryVector = std::vector<Entry>;
+
+    PolyBook() noexcept                           = default;
+    PolyBook(const PolyBook&) noexcept            = delete;
+    PolyBook(PolyBook&&) noexcept                 = delete;
+    PolyBook& operator=(const PolyBook&) noexcept = delete;
+    PolyBook& operator=(PolyBook&&) noexcept      = delete;
+    ~PolyBook() noexcept                          = default;
 
     bool load(std::string_view bookFile) noexcept;
 
@@ -82,11 +86,11 @@ class PolyBook final {
 
     std::size_t key_index(Key key) const noexcept;
 
-    PolyEntryVector key_candidates(Key key) const noexcept;
+    EntryVector key_candidates(Key key) const noexcept;
 
     std::string bookName;
 
-    PolyEntryVector entries;
+    EntryVector entries;
 };
 
 }  // namespace DON

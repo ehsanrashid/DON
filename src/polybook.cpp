@@ -351,13 +351,13 @@ std::uint64_t swap_uint64(std::uint64_t n) noexcept {
 #endif
 }
 
-void swap_polyentry(PolyEntry* pe) noexcept {
-    if (pe == nullptr)
+void swap_entry(PolyBook::Entry* const e) noexcept {
+    if (e == nullptr)
         return;
-    pe->key    = swap_uint64(pe->key);
-    pe->move   = swap_uint16(pe->move);
-    pe->weight = swap_uint16(pe->weight);
-    pe->learn  = swap_uint32(pe->learn);
+    e->key    = swap_uint64(e->key);
+    e->move   = swap_uint16(e->move);
+    e->weight = swap_uint16(e->weight);
+    e->learn  = swap_uint32(e->learn);
 }
 
 // A PolyGlot book move is encoded as follows:
@@ -431,7 +431,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
         return true;
     }
 
-    constexpr std::size_t EntrySize = sizeof(PolyEntry);
+    constexpr std::size_t EntrySize = sizeof(PolyBook::Entry);
     static_assert(EntrySize > 0, "PolyEntry must have non-zero size");
 
     if (fileSize < EntrySize)
@@ -499,7 +499,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
     if (IsLittleEndian)
         for (std::size_t i = 0; i < entries.size(); ++i)
-            swap_polyentry(&entries[i]);
+            swap_entry(&entries[i]);
 
     UCI::print_info_string(info());
 
@@ -552,10 +552,10 @@ std::size_t PolyBook::key_index(Key key) const noexcept {
     return entries.size();
 }
 
-PolyEntryVector PolyBook::key_candidates(Key key) const noexcept {
+PolyBook::EntryVector PolyBook::key_candidates(Key key) const noexcept {
     std::size_t index = key_index(key);
 
-    PolyEntryVector candidates;
+    EntryVector candidates;
 
     if (index >= entries.size())
         return candidates;
@@ -580,7 +580,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
     Key key = PGZob.key(pos);
 
-    PolyEntryVector candidates = key_candidates(key);
+    EntryVector candidates = key_candidates(key);
 
     if (candidates.empty())
         return Move::None;
