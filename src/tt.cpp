@@ -21,9 +21,11 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <system_error>
 
 #include "memory.h"
 #include "misc.h"
@@ -31,30 +33,30 @@
 
 namespace DON {
 
-// Constants used to manipulate generation bits
-
-// Number of bits reserved for data
-constexpr std::uint8_t DATA_BITS = 3;
-// Increment for generation field
-constexpr std::uint8_t GENERATION_DELTA = 1 << DATA_BITS;
-// Mask to pull out generation field
-constexpr std::uint8_t GENERATION_MASK = (0xFF << DATA_BITS) & 0xFF;
-// Generation cycle length
+// Number of bits reserved for other fields in the data8 byte
+constexpr std::uint8_t RESERVED_BITS = 3;
+// Increment value for the generation field, used to bump generation
+constexpr std::uint8_t GENERATION_DELTA = 1 << RESERVED_BITS;
+// Mask to extract the generation field from data8 upper bits only
+constexpr std::uint8_t GENERATION_MASK = (0xFF << RESERVED_BITS) & 0xFF;
+// Generation cycle length, handles overflow correctly
+// Maximum generation value before wrapping around
 constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 
-// TTEntry struct is the 10 bytes transposition table entry, defined as below:
+// TTEntry struct is the 10 bytes transposition table entry
+// Defined as below:
+// key          16 bit
+// move         16 bit
+// depth         8 bit
+// data          8 bit
+//  - generation 5 bit
+//  - pv         1 bit
+//  - bound      2 bit
+// value        16 bit
+// eval         16 bit
 //
-// key        16 bit
-// depth       8 bit
-// generation  5 bit
-// data        3 bit
-//  - pv       1 bit
-//  - bound    2 bit
-// move       16 bit
-// value      16 bit
-// eval       16 bit
-//
-// These fields are in the same order as accessed by TT::probe(), since memory is fastest sequentially.
+// These fields are in the same order as accessed by TT::probe(),
+// since memory is fastest sequentially.
 // Equally, the store order in save() matches this order.
 struct TTEntry final {
    private:
@@ -67,21 +69,34 @@ struct TTEntry final {
     constexpr auto move() const noexcept { return move16; }
     constexpr auto occupied() const noexcept { return bool(depth8); }
     constexpr auto depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
-    constexpr auto pv() const noexcept { return bool(genData8 & 0x4); }
-    constexpr auto bound() const noexcept { return Bound(genData8 & 0x3); }
-    //constexpr auto generation() const noexcept { return std::uint8_t(genData8 & GENERATION_MASK); }
+    constexpr auto pv() const noexcept { return bool(data8 & 0x4); }
+    constexpr auto bound() const noexcept { return Bound(data8 & 0x3); }
+    //constexpr auto generation() const noexcept { return std::uint8_t(data8 & GENERATION_MASK); }
     constexpr auto value() const noexcept { return value16; }
     constexpr auto eval() const noexcept { return eval16; }
 
+   public:
     // Convert internal bitfields to TTData
     TTData read() const noexcept {
         return TTData{value(), eval(), move(), depth(), bound(), occupied(), pv()};
     }
 
+    // The returned age is a multiple of GENERATION_DELTA
+    std::uint8_t relative_age(std::uint8_t gen) const noexcept {
+        // Due to packed storage format for generation and its cyclic nature
+        // add GENERATION_CYCLE (256 is the modulus, plus what is needed to keep
+        // the unrelated lowest n bits from affecting the relative age)
+        // to calculate the entry age correctly even after gen overflows into the next cycle.
+        return (GENERATION_CYCLE + gen - data8) & GENERATION_MASK;
+    }
+
+    std::int16_t worth(std::uint8_t gen) const noexcept { return depth8 - relative_age(gen); }
+
+   private:
     // Populates the TTEntry with a new node's data, possibly
     // overwriting an old position. The update is not atomic and can be racy.
     void save(
-      Key16 k16, Depth d, bool pv, Bound b, Move m, Value v, Value ev, std::uint8_t gen) noexcept {
+      Key16 k16, Depth d, Move m, bool pv, Bound b, Value v, Value ev, std::uint8_t gen) noexcept {
         assert(d > DEPTH_OFFSET);
         assert(d <= 0xFF + DEPTH_OFFSET);
 
@@ -93,11 +108,11 @@ struct TTEntry final {
             || depth() < 4 + d + 2 * pv       //
             || relative_age(gen))
         {
-            key16    = k16;
-            depth8   = d - DEPTH_OFFSET;
-            genData8 = gen | (pv << 2) | b;
-            value16  = v;
-            eval16   = ev;
+            key16   = k16;
+            depth8  = d - DEPTH_OFFSET;
+            data8   = gen | (pv << 2) | b;
+            value16 = v;
+            eval16  = ev;
         }
         else if (depth() > 4 && bound() != BOUND_EXACT)
             --depth8;
@@ -105,21 +120,10 @@ struct TTEntry final {
 
     void clear() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(*this)); }
 
-    // The returned age is a multiple of GENERATION_DELTA
-    std::uint8_t relative_age(std::uint8_t gen) const noexcept {
-        // Due to packed storage format for generation and its cyclic nature
-        // add GENERATION_CYCLE (256 is the modulus, plus what is needed to keep
-        // the unrelated lowest n bits from affecting the relative age)
-        // to calculate the entry age correctly even after gen overflows into the next cycle.
-        return (GENERATION_CYCLE + gen - genData8) & GENERATION_MASK;
-    }
-
-    std::int16_t worth(std::uint8_t gen) const noexcept { return depth8 - relative_age(gen); }
-
     Key16        key16;
     Move         move16;
     std::uint8_t depth8;
-    std::uint8_t genData8;
+    std::uint8_t data8;
     Value        value16;
     Value        eval16;
 
@@ -129,10 +133,17 @@ struct TTEntry final {
 
 static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");
 
-// TTCluster consists of EntryCount number of TTEntry.
-// The size of a TTCluster should divide the size of a cache-line for best performance,
+// TTCluster consists of bunch of TTEntry.
+// TTCluster size should divide the size of a cache-line for best performance,
 // as the cache-line is prefetched when possible.
 struct TTCluster final {
+   private:
+    TTCluster() noexcept                            = delete;
+    TTCluster(const TTCluster&) noexcept            = delete;
+    TTCluster(TTCluster&&) noexcept                 = delete;
+    TTCluster& operator=(const TTCluster&) noexcept = delete;
+    TTCluster& operator=(TTCluster&&) noexcept      = delete;
+
    public:
     StdArray<TTEntry, 3> entries;
     StdArray<char, 2>    padding;  // Pad to 32 bytes
@@ -140,11 +151,11 @@ struct TTCluster final {
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
-void TTUpdater::update(Depth d, bool pv, Bound b, Move m, Value v, Value ev) noexcept {
+void TTUpdater::update(Depth d, Move m, bool pv, Bound b, Value v, Value ev) noexcept {
     for (; tte != &ttc->entries[0] && (tte - 1)->key16 == key16; --tte)
         tte->clear();
 
-    tte->save(key16, d, pv, b, m, v, ev, generation);
+    tte->save(key16, d, m, pv, b, v, ev, generation);
 }
 
 TranspositionTable::~TranspositionTable() noexcept { free(); }
@@ -253,29 +264,33 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
     if (!ofstream)
         return false;
 
-    const char* data  = reinterpret_cast<const char*>(clusters);
-    std::size_t total = clusterCount * sizeof(TTCluster);
+    constexpr std::size_t ClusterSize = sizeof(TTCluster);
+    static_assert(ClusterSize > 0, "Cluster must have non-zero size");
 
     // Choose a chunk that balances system call overhead and memory pressure.
-    // 1 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr std::size_t Chunk = 1024 * 1024;  // 1 MiB
+    // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
+    constexpr std::size_t ChunkSize = (2ULL * 1024 * 1024 / ClusterSize) * ClusterSize;
 
-    std::size_t written = 0;
-    while (written < total)
+    const std::size_t DataSize = clusterCount * ClusterSize;
+
+    const char* data = reinterpret_cast<const char*>(clusters);
+
+    std::size_t writtenSize = 0;
+    while (writtenSize < DataSize)
     {
-        std::size_t write = std::min(Chunk, total - written);
+        std::size_t writeSize = std::min(ChunkSize, DataSize - writtenSize);
 
-        ofstream.write(data + written, write);
+        ofstream.write(data + writtenSize, std::streamsize(writeSize));
 
         if (!ofstream)  // write failed
             return false;
 
-        written += write;
+        writtenSize += writeSize;
     }
 
     ofstream.flush();
 
-    return ofstream.good();
+    return writtenSize == DataSize && ofstream.good();
 }
 
 bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) noexcept {
@@ -283,56 +298,73 @@ bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) no
     if (hashFile.empty())
         return false;
 
-    std::ifstream ifstream(std::string(hashFile), std::ios_base::binary);
+    std::error_code ec;
 
-    if (!ifstream)
+    std::uint64_t fileSize = std::filesystem::file_size(std::string(hashFile), ec);
+
+    if (ec)
+    {
+        std::cerr << "Failed to stat Hash file " << hashFile << ": " << ec.message() << std::endl;
         return false;
-
-    std::int64_t fileSize = get_file_size(ifstream);  // your helper
-    if (fileSize < 0)
-    {  // fallback
-        ifstream.clear();
-        ifstream.seekg(0, std::ios::end);
-        std::streamoff pos = ifstream.tellg();
-        if (pos < 0)
-            return false;
-        fileSize = std::int64_t(pos);
-        ifstream.seekg(0, std::ios::beg);
     }
 
     if (fileSize == 0)
-        return false;  // empty file -> nothing to load
+    {
+        std::cerr << "Warning: Empty Hash file " << hashFile << std::endl;
+        return true;
+    }
+
+    std::ifstream ifstream(std::string(hashFile), std::ios_base::binary);
+
+    if (!ifstream)
+    {
+        std::cerr << "Failed to open Hash file " << hashFile << std::endl;
+        return false;
+    }
 
     std::size_t ttSize = fileSize / (1024 * 1024);
 
     resize(ttSize, threads);
 
-    char*       data  = reinterpret_cast<char*>(clusters);
-    std::size_t total = clusterCount * sizeof(TTCluster);
+    constexpr std::size_t ClusterSize = sizeof(TTCluster);
+    static_assert(ClusterSize > 0, "Cluster must have non-zero size");
 
     // Choose a chunk that balances system call overhead and memory pressure.
-    // 1 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr std::size_t Chunk = 1024 * 1024;  // 1 MiB
+    // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
+    constexpr std::size_t ChunkSize = (2ULL * 1024 * 1024 / ClusterSize) * ClusterSize;
 
-    std::size_t readed = 0;
-    while (readed < total)
+    const std::size_t DataSize = clusterCount * ClusterSize;
+
+    char* data = reinterpret_cast<char*>(clusters);
+
+    std::size_t readedSize = 0;
+    while (readedSize < DataSize)
     {
-        std::size_t read = std::min(Chunk, total - readed);
+        std::size_t readSize = std::min(ChunkSize, DataSize - readedSize);
 
-        ifstream.read(data + readed, read);
+        ifstream.read(data + readedSize, std::streamsize(readSize));
 
-        if (!ifstream)
+        std::streamsize gotSize = ifstream.gcount();
+
+        if (gotSize <= 0)  // read failed or EOF without data
             return false;
 
-        auto got = ifstream.gcount();
+        //if (gotSize != readSize)  // partial read - treat as error for complete-file read
+        //{
+        //    std::cerr << "Partial read: expected " << readSize << " got " << gotSize << std::endl;
+        //    return false;
+        //}
 
-        if (got <= 0)  // read failed or EOF without data
-            return false;
-
-        readed += got;
+        readedSize += gotSize;
     }
 
-    return ifstream.good();
+    if (ifstream.fail() || ifstream.bad())
+    {
+        std::cerr << "I/O error while reading Hash file " << hashFile << std::endl;
+        return false;
+    }
+
+    return readedSize == DataSize && ifstream.good();
 }
 
 }  // namespace DON

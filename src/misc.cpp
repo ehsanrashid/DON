@@ -25,6 +25,13 @@
 #include <fstream>
 #include <iterator>
 #include <limits>
+#if defined(_WIN32)
+    #include <direct.h>
+    #define GETCWD _getcwd
+#else
+    #include <unistd.h>
+    #define GETCWD getcwd
+#endif
 
 namespace DON {
 
@@ -229,13 +236,14 @@ std::string compiler_info() noexcept {
     return str;
 }
 
-std::string format_time(const std::chrono::system_clock::time_point& timePoint) {
-    auto time = std::chrono::system_clock::to_time_t(timePoint);
-    auto usec =
+std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept {
+    std::time_t  time = std::chrono::system_clock::to_time_t(timePoint);
+    std::int64_t usec =
       std::chrono::duration_cast<std::chrono::microseconds>(timePoint.time_since_epoch()).count()
       % 1000000;
+
     std::tm tm{};
-#if defined(_WIN32) || defined(_WIN64)  // Windows
+#if defined(_WIN32)  // Windows
     localtime_s(&tm, &time);
 #elif defined(__unix__) || defined(__APPLE__)  // POSIX (Linux / macOS)
     localtime_r(&time, &tm);
@@ -243,6 +251,7 @@ std::string format_time(const std::chrono::system_clock::time_point& timePoint) 
     // Fallback (not thread-safe)
     tm = *std::localtime(&time);
 #endif
+
     return (std::ostringstream{} << std::put_time(&tm, "%Y.%m.%d-%H:%M:%S") << '.'
                                  << std::setfill('0') << std::setw(6) << usec)
       .str();
@@ -668,14 +677,6 @@ void print() noexcept {
 }  // namespace Debug
 #endif
 
-#if defined(_WIN32)
-    #include <direct.h>
-    #define GETCWD _getcwd
-#else
-    #include <unistd.h>
-    #define GETCWD getcwd
-#endif
-
 CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
     arguments.reserve(argc);
     for (int i = 0; i < argc; ++i)
@@ -734,22 +735,6 @@ std::size_t str_to_size_t(std::string_view str) noexcept {
     if (value > std::numeric_limits<std::size_t>::max())
         std::exit(EXIT_FAILURE);
     return static_cast<std::size_t>(value);
-}
-
-std::streamsize get_file_size(std::ifstream& ifstream) noexcept {
-    // Return -1 if the file stream is not open
-    if (!ifstream.is_open())
-        return std::streamsize(-1);
-
-    // Store the current position
-    auto curPos = ifstream.tellg();
-    // Move to the end to get the size
-    ifstream.seekg(0, std::ios_base::end);
-    std::streamsize fileSize = ifstream.tellg();
-    // Restore the original position
-    ifstream.seekg(curPos, std::ios_base::beg);
-    // Return file size or -1 if tellg() fails
-    return fileSize >= 0 ? fileSize : std::streamsize(-1);
 }
 
 std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept {

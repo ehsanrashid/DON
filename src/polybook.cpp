@@ -17,23 +17,23 @@
 
 #include "polybook.h"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstdio>
-#include <cstdlib>
 #include <iomanip>
 #include <iostream>
-#include <vector>
-#if !defined(_WIN32)
-    #include <fcntl.h>
-#endif
+#include <filesystem>
+#include <fstream>
+#include <system_error>
 
 #include "bitboard.h"
 #include "misc.h"
 #include "movegen.h"
 #include "position.h"
 #include "prng.h"
+#include "search.h"
 #include "uci.h"
+#include "ucioption.h"
 
 namespace DON {
 
@@ -41,9 +41,9 @@ namespace {
 
 union Zobrist final {
    public:
-    // Size = 6 * 2 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
-    static constexpr std::size_t Size = (PIECE_TYPE_NB - 2) * COLOR_NB * SQUARE_NB  //
-                                      + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1;
+    // Size = 2 * 6 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
+    static constexpr std::size_t Size = (COLOR_NB) * (PIECE_TYPE_NB - 2) * (SQUARE_NB)
+                                      + (COLOR_NB) * (CASTLING_SIDE_NB) + (FILE_NB) + 1;
 
     constexpr Zobrist(const StdArray<Key, Size>& keys) noexcept :
         Keys{keys} {}
@@ -84,15 +84,17 @@ union Zobrist final {
     StdArray<Key, Size> Keys;
 
     struct {
-        StdArray<Key, (PIECE_TYPE_NB - 2) * COLOR_NB, SQUARE_NB> PieceSquare;  // [piece][square]
-        StdArray<Key, COLOR_NB * CASTLING_SIDE_NB>               Castling;     // [castle-right]
-        StdArray<Key, FILE_NB>                                   Enpassant;    // [file]
-        Key                                                      Turn;
+        StdArray<Key, (COLOR_NB) * (PIECE_TYPE_NB - 2), SQUARE_NB> PieceSquare;  // [piece][square]
+        StdArray<Key, (COLOR_NB) * (CASTLING_SIDE_NB)>             Castling;     // [castle-right]
+        StdArray<Key, (FILE_NB)>                                   Enpassant;    // [file]
+        Key                                                        Turn;
     } _;
 };
 
 // Random numbers from PolyGlot, used to compute book hash keys
+// startpos key == 0x463B96181691FC9CULL
 constexpr Zobrist PGZob{{
+  // BLACK_PAWN
   0x9D39247E33776D41ULL, 0x2AF7398005AAA5C7ULL, 0x44DB015024623547ULL, 0x9C15F73E62A76AE2ULL,
   0x75834465489C0C89ULL, 0x3290AC3A203001BFULL, 0x0FBBAD1F61042279ULL, 0xE83A908FF2FB60CAULL,
   0x0D7E765D58755C10ULL, 0x1A083822CEAFE02DULL, 0x9605D5F0E25EC3B0ULL, 0xD021FF5CD13A2ED5ULL,
@@ -109,6 +111,7 @@ constexpr Zobrist PGZob{{
   0x11D505D4C351BD7FULL, 0x6568FCA92C76A243ULL, 0x4DE0B0F40F32A7B8ULL, 0x96D693460CC37E5DULL,
   0x42E240CB63689F2FULL, 0x6D2BDCDAE2919661ULL, 0x42880B0236E4D951ULL, 0x5F0F4A5898171BB6ULL,
   0x39F890F579F92F88ULL, 0x93C5B5F47356388BULL, 0x63DC359D8D231B78ULL, 0xEC16CA8AEA98AD76ULL,
+  // WHITE_PAWN
   0x5355F900C2A82DC7ULL, 0x07FB9F855A997142ULL, 0x5093417AA8A7ED5EULL, 0x7BCBC38DA25A7F3CULL,
   0x19FC8A768CF4B6D4ULL, 0x637A7780DECFC0D9ULL, 0x8249A47AEE0E41F7ULL, 0x79AD695501E7D1E8ULL,
   0x14ACBAF4777D5776ULL, 0xF145B6BECCDEA195ULL, 0xDABF2AC8201752FCULL, 0x24C3C94DF9C8D3F6ULL,
@@ -125,6 +128,7 @@ constexpr Zobrist PGZob{{
   0xCF464CEC899A2F8AULL, 0xF538639CE705B824ULL, 0x3C79A0FF5580EF7FULL, 0xEDE6C87F8477609DULL,
   0x799E81F05BC93F31ULL, 0x86536B8CF3428A8CULL, 0x97D7374C60087B73ULL, 0xA246637CFF328532ULL,
   0x043FCAE60CC0EBA0ULL, 0x920E449535DD359EULL, 0x70EB093B15B290CCULL, 0x73A1921916591CBDULL,
+  // BLACK_KNIGHT
   0x56436C9FE1A1AA8DULL, 0xEFAC4B70633B8F81ULL, 0xBB215798D45DF7AFULL, 0x45F20042F24F1768ULL,
   0x930F80F4E8EB7462ULL, 0xFF6712FFCFD75EA1ULL, 0xAE623FD67468AA70ULL, 0xDD2C5BC84BC8D8FCULL,
   0x7EED120D54CF2DD9ULL, 0x22FE545401165F1CULL, 0xC91800E98FB99929ULL, 0x808BD68E6AC10365ULL,
@@ -141,6 +145,7 @@ constexpr Zobrist PGZob{{
   0x4850E73E03EB6064ULL, 0xCFC447F1E53C8E1BULL, 0xB05CA3F564268D99ULL, 0x9AE182C8BC9474E8ULL,
   0xA4FC4BD4FC5558CAULL, 0xE755178D58FC4E76ULL, 0x69B97DB1A4C03DFEULL, 0xF9B5B7C4ACC67C96ULL,
   0xFC6A82D64B8655FBULL, 0x9C684CB6C4D24417ULL, 0x8EC97D2917456ED0ULL, 0x6703DF9D2924E97EULL,
+  // WHITE_KNIGHT
   0xC547F57E42A7444EULL, 0x78E37644E7CAD29EULL, 0xFE9A44E9362F05FAULL, 0x08BD35CC38336615ULL,
   0x9315E5EB3A129ACEULL, 0x94061B871E04DF75ULL, 0xDF1D9F9D784BA010ULL, 0x3BBA57B68871B59DULL,
   0xD2B7ADEEDED1F73FULL, 0xF7A255D83BC373F8ULL, 0xD7F4F2448C0CEB81ULL, 0xD95BE88CD210FFA7ULL,
@@ -157,6 +162,7 @@ constexpr Zobrist PGZob{{
   0x506E6744CD974924ULL, 0xB0183DB56FFC6A79ULL, 0x0ED9B915C66ED37EULL, 0x5E11E86D5873D484ULL,
   0xF678647E3519AC6EULL, 0x1B85D488D0F20CC5ULL, 0xDAB9FE6525D89021ULL, 0x0D151D86ADB73615ULL,
   0xA865A54EDCC0F019ULL, 0x93C42566AEF98FFBULL, 0x99E7AFEABE000731ULL, 0x48CBFF086DDF285AULL,
+  // BLACK_BISHOP
   0x7F9B6AF1EBF78BAFULL, 0x58627E1A149BBA21ULL, 0x2CD16E2ABD791E33ULL, 0xD363EFF5F0977996ULL,
   0x0CE2A38C344A6EEDULL, 0x1A804AADB9CFA741ULL, 0x907F30421D78C5DEULL, 0x501F65EDB3034D07ULL,
   0x37624AE5A48FA6E9ULL, 0x957BAF61700CFF4EULL, 0x3A6C27934E31188AULL, 0xD49503536ABCA345ULL,
@@ -173,6 +179,7 @@ constexpr Zobrist PGZob{{
   0x693501D628297551ULL, 0xC62C58F97DD949BFULL, 0xCD454F8F19C5126AULL, 0xBBE83F4ECC2BDECBULL,
   0xDC842B7E2819E230ULL, 0xBA89142E007503B8ULL, 0xA3BC941D0A5061CBULL, 0xE9F6760E32CD8021ULL,
   0x09C7E552BC76492FULL, 0x852F54934DA55CC9ULL, 0x8107FCCF064FCF56ULL, 0x098954D51FFF6580ULL,
+  // WHITE_BISHOP
   0x23B70EDB1955C4BFULL, 0xC330DE426430F69DULL, 0x4715ED43E8A45C0AULL, 0xA8D7E4DAB780A08DULL,
   0x0572B974F03CE0BBULL, 0xB57D2E985E1419C7ULL, 0xE8D9ECBE2CF3D73FULL, 0x2FE4B17170E59750ULL,
   0x11317BA87905E790ULL, 0x7FBF21EC8A1F45ECULL, 0x1725CABFCB045B00ULL, 0x964E915CD5E2B207ULL,
@@ -189,6 +196,7 @@ constexpr Zobrist PGZob{{
   0x7B3F0195FC6F290FULL, 0x12153635B2C0CF57ULL, 0x7F5126DBBA5E0CA7ULL, 0x7A76956C3EAFB413ULL,
   0x3D5774A11D31AB39ULL, 0x8A1B083821F40CB4ULL, 0x7B4A38E32537DF62ULL, 0x950113646D1D6E03ULL,
   0x4DA8979A0041E8A9ULL, 0x3BC36E078F7515D7ULL, 0x5D0A12F27AD310D1ULL, 0x7F9D1A2E1EBE1327ULL,
+  // BLACK_ROOK
   0xDA3A361B1C5157B1ULL, 0xDCDD7D20903D0C25ULL, 0x36833336D068F707ULL, 0xCE68341F79893389ULL,
   0xAB9090168DD05F34ULL, 0x43954B3252DC25E5ULL, 0xB438C2B67F98E5E9ULL, 0x10DCD78E3851A492ULL,
   0xDBC27AB5447822BFULL, 0x9B3CDB65F82CA382ULL, 0xB67B7896167B4C84ULL, 0xBFCED1B0048EAC50ULL,
@@ -205,6 +213,7 @@ constexpr Zobrist PGZob{{
   0x764DBEAE7FA4F3A6ULL, 0x1E99B96E70A9BE8BULL, 0x2C5E9DEB57EF4743ULL, 0x3A938FEE32D29981ULL,
   0x26E6DB8FFDF5ADFEULL, 0x469356C504EC9F9DULL, 0xC8763C5B08D1908CULL, 0x3F6C6AF859D80055ULL,
   0x7F7CC39420A3A545ULL, 0x9BFB227EBDF4C5CEULL, 0x89039D79D6FC5C5CULL, 0x8FE88B57305E2AB6ULL,
+  // WHITE_ROOK
   0xA09E8C8C35AB96DEULL, 0xFA7E393983325753ULL, 0xD6B6D0ECC617C699ULL, 0xDFEA21EA9E7557E3ULL,
   0xB67C1FA481680AF8ULL, 0xCA1E3785A9E724E5ULL, 0x1CFC8BED0D681639ULL, 0xD18D8549D140CAEAULL,
   0x4ED0FE7E9DC91335ULL, 0xE4DBF0634473F5D2ULL, 0x1761F93A44D5AEFEULL, 0x53898E4C3910DA55ULL,
@@ -221,6 +230,7 @@ constexpr Zobrist PGZob{{
   0x14A195640116F336ULL, 0x7C0828DD624EC390ULL, 0xD74BBE77E6116AC7ULL, 0x804456AF10F5FB53ULL,
   0xEBE9EA2ADF4321C7ULL, 0x03219A39EE587A30ULL, 0x49787FEF17AF9924ULL, 0xA1E9300CD8520548ULL,
   0x5B45E522E4B1B4EFULL, 0xB49C3B3995091A36ULL, 0xD4490AD526F14431ULL, 0x12A8F216AF9418C2ULL,
+  // BLACK_QUEEN
   0x001F837CC7350524ULL, 0x1877B51E57A764D5ULL, 0xA2853B80F17F58EEULL, 0x993E1DE72D36D310ULL,
   0xB3598080CE64A656ULL, 0x252F59CF0D9F04BBULL, 0xD23C8E176D113600ULL, 0x1BDA0492E7E4586EULL,
   0x21E0BD5026C619BFULL, 0x3B097ADAF088F94EULL, 0x8D14DEDB30BE846EULL, 0xF95CFFA23AF5F6F4ULL,
@@ -237,6 +247,7 @@ constexpr Zobrist PGZob{{
   0xFD080D236DA814BAULL, 0x8C90FD9B083F4558ULL, 0x106F72FE81E2C590ULL, 0x7976033A39F7D952ULL,
   0xA4EC0132764CA04BULL, 0x733EA705FAE4FA77ULL, 0xB4D8F77BC3E56167ULL, 0x9E21F4F903B33FD9ULL,
   0x9D765E419FB69F6DULL, 0xD30C088BA61EA5EFULL, 0x5D94337FBFAF7F5BULL, 0x1A4E4822EB4D7A59ULL,
+  // WHITE_QUEEN
   0x6FFE73E81B637FB3ULL, 0xDDF957BC36D8B9CAULL, 0x64D0E29EEA8838B3ULL, 0x08DD9BDFD96B9F63ULL,
   0x087E79E5A57D1D13ULL, 0xE328E230E3E2B3FBULL, 0x1C2559E30F0946BEULL, 0x720BF5F26F4D2EAAULL,
   0xB0774D261CC609DBULL, 0x443F64EC5A371195ULL, 0x4112CF68649A260EULL, 0xD813F2FAB7F5C5CAULL,
@@ -253,6 +264,7 @@ constexpr Zobrist PGZob{{
   0xFB4A3D794A9A80D2ULL, 0x3550C2321FD6109CULL, 0x371F77E76BB8417EULL, 0x6BFA9AAE5EC05779ULL,
   0xCD04F3FF001A4778ULL, 0xE3273522064480CAULL, 0x9F91508BFFCFC14AULL, 0x049A7F41061A9E60ULL,
   0xFCB6BE43A9F2FE9BULL, 0x08DE8A1C7797DA9BULL, 0x8F9887E6078735A1ULL, 0xB5B4071DBFC73A66ULL,
+  // BLACK_KING
   0x230E343DFBA08D33ULL, 0x43ED7F5A0FAE657DULL, 0x3A88A0FBBCB05C63ULL, 0x21874B8B4D2DBC4FULL,
   0x1BDEA12E35F6A8C9ULL, 0x53C065C6C8E63528ULL, 0xE34A1D250E7A8D6BULL, 0xD6B04D3B7651DD7EULL,
   0x5E90277E7CB39E2DULL, 0x2C046F22062DC67DULL, 0xB10BB459132D0A26ULL, 0x3FA9DDFB67E2F199ULL,
@@ -269,6 +281,7 @@ constexpr Zobrist PGZob{{
   0xC7F6AA2DE59AEA61ULL, 0x352787BAA0D7C22FULL, 0x9853EAB63B5E0B35ULL, 0xABBDCDD7ED5C0860ULL,
   0xCF05DAF5AC8D77B0ULL, 0x49CAD48CEBF4A71EULL, 0x7A4C10EC2158C4A6ULL, 0xD9E92AA246BF719EULL,
   0x13AE978D09FE5557ULL, 0x730499AF921549FFULL, 0x4E4B705B92903BA4ULL, 0xFF577222C14F0A3AULL,
+  // WHITE_KING
   0x55B6344CF97AAFAEULL, 0xB862225B055B6960ULL, 0xCAC09AFBDDD2CDB4ULL, 0xDAF8E9829FE96B5FULL,
   0xB5FDFC5D3132C498ULL, 0x310CB380DB6F7503ULL, 0xE87FBB46217A360EULL, 0x2102AE466EBB1148ULL,
   0xF8549E1A3AA5E00DULL, 0x07A69AFDCC42261AULL, 0xC4C118BFE78FEAAEULL, 0xF9F4892ED96BD438ULL,
@@ -285,9 +298,12 @@ constexpr Zobrist PGZob{{
   0x0C335248857FA9E7ULL, 0x0A9C32D5EAE45305ULL, 0xE6C42178C4BBB92EULL, 0x71F1CE2490D20B07ULL,
   0xF1BCC3D275AFE51AULL, 0xE728E8C83C334074ULL, 0x96FBF83A12884624ULL, 0x81A1549FD6573DA5ULL,
   0x5FA7867CAF35E149ULL, 0x56986E2EF3ED091BULL, 0x917F1DD5F8886C61ULL, 0xD20D8C88C8FFE65FULL,
+  // CASTLE_RIGHTS
   0x31D71DCE64B2C310ULL, 0xF165B587DF898190ULL, 0xA57E6339DD2CF3A0ULL, 0x1EF6E6DBB1961EC9ULL,
+  // ENPASANT_FILE
   0x70CC73D90BC26E24ULL, 0xE21A6B35DF0C3AD7ULL, 0x003A93D8B2806962ULL, 0x1C99DED33CB890A1ULL,
   0xCF3145DE0ADD4289ULL, 0xD0E4427A5514FB72ULL, 0x77C621CC9FB3A483ULL, 0x67A34DAC4356550BULL,
+  // TURN
   0xF8D626AAAF278509ULL  //
 }};
 
@@ -335,13 +351,13 @@ std::uint64_t swap_uint64(std::uint64_t n) noexcept {
 #endif
 }
 
-void swap_polyentry(PolyEntry* pe) noexcept {
-    if (pe == nullptr)
+void swap_entry(PolyBook::Entry* const e) noexcept {
+    if (e == nullptr)
         return;
-    pe->key    = swap_uint64(pe->key);
-    pe->move   = swap_uint16(pe->move);
-    pe->weight = swap_uint16(pe->weight);
-    pe->learn  = swap_uint32(pe->learn);
+    e->key    = swap_uint64(e->key);
+    e->move   = swap_uint16(e->move);
+    e->weight = swap_uint16(e->weight);
+    e->learn  = swap_uint32(e->learn);
 }
 
 // A PolyGlot book move is encoded as follows:
@@ -381,93 +397,124 @@ bool is_draw(Position& pos, Move m) noexcept {
 
     State st;
     pos.do_move(m, st);
-    bool draw = pos.is_draw(pos.ply(), true, true);
+    bool isDraw = pos.is_draw(pos.ply(), true, true);
     pos.undo_move(m);
 
-    return draw;
+    return isDraw;
 }
 
 }  // namespace
 
-PolyBook::~PolyBook() noexcept { free(); }
+void PolyBook::clear() noexcept { entries.clear(); }
 
-void PolyBook::free() noexcept {
-    ::free(entries);
-    entries    = nullptr;
-    entryCount = 0;
-    filename.clear();
-}
-
-void PolyBook::init(std::string_view bookFile) noexcept {
-    free();
+bool PolyBook::load(std::string_view bookFile) noexcept {
+    clear();
 
     if (bookFile.empty())
-        return;
+        return false;
 
-    FILE* bookFp = std::fopen(bookFile.data(), "rb");
-    if (bookFp == nullptr)
+    bookName = bookFile;
+
+    std::error_code ec;
+
+    std::uint64_t fileSize = std::filesystem::file_size(bookName, ec);
+
+    if (ec)
     {
-        std::cerr << "Failed to open file " << bookFile << std::endl;
-        return;
+        std::cerr << "Failed to stat Book file " << bookName << ": " << ec.message() << std::endl;
+        return false;
     }
 
-    filename = bookFile;
-
-    std::fseek(bookFp, 0L, SEEK_END);
-    std::size_t bookSize = std::ftell(bookFp);
-    std::rewind(bookFp);
-
-    entryCount = bookSize / sizeof(PolyEntry);
-    occupied   = 0;
-    failCount  = 0;
-
-    bookSize = entryCount * sizeof(PolyEntry);
-    entries  = static_cast<PolyEntry*>(malloc(bookSize));
-    if (entries == nullptr)
+    if (fileSize == 0)
     {
-        std::cerr << "Failed to allocate memory: " << bookSize << " for file " << filename
-                  << std::endl;
-        std::fclose(bookFp);
-        free();
-        return;
+        std::cerr << "Warning: Empty Book file " << bookName << std::endl;
+        return true;
     }
 
-    std::size_t bytesRead = std::fread(entries, 1, bookSize, bookFp);
-    std::fclose(bookFp);
+    constexpr std::size_t EntrySize = sizeof(PolyBook::Entry);
+    static_assert(EntrySize > 0, "PolyEntry must have non-zero size");
 
-    if (bytesRead != bookSize)
+    if (fileSize < EntrySize)
     {
-        std::cerr << "Failed to read complete file " << filename << std::endl;
-        free();
-        return;
+        std::cerr << "Too small Book file " << bookName << std::endl;
+        return false;
     }
+
+    std::size_t entryCount = fileSize / EntrySize;
+    std::size_t remainder  = fileSize % EntrySize;
+
+    if (remainder != 0)
+        std::cerr << "Warning: Bad size Book file " << bookName << ", ignoring " << remainder
+                  << " trailing bytes" << std::endl;
+
+    std::ifstream ifstream(bookName, std::ios_base::binary);
+
+    if (!ifstream.is_open())
+    {
+        std::cerr << "Failed to open Book file " << bookName << std::endl;
+        return false;
+    }
+
+    entries.resize(entryCount);
+
+    // Choose a chunk that balances system call overhead and memory pressure.
+    // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
+    constexpr std::size_t ChunkSize = (2ULL * 1024 * 1024 / EntrySize) * EntrySize;
+
+    const std::size_t DataSize = entryCount * EntrySize;
+
+    char* data = reinterpret_cast<char*>(entries.data());
+
+    std::size_t readedSize = 0;
+    while (readedSize < DataSize)
+    {
+        std::size_t readSize = std::min(ChunkSize, DataSize - readedSize);
+
+        ifstream.read(data + readedSize, readSize);
+
+        std::streamsize gotSize = ifstream.gcount();
+
+        if (gotSize <= 0)  // read failed or EOF without data
+            return false;
+
+        //if (gotSize != readSize)  // partial read - treat as error for complete-file read
+        //{
+        //    std::cerr << "Partial read: expected " << readSize << " got " << gotSize << std::endl;
+        //    return false;
+        //}
+
+        readedSize += gotSize;
+    }
+
+    if (ifstream.fail() || ifstream.bad())
+    {
+        std::cerr << "I/O error while reading Book file " << bookName << std::endl;
+        return false;
+    }
+
+    if (readedSize != DataSize || !ifstream.good())
+        std::cerr << "Failed to read complete Book file " << bookName << std::endl;
+
+    ifstream.close();
 
     if (IsLittleEndian)
-        for (std::size_t i = 0; i < entryCount; ++i)
-            swap_polyentry(&entries[i]);
+        for (std::size_t i = 0; i < entries.size(); ++i)
+            swap_entry(&entries[i]);
 
     UCI::print_info_string(info());
+
+    return true;
 }
 
 std::string PolyBook::info() const noexcept {
-    return "Book: " + filename + " with " + std::to_string(entryCount) + " entries";
+    return "Book: " + bookName + " with " + std::to_string(entries.size()) + " entries";
 }
 
-bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
-
-    if (popcount(occupied ^ pos.pieces()) > 6 || key == 0x463B96181691FC9CULL)
-        failCount = 0;
-
-    occupied = pos.pieces();
-    // Stop probe after 4 times not in the book till position changes
-    return failCount <= 4;
-}
-
-std::size_t PolyBook::find_key(Key key) const noexcept {
+std::size_t PolyBook::key_index(Key key) const noexcept {
     constexpr std::size_t Radius = 4;
 
     std::size_t begIndex = 0;
-    std::size_t endIndex = entryCount - 1;
+    std::size_t endIndex = entries.size() - 1;
     std::size_t window   = endIndex - begIndex + 1;
     // Binary scan
     while (window > 2 * Radius)
@@ -502,116 +549,143 @@ std::size_t PolyBook::find_key(Key key) const noexcept {
         if (entries[index].key == key)
             return index;
 
-    return entryCount;
+    return entries.size();
 }
 
-PolyBook::KeyData PolyBook::get_key_data(std::size_t index) const noexcept {
-    static PRNG<XorShift64Star> prng(now());
+PolyBook::EntryVector PolyBook::key_candidates(Key key) const noexcept {
+    std::size_t index = key_index(key);
 
-    KeyData keyData{};
-    keyData.begIndex   = index;
-    keyData.bestWeight = 0;
-    keyData.sumWeight  = 0;
-    for (std::size_t idx = index; idx < entryCount; ++idx)
+    EntryVector candidates;
+
+    if (index >= entries.size())
+        return candidates;
+
+    for (std::size_t idx = index; idx < entries.size(); ++idx)
     {
         if (entries[idx].key != entries[index].key)
             break;
 
-        ++keyData.count;
-
-        auto weight = entries[idx].weight;
-        if (keyData.bestWeight < weight)
-        {
-            keyData.bestWeight = weight;
-            keyData.bestIndex  = idx;
-        }
-        keyData.sumWeight += weight;
+        candidates.push_back(entries[idx]);
     }
 
-    keyData.randIndex = keyData.bestIndex;
+    return candidates;
+}
 
-    if (keyData.sumWeight != 0)
+Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& options) noexcept {
+    assert(!rootMoves.empty());
+    static PRNG<XorShift64Star> prng(now());
+
+    if (!(options["OwnBook"] && loaded() && pos.move_num() <= options["BookProbeDepth"]))
+        return Move::None;
+
+    Key key = PGZob.key(pos);
+
+    EntryVector candidates = key_candidates(key);
+
+    if (candidates.empty())
+        return Move::None;
+
+    const MoveList<LEGAL> legalMoveList(pos);
+
+    std::uint32_t maxWeight = 0;
+    std::uint64_t sumWeight = 0;
+    for (const auto& candidate : candidates)
     {
-        std::uint32_t randWeight = prng.rand<std::uint32_t>() % keyData.sumWeight;
-        std::uint32_t sumWeight  = 0;
-        for (std::size_t idx = index; idx < index + keyData.count; ++idx)
+        if (maxWeight < candidate.weight)
+            maxWeight = candidate.weight;
+        sumWeight += candidate.weight;
+    }
+
+#if !defined(NDEBUG)
+    std::cerr << "\nCount     : " << candidates.size()  //
+              << "\nWeight Max: " << maxWeight          //
+              << "\nWeight Sum: " << sumWeight << '\n';
+
+    std::size_t cnt = 0;
+    for (const auto& candidate : candidates)
+    {
+        // clang-format off
+        std::cerr << std::right << std::setfill('0')
+                  << std::setw(2) << ++cnt
+                  << " key: "    << u64_to_string(candidate.key)
+                  << std::left << std::setfill(' ')
+                  << " move: "   << std::setw(8) << UCI::move_to_san(pg_to_move(candidate.move, legalMoveList), pos)
+                  << std::right << std::setfill('0')
+                  << " weight: " << std::setw(5) << candidate.weight
+                  << " learn: "  << std::setw(2) << candidate.learn
+                  << " prob: "   << std::fixed << std::setprecision(4) << std::setw(7) << (sumWeight != 0 ? 100.0 * candidate.weight / sumWeight : 0.0) << '\n';
+        // clang-format on
+    }
+
+    std::cerr << std::left << std::setfill(' ') << std::endl;
+#endif
+
+    Move move, bestMove = Move::None;
+
+    if (options["BookPickBest"])
+    {
+        std::int32_t bestWeight = -0xFFFF;
+        for (const auto& candidate : candidates)
+            if (bestWeight < candidate.weight)
+            {
+                bestWeight = candidate.weight;
+
+                move = pg_to_move(candidate.move, legalMoveList);
+                if (rootMoves.contains(move))
+                    bestMove = move;
+            }
+    }
+    else if (sumWeight != 0)
+    {
+        std::uint64_t randWeight = prng.rand<std::uint64_t>() % sumWeight;
+
+        sumWeight = 0;
+        for (const auto& candidate : candidates)
         {
-            sumWeight += entries[idx].weight;
+            sumWeight += candidate.weight;
             if (randWeight < sumWeight)
             {
-                keyData.randIndex = idx;
+                move = pg_to_move(candidate.move, legalMoveList);
+                if (rootMoves.contains(move))
+                {
+                    bestMove = move;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (bestMove == Move::None)
+    {
+        std::cerr << "Book best move not found, trying first available..." << std::endl;
+
+        for (const auto& candidate : candidates)
+        {
+            move = pg_to_move(candidate.move, legalMoveList);
+            if (rootMoves.contains(move))
+            {
+                bestMove = move;
                 break;
             }
         }
     }
 
-    return keyData;
-}
-
-void PolyBook::show_key_data(const KeyData& keyData, Position& pos) const noexcept {
-
-    std::cout << "\nCount: " << keyData.count << '\n';
-
-    const MoveList<LEGAL> legalMoveList(pos);
-
-    for (std::size_t idx = keyData.begIndex; idx < keyData.begIndex + keyData.count; ++idx)
-    {
-        const auto& pe = entries[idx];
-
-        std::cout << std::right << std::setfill('0')             //
-                  << std::setw(2) << idx - keyData.begIndex + 1  //
-                  << " key: " << u64_to_string(pe.key)           //
-                  << std::left << std::setfill(' ')              //
-                  << " move: " << std::setw(8)
-                  << UCI::move_to_san(pg_to_move(pe.move, legalMoveList), pos)        //
-                  << std::right << std::setfill('0')                                  //
-                  << " weight: " << std::setw(5) << pe.weight                         //
-                  << " learn: " << std::setw(2) << pe.learn                           //
-                  << " prob: " << std::fixed << std::setprecision(4) << std::setw(7)  //
-                  << (keyData.sumWeight != 0 ? 100.0 * pe.weight / keyData.sumWeight : 0.0) << '\n';
-    }
-
-    std::cout << std::left << std::setfill(' ') << std::endl;
-}
-
-Move PolyBook::probe(Position& pos, bool pickBestActive) noexcept {
-    assert(enabled());
-
-    Key key = PGZob.key(pos);
-
-    if (!can_probe(pos, key))
+    if (bestMove == Move::None)
         return Move::None;
 
-    std::size_t index = find_key(key);
-
-    if (index >= entryCount)
+    MoveVector candidateMoves;
+    candidateMoves.push_back(bestMove);
+    for (const auto& candidate : candidates)
     {
-        ++failCount;
-        return Move::None;
+        move = pg_to_move(candidate.move, legalMoveList);
+        if (move != candidateMoves[0])
+            candidateMoves.push_back(move);
     }
 
-    KeyData keyData = get_key_data(index);
+    for (std::size_t i = 0, n = candidateMoves.size(); i < n; ++i)
+        if (i == n - 1 || !is_draw(pos, candidateMoves[i]))
+            return candidateMoves[i];
 
-#if !defined(NDEBUG)
-    show_key_data(keyData, pos);
-#endif
-
-    std::vector<std::size_t> indices;
-
-    indices.push_back(pickBestActive ? keyData.bestIndex : keyData.randIndex);
-    // add remaining indices sequentially, skipping duplicates
-    for (index = keyData.begIndex; index < keyData.begIndex + keyData.count; ++index)
-        if (index != indices[0])
-            indices.push_back(index);
-
-    const MoveList<LEGAL> legalMoveList(pos);
-
-    for (std::size_t i = 0, n = indices.size(); i < n; ++i)
-    {
-        Move move = pg_to_move(entries[indices[i]].move, legalMoveList);
-        if (i == n - 1 || !is_draw(pos, move))
-            return move;
-    }
     assert(false);
     return Move::None;
 }

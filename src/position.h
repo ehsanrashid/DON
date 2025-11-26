@@ -264,9 +264,8 @@ class Position final {
     [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }
 
     bool is_repetition(std::int16_t ply) const noexcept;
-    bool is_draw(std::int16_t ply,
-                 bool         rule50Active    = true,
-                 bool         stalemateActive = false) const noexcept;
+    bool
+    is_draw(std::int16_t ply, bool rule50Active = true, bool chkStalemate = false) const noexcept;
     bool has_repeated() const noexcept;
     bool is_upcoming_repetition(std::int16_t ply) const noexcept;
 

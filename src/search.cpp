@@ -128,24 +128,27 @@ void update_pv(Move* pv, Move m, const Move* childPv) noexcept {
 void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept {
     assert(is_ok(dst));
 
-    constexpr StdArray<double, 8> ContHistoryWeights{
-      1.1064, 0.6670, 0.3047, 0.5684, 0.1455, 0.4629, 0.2222, 0.2167  //
+    constexpr std::size_t MaxContHistorySize = 8;
+
+    constexpr StdArray<double, MaxContHistorySize> ContHistoryWeights{
+      1.1064, 0.6670, 0.3047, 0.5684, 0.1455, 0.4629, 0.1092, 0.2167  //
+    };
+    constexpr StdArray<int, MaxContHistorySize> ContHistoryOffsets{
+      88, 00, 00, 00, 00, 00, 00, 00  //
     };
 
-    // If in check only first 2 continuation weights are allowed
-    std::size_t size = ss->inCheck ? 2 : ContHistoryWeights.size();
+    // In check only update 2-ply continuation history
+    std::size_t contHistorySize = ss->inCheck ? 2 : MaxContHistorySize;
 
-    for (std::size_t i = 1; i <= size; ++i)
+    for (std::size_t i = 0; i < contHistorySize; ++i)
     {
-        Stack* const slot = ss - i;
+        Stack* const stack = (ss - 1) - i;
 
-        if (!slot->move.is_ok())
+        if (!stack->move.is_ok())
             break;
 
-        double weight = ContHistoryWeights[i - 1];
-        int    offset = i <= 1 ? 88 : 0;
-
-        (*slot->pieceSqHistory)[pc][dst] << int(weight * bonus) + offset;
+        (*stack->pieceSqHistory)[pc][dst]
+          << int(ContHistoryWeights[i] * bonus) + ContHistoryOffsets[i];
     }
 }
 
@@ -276,19 +279,21 @@ void Worker::start_search() noexcept {
     {
         Move bookBestMove = Move::None;
 
-        if (!limit.infinite && limit.mate == 0)
-        {
-            // Check polyglot book
-            if (options["OwnBook"] && Book.enabled()
-                && rootPos.move_num() < options["BookProbeDepth"])
-                bookBestMove = Book.probe(rootPos, options["BookPickBest"]);
-        }
+        // Check polyglot book
+        if (!(limit.infinite || limit.mate != 0))
+            bookBestMove = Book.probe(rootPos, rootMoves, options);
 
-        if (bookBestMove != Move::None && rootMoves.contains(bookBestMove))
+        if (bookBestMove != Move::None)
         {
             State st;
-            rootPos.do_move(bookBestMove, st);
-            Move bookPonderMove = Book.probe(rootPos, options["BookPickBest"]);
+            rootPos.do_move(bookBestMove, st, &tt);
+
+            RootMoves _rootMoves;
+            for (auto m : MoveList<LEGAL>(rootPos))
+                _rootMoves.emplace_back(m);
+
+            Move bookPonderMove = Book.probe(rootPos, _rootMoves, options);
+
             rootPos.undo_move(bookBestMove);
 
             for (auto&& th : threads)
@@ -327,7 +332,7 @@ void Worker::start_search() noexcept {
     if (think)
     {
         // When playing in 'Nodes as Time' mode, advance the time nodes before exiting.
-        if (mainManager->timeManager.nodeTimeActive)
+        if (mainManager->timeManager.nodesTimeActive)
             mainManager->timeManager.advance_time_nodes(threads.nodes()
                                                         - limit.clocks[rootPos.active_color()].inc);
 
@@ -380,10 +385,13 @@ void Worker::iterative_deepening() noexcept {
     constexpr std::uint16_t StackOffset = 9;
 
     StdArray<Stack, StackOffset + (MAX_PLY + 1) + 1> stacks{};
-    Stack*                                           ss = &stacks[StackOffset];
+
+    Stack* const ss = &stacks[StackOffset];
+
     for (std::int16_t i = 0 - StackOffset; i < std::int16_t(stacks.size() - StackOffset); ++i)
     {
         (ss + i)->ply = i;
+
         if (i >= 0)
             continue;
         // Use as a sentinel
@@ -755,7 +763,7 @@ Value Worker::search(Position&    pos,
     if (!exclude)
         ss->ttPv = PVNode || (ttd.hit && ttd.pv);
 
-    auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
     bool preCapture = is_ok(pos.captured_piece());
     bool preNonPawn =
@@ -798,7 +806,7 @@ Value Worker::search(Position&    pos,
 
         ss->staticEval = eval = adjust_static_eval(unadjustedStaticEval, correctionValue);
 
-        ttu.update(DEPTH_NONE, ss->ttPv, BOUND_NONE, Move::None, VALUE_NONE, unadjustedStaticEval);
+        ttu.update(DEPTH_NONE, Move::None, ss->ttPv, BOUND_NONE, VALUE_NONE, unadjustedStaticEval);
     }
 
     // Set up the improve and worsen flags.
@@ -908,7 +916,7 @@ Value Worker::search(Position&    pos,
 
                 if (bound == BOUND_EXACT || (bound == BOUND_LOWER ? value >= beta : value <= alpha))
                 {
-                    ttu.update(std::min(depth + 6, MAX_PLY - 1), ss->ttPv, bound, Move::None,
+                    ttu.update(std::min(depth + 6, MAX_PLY - 1), Move::None, ss->ttPv, bound,
                                value_to_tt(value, ss->ply), VALUE_NONE);
 
                     return value;
@@ -1075,7 +1083,7 @@ Value Worker::search(Position&    pos,
             {
                 // Save ProbCut data into transposition table
                 if (!exclude)
-                    ttu.update(probCutDepth + 1, ss->ttPv, BOUND_LOWER, move,
+                    ttu.update(probCutDepth + 1, move, ss->ttPv, BOUND_LOWER,
                                value_to_tt(value, ss->ply), unadjustedStaticEval);
 
                 if (!is_decisive(value))
@@ -1563,11 +1571,11 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // Save gathered information in transposition table
     if ((!RootNode || curIdx == 0) && !exclude)
-        ttu.update(moveCount ? depth : std::min(depth + 6, MAX_PLY - 1), ss->ttPv,
+        ttu.update(moveCount ? depth : std::min(depth + 6, MAX_PLY - 1), bestMove, ss->ttPv,
                    bestValue >= beta                  ? BOUND_LOWER
                    : PVNode && bestMove != Move::None ? BOUND_EXACT
                                                       : BOUND_UPPER,
-                   bestMove, value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
+                   value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
 
     // Adjust correction history if the best move is none or not a capture
     // and the error direction matches whether the above/below bounds.
@@ -1679,7 +1687,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             bestValue = (bestValue + beta) / 2;
 
         if (!ttd.hit)
-            ttu.update(DEPTH_NONE, false, BOUND_LOWER, Move::None, value_to_tt(bestValue, ss->ply),
+            ttu.update(DEPTH_NONE, Move::None, false, BOUND_LOWER, value_to_tt(bestValue, ss->ply),
                        unadjustedStaticEval);
 
         return bestValue;
@@ -1692,7 +1700,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
 QS_MOVES_LOOP:
 
-    auto preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
     State st;
 
@@ -1829,7 +1837,7 @@ QS_MOVES_LOOP:
         bestValue = (bestValue + beta) / 2;
 
     // Save gathered info in transposition table
-    ttu.update(DEPTH_ZERO, ttPv, fail_bound(bestValue >= beta), bestMove,
+    ttu.update(DEPTH_ZERO, bestMove, ttPv, fail_bound(bestValue >= beta),
                value_to_tt(bestValue, ss->ply), unadjustedStaticEval);
 
     assert(is_ok(bestValue));
@@ -1933,11 +1941,10 @@ void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_
     for (auto cm : worseMoves[1])
         update_capture_history(pos, cm, -1.4141 * malus);
 
-    auto m = (ss - 1)->move;
-    // Extra penalty for a quiet early move that was not a TT move
-    // in the previous ply when it gets refuted.
-    if (m.is_ok() && !is_ok(pos.captured_piece()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
-        update_continuation_history(ss - 1, pos.piece_on(m.dst_sq()), m.dst_sq(), -0.5879 * malus);
+    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+    // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted.
+    if (is_ok(preSq) && !is_ok(pos.captured_piece()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
+        update_continuation_history(ss - 1, pos.piece_on(preSq), preSq, -0.5879 * malus);
 }
 
 void Worker::update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept {
@@ -2328,11 +2335,11 @@ void Skill::init(const Options& options) noexcept {
 
 // When playing with strength handicap, choose the best move among a set of RootMoves
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickActive) noexcept {
+Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickBest) noexcept {
     assert(1 <= multiPV && multiPV <= rootMoves.size());
     static PRNG<XorShift64Star> prng(now());  // PRNG sequence should be non-deterministic
 
-    if (pickActive || bestMove == Move::None)
+    if (pickBest || bestMove == Move::None)
     {
         // RootMoves are already sorted by value in descending order
         Value curValue = rootMoves[0].curValue;

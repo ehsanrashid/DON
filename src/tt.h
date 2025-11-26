@@ -27,9 +27,6 @@
 
 namespace DON {
 
-struct TTEntry;
-struct TTCluster;
-
 // There is only one global hash table for the engine and all its threads.
 // For chess in particular, even allow racy updates between threads to and from the TT,
 // as taking the time to synchronize access would cost thinking time and thus elo.
@@ -62,6 +59,9 @@ struct TTData final {
 
 //static_assert(sizeof(TTData) == 12, "Unexpected TTData size");
 
+struct TTEntry;
+struct TTCluster;
+
 class TTUpdater final {
    public:
     TTUpdater() noexcept                            = delete;
@@ -75,7 +75,7 @@ class TTUpdater final {
         key16(k16),
         generation(gen) {}
 
-    void update(Depth d, bool pv, Bound b, Move m, Value v, Value ev) noexcept;
+    void update(Depth d, Move m, bool pv, Bound b, Value v, Value ev) noexcept;
 
    private:
     TTEntry*         tte;

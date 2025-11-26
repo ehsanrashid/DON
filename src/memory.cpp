@@ -39,6 +39,8 @@
     #include <iostream>
 #endif
 
+#include "misc.h"  // IWYU pragma: keep
+
 namespace DON {
 
 // Wrapper for systems where the c++17 implementation
@@ -97,8 +99,11 @@ void* alloc_windows_aligned_large_pages(std::size_t allocSize) noexcept {
           void* mem = VirtualAlloc(nullptr, roundedAllocSize,
                                    MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
           if (mem == nullptr)
-              std::cerr << "Failed to allocate " << roundedAllocSize << "B for large page memory."
-                        << " Error code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
+          {
+              std::cerr << "Failed to allocate " << (roundedAllocSize >> 20)
+                        << "MB for large pages memory.";
+              std::cerr << "\nError code: " << u32_to_string(GetLastError()) << std::endl;
+          }
           return mem;
       },
       []() { return (void*) nullptr; });
@@ -150,8 +155,8 @@ bool free_aligned_large_pages(void* mem) noexcept {
 #if defined(_WIN32)
     if (mem != nullptr && !VirtualFree(mem, 0, MEM_RELEASE))
     {
-        std::cerr << "Failed to free memory."
-                  << " Error code: 0x " << std::hex << GetLastError() << std::dec << std::endl;
+        std::cerr << "Failed to free large pages memory.";
+        std::cerr << "\nError code: " << u32_to_string(GetLastError()) << std::endl;
         return false;
     }
 #else

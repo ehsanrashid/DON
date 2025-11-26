@@ -42,6 +42,7 @@
     #include <cstdint>
     #include <string_view>
     #include <type_traits>
+    #include <vector>
 
     #include "misc.h"
 
@@ -66,9 +67,6 @@ namespace DON {
     #if defined(__clang__) && (__clang_major__ < 10)
         #error "DON requires Clang 10.0 or later for correct compilation"
     #endif
-
-    #define ASSERT_ALIGNED(ptr, alignment) \
-        assert(reinterpret_cast<std::uintptr_t>(ptr) % alignment == 0)
 
     #if defined(_MSC_VER)
         // Disable some silly and noisy warnings from MSVC compiler
@@ -340,6 +338,7 @@ struct DirtyThreats final {
 };
 
 struct DirtyBoard final {
+   public:
     DirtyPiece   dp;
     DirtyThreats dts;
 };
@@ -518,7 +517,7 @@ template<bool Upper = false>
 
 // Build a compile-time table: "a1", "b1", ..., "h8"
 alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARE_CHARS = []() constexpr {
-    std::array<std::array<char, 2>, SQUARE_NB> squareChars{};
+    StdArray<char, SQUARE_NB, 2> squareChars{};
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
         squareChars[s] = {to_char(file_of(s)), to_char(rank_of(s))};
     return squareChars;
@@ -618,6 +617,8 @@ class Move {
 // **Define the constexpr static members outside the class**
 inline constexpr Move Move::None{SQ_A1, SQ_A1};
 inline constexpr Move Move::Null{SQ_B1, SQ_B1};
+
+using MoveVector = std::vector<Move>;
 
 constexpr Value promotion_value(Move m) noexcept {
     return m.type_of() == PROMOTION ? PIECE_VALUE[m.promotion_type()] - VALUE_PAWN : VALUE_ZERO;

@@ -632,7 +632,7 @@ inline TimePoint now() noexcept {
       .count();
 }
 
-std::string format_time(const std::chrono::system_clock::time_point& timePoint);
+std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept;
 
 void start_logger(std::string_view logFile) noexcept;
 
@@ -744,7 +744,7 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 [[nodiscard]] constexpr bool string_to_bool(std::string_view str) { return (trim(str) == "true"); }
 
 inline StringViews
-split(std::string_view str, std::string_view delimiter, bool trimActive = false) noexcept {
+split(std::string_view str, std::string_view delimiter, bool trimToken = false) noexcept {
     StringViews parts;
 
     if (str.empty() || delimiter.empty())
@@ -760,7 +760,7 @@ split(std::string_view str, std::string_view delimiter, bool trimActive = false)
             break;
 
         part = str.substr(beg, end - beg);
-        if (trimActive)
+        if (trimToken)
             part = trim(part);
         if (!part.empty())
             parts.emplace_back(part);
@@ -770,7 +770,7 @@ split(std::string_view str, std::string_view delimiter, bool trimActive = false)
 
     // Last part
     part = str.substr(beg);
-    if (trimActive)
+    if (trimToken)
         part = trim(part);
     if (!part.empty())
         parts.emplace_back(part);
@@ -779,14 +779,17 @@ split(std::string_view str, std::string_view delimiter, bool trimActive = false)
 }
 
 inline std::string u64_to_string(std::uint64_t u64) noexcept {
-    std::string str(19, '\0');  // "0x" + 16 hex + '\0'
+    std::string str(19, '\0');  // "0x" + 16 hex + '\0' >= 19 bytes
     std::snprintf(str.data(), str.size(), "0x%016" PRIX64, u64);
+    return str;
+}
+inline std::string u32_to_string(std::uint32_t u32) noexcept {
+    std::string str(11, '\0');  // "0x" + 8 hex + '\0' => 11 bytes
+    std::snprintf(str.data(), str.size(), "0x%08" PRIX32, u32);
     return str;
 }
 
 std::size_t str_to_size_t(std::string_view str) noexcept;
-
-std::streamsize get_file_size(std::ifstream& ifstream) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.
