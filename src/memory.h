@@ -52,9 +52,10 @@
     #include <psapi.h>
 #endif
 
-#include "types.h"
-
 namespace DON {
+
+#define ASSERT_ALIGNED(ptr, alignment) \
+    assert(reinterpret_cast<std::uintptr_t>(ptr) % alignment == 0)
 
 void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept;
 void  free_aligned_std(void* mem) noexcept;
@@ -356,18 +357,16 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
                                  &hProcess))
         return failureFunc();
 
-    LUID luid{};
+    TOKEN_PRIVILEGES newTp;
+    newTp.PrivilegeCount           = 1;
+    newTp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-    if (!advapi.lookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &luid))
+    // Get the luid
+    if (!advapi.lookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &newTp.Privileges[0].Luid))
         return failureFunc();
 
-    TOKEN_PRIVILEGES oldTp{};
+    TOKEN_PRIVILEGES oldTp;
     DWORD            oldTpLen = 0;
-
-    TOKEN_PRIVILEGES newTp{};
-    newTp.PrivilegeCount           = 1;
-    newTp.Privileges[0].Luid       = luid;
-    newTp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
     // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
     // Still need to query GetLastError() to ensure that the privileges were actually obtained.

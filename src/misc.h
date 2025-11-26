@@ -779,8 +779,13 @@ split(std::string_view str, std::string_view delimiter, bool trimToken = false) 
 }
 
 inline std::string u64_to_string(std::uint64_t u64) noexcept {
-    std::string str(19, '\0');  // "0x" + 16 hex + '\0'
+    std::string str(19, '\0');  // "0x" + 16 hex + '\0' >= 19 bytes
     std::snprintf(str.data(), str.size(), "0x%016" PRIX64, u64);
+    return str;
+}
+inline std::string u32_to_string(std::uint32_t u32) noexcept {
+    std::string str(11, '\0');  // "0x" + 8 hex + '\0' => 11 bytes
+    std::snprintf(str.data(), str.size(), "0x%08" PRIX32, u32);
     return str;
 }
 

@@ -446,14 +446,14 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
     constexpr std::size_t ChunkSize = (2ULL * 1024 * 1024 / EntrySize) * EntrySize;
 
-    std::size_t totalSize = entryCount * EntrySize;
+    const std::size_t DataSize = entryCount * EntrySize;
 
     char* data = reinterpret_cast<char*>(entries.data());
 
     std::size_t readedSize = 0;
-    while (readedSize < totalSize)
+    while (readedSize < DataSize)
     {
-        std::size_t readSize = std::min(ChunkSize, totalSize - readedSize);
+        std::size_t readSize = std::min(ChunkSize, DataSize - readedSize);
 
         ifstream.read(data + readedSize, readSize);
 
@@ -477,7 +477,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
         return false;
     }
 
-    if (readedSize != totalSize || !ifstream.good())
+    if (readedSize != DataSize || !ifstream.good())
         std::cerr << "Failed to read complete Book file " << bookName << std::endl;
 
     ifstream.close();
@@ -641,6 +641,9 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     }
 
     if (bestMove == Move::None)
+    {
+        std::cerr << "Book best move not found, trying first available..." << std::endl;
+
         for (const auto& candidate : candidates)
         {
             move = pg_to_move(candidate.move, legalMoveList);
@@ -650,6 +653,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
                 break;
             }
         }
+    }
 
     if (bestMove == Move::None)
         return Move::None;

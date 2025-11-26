@@ -243,8 +243,6 @@ Network<Arch, Transformer>::evaluate(const Position&                         pos
       StdArray<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
         transformedFeatures;
 
-    ASSERT_ALIGNED(transformedFeatures.data(), CACHE_LINE_SIZE);
-
     auto bucket = pos.bucket();
 
     auto psqt = featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
@@ -262,8 +260,6 @@ Network<Arch, Transformer>::trace(const Position&                         pos,
     alignas(CACHE_LINE_SIZE)
       StdArray<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
         transformedFeatures;
-
-    ASSERT_ALIGNED(transformedFeatures.data(), CACHE_LINE_SIZE);
 
     NetworkTrace netTrace;
     netTrace.correctBucket = pos.bucket();

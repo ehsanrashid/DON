@@ -270,14 +270,14 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
     constexpr std::size_t ChunkSize = (2ULL * 1024 * 1024 / ClusterSize) * ClusterSize;
 
-    std::size_t totalSize = clusterCount * ClusterSize;
+    const std::size_t DataSize = clusterCount * ClusterSize;
 
     const char* data = reinterpret_cast<const char*>(clusters);
 
     std::size_t writtenSize = 0;
-    while (writtenSize < totalSize)
+    while (writtenSize < DataSize)
     {
-        std::size_t writeSize = std::min(ChunkSize, totalSize - writtenSize);
+        std::size_t writeSize = std::min(ChunkSize, DataSize - writtenSize);
 
         ofstream.write(data + writtenSize, std::streamsize(writeSize));
 
@@ -289,7 +289,7 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
 
     ofstream.flush();
 
-    return writtenSize == totalSize && ofstream.good();
+    return writtenSize == DataSize && ofstream.good();
 }
 
 bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) noexcept {
@@ -332,14 +332,14 @@ bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) no
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
     constexpr std::size_t ChunkSize = (2ULL * 1024 * 1024 / ClusterSize) * ClusterSize;
 
-    std::size_t totalSize = clusterCount * ClusterSize;
+    const std::size_t DataSize = clusterCount * ClusterSize;
 
     char* data = reinterpret_cast<char*>(clusters);
 
     std::size_t readedSize = 0;
-    while (readedSize < totalSize)
+    while (readedSize < DataSize)
     {
-        std::size_t readSize = std::min(ChunkSize, totalSize - readedSize);
+        std::size_t readSize = std::min(ChunkSize, DataSize - readedSize);
 
         ifstream.read(data + readedSize, std::streamsize(readSize));
 
@@ -363,7 +363,7 @@ bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) no
         return false;
     }
 
-    return readedSize == totalSize && ifstream.good();
+    return readedSize == DataSize && ifstream.good();
 }
 
 }  // namespace DON

@@ -68,9 +68,6 @@ namespace DON {
         #error "DON requires Clang 10.0 or later for correct compilation"
     #endif
 
-    #define ASSERT_ALIGNED(ptr, alignment) \
-        assert(reinterpret_cast<std::uintptr_t>(ptr) % alignment == 0)
-
     #if defined(_MSC_VER)
         // Disable some silly and noisy warnings from MSVC compiler
         #pragma warning(disable: 4127)  // Conditional expression is constant
