@@ -1739,14 +1739,13 @@ QS_MOVES_LOOP:
         if (!is_loss(bestValue))
         {
             // Futility pruning and moveCount pruning
-            if (!check && dst != preSq && !is_loss(futilityBase)
-                && (move.type_of() != PROMOTION || move.promotion_type() < QUEEN))
+            if (!check && dst != preSq && move.type_of() != PROMOTION && !is_loss(futilityBase))
             {
                 if ((moveCount - promoCount) > 2)
                     continue;
 
                 auto  captured      = capture ? pos.captured(move) : NO_PIECE_TYPE;
-                Value seeGain       = PIECE_VALUE[captured] + promotion_value(move);
+                Value seeGain       = PIECE_VALUE[captured];
                 Value futilityValue = std::min(futilityBase + seeGain, +VALUE_INFINITE);
                 // If static evaluation + value of piece going to captured is much lower than alpha
                 if (futilityValue <= alpha)
