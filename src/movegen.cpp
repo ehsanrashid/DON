@@ -74,6 +74,7 @@ Move* splat_pawn_moves(Bitboard b, Move* moves) noexcept {
         *moves++ = Move(s - D, s);
     }
 #endif
+
     return moves;
 }
 
@@ -102,6 +103,7 @@ Move* splat_promotion_moves(Bitboard b, Move* moves) noexcept {
             *moves++ = Move(s - D, s, KNIGHT);
         }
     }
+
     return moves;
 }
 
@@ -128,6 +130,7 @@ Move* splat_moves(Square org, Bitboard b, Move* moves) noexcept {
     while (b)
         *moves++ = Move(org, pop_lsb(b));
 #endif
+
     return moves;
 }
 
@@ -245,6 +248,7 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
 
         moves = splat_moves(org, b, moves);
     }
+
     return moves;
 }
 
@@ -287,6 +291,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
                         return moves;
                 }
     }
+
     return moves;
 }
 
