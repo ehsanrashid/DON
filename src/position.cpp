@@ -1485,7 +1485,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         occupied ^= cap;
     }
 
-    int swap = PIECE_VALUE[type_of(piece_on(cap))] + promotion_value(m) - threshold;
+    int swap = PIECE_VALUE[type_of(piece_on(cap))] + m.promotion_value() - threshold;
 
     // If can't beat the threshold despite capturing the piece,
     // it is impossible to beat the threshold.

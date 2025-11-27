@@ -594,6 +594,10 @@ class Move {
         return PieceType(((move >> 12) & 0x3) + int(KNIGHT));
     }
 
+    constexpr Value promotion_value() const noexcept {
+        return type_of() == PROMOTION ? PIECE_VALUE[promotion_type()] - VALUE_PAWN : VALUE_ZERO;
+    }
+
     constexpr std::uint16_t raw() const noexcept { return move; }
 
     friend constexpr bool operator==(Move m1, Move m2) noexcept { return m1.move == m2.move; }
@@ -619,10 +623,6 @@ inline constexpr Move Move::None{SQ_A1, SQ_A1};
 inline constexpr Move Move::Null{SQ_B1, SQ_B1};
 
 using MoveVector = std::vector<Move>;
-
-constexpr Value promotion_value(Move m) noexcept {
-    return m.type_of() == PROMOTION ? PIECE_VALUE[m.promotion_type()] - VALUE_PAWN : VALUE_ZERO;
-}
 
 template<typename T, typename... Ts>
 struct is_all_same final {
