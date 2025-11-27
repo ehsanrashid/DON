@@ -140,9 +140,9 @@ class Position final {
     [[nodiscard]] const auto& color_bb() const noexcept;
     [[nodiscard]] const auto& type_bb() const noexcept;
 
-    Piece    operator[](Square s) const noexcept;
-    Bitboard operator[](Color c) const noexcept;
-    Bitboard operator[](PieceType pt) const noexcept;
+    [[nodiscard]] Piece    operator[](Square s) const noexcept;
+    [[nodiscard]] Bitboard operator[](Color c) const noexcept;
+    [[nodiscard]] Bitboard operator[](PieceType pt) const noexcept;
 
     Piece piece_on(Square s) const noexcept;
     bool  empty_on(Square s) const noexcept;
@@ -378,10 +378,7 @@ inline Bitboard Position::operator[](Color c) const noexcept { return colorBB[c]
 
 inline Bitboard Position::operator[](PieceType pt) const noexcept { return typeBB[pt]; }
 
-inline Piece Position::piece_on(Square s) const noexcept {
-    assert(is_ok(s));
-    return pieceArr[s];
-}
+inline Piece Position::piece_on(Square s) const noexcept { return pieceArr[s]; }
 
 inline bool Position::empty_on(Square s) const noexcept { return piece_on(s) == NO_PIECE; }
 

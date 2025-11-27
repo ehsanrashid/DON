@@ -766,7 +766,7 @@ Value Worker::search(Position&    pos,
 
     bool preCapture = is_ok(pos.captured_piece());
     bool preNonPawn =
-      is_ok(preSq) && type_of(pos.piece_on(preSq)) != PAWN && (ss - 1)->move.type_of() != PROMOTION;
+      is_ok(preSq) && type_of(pos[preSq]) != PAWN && (ss - 1)->move.type_of() != PROMOTION;
 
     int correctionValue = correction_value(pos, ss);
 
@@ -844,7 +844,7 @@ Value Worker::search(Position&    pos,
 
             // Extra penalty for early quiet moves of the previous ply
             if (is_ok(preSq) && !preCapture && (ss - 1)->moveCount < 4)
-                update_continuation_history(ss - 1, pos.piece_on(preSq), preSq, -2060);
+                update_continuation_history(ss - 1, pos[preSq], preSq, -2060);
         }
 
         // Partial workaround for the graph history interaction problem
@@ -949,7 +949,7 @@ Value Worker::search(Position&    pos,
 
         update_quiet_history(~ac, (ss - 1)->move, 9.0000 * bonus);
         if (!ttd.hit && preNonPawn)
-            update_pawn_history(pawnIndex, pos.piece_on(preSq), preSq, 13.0000 * bonus);
+            update_pawn_history(pawnIndex, pos[preSq], preSq, 13.0000 * bonus);
     }
 
     // Step 7. Razoring
@@ -1551,15 +1551,15 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             update_quiet_history(~ac, (ss - 1)->move, 7.4158e-3 * bonus);
             if (preNonPawn)
-                update_pawn_history(pawnIndex, pos.piece_on(preSq), preSq, 35.4004e-3 * bonus);
-            update_continuation_history(ss - 1, pos.piece_on(preSq), preSq, 12.3901e-3 * bonus);
+                update_pawn_history(pawnIndex, pos[preSq], preSq, 35.4004e-3 * bonus);
+            update_continuation_history(ss - 1, pos[preSq], preSq, 12.3901e-3 * bonus);
         }
         // Bonus for prior capture move
         else
         {
             auto captured = type_of(pos.captured_piece());
             assert(captured != NO_PIECE_TYPE);
-            update_capture_history(pos.piece_on(preSq), preSq, captured, 1012);
+            update_capture_history(pos[preSq], preSq, captured, 1012);
         }
     }
 
@@ -1941,7 +1941,7 @@ void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted.
     if (is_ok(preSq) && !is_ok(pos.captured_piece()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
-        update_continuation_history(ss - 1, pos.piece_on(preSq), preSq, -0.5879 * malus);
+        update_continuation_history(ss - 1, pos[preSq], preSq, -0.5879 * malus);
 }
 
 void Worker::update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept {
@@ -1960,8 +1960,8 @@ void Worker::update_correction_history(const Position& pos, Stack* const ss, int
 
     if (is_ok(preSq))
     {
-        (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(preSq)][preSq]          << 0.9922 * bonus;
-        (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(preSq)][preSq]          << 0.4609 * bonus;
+        (*(ss - 2)->pieceSqCorrectionHistory)[pos[preSq]][preSq]                   << 0.9922 * bonus;
+        (*(ss - 4)->pieceSqCorrectionHistory)[pos[preSq]][preSq]                   << 0.4609 * bonus;
     }
 }
 
@@ -1980,8 +1980,8 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
            +11168LL * (nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac]
                      + nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac])
            + 7841LL * (is_ok(preSq)
-                      ? (*(ss - 2)->pieceSqCorrectionHistory)[pos.piece_on(preSq)][preSq]
-                      + (*(ss - 4)->pieceSqCorrectionHistory)[pos.piece_on(preSq)][preSq]
+                      ? (*(ss - 2)->pieceSqCorrectionHistory)[pos[preSq]][preSq]
+                      + (*(ss - 4)->pieceSqCorrectionHistory)[pos[preSq]][preSq]
                       : 8),
             -Limit, +Limit);
 }
