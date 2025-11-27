@@ -44,7 +44,7 @@ namespace DON::NNUE {
 // Returns the inverse of a permutation
 template<typename ArrayType, std::size_t Size = ArrayType{}.size()>
 constexpr auto invert_permutation(const ArrayType& order) noexcept -> StdArray<std::size_t, Size> {
-    StdArray<std::size_t, order.size()> inverse{};
+    StdArray<std::size_t, Size> inverse{};
     for (std::size_t i = 0; i < order.size(); ++i)
         inverse[order[i]] = i;
     return inverse;
