@@ -288,6 +288,8 @@ class Position final {
     // Used by NNUE
     State* state() const noexcept;
 
+    operator std::string() const noexcept;
+
     friend std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept;
 
    private:

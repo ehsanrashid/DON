@@ -179,9 +179,9 @@ inline void read_leb_128(std::istream& istream, std::array<IntType, Size>& out) 
     static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
 
     // Read and check the presence of our LEB128 magic string
-    char leb128MagicString[LEB128_MAGIC_STRING_SIZE];
-    istream.read(leb128MagicString, LEB128_MAGIC_STRING_SIZE);
-    assert(std::strncmp(leb128MagicString, LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE) == 0);
+    StdArray<char, LEB128_MAGIC_STRING_SIZE> leb128MagicString;
+    istream.read(leb128MagicString.data(), leb128MagicString.size());
+    assert(!std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING, leb128MagicString.size()));
 
     constexpr std::size_t IntSize = sizeof(IntType);
 
