@@ -400,7 +400,7 @@ Move* generate_legal(const Position& pos, Move* moves) noexcept {
     while (read != moves)
     {
         Move m = *read++;
-        if (((type_of(pos.piece_on(m.org_sq())) == PAWN && (blockers & m.org_sq()))
+        if (((type_of(pos[m.org_sq()]) == PAWN && (blockers & m.org_sq()))
              || m.type_of() == CASTLING)
             && !pos.legal(m))
             continue;  // skip illegal

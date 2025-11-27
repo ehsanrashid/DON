@@ -55,7 +55,7 @@ union Zobrist final {
         while (occupied)
         {
             Square s  = pop_lsb(occupied);
-            Piece  pc = pos.piece_on(s);
+            Piece  pc = pos[s];
 
             key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][s];
         }

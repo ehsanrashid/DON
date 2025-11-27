@@ -125,7 +125,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
         for (Rank r = RANK_1; r <= RANK_8; ++r)
         {
             Square sq = make_square(f, r);
-            Piece  pc = pos.piece_on(sq);
+            Piece  pc = pos[sq];
             Value  v  = VALUE_NONE;
 
             if (is_ok(pc) && type_of(pc) != KING)
