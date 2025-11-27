@@ -1134,7 +1134,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             continue;
 
         ss->moveCount = ++moveCount;
-        promoCount += move.type_of() == PROMOTION && move.promotion_type() < QUEEN;
+        promoCount += move.type_of() == PROMOTION && move.promotion_type() != QUEEN;
 
         if (RootNode && is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
         {
@@ -1728,7 +1728,7 @@ QS_MOVES_LOOP:
             continue;
 
         ++moveCount;
-        promoCount += move.type_of() == PROMOTION && move.promotion_type() < QUEEN;
+        promoCount += move.type_of() == PROMOTION && move.promotion_type() != QUEEN;
 
         Square dst = move.dst_sq();
 
@@ -1738,8 +1738,10 @@ QS_MOVES_LOOP:
         // Step 6. Pruning
         if (!is_loss(bestValue))
         {
+            bool nonPromotion = move.type_of() != PROMOTION || move.promotion_type() != QUEEN;
+
             // Futility pruning and moveCount pruning
-            if (!check && dst != preSq && move.type_of() != PROMOTION && !is_loss(futilityBase))
+            if (!check && dst != preSq && nonPromotion && !is_loss(futilityBase))
             {
                 if ((moveCount - promoCount) > 2)
                     continue;
@@ -1762,8 +1764,8 @@ QS_MOVES_LOOP:
                 }
             }
 
-            // Skip quiets (non-captures & non-promotions)
-            if (!capture && move.type_of() != PROMOTION)
+            // Skip quiets
+            if (!capture && nonPromotion)
                 continue;
 
             // SEE based pruning
