@@ -383,10 +383,8 @@ class AffineTransformSparseInput {
     using BiasType   = OutputType;
     using WeightType = std::int8_t;
 
-    // clang-format off
-    alignas(CACHE_LINE_SIZE) std::array<BiasType, OutputDimensions> biases;
-    alignas(CACHE_LINE_SIZE) std::array<WeightType, OutputDimensions * PaddedInputDimensions> weights;
-    // clang-format on
+    alignas(CACHE_LINE_SIZE) StdArray<BiasType, OutputDimensions> biases;
+    alignas(CACHE_LINE_SIZE) StdArray<WeightType, OutputDimensions * PaddedInputDimensions> weights;
 };
 
 }  // namespace DON::NNUE::Layers

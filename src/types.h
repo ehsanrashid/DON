@@ -180,11 +180,11 @@ inline constexpr Value VALUE_KNIGHT = 781;
 inline constexpr Value VALUE_BISHOP = 825;
 inline constexpr Value VALUE_ROOK   = 1276;
 inline constexpr Value VALUE_QUEEN  = 2538;
-// clang-format off
-inline constexpr std::array<Value, PIECE_TYPE_NB> PIECE_VALUE{
-  VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO, VALUE_ZERO
+
+inline constexpr StdArray<Value, PIECE_TYPE_NB> PIECE_VALUE{
+  VALUE_ZERO, VALUE_PAWN,  VALUE_KNIGHT, VALUE_BISHOP,
+  VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO,   VALUE_ZERO  //
 };
-// clang-format on
 
 constexpr bool is_valid(Value value) noexcept { return value != VALUE_NONE; }
 
@@ -327,14 +327,14 @@ using DirtyThreatList = FixedVector<DirtyThreat, 80>;
 
 struct DirtyThreats final {
    public:
+    template<bool Add>
+    void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept;
+
     DirtyThreatList list;
     Color           ac;
     Square          kingSq, preKingSq;
 
     Bitboard threateningBB, threatenedBB;
-
-    template<bool Add>
-    void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept;
 };
 
 struct DirtyBoard final {

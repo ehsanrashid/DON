@@ -95,8 +95,8 @@ inline IntType read_little_endian(std::istream& istream) noexcept {
         istream.read(reinterpret_cast<char*>(&value), Size);
     else
     {
-        std::array<std::uint8_t, Size> u;
-        std::make_unsigned_t<IntType>  v = 0;
+        StdArray<std::uint8_t, Size>  u;
+        std::make_unsigned_t<IntType> v = 0;
 
         istream.read(reinterpret_cast<char*>(u.data()), Size);
         for (std::size_t i = 0; i < Size; ++i)
@@ -121,8 +121,8 @@ inline void write_little_endian(std::ostream& ostream, IntType value) noexcept {
         ostream.write(reinterpret_cast<const char*>(&value), Size);
     else
     {
-        std::array<std::uint8_t, Size> u;
-        std::make_unsigned_t<IntType>  v = value;
+        StdArray<std::uint8_t, Size>  u;
+        std::make_unsigned_t<IntType> v = value;
 
         std::size_t i = 0;
         // if constexpr to silence the warning about shift by 8
