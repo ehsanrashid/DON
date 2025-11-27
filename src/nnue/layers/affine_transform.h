@@ -95,7 +95,7 @@ inline void affine_transform_non_ssse3(
 
         #elif defined(USE_NEON)
 
-        int32x4_t       sum = biases[i];
+        int32x4_t       sum = {biases[i]};
         const int8x8_t* row = reinterpret_cast<const int8x8_t*>(&weights[offset]);
 
         for (IndexType j = 0; j < ChunkCount; ++j)
