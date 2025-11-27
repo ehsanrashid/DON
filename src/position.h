@@ -689,11 +689,11 @@ inline void Position::reset_repetitions() noexcept {
 
 inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && is_ok(pc));
-    Bitboard sBB = square_bb(s);
+    Bitboard sbb = square_bb(s);
 
     pieceArr[s] = pc;
-    typeBB[ALL_PIECE] |= typeBB[type_of(pc)] |= sBB;
-    colorBB[color_of(pc)] |= sBB;
+    colorBB[color_of(pc)] |= sbb;
+    typeBB[ALL_PIECE] |= typeBB[type_of(pc)] |= sbb;
     ++pieceCount[pc];
     ++pieceCount[pc & PIECE_TYPE_NB];
 
@@ -703,18 +703,18 @@ inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noe
 
 inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept {
     assert(is_ok(s));
+    Bitboard sbb = square_bb(s);
 
     Piece pc = piece_on(s);
     assert(is_ok(pc) && count(pc));
-    Bitboard sBB = square_bb(s);
 
     if (dts != nullptr)
         update_piece_threats<false>(pc, s, dts);
 
     pieceArr[s] = NO_PIECE;
-    typeBB[ALL_PIECE] ^= sBB;
-    typeBB[type_of(pc)] ^= sBB;
-    colorBB[color_of(pc)] ^= sBB;
+    colorBB[color_of(pc)] ^= sbb;
+    typeBB[type_of(pc)] ^= sbb;
+    typeBB[ALL_PIECE] ^= sbb;
     --pieceCount[pc];
     --pieceCount[pc & PIECE_TYPE_NB];
     return pc;
@@ -722,19 +722,19 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
 
 inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts) noexcept {
     assert(is_ok(s1) && is_ok(s2));
+    Bitboard s1s2bb = make_bb(s1, s2);
 
     Piece pc = piece_on(s1);
     assert(is_ok(pc));
-    Bitboard s1s2BB = make_bb(s1, s2);
 
     if (dts != nullptr)
         update_piece_threats<false>(pc, s1, dts);
 
     pieceArr[s1] = NO_PIECE;
     pieceArr[s2] = pc;
-    typeBB[ALL_PIECE] ^= s1s2BB;
-    typeBB[type_of(pc)] ^= s1s2BB;
-    colorBB[color_of(pc)] ^= s1s2BB;
+    colorBB[color_of(pc)] ^= s1s2bb;
+    typeBB[type_of(pc)] ^= s1s2bb;
+    typeBB[ALL_PIECE] ^= s1s2bb;
 
     if (dts != nullptr)
         update_piece_threats<true>(pc, s2, dts);
