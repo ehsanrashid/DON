@@ -979,7 +979,7 @@ Value Worker::search(Position&    pos,
         if (!ss->ttPv && !exclude && depth < 14 && !is_win(eval) && !is_loss(beta)
             && (ttd.move == Move::None || ttCapture)
             && eval - std::max(futility_margin(ttd.hit), 0) >= beta)
-            return (depth * eval + beta) / (depth + 1);
+            return (eval + beta) / 2;
     }
 
     // Step 9. Null move search with verification search
