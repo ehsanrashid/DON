@@ -181,7 +181,7 @@ inline void read_leb_128(std::istream& istream, std::array<IntType, Size>& out) 
     // Read and check the presence of our LEB128 magic string
     StdArray<char, LEB128_MAGIC_STRING_SIZE> leb128MagicString;
     istream.read(leb128MagicString.data(), leb128MagicString.size());
-    assert(!std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING, leb128MagicString.size()));
+    assert(!std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE));
 
     constexpr std::size_t IntSize = sizeof(IntType);
 

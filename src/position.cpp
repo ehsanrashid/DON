@@ -2041,7 +2041,7 @@ Position::operator std::string() const noexcept {
     constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
 
     std::string str;
-    str.reserve(256);
+    str.reserve(672);
 
     str += Sep;
 
