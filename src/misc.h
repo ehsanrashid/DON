@@ -702,17 +702,15 @@ class Logger final {
    public:
     // Start logging to `logFile`. Returns true on success.
     static bool start(std::string_view logFile) noexcept {
-        std::scoped_lock scopedLock(mutex);
+        std::scoped_lock scopedLock(instance().mutex);
         return instance().open(logFile);
     }
 
     // Stop logging. Restores original streams and closes the file.
     static void stop() noexcept {
-        std::scoped_lock scopedLock(mutex);
+        std::scoped_lock scopedLock(instance().mutex);
         instance().close();
     }
-
-    static inline std::string LogFileName;
 
    private:
     Logger() noexcept = delete;
@@ -741,7 +739,7 @@ class Logger final {
     // Open log file; caller must hold mutex
     // If another file is already open, it will be closed first.
     bool open(std::string_view logFile) noexcept {
-        if (logFile == LogFileName && is_open())
+        if (logFile == filename && is_open())
             return true;  // Already open
 
         close();  // Close any previous log file
@@ -749,19 +747,19 @@ class Logger final {
         if (logFile.empty())
             return true;
 
-        LogFileName = logFile;
+        filename = logFile;
 
-        ofstream.open(LogFileName, std::ios_base::out | std::ios_base::app);
+        ofstream.open(filename, std::ios_base::out | std::ios_base::app);
         if (!is_open())
         {
-            std::cerr << "Unable to open Log file: " << LogFileName << std::endl;
+            std::cerr << "Unable to open Log file: " << filename << std::endl;
             return false;
         }
 
+        write_timestamped("->");
+
         istream.rdbuf(&iTie);
         ostream.rdbuf(&oTie);
-
-        write_timestamped("->");
 
         return true;
     }
@@ -771,22 +769,23 @@ class Logger final {
         if (!is_open())
             return;
 
-        istream.rdbuf(iTie.primaryBuf);
         ostream.rdbuf(oTie.primaryBuf);
+        istream.rdbuf(iTie.primaryBuf);
 
         write_timestamped("<-");
 
         ofstream.close();
 
-        LogFileName.clear();
+        filename.clear();
     }
-
-    static inline std::mutex mutex;
 
     std::istream& istream;
     std::ostream& ostream;
     std::ofstream ofstream;
     Tie           iTie, oTie;
+
+    std::string filename;
+    std::mutex  mutex;
 };
 
 #if !defined(NDEBUG)
