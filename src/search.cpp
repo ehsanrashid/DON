@@ -1180,10 +1180,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Futility pruning: for captures
                 if (lmrDepth < 7 && !check)
                 {
-                    Value seeGain = (capture ? PIECE_VALUE[captured] : VALUE_ZERO)  //
-                                  + promotion_value(move);
-                    Value futilityValue = std::min(232 + ss->staticEval + seeGain + 217 * lmrDepth
-                                                     + int(0.1279 * history),
+                    Value futilityValue = std::min(232 + ss->staticEval + PIECE_VALUE[captured]
+                                                     + 217 * lmrDepth + int(0.1279 * history),
                                                    +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                         continue;
@@ -1215,8 +1213,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // (*Scaler) Generally, more frequent futility pruning scales well
                 if (lmrDepth < 13 && !check && !ss->inCheck)
                 {
-                    Value seeGain       = 0;  //promotion_value(move);
-                    Value futilityValue = std::min(42 + ss->staticEval + seeGain / 2  //
+                    Value futilityValue = std::min(42 + ss->staticEval                //
                                                      + 127 * lmrDepth                 //
                                                      + 85 * (ss->staticEval > alpha)  //
                                                      + 161 * (bestMove == Move::None),
@@ -1318,7 +1315,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         assert(captured == type_of(pos.captured_piece()));
 
-        ss->history = capture ? int(6.7813 * (PIECE_VALUE[captured] + promotion_value(move)))
+        ss->history = capture ? int(6.7813 * PIECE_VALUE[captured])  //
                                   + captureHistory[movedPiece][dst][captured]
                               : 2 * quietHistory[ac][move.raw()]        //
                                   + (*contHistory[0])[movedPiece][dst]  //
@@ -1748,7 +1745,7 @@ QS_MOVES_LOOP:
                 if ((moveCount - promoCount) > 2)
                     continue;
 
-                Value seeGain       = (capture ? PIECE_VALUE[pos.captured(move)] : VALUE_ZERO);
+                Value seeGain       = PIECE_VALUE[capture ? pos.captured(move) : NO_PIECE_TYPE];
                 Value futilityValue = std::min(futilityBase + seeGain, +VALUE_INFINITE);
                 // If static evaluation + value of piece going to captured is much lower than alpha
                 if (futilityValue <= alpha)

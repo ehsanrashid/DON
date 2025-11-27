@@ -786,8 +786,7 @@ class Logger final {
     std::istream& istream;
     std::ostream& ostream;
     std::ofstream ofstream;
-    Tie           iTie;
-    Tie           oTie;
+    Tie           iTie, oTie;
 };
 
 #if !defined(NDEBUG)
