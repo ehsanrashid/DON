@@ -2036,33 +2036,63 @@ bool Position::pos_is_ok() const noexcept {
 }
 #endif
 
-// Returns an ASCII representation of the position
-std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
+// Returns ASCII representation of the position as string
+Position::operator std::string() const noexcept {
     constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
 
-    os << Sep;
+    std::string str;
+    str.reserve(672);
+
+    str += Sep;
+
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
-        os << to_char(r);
+        str += to_char(r);
+
         for (File f = FILE_A; f <= FILE_H; ++f)
-            os << " | " << to_char(pos.piece_on(make_square(f, r)));
-        os << " | " << Sep;
+        {
+            str += " | ";
+            str += to_char(piece_on(make_square(f, r)));
+        }
+
+        str += " | ";
+        str += Sep;
     }
-    os << " ";
+
+    str += " ";
+
     for (File f = FILE_A; f <= FILE_H; ++f)
-        os << "   " << to_char<true>(f);
-    os << "\n";
+    {
+        str += "   ";
+        str += to_char<true>(f);
+    }
+
+    str += "\n";
+
+    return str;
+}
+
+// Prints to the output stream the position in ASCII + detailed info
+std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
+
+    os << std::string(pos);
 
     os << "\nFen: " << pos.fen();
+
     os << "\nKey: " << u64_to_string(pos.key());
-    os << "\nKing Squares: " << to_square(pos.king_sq(pos.active_color()))  //
+
+    os << "\nKing (s): " << to_square(pos.king_sq(pos.active_color()))  //
        << ", " << to_square(pos.king_sq(~pos.active_color()));
+
     os << "\nCheckers: ";
+
     for (Bitboard checkers = pos.checkers(); checkers;)
         os << to_square(pop_lsb(checkers)) << " ";
+
     os << "\nRepetition: " << pos.repetition();
 
-    if (Tablebases::MaxCardinality >= pos.count<ALL_PIECE>() && !pos.can_castle(ANY_CASTLING))
+    if (Tablebases::MaxCardinality >= pos.count<ALL_PIECE>()  //
+        && !pos.can_castle(ANY_CASTLING))
     {
         State st;
 
@@ -2073,6 +2103,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
         auto wdlScore = Tablebases::probe_wdl(p, &wdlPs);
         auto dtzScore = Tablebases::probe_dtz(p, &dtzPs);
+
         os << "\nTablebases WDL: " << std::setw(4) << int(wdlScore) << " (" << int(wdlPs) << ")"
            << "\nTablebases DTZ: " << std::setw(4) << int(dtzScore) << " (" << int(dtzPs) << ")";
     }

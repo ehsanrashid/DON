@@ -200,7 +200,7 @@ void FullThreats::append_active_indices(Color           perspective,
                 {
                     Square dst      = pop_lsb(lAttacks);
                     Square org      = dst - rDir;
-                    Piece  attacked = pos.piece_on(dst);
+                    Piece  attacked = pos[dst];
 
                     IndexType index = make_index(perspective, kingSq, org, dst, attacker, attacked);
                     if (index < Dimensions)
@@ -214,7 +214,7 @@ void FullThreats::append_active_indices(Color           perspective,
                 {
                     Square dst      = pop_lsb(rAttacks);
                     Square org      = dst - lDir;
-                    Piece  attacked = pos.piece_on(dst);
+                    Piece  attacked = pos[dst];
 
                     IndexType index = make_index(perspective, kingSq, org, dst, attacker, attacked);
                     if (index < Dimensions)
@@ -231,7 +231,7 @@ void FullThreats::append_active_indices(Color           perspective,
                     while (attacks)
                     {
                         Square dst      = pop_lsb(attacks);
-                        Piece  attacked = pos.piece_on(dst);
+                        Piece  attacked = pos[dst];
 
                         IndexType index =
                           make_index(perspective, kingSq, org, dst, attacker, attacked);

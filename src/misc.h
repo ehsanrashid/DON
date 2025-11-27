@@ -138,22 +138,22 @@ class SyncOstream final {
         return std::move(*this);
     }
 
+    using BaseIosManip = std::ios_base& (*) (std::ios_base&);
+    SyncOstream& operator<<(BaseIosManip manip) & noexcept {
+        manip(*ostream);
+        return *this;
+    }
+    SyncOstream&& operator<<(BaseIosManip manip) && noexcept {
+        manip(*ostream);
+        return std::move(*this);
+    }
+
     using OstreamManip = std::ostream& (*) (std::ostream&);
     SyncOstream& operator<<(OstreamManip manip) & noexcept {
         manip(*ostream);
         return *this;
     }
     SyncOstream&& operator<<(OstreamManip manip) && noexcept {
-        manip(*ostream);
-        return std::move(*this);
-    }
-
-    using IosManip = std::ios_base& (*) (std::ios_base&);
-    SyncOstream& operator<<(IosManip manip) & noexcept {
-        manip(*ostream);
-        return *this;
-    }
-    SyncOstream&& operator<<(IosManip manip) && noexcept {
         manip(*ostream);
         return std::move(*this);
     }

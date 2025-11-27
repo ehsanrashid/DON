@@ -847,7 +847,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     while (b)
     {
         Square s  = pop_lsb(b);
-        Piece  pc = pos.piece_on(s);
+        Piece  pc = pos[s];
 
         squares[size] = flip ? flip_rank(s) : s;
         pieces[size]  = flip ? flip_color(pc) : pc;

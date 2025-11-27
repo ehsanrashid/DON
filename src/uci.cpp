@@ -906,8 +906,8 @@ Ambiguity ambiguity(Move m, const Position& pos) noexcept {
     Color ac = pos.active_color();
 
     Square org = m.org_sq(), dst = m.dst_sq();
-    assert(color_of(pos.piece_on(org)) == ac);
-    PieceType pt = type_of(pos.piece_on(org));
+    assert(color_of(pos[org]) == ac);
+    PieceType pt = type_of(pos[org]);
 
     // If there is only one piece then move cannot be ambiguous
     if (pos.count(ac, pt) == 1)
@@ -949,9 +949,9 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     assert(MoveList<LEGAL>(pos).contains(m));
 
     Square org = m.org_sq(), dst = m.dst_sq();
-    assert(color_of(pos.piece_on(org)) == pos.active_color());
+    assert(color_of(pos[org]) == pos.active_color());
 
-    auto pt = type_of(pos.piece_on(org));
+    auto pt = type_of(pos[org]);
 
     std::string san;
     san.reserve(8);

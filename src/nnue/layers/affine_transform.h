@@ -48,22 +48,19 @@ namespace DON::NNUE::Layers {
 
 template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType OutputDimensions>
 inline void affine_transform_non_ssse3(
-  const std::array<std::int32_t, OutputDimensions>&                        biases,
-  const std::array<std::int8_t, OutputDimensions * PaddedInputDimensions>& weights,
-  const std::uint8_t*                                                      input,
-  std::int32_t*                                                            output) noexcept {
+  const StdArray<std::int32_t, OutputDimensions>&                        biases,
+  const StdArray<std::int8_t, OutputDimensions * PaddedInputDimensions>& weights,
+  const std::uint8_t*                                                    input,
+  std::int32_t*                                                          output) noexcept {
     #if defined(USE_SSE2) || defined(USE_NEON)
         #if defined(USE_SSE2)
     // At least a multiple of 16, with SSE2.
-    constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
-
-    const __m128i* inputVector = reinterpret_cast<const __m128i*>(input);
-
-    const __m128i Zeros = _mm_setzero_si128();
+    constexpr IndexType ChunkCount  = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
+    const __m128i*      inputVector = reinterpret_cast<const __m128i*>(input);
+    const __m128i       Zeros       = _mm_setzero_si128();
         #elif defined(USE_NEON)
-    constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
-
-    const int8x8_t* inputVector = reinterpret_cast<const int8x8_t*>(input);
+    constexpr IndexType ChunkCount  = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
+    const int8x8_t*     inputVector = reinterpret_cast<const int8x8_t*>(input);
         #endif
 
     for (IndexType i = 0; i < OutputDimensions; ++i)
@@ -71,39 +68,43 @@ inline void affine_transform_non_ssse3(
         IndexType offset = i * PaddedInputDimensions;
 
         #if defined(USE_SSE2)
-        __m128i        sumLo = _mm_cvtsi32_si128(biases[i]);
-        __m128i        sumHi = Zeros;
+        __m128i        loSum = _mm_cvtsi32_si128(biases[i]);
+        __m128i        hiSum = Zeros;
         const __m128i* row   = reinterpret_cast<const __m128i*>(&weights[offset]);
+
         for (IndexType j = 0; j < ChunkCount; ++j)
         {
             __m128i row_j           = _mm_load_si128(&row[j]);
             __m128i input_j         = _mm_load_si128(&inputVector[j]);
-            __m128i extendedRowLo   = _mm_srai_epi16(_mm_unpacklo_epi8(row_j, row_j), 8);
-            __m128i extendedRowHi   = _mm_srai_epi16(_mm_unpackhi_epi8(row_j, row_j), 8);
-            __m128i extendedInputLo = _mm_unpacklo_epi8(input_j, Zeros);
-            __m128i extendedInputHi = _mm_unpackhi_epi8(input_j, Zeros);
-            __m128i productLo       = _mm_madd_epi16(extendedRowLo, extendedInputLo);
-            __m128i productHi       = _mm_madd_epi16(extendedRowHi, extendedInputHi);
-            sumLo                   = _mm_add_epi32(sumLo, productLo);
-            sumHi                   = _mm_add_epi32(sumHi, productHi);
+            __m128i loExtendedRow   = _mm_srai_epi16(_mm_unpacklo_epi8(row_j, row_j), 8);
+            __m128i hiExtendedRow   = _mm_srai_epi16(_mm_unpackhi_epi8(row_j, row_j), 8);
+            __m128i loExtendedInput = _mm_unpacklo_epi8(input_j, Zeros);
+            __m128i hiExtendedInput = _mm_unpackhi_epi8(input_j, Zeros);
+            __m128i loProduct       = _mm_madd_epi16(loExtendedRow, loExtendedInput);
+            __m128i hiProduct       = _mm_madd_epi16(hiExtendedRow, hiExtendedInput);
+            loSum                   = _mm_add_epi32(loSum, loProduct);
+            hiSum                   = _mm_add_epi32(hiSum, hiProduct);
         }
-        __m128i sum       = _mm_add_epi32(sumLo, sumHi);
-        __m128i sumHigh64 = _mm_shuffle_epi32(sum, _MM_SHUFFLE(1, 0, 3, 2));
-        sum               = _mm_add_epi32(sum, sumHigh64);
-        __m128i sumLow32  = _mm_shufflelo_epi16(sum, _MM_SHUFFLE(1, 0, 3, 2));
-        sum               = _mm_add_epi32(sum, sumLow32);
-        output[i]         = _mm_cvtsi128_si32(sum);
+
+        __m128i sum     = _mm_add_epi32(loSum, hiSum);
+        __m128i hiSum64 = _mm_shuffle_epi32(sum, _MM_SHUFFLE(1, 0, 3, 2));
+        sum             = _mm_add_epi32(sum, hiSum64);
+        __m128i loSum32 = _mm_shufflelo_epi16(sum, _MM_SHUFFLE(1, 0, 3, 2));
+        sum             = _mm_add_epi32(sum, loSum32);
+        output[i]       = _mm_cvtsi128_si32(sum);
 
         #elif defined(USE_NEON)
 
         int32x4_t       sum = {biases[i]};
         const int8x8_t* row = reinterpret_cast<const int8x8_t*>(&weights[offset]);
+
         for (IndexType j = 0; j < ChunkCount; ++j)
         {
             int16x8_t product = vmull_s8(inputVector[j * 2], row[j * 2]);
             product           = vmlal_s8(product, inputVector[j * 2 + 1], row[j * 2 + 1]);
             sum               = vpadalq_s16(sum, product);
         }
+
         output[i] = SIMD::neon_m128_reduce_add_epi32(sum);
 
         #endif

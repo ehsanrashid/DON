@@ -53,10 +53,10 @@ invert_permutation(const std::array<std::size_t, Size>& order) noexcept {
 
 // Divide a byte region of size TotalSize to chunks of size BlockSize,
 // and permute the blocks by a given order
-template<std::size_t BlockSize, typename T, std::size_t N, std::size_t OrderSize>
-constexpr void permute(std::array<T, N>&                         data,
+template<std::size_t BlockSize, typename T, std::size_t DataSize, std::size_t OrderSize>
+constexpr void permute(std::array<T, DataSize>&                  data,
                        const std::array<std::size_t, OrderSize>& order) noexcept {
-    constexpr std::size_t TotalSize = N * sizeof(T);
+    constexpr std::size_t TotalSize = DataSize * sizeof(T);
     constexpr std::size_t ChunkSize = BlockSize * OrderSize;
     static_assert(TotalSize % ChunkSize == 0, "ChunkSize must perfectly divide TotalSize");
 
@@ -67,11 +67,11 @@ constexpr void permute(std::array<T, N>&                         data,
         auto* const values = &byts[i];
 
         StdArray<unsigned char, ChunkSize> buffer;
-        for (std::size_t j = 0; j < OrderSize; ++j)
+        for (std::size_t j = 0; j < order.size(); ++j)
         {
-            auto* const chunkValue  = &values[order[j] * BlockSize];
-            auto* const chunkBuffer = &buffer[j * BlockSize];
-            std::memcpy(chunkBuffer, chunkValue, BlockSize);
+            auto* const valueChunk  = &values[order[j] * BlockSize];
+            auto* const bufferChunk = &buffer[j * BlockSize];
+            std::memcpy(bufferChunk, valueChunk, BlockSize);
         }
         std::memcpy(values, buffer.data(), ChunkSize);
     }

@@ -136,16 +136,21 @@ class Position final {
     std::string fen(bool full = true) const noexcept;
 
     // Position representation
-    [[nodiscard]] const StdArray<Piece, SQUARE_NB>&        piece_arr() const noexcept;
-    [[nodiscard]] const StdArray<Bitboard, PIECE_TYPE_NB>& type_bb() const noexcept;
-    [[nodiscard]] const StdArray<Bitboard, COLOR_NB>&      color_bb() const noexcept;
+    [[nodiscard]] const auto& piece_arr() const noexcept;
+    [[nodiscard]] const auto& color_bb() const noexcept;
+    [[nodiscard]] const auto& type_bb() const noexcept;
 
-    Piece    piece_on(Square s) const noexcept;
-    bool     empty_on(Square s) const noexcept;
+    [[nodiscard]] Piece    operator[](Square s) const noexcept;
+    [[nodiscard]] Bitboard operator[](Color c) const noexcept;
+    [[nodiscard]] Bitboard operator[](PieceType pt) const noexcept;
+
+    Piece piece_on(Square s) const noexcept;
+    bool  empty_on(Square s) const noexcept;
+
+    Bitboard pieces(Color c) const noexcept;
     Bitboard pieces() const noexcept;
     template<typename... PieceTypes>
     Bitboard pieces(PieceTypes... pts) const noexcept;
-    Bitboard pieces(Color c) const noexcept;
     template<typename... PieceTypes>
     Bitboard pieces(Color c, PieceTypes... pts) const noexcept;
     template<PieceType PT>
@@ -288,6 +293,8 @@ class Position final {
     // Used by NNUE
     State* state() const noexcept;
 
+    operator std::string() const noexcept;
+
     friend std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept;
 
    private:
@@ -348,8 +355,8 @@ class Position final {
 
     // Data members
     StdArray<Piece, SQUARE_NB>                      pieceArr;
-    StdArray<Bitboard, PIECE_TYPE_NB>               typeBB;
     StdArray<Bitboard, COLOR_NB>                    colorBB;
+    StdArray<Bitboard, PIECE_TYPE_NB>               typeBB;
     StdArray<std::uint8_t, PIECE_NB>                pieceCount;
     StdArray<Bitboard, COLOR_NB * CASTLING_SIDE_NB> castlingPath;
     StdArray<Square, COLOR_NB * CASTLING_SIDE_NB>   castlingRookSq;
@@ -359,22 +366,23 @@ class Position final {
     State*                                          st;
 };
 
-// clang-format off
+inline const auto& Position::piece_arr() const noexcept { return pieceArr; }
 
-inline const StdArray<Piece, SQUARE_NB>& Position::piece_arr() const noexcept { return pieceArr; }
+inline const auto& Position::color_bb() const noexcept { return colorBB; }
 
-inline const StdArray<Bitboard, PIECE_TYPE_NB>& Position::type_bb() const noexcept { return typeBB; }
+inline const auto& Position::type_bb() const noexcept { return typeBB; }
 
-inline const StdArray<Bitboard, COLOR_NB>& Position::color_bb() const noexcept { return colorBB; }
+inline Piece Position::operator[](Square s) const noexcept { return pieceArr[s]; }
 
-// clang-format on
+inline Bitboard Position::operator[](Color c) const noexcept { return colorBB[c]; }
 
-inline Piece Position::piece_on(Square s) const noexcept {
-    assert(is_ok(s));
-    return pieceArr[s];
-}
+inline Bitboard Position::operator[](PieceType pt) const noexcept { return typeBB[pt]; }
+
+inline Piece Position::piece_on(Square s) const noexcept { return pieceArr[s]; }
 
 inline bool Position::empty_on(Square s) const noexcept { return piece_on(s) == NO_PIECE; }
+
+inline Bitboard Position::pieces(Color c) const noexcept { return colorBB[c]; }
 
 inline Bitboard Position::pieces() const noexcept { return typeBB[ALL_PIECE]; }
 
@@ -382,8 +390,6 @@ template<typename... PieceTypes>
 inline Bitboard Position::pieces(PieceTypes... pts) const noexcept {
     return (typeBB[pts] | ...);
 }
-
-inline Bitboard Position::pieces(Color c) const noexcept { return colorBB[c]; }
 
 template<typename... PieceTypes>
 inline Bitboard Position::pieces(Color c, PieceTypes... pts) const noexcept {
@@ -680,11 +686,11 @@ inline void Position::reset_repetitions() noexcept {
 
 inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && is_ok(pc));
-    Bitboard sBB = square_bb(s);
+    Bitboard sbb = square_bb(s);
 
     pieceArr[s] = pc;
-    typeBB[ALL_PIECE] |= typeBB[type_of(pc)] |= sBB;
-    colorBB[color_of(pc)] |= sBB;
+    colorBB[color_of(pc)] |= sbb;
+    typeBB[ALL_PIECE] |= typeBB[type_of(pc)] |= sbb;
     ++pieceCount[pc];
     ++pieceCount[pc & PIECE_TYPE_NB];
 
@@ -694,18 +700,18 @@ inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noe
 
 inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept {
     assert(is_ok(s));
+    Bitboard sbb = square_bb(s);
 
     Piece pc = piece_on(s);
     assert(is_ok(pc) && count(pc));
-    Bitboard sBB = square_bb(s);
 
     if (dts != nullptr)
         update_piece_threats<false>(pc, s, dts);
 
     pieceArr[s] = NO_PIECE;
-    typeBB[ALL_PIECE] ^= sBB;
-    typeBB[type_of(pc)] ^= sBB;
-    colorBB[color_of(pc)] ^= sBB;
+    colorBB[color_of(pc)] ^= sbb;
+    typeBB[type_of(pc)] ^= sbb;
+    typeBB[ALL_PIECE] ^= sbb;
     --pieceCount[pc];
     --pieceCount[pc & PIECE_TYPE_NB];
     return pc;
@@ -713,19 +719,19 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
 
 inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts) noexcept {
     assert(is_ok(s1) && is_ok(s2));
+    Bitboard s1s2bb = make_bb(s1, s2);
 
     Piece pc = piece_on(s1);
     assert(is_ok(pc));
-    Bitboard s1s2BB = make_bb(s1, s2);
 
     if (dts != nullptr)
         update_piece_threats<false>(pc, s1, dts);
 
     pieceArr[s1] = NO_PIECE;
     pieceArr[s2] = pc;
-    typeBB[ALL_PIECE] ^= s1s2BB;
-    typeBB[type_of(pc)] ^= s1s2BB;
-    colorBB[color_of(pc)] ^= s1s2BB;
+    colorBB[color_of(pc)] ^= s1s2bb;
+    typeBB[type_of(pc)] ^= s1s2bb;
+    typeBB[ALL_PIECE] ^= s1s2bb;
 
     if (dts != nullptr)
         update_piece_threats<true>(pc, s2, dts);

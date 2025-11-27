@@ -86,6 +86,7 @@ Bitboard sliding_attacks_bb(Square s, Bitboard occupied = 0) noexcept {
     }};
 
     Bitboard attacks = 0;
+
     for (Direction d : Directions[PT - BISHOP])
     {
         Square sq = s;
@@ -98,6 +99,7 @@ Bitboard sliding_attacks_bb(Square s, Bitboard occupied = 0) noexcept {
                 break;
         }
     }
+
     return attacks;
 }
 
@@ -139,8 +141,8 @@ void init_magics() noexcept {
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
         //assert(s == SQ_A1 || size <= RefSizes[PT - BISHOP]);
-        m.attacks =
-          s == SQ_A1 ? Tables[PT - BISHOP].data() : &Magics[s - 1][PT - BISHOP].attacks[size];
+        m.attacks = s == SQ_A1 ? Tables[PT - BISHOP].data()  //
+                               : &Magics[s - 1][PT - BISHOP].attacks[size];
         assert(m.attacks != nullptr);
 
         // Board edges are not considered in the relevant occupancies
@@ -292,21 +294,31 @@ std::string pretty_str(Bitboard b) noexcept {
 
     std::string str;
     str.reserve(646);
+
     str += Sep;
+
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
         str += to_char(r);
+
         for (File f = FILE_A; f <= FILE_H; ++f)
-            str += ((b & make_square(f, r)) ? " | X" : " |  ");
+        {
+            str += " | ";
+            str += (b & make_square(f, r)) ? '*' : ' ';
+        }
+
         str += " |";
         str += Sep;
     }
+
     str += " ";
+
     for (File f = FILE_A; f <= FILE_H; ++f)
     {
         str += "   ";
         str += to_char<true>(f);
     }
+
     return str;
 }
 
