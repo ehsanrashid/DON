@@ -156,12 +156,12 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
     accStack->reset();
     auto netTrace = networks.big.trace(pos, *accStack, accCaches.big);
 
-    oss << " NNUE network contributions ("  //
-        << (pos.active_color() == WHITE ? "White" : "Black") << " to move):\n"
-        << Sep  //
-        << "|   Bucket   |  Material  | Positional |   Total    |\n"
-        << "|            |   (PSQT)   |  (Layers)  |            |\n"
-        << Sep;
+    oss << " NNUE network contributions (";
+    oss << (pos.active_color() == WHITE ? "White" : "Black") << " to move):\n";
+    oss << Sep;
+    oss << "|   Bucket   |  Material  | Positional |   Total    |\n";
+    oss << "|            |   (PSQT)   |  (Layers)  |            |\n";
+    oss << Sep;
 
     for (std::size_t bucket = 0; bucket < LayerStacks; ++bucket)
     {
