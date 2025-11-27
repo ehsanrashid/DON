@@ -42,7 +42,7 @@ using ThreatFeatureSet = Features::FullThreats;
 
 // Number of input feature dimensions after conversion
 inline constexpr IndexType     BigTransformedFeatureDimensions = 1024;
-inline constexpr std::uint32_t BigL2                           = 31;
+inline constexpr std::uint32_t BigL2                           = 15;
 inline constexpr std::uint32_t BigL3                           = 32;
 
 inline constexpr IndexType     SmallTransformedFeatureDimensions = 128;
