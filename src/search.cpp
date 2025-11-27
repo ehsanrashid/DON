@@ -979,7 +979,7 @@ Value Worker::search(Position&    pos,
         if (!ss->ttPv && !exclude && depth < 14 && !is_win(eval) && !is_loss(beta)
             && (ttd.move == Move::None || ttCapture)
             && eval - std::max(futility_margin(ttd.hit), 0) >= beta)
-            return (depth * eval + beta) / (depth + 1);
+            return (eval + beta) / 2;
     }
 
     // Step 9. Null move search with verification search
@@ -1134,7 +1134,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             continue;
 
         ss->moveCount = ++moveCount;
-        promoCount += move.type_of() == PROMOTION && move.promotion_type() < QUEEN;
+        promoCount += move.type_of() == PROMOTION && move.promotion_type() != QUEEN;
 
         if (RootNode && is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
         {
@@ -1180,10 +1180,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Futility pruning: for captures
                 if (lmrDepth < 7 && !check)
                 {
-                    Value seeGain = (capture ? PIECE_VALUE[captured] : VALUE_ZERO)  //
-                                  + promotion_value(move);
-                    Value futilityValue = std::min(232 + ss->staticEval + seeGain + 217 * lmrDepth
-                                                     + int(0.1279 * history),
+                    Value futilityValue = std::min(232 + ss->staticEval + PIECE_VALUE[captured]
+                                                     + 217 * lmrDepth + int(0.1279 * history),
                                                    +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                         continue;
@@ -1215,10 +1213,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // (*Scaler) Generally, more frequent futility pruning scales well
                 if (lmrDepth < 13 && !check && !ss->inCheck)
                 {
-                    Value seeGain       = promotion_value(move);
-                    Value futilityValue = std::min(42 + ss->staticEval + seeGain / 2  //
-                                                     + 127 * lmrDepth                 //
-                                                     + 85 * (ss->staticEval > alpha)  //
+                    Value futilityValue = std::min(42 + ss->staticEval + 127 * lmrDepth  //
+                                                     + 85 * (ss->staticEval > alpha)     //
                                                      + 161 * (bestMove == Move::None),
                                                    +VALUE_INFINITE);
                     if (futilityValue <= alpha)
@@ -1318,7 +1314,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         assert(captured == type_of(pos.captured_piece()));
 
-        ss->history = capture ? int(6.7813 * (PIECE_VALUE[captured] + promotion_value(move)))
+        ss->history = capture ? int(6.7813 * PIECE_VALUE[captured])  //
                                   + captureHistory[movedPiece][dst][captured]
                               : 2 * quietHistory[ac][move.raw()]        //
                                   + (*contHistory[0])[movedPiece][dst]  //
@@ -1732,25 +1728,27 @@ QS_MOVES_LOOP:
             continue;
 
         ++moveCount;
-        promoCount += move.type_of() == PROMOTION && move.promotion_type() < QUEEN;
+        promoCount += move.type_of() == PROMOTION && move.promotion_type() != QUEEN;
 
         Square dst = move.dst_sq();
 
-        bool check   = pos.check(move);
-        bool capture = pos.capture(move);
+        bool check = pos.check(move);
 
         // Step 6. Pruning
         if (!is_loss(bestValue))
         {
+            bool capture    = pos.capture(move);
+            bool queenPromo = move.type_of() == PROMOTION && move.promotion_type() == QUEEN;
+
             // Futility pruning and moveCount pruning
-            if (!check && dst != preSq && move.type_of() != PROMOTION && !is_loss(futilityBase))
+            if (!check && dst != preSq && !queenPromo && !is_loss(futilityBase))
             {
                 if ((moveCount - promoCount) > 2)
                     continue;
 
-                Value seeGain       = (capture ? PIECE_VALUE[pos.captured(move)] : VALUE_ZERO);
-                Value futilityValue = std::min(futilityBase + seeGain, +VALUE_INFINITE);
-                // If static evaluation + value of piece going to captured is much lower than alpha
+                // Static evaluation + value of piece going to captured
+                Value futilityValue = std::min(futilityBase + PIECE_VALUE[pos.captured(move)],  //
+                                               +VALUE_INFINITE);
                 if (futilityValue <= alpha)
                 {
                     if (bestValue < futilityValue)
@@ -1766,8 +1764,8 @@ QS_MOVES_LOOP:
                 }
             }
 
-            // Skip quiets (non-captures, non-promotions)
-            if (!capture && move.type_of() != PROMOTION)
+            // Skip quiets
+            if (!capture && !queenPromo)
                 continue;
 
             // SEE based pruning

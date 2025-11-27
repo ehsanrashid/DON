@@ -412,21 +412,21 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
     if (bookFile.empty())
         return false;
 
-    bookName = bookFile;
+    filename = bookFile;
 
     std::error_code ec;
 
-    std::uint64_t fileSize = std::filesystem::file_size(bookName, ec);
+    std::uint64_t fileSize = std::filesystem::file_size(filename, ec);
 
     if (ec)
     {
-        std::cerr << "Failed to stat Book file " << bookName << ": " << ec.message() << std::endl;
+        std::cerr << "Failed to stat Book file " << filename << ": " << ec.message() << std::endl;
         return false;
     }
 
     if (fileSize == 0)
     {
-        std::cerr << "Warning: Empty Book file " << bookName << std::endl;
+        std::cerr << "Warning: Empty Book file " << filename << std::endl;
         return true;
     }
 
@@ -435,7 +435,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
     if (fileSize < EntrySize)
     {
-        std::cerr << "Too small Book file " << bookName << std::endl;
+        std::cerr << "Too small Book file " << filename << std::endl;
         return false;
     }
 
@@ -443,14 +443,14 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
     std::size_t remainder  = fileSize % EntrySize;
 
     if (remainder != 0)
-        std::cerr << "Warning: Bad size Book file " << bookName << ", ignoring " << remainder
+        std::cerr << "Warning: Bad size Book file " << filename << ", ignoring " << remainder
                   << " trailing bytes" << std::endl;
 
-    std::ifstream ifstream(bookName, std::ios_base::binary);
+    std::ifstream ifstream(filename, std::ios_base::binary);
 
     if (!ifstream.is_open())
     {
-        std::cerr << "Failed to open Book file " << bookName << std::endl;
+        std::cerr << "Failed to open Book file " << filename << std::endl;
         return false;
     }
 
@@ -487,12 +487,12 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
     if (ifstream.fail() || ifstream.bad())
     {
-        std::cerr << "I/O error while reading Book file " << bookName << std::endl;
+        std::cerr << "I/O error while reading Book file " << filename << std::endl;
         return false;
     }
 
     if (readedSize != DataSize || !ifstream.good())
-        std::cerr << "Failed to read complete Book file " << bookName << std::endl;
+        std::cerr << "Failed to read complete Book file " << filename << std::endl;
 
     ifstream.close();
 
@@ -506,7 +506,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 }
 
 std::string PolyBook::info() const noexcept {
-    return "Book: " + bookName + " with " + std::to_string(entries.size()) + " entries";
+    return "Book: " + filename + " with " + std::to_string(entries.size()) + " entries";
 }
 
 std::size_t PolyBook::key_index(Key key) const noexcept {
@@ -574,7 +574,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     assert(!rootMoves.empty());
     static PRNG<XorShift64Star> prng(now());
 
-    if (!(options["OwnBook"] && loaded() && pos.move_num() <= options["BookProbeDepth"]))
+    if (!(options["OwnBook"] && !empty() && pos.move_num() <= options["BookProbeDepth"]))
         return Move::None;
 
     Key key = PGZob.key(pos);

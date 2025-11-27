@@ -67,47 +67,50 @@ Engine::Engine(std::optional<std::string> path) noexcept :
         std::make_unique<NNUE::BigNetwork>  (NNUE::EvalFile{EvalFileDefaultNameBig  , "None", ""}, NNUE::EmbeddedType::BIG),
         std::make_unique<NNUE::SmallNetwork>(NNUE::EvalFile{EvalFileDefaultNameSmall, "None", ""}, NNUE::EmbeddedType::SMALL))) {
 
-    options.add("NumaPolicy",           Option("auto", "var none var auto var system var hardware var default", [this](const Option& o) {
+    using OnCng = Option::OnChange;
+
+    options.add("NumaPolicy",           Option("auto", "var none var auto var system var hardware var default", OnCng([this](const Option& o) {
         set_numa_config(o);
         return get_numa_config_info_str() + '\n'
              + get_thread_allocation_info_str();
-    }));
-    options.add("Threads",              Option(MIN_THREADS, MIN_THREADS, MAX_THREADS, [this](const Option&) {
+    })));
+    options.add("Threads",              Option(MIN_THREADS, MIN_THREADS, MAX_THREADS, OnCng([this](const Option&) {
         resize_threads_tt();
         return get_thread_allocation_info_str();
-    }));
-    options.add("Hash",                 Option(16, MIN_HASH, MAX_HASH, [this](const Option& o) {
+    })));
+    options.add("Hash",                 Option(16, MIN_HASH, MAX_HASH, OnCng([this](const Option& o) {
         resize_tt(o);
         return "Hash: " + std::to_string(int(o));
-    }));
-    options.add("Clear Hash",           Option([this](const Option&) { init(); return std::nullopt; }));
+    })));
+    options.add("Clear Hash",           Option(OnCng([this](const Option&) { init(); return std::nullopt; })));
     options.add("HashRetain",           Option(false));
     options.add("HashFile",             Option(""));
-    options.add("Save Hash",            Option([this](const Option&) { return save_hash() ? "Save succeeded" : "Save failed"; }));
-    options.add("Load Hash",            Option([this](const Option&) { return load_hash() ? "Load succeeded" : "Load failed"; }));
+    options.add("Save Hash",            Option(OnCng([this](const Option&) { return save_hash() ? "Save succeeded" : "Save failed"; })));
+    options.add("Load Hash",            Option(OnCng([this](const Option&) { return load_hash() ? "Load succeeded" : "Load failed"; })));
     options.add("Ponder",               Option(false));
     options.add("MultiPV",              Option(DEFAULT_MULTI_PV, 1, MAX_MOVES));
     options.add("SkillLevel",           Option(Skill::MaxLevel, Skill::MinLevel, Skill::MaxLevel));
     options.add("MoveOverhead",         Option(10, 0, 5000));
     options.add("NodesTime",            Option(0, 0, 10000));
-    options.add("DrawMoveCount",        Option(Position::DrawMoveCount, 5, 50, [](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; }));
-    options.add("UCI_Chess960",         Option(Position::Chess960,             [](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; }));
+    options.add("DrawMoveCount",        Option(Position::DrawMoveCount, 5, 50, OnCng([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
+    options.add("UCI_Chess960",         Option(Position::Chess960,             OnCng([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
     options.add("UCI_LimitStrength",    Option(false));
     options.add("UCI_ELO",              Option(Skill::MaxELO, Skill::MinELO, Skill::MaxELO));
     options.add("UCI_ShowWDL",          Option(false));
     options.add("OwnBook",              Option(false));
-    options.add("BookFile",             Option("", [](const Option& o) { return Book.load(o) ? "Load succeeded" : "Load failed"; }));
+    options.add("BookFile",             Option("", OnCng([](const Option& o) { return Book.load(o) ? "Load succeeded" : "Load failed"; })));
     options.add("BookProbeDepth",       Option(100, 1, 256));
     options.add("BookPickBest",         Option(true));
-    options.add("SyzygyPath",           Option("", [](const Option& o) { Tablebases::init(o); return std::nullopt; }));
+    options.add("SyzygyPath",           Option("", OnCng([](const Option& o) { Tablebases::init(o); return std::nullopt; })));
     options.add("SyzygyProbeLimit",     Option(7, 0, 7));
     options.add("SyzygyProbeDepth",     Option(1, 1, 100));
     options.add("Syzygy50MoveRule",     Option(true));
     options.add("SyzygyPVExtend",       Option(true));
-    options.add("BigEvalFile",          Option(EvalFileDefaultNameBig  , [this](const Option& o) { load_big_network(o);   return std::nullopt; }));
-    options.add("SmallEvalFile",        Option(EvalFileDefaultNameSmall, [this](const Option& o) { load_small_network(o); return std::nullopt; }));
+    options.add("BigEvalFile",          Option(EvalFileDefaultNameBig  , OnCng([this](const Option& o) { load_big_network(o);   return std::nullopt; })));
+    options.add("SmallEvalFile",        Option(EvalFileDefaultNameSmall, OnCng([this](const Option& o) { load_small_network(o); return std::nullopt; })));
     options.add("ReportMinimal",        Option(false));
-    options.add("DebugLogFile",         Option("", [](const Option& o) { start_logger(o); return std::nullopt; }));
+    options.add("LogFile",              Option("", OnCng([](const Option& o) { return Logger::start(o) ? "Logger started" : "Logger not started"; })));
+    options.add("Stop Logger",          Option(    OnCng([](const Option&)   { Logger::stop(); return std::nullopt; })));
     // clang-format on
 
     load_networks();

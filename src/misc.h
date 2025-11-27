@@ -29,6 +29,7 @@
 #include <cstring>
 #include <exception>  // IWYU pragma: keep
 // IWYU pragma: no_include <__exception/terminate.h>
+#include <fstream>
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -634,7 +635,158 @@ inline TimePoint now() noexcept {
 
 std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept;
 
-void start_logger(std::string_view logFile) noexcept;
+// Fancy logging facility. The trick here is to replace cin.rdbuf() and cout.rdbuf()
+// with two Tie objects that tie std::cin and std::cout to a file stream.
+// Can toggle the logging of std::cout and std:cin at runtime whilst preserving
+// usual I/O functionality, all without changing a single line of code!
+// Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
+// MSVC requires split streambuf for std::cin and std::cout.
+class Tie final: public std::streambuf {
+   public:
+    using traits_type = std::streambuf::traits_type;
+    using int_type    = traits_type::int_type;
+    using char_type   = traits_type::char_type;
+
+    Tie() noexcept = delete;
+    Tie(std::streambuf* pBuf, std::streambuf* mBuf) noexcept :
+        primaryBuf(pBuf),
+        mirrorBuf(mBuf) {}
+
+    int_type overflow(int_type ch) override {
+        if (primaryBuf == nullptr)
+            return traits_type::eof();
+        int_type putCh = primaryBuf->sputc(traits_type::to_char_type(ch));
+        if (traits_type::eq_int_type(putCh, traits_type::eof()))
+            return putCh;
+        return mirror_put_with_prefix(putCh, "<< ", preOutCh);
+    }
+
+    int_type underflow() override {
+        if (primaryBuf == nullptr)
+            return traits_type::eof();
+        return primaryBuf->sgetc();
+    }
+
+    int_type uflow() override {
+        if (primaryBuf == nullptr)
+            return traits_type::eof();
+        int_type ch = primaryBuf->sbumpc();
+        if (traits_type::eq_int_type(ch, traits_type::eof()))
+            return ch;
+        return mirror_put_with_prefix(ch, ">> ", preInCh);
+    }
+
+    int sync() override {
+        int r1 = primaryBuf != nullptr ? primaryBuf->pubsync() : 0;
+        int r2 = mirrorBuf != nullptr ? mirrorBuf->pubsync() : 0;
+        return (r1 == 0 && r2 == 0) ? 0 : -1;
+    }
+
+    std::streambuf *primaryBuf, *mirrorBuf;
+
+   private:
+    int_type
+    mirror_put_with_prefix(int_type ch, std::string_view prefix, char_type& preCh) noexcept {
+        if (mirrorBuf == nullptr)
+            return traits_type::not_eof(ch);
+        if (preCh == '\n')
+            mirrorBuf->sputn(prefix.data(), std::streamsize(prefix.size()));
+        return mirrorBuf->sputc(preCh = traits_type::to_char_type(ch));
+    }
+
+    char_type preOutCh = '\n';
+    char_type preInCh  = '\n';
+};
+
+class Logger final {
+   public:
+    // Start logging to `logFile`. Returns true on success.
+    static bool start(std::string_view logFile) noexcept {
+        std::scoped_lock scopedLock(instance().mutex);
+        return instance().open(logFile);
+    }
+
+    // Stop logging. Restores original streams and closes the file.
+    static void stop() noexcept {
+        std::scoped_lock scopedLock(instance().mutex);
+        instance().close();
+    }
+
+   private:
+    Logger() noexcept = delete;
+    Logger(std::istream& is, std::ostream& os) noexcept :
+        istream(is),
+        ostream(os),
+        ofstream(),
+        iTie(istream.rdbuf(), ofstream.rdbuf()),
+        oTie(ostream.rdbuf(), ofstream.rdbuf()) {}
+
+    ~Logger() noexcept { stop(); }
+
+    // Single shared instance
+    static Logger& instance() noexcept {
+        static Logger logger(std::cin, std::cout);  // Tie std::cin and std::cout to a file.
+        return logger;
+    }
+
+    bool is_open() const noexcept { return ofstream.is_open(); }
+
+    void write_timestamped(std::string_view suffix) noexcept {
+        ofstream << '[' << format_time(std::chrono::system_clock::now()) << "] " << suffix
+                 << std::endl;
+    }
+
+    // Open log file; caller must hold mutex
+    // If another file is already open, it will be closed first.
+    bool open(std::string_view logFile) noexcept {
+        if (logFile == filename && is_open())
+            return true;  // Already open
+
+        close();  // Close any previous log file
+
+        if (logFile.empty())
+            return true;
+
+        filename = logFile;
+
+        ofstream.open(filename, std::ios_base::out | std::ios_base::app);
+        if (!is_open())
+        {
+            std::cerr << "Unable to open Log file: " << filename << std::endl;
+            return false;
+        }
+
+        write_timestamped("->");
+
+        istream.rdbuf(&iTie);
+        ostream.rdbuf(&oTie);
+
+        return true;
+    }
+
+    // Close log file if open; caller must hold mutex
+    void close() noexcept {
+        if (!is_open())
+            return;
+
+        ostream.rdbuf(oTie.primaryBuf);
+        istream.rdbuf(iTie.primaryBuf);
+
+        write_timestamped("<-");
+
+        ofstream.close();
+
+        filename.clear();
+    }
+
+    std::istream& istream;
+    std::ostream& ostream;
+    std::ofstream ofstream;
+    Tie           iTie, oTie;
+
+    std::string filename;
+    std::mutex  mutex;
+};
 
 #if !defined(NDEBUG)
 namespace Debug {

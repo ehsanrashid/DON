@@ -75,7 +75,7 @@ class PolyBook final {
 
     bool load(std::string_view bookFile) noexcept;
 
-    bool loaded() const noexcept { return !entries.empty(); }
+    bool empty() const noexcept { return entries.empty(); }
 
     std::string info() const noexcept;
 
@@ -88,7 +88,7 @@ class PolyBook final {
 
     EntryVector key_candidates(Key key) const noexcept;
 
-    std::string bookName;
+    std::string filename;
 
     EntryVector entries;
 };
