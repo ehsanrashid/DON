@@ -1737,11 +1737,11 @@ QS_MOVES_LOOP:
         // Step 6. Pruning
         if (!is_loss(bestValue))
         {
-            bool capture        = pos.capture(move);
-            bool queenPromotion = move.type_of() == PROMOTION && move.promotion_type() == QUEEN;
+            bool capture    = pos.capture(move);
+            bool queenPromo = move.type_of() == PROMOTION && move.promotion_type() == QUEEN;
 
             // Futility pruning and moveCount pruning
-            if (!check && dst != preSq && !queenPromotion && !is_loss(futilityBase))
+            if (!check && dst != preSq && !queenPromo && !is_loss(futilityBase))
             {
                 if ((moveCount - promoCount) > 2)
                     continue;
@@ -1765,7 +1765,7 @@ QS_MOVES_LOOP:
             }
 
             // Skip quiets
-            if (!capture && !queenPromotion)
+            if (!capture && !queenPromo)
                 continue;
 
             // SEE based pruning
