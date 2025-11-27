@@ -224,6 +224,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
                 *moves++ = Move(EN_PASSANT, pop_lsb(b), pos.ep_sq());
         }
     }
+
     return moves;
 }
 
