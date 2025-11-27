@@ -171,6 +171,28 @@ void Position::init() noexcept {
     Cuckoos.init();
 }
 
+void Position::clear() noexcept {
+    //pieceArr.fill(NO_PIECE);
+    //colorBB.fill(0);
+    //typeBB.fill(0);
+    //pieceCount.fill(0);
+    //castlingPath.fill(0);
+    //castlingRookSq.fill(SQ_NONE);
+    //castlingRightsMask.fill(0);
+
+    std::memset(pieceArr.data(), NO_PIECE, sizeof(pieceArr));
+    std::memset(colorBB.data(), 0, sizeof(colorBB));
+    std::memset(typeBB.data(), 0, sizeof(typeBB));
+    std::memset(pieceCount.data(), 0, sizeof(pieceCount));
+    std::memset(castlingPath.data(), 0, sizeof(castlingPath));
+    std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
+    std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));
+
+    activeColor = COLOR_NB;
+    gamePly     = 0;
+    st          = nullptr;
+}
+
 // Initializes the position object with the given FEN string.
 // This function is not very robust - make sure that input FENs are correct,
 // this is assumed to be the responsibility of the GUI.
@@ -211,11 +233,10 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 */
     assert(!fens.empty());
     assert(newSt != nullptr);
-    std::memset(static_cast<void*>(this), 0, sizeof(*this));
-    castlingRookSq.fill(SQ_NONE);
-    std::memset(newSt, 0, sizeof(*newSt));
-    newSt->kingSq.fill(SQ_NONE);
-    newSt->epSq = newSt->capSq = SQ_NONE;
+
+    clear();
+
+    newSt->clear();
 
     st = newSt;
 

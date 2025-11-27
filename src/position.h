@@ -82,6 +82,15 @@ struct Zobrist final {
 // State struct stores information needed to restore Position object
 // to its previous state when retract any move.
 struct State final {
+   public:
+    State() noexcept = default;
+
+    void clear() noexcept {
+        std::memset(this, 0, sizeof(*this));
+        kingSq.fill(SQ_NONE);
+        epSq = capSq = SQ_NONE;
+    }
+
     // --- Copied when making a move
     StdArray<Key, COLOR_NB>    pawnKey;
     StdArray<Key, COLOR_NB, 2> nonPawnKey;
@@ -129,6 +138,8 @@ class Position final {
     Position& operator=(Position&&) noexcept      = delete;
 
    public:
+    void clear() noexcept;
+
     // FEN string input/output
     void        set(std::string_view fens, State* const newSt) noexcept;
     void        set(std::string_view code, Color c, State* const newSt) noexcept;
