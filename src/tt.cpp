@@ -257,12 +257,18 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
 bool TranspositionTable::save(std::string_view hashFile) const noexcept {
 
     if (hashFile.empty())
+    {
+        std::cerr << "No Hash file provided" << std::endl;
         return false;
+    }
 
     std::ofstream ofstream(std::string(hashFile), std::ios_base::binary);
 
     if (!ofstream)
+    {
+        std::cerr << "Failed to open Hash file " << hashFile << std::endl;
         return false;
+    }
 
     constexpr std::size_t ClusterSize = sizeof(TTCluster);
     static_assert(ClusterSize > 0, "Cluster must have non-zero size");
@@ -296,7 +302,10 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
 bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) noexcept {
 
     if (hashFile.empty())
+    {
+        std::cerr << "No Hash file provided" << std::endl;
         return false;
+    }
 
     std::error_code ec;
 

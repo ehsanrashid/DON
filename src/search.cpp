@@ -1215,7 +1215,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // (*Scaler) Generally, more frequent futility pruning scales well
                 if (lmrDepth < 13 && !check && !ss->inCheck)
                 {
-                    Value seeGain       = promotion_value(move);
+                    Value seeGain       = 0;  //promotion_value(move);
                     Value futilityValue = std::min(42 + ss->staticEval + seeGain / 2  //
                                                      + 127 * lmrDepth                 //
                                                      + 85 * (ss->staticEval > alpha)  //

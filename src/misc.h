@@ -655,7 +655,10 @@ class Tie final: public std::streambuf {
     int_type overflow(int_type ch) override {
         if (primaryBuf == nullptr)
             return traits_type::eof();
-        return log(primaryBuf->sputc(traits_type::to_char_type(ch)), "<< ", preOutCh);
+        int_type putCh = primaryBuf->sputc(traits_type::to_char_type(ch));
+        if (traits_type::eq_int_type(putCh, traits_type::eof()))
+            return putCh;
+        return mirror_put_with_prefix(putCh, "<< ", preOutCh);
     }
 
     int_type underflow() override {
@@ -670,7 +673,7 @@ class Tie final: public std::streambuf {
         int_type ch = primaryBuf->sbumpc();
         if (traits_type::eq_int_type(ch, traits_type::eof()))
             return ch;
-        return log(ch, ">> ", preInCh);
+        return mirror_put_with_prefix(ch, ">> ", preInCh);
     }
 
     int sync() override {
@@ -682,7 +685,8 @@ class Tie final: public std::streambuf {
     std::streambuf *primaryBuf, *mirrorBuf;
 
    private:
-    int_type log(int_type ch, std::string_view prefix, char_type& preCh) noexcept {
+    int_type
+    mirror_put_with_prefix(int_type ch, std::string_view prefix, char_type& preCh) noexcept {
         if (mirrorBuf == nullptr)
             return traits_type::not_eof(ch);
         if (preCh == '\n')
@@ -698,15 +702,13 @@ class Logger final {
    public:
     // Start logging to `logFile`. Returns true on success.
     static bool start(std::string_view logFile) noexcept {
-        std::scoped_lock scopedLock(instance().mutex);
-
+        std::scoped_lock scopedLock(mutex);
         return instance().open(logFile);
     }
 
     // Stop logging. Restores original streams and closes the file.
     static void stop() noexcept {
-        std::scoped_lock scopedLock(instance().mutex);
-
+        std::scoped_lock scopedLock(mutex);
         instance().close();
     }
 
@@ -729,9 +731,19 @@ class Logger final {
         return logger;
     }
 
+    bool is_open() const noexcept { return ofstream.is_open(); }
+
+    void write_timestamped(std::string_view suffix) noexcept {
+        ofstream << '[' << format_time(std::chrono::system_clock::now()) << "] " << suffix
+                 << std::endl;
+    }
+
     // Open log file; caller must hold mutex
     // If another file is already open, it will be closed first.
     bool open(std::string_view logFile) noexcept {
+        if (logFile == LogFileName && is_open())
+            return true;  // Already open
+
         close();  // Close any previous log file
 
         if (logFile.empty())
@@ -740,40 +752,42 @@ class Logger final {
         LogFileName = logFile;
 
         ofstream.open(LogFileName, std::ios_base::out | std::ios_base::app);
-        if (!ofstream.is_open())
+        if (!is_open())
         {
-            std::cerr << "Unable to open Debug log file: " << LogFileName << std::endl;
+            std::cerr << "Unable to open Log file: " << LogFileName << std::endl;
             return false;
         }
 
-        ofstream << "[" << format_time(std::chrono::system_clock::now()) << "] ->" << std::endl;
-
         istream.rdbuf(&iTie);
         ostream.rdbuf(&oTie);
+
+        write_timestamped("->");
 
         return true;
     }
 
     // Close log file if open; caller must hold mutex
     void close() noexcept {
-        if (!ofstream.is_open())
+        if (!is_open())
             return;
-
-        ofstream << "[" << format_time(std::chrono::system_clock::now()) << "] <-" << std::endl;
 
         istream.rdbuf(iTie.primaryBuf);
         ostream.rdbuf(oTie.primaryBuf);
+
+        write_timestamped("<-");
+
         ofstream.close();
 
         LogFileName.clear();
     }
+
+    static inline std::mutex mutex;
 
     std::istream& istream;
     std::ostream& ostream;
     std::ofstream ofstream;
     Tie           iTie;
     Tie           oTie;
-    std::mutex    mutex;
 };
 
 #if !defined(NDEBUG)
