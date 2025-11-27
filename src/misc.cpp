@@ -17,7 +17,6 @@
 
 #include "misc.h"
 
-#include <array>
 #include <atomic>
 #include <cmath>
 #include <cstdlib>
@@ -36,30 +35,54 @@ namespace DON {
 
 namespace {
 
-// Version number or dev.
+constexpr std::string_view Name{"DON"};
 constexpr std::string_view Version{"dev"};
+constexpr std::string_view Author{"Ehsan Rashid"};
 
 #if !defined(GIT_DATE)
+// Format date to YYYYMMDD
 std::string format_date(std::string_view date) noexcept {
     //constexpr std::string_view Months{"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"};
-    constexpr std::array<std::string_view, 12> Months{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    constexpr StdArray<std::string_view, 12> Months{
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"  //
+    };
 
-    std::istringstream iss{std::string(date)};  // From compiler, format is "Sep 21 2008"
+    constexpr std::string_view NullDate{"00000000"};
+
+    // Tokenize: expect "Mon DD YYYY" where DD may have a trailing comma.
+    // Format from compiler: "Sep 02 2008"
+    std::istringstream iss{std::string(date)};
 
     std::string month, day, year;
     iss >> month >> day >> year;
 
-    if (iss.fail() || month.size() != 3 || day.size() > 2 || year.size() != 4)
-        return "00000000";
-    return (std::ostringstream{}
-            << std::setfill('0')  //
-            << std::setw(4) << year
-            << std::setw(2)
-            //<< (1 + Months.find(month) / 4)
-            << (1 + std::distance(Months.begin(), std::find(Months.begin(), Months.end(), month)))
-            << std::setw(2) << day)
-      .str();
+    if (iss.fail())
+        return std::string(NullDate);
+    // Trim possible trailing comma from day (e.g. "21,")
+    if (!day.empty() && day.back() == ',')
+        day.pop_back();
+    // Basic validation: month is 3 letters, day 1-2 digits, year 4 digits
+    if (month.size() != 3 || day.empty() || day.size() > 2 || year.size() != 4)
+        return std::string(NullDate);
+    // Ensure day and year are numeric
+    if (!std::all_of(day.begin(), day.end(), [](unsigned char c) { return std::isdigit(c); })
+        || !std::all_of(year.begin(), year.end(), [](unsigned char c) { return std::isdigit(c); }))
+        return std::string(NullDate);
+    // Find month index (1..12)
+    auto itr = std::find(Months.begin(), Months.end(), std::string_view(month));
+    if (itr == Months.end())
+        return std::string(NullDate);
+
+    //unsigned monthIndex = 1 + Months.find(month) / 4;
+    unsigned monthIndex = 1 + std::distance(Months.begin(), itr);
+
+    // Format YYYYMMDD using ostringstream
+    std::ostringstream oss;
+    oss << std::setfill('0')           //
+        << std::setw(4) << year        //
+        << std::setw(2) << monthIndex  //
+        << std::setw(2) << day;
+    return oss.str();
 }
 #endif
 
@@ -68,10 +91,19 @@ std::string format_date(std::string_view date) noexcept {
 std::string engine_info(bool uci) noexcept {
     std::string str;
     str.reserve(64);
-    str += uci ? "id name " : "";
+
+    if (uci)
+        str += "id name ";
+
     str += version_info();
-    str += uci ? "\nid author " : " by ";
-    str += "Ehsan Rashid";
+
+    if (uci)
+        str += "\nid author ";
+    else
+        str += " by ";
+
+    str += Author;
+
     return str;
 }
 
@@ -88,7 +120,7 @@ std::string version_info() noexcept {
     std::string str;
     str.reserve(32);
 
-    str += "DON";
+    str += Name;
     str += ' ';
     str += Version;
 
@@ -107,6 +139,7 @@ std::string version_info() noexcept {
         str += "nogit";
 #endif
     }
+
     return str;
 }
 
@@ -251,9 +284,10 @@ std::string format_time(const std::chrono::system_clock::time_point& timePoint) 
     tm = *std::localtime(&time);
 #endif
 
-    return (std::ostringstream{} << std::put_time(&tm, "%Y.%m.%d-%H:%M:%S") << '.'
-                                 << std::setfill('0') << std::setw(6) << usec)
-      .str();
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y.%m.%d-%H:%M:%S") << '.'  //
+        << std::setfill('0') << std::setw(6) << usec;
+    return oss.str();
 }
 
 #if !defined(NDEBUG)
@@ -262,7 +296,7 @@ namespace Debug {
 namespace {
 
 template<std::size_t Size>
-class alignas(64) Info {
+class Info {
    public:
     Info() noexcept {
         for (std::size_t i = 0; i < Size; ++i)
@@ -297,7 +331,7 @@ class alignas(64) Info {
     }
 
    protected:
-    std::array<std::atomic<std::int64_t>, Size> _data;
+    StdArray<std::atomic<std::int64_t>, Size> _data;
 };
 
 class MinInfo final: public Info<2> {
@@ -322,13 +356,13 @@ class ExtremeInfo final: public Info<3> {
 
 constexpr std::size_t MaxSlot = 64;
 
-std::array<Info<2>, MaxSlot>     hit;
-std::array<MinInfo, MaxSlot>     min;
-std::array<MaxInfo, MaxSlot>     max;
-std::array<ExtremeInfo, MaxSlot> extreme;
-std::array<Info<2>, MaxSlot>     mean;
-std::array<Info<3>, MaxSlot>     stdev;
-std::array<Info<6>, MaxSlot>     correl;
+StdArray<Info<2>, MaxSlot>     hit;
+StdArray<MinInfo, MaxSlot>     min;
+StdArray<MaxInfo, MaxSlot>     max;
+StdArray<ExtremeInfo, MaxSlot> extreme;
+StdArray<Info<2>, MaxSlot>     mean;
+StdArray<Info<3>, MaxSlot>     stdev;
+StdArray<Info<6>, MaxSlot>     correl;
 
 }  // namespace
 
@@ -601,7 +635,7 @@ std::string CommandLine::binary_directory(std::string path) noexcept {
 // Extract the working directory
 std::string CommandLine::working_directory() noexcept {
 
-    std::array<char, 4096> buffer{};
+    StdArray<char, 4096> buffer{};
 
     char* cwd = GETCWD(buffer.data(), buffer.size());
 

@@ -18,7 +18,6 @@
 #include "movepick.h"
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <functional>
 #include <iterator>
@@ -54,8 +53,9 @@ MovePicker::MovePicker(const Position&              p,
     assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
 
     stage = pos.checkers() ? STG_EVA_TT + int(!(ttMove != Move::None))
-          : threshold < 0  ? STG_ENC_TT + int(!(ttMove != Move::None))
-                           : STG_QS_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
+          : threshold < 0
+            ? STG_ENC_TT + int(!(ttMove != Move::None))
+            : STG_QS_TT + int(!(ttMove != Move::None && pos.capture_queenpromo(ttMove)));
 }
 
 // MovePicker constructor for ProbCut:
@@ -71,7 +71,7 @@ MovePicker::MovePicker(const Position&          p,
     assert(!pos.checkers());
     assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
 
-    stage = STG_PROBCUT_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
+    stage = STG_PROBCUT_TT + int(!(ttMove != Move::None && pos.capture_queenpromo(ttMove)));
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -111,8 +111,6 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
     {
         auto& m = *itr++;
         m       = move;
-
-        assert(m.type_of() != PROMOTION);
 
         Square org = m.org_sq(), dst = m.dst_sq();
         auto   pc = pos.moved_piece(m);
@@ -184,7 +182,6 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
         auto& m = *itr++;
         m       = move;
 
-        assert(m.type_of() != PROMOTION);
         assert(m.type_of() != CASTLING);
 
         Square dst = m.dst_sq();

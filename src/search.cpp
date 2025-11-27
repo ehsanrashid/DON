@@ -757,7 +757,7 @@ Value Worker::search(Position&    pos,
                          : Move::None;
     assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
     ss->ttMove     = ttd.move;
-    bool ttCapture = ttd.move != Move::None && pos.capture_promo(ttd.move);
+    bool ttCapture = ttd.move != Move::None && pos.capture_queenpromo(ttd.move);
 
     if (!exclude)
         ss->ttPv = PVNode || (ttd.hit && ttd.pv);
@@ -1050,7 +1050,7 @@ Value Worker::search(Position&    pos,
         while ((move = mp.next_move()) != Move::None)
         {
             assert(pos.pseudo_legal(move));
-            assert(pos.capture_promo(move)
+            assert(pos.capture_queenpromo(move)
                    && (move == ttd.move || pos.see(move) >= probCutThreshold));
 
             // Check for legality
@@ -1150,7 +1150,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         Piece movedPiece = pos.moved_piece(move);
 
         bool check    = pos.check(move);
-        bool capture  = pos.capture(move);
+        bool capture  = pos.capture_queenpromo(move);
         auto captured = capture ? pos.captured(move) : NO_PIECE_TYPE;
 
         // Calculate new depth for this move
@@ -1721,7 +1721,7 @@ QS_MOVES_LOOP:
     while ((move = mp.next_move()) != Move::None)
     {
         assert(pos.pseudo_legal(move));
-        assert(ss->inCheck || pos.capture_promo(move));
+        assert(ss->inCheck || pos.capture_queenpromo(move));
 
         // Check for legality
         if (!pos.legal(move))
@@ -1737,11 +1737,10 @@ QS_MOVES_LOOP:
         // Step 6. Pruning
         if (!is_loss(bestValue))
         {
-            bool capture    = pos.capture(move);
-            bool queenPromo = move.type_of() == PROMOTION && move.promotion_type() == QUEEN;
+            bool capture = pos.capture_queenpromo(move);
 
             // Futility pruning and moveCount pruning
-            if (!check && dst != preSq && !queenPromo && !is_loss(futilityBase))
+            if (!check && dst != preSq && move.type_of() != PROMOTION && !is_loss(futilityBase))
             {
                 if ((moveCount - promoCount) > 2)
                     continue;
@@ -1765,7 +1764,7 @@ QS_MOVES_LOOP:
             }
 
             // Skip quiets
-            if (!capture && !queenPromo)
+            if (!capture)
                 continue;
 
             // SEE based pruning
@@ -1844,7 +1843,7 @@ QS_MOVES_LOOP:
 }
 
 void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const ss) noexcept {
-    bool capture = pos.capture(m);
+    bool capture = pos.capture_queenpromo(m);
     auto db      = pos.do_move(m, st, check, &tt);
     nodes.fetch_add(1, std::memory_order_relaxed);
     if (ss != nullptr)
@@ -1922,7 +1921,7 @@ void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_
     int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * (bm == ss->ttMove);
     int malus = std::max(std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount, 1);
 
-    if (pos.capture(bm))
+    if (pos.capture_queenpromo(bm))
     {
         update_capture_history(pos, bm, 1.3623 * bonus);
     }
