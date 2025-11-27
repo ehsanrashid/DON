@@ -42,10 +42,9 @@ namespace DON::NNUE {
 // A class that converts the input features of the NNUE evaluation function
 
 // Returns the inverse of a permutation
-template<std::size_t Size>
-constexpr StdArray<std::size_t, Size>
-invert_permutation(const std::array<std::size_t, Size>& order) noexcept {
-    StdArray<std::size_t, Size> inverse{};
+template<typename ArrayType, std::size_t Size = ArrayType{}.size()>
+constexpr auto invert_permutation(const ArrayType& order) noexcept -> StdArray<std::size_t, Size> {
+    StdArray<std::size_t, order.size()> inverse{};
     for (std::size_t i = 0; i < order.size(); ++i)
         inverse[order[i]] = i;
     return inverse;
@@ -53,11 +52,12 @@ invert_permutation(const std::array<std::size_t, Size>& order) noexcept {
 
 // Divide a byte region of size TotalSize to chunks of size BlockSize,
 // and permute the blocks by a given order
-template<std::size_t BlockSize, typename T, std::size_t N, std::size_t OrderSize>
-constexpr void permute(std::array<T, N>&                         data,
-                       const std::array<std::size_t, OrderSize>& order) noexcept {
-    constexpr std::size_t TotalSize = N * sizeof(T);
-    constexpr std::size_t ChunkSize = BlockSize * OrderSize;
+template<std::size_t BlockSize, typename ArrayType, typename OrderArrayType>
+constexpr void permute(ArrayType& data, const OrderArrayType& order) noexcept {
+    using T = typename ArrayType::value_type;
+
+    constexpr std::size_t TotalSize = data.size() * sizeof(T);
+    constexpr std::size_t ChunkSize = BlockSize * order.size();
     static_assert(TotalSize % ChunkSize == 0, "ChunkSize must perfectly divide TotalSize");
 
     auto* const byts = reinterpret_cast<unsigned char*>(data.data());
@@ -67,7 +67,7 @@ constexpr void permute(std::array<T, N>&                         data,
         auto* const values = &byts[i];
 
         StdArray<unsigned char, ChunkSize> buffer;
-        for (std::size_t j = 0; j < OrderSize; ++j)
+        for (std::size_t j = 0; j < order.size(); ++j)
         {
             auto* const chunkValue  = &values[order[j] * BlockSize];
             auto* const chunkBuffer = &buffer[j * BlockSize];

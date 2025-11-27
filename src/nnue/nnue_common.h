@@ -184,7 +184,7 @@ inline void read_leb_128(std::istream& istream, std::array<IntType, Count>& out)
 
     constexpr std::size_t Size = sizeof(IntType);
 
-    std::array<std::uint8_t, 4096> buffer{};
+    StdArray<std::uint8_t, 4096> buffer{};
 
     std::size_t bufferIdx = buffer.size();
 
@@ -248,7 +248,7 @@ inline void write_leb_128(std::ostream& ostream, const std::array<IntType, Count
 
     write_little_endian<std::uint32_t>(ostream, byteCount);
 
-    std::array<std::uint8_t, 4096> buffer{};
+    StdArray<std::uint8_t, 4096> buffer{};
 
     std::size_t bufferIdx = 0;
 
