@@ -386,7 +386,7 @@ void update_accumulator_refresh_cache(Color                                 pers
                                       AccumulatorState<PSQFeatureSet>&      accState,
                                       AccumulatorCaches::Cache<Dimensions>& cache) noexcept {
 
-    Square kingSq = pos.king_sq(perspective);
+    Square kingSq = pos.square<KING>(perspective);
 
     auto& entry = cache[kingSq][perspective];
 
@@ -738,7 +738,7 @@ void AccumulatorStack::forward_update_incremental(
     assert(begin < size && size <= MaxSize);
     assert((accumulators<FeatureSet>()[begin].template acc<Dimensions>()).computed[perspective]);
 
-    Square kingSq = pos.king_sq(perspective);
+    Square kingSq = pos.square<KING>(perspective);
 
     for (std::size_t idx = begin; ++idx < size;)
     {
@@ -796,7 +796,7 @@ void AccumulatorStack::backward_update_incremental(
     assert(end < size && size <= MaxSize);
     assert((state<FeatureSet>().template acc<Dimensions>()).computed[perspective]);
 
-    Square kingSq = pos.king_sq(perspective);
+    Square kingSq = pos.square<KING>(perspective);
 
     for (std::size_t idx = size ? size - 1 : 0; idx-- > end;)
         update_accumulator_incremental<false>(perspective, featureTransformer, kingSq,

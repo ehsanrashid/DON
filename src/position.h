@@ -88,14 +88,12 @@ struct State final {
 
     void clear() noexcept {
         std::memset(this, 0, sizeof(*this));
-        kingSq.fill(SQ_NONE);
         epSq = capSq = SQ_NONE;
     }
 
     // --- Copied when making a move
     StdArray<Key, COLOR_NB>    pawnKey;
     StdArray<Key, COLOR_NB, 2> nonPawnKey;
-    StdArray<Square, COLOR_NB> kingSq;
     StdArray<bool, COLOR_NB>   hasCastled;
 
     Square         epSq;
@@ -190,7 +188,6 @@ class Position final {
 
     template<PieceType PT>
     Square square(Color c) const noexcept;
-    Square king_sq(Color c) const noexcept;
     Square ep_sq() const noexcept;
     Square cap_sq() const noexcept;
 
@@ -429,9 +426,9 @@ inline Bitboard Position::pieces(Color c) const noexcept {
     if constexpr (PT == KNIGHT)
         return pieces(c, KNIGHT) & (~blockers(c));
     if constexpr (PT == BISHOP)
-        return pieces(c, BISHOP) & (~blockers(c) | attacks_bb<BISHOP>(king_sq(c)));
+        return pieces(c, BISHOP) & (~blockers(c) | attacks_bb<BISHOP>(square<KING>(c)));
     if constexpr (PT == ROOK)
-        return pieces(c, ROOK) & (~blockers(c) | attacks_bb<ROOK>(king_sq(c)));
+        return pieces(c, ROOK) & (~blockers(c) | attacks_bb<ROOK>(square<KING>(c)));
     return pieces(c, PT);
 }
 
@@ -465,10 +462,8 @@ inline std::uint8_t Position::count() const noexcept {
 template<PieceType PT>
 inline Square Position::square(Color c) const noexcept {
     assert(count<PT>(c) == 1);
-    return lsb(pieces(c, PT));
+    return piece_list<PT>(c)[0];
 }
-
-inline Square Position::king_sq(Color c) const noexcept { return st->kingSq[c]; }
 
 inline Square Position::ep_sq() const noexcept { return st->epSq; }
 
@@ -604,7 +599,7 @@ inline Key Position::major_key(Color c) const noexcept { return st->nonPawnKey[c
 inline Key Position::major_key() const noexcept { return major_key(WHITE) ^ major_key(BLACK); }
 
 inline Key Position::non_pawn_key(Color c) const noexcept {
-    Square kingSq = king_sq(c);
+    Square kingSq = square<KING>(c);
     return minor_key(c) ^ major_key(c) ^ Zobrist::piece_square(piece_on(kingSq), kingSq);
 }
 
@@ -756,7 +751,7 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
     Square sq           = pieceLists[pc].back();
     pieceLists[pc][idx] = sq;
     pieceIndex[sq]      = idx;
-    pieceIndex[s]       = -1;
+    //pieceIndex[s]       = -1;
     pieceLists[pc].pop_back();
 
     return pc;
@@ -781,7 +776,7 @@ inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts)
     assert(idx >= 0);
     pieceLists[pc][idx] = s2;
     pieceIndex[s2]      = idx;
-    pieceIndex[s1]      = -1;
+    //pieceIndex[s1]      = -1;
 
     if (dts != nullptr)
         update_piece_threats<true>(pc, s2, dts);

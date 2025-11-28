@@ -171,7 +171,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
         b = shift_bb<Push1>(on7Pawns) & empties;
         // Consider only blocking and capture squares
         if constexpr (Evasion)
-            b &= between_bb(pos.king_sq(AC), lsb(pos.checkers()));
+            b &= between_bb(pos.square<KING>(AC), lsb(pos.checkers()));
         moves = splat_promotion_moves<GT, Push1, false>(b, moves);
     }
 
@@ -218,7 +218,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
             {
                 Bitboard pin = b & pos.blockers(AC);
                 assert(!more_than_one(pin));
-                if (pin && !aligned(pos.king_sq(AC), pos.ep_sq(), lsb(pin)))
+                if (pin && !aligned(pos.square<KING>(AC), pos.ep_sq(), lsb(pin)))
                     b ^= pin;
             }
             assert(b);
@@ -240,8 +240,9 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
     for (Square org : pos.piece_list<PT>(AC))
     {
         Bitboard b = attacks_bb<PT>(org, pos.pieces()) & target;
-        if ((pos.blockers(AC) & org))
-            b &= line_bb(pos.king_sq(AC), org);
+
+        if (pos.blockers(AC) & org)
+            b &= line_bb(pos.square<KING>(AC), org);
 
         moves = splat_moves(org, b, moves);
     }
@@ -255,13 +256,13 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
 
     constexpr bool Castle = GT == ENCOUNTER || GT == ENC_QUIET;
 
-    Square kingSq = pos.king_sq(AC);
+    Square kingSq = pos.square<KING>(AC);
 
     Bitboard b = attacks_bb<KING>(kingSq) & target;
 
     if (b)
     {
-        b &= ~(pos.attacks<KNIGHT>(~AC) | attacks_bb<KING>(pos.king_sq(~AC)));
+        b &= ~(pos.attacks<KNIGHT>(~AC) | attacks_bb<KING>(pos.square<KING>(~AC)));
 
         Bitboard occupied = pos.pieces() ^ kingSq;
 
@@ -310,9 +311,9 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
         case ENCOUNTER :   target = ~pos.pieces(AC);                                     break;
         case ENC_CAPTURE : target =  pos.pieces(~AC);                                    break;
         case ENC_QUIET :   target = ~pos.pieces();                                       break;
-        case EVASION :     target = between_bb(pos.king_sq(AC), lsb(pos.checkers()));    break;
+        case EVASION :     target = between_bb(pos.square<KING>(AC), lsb(pos.checkers()));    break;
         case EVA_CAPTURE : target = pos.checkers();                                      break;
-        case EVA_QUIET :   target = between_ex_bb(pos.king_sq(AC), lsb(pos.checkers())); break;
+        case EVA_QUIET :   target = between_ex_bb(pos.square<KING>(AC), lsb(pos.checkers())); break;
         }
 
         const auto* pmoves = moves;
