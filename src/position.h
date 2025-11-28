@@ -114,7 +114,7 @@ struct State final {
 };
 
 // Position class stores information regarding the board representation as
-// pieces, active color, hash keys, castling info, etc. (Size = 560)
+// pieces, active color, hash keys, castling info, etc. (Size = 568)
 // Important methods are do_move() and undo_move(),
 // used by the search to update node info when traversing the search tree.
 class Position final {
