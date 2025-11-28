@@ -180,10 +180,21 @@ Position& Position::operator=(const Position& pos) noexcept {
     if (this == &pos)
         return *this;
 
-    std::memcpy(static_cast<void*>(this), &pos, sizeof(*this));
-
-    build_piece_lists();
-
+    pawnLists    = pos.pawnLists;
+    nonPawnLists = pos.nonPawnLists;
+    kingLists    = pos.kingLists;
+    // Don't copy *pieceLists, just pointers to the above lists
+    squareIndex        = pos.squareIndex;
+    pieceMap           = pos.pieceMap;
+    colorBB            = pos.colorBB;
+    typeBB             = pos.typeBB;
+    pieceCount         = pos.pieceCount;
+    castlingPath       = pos.castlingPath;
+    castlingRookSq     = pos.castlingRookSq;
+    castlingRightsMask = pos.castlingRightsMask;
+    activeColor        = pos.activeColor;
+    gamePly            = pos.gamePly;
+    // Don't copy *st pointer
     return *this;
 }
 

@@ -124,7 +124,7 @@ class Position final {
     static inline bool         Chess960      = false;
     static inline std::uint8_t DrawMoveCount = 50;
 
-    Position() noexcept { build_piece_lists(); }
+    Position() noexcept = default;
 
    private:
     Position(const Position&) noexcept = delete;
@@ -372,29 +372,29 @@ class Position final {
     // Static Exchange Evaluation
     bool see_ge(Move m, int threshold) const noexcept;
 
-    void build_piece_lists() noexcept {
-        pieceLists[WHITE][PAWN - 1]   = &pawnLists[WHITE];
-        pieceLists[WHITE][KNIGHT - 1] = &nonPawnLists[WHITE][0];
-        pieceLists[WHITE][BISHOP - 1] = &nonPawnLists[WHITE][1];
-        pieceLists[WHITE][ROOK - 1]   = &nonPawnLists[WHITE][2];
-        pieceLists[WHITE][QUEEN - 1]  = &nonPawnLists[WHITE][3];
-        pieceLists[WHITE][KING - 1]   = &kingLists[WHITE];
-
-        pieceLists[BLACK][PAWN - 1]   = &pawnLists[BLACK];
-        pieceLists[BLACK][KNIGHT - 1] = &nonPawnLists[BLACK][0];
-        pieceLists[BLACK][BISHOP - 1] = &nonPawnLists[BLACK][1];
-        pieceLists[BLACK][ROOK - 1]   = &nonPawnLists[BLACK][2];
-        pieceLists[BLACK][QUEEN - 1]  = &nonPawnLists[BLACK][3];
-        pieceLists[BLACK][KING - 1]   = &kingLists[BLACK];
-    }
-
     static constexpr std::size_t InvalidIndex = 64;
 
     StdArray<FixedVector<Square, 20>, COLOR_NB>    pawnLists;
     StdArray<FixedVector<Square, 16>, COLOR_NB, 4> nonPawnLists;
     StdArray<FixedVector<Square, 01>, COLOR_NB>    kingLists;
 
-    StdArray<IFixedVector<Square>*, COLOR_NB, PIECE_TYPE_NB - 2> pieceLists;
+    StdArray<IFixedVector<Square>*, COLOR_NB, PIECE_TYPE_NB - 2> pieceLists{
+      {{
+         &pawnLists[WHITE],        //
+         &nonPawnLists[WHITE][0],  //
+         &nonPawnLists[WHITE][1],  //
+         &nonPawnLists[WHITE][2],  //
+         &nonPawnLists[WHITE][3],  //
+         &kingLists[WHITE]         //
+       },
+       {
+         &pawnLists[BLACK],        //
+         &nonPawnLists[BLACK][0],  //
+         &nonPawnLists[BLACK][1],  //
+         &nonPawnLists[BLACK][2],  //
+         &nonPawnLists[BLACK][3],  //
+         &kingLists[BLACK]         //
+       }}};
 
     StdArray<std::uint8_t, SQUARE_NB>               squareIndex;
     StdArray<Piece, SQUARE_NB>                      pieceMap;
