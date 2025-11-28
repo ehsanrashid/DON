@@ -700,7 +700,7 @@ inline bool Position::capture(Move m) const noexcept {
 }
 
 inline bool Position::capture_queenpromo(Move m) const noexcept {
-    return capture(m) || (m.type_of() == PROMOTION && m.promotion_type() == QUEEN);
+    return capture(m) || m.promotion_type() == QUEEN;  // m.type_of() == PROMOTION must be true here
 }
 
 inline Piece Position::moved_piece(Move m) const noexcept {
