@@ -44,7 +44,7 @@ Move* write_moves(std::uint32_t mask, __m512i vector, Move* moves) noexcept {
 #endif
 
 // Splat pawn moves
-template<[[maybe_unused]] Color AC, Direction D>
+template<Color AC, Direction D>
 Move* splat_pawn_moves(Bitboard b, Move* moves) noexcept {
     static_assert(D == NORTH || D == SOUTH                 //
                     || D == NORTH_2 || D == SOUTH_2        //
@@ -53,6 +53,7 @@ Move* splat_pawn_moves(Bitboard b, Move* moves) noexcept {
                   "D is invalid");
 
 #if defined(USE_AVX512ICL)
+    (void) AC;
     alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr {
         StdArray<Move, SQUARE_NB> table{};
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -84,7 +85,7 @@ Move* splat_pawn_moves(Bitboard b, Move* moves) noexcept {
 }
 
 // Splat promotion moves
-template<[[maybe_unused]] Color AC, GenType GT, Direction D, bool Enemy>
+template<Color AC, GenType GT, Direction D, bool Enemy>
 Move* splat_promotion_moves(Bitboard b, Move* moves) noexcept {
     static_assert(D == NORTH || D == SOUTH                 //
                     || D == NORTH_EAST || D == SOUTH_EAST  //
@@ -117,9 +118,11 @@ Move* splat_promotion_moves(Bitboard b, Move* moves) noexcept {
 }
 
 // Splat moves
+template<Color AC>
 Move* splat_moves(Square org, Bitboard b, Move* moves) noexcept {
 
 #if defined(USE_AVX512ICL)
+    (void) AC;
     alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr {
         StdArray<Move, SQUARE_NB> table{};
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -137,7 +140,15 @@ Move* splat_moves(Square org, Bitboard b, Move* moves) noexcept {
                         _mm512_or_si512(_mm512_load_si512(table + 1), orgVec), moves);
 #else
     while (b)
-        *moves++ = Move(org, pop_lsb(b));
+    {
+        Square s;
+        if constexpr (AC == WHITE)
+            s = pop_msb(b);
+        else
+            s = pop_lsb(b);
+
+        *moves++ = Move(org, s);
+    }
 #endif
 
     return moves;
@@ -261,7 +272,7 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
         if (pos.blockers(AC) & org)
             b &= line_bb(pos.square<KING>(AC), org);
 
-        moves = splat_moves(org, b, moves);
+        moves = splat_moves<AC>(org, b, moves);
     }
 
     return moves;
@@ -284,12 +295,20 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
         Bitboard occupied = pos.pieces() ^ kingSq;
 
         while (b)
-            if (Square s = pop_lsb(b); !(pos.slide_attackers_to(s, occupied) & pos.pieces(~AC)))
+        {
+            Square s;
+            if constexpr (AC == WHITE)
+                s = pop_msb(b);
+            else
+                s = pop_lsb(b);
+
+            if (!(pos.slide_attackers_to(s, occupied) & pos.pieces(~AC)))
             {
                 *moves++ = Move(kingSq, s);
                 if constexpr (Any)
                     return moves;
             }
+        }
     }
 
     if constexpr (Castle)
