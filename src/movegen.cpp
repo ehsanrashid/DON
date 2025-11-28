@@ -44,7 +44,7 @@ Move* write_moves(std::uint32_t mask, __m512i vector, Move* moves) noexcept {
 #endif
 
 // Splat pawn moves
-template<Direction D>
+template<[[maybe_unused]] Color AC, Direction D>
 Move* splat_pawn_moves(Bitboard b, Move* moves) noexcept {
     static_assert(D == NORTH || D == SOUTH                 //
                     || D == NORTH_2 || D == SOUTH_2        //
@@ -70,7 +70,12 @@ Move* splat_pawn_moves(Bitboard b, Move* moves) noexcept {
 #else
     while (b)
     {
-        Square s = pop_lsb(b);
+        Square s;
+        if constexpr (AC == WHITE)
+            s = pop_msb(b);
+        else
+            s = pop_lsb(b);
+
         *moves++ = Move(s - D, s);
     }
 #endif
@@ -79,7 +84,7 @@ Move* splat_pawn_moves(Bitboard b, Move* moves) noexcept {
 }
 
 // Splat promotion moves
-template<GenType GT, Direction D, bool Enemy>
+template<[[maybe_unused]] Color AC, GenType GT, Direction D, bool Enemy>
 Move* splat_promotion_moves(Bitboard b, Move* moves) noexcept {
     static_assert(D == NORTH || D == SOUTH                 //
                     || D == NORTH_EAST || D == SOUTH_EAST  //
@@ -92,7 +97,11 @@ Move* splat_promotion_moves(Bitboard b, Move* moves) noexcept {
 
     while (b)
     {
-        Square s = pop_lsb(b);
+        Square s;
+        if constexpr (AC == WHITE)
+            s = pop_msb(b);
+        else
+            s = pop_lsb(b);
 
         if constexpr (All || Capture)
             *moves++ = Move(s - D, s, QUEEN);
@@ -163,16 +172,16 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
         Bitboard b;
 
         b     = shift_bb<LCap>(on7Pawns) & enemies;
-        moves = splat_promotion_moves<GT, LCap, true>(b, moves);
+        moves = splat_promotion_moves<AC, GT, LCap, true>(b, moves);
 
         b     = shift_bb<RCap>(on7Pawns) & enemies;
-        moves = splat_promotion_moves<GT, RCap, true>(b, moves);
+        moves = splat_promotion_moves<AC, GT, RCap, true>(b, moves);
 
         b = shift_bb<Push1>(on7Pawns) & empties;
         // Consider only blocking and capture squares
         if constexpr (Evasion)
             b &= between_bb(pos.square<KING>(AC), lsb(pos.checkers()));
-        moves = splat_promotion_moves<GT, Push1, false>(b, moves);
+        moves = splat_promotion_moves<AC, GT, Push1, false>(b, moves);
     }
 
     // Single and double pawn pushes, no promotions
@@ -188,8 +197,8 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
             b2 &= target;
         }
 
-        moves = splat_pawn_moves<Push1>(b1, moves);
-        moves = splat_pawn_moves<Push2>(b2, moves);
+        moves = splat_pawn_moves<AC, Push1>(b1, moves);
+        moves = splat_pawn_moves<AC, Push2>(b2, moves);
     }
 
     // Standard and en-passant captures
@@ -198,10 +207,10 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
         Bitboard b;
 
         b     = shift_bb<LCap>(non7Pawns) & enemies;
-        moves = splat_pawn_moves<LCap>(b, moves);
+        moves = splat_pawn_moves<AC, LCap>(b, moves);
 
         b     = shift_bb<RCap>(non7Pawns) & enemies;
-        moves = splat_pawn_moves<RCap>(b, moves);
+        moves = splat_pawn_moves<AC, RCap>(b, moves);
 
         if (is_ok(pos.ep_sq()))
         {
@@ -224,7 +233,15 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
             assert(b);
 
             while (b)
-                *moves++ = Move(EN_PASSANT, pop_lsb(b), pos.ep_sq());
+            {
+                Square s;
+                if constexpr (AC == WHITE)
+                    s = pop_lsb(b);
+                else
+                    s = pop_msb(b);
+
+                *moves++ = Move(EN_PASSANT, s, pos.ep_sq());
+            }
         }
     }
 
