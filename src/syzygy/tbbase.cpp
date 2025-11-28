@@ -430,8 +430,8 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept :
 
     hasUniquePieces = false;
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt = PAWN; pt < KING; ++pt)
-            if (pos.count(c, pt) == 1)
+        for (PieceType pt : PieceTypes)
+            if (pos.count(c, pt) == 1 && pt != KING)
                 hasUniquePieces = true;
 
     // Set the leading color. In case both sides have pawns the leading color
@@ -1299,10 +1299,10 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
         return entry.baseAddress;
 
     // Pieces strings in decreasing order for each color, like ("KPP","KR")
-    std::string pieces[COLOR_NB]{};
+    StdArray<std::string, COLOR_NB> pieces{};
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt = KING; pt >= PAWN; --pt)
-            pieces[c].append(pos.count(c, pt), to_char(pt));
+        for (auto itr = PieceTypes.rbegin(); itr != PieceTypes.rend(); ++itr)
+            pieces[c].append(pos.count(c, *itr), to_char(*itr));
 
     std::string fname = (materialKey == entry.key[WHITE] ? pieces[WHITE] + 'v' + pieces[BLACK]
                                                          : pieces[BLACK] + 'v' + pieces[WHITE])

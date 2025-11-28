@@ -151,10 +151,8 @@ constexpr StdArray<PieceType, PIECE_TYPE_NB - 2> PieceTypes{
 
 enum Piece : std::uint8_t {
     NO_PIECE,
-    W_ALL = 0,
-    B_ALL = 8,
-    W_PAWN = PAWN + W_ALL, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
-    B_PAWN = PAWN + B_ALL, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
+    W_PAWN = PAWN + 0, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
+    B_PAWN = PAWN + 8, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
     PIECE_NB = 16
 };
 // clang-format on
