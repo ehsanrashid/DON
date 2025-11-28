@@ -82,7 +82,7 @@ struct AccumulatorCaches final {
 
             StdArray<BiasType, Size>              accumulation;
             StdArray<PSQTWeightType, PSQTBuckets> psqtAccumulation;
-            StdArray<Piece, SQUARE_NB>            pieceArr;
+            StdArray<Piece, SQUARE_NB>            pieceMap;
             Bitboard                              pieces;
         };
 

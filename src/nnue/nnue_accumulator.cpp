@@ -386,23 +386,23 @@ void update_accumulator_refresh_cache(Color                                 pers
                                       AccumulatorState<PSQFeatureSet>&      accState,
                                       AccumulatorCaches::Cache<Dimensions>& cache) noexcept {
 
-    Square kingSq = pos.king_sq(perspective);
+    Square kingSq = pos.square<KING>(perspective);
 
     auto& entry = cache[kingSq][perspective];
 
     PSQFeatureSet::IndexList removed, added;
 
-    const auto& pieceArr = pos.piece_arr();
+    const auto& pieceMap = pos.piece_map();
     const auto  pieces   = pos.pieces();
 
-    Bitboard changedBB = changed_bb(entry.pieceArr, pieceArr);
+    Bitboard changedBB = changed_bb(entry.pieceMap, pieceMap);
 
     Bitboard removedBB = changedBB & entry.pieces;
-    PSQFeatureSet::append_active_indices(perspective, kingSq, entry.pieceArr, removedBB, removed);
+    PSQFeatureSet::append_active_indices(perspective, kingSq, entry.pieceMap, removedBB, removed);
     Bitboard addedBB = changedBB & pieces;
-    PSQFeatureSet::append_active_indices(perspective, kingSq, pieceArr, addedBB, added);
+    PSQFeatureSet::append_active_indices(perspective, kingSq, pieceMap, addedBB, added);
 
-    entry.pieceArr = pieceArr;
+    entry.pieceMap = pieceMap;
     entry.pieces   = pieces;
 
     auto& accumulator = accState.acc<Dimensions>();
@@ -738,7 +738,7 @@ void AccumulatorStack::forward_update_incremental(
     assert(begin < size && size <= MaxSize);
     assert((accumulators<FeatureSet>()[begin].template acc<Dimensions>()).computed[perspective]);
 
-    Square kingSq = pos.king_sq(perspective);
+    Square kingSq = pos.square<KING>(perspective);
 
     for (std::size_t idx = begin; ++idx < size;)
     {
@@ -796,7 +796,7 @@ void AccumulatorStack::backward_update_incremental(
     assert(end < size && size <= MaxSize);
     assert((state<FeatureSet>().template acc<Dimensions>()).computed[perspective]);
 
-    Square kingSq = pos.king_sq(perspective);
+    Square kingSq = pos.square<KING>(perspective);
 
     for (std::size_t idx = size ? size - 1 : 0; idx-- > end;)
         update_accumulator_incremental<false>(perspective, featureTransformer, kingSq,

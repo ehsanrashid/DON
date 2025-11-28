@@ -181,7 +181,7 @@ void FullThreats::init() noexcept {
 void FullThreats::append_active_indices(Color           perspective,
                                         const Position& pos,
                                         IndexList&      active) noexcept {
-    Square kingSq = pos.king_sq(perspective);
+    Square kingSq = pos.square<KING>(perspective);
 
     Bitboard occupied = pos.pieces();
     for (Color color : {WHITE, BLACK})

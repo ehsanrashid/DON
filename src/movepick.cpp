@@ -148,7 +148,7 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
                                                         : 0);
 
         // Penalty for moving pinner piece.
-        m.value -= 0x400 * ((pos.pinners() & org) && !aligned(pos.king_sq(~ac), org, dst));
+        m.value -= 0x400 * ((pos.pinners() & org) && !aligned(pos.square<KING>(~ac), org, dst));
     }
     return itr;
 }

@@ -120,6 +120,23 @@ enum CastlingRights : std::uint8_t {
     CASTLING_RIGHTS_NB = 16
 };
 
+constexpr std::uint8_t cr_lsb(CastlingRights cr) noexcept {
+    switch (cr)
+    {
+    case WHITE_OO :
+        return 0;
+    case WHITE_OOO :
+        return 1;
+    case BLACK_OO :
+        return 2;
+    case BLACK_OOO :
+        return 3;
+    default :
+        assert(false && "cr_lsb(): Invalid CastlingRights");
+        return 4;
+    }
+}
+
 // clang-format off
 enum PieceType : std::int8_t {
     NO_PIECE_TYPE,
@@ -128,26 +145,24 @@ enum PieceType : std::int8_t {
     PIECE_TYPE_NB = 8
 };
 
-constexpr StdArray<PieceType, 6> PieceTypes{
+constexpr StdArray<PieceType, PIECE_TYPE_NB - 2> PieceTypes{
   PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
 };
 
 enum Piece : std::uint8_t {
     NO_PIECE,
-    W_ALL = 0,
-    B_ALL = 8,
-    W_PAWN = PAWN + W_ALL, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
-    B_PAWN = PAWN + B_ALL, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
+    W_PAWN = PAWN + 0, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
+    B_PAWN = PAWN + 8, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
     PIECE_NB = 16
 };
 // clang-format on
 static_assert(sizeof(Piece) == 1);
 
-constexpr StdArray<Piece, COLOR_NB, 6> Pieces{{
+constexpr StdArray<Piece, COLOR_NB, PIECE_TYPE_NB - 2> Pieces{{
   {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING},  //
   {B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING}   //
 }};
-constexpr StdArray<Piece, COLOR_NB, 4> NonPawnPieces{{
+constexpr StdArray<Piece, COLOR_NB, PIECE_TYPE_NB - 4> NonPawnPieces{{
   {W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN},  //
   {B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN}   //
 }};

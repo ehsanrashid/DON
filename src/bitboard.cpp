@@ -43,31 +43,6 @@ constexpr StdArray<std::size_t, 2> TableSizes{0x1480, 0x19000};
 alignas(CACHE_LINE_SIZE) StdArray<Bitboard, TableSizes[0]> BishopTable{};  // Stores bishop attacks
 alignas(CACHE_LINE_SIZE) StdArray<Bitboard, TableSizes[1]> RookTable{};    // Stores rook attacks
 
-template<typename T>
-class TableView final {
-   public:
-    constexpr TableView() noexcept = default;
-
-    constexpr TableView(T* data, std::size_t size) noexcept :
-        _data(data),
-        _size(size) {}
-
-    constexpr T*          data() const noexcept { return _data; }
-    constexpr std::size_t size() const noexcept { return _size; }
-
-    constexpr T& operator[](std::size_t idx) const noexcept {
-        assert(idx < _size);
-        return _data[idx];
-    }
-
-    constexpr T* begin() const noexcept { return _data; }
-    constexpr T* end() const noexcept { return _data + _size; }
-
-   private:
-    T*          _data = nullptr;
-    std::size_t _size = 0;
-};
-
 using TableSpan = StdArray<TableView<Bitboard>, 2>;
 
 alignas(CACHE_LINE_SIZE) constexpr TableSpan Tables{

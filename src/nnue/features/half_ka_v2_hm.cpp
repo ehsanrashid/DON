@@ -92,13 +92,13 @@ ALWAYS_INLINE IndexType make_index(Color perspective, Square kingSq, Square s, P
 // Get a list of indices for active features
 void HalfKAv2_hm::append_active_indices(Color                             perspective,
                                         Square                            kingSq,
-                                        const StdArray<Piece, SQUARE_NB>& pieceArr,
+                                        const StdArray<Piece, SQUARE_NB>& pieceMap,
                                         Bitboard                          occupied,
                                         IndexList&                        active) noexcept {
     while (occupied)
     {
         Square s = pop_lsb(occupied);
-        active.push_back(make_index(perspective, kingSq, s, pieceArr[s]));
+        active.push_back(make_index(perspective, kingSq, s, pieceMap[s]));
     }
 }
 
