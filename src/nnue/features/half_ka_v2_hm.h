@@ -56,7 +56,7 @@ class HalfKAv2_hm final {
     // Get a list of indices for active features
     static void append_active_indices(Color                             perspective,
                                       Square                            kingSq,
-                                      const StdArray<Piece, SQUARE_NB>& pieceArr,
+                                      const StdArray<Piece, SQUARE_NB>& pieceMap,
                                       Bitboard                          occupied,
                                       IndexList&                        active) noexcept;
 

@@ -179,15 +179,16 @@ void Position::init() noexcept {
 void Position::clear() noexcept {
     //std::memset(pieceIndex.data(), -1, sizeof(pieceIndex));
 
-    std::memset(pieceArr.data(), NO_PIECE, sizeof(pieceArr));
+    std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
     std::memset(colorBB.data(), 0, sizeof(colorBB));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
-
-    std::memset(static_cast<void*>(pieceLists.data()), 0, sizeof(pieceLists));
-
     std::memset(castlingPath.data(), 0, sizeof(castlingPath));
     std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
     std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));
+
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PieceTypes)
+            pieceLists[c][pt - 1].clear();
 
     activeColor = COLOR_NB;
     gamePly     = 0;
@@ -2040,7 +2041,7 @@ bool Position::pos_is_ok() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (Piece pc : Pieces[c])
             if (count(pc) != popcount(pieces(color_of(pc), type_of(pc)))
-                || count(pc) != std::count(piece_arr().begin(), piece_arr().end(), pc))
+                || count(pc) != std::count(piece_map().begin(), piece_map().end(), pc))
                 assert(false && "Position::pos_is_ok(): Piece List Count");
 
     for (Color c : {WHITE, BLACK})

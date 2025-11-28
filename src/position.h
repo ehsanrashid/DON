@@ -142,7 +142,7 @@ class Position final {
     std::string fen(bool full = true) const noexcept;
 
     // Position representation
-    [[nodiscard]] const auto& piece_arr() const noexcept;
+    [[nodiscard]] const auto& piece_map() const noexcept;
     [[nodiscard]] const auto& color_bb() const noexcept;
     [[nodiscard]] const auto& type_bb() const noexcept;
     [[nodiscard]] const auto& piece_lists() const noexcept;
@@ -368,12 +368,11 @@ class Position final {
     bool see_ge(Move m, int threshold) const noexcept;
 
     static constexpr std::size_t PieceCapacity = 16;
-
-    using PieceList = FixedVector<Square, PieceCapacity>;
+    using PieceList                            = FixedVector<Square, PieceCapacity>;
 
     // Data members
     StdArray<std::int8_t, SQUARE_NB>                 pieceIndex;
-    StdArray<Piece, SQUARE_NB>                       pieceArr;
+    StdArray<Piece, SQUARE_NB>                       pieceMap;
     StdArray<Bitboard, COLOR_NB>                     colorBB;
     StdArray<Bitboard, PIECE_TYPE_NB>                typeBB;
     StdArray<PieceList, COLOR_NB, PIECE_TYPE_NB - 2> pieceLists;
@@ -385,7 +384,7 @@ class Position final {
     State*                                           st;
 };
 
-inline const auto& Position::piece_arr() const noexcept { return pieceArr; }
+inline const auto& Position::piece_map() const noexcept { return pieceMap; }
 
 inline const auto& Position::color_bb() const noexcept { return colorBB; }
 
@@ -393,13 +392,13 @@ inline const auto& Position::type_bb() const noexcept { return typeBB; }
 
 inline const auto& Position::piece_lists() const noexcept { return pieceLists; }
 
-inline Piece Position::operator[](Square s) const noexcept { return pieceArr[s]; }
+inline Piece Position::operator[](Square s) const noexcept { return pieceMap[s]; }
 
 inline Bitboard Position::operator[](Color c) const noexcept { return colorBB[c]; }
 
 inline Bitboard Position::operator[](PieceType pt) const noexcept { return typeBB[pt]; }
 
-inline Piece Position::piece_on(Square s) const noexcept { return pieceArr[s]; }
+inline Piece Position::piece_on(Square s) const noexcept { return pieceMap[s]; }
 
 inline bool Position::empty_on(Square s) const noexcept { return piece_on(s) == NO_PIECE; }
 
@@ -725,7 +724,7 @@ inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noe
     assert(is_ok(s) && is_ok(pc));
     Bitboard sbb = square_bb(s);
 
-    pieceArr[s] = pc;
+    pieceMap[s] = pc;
     colorBB[color_of(pc)] |= sbb;
     typeBB[ALL_PIECE] |= typeBB[type_of(pc)] |= sbb;
     auto& pieceList = piece_list(pc);
@@ -746,7 +745,7 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
     if (dts != nullptr)
         update_piece_threats<false>(pc, s, dts);
 
-    pieceArr[s] = NO_PIECE;
+    pieceMap[s] = NO_PIECE;
     colorBB[color_of(pc)] ^= sbb;
     typeBB[type_of(pc)] ^= sbb;
     typeBB[ALL_PIECE] ^= sbb;
@@ -772,8 +771,8 @@ inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts)
     if (dts != nullptr)
         update_piece_threats<false>(pc, s1, dts);
 
-    pieceArr[s1] = NO_PIECE;
-    pieceArr[s2] = pc;
+    pieceMap[s1] = NO_PIECE;
+    pieceMap[s2] = pc;
     colorBB[color_of(pc)] ^= s1s2bb;
     typeBB[type_of(pc)] ^= s1s2bb;
     typeBB[ALL_PIECE] ^= s1s2bb;
