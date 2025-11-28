@@ -120,6 +120,23 @@ enum CastlingRights : std::uint8_t {
     CASTLING_RIGHTS_NB = 16
 };
 
+constexpr std::uint8_t cr_lsb(CastlingRights cr) noexcept {
+    switch (cr)
+    {
+    case WHITE_OO :
+        return 0;
+    case WHITE_OOO :
+        return 1;
+    case BLACK_OO :
+        return 2;
+    case BLACK_OOO :
+        return 3;
+    default :
+        assert(false && "cr_lsb(): Invalid CastlingRights");
+        return 4;
+    }
+}
+
 // clang-format off
 enum PieceType : std::int8_t {
     NO_PIECE_TYPE,

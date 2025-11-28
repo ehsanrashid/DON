@@ -167,6 +167,31 @@ class SyncOstream final {
 
 inline SyncOstream sync_os(std::ostream& os = std::cout) { return SyncOstream(os); }
 
+template<typename T>
+class TableView final {
+   public:
+    constexpr TableView() noexcept = default;
+
+    constexpr TableView(T* data, std::size_t size) noexcept :
+        _data(data),
+        _size(size) {}
+
+    constexpr T*          data() const noexcept { return _data; }
+    constexpr std::size_t size() const noexcept { return _size; }
+
+    constexpr T& operator[](std::size_t idx) const noexcept {
+        assert(idx < size());
+        return _data[idx];
+    }
+
+    constexpr T* begin() const noexcept { return data(); }
+    constexpr T* end() const noexcept { return data() + size(); }
+
+   private:
+    T*          _data = nullptr;
+    std::size_t _size = 0;
+};
+
 template<typename T, std::size_t Size, std::size_t... Sizes>
 class MultiArray;
 
@@ -455,25 +480,29 @@ class FixedVector final {
 
     bool push_back(const T& value) noexcept {
         assert(size() < capacity());
-        if (size() >= capacity())
-            return false;
         _data[_size++] = value;  // copy-assign into pre-initialized slot
         return true;
     }
     bool push_back(T&& value) noexcept {
         assert(size() < capacity());
-        if (size() >= capacity())
-            return false;
         _data[_size++] = std::move(value);
         return true;
     }
     template<typename... Args>
     bool emplace_back(Args&&... args) noexcept {
         assert(size() < capacity());
-        if (size() >= capacity())
-            return false;
         _data[_size++] = T(std::forward<Args>(args)...);
         return true;
+    }
+
+    void pop_back() noexcept {
+        assert(size() > 0);
+        --_size;
+    }
+
+    T back() noexcept {
+        assert(size() > 0);
+        return _data[_size - 1];
     }
 
     constexpr const T* data() const noexcept { return _data.data(); }

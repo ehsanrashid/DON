@@ -172,17 +172,17 @@ void Position::init() noexcept {
 }
 
 void Position::clear() noexcept {
+    //std::memset(pieceIndex.data(), -1, sizeof(pieceIndex));
+
     std::memset(pieceArr.data(), NO_PIECE, sizeof(pieceArr));
     std::memset(colorBB.data(), 0, sizeof(colorBB));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
-    std::memset(pieceIndex.data(), -1, sizeof(pieceIndex));
+
+    std::memset(static_cast<void*>(pieceLists.data()), 0, sizeof(pieceLists));
+
     std::memset(castlingPath.data(), 0, sizeof(castlingPath));
     std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
     std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));
-
-    for (Color c : {WHITE, BLACK})
-        for (Piece pc : Pieces[c])
-            pieceLists[pc].clear();
 
     activeColor = COLOR_NB;
     gamePly     = 0;
@@ -416,11 +416,11 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 
     set_ext_state();
 
-    // Reset illegal values
+    // Reset illegal fields
     if (is_ok(ep_sq()))
     {
         reset_rule50_count();
-        if (!(epCheck && can_enpassant(ac, ep_sq())))
+        if (epCheck && !can_enpassant(ac, ep_sq()))
             reset_ep_sq();
     }
     assert(rule50_count() <= 100);
@@ -547,9 +547,9 @@ void Position::set_castling_rights(Color c, Square rOrg) noexcept {
     assert(relative_rank(c, kOrg) == RANK_1);
     assert((pieces(c, KING) & kOrg));
 
-    int cr = make_castling_rights(c, kOrg, rOrg);
+    CastlingRights cr = make_castling_rights(c, kOrg, rOrg);
 
-    std::size_t crLsb = lsb(cr);
+    std::size_t crLsb = cr_lsb(cr);
     assert(crLsb < castlingRookSq.size());
     assert(!is_ok(castlingRookSq[crLsb]));
 
