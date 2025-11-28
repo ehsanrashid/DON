@@ -57,6 +57,7 @@ enum Command : std::uint8_t {
     CMD_BENCH,
     CMD_BENCHMARK,
     CMD_SHOW,
+    CMD_DUMP,
     CMD_EVAL,
     CMD_FLIP,
     CMD_MIRROR,
@@ -81,6 +82,7 @@ const std::unordered_map<std::string_view, Command> CommandMap{
   {"bench",      CMD_BENCH},
   {"benchmark",  CMD_BENCHMARK},
   {"show",       CMD_SHOW},
+  {"dump",       CMD_DUMP},
   {"eval",       CMD_EVAL},
   {"flip",       CMD_FLIP},
   {"mirror",     CMD_MIRROR},
@@ -291,6 +293,9 @@ void UCI::execute(std::string_view command) noexcept {
         break;
     case CMD_SHOW :
         engine.show();
+        break;
+    case CMD_DUMP :
+        engine.dump();
         break;
     case CMD_EVAL :
         engine.eval();

@@ -180,27 +180,33 @@ Position& Position::operator=(const Position& pos) noexcept {
     if (this == &pos)
         return *this;
 
-    pawnLists    = pos.pawnLists;
-    nonPawnLists = pos.nonPawnLists;
-    kingLists    = pos.kingLists;
+    std::memcpy(static_cast<void*>(_20Lists.data()), static_cast<const void*>(pos._20Lists.data()),
+                sizeof(_20Lists));
+    std::memcpy(static_cast<void*>(_16Lists.data()), static_cast<const void*>(pos._16Lists.data()),
+                sizeof(_16Lists));
+    std::memcpy(static_cast<void*>(_01Lists.data()), static_cast<const void*>(pos._01Lists.data()),
+                sizeof(_01Lists));
+
+    std::memcpy(squareIndex.data(), pos.squareIndex.data(), sizeof(squareIndex));
+    std::memcpy(pieceMap.data(), pos.pieceMap.data(), sizeof(pieceMap));
+    std::memcpy(colorBB.data(), pos.colorBB.data(), sizeof(colorBB));
+    std::memcpy(typeBB.data(), pos.typeBB.data(), sizeof(typeBB));
     // Don't copy *pieceLists, just pointers to the above lists
-    squareIndex        = pos.squareIndex;
-    pieceMap           = pos.pieceMap;
-    colorBB            = pos.colorBB;
-    typeBB             = pos.typeBB;
-    pieceCount         = pos.pieceCount;
-    castlingPath       = pos.castlingPath;
-    castlingRookSq     = pos.castlingRookSq;
-    castlingRightsMask = pos.castlingRightsMask;
-    activeColor        = pos.activeColor;
-    gamePly            = pos.gamePly;
+    std::memcpy(pieceCount.data(), pos.pieceCount.data(), sizeof(pieceCount));
+    std::memcpy(castlingPath.data(), pos.castlingPath.data(), sizeof(castlingPath));
+    std::memcpy(castlingRookSq.data(), pos.castlingRookSq.data(), sizeof(castlingRookSq));
+    std::memcpy(castlingRightsMask.data(), pos.castlingRightsMask.data(),
+                sizeof(castlingRightsMask));
+
+    activeColor = pos.activeColor;
+    gamePly     = pos.gamePly;
     // Don't copy *st pointer
     return *this;
 }
 
 void Position::clear() noexcept {
     // No need to clear squareIndex as it is always overwritten when placing pieces
-    //std::memset(squareIndex.data(), InvalidIndex, sizeof(squareIndex));
+    std::memset(squareIndex.data(), InvalidIndex, sizeof(squareIndex));
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
     std::memset(colorBB.data(), 0, sizeof(colorBB));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
@@ -2085,6 +2091,56 @@ bool Position::_is_ok() const noexcept {
 
     return true;
 }
+
+void Position::dump(std::ostream& os) const noexcept {
+    os << "Position dump:\n";
+
+    os << *this << "\n";
+
+    os << "Color Bitboards:\n";
+    for (Color c : {WHITE, BLACK})
+    {
+        os << (c == WHITE ? "W" : "B") << ": ";
+        os << u64_to_string(pieces(c)) << "\n";
+    }
+
+    os << "Piece Bitboards:\n";
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PieceTypes)
+        {
+            os << to_char(make_piece(c, pt)) << ": ";
+            os << u64_to_string(pieces(c, pt)) << "\n";
+        }
+
+    os << "Piece Lists:\n";
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PieceTypes)
+        {
+            os << to_char(make_piece(c, pt)) << ": ";
+            for (Square s : piece_list(c, pt))
+                os << to_square(s) << " ";
+            os << "\n";
+        }
+
+    for (Rank r = RANK_8; r >= RANK_1; --r)
+        for (File f = FILE_A; f <= FILE_H; ++f)
+        {
+            Square s = make_square(f, r);
+
+            if (squareIndex[s] == InvalidIndex)
+                os << "**";
+            else
+                os << std::setw(2) << std::setfill('0') << int(squareIndex[s]);
+            os << " ";
+            if (file_of(s) == FILE_H)
+                os << "\n";
+        }
+
+    os << std::setfill(' ');
+
+    flush(os);
+}
+
 #endif
 
 // Returns ASCII representation of the position as string

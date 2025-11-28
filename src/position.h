@@ -307,6 +307,8 @@ class Position final {
     Key compute_non_pawn_key() const noexcept;
 
     bool _is_ok() const noexcept;
+
+    void dump(std::ostream& os) const noexcept;
 #endif
 
     // Used by NNUE
@@ -374,26 +376,26 @@ class Position final {
 
     static constexpr std::size_t InvalidIndex = 64;
 
-    StdArray<FixedVector<Square, 20>, COLOR_NB>    pawnLists;
-    StdArray<FixedVector<Square, 16>, COLOR_NB, 4> nonPawnLists;
-    StdArray<FixedVector<Square, 01>, COLOR_NB>    kingLists;
+    StdArray<FixedVector<Square, 20>, COLOR_NB>    _20Lists;
+    StdArray<FixedVector<Square, 16>, COLOR_NB, 4> _16Lists;
+    StdArray<FixedVector<Square, 01>, COLOR_NB>    _01Lists;
 
     StdArray<IFixedVector<Square>*, COLOR_NB, PIECE_TYPE_NB - 2> pieceLists{
       {{
-         &pawnLists[WHITE],        //
-         &nonPawnLists[WHITE][0],  //
-         &nonPawnLists[WHITE][1],  //
-         &nonPawnLists[WHITE][2],  //
-         &nonPawnLists[WHITE][3],  //
-         &kingLists[WHITE]         //
+         &_20Lists[WHITE],     //
+         &_16Lists[WHITE][0],  //
+         &_16Lists[WHITE][1],  //
+         &_16Lists[WHITE][2],  //
+         &_16Lists[WHITE][3],  //
+         &_01Lists[WHITE]      //
        },
        {
-         &pawnLists[BLACK],        //
-         &nonPawnLists[BLACK][0],  //
-         &nonPawnLists[BLACK][1],  //
-         &nonPawnLists[BLACK][2],  //
-         &nonPawnLists[BLACK][3],  //
-         &kingLists[BLACK]         //
+         &_20Lists[BLACK],     //
+         &_16Lists[BLACK][0],  //
+         &_16Lists[BLACK][1],  //
+         &_16Lists[BLACK][2],  //
+         &_16Lists[BLACK][3],  //
+         &_01Lists[BLACK]      //
        }}};
 
     StdArray<std::uint8_t, SQUARE_NB>               squareIndex;
