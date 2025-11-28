@@ -177,7 +177,7 @@ void Position::init() noexcept {
 }
 
 void Position::clear() noexcept {
-    //std::memset(pieceIndex.data(), -1, sizeof(pieceIndex));
+    //std::memset(pieceIndex.data(), PieceCapacity, sizeof(pieceIndex));
 
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
     std::memset(colorBB.data(), 0, sizeof(colorBB));

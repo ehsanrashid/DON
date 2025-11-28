@@ -371,7 +371,7 @@ class Position final {
     using PieceList                            = FixedVector<Square, PieceCapacity>;
 
     // Data members
-    StdArray<std::int8_t, SQUARE_NB>                 pieceIndex;
+    StdArray<std::uint8_t, SQUARE_NB>                pieceIndex;
     StdArray<Piece, SQUARE_NB>                       pieceMap;
     StdArray<Bitboard, COLOR_NB>                     colorBB;
     StdArray<Bitboard, PIECE_TYPE_NB>                typeBB;
@@ -750,12 +750,12 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
     typeBB[type_of(pc)] ^= sbb;
     typeBB[ALL_PIECE] ^= sbb;
     auto idx = pieceIndex[s];
-    assert(0 <= idx && idx < 16);
+    assert(idx < PieceCapacity);
     auto&  pieceList = piece_list(pc);
     Square sq        = pieceList.back();
     pieceList[idx]   = sq;
     pieceIndex[sq]   = idx;
-    //pieceIndex[s]    = -1;
+    //pieceIndex[s]    = PieceCapacity;
     pieceList.pop_back();
 
     return pc;
@@ -777,11 +777,11 @@ inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts)
     typeBB[type_of(pc)] ^= s1s2bb;
     typeBB[ALL_PIECE] ^= s1s2bb;
     auto idx = pieceIndex[s1];
-    assert(0 <= idx && idx < 16);
+    assert(idx < PieceCapacity);
     auto& pieceList = piece_list(pc);
     pieceList[idx]  = s2;
     pieceIndex[s2]  = idx;
-    //pieceIndex[s1]  = -1;
+    //pieceIndex[s1]  = PieceCapacity;
 
     if (dts != nullptr)
         update_piece_threats<true>(pc, s2, dts);
