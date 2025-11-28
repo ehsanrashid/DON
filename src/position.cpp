@@ -163,6 +163,11 @@ void Zobrist::init() noexcept {
     std::generate(MR50.begin(), MR50.end(), prng_rand);
 }
 
+void State::clear() noexcept {
+    std::memset(this, 0, sizeof(*this));
+    epSq = capSq = SQ_NONE;
+}
+
 // Called at startup to initialize the Zobrist and Cuckoo tables.
 void Position::init() noexcept {
 

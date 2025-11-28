@@ -27,7 +27,6 @@
 #include <iosfwd>
 #include <string>
 #include <string_view>
-#include <vector>
 
 #include "bitboard.h"
 #include "misc.h"
@@ -86,10 +85,7 @@ struct State final {
    public:
     State() noexcept = default;
 
-    void clear() noexcept {
-        std::memset(this, 0, sizeof(*this));
-        epSq = capSq = SQ_NONE;
-    }
+    void clear() noexcept;
 
     // --- Copied when making a move
     StdArray<Key, COLOR_NB>    pawnKey;
