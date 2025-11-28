@@ -734,10 +734,13 @@ inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noe
     assert(is_ok(s) && is_ok(pc));
     Bitboard sbb = square_bb(s);
 
+    auto c  = color_of(pc);
+    auto pt = type_of(pc);
+
     pieceMap[s] = pc;
-    colorBB[color_of(pc)] |= sbb;
-    typeBB[ALL_PIECE] |= typeBB[type_of(pc)] |= sbb;
-    auto& pieceList = piece_list(pc);
+    colorBB[c] |= sbb;
+    typeBB[ALL_PIECE] |= typeBB[pt] |= sbb;
+    auto& pieceList = piece_list(c, pt);
     pieceIndex[s]   = pieceList.size();
     pieceList.push_back(s);
 
@@ -750,18 +753,20 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
     Bitboard sbb = square_bb(s);
 
     Piece pc = piece_on(s);
-    assert(is_ok(pc) && count(pc));
+    auto  c  = color_of(pc);
+    auto  pt = type_of(pc);
+    assert(is_ok(pc) && count(c, pt));
 
     if (dts != nullptr)
         update_piece_threats<false>(pc, s, dts);
 
     pieceMap[s] = NO_PIECE;
-    colorBB[color_of(pc)] ^= sbb;
-    typeBB[type_of(pc)] ^= sbb;
+    colorBB[c] ^= sbb;
+    typeBB[pt] ^= sbb;
     typeBB[ALL_PIECE] ^= sbb;
     auto idx = pieceIndex[s];
     assert(idx < PieceCapacity);
-    auto&  pieceList = piece_list(pc);
+    auto&  pieceList = piece_list(c, pt);
     Square sq        = pieceList.back();
     pieceList[idx]   = sq;
     pieceIndex[sq]   = idx;
@@ -776,19 +781,21 @@ inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts)
     Bitboard s1s2bb = make_bb(s1, s2);
 
     Piece pc = piece_on(s1);
-    assert(is_ok(pc));
+    auto  c  = color_of(pc);
+    auto  pt = type_of(pc);
+    assert(is_ok(pc) && count(c, pt));
 
     if (dts != nullptr)
         update_piece_threats<false>(pc, s1, dts);
 
     pieceMap[s1] = NO_PIECE;
     pieceMap[s2] = pc;
-    colorBB[color_of(pc)] ^= s1s2bb;
-    typeBB[type_of(pc)] ^= s1s2bb;
+    colorBB[c] ^= s1s2bb;
+    typeBB[pt] ^= s1s2bb;
     typeBB[ALL_PIECE] ^= s1s2bb;
     auto idx = pieceIndex[s1];
     assert(idx < PieceCapacity);
-    auto& pieceList = piece_list(pc);
+    auto& pieceList = piece_list(c, pt);
     pieceList[idx]  = s2;
     pieceIndex[s2]  = idx;
     //pieceIndex[s1]  = PieceCapacity;
