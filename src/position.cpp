@@ -177,11 +177,14 @@ void Position::init() noexcept {
 }
 
 void Position::clear() noexcept {
+    // No need to clear pieceIndex as it is always overwritten when placing pieces
     //std::memset(pieceIndex.data(), PieceCapacity, sizeof(pieceIndex));
-
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
     std::memset(colorBB.data(), 0, sizeof(colorBB));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
+    // FixedVector has no trivial data, so manually cleared below
+    //std::memset(pieceLists.data(), 0, sizeof(pieceLists));
+    std::memset(pieceCount.data(), 0, sizeof(pieceCount));
     std::memset(castlingPath.data(), 0, sizeof(castlingPath));
     std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
     std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));

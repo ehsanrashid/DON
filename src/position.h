@@ -177,6 +177,7 @@ class Position final {
     template<PieceType PT>
     std::uint8_t count(Color c) const noexcept;
     std::uint8_t count(Piece pc) const noexcept;
+    std::uint8_t count(Color c) const noexcept;
     template<PieceType PT>
     std::uint8_t count() const noexcept;
 
@@ -378,6 +379,7 @@ class Position final {
     StdArray<Bitboard, COLOR_NB>                     colorBB;
     StdArray<Bitboard, PIECE_TYPE_NB>                typeBB;
     StdArray<PieceList, COLOR_NB, PIECE_TYPE_NB - 2> pieceLists;
+    StdArray<std::uint8_t, COLOR_NB>                 pieceCount;
     StdArray<Bitboard, COLOR_NB * CASTLING_SIDE_NB>  castlingPath;
     StdArray<Square, COLOR_NB * CASTLING_SIDE_NB>    castlingRookSq;
     StdArray<std::uint8_t, COLOR_NB * FILE_NB + 1>   castlingRightsMask;
@@ -462,11 +464,12 @@ inline std::uint8_t Position::count(Piece pc) const noexcept {
     return count(color_of(pc), type_of(pc));
 }
 
+inline std::uint8_t Position::count(Color c) const noexcept { return pieceCount[c]; }
+
 template<PieceType PT>
 inline std::uint8_t Position::count() const noexcept {
     if constexpr (PT == ALL_PIECE)
-        return count<PAWN>() + count<KNIGHT>() + count<BISHOP>()  //
-             + count<ROOK>() + count<QUEEN>() + count<KING>();
+        return count(WHITE) + count(BLACK);
 
     return count<PT>(WHITE) + count<PT>(BLACK);
 }
@@ -743,6 +746,7 @@ inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noe
     auto& pieceList = piece_list(c, pt);
     pieceIndex[s]   = pieceList.size();
     pieceList.push_back(s);
+    ++pieceCount[c];
 
     if (dts != nullptr)
         update_piece_threats<true>(pc, s, dts);
@@ -772,6 +776,7 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
     pieceIndex[sq]   = idx;
     //pieceIndex[s]    = PieceCapacity;
     pieceList.pop_back();
+    --pieceCount[c];
 
     return pc;
 }
