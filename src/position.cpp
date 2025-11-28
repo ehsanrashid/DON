@@ -2013,16 +2013,6 @@ bool Position::pos_is_ok() const noexcept {
     if ((pieces(PAWN) & PROMOTION_RANK_BB) || count(W_PAWN) > 8 || count(B_PAWN) > 8)
         assert(false && "Position::pos_is_ok(): Pawns");
 
-    for (Color c : {WHITE, BLACK})
-        if (count<PAWN>(c)                                                         //
-              + std::max(count<KNIGHT>(c) - 2, 0)                                  //
-              + std::max(popcount(pieces(c, BISHOP) & colors_bb<WHITE>()) - 1, 0)  //
-              + std::max(popcount(pieces(c, BISHOP) & colors_bb<BLACK>()) - 1, 0)  //
-              + std::max(count<ROOK>(c) - 2, 0)                                    //
-              + std::max(count<QUEEN>(c) - 1, 0)                                   //
-            > 8)
-            assert(false && "Position::pos_is_ok(): Piece Count");
-
     if ((pieces(WHITE) & pieces(BLACK)) || (pieces(WHITE) | pieces(BLACK)) != pieces()
         || popcount(pieces(WHITE)) > 16 || popcount(pieces(BLACK)) > 16)
         assert(false && "Position::pos_is_ok(): Bitboards");
@@ -2033,16 +2023,28 @@ bool Position::pos_is_ok() const noexcept {
                 assert(false && "Position::pos_is_ok(): Bitboards");
 
     for (Color c : {WHITE, BLACK})
-        for (Piece pc : Pieces[c])
-            for (std::size_t i = 0; i < piece_list(pc).size(); ++i)
-                if (piece_on(piece_list(pc)[i]) != pc || pieceIndex[piece_list(pc)[i]] != int(i))
+        for (PieceType pt : PieceTypes)
+            for (std::size_t i = 0; i < piece_list(c, pt).size(); ++i)
+                if (piece_on(piece_list(c, pt)[i]) != make_piece(c, pt)
+                    || pieceIndex[piece_list(c, pt)[i]] != int(i))
                     assert(0 && "pos_is_ok: Piece List");
 
     for (Color c : {WHITE, BLACK})
-        for (Piece pc : Pieces[c])
-            if (count(pc) != popcount(pieces(color_of(pc), type_of(pc)))
-                || count(pc) != std::count(piece_map().begin(), piece_map().end(), pc))
+        for (PieceType pt : PieceTypes)
+            if (count(c, pt) != popcount(pieces(c, pt))
+                || count(c, pt)
+                     != std::count(piece_map().begin(), piece_map().end(), make_piece(c, pt)))
                 assert(false && "Position::pos_is_ok(): Piece List Count");
+
+    for (Color c : {WHITE, BLACK})
+        if (count<PAWN>(c)                                                         //
+              + std::max(count<KNIGHT>(c) - 2, 0)                                  //
+              + std::max(popcount(pieces(c, BISHOP) & colors_bb<WHITE>()) - 1, 0)  //
+              + std::max(popcount(pieces(c, BISHOP) & colors_bb<BLACK>()) - 1, 0)  //
+              + std::max(count<ROOK>(c) - 2, 0)                                    //
+              + std::max(count<QUEEN>(c) - 1, 0)                                   //
+            > 8)
+            assert(false && "Position::pos_is_ok(): Piece Count");
 
     for (Color c : {WHITE, BLACK})
         for (CastlingRights cr : {c & KING_SIDE, c & QUEEN_SIDE})

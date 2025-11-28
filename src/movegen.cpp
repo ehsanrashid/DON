@@ -308,28 +308,28 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
     {
         switch (GT)
         {
-        case ENCOUNTER :   target = ~pos.pieces(AC);                                     break;
-        case ENC_CAPTURE : target =  pos.pieces(~AC);                                    break;
-        case ENC_QUIET :   target = ~pos.pieces();                                       break;
+        case ENCOUNTER :   target = ~pos.pieces(AC);                                          break;
+        case ENC_CAPTURE : target =  pos.pieces(~AC);                                         break;
+        case ENC_QUIET :   target = ~pos.pieces();                                            break;
         case EVASION :     target = between_bb(pos.square<KING>(AC), lsb(pos.checkers()));    break;
-        case EVA_CAPTURE : target = pos.checkers();                                      break;
+        case EVA_CAPTURE : target = pos.checkers();                                           break;
         case EVA_QUIET :   target = between_ex_bb(pos.square<KING>(AC), lsb(pos.checkers())); break;
         }
 
-        const auto* pmoves = moves;
+        const auto* pMoves = moves;
         moves = generate_pawns_moves<AC, GT    >(pos, moves, target);
-        if (Any && ((pmoves + 0 < moves && pos.legal(pmoves[0]))
-                 || (pmoves + 1 < moves && pos.legal(pmoves[1]))
-                 || (pmoves + 2 < moves && pos.legal(pmoves[2])))) return moves;
-        pmoves = moves;
+        if (Any && ((pMoves + 0 < moves && pos.legal(pMoves[0]))
+                 || (pMoves + 1 < moves && pos.legal(pMoves[1]))
+                 || (pMoves + 2 < moves && pos.legal(pMoves[2])))) return moves;
+        pMoves = moves;
         moves = generate_piece_moves<AC, KNIGHT>(pos, moves, target);
-        if (Any && pmoves != moves) return moves;
+        if (Any && pMoves != moves) return moves;
         moves = generate_piece_moves<AC, BISHOP>(pos, moves, target);
-        if (Any && pmoves != moves) return moves;
+        if (Any && pMoves != moves) return moves;
         moves = generate_piece_moves<AC, ROOK  >(pos, moves, target);
-        if (Any && pmoves != moves) return moves;
+        if (Any && pMoves != moves) return moves;
         moves = generate_piece_moves<AC, QUEEN >(pos, moves, target);
-        if (Any && pmoves != moves) return moves;
+        if (Any && pMoves != moves) return moves;
     }
 
     if constexpr (Evasion)

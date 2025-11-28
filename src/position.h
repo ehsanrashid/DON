@@ -163,23 +163,26 @@ class Position final {
     template<PieceType PT>
     Bitboard pieces(Color c) const noexcept;
 
-    [[nodiscard]] const auto& piece_list(Piece pc) const noexcept;
+    [[nodiscard]] const auto& piece_list(Color c, PieceType pt) const noexcept;
     template<PieceType PT>
     [[nodiscard]] const auto& piece_list(Color c) const noexcept;
+    [[nodiscard]] const auto& piece_list(Piece pc) const noexcept;
 
-    [[nodiscard]] auto& piece_list(Piece pc) noexcept;
+    [[nodiscard]] auto& piece_list(Color c, PieceType pt) noexcept;
     template<PieceType PT>
     [[nodiscard]] auto& piece_list(Color c) noexcept;
+    [[nodiscard]] auto& piece_list(Piece pc) noexcept;
 
-    std::uint8_t count(Piece pc) const noexcept;
     std::uint8_t count(Color c, PieceType pt) const noexcept;
     template<PieceType PT>
     std::uint8_t count(Color c) const noexcept;
+    std::uint8_t count(Piece pc) const noexcept;
     template<PieceType PT>
     std::uint8_t count() const noexcept;
 
     template<PieceType PT>
     Square square(Color c) const noexcept;
+
     Square ep_sq() const noexcept;
     Square cap_sq() const noexcept;
 
@@ -370,7 +373,6 @@ class Position final {
     static constexpr std::size_t PieceCapacity = 16;
     using PieceList                            = FixedVector<Square, PieceCapacity>;
 
-    // Data members
     StdArray<std::uint8_t, SQUARE_NB>                pieceIndex;
     StdArray<Piece, SQUARE_NB>                       pieceMap;
     StdArray<Bitboard, COLOR_NB>                     colorBB;
@@ -421,26 +423,30 @@ inline Bitboard Position::pieces(Color c) const noexcept {
     return pieces(c, PT);
 }
 
-inline const auto& Position::piece_list(Piece pc) const noexcept {
-    return pieceLists[color_of(pc)][type_of(pc) - 1];
+inline const auto& Position::piece_list(Color c, PieceType pt) const noexcept {
+    return pieceLists[c][pt - 1];
 }
 
 template<PieceType PT>
 inline const auto& Position::piece_list(Color c) const noexcept {
-    return pieceLists[c][PT - 1];
+    return piece_list(c, PT);
 }
 
-inline auto& Position::piece_list(Piece pc) noexcept {
-    return pieceLists[color_of(pc)][type_of(pc) - 1];
+inline const auto& Position::piece_list(Piece pc) const noexcept {
+    return piece_list(color_of(pc), type_of(pc));
+}
+
+inline auto& Position::piece_list(Color c, PieceType pt) noexcept {  //
+    return pieceLists[c][pt - 1];
 }
 
 template<PieceType PT>
 inline auto& Position::piece_list(Color c) noexcept {
-    return pieceLists[c][PT - 1];
+    return piece_list(c, PT);
 }
 
-inline std::uint8_t Position::count(Piece pc) const noexcept {
-    return pieceLists[color_of(pc)][type_of(pc) - 1].size();
+inline auto& Position::piece_list(Piece pc) noexcept {
+    return piece_list(color_of(pc), type_of(pc));
 }
 
 inline std::uint8_t Position::count(Color c, PieceType pt) const noexcept {
@@ -450,6 +456,10 @@ inline std::uint8_t Position::count(Color c, PieceType pt) const noexcept {
 template<PieceType PT>
 inline std::uint8_t Position::count(Color c) const noexcept {
     return count(c, PT);
+}
+
+inline std::uint8_t Position::count(Piece pc) const noexcept {
+    return count(color_of(pc), type_of(pc));
 }
 
 template<PieceType PT>
