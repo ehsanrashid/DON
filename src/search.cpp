@@ -884,7 +884,7 @@ Value Worker::search(Position&    pos,
     // Step 6. Tablebases probe
     if (!RootNode && !exclude && tbConfig.cardinality)
     {
-        auto pieceCount = pos.count<ALL_PIECE>();
+        auto pieceCount = pos.count();
 
         if (pieceCount <= tbConfig.cardinality
             && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth)

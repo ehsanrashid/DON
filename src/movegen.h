@@ -70,21 +70,21 @@ struct MoveList final {
     MoveList& operator=(const MoveList&) noexcept = delete;
     MoveList& operator=(MoveList&&) noexcept      = delete;
 
-    [[nodiscard]] const_iterator begin() const noexcept { return moves.data(); }
-    [[nodiscard]] const_iterator end() const noexcept { return endMove; }
-    [[nodiscard]] iterator       begin() noexcept { return moves.data(); }
-    [[nodiscard]] iterator       end() noexcept { return endMove; }
-
     [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
     [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
+
+    [[nodiscard]] iterator       begin() noexcept { return moves.data(); }
+    [[nodiscard]] iterator       end() noexcept { return endMove; }
+    [[nodiscard]] const_iterator begin() const noexcept { return moves.data(); }
+    [[nodiscard]] const_iterator end() const noexcept { return endMove; }
 
     [[nodiscard]] const_iterator find(Move m) const noexcept {
         return std::find(begin(), end(), m);
     }
     [[nodiscard]] bool contains(Move m) const noexcept { return find(m) != end(); }
 
-    [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }
     [[nodiscard]] pointer       data() noexcept { return moves.data(); }
+    [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }
 
     //#if defined(__cpp_lib_span) && __cpp_lib_span >= 202002L
     //    // Optional: span view (C++20)

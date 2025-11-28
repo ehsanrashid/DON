@@ -458,25 +458,60 @@ class MultiVector final {
     VectorType _data = make_std_vector<ElementType>(Size);
 };
 
+template<typename T>
+struct IFixedVector {
+    virtual ~IFixedVector() = default;
+
+    virtual std::size_t capacity() const noexcept = 0;
+
+    virtual std::size_t size() const noexcept  = 0;
+    virtual bool        empty() const noexcept = 0;
+    virtual bool        full() const noexcept  = 0;
+
+    virtual T*       begin() noexcept        = 0;
+    virtual T*       end() noexcept          = 0;
+    virtual const T* begin() const noexcept  = 0;
+    virtual const T* end() const noexcept    = 0;
+    virtual const T* cbegin() const noexcept = 0;
+    virtual const T* cend() const noexcept   = 0;
+
+    virtual bool push_back(const T&) noexcept = 0;
+
+    virtual void pop_back() noexcept = 0;
+
+    virtual T&       back() noexcept       = 0;
+    virtual const T& back() const noexcept = 0;
+
+    virtual T*       data() noexcept       = 0;
+    virtual const T* data() const noexcept = 0;
+
+    virtual T&       operator[](std::size_t idx) noexcept       = 0;
+    virtual const T& operator[](std::size_t idx) const noexcept = 0;
+
+    virtual bool set_size(std::size_t newSize) noexcept = 0;
+
+    virtual void clear() noexcept = 0;
+};
+
 template<typename T, std::size_t Capacity>
-class FixedVector final {
+class FixedVector final: public IFixedVector<T> {
     static_assert(Capacity > 0, "Capacity must be > 0");
 
    public:
     constexpr FixedVector() noexcept = default;
 
-    [[nodiscard]] static constexpr std::size_t capacity() noexcept { return Capacity; }
+    [[nodiscard]] constexpr std::size_t capacity() const noexcept { return Capacity; }
 
     [[nodiscard]] constexpr std::size_t size() const noexcept { return _size; }
     [[nodiscard]] constexpr bool        empty() const noexcept { return size() == 0; }
     [[nodiscard]] constexpr bool        full() const noexcept { return size() == capacity(); }
 
-    constexpr const T* begin() const noexcept { return data(); }
-    constexpr const T* end() const noexcept { return begin() + size(); }
-    constexpr const T* cbegin() const noexcept { return data(); }
-    constexpr const T* cend() const noexcept { return cbegin() + size(); }
-    constexpr T*       begin() noexcept { return data(); }
-    constexpr T*       end() noexcept { return begin() + size(); }
+    T*       begin() noexcept { return data(); }
+    T*       end() noexcept { return begin() + size(); }
+    const T* begin() const noexcept { return data(); }
+    const T* end() const noexcept { return begin() + size(); }
+    const T* cbegin() const noexcept { return data(); }
+    const T* cend() const noexcept { return cbegin() + size(); }
 
     bool push_back(const T& value) noexcept {
         assert(size() < capacity());
@@ -500,20 +535,24 @@ class FixedVector final {
         --_size;
     }
 
-    T back() noexcept {
+    T& back() noexcept {
+        assert(size() > 0);
+        return _data[_size - 1];
+    }
+    const T& back() const noexcept {
         assert(size() > 0);
         return _data[_size - 1];
     }
 
-    constexpr const T* data() const noexcept { return _data.data(); }
     constexpr T*       data() noexcept { return _data.data(); }
+    constexpr const T* data() const noexcept { return _data.data(); }
 
-    constexpr const T& operator[](std::size_t idx) const noexcept {
+    constexpr T& operator[](std::size_t idx) noexcept {
         assert(idx < size());
         assert(size() <= capacity());
         return _data[idx];
     }
-    constexpr T& operator[](std::size_t idx) noexcept {
+    constexpr const T& operator[](std::size_t idx) const noexcept {
         assert(idx < size());
         assert(size() <= capacity());
         return _data[idx];
@@ -563,11 +602,24 @@ class FixedString final {
     [[nodiscard]] constexpr bool        empty() const noexcept { return size() == 0; }
     [[nodiscard]] constexpr bool        full() const noexcept { return size() == capacity(); }
 
+    constexpr char*       begin() noexcept { return data(); }
+    constexpr char*       end() noexcept { return begin() + size(); }
+    constexpr const char* begin() const noexcept { return data(); }
+    constexpr const char* end() const noexcept { return begin() + size(); }
+    constexpr const char* cbegin() const noexcept { return data(); }
+    constexpr const char* cend() const noexcept { return cbegin() + size(); }
+
     constexpr const char* c_str() const noexcept { return _data.data(); }
     constexpr const char* data() const noexcept { return _data.data(); }
 
-    constexpr const char& operator[](std::size_t idx) const { return _data[idx]; }
-    constexpr char&       operator[](std::size_t idx) { return _data[idx]; }
+    constexpr char& operator[](std::size_t idx) {
+        assert(idx < size());
+        return _data[idx];
+    }
+    constexpr const char& operator[](std::size_t idx) const {
+        assert(idx < size());
+        return _data[idx];
+    }
 
     void null_terminate() noexcept { _data[_size] = '\0'; }
 
@@ -581,7 +633,7 @@ class FixedString final {
         return *this;
     }
 
-    FixedString& operator+=(const FixedString& fixStr) { return (*this += fixStr.c_str()); }
+    FixedString& operator+=(const FixedString& fixedStr) { return (*this += fixedStr.c_str()); }
 
     operator std::string() const noexcept { return std::string(data(), size()); }
     operator std::string_view() const noexcept { return std::string_view(data(), size()); }
@@ -980,8 +1032,8 @@ std::optional<std::string> read_file_to_string(std::string_view filePath) noexce
 
 template<std::size_t N>
 struct std::hash<DON::FixedString<N>> {
-    std::size_t operator()(const DON::FixedString<N>& fixStr) const noexcept {
-        return std::hash<std::string_view>{}((std::string_view) fixStr);
+    std::size_t operator()(const DON::FixedString<N>& fixedStr) const noexcept {
+        return std::hash<std::string_view>{}((std::string_view) fixedStr);
     }
 };
 
