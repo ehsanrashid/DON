@@ -389,8 +389,6 @@ class Position final {
     State*                                           st;
 };
 
-//static_assert(sizeof(Position) == 560, "Position size");
-
 inline const auto& Position::piece_arr() const noexcept { return pieceArr; }
 
 inline const auto& Position::color_bb() const noexcept { return colorBB; }
