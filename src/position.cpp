@@ -172,21 +172,17 @@ void Position::init() noexcept {
 }
 
 void Position::clear() noexcept {
-    //pieceArr.fill(NO_PIECE);
-    //colorBB.fill(0);
-    //typeBB.fill(0);
-    //pieceCount.fill(0);
-    //castlingPath.fill(0);
-    //castlingRookSq.fill(SQ_NONE);
-    //castlingRightsMask.fill(0);
-
     std::memset(pieceArr.data(), NO_PIECE, sizeof(pieceArr));
     std::memset(colorBB.data(), 0, sizeof(colorBB));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
-    std::memset(pieceCount.data(), 0, sizeof(pieceCount));
+    std::memset(pieceIndex.data(), -1, sizeof(pieceIndex));
     std::memset(castlingPath.data(), 0, sizeof(castlingPath));
     std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
     std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));
+
+    for (Color c : {WHITE, BLACK})
+        for (Piece pc : Pieces[c])
+            pieceLists[pc].clear();
 
     activeColor = COLOR_NB;
     gamePly     = 0;
@@ -281,9 +277,17 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
                 assert(false && "Position::set(): Invalid Piece");
         }
     }
+
     assert(file <= FILE_NB && rank == RANK_1);
-    assert(count(W_ALL) <= 16 && count(B_ALL) <= 16);
-    assert(count(W_ALL) + count(B_ALL) == count<ALL_PIECE>());
+    assert(count<PAWN>(WHITE) + count<KNIGHT>(WHITE) + count<BISHOP>(WHITE)  //
+               + count<ROOK>(WHITE) + count<QUEEN>(WHITE) + count<KING>(WHITE)
+             <= 16
+           && count<PAWN>(BLACK) + count<KNIGHT>(BLACK) + count<BISHOP>(BLACK)  //
+                  + count<ROOK>(BLACK) + count<QUEEN>(BLACK) + count<KING>(BLACK)
+                <= 16);
+    assert(count<PAWN>() + count<KNIGHT>() + count<BISHOP>()  //
+             + count<ROOK>() + count<QUEEN>() + count<KING>()
+           == count<ALL_PIECE>());
     assert(count(W_PAWN) <= 8 && count(B_PAWN) <= 8);
     assert(count(W_KING) == 1 && count(B_KING) == 1);
     assert(is_ok(king_sq(WHITE)) && is_ok(king_sq(BLACK)));
@@ -2036,9 +2040,15 @@ bool Position::pos_is_ok() const noexcept {
 
     for (Color c : {WHITE, BLACK})
         for (Piece pc : Pieces[c])
+            for (std::size_t i = 0; i < piece_list(pc).size(); ++i)
+                if (piece_on(piece_list(pc)[i]) != pc || pieceIndex[piece_list(pc)[i]] != int(i))
+                    assert(0 && "pos_is_ok: Piece List");
+
+    for (Color c : {WHITE, BLACK})
+        for (Piece pc : Pieces[c])
             if (count(pc) != popcount(pieces(color_of(pc), type_of(pc)))
-                || count(pc) != std::count(pieceArr.begin(), pieceArr.end(), pc))
-                assert(false && "Position::pos_is_ok(): Pieces");
+                || count(pc) != std::count(piece_arr().begin(), piece_arr().end(), pc))
+                assert(false && "Position::pos_is_ok(): Piece List Count");
 
     for (Color c : {WHITE, BLACK})
         for (CastlingRights cr : {c & KING_SIDE, c & QUEEN_SIDE})

@@ -237,13 +237,10 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
                   "Unsupported piece type in generate_piece_moves()");
     assert(!pos.checkers() || !more_than_one(pos.checkers()));
 
-    Bitboard pc = pos.pieces<PT>(AC);
-    while (pc)
+    for (Square org : pos.piece_list<PT>(AC))
     {
-        Square org = pop_lsb(pc);
-
         Bitboard b = attacks_bb<PT>(org, pos.pieces()) & target;
-        if (PT != KNIGHT && (pos.blockers(AC) & org))
+        if ((pos.blockers(AC) & org))
             b &= line_bb(pos.king_sq(AC), org);
 
         moves = splat_moves(org, b, moves);
