@@ -176,14 +176,24 @@ void Position::init() noexcept {
     Cuckoos.init();
 }
 
+Position& Position::operator=(const Position& pos) noexcept {
+    if (this == &pos)
+        return *this;
+
+    std::memcpy(static_cast<void*>(this), &pos, sizeof(*this));
+
+    build_piece_lists();
+
+    return *this;
+}
+
 void Position::clear() noexcept {
     // No need to clear squareIndex as it is always overwritten when placing pieces
     //std::memset(squareIndex.data(), InvalidIndex, sizeof(squareIndex));
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
     std::memset(colorBB.data(), 0, sizeof(colorBB));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
-    // FixedVector has no trivial data, so manually cleared below
-    //std::memset(pieceLists.data(), 0, sizeof(pieceLists));
+    // pieceLists contains pointers are cleared below
     std::memset(pieceCount.data(), 0, sizeof(pieceCount));
     std::memset(castlingPath.data(), 0, sizeof(castlingPath));
     std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
@@ -191,7 +201,7 @@ void Position::clear() noexcept {
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
-            pieceLists[c][pt - 1]->clear();
+            piece_list(c, pt).clear();
 
     activeColor = COLOR_NB;
     gamePly     = 0;

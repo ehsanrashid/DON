@@ -124,13 +124,13 @@ class Position final {
     static inline bool         Chess960      = false;
     static inline std::uint8_t DrawMoveCount = 50;
 
-    Position() noexcept = default;
+    Position() noexcept { build_piece_lists(); }
 
    private:
-    Position(const Position&) noexcept            = delete;
-    Position(Position&&) noexcept                 = delete;
-    Position& operator=(const Position&) noexcept = default;
-    Position& operator=(Position&&) noexcept      = delete;
+    Position(const Position&) noexcept = delete;
+    Position(Position&&) noexcept      = delete;
+    Position& operator=(const Position& pos) noexcept;
+    Position& operator=(Position&&) noexcept = delete;
 
    public:
     void clear() noexcept;
@@ -372,32 +372,29 @@ class Position final {
     // Static Exchange Evaluation
     bool see_ge(Move m, int threshold) const noexcept;
 
+    void build_piece_lists() noexcept {
+        pieceLists[WHITE][PAWN - 1]   = &pawnLists[WHITE];
+        pieceLists[WHITE][KNIGHT - 1] = &nonPawnLists[WHITE][0];
+        pieceLists[WHITE][BISHOP - 1] = &nonPawnLists[WHITE][1];
+        pieceLists[WHITE][ROOK - 1]   = &nonPawnLists[WHITE][2];
+        pieceLists[WHITE][QUEEN - 1]  = &nonPawnLists[WHITE][3];
+        pieceLists[WHITE][KING - 1]   = &kingLists[WHITE];
+
+        pieceLists[BLACK][PAWN - 1]   = &pawnLists[BLACK];
+        pieceLists[BLACK][KNIGHT - 1] = &nonPawnLists[BLACK][0];
+        pieceLists[BLACK][BISHOP - 1] = &nonPawnLists[BLACK][1];
+        pieceLists[BLACK][ROOK - 1]   = &nonPawnLists[BLACK][2];
+        pieceLists[BLACK][QUEEN - 1]  = &nonPawnLists[BLACK][3];
+        pieceLists[BLACK][KING - 1]   = &kingLists[BLACK];
+    }
+
     static constexpr std::size_t InvalidIndex = 64;
 
-    StdArray<FixedVector<Square, 20>, COLOR_NB> pawnLists;
-    StdArray<FixedVector<Square, 16>, COLOR_NB> knightLists;
-    StdArray<FixedVector<Square, 16>, COLOR_NB> bishopLists;
-    StdArray<FixedVector<Square, 16>, COLOR_NB> rookLists;
-    StdArray<FixedVector<Square, 12>, COLOR_NB> queenLists;
-    StdArray<FixedVector<Square, 01>, COLOR_NB> kingLists;
+    StdArray<FixedVector<Square, 20>, COLOR_NB>    pawnLists;
+    StdArray<FixedVector<Square, 16>, COLOR_NB, 4> nonPawnLists;
+    StdArray<FixedVector<Square, 01>, COLOR_NB>    kingLists;
 
-    StdArray<IFixedVector<Square>*, COLOR_NB, PIECE_TYPE_NB - 2> pieceLists{
-      {{
-         &pawnLists[WHITE],    //
-         &knightLists[WHITE],  //
-         &bishopLists[WHITE],  //
-         &rookLists[WHITE],    //
-         &queenLists[WHITE],   //
-         &kingLists[WHITE]     //
-       },
-       {
-         &pawnLists[BLACK],    //
-         &knightLists[BLACK],  //
-         &bishopLists[BLACK],  //
-         &rookLists[BLACK],    //
-         &queenLists[BLACK],   //
-         &kingLists[BLACK]     //
-       }}};
+    StdArray<IFixedVector<Square>*, COLOR_NB, PIECE_TYPE_NB - 2> pieceLists;
 
     StdArray<std::uint8_t, SQUARE_NB>               squareIndex;
     StdArray<Piece, SQUARE_NB>                      pieceMap;
@@ -478,7 +475,7 @@ inline auto& Position::piece_list(Piece pc) noexcept {
 }
 
 inline std::uint8_t Position::count(Color c, PieceType pt) const noexcept {
-    return pieceLists[c][pt - 1]->size();
+    return (*pieceLists[c][pt - 1]).size();
 }
 
 template<PieceType PT>
