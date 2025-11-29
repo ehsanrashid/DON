@@ -414,10 +414,10 @@ class Position final {
     StdArray<Piece, SQUARE_NB>                      pieceMap;
     StdArray<Bitboard, COLOR_NB>                    colorBB;
     StdArray<Bitboard, PIECE_TYPE_NB>               typeBB;
-    StdArray<std::uint8_t, COLOR_NB>                pieceCount;
     StdArray<Bitboard, COLOR_NB * CASTLING_SIDE_NB> castlingPath;
     StdArray<Square, COLOR_NB * CASTLING_SIDE_NB>   castlingRookSq;
-    StdArray<std::uint8_t, COLOR_NB * FILE_NB + 1>  castlingRightsMask;
+    StdArray<std::uint8_t, COLOR_NB * FILE_NB>      castlingRightsMask;
+    StdArray<std::uint8_t, COLOR_NB>                pieceCount;
     Color                                           activeColor;
     std::int16_t                                    gamePly;
     State*                                          st;
@@ -591,7 +591,8 @@ inline auto Position::castling_rights_mask(Square org, Square dst) const noexcep
         return indices;
     }();
 
-    return castlingRightsMask[Indices[org]] | castlingRightsMask[Indices[dst]];
+    return (Indices[org] < castlingRightsMask.size() ? castlingRightsMask[Indices[org]] : 0)
+         | (Indices[dst] < castlingRightsMask.size() ? castlingRightsMask[Indices[dst]] : 0);
 }
 
 // clang-format off

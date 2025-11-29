@@ -193,11 +193,11 @@ Position& Position::operator=(const Position& pos) noexcept {
     std::memcpy(pieceMap.data(), pos.pieceMap.data(), sizeof(pieceMap));
     std::memcpy(colorBB.data(), pos.colorBB.data(), sizeof(colorBB));
     std::memcpy(typeBB.data(), pos.typeBB.data(), sizeof(typeBB));
-    std::memcpy(pieceCount.data(), pos.pieceCount.data(), sizeof(pieceCount));
     std::memcpy(castlingPath.data(), pos.castlingPath.data(), sizeof(castlingPath));
     std::memcpy(castlingRookSq.data(), pos.castlingRookSq.data(), sizeof(castlingRookSq));
     std::memcpy(castlingRightsMask.data(), pos.castlingRightsMask.data(),
                 sizeof(castlingRightsMask));
+    std::memcpy(pieceCount.data(), pos.pieceCount.data(), sizeof(pieceCount));
 
     nonKingLists = pos.nonKingLists;
     kingLists    = pos.kingLists;
@@ -210,15 +210,15 @@ Position& Position::operator=(const Position& pos) noexcept {
 }
 
 void Position::clear() noexcept {
-    // No need to clear squareIndex as it is always overwritten when putting/removing pieces
+    // No need to clear pieceListMap as it is always overwritten when putting/removing pieces
     std::memset(pieceListMap.data(), InvalidIndex, sizeof(pieceListMap));
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
     std::memset(colorBB.data(), 0, sizeof(colorBB));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
-    std::memset(pieceCount.data(), 0, sizeof(pieceCount));
     std::memset(castlingPath.data(), 0, sizeof(castlingPath));
     std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
     std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));
+    std::memset(pieceCount.data(), 0, sizeof(pieceCount));
 
     for (Color c : {WHITE, BLACK})
     {
@@ -600,20 +600,19 @@ void Position::set_castling_rights(Color c, Square rOrg) noexcept {
 
     CastlingRights cr = make_castling_rights(c, kOrg, rOrg);
 
-    std::size_t crLsb = cr_lsb(cr);
-    assert(crLsb < castlingRookSq.size());
-    assert(!is_ok(castlingRookSq[crLsb]));
+    assert(!is_ok(castling_rook_sq(cr)));
 
     st->castlingRights |= cr;
     castlingRightsMask[c * FILE_NB + file_of(kOrg)] |= cr;
     castlingRightsMask[c * FILE_NB + file_of(rOrg)] = cr;
 
-    castlingRookSq[crLsb] = rOrg;
+    castlingRookSq[cr_lsb(cr)] = rOrg;
 
     Square kDst = king_castle_sq(c, kOrg, rOrg);
     Square rDst = rook_castle_sq(c, kOrg, rOrg);
 
-    castlingPath[crLsb] = (between_bb(kOrg, kDst) | between_bb(rOrg, rDst)) & ~make_bb(kOrg, rOrg);
+    castlingPath[cr_lsb(cr)] =
+      (between_bb(kOrg, kDst) | between_bb(rOrg, rDst)) & ~make_bb(kOrg, rOrg);
 }
 
 // Computes the hash keys of the position, and other data
