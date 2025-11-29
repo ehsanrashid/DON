@@ -426,7 +426,7 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept :
 
     pos.set(code, WHITE, &st);
     key[WHITE] = pos.material_key();
-    pieceCount = pos.count<ALL_PIECE>();
+    pieceCount = pos.count();
     hasPawns   = pos.count<PAWN>() != 0;
 
     hasUniquePieces = false;
@@ -1323,7 +1323,7 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRA
 
     Key materialKey = pos.material_key();
 
-    if (materialKey == 0)  // KvK, pos.count<ALL_PIECE>() == 2
+    if (materialKey == 0)  // KvK, pos.count() == 2
         return Ret(WDL_DRAW);
 
     TBTable<Type>* entry = tbTables.get<Type>(materialKey);
@@ -1803,7 +1803,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
         config.probeDepth  = DEPTH_ZERO;
     }
 
-    if (config.cardinality >= pos.count<ALL_PIECE>() && !pos.can_castle(ANY_CASTLING))
+    if (config.cardinality >= pos.count() && !pos.can_castle(ANY_CASTLING))
     {
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
         config.rootInTB = probe_root_dtz(pos, rootMoves, config.rule50Active, rankDTZ, time_to_abort);

@@ -176,14 +176,41 @@ void Position::init() noexcept {
     Cuckoos.init();
 }
 
+Position& Position::operator=(const Position& pos) noexcept {
+    if (this == &pos)
+        return *this;
+
+    std::memcpy(static_cast<void*>(_20Lists.data()), static_cast<const void*>(pos._20Lists.data()),
+                sizeof(_20Lists));
+    std::memcpy(static_cast<void*>(_16Lists.data()), static_cast<const void*>(pos._16Lists.data()),
+                sizeof(_16Lists));
+    std::memcpy(static_cast<void*>(_01Lists.data()), static_cast<const void*>(pos._01Lists.data()),
+                sizeof(_01Lists));
+
+    std::memcpy(squareIndex.data(), pos.squareIndex.data(), sizeof(squareIndex));
+    std::memcpy(pieceMap.data(), pos.pieceMap.data(), sizeof(pieceMap));
+    std::memcpy(colorBB.data(), pos.colorBB.data(), sizeof(colorBB));
+    std::memcpy(typeBB.data(), pos.typeBB.data(), sizeof(typeBB));
+    // Don't copy *pieceLists, just pointers to the above lists
+    std::memcpy(pieceCount.data(), pos.pieceCount.data(), sizeof(pieceCount));
+    std::memcpy(castlingPath.data(), pos.castlingPath.data(), sizeof(castlingPath));
+    std::memcpy(castlingRookSq.data(), pos.castlingRookSq.data(), sizeof(castlingRookSq));
+    std::memcpy(castlingRightsMask.data(), pos.castlingRightsMask.data(),
+                sizeof(castlingRightsMask));
+
+    activeColor = pos.activeColor;
+    gamePly     = pos.gamePly;
+    // Don't copy *st pointer
+    return *this;
+}
+
 void Position::clear() noexcept {
-    // No need to clear pieceIndex as it is always overwritten when placing pieces
-    //std::memset(pieceIndex.data(), PieceCapacity, sizeof(pieceIndex));
+    // No need to clear squareIndex as it is always overwritten when placing pieces
+    std::memset(squareIndex.data(), InvalidIndex, sizeof(squareIndex));
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
     std::memset(colorBB.data(), 0, sizeof(colorBB));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
-    // FixedVector has no trivial data, so manually cleared below
-    //std::memset(pieceLists.data(), 0, sizeof(pieceLists));
+    // pieceLists contains pointers are cleared below
     std::memset(pieceCount.data(), 0, sizeof(pieceCount));
     std::memset(castlingPath.data(), 0, sizeof(castlingPath));
     std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
@@ -191,7 +218,7 @@ void Position::clear() noexcept {
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
-            pieceLists[c][pt - 1].clear();
+            piece_list(c, pt).clear();
 
     activeColor = COLOR_NB;
     gamePly     = 0;
@@ -291,7 +318,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
                 <= 16);
     assert(count<PAWN>() + count<KNIGHT>() + count<BISHOP>()  //
              + count<ROOK>() + count<QUEEN>() + count<KING>()
-           == count<ALL_PIECE>());
+           == count());
     assert(count(W_PAWN) <= 8 && count(B_PAWN) <= 8);
     assert(count(W_KING) == 1 && count(B_KING) == 1);
     assert(is_ok(square<KING>(WHITE)) && is_ok(square<KING>(BLACK)));
@@ -437,7 +464,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 
     set_state();
 
-    assert(pos_is_ok());
+    assert(_is_ok());
 }
 
 // Overload to initialize the position object with the given endgame code string like "KBPKN".
@@ -1011,7 +1038,7 @@ DO_MOVE_END:
         }
     }
 
-    assert(pos_is_ok());
+    assert(_is_ok());
 
     assert(is_ok(db.dp.pc));
     assert(is_ok(db.dp.org));
@@ -1092,7 +1119,7 @@ UNDO_MOVE_END:
     st = st->preSt;
 
     assert(legal(m));
-    assert(pos_is_ok());
+    assert(_is_ok());
 }
 
 // Makes a null move
@@ -1135,7 +1162,7 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
 
     st->repetition = 0;
 
-    assert(pos_is_ok());
+    assert(_is_ok());
 }
 
 // Unmakes a null move
@@ -1149,7 +1176,7 @@ void Position::undo_null_move() noexcept {
 
     st = st->preSt;
 
-    assert(pos_is_ok());
+    assert(_is_ok());
 }
 
 // Takes a random move and tests whether the move is pseudo-legal.
@@ -1857,7 +1884,7 @@ void Position::flip() noexcept {
 
     set(fens, st);
 
-    assert(pos_is_ok());
+    assert(_is_ok());
 }
 
 void Position::mirror() noexcept {
@@ -1907,7 +1934,7 @@ void Position::mirror() noexcept {
 
     set(fens, st);
 
-    assert(pos_is_ok());
+    assert(_is_ok());
 }
 
 #if !defined(NDEBUG)
@@ -1983,7 +2010,7 @@ Key Position::compute_non_pawn_key() const noexcept {
 // Performs some consistency checks for the position object
 // and raise an assert if something wrong is detected.
 // This is meant to be helpful when debugging.
-bool Position::pos_is_ok() const noexcept {
+bool Position::_is_ok() const noexcept {
 
     constexpr bool Fast = true;  // Quick (default) or full check?
 
@@ -1993,51 +2020,51 @@ bool Position::pos_is_ok() const noexcept {
         || piece_on(square<KING>(BLACK)) != B_KING            //
         || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1
         || (is_ok(ep_sq()) && !can_enpassant(active_color(), ep_sq())))
-        assert(false && "Position::pos_is_ok(): Default");
+        assert(false && "Position::_is_ok(): Default");
 
     if (Fast)
         return true;
 
     if (st->key != compute_key())
-        assert(false && "Position::pos_is_ok(): Key");
+        assert(false && "Position::_is_ok(): Key");
 
     if (minor_key() != compute_minor_key())
-        assert(false && "Position::pos_is_ok(): Minor Key");
+        assert(false && "Position::_is_ok(): Minor Key");
 
     if (major_key() != compute_major_key())
-        assert(false && "Position::pos_is_ok(): Major Key");
+        assert(false && "Position::_is_ok(): Major Key");
 
     if (non_pawn_key() != compute_non_pawn_key())
-        assert(false && "Position::pos_is_ok(): NonPawn Key");
+        assert(false && "Position::_is_ok(): NonPawn Key");
 
     if (has_attackers_to(pieces(active_color()), square<KING>(~active_color())))
-        assert(false && "Position::pos_is_ok(): King Checker");
+        assert(false && "Position::_is_ok(): King Checker");
 
     if ((pieces(PAWN) & PROMOTION_RANK_BB) || count(W_PAWN) > 8 || count(B_PAWN) > 8)
-        assert(false && "Position::pos_is_ok(): Pawns");
+        assert(false && "Position::_is_ok(): Pawns");
 
     if ((pieces(WHITE) & pieces(BLACK)) || (pieces(WHITE) | pieces(BLACK)) != pieces()
         || popcount(pieces(WHITE)) > 16 || popcount(pieces(BLACK)) > 16)
-        assert(false && "Position::pos_is_ok(): Bitboards");
+        assert(false && "Position::_is_ok(): Bitboards");
 
     for (PieceType p1 : PieceTypes)
         for (PieceType p2 : PieceTypes)
             if (p1 != p2 && (pieces(p1) & pieces(p2)))
-                assert(false && "Position::pos_is_ok(): Bitboards");
+                assert(false && "Position::_is_ok(): Bitboards");
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
             for (std::size_t i = 0; i < piece_list(c, pt).size(); ++i)
                 if (piece_on(piece_list(c, pt)[i]) != make_piece(c, pt)
-                    || pieceIndex[piece_list(c, pt)[i]] != int(i))
-                    assert(0 && "pos_is_ok: Piece List");
+                    || squareIndex[piece_list(c, pt)[i]] != int(i))
+                    assert(0 && "_is_ok: Piece List");
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
             if (count(c, pt) != popcount(pieces(c, pt))
                 || count(c, pt)
                      != std::count(piece_map().begin(), piece_map().end(), make_piece(c, pt)))
-                assert(false && "Position::pos_is_ok(): Piece List Count");
+                assert(false && "Position::_is_ok(): Piece List Count");
 
     for (Color c : {WHITE, BLACK})
         if (count<PAWN>(c)                                                         //
@@ -2047,7 +2074,7 @@ bool Position::pos_is_ok() const noexcept {
               + std::max(count<ROOK>(c) - 2, 0)                                    //
               + std::max(count<QUEEN>(c) - 1, 0)                                   //
             > 8)
-            assert(false && "Position::pos_is_ok(): Piece Count");
+            assert(false && "Position::_is_ok(): Piece Count");
 
     for (Color c : {WHITE, BLACK})
         for (CastlingRights cr : {c & KING_SIDE, c & QUEEN_SIDE})
@@ -2059,11 +2086,12 @@ bool Position::pos_is_ok() const noexcept {
                 || !(pieces(c, ROOK) & castling_rook_sq(cr))
                 || (castlingRightsMask[c * FILE_NB + file_of(castling_rook_sq(cr))]) != cr
                 || (castlingRightsMask[c * FILE_NB + file_of(square<KING>(c))] & cr) != cr)
-                assert(false && "Position::pos_is_ok(): Castling");
+                assert(false && "Position::_is_ok(): Castling");
         }
 
     return true;
 }
+
 #endif
 
 // Returns ASCII representation of the position as string
@@ -2121,8 +2149,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     os << "\nRepetition: " << pos.repetition();
 
-    if (Tablebases::MaxCardinality >= pos.count<ALL_PIECE>()  //
-        && !pos.can_castle(ANY_CASTLING))
+    if (Tablebases::MaxCardinality >= pos.count() && !pos.can_castle(ANY_CASTLING))
     {
         State st;
 
@@ -2139,6 +2166,54 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
     }
 
     return os;
+}
+
+void Position::dump(std::ostream& os) const noexcept {
+
+    os << *this << "\n";
+
+    os << "Color Bitboards:\n";
+    for (Color c : {WHITE, BLACK})
+    {
+        os << (c == WHITE ? "W" : "B") << ": ";
+        os << u64_to_string(pieces(c)) << "\n";
+    }
+
+    os << "Piece Bitboards:\n";
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PieceTypes)
+        {
+            os << to_char(make_piece(c, pt)) << ": ";
+            os << u64_to_string(pieces(c, pt)) << "\n";
+        }
+
+    os << "Piece Lists:\n";
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PieceTypes)
+        {
+            os << to_char(make_piece(c, pt)) << ": ";
+            for (Square s : piece_list(c, pt))
+                os << to_square(s) << " ";
+            os << "\n";
+        }
+
+    for (Rank r = RANK_8; r >= RANK_1; --r)
+        for (File f = FILE_A; f <= FILE_H; ++f)
+        {
+            Square s = make_square(f, r);
+
+            if (squareIndex[s] == InvalidIndex)
+                os << "**";
+            else
+                os << std::setw(2) << std::setfill('0') << int(squareIndex[s]);
+            os << " ";
+            if (file_of(s) == FILE_H)
+                os << "\n";
+        }
+
+    os << std::setfill(' ');
+
+    flush(os);
 }
 
 }  // namespace DON

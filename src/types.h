@@ -141,7 +141,6 @@ constexpr std::uint8_t cr_lsb(CastlingRights cr) noexcept {
 enum PieceType : std::int8_t {
     NO_PIECE_TYPE,
     PAWN = 1, KNIGHT, BISHOP, ROOK, QUEEN, KING,
-    ALL_PIECE     = 0,
     PIECE_TYPE_NB = 8
 };
 
@@ -422,7 +421,7 @@ constexpr Color operator~(Color c) noexcept { return Color(int(c) ^ 1); }
 [[nodiscard]] constexpr bool is_major(PieceType pt) noexcept { return (pt >= ROOK); }
 
 [[nodiscard]] constexpr Piece make_piece(Color c, PieceType pt) noexcept {
-    assert(is_ok(c) && (is_ok(pt) || pt == ALL_PIECE));
+    assert(is_ok(c) && is_ok(pt));
     return Piece((int(c) << 3) | int(pt));
 }
 

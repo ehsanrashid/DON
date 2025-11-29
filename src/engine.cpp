@@ -212,6 +212,8 @@ void Engine::resize_tt(std::size_t ttSize) noexcept {
 
 void Engine::show() const noexcept { std::cout << pos << std::endl; }
 
+void Engine::dump() const noexcept { pos.dump(std::cout); }
+
 void Engine::eval() noexcept {
     verify_networks();
     std::cout << '\n' << Evaluate::trace(pos, *networks) << std::endl;

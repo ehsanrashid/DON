@@ -17,17 +17,16 @@
 
 #include "movegen.h"
 
+#include <algorithm>
+#include <functional>
 #include <initializer_list>
 #if defined(USE_AVX512ICL)
-    #include <algorithm>
     #include <array>
     #include <immintrin.h>
 #endif
 
 #include "bitboard.h"
-#if defined(USE_AVX512ICL)
-    #include "misc.h"
-#endif
+#include "misc.h"
 #include "position.h"
 
 namespace DON {
@@ -259,13 +258,32 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
     return moves;
 }
 
+template<Color AC>
+ALWAYS_INLINE FixedVector<Square, 16>
+              sorted_piece_list(const IFixedVector<Square>& pieceList) noexcept {
+    FixedVector<Square, 16> sortedPieceList;
+    for (std::size_t i = 0; i < pieceList.size(); ++i)
+        sortedPieceList.push_back(pieceList[i]);
+
+    if (sortedPieceList.size() <= 1)
+        return sortedPieceList;
+
+    if constexpr (AC == WHITE)
+        std::sort(sortedPieceList.begin(), sortedPieceList.end(), std::greater<>{});
+    else
+        std::sort(sortedPieceList.begin(), sortedPieceList.end(), std::less{});
+
+    return sortedPieceList;
+}
+
 template<Color AC, PieceType PT>
 Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) noexcept {
     static_assert(PT == KNIGHT || PT == BISHOP || PT == ROOK || PT == QUEEN,
                   "Unsupported piece type in generate_piece_moves()");
     assert(!pos.checkers() || !more_than_one(pos.checkers()));
 
-    for (Square org : pos.piece_list<PT>(AC))
+    auto sortedPieceList = sorted_piece_list<AC>(pos.piece_list<PT>(AC));
+    for (Square org : sortedPieceList)
     {
         Bitboard b = attacks_bb<PT>(org, pos.pieces()) & target;
 

@@ -137,21 +137,22 @@ class RootMoves final {
     RootMoves(std::initializer_list<value_type> initList) noexcept :
         rootMoves(initList) {}
 
+    [[nodiscard]] size_type capacity() const noexcept { return rootMoves.capacity(); }
+
+    [[nodiscard]] bool      empty() const noexcept { return rootMoves.empty(); }
+    [[nodiscard]] size_type size() const noexcept { return rootMoves.size(); }
+
+    iterator       begin() noexcept { return rootMoves.begin(); }
+    iterator       end() noexcept { return rootMoves.end(); }
     const_iterator begin() const noexcept { return rootMoves.begin(); }
     const_iterator end() const noexcept { return rootMoves.end(); }
     const_iterator cbegin() const noexcept { return rootMoves.cbegin(); }
     const_iterator cend() const noexcept { return rootMoves.cend(); }
-    iterator       begin() noexcept { return rootMoves.begin(); }
-    iterator       end() noexcept { return rootMoves.end(); }
 
-    [[nodiscard]] const_reference front() const noexcept { return rootMoves.front(); }
-    [[nodiscard]] const_reference back() const noexcept { return rootMoves.back(); }
     [[nodiscard]] reference       front() noexcept { return rootMoves.front(); }
     [[nodiscard]] reference       back() noexcept { return rootMoves.back(); }
-
-    [[nodiscard]] bool      empty() const noexcept { return rootMoves.empty(); }
-    [[nodiscard]] size_type size() const noexcept { return rootMoves.size(); }
-    [[nodiscard]] size_type capacity() const noexcept { return rootMoves.capacity(); }
+    [[nodiscard]] const_reference front() const noexcept { return rootMoves.front(); }
+    [[nodiscard]] const_reference back() const noexcept { return rootMoves.back(); }
 
     template<typename... Args>
     reference emplace_back(Args&&... args) noexcept {
@@ -180,13 +181,13 @@ class RootMoves final {
         return !v.pv.empty() ? find(beg, end, v.pv[0]) : begin() + end;
     }
 
+    iterator find(Move m) noexcept { return std::find(begin(), end(), m); }
+    iterator find(const value_type& v) noexcept { return !v.pv.empty() ? find(v.pv[0]) : end(); }
+
     const_iterator find(Move m) const noexcept { return std::find(begin(), end(), m); }
     const_iterator find(const value_type& v) const noexcept {
         return !v.pv.empty() ? find(v.pv[0]) : end();
     }
-
-    iterator find(Move m) noexcept { return std::find(begin(), end(), m); }
-    iterator find(const value_type& v) noexcept { return !v.pv.empty() ? find(v.pv[0]) : end(); }
 
     template<typename Predicate>
     iterator find_if(Predicate&& pred) noexcept {
@@ -265,17 +266,17 @@ class RootMoves final {
         std::stable_sort(begin(), end(), std::forward<Predicate>(pred));
     }
 
+    [[nodiscard]] reference operator[](size_type idx) noexcept {
+        assert(idx < size());
+        return rootMoves[idx];
+    }
     [[nodiscard]] const_reference operator[](size_type idx) const noexcept {
         assert(idx < size());
         return rootMoves[idx];
     }
-    [[nodiscard]] reference operator[](size_type idx) noexcept {  //
-        assert(idx < size());
-        return rootMoves[idx];
-    }
 
-    [[nodiscard]] const_reference at(size_type idx) const { return rootMoves.at(idx); }
     [[nodiscard]] reference       at(size_type idx) { return rootMoves.at(idx); }
+    [[nodiscard]] const_reference at(size_type idx) const { return rootMoves.at(idx); }
 
    private:
     container_type rootMoves;

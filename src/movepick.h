@@ -124,21 +124,21 @@ class MovePicker final {
     template<typename Predicate>
     bool select(Predicate&& pred) noexcept;
 
-    [[nodiscard]] const_iterator begin() const noexcept { return cur; }
-    [[nodiscard]] const_iterator end() const noexcept { return endCur; }
+    [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
+    [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
+
     [[nodiscard]] iterator       begin() noexcept { return cur; }
     [[nodiscard]] iterator       end() noexcept { return endCur; }
+    [[nodiscard]] const_iterator begin() const noexcept { return cur; }
+    [[nodiscard]] const_iterator end() const noexcept { return endCur; }
 
     bool valid() const noexcept { return *cur != ttMove; }
     void next() noexcept { ++cur; }
 
     Move move() noexcept { return *cur++; }
 
-    [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
-    [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
-
-    [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }
     [[nodiscard]] pointer       data() noexcept { return moves.data(); }
+    [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }
 
     const Position&              pos;
     Move                         ttMove;
