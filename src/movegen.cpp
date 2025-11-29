@@ -17,9 +17,10 @@
 
 #include "movegen.h"
 
+#include <algorithm>
+#include <functional>
 #include <initializer_list>
 #if defined(USE_AVX512ICL)
-    #include <algorithm>
     #include <array>
     #include <immintrin.h>
 #endif
@@ -261,16 +262,19 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
 
 template<Color AC>
 FixedVector<Square, 16> sorted_piece_list(const IFixedVector<Square>& pieceList) noexcept {
-    FixedVector<Square, 16> copyList;
+    FixedVector<Square, 16> sortedPieceList;
     for (std::size_t i = 0; i < pieceList.size(); ++i)
-        copyList.push_back(pieceList[i]);
+        sortedPieceList.push_back(pieceList[i]);
+
+    if (sortedPieceList.size() <= 1)
+        return sortedPieceList;
 
     if constexpr (AC == WHITE)
-        std::sort(copyList.begin(), copyList.end(), std::greater<>{});
+        std::sort(sortedPieceList.begin(), sortedPieceList.end(), std::greater<>{});
     else
-        std::sort(copyList.begin(), copyList.end(), std::less{});
+        std::sort(sortedPieceList.begin(), sortedPieceList.end(), std::less{});
 
-    return copyList;
+    return sortedPieceList;
 }
 
 template<Color AC, PieceType PT>
