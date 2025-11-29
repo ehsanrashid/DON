@@ -26,9 +26,7 @@
 #endif
 
 #include "bitboard.h"
-#if defined(USE_AVX512ICL)
-    #include "misc.h"
-#endif
+#include "misc.h"
 #include "position.h"
 
 namespace DON {
@@ -261,7 +259,8 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
 }
 
 template<Color AC>
-FixedVector<Square, 16> sorted_piece_list(const IFixedVector<Square>& pieceList) noexcept {
+ALWAYS_INLINE FixedVector<Square, 16>
+              sorted_piece_list(const IFixedVector<Square>& pieceList) noexcept {
     FixedVector<Square, 16> sortedPieceList;
     for (std::size_t i = 0; i < pieceList.size(); ++i)
         sortedPieceList.push_back(pieceList[i]);
@@ -270,9 +269,9 @@ FixedVector<Square, 16> sorted_piece_list(const IFixedVector<Square>& pieceList)
         return sortedPieceList;
 
     if constexpr (AC == WHITE)
-        std::sort(sortedPieceList.begin(), sortedPieceList.end(), std::greater<>{});
+        std::sort(sortedPieceList.begin(), sortedPieceList.end(), std::less<>{});
     else
-        std::sort(sortedPieceList.begin(), sortedPieceList.end(), std::less{});
+        std::sort(sortedPieceList.begin(), sortedPieceList.end(), std::greater{});
 
     return sortedPieceList;
 }
