@@ -476,6 +476,7 @@ struct IFixedVector {
     virtual const T* cend() const noexcept   = 0;
 
     virtual bool push_back(const T&) noexcept = 0;
+    virtual bool push_back(T&&) noexcept      = 0;
 
     virtual void pop_back() noexcept = 0;
 

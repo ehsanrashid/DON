@@ -259,21 +259,28 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
 }
 
 template<Color AC>
-ALWAYS_INLINE FixedVector<Square, 16>
-              sorted_piece_list(const IFixedVector<Square>& pieceList) noexcept {
-    FixedVector<Square, 16> sortedPieceList;
-    for (std::size_t i = 0; i < pieceList.size(); ++i)
-        sortedPieceList.push_back(pieceList[i]);
+ALWAYS_INLINE std::vector<const Square*>
+              sorted_piece_ptrs(const IFixedVector<Square>& pieceList) noexcept {
+    std::vector<const Square*> sortedPiecePtrs{};
 
-    if (sortedPieceList.size() <= 1)
-        return sortedPieceList;
+    const std::size_t n = pieceList.size();
 
-    if constexpr (AC == WHITE)
-        std::sort(sortedPieceList.begin(), sortedPieceList.end(), std::greater<>{});
-    else
-        std::sort(sortedPieceList.begin(), sortedPieceList.end(), std::less{});
+    sortedPiecePtrs.reserve(n);
+    // Fill vector with addresses of squares in pieceList
+    for (std::size_t i = 0; i < n; ++i)
+        sortedPiecePtrs.push_back(&pieceList[i]);
 
-    return sortedPieceList;
+    if (n > 1)
+    {
+        if constexpr (AC == WHITE)
+            std::sort(sortedPiecePtrs.begin(), sortedPiecePtrs.end(),
+                                    [](const Square* s1, const Square* s2) { return *s1 > *s2; });
+        else
+            std::sort(sortedPiecePtrs.begin(), sortedPiecePtrs.end(),
+                                    [](const Square* s1, const Square* s2) { return *s1 < *s2; });
+    }
+
+    return sortedPiecePtrs;
 }
 
 template<Color AC, PieceType PT>
@@ -282,9 +289,12 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
                   "Unsupported piece type in generate_piece_moves()");
     assert(!pos.checkers() || !more_than_one(pos.checkers()));
 
-    auto sortedPieceList = sorted_piece_list<AC>(pos.piece_list<PT>(AC));
-    for (Square org : sortedPieceList)
+    auto sortedPiecePtrs = sorted_piece_ptrs<AC>(pos.piece_list<PT>(AC));
+
+    for (const Square* orgPtr : sortedPiecePtrs)
     {
+        Square org = *orgPtr;
+
         Bitboard b = attacks_bb<PT>(org, pos.pieces()) & target;
 
         if (pos.blockers(AC) & org)

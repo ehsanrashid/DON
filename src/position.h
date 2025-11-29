@@ -114,7 +114,7 @@ struct State final {
 };
 
 // Position class stores information regarding the board representation as
-// pieces, active color, hash keys, castling info, etc. (Size = 760)
+// pieces, active color, hash keys, castling info, etc. (Size = 664)
 // Important methods are do_move() and undo_move(),
 // used by the search to update node info when traversing the search tree.
 class Position final {
@@ -123,6 +123,8 @@ class Position final {
 
     static inline bool         Chess960      = false;
     static inline std::uint8_t DrawMoveCount = 50;
+
+    static constexpr std::size_t MaxPieceCount = 8;
 
     Position() noexcept = default;
 
@@ -376,26 +378,25 @@ class Position final {
 
     static constexpr std::size_t InvalidIndex = 64;
 
-    StdArray<FixedVector<Square, 20>, COLOR_NB>    _20Lists;
-    StdArray<FixedVector<Square, 16>, COLOR_NB, 4> _16Lists;
-    StdArray<FixedVector<Square, 01>, COLOR_NB>    _01Lists;
+    StdArray<FixedVector<Square, MaxPieceCount>, COLOR_NB, PIECE_TYPE_NB - 3> _xLists;
+    StdArray<FixedVector<Square, 1>, COLOR_NB>                                _1Lists;
 
-    StdArray<IFixedVector<Square>*, COLOR_NB, PIECE_TYPE_NB - 2> pieceLists{
+    const StdArray<IFixedVector<Square>*, COLOR_NB, PIECE_TYPE_NB - 2> pieceLists{
       {{
-         &_20Lists[WHITE],     //
-         &_16Lists[WHITE][0],  //
-         &_16Lists[WHITE][1],  //
-         &_16Lists[WHITE][2],  //
-         &_16Lists[WHITE][3],  //
-         &_01Lists[WHITE]      //
+         &_xLists[WHITE][0],  //
+         &_xLists[WHITE][1],  //
+         &_xLists[WHITE][2],  //
+         &_xLists[WHITE][3],  //
+         &_xLists[WHITE][4],  //
+         &_1Lists[WHITE]      //
        },
        {
-         &_20Lists[BLACK],     //
-         &_16Lists[BLACK][0],  //
-         &_16Lists[BLACK][1],  //
-         &_16Lists[BLACK][2],  //
-         &_16Lists[BLACK][3],  //
-         &_01Lists[BLACK]      //
+         &_xLists[BLACK][0],  //
+         &_xLists[BLACK][1],  //
+         &_xLists[BLACK][2],  //
+         &_xLists[BLACK][3],  //
+         &_xLists[BLACK][4],  //
+         &_1Lists[BLACK]      //
        }}};
 
     StdArray<std::uint8_t, SQUARE_NB>               squareIndex;
@@ -411,7 +412,7 @@ class Position final {
     State*                                          st;
 };
 
-//static_assert(sizeof(Position) == 760, "Position size");
+//static_assert(sizeof(Position) == 664, "Position size");
 
 inline const auto& Position::piece_map() const noexcept { return pieceMap; }
 

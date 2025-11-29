@@ -180,23 +180,19 @@ Position& Position::operator=(const Position& pos) noexcept {
     if (this == &pos)
         return *this;
 
-    std::memcpy(static_cast<void*>(_20Lists.data()), static_cast<const void*>(pos._20Lists.data()),
-                sizeof(_20Lists));
-    std::memcpy(static_cast<void*>(_16Lists.data()), static_cast<const void*>(pos._16Lists.data()),
-                sizeof(_16Lists));
-    std::memcpy(static_cast<void*>(_01Lists.data()), static_cast<const void*>(pos._01Lists.data()),
-                sizeof(_01Lists));
-
     std::memcpy(squareIndex.data(), pos.squareIndex.data(), sizeof(squareIndex));
     std::memcpy(pieceMap.data(), pos.pieceMap.data(), sizeof(pieceMap));
     std::memcpy(colorBB.data(), pos.colorBB.data(), sizeof(colorBB));
     std::memcpy(typeBB.data(), pos.typeBB.data(), sizeof(typeBB));
-    // Don't copy *pieceLists, just pointers to the above lists
     std::memcpy(pieceCount.data(), pos.pieceCount.data(), sizeof(pieceCount));
     std::memcpy(castlingPath.data(), pos.castlingPath.data(), sizeof(castlingPath));
     std::memcpy(castlingRookSq.data(), pos.castlingRookSq.data(), sizeof(castlingRookSq));
     std::memcpy(castlingRightsMask.data(), pos.castlingRightsMask.data(),
                 sizeof(castlingRightsMask));
+
+    _xLists = pos._xLists;
+    _1Lists = pos._1Lists;
+    // Don't copy *pieceLists, as they point to the above lists
 
     activeColor = pos.activeColor;
     gamePly     = pos.gamePly;
@@ -205,20 +201,23 @@ Position& Position::operator=(const Position& pos) noexcept {
 }
 
 void Position::clear() noexcept {
-    // No need to clear squareIndex as it is always overwritten when placing pieces
+    // No need to clear squareIndex as it is always overwritten when putting/removing pieces
     std::memset(squareIndex.data(), InvalidIndex, sizeof(squareIndex));
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
     std::memset(colorBB.data(), 0, sizeof(colorBB));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
-    // pieceLists contains pointers are cleared below
     std::memset(pieceCount.data(), 0, sizeof(pieceCount));
     std::memset(castlingPath.data(), 0, sizeof(castlingPath));
     std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
     std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));
 
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
-            piece_list(c, pt).clear();
+    {
+        for (std::size_t pt = 0; pt < _xLists[c].size(); ++pt)
+            _xLists[c][pt].clear();
+        _1Lists[c].clear();
+    }
+    // Don't clear *pieceLists, as they point to the above lists
 
     activeColor = COLOR_NB;
     gamePly     = 0;
@@ -329,11 +328,19 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 
     // 2. Active color
     iss >> token;
-    token = std::tolower(token);
 
-    activeColor = token == 'w' ? WHITE
-                : token == 'b' ? BLACK
-                               : (assert(false && "Position::set(): Invalid Color"), COLOR_NB);
+    switch (std::tolower(token))
+    {
+    case 'w' :
+        activeColor = WHITE;
+        break;
+    case 'b' :
+        activeColor = BLACK;
+        break;
+    default :
+        assert(false && "Position::set(): Invalid Active Color");
+        break;
+    }
 
     iss >> std::ws;
 
@@ -356,6 +363,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
         }
 
         Color c = std::isupper(token) ? WHITE : BLACK;
+        token   = std::tolower(token);
 
         if (relative_rank(c, square<KING>(c)) != RANK_1)
         {
@@ -372,8 +380,6 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
         }
 
         Square rsq = SQ_NONE;
-
-        token = std::tolower(token);
 
         if (token == 'k')
         {
