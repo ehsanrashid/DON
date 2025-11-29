@@ -259,14 +259,28 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
     return moves;
 }
 
+template<Color AC>
+FixedVector<Square, 16> sorted_piece_list(const IFixedVector<Square>& pieceList) noexcept {
+    FixedVector<Square, 16> copyList;
+    for (std::size_t i = 0; i < pieceList.size(); ++i)
+        copyList.push_back(pieceList[i]);
+
+    if constexpr (AC == WHITE)
+        std::sort(copyList.begin(), copyList.end(), std::greater<>{});
+    else
+        std::sort(copyList.begin(), copyList.end(), std::less{});
+
+    return copyList;
+}
+
 template<Color AC, PieceType PT>
 Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) noexcept {
     static_assert(PT == KNIGHT || PT == BISHOP || PT == ROOK || PT == QUEEN,
                   "Unsupported piece type in generate_piece_moves()");
     assert(!pos.checkers() || !more_than_one(pos.checkers()));
 
-    const auto& pieceList = pos.piece_list<PT>(AC);
-    for (Square org : pieceList)
+    auto sortedPieceList = sorted_piece_list<AC>(pos.piece_list<PT>(AC));
+    for (Square org : sortedPieceList)
     {
         Bitboard b = attacks_bb<PT>(org, pos.pieces()) & target;
 
