@@ -307,8 +307,6 @@ class Position final {
     Key compute_non_pawn_key() const noexcept;
 
     bool _is_ok() const noexcept;
-
-    void dump(std::ostream& os) const noexcept;
 #endif
 
     // Used by NNUE
@@ -317,6 +315,8 @@ class Position final {
     operator std::string() const noexcept;
 
     friend std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept;
+
+    void dump(std::ostream& os) const noexcept;
 
    private:
     // SEE struct used to get a nice syntax for SEE comparisons.

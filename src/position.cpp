@@ -2092,55 +2092,6 @@ bool Position::_is_ok() const noexcept {
     return true;
 }
 
-void Position::dump(std::ostream& os) const noexcept {
-    os << "Position dump:\n";
-
-    os << *this << "\n";
-
-    os << "Color Bitboards:\n";
-    for (Color c : {WHITE, BLACK})
-    {
-        os << (c == WHITE ? "W" : "B") << ": ";
-        os << u64_to_string(pieces(c)) << "\n";
-    }
-
-    os << "Piece Bitboards:\n";
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
-        {
-            os << to_char(make_piece(c, pt)) << ": ";
-            os << u64_to_string(pieces(c, pt)) << "\n";
-        }
-
-    os << "Piece Lists:\n";
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
-        {
-            os << to_char(make_piece(c, pt)) << ": ";
-            for (Square s : piece_list(c, pt))
-                os << to_square(s) << " ";
-            os << "\n";
-        }
-
-    for (Rank r = RANK_8; r >= RANK_1; --r)
-        for (File f = FILE_A; f <= FILE_H; ++f)
-        {
-            Square s = make_square(f, r);
-
-            if (squareIndex[s] == InvalidIndex)
-                os << "**";
-            else
-                os << std::setw(2) << std::setfill('0') << int(squareIndex[s]);
-            os << " ";
-            if (file_of(s) == FILE_H)
-                os << "\n";
-        }
-
-    os << std::setfill(' ');
-
-    flush(os);
-}
-
 #endif
 
 // Returns ASCII representation of the position as string
@@ -2215,6 +2166,54 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
     }
 
     return os;
+}
+
+void Position::dump(std::ostream& os) const noexcept {
+
+    os << *this << "\n";
+
+    os << "Color Bitboards:\n";
+    for (Color c : {WHITE, BLACK})
+    {
+        os << (c == WHITE ? "W" : "B") << ": ";
+        os << u64_to_string(pieces(c)) << "\n";
+    }
+
+    os << "Piece Bitboards:\n";
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PieceTypes)
+        {
+            os << to_char(make_piece(c, pt)) << ": ";
+            os << u64_to_string(pieces(c, pt)) << "\n";
+        }
+
+    os << "Piece Lists:\n";
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PieceTypes)
+        {
+            os << to_char(make_piece(c, pt)) << ": ";
+            for (Square s : piece_list(c, pt))
+                os << to_square(s) << " ";
+            os << "\n";
+        }
+
+    for (Rank r = RANK_8; r >= RANK_1; --r)
+        for (File f = FILE_A; f <= FILE_H; ++f)
+        {
+            Square s = make_square(f, r);
+
+            if (squareIndex[s] == InvalidIndex)
+                os << "**";
+            else
+                os << std::setw(2) << std::setfill('0') << int(squareIndex[s]);
+            os << " ";
+            if (file_of(s) == FILE_H)
+                os << "\n";
+        }
+
+    os << std::setfill(' ');
+
+    flush(os);
 }
 
 }  // namespace DON
