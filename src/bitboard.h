@@ -77,8 +77,8 @@ inline constexpr Bitboard RANK_6_BB = RANK_1_BB << (5 * 8);
 inline constexpr Bitboard RANK_7_BB = RANK_1_BB << (6 * 8);
 inline constexpr Bitboard RANK_8_BB = RANK_1_BB << (7 * 8);
 
-inline constexpr Bitboard EDGE_FILE_BB      = FILE_A_BB | FILE_H_BB;
-inline constexpr Bitboard PROMOTION_RANK_BB = RANK_8_BB | RANK_1_BB;
+inline constexpr Bitboard EDGE_FILES_BB      = FILE_A_BB | FILE_H_BB;
+inline constexpr Bitboard PROMOTION_RANKS_BB = RANK_8_BB | RANK_1_BB;
 
 template<Color C>
 constexpr Bitboard colors_bb() noexcept {
@@ -88,20 +88,21 @@ constexpr Bitboard colors_bb() noexcept {
     return C == WHITE ? WhiteBB : BlackBB;
 }
 
-inline constexpr StdArray<std::uint8_t, SQUARE_NB> MSB_INDICES{
-  0,  47, 1,  56, 48, 27, 2,  60,  //
-  57, 49, 41, 37, 28, 16, 3,  61,  //
-  54, 58, 35, 52, 50, 42, 21, 44,  //
-  38, 32, 29, 23, 17, 11, 4,  62,  //
-  46, 55, 26, 59, 40, 36, 15, 53,  //
-  34, 51, 20, 43, 31, 22, 10, 45,  //
-  25, 39, 14, 33, 19, 30, 9,  24,  //
-  13, 18, 8,  12, 7,  6,  5,  63   //
-};
-inline constexpr std::uint64_t DEBRUIJN_64 = 0x03F79D71B4CB0A89ULL;
-
 constexpr std::uint8_t msb_index(Bitboard b) noexcept {
-    return MSB_INDICES[(b * DEBRUIJN_64) >> 58];
+    constexpr StdArray<std::uint8_t, SQUARE_NB> MSBIndices{
+      0,  47, 1,  56, 48, 27, 2,  60,  //
+      57, 49, 41, 37, 28, 16, 3,  61,  //
+      54, 58, 35, 52, 50, 42, 21, 44,  //
+      38, 32, 29, 23, 17, 11, 4,  62,  //
+      46, 55, 26, 59, 40, 36, 15, 53,  //
+      34, 51, 20, 43, 31, 22, 10, 45,  //
+      25, 39, 14, 33, 19, 30, 9,  24,  //
+      13, 18, 8,  12, 7,  6,  5,  63   //
+    };
+
+    constexpr std::uint64_t Debruijn64 = 0x03F79D71B4CB0A89ULL;
+
+    return MSBIndices[(b * Debruijn64) >> 58];
 }
 
 // Magic holds all magic bitboards relevant data for a single square

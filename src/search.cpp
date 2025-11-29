@@ -1822,7 +1822,7 @@ QS_MOVES_LOOP:
                 // No pawn pushes available
                 && !(pawn_push_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces()))
             {
-                pos.state()->checkers = PROMOTION_RANK_BB;
+                pos.state()->checkers = PROMOTION_RANKS_BB;
                 if (MoveList<LEGAL, true>(pos).empty())
                     bestValue = VALUE_DRAW;
                 pos.state()->checkers = 0;

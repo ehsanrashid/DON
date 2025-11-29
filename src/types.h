@@ -147,6 +147,9 @@ enum PieceType : std::int8_t {
 constexpr StdArray<PieceType, PIECE_TYPE_NB - 2> PieceTypes{
   PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
 };
+constexpr StdArray<PieceType, PIECE_TYPE_NB - 4> NonePawnPieceTypes{
+  KNIGHT, BISHOP, ROOK, QUEEN
+};
 
 enum Piece : std::uint8_t {
     NO_PIECE,
@@ -156,15 +159,6 @@ enum Piece : std::uint8_t {
 };
 // clang-format on
 static_assert(sizeof(Piece) == 1);
-
-constexpr StdArray<Piece, COLOR_NB, PIECE_TYPE_NB - 2> Pieces{{
-  {W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING},  //
-  {B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING}   //
-}};
-constexpr StdArray<Piece, COLOR_NB, PIECE_TYPE_NB - 4> NonPawnPieces{{
-  {W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN},  //
-  {B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN}   //
-}};
 
 // Value is used as an alias for std::int16_t, this is done to differentiate between
 // a search value and any other integer value. The values used in search are always

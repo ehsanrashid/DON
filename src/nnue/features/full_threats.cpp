@@ -118,24 +118,25 @@ void FullThreats::init() noexcept {
     IndexType cumulativeOffset = 0;
 
     for (Color c : {WHITE, BLACK})
-        for (Piece pc : Pieces[c])
+        for (PieceType pt : PieceTypes)
         {
+            auto pc = make_piece(c, pt);
+
             IndexType cumulativePieceOffset = 0;
 
             for (Square org = SQ_A1; org <= SQ_H8; ++org)
             {
                 OffsetIndex[pc][org] = cumulativePieceOffset;
 
-                if (type_of(pc) != PAWN)
+                if (pt != PAWN)
                 {
                     Bitboard attacks = attacks_bb(org, pc, 0);
                     cumulativePieceOffset += popcount(attacks);
                 }
                 else if (SQ_A2 <= org && org <= SQ_H7)
                 {
-                    Bitboard attacks = color_of(pc) == WHITE
-                                       ? pawn_attacks_bb<WHITE>(square_bb(org))
-                                       : pawn_attacks_bb<BLACK>(square_bb(org));
+                    Bitboard attacks = c == WHITE ? pawn_attacks_bb<WHITE>(square_bb(org))
+                                                  : pawn_attacks_bb<BLACK>(square_bb(org));
                     cumulativePieceOffset += popcount(attacks);
                 }
             }
@@ -143,29 +144,31 @@ void FullThreats::init() noexcept {
             CumulativeOffset[pc][0] = cumulativePieceOffset;
             CumulativeOffset[pc][1] = cumulativeOffset;
 
-            cumulativeOffset += MaxTargets[type_of(pc)] * cumulativePieceOffset;
+            cumulativeOffset += MaxTargets[pt] * cumulativePieceOffset;
         }
 
     // Initialize Lut data & index
     for (Color attackerC : {WHITE, BLACK})
-        for (Piece attacker : Pieces[attackerC])
+        for (PieceType attackerType : PieceTypes)
         {
-            auto attackerType = type_of(attacker);
+            auto attacker = make_piece(attackerC, attackerType);
 
             for (Color attackedC : {WHITE, BLACK})
-                for (Piece attacked : Pieces[attackedC])
+                for (PieceType attackedType : PieceTypes)
                 {
-                    bool enemy        = (attacker ^ attacked) == 8;
-                    auto attackedType = type_of(attacked);
+                    auto attacked = make_piece(attackedC, attackedType);
+
+                    bool enemy = (attacker ^ attacked) == 8;
 
                     int map = Map[attackerType - 1][attackedType - 1];
 
                     IndexType feature = CumulativeOffset[attacker][1]
                                       + (attackedC * (MaxTargets[attackerType] / 2) + map)
                                           * CumulativeOffset[attacker][0];
-                    bool excluded = map < 0;
-                    bool semiExcluded =
-                      attackerType == attackedType && (enemy || attackerType != PAWN);
+
+                    bool excluded     = map < 0;
+                    bool semiExcluded = attackerType == attackedType  //
+                                     && (enemy || attackerType != PAWN);
 
                     LutData[attacker][attacked] = PiecePairData(feature, excluded, semiExcluded);
                 }

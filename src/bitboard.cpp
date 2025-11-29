@@ -121,7 +121,7 @@ void init_magics() noexcept {
         assert(m.attacks != nullptr);
 
         // Board edges are not considered in the relevant occupancies
-        Bitboard edges = (EDGE_FILE_BB & ~file_bb(s)) | (PROMOTION_RANK_BB & ~rank_bb(s));
+        Bitboard edges = (EDGE_FILES_BB & ~file_bb(s)) | (PROMOTION_RANKS_BB & ~rank_bb(s));
         // Mask excludes edges
         m.mask = sliding_attacks_bb<PT>(s) & ~edges;
 

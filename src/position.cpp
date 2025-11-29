@@ -106,15 +106,16 @@ class CuckooTable final {
         clear();
 
         for (Color c : {WHITE, BLACK})
-            for (Piece pc : Pieces[c])
+            for (PieceType pt : PieceTypes)
             {
-                if (type_of(pc) == PAWN)
+                if (pt == PAWN)
                     continue;
                 for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
                     for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
-                        if (attacks_bb(s1, type_of(pc)) & s2)
+                        if (attacks_bb(s1, pt) & s2)
                         {
-                            Key key = Zobrist::piece_square(pc, s1) ^ Zobrist::piece_square(pc, s2)
+                            auto pc  = make_piece(c, pt);
+                            Key  key = Zobrist::piece_square(pc, s1) ^ Zobrist::piece_square(pc, s2)
                                     ^ Zobrist::turn();
                             Move move = Move(s1, s2);
                             insert({key, move});
@@ -146,12 +147,20 @@ void Zobrist::init() noexcept {
     const auto prng_rand = [&] { return prng.template rand<Key>(); };
 
     for (Color c : {WHITE, BLACK})
-        for (Piece pc : Pieces[c])
-            std::generate(PieceSquare[pc].begin(), PieceSquare[pc].end(), prng_rand);
-    for (Piece pc : {W_PAWN, B_PAWN})
     {
-        std::fill_n(&PieceSquare[pc][SQ_A1], PawnOffset, Key{});
-        std::fill_n(&PieceSquare[pc][SQ_A8], PawnOffset, Key{});
+        for (PieceType pt : PieceTypes)
+        {
+            auto pc = make_piece(c, pt);
+            std::generate(PieceSquare[pc].begin(), PieceSquare[pc].end(), prng_rand);
+        }
+
+        auto pc = make_piece(c, PAWN);
+
+        auto itr1 = PieceSquare[pc].begin() + SQ_A1;
+        std::fill(itr1, itr1 + PawnOffset, 0);
+
+        auto itr2 = PieceSquare[pc].begin() + SQ_A8;
+        std::fill(itr2, itr2 + PawnOffset, 0);
     }
 
     std::generate(Castling.begin(), Castling.end(), prng_rand);
@@ -321,7 +330,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     assert(count(W_PAWN) <= 8 && count(B_PAWN) <= 8);
     assert(count(W_KING) == 1 && count(B_KING) == 1);
     assert(is_ok(square<KING>(WHITE)) && is_ok(square<KING>(BLACK)));
-    assert(!(pieces(PAWN) & PROMOTION_RANK_BB));
+    assert(!(pieces(PAWN) & PROMOTION_RANKS_BB));
     assert(distance(square<KING>(WHITE), square<KING>(BLACK)) > 1);
 
     iss >> std::ws;
@@ -1224,7 +1233,7 @@ bool Position::pseudo_legal(Move m) const noexcept {
         if (type_of(pc) == PAWN)
         {
             // Already handled promotion moves, so origin & destination cannot be on the 8th/1st rank
-            if (PROMOTION_RANK_BB & make_bb(org, dst))
+            if (PROMOTION_RANKS_BB & make_bb(org, dst))
                 return false;
             if (!(relative_rank(ac, org) < RANK_7 && relative_rank(ac, dst) < RANK_8
                   && ((org + pawn_spush(ac) == dst && !(pieces() & dst))    // Single push
@@ -1243,7 +1252,7 @@ bool Position::pseudo_legal(Move m) const noexcept {
         break;
 
     case PROMOTION :
-        if (!(type_of(pc) == PAWN  //&& (PROMOTION_RANK_BB & dst)
+        if (!(type_of(pc) == PAWN  //&& (PROMOTION_RANKS_BB & dst)
               && relative_rank(ac, org) == RANK_7 && relative_rank(ac, dst) == RANK_8
               && ((org + pawn_spush(ac) == dst && !(pieces() & dst))
                   || ((attacks_bb<PAWN>(org, ac) & pieces(~ac)) & dst))))
@@ -2046,7 +2055,7 @@ bool Position::_is_ok() const noexcept {
     if (has_attackers_to(pieces(active_color()), square<KING>(~active_color())))
         assert(false && "Position::_is_ok(): King Checker");
 
-    if ((pieces(PAWN) & PROMOTION_RANK_BB) || count(W_PAWN) > 8 || count(B_PAWN) > 8)
+    if ((pieces(PAWN) & PROMOTION_RANKS_BB) || count(W_PAWN) > 8 || count(B_PAWN) > 8)
         assert(false && "Position::_is_ok(): Pawns");
 
     if ((pieces(WHITE) & pieces(BLACK)) || (pieces(WHITE) | pieces(BLACK)) != pieces()

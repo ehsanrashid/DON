@@ -609,10 +609,10 @@ inline Bitboard Position::pinners() const noexcept { return pinners(WHITE) | pin
 
 inline Bitboard Position::blockers(Color c) const noexcept { return st->blockers[c]; }
 
-// clang-format off
-
 template<PieceType PT>
-inline Bitboard Position::attacks(Color c) const noexcept { return st->attacks[c][PT]; }
+inline Bitboard Position::attacks(Color c) const noexcept {
+    return st->attacks[c][PT];
+}
 inline Bitboard Position::less_attacks(Color c, PieceType pt) const noexcept {
     return st->attacks[c][pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
 }
@@ -624,7 +624,9 @@ inline Piece Position::captured_piece() const noexcept { return st->capturedPiec
 
 inline Piece Position::promoted_piece() const noexcept { return st->promotedPiece; }
 
-inline Key Position::key(std::int16_t r50) const noexcept { return st->key ^ Zobrist::mr50(rule50_count() + r50); }
+inline Key Position::key(std::int16_t r50) const noexcept {
+    return st->key ^ Zobrist::mr50(rule50_count() + r50);
+}
 
 inline Key Position::pawn_key(Color c) const noexcept { return st->pawnKey[c]; }
 
@@ -643,15 +645,18 @@ inline Key Position::non_pawn_key(Color c) const noexcept {
     return minor_key(c) ^ major_key(c) ^ Zobrist::piece_square(piece_on(kingSq), kingSq);
 }
 
-inline Key Position::non_pawn_key() const noexcept { return non_pawn_key(WHITE) ^ non_pawn_key(BLACK); }
+inline Key Position::non_pawn_key() const noexcept {
+    return non_pawn_key(WHITE) ^ non_pawn_key(BLACK);
+}
 
 inline Key Position::material_key() const noexcept {
     Key materialKey = 0;
 
     for (Color c : {WHITE, BLACK})
-        for (Piece pc : Pieces[c])
-            if (type_of(pc) != KING && count(pc))
-                materialKey ^= Zobrist::piece_square(pc, Square(Zobrist::PawnOffset + count(pc) - 1));
+        for (PieceType pt : PieceTypes)
+            if (pt != KING && count(c, pt))
+                materialKey ^= Zobrist::piece_square(
+                  make_piece(c, pt), Square(Zobrist::PawnOffset + count(c, pt) - 1));
 
     return materialKey;
 }
@@ -659,23 +664,23 @@ inline Key Position::material_key() const noexcept {
 inline Value Position::non_pawn_value(Color c) const noexcept {
     Value nonPawnValue = VALUE_ZERO;
 
-    for (Piece pc : NonPawnPieces[c])
-        nonPawnValue += PIECE_VALUE[type_of(pc)] * count(pc);
+    for (PieceType pt : NonePawnPieceTypes)
+        nonPawnValue += PIECE_VALUE[pt] * count(c, pt);
 
     return nonPawnValue;
 }
 
-inline Value Position::non_pawn_value() const noexcept { return non_pawn_value(WHITE) + non_pawn_value(BLACK); }
+inline Value Position::non_pawn_value() const noexcept {
+    return non_pawn_value(WHITE) + non_pawn_value(BLACK);
+}
 
 inline bool Position::has_non_pawn(Color c) const noexcept {
 
-    for (Piece pc : NonPawnPieces[c])
-        if (count(pc))
+    for (PieceType pt : NonePawnPieceTypes)
+        if (count(c, pt))
             return true;
     return false;
 }
-
-// clang-format on
 
 inline Color Position::active_color() const noexcept { return activeColor; }
 
