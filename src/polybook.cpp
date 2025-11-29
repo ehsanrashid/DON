@@ -20,10 +20,11 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <iomanip>
-#include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <initializer_list>
+#include <iomanip>
+#include <iostream>
 #include <system_error>
 
 #include "bitboard.h"
