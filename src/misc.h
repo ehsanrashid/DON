@@ -494,7 +494,7 @@ struct IFixedVector {
     virtual void clear() noexcept = 0;
 };
 
-template<typename T, std::size_t Capacity>
+template<typename T, std::size_t Capacity, typename SizeType = std::size_t>
 class FixedVector final: public IFixedVector<T> {
     static_assert(Capacity > 0, "Capacity must be > 0");
 
@@ -570,7 +570,7 @@ class FixedVector final: public IFixedVector<T> {
 
    private:
     StdArray<T, Capacity> _data;
-    std::size_t           _size{0};
+    SizeType              _size{0};
 };
 
 template<std::size_t Capacity>

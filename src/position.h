@@ -114,7 +114,7 @@ struct State final {
 };
 
 // Position class stores information regarding the board representation as
-// pieces, active color, hash keys, castling info, etc. (Size = 664)
+// pieces, active color, hash keys, castling info, etc. (Size = 648)
 // Important methods are do_move() and undo_move(),
 // used by the search to update node info when traversing the search tree.
 class Position final {
@@ -374,11 +374,12 @@ class Position final {
     // Static Exchange Evaluation
     bool see_ge(Move m, int threshold) const noexcept;
 
-    static constexpr std::size_t  MaxPieceCount = 8;
+    static constexpr std::size_t  MaxPieceCount = 15;
     static constexpr std::uint8_t InvalidIndex  = 64;
 
-    StdArray<FixedVector<Square, MaxPieceCount>, COLOR_NB, PIECE_TYPE_NB - 3> sizeXLists;
-    StdArray<FixedVector<Square, 1>, COLOR_NB>                                size1Lists;
+    StdArray<FixedVector<Square, MaxPieceCount, std::uint8_t>, COLOR_NB, PIECE_TYPE_NB - 3>
+                                                             sizeXLists;
+    StdArray<FixedVector<Square, 1, std::uint8_t>, COLOR_NB> size1Lists;
 
     const StdArray<IFixedVector<Square>*, COLOR_NB, PIECE_TYPE_NB - 2> pieceLists{
       {{
@@ -398,7 +399,7 @@ class Position final {
          &size1Lists[BLACK]      //
        }}};
 
-    StdArray<std::uint8_t, SQUARE_NB>               squareIndex;
+    StdArray<std::uint8_t, SQUARE_NB>               pieceListMap;
     StdArray<Piece, SQUARE_NB>                      pieceMap;
     StdArray<Bitboard, COLOR_NB>                    colorBB;
     StdArray<Bitboard, PIECE_TYPE_NB>               typeBB;
@@ -411,7 +412,7 @@ class Position final {
     State*                                          st;
 };
 
-//static_assert(sizeof(Position) == 664, "Position size");
+//static_assert(sizeof(Position) == 648, "Position size");
 
 inline const auto& Position::piece_map() const noexcept { return pieceMap; }
 
@@ -768,7 +769,7 @@ inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noe
     colorBB[c] |= sbb;
     typeBB[NO_PIECE_TYPE] |= typeBB[pt] |= sbb;
     auto& pieceList = piece_list(c, pt);
-    squareIndex[s]  = pieceList.size();
+    pieceListMap[s] = pieceList.size();
     pieceList.push_back(s);
     ++pieceCount[c];
 
@@ -792,13 +793,13 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
     colorBB[c] ^= sbb;
     typeBB[pt] ^= sbb;
     typeBB[NO_PIECE_TYPE] ^= sbb;
-    auto  idx       = squareIndex[s];
+    auto  idx       = pieceListMap[s];
     auto& pieceList = piece_list(c, pt);
     assert(idx < pieceList.capacity());
-    Square sq       = pieceList.back();
-    pieceList[idx]  = sq;
-    squareIndex[sq] = idx;
-    //squareIndex[s]    = InvalidIndex;
+    Square sq        = pieceList.back();
+    pieceList[idx]   = sq;
+    pieceListMap[sq] = idx;
+    //pieceListMap[s]  = InvalidIndex;
     pieceList.pop_back();
     --pieceCount[c];
 
@@ -822,12 +823,12 @@ inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts)
     colorBB[c] ^= s1s2bb;
     typeBB[pt] ^= s1s2bb;
     typeBB[NO_PIECE_TYPE] ^= s1s2bb;
-    auto  idx       = squareIndex[s1];
+    auto  idx       = pieceListMap[s1];
     auto& pieceList = piece_list(c, pt);
     assert(idx < pieceList.capacity());
-    pieceList[idx]  = s2;
-    squareIndex[s2] = idx;
-    //squareIndex[s1]  = InvalidIndex;
+    pieceList[idx]   = s2;
+    pieceListMap[s2] = idx;
+    //pieceListMap[s1] = InvalidIndex;
 
     if (dts != nullptr)
         update_piece_threats<true>(pc, s2, dts);

@@ -180,7 +180,7 @@ Position& Position::operator=(const Position& pos) noexcept {
     if (this == &pos)
         return *this;
 
-    std::memcpy(squareIndex.data(), pos.squareIndex.data(), sizeof(squareIndex));
+    std::memcpy(pieceListMap.data(), pos.pieceListMap.data(), sizeof(pieceListMap));
     std::memcpy(pieceMap.data(), pos.pieceMap.data(), sizeof(pieceMap));
     std::memcpy(colorBB.data(), pos.colorBB.data(), sizeof(colorBB));
     std::memcpy(typeBB.data(), pos.typeBB.data(), sizeof(typeBB));
@@ -202,7 +202,7 @@ Position& Position::operator=(const Position& pos) noexcept {
 
 void Position::clear() noexcept {
     // No need to clear squareIndex as it is always overwritten when putting/removing pieces
-    std::memset(squareIndex.data(), InvalidIndex, sizeof(squareIndex));
+    std::memset(pieceListMap.data(), InvalidIndex, sizeof(pieceListMap));
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
     std::memset(colorBB.data(), 0, sizeof(colorBB));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
@@ -2062,7 +2062,7 @@ bool Position::_is_ok() const noexcept {
         for (PieceType pt : PieceTypes)
             for (std::size_t i = 0; i < piece_list(c, pt).size(); ++i)
                 if (piece_on(piece_list(c, pt)[i]) != make_piece(c, pt)
-                    || squareIndex[piece_list(c, pt)[i]] != int(i))
+                    || pieceListMap[piece_list(c, pt)[i]] != int(i))
                     assert(0 && "_is_ok: Piece List");
 
     for (Color c : {WHITE, BLACK})
@@ -2203,21 +2203,20 @@ void Position::dump(std::ostream& os) const noexcept {
             os << "\n";
         }
 
+    os << "Piece List Map:\n";
     for (Rank r = RANK_8; r >= RANK_1; --r)
         for (File f = FILE_A; f <= FILE_H; ++f)
         {
             Square s = make_square(f, r);
 
-            if (squareIndex[s] == InvalidIndex)
-                os << "**";
+            if (pieceListMap[s] == InvalidIndex)
+                os << '*';
             else
-                os << std::setw(2) << std::setfill('0') << int(squareIndex[s]);
+                os << int(pieceListMap[s]);
             os << " ";
             if (file_of(s) == FILE_H)
                 os << "\n";
         }
-
-    os << std::setfill(' ');
 
     flush(os);
 }
