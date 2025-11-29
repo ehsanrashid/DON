@@ -625,21 +625,25 @@ void Position::set_state() noexcept {
     assert(st->nonPawnKey[WHITE][1] == 0 && st->nonPawnKey[BLACK][1] == 0);
     assert(st->key == 0);
 
-    Bitboard occupied = pieces();
-    while (occupied)
-    {
-        Square s  = pop_lsb(occupied);
-        Piece  pc = piece_on(s);
-        assert(is_ok(pc));
-        assert(Zobrist::piece_square(pc, s) != 0);
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PieceTypes)
+        {
+            const auto& pieceList = piece_list(c, pt);
+            for (Square s : pieceList)
+            {
+                Piece pc = make_piece(c, pt);
 
-        st->key ^= Zobrist::piece_square(pc, s);
+                assert(Zobrist::piece_square(pc, s) != 0);
 
-        if (type_of(pc) == PAWN)
-            st->pawnKey[color_of(pc)] ^= Zobrist::piece_square(pc, s);
-        else if (type_of(pc) != KING)
-            st->nonPawnKey[color_of(pc)][is_major(type_of(pc))] ^= Zobrist::piece_square(pc, s);
-    }
+                st->key ^= Zobrist::piece_square(pc, s);
+
+                if (pt == PAWN)
+                    st->pawnKey[c] ^= Zobrist::piece_square(pc, s);
+
+                else if (pt != KING)
+                    st->nonPawnKey[c][is_major(pt)] ^= Zobrist::piece_square(pc, s);
+            }
+        }
 
     st->key ^= Zobrist::castling(castling_rights());
 
@@ -655,14 +659,12 @@ void Position::set_ext_state() noexcept {
 
     Square kingSq = square<KING>(~active_color());
 
-    Bitboard occupied = pieces();
-
     // clang-format off
     st->checks[NO_PIECE_TYPE] = 0;
     st->checks[PAWN  ] = attacks_bb<PAWN  >(kingSq, ~active_color());
     st->checks[KNIGHT] = attacks_bb<KNIGHT>(kingSq);
-    st->checks[BISHOP] = attacks_bb<BISHOP>(kingSq, occupied);
-    st->checks[ROOK  ] = attacks_bb<ROOK  >(kingSq, occupied);
+    st->checks[BISHOP] = attacks_bb<BISHOP>(kingSq, pieces());
+    st->checks[ROOK  ] = attacks_bb<ROOK  >(kingSq, pieces());
     st->checks[QUEEN ] = checks(BISHOP) | checks(ROOK);
     st->checks[KING  ] = 0;
 
@@ -670,27 +672,7 @@ void Position::set_ext_state() noexcept {
 
     for (Color c : {WHITE, BLACK})
     {
-        // Calculates st->blockers[c] and st->pinners[],
-        // which store respectively the pieces preventing king of color c from being in check
-        // and the slider pieces of color ~c pinning pieces of color c to the king.
-        st->blockers[c] = 0;
-
-        kingSq = square<KING>(c);
-        // Snipers are xsliders enemies that attack 'king' when other snipers are removed
-        Bitboard xsnipers  = xslide_attackers_to(kingSq) & pieces(~c);
-        Bitboard xoccupied = occupied ^ xsnipers;
-
-        while (xsnipers)
-        {
-            Square xsniper = pop_lsb(xsnipers);
-
-            Bitboard blocker = between_bb(kingSq, xsniper) & xoccupied;
-            if (exactly_one(blocker))
-            {
-                st->blockers[c] |= blocker;
-                st->pinners[blocker & pieces(c) ? ~c : c] |= xsniper;
-            }
-        }
+        st->blockers[c] = blockers_to(square<KING>(c), pieces(~c), &st->pinners[c], &st->pinners[~c]);
 
         st->attacks[c][NO_PIECE_TYPE] = 0;
         st->attacks[c][PAWN  ] = attacks_by<PAWN  >(c);
@@ -1248,7 +1230,7 @@ bool Position::pseudo_legal(Move m) const noexcept {
 
         // For king moves, check whether the destination square is attacked by the enemies.
         if (type_of(pc) == KING)
-            return !has_attackers_to(pieces(~ac), dst, pieces() ^ org);
+            return !has_attackers_to(dst, pieces(~ac), pieces() ^ org);
         break;
 
     case PROMOTION :
@@ -1335,7 +1317,7 @@ bool Position::legal(Move m) const noexcept {
         Square    kDst = king_castle_sq(ac, org, dst);
         Direction step = org < kDst ? WEST : EAST;
         for (Square s = kDst; s != org; s += step)
-            if (has_attackers_to(pieces(~ac), s))
+            if (has_attackers_to(s, pieces(~ac)))
                 return false;
 
         // In case of Chess960, verify if the Rook blocks some checks.
@@ -1346,7 +1328,7 @@ bool Position::legal(Move m) const noexcept {
         // For king moves, return true
         if (type_of(piece_on(org)) == KING)
         {
-            assert(!has_attackers_to(pieces(~ac), dst, pieces() ^ org));
+            assert(!has_attackers_to(dst, pieces(~ac), pieces() ^ org));
             return true;
         }
         break;
@@ -1957,10 +1939,13 @@ void Position::mirror() noexcept {
 Key Position::compute_key() const noexcept {
     Key key = 0;
 
-    Bitboard occupied = pieces();
-    while (occupied)
+    StdArray<Square, SQUARE_NB> sqrs;
+    std::size_t                 n;
+    squares(sqrs, n);
+
+    for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = pop_lsb(occupied);
+        Square s  = sqrs[i];
         Piece  pc = piece_on(s);
 
         key ^= Zobrist::piece_square(pc, s);
@@ -1980,10 +1965,13 @@ Key Position::compute_key() const noexcept {
 Key Position::compute_minor_key() const noexcept {
     Key minorKey = 0;
 
-    Bitboard occupied = pieces();
-    while (occupied)
+    StdArray<Square, SQUARE_NB> sqrs;
+    std::size_t                 n;
+    squares(sqrs, n);
+
+    for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = pop_lsb(occupied);
+        Square s  = sqrs[i];
         Piece  pc = piece_on(s);
 
         if (type_of(pc) != PAWN && type_of(pc) != KING && !is_major(type_of(pc)))
@@ -1995,10 +1983,13 @@ Key Position::compute_minor_key() const noexcept {
 Key Position::compute_major_key() const noexcept {
     Key majorKey = 0;
 
-    Bitboard occupied = pieces();
-    while (occupied)
+    StdArray<Square, SQUARE_NB> sqrs;
+    std::size_t                 n;
+    squares(sqrs, n);
+
+    for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = pop_lsb(occupied);
+        Square s  = sqrs[i];
         Piece  pc = piece_on(s);
 
         if (type_of(pc) != PAWN && type_of(pc) != KING && is_major(type_of(pc)))
@@ -2010,10 +2001,13 @@ Key Position::compute_major_key() const noexcept {
 Key Position::compute_non_pawn_key() const noexcept {
     Key nonPawnKey = 0;
 
-    Bitboard occupied = pieces();
-    while (occupied)
+    StdArray<Square, SQUARE_NB> sqrs;
+    std::size_t                 n;
+    squares(sqrs, n);
+
+    for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = pop_lsb(occupied);
+        Square s  = sqrs[i];
         Piece  pc = piece_on(s);
 
         if (type_of(pc) != PAWN)
@@ -2037,11 +2031,11 @@ bool Position::_is_ok() const noexcept {
         || (is_ok(ep_sq()) && !can_enpassant(active_color(), ep_sq())))
         assert(false && "Position::_is_ok(): Default");
 
-    if (Fast)
-        return true;
-
     if (st->key != compute_key())
         assert(false && "Position::_is_ok(): Key");
+
+    if (Fast)
+        return true;
 
     if (minor_key() != compute_minor_key())
         assert(false && "Position::_is_ok(): Minor Key");
@@ -2052,7 +2046,7 @@ bool Position::_is_ok() const noexcept {
     if (non_pawn_key() != compute_non_pawn_key())
         assert(false && "Position::_is_ok(): NonPawn Key");
 
-    if (has_attackers_to(pieces(active_color()), square<KING>(~active_color())))
+    if (has_attackers_to(square<KING>(~active_color()), pieces(active_color())))
         assert(false && "Position::_is_ok(): King Checker");
 
     if ((pieces(PAWN) & PROMOTION_RANKS_BB) || count(W_PAWN) > 8 || count(B_PAWN) > 8)
