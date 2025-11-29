@@ -124,8 +124,6 @@ class Position final {
     static inline bool         Chess960      = false;
     static inline std::uint8_t DrawMoveCount = 50;
 
-    static constexpr std::size_t MaxPieceCount = 8;
-
     Position() noexcept = default;
 
    private:
@@ -376,27 +374,28 @@ class Position final {
     // Static Exchange Evaluation
     bool see_ge(Move m, int threshold) const noexcept;
 
-    static constexpr std::size_t InvalidIndex = 64;
+    static constexpr std::size_t  MaxPieceCount = 8;
+    static constexpr std::uint8_t InvalidIndex  = 64;
 
-    StdArray<FixedVector<Square, MaxPieceCount>, COLOR_NB, PIECE_TYPE_NB - 3> _xLists;
-    StdArray<FixedVector<Square, 1>, COLOR_NB>                                _1Lists;
+    StdArray<FixedVector<Square, MaxPieceCount>, COLOR_NB, PIECE_TYPE_NB - 3> sizeXLists;
+    StdArray<FixedVector<Square, 1>, COLOR_NB>                                size1Lists;
 
     const StdArray<IFixedVector<Square>*, COLOR_NB, PIECE_TYPE_NB - 2> pieceLists{
       {{
-         &_xLists[WHITE][0],  //
-         &_xLists[WHITE][1],  //
-         &_xLists[WHITE][2],  //
-         &_xLists[WHITE][3],  //
-         &_xLists[WHITE][4],  //
-         &_1Lists[WHITE]      //
+         &sizeXLists[WHITE][0],  //
+         &sizeXLists[WHITE][1],  //
+         &sizeXLists[WHITE][2],  //
+         &sizeXLists[WHITE][3],  //
+         &sizeXLists[WHITE][4],  //
+         &size1Lists[WHITE]      //
        },
        {
-         &_xLists[BLACK][0],  //
-         &_xLists[BLACK][1],  //
-         &_xLists[BLACK][2],  //
-         &_xLists[BLACK][3],  //
-         &_xLists[BLACK][4],  //
-         &_1Lists[BLACK]      //
+         &sizeXLists[BLACK][0],  //
+         &sizeXLists[BLACK][1],  //
+         &sizeXLists[BLACK][2],  //
+         &sizeXLists[BLACK][3],  //
+         &sizeXLists[BLACK][4],  //
+         &size1Lists[BLACK]      //
        }}};
 
     StdArray<std::uint8_t, SQUARE_NB>               squareIndex;

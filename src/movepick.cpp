@@ -87,6 +87,8 @@ MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveL
         auto& m = *itr++;
         m       = move;
 
+        assert(pos.capture_queenpromo(m));
+
         Square dst      = m.dst_sq();
         auto   pc       = pos.moved_piece(m);
         auto   captured = pos.captured(m);
@@ -111,6 +113,8 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
     {
         auto& m = *itr++;
         m       = move;
+
+        assert(!pos.capture_queenpromo(m));
 
         Square org = m.org_sq(), dst = m.dst_sq();
         auto   pc = pos.moved_piece(m);
@@ -162,6 +166,7 @@ MovePicker::iterator MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveL
         auto& m = *itr++;
         m       = move;
 
+        assert(pos.capture_queenpromo(m));
         assert(m.type_of() != CASTLING);
 
         auto captured = pos.captured(m);
@@ -182,6 +187,7 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
         auto& m = *itr++;
         m       = move;
 
+        assert(!pos.capture_queenpromo(m));
         assert(m.type_of() != CASTLING);
 
         Square dst = m.dst_sq();

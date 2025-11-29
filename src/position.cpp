@@ -190,8 +190,8 @@ Position& Position::operator=(const Position& pos) noexcept {
     std::memcpy(castlingRightsMask.data(), pos.castlingRightsMask.data(),
                 sizeof(castlingRightsMask));
 
-    _xLists = pos._xLists;
-    _1Lists = pos._1Lists;
+    sizeXLists = pos.sizeXLists;
+    size1Lists = pos.size1Lists;
     // Don't copy *pieceLists, as they point to the above lists
 
     activeColor = pos.activeColor;
@@ -213,9 +213,9 @@ void Position::clear() noexcept {
 
     for (Color c : {WHITE, BLACK})
     {
-        for (std::size_t pt = 0; pt < _xLists[c].size(); ++pt)
-            _xLists[c][pt].clear();
-        _1Lists[c].clear();
+        for (std::size_t pt = 0; pt < sizeXLists[c].size(); ++pt)
+            sizeXLists[c][pt].clear();
+        size1Lists[c].clear();
     }
     // Don't clear *pieceLists, as they point to the above lists
 
