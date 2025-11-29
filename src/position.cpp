@@ -194,6 +194,7 @@ Position& Position::operator=(const Position& pos) noexcept {
     std::memcpy(colorBB.data(), pos.colorBB.data(), sizeof(colorBB));
     std::memcpy(typeBB.data(), pos.typeBB.data(), sizeof(typeBB));
     std::memcpy(castlingPath.data(), pos.castlingPath.data(), sizeof(castlingPath));
+    std::memcpy(castlingKingPath.data(), pos.castlingKingPath.data(), sizeof(castlingKingPath));
     std::memcpy(castlingRookSq.data(), pos.castlingRookSq.data(), sizeof(castlingRookSq));
     std::memcpy(castlingRightsMask.data(), pos.castlingRightsMask.data(),
                 sizeof(castlingRightsMask));
@@ -216,6 +217,7 @@ void Position::clear() noexcept {
     std::memset(colorBB.data(), 0, sizeof(colorBB));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
     std::memset(castlingPath.data(), 0, sizeof(castlingPath));
+    std::memset(castlingKingPath.data(), 0, sizeof(castlingKingPath));
     std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
     std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));
     std::memset(pieceCount.data(), 0, sizeof(pieceCount));
@@ -613,6 +615,7 @@ void Position::set_castling_rights(Color c, Square rOrg) noexcept {
 
     castlingPath[cr_lsb(cr)] =
       (between_bb(kOrg, kDst) | between_bb(rOrg, rDst)) & ~make_bb(kOrg, rOrg);
+    castlingKingPath[cr_lsb(cr)] = between_bb(kOrg, kDst);
 }
 
 // Computes the hash keys of the position, and other data
