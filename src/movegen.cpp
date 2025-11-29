@@ -321,25 +321,29 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
             else
                 s = pop_lsb(b);
 
-            if (!(pos.slide_attackers_to(s, occupied) & pos.pieces(~AC)))
-            {
-                *moves++ = Move(kingSq, s);
-                if constexpr (Any)
-                    return moves;
-            }
+            if (pos.slide_attackers_to(s, occupied) & pos.pieces(~AC))
+                continue;
+
+            *moves++ = Move(kingSq, s);
+
+            if constexpr (Any)
+                return moves;
         }
     }
 
     if constexpr (Castle)
     {
         assert(!pos.checkers());
+
         if (pos.can_castle(AC & ANY_CASTLING))
             for (CastlingRights cr : {AC & KING_SIDE, AC & QUEEN_SIDE})
                 if (pos.can_castle(cr) && !pos.castling_impeded(cr))
                 {
                     assert(is_ok(pos.castling_rook_sq(cr))
                            && (pos.pieces(AC, ROOK) & pos.castling_rook_sq(cr)));
+
                     *moves++ = Move(CASTLING, kingSq, pos.castling_rook_sq(cr));
+
                     if constexpr (Any)
                         return moves;
                 }

@@ -216,10 +216,10 @@ class Position final {
     bool has_attackers_to(Square s, Bitboard attackers, Bitboard occupied) const noexcept;
     bool has_attackers_to(Square s, Bitboard attackers) const noexcept;
 
-    Bitboard blockers_to(Square    s,
-                         Bitboard  attackers,
-                         Bitboard* ownPinners = nullptr,
-                         Bitboard* oppPinners = nullptr) const noexcept;
+    Bitboard blockers_to(Square          s,
+                         Bitboard        enemies,
+                         Bitboard* const ownPinners = nullptr,
+                         Bitboard* const oppPinners = nullptr) const noexcept;
 
     // Attacks from a piece type
     template<PieceType PT>
@@ -636,14 +636,14 @@ inline bool Position::has_attackers_to(Square s, Bitboard attackers) const noexc
     return has_attackers_to(s, attackers, pieces());
 }
 
-// Computes the blockers that are pinning pieces to a given square 's' from a set of attackers.
+// Computes the blockers that are pinned pieces to a given square 's' from a set of enemies.
 // Blockers are pieces that, when removed, would expose an x-ray attack to 's'.
-// Pinners are also returned via the ownPinners and oppPinners bitboards.
-inline Bitboard Position::blockers_to(Square s, Bitboard attackers, Bitboard* ownPinners, Bitboard* oppPinners) const noexcept {
+// Pinners are also returned via the ownPinners and oppPinners pointers.
+inline Bitboard Position::blockers_to(Square s, Bitboard enemies, Bitboard* const ownPinners, Bitboard* const oppPinners) const noexcept {
     Bitboard blockers = 0;
 
     // xSnipers are x-ray attackers that attack 's' when blockers are removed
-    Bitboard xSnipers = xslide_attackers_to(s) & attackers;
+    Bitboard xSnipers = xslide_attackers_to(s) & enemies;
     Bitboard occupied = pieces() ^ xSnipers;
 
     while (xSnipers)
@@ -656,7 +656,7 @@ inline Bitboard Position::blockers_to(Square s, Bitboard attackers, Bitboard* ow
         {
             blockers |= blocker;
 
-            if (blocker & attackers)
+            if (blocker & enemies)
             {
                 if (ownPinners != nullptr) *ownPinners |= xSniperSq;
             }
