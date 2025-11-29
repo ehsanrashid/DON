@@ -269,9 +269,9 @@ ALWAYS_INLINE FixedVector<Square, 16>
         return sortedPieceList;
 
     if constexpr (AC == WHITE)
-        std::sort(sortedPieceList.begin(), sortedPieceList.end(), std::less<>{});
+        std::sort(sortedPieceList.begin(), sortedPieceList.end(), std::greater<>{});
     else
-        std::sort(sortedPieceList.begin(), sortedPieceList.end(), std::greater{});
+        std::sort(sortedPieceList.begin(), sortedPieceList.end(), std::less{});
 
     return sortedPieceList;
 }
