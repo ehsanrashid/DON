@@ -501,25 +501,25 @@ class FixedVector final: public IFixedVector<T> {
    public:
     constexpr FixedVector() noexcept = default;
 
-    [[nodiscard]] constexpr std::size_t capacity() const noexcept { return Capacity; }
+    [[nodiscard]] std::size_t capacity() const noexcept override { return Capacity; }
 
-    [[nodiscard]] constexpr std::size_t size() const noexcept { return _size; }
-    [[nodiscard]] constexpr bool        empty() const noexcept { return size() == 0; }
-    [[nodiscard]] constexpr bool        full() const noexcept { return size() == capacity(); }
+    [[nodiscard]] std::size_t size() const noexcept override { return _size; }
+    [[nodiscard]] bool        empty() const noexcept override { return size() == 0; }
+    [[nodiscard]] bool        full() const noexcept override { return size() == capacity(); }
 
-    T*       begin() noexcept { return data(); }
-    T*       end() noexcept { return begin() + size(); }
-    const T* begin() const noexcept { return data(); }
-    const T* end() const noexcept { return begin() + size(); }
-    const T* cbegin() const noexcept { return data(); }
-    const T* cend() const noexcept { return cbegin() + size(); }
+    T*       begin() noexcept override { return data(); }
+    T*       end() noexcept override { return begin() + size(); }
+    const T* begin() const noexcept override { return data(); }
+    const T* end() const noexcept override { return begin() + size(); }
+    const T* cbegin() const noexcept override { return data(); }
+    const T* cend() const noexcept override { return cbegin() + size(); }
 
-    bool push_back(const T& value) noexcept {
+    bool push_back(const T& value) noexcept override {
         assert(size() < capacity());
         _data[_size++] = value;  // copy-assign into pre-initialized slot
         return true;
     }
-    bool push_back(T&& value) noexcept {
+    bool push_back(T&& value) noexcept override {
         assert(size() < capacity());
         _data[_size++] = std::move(value);
         return true;
@@ -531,42 +531,42 @@ class FixedVector final: public IFixedVector<T> {
         return true;
     }
 
-    void pop_back() noexcept {
+    void pop_back() noexcept override {
         assert(size() > 0);
         --_size;
     }
 
-    T& back() noexcept {
+    T& back() noexcept override {
         assert(size() > 0);
         return _data[_size - 1];
     }
-    const T& back() const noexcept {
+    const T& back() const noexcept override {
         assert(size() > 0);
         return _data[_size - 1];
     }
 
-    constexpr T*       data() noexcept { return _data.data(); }
-    constexpr const T* data() const noexcept { return _data.data(); }
+    T*       data() noexcept override { return _data.data(); }
+    const T* data() const noexcept override { return _data.data(); }
 
-    constexpr T& operator[](std::size_t idx) noexcept {
+    T& operator[](std::size_t idx) noexcept override {
         assert(idx < size());
         assert(size() <= capacity());
         return _data[idx];
     }
-    constexpr const T& operator[](std::size_t idx) const noexcept {
+    const T& operator[](std::size_t idx) const noexcept override {
         assert(idx < size());
         assert(size() <= capacity());
         return _data[idx];
     }
 
-    bool set_size(std::size_t newSize) noexcept {
+    bool set_size(std::size_t newSize) noexcept override {
         if (newSize > capacity())
             return false;
         _size = newSize;  // Note: doesn't construct/destroy elements
         return true;
     }
 
-    void clear() noexcept { _size = 0; }
+    void clear() noexcept override { _size = 0; }
 
    private:
     StdArray<T, Capacity> _data;

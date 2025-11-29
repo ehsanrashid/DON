@@ -18,7 +18,7 @@
 #include "movegen.h"
 
 #include <algorithm>
-#include <array>
+#include <cstring>
 #include <functional>
 #include <initializer_list>
 #if defined(USE_AVX512ICL)
@@ -26,7 +26,6 @@
 #endif
 
 #include "bitboard.h"
-#include "misc.h"
 #include "position.h"
 
 namespace DON {
@@ -264,16 +263,15 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
                   "Unsupported piece type in generate_piece_moves()");
     assert(!pos.checkers() || !more_than_one(pos.checkers()));
 
-    auto& pieceList = pos.piece_list<PT>(AC);
+    const auto& pieceList = pos.piece_list<PT>(AC);
 
     const std::size_t n = pieceList.size();
     assert(n <= Position::MaxPieceCount);
 
-    StdArray<Square, Position::MaxPieceCount> sortedSquares;
-    for (std::size_t i = 0; i < n; ++i)
-        sortedSquares[i] = pieceList[i];
+    StdArray<Square, Position::MaxPieceCount> sortedSqs;
+    std::memcpy(sortedSqs.data(), pieceList.data(), n * sizeof(Square));
 
-    Square*       beg = sortedSquares.data();
+    Square*       beg = sortedSqs.data();
     Square* const end = beg + n;
 
     if (n > 1)

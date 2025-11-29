@@ -165,6 +165,7 @@ void init_magics() noexcept {
 
         // Find a magic for square 's' picking up an (almost) random number
         // until find the one that passes the verification test.
+        // this is trial−and−error iteration.
         while (true)
         {
             // Pick a candidate magic until it is "sparse enough"
