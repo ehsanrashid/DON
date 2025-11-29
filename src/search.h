@@ -266,7 +266,7 @@ class RootMoves final {
         std::stable_sort(begin(), end(), std::forward<Predicate>(pred));
     }
 
-    [[nodiscard]] reference operator[](size_type idx) noexcept {  //
+    [[nodiscard]] reference operator[](size_type idx) noexcept {
         assert(idx < size());
         return rootMoves[idx];
     }
