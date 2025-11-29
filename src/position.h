@@ -121,6 +121,8 @@ class Position final {
    public:
     static void init() noexcept;
 
+    static constexpr std::size_t MaxPieceCount = 15;
+
     static inline bool         Chess960      = false;
     static inline std::uint8_t DrawMoveCount = 50;
 
@@ -374,8 +376,7 @@ class Position final {
     // Static Exchange Evaluation
     bool see_ge(Move m, int threshold) const noexcept;
 
-    static constexpr std::size_t  MaxPieceCount = 15;
-    static constexpr std::uint8_t InvalidIndex  = 64;
+    static constexpr std::uint8_t InvalidIndex = 64;
 
     StdArray<FixedVector<Square, MaxPieceCount, std::uint8_t>, COLOR_NB, PIECE_TYPE_NB - 3>
                                                              sizeXLists;

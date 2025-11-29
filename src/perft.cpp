@@ -341,11 +341,13 @@ PerftInfo perft(Position& pos, Depth depth, bool detail) noexcept {
         {
             ++count;
 
-            std::cout << std::setfill('0') << std::right                  //
-                      << std::setw(2) << count                            //
-                      << std::setfill(' ') << std::left                   //
-                      << " " << std::setw(7) << UCI::move_to_san(m, pos)  //
-                      << std::setfill('.') << std::right                  //
+            std::cout << std::setfill('0') << std::right  //
+                      << std::setw(2) << count            //
+                      << std::setfill(' ') << std::left   //
+                      << " " << std::setw(7)              //
+                      << UCI::move_to_san(m, pos)         //
+                      //<< UCI::move_to_can(m)            //
+                      << std::setfill('.') << std::right  //
                       << ": " << std::setw(16) << _perftInfo.nodes;
             if (detail)
                 std::cout << "   " << std::setw(14) << _perftInfo.capture    //

@@ -18,11 +18,10 @@
 #include "movegen.h"
 
 #include <algorithm>
+#include <array>
 #include <functional>
 #include <initializer_list>
-#include <vector>
 #if defined(USE_AVX512ICL)
-    #include <array>
     #include <immintrin.h>
 #endif
 
@@ -259,36 +258,36 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
     return moves;
 }
 
-template<Color AC>
-ALWAYS_INLINE std::vector<Square> sorted_squares(const IFixedVector<Square>& pieceList) noexcept {
-    const std::size_t n = pieceList.size();
-
-    std::vector<Square> sortedSquares;
-    sortedSquares.reserve(n);
-    for (std::size_t i = 0; i < n; ++i)
-        sortedSquares.push_back(pieceList[i]);
-
-    if (n > 1)
-    {
-        if constexpr (AC == WHITE)
-            std::sort(sortedSquares.begin(), sortedSquares.end(), std::greater<>{});
-        else
-            std::sort(sortedSquares.begin(), sortedSquares.end(), std::less<>{});
-    }
-
-    return sortedSquares;
-}
-
 template<Color AC, PieceType PT>
 Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) noexcept {
     static_assert(PT == KNIGHT || PT == BISHOP || PT == ROOK || PT == QUEEN,
                   "Unsupported piece type in generate_piece_moves()");
     assert(!pos.checkers() || !more_than_one(pos.checkers()));
 
-    auto sortedSquares = sorted_squares<AC>(pos.piece_list<PT>(AC));
+    auto& pieceList = pos.piece_list<PT>(AC);
 
-    for (Square org : sortedSquares)
+    const std::size_t n = pieceList.size();
+    assert(n <= Position::MaxPieceCount);
+
+    StdArray<Square, Position::MaxPieceCount> sortedSquares;
+    for (std::size_t i = 0; i < n; ++i)
+        sortedSquares[i] = pieceList[i];
+
+    Square*       beg = sortedSquares.data();
+    Square* const end = beg + n;
+
+    if (n > 1)
     {
+        if constexpr (AC == WHITE)
+            std::sort(beg, end, std::greater<>{});
+        else
+            std::sort(beg, end, std::less<>{});
+    }
+
+    for (; beg != end; ++beg)
+    {
+        Square org = *beg;
+
         Bitboard b = attacks_bb<PT>(org, pos.pieces()) & target;
 
         if (pos.blockers(AC) & org)
@@ -451,15 +450,18 @@ Move* generate_legal(const Position& pos, Move* moves) noexcept {
             ? generate<EVASION, Any>(pos, moves)
             : generate<ENCOUNTER, Any>(pos, moves);
 
+    Bitboard pawns    = pos.pieces(PAWN);
     Bitboard blockers = pos.blockers(pos.active_color());
+
+    Bitboard pawnBlockers = pawns & blockers;
     // Filter illegal moves (preserve order)
     while (read != moves)
     {
         Move m = *read++;
-        if (((type_of(pos[m.org_sq()]) == PAWN && (blockers & m.org_sq()))
-             || m.type_of() == CASTLING)
-            && !pos.legal(m))
-            continue;  // skip illegal
+
+        if (((pawnBlockers & m.org_sq()) || m.type_of() == CASTLING) && !pos.legal(m))
+            continue;  // Skip illegal
+
         *write++ = m;
     }
 
