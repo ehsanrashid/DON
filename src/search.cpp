@@ -1105,8 +1105,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     value = bestValue;
 
-    std::uint8_t moveCount  = 0;
-    std::uint8_t promoCount = 0;
+    std::uint8_t moveCount = 0;
 
     StdArray<MoveFixedVector, 2> worseMoves;
 
@@ -1134,7 +1133,6 @@ S_MOVES_LOOP:  // When in check, search starts here
             continue;
 
         ss->moveCount = ++moveCount;
-        promoCount += move.type_of() == PROMOTION && move.promotion_type() != QUEEN;
 
         if (RootNode && is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
         {
@@ -1168,7 +1166,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (!RootNode && hasNonPawn && !is_loss(bestValue))
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
-            mp.quietAllowed &= ((moveCount - promoCount) < ((3 + depth * depth) >> (!improve)));
+            mp.quietAllowed &= moveCount < (3 + depth * depth) >> !improve;
 
             // Reduced depth of the next LMR search
             Depth lmrDepth = newDepth - r / 1024;
@@ -1704,8 +1702,7 @@ QS_MOVES_LOOP:
 
     Value value;
 
-    std::uint8_t moveCount  = 0;
-    std::uint8_t promoCount = 0;
+    std::uint8_t moveCount = 0;
 
     Move move, bestMove = Move::None;
 
@@ -1728,7 +1725,6 @@ QS_MOVES_LOOP:
             continue;
 
         ++moveCount;
-        promoCount += move.type_of() == PROMOTION && move.promotion_type() != QUEEN;
 
         Square dst = move.dst_sq();
 
@@ -1742,7 +1738,7 @@ QS_MOVES_LOOP:
             // Futility pruning and moveCount pruning
             if (!check && dst != preSq && move.type_of() != PROMOTION && !is_loss(futilityBase))
             {
-                if ((moveCount - promoCount) > 2)
+                if (moveCount > 2)
                     continue;
 
                 // Static evaluation + value of piece going to captured

@@ -198,7 +198,6 @@ Position& Position::operator=(const Position& pos) noexcept {
 }
 
 void Position::construct() noexcept {
-
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
             pieceLists[c][pt] = {squareTable[c].data() + PieceOffset[pt - 1], PieceCapacity[pt - 1],

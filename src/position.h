@@ -429,7 +429,7 @@ class Position final {
         return totalCapacity;
     }();
     static constexpr auto PieceOffset = []() constexpr {
-        std::array<std::size_t, PIECE_TYPE_NB - 2> pieceOffset{};
+        StdArray<std::size_t, PIECE_TYPE_NB - 2> pieceOffset{};
         pieceOffset[0] = 0;
         for (std::size_t i = 1; i < PIECE_TYPE_NB - 2; ++i)
             pieceOffset[i] = pieceOffset[i - 1] + PieceCapacity[i - 1];
@@ -979,7 +979,7 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
     Bitboard occupied = pieces();
 
     const auto attacks = [&]() noexcept {
-        StdArray<Bitboard, 7> _{};
+        StdArray<Bitboard, 7> _;
         _[WHITE]  = attacks_bb<PAWN>(s, WHITE);
         _[BLACK]  = attacks_bb<PAWN>(s, BLACK);
         _[KNIGHT] = attacks_bb<KNIGHT>(s);
