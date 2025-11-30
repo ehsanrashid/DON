@@ -270,10 +270,10 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
     const std::size_t n = pieceList.count();
     assert(n <= Position::PieceCapacity[PT - 1]);
 
-    StdArray<Square, Position::PieceCapacity[PT - 1]> sortedSqs;
-    std::memcpy(sortedSqs.data(), pieceList.data(), n * sizeof(Square));
+    StdArray<Square, Position::PieceCapacity[PT - 1]> sortedOrgs;
+    std::memcpy(sortedOrgs.data(), pieceList.data(), n * sizeof(Square));
 
-    Square*       beg = sortedSqs.data();
+    Square*       beg = sortedOrgs.data();
     Square* const end = beg + n;
 
     if (n > 1)

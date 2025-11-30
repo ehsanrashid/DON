@@ -906,9 +906,9 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
     auto& pieceList = piece_list(c, pt);
     assert(idx < pieceList.size());
     Square sq        = pieceList.back();
-    pieceList[idx]   = sq;
     pieceListMap[sq] = idx;
     //pieceListMap[s]  = InvalidIndex;
+    pieceList[idx] = sq;
     pieceList.pop_back();
     --pieceCount[c];
 
@@ -935,9 +935,9 @@ inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts)
     auto  idx       = pieceListMap[s1];
     auto& pieceList = piece_list(c, pt);
     assert(idx < pieceList.size());
-    pieceList[idx]   = s2;
     pieceListMap[s2] = idx;
     //pieceListMap[s1] = InvalidIndex;
+    pieceList[idx] = s2;
 
     if (dts != nullptr)
         update_piece_threats<true>(pc, s2, dts);
