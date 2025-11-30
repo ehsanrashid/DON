@@ -41,9 +41,13 @@ struct Zobrist final {
    public:
     static void init() noexcept;
 
+    static Key piece_square(Color c, PieceType pt, Square s) noexcept {
+        assert(is_ok(c) && is_ok(pt) && is_ok(s));
+        return PieceSquare[c][pt][s];
+    }
     static Key piece_square(Piece pc, Square s) noexcept {
         assert(is_ok(pc) && is_ok(s));
-        return PieceSquare[pc][s];
+        return piece_square(color_of(pc), type_of(pc), s);
     }
 
     static Key castling(CastlingRights cr) noexcept { return Castling[cr]; }
@@ -69,10 +73,10 @@ struct Zobrist final {
     Zobrist& operator=(const Zobrist&) noexcept = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
-    static inline StdArray<Key, PIECE_NB, SQUARE_NB> PieceSquare{};
-    static inline StdArray<Key, CASTLING_RIGHTS_NB>  Castling{};
-    static inline StdArray<Key, FILE_NB>             Enpassant{};
-    static inline Key                                Turn{};
+    static inline StdArray<Key, COLOR_NB, PIECE_TYPE_NB - 1, SQUARE_NB> PieceSquare{};
+    static inline StdArray<Key, CASTLING_RIGHTS_NB>                     Castling{};
+    static inline StdArray<Key, FILE_NB>                                Enpassant{};
+    static inline Key                                                   Turn{};
 
     static constexpr std::uint8_t R50Offset = 14;
     static constexpr std::uint8_t R50Factor = 8;
@@ -745,8 +749,7 @@ inline Key Position::major_key(Color c) const noexcept { return st->nonPawnKey[c
 inline Key Position::major_key() const noexcept { return major_key(WHITE) ^ major_key(BLACK); }
 
 inline Key Position::non_pawn_key(Color c) const noexcept {
-    Square kingSq = square<KING>(c);
-    return minor_key(c) ^ major_key(c) ^ Zobrist::piece_square(piece_on(kingSq), kingSq);
+    return minor_key(c) ^ major_key(c) ^ Zobrist::piece_square(c, KING, square<KING>(c));
 }
 
 inline Key Position::non_pawn_key() const noexcept {
@@ -758,9 +761,14 @@ inline Key Position::material_key() const noexcept {
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
-            if (pt != KING && count(c, pt))
-                materialKey ^= Zobrist::piece_square(
-                  make_piece(c, pt), Square(Zobrist::PawnOffset + count(c, pt) - 1));
+        {
+            if (pt == KING || !count(c, pt))
+                continue;
+
+            Square s = Square(Zobrist::PawnOffset + count(c, pt) - 1);
+
+            materialKey ^= Zobrist::piece_square(c, pt, s);
+        }
 
     return materialKey;
 }
