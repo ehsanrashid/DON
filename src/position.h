@@ -23,6 +23,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <initializer_list>
 #include <iosfwd>
 #include <string>
@@ -98,8 +99,6 @@ struct State final {
 
     void clear() noexcept;
 
-    void switch_to(const State& st) noexcept;
-
     // --- Copied when making a move
     StdArray<Key, COLOR_NB>    pawnKey;
     StdArray<Key, COLOR_NB, 2> nonPawnKey;
@@ -124,6 +123,25 @@ struct State final {
     Piece                                       promotedPiece;
 
     const State* preSt;
+
+    // Copy relevant fields from the state.
+    // excluding those that will recomputed from scratch anyway and
+    // then switch the state pointer to point to the new state.
+    template<typename T = Key>
+    void switch_to_prefix(const State& st, T State::* member = &State::key) noexcept {
+        // Compute offset dynamically for this object
+        const State* pSt  = &st;
+        std::size_t  size = reinterpret_cast<const char*>(&(pSt->*member))  //
+                         - reinterpret_cast<const char*>(pSt);
+
+        //// Defensive clamp (shouldn't be needed if member belongs to State)
+        //if (size > sizeof(*this))
+        //    size = sizeof(*this);
+
+        std::memcpy(this, pSt, size);
+
+        preSt = pSt;
+    }
 };
 
 static_assert(std::is_standard_layout_v<State> && std::is_trivially_copyable_v<State>,

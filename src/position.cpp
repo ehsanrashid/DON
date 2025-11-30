@@ -20,7 +20,6 @@
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
-#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -173,15 +172,6 @@ void State::clear() noexcept {
     std::memset(this, 0, sizeof(*this));
 
     enPassantSq = capturedSq = SQ_NONE;
-}
-
-// Copy relevant fields from the state.
-// excluding those that will recomputed from scratch anyway and
-// then switch the state pointer to point to the new state.
-void State::switch_to(const State& st) noexcept {
-    std::memcpy(this, &st, offsetof(State, key));
-
-    preSt = &st;
 }
 
 // Called at startup to initialize the Zobrist and Cuckoo tables.
@@ -805,7 +795,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
 
     Key k = st->key ^ Zobrist::turn();
 
-    newSt.switch_to(*st);
+    newSt.switch_to_prefix(*st);
 
     st = &newSt;
 
@@ -1154,7 +1144,7 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
 
     Key k = st->key ^ Zobrist::turn();
 
-    newSt.switch_to(*st);
+    newSt.switch_to_prefix(*st);
 
     st = &newSt;
 
