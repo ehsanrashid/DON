@@ -399,6 +399,10 @@ class Position final {
     // Static Exchange Evaluation
     bool see_ge(Move m, int threshold) const noexcept;
 
+    static constexpr StdArray<std::uint8_t, CASTLING_RIGHTS_NB> Bit{
+      4, 0, 1, 4, 2, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4  //
+    };
+
     static constexpr std::uint8_t InvalidIndex = 64;
 
     StdArray<FixedVector<Square, MaxPieceCount, std::uint8_t>, COLOR_NB, PIECE_TYPE_NB - 3>
@@ -579,12 +583,12 @@ inline bool Position::can_castle(CastlingRights cr) const noexcept {
 
 inline bool Position::castling_impeded(CastlingRights cr) const noexcept {
     assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
-    return pieces() & castlingPath[cr_lsb(cr)];
+    return pieces() & castlingPath[Bit[cr]];
 }
 
 inline Square Position::castling_rook_sq(CastlingRights cr) const noexcept {
     assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
-    return castlingRookSq[cr_lsb(cr)];
+    return castlingRookSq[Bit[cr]];
 }
 
 inline auto Position::castling_rights_mask(Square org, Square dst) const noexcept {

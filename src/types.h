@@ -120,14 +120,6 @@ enum CastlingRights : std::uint8_t {
     CASTLING_RIGHTS_NB = 16
 };
 
-constexpr std::uint8_t cr_lsb(CastlingRights cr) noexcept {
-    constexpr StdArray<std::uint8_t, CASTLING_RIGHTS_NB> CRLsb{
-      4, 0, 1, 4, 2, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4  //
-    };
-
-    return CRLsb[cr];
-}
-
 // clang-format off
 enum PieceType : std::int8_t {
     NO_PIECE_TYPE,

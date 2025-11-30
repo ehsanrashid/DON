@@ -616,12 +616,12 @@ void Position::set_castling_rights(Color c, Square rOrg) noexcept {
     castlingRightsMask[c * FILE_NB + file_of(kOrg)] |= cr;
     castlingRightsMask[c * FILE_NB + file_of(rOrg)] = cr;
 
-    castlingRookSq[cr_lsb(cr)] = rOrg;
+    castlingRookSq[Bit[cr]] = rOrg;
 
     Square kDst = king_castle_sq(c, kOrg, rOrg);
     Square rDst = rook_castle_sq(c, kOrg, rOrg);
 
-    castlingPath[cr_lsb(cr)] =
+    castlingPath[Bit[cr]] =
       (between_bb(kOrg, kDst) | between_bb(rOrg, rDst)) & ~make_bb(kOrg, rOrg);
 }
 
