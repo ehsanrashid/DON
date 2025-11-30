@@ -240,7 +240,7 @@ void Position::copy(const Position& pos) noexcept {
     // Don't memcpy pieceLists, as they point to the above lists
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
-            pieceLists[c][pt].set_count(pos.pieceLists[c][pt].count());
+            pieceLists[c][pt].count(pos.pieceLists[c][pt].count());
 
     activeColor = pos.activeColor;
     gamePly     = pos.gamePly;

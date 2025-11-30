@@ -202,11 +202,11 @@ class TableView final {
 
 // --- TableView with size and count ---
 template<typename T>
-struct TableViewCount final {
+struct CountTableView final {
    public:
-    constexpr TableViewCount() noexcept = default;
+    constexpr CountTableView() noexcept = default;
 
-    constexpr TableViewCount(T* const data, std::uint8_t size, std::uint8_t count = 0) noexcept :
+    constexpr CountTableView(T* const data, std::uint8_t size, std::uint8_t count = 0) noexcept :
         _data(data),
         _size(size),
         _count(count) {}
@@ -265,7 +265,7 @@ struct TableViewCount final {
 
     void clear() noexcept { _count = 0; }
 
-    bool set_count(std::uint8_t newCount) noexcept {
+    bool count(std::uint8_t newCount) noexcept {
         if (newCount > size())
             return false;
         _count = newCount;  // Note: doesn't construct/destroy elements
