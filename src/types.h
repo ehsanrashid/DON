@@ -120,23 +120,6 @@ enum CastlingRights : std::uint8_t {
     CASTLING_RIGHTS_NB = 16
 };
 
-constexpr std::uint8_t cr_lsb(CastlingRights cr) noexcept {
-    switch (cr)
-    {
-    case WHITE_OO :
-        return 0;
-    case WHITE_OOO :
-        return 1;
-    case BLACK_OO :
-        return 2;
-    case BLACK_OOO :
-        return 3;
-    default :
-        assert(false && "cr_lsb(): Invalid CastlingRights");
-        return 4;
-    }
-}
-
 // clang-format off
 enum PieceType : std::int8_t {
     NO_PIECE_TYPE,
@@ -189,10 +172,14 @@ inline constexpr Value VALUE_BISHOP = 825;
 inline constexpr Value VALUE_ROOK   = 1276;
 inline constexpr Value VALUE_QUEEN  = 2538;
 
-inline constexpr StdArray<Value, PIECE_TYPE_NB> PIECE_VALUE{
-  VALUE_ZERO, VALUE_PAWN,  VALUE_KNIGHT, VALUE_BISHOP,
-  VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO,   VALUE_ZERO  //
-};
+constexpr Value piece_value(PieceType pt) noexcept {
+    constexpr StdArray<Value, PIECE_TYPE_NB> PieceValue{
+      VALUE_ZERO, VALUE_PAWN,  VALUE_KNIGHT, VALUE_BISHOP,
+      VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO,   VALUE_ZERO  //
+    };
+
+    return PieceValue[pt];
+}
 
 constexpr bool is_valid(Value value) noexcept { return value != VALUE_NONE; }
 
@@ -603,7 +590,7 @@ class Move {
     }
 
     constexpr Value promotion_value() const noexcept {
-        return type_of() == PROMOTION ? PIECE_VALUE[promotion_type()] - VALUE_PAWN : VALUE_ZERO;
+        return type_of() == PROMOTION ? piece_value(promotion_type()) - VALUE_PAWN : VALUE_ZERO;
     }
 
     constexpr std::uint16_t raw() const noexcept { return move; }
