@@ -182,17 +182,11 @@ void Position::init() noexcept {
     Cuckoos.init();
 }
 
+// Default constructor
+Position::Position() noexcept { construct(); }
+
 // Copy constructor
-Position::Position(const Position& pos) noexcept :
-    nonKingLists(pos.nonKingLists),
-    kingLists(pos.kingLists),
-    activeColor(pos.activeColor),
-    gamePly(pos.gamePly) {
-    copy(pos);
-    // Don't copy *pieceLists, as they point to the above lists
-    // Don't copy *st pointer
-    //*st = *pos.st;
-}
+Position::Position(const Position& pos) noexcept { copy(pos); }
 // Assignment operator
 Position& Position::operator=(const Position& pos) noexcept {
     if (this == &pos)
@@ -200,19 +194,19 @@ Position& Position::operator=(const Position& pos) noexcept {
 
     copy(pos);
 
-    nonKingLists = pos.nonKingLists;
-    kingLists    = pos.kingLists;
-    // Don't copy *pieceLists, as they point to the above lists
-
-    activeColor = pos.activeColor;
-    gamePly     = pos.gamePly;
-    // Don't copy *st pointer
-    //*st = *pos.st;
-
     return *this;
 }
 
+void Position::construct() noexcept {
+
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PieceTypes)
+            pieceLists[c][pt] = {squareTable[c].data() + PieceOffset[pt - 1], PieceCapacity[pt - 1],
+                                 0};
+}
+
 void Position::clear() noexcept {
+    std::memset(squareTable.data(), SQ_NONE, sizeof(squareTable));
     // No need to clear pieceListMap as it is always overwritten when putting/removing pieces
     std::memset(pieceListMap.data(), InvalidIndex, sizeof(pieceListMap));
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
@@ -222,14 +216,10 @@ void Position::clear() noexcept {
     std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
     std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));
     std::memset(pieceCount.data(), 0, sizeof(pieceCount));
-
+    // Don't memset pieceLists, as they point to the above lists
     for (Color c : {WHITE, BLACK})
-    {
-        for (std::size_t pt = 0; pt < nonKingLists[c].size(); ++pt)
-            nonKingLists[c][pt].clear();
-        kingLists[c].clear();
-    }
-    // Don't clear *pieceLists, as they point to the above lists
+        for (PieceType pt : PieceTypes)
+            pieceLists[c][pt].clear();
 
     activeColor = COLOR_NB;
     gamePly     = 0;
@@ -237,6 +227,7 @@ void Position::clear() noexcept {
 }
 
 void Position::copy(const Position& pos) noexcept {
+    std::memcpy(squareTable.data(), pos.squareTable.data(), sizeof(squareTable));
     std::memcpy(pieceListMap.data(), pos.pieceListMap.data(), sizeof(pieceListMap));
     std::memcpy(pieceMap.data(), pos.pieceMap.data(), sizeof(pieceMap));
     std::memcpy(colorBB.data(), pos.colorBB.data(), sizeof(colorBB));
@@ -246,6 +237,15 @@ void Position::copy(const Position& pos) noexcept {
     std::memcpy(castlingRightsMask.data(), pos.castlingRightsMask.data(),
                 sizeof(castlingRightsMask));
     std::memcpy(pieceCount.data(), pos.pieceCount.data(), sizeof(pieceCount));
+    // Don't memcpy pieceLists, as they point to the above lists
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PieceTypes)
+            pieceLists[c][pt].set_count(pos.pieceLists[c][pt].count());
+
+    activeColor = pos.activeColor;
+    gamePly     = pos.gamePly;
+    // Don't copy *st pointer
+    //*st = *pos.st;
 }
 
 // Initializes the position object with the given FEN string.

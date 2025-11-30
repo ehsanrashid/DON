@@ -167,6 +167,7 @@ class SyncOstream final {
 
 inline SyncOstream sync_os(std::ostream& os = std::cout) { return SyncOstream(os); }
 
+// --- TableView with size ---
 template<typename T>
 class TableView final {
    public:
@@ -176,20 +177,105 @@ class TableView final {
         _data(data),
         _size(size) {}
 
+    constexpr T*          data() noexcept { return _data; }
     constexpr T*          data() const noexcept { return _data; }
     constexpr std::size_t size() const noexcept { return _size; }
 
+    constexpr T* begin() noexcept { return data(); }
+    constexpr T* end() noexcept { return data() + size(); }
+    constexpr T* begin() const noexcept { return data(); }
+    constexpr T* end() const noexcept { return data() + size(); }
+
+    constexpr T& operator[](std::size_t idx) noexcept {
+        assert(idx < size());
+        return _data[idx];
+    }
     constexpr T& operator[](std::size_t idx) const noexcept {
         assert(idx < size());
         return _data[idx];
     }
 
-    constexpr T* begin() const noexcept { return data(); }
-    constexpr T* end() const noexcept { return data() + size(); }
-
    private:
     T*          _data = nullptr;
     std::size_t _size = 0;
+};
+
+// --- TableView with size and count ---
+template<typename T>
+struct TableViewCount final {
+   public:
+    constexpr TableViewCount() noexcept = default;
+
+    constexpr TableViewCount(T* const data, std::uint8_t size, std::uint8_t count = 0) noexcept :
+        _data(data),
+        _size(size),
+        _count(count) {}
+
+    constexpr T* data() noexcept { return _data; }
+    constexpr T* data() const noexcept { return _data; }
+    std::size_t  size() const noexcept { return _size; }
+    std::size_t  count() const noexcept { return _count; }
+
+    T*       begin() noexcept { return data(); }
+    T*       end() noexcept { return data() + count(); }
+    const T* begin() const noexcept { return data(); }
+    const T* end() const noexcept { return data() + count(); }
+    const T* cbegin() const noexcept { return data(); }
+    const T* cend() const noexcept { return cbegin() + size(); }
+
+    bool push_back(const T& value) noexcept {
+        assert(count() < size());
+        _data[_count++] = value;  // copy-assign into pre-initialized slot
+        return true;
+    }
+    bool push_back(T&& value) noexcept {
+        assert(count() < size());
+        _data[_count++] = std::move(value);
+        return true;
+    }
+    template<typename... Args>
+    bool emplace_back(Args&&... args) noexcept {
+        assert(count() < size());
+        _data[_count++] = T(std::forward<Args>(args)...);
+        return true;
+    }
+
+    void pop_back() noexcept {
+        assert(count() > 0);
+        --_count;
+    }
+
+    T& back() noexcept {
+        assert(count() > 0);
+        return _data[_count - 1];
+    }
+    const T& back() const noexcept {
+        assert(count() > 0);
+        return _data[_count - 1];
+    }
+
+    T& operator[](std::size_t idx) noexcept {
+        assert(idx < count());
+        return _data[idx];
+    }
+    const T& operator[](std::size_t idx) const noexcept {
+        assert(idx < count());
+        return _data[idx];
+    }
+
+    void clear() noexcept { _count = 0; }
+
+    bool set_count(std::uint8_t newCount) noexcept {
+        if (newCount > size())
+            return false;
+        _count = newCount;  // Note: doesn't construct/destroy elements
+        return true;
+    }
+
+   private:
+    T*           _data  = nullptr;
+    std::uint8_t _size  = 0;
+    std::uint8_t _count = 0;
 };
 
 template<typename T, std::size_t Size, std::size_t... Sizes>
