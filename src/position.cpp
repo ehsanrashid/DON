@@ -200,8 +200,7 @@ Position& Position::operator=(const Position& pos) noexcept {
 void Position::construct() noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
-            pieceLists[c][pt] = {squareTable[c].data() + PieceOffset[pt - 1], PieceCapacity[pt - 1],
-                                 0};
+            pieceLists[c][pt].set(PieceOffset[pt - 1], PieceCapacity[pt - 1], 0);
 }
 
 void Position::clear() noexcept {
@@ -643,9 +642,10 @@ void Position::set_state() noexcept {
         for (PieceType pt : PieceTypes)
         {
             const auto& pieceList = piece_list(c, pt);
-            for (Square s : pieceList)
+            const auto* pBase     = base(c);
+            for (const Square* s = pieceList.begin(pBase); s != pieceList.end(pBase); ++s)
             {
-                Key key = Zobrist::piece_square(c, pt, s);
+                Key key = Zobrist::piece_square(c, pt, *s);
                 assert(key != 0);
 
                 st->key ^= key;
@@ -2104,8 +2104,8 @@ bool Position::_is_ok() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
             for (std::size_t i = 0; i < piece_list(c, pt).size(); ++i)
-                if (piece_on(piece_list(c, pt)[i]) != make_piece(c, pt)
-                    || pieceListMap[piece_list(c, pt)[i]] != int(i))
+                if (piece_on(piece_list(c, pt).at(i, base(c))) != make_piece(c, pt)
+                    || pieceListMap[piece_list(c, pt).at(i, base(c))] != int(i))
                     assert(0 && "_is_ok: Piece List");
 
     for (Color c : {WHITE, BLACK})
@@ -2241,8 +2241,10 @@ void Position::dump(std::ostream& os) const noexcept {
         for (PieceType pt : PieceTypes)
         {
             os << to_char(make_piece(c, pt)) << ": ";
-            for (Square s : piece_list(c, pt))
-                os << to_square(s) << " ";
+            const auto& pieceList = piece_list(c, pt);
+            const auto* pBase     = base(c);
+            for (const Square* s = pieceList.begin(pBase); s != pieceList.end(pBase); ++s)
+                os << to_square(*s) << " ";
             os << "\n";
         }
 

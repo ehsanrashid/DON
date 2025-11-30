@@ -56,8 +56,9 @@ union Zobrist final {
             for (PieceType pt : PieceTypes)
             {
                 const auto& pieceList = pos.piece_list(c, pt);
-                for (Square s : pieceList)
-                    key ^= _.PieceSquare[c][pt - 1][s];
+                const auto* pBase     = pos.base(c);
+                for (const Square* s = pieceList.begin(pBase); s != pieceList.end(pBase); ++s)
+                    key ^= _.PieceSquare[c][pt - 1][*s];
             }
 
         Bitboard castling = pos.castling_rights();

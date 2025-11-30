@@ -265,13 +265,13 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
                   "Unsupported piece type in generate_piece_moves()");
     assert(!pos.checkers() || !more_than_one(pos.checkers()));
 
-    const auto& pieceList = pos.piece_list<AC, PT>();
-
-    const std::size_t n = pieceList.count();
+    const auto&       pieceList = pos.piece_list<AC, PT>();
+    const auto*       pBase     = pos.base(AC);
+    const std::size_t n         = pieceList.count();
     assert(n <= Position::PieceCapacity[PT - 1]);
 
     StdArray<Square, Position::PieceCapacity[PT - 1]> sortedOrgs;
-    std::memcpy(sortedOrgs.data(), pieceList.data(), n * sizeof(Square));
+    std::memcpy(sortedOrgs.data(), pieceList.data(pBase), n * sizeof(Square));
 
     Square*       beg = sortedOrgs.data();
     Square* const end = beg + n;

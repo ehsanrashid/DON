@@ -203,40 +203,42 @@ class TableView final {
 // --- TableView with size and count ---
 template<typename T>
 struct CountTableView final {
-   public:
-    constexpr CountTableView() noexcept = default;
+    using off_type  = std::uint32_t;
+    using size_type = std::uint16_t;
 
-    constexpr CountTableView(T* const data, std::uint8_t size, std::uint8_t count = 0) noexcept :
-        _data(data),
+    constexpr CountTableView() noexcept = default;
+    constexpr CountTableView(off_type offset, size_type size, size_type count = 0) noexcept :
+        _offset(offset),
         _size(size),
         _count(count) {}
 
-    constexpr T* data() noexcept { return _data; }
-    constexpr T* data() const noexcept { return _data; }
-    std::size_t  size() const noexcept { return _size; }
-    std::size_t  count() const noexcept { return _count; }
+    void set(off_type offset, size_type size, size_type count = 0) noexcept {
+        _offset = offset;
+        _size   = size;
+        _count  = count;
+    }
 
-    T*       begin() noexcept { return data(); }
-    T*       end() noexcept { return data() + count(); }
-    const T* begin() const noexcept { return data(); }
-    const T* end() const noexcept { return data() + count(); }
-    const T* cbegin() const noexcept { return data(); }
-    const T* cend() const noexcept { return cbegin() + size(); }
+    constexpr off_type offset() const noexcept { return _offset; }
 
-    bool push_back(const T& value) noexcept {
+    constexpr T*       data(T* base) noexcept { return base + offset(); }
+    constexpr const T* data(const T* base) const noexcept { return base + offset(); }
+
+    constexpr size_type size() const noexcept { return _size; }
+    constexpr size_type count() const noexcept { return _count; }
+
+    constexpr T*       begin(T* base) noexcept { return data(base); }
+    constexpr T*       end(T* base) noexcept { return data(base) + count(); }
+    constexpr const T* begin(const T* base) const noexcept { return data(base); }
+    constexpr const T* end(const T* base) const noexcept { return data(base) + count(); }
+
+    bool push_back(const T& value, T* base) noexcept {
         assert(count() < size());
-        _data[_count++] = value;  // copy-assign into pre-initialized slot
+        data(base)[_count++] = value;
         return true;
     }
-    bool push_back(T&& value) noexcept {
+    bool push_back(T&& value, T* base) noexcept {
         assert(count() < size());
-        _data[_count++] = std::move(value);
-        return true;
-    }
-    template<typename... Args>
-    bool emplace_back(Args&&... args) noexcept {
-        assert(count() < size());
-        _data[_count++] = T(std::forward<Args>(args)...);
+        data(base)[_count++] = std::move(value);
         return true;
     }
 
@@ -245,37 +247,38 @@ struct CountTableView final {
         --_count;
     }
 
-    T& back() noexcept {
+    T& back(T* base) noexcept {
         assert(count() > 0);
-        return _data[_count - 1];
+        return data(base)[count() - 1];
     }
-    const T& back() const noexcept {
+    const T& back(T* base) const noexcept {
         assert(count() > 0);
-        return _data[_count - 1];
-    }
-
-    T& operator[](std::size_t idx) noexcept {
-        assert(idx < count());
-        return _data[idx];
-    }
-    const T& operator[](std::size_t idx) const noexcept {
-        assert(idx < count());
-        return _data[idx];
+        return data(base)[count() - 1];
     }
 
     void clear() noexcept { _count = 0; }
 
-    bool count(std::uint8_t newCount) noexcept {
+    bool count(size_type newCount) noexcept {
         if (newCount > size())
             return false;
-        _count = newCount;  // Note: doesn't construct/destroy elements
+        _count = newCount;
         return true;
     }
 
+    T& at(size_type idx, T* base) noexcept {
+        assert(idx < count());
+        return data(base)[idx];
+    }
+    const T& at(size_type idx, const T* base) const noexcept {
+        assert(idx < count());
+        return data(base)[idx];
+    }
+
+
    private:
-    T*           _data  = nullptr;
-    std::uint8_t _size  = 0;
-    std::uint8_t _count = 0;
+    off_type  _offset = 0;
+    size_type _size   = 0;
+    size_type _count  = 0;
 };
 
 template<typename T, std::size_t Size, std::size_t... Sizes>
