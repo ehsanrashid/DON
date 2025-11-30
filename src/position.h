@@ -27,6 +27,7 @@
 #include <iosfwd>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #include "bitboard.h"
 #include "misc.h"
@@ -93,7 +94,7 @@ struct State final {
 
     void clear() noexcept;
 
-    void copy_prefix(const State& st) noexcept;
+    void switch_to(const State& st) noexcept;
 
     // --- Copied when making a move
     StdArray<Key, COLOR_NB>    pawnKey;

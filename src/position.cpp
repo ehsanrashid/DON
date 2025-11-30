@@ -181,7 +181,7 @@ void State::clear() noexcept {
 // Copy relevant fields from the state.
 // excluding those that will recomputed from scratch anyway and
 // then switch the state pointer to point to the new state.
-void State::copy_prefix(const State& st) noexcept {
+void State::switch_to(const State& st) noexcept {
     std::memcpy(this, &st, offsetof(State, key));
 
     preSt = &st;
@@ -806,9 +806,9 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     assert(legal(m));
     assert(&newSt != st);
 
-    newSt.copy_prefix(*st);
-
     Key k = st->key ^ Zobrist::turn();
+
+    newSt.switch_to(*st);
 
     st = &newSt;
 
@@ -1135,9 +1135,9 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
     assert(&newSt != st);
     assert(!checkers());
 
-    newSt.copy_prefix(*st);
-
     Key k = st->key ^ Zobrist::turn();
+
+    newSt.switch_to(*st);
 
     st = &newSt;
 
