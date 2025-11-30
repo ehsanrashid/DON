@@ -200,7 +200,7 @@ Position& Position::operator=(const Position& pos) noexcept {
 void Position::construct() noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
-            pieceLists[c][pt].set(PieceOffset[pt - 1], PieceCapacity[pt - 1], 0);
+            pieceLists[c][pt].set(PieceOffset[pt - 1], PieceCapacity[pt - 1]);
 }
 
 void Position::clear() noexcept {

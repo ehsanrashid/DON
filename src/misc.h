@@ -256,15 +256,6 @@ struct CountTableView final {
         return data(base)[count() - 1];
     }
 
-    void clear() noexcept { _count = 0; }
-
-    bool count(size_type newCount) noexcept {
-        if (newCount > size())
-            return false;
-        _count = newCount;
-        return true;
-    }
-
     T& at(size_type idx, T* base) noexcept {
         assert(idx < count());
         return data(base)[idx];
@@ -274,6 +265,14 @@ struct CountTableView final {
         return data(base)[idx];
     }
 
+    void clear() noexcept { _count = 0; }
+
+    bool count(size_type newCount) noexcept {
+        if (newCount > size())
+            return false;
+        _count = newCount;
+        return true;
+    }
 
    private:
     off_type  _offset = 0;
