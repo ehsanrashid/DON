@@ -173,8 +173,6 @@ class Position final {
     Bitboard pieces(PieceTypes... pts) const noexcept;
     template<typename... PieceTypes>
     Bitboard pieces(Color c, PieceTypes... pts) const noexcept;
-    template<PieceType PT>
-    Bitboard pieces(Color c) const noexcept;
 
     template<Color C, PieceType PT>
     [[nodiscard]] const auto& piece_list() const noexcept;
@@ -262,6 +260,7 @@ class Position final {
     Bitboard pinners(Color c) const noexcept;
     Bitboard pinners() const noexcept;
     Bitboard blockers(Color c) const noexcept;
+    Bitboard blockers() const noexcept;
 
     template<PieceType PT>
     Bitboard attacks(Color c) const noexcept;
@@ -471,11 +470,6 @@ inline Bitboard Position::pieces(PieceTypes... pts) const noexcept {
 template<typename... PieceTypes>
 inline Bitboard Position::pieces(Color c, PieceTypes... pts) const noexcept {
     return pieces(c) & pieces(pts...);
-}
-
-template<PieceType PT>
-inline Bitboard Position::pieces(Color c) const noexcept {
-    return pieces(c, PT);
 }
 
 template<Color C, PieceType PT>
@@ -716,6 +710,8 @@ inline Bitboard Position::pinners(Color c) const noexcept { return st->pinners[c
 inline Bitboard Position::pinners() const noexcept { return pinners(WHITE) | pinners(BLACK); }
 
 inline Bitboard Position::blockers(Color c) const noexcept { return st->blockers[c]; }
+
+inline Bitboard Position::blockers() const noexcept { return blockers(WHITE) | blockers(BLACK); }
 
 template<PieceType PT>
 inline Bitboard Position::attacks(Color c) const noexcept {

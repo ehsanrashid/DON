@@ -104,7 +104,10 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
 
     Color ac = pos.active_color();
 
-    Bitboard threats = pos.threats(~ac);
+    Square   kingSq   = pos.square<KING>(~ac);
+    Bitboard threats  = pos.threats(~ac);
+    Bitboard blockers = pos.blockers(~ac);
+    Bitboard pinners  = pos.pinners();
 
     std::uint16_t pawnIndex = pawn_index(pos.pawn_key());
 
@@ -143,16 +146,16 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
         if (pt == KING)
             continue;
 
-        // Penalty for moving to square attacked by lesser piece.
-        // Bonus for escaping from square attacked by lesser piece.
+        // Penalty for moving to square attacked by lesser piece
+        // Bonus for escaping from square attacked by lesser piece
         m.value += PIECE_VALUE[pt]
-                 * ((pos.less_attacks(~ac, pt) & dst)   ? -19 * !(pos.blockers(~ac) & org)
+                 * ((pos.less_attacks(~ac, pt) & dst)   ? -19 * !(blockers & org)
                     : (threats & org)                   ? +23
                     : (pos.less_attacks(~ac, pt) & org) ? +20
                                                         : 0);
 
-        // Penalty for moving pinner piece.
-        m.value -= 0x400 * ((pos.pinners() & org) && !aligned(pos.square<KING>(~ac), org, dst));
+        // Penalty for moving pinner piece
+        m.value -= 0x400 * ((pinners & org) && !aligned(kingSq, org, dst));
     }
     return itr;
 }

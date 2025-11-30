@@ -235,10 +235,11 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
             b = non7Pawns & attacks_bb<PAWN>(enPassantSq, ~AC);
             if (more_than_one(b))
             {
-                Bitboard pin = b & pos.blockers(AC);
-                assert(!more_than_one(pin));
-                if (pin && !aligned(pos.square<KING>(AC), enPassantSq, lsb(pin)))
-                    b ^= pin;
+                Bitboard pinned = b & pos.blockers(AC);
+                assert(!more_than_one(pinned));
+
+                if (pinned && !aligned(pos.square<KING>(AC), enPassantSq, lsb(pinned)))
+                    b ^= pinned;
             }
             assert(b);
 
