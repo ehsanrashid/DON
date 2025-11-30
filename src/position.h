@@ -82,10 +82,18 @@ struct Zobrist final {
 // State struct stores information needed to restore Position object
 // to its previous state when retract any move.
 struct State final {
+   private:
+    constexpr State(const State&) noexcept       = delete;
+    constexpr State(State&&) noexcept            = delete;
+    constexpr State& operator=(State&&) noexcept = delete;
+
    public:
-    State() noexcept = default;
+    State() noexcept                                     = default;
+    constexpr State& operator=(const State& st) noexcept = default;
 
     void clear() noexcept;
+
+    void copy_prefix(const State& st) noexcept;
 
     // --- Copied when making a move
     StdArray<Key, COLOR_NB>    pawnKey;
@@ -110,8 +118,11 @@ struct State final {
     Piece                                       capturedPiece;
     Piece                                       promotedPiece;
 
-    State* preSt;
+    const State* preSt;
 };
+
+static_assert(std::is_standard_layout_v<State> && std::is_trivially_copyable_v<State>,
+              "State must be standard-layout and trivially copyable");
 
 // Position class stores information regarding the board representation as
 // pieces, active color, hash keys, castling info, etc. (Size = 664)
@@ -121,18 +132,13 @@ class Position final {
    public:
     static void init() noexcept;
 
-    static constexpr std::size_t MaxPieceCount = 15;
-
-    static inline bool         Chess960      = false;
-    static inline std::uint8_t DrawMoveCount = 50;
-
     Position() noexcept = default;
 
    private:
-    Position(const Position&) noexcept = delete;
-    Position(Position&&) noexcept      = delete;
-    Position& operator=(const Position& pos) noexcept;
-    Position& operator=(Position&&) noexcept = delete;
+    constexpr Position(const Position&) noexcept = delete;
+    constexpr Position(Position&&) noexcept      = delete;
+    constexpr Position& operator=(const Position& pos) noexcept;
+    constexpr Position& operator=(Position&&) noexcept = delete;
 
    public:
     void clear() noexcept;
@@ -328,6 +334,12 @@ class Position final {
 
     void dump(std::ostream& os) const noexcept;
 
+    static constexpr std::size_t MaxPieceCount = 15;
+
+    static inline bool Chess960 = false;
+
+    static inline std::uint8_t DrawMoveCount = 50;
+
    private:
     // SEE struct used to get a nice syntax for SEE comparisons.
     // Never use this type directly or store a value into a variable of this type,
@@ -379,7 +391,6 @@ class Position final {
 
     void reset_ep_sq() noexcept;
     void reset_rule50_count() noexcept;
-    void reset_repetitions() noexcept;
 
     // Static Exchange Evaluation
     bool see_ge(Move m, int threshold) const noexcept;
@@ -836,16 +847,6 @@ inline auto Position::captured(Move m) const noexcept { return type_of(captured_
 inline void Position::reset_ep_sq() noexcept { st->epSq = SQ_NONE; }
 
 inline void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
-
-inline void Position::reset_repetitions() noexcept {
-    auto* cSt = st;
-    while (cSt != nullptr)
-    {
-        cSt->repetition = 0;
-
-        cSt = cSt->preSt;
-    }
-}
 
 inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && is_ok(pc));

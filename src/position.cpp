@@ -174,7 +174,17 @@ void Zobrist::init() noexcept {
 
 void State::clear() noexcept {
     std::memset(this, 0, sizeof(*this));
+
     epSq = capSq = SQ_NONE;
+}
+
+// Copy relevant fields from the state.
+// excluding those that will recomputed from scratch anyway and
+// then switch the state pointer to point to the new state.
+void State::copy_prefix(const State& st) noexcept {
+    std::memcpy(this, &st, offsetof(State, key));
+
+    preSt = &st;
 }
 
 // Called at startup to initialize the Zobrist and Cuckoo tables.
@@ -185,7 +195,7 @@ void Position::init() noexcept {
     Cuckoos.init();
 }
 
-Position& Position::operator=(const Position& pos) noexcept {
+constexpr Position& Position::operator=(const Position& pos) noexcept {
     if (this == &pos)
         return *this;
 
@@ -206,6 +216,8 @@ Position& Position::operator=(const Position& pos) noexcept {
     activeColor = pos.activeColor;
     gamePly     = pos.gamePly;
     // Don't copy *st pointer
+    //*st = *pos.st;
+
     return *this;
 }
 
@@ -794,13 +806,9 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     assert(legal(m));
     assert(&newSt != st);
 
-    Key k = st->key ^ Zobrist::turn();
+    newSt.copy_prefix(*st);
 
-    // Copy relevant fields from the old state to the new state,
-    // excluding those that will recomputed from scratch anyway and
-    // then switch the state pointer to point to the new state.
-    std::memcpy(&newSt, st, offsetof(State, key));
-    newSt.preSt = st;
+    Key k = st->key ^ Zobrist::turn();
 
     st = &newSt;
 
@@ -994,10 +1002,10 @@ DO_MOVE_END:
     if (tt != nullptr && !epCheck)
         tt->prefetch_key(k ^ Zobrist::mr50(rule50_count()));
 
+    activeColor = ~ac;
+
     st->capturedPiece = capturedPiece;
     st->promotedPiece = promotedPiece;
-
-    activeColor = ~ac;
 
     // Update king attacks used for fast check detection
     set_ext_state();
@@ -1020,15 +1028,18 @@ DO_MOVE_END:
     st->repetition = 0;
 
     auto end = std::min(rule50_count(), null_ply());
+
     if (end >= 4)
     {
-        auto* pSt = st->preSt->preSt;
+        const State* preSt = st->preSt->preSt;
+
         for (std::int16_t i = 4; i <= end; i += 2)
         {
-            pSt = pSt->preSt->preSt;
-            if (pSt->key == st->key)
+            preSt = preSt->preSt->preSt;
+
+            if (preSt->key == st->key)
             {
-                st->repetition = pSt->repetition ? -i : +i;
+                st->repetition = preSt->repetition ? -i : +i;
                 break;
             }
         }
@@ -1112,7 +1123,7 @@ UNDO_MOVE_END:
 
     --gamePly;
     // Finally point state pointer back to the previous state
-    st = st->preSt;
+    st = const_cast<State*>(st->preSt);
 
     assert(legal(m));
     assert(_is_ok());
@@ -1124,13 +1135,9 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
     assert(&newSt != st);
     assert(!checkers());
 
-    Key k = st->key ^ Zobrist::turn();
+    newSt.copy_prefix(*st);
 
-    // Copy relevant fields from the old state to the new state,
-    // excluding those that will recomputed from scratch anyway and
-    // then switch the state pointer to point to the new state.
-    std::memcpy(&newSt, st, offsetof(State, key));
-    newSt.preSt = st;
+    Key k = st->key ^ Zobrist::turn();
 
     st = &newSt;
 
@@ -1147,12 +1154,12 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
     if (tt != nullptr)
         tt->prefetch_key(key());
 
+    activeColor = ~active_color();
+
     st->capSq         = SQ_NONE;
     st->checkers      = 0;
     st->capturedPiece = NO_PIECE;
     st->promotedPiece = NO_PIECE;
-
-    activeColor = ~active_color();
 
     set_ext_state();
 
@@ -1170,7 +1177,7 @@ void Position::undo_null_move() noexcept {
 
     activeColor = ~active_color();
 
-    st = st->preSt;
+    st = const_cast<State*>(st->preSt);
 
     assert(_is_ok());
 }
@@ -1781,16 +1788,20 @@ bool Position::is_draw(std::int16_t ply, bool rule50Active, bool chkStalemate) c
 // of positions since the last capture or pawn move.
 bool Position::has_repeated() const noexcept {
     auto end = std::min(rule50_count(), null_ply());
+
     if (end < 4)
         return false;
 
-    auto* cSt = st;
+    const State* cSt = st;
+
     while (end-- >= 4)
     {
         if (cSt->repetition)
             return true;
+
         cSt = cSt->preSt;
     }
+
     return false;
 }
 
@@ -1802,22 +1813,24 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
     if (end < 3)
         return false;
 
-    Key   baseKey = st->key;
-    auto* pSt     = st->preSt;
-    Key   iterKey = baseKey ^ pSt->key ^ Zobrist::turn();
+    Key          baseKey = st->key;
+    const State* preSt   = st->preSt;
+    Key          iterKey = baseKey ^ preSt->key ^ Zobrist::turn();
 
     for (std::int16_t i = 3; i <= end; i += 2)
     {
-        iterKey ^= pSt->preSt->key ^ pSt->preSt->preSt->key ^ Zobrist::turn();
-        pSt = pSt->preSt->preSt;
+        iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ Zobrist::turn();
+
+        preSt = preSt->preSt->preSt;
 
         // Opponent pieces have reverted
         if (iterKey)
             continue;
 
-        Key moveKey = baseKey ^ pSt->key;
+        Key moveKey = baseKey ^ preSt->key;
         // 'moveKey' is a single move
         auto index = Cuckoos.find_key(moveKey);
+
         if (index >= Cuckoos.size())
             continue;
 
@@ -1837,9 +1850,10 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         if (i < ply
             // For nodes before or at the root, check that the move is
             // a repetition rather than a move to the current position.
-            || pSt->repetition)
+            || preSt->repetition)
             return true;
     }
+
     return false;
 }
 
