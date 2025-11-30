@@ -182,19 +182,23 @@ void Position::init() noexcept {
     Cuckoos.init();
 }
 
-constexpr Position& Position::operator=(const Position& pos) noexcept {
+// Copy constructor
+Position::Position(const Position& pos) noexcept :
+    nonKingLists(pos.nonKingLists),
+    kingLists(pos.kingLists),
+    activeColor(pos.activeColor),
+    gamePly(pos.gamePly) {
+    copy(pos);
+    // Don't copy *pieceLists, as they point to the above lists
+    // Don't copy *st pointer
+    //*st = *pos.st;
+}
+// Assignment operator
+Position& Position::operator=(const Position& pos) noexcept {
     if (this == &pos)
         return *this;
 
-    std::memcpy(pieceListMap.data(), pos.pieceListMap.data(), sizeof(pieceListMap));
-    std::memcpy(pieceMap.data(), pos.pieceMap.data(), sizeof(pieceMap));
-    std::memcpy(colorBB.data(), pos.colorBB.data(), sizeof(colorBB));
-    std::memcpy(typeBB.data(), pos.typeBB.data(), sizeof(typeBB));
-    std::memcpy(castlingPath.data(), pos.castlingPath.data(), sizeof(castlingPath));
-    std::memcpy(castlingRookSq.data(), pos.castlingRookSq.data(), sizeof(castlingRookSq));
-    std::memcpy(castlingRightsMask.data(), pos.castlingRightsMask.data(),
-                sizeof(castlingRightsMask));
-    std::memcpy(pieceCount.data(), pos.pieceCount.data(), sizeof(pieceCount));
+    copy(pos);
 
     nonKingLists = pos.nonKingLists;
     kingLists    = pos.kingLists;
@@ -230,6 +234,18 @@ void Position::clear() noexcept {
     activeColor = COLOR_NB;
     gamePly     = 0;
     st          = nullptr;
+}
+
+void Position::copy(const Position& pos) noexcept {
+    std::memcpy(pieceListMap.data(), pos.pieceListMap.data(), sizeof(pieceListMap));
+    std::memcpy(pieceMap.data(), pos.pieceMap.data(), sizeof(pieceMap));
+    std::memcpy(colorBB.data(), pos.colorBB.data(), sizeof(colorBB));
+    std::memcpy(typeBB.data(), pos.typeBB.data(), sizeof(typeBB));
+    std::memcpy(castlingPath.data(), pos.castlingPath.data(), sizeof(castlingPath));
+    std::memcpy(castlingRookSq.data(), pos.castlingRookSq.data(), sizeof(castlingRookSq));
+    std::memcpy(castlingRightsMask.data(), pos.castlingRightsMask.data(),
+                sizeof(castlingRightsMask));
+    std::memcpy(pieceCount.data(), pos.pieceCount.data(), sizeof(pieceCount));
 }
 
 // Initializes the position object with the given FEN string.

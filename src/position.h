@@ -89,12 +89,12 @@ struct Zobrist final {
 // to its previous state when retract any move.
 struct State final {
    private:
-    constexpr State(const State&) noexcept       = delete;
     constexpr State(State&&) noexcept            = delete;
     constexpr State& operator=(State&&) noexcept = delete;
 
    public:
     State() noexcept                                     = default;
+    constexpr State(const State&) noexcept               = default;
     constexpr State& operator=(const State& st) noexcept = default;
 
     void clear() noexcept;
@@ -155,16 +155,18 @@ class Position final {
     static void init() noexcept;
 
     Position() noexcept = default;
+    Position(const Position& pos) noexcept;
+    Position& operator=(const Position& pos) noexcept;
 
    private:
-    constexpr Position(const Position&) noexcept = delete;
-    constexpr Position(Position&&) noexcept      = delete;
-    constexpr Position& operator=(const Position& pos) noexcept;
+    constexpr Position(Position&&) noexcept            = delete;
     constexpr Position& operator=(Position&&) noexcept = delete;
 
-   public:
     void clear() noexcept;
 
+    void copy(const Position& pos) noexcept;
+
+   public:
     // FEN string input/output
     void        set(std::string_view fens, State* const newSt) noexcept;
     void        set(std::string_view code, Color c, State* const newSt) noexcept;
