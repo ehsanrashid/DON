@@ -618,8 +618,8 @@ void Worker::iterative_deepening() noexcept {
 
             // Compute recapture factor that reduces time if recapture conditions are met
             auto recaptureFactor = 1.0;
-            if ( rootPos.cap_sq() == rootMoves[0].pv[0].dst_sq()
-             && (rootPos.cap_sq() & rootPos.pieces(~ac))
+            if ( rootPos.captured_sq() == rootMoves[0].pv[0].dst_sq()
+             && (rootPos.captured_sq() & rootPos.pieces(~ac))
              && rootPos.see(rootMoves[0].pv[0]) >= 200)
                 recaptureFactor -= 4.0040e-3 * std::min(+stableDepth, 25);
 

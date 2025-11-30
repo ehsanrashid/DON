@@ -105,8 +105,8 @@ struct State final {
     StdArray<Key, COLOR_NB, 2> nonPawnKey;
     StdArray<bool, COLOR_NB>   hasCastled;
 
-    Square         epSq;
-    Square         capSq;
+    Square         enPassantSq;
+    Square         capturedSq;
     CastlingRights castlingRights;
     std::uint8_t   rule50Count;
     std::uint8_t   nullPly;  // Plies from Null-Move
@@ -201,8 +201,8 @@ class Position final {
     template<PieceType PT>
     Square square(Color c) const noexcept;
 
-    Square ep_sq() const noexcept;
-    Square cap_sq() const noexcept;
+    Square en_passant_sq() const noexcept;
+    Square captured_sq() const noexcept;
 
     void squares(Color c, StdArray<Square, SQUARE_NB>& sqrs, std::size_t& n) const noexcept;
     void squares(StdArray<Square, SQUARE_NB>& sqrs, std::size_t& n) const noexcept;
@@ -394,7 +394,7 @@ class Position final {
                      Square&           rDst,
                      DirtyBoard* const db = nullptr) noexcept;
 
-    void reset_ep_sq() noexcept;
+    void reset_en_passant_sq() noexcept;
     void reset_rule50_count() noexcept;
 
     // Static Exchange Evaluation
@@ -541,9 +541,9 @@ inline Square Position::square(Color c) const noexcept {
     return nonKingLists[c][PT - 1][0];
 }
 
-inline Square Position::ep_sq() const noexcept { return st->epSq; }
+inline Square Position::en_passant_sq() const noexcept { return st->enPassantSq; }
 
-inline Square Position::cap_sq() const noexcept { return st->capSq; }
+inline Square Position::captured_sq() const noexcept { return st->capturedSq; }
 
 inline void
 Position::squares(Color c, StdArray<Square, SQUARE_NB>& sqrs, std::size_t& n) const noexcept {
@@ -853,7 +853,7 @@ inline Piece Position::captured_piece(Move m) const noexcept {
 
 inline auto Position::captured(Move m) const noexcept { return type_of(captured_piece(m)); }
 
-inline void Position::reset_ep_sq() noexcept { st->epSq = SQ_NONE; }
+inline void Position::reset_en_passant_sq() noexcept { st->enPassantSq = SQ_NONE; }
 
 inline void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
 
