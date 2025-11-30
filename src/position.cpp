@@ -20,7 +20,6 @@
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
-#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -114,10 +113,12 @@ class CuckooTable final {
                     for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
                         if (attacks_bb(s1, pt) & s2)
                         {
-                            auto pc  = make_piece(c, pt);
-                            Key  key = Zobrist::piece_square(pc, s1) ^ Zobrist::piece_square(pc, s2)
+                            Key key = Zobrist::piece_square(c, pt, s1)
+                                    ^ Zobrist::piece_square(c, pt, s2)  //
                                     ^ Zobrist::turn();
+
                             Move move = Move(s1, s2);
+
                             insert({key, move});
                         }
             }
@@ -149,17 +150,12 @@ void Zobrist::init() noexcept {
     for (Color c : {WHITE, BLACK})
     {
         for (PieceType pt : PieceTypes)
-        {
-            auto pc = make_piece(c, pt);
-            std::generate(PieceSquare[pc].begin(), PieceSquare[pc].end(), prng_rand);
-        }
+            std::generate(PieceSquare[c][pt].begin(), PieceSquare[c][pt].end(), prng_rand);
 
-        auto pc = make_piece(c, PAWN);
-
-        auto itr1 = PieceSquare[pc].begin() + SQ_A1;
+        auto itr1 = PieceSquare[c][PAWN].begin() + SQ_A1;
         std::fill(itr1, itr1 + PawnOffset, 0);
 
-        auto itr2 = PieceSquare[pc].begin() + SQ_A8;
+        auto itr2 = PieceSquare[c][PAWN].begin() + SQ_A8;
         std::fill(itr2, itr2 + PawnOffset, 0);
     }
 
@@ -174,7 +170,8 @@ void Zobrist::init() noexcept {
 
 void State::clear() noexcept {
     std::memset(this, 0, sizeof(*this));
-    epSq = capSq = SQ_NONE;
+
+    enPassantSq = capturedSq = SQ_NONE;
 }
 
 // Called at startup to initialize the Zobrist and Cuckoo tables.
@@ -185,31 +182,31 @@ void Position::init() noexcept {
     Cuckoos.init();
 }
 
+// Default constructor
+Position::Position() noexcept { construct(); }
+
+// Copy constructor
+Position::Position(const Position& pos) noexcept { copy(pos); }
+// Assignment operator
 Position& Position::operator=(const Position& pos) noexcept {
     if (this == &pos)
         return *this;
 
-    std::memcpy(pieceListMap.data(), pos.pieceListMap.data(), sizeof(pieceListMap));
-    std::memcpy(pieceMap.data(), pos.pieceMap.data(), sizeof(pieceMap));
-    std::memcpy(colorBB.data(), pos.colorBB.data(), sizeof(colorBB));
-    std::memcpy(typeBB.data(), pos.typeBB.data(), sizeof(typeBB));
-    std::memcpy(castlingPath.data(), pos.castlingPath.data(), sizeof(castlingPath));
-    std::memcpy(castlingRookSq.data(), pos.castlingRookSq.data(), sizeof(castlingRookSq));
-    std::memcpy(castlingRightsMask.data(), pos.castlingRightsMask.data(),
-                sizeof(castlingRightsMask));
-    std::memcpy(pieceCount.data(), pos.pieceCount.data(), sizeof(pieceCount));
+    copy(pos);
 
-    nonKingLists = pos.nonKingLists;
-    kingLists    = pos.kingLists;
-    // Don't copy *pieceLists, as they point to the above lists
-
-    activeColor = pos.activeColor;
-    gamePly     = pos.gamePly;
-    // Don't copy *st pointer
     return *this;
 }
 
+void Position::construct() noexcept {
+
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PieceTypes)
+            pieceLists[c][pt] = {squareTable[c].data() + PieceOffset[pt - 1], PieceCapacity[pt - 1],
+                                 0};
+}
+
 void Position::clear() noexcept {
+    std::memset(squareTable.data(), SQ_NONE, sizeof(squareTable));
     // No need to clear pieceListMap as it is always overwritten when putting/removing pieces
     std::memset(pieceListMap.data(), InvalidIndex, sizeof(pieceListMap));
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
@@ -219,18 +216,36 @@ void Position::clear() noexcept {
     std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
     std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));
     std::memset(pieceCount.data(), 0, sizeof(pieceCount));
-
+    // Don't memset pieceLists, as they point to the above lists
     for (Color c : {WHITE, BLACK})
-    {
-        for (std::size_t pt = 0; pt < nonKingLists[c].size(); ++pt)
-            nonKingLists[c][pt].clear();
-        kingLists[c].clear();
-    }
-    // Don't clear *pieceLists, as they point to the above lists
+        for (PieceType pt : PieceTypes)
+            pieceLists[c][pt].clear();
 
     activeColor = COLOR_NB;
     gamePly     = 0;
     st          = nullptr;
+}
+
+void Position::copy(const Position& pos) noexcept {
+    std::memcpy(squareTable.data(), pos.squareTable.data(), sizeof(squareTable));
+    std::memcpy(pieceListMap.data(), pos.pieceListMap.data(), sizeof(pieceListMap));
+    std::memcpy(pieceMap.data(), pos.pieceMap.data(), sizeof(pieceMap));
+    std::memcpy(colorBB.data(), pos.colorBB.data(), sizeof(colorBB));
+    std::memcpy(typeBB.data(), pos.typeBB.data(), sizeof(typeBB));
+    std::memcpy(castlingPath.data(), pos.castlingPath.data(), sizeof(castlingPath));
+    std::memcpy(castlingRookSq.data(), pos.castlingRookSq.data(), sizeof(castlingRookSq));
+    std::memcpy(castlingRightsMask.data(), pos.castlingRightsMask.data(),
+                sizeof(castlingRightsMask));
+    std::memcpy(pieceCount.data(), pos.pieceCount.data(), sizeof(pieceCount));
+    // Don't memcpy pieceLists, as they point to the above lists
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PieceTypes)
+            pieceLists[c][pt].count(pos.pieceLists[c][pt].count());
+
+    activeColor = pos.activeColor;
+    gamePly     = pos.gamePly;
+    // Don't copy *st pointer
+    //*st = *pos.st;
 }
 
 // Initializes the position object with the given FEN string.
@@ -427,7 +442,8 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 
     // 4. En-passant square.
     // Ignore if square is invalid or not on side to move relative rank 6.
-    bool epCheck = false;
+    Square enPassantSq = SQ_NONE;
+    bool   epCheck     = false;
 
     iss >> token;
     if (token != '-')
@@ -438,16 +454,16 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 
         if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
         {
-            st->epSq = make_square(to_file(epFile), to_rank(epRank));
+            st->enPassantSq = enPassantSq = make_square(to_file(epFile), to_rank(epRank));
 
             // En-passant square will be considered only if
             // a) there is an enemy pawn in front of epSquare
             // b) there is no piece on epSquare or behind epSquare
             // c) there is atleast one friend pawn threatening epSquare
             // d) there is no enemy Bishop, Rook or Queen pinning
-            epCheck = (pieces(~ac, PAWN) & (ep_sq() - pawn_spush(ac)))
-                   && !(pieces() & make_bb(ep_sq(), ep_sq() + pawn_spush(ac)))
-                   && (pieces(ac, PAWN) & attacks_bb<PAWN>(ep_sq(), ~ac));
+            epCheck = (pieces(~ac, PAWN) & (enPassantSq - pawn_spush(ac)))
+                   && !(pieces() & make_bb(enPassantSq, enPassantSq + pawn_spush(ac)))
+                   && (pieces(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac));
         }
         else
             assert(false && "Position::set(): Invalid En-passant square");
@@ -468,11 +484,11 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     set_ext_state();
 
     // Reset illegal fields
-    if (is_ok(ep_sq()))
+    if (is_ok(enPassantSq))
     {
         reset_rule50_count();
-        if (epCheck && !can_enpassant(ac, ep_sq()))
-            reset_ep_sq();
+        if (epCheck && !can_enpassant(ac, enPassantSq))
+            reset_en_passant_sq();
     }
     assert(rule50_count() <= 100);
     gamePly = std::max(ply(), rule50_count());
@@ -572,8 +588,8 @@ std::string Position::fen(bool full) const noexcept {
         fens += '-';
 
     fens += ' ';
-    if (is_ok(ep_sq()))
-        fens += to_square(ep_sq());
+    if (is_ok(en_passant_sq()))
+        fens += to_square(en_passant_sq());
     else
         fens += '-';
 
@@ -606,12 +622,12 @@ void Position::set_castling_rights(Color c, Square rOrg) noexcept {
     castlingRightsMask[c * FILE_NB + file_of(kOrg)] |= cr;
     castlingRightsMask[c * FILE_NB + file_of(rOrg)] = cr;
 
-    castlingRookSq[cr_lsb(cr)] = rOrg;
+    castlingRookSq[Bit[cr]] = rOrg;
 
     Square kDst = king_castle_sq(c, kOrg, rOrg);
     Square rDst = rook_castle_sq(c, kOrg, rOrg);
 
-    castlingPath[cr_lsb(cr)] =
+    castlingPath[Bit[cr]] =
       (between_bb(kOrg, kDst) | between_bb(rOrg, rDst)) & ~make_bb(kOrg, rOrg);
 }
 
@@ -630,24 +646,23 @@ void Position::set_state() noexcept {
             const auto& pieceList = piece_list(c, pt);
             for (Square s : pieceList)
             {
-                Piece pc = make_piece(c, pt);
+                Key key = Zobrist::piece_square(c, pt, s);
+                assert(key != 0);
 
-                assert(Zobrist::piece_square(pc, s) != 0);
-
-                st->key ^= Zobrist::piece_square(pc, s);
+                st->key ^= key;
 
                 if (pt == PAWN)
-                    st->pawnKey[c] ^= Zobrist::piece_square(pc, s);
+                    st->pawnKey[c] ^= key;
 
                 else if (pt != KING)
-                    st->nonPawnKey[c][is_major(pt)] ^= Zobrist::piece_square(pc, s);
+                    st->nonPawnKey[c][is_major(pt)] ^= key;
             }
         }
 
     st->key ^= Zobrist::castling(castling_rights());
 
-    if (is_ok(ep_sq()))
-        st->key ^= Zobrist::enpassant(ep_sq());
+    if (is_ok(en_passant_sq()))
+        st->key ^= Zobrist::enpassant(en_passant_sq());
 
     if (active_color() == BLACK)
         st->key ^= Zobrist::turn();
@@ -796,11 +811,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
 
     Key k = st->key ^ Zobrist::turn();
 
-    // Copy relevant fields from the old state to the new state,
-    // excluding those that will recomputed from scratch anyway and
-    // then switch the state pointer to point to the new state.
-    std::memcpy(&newSt, st, offsetof(State, key));
-    newSt.preSt = st;
+    newSt.switch_to_prefix(st);
 
     st = &newSt;
 
@@ -823,6 +834,10 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
            || (color_of(capturedPiece) == (m.type_of() != CASTLING ? ~ac : ac)
                && type_of(capturedPiece) != KING));
 
+    auto movedPt = type_of(movedPiece);
+
+    Key movedKey;
+
     DirtyBoard db;
 
     db.dp.pc             = movedPiece;
@@ -837,12 +852,13 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     assert(db.dts.list.empty());
 
     // Reset en-passant square
-    if (is_ok(ep_sq()))
+    if (is_ok(en_passant_sq()))
     {
-        k ^= Zobrist::enpassant(ep_sq());
-        reset_ep_sq();
+        k ^= Zobrist::enpassant(en_passant_sq());
+        reset_en_passant_sq();
     }
 
+    bool capture;
     bool epCheck = false;
 
     // If the move is a castling, do some special work
@@ -857,11 +873,16 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
         do_castling<true>(ac, org, dst, rOrg, rDst, &db);
         assert(rOrg == m.dst_sq());
 
-        // clang-format off
-        k                     ^= Zobrist::piece_square(capturedPiece, rOrg) ^ Zobrist::piece_square(capturedPiece, rDst);
-        st->nonPawnKey[ac][1] ^= Zobrist::piece_square(capturedPiece, rOrg) ^ Zobrist::piece_square(capturedPiece, rDst);
-        // clang-format on
+        movedKey = Zobrist::piece_square(ac, movedPt, org)  //
+                 ^ Zobrist::piece_square(ac, movedPt, dst);
+        Key rookKey = Zobrist::piece_square(ac, ROOK, rOrg)  //
+                    ^ Zobrist::piece_square(ac, ROOK, rDst);
+
+        k ^= rookKey;
+        st->nonPawnKey[ac][1] ^= rookKey;
+
         capturedPiece = NO_PIECE;
+        capture       = false;
 
         // Calculate checker only one ROOK possible
         st->checkers = isCheck ? square_bb(rDst) : 0;
@@ -870,64 +891,74 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
         goto DO_MOVE_END;
     }
 
-    if (is_ok(capturedPiece))
-    {
-        auto captured = type_of(capturedPiece);
+    movedKey = Zobrist::piece_square(ac, movedPt, org)  //
+             ^ Zobrist::piece_square(ac, movedPt, dst);
 
-        Square capSq = dst;
+    capture = is_ok(capturedPiece);
+
+    if (capture)
+    {
+        auto capturedPt = type_of(capturedPiece);
+
+        Square capturedSq = dst;
+
+        Key capturedKey = Zobrist::piece_square(~ac, capturedPt, capturedSq);
+
         // If the captured piece is a pawn, update pawn hash key,
         // otherwise update non-pawn material.
-        if (captured == PAWN)
+        if (capturedPt == PAWN)
         {
             if (m.type_of() == EN_PASSANT)
             {
-                capSq -= pawn_spush(ac);
+                capturedSq -= pawn_spush(ac);
 
                 assert(movedPiece == make_piece(ac, PAWN));
                 assert(relative_rank(ac, org) == RANK_5);
                 assert(relative_rank(ac, dst) == RANK_6);
-                assert(pieces(~ac, PAWN) & capSq);
+                assert(pieces(~ac, PAWN) & capturedSq);
                 assert(!(pieces() & make_bb(dst, dst + pawn_spush(ac))));
-                assert(!is_ok(ep_sq()));  // Already reset to SQ_NONE
+                assert(!is_ok(en_passant_sq()));  // Already reset to SQ_NONE
                 assert(rule50_count() == 1);
-                assert(st->preSt->epSq == dst);
+                assert(st->preSt->enPassantSq == dst);
                 assert(st->preSt->rule50Count == 0);
 
+                capturedKey = Zobrist::piece_square(~ac, capturedPt, capturedSq);
+
                 // Remove the captured pawn
-                remove_piece(capSq);
+                remove_piece(capturedSq);
             }
 
-            st->pawnKey[~ac] ^= Zobrist::piece_square(capturedPiece, capSq);
+            st->pawnKey[~ac] ^= capturedKey;
         }
         else
         {
-            // clang-format off
-            st->nonPawnKey[~ac][is_major(captured)] ^= Zobrist::piece_square(capturedPiece, capSq);
-            // clang-format on
+            st->nonPawnKey[~ac][is_major(capturedPt)] ^= capturedKey;
         }
 
-        db.dp.removeSq = capSq;
+        db.dp.removeSq = capturedSq;
         db.dp.removePc = capturedPiece;
 
-        st->capSq = dst;
+        st->capturedSq = dst;
 
         // Update hash key
-        k ^= Zobrist::piece_square(capturedPiece, capSq);
+        k ^= capturedKey;
         // Reset rule 50 draw counter
         reset_rule50_count();
     }
 
-    if (is_ok(capturedPiece) && m.type_of() != EN_PASSANT)
+    if (capture && m.type_of() != EN_PASSANT)
     {
         // Remove the captured piece
         remove_piece(org, &db.dts);
         swap_piece(dst, movedPiece, &db.dts);
     }
     else
+    {
         move_piece(org, dst, &db.dts);
+    }
 
     // If the moving piece is a pawn do some special extra work
-    if (type_of(movedPiece) == PAWN)
+    if (movedPt == PAWN)
     {
         if (m.type_of() == PROMOTION)
         {
@@ -939,18 +970,18 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
 
             promotedPiece = make_piece(ac, promoted);
 
+            Key promoKey = Zobrist::piece_square(ac, promoted, dst);
+
             db.dp.dst   = SQ_NONE;
             db.dp.addSq = dst;
             db.dp.addPc = promotedPiece;
 
             swap_piece(dst, promotedPiece, &db.dts);
             assert(count(promotedPiece));
-            assert(Zobrist::piece_square(movedPiece, dst) == 0);
+            assert(Zobrist::piece_square(ac, PAWN, dst) == 0);
             // Update hash keys
-            // clang-format off
-            k                                      ^= Zobrist::piece_square(promotedPiece, dst);
-            st->nonPawnKey[ac][is_major(promoted)] ^= Zobrist::piece_square(promotedPiece, dst);
-            // clang-format on
+            k ^= promoKey;
+            st->nonPawnKey[ac][is_major(promoted)] ^= promoKey;
         }
         // Set en-passant square if the moved pawn can be captured
         else if ((int(dst) ^ int(org)) == NORTH_2)
@@ -962,15 +993,15 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
         }
 
         // Update pawn hash key
-        st->pawnKey[ac] ^=
-          Zobrist::piece_square(movedPiece, org) ^ Zobrist::piece_square(movedPiece, dst);
+        st->pawnKey[ac] ^= movedKey;
 
         // Reset rule 50 draw counter
         reset_rule50_count();
     }
-    else if (type_of(movedPiece) != KING)
-        st->nonPawnKey[ac][is_major(type_of(movedPiece))] ^=
-          Zobrist::piece_square(movedPiece, org) ^ Zobrist::piece_square(movedPiece, dst);
+    else if (movedPt != KING)
+    {
+        st->nonPawnKey[ac][is_major(movedPt)] ^= movedKey;
+    }
 
     // Calculate checkers
     st->checkers = isCheck ? attackers_to(square<KING>(~ac)) & pieces(ac) : 0;
@@ -981,7 +1012,7 @@ DO_MOVE_END:
     db.dts.kingSq = square<KING>(ac);
 
     // Update hash key
-    k ^= Zobrist::piece_square(movedPiece, org) ^ Zobrist::piece_square(movedPiece, dst);
+    k ^= movedKey;
 
     // Update castling rights if needed
     if (int cr; castling_rights() && (cr = castling_rights_mask(org, dst)))
@@ -994,18 +1025,18 @@ DO_MOVE_END:
     if (tt != nullptr && !epCheck)
         tt->prefetch_key(k ^ Zobrist::mr50(rule50_count()));
 
+    activeColor = ~ac;
+
     st->capturedPiece = capturedPiece;
     st->promotedPiece = promotedPiece;
-
-    activeColor = ~ac;
 
     // Update king attacks used for fast check detection
     set_ext_state();
 
     if (epCheck && can_enpassant(active_color(), dst - pawn_spush(ac)))
     {
-        st->epSq = dst - pawn_spush(ac);
-        k ^= Zobrist::enpassant(ep_sq());
+        st->enPassantSq = dst - pawn_spush(ac);
+        k ^= Zobrist::enpassant(en_passant_sq());
     }
 
     // Set the key with the updated key
@@ -1020,15 +1051,18 @@ DO_MOVE_END:
     st->repetition = 0;
 
     auto end = std::min(rule50_count(), null_ply());
+
     if (end >= 4)
     {
-        auto* pSt = st->preSt->preSt;
+        const State* preSt = st->preSt->preSt;
+
         for (std::int16_t i = 4; i <= end; i += 2)
         {
-            pSt = pSt->preSt->preSt;
-            if (pSt->key == st->key)
+            preSt = preSt->preSt->preSt;
+
+            if (preSt->key == st->key)
             {
-                st->repetition = pSt->repetition ? -i : +i;
+                st->repetition = preSt->repetition ? -i : +i;
                 break;
             }
         }
@@ -1039,7 +1073,7 @@ DO_MOVE_END:
     assert(is_ok(db.dp.pc));
     assert(is_ok(db.dp.org));
     assert(is_ok(db.dp.dst) ^ !(m.type_of() != PROMOTION));
-    assert(is_ok(db.dp.removeSq) ^ !(is_ok(capturedPiece) || m.type_of() == CASTLING));
+    assert(is_ok(db.dp.removeSq) ^ !(capture || m.type_of() == CASTLING));
     assert(is_ok(db.dp.addSq) ^ !(m.type_of() == PROMOTION || m.type_of() == CASTLING));
     return db;
 }
@@ -1101,7 +1135,7 @@ void Position::undo_move(Move m) noexcept {
             assert(empty_on(capSq));
             assert(capturedPiece == make_piece(~ac, PAWN));
             assert(rule50_count() == 0);
-            assert(st->preSt->epSq == dst);
+            assert(st->preSt->enPassantSq == dst);
             assert(st->preSt->rule50Count == 0);
         }
         // Restore the captured piece
@@ -1112,7 +1146,7 @@ UNDO_MOVE_END:
 
     --gamePly;
     // Finally point state pointer back to the previous state
-    st = st->preSt;
+    st = const_cast<State*>(st->preSt);
 
     assert(legal(m));
     assert(_is_ok());
@@ -1126,20 +1160,16 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
 
     Key k = st->key ^ Zobrist::turn();
 
-    // Copy relevant fields from the old state to the new state,
-    // excluding those that will recomputed from scratch anyway and
-    // then switch the state pointer to point to the new state.
-    std::memcpy(&newSt, st, offsetof(State, key));
-    newSt.preSt = st;
+    newSt.switch_to_prefix(st);
 
     st = &newSt;
 
     st->nullPly = 0;
 
-    if (is_ok(ep_sq()))
+    if (is_ok(en_passant_sq()))
     {
-        k ^= Zobrist::enpassant(ep_sq());
-        reset_ep_sq();
+        k ^= Zobrist::enpassant(en_passant_sq());
+        reset_en_passant_sq();
     }
 
     st->key = k;
@@ -1147,12 +1177,12 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
     if (tt != nullptr)
         tt->prefetch_key(key());
 
-    st->capSq         = SQ_NONE;
+    activeColor = ~active_color();
+
+    st->capturedSq    = SQ_NONE;
     st->checkers      = 0;
     st->capturedPiece = NO_PIECE;
     st->promotedPiece = NO_PIECE;
-
-    activeColor = ~active_color();
 
     set_ext_state();
 
@@ -1163,14 +1193,14 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
 
 // Unmakes a null move
 void Position::undo_null_move() noexcept {
-    assert(!is_ok(cap_sq()));
+    assert(!is_ok(captured_sq()));
     assert(!checkers());
     assert(!is_ok(captured_piece()));
     assert(!is_ok(promoted_piece()));
 
     activeColor = ~active_color();
 
-    st = st->preSt;
+    st = const_cast<State*>(st->preSt);
 
     assert(_is_ok());
 }
@@ -1241,7 +1271,7 @@ bool Position::pseudo_legal(Move m) const noexcept {
         break;
 
     case EN_PASSANT :
-        if (!(type_of(pc) == PAWN && ep_sq() == dst && rule50_count() == 0
+        if (!(type_of(pc) == PAWN && en_passant_sq() == dst && rule50_count() == 0
               && relative_rank(ac, org) == RANK_5 && relative_rank(ac, dst) == RANK_6
               && (pieces(~ac, PAWN) & (dst - pawn_spush(ac)))
               && !(pieces() & make_bb(dst, dst + pawn_spush(ac)))
@@ -1285,7 +1315,7 @@ bool Position::legal(Move m) const noexcept {
     // Simply by testing whether the king is attacked after the move is made.
     case EN_PASSANT :
         assert(piece_on(org) == make_piece(ac, PAWN));
-        assert(ep_sq() == dst);
+        assert(en_passant_sq() == dst);
         assert(rule50_count() == 0);
         assert(relative_rank(ac, org) == RANK_5);
         assert(relative_rank(ac, dst) == RANK_6);
@@ -1454,8 +1484,8 @@ bool Position::fork(Move m) const noexcept {
 Key Position::move_key(Move m) const noexcept {
     Key moveKey = st->key ^ Zobrist::turn();
 
-    if (is_ok(ep_sq()))
-        moveKey ^= Zobrist::enpassant(ep_sq());
+    if (is_ok(en_passant_sq()))
+        moveKey ^= Zobrist::enpassant(en_passant_sq());
 
     if (m == Move::Null)
         return moveKey;
@@ -1473,9 +1503,10 @@ Key Position::move_key(Move m) const noexcept {
            || color_of(capturedPiece) == (m.type_of() != CASTLING ? ~ac : ac));
     assert(type_of(capturedPiece) != KING);
 
-    moveKey ^= Zobrist::piece_square(movedPiece, org)
-             ^ Zobrist::piece_square(m.type_of() != PROMOTION ? movedPiece
-                                                              : make_piece(ac, m.promotion_type()),
+    auto movedPt = type_of(movedPiece);
+
+    moveKey ^= Zobrist::piece_square(ac, movedPt, org)
+             ^ Zobrist::piece_square(ac, m.type_of() != PROMOTION ? movedPt : m.promotion_type(),
                                      m.type_of() != CASTLING ? dst : king_castle_sq(ac, org, dst));
     if (int cr; castling_rights() && (cr = castling_rights_mask(org, dst)))
         moveKey ^= Zobrist::castling(castling_rights())  //
@@ -1486,12 +1517,13 @@ Key Position::move_key(Move m) const noexcept {
         assert(movedPiece == make_piece(ac, KING));
         assert(capturedPiece == make_piece(ac, ROOK));
         // ROOK
-        return moveKey ^ Zobrist::piece_square(capturedPiece, dst)
-             ^ Zobrist::piece_square(capturedPiece, rook_castle_sq(ac, org, dst))
+        return moveKey  //
+             ^ Zobrist::piece_square(ac, ROOK, dst)
+             ^ Zobrist::piece_square(ac, ROOK, rook_castle_sq(ac, org, dst))
              ^ Zobrist::mr50(rule50_count() + 1);
     }
 
-    if (type_of(movedPiece) == PAWN && (int(dst) ^ int(org)) == NORTH_2
+    if (movedPt == PAWN && (int(dst) ^ int(org)) == NORTH_2
         && can_enpassant<false>(~ac, dst - pawn_spush(ac)))
     {
         assert(relative_rank(ac, org) == RANK_2);
@@ -1500,10 +1532,9 @@ Key Position::move_key(Move m) const noexcept {
         return moveKey ^ Zobrist::enpassant(dst);
     }
 
-    return moveKey ^ Zobrist::piece_square(capturedPiece, capSq)
-         ^ Zobrist::mr50(!is_ok(capturedPiece) && type_of(movedPiece) != PAWN  //
-                           ? rule50_count() + 1                                //
-                           : 0);
+    return moveKey  //
+         ^ Zobrist::piece_square(~ac, type_of(capturedPiece), capSq)
+         ^ Zobrist::mr50(!is_ok(capturedPiece) && movedPt != PAWN ? rule50_count() + 1 : 0);
 }
 
 // Tests if the SEE (Static Exchange Evaluation) value of the move
@@ -1530,7 +1561,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         occupied ^= cap;
     }
 
-    int swap = PIECE_VALUE[type_of(piece_on(cap))] + m.promotion_value() - threshold;
+    int swap = piece_value(type_of(piece_on(cap))) + m.promotion_value() - threshold;
 
     // If can't beat the threshold despite capturing the piece,
     // it is impossible to beat the threshold.
@@ -1539,7 +1570,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     auto moved = type_of(piece_on(org));
 
-    swap = PIECE_VALUE[m.type_of() != PROMOTION ? moved : m.promotion_type()] - swap;
+    swap = piece_value(m.type_of() != PROMOTION ? moved : m.promotion_type()) - swap;
 
     // If still beat the threshold after losing the piece,
     // it is guaranteed to beat the threshold.
@@ -1607,8 +1638,8 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 && (pt == PAWN || !(attacks_bb(dst, pt, occupied) & square<KING>(ac))))
             {
                 dst  = lsb(b);
-                swap = PIECE_VALUE[type_of(piece_on(org))] - swap;
-                if ((swap = PIECE_VALUE[type_of(piece_on(dst))] - swap) < ge)
+                swap = piece_value(type_of(piece_on(org))) - swap;
+                if ((swap = piece_value(type_of(piece_on(dst))) - swap) < ge)
                     break;
 
                 occupied ^= dst;
@@ -1663,8 +1694,9 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             }
 
             occupied ^= org = sq;
-            if ((swap = PIECE_VALUE[pt] - swap) < ge)
+            if ((swap = piece_value(pt) - swap) < ge)
                 break;
+
             switch (pt)
             {
             case PAWN :
@@ -1781,16 +1813,20 @@ bool Position::is_draw(std::int16_t ply, bool rule50Active, bool chkStalemate) c
 // of positions since the last capture or pawn move.
 bool Position::has_repeated() const noexcept {
     auto end = std::min(rule50_count(), null_ply());
+
     if (end < 4)
         return false;
 
-    auto* cSt = st;
+    const State* cSt = st;
+
     while (end-- >= 4)
     {
         if (cSt->repetition)
             return true;
+
         cSt = cSt->preSt;
     }
+
     return false;
 }
 
@@ -1802,22 +1838,24 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
     if (end < 3)
         return false;
 
-    Key   baseKey = st->key;
-    auto* pSt     = st->preSt;
-    Key   iterKey = baseKey ^ pSt->key ^ Zobrist::turn();
+    Key          baseKey = st->key;
+    const State* preSt   = st->preSt;
+    Key          iterKey = baseKey ^ preSt->key ^ Zobrist::turn();
 
     for (std::int16_t i = 3; i <= end; i += 2)
     {
-        iterKey ^= pSt->preSt->key ^ pSt->preSt->preSt->key ^ Zobrist::turn();
-        pSt = pSt->preSt->preSt;
+        iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ Zobrist::turn();
+
+        preSt = preSt->preSt->preSt;
 
         // Opponent pieces have reverted
         if (iterKey)
             continue;
 
-        Key moveKey = baseKey ^ pSt->key;
+        Key moveKey = baseKey ^ preSt->key;
         // 'moveKey' is a single move
         auto index = Cuckoos.find_key(moveKey);
+
         if (index >= Cuckoos.size())
             continue;
 
@@ -1837,9 +1875,10 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         if (i < ply
             // For nodes before or at the root, check that the move is
             // a repetition rather than a move to the current position.
-            || pSt->repetition)
+            || preSt->repetition)
             return true;
     }
+
     return false;
 }
 
@@ -1952,8 +1991,8 @@ Key Position::compute_key() const noexcept {
 
     key ^= Zobrist::castling(castling_rights());
 
-    if (is_ok(ep_sq()))
-        key ^= Zobrist::enpassant(ep_sq());
+    if (is_ok(en_passant_sq()))
+        key ^= Zobrist::enpassant(en_passant_sq());
 
     if (active_color() == BLACK)
         key ^= Zobrist::turn();
@@ -1972,9 +2011,10 @@ Key Position::compute_minor_key() const noexcept {
     {
         Square s  = sqrs[i];
         Piece  pc = piece_on(s);
+        auto   pt = type_of(pc);
 
-        if (type_of(pc) != PAWN && type_of(pc) != KING && !is_major(type_of(pc)))
-            minorKey ^= Zobrist::piece_square(pc, s);
+        if (pt != PAWN && pt != KING && !is_major(pt))
+            minorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
     }
     return minorKey;
 }
@@ -1990,9 +2030,10 @@ Key Position::compute_major_key() const noexcept {
     {
         Square s  = sqrs[i];
         Piece  pc = piece_on(s);
+        auto   pt = type_of(pc);
 
-        if (type_of(pc) != PAWN && type_of(pc) != KING && is_major(type_of(pc)))
-            majorKey ^= Zobrist::piece_square(pc, s);
+        if (pt != PAWN && pt != KING && is_major(pt))
+            majorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
     }
     return majorKey;
 }
@@ -2008,9 +2049,10 @@ Key Position::compute_non_pawn_key() const noexcept {
     {
         Square s  = sqrs[i];
         Piece  pc = piece_on(s);
+        auto   pt = type_of(pc);
 
-        if (type_of(pc) != PAWN)
-            nonPawnKey ^= Zobrist::piece_square(pc, s);
+        if (pt != PAWN)
+            nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, s);
     }
     return nonPawnKey;
 }
@@ -2027,7 +2069,7 @@ bool Position::_is_ok() const noexcept {
         || piece_on(square<KING>(WHITE)) != W_KING            //
         || piece_on(square<KING>(BLACK)) != B_KING            //
         || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1
-        || (is_ok(ep_sq()) && !can_enpassant(active_color(), ep_sq())))
+        || (is_ok(en_passant_sq()) && !can_enpassant(active_color(), en_passant_sq())))
         assert(false && "Position::_is_ok(): Default");
 
     if (st->key != compute_key())
@@ -2219,6 +2261,21 @@ void Position::dump(std::ostream& os) const noexcept {
             if (file_of(s) == FILE_H)
                 os << "\n";
         }
+
+    os << "Square Table:\n";
+    for (Color c : {WHITE, BLACK})
+    {
+        for (std::size_t i = 0; i < squareTable[c].size(); ++i)
+        {
+            Square s = squareTable[c][i];
+            if (is_ok(s))
+                std::cout << to_square(s);
+            else
+                std::cout << "-";
+            std::cout << " ";
+        }
+        std::cout << "\n";
+    }
 
     flush(os);
 }
