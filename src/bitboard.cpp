@@ -40,15 +40,12 @@ namespace {
 
 constexpr StdArray<std::size_t, 2> TableSizes{0x1480, 0x19000};
 
-alignas(CACHE_LINE_SIZE) StdArray<Bitboard, TableSizes[0]> BishopTable{};  // Stores bishop attacks
-alignas(CACHE_LINE_SIZE) StdArray<Bitboard, TableSizes[1]> RookTable{};    // Stores rook attacks
+// Stores bishop & rook attacks
+alignas(CACHE_LINE_SIZE) StdArray<Bitboard, TableSizes[0] + TableSizes[1]> AttacksTable;
 
-using TableSpan = StdArray<TableView<Bitboard>, 2>;
-
-alignas(CACHE_LINE_SIZE) constexpr TableSpan Tables{
-  TableView{BishopTable.data(), BishopTable.size()},  //
-  TableView{RookTable.data(), RookTable.size()}       //
-};
+alignas(CACHE_LINE_SIZE) constexpr StdArray<TableView<Bitboard>, 2> TableViews{
+  TableView{AttacksTable.data() + 0x00000000000, TableSizes[0]},
+  TableView{AttacksTable.data() + TableSizes[0], TableSizes[1]}};
 
 // Computes sliding attack
 template<PieceType PT>
@@ -116,7 +113,7 @@ void init_magics() noexcept {
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
         //assert(s == SQ_A1 || size <= RefSizes[PT - BISHOP]);
-        m.attacks = s == SQ_A1 ? Tables[PT - BISHOP].data()  //
+        m.attacks = s == SQ_A1 ? TableViews[PT - BISHOP].data()  //
                                : &Magics[s - 1][PT - BISHOP].attacks[size];
         assert(m.attacks != nullptr);
 
