@@ -2262,6 +2262,21 @@ void Position::dump(std::ostream& os) const noexcept {
                 os << "\n";
         }
 
+    os << "Square Table:\n";
+    for (Color c : {WHITE, BLACK})
+    {
+        for (std::size_t i = 0; i < squareTable[c].size(); ++i)
+        {
+            Square s = squareTable[c][i];
+            if (is_ok(s))
+                std::cout << to_square(s);
+            else
+                std::cout << "-";
+            std::cout << " ";
+        }
+        std::cout << "\n";
+    }
+
     flush(os);
 }
 

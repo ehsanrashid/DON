@@ -147,7 +147,7 @@ static_assert(std::is_standard_layout_v<State> && std::is_trivially_copyable_v<S
               "State must be standard-layout and trivially copyable");
 
 // Position class stores information regarding the board representation as
-// pieces, active color, hash keys, castling info, etc. (Size = 704)
+// pieces, active color, hash keys, castling info, etc. (Size = 664)
 // Important methods are do_move() and undo_move(),
 // used by the search to update node info when traversing the search tree.
 class Position final {
@@ -155,7 +155,7 @@ class Position final {
     static void init() noexcept;
 
     static constexpr StdArray<std::uint8_t, PIECE_TYPE_NB - 2> PieceCapacity{
-      16, 20, 20, 20, 20, 1  //
+      15, 16, 16, 16, 16, 1  //
     };
 
     Position() noexcept;
@@ -460,7 +460,7 @@ class Position final {
     State*                                          st;
 };
 
-//static_assert(sizeof(Position) == 704, "Position size");
+//static_assert(sizeof(Position) == 664, "Position size");
 
 inline const auto& Position::piece_map() const noexcept { return pieceMap; }
 
