@@ -773,7 +773,7 @@ inline Value Position::non_pawn_value(Color c) const noexcept {
     Value nonPawnValue = VALUE_ZERO;
 
     for (PieceType pt : NonePawnPieceTypes)
-        nonPawnValue += PIECE_VALUE[pt] * count(c, pt);
+        nonPawnValue += piece_value(pt) * count(c, pt);
 
     return nonPawnValue;
 }

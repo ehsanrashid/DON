@@ -1180,7 +1180,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Futility pruning: for captures
                 if (lmrDepth < 7 && !check)
                 {
-                    Value futilityValue = std::min(232 + ss->staticEval + PIECE_VALUE[captured]
+                    Value futilityValue = std::min(232 + ss->staticEval + piece_value(captured)
                                                      + 217 * lmrDepth + int(0.1279 * history),
                                                    +VALUE_INFINITE);
                     if (futilityValue <= alpha)
@@ -1190,7 +1190,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // SEE based pruning for captures and checks
                 int margin = -std::max(166 * depth + int(34.4828e-3 * history), 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
-                  (alpha >= VALUE_DRAW || nonPawnValue != PIECE_VALUE[type_of(movedPiece)])
+                  (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPiece)))
                   && pos.see(move) < margin)
                     continue;
             }
@@ -1229,7 +1229,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // SEE based pruning for quiets and checks
                 int margin = -std::max(64 * depth * check + 25 * lmrDepth * std::abs(lmrDepth), 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
-                  (alpha >= VALUE_DRAW || nonPawnValue != PIECE_VALUE[type_of(movedPiece)])
+                  (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPiece)))
                   && pos.see(move) < margin)
                     continue;
             }
@@ -1314,7 +1314,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         assert(captured == type_of(pos.captured_piece()));
 
-        ss->history = capture ? int(6.7813 * PIECE_VALUE[captured])  //
+        ss->history = capture ? int(6.7813 * piece_value(captured))  //
                                   + captureHistory[movedPiece][dst][captured]
                               : 2 * quietHistory[ac][move.raw()]        //
                                   + (*contHistory[0])[movedPiece][dst]  //
@@ -1746,7 +1746,7 @@ QS_MOVES_LOOP:
                     continue;
 
                 // Static evaluation + value of piece going to captured
-                Value futilityValue = std::min(futilityBase + PIECE_VALUE[pos.captured(move)],  //
+                Value futilityValue = std::min(futilityBase + piece_value(pos.captured(move)),  //
                                                +VALUE_INFINITE);
                 if (futilityValue <= alpha)
                 {

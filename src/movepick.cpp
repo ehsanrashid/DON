@@ -93,7 +93,7 @@ MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveL
         auto   pc       = pos.moved_piece(m);
         auto   captured = pos.captured(m);
 
-        m.value = 7 * PIECE_VALUE[captured]  //
+        m.value = 7 * piece_value(captured)  //
                 + (*captureHistory)[pc][dst][captured];
     }
     return itr;
@@ -148,7 +148,7 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
 
         // Penalty for moving to square attacked by lesser piece
         // Bonus for escaping from square attacked by lesser piece
-        m.value += PIECE_VALUE[pt]
+        m.value += piece_value(pt)
                  * ((pos.less_attacks(~ac, pt) & dst)   ? -19 * !(blockers & org)
                     : (threats & org)                   ? +23
                     : (pos.less_attacks(~ac, pt) & org) ? +20
@@ -174,7 +174,7 @@ MovePicker::iterator MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveL
 
         auto captured = pos.captured(m);
 
-        m.value = PIECE_VALUE[captured];
+        m.value = piece_value(captured);
     }
     return itr;
 }
