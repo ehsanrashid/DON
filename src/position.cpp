@@ -795,7 +795,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
 
     Key k = st->key ^ Zobrist::turn();
 
-    newSt.switch_to_prefix(*st);
+    newSt.switch_to_prefix(st);
 
     st = &newSt;
 
@@ -1144,7 +1144,7 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
 
     Key k = st->key ^ Zobrist::turn();
 
-    newSt.switch_to_prefix(*st);
+    newSt.switch_to_prefix(st);
 
     st = &newSt;
 

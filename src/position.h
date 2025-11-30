@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstddef>
+#include <cstddef>  // IWYU pragma: keep
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
@@ -128,19 +128,18 @@ struct State final {
     // excluding those that will recomputed from scratch anyway and
     // then switch the state pointer to point to the new state.
     template<typename T = Key>
-    void switch_to_prefix(const State& st, T State::* member = &State::key) noexcept {
+    void switch_to_prefix(const State* st, T State::* member = &State::key) noexcept {
         // Compute offset dynamically for this object
-        const State* pSt  = &st;
-        std::size_t  size = reinterpret_cast<const char*>(&(pSt->*member))  //
-                         - reinterpret_cast<const char*>(pSt);
+        std::size_t size = reinterpret_cast<const char*>(&(st->*member))  //
+                         - reinterpret_cast<const char*>(st);
 
         //// Defensive clamp (shouldn't be needed if member belongs to State)
         //if (size > sizeof(*this))
         //    size = sizeof(*this);
 
-        std::memcpy(this, pSt, size);
+        std::memcpy(this, st, size);
 
-        preSt = pSt;
+        preSt = st;
     }
 };
 
