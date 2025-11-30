@@ -686,7 +686,7 @@ void Position::set_ext_state() noexcept {
 
     for (Color c : {WHITE, BLACK})
     {
-        st->blockers[c] = blockers_to(square<KING>(c), pieces(~c), &st->pinners[c], &st->pinners[~c]);
+        st->blockers[c] = blockers_to(square<KING>(c), pieces(~c), st->pinners[c], st->pinners[~c]);
 
         st->attacks[c][NO_PIECE_TYPE] = 0;
         st->attacks[c][PAWN  ] = attacks_by<PAWN  >(c);

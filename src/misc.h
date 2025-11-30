@@ -575,7 +575,7 @@ struct IFixedVector {
     virtual T&       operator[](std::size_t idx) noexcept       = 0;
     virtual const T& operator[](std::size_t idx) const noexcept = 0;
 
-    virtual bool set_size(std::size_t newSize) noexcept = 0;
+    virtual bool size(std::size_t newSize) noexcept = 0;
 
     virtual void clear() noexcept = 0;
 };
@@ -645,7 +645,7 @@ class FixedVector final: public IFixedVector<T> {
         return _data[idx];
     }
 
-    bool set_size(std::size_t newSize) noexcept override {
+    bool size(std::size_t newSize) noexcept override {
         if (newSize > capacity())
             return false;
         _size = newSize;  // Note: doesn't construct/destroy elements
@@ -683,7 +683,7 @@ class FixedString final {
         null_terminate();
     }
 
-    static constexpr std::size_t capacity() { return Capacity; }
+    static constexpr std::size_t capacity() noexcept { return Capacity; }
 
     [[nodiscard]] constexpr std::size_t size() const noexcept { return _size; }
     [[nodiscard]] constexpr bool        empty() const noexcept { return size() == 0; }
@@ -699,11 +699,11 @@ class FixedString final {
     constexpr const char* c_str() const noexcept { return _data.data(); }
     constexpr const char* data() const noexcept { return _data.data(); }
 
-    constexpr char& operator[](std::size_t idx) {
+    constexpr char& operator[](std::size_t idx) noexcept {
         assert(idx < size());
         return _data[idx];
     }
-    constexpr const char& operator[](std::size_t idx) const {
+    constexpr const char& operator[](std::size_t idx) const noexcept {
         assert(idx < size());
         return _data[idx];
     }
@@ -745,22 +745,22 @@ class FixedString final {
 };
 
 template<typename T>
-inline void combine_hash(std::size_t& seed, const T& v) {
+inline void combine_hash(std::size_t& seed, const T& v) noexcept {
     seed ^= std::hash<T>{}(v) + 0x9E3779B9U + (seed << 6) + (seed >> 2);
 }
 
 template<>
-inline void combine_hash(std::size_t& seed, const std::size_t& v) {
+inline void combine_hash(std::size_t& seed, const std::size_t& v) noexcept {
     seed ^= v + 0x9E3779B9U + (seed << 6) + (seed >> 2);
 }
 
 template<typename T>
-inline std::size_t raw_data_hash(const T& value) {
+inline std::size_t raw_data_hash(const T& value) noexcept {
     return std::hash<std::string_view>{}(
       std::string_view(reinterpret_cast<const char*>(&value), sizeof(value)));
 }
 
-inline std::string create_hash_string(std::string_view str) {
+inline std::string create_hash_string(std::string_view str) noexcept {
     return (std::ostringstream{} << std::hex << std::setfill('0')
                                  << std::hash<std::string_view>{}(str))
       .str();

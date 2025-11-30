@@ -250,10 +250,10 @@ class Position final {
     bool has_attackers_to(Square s, Bitboard attackers, Bitboard occupied) const noexcept;
     bool has_attackers_to(Square s, Bitboard attackers) const noexcept;
 
-    Bitboard blockers_to(Square          s,
-                         Bitboard        enemies,
-                         Bitboard* const ownPinners = nullptr,
-                         Bitboard* const oppPinners = nullptr) const noexcept;
+    Bitboard blockers_to(Square    s,
+                         Bitboard  enemies,
+                         Bitboard& ownPinners,
+                         Bitboard& oppPinners) const noexcept;
 
     // Attacks from a piece type
     template<PieceType PT>
@@ -668,7 +668,7 @@ inline bool Position::has_attackers_to(Square s, Bitboard attackers) const noexc
 // Computes the blockers that are pinned pieces to a given square 's' from a set of enemies.
 // Blockers are pieces that, when removed, would expose an x-ray attack to 's'.
 // Pinners are also returned via the ownPinners and oppPinners pointers.
-inline Bitboard Position::blockers_to(Square s, Bitboard enemies, Bitboard* const ownPinners, Bitboard* const oppPinners) const noexcept {
+inline Bitboard Position::blockers_to(Square s, Bitboard enemies, Bitboard& ownPinners, Bitboard& oppPinners) const noexcept {
     Bitboard blockers = 0;
 
     // xSnipers are x-ray attackers that attack 's' when blockers are removed
@@ -686,13 +686,9 @@ inline Bitboard Position::blockers_to(Square s, Bitboard enemies, Bitboard* cons
             blockers |= blocker;
 
             if (blocker & enemies)
-            {
-                if (ownPinners != nullptr) *ownPinners |= xSniperSq;
-            }
+                ownPinners |= xSniperSq;
             else
-            {
-                if (oppPinners != nullptr) *oppPinners |= xSniperSq;
-            }
+                oppPinners |= xSniperSq;
         }
     }
 
