@@ -455,16 +455,17 @@ Move* generate_legal(const Position& pos, Move* moves) noexcept {
             ? generate<EVASION, Any>(pos, moves)
             : generate<ENCOUNTER, Any>(pos, moves);
 
-    Bitboard pawns    = pos.pieces(PAWN);
     Bitboard blockers = pos.blockers(pos.active_color());
+    Bitboard pawns    = pos.pieces(PAWN);
 
-    Bitboard pawnBlockers = pawns & blockers;
+    Bitboard blockerPawns = blockers & pawns;
+
     // Filter illegal moves (preserve order)
     while (read != moves)
     {
         Move m = *read++;
 
-        if (((pawnBlockers & m.org_sq()) || m.type_of() == CASTLING) && !pos.legal(m))
+        if (((blockerPawns & m.org_sq()) || m.type_of() == CASTLING) && !pos.legal(m))
             continue;  // Skip illegal
 
         *write++ = m;

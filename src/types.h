@@ -127,10 +127,12 @@ enum PieceType : std::int8_t {
     PIECE_TYPE_NB = 8
 };
 
-constexpr StdArray<PieceType, PIECE_TYPE_NB - 2> PieceTypes{
+inline constexpr std::size_t PIECES = PIECE_TYPE_NB - 2;
+
+constexpr StdArray<PieceType, PIECES> PIECE_TYPES{
   PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
 };
-constexpr StdArray<PieceType, PIECE_TYPE_NB - 4> NonePawnPieceTypes{
+constexpr StdArray<PieceType, PIECES - 2> NON_PAWN_PIECE_TYPES{
   KNIGHT, BISHOP, ROOK, QUEEN
 };
 

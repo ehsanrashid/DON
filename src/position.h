@@ -25,7 +25,7 @@
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
-#include <iosfwd>
+#include <iostream>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -53,9 +53,9 @@ struct Zobrist final {
 
     static Key castling(CastlingRights cr) noexcept { return Castling[cr]; }
 
-    static Key enpassant(Square ep) noexcept {
-        assert(is_ok(ep));
-        return Enpassant[file_of(ep)];
+    static Key enpassant(Square enPassantSq) noexcept {
+        assert(is_ok(enPassantSq));
+        return Enpassant[file_of(enPassantSq)];
     }
 
     static Key turn() noexcept { return Turn; }
@@ -351,7 +351,7 @@ class Position final {
 
     void dump(std::ostream& os = std::cout) const noexcept;
 
-    static constexpr StdArray<std::size_t, PIECE_TYPE_NB - 2> CAPACITY  //
+    static constexpr StdArray<std::size_t, PIECES> CAPACITY  //
       {11, 13, 13, 13, 13, 1};
 
     static inline bool Chess960 = false;
@@ -415,14 +415,14 @@ class Position final {
 
     static constexpr std::size_t TOTAL_CAPACITY = []() constexpr {
         std::size_t totalCapacity = 0;
-        for (std::size_t i = 0; i < PIECE_TYPE_NB - 2; ++i)
+        for (std::size_t i = 0; i < PIECES; ++i)
             totalCapacity += CAPACITY[i];
         return totalCapacity;
     }();
     static constexpr auto OFFSET = []() constexpr {
-        StdArray<std::size_t, PIECE_TYPE_NB - 2> offset{};
+        StdArray<std::size_t, PIECES> offset{};
         offset[0] = 0;
-        for (std::size_t i = 1; i < PIECE_TYPE_NB - 2; ++i)
+        for (std::size_t i = 1; i < PIECES; ++i)
             offset[i] = offset[i - 1] + CAPACITY[i - 1];
         return offset;
     }();
@@ -436,7 +436,7 @@ class Position final {
     // Backing Square Table: [COLOR_NB][TOTAL_CAPACITY]
     StdArray<Square, COLOR_NB, TOTAL_CAPACITY> squareTable;
     // Generic CountTableView slices
-    StdArray<CountTableView<Square>, COLOR_NB, PIECE_TYPE_NB - 1> pieceList;
+    StdArray<CountTableView<Square>, COLOR_NB, 1 + PIECES> pieceList;
 
     StdArray<std::uint8_t, SQUARE_NB>               indexMap;
     StdArray<Piece, SQUARE_NB>                      pieceMap;
@@ -502,7 +502,7 @@ inline StdArray<Square, SQUARE_NB> Position::squares(Color c, std::size_t& n) co
     StdArray<Square, SQUARE_NB> sqrs;
 
     n = 0;
-    for (PieceType pt : PieceTypes)
+    for (PieceType pt : PIECE_TYPES)
     {
         const auto& pL    = squares(c, pt);
         const auto  count = pL.count();
@@ -522,7 +522,7 @@ inline StdArray<Square, SQUARE_NB> Position::squares(std::size_t& n) const noexc
 
     n = 0;
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
+        for (PieceType pt : PIECE_TYPES)
         {
             const auto& pL    = squares(c, pt);
             const auto  count = pL.count();
@@ -761,7 +761,7 @@ inline Key Position::material_key() const noexcept {
     Key materialKey = 0;
 
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
+        for (PieceType pt : PIECE_TYPES)
         {
             if (pt == KING || !count(c, pt))
                 continue;
@@ -777,7 +777,7 @@ inline Key Position::material_key() const noexcept {
 inline Value Position::non_pawn_value(Color c) const noexcept {
     Value nonPawnValue = VALUE_ZERO;
 
-    for (PieceType pt : NonePawnPieceTypes)
+    for (PieceType pt : NON_PAWN_PIECE_TYPES)
         nonPawnValue += piece_value(pt) * count(c, pt);
 
     return nonPawnValue;
@@ -789,7 +789,7 @@ inline Value Position::non_pawn_value() const noexcept {
 
 inline bool Position::has_non_pawn(Color c) const noexcept {
 
-    for (PieceType pt : NonePawnPieceTypes)
+    for (PieceType pt : NON_PAWN_PIECE_TYPES)
         if (count(c, pt))
             return true;
     return false;

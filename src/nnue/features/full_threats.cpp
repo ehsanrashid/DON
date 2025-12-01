@@ -124,7 +124,7 @@ void FullThreats::init() noexcept {
     IndexType cumulativeOffset = 0;
 
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
+        for (PieceType pt : PIECE_TYPES)
         {
             Piece pc = make_piece(c, pt);
 
@@ -154,12 +154,12 @@ void FullThreats::init() noexcept {
 
     // Initialize Lut data & index
     for (Color attackerC : {WHITE, BLACK})
-        for (PieceType attackerType : PieceTypes)
+        for (PieceType attackerType : PIECE_TYPES)
         {
             auto attacker = make_piece(attackerC, attackerType);
 
             for (Color attackedC : {WHITE, BLACK})
-                for (PieceType attackedType : PieceTypes)
+                for (PieceType attackedType : PIECE_TYPES)
                 {
                     auto attacked = make_piece(attackedC, attackedType);
 
@@ -195,7 +195,7 @@ void FullThreats::append_active_indices(Color           perspective,
 
     Bitboard occupied = pos.pieces();
     for (Color color : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
+        for (PieceType pt : PIECE_TYPES)
         {
             Color    c        = Color(perspective ^ color);
             Piece    attacker = make_piece(c, pt);

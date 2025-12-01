@@ -21,7 +21,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <iomanip>
-#include <iostream>
 #include <sstream>
 #include <utility>
 
@@ -105,7 +104,7 @@ class CuckooTable final {
         clear();
 
         for (Color c : {WHITE, BLACK})
-            for (PieceType pt : PieceTypes)
+            for (PieceType pt : PIECE_TYPES)
             {
                 if (pt == PAWN)
                     continue;
@@ -149,7 +148,7 @@ void Zobrist::init() noexcept {
 
     for (Color c : {WHITE, BLACK})
     {
-        for (PieceType pt : PieceTypes)
+        for (PieceType pt : PIECE_TYPES)
             std::generate(PieceSquare[c][pt].begin(), PieceSquare[c][pt].end(), prng_rand);
 
         auto itr1 = PieceSquare[c][PAWN].begin() + SQ_A1;
@@ -187,7 +186,7 @@ Position::Position() noexcept { construct(); }
 
 void Position::construct() noexcept {
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
+        for (PieceType pt : PIECE_TYPES)
             pieceList[c][pt].set(OFFSET[pt - 1], CAPACITY[pt - 1]);
 }
 
@@ -204,7 +203,7 @@ void Position::clear() noexcept {
     std::memset(pieceCount.data(), 0, sizeof(pieceCount));
     // Don't memset pieceList, as they point to the above lists
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
+        for (PieceType pt : PIECE_TYPES)
             pieceList[c][pt].clear();
 
     st          = nullptr;
@@ -605,7 +604,7 @@ void Position::set_state() noexcept {
     assert(st->key == 0);
 
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
+        for (PieceType pt : PIECE_TYPES)
         {
             const auto& pL = squares(c, pt);
             const auto* pB = base(c);
@@ -2057,15 +2056,15 @@ bool Position::_is_ok() const noexcept {
         || popcount(pieces(WHITE)) > 16 || popcount(pieces(BLACK)) > 16)
         assert(false && "Position::_is_ok(): Bitboards");
 
-    for (PieceType p1 : PieceTypes)
-        for (PieceType p2 : PieceTypes)
+    for (PieceType p1 : PIECE_TYPES)
+        for (PieceType p2 : PIECE_TYPES)
             if (p1 != p2 && (pieces(p1) & pieces(p2)))
                 assert(false && "Position::_is_ok(): Bitboards");
 
     for (Color c : {WHITE, BLACK})
     {
         const auto* pB = base(c);
-        for (PieceType pt : PieceTypes)
+        for (PieceType pt : PIECE_TYPES)
         {
             Piece       pc = make_piece(c, pt);
             const auto& pL = squares(c, pt);
@@ -2079,7 +2078,7 @@ bool Position::_is_ok() const noexcept {
     }
 
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
+        for (PieceType pt : PIECE_TYPES)
         {
             Piece pc    = make_piece(c, pt);
             auto  count = this->count(c, pt);
@@ -2204,7 +2203,7 @@ void Position::dump(std::ostream& os) const noexcept {
 
     os << "Piece Bitboards:\n";
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
+        for (PieceType pt : PIECE_TYPES)
         {
             os << to_char(make_piece(c, pt)) << ": ";
             os << u64_to_string(pieces(c, pt)) << "\n";
@@ -2212,7 +2211,7 @@ void Position::dump(std::ostream& os) const noexcept {
 
     os << "Piece Lists:\n";
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
+        for (PieceType pt : PIECE_TYPES)
         {
             os << to_char(make_piece(c, pt)) << ": ";
             const auto& pL = squares(c, pt);
