@@ -61,11 +61,11 @@ struct Zobrist final {
     static Key turn() noexcept { return Turn; }
 
     static Key mr50(std::int16_t rule50Count) noexcept {
-        std::int16_t idx = rule50Count - R50Offset;
-        return idx < 0 ? 0 : MR50[std::min(idx / R50Factor, int(MR50.size()) - 1)];
+        std::int16_t idx = rule50Count - R50_OFFSET;
+        return idx < 0 ? 0 : MR50[std::min(idx / R50_FACTOR, int(MR50.size()) - 1)];
     }
 
-    static constexpr std::size_t PawnOffset = 8;
+    static constexpr std::size_t PAWN_OFFSET = 8;
 
    private:
     Zobrist() noexcept                          = delete;
@@ -79,10 +79,10 @@ struct Zobrist final {
     static inline StdArray<Key, FILE_NB>                                Enpassant{};
     static inline Key                                                   Turn{};
 
-    static constexpr std::uint8_t R50Offset = 14;
-    static constexpr std::uint8_t R50Factor = 8;
+    static constexpr std::uint8_t R50_OFFSET = 14;
+    static constexpr std::uint8_t R50_FACTOR = 8;
 
-    static inline StdArray<Key, (MAX_PLY + 1 - R50Offset) / R50Factor + 2> MR50{};
+    static inline StdArray<Key, (MAX_PLY + 1 - R50_OFFSET) / R50_FACTOR + 2> MR50{};
 };
 
 // State struct stores information needed to restore Position object
@@ -121,8 +121,7 @@ struct State final {
     std::int16_t                                repetition;
     Piece                                       capturedPiece;
     Piece                                       promotedPiece;
-
-    const State* preSt;
+    const State*                                preSt;
 
     // Copy relevant fields from the state.
     // excluding those that will recomputed from scratch anyway and
@@ -145,6 +144,7 @@ struct State final {
 
 static_assert(std::is_standard_layout_v<State> && std::is_trivially_copyable_v<State>,
               "State must be standard-layout and trivially copyable");
+//static_assert(sizeof(State) == 312, "State size");
 
 // Position class stores information regarding the board representation as
 // pieces, active color, hash keys, castling info, etc. (Size = 464)
@@ -154,13 +154,9 @@ class Position final {
    public:
     static void init() noexcept;
 
-    static constexpr StdArray<std::size_t, PIECE_TYPE_NB - 2> Capacity{
-      11, 13, 13, 13, 13, 1  //
-    };
-
     Position() noexcept;
-    Position(const Position& pos) noexcept            = default;
-    Position& operator=(const Position& pos) noexcept = default;
+    Position(const Position&) noexcept            = default;
+    Position& operator=(const Position&) noexcept = default;
 
    private:
     constexpr Position(Position&&) noexcept            = delete;
@@ -343,8 +339,11 @@ class Position final {
     bool _is_ok() const noexcept;
 #endif
 
+    constexpr Square*       base(Color c) noexcept;
+    constexpr const Square* base(Color c) const noexcept;
+
     // Used by NNUE
-    State* state() const noexcept;
+    constexpr State* state() const noexcept;
 
     operator std::string() const noexcept;
 
@@ -352,8 +351,8 @@ class Position final {
 
     void dump(std::ostream& os) const noexcept;
 
-    constexpr Square*       base(Color c) noexcept { return squareTable[c].data(); }
-    constexpr const Square* base(Color c) const noexcept { return squareTable[c].data(); }
+    static constexpr StdArray<std::size_t, PIECE_TYPE_NB - 2> CAPACITY  //
+      {11, 13, 13, 13, 13, 1};
 
     static inline bool Chess960 = false;
 
@@ -414,28 +413,28 @@ class Position final {
     // Static Exchange Evaluation
     bool see_ge(Move m, int threshold) const noexcept;
 
-    static constexpr std::size_t TotalCapacity = []() constexpr {
+    static constexpr std::size_t TOTAL_CAPACITY = []() constexpr {
         std::size_t totalCapacity = 0;
         for (std::size_t i = 0; i < PIECE_TYPE_NB - 2; ++i)
-            totalCapacity += Capacity[i];
+            totalCapacity += CAPACITY[i];
         return totalCapacity;
     }();
-    static constexpr auto Offset = []() constexpr {
+    static constexpr auto OFFSET = []() constexpr {
         StdArray<std::size_t, PIECE_TYPE_NB - 2> offset{};
         offset[0] = 0;
         for (std::size_t i = 1; i < PIECE_TYPE_NB - 2; ++i)
-            offset[i] = offset[i - 1] + Capacity[i - 1];
+            offset[i] = offset[i - 1] + CAPACITY[i - 1];
         return offset;
     }();
 
-    static constexpr StdArray<std::uint8_t, CASTLING_RIGHTS_NB> Bit{
+    static constexpr StdArray<std::uint8_t, CASTLING_RIGHTS_NB> BIT{
       4, 0, 1, 4, 2, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4  //
     };
 
-    static constexpr std::uint8_t InvalidIndex = SQUARE_NB;
+    static constexpr std::uint8_t INDEX_NONE = SQUARE_NB;
 
-    // Backing Square Table: [COLOR_NB][TotalCapacity]
-    StdArray<Square, COLOR_NB, TotalCapacity> squareTable;
+    // Backing Square Table: [COLOR_NB][TOTAL_CAPACITY]
+    StdArray<Square, COLOR_NB, TOTAL_CAPACITY> squareTable;
     // Generic CountTableView slices
     StdArray<CountTableView<Square>, COLOR_NB, PIECE_TYPE_NB - 1> pieceList;
 
@@ -586,12 +585,12 @@ inline bool Position::can_castle(CastlingRights cr) const noexcept {
 
 inline bool Position::castling_impeded(CastlingRights cr) const noexcept {
     assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
-    return pieces() & castlingPath[Bit[cr]];
+    return pieces() & castlingPath[BIT[cr]];
 }
 
 inline Square Position::castling_rook_sq(CastlingRights cr) const noexcept {
     assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
-    return castlingRookSq[Bit[cr]];
+    return castlingRookSq[BIT[cr]];
 }
 
 inline auto Position::castling_rights_mask(Square org, Square dst) const noexcept {
@@ -659,7 +658,7 @@ inline bool Position::has_attackers_to(Square s, Bitboard attackers) const noexc
 
 // Computes the blockers that are pinned pieces to a given square 's' from a set of enemies.
 // Blockers are pieces that, when removed, would expose an x-ray attack to 's'.
-// Pinners are also returned via the ownPinners and oppPinners pointers.
+// Pinners are also returned via the ownPinners and oppPinners reference.
 inline Bitboard Position::blockers_to(Square s, Bitboard enemies, Bitboard& ownPinners, Bitboard& oppPinners) const noexcept {
     Bitboard blockers = 0;
 
@@ -767,7 +766,7 @@ inline Key Position::material_key() const noexcept {
             if (pt == KING || !count(c, pt))
                 continue;
 
-            Square s = Square(Zobrist::PawnOffset + count(c, pt) - 1);
+            Square s = Square(Zobrist::PAWN_OFFSET + count(c, pt) - 1);
 
             materialKey ^= Zobrist::piece_square(c, pt, s);
         }
@@ -902,7 +901,7 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
     assert(idx < pL.size());
     Square sq    = pL.back(pB);
     indexMap[sq] = idx;
-    //indexMap[s]  = InvalidIndex;
+    //indexMap[s]  = INDEX_NONE;
     pL.at(idx, pB) = sq;
     pL.pop_back();
     --pieceCount[c];
@@ -932,7 +931,7 @@ inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts)
     auto* pB  = base(c);
     assert(idx < pL.size());
     indexMap[s2] = idx;
-    //indexMap[s1] = InvalidIndex;
+    //indexMap[s1] = INDEX_NONE;
     pL.at(idx, pB) = s2;
 
     if (dts != nullptr)
@@ -1053,7 +1052,14 @@ Position::do_move(Move m, State& newSt, const TranspositionTable* const tt) noex
     return do_move(m, newSt, check(m), tt);
 }
 
-inline State* Position::state() const noexcept { return st; }
+inline constexpr Square* Position::base(Color c) noexcept {  //
+    return squareTable[c].data();
+}
+inline constexpr const Square* Position::base(Color c) const noexcept {
+    return squareTable[c].data();
+}
+
+inline constexpr State* Position::state() const noexcept { return st; }
 
 // Position::SEE
 inline bool Position::SEE::operator>=(int threshold) const noexcept {

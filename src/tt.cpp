@@ -104,9 +104,7 @@ struct TTEntry final {
         if (key16 != k16 || m != Move::None)
             move16 = m;
         // Overwrite less valuable entries (cheapest checks first)
-        if (key16 != k16 || b == BOUND_EXACT  //
-            || depth() < 4 + d + 2 * pv       //
-            || relative_age(gen))
+        if (key16 != k16 || b == BOUND_EXACT || depth() < 4 + d + 2 * pv || relative_age(gen))
         {
             key16   = k16;
             depth8  = d - DEPTH_OFFSET;

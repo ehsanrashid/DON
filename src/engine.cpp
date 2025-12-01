@@ -170,7 +170,13 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
 }
 
 std::uint64_t Engine::perft(Depth depth, bool detail) noexcept {
-    return Perft::perft(pos, options["Hash"], threads, depth, detail);
+
+    State    st;
+    Position p;
+    p.set(pos, &st);
+    st = *pos.state();
+
+    return Perft::perft(p, options["Hash"], threads, depth, detail);
 }
 
 void Engine::start(const Limit& limit) noexcept {

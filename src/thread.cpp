@@ -300,7 +300,7 @@ void ThreadPool::start(Position&      pos,
     {
         th->run_custom_job([&]() {
             th->worker->rootPos.set(pos, &th->worker->rootState);
-            th->worker->rootState = setupStates->back();
+            th->worker->rootState = *pos.state();
             th->worker->rootMoves = rootMoves;
             th->worker->limit     = limit;
             th->worker->tbConfig  = tbConfig;

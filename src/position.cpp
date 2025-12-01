@@ -153,10 +153,10 @@ void Zobrist::init() noexcept {
             std::generate(PieceSquare[c][pt].begin(), PieceSquare[c][pt].end(), prng_rand);
 
         auto itr1 = PieceSquare[c][PAWN].begin() + SQ_A1;
-        std::fill(itr1, itr1 + PawnOffset, 0);
+        std::fill(itr1, itr1 + PAWN_OFFSET, 0);
 
         auto itr2 = PieceSquare[c][PAWN].begin() + SQ_A8;
-        std::fill(itr2, itr2 + PawnOffset, 0);
+        std::fill(itr2, itr2 + PAWN_OFFSET, 0);
     }
 
     std::generate(Castling.begin(), Castling.end(), prng_rand);
@@ -188,13 +188,13 @@ Position::Position() noexcept { construct(); }
 void Position::construct() noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
-            pieceList[c][pt].set(Offset[pt - 1], Capacity[pt - 1]);
+            pieceList[c][pt].set(OFFSET[pt - 1], CAPACITY[pt - 1]);
 }
 
 void Position::clear() noexcept {
     std::memset(squareTable.data(), SQ_NONE, sizeof(squareTable));
     // No need to clear indexMap as it is always overwritten when putting/removing pieces
-    std::memset(indexMap.data(), InvalidIndex, sizeof(indexMap));
+    std::memset(indexMap.data(), INDEX_NONE, sizeof(indexMap));
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
     std::memset(colorBB.data(), 0, sizeof(colorBB));
@@ -586,12 +586,12 @@ void Position::set_castling_rights(Color c, Square rOrg) noexcept {
     castlingRightsMask[c * FILE_NB + file_of(kOrg)] |= cr;
     castlingRightsMask[c * FILE_NB + file_of(rOrg)] = cr;
 
-    castlingRookSq[Bit[cr]] = rOrg;
+    castlingRookSq[BIT[cr]] = rOrg;
 
     Square kDst = king_castle_sq(c, kOrg, rOrg);
     Square rDst = rook_castle_sq(c, kOrg, rOrg);
 
-    castlingPath[Bit[cr]] =
+    castlingPath[BIT[cr]] =
       (between_bb(kOrg, kDst) | between_bb(rOrg, rDst)) & ~make_bb(kOrg, rOrg);
 }
 
@@ -2069,10 +2069,10 @@ bool Position::_is_ok() const noexcept {
         {
             Piece       pc = make_piece(c, pt);
             const auto& pL = squares(c, pt);
-            for (std::size_t i = 0; i < pL.count(); ++i)
+            for (std::uint8_t i = 0; i < pL.count(); ++i)
             {
                 Square s = pL.at(i, pB);
-                if (piece_on(s) != pc || indexMap[s] != int(i))
+                if (piece_on(s) != pc || indexMap[s] != i)
                     assert(0 && "_is_ok: Piece List");
             }
         }
@@ -2173,10 +2173,10 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     if (Tablebases::MaxCardinality >= pos.count() && !pos.can_castle(ANY_CASTLING))
     {
-        State st;
-
+        State    st;
         Position p;
-        p.set(pos.fen(), &st);
+        p.set(pos, &st);
+        st = *pos.state();
 
         Tablebases::ProbeState wdlPs, dtzPs;
 
@@ -2227,7 +2227,7 @@ void Position::dump(std::ostream& os) const noexcept {
         {
             Square s = make_square(f, r);
 
-            if (indexMap[s] == InvalidIndex)
+            if (indexMap[s] == INDEX_NONE)
                 os << '*';
             else
                 os << int(indexMap[s]);
@@ -2239,16 +2239,15 @@ void Position::dump(std::ostream& os) const noexcept {
     os << "Square Table:\n";
     for (Color c : {WHITE, BLACK})
     {
-        for (std::size_t i = 0; i < squareTable[c].size(); ++i)
+        for (Square s : squareTable[c])
         {
-            Square s = squareTable[c][i];
             if (is_ok(s))
-                std::cout << to_square(s);
+                os << to_square(s);
             else
-                std::cout << "-";
-            std::cout << " ";
+                os << "-";
+            os << " ";
         }
-        std::cout << "\n";
+        os << "\n";
     }
 
     flush(os);
