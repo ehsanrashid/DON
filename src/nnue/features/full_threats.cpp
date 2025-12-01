@@ -44,8 +44,10 @@ constexpr StdArray<int, PIECE_TYPE_NB - 2, PIECE_TYPE_NB - 2> Map{{
 // Lookup array for indexing threats
 StdArray<IndexType, PIECE_NB, SQUARE_NB> Offsets;
 
-struct HelperOffset {
-    IndexType cumulativePieceOffset, cumulativeOffset;
+struct HelperOffset final {
+   public:
+    IndexType cumulativePieceOffset;
+    IndexType cumulativeOffset;
 };
 
 StdArray<HelperOffset, PIECE_NB> HelperOffsets;
@@ -124,7 +126,7 @@ void FullThreats::init() noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
         {
-            auto pc = make_piece(c, pt);
+            Piece pc = make_piece(c, pt);
 
             IndexType cumulativePieceOffset = 0;
 
@@ -134,7 +136,7 @@ void FullThreats::init() noexcept {
 
                 if (pt != PAWN)
                 {
-                    Bitboard attacks = attacks_bb(org, pc, 0);
+                    Bitboard attacks = attacks_bb(org, pt, 0);
                     cumulativePieceOffset += popcount(attacks);
                 }
                 else if (SQ_A2 <= org && org <= SQ_H7)
@@ -178,8 +180,10 @@ void FullThreats::init() noexcept {
 
             for (Square org = SQ_A1; org <= SQ_H8; ++org)
                 for (Square dst = SQ_A1; dst <= SQ_H8; ++dst)
-                    LutIndex[attacker][org][dst] =
-                      popcount((square_bb(dst) - 1) & attacks_bb(org, attacker));
+                {
+                    Bitboard attacks             = attacks_bb(org, attacker);
+                    LutIndex[attacker][org][dst] = popcount((square_bb(dst) - 1) & attacks);
+                }
         }
 }
 

@@ -495,6 +495,10 @@ inline const auto& Position::squares(Color c) const noexcept {
     return squares(c, PT);
 }
 
+inline const auto& Position::squares(Piece pc) const noexcept {
+    return squares(color_of(pc), type_of(pc));
+}
+
 inline StdArray<Square, SQUARE_NB> Position::squares(Color c, std::size_t& n) const noexcept {
     StdArray<Square, SQUARE_NB> sqrs;
 
@@ -503,9 +507,12 @@ inline StdArray<Square, SQUARE_NB> Position::squares(Color c, std::size_t& n) co
     {
         const auto& pL    = squares(c, pt);
         const auto  count = pL.count();
-        const auto* pB    = base(c);
-        std::memcpy(sqrs.data() + n, pL.data(pB), count * sizeof(Square));
-        n += count;
+        if (count)
+        {
+            const auto* pB = base(c);
+            std::memcpy(sqrs.data() + n, pL.data(pB), count * sizeof(Square));
+            n += count;
+        }
     }
 
     return sqrs;
@@ -520,16 +527,15 @@ inline StdArray<Square, SQUARE_NB> Position::squares(std::size_t& n) const noexc
         {
             const auto& pL    = squares(c, pt);
             const auto  count = pL.count();
-            const auto* pB    = base(c);
-            std::memcpy(sqrs.data() + n, pL.data(pB), count * sizeof(Square));
-            n += count;
+            if (count)
+            {
+                const auto* pB = base(c);
+                std::memcpy(sqrs.data() + n, pL.data(pB), count * sizeof(Square));
+                n += count;
+            }
         }
 
     return sqrs;
-}
-
-inline const auto& Position::squares(Piece pc) const noexcept {
-    return squares(color_of(pc), type_of(pc));
 }
 
 inline std::uint8_t Position::count(Color c, PieceType pt) const noexcept {
