@@ -448,9 +448,9 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
         std::cerr << "Warning: Bad size Book file " << filename << ", ignoring " << remainder
                   << " trailing bytes" << std::endl;
 
-    std::ifstream ifstream(filename, std::ios_base::binary);
+    std::ifstream ifs(filename, std::ios_base::binary);
 
-    if (!ifstream.is_open())
+    if (!ifs.is_open())
     {
         std::cerr << "Failed to open Book file " << filename << std::endl;
         return false;
@@ -471,9 +471,9 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
     {
         std::size_t readSize = std::min(ChunkSize, DataSize - readedSize);
 
-        ifstream.read(data + readedSize, readSize);
+        ifs.read(data + readedSize, readSize);
 
-        std::streamsize gotSize = ifstream.gcount();
+        std::streamsize gotSize = ifs.gcount();
 
         if (gotSize <= 0)  // read failed or EOF without data
             return false;
@@ -487,16 +487,16 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
         readedSize += gotSize;
     }
 
-    if (ifstream.fail() || ifstream.bad())
+    if (ifs.fail() || ifs.bad())
     {
         std::cerr << "I/O error while reading Book file " << filename << std::endl;
         return false;
     }
 
-    if (readedSize != DataSize || !ifstream.good())
+    if (readedSize != DataSize || !ifs.good())
         std::cerr << "Failed to read complete Book file " << filename << std::endl;
 
-    ifstream.close();
+    ifs.close();
 
     if (IsLittleEndian)
         for (std::size_t i = 0; i < entries.size(); ++i)

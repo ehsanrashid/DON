@@ -267,11 +267,10 @@ struct CountTableView final {
 
     void clear() noexcept { _count = 0; }
 
-    bool count(size_type newCount) noexcept {
+    void count(size_type newCount) noexcept {
         if (newCount > size())
-            return false;
+            newCount = size();
         _count = newCount;
-        return true;
     }
 
    private:
@@ -577,7 +576,7 @@ struct IFixedVector {
     virtual T&       operator[](std::size_t idx) noexcept       = 0;
     virtual const T& operator[](std::size_t idx) const noexcept = 0;
 
-    virtual bool size(std::size_t newSize) noexcept = 0;
+    virtual void size(std::size_t newSize) noexcept = 0;
 
     virtual void clear() noexcept = 0;
 };
@@ -647,11 +646,10 @@ class FixedVector final: public IFixedVector<T> {
         return _data[idx];
     }
 
-    bool size(std::size_t newSize) noexcept override {
+    void size(std::size_t newSize) noexcept override {
         if (newSize > capacity())
-            return false;
+            newSize = capacity();
         _size = newSize;  // Note: doesn't construct/destroy elements
-        return true;
     }
 
     void clear() noexcept override { _size = 0; }
@@ -884,12 +882,12 @@ class Logger final {
 
    private:
     Logger() noexcept = delete;
-    Logger(std::istream& is, std::ostream& os) noexcept :
-        istream(is),
-        ostream(os),
-        ofstream(),
-        iTie(istream.rdbuf(), ofstream.rdbuf()),
-        oTie(ostream.rdbuf(), ofstream.rdbuf()) {}
+    Logger(std::istream& _is, std::ostream& _os) noexcept :
+        is(_is),
+        os(_os),
+        ofs(),
+        iTie(is.rdbuf(), ofs.rdbuf()),
+        oTie(os.rdbuf(), ofs.rdbuf()) {}
 
     ~Logger() noexcept { stop(); }
 
@@ -899,11 +897,10 @@ class Logger final {
         return logger;
     }
 
-    bool is_open() const noexcept { return ofstream.is_open(); }
+    bool is_open() const noexcept { return ofs.is_open(); }
 
     void write_timestamped(std::string_view suffix) noexcept {
-        ofstream << '[' << format_time(std::chrono::system_clock::now()) << "] " << suffix
-                 << std::endl;
+        ofs << '[' << format_time(std::chrono::system_clock::now()) << "] " << suffix << std::endl;
     }
 
     // Open log file; caller must hold mutex
@@ -919,7 +916,7 @@ class Logger final {
 
         filename = logFile;
 
-        ofstream.open(filename, std::ios_base::out | std::ios_base::app);
+        ofs.open(filename, std::ios_base::out | std::ios_base::app);
         if (!is_open())
         {
             std::cerr << "Unable to open Log file: " << filename << std::endl;
@@ -928,8 +925,8 @@ class Logger final {
 
         write_timestamped("->");
 
-        istream.rdbuf(&iTie);
-        ostream.rdbuf(&oTie);
+        is.rdbuf(&iTie);
+        os.rdbuf(&oTie);
 
         return true;
     }
@@ -939,19 +936,19 @@ class Logger final {
         if (!is_open())
             return;
 
-        ostream.rdbuf(oTie.primaryBuf);
-        istream.rdbuf(iTie.primaryBuf);
+        os.rdbuf(oTie.primaryBuf);
+        is.rdbuf(iTie.primaryBuf);
 
         write_timestamped("<-");
 
-        ofstream.close();
+        ofs.close();
 
         filename.clear();
     }
 
-    std::istream& istream;
-    std::ostream& ostream;
-    std::ofstream ofstream;
+    std::istream& is;
+    std::ostream& os;
+    std::ofstream ofs;
     Tie           iTie, oTie;
 
     std::string filename;

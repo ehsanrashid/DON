@@ -159,10 +159,10 @@ class ThreadPool final {
     ThreadPool& operator=(ThreadPool&&) noexcept      = delete;
     ~ThreadPool() noexcept;
 
-    auto begin() const noexcept { return threads.begin(); }
-    auto end() const noexcept { return threads.end(); }
     auto begin() noexcept { return threads.begin(); }
     auto end() noexcept { return threads.end(); }
+    auto begin() const noexcept { return threads.begin(); }
+    auto end() const noexcept { return threads.end(); }
 
     auto& front() const noexcept { return threads.front(); }
     auto& back() const noexcept { return threads.back(); }

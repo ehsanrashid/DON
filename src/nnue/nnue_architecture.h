@@ -100,17 +100,21 @@ struct NetworkArchitecture final {
     }
 
     // Read network parameters
-    bool read_parameters(std::istream& istream) noexcept {
-        return fc_0.read_parameters(istream) && ac_0.read_parameters(istream)
-            && fc_1.read_parameters(istream) && ac_1.read_parameters(istream)
-            && fc_2.read_parameters(istream);
+    bool read_parameters(std::istream& is) noexcept {
+        return fc_0.read_parameters(is)  //
+            && ac_0.read_parameters(is)  //
+            && fc_1.read_parameters(is)  //
+            && ac_1.read_parameters(is)  //
+            && fc_2.read_parameters(is);
     }
 
     // Write network parameters
-    bool write_parameters(std::ostream& ostream) const noexcept {
-        return fc_0.write_parameters(ostream) && ac_0.write_parameters(ostream)
-            && fc_1.write_parameters(ostream) && ac_1.write_parameters(ostream)
-            && fc_2.write_parameters(ostream);
+    bool write_parameters(std::ostream& os) const noexcept {
+        return fc_0.write_parameters(os)  //
+            && ac_0.write_parameters(os)  //
+            && fc_1.write_parameters(os)  //
+            && ac_1.write_parameters(os)  //
+            && fc_2.write_parameters(os);
     }
 
     // Forward propagation

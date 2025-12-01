@@ -388,7 +388,7 @@ void Worker::iterative_deepening() noexcept {
 
     Stack* const ss = &stacks[StackOffset];
 
-    for (std::int16_t i = 0 - StackOffset; i < std::int16_t(stacks.size() - StackOffset); ++i)
+    for (std::int16_t i = 0 - StackOffset; i < int(stacks.size()) - StackOffset; ++i)
     {
         (ss + i)->ply = i;
 
@@ -399,6 +399,7 @@ void Worker::iterative_deepening() noexcept {
         (ss + i)->pieceSqHistory           = &continuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
         (ss + i)->pieceSqCorrectionHistory = &continuationCorrectionHistory[NO_PIECE][SQUARE_ZERO];
     }
+
     assert(stacks[0].ply == -StackOffset && stacks[stacks.size() - 1].ply == MAX_PLY + 1);
     assert(ss->ply == 0);
 
@@ -419,8 +420,9 @@ void Worker::iterative_deepening() noexcept {
     Depth lastBestDepth    = DEPTH_ZERO;
 
     // Iterative deepening loop until requested to stop or the target depth is reached
-    while (!threads.stop.load(std::memory_order_relaxed) && ++rootDepth < MAX_PLY
-           && !(mainManager != nullptr && limit.depth != DEPTH_ZERO && rootDepth > limit.depth))
+    while (!threads.stop.load(std::memory_order_relaxed)  //
+           && ++rootDepth <= MAX_PLY - 1
+           && (mainManager == nullptr || limit.depth == DEPTH_ZERO || rootDepth <= limit.depth))
     {
         // Age out PV variability metric
         if (mainManager != nullptr && limit.use_time_manager())
@@ -1345,7 +1347,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r -= int(103.7598e-3 * ss->history);
 
         // Step 17. Late moves reduction / extension (LMR)
-        if (moveCount != 1 && depth > 1)
+        if (depth > 1 && moveCount > 1)
         {
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
@@ -1507,7 +1509,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     // Step 21. Check for mate and stalemate
     // All legal moves have been searched and if there are no legal moves, it must be a mate or a stalemate.
     // If in a singular extension search then return a fail low score.
-    if (!moveCount)
+    if (moveCount == 0)
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
@@ -1567,7 +1569,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // Save gathered information in transposition table
     if ((!RootNode || curIdx == 0) && !exclude)
-        ttu.update(moveCount ? depth : std::min(depth + 6, MAX_PLY - 1), bestMove, ss->ttPv,
+        ttu.update(moveCount != 0 ? depth : std::min(depth + 6, MAX_PLY - 1), bestMove, ss->ttPv,
                    bestValue >= beta                  ? BOUND_LOWER
                    : PVNode && bestMove != Move::None ? BOUND_EXACT
                                                       : BOUND_UPPER,
@@ -1800,7 +1802,7 @@ QS_MOVES_LOOP:
 
     // Step 10. Check for checkmate & stalemate
     // All legal moves have been searched.
-    if (!moveCount)
+    if (moveCount == 0)
     {
         // A special case: if in check and no legal moves were found, it is checkmate.
         if (ss->inCheck)
@@ -1912,7 +1914,7 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::u
 // Updates history at the end of search() when a bestMove is found
 void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bm, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept {
     assert(pos.legal(bm));
-    assert(ss->moveCount);
+    assert(ss->moveCount != 0);
 
     int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * (bm == ss->ttMove);
     int malus = std::max(std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount, 1);

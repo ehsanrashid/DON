@@ -139,7 +139,7 @@ class Options final {
     }
     auto count(std::string_view name) const noexcept { return options.count(name); }
 
-    void set_info_listener(InfoListener&& listener) noexcept;
+    void set_info_listener(InfoListener&& infoHandler) noexcept;
 
     void add(std::string_view name, const Option& option) noexcept;
 

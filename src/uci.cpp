@@ -99,62 +99,62 @@ Command str_to_command(std::string_view command) noexcept {
     return itr != CommandMap.end() ? itr->second : CMD_NONE;
 }
 
-Limit parse_limit(std::istream& istream) noexcept {
+Limit parse_limit(std::istream& is) noexcept {
     Limit limit;
     // The search starts as early as possible
     limit.startTime = now();
 
     std::string token;
-    while (istream >> token)
+    while (is >> token)
     {
         token = lower_case(token);
 
         if (token == "wtime")
         {
-            istream >> limit.clocks[WHITE].time;
+            is >> limit.clocks[WHITE].time;
             limit.clocks[WHITE].time = std::max(std::abs(limit.clocks[WHITE].time), TimePoint(1));
         }
         else if (token == "btime")
         {
-            istream >> limit.clocks[BLACK].time;
+            is >> limit.clocks[BLACK].time;
             limit.clocks[BLACK].time = std::max(std::abs(limit.clocks[BLACK].time), TimePoint(1));
         }
         else if (token == "winc")
         {
-            istream >> limit.clocks[WHITE].inc;
+            is >> limit.clocks[WHITE].inc;
             limit.clocks[WHITE].inc = std::max(std::abs(limit.clocks[WHITE].inc), TimePoint(1));
         }
         else if (token == "binc")
         {
-            istream >> limit.clocks[BLACK].inc;
+            is >> limit.clocks[BLACK].inc;
             limit.clocks[BLACK].inc = std::max(std::abs(limit.clocks[BLACK].inc), TimePoint(1));
         }
         else if (token == "movetime")
         {
-            istream >> limit.moveTime;
+            is >> limit.moveTime;
             limit.moveTime = std::max(std::abs(limit.moveTime), TimePoint(1));
         }
         else if (token == "movestogo")
         {
             std::int16_t movesToGo;
-            istream >> movesToGo;
+            is >> movesToGo;
             limit.movesToGo =
               std::clamp(std::abs(movesToGo), 1, +std::numeric_limits<std::uint8_t>::max());
         }
         else if (token == "mate")
         {
             std::int16_t mate;
-            istream >> mate;
+            is >> mate;
             limit.mate = std::clamp(std::abs(mate), 1, +std::numeric_limits<std::uint8_t>::max());
         }
         else if (token == "depth")
         {
-            istream >> limit.depth;
+            is >> limit.depth;
             limit.depth = std::clamp(std::abs(limit.depth), 1, MAX_PLY - 1);
         }
         else if (token == "nodes")
         {
-            istream >> limit.nodes;
+            is >> limit.nodes;
             limit.nodes = std::max(limit.nodes, std::uint64_t(1));
         }
         else if (token == "infinite")
@@ -164,31 +164,31 @@ Limit parse_limit(std::istream& istream) noexcept {
         else if (token == "perft")
         {
             limit.perft = true;
-            istream >> limit.depth;
+            is >> limit.depth;
             limit.depth = std::clamp(std::abs(limit.depth), 1, MAX_PLY - 1);
-            istream >> std::boolalpha >> limit.detail;
+            is >> std::boolalpha >> limit.detail;
         }
         // "searchmoves" needs to be the last command on the line
         else if (token.size() >= 1 && token[0] == 's')  // "searchmoves"
         {
-            auto pos = istream.tellg();
-            while (istream >> token && !(token.size() >= 1 && std::tolower(token[0]) == 'i'))
+            auto pos = is.tellg();
+            while (is >> token && !(token.size() >= 1 && std::tolower(token[0]) == 'i'))
             {
                 limit.searchMoves.push_back(token);
-                pos = istream.tellg();
+                pos = is.tellg();
             }
-            istream.seekg(pos);
+            is.seekg(pos);
         }
         // "ignoremoves" needs to be the last command on the line
         else if (token.size() >= 1 && token[0] == 'i')  // "ignoremoves"
         {
-            auto pos = istream.tellg();
-            while (istream >> token && !(token.size() >= 1 && std::tolower(token[0]) == 's'))
+            auto pos = is.tellg();
+            while (is >> token && !(token.size() >= 1 && std::tolower(token[0]) == 's'))
             {
                 limit.ignoreMoves.push_back(token);
-                pos = istream.tellg();
+                pos = is.tellg();
             }
-            istream.seekg(pos);
+            is.seekg(pos);
         }
     }
     return limit;
@@ -200,9 +200,9 @@ UCI::UCI(int argc, const char* argv[]) noexcept :
     engine(argv[0]),
     commandLine(argc, argv) {
 
-    options().set_info_listener([](const std::optional<std::string>& optInfo) {
-        if (optInfo.has_value())
-            print_info_string(*optInfo);
+    options().set_info_listener([](const std::optional<std::string>& optStr) {
+        if (optStr.has_value())
+            print_info_string(*optStr);
     });
 
     set_update_listeners();
@@ -294,9 +294,16 @@ void UCI::execute(std::string_view command) noexcept {
     case CMD_SHOW :
         engine.show();
         break;
-    case CMD_DUMP :
-        engine.dump();
-        break;
+    case CMD_DUMP : {
+        std::optional<std::string> file;
+
+        std::string input;
+        if (iss >> input)
+            file = input;
+
+        engine.dump(file);
+    }
+    break;
     case CMD_EVAL :
         engine.eval();
         break;
@@ -342,47 +349,47 @@ void UCI::print_info_string(std::string_view infoStr) noexcept {
     if (InfoStringStop)
         return;
 
-    for (const auto& info : split(infoStr, "\n"))
-        if (!is_whitespace(info))
-            std::cout << "info string " << info << std::endl;
+    for (const auto& str : split(infoStr, "\n"))
+        if (!is_whitespace(str))
+            std::cout << "info string " << str << std::endl;
 }
 
 namespace {
 
-void on_update_short(const ShortInfo& info) noexcept {
-    std::cout << "info"                   //
-              << " depth " << info.depth  //
-              << " score " << info.score << std::endl;
+void on_update_short(const ShortInfo& sInfo) noexcept {
+    std::cout << "info"                    //
+              << " depth " << sInfo.depth  //
+              << " score " << sInfo.score << std::endl;
 }
 
-void on_update_full(const FullInfo& info) noexcept {
-    std::cout << "info"                         //
-              << " depth " << info.depth        //
-              << " seldepth " << info.selDepth  //
-              << " multipv " << info.multiPV    //
-              << " score " << info.score;       //
-    if (!info.bound.empty())
-        std::cout << info.bound;
-    if (!info.wdl.empty())
-        std::cout << " wdl " << info.wdl;
-    std::cout << " time " << info.time                     //
-              << " nodes " << info.nodes                   //
-              << " nps " << 1000 * info.nodes / info.time  //
-              << " hashfull " << info.hashfull             //
-              << " tbhits " << info.tbHits                 //
-              << " pv" << info.pv << std::endl;
+void on_update_full(const FullInfo& fInfo) noexcept {
+    std::cout << "info"                          //
+              << " depth " << fInfo.depth        //
+              << " seldepth " << fInfo.selDepth  //
+              << " multipv " << fInfo.multiPV    //
+              << " score " << fInfo.score;       //
+    if (!fInfo.bound.empty())
+        std::cout << fInfo.bound;
+    if (!fInfo.wdl.empty())
+        std::cout << " wdl " << fInfo.wdl;
+    std::cout << " time " << fInfo.time                      //
+              << " nodes " << fInfo.nodes                    //
+              << " nps " << 1000 * fInfo.nodes / fInfo.time  //
+              << " hashfull " << fInfo.hashfull              //
+              << " tbhits " << fInfo.tbHits                  //
+              << " pv" << fInfo.pv << std::endl;
 }
 
-void on_update_iter(const IterInfo& info) noexcept {
-    std::cout << "info"                         //
-              << " depth " << info.depth        //
-              << " currmove " << info.currMove  //
-              << " currmovenumber " << info.currMoveNumber << std::endl;
+void on_update_iter(const IterInfo& iInfo) noexcept {
+    std::cout << "info"                          //
+              << " depth " << iInfo.depth        //
+              << " currmove " << iInfo.currMove  //
+              << " currmovenumber " << iInfo.currMoveNumber << std::endl;
 }
 
-void on_update_move(const MoveInfo& info) noexcept {
-    std::cout << "bestmove " << info.bestMove  //
-              << " ponder " << info.ponderMove << std::endl;
+void on_update_move(const MoveInfo& mInfo) noexcept {
+    std::cout << "bestmove " << mInfo.bestMove  //
+              << " ponder " << mInfo.ponderMove << std::endl;
 }
 
 }  // namespace
@@ -394,23 +401,23 @@ void UCI::set_update_listeners() noexcept {
     engine.set_on_update_move(on_update_move);
 }
 
-void UCI::position(std::istream& istream) noexcept {
+void UCI::position(std::istream& is) noexcept {
 
     std::string token;
-    istream >> token;
+    is >> token;
     token = lower_case(token);
 
     std::string fen;
     if (token.size() >= 1 && token[0] == 's')  // "startpos"
     {
         fen = START_FEN;
-        istream >> token;  // Consume the "moves" token, if any
+        is >> token;  // Consume the "moves" token, if any
     }
     else if (token.size() >= 1 && token[0] == 'f')  // "fen"
     {
         fen.reserve(64);
         std::size_t i = 0;
-        while (istream >> token && i < 6)  // Consume the "moves" token, if any
+        while (is >> token && i < 6)  // Consume the "moves" token, if any
         {
             if (i >= 2 && token.size() >= 1 && std::tolower(token[0]) == 'm')  // "moves"
                 break;
@@ -432,14 +439,14 @@ void UCI::position(std::istream& istream) noexcept {
     }
 
     Strings moves;
-    while (istream >> token)
+    while (is >> token)
         moves.push_back(token);
 
     engine.setup(fen, moves);
 }
 
-void UCI::go(std::istream& istream) noexcept {
-    auto limit = parse_limit(istream);
+void UCI::go(std::istream& is) noexcept {
+    auto limit = parse_limit(is);
 
     if (limit.perft)
         perft(limit.depth, limit.detail);
@@ -450,16 +457,16 @@ void UCI::go(std::istream& istream) noexcept {
     }
 }
 
-void UCI::setoption(std::istream& istream) noexcept {
+void UCI::setoption(std::istream& is) noexcept {
     engine.wait_finish();
 
     std::string token;
-    istream >> token;  // Consume the "name" token
+    is >> token;  // Consume the "name" token
     assert(lower_case(token) == "name");
 
     // Read the option name (can contain spaces)
     std::string name;
-    while (istream >> token && lower_case(token) != "value")
+    while (is >> token && lower_case(token) != "value")
     {
         if (!name.empty())
             name += ' ';
@@ -468,7 +475,7 @@ void UCI::setoption(std::istream& istream) noexcept {
 
     // Read the option value (can contain spaces)
     std::string value;
-    while (istream >> token)
+    while (is >> token)
     {
         if (!value.empty())
             value += ' ';
@@ -478,9 +485,9 @@ void UCI::setoption(std::istream& istream) noexcept {
     options().set(name, value);
 }
 
-void UCI::bench(std::istream& istream) noexcept {
+void UCI::bench(std::istream& is) noexcept {
 
-    auto commands = Benchmark::bench(istream, engine.fen());
+    auto commands = Benchmark::bench(is, engine.fen());
 
     std::uint64_t infoNodes = 0;
     engine.set_on_update_full([&infoNodes](const auto& info) {
@@ -575,11 +582,11 @@ void UCI::bench(std::istream& istream) noexcept {
     engine.set_on_update_full(on_update_full);
 }
 
-void UCI::benchmark(std::istream& istream) noexcept {
+void UCI::benchmark(std::istream& is) noexcept {
     // Probably not very important for a test this long, but include for completeness and sanity.
     constexpr std::size_t WarmupPositionCount = 3;
 
-    auto setup = Benchmark::benchmark(istream);
+    auto setup = Benchmark::benchmark(is);
 
     // Set options once at the start
     options().set("Threads", std::to_string(setup.threads));

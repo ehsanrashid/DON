@@ -68,11 +68,11 @@ class UCI final {
    private:
     void set_update_listeners() noexcept;
 
-    void position(std::istream& istream) noexcept;
-    void go(std::istream& istream) noexcept;
-    void setoption(std::istream& istream) noexcept;
-    void bench(std::istream& istream) noexcept;
-    void benchmark(std::istream& istream) noexcept;
+    void position(std::istream& is) noexcept;
+    void go(std::istream& is) noexcept;
+    void setoption(std::istream& is) noexcept;
+    void bench(std::istream& is) noexcept;
+    void benchmark(std::istream& is) noexcept;
 
     std::uint64_t perft(Depth depth, bool detail = false) noexcept;
 

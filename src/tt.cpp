@@ -260,9 +260,9 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
         return false;
     }
 
-    std::ofstream ofstream(std::string(hashFile), std::ios_base::binary);
+    std::ofstream ofs(std::string(hashFile), std::ios_base::binary);
 
-    if (!ofstream)
+    if (!ofs)
     {
         std::cerr << "Failed to open Hash file " << hashFile << std::endl;
         return false;
@@ -284,17 +284,17 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
     {
         std::size_t writeSize = std::min(ChunkSize, DataSize - writtenSize);
 
-        ofstream.write(data + writtenSize, std::streamsize(writeSize));
+        ofs.write(data + writtenSize, std::streamsize(writeSize));
 
-        if (!ofstream)  // write failed
+        if (!ofs)  // write failed
             return false;
 
         writtenSize += writeSize;
     }
 
-    ofstream.flush();
+    ofs.flush();
 
-    return writtenSize == DataSize && ofstream.good();
+    return writtenSize == DataSize && ofs.good();
 }
 
 bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) noexcept {
@@ -321,9 +321,9 @@ bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) no
         return true;
     }
 
-    std::ifstream ifstream(std::string(hashFile), std::ios_base::binary);
+    std::ifstream ifs(std::string(hashFile), std::ios_base::binary);
 
-    if (!ifstream)
+    if (!ifs)
     {
         std::cerr << "Failed to open Hash file " << hashFile << std::endl;
         return false;
@@ -349,9 +349,9 @@ bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) no
     {
         std::size_t readSize = std::min(ChunkSize, DataSize - readedSize);
 
-        ifstream.read(data + readedSize, std::streamsize(readSize));
+        ifs.read(data + readedSize, std::streamsize(readSize));
 
-        std::streamsize gotSize = ifstream.gcount();
+        std::streamsize gotSize = ifs.gcount();
 
         if (gotSize <= 0)  // read failed or EOF without data
             return false;
@@ -365,13 +365,13 @@ bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) no
         readedSize += gotSize;
     }
 
-    if (ifstream.fail() || ifstream.bad())
+    if (ifs.fail() || ifs.bad())
     {
         std::cerr << "I/O error while reading Hash file " << hashFile << std::endl;
         return false;
     }
 
-    return readedSize == DataSize && ifstream.good();
+    return readedSize == DataSize && ifs.good();
 }
 
 }  // namespace DON

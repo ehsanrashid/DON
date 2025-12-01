@@ -656,11 +656,11 @@ std::size_t str_to_size_t(std::string_view str) noexcept {
 
 std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept {
 
-    std::ifstream ifstream(std::string(filePath), std::ios_base::binary);
-    if (!ifstream)
+    std::ifstream ifs(std::string(filePath), std::ios_base::binary);
+    if (!ifs)
         return std::nullopt;
 
-    return std::string(std::istreambuf_iterator<char>(ifstream), std::istreambuf_iterator<char>());
+    return std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
 }
 
 }  // namespace DON

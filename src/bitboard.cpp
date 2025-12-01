@@ -38,14 +38,14 @@ namespace DON {
 
 namespace {
 
-constexpr StdArray<std::size_t, 2> TableSizes{0x1480, 0x19000};
+constexpr StdArray<std::size_t, 2> TABLE_SIZES{0x1480, 0x19000};
 
 // Stores bishop & rook attacks
-alignas(CACHE_LINE_SIZE) StdArray<Bitboard, TableSizes[0] + TableSizes[1]> AttacksTable;
+alignas(CACHE_LINE_SIZE) StdArray<Bitboard, TABLE_SIZES[0] + TABLE_SIZES[1]> AttacksTable;
 
 alignas(CACHE_LINE_SIZE) constexpr StdArray<TableView<Bitboard>, 2> TableViews{
-  TableView{AttacksTable.data() + 0x00000000000, TableSizes[0]},
-  TableView{AttacksTable.data() + TableSizes[0], TableSizes[1]}};
+  TableView{AttacksTable.data() + 0x000000000000, TABLE_SIZES[0]},
+  TableView{AttacksTable.data() + TABLE_SIZES[0], TABLE_SIZES[1]}};
 
 // Computes sliding attack
 template<PieceType PT>
@@ -199,7 +199,7 @@ void init_magics() noexcept {
         }
 #endif
     }
-    assert(totalSize == TableSizes[PT - BISHOP]);
+    assert(totalSize == TABLE_SIZES[PT - BISHOP]);
 }
 
 // Explicit template instantiations:

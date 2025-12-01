@@ -349,7 +349,7 @@ class Position final {
 
     friend std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept;
 
-    void dump(std::ostream& os) const noexcept;
+    void dump(std::ostream& os = std::cout) const noexcept;
 
     static constexpr StdArray<std::size_t, PIECE_TYPE_NB - 2> CAPACITY  //
       {11, 13, 13, 13, 13, 1};

@@ -2135,7 +2135,7 @@ Position::operator std::string() const noexcept {
             str += to_char(piece_on(make_square(f, r)));
         }
 
-        str += " | ";
+        str += " |";
         str += Sep;
     }
 
@@ -2191,6 +2191,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 }
 
 void Position::dump(std::ostream& os) const noexcept {
+    constexpr std::string_view Sep{"\n  +-----+-----+-----+-----+-----+-----+-----+-----+\n"};
 
     os << *this << "\n";
 
@@ -2222,19 +2223,32 @@ void Position::dump(std::ostream& os) const noexcept {
         }
 
     os << "Piece List Map:\n";
+    os << Sep;
     for (Rank r = RANK_8; r >= RANK_1; --r)
+    {
+        os << to_char(r);
         for (File f = FILE_A; f <= FILE_H; ++f)
         {
             Square s = make_square(f, r);
 
+            os << " | ";
+
             if (indexMap[s] == INDEX_NONE)
-                os << '*';
+                os << "  ";
             else
-                os << int(indexMap[s]);
+                os << std::setw(2) << int(indexMap[s]);
+
             os << " ";
-            if (file_of(s) == FILE_H)
-                os << "\n";
         }
+        os << " |";
+        os << Sep;
+    }
+    for (File f = FILE_A; f <= FILE_H; ++f)
+    {
+        os << "     ";
+        os << to_char<true>(f);
+    }
+    os << "\n";
 
     os << "Square Table:\n";
     for (Color c : {WHITE, BLACK})

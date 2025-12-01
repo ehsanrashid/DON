@@ -386,15 +386,15 @@ const std::vector<Strings> Games{
 // bench 64 1 100000 default nodes  : search default positions with 1 thread for 100K nodes each (TT = 64MB)
 // bench 64 4 5000 current movetime : search current position  with 4 threads for 5 sec (TT = 64MB)
 // bench 16 1 5 blah perft          : run perft 5 on positions in fen filename "blah" (TT = 16MB)
-Strings bench(std::istream& istream, std::string_view currentFen) noexcept {
+Strings bench(std::istream& is, std::string_view currentFen) noexcept {
 
     std::string token;
     // Assign default values to missing arguments
-    std::string ttSize    = (istream >> token) ? token : "16";
-    std::string threads   = (istream >> token) ? token : "1";
-    std::string limitVal  = (istream >> token) ? token : "13";
-    std::string fenFile   = (istream >> token) ? token : "default";
-    std::string limitType = (istream >> token) ? token : "depth";
+    std::string ttSize    = (is >> token) ? token : "16";
+    std::string threads   = (is >> token) ? token : "1";
+    std::string limitVal  = (is >> token) ? token : "13";
+    std::string fenFile   = (is >> token) ? token : "default";
+    std::string limitType = (is >> token) ? token : "depth";
 
     const bool isGo = limitType != "eval";
 
@@ -415,18 +415,18 @@ Strings bench(std::istream& istream, std::string_view currentFen) noexcept {
         fens.emplace_back(currentFen);
     else
     {
-        std::ifstream ifstream(fenFile);
+        std::ifstream ifs(fenFile);
 
-        if (!ifstream.is_open())
+        if (!ifs.is_open())
             std::cerr << "Unable to open fen filename " << fenFile << std::endl;
         else
         {
             std::string fen;
-            while (std::getline(ifstream, fen))
+            while (std::getline(ifs, fen))
                 if (!is_whitespace(fen))
                     fens.emplace_back(fen);
 
-            ifstream.close();
+            ifs.close();
         }
     }
 
@@ -454,7 +454,7 @@ Strings bench(std::istream& istream, std::string_view currentFen) noexcept {
 
 // Examples:
 // benchmark [threads] [hash_MiB = 128] [time_s = 150]
-Setup benchmark(std::istream& istream) noexcept {
+Setup benchmark(std::istream& is) noexcept {
     // DefaultThreadTTSize is chosen so that roughly half of the hash
     // is used for positions in the current sequence searched.
     constexpr std::size_t DefaultThreadTTSize = 128;
@@ -467,17 +467,17 @@ Setup benchmark(std::istream& istream) noexcept {
     // Desired time in seconds
     std::size_t desiredMoveTime;
 
-    if (istream >> setup.threads)
+    if (is >> setup.threads)
         setup.originalInvocation += std::to_string(setup.threads);
     else
         setup.threads = hardware_concurrency();
 
-    if (istream >> setup.ttSize)
+    if (is >> setup.ttSize)
         setup.originalInvocation += ' ' + std::to_string(setup.ttSize);
     else
         setup.ttSize = DefaultThreadTTSize * setup.threads;
 
-    if (istream >> desiredMoveTime)
+    if (is >> desiredMoveTime)
         setup.originalInvocation += ' ' + std::to_string(desiredMoveTime);
     else
         desiredMoveTime = DefaultMoveTime;

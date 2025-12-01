@@ -171,21 +171,21 @@ class AffineTransform final {
     }
 
     // Read network parameters
-    bool read_parameters(std::istream& istream) noexcept {
-        read_little_endian<BiasType>(istream, biases);
+    bool read_parameters(std::istream& is) noexcept {
+        read_little_endian<BiasType>(is, biases);
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
-            weights[weight_index(i)] = read_little_endian<WeightType>(istream);
+            weights[weight_index(i)] = read_little_endian<WeightType>(is);
 
-        return !istream.fail();
+        return !is.fail();
     }
 
     // Write network parameters
-    bool write_parameters(std::ostream& ostream) const noexcept {
-        write_little_endian<BiasType>(ostream, biases);
+    bool write_parameters(std::ostream& os) const noexcept {
+        write_little_endian<BiasType>(os, biases);
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
-            write_little_endian<WeightType>(ostream, weights[weight_index(i)]);
+            write_little_endian<WeightType>(os, weights[weight_index(i)]);
 
-        return !ostream.fail();
+        return !os.fail();
     }
 
     // Forward propagation

@@ -218,7 +218,26 @@ void Engine::resize_tt(std::size_t ttSize) noexcept {
 
 void Engine::show() const noexcept { std::cout << pos << std::endl; }
 
-void Engine::dump() const noexcept { pos.dump(std::cout); }
+void Engine::dump(std::optional<std::string_view> file) const noexcept {
+
+    if (file.has_value())
+    {
+        std::ofstream ofs(std::string(file.value()), std::ios::binary);
+        if (ofs.is_open())
+        {
+            pos.dump(ofs);
+            ofs.close();
+            return;
+        }
+
+        // Couldn't open file - optionally report and fall back
+        std::cerr << "Engine::dump: failed to open '" << file.value()
+                  << "', writing to stdout instead" << std::endl;
+    }
+
+    // Default: dump to console
+    pos.dump(std::cout);
+}
 
 void Engine::eval() noexcept {
     verify_networks();

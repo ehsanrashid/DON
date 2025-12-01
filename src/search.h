@@ -296,7 +296,7 @@ struct Limit final {
     bool use_time_manager() const noexcept { return clocks[WHITE].time || clocks[BLACK].time; }
 
     std::uint16_t calls_count() const noexcept {
-        return nodes ? std::min(1 + int(std::ceil(nodes / 1024.0)), 512) : 512;
+        return nodes != 0 ? std::min(1 + int(std::ceil(nodes / 1024.0)), 512) : 512;
     }
 
     TimePoint startTime{0};

@@ -177,8 +177,8 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     return os;
 }
 
-void Options::set_info_listener(InfoListener&& listener) noexcept {
-    infoListener = std::move(listener);
+void Options::set_info_listener(InfoListener&& infoHandler) noexcept {
+    infoListener = std::move(infoHandler);
 }
 
 // Add option and assigns idx in the correct insertion order
@@ -211,10 +211,10 @@ const Option& Options::operator[](const std::string_view name) const noexcept {
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {
 
-    std::vector<Options::Pair> optionPairs(options.begin(), options.end());
-    std::sort(optionPairs.begin(), optionPairs.end(),
+    std::vector<Options::Pair> pairs(options.begin(), options.end());
+    std::sort(pairs.begin(), pairs.end(),
               [](const auto& op1, const auto& op2) noexcept { return op1.second < op2.second; });
-    for (const auto& [name, option] : optionPairs)
+    for (const auto& [name, option] : pairs)
         os << "\noption name " << name << ' ' << option;
 
     return os;

@@ -165,9 +165,9 @@ class FeatureTransformer final {
     }
 
     // Read network parameters
-    bool read_parameters(std::istream& istream) noexcept {
+    bool read_parameters(std::istream& is) noexcept {
 
-        read_leb_128(istream, biases);
+        read_leb_128(is, biases);
 
         if (UseThreats)
         {
@@ -176,7 +176,7 @@ class FeatureTransformer final {
             auto combinedPsqtWeights =
               std::make_unique<StdArray<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
 
-            read_leb_128(istream, *combinedWeights);
+            read_leb_128(is, *combinedWeights);
 
             std::copy(combinedWeights->begin(),
                       combinedWeights->begin() + ThreatInputDimensions * HalfDimensions,
@@ -186,7 +186,7 @@ class FeatureTransformer final {
                       combinedWeights->begin() + TotalInputDimensions * HalfDimensions,
                       weights.begin());
 
-            read_leb_128(istream, *combinedPsqtWeights);
+            read_leb_128(is, *combinedPsqtWeights);
 
             std::copy(combinedPsqtWeights->begin(),
                       combinedPsqtWeights->begin() + ThreatInputDimensions * PSQTBuckets,
@@ -198,8 +198,8 @@ class FeatureTransformer final {
         }
         else
         {
-            read_leb_128(istream, weights);
-            read_leb_128(istream, psqtWeights);
+            read_leb_128(is, weights);
+            read_leb_128(is, psqtWeights);
         }
 
         permute_weights<true>();
@@ -210,11 +210,11 @@ class FeatureTransformer final {
             scale_weights<true>();
         }
 
-        return !istream.fail();
+        return !is.fail();
     }
 
     // Write network parameters
-    bool write_parameters(std::ostream& ostream) const noexcept {
+    bool write_parameters(std::ostream& os) const noexcept {
         std::unique_ptr<FeatureTransformer> copy = std::make_unique<FeatureTransformer>(*this);
 
         copy->template permute_weights<false>();
@@ -225,7 +225,7 @@ class FeatureTransformer final {
             copy->template scale_weights<false>();
         }
 
-        write_leb_128(ostream, copy->biases);
+        write_leb_128(os, copy->biases);
 
         if (UseThreats)
         {
@@ -242,7 +242,7 @@ class FeatureTransformer final {
                       copy->weights.begin() + InputDimensions * HalfDimensions,
                       combinedWeights->begin() + ThreatInputDimensions * HalfDimensions);
 
-            write_leb_128(ostream, *combinedWeights);
+            write_leb_128(os, *combinedWeights);
 
             std::copy(copy->threatPsqtWeights.begin(),
                       copy->threatPsqtWeights.begin() + ThreatInputDimensions * PSQTBuckets,
@@ -252,15 +252,15 @@ class FeatureTransformer final {
                       copy->psqtWeights.begin() + InputDimensions * PSQTBuckets,
                       combinedPsqtWeights->begin() + ThreatInputDimensions * PSQTBuckets);
 
-            write_leb_128(ostream, *combinedPsqtWeights);
+            write_leb_128(os, *combinedPsqtWeights);
         }
         else
         {
-            write_leb_128(ostream, copy->weights);
-            write_leb_128(ostream, copy->psqtWeights);
+            write_leb_128(os, copy->weights);
+            write_leb_128(os, copy->psqtWeights);
         }
 
-        return !ostream.fail();
+        return !os.fail();
     }
 
     // Convert input features

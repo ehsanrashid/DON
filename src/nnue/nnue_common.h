@@ -85,20 +85,20 @@ constexpr IntType ceil_to_multiple(IntType n, IntType base) noexcept {
 // from a istream in little-endian order. Swap the byte order after the read
 // if necessary to return a value with the byte ordering of the compiling machine.
 template<typename IntType>
-inline IntType read_little_endian(std::istream& istream) noexcept {
+inline IntType read_little_endian(std::istream& is) noexcept {
 
     constexpr std::size_t IntSize = sizeof(IntType);
 
     IntType value;
 
     if (IsLittleEndian)
-        istream.read(reinterpret_cast<char*>(&value), IntSize);
+        is.read(reinterpret_cast<char*>(&value), IntSize);
     else
     {
         StdArray<std::uint8_t, IntSize> u;
         std::make_unsigned_t<IntType>   v = 0;
 
-        istream.read(reinterpret_cast<char*>(u.data()), IntSize);
+        is.read(reinterpret_cast<char*>(u.data()), IntSize);
         for (std::size_t i = 0; i < IntSize; ++i)
             v = (v << 8) | u[IntSize - i - 1];
 
@@ -113,12 +113,12 @@ inline IntType read_little_endian(std::istream& istream) noexcept {
 // if necessary to always write in little-endian order,
 // independently of the byte ordering of the compiling machine.
 template<typename IntType>
-inline void write_little_endian(std::ostream& ostream, IntType value) noexcept {
+inline void write_little_endian(std::ostream& os, IntType value) noexcept {
 
     constexpr std::size_t IntSize = sizeof(IntType);
 
     if (IsLittleEndian)
-        ostream.write(reinterpret_cast<const char*>(&value), IntSize);
+        os.write(reinterpret_cast<const char*>(&value), IntSize);
     else
     {
         StdArray<std::uint8_t, IntSize> u;
@@ -136,38 +136,36 @@ inline void write_little_endian(std::ostream& ostream, IntType value) noexcept {
         }
         u[i] = v;
 
-        ostream.write(reinterpret_cast<const char*>(u.data()), IntSize);
+        os.write(reinterpret_cast<const char*>(u.data()), IntSize);
     }
 }
 
 // Read integers in bulk from a little-endian istream.
 // This reads N integers from istream and puts them in array out.
 template<typename IntType, std::size_t Size>
-inline void read_little_endian(std::istream&              istream,  //
-                               std::array<IntType, Size>& out) noexcept {
+inline void read_little_endian(std::istream& is, std::array<IntType, Size>& out) noexcept {
 
     constexpr std::size_t IntSize = sizeof(IntType);
 
     if (IsLittleEndian)
-        istream.read(reinterpret_cast<char*>(out.data()), Size * IntSize);
+        is.read(reinterpret_cast<char*>(out.data()), Size * IntSize);
     else
         for (std::size_t i = 0; i < Size; ++i)
-            out[i] = read_little_endian<IntType>(istream);
+            out[i] = read_little_endian<IntType>(is);
 }
 
 // Write integers in bulk to a little-endian ostream.
 // This takes N integers from array in and writes them on ostream.
 template<typename IntType, std::size_t Size>
-inline void write_little_endian(std::ostream&                    ostream,  //
-                                const std::array<IntType, Size>& in) noexcept {
+inline void write_little_endian(std::ostream& os, const std::array<IntType, Size>& in) noexcept {
 
     constexpr std::size_t IntSize = sizeof(IntType);
 
     if (IsLittleEndian)
-        ostream.write(reinterpret_cast<const char*>(in.data()), Size * IntSize);
+        os.write(reinterpret_cast<const char*>(in.data()), Size * IntSize);
     else
         for (std::size_t i = 0; i < Size; ++i)
-            write_little_endian<IntType>(ostream, in[i]);
+            write_little_endian<IntType>(os, in[i]);
 }
 
 // Read signed integers from a istream with LEB128 compression.
@@ -175,12 +173,12 @@ inline void write_little_endian(std::ostream&                    ostream,  //
 // the LEB128 algorithm and read the value from the istream.
 // See https://en.wikipedia.org/wiki/LEB128 for a description of the compression scheme.
 template<typename IntType, std::size_t Size>
-inline void read_leb_128(std::istream& istream, std::array<IntType, Size>& out) noexcept {
+inline void read_leb_128(std::istream& is, std::array<IntType, Size>& out) noexcept {
     static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
 
     // Read and check the presence of our LEB128 magic string
     StdArray<char, LEB128_MAGIC_STRING_SIZE> leb128MagicString;
-    istream.read(leb128MagicString.data(), LEB128_MAGIC_STRING_SIZE);
+    is.read(leb128MagicString.data(), LEB128_MAGIC_STRING_SIZE);
     assert(!std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE));
 
     constexpr std::size_t IntSize = sizeof(IntType);
@@ -189,7 +187,7 @@ inline void read_leb_128(std::istream& istream, std::array<IntType, Size>& out) 
 
     std::size_t bufferIdx = buffer.size();
 
-    std::size_t byteCount = read_little_endian<std::uint32_t>(istream);
+    std::size_t byteCount = read_little_endian<std::uint32_t>(is);
 
     for (std::size_t i = 0; i < Size; ++i)
     {
@@ -200,8 +198,7 @@ inline void read_leb_128(std::istream& istream, std::array<IntType, Size>& out) 
         {
             if (bufferIdx == buffer.size())
             {
-                istream.read(reinterpret_cast<char*>(buffer.data()),
-                             std::min(bufferIdx, byteCount));
+                is.read(reinterpret_cast<char*>(buffer.data()), std::min(bufferIdx, byteCount));
                 bufferIdx = 0;
             }
 
@@ -227,11 +224,11 @@ inline void read_leb_128(std::istream& istream, std::array<IntType, Size>& out) 
 // the LEB128 algorithm and writes the value to the ostream.
 // See https://en.wikipedia.org/wiki/LEB128 for a description of the compression scheme.
 template<typename IntType, std::size_t Size>
-inline void write_leb_128(std::ostream& ostream, const std::array<IntType, Size>& in) noexcept {
+inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in) noexcept {
     static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
 
     // Write our LEB128 magic string
-    ostream.write(LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE);
+    os.write(LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE);
 
     std::size_t byteCount = 0;
     for (std::size_t i = 0; i < Size; ++i)
@@ -247,7 +244,7 @@ inline void write_leb_128(std::ostream& ostream, const std::array<IntType, Size>
         } while ((b & 0x40) == 0 ? value != 0 : value != -1);
     }
 
-    write_little_endian<std::uint32_t>(ostream, byteCount);
+    write_little_endian<std::uint32_t>(os, byteCount);
 
     StdArray<std::uint8_t, 4096> buffer{};
 
@@ -256,7 +253,7 @@ inline void write_leb_128(std::ostream& ostream, const std::array<IntType, Size>
     auto flush = [&]() {
         if (bufferIdx == 0)
             return;
-        ostream.write(reinterpret_cast<const char*>(buffer.data()), bufferIdx);
+        os.write(reinterpret_cast<const char*>(buffer.data()), bufferIdx);
         bufferIdx = 0;
     };
 

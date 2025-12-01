@@ -83,13 +83,14 @@ class Network final {
 
     void initialize() noexcept;
 
-    bool                       save(std::ostream&      ostream,
-                                    const std::string& name,
-                                    const std::string& netDescription) const noexcept;
-    std::optional<std::string> load(std::istream& istream) noexcept;
+    bool save(std::ostream&      os,
+              const std::string& name,
+              const std::string& netDescription) const noexcept;
 
-    bool read_parameters(std::istream& istream, std::string& netDescription) noexcept;
-    bool write_parameters(std::ostream& ostream, const std::string& netDescription) const noexcept;
+    std::optional<std::string> load(std::istream& is) noexcept;
+
+    bool read_parameters(std::istream& is, std::string& netDescription) noexcept;
+    bool write_parameters(std::ostream& os, const std::string& netDescription) const noexcept;
 
     // Input feature converter
     Transformer featureTransformer;
