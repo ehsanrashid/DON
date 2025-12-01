@@ -22,7 +22,6 @@
 #include <cassert>
 #include <filesystem>
 #include <fstream>
-#include <initializer_list>
 #include <iomanip>
 #include <iostream>
 #include <system_error>
