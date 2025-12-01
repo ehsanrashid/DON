@@ -203,8 +203,8 @@ class TableView final {
 // --- TableView with size and count ---
 template<typename T>
 struct CountTableView final {
-    using off_type  = std::uint32_t;
-    using size_type = std::uint16_t;
+    using off_type  = std::uint16_t;
+    using size_type = std::uint8_t;
 
     constexpr CountTableView() noexcept = default;
     constexpr CountTableView(off_type offset, size_type size, size_type count = 0) noexcept :
