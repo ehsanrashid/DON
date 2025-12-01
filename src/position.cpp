@@ -185,18 +185,6 @@ void Position::init() noexcept {
 // Default constructor
 Position::Position() noexcept { construct(); }
 
-// Copy constructor
-Position::Position(const Position& pos) noexcept { copy(pos); }
-// Assignment operator
-Position& Position::operator=(const Position& pos) noexcept {
-    if (this == &pos)
-        return *this;
-
-    copy(pos);
-
-    return *this;
-}
-
 void Position::construct() noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
@@ -222,28 +210,6 @@ void Position::clear() noexcept {
     activeColor = COLOR_NB;
     gamePly     = 0;
     st          = nullptr;
-}
-
-void Position::copy(const Position& pos) noexcept {
-    std::memcpy(squareTable.data(), pos.squareTable.data(), sizeof(squareTable));
-    std::memcpy(pieceListMap.data(), pos.pieceListMap.data(), sizeof(pieceListMap));
-    std::memcpy(pieceMap.data(), pos.pieceMap.data(), sizeof(pieceMap));
-    std::memcpy(colorBB.data(), pos.colorBB.data(), sizeof(colorBB));
-    std::memcpy(typeBB.data(), pos.typeBB.data(), sizeof(typeBB));
-    std::memcpy(castlingPath.data(), pos.castlingPath.data(), sizeof(castlingPath));
-    std::memcpy(castlingRookSq.data(), pos.castlingRookSq.data(), sizeof(castlingRookSq));
-    std::memcpy(castlingRightsMask.data(), pos.castlingRightsMask.data(),
-                sizeof(castlingRightsMask));
-    std::memcpy(pieceCount.data(), pos.pieceCount.data(), sizeof(pieceCount));
-    // Don't memcpy pieceLists, as they point to the above lists
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PieceTypes)
-            pieceLists[c][pt].count(pos.pieceLists[c][pt].count());
-
-    activeColor = pos.activeColor;
-    gamePly     = pos.gamePly;
-    // Don't copy *st pointer
-    //*st = *pos.st;
 }
 
 // Initializes the position object with the given FEN string.

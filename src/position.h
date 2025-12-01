@@ -159,8 +159,8 @@ class Position final {
     };
 
     Position() noexcept;
-    Position(const Position& pos) noexcept;
-    Position& operator=(const Position& pos) noexcept;
+    Position(const Position& pos) noexcept            = default;
+    Position& operator=(const Position& pos) noexcept = default;
 
    private:
     constexpr Position(Position&&) noexcept            = delete;
@@ -169,8 +169,6 @@ class Position final {
     void construct() noexcept;
 
     void clear() noexcept;
-
-    void copy(const Position& pos) noexcept;
 
    public:
     // FEN string input/output
