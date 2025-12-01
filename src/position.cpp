@@ -196,8 +196,8 @@ void Position::clear() noexcept {
     // No need to clear indexMap as it is always overwritten when putting/removing pieces
     std::memset(indexMap.data(), InvalidIndex, sizeof(indexMap));
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
-    std::memset(colorBB.data(), 0, sizeof(colorBB));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
+    std::memset(colorBB.data(), 0, sizeof(colorBB));
     std::memset(castlingPath.data(), 0, sizeof(castlingPath));
     std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
     std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));
@@ -207,9 +207,9 @@ void Position::clear() noexcept {
         for (PieceType pt : PieceTypes)
             pieceList[c][pt].clear();
 
-    activeColor = COLOR_NB;
-    gamePly     = 0;
     st          = nullptr;
+    gamePly     = 0;
+    activeColor = COLOR_NB;
 }
 
 // Initializes the position object with the given FEN string.

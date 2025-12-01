@@ -42,7 +42,7 @@ constexpr StdArray<int, PIECE_TYPE_NB - 2, PIECE_TYPE_NB - 2> Map{{
 }};
 
 // Lookup array for indexing threats
-StdArray<IndexType, PIECE_NB, SQUARE_NB> OffsetIndex;
+StdArray<IndexType, PIECE_NB, SQUARE_NB> Offsets;
 
 struct HelperOffset {
     IndexType cumulativePieceOffset, cumulativeOffset;
@@ -67,7 +67,7 @@ struct PiecePairData final {
 };
 
 // The final index is calculated from summing data found in these two LUTs,
-// as well as OffsetIndex[attacker][from]
+// as well as Offsets[attacker][from]
 StdArray<PiecePairData, PIECE_NB, PIECE_NB>            LutData;   // [attacker][attacked]
 StdArray<std::uint8_t, PIECE_NB, SQUARE_NB, SQUARE_NB> LutIndex;  // [attacker][org][dst]
 
@@ -109,8 +109,8 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     if ((piecePairData.excluded_pair_info() + (org < dst)) & 0x2)
         return FullThreats::Dimensions;
 
-    return piecePairData.feature_base_index() + OffsetIndex[attacker][org]
-         + LutIndex[attacker][org][dst];
+    return piecePairData.feature_base_index() + LutIndex[attacker][org][dst]
+         + Offsets[attacker][org];
 }
 
 }  // namespace
@@ -130,7 +130,7 @@ void FullThreats::init() noexcept {
 
             for (Square org = SQ_A1; org <= SQ_H8; ++org)
             {
-                OffsetIndex[pc][org] = cumulativePieceOffset;
+                Offsets[pc][org] = cumulativePieceOffset;
 
                 if (pt != PAWN)
                 {

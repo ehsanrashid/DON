@@ -179,21 +179,21 @@ class Position final {
 
     // Position representation
     [[nodiscard]] const auto& piece_map() const noexcept;
-    [[nodiscard]] const auto& color_bb() const noexcept;
     [[nodiscard]] const auto& type_bb() const noexcept;
+    [[nodiscard]] const auto& color_bb() const noexcept;
     [[nodiscard]] const auto& piece_list() const noexcept;
 
     [[nodiscard]] Piece    operator[](Square s) const noexcept;
-    [[nodiscard]] Bitboard operator[](Color c) const noexcept;
     [[nodiscard]] Bitboard operator[](PieceType pt) const noexcept;
+    [[nodiscard]] Bitboard operator[](Color c) const noexcept;
 
     Piece piece_on(Square s) const noexcept;
     bool  empty_on(Square s) const noexcept;
 
-    Bitboard pieces(Color c) const noexcept;
     Bitboard pieces() const noexcept;
     template<typename... PieceTypes>
     Bitboard pieces(PieceTypes... pts) const noexcept;
+    Bitboard pieces(Color c) const noexcept;
     template<typename... PieceTypes>
     Bitboard pieces(Color c, PieceTypes... pts) const noexcept;
 
@@ -219,8 +219,8 @@ class Position final {
     Square en_passant_sq() const noexcept;
     Square captured_sq() const noexcept;
 
-    Color        active_color() const noexcept;
     std::int16_t ply() const noexcept;
+    Color        active_color() const noexcept;
     std::int32_t move_num() const noexcept;
 
     CastlingRights castling_rights() const noexcept;
@@ -441,38 +441,36 @@ class Position final {
 
     StdArray<std::uint8_t, SQUARE_NB>               indexMap;
     StdArray<Piece, SQUARE_NB>                      pieceMap;
-    StdArray<Bitboard, COLOR_NB>                    colorBB;
     StdArray<Bitboard, PIECE_TYPE_NB>               typeBB;
+    StdArray<Bitboard, COLOR_NB>                    colorBB;
     StdArray<Bitboard, COLOR_NB * CASTLING_SIDE_NB> castlingPath;
     StdArray<Square, COLOR_NB * CASTLING_SIDE_NB>   castlingRookSq;
     StdArray<std::uint8_t, COLOR_NB * FILE_NB>      castlingRightsMask;
     StdArray<std::uint8_t, COLOR_NB>                pieceCount;
-    Color                                           activeColor;
-    std::int16_t                                    gamePly;
     State*                                          st;
+    std::int16_t                                    gamePly;
+    Color                                           activeColor;
 };
 
 //static_assert(sizeof(Position) == 464, "Position size");
 
 inline const auto& Position::piece_map() const noexcept { return pieceMap; }
 
-inline const auto& Position::color_bb() const noexcept { return colorBB; }
-
 inline const auto& Position::type_bb() const noexcept { return typeBB; }
+
+inline const auto& Position::color_bb() const noexcept { return colorBB; }
 
 inline const auto& Position::piece_list() const noexcept { return pieceList; }
 
 inline Piece Position::operator[](Square s) const noexcept { return pieceMap[s]; }
 
-inline Bitboard Position::operator[](Color c) const noexcept { return colorBB[c]; }
-
 inline Bitboard Position::operator[](PieceType pt) const noexcept { return typeBB[pt]; }
+
+inline Bitboard Position::operator[](Color c) const noexcept { return colorBB[c]; }
 
 inline Piece Position::piece_on(Square s) const noexcept { return pieceMap[s]; }
 
 inline bool Position::empty_on(Square s) const noexcept { return piece_on(s) == NO_PIECE; }
-
-inline Bitboard Position::pieces(Color c) const noexcept { return colorBB[c]; }
 
 inline Bitboard Position::pieces() const noexcept { return typeBB[NO_PIECE_TYPE]; }
 
@@ -480,6 +478,8 @@ template<typename... PieceTypes>
 inline Bitboard Position::pieces(PieceTypes... pts) const noexcept {
     return (typeBB[pts] | ...);
 }
+
+inline Bitboard Position::pieces(Color c) const noexcept { return colorBB[c]; }
 
 template<typename... PieceTypes>
 inline Bitboard Position::pieces(Color c, PieceTypes... pts) const noexcept {
@@ -564,9 +564,9 @@ inline Square Position::en_passant_sq() const noexcept { return st->enPassantSq;
 
 inline Square Position::captured_sq() const noexcept { return st->capturedSq; }
 
-inline Color Position::active_color() const noexcept { return activeColor; }
-
 inline std::int16_t Position::ply() const noexcept { return gamePly; }
+
+inline Color Position::active_color() const noexcept { return activeColor; }
 
 inline std::int32_t Position::move_num() const noexcept {
     return 1 + (ply() - (active_color() == BLACK)) / 2;
