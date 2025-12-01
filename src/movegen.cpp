@@ -69,13 +69,13 @@ Move* splat_pawn_moves(Bitboard b, Move* moves) noexcept {
 #else
     while (b)
     {
-        Square s;
+        Square dst;
         if constexpr (AC == WHITE)
-            s = pop_msb(b);
+            dst = pop_msb(b);
         else
-            s = pop_lsb(b);
+            dst = pop_lsb(b);
 
-        *moves++ = Move(s - D, s);
+        *moves++ = Move(dst - D, dst);
     }
 #endif
 
@@ -96,19 +96,19 @@ Move* splat_promotion_moves(Bitboard b, Move* moves) noexcept {
 
     while (b)
     {
-        Square s;
+        Square dst;
         if constexpr (AC == WHITE)
-            s = pop_msb(b);
+            dst = pop_msb(b);
         else
-            s = pop_lsb(b);
+            dst = pop_lsb(b);
 
         if constexpr (All || Capture)
-            *moves++ = Move(s - D, s, QUEEN);
+            *moves++ = Move(dst - D, dst, QUEEN);
         if constexpr (All || (Capture && Enemy) || (Quiet && !Enemy))
         {
-            *moves++ = Move(s - D, s, ROOK);
-            *moves++ = Move(s - D, s, BISHOP);
-            *moves++ = Move(s - D, s, KNIGHT);
+            *moves++ = Move(dst - D, dst, ROOK);
+            *moves++ = Move(dst - D, dst, BISHOP);
+            *moves++ = Move(dst - D, dst, KNIGHT);
         }
     }
 
@@ -139,13 +139,13 @@ Move* splat_moves(Square org, Bitboard b, Move* moves) noexcept {
 #else
     while (b)
     {
-        Square s;
+        Square dst;
         if constexpr (AC == WHITE)
-            s = pop_msb(b);
+            dst = pop_msb(b);
         else
-            s = pop_lsb(b);
+            dst = pop_lsb(b);
 
-        *moves++ = Move(org, s);
+        *moves++ = Move(org, dst);
     }
 #endif
 
@@ -245,13 +245,13 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
 
             while (b)
             {
-                Square s;
+                Square org;
                 if constexpr (AC == WHITE)
-                    s = pop_lsb(b);
+                    org = pop_lsb(b);
                 else
-                    s = pop_msb(b);
+                    org = pop_msb(b);
 
-                *moves++ = Move(EN_PASSANT, s, enPassantSq);
+                *moves++ = Move(EN_PASSANT, org, enPassantSq);
             }
         }
     }
@@ -265,15 +265,15 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
                   "Unsupported piece type in generate_piece_moves()");
     assert(!pos.checkers() || !more_than_one(pos.checkers()));
 
-    const auto& pieceList = pos.piece_list<AC, PT>();
-
-    const std::size_t n = pieceList.count();
+    const auto&       pieceList = pos.piece_list<AC, PT>();
+    const auto*       pBase     = pos.base(AC);
+    const std::size_t n         = pieceList.count();
     assert(n <= Position::PieceCapacity[PT - 1]);
 
-    StdArray<Square, Position::PieceCapacity[PT - 1]> sortedSqs;
-    std::memcpy(sortedSqs.data(), pieceList.data(), n * sizeof(Square));
+    StdArray<Square, Position::PieceCapacity[PT - 1]> sortedOrgs;
+    std::memcpy(sortedOrgs.data(), pieceList.data(pBase), n * sizeof(Square));
 
-    Square*       beg = sortedSqs.data();
+    Square*       beg = sortedOrgs.data();
     Square* const end = beg + n;
 
     if (n > 1)
@@ -317,16 +317,16 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
 
         while (b)
         {
-            Square s;
+            Square dst;
             if constexpr (AC == WHITE)
-                s = pop_msb(b);
+                dst = pop_msb(b);
             else
-                s = pop_lsb(b);
+                dst = pop_lsb(b);
 
-            if (pos.slide_attackers_to(s, occupied) & pos.pieces(~AC))
+            if (pos.slide_attackers_to(dst, occupied) & pos.pieces(~AC))
                 continue;
 
-            *moves++ = Move(kingSq, s);
+            *moves++ = Move(kingSq, dst);
 
             if constexpr (Any)
                 return moves;
