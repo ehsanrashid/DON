@@ -265,7 +265,7 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
                   "Unsupported piece type in generate_piece_moves()");
     assert(!pos.checkers() || !more_than_one(pos.checkers()));
 
-    const auto& pL = pos.squares<AC, PT>();
+    const auto& pL = pos.squares<PT>(AC);
     const auto* pB = pos.base(AC);
 
     const std::size_t n = pL.count();

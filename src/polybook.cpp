@@ -52,14 +52,15 @@ union Zobrist final {
     Key key(const Position& pos) const noexcept {
         Key key = 0;
 
-        for (Color c : {WHITE, BLACK})
-            for (PieceType pt : PieceTypes)
-            {
-                const auto& pL = pos.squares(c, pt);
-                const auto* pB = pos.base(c);
-                for (const Square* s = pL.begin(pB); s != pL.end(pB); ++s)
-                    key ^= _.PieceSquare[c][pt - 1][*s];
-            }
+        std::size_t n;
+        auto        sqrs = pos.squares(n);
+        for (std::size_t i = 0; i < n; ++i)
+        {
+            Square s  = sqrs[i];
+            Piece  pc = pos[s];
+
+            key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][s];
+        }
 
         Bitboard castling = pos.castling_rights();
         while (castling)

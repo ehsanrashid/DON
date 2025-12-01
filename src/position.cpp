@@ -193,8 +193,8 @@ void Position::construct() noexcept {
 
 void Position::clear() noexcept {
     std::memset(squareTable.data(), SQ_NONE, sizeof(squareTable));
-    // No need to clear pieceListMap as it is always overwritten when putting/removing pieces
-    std::memset(pieceListMap.data(), InvalidIndex, sizeof(pieceListMap));
+    // No need to clear indexMap as it is always overwritten when putting/removing pieces
+    std::memset(indexMap.data(), InvalidIndex, sizeof(indexMap));
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
     std::memset(colorBB.data(), 0, sizeof(colorBB));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
@@ -1942,10 +1942,8 @@ void Position::mirror() noexcept {
 Key Position::compute_key() const noexcept {
     Key key = 0;
 
-    StdArray<Square, SQUARE_NB> sqrs;
-    std::size_t                 n;
-    squares(sqrs, n);
-
+    std::size_t n;
+    auto        sqrs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
         Square s  = sqrs[i];
@@ -1968,10 +1966,8 @@ Key Position::compute_key() const noexcept {
 Key Position::compute_minor_key() const noexcept {
     Key minorKey = 0;
 
-    StdArray<Square, SQUARE_NB> sqrs;
-    std::size_t                 n;
-    squares(sqrs, n);
-
+    std::size_t n;
+    auto        sqrs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
         Square s  = sqrs[i];
@@ -1981,16 +1977,15 @@ Key Position::compute_minor_key() const noexcept {
         if (pt != PAWN && pt != KING && !is_major(pt))
             minorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
     }
+
     return minorKey;
 }
 
 Key Position::compute_major_key() const noexcept {
     Key majorKey = 0;
 
-    StdArray<Square, SQUARE_NB> sqrs;
-    std::size_t                 n;
-    squares(sqrs, n);
-
+    std::size_t n;
+    auto        sqrs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
         Square s  = sqrs[i];
@@ -2000,16 +1995,15 @@ Key Position::compute_major_key() const noexcept {
         if (pt != PAWN && pt != KING && is_major(pt))
             majorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
     }
+
     return majorKey;
 }
 
 Key Position::compute_non_pawn_key() const noexcept {
     Key nonPawnKey = 0;
 
-    StdArray<Square, SQUARE_NB> sqrs;
-    std::size_t                 n;
-    squares(sqrs, n);
-
+    std::size_t n;
+    auto        sqrs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
         Square s  = sqrs[i];
@@ -2019,6 +2013,7 @@ Key Position::compute_non_pawn_key() const noexcept {
         if (pt != PAWN)
             nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, s);
     }
+
     return nonPawnKey;
 }
 
@@ -2055,7 +2050,7 @@ bool Position::_is_ok() const noexcept {
     if (has_attackers_to(square<KING>(~active_color()), pieces(active_color())))
         assert(false && "Position::_is_ok(): King Checker");
 
-    if ((pieces(PAWN) & PROMOTION_RANKS_BB) || count(W_PAWN) > 8 || count(B_PAWN) > 8)
+    if ((pieces(PAWN) & PROMOTION_RANKS_BB) || count<PAWN>(WHITE) > 8 || count<PAWN>(BLACK) > 8)
         assert(false && "Position::_is_ok(): Pawns");
 
     if ((pieces(WHITE) & pieces(BLACK)) || (pieces(WHITE) | pieces(BLACK)) != pieces()
@@ -2068,18 +2063,30 @@ bool Position::_is_ok() const noexcept {
                 assert(false && "Position::_is_ok(): Bitboards");
 
     for (Color c : {WHITE, BLACK})
+    {
+        const auto* pB = base(c);
         for (PieceType pt : PieceTypes)
-            for (std::size_t i = 0; i < squares(c, pt).size(); ++i)
-                if (piece_on(squares(c, pt).at(i, base(c))) != make_piece(c, pt)
-                    || pieceListMap[squares(c, pt).at(i, base(c))] != int(i))
+        {
+            Piece       pc = make_piece(c, pt);
+            const auto& pL = squares(c, pt);
+            for (std::size_t i = 0; i < pL.count(); ++i)
+            {
+                Square s = pL.at(i, pB);
+                if (piece_on(s) != pc || indexMap[s] != int(i))
                     assert(0 && "_is_ok: Piece List");
+            }
+        }
+    }
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
-            if (count(c, pt) != popcount(pieces(c, pt))
-                || count(c, pt)
-                     != std::count(piece_map().begin(), piece_map().end(), make_piece(c, pt)))
+        {
+            Piece pc    = make_piece(c, pt);
+            auto  count = this->count(c, pt);
+            if (count != popcount(pieces(c, pt))
+                || count != std::count(piece_map().begin(), piece_map().end(), pc))
                 assert(false && "Position::_is_ok(): Piece List Count");
+        }
 
     for (Color c : {WHITE, BLACK})
         if (count<PAWN>(c)                                                         //
@@ -2220,10 +2227,10 @@ void Position::dump(std::ostream& os) const noexcept {
         {
             Square s = make_square(f, r);
 
-            if (pieceListMap[s] == InvalidIndex)
+            if (indexMap[s] == InvalidIndex)
                 os << '*';
             else
-                os << int(pieceListMap[s]);
+                os << int(indexMap[s]);
             os << " ";
             if (file_of(s) == FILE_H)
                 os << "\n";
