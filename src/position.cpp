@@ -188,7 +188,7 @@ Position::Position() noexcept { construct(); }
 void Position::construct() noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
-            pieceLists[c][pt].set(PieceOffset[pt - 1], PieceCapacity[pt - 1]);
+            pieceList[c][pt].set(Offset[pt - 1], Capacity[pt - 1]);
 }
 
 void Position::clear() noexcept {
@@ -202,10 +202,10 @@ void Position::clear() noexcept {
     std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
     std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));
     std::memset(pieceCount.data(), 0, sizeof(pieceCount));
-    // Don't memset pieceLists, as they point to the above lists
+    // Don't memset pieceList, as they point to the above lists
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
-            pieceLists[c][pt].clear();
+            pieceList[c][pt].clear();
 
     activeColor = COLOR_NB;
     gamePly     = 0;
@@ -607,9 +607,9 @@ void Position::set_state() noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
         {
-            const auto& pieceList = piece_list(c, pt);
-            const auto* pBase     = base(c);
-            for (const Square* s = pieceList.begin(pBase); s != pieceList.end(pBase); ++s)
+            const auto& pL = squares(c, pt);
+            const auto* pB = base(c);
+            for (const Square* s = pL.begin(pB); s != pL.end(pB); ++s)
             {
                 Key key = Zobrist::piece_square(c, pt, *s);
                 assert(key != 0);
@@ -2069,9 +2069,9 @@ bool Position::_is_ok() const noexcept {
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
-            for (std::size_t i = 0; i < piece_list(c, pt).size(); ++i)
-                if (piece_on(piece_list(c, pt).at(i, base(c))) != make_piece(c, pt)
-                    || pieceListMap[piece_list(c, pt).at(i, base(c))] != int(i))
+            for (std::size_t i = 0; i < squares(c, pt).size(); ++i)
+                if (piece_on(squares(c, pt).at(i, base(c))) != make_piece(c, pt)
+                    || pieceListMap[squares(c, pt).at(i, base(c))] != int(i))
                     assert(0 && "_is_ok: Piece List");
 
     for (Color c : {WHITE, BLACK})
@@ -2207,9 +2207,9 @@ void Position::dump(std::ostream& os) const noexcept {
         for (PieceType pt : PieceTypes)
         {
             os << to_char(make_piece(c, pt)) << ": ";
-            const auto& pieceList = piece_list(c, pt);
-            const auto* pBase     = base(c);
-            for (const Square* s = pieceList.begin(pBase); s != pieceList.end(pBase); ++s)
+            const auto& pL = squares(c, pt);
+            const auto* pB = base(c);
+            for (const Square* s = pL.begin(pB); s != pL.end(pB); ++s)
                 os << to_square(*s) << " ";
             os << "\n";
         }

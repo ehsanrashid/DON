@@ -55,9 +55,9 @@ union Zobrist final {
         for (Color c : {WHITE, BLACK})
             for (PieceType pt : PieceTypes)
             {
-                const auto& pieceList = pos.piece_list(c, pt);
-                const auto* pBase     = pos.base(c);
-                for (const Square* s = pieceList.begin(pBase); s != pieceList.end(pBase); ++s)
+                const auto& pL = pos.squares(c, pt);
+                const auto* pB = pos.base(c);
+                for (const Square* s = pL.begin(pB); s != pL.end(pB); ++s)
                     key ^= _.PieceSquare[c][pt - 1][*s];
             }
 

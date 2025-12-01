@@ -154,7 +154,7 @@ class Position final {
    public:
     static void init() noexcept;
 
-    static constexpr StdArray<std::size_t, PIECE_TYPE_NB - 2> PieceCapacity{
+    static constexpr StdArray<std::size_t, PIECE_TYPE_NB - 2> Capacity{
       11, 13, 13, 13, 13, 1  //
     };
 
@@ -181,7 +181,7 @@ class Position final {
     [[nodiscard]] const auto& piece_map() const noexcept;
     [[nodiscard]] const auto& color_bb() const noexcept;
     [[nodiscard]] const auto& type_bb() const noexcept;
-    [[nodiscard]] const auto& piece_lists() const noexcept;
+    [[nodiscard]] const auto& piece_list() const noexcept;
 
     [[nodiscard]] Piece    operator[](Square s) const noexcept;
     [[nodiscard]] Bitboard operator[](Color c) const noexcept;
@@ -198,17 +198,17 @@ class Position final {
     Bitboard pieces(Color c, PieceTypes... pts) const noexcept;
 
     template<Color C, PieceType PT>
-    [[nodiscard]] const auto& piece_list() const noexcept;
+    [[nodiscard]] const auto& squares() const noexcept;
 
-    [[nodiscard]] const auto& piece_list(Color c, PieceType pt) const noexcept;
+    [[nodiscard]] const auto& squares(Color c, PieceType pt) const noexcept;
     template<PieceType PT>
-    [[nodiscard]] const auto& piece_list(Color c) const noexcept;
-    [[nodiscard]] const auto& piece_list(Piece pc) const noexcept;
+    [[nodiscard]] const auto& squares(Color c) const noexcept;
+    [[nodiscard]] const auto& squares(Piece pc) const noexcept;
 
-    [[nodiscard]] auto& piece_list(Color c, PieceType pt) noexcept;
+    [[nodiscard]] auto& squares(Color c, PieceType pt) noexcept;
     template<PieceType PT>
-    [[nodiscard]] auto& piece_list(Color c) noexcept;
-    [[nodiscard]] auto& piece_list(Piece pc) noexcept;
+    [[nodiscard]] auto& squares(Color c) noexcept;
+    [[nodiscard]] auto& squares(Piece pc) noexcept;
 
     std::uint8_t count(Color c, PieceType pt) const noexcept;
     template<PieceType PT>
@@ -426,15 +426,15 @@ class Position final {
     static constexpr std::size_t TotalCapacity = []() constexpr {
         std::size_t totalCapacity = 0;
         for (std::size_t i = 0; i < PIECE_TYPE_NB - 2; ++i)
-            totalCapacity += PieceCapacity[i];
+            totalCapacity += Capacity[i];
         return totalCapacity;
     }();
-    static constexpr auto PieceOffset = []() constexpr {
-        StdArray<std::size_t, PIECE_TYPE_NB - 2> pieceOffset{};
-        pieceOffset[0] = 0;
+    static constexpr auto Offset = []() constexpr {
+        StdArray<std::size_t, PIECE_TYPE_NB - 2> offset{};
+        offset[0] = 0;
         for (std::size_t i = 1; i < PIECE_TYPE_NB - 2; ++i)
-            pieceOffset[i] = pieceOffset[i - 1] + PieceCapacity[i - 1];
-        return pieceOffset;
+            offset[i] = offset[i - 1] + Capacity[i - 1];
+        return offset;
     }();
 
     static constexpr StdArray<std::uint8_t, CASTLING_RIGHTS_NB> Bit{
@@ -446,7 +446,7 @@ class Position final {
     // Backing Square Table: [COLOR_NB][TotalCapacity]
     StdArray<Square, COLOR_NB, TotalCapacity> squareTable;
     // Generic CountTableView slices
-    StdArray<CountTableView<Square>, COLOR_NB, PIECE_TYPE_NB - 1> pieceLists;
+    StdArray<CountTableView<Square>, COLOR_NB, PIECE_TYPE_NB - 1> pieceList;
 
     StdArray<std::uint8_t, SQUARE_NB>               pieceListMap;
     StdArray<Piece, SQUARE_NB>                      pieceMap;
@@ -469,7 +469,7 @@ inline const auto& Position::color_bb() const noexcept { return colorBB; }
 
 inline const auto& Position::type_bb() const noexcept { return typeBB; }
 
-inline const auto& Position::piece_lists() const noexcept { return pieceLists; }
+inline const auto& Position::piece_list() const noexcept { return pieceList; }
 
 inline Piece Position::operator[](Square s) const noexcept { return pieceMap[s]; }
 
@@ -496,38 +496,36 @@ inline Bitboard Position::pieces(Color c, PieceTypes... pts) const noexcept {
 }
 
 template<Color C, PieceType PT>
-inline const auto& Position::piece_list() const noexcept {
-    return pieceLists[C][PT];
+inline const auto& Position::squares() const noexcept {
+    return pieceList[C][PT];
 }
 
-inline const auto& Position::piece_list(Color c, PieceType pt) const noexcept {
-    return pieceLists[c][pt];
-}
-
-template<PieceType PT>
-inline const auto& Position::piece_list(Color c) const noexcept {
-    return piece_list(c, PT);
-}
-
-inline const auto& Position::piece_list(Piece pc) const noexcept {
-    return piece_list(color_of(pc), type_of(pc));
-}
-
-inline auto& Position::piece_list(Color c, PieceType pt) noexcept {  //
-    return pieceLists[c][pt];
+inline const auto& Position::squares(Color c, PieceType pt) const noexcept {
+    return pieceList[c][pt];
 }
 
 template<PieceType PT>
-inline auto& Position::piece_list(Color c) noexcept {
-    return piece_list(c, PT);
+inline const auto& Position::squares(Color c) const noexcept {
+    return squares(c, PT);
 }
 
-inline auto& Position::piece_list(Piece pc) noexcept {
-    return piece_list(color_of(pc), type_of(pc));
+inline const auto& Position::squares(Piece pc) const noexcept {
+    return squares(color_of(pc), type_of(pc));
 }
+
+inline auto& Position::squares(Color c, PieceType pt) noexcept {  //
+    return pieceList[c][pt];
+}
+
+template<PieceType PT>
+inline auto& Position::squares(Color c) noexcept {
+    return squares(c, PT);
+}
+
+inline auto& Position::squares(Piece pc) noexcept { return squares(color_of(pc), type_of(pc)); }
 
 inline std::uint8_t Position::count(Color c, PieceType pt) const noexcept {
-    return pieceLists[c][pt].count();
+    return pieceList[c][pt].count();
 }
 
 template<PieceType PT>
@@ -551,7 +549,7 @@ inline std::uint8_t Position::count() const noexcept {
 template<PieceType PT>
 inline Square Position::square(Color c) const noexcept {
     assert(count<PT>(c) == 1);
-    return pieceLists[c][PT].at(0, base(c));
+    return pieceList[c][PT].at(0, base(c));
 }
 
 inline Square Position::en_passant_sq() const noexcept { return st->enPassantSq; }
@@ -564,9 +562,9 @@ Position::squares(Color c, StdArray<Square, SQUARE_NB>& sqrs, std::size_t& n) co
     n = 0;
     for (PieceType pt : PieceTypes)
     {
-        const auto& pieceList = piece_list(c, pt);
-        const auto* pBase     = base(c);
-        for (const Square* s = pieceList.begin(pBase); s != pieceList.end(pBase); ++s)
+        const auto& pL = squares(c, pt);
+        const auto* pB = base(c);
+        for (const Square* s = pL.begin(pB); s != pL.end(pB); ++s)
             sqrs[n++] = *s;
     }
 }
@@ -577,9 +575,9 @@ inline void Position::squares(StdArray<Square, SQUARE_NB>& sqrs, std::size_t& n)
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PieceTypes)
         {
-            const auto& pieceList = piece_list(c, pt);
-            const auto* pBase     = base(c);
-            for (const Square* s = pieceList.begin(pBase); s != pieceList.end(pBase); ++s)
+            const auto& pL = squares(c, pt);
+            const auto* pB = base(c);
+            for (const Square* s = pL.begin(pB); s != pL.end(pB); ++s)
                 sqrs[n++] = *s;
         }
 }
@@ -622,8 +620,11 @@ inline auto Position::castling_rights_mask(Square org, Square dst) const noexcep
         return indices;
     }();
 
-    return (Indices[org] < castlingRightsMask.size() ? castlingRightsMask[Indices[org]] : 0)
-         | (Indices[dst] < castlingRightsMask.size() ? castlingRightsMask[Indices[dst]] : 0);
+    auto orgIdx = Indices[org];
+    auto dstIdx = Indices[dst];
+
+    return (orgIdx < castlingRightsMask.size() ? castlingRightsMask[orgIdx] : 0)
+         | (dstIdx < castlingRightsMask.size() ? castlingRightsMask[dstIdx] : 0);
 }
 
 // clang-format off
@@ -709,9 +710,9 @@ inline Bitboard Position::attacks_by(Color c) const noexcept {
     {
         Bitboard attacks = 0;
 
-        const auto& pieceList = piece_list<PT>(c);
-        const auto* pBase     = base(c);
-        for (const Square* s = pieceList.begin(pBase); s != pieceList.end(pBase); ++s)
+        const auto& pL = squares<PT>(c);
+        const auto* pB = base(c);
+        for (const Square* s = pL.begin(pB); s != pL.end(pB); ++s)
             attacks |= attacks_bb<PT>(*s, pieces());
 
         return attacks;
@@ -880,9 +881,11 @@ inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noe
     pieceMap[s] = pc;
     colorBB[c] |= sbb;
     typeBB[NO_PIECE_TYPE] |= typeBB[pt] |= sbb;
-    auto& pieceList = piece_list(c, pt);
-    pieceListMap[s] = pieceList.count();
-    pieceList.push_back(s, base(c));
+    auto& pL = squares(c, pt);
+    auto* pB = base(c);
+
+    pieceListMap[s] = pL.count();
+    pL.push_back(s, pB);
     ++pieceCount[c];
 
     if (dts != nullptr)
@@ -905,15 +908,15 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
     colorBB[c] ^= sbb;
     typeBB[pt] ^= sbb;
     typeBB[NO_PIECE_TYPE] ^= sbb;
-    auto  idx       = pieceListMap[s];
-    auto& pieceList = piece_list(c, pt);
-    auto* pBase     = base(c);
-    assert(idx < pieceList.size());
-    Square sq        = pieceList.back(pBase);
+    auto  idx = pieceListMap[s];
+    auto& pL  = squares(c, pt);
+    auto* pB  = base(c);
+    assert(idx < pL.size());
+    Square sq        = pL.back(pB);
     pieceListMap[sq] = idx;
     //pieceListMap[s]  = InvalidIndex;
-    pieceList.at(idx, pBase) = sq;
-    pieceList.pop_back();
+    pL.at(idx, pB) = sq;
+    pL.pop_back();
     --pieceCount[c];
 
     return pc;
@@ -936,13 +939,13 @@ inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts)
     colorBB[c] ^= s1s2bb;
     typeBB[pt] ^= s1s2bb;
     typeBB[NO_PIECE_TYPE] ^= s1s2bb;
-    auto  idx       = pieceListMap[s1];
-    auto& pieceList = piece_list(c, pt);
-    auto* pBase     = base(c);
-    assert(idx < pieceList.size());
+    auto  idx = pieceListMap[s1];
+    auto& pL  = squares(c, pt);
+    auto* pB  = base(c);
+    assert(idx < pL.size());
     pieceListMap[s2] = idx;
     //pieceListMap[s1] = InvalidIndex;
-    pieceList.at(idx, pBase) = s2;
+    pL.at(idx, pB) = s2;
 
     if (dts != nullptr)
         update_piece_threats<true>(pc, s2, dts);
