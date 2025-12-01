@@ -43,8 +43,12 @@ constexpr StdArray<int, PIECE_TYPE_NB - 2, PIECE_TYPE_NB - 2> Map{{
 
 // Lookup array for indexing threats
 StdArray<IndexType, PIECE_NB, SQUARE_NB> OffsetIndex;
-// [cumulativePieceOffset, cumulativeOffset]
-StdArray<IndexType, PIECE_NB, 2> CumulativeOffset;
+
+struct HelperOffset {
+    IndexType cumulativePieceOffset, cumulativeOffset;
+};
+
+StdArray<HelperOffset, PIECE_NB> HelperOffsets;
 
 // Information on a particular pair of pieces and whether they should be excluded
 struct PiecePairData final {
@@ -141,8 +145,7 @@ void FullThreats::init() noexcept {
                 }
             }
 
-            CumulativeOffset[pc][0] = cumulativePieceOffset;
-            CumulativeOffset[pc][1] = cumulativeOffset;
+            HelperOffsets[pc] = {cumulativePieceOffset, cumulativeOffset};
 
             cumulativeOffset += MaxTargets[pt] * cumulativePieceOffset;
         }
@@ -162,9 +165,9 @@ void FullThreats::init() noexcept {
 
                     int map = Map[attackerType - 1][attackedType - 1];
 
-                    IndexType feature = CumulativeOffset[attacker][1]
+                    IndexType feature = HelperOffsets[attacker].cumulativeOffset
                                       + (attackedC * (MaxTargets[attackerType] / 2) + map)
-                                          * CumulativeOffset[attacker][0];
+                                          * HelperOffsets[attacker].cumulativePieceOffset;
 
                     bool excluded     = map < 0;
                     bool semiExcluded = attackerType == attackedType  //
