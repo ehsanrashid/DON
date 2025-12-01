@@ -21,6 +21,7 @@
 #include <atomic>
 #include <cassert>
 #include <deque>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <sstream>

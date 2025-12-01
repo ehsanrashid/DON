@@ -434,7 +434,7 @@ class Position final {
     static constexpr std::uint8_t INDEX_NONE = SQUARE_NB;
 
     // Backing Square Table: [COLOR_NB][TOTAL_CAPACITY]
-    StdArray<Square, COLOR_NB, TOTAL_CAPACITY> squareTable;
+    StdArray<Square, COLOR_NB, TOTAL_CAPACITY> squaresTable;
     // Generic CountTableView slices
     StdArray<CountTableView<Square>, COLOR_NB, 1 + PIECES> pieceList;
 
@@ -904,6 +904,7 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
     //indexMap[s]  = INDEX_NONE;
     pL.at(idx, pB) = sq;
     pL.pop_back();
+    assert(pieceCount[c] != 0);
     --pieceCount[c];
 
     return pc;
@@ -1053,10 +1054,10 @@ Position::do_move(Move m, State& newSt, const TranspositionTable* const tt) noex
 }
 
 inline constexpr Square* Position::base(Color c) noexcept {  //
-    return squareTable[c].data();
+    return squaresTable[c].data();
 }
 inline constexpr const Square* Position::base(Color c) const noexcept {
-    return squareTable[c].data();
+    return squaresTable[c].data();
 }
 
 inline constexpr State* Position::state() const noexcept { return st; }

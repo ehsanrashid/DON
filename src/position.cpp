@@ -191,7 +191,7 @@ void Position::construct() noexcept {
 }
 
 void Position::clear() noexcept {
-    std::memset(squareTable.data(), SQ_NONE, sizeof(squareTable));
+    std::memset(squaresTable.data(), SQ_NONE, sizeof(squaresTable));
     // No need to clear indexMap as it is always overwritten when putting/removing pieces
     std::memset(indexMap.data(), INDEX_NONE, sizeof(indexMap));
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
@@ -2252,7 +2252,7 @@ void Position::dump(std::ostream& os) const noexcept {
     os << "Square Table:\n";
     for (Color c : {WHITE, BLACK})
     {
-        for (Square s : squareTable[c])
+        for (Square s : squaresTable[c])
         {
             if (is_ok(s))
                 os << to_square(s);

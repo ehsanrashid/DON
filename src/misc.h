@@ -243,16 +243,16 @@ struct CountTableView final {
     }
 
     void pop_back() noexcept {
-        assert(count() > 0);
+        assert(count() != 0);
         --_count;
     }
 
     T& back(T* base) noexcept {
-        assert(count() > 0);
+        assert(count() != 0);
         return data(base)[count() - 1];
     }
     const T& back(T* base) const noexcept {
-        assert(count() > 0);
+        assert(count() != 0);
         return data(base)[count() - 1];
     }
 
@@ -619,7 +619,7 @@ class FixedVector final: public IFixedVector<T> {
     }
 
     void pop_back() noexcept override {
-        assert(size() > 0);
+        assert(size() != 0);
         --_size;
     }
 
