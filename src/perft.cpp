@@ -76,8 +76,9 @@ void PerftInfo::classify(Position& pos, Move m) noexcept {
     {
         ++anyCheck;
 
-        if (!(pos.checks_bb(m.type_of() != PROMOTION ? type_of(pos[orgSq]) : m.promotion_type())
-              & dstSq))
+        if ((pos.checks_bb(m.type_of() != PROMOTION ? type_of(pos[orgSq]) : m.promotion_type())
+             & dstSq)
+            == 0)
         {
             Color ac = pos.active_color();
 

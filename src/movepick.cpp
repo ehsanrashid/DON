@@ -68,7 +68,7 @@ MovePicker::MovePicker(const Position&          p,
     ttMove(ttm),
     captureHistory(captureHist),
     threshold(th) {
-    assert(!pos.checkers_bb());
+    assert(pos.checkers_bb() == 0);
     assert(ttMove == Move::None || pos.legal(ttMove));
 
     stage = STG_PROBCUT_TT + int(!(ttMove != Move::None && pos.capture_queenpromo(ttMove)));
