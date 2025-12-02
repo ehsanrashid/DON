@@ -166,9 +166,9 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     constexpr Direction LCap  = AC == WHITE ? NORTH_WEST : SOUTH_EAST;
     constexpr Direction RCap  = AC == WHITE ? NORTH_EAST : SOUTH_WEST;
 
-    Bitboard acPawnsBB  = pos.pieces_bb(AC, PAWN);
-    Bitboard r7PawnsBB  = acPawnsBB & relative_rank(AC, RANK_7);
-    Bitboard nr7PawnsBB = acPawnsBB & ~r7PawnsBB;
+    Bitboard acPawnsBB    = pos.pieces_bb(AC, PAWN);
+    Bitboard yesR7PawnsBB = acPawnsBB & relative_rank(AC, RANK_7);
+    Bitboard notR7PawnsBB = acPawnsBB & ~yesR7PawnsBB;
 
     Bitboard emptyBB = ~pos.pieces_bb();
     Bitboard enemyBB = pos.pieces_bb(~AC);
@@ -179,17 +179,17 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     Move *read = moves, *write = moves;
 
     // Promotions and under-promotions
-    if (r7PawnsBB)
+    if (yesR7PawnsBB)
     {
         Bitboard dstBB;
 
-        dstBB = shift_bb<LCap>(r7PawnsBB) & enemyBB;
+        dstBB = shift_bb<LCap>(yesR7PawnsBB) & enemyBB;
         moves = splat_promotion_moves<AC, GT, LCap, true>(dstBB, moves);
 
-        dstBB = shift_bb<RCap>(r7PawnsBB) & enemyBB;
+        dstBB = shift_bb<RCap>(yesR7PawnsBB) & enemyBB;
         moves = splat_promotion_moves<AC, GT, RCap, true>(dstBB, moves);
 
-        dstBB = shift_bb<Push1>(r7PawnsBB) & emptyBB;
+        dstBB = shift_bb<Push1>(yesR7PawnsBB) & emptyBB;
         // Consider only blocking and capture squares
         if constexpr (Evasion)
             dstBB &= between_bb(pos.square<KING>(AC), lsq(pos.checkers_bb()));
@@ -199,7 +199,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     // Single and double pawn pushes, no promotions
     if constexpr (!Capture)
     {
-        Bitboard dstBB1 = shift_bb<Push1>(nr7PawnsBB) & emptyBB;
+        Bitboard dstBB1 = shift_bb<Push1>(notR7PawnsBB) & emptyBB;
         Bitboard dstBB2 = shift_bb<Push1>(dstBB1 & relative_rank(AC, RANK_3)) & emptyBB;
 
         // Consider only blocking squares
@@ -218,10 +218,10 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     {
         Bitboard dstBB;
 
-        dstBB = shift_bb<LCap>(nr7PawnsBB) & enemyBB;
+        dstBB = shift_bb<LCap>(notR7PawnsBB) & enemyBB;
         moves = splat_pawn_moves<AC, LCap>(dstBB, moves);
 
-        dstBB = shift_bb<RCap>(nr7PawnsBB) & enemyBB;
+        dstBB = shift_bb<RCap>(notR7PawnsBB) & enemyBB;
         moves = splat_pawn_moves<AC, RCap>(dstBB, moves);
 
         Square enPassantSq = pos.en_passant_sq();
@@ -230,23 +230,23 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
             assert(relative_rank(AC, enPassantSq) == RANK_6);
             assert(pos.pieces_bb(~AC, PAWN) & (enPassantSq - Push1));
             assert(pos.rule50_count() == 0);
-            assert(nr7PawnsBB & relative_rank(AC, RANK_5));
+            assert(notR7PawnsBB & relative_rank(AC, RANK_5));
 
             // An en-passant capture cannot resolve a discovered check
             assert(!(Evasion && (targetBB & (enPassantSq + Push1))));
 
-            Bitboard orgBB = nr7PawnsBB & attacks_bb<PAWN>(enPassantSq, ~AC);
+            Bitboard orgBB = notR7PawnsBB & attacks_bb<PAWN>(enPassantSq, ~AC);
             if (more_than_one(orgBB))
             {
-                Bitboard pinnedBB = orgBB & pos.blockers_bb(AC);
-                assert(!more_than_one(pinnedBB));
+                Bitboard blockerOrgBB = orgBB & pos.blockers_bb(AC);
+                assert(!more_than_one(blockerOrgBB));
 
-                if (pinnedBB && !aligned(pos.square<KING>(AC), enPassantSq, lsq(pinnedBB)))
-                    orgBB ^= pinnedBB;
+                if (blockerOrgBB && !aligned(pos.square<KING>(AC), enPassantSq, lsq(blockerOrgBB)))
+                    orgBB ^= blockerOrgBB;
             }
             assert(orgBB);
 
-            while (orgBB)
+            while (orgBB != 0)
             {
                 Square orgSq;
                 if constexpr (AC == WHITE)

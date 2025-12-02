@@ -367,23 +367,25 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             continue;
         }
 
-        Square rOrgSq = SQ_NONE;
+        Square rookOrgSq = SQ_NONE;
 
         if (token == 'k')
         {
-            rOrgSq = relative_sq(c, SQ_H1);
-            while (file_of(rOrgSq) >= FILE_C && !(rooks & rOrgSq) && rOrgSq != square<KING>(c))
-                --rOrgSq;
+            rookOrgSq = relative_sq(c, SQ_H1);
+            while (file_of(rookOrgSq) >= FILE_C && !(rooks & rookOrgSq)
+                   && rookOrgSq != square<KING>(c))
+                --rookOrgSq;
         }
         else if (token == 'q')
         {
-            rOrgSq = relative_sq(c, SQ_A1);
-            while (file_of(rOrgSq) <= FILE_F && !(rooks & rOrgSq) && rOrgSq != square<KING>(c))
-                ++rOrgSq;
+            rookOrgSq = relative_sq(c, SQ_A1);
+            while (file_of(rookOrgSq) <= FILE_F && !(rooks & rookOrgSq)
+                   && rookOrgSq != square<KING>(c))
+                ++rookOrgSq;
         }
         else if ('a' <= token && token <= 'h')
         {
-            rOrgSq = make_square(File(token - 'a'), relative_rank(c, RANK_1));
+            rookOrgSq = make_square(File(token - 'a'), relative_rank(c, RANK_1));
         }
         else
         {
@@ -391,13 +393,13 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             continue;
         }
 
-        if (!(rooks & rOrgSq))
+        if (!(rooks & rookOrgSq))
         {
             assert(false && "Position::set(): Missing Castling Rook");
             continue;
         }
 
-        set_castling_rights(c, rOrgSq);
+        set_castling_rights(c, rookOrgSq);
     }
 
     iss >> std::ws;
@@ -569,40 +571,40 @@ std::string Position::fen(bool full) const noexcept {
 }
 
 // Sets castling rights given the corresponding color and the rook starting square.
-void Position::set_castling_rights(Color c, Square rOrgSq) noexcept {
-    assert(relative_rank(c, rOrgSq) == RANK_1);
-    assert((pieces_bb(c, ROOK) & rOrgSq));
-    assert(castlingRightsMasks[c * FILE_NB + file_of(rOrgSq)] == 0);
+void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
+    assert(relative_rank(c, rookOrgSq) == RANK_1);
+    assert((pieces_bb(c, ROOK) & rookOrgSq));
+    assert(castlingRightsMasks[c * FILE_NB + file_of(rookOrgSq)] == 0);
 
-    Square kOrgSq = square<KING>(c);
-    assert(relative_rank(c, kOrgSq) == RANK_1);
-    assert((pieces_bb(c, KING) & kOrgSq));
+    Square kingOrgSq = square<KING>(c);
+    assert(relative_rank(c, kingOrgSq) == RANK_1);
+    assert((pieces_bb(c, KING) & kingOrgSq));
 
-    CastlingRights cs = castling_side(kOrgSq, rOrgSq);
+    CastlingRights cs = castling_side(kingOrgSq, rookOrgSq);
 
     CastlingRights cr = c & cs;
 
     assert(!is_ok(castling_rook_sq(cr)));
 
     st->castlingRights |= cr;
-    castlingRightsMasks[c * FILE_NB + file_of(kOrgSq)] |= cr;
-    castlingRightsMasks[c * FILE_NB + file_of(rOrgSq)] = cr;
+    castlingRightsMasks[c * FILE_NB + file_of(kingOrgSq)] |= cr;
+    castlingRightsMasks[c * FILE_NB + file_of(rookOrgSq)] = cr;
 
     auto& castling = castlings[BIT[cr]];
 
-    castling.rookSq = rOrgSq;
+    castling.rookSq = rookOrgSq;
 
-    Square kDstSq = king_castle_sq(kOrgSq, rOrgSq);
-    Square rDstSq = rook_castle_sq(kOrgSq, rOrgSq);
+    Square kingDstSq = king_castle_sq(kingOrgSq, rookOrgSq);
+    Square rookDstSq = rook_castle_sq(kingOrgSq, rookOrgSq);
 
-    Bitboard castlingPathBB =
-      (between_bb(kOrgSq, kDstSq) | between_bb(rOrgSq, rDstSq)) & ~make_bb(kOrgSq, rOrgSq);
+    Bitboard castlingPathBB = (between_bb(kingOrgSq, kingDstSq) | between_bb(rookOrgSq, rookDstSq))
+                            & ~make_bb(kingOrgSq, rookOrgSq);
     while (castlingPathBB != 0)
         castling.fullPathSqs[castling.fullPathLen++] = cs == KING_SIDE  //
                                                        ? pop_lsq(castlingPathBB)
                                                        : pop_msq(castlingPathBB);
 
-    Bitboard castlingKingPathBB = between_bb(kOrgSq, kDstSq);
+    Bitboard castlingKingPathBB = between_bb(kingOrgSq, kingDstSq);
     while (castlingKingPathBB != 0)
         castling.kingPathSqs[castling.kingPathLen++] = cs == KING_SIDE  //
                                                        ? pop_lsq(castlingKingPathBB)
@@ -749,43 +751,43 @@ bool Position::can_enpassant(Color           ac,
 // This is a bit tricky in Chess960 where org/dst squares can overlap.
 template<bool Do>
 void Position::do_castling(Color             ac,
-                           Square            orgSq,
-                           Square&           dstSq,
-                           Square&           rOrgSq,
-                           Square&           rDstSq,
+                           Square            kingOrgSq,
+                           Square&           kingDstSq,
+                           Square&           rookOrgSq,
+                           Square&           rookDstSq,
                            DirtyBoard* const db) noexcept {
     assert(!Do || db != nullptr);
 
-    rOrgSq = dstSq;  // Castling is encoded as "king captures rook"
-    rDstSq = rook_castle_sq(orgSq, dstSq);
-    dstSq  = king_castle_sq(orgSq, dstSq);
+    rookOrgSq = kingDstSq;  // Castling is encoded as "king captures rook"
+    rookDstSq = rook_castle_sq(kingOrgSq, kingDstSq);
+    kingDstSq = king_castle_sq(kingOrgSq, kingDstSq);
 
-    Piece king = piece_on(Do ? orgSq : dstSq);
-    assert(king == make_piece(ac, KING));
-    Piece rook = piece_on(Do ? rOrgSq : rDstSq);
-    assert(rook == make_piece(ac, ROOK));
+    Piece kingPc = piece_on(Do ? kingOrgSq : kingDstSq);
+    assert(kingPc == make_piece(ac, KING));
+    Piece rookPc = piece_on(Do ? rookOrgSq : rookDstSq);
+    assert(rookPc == make_piece(ac, ROOK));
 
     // Remove both pieces first since squares could overlap in Chess960
     if constexpr (Do)
     {
-        db->dp.dstSq    = dstSq;
-        db->dp.removeSq = rOrgSq;
-        db->dp.addSq    = rDstSq;
-        db->dp.removePc = db->dp.addPc = rook;
+        db->dp.dstSq    = kingDstSq;
+        db->dp.removeSq = rookOrgSq;
+        db->dp.addSq    = rookDstSq;
+        db->dp.removePc = db->dp.addPc = rookPc;
 
-        remove(orgSq, &db->dts);
-        remove(rOrgSq, &db->dts);
-        put(dstSq, king, &db->dts);
-        put(rDstSq, rook, &db->dts);
+        remove(kingOrgSq, &db->dts);
+        remove(rookOrgSq, &db->dts);
+        put(kingDstSq, kingPc, &db->dts);
+        put(rookDstSq, rookPc, &db->dts);
 
         st->hasCastled[ac] = true;
     }
     else
     {
-        remove(dstSq);
-        remove(rDstSq);
-        put(orgSq, king);
-        put(rOrgSq, rook);
+        remove(kingDstSq);
+        remove(rookDstSq);
+        put(kingOrgSq, kingPc);
+        put(rookOrgSq, rookPc);
     }
 }
 
@@ -856,14 +858,14 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
         assert(castling_has_rights(ac & ANY_CASTLING));
         assert(!has_castled(ac));
 
-        Square rOrg, rDst;
-        do_castling<true>(ac, orgSq, dstSq, rOrg, rDst, &db);
-        assert(rOrg == m.dst_sq());
+        Square rookOrgSq, rookDstSq;
+        do_castling<true>(ac, orgSq, dstSq, rookOrgSq, rookDstSq, &db);
+        assert(rookOrgSq == m.dst_sq());
 
         movedKey = Zobrist::piece_square(ac, movedPt, orgSq)  //
                  ^ Zobrist::piece_square(ac, movedPt, dstSq);
-        Key rookKey = Zobrist::piece_square(ac, ROOK, rOrg)  //
-                    ^ Zobrist::piece_square(ac, ROOK, rDst);
+        Key rookKey = Zobrist::piece_square(ac, ROOK, rookOrgSq)  //
+                    ^ Zobrist::piece_square(ac, ROOK, rookDstSq);
 
         k ^= rookKey;
         st->nonPawnKey[ac][1] ^= rookKey;
@@ -872,7 +874,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
         capture    = false;
 
         // Calculate checker only one ROOK possible
-        st->checkersBB = isCheck ? square_bb(rDst) : 0;
+        st->checkersBB = isCheck ? square_bb(rookDstSq) : 0;
         assert(!isCheck || (checkers_bb() && popcount(checkers_bb()) == 1));
 
         goto DO_MOVE_END;
@@ -1086,9 +1088,9 @@ void Position::undo_move(Move m) noexcept {
         assert(!is_ok(capturedPc));
         assert(has_castled(ac));
 
-        Square rOrgSq, rDstSq;
-        do_castling<false>(ac, orgSq, dstSq, rOrgSq, rDstSq);
-        assert(rOrgSq == m.dst_sq());
+        Square rookOrgSq, rookDstSq;
+        do_castling<false>(ac, orgSq, dstSq, rookOrgSq, rookDstSq);
+        assert(rookOrgSq == m.dst_sq());
 
         goto UNDO_MOVE_END;
     }

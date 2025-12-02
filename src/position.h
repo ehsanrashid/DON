@@ -404,7 +404,7 @@ class Position final {
     };
 
     // Initialization helpers (used while setting up a position)
-    void set_castling_rights(Color c, Square rOrg) noexcept;
+    void set_castling_rights(Color c, Square rookOrgSq) noexcept;
     void set_state() noexcept;
     void set_ext_state() noexcept;
 
@@ -422,10 +422,10 @@ class Position final {
 
     template<bool Do>
     void do_castling(Color             ac,
-                     Square            orgSq,
-                     Square&           dstSq,
-                     Square&           rOrgSq,
-                     Square&           rDstSq,
+                     Square            kingOrgSq,
+                     Square&           kingDstSq,
+                     Square&           rookOrgSq,
+                     Square&           rookDstSq,
                      DirtyBoard* const db = nullptr) noexcept;
 
     void reset_en_passant_sq() noexcept;
@@ -1065,7 +1065,7 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
 
     // clang-format off
     Bitboard slidersBB = (pieces_bb(QUEEN, BISHOP) & attacks[BISHOP])
-                     | (pieces_bb(QUEEN, ROOK)   & attacks[ROOK]);
+                       | (pieces_bb(QUEEN, ROOK)   & attacks[ROOK]);
     // clang-format on
     while (slidersBB != 0)
     {
@@ -1095,9 +1095,9 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
 
     // clang-format off
     Bitboard nonSlidersBB = (pieces_bb(WHITE, PAWN) & attacks[BLACK])
-                        | (pieces_bb(BLACK, PAWN) & attacks[WHITE])
-                        | (pieces_bb(KNIGHT)      & attacks[KNIGHT])
-                        | (pieces_bb(KING)        & attacks[KING]);
+                          | (pieces_bb(BLACK, PAWN) & attacks[WHITE])
+                          | (pieces_bb(KNIGHT)      & attacks[KNIGHT])
+                          | (pieces_bb(KING)        & attacks[KING]);
     // clang-format on
     while (nonSlidersBB != 0)
     {
