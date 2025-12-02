@@ -611,7 +611,7 @@ void update_threats_accumulator_full(Color                                 persp
 }  // namespace
 
 template<typename T>
-const StdArray<AccumulatorState<T>, AccumulatorStack::MaxSize>&
+const StdArray<AccumulatorState<T>, AccumulatorStack::MAX_SIZE>&
 AccumulatorStack::accumulators() const noexcept {
     static_assert(std::is_same_v<T, PSQFeatureSet> || std::is_same_v<T, ThreatFeatureSet>,
                   "Invalid Feature Set Type");
@@ -624,7 +624,7 @@ AccumulatorStack::accumulators() const noexcept {
 }
 
 template<typename T>
-StdArray<AccumulatorState<T>, AccumulatorStack::MaxSize>&
+StdArray<AccumulatorState<T>, AccumulatorStack::MAX_SIZE>&
 AccumulatorStack::mut_accumulators() noexcept {
     static_assert(std::is_same_v<T, PSQFeatureSet> || std::is_same_v<T, ThreatFeatureSet>,
                   "Invalid Feature Set Type");
@@ -661,7 +661,7 @@ void AccumulatorStack::reset() noexcept {
 }
 
 void AccumulatorStack::push(DirtyBoard&& db) noexcept {
-    assert(size < MaxSize);
+    assert(size < MAX_SIZE);
     psqAccumulators[size].reset(std::move(db.dp));
     threatAccumulators[size].reset(std::move(db.dts));
     ++size;
@@ -736,7 +736,7 @@ void AccumulatorStack::forward_update_incremental(
   const FeatureTransformer<Dimensions>& featureTransformer,
   std::size_t                           begin) noexcept {
 
-    assert(begin < size && size <= MaxSize);
+    assert(begin < size && size <= MAX_SIZE);
     assert((accumulators<FeatureSet>()[begin].template acc<Dimensions>()).computed[perspective]);
 
     Square kingSq = pos.square<KING>(perspective);
@@ -754,12 +754,12 @@ void AccumulatorStack::forward_update_incremental(
             {
                 if (is_ok(dp1.dstSq) && dp1.dstSq == dp2.removeSq)
                 {
-                    auto capSq = dp1.dstSq;
+                    Square capturedSq = dp1.dstSq;
                     dp1.dstSq = dp2.removeSq = SQ_NONE;
                     update_accumulator_incremental_double(perspective, featureTransformer, kingSq,
                                                           accumulators[idx - 1], accumulators[idx],
                                                           accumulators[idx + 1]);
-                    dp1.dstSq = dp2.removeSq = capSq;
+                    dp1.dstSq = dp2.removeSq = capturedSq;
 
                     ++idx;
                     continue;
@@ -794,7 +794,7 @@ void AccumulatorStack::backward_update_incremental(
   const FeatureTransformer<Dimensions>& featureTransformer,
   std::size_t                           end) noexcept {
 
-    assert(end < size && size <= MaxSize);
+    assert(end < size && size <= MAX_SIZE);
     assert((state<FeatureSet>().template acc<Dimensions>()).computed[perspective]);
 
     Square kingSq = pos.square<KING>(perspective);

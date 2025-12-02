@@ -288,7 +288,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             {
                 assert(file < FILE_NB);
                 Square sq = make_square(file, rank);
-                put_pc(sq, pc);
+                put(sq, pc);
                 ++file;
             }
             else
@@ -682,29 +682,31 @@ void Position::set_ext_state() noexcept {
 
 // Check can do en-passant
 template<bool After>
-bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackersBB) const noexcept {
-    assert(is_ok(epSq));
+bool Position::can_enpassant(Color           ac,
+                             Square          enPassantSq,
+                             Bitboard* const epAttackersBB) const noexcept {
+    assert(is_ok(enPassantSq));
 
     // En-passant attackers
-    Bitboard attackersBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(epSq, ~ac);
+    Bitboard attackersBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
     if (epAttackersBB != nullptr)
         *epAttackersBB = attackersBB;
     if (!attackersBB)
         return false;
 
-    Square capSq;
+    Square capturedSq;
     if constexpr (After)
-        capSq = epSq - pawn_spush(ac);
+        capturedSq = enPassantSq - pawn_spush(ac);
     else
-        capSq = epSq + pawn_spush(ac);
-    assert(pieces_bb(~ac, PAWN) & capSq);
+        capturedSq = enPassantSq + pawn_spush(ac);
+    assert(pieces_bb(~ac, PAWN) & capturedSq);
 
     Square kingSq = square<KING>(ac);
 
     if constexpr (After)
     {
         // If there are checkers other than the to be captured pawn, ep is never legal
-        if (checkers_bb() & ~square_bb(capSq))
+        if (checkers_bb() & ~square_bb(capturedSq))
             return false;
 
         // If there are two pawns potentially being abled to capture
@@ -727,7 +729,7 @@ bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackersB
 
     bool epCheck = false;
     // Check en-passant is legal for the position
-    Bitboard occupancyBB = pieces_bb() ^ make_bb(capSq, epSq);
+    Bitboard occupancyBB = pieces_bb() ^ make_bb(capturedSq, enPassantSq);
     while (attackersBB != 0)
     {
         Square s = pop_lsq(attackersBB);
@@ -771,19 +773,19 @@ void Position::do_castling(Color             ac,
         db->dp.addSq    = rDstSq;
         db->dp.removePc = db->dp.addPc = rook;
 
-        remove_pc(orgSq, &db->dts);
-        remove_pc(rOrgSq, &db->dts);
-        put_pc(dstSq, king, &db->dts);
-        put_pc(rDstSq, rook, &db->dts);
+        remove(orgSq, &db->dts);
+        remove(rOrgSq, &db->dts);
+        put(dstSq, king, &db->dts);
+        put(rDstSq, rook, &db->dts);
 
         st->hasCastled[ac] = true;
     }
     else
     {
-        remove_pc(dstSq);
-        remove_pc(rDstSq);
-        put_pc(orgSq, king);
-        put_pc(rOrgSq, rook);
+        remove(dstSq);
+        remove(rDstSq);
+        put(orgSq, king);
+        put(rOrgSq, rook);
     }
 }
 
@@ -910,7 +912,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
                 capturedKey = Zobrist::piece_square(~ac, capturedPt, capturedSq);
 
                 // Remove the captured pawn
-                remove_pc(capturedSq);
+                remove(capturedSq);
             }
 
             st->pawnKey[~ac] ^= capturedKey;
@@ -934,12 +936,12 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     if (capture && m.type_of() != EN_PASSANT)
     {
         // Remove the captured piece
-        remove_pc(orgSq, &db.dts);
-        swap_pc(dstSq, movedPc, &db.dts);
+        remove(orgSq, &db.dts);
+        swap(dstSq, movedPc, &db.dts);
     }
     else
     {
-        move_pc(orgSq, dstSq, &db.dts);
+        move(orgSq, dstSq, &db.dts);
     }
 
     // If the moving piece is a pawn do some special extra work
@@ -961,7 +963,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
             db.dp.addSq = dstSq;
             db.dp.addPc = promotedPc;
 
-            swap_pc(dstSq, promotedPc, &db.dts);
+            swap(dstSq, promotedPc, &db.dts);
             assert(count(promotedPc));
             assert(Zobrist::piece_square(ac, PAWN, dstSq) == 0);
             // Update hash keys
@@ -1099,33 +1101,33 @@ void Position::undo_move(Move m) noexcept {
         assert(type_of(pc) == m.promotion_type());
         assert(promoted_pc() == pc);
 
-        remove_pc(dstSq);
+        remove(dstSq);
         pc = make_piece(ac, PAWN);
-        put_pc(dstSq, pc);
+        put(dstSq, pc);
     }
 
     // Move back the piece
-    move_pc(dstSq, orgSq);
+    move(dstSq, orgSq);
 
     if (is_ok(capturedPc))
     {
-        Square capSq = dstSq;
+        Square capturedSq = dstSq;
 
         if (m.type_of() == EN_PASSANT)
         {
-            capSq -= pawn_spush(ac);
+            capturedSq -= pawn_spush(ac);
 
             assert(type_of(pc) == PAWN);
             assert(relative_rank(ac, orgSq) == RANK_5);
             assert(relative_rank(ac, dstSq) == RANK_6);
-            assert(empty_on(capSq));
+            assert(empty_on(capturedSq));
             assert(capturedPc == make_piece(~ac, PAWN));
             assert(rule50_count() == 0);
             assert(st->preSt->enPassantSq == dstSq);
             assert(st->preSt->rule50Count == 0);
         }
         // Restore the captured piece
-        put_pc(capSq, capturedPc);
+        put(capturedSq, capturedPc);
     }
 
 UNDO_MOVE_END:
@@ -1288,7 +1290,7 @@ bool Position::legal(Move m) const noexcept {
         && (!(blockers_bb(ac) & orgSq) || aligned(square<KING>(ac), orgSq, dstSq));
 }
 
-// Tests whether a pseudo-legal move is a check
+// Tests whether a move is a check
 bool Position::check(Move m) const noexcept {
     assert(legal(m));
 
@@ -1410,8 +1412,8 @@ Key Position::move_key(Move m) const noexcept {
 
     Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     Piece  movedPc    = piece_on(orgSq);
-    Square capSq      = m.type_of() != EN_PASSANT ? dstSq : dstSq - pawn_spush(ac);
-    Piece  capturedPc = piece_on(capSq);
+    Square capturedSq = m.type_of() != EN_PASSANT ? dstSq : dstSq - pawn_spush(ac);
+    Piece  capturedPc = piece_on(capturedSq);
     assert(color_of(movedPc) == ac);
     assert(!is_ok(capturedPc) || color_of(capturedPc) == (m.type_of() != CASTLING ? ~ac : ac));
     assert(type_of(capturedPc) != KING);
@@ -1447,7 +1449,7 @@ Key Position::move_key(Move m) const noexcept {
     }
 
     return moveKey  //
-         ^ Zobrist::piece_square(~ac, type_of(capturedPc), capSq)
+         ^ Zobrist::piece_square(~ac, type_of(capturedPc), capturedSq)
          ^ Zobrist::mr50(!is_ok(capturedPc) && movedPt != PAWN ? rule50_count() + 1 : 0);
 }
 
@@ -1468,14 +1470,14 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     Bitboard occupancyBB = pieces_bb();
 
-    Square capSq = dstSq;
+    Square capturedSq = dstSq;
     if (m.type_of() == EN_PASSANT)
     {
-        capSq -= pawn_spush(ac);
-        occupancyBB ^= capSq;
+        capturedSq -= pawn_spush(ac);
+        occupancyBB ^= capturedSq;
     }
 
-    int swap = piece_value(type_of(piece_on(capSq))) + m.promotion_value() - threshold;
+    int swap = piece_value(type_of(piece_on(capturedSq))) + m.promotion_value() - threshold;
 
     // If can't beat the threshold despite capturing the piece,
     // it is impossible to beat the threshold.

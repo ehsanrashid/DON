@@ -130,7 +130,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
             if (is_ok(pc) && type_of(pc) != KING)
             {
-                pos.remove_pc(sq);
+                pos.remove(sq);
 
                 accStack->reset();
 
@@ -140,7 +140,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
                 v = baseEval - eval;
 
-                pos.put_pc(sq, pc);
+                pos.put(sq, pc);
             }
 
             write_square(f, r, pc, v);
