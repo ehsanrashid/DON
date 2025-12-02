@@ -1262,8 +1262,8 @@ bool Position::legal(Move m) const noexcept {
     case PROMOTION :
         if (!(type_of(movedPc) == PAWN  //&& (PROMOTION_RANKS_BB & dstSq)
               && relative_rank(ac, orgSq) == RANK_7 && relative_rank(ac, dstSq) == RANK_8
-              && ((orgSq + pawn_spush(ac) == dstSq && !(pieces_bb() & dstSq))
-                  || ((attacks_bb<PAWN>(orgSq, ac) & pieces_bb(~ac)) & dstSq))))
+              && ((orgSq + pawn_spush(ac) == dstSq && (pieces_bb() & dstSq) == 0)
+                  || ((attacks_bb<PAWN>(orgSq, ac) & pieces_bb(~ac)) & dstSq) != 0)))
             return false;
         break;
 

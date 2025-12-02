@@ -267,7 +267,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     {
         Move m = *read++;
 
-        if ((blockerPawnsBB & m.org_sq()) == 0 || pos.legal(m))
+        if ((blockerPawnsBB & m.org_sq()) == 0 || m.type_of() == EN_PASSANT || pos.legal(m))
             *write++ = m;
     }
 
