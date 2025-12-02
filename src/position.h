@@ -666,8 +666,8 @@ inline bool Position::castling_possible(Color c, CastlingRights cr) const noexce
     return castling_has_rights(cr)  //
         // Verify if the Rook blocks some checks (needed in case of Chess960).
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-        && !(blockers_bb(c) & castling_rook_sq(cr))  //
-        && castling_full_path_clear(cr)              //
+        && (blockers_bb(c) & castling_rook_sq(cr)) == 0  //
+        && castling_full_path_clear(cr)                  //
         && !castling_king_path_attackers_exists(c, cr);
 }
 
