@@ -913,7 +913,7 @@ enum Ambiguity : std::uint8_t {
 // Ambiguity if more then one piece of same type can reach 'to' with a legal move.
 // NOTE: for pawns it is not needed because 'org' file is explicit.
 Ambiguity ambiguity(Move m, const Position& pos) noexcept {
-    assert(pos.pseudo_legal(m) && pos.legal(m));
+    assert(pos.legal(m));
 
     Color ac = pos.active_color();
 
@@ -939,7 +939,7 @@ Ambiguity ambiguity(Move m, const Position& pos) noexcept {
         Square sq = pop_lsb(b);
 
         Move mm = Move(sq, dst);
-        if (!(pos.pseudo_legal(mm) && pos.legal(mm)))
+        if (!pos.legal(mm))
             pieces ^= sq;
     }
 

@@ -50,7 +50,7 @@ MovePicker::MovePicker(const Position&              p,
     continuationHistory(continuationHist),
     ssPly(ply),
     threshold(th) {
-    assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
+    assert(ttMove == Move::None || pos.legal(ttMove));
 
     stage = pos.checkers() ? STG_EVA_TT + int(!(ttMove != Move::None))
           : threshold < 0
@@ -69,7 +69,7 @@ MovePicker::MovePicker(const Position&          p,
     captureHistory(captureHist),
     threshold(th) {
     assert(!pos.checkers());
-    assert(ttMove == Move::None || pos.pseudo_legal(ttMove));
+    assert(ttMove == Move::None || pos.legal(ttMove));
 
     stage = STG_PROBCUT_TT + int(!(ttMove != Move::None && pos.capture_queenpromo(ttMove)));
 }

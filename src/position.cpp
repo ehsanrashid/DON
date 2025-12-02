@@ -1169,10 +1169,25 @@ void Position::undo_null_move() noexcept {
     assert(_is_ok());
 }
 
-// Takes a random move and tests whether the move is pseudo-legal.
-// It is used to validate moves from TT that can be corrupted
-// due to SMP concurrent access or hash position key aliasing.
-bool Position::pseudo_legal(Move m) const noexcept {
+bool Position::castling_legal(Move m) const noexcept {
+
+    Color ac = active_color();
+
+    Square org = m.org_sq(), dst = m.dst_sq();
+
+    Square    kDst = king_castle_sq(ac, org, dst);
+    Direction step = org < kDst ? WEST : EAST;
+    for (Square s = kDst; s != org; s += step)
+        if (has_attackers_to(s, pieces(~ac)))
+            return false;
+
+    // Verify if the Rook blocks some checks (needed in case of Chess960).
+    // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
+    return !(blockers(ac) & dst);
+}
+
+// Tests whether a move is legal
+bool Position::legal(Move m) const noexcept {
     assert(m.is_ok());
 
     Color ac = active_color();
@@ -1192,7 +1207,8 @@ bool Position::pseudo_legal(Move m) const noexcept {
         CastlingRights cr = make_castling_rights(ac, org, dst);
         return type_of(pc) == KING && (pieces(ac, ROOK) & dst) && !checkers()
             && relative_rank(ac, org) == RANK_1 && relative_rank(ac, dst) == RANK_1
-            && can_castle(cr) && !castling_impeded(cr) && castling_rook_sq(cr) == dst;
+            && can_castle(cr) && !castling_impeded(cr) && castling_rook_sq(cr) == dst
+            && castling_legal(m);
     }
 
     // The destination square cannot be occupied by a friendly piece
@@ -1261,88 +1277,12 @@ bool Position::pseudo_legal(Move m) const noexcept {
              // Our move must be a blocking interposition or a capture of the checking piece
              && ((between_bb(square<KING>(ac), lsb(checkers())) & dst)
                  || (m.type_of() == EN_PASSANT && (checkers() & (dst - pawn_spush(ac)))))))
-        && (type_of(pc) == PAWN || !(blockers(ac) & org) || aligned(square<KING>(ac), org, dst));
-}
-
-// Tests whether a pseudo-legal move is legal
-bool Position::legal(Move m) const noexcept {
-    assert(pseudo_legal(m));
-
-    Color ac = active_color();
-
-    Square org = m.org_sq(), dst = m.dst_sq();
-    assert(color_of(piece_on(org)) == ac);
-
-    switch (m.type_of())
-    {
-    // En-passant captures are a tricky special case. Because they are rather uncommon,
-    // Simply by testing whether the king is attacked after the move is made.
-    case EN_PASSANT :
-        assert(piece_on(org) == make_piece(ac, PAWN));
-        assert(en_passant_sq() == dst);
-        assert(rule50_count() == 0);
-        assert(relative_rank(ac, org) == RANK_5);
-        assert(relative_rank(ac, dst) == RANK_6);
-        assert(pieces(~ac, PAWN) & (dst - pawn_spush(ac)));
-        assert(!(pieces() & make_bb(dst, dst + pawn_spush(ac))));
-        assert((attacks_bb<PAWN>(org, ac) /*& ~pieces()*/) & dst);
-        assert(
-          !(slide_attackers_to(square<KING>(ac), pieces() ^ make_bb(org, dst, dst - pawn_spush(ac)))
-            & pieces(~ac)));
-
-        return true;
-
-    // Castling moves generation does not check if the castling path is clear of
-    // enemy attacks, it is delayed at a later time: now!
-    case CASTLING : {
-        assert(piece_on(org) == make_piece(ac, KING));
-        assert(org == square<KING>(ac));
-        assert(pieces(ac, ROOK) & dst);
-        assert(!checkers());
-        assert(relative_rank(ac, org) == RANK_1);
-        assert(relative_rank(ac, dst) == RANK_1);
-        assert(can_castle(make_castling_rights(ac, org, dst)));
-        assert(!castling_impeded(make_castling_rights(ac, org, dst)));
-        assert(castling_rook_sq(make_castling_rights(ac, org, dst)) == dst);
-
-        // After castling, the rook and king final positions are the same in
-        // Chess960 as they would be in standard chess.
-        Square    kDst = king_castle_sq(ac, org, dst);
-        Direction step = org < kDst ? WEST : EAST;
-        for (Square s = kDst; s != org; s += step)
-            if (has_attackers_to(s, pieces(~ac)))
-                return false;
-
-        // In case of Chess960, verify if the Rook blocks some checks.
-        // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-        return !(blockers(ac) & dst);
-    }
-    case NORMAL :
-        // For king moves, return true
-        if (type_of(piece_on(org)) == KING)
-        {
-            assert(!has_attackers_to(dst, pieces(~ac), pieces() ^ org));
-            return true;
-        }
-        break;
-
-    case PROMOTION :
-        assert(piece_on(org) == make_piece(ac, PAWN));
-        assert(relative_rank(ac, org) == RANK_7);
-        assert(relative_rank(ac, dst) == RANK_8);
-        assert((org + pawn_spush(ac) == dst && !(pieces() & dst))
-               || ((attacks_bb<PAWN>(org, ac) & pieces(~ac)) & dst));
-        break;
-    }
-
-    // For non-king move, check it is not pinned or it is moving along the line from the king.
-    return type_of(piece_on(org)) != PAWN || !(blockers(ac) & org)
-        || aligned(square<KING>(ac), org, dst);
+        && (!(blockers(ac) & org) || aligned(square<KING>(ac), org, dst));
 }
 
 // Tests whether a pseudo-legal move is a check
 bool Position::check(Move m) const noexcept {
-    assert(pseudo_legal(m));
+    assert(legal(m));
 
     Color ac = active_color();
 
@@ -1382,7 +1322,7 @@ bool Position::check(Move m) const noexcept {
 }
 
 bool Position::dbl_check(Move m) const noexcept {
-    assert(pseudo_legal(m));
+    assert(legal(m));
 
     Color ac = active_color();
 
@@ -1416,7 +1356,7 @@ bool Position::dbl_check(Move m) const noexcept {
 }
 
 bool Position::fork(Move m) const noexcept {
-    assert(pseudo_legal(m));
+    assert(legal(m));
 
     Color ac = active_color();
 
@@ -1505,7 +1445,7 @@ Key Position::move_key(Move m) const noexcept {
 // is greater or equal to the given threshold.
 // An algorithm similar to alpha-beta pruning with a null window.
 bool Position::see_ge(Move m, int threshold) const noexcept {
-    assert(pseudo_legal(m));
+    assert(legal(m));
 
     // Not deal with castling, can't win any material, nor can lose any.
     if (m.type_of() == CASTLING)
@@ -1834,7 +1774,7 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location
         if (empty_on(m.org_sq()))
             m = m.reverse();
-        assert(pseudo_legal(m) && legal(m) && MoveList<LEGAL>(*this).contains(m));
+        assert(legal(m) && MoveList<LEGAL>(*this).contains(m));
 #endif
         if (i < ply
             // For nodes before or at the root, check that the move is

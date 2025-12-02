@@ -444,7 +444,11 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
         fen = std::string(trim(fen));
 
         bool setOption = fen.rfind("setoption ", 0) == 0;
-        commands.emplace_back(setOption ? fen : "position fen " + fen);
+
+        if (!setOption)
+            fen = "position fen " + fen;
+
+        commands.emplace_back(fen);
         if (!setOption)
             commands.emplace_back(command);
     }

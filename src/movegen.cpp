@@ -175,6 +175,8 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
     if constexpr (Evasion)
         enemies &= target;
 
+    Move *read = moves, *write = moves;
+
     // Promotions and under-promotions
     if (on7Pawns)
     {
@@ -256,7 +258,19 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
         }
     }
 
-    return moves;
+    Bitboard blockers     = pos.blockers(AC);
+    Bitboard blockerPawns = blockers & acPawns;
+
+    // Filter illegal moves (preserve order)
+    while (read != moves)
+    {
+        Move m = *read++;
+
+        if (!(blockerPawns & m.org_sq()) || pos.legal(m))
+            *write++ = m;
+    }
+
+    return write;
 }
 
 template<Color AC, PieceType PT>
@@ -345,10 +359,15 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
                     assert(is_ok(pos.castling_rook_sq(cr))
                            && (pos.pieces(AC, ROOK) & pos.castling_rook_sq(cr)));
 
-                    *moves++ = Move(CASTLING, kingSq, pos.castling_rook_sq(cr));
+                    Move m = Move(CASTLING, kingSq, pos.castling_rook_sq(cr));
 
-                    if constexpr (Any)
-                        return moves;
+                    if (pos.castling_legal(m))
+                    {
+                        *moves++ = m;
+
+                        if constexpr (Any)
+                            return moves;
+                    }
                 }
     }
 
@@ -380,10 +399,7 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
 
         const auto* pMoves = moves;
         moves = generate_pawns_moves<AC, GT    >(pos, moves, target);
-        if (Any && ((pMoves + 0 < moves && pos.legal(pMoves[0]))
-                 || (pMoves + 1 < moves && pos.legal(pMoves[1]))
-                 || (pMoves + 2 < moves && pos.legal(pMoves[2])))) return moves;
-        pMoves = moves;
+        if (Any && pMoves != moves) return moves;
         moves = generate_piece_moves<AC, KNIGHT>(pos, moves, target);
         if (Any && pMoves != moves) return moves;
         moves = generate_piece_moves<AC, BISHOP>(pos, moves, target);
@@ -444,50 +460,16 @@ template Move* generate<EVA_CAPTURE, false>(const Position& pos, Move* moves) no
 template Move* generate<EVA_QUIET, false>(const Position& pos, Move* moves) noexcept;
 //template Move* generate<EVA_QUIET, true>(const Position& pos, Move* moves) noexcept;
 
-namespace {
-
-template<bool Any>
-Move* generate_legal(const Position& pos, Move* moves) noexcept {
-
-    Move *read = moves, *write = moves;
-
-    moves = pos.checkers()  //
-            ? generate<EVASION, Any>(pos, moves)
-            : generate<ENCOUNTER, Any>(pos, moves);
-
-    Bitboard blockers = pos.blockers(pos.active_color());
-    Bitboard pawns    = pos.pieces(PAWN);
-
-    Bitboard blockerPawns = blockers & pawns;
-
-    // Filter illegal moves (preserve order)
-    while (read != moves)
-    {
-        Move m = *read++;
-
-        if (((blockerPawns & m.org_sq()) || m.type_of() == CASTLING) && !pos.legal(m))
-            continue;  // Skip illegal
-
-        *write++ = m;
-    }
-
-    return write;
-}
-
-// Explicit template instantiations:
-template Move* generate_legal<false>(const Position& pos, Move* moves) noexcept;
-template Move* generate_legal<true>(const Position& pos, Move* moves) noexcept;
-
-}  // namespace
-
 // <LEGAL> Generates all legal moves
 template<>
 Move* generate<LEGAL, false>(const Position& pos, Move* moves) noexcept {
-    return generate_legal<false>(pos, moves);
+    return pos.checkers() ? generate<EVASION, false>(pos, moves)
+                          : generate<ENCOUNTER, false>(pos, moves);
 }
 template<>
 Move* generate<LEGAL, true>(const Position& pos, Move* moves) noexcept {
-    return generate_legal<true>(pos, moves);
+    return pos.checkers() ? generate<EVASION, true>(pos, moves)
+                          : generate<ENCOUNTER, true>(pos, moves);
 }
 
 }  // namespace DON

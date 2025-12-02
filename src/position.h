@@ -254,7 +254,7 @@ class Position final {
     // clang-format on
 
     // Properties of moves
-    bool  pseudo_legal(Move m) const noexcept;
+    bool  castling_legal(Move m) const noexcept;
     bool  legal(Move m) const noexcept;
     bool  capture(Move m) const noexcept;
     bool  capture_queenpromo(Move m) const noexcept;
@@ -833,7 +833,7 @@ inline Value Position::evaluate() const noexcept {
 }
 
 inline bool Position::capture(Move m) const noexcept {
-    assert(pseudo_legal(m));
+    assert(legal(m));
     return (m.type_of() != CASTLING && !empty_on(m.dst_sq())) || m.type_of() == EN_PASSANT;
 }
 
@@ -842,12 +842,12 @@ inline bool Position::capture_queenpromo(Move m) const noexcept {
 }
 
 inline Piece Position::moved_piece(Move m) const noexcept {
-    assert(pseudo_legal(m));
+    assert(legal(m));
     return piece_on(m.org_sq());
 }
 
 inline Piece Position::captured_piece(Move m) const noexcept {
-    assert(pseudo_legal(m));
+    assert(legal(m));
     assert(m.type_of() != CASTLING);
     return m.type_of() == EN_PASSANT ? make_piece(~active_color(), PAWN) : piece_on(m.dst_sq());
 }

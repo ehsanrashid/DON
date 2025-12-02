@@ -110,8 +110,8 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::int16_t rule50Coun
 
 constexpr Bound fail_bound(bool failHigh) noexcept { return failHigh ? BOUND_LOWER : BOUND_UPPER; }
 
-Move pseudo_legal_tt_move(Move ttMove, const Position& pos) noexcept {
-    return ttMove != Move::None && pos.pseudo_legal(ttMove) ? ttMove : Move::None;
+Move legal_tt_move(Move ttMove, const Position& pos) noexcept {
+    return ttMove != Move::None && pos.legal(ttMove) ? ttMove : Move::None;
 }
 
 // Appends move and appends child Pv[]
@@ -755,9 +755,9 @@ Value Worker::search(Position&    pos,
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = RootNode ? rootMoves[curIdx].pv[0]
-              : ttd.hit  ? pseudo_legal_tt_move(ttd.move, pos)
+              : ttd.hit  ? legal_tt_move(ttd.move, pos)
                          : Move::None;
-    assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
+    assert(ttd.move == Move::None || pos.legal(ttd.move));
     ss->ttMove     = ttd.move;
     bool ttCapture = ttd.move != Move::None && pos.capture_queenpromo(ttd.move);
 
@@ -1051,12 +1051,12 @@ Value Worker::search(Position&    pos,
         // Loop through all pseudo-legal moves
         while ((move = mp.next_move()) != Move::None)
         {
-            assert(pos.pseudo_legal(move));
+            assert(pos.legal(move));
             assert(pos.capture_queenpromo(move)
                    && (move == ttd.move || pos.see(move) >= probCutThreshold));
 
-            // Check for legality
-            if (move == excludedMove || !pos.legal(move))
+            // Check for exclusion
+            if (move == excludedMove)
                 continue;
 
             // At root obey the "searchmoves" option and skip moves not listed in RootMove List.
@@ -1123,10 +1123,10 @@ S_MOVES_LOOP:  // When in check, search starts here
     // Step 13. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
     {
-        assert(pos.pseudo_legal(move));
+        assert(pos.legal(move));
 
-        // Check for legality
-        if (move == excludedMove || !pos.legal(move))
+        // Check for exclusion
+        if (move == excludedMove)
             continue;
 
         // At root obey the "searchmoves" option and skip moves not listed in RootMove List.
@@ -1632,8 +1632,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     auto [ttd, ttu] = tt.probe(key);
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
-    ttd.move  = ttd.hit ? pseudo_legal_tt_move(ttd.move, pos) : Move::None;
-    assert(ttd.move == Move::None || pos.pseudo_legal(ttd.move));
+    ttd.move  = ttd.hit ? legal_tt_move(ttd.move, pos) : Move::None;
+    assert(ttd.move == Move::None || pos.legal(ttd.move));
     ss->ttMove = ttd.move;
     bool ttPv  = ttd.hit && ttd.pv;
 
@@ -1642,7 +1642,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         && (ttd.bound & fail_bound(ttd.value >= beta)) != 0)
         return ttd.value;
 
-    int correctionValue = correction_value(pos, ss);
+    int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
     Value unadjustedStaticEval, bestValue, futilityBase;
 
@@ -1708,9 +1708,7 @@ QS_MOVES_LOOP:
 
     Move move, bestMove = Move::None;
 
-    const History<HPieceSq>* contHistory[1]{
-      (ss - 1)->pieceSqHistory  //
-    };
+    const History<HPieceSq>* contHistory[1]{(ss - 1)->pieceSqHistory};
 
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
@@ -1719,12 +1717,8 @@ QS_MOVES_LOOP:
     // Step 5. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
     {
-        assert(pos.pseudo_legal(move));
+        assert(pos.legal(move));
         assert(ss->inCheck || pos.capture_queenpromo(move));
-
-        // Check for legality
-        if (!pos.legal(move))
-            continue;
 
         ++moveCount;
 
@@ -1885,11 +1879,9 @@ void Worker::update_capture_history(Piece pc, Square dst, PieceType captured, in
     captureHistory[pc][dst][captured] << bonus;
 }
 void Worker::update_capture_history(const Position& pos, Move m, int bonus) noexcept {
-    assert(pos.legal(m));
     update_capture_history(pos.moved_piece(m), m.dst_sq(), pos.captured(m), bonus);
 }
 void Worker::update_quiet_history(Color ac, Move m, int bonus) noexcept {
-    assert(m.is_ok());
     quietHistory[ac][m.raw()] << bonus;
 }
 void Worker::update_pawn_history(std::uint16_t pawnIndex, Piece pc, Square dst, int bonus) noexcept {
@@ -1913,7 +1905,6 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::u
 
 // Updates history at the end of search() when a bestMove is found
 void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bm, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept {
-    assert(pos.legal(bm));
     assert(ss->moveCount != 0);
 
     int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * (bm == ss->ttMove);
@@ -2012,7 +2003,7 @@ bool Worker::ponder_move_extracted() noexcept {
 
         auto [ttd, ttu] = tt.probe(rootPos.key());
 
-        pm = ttd.hit ? pseudo_legal_tt_move(ttd.move, rootPos) : Move::None;
+        pm = ttd.hit ? legal_tt_move(ttd.move, rootPos) : Move::None;
         if (pm == Move::None || !legalMoveList.contains(pm))
         {
             pm = Move::None;
