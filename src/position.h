@@ -223,25 +223,25 @@ class Position final {
 
     auto castling_rights_mask(Square org, Square dst) const noexcept;
 
-    bool   has_castling_rights(CastlingRights cr) const noexcept;
+    bool   castling_has_rights(CastlingRights cr) const noexcept;
     Square castling_rook_sq(CastlingRights cr) const noexcept;
     bool   castling_full_path_clear(CastlingRights cr) const noexcept;
-    bool   castling_king_path_attacked(CastlingRights cr, Bitboard attackers) const noexcept;
-    bool castling_possible(CastlingRights cr, Bitboard blockers, Bitboard attackers) const noexcept;
+    bool   castling_king_path_attackers_exists(Color c, CastlingRights cr) const noexcept;
+    bool   castling_possible(Color c, CastlingRights cr) const noexcept;
 
-    Bitboard xslide_attackers_to(Square s) const noexcept;
-    Bitboard slide_attackers_to(Square s, Bitboard occupied) const noexcept;
-    Bitboard slide_attackers_to(Square s) const noexcept;
-    Bitboard attackers_to(Square s, Bitboard occupied) const noexcept;
-    Bitboard attackers_to(Square s) const noexcept;
+    Bitboard xslide_attackers(Square s) const noexcept;
+    Bitboard slide_attackers(Square s, Bitboard occupied) const noexcept;
+    Bitboard slide_attackers(Square s) const noexcept;
+    Bitboard attackers(Square s, Bitboard occupied) const noexcept;
+    Bitboard attackers(Square s) const noexcept;
 
-    bool has_attackers_to(Square s, Bitboard attackers, Bitboard occupied) const noexcept;
-    bool has_attackers_to(Square s, Bitboard attackers) const noexcept;
+    bool attackers_exists(Square s, Bitboard attackers, Bitboard occupied) const noexcept;
+    bool attackers_exists(Square s, Bitboard attackers) const noexcept;
 
-    Bitboard blockers_to(Square    s,
-                         Bitboard  attackers,
-                         Bitboard& ownPinners,
-                         Bitboard& oppPinners) const noexcept;
+    Bitboard blockers(Square    s,
+                      Bitboard  attackers,
+                      Bitboard& ownPinners,
+                      Bitboard& oppPinners) const noexcept;
 
     // Attacks from a piece type
     template<PieceType PT>
@@ -364,18 +364,18 @@ class Position final {
     struct Castling final {
        public:
         void clear() noexcept {
+            rookSq = SQ_NONE;
             std::memset(fullPathSqs.data(), SQ_NONE, sizeof(fullPathSqs));
             fullPathLen = 0;
             std::memset(kingPathSqs.data(), SQ_NONE, sizeof(kingPathSqs));
             kingPathLen = 0;
-            rookSq      = SQ_NONE;
         }
 
+        Square              rookSq = SQ_NONE;
         StdArray<Square, 5> fullPathSqs;
         std::uint8_t        fullPathLen = 0;
         StdArray<Square, 5> kingPathSqs;
         std::uint8_t        kingPathLen = 0;
-        Square              rookSq      = SQ_NONE;
     };
 
     // SEE struct used to get a nice syntax for SEE comparisons.
@@ -619,7 +619,7 @@ inline auto Position::castling_rights_mask(Square org, Square dst) const noexcep
          | (dstIdx < castlingRightsMask.size() ? castlingRightsMask[dstIdx] : 0);
 }
 
-inline bool Position::has_castling_rights(CastlingRights cr) const noexcept {
+inline bool Position::castling_has_rights(CastlingRights cr) const noexcept {
     return castling_rights() & int(cr);
 }
 
@@ -642,61 +642,63 @@ inline bool Position::castling_full_path_clear(CastlingRights cr) const noexcept
 }
 
 // Checks if the castling king path is attacked
-inline bool Position::castling_king_path_attacked(CastlingRights cr,
-                                                  Bitboard       attackers) const noexcept {
-    assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
+inline bool Position::castling_king_path_attackers_exists(Color          c,
+                                                          CastlingRights cr) const noexcept {
+    assert((c == WHITE && (cr == WHITE_OO || cr == WHITE_OOO))
+           || (c == BLACK && (cr == BLACK_OO || cr == BLACK_OOO)));
+
+    Bitboard attackers = pieces(~c);
 
     const auto& castling = castlings[BIT[cr]];
 
     for (std::size_t len = 0; len < castling.kingPathLen; ++len)
-        if (has_attackers_to(castling.kingPathSqs[len], attackers))
+        if (attackers_exists(castling.kingPathSqs[len], attackers))
             return true;
 
     return false;
 }
 
-inline bool Position::castling_possible(CastlingRights cr,
-                                        Bitboard       blockers,
-                                        Bitboard       attackers) const noexcept {
-    assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
+inline bool Position::castling_possible(Color c, CastlingRights cr) const noexcept {
+    assert((c == WHITE && (cr == WHITE_OO || cr == WHITE_OOO))
+           || (c == BLACK && (cr == BLACK_OO || cr == BLACK_OOO)));
 
-    return has_castling_rights(cr)  //
+    return castling_has_rights(cr)  //
         // Verify if the Rook blocks some checks (needed in case of Chess960).
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-        && !(blockers & castling_rook_sq(cr))  //
-        && castling_full_path_clear(cr)        //
-        && !castling_king_path_attacked(cr, attackers);
+        && !(blockers(c) & castling_rook_sq(cr))  //
+        && castling_full_path_clear(cr)           //
+        && !castling_king_path_attackers_exists(c, cr);
 }
 
 // clang-format off
 
 // Computes a bitboard of all x-ray sliding pieces which attack a given square.
-inline Bitboard Position::xslide_attackers_to(Square s) const noexcept {
+inline Bitboard Position::xslide_attackers(Square s) const noexcept {
     return (pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(s))
          | (pieces(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s));
 }
 // Computes a bitboard of all sliding pieces which attack a given square.
-inline Bitboard Position::slide_attackers_to(Square s, Bitboard occupied) const noexcept {
+inline Bitboard Position::slide_attackers(Square s, Bitboard occupied) const noexcept {
     return (pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(s) ? pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupied) : 0)
          | (pieces(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s) ? pieces(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupied) : 0);
 }
-inline Bitboard Position::slide_attackers_to(Square s) const noexcept {
-    return slide_attackers_to(s, pieces());
+inline Bitboard Position::slide_attackers(Square s) const noexcept {
+    return slide_attackers(s, pieces());
 }
 // Computes a bitboard of all pieces which attack a given square.
 // Slider attacks use the occupied bitboard to indicate occupancy.
-inline Bitboard Position::attackers_to(Square s, Bitboard occupied) const noexcept {
-    return slide_attackers_to(s, occupied)
+inline Bitboard Position::attackers(Square s, Bitboard occupied) const noexcept {
+    return slide_attackers(s, occupied)
          | (pieces(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
          | (pieces(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE))
          | (pieces(KNIGHT     ) & attacks_bb<KNIGHT>(s))
          | (pieces(KING       ) & attacks_bb<KING  >(s));
 }
-inline Bitboard Position::attackers_to(Square s) const noexcept {
-    return attackers_to(s, pieces());
+inline Bitboard Position::attackers(Square s) const noexcept {
+    return attackers(s, pieces());
 }
 // Checks if there are any attackers to a given square from a set of attackers.
-inline bool Position::has_attackers_to(Square s, Bitboard attackers, Bitboard occupied) const noexcept {
+inline bool Position::attackers_exists(Square s, Bitboard attackers, Bitboard occupied) const noexcept {
     return ((attackers & pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(s))
          && (attackers & pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupied)))
         || ((attackers & pieces(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s))
@@ -706,18 +708,18 @@ inline bool Position::has_attackers_to(Square s, Bitboard attackers, Bitboard oc
         ||  (attackers & pieces(KNIGHT       ) & attacks_bb<KNIGHT>(s))
         ||  (attackers & pieces(KING         ) & attacks_bb<KING  >(s));
 }
-inline bool Position::has_attackers_to(Square s, Bitboard attackers) const noexcept {
-    return has_attackers_to(s, attackers, pieces());
+inline bool Position::attackers_exists(Square s, Bitboard attackers) const noexcept {
+    return attackers_exists(s, attackers, pieces());
 }
 
 // Computes the blockers that are pinned pieces to a given square 's' from a set of attackers.
 // Blockers are pieces that, when removed, would expose an x-ray attack to 's'.
 // Pinners are also returned via the ownPinners and oppPinners reference.
-inline Bitboard Position::blockers_to(Square s, Bitboard attackers, Bitboard& ownPinners, Bitboard& oppPinners) const noexcept {
+inline Bitboard Position::blockers(Square s, Bitboard attackers, Bitboard& ownPinners, Bitboard& oppPinners) const noexcept {
     Bitboard blockers = 0;
 
     // xSnipers are x-ray attackers that attack 's' when blockers are removed
-    Bitboard xSnipers = xslide_attackers_to(s) & attackers;
+    Bitboard xSnipers = xslide_attackers(s) & attackers;
     Bitboard occupied = pieces() ^ xSnipers;
 
     while (xSnipers)

@@ -443,7 +443,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     // handle also common incorrect FEN with moveNum = 0.
     gamePly = std::max(2 * (std::abs(moveNum) - 1), 0) + (ac == BLACK);
 
-    st->checkers = attackers_to(square<KING>(ac)) & pieces(~ac);
+    st->checkers = attackers(square<KING>(ac)) & pieces(~ac);
 
     set_ext_state();
 
@@ -537,15 +537,15 @@ std::string Position::fen(bool full) const noexcept {
 
     fens += active_color() == WHITE ? " w " : " b ";
 
-    if (has_castling_rights(ANY_CASTLING))
+    if (castling_has_rights(ANY_CASTLING))
     {
-        if (has_castling_rights(WHITE_OO))
+        if (castling_has_rights(WHITE_OO))
             fens += Chess960 ? to_char<true>(file_of(castling_rook_sq(WHITE_OO))) : 'K';
-        if (has_castling_rights(WHITE_OOO))
+        if (castling_has_rights(WHITE_OOO))
             fens += Chess960 ? to_char<true>(file_of(castling_rook_sq(WHITE_OOO))) : 'Q';
-        if (has_castling_rights(BLACK_OO))
+        if (castling_has_rights(BLACK_OO))
             fens += Chess960 ? to_char<false>(file_of(castling_rook_sq(BLACK_OO))) : 'k';
-        if (has_castling_rights(BLACK_OOO))
+        if (castling_has_rights(BLACK_OOO))
             fens += Chess960 ? to_char<false>(file_of(castling_rook_sq(BLACK_OOO))) : 'q';
     }
     else
@@ -590,6 +590,8 @@ void Position::set_castling_rights(Color c, Square rOrg) noexcept {
 
     auto& castling = castlings[BIT[cr]];
 
+    castling.rookSq = rOrg;
+
     Square kDst = king_castle_sq(c, kOrg, rOrg);
     Square rDst = rook_castle_sq(c, kOrg, rOrg);
 
@@ -605,8 +607,6 @@ void Position::set_castling_rights(Color c, Square rOrg) noexcept {
         castling.kingPathSqs[castling.kingPathLen++] = cs == KING_SIDE  //
                                                        ? pop_lsb(castlingKingPath)
                                                        : pop_msb(castlingKingPath);
-
-    castling.rookSq = rOrg;
 }
 
 // Computes the hash keys of the position, and other data
@@ -665,7 +665,7 @@ void Position::set_ext_state() noexcept {
 
     for (Color c : {WHITE, BLACK})
     {
-        st->blockers[c] = blockers_to(square<KING>(c), pieces(~c), st->pinners[c], st->pinners[~c]);
+        st->blockers[c] = blockers(square<KING>(c), pieces(~c), st->pinners[c], st->pinners[~c]);
 
         st->attacks[c][NO_PIECE_TYPE] = 0;
         st->attacks[c][PAWN  ] = attacks_by<PAWN  >(c);
@@ -729,7 +729,7 @@ bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackers)
     while (attackers)
     {
         Square s = pop_lsb(attackers);
-        if (!(slide_attackers_to(kingSq, occupied ^ s) & pieces(~ac)))
+        if (!(slide_attackers(kingSq, occupied ^ s) & pieces(~ac)))
         {
             epCheck = true;
             if (epAttackers == nullptr)
@@ -845,7 +845,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     {
         assert(movedPiece == make_piece(ac, KING));
         assert(capturedPiece == make_piece(ac, ROOK));
-        assert(has_castling_rights(ac & ANY_CASTLING));
+        assert(castling_has_rights(ac & ANY_CASTLING));
         assert(!has_castled(ac));
 
         Square rOrg, rDst;
@@ -983,7 +983,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     }
 
     // Calculate checkers
-    st->checkers = isCheck ? attackers_to(square<KING>(~ac)) & pieces(ac) : 0;
+    st->checkers = isCheck ? attackers(square<KING>(~ac)) & pieces(ac) : 0;
     assert(!isCheck || (checkers() && popcount(checkers()) <= 2));
 
 DO_MOVE_END:
@@ -1205,11 +1205,9 @@ bool Position::legal(Move m) const noexcept {
         if (type_of(pc) == KING && (pieces(ac, ROOK) & dst) && !checkers()
             && relative_rank(ac, org) == RANK_1 && relative_rank(ac, dst) == RANK_1)
         {
-            CastlingRights cs = castling_side(org, dst);
-            CastlingRights cr = ac & cs;
+            CastlingRights cr = ac & castling_side(org, dst);
 
-            return castling_rook_sq(cr) == dst  //
-                && castling_possible(cr, blockers(ac), pieces(~ac));
+            return castling_rook_sq(cr) == dst && castling_possible(ac, cr);
         }
         return false;
     }
@@ -1242,7 +1240,7 @@ bool Position::legal(Move m) const noexcept {
 
         // For king moves, check whether the destination square is attacked by the enemies.
         if (type_of(pc) == KING)
-            return !has_attackers_to(dst, pieces(~ac), pieces() ^ org);
+            return !attackers_exists(dst, pieces(~ac), pieces() ^ org);
         break;
 
     case PROMOTION :
@@ -1259,8 +1257,8 @@ bool Position::legal(Move m) const noexcept {
               && (pieces(~ac, PAWN) & (dst - pawn_spush(ac)))
               && !(pieces() & make_bb(dst, dst + pawn_spush(ac)))
               && ((attacks_bb<PAWN>(org, ac) /*& ~pieces()*/) & dst)
-              && !(slide_attackers_to(square<KING>(ac),
-                                      pieces() ^ make_bb(org, dst, dst - pawn_spush(ac)))
+              && !(slide_attackers(square<KING>(ac),
+                                   pieces() ^ make_bb(org, dst, dst - pawn_spush(ac)))
                    & pieces(~ac))))
             return false;
         break;
@@ -1312,8 +1310,8 @@ bool Position::check(Move m) const noexcept {
     // and ordinary discovered check, so the only case need to handle is
     // the unusual case of a discovered check through the captured pawn.
     case EN_PASSANT :
-        return slide_attackers_to(square<KING>(~ac),
-                                  pieces() ^ make_bb(org, dst, dst - pawn_spush(ac)))
+        return slide_attackers(square<KING>(~ac),
+                               pieces() ^ make_bb(org, dst, dst - pawn_spush(ac)))
              & pieces(ac);
 
     case CASTLING :
@@ -1347,7 +1345,7 @@ bool Position::dbl_check(Move m) const noexcept {
 
     case EN_PASSANT : {
         Bitboard checkers =
-          slide_attackers_to(square<KING>(~ac), pieces() ^ make_bb(org, dst, dst - pawn_spush(ac)))
+          slide_attackers(square<KING>(~ac), pieces() ^ make_bb(org, dst, dst - pawn_spush(ac)))
           & pieces(ac);
         return more_than_one(checkers) || (checkers && (checks(PAWN) & dst));
     }
@@ -1488,7 +1486,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     // xoring dst is important for pinned piece logic
     occupied ^= make_bb(org, dst);
 
-    Bitboard attackers = attackers_to(dst, occupied);
+    Bitboard attackers = this->attackers(dst, occupied);
 
     Square   epSq = SQ_NONE;
     Bitboard epAttackers;
@@ -1551,7 +1549,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
                 occupied ^= dst;
 
-                attackers = attackers_to(dst, occupied) & occupied;
+                attackers = this->attackers(dst, occupied) & occupied;
                 if (!attackers)
                     break;
 
@@ -1639,7 +1637,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
                 dst       = epSq;
                 epSq      = SQ_NONE;
-                attackers = attackers_to(dst, occupied) & occupied;
+                attackers = this->attackers(dst, occupied) & occupied;
                 if (!attackers)
                     break;
 
@@ -1989,7 +1987,7 @@ bool Position::_is_ok() const noexcept {
     if (non_pawn_key() != compute_non_pawn_key())
         assert(false && "Position::_is_ok(): NonPawn Key");
 
-    if (has_attackers_to(square<KING>(~active_color()), pieces(active_color())))
+    if (attackers_exists(square<KING>(~active_color()), pieces(active_color())))
         assert(false && "Position::_is_ok(): King Checker");
 
     if ((pieces(PAWN) & PROMOTION_RANKS_BB) || count<PAWN>(WHITE) > 8 || count<PAWN>(BLACK) > 8)
@@ -2043,7 +2041,7 @@ bool Position::_is_ok() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (CastlingRights cr : {c & KING_SIDE, c & QUEEN_SIDE})
         {
-            if (!has_castling_rights(cr))
+            if (!castling_has_rights(cr))
                 continue;
 
             if (!is_ok(castling_rook_sq(cr))  //
@@ -2113,7 +2111,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     os << "\nRepetition: " << pos.repetition();
 
-    if (Tablebases::MaxCardinality >= pos.count() && !pos.has_castling_rights(ANY_CASTLING))
+    if (Tablebases::MaxCardinality >= pos.count() && !pos.castling_has_rights(ANY_CASTLING))
     {
         State    st;
         Position p;
@@ -2212,6 +2210,9 @@ void Position::dump(std::ostream& os) const noexcept {
         const auto& castling = castlings[i];
 
         os << i << ":\n";
+        if (is_ok(castling.rookSq))
+            os << to_square(castling.rookSq);
+        os << "\n";
         for (std::size_t len = 0; len < castling.fullPathLen; ++len)
         {
             Square s = castling.fullPathSqs[len];
@@ -2225,9 +2226,6 @@ void Position::dump(std::ostream& os) const noexcept {
 
             os << to_square(s) << " ";
         }
-        os << "\n";
-        if (is_ok(castling.rookSq))
-            os << to_square(castling.rookSq);
         os << "\n";
     }
 

@@ -338,7 +338,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
             else
                 dst = pop_lsb(b);
 
-            if (pos.slide_attackers_to(dst, occupied) & pos.pieces(~AC))
+            if (pos.slide_attackers(dst, occupied) & pos.pieces(~AC))
                 continue;
 
             *moves++ = Move(kingSq, dst);
@@ -352,9 +352,9 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
     {
         assert(!pos.checkers());
 
-        if (pos.has_castling_rights(AC & ANY_CASTLING))
+        if (pos.castling_has_rights(AC & ANY_CASTLING))
             for (CastlingRights cr : {AC & KING_SIDE, AC & QUEEN_SIDE})
-                if (pos.castling_possible(cr, pos.blockers(AC), pos.pieces(~AC)))
+                if (pos.castling_possible(AC, cr))
                 {
                     assert(is_ok(pos.castling_rook_sq(cr))
                            && (pos.pieces(AC, ROOK) & pos.castling_rook_sq(cr)));
