@@ -170,11 +170,11 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     Bitboard r7PawnsBB  = acPawnsBB & relative_rank(AC, RANK_7);
     Bitboard nr7PawnsBB = acPawnsBB & ~r7PawnsBB;
 
-    Bitboard emptiesBB = ~pos.pieces_bb();
-    Bitboard enemiesBB = pos.pieces_bb(~AC);
+    Bitboard emptyBB = ~pos.pieces_bb();
+    Bitboard enemyBB = pos.pieces_bb(~AC);
 
     if constexpr (Evasion)
-        enemiesBB &= targetBB;
+        enemyBB &= targetBB;
 
     Move *read = moves, *write = moves;
 
@@ -183,13 +183,13 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     {
         Bitboard dstBB;
 
-        dstBB = shift_bb<LCap>(r7PawnsBB) & enemiesBB;
+        dstBB = shift_bb<LCap>(r7PawnsBB) & enemyBB;
         moves = splat_promotion_moves<AC, GT, LCap, true>(dstBB, moves);
 
-        dstBB = shift_bb<RCap>(r7PawnsBB) & enemiesBB;
+        dstBB = shift_bb<RCap>(r7PawnsBB) & enemyBB;
         moves = splat_promotion_moves<AC, GT, RCap, true>(dstBB, moves);
 
-        dstBB = shift_bb<Push1>(r7PawnsBB) & emptiesBB;
+        dstBB = shift_bb<Push1>(r7PawnsBB) & emptyBB;
         // Consider only blocking and capture squares
         if constexpr (Evasion)
             dstBB &= between_bb(pos.square<KING>(AC), lsb(pos.checkers_bb()));
@@ -199,8 +199,8 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     // Single and double pawn pushes, no promotions
     if constexpr (!Capture)
     {
-        Bitboard dstBB1 = shift_bb<Push1>(nr7PawnsBB) & emptiesBB;
-        Bitboard dstBB2 = shift_bb<Push1>(dstBB1 & relative_rank(AC, RANK_3)) & emptiesBB;
+        Bitboard dstBB1 = shift_bb<Push1>(nr7PawnsBB) & emptyBB;
+        Bitboard dstBB2 = shift_bb<Push1>(dstBB1 & relative_rank(AC, RANK_3)) & emptyBB;
 
         // Consider only blocking squares
         if constexpr (Evasion)
@@ -218,10 +218,10 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     {
         Bitboard dstBB;
 
-        dstBB = shift_bb<LCap>(nr7PawnsBB) & enemiesBB;
+        dstBB = shift_bb<LCap>(nr7PawnsBB) & enemyBB;
         moves = splat_pawn_moves<AC, LCap>(dstBB, moves);
 
-        dstBB = shift_bb<RCap>(nr7PawnsBB) & enemiesBB;
+        dstBB = shift_bb<RCap>(nr7PawnsBB) & enemyBB;
         moves = splat_pawn_moves<AC, RCap>(dstBB, moves);
 
         Square enPassantSq = pos.en_passant_sq();
@@ -238,11 +238,11 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
             Bitboard orgBB = nr7PawnsBB & attacks_bb<PAWN>(enPassantSq, ~AC);
             if (more_than_one(orgBB))
             {
-                Bitboard pinned = orgBB & pos.blockers_bb(AC);
-                assert(!more_than_one(pinned));
+                Bitboard pinnedBB = orgBB & pos.blockers_bb(AC);
+                assert(!more_than_one(pinnedBB));
 
-                if (pinned && !aligned(pos.square<KING>(AC), enPassantSq, lsb(pinned)))
-                    orgBB ^= pinned;
+                if (pinnedBB && !aligned(pos.square<KING>(AC), enPassantSq, lsb(pinnedBB)))
+                    orgBB ^= pinnedBB;
             }
             assert(orgBB);
 
@@ -327,7 +327,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
 
     if (dstBB)
     {
-        dstBB &= ~(pos.attacks<KNIGHT>(~AC) | attacks_bb<KING>(pos.square<KING>(~AC)));
+        dstBB &= ~(pos.attacks_acc_bb<KNIGHT>(~AC) | attacks_bb<KING>(pos.square<KING>(~AC)));
 
         Bitboard occupancyBB = pos.pieces_bb() ^ kingSq;
 
@@ -379,30 +379,30 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
     constexpr bool Evasion = GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET;
 
     // clang-format off
-    Bitboard target;
+    Bitboard targetBB;
     // Skip generating non-king moves when in double check
     if (!Evasion || !more_than_one(pos.checkers_bb()))
     {
         switch (GT)
         {
-        case ENCOUNTER :   target = ~pos.pieces_bb(AC);                                          break;
-        case ENC_CAPTURE : target =  pos.pieces_bb(~AC);                                         break;
-        case ENC_QUIET :   target = ~pos.pieces_bb();                                            break;
-        case EVASION :     target = between_bb(pos.square<KING>(AC), lsb(pos.checkers_bb()));    break;
-        case EVA_CAPTURE : target = pos.checkers_bb();                                           break;
-        case EVA_QUIET :   target = between_ex_bb(pos.square<KING>(AC), lsb(pos.checkers_bb())); break;
+        case ENCOUNTER :   targetBB = ~pos.pieces_bb(AC);                                          break;
+        case ENC_CAPTURE : targetBB =  pos.pieces_bb(~AC);                                         break;
+        case ENC_QUIET :   targetBB = ~pos.pieces_bb();                                            break;
+        case EVASION :     targetBB = between_bb(pos.square<KING>(AC), lsb(pos.checkers_bb()));    break;
+        case EVA_CAPTURE : targetBB = pos.checkers_bb();                                           break;
+        case EVA_QUIET :   targetBB = between_ex_bb(pos.square<KING>(AC), lsb(pos.checkers_bb())); break;
         }
 
         const auto* pMoves = moves;
-        moves = generate_pawns_moves<AC, GT    >(pos, moves, target);
+        moves = generate_pawns_moves<AC, GT    >(pos, moves, targetBB);
         if (Any && pMoves != moves) return moves;
-        moves = generate_piece_moves<AC, KNIGHT>(pos, moves, target);
+        moves = generate_piece_moves<AC, KNIGHT>(pos, moves, targetBB);
         if (Any && pMoves != moves) return moves;
-        moves = generate_piece_moves<AC, BISHOP>(pos, moves, target);
+        moves = generate_piece_moves<AC, BISHOP>(pos, moves, targetBB);
         if (Any && pMoves != moves) return moves;
-        moves = generate_piece_moves<AC, ROOK  >(pos, moves, target);
+        moves = generate_piece_moves<AC, ROOK  >(pos, moves, targetBB);
         if (Any && pMoves != moves) return moves;
-        moves = generate_piece_moves<AC, QUEEN >(pos, moves, target);
+        moves = generate_piece_moves<AC, QUEEN >(pos, moves, targetBB);
         if (Any && pMoves != moves) return moves;
     }
 
@@ -410,14 +410,14 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
     {
         switch (GT)
         {
-        case EVASION :     target = ~pos.pieces_bb(AC);  break;
-        case EVA_CAPTURE : target =  pos.pieces_bb(~AC); break;
-        case EVA_QUIET :   target = ~pos.pieces_bb();    break;
+        case EVASION :     targetBB = ~pos.pieces_bb(AC);  break;
+        case EVA_CAPTURE : targetBB =  pos.pieces_bb(~AC); break;
+        case EVA_QUIET :   targetBB = ~pos.pieces_bb();    break;
         }
     }
     // clang-format on
 
-    moves = generate_king_moves<AC, GT, Any>(pos, moves, target);
+    moves = generate_king_moves<AC, GT, Any>(pos, moves, targetBB);
 
     return moves;
 }

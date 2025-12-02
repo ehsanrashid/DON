@@ -800,7 +800,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     StdArray<Square, TBPieces> squares{};
     StdArray<Piece, TBPieces>  pieces;
 
-    Bitboard    leadPawns   = 0;
+    Bitboard    leadPawnsBB = 0;
     std::size_t leadPawnCnt = 0;
 
     std::size_t size   = 0;
@@ -819,7 +819,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
         assert(type_of(pc) == PAWN);
 
-        Bitboard b = leadPawns = pos.pieces_bb(color_of(pc), PAWN);
+        Bitboard b = leadPawnsBB = pos.pieces_bb(color_of(pc), PAWN);
         while (b)
         {
             Square s = pop_lsb(b);
@@ -844,7 +844,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
     // Now ready to get all the position pieces (but the lead pawns)
     // and directly map them to the correct square and color.
-    Bitboard b = pos.pieces_bb() ^ leadPawns;
+    Bitboard b = pos.pieces_bb() ^ leadPawnsBB;
     while (b)
     {
         Square s  = pop_lsb(b);

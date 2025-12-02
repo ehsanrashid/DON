@@ -52,18 +52,18 @@ union Zobrist final {
         Key key = 0;
 
         std::size_t n;
-        auto        sqs = pos.squares(n);
+        auto        orgSqs = pos.squares(n);
         for (std::size_t i = 0; i < n; ++i)
         {
-            Square s  = sqs[i];
-            Piece  pc = pos[s];
+            Square orgSq = orgSqs[i];
+            Piece  pc    = pos[orgSq];
 
-            key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][s];
+            key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][orgSq];
         }
 
-        Bitboard castlingRights = pos.castling_rights();
-        while (castlingRights)
-            key ^= _.Castling[pop_lsb(castlingRights)];
+        Bitboard castlingRightsBB = pos.castling_rights();
+        while (castlingRightsBB)
+            key ^= _.Castling[pop_lsb(castlingRightsBB)];
 
         Square enPassantSq = pos.en_passant_sq();
         if (is_ok(enPassantSq))

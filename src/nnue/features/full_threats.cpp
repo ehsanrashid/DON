@@ -44,13 +44,13 @@ constexpr StdArray<int, PIECE_TYPE_NB - 2, PIECE_TYPE_NB - 2> Map{{
 // Lookup array for indexing threats
 StdArray<IndexType, PIECE_NB, SQUARE_NB> Offsets;
 
-struct HelperOffset final {
+struct ExtraOffset final {
    public:
     IndexType cumulativePieceOffset;
     IndexType cumulativeOffset;
 };
 
-StdArray<HelperOffset, PIECE_NB> HelperOffsets;
+StdArray<ExtraOffset, PIECE_NB> ExtraOffsets;
 
 // Information on a particular pair of pieces and whether they should be excluded
 struct PiecePairData final {
@@ -134,55 +134,55 @@ void FullThreats::init() noexcept {
             {
                 Offsets[pc][orgSq] = cumulativePieceOffset;
 
+                Bitboard attacksBB = 0;
+
                 if (pt != PAWN)
-                {
-                    Bitboard attacks = attacks_bb(orgSq, pt, 0);
-                    cumulativePieceOffset += popcount(attacks);
-                }
+                    attacksBB = attacks_bb(orgSq, pt, 0);
                 else if (SQ_A2 <= orgSq && orgSq <= SQ_H7)
-                {
-                    Bitboard attacks = c == WHITE ? pawn_attacks_bb<WHITE>(square_bb(orgSq))
-                                                  : pawn_attacks_bb<BLACK>(square_bb(orgSq));
-                    cumulativePieceOffset += popcount(attacks);
-                }
+                    attacksBB = c == WHITE ? pawn_attacks_bb<WHITE>(square_bb(orgSq))
+                                           : pawn_attacks_bb<BLACK>(square_bb(orgSq));
+
+                cumulativePieceOffset += popcount(attacksBB);
             }
 
-            HelperOffsets[pc] = {cumulativePieceOffset, cumulativeOffset};
+            ExtraOffsets[pc] = {cumulativePieceOffset, cumulativeOffset};
 
             cumulativeOffset += MaxTargets[pt] * cumulativePieceOffset;
         }
 
     // Initialize Lut data & index
     for (Color attackerC : {WHITE, BLACK})
-        for (PieceType attackerType : PIECE_TYPES)
+        for (PieceType attackerPt : PIECE_TYPES)
         {
-            auto attacker = make_piece(attackerC, attackerType);
+            Piece attackerPc = make_piece(attackerC, attackerPt);
 
             for (Color attackedC : {WHITE, BLACK})
-                for (PieceType attackedType : PIECE_TYPES)
+                for (PieceType attackedPt : PIECE_TYPES)
                 {
-                    auto attacked = make_piece(attackedC, attackedType);
+                    Piece attackedPc = make_piece(attackedC, attackedPt);
 
-                    bool enemy = (attacker ^ attacked) == 8;
+                    bool enemy = (attackerPc ^ attackedPc) == 8;
 
-                    int map = Map[attackerType - 1][attackedType - 1];
+                    int map = Map[attackerPt - 1][attackedPt - 1];
 
-                    IndexType feature = HelperOffsets[attacker].cumulativeOffset
-                                      + (attackedC * (MaxTargets[attackerType] / 2) + map)
-                                          * HelperOffsets[attacker].cumulativePieceOffset;
+                    IndexType featureBaseIndex = ExtraOffsets[attackerPc].cumulativeOffset
+                                               + (attackedC * (MaxTargets[attackerPt] / 2) + map)
+                                                   * ExtraOffsets[attackerPc].cumulativePieceOffset;
 
                     bool excluded     = map < 0;
-                    bool semiExcluded = attackerType == attackedType  //
-                                     && (enemy || attackerType != PAWN);
+                    bool semiExcluded = attackerPt == attackedPt  //
+                                     && (enemy || attackerPt != PAWN);
 
-                    LutData[attacker][attacked] = PiecePairData(feature, excluded, semiExcluded);
+                    LutData[attackerPc][attackedPc] =
+                      PiecePairData(featureBaseIndex, excluded, semiExcluded);
                 }
 
             for (Square orgSq = SQ_A1; orgSq <= SQ_H8; ++orgSq)
                 for (Square dstSq = SQ_A1; dstSq <= SQ_H8; ++dstSq)
                 {
-                    Bitboard attacks                 = attacks_bb(orgSq, attacker);
-                    LutIndex[attacker][orgSq][dstSq] = popcount((square_bb(dstSq) - 1) & attacks);
+                    Bitboard attacksBB = attacks_bb(orgSq, attackerPc);
+                    LutIndex[attackerPc][orgSq][dstSq] =
+                      popcount((square_bb(dstSq) - 1) & attacksBB);
                 }
         }
 }

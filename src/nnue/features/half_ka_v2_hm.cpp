@@ -93,11 +93,11 @@ ALWAYS_INLINE IndexType make_index(Color perspective, Square kingSq, Square s, P
 void HalfKAv2_hm::append_active_indices(Color                             perspective,
                                         Square                            kingSq,
                                         const StdArray<Piece, SQUARE_NB>& pieceMap,
-                                        Bitboard                          occupied,
+                                        Bitboard                          occupancyBB,
                                         IndexList&                        active) noexcept {
-    while (occupied)
+    while (occupancyBB)
     {
-        Square s = pop_lsb(occupied);
+        Square s = pop_lsb(occupancyBB);
         active.push_back(make_index(perspective, kingSq, s, pieceMap[s]));
     }
 }

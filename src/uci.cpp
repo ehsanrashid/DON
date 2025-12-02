@@ -926,26 +926,26 @@ Ambiguity ambiguity(Move m, const Position& pos) noexcept {
         return AMB_NONE;
 
     // Disambiguation if have more then one piece with same destination
-    Bitboard pieces = (attacks_bb(dstSq, pt, pos.pieces_bb()) & pos.pieces_bb(ac, pt)) ^ orgSq;
+    Bitboard piecesBB = (attacks_bb(dstSq, pt, pos.pieces_bb()) & pos.pieces_bb(ac, pt)) ^ orgSq;
 
-    if (!pieces)
+    if (!piecesBB)
         return AMB_NONE;
 
-    Bitboard b = pieces;
+    Bitboard b = piecesBB;
     // If pinned piece is considered as ambiguous
-    //& ~pos.blockers(ac);
-    while (b)
+    //& ~pos.blockers_bb(ac);
+    while (b != 0)
     {
         Square sq = pop_lsb(b);
 
         Move mm = Move(sq, dstSq);
         if (!pos.legal(mm))
-            pieces ^= sq;
+            piecesBB ^= sq;
     }
 
-    if (!(pieces & file_of(orgSq)))
+    if (!(piecesBB & file_of(orgSq)))
         return AMB_RANK;
-    if (!(pieces & rank_of(orgSq)))
+    if (!(piecesBB & rank_of(orgSq)))
         return AMB_FILE;
 
     return AMB_SQUARE;
@@ -963,23 +963,23 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     assert(color_of(pos[orgSq]) == pos.active_color());
 
-    auto pt = type_of(pos[orgSq]);
+    auto movedPt = type_of(pos[orgSq]);
 
     std::string san;
     san.reserve(8);
 
     if (m.type_of() == CASTLING)
     {
-        assert(pt == KING && rank_of(orgSq) == rank_of(dstSq));
+        assert(movedPt == KING && rank_of(orgSq) == rank_of(dstSq));
         san += (orgSq < dstSq ? "O-O" : "O-O-O");
     }
     else
     {
         // Note:: For pawns is not needed because starting file is explicit.
-        if (pt != PAWN)
+        if (movedPt != PAWN)
         {
-            san += to_char(pt);
-            if (pt != KING)
+            san += to_char(movedPt);
+            if (movedPt != KING)
             {
                 // Disambiguation if have more then one piece of type 'pt'
                 // that can reach 'dst' with any legal move.
@@ -1001,7 +1001,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
 
         if (pos.capture(m))
         {
-            if (pt == PAWN)
+            if (movedPt == PAWN)
                 san += to_char(file_of(orgSq));
             san += 'x';
         }
@@ -1010,7 +1010,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
 
         if (m.type_of() == PROMOTION)
         {
-            assert(pt == PAWN);
+            assert(movedPt == PAWN);
             san += '=';
             san += char(std::toupper(to_char(m.promotion_type())));
         }

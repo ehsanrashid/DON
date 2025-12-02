@@ -117,7 +117,7 @@ struct State final {
     StdArray<Bitboard, PIECE_TYPE_NB>           checksBB;
     StdArray<Bitboard, COLOR_NB>                pinnersBB;
     StdArray<Bitboard, COLOR_NB>                blockersBB;
-    StdArray<Bitboard, COLOR_NB, PIECE_TYPE_NB> attacksBB;
+    StdArray<Bitboard, COLOR_NB, PIECE_TYPE_NB> attacksAccBB;
     std::int16_t                                repetition;
     Piece                                       capturedPc;
     Piece                                       promotedPc;
@@ -245,7 +245,7 @@ class Position final {
 
     // Attacks from a piece type
     template<PieceType PT>
-    Bitboard attacks_by(Color c) const noexcept;
+    Bitboard attacks_by_bb(Color c) const noexcept;
 
     // clang-format off
     // Doing and undoing moves
@@ -275,7 +275,7 @@ class Position final {
     Bitboard blockers_bb() const noexcept;
 
     template<PieceType PT>
-    Bitboard attacks(Color c) const noexcept;
+    Bitboard attacks_acc_bb(Color c) const noexcept;
     Bitboard attacks_less_bb(Color c, PieceType pt) const noexcept;
     Bitboard threats_bb(Color c) const noexcept;
 
@@ -518,7 +518,7 @@ inline const auto& Position::squares(Piece pc) const noexcept {
 }
 
 inline auto Position::squares(Color c, std::size_t& n) const noexcept {
-    StdArray<Square, SQUARE_NB> sqs;
+    StdArray<Square, SQUARE_NB> orgSqs;
 
     n = 0;
     for (PieceType pt : PIECE_TYPES)
@@ -528,16 +528,16 @@ inline auto Position::squares(Color c, std::size_t& n) const noexcept {
         if (count)
         {
             const auto* pB = base(c);
-            std::memcpy(sqs.data() + n, pL.data(pB), count * sizeof(Square));
+            std::memcpy(orgSqs.data() + n, pL.data(pB), count * sizeof(Square));
             n += count;
         }
     }
 
-    return sqs;
+    return orgSqs;
 }
 
 inline auto Position::squares(std::size_t& n) const noexcept {
-    StdArray<Square, SQUARE_NB> sqs;
+    StdArray<Square, SQUARE_NB> orgSqs;
 
     n = 0;
     for (Color c : {WHITE, BLACK})
@@ -548,12 +548,12 @@ inline auto Position::squares(std::size_t& n) const noexcept {
             if (count)
             {
                 const auto* pB = base(c);
-                std::memcpy(sqs.data() + n, pL.data(pB), count * sizeof(Square));
+                std::memcpy(orgSqs.data() + n, pL.data(pB), count * sizeof(Square));
                 n += count;
             }
         }
 
-    return sqs;
+    return orgSqs;
 }
 
 inline std::uint8_t Position::count(Color c, PieceType pt) const noexcept {
@@ -677,7 +677,7 @@ inline Bitboard Position::xslide_attackers_bb(Square s) const noexcept {
     return (pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s))
          | (pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s));
 }
-// Computes a bitboard of all sliding pieces which attack a given square.
+// Computes a bitboard of all sliding pieces which attack a given square on occupancy.
 inline Bitboard Position::slide_attackers_bb(Square s, Bitboard occupancyBB) const noexcept {
     return (pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s) ? pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupancyBB) : 0)
          | (pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s) ? pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupancyBB) : 0);
@@ -685,8 +685,7 @@ inline Bitboard Position::slide_attackers_bb(Square s, Bitboard occupancyBB) con
 inline Bitboard Position::slide_attackers_bb(Square s) const noexcept {
     return slide_attackers_bb(s, pieces_bb());
 }
-// Computes a bitboard of all pieces which attack a given square.
-// Slider attacks use the occupied bitboard to indicate occupancy.
+// Computes a bitboard of all pieces which attack a given square on occupancy.
 inline Bitboard Position::attackers_bb(Square s, Bitboard occupancyBB) const noexcept {
     return slide_attackers_bb(s, occupancyBB)
          | (pieces_bb(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
@@ -719,7 +718,7 @@ inline Bitboard Position::blockers_bb(Square s, Bitboard attackersBB, Bitboard& 
     Bitboard blockersBB = 0;
 
     // xSnipers are x-ray attackers that attack 's' when blockers are removed
-    Bitboard xSnipersBB = xslide_attackers_bb(s) & attackersBB;
+    Bitboard xSnipersBB  = xslide_attackers_bb(s) & attackersBB;
     Bitboard occupancyBB = pieces_bb() ^ xSnipersBB;
 
     while (xSnipersBB)
@@ -746,19 +745,19 @@ inline Bitboard Position::blockers_bb(Square s, Bitboard attackersBB, Bitboard& 
 
 // Computes attacks from a piece type for a given color.
 template<PieceType PT>
-inline Bitboard Position::attacks_by(Color c) const noexcept {
+inline Bitboard Position::attacks_by_bb(Color c) const noexcept {
     if constexpr (PT == PAWN)
         return pawn_attacks_bb(pieces_bb(c, PAWN), c);
     else
     {
-        Bitboard attacks = 0;
+        Bitboard attacksBB = 0;
 
         const auto& pL = squares<PT>(c);
         const auto* pB = base(c);
-        for (const Square* s = pL.begin(pB); s != pL.end(pB); ++s)
-            attacks |= attacks_bb<PT>(*s, pieces_bb());
+        for (const Square* orgSq = pL.begin(pB); orgSq != pL.end(pB); ++orgSq)
+            attacksBB |= attacks_bb<PT>(*orgSq, pieces_bb());
 
-        return attacks;
+        return attacksBB;
     }
 }
 
@@ -779,14 +778,14 @@ inline Bitboard Position::blockers_bb() const noexcept {
 }
 
 template<PieceType PT>
-inline Bitboard Position::attacks(Color c) const noexcept {
-    return st->attacksBB[c][PT];
+inline Bitboard Position::attacks_acc_bb(Color c) const noexcept {
+    return st->attacksAccBB[c][PT];
 }
 inline Bitboard Position::attacks_less_bb(Color c, PieceType pt) const noexcept {
-    return st->attacksBB[c][pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
+    return st->attacksAccBB[c][pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
 }
 inline Bitboard Position::threats_bb(Color c) const noexcept {
-    return st->attacksBB[c][KING] & ~st->attacksBB[~c][KING];
+    return st->attacksAccBB[c][KING] & ~st->attacksAccBB[~c][KING];
 }
 
 inline Piece Position::captured_pc() const noexcept { return st->capturedPc; }
@@ -923,14 +922,14 @@ inline void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
 
 inline void Position::put_pc(Square s, Piece pc, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && is_ok(pc));
-    Bitboard sbb = square_bb(s);
+    Bitboard sBB = square_bb(s);
 
     auto c  = color_of(pc);
     auto pt = type_of(pc);
 
     pieceMap[s] = pc;
-    colorBBs[c] |= sbb;
-    typeBBs[NO_PIECE_TYPE] |= typeBBs[pt] |= sbb;
+    colorBBs[c] |= sBB;
+    typeBBs[NO_PIECE_TYPE] |= typeBBs[pt] |= sBB;
     auto& pL = pieceList[c][pt];
     auto* pB = base(c);
 
@@ -944,7 +943,7 @@ inline void Position::put_pc(Square s, Piece pc, DirtyThreats* const dts) noexce
 
 inline Piece Position::remove_pc(Square s, DirtyThreats* const dts) noexcept {
     assert(is_ok(s));
-    Bitboard sbb = square_bb(s);
+    Bitboard sBB = square_bb(s);
 
     Piece pc = piece_on(s);
     auto  c  = color_of(pc);
@@ -955,9 +954,9 @@ inline Piece Position::remove_pc(Square s, DirtyThreats* const dts) noexcept {
         update_pc_threats<false>(pc, s, dts);
 
     pieceMap[s] = NO_PIECE;
-    colorBBs[c] ^= sbb;
-    typeBBs[pt] ^= sbb;
-    typeBBs[NO_PIECE_TYPE] ^= sbb;
+    colorBBs[c] ^= sBB;
+    typeBBs[pt] ^= sBB;
+    typeBBs[NO_PIECE_TYPE] ^= sBB;
     auto  idx = indexMap[s];
     auto& pL  = pieceList[c][pt];
     auto* pB  = base(c);
@@ -975,7 +974,7 @@ inline Piece Position::remove_pc(Square s, DirtyThreats* const dts) noexcept {
 
 inline Piece Position::move_pc(Square s1, Square s2, DirtyThreats* const dts) noexcept {
     assert(is_ok(s1) && is_ok(s2));
-    Bitboard s1s2bb = make_bb(s1, s2);
+    Bitboard s1s2BB = make_bb(s1, s2);
 
     Piece pc = piece_on(s1);
     auto  c  = color_of(pc);
@@ -987,9 +986,9 @@ inline Piece Position::move_pc(Square s1, Square s2, DirtyThreats* const dts) no
 
     pieceMap[s1] = NO_PIECE;
     pieceMap[s2] = pc;
-    colorBBs[c] ^= s1s2bb;
-    typeBBs[pt] ^= s1s2bb;
-    typeBBs[NO_PIECE_TYPE] ^= s1s2bb;
+    colorBBs[c] ^= s1s2BB;
+    typeBBs[pt] ^= s1s2BB;
+    typeBBs[NO_PIECE_TYPE] ^= s1s2BB;
     auto  idx = indexMap[s1];
     auto& pL  = pieceList[c][pt];
     auto* pB  = base(c);
@@ -1052,7 +1051,7 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
     Bitboard threatenedBB = (type_of(pc) == PAWN ? attacks[color_of(pc)]  //
                                                  : attacks[type_of(pc)])
                           & occupancyBB;
-    while (threatenedBB)
+    while (threatenedBB != 0)
     {
         Square threatenedSq = pop_lsb(threatenedBB);
         Piece  threatenedPc = piece_on(threatenedSq);
@@ -1067,7 +1066,7 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
     Bitboard slidersBB = (pieces_bb(QUEEN, BISHOP) & attacks[BISHOP])
                      | (pieces_bb(QUEEN, ROOK)   & attacks[ROOK]);
     // clang-format on
-    while (slidersBB)
+    while (slidersBB != 0)
     {
         Square sliderSq = pop_lsb(slidersBB);
         Piece  sliderPc = piece_on(sliderSq);
@@ -1076,12 +1075,12 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
 
         if constexpr (ComputeRay)
         {
-            Bitboard discovered = pass_ray_bb(sliderSq, s) & attacks[QUEEN] & occupancyBB;
+            Bitboard discoveredBB = pass_ray_bb(sliderSq, s) & attacks[QUEEN] & occupancyBB;
 
-            if (discovered)
+            if (discoveredBB != 0)
             {
-                assert(!more_than_one(discovered));
-                Square threatenedSq = lsb(discovered);
+                assert(!more_than_one(discoveredBB));
+                Square threatenedSq = lsb(discoveredBB);
                 Piece  threatenedPc = piece_on(threatenedSq);
 
                 assert(is_ok(threatenedPc));
@@ -1099,7 +1098,7 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
                         | (pieces_bb(KNIGHT)      & attacks[KNIGHT])
                         | (pieces_bb(KING)        & attacks[KING]);
     // clang-format on
-    while (nonSlidersBB)
+    while (nonSlidersBB != 0)
     {
         Square nonSliderSq = pop_lsb(nonSlidersBB);
         Piece  nonSliderPc = piece_on(nonSliderSq);

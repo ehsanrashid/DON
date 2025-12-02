@@ -595,18 +595,18 @@ void Position::set_castling_rights(Color c, Square rOrg) noexcept {
     Square kDst = king_castle_sq(c, kOrg, rOrg);
     Square rDst = rook_castle_sq(c, kOrg, rOrg);
 
-    Bitboard castlingPath =
+    Bitboard castlingPathBB =
       (between_bb(kOrg, kDst) | between_bb(rOrg, rDst)) & ~make_bb(kOrg, rOrg);
-    while (castlingPath)
+    while (castlingPathBB)
         castling.fullPathSqs[castling.fullPathLen++] = cs == KING_SIDE  //
-                                                       ? pop_lsb(castlingPath)
-                                                       : pop_msb(castlingPath);
+                                                       ? pop_lsb(castlingPathBB)
+                                                       : pop_msb(castlingPathBB);
 
-    Bitboard castlingKingPath = between_bb(kOrg, kDst);
-    while (castlingKingPath)
+    Bitboard castlingKingPathBB = between_bb(kOrg, kDst);
+    while (castlingKingPathBB)
         castling.kingPathSqs[castling.kingPathLen++] = cs == KING_SIDE  //
-                                                       ? pop_lsb(castlingKingPath)
-                                                       : pop_msb(castlingKingPath);
+                                                       ? pop_lsb(castlingKingPathBB)
+                                                       : pop_msb(castlingKingPathBB);
 }
 
 // Computes the hash keys of the position, and other data
@@ -623,9 +623,9 @@ void Position::set_state() noexcept {
         {
             const auto& pL = squares(c, pt);
             const auto* pB = base(c);
-            for (const Square* s = pL.begin(pB); s != pL.end(pB); ++s)
+            for (const Square* orgSq = pL.begin(pB); orgSq != pL.end(pB); ++orgSq)
             {
-                Key key = Zobrist::piece_square(c, pt, *s);
+                Key key = Zobrist::piece_square(c, pt, *orgSq);
                 assert(key != 0);
 
                 st->key ^= key;
@@ -667,13 +667,13 @@ void Position::set_ext_state() noexcept {
     {
         st->blockersBB[c] = blockers_bb(square<KING>(c), pieces_bb(~c), st->pinnersBB[c], st->pinnersBB[~c]);
 
-        st->attacksBB[c][NO_PIECE_TYPE] = 0;
-        st->attacksBB[c][PAWN  ] = attacks_by<PAWN  >(c);
-        st->attacksBB[c][KNIGHT] = attacks_by<KNIGHT>(c) | attacks<PAWN  >(c);
-        st->attacksBB[c][BISHOP] = attacks_by<BISHOP>(c) | attacks<KNIGHT>(c);
-        st->attacksBB[c][ROOK  ] = attacks_by<ROOK  >(c) | attacks<BISHOP>(c);
-        st->attacksBB[c][QUEEN ] = attacks_by<QUEEN >(c) | attacks<ROOK  >(c);
-        st->attacksBB[c][KING  ] = attacks_by<KING  >(c) | attacks<QUEEN >(c);
+        st->attacksAccBB[c][NO_PIECE_TYPE] = 0;
+        st->attacksAccBB[c][PAWN  ] = attacks_by_bb<PAWN  >(c);
+        st->attacksAccBB[c][KNIGHT] = attacks_by_bb<KNIGHT>(c) | attacks_acc_bb<PAWN  >(c);
+        st->attacksAccBB[c][BISHOP] = attacks_by_bb<BISHOP>(c) | attacks_acc_bb<KNIGHT>(c);
+        st->attacksAccBB[c][ROOK  ] = attacks_by_bb<ROOK  >(c) | attacks_acc_bb<BISHOP>(c);
+        st->attacksAccBB[c][QUEEN ] = attacks_by_bb<QUEEN >(c) | attacks_acc_bb<ROOK  >(c);
+        st->attacksAccBB[c][KING  ] = attacks_by_bb<KING  >(c) | attacks_acc_bb<QUEEN >(c);
     }
     // clang-format on
 }
@@ -712,12 +712,12 @@ bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackersB
             if (!more_than_one(attackersBB & blockers_bb(ac)))
                 return true;
 
-            Bitboard kingFile = file_bb(kingSq);
+            Bitboard kingFileBB = file_bb(kingSq);
             // If there is no pawn on our king's file and thus both pawns are pinned by bishops.
-            if (!(attackersBB & kingFile))
+            if (!(attackersBB & kingFileBB))
                 return false;
             // Otherwise remove the pawn on the king file, as an ep capture by it can never be legal
-            attackersBB &= ~kingFile;
+            attackersBB &= ~kingFileBB;
             if (epAttackersBB != nullptr)
                 *epAttackersBB = attackersBB;
         }
@@ -1890,13 +1890,13 @@ Key Position::compute_key() const noexcept {
     Key key = 0;
 
     std::size_t n;
-    auto        sqs = squares(n);
+    auto        orgSqs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = sqs[i];
-        Piece  pc = piece_on(s);
+        Square orgSq = orgSqs[i];
+        Piece  pc    = piece_on(orgSq);
 
-        key ^= Zobrist::piece_square(pc, s);
+        key ^= Zobrist::piece_square(pc, orgSq);
     }
 
     key ^= Zobrist::castling(castling_rights());
@@ -1914,15 +1914,15 @@ Key Position::compute_minor_key() const noexcept {
     Key minorKey = 0;
 
     std::size_t n;
-    auto        sqs = squares(n);
+    auto        orgSqs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = sqs[i];
-        Piece  pc = piece_on(s);
-        auto   pt = type_of(pc);
+        Square orgSq = orgSqs[i];
+        Piece  pc    = piece_on(orgSq);
+        auto   pt    = type_of(pc);
 
         if (pt != PAWN && pt != KING && !is_major(pt))
-            minorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
+            minorKey ^= Zobrist::piece_square(color_of(pc), pt, orgSq);
     }
 
     return minorKey;
@@ -1932,15 +1932,15 @@ Key Position::compute_major_key() const noexcept {
     Key majorKey = 0;
 
     std::size_t n;
-    auto        sqs = squares(n);
+    auto        orgSqs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = sqs[i];
-        Piece  pc = piece_on(s);
-        auto   pt = type_of(pc);
+        Square orgSq = orgSqs[i];
+        Piece  pc    = piece_on(orgSq);
+        auto   pt    = type_of(pc);
 
         if (pt != PAWN && pt != KING && is_major(pt))
-            majorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
+            majorKey ^= Zobrist::piece_square(color_of(pc), pt, orgSq);
     }
 
     return majorKey;
@@ -1950,15 +1950,15 @@ Key Position::compute_non_pawn_key() const noexcept {
     Key nonPawnKey = 0;
 
     std::size_t n;
-    auto        sqs = squares(n);
+    auto        orgSqs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = sqs[i];
-        Piece  pc = piece_on(s);
-        auto   pt = type_of(pc);
+        Square orgSq = orgSqs[i];
+        Piece  pc    = piece_on(orgSq);
+        auto   pt    = type_of(pc);
 
         if (pt != PAWN)
-            nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, s);
+            nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, orgSq);
     }
 
     return nonPawnKey;
@@ -2114,8 +2114,8 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     os << "\nCheckers: ";
 
-    for (Bitboard checkers = pos.checkers_bb(); checkers;)
-        os << to_square(pop_lsb(checkers)) << " ";
+    for (Bitboard checkersBB = pos.checkers_bb(); checkersBB;)
+        os << to_square(pop_lsb(checkersBB)) << " ";
 
     os << "\nRepetition: " << pos.repetition();
 
@@ -2165,8 +2165,8 @@ void Position::dump(std::ostream& os) const noexcept {
             os << to_char(make_piece(c, pt)) << ": ";
             const auto& pL = squares(c, pt);
             const auto* pB = base(c);
-            for (const Square* s = pL.begin(pB); s != pL.end(pB); ++s)
-                os << to_square(*s) << " ";
+            for (const Square* orgSq = pL.begin(pB); orgSq != pL.end(pB); ++orgSq)
+                os << to_square(*orgSq) << " ";
             os << "\n";
         }
 
