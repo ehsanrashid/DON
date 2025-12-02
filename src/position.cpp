@@ -197,10 +197,11 @@ void Position::clear() noexcept {
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
     std::memset(typeBB.data(), 0, sizeof(typeBB));
     std::memset(colorBB.data(), 0, sizeof(colorBB));
-    std::memset(castlingPath.data(), 0, sizeof(castlingPath));
-    std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
-    std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));
     std::memset(pieceCount.data(), 0, sizeof(pieceCount));
+    std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));
+
+    for (std::size_t i = 0; i < castlings.size(); ++i)
+        castlings[i].clear();
     // Don't memset pieceList, as they point to the above lists
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
@@ -536,15 +537,15 @@ std::string Position::fen(bool full) const noexcept {
 
     fens += active_color() == WHITE ? " w " : " b ";
 
-    if (can_castle(ANY_CASTLING))
+    if (has_castling_rights(ANY_CASTLING))
     {
-        if (can_castle(WHITE_OO))
+        if (has_castling_rights(WHITE_OO))
             fens += Chess960 ? to_char<true>(file_of(castling_rook_sq(WHITE_OO))) : 'K';
-        if (can_castle(WHITE_OOO))
+        if (has_castling_rights(WHITE_OOO))
             fens += Chess960 ? to_char<true>(file_of(castling_rook_sq(WHITE_OOO))) : 'Q';
-        if (can_castle(BLACK_OO))
+        if (has_castling_rights(BLACK_OO))
             fens += Chess960 ? to_char<false>(file_of(castling_rook_sq(BLACK_OO))) : 'k';
-        if (can_castle(BLACK_OOO))
+        if (has_castling_rights(BLACK_OOO))
             fens += Chess960 ? to_char<false>(file_of(castling_rook_sq(BLACK_OOO))) : 'q';
     }
     else
@@ -577,7 +578,9 @@ void Position::set_castling_rights(Color c, Square rOrg) noexcept {
     assert(relative_rank(c, kOrg) == RANK_1);
     assert((pieces(c, KING) & kOrg));
 
-    CastlingRights cr = make_castling_rights(c, kOrg, rOrg);
+    CastlingRights cs = castling_side(kOrg, rOrg);
+
+    CastlingRights cr = c & cs;
 
     assert(!is_ok(castling_rook_sq(cr)));
 
@@ -585,13 +588,25 @@ void Position::set_castling_rights(Color c, Square rOrg) noexcept {
     castlingRightsMask[c * FILE_NB + file_of(kOrg)] |= cr;
     castlingRightsMask[c * FILE_NB + file_of(rOrg)] = cr;
 
-    castlingRookSq[BIT[cr]] = rOrg;
+    auto& castling = castlings[BIT[cr]];
 
     Square kDst = king_castle_sq(c, kOrg, rOrg);
     Square rDst = rook_castle_sq(c, kOrg, rOrg);
 
-    castlingPath[BIT[cr]] =
+    Bitboard castlingPath =
       (between_bb(kOrg, kDst) | between_bb(rOrg, rDst)) & ~make_bb(kOrg, rOrg);
+    while (castlingPath)
+        castling.fullPathSqs[castling.fullPathLen++] = cs == KING_SIDE  //
+                                                       ? pop_lsb(castlingPath)
+                                                       : pop_msb(castlingPath);
+
+    Bitboard castlingKingPath = between_bb(kOrg, kDst);
+    while (castlingKingPath)
+        castling.kingPathSqs[castling.kingPathLen++] = cs == KING_SIDE  //
+                                                       ? pop_lsb(castlingKingPath)
+                                                       : pop_msb(castlingKingPath);
+
+    castling.rookSq = rOrg;
 }
 
 // Computes the hash keys of the position, and other data
@@ -830,7 +845,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     {
         assert(movedPiece == make_piece(ac, KING));
         assert(capturedPiece == make_piece(ac, ROOK));
-        assert(can_castle(ac & ANY_CASTLING));
+        assert(has_castling_rights(ac & ANY_CASTLING));
         assert(!has_castled(ac));
 
         Square rOrg, rDst;
@@ -1187,22 +1202,15 @@ bool Position::legal(Move m) const noexcept {
 
     if (m.type_of() == CASTLING)
     {
-        CastlingRights cr = make_castling_rights(ac, org, dst);
         if (type_of(pc) == KING && (pieces(ac, ROOK) & dst) && !checkers()
-            && relative_rank(ac, org) == RANK_1 && relative_rank(ac, dst) == RANK_1
-            && can_castle(cr) && !castling_impeded(cr) && castling_rook_sq(cr) == dst)
+            && relative_rank(ac, org) == RANK_1 && relative_rank(ac, dst) == RANK_1)
         {
-            Square    kDst = king_castle_sq(ac, org, dst);
-            Direction step = org < kDst ? WEST : EAST;
-            for (Square s = kDst; s != org; s += step)
-                if (has_attackers_to(s, pieces(~ac)))
-                    return false;
+            CastlingRights cs = castling_side(org, dst);
+            CastlingRights cr = ac & cs;
 
-            // Verify if the Rook blocks some checks (needed in case of Chess960).
-            // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-            return !(blockers(ac) & dst);
+            return castling_rook_sq(cr) == dst  //
+                && castling_possible(cr, blockers(ac), pieces(~ac));
         }
-
         return false;
     }
 
@@ -1877,10 +1885,10 @@ Key Position::compute_key() const noexcept {
     Key key = 0;
 
     std::size_t n;
-    auto        sqrs = squares(n);
+    auto        sqs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = sqrs[i];
+        Square s  = sqs[i];
         Piece  pc = piece_on(s);
 
         key ^= Zobrist::piece_square(pc, s);
@@ -1901,10 +1909,10 @@ Key Position::compute_minor_key() const noexcept {
     Key minorKey = 0;
 
     std::size_t n;
-    auto        sqrs = squares(n);
+    auto        sqs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = sqrs[i];
+        Square s  = sqs[i];
         Piece  pc = piece_on(s);
         auto   pt = type_of(pc);
 
@@ -1919,10 +1927,10 @@ Key Position::compute_major_key() const noexcept {
     Key majorKey = 0;
 
     std::size_t n;
-    auto        sqrs = squares(n);
+    auto        sqs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = sqrs[i];
+        Square s  = sqs[i];
         Piece  pc = piece_on(s);
         auto   pt = type_of(pc);
 
@@ -1937,10 +1945,10 @@ Key Position::compute_non_pawn_key() const noexcept {
     Key nonPawnKey = 0;
 
     std::size_t n;
-    auto        sqrs = squares(n);
+    auto        sqs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = sqrs[i];
+        Square s  = sqs[i];
         Piece  pc = piece_on(s);
         auto   pt = type_of(pc);
 
@@ -2035,7 +2043,7 @@ bool Position::_is_ok() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (CastlingRights cr : {c & KING_SIDE, c & QUEEN_SIDE})
         {
-            if (!can_castle(cr))
+            if (!has_castling_rights(cr))
                 continue;
 
             if (!is_ok(castling_rook_sq(cr))  //
@@ -2105,7 +2113,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     os << "\nRepetition: " << pos.repetition();
 
-    if (Tablebases::MaxCardinality >= pos.count() && !pos.can_castle(ANY_CASTLING))
+    if (Tablebases::MaxCardinality >= pos.count() && !pos.has_castling_rights(ANY_CASTLING))
     {
         State    st;
         Position p;
@@ -2195,6 +2203,31 @@ void Position::dump(std::ostream& os) const noexcept {
                 os << "-";
             os << " ";
         }
+        os << "\n";
+    }
+
+    os << "Castlings:\n";
+    for (std::size_t i = 0; i < castlings.size(); ++i)
+    {
+        const auto& castling = castlings[i];
+
+        os << i << ":\n";
+        for (std::size_t len = 0; len < castling.fullPathLen; ++len)
+        {
+            Square s = castling.fullPathSqs[len];
+
+            os << to_square(s) << " ";
+        }
+        os << "\n";
+        for (std::size_t len = 0; len < castling.kingPathLen; ++len)
+        {
+            Square s = castling.kingPathSqs[len];
+
+            os << to_square(s) << " ";
+        }
+        os << "\n";
+        if (is_ok(castling.rookSq))
+            os << to_square(castling.rookSq);
         os << "\n";
     }
 

@@ -221,10 +221,13 @@ class Position final {
 
     CastlingRights castling_rights() const noexcept;
 
-    bool   can_castle(CastlingRights cr) const noexcept;
-    bool   castling_impeded(CastlingRights cr) const noexcept;
+    auto castling_rights_mask(Square org, Square dst) const noexcept;
+
+    bool   has_castling_rights(CastlingRights cr) const noexcept;
     Square castling_rook_sq(CastlingRights cr) const noexcept;
-    auto   castling_rights_mask(Square org, Square dst) const noexcept;
+    bool   castling_full_path_clear(CastlingRights cr) const noexcept;
+    bool   castling_king_path_attacked(CastlingRights cr, Bitboard attackers) const noexcept;
+    bool castling_possible(CastlingRights cr, Bitboard blockers, Bitboard attackers) const noexcept;
 
     Bitboard xslide_attackers_to(Square s) const noexcept;
     Bitboard slide_attackers_to(Square s, Bitboard occupied) const noexcept;
@@ -236,7 +239,7 @@ class Position final {
     bool has_attackers_to(Square s, Bitboard attackers) const noexcept;
 
     Bitboard blockers_to(Square    s,
-                         Bitboard  enemies,
+                         Bitboard  attackers,
                          Bitboard& ownPinners,
                          Bitboard& oppPinners) const noexcept;
 
@@ -358,6 +361,23 @@ class Position final {
     static inline std::uint8_t DrawMoveCount = 50;
 
    private:
+    struct Castling final {
+       public:
+        void clear() noexcept {
+            std::memset(fullPathSqs.data(), SQ_NONE, sizeof(fullPathSqs));
+            fullPathLen = 0;
+            std::memset(kingPathSqs.data(), SQ_NONE, sizeof(kingPathSqs));
+            kingPathLen = 0;
+            rookSq      = SQ_NONE;
+        }
+
+        StdArray<Square, 5> fullPathSqs;
+        std::uint8_t        fullPathLen = 0;
+        StdArray<Square, 5> kingPathSqs;
+        std::uint8_t        kingPathLen = 0;
+        Square              rookSq      = SQ_NONE;
+    };
+
     // SEE struct used to get a nice syntax for SEE comparisons.
     // Never use this type directly or store a value into a variable of this type,
     // instead use the syntax "pos.see(move) >= threshold" and similar for other comparisons.
@@ -441,13 +461,13 @@ class Position final {
     StdArray<Piece, SQUARE_NB>                      pieceMap;
     StdArray<Bitboard, PIECE_TYPE_NB>               typeBB;
     StdArray<Bitboard, COLOR_NB>                    colorBB;
-    StdArray<Bitboard, COLOR_NB * CASTLING_SIDE_NB> castlingPath;
-    StdArray<Square, COLOR_NB * CASTLING_SIDE_NB>   castlingRookSq;
-    StdArray<std::uint8_t, COLOR_NB * FILE_NB>      castlingRightsMask;
     StdArray<std::uint8_t, COLOR_NB>                pieceCount;
-    State*                                          st;
-    std::int16_t                                    gamePly;
-    Color                                           activeColor;
+    StdArray<std::uint8_t, COLOR_NB * FILE_NB>      castlingRightsMask;
+    StdArray<Castling, COLOR_NB * CASTLING_SIDE_NB> castlings;
+
+    State*       st;
+    std::int16_t gamePly;
+    Color        activeColor;
 };
 
 //static_assert(sizeof(Position) == 464, "Position size");
@@ -498,7 +518,7 @@ inline const auto& Position::squares(Piece pc) const noexcept {
 }
 
 inline StdArray<Square, SQUARE_NB> Position::squares(Color c, std::size_t& n) const noexcept {
-    StdArray<Square, SQUARE_NB> sqrs;
+    StdArray<Square, SQUARE_NB> sqs;
 
     n = 0;
     for (PieceType pt : PIECE_TYPES)
@@ -508,16 +528,16 @@ inline StdArray<Square, SQUARE_NB> Position::squares(Color c, std::size_t& n) co
         if (count)
         {
             const auto* pB = base(c);
-            std::memcpy(sqrs.data() + n, pL.data(pB), count * sizeof(Square));
+            std::memcpy(sqs.data() + n, pL.data(pB), count * sizeof(Square));
             n += count;
         }
     }
 
-    return sqrs;
+    return sqs;
 }
 
 inline StdArray<Square, SQUARE_NB> Position::squares(std::size_t& n) const noexcept {
-    StdArray<Square, SQUARE_NB> sqrs;
+    StdArray<Square, SQUARE_NB> sqs;
 
     n = 0;
     for (Color c : {WHITE, BLACK})
@@ -528,12 +548,12 @@ inline StdArray<Square, SQUARE_NB> Position::squares(std::size_t& n) const noexc
             if (count)
             {
                 const auto* pB = base(c);
-                std::memcpy(sqrs.data() + n, pL.data(pB), count * sizeof(Square));
+                std::memcpy(sqs.data() + n, pL.data(pB), count * sizeof(Square));
                 n += count;
             }
         }
 
-    return sqrs;
+    return sqs;
 }
 
 inline std::uint8_t Position::count(Color c, PieceType pt) const noexcept {
@@ -578,20 +598,6 @@ inline std::int32_t Position::move_num() const noexcept {
 
 inline CastlingRights Position::castling_rights() const noexcept { return st->castlingRights; }
 
-inline bool Position::can_castle(CastlingRights cr) const noexcept {
-    return castling_rights() & int(cr);
-}
-
-inline bool Position::castling_impeded(CastlingRights cr) const noexcept {
-    assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
-    return pieces() & castlingPath[BIT[cr]];
-}
-
-inline Square Position::castling_rook_sq(CastlingRights cr) const noexcept {
-    assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
-    return castlingRookSq[BIT[cr]];
-}
-
 inline auto Position::castling_rights_mask(Square org, Square dst) const noexcept {
     constexpr auto Indices = []() constexpr {
         StdArray<std::uint8_t, SQUARE_NB> indices{};
@@ -611,6 +617,55 @@ inline auto Position::castling_rights_mask(Square org, Square dst) const noexcep
 
     return (orgIdx < castlingRightsMask.size() ? castlingRightsMask[orgIdx] : 0)
          | (dstIdx < castlingRightsMask.size() ? castlingRightsMask[dstIdx] : 0);
+}
+
+inline bool Position::has_castling_rights(CastlingRights cr) const noexcept {
+    return castling_rights() & int(cr);
+}
+
+inline Square Position::castling_rook_sq(CastlingRights cr) const noexcept {
+    assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
+    return castlings[BIT[cr]].rookSq;
+}
+
+// Checks if squares between king and rook are empty
+inline bool Position::castling_full_path_clear(CastlingRights cr) const noexcept {
+    assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
+
+    const auto& castling = castlings[BIT[cr]];
+
+    for (std::size_t len = 0; len < castling.fullPathLen; ++len)
+        if (!empty_on(castling.fullPathSqs[len]))
+            return false;
+
+    return true;
+}
+
+// Checks if the castling king path is attacked
+inline bool Position::castling_king_path_attacked(CastlingRights cr,
+                                                  Bitboard       attackers) const noexcept {
+    assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
+
+    const auto& castling = castlings[BIT[cr]];
+
+    for (std::size_t len = 0; len < castling.kingPathLen; ++len)
+        if (has_attackers_to(castling.kingPathSqs[len], attackers))
+            return true;
+
+    return false;
+}
+
+inline bool Position::castling_possible(CastlingRights cr,
+                                        Bitboard       blockers,
+                                        Bitboard       attackers) const noexcept {
+    assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
+
+    return has_castling_rights(cr)  //
+        // Verify if the Rook blocks some checks (needed in case of Chess960).
+        // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
+        && !(blockers & castling_rook_sq(cr))  //
+        && castling_full_path_clear(cr)        //
+        && !castling_king_path_attacked(cr, attackers);
 }
 
 // clang-format off
@@ -655,14 +710,14 @@ inline bool Position::has_attackers_to(Square s, Bitboard attackers) const noexc
     return has_attackers_to(s, attackers, pieces());
 }
 
-// Computes the blockers that are pinned pieces to a given square 's' from a set of enemies.
+// Computes the blockers that are pinned pieces to a given square 's' from a set of attackers.
 // Blockers are pieces that, when removed, would expose an x-ray attack to 's'.
 // Pinners are also returned via the ownPinners and oppPinners reference.
-inline Bitboard Position::blockers_to(Square s, Bitboard enemies, Bitboard& ownPinners, Bitboard& oppPinners) const noexcept {
+inline Bitboard Position::blockers_to(Square s, Bitboard attackers, Bitboard& ownPinners, Bitboard& oppPinners) const noexcept {
     Bitboard blockers = 0;
 
     // xSnipers are x-ray attackers that attack 's' when blockers are removed
-    Bitboard xSnipers = xslide_attackers_to(s) & enemies;
+    Bitboard xSnipers = xslide_attackers_to(s) & attackers;
     Bitboard occupied = pieces() ^ xSnipers;
 
     while (xSnipers)
@@ -675,7 +730,7 @@ inline Bitboard Position::blockers_to(Square s, Bitboard enemies, Bitboard& ownP
         {
             blockers |= blocker;
 
-            if (blocker & enemies)
+            if (blocker & attackers)
                 ownPinners |= xSniperSq;
             else
                 oppPinners |= xSniperSq;

@@ -352,22 +352,17 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
     {
         assert(!pos.checkers());
 
-        if (pos.can_castle(AC & ANY_CASTLING))
+        if (pos.has_castling_rights(AC & ANY_CASTLING))
             for (CastlingRights cr : {AC & KING_SIDE, AC & QUEEN_SIDE})
-                if (pos.can_castle(cr) && !pos.castling_impeded(cr))
+                if (pos.castling_possible(cr, pos.blockers(AC), pos.pieces(~AC)))
                 {
                     assert(is_ok(pos.castling_rook_sq(cr))
                            && (pos.pieces(AC, ROOK) & pos.castling_rook_sq(cr)));
 
-                    Move m = Move(CASTLING, kingSq, pos.castling_rook_sq(cr));
+                    *moves++ = Move(CASTLING, kingSq, pos.castling_rook_sq(cr));
 
-                    if (pos.legal(m))
-                    {
-                        *moves++ = m;
-
-                        if constexpr (Any)
-                            return moves;
-                    }
+                    if constexpr (Any)
+                        return moves;
                 }
     }
 

@@ -461,8 +461,8 @@ constexpr Rank relative_rank(Color c, Rank r) noexcept { return Rank(int(r) ^ (c
 
 constexpr Rank relative_rank(Color c, Square s) noexcept { return relative_rank(c, rank_of(s)); }
 
-constexpr CastlingRights make_castling_rights(Color c, Square s1, Square s2) noexcept {
-    return c & (s1 < s2 ? KING_SIDE : QUEEN_SIDE);
+constexpr CastlingRights castling_side(Square s1, Square s2) noexcept {
+    return s1 < s2 ? KING_SIDE : QUEEN_SIDE;
 }
 
 constexpr Square king_castle_sq(Color c, Square s1, Square s2) noexcept {
