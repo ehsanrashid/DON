@@ -104,7 +104,7 @@ struct TTEntry final {
         if (key16 != k16 || m != Move::None)
             move16 = m;
         // Overwrite less valuable entries (cheapest checks first)
-        if (key16 != k16 || b == BOUND_EXACT || depth() < 4 + d + 2 * pv || relative_age(gen))
+        if (key16 != k16 || b == BOUND_EXACT || depth() < 4 + d + 2 * pv || relative_age(gen) != 0)
         {
             key16   = k16;
             depth8  = d - DEPTH_OFFSET;
@@ -262,7 +262,7 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
 
     std::ofstream ofs(std::string(hashFile), std::ios_base::binary);
 
-    if (!ofs)
+    if (!ofs.is_open())
     {
         std::cerr << "Failed to open Hash file " << hashFile << std::endl;
         return false;
@@ -323,7 +323,7 @@ bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) no
 
     std::ifstream ifs(std::string(hashFile), std::ios_base::binary);
 
-    if (!ifs)
+    if (!ifs.is_open())
     {
         std::cerr << "Failed to open Hash file " << hashFile << std::endl;
         return false;

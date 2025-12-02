@@ -107,7 +107,7 @@ class XorShift64Star final {
         std::uint64_t t{0};
         for (std::uint8_t b = 0; b < 64; ++b)
         {
-            if ((JumpMask >> b) & 1)
+            if (((JumpMask >> b) & 1) != 0)
                 t ^= s;
             rand64();
         }
@@ -161,7 +161,7 @@ class XoShiRo256Star final {
         for (std::uint64_t jumpMask : JumpMasks)
             for (std::uint8_t b = 0; b < 64; ++b)
             {
-                if ((jumpMask >> b) & 1)
+                if (((jumpMask >> b) & 1) != 0)
                     for (std::size_t i = 0; i < Size; ++i)
                         t[i] ^= s[i];
                 rand64();

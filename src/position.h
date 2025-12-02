@@ -823,7 +823,7 @@ inline Key Position::material_key() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            if (pt == KING || !count(c, pt))
+            if (pt == KING || count(c, pt) == 0)
                 continue;
 
             Square s = Square(Zobrist::PAWN_OFFSET + count(c, pt) - 1);

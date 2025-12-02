@@ -427,9 +427,9 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             // b) there is no piece on epSquare or behind epSquare
             // c) there is atleast one friend pawn threatening epSquare
             // d) there is no enemy Bishop, Rook or Queen pinning
-            epCheck = (pieces_bb(~ac, PAWN) & (enPassantSq - pawn_spush(ac)))
-                   && !(pieces_bb() & make_bb(enPassantSq, enPassantSq + pawn_spush(ac)))
-                   && (pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac));
+            epCheck = (pieces_bb(~ac, PAWN) & (enPassantSq - pawn_spush(ac))) != 0
+                   && (pieces_bb() & make_bb(enPassantSq, enPassantSq + pawn_spush(ac))) == 0
+                   && (pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac)) != 0;
         }
         else
             assert(false && "Position::set(): Invalid En-passant square");
@@ -521,7 +521,7 @@ std::string Position::fen(bool full) const noexcept {
                 ++emptyCount;
             else
             {
-                if (emptyCount)
+                if (emptyCount != 0)
                     fens += digit_to_char(emptyCount);
 
                 fens += to_char(piece_on(s));
@@ -530,7 +530,7 @@ std::string Position::fen(bool full) const noexcept {
         }
 
         // Handle trailing empty squares
-        if (emptyCount)
+        if (emptyCount != 0)
             fens += digit_to_char(emptyCount);
 
         if (r > RANK_1)
@@ -1776,7 +1776,7 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         preSt = preSt->preSt->preSt;
 
         // Opponent pieces have reverted
-        if (iterKey)
+        if (iterKey != 0)
             continue;
 
         Key moveKey = baseKey ^ preSt->key;
@@ -1790,7 +1790,7 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         assert(m != Move::None);
 
         // Move path is obstructed
-        if (pieces_bb() & between_ex_bb(m.org_sq(), m.dst_sq()))
+        if ((pieces_bb() & between_ex_bb(m.org_sq(), m.dst_sq())) != 0)
             continue;
 
 #if !defined(NDEBUG)
@@ -1802,7 +1802,7 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         if (i < ply
             // For nodes before or at the root, check that the move is
             // a repetition rather than a move to the current position.
-            || preSt->repetition)
+            || preSt->repetition != 0)
             return true;
     }
 
