@@ -599,14 +599,14 @@ void Position::set_castling_rights(Color c, Square rOrgSq) noexcept {
       (between_bb(kOrgSq, kDstSq) | between_bb(rOrgSq, rDstSq)) & ~make_bb(kOrgSq, rOrgSq);
     while (castlingPathBB != 0)
         castling.fullPathSqs[castling.fullPathLen++] = cs == KING_SIDE  //
-                                                       ? pop_lsb(castlingPathBB)
-                                                       : pop_msb(castlingPathBB);
+                                                       ? pop_lsq(castlingPathBB)
+                                                       : pop_msq(castlingPathBB);
 
     Bitboard castlingKingPathBB = between_bb(kOrgSq, kDstSq);
     while (castlingKingPathBB != 0)
         castling.kingPathSqs[castling.kingPathLen++] = cs == KING_SIDE  //
-                                                       ? pop_lsb(castlingKingPathBB)
-                                                       : pop_msb(castlingKingPathBB);
+                                                       ? pop_lsq(castlingKingPathBB)
+                                                       : pop_msq(castlingKingPathBB);
 }
 
 // Computes the hash keys of the position, and other data
@@ -730,7 +730,7 @@ bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackersB
     Bitboard occupancyBB = pieces_bb() ^ make_bb(capSq, epSq);
     while (attackersBB != 0)
     {
-        Square s = pop_lsb(attackersBB);
+        Square s = pop_lsq(attackersBB);
         if (!(slide_attackers_bb(kingSq, occupancyBB ^ s) & pieces_bb(~ac)))
         {
             epCheck = true;
@@ -1283,7 +1283,7 @@ bool Position::legal(Move m) const noexcept {
              // NOTE: there is some issue with this condition
              //&& !(blockers(ac) & orgSq)
              // Our move must be a blocking interposition or a capture of the checking piece
-             && ((between_bb(square<KING>(ac), lsb(checkers_bb())) & dstSq)
+             && ((between_bb(square<KING>(ac), lsq(checkers_bb())) & dstSq)
                  || (m.type_of() == EN_PASSANT && (checkers_bb() & (dstSq - pawn_spush(ac)))))))
         && (!(blockers_bb(ac) & orgSq) || aligned(square<KING>(ac), orgSq, dstSq));
 }
@@ -1553,7 +1553,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             if (!acAttackersBB  //
                 && (pt == PAWN || !(attacks_bb(dstSq, pt, occupancyBB) & square<KING>(ac))))
             {
-                dstSq = lsb(b);
+                dstSq = lsq(b);
                 swap  = piece_value(type_of(piece_on(orgSq))) - swap;
                 if ((swap = piece_value(type_of(piece_on(dstSq))) - swap) < ge)
                     break;
@@ -1580,11 +1580,11 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
         if (!is_ok(enPassantSq) && discovery[ac] && (b = blockers_bb(~ac) & acAttackersBB))
         {
-            sq = pop_lsb(b);
+            sq = pop_lsq(b);
             pt = type_of(piece_on(sq));
             if (b && pt == KING)
             {
-                sq = pop_lsb(b);
+                sq = pop_lsq(b);
                 pt = type_of(piece_on(sq));
             }
 
@@ -1636,7 +1636,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         // the bitboard 'attackers' any X-ray attackers behind it.
         else if ((b = pieces_bb(PAWN) & acAttackersBB))
         {
-            occupancyBB ^= orgSq = lsb(b);
+            occupancyBB ^= orgSq = lsq(b);
             if ((swap = VALUE_PAWN - swap) < ge)
                 break;
             if (qbBB)
@@ -1660,13 +1660,13 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         }
         else if ((b = pieces_bb(KNIGHT) & acAttackersBB))
         {
-            occupancyBB ^= orgSq = lsb(b);
+            occupancyBB ^= orgSq = lsq(b);
             if ((swap = VALUE_KNIGHT - swap) < ge)
                 break;
         }
         else if ((b = pieces_bb(BISHOP) & acAttackersBB))
         {
-            occupancyBB ^= orgSq = lsb(b);
+            occupancyBB ^= orgSq = lsq(b);
             if ((swap = VALUE_BISHOP - swap) < ge)
                 break;
             qbBB &= occupancyBB;
@@ -1675,7 +1675,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         }
         else if ((b = pieces_bb(ROOK) & acAttackersBB))
         {
-            occupancyBB ^= orgSq = lsb(b);
+            occupancyBB ^= orgSq = lsq(b);
             if ((swap = VALUE_ROOK - swap) < ge)
                 break;
             qrBB &= occupancyBB;
@@ -1684,7 +1684,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         }
         else if ((b = pieces_bb(QUEEN) & acAttackersBB))
         {
-            occupancyBB ^= orgSq = lsb(b);
+            occupancyBB ^= orgSq = lsq(b);
             if ((swap = VALUE_QUEEN - swap) < ge)
                 break;
             qbBB &= occupancyBB;
@@ -2119,7 +2119,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
     os << "\nCheckers: ";
 
     for (Bitboard checkersBB = pos.checkers_bb(); checkersBB;)
-        os << to_square(pop_lsb(checkersBB)) << " ";
+        os << to_square(pop_lsq(checkersBB)) << " ";
 
     os << "\nRepetition: " << pos.repetition();
 

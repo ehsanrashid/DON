@@ -470,7 +470,7 @@ constexpr std::uint8_t constexpr_msb(Bitboard b) noexcept {
 }
 
 // Returns the least significant bit in the non-zero bitboard
-inline Square lsb(Bitboard b) noexcept {
+inline Square lsq(Bitboard b) noexcept {
     assert(b);
 
 #if defined(__GNUC__)  // (GCC, Clang, ICX)
@@ -512,7 +512,7 @@ inline Square lsb(Bitboard b) noexcept {
 }
 
 // Returns the most significant bit in the non-zero bitboard
-inline Square msb(Bitboard b) noexcept {
+inline Square msq(Bitboard b) noexcept {
     assert(b);
 
 #if defined(__GNUC__)  // (GCC, Clang, ICX)
@@ -551,24 +551,24 @@ inline Square msb(Bitboard b) noexcept {
 }
 
 // Returns and clears the least significant bit in the non-zero bitboard
-inline Square pop_lsb(Bitboard& b) noexcept {
+inline Square pop_lsq(Bitboard& b) noexcept {
     assert(b);
-    Square s = lsb(b);
+    Square s = lsq(b);
     b &= b - 1;
     return s;
 }
 
 // Returns and clears the most significant bit in the non-zero bitboard
-inline Square pop_msb(Bitboard& b) noexcept {
+inline Square pop_msq(Bitboard& b) noexcept {
     assert(b);
-    Square s = msb(b);
+    Square s = msq(b);
     b ^= s;
     return s;
 }
 
 // Returns the bitboard of the least significant square of the non-zero bitboard.
 // It is equivalent to square_bb(lsb(bb)).
-constexpr Bitboard lsb_square_bb(Bitboard b) noexcept {
+constexpr Bitboard lsq_bb(Bitboard b) noexcept {
     assert(b);
     return b & -b;
 }

@@ -210,7 +210,7 @@ void FullThreats::append_active_indices(Color           perspective,
                 auto rDir = c == WHITE ? NORTH_EAST : SOUTH_WEST;
                 while (lAttacks != 0)
                 {
-                    Square dstSq    = pop_lsb(lAttacks);
+                    Square dstSq    = pop_lsq(lAttacks);
                     Square orgSq    = dstSq - rDir;
                     Piece  attacked = pos[dstSq];
 
@@ -226,7 +226,7 @@ void FullThreats::append_active_indices(Color           perspective,
                 auto lDir = c == WHITE ? NORTH_WEST : SOUTH_EAST;
                 while (rAttacks != 0)
                 {
-                    Square dstSq      = pop_lsb(rAttacks);
+                    Square dstSq      = pop_lsq(rAttacks);
                     Square orgSq      = dstSq - lDir;
                     Piece  attackedPc = pos[dstSq];
 
@@ -240,12 +240,12 @@ void FullThreats::append_active_indices(Color           perspective,
             {
                 while (pcBB != 0)
                 {
-                    Square   orgSq     = pop_lsb(pcBB);
+                    Square   orgSq     = pop_lsq(pcBB);
                     Bitboard attacksBB = attacks_bb(orgSq, pt, occupancyBB) & occupancyBB;
 
                     while (attacksBB != 0)
                     {
-                        Square dstSq      = pop_lsb(attacksBB);
+                        Square dstSq      = pop_lsq(attacksBB);
                         Piece  attackedPc = pos[dstSq];
 
                         IndexType index =

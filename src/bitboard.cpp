@@ -86,7 +86,7 @@ void init_magics() noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in init_magics()");
 
 #if !defined(USE_BMI2)
-    constexpr StdArray<std::size_t, 2> RefSizes{0x200, 0x1000};
+    constexpr StdArray<std::size_t, 2> SubSizes{0x200, 0x1000};
 
     // Optimal PRNG seeds to pick the correct magics in the shortest time
     constexpr StdArray<std::uint16_t, RANK_NB> Seeds{
@@ -125,8 +125,8 @@ void init_magics() noexcept {
         magic.maskBB = sliding_attacks_bb<PT>(s) & ~edgesBB;
 
 #if !defined(USE_BMI2)
-        StdArray<Bitboard, RefSizes[PT - BISHOP]> referenceBBs;
-        StdArray<Bitboard, RefSizes[PT - BISHOP]> occupancyBBs;
+        StdArray<Bitboard, SubSizes[PT - BISHOP]> referenceBBs;
+        StdArray<Bitboard, SubSizes[PT - BISHOP]> occupancyBBs;
 #endif
         size = 0;
         // Use Carry-Rippler trick to enumerate all subsets of masks[s] and
@@ -148,7 +148,7 @@ void init_magics() noexcept {
         totalSize += size;
 
 #if !defined(USE_BMI2)
-        assert(size <= RefSizes[PT - BISHOP]);
+        assert(size <= SubSizes[PT - BISHOP]);
 
         magic.shift =
     #if defined(IS_64BIT)
@@ -160,7 +160,7 @@ void init_magics() noexcept {
 
         PRNG<XoShiRo256Star> prng(Seeds[rank_of(s)]);
 
-        StdArray<std::uint32_t, RefSizes[PT - BISHOP]> epoch{};
+        StdArray<std::uint32_t, SubSizes[PT - BISHOP]> epoch{};
         std::uint32_t                                  cnt = 0;
 
         // Find a magic for square 's' picking up an (almost) random number

@@ -63,7 +63,7 @@ union Zobrist final {
 
         Bitboard castlingRightsBB = pos.castling_rights();
         while (castlingRightsBB != 0)
-            key ^= _.Castling[pop_lsb(castlingRightsBB)];
+            key ^= _.Castling[pop_lsq(castlingRightsBB)];
 
         if (Square enPassantSq = pos.en_passant_sq(); is_ok(enPassantSq))
             key ^= _.Enpassant[file_of(enPassantSq)];

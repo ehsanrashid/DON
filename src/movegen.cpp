@@ -71,9 +71,9 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* moves) noexcept {
     {
         Square dstSq;
         if constexpr (AC == WHITE)
-            dstSq = pop_msb(dstBB);
+            dstSq = pop_msq(dstBB);
         else
-            dstSq = pop_lsb(dstBB);
+            dstSq = pop_lsq(dstBB);
 
         *moves++ = Move(dstSq - D, dstSq);
     }
@@ -98,9 +98,9 @@ Move* splat_promotion_moves(Bitboard dstBB, Move* moves) noexcept {
     {
         Square dstSq;
         if constexpr (AC == WHITE)
-            dstSq = pop_msb(dstBB);
+            dstSq = pop_msq(dstBB);
         else
-            dstSq = pop_lsb(dstBB);
+            dstSq = pop_lsq(dstBB);
 
         if constexpr (All || Capture)
             *moves++ = Move(dstSq - D, dstSq, QUEEN);
@@ -142,9 +142,9 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* moves) noexcept {
     {
         Square dstSq;
         if constexpr (AC == WHITE)
-            dstSq = pop_msb(dstBB);
+            dstSq = pop_msq(dstBB);
         else
-            dstSq = pop_lsb(dstBB);
+            dstSq = pop_lsq(dstBB);
 
         *moves++ = Move(orgSq, dstSq);
     }
@@ -192,7 +192,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
         dstBB = shift_bb<Push1>(r7PawnsBB) & emptyBB;
         // Consider only blocking and capture squares
         if constexpr (Evasion)
-            dstBB &= between_bb(pos.square<KING>(AC), lsb(pos.checkers_bb()));
+            dstBB &= between_bb(pos.square<KING>(AC), lsq(pos.checkers_bb()));
         moves = splat_promotion_moves<AC, GT, Push1, false>(dstBB, moves);
     }
 
@@ -241,7 +241,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
                 Bitboard pinnedBB = orgBB & pos.blockers_bb(AC);
                 assert(!more_than_one(pinnedBB));
 
-                if (pinnedBB && !aligned(pos.square<KING>(AC), enPassantSq, lsb(pinnedBB)))
+                if (pinnedBB && !aligned(pos.square<KING>(AC), enPassantSq, lsq(pinnedBB)))
                     orgBB ^= pinnedBB;
             }
             assert(orgBB);
@@ -250,9 +250,9 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
             {
                 Square orgSq;
                 if constexpr (AC == WHITE)
-                    orgSq = pop_lsb(orgBB);
+                    orgSq = pop_lsq(orgBB);
                 else
-                    orgSq = pop_msb(orgBB);
+                    orgSq = pop_msq(orgBB);
 
                 *moves++ = Move(EN_PASSANT, orgSq, enPassantSq);
             }
@@ -335,9 +335,9 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
         {
             Square dstSq;
             if constexpr (AC == WHITE)
-                dstSq = pop_msb(dstBB);
+                dstSq = pop_msq(dstBB);
             else
-                dstSq = pop_lsb(dstBB);
+                dstSq = pop_lsq(dstBB);
 
             if (!(pos.slide_attackers_bb(dstSq, occupancyBB) & pos.pieces_bb(~AC)))
             {
@@ -388,9 +388,9 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
         case ENCOUNTER :   targetBB = ~pos.pieces_bb(AC);                                          break;
         case ENC_CAPTURE : targetBB =  pos.pieces_bb(~AC);                                         break;
         case ENC_QUIET :   targetBB = ~pos.pieces_bb();                                            break;
-        case EVASION :     targetBB = between_bb(pos.square<KING>(AC), lsb(pos.checkers_bb()));    break;
+        case EVASION :     targetBB = between_bb(pos.square<KING>(AC), lsq(pos.checkers_bb()));    break;
         case EVA_CAPTURE : targetBB = pos.checkers_bb();                                           break;
-        case EVA_QUIET :   targetBB = between_ex_bb(pos.square<KING>(AC), lsb(pos.checkers_bb())); break;
+        case EVA_QUIET :   targetBB = between_ex_bb(pos.square<KING>(AC), lsq(pos.checkers_bb())); break;
         }
 
         const auto* pMoves = moves;

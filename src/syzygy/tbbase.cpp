@@ -822,7 +822,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
         Bitboard b = leadPawnsBB = pos.pieces_bb(color_of(pc), PAWN);
         while (b != 0)
         {
-            Square s = pop_lsb(b);
+            Square s = pop_lsq(b);
 
             squares[size] = flip ? flip_rank(s) : s;
             ++size;
@@ -847,7 +847,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     Bitboard b = pos.pieces_bb() ^ leadPawnsBB;
     while (b != 0)
     {
-        Square s  = pop_lsb(b);
+        Square s  = pop_lsq(b);
         Piece  pc = pos[s];
 
         squares[size] = flip ? flip_rank(s) : s;

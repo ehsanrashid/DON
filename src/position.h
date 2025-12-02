@@ -147,7 +147,7 @@ static_assert(std::is_standard_layout_v<State> && std::is_trivially_copyable_v<S
 //static_assert(sizeof(State) == 312, "State size");
 
 // Position class stores information regarding the board representation as
-// pieces, active color, hash keys, castling info, etc. (Size = 464)
+// pieces, active color, hash keys, castling info, etc. (Size = 480)
 // Important methods are do_move() and undo_move(),
 // used by the search to update node info when traversing the search tree.
 class Position final {
@@ -470,7 +470,7 @@ class Position final {
     Color                                           activeColor;
 };
 
-//static_assert(sizeof(Position) == 464, "Position size");
+//static_assert(sizeof(Position) == 480, "Position size");
 
 inline const auto& Position::piece_map() const noexcept { return pieceMap; }
 
@@ -723,7 +723,7 @@ inline Bitboard Position::blockers_bb(Square s, Bitboard attackersBB, Bitboard& 
 
     while (xSnipersBB != 0)
     {
-        Square xSniperSq = pop_lsb(xSnipersBB);
+        Square xSniperSq = pop_lsq(xSnipersBB);
 
         Bitboard blockerBB = between_bb(s, xSniperSq) & occupancyBB;
 
@@ -1053,7 +1053,7 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
                           & occupancyBB;
     while (threatenedBB != 0)
     {
-        Square threatenedSq = pop_lsb(threatenedBB);
+        Square threatenedSq = pop_lsq(threatenedBB);
         Piece  threatenedPc = piece_on(threatenedSq);
 
         assert(threatenedSq != s);
@@ -1068,7 +1068,7 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
     // clang-format on
     while (slidersBB != 0)
     {
-        Square sliderSq = pop_lsb(slidersBB);
+        Square sliderSq = pop_lsq(slidersBB);
         Piece  sliderPc = piece_on(sliderSq);
 
         assert(is_ok(sliderPc));
@@ -1080,7 +1080,7 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
             if (discoveredBB != 0)
             {
                 assert(!more_than_one(discoveredBB));
-                Square threatenedSq = lsb(discoveredBB);
+                Square threatenedSq = lsq(discoveredBB);
                 Piece  threatenedPc = piece_on(threatenedSq);
 
                 assert(is_ok(threatenedPc));
@@ -1100,7 +1100,7 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
     // clang-format on
     while (nonSlidersBB != 0)
     {
-        Square nonSliderSq = pop_lsb(nonSlidersBB);
+        Square nonSliderSq = pop_lsq(nonSlidersBB);
         Piece  nonSliderPc = piece_on(nonSliderSq);
 
         assert(nonSliderSq != s);

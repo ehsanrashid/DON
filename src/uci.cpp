@@ -937,7 +937,7 @@ Ambiguity ambiguity(Move m, const Position& pos) noexcept {
     //& ~pos.blockers_bb(ac);
     while (b != 0)
     {
-        Square sq = pop_lsb(b);
+        Square sq = pop_lsq(b);
 
         Move mm = Move(sq, dstSq);
         if (!pos.legal(mm))
