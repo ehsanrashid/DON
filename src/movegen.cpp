@@ -361,7 +361,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
 
                     Move m = Move(CASTLING, kingSq, pos.castling_rook_sq(cr));
 
-                    if (pos.castling_legal(m))
+                    if (pos.legal(m))
                     {
                         *moves++ = m;
 

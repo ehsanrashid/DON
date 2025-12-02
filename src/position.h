@@ -254,7 +254,6 @@ class Position final {
     // clang-format on
 
     // Properties of moves
-    bool  castling_legal(Move m) const noexcept;
     bool  legal(Move m) const noexcept;
     bool  capture(Move m) const noexcept;
     bool  capture_queenpromo(Move m) const noexcept;

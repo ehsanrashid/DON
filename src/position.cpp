@@ -1169,23 +1169,6 @@ void Position::undo_null_move() noexcept {
     assert(_is_ok());
 }
 
-bool Position::castling_legal(Move m) const noexcept {
-
-    Color ac = active_color();
-
-    Square org = m.org_sq(), dst = m.dst_sq();
-
-    Square    kDst = king_castle_sq(ac, org, dst);
-    Direction step = org < kDst ? WEST : EAST;
-    for (Square s = kDst; s != org; s += step)
-        if (has_attackers_to(s, pieces(~ac)))
-            return false;
-
-    // Verify if the Rook blocks some checks (needed in case of Chess960).
-    // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-    return !(blockers(ac) & dst);
-}
-
 // Tests whether a move is legal
 bool Position::legal(Move m) const noexcept {
     assert(m.is_ok());
@@ -1205,10 +1188,22 @@ bool Position::legal(Move m) const noexcept {
     if (m.type_of() == CASTLING)
     {
         CastlingRights cr = make_castling_rights(ac, org, dst);
-        return type_of(pc) == KING && (pieces(ac, ROOK) & dst) && !checkers()
+        if (type_of(pc) == KING && (pieces(ac, ROOK) & dst) && !checkers()
             && relative_rank(ac, org) == RANK_1 && relative_rank(ac, dst) == RANK_1
-            && can_castle(cr) && !castling_impeded(cr) && castling_rook_sq(cr) == dst
-            && castling_legal(m);
+            && can_castle(cr) && !castling_impeded(cr) && castling_rook_sq(cr) == dst)
+        {
+            Square    kDst = king_castle_sq(ac, org, dst);
+            Direction step = org < kDst ? WEST : EAST;
+            for (Square s = kDst; s != org; s += step)
+                if (has_attackers_to(s, pieces(~ac)))
+                    return false;
+
+            // Verify if the Rook blocks some checks (needed in case of Chess960).
+            // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
+            return !(blockers(ac) & dst);
+        }
+
+        return false;
     }
 
     // The destination square cannot be occupied by a friendly piece
