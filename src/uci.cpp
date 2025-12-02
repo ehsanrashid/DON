@@ -944,9 +944,9 @@ Ambiguity ambiguity(Move m, const Position& pos) noexcept {
             movedBB ^= sq;
     }
 
-    if (!(movedBB & file_of(orgSq)))
+    if ((movedBB & file_of(orgSq)) == 0)
         return AMB_RANK;
-    if (!(movedBB & rank_of(orgSq)))
+    if ((movedBB & rank_of(orgSq)) == 0)
         return AMB_FILE;
 
     return AMB_SQUARE;

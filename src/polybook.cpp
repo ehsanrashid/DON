@@ -65,8 +65,7 @@ union Zobrist final {
         while (castlingRightsBB != 0)
             key ^= _.Castling[pop_lsb(castlingRightsBB)];
 
-        Square enPassantSq = pos.en_passant_sq();
-        if (is_ok(enPassantSq))
+        if (Square enPassantSq = pos.en_passant_sq(); is_ok(enPassantSq))
             key ^= _.Enpassant[file_of(enPassantSq)];
 
         if (pos.active_color() == WHITE)

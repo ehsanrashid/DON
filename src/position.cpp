@@ -552,8 +552,8 @@ std::string Position::fen(bool full) const noexcept {
         fens += '-';
 
     fens += ' ';
-    if (is_ok(en_passant_sq()))
-        fens += to_square(en_passant_sq());
+    if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
+        fens += to_square(enPassantSq);
     else
         fens += '-';
 
@@ -642,8 +642,7 @@ void Position::set_state() noexcept {
 
     st->key ^= Zobrist::castling(castling_rights());
 
-    Square enPassantSq = en_passant_sq();
-    if (is_ok(enPassantSq))
+    if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
         st->key ^= Zobrist::enpassant(enPassantSq);
 
     if (active_color() == BLACK)
@@ -837,9 +836,10 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     assert(db.dts.list.empty());
 
     // Reset en-passant square
-    if (is_ok(en_passant_sq()))
+    Square enPassantSq;
+    if (enPassantSq = en_passant_sq(); is_ok(enPassantSq))
     {
-        k ^= Zobrist::enpassant(en_passant_sq());
+        k ^= Zobrist::enpassant(enPassantSq);
         reset_en_passant_sq();
     }
 
@@ -1021,8 +1021,8 @@ DO_MOVE_END:
 
     if (epCheck && can_enpassant(active_color(), dstSq - pawn_spush(ac)))
     {
-        st->enPassantSq = dstSq - pawn_spush(ac);
-        k ^= Zobrist::enpassant(en_passant_sq());
+        st->enPassantSq = enPassantSq = dstSq - pawn_spush(ac);
+        k ^= Zobrist::enpassant(enPassantSq);
     }
 
     // Set the key with the updated key
@@ -1152,9 +1152,9 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
 
     st->nullPly = 0;
 
-    if (is_ok(en_passant_sq()))
+    if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
     {
-        k ^= Zobrist::enpassant(en_passant_sq());
+        k ^= Zobrist::enpassant(enPassantSq);
         reset_en_passant_sq();
     }
 
@@ -1398,8 +1398,8 @@ bool Position::fork(Move m) const noexcept {
 Key Position::move_key(Move m) const noexcept {
     Key moveKey = st->key ^ Zobrist::turn();
 
-    if (is_ok(en_passant_sq()))
-        moveKey ^= Zobrist::enpassant(en_passant_sq());
+    if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
+        moveKey ^= Zobrist::enpassant(enPassantSq);
 
     if (m == Move::Null)
         return moveKey;
@@ -1905,8 +1905,8 @@ Key Position::compute_key() const noexcept {
 
     key ^= Zobrist::castling(castling_rights());
 
-    if (is_ok(en_passant_sq()))
-        key ^= Zobrist::enpassant(en_passant_sq());
+    if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
+        key ^= Zobrist::enpassant(enPassantSq);
 
     if (active_color() == BLACK)
         key ^= Zobrist::turn();
