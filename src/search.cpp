@@ -125,8 +125,8 @@ void update_pv(Move* pv, Move m, const Move* childPv) noexcept {
 
 // Updates histories of the move pairs formed by
 // move at ply -1, -2, -3, -4, -5, -6, -7 and -8 with move at ply 0.
-void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonus) noexcept {
-    assert(is_ok(dst));
+void update_continuation_history(Stack* const ss, Piece pc, Square dstSq, int bonus) noexcept {
+    assert(is_ok(dstSq));
 
     constexpr std::size_t MaxContHistorySize = 8;
 
@@ -147,7 +147,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dst, int bonu
         if (!stack->move.is_ok())
             break;
 
-        (*stack->pieceSqHistory)[pc][dst]
+        (*stack->pieceSqHistory)[pc][dstSq]
           << int(ContHistoryWeights[i] * bonus) + ContHistoryOffsets[i];
     }
 }

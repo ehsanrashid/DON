@@ -95,7 +95,7 @@ void HalfKAv2_hm::append_active_indices(Color                             perspe
                                         const StdArray<Piece, SQUARE_NB>& pieceMap,
                                         Bitboard                          occupancyBB,
                                         IndexList&                        active) noexcept {
-    while (occupancyBB)
+    while (occupancyBB != 0)
     {
         Square s = pop_lsb(occupancyBB);
         active.push_back(make_index(perspective, kingSq, s, pieceMap[s]));

@@ -94,7 +94,7 @@ void PerftInfo::classify(Position& pos, Move m) noexcept {
             }
             //else if (m.type_of() == CASTLING)
             //{
-            //    if (pos.checks_bb(ROOK) & rook_castle_sq(ac, orgSq, dstSq))
+            //    if (pos.checks_bb(ROOK) & rook_castle_sq(orgSq, dstSq))
             //        ++dscCheck;
             //}
         }

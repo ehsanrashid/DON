@@ -367,23 +367,23 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             continue;
         }
 
-        Square rsq = SQ_NONE;
+        Square rOrgSq = SQ_NONE;
 
         if (token == 'k')
         {
-            rsq = relative_sq(c, SQ_H1);
-            while (file_of(rsq) >= FILE_C && !(rooks & rsq) && rsq != square<KING>(c))
-                --rsq;
+            rOrgSq = relative_sq(c, SQ_H1);
+            while (file_of(rOrgSq) >= FILE_C && !(rooks & rOrgSq) && rOrgSq != square<KING>(c))
+                --rOrgSq;
         }
         else if (token == 'q')
         {
-            rsq = relative_sq(c, SQ_A1);
-            while (file_of(rsq) <= FILE_F && !(rooks & rsq) && rsq != square<KING>(c))
-                ++rsq;
+            rOrgSq = relative_sq(c, SQ_A1);
+            while (file_of(rOrgSq) <= FILE_F && !(rooks & rOrgSq) && rOrgSq != square<KING>(c))
+                ++rOrgSq;
         }
         else if ('a' <= token && token <= 'h')
         {
-            rsq = make_square(File(token - 'a'), relative_rank(c, RANK_1));
+            rOrgSq = make_square(File(token - 'a'), relative_rank(c, RANK_1));
         }
         else
         {
@@ -391,13 +391,13 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             continue;
         }
 
-        if (!(rooks & rsq))
+        if (!(rooks & rOrgSq))
         {
             assert(false && "Position::set(): Missing Castling Rook");
             continue;
         }
 
-        set_castling_rights(c, rsq);
+        set_castling_rights(c, rOrgSq);
     }
 
     iss >> std::ws;
@@ -569,41 +569,41 @@ std::string Position::fen(bool full) const noexcept {
 }
 
 // Sets castling rights given the corresponding color and the rook starting square.
-void Position::set_castling_rights(Color c, Square rOrg) noexcept {
-    assert(relative_rank(c, rOrg) == RANK_1);
-    assert((pieces_bb(c, ROOK) & rOrg));
-    assert(castlingRightsMasks[c * FILE_NB + file_of(rOrg)] == 0);
+void Position::set_castling_rights(Color c, Square rOrgSq) noexcept {
+    assert(relative_rank(c, rOrgSq) == RANK_1);
+    assert((pieces_bb(c, ROOK) & rOrgSq));
+    assert(castlingRightsMasks[c * FILE_NB + file_of(rOrgSq)] == 0);
 
-    Square kOrg = square<KING>(c);
-    assert(relative_rank(c, kOrg) == RANK_1);
-    assert((pieces_bb(c, KING) & kOrg));
+    Square kOrgSq = square<KING>(c);
+    assert(relative_rank(c, kOrgSq) == RANK_1);
+    assert((pieces_bb(c, KING) & kOrgSq));
 
-    CastlingRights cs = castling_side(kOrg, rOrg);
+    CastlingRights cs = castling_side(kOrgSq, rOrgSq);
 
     CastlingRights cr = c & cs;
 
     assert(!is_ok(castling_rook_sq(cr)));
 
     st->castlingRights |= cr;
-    castlingRightsMasks[c * FILE_NB + file_of(kOrg)] |= cr;
-    castlingRightsMasks[c * FILE_NB + file_of(rOrg)] = cr;
+    castlingRightsMasks[c * FILE_NB + file_of(kOrgSq)] |= cr;
+    castlingRightsMasks[c * FILE_NB + file_of(rOrgSq)] = cr;
 
     auto& castling = castlings[BIT[cr]];
 
-    castling.rookSq = rOrg;
+    castling.rookSq = rOrgSq;
 
-    Square kDst = king_castle_sq(c, kOrg, rOrg);
-    Square rDst = rook_castle_sq(c, kOrg, rOrg);
+    Square kDstSq = king_castle_sq(kOrgSq, rOrgSq);
+    Square rDstSq = rook_castle_sq(kOrgSq, rOrgSq);
 
     Bitboard castlingPathBB =
-      (between_bb(kOrg, kDst) | between_bb(rOrg, rDst)) & ~make_bb(kOrg, rOrg);
-    while (castlingPathBB)
+      (between_bb(kOrgSq, kDstSq) | between_bb(rOrgSq, rDstSq)) & ~make_bb(kOrgSq, rOrgSq);
+    while (castlingPathBB != 0)
         castling.fullPathSqs[castling.fullPathLen++] = cs == KING_SIDE  //
                                                        ? pop_lsb(castlingPathBB)
                                                        : pop_msb(castlingPathBB);
 
-    Bitboard castlingKingPathBB = between_bb(kOrg, kDst);
-    while (castlingKingPathBB)
+    Bitboard castlingKingPathBB = between_bb(kOrgSq, kDstSq);
+    while (castlingKingPathBB != 0)
         castling.kingPathSqs[castling.kingPathLen++] = cs == KING_SIDE  //
                                                        ? pop_lsb(castlingKingPathBB)
                                                        : pop_msb(castlingKingPathBB);
@@ -632,16 +632,19 @@ void Position::set_state() noexcept {
 
                 if (pt == PAWN)
                     st->pawnKey[c] ^= key;
-
-                else if (pt != KING)
-                    st->nonPawnKey[c][is_major(pt)] ^= key;
+                else
+                {
+                    if (pt != KING)
+                        st->nonPawnKey[c][is_major(pt)] ^= key;
+                }
             }
         }
 
     st->key ^= Zobrist::castling(castling_rights());
 
-    if (is_ok(en_passant_sq()))
-        st->key ^= Zobrist::enpassant(en_passant_sq());
+    Square enPassantSq = en_passant_sq();
+    if (is_ok(enPassantSq))
+        st->key ^= Zobrist::enpassant(enPassantSq);
 
     if (active_color() == BLACK)
         st->key ^= Zobrist::turn();
@@ -726,7 +729,7 @@ bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackersB
     bool epCheck = false;
     // Check en-passant is legal for the position
     Bitboard occupancyBB = pieces_bb() ^ make_bb(capSq, epSq);
-    while (attackersBB)
+    while (attackersBB != 0)
     {
         Square s = pop_lsb(attackersBB);
         if (!(slide_attackers_bb(kingSq, occupancyBB ^ s) & pieces_bb(~ac)))
@@ -753,8 +756,8 @@ void Position::do_castling(Color             ac,
     assert(!Do || db != nullptr);
 
     rOrgSq = dstSq;  // Castling is encoded as "king captures rook"
-    rDstSq = rook_castle_sq(ac, orgSq, dstSq);
-    dstSq  = king_castle_sq(ac, orgSq, dstSq);
+    rDstSq = rook_castle_sq(orgSq, dstSq);
+    dstSq  = king_castle_sq(orgSq, dstSq);
 
     Piece king = piece_on(Do ? orgSq : dstSq);
     assert(king == make_piece(ac, KING));
@@ -947,12 +950,12 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
             assert(relative_rank(ac, orgSq) == RANK_7);
             assert(relative_rank(ac, dstSq) == RANK_8);
 
-            auto promoted = m.promotion_type();
-            assert(KNIGHT <= promoted && promoted <= QUEEN);
+            auto promotedPt = m.promotion_type();
+            assert(KNIGHT <= promotedPt && promotedPt <= QUEEN);
 
-            promotedPc = make_piece(ac, promoted);
+            promotedPc = make_piece(ac, promotedPt);
 
-            Key promoKey = Zobrist::piece_square(ac, promoted, dstSq);
+            Key promoKey = Zobrist::piece_square(ac, promotedPt, dstSq);
 
             db.dp.dstSq = SQ_NONE;
             db.dp.addSq = dstSq;
@@ -963,7 +966,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
             assert(Zobrist::piece_square(ac, PAWN, dstSq) == 0);
             // Update hash keys
             k ^= promoKey;
-            st->nonPawnKey[ac][is_major(promoted)] ^= promoKey;
+            st->nonPawnKey[ac][is_major(promotedPt)] ^= promoKey;
         }
         // Set en-passant square if the moved pawn can be captured
         else if ((int(dstSq) ^ int(orgSq)) == NORTH_2)
@@ -980,9 +983,10 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
         // Reset rule 50 draw counter
         reset_rule50_count();
     }
-    else if (movedPt != KING)
+    else
     {
-        st->nonPawnKey[ac][is_major(movedPt)] ^= movedKey;
+        if (movedPt != KING)
+            st->nonPawnKey[ac][is_major(movedPt)] ^= movedKey;
     }
 
     // Calculate checkers
@@ -1075,8 +1079,8 @@ void Position::undo_move(Move m) noexcept {
 
     if (m.type_of() == CASTLING)
     {
-        assert(pieces_bb(ac, KING) & king_castle_sq(ac, orgSq, dstSq));
-        assert(pieces_bb(ac, ROOK) & rook_castle_sq(ac, orgSq, dstSq));
+        assert(pieces_bb(ac, KING) & king_castle_sq(orgSq, dstSq));
+        assert(pieces_bb(ac, ROOK) & rook_castle_sq(orgSq, dstSq));
         assert(!is_ok(capturedPc));
         assert(has_castled(ac));
 
@@ -1319,7 +1323,7 @@ bool Position::check(Move m) const noexcept {
 
     case CASTLING :
         // Castling is encoded as "king captures rook"
-        return checks_bb(ROOK) & rook_castle_sq(ac, orgSq, dstSq);
+        return checks_bb(ROOK) & rook_castle_sq(orgSq, dstSq);
     }
     assert(false);
     return false;
@@ -1417,7 +1421,7 @@ Key Position::move_key(Move m) const noexcept {
     moveKey ^=
       Zobrist::piece_square(ac, movedPt, orgSq)
       ^ Zobrist::piece_square(ac, m.type_of() != PROMOTION ? movedPt : m.promotion_type(),
-                              m.type_of() != CASTLING ? dstSq : king_castle_sq(ac, orgSq, dstSq));
+                              m.type_of() != CASTLING ? dstSq : king_castle_sq(orgSq, dstSq));
     if (int cr; castling_rights() && (cr = castling_rights_mask(orgSq, dstSq)))
         moveKey ^= Zobrist::castling(castling_rights())  //
                  ^ Zobrist::castling(castling_rights() & ~cr);
@@ -1429,7 +1433,7 @@ Key Position::move_key(Move m) const noexcept {
         // ROOK
         return moveKey  //
              ^ Zobrist::piece_square(ac, ROOK, dstSq)
-             ^ Zobrist::piece_square(ac, ROOK, rook_castle_sq(ac, orgSq, dstSq))
+             ^ Zobrist::piece_square(ac, ROOK, rook_castle_sq(orgSq, dstSq))
              ^ Zobrist::mr50(rule50_count() + 1);
     }
 

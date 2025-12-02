@@ -67,7 +67,7 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* moves) noexcept {
     moves = write_moves(std::uint32_t(dstBB >> 00), _mm512_load_si512(table + 0), moves);
     moves = write_moves(std::uint32_t(dstBB >> 32), _mm512_load_si512(table + 1), moves);
 #else
-    while (dstBB)
+    while (dstBB != 0)
     {
         Square dstSq;
         if constexpr (AC == WHITE)
@@ -94,7 +94,7 @@ Move* splat_promotion_moves(Bitboard dstBB, Move* moves) noexcept {
     constexpr bool Capture = GT == ENC_CAPTURE || GT == EVA_CAPTURE;
     constexpr bool Quiet   = GT == ENC_QUIET || GT == EVA_QUIET;
 
-    while (dstBB)
+    while (dstBB != 0)
     {
         Square dstSq;
         if constexpr (AC == WHITE)
@@ -138,7 +138,7 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* moves) noexcept {
     moves = write_moves(std::uint32_t(dstBB >> 32),
                         _mm512_or_si512(_mm512_load_si512(table + 1), orgVec), moves);
 #else
-    while (dstBB)
+    while (dstBB != 0)
     {
         Square dstSq;
         if constexpr (AC == WHITE)
@@ -331,7 +331,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
 
         Bitboard occupancyBB = pos.pieces_bb() ^ kingSq;
 
-        while (dstBB)
+        while (dstBB != 0)
         {
             Square dstSq;
             if constexpr (AC == WHITE)

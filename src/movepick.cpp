@@ -148,14 +148,15 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
 
         // Penalty for moving to square attacked by lesser piece
         // Bonus for escaping from square attacked by lesser piece
-        m.value += piece_value(pt)
-                 * ((pos.acc_less_attacks_bb(~ac, pt) & dstSq)   ? -19 * !(blockersBB & orgSq)
-                    : (threatsBB & orgSq)                        ? +23
-                    : (pos.acc_less_attacks_bb(~ac, pt) & orgSq) ? +20
-                                                                 : 0);
+        m.value +=
+          piece_value(pt)
+          * ((pos.acc_less_attacks_bb(~ac, pt) & dstSq) != 0   ? -19 * ((blockersBB & orgSq) == 0)
+             : (threatsBB & orgSq) != 0                        ? +23
+             : (pos.acc_less_attacks_bb(~ac, pt) & orgSq) != 0 ? +20
+                                                               : 0);
 
         // Penalty for moving pinner piece
-        m.value -= 0x400 * ((pinnersBB & orgSq) && !aligned(kingSq, orgSq, dstSq));
+        m.value -= 0x400 * ((pinnersBB & orgSq) != 0 && !aligned(kingSq, orgSq, dstSq));
     }
     return itr;
 }

@@ -142,7 +142,8 @@ void init_magics() noexcept {
 #endif
             ++size;
             occupancyBB = (occupancyBB - magic.maskBB) & magic.maskBB;
-        } while (occupancyBB);
+
+        } while (occupancyBB != 0);
 
         totalSize += size;
 

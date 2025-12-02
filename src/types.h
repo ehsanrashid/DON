@@ -465,11 +465,11 @@ constexpr CastlingRights castling_side(Square s1, Square s2) noexcept {
     return s1 < s2 ? KING_SIDE : QUEEN_SIDE;
 }
 
-constexpr Square king_castle_sq(Color c, Square kOrgSq, Square kDstSq) noexcept {
-    return relative_sq(c, kOrgSq < kDstSq ? SQ_G1 : SQ_C1);
+constexpr Square king_castle_sq(Square kOrgSq, Square kDstSq) noexcept {
+    return make_square(kOrgSq < kDstSq ? FILE_G : FILE_C, rank_of(kOrgSq));
 }
-constexpr Square rook_castle_sq(Color c, Square kOrgSq, Square kDstSq) noexcept {
-    return relative_sq(c, kOrgSq < kDstSq ? SQ_F1 : SQ_D1);
+constexpr Square rook_castle_sq(Square kOrgSq, Square kDstSq) noexcept {
+    return make_square(kOrgSq < kDstSq ? FILE_F : FILE_D, rank_of(kOrgSq));
 }
 
 constexpr Direction pawn_spush(Color c) noexcept {

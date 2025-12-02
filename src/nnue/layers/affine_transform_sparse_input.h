@@ -52,7 +52,7 @@ struct Lookup final {
         {
             std::uint8_t c = 0;
             Bitboard     b = i;
-            while (b)
+            while (b != 0)
             {
                 indices[i][c++] = constexpr_lsb(b);
                 b &= b - 1;

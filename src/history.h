@@ -83,12 +83,12 @@ constexpr std::uint16_t correction_index(Key corrKey) noexcept {  //
 }
 
 enum HistoryType : std::uint8_t {
-    HCapture,       // By move's [piece][dst][captured piece type]
-    HQuiet,         // By color and move's org and dst squares
-    HPawn,          // By pawn structure and a move's [piece][dst]
-    HPieceSq,       // By move's [piece][sq]
+    HCapture,       // By move's [piece][dstSq][captured piece type]
+    HQuiet,         // By color and move's orgSq and dstSq squares
+    HPawn,          // By pawn structure and a move's [piece][dstSq]
+    HPieceSq,       // By move's [piece][dstSq]
     HContinuation,  // By combination of pair of moves
-    HLowPlyQuiet,   // By ply and move's org and dst squares
+    HLowPlyQuiet,   // By ply and move's orgSq and dstSq squares
     HTTMove,
 };
 

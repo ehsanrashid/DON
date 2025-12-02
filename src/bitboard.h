@@ -430,7 +430,7 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
     // Using a fallback implementation
 
     // std::uint8_t count = 0;
-    // while (b)
+    // while (b != 0)
     // {
     //     count += b & 1;
     //     b >>= 1;

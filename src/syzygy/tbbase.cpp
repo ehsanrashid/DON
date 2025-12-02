@@ -820,7 +820,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
         assert(type_of(pc) == PAWN);
 
         Bitboard b = leadPawnsBB = pos.pieces_bb(color_of(pc), PAWN);
-        while (b)
+        while (b != 0)
         {
             Square s = pop_lsb(b);
 
@@ -845,7 +845,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // Now ready to get all the position pieces (but the lead pawns)
     // and directly map them to the correct square and color.
     Bitboard b = pos.pieces_bb() ^ leadPawnsBB;
-    while (b)
+    while (b != 0)
     {
         Square s  = pop_lsb(b);
         Piece  pc = pos[s];

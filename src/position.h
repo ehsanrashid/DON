@@ -721,7 +721,7 @@ inline Bitboard Position::blockers_bb(Square s, Bitboard attackersBB, Bitboard& 
     Bitboard xSnipersBB  = xslide_attackers_bb(s) & attackersBB;
     Bitboard occupancyBB = pieces_bb() ^ xSnipersBB;
 
-    while (xSnipersBB)
+    while (xSnipersBB != 0)
     {
         Square xSniperSq = pop_lsb(xSnipersBB);
 
@@ -731,7 +731,7 @@ inline Bitboard Position::blockers_bb(Square s, Bitboard attackersBB, Bitboard& 
         {
             blockersBB |= blockerBB;
 
-            if (blockerBB & attackersBB)
+            if ((blockerBB & attackersBB) != 0)
                 ownPinnersBB |= xSniperSq;
             else
                 oppPinnersBB |= xSniperSq;

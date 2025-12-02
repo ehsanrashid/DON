@@ -60,7 +60,7 @@ struct PiecePairData final {
         data = (featureBaseIndex << 8) | (excluded << 1) | (semiExcluded && !excluded);
     }
 
-    // lsb: excluded if org < dst; 2nd lsb: always excluded
+    // lsb: excluded if orgSq < dstSq; 2nd lsb: always excluded
     std::uint8_t excluded_pair_info() const { return (data >> 0) & 0xFF; }
     IndexType    feature_base_index() const { return (data >> 8); }
 
@@ -71,7 +71,7 @@ struct PiecePairData final {
 // The final index is calculated from summing data found in these two LUTs,
 // as well as Offsets[attacker][from]
 StdArray<PiecePairData, PIECE_NB, PIECE_NB>            LutData;   // [attacker][attacked]
-StdArray<std::uint8_t, PIECE_NB, SQUARE_NB, SQUARE_NB> LutIndex;  // [attacker][org][dst]
+StdArray<std::uint8_t, PIECE_NB, SQUARE_NB, SQUARE_NB> LutIndex;  // [attacker][orgSq][dstSq]
 
 // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
 constexpr Square orientation(Square s) noexcept {
@@ -208,7 +208,7 @@ void FullThreats::append_active_indices(Color           perspective,
                   (c == WHITE ? shift_bb<NORTH_EAST>(pcBB) : shift_bb<SOUTH_WEST>(pcBB))
                   & occupancyBB;
                 auto rDir = c == WHITE ? NORTH_EAST : SOUTH_WEST;
-                while (lAttacks)
+                while (lAttacks != 0)
                 {
                     Square dstSq    = pop_lsb(lAttacks);
                     Square orgSq    = dstSq - rDir;
@@ -224,7 +224,7 @@ void FullThreats::append_active_indices(Color           perspective,
                   (c == WHITE ? shift_bb<NORTH_WEST>(pcBB) : shift_bb<SOUTH_EAST>(pcBB))
                   & occupancyBB;
                 auto lDir = c == WHITE ? NORTH_WEST : SOUTH_EAST;
-                while (rAttacks)
+                while (rAttacks != 0)
                 {
                     Square dstSq      = pop_lsb(rAttacks);
                     Square orgSq      = dstSq - lDir;
@@ -238,12 +238,12 @@ void FullThreats::append_active_indices(Color           perspective,
             }
             else
             {
-                while (pcBB)
+                while (pcBB != 0)
                 {
                     Square   orgSq     = pop_lsb(pcBB);
                     Bitboard attacksBB = attacks_bb(orgSq, pt, occupancyBB) & occupancyBB;
 
-                    while (attacksBB)
+                    while (attacksBB != 0)
                     {
                         Square dstSq      = pop_lsb(attacksBB);
                         Piece  attackedPc = pos[dstSq];
