@@ -286,8 +286,8 @@ struct DirtyPiece final {
    public:
     constexpr DirtyPiece() noexcept = default;
 
-    Piece  pc  = NO_PIECE;                // this is never allowed to be NO_PIECE
-    Square org = SQ_NONE, dst = SQ_NONE;  // dst should be SQ_NONE for promotions
+    Piece  movedPc = NO_PIECE;                // this is never allowed to be NO_PIECE
+    Square orgSq = SQ_NONE, dstSq = SQ_NONE;  // dstSq should be SQ_NONE for promotions
 
     // if {add, remove}Sq is SQ_NONE, {add, remove}Pc is allowed to be uninitialized
     // castling uses addSq and removeSq to remove and add the rook

@@ -327,7 +327,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
 
     if (dstBB)
     {
-        dstBB &= ~(pos.attacks_acc_bb<KNIGHT>(~AC) | attacks_bb<KING>(pos.square<KING>(~AC)));
+        dstBB &= ~(pos.acc_attacks_bb<KNIGHT>(~AC) | attacks_bb<KING>(pos.square<KING>(~AC)));
 
         Bitboard occupancyBB = pos.pieces_bb() ^ kingSq;
 

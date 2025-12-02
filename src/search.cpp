@@ -1723,7 +1723,7 @@ QS_MOVES_LOOP:
 
         ++moveCount;
 
-        Square dst = move.dst_sq();
+        Square dstSq = move.dst_sq();
 
         bool check = pos.check(move);
 
@@ -1733,7 +1733,7 @@ QS_MOVES_LOOP:
             bool capture = pos.capture_queenpromo(move);
 
             // Futility pruning and moveCount pruning
-            if (!check && dst != preSq && move.type_of() != PROMOTION && !is_loss(futilityBase))
+            if (!check && dstSq != preSq && move.type_of() != PROMOTION && !is_loss(futilityBase))
             {
                 if (moveCount > 2)
                     continue;
@@ -1842,10 +1842,10 @@ void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const 
     nodes.fetch_add(1, std::memory_order_relaxed);
     if (ss != nullptr)
     {
-        auto dstSq                   = m.dst_sq();
-        ss->move                     = m;
-        ss->pieceSqHistory           = &continuationHistory[ss->inCheck][capture][db.dp.pc][dstSq];
-        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[db.dp.pc][dstSq];
+        auto dstSq         = m.dst_sq();
+        ss->move           = m;
+        ss->pieceSqHistory = &continuationHistory[ss->inCheck][capture][db.dp.movedPc][dstSq];
+        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[db.dp.movedPc][dstSq];
     }
     accStack.push(std::move(db));
 }
@@ -1877,8 +1877,8 @@ Value Worker::evaluate(const Position& pos) noexcept {
 
 // clang-format off
 
-void Worker::update_capture_history(Piece pc, Square dstSq, PieceType captured, int bonus) noexcept {
-    captureHistory[pc][dstSq][captured] << bonus;
+void Worker::update_capture_history(Piece movedPc, Square dstSq, PieceType capturedPt, int bonus) noexcept {
+    captureHistory[movedPc][dstSq][capturedPt] << bonus;
 }
 void Worker::update_capture_history(const Position& pos, Move m, int bonus) noexcept {
     update_capture_history(pos.moved_pc(m), m.dst_sq(), pos.captured_pt(m), bonus);
@@ -1886,8 +1886,8 @@ void Worker::update_capture_history(const Position& pos, Move m, int bonus) noex
 void Worker::update_quiet_history(Color ac, Move m, int bonus) noexcept {
     quietHistory[ac][m.raw()] << bonus;
 }
-void Worker::update_pawn_history(std::uint16_t pawnIndex, Piece pc, Square dstSq, int bonus) noexcept {
-    pawnHistory[pawnIndex][pc][dstSq] << bonus;
+void Worker::update_pawn_history(std::uint16_t pawnIndex, Piece movedPc, Square dstSq, int bonus) noexcept {
+    pawnHistory[pawnIndex][movedPc][dstSq] << bonus;
 }
 void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept {
     assert(m.is_ok());
@@ -1906,28 +1906,28 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::u
 }
 
 // Updates history at the end of search() when a bestMove is found
-void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bm, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept {
+void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bestMove, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept {
     assert(ss->moveCount != 0);
 
-    int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * (bm == ss->ttMove);
+    int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * (bestMove == ss->ttMove);
     int malus = std::max(std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount, 1);
 
-    if (pos.capture_queenpromo(bm))
+    if (pos.capture_queenpromo(bestMove))
     {
-        update_capture_history(pos, bm, 1.3623 * bonus);
+        update_capture_history(pos, bestMove, 1.3623 * bonus);
     }
     else
     {
-        update_quiet_histories(pos, ss, pawnIndex, bm, 0.8887 * bonus);
+        update_quiet_histories(pos, ss, pawnIndex, bestMove, 0.8887 * bonus);
 
         // Decrease history for all non-best quiet moves
-        for (auto qm : worseMoves[0])
-            update_quiet_histories(pos, ss, pawnIndex, qm, -1.0596 * malus);
+        for (auto quietMove : worseMoves[0])
+            update_quiet_histories(pos, ss, pawnIndex, quietMove, -1.0596 * malus);
     }
 
     // Decrease history for all non-best capture moves
-    for (auto cm : worseMoves[1])
-        update_capture_history(pos, cm, -1.4141 * malus);
+    for (auto captureMove : worseMoves[1])
+        update_capture_history(pos, captureMove, -1.4141 * malus);
 
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted.
@@ -1989,58 +1989,60 @@ bool Worker::ponder_move_extracted() noexcept {
     auto& rm0 = rootMoves[0];
     assert(rm0.pv.size() == 1);
 
-    auto bm = rm0.pv[0];
+    auto bestMove = rm0.pv[0];
 
-    if (bm == Move::None)
+    if (bestMove == Move::None)
         return false;
 
     State st;
-    rootPos.do_move(bm, st, &tt);
+    rootPos.do_move(bestMove, st, &tt);
 
     // Legal moves for the opponent
     const MoveList<LEGAL> legalMoveList(rootPos);
     if (!legalMoveList.empty())
     {
-        Move pm;
+        Move ponderMove;
 
         auto [ttd, ttu] = tt.probe(rootPos.key());
 
-        pm = ttd.hit ? legal_tt_move(ttd.move, rootPos) : Move::None;
-        if (pm == Move::None || !legalMoveList.contains(pm))
+        ponderMove = ttd.hit ? legal_tt_move(ttd.move, rootPos) : Move::None;
+        if (ponderMove == Move::None || !legalMoveList.contains(ponderMove))
         {
-            pm = Move::None;
+            ponderMove = Move::None;
             for (auto&& th : threads)
             {
                 if (th->worker.get() == this || th->worker->completedDepth == DEPTH_ZERO)
                     continue;
-                if (const auto& rm = th->worker->rootMoves[0]; rm.pv[0] == bm && rm.pv.size() > 1)
+                if (const auto& rm = th->worker->rootMoves[0];
+                    rm.pv[0] == bestMove && rm.pv.size() > 1)
                 {
-                    pm = rm.pv[1];
+                    ponderMove = rm.pv[1];
                     break;
                 }
             }
-            if (pm == Move::None)
+            if (ponderMove == Move::None)
                 for (auto&& th : threads)
                 {
                     if (th->worker.get() == this || th->worker->completedDepth == DEPTH_ZERO)
                         continue;
-                    if (const auto& rm = *th->worker->rootMoves.find(bm); rm.pv.size() > 1)
+                    if (const auto& rm = *th->worker->rootMoves.find(bestMove); rm.pv.size() > 1)
                     {
-                        pm = rm.pv[1];
+                        ponderMove = rm.pv[1];
                         break;
                     }
                 }
-            if (pm == Move::None)
+            if (ponderMove == Move::None)
             {
                 std::uniform_int_distribution<std::size_t> distribute(0, legalMoveList.size() - 1);
-                pm = *(legalMoveList.begin() + distribute(prng));
+                ponderMove = *(legalMoveList.begin() + distribute(prng));
             }
         }
 
-        rm0.pv.push_back(pm);
+        rm0.pv.push_back(ponderMove);
     }
 
-    rootPos.undo_move(bm);
+    rootPos.undo_move(bestMove);
+
     return rm0.pv.size() > 1;
 }
 

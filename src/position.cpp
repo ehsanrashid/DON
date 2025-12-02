@@ -669,11 +669,11 @@ void Position::set_ext_state() noexcept {
 
         st->attacksAccBB[c][NO_PIECE_TYPE] = 0;
         st->attacksAccBB[c][PAWN  ] = attacks_by_bb<PAWN  >(c);
-        st->attacksAccBB[c][KNIGHT] = attacks_by_bb<KNIGHT>(c) | attacks_acc_bb<PAWN  >(c);
-        st->attacksAccBB[c][BISHOP] = attacks_by_bb<BISHOP>(c) | attacks_acc_bb<KNIGHT>(c);
-        st->attacksAccBB[c][ROOK  ] = attacks_by_bb<ROOK  >(c) | attacks_acc_bb<BISHOP>(c);
-        st->attacksAccBB[c][QUEEN ] = attacks_by_bb<QUEEN >(c) | attacks_acc_bb<ROOK  >(c);
-        st->attacksAccBB[c][KING  ] = attacks_by_bb<KING  >(c) | attacks_acc_bb<QUEEN >(c);
+        st->attacksAccBB[c][KNIGHT] = attacks_by_bb<KNIGHT>(c) | acc_attacks_bb<PAWN  >(c);
+        st->attacksAccBB[c][BISHOP] = attacks_by_bb<BISHOP>(c) | acc_attacks_bb<KNIGHT>(c);
+        st->attacksAccBB[c][ROOK  ] = attacks_by_bb<ROOK  >(c) | acc_attacks_bb<BISHOP>(c);
+        st->attacksAccBB[c][QUEEN ] = attacks_by_bb<QUEEN >(c) | acc_attacks_bb<ROOK  >(c);
+        st->attacksAccBB[c][KING  ] = attacks_by_bb<KING  >(c) | acc_attacks_bb<QUEEN >(c);
     }
     // clang-format on
 }
@@ -764,7 +764,7 @@ void Position::do_castling(Color             ac,
     // Remove both pieces first since squares could overlap in Chess960
     if constexpr (Do)
     {
-        db->dp.dst      = dstSq;
+        db->dp.dstSq    = dstSq;
         db->dp.removeSq = rOrgSq;
         db->dp.addSq    = rDstSq;
         db->dp.removePc = db->dp.addPc = rook;
@@ -823,9 +823,9 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
 
     DirtyBoard db;
 
-    db.dp.pc             = movedPc;
-    db.dp.org            = orgSq;
-    db.dp.dst            = dstSq;
+    db.dp.movedPc        = movedPc;
+    db.dp.orgSq          = orgSq;
+    db.dp.dstSq          = dstSq;
     db.dp.addSq          = SQ_NONE;
     db.dts.ac            = ac;
     db.dts.preKingSq     = square<KING>(ac);
@@ -954,7 +954,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
 
             Key promoKey = Zobrist::piece_square(ac, promoted, dstSq);
 
-            db.dp.dst   = SQ_NONE;
+            db.dp.dstSq = SQ_NONE;
             db.dp.addSq = dstSq;
             db.dp.addPc = promotedPc;
 
@@ -1052,9 +1052,9 @@ DO_MOVE_END:
 
     assert(_is_ok());
 
-    assert(is_ok(db.dp.pc));
-    assert(is_ok(db.dp.org));
-    assert(is_ok(db.dp.dst) ^ !(m.type_of() != PROMOTION));
+    assert(is_ok(db.dp.movedPc));
+    assert(is_ok(db.dp.orgSq));
+    assert(is_ok(db.dp.dstSq) ^ !(m.type_of() != PROMOTION));
     assert(is_ok(db.dp.removeSq) ^ !(capture || m.type_of() == CASTLING));
     assert(is_ok(db.dp.addSq) ^ !(m.type_of() == PROMOTION || m.type_of() == CASTLING));
     return db;

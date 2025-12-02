@@ -752,14 +752,14 @@ void AccumulatorStack::forward_update_incremental(
 
             if constexpr (std::is_same_v<FeatureSet, PSQFeatureSet>)
             {
-                if (is_ok(dp1.dst) && dp1.dst == dp2.removeSq)
+                if (is_ok(dp1.dstSq) && dp1.dstSq == dp2.removeSq)
                 {
-                    auto capSq = dp1.dst;
-                    dp1.dst = dp2.removeSq = SQ_NONE;
+                    auto capSq = dp1.dstSq;
+                    dp1.dstSq = dp2.removeSq = SQ_NONE;
                     update_accumulator_incremental_double(perspective, featureTransformer, kingSq,
                                                           accumulators[idx - 1], accumulators[idx],
                                                           accumulators[idx + 1]);
-                    dp1.dst = dp2.removeSq = capSq;
+                    dp1.dstSq = dp2.removeSq = capSq;
 
                     ++idx;
                     continue;

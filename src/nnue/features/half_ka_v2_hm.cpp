@@ -108,10 +108,10 @@ void HalfKAv2_hm::append_changed_indices(Color            perspective,
                                          const DirtyType& dt,
                                          IndexList&       removed,
                                          IndexList&       added) noexcept {
-    removed.push_back(make_index(perspective, kingSq, dt.org, dt.pc));
+    removed.push_back(make_index(perspective, kingSq, dt.orgSq, dt.movedPc));
 
-    if (is_ok(dt.dst))
-        added.push_back(make_index(perspective, kingSq, dt.dst, dt.pc));
+    if (is_ok(dt.dstSq))
+        added.push_back(make_index(perspective, kingSq, dt.dstSq, dt.movedPc));
 
     if (is_ok(dt.removeSq))
         removed.push_back(make_index(perspective, kingSq, dt.removeSq, dt.removePc));
@@ -121,7 +121,7 @@ void HalfKAv2_hm::append_changed_indices(Color            perspective,
 }
 
 bool HalfKAv2_hm::requires_refresh(Color perspective, const DirtyType& dt) noexcept {
-    return dt.pc == make_piece(perspective, KING);
+    return dt.movedPc == make_piece(perspective, KING);
 }
 
 }  // namespace DON::NNUE::Features

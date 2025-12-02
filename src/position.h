@@ -275,8 +275,8 @@ class Position final {
     Bitboard blockers_bb() const noexcept;
 
     template<PieceType PT>
-    Bitboard attacks_acc_bb(Color c) const noexcept;
-    Bitboard attacks_less_bb(Color c, PieceType pt) const noexcept;
+    Bitboard acc_attacks_bb(Color c) const noexcept;
+    Bitboard acc_less_attacks_bb(Color c, PieceType pt) const noexcept;
     Bitboard threats_bb(Color c) const noexcept;
 
     Piece captured_pc() const noexcept;
@@ -421,10 +421,10 @@ class Position final {
 
     template<bool Do>
     void do_castling(Color             ac,
-                     Square            org,
-                     Square&           dst,
-                     Square&           rOrg,
-                     Square&           rDst,
+                     Square            orgSq,
+                     Square&           dstSq,
+                     Square&           rOrgSq,
+                     Square&           rDstSq,
                      DirtyBoard* const db = nullptr) noexcept;
 
     void reset_en_passant_sq() noexcept;
@@ -778,10 +778,10 @@ inline Bitboard Position::blockers_bb() const noexcept {
 }
 
 template<PieceType PT>
-inline Bitboard Position::attacks_acc_bb(Color c) const noexcept {
+inline Bitboard Position::acc_attacks_bb(Color c) const noexcept {
     return st->attacksAccBB[c][PT];
 }
-inline Bitboard Position::attacks_less_bb(Color c, PieceType pt) const noexcept {
+inline Bitboard Position::acc_less_attacks_bb(Color c, PieceType pt) const noexcept {
     return st->attacksAccBB[c][pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
 }
 inline Bitboard Position::threats_bb(Color c) const noexcept {
