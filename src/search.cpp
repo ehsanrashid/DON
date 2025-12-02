@@ -158,7 +158,7 @@ Value adjust_static_eval(Value ev, int cv) noexcept { return in_range(ev + int(7
 
 // rule50 count >= 20 and one side moving same piece more times in a row
 bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcept {
-    return !(pos.capture(move) || type_of(pos.moved_piece(move)) == PAWN || pos.rule50_count() < 10
+    return !(pos.capture(move) || type_of(pos.moved_pc(move)) == PAWN || pos.rule50_count() < 10
              || pos.null_ply() < 6 || ss->ply < 20)
         && (ss - 2)->move.is_ok() && move.org_sq() == (ss - 2)->move.dst_sq()
         && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq()
@@ -767,7 +767,7 @@ Value Worker::search(Position&    pos,
 
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
-    bool preCapture = is_ok(pos.captured_piece());
+    bool preCapture = is_ok(pos.captured_pc());
     bool preNonPawn =
       is_ok(preSq) && type_of(pos[preSq]) != PAWN && (ss - 1)->move.type_of() != PROMOTION;
 
@@ -1146,13 +1146,13 @@ S_MOVES_LOOP:  // When in check, search starts here
         if constexpr (PVNode)
             (ss + 1)->pv = nullptr;
 
-        Square dst = move.dst_sq();
+        Square dstSq = move.dst_sq();
 
-        Piece movedPiece = pos.moved_piece(move);
+        Piece movedPc = pos.moved_pc(move);
 
         bool check    = pos.check(move);
         bool capture  = pos.capture_queenpromo(move);
-        auto captured = capture ? pos.captured(move) : NO_PIECE_TYPE;
+        auto captured = capture ? pos.captured_pt(move) : NO_PIECE_TYPE;
 
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
@@ -1176,7 +1176,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             if (capture)
             {
-                int history = captureHistory[movedPiece][dst][captured];
+                int history = captureHistory[movedPc][dstSq][captured];
 
                 // Futility pruning: for captures
                 if (lmrDepth < 7 && !check)
@@ -1191,15 +1191,15 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // SEE based pruning for captures and checks
                 int margin = -std::max(166 * depth + int(34.4828e-3 * history), 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
-                  (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPiece)))
+                  (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
                   && pos.see(move) < margin)
                     continue;
             }
             else
             {
-                int history = pawnHistory[pawnIndex][movedPiece][dst]
-                            + (*contHistory[0])[movedPiece][dst]  //
-                            + (*contHistory[1])[movedPiece][dst];
+                int history = pawnHistory[pawnIndex][movedPc][dstSq]
+                            + (*contHistory[0])[movedPc][dstSq]  //
+                            + (*contHistory[1])[movedPc][dstSq];
 
                 // History based pruning
                 if (history < -4083 * depth && !check)
@@ -1230,7 +1230,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // SEE based pruning for quiets and checks
                 int margin = -std::max(64 * depth * check + 25 * lmrDepth * std::abs(lmrDepth), 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
-                  (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPiece)))
+                  (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
                   && pos.see(move) < margin)
                     continue;
             }
@@ -1313,13 +1313,13 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Step 16. Make the move
         do_move(pos, move, st, check, ss);
 
-        assert(captured == type_of(pos.captured_piece()));
+        assert(captured == type_of(pos.captured_pc()));
 
         ss->history = capture ? int(6.7813 * piece_value(captured))  //
-                                  + captureHistory[movedPiece][dst][captured]
-                              : 2 * quietHistory[ac][move.raw()]        //
-                                  + (*contHistory[0])[movedPiece][dst]  //
-                                  + (*contHistory[1])[movedPiece][dst];
+                                  + captureHistory[movedPc][dstSq][captured]
+                              : 2 * quietHistory[ac][move.raw()]       //
+                                  + (*contHistory[0])[movedPc][dstSq]  //
+                                  + (*contHistory[1])[movedPc][dstSq];
 
         // Base reduction offset to compensate for other tweaks
         r += 714;
@@ -1371,7 +1371,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                     value = -search<~NT>(pos, ss + 1, -alpha - 1, -alpha, newDepth);
 
                 // Post LMR continuation history updates
-                update_continuation_history(ss, movedPiece, dst, 1365);
+                update_continuation_history(ss, movedPc, dstSq, 1365);
             }
         }
         // Step 18. Full-depth search when LMR is skipped
@@ -1558,7 +1558,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Bonus for prior capture move
         else
         {
-            auto captured = type_of(pos.captured_piece());
+            auto captured = type_of(pos.captured_pc());
             assert(captured != NO_PIECE_TYPE);
             update_capture_history(pos[preSq], preSq, captured, 1012);
         }
@@ -1739,8 +1739,9 @@ QS_MOVES_LOOP:
                     continue;
 
                 // Static evaluation + value of piece going to captured
-                Value futilityValue = std::min(futilityBase + piece_value(pos.captured(move)),  //
-                                               +VALUE_INFINITE);
+                Value futilityValue =
+                  std::min(futilityBase + piece_value(pos.captured_pt(move)),  //
+                           +VALUE_INFINITE);
                 if (futilityValue <= alpha)
                 {
                     if (bestValue < futilityValue)
@@ -1810,7 +1811,7 @@ QS_MOVES_LOOP:
         {
             Color ac = pos.active_color();
             if (bestValue != VALUE_DRAW  //
-                && type_of(pos.captured_piece()) >= ROOK
+                && type_of(pos.captured_pc()) >= ROOK
                 && !pos.has_non_pawn(ac)
                 // No pawn pushes available
                 && !(pawn_push_bb(pos.pieces_bb(ac, PAWN), ac) & ~pos.pieces_bb()))
@@ -1841,10 +1842,10 @@ void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const 
     nodes.fetch_add(1, std::memory_order_relaxed);
     if (ss != nullptr)
     {
-        auto dst                     = m.dst_sq();
+        auto dstSq                   = m.dst_sq();
         ss->move                     = m;
-        ss->pieceSqHistory           = &continuationHistory[ss->inCheck][capture][db.dp.pc][dst];
-        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[db.dp.pc][dst];
+        ss->pieceSqHistory           = &continuationHistory[ss->inCheck][capture][db.dp.pc][dstSq];
+        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[db.dp.pc][dstSq];
     }
     accStack.push(std::move(db));
 }
@@ -1876,17 +1877,17 @@ Value Worker::evaluate(const Position& pos) noexcept {
 
 // clang-format off
 
-void Worker::update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept {
-    captureHistory[pc][dst][captured] << bonus;
+void Worker::update_capture_history(Piece pc, Square dstSq, PieceType captured, int bonus) noexcept {
+    captureHistory[pc][dstSq][captured] << bonus;
 }
 void Worker::update_capture_history(const Position& pos, Move m, int bonus) noexcept {
-    update_capture_history(pos.moved_piece(m), m.dst_sq(), pos.captured(m), bonus);
+    update_capture_history(pos.moved_pc(m), m.dst_sq(), pos.captured_pt(m), bonus);
 }
 void Worker::update_quiet_history(Color ac, Move m, int bonus) noexcept {
     quietHistory[ac][m.raw()] << bonus;
 }
-void Worker::update_pawn_history(std::uint16_t pawnIndex, Piece pc, Square dst, int bonus) noexcept {
-    pawnHistory[pawnIndex][pc][dst] << bonus;
+void Worker::update_pawn_history(std::uint16_t pawnIndex, Piece pc, Square dstSq, int bonus) noexcept {
+    pawnHistory[pawnIndex][pc][dstSq] << bonus;
 }
 void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept {
     assert(m.is_ok());
@@ -1899,9 +1900,9 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::u
     assert(m.is_ok());
 
     update_quiet_history(pos.active_color(), m, 1.0000 * bonus);
-    update_pawn_history(pawnIndex, pos.moved_piece(m), m.dst_sq(), (bonus > 0 ? 0.8837 : 0.4932) * bonus);
+    update_pawn_history(pawnIndex, pos.moved_pc(m), m.dst_sq(), (bonus > 0 ? 0.8837 : 0.4932) * bonus);
     update_low_ply_quiet_history(ss->ply, m, 0.7861 * bonus);
-    update_continuation_history(ss, pos.moved_piece(m), m.dst_sq(), 0.8750 * bonus);
+    update_continuation_history(ss, pos.moved_pc(m), m.dst_sq(), 0.8750 * bonus);
 }
 
 // Updates history at the end of search() when a bestMove is found
@@ -1930,7 +1931,7 @@ void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_
 
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted.
-    if (is_ok(preSq) && !is_ok(pos.captured_piece()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
+    if (is_ok(preSq) && !is_ok(pos.captured_pc()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
         update_continuation_history(ss - 1, pos[preSq], preSq, -0.5879 * malus);
 }
 

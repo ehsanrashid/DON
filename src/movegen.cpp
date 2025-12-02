@@ -43,7 +43,7 @@ Move* write_moves(std::uint32_t mask, __m512i vector, Move* moves) noexcept {
 
 // Splat pawn moves
 template<Color AC, Direction D>
-Move* splat_pawn_moves(Bitboard b, Move* moves) noexcept {
+Move* splat_pawn_moves(Bitboard dstBB, Move* moves) noexcept {
     static_assert(D == NORTH || D == SOUTH                 //
                     || D == NORTH_2 || D == SOUTH_2        //
                     || D == NORTH_EAST || D == SOUTH_EAST  //
@@ -64,18 +64,18 @@ Move* splat_pawn_moves(Bitboard b, Move* moves) noexcept {
 
     const auto* table = reinterpret_cast<const __m512i*>(SplatTable.data());
 
-    moves = write_moves(std::uint32_t(b >> 00), _mm512_load_si512(table + 0), moves);
-    moves = write_moves(std::uint32_t(b >> 32), _mm512_load_si512(table + 1), moves);
+    moves = write_moves(std::uint32_t(dstBB >> 00), _mm512_load_si512(table + 0), moves);
+    moves = write_moves(std::uint32_t(dstBB >> 32), _mm512_load_si512(table + 1), moves);
 #else
-    while (b)
+    while (dstBB)
     {
-        Square dst;
+        Square dstSq;
         if constexpr (AC == WHITE)
-            dst = pop_msb(b);
+            dstSq = pop_msb(dstBB);
         else
-            dst = pop_lsb(b);
+            dstSq = pop_lsb(dstBB);
 
-        *moves++ = Move(dst - D, dst);
+        *moves++ = Move(dstSq - D, dstSq);
     }
 #endif
 
@@ -84,7 +84,7 @@ Move* splat_pawn_moves(Bitboard b, Move* moves) noexcept {
 
 // Splat promotion moves
 template<Color AC, GenType GT, Direction D, bool Enemy>
-Move* splat_promotion_moves(Bitboard b, Move* moves) noexcept {
+Move* splat_promotion_moves(Bitboard dstBB, Move* moves) noexcept {
     static_assert(D == NORTH || D == SOUTH                 //
                     || D == NORTH_EAST || D == SOUTH_EAST  //
                     || D == NORTH_WEST || D == SOUTH_WEST,
@@ -94,21 +94,22 @@ Move* splat_promotion_moves(Bitboard b, Move* moves) noexcept {
     constexpr bool Capture = GT == ENC_CAPTURE || GT == EVA_CAPTURE;
     constexpr bool Quiet   = GT == ENC_QUIET || GT == EVA_QUIET;
 
-    while (b)
+    while (dstBB)
     {
-        Square dst;
+        Square dstSq;
         if constexpr (AC == WHITE)
-            dst = pop_msb(b);
+            dstSq = pop_msb(dstBB);
         else
-            dst = pop_lsb(b);
+            dstSq = pop_lsb(dstBB);
 
         if constexpr (All || Capture)
-            *moves++ = Move(dst - D, dst, QUEEN);
+            *moves++ = Move(dstSq - D, dstSq, QUEEN);
+
         if constexpr (All || (Capture && Enemy) || (Quiet && !Enemy))
         {
-            *moves++ = Move(dst - D, dst, ROOK);
-            *moves++ = Move(dst - D, dst, BISHOP);
-            *moves++ = Move(dst - D, dst, KNIGHT);
+            *moves++ = Move(dstSq - D, dstSq, ROOK);
+            *moves++ = Move(dstSq - D, dstSq, BISHOP);
+            *moves++ = Move(dstSq - D, dstSq, KNIGHT);
         }
     }
 
@@ -117,7 +118,7 @@ Move* splat_promotion_moves(Bitboard b, Move* moves) noexcept {
 
 // Splat moves
 template<Color AC>
-Move* splat_moves(Square org, Bitboard b, Move* moves) noexcept {
+Move* splat_moves(Square orgSq, Bitboard dstBB, Move* moves) noexcept {
 
 #if defined(USE_AVX512ICL)
     (void) AC;
@@ -128,24 +129,24 @@ Move* splat_moves(Square org, Bitboard b, Move* moves) noexcept {
         return table;
     }();
 
-    __m512i orgVec = _mm512_set1_epi16(Move(org, SQUARE_ZERO).raw());
+    __m512i orgVec = _mm512_set1_epi16(Move(orgSq, SQUARE_ZERO).raw());
 
     const auto* table = reinterpret_cast<const __m512i*>(SplatTable.data());
 
-    moves = write_moves(std::uint32_t(b >> 00),
+    moves = write_moves(std::uint32_t(dstBB >> 00),
                         _mm512_or_si512(_mm512_load_si512(table + 0), orgVec), moves);
-    moves = write_moves(std::uint32_t(b >> 32),
+    moves = write_moves(std::uint32_t(dstBB >> 32),
                         _mm512_or_si512(_mm512_load_si512(table + 1), orgVec), moves);
 #else
-    while (b)
+    while (dstBB)
     {
-        Square dst;
+        Square dstSq;
         if constexpr (AC == WHITE)
-            dst = pop_msb(b);
+            dstSq = pop_msb(dstBB);
         else
-            dst = pop_lsb(b);
+            dstSq = pop_lsb(dstBB);
 
-        *moves++ = Move(org, dst);
+        *moves++ = Move(orgSq, dstSq);
     }
 #endif
 
@@ -153,7 +154,7 @@ Move* splat_moves(Square org, Bitboard b, Move* moves) noexcept {
 }
 
 template<Color AC, GenType GT>
-Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) noexcept {
+Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) noexcept {
     assert(!pos.checkers_bb() || !more_than_one(pos.checkers_bb()));
 
     constexpr bool Evasion = GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET;
@@ -165,63 +166,63 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
     constexpr Direction LCap  = AC == WHITE ? NORTH_WEST : SOUTH_EAST;
     constexpr Direction RCap  = AC == WHITE ? NORTH_EAST : SOUTH_WEST;
 
-    Bitboard acPawns   = pos.pieces_bb(AC, PAWN);
-    Bitboard on7Pawns  = acPawns & relative_rank(AC, RANK_7);
-    Bitboard non7Pawns = acPawns & ~on7Pawns;
+    Bitboard acPawnsBB  = pos.pieces_bb(AC, PAWN);
+    Bitboard r7PawnsBB  = acPawnsBB & relative_rank(AC, RANK_7);
+    Bitboard nr7PawnsBB = acPawnsBB & ~r7PawnsBB;
 
-    Bitboard empties = ~pos.pieces_bb();
-    Bitboard enemies = pos.pieces_bb(~AC);
+    Bitboard emptiesBB = ~pos.pieces_bb();
+    Bitboard enemiesBB = pos.pieces_bb(~AC);
 
     if constexpr (Evasion)
-        enemies &= target;
+        enemiesBB &= targetBB;
 
     Move *read = moves, *write = moves;
 
     // Promotions and under-promotions
-    if (on7Pawns)
+    if (r7PawnsBB)
     {
-        Bitboard b;
+        Bitboard dstBB;
 
-        b     = shift_bb<LCap>(on7Pawns) & enemies;
-        moves = splat_promotion_moves<AC, GT, LCap, true>(b, moves);
+        dstBB = shift_bb<LCap>(r7PawnsBB) & enemiesBB;
+        moves = splat_promotion_moves<AC, GT, LCap, true>(dstBB, moves);
 
-        b     = shift_bb<RCap>(on7Pawns) & enemies;
-        moves = splat_promotion_moves<AC, GT, RCap, true>(b, moves);
+        dstBB = shift_bb<RCap>(r7PawnsBB) & enemiesBB;
+        moves = splat_promotion_moves<AC, GT, RCap, true>(dstBB, moves);
 
-        b = shift_bb<Push1>(on7Pawns) & empties;
+        dstBB = shift_bb<Push1>(r7PawnsBB) & emptiesBB;
         // Consider only blocking and capture squares
         if constexpr (Evasion)
-            b &= between_bb(pos.square<KING>(AC), lsb(pos.checkers_bb()));
-        moves = splat_promotion_moves<AC, GT, Push1, false>(b, moves);
+            dstBB &= between_bb(pos.square<KING>(AC), lsb(pos.checkers_bb()));
+        moves = splat_promotion_moves<AC, GT, Push1, false>(dstBB, moves);
     }
 
     // Single and double pawn pushes, no promotions
     if constexpr (!Capture)
     {
-        Bitboard b1 = shift_bb<Push1>(non7Pawns) & empties;
-        Bitboard b2 = shift_bb<Push1>(b1 & relative_rank(AC, RANK_3)) & empties;
+        Bitboard dstBB1 = shift_bb<Push1>(nr7PawnsBB) & emptiesBB;
+        Bitboard dstBB2 = shift_bb<Push1>(dstBB1 & relative_rank(AC, RANK_3)) & emptiesBB;
 
         // Consider only blocking squares
         if constexpr (Evasion)
         {
-            b1 &= target;
-            b2 &= target;
+            dstBB1 &= targetBB;
+            dstBB2 &= targetBB;
         }
 
-        moves = splat_pawn_moves<AC, Push1>(b1, moves);
-        moves = splat_pawn_moves<AC, Push2>(b2, moves);
+        moves = splat_pawn_moves<AC, Push1>(dstBB1, moves);
+        moves = splat_pawn_moves<AC, Push2>(dstBB2, moves);
     }
 
     // Standard and en-passant captures
     if constexpr (!Quiet)
     {
-        Bitboard b;
+        Bitboard dstBB;
 
-        b     = shift_bb<LCap>(non7Pawns) & enemies;
-        moves = splat_pawn_moves<AC, LCap>(b, moves);
+        dstBB = shift_bb<LCap>(nr7PawnsBB) & enemiesBB;
+        moves = splat_pawn_moves<AC, LCap>(dstBB, moves);
 
-        b     = shift_bb<RCap>(non7Pawns) & enemies;
-        moves = splat_pawn_moves<AC, RCap>(b, moves);
+        dstBB = shift_bb<RCap>(nr7PawnsBB) & enemiesBB;
+        moves = splat_pawn_moves<AC, RCap>(dstBB, moves);
 
         Square enPassantSq = pos.en_passant_sq();
         if (is_ok(enPassantSq))
@@ -229,44 +230,44 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
             assert(relative_rank(AC, enPassantSq) == RANK_6);
             assert(pos.pieces_bb(~AC, PAWN) & (enPassantSq - Push1));
             assert(pos.rule50_count() == 0);
-            assert(non7Pawns & relative_rank(AC, RANK_5));
+            assert(nr7PawnsBB & relative_rank(AC, RANK_5));
 
             // An en-passant capture cannot resolve a discovered check
-            assert(!(Evasion && (target & (enPassantSq + Push1))));
+            assert(!(Evasion && (targetBB & (enPassantSq + Push1))));
 
-            b = non7Pawns & attacks_bb<PAWN>(enPassantSq, ~AC);
-            if (more_than_one(b))
+            Bitboard orgBB = nr7PawnsBB & attacks_bb<PAWN>(enPassantSq, ~AC);
+            if (more_than_one(orgBB))
             {
-                Bitboard pinned = b & pos.blockers_bb(AC);
+                Bitboard pinned = orgBB & pos.blockers_bb(AC);
                 assert(!more_than_one(pinned));
 
                 if (pinned && !aligned(pos.square<KING>(AC), enPassantSq, lsb(pinned)))
-                    b ^= pinned;
+                    orgBB ^= pinned;
             }
-            assert(b);
+            assert(orgBB);
 
-            while (b)
+            while (orgBB)
             {
-                Square org;
+                Square orgSq;
                 if constexpr (AC == WHITE)
-                    org = pop_lsb(b);
+                    orgSq = pop_lsb(orgBB);
                 else
-                    org = pop_msb(b);
+                    orgSq = pop_msb(orgBB);
 
-                *moves++ = Move(EN_PASSANT, org, enPassantSq);
+                *moves++ = Move(EN_PASSANT, orgSq, enPassantSq);
             }
         }
     }
 
-    Bitboard blockers     = pos.blockers_bb(AC);
-    Bitboard blockerPawns = blockers & acPawns;
+    Bitboard blockersBB     = pos.blockers_bb(AC);
+    Bitboard blockerPawnsBB = blockersBB & acPawnsBB;
 
     // Filter illegal moves (preserve order)
     while (read != moves)
     {
         Move m = *read++;
 
-        if (!(blockerPawns & m.org_sq()) || pos.legal(m))
+        if (!(blockerPawnsBB & m.org_sq()) || pos.legal(m))
             *write++ = m;
     }
 
@@ -274,7 +275,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
 }
 
 template<Color AC, PieceType PT>
-Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) noexcept {
+Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) noexcept {
     static_assert(PT == KNIGHT || PT == BISHOP || PT == ROOK || PT == QUEEN,
                   "Unsupported piece type in generate_piece_moves()");
     assert(!pos.checkers_bb() || !more_than_one(pos.checkers_bb()));
@@ -285,10 +286,10 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
     const std::size_t n = pL.count();
     assert(n <= Position::CAPACITY[PT - 1]);
 
-    StdArray<Square, Position::CAPACITY[PT - 1]> sortedPL;
-    std::memcpy(sortedPL.data(), pL.data(pB), n * sizeof(Square));
+    StdArray<Square, Position::CAPACITY[PT - 1]> sortedSqs;
+    std::memcpy(sortedSqs.data(), pL.data(pB), n * sizeof(Square));
 
-    Square*       beg = sortedPL.data();
+    Square*       beg = sortedSqs.data();
     Square* const end = beg + n;
 
     if (n > 1)
@@ -301,50 +302,50 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
 
     for (; beg != end; ++beg)
     {
-        Square org = *beg;
+        Square orgSq = *beg;
 
-        Bitboard b = attacks_bb<PT>(org, pos.pieces_bb()) & target;
+        Bitboard dstBB = attacks_bb<PT>(orgSq, pos.pieces_bb()) & targetBB;
 
-        if (pos.blockers_bb(AC) & org)
-            b &= line_bb(pos.square<KING>(AC), org);
+        if (pos.blockers_bb(AC) & orgSq)
+            dstBB &= line_bb(pos.square<KING>(AC), orgSq);
 
-        moves = splat_moves<AC>(org, b, moves);
+        moves = splat_moves<AC>(orgSq, dstBB, moves);
     }
 
     return moves;
 }
 
 template<Color AC, GenType GT, bool Any>
-Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noexcept {
+Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) noexcept {
     //assert(popcount(pos.checkers_bb()) <= 2);
 
     constexpr bool Castle = GT == ENCOUNTER || GT == ENC_QUIET;
 
     Square kingSq = pos.square<KING>(AC);
 
-    Bitboard b = attacks_bb<KING>(kingSq) & target;
+    Bitboard dstBB = attacks_bb<KING>(kingSq) & targetBB;
 
-    if (b)
+    if (dstBB)
     {
-        b &= ~(pos.attacks<KNIGHT>(~AC) | attacks_bb<KING>(pos.square<KING>(~AC)));
+        dstBB &= ~(pos.attacks<KNIGHT>(~AC) | attacks_bb<KING>(pos.square<KING>(~AC)));
 
-        Bitboard occupied = pos.pieces_bb() ^ kingSq;
+        Bitboard occupancyBB = pos.pieces_bb() ^ kingSq;
 
-        while (b)
+        while (dstBB)
         {
-            Square dst;
+            Square dstSq;
             if constexpr (AC == WHITE)
-                dst = pop_msb(b);
+                dstSq = pop_msb(dstBB);
             else
-                dst = pop_lsb(b);
+                dstSq = pop_lsb(dstBB);
 
-            if (pos.slide_attackers_bb(dst, occupied) & pos.pieces_bb(~AC))
-                continue;
+            if (!(pos.slide_attackers_bb(dstSq, occupancyBB) & pos.pieces_bb(~AC)))
+            {
+                *moves++ = Move(kingSq, dstSq);
 
-            *moves++ = Move(kingSq, dst);
-
-            if constexpr (Any)
-                return moves;
+                if constexpr (Any)
+                    return moves;
+            }
         }
     }
 

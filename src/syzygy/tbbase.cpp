@@ -1357,7 +1357,7 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
     for (auto m : legalMoveList)
     {
-        if (!pos.capture(m) && (!CheckZeroingMoves || type_of(pos.moved_piece(m)) != PAWN))
+        if (!pos.capture(m) && (!CheckZeroingMoves || type_of(pos.moved_pc(m)) != PAWN))
             continue;
 
         ++moveCount;
@@ -1638,7 +1638,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
     for (auto m : MoveList<LEGAL>(pos))
     {
-        bool zeroing = pos.capture(m) || type_of(pos.moved_piece(m)) == PAWN;
+        bool zeroing = pos.capture(m) || type_of(pos.moved_pc(m)) == PAWN;
 
         State st;
         pos.do_move(m, st);

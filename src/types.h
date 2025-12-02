@@ -465,11 +465,11 @@ constexpr CastlingRights castling_side(Square s1, Square s2) noexcept {
     return s1 < s2 ? KING_SIDE : QUEEN_SIDE;
 }
 
-constexpr Square king_castle_sq(Color c, Square s1, Square s2) noexcept {
-    return relative_sq(c, s1 < s2 ? SQ_G1 : SQ_C1);
+constexpr Square king_castle_sq(Color c, Square kOrgSq, Square kDstSq) noexcept {
+    return relative_sq(c, kOrgSq < kDstSq ? SQ_G1 : SQ_C1);
 }
-constexpr Square rook_castle_sq(Color c, Square s1, Square s2) noexcept {
-    return relative_sq(c, s1 < s2 ? SQ_F1 : SQ_D1);
+constexpr Square rook_castle_sq(Color c, Square kOrgSq, Square kDstSq) noexcept {
+    return relative_sq(c, kOrgSq < kDstSq ? SQ_F1 : SQ_D1);
 }
 
 constexpr Direction pawn_spush(Color c) noexcept {
@@ -576,12 +576,12 @@ class Move {
     // Constructors using delegating syntax
     constexpr explicit Move(std::uint16_t m) noexcept :
         move(m) {}
-    constexpr Move(MoveType T, Square org, Square dst) noexcept :
-        Move(T | (int(org) << 6) | (int(dst) << 0)) {}
-    constexpr Move(Square org, Square dst) noexcept :
-        Move(NORMAL, org, dst) {}
-    constexpr Move(Square org, Square dst, PieceType promo) noexcept :
-        Move(MoveType(PROMOTION | ((int(promo) - int(KNIGHT)) << 12)), org, dst) {}
+    constexpr Move(MoveType T, Square orgSq, Square dstSq) noexcept :
+        Move(T | (int(orgSq) << 6) | (int(dstSq) << 0)) {}
+    constexpr Move(Square orgSq, Square dstSq) noexcept :
+        Move(NORMAL, orgSq, dstSq) {}
+    constexpr Move(Square orgSq, Square dstSq, PieceType promoPt) noexcept :
+        Move(MoveType(PROMOTION | ((int(promoPt) - int(KNIGHT)) << 12)), orgSq, dstSq) {}
 
     // Accessors: extract parts of the move
     constexpr Square    org_sq() const noexcept { return Square((move >> 6) & 0x3F); }

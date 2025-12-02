@@ -114,31 +114,36 @@ struct Magic final {
     Magic& operator=(const Magic&) noexcept = delete;
     Magic& operator=(Magic&&) noexcept      = delete;
 
-    Bitboard* attacks;
-    Bitboard  mask;
+    Bitboard* attacksBB;
+    Bitboard  maskBB;
+
 #if !defined(USE_BMI2)
-    Bitboard     magic;
+    Bitboard     magicBB;
     std::uint8_t shift;
 #else
-    void attacks_bb(Bitboard occupied, Bitboard ref) noexcept { attacks[index(occupied)] = ref; }
+    void attacks_bb(Bitboard occupancyBB, Bitboard referenceBB) noexcept {
+        attacksBB[index(occupancyBB)] = referenceBB;
+    }
 #endif
 
-    Bitboard attacks_bb(Bitboard occupied) const noexcept { return attacks[index(occupied)]; }
+    Bitboard attacks_bb(Bitboard occupancyBB) const noexcept {
+        return attacksBB[index(occupancyBB)];
+    }
 
     // Compute the attack's index using the 'magic bitboards' approach
-    std::uint16_t index(Bitboard occupied) const noexcept {
+    std::uint16_t index(Bitboard occupancyBB) const noexcept {
 
 #if defined(USE_BMI2)
         // _pext_u64(Parallel Bits Extract) extracts bits from a 64-bit integer
         // according to a specified mask and compresses them into a contiguous block in the lower bits
-        return _pext_u64(occupied, mask);
+        return _pext_u64(occupancyBB, maskBB);
 #else
     #if defined(IS_64BIT)
-        return ((occupied & mask) * magic) >> shift;
+        return ((occupancyBB & maskBB) * magicBB) >> shift;
     #else
-        std::uint32_t lo = std::uint32_t(occupied >> 00) & std::uint32_t(mask >> 00);
-        std::uint32_t hi = std::uint32_t(occupied >> 32) & std::uint32_t(mask >> 32);
-        return (lo * std::uint32_t(magic >> 00) ^ hi * std::uint32_t(magic >> 32)) >> shift;
+        std::uint32_t lo = std::uint32_t(occupancyBB >> 00) & std::uint32_t(maskBB >> 00);
+        std::uint32_t hi = std::uint32_t(occupancyBB >> 32) & std::uint32_t(maskBB >> 32);
+        return (lo * std::uint32_t(magicBB >> 00) ^ hi * std::uint32_t(magicBB >> 32)) >> shift;
     #endif
 #endif
     }
@@ -295,25 +300,29 @@ constexpr Bitboard shift_bb(Bitboard b) noexcept {
 }
 
 template<Color C>
-constexpr Bitboard pawn_push_bb(Bitboard b) noexcept {
+constexpr Bitboard pawn_push_bb(Bitboard pawns) noexcept {
     static_assert(is_ok(C), "Invalid color for pawn_push_bb()");
-    return shift_bb<pawn_spush(C)>(b);
+    return shift_bb<pawn_spush(C)>(pawns);
 }
-constexpr Bitboard pawn_push_bb(Bitboard b, Color c) noexcept {
+constexpr Bitboard pawn_push_bb(Bitboard pawns, Color c) noexcept {
     assert(is_ok(c));
-    return c == WHITE ? pawn_push_bb<WHITE>(b) : pawn_push_bb<BLACK>(b);
+    return c == WHITE  //
+           ? pawn_push_bb<WHITE>(pawns)
+           : pawn_push_bb<BLACK>(pawns);
 }
 
 // Returns the squares attacked by pawns of the given color from the given bitboard.
 template<Color C>
-constexpr Bitboard pawn_attacks_bb(Bitboard b) noexcept {
+constexpr Bitboard pawn_attacks_bb(Bitboard pawns) noexcept {
     static_assert(is_ok(C), "Invalid color for pawn_attacks_bb()");
-    return shift_bb<(C == WHITE ? NORTH_WEST : SOUTH_WEST)>(b)
-         | shift_bb<(C == WHITE ? NORTH_EAST : SOUTH_EAST)>(b);
+    return shift_bb<(C == WHITE ? NORTH_WEST : SOUTH_WEST)>(pawns)
+         | shift_bb<(C == WHITE ? NORTH_EAST : SOUTH_EAST)>(pawns);
 }
-constexpr Bitboard pawn_attacks_bb(Bitboard b, Color c) noexcept {
+constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
     assert(is_ok(c));
-    return c == WHITE ? pawn_attacks_bb<WHITE>(b) : pawn_attacks_bb<BLACK>(b);
+    return c == WHITE  //
+           ? pawn_attacks_bb<WHITE>(pawns)
+           : pawn_attacks_bb<BLACK>(pawns);
 }
 
 // Returns the pseudo attacks of the given piece type assuming an empty board.
@@ -349,26 +358,25 @@ constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
 }
 
 template<PieceType PT>
-constexpr Bitboard attacks_bb(const StdArray<Magic, 2>& magic, Bitboard occupied) noexcept {
+constexpr Bitboard attacks_bb(const StdArray<Magic, 2>& magic, Bitboard occupancyBB) noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in attacks_bb()");
-    return magic[PT - BISHOP].attacks_bb(occupied);
+    return magic[PT - BISHOP].attacks_bb(occupancyBB);
 }
 
 // Returns the attacks by the given piece type
-// assuming the board is occupied according to the passed Bitboard.
 // Sliding piece attacks do not continue passed an occupied square.
 template<PieceType PT>
-constexpr Bitboard attacks_bb(Square s, Bitboard occupied) noexcept {
+constexpr Bitboard attacks_bb(Square s, Bitboard occupancyBB) noexcept {
     static_assert(PT != PAWN, "Unsupported piece type in attacks_bb()");
     assert(is_ok(s));
     if constexpr (PT == KNIGHT)
         return attacks_bb<KNIGHT>(s);
     if constexpr (PT == BISHOP)
-        return attacks_bb<BISHOP>(Magics[s], occupied);
+        return attacks_bb<BISHOP>(Magics[s], occupancyBB);
     if constexpr (PT == ROOK)
-        return attacks_bb<ROOK>(Magics[s], occupied);
+        return attacks_bb<ROOK>(Magics[s], occupancyBB);
     if constexpr (PT == QUEEN)
-        return attacks_bb<BISHOP>(s, occupied) | attacks_bb<ROOK>(s, occupied);
+        return attacks_bb<BISHOP>(s, occupancyBB) | attacks_bb<ROOK>(s, occupancyBB);
     if constexpr (PT == KING)
         return attacks_bb<KING>(s);
     assert(false);
@@ -376,9 +384,8 @@ constexpr Bitboard attacks_bb(Square s, Bitboard occupied) noexcept {
 }
 
 // Returns the attacks by the given piece type
-// assuming the board is occupied according to the passed Bitboard.
 // Sliding piece attacks do not continue passed an occupied square.
-constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupied = 0) noexcept {
+constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupancyBB = 0) noexcept {
     assert(pt != PAWN);
     assert(is_ok(s));
     switch (pt)
@@ -386,11 +393,11 @@ constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupied = 0) noe
     case KNIGHT :
         return attacks_bb<KNIGHT>(s);
     case BISHOP :
-        return attacks_bb<BISHOP>(s, occupied);
+        return attacks_bb<BISHOP>(s, occupancyBB);
     case ROOK :
-        return attacks_bb<ROOK>(s, occupied);
+        return attacks_bb<ROOK>(s, occupancyBB);
     case QUEEN :
-        return attacks_bb<QUEEN>(s, occupied);
+        return attacks_bb<QUEEN>(s, occupancyBB);
     case KING :
         return attacks_bb<KING>(s);
     default :
@@ -399,11 +406,11 @@ constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupied = 0) noe
     }
 }
 
-constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupied) noexcept {
+constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept {
     assert(is_ok(s));
     if (type_of(pc) == PAWN)
         return attacks_bb<PAWN>(s, color_of(pc));
-    return attacks_bb(s, type_of(pc), occupied);
+    return attacks_bb(s, type_of(pc), occupancyBB);
 }
 
 // Counts the number of non-zero bits in the bitboard.

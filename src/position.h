@@ -119,8 +119,8 @@ struct State final {
     StdArray<Bitboard, COLOR_NB>                blockersBB;
     StdArray<Bitboard, COLOR_NB, PIECE_TYPE_NB> attacksBB;
     std::int16_t                                repetition;
-    Piece                                       capturedPiece;
-    Piece                                       promotedPiece;
+    Piece                                       capturedPc;
+    Piece                                       promotedPc;
     const State*                                preSt;
 
     // Copy relevant fields from the state.
@@ -221,7 +221,7 @@ class Position final {
 
     CastlingRights castling_rights() const noexcept;
 
-    auto castling_rights_mask(Square org, Square dst) const noexcept;
+    auto castling_rights_mask(Square orgSq, Square dstSq) const noexcept;
 
     bool   castling_has_rights(CastlingRights cr) const noexcept;
     Square castling_rook_sq(CastlingRights cr) const noexcept;
@@ -230,12 +230,12 @@ class Position final {
     bool   castling_possible(Color c, CastlingRights cr) const noexcept;
 
     Bitboard xslide_attackers_bb(Square s) const noexcept;
-    Bitboard slide_attackers_bb(Square s, Bitboard occupiedBB) const noexcept;
+    Bitboard slide_attackers_bb(Square s, Bitboard occupancyBB) const noexcept;
     Bitboard slide_attackers_bb(Square s) const noexcept;
-    Bitboard attackers_bb(Square s, Bitboard occupiedBB) const noexcept;
+    Bitboard attackers_bb(Square s, Bitboard occupancyBB) const noexcept;
     Bitboard attackers_bb(Square s) const noexcept;
 
-    bool attackers_exists(Square s, Bitboard attackersBB, Bitboard occupiedBB) const noexcept;
+    bool attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept;
     bool attackers_exists(Square s, Bitboard attackersBB) const noexcept;
 
     Bitboard blockers_bb(Square    s,
@@ -263,9 +263,9 @@ class Position final {
     bool  check(Move m) const noexcept;
     bool  dbl_check(Move m) const noexcept;
     bool  fork(Move m) const noexcept;
-    Piece moved_piece(Move m) const noexcept;
-    Piece captured_piece(Move m) const noexcept;
-    auto  captured(Move m) const noexcept;
+    Piece moved_pc(Move m) const noexcept;
+    Piece captured_pc(Move m) const noexcept;
+    auto  captured_pt(Move m) const noexcept;
 
     Bitboard checkers_bb() const noexcept;
     Bitboard checks_bb(PieceType pt) const noexcept;
@@ -276,11 +276,11 @@ class Position final {
 
     template<PieceType PT>
     Bitboard attacks(Color c) const noexcept;
-    Bitboard less_attacks_bb(Color c, PieceType pt) const noexcept;
+    Bitboard attacks_less_bb(Color c, PieceType pt) const noexcept;
     Bitboard threats_bb(Color c) const noexcept;
 
-    Piece captured_piece() const noexcept;
-    Piece promoted_piece() const noexcept;
+    Piece captured_pc() const noexcept;
+    Piece promoted_pc() const noexcept;
 
     // Hash keys
     Key key(std::int16_t r50 = 0) const noexcept;
@@ -325,8 +325,8 @@ class Position final {
     bool has_repeated() const noexcept;
     bool is_upcoming_repetition(std::int16_t ply) const noexcept;
 
-    void  put_piece(Square s, Piece pc, DirtyThreats* const dts = nullptr) noexcept;
-    Piece remove_piece(Square s, DirtyThreats* const dts = nullptr) noexcept;
+    void  put_pc(Square s, Piece pc, DirtyThreats* const dts = nullptr) noexcept;
+    Piece remove_pc(Square s, DirtyThreats* const dts = nullptr) noexcept;
 
     void flip() noexcept;
     void mirror() noexcept;
@@ -409,14 +409,15 @@ class Position final {
     void set_ext_state() noexcept;
 
     template<bool After = true>
-    bool can_enpassant(Color ac, Square epSq, Bitboard* const epAttackers = nullptr) const noexcept;
+    bool
+    can_enpassant(Color ac, Square epSq, Bitboard* const epAttackersBB = nullptr) const noexcept;
 
     // Other helpers
-    Piece move_piece(Square s1, Square s2, DirtyThreats* const dts = nullptr) noexcept;
-    Piece swap_piece(Square s, Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
+    Piece move_pc(Square s1, Square s2, DirtyThreats* const dts = nullptr) noexcept;
+    Piece swap_pc(Square s, Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
 
     template<bool Add, bool ComputeRay = true>
-    void update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept;
+    void update_pc_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept;
 
     template<bool Do>
     void do_castling(Color             ac,
@@ -597,7 +598,7 @@ inline std::int32_t Position::move_num() const noexcept {
 
 inline CastlingRights Position::castling_rights() const noexcept { return st->castlingRights; }
 
-inline auto Position::castling_rights_mask(Square org, Square dst) const noexcept {
+inline auto Position::castling_rights_mask(Square orgSq, Square dstSq) const noexcept {
     constexpr auto Indices = []() constexpr {
         StdArray<std::uint8_t, SQUARE_NB> indices{};
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -611,8 +612,8 @@ inline auto Position::castling_rights_mask(Square org, Square dst) const noexcep
         return indices;
     }();
 
-    auto orgIdx = Indices[org];
-    auto dstIdx = Indices[dst];
+    auto orgIdx = Indices[orgSq];
+    auto dstIdx = Indices[dstSq];
 
     return (orgIdx < castlingRightsMasks.size() ? castlingRightsMasks[orgIdx] : 0)
          | (dstIdx < castlingRightsMasks.size() ? castlingRightsMasks[dstIdx] : 0);
@@ -677,17 +678,17 @@ inline Bitboard Position::xslide_attackers_bb(Square s) const noexcept {
          | (pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s));
 }
 // Computes a bitboard of all sliding pieces which attack a given square.
-inline Bitboard Position::slide_attackers_bb(Square s, Bitboard occupiedBB) const noexcept {
-    return (pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s) ? pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupiedBB) : 0)
-         | (pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s) ? pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupiedBB) : 0);
+inline Bitboard Position::slide_attackers_bb(Square s, Bitboard occupancyBB) const noexcept {
+    return (pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s) ? pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupancyBB) : 0)
+         | (pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s) ? pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupancyBB) : 0);
 }
 inline Bitboard Position::slide_attackers_bb(Square s) const noexcept {
     return slide_attackers_bb(s, pieces_bb());
 }
 // Computes a bitboard of all pieces which attack a given square.
 // Slider attacks use the occupied bitboard to indicate occupancy.
-inline Bitboard Position::attackers_bb(Square s, Bitboard occupiedBB) const noexcept {
-    return slide_attackers_bb(s, occupiedBB)
+inline Bitboard Position::attackers_bb(Square s, Bitboard occupancyBB) const noexcept {
+    return slide_attackers_bb(s, occupancyBB)
          | (pieces_bb(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
          | (pieces_bb(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE))
          | (pieces_bb(KNIGHT     ) & attacks_bb<KNIGHT>(s))
@@ -697,11 +698,11 @@ inline Bitboard Position::attackers_bb(Square s) const noexcept {
     return attackers_bb(s, pieces_bb());
 }
 // Checks if there are any attackers to a given square from a set of attackers.
-inline bool Position::attackers_exists(Square s, Bitboard attackersBB, Bitboard occupiedBB) const noexcept {
+inline bool Position::attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept {
     return ((attackersBB & pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s))
-         && (attackersBB & pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupiedBB)))
+         && (attackersBB & pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupancyBB)))
         || ((attackersBB & pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s))
-         && (attackersBB & pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupiedBB)))
+         && (attackersBB & pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupancyBB)))
         ||  (attackersBB & ((pieces_bb(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
                           | (pieces_bb(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE))))
         ||  (attackersBB & pieces_bb(KNIGHT       ) & attacks_bb<KNIGHT>(s))
@@ -719,13 +720,13 @@ inline Bitboard Position::blockers_bb(Square s, Bitboard attackersBB, Bitboard& 
 
     // xSnipers are x-ray attackers that attack 's' when blockers are removed
     Bitboard xSnipersBB = xslide_attackers_bb(s) & attackersBB;
-    Bitboard occupiedBB = pieces_bb() ^ xSnipersBB;
+    Bitboard occupancyBB = pieces_bb() ^ xSnipersBB;
 
     while (xSnipersBB)
     {
         Square xSniperSq = pop_lsb(xSnipersBB);
 
-        Bitboard blockerBB = between_bb(s, xSniperSq) & occupiedBB;
+        Bitboard blockerBB = between_bb(s, xSniperSq) & occupancyBB;
 
         if (exactly_one(blockerBB))
         {
@@ -781,16 +782,16 @@ template<PieceType PT>
 inline Bitboard Position::attacks(Color c) const noexcept {
     return st->attacksBB[c][PT];
 }
-inline Bitboard Position::less_attacks_bb(Color c, PieceType pt) const noexcept {
+inline Bitboard Position::attacks_less_bb(Color c, PieceType pt) const noexcept {
     return st->attacksBB[c][pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
 }
 inline Bitboard Position::threats_bb(Color c) const noexcept {
     return st->attacksBB[c][KING] & ~st->attacksBB[~c][KING];
 }
 
-inline Piece Position::captured_piece() const noexcept { return st->capturedPiece; }
+inline Piece Position::captured_pc() const noexcept { return st->capturedPc; }
 
-inline Piece Position::promoted_piece() const noexcept { return st->promotedPiece; }
+inline Piece Position::promoted_pc() const noexcept { return st->promotedPc; }
 
 inline Key Position::key(std::int16_t r50) const noexcept {
     return st->key ^ Zobrist::mr50(rule50_count() + r50);
@@ -903,24 +904,24 @@ inline bool Position::capture_queenpromo(Move m) const noexcept {
     return capture(m) || m.promotion_type() == QUEEN;  // m.type_of() == PROMOTION must be true here
 }
 
-inline Piece Position::moved_piece(Move m) const noexcept {
+inline Piece Position::moved_pc(Move m) const noexcept {
     assert(legal(m));
     return piece_on(m.org_sq());
 }
 
-inline Piece Position::captured_piece(Move m) const noexcept {
+inline Piece Position::captured_pc(Move m) const noexcept {
     assert(legal(m));
     assert(m.type_of() != CASTLING);
     return m.type_of() == EN_PASSANT ? make_piece(~active_color(), PAWN) : piece_on(m.dst_sq());
 }
 
-inline auto Position::captured(Move m) const noexcept { return type_of(captured_piece(m)); }
+inline auto Position::captured_pt(Move m) const noexcept { return type_of(captured_pc(m)); }
 
 inline void Position::reset_en_passant_sq() noexcept { st->enPassantSq = SQ_NONE; }
 
 inline void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
 
-inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noexcept {
+inline void Position::put_pc(Square s, Piece pc, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && is_ok(pc));
     Bitboard sbb = square_bb(s);
 
@@ -938,10 +939,10 @@ inline void Position::put_piece(Square s, Piece pc, DirtyThreats* const dts) noe
     ++pieceCounts[c];
 
     if (dts != nullptr)
-        update_piece_threats<true>(pc, s, dts);
+        update_pc_threats<true>(pc, s, dts);
 }
 
-inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept {
+inline Piece Position::remove_pc(Square s, DirtyThreats* const dts) noexcept {
     assert(is_ok(s));
     Bitboard sbb = square_bb(s);
 
@@ -951,7 +952,7 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
     assert(is_ok(pc) && count(c, pt));
 
     if (dts != nullptr)
-        update_piece_threats<false>(pc, s, dts);
+        update_pc_threats<false>(pc, s, dts);
 
     pieceMap[s] = NO_PIECE;
     colorBBs[c] ^= sbb;
@@ -972,7 +973,7 @@ inline Piece Position::remove_piece(Square s, DirtyThreats* const dts) noexcept 
     return pc;
 }
 
-inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts) noexcept {
+inline Piece Position::move_pc(Square s1, Square s2, DirtyThreats* const dts) noexcept {
     assert(is_ok(s1) && is_ok(s2));
     Bitboard s1s2bb = make_bb(s1, s2);
 
@@ -982,7 +983,7 @@ inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts)
     assert(is_ok(pc) && count(c, pt));
 
     if (dts != nullptr)
-        update_piece_threats<false>(pc, s1, dts);
+        update_pc_threats<false>(pc, s1, dts);
 
     pieceMap[s1] = NO_PIECE;
     pieceMap[s2] = pc;
@@ -998,22 +999,22 @@ inline Piece Position::move_piece(Square s1, Square s2, DirtyThreats* const dts)
     pL.at(idx, pB) = s2;
 
     if (dts != nullptr)
-        update_piece_threats<true>(pc, s2, dts);
+        update_pc_threats<true>(pc, s2, dts);
 
     return pc;
 }
 
-inline Piece Position::swap_piece(Square s, Piece newPc, DirtyThreats* const dts) noexcept {
+inline Piece Position::swap_pc(Square s, Piece newPc, DirtyThreats* const dts) noexcept {
 
-    Piece oldPc = remove_piece(s);
-
-    if (dts != nullptr)
-        update_piece_threats<false, false>(oldPc, s, dts);
-
-    put_piece(s, newPc);
+    Piece oldPc = remove_pc(s);
 
     if (dts != nullptr)
-        update_piece_threats<true, false>(newPc, s, dts);
+        update_pc_threats<false, false>(oldPc, s, dts);
+
+    put_pc(s, newPc);
+
+    if (dts != nullptr)
+        update_pc_threats<true, false>(newPc, s, dts);
 
     return oldPc;
 }
@@ -1032,28 +1033,28 @@ DirtyThreats::add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) 
 
 // Add newly threatened pieces
 template<bool Add, bool ComputeRay>
-inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept {
+inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept {
 
-    Bitboard occupiedBB = pieces_bb();
+    Bitboard occupancyBB = pieces_bb();
 
     const auto attacks = [&]() noexcept {
         StdArray<Bitboard, 7> _;
         _[WHITE]  = attacks_bb<PAWN>(s, WHITE);
         _[BLACK]  = attacks_bb<PAWN>(s, BLACK);
         _[KNIGHT] = attacks_bb<KNIGHT>(s);
-        _[BISHOP] = attacks_bb<BISHOP>(s, occupiedBB);
-        _[ROOK]   = attacks_bb<ROOK>(s, occupiedBB);
+        _[BISHOP] = attacks_bb<BISHOP>(s, occupancyBB);
+        _[ROOK]   = attacks_bb<ROOK>(s, occupancyBB);
         _[QUEEN]  = _[BISHOP] | _[ROOK];
         _[KING]   = attacks_bb<KING>(s);
         return _;
     }();
 
-    Bitboard threatened = (type_of(pc) == PAWN ? attacks[color_of(pc)]  //
-                                               : attacks[type_of(pc)])
-                        & occupiedBB;
-    while (threatened)
+    Bitboard threatenedBB = (type_of(pc) == PAWN ? attacks[color_of(pc)]  //
+                                                 : attacks[type_of(pc)])
+                          & occupancyBB;
+    while (threatenedBB)
     {
-        Square threatenedSq = pop_lsb(threatened);
+        Square threatenedSq = pop_lsb(threatenedBB);
         Piece  threatenedPc = piece_on(threatenedSq);
 
         assert(threatenedSq != s);
@@ -1063,19 +1064,19 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
     }
 
     // clang-format off
-    Bitboard sliders = (pieces_bb(QUEEN, BISHOP) & attacks[BISHOP])
+    Bitboard slidersBB = (pieces_bb(QUEEN, BISHOP) & attacks[BISHOP])
                      | (pieces_bb(QUEEN, ROOK)   & attacks[ROOK]);
     // clang-format on
-    while (sliders)
+    while (slidersBB)
     {
-        Square sliderSq = pop_lsb(sliders);
+        Square sliderSq = pop_lsb(slidersBB);
         Piece  sliderPc = piece_on(sliderSq);
 
         assert(is_ok(sliderPc));
 
         if constexpr (ComputeRay)
         {
-            Bitboard discovered = pass_ray_bb(sliderSq, s) & attacks[QUEEN] & occupiedBB;
+            Bitboard discovered = pass_ray_bb(sliderSq, s) & attacks[QUEEN] & occupancyBB;
 
             if (discovered)
             {
@@ -1093,14 +1094,14 @@ inline void Position::update_piece_threats(Piece pc, Square s, DirtyThreats* con
     }
 
     // clang-format off
-    Bitboard nonSliders = (pieces_bb(WHITE, PAWN) & attacks[BLACK])
+    Bitboard nonSlidersBB = (pieces_bb(WHITE, PAWN) & attacks[BLACK])
                         | (pieces_bb(BLACK, PAWN) & attacks[WHITE])
                         | (pieces_bb(KNIGHT)      & attacks[KNIGHT])
                         | (pieces_bb(KING)        & attacks[KING]);
     // clang-format on
-    while (nonSliders)
+    while (nonSlidersBB)
     {
-        Square nonSliderSq = pop_lsb(nonSliders);
+        Square nonSliderSq = pop_lsb(nonSlidersBB);
         Piece  nonSliderPc = piece_on(nonSliderSq);
 
         assert(nonSliderSq != s);

@@ -291,9 +291,9 @@ void ThreadPool::start(Position&      pos,
     if (states.get())
         setupStates = std::move(states);  // Ownership transfer, states is now empty
 
-    // Use Position::set() to set root position across threads. But there are some
-    // State fields (rule50, nullPly, capturedPiece, preSt) that cannot be deduced
-    // from the fen string, so rootState are set from setupStates->back() object later.
+    // Use Position::set() to set root position across threads.
+    // But there are some State fields (rule50, nullPly, capturedPc, preSt)
+    // that cannot be deduced from the fen string, so rootState are set from *pos.state() later.
     // The rootState is per thread, earlier states are shared since they are read-only.
     for (auto&& th : threads)
     {
