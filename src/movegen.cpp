@@ -154,7 +154,7 @@ Move* splat_moves(Square org, Bitboard b, Move* moves) noexcept {
 
 template<Color AC, GenType GT>
 Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) noexcept {
-    assert(!pos.checkers() || !more_than_one(pos.checkers()));
+    assert(!pos.checkers_bb() || !more_than_one(pos.checkers_bb()));
 
     constexpr bool Evasion = GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET;
     constexpr bool Capture = GT == ENC_CAPTURE || GT == EVA_CAPTURE;
@@ -165,12 +165,12 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
     constexpr Direction LCap  = AC == WHITE ? NORTH_WEST : SOUTH_EAST;
     constexpr Direction RCap  = AC == WHITE ? NORTH_EAST : SOUTH_WEST;
 
-    Bitboard acPawns   = pos.pieces(AC, PAWN);
+    Bitboard acPawns   = pos.pieces_bb(AC, PAWN);
     Bitboard on7Pawns  = acPawns & relative_rank(AC, RANK_7);
     Bitboard non7Pawns = acPawns & ~on7Pawns;
 
-    Bitboard empties = ~pos.pieces();
-    Bitboard enemies = pos.pieces(~AC);
+    Bitboard empties = ~pos.pieces_bb();
+    Bitboard enemies = pos.pieces_bb(~AC);
 
     if constexpr (Evasion)
         enemies &= target;
@@ -191,7 +191,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
         b = shift_bb<Push1>(on7Pawns) & empties;
         // Consider only blocking and capture squares
         if constexpr (Evasion)
-            b &= between_bb(pos.square<KING>(AC), lsb(pos.checkers()));
+            b &= between_bb(pos.square<KING>(AC), lsb(pos.checkers_bb()));
         moves = splat_promotion_moves<AC, GT, Push1, false>(b, moves);
     }
 
@@ -227,7 +227,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
         if (is_ok(enPassantSq))
         {
             assert(relative_rank(AC, enPassantSq) == RANK_6);
-            assert(pos.pieces(~AC, PAWN) & (enPassantSq - Push1));
+            assert(pos.pieces_bb(~AC, PAWN) & (enPassantSq - Push1));
             assert(pos.rule50_count() == 0);
             assert(non7Pawns & relative_rank(AC, RANK_5));
 
@@ -237,7 +237,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
             b = non7Pawns & attacks_bb<PAWN>(enPassantSq, ~AC);
             if (more_than_one(b))
             {
-                Bitboard pinned = b & pos.blockers(AC);
+                Bitboard pinned = b & pos.blockers_bb(AC);
                 assert(!more_than_one(pinned));
 
                 if (pinned && !aligned(pos.square<KING>(AC), enPassantSq, lsb(pinned)))
@@ -258,7 +258,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard target) no
         }
     }
 
-    Bitboard blockers     = pos.blockers(AC);
+    Bitboard blockers     = pos.blockers_bb(AC);
     Bitboard blockerPawns = blockers & acPawns;
 
     // Filter illegal moves (preserve order)
@@ -277,7 +277,7 @@ template<Color AC, PieceType PT>
 Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) noexcept {
     static_assert(PT == KNIGHT || PT == BISHOP || PT == ROOK || PT == QUEEN,
                   "Unsupported piece type in generate_piece_moves()");
-    assert(!pos.checkers() || !more_than_one(pos.checkers()));
+    assert(!pos.checkers_bb() || !more_than_one(pos.checkers_bb()));
 
     const auto& pL = pos.squares<PT>(AC);
     const auto* pB = pos.base(AC);
@@ -303,9 +303,9 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
     {
         Square org = *beg;
 
-        Bitboard b = attacks_bb<PT>(org, pos.pieces()) & target;
+        Bitboard b = attacks_bb<PT>(org, pos.pieces_bb()) & target;
 
-        if (pos.blockers(AC) & org)
+        if (pos.blockers_bb(AC) & org)
             b &= line_bb(pos.square<KING>(AC), org);
 
         moves = splat_moves<AC>(org, b, moves);
@@ -316,7 +316,7 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard target) no
 
 template<Color AC, GenType GT, bool Any>
 Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noexcept {
-    //assert(popcount(pos.checkers()) <= 2);
+    //assert(popcount(pos.checkers_bb()) <= 2);
 
     constexpr bool Castle = GT == ENCOUNTER || GT == ENC_QUIET;
 
@@ -328,7 +328,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
     {
         b &= ~(pos.attacks<KNIGHT>(~AC) | attacks_bb<KING>(pos.square<KING>(~AC)));
 
-        Bitboard occupied = pos.pieces() ^ kingSq;
+        Bitboard occupied = pos.pieces_bb() ^ kingSq;
 
         while (b)
         {
@@ -338,7 +338,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
             else
                 dst = pop_lsb(b);
 
-            if (pos.slide_attackers(dst, occupied) & pos.pieces(~AC))
+            if (pos.slide_attackers_bb(dst, occupied) & pos.pieces_bb(~AC))
                 continue;
 
             *moves++ = Move(kingSq, dst);
@@ -350,14 +350,14 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard target) noe
 
     if constexpr (Castle)
     {
-        assert(!pos.checkers());
+        assert(!pos.checkers_bb());
 
         if (pos.castling_has_rights(AC & ANY_CASTLING))
             for (CastlingRights cr : {AC & KING_SIDE, AC & QUEEN_SIDE})
                 if (pos.castling_possible(AC, cr))
                 {
                     assert(is_ok(pos.castling_rook_sq(cr))
-                           && (pos.pieces(AC, ROOK) & pos.castling_rook_sq(cr)));
+                           && (pos.pieces_bb(AC, ROOK) & pos.castling_rook_sq(cr)));
 
                     *moves++ = Move(CASTLING, kingSq, pos.castling_rook_sq(cr));
 
@@ -380,16 +380,16 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
     // clang-format off
     Bitboard target;
     // Skip generating non-king moves when in double check
-    if (!Evasion || !more_than_one(pos.checkers()))
+    if (!Evasion || !more_than_one(pos.checkers_bb()))
     {
         switch (GT)
         {
-        case ENCOUNTER :   target = ~pos.pieces(AC);                                          break;
-        case ENC_CAPTURE : target =  pos.pieces(~AC);                                         break;
-        case ENC_QUIET :   target = ~pos.pieces();                                            break;
-        case EVASION :     target = between_bb(pos.square<KING>(AC), lsb(pos.checkers()));    break;
-        case EVA_CAPTURE : target = pos.checkers();                                           break;
-        case EVA_QUIET :   target = between_ex_bb(pos.square<KING>(AC), lsb(pos.checkers())); break;
+        case ENCOUNTER :   target = ~pos.pieces_bb(AC);                                          break;
+        case ENC_CAPTURE : target =  pos.pieces_bb(~AC);                                         break;
+        case ENC_QUIET :   target = ~pos.pieces_bb();                                            break;
+        case EVASION :     target = between_bb(pos.square<KING>(AC), lsb(pos.checkers_bb()));    break;
+        case EVA_CAPTURE : target = pos.checkers_bb();                                           break;
+        case EVA_QUIET :   target = between_ex_bb(pos.square<KING>(AC), lsb(pos.checkers_bb())); break;
         }
 
         const auto* pMoves = moves;
@@ -409,9 +409,9 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
     {
         switch (GT)
         {
-        case EVASION :     target = ~pos.pieces(AC);  break;
-        case EVA_CAPTURE : target =  pos.pieces(~AC); break;
-        case EVA_QUIET :   target = ~pos.pieces();    break;
+        case EVASION :     target = ~pos.pieces_bb(AC);  break;
+        case EVA_CAPTURE : target =  pos.pieces_bb(~AC); break;
+        case EVA_QUIET :   target = ~pos.pieces_bb();    break;
         }
     }
     // clang-format on
@@ -435,7 +435,7 @@ Move* generate(const Position& pos, Move* moves) noexcept {
                     || GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET,
                   "Unsupported generate type in generate()");
 
-    assert((GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET) == bool(pos.checkers()));
+    assert((GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET) == bool(pos.checkers_bb()));
 
     return pos.active_color() == WHITE ? generate_moves<WHITE, GT, Any>(pos, moves)
                                        : generate_moves<BLACK, GT, Any>(pos, moves);
@@ -458,13 +458,13 @@ template Move* generate<EVA_QUIET, false>(const Position& pos, Move* moves) noex
 // <LEGAL> Generates all legal moves
 template<>
 Move* generate<LEGAL, false>(const Position& pos, Move* moves) noexcept {
-    return pos.checkers() ? generate<EVASION, false>(pos, moves)
-                          : generate<ENCOUNTER, false>(pos, moves);
+    return pos.checkers_bb() ? generate<EVASION, false>(pos, moves)
+                             : generate<ENCOUNTER, false>(pos, moves);
 }
 template<>
 Move* generate<LEGAL, true>(const Position& pos, Move* moves) noexcept {
-    return pos.checkers() ? generate<EVASION, true>(pos, moves)
-                          : generate<ENCOUNTER, true>(pos, moves);
+    return pos.checkers_bb() ? generate<EVASION, true>(pos, moves)
+                             : generate<ENCOUNTER, true>(pos, moves);
 }
 
 }  // namespace DON

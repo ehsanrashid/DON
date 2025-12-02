@@ -393,17 +393,18 @@ void update_accumulator_refresh_cache(Color                                 pers
     PSQFeatureSet::IndexList removed, added;
 
     const auto& pieceMap = pos.piece_map();
-    const auto  pieces   = pos.pieces();
+    const auto  piecesBB = pos.pieces_bb();
 
     Bitboard changedBB = changed_bb(entry.pieceMap, pieceMap);
 
-    Bitboard removedBB = changedBB & entry.pieces;
+    Bitboard removedBB = changedBB & entry.piecesBB;
     PSQFeatureSet::append_active_indices(perspective, kingSq, entry.pieceMap, removedBB, removed);
-    Bitboard addedBB = changedBB & pieces;
+
+    Bitboard addedBB = changedBB & piecesBB;
     PSQFeatureSet::append_active_indices(perspective, kingSq, pieceMap, addedBB, added);
 
     entry.pieceMap = pieceMap;
-    entry.pieces   = pieces;
+    entry.piecesBB = piecesBB;
 
     auto& accumulator = accState.acc<Dimensions>();
 

@@ -272,7 +272,8 @@ void Worker::start_search() noexcept {
     {
         rootMoves.emplace_back(Move::None);
 
-        auto score = UCI::to_score({Value(rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW), rootPos});
+        auto score =
+          UCI::to_score({Value(rootPos.checkers_bb() ? -VALUE_MATE : VALUE_DRAW), rootPos});
         mainManager->updateCxt.onUpdateShort({DEPTH_ZERO, score});
     }
     else
@@ -621,7 +622,7 @@ void Worker::iterative_deepening() noexcept {
             // Compute recapture factor that reduces time if recapture conditions are met
             auto recaptureFactor = 1.0;
             if ( rootPos.captured_sq() == rootMoves[0].pv[0].dst_sq()
-             && (rootPos.captured_sq() & rootPos.pieces(~ac))
+             && (rootPos.captured_sq() & rootPos.pieces_bb(~ac))
              && rootPos.see(rootMoves[0].pv[0]) >= 200)
                 recaptureFactor -= 4.0040e-3 * std::min(+stableDepth, 25);
 
@@ -715,7 +716,7 @@ Value Worker::search(Position&    pos,
     }
 
     // Step 1. Initialize node
-    ss->inCheck   = pos.checkers();
+    ss->inCheck   = pos.checkers_bb();
     ss->moveCount = 0;
     ss->history   = 0;
 
@@ -1620,7 +1621,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     }
 
     // Step 1. Initialize node
-    ss->inCheck = pos.checkers();
+    ss->inCheck = pos.checkers_bb();
 
     // Step 2. Check for maximum ply reached or immediate draw
     if (ss->ply >= MAX_PLY || pos.is_draw(ss->ply))
@@ -1812,12 +1813,12 @@ QS_MOVES_LOOP:
                 && type_of(pos.captured_piece()) >= ROOK
                 && !pos.has_non_pawn(ac)
                 // No pawn pushes available
-                && !(pawn_push_bb(pos.pieces(ac, PAWN), ac) & ~pos.pieces()))
+                && !(pawn_push_bb(pos.pieces_bb(ac, PAWN), ac) & ~pos.pieces_bb()))
             {
-                pos.state()->checkers = PROMOTION_RANKS_BB;
+                pos.state()->checkersBB = PROMOTION_RANKS_BB;
                 if (MoveList<LEGAL, true>(pos).empty())
                     bestValue = VALUE_DRAW;
-                pos.state()->checkers = 0;
+                pos.state()->checkersBB = 0;
             }
         }
     }

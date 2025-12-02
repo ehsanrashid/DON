@@ -819,7 +819,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
         assert(type_of(pc) == PAWN);
 
-        Bitboard b = leadPawns = pos.pieces(color_of(pc), PAWN);
+        Bitboard b = leadPawns = pos.pieces_bb(color_of(pc), PAWN);
         while (b)
         {
             Square s = pop_lsb(b);
@@ -844,7 +844,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
     // Now ready to get all the position pieces (but the lead pawns)
     // and directly map them to the correct square and color.
-    Bitboard b = pos.pieces() ^ leadPawns;
+    Bitboard b = pos.pieces_bb() ^ leadPawns;
     while (b)
     {
         Square s  = pop_lsb(b);
@@ -1650,7 +1650,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
         dtzScore = zeroing ? -before_zeroing_dtz(search<false>(pos, ps)) : -probe_dtz(pos, ps);
 
         // If the move mates, force min DTZ-score to 1
-        if (dtzScore == 1 && pos.checkers() && MoveList<LEGAL, true>(pos).empty())
+        if (dtzScore == 1 && pos.checkers_bb() && MoveList<LEGAL, true>(pos).empty())
             minDtzScore = 1;
 
         // Convert result from 1-ply search. Zeroing moves are already accounted
@@ -1716,7 +1716,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Active, bool
         }
 
         // Make sure that a mating move is assigned a dtzScore value of 1
-        if (dtzScore == 2 && pos.checkers() && MoveList<LEGAL, true>(pos).empty())
+        if (dtzScore == 2 && pos.checkers_bb() && MoveList<LEGAL, true>(pos).empty())
             dtzScore = 1;
 
         pos.undo_move(rm.pv[0]);

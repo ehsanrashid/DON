@@ -193,18 +193,19 @@ void FullThreats::append_active_indices(Color           perspective,
                                         IndexList&      active) noexcept {
     Square kingSq = pos.square<KING>(perspective);
 
-    Bitboard occupied = pos.pieces();
+    Bitboard occupiedBB = pos.pieces_bb();
     for (Color color : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
             Color    c        = Color(perspective ^ color);
             Piece    attacker = make_piece(c, pt);
-            Bitboard bb       = pos.pieces(c, pt);
+            Bitboard pcBB     = pos.pieces_bb(c, pt);
 
             if (pt == PAWN)
             {
                 Bitboard lAttacks =
-                  (c == WHITE ? shift_bb<NORTH_EAST>(bb) : shift_bb<SOUTH_WEST>(bb)) & occupied;
+                  (c == WHITE ? shift_bb<NORTH_EAST>(pcBB) : shift_bb<SOUTH_WEST>(pcBB))
+                  & occupiedBB;
                 auto rDir = c == WHITE ? NORTH_EAST : SOUTH_WEST;
                 while (lAttacks)
                 {
@@ -218,7 +219,8 @@ void FullThreats::append_active_indices(Color           perspective,
                 }
 
                 Bitboard rAttacks =
-                  (c == WHITE ? shift_bb<NORTH_WEST>(bb) : shift_bb<SOUTH_EAST>(bb)) & occupied;
+                  (c == WHITE ? shift_bb<NORTH_WEST>(pcBB) : shift_bb<SOUTH_EAST>(pcBB))
+                  & occupiedBB;
                 auto lDir = c == WHITE ? NORTH_WEST : SOUTH_EAST;
                 while (rAttacks)
                 {
@@ -233,14 +235,14 @@ void FullThreats::append_active_indices(Color           perspective,
             }
             else
             {
-                while (bb)
+                while (pcBB)
                 {
-                    Square   org     = pop_lsb(bb);
-                    Bitboard attacks = attacks_bb(org, pt, occupied) & occupied;
+                    Square   org       = pop_lsb(pcBB);
+                    Bitboard attacksBB = attacks_bb(org, pt, occupiedBB) & occupiedBB;
 
-                    while (attacks)
+                    while (attacksBB)
                     {
-                        Square dst      = pop_lsb(attacks);
+                        Square dst      = pop_lsb(attacksBB);
                         Piece  attacked = pos[dst];
 
                         IndexType index =

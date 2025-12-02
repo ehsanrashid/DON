@@ -81,8 +81,8 @@ inline constexpr Bitboard EDGE_FILES_BB      = FILE_A_BB | FILE_H_BB;
 inline constexpr Bitboard PROMOTION_RANKS_BB = RANK_8_BB | RANK_1_BB;
 
 template<Color C>
-constexpr Bitboard colors_bb() noexcept {
-    static_assert(is_ok(C), "Invalid color for colors_bb()");
+constexpr Bitboard color_bb() noexcept {
+    static_assert(is_ok(C), "Invalid color for color_bb()");
     constexpr Bitboard WhiteBB = 0x55AA55AA55AA55AAULL;
     constexpr Bitboard BlackBB = ~WhiteBB;
     return C == WHITE ? WhiteBB : BlackBB;

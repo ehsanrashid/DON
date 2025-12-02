@@ -43,7 +43,7 @@ Value evaluate(const Position&          pos,
                NNUE::AccumulatorStack&  accStack,
                NNUE::AccumulatorCaches& accCaches,
                std::int32_t             optimism) noexcept {
-    assert(!pos.checkers());
+    assert(!pos.checkers_bb());
 
     Value absEvaluate = std::abs(pos.evaluate());
 
@@ -101,7 +101,7 @@ Value evaluate(const Position&          pos,
 // that contains the detailed descriptions and values of each evaluation term.
 // Trace scores are from white's point of view.
 std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
-    if (pos.checkers())
+    if (pos.checkers_bb())
         return "Final evaluation     : none (in check)";
 
     auto accStack  = std::make_unique<NNUE::AccumulatorStack>();

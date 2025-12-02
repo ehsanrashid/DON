@@ -52,7 +52,7 @@ MovePicker::MovePicker(const Position&              p,
     threshold(th) {
     assert(ttMove == Move::None || pos.legal(ttMove));
 
-    stage = pos.checkers() ? STG_EVA_TT + int(!(ttMove != Move::None))
+    stage = pos.checkers_bb() ? STG_EVA_TT + int(!(ttMove != Move::None))
           : threshold < 0
             ? STG_ENC_TT + int(!(ttMove != Move::None))
             : STG_QS_TT + int(!(ttMove != Move::None && pos.capture_queenpromo(ttMove)));
@@ -68,7 +68,7 @@ MovePicker::MovePicker(const Position&          p,
     ttMove(ttm),
     captureHistory(captureHist),
     threshold(th) {
-    assert(!pos.checkers());
+    assert(!pos.checkers_bb());
     assert(ttMove == Move::None || pos.legal(ttMove));
 
     stage = STG_PROBCUT_TT + int(!(ttMove != Move::None && pos.capture_queenpromo(ttMove)));
@@ -104,10 +104,10 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
 
     Color ac = pos.active_color();
 
-    Square   kingSq   = pos.square<KING>(~ac);
-    Bitboard threats  = pos.threats(~ac);
-    Bitboard blockers = pos.blockers(~ac);
-    Bitboard pinners  = pos.pinners();
+    Square   kingSq     = pos.square<KING>(~ac);
+    Bitboard threatsBB  = pos.threats_bb(~ac);
+    Bitboard blockersBB = pos.blockers_bb(~ac);
+    Bitboard pinnersBB  = pos.pinners_bb();
 
     std::uint16_t pawnIndex = pawn_index(pos.pawn_key());
 
@@ -149,13 +149,13 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
         // Penalty for moving to square attacked by lesser piece
         // Bonus for escaping from square attacked by lesser piece
         m.value += piece_value(pt)
-                 * ((pos.less_attacks(~ac, pt) & dst)   ? -19 * !(blockers & org)
-                    : (threats & org)                   ? +23
-                    : (pos.less_attacks(~ac, pt) & org) ? +20
-                                                        : 0);
+                 * ((pos.less_attacks_bb(~ac, pt) & dst)   ? -19 * !(blockersBB & org)
+                    : (threatsBB & org)                    ? +23
+                    : (pos.less_attacks_bb(~ac, pt) & org) ? +20
+                                                           : 0);
 
         // Penalty for moving pinner piece
-        m.value -= 0x400 * ((pinners & org) && !aligned(kingSq, org, dst));
+        m.value -= 0x400 * ((pinnersBB & org) && !aligned(kingSq, org, dst));
     }
     return itr;
 }

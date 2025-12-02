@@ -926,7 +926,7 @@ Ambiguity ambiguity(Move m, const Position& pos) noexcept {
         return AMB_NONE;
 
     // Disambiguation if have more then one piece with same destination
-    Bitboard pieces = (attacks_bb(dst, pt, pos.pieces()) & pos.pieces(ac, pt)) ^ org;
+    Bitboard pieces = (attacks_bb(dst, pt, pos.pieces_bb()) & pos.pieces_bb(ac, pt)) ^ org;
 
     if (!pieces)
         return AMB_NONE;
