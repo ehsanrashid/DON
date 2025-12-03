@@ -424,7 +424,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 
         if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
         {
-            st->enPassantSq = enPassantSq = make_square(to_file(epFile), to_rank(epRank));
+            enPassantSq = make_square(to_file(epFile), to_rank(epRank));
 
             // En-passant square will be considered only if
             // a) there is an enemy pawn in front of epSquare
@@ -457,8 +457,8 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     if (is_ok(enPassantSq))
     {
         reset_rule50_count();
-        if (!(epCheck && can_enpassant(ac, enPassantSq)))
-            reset_en_passant_sq();
+        if (epCheck && can_enpassant(ac, enPassantSq))
+            st->enPassantSq = enPassantSq;
     }
     assert(rule50_count() <= 100);
     gamePly = std::max(ply(), rule50_count());
@@ -1030,10 +1030,14 @@ DO_MOVE_END:
     // Update king attacks used for fast check detection
     set_ext_state();
 
-    if (epCheck && can_enpassant(active_color(), dstSq - pawn_spush(ac)))
+    if (epCheck)
     {
-        st->enPassantSq = enPassantSq = dstSq - pawn_spush(ac);
-        k ^= Zobrist::enpassant(enPassantSq);
+        enPassantSq = dstSq - pawn_spush(ac);
+        if (can_enpassant(active_color(), enPassantSq))
+        {
+            st->enPassantSq = enPassantSq;
+            k ^= Zobrist::enpassant(enPassantSq);
+        }
     }
 
     // Set the key with the updated key
