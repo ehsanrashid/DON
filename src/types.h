@@ -617,7 +617,7 @@ class Move {
 
     //constexpr explicit operator bool() const noexcept { return move != 0; }
 
-    constexpr Move reverse() const noexcept { return Move(dst_sq(), org_sq()); }
+    constexpr Move reverse() const noexcept { return Move{dst_sq(), org_sq()}; }
 
     // Declare static const members (to be defined later)
     static const Move None;

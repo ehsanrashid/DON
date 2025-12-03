@@ -116,7 +116,7 @@ class CuckooTable final {
                                     ^ Zobrist::piece_square(c, pt, s2)  //
                                     ^ Zobrist::turn();
 
-                            Move move = Move(s1, s2);
+                            Move move = Move{s1, s2};
 
                             insert({key, move});
                         }

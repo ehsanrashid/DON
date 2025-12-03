@@ -57,7 +57,7 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* moves) noexcept {
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
             Square sq = std::clamp(s - D, SQ_A1, SQ_H8);
-            table[s]  = Move(sq, s);
+            table[s]  = Move{sq, s};
         }
         return table;
     }();
@@ -75,7 +75,7 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* moves) noexcept {
         else
             dstSq = pop_lsq(dstBB);
 
-        *moves++ = Move(dstSq - D, dstSq);
+        *moves++ = Move{dstSq - D, dstSq};
     }
 #endif
 
@@ -103,13 +103,13 @@ Move* splat_promotion_moves(Bitboard dstBB, Move* moves) noexcept {
             dstSq = pop_lsq(dstBB);
 
         if constexpr (All || Capture)
-            *moves++ = Move(dstSq - D, dstSq, QUEEN);
+            *moves++ = Move{dstSq - D, dstSq, QUEEN};
 
         if constexpr (All || (Capture && Enemy) || (Quiet && !Enemy))
         {
-            *moves++ = Move(dstSq - D, dstSq, ROOK);
-            *moves++ = Move(dstSq - D, dstSq, BISHOP);
-            *moves++ = Move(dstSq - D, dstSq, KNIGHT);
+            *moves++ = Move{dstSq - D, dstSq, ROOK};
+            *moves++ = Move{dstSq - D, dstSq, BISHOP};
+            *moves++ = Move{dstSq - D, dstSq, KNIGHT};
         }
     }
 
@@ -125,11 +125,11 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* moves) noexcept {
     alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr {
         StdArray<Move, SQUARE_NB> table{};
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
-            table[s] = Move(SQUARE_ZERO, s);
+            table[s] = Move{SQUARE_ZERO, s};
         return table;
     }();
 
-    __m512i orgVec = _mm512_set1_epi16(Move(orgSq, SQUARE_ZERO).raw());
+    __m512i orgVec = _mm512_set1_epi16(Move{orgSq, SQUARE_ZERO}.raw());
 
     const auto* table = reinterpret_cast<const __m512i*>(SplatTable.data());
 
@@ -146,7 +146,7 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* moves) noexcept {
         else
             dstSq = pop_lsq(dstBB);
 
-        *moves++ = Move(orgSq, dstSq);
+        *moves++ = Move{orgSq, dstSq};
     }
 #endif
 
@@ -246,7 +246,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
                 else
                     orgSq = pop_msq(orgBB);
 
-                *moves++ = Move(EN_PASSANT, orgSq, enPassantSq);
+                *moves++ = Move{EN_PASSANT, orgSq, enPassantSq};
             }
         }
     }
@@ -281,7 +281,9 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     assert(n <= Position::CAPACITY[PT - 1]);
 
     StdArray<Square, Position::CAPACITY[PT - 1]> sortedSqs;
-    std::memcpy(sortedSqs.data(), pL.data(pB), n * sizeof(Square));
+
+    if (n != 0)
+        std::memcpy(sortedSqs.data(), pL.data(pB), n * sizeof(Square));
 
     Square*       begSq = sortedSqs.data();
     Square* const endSq = begSq + n;
@@ -302,9 +304,8 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     {
         Square orgSq = *begSq;
 
-        Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB)
-                       & ((blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq))  //
-                       & targetBB;
+        Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB) & targetBB
+                       & ((blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq));
 
         moves = splat_moves<AC>(orgSq, dstBB, moves);
     }
@@ -339,7 +340,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
 
             if (!pos.attackers_exists(dstSq, enemyBB, occupancyBB))
             {
-                *moves++ = Move(kingSq, dstSq);
+                *moves++ = Move{kingSq, dstSq};
 
                 if constexpr (Any)
                     return moves;
@@ -358,7 +359,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
                     assert(is_ok(pos.castling_rook_sq(cr))
                            && (pos.pieces_bb(AC, ROOK) & pos.castling_rook_sq(cr)));
 
-                    *moves++ = Move(CASTLING, kingSq, pos.castling_rook_sq(cr));
+                    *moves++ = Move{CASTLING, kingSq, pos.castling_rook_sq(cr)};
 
                     if constexpr (Any)
                         return moves;

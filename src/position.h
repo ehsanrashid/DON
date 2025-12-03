@@ -529,7 +529,7 @@ inline auto Position::squares(Color c, std::size_t& n) const noexcept {
     {
         const auto& pL    = squares(c, pt);
         const auto  count = pL.count();
-        if (count)
+        if (count != 0)
         {
             const auto* pB = base(c);
             std::memcpy(orgSqs.data() + n, pL.data(pB), count * sizeof(Square));
@@ -549,7 +549,7 @@ inline auto Position::squares(std::size_t& n) const noexcept {
         {
             const auto& pL    = squares(c, pt);
             const auto  count = pL.count();
-            if (count)
+            if (count != 0)
             {
                 const auto* pB = base(c);
                 std::memcpy(orgSqs.data() + n, pL.data(pB), count * sizeof(Square));
@@ -662,7 +662,7 @@ inline bool Position::castling_possible(Color c, CastlingRights cr) const noexce
     assert((c == WHITE && (cr == WHITE_OO || cr == WHITE_OOO))
            || (c == BLACK && (cr == BLACK_OO || cr == BLACK_OOO)));
 
-    return castling_has_rights(cr)  //
+    return castling_has_rights(cr)
         // Verify if the Rook blocks some checks (needed in case of Chess960).
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
         && (blockers_bb(c) & castling_rook_sq(cr)) == 0  //
