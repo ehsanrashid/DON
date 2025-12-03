@@ -195,12 +195,13 @@ void Position::clear() noexcept {
     // No need to clear indexMap as it is always overwritten when putting/removing pieces
     std::memset(indexMap.data(), INDEX_NONE, sizeof(indexMap));
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
-    std::memset(typeBB.data(), 0, sizeof(typeBB));
-    std::memset(colorBB.data(), 0, sizeof(colorBB));
-    std::memset(castlingPath.data(), 0, sizeof(castlingPath));
-    std::memset(castlingRookSq.data(), SQ_NONE, sizeof(castlingRookSq));
-    std::memset(castlingRightsMask.data(), 0, sizeof(castlingRightsMask));
-    std::memset(pieceCount.data(), 0, sizeof(pieceCount));
+    std::memset(typeBBs.data(), 0, sizeof(typeBBs));
+    std::memset(colorBBs.data(), 0, sizeof(colorBBs));
+    std::memset(pieceCounts.data(), 0, sizeof(pieceCounts));
+    std::memset(castlingRightsMasks.data(), 0, sizeof(castlingRightsMasks));
+
+    for (std::size_t i = 0; i < castlings.size(); ++i)
+        castlings[i].clear();
     // Don't memset pieceList, as they point to the above lists
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
@@ -287,7 +288,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             {
                 assert(file < FILE_NB);
                 Square sq = make_square(file, rank);
-                put_piece(sq, pc);
+                put(sq, pc);
                 ++file;
             }
             else
@@ -308,7 +309,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     assert(count(W_PAWN) <= 8 && count(B_PAWN) <= 8);
     assert(count(W_KING) == 1 && count(B_KING) == 1);
     assert(is_ok(square<KING>(WHITE)) && is_ok(square<KING>(BLACK)));
-    assert(!(pieces(PAWN) & PROMOTION_RANKS_BB));
+    assert((pieces_bb(PAWN) & PROMOTION_RANKS_BB) == 0);
     assert(distance(square<KING>(WHITE), square<KING>(BLACK)) > 1);
 
     iss >> std::ws;
@@ -358,31 +359,33 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             continue;
         }
 
-        Bitboard rooks = pieces(c, ROOK);
+        Bitboard rooks = pieces_bb(c, ROOK);
 
-        if (!(rooks & relative_rank(c, RANK_1)))
+        if ((rooks & relative_rank(c, RANK_1)) == 0)
         {
             assert(false && "Position::set(): Missing Rook on RANK_1");
             continue;
         }
 
-        Square rsq = SQ_NONE;
+        Square rookOrgSq = SQ_NONE;
 
         if (token == 'k')
         {
-            rsq = relative_sq(c, SQ_H1);
-            while (file_of(rsq) >= FILE_C && !(rooks & rsq) && rsq != square<KING>(c))
-                --rsq;
+            rookOrgSq = relative_sq(c, SQ_H1);
+            while (file_of(rookOrgSq) >= FILE_C && (rooks & rookOrgSq) == 0
+                   && rookOrgSq != square<KING>(c))
+                --rookOrgSq;
         }
         else if (token == 'q')
         {
-            rsq = relative_sq(c, SQ_A1);
-            while (file_of(rsq) <= FILE_F && !(rooks & rsq) && rsq != square<KING>(c))
-                ++rsq;
+            rookOrgSq = relative_sq(c, SQ_A1);
+            while (file_of(rookOrgSq) <= FILE_F && (rooks & rookOrgSq) == 0
+                   && rookOrgSq != square<KING>(c))
+                ++rookOrgSq;
         }
         else if ('a' <= token && token <= 'h')
         {
-            rsq = make_square(File(token - 'a'), relative_rank(c, RANK_1));
+            rookOrgSq = make_square(File(token - 'a'), relative_rank(c, RANK_1));
         }
         else
         {
@@ -390,13 +393,13 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             continue;
         }
 
-        if (!(rooks & rsq))
+        if ((rooks & rookOrgSq) == 0)
         {
             assert(false && "Position::set(): Missing Castling Rook");
             continue;
         }
 
-        set_castling_rights(c, rsq);
+        set_castling_rights(c, rookOrgSq);
     }
 
     iss >> std::ws;
@@ -424,9 +427,9 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             // b) there is no piece on epSquare or behind epSquare
             // c) there is atleast one friend pawn threatening epSquare
             // d) there is no enemy Bishop, Rook or Queen pinning
-            epCheck = (pieces(~ac, PAWN) & (enPassantSq - pawn_spush(ac)))
-                   && !(pieces() & make_bb(enPassantSq, enPassantSq + pawn_spush(ac)))
-                   && (pieces(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac));
+            epCheck = (pieces_bb(~ac, PAWN) & (enPassantSq - pawn_spush(ac))) != 0
+                   && (pieces_bb() & make_bb(enPassantSq, enPassantSq + pawn_spush(ac))) == 0
+                   && (pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac)) != 0;
         }
         else
             assert(false && "Position::set(): Invalid En-passant square");
@@ -442,7 +445,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     // handle also common incorrect FEN with moveNum = 0.
     gamePly = std::max(2 * (std::abs(moveNum) - 1), 0) + (ac == BLACK);
 
-    st->checkers = attackers_to(square<KING>(ac)) & pieces(~ac);
+    st->checkersBB = attackers_bb(square<KING>(ac)) & pieces_bb(~ac);
 
     set_ext_state();
 
@@ -518,7 +521,7 @@ std::string Position::fen(bool full) const noexcept {
                 ++emptyCount;
             else
             {
-                if (emptyCount)
+                if (emptyCount != 0)
                     fens += digit_to_char(emptyCount);
 
                 fens += to_char(piece_on(s));
@@ -527,7 +530,7 @@ std::string Position::fen(bool full) const noexcept {
         }
 
         // Handle trailing empty squares
-        if (emptyCount)
+        if (emptyCount != 0)
             fens += digit_to_char(emptyCount);
 
         if (r > RANK_1)
@@ -536,23 +539,23 @@ std::string Position::fen(bool full) const noexcept {
 
     fens += active_color() == WHITE ? " w " : " b ";
 
-    if (can_castle(ANY_CASTLING))
+    if (castling_has_rights(ANY_CASTLING))
     {
-        if (can_castle(WHITE_OO))
+        if (castling_has_rights(WHITE_OO))
             fens += Chess960 ? to_char<true>(file_of(castling_rook_sq(WHITE_OO))) : 'K';
-        if (can_castle(WHITE_OOO))
+        if (castling_has_rights(WHITE_OOO))
             fens += Chess960 ? to_char<true>(file_of(castling_rook_sq(WHITE_OOO))) : 'Q';
-        if (can_castle(BLACK_OO))
+        if (castling_has_rights(BLACK_OO))
             fens += Chess960 ? to_char<false>(file_of(castling_rook_sq(BLACK_OO))) : 'k';
-        if (can_castle(BLACK_OOO))
+        if (castling_has_rights(BLACK_OOO))
             fens += Chess960 ? to_char<false>(file_of(castling_rook_sq(BLACK_OOO))) : 'q';
     }
     else
         fens += '-';
 
     fens += ' ';
-    if (is_ok(en_passant_sq()))
-        fens += to_square(en_passant_sq());
+    if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
+        fens += to_square(enPassantSq);
     else
         fens += '-';
 
@@ -568,30 +571,44 @@ std::string Position::fen(bool full) const noexcept {
 }
 
 // Sets castling rights given the corresponding color and the rook starting square.
-void Position::set_castling_rights(Color c, Square rOrg) noexcept {
-    assert(relative_rank(c, rOrg) == RANK_1);
-    assert((pieces(c, ROOK) & rOrg));
-    assert(castlingRightsMask[c * FILE_NB + file_of(rOrg)] == 0);
+void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
+    assert(relative_rank(c, rookOrgSq) == RANK_1);
+    assert((pieces_bb(c, ROOK) & rookOrgSq));
+    assert(castlingRightsMasks[c * FILE_NB + file_of(rookOrgSq)] == 0);
 
-    Square kOrg = square<KING>(c);
-    assert(relative_rank(c, kOrg) == RANK_1);
-    assert((pieces(c, KING) & kOrg));
+    Square kingOrgSq = square<KING>(c);
+    assert(relative_rank(c, kingOrgSq) == RANK_1);
+    assert((pieces_bb(c, KING) & kingOrgSq));
 
-    CastlingRights cr = make_castling_rights(c, kOrg, rOrg);
+    CastlingRights cs = castling_side(kingOrgSq, rookOrgSq);
+
+    CastlingRights cr = c & cs;
 
     assert(!is_ok(castling_rook_sq(cr)));
 
     st->castlingRights |= cr;
-    castlingRightsMask[c * FILE_NB + file_of(kOrg)] |= cr;
-    castlingRightsMask[c * FILE_NB + file_of(rOrg)] = cr;
+    castlingRightsMasks[c * FILE_NB + file_of(kingOrgSq)] |= cr;
+    castlingRightsMasks[c * FILE_NB + file_of(rookOrgSq)] = cr;
 
-    castlingRookSq[BIT[cr]] = rOrg;
+    auto& castling = castlings[BIT[cr]];
 
-    Square kDst = king_castle_sq(c, kOrg, rOrg);
-    Square rDst = rook_castle_sq(c, kOrg, rOrg);
+    castling.rookSq = rookOrgSq;
 
-    castlingPath[BIT[cr]] =
-      (between_bb(kOrg, kDst) | between_bb(rOrg, rDst)) & ~make_bb(kOrg, rOrg);
+    Square kingDstSq = king_castle_sq(kingOrgSq, rookOrgSq);
+    Square rookDstSq = rook_castle_sq(kingOrgSq, rookOrgSq);
+
+    Bitboard castlingPathBB = (between_bb(kingOrgSq, kingDstSq) | between_bb(rookOrgSq, rookDstSq))
+                            & ~make_bb(kingOrgSq, rookOrgSq);
+    while (castlingPathBB != 0)
+        castling.fullPathSqs[castling.fullPathLen++] = cs == KING_SIDE  //
+                                                       ? pop_lsq(castlingPathBB)
+                                                       : pop_msq(castlingPathBB);
+
+    Bitboard castlingKingPathBB = between_bb(kingOrgSq, kingDstSq);
+    while (castlingKingPathBB != 0)
+        castling.kingPathSqs[castling.kingPathLen++] = cs == KING_SIDE  //
+                                                       ? pop_lsq(castlingKingPathBB)
+                                                       : pop_msq(castlingKingPathBB);
 }
 
 // Computes the hash keys of the position, and other data
@@ -608,25 +625,27 @@ void Position::set_state() noexcept {
         {
             const auto& pL = squares(c, pt);
             const auto* pB = base(c);
-            for (const Square* s = pL.begin(pB); s != pL.end(pB); ++s)
+            for (const Square* orgSq = pL.begin(pB); orgSq != pL.end(pB); ++orgSq)
             {
-                Key key = Zobrist::piece_square(c, pt, *s);
+                Key key = Zobrist::piece_square(c, pt, *orgSq);
                 assert(key != 0);
 
                 st->key ^= key;
 
                 if (pt == PAWN)
                     st->pawnKey[c] ^= key;
-
-                else if (pt != KING)
-                    st->nonPawnKey[c][is_major(pt)] ^= key;
+                else
+                {
+                    if (pt != KING)
+                        st->nonPawnKey[c][is_major(pt)] ^= key;
+                }
             }
         }
 
     st->key ^= Zobrist::castling(castling_rights());
 
-    if (is_ok(en_passant_sq()))
-        st->key ^= Zobrist::enpassant(en_passant_sq());
+    if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
+        st->key ^= Zobrist::enpassant(enPassantSq);
 
     if (active_color() == BLACK)
         st->key ^= Zobrist::turn();
@@ -638,90 +657,96 @@ void Position::set_ext_state() noexcept {
     Square kingSq = square<KING>(~active_color());
 
     // clang-format off
-    st->checks[NO_PIECE_TYPE] = 0;
-    st->checks[PAWN  ] = attacks_bb<PAWN  >(kingSq, ~active_color());
-    st->checks[KNIGHT] = attacks_bb<KNIGHT>(kingSq);
-    st->checks[BISHOP] = attacks_bb<BISHOP>(kingSq, pieces());
-    st->checks[ROOK  ] = attacks_bb<ROOK  >(kingSq, pieces());
-    st->checks[QUEEN ] = checks(BISHOP) | checks(ROOK);
-    st->checks[KING  ] = 0;
+    st->checksBB[NO_PIECE_TYPE] = 0;
+    st->checksBB[PAWN  ] = attacks_bb<PAWN  >(kingSq, ~active_color());
+    st->checksBB[KNIGHT] = attacks_bb<KNIGHT>(kingSq);
+    st->checksBB[BISHOP] = attacks_bb<BISHOP>(kingSq, pieces_bb());
+    st->checksBB[ROOK  ] = attacks_bb<ROOK  >(kingSq, pieces_bb());
+    st->checksBB[QUEEN ] = checks_bb(BISHOP) | checks_bb(ROOK);
+    st->checksBB[KING  ] = 0;
 
-    st->pinners[WHITE] = st->pinners[BLACK] = 0;
+    st->pinnersBB[WHITE] = st->pinnersBB[BLACK] = 0;
 
     for (Color c : {WHITE, BLACK})
     {
-        st->blockers[c] = blockers_to(square<KING>(c), pieces(~c), st->pinners[c], st->pinners[~c]);
+        st->blockersBB[c] = blockers_bb(square<KING>(c), pieces_bb(~c), st->pinnersBB[c], st->pinnersBB[~c]);
 
-        st->attacks[c][NO_PIECE_TYPE] = 0;
-        st->attacks[c][PAWN  ] = attacks_by<PAWN  >(c);
-        st->attacks[c][KNIGHT] = attacks_by<KNIGHT>(c) | attacks<PAWN  >(c);
-        st->attacks[c][BISHOP] = attacks_by<BISHOP>(c) | attacks<KNIGHT>(c);
-        st->attacks[c][ROOK  ] = attacks_by<ROOK  >(c) | attacks<BISHOP>(c);
-        st->attacks[c][QUEEN ] = attacks_by<QUEEN >(c) | attacks<ROOK  >(c);
-        st->attacks[c][KING  ] = attacks_by<KING  >(c) | attacks<QUEEN >(c);
+        st->attacksAccBB[c][NO_PIECE_TYPE] = 0;
+        st->attacksAccBB[c][PAWN  ] = attacks_by_bb<PAWN  >(c);
+        st->attacksAccBB[c][KNIGHT] = attacks_by_bb<KNIGHT>(c) | acc_attacks_bb<PAWN  >(c);
+        st->attacksAccBB[c][BISHOP] = attacks_by_bb<BISHOP>(c) | acc_attacks_bb<KNIGHT>(c);
+        st->attacksAccBB[c][ROOK  ] = attacks_by_bb<ROOK  >(c) | acc_attacks_bb<BISHOP>(c);
+        st->attacksAccBB[c][QUEEN ] = attacks_by_bb<QUEEN >(c) | acc_attacks_bb<ROOK  >(c);
+        st->attacksAccBB[c][KING  ] = attacks_by_bb<KING  >(c) | acc_attacks_bb<QUEEN >(c);
     }
     // clang-format on
 }
 
 // Check can do en-passant
 template<bool After>
-bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackers) const noexcept {
-    assert(is_ok(epSq));
+bool Position::can_enpassant(Color           ac,
+                             Square          enPassantSq,
+                             Bitboard* const epAttackersBB) const noexcept {
+    assert(is_ok(enPassantSq));
 
     // En-passant attackers
-    Bitboard attackers = pieces(ac, PAWN) & attacks_bb<PAWN>(epSq, ~ac);
-    if (epAttackers != nullptr)
-        *epAttackers = attackers;
-    if (!attackers)
+    Bitboard attackersBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
+    if (epAttackersBB != nullptr)
+        *epAttackersBB = attackersBB;
+    if (!attackersBB)
         return false;
 
-    Square capSq;
+    Square capturedSq;
     if constexpr (After)
-        capSq = epSq - pawn_spush(ac);
+        capturedSq = enPassantSq - pawn_spush(ac);
     else
-        capSq = epSq + pawn_spush(ac);
-    assert(pieces(~ac, PAWN) & capSq);
+        capturedSq = enPassantSq + pawn_spush(ac);
+    assert(pieces_bb(~ac, PAWN) & capturedSq);
 
     Square kingSq = square<KING>(ac);
 
     if constexpr (After)
     {
         // If there are checkers other than the to be captured pawn, ep is never legal
-        if (checkers() & ~square_bb(capSq))
+        if ((checkers_bb() & ~square_bb(capturedSq)) != 0)
             return false;
 
         // If there are two pawns potentially being abled to capture
-        if (more_than_one(attackers))
+        if (more_than_one(attackersBB))
         {
             // If at least one is not pinned, ep is legal as there are no horizontal exposed checks
-            if (!more_than_one(attackers & blockers(ac)))
+            if (!more_than_one(attackersBB & blockers_bb(ac)))
                 return true;
 
-            Bitboard kingFile = file_bb(kingSq);
+            Bitboard kingFileBB = file_bb(kingSq);
             // If there is no pawn on our king's file and thus both pawns are pinned by bishops.
-            if (!(attackers & kingFile))
+            if ((attackersBB & kingFileBB) == 0)
                 return false;
             // Otherwise remove the pawn on the king file, as an ep capture by it can never be legal
-            attackers &= ~kingFile;
-            if (epAttackers != nullptr)
-                *epAttackers = attackers;
+            attackersBB &= ~kingFileBB;
+            if (epAttackersBB != nullptr)
+                *epAttackersBB = attackersBB;
         }
     }
 
     bool epCheck = false;
     // Check en-passant is legal for the position
-    Bitboard occupied = pieces() ^ make_bb(capSq, epSq);
-    while (attackers)
+    Bitboard occupancyBB = pieces_bb() ^ make_bb(capturedSq, enPassantSq);
+    while (attackersBB != 0)
     {
-        Square s = pop_lsb(attackers);
-        if (!(slide_attackers_to(kingSq, occupied ^ s) & pieces(~ac)))
+        Square s = pop_lsq(attackersBB);
+        if ((slide_attackers_bb(kingSq, occupancyBB ^ s) & pieces_bb(~ac)) == 0)
         {
             epCheck = true;
-            if (epAttackers == nullptr)
+
+            if (epAttackersBB == nullptr)
                 break;
         }
-        else if (epAttackers != nullptr)
-            *epAttackers ^= s;
+        else
+        {
+            if (epAttackersBB != nullptr)
+                *epAttackersBB ^= s;
+        }
     }
     return epCheck;
 }
@@ -729,40 +754,44 @@ bool Position::can_enpassant(Color ac, Square epSq, Bitboard* const epAttackers)
 // Helper used to do/undo a castling move.
 // This is a bit tricky in Chess960 where org/dst squares can overlap.
 template<bool Do>
-void Position::do_castling(
-  Color ac, Square org, Square& dst, Square& rOrg, Square& rDst, DirtyBoard* const db) noexcept {
+void Position::do_castling(Color             ac,
+                           Square            kingOrgSq,
+                           Square&           kingDstSq,
+                           Square&           rookOrgSq,
+                           Square&           rookDstSq,
+                           DirtyBoard* const db) noexcept {
     assert(!Do || db != nullptr);
 
-    rOrg = dst;  // Castling is encoded as "king captures rook"
-    rDst = rook_castle_sq(ac, org, dst);
-    dst  = king_castle_sq(ac, org, dst);
+    rookOrgSq = kingDstSq;  // Castling is encoded as "king captures rook"
+    rookDstSq = rook_castle_sq(kingOrgSq, kingDstSq);
+    kingDstSq = king_castle_sq(kingOrgSq, kingDstSq);
 
-    Piece king = piece_on(Do ? org : dst);
-    assert(king == make_piece(ac, KING));
-    Piece rook = piece_on(Do ? rOrg : rDst);
-    assert(rook == make_piece(ac, ROOK));
+    Piece kingPc = piece_on(Do ? kingOrgSq : kingDstSq);
+    assert(kingPc == make_piece(ac, KING));
+    Piece rookPc = piece_on(Do ? rookOrgSq : rookDstSq);
+    assert(rookPc == make_piece(ac, ROOK));
 
     // Remove both pieces first since squares could overlap in Chess960
     if constexpr (Do)
     {
-        db->dp.dst      = dst;
-        db->dp.removeSq = rOrg;
-        db->dp.addSq    = rDst;
-        db->dp.removePc = db->dp.addPc = rook;
+        db->dp.dstSq    = kingDstSq;
+        db->dp.removeSq = rookOrgSq;
+        db->dp.addSq    = rookDstSq;
+        db->dp.removePc = db->dp.addPc = rookPc;
 
-        remove_piece(org, &db->dts);
-        remove_piece(rOrg, &db->dts);
-        put_piece(dst, king, &db->dts);
-        put_piece(rDst, rook, &db->dts);
+        remove(kingOrgSq, &db->dts);
+        remove(rookOrgSq, &db->dts);
+        put(kingDstSq, kingPc, &db->dts);
+        put(rookDstSq, rookPc, &db->dts);
 
         st->hasCastled[ac] = true;
     }
     else
     {
-        remove_piece(dst);
-        remove_piece(rDst);
-        put_piece(org, king);
-        put_piece(rOrg, rook);
+        remove(kingDstSq);
+        remove(rookDstSq);
+        put(kingOrgSq, kingPc);
+        put(rookOrgSq, rookPc);
     }
 }
 
@@ -789,36 +818,36 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
 
     Color ac = active_color();
 
-    Square org = m.org_sq(), dst = m.dst_sq();
-    Piece  movedPiece    = piece_on(org);
-    Piece  capturedPiece = piece_on(m.type_of() != EN_PASSANT ? dst : dst - pawn_spush(ac));
-    Piece  promotedPiece = NO_PIECE;
-    assert(color_of(movedPiece) == ac);
-    assert(!is_ok(capturedPiece)
-           || (color_of(capturedPiece) == (m.type_of() != CASTLING ? ~ac : ac)
-               && type_of(capturedPiece) != KING));
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    Piece  movedPc    = piece_on(orgSq);
+    Piece  capturedPc = piece_on(m.type_of() != EN_PASSANT ? dstSq : dstSq - pawn_spush(ac));
+    Piece  promotedPc = NO_PIECE;
+    assert(color_of(movedPc) == ac);
+    assert(!is_ok(capturedPc)
+           || (color_of(capturedPc) == (m.type_of() != CASTLING ? ~ac : ac)
+               && type_of(capturedPc) != KING));
 
-    auto movedPt = type_of(movedPiece);
+    auto movedPt = type_of(movedPc);
 
     Key movedKey;
 
     DirtyBoard db;
 
-    db.dp.pc             = movedPiece;
-    db.dp.org            = org;
-    db.dp.dst            = dst;
+    db.dp.movedPc        = movedPc;
+    db.dp.orgSq          = orgSq;
+    db.dp.dstSq          = dstSq;
     db.dp.addSq          = SQ_NONE;
     db.dts.ac            = ac;
     db.dts.preKingSq     = square<KING>(ac);
-    db.dts.threateningBB = 0;
-    db.dts.threatenedBB  = 0;
+    db.dts.threateningBB = db.dts.threatenedBB = 0;
     assert(is_ok(db.dts.preKingSq));
     assert(db.dts.list.empty());
 
     // Reset en-passant square
-    if (is_ok(en_passant_sq()))
+    Square enPassantSq;
+    if (enPassantSq = en_passant_sq(); is_ok(enPassantSq))
     {
-        k ^= Zobrist::enpassant(en_passant_sq());
+        k ^= Zobrist::enpassant(enPassantSq);
         reset_en_passant_sq();
     }
 
@@ -828,43 +857,43 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     // If the move is a castling, do some special work
     if (m.type_of() == CASTLING)
     {
-        assert(movedPiece == make_piece(ac, KING));
-        assert(capturedPiece == make_piece(ac, ROOK));
-        assert(can_castle(ac & ANY_CASTLING));
+        assert(movedPc == make_piece(ac, KING));
+        assert(capturedPc == make_piece(ac, ROOK));
+        assert(castling_has_rights(ac & ANY_CASTLING));
         assert(!has_castled(ac));
 
-        Square rOrg, rDst;
-        do_castling<true>(ac, org, dst, rOrg, rDst, &db);
-        assert(rOrg == m.dst_sq());
+        Square rookOrgSq, rookDstSq;
+        do_castling<true>(ac, orgSq, dstSq, rookOrgSq, rookDstSq, &db);
+        assert(rookOrgSq == m.dst_sq());
 
-        movedKey = Zobrist::piece_square(ac, movedPt, org)  //
-                 ^ Zobrist::piece_square(ac, movedPt, dst);
-        Key rookKey = Zobrist::piece_square(ac, ROOK, rOrg)  //
-                    ^ Zobrist::piece_square(ac, ROOK, rDst);
+        movedKey = Zobrist::piece_square(ac, movedPt, orgSq)  //
+                 ^ Zobrist::piece_square(ac, movedPt, dstSq);
+        Key rookKey = Zobrist::piece_square(ac, ROOK, rookOrgSq)  //
+                    ^ Zobrist::piece_square(ac, ROOK, rookDstSq);
 
         k ^= rookKey;
         st->nonPawnKey[ac][1] ^= rookKey;
 
-        capturedPiece = NO_PIECE;
-        capture       = false;
+        capturedPc = NO_PIECE;
+        capture    = false;
 
         // Calculate checker only one ROOK possible
-        st->checkers = isCheck ? square_bb(rDst) : 0;
-        assert(!isCheck || (checkers() && popcount(checkers()) == 1));
+        st->checkersBB = isCheck ? square_bb(rookDstSq) : 0;
+        assert(!isCheck || (checkers_bb() != 0 && popcount(checkers_bb()) == 1));
 
         goto DO_MOVE_END;
     }
 
-    movedKey = Zobrist::piece_square(ac, movedPt, org)  //
-             ^ Zobrist::piece_square(ac, movedPt, dst);
+    movedKey = Zobrist::piece_square(ac, movedPt, orgSq)  //
+             ^ Zobrist::piece_square(ac, movedPt, dstSq);
 
-    capture = is_ok(capturedPiece);
+    capture = is_ok(capturedPc);
 
     if (capture)
     {
-        auto capturedPt = type_of(capturedPiece);
+        auto capturedPt = type_of(capturedPc);
 
-        Square capturedSq = dst;
+        Square capturedSq = dstSq;
 
         Key capturedKey = Zobrist::piece_square(~ac, capturedPt, capturedSq);
 
@@ -876,20 +905,20 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
             {
                 capturedSq -= pawn_spush(ac);
 
-                assert(movedPiece == make_piece(ac, PAWN));
-                assert(relative_rank(ac, org) == RANK_5);
-                assert(relative_rank(ac, dst) == RANK_6);
-                assert(pieces(~ac, PAWN) & capturedSq);
-                assert(!(pieces() & make_bb(dst, dst + pawn_spush(ac))));
+                assert(movedPc == make_piece(ac, PAWN));
+                assert(relative_rank(ac, orgSq) == RANK_5);
+                assert(relative_rank(ac, dstSq) == RANK_6);
+                assert(pieces_bb(~ac, PAWN) & capturedSq);
+                assert((pieces_bb() & make_bb(dstSq, dstSq + pawn_spush(ac))) == 0);
                 assert(!is_ok(en_passant_sq()));  // Already reset to SQ_NONE
                 assert(rule50_count() == 1);
-                assert(st->preSt->enPassantSq == dst);
+                assert(st->preSt->enPassantSq == dstSq);
                 assert(st->preSt->rule50Count == 0);
 
                 capturedKey = Zobrist::piece_square(~ac, capturedPt, capturedSq);
 
                 // Remove the captured pawn
-                remove_piece(capturedSq);
+                remove(capturedSq);
             }
 
             st->pawnKey[~ac] ^= capturedKey;
@@ -900,9 +929,9 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
         }
 
         db.dp.removeSq = capturedSq;
-        db.dp.removePc = capturedPiece;
+        db.dp.removePc = capturedPc;
 
-        st->capturedSq = dst;
+        st->capturedSq = dstSq;
 
         // Update hash key
         k ^= capturedKey;
@@ -913,12 +942,12 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     if (capture && m.type_of() != EN_PASSANT)
     {
         // Remove the captured piece
-        remove_piece(org, &db.dts);
-        swap_piece(dst, movedPiece, &db.dts);
+        remove(orgSq, &db.dts);
+        swap(dstSq, movedPc, &db.dts);
     }
     else
     {
-        move_piece(org, dst, &db.dts);
+        move(orgSq, dstSq, &db.dts);
     }
 
     // If the moving piece is a pawn do some special extra work
@@ -926,32 +955,32 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     {
         if (m.type_of() == PROMOTION)
         {
-            assert(relative_rank(ac, org) == RANK_7);
-            assert(relative_rank(ac, dst) == RANK_8);
+            assert(relative_rank(ac, orgSq) == RANK_7);
+            assert(relative_rank(ac, dstSq) == RANK_8);
 
-            auto promoted = m.promotion_type();
-            assert(KNIGHT <= promoted && promoted <= QUEEN);
+            auto promotedPt = m.promotion_type();
+            assert(KNIGHT <= promotedPt && promotedPt <= QUEEN);
 
-            promotedPiece = make_piece(ac, promoted);
+            promotedPc = make_piece(ac, promotedPt);
 
-            Key promoKey = Zobrist::piece_square(ac, promoted, dst);
+            Key promoKey = Zobrist::piece_square(ac, promotedPt, dstSq);
 
-            db.dp.dst   = SQ_NONE;
-            db.dp.addSq = dst;
-            db.dp.addPc = promotedPiece;
+            db.dp.dstSq = SQ_NONE;
+            db.dp.addSq = dstSq;
+            db.dp.addPc = promotedPc;
 
-            swap_piece(dst, promotedPiece, &db.dts);
-            assert(count(promotedPiece));
-            assert(Zobrist::piece_square(ac, PAWN, dst) == 0);
+            swap(dstSq, promotedPc, &db.dts);
+            assert(count(promotedPc));
+            assert(Zobrist::piece_square(ac, PAWN, dstSq) == 0);
             // Update hash keys
             k ^= promoKey;
-            st->nonPawnKey[ac][is_major(promoted)] ^= promoKey;
+            st->nonPawnKey[ac][is_major(promotedPt)] ^= promoKey;
         }
         // Set en-passant square if the moved pawn can be captured
-        else if ((int(dst) ^ int(org)) == NORTH_2)
+        else if ((int(dstSq) ^ int(orgSq)) == NORTH_2)
         {
-            assert(relative_rank(ac, org) == RANK_2);
-            assert(relative_rank(ac, dst) == RANK_4);
+            assert(relative_rank(ac, orgSq) == RANK_2);
+            assert(relative_rank(ac, dstSq) == RANK_4);
 
             epCheck = true;
         }
@@ -962,14 +991,15 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
         // Reset rule 50 draw counter
         reset_rule50_count();
     }
-    else if (movedPt != KING)
+    else
     {
-        st->nonPawnKey[ac][is_major(movedPt)] ^= movedKey;
+        if (movedPt != KING)
+            st->nonPawnKey[ac][is_major(movedPt)] ^= movedKey;
     }
 
     // Calculate checkers
-    st->checkers = isCheck ? attackers_to(square<KING>(~ac)) & pieces(ac) : 0;
-    assert(!isCheck || (checkers() && popcount(checkers()) <= 2));
+    st->checkersBB = isCheck ? attackers_bb(square<KING>(~ac)) & pieces_bb(ac) : 0;
+    assert(!isCheck || (checkers_bb() != 0 && popcount(checkers_bb()) <= 2));
 
 DO_MOVE_END:
 
@@ -979,7 +1009,7 @@ DO_MOVE_END:
     k ^= movedKey;
 
     // Update castling rights if needed
-    if (int cr; castling_rights() && (cr = castling_rights_mask(org, dst)))
+    if (int cr; castling_rights() && (cr = castling_rights_mask(orgSq, dstSq)) != 0)
     {
         k ^= Zobrist::castling(castling_rights());
         st->castlingRights &= ~cr;
@@ -991,16 +1021,16 @@ DO_MOVE_END:
 
     activeColor = ~ac;
 
-    st->capturedPiece = capturedPiece;
-    st->promotedPiece = promotedPiece;
+    st->capturedPc = capturedPc;
+    st->promotedPc = promotedPc;
 
     // Update king attacks used for fast check detection
     set_ext_state();
 
-    if (epCheck && can_enpassant(active_color(), dst - pawn_spush(ac)))
+    if (epCheck && can_enpassant(active_color(), dstSq - pawn_spush(ac)))
     {
-        st->enPassantSq = dst - pawn_spush(ac);
-        k ^= Zobrist::enpassant(en_passant_sq());
+        st->enPassantSq = enPassantSq = dstSq - pawn_spush(ac);
+        k ^= Zobrist::enpassant(enPassantSq);
     }
 
     // Set the key with the updated key
@@ -1034,9 +1064,9 @@ DO_MOVE_END:
 
     assert(_is_ok());
 
-    assert(is_ok(db.dp.pc));
-    assert(is_ok(db.dp.org));
-    assert(is_ok(db.dp.dst) ^ !(m.type_of() != PROMOTION));
+    assert(is_ok(db.dp.movedPc));
+    assert(is_ok(db.dp.orgSq));
+    assert(is_ok(db.dp.dstSq) ^ !(m.type_of() != PROMOTION));
     assert(is_ok(db.dp.removeSq) ^ !(capture || m.type_of() == CASTLING));
     assert(is_ok(db.dp.addSq) ^ !(m.type_of() == PROMOTION || m.type_of() == CASTLING));
     return db;
@@ -1047,63 +1077,63 @@ void Position::undo_move(Move m) noexcept {
 
     Color ac = activeColor = ~active_color();
 
-    Square org = m.org_sq(), dst = m.dst_sq();
-    Piece  pc = piece_on(dst);
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    Piece  movedPc = piece_on(dstSq);
 
-    assert(empty_on(org) || m.type_of() == CASTLING);
+    assert(empty_on(orgSq) || m.type_of() == CASTLING);
 
-    Piece capturedPiece = captured_piece();
-    assert(!is_ok(capturedPiece) || type_of(capturedPiece) != KING);
+    Piece capturedPc = captured_pc();
+    assert(!is_ok(capturedPc) || type_of(capturedPc) != KING);
 
     if (m.type_of() == CASTLING)
     {
-        assert(pieces(ac, KING) & king_castle_sq(ac, org, dst));
-        assert(pieces(ac, ROOK) & rook_castle_sq(ac, org, dst));
-        assert(!is_ok(capturedPiece));
+        assert((pieces_bb(ac, KING) & king_castle_sq(orgSq, dstSq)) != 0);
+        assert((pieces_bb(ac, ROOK) & rook_castle_sq(orgSq, dstSq)) != 0);
+        assert(!is_ok(capturedPc));
         assert(has_castled(ac));
 
-        Square rOrg, rDst;
-        do_castling<false>(ac, org, dst, rOrg, rDst);
-        assert(rOrg == m.dst_sq());
+        Square rookOrgSq, rookDstSq;
+        do_castling<false>(ac, orgSq, dstSq, rookOrgSq, rookDstSq);
+        assert(rookOrgSq == m.dst_sq());
 
         goto UNDO_MOVE_END;
     }
 
     if (m.type_of() == PROMOTION)
     {
-        assert(relative_rank(ac, org) == RANK_7);
-        assert(relative_rank(ac, dst) == RANK_8);
+        assert(relative_rank(ac, orgSq) == RANK_7);
+        assert(relative_rank(ac, dstSq) == RANK_8);
         assert(KNIGHT <= m.promotion_type() && m.promotion_type() <= QUEEN);
-        assert(type_of(pc) == m.promotion_type());
-        assert(promoted_piece() == pc);
+        assert(type_of(movedPc) == m.promotion_type());
+        assert(promoted_pc() == movedPc);
 
-        remove_piece(dst);
-        pc = make_piece(ac, PAWN);
-        put_piece(dst, pc);
+        remove(dstSq);
+        movedPc = make_piece(ac, PAWN);
+        put(dstSq, movedPc);
     }
 
     // Move back the piece
-    move_piece(dst, org);
+    move(dstSq, orgSq);
 
-    if (is_ok(capturedPiece))
+    if (is_ok(capturedPc))
     {
-        Square capSq = dst;
+        Square capturedSq = dstSq;
 
         if (m.type_of() == EN_PASSANT)
         {
-            capSq -= pawn_spush(ac);
+            capturedSq -= pawn_spush(ac);
 
-            assert(type_of(pc) == PAWN);
-            assert(relative_rank(ac, org) == RANK_5);
-            assert(relative_rank(ac, dst) == RANK_6);
-            assert(empty_on(capSq));
-            assert(capturedPiece == make_piece(~ac, PAWN));
+            assert(type_of(movedPc) == PAWN);
+            assert(relative_rank(ac, orgSq) == RANK_5);
+            assert(relative_rank(ac, dstSq) == RANK_6);
+            assert(empty_on(capturedSq));
+            assert(capturedPc == make_piece(~ac, PAWN));
             assert(rule50_count() == 0);
-            assert(st->preSt->enPassantSq == dst);
+            assert(st->preSt->enPassantSq == dstSq);
             assert(st->preSt->rule50Count == 0);
         }
         // Restore the captured piece
-        put_piece(capSq, capturedPiece);
+        put(capturedSq, capturedPc);
     }
 
 UNDO_MOVE_END:
@@ -1120,7 +1150,7 @@ UNDO_MOVE_END:
 // It flips the active color without executing any move on the board.
 void Position::do_null_move(State& newSt, const TranspositionTable* const tt) noexcept {
     assert(&newSt != st);
-    assert(!checkers());
+    assert(checkers_bb() == 0);
 
     Key k = st->key ^ Zobrist::turn();
 
@@ -1130,9 +1160,9 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
 
     st->nullPly = 0;
 
-    if (is_ok(en_passant_sq()))
+    if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
     {
-        k ^= Zobrist::enpassant(en_passant_sq());
+        k ^= Zobrist::enpassant(enPassantSq);
         reset_en_passant_sq();
     }
 
@@ -1143,10 +1173,10 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
 
     activeColor = ~active_color();
 
-    st->capturedSq    = SQ_NONE;
-    st->checkers      = 0;
-    st->capturedPiece = NO_PIECE;
-    st->promotedPiece = NO_PIECE;
+    st->capturedSq = SQ_NONE;
+    st->checkersBB = 0;
+    st->capturedPc = NO_PIECE;
+    st->promotedPc = NO_PIECE;
 
     set_ext_state();
 
@@ -1158,32 +1188,15 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
 // Unmakes a null move
 void Position::undo_null_move() noexcept {
     assert(!is_ok(captured_sq()));
-    assert(!checkers());
-    assert(!is_ok(captured_piece()));
-    assert(!is_ok(promoted_piece()));
+    assert(checkers_bb() == 0);
+    assert(!is_ok(captured_pc()));
+    assert(!is_ok(promoted_pc()));
 
     activeColor = ~active_color();
 
     st = const_cast<State*>(st->preSt);
 
     assert(_is_ok());
-}
-
-bool Position::castling_legal(Move m) const noexcept {
-
-    Color ac = active_color();
-
-    Square org = m.org_sq(), dst = m.dst_sq();
-
-    Square    kDst = king_castle_sq(ac, org, dst);
-    Direction step = org < kDst ? WEST : EAST;
-    for (Square s = kDst; s != org; s += step)
-        if (has_attackers_to(s, pieces(~ac)))
-            return false;
-
-    // Verify if the Rook blocks some checks (needed in case of Chess960).
-    // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-    return !(blockers(ac) & dst);
 }
 
 // Tests whether a move is legal
@@ -1194,25 +1207,28 @@ bool Position::legal(Move m) const noexcept {
 
     assert(piece_on(square<KING>(ac)) == make_piece(ac, KING));
 
-    Square org = m.org_sq(), dst = m.dst_sq();
-    Piece  pc = piece_on(org);
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    Piece  movedPc = piece_on(orgSq);
 
     // If the origin square is not occupied by a piece belonging to
     // the side to move, the move is obviously not legal.
-    if (!is_ok(pc) || color_of(pc) != ac)
+    if (!is_ok(movedPc) || color_of(movedPc) != ac)
         return false;
 
     if (m.type_of() == CASTLING)
     {
-        CastlingRights cr = make_castling_rights(ac, org, dst);
-        return type_of(pc) == KING && (pieces(ac, ROOK) & dst) && !checkers()
-            && relative_rank(ac, org) == RANK_1 && relative_rank(ac, dst) == RANK_1
-            && can_castle(cr) && !castling_impeded(cr) && castling_rook_sq(cr) == dst
-            && castling_legal(m);
+        if (type_of(movedPc) == KING && (pieces_bb(ac, ROOK) & dstSq) && checkers_bb() == 0
+            && relative_rank(ac, orgSq) == RANK_1 && relative_rank(ac, dstSq) == RANK_1)
+        {
+            CastlingRights cr = ac & castling_side(orgSq, dstSq);
+
+            return castling_rook_sq(cr) == dstSq && castling_possible(ac, cr);
+        }
+        return false;
     }
 
     // The destination square cannot be occupied by a friendly piece
-    if (pieces(ac) & dst)
+    if (pieces_bb(ac) & dstSq)
         return false;
 
     switch (m.type_of())
@@ -1221,44 +1237,46 @@ bool Position::legal(Move m) const noexcept {
         assert(m.promotion_type() - KNIGHT == NO_PIECE_TYPE);
 
         // Handle the special case of a pawn move
-        if (type_of(pc) == PAWN)
+        if (type_of(movedPc) == PAWN)
         {
             // Already handled promotion moves, so origin & destination cannot be on the 8th/1st rank
-            if (PROMOTION_RANKS_BB & make_bb(org, dst))
+            if (PROMOTION_RANKS_BB & make_bb(orgSq, dstSq))
                 return false;
-            if (!(relative_rank(ac, org) < RANK_7 && relative_rank(ac, dst) < RANK_8
-                  && ((org + pawn_spush(ac) == dst && !(pieces() & dst))    // Single push
-                      || (attacks_bb<PAWN>(org, ac) & pieces(~ac) & dst)))  // Capture
-                && !(relative_rank(ac, org) == RANK_2 && relative_rank(ac, dst) == RANK_4
-                     && org + pawn_dpush(ac) == dst  // Double push
-                     && !(pieces() & make_bb(dst, dst - pawn_spush(ac)))))
+            if (!(relative_rank(ac, orgSq) < RANK_7 && relative_rank(ac, dstSq) < RANK_8
+                  && ((orgSq + pawn_spush(ac) == dstSq
+                       && (pieces_bb() & dstSq) == 0)  // Single push
+                      || (attacks_bb<PAWN>(orgSq, ac) & pieces_bb(~ac) & dstSq) != 0))  // Capture
+                && !(relative_rank(ac, orgSq) == RANK_2 && relative_rank(ac, dstSq) == RANK_4
+                     && orgSq + pawn_dpush(ac) == dstSq  // Double push
+                     && (pieces_bb() & make_bb(dstSq, dstSq - pawn_spush(ac))) == 0))
                 return false;
         }
-        else if (!(attacks_bb(org, type_of(pc), pieces()) & dst))
+        else if ((attacks_bb(orgSq, type_of(movedPc), pieces_bb()) & dstSq) == 0)
             return false;
 
         // For king moves, check whether the destination square is attacked by the enemies.
-        if (type_of(pc) == KING)
-            return !has_attackers_to(dst, pieces(~ac), pieces() ^ org);
+        if (type_of(movedPc) == KING)
+            return !attackers_exists(dstSq, pieces_bb(~ac), pieces_bb() ^ orgSq);
         break;
 
     case PROMOTION :
-        if (!(type_of(pc) == PAWN  //&& (PROMOTION_RANKS_BB & dst)
-              && relative_rank(ac, org) == RANK_7 && relative_rank(ac, dst) == RANK_8
-              && ((org + pawn_spush(ac) == dst && !(pieces() & dst))
-                  || ((attacks_bb<PAWN>(org, ac) & pieces(~ac)) & dst))))
+        if (!(type_of(movedPc) == PAWN  //&& (PROMOTION_RANKS_BB & dstSq)
+              && relative_rank(ac, orgSq) == RANK_7 && relative_rank(ac, dstSq) == RANK_8
+              && ((orgSq + pawn_spush(ac) == dstSq && (pieces_bb() & dstSq) == 0)
+                  || ((attacks_bb<PAWN>(orgSq, ac) & pieces_bb(~ac)) & dstSq) != 0)))
             return false;
         break;
 
     case EN_PASSANT :
-        if (!(type_of(pc) == PAWN && en_passant_sq() == dst && rule50_count() == 0
-              && relative_rank(ac, org) == RANK_5 && relative_rank(ac, dst) == RANK_6
-              && (pieces(~ac, PAWN) & (dst - pawn_spush(ac)))
-              && !(pieces() & make_bb(dst, dst + pawn_spush(ac)))
-              && ((attacks_bb<PAWN>(org, ac) /*& ~pieces()*/) & dst)
-              && !(slide_attackers_to(square<KING>(ac),
-                                      pieces() ^ make_bb(org, dst, dst - pawn_spush(ac)))
-                   & pieces(~ac))))
+        if (!(type_of(movedPc) == PAWN && en_passant_sq() == dstSq && rule50_count() == 0
+              && relative_rank(ac, orgSq) == RANK_5 && relative_rank(ac, dstSq) == RANK_6
+              && (pieces_bb(~ac, PAWN) & (dstSq - pawn_spush(ac))) != 0
+              && (pieces_bb() & make_bb(dstSq, dstSq + pawn_spush(ac))) == 0
+              && ((attacks_bb<PAWN>(orgSq, ac) /*& ~pieces_bb()*/) & dstSq) != 0
+              && (slide_attackers_bb(square<KING>(ac),
+                                     pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac)))
+                  & pieces_bb(~ac))
+                   == 0))
             return false;
         break;
 
@@ -1268,33 +1286,33 @@ bool Position::legal(Move m) const noexcept {
 
     // Evasions generator already takes care to avoid some kind of illegal moves and legal() relies on this.
     // Therefore have to take care that the some kind of moves are filtered out here.
-    return (!checkers() ||
+    return (checkers_bb() == 0 ||
             // Double check? In this case, a king move is required
-            (!more_than_one(checkers())
+            (!more_than_one(checkers_bb())
              // Pinned piece can never resolve a check
              // NOTE: there is some issue with this condition
-             //&& !(blockers(ac) & org)
+             //&& !(blockers(ac) & orgSq)
              // Our move must be a blocking interposition or a capture of the checking piece
-             && ((between_bb(square<KING>(ac), lsb(checkers())) & dst)
-                 || (m.type_of() == EN_PASSANT && (checkers() & (dst - pawn_spush(ac)))))))
-        && (!(blockers(ac) & org) || aligned(square<KING>(ac), org, dst));
+             && ((between_bb(square<KING>(ac), lsq(checkers_bb())) & dstSq)
+                 || (m.type_of() == EN_PASSANT && (checkers_bb() & (dstSq - pawn_spush(ac)))))))
+        && ((blockers_bb(ac) & orgSq) == 0 || aligned(square<KING>(ac), orgSq, dstSq));
 }
 
-// Tests whether a pseudo-legal move is a check
+// Tests whether a move is a check
 bool Position::check(Move m) const noexcept {
     assert(legal(m));
 
     Color ac = active_color();
 
-    Square org = m.org_sq(), dst = m.dst_sq();
-    assert(color_of(piece_on(org)) == ac);
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    assert(color_of(piece_on(orgSq)) == ac);
 
     if (
       // Is there a direct check?
-      (checks(m.type_of() != PROMOTION ? type_of(piece_on(org)) : m.promotion_type()) & dst)
+      (checks_bb(m.type_of() != PROMOTION ? type_of(piece_on(orgSq)) : m.promotion_type()) & dstSq)
       // Is there a discovered check?
-      || ((blockers(~ac) & org)  //
-          && (!aligned(square<KING>(~ac), org, dst) || m.type_of() == CASTLING)))
+      || ((blockers_bb(~ac) & orgSq)  //
+          && (!aligned(square<KING>(~ac), orgSq, dstSq) || m.type_of() == CASTLING)))
         return true;
 
     switch (m.type_of())
@@ -1303,19 +1321,19 @@ bool Position::check(Move m) const noexcept {
         return false;
 
     case PROMOTION :
-        return attacks_bb(dst, m.promotion_type(), pieces() ^ org) & square<KING>(~ac);
+        return attacks_bb(dstSq, m.promotion_type(), pieces_bb() ^ orgSq) & square<KING>(~ac);
 
     // En-passant capture with check? Already handled the case of direct check
     // and ordinary discovered check, so the only case need to handle is
     // the unusual case of a discovered check through the captured pawn.
     case EN_PASSANT :
-        return slide_attackers_to(square<KING>(~ac),
-                                  pieces() ^ make_bb(org, dst, dst - pawn_spush(ac)))
-             & pieces(ac);
+        return slide_attackers_bb(square<KING>(~ac),
+                                  pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac)))
+             & pieces_bb(ac);
 
     case CASTLING :
         // Castling is encoded as "king captures rook"
-        return checks(ROOK) & rook_castle_sq(ac, org, dst);
+        return checks_bb(ROOK) & rook_castle_sq(orgSq, dstSq);
     }
     assert(false);
     return false;
@@ -1326,27 +1344,29 @@ bool Position::dbl_check(Move m) const noexcept {
 
     Color ac = active_color();
 
-    Square org = m.org_sq(), dst = m.dst_sq();
-    assert(color_of(piece_on(org)) == ac);
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    assert(color_of(piece_on(orgSq)) == ac);
 
     switch (m.type_of())
     {
     case NORMAL :
         return
           // Is there a direct check?
-          (checks(type_of(piece_on(org))) & dst)
+          (checks_bb(type_of(piece_on(orgSq))) & dstSq) != 0
           // Is there a discovered check?
-          && (blockers(~ac) & org) && !aligned(square<KING>(~ac), org, dst);
+          && (blockers_bb(~ac) & orgSq) != 0 && !aligned(square<KING>(~ac), orgSq, dstSq);
 
     case PROMOTION :
-        return (blockers(~ac) & org)  //
-            && (attacks_bb(dst, m.promotion_type(), pieces() ^ org) & square<KING>(~ac));
+        return (blockers_bb(~ac) & orgSq) != 0
+            && (attacks_bb(dstSq, m.promotion_type(), pieces_bb() ^ orgSq) & square<KING>(~ac))
+                 != 0;
 
     case EN_PASSANT : {
-        Bitboard checkers =
-          slide_attackers_to(square<KING>(~ac), pieces() ^ make_bb(org, dst, dst - pawn_spush(ac)))
-          & pieces(ac);
-        return more_than_one(checkers) || (checkers && (checks(PAWN) & dst));
+        Bitboard checkersBB =
+          slide_attackers_bb(square<KING>(~ac),
+                             pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac)))
+          & pieces_bb(ac);
+        return more_than_one(checkersBB) || (checkersBB != 0 && (checks_bb(PAWN) & dstSq) != 0);
     }
     case CASTLING :
         return false;
@@ -1363,20 +1383,21 @@ bool Position::fork(Move m) const noexcept {
     switch (type_of(piece_on(m.org_sq())))
     {
     case PAWN :
-        return more_than_one(pieces(~ac) & ~pieces(PAWN) & attacks_bb<PAWN>(m.dst_sq(), ac));
+        return more_than_one(pieces_bb(~ac) & ~pieces_bb(PAWN) & attacks_bb<PAWN>(m.dst_sq(), ac));
     case KNIGHT :
-        return more_than_one(pieces(~ac) & ~pieces(KNIGHT) & attacks_bb<KNIGHT>(m.dst_sq()));
+        return more_than_one(pieces_bb(~ac) & ~pieces_bb(KNIGHT) & attacks_bb<KNIGHT>(m.dst_sq()));
     case BISHOP :
-        return more_than_one(pieces(~ac) & ~pieces(BISHOP)
-                             & attacks_bb<BISHOP>(m.dst_sq(), pieces(ac) ^ m.org_sq()));
+        return more_than_one(pieces_bb(~ac) & ~pieces_bb(BISHOP)
+                             & attacks_bb<BISHOP>(m.dst_sq(), pieces_bb(ac) ^ m.org_sq()));
     case ROOK :
-        return more_than_one(pieces(~ac) & ~pieces(ROOK)
-                             & attacks_bb<ROOK>(m.dst_sq(), pieces(ac) ^ m.org_sq()));
+        return more_than_one(pieces_bb(~ac) & ~pieces_bb(ROOK)
+                             & attacks_bb<ROOK>(m.dst_sq(), pieces_bb(ac) ^ m.org_sq()));
     case QUEEN :
-        return more_than_one(pieces(~ac) & ~pieces(QUEEN)
-                             & attacks_bb<QUEEN>(m.dst_sq(), pieces(ac) ^ m.org_sq()));
+        return more_than_one(pieces_bb(~ac) & ~pieces_bb(QUEEN)
+                             & attacks_bb<QUEEN>(m.dst_sq(), pieces_bb(ac) ^ m.org_sq()));
     case KING :
-        return more_than_one(pieces(~ac) & ~pieces(KING, QUEEN) & attacks_bb<KING>(m.dst_sq()));
+        return more_than_one(pieces_bb(~ac) & ~pieces_bb(KING, QUEEN)
+                             & attacks_bb<KING>(m.dst_sq()));
     default :;
     }
     return false;
@@ -1388,8 +1409,8 @@ bool Position::fork(Move m) const noexcept {
 Key Position::move_key(Move m) const noexcept {
     Key moveKey = st->key ^ Zobrist::turn();
 
-    if (is_ok(en_passant_sq()))
-        moveKey ^= Zobrist::enpassant(en_passant_sq());
+    if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
+        moveKey ^= Zobrist::enpassant(enPassantSq);
 
     if (m == Move::Null)
         return moveKey;
@@ -1398,47 +1419,47 @@ Key Position::move_key(Move m) const noexcept {
 
     Color ac = active_color();
 
-    Square org = m.org_sq(), dst = m.dst_sq();
-    Piece  movedPiece    = piece_on(org);
-    Square capSq         = m.type_of() != EN_PASSANT ? dst : dst - pawn_spush(ac);
-    Piece  capturedPiece = piece_on(capSq);
-    assert(color_of(movedPiece) == ac);
-    assert(!is_ok(capturedPiece)
-           || color_of(capturedPiece) == (m.type_of() != CASTLING ? ~ac : ac));
-    assert(type_of(capturedPiece) != KING);
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    Piece  movedPc    = piece_on(orgSq);
+    Square capturedSq = m.type_of() != EN_PASSANT ? dstSq : dstSq - pawn_spush(ac);
+    Piece  capturedPc = piece_on(capturedSq);
+    assert(color_of(movedPc) == ac);
+    assert(!is_ok(capturedPc) || color_of(capturedPc) == (m.type_of() != CASTLING ? ~ac : ac));
+    assert(type_of(capturedPc) != KING);
 
-    auto movedPt = type_of(movedPiece);
+    auto movedPt = type_of(movedPc);
 
-    moveKey ^= Zobrist::piece_square(ac, movedPt, org)
-             ^ Zobrist::piece_square(ac, m.type_of() != PROMOTION ? movedPt : m.promotion_type(),
-                                     m.type_of() != CASTLING ? dst : king_castle_sq(ac, org, dst));
-    if (int cr; castling_rights() && (cr = castling_rights_mask(org, dst)))
+    moveKey ^=
+      Zobrist::piece_square(ac, movedPt, orgSq)
+      ^ Zobrist::piece_square(ac, m.type_of() != PROMOTION ? movedPt : m.promotion_type(),
+                              m.type_of() != CASTLING ? dstSq : king_castle_sq(orgSq, dstSq));
+    if (int cr; castling_rights() && (cr = castling_rights_mask(orgSq, dstSq)) != 0)
         moveKey ^= Zobrist::castling(castling_rights())  //
                  ^ Zobrist::castling(castling_rights() & ~cr);
 
     if (m.type_of() == CASTLING)
     {
-        assert(movedPiece == make_piece(ac, KING));
-        assert(capturedPiece == make_piece(ac, ROOK));
+        assert(movedPc == make_piece(ac, KING));
+        assert(capturedPc == make_piece(ac, ROOK));
         // ROOK
         return moveKey  //
-             ^ Zobrist::piece_square(ac, ROOK, dst)
-             ^ Zobrist::piece_square(ac, ROOK, rook_castle_sq(ac, org, dst))
+             ^ Zobrist::piece_square(ac, ROOK, dstSq)
+             ^ Zobrist::piece_square(ac, ROOK, rook_castle_sq(orgSq, dstSq))
              ^ Zobrist::mr50(rule50_count() + 1);
     }
 
-    if (movedPt == PAWN && (int(dst) ^ int(org)) == NORTH_2
-        && can_enpassant<false>(~ac, dst - pawn_spush(ac)))
+    if (movedPt == PAWN && (int(dstSq) ^ int(orgSq)) == NORTH_2
+        && can_enpassant<false>(~ac, dstSq - pawn_spush(ac)))
     {
-        assert(relative_rank(ac, org) == RANK_2);
-        assert(relative_rank(ac, dst) == RANK_4);
+        assert(relative_rank(ac, orgSq) == RANK_2);
+        assert(relative_rank(ac, dstSq) == RANK_4);
 
-        return moveKey ^ Zobrist::enpassant(dst);
+        return moveKey ^ Zobrist::enpassant(dstSq);
     }
 
     return moveKey  //
-         ^ Zobrist::piece_square(~ac, type_of(capturedPiece), capSq)
-         ^ Zobrist::mr50(!is_ok(capturedPiece) && movedPt != PAWN ? rule50_count() + 1 : 0);
+         ^ Zobrist::piece_square(~ac, type_of(capturedPc), capturedSq)
+         ^ Zobrist::mr50(!is_ok(capturedPc) && movedPt != PAWN ? rule50_count() + 1 : 0);
 }
 
 // Tests if the SEE (Static Exchange Evaluation) value of the move
@@ -1453,26 +1474,26 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     Color ac = active_color();
 
-    Square org = m.org_sq(), dst = m.dst_sq();
-    assert(!empty_on(org) && color_of(piece_on(org)) == ac);
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    assert(!empty_on(orgSq) && color_of(piece_on(orgSq)) == ac);
 
-    Bitboard occupied = pieces();
+    Bitboard occupancyBB = pieces_bb();
 
-    Square cap = dst;
+    Square capturedSq = dstSq;
     if (m.type_of() == EN_PASSANT)
     {
-        cap -= pawn_spush(ac);
-        occupied ^= cap;
+        capturedSq -= pawn_spush(ac);
+        occupancyBB ^= capturedSq;
     }
 
-    int swap = piece_value(type_of(piece_on(cap))) + m.promotion_value() - threshold;
+    int swap = piece_value(type_of(piece_on(capturedSq))) + m.promotion_value() - threshold;
 
     // If can't beat the threshold despite capturing the piece,
     // it is impossible to beat the threshold.
     if (swap < 0)
         return false;
 
-    auto moved = type_of(piece_on(org));
+    auto moved = type_of(piece_on(orgSq));
 
     swap = piece_value(m.type_of() != PROMOTION ? moved : m.promotion_type()) - swap;
 
@@ -1483,102 +1504,104 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     // It doesn't matter if the destination square is occupied or not
     // xoring dst is important for pinned piece logic
-    occupied ^= make_bb(org, dst);
+    occupancyBB ^= make_bb(orgSq, dstSq);
 
-    Bitboard attackers = attackers_to(dst, occupied);
+    Bitboard attackersBB = attackers_bb(dstSq, occupancyBB);
 
-    Square   epSq = SQ_NONE;
-    Bitboard epAttackers;
-    if (moved == PAWN && (int(dst) ^ int(org)) == NORTH_2
-        && can_enpassant<false>(~ac, dst - pawn_spush(ac), &epAttackers))
+    Square   enPassantSq = SQ_NONE;
+    Bitboard epAttackersBB;
+    if (moved == PAWN && (int(dstSq) ^ int(orgSq)) == NORTH_2
+        && can_enpassant<false>(~ac, dstSq - pawn_spush(ac), &epAttackersBB))
     {
-        assert(relative_rank(ac, org) == RANK_2);
-        assert(relative_rank(ac, dst) == RANK_4);
+        assert(relative_rank(ac, orgSq) == RANK_2);
+        assert(relative_rank(ac, dstSq) == RANK_4);
 
-        epSq = dst - pawn_spush(ac);
-        assert(epAttackers);
-        attackers |= epAttackers;
+        enPassantSq = dstSq - pawn_spush(ac);
+        assert(epAttackersBB);
+        attackersBB |= epAttackersBB;
     }
 
     bool ge = true;
 
-    Bitboard acAttackers, b;
+    Bitboard acAttackersBB, b;
     Square   sq;
 
-    Bitboard qB = pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(dst) & occupied;
-    Bitboard qR = pieces(QUEEN, ROOK) & attacks_bb<ROOK>(dst) & occupied;
+    Bitboard qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
+    Bitboard qrBB = pieces_bb(QUEEN, ROOK) & attacks_bb<ROOK>(dstSq) & occupancyBB;
 
-    const auto* magic = &Magics[dst];
+    const auto* magic = &Magics[dstSq];
 
     StdArray<bool, COLOR_NB> discovery{true, true};
 
     while (true)
     {
         ac = ~ac;
-        attackers &= occupied;
+        attackersBB &= occupancyBB;
 
-        acAttackers = pieces(ac) & attackers;
+        acAttackersBB = pieces_bb(ac) & attackersBB;
         // If ac has no more attackers then give up: ac loses
-        if (!acAttackers)
+        if (!acAttackersBB)
             break;
 
         PieceType pt;
         // Don't allow pinned pieces to attack as long as
         // there are pinners on their original square.
-        if (pinners(~ac) & pieces(~ac) & occupied)
+        if (pinners_bb(~ac) & pieces_bb(~ac) & occupancyBB)
         {
-            acAttackers &= ~blockers(ac);
+            acAttackersBB &= ~blockers_bb(ac);
 
-            if (!acAttackers)
+            if (!acAttackersBB)
                 break;
         }
-        if ((blockers(ac) & org)
-            && (b = pinners(ac) & pieces(~ac) & line_bb(org, square<KING>(ac)) & occupied)
-            && ((pt = type_of(piece_on(org))) != PAWN || !aligned(square<KING>(ac), org, dst)))
+        if ((blockers_bb(ac) & orgSq)
+            && (b =
+                  pinners_bb(ac) & pieces_bb(~ac) & line_bb(orgSq, square<KING>(ac)) & occupancyBB)
+            && ((pt = type_of(piece_on(orgSq))) != PAWN
+                || !aligned(square<KING>(ac), orgSq, dstSq)))
         {
-            acAttackers &= square<KING>(ac);
+            acAttackersBB &= square<KING>(ac);
 
-            if (!acAttackers  //
-                && (pt == PAWN || !(attacks_bb(dst, pt, occupied) & square<KING>(ac))))
+            if (!acAttackersBB  //
+                && (pt == PAWN || !(attacks_bb(dstSq, pt, occupancyBB) & square<KING>(ac))))
             {
-                dst  = lsb(b);
-                swap = piece_value(type_of(piece_on(org))) - swap;
-                if ((swap = piece_value(type_of(piece_on(dst))) - swap) < ge)
+                dstSq = lsq(b);
+                swap  = piece_value(type_of(piece_on(orgSq))) - swap;
+                if ((swap = piece_value(type_of(piece_on(dstSq))) - swap) < ge)
                     break;
 
-                occupied ^= dst;
+                occupancyBB ^= dstSq;
 
-                attackers = attackers_to(dst, occupied) & occupied;
-                if (!attackers)
+                attackersBB = attackers_bb(dstSq, occupancyBB) & occupancyBB;
+                if (!attackersBB)
                     break;
 
-                qB = pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(dst) & occupied;
-                qR = pieces(QUEEN, ROOK) & attacks_bb<ROOK>(dst) & occupied;
+                qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
+                qrBB = pieces_bb(QUEEN, ROOK) & attacks_bb<ROOK>(dstSq) & occupancyBB;
 
-                magic = &Magics[dst];
+                magic = &Magics[dstSq];
 
-                acAttackers = pieces(ac) & attackers;
+                acAttackersBB = pieces_bb(ac) & attackersBB;
             }
 
-            if (!acAttackers)
+            if (!acAttackersBB)
                 break;
         }
 
         ge = !ge;
 
-        if (!is_ok(epSq) && discovery[ac] && (b = blockers(~ac) & acAttackers))
+        if (!is_ok(enPassantSq) && discovery[ac] && (b = blockers_bb(~ac) & acAttackersBB))
         {
-            sq = pop_lsb(b);
+            sq = pop_lsq(b);
             pt = type_of(piece_on(sq));
             if (b && pt == KING)
             {
-                sq = pop_lsb(b);
+                sq = pop_lsq(b);
                 pt = type_of(piece_on(sq));
             }
 
             if (pt == KING)
             {
-                if (!(pieces(~ac) & attackers))
+                if (!(pieces_bb(~ac) & attackersBB))
                     break;
 
                 discovery[ac] = false;
@@ -1588,7 +1611,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 continue;  // Resume without considering discovery
             }
 
-            if (!(pinners(~ac) & pieces(ac) & line_bb(square<KING>(~ac), sq) & occupied))
+            if (!(pinners_bb(~ac) & pieces_bb(ac) & line_bb(square<KING>(~ac), sq) & occupancyBB))
             {
                 discovery[ac] = false;
 
@@ -1597,7 +1620,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 continue;  // Resume without considering discovery
             }
 
-            occupied ^= org = sq;
+            occupancyBB ^= orgSq = sq;
             if ((swap = piece_value(pt) - swap) < ge)
                 break;
 
@@ -1605,14 +1628,14 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             {
             case PAWN :
             case BISHOP :
-                qB &= occupied;
-                if (qB)
-                    attackers |= qB & attacks_bb<BISHOP>(*magic, occupied);
+                qbBB &= occupancyBB;
+                if (qbBB)
+                    attackersBB |= qbBB & attacks_bb<BISHOP>(*magic, occupancyBB);
                 break;
             case ROOK :
-                qR &= occupied;
-                if (qR)
-                    attackers |= qR & attacks_bb<ROOK>(*magic, occupied);
+                qrBB &= occupancyBB;
+                if (qrBB)
+                    attackersBB |= qrBB & attacks_bb<ROOK>(*magic, occupancyBB);
                 break;
             case QUEEN :
                 assert(false);
@@ -1622,71 +1645,71 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         }
         // Locate and remove the next least valuable attacker, and add to
         // the bitboard 'attackers' any X-ray attackers behind it.
-        else if ((b = pieces(PAWN) & acAttackers))
+        else if ((b = pieces_bb(PAWN) & acAttackersBB))
         {
-            occupied ^= org = lsb(b);
+            occupancyBB ^= orgSq = lsq(b);
             if ((swap = VALUE_PAWN - swap) < ge)
                 break;
-            if (qB)
-                attackers |= qB & attacks_bb<BISHOP>(*magic, occupied);
+            if (qbBB)
+                attackersBB |= qbBB & attacks_bb<BISHOP>(*magic, occupancyBB);
 
-            if (is_ok(epSq) && rank_of(org) == rank_of(dst))
+            if (is_ok(enPassantSq) && rank_of(orgSq) == rank_of(dstSq))
             {
-                occupied ^= make_bb(dst, epSq);
+                occupancyBB ^= make_bb(dstSq, enPassantSq);
 
-                dst       = epSq;
-                epSq      = SQ_NONE;
-                attackers = attackers_to(dst, occupied) & occupied;
-                if (!attackers)
+                dstSq       = enPassantSq;
+                enPassantSq = SQ_NONE;
+                attackersBB = attackers_bb(dstSq, occupancyBB) & occupancyBB;
+                if (!attackersBB)
                     break;
 
-                qB = pieces(QUEEN, BISHOP) & attacks_bb<BISHOP>(dst) & occupied;
-                qR = pieces(QUEEN, ROOK) & attacks_bb<ROOK>(dst) & occupied;
+                qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
+                qrBB = pieces_bb(QUEEN, ROOK) & attacks_bb<ROOK>(dstSq) & occupancyBB;
 
-                magic = &Magics[dst];
+                magic = &Magics[dstSq];
             }
         }
-        else if ((b = pieces(KNIGHT) & acAttackers))
+        else if ((b = pieces_bb(KNIGHT) & acAttackersBB))
         {
-            occupied ^= org = lsb(b);
+            occupancyBB ^= orgSq = lsq(b);
             if ((swap = VALUE_KNIGHT - swap) < ge)
                 break;
         }
-        else if ((b = pieces(BISHOP) & acAttackers))
+        else if ((b = pieces_bb(BISHOP) & acAttackersBB))
         {
-            occupied ^= org = lsb(b);
+            occupancyBB ^= orgSq = lsq(b);
             if ((swap = VALUE_BISHOP - swap) < ge)
                 break;
-            qB &= occupied;
-            if (qB)
-                attackers |= qB & attacks_bb<BISHOP>(*magic, occupied);
+            qbBB &= occupancyBB;
+            if (qbBB)
+                attackersBB |= qbBB & attacks_bb<BISHOP>(*magic, occupancyBB);
         }
-        else if ((b = pieces(ROOK) & acAttackers))
+        else if ((b = pieces_bb(ROOK) & acAttackersBB))
         {
-            occupied ^= org = lsb(b);
+            occupancyBB ^= orgSq = lsq(b);
             if ((swap = VALUE_ROOK - swap) < ge)
                 break;
-            qR &= occupied;
-            if (qR)
-                attackers |= qR & attacks_bb<ROOK>(*magic, occupied);
+            qrBB &= occupancyBB;
+            if (qrBB)
+                attackersBB |= qrBB & attacks_bb<ROOK>(*magic, occupancyBB);
         }
-        else if ((b = pieces(QUEEN) & acAttackers))
+        else if ((b = pieces_bb(QUEEN) & acAttackersBB))
         {
-            occupied ^= org = lsb(b);
+            occupancyBB ^= orgSq = lsq(b);
             if ((swap = VALUE_QUEEN - swap) < ge)
                 break;
-            qB &= occupied;
-            qR &= occupied;
-            if (qB)
-                attackers |= qB & attacks_bb<BISHOP>(*magic, occupied);
-            if (qR)
-                attackers |= qR & attacks_bb<ROOK>(*magic, occupied);
+            qbBB &= occupancyBB;
+            qrBB &= occupancyBB;
+            if (qbBB)
+                attackersBB |= qbBB & attacks_bb<BISHOP>(*magic, occupancyBB);
+            if (qrBB)
+                attackersBB |= qrBB & attacks_bb<ROOK>(*magic, occupancyBB);
         }
         else  // KING
         {
-            occupied ^= acAttackers;
+            occupancyBB ^= acAttackersBB;
             // If "capture" with the king but the opponent still has attackers, reverse the result.
-            ge ^= bool(pieces(~ac) & attackers);
+            ge ^= bool(pieces_bb(~ac) & attackersBB);
             break;
         }
     }
@@ -1708,9 +1731,9 @@ bool Position::is_draw(std::int16_t ply, bool rule50Active, bool chkStalemate) c
       is_repetition(ply)
       // Draw by 50-move rule
       || (rule50Active && rule50_count() >= 2 * DrawMoveCount
-          && (!checkers() || !MoveList<LEGAL, true>(*this).empty()))
+          && (checkers_bb() == 0 || !MoveList<LEGAL, true>(*this).empty()))
       // Draw by Stalemate
-      || (chkStalemate && !checkers() && MoveList<LEGAL, true>(*this).empty());
+      || (chkStalemate && checkers_bb() == 0 && MoveList<LEGAL, true>(*this).empty());
 }
 
 // Tests whether there has been at least one repetition
@@ -1753,7 +1776,7 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         preSt = preSt->preSt->preSt;
 
         // Opponent pieces have reverted
-        if (iterKey)
+        if (iterKey != 0)
             continue;
 
         Key moveKey = baseKey ^ preSt->key;
@@ -1767,7 +1790,7 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         assert(m != Move::None);
 
         // Move path is obstructed
-        if (pieces() & between_ex_bb(m.org_sq(), m.dst_sq()))
+        if ((pieces_bb() & between_ex_bb(m.org_sq(), m.dst_sq())) != 0)
             continue;
 
 #if !defined(NDEBUG)
@@ -1779,7 +1802,7 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         if (i < ply
             // For nodes before or at the root, check that the move is
             // a repetition rather than a move to the current position.
-            || preSt->repetition)
+            || preSt->repetition != 0)
             return true;
     }
 
@@ -1882,19 +1905,19 @@ Key Position::compute_key() const noexcept {
     Key key = 0;
 
     std::size_t n;
-    auto        sqrs = squares(n);
+    auto        orgSqs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = sqrs[i];
-        Piece  pc = piece_on(s);
+        Square orgSq = orgSqs[i];
+        Piece  pc    = piece_on(orgSq);
 
-        key ^= Zobrist::piece_square(pc, s);
+        key ^= Zobrist::piece_square(pc, orgSq);
     }
 
     key ^= Zobrist::castling(castling_rights());
 
-    if (is_ok(en_passant_sq()))
-        key ^= Zobrist::enpassant(en_passant_sq());
+    if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
+        key ^= Zobrist::enpassant(enPassantSq);
 
     if (active_color() == BLACK)
         key ^= Zobrist::turn();
@@ -1906,15 +1929,15 @@ Key Position::compute_minor_key() const noexcept {
     Key minorKey = 0;
 
     std::size_t n;
-    auto        sqrs = squares(n);
+    auto        orgSqs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = sqrs[i];
-        Piece  pc = piece_on(s);
-        auto   pt = type_of(pc);
+        Square orgSq = orgSqs[i];
+        Piece  pc    = piece_on(orgSq);
+        auto   pt    = type_of(pc);
 
         if (pt != PAWN && pt != KING && !is_major(pt))
-            minorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
+            minorKey ^= Zobrist::piece_square(color_of(pc), pt, orgSq);
     }
 
     return minorKey;
@@ -1924,15 +1947,15 @@ Key Position::compute_major_key() const noexcept {
     Key majorKey = 0;
 
     std::size_t n;
-    auto        sqrs = squares(n);
+    auto        orgSqs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = sqrs[i];
-        Piece  pc = piece_on(s);
-        auto   pt = type_of(pc);
+        Square orgSq = orgSqs[i];
+        Piece  pc    = piece_on(orgSq);
+        auto   pt    = type_of(pc);
 
         if (pt != PAWN && pt != KING && is_major(pt))
-            majorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
+            majorKey ^= Zobrist::piece_square(color_of(pc), pt, orgSq);
     }
 
     return majorKey;
@@ -1942,15 +1965,15 @@ Key Position::compute_non_pawn_key() const noexcept {
     Key nonPawnKey = 0;
 
     std::size_t n;
-    auto        sqrs = squares(n);
+    auto        orgSqs = squares(n);
     for (std::size_t i = 0; i < n; ++i)
     {
-        Square s  = sqrs[i];
-        Piece  pc = piece_on(s);
-        auto   pt = type_of(pc);
+        Square orgSq = orgSqs[i];
+        Piece  pc    = piece_on(orgSq);
+        auto   pt    = type_of(pc);
 
         if (pt != PAWN)
-            nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, s);
+            nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, orgSq);
     }
 
     return nonPawnKey;
@@ -1986,19 +2009,20 @@ bool Position::_is_ok() const noexcept {
     if (non_pawn_key() != compute_non_pawn_key())
         assert(false && "Position::_is_ok(): NonPawn Key");
 
-    if (has_attackers_to(square<KING>(~active_color()), pieces(active_color())))
+    if (attackers_exists(square<KING>(~active_color()), pieces_bb(active_color())))
         assert(false && "Position::_is_ok(): King Checker");
 
-    if ((pieces(PAWN) & PROMOTION_RANKS_BB) || count<PAWN>(WHITE) > 8 || count<PAWN>(BLACK) > 8)
+    if ((pieces_bb(PAWN) & PROMOTION_RANKS_BB) || count<PAWN>(WHITE) > 8 || count<PAWN>(BLACK) > 8)
         assert(false && "Position::_is_ok(): Pawns");
 
-    if ((pieces(WHITE) & pieces(BLACK)) || (pieces(WHITE) | pieces(BLACK)) != pieces()
-        || popcount(pieces(WHITE)) > 16 || popcount(pieces(BLACK)) > 16)
+    if ((pieces_bb(WHITE) & pieces_bb(BLACK))
+        || (pieces_bb(WHITE) | pieces_bb(BLACK)) != pieces_bb() || popcount(pieces_bb(WHITE)) > 16
+        || popcount(pieces_bb(BLACK)) > 16)
         assert(false && "Position::_is_ok(): Bitboards");
 
     for (PieceType p1 : PIECE_TYPES)
         for (PieceType p2 : PIECE_TYPES)
-            if (p1 != p2 && (pieces(p1) & pieces(p2)))
+            if (p1 != p2 && (pieces_bb(p1) & pieces_bb(p2)))
                 assert(false && "Position::_is_ok(): Bitboards");
 
     for (Color c : {WHITE, BLACK})
@@ -2022,31 +2046,31 @@ bool Position::_is_ok() const noexcept {
         {
             Piece pc    = make_piece(c, pt);
             auto  count = this->count(c, pt);
-            if (count != popcount(pieces(c, pt))
+            if (count != popcount(pieces_bb(c, pt))
                 || count != std::count(piece_map().begin(), piece_map().end(), pc))
                 assert(false && "Position::_is_ok(): Piece List Count");
         }
 
     for (Color c : {WHITE, BLACK})
-        if (count<PAWN>(c)                                                         //
-              + std::max(count<KNIGHT>(c) - 2, 0)                                  //
-              + std::max(popcount(pieces(c, BISHOP) & colors_bb<WHITE>()) - 1, 0)  //
-              + std::max(popcount(pieces(c, BISHOP) & colors_bb<BLACK>()) - 1, 0)  //
-              + std::max(count<ROOK>(c) - 2, 0)                                    //
-              + std::max(count<QUEEN>(c) - 1, 0)                                   //
+        if (count<PAWN>(c)                                                           //
+              + std::max(count<KNIGHT>(c) - 2, 0)                                    //
+              + std::max(popcount(pieces_bb(c, BISHOP) & color_bb<WHITE>()) - 1, 0)  //
+              + std::max(popcount(pieces_bb(c, BISHOP) & color_bb<BLACK>()) - 1, 0)  //
+              + std::max(count<ROOK>(c) - 2, 0)                                      //
+              + std::max(count<QUEEN>(c) - 1, 0)                                     //
             > 8)
             assert(false && "Position::_is_ok(): Piece Count");
 
     for (Color c : {WHITE, BLACK})
         for (CastlingRights cr : {c & KING_SIDE, c & QUEEN_SIDE})
         {
-            if (!can_castle(cr))
+            if (!castling_has_rights(cr))
                 continue;
 
             if (!is_ok(castling_rook_sq(cr))  //
-                || !(pieces(c, ROOK) & castling_rook_sq(cr))
-                || (castlingRightsMask[c * FILE_NB + file_of(castling_rook_sq(cr))]) != cr
-                || (castlingRightsMask[c * FILE_NB + file_of(square<KING>(c))] & cr) != cr)
+                || !(pieces_bb(c, ROOK) & castling_rook_sq(cr))
+                || (castlingRightsMasks[c * FILE_NB + file_of(castling_rook_sq(cr))]) != cr
+                || (castlingRightsMasks[c * FILE_NB + file_of(square<KING>(c))] & cr) != cr)
                 assert(false && "Position::_is_ok(): Castling");
         }
 
@@ -2105,12 +2129,12 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     os << "\nCheckers: ";
 
-    for (Bitboard checkers = pos.checkers(); checkers;)
-        os << to_square(pop_lsb(checkers)) << " ";
+    for (Bitboard checkersBB = pos.checkers_bb(); checkersBB;)
+        os << to_square(pop_lsq(checkersBB)) << " ";
 
     os << "\nRepetition: " << pos.repetition();
 
-    if (Tablebases::MaxCardinality >= pos.count() && !pos.can_castle(ANY_CASTLING))
+    if (Tablebases::MaxCardinality >= pos.count() && !pos.castling_has_rights(ANY_CASTLING))
     {
         State    st;
         Position p;
@@ -2138,7 +2162,7 @@ void Position::dump(std::ostream& os) const noexcept {
     for (Color c : {WHITE, BLACK})
     {
         os << (c == WHITE ? "W" : "B") << ": ";
-        os << u64_to_string(pieces(c)) << "\n";
+        os << u64_to_string(pieces_bb(c)) << "\n";
     }
 
     os << "Piece Bitboards:\n";
@@ -2146,7 +2170,7 @@ void Position::dump(std::ostream& os) const noexcept {
         for (PieceType pt : PIECE_TYPES)
         {
             os << to_char(make_piece(c, pt)) << ": ";
-            os << u64_to_string(pieces(c, pt)) << "\n";
+            os << u64_to_string(pieces_bb(c, pt)) << "\n";
         }
 
     os << "Piece Lists:\n";
@@ -2156,8 +2180,8 @@ void Position::dump(std::ostream& os) const noexcept {
             os << to_char(make_piece(c, pt)) << ": ";
             const auto& pL = squares(c, pt);
             const auto* pB = base(c);
-            for (const Square* s = pL.begin(pB); s != pL.end(pB); ++s)
-                os << to_square(*s) << " ";
+            for (const Square* orgSq = pL.begin(pB); orgSq != pL.end(pB); ++orgSq)
+                os << to_square(*orgSq) << " ";
             os << "\n";
         }
 
@@ -2199,6 +2223,31 @@ void Position::dump(std::ostream& os) const noexcept {
             else
                 os << "-";
             os << " ";
+        }
+        os << "\n";
+    }
+
+    os << "Castlings:\n";
+    for (std::size_t i = 0; i < castlings.size(); ++i)
+    {
+        const auto& castling = castlings[i];
+
+        os << i << ":\n";
+        if (is_ok(castling.rookSq))
+            os << to_square(castling.rookSq);
+        os << "\n";
+        for (std::size_t len = 0; len < castling.fullPathLen; ++len)
+        {
+            Square s = castling.fullPathSqs[len];
+
+            os << to_square(s) << " ";
+        }
+        os << "\n";
+        for (std::size_t len = 0; len < castling.kingPathLen; ++len)
+        {
+            Square s = castling.kingPathSqs[len];
+
+            os << to_square(s) << " ";
         }
         os << "\n";
     }

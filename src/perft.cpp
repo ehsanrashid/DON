@@ -57,7 +57,7 @@ struct PerftInfo final {
 
 void PerftInfo::classify(Position& pos, Move m) noexcept {
 
-    Square org = m.org_sq(), dst = m.dst_sq();
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
 
     State st;
 
@@ -76,23 +76,26 @@ void PerftInfo::classify(Position& pos, Move m) noexcept {
     {
         ++anyCheck;
 
-        if (!(pos.checks(m.type_of() != PROMOTION ? type_of(pos[org]) : m.promotion_type()) & dst))
+        if ((pos.checks_bb(m.type_of() != PROMOTION ? type_of(pos[orgSq]) : m.promotion_type())
+             & dstSq)
+            == 0)
         {
             Color ac = pos.active_color();
 
-            if (pos.blockers(~ac) & org)
+            if (pos.blockers_bb(~ac) & orgSq)
             {
                 ++dscCheck;
             }
             else if (m.type_of() == EN_PASSANT)
             {
-                Bitboard occupied = pos.pieces() ^ make_bb(org, dst, dst - pawn_spush(ac));
-                if (pos.slide_attackers_to(pos.square<KING>(~ac), occupied) & pos.pieces(ac))
+                Bitboard occupancyBB =
+                  pos.pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
+                if (pos.slide_attackers_bb(pos.square<KING>(~ac), occupancyBB) & pos.pieces_bb(ac))
                     ++dscCheck;
             }
             //else if (m.type_of() == CASTLING)
             //{
-            //    if (pos.checks(ROOK) & rook_castle_sq(ac, org, dst))
+            //    if (pos.checks_bb(ROOK) & rook_castle_sq(orgSq, dstSq))
             //        ++dscCheck;
             //}
         }
@@ -102,7 +105,7 @@ void PerftInfo::classify(Position& pos, Move m) noexcept {
 
         pos.do_move(m, st, true);
 
-        //if (more_than_one(pos.checkers()))
+        //if (more_than_one(pos.checkers_bb()))
         //    ++dblCheck;
 
         if (MoveList<LEGAL, true>(pos).empty())

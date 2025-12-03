@@ -83,7 +83,7 @@ struct AccumulatorCaches final {
             StdArray<BiasType, Size>              accumulation;
             StdArray<PSQTWeightType, PSQTBuckets> psqtAccumulation;
             StdArray<Piece, SQUARE_NB>            pieceMap;
-            Bitboard                              pieces;
+            Bitboard                              piecesBB;
         };
 
         template<typename Network>
@@ -160,12 +160,12 @@ struct AccumulatorState final {
 
 struct AccumulatorStack final {
    public:
-    static constexpr std::size_t MaxSize = MAX_PLY + 1;
+    static constexpr std::size_t MAX_SIZE = MAX_PLY + 1;
 
     AccumulatorStack() noexcept = default;
 
     template<typename T>
-    [[nodiscard]] const StdArray<AccumulatorState<T>, MaxSize>& accumulators() const noexcept;
+    [[nodiscard]] const StdArray<AccumulatorState<T>, MAX_SIZE>& accumulators() const noexcept;
 
     template<typename T>
     [[nodiscard]] const AccumulatorState<T>& state() const noexcept;
@@ -181,7 +181,7 @@ struct AccumulatorStack final {
 
    private:
     template<typename T>
-    [[nodiscard]] StdArray<AccumulatorState<T>, MaxSize>& mut_accumulators() noexcept;
+    [[nodiscard]] StdArray<AccumulatorState<T>, MAX_SIZE>& mut_accumulators() noexcept;
 
     template<typename T>
     [[nodiscard]] AccumulatorState<T>& mut_state() noexcept;
@@ -207,9 +207,9 @@ struct AccumulatorStack final {
                                      const FeatureTransformer<Dimensions>& featureTransformer,
                                      std::size_t                           end) noexcept;
 
-    StdArray<AccumulatorState<PSQFeatureSet>, MaxSize>    psqAccumulators;
-    StdArray<AccumulatorState<ThreatFeatureSet>, MaxSize> threatAccumulators;
-    std::size_t                                           size{1};
+    StdArray<AccumulatorState<PSQFeatureSet>, MAX_SIZE>    psqAccumulators;
+    StdArray<AccumulatorState<ThreatFeatureSet>, MAX_SIZE> threatAccumulators;
+    std::size_t                                            size{1};
 };
 
 }  // namespace NNUE

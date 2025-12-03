@@ -49,7 +49,7 @@ alignas(CACHE_LINE_SIZE) constexpr StdArray<TableView<Bitboard>, 2> TableViews{
 
 // Computes sliding attack
 template<PieceType PT>
-Bitboard sliding_attacks_bb(Square s, Bitboard occupied = 0) noexcept {
+Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attacks_bb()");
     assert(is_ok(s));
     constexpr StdArray<Direction, 2, 4> Directions{{
@@ -57,22 +57,24 @@ Bitboard sliding_attacks_bb(Square s, Bitboard occupied = 0) noexcept {
       {NORTH, SOUTH, EAST, WEST}                         //
     }};
 
-    Bitboard attacks = 0;
+    Bitboard attacksBB = 0;
 
     for (Direction d : Directions[PT - BISHOP])
     {
         Square sq = s;
 
-        for (Bitboard b; (b = destination_bb(sq, d));)
+        for (Bitboard dstBB; (dstBB = destination_bb(sq, d));)
         {
-            attacks |= b;
+            attacksBB |= dstBB;
+
             sq += d;
-            if (occupied & sq)
+
+            if (occupancyBB & sq)
                 break;
         }
     }
 
-    return attacks;
+    return attacksBB;
 }
 
 // Computes all rook and bishop attacks at startup.
@@ -84,7 +86,7 @@ void init_magics() noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in init_magics()");
 
 #if !defined(USE_BMI2)
-    constexpr StdArray<std::size_t, 2> RefSizes{0x200, 0x1000};
+    constexpr StdArray<std::size_t, 2> SubSizes{0x200, 0x1000};
 
     // Optimal PRNG seeds to pick the correct magics in the shortest time
     constexpr StdArray<std::uint16_t, RANK_NB> Seeds{
@@ -108,56 +110,57 @@ void init_magics() noexcept {
         // The index must be big enough to contain all the attacks for each possible subset of the mask and so
         // is 2 power the number of 1's of the mask.
         // Hence, deduce the size of the shift to apply to the 64 or 32 bits word to get the index.
-        auto& m = Magics[s][PT - BISHOP];
+        auto& magic = Magics[s][PT - BISHOP];
 
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
         //assert(s == SQ_A1 || size <= RefSizes[PT - BISHOP]);
-        m.attacks = s == SQ_A1 ? TableViews[PT - BISHOP].data()  //
-                               : &Magics[s - 1][PT - BISHOP].attacks[size];
-        assert(m.attacks != nullptr);
+        magic.attacksBB = s == SQ_A1 ? TableViews[PT - BISHOP].data()  //
+                                     : &Magics[s - 1][PT - BISHOP].attacksBB[size];
+        assert(magic.attacksBB != nullptr);
 
         // Board edges are not considered in the relevant occupancies
-        Bitboard edges = (EDGE_FILES_BB & ~file_bb(s)) | (PROMOTION_RANKS_BB & ~rank_bb(s));
+        Bitboard edgesBB = (EDGE_FILES_BB & ~file_bb(s)) | (PROMOTION_RANKS_BB & ~rank_bb(s));
         // Mask excludes edges
-        m.mask = sliding_attacks_bb<PT>(s) & ~edges;
+        magic.maskBB = sliding_attacks_bb<PT>(s) & ~edgesBB;
 
 #if !defined(USE_BMI2)
-        StdArray<Bitboard, RefSizes[PT - BISHOP]> reference;
-        StdArray<Bitboard, RefSizes[PT - BISHOP]> occupancy;
+        StdArray<Bitboard, SubSizes[PT - BISHOP]> referenceBBs;
+        StdArray<Bitboard, SubSizes[PT - BISHOP]> occupancyBBs;
 #endif
         size = 0;
         // Use Carry-Rippler trick to enumerate all subsets of masks[s] and
-        // store the corresponding sliding attack bitboard in reference[].
-        Bitboard b = 0;
+        // store the corresponding sliding attack bitboard in referenceBBs[].
+        Bitboard occupancyBB = 0;
         do
         {
 #if !defined(USE_BMI2)
-            reference[size] = sliding_attacks_bb<PT>(s, b);
-            occupancy[size] = b;
+            referenceBBs[size] = sliding_attacks_bb<PT>(s, occupancyBB);
+            occupancyBBs[size] = occupancyBB;
 #else
-            m.attacks_bb(b, sliding_attacks_bb<PT>(s, b));
+            magic.attacks_bb(occupancyBB, sliding_attacks_bb<PT>(s, occupancyBB));
 #endif
             ++size;
-            b = (b - m.mask) & m.mask;
-        } while (b);
+            occupancyBB = (occupancyBB - magic.maskBB) & magic.maskBB;
+
+        } while (occupancyBB != 0);
 
         totalSize += size;
 
 #if !defined(USE_BMI2)
-        assert(size <= RefSizes[PT - BISHOP]);
+        assert(size <= SubSizes[PT - BISHOP]);
 
-        m.shift =
+        magic.shift =
     #if defined(IS_64BIT)
           64
     #else
           32
     #endif
-          - popcount(m.mask);
+          - popcount(magic.maskBB);
 
         PRNG<XoShiRo256Star> prng(Seeds[rank_of(s)]);
 
-        StdArray<std::uint32_t, RefSizes[PT - BISHOP]> epoch{};
+        StdArray<std::uint32_t, SubSizes[PT - BISHOP]> epoch{};
         std::uint32_t                                  cnt = 0;
 
         // Find a magic for square 's' picking up an (almost) random number
@@ -167,8 +170,8 @@ void init_magics() noexcept {
         {
             // Pick a candidate magic until it is "sparse enough"
             do
-                m.magic = prng.sparse_rand<Bitboard>();
-            while (popcount((m.magic * m.mask) >> 56) < 6);
+                magic.magicBB = prng.sparse_rand<Bitboard>();
+            while (popcount((magic.magicBB * magic.maskBB) >> 56) < 6);
 
             bool valid = true;
             // A good magic must map every possible occupancy to an index that
@@ -180,14 +183,14 @@ void init_magics() noexcept {
             ++cnt;
             for (std::uint16_t i = 0; i < size; ++i)
             {
-                auto idx = m.index(occupancy[i]);
+                auto idx = magic.index(occupancyBBs[i]);
 
                 if (epoch[idx] < cnt)
                 {
-                    epoch[idx]     = cnt;
-                    m.attacks[idx] = reference[i];
+                    epoch[idx]           = cnt;
+                    magic.attacksBB[idx] = referenceBBs[i];
                 }
-                else if (m.attacks[idx] != reference[i])
+                else if (magic.attacksBB[idx] != referenceBBs[i])
                 {
                     valid = false;
                     break;

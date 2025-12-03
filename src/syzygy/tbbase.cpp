@@ -800,7 +800,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     StdArray<Square, TBPieces> squares{};
     StdArray<Piece, TBPieces>  pieces;
 
-    Bitboard    leadPawns   = 0;
+    Bitboard    leadPawnsBB = 0;
     std::size_t leadPawnCnt = 0;
 
     std::size_t size   = 0;
@@ -819,10 +819,10 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
         assert(type_of(pc) == PAWN);
 
-        Bitboard b = leadPawns = pos.pieces(color_of(pc), PAWN);
-        while (b)
+        Bitboard b = leadPawnsBB = pos.pieces_bb(color_of(pc), PAWN);
+        while (b != 0)
         {
-            Square s = pop_lsb(b);
+            Square s = pop_lsq(b);
 
             squares[size] = flip ? flip_rank(s) : s;
             ++size;
@@ -844,10 +844,10 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
     // Now ready to get all the position pieces (but the lead pawns)
     // and directly map them to the correct square and color.
-    Bitboard b = pos.pieces() ^ leadPawns;
-    while (b)
+    Bitboard b = pos.pieces_bb() ^ leadPawnsBB;
+    while (b != 0)
     {
-        Square s  = pop_lsb(b);
+        Square s  = pop_lsq(b);
         Piece  pc = pos[s];
 
         squares[size] = flip ? flip_rank(s) : s;
@@ -1357,7 +1357,7 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
     for (auto m : legalMoveList)
     {
-        if (!pos.capture(m) && (!CheckZeroingMoves || type_of(pos.moved_piece(m)) != PAWN))
+        if (!pos.capture(m) && (!CheckZeroingMoves || type_of(pos.moved_pc(m)) != PAWN))
             continue;
 
         ++moveCount;
@@ -1638,7 +1638,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
     for (auto m : MoveList<LEGAL>(pos))
     {
-        bool zeroing = pos.capture(m) || type_of(pos.moved_piece(m)) == PAWN;
+        bool zeroing = pos.capture(m) || type_of(pos.moved_pc(m)) == PAWN;
 
         State st;
         pos.do_move(m, st);
@@ -1650,7 +1650,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
         dtzScore = zeroing ? -before_zeroing_dtz(search<false>(pos, ps)) : -probe_dtz(pos, ps);
 
         // If the move mates, force min DTZ-score to 1
-        if (dtzScore == 1 && pos.checkers() && MoveList<LEGAL, true>(pos).empty())
+        if (dtzScore == 1 && pos.checkers_bb() && MoveList<LEGAL, true>(pos).empty())
             minDtzScore = 1;
 
         // Convert result from 1-ply search. Zeroing moves are already accounted
@@ -1716,7 +1716,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Active, bool
         }
 
         // Make sure that a mating move is assigned a dtzScore value of 1
-        if (dtzScore == 2 && pos.checkers() && MoveList<LEGAL, true>(pos).empty())
+        if (dtzScore == 2 && pos.checkers_bb() && MoveList<LEGAL, true>(pos).empty())
             dtzScore = 1;
 
         pos.undo_move(rm.pv[0]);
@@ -1803,7 +1803,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
         config.probeDepth  = DEPTH_ZERO;
     }
 
-    if (config.cardinality >= pos.count() && !pos.can_castle(ANY_CASTLING))
+    if (config.cardinality >= pos.count() && !pos.castling_has_rights(ANY_CASTLING))
     {
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
         config.rootInTB = probe_root_dtz(pos, rootMoves, config.rule50Active, rankDTZ, time_to_abort);

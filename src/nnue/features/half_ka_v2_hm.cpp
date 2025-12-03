@@ -93,11 +93,11 @@ ALWAYS_INLINE IndexType make_index(Color perspective, Square kingSq, Square s, P
 void HalfKAv2_hm::append_active_indices(Color                             perspective,
                                         Square                            kingSq,
                                         const StdArray<Piece, SQUARE_NB>& pieceMap,
-                                        Bitboard                          occupied,
+                                        Bitboard                          occupancyBB,
                                         IndexList&                        active) noexcept {
-    while (occupied)
+    while (occupancyBB != 0)
     {
-        Square s = pop_lsb(occupied);
+        Square s = pop_lsq(occupancyBB);
         active.push_back(make_index(perspective, kingSq, s, pieceMap[s]));
     }
 }
@@ -108,10 +108,10 @@ void HalfKAv2_hm::append_changed_indices(Color            perspective,
                                          const DirtyType& dt,
                                          IndexList&       removed,
                                          IndexList&       added) noexcept {
-    removed.push_back(make_index(perspective, kingSq, dt.org, dt.pc));
+    removed.push_back(make_index(perspective, kingSq, dt.orgSq, dt.movedPc));
 
-    if (is_ok(dt.dst))
-        added.push_back(make_index(perspective, kingSq, dt.dst, dt.pc));
+    if (is_ok(dt.dstSq))
+        added.push_back(make_index(perspective, kingSq, dt.dstSq, dt.movedPc));
 
     if (is_ok(dt.removeSq))
         removed.push_back(make_index(perspective, kingSq, dt.removeSq, dt.removePc));
@@ -121,7 +121,7 @@ void HalfKAv2_hm::append_changed_indices(Color            perspective,
 }
 
 bool HalfKAv2_hm::requires_refresh(Color perspective, const DirtyType& dt) noexcept {
-    return dt.pc == make_piece(perspective, KING);
+    return dt.movedPc == make_piece(perspective, KING);
 }
 
 }  // namespace DON::NNUE::Features

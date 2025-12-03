@@ -79,7 +79,7 @@ struct ExtMove final: public Move {
 static_assert(sizeof(ExtMove) == 8, "Unexpected ExtMove size");
 
 // MovePicker class is used to pick one pseudo-legal move at a time from the given current position.
-// The most important method is next_move(), which returns a new pseudo-legal move each time it is called,
+// The most important method is next_move(), which returns a new legal move each time it is called,
 // until there are no moves left, when Move::None is returned. In order to improve the efficiency of the
 // alpha-beta algorithm, MovePicker attempts to return the moves which are most likely to get a cut-off first.
 class MovePicker final {
@@ -111,6 +111,9 @@ class MovePicker final {
     MovePicker& operator=(const MovePicker&) noexcept = delete;
     MovePicker& operator=(MovePicker&&) noexcept      = delete;
 
+    [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
+    [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
+
     Move next_move() noexcept;
 
     Stage stage = STG_NONE;
@@ -123,9 +126,6 @@ class MovePicker final {
 
     template<typename Predicate>
     bool select(Predicate&& pred) noexcept;
-
-    [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
-    [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
 
     [[nodiscard]] iterator       begin() noexcept { return cur; }
     [[nodiscard]] iterator       end() noexcept { return endCur; }

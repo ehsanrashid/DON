@@ -534,14 +534,14 @@ class Worker final {
     Value evaluate(const Position& pos) noexcept;
 
     // clang-format off
-    void update_capture_history(Piece pc, Square dst, PieceType captured, int bonus) noexcept;
+    void update_capture_history(Piece pc, Square dstSq, PieceType captured, int bonus) noexcept;
     void update_capture_history(const Position& pos, Move m, int bonus) noexcept;
     void update_quiet_history(Color ac, Move m, int bonus) noexcept;
-    void update_pawn_history(std::uint16_t pawnIndex, Piece pc, Square dst, int bonus) noexcept;
+    void update_pawn_history(std::uint16_t pawnIndex, Piece pc, Square dstSq, int bonus) noexcept;
     void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
 
     void update_quiet_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Move m, int bonus) noexcept;
-    void update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bm, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept;
+    void update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bestMove, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept;
 
     void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* const ss) noexcept;

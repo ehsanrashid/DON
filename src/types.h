@@ -286,8 +286,8 @@ struct DirtyPiece final {
    public:
     constexpr DirtyPiece() noexcept = default;
 
-    Piece  pc  = NO_PIECE;                // this is never allowed to be NO_PIECE
-    Square org = SQ_NONE, dst = SQ_NONE;  // dst should be SQ_NONE for promotions
+    Piece  movedPc = NO_PIECE;                // this is never allowed to be NO_PIECE
+    Square orgSq = SQ_NONE, dstSq = SQ_NONE;  // dstSq should be SQ_NONE for promotions
 
     // if {add, remove}Sq is SQ_NONE, {add, remove}Pc is allowed to be uninitialized
     // castling uses addSq and removeSq to remove and add the rook
@@ -461,15 +461,15 @@ constexpr Rank relative_rank(Color c, Rank r) noexcept { return Rank(int(r) ^ (c
 
 constexpr Rank relative_rank(Color c, Square s) noexcept { return relative_rank(c, rank_of(s)); }
 
-constexpr CastlingRights make_castling_rights(Color c, Square s1, Square s2) noexcept {
-    return c & (s1 < s2 ? KING_SIDE : QUEEN_SIDE);
+constexpr CastlingRights castling_side(Square s1, Square s2) noexcept {
+    return s1 < s2 ? KING_SIDE : QUEEN_SIDE;
 }
 
-constexpr Square king_castle_sq(Color c, Square s1, Square s2) noexcept {
-    return relative_sq(c, s1 < s2 ? SQ_G1 : SQ_C1);
+constexpr Square king_castle_sq(Square kOrgSq, Square kDstSq) noexcept {
+    return make_square(kOrgSq < kDstSq ? FILE_G : FILE_C, rank_of(kOrgSq));
 }
-constexpr Square rook_castle_sq(Color c, Square s1, Square s2) noexcept {
-    return relative_sq(c, s1 < s2 ? SQ_F1 : SQ_D1);
+constexpr Square rook_castle_sq(Square kOrgSq, Square kDstSq) noexcept {
+    return make_square(kOrgSq < kDstSq ? FILE_F : FILE_D, rank_of(kOrgSq));
 }
 
 constexpr Direction pawn_spush(Color c) noexcept {
@@ -576,12 +576,12 @@ class Move {
     // Constructors using delegating syntax
     constexpr explicit Move(std::uint16_t m) noexcept :
         move(m) {}
-    constexpr Move(MoveType T, Square org, Square dst) noexcept :
-        Move(T | (int(org) << 6) | (int(dst) << 0)) {}
-    constexpr Move(Square org, Square dst) noexcept :
-        Move(NORMAL, org, dst) {}
-    constexpr Move(Square org, Square dst, PieceType promo) noexcept :
-        Move(MoveType(PROMOTION | ((int(promo) - int(KNIGHT)) << 12)), org, dst) {}
+    constexpr Move(MoveType T, Square orgSq, Square dstSq) noexcept :
+        Move(T | (int(orgSq) << 6) | (int(dstSq) << 0)) {}
+    constexpr Move(Square orgSq, Square dstSq) noexcept :
+        Move(NORMAL, orgSq, dstSq) {}
+    constexpr Move(Square orgSq, Square dstSq, PieceType promoPt) noexcept :
+        Move(MoveType(PROMOTION | ((int(promoPt) - int(KNIGHT)) << 12)), orgSq, dstSq) {}
 
     // Accessors: extract parts of the move
     constexpr Square    org_sq() const noexcept { return Square((move >> 6) & 0x3F); }
