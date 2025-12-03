@@ -251,9 +251,8 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
         }
     }
 
-    Square   kingSq         = pos.square<KING>(AC);
-    Bitboard blockersBB     = pos.blockers_bb(AC);
-    Bitboard blockerPawnsBB = blockersBB & acPawnsBB;
+    Square   kingSq     = pos.square<KING>(AC);
+    Bitboard blockersBB = pos.blockers_bb(AC);
 
     // Filter illegal moves (preserve order)
     while (rMoves != moves)
@@ -262,7 +261,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
 
         Square orgSq = m.org_sq();
 
-        if ((blockerPawnsBB & orgSq) == 0 || aligned(kingSq, orgSq, m.dst_sq()))
+        if ((blockersBB & orgSq) == 0 || aligned(kingSq, orgSq, m.dst_sq()))
             *wMoves++ = m;
     }
 

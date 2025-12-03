@@ -417,8 +417,11 @@ class Position final {
     Piece move(Square s1, Square s2, DirtyThreats* const dts = nullptr) noexcept;
     Piece swap(Square s, Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
 
-    template<bool Add, bool ComputeRay = true>
-    void update_pc_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept;
+    template<bool Put, bool ComputeRay = true>
+    void update_pc_threats(Piece               pc,
+                           Square              s,
+                           DirtyThreats* const dts,
+                           Bitboard            noRayBB = FULL_BB) noexcept;
 
     template<bool Do>
     void do_castling(Color             ac,
@@ -983,7 +986,7 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     assert(is_ok(pc) && count(c, pt));
 
     if (dts != nullptr)
-        update_pc_threats<false>(pc, s1, dts);
+        update_pc_threats<false>(pc, s1, dts, s1s2BB);
 
     pieceMap[s1] = NO_PIECE;
     pieceMap[s2] = pc;
@@ -999,7 +1002,7 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     pL.at(idx, pB) = s2;
 
     if (dts != nullptr)
-        update_pc_threats<true>(pc, s2, dts);
+        update_pc_threats<true>(pc, s2, dts, s1s2BB);
 
     return pc;
 }
@@ -1019,21 +1022,62 @@ inline Piece Position::swap(Square s, Piece newPc, DirtyThreats* const dts) noex
     return oldPc;
 }
 
-template<bool Add>
+template<bool Put>
 inline void
 DirtyThreats::add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept {
-    if constexpr (Add)
+    if constexpr (Put)
     {
         threateningBB |= sq;
         threatenedBB |= threatenedSq;
     }
 
-    list.push_back({sq, threatenedSq, pc, threatenedPc, Add});
+    list.push_back({sq, threatenedSq, pc, threatenedPc, Put});
 }
 
-// Add newly threatened pieces
-template<bool Add, bool ComputeRay>
-inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const dts) noexcept {
+#if defined(USE_AVX512ICL)
+// Given a DirtyThreat template and bit offsets to insert the piece type and square, write the threats
+// present at the given bitboard.
+template<int SqShift, int PcShift>
+inline void write_multiple_dirties(const Position&     pos,
+                                   Bitboard            maskBB,
+                                   DirtyThreat         dtTemplate,
+                                   DirtyThreats* const dts) noexcept {
+    __m512i pieceMap = _mm512_loadu_si512(pos.piece_map().data());
+    __m512i squares  = _mm512_set_epi8(
+      63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41,
+      40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18,
+      17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+
+    std::uint8_t maskCount = popcount(maskBB);
+    assert(maskCount <= 16);
+
+    __m512i templateV = _mm512_set1_epi32(dtTemplate.raw());
+    auto*   dt        = dts->list.make_space(maskCount);
+
+    // Extract the list of squares and upconvert to 32 bits.
+    // There are never more than 16 incoming threats so this is sufficient.
+    __m512i threatSquares = _mm512_maskz_compress_epi8(maskBB, squares);
+    threatSquares         = _mm512_cvtepi8_epi32(_mm512_castsi512_si128(threatSquares));
+
+    __m512i threatPieces =
+      _mm512_maskz_permutexvar_epi8(0x1111111111111111ULL, threatSquares, pieceMap);
+
+    // Shift the piece and square into place
+    threatSquares = _mm512_slli_epi32(threatSquares, SqShift);
+    threatPieces  = _mm512_slli_epi32(threatPieces, PcShift);
+
+    //                                                         A | B | C
+    __m512i dirties = _mm512_ternarylogic_epi32(templateV, threatSquares, threatPieces, 254);
+    _mm512_storeu_si512(reinterpret_cast<__m512i*>(dt), dirties);
+}
+#endif
+
+// Put newly threatened pieces
+template<bool Put, bool ComputeRay>
+inline void Position::update_pc_threats(Piece               pc,
+                                        Square              s,
+                                        DirtyThreats* const dts,
+                                        Bitboard            noRayBB) noexcept {
 
     Bitboard occupancyBB = pieces_bb();
 
@@ -1052,6 +1096,40 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
     Bitboard threatenedBB = (type_of(pc) == PAWN ? attacks[color_of(pc)]  //
                                                  : attacks[type_of(pc)])
                           & occupancyBB;
+    // clang-format off
+    Bitboard slidersBB    = (pieces_bb(QUEEN, BISHOP) & attacks[BISHOP])
+                          | (pieces_bb(QUEEN, ROOK)   & attacks[ROOK]);
+    Bitboard nonSlidersBB = (pieces_bb(WHITE, PAWN) & attacks[BLACK])
+                          | (pieces_bb(BLACK, PAWN) & attacks[WHITE])
+                          | (pieces_bb(KNIGHT)      & attacks[KNIGHT])
+                          | (pieces_bb(KING)        & attacks[KING]);
+    // clang-format on
+
+#if defined(USE_AVX512ICL)
+    if (threatenedBB != 0)
+    {
+        if constexpr (Put)
+        {
+            dts->threatenedBB |= threatenedBB;
+            dts->threateningBB |= s;
+        }
+
+        DirtyThreat dtTemplate{s, SQUARE_ZERO, pc, NO_PIECE, Put};
+        write_multiple_dirties<DirtyThreat::ThreatenedSqOffset, DirtyThreat::ThreatenedPcOffset>(
+          *this, threatenedBB, dtTemplate, dts);
+    }
+
+    Bitboard attackersBB = slidersBB | nonSlidersBB;
+    if (attackersBB == 0)
+        return;  // Square s is threatened iff there's at least one attacker
+
+    dts->threatenedBB |= s;
+    dts->threateningBB |= attackersBB;
+
+    DirtyThreat dtTemplate{SQUARE_ZERO, s, NO_PIECE, pc, Put};
+    write_multiple_dirties<DirtyThreat::SqOffset, DirtyThreat::PcOffset>(*this, attackersBB,
+                                                                         dtTemplate, dts);
+#else
     while (threatenedBB != 0)
     {
         Square threatenedSq = pop_lsq(threatenedBB);
@@ -1060,13 +1138,10 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
         assert(threatenedSq != s);
         assert(is_ok(threatenedPc));
 
-        dts->add<Add>(s, threatenedSq, pc, threatenedPc);
+        dts->add<Put>(s, threatenedSq, pc, threatenedPc);
     }
+#endif
 
-    // clang-format off
-    Bitboard slidersBB = (pieces_bb(QUEEN, BISHOP) & attacks[BISHOP])
-                       | (pieces_bb(QUEEN, ROOK)   & attacks[ROOK]);
-    // clang-format on
     while (slidersBB != 0)
     {
         Square sliderSq = pop_lsq(slidersBB);
@@ -1076,9 +1151,11 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
 
         if constexpr (ComputeRay)
         {
-            Bitboard discoveredBB = pass_ray_bb(sliderSq, s) & attacks[QUEEN] & occupancyBB;
+            Bitboard passRayBB = pass_ray_bb(sliderSq, s);
+            Bitboard discoveredBB =
+              passRayBB & ~between_bb(sliderSq, s) & attacks[QUEEN] & occupancyBB;
 
-            if (discoveredBB != 0)
+            if (discoveredBB != 0 && (passRayBB & noRayBB) != noRayBB)
             {
                 assert(!more_than_one(discoveredBB));
                 Square threatenedSq = lsq(discoveredBB);
@@ -1086,19 +1163,15 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
 
                 assert(is_ok(threatenedPc));
 
-                dts->add<!Add>(sliderSq, threatenedSq, sliderPc, threatenedPc);
+                dts->add<!Put>(sliderSq, threatenedSq, sliderPc, threatenedPc);
             }
         }
-
-        dts->add<Add>(sliderSq, s, sliderPc, pc);
+#if !defined(USE_AVX512ICL)  // for ICL, direct threats were processed earlier (attackersBB)
+        dts->add<Put>(sliderSq, s, sliderPc, pc);
+#endif
     }
 
-    // clang-format off
-    Bitboard nonSlidersBB = (pieces_bb(WHITE, PAWN) & attacks[BLACK])
-                          | (pieces_bb(BLACK, PAWN) & attacks[WHITE])
-                          | (pieces_bb(KNIGHT)      & attacks[KNIGHT])
-                          | (pieces_bb(KING)        & attacks[KING]);
-    // clang-format on
+#if !defined(USE_AVX512ICL)
     while (nonSlidersBB != 0)
     {
         Square nonSliderSq = pop_lsq(nonSlidersBB);
@@ -1107,8 +1180,9 @@ inline void Position::update_pc_threats(Piece pc, Square s, DirtyThreats* const 
         assert(nonSliderSq != s);
         assert(is_ok(nonSliderPc));
 
-        dts->add<Add>(nonSliderSq, s, nonSliderPc, pc);
+        dts->add<Put>(nonSliderSq, s, nonSliderPc, pc);
     }
+#endif
 }
 
 inline DirtyBoard

@@ -578,6 +578,8 @@ struct IFixedVector {
 
     virtual void size(std::size_t newSize) noexcept = 0;
 
+    virtual T* make_space(std::size_t count) noexcept = 0;
+
     virtual void clear() noexcept = 0;
 };
 
@@ -625,11 +627,11 @@ class FixedVector final: public IFixedVector<T> {
 
     T& back() noexcept override {
         assert(size() > 0);
-        return _data[_size - 1];
+        return _data[size() - 1];
     }
     const T& back() const noexcept override {
         assert(size() > 0);
-        return _data[_size - 1];
+        return _data[size() - 1];
     }
 
     T*       data() noexcept override { return _data.data(); }
@@ -650,6 +652,13 @@ class FixedVector final: public IFixedVector<T> {
         if (newSize > capacity())
             newSize = capacity();
         _size = newSize;  // Note: doesn't construct/destroy elements
+    }
+
+    T* make_space(std::size_t space) noexcept override {
+        T* value = &_data[_size];
+        _size += space;
+        assert(_size <= capacity());
+        return value;
     }
 
     void clear() noexcept override { _size = 0; }
