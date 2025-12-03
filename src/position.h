@@ -417,7 +417,7 @@ class Position final {
     Piece move(Square s1, Square s2, DirtyThreats* const dts = nullptr) noexcept;
     Piece swap(Square s, Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
 
-    template<bool Add, bool ComputeRay = true>
+    template<bool Put, bool ComputeRay = true>
     void update_pc_threats(Piece               pc,
                            Square              s,
                            DirtyThreats* const dts,
@@ -1022,58 +1022,58 @@ inline Piece Position::swap(Square s, Piece newPc, DirtyThreats* const dts) noex
     return oldPc;
 }
 
-#if defined(USE_AVX512ICL)
-// Given a DirtyThreat template and bit offsets to insert the piece type and square, write the threats
-// present at the given bitboard.
-template<int SqShift, int PcShift>
-void write_multiple_dirties(const Position& p,
-                            Bitboard        maskBB,
-                            DirtyThreat     dtTemplate,
-                            DirtyThreats*   dts) noexcept {
-    const __m512i board      = _mm512_loadu_si512(p.piece_map().data());
-    const __m512i AllSquares = _mm512_set_epi8(
-      63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41,
-      40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18,
-      17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
-
-    const int dtCount = popcount(maskBB);
-    assert(dtCount <= 16);
-
-    const __m512i templateV = _mm512_set1_epi32(dtTemplate.raw());
-    auto*         write     = dts->list.make_space(dtCount);
-
-    // Extract the list of squares and upconvert to 32 bits.
-    // There are never more than 16 incoming threats so this is sufficient.
-    __m512i threatSquares = _mm512_maskz_compress_epi8(maskBB, AllSquares);
-    threatSquares         = _mm512_cvtepi8_epi32(_mm512_castsi512_si128(threatSquares));
-
-    __m512i threatPieces =
-      _mm512_maskz_permutexvar_epi8(0x1111111111111111ULL, threatSquares, board);
-
-    // Shift the piece and square into place
-    threatSquares = _mm512_slli_epi32(threatSquares, SqShift);
-    threatPieces  = _mm512_slli_epi32(threatPieces, PcShift);
-
-    const __m512i dirties =
-      _mm512_ternarylogic_epi32(templateV, threatSquares, threatPieces, 254 /* A | B | C */);
-    _mm512_storeu_si512(reinterpret_cast<__m512i*>(write), dirties);
-}
-#endif
-
-template<bool Add>
+template<bool Put>
 inline void
 DirtyThreats::add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept {
-    if constexpr (Add)
+    if constexpr (Put)
     {
         threateningBB |= sq;
         threatenedBB |= threatenedSq;
     }
 
-    list.push_back({sq, threatenedSq, pc, threatenedPc, Add});
+    list.push_back({sq, threatenedSq, pc, threatenedPc, Put});
 }
 
-// Add newly threatened pieces
-template<bool Add, bool ComputeRay>
+#if defined(USE_AVX512ICL)
+// Given a DirtyThreat template and bit offsets to insert the piece type and square, write the threats
+// present at the given bitboard.
+template<int SqShift, int PcShift>
+void write_multiple_dirties(const Position&     pos,
+                            Bitboard            maskBB,
+                            DirtyThreat         dtTemplate,
+                            DirtyThreats* const dts) noexcept {
+    __m512i pieceMap = _mm512_loadu_si512(pos.piece_map().data());
+    __m512i squares  = _mm512_set_epi8(
+      63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41,
+      40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18,
+      17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+
+    std::uint8_t maskCount = popcount(maskBB);
+    assert(maskCount <= 16);
+
+    __m512i templateV = _mm512_set1_epi32(dtTemplate.raw());
+    auto*   dt        = dts->list.make_space(maskCount);
+
+    // Extract the list of squares and upconvert to 32 bits.
+    // There are never more than 16 incoming threats so this is sufficient.
+    __m512i threatSquares = _mm512_maskz_compress_epi8(maskBB, squares);
+    threatSquares         = _mm512_cvtepi8_epi32(_mm512_castsi512_si128(threatSquares));
+
+    __m512i threatPieces =
+      _mm512_maskz_permutexvar_epi8(0x1111111111111111ULL, threatSquares, pieceMap);
+
+    // Shift the piece and square into place
+    threatSquares = _mm512_slli_epi32(threatSquares, SqShift);
+    threatPieces  = _mm512_slli_epi32(threatPieces, PcShift);
+
+    //                                                         A | B | C
+    __m512i dirties = _mm512_ternarylogic_epi32(templateV, threatSquares, threatPieces, 254);
+    _mm512_storeu_si512(reinterpret_cast<__m512i*>(dt), dirties);
+}
+#endif
+
+// Put newly threatened pieces
+template<bool Put, bool ComputeRay>
 inline void Position::update_pc_threats(Piece               pc,
                                         Square              s,
                                         DirtyThreats* const dts,
@@ -1108,13 +1108,13 @@ inline void Position::update_pc_threats(Piece               pc,
 #if defined(USE_AVX512ICL)
     if (threatenedBB != 0)
     {
-        if constexpr (Add)
+        if constexpr (Put)
         {
             dts->threatenedBB |= threatenedBB;
-            dts->threateningBB |= square_bb(s);
+            dts->threateningBB |= s;
         }
 
-        DirtyThreat dtTemplate{s, SQUARE_ZERO, pc, NO_PIECE, Add};
+        DirtyThreat dtTemplate{s, SQUARE_ZERO, pc, NO_PIECE, Put};
         write_multiple_dirties<DirtyThreat::ThreatenedSqOffset, DirtyThreat::ThreatenedPcOffset>(
           *this, threatenedBB, dtTemplate, dts);
     }
@@ -1123,10 +1123,10 @@ inline void Position::update_pc_threats(Piece               pc,
     if (attackersBB == 0)
         return;  // Square s is threatened iff there's at least one attacker
 
-    dts->threatenedBB |= square_bb(s);
+    dts->threatenedBB |= s;
     dts->threateningBB |= attackersBB;
 
-    DirtyThreat dtTemplate{SQUARE_ZERO, s, NO_PIECE, pc, Add};
+    DirtyThreat dtTemplate{SQUARE_ZERO, s, NO_PIECE, pc, Put};
     write_multiple_dirties<DirtyThreat::SqOffset, DirtyThreat::PcOffset>(*this, attackersBB,
                                                                          dtTemplate, dts);
 #else
@@ -1138,7 +1138,7 @@ inline void Position::update_pc_threats(Piece               pc,
         assert(threatenedSq != s);
         assert(is_ok(threatenedPc));
 
-        dts->add<Add>(s, threatenedSq, pc, threatenedPc);
+        dts->add<Put>(s, threatenedSq, pc, threatenedPc);
     }
 #endif
 
@@ -1163,11 +1163,11 @@ inline void Position::update_pc_threats(Piece               pc,
 
                 assert(is_ok(threatenedPc));
 
-                dts->add<!Add>(sliderSq, threatenedSq, sliderPc, threatenedPc);
+                dts->add<!Put>(sliderSq, threatenedSq, sliderPc, threatenedPc);
             }
         }
 #if !defined(USE_AVX512ICL)  // for ICL, direct threats were processed earlier (attackersBB)
-        dts->add<Add>(sliderSq, s, sliderPc, pc);
+        dts->add<Put>(sliderSq, s, sliderPc, pc);
 #endif
     }
 
@@ -1180,7 +1180,7 @@ inline void Position::update_pc_threats(Piece               pc,
         assert(nonSliderSq != s);
         assert(is_ok(nonSliderPc));
 
-        dts->add<Add>(nonSliderSq, s, nonSliderPc, pc);
+        dts->add<Put>(nonSliderSq, s, nonSliderPc, pc);
     }
 #endif
 }
