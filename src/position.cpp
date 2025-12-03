@@ -597,20 +597,13 @@ void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     Square kingDstSq = king_castle_sq(kingOrgSq, rookOrgSq);
     Square rookDstSq = rook_castle_sq(kingOrgSq, rookOrgSq);
 
-    Bitboard fullPathBB = (between_bb(kingOrgSq, kingDstSq) | between_bb(rookOrgSq, rookDstSq))
+    castling.fullPathBB = (between_bb(kingOrgSq, kingDstSq) | between_bb(rookOrgSq, rookDstSq))
                         & ~make_bb(kingOrgSq, rookOrgSq);
-
-    //while (fullPathBB != 0)
-    //    castling.fullPathSqs[castling.fullPathLen++] = cs == KING_SIDE  //
-    //                                                   ? pop_lsq(fullPathBB)
-    //                                                   : pop_msq(fullPathBB);
-    castling.fullPathBB = fullPathBB;
 
     Bitboard kingPathBB = between_bb(kingOrgSq, kingDstSq);
     while (kingPathBB != 0)
-        castling.kingPathSqs[castling.kingPathLen++] = cs == KING_SIDE  //
-                                                       ? pop_lsq(kingPathBB)
-                                                       : pop_msq(kingPathBB);
+        castling.kingPathSqs[castling.kingPathLen++] =
+          cs == KING_SIDE ? pop_lsq(kingPathBB) : pop_msq(kingPathBB);
 }
 
 // Computes the hash keys of the position, and other data
@@ -2255,12 +2248,6 @@ void Position::dump(std::ostream& os) const noexcept {
         if (is_ok(castling.rookSq))
             os << to_square(castling.rookSq);
         os << "\n";
-        //for (std::size_t len = 0; len < castling.fullPathLen; ++len)
-        //{
-        //    Square s = castling.fullPathSqs[len];
-
-        //    os << to_square(s) << " ";
-        //}
         os << u64_to_string(castling.fullPathBB);
         os << "\n";
         for (std::size_t len = 0; len < castling.kingPathLen; ++len)

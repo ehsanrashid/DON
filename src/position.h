@@ -366,17 +366,13 @@ class Position final {
         Castling() noexcept { clear(); }
 
         void clear() noexcept {
-            rookSq = SQ_NONE;
-            //std::memset(fullPathSqs.data(), SQ_NONE, sizeof(fullPathSqs));
-            //fullPathLen = 0;
+            rookSq     = SQ_NONE;
             fullPathBB = 0;
             std::memset(kingPathSqs.data(), SQ_NONE, sizeof(kingPathSqs));
             kingPathLen = 0;
         }
 
-        Square rookSq;
-        //StdArray<Square, 5> fullPathSqs;
-        //std::uint8_t        fullPathLen;
+        Square              rookSq;
         Bitboard            fullPathBB;
         StdArray<Square, 5> kingPathSqs;
         std::uint8_t        kingPathLen;
@@ -425,7 +421,7 @@ class Position final {
     void update_pc_threats(Piece               pc,
                            Square              s,
                            DirtyThreats* const dts,
-                           Bitboard            noRayBB = FULL_BB) noexcept;
+                           Bitboard            targetBB = FULL_BB) noexcept;
 
     template<bool Do>
     void do_castling(Color             ac,
@@ -642,10 +638,6 @@ inline bool Position::castling_full_path_clear(CastlingRights cr) const noexcept
 
     const auto& castling = castlings[BIT[cr]];
 
-    //for (std::uint8_t i = 0; i < castling.fullPathLen; ++i)
-    //    if (!empty_on(castling.fullPathSqs[i]))
-    //        return false;
-    //return true;
     return (pieces_bb() & castling.fullPathBB) == 0;
 }
 
@@ -857,7 +849,7 @@ inline Value Position::non_pawn_value() const noexcept {
 inline bool Position::has_non_pawn(Color c) const noexcept {
 
     for (PieceType pt : NON_PAWN_PIECE_TYPES)
-        if (count(c, pt))
+        if (count(c, pt) != 0)
             return true;
     return false;
 }
@@ -1087,11 +1079,11 @@ template<bool Put, bool ComputeRay>
 inline void Position::update_pc_threats(Piece               pc,
                                         Square              s,
                                         DirtyThreats* const dts,
-                                        Bitboard            noRayBB) noexcept {
+                                        Bitboard            targetBB) noexcept {
 
     Bitboard occupancyBB = pieces_bb();
 
-    const auto attacks = [&]() noexcept {
+    const auto attacksBB = [&]() noexcept {
         StdArray<Bitboard, 7> _;
         _[WHITE]  = attacks_bb<PAWN>(s, WHITE);
         _[BLACK]  = attacks_bb<PAWN>(s, BLACK);
@@ -1103,16 +1095,16 @@ inline void Position::update_pc_threats(Piece               pc,
         return _;
     }();
 
-    Bitboard threatenedBB = (type_of(pc) == PAWN ? attacks[color_of(pc)]  //
-                                                 : attacks[type_of(pc)])
+    Bitboard threatenedBB = (type_of(pc) == PAWN ? attacksBB[color_of(pc)]  //
+                                                 : attacksBB[type_of(pc)])
                           & occupancyBB;
     // clang-format off
-    Bitboard slidersBB    = (pieces_bb(QUEEN, BISHOP) & attacks[BISHOP])
-                          | (pieces_bb(QUEEN, ROOK)   & attacks[ROOK]);
-    Bitboard nonSlidersBB = (pieces_bb(WHITE, PAWN) & attacks[BLACK])
-                          | (pieces_bb(BLACK, PAWN) & attacks[WHITE])
-                          | (pieces_bb(KNIGHT)      & attacks[KNIGHT])
-                          | (pieces_bb(KING)        & attacks[KING]);
+    Bitboard slidersBB    = (pieces_bb(QUEEN, BISHOP) & attacksBB[BISHOP])
+                          | (pieces_bb(QUEEN, ROOK)   & attacksBB[ROOK]);
+    Bitboard nonSlidersBB = (pieces_bb(WHITE, PAWN)   & attacksBB[BLACK])
+                          | (pieces_bb(BLACK, PAWN)   & attacksBB[WHITE])
+                          | (pieces_bb(KNIGHT)        & attacksBB[KNIGHT])
+                          | (pieces_bb(KING)          & attacksBB[KING]);
     // clang-format on
 
 #if defined(USE_AVX512ICL)
@@ -1164,10 +1156,11 @@ inline void Position::update_pc_threats(Piece               pc,
 
         if constexpr (ComputeRay)
         {
-            Bitboard rayBB        = pass_ray_bb(sliderSq, s) & ~between_bb(sliderSq, s);
-            Bitboard discoveredBB = rayBB & attacks[QUEEN] & occupancyBB;
+            Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
+            Bitboard discoveredBB = passRayBB & ~between_bb(sliderSq, s)  //
+                                  & attacksBB[QUEEN] & occupancyBB;
 
-            if (discoveredBB != 0 && (rayBB & noRayBB) != noRayBB)
+            if (discoveredBB != 0 && (targetBB & ~passRayBB) != 0)
             {
                 assert(!more_than_one(discoveredBB));
                 Square threatenedSq = lsq(discoveredBB);
