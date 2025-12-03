@@ -352,14 +352,14 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
     {
         assert(pos.checkers_bb() == 0);
 
-        if (pos.castling_has_rights(AC & ANY_CASTLING))
-            for (CastlingRights cr : {AC & KING_SIDE, AC & QUEEN_SIDE})
-                if (pos.castling_possible(AC, cr))
+        if (pos.has_castling_rights(AC, ANY_SIDE))
+            for (CastlingSide cs : {KING_SIDE, QUEEN_SIDE})
+                if (pos.castling_possible(AC, cs))
                 {
-                    assert(is_ok(pos.castling_rook_sq(cr))
-                           && (pos.pieces_bb(AC, ROOK) & pos.castling_rook_sq(cr)));
+                    assert(is_ok(pos.castling_rook_sq(AC, cs))
+                           && (pos.pieces_bb(AC, ROOK) & pos.castling_rook_sq(AC, cs)));
 
-                    *moves++ = Move{CASTLING, kingSq, pos.castling_rook_sq(cr)};
+                    *moves++ = Move{CASTLING, kingSq, pos.castling_rook_sq(AC, cs)};
 
                     if constexpr (Any)
                         return moves;

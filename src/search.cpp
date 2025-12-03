@@ -890,7 +890,7 @@ Value Worker::search(Position&    pos,
 
         if (pieceCount <= tbConfig.cardinality
             && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth)
-            && pos.rule50_count() == 0 && !pos.castling_has_rights(ANY_CASTLING))
+            && pos.rule50_count() == 0 && !pos.has_castling_rights())
         {
             Tablebases::ProbeState ps;
 

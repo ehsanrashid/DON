@@ -219,15 +219,16 @@ class Position final {
     Color        active_color() const noexcept;
     std::int32_t move_num() const noexcept;
 
-    CastlingRights castling_rights() const noexcept;
-
     auto castling_rights_mask(Square orgSq, Square dstSq) const noexcept;
 
-    bool   castling_has_rights(CastlingRights cr) const noexcept;
-    Square castling_rook_sq(CastlingRights cr) const noexcept;
-    bool   castling_full_path_clear(CastlingRights cr) const noexcept;
-    bool   castling_king_path_attackers_exists(Color c, CastlingRights cr) const noexcept;
-    bool   castling_possible(Color c, CastlingRights cr) const noexcept;
+    CastlingRights castling_rights() const noexcept;
+
+    bool   has_castling_rights() const noexcept;
+    bool   has_castling_rights(Color c, CastlingSide cs) const noexcept;
+    Square castling_rook_sq(Color c, CastlingSide cs) const noexcept;
+    bool   castling_full_path_clear(Color c, CastlingSide cs) const noexcept;
+    bool   castling_king_path_attackers_exists(Color c, CastlingSide cs) const noexcept;
+    bool   castling_possible(Color c, CastlingSide cs) const noexcept;
 
     Bitboard xslide_attackers_bb(Square s) const noexcept;
     Bitboard slide_attackers_bb(Square s, Bitboard occupancyBB) const noexcept;
@@ -451,10 +452,6 @@ class Position final {
         return offset;
     }();
 
-    static constexpr StdArray<std::uint8_t, CASTLING_RIGHTS_NB> BIT{
-      4, 0, 1, 4, 2, 4, 4, 4, 3, 4, 4, 4, 4, 4, 4, 4  //
-    };
-
     static constexpr std::uint8_t INDEX_NONE = SQUARE_NB;
 
     // Backing Square Table: [COLOR_NB][TOTAL_CAPACITY]
@@ -462,16 +459,16 @@ class Position final {
     // Generic CountTableView slices
     StdArray<CountTableView<Square>, COLOR_NB, 1 + PIECES> pieceList;
 
-    StdArray<std::uint8_t, SQUARE_NB>               indexMap;
-    StdArray<Piece, SQUARE_NB>                      pieceMap;
-    StdArray<Bitboard, PIECE_TYPE_NB>               typeBBs;
-    StdArray<Bitboard, COLOR_NB>                    colorBBs;
-    StdArray<std::uint8_t, COLOR_NB>                pieceCounts;
-    StdArray<std::uint8_t, COLOR_NB * FILE_NB>      castlingRightsMasks;
-    StdArray<Castling, COLOR_NB * CASTLING_SIDE_NB> castlings;
-    State*                                          st;
-    std::int16_t                                    gamePly;
-    Color                                           activeColor;
+    StdArray<std::uint8_t, SQUARE_NB>              indexMap;
+    StdArray<Piece, SQUARE_NB>                     pieceMap;
+    StdArray<Bitboard, PIECE_TYPE_NB>              typeBBs;
+    StdArray<Bitboard, COLOR_NB>                   colorBBs;
+    StdArray<std::uint8_t, COLOR_NB>               pieceCounts;
+    StdArray<std::uint8_t, COLOR_NB * FILE_NB>     castlingRightsMasks;
+    StdArray<Castling, COLOR_NB, CASTLING_SIDE_NB> castlings;
+    State*                                         st;
+    std::int16_t                                   gamePly;
+    Color                                          activeColor;
 };
 
 //static_assert(sizeof(Position) == 528, "Position size");
@@ -600,8 +597,6 @@ inline std::int32_t Position::move_num() const noexcept {
     return 1 + (ply() - (active_color() == BLACK)) / 2;
 }
 
-inline CastlingRights Position::castling_rights() const noexcept { return st->castlingRights; }
-
 inline auto Position::castling_rights_mask(Square orgSq, Square dstSq) const noexcept {
     constexpr auto Indices = []() constexpr {
         StdArray<std::uint8_t, SQUARE_NB> indices{};
@@ -623,33 +618,35 @@ inline auto Position::castling_rights_mask(Square orgSq, Square dstSq) const noe
          | (dstIdx < castlingRightsMasks.size() ? castlingRightsMasks[dstIdx] : 0);
 }
 
-inline bool Position::castling_has_rights(CastlingRights cr) const noexcept {
-    return castling_rights() & int(cr);
+inline CastlingRights Position::castling_rights() const noexcept { return st->castlingRights; }
+
+inline bool Position::has_castling_rights() const noexcept { return castling_rights(); }
+
+inline bool Position::has_castling_rights(Color c, CastlingSide cs) const noexcept {
+    return int(castling_rights()) & (c & cs);
 }
 
-inline Square Position::castling_rook_sq(CastlingRights cr) const noexcept {
-    assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
-    return castlings[BIT[cr]].rookSq;
+inline Square Position::castling_rook_sq(Color c, CastlingSide cs) const noexcept {
+    assert(is_ok(c) && is_ok(cs));
+    return castlings[c][cs].rookSq;
 }
 
 // Checks if squares between king and rook are empty
-inline bool Position::castling_full_path_clear(CastlingRights cr) const noexcept {
-    assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
+inline bool Position::castling_full_path_clear(Color c, CastlingSide cs) const noexcept {
+    assert(is_ok(c) && is_ok(cs));
 
-    const auto& castling = castlings[BIT[cr]];
+    const auto& castling = castlings[c][cs];
 
     return (pieces_bb() & castling.fullPathBB) == 0;
 }
 
 // Checks if the castling king path is attacked
-inline bool Position::castling_king_path_attackers_exists(Color          c,
-                                                          CastlingRights cr) const noexcept {
-    assert((c == WHITE && (cr == WHITE_OO || cr == WHITE_OOO))
-           || (c == BLACK && (cr == BLACK_OO || cr == BLACK_OOO)));
+inline bool Position::castling_king_path_attackers_exists(Color c, CastlingSide cs) const noexcept {
+    assert(is_ok(c) && is_ok(cs));
 
     Bitboard attackersBB = pieces_bb(~c);
 
-    const auto& castling = castlings[BIT[cr]];
+    const auto& castling = castlings[c][cs];
 
     for (std::uint8_t i = 0; i < castling.kingPathLen; ++i)
         if (attackers_exists(castling.kingPathSqs[i], attackersBB))
@@ -658,16 +655,15 @@ inline bool Position::castling_king_path_attackers_exists(Color          c,
     return false;
 }
 
-inline bool Position::castling_possible(Color c, CastlingRights cr) const noexcept {
-    assert((c == WHITE && (cr == WHITE_OO || cr == WHITE_OOO))
-           || (c == BLACK && (cr == BLACK_OO || cr == BLACK_OOO)));
+inline bool Position::castling_possible(Color c, CastlingSide cs) const noexcept {
+    assert(is_ok(c) && is_ok(cs));
 
-    return castling_has_rights(cr)
+    return has_castling_rights(c, cs)
         // Verify if the Rook blocks some checks (needed in case of Chess960).
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-        && (blockers_bb(c) & castling_rook_sq(cr)) == 0  //
-        && castling_full_path_clear(cr)                  //
-        && !castling_king_path_attackers_exists(c, cr);
+        && (blockers_bb(c) & castling_rook_sq(c, cs)) == 0  //
+        && castling_full_path_clear(c, cs)                  //
+        && !castling_king_path_attackers_exists(c, cs);
 }
 
 // clang-format off

@@ -1803,7 +1803,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
         config.probeDepth  = DEPTH_ZERO;
     }
 
-    if (config.cardinality >= pos.count() && !pos.castling_has_rights(ANY_CASTLING))
+    if (config.cardinality >= pos.count() && !pos.has_castling_rights())
     {
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
         config.rootInTB = probe_root_dtz(pos, rootMoves, config.rule50Active, rankDTZ, time_to_abort);
