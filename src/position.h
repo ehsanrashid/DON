@@ -1038,10 +1038,10 @@ DirtyThreats::add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) 
 // Given a DirtyThreat template and bit offsets to insert the piece type and square, write the threats
 // present at the given bitboard.
 template<int SqShift, int PcShift>
-void write_multiple_dirties(const Position&     pos,
-                            Bitboard            maskBB,
-                            DirtyThreat         dtTemplate,
-                            DirtyThreats* const dts) noexcept {
+inline void write_multiple_dirties(const Position&     pos,
+                                   Bitboard            maskBB,
+                                   DirtyThreat         dtTemplate,
+                                   DirtyThreats* const dts) noexcept {
     __m512i pieceMap = _mm512_loadu_si512(pos.piece_map().data());
     __m512i squares  = _mm512_set_epi8(
       63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41,

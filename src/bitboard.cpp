@@ -259,7 +259,7 @@ void init() noexcept {
             BetweenBBs[s1][s2] |= s2;
 
             for (Square s3 = SQ_A1; s3 <= SQ_H8; ++s3)
-                Aligneds[s1][s2][s3] = LineBBs[s1][s2] & s3;
+                Aligneds[s1][s2][s3] = (LineBBs[s1][s2] & s3) != 0;
         }
     }
 }
