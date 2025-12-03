@@ -319,7 +319,8 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
 
     constexpr bool Castle = GT == ENCOUNTER || GT == ENC_QUIET;
 
-    Square kingSq = pos.square<KING>(AC);
+    Square   kingSq  = pos.square<KING>(AC);
+    Bitboard enemyBB = pos.pieces_bb(~AC);
 
     Bitboard dstBB = attacks_bb<KING>(kingSq) & targetBB;
 
@@ -337,7 +338,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
             else
                 dstSq = pop_lsq(dstBB);
 
-            if ((pos.slide_attackers_bb(dstSq, occupancyBB) & pos.pieces_bb(~AC)) == 0)
+            if (!pos.attackers_exists(dstSq, enemyBB, occupancyBB))
             {
                 *moves++ = Move(kingSq, dstSq);
 
