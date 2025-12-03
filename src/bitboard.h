@@ -59,6 +59,8 @@ std::string_view pretty(Bitboard b) noexcept;
 
 }  // namespace BitBoard
 
+inline constexpr Bitboard FULL_BB = 0xFFFFFFFFFFFFFFFFULL;
+
 inline constexpr Bitboard FILE_A_BB = 0x0101010101010101ULL;
 inline constexpr Bitboard FILE_B_BB = FILE_A_BB << (1 * 1);
 inline constexpr Bitboard FILE_C_BB = FILE_A_BB << (2 * 1);

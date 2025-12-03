@@ -176,7 +176,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     if constexpr (Evasion)
         enemyBB &= targetBB;
 
-    Move *read = moves, *write = moves;
+    Move *rMoves = moves, *wMoves = moves;
 
     // Promotions and under-promotions
     if (yesR7PawnsBB)
@@ -236,15 +236,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
             assert(!(Evasion && (targetBB & (enPassantSq + Push1)) != 0));
 
             Bitboard orgBB = notR7PawnsBB & attacks_bb<PAWN>(enPassantSq, ~AC);
-            if (more_than_one(orgBB))
-            {
-                Bitboard blockerOrgBB = orgBB & pos.blockers_bb(AC);
-                assert(!more_than_one(blockerOrgBB));
-
-                if (blockerOrgBB && !aligned(pos.square<KING>(AC), enPassantSq, lsq(blockerOrgBB)))
-                    orgBB ^= blockerOrgBB;
-            }
-            assert(orgBB);
+            assert(orgBB != 0);
 
             while (orgBB != 0)
             {
@@ -259,19 +251,22 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
         }
     }
 
+    Square   kingSq         = pos.square<KING>(AC);
     Bitboard blockersBB     = pos.blockers_bb(AC);
     Bitboard blockerPawnsBB = blockersBB & acPawnsBB;
 
     // Filter illegal moves (preserve order)
-    while (read != moves)
+    while (rMoves != moves)
     {
-        Move m = *read++;
+        Move m = *rMoves++;
 
-        if ((blockerPawnsBB & m.org_sq()) == 0 || m.type_of() == EN_PASSANT || pos.legal(m))
-            *write++ = m;
+        Square orgSq = m.org_sq();
+
+        if ((blockerPawnsBB & orgSq) == 0 || aligned(kingSq, orgSq, m.dst_sq()))
+            *wMoves++ = m;
     }
 
-    return write;
+    return wMoves;
 }
 
 template<Color AC, PieceType PT>
@@ -300,14 +295,17 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) 
             std::sort(beg, end, std::less<>{});
     }
 
+    Square   kingSq      = pos.square<KING>(AC);
+    Bitboard occupancyBB = pos.pieces_bb();
+    Bitboard blockersBB  = pos.blockers_bb(AC);
+
     for (; beg != end; ++beg)
     {
         Square orgSq = *beg;
 
-        Bitboard dstBB = attacks_bb<PT>(orgSq, pos.pieces_bb()) & targetBB;
-
-        if (pos.blockers_bb(AC) & orgSq)
-            dstBB &= line_bb(pos.square<KING>(AC), orgSq);
+        Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB)
+                       & ((blockersBB & orgSq) != 0 ? line_bb(kingSq, orgSq) : FULL_BB)  //
+                       & targetBB;
 
         moves = splat_moves<AC>(orgSq, dstBB, moves);
     }
