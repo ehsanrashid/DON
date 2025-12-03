@@ -158,11 +158,12 @@ alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, 1 << 16> PopCnt{};
 // clang-format off
 alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB> Distances{};
 
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>        LineBBs{};
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>        BetweenBBs{};
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>        PassRayBBs{};
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, PIECE_TYPE_NB>    AttacksBBs{};
-alignas(CACHE_LINE_SIZE) inline StdArray<Magic   , SQUARE_NB, 2>                Magics{};  // BISHOP or ROOK
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     LineBBs{};
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     BetweenBBs{};
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     PassRayBBs{};
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, PIECE_TYPE_NB> AttacksBBs{};
+alignas(CACHE_LINE_SIZE) inline StdArray<Magic   , SQUARE_NB, 2>             Magics{};  // BISHOP or ROOK
+
 alignas(CACHE_LINE_SIZE) inline StdArray<bool, SQUARE_NB, SQUARE_NB, SQUARE_NB> Aligneds{};
 // clang-format on
 

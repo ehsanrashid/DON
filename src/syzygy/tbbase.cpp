@@ -1171,7 +1171,7 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     // the extended alphabet, and then repeating the process.
     // See https://web.archive.org/web/20201106232444/http://www.larsson.dogma.net/dcc99.pdf
     std::vector<bool> visited(pd->symLen.size());
-    for (std::size_t s = 0; s < pd->symLen.size(); ++s)
+    for (Sym s = 0; s < pd->symLen.size(); ++s)
         if (!visited[s])
             pd->symLen[s] = set_symlen(pd, s, visited);
 

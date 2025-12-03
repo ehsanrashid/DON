@@ -695,7 +695,7 @@ bool Position::can_enpassant(Color           ac,
     Bitboard attackersBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
     if (epAttackersBB != nullptr)
         *epAttackersBB = attackersBB;
-    if (!attackersBB)
+    if (attackersBB == 0)
         return false;
 
     Square capturedSq;
@@ -1519,17 +1519,16 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         assert(relative_rank(ac, dstSq) == RANK_4);
 
         enPassantSq = dstSq - pawn_spush(ac);
-        assert(epAttackersBB);
+        assert(epAttackersBB != 0);
         attackersBB |= epAttackersBB;
     }
 
-    bool ge = true;
-
-    Bitboard acAttackersBB, b;
-    Square   sq;
-
     Bitboard qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
     Bitboard qrBB = pieces_bb(QUEEN, ROOK) & attacks_bb<ROOK>(dstSq) & occupancyBB;
+
+    std::int8_t ge = 1;
+
+    Bitboard acAttackersBB;
 
     const auto* magic = &Magics[dstSq];
 
@@ -1542,39 +1541,45 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
         acAttackersBB = pieces_bb(ac) & attackersBB;
         // If ac has no more attackers then give up: ac loses
-        if (!acAttackersBB)
+        if (acAttackersBB == 0)
             break;
 
+        Bitboard  b;
         PieceType pt;
+
         // Don't allow pinned pieces to attack as long as
         // there are pinners on their original square.
-        if (pinners_bb(~ac) & pieces_bb(~ac) & occupancyBB)
+        if ((pinners_bb(~ac) & pieces_bb(~ac) & occupancyBB) != 0)
         {
             acAttackersBB &= ~blockers_bb(ac);
 
-            if (!acAttackersBB)
+            if (acAttackersBB == 0)
                 break;
         }
-        if ((blockers_bb(ac) & orgSq)
+
+        if ((blockers_bb(ac) & orgSq) != 0
             && (b =
-                  pinners_bb(ac) & pieces_bb(~ac) & line_bb(orgSq, square<KING>(ac)) & occupancyBB)
+                  pinners_bb(ac) & pieces_bb(~ac) & line_bb(square<KING>(ac), orgSq) & occupancyBB)
+                 != 0
             && ((pt = type_of(piece_on(orgSq))) != PAWN
                 || !aligned(square<KING>(ac), orgSq, dstSq)))
         {
             acAttackersBB &= square<KING>(ac);
 
-            if (!acAttackersBB  //
-                && (pt == PAWN || !(attacks_bb(dstSq, pt, occupancyBB) & square<KING>(ac))))
+            if (acAttackersBB == 0
+                && (pt == PAWN || (attacks_bb(dstSq, pt, occupancyBB) & square<KING>(ac)) == 0))
             {
                 dstSq = lsq(b);
-                swap  = piece_value(type_of(piece_on(orgSq))) - swap;
+
+                swap = piece_value(type_of(piece_on(orgSq))) - swap;
                 if ((swap = piece_value(type_of(piece_on(dstSq))) - swap) < ge)
                     break;
 
                 occupancyBB ^= dstSq;
 
                 attackersBB = attackers_bb(dstSq, occupancyBB) & occupancyBB;
-                if (!attackersBB)
+
+                if (attackersBB == 0)
                     break;
 
                 qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
@@ -1585,16 +1590,16 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 acAttackersBB = pieces_bb(ac) & attackersBB;
             }
 
-            if (!acAttackersBB)
+            if (acAttackersBB == 0)
                 break;
         }
 
-        ge = !ge;
+        ge ^= 1;
 
-        if (!is_ok(enPassantSq) && discovery[ac] && (b = blockers_bb(~ac) & acAttackersBB))
+        if (!is_ok(enPassantSq) && discovery[ac] && (b = blockers_bb(~ac) & acAttackersBB) != 0)
         {
-            sq = pop_lsq(b);
-            pt = type_of(piece_on(sq));
+            Square sq = pop_lsq(b);
+            pt        = type_of(piece_on(sq));
             if (b && pt == KING)
             {
                 sq = pop_lsq(b);
@@ -1603,26 +1608,28 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
             if (pt == KING)
             {
-                if (!(pieces_bb(~ac) & attackersBB))
+                if ((pieces_bb(~ac) & attackersBB) == 0)
                     break;
 
                 discovery[ac] = false;
 
                 ac = ~ac;
-                ge = !ge;
+                ge ^= 1;
                 continue;  // Resume without considering discovery
             }
 
-            if (!(pinners_bb(~ac) & pieces_bb(ac) & line_bb(square<KING>(~ac), sq) & occupancyBB))
+            if ((pinners_bb(~ac) & pieces_bb(ac) & line_bb(square<KING>(~ac), sq) & occupancyBB)
+                == 0)
             {
                 discovery[ac] = false;
 
                 ac = ~ac;
-                ge = !ge;
+                ge ^= 1;
                 continue;  // Resume without considering discovery
             }
 
-            occupancyBB ^= orgSq = sq;
+            occupancyBB ^= (orgSq = sq);
+
             if ((swap = piece_value(pt) - swap) < ge)
                 break;
 
@@ -1631,12 +1638,12 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             case PAWN :
             case BISHOP :
                 qbBB &= occupancyBB;
-                if (qbBB)
+                if (qbBB != 0)
                     attackersBB |= qbBB & attacks_bb<BISHOP>(*magic, occupancyBB);
                 break;
             case ROOK :
                 qrBB &= occupancyBB;
-                if (qrBB)
+                if (qrBB != 0)
                     attackersBB |= qrBB & attacks_bb<ROOK>(*magic, occupancyBB);
                 break;
             case QUEEN :
@@ -1647,12 +1654,14 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         }
         // Locate and remove the next least valuable attacker, and add to
         // the bitboard 'attackers' any X-ray attackers behind it.
-        else if ((b = pieces_bb(PAWN) & acAttackersBB))
+        else if ((b = pieces_bb(PAWN) & acAttackersBB) != 0)
         {
-            occupancyBB ^= orgSq = lsq(b);
+            occupancyBB ^= (orgSq = lsq(b));
+
             if ((swap = VALUE_PAWN - swap) < ge)
                 break;
-            if (qbBB)
+
+            if (qbBB != 0)
                 attackersBB |= qbBB & attacks_bb<BISHOP>(*magic, occupancyBB);
 
             if (is_ok(enPassantSq) && rank_of(orgSq) == rank_of(dstSq))
@@ -1662,7 +1671,8 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 dstSq       = enPassantSq;
                 enPassantSq = SQ_NONE;
                 attackersBB = attackers_bb(dstSq, occupancyBB) & occupancyBB;
-                if (!attackersBB)
+
+                if (attackersBB == 0)
                     break;
 
                 qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
@@ -1671,52 +1681,59 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 magic = &Magics[dstSq];
             }
         }
-        else if ((b = pieces_bb(KNIGHT) & acAttackersBB))
+        else if ((b = pieces_bb(KNIGHT) & acAttackersBB) != 0)
         {
-            occupancyBB ^= orgSq = lsq(b);
+            occupancyBB ^= (orgSq = lsq(b));
+
             if ((swap = VALUE_KNIGHT - swap) < ge)
                 break;
         }
-        else if ((b = pieces_bb(BISHOP) & acAttackersBB))
+        else if ((b = pieces_bb(BISHOP) & acAttackersBB) != 0)
         {
-            occupancyBB ^= orgSq = lsq(b);
+            occupancyBB ^= (orgSq = lsq(b));
+
             if ((swap = VALUE_BISHOP - swap) < ge)
                 break;
+
             qbBB &= occupancyBB;
-            if (qbBB)
+            if (qbBB != 0)
                 attackersBB |= qbBB & attacks_bb<BISHOP>(*magic, occupancyBB);
         }
-        else if ((b = pieces_bb(ROOK) & acAttackersBB))
+        else if ((b = pieces_bb(ROOK) & acAttackersBB) != 0)
         {
-            occupancyBB ^= orgSq = lsq(b);
+            occupancyBB ^= (orgSq = lsq(b));
+
             if ((swap = VALUE_ROOK - swap) < ge)
                 break;
+
             qrBB &= occupancyBB;
-            if (qrBB)
+            if (qrBB != 0)
                 attackersBB |= qrBB & attacks_bb<ROOK>(*magic, occupancyBB);
         }
-        else if ((b = pieces_bb(QUEEN) & acAttackersBB))
+        else if ((b = pieces_bb(QUEEN) & acAttackersBB) != 0)
         {
-            occupancyBB ^= orgSq = lsq(b);
+            occupancyBB ^= (orgSq = lsq(b));
+
             if ((swap = VALUE_QUEEN - swap) < ge)
                 break;
+
             qbBB &= occupancyBB;
-            qrBB &= occupancyBB;
-            if (qbBB)
+            if (qbBB != 0)
                 attackersBB |= qbBB & attacks_bb<BISHOP>(*magic, occupancyBB);
-            if (qrBB)
+
+            qrBB &= occupancyBB;
+            if (qrBB != 0)
                 attackersBB |= qrBB & attacks_bb<ROOK>(*magic, occupancyBB);
         }
         else  // KING
         {
-            occupancyBB ^= acAttackersBB;
             // If "capture" with the king but the opponent still has attackers, reverse the result.
-            ge ^= bool(pieces_bb(~ac) & attackersBB);
+            ge ^= (pieces_bb(~ac) & attackersBB) != 0;
             break;
         }
     }
 
-    return ge;
+    return ge != 0;
 }
 
 // Draw by Repetition: position repeats once earlier but strictly

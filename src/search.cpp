@@ -1808,15 +1808,16 @@ QS_MOVES_LOOP:
         }
         else
         {
-            Color ac = pos.active_color();
+            Color ac                = pos.active_color();
+            pos.state()->checkersBB = PROMOTION_RANKS_BB;
             if (bestValue != VALUE_DRAW  //
                 && type_of(pos.captured_pc()) >= ROOK
+                && !pos.has_non_pawn(ac)
                 // No pawn pushes available
                 && (pawn_push_bb(pos.pieces_bb(ac, PAWN), ac) & ~pos.pieces_bb()) == 0
                 && MoveList<LEGAL, true>(pos).empty())
-            {
                 bestValue = VALUE_DRAW;
-            }
+            pos.state()->checkersBB = 0;
         }
     }
     // Adjust best value for fail high cases
