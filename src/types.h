@@ -298,29 +298,41 @@ struct DirtyPiece final {
 // Keep track of what threats change on the board (used by NNUE)
 struct DirtyThreat final {
    public:
+    static constexpr std::uint8_t SqOffset           = 0;
+    static constexpr std::uint8_t ThreatenedSqOffset = 8;
+    static constexpr std::uint8_t PcOffset           = 16;
+    static constexpr std::uint8_t ThreatenedPcOffset = 20;
+
     DirtyThreat() noexcept {
         // Don't initialize data
     }
+    DirtyThreat(std::uint32_t d) noexcept :
+        data(d) {}
     DirtyThreat(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool add) noexcept {
-        data = (add << 31) | (threatenedPc << 20) | (pc << 16) | (threatenedSq << 8) | (sq << 0);
+        data = (add << 31) | (threatenedPc << ThreatenedPcOffset) | (pc << PcOffset)
+             | (threatenedSq << ThreatenedSqOffset) | (sq << SqOffset);
     }
 
-    Square sq() const noexcept { return Square((data >> 0) & 0x3F); }
-    Square threatened_sq() const noexcept { return Square((data >> 8) & 0x3F); }
-    Piece  pc() const noexcept { return Piece((data >> 16) & 0xF); }
-    Piece  threatened_pc() const noexcept { return Piece((data >> 20) & 0xF); }
+    Square sq() const noexcept { return Square((data >> SqOffset) & 0x3F); }
+    Square threatened_sq() const noexcept { return Square((data >> ThreatenedSqOffset) & 0x3F); }
+    Piece  pc() const noexcept { return Piece((data >> PcOffset) & 0xF); }
+    Piece  threatened_pc() const noexcept { return Piece((data >> ThreatenedPcOffset) & 0xF); }
     bool   add() const noexcept { return data >> 31; }
+
+    std::uint32_t raw() noexcept { return data; }
 
    private:
     std::uint32_t data;
 };
 
+static_assert(sizeof(DirtyThreat) == 4, "DirtyThreat Size");
+
 // A piece can be involved in at most 8 outgoing attacks and 16 incoming attacks.
 // Moving a piece also can reveal at most 8 discovered attacks.
 // This implies that a non-castling move can change at most (8 + 16) * 3 + 8 = 80 features.
 // By similar logic, a castling move can change at most (5 + 1 + 3 + 9) * 2 = 36 features.
-// Thus, 80 should work as an upper bound.
-using DirtyThreatList = FixedVector<DirtyThreat, 80>;
+// Thus, 80 + 16 = 96 should work as an upper bound.
+using DirtyThreatList = FixedVector<DirtyThreat, 96>;
 
 struct DirtyThreats final {
    public:
