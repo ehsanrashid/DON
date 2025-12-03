@@ -156,10 +156,9 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dstSq, int bo
 // and guarantee evaluation does not hit the tablebase range.
 Value adjust_static_eval(Value ev, int cv) noexcept { return in_range(ev + int(7.6294e-6 * cv)); }
 
-// rule50 count >= 20 and one side moving same piece more times in a row
 bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcept {
-    return !(pos.capture(move) || type_of(pos.moved_pc(move)) == PAWN || pos.rule50_count() < 10
-             || pos.null_ply() < 6 || ss->ply < 20)
+    return !(pos.capture_queenpromo(move) || pos.rule50_count() < 10 || pos.null_ply() < 6
+             || ss->ply < 20)
         && (ss - 2)->move.is_ok() && move.org_sq() == (ss - 2)->move.dst_sq()
         && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq()
         && (ss - 6)->move.is_ok() && (ss - 4)->move.org_sq() == (ss - 6)->move.dst_sq()
@@ -1805,21 +1804,18 @@ QS_MOVES_LOOP:
         {
             assert(bestValue == -VALUE_INFINITE);
             assert((MoveList<LEGAL, true>(pos).empty()));
-            return mated_in(ss->ply);  // Plies to mate from the root
+            bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
         else
         {
             Color ac = pos.active_color();
             if (bestValue != VALUE_DRAW  //
                 && type_of(pos.captured_pc()) >= ROOK
-                && !pos.has_non_pawn(ac)
                 // No pawn pushes available
-                && !(pawn_push_bb(pos.pieces_bb(ac, PAWN), ac) & ~pos.pieces_bb()))
+                && (pawn_push_bb(pos.pieces_bb(ac, PAWN), ac) & ~pos.pieces_bb()) == 0
+                && MoveList<LEGAL, true>(pos).empty())
             {
-                pos.state()->checkersBB = PROMOTION_RANKS_BB;
-                if (MoveList<LEGAL, true>(pos).empty())
-                    bestValue = VALUE_DRAW;
-                pos.state()->checkersBB = 0;
+                bestValue = VALUE_DRAW;
             }
         }
     }

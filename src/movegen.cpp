@@ -283,27 +283,27 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     StdArray<Square, Position::CAPACITY[PT - 1]> sortedSqs;
     std::memcpy(sortedSqs.data(), pL.data(pB), n * sizeof(Square));
 
-    Square*       beg = sortedSqs.data();
-    Square* const end = beg + n;
+    Square*       begSq = sortedSqs.data();
+    Square* const endSq = begSq + n;
 
     if (n > 1)
     {
         if constexpr (AC == WHITE)
-            std::sort(beg, end, std::greater<>{});
+            std::sort(begSq, endSq, std::greater<>{});
         else
-            std::sort(beg, end, std::less<>{});
+            std::sort(begSq, endSq, std::less<>{});
     }
 
     Square   kingSq      = pos.square<KING>(AC);
     Bitboard occupancyBB = pos.pieces_bb();
     Bitboard blockersBB  = pos.blockers_bb(AC);
 
-    for (; beg != end; ++beg)
+    for (; begSq != endSq; ++begSq)
     {
-        Square orgSq = *beg;
+        Square orgSq = *begSq;
 
         Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB)
-                       & ((blockersBB & orgSq) != 0 ? line_bb(kingSq, orgSq) : FULL_BB)  //
+                       & ((blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq))  //
                        & targetBB;
 
         moves = splat_moves<AC>(orgSq, dstBB, moves);
@@ -323,7 +323,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
 
     Bitboard dstBB = attacks_bb<KING>(kingSq) & targetBB;
 
-    if (dstBB)
+    if (dstBB != 0)
     {
         dstBB &= ~(pos.acc_attacks_bb<KNIGHT>(~AC) | attacks_bb<KING>(pos.square<KING>(~AC)));
 

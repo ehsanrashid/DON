@@ -231,15 +231,18 @@ void init() noexcept {
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
     {
-        AttacksBBs[s1][WHITE] = pawn_attacks_bb<WHITE>(square_bb(s1));
-        AttacksBBs[s1][BLACK] = pawn_attacks_bb<BLACK>(square_bb(s1));
+        Bitboard s1BB = square_bb(s1);
 
+        AttacksBBs[s1][WHITE] = pawn_attacks_bb<WHITE>(s1BB);
+        AttacksBBs[s1][BLACK] = pawn_attacks_bb<BLACK>(s1BB);
+
+        // clang-format off
         for (auto dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
                          WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
             AttacksBBs[s1][KNIGHT] |= destination_bb(s1, dir, 2);
 
         AttacksBBs[s1][BISHOP] = attacks_bb<BISHOP>(s1, 0);
-        AttacksBBs[s1][ROOK]   = attacks_bb<ROOK>(s1, 0);
+        AttacksBBs[s1][ROOK]   = attacks_bb<ROOK  >(s1, 0);
         AttacksBBs[s1][QUEEN]  = AttacksBBs[s1][BISHOP] | AttacksBBs[s1][ROOK];
 
         for (auto dir : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
@@ -247,20 +250,26 @@ void init() noexcept {
 
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
+            Bitboard s2BB = square_bb(s2);
+
             for (PieceType pt : {BISHOP, ROOK})
                 if (AttacksBBs[s1][pt] & s2)
                 {
-                    // clang-format off
-                    LineBBs   [s1][s2] = (attacks_bb(s1, pt, 0) & attacks_bb(s2, pt, 0)) | s1 | s2;
-                    BetweenBBs[s1][s2] = (attacks_bb(s1, pt, square_bb(s2)) & attacks_bb(s2, pt, square_bb(s1)));
-                    PassRayBBs[s1][s2] = (attacks_bb(s1, pt, 0) & (attacks_bb(s2, pt, square_bb(s1)) | s2));
-                    // clang-format on
+                    LineBBs   [s1][s2] = (attacks_bb(s1, pt,    0) &  attacks_bb(s2, pt,    0)) | s1BB | s2BB;
+                    BetweenBBs[s1][s2] =  attacks_bb(s1, pt, s2BB) &  attacks_bb(s2, pt, s1BB);
+                    PassRayBBs[s1][s2] =  attacks_bb(s1, pt,    0) & (attacks_bb(s2, pt, s1BB)  | s2BB);
                 }
-            BetweenBBs[s1][s2] |= s2;
+
+            BetweenBBs[s1][s2] |= s2BB;
 
             for (Square s3 = SQ_A1; s3 <= SQ_H8; ++s3)
-                Aligneds[s1][s2][s3] = (LineBBs[s1][s2] & s3) != 0;
+            {
+                Bitboard s3BB = square_bb(s3);
+
+                Aligneds[s1][s2][s3] = (LineBBs[s1][s2] & s3BB) != 0;
+            }
         }
+        // clang-format on
     }
 }
 

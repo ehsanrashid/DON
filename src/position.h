@@ -147,7 +147,7 @@ static_assert(std::is_standard_layout_v<State> && std::is_trivially_copyable_v<S
 //static_assert(sizeof(State) == 312, "State size");
 
 // Position class stores information regarding the board representation as
-// pieces, active color, hash keys, castling info, etc. (Size = 480)
+// pieces, active color, hash keys, castling info, etc. (Size = 528)
 // Important methods are do_move() and undo_move(),
 // used by the search to update node info when traversing the search tree.
 class Position final {
@@ -363,19 +363,23 @@ class Position final {
    private:
     struct Castling final {
        public:
+        Castling() noexcept { clear(); }
+
         void clear() noexcept {
             rookSq = SQ_NONE;
-            std::memset(fullPathSqs.data(), SQ_NONE, sizeof(fullPathSqs));
-            fullPathLen = 0;
+            //std::memset(fullPathSqs.data(), SQ_NONE, sizeof(fullPathSqs));
+            //fullPathLen = 0;
+            fullPathBB = 0;
             std::memset(kingPathSqs.data(), SQ_NONE, sizeof(kingPathSqs));
             kingPathLen = 0;
         }
 
-        Square              rookSq = SQ_NONE;
-        StdArray<Square, 5> fullPathSqs;
-        std::uint8_t        fullPathLen = 0;
+        Square rookSq;
+        //StdArray<Square, 5> fullPathSqs;
+        //std::uint8_t        fullPathLen;
+        Bitboard            fullPathBB;
         StdArray<Square, 5> kingPathSqs;
-        std::uint8_t        kingPathLen = 0;
+        std::uint8_t        kingPathLen;
     };
 
     // SEE struct used to get a nice syntax for SEE comparisons.
@@ -474,7 +478,7 @@ class Position final {
     Color                                           activeColor;
 };
 
-//static_assert(sizeof(Position) == 480, "Position size");
+//static_assert(sizeof(Position) == 528, "Position size");
 
 inline const auto& Position::piece_map() const noexcept { return pieceMap; }
 
@@ -638,11 +642,11 @@ inline bool Position::castling_full_path_clear(CastlingRights cr) const noexcept
 
     const auto& castling = castlings[BIT[cr]];
 
-    for (std::size_t len = 0; len < castling.fullPathLen; ++len)
-        if (!empty_on(castling.fullPathSqs[len]))
-            return false;
-
-    return true;
+    //for (std::uint8_t i = 0; i < castling.fullPathLen; ++i)
+    //    if (!empty_on(castling.fullPathSqs[i]))
+    //        return false;
+    //return true;
+    return (pieces_bb() & castling.fullPathBB) == 0;
 }
 
 // Checks if the castling king path is attacked
@@ -655,8 +659,8 @@ inline bool Position::castling_king_path_attackers_exists(Color          c,
 
     const auto& castling = castlings[BIT[cr]];
 
-    for (std::size_t len = 0; len < castling.kingPathLen; ++len)
-        if (attackers_exists(castling.kingPathSqs[len], attackersBB))
+    for (std::uint8_t i = 0; i < castling.kingPathLen; ++i)
+        if (attackers_exists(castling.kingPathSqs[i], attackersBB))
             return true;
 
     return false;
@@ -1035,24 +1039,30 @@ DirtyThreats::add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) 
 }
 
 #if defined(USE_AVX512ICL)
-// Given a DirtyThreat template and bit offsets to insert the piece type and square, write the threats
-// present at the given bitboard.
+// Given a DirtyThreat template and bit offsets to insert the piece type and square,
+// write the threats present at the given bitboard.
 template<int SqShift, int PcShift>
-inline void write_multiple_dirties(const Position&     pos,
-                                   Bitboard            maskBB,
-                                   DirtyThreat         dtTemplate,
-                                   DirtyThreats* const dts) noexcept {
-    __m512i pieceMap = _mm512_loadu_si512(pos.piece_map().data());
-    __m512i squares  = _mm512_set_epi8(
-      63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41,
-      40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18,
-      17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
+                                   Bitboard                          maskBB,
+                                   DirtyThreat                       templateDt,
+                                   DirtyThreats* const               dts) noexcept {
+    const __m512i squares = _mm512_set_epi8(63, 62, 61, 60, 59, 58, 57, 56,  //
+                                            55, 54, 53, 52, 51, 50, 49, 48,  //
+                                            47, 46, 45, 44, 43, 42, 41, 40,  //
+                                            39, 38, 37, 36, 35, 34, 33, 32,  //
+                                            31, 30, 29, 28, 27, 26, 25, 24,  //
+                                            23, 22, 21, 20, 19, 18, 17, 16,  //
+                                            15, 14, 13, 12, 11, 10, 9, 8,    //
+                                            7, 6, 5, 4, 3, 2, 1, 0);
+
+    __m512i pieceMapData = _mm512_loadu_si512(pieceMap.data());
 
     std::uint8_t maskCount = popcount(maskBB);
     assert(maskCount <= 16);
 
-    __m512i templateV = _mm512_set1_epi32(dtTemplate.raw());
-    auto*   dt        = dts->list.make_space(maskCount);
+    auto* dt = dts->list.make_space(maskCount);
+
+    __m512i templateV = _mm512_set1_epi32(templateDt.raw());
 
     // Extract the list of squares and upconvert to 32 bits.
     // There are never more than 16 incoming threats so this is sufficient.
@@ -1060,7 +1070,7 @@ inline void write_multiple_dirties(const Position&     pos,
     threatSquares         = _mm512_cvtepi8_epi32(_mm512_castsi512_si128(threatSquares));
 
     __m512i threatPieces =
-      _mm512_maskz_permutexvar_epi8(0x1111111111111111ULL, threatSquares, pieceMap);
+      _mm512_maskz_permutexvar_epi8(0x1111111111111111ULL, threatSquares, pieceMapData);
 
     // Shift the piece and square into place
     threatSquares = _mm512_slli_epi32(threatSquares, SqShift);
@@ -1114,21 +1124,24 @@ inline void Position::update_pc_threats(Piece               pc,
             dts->threateningBB |= s;
         }
 
-        DirtyThreat dtTemplate{s, SQUARE_ZERO, pc, NO_PIECE, Put};
+        DirtyThreat templateDt{s, SQUARE_ZERO, pc, NO_PIECE, Put};
         write_multiple_dirties<DirtyThreat::ThreatenedSqOffset, DirtyThreat::ThreatenedPcOffset>(
-          *this, threatenedBB, dtTemplate, dts);
+          piece_map(), threatenedBB, templateDt, dts);
     }
 
     Bitboard attackersBB = slidersBB | nonSlidersBB;
     if (attackersBB == 0)
         return;  // Square s is threatened iff there's at least one attacker
 
-    dts->threatenedBB |= s;
-    dts->threateningBB |= attackersBB;
+    if constexpr (Put)
+    {
+        dts->threatenedBB |= s;
+        dts->threateningBB |= attackersBB;
+    }
 
-    DirtyThreat dtTemplate{SQUARE_ZERO, s, NO_PIECE, pc, Put};
-    write_multiple_dirties<DirtyThreat::SqOffset, DirtyThreat::PcOffset>(*this, attackersBB,
-                                                                         dtTemplate, dts);
+    DirtyThreat templateDt{SQUARE_ZERO, s, NO_PIECE, pc, Put};
+    write_multiple_dirties<DirtyThreat::SqOffset, DirtyThreat::PcOffset>(piece_map(), attackersBB,
+                                                                         templateDt, dts);
 #else
     while (threatenedBB != 0)
     {
@@ -1151,11 +1164,10 @@ inline void Position::update_pc_threats(Piece               pc,
 
         if constexpr (ComputeRay)
         {
-            Bitboard passRayBB = pass_ray_bb(sliderSq, s);
-            Bitboard discoveredBB =
-              passRayBB & ~between_bb(sliderSq, s) & attacks[QUEEN] & occupancyBB;
+            Bitboard rayBB        = pass_ray_bb(sliderSq, s) & ~between_bb(sliderSq, s);
+            Bitboard discoveredBB = rayBB & attacks[QUEEN] & occupancyBB;
 
-            if (discoveredBB != 0 && (passRayBB & noRayBB) != noRayBB)
+            if (discoveredBB != 0 && (rayBB & noRayBB) != noRayBB)
             {
                 assert(!more_than_one(discoveredBB));
                 Square threatenedSq = lsq(discoveredBB);
