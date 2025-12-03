@@ -268,7 +268,7 @@ void insertion_sort(Iterator begin, Iterator end) noexcept {
 }  // namespace
 
 // Most important method of the MovePicker class.
-// It emits a new pseudo-legal move every time it is called until there are no more moves left,
+// It emits a new legal move every time it is called until there are no more moves left,
 // picking the move with the highest score from a list of generated moves.
 Move MovePicker::next_move() noexcept {
 

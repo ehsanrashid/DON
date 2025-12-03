@@ -1049,7 +1049,7 @@ Value Worker::search(Position&    pos,
         int   probCutThreshold = probCutBeta - ss->staticEval;
 
         MovePicker mp(pos, ttd.move, &captureHistory, probCutThreshold);
-        // Loop through all pseudo-legal moves
+        // Loop through all legal moves
         while ((move = mp.next_move()) != Move::None)
         {
             assert(pos.legal(move));
@@ -1121,7 +1121,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &pawnHistory, &lowPlyQuietHistory,
                   contHistory, ss->ply, -1);
-    // Step 13. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
+    // Step 13. Loop through all legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
     {
         assert(pos.legal(move));
@@ -1715,7 +1715,7 @@ QS_MOVES_LOOP:
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &pawnHistory, &lowPlyQuietHistory,
                   contHistory, ss->ply);
-    // Step 5. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
+    // Step 5. Loop through all legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
     {
         assert(pos.legal(move));
