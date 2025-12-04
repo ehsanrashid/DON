@@ -200,9 +200,7 @@ void Position::clear() noexcept {
     std::memset(pieceCounts.data(), 0, sizeof(pieceCounts));
     std::memset(castlingRightsMasks.data(), 0, sizeof(castlingRightsMasks));
 
-    for (Color c : {WHITE, BLACK})
-        for (CastlingSide cs : {KING_SIDE, QUEEN_SIDE})
-            castlings[c][cs].clear();
+    castlings.clear();
     // Don't memset pieceList, as they point to the above lists
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
@@ -596,21 +594,20 @@ void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     castlingRightsMasks[CASTLING_RIGHTS_INDICES[kingOrgSq]] |= cr;
     castlingRightsMasks[CASTLING_RIGHTS_INDICES[rookOrgSq]] = cr;
 
-    auto& castling = castlings[c][cs];
-
-    castling.rookSq = rookOrgSq;
-
     Square kingDstSq = king_castle_sq(kingOrgSq, rookOrgSq);
     Square rookDstSq = rook_castle_sq(kingOrgSq, rookOrgSq);
 
     Bitboard kingPathBB = between_bb(kingOrgSq, kingDstSq);
     Bitboard rookPathBB = between_bb(rookOrgSq, rookDstSq);
 
-    castling.fullPathBB = (kingPathBB | rookPathBB) & ~make_bb(kingOrgSq, rookOrgSq);
+    castlings.fullPathBB[c][cs] = (kingPathBB | rookPathBB) & ~make_bb(kingOrgSq, rookOrgSq);
 
+    std::uint8_t kingPathLen = 0;
     while (kingPathBB != 0)
-        castling.kingPathSqs[castling.kingPathLen++] =
+        castlings.kingPathSqs[c][cs][kingPathLen++] =
           cs == KING_SIDE ? pop_lsq(kingPathBB) : pop_msq(kingPathBB);
+
+    castlings.rookSq[c][cs] = rookOrgSq;
 }
 
 // Computes the hash keys of the position, and other data
@@ -2258,24 +2255,23 @@ void Position::dump(std::ostream& os) const noexcept {
     }
 
     os << "Castlings:\n";
-    //for (std::size_t i = 0; i < castlings.size(); ++i)
-    //{
-    //    const auto& castling = castlings[i];
-
-    //    os << i << ":\n";
-    //    if (is_ok(castling.rookSq))
-    //        os << to_square(castling.rookSq);
-    //    os << "\n";
-    //    os << u64_to_string(castling.fullPathBB);
-    //    os << "\n";
-    //    for (std::size_t len = 0; len < castling.kingPathLen; ++len)
-    //    {
-    //        Square s = castling.kingPathSqs[len];
-
-    //        os << to_square(s) << " ";
-    //    }
-    //    os << "\n";
-    //}
+    for (Color c : {WHITE, BLACK})
+    {
+        for (CastlingSide cs : {KING_SIDE, QUEEN_SIDE})
+        {
+            os << (c == WHITE ? "W" : "B") << (cs == KING_SIDE ? "O-O" : "O-O-O") << ":\n";
+            if (is_ok(castlings.rookSq[c][cs]))
+                os << to_square(castlings.rookSq[c][cs]);
+            os << "\n";
+            os << u64_to_string(castlings.fullPathBB[c][cs]);
+            os << "\n";
+            for (std::size_t i = 0; i < castlings.kingPathSqs[c][cs].size()  //
+                                    && is_ok(castlings.kingPathSqs[c][cs][i]);
+                 ++i)
+                os << to_square(castlings.kingPathSqs[c][cs][i]) << " ";
+            os << "\n";
+        }
+    }
 
     flush(os);
 }
