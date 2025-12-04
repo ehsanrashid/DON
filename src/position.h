@@ -619,10 +619,12 @@ inline CastlingRights Position::castling_rights_mask(Square orgSq, Square dstSq)
 
 inline CastlingRights Position::castling_rights() const noexcept { return st->castlingRights; }
 
-inline bool Position::has_castling_rights() const noexcept { return castling_rights(); }
+inline bool Position::has_castling_rights() const noexcept {
+    return castling_rights() != NO_CASTLING;
+}
 
 inline bool Position::has_castling_rights(Color c, CastlingSide cs) const noexcept {
-    return int(castling_rights()) & make_cr(c, cs);
+    return (castling_rights() & make_cr(c, cs)) != NO_CASTLING;
 }
 
 // Checks if squares between king and rook are empty
@@ -947,7 +949,7 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     Piece pc = piece(s);
     auto  c  = color_of(pc);
     auto  pt = type_of(pc);
-    assert(is_ok(pc) && count(c, pt));
+    assert(is_ok(pc) && count(c, pt) != 0);
 
     if (dts != nullptr)
         update_pc_threats<false>(s, pc, dts);
@@ -978,7 +980,7 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     Piece pc = piece(s1);
     auto  c  = color_of(pc);
     auto  pt = type_of(pc);
-    assert(is_ok(pc) && count(c, pt));
+    assert(is_ok(pc) && count(c, pt) != 0);
 
     if (dts != nullptr)
         update_pc_threats<false>(s1, pc, dts, s1s2BB);

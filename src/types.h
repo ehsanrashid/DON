@@ -273,14 +273,18 @@ enum CastlingSide : std::uint8_t {
 
 enum CastlingRights : std::uint8_t {
     NO_CASTLING,
-    WHITE_OO  = 1,
-    WHITE_OOO = WHITE_OO << 1,
-    BLACK_OO  = WHITE_OO << 2,
-    BLACK_OOO = WHITE_OO << 3,
+
+    WHITE_OO  = 1 << 0,
+    WHITE_OOO = 1 << 1,
 
     WHITE_CASTLING = WHITE_OO | WHITE_OOO,
+
+    BLACK_OO  = WHITE_OO << 2,
+    BLACK_OOO = WHITE_OOO << 2,
+
     BLACK_CASTLING = BLACK_OO | BLACK_OOO,
-    ANY_CASTLING   = WHITE_CASTLING | BLACK_CASTLING,
+
+    ANY_CASTLING = WHITE_CASTLING | BLACK_CASTLING,
 
     CASTLING_RIGHTS_NB = 16
 };
@@ -410,12 +414,10 @@ constexpr CastlingRights& operator&=(CastlingRights& cr, int i) noexcept { retur
 
 constexpr CastlingRights make_cr(Color c, CastlingSide cs) noexcept {
     assert(is_ok(c));
-    return c == WHITE ? (cs == KING_SIDE    ? WHITE_OO
-                         : cs == QUEEN_SIDE ? WHITE_OOO
-                                            : WHITE_CASTLING)
-                      : (cs == KING_SIDE    ? BLACK_OO
-                         : cs == QUEEN_SIDE ? BLACK_OOO
-                                            : BLACK_CASTLING);
+    return CastlingRights((cs == KING_SIDE    ? WHITE_OO
+                           : cs == QUEEN_SIDE ? WHITE_OOO
+                                              : WHITE_CASTLING)
+                          << (c << 1));
 }
 
 [[nodiscard]] constexpr bool is_ok(Color c) noexcept { return (c == WHITE || c == BLACK); }
