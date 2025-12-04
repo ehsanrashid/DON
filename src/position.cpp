@@ -1304,7 +1304,7 @@ bool Position::legal(Move m) const noexcept {
         if (!(type_of(movedPc) == PAWN && en_passant_sq() == dstSq && rule50_count() == 0
               && (pieces_bb(~ac, PAWN) & (dstSq - pawn_spush(ac))) != 0
               && (empty(dstSq) && empty(dstSq + pawn_spush(ac)))
-              && (attacks_bb<PAWN>(orgSq, ac) & dstSq) != 0  //
+              && (attacks_bb<PAWN>(dstSq, ~ac) & orgSq) != 0  //
               && relative_rank(ac, orgSq) == RANK_5 && relative_rank(ac, dstSq) == RANK_6
               && (pieces_bb(~ac) & slide_attackers_bb(kingSq, occupancyBB)) == 0))
             return false;

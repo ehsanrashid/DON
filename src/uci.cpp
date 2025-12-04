@@ -868,7 +868,7 @@ std::string UCI::move_to_can(Move m) noexcept {
         return "0000";
 
     Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-    if (m.type_of() == CASTLING && !Position::Chess960)
+    if (!Position::Chess960 && m.type_of() == CASTLING)
     {
         assert(rank_of(orgSq) == rank_of(dstSq));
         dstSq = king_castle_sq(orgSq, dstSq);

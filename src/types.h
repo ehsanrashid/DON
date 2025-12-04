@@ -647,7 +647,7 @@ class Move {
 
 // **Define the constexpr static members outside the class**
 inline constexpr Move Move::None{SQ_A1, SQ_A1};
-inline constexpr Move Move::Null{SQ_B1, SQ_B1};
+inline constexpr Move Move::Null{SQ_H8, SQ_H8};
 
 using MoveVector = std::vector<Move>;
 
