@@ -103,27 +103,6 @@ enum Color : std::uint8_t {
     COLOR_NB = 2
 };
 
-enum CastlingSide : std::uint8_t {
-    KING_SIDE,
-    QUEEN_SIDE,
-    ANY_SIDE,
-    CASTLING_SIDE_NB = 2
-};
-
-enum CastlingRights : std::uint8_t {
-    NO_CASTLING,
-    WHITE_OO  = 1,
-    WHITE_OOO = WHITE_OO << 1,
-    BLACK_OO  = WHITE_OO << 2,
-    BLACK_OOO = WHITE_OO << 3,
-
-    WHITE_CASTLING = WHITE_OO | WHITE_OOO,
-    BLACK_CASTLING = BLACK_OO | BLACK_OOO,
-    ANY_CASTLING   = WHITE_CASTLING | BLACK_CASTLING,
-
-    CASTLING_RIGHTS_NB = 16
-};
-
 // clang-format off
 enum PieceType : std::int8_t {
     NO_PIECE_TYPE,
@@ -283,6 +262,27 @@ enum Bound : std::uint8_t {
     BOUND_UPPER,
     BOUND_LOWER,
     BOUND_EXACT = BOUND_UPPER | BOUND_LOWER
+};
+
+enum CastlingSide : std::uint8_t {
+    KING_SIDE,
+    QUEEN_SIDE,
+    ANY_SIDE,
+    CASTLING_SIDE_NB = 2
+};
+
+enum CastlingRights : std::uint8_t {
+    NO_CASTLING,
+    WHITE_OO  = 1,
+    WHITE_OOO = WHITE_OO << 1,
+    BLACK_OO  = WHITE_OO << 2,
+    BLACK_OOO = WHITE_OO << 3,
+
+    WHITE_CASTLING = WHITE_OO | WHITE_OOO,
+    BLACK_CASTLING = BLACK_OO | BLACK_OOO,
+    ANY_CASTLING   = WHITE_CASTLING | BLACK_CASTLING,
+
+    CASTLING_RIGHTS_NB = 16
 };
 
 // Keep track of what a move changes on the board (used by NNUE)
@@ -487,15 +487,15 @@ constexpr Rank relative_rank(Color c, Square s) noexcept { return relative_rank(
     return (cs == KING_SIDE || cs == QUEEN_SIDE);
 }
 
-constexpr CastlingSide castling_side(Square s1, Square s2) noexcept {
-    return s1 < s2 ? KING_SIDE : QUEEN_SIDE;
+constexpr CastlingSide castling_side(Square kingOrgSq, Square kingDstSq) noexcept {
+    return kingOrgSq < kingDstSq ? KING_SIDE : QUEEN_SIDE;
 }
 
-constexpr Square king_castle_sq(Square kOrgSq, Square kDstSq) noexcept {
-    return make_square(kOrgSq < kDstSq ? FILE_G : FILE_C, rank_of(kOrgSq));
+constexpr Square king_castle_sq(Square kingOrgSq, Square kingDstSq) noexcept {
+    return make_square(kingOrgSq < kingDstSq ? FILE_G : FILE_C, rank_of(kingOrgSq));
 }
-constexpr Square rook_castle_sq(Square kOrgSq, Square kDstSq) noexcept {
-    return make_square(kOrgSq < kDstSq ? FILE_F : FILE_D, rank_of(kOrgSq));
+constexpr Square rook_castle_sq(Square kingOrgSq, Square kingDstSq) noexcept {
+    return make_square(kingOrgSq < kingDstSq ? FILE_F : FILE_D, rank_of(kingOrgSq));
 }
 
 constexpr Direction pawn_spush(Color c) noexcept {
