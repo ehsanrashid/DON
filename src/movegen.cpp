@@ -328,7 +328,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
         dstBB &= ~(pos.acc_attacks_bb<KNIGHT>(~AC) | attacks_bb<KING>(pos.square<KING>(~AC)));
 
         Bitboard occupancyBB = pos.pieces_bb() ^ kingSq;
-        Bitboard enemyBB     = pos.pieces_bb(~AC);
+        Bitboard attackersBB = pos.pieces_bb(~AC);
 
         while (dstBB != 0)
         {
@@ -338,7 +338,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
             else
                 dstSq = pop_lsq(dstBB);
 
-            if (!pos.attackers_exists(dstSq, enemyBB, occupancyBB))
+            if (!pos.attackers_exists(dstSq, attackersBB, occupancyBB))
             {
                 *moves++ = Move{kingSq, dstSq};
 
@@ -352,7 +352,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
     {
         assert(pos.checkers_bb() == 0);
 
-        if (pos.has_castling_rights(AC, ANY_SIDE))
+        if (pos.has_castling_rights() && pos.has_castling_rights(AC, ANY_SIDE))
             for (CastlingSide cs : {KING_SIDE, QUEEN_SIDE})
                 if (pos.castling_possible(AC, cs))
                 {

@@ -408,9 +408,8 @@ class Position final {
     void set_ext_state() noexcept;
 
     template<bool After = true>
-    bool can_enpassant(Color           ac,
-                       Square          enPassantSq,
-                       Bitboard* const epAttackersBB = nullptr) const noexcept;
+    bool
+    can_enpassant(Color ac, Square enPassantSq, Bitboard* const epPawnsBB = nullptr) const noexcept;
 
     // Other helpers
     Piece move(Square s1, Square s2, DirtyThreats* const dts = nullptr) noexcept;
@@ -640,12 +639,13 @@ inline bool Position::castling_full_path_clear(Color c, CastlingSide cs) const n
 inline bool Position::castling_king_path_attackers_exists(Color c, CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
 
-    Bitboard attackersBB = pieces_bb(~c);
-
     const auto& kingPathSqs = castlings.kingPathSqs[c][cs];
 
+    Bitboard occupancyBB = pieces_bb() ^ square<KING>(c);
+    Bitboard attackersBB = pieces_bb(~c);
+
     for (std::uint8_t i = 0; i < kingPathSqs.size() && is_ok(kingPathSqs[i]); ++i)
-        if (attackers_exists(kingPathSqs[i], attackersBB))
+        if (attackers_exists(kingPathSqs[i], attackersBB, occupancyBB))
             return true;
 
     return false;
