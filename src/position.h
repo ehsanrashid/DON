@@ -972,7 +972,7 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
 }
 
 inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexcept {
-    assert(is_ok(s1) && is_ok(s2));
+    assert(is_ok(s1) && is_ok(s2) && s1 != s2);
     Bitboard s1s2BB = make_bb(s1, s2);
 
     Piece pc = piece(s1);

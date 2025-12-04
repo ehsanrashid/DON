@@ -767,12 +767,13 @@ void Position::do_castling(Color             ac,
     rookDstSq = rook_castle_sq(kingOrgSq, kingDstSq);
     kingDstSq = king_castle_sq(kingOrgSq, kingDstSq);
 
-    Piece kingPc = piece(Do ? kingOrgSq : kingDstSq);
-    assert(kingPc == make_piece(ac, KING));
+    assert(piece(Do ? kingOrgSq : kingDstSq) == make_piece(ac, KING));
     Piece rookPc = piece(Do ? rookOrgSq : rookDstSq);
     assert(rookPc == make_piece(ac, ROOK));
 
-    // Remove both pieces first since squares could overlap in Chess960
+    bool rookMoved = rookOrgSq != rookDstSq;
+
+    // Remove rook first since squares could overlap in Chess960
     if constexpr (Do)
     {
         db->dp.dstSq    = kingDstSq;
@@ -780,19 +781,23 @@ void Position::do_castling(Color             ac,
         db->dp.addSq    = rookDstSq;
         db->dp.removePc = db->dp.addPc = rookPc;
 
-        remove(kingOrgSq, &db->dts);
-        remove(rookOrgSq, &db->dts);
-        put(kingDstSq, kingPc, &db->dts);
-        put(rookDstSq, rookPc, &db->dts);
+        if (rookMoved)
+            remove(rookOrgSq, &db->dts);
+        if (kingOrgSq != kingDstSq)
+            move(kingOrgSq, kingDstSq, &db->dts);
+        if (rookMoved)
+            put(rookDstSq, rookPc, &db->dts);
 
         st->hasCastled[ac] = true;
     }
     else
     {
-        remove(kingDstSq);
-        remove(rookDstSq);
-        put(kingOrgSq, kingPc);
-        put(rookOrgSq, rookPc);
+        if (rookMoved)
+            remove(rookDstSq);
+        if (kingDstSq != kingOrgSq)
+            move(kingDstSq, kingOrgSq);
+        if (rookMoved)
+            put(rookOrgSq, rookPc);
     }
 }
 

@@ -90,11 +90,11 @@ MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveL
         assert(pos.capture_queenpromo(m));
 
         Square dstSq      = m.dst_sq();
-        auto   pc         = pos.moved_pc(m);
+        auto   movedPc    = pos.moved_pc(m);
         auto   capturedPt = pos.captured_pt(m);
 
         m.value = 7 * piece_value(capturedPt)  //
-                + (*captureHistory)[pc][dstSq][capturedPt];
+                + (*captureHistory)[movedPc][dstSq][capturedPt];
     }
     return itr;
 }
