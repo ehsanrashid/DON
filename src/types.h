@@ -406,7 +406,7 @@ constexpr CastlingRights& operator&=(CastlingRights& cr, int i) noexcept { retur
 
 // clang-format on
 
-constexpr CastlingRights operator&(Color c, CastlingSide cs) noexcept {
+constexpr CastlingRights make_cr(Color c, CastlingSide cs) noexcept {
     assert(is_ok(c));
     return c == WHITE ? (cs == KING_SIDE    ? WHITE_OO
                          : cs == QUEEN_SIDE ? WHITE_OOO

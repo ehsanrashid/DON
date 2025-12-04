@@ -581,7 +581,7 @@ std::string Position::fen(bool full) const noexcept {
 void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     assert(relative_rank(c, rookOrgSq) == RANK_1);
     assert((pieces_bb(c, ROOK) & rookOrgSq) != 0);
-    assert(castlingRightsMasks[c * FILE_NB + file_of(rookOrgSq)] == 0);
+    assert(castlingRightsMasks[CASTLING_RIGHTS_INDICES[rookOrgSq]] == 0);
 
     Square kingOrgSq = square<KING>(c);
     assert(relative_rank(c, kingOrgSq) == RANK_1);
@@ -590,11 +590,11 @@ void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     CastlingSide cs = castling_side(kingOrgSq, rookOrgSq);
     assert(!is_ok(castling_rook_sq(c, cs)));
 
-    CastlingRights cr = c & cs;
+    CastlingRights cr = make_cr(c, cs);
 
     st->castlingRights |= cr;
-    castlingRightsMasks[c * FILE_NB + file_of(kingOrgSq)] |= cr;
-    castlingRightsMasks[c * FILE_NB + file_of(rookOrgSq)] = cr;
+    castlingRightsMasks[CASTLING_RIGHTS_INDICES[kingOrgSq]] |= cr;
+    castlingRightsMasks[CASTLING_RIGHTS_INDICES[rookOrgSq]] = cr;
 
     auto& castling = castlings[c][cs];
 
@@ -2095,12 +2095,12 @@ bool Position::_is_ok() const noexcept {
             if (!has_castling_rights(c, cs))
                 continue;
 
-            CastlingRights cr = c & cs;
+            CastlingRights cr = make_cr(c, cs);
 
-            if (!is_ok(castling_rook_sq(c, cs))  //
+            if (!is_ok(castling_rook_sq(c, cs))
                 || (pieces_bb(c, ROOK) & castling_rook_sq(c, cs)) == 0
-                || (castlingRightsMasks[c * FILE_NB + file_of(castling_rook_sq(c, cs))]) != cr
-                || (castlingRightsMasks[c * FILE_NB + file_of(square<KING>(c))] & cr) != cr)
+                || (castlingRightsMasks[CASTLING_RIGHTS_INDICES[castling_rook_sq(c, cs)]]) != cr
+                || (castlingRightsMasks[CASTLING_RIGHTS_INDICES[square<KING>(c)]] & cr) != cr)
                 assert(false && "Position::_is_ok(): Castling");
         }
 

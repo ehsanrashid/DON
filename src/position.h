@@ -452,6 +452,19 @@ class Position final {
         return offset;
     }();
 
+    static constexpr auto CASTLING_RIGHTS_INDICES = []() constexpr {
+        StdArray<std::uint8_t, SQUARE_NB> castlingRightsIndices{};
+        for (Square s = SQ_A1; s <= SQ_H8; ++s)
+        {
+            auto rank                = rank_of(s);
+            auto file                = file_of(s);
+            castlingRightsIndices[s] = (rank == RANK_1) ? WHITE * FILE_NB + file
+                                     : (rank == RANK_8) ? BLACK * FILE_NB + file
+                                                        : COLOR_NB * FILE_NB;
+        }
+        return castlingRightsIndices;
+    }();
+
     static constexpr std::uint8_t INDEX_NONE = SQUARE_NB;
 
     // Backing Square Table: [COLOR_NB][TOTAL_CAPACITY]
@@ -464,7 +477,7 @@ class Position final {
     StdArray<Bitboard, PIECE_TYPE_NB>              typeBBs;
     StdArray<Bitboard, COLOR_NB>                   colorBBs;
     StdArray<std::uint8_t, COLOR_NB>               pieceCounts;
-    StdArray<std::uint8_t, COLOR_NB * FILE_NB>     castlingRightsMasks;
+    StdArray<CastlingRights, COLOR_NB * FILE_NB>   castlingRightsMasks;
     StdArray<Castling, COLOR_NB, CASTLING_SIDE_NB> castlings;
     State*                                         st;
     std::int16_t                                   gamePly;
@@ -598,21 +611,8 @@ inline std::int32_t Position::move_num() const noexcept {
 }
 
 inline auto Position::castling_rights_mask(Square orgSq, Square dstSq) const noexcept {
-    constexpr auto Indices = []() constexpr {
-        StdArray<std::uint8_t, SQUARE_NB> indices{};
-        for (Square s = SQ_A1; s <= SQ_H8; ++s)
-        {
-            auto rank  = rank_of(s);
-            auto file  = file_of(s);
-            indices[s] = (rank == RANK_1) ? WHITE * FILE_NB + file
-                       : (rank == RANK_8) ? BLACK * FILE_NB + file
-                                          : COLOR_NB * FILE_NB;
-        }
-        return indices;
-    }();
-
-    auto orgIdx = Indices[orgSq];
-    auto dstIdx = Indices[dstSq];
+    auto orgIdx = CASTLING_RIGHTS_INDICES[orgSq];
+    auto dstIdx = CASTLING_RIGHTS_INDICES[dstSq];
 
     return (orgIdx < castlingRightsMasks.size() ? castlingRightsMasks[orgIdx] : 0)
          | (dstIdx < castlingRightsMasks.size() ? castlingRightsMasks[dstIdx] : 0);
@@ -623,7 +623,7 @@ inline CastlingRights Position::castling_rights() const noexcept { return st->ca
 inline bool Position::has_castling_rights() const noexcept { return castling_rights(); }
 
 inline bool Position::has_castling_rights(Color c, CastlingSide cs) const noexcept {
-    return int(castling_rights()) & (c & cs);
+    return int(castling_rights()) & make_cr(c, cs);
 }
 
 inline Square Position::castling_rook_sq(Color c, CastlingSide cs) const noexcept {
@@ -707,10 +707,15 @@ inline bool Position::attackers_exists(Square s, Bitboard attackersBB) const noe
     return attackers_exists(s, attackersBB, pieces_bb());
 }
 
+// clang-format on
+
 // Computes the blockers that are pinned pieces to a given square 's' from a set of attackers.
 // Blockers are pieces that, when removed, would expose an x-ray attack to 's'.
 // Pinners are also returned via the ownPinners and oppPinners reference.
-inline Bitboard Position::blockers_bb(Square s, Bitboard attackersBB, Bitboard& ownPinnersBB, Bitboard& oppPinnersBB) const noexcept {
+inline Bitboard Position::blockers_bb(Square    s,
+                                      Bitboard  attackersBB,
+                                      Bitboard& ownPinnersBB,
+                                      Bitboard& oppPinnersBB) const noexcept {
     Bitboard blockersBB = 0;
 
     // xSnipers are x-ray attackers that attack 's' when blockers are removed
@@ -736,8 +741,6 @@ inline Bitboard Position::blockers_bb(Square s, Bitboard attackersBB, Bitboard& 
 
     return blockersBB;
 }
-
-// clang-format on
 
 // Computes attacks from a piece type for a given color.
 template<PieceType PT>
