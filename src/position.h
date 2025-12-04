@@ -227,8 +227,8 @@ class Position final {
     bool   has_castling_rights(Color c, CastlingSide cs) const noexcept;
     bool   castling_full_path_clear(Color c, CastlingSide cs) const noexcept;
     bool   castling_king_path_attackers_exists(Color c, CastlingSide cs) const noexcept;
-    bool   castling_possible(Color c, CastlingSide cs) const noexcept;
     Square castling_rook_sq(Color c, CastlingSide cs) const noexcept;
+    bool   castling_possible(Color c, CastlingSide cs) const noexcept;
 
     Bitboard xslide_attackers_bb(Square s) const noexcept;
     Bitboard slide_attackers_bb(Square s, Bitboard occupancyBB) const noexcept;
@@ -631,7 +631,7 @@ inline bool Position::has_castling_rights(Color c, CastlingSide cs) const noexce
 inline bool Position::castling_full_path_clear(Color c, CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
 
-    const auto& fullPathBB = castlings.fullPathBB[c][cs];
+    Bitboard fullPathBB = castlings.fullPathBB[c][cs];
 
     return (pieces_bb() & fullPathBB) == 0;
 }
@@ -651,20 +651,21 @@ inline bool Position::castling_king_path_attackers_exists(Color c, CastlingSide 
     return false;
 }
 
+inline Square Position::castling_rook_sq(Color c, CastlingSide cs) const noexcept {
+    assert(is_ok(c) && is_ok(cs));
+    return castlings.rookSq[c][cs];
+}
+
 inline bool Position::castling_possible(Color c, CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
 
     return has_castling_rights(c, cs)
+        && is_ok(castling_rook_sq(c, cs))
         // Verify if the Rook blocks some checks (needed in case of Chess960).
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
         && (blockers_bb(c) & castling_rook_sq(c, cs)) == 0  //
         && castling_full_path_clear(c, cs)                  //
         && !castling_king_path_attackers_exists(c, cs);
-}
-
-inline Square Position::castling_rook_sq(Color c, CastlingSide cs) const noexcept {
-    assert(is_ok(c) && is_ok(cs));
-    return castlings.rookSq[c][cs];
 }
 
 // clang-format off

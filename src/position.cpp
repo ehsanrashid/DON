@@ -1231,18 +1231,15 @@ bool Position::legal(Move m) const noexcept {
 
     if (m.type_of() == CASTLING)
     {
-        if (type_of(movedPc) == KING && (pieces_bb(ac, ROOK) & dstSq) != 0 && checkers_bb() == 0
-            && relative_rank(ac, orgSq) == RANK_1 && relative_rank(ac, dstSq) == RANK_1)
-        {
-            CastlingSide cs = castling_side(orgSq, dstSq);
+        CastlingSide cs = castling_side(orgSq, dstSq);
 
-            return castling_rook_sq(ac, cs) == dstSq && castling_possible(ac, cs);
-        }
-        return false;
+        return type_of(movedPc) == KING && (pieces_bb(ac, ROOK) & dstSq) != 0 && checkers_bb() == 0
+            && relative_rank(ac, orgSq) == RANK_1 && relative_rank(ac, dstSq) == RANK_1
+            && castling_rook_sq(ac, cs) == dstSq && castling_possible(ac, cs);
     }
 
     // The destination square cannot be occupied by a friendly piece
-    if (pieces_bb(ac) & dstSq)
+    if ((pieces_bb(ac) & dstSq) != 0)
         return false;
 
     switch (m.type_of())
@@ -1256,6 +1253,7 @@ bool Position::legal(Move m) const noexcept {
             // Already handled promotion moves, so origin & destination cannot be on the 8th/1st rank
             if (PROMOTION_RANKS_BB & make_bb(orgSq, dstSq))
                 return false;
+
             if (!((  // Single push
                     (orgSq + pawn_spush(ac) == dstSq && empty(dstSq))
                     // Capture
@@ -1266,12 +1264,15 @@ bool Position::legal(Move m) const noexcept {
                   && relative_rank(ac, orgSq) == RANK_2 && relative_rank(ac, dstSq) == RANK_4))
                 return false;
         }
-        else if ((attacks_bb(orgSq, type_of(movedPc), pieces_bb()) & dstSq) == 0)
-            return false;
+        else
+        {
+            if ((attacks_bb(orgSq, type_of(movedPc), pieces_bb()) & dstSq) == 0)
+                return false;
 
-        // For king moves, check whether the destination square is attacked by the enemies.
-        if (type_of(movedPc) == KING)
-            return !attackers_exists(dstSq, pieces_bb(~ac), pieces_bb() ^ orgSq);
+            // For king moves, check whether the destination square is attacked by the enemies.
+            if (type_of(movedPc) == KING)
+                return !attackers_exists(dstSq, pieces_bb(~ac), pieces_bb() ^ orgSq);
+        }
         break;
 
     case PROMOTION :
@@ -1291,7 +1292,7 @@ bool Position::legal(Move m) const noexcept {
               && (empty(dstSq) && empty(dstSq + pawn_spush(ac)))
               && (attacks_bb<PAWN>(orgSq, ac) & dstSq) != 0  //
               && relative_rank(ac, orgSq) == RANK_5 && relative_rank(ac, dstSq) == RANK_6
-              && (slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(~ac)) == 0))
+              && (pieces_bb(~ac) & slide_attackers_bb(kingSq, occupancyBB)) == 0))
             return false;
     }
     break;
@@ -1321,7 +1322,7 @@ bool Position::check(Move m) const noexcept {
     Color ac = active_color();
 
     Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-    assert(color_of(piece(orgSq)) == ac);
+    assert((pieces_bb(ac) & orgSq) != 0 && !empty(orgSq) && color_of(piece(orgSq)) == ac);
 
     Square kingSq = square<KING>(~ac);
 
@@ -1362,7 +1363,7 @@ bool Position::dbl_check(Move m) const noexcept {
     Color ac = active_color();
 
     Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-    assert(color_of(piece(orgSq)) == ac);
+    assert((pieces_bb(ac) & orgSq) != 0 && !empty(orgSq) && color_of(piece(orgSq)) == ac);
 
     Square kingSq = square<KING>(~ac);
 
@@ -1491,7 +1492,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     Color ac = active_color();
 
     Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-    assert(!empty(orgSq) && color_of(piece(orgSq)) == ac);
+    assert((pieces_bb(ac) & orgSq) != 0 && !empty(orgSq) && color_of(piece(orgSq)) == ac);
 
     Bitboard occupancyBB = pieces_bb();
 
@@ -2278,15 +2279,17 @@ void Position::dump(std::ostream& os) const noexcept {
         for (CastlingSide cs : {KING_SIDE, QUEEN_SIDE})
         {
             os << (c == WHITE ? "W|" : "B|") << (cs == KING_SIDE ? "O-O" : "O-O-O") << ":\n";
-            if (is_ok(castlings.rookSq[c][cs]))
-                os << to_square(castlings.rookSq[c][cs]);
-            os << "\n";
             os << u64_to_string(castlings.fullPathBB[c][cs]);
             os << "\n";
             for (std::size_t i = 0; i < castlings.kingPathSqs[c][cs].size()  //
                                     && is_ok(castlings.kingPathSqs[c][cs][i]);
                  ++i)
                 os << to_square(castlings.kingPathSqs[c][cs][i]) << " ";
+            os << "-\n";
+            if (is_ok(castlings.rookSq[c][cs]))
+                os << to_square(castlings.rookSq[c][cs]);
+            else
+                os << "-";
             os << "\n";
         }
         os << "\n";
