@@ -219,7 +219,7 @@ class Position final {
     Color        active_color() const noexcept;
     std::int32_t move_num() const noexcept;
 
-    auto castling_rights_mask(Square orgSq, Square dstSq) const noexcept;
+    CastlingRights castling_rights_mask(Square orgSq, Square dstSq) const noexcept;
 
     CastlingRights castling_rights() const noexcept;
 
@@ -444,6 +444,7 @@ class Position final {
             totalCapacity += CAPACITY[i];
         return totalCapacity;
     }();
+
     static constexpr auto OFFSET = []() constexpr {
         StdArray<std::size_t, PIECES> offset{};
         offset[0] = 0;
@@ -458,9 +459,9 @@ class Position final {
         {
             auto rank                = rank_of(s);
             auto file                = file_of(s);
-            castlingRightsIndices[s] = (rank == RANK_1) ? WHITE * FILE_NB + file
-                                     : (rank == RANK_8) ? BLACK * FILE_NB + file
-                                                        : COLOR_NB * FILE_NB;
+            castlingRightsIndices[s] = rank == RANK_1 ? WHITE * FILE_NB + file
+                                     : rank == RANK_8 ? BLACK * FILE_NB + file
+                                                      : COLOR_NB * FILE_NB;
         }
         return castlingRightsIndices;
     }();
@@ -610,12 +611,12 @@ inline std::int32_t Position::move_num() const noexcept {
     return 1 + (ply() - (active_color() == BLACK)) / 2;
 }
 
-inline auto Position::castling_rights_mask(Square orgSq, Square dstSq) const noexcept {
+inline CastlingRights Position::castling_rights_mask(Square orgSq, Square dstSq) const noexcept {
     auto orgIdx = CASTLING_RIGHTS_INDICES[orgSq];
     auto dstIdx = CASTLING_RIGHTS_INDICES[dstSq];
 
-    return (orgIdx < castlingRightsMasks.size() ? castlingRightsMasks[orgIdx] : 0)
-         | (dstIdx < castlingRightsMasks.size() ? castlingRightsMasks[dstIdx] : 0);
+    return (orgIdx < castlingRightsMasks.size() ? castlingRightsMasks[orgIdx] : NO_CASTLING)
+         | (dstIdx < castlingRightsMasks.size() ? castlingRightsMasks[dstIdx] : NO_CASTLING);
 }
 
 inline CastlingRights Position::castling_rights() const noexcept { return st->castlingRights; }

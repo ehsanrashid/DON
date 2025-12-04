@@ -399,8 +399,10 @@ constexpr Direction operator-(Direction d1, Direction d2) noexcept { return Dire
 constexpr Direction operator*(Direction d, int i) noexcept { return Direction(i * int(d)); }
 constexpr Direction operator*(int i, Direction d) noexcept { return d * i; }
 
-constexpr CastlingRights  operator|(CastlingRights cr, int i) noexcept { return CastlingRights(int(cr) | i); }
-constexpr CastlingRights  operator&(CastlingRights cr, int i) noexcept { return CastlingRights(int(cr) & i); }
+constexpr CastlingRights  operator| (CastlingRights cr1, CastlingRights cr2) noexcept { return CastlingRights(int(cr1) | int(cr2)); }
+constexpr CastlingRights  operator& (CastlingRights cr1, CastlingRights cr2) noexcept { return CastlingRights(int(cr1) & int(cr2)); }
+constexpr CastlingRights  operator| (CastlingRights cr, int i) noexcept { return cr | CastlingRights(i); }
+constexpr CastlingRights  operator& (CastlingRights cr, int i) noexcept { return cr & CastlingRights(i); }
 constexpr CastlingRights& operator|=(CastlingRights& cr, int i) noexcept { return cr = cr | i; }
 constexpr CastlingRights& operator&=(CastlingRights& cr, int i) noexcept { return cr = cr & i; }
 
