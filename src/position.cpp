@@ -1937,9 +1937,12 @@ Key Position::compute_key() const noexcept {
 
     std::size_t n;
     auto        orgSqs = squares(n);
-    for (std::size_t i = 0; i < n; ++i)
+
+    auto       beg = orgSqs.begin();
+    const auto end = beg + n;
+    for (; beg != end; ++beg)
     {
-        Square orgSq = orgSqs[i];
+        Square orgSq = *beg;
         Piece  pc    = piece(orgSq);
 
         key ^= Zobrist::piece_square(pc, orgSq);
@@ -1961,9 +1964,12 @@ Key Position::compute_minor_key() const noexcept {
 
     std::size_t n;
     auto        orgSqs = squares(n);
-    for (std::size_t i = 0; i < n; ++i)
+
+    auto       beg = orgSqs.begin();
+    const auto end = beg + n;
+    for (; beg != end; ++beg)
     {
-        Square orgSq = orgSqs[i];
+        Square orgSq = *beg;
         Piece  pc    = piece(orgSq);
         auto   pt    = type_of(pc);
 
@@ -1979,9 +1985,12 @@ Key Position::compute_major_key() const noexcept {
 
     std::size_t n;
     auto        orgSqs = squares(n);
-    for (std::size_t i = 0; i < n; ++i)
+
+    auto       beg = orgSqs.begin();
+    const auto end = beg + n;
+    for (; beg != end; ++beg)
     {
-        Square orgSq = orgSqs[i];
+        Square orgSq = *beg;
         Piece  pc    = piece(orgSq);
         auto   pt    = type_of(pc);
 
@@ -1997,9 +2006,12 @@ Key Position::compute_non_pawn_key() const noexcept {
 
     std::size_t n;
     auto        orgSqs = squares(n);
-    for (std::size_t i = 0; i < n; ++i)
+
+    auto       beg = orgSqs.begin();
+    const auto end = beg + n;
+    for (; beg != end; ++beg)
     {
-        Square orgSq = orgSqs[i];
+        Square orgSq = *beg;
         Piece  pc    = piece(orgSq);
         auto   pt    = type_of(pc);
 
