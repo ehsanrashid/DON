@@ -2259,7 +2259,7 @@ void Position::dump(std::ostream& os) const noexcept {
     {
         for (CastlingSide cs : {KING_SIDE, QUEEN_SIDE})
         {
-            os << (c == WHITE ? "W" : "B") << (cs == KING_SIDE ? "O-O" : "O-O-O") << ":\n";
+            os << (c == WHITE ? "W|" : "B|") << (cs == KING_SIDE ? "O-O" : "O-O-O") << ":\n";
             if (is_ok(castlings.rookSq[c][cs]))
                 os << to_square(castlings.rookSq[c][cs]);
             os << "\n";
@@ -2271,6 +2271,7 @@ void Position::dump(std::ostream& os) const noexcept {
                 os << to_square(castlings.kingPathSqs[c][cs][i]) << " ";
             os << "\n";
         }
+        os << "\n";
     }
 
     flush(os);
