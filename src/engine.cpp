@@ -175,7 +175,6 @@ std::uint64_t Engine::perft(Depth depth, bool detail) noexcept {
     State    st;
     Position p;
     p.set(pos, &st);
-    st = *pos.state();
 
     return Perft::perft(p, options["Hash"], threads, depth, detail);
 }

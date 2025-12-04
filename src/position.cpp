@@ -499,12 +499,13 @@ void Position::set(std::string_view code, Color c, State* const newSt) noexcept 
     set(fens, newSt);
 }
 
+// Copy position and points to newSt and then copy state into st
 void Position::set(const Position& pos, State* const newSt) noexcept {
     assert(newSt != nullptr);
 
     *this = pos;
-
-    st = newSt;
+    st    = newSt;
+    *st   = *pos.state();
 }
 
 // Returns a FEN representation of the position.
@@ -2171,7 +2172,6 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
         State    st;
         Position p;
         p.set(pos, &st);
-        st = *pos.state();
 
         Tablebases::ProbeState wdlPs, dtzPs;
 
