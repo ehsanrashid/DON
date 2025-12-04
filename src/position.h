@@ -1161,7 +1161,7 @@ inline void Position::update_pc_threats(Square              s,
             Bitboard discoveredBB = passRayBB & ~between_bb(sliderSq, s)  //
                                   & attacksBB[QUEEN] & occupancyBB;
 
-            if (discoveredBB != 0 && (targetBB & ~passRayBB) != 0)
+            if (discoveredBB != 0 && (passRayBB & targetBB) != targetBB)
             {
                 assert(!more_than_one(discoveredBB));
                 Square threatenedSq = lsq(discoveredBB);

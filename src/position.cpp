@@ -772,6 +772,7 @@ void Position::do_castling(Color             ac,
     Piece rookPc = piece(Do ? rookOrgSq : rookDstSq);
     assert(rookPc == make_piece(ac, ROOK));
 
+    bool kingMoved = kingOrgSq != kingDstSq;
     bool rookMoved = rookOrgSq != rookDstSq;
 
     // Remove rook first since squares could overlap in Chess960
@@ -784,7 +785,7 @@ void Position::do_castling(Color             ac,
 
         if (rookMoved)
             remove(rookOrgSq, &db->dts);
-        if (kingOrgSq != kingDstSq)
+        if (kingMoved)
             move(kingOrgSq, kingDstSq, &db->dts);
         if (rookMoved)
             put(rookDstSq, rookPc, &db->dts);
@@ -795,7 +796,7 @@ void Position::do_castling(Color             ac,
     {
         if (rookMoved)
             remove(rookDstSq);
-        if (kingDstSq != kingOrgSq)
+        if (kingMoved)
             move(kingDstSq, kingOrgSq);
         if (rookMoved)
             put(rookOrgSq, rookPc);
