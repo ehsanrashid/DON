@@ -922,7 +922,7 @@ inline void Position::reset_en_passant_sq() noexcept { st->enPassantSq = SQ_NONE
 inline void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
 
 inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept {
-    assert(is_ok(s) && is_ok(pc));
+    assert(is_ok(s) && is_ok(pc) && empty(s));
     Bitboard sBB = square_bb(s);
 
     auto c  = color_of(pc);

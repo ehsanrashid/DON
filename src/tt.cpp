@@ -67,9 +67,9 @@ struct TTEntry final {
     TTEntry& operator=(TTEntry&&) noexcept      = delete;
 
     constexpr auto move() const noexcept { return move16; }
-    constexpr auto occupied() const noexcept { return bool(depth8); }
+    constexpr auto occupied() const noexcept { return depth8 != 0; }
     constexpr auto depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
-    constexpr auto pv() const noexcept { return bool(data8 & 0x4); }
+    constexpr auto pv() const noexcept { return (data8 & 0x4) != 0; }
     constexpr auto bound() const noexcept { return Bound(data8 & 0x3); }
     //constexpr auto generation() const noexcept { return std::uint8_t(data8 & GENERATION_MASK); }
     constexpr auto value() const noexcept { return value16; }
@@ -78,7 +78,7 @@ struct TTEntry final {
    public:
     // Convert internal bitfields to TTData
     TTData read() const noexcept {
-        return TTData{value(), eval(), move(), depth(), bound(), occupied(), pv()};
+        return TTData{move(), value(), eval(), depth(), bound(), occupied(), pv()};
     }
 
     // The returned age is a multiple of GENERATION_DELTA
@@ -228,7 +228,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
         if (rte->worth(generation8) > ttc->entries[i].worth(generation8))
             rte = &ttc->entries[i];
 
-    return {TTData{VALUE_NONE, VALUE_NONE, Move::None, DEPTH_OFFSET, BOUND_NONE, false, false},
+    return {TTData{Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, BOUND_NONE, false, false},
             TTUpdater{rte, ttc, key16, generation8}};
 }
 

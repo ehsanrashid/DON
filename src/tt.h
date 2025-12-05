@@ -48,9 +48,9 @@ struct TTData final {
     TTData& operator=(const TTData&) noexcept = delete;
     TTData& operator=(TTData&&) noexcept      = delete;
 
+    Move  move;
     Value value;
     Value eval;
-    Move  move;
     Depth depth;
     Bound bound;
     bool  hit;

@@ -779,8 +779,8 @@ void Position::do_castling(Color             ac,
     assert(!Do || db != nullptr);
 
     rookOrgSq = kingDstSq;  // Castling is encoded as "king captures rook"
-    rookDstSq = rook_castle_sq(kingOrgSq, kingDstSq);
-    kingDstSq = king_castle_sq(kingOrgSq, kingDstSq);
+    kingDstSq = king_castle_sq(kingOrgSq, rookOrgSq);
+    rookDstSq = rook_castle_sq(kingOrgSq, rookOrgSq);
 
     assert(piece(Do ? kingOrgSq : kingDstSq) == make_piece(ac, KING));
     Piece rookPc = piece(Do ? rookOrgSq : rookDstSq);
@@ -1315,8 +1315,6 @@ bool Position::legal(Move m) const noexcept {
         assert(false);
     }
 
-    // Evasions generator already takes care to avoid some kind of illegal moves and legal() relies on this.
-    // Therefore have to take care that the some kind of moves are filtered out here.
     return (checkers_bb() == 0 ||
             // Double check? In this case, a king move is required
             (!more_than_one(checkers_bb())
@@ -1762,7 +1760,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         }
     }
 
-    return ge != 0;
+    return ge == 1;
 }
 
 // Draw by Repetition: position repeats once earlier but strictly
