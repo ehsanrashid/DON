@@ -680,7 +680,7 @@ Value Worker::search(Position&    pos,
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (1 + alpha == beta));
     assert(ss->ply >= 0);
-    assert(!RootNode || (DEPTH_ZERO < depth && depth < MAX_PLY));
+    assert(!RootNode || (DEPTH_ZERO < depth && depth <= MAX_PLY - 1));
 
     Key key = pos.key();
 
@@ -1064,8 +1064,9 @@ Value Worker::search(Position&    pos,
 
             // At root obey the "searchmoves" option and skip moves not listed in RootMove List.
             // In MultiPV mode also skip PV moves that have been already searched and those of lower "TB rank".
-            if (RootNode && !rootMoves.contains(curIdx, endIdx, move))
-                continue;
+            if constexpr (RootNode)
+                if (!rootMoves.contains(curIdx, endIdx, move))
+                    continue;
 
             do_move(pos, move, st, ss);
 
@@ -1134,16 +1135,18 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // At root obey the "searchmoves" option and skip moves not listed in RootMove List.
         // In MultiPV mode also skip PV moves that have been already searched and those of lower "TB rank".
-        if (RootNode && !rootMoves.contains(curIdx, endIdx, move))
-            continue;
+        if constexpr (RootNode)
+            if (!rootMoves.contains(curIdx, endIdx, move))
+                continue;
 
         ss->moveCount = ++moveCount;
 
-        if (RootNode && is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
-        {
-            auto currMove = UCI::move_to_can(move);
-            main_manager()->updateCxt.onUpdateIter({rootDepth, currMove, moveCount + curIdx});
-        }
+        if constexpr (RootNode)
+            if (is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
+            {
+                auto currMove = UCI::move_to_can(move);
+                main_manager()->updateCxt.onUpdateIter({rootDepth, currMove, moveCount + curIdx});
+            }
 
         if constexpr (PVNode)
             (ss + 1)->pv = nullptr;

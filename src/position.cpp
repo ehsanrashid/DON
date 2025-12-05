@@ -571,7 +571,7 @@ std::string Position::fen(bool full) const noexcept {
 void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     assert(relative_rank(c, rookOrgSq) == RANK_1);
     assert((pieces_bb(c, ROOK) & rookOrgSq) != 0);
-    assert(castlingRightsMasks[CASTLING_RIGHTS_INDICES[rookOrgSq]] == 0);
+    assert(castlingRightsMasks[CASTLING_RIGHTS_INDICES[rookOrgSq]] == NO_CASTLING);
 
     Square kingOrgSq = square<KING>(c);
     assert(relative_rank(c, kingOrgSq) == RANK_1);
