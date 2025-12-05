@@ -181,15 +181,6 @@ void Position::init() noexcept {
     Cuckoos.init();
 }
 
-// Default constructor
-Position::Position() noexcept { construct(); }
-
-void Position::construct() noexcept {
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
-            pieceList[c][pt].set(OFFSET[pt - 1], CAPACITY[pt - 1]);
-}
-
 void Position::clear() noexcept {
     std::memset(squaresTable.data(), SQ_NONE, sizeof(squaresTable));
     // No need to clear indexMap as it is always overwritten when putting/removing pieces
@@ -201,10 +192,10 @@ void Position::clear() noexcept {
     std::memset(castlingRightsMasks.data(), 0, sizeof(castlingRightsMasks));
 
     castlings.clear();
-    // Don't memset pieceList, as they point to the above lists
+
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
-            pieceList[c][pt].clear();
+            pieceList[c][pt].set(OFFSET[pt - 1], CAPACITY[pt - 1], 0);
 
     st          = nullptr;
     gamePly     = 0;

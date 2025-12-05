@@ -154,15 +154,13 @@ class Position final {
    public:
     static void init() noexcept;
 
-    Position() noexcept;
+    Position() noexcept                           = default;
     Position(const Position&) noexcept            = default;
     Position& operator=(const Position&) noexcept = default;
 
    private:
     constexpr Position(Position&&) noexcept            = delete;
     constexpr Position& operator=(Position&&) noexcept = delete;
-
-    void construct() noexcept;
 
     void clear() noexcept;
 
