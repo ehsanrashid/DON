@@ -23,7 +23,6 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
-#include <tuple>
 
 #include "bitboard.h"
 #include "memory.h"
@@ -166,7 +165,10 @@ struct PTCluster final {
 
 static_assert(sizeof(PTCluster) == 64, "Unexpected PTCluster size");
 
-using ProbResult = std::tuple<bool, PTEntry* const>;
+struct ProbResult final {
+    bool           hit;
+    PTEntry* const entry;
+};
 
 class PerftTable final {
 

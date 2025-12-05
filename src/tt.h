@@ -21,7 +21,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <string_view>
-#include <tuple>
 
 #include "types.h"
 
@@ -86,7 +85,10 @@ class TTUpdater final {
 
 class ThreadPool;
 
-using ProbResult = std::tuple<TTData, TTUpdater>;
+struct ProbResult final {
+    TTData    data;
+    TTUpdater updater;
+};
 
 // TranspositionTable is an array of TTCluster, of size clusterCount.
 // Each non-empty TTEntry contains information on exactly one position.
