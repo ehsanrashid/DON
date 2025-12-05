@@ -189,7 +189,7 @@ void Position::clear() noexcept {
     std::memset(typeBBs.data(), 0, sizeof(typeBBs));
     std::memset(colorBBs.data(), 0, sizeof(colorBBs));
     std::memset(pieceCounts.data(), 0, sizeof(pieceCounts));
-    std::memset(castlingRightsMasks.data(), 0, sizeof(castlingRightsMasks));
+    std::memset(castlingRightsMasks.data(), NO_CASTLING, sizeof(castlingRightsMasks));
 
     castlings.clear();
 
