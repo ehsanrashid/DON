@@ -452,7 +452,7 @@ void Worker::iterative_deepening() noexcept {
             auto avgSqrValue = rootMoves[curIdx].avgSqrValue;
 
             // Reset aspiration window starting size
-            int delta = 5 + std::min(threads.size() - 1, std::size_t(8))  //
+            int delta = 5 + std::min(int(threads.size()) - 1, 8)  //
                       + int(1.1111e-4 * std ::abs(avgSqrValue));
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
@@ -517,6 +517,9 @@ void Worker::iterative_deepening() noexcept {
                     break;
 
                 delta *= 1.3333;
+
+                if (delta > 2 * VALUE_INFINITE)
+                    delta = 2 * VALUE_INFINITE;
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
