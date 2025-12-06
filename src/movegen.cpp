@@ -304,8 +304,9 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     {
         Square orgSq = *begSq;
 
-        Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB) & targetBB
-                       & ((blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq));
+        Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB)
+                       & ((blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq))  //
+                       & targetBB;
 
         moves = splat_moves<AC>(orgSq, dstBB, moves);
     }
@@ -321,7 +322,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
 
     Square kingSq = pos.square<KING>(AC);
 
-    Bitboard dstBB = attacks_bb<KING>(kingSq) & targetBB & ~pos.acc_attacks_bb<KING>(~AC);
+    Bitboard dstBB = attacks_bb<KING>(kingSq) & ~pos.acc_attacks_bb<KING>(~AC) & targetBB;
 
     while (dstBB != 0)
     {

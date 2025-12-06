@@ -2058,7 +2058,7 @@ bool Position::_is_ok() const noexcept {
     if (non_pawn_key() != compute_non_pawn_key())
         assert(false && "Position::_is_ok(): NonPawn Key");
 
-    if (attackers_exists(square<KING>(~active_color()), pieces_bb(active_color())))
+    if ((acc_attacks_bb<KING>(active_color()) & square<KING>(~active_color())) != 0)
         assert(false && "Position::_is_ok(): King Checker");
 
     if ((pieces_bb(PAWN) & PROMOTION_RANKS_BB) || count<PAWN>(WHITE) > 8 || count<PAWN>(BLACK) > 8)
