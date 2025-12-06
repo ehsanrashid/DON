@@ -749,12 +749,13 @@ inline Bitboard Position::attacks_by_bb(Color c) const noexcept {
         return pawn_attacks_bb(pieces_bb(c, PAWN), c);
     else
     {
-        Bitboard attacksBB = 0;
+        Bitboard attacksBB   = 0;
+        Bitboard occupancyBB = pieces_bb() ^ square<KING>(~c);
 
         const auto& pL = squares<PT>(c);
         const auto* pB = base(c);
         for (const Square* orgSq = pL.begin(pB); orgSq != pL.end(pB); ++orgSq)
-            attacksBB |= attacks_bb<PT>(*orgSq, pieces_bb());
+            attacksBB |= attacks_bb<PT>(*orgSq, occupancyBB);
 
         return attacksBB;
     }

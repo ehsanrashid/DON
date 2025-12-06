@@ -321,31 +321,20 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
 
     Square kingSq = pos.square<KING>(AC);
 
-    Bitboard dstBB = attacks_bb<KING>(kingSq) & targetBB;
+    Bitboard dstBB = attacks_bb<KING>(kingSq) & targetBB & ~pos.acc_attacks_bb<KING>(~AC);
 
-    if (dstBB != 0)
+    while (dstBB != 0)
     {
-        dstBB &= ~(pos.acc_attacks_bb<KNIGHT>(~AC) | attacks_bb<KING>(pos.square<KING>(~AC)));
+        Square dstSq;
+        if constexpr (AC == WHITE)
+            dstSq = pop_msq(dstBB);
+        else
+            dstSq = pop_lsq(dstBB);
 
-        Bitboard occupancyBB = pos.pieces_bb() ^ kingSq;
-        Bitboard attackersBB = pos.pieces_bb(~AC);
+        *moves++ = Move{kingSq, dstSq};
 
-        while (dstBB != 0)
-        {
-            Square dstSq;
-            if constexpr (AC == WHITE)
-                dstSq = pop_msq(dstBB);
-            else
-                dstSq = pop_lsq(dstBB);
-
-            if (!pos.attackers_exists(dstSq, attackersBB, occupancyBB))
-            {
-                *moves++ = Move{kingSq, dstSq};
-
-                if constexpr (Any)
-                    return moves;
-            }
-        }
+        if constexpr (Any)
+            return moves;
     }
 
     if constexpr (Castle)

@@ -1023,7 +1023,7 @@ DO_MOVE_END:
     k ^= movedKey;
 
     // Update castling rights if needed
-    if (int cr; castling_rights() && (cr = castling_rights_mask(orgSq, dstSq)) != 0)
+    if (int cr; has_castling_rights() && (cr = castling_rights_mask(orgSq, dstSq)) != NO_CASTLING)
     {
         k ^= Zobrist::castling(castling_rights());
         st->castlingRights &= ~cr;
@@ -1454,7 +1454,7 @@ Key Position::move_key(Move m) const noexcept {
       Zobrist::piece_square(ac, movedPt, orgSq)
       ^ Zobrist::piece_square(ac, m.type_of() != PROMOTION ? movedPt : m.promotion_type(),
                               m.type_of() != CASTLING ? dstSq : king_castle_sq(orgSq, dstSq));
-    if (int cr; castling_rights() && (cr = castling_rights_mask(orgSq, dstSq)) != 0)
+    if (int cr; has_castling_rights() && (cr = castling_rights_mask(orgSq, dstSq)) != NO_CASTLING)
         moveKey ^= Zobrist::castling(castling_rights())  //
                  ^ Zobrist::castling(castling_rights() & ~cr);
 
@@ -2035,10 +2035,10 @@ bool Position::_is_ok() const noexcept {
 
     constexpr bool Fast = true;  // Quick (default) or full check?
 
-    if ((active_color() != WHITE && active_color() != BLACK)  //
-        || count(W_KING) != 1 || count(B_KING) != 1           //
-        || piece(square<KING>(WHITE)) != W_KING               //
-        || piece(square<KING>(BLACK)) != B_KING               //
+    if ((active_color() != WHITE && active_color() != BLACK)   //
+        || count<KING>(WHITE) != 1 || count<KING>(BLACK) != 1  //
+        || piece(square<KING>(WHITE)) != W_KING                //
+        || piece(square<KING>(BLACK)) != B_KING                //
         || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1
         || (is_ok(en_passant_sq()) && !can_enpassant(active_color(), en_passant_sq())))
         assert(false && "Position::_is_ok(): Default");
