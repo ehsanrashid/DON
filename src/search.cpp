@@ -471,6 +471,7 @@ void Worker::iterative_deepening() noexcept {
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
                 Depth adjustedDepth = rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4;
+
                 if (adjustedDepth < 1)
                     adjustedDepth = 1;
 
@@ -887,59 +888,61 @@ Value Worker::search(Position&    pos,
     Move move, bestMove = Move::None;
 
     // Step 6. Tablebases probe
-    if (!RootNode && !exclude && tbConfig.cardinality)
-    {
-        auto pieceCount = pos.count();
-
-        if (pieceCount <= tbConfig.cardinality
-            && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth)
-            && pos.rule50_count() == 0 && !pos.has_castling_rights())
+    if constexpr (!RootNode)
+        if (!exclude && tbConfig.cardinality != 0)
         {
-            Tablebases::ProbeState ps;
+            auto pieceCount = pos.count();
 
-            auto wdlScore = Tablebases::probe_wdl(pos, &ps);
-
-            // Force check of time on the next occasion
-            if (is_main_worker())
-                main_manager()->callsCount = 1;
-
-            if (ps != Tablebases::PS_FAIL)
+            if (pieceCount <= tbConfig.cardinality
+                && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth)
+                && pos.rule50_count() == 0 && !pos.has_castling_rights())
             {
-                tbHits.fetch_add(1, std::memory_order_relaxed);
+                Tablebases::ProbeState ps;
 
-                auto drawValue = tbConfig.rule50Active ? 1 : 0;
+                auto wdlScore = Tablebases::probe_wdl(pos, &ps);
 
-                // Use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to value
-                value = wdlScore < -drawValue ? -VALUE_TB + ss->ply
-                      : wdlScore > +drawValue ? +VALUE_TB - ss->ply
-                                              : VALUE_DRAW + 2 * wdlScore * drawValue;
+                // Force check of time on the next occasion
+                if (is_main_worker())
+                    main_manager()->callsCount = 1;
 
-                Bound bound = wdlScore < -drawValue ? BOUND_UPPER
-                            : wdlScore > +drawValue ? BOUND_LOWER
-                                                    : BOUND_EXACT;
-
-                if (bound == BOUND_EXACT || (bound == BOUND_LOWER ? value >= beta : value <= alpha))
+                if (ps != Tablebases::PS_FAIL)
                 {
-                    ttu.update(std::min(depth + 6, MAX_PLY - 1), Move::None, ss->ttPv, bound,
-                               value_to_tt(value, ss->ply), VALUE_NONE);
+                    tbHits.fetch_add(1, std::memory_order_relaxed);
 
-                    return value;
-                }
+                    auto drawValue = tbConfig.rule50Active ? 1 : 0;
 
-                if constexpr (PVNode)
-                {
-                    if (bound == BOUND_LOWER)
+                    // Use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to value
+                    value = wdlScore < -drawValue ? -VALUE_TB + ss->ply
+                          : wdlScore > +drawValue ? +VALUE_TB - ss->ply
+                                                  : VALUE_DRAW + 2 * wdlScore * drawValue;
+
+                    Bound bound = wdlScore < -drawValue ? BOUND_UPPER
+                                : wdlScore > +drawValue ? BOUND_LOWER
+                                                        : BOUND_EXACT;
+
+                    if (bound == BOUND_EXACT
+                        || (bound == BOUND_LOWER ? value >= beta : value <= alpha))
                     {
-                        bestValue = value;
+                        ttu.update(std::min(depth + 6, MAX_PLY - 1), Move::None, ss->ttPv, bound,
+                                   value_to_tt(value, ss->ply), VALUE_NONE);
 
-                        alpha = std::max(alpha, bestValue);
+                        return value;
                     }
-                    else
-                        maxValue = value;
+
+                    if constexpr (PVNode)
+                    {
+                        if (bound == BOUND_LOWER)
+                        {
+                            bestValue = value;
+
+                            alpha = std::max(alpha, bestValue);
+                        }
+                        else
+                            maxValue = value;
+                    }
                 }
             }
         }
-    }
 
     int absCorrectionValue = std::abs(correctionValue);
 
@@ -959,15 +962,16 @@ Value Worker::search(Position&    pos,
 
     // Step 7. Razoring
     // If eval is really low, check with qsearch then return speculative fail low.
-    if (!RootNode && !is_decisive(alpha) && eval + 485 + 281 * depth * depth <= alpha)
-    {
-        value = qsearch<PVNode>(pos, ss, alpha, beta);
+    if constexpr (!RootNode)
+        if (!is_decisive(alpha) && eval + 485 + 281 * depth * depth <= alpha)
+        {
+            value = qsearch<PVNode>(pos, ss, alpha, beta);
 
-        if (value <= alpha && !is_decisive(value))
-            return value;
+            if (value <= alpha && !is_decisive(value))
+                return value;
 
-        ss->ttMove = ttd.move;
-    }
+            ss->ttMove = ttd.move;
+        }
 
     // Step 8. Futility pruning: child node
     // The depth condition is important for mate finding.
@@ -1498,6 +1502,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (depth < 16 && !is_decisive(value))
                 {
                     depth -= 1 + (depth < 8);
+
                     if (depth < 1)
                         depth = 1;
                 }
@@ -1710,9 +1715,9 @@ QS_MOVES_LOOP:
 
     Value value;
 
-    std::uint8_t moveCount = 0;
-
     Move move, bestMove = Move::None;
+
+    std::uint8_t moveCount = 0;
 
     const History<HPieceSq>* contHistory[1]{(ss - 1)->pieceSqHistory};
 
@@ -2155,7 +2160,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         auto tbCfg = Tablebases::rank_root_moves(rootPos, rms, options, true, time_to_abort);
 
         // If DTZ is not available might not find a mate, so bail out
-        if (!tbCfg.rootInTB || tbCfg.cardinality)
+        if (!tbCfg.rootInTB || tbCfg.cardinality != 0)
             break;
 
         auto pvMove = rms[0].pv[0];
