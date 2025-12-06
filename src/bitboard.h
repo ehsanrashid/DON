@@ -209,8 +209,8 @@ constexpr Bitboard operator&(Bitboard b, Rank r) noexcept { return b & rank_bb(r
 constexpr Bitboard operator|(Bitboard b, Rank r) noexcept { return b | rank_bb(r); }
 constexpr Bitboard operator^(Bitboard b, Rank r) noexcept { return b ^ rank_bb(r); }
 
-constexpr bool more_than_one(Bitboard b) noexcept { return b & (b - 1); }
-constexpr bool exactly_one(Bitboard b) noexcept { return b && !more_than_one(b); }
+constexpr bool more_than_one(Bitboard b) noexcept { return (b & (b - 1)) != 0; }
+constexpr bool exactly_one(Bitboard b) noexcept { return b != 0 && !more_than_one(b); }
 
 // Returns a bitboard representing an entire line (from board edge to board edge)
 // passing through the squares s1 and s2.
