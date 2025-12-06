@@ -639,11 +639,8 @@ inline bool Position::castling_king_path_attackers_exists(Color c, CastlingSide 
 
     const auto& kingPathSqs = castlings.kingPathSqs[c][cs];
 
-    Bitboard occupancyBB = pieces_bb() ^ square<KING>(c);
-    Bitboard attackersBB = pieces_bb(~c);
-
     for (std::uint8_t i = 0; i < kingPathSqs.size() && is_ok(kingPathSqs[i]); ++i)
-        if (attackers_exists(kingPathSqs[i], attackersBB, occupancyBB))
+        if ((acc_attacks_bb<KING>(~c) & kingPathSqs[i]) != 0)
             return true;
 
     return false;
