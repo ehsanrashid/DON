@@ -322,7 +322,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
 
     Square kingSq = pos.square<KING>(AC);
 
-    Bitboard dstBB = attacks_bb<KING>(kingSq) & ~pos.acc_attacks_bb<KING>(~AC) & targetBB;
+    Bitboard dstBB = attacks_bb<KING>(kingSq) & ~pos.acc_attacks_bb<KING>() & targetBB;
 
     while (dstBB != 0)
     {

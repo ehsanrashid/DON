@@ -641,11 +641,13 @@ void Position::set_state() noexcept {
 // Set extra state to detect if a move is check
 void Position::set_ext_state() noexcept {
 
-    Square kingSq = square<KING>(~active_color());
+    Color ac = active_color();
+
+    Square kingSq = square<KING>(~ac);
 
     // clang-format off
     st->checksBB[NO_PIECE_TYPE] = 0;
-    st->checksBB[PAWN  ] = attacks_bb<PAWN  >(kingSq, ~active_color());
+    st->checksBB[PAWN  ] = attacks_bb<PAWN  >(kingSq, ~ac);
     st->checksBB[KNIGHT] = attacks_bb<KNIGHT>(kingSq);
     st->checksBB[BISHOP] = attacks_bb<BISHOP>(kingSq, pieces_bb());
     st->checksBB[ROOK  ] = attacks_bb<ROOK  >(kingSq, pieces_bb());
@@ -656,17 +658,22 @@ void Position::set_ext_state() noexcept {
         st->pinnersBB[c] = 0;
 
     for (Color c : {WHITE, BLACK})
-    {
         st->blockersBB[c] = blockers_bb(square<KING>(c), pieces_bb(~c), st->pinnersBB[c], st->pinnersBB[~c]);
 
-        st->accAttacksBB[c][NO_PIECE_TYPE] = 0;
-        st->accAttacksBB[c][PAWN  ] = attacks_by_bb<PAWN  >(c);
-        st->accAttacksBB[c][KNIGHT] = attacks_by_bb<KNIGHT>(c) | acc_attacks_bb<PAWN  >(c);
-        st->accAttacksBB[c][BISHOP] = attacks_by_bb<BISHOP>(c) | acc_attacks_bb<KNIGHT>(c);
-        st->accAttacksBB[c][ROOK  ] = attacks_by_bb<ROOK  >(c) | acc_attacks_bb<BISHOP>(c);
-        st->accAttacksBB[c][QUEEN ] = attacks_by_bb<QUEEN >(c) | acc_attacks_bb<ROOK  >(c);
-        st->accAttacksBB[c][KING  ] = attacks_by_bb<KING  >(c) | acc_attacks_bb<QUEEN >(c);
-    }
+    st->accAttacksBB[NO_PIECE_TYPE] = 0;
+    st->accAttacksBB[PAWN  ] = attacks_by_bb<PAWN  >(~ac);
+    st->accAttacksBB[KNIGHT] = attacks_by_bb<KNIGHT>(~ac) | acc_attacks_bb<PAWN  >();
+    st->accAttacksBB[BISHOP] = attacks_by_bb<BISHOP>(~ac) | acc_attacks_bb<KNIGHT>();
+    st->accAttacksBB[ROOK  ] = attacks_by_bb<ROOK  >(~ac) | acc_attacks_bb<BISHOP>();
+    st->accAttacksBB[QUEEN ] = attacks_by_bb<QUEEN >(~ac) | acc_attacks_bb<ROOK  >();
+    st->accAttacksBB[KING  ] = attacks_by_bb<KING  >(~ac) | acc_attacks_bb<QUEEN >();
+
+    st->accAttacksBB[ALL_PIECE_TYPE] = attacks_by_bb<PAWN  >(ac)
+                                     | attacks_by_bb<KNIGHT>(ac)
+                                     | attacks_by_bb<BISHOP>(ac)
+                                     | attacks_by_bb<ROOK  >(ac)
+                                     | attacks_by_bb<QUEEN >(ac)
+                                     | attacks_by_bb<KING  >(ac);
     // clang-format on
 }
 
@@ -1272,7 +1279,7 @@ bool Position::legal(Move m) const noexcept {
 
             // For king moves, check whether the destination square is attacked by the enemies.
             if (type_of(movedPc) == KING)
-                return (acc_attacks_bb<KING>(~ac) & dstSq) == 0;
+                return (acc_attacks_bb<KING>() & dstSq) == 0;
         }
         break;
 
@@ -2039,6 +2046,9 @@ bool Position::_is_ok() const noexcept {
         || (is_ok(en_passant_sq()) && !can_enpassant(active_color(), en_passant_sq())))
         assert(false && "Position::_is_ok(): Default");
 
+    if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
+        assert(false && "Position::_is_ok(): King Checker");
+
     if (st->key != compute_key())
         assert(false && "Position::_is_ok(): Key");
 
@@ -2054,8 +2064,8 @@ bool Position::_is_ok() const noexcept {
     if (non_pawn_key() != compute_non_pawn_key())
         assert(false && "Position::_is_ok(): NonPawn Key");
 
-    if ((acc_attacks_bb<KING>(active_color()) & square<KING>(~active_color())) != 0)
-        assert(false && "Position::_is_ok(): King Checker");
+    //if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
+    //    assert(false && "Position::_is_ok(): King Checker");
 
     if ((pieces_bb(PAWN) & PROMOTION_RANKS_BB) || count<PAWN>(WHITE) > 8 || count<PAWN>(BLACK) > 8)
         assert(false && "Position::_is_ok(): Pawns");

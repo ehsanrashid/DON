@@ -106,7 +106,7 @@ enum Color : std::uint8_t {
 // clang-format off
 enum PieceType : std::int8_t {
     NO_PIECE_TYPE,
-    PAWN = 1, KNIGHT, BISHOP, ROOK, QUEEN, KING,
+    PAWN = 1, KNIGHT, BISHOP, ROOK, QUEEN, KING, ALL_PIECE_TYPE,
     PIECE_TYPE_NB = 8
 };
 
