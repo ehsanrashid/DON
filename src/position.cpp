@@ -646,19 +646,18 @@ void Position::set_ext_state() noexcept {
     Square kingSq = square<KING>(~ac);
 
     // clang-format off
-    st->checksBB[NO_PIECE_TYPE] = 0;
+    for (Color c : {WHITE, BLACK})
+        st->pinnersBB[c] = 0;
+
+    for (Color c : {WHITE, BLACK})
+        st->blockersBB[c] = blockers_bb(square<KING>(c), pieces_bb(~c), st->pinnersBB[c], st->pinnersBB[~c]);
+
     st->checksBB[PAWN  ] = attacks_bb<PAWN  >(kingSq, ~ac);
     st->checksBB[KNIGHT] = attacks_bb<KNIGHT>(kingSq);
     st->checksBB[BISHOP] = attacks_bb<BISHOP>(kingSq, pieces_bb());
     st->checksBB[ROOK  ] = attacks_bb<ROOK  >(kingSq, pieces_bb());
     st->checksBB[QUEEN ] = checks_bb(BISHOP) | checks_bb(ROOK);
     st->checksBB[KING  ] = 0;
-
-    for (Color c : {WHITE, BLACK})
-        st->pinnersBB[c] = 0;
-
-    for (Color c : {WHITE, BLACK})
-        st->blockersBB[c] = blockers_bb(square<KING>(c), pieces_bb(~c), st->pinnersBB[c], st->pinnersBB[~c]);
 
     st->accAttacksBB[NO_PIECE_TYPE] = 0;
     st->accAttacksBB[PAWN  ] = attacks_by_bb<PAWN  >(~ac);

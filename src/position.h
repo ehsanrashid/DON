@@ -114,9 +114,9 @@ struct State final {
     // --- Not copied when making a move (will be recomputed anyhow)
     Key                               key;
     Bitboard                          checkersBB;
-    StdArray<Bitboard, PIECE_TYPE_NB> checksBB;
     StdArray<Bitboard, COLOR_NB>      pinnersBB;
     StdArray<Bitboard, COLOR_NB>      blockersBB;
+    StdArray<Bitboard, PIECE_TYPE_NB> checksBB;
     StdArray<Bitboard, PIECE_TYPE_NB> accAttacksBB;
     std::int16_t                      repetition;
     Piece                             capturedPc;
