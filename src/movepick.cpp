@@ -105,9 +105,9 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
     Color ac = pos.active_color();
 
     Square   kingSq     = pos.square<KING>(~ac);
-    Bitboard threatsBB  = pos.threats_bb();
     Bitboard blockersBB = pos.blockers_bb(~ac);
     Bitboard pinnersBB  = pos.pinners_bb();
+    Bitboard threatsBB  = pos.threats_bb();
 
     std::uint16_t pawnIndex = pawn_index(pos.pawn_key());
 

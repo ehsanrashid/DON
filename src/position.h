@@ -762,7 +762,6 @@ inline Bitboard Position::blockers_bb() const noexcept {
 inline Bitboard Position::acc_attacks_bb() const noexcept {
     return st->accAttacksBB[ALL_PIECE_TYPE];
 }
-
 template<PieceType PT>
 inline Bitboard Position::acc_attacks_bb() const noexcept {
     return st->accAttacksBB[PT];
@@ -771,7 +770,7 @@ inline Bitboard Position::acc_less_attacks_bb(PieceType pt) const noexcept {
     return st->accAttacksBB[pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
 }
 inline Bitboard Position::threats_bb() const noexcept {
-    return st->accAttacksBB[KING] & ~st->accAttacksBB[ALL_PIECE_TYPE];
+    return acc_attacks_bb<KING>() & ~acc_attacks_bb();
 }
 
 inline Piece Position::captured_pc() const noexcept { return st->capturedPc; }
