@@ -1403,8 +1403,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             // Extends ttMove if about to dive into qsearch
             if (newDepth < 1 && move == ttd.move
-                && (  // Root depth is high & TT entry is deep
-                  (rootDepth > 6 && ttd.depth > 1)
+                && (  // TT entry is deep
+                  ttd.depth > 1
                   // Handles decisive score. Improves mate finding and retrograde analysis.
                   || (is_valid(ttd.value) && is_decisive(ttd.value) && ttd.depth >= 1)))
                 newDepth = 1;
