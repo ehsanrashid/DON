@@ -217,6 +217,7 @@ class Position final {
     Color        active_color() const noexcept;
     std::int32_t move_num() const noexcept;
 
+    CastlingRights castling_rights_mask(Square s) const noexcept;
     CastlingRights castling_rights_mask(Square orgSq, Square dstSq) const noexcept;
 
     CastlingRights castling_rights() const noexcept;
@@ -599,12 +600,13 @@ inline std::int32_t Position::move_num() const noexcept {
     return 1 + (ply() - (active_color() == BLACK)) / 2;
 }
 
-inline CastlingRights Position::castling_rights_mask(Square orgSq, Square dstSq) const noexcept {
-    auto orgIdx = CASTLING_RIGHTS_INDICES[orgSq];
-    auto dstIdx = CASTLING_RIGHTS_INDICES[dstSq];
+inline CastlingRights Position::castling_rights_mask(Square s) const noexcept {
+    auto sIdx = CASTLING_RIGHTS_INDICES[s];
+    return sIdx < castlingRightsMasks.size() ? castlingRightsMasks[sIdx] : NO_CASTLING;
+}
 
-    return (orgIdx < castlingRightsMasks.size() ? castlingRightsMasks[orgIdx] : NO_CASTLING)
-         | (dstIdx < castlingRightsMasks.size() ? castlingRightsMasks[dstIdx] : NO_CASTLING);
+inline CastlingRights Position::castling_rights_mask(Square orgSq, Square dstSq) const noexcept {
+    return castling_rights_mask(orgSq) | castling_rights_mask(dstSq);
 }
 
 inline CastlingRights Position::castling_rights() const noexcept { return st->castlingRights; }

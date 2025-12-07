@@ -2043,11 +2043,9 @@ bool Position::_is_ok() const noexcept {
         || piece(square<KING>(WHITE)) != W_KING                //
         || piece(square<KING>(BLACK)) != B_KING                //
         || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1
-        || (is_ok(en_passant_sq()) && !can_enpassant(active_color(), en_passant_sq())))
+        || (is_ok(en_passant_sq()) && relative_rank(active_color(), en_passant_sq()) != RANK_6
+            && !can_enpassant(active_color(), en_passant_sq())))
         assert(false && "Position::_is_ok(): Default");
-
-    if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
-        assert(false && "Position::_is_ok(): King Checker");
 
     if (st->key != compute_key())
         assert(false && "Position::_is_ok(): Key");
@@ -2064,15 +2062,16 @@ bool Position::_is_ok() const noexcept {
     if (non_pawn_key() != compute_non_pawn_key())
         assert(false && "Position::_is_ok(): NonPawn Key");
 
-    //if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
-    //    assert(false && "Position::_is_ok(): King Checker");
+    if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
+        assert(false && "Position::_is_ok(): King Checker");
 
-    if ((pieces_bb(PAWN) & PROMOTION_RANKS_BB) || count<PAWN>(WHITE) > 8 || count<PAWN>(BLACK) > 8)
+    if ((pieces_bb(PAWN) & PROMOTION_RANKS_BB) != 0  //
+        || count<PAWN>(WHITE) > 8 || count<PAWN>(BLACK) > 8)
         assert(false && "Position::_is_ok(): Pawns");
 
-    if ((pieces_bb(WHITE) & pieces_bb(BLACK))
-        || (pieces_bb(WHITE) | pieces_bb(BLACK)) != pieces_bb() || popcount(pieces_bb(WHITE)) > 16
-        || popcount(pieces_bb(BLACK)) > 16)
+    if ((pieces_bb(WHITE) & pieces_bb(BLACK)) != 0
+        || (pieces_bb(WHITE) | pieces_bb(BLACK)) != pieces_bb()  //
+        || popcount(pieces_bb(WHITE)) > 16 || popcount(pieces_bb(BLACK)) > 16)
         assert(false && "Position::_is_ok(): Bitboards");
 
     for (PieceType p1 : PIECE_TYPES)
@@ -2099,10 +2098,10 @@ bool Position::_is_ok() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            Piece pc    = make_piece(c, pt);
-            auto  count = this->count(c, pt);
-            if (count != popcount(pieces_bb(c, pt))
-                || count != std::count(piece_map().begin(), piece_map().end(), pc))
+            Piece pc  = make_piece(c, pt);
+            auto  cnt = count(c, pt);
+            if (cnt != popcount(pieces_bb(c, pt))
+                || cnt != std::count(piece_map().begin(), piece_map().end(), pc))
                 assert(false && "Position::_is_ok(): Piece List Count");
         }
 
@@ -2126,8 +2125,8 @@ bool Position::_is_ok() const noexcept {
 
             if (!is_ok(castling_rook_sq(c, cs))
                 || (pieces_bb(c, ROOK) & castling_rook_sq(c, cs)) == 0
-                || (castlingRightsMasks[CASTLING_RIGHTS_INDICES[castling_rook_sq(c, cs)]]) != cr
-                || (castlingRightsMasks[CASTLING_RIGHTS_INDICES[square<KING>(c)]] & cr) != cr)
+                || (castling_rights_mask(castling_rook_sq(c, cs))) != cr
+                || (castling_rights_mask(square<KING>(c)) & cr) != cr)
                 assert(false && "Position::_is_ok(): Castling");
         }
 
