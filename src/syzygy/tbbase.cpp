@@ -1678,7 +1678,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 // Use the DTZ-tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Active, bool rankDTZ, std::function<bool()> time_to_abort) noexcept {
+bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Active, bool rankDTZ, TimeFunc time_to_abort) noexcept {
     // Obtain 50-move counter for the root position
     std::int16_t rule50Count = pos.rule50_count();
 
@@ -1725,7 +1725,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Active, bool
             return false;
         if (time_to_abort())
         {
-            //UCI::print_info_string("Unable to completely probe Syzygy DTZ tables due to time pressure.");
+            UCI::print_info_string("Unable to completely probe Syzygy DTZ tables due to time pressure.");
             return false;
         }
 
@@ -1783,7 +1783,7 @@ bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Active) noex
     return true;
 }
 
-Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool rankDTZ, std::function<bool()> time_to_abort) noexcept {
+Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool rankDTZ, TimeFunc time_to_abort) noexcept {
     Config config;
 
     if (rootMoves.empty())
@@ -1822,6 +1822,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
         rootMoves.sort([](const RootMove& rm1, const RootMove& rm2) noexcept {
             return rm1.tbRank > rm2.tbRank;
         });
+
         // Probe during search only if DTZ is not available and winning
         if (dtzAvailable || rootMoves[0].tbValue <= VALUE_DRAW)
             config.cardinality = 0;

@@ -43,7 +43,7 @@ constexpr std::uint8_t GENERATION_MASK = (0xFF << RESERVED_BITS) & 0xFF;
 // Maximum generation value before wrapping around
 constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 
-// TTEntry struct is the 10 bytes transposition table entry
+// TTEntry is the 10 bytes transposition table entry
 // Defined as below:
 // key          16 bit
 // move         16 bit

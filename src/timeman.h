@@ -28,7 +28,7 @@ namespace DON {
 struct Limit;
 class Options;
 
-// TimeManager class computes the optimal time to think depending on
+// TimeManager computes the optimal time to think depending on
 // the maximum available time, the game move number, and other parameters.
 class TimeManager final {
    public:

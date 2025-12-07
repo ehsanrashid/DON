@@ -279,7 +279,7 @@ void Worker::start_search() noexcept {
         Move bookBestMove = Move::None;
 
         // Check polyglot book
-        if (!(limit.infinite || limit.mate != 0))
+        if (!limit.infinite && limit.mate == 0)
             bookBestMove = Book.probe(rootPos, rootMoves, options);
 
         if (bookBestMove != Move::None)
@@ -287,18 +287,21 @@ void Worker::start_search() noexcept {
             State st;
             rootPos.do_move(bookBestMove, st, &tt);
 
-            RootMoves _rootMoves;
-            for (auto m : MoveList<LEGAL>(rootPos))
-                _rootMoves.emplace_back(m);
+            RootMoves oRootMoves;
 
-            Move bookPonderMove = Book.probe(rootPos, _rootMoves, options);
+            for (auto m : MoveList<LEGAL>(rootPos))
+                oRootMoves.emplace_back(m);
+
+            Move bookPonderMove = Book.probe(rootPos, oRootMoves, options);
 
             rootPos.undo_move(bookBestMove);
 
             for (auto&& th : threads)
             {
                 auto& rms = th->worker->rootMoves;
+
                 rms.swap_to_front(bookBestMove);
+
                 if (bookPonderMove != Move::None)
                     rms[0].pv.push_back(bookPonderMove);
             }
@@ -2095,6 +2098,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         auto pvMove = rootMove.pv[ply];
 
         RootMoves rms;
+
         for (auto m : MoveList<LEGAL>(rootPos))
             rms.emplace_back(m);
 
@@ -2132,6 +2136,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             break;
 
         RootMoves rms;
+
         for (auto m : MoveList<LEGAL>(rootPos))
         {
             auto& rm = rms.emplace_back(m);

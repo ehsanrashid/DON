@@ -65,8 +65,9 @@ void init() noexcept;
 
 }  // namespace Search
 
-// RootMove struct is used for moves at the root of the tree. For each root move
-// store a score and a PV (really a refutation in the case of moves which fail low).
+// RootMove is used for moves at the root of the tree.
+// For each root move store a score and a PV
+// (really a refutation in the case of moves which fail low).
 // Score is normally set at -VALUE_INFINITE for all non-pv moves.
 struct RootMove final {
    public:
@@ -120,6 +121,7 @@ struct RootMove final {
     MoveVector pv;
 };
 
+// RootMoves stores the collection of RootMove.
 class RootMoves final {
    public:
     using value_type      = RootMove;
@@ -283,8 +285,7 @@ class RootMoves final {
     container_type rootMoves;
 };
 
-// Limit struct stores information sent by GUI about available time to
-// search the current move, maximum depth/time, or if in analysis mode.
+// Limit stores information sent by the caller about the analysis required.
 struct Limit final {
    public:
     struct Clock final {
@@ -353,7 +354,7 @@ class Score final {
     std::variant<Unit, Tablebase, Mate> score;
 };
 
-// Skill struct is used to implement engine strength limit.
+// Skill is used to implement engine strength limit.
 // If UCI_ELO is set, convert it to an appropriate skill level.
 // Skill 0..19 covers CCRL Blitz Elo from 1320 to 3190, approximately.
 struct Skill final {
@@ -378,7 +379,7 @@ struct Skill final {
     Move   bestMove{Move::None};
 };
 
-// SharedState struct stores the engine options, networks, thread pool, and transposition table.
+// SharedState stores the engine options, networks, thread pool, and transposition table.
 // It is used to easily forward data to the Worker class.
 struct SharedState final {
    public:
@@ -400,7 +401,7 @@ struct SharedState final {
 class Worker;
 
 // Null Object Pattern, implement a common interface for the SearchManagers.
-// A Null Object will be given to non-mainthread workers.
+// Null Object will be given to non-mainthread workers.
 class ISearchManager {
    public:
     virtual ~ISearchManager() noexcept = default;
@@ -498,7 +499,7 @@ enum NodeType : std::uint8_t {
 
 constexpr NodeType operator~(NodeType nt) noexcept { return NodeType((int(nt) ^ 1) & 1); }
 
-// Stack struct keeps track of the information need to remember from nodes
+// Stack keeps track of the information need to remember from nodes
 // shallower and deeper in the tree during the search.
 // Each search thread has its own array of Stack objects, indexed by the ply. (Size = 40)
 struct Stack final {
@@ -518,7 +519,7 @@ struct Stack final {
     bool         ttPv;
 };
 
-// Worker is the class that does the actual search.
+// Worker does the actual search.
 // It is instantiated once per thread, and it is responsible for keeping track
 // of the search history, and storing data required for the search.
 class Worker final {
