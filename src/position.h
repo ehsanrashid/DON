@@ -86,7 +86,7 @@ struct Zobrist final {
 };
 
 // State struct stores information needed to restore Position object
-// to its previous state when retract any move.
+// to its previous state when retract any move. (Size = 248)
 struct State final {
    private:
     constexpr State(State&&) noexcept            = delete;
@@ -112,16 +112,16 @@ struct State final {
     bool           hasRule50High;
 
     // --- Not copied when making a move (will be recomputed anyhow)
-    Key                                         key;
-    Bitboard                                    checkersBB;
-    StdArray<Bitboard, PIECE_TYPE_NB>           checksBB;
-    StdArray<Bitboard, COLOR_NB>                pinnersBB;
-    StdArray<Bitboard, COLOR_NB>                blockersBB;
-    StdArray<Bitboard, COLOR_NB, PIECE_TYPE_NB> accAttacksBB;
-    std::int16_t                                repetition;
-    Piece                                       capturedPc;
-    Piece                                       promotedPc;
-    const State*                                preSt;
+    Key                               key;
+    Bitboard                          checkersBB;
+    StdArray<Bitboard, COLOR_NB>      pinnersBB;
+    StdArray<Bitboard, COLOR_NB>      blockersBB;
+    StdArray<Bitboard, PIECE_TYPE_NB> checksBB;
+    StdArray<Bitboard, PIECE_TYPE_NB> accAttacksBB;
+    std::int16_t                      repetition;
+    Piece                             capturedPc;
+    Piece                             promotedPc;
+    const State*                      preSt;
 
     // Copy relevant fields from the state.
     // excluding those that will recomputed from scratch anyway and
@@ -144,7 +144,7 @@ struct State final {
 
 static_assert(std::is_standard_layout_v<State> && std::is_trivially_copyable_v<State>,
               "State must be standard-layout and trivially copyable");
-//static_assert(sizeof(State) == 312, "State size");
+//static_assert(sizeof(State) == 248, "State size");
 
 // Position class stores information regarding the board representation as
 // pieces, active color, hash keys, castling info, etc. (Size = 504)
@@ -217,6 +217,7 @@ class Position final {
     Color        active_color() const noexcept;
     std::int32_t move_num() const noexcept;
 
+    CastlingRights castling_rights_mask(Square s) const noexcept;
     CastlingRights castling_rights_mask(Square orgSq, Square dstSq) const noexcept;
 
     CastlingRights castling_rights() const noexcept;
@@ -273,10 +274,11 @@ class Position final {
     Bitboard blockers_bb(Color c) const noexcept;
     Bitboard blockers_bb() const noexcept;
 
+    Bitboard acc_attacks_bb() const noexcept;
     template<PieceType PT>
-    Bitboard acc_attacks_bb(Color c) const noexcept;
-    Bitboard acc_less_attacks_bb(Color c, PieceType pt) const noexcept;
-    Bitboard threats_bb(Color c) const noexcept;
+    Bitboard acc_attacks_bb() const noexcept;
+    Bitboard acc_less_attacks_bb(PieceType pt) const noexcept;
+    Bitboard threats_bb() const noexcept;
 
     Piece captured_pc() const noexcept;
     Piece promoted_pc() const noexcept;
@@ -598,12 +600,13 @@ inline std::int32_t Position::move_num() const noexcept {
     return 1 + (ply() - (active_color() == BLACK)) / 2;
 }
 
-inline CastlingRights Position::castling_rights_mask(Square orgSq, Square dstSq) const noexcept {
-    auto orgIdx = CASTLING_RIGHTS_INDICES[orgSq];
-    auto dstIdx = CASTLING_RIGHTS_INDICES[dstSq];
+inline CastlingRights Position::castling_rights_mask(Square s) const noexcept {
+    auto sIdx = CASTLING_RIGHTS_INDICES[s];
+    return sIdx < castlingRightsMasks.size() ? castlingRightsMasks[sIdx] : NO_CASTLING;
+}
 
-    return (orgIdx < castlingRightsMasks.size() ? castlingRightsMasks[orgIdx] : NO_CASTLING)
-         | (dstIdx < castlingRightsMasks.size() ? castlingRightsMasks[dstIdx] : NO_CASTLING);
+inline CastlingRights Position::castling_rights_mask(Square orgSq, Square dstSq) const noexcept {
+    return castling_rights_mask(orgSq) | castling_rights_mask(dstSq);
 }
 
 inline CastlingRights Position::castling_rights() const noexcept { return st->castlingRights; }
@@ -625,7 +628,7 @@ inline bool Position::castling_full_path_clear(Color c, CastlingSide cs) const n
 // Checks if the castling king path is attacked
 inline bool Position::castling_king_path_clear(Color c, CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
-    return (acc_attacks_bb<KING>(~c) & castlings.kingPathBB[c][cs]) == 0;
+    return (acc_attacks_bb<KING>() & castlings.kingPathBB[c][cs]) == 0;
 }
 
 inline Square Position::castling_rook_sq(Color c, CastlingSide cs) const noexcept {
@@ -756,15 +759,18 @@ inline Bitboard Position::blockers_bb() const noexcept {
     return blockers_bb(WHITE) | blockers_bb(BLACK);
 }
 
+inline Bitboard Position::acc_attacks_bb() const noexcept {
+    return st->accAttacksBB[ALL_PIECE_TYPE];
+}
 template<PieceType PT>
-inline Bitboard Position::acc_attacks_bb(Color c) const noexcept {
-    return st->accAttacksBB[c][PT];
+inline Bitboard Position::acc_attacks_bb() const noexcept {
+    return st->accAttacksBB[PT];
 }
-inline Bitboard Position::acc_less_attacks_bb(Color c, PieceType pt) const noexcept {
-    return st->accAttacksBB[c][pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
+inline Bitboard Position::acc_less_attacks_bb(PieceType pt) const noexcept {
+    return st->accAttacksBB[pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
 }
-inline Bitboard Position::threats_bb(Color c) const noexcept {
-    return st->accAttacksBB[c][KING] & ~st->accAttacksBB[~c][KING];
+inline Bitboard Position::threats_bb() const noexcept {
+    return acc_attacks_bb<KING>() & ~acc_attacks_bb();
 }
 
 inline Piece Position::captured_pc() const noexcept { return st->capturedPc; }
