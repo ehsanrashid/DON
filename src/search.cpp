@@ -31,7 +31,6 @@
 #include "movepick.h"
 #include "nnue/network.h"
 #include "prng.h"
-#include "score.h"  // IWYU pragma: keep
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
@@ -2310,6 +2309,25 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
         updateCxt.onUpdateFull(
           {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, hashfull, tbHits, pv});
+    }
+}
+
+Score::Score(Value v, const Position& pos) noexcept {
+    assert(is_ok(v));
+
+    if (!is_decisive(v))
+    {
+        score = Unit{UCI::to_cp(v, pos)};
+    }
+    else if (!is_mate(v))
+    {
+        auto ply = VALUE_TB - std::abs(v);
+        score    = v > 0 ? Tablebase{+ply, true} : Tablebase{-ply, false};
+    }
+    else
+    {
+        auto ply = VALUE_MATE - std::abs(v);
+        score    = v > 0 ? Mate{+ply} : Mate{-ply};
     }
 }
 

@@ -29,6 +29,7 @@
 #include <memory>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "history.h"
@@ -313,6 +314,43 @@ struct Limit final {
     bool          perft{false}, detail{false};
 
     Strings searchMoves{}, ignoreMoves{};
+};
+
+class Score final {
+   public:
+    struct Unit final {
+        int value;
+    };
+
+    struct Tablebase final {
+        int  ply;
+        bool win;
+    };
+
+    struct Mate final {
+        int ply;
+    };
+
+    Score() noexcept = delete;
+    Score(Value v, const Position& pos) noexcept;
+
+    template<typename T>
+    bool is() const noexcept {
+        return std::holds_alternative<T>(score);
+    }
+
+    template<typename T>
+    T get() const noexcept {
+        return std::get<T>(score);
+    }
+
+    template<typename F>
+    decltype(auto) visit(F&& f) const noexcept {
+        return std::visit(std::forward<F>(f), score);
+    }
+
+   private:
+    std::variant<Unit, Tablebase, Mate> score;
 };
 
 // Skill struct is used to implement engine strength limit.
