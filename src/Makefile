@@ -54,14 +54,14 @@ PGOBENCH := $(WINE_PATH) ./$(EXE) bench
 
 ### Source and object files
 SRCS := benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp \
-    misc.cpp movegen.cpp movepick.cpp perft.cpp polybook.cpp position.cpp score.cpp \
+    misc.cpp movegen.cpp movepick.cpp perft.cpp polybook.cpp position.cpp \
     search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp \
     nnue/features/full_threats.cpp nnue/features/half_ka_v2_hm.cpp \
     nnue/network.cpp nnue/nnue_accumulator.cpp nnue/nnue_misc.cpp \
     syzygy/tbbase.cpp
 
 HEADERS := benchmark.h bitboard.h engine.h evaluate.h history.h memory.h misc.h movegen.h \
-    movepick.h numa.h perft.h polybook.h position.h prng.h score.h search.h shm.h shm_linux.h \
+    movepick.h numa.h perft.h polybook.h position.h prng.h search.h shm.h shm_linux.h \
     thread.h thread_win32_osx.h timeman.h tt.h tune.h types.h uci.h ucioption.h \
     nnue/features/full_threats.h nnue/features/half_ka_v2_hm.h \
     nnue/layers/affine_transform_sparse_input.h nnue/layers/affine_transform.h \

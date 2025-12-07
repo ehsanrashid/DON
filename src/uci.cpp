@@ -34,7 +34,6 @@
 #include "bitboard.h"
 #include "memory.h"
 #include "position.h"
-#include "score.h"
 #include "search.h"
 #include "ucioption.h"
 
@@ -1061,7 +1060,7 @@ Move UCI::mix_to_move(std::string            mix,
 
     if (!legalMoveList.empty() && mix.size() >= 2)
     {
-        if (mix.size() < 4 || (mix[1] == '-' && (mix[0] == '0' || std::tolower(mix[0]) == 'o')))
+        if (mix.size() <= 3 || (mix[1] == '-' && (mix[0] == '0' || std::tolower(mix[0]) == 'o')))
             return san_to_move(mix, pos, legalMoveList);
 
         if (mix.size() <= 5)
