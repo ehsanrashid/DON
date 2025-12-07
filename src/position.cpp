@@ -641,21 +641,26 @@ void Position::set_state() noexcept {
 // Set extra state to detect if a move is check
 void Position::set_ext_state() noexcept {
 
-    Color ac = active_color();
-
-    Square kingSq = square<KING>(~ac);
-
-    // clang-format off
     for (Color c : {WHITE, BLACK})
         st->pinnersBB[c] = 0;
 
     for (Color c : {WHITE, BLACK})
-        st->blockersBB[c] = blockers_bb(square<KING>(c), pieces_bb(~c), st->pinnersBB[c], st->pinnersBB[~c]);
+    {
+        Square   kingSq      = square<KING>(c);
+        Bitboard attackersBB = pieces_bb(~c);
 
+        st->blockersBB[c] = blockers_bb(kingSq, attackersBB, st->pinnersBB[c], st->pinnersBB[~c]);
+    }
+
+    Color    ac          = active_color();
+    Square   kingSq      = square<KING>(~ac);
+    Bitboard occupancyBB = pieces_bb();
+
+    // clang-format off
     st->checksBB[PAWN  ] = attacks_bb<PAWN  >(kingSq, ~ac);
     st->checksBB[KNIGHT] = attacks_bb<KNIGHT>(kingSq);
-    st->checksBB[BISHOP] = attacks_bb<BISHOP>(kingSq, pieces_bb());
-    st->checksBB[ROOK  ] = attacks_bb<ROOK  >(kingSq, pieces_bb());
+    st->checksBB[BISHOP] = attacks_bb<BISHOP>(kingSq, occupancyBB);
+    st->checksBB[ROOK  ] = attacks_bb<ROOK  >(kingSq, occupancyBB);
     st->checksBB[QUEEN ] = checks_bb(BISHOP) | checks_bb(ROOK);
     st->checksBB[KING  ] = 0;
 
