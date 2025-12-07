@@ -190,8 +190,9 @@ void Position::clear() noexcept {
     std::memset(colorBBs.data(), 0, sizeof(colorBBs));
     std::memset(pieceCounts.data(), 0, sizeof(pieceCounts));
     std::memset(castlingRightsMasks.data(), NO_CASTLING, sizeof(castlingRightsMasks));
-
-    castlings.clear();
+    std::memset(castlings.fullPathBB.data(), 0, sizeof(castlings.fullPathBB));
+    std::memset(castlings.kingPathBB.data(), 0, sizeof(castlings.kingPathBB));
+    std::memset(castlings.rookSq.data(), SQ_NONE, sizeof(castlings.rookSq));
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
@@ -593,13 +594,8 @@ void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     Bitboard rookPathBB = between_bb(rookOrgSq, rookDstSq);
 
     castlings.fullPathBB[c][cs] = (kingPathBB | rookPathBB) & ~make_bb(kingOrgSq, rookOrgSq);
-
-    std::uint8_t kingPathLen = 0;
-    while (kingPathBB != 0)
-        castlings.kingPathSqs[c][cs][kingPathLen++] =
-          cs == KING_SIDE ? pop_lsq(kingPathBB) : pop_msq(kingPathBB);
-
-    castlings.rookSq[c][cs] = rookOrgSq;
+    castlings.kingPathBB[c][cs] = kingPathBB;
+    castlings.rookSq[c][cs]     = rookOrgSq;
 }
 
 // Computes the hash keys of the position, and other data
@@ -2285,11 +2281,8 @@ void Position::dump(std::ostream& os) const noexcept {
             os << (c == WHITE ? "W|" : "B|") << (cs == KING_SIDE ? "O-O" : "O-O-O") << ":\n";
             os << u64_to_string(castlings.fullPathBB[c][cs]);
             os << "\n";
-            for (std::size_t i = 0; i < castlings.kingPathSqs[c][cs].size()  //
-                                    && is_ok(castlings.kingPathSqs[c][cs][i]);
-                 ++i)
-                os << to_square(castlings.kingPathSqs[c][cs][i]) << " ";
-            os << "-\n";
+            os << u64_to_string(castlings.kingPathBB[c][cs]);
+            os << "\n";
             if (is_ok(castlings.rookSq[c][cs]))
                 os << to_square(castlings.rookSq[c][cs]);
             else

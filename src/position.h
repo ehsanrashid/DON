@@ -224,7 +224,7 @@ class Position final {
     bool   has_castling_rights() const noexcept;
     bool   has_castling_rights(Color c, CastlingSide cs) const noexcept;
     bool   castling_full_path_clear(Color c, CastlingSide cs) const noexcept;
-    bool   castling_king_path_attackers_exists(Color c, CastlingSide cs) const noexcept;
+    bool   castling_king_path_clear(Color c, CastlingSide cs) const noexcept;
     Square castling_rook_sq(Color c, CastlingSide cs) const noexcept;
     bool   castling_possible(Color c, CastlingSide cs) const noexcept;
 
@@ -362,17 +362,9 @@ class Position final {
    private:
     struct Castlings final {
        public:
-        Castlings() noexcept { clear(); }
-
-        void clear() noexcept {
-            std::memset(fullPathBB.data(), 0, sizeof(fullPathBB));
-            std::memset(kingPathSqs.data(), SQ_NONE, sizeof(kingPathSqs));
-            std::memset(rookSq.data(), SQ_NONE, sizeof(rookSq));
-        }
-
-        StdArray<Bitboard, COLOR_NB, CASTLING_SIDE_NB>  fullPathBB;
-        StdArray<Square, COLOR_NB, CASTLING_SIDE_NB, 5> kingPathSqs;
-        StdArray<Square, COLOR_NB, CASTLING_SIDE_NB>    rookSq;
+        StdArray<Bitboard, COLOR_NB, CASTLING_SIDE_NB> fullPathBB;
+        StdArray<Bitboard, COLOR_NB, CASTLING_SIDE_NB> kingPathBB;
+        StdArray<Square, COLOR_NB, CASTLING_SIDE_NB>   rookSq;
     };
 
     // SEE struct used to get a nice syntax for SEE comparisons.
@@ -627,23 +619,13 @@ inline bool Position::has_castling_rights(Color c, CastlingSide cs) const noexce
 // Checks if squares between king and rook are empty
 inline bool Position::castling_full_path_clear(Color c, CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
-
-    Bitboard fullPathBB = castlings.fullPathBB[c][cs];
-
-    return (pieces_bb() & fullPathBB) == 0;
+    return (pieces_bb() & castlings.fullPathBB[c][cs]) == 0;
 }
 
 // Checks if the castling king path is attacked
-inline bool Position::castling_king_path_attackers_exists(Color c, CastlingSide cs) const noexcept {
+inline bool Position::castling_king_path_clear(Color c, CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
-
-    const auto& kingPathSqs = castlings.kingPathSqs[c][cs];
-
-    for (std::uint8_t i = 0; i < kingPathSqs.size() && is_ok(kingPathSqs[i]); ++i)
-        if ((acc_attacks_bb<KING>(~c) & kingPathSqs[i]) != 0)
-            return true;
-
-    return false;
+    return (acc_attacks_bb<KING>(~c) & castlings.kingPathBB[c][cs]) == 0;
 }
 
 inline Square Position::castling_rook_sq(Color c, CastlingSide cs) const noexcept {
@@ -660,7 +642,7 @@ inline bool Position::castling_possible(Color c, CastlingSide cs) const noexcept
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
         && (blockers_bb(c) & castling_rook_sq(c, cs)) == 0  //
         && castling_full_path_clear(c, cs)                  //
-        && !castling_king_path_attackers_exists(c, cs);
+        && castling_king_path_clear(c, cs);
 }
 
 // clang-format off
