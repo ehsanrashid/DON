@@ -51,7 +51,7 @@ constexpr T rotr(T v, unsigned k) noexcept {
 class SplitMix64 final {
    public:
     explicit constexpr SplitMix64(std::uint64_t seed = 1ULL) noexcept :
-        s{seed != 0 ? seed : 1ULL} {}
+        s(seed != 0 ? seed : 1ULL) {}
 
     constexpr std::uint64_t next() noexcept {
         std::uint64_t z = s += 0x9E3779B97F4A7C15ULL;

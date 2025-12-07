@@ -270,8 +270,8 @@ void Worker::start_search() noexcept {
     {
         rootMoves.emplace_back(Move::None);
 
-        auto score =
-          UCI::to_score({Value(rootPos.checkers_bb() ? -VALUE_MATE : VALUE_DRAW), rootPos});
+        Value       value = rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW;
+        std::string score = UCI::to_score({value, rootPos});
         mainManager->updateCxt.onUpdateShort({DEPTH_ZERO, score});
     }
     else
@@ -1402,8 +1402,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             // Extends ttMove if about to dive into qsearch
             if (newDepth < 1 && move == ttd.move
-                && (  // TT entry is deep
-                  ttd.depth > 1
+                && (  // Root depth is high & TT entry is deep
+                  (rootDepth > 6 && ttd.depth > 1)
                   // Handles decisive score. Improves mate finding and retrograde analysis.
                   || (is_valid(ttd.value) && is_decisive(ttd.value) && ttd.depth >= 1)))
                 newDepth = 1;

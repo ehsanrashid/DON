@@ -592,10 +592,12 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
     std::uint32_t maxWeight = 0;
     std::uint64_t sumWeight = 0;
+
     for (const auto& candidate : candidates)
     {
         if (maxWeight < candidate.weight)
             maxWeight = candidate.weight;
+
         sumWeight += candidate.weight;
     }
 
@@ -628,12 +630,14 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     if (options["BookPickBest"])
     {
         std::int32_t bestWeight = -0xFFFF;
+
         for (const auto& candidate : candidates)
             if (bestWeight < candidate.weight)
             {
                 bestWeight = candidate.weight;
 
                 move = pg_to_move(candidate.move, legalMoveList);
+
                 if (rootMoves.contains(move))
                     bestMove = move;
             }
@@ -643,12 +647,15 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
         std::uint64_t randWeight = prng.rand<std::uint64_t>() % sumWeight;
 
         sumWeight = 0;
+
         for (const auto& candidate : candidates)
         {
             sumWeight += candidate.weight;
+
             if (randWeight < sumWeight)
             {
                 move = pg_to_move(candidate.move, legalMoveList);
+
                 if (rootMoves.contains(move))
                 {
                     bestMove = move;
@@ -665,6 +672,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
         for (const auto& candidate : candidates)
         {
             move = pg_to_move(candidate.move, legalMoveList);
+
             if (rootMoves.contains(move))
             {
                 bestMove = move;
@@ -677,10 +685,13 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
         return Move::None;
 
     MoveVector candidateMoves;
+
     candidateMoves.push_back(bestMove);
+
     for (const auto& candidate : candidates)
     {
         move = pg_to_move(candidate.move, legalMoveList);
+
         if (move != candidateMoves[0])
             candidateMoves.push_back(move);
     }

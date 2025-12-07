@@ -40,17 +40,19 @@ namespace DON {
 
 namespace {
 
-constexpr unsigned MIN_THREADS = 1;
-const unsigned     MAX_THREADS = std::max(4 * int(hardware_concurrency()), 1024);
+constexpr unsigned MIN_THREADS     = 1U;
+const unsigned     MAX_THREADS     = std::max(4U * unsigned(hardware_concurrency()), 1024U);
+const unsigned     DEFAULT_THREADS = std::max(1U, MIN_THREADS);
 
-constexpr unsigned MIN_HASH = 4;
+constexpr unsigned MIN_HASH = 1U;
 constexpr unsigned MAX_HASH =
 #if defined(IS_64BIT)
-  0x2000000
+  0x2000000U
 #else
-  0x800
+  0x800U
 #endif
   ;
+constexpr unsigned DEFAULT_HASH = std::max(16U, MIN_HASH);
 
 }  // namespace
 
@@ -75,11 +77,11 @@ Engine::Engine(std::optional<std::string> path) noexcept :
         return get_numa_config_info_str() + '\n'
              + get_thread_allocation_info_str();
     })));
-    options.add("Threads",              Option(MIN_THREADS, MIN_THREADS, MAX_THREADS, OnCng([this](const Option&) {
+    options.add("Threads",              Option(DEFAULT_THREADS, MIN_THREADS, MAX_THREADS, OnCng([this](const Option&) {
         resize_threads_tt();
         return get_thread_allocation_info_str();
     })));
-    options.add("Hash",                 Option(16, MIN_HASH, MAX_HASH, OnCng([this](const Option& o) {
+    options.add("Hash",                 Option(DEFAULT_HASH, MIN_HASH, MAX_HASH, OnCng([this](const Option& o) {
         resize_tt(o);
         return "Hash: " + std::to_string(int(o));
     })));
