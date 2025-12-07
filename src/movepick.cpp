@@ -53,9 +53,8 @@ MovePicker::MovePicker(const Position&              p,
     assert(ttMove == Move::None || pos.legal(ttMove));
 
     stage = pos.checkers_bb() != 0 ? STG_EVA_TT + int(!(ttMove != Move::None))
-          : threshold < 0
-            ? STG_ENC_TT + int(!(ttMove != Move::None))
-            : STG_QS_TT + int(!(ttMove != Move::None && pos.capture_queenpromo(ttMove)));
+          : threshold < 0          ? STG_ENC_TT + int(!(ttMove != Move::None))
+                          : STG_QS_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
 }
 
 // MovePicker constructor for ProbCut:
@@ -71,7 +70,7 @@ MovePicker::MovePicker(const Position&          p,
     assert(pos.checkers_bb() == 0);
     assert(ttMove == Move::None || pos.legal(ttMove));
 
-    stage = STG_PROBCUT_TT + int(!(ttMove != Move::None && pos.capture_queenpromo(ttMove)));
+    stage = STG_PROBCUT_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -87,7 +86,7 @@ MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveL
         auto& m = *itr++;
         m       = move;
 
-        assert(pos.capture_queenpromo(m));
+        assert(pos.capture_promo(m));
 
         Square dstSq      = m.dst_sq();
         auto   movedPc    = pos.moved_pc(m);
@@ -117,7 +116,7 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
         auto& m = *itr++;
         m       = move;
 
-        assert(!pos.capture_queenpromo(m));
+        assert(!pos.capture_promo(m));
 
         Square orgSq = m.org_sq(), dstSq = m.dst_sq();
         Piece  movedPc = pos.moved_pc(m);
@@ -170,7 +169,7 @@ MovePicker::iterator MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveL
         auto& m = *itr++;
         m       = move;
 
-        assert(pos.capture_queenpromo(m));
+        assert(pos.capture_promo(m));
         assert(m.type_of() != CASTLING);
 
         auto capturedPt = pos.captured_pt(m);
@@ -191,7 +190,7 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
         auto& m = *itr++;
         m       = move;
 
-        assert(!pos.capture_queenpromo(m));
+        assert(!pos.capture_promo(m));
         assert(m.type_of() != CASTLING);
 
         Square dstSq   = m.dst_sq();
