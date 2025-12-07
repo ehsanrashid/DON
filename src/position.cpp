@@ -663,13 +663,13 @@ void Position::set_ext_state() noexcept {
     {
         st->blockersBB[c] = blockers_bb(square<KING>(c), pieces_bb(~c), st->pinnersBB[c], st->pinnersBB[~c]);
 
-        st->attacksAccBB[c][NO_PIECE_TYPE] = 0;
-        st->attacksAccBB[c][PAWN  ] = attacks_by_bb<PAWN  >(c);
-        st->attacksAccBB[c][KNIGHT] = attacks_by_bb<KNIGHT>(c) | acc_attacks_bb<PAWN  >(c);
-        st->attacksAccBB[c][BISHOP] = attacks_by_bb<BISHOP>(c) | acc_attacks_bb<KNIGHT>(c);
-        st->attacksAccBB[c][ROOK  ] = attacks_by_bb<ROOK  >(c) | acc_attacks_bb<BISHOP>(c);
-        st->attacksAccBB[c][QUEEN ] = attacks_by_bb<QUEEN >(c) | acc_attacks_bb<ROOK  >(c);
-        st->attacksAccBB[c][KING  ] = attacks_by_bb<KING  >(c) | acc_attacks_bb<QUEEN >(c);
+        st->accAttacksBB[c][NO_PIECE_TYPE] = 0;
+        st->accAttacksBB[c][PAWN  ] = attacks_by_bb<PAWN  >(c);
+        st->accAttacksBB[c][KNIGHT] = attacks_by_bb<KNIGHT>(c) | acc_attacks_bb<PAWN  >(c);
+        st->accAttacksBB[c][BISHOP] = attacks_by_bb<BISHOP>(c) | acc_attacks_bb<KNIGHT>(c);
+        st->accAttacksBB[c][ROOK  ] = attacks_by_bb<ROOK  >(c) | acc_attacks_bb<BISHOP>(c);
+        st->accAttacksBB[c][QUEEN ] = attacks_by_bb<QUEEN >(c) | acc_attacks_bb<ROOK  >(c);
+        st->accAttacksBB[c][KING  ] = attacks_by_bb<KING  >(c) | acc_attacks_bb<QUEEN >(c);
     }
     // clang-format on
 }

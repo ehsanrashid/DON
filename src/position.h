@@ -117,7 +117,7 @@ struct State final {
     StdArray<Bitboard, PIECE_TYPE_NB>           checksBB;
     StdArray<Bitboard, COLOR_NB>                pinnersBB;
     StdArray<Bitboard, COLOR_NB>                blockersBB;
-    StdArray<Bitboard, COLOR_NB, PIECE_TYPE_NB> attacksAccBB;
+    StdArray<Bitboard, COLOR_NB, PIECE_TYPE_NB> accAttacksBB;
     std::int16_t                                repetition;
     Piece                                       capturedPc;
     Piece                                       promotedPc;
@@ -776,13 +776,13 @@ inline Bitboard Position::blockers_bb() const noexcept {
 
 template<PieceType PT>
 inline Bitboard Position::acc_attacks_bb(Color c) const noexcept {
-    return st->attacksAccBB[c][PT];
+    return st->accAttacksBB[c][PT];
 }
 inline Bitboard Position::acc_less_attacks_bb(Color c, PieceType pt) const noexcept {
-    return st->attacksAccBB[c][pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
+    return st->accAttacksBB[c][pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
 }
 inline Bitboard Position::threats_bb(Color c) const noexcept {
-    return st->attacksAccBB[c][KING] & ~st->attacksAccBB[~c][KING];
+    return st->accAttacksBB[c][KING] & ~st->accAttacksBB[~c][KING];
 }
 
 inline Piece Position::captured_pc() const noexcept { return st->capturedPc; }
@@ -940,7 +940,7 @@ inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept 
 }
 
 inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
-    assert(is_ok(s));
+    assert(is_ok(s) && !empty(s));
     Bitboard sBB = square_bb(s);
 
     Piece pc = piece(s);
@@ -971,7 +971,7 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
 }
 
 inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexcept {
-    assert(is_ok(s1) && is_ok(s2) && s1 != s2);
+    assert(is_ok(s1) && is_ok(s2) && s1 != s2 && !empty(s1));
     Bitboard s1s2BB = make_bb(s1, s2);
 
     Piece pc = piece(s1);
