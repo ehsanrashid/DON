@@ -2047,6 +2047,9 @@ bool Position::_is_ok() const noexcept {
             && !can_enpassant(active_color(), en_passant_sq())))
         assert(false && "Position::_is_ok(): Default");
 
+    if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
+        assert(false && "Position::_is_ok(): King Checker");
+
     if (st->key != compute_key())
         assert(false && "Position::_is_ok(): Key");
 
@@ -2061,9 +2064,6 @@ bool Position::_is_ok() const noexcept {
 
     if (non_pawn_key() != compute_non_pawn_key())
         assert(false && "Position::_is_ok(): NonPawn Key");
-
-    if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
-        assert(false && "Position::_is_ok(): King Checker");
 
     if ((pieces_bb(PAWN) & PROMOTION_RANKS_BB) != 0  //
         || count<PAWN>(WHITE) > 8 || count<PAWN>(BLACK) > 8)
