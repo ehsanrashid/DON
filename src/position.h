@@ -259,7 +259,7 @@ class Position final {
     // Properties of moves
     bool  legal(Move m) const noexcept;
     bool  capture(Move m) const noexcept;
-    bool  capture_queenpromo(Move m) const noexcept;
+    bool  capture_promo(Move m) const noexcept;
     bool  check(Move m) const noexcept;
     bool  dbl_check(Move m) const noexcept;
     bool  fork(Move m) const noexcept;
@@ -884,8 +884,11 @@ inline bool Position::capture(Move m) const noexcept {
     return (m.type_of() != CASTLING && !empty(m.dst_sq())) || m.type_of() == EN_PASSANT;
 }
 
-inline bool Position::capture_queenpromo(Move m) const noexcept {
-    return capture(m) || m.promotion_type() == QUEEN;  // m.type_of() == PROMOTION must be true here
+inline bool Position::capture_promo(Move m) const noexcept {
+    return capture(m)
+        || (m.type_of() == PROMOTION
+            && (m.promotion_type() == QUEEN
+                || (m.promotion_type() == KNIGHT && (checks_bb(KNIGHT) & m.dst_sq()) != 0)));
 }
 
 inline Piece Position::moved_pc(Move m) const noexcept {

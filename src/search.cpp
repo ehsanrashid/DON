@@ -156,7 +156,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dstSq, int bo
 Value adjust_static_eval(Value ev, int cv) noexcept { return in_range(ev + int(7.6294e-6 * cv)); }
 
 bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcept {
-    return !(pos.capture_queenpromo(move) || pos.rule50_count() < 10 || pos.null_ply() < 6
+    return !(pos.capture_promo(move) || pos.rule50_count() < 10 || pos.null_ply() < 6
              || ss->ply < 20)
         && (ss - 2)->move.is_ok() && move.org_sq() == (ss - 2)->move.dst_sq()
         && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq()
@@ -765,7 +765,7 @@ Value Worker::search(Position&    pos,
                          : Move::None;
     assert(ttd.move == Move::None || pos.legal(ttd.move));
     ss->ttMove     = ttd.move;
-    bool ttCapture = ttd.move != Move::None && pos.capture_queenpromo(ttd.move);
+    bool ttCapture = ttd.move != Move::None && pos.capture_promo(ttd.move);
 
     if (!exclude)
         ss->ttPv = PVNode || (ttd.hit && ttd.pv);
@@ -1061,7 +1061,7 @@ Value Worker::search(Position&    pos,
         while ((move = mp.next_move()) != Move::None)
         {
             assert(pos.legal(move));
-            assert(pos.capture_queenpromo(move)
+            assert(pos.capture_promo(move)
                    && (move == ttd.move || pos.see(move) >= probCutThreshold));
 
             // Check for exclusion
@@ -1162,7 +1162,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         Piece movedPc = pos.moved_pc(move);
 
         bool check    = pos.check(move);
-        bool capture  = pos.capture_queenpromo(move);
+        bool capture  = pos.capture_promo(move);
         auto captured = capture ? pos.captured_pt(move) : NO_PIECE_TYPE;
 
         // Calculate new depth for this move
@@ -1731,7 +1731,7 @@ QS_MOVES_LOOP:
     while ((move = mp.next_move()) != Move::None)
     {
         assert(pos.legal(move));
-        assert(ss->inCheck || pos.capture_queenpromo(move));
+        assert(ss->inCheck || pos.capture_promo(move));
 
         ++moveCount;
 
@@ -1742,7 +1742,7 @@ QS_MOVES_LOOP:
         // Step 6. Pruning
         if (!is_loss(bestValue))
         {
-            bool capture = pos.capture_queenpromo(move);
+            bool capture = pos.capture_promo(move);
 
             // Futility pruning and moveCount pruning
             if (!check && dstSq != preSq && move.type_of() != PROMOTION && !is_loss(futilityBase))
@@ -1847,7 +1847,7 @@ QS_MOVES_LOOP:
 }
 
 void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const ss) noexcept {
-    bool capture = pos.capture_queenpromo(m);
+    bool capture = pos.capture_promo(m);
     auto db      = pos.do_move(m, st, check, &tt);
     nodes.fetch_add(1, std::memory_order_relaxed);
     if (ss != nullptr)
@@ -1922,7 +1922,7 @@ void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_
     int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * (bestMove == ss->ttMove);
     int malus = std::max(std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount, 1);
 
-    if (pos.capture_queenpromo(bestMove))
+    if (pos.capture_promo(bestMove))
     {
         update_capture_history(pos, bestMove, 1.3623 * bonus);
     }

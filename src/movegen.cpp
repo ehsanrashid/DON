@@ -84,7 +84,7 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* moves) noexcept {
 
 // Splat promotion moves
 template<Color AC, GenType GT, Direction D, bool Enemy>
-Move* splat_promotion_moves(Bitboard dstBB, Move* moves) noexcept {
+Move* splat_promotion_moves(Bitboard dstBB, Bitboard knightChecksBB, Move* moves) noexcept {
     static_assert(D == NORTH || D == SOUTH                 //
                     || D == NORTH_EAST || D == SOUTH_EAST  //
                     || D == NORTH_WEST || D == SOUTH_WEST,
@@ -103,13 +103,18 @@ Move* splat_promotion_moves(Bitboard dstBB, Move* moves) noexcept {
             dstSq = pop_lsq(dstBB);
 
         if constexpr (All || Capture)
+        {
             *moves++ = Move{dstSq - D, dstSq, QUEEN};
+            if ((knightChecksBB & dstSq) != 0)
+                *moves++ = Move{dstSq - D, dstSq, KNIGHT};
+        }
 
         if constexpr (All || (Capture && Enemy) || (Quiet && !Enemy))
         {
             *moves++ = Move{dstSq - D, dstSq, ROOK};
             *moves++ = Move{dstSq - D, dstSq, BISHOP};
-            *moves++ = Move{dstSq - D, dstSq, KNIGHT};
+            if ((knightChecksBB & dstSq) == 0)
+                *moves++ = Move{dstSq - D, dstSq, KNIGHT};
         }
     }
 
@@ -181,19 +186,21 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     // Promotions and under-promotions
     if (yesR7PawnsBB)
     {
+        Bitboard knightChecksBB = pos.checks_bb(KNIGHT);
+
         Bitboard dstBB;
 
         dstBB = shift_bb<LCap>(yesR7PawnsBB) & enemyBB;
-        moves = splat_promotion_moves<AC, GT, LCap, true>(dstBB, moves);
+        moves = splat_promotion_moves<AC, GT, LCap, true>(dstBB, knightChecksBB, moves);
 
         dstBB = shift_bb<RCap>(yesR7PawnsBB) & enemyBB;
-        moves = splat_promotion_moves<AC, GT, RCap, true>(dstBB, moves);
+        moves = splat_promotion_moves<AC, GT, RCap, true>(dstBB, knightChecksBB, moves);
 
         dstBB = shift_bb<Push1>(yesR7PawnsBB) & emptyBB;
         // Consider only blocking and capture squares
         if constexpr (Evasion)
             dstBB &= between_bb(pos.square<KING>(AC), lsq(pos.checkers_bb()));
-        moves = splat_promotion_moves<AC, GT, Push1, false>(dstBB, moves);
+        moves = splat_promotion_moves<AC, GT, Push1, false>(dstBB, knightChecksBB, moves);
     }
 
     // Single and double pawn pushes, no promotions
