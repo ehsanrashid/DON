@@ -111,10 +111,10 @@ Move* splat_promotion_moves(Bitboard dstBB, Bitboard knightChecksBB, Move* moves
 
         if constexpr (All || (Capture && Enemy) || (Quiet && !Enemy))
         {
-            if ((knightChecksBB & dstSq) == 0)
-                *moves++ = Move{dstSq - D, dstSq, KNIGHT};
             *moves++ = Move{dstSq - D, dstSq, ROOK};
             *moves++ = Move{dstSq - D, dstSq, BISHOP};
+            if ((knightChecksBB & dstSq) == 0)
+                *moves++ = Move{dstSq - D, dstSq, KNIGHT};
         }
     }
 
