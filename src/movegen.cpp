@@ -103,11 +103,7 @@ Move* splat_promotion_moves(Bitboard dstBB, Bitboard knightChecksBB, Move* moves
             dstSq = pop_lsq(dstBB);
 
         if constexpr (All || Capture)
-        {
             *moves++ = Move{dstSq - D, dstSq, QUEEN};
-            if ((knightChecksBB & dstSq) != 0)
-                *moves++ = Move{dstSq - D, dstSq, KNIGHT};
-        }
 
         if constexpr (All || (Capture && Enemy) || (Quiet && !Enemy))
         {
@@ -116,6 +112,10 @@ Move* splat_promotion_moves(Bitboard dstBB, Bitboard knightChecksBB, Move* moves
             if ((knightChecksBB & dstSq) == 0)
                 *moves++ = Move{dstSq - D, dstSq, KNIGHT};
         }
+
+        if constexpr (All || Capture)
+            if ((knightChecksBB & dstSq) != 0)
+                *moves++ = Move{dstSq - D, dstSq, KNIGHT};
     }
 
     return moves;
