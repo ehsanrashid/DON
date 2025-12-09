@@ -184,7 +184,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     Move *rMoves = moves, *wMoves = moves;
 
     // Promotions and under-promotions
-    if (yesR7PawnsBB)
+    if (yesR7PawnsBB != 0)
     {
         Bitboard knightChecksBB = pos.checks_bb(KNIGHT);
 
@@ -354,7 +354,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
                 if (pos.castling_possible(AC, cs))
                 {
                     assert(is_ok(pos.castling_rook_sq(AC, cs))
-                           && (pos.pieces_bb(AC, ROOK) & pos.castling_rook_sq(AC, cs)));
+                           && (pos.pieces_bb(AC, ROOK) & pos.castling_rook_sq(AC, cs)) != 0);
 
                     *moves++ = Move{CASTLING, kingSq, pos.castling_rook_sq(AC, cs)};
 

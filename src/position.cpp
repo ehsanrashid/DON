@@ -787,7 +787,6 @@ void Position::do_castling(Color             ac,
     bool kingMoved = kingOrgSq != kingDstSq;
     bool rookMoved = rookOrgSq != rookDstSq;
 
-    // Remove rook first since squares could overlap in Chess960
     if constexpr (Do)
     {
         db->dp.dstSq    = kingDstSq;
@@ -795,24 +794,15 @@ void Position::do_castling(Color             ac,
         db->dp.addSq    = rookDstSq;
         db->dp.removePc = db->dp.addPc = rookPc;
 
-        if (rookMoved)
-            remove(rookOrgSq, &db->dts);
-        if (kingMoved)
-            move(kingOrgSq, kingDstSq, &db->dts);
-        if (rookMoved)
-            put(rookDstSq, rookPc, &db->dts);
-
         st->hasCastled[ac] = true;
     }
-    else
-    {
-        if (rookMoved)
-            remove(rookDstSq);
-        if (kingMoved)
-            move(kingDstSq, kingOrgSq);
-        if (rookMoved)
-            put(rookOrgSq, rookPc);
-    }
+    // Remove rook first since squares could overlap in Chess960
+    if (rookMoved)
+        remove(Do ? rookOrgSq : rookDstSq, Do ? &db->dts : nullptr);
+    if (kingMoved)
+        move(Do ? kingOrgSq : kingDstSq, Do ? kingDstSq : kingOrgSq, Do ? &db->dts : nullptr);
+    if (rookMoved)
+        put(Do ? rookDstSq : rookOrgSq, rookPc, Do ? &db->dts : nullptr);
 }
 
 // Makes a move, and saves all necessary information to new state.
@@ -1408,7 +1398,7 @@ bool Position::fork(Move m) const noexcept {
 
     Color ac = active_color();
 
-    switch (type_of(piece(m.org_sq())))
+    switch (type_of(moved_pc(m)))
     {
     case PAWN :
         return more_than_one(pieces_bb(~ac) & ~pieces_bb(PAWN) & attacks_bb<PAWN>(m.dst_sq(), ac));
