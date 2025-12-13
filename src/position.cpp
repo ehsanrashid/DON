@@ -450,7 +450,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     if (is_ok(enPassantSq))
     {
         reset_rule50_count();
-        if (epCheck && can_enpassant(ac, enPassantSq))
+        if (epCheck && enpassant_possible(ac, enPassantSq))
             st->enPassantSq = enPassantSq;
     }
     assert(rule50_count() <= 100);
@@ -683,16 +683,16 @@ void Position::set_ext_state() noexcept {
 
 // Check can do en-passant
 template<bool After>
-bool Position::can_enpassant(Color           ac,
-                             Square          enPassantSq,
-                             Bitboard* const epPawnsBB) const noexcept {
+bool Position::enpassant_possible(Color           ac,
+                                  Square          enPassantSq,
+                                  Bitboard* const _epPawnsBB) const noexcept {
     assert(is_ok(enPassantSq));
 
     // En-passant attackers
-    Bitboard acPawnsBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
-    if (epPawnsBB != nullptr)
-        *epPawnsBB = acPawnsBB;
-    if (acPawnsBB == 0)
+    Bitboard epPawnsBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
+    if (_epPawnsBB != nullptr)
+        *_epPawnsBB = epPawnsBB;
+    if (epPawnsBB == 0)
         return false;
 
     Square capturedSq;
@@ -709,60 +709,62 @@ bool Position::can_enpassant(Color           ac,
         // If there are checkers other than the to be captured pawn, ep is never legal
         if ((checkers_bb() & ~square_bb(capturedSq)) != 0)
         {
-            if (epPawnsBB != nullptr)
-                *epPawnsBB = 0;
+            if (_epPawnsBB != nullptr)
+                *_epPawnsBB = 0;
             return false;
         }
 
         // If there are two pawns potentially being abled to capture
-        if (more_than_one(acPawnsBB))
+        if (more_than_one(epPawnsBB))
         {
             // If at least one is not pinned, ep is legal as there are no horizontal exposed checks
-            if (!more_than_one(acPawnsBB & blockers_bb(ac)))
+            if (!more_than_one(epPawnsBB & blockers_bb(ac)))
             {
-                if (epPawnsBB != nullptr)
-                    *epPawnsBB = acPawnsBB & ~blockers_bb(ac);
+                if (_epPawnsBB != nullptr)
+                    *_epPawnsBB = epPawnsBB & ~blockers_bb(ac);
                 return true;
             }
 
             Bitboard kingFileBB = file_bb(kingSq);
             // If there is no pawn on our king's file and thus both pawns are pinned by bishops.
-            if ((acPawnsBB & kingFileBB) == 0)
+            if ((epPawnsBB & kingFileBB) == 0)
             {
-                if (epPawnsBB != nullptr)
-                    *epPawnsBB = 0;
+                if (_epPawnsBB != nullptr)
+                    *_epPawnsBB = 0;
                 return false;
             }
 
             // Otherwise remove the pawn on the king file, as an ep capture by it can never be legal
-            acPawnsBB &= ~kingFileBB;
-            if (epPawnsBB != nullptr)
-                *epPawnsBB = acPawnsBB;
+            epPawnsBB &= ~kingFileBB;
+            if (_epPawnsBB != nullptr)
+                *_epPawnsBB = epPawnsBB;
         }
     }
 
-    bool epCheck = false;
+    bool epPossible = false;
     // Check en-passant is legal for the position
     Bitboard occupancyBB = pieces_bb() ^ make_bb(capturedSq, enPassantSq);
     Bitboard attackersBB = pieces_bb(~ac);
-    while (acPawnsBB != 0)
+
+    while (epPawnsBB != 0)
     {
-        Square pawnSq = pop_lsq(acPawnsBB);
+        Square pawnSq = pop_lsq(epPawnsBB);
 
         if ((slide_attackers_bb(kingSq, occupancyBB ^ pawnSq) & attackersBB) == 0)
         {
-            epCheck = true;
+            epPossible = true;
 
-            if (epPawnsBB == nullptr)
+            if (_epPawnsBB == nullptr)
                 break;
         }
         else
         {
-            if (epPawnsBB != nullptr)
-                *epPawnsBB ^= pawnSq;
+            if (_epPawnsBB != nullptr)
+                *_epPawnsBB ^= pawnSq;
         }
     }
-    return epCheck;
+
+    return epPossible;
 }
 
 // Helper used to do/undo a castling move.
@@ -859,10 +861,10 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     {
         k ^= Zobrist::enpassant(enPassantSq);
         reset_en_passant_sq();
+        enPassantSq = SQ_NONE;
     }
 
     bool capture;
-    bool epCheck = false;
 
     // If the move is a castling, do some special work
     if (m.type_of() == CASTLING)
@@ -993,7 +995,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
             assert(relative_rank(ac, orgSq) == RANK_2);
             assert(relative_rank(ac, dstSq) == RANK_4);
 
-            epCheck = true;
+            enPassantSq = dstSq - pawn_spush(ac);
         }
 
         // Update pawn hash key
@@ -1027,10 +1029,10 @@ DO_MOVE_END:
         k ^= Zobrist::castling(castling_rights());
     }
     // Speculative prefetch as early as possible
-    if (tt != nullptr && !epCheck)
+    if (tt != nullptr && !is_ok(enPassantSq))
         tt->prefetch_key(k ^ Zobrist::mr50(rule50_count()));
 
-    activeColor = ~ac;
+    ac = activeColor = ~ac;
 
     st->capturedPc = capturedPc;
     st->promotedPc = promotedPc;
@@ -1038,14 +1040,10 @@ DO_MOVE_END:
     // Update king attacks used for fast check detection
     set_ext_state();
 
-    if (epCheck)
+    if (is_ok(enPassantSq) && enpassant_possible(ac, enPassantSq))
     {
-        enPassantSq = dstSq - pawn_spush(ac);
-        if (can_enpassant(active_color(), enPassantSq))
-        {
-            st->enPassantSq = enPassantSq;
-            k ^= Zobrist::enpassant(enPassantSq);
-        }
+        st->enPassantSq = enPassantSq;
+        k ^= Zobrist::enpassant(enPassantSq);
     }
 
     // Set the key with the updated key
@@ -1467,7 +1465,7 @@ Key Position::move_key(Move m) const noexcept {
     }
 
     if (movedPt == PAWN && (int(dstSq) ^ int(orgSq)) == NORTH_2
-        && can_enpassant<false>(~ac, dstSq - pawn_spush(ac)))
+        && enpassant_possible<false>(~ac, dstSq - pawn_spush(ac)))
     {
         assert(relative_rank(ac, orgSq) == RANK_2);
         assert(relative_rank(ac, dstSq) == RANK_4);
@@ -1526,18 +1524,23 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     Bitboard attackersBB = attackers_bb(dstSq, occupancyBB);
 
-    Square   enPassantSq = SQ_NONE;
-    Bitboard epPawnsBB;
-    if (moved == PAWN && (int(dstSq) ^ int(orgSq)) == NORTH_2
-        && can_enpassant<false>(~ac, dstSq - pawn_spush(ac), &epPawnsBB))
+    Square enPassantSq = SQ_NONE;
+    if (moved == PAWN && (int(dstSq) ^ int(orgSq)) == NORTH_2)
     {
         assert(relative_rank(ac, orgSq) == RANK_2);
         assert(relative_rank(ac, dstSq) == RANK_4);
 
         enPassantSq = dstSq - pawn_spush(ac);
+    }
+
+    Bitboard epPawnsBB;
+    if (is_ok(enPassantSq) && enpassant_possible<false>(~ac, enPassantSq, &epPawnsBB))
+    {
         assert(epPawnsBB != 0);
         attackersBB |= epPawnsBB;
     }
+    else
+        enPassantSq = SQ_NONE;
 
     Bitboard qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
     Bitboard qrBB = pieces_bb(QUEEN, ROOK) & attacks_bb<ROOK>(dstSq) & occupancyBB;
@@ -2038,7 +2041,7 @@ bool Position::_is_ok() const noexcept {
         || piece(square<KING>(BLACK)) != B_KING                //
         || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1
         || (is_ok(en_passant_sq()) && relative_rank(active_color(), en_passant_sq()) != RANK_6
-            && !can_enpassant(active_color(), en_passant_sq())))
+            && !enpassant_possible(active_color(), en_passant_sq())))
         assert(false && "Position::_is_ok(): Default");
 
     if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)

@@ -400,8 +400,9 @@ class Position final {
     void set_ext_state() noexcept;
 
     template<bool After = true>
-    bool
-    can_enpassant(Color ac, Square enPassantSq, Bitboard* const epPawnsBB = nullptr) const noexcept;
+    bool enpassant_possible(Color           ac,
+                            Square          enPassantSq,
+                            Bitboard* const _epPawnsBB = nullptr) const noexcept;
 
     // Other helpers
     Piece move(Square s1, Square s2, DirtyThreats* const dts = nullptr) noexcept;

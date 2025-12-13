@@ -276,14 +276,14 @@ PerftInfo perft(Position& pos, Depth depth, bool detail) noexcept {
                   << std::setw(10) << "Move"  //
                   << std::setw(19) << "Nodes";
         if (detail)
-            std::cout << std::setw(17) << "Capture"    //
-                      << std::setw(15) << "Enpassant"  //
-                      << std::setw(15) << "AnyCheck"   //
-                      << std::setw(15) << "DscCheck"   //
-                      << std::setw(15) << "DblCheck"   //
-                      << std::setw(15) << "Castle"     //
-                      << std::setw(15) << "Promote"    //
-                      << std::setw(15) << "Checkmate"  //
+            std::cout << std::setw(15) << "Capture"    //
+                      << std::setw(13) << "Enpassant"  //
+                      << std::setw(13) << "AnyCheck"   //
+                      << std::setw(13) << "DscCheck"   //
+                      << std::setw(13) << "DblCheck"   //
+                      << std::setw(13) << "Castle"     //
+                      << std::setw(13) << "Promote"    //
+                      << std::setw(13) << "Checkmate"  //
                       << std::setw(13) << "Stalemate";
         std::cout << std::endl;
     }
@@ -294,12 +294,12 @@ PerftInfo perft(Position& pos, Depth depth, bool detail) noexcept {
 
     for (auto m : MoveList<LEGAL>(pos))
     {
-        PerftInfo _perftInfo;
+        PerftInfo iPerftInfo;
         if (RootNode && depth <= 1)
         {
-            _perftInfo.nodes++;
+            iPerftInfo.nodes++;
             if (detail)
-                _perftInfo.classify(pos, m);
+                iPerftInfo.classify(pos, m);
         }
         else
         {
@@ -310,10 +310,10 @@ PerftInfo perft(Position& pos, Depth depth, bool detail) noexcept {
             if (depth <= 2)
             {
                 const MoveList<LEGAL> iLegalMoves(pos);
-                _perftInfo.nodes += iLegalMoves.size();
+                iPerftInfo.nodes += iLegalMoves.size();
                 if (detail)
                     for (auto im : iLegalMoves)
-                        _perftInfo.classify(pos, im);
+                        iPerftInfo.classify(pos, im);
             }
             else
             {
@@ -323,65 +323,76 @@ PerftInfo perft(Position& pos, Depth depth, bool detail) noexcept {
                     auto [ptHit, pte] = perftTable.probe(key, depth - 1);
                     if (ptHit)
                     {
-                        _perftInfo.nodes += pte->nodes();
+                        iPerftInfo.nodes += pte->nodes();
                     }
                     else
                     {
-                        _perftInfo = perft<false>(pos, depth - 1, detail);
-                        pte->save(compress_key32(key), depth - 1, _perftInfo.nodes);
+                        iPerftInfo = perft<false>(pos, depth - 1, detail);
+                        pte->save(compress_key32(key), depth - 1, iPerftInfo.nodes);
                     }
                 }
                 else
                 {
-                    _perftInfo = perft<false>(pos, depth - 1, detail);
+                    iPerftInfo = perft<false>(pos, depth - 1, detail);
                 }
             }
 
             pos.undo_move(m);
         }
 
-        perftInfo += _perftInfo;
+        perftInfo += iPerftInfo;
 
         if (RootNode)
         {
             ++count;
 
-            std::cout << std::setfill('0') << std::right  //
-                      << std::setw(2) << count            //
-                      << std::setfill(' ') << std::left   //
-                      << " " << std::setw(7)              //
-                      << UCI::move_to_san(m, pos)         //
-                      //<< UCI::move_to_can(m)            //
-                      << std::setfill('.') << std::right  //
-                      << ": " << std::setw(16) << _perftInfo.nodes;
+            std::string move =
+              //<< UCI::move_to_can(m)
+              UCI::move_to_san(m, pos);
+
+            std::size_t append = 10 - move.size();
+            if (append > 0)
+            {
+                bool special = move.back() == '+' || move.back() == '#' || move.back() == '=';
+                move.append(append - special, ' ');
+            }
+
+            std::cout << std::right << std::setfill('0') << std::setw(2) << count << " "  //
+                      << std::left << move << ":"                                         //
+                      << std::right << std::setfill('.') << std::setw(16) << iPerftInfo.nodes;
+
             if (detail)
-                std::cout << "   " << std::setw(14) << _perftInfo.capture    //
-                          << "   " << std::setw(12) << _perftInfo.enpassant  //
-                          << "   " << std::setw(12) << _perftInfo.anyCheck   //
-                          << "   " << std::setw(12) << _perftInfo.dscCheck   //
-                          << "   " << std::setw(12) << _perftInfo.dblCheck   //
-                          << "   " << std::setw(12) << _perftInfo.castle     //
-                          << "   " << std::setw(12) << _perftInfo.promotion  //
-                          << "   " << std::setw(12) << _perftInfo.checkmate  //
-                          << "   " << std::setw(10) << _perftInfo.stalemate;
-            std::cout << std::left << std::endl;
+                std::cout << "   " << std::setw(12) << iPerftInfo.capture    //
+                          << "   " << std::setw(10) << iPerftInfo.enpassant  //
+                          << "   " << std::setw(10) << iPerftInfo.anyCheck   //
+                          << "   " << std::setw(10) << iPerftInfo.dscCheck   //
+                          << "   " << std::setw(10) << iPerftInfo.dblCheck   //
+                          << "   " << std::setw(10) << iPerftInfo.castle     //
+                          << "   " << std::setw(10) << iPerftInfo.promotion  //
+                          << "   " << std::setw(10) << iPerftInfo.checkmate  //
+                          << "   " << std::setw(10) << iPerftInfo.stalemate;
+
+            std::cout << std::setfill(' ') << std::left << std::endl;
         }
     }
 
     if (RootNode)
     {
-        std::cout << std::setfill('.') << std::right;
-        std::cout << "Total     : " << std::setw(16) << perftInfo.nodes;
+        std::cout << "Sum         :";
+        std::cout << std::right << std::setfill('.');
+        std::cout << std::setw(16) << perftInfo.nodes;
+
         if (detail)
-            std::cout << " " << std::setw(16) << perftInfo.capture    //
-                      << " " << std::setw(14) << perftInfo.enpassant  //
-                      << " " << std::setw(14) << perftInfo.anyCheck   //
-                      << " " << std::setw(14) << perftInfo.dscCheck   //
-                      << " " << std::setw(14) << perftInfo.dblCheck   //
-                      << " " << std::setw(14) << perftInfo.castle     //
-                      << " " << std::setw(14) << perftInfo.promotion  //
-                      << " " << std::setw(14) << perftInfo.checkmate  //
+            std::cout << " " << std::setw(14) << perftInfo.capture    //
+                      << " " << std::setw(12) << perftInfo.enpassant  //
+                      << " " << std::setw(12) << perftInfo.anyCheck   //
+                      << " " << std::setw(12) << perftInfo.dscCheck   //
+                      << " " << std::setw(12) << perftInfo.dblCheck   //
+                      << " " << std::setw(12) << perftInfo.castle     //
+                      << " " << std::setw(12) << perftInfo.promotion  //
+                      << " " << std::setw(12) << perftInfo.checkmate  //
                       << " " << std::setw(12) << perftInfo.stalemate;
+
         std::cout << std::setfill(' ') << std::left << std::endl;
     }
 
