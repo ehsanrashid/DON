@@ -25,7 +25,7 @@
 #include <iosfwd>
 
 #include "../../misc.h"
-#include "../nnue_common.h"
+#include "../common.h"
 
 namespace DON::NNUE::Layers {
 

@@ -31,7 +31,7 @@
 #include "../position.h"
 #include "../types.h"
 #include "../uci.h"
-#include "nnue_common.h"
+#include "common.h"
 
 // Macro to embed the default efficiently updatable neural network (NNUE) file
 // data in the engine binary (using incbin.h, by Dale Weiler).

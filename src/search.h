@@ -34,7 +34,7 @@
 
 #include "history.h"
 #include "misc.h"
-#include "nnue/nnue_accumulator.h"
+#include "nnue/accumulator.h"
 #include "numa.h"
 #include "polybook.h"
 #include "position.h"

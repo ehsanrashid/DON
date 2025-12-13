@@ -961,6 +961,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
         return "(none)";
     if (m == Move::Null)
         return "0000";
+
     assert(MoveList<LEGAL>(pos).contains(m));
 
     Square orgSq = m.org_sq(), dstSq = m.dst_sq();

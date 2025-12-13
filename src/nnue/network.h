@@ -28,11 +28,11 @@
 #include <utility>
 
 #include "../misc.h"
-#include "nnue_accumulator.h"
-#include "nnue_architecture.h"
-#include "nnue_common.h"
-#include "nnue_feature_transformer.h"
-#include "nnue_misc.h"
+#include "accumulator.h"
+#include "architecture.h"
+#include "common.h"
+#include "feature_transformer.h"
+#include "nmisc.h"
 
 namespace DON {
 

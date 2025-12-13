@@ -32,9 +32,9 @@
 #include "../misc.h"
 #include "../position.h"
 #include "../types.h"
-#include "nnue_accumulator.h"
-#include "nnue_architecture.h"
-#include "nnue_common.h"
+#include "accumulator.h"
+#include "architecture.h"
+#include "common.h"
 #include "simd.h"
 
 namespace DON::NNUE {

@@ -24,7 +24,7 @@
 
 #include "../../misc.h"
 #include "../../types.h"
-#include "../nnue_common.h"
+#include "../common.h"
 
 namespace DON {
 

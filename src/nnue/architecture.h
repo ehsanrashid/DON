@@ -32,7 +32,7 @@
 #include "layers/affine_transform_sparse_input.h"
 #include "layers/clipped_relu.h"
 #include "layers/sqr_clipped_relu.h"
-#include "nnue_common.h"
+#include "common.h"
 
 namespace DON::NNUE {
 

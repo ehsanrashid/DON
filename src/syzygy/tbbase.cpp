@@ -423,19 +423,19 @@ template<>
 TBTable<WDL>::TBTable(std::string_view code) noexcept :
     TBTable() {
 
-    State st;
-
+    State    st;
     Position pos;
 
     pos.set(code, WHITE, &st);
     key[WHITE] = pos.material_key();
+
     pieceCount = pos.count();
     hasPawns   = pos.count<PAWN>() != 0;
 
     hasUniquePieces = false;
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
-            if (pos.count(c, pt) == 1 && pt != KING)
+            if (pt != KING && pos.count(c, pt) == 1)
                 hasUniquePieces = true;
 
     // Set the leading color. In case both sides have pawns the leading color
@@ -483,14 +483,14 @@ class TBTables final {
         TBTable<DTZ>* dtzTable;
     };
 
-    static constexpr std::size_t index(Key key) noexcept { return key & (Size - 1); }
+    static constexpr std::size_t index(Key key) noexcept { return key & (SIZE - 1); }
 
     void insert(Key key, TBTable<WDL>* wdlTable, TBTable<DTZ>* dtzTable) noexcept {
         Entry entry{key, wdlTable, dtzTable};
 
         std::size_t homeBucket = index(key);
         // Ensure last element is empty to avoid overflow when looking up
-        for (auto bucket = homeBucket; bucket < Size + Overflow - 1; ++bucket)
+        for (auto bucket = homeBucket; bucket < SIZE + OVER_FLOW - 1; ++bucket)
         {
             Key oKey = entries[bucket].key;
             if (oKey == key || entries[bucket].get<WDL>() == nullptr)
@@ -515,11 +515,11 @@ class TBTables final {
     }
 
     // 4K table, indexed by key's 12 lsb
-    static constexpr std::size_t Size = 1 << 12;
+    static constexpr std::size_t SIZE = 1 << 12;
     // Number of elements allowed to map to the last bucket
-    static constexpr std::size_t Overflow = 1;
+    static constexpr std::size_t OVER_FLOW = 1;
 
-    StdArray<Entry, Size + Overflow> entries;
+    StdArray<Entry, SIZE + OVER_FLOW> entries;
 
     std::deque<TBTable<WDL>> wdlTables;
     std::deque<TBTable<DTZ>> dtzTables;
@@ -536,7 +536,6 @@ class TBTables final {
     }
 
     void clear() noexcept {
-        //std::memset(entries.data(), 0, sizeof(entries));
         entries.fill({});
         wdlTables.clear();
         dtzTables.clear();

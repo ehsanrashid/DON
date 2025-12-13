@@ -26,7 +26,7 @@
 
 #include "../../bitboard.h"
 #include "../../misc.h"
-#include "../nnue_common.h"
+#include "../common.h"
 #include "../simd.h"
 
 // Definition of layer AffineTransformSparseInput of NNUE evaluation function

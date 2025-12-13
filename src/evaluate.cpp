@@ -27,8 +27,8 @@
 #include <utility>
 
 #include "nnue/network.h"
-#include "nnue/nnue_accumulator.h"
-#include "nnue/nnue_misc.h"
+#include "nnue/accumulator.h"
+#include "nnue/nmisc.h"
 #include "position.h"
 #include "uci.h"
 

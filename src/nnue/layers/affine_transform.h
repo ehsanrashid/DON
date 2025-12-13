@@ -25,7 +25,7 @@
 #include <iostream>
 
 #include "../../misc.h"
-#include "../nnue_common.h"
+#include "../common.h"
 #include "../simd.h"
 
 //  This file contains the definition for a fully connected layer (aka affine transform).

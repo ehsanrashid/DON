@@ -28,7 +28,7 @@
 
 #include "evaluate.h"
 #include "movegen.h"
-#include "nnue/nnue_misc.h"
+#include "nnue/nmisc.h"
 #include "numa.h"
 #include "perft.h"
 #include "polybook.h"

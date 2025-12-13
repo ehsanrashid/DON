@@ -17,7 +17,7 @@
 
 // Code for calculating NNUE evaluation function
 
-#include "nnue_misc.h"
+#include "nmisc.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -32,7 +32,7 @@
 #include "../types.h"
 #include "../uci.h"
 #include "network.h"
-#include "nnue_accumulator.h"
+#include "accumulator.h"
 
 namespace DON::NNUE {
 

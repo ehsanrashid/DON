@@ -17,15 +17,15 @@
 
 // Definition of input features FullThreats of NNUE evaluation function
 
-#ifndef NNUE_FEATURES_FULL_THREATS_INCLUDED
-#define NNUE_FEATURES_FULL_THREATS_INCLUDED
+#ifndef NNUE_FEATURES_FULL_THREATS_H_INCLUDED
+#define NNUE_FEATURES_FULL_THREATS_H_INCLUDED
 
 #include <cstdint>
 
 #include "../../misc.h"
 #include "../../position.h"
 #include "../../types.h"
-#include "../nnue_common.h"
+#include "../common.h"
 
 namespace DON {
 
@@ -83,4 +83,4 @@ class FullThreats final {
 }  // namespace NNUE::Features
 }  // namespace DON
 
-#endif  // #ifndef NNUE_FEATURES_FULL_THREATS_INCLUDED
+#endif  // #ifndef NNUE_FEATURES_FULL_THREATS_H_INCLUDED

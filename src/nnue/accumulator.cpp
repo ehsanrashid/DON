@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "nnue_accumulator.h"
+#include "accumulator.h"
 
 #include <type_traits>
 #include <utility>
@@ -24,7 +24,7 @@
 #include "../position.h"
 #include "../types.h"
 #include "features/half_ka_v2_hm.h"
-#include "nnue_feature_transformer.h"  // IWYU pragma: keep
+#include "feature_transformer.h"  // IWYU pragma: keep
 #include "simd.h"
 
 namespace DON::NNUE {

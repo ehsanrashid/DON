@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef NNUE_MISC_H_INCLUDED
-#define NNUE_MISC_H_INCLUDED
+#ifndef NNUE_NMISC_H_INCLUDED
+#define NNUE_NMISC_H_INCLUDED
 
 #include <cstddef>
 #include <cstdint>
@@ -24,7 +24,7 @@
 #include <string>
 
 #include "../misc.h"
-#include "nnue_architecture.h"
+#include "architecture.h"
 
 namespace DON {
 
@@ -72,4 +72,4 @@ struct std::hash<DON::NNUE::EvalFile> {
     }
 };
 
-#endif  // #ifndef NNUE_MISC_H_INCLUDED
+#endif  // #ifndef NNUE_NMISC_H_INCLUDED
