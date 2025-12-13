@@ -97,17 +97,17 @@ enum TBFlag : std::uint8_t {
 };
 
 // Max number of supported piece
-constexpr std::uint32_t TBPieces = 7;
+constexpr std::uint32_t TB_PIECES = 7;
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit.
 constexpr int MAX_DTZ = 1 << 18;
 
-constexpr std::string_view WDLExt = ".rtbw";
-constexpr std::string_view DTZExt = ".rtbz";
+constexpr std::string_view WDL_EXT = ".rtbw";
+constexpr std::string_view DTZ_EXT = ".rtbz";
 
 // clang-format off
-constexpr StdArray<int, 5>          WDLMap{1, 3, 0, 2, 0};
-constexpr StdArray<std::int32_t, 5> WDLToRank{-MAX_DTZ, -MAX_DTZ + 101, 0, +MAX_DTZ - 101, +MAX_DTZ};
-constexpr StdArray<Value, 5>        WDLToValue{VALUE_MATED_IN_MAX_PLY + 1, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, VALUE_MATES_IN_MAX_PLY - 1};
+constexpr StdArray<int, 5>          WDL_MAP{1, 3, 0, 2, 0};
+constexpr StdArray<std::int32_t, 5> WDL_RANK{-MAX_DTZ, -MAX_DTZ + 101, 0, +MAX_DTZ - 101, +MAX_DTZ};
+constexpr StdArray<Value, 5>        WDL_VALUE{VALUE_MATED_IN_MAX_PLY + 1, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, VALUE_MATES_IN_MAX_PLY - 1};
 
 StdArray<std::size_t, SQUARE_NB>     PawnsMap;
 StdArray<std::size_t, SQUARE_NB>     B1H1H7Map;
@@ -289,18 +289,21 @@ class TBFile: public std::ifstream {
 
         auto* data = (std::uint8_t*) (*baseAddress);
 
-        constexpr std::size_t  MagicSize = 4;
-        constexpr std::uint8_t Magics[2][MagicSize]{{0xD7, 0x66, 0x0C, 0xA5},
-                                                    {0x71, 0xE8, 0x23, 0x5D}};
+        constexpr StdArray<std::uint8_t, 2, 4> Magics{{
+          {0xD7, 0x66, 0x0C, 0xA5},  //
+          {0x71, 0xE8, 0x23, 0x5D}   //
+        }};
 
-        if (std::memcmp(data, Magics[Type == WDL], MagicSize))
+        const auto& magic = Magics[Type == WDL];
+
+        if (std::memcmp(data, magic.data(), magic.size()) != 0)
         {
             std::cerr << "Corrupted table in file " << filename << std::endl;
             unmap(*baseAddress, *mapping);
             return *baseAddress = nullptr, nullptr;
         }
 
-        return data + MagicSize;  // Skip Magics's header
+        return data + magic.size();  // Skip Magics's header
     }
 
     static void unmap(void* baseAddress, std::uint64_t mapping) noexcept {
@@ -373,10 +376,10 @@ struct PairsData final {
       base64;  // base64[l - minSymLen] is the 64bit-padded lowest symbol of length l
     std::vector<std::uint8_t>
       symLen;  // Number of values (-1) represented by a given Huffman symbol: 1..256
-    StdArray<Piece, TBPieces> pieces;  // Position pieces: the order of pieces defines the groups
-    StdArray<std::uint64_t, TBPieces + 1>
+    StdArray<Piece, TB_PIECES> pieces;  // Position pieces: the order of pieces defines the groups
+    StdArray<std::uint64_t, TB_PIECES + 1>
       groupIdx;  // Start index used for the encoding of the group's pieces
-    StdArray<std::int32_t, TBPieces + 1>
+    StdArray<std::int32_t, TB_PIECES + 1>
       groupLen;  // Number of pieces in a given group: KRKN -> (3, 1)
     StdArray<std::uint16_t, 4>
       mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
@@ -386,11 +389,11 @@ struct PairsData final {
 // There are 2 types of TBTable, corresponding to a WDL or a DTZ file. TBTable
 // is populated at init time but the nested PairsData records are populated at
 // first access, when the corresponding file is memory mapped.
-template<TBType Type>
+template<TBType T>
 struct TBTable final {
-    using Ret = std::conditional_t<Type == WDL, WDLScore, int>;
+    using Ret = std::conditional_t<T == WDL, WDLScore, int>;
 
-    static constexpr std::size_t Sides = Type == WDL ? 2 : 1;
+    static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
 
     std::atomic<bool> ready{false};
     void*             baseAddress = nullptr;
@@ -402,9 +405,9 @@ struct TBTable final {
     bool                                    hasPawns;
     bool                                    hasUniquePieces;
     StdArray<std::uint8_t, COLOR_NB>        pawnCount;  // [Lead color / other color]
-    StdArray<PairsData, Sides, FILE_NB / 2> items;      // [wtm / btm][FILE_A..FILE_D or 0]
+    StdArray<PairsData, SIDES, FILE_NB / 2> items;      // [wtm / btm][FILE_A..FILE_D or 0]
 
-    PairsData* get(int ac, int f) noexcept { return &items[ac % Sides][hasPawns ? f : 0]; }
+    PairsData* get(int ac, int f) noexcept { return &items[ac % SIDES][hasPawns ? f : 0]; }
 
     TBTable() noexcept = default;
     explicit TBTable(std::string_view code) noexcept;
@@ -565,14 +568,14 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
         return;
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    TBFile dtzFile(code + DTZExt.data());
+    TBFile dtzFile(code + DTZ_EXT.data());
     if (dtzFile.is_open())
     {
         dtzFile.close();
         ++dtzCount;
     }
 
-    TBFile wdlFile(code + WDLExt.data());
+    TBFile wdlFile(code + WDL_EXT.data());
     if (!wdlFile.is_open())  // Only WDL file is checked
         return;
 
@@ -745,7 +748,7 @@ int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdlScore) noexcep
     auto* map    = entry->map;
     auto* mapIdx = pd->mapIdx.data();
 
-    auto idx = mapIdx[WDLMap[wdlScore + 2]] + value;
+    auto idx = mapIdx[WDL_MAP[wdlScore + 2]] + value;
 
     if (flags & Mapped)
         value = (flags & Wide) ? ((std::uint16_t*) map)[idx] : map[idx];
@@ -797,8 +800,8 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
     int activeColor = flip ? ~pos.active_color() : pos.active_color();
 
-    StdArray<Square, TBPieces> squares{};
-    StdArray<Piece, TBPieces>  pieces;
+    StdArray<Square, TB_PIECES> squares{};
+    StdArray<Piece, TB_PIECES>  pieces;
 
     Bitboard    leadPawnsBB = 0;
     std::size_t leadPawnCnt = 0;
@@ -1225,7 +1228,7 @@ void set(T& entry, std::uint8_t* data) noexcept {
 
     ++data;  // First byte stores flags
 
-    const std::size_t sides   = T::Sides == 2 && entry.key[WHITE] != entry.key[BLACK] ? 2 : 1;
+    const std::size_t sides   = T::SIDES == 2 && entry.key[WHITE] != entry.key[BLACK] ? 2 : 1;
     const File        maxFile = entry.hasPawns ? FILE_D : FILE_A;
 
     bool pp = entry.hasPawns && entry.pawnCount[BLACK] != 0;  // Pawns on both sides
@@ -1307,7 +1310,7 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
 
     std::string fname = (materialKey == entry.key[WHITE] ? pieces[WHITE] + 'v' + pieces[BLACK]
                                                          : pieces[BLACK] + 'v' + pieces[WHITE])
-                      + (Type == WDL ? WDLExt : DTZExt).data();
+                      + (Type == WDL ? WDL_EXT : DTZ_EXT).data();
 
     uint8_t* data = TBFile(fname).map<Type>(&entry.baseAddress, &entry.mapping);
 
@@ -1774,11 +1777,11 @@ bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Active) noex
         if (ps == PS_FAIL)
             return false;
 
-        rm.tbRank = WDLToRank[wdlScore + 2];
+        rm.tbRank = WDL_RANK[wdlScore + 2];
 
         if (!rule50Active)
             wdlScore = wdlScore > WDL_DRAW ? WDL_WIN : wdlScore < WDL_DRAW ? WDL_LOSS : WDL_DRAW;
-        rm.tbValue = WDLToValue[wdlScore + 2];
+        rm.tbValue = WDL_VALUE[wdlScore + 2];
     }
 
     return true;
