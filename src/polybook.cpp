@@ -379,7 +379,7 @@ void swap_entry(PolyBook::Entry* const e) noexcept {
 // bit  6-11: origin square (from 0 to 63)
 // bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
 // bit 14-15: special move flag: promotion (1), en-passant (2), castling (3)
-Move pg_to_move(std::uint16_t pgMove, const MoveList<LEGAL>& legalMoveList) noexcept {
+Move pg_to_move(std::uint16_t pgMove, const MoveList<LEGAL>& legalMoves) noexcept {
 
     Move move = Move(pgMove);
 
@@ -387,7 +387,7 @@ Move pg_to_move(std::uint16_t pgMove, const MoveList<LEGAL>& legalMoveList) noex
         move = Move{move.org_sq(), move.dst_sq(), PieceType(pt + 1)};
 
     std::uint16_t moveRaw = move.raw() & ~TYPE_MASK;
-    for (auto m : legalMoveList)
+    for (auto m : legalMoves)
         if ((m.raw() & ~TYPE_MASK) == moveRaw)
             return m;
 
@@ -588,7 +588,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     if (candidates.empty())
         return Move::None;
 
-    const MoveList<LEGAL> legalMoveList(pos);
+    const MoveList<LEGAL> legalMoves(pos);
 
     std::uint32_t maxWeight = 0;
     std::uint64_t sumWeight = 0;
@@ -614,7 +614,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
                   << std::setw(2) << ++cnt
                   << " key: "    << u64_to_string(candidate.key)
                   << std::left << std::setfill(' ')
-                  << " move: "   << std::setw(8) << UCI::move_to_san(pg_to_move(candidate.move, legalMoveList), pos)
+                  << " move: "   << std::setw(8) << UCI::move_to_san(pg_to_move(candidate.move, legalMoves), pos)
                   << std::right << std::setfill('0')
                   << " weight: " << std::setw(5) << candidate.weight
                   << " learn: "  << std::setw(2) << candidate.learn
@@ -636,7 +636,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
             {
                 bestWeight = candidate.weight;
 
-                move = pg_to_move(candidate.move, legalMoveList);
+                move = pg_to_move(candidate.move, legalMoves);
 
                 if (rootMoves.contains(move))
                     bestMove = move;
@@ -654,7 +654,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
             if (randWeight < sumWeight)
             {
-                move = pg_to_move(candidate.move, legalMoveList);
+                move = pg_to_move(candidate.move, legalMoves);
 
                 if (rootMoves.contains(move))
                 {
@@ -671,7 +671,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
         for (const auto& candidate : candidates)
         {
-            move = pg_to_move(candidate.move, legalMoveList);
+            move = pg_to_move(candidate.move, legalMoves);
 
             if (rootMoves.contains(move))
             {
@@ -690,7 +690,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
     for (const auto& candidate : candidates)
     {
-        move = pg_to_move(candidate.move, legalMoveList);
+        move = pg_to_move(candidate.move, legalMoves);
 
         if (move != candidateMoves[0])
             candidateMoves.push_back(move);

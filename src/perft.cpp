@@ -309,10 +309,10 @@ PerftInfo perft(Position& pos, Depth depth, bool detail) noexcept {
 
             if (depth <= 2)
             {
-                const MoveList<LEGAL> iLegalMoveList(pos);
-                _perftInfo.nodes += iLegalMoveList.size();
+                const MoveList<LEGAL> iLegalMoves(pos);
+                _perftInfo.nodes += iLegalMoves.size();
                 if (detail)
-                    for (auto im : iLegalMoveList)
+                    for (auto im : iLegalMoves)
                         _perftInfo.classify(pos, im);
             }
             else

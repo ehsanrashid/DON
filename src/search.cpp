@@ -1516,7 +1516,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             worseMoves[capture].push_back(move);
     }
 
-    assert(moveCount || !ss->inCheck || exclude || (MoveList<LEGAL, true>(pos).empty()));
+    assert(moveCount != 0 || !ss->inCheck || exclude || (MoveList<LEGAL, true>(pos).empty()));
     assert(ss->moveCount == moveCount && ss->ttMove == ttd.move);
 
     // Step 21. Check for mate and stalemate
@@ -2008,15 +2008,15 @@ bool Worker::ponder_move_extracted() noexcept {
     rootPos.do_move(bestMove, st, &tt);
 
     // Legal moves for the opponent
-    const MoveList<LEGAL> legalMoveList(rootPos);
-    if (!legalMoveList.empty())
+    const MoveList<LEGAL> legalMoves(rootPos);
+    if (!legalMoves.empty())
     {
         Move ponderMove;
 
         auto [ttd, ttu] = tt.probe(rootPos.key());
 
         ponderMove = ttd.hit ? legal_tt_move(ttd.move, rootPos) : Move::None;
-        if (ponderMove == Move::None || !legalMoveList.contains(ponderMove))
+        if (ponderMove == Move::None || !legalMoves.contains(ponderMove))
         {
             ponderMove = Move::None;
             for (auto&& th : threads)
@@ -2043,8 +2043,8 @@ bool Worker::ponder_move_extracted() noexcept {
                 }
             if (ponderMove == Move::None)
             {
-                std::uniform_int_distribution<std::size_t> distribute(0, legalMoveList.size() - 1);
-                ponderMove = *(legalMoveList.begin() + distribute(prng));
+                std::uniform_int_distribution<std::size_t> distribute(0, legalMoves.size() - 1);
+                ponderMove = *(legalMoves.begin() + distribute(prng));
             }
         }
 
@@ -2342,9 +2342,9 @@ void Skill::init(const Options& options) noexcept {
     {
         std::uint16_t uciELO = options["UCI_ELO"];
 
-        auto e = double(uciELO - MinELO) / (MaxELO - MinELO);
+        auto e = double(uciELO - MIN_ELO) / (MAX_ELO - MIN_ELO);
         auto x = ((37.2473 * e - 40.8525) * e + 22.2943) * e - 0.311438;
-        level  = std::clamp(x, MinLevel, MaxLevel - 0.01);
+        level  = std::clamp(x, MIN_LEVEL, MAX_LEVEL - 0.01);
     }
     else
     {
@@ -2363,26 +2363,25 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
     if (pickBest || bestMove == Move::None)
     {
         // RootMoves are already sorted by value in descending order
-        Value curValue = rootMoves[0].curValue;
-        auto  delta    = std::min(curValue - rootMoves[multiPV - 1].curValue, int(VALUE_PAWN));
-        auto  weakness = 2.0 * (3.0 * MaxLevel - level);
+        Value maxValue = rootMoves[0].curValue;
+        auto  delta    = std::min(maxValue - rootMoves[multiPV - 1].curValue, int(VALUE_PAWN));
+        auto  weakness = 2.0 * (3.0 * MAX_LEVEL - level);
 
-        Value maxValue = -VALUE_INFINITE;
+        Value bestValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.
         // One is deterministic and bigger for weaker levels, and one is random.
         // Then choose the move with the resulting highest value.
         for (std::size_t i = 0; i < multiPV; ++i)
         {
-            Value value = rootMoves[i].curValue
-                        // This is magic formula for Push
-                        + int(weakness * (curValue - rootMoves[i].curValue)
-                              + delta * (prng.rand<std::uint32_t>() % int(weakness)))
-                            / 128;
+            int push = int(weakness * (maxValue - rootMoves[i].curValue)
+                           + delta * (prng.rand<std::uint32_t>() % int(weakness)))
+                     / 128;
+            Value value = rootMoves[i].curValue + push;
 
-            if (maxValue <= value)
+            if (bestValue <= value)
             {
-                maxValue = value;
-                bestMove = rootMoves[i].pv[0];
+                bestValue = value;
+                bestMove  = rootMoves[i].pv[0];
             }
         }
     }

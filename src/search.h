@@ -363,19 +363,19 @@ struct Skill final {
 
     void init(const Options& options) noexcept;
 
-    bool enabled() const noexcept { return level < MaxLevel; }
+    bool enabled() const noexcept { return level < MAX_LEVEL; }
 
     bool time_to_pick(Depth depth) const noexcept { return depth == 1 + int(level); }
 
     Move pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickBest = true) noexcept;
 
-    static constexpr double        MinLevel = 00.0;
-    static constexpr double        MaxLevel = 20.0;
-    static constexpr std::uint16_t MinELO   = 1320;
-    static constexpr std::uint16_t MaxELO   = 3190;
+    static constexpr double        MIN_LEVEL = 00.0;
+    static constexpr double        MAX_LEVEL = 20.0;
+    static constexpr std::uint16_t MIN_ELO   = 1320;
+    static constexpr std::uint16_t MAX_ELO   = 3190;
 
    private:
-    double level{MaxLevel};
+    double level{MAX_LEVEL};
     Move   bestMove{Move::None};
 };
 

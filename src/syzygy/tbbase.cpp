@@ -1352,10 +1352,10 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
     WDLScore wdlScore, bestWdlScore = WDL_LOSS;
 
-    const MoveList<LEGAL> legalMoveList(pos);
+    const MoveList<LEGAL> legalMoves(pos);
     std::uint8_t          moveCount = 0;
 
-    for (auto m : legalMoveList)
+    for (auto m : legalMoves)
     {
         if (!pos.capture(m) && (!CheckZeroingMoves || type_of(pos.moved_pc(m)) != PAWN))
             continue;
@@ -1383,14 +1383,15 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
     }
 
     // In case have already searched all the legal moves don't have to probe
-    // the TB because the stored WDL-score could be wrong. For instance TB-tables
-    // do not contain information on position with ep rights, so in this case
-    // the result of probe_wdl_table is wrong. Also in case of only capture
-    // moves, for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7, have to
-    // return with PS_BEST_MOVE_ZEROING set.
-    bool movesNoMore = (moveCount != 0 && moveCount == legalMoveList.size());
+    // the TB because the stored WDL-score could be wrong.
+    // For instance TB-tables do not contain information on position with ep rights,
+    // so in this case the result of probe_wdl_table is wrong.
+    // Also in case of only capture moves,
+    // for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7,
+    // have to return with PS_BEST_MOVE_ZEROING set.
+    bool legalMovesNoMore = (moveCount != 0 && moveCount == legalMoves.size());
 
-    if (movesNoMore)
+    if (legalMovesNoMore)
         wdlScore = bestWdlScore;
     else
     {
@@ -1402,7 +1403,7 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
     // DTZ stores a "don't care" WDL-score if best WDL-score is a win
     if (bestWdlScore >= wdlScore)
-        return *ps = (bestWdlScore > WDL_DRAW || movesNoMore ? PS_BEST_MOVE_ZEROING : PS_OK),
+        return *ps = (bestWdlScore > WDL_DRAW || legalMovesNoMore ? PS_BEST_MOVE_ZEROING : PS_OK),
                bestWdlScore;
 
     return *ps = PS_OK, wdlScore;

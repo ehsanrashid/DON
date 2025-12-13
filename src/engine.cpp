@@ -92,13 +92,13 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("Load Hash",            Option(OnCng([this](const Option&) { return load_hash() ? "Load succeeded" : "Load failed"; })));
     options.add("Ponder",               Option(false));
     options.add("MultiPV",              Option(DEFAULT_MULTI_PV, 1, MAX_MOVES));
-    options.add("SkillLevel",           Option(Skill::MaxLevel, Skill::MinLevel, Skill::MaxLevel));
+    options.add("SkillLevel",           Option(Skill::MAX_LEVEL, Skill::MIN_LEVEL, Skill::MAX_LEVEL));
     options.add("MoveOverhead",         Option(10, 0, 5000));
     options.add("NodesTime",            Option(0, 0, 10000));
     options.add("DrawMoveCount",        Option(Position::DrawMoveCount, 5, 50, OnCng([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
     options.add("UCI_Chess960",         Option(Position::Chess960,             OnCng([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
     options.add("UCI_LimitStrength",    Option(false));
-    options.add("UCI_ELO",              Option(Skill::MaxELO, Skill::MinELO, Skill::MaxELO));
+    options.add("UCI_ELO",              Option(Skill::MAX_ELO, Skill::MIN_ELO, Skill::MAX_ELO));
     options.add("UCI_ShowWDL",          Option(false));
     options.add("OwnBook",              Option(false));
     options.add("BookFile",             Option("", OnCng([](const Option& o) { return Book.load(o) ? "Load succeeded" : "Load failed"; })));

@@ -239,21 +239,21 @@ void ThreadPool::start(Position&      pos,
 
     RootMoves rootMoves;
 
-    const MoveList<LEGAL> legalMoveList(pos);
+    const MoveList<LEGAL> legalMoves(pos);
 
     bool emplace = true;
     for (const auto& move : limit.searchMoves)
     {
-        if (emplace && rootMoves.size() == legalMoveList.size())
+        if (emplace && rootMoves.size() == legalMoves.size())
             break;
-        Move m  = UCI::mix_to_move(move, pos, legalMoveList);
+        Move m  = UCI::mix_to_move(move, pos, legalMoves);
         emplace = m != Move::None && !rootMoves.contains(m);
         if (emplace)
             rootMoves.emplace_back(m);
     }
 
     if (limit.searchMoves.empty())
-        for (auto m : legalMoveList)
+        for (auto m : legalMoves)
             rootMoves.emplace_back(m);
 
     bool erase = true;
@@ -261,7 +261,7 @@ void ThreadPool::start(Position&      pos,
     {
         if (erase && rootMoves.empty())
             break;
-        Move m = UCI::mix_to_move(move, pos, legalMoveList);
+        Move m = UCI::mix_to_move(move, pos, legalMoves);
         erase  = m != Move::None;
         if (erase)
             erase = rootMoves.erase(m);

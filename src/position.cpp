@@ -1754,7 +1754,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 // Draw by Repetition: position repeats once earlier but strictly
 // after the root, or repeats twice before or at the root.
 bool Position::is_repetition(std::int16_t ply) const noexcept {
-    return repetition() && repetition() < ply;
+    return repetition() != 0 && repetition() < ply;
 }
 
 // Tests whether the current position is drawn by repetition or by 50-move rule.
@@ -1782,7 +1782,7 @@ bool Position::has_repeated() const noexcept {
 
     while (end-- >= 4)
     {
-        if (cSt->repetition)
+        if (cSt->repetition != 0)
             return true;
 
         cSt = cSt->preSt;
