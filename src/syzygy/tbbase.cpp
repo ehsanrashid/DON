@@ -217,7 +217,7 @@ class TBFile: public std::ifstream {
     }
 
     // Memory map the file and check it
-    template<TBType Type>
+    template<TBType T>
     std::uint8_t* map(void** baseAddress, std::uint64_t* mapping) noexcept {
 
         if (is_open())
@@ -294,7 +294,7 @@ class TBFile: public std::ifstream {
           {0x71, 0xE8, 0x23, 0x5D}   //
         }};
 
-        const auto& magic = Magics[Type == WDL];
+        const auto& magic = Magics[T == WDL];
 
         if (std::memcmp(data, magic.data(), magic.size()) != 0)
         {
@@ -470,9 +470,9 @@ TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept :
 class TBTables final {
 
     struct Entry final {
-        template<TBType Type>
-        TBTable<Type>* get() const noexcept {
-            if constexpr (Type == WDL)
+        template<TBType T>
+        TBTable<T>* get() const noexcept {
+            if constexpr (T == WDL)
                 return wdlTable;
             else
                 return dtzTable;
@@ -488,12 +488,12 @@ class TBTables final {
     void insert(Key key, TBTable<WDL>* wdlTable, TBTable<DTZ>* dtzTable) noexcept {
         Entry entry{key, wdlTable, dtzTable};
 
-        auto homeBucket = index(key);
+        std::size_t homeBucket = index(key);
         // Ensure last element is empty to avoid overflow when looking up
         for (auto bucket = homeBucket; bucket < Size + Overflow - 1; ++bucket)
         {
-            Key otherKey = entries[bucket].key;
-            if (otherKey == key || !entries[bucket].get<WDL>())
+            Key oKey = entries[bucket].key;
+            if (oKey == key || entries[bucket].get<WDL>() == nullptr)
             {
                 entries[bucket] = entry;
                 return;
@@ -501,11 +501,11 @@ class TBTables final {
 
             // Robin Hood hashing: If probed for longer than this element,
             // insert here and search for a new spot for the other element instead.
-            auto otherHomeBucket = index(otherKey);
-            if (homeBucket < otherHomeBucket)
+            std::size_t oHomeBucket = index(oKey);
+            if (homeBucket < oHomeBucket)
             {
-                homeBucket = otherHomeBucket;
-                key        = otherKey;
+                homeBucket = oHomeBucket;
+                key        = oKey;
                 std::swap(entry, entries[bucket]);
             }
         }
@@ -528,11 +528,11 @@ class TBTables final {
     std::size_t dtzCount = 0;
 
    public:
-    template<TBType Type>
-    TBTable<Type>* get(Key key) noexcept {
+    template<TBType T>
+    TBTable<T>* get(Key key) noexcept {
         for (const Entry* entry = &entries[index(key)];; ++entry)
-            if (entry->key == key || !entry->get<Type>())
-                return entry->get<Type>();
+            if (entry->key == key || !entry->get<T>())
+                return entry->get<T>();
     }
 
     void clear() noexcept {
@@ -803,11 +803,12 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     StdArray<Square, TB_PIECES> squares{};
     StdArray<Piece, TB_PIECES>  pieces;
 
+    std::size_t size = 0;
+
     Bitboard    leadPawnsBB = 0;
     std::size_t leadPawnCnt = 0;
 
-    std::size_t size   = 0;
-    File        tbFile = FILE_A;
+    File tbFile = FILE_A;
 
     // For pawns, TB files store 4 separate tables according if leading pawn is on
     // file a, b, c or d after reordering. The leading pawn is the one with maximum
@@ -1288,8 +1289,8 @@ void set(T& entry, std::uint8_t* data) noexcept {
 // then return its base address, otherwise, try to memory map and init it.
 // Called at every probe, memory map, and init only at first access.
 // Function is thread safe and can be called concurrently.
-template<TBType Type>
-void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcept {
+template<TBType T>
+void* mapped(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
     static std::mutex mutex;
 
     // Use 'acquire' to avoid a thread reading 'ready' == true while
@@ -1310,9 +1311,9 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
 
     std::string fname = (materialKey == entry.key[WHITE] ? pieces[WHITE] + 'v' + pieces[BLACK]
                                                          : pieces[BLACK] + 'v' + pieces[WHITE])
-                      + (Type == WDL ? WDL_EXT : DTZ_EXT).data();
+                      + (T == WDL ? WDL_EXT : DTZ_EXT).data();
 
-    uint8_t* data = TBFile(fname).map<Type>(&entry.baseAddress, &entry.mapping);
+    std::uint8_t* data = TBFile(fname).map<T>(&entry.baseAddress, &entry.mapping);
 
     if (data != nullptr)
         set(entry, data);
@@ -1321,7 +1322,7 @@ void* mapped(const Position& pos, Key materialKey, TBTable<Type>& entry) noexcep
     return entry.baseAddress;
 }
 
-template<TBType Type, typename Ret = typename TBTable<Type>::Ret>
+template<TBType T, typename Ret = typename TBTable<T>::Ret>
 Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRAW) noexcept {
 
     Key materialKey = pos.material_key();
@@ -1329,7 +1330,7 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRA
     if (materialKey == 0)  // KvK, pos.count() == 2
         return Ret(WDL_DRAW);
 
-    TBTable<Type>* entry = tbTables.get<Type>(materialKey);
+    auto* entry = tbTables.get<T>(materialKey);
 
     if (entry == nullptr || mapped(pos, materialKey, *entry) == nullptr)
         return *ps = PS_FAIL, Ret();
