@@ -23,6 +23,7 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <string>
 
 #include "bitboard.h"
 #include "memory.h"
