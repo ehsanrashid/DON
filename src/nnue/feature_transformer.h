@@ -130,6 +130,15 @@ class FeatureTransformer final {
 
     static constexpr auto InversePackusEpi16Order = invert_permutation(PackusEpi16Order);
 
+    std::size_t content_hash() const noexcept {
+        std::size_t h = 0;
+        combine_hash(h, raw_data_hash(biases));
+        combine_hash(h, raw_data_hash(weights));
+        combine_hash(h, raw_data_hash(psqtWeights));
+        combine_hash(h, hash());
+        return h;
+    }
+
     template<bool Read>
     void permute_weights() noexcept {
         constexpr auto& Order = Read ? PackusEpi16Order : InversePackusEpi16Order;
@@ -431,15 +440,6 @@ class FeatureTransformer final {
         }
 
         return psqt;
-    }
-
-    std::size_t content_hash() const noexcept {
-        std::size_t h = 0;
-        combine_hash(h, raw_data_hash(biases));
-        combine_hash(h, raw_data_hash(weights));
-        combine_hash(h, raw_data_hash(psqtWeights));
-        combine_hash(h, hash());
-        return h;
     }
 
     // clang-format off
