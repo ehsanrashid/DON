@@ -138,12 +138,12 @@ class SyncOstream final {
         return std::move(*this);
     }
 
-    using BaseIosManip = std::ios_base& (*) (std::ios_base&);
-    SyncOstream& operator<<(BaseIosManip manip) & noexcept {
+    using IosManip = std::ios& (*) (std::ios&);
+    SyncOstream& operator<<(IosManip manip) & noexcept {
         manip(*ostream);
         return *this;
     }
-    SyncOstream&& operator<<(BaseIosManip manip) && noexcept {
+    SyncOstream&& operator<<(IosManip manip) && noexcept {
         manip(*ostream);
         return std::move(*this);
     }
@@ -925,7 +925,7 @@ class Logger final {
 
         filename = logFile;
 
-        ofs.open(filename, std::ios_base::out | std::ios_base::app);
+        ofs.open(filename, std::ios::out | std::ios::app);
         if (!is_open())
         {
             std::cerr << "Unable to open Log file: " << filename << std::endl;

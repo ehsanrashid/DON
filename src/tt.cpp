@@ -260,7 +260,7 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
         return false;
     }
 
-    std::ofstream ofs(std::string(hashFile), std::ios_base::binary);
+    std::ofstream ofs(std::string(hashFile), std::ios::binary);
 
     if (!ofs.is_open())
     {
@@ -321,7 +321,7 @@ bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) no
         return true;
     }
 
-    std::ifstream ifs(std::string(hashFile), std::ios_base::binary);
+    std::ifstream ifs(std::string(hashFile), std::ios::binary);
 
     if (!ifs.is_open())
     {

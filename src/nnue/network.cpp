@@ -171,7 +171,7 @@ bool Network<Arch, Transformer>::save(const std::optional<std::string>& fileName
         evalFileName = evalFile.defaultName;
     }
 
-    std::ofstream ofs(evalFileName, std::ios_base::binary);
+    std::ofstream ofs(evalFileName, std::ios::binary);
 
     bool saved = save(ofs, evalFile.current, evalFile.netDescription);
 
@@ -288,7 +288,7 @@ class MemoryBuf final: public std::streambuf {
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_user_net(const std::string& dir,
                                                const std::string& evalFileName) noexcept {
-    std::ifstream ifs(dir + evalFileName, std::ios_base::binary);
+    std::ifstream ifs(dir + evalFileName, std::ios::binary);
 
     auto description = load(ifs);
     if (description.has_value())

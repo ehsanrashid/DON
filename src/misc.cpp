@@ -656,7 +656,7 @@ std::size_t str_to_size_t(std::string_view str) noexcept {
 
 std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept {
 
-    std::ifstream ifs(std::string(filePath), std::ios_base::binary);
+    std::ifstream ifs(std::string(filePath), std::ios::binary);
     if (!ifs)
         return std::nullopt;
 
