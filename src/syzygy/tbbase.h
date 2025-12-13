@@ -78,4 +78,4 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
 }  // namespace Tablebases
 }  // namespace DON
 
-#endif  // #ifndef TBPROBE_H_INCLUDED
+#endif  // #ifndef SYZYGY_TBBASE_H_INCLUDED

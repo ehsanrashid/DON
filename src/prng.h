@@ -215,4 +215,4 @@ class PRNG final {
 
 }  // namespace DON
 
-#endif  // PRNG_H_INCLUDED
+#endif  // #ifndef PRNG_H_INCLUDED

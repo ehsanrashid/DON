@@ -107,15 +107,6 @@ class FeatureTransformer final {
         return (UseThreats ? ThreatFeatureSet::Hash : PSQFeatureSet::Hash) ^ (OutputDimensions * 2);
     }
 
-    std::size_t content_hash() const noexcept {
-        std::size_t h = 0;
-        combine_hash(h, raw_data_hash(biases));
-        combine_hash(h, raw_data_hash(weights));
-        combine_hash(h, raw_data_hash(psqtWeights));
-        combine_hash(h, hash());
-        return h;
-    }
-
     // Store the order by which 128-bit blocks of a 1024-bit data must
     // be permuted so that calling packus on adjacent vectors of 16-bit
     // integers loaded from the data results in the pre-permutation order
@@ -138,7 +129,6 @@ class FeatureTransformer final {
     }();
 
     static constexpr auto InversePackusEpi16Order = invert_permutation(PackusEpi16Order);
-
 
     template<bool Read>
     void permute_weights() noexcept {
@@ -441,6 +431,15 @@ class FeatureTransformer final {
         }
 
         return psqt;
+    }
+
+    std::size_t content_hash() const noexcept {
+        std::size_t h = 0;
+        combine_hash(h, raw_data_hash(biases));
+        combine_hash(h, raw_data_hash(weights));
+        combine_hash(h, raw_data_hash(psqtWeights));
+        combine_hash(h, hash());
+        return h;
     }
 
     // clang-format off
