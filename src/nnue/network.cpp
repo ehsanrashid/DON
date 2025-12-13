@@ -127,7 +127,7 @@ bool write_parameters(std::ostream& os, const T& reference) noexcept {
 
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load(std::string_view rootDirectory,
-                                      std::string      evalFileName) noexcept {
+                                      std::string      netFile) noexcept {
 
     const Strings dirs{"<internal>", "", std::string(rootDirectory)
 #if defined(DEFAULT_NNUE_DIRECTORY)
@@ -136,17 +136,17 @@ void Network<Arch, Transformer>::load(std::string_view rootDirectory,
 #endif
     };
 
-    if (evalFileName.empty())
-        evalFileName = evalFile.defaultName;
+    if (netFile.empty())
+        netFile = evalFile.defaultName;
 
     for (const auto& directory : dirs)
-        if (evalFileName != std::string(evalFile.current))
+        if (netFile != std::string(evalFile.currentName))
         {
             if (directory != "<internal>")
             {
-                load_user_net(directory, evalFileName);
+                load_user_net(directory, netFile);
             }
-            else if (evalFileName == std::string(evalFile.defaultName))
+            else if (netFile == std::string(evalFile.defaultName))
             {
                 load_internal();
             }
@@ -154,14 +154,14 @@ void Network<Arch, Transformer>::load(std::string_view rootDirectory,
 }
 
 template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::save(const std::optional<std::string>& fileName) const noexcept {
+bool Network<Arch, Transformer>::save(const std::optional<std::string>& netFile) const noexcept {
     std::string evalFileName;
 
-    if (fileName.has_value())
-        evalFileName = fileName.value();
+    if (netFile.has_value())
+        evalFileName = netFile.value();
     else
     {
-        if (std::string(evalFile.current) != std::string(evalFile.defaultName))
+        if (std::string(evalFile.currentName) != std::string(evalFile.defaultName))
         {
             UCI::print_info_string(
               "Failed to export net. Non-embedded net can only be saved if the filename is specified");
@@ -173,7 +173,7 @@ bool Network<Arch, Transformer>::save(const std::optional<std::string>& fileName
 
     std::ofstream ofs(evalFileName, std::ios::binary);
 
-    bool saved = save(ofs, evalFile.current, evalFile.netDescription);
+    bool saved = save(ofs, evalFile.currentName, evalFile.netDescription);
 
     UCI::print_info_string(saved ? "Network saved successfully to " + evalFileName
                                  : "Failed to export net");
@@ -181,15 +181,15 @@ bool Network<Arch, Transformer>::save(const std::optional<std::string>& fileName
 }
 
 template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::verify(std::string evalFileName) const noexcept {
-    if (evalFileName.empty())
-        evalFileName = evalFile.defaultName;
+void Network<Arch, Transformer>::verify(std::string netFile) const noexcept {
+    if (netFile.empty())
+        netFile = evalFile.defaultName;
 
-    if (evalFileName != std::string(evalFile.current))
+    if (netFile != std::string(evalFile.currentName))
     {
         std::string msg1 =
           "Network evaluation parameters compatible with the engine must be available.";
-        std::string msg2 = "The network file " + evalFileName + " was not loaded successfully.";
+        std::string msg2 = "The network file " + netFile + " was not loaded successfully.";
         std::string msg3 = "The UCI option EvalFile might need to specify the full path, "
                            "including the directory name, to the network file.";
         std::string msg4 = "The default net can be downloaded from: "
@@ -206,9 +206,9 @@ void Network<Arch, Transformer>::verify(std::string evalFileName) const noexcept
         std::exit(EXIT_FAILURE);
     }
 
-    auto size = sizeof(featureTransformer) + LayerStacks * sizeof(Arch);
+    std::size_t size = sizeof(featureTransformer) + LayerStacks * sizeof(Arch);
 
-    std::string msg = "NNUE evaluation using " + evalFileName + " ("
+    std::string msg = "NNUE evaluation using " + netFile + " ("
                     + std::to_string(size / (1024 * 1024)) + "MiB, ("
                     + std::to_string(featureTransformer.TotalInputDimensions) + ", "
                     + std::to_string(network[0].TransformedFeatureDimensions) + ", "
@@ -287,13 +287,13 @@ class MemoryBuf final: public std::streambuf {
 
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_user_net(const std::string& dir,
-                                               const std::string& evalFileName) noexcept {
-    std::ifstream ifs(dir + evalFileName, std::ios::binary);
+                                               const std::string& netFile) noexcept {
+    std::ifstream ifs(dir + netFile, std::ios::binary);
 
     auto description = load(ifs);
     if (description.has_value())
     {
-        evalFile.current        = evalFileName;
+        evalFile.currentName    = netFile;
         evalFile.netDescription = description.value();
     }
 }
@@ -310,7 +310,7 @@ void Network<Arch, Transformer>::load_internal() noexcept {
     auto description = load(is);
     if (description.has_value())
     {
-        evalFile.current        = evalFile.defaultName;
+        evalFile.currentName    = evalFile.defaultName;
         evalFile.netDescription = description.value();
     }
 }

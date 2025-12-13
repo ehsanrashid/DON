@@ -1059,7 +1059,10 @@ Move UCI::mix_to_move(std::string mix, Position& pos, const MoveList<LEGAL>& leg
     if (!legalMoves.empty() && mix.size() >= 2)
     {
         if (mix.size() <= 3 || (mix[1] == '-' && (mix[0] == '0' || std::tolower(mix[0]) == 'o')))
-            return san_to_move(mix, pos, legalMoves);
+        {
+            m = san_to_move(mix, pos, legalMoves);
+            return m;
+        }
 
         if (mix.size() <= 5)
             m = can_to_move(mix, legalMoves);

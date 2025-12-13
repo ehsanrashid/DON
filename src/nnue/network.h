@@ -62,10 +62,10 @@ class Network final {
     Network& operator=(const Network& net) = default;
     Network& operator=(Network&&) noexcept = default;
 
-    void load(std::string_view rootDirectory, std::string evalFileName) noexcept;
-    bool save(const std::optional<std::string>& fileName) const noexcept;
+    void load(std::string_view rootDirectory, std::string netFile) noexcept;
+    bool save(const std::optional<std::string>& netFile) const noexcept;
 
-    void verify(std::string evalFileName) const noexcept;
+    void verify(std::string netFile) const noexcept;
 
     std::size_t content_hash() const noexcept;
 
@@ -78,7 +78,7 @@ class Network final {
                        AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept;
 
    private:
-    void load_user_net(const std::string& dir, const std::string& evalFileName) noexcept;
+    void load_user_net(const std::string& dir, const std::string& netFile) noexcept;
     void load_internal() noexcept;
 
     void initialize() noexcept;

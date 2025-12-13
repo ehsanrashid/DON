@@ -41,7 +41,7 @@ struct EvalFile final {
     // in evaluate.h
     FixedString<256> defaultName;
     // Selected net name, either via uci option or default
-    FixedString<256> current;
+    FixedString<256> currentName;
     // Net description extracted from the net file
     FixedString<256> netDescription;
 };
@@ -66,7 +66,7 @@ struct std::hash<DON::NNUE::EvalFile> {
     std::size_t operator()(const DON::NNUE::EvalFile& evalFile) const noexcept {
         std::size_t h = 0;
         DON::combine_hash(h, evalFile.defaultName);
-        DON::combine_hash(h, evalFile.current);
+        DON::combine_hash(h, evalFile.currentName);
         DON::combine_hash(h, evalFile.netDescription);
         return h;
     }

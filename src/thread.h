@@ -77,7 +77,7 @@ class Thread final {
            const SharedState&                    sharedState,
            ISearchManagerPtr                     searchManager,
            const OptionalThreadToNumaNodeBinder& nodeBinder) noexcept;
-    virtual ~Thread() noexcept;
+    ~Thread() noexcept;
 
     std::size_t id() const noexcept { return idx; }
 
