@@ -220,11 +220,11 @@ void Engine::resize_tt(std::size_t ttSize) noexcept {
 
 void Engine::show() const noexcept { std::cout << pos << std::endl; }
 
-void Engine::dump(std::optional<std::string_view> file) const noexcept {
+void Engine::dump(std::optional<std::string_view> dumpFile) const noexcept {
 
-    if (file.has_value())
+    if (dumpFile.has_value())
     {
-        std::ofstream ofs(std::string(file.value()), std::ios::binary);
+        std::ofstream ofs(std::string(dumpFile.value()), std::ios::binary);
         if (ofs.is_open())
         {
             pos.dump(ofs);
@@ -233,7 +233,7 @@ void Engine::dump(std::optional<std::string_view> file) const noexcept {
         }
 
         // Couldn't open file - optionally report and fall back
-        std::cerr << "Engine::dump: failed to open '" << file.value()
+        std::cerr << "Engine::dump: failed to open '" << dumpFile.value()
                   << "', writing to stdout instead" << std::endl;
     }
 

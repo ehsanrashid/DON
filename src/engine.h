@@ -77,7 +77,7 @@ class Engine final {
     void resize_tt(std::size_t ttSize) noexcept;
 
     void show() const noexcept;
-    void dump(std::optional<std::string_view> file = std::nullopt) const noexcept;
+    void dump(std::optional<std::string_view> dumpFile = std::nullopt) const noexcept;
     void eval() noexcept;
     void flip() noexcept;
     void mirror() noexcept;

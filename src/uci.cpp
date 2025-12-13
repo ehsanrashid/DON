@@ -294,13 +294,13 @@ void UCI::execute(std::string_view command) noexcept {
         engine.show();
         break;
     case CMD_DUMP : {
-        std::optional<std::string> file;
+        std::optional<std::string> dumpFile;
 
         std::string input;
         if (iss >> input)
-            file = input;
+            dumpFile = input;
 
-        engine.dump(file);
+        engine.dump(dumpFile);
     }
     break;
     case CMD_EVAL :
