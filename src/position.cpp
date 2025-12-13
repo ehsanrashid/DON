@@ -1030,7 +1030,7 @@ DO_MOVE_END:
     }
     // Speculative prefetch as early as possible
     if (tt != nullptr && !is_ok(enPassantSq))
-        tt->prefetch_key(k ^ Zobrist::mr50(rule50_count()));
+        prefetch(tt->cluster(k ^ Zobrist::mr50(rule50_count())));
 
     ac = activeColor = ~ac;
 
@@ -1050,7 +1050,7 @@ DO_MOVE_END:
     st->key = k;
     // Speculative prefetch as early as possible
     if (tt != nullptr)
-        tt->prefetch_key(key());
+        prefetch(tt->cluster(key()));
 
     // Calculate the repetition info.
     // It is the ply distance from the previous occurrence of the same position,
@@ -1181,7 +1181,7 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
     st->key = k;
     // Speculative prefetch as early as possible
     if (tt != nullptr)
-        tt->prefetch_key(key());
+        prefetch(tt->cluster(key()));
 
     activeColor = ~active_color();
 

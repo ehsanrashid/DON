@@ -232,9 +232,6 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
             TTUpdater{rte, ttc, key16, generation8}};
 }
 
-// Prefetch the cache line which includes this key's entry
-void TranspositionTable::prefetch_key(Key key) const noexcept { prefetch(cluster(key)); }
-
 // Returns an approximation of the hashtable occupation during a search.
 // The hash is x permill full, as per UCI protocol.
 // Only counts entries which match the current generation. [maxAge: 0-31]
@@ -307,7 +304,7 @@ bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) no
 
     std::error_code ec;
 
-    std::uint64_t fileSize = std::filesystem::file_size(std::string(hashFile), ec);
+    std::size_t fileSize = std::filesystem::file_size(std::string(hashFile), ec);
 
     if (ec)
     {

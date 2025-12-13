@@ -109,9 +109,9 @@ class TranspositionTable final {
 
     void init(ThreadPool& threads) noexcept;
 
-    ProbResult probe(Key key) const noexcept;
+    TTCluster* cluster(Key key) const noexcept;
 
-    void prefetch_key(Key key) const noexcept;
+    ProbResult probe(Key key) const noexcept;
 
     std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
 
@@ -120,8 +120,6 @@ class TranspositionTable final {
 
    private:
     void free() noexcept;
-
-    TTCluster* cluster(Key key) const noexcept;
 
     TTCluster*   clusters = nullptr;
     std::size_t  clusterCount;

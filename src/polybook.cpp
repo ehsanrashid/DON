@@ -420,7 +420,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
     std::error_code ec;
 
-    std::uint64_t fileSize = std::filesystem::file_size(filename, ec);
+    std::size_t fileSize = std::filesystem::file_size(filename, ec);
 
     if (ec)
     {
