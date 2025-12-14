@@ -18,6 +18,17 @@
 #ifndef TYPES_H_INCLUDED
     #define TYPES_H_INCLUDED
 
+    #include <algorithm>
+    #include <array>
+    #include <cassert>
+    #include <cstddef>
+    #include <cstdint>
+    #include <string_view>
+    #include <type_traits>
+    #include <vector>
+
+    #include "misc.h"
+
 // When compiling with provided Makefile (e.g. for Linux and OSX), configuration
 // is done automatically. To get started type 'make help'.
 //
@@ -35,19 +46,6 @@
 // -DUSE_BMI2     | Add runtime support for use of pext asm-instruction. Works
 //                | only in 64-bit mode and requires hardware with pext support.
 
-    #include <algorithm>
-    #include <array>
-    #include <cassert>
-    #include <cstddef>
-    #include <cstdint>
-    #include <string_view>
-    #include <type_traits>
-    #include <vector>
-
-    #include "misc.h"
-
-namespace DON {
-
 // Predefined macros hell:
 //
 // __GNUC__                Compiler is GCC, Clang or ICX
@@ -56,6 +54,17 @@ namespace DON {
 // _MSC_VER                Compiler is MSVC
 // _WIN32                  Building on Windows (any)
 // _WIN64                  Building on Windows 64 bit
+
+    #if defined(_MSC_VER)
+        // Disable some silly and noisy warnings from MSVC compiler
+        #pragma warning(disable: 4127)  // Conditional expression is constant
+        #pragma warning(disable: 4146)  // Unary minus operator applied to unsigned type
+        #pragma warning(disable: 4800)  // Forcing value to bool 'true' or 'false'
+
+        #if defined(_WIN64)  // No Makefile used
+            #define IS_64BIT
+        #endif
+    #endif
 
     // Enforce minimum GCC version
     #if defined(__GNUC__) && !defined(__clang__) \
@@ -68,16 +77,7 @@ namespace DON {
         #error "DON requires Clang 10.0 or later for correct compilation"
     #endif
 
-    #if defined(_MSC_VER)
-        // Disable some silly and noisy warnings from MSVC compiler
-        #pragma warning(disable: 4127)  // Conditional expression is constant
-        #pragma warning(disable: 4146)  // Unary minus operator applied to unsigned type
-        #pragma warning(disable: 4800)  // Forcing value to bool 'true' or 'false'
-
-        #if defined(_WIN64)  // No Makefile used
-            #define IS_64BIT
-        #endif
-    #endif
+namespace DON {
 
 using Bitboard = std::uint64_t;
 using Key      = std::uint64_t;
@@ -158,10 +158,10 @@ inline constexpr Value VALUE_ROOK   = 1276;
 inline constexpr Value VALUE_QUEEN  = 2538;
 
 constexpr Value piece_value(PieceType pt) noexcept {
-    constexpr StdArray<Value, PIECES + 1> PieceValue{
+    constexpr StdArray<Value, PIECES + 1> PieceValues{
       VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO};
 
-    return PieceValue[pt];
+    return PieceValues[pt];
 }
 
 constexpr bool is_valid(Value value) noexcept { return value != VALUE_NONE; }

@@ -99,6 +99,8 @@ struct State final {
 
     void clear() noexcept;
 
+    void dump(std::ostream& os = std::cout) const noexcept;
+
     // --- Copied when making a move
     StdArray<Key, COLOR_NB>    pawnKey;
     StdArray<Key, COLOR_NB, 2> nonPawnKey;

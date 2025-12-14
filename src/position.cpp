@@ -2197,6 +2197,69 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
     return os;
 }
 
+void State::dump(std::ostream& os) const noexcept {
+
+    os << "Pawn keys:\n";
+    for (Color c : {WHITE, BLACK})
+    {
+        os << (c == WHITE ? "W" : "B") << ": ";
+        os << u64_to_string(pawnKey[c]) << "\n";
+    }
+
+    os << "Non-Pawn keys:\n";
+    for (Color c : {WHITE, BLACK})
+    {
+        os << (c == WHITE ? "W" : "B") << ": ";
+        os << u64_to_string(nonPawnKey[c][0]) << " ";
+        os << u64_to_string(nonPawnKey[c][1]) << "\n";
+    }
+
+    os << "En-Passant Square: " << (is_ok(enPassantSq) ? to_square(enPassantSq) : "-");
+    os << "\n";
+    os << "Captured Square: " << (is_ok(capturedSq) ? to_square(capturedSq) : "-");
+    os << "\n";
+
+    os << "Pinner Bitboards:\n";
+    for (Color c : {WHITE, BLACK})
+    {
+        os << (c == WHITE ? "W" : "B") << ":";
+        os << BitBoard::pretty(pinnersBB[c]);
+        os << "\n";
+    }
+
+    os << "Blocker Bitboards:\n";
+    for (Color c : {WHITE, BLACK})
+    {
+        os << (c == WHITE ? "W" : "B") << ":";
+        os << BitBoard::pretty(blockersBB[c]);
+        os << "\n";
+    }
+
+    os << "Check Bitboards:\n";
+    for (PieceType pt : PIECE_TYPES)
+    {
+        os << to_char(pt) << ":";
+        os << BitBoard::pretty(checksBB[pt]);
+        os << "\n";
+    }
+
+    os << "Attack Bitboards:\n";
+    for (PieceType pt = PAWN; pt <= ALL; ++pt)
+    {
+        os << to_char(pt) << ":";
+        os << BitBoard::pretty(accAttacksBB[pt]) << "\n";
+    }
+
+    os << "Repetition: " << int(repetition);
+    os << "\n";
+    os << "Captured Piece: " << (is_ok(capturedPc) ? to_char(capturedPc) : '-');
+    os << "\n";
+    os << "Promoted Piece: " << (is_ok(promotedPc) ? to_char(promotedPc) : '-');
+    os << "\n";
+
+    os.flush();
+}
+
 void Position::dump(std::ostream& os) const noexcept {
     constexpr std::string_view Sep{"\n  +-----+-----+-----+-----+-----+-----+-----+-----+\n"};
 
@@ -2205,17 +2268,18 @@ void Position::dump(std::ostream& os) const noexcept {
     os << "Color Bitboards:\n";
     for (Color c : {WHITE, BLACK})
     {
-        os << (c == WHITE ? "W" : "B") << ": ";
-        os << u64_to_string(pieces_bb(c)) << "\n";
+        os << (c == WHITE ? "W" : "B") << ":";
+        os << BitBoard::pretty(pieces_bb(c));
+        os << "\n";
     }
 
     os << "Piece Bitboards:\n";
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
-        {
-            os << to_char(make_piece(c, pt)) << ": ";
-            os << u64_to_string(pieces_bb(c, pt)) << "\n";
-        }
+    for (PieceType pt : PIECE_TYPES)
+    {
+        os << to_char(pt) << ":";
+        os << BitBoard::pretty(pieces_bb(pt));
+        os << "\n";
+    }
 
     os << "Piece Lists:\n";
     for (Color c : {WHITE, BLACK})
@@ -2229,7 +2293,7 @@ void Position::dump(std::ostream& os) const noexcept {
             os << "\n";
         }
 
-    os << "Piece List Map:\n";
+    os << "Piece List Map:";
     os << Sep;
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
@@ -2277,9 +2341,9 @@ void Position::dump(std::ostream& os) const noexcept {
         for (CastlingSide cs : {KING_SIDE, QUEEN_SIDE})
         {
             os << (c == WHITE ? "W|" : "B|") << (cs == KING_SIDE ? "O-O" : "O-O-O") << ":\n";
-            os << u64_to_string(castlings.fullPathBB[c][cs]);
+            os << BitBoard::pretty(castlings.fullPathBB[c][cs]);
             os << "\n";
-            os << u64_to_string(castlings.kingPathBB[c][cs]);
+            os << BitBoard::pretty(castlings.kingPathBB[c][cs]);
             os << "\n";
             if (is_ok(castlings.rookSq[c][cs]))
                 os << to_square(castlings.rookSq[c][cs]);
@@ -2290,7 +2354,9 @@ void Position::dump(std::ostream& os) const noexcept {
         os << "\n";
     }
 
-    flush(os);
+    st->dump(os);
+
+    os.flush();
 }
 
 }  // namespace DON

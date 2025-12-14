@@ -273,7 +273,6 @@ void init() noexcept {
     }
 }
 
-#if !defined(NDEBUG)
 // Returns an ASCII representation of a bitboard suitable
 // to be printed to standard output. Useful for debugging.
 std::string pretty_str(Bitboard b) noexcept {
@@ -340,7 +339,6 @@ std::string_view pretty(Bitboard b) noexcept {
         return std::string_view{*itr->second};
     }
 }
-#endif
 
 }  // namespace BitBoard
 }  // namespace DON
