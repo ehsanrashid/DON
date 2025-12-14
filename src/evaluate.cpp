@@ -26,8 +26,8 @@
 #include <sstream>
 #include <utility>
 
-#include "nnue/network.h"
 #include "nnue/accumulator.h"
+#include "nnue/network.h"
 #include "nnue/nmisc.h"
 #include "position.h"
 #include "uci.h"

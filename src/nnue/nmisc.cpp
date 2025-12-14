@@ -31,8 +31,8 @@
 #include "../position.h"
 #include "../types.h"
 #include "../uci.h"
-#include "network.h"
 #include "accumulator.h"
+#include "network.h"
 
 namespace DON::NNUE {
 

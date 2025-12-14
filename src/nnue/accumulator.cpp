@@ -23,8 +23,8 @@
 #include "../misc.h"
 #include "../position.h"
 #include "../types.h"
-#include "features/half_ka_v2_hm.h"
 #include "feature_transformer.h"  // IWYU pragma: keep
+#include "features/half_ka_v2_hm.h"
 #include "simd.h"
 
 namespace DON::NNUE {

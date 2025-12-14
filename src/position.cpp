@@ -2169,13 +2169,17 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     os << "\nKey: " << u64_to_string(pos.key());
 
-    os << "\nKing (s): " << to_square(pos.square<KING>(pos.active_color()))  //
-       << ", " << to_square(pos.square<KING>(~pos.active_color()));
+    os << "\nKing (s): ";
+    os << to_square(pos.square<KING>(pos.active_color())) << ", "
+       << to_square(pos.square<KING>(~pos.active_color()));
 
     os << "\nCheckers: ";
-
-    for (Bitboard checkersBB = pos.checkers_bb(); checkersBB;)
-        os << to_square(pop_lsq(checkersBB)) << " ";
+    Bitboard checkersBB = pos.checkers_bb();
+    if (checkersBB != 0)
+        while (checkersBB != 0)
+            os << to_square(pop_lsq(checkersBB)) << " ";
+    else
+        os << "-";
 
     os << "\nRepetition: " << pos.repetition();
 
@@ -2293,7 +2297,7 @@ void Position::dump(std::ostream& os) const noexcept {
             os << "\n";
         }
 
-    os << "Piece List Map:";
+    os << "Index Map:";
     os << Sep;
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
@@ -2326,10 +2330,7 @@ void Position::dump(std::ostream& os) const noexcept {
     {
         for (Square s : squaresTable[c])
         {
-            if (is_ok(s))
-                os << to_square(s);
-            else
-                os << "-";
+            os << (is_ok(s) ? to_square(s) : "-");
             os << " ";
         }
         os << "\n";
@@ -2345,10 +2346,7 @@ void Position::dump(std::ostream& os) const noexcept {
             os << "\n";
             os << BitBoard::pretty(castlings.kingPathBB[c][cs]);
             os << "\n";
-            if (is_ok(castlings.rookSq[c][cs]))
-                os << to_square(castlings.rookSq[c][cs]);
-            else
-                os << "-";
+            os << (is_ok(castlings.rookSq[c][cs]) ? to_square(castlings.rookSq[c][cs]) : "-");
             os << "\n";
         }
         os << "\n";

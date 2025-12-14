@@ -18,16 +18,14 @@
 #include "bitboard.h"
 
 #include <algorithm>
+#include <initializer_list>
+#include <memory>
+#include <mutex>
+#include <shared_mutex>
+#include <unordered_map>
+#include <utility>
 #if !defined(USE_POPCNT)
     #include <bitset>
-#endif
-#include <initializer_list>
-#if !defined(NDEBUG)
-    #include <memory>
-    #include <mutex>
-    #include <shared_mutex>
-    #include <unordered_map>
-    #include <utility>
 #endif
 
 #if !defined(USE_BMI2)
