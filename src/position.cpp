@@ -207,40 +207,40 @@ void Position::clear() noexcept {
 // This function is not very robust - make sure that input FENs are correct,
 // this is assumed to be the responsibility of the GUI.
 void Position::set(std::string_view fens, State* const newSt) noexcept {
-    /*
-   A FEN string defines a particular position using only the ASCII character set.
 
-   A FEN string contains six fields separated by a space. The fields are:
+    // A FEN string defines a particular position using only the ASCII character set.
+    //
+    // A FEN string contains six fields separated by a space. The fields are:
+    //
+    // 1) Piece placement (from white's perspective). Each rank is described, starting
+    //    with rank 8 and ending with rank 1. Within each rank, the contents of each
+    //    square are described from file A through file H.
+    //    Following the Standard Algebraic Notation (SAN), each piece is identified by
+    //    a single letter taken from the standard English names.
+    //    White pieces are designated using upper-case letters ("PNBRQK") whilst
+    //    Black uses lower-case letters ("pnbrqk").
+    //    Blank squares are noted using digits 1 through 8 (the number of blank squares),
+    //    and "/" separates ranks.
+    //
+    // 2) Active color. "w" means white moves, "b" means black moves.
+    //
+    // 3) Castling availability. If neither side can castle, this is "-". Otherwise,
+    //    this has one or more letters: "K" (White can castle kingside), "Q" (White
+    //    can castle queenside), "k" (Black can castle kingside), and/or "q" (Black
+    //    can castle queenside).
+    //
+    // 4) En-passant target square (in algebraic notation).
+    //    If there's no en-passant target square, this is "-".
+    //    If a pawn has just made a 2-square move, this is the position "behind" the pawn.
+    //    Following X-FEN standard, this is recorded only if there is a pawn in position
+    //    to make an en-passant capture, and if there really is a pawn that might have advanced 2-squares.
+    //
+    // 5) Halfmove clock. The number of halfmoves since the last pawn advance or capture.
+    //    This is used to determine if a draw can be claimed under the fifty-move rule.
+    //
+    // 6) Fullmove number. The number of the full move.
+    //    It starts at 1, and is incremented after Black's move.
 
-   1) Piece placement (from white's perspective). Each rank is described, starting
-      with rank 8 and ending with rank 1. Within each rank, the contents of each
-      square are described from file A through file H. Following the Standard
-      Algebraic Notation (SAN), each piece is identified by a single letter taken
-      from the standard English names. White pieces are designated using upper-case
-      letters ("PNBRQK") whilst Black uses lowercase ("pnbrqk"). Blank squares are
-      noted using digits 1 through 8 (the number of blank squares), and "/"
-      separates ranks.
-
-   2) Active color. "w" means white moves next, "b" means black.
-
-   3) Castling availability. If neither side can castle, this is "-". Otherwise,
-      this has one or more letters: "K" (White can castle kingside), "Q" (White
-      can castle queenside), "k" (Black can castle kingside), and/or "q" (Black
-      can castle queenside).
-
-   4) En-passant target square (in algebraic notation). If there's no en-passant
-      target square, this is "-". If a pawn has just made a 2-square move, this
-      is the position "behind" the pawn. Following X-FEN standard, this is recorded
-      only if there is a pawn in position to make an en-passant capture, and if
-      there really is a pawn that might have advanced two squares.
-
-   5) Halfmove clock. This is the number of halfmoves since the last pawn advance
-      or capture. This is used to determine if a draw can be claimed under the
-      fifty-move rule.
-
-   6) Fullmove number. The number of the full move. It starts at 1, and is
-      incremented after Black's move.
-*/
     assert(!fens.empty());
     assert(newSt != nullptr);
 
@@ -267,11 +267,16 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             file = FILE_A;
             --rank;
         }
-        else if ('1' <= token && token <= '8')
+        else if (std::isdigit(token))
         {
-            int f = char_to_digit(token);
-            assert(1 <= f && f <= 8 - file && "Position::set(): Invalid File");
-            file += f;  // Advance the given number of file
+            if ('1' <= token && token <= '8')
+            {
+                int f = char_to_digit(token);
+                assert(1 <= f && f <= 8 - file && "Position::set(): Invalid File");
+                file += f;  // Advance the given number of file
+            }
+            else
+                assert(false && "Position::set(): Invalid Digit");
         }
         else
         {
@@ -404,7 +409,6 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     // 4. En-passant square.
     // Ignore if square is invalid or not on side to move relative rank 6.
     Square enPassantSq = SQ_NONE;
-    bool   epCheck     = false;
 
     iss >> token;
     if (token != '-')
@@ -414,20 +418,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
         iss >> epRank;
 
         if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
-        {
             enPassantSq = make_square(to_file(epFile), to_rank(epRank));
-
-            // En-passant square will be considered only if
-            // a) there is an enemy pawn in front of epSquare
-            // b) there is no piece on epSquare or behind epSquare
-            // c) there is atleast one friend pawn threatening epSquare
-            // d) there is no enemy Bishop, Rook or Queen pinning
-            Bitboard pawns = pieces_bb(PAWN);
-
-            epCheck = (pawns & pieces_bb(~ac) & (enPassantSq - pawn_spush(ac))) != 0
-                   && (empty(enPassantSq) && empty(enPassantSq + pawn_spush(ac)))
-                   && (pawns & pieces_bb(ac) & attacks_bb<PAWN>(enPassantSq, ~ac)) != 0;
-        }
         else
             assert(false && "Position::set(): Invalid En-passant square");
     }
@@ -446,12 +437,20 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 
     set_ext_state();
 
-    // Reset illegal fields
     if (is_ok(enPassantSq))
     {
-        reset_rule50_count();
-        if (epCheck && enpassant_possible(ac, enPassantSq))
+        // En-passant square will be considered only if
+        // a) there is an enemy pawn in front of epSquare
+        // b) there is no piece on epSquare or behind epSquare
+        // c) there is atleast one friend pawn threatening epSquare
+        // d) there is no enemy Bishop, Rook or Queen pinning
+        if ((pieces_bb(~ac, PAWN) & (enPassantSq - pawn_spush(ac))) != 0
+            && (empty(enPassantSq) && empty(enPassantSq + pawn_spush(ac)))
+            && (pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac)) != 0
+            && enpassant_possible(ac, enPassantSq))
             st->enPassantSq = enPassantSq;
+
+        reset_rule50_count();
     }
     assert(rule50_count() <= 100);
     gamePly = std::max(ply(), rule50_count());
@@ -638,29 +637,23 @@ void Position::set_state() noexcept {
         st->key ^= Zobrist::turn();
 }
 
-// Set extra state to detect if a move is check
+// Set extra state, used for fast check detection
 void Position::set_ext_state() noexcept {
 
-    for (Color c : {WHITE, BLACK})
-        st->pinnersBB[c] = 0;
+    st->pinnersBB[WHITE] = st->pinnersBB[BLACK] = 0;
 
-    for (Color c : {WHITE, BLACK})
-    {
-        Square   kingSq      = square<KING>(c);
-        Bitboard attackersBB = pieces_bb(~c);
+    st->blockersBB[WHITE] = blockers_bb(square<KING>(WHITE), pieces_bb(BLACK),  //
+                                        st->pinnersBB[WHITE], st->pinnersBB[BLACK]);
+    st->blockersBB[BLACK] = blockers_bb(square<KING>(BLACK), pieces_bb(WHITE),  //
+                                        st->pinnersBB[BLACK], st->pinnersBB[WHITE]);
 
-        st->blockersBB[c] = blockers_bb(kingSq, attackersBB, st->pinnersBB[c], st->pinnersBB[~c]);
-    }
-
-    Color    ac          = active_color();
-    Square   kingSq      = square<KING>(~ac);
-    Bitboard occupancyBB = pieces_bb();
+    Color ac = active_color();
 
     // clang-format off
-    st->checksBB[PAWN  ] = attacks_bb<PAWN  >(kingSq, ~ac);
-    st->checksBB[KNIGHT] = attacks_bb<KNIGHT>(kingSq);
-    st->checksBB[BISHOP] = attacks_bb<BISHOP>(kingSq, occupancyBB);
-    st->checksBB[ROOK  ] = attacks_bb<ROOK  >(kingSq, occupancyBB);
+    st->checksBB[PAWN  ] = attacks_bb<PAWN  >(square<KING>(~ac), ~ac);
+    st->checksBB[KNIGHT] = attacks_bb<KNIGHT>(square<KING>(~ac));
+    st->checksBB[BISHOP] = attacks_bb<BISHOP>(square<KING>(~ac), pieces_bb());
+    st->checksBB[ROOK  ] = attacks_bb<ROOK  >(square<KING>(~ac), pieces_bb());
     st->checksBB[QUEEN ] = checks_bb(BISHOP) | checks_bb(ROOK);
     st->checksBB[KING  ] = 0;
 
@@ -672,12 +665,12 @@ void Position::set_ext_state() noexcept {
     st->accAttacksBB[QUEEN ] = attacks_by_bb<QUEEN >(~ac) | acc_attacks_bb<ROOK  >();
     st->accAttacksBB[KING  ] = attacks_by_bb<KING  >(~ac) | acc_attacks_bb<QUEEN >();
 
-    st->accAttacksBB[ALL_PIECE_TYPE] = attacks_by_bb<PAWN  >(ac)
-                                     | attacks_by_bb<KNIGHT>(ac)
-                                     | attacks_by_bb<BISHOP>(ac)
-                                     | attacks_by_bb<ROOK  >(ac)
-                                     | attacks_by_bb<QUEEN >(ac)
-                                     | attacks_by_bb<KING  >(ac);
+    st->accAttacksBB[ALL   ] = attacks_by_bb<PAWN  >(ac)
+                             | attacks_by_bb<KNIGHT>(ac)
+                             | attacks_by_bb<BISHOP>(ac)
+                             | attacks_by_bb<ROOK  >(ac)
+                             | attacks_by_bb<QUEEN >(ac)
+                             | attacks_by_bb<KING  >(ac);
     // clang-format on
 }
 
@@ -1037,7 +1030,6 @@ DO_MOVE_END:
     st->capturedPc = capturedPc;
     st->promotedPc = promotedPc;
 
-    // Update king attacks used for fast check detection
     set_ext_state();
 
     if (is_ok(enPassantSq) && enpassant_possible(ac, enPassantSq))

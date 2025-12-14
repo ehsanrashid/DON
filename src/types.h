@@ -106,7 +106,7 @@ enum Color : std::uint8_t {
 // clang-format off
 enum PieceType : std::int8_t {
     NO_PIECE_TYPE,
-    PAWN = 1, KNIGHT, BISHOP, ROOK, QUEEN, KING, ALL_PIECE_TYPE,
+    PAWN = 1, KNIGHT, BISHOP, ROOK, QUEEN, KING, ALL,
     PIECE_TYPE_NB = 8
 };
 
@@ -121,8 +121,8 @@ constexpr StdArray<PieceType, PIECES - 2> NON_PAWN_PIECE_TYPES{
 
 enum Piece : std::uint8_t {
     NO_PIECE,
-    W_PAWN = PAWN + 0, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
-    B_PAWN = PAWN + 8, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
+    W_PAWN = 0 + PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
+    B_PAWN = 8 + PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
     PIECE_NB = 16
 };
 // clang-format on
@@ -158,10 +158,8 @@ inline constexpr Value VALUE_ROOK   = 1276;
 inline constexpr Value VALUE_QUEEN  = 2538;
 
 constexpr Value piece_value(PieceType pt) noexcept {
-    constexpr StdArray<Value, PIECE_TYPE_NB> PieceValue{
-      VALUE_ZERO, VALUE_PAWN,  VALUE_KNIGHT, VALUE_BISHOP,
-      VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO,   VALUE_ZERO  //
-    };
+    constexpr StdArray<Value, PIECES + 1> PieceValue{
+      VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO};
 
     return PieceValue[pt];
 }

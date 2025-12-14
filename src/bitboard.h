@@ -483,7 +483,7 @@ inline Square lsq(Bitboard b) noexcept {
     _BitScanForward64(&idx, b);
     return Square(idx);
     #else                // (MSVC-> WIN32)
-    if (auto bb = std::uint32_t(b); bb)
+    if (auto bb = std::uint32_t(b); bb != 0)
     {
         _BitScanForward(&idx, bb);
         return Square(idx);
@@ -525,7 +525,7 @@ inline Square msq(Bitboard b) noexcept {
     _BitScanReverse64(&idx, b);
     return Square(idx);
     #else                // (MSVC-> WIN32)
-    if (auto bb = std::uint32_t(b >> 32); bb)
+    if (auto bb = std::uint32_t(b >> 32); bb != 0)
     {
         _BitScanReverse(&idx, bb);
         return Square(idx + 32);

@@ -495,7 +495,7 @@ inline Piece Position::piece(Square s) const noexcept { return pieceMap[s]; }
 
 inline bool Position::empty(Square s) const noexcept { return piece(s) == NO_PIECE; }
 
-inline Bitboard Position::pieces_bb() const noexcept { return typeBBs[NO_PIECE_TYPE]; }
+inline Bitboard Position::pieces_bb() const noexcept { return typeBBs[ALL]; }
 
 template<typename... PieceTypes>
 inline Bitboard Position::pieces_bb(PieceTypes... pts) const noexcept {
@@ -760,11 +760,11 @@ inline Bitboard Position::blockers_bb() const noexcept {
     return blockers_bb(WHITE) | blockers_bb(BLACK);
 }
 
-inline Bitboard Position::acc_attacks_bb() const noexcept {
-    return st->accAttacksBB[ALL_PIECE_TYPE];
+inline Bitboard Position::acc_attacks_bb() const noexcept {  //
+    return st->accAttacksBB[ALL];
 }
 template<PieceType PT>
-inline Bitboard Position::acc_attacks_bb() const noexcept {
+inline Bitboard Position::acc_attacks_bb() const noexcept {  //
     return st->accAttacksBB[PT];
 }
 inline Bitboard Position::acc_less_attacks_bb(PieceType pt) const noexcept {
@@ -918,7 +918,7 @@ inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept 
 
     pieceMap[s] = pc;
     colorBBs[c] |= sBB;
-    typeBBs[NO_PIECE_TYPE] |= typeBBs[pt] |= sBB;
+    typeBBs[ALL] |= typeBBs[pt] |= sBB;
     auto& pL = pieceList[c][pt];
     auto* pB = base(c);
 
@@ -946,7 +946,7 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     pieceMap[s] = NO_PIECE;
     colorBBs[c] ^= sBB;
     typeBBs[pt] ^= sBB;
-    typeBBs[NO_PIECE_TYPE] ^= sBB;
+    typeBBs[ALL] ^= sBB;
     auto  idx = indexMap[s];
     auto& pL  = pieceList[c][pt];
     auto* pB  = base(c);
@@ -978,7 +978,7 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     pieceMap[s2] = pc;
     colorBBs[c] ^= s1s2BB;
     typeBBs[pt] ^= s1s2BB;
-    typeBBs[NO_PIECE_TYPE] ^= s1s2BB;
+    typeBBs[ALL] ^= s1s2BB;
     auto  idx = indexMap[s1];
     auto& pL  = pieceList[c][pt];
     auto* pB  = base(c);

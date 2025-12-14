@@ -16,15 +16,15 @@ ExpectScript=$(mktemp)
 cat << 'EOF' > $ExpectScript
 #!/usr/bin/expect -f
 set timeout 120
-lassign [lrange $argv 0 4] pos depth result chess960 logfile
-log_file -noappend $logfile
+lassign [lrange $argv 0 4] pos depth result chess960 logFile
+log_file -noappend $logFile
 spawn ./DON
 if {$chess960 == "true"} {
   send "setoption name UCI_Chess960 value true\n"
 }
 send "position $pos\ngo perft $depth\n"
 expect {
-  "Total nodes? $result" {}
+  "Total nodes: $result" {}
   timeout {puts "TIMEOUT: Expected $result nodes"; exit 1}
   eof {puts "EOF: DON crashed"; exit 2}
 }
