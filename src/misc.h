@@ -220,23 +220,23 @@ struct CountTableView final {
 
     constexpr off_type offset() const noexcept { return _offset; }
 
-    constexpr T*       data(T* base) noexcept { return base + offset(); }
-    constexpr const T* data(const T* base) const noexcept { return base + offset(); }
+    constexpr T*       data(T* const base) noexcept { return base + offset(); }
+    constexpr const T* data(const T* const base) const noexcept { return base + offset(); }
 
     constexpr size_type size() const noexcept { return _size; }
     constexpr size_type count() const noexcept { return _count; }
 
-    constexpr T*       begin(T* base) noexcept { return data(base); }
-    constexpr T*       end(T* base) noexcept { return data(base) + count(); }
-    constexpr const T* begin(const T* base) const noexcept { return data(base); }
-    constexpr const T* end(const T* base) const noexcept { return data(base) + count(); }
+    constexpr T*       begin(T* const base) noexcept { return data(base); }
+    constexpr T*       end(T* const base) noexcept { return data(base) + count(); }
+    constexpr const T* begin(const T* const base) const noexcept { return data(base); }
+    constexpr const T* end(const T* const base) const noexcept { return data(base) + count(); }
 
-    bool push_back(const T& value, T* base) noexcept {
+    bool push_back(const T& value, T* const base) noexcept {
         assert(count() < size());
         data(base)[_count++] = value;
         return true;
     }
-    bool push_back(T&& value, T* base) noexcept {
+    bool push_back(T&& value, T* const base) noexcept {
         assert(count() < size());
         data(base)[_count++] = std::move(value);
         return true;
@@ -247,20 +247,20 @@ struct CountTableView final {
         --_count;
     }
 
-    T& back(T* base) noexcept {
+    T& back(T* const base) noexcept {
         assert(count() != 0);
         return data(base)[count() - 1];
     }
-    const T& back(T* base) const noexcept {
+    const T& back(const T* const base) const noexcept {
         assert(count() != 0);
         return data(base)[count() - 1];
     }
 
-    T& at(size_type idx, T* base) noexcept {
+    T& at(size_type idx, T* const base) noexcept {
         assert(idx < count());
         return data(base)[idx];
     }
-    const T& at(size_type idx, const T* base) const noexcept {
+    const T& at(size_type idx, const T* const base) const noexcept {
         assert(idx < count());
         return data(base)[idx];
     }
@@ -1072,7 +1072,7 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 [[nodiscard]] constexpr bool string_to_bool(std::string_view str) { return (trim(str) == "true"); }
 
 inline StringViews
-split(std::string_view str, std::string_view delimiter, bool trimToken = false) noexcept {
+split(std::string_view str, std::string_view delimiter, bool trimPart = false) noexcept {
     StringViews parts;
 
     if (str.empty() || delimiter.empty())
@@ -1081,15 +1081,19 @@ split(std::string_view str, std::string_view delimiter, bool trimToken = false) 
     std::string_view part;
 
     std::size_t beg = 0;
+
     while (true)
     {
         std::size_t end = str.find(delimiter, beg);
+
         if (end == std::string_view::npos)
             break;
 
         part = str.substr(beg, end - beg);
-        if (trimToken)
+
+        if (trimPart)
             part = trim(part);
+
         if (!part.empty())
             parts.emplace_back(part);
 
@@ -1098,22 +1102,24 @@ split(std::string_view str, std::string_view delimiter, bool trimToken = false) 
 
     // Last part
     part = str.substr(beg);
-    if (trimToken)
+
+    if (trimPart)
         part = trim(part);
+
     if (!part.empty())
         parts.emplace_back(part);
 
     return parts;
 }
 
-inline std::string u64_to_string(std::uint64_t u64) noexcept {
-    std::string str(19, '\0');  // "0x" + 16 hex + '\0' >= 19 bytes
-    std::snprintf(str.data(), str.size(), "0x%016" PRIX64, u64);
-    return str;
-}
 inline std::string u32_to_string(std::uint32_t u32) noexcept {
     std::string str(11, '\0');  // "0x" + 8 hex + '\0' => 11 bytes
     std::snprintf(str.data(), str.size(), "0x%08" PRIX32, u32);
+    return str;
+}
+inline std::string u64_to_string(std::uint64_t u64) noexcept {
+    std::string str(19, '\0');  // "0x" + 16 hex + '\0' >= 19 bytes
+    std::snprintf(str.data(), str.size(), "0x%016" PRIX64, u64);
     return str;
 }
 

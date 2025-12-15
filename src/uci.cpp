@@ -347,7 +347,7 @@ void UCI::print_info_string(std::string_view infoStr) noexcept {
     if (InfoStringStop)
         return;
 
-    for (const auto& str : split(infoStr, "\n"))
+    for (auto str : split(infoStr, "\n", true))
         if (!is_whitespace(str))
             std::cout << "info string " << str << std::endl;
 }

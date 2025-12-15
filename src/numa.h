@@ -915,15 +915,16 @@ class NumaConfig final {
     static std::vector<CpuIndex> shortened_string_to_indices(std::string_view str) noexcept {
         std::vector<CpuIndex> indices;
 
-        if (str.empty())
+        if (is_whitespace(str))
             return indices;
 
-        for (const auto& ss : split(str, ","))
+        for (auto ss : split(str, ","))
         {
-            if (ss.empty())
+            if (is_whitespace(ss))
                 continue;
 
             auto parts = split(ss, "-");
+
             if (parts.size() == 1)
             {
                 auto cpuIdx = CpuIndex{str_to_size_t(parts[0])};
@@ -945,9 +946,11 @@ class NumaConfig final {
 
     void remove_empty_numa_nodes() noexcept {
         std::vector<std::set<CpuIndex>> newNodes;
+
         for (auto&& cpus : nodes)
             if (!cpus.empty())
                 newNodes.emplace_back(std::move(cpus));
+
         nodes = std::move(newNodes);
     }
 
@@ -964,14 +967,15 @@ class NumaConfig final {
         nodes[numaIdx].insert(cpuIdx);
         nodeByCpu[cpuIdx] = numaIdx;
 
-        maxCpuIndex = std::max(maxCpuIndex, cpuIdx);
+        if (maxCpuIndex < cpuIdx)
+            maxCpuIndex = cpuIdx;
 
         return true;
     }
 
-    // Returns true if successful
-    // Returns false if failed, i.e. when any of the cpus is already present
-    //                          strong guarantee, the structure remains unmodified
+    // Returns true if successful.
+    // Returns false if failed.
+    // i.e. when any of the cpus is already present strong guarantee, the structure remains unmodified.
     bool add_cpu_range_to_node(NumaIndex numaIdx, CpuIndex fstCpuIdx, CpuIndex lstCpuIdx) noexcept {
         for (auto cpuIdx = fstCpuIdx; cpuIdx <= lstCpuIdx; ++cpuIdx)
             if (is_cpu_assigned(cpuIdx))
@@ -986,7 +990,8 @@ class NumaConfig final {
             nodeByCpu[cpuIdx] = numaIdx;
         }
 
-        maxCpuIndex = std::max(maxCpuIndex, lstCpuIdx);
+        if (maxCpuIndex < lstCpuIdx)
+            maxCpuIndex = lstCpuIdx;
 
         return true;
     }

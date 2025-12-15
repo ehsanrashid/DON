@@ -639,8 +639,9 @@ class Worker final {
     NNUE::AccumulatorStack  accStack;
     NNUE::AccumulatorCaches accCaches;
 
-    friend class ThreadPool;
     friend class MainSearchManager;
+    friend class Position;
+    friend class ThreadPool;
 };
 
 }  // namespace DON
