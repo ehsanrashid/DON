@@ -83,14 +83,19 @@ class CuckooTable final {
 
     void insert(Cuckoo cuckoo) noexcept {
         assert(!cuckoo.empty());
+
         std::size_t index = H<0>(cuckoo.key);
+
         while (true)
         {
             std::swap(cuckoos[index], cuckoo);
+
             if (cuckoo.empty())  // Arrived at empty slot?
                 break;
+
             index ^= H<0>(cuckoo.key) ^ H<1>(cuckoo.key);  // Push victim to alternative slot
         }
+
         ++count;
     }
 
@@ -108,6 +113,7 @@ class CuckooTable final {
             {
                 if (pt == PAWN)
                     continue;
+
                 for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
                     for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
                         if (attacks_bb(s1, pt) & s2)
@@ -121,6 +127,7 @@ class CuckooTable final {
                             insert({key, move});
                         }
             }
+
         assert(count == 3668);
     }
 
@@ -129,6 +136,7 @@ class CuckooTable final {
             (index = H<0>(key), cuckoos[index].key == key)
             || (index = H<1>(key), cuckoos[index].key == key))
             return index;
+
         return size();
     }
 
