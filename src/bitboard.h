@@ -170,8 +170,8 @@ constexpr Bitboard square_bb(Square s) noexcept {
     return (1ULL << s);
 }
 
-// Overloads of bitwise operators between a Bitboard and a Square for testing
-// whether a given bit is set in a bitboard, and for setting and clearing bits.
+// Overloads of bitwise operators between bitboard and square for testing
+// whether a given bit is set in bitboard, and for setting and clearing bits.
 constexpr Bitboard operator&(Bitboard b, Square s) noexcept { return b & square_bb(s); }
 constexpr Bitboard operator|(Bitboard b, Square s) noexcept { return b | square_bb(s); }
 constexpr Bitboard operator^(Bitboard b, Square s) noexcept { return b ^ square_bb(s); }
@@ -191,7 +191,7 @@ constexpr Bitboard make_bb(Squares... squares) noexcept {
     return (square_bb(squares) | ...);
 }
 
-// Return a bitboard representing all the squares on the given file.
+// Return a bitboard representing all the squares on the given file
 constexpr Bitboard file_bb(File f) noexcept { return FILE_A_BB << (1 * f); }
 constexpr Bitboard file_bb(Square s) noexcept { return file_bb(file_of(s)); }
 
@@ -199,7 +199,7 @@ constexpr Bitboard operator&(Bitboard b, File f) noexcept { return b & file_bb(f
 constexpr Bitboard operator|(Bitboard b, File f) noexcept { return b | file_bb(f); }
 constexpr Bitboard operator^(Bitboard b, File f) noexcept { return b ^ file_bb(f); }
 
-// Return a bitboard representing all the squares on the given rank.
+// Return a bitboard representing all the squares on the given rank
 constexpr Bitboard rank_bb(Rank r) noexcept { return RANK_1_BB << (8 * r); }
 constexpr Bitboard rank_bb(Square s) noexcept { return rank_bb(rank_of(s)); }
 
@@ -212,7 +212,7 @@ constexpr bool exactly_one(Bitboard b) noexcept { return b != 0 && !more_than_on
 
 // Returns a bitboard representing an entire line (from board edge to board edge)
 // passing through the squares s1 and s2.
-// If the given squares are not on a same file/rank/diagonal, the function returns 0.
+// If the given squares are not on a same file/rank/diagonal, it returns 0.
 // For instance, line_bb(SQ_C4, SQ_F7) will return a bitboard with the A2-G8 diagonal.
 inline Bitboard line_bb(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
@@ -311,7 +311,7 @@ constexpr Bitboard pawn_push_bb(Bitboard pawns, Color c) noexcept {
            : pawn_push_bb<BLACK>(pawns);
 }
 
-// Returns the squares attacked by pawns of the given color from the given bitboard.
+// Returns the squares attacked by pawns of the given color from the given bitboard
 template<Color C>
 constexpr Bitboard pawn_attacks_bb(Bitboard pawns) noexcept {
     static_assert(is_ok(C), "Invalid color for pawn_attacks_bb()");
@@ -325,7 +325,7 @@ constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
            : pawn_attacks_bb<BLACK>(pawns);
 }
 
-// Returns the pseudo attacks of the given piece type assuming an empty board.
+// Returns the pseudo attacks of the given piece type assuming an empty board
 template<PieceType PT>
 constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Color c = COLOR_NB) noexcept {
     static_assert(is_ok(PT), "Unsupported piece type in attacks_bb()");
@@ -363,7 +363,7 @@ constexpr Bitboard attacks_bb(const StdArray<Magic, 2>& magic, Bitboard occupanc
     return magic[PT - BISHOP].attacks_bb(occupancyBB);
 }
 
-// Returns the attacks by the given piece type
+// Returns the attacks by the given piece type.
 // Sliding piece attacks do not continue passed an occupied square.
 template<PieceType PT>
 constexpr Bitboard attacks_bb(Square s, Bitboard occupancyBB) noexcept {
@@ -383,7 +383,7 @@ constexpr Bitboard attacks_bb(Square s, Bitboard occupancyBB) noexcept {
     return 0;
 }
 
-// Returns the attacks by the given piece type
+// Returns the attacks by the given piece type.
 // Sliding piece attacks do not continue passed an occupied square.
 constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupancyBB = 0) noexcept {
     assert(pt != PAWN);
@@ -413,7 +413,7 @@ constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept
     return attacks_bb(s, type_of(pc), occupancyBB);
 }
 
-// Counts the number of non-zero bits in the bitboard.
+// Counts the number of non-zero bits in the bitboard
 inline std::uint8_t popcount(Bitboard b) noexcept {
 
 #if !defined(USE_POPCNT)

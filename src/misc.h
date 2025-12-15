@@ -220,23 +220,23 @@ struct CountTableView final {
 
     constexpr off_type offset() const noexcept { return _offset; }
 
-    constexpr T*       data(T* base) noexcept { return base + offset(); }
-    constexpr const T* data(const T* base) const noexcept { return base + offset(); }
+    constexpr T*       data(T* const base) noexcept { return base + offset(); }
+    constexpr const T* data(const T* const base) const noexcept { return base + offset(); }
 
     constexpr size_type size() const noexcept { return _size; }
     constexpr size_type count() const noexcept { return _count; }
 
-    constexpr T*       begin(T* base) noexcept { return data(base); }
-    constexpr T*       end(T* base) noexcept { return data(base) + count(); }
-    constexpr const T* begin(const T* base) const noexcept { return data(base); }
-    constexpr const T* end(const T* base) const noexcept { return data(base) + count(); }
+    constexpr T*       begin(T* const base) noexcept { return data(base); }
+    constexpr T*       end(T* const base) noexcept { return data(base) + count(); }
+    constexpr const T* begin(const T* const base) const noexcept { return data(base); }
+    constexpr const T* end(const T* const base) const noexcept { return data(base) + count(); }
 
-    bool push_back(const T& value, T* base) noexcept {
+    bool push_back(const T& value, T* const base) noexcept {
         assert(count() < size());
         data(base)[_count++] = value;
         return true;
     }
-    bool push_back(T&& value, T* base) noexcept {
+    bool push_back(T&& value, T* const base) noexcept {
         assert(count() < size());
         data(base)[_count++] = std::move(value);
         return true;
@@ -247,20 +247,20 @@ struct CountTableView final {
         --_count;
     }
 
-    T& back(T* base) noexcept {
+    T& back(T* const base) noexcept {
         assert(count() != 0);
         return data(base)[count() - 1];
     }
-    const T& back(T* base) const noexcept {
+    const T& back(const T* const base) const noexcept {
         assert(count() != 0);
         return data(base)[count() - 1];
     }
 
-    T& at(size_type idx, T* base) noexcept {
+    T& at(size_type idx, T* const base) noexcept {
         assert(idx < count());
         return data(base)[idx];
     }
-    const T& at(size_type idx, const T* base) const noexcept {
+    const T& at(size_type idx, const T* const base) const noexcept {
         assert(idx < count());
         return data(base)[idx];
     }
