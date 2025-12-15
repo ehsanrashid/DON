@@ -82,8 +82,8 @@ struct AccumulatorUpdateContext final {
           computedPsqtAcc.data(), targetPsqtAcc.data(), to_psqt_weight_vector(indices)...);
     }
 
-    void apply(typename FeatureSet::IndexList& added,
-               typename FeatureSet::IndexList& removed) noexcept {
+    void apply(const typename FeatureSet::IndexList& added,
+               const typename FeatureSet::IndexList& removed) noexcept {
 
 #if defined(VECTOR)
         using Tiling [[maybe_unused]] = SIMDTiling<Dimensions, PSQTBuckets>;
@@ -799,7 +799,7 @@ void AccumulatorStack::backward_update_incremental(
 
     Square kingSq = pos.square<KING>(perspective);
 
-    for (std::size_t idx = size ? size - 1 : 0; idx-- > end;)
+    for (std::size_t idx = size != 0 ? size - 1 : 0; idx-- > end;)
         update_accumulator_incremental<false>(perspective, featureTransformer, kingSq,
                                               accumulators<FeatureSet>()[idx + 1],
                                               mut_accumulators<FeatureSet>()[idx]);

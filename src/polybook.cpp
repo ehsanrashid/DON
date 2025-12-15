@@ -684,7 +684,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     if (bestMove == Move::None)
         return Move::None;
 
-    MoveVector candidateMoves;
+    Moves candidateMoves;
 
     candidateMoves.push_back(bestMove);
 

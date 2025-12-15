@@ -647,7 +647,7 @@ class Move {
 inline constexpr Move Move::None{SQ_A1, SQ_A1};
 inline constexpr Move Move::Null{SQ_H8, SQ_H8};
 
-using MoveVector = std::vector<Move>;
+using Moves = std::vector<Move>;
 
 template<typename T, typename... Ts>
 struct is_all_same final {

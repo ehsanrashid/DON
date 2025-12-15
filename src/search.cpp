@@ -259,8 +259,8 @@ void Worker::start_search() noexcept {
     mainManager->sumMoveChanges = 0.0;
     mainManager->timeReduction  = 1.0;
     mainManager->skill.init(options);
-    mainManager->timeManager.init(limit, rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
-                                  options);
+    mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
+                                  options, limit);
     if (!limit.infinite)
         tt.increment_generation();
 
@@ -334,16 +334,17 @@ void Worker::start_search() noexcept {
     if (think)
     {
         // When playing in 'Nodes as Time' mode, advance the time nodes before exiting.
-        if (mainManager->timeManager.nodesTimeActive)
+        if (mainManager->timeManager.use_nodes_time())
             mainManager->timeManager.advance_time_nodes(threads.nodes()
                                                         - limit.clocks[rootPos.active_color()].inc);
 
         // If the skill is enabled, swap the best PV line with the sub-optimal one
         if (mainManager->skill.enabled())
         {
-            Move m = mainManager->skill.pick_move(rootMoves, multiPV, false);
+            Move skillMove = mainManager->skill.pick_move(rootMoves, multiPV, false);
+
             for (auto&& th : threads)
-                th->worker->rootMoves.swap_to_front(m);
+                th->worker->rootMoves.swap_to_front(skillMove);
         }
 
         if (multiPV == 1 && threads.size() > 1 && limit.mate == 0  //&& limit.depth == DEPTH_ZERO
@@ -368,8 +369,8 @@ void Worker::start_search() noexcept {
     assert(!bestWorker->rootMoves.empty() && !bestWorker->rootMoves[0].pv.empty());
     const auto& rm = bestWorker->rootMoves[0];
 
-    auto bestMove   = UCI::move_to_can(rm.pv[0]);
-    auto ponderMove = UCI::move_to_can(
+    std::string bestMove   = UCI::move_to_can(rm.pv[0]);
+    std::string ponderMove = UCI::move_to_can(
       rm.pv.size() > 1 || bestWorker->ponder_move_extracted() ? rm.pv[1] : Move::None);
 
     mainManager->updateCxt.onUpdateMove({bestMove, ponderMove});
@@ -415,7 +416,7 @@ void Worker::iterative_deepening() noexcept {
 
     Value bestValue = -VALUE_INFINITE;
 
-    auto  lastBestPV       = MoveVector{Move::None};
+    auto  lastBestPV       = Moves{Move::None};
     Value lastBestCurValue = -VALUE_INFINITE;
     Value lastBestPreValue = -VALUE_INFINITE;
     Value lastBestUciValue = -VALUE_INFINITE;
@@ -1150,8 +1151,9 @@ S_MOVES_LOOP:  // When in check, search starts here
         if constexpr (RootNode)
             if (is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
             {
-                auto currMove = UCI::move_to_can(move);
-                main_manager()->updateCxt.onUpdateIter({rootDepth, currMove, moveCount + curIdx});
+                std::string currMove       = UCI::move_to_can(move);
+                std::size_t currMoveNumber = curIdx + moveCount;
+                main_manager()->updateCxt.onUpdateIter({rootDepth, currMove, currMoveNumber});
             }
 
         if constexpr (PVNode)
@@ -2197,7 +2199,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
 void MainSearchManager::init() noexcept {
 
-    timeManager.clear();
+    timeManager.init();
     moveFirst        = true;
     preBestCurValue  = VALUE_ZERO;
     preBestAvgValue  = VALUE_ZERO;

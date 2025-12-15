@@ -601,9 +601,9 @@ void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
 // that once computed is updated incrementally as moves are made.
 // The function is only used when a new position is set up.
 void Position::set_state() noexcept {
-    assert(st->pawnKey[WHITE] == 0 && st->pawnKey[BLACK] == 0);
-    assert(st->nonPawnKey[WHITE][0] == 0 && st->nonPawnKey[BLACK][0] == 0);
-    assert(st->nonPawnKey[WHITE][1] == 0 && st->nonPawnKey[BLACK][1] == 0);
+    assert(st->pawnKeys[WHITE] == 0 && st->pawnKeys[BLACK] == 0);
+    assert(st->nonPawnKeys[WHITE][0] == 0 && st->nonPawnKeys[BLACK][0] == 0);
+    assert(st->nonPawnKeys[WHITE][1] == 0 && st->nonPawnKeys[BLACK][1] == 0);
     assert(st->key == 0);
 
     for (Color c : {WHITE, BLACK})
@@ -619,11 +619,11 @@ void Position::set_state() noexcept {
                 st->key ^= key;
 
                 if (pt == PAWN)
-                    st->pawnKey[c] ^= key;
+                    st->pawnKeys[c] ^= key;
                 else
                 {
                     if (pt != KING)
-                        st->nonPawnKey[c][is_major(pt)] ^= key;
+                        st->nonPawnKeys[c][is_major(pt)] ^= key;
                 }
             }
         }
@@ -789,7 +789,7 @@ void Position::do_castling(Color             ac,
         db->dp.addSq    = rookDstSq;
         db->dp.removePc = db->dp.addPc = rookPc;
 
-        st->hasCastled[ac] = true;
+        st->hasCastleds[ac] = true;
     }
     // Remove rook first since squares could overlap in Chess960
     if (rookMoved)
@@ -877,7 +877,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
                     ^ Zobrist::piece_square(ac, ROOK, rookDstSq);
 
         k ^= rookKey;
-        st->nonPawnKey[ac][1] ^= rookKey;
+        st->nonPawnKeys[ac][1] ^= rookKey;
 
         capturedPc = NO_PIECE;
         capture    = false;
@@ -926,11 +926,11 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
                 capturedKey = Zobrist::piece_square(~ac, capturedPt, capturedSq);
             }
 
-            st->pawnKey[~ac] ^= capturedKey;
+            st->pawnKeys[~ac] ^= capturedKey;
         }
         else
         {
-            st->nonPawnKey[~ac][is_major(capturedPt)] ^= capturedKey;
+            st->nonPawnKeys[~ac][is_major(capturedPt)] ^= capturedKey;
         }
 
         db.dp.removeSq = capturedSq;
@@ -980,7 +980,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
 
             // Update hash keys
             k ^= promoKey;
-            st->nonPawnKey[ac][is_major(promotedPt)] ^= promoKey;
+            st->nonPawnKeys[ac][is_major(promotedPt)] ^= promoKey;
         }
         // Set en-passant square if the moved pawn can be captured
         else if ((int(dstSq) ^ int(orgSq)) == NORTH_2)
@@ -992,7 +992,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
         }
 
         // Update pawn hash key
-        st->pawnKey[ac] ^= movedKey;
+        st->pawnKeys[ac] ^= movedKey;
 
         // Reset rule 50 draw counter
         reset_rule50_count();
@@ -1000,7 +1000,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* 
     else
     {
         if (movedPt != KING)
-            st->nonPawnKey[ac][is_major(movedPt)] ^= movedKey;
+            st->nonPawnKeys[ac][is_major(movedPt)] ^= movedKey;
     }
 
     // Calculate checkers
@@ -2203,19 +2203,19 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
 void State::dump(std::ostream& os) const noexcept {
 
-    os << "Pawn keys:\n";
+    os << "Pawn Keys:\n";
     for (Color c : {WHITE, BLACK})
     {
         os << (c == WHITE ? "W" : "B") << ": ";
-        os << u64_to_string(pawnKey[c]) << "\n";
+        os << u64_to_string(pawnKeys[c]) << "\n";
     }
 
-    os << "Non-Pawn keys:\n";
+    os << "Non-Pawn Keys:\n";
     for (Color c : {WHITE, BLACK})
     {
         os << (c == WHITE ? "W" : "B") << ": ";
-        os << u64_to_string(nonPawnKey[c][0]) << " ";
-        os << u64_to_string(nonPawnKey[c][1]) << "\n";
+        os << u64_to_string(nonPawnKeys[c][0]) << " ";
+        os << u64_to_string(nonPawnKeys[c][1]) << "\n";
     }
 
     os << "En-Passant Square: " << (is_ok(enPassantSq) ? to_square(enPassantSq) : "-");

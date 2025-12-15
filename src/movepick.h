@@ -76,6 +76,7 @@ struct ExtMove final: public Move {
 
     int value;
 };
+
 static_assert(sizeof(ExtMove) == 8, "Unexpected ExtMove size");
 
 // MovePicker class is used to pick one pseudo-legal move at a time from the given current position.

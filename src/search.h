@@ -118,7 +118,7 @@ struct RootMove final {
     std::int32_t  tbRank   = 0;
     Value         tbValue  = -VALUE_INFINITE;
 
-    MoveVector pv;
+    Moves pv;
 };
 
 // RootMoves stores the collection of RootMove.

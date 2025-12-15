@@ -102,9 +102,9 @@ struct State final {
     void dump(std::ostream& os = std::cout) const noexcept;
 
     // --- Copied when making a move
-    StdArray<Key, COLOR_NB>    pawnKey;
-    StdArray<Key, COLOR_NB, 2> nonPawnKey;
-    StdArray<bool, COLOR_NB>   hasCastled;
+    StdArray<Key, COLOR_NB>    pawnKeys;
+    StdArray<Key, COLOR_NB, 2> nonPawnKeys;
+    StdArray<bool, COLOR_NB>   hasCastleds;
 
     Square         enPassantSq;
     Square         capturedSq;
@@ -784,15 +784,15 @@ inline Key Position::key(std::int16_t r50) const noexcept {
     return st->key ^ Zobrist::mr50(rule50_count() + r50);
 }
 
-inline Key Position::pawn_key(Color c) const noexcept { return st->pawnKey[c]; }
+inline Key Position::pawn_key(Color c) const noexcept { return st->pawnKeys[c]; }
 
 inline Key Position::pawn_key() const noexcept { return pawn_key(WHITE) ^ pawn_key(BLACK); }
 
-inline Key Position::minor_key(Color c) const noexcept { return st->nonPawnKey[c][0]; }
+inline Key Position::minor_key(Color c) const noexcept { return st->nonPawnKeys[c][0]; }
 
 inline Key Position::minor_key() const noexcept { return minor_key(WHITE) ^ minor_key(BLACK); }
 
-inline Key Position::major_key(Color c) const noexcept { return st->nonPawnKey[c][1]; }
+inline Key Position::major_key(Color c) const noexcept { return st->nonPawnKeys[c][1]; }
 
 inline Key Position::major_key() const noexcept { return major_key(WHITE) ^ major_key(BLACK); }
 
@@ -848,7 +848,7 @@ inline std::int16_t Position::null_ply() const noexcept { return st->nullPly; }
 
 inline std::int16_t Position::repetition() const noexcept { return st->repetition; }
 
-inline bool Position::has_castled(Color c) const noexcept { return st->hasCastled[c]; }
+inline bool Position::has_castled(Color c) const noexcept { return st->hasCastleds[c]; }
 
 inline bool Position::has_rule50_high() const noexcept { return st->hasRule50High; }
 
@@ -1030,14 +1030,14 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
                                    Bitboard                          maskBB,
                                    DirtyThreat                       templateDt,
                                    DirtyThreats* const               dts) noexcept {
-    const __m512i squares = _mm512_set_epi8(63, 62, 61, 60, 59, 58, 57, 56,  //
-                                            55, 54, 53, 52, 51, 50, 49, 48,  //
-                                            47, 46, 45, 44, 43, 42, 41, 40,  //
-                                            39, 38, 37, 36, 35, 34, 33, 32,  //
-                                            31, 30, 29, 28, 27, 26, 25, 24,  //
-                                            23, 22, 21, 20, 19, 18, 17, 16,  //
-                                            15, 14, 13, 12, 11, 10, 9, 8,    //
-                                            7, 6, 5, 4, 3, 2, 1, 0);
+    __m512i squares = _mm512_set_epi8(63, 62, 61, 60, 59, 58, 57, 56,  //
+                                      55, 54, 53, 52, 51, 50, 49, 48,  //
+                                      47, 46, 45, 44, 43, 42, 41, 40,  //
+                                      39, 38, 37, 36, 35, 34, 33, 32,  //
+                                      31, 30, 29, 28, 27, 26, 25, 24,  //
+                                      23, 22, 21, 20, 19, 18, 17, 16,  //
+                                      15, 14, 13, 12, 11, 10, 9, 8,    //
+                                      7, 6, 5, 4, 3, 2, 1, 0);
 
     __m512i pieceMapData = _mm512_loadu_si512(pieceMap.data());
 

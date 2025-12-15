@@ -113,7 +113,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("SmallEvalFile",        Option(EvalFileDefaultNameSmall, OnCng([this](const Option& o) { load_small_network(o); return std::nullopt; })));
     options.add("ReportMinimal",        Option(false));
     options.add("LogFile",              Option("", OnCng([](const Option& o) { return Logger::start(o) ? "Logger started" : "Logger not started"; })));
-    options.add("Stop Logger",          Option(    OnCng([](const Option&)   { Logger::stop(); return std::nullopt; })));
+    options.add("Stop Logger",          Option(OnCng([](const Option&) { Logger::stop(); return std::nullopt; })));
     // clang-format on
 
     load_networks();
@@ -160,11 +160,13 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
     for (const auto& move : moves)
     {
         Move m = UCI::mix_to_move(move, pos, MoveList<LEGAL>(pos));
+
         if (m == Move::None)
         {
             std::cerr << "Invalid move in the moves list at " << ply << ": " << move << std::endl;
             break;
         }
+
         assert(pos.rule50_count() <= 100);
         states->emplace_back();
         pos.do_move(m, states->back());

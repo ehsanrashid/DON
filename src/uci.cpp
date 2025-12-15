@@ -93,7 +93,7 @@ const std::unordered_map<std::string_view, Command> CommandMap{
   {"license",    CMD_HELP}};
 // clang-format on
 
-Command str_to_command(std::string_view command) noexcept {
+Command to_command(std::string_view command) noexcept {
     auto itr = CommandMap.find(command);
     return itr != CommandMap.end() ? itr->second : CMD_NONE;
 }
@@ -243,10 +243,11 @@ void UCI::execute(std::string_view command) noexcept {
 
     std::string token;
     iss >> token;
+
     if (token.empty())
         return;
 
-    switch (str_to_command(lower_case(token)))
+    switch (to_command(lower_case(token)))
     {
     case CMD_STOP :
     case CMD_QUIT :
@@ -313,7 +314,7 @@ void UCI::execute(std::string_view command) noexcept {
         engine.mirror();
         break;
     case CMD_COMPILER :
-        std::cout << compiler_info() << '\n' << std::endl;
+        std::cout << compiler_info() << std::endl;
         break;
     case CMD_EXPORT_NET : {
         StdArray<std::optional<std::string>, 2> netFiles;
@@ -337,10 +338,8 @@ void UCI::execute(std::string_view command) noexcept {
         break;
     default :
         if (token[0] != '#')
-        {
-            std::cout << "\nUnknown command: '" << command << "'."
-                      << "\nType help for more information." << std::endl;
-        }
+            std::cout << "Unknown command: '" << command << "'.\n"
+                      << "Type help for more information." << std::endl;
     }
 }
 
@@ -387,8 +386,7 @@ void on_update_iter(const IterInfo& iInfo) noexcept {
 }
 
 void on_update_move(const MoveInfo& mInfo) noexcept {
-    std::cout << "bestmove " << mInfo.bestMove  //
-              << " ponder " << mInfo.ponderMove << std::endl;
+    std::cout << "bestmove " << mInfo.bestMove << " ponder " << mInfo.ponderMove << std::endl;
 }
 
 }  // namespace
@@ -523,7 +521,7 @@ void UCI::bench(std::istream& is) noexcept {
         if (token.empty())
             continue;
 
-        switch (str_to_command(lower_case(token)))
+        switch (to_command(lower_case(token)))
         {
         case CMD_GO : {
             std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")"
@@ -624,7 +622,7 @@ void UCI::benchmark(std::istream& is) noexcept {
         if (token.empty())
             continue;
 
-        switch (str_to_command(lower_case(token)))
+        switch (to_command(lower_case(token)))
         {
         case CMD_GO : {
             // One new line is produced by the search, so omit it here
@@ -699,7 +697,7 @@ void UCI::benchmark(std::istream& is) noexcept {
         if (token.empty())
             continue;
 
-        switch (str_to_command(lower_case(token)))
+        switch (to_command(lower_case(token)))
         {
         case CMD_GO : {
             // One new line is produced by the search, so omit it here
@@ -931,7 +929,7 @@ Ambiguity ambiguity(Move m, const Position& pos) noexcept {
     Bitboard movedBB =
       (attacks_bb(dstSq, movedPt, pos.pieces_bb()) & pos.pieces_bb(ac, movedPt)) ^ orgSq;
 
-    if (!movedBB)
+    if (movedBB == 0)
         return AMB_NONE;
 
     Bitboard b = movedBB;

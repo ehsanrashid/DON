@@ -803,7 +803,7 @@ inline void prefetch(const void* const) noexcept {}
 #endif
 
 using TimePoint = std::chrono::milliseconds::rep;  // A value in milliseconds
-static_assert(sizeof(TimePoint) == sizeof(std::int64_t), "TimePoint should be 64 bits");
+static_assert(sizeof(TimePoint) == sizeof(std::int64_t), "TimePoint should be 64-bit");
 inline TimePoint now() noexcept {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
              std::chrono::steady_clock::now().time_since_epoch())

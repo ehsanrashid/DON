@@ -41,22 +41,22 @@ class TimeManager final {
     TimePoint optimum() const noexcept { return optimumTime; }
     TimePoint maximum() const noexcept { return maximumTime; }
     TimePoint elapsed() const noexcept { return now() - startTime; }
-    template<typename Func>
-    TimePoint elapsed(Func&& nodes) const noexcept {
-        return nodesTimeActive ? TimePoint(nodes()) : elapsed();
+    template<typename NodesFunc>
+    TimePoint elapsed(NodesFunc&& nodes) const noexcept {
+        return use_nodes_time() ? TimePoint(nodes()) : elapsed();
     }
 
-    void clear() noexcept;
+    void init() noexcept;
 
-    void init(Limit&         limit,
-              Color          ac,
+    void init(Color          ac,
               std::int16_t   ply,
               std::int32_t   moveNum,
-              const Options& options) noexcept;
+              const Options& options,
+              Limit&         limit) noexcept;
+
+    bool use_nodes_time() const noexcept { return useNodesTime; }
 
     void advance_time_nodes(std::int64_t nodes) noexcept;
-
-    bool nodesTimeActive;
 
    private:
     TimePoint startTime;
@@ -65,6 +65,7 @@ class TimeManager final {
 
     double timeAdjust;
 
+    bool         useNodesTime;
     std::int64_t timeNodes;
 };
 

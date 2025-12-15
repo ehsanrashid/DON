@@ -286,9 +286,9 @@ void ThreadPool::start(Position&      pos,
 
     // After ownership transfer 'states' becomes empty, so if stop the search
     // and call 'go' again without setting a new position states.get() == nullptr.
-    assert(states.get() || setupStates.get());
+    assert(states.get() != nullptr || setupStates.get() != nullptr);
 
-    if (states.get())
+    if (states.get() != nullptr)
         setupStates = std::move(states);  // Ownership transfer, states is now empty
 
     // Use Position::set() to set root position across threads.
@@ -312,9 +312,9 @@ void ThreadPool::start(Position&      pos,
     main_thread()->start_search();
 }
 
-void ThreadPool::run_on_thread(std::size_t threadId, JobFunc func) noexcept {
+void ThreadPool::run_on_thread(std::size_t threadId, JobFunc job) noexcept {
     assert(threadId < size());
-    threads[threadId]->run_custom_job(std::move(func));
+    threads[threadId]->run_custom_job(std::move(job));
 }
 
 void ThreadPool::wait_on_thread(std::size_t threadId) noexcept {

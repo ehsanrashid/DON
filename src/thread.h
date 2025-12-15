@@ -85,7 +85,7 @@ class Thread final {
 
     void wait_finish() noexcept;
 
-    void run_custom_job(JobFunc func) noexcept;
+    void run_custom_job(JobFunc job) noexcept;
 
     void idle_func() noexcept;
 
@@ -116,11 +116,11 @@ inline void Thread::wait_finish() noexcept {
 }
 
 // Launching a function in the thread
-inline void Thread::run_custom_job(JobFunc func) noexcept {
+inline void Thread::run_custom_job(JobFunc job) noexcept {
     {
         std::unique_lock uniqueLock(mutex);
         condVar.wait(uniqueLock, [this] { return !busy; });
-        jobFunc = std::move(func);
+        jobFunc = std::move(job);
         busy    = true;
     }
     condVar.notify_one();
@@ -167,8 +167,8 @@ class ThreadPool final {
     auto& front() const noexcept { return threads.front(); }
     auto& back() const noexcept { return threads.back(); }
 
-    auto size() const noexcept { return threads.size(); }
-    auto empty() const noexcept { return threads.empty(); }
+    std::size_t size() const noexcept { return threads.size(); }
+    bool        empty() const noexcept { return threads.empty(); }
 
     void clear() noexcept;
 
@@ -193,7 +193,7 @@ class ThreadPool final {
 
     void ensure_network_replicated() const noexcept;
 
-    void run_on_thread(std::size_t threadId, JobFunc func) noexcept;
+    void run_on_thread(std::size_t threadId, JobFunc job) noexcept;
     void wait_on_thread(std::size_t threadId) noexcept;
 
     std::vector<std::size_t> get_bound_thread_counts() const noexcept;

@@ -97,12 +97,12 @@ enum TBFlag : std::uint8_t {
 };
 
 // Max number of supported piece
-constexpr std::uint32_t TB_PIECES = 7;
+constexpr std::uint32_t MAX_TB_PIECES = 7;
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit.
-constexpr int MAX_DTZ = 1 << 18;
+constexpr std::int32_t MAX_DTZ = 1 << 18;
 
-constexpr std::string_view WDL_EXT = ".rtbw";
-constexpr std::string_view DTZ_EXT = ".rtbz";
+constexpr std::string_view WDL_EXT{".rtbw"};
+constexpr std::string_view DTZ_EXT{".rtbz"};
 
 // clang-format off
 constexpr StdArray<int, 5>          WDL_MAP{1, 3, 0, 2, 0};
@@ -376,10 +376,11 @@ struct PairsData final {
       base64;  // base64[l - minSymLen] is the 64bit-padded lowest symbol of length l
     std::vector<std::uint8_t>
       symLen;  // Number of values (-1) represented by a given Huffman symbol: 1..256
-    StdArray<Piece, TB_PIECES> pieces;  // Position pieces: the order of pieces defines the groups
-    StdArray<std::uint64_t, TB_PIECES + 1>
+    StdArray<Piece, MAX_TB_PIECES>
+      pieces;  // Position pieces: the order of pieces defines the groups
+    StdArray<std::uint64_t, MAX_TB_PIECES + 1>
       groupIdx;  // Start index used for the encoding of the group's pieces
-    StdArray<std::int32_t, TB_PIECES + 1>
+    StdArray<std::int32_t, MAX_TB_PIECES + 1>
       groupLen;  // Number of pieces in a given group: KRKN -> (3, 1)
     StdArray<std::uint16_t, 4>
       mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
@@ -799,8 +800,8 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
     int activeColor = flip ? ~pos.active_color() : pos.active_color();
 
-    StdArray<Square, TB_PIECES> squares{};
-    StdArray<Piece, TB_PIECES>  pieces;
+    StdArray<Square, MAX_TB_PIECES> squares{};
+    StdArray<Piece, MAX_TB_PIECES>  pieces;
 
     std::size_t size = 0;
 
@@ -1146,7 +1147,7 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     // avoiding unsigned overflow warnings.
 
     std::size_t base64Size = pd->base64.size();
-    for (std::size_t i = base64Size ? base64Size - 1 : 0; i-- > 0;)
+    for (std::size_t i = base64Size != 0 ? base64Size - 1 : 0; i-- > 0;)
     {
         pd->base64[i] = (pd->base64[i + 1]                         //
                          + number<Sym, Little>(&pd->lowestSym[i])  //
