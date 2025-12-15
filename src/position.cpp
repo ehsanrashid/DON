@@ -690,10 +690,10 @@ bool Position::enpassant_possible(Color           ac,
                                   Bitboard* const _epPawnsBB) const noexcept {
     assert(is_ok(enPassantSq));
 
-    // En-passant attackers
     Bitboard epPawnsBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
     if (_epPawnsBB != nullptr)
         *_epPawnsBB = epPawnsBB;
+
     if (epPawnsBB == 0)
         return false;
 
@@ -702,6 +702,7 @@ bool Position::enpassant_possible(Color           ac,
         capturedSq = enPassantSq - pawn_spush(ac);
     else
         capturedSq = enPassantSq + pawn_spush(ac);
+
     assert((pieces_bb(~ac, PAWN) & capturedSq) != 0);
 
     Square kingSq = square<KING>(ac);
@@ -728,7 +729,7 @@ bool Position::enpassant_possible(Color           ac,
             }
 
             Bitboard kingFileBB = file_bb(kingSq);
-            // If there is no pawn on our king's file and thus both pawns are pinned by bishops.
+            // If there is no pawn on our king's file and thus both pawns are pinned by bishops
             if ((epPawnsBB & kingFileBB) == 0)
             {
                 if (_epPawnsBB != nullptr)
