@@ -24,10 +24,11 @@
 #include <sstream>
 #include <utility>
 
+#include "history.h"
 #include "movegen.h"
 #include "prng.h"
-#include "syzygy/tbbase.h"
 #include "search.h"
+#include "syzygy/tbbase.h"
 #include "tt.h"
 
 namespace DON {
