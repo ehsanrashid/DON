@@ -223,6 +223,17 @@ void Worker::ensure_network_replicated() noexcept {
     (void) (networks[numaAccessToken]);
 }
 
+void Worker::prefetch_tt(Key key) const noexcept { prefetch(tt.cluster(key)); }
+
+void Worker::prefetch_histories(const Position& pos) const noexcept {
+    prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][0][0]);
+    prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][0][0]);
+    prefetch(&minorCorrectionHistory[correction_index(pos.minor_key(WHITE))][0][0]);
+    prefetch(&minorCorrectionHistory[correction_index(pos.minor_key(BLACK))][0][0]);
+    prefetch(&nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][0][0]);
+    prefetch(&nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][0][0]);
+}
+
 void Worker::start_search() noexcept {
     auto* const mainManager = is_main_worker() ? main_manager() : nullptr;
 
@@ -376,17 +387,6 @@ void Worker::start_search() noexcept {
                                                 : Move::None);
 
     mainManager->updateCxt.onUpdateMove({bestMove, ponderMove});
-}
-
-void Worker::prefetch_tt(Key key) const noexcept { prefetch(tt.cluster(key)); }
-
-void Worker::prefetch_histories(const Position& pos) const noexcept {
-    prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][0][0]);
-    prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][0][0]);
-    prefetch(&minorCorrectionHistory[correction_index(pos.minor_key(WHITE))][0][0]);
-    prefetch(&minorCorrectionHistory[correction_index(pos.minor_key(BLACK))][0][0]);
-    prefetch(&nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][0][0]);
-    prefetch(&nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][0][0]);
 }
 
 // Main iterative deepening loop. It calls search() repeatedly with increasing depth
