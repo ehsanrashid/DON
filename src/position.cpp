@@ -1179,6 +1179,7 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
     {
         k ^= Zobrist::enpassant(enPassantSq);
         reset_en_passant_sq();
+        //enPassantSq = SQ_NONE;
     }
 
     st->key = k;
