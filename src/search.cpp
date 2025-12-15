@@ -285,7 +285,7 @@ void Worker::start_search() noexcept {
         if (bookBestMove != Move::None)
         {
             State st;
-            rootPos.do_move(bookBestMove, st, &tt);
+            rootPos.do_move(bookBestMove, st, this);
 
             RootMoves oRootMoves;
 
@@ -329,7 +329,7 @@ void Worker::start_search() noexcept {
     // Wait until all threads have finished
     threads.wait_finish();
 
-    auto* bestWorker = this;
+    Worker* bestWorker = this;
 
     if (think)
     {
@@ -370,8 +370,10 @@ void Worker::start_search() noexcept {
     const auto& rm = bestWorker->rootMoves[0];
 
     std::string bestMove   = UCI::move_to_can(rm.pv[0]);
-    std::string ponderMove = UCI::move_to_can(
-      rm.pv.size() > 1 || bestWorker->ponder_move_extracted() ? rm.pv[1] : Move::None);
+    std::string ponderMove = UCI::move_to_can(rm.pv.size() > 1                            //
+                                                  || bestWorker->ponder_move_extracted()  //
+                                                ? rm.pv[1]
+                                                : Move::None);
 
     mainManager->updateCxt.onUpdateMove({bestMove, ponderMove});
 }
@@ -864,10 +866,13 @@ Value Worker::search(Position&    pos,
             if (depth >= 8 && !is_decisive(ttd.value) && ttd.move != Move::None
                 && pos.legal(ttd.move))
             {
-                pos.do_move(ttd.move, st, &tt);
+                pos.do_move(ttd.move, st, this);
+
                 auto [_ttd, _ttu] = tt.probe(pos.key());
-                _ttd.value =
-                  _ttd.hit ? value_from_tt(_ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
+                _ttd.value        = _ttd.hit  //
+                                    ? value_from_tt(_ttd.value, ss->ply, pos.rule50_count())
+                                    : VALUE_NONE;
+
                 pos.undo_move(ttd.move);
 
                 // Check that the ttValue after the ttMove would also trigger a cutoff
@@ -900,15 +905,15 @@ Value Worker::search(Position&    pos,
                 && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth)
                 && pos.rule50_count() == 0 && !pos.has_castling_rights())
             {
-                Tablebases::ProbeState ps;
+                Tablebases::ProbeState wdlPs;
 
-                auto wdlScore = Tablebases::probe_wdl(pos, &ps);
+                auto wdlScore = Tablebases::probe_wdl(pos, &wdlPs);
 
                 // Force check of time on the next occasion
                 if (is_main_worker())
                     main_manager()->callsCount = 1;
 
-                if (ps != Tablebases::PS_FAIL)
+                if (wdlPs != Tablebases::PS_FAIL)
                 {
                     tbHits.fetch_add(1, std::memory_order_relaxed);
 
@@ -1850,7 +1855,7 @@ QS_MOVES_LOOP:
 
 void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const ss) noexcept {
     bool capture = pos.capture_promo(m);
-    auto db      = pos.do_move(m, st, check, &tt);
+    auto db      = pos.do_move(m, st, check, this);
     nodes.fetch_add(1, std::memory_order_relaxed);
     if (ss != nullptr)
     {
@@ -1871,7 +1876,7 @@ void Worker::undo_move(Position& pos, Move m) noexcept {
 }
 
 void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
-    pos.do_null_move(st, &tt);
+    pos.do_null_move(st, this);
     if (ss != nullptr)
     {
         ss->move                     = Move::Null;
@@ -2007,20 +2012,23 @@ bool Worker::ponder_move_extracted() noexcept {
         return false;
 
     State st;
-    rootPos.do_move(bestMove, st, &tt);
+    rootPos.do_move(bestMove, st, this);
 
     // Legal moves for the opponent
-    const MoveList<LEGAL> legalMoves(rootPos);
-    if (!legalMoves.empty())
+    const MoveList<LEGAL> oLegalMoves(rootPos);
+
+    if (!oLegalMoves.empty())
     {
         Move ponderMove;
 
         auto [ttd, ttu] = tt.probe(rootPos.key());
 
         ponderMove = ttd.hit ? legal_tt_move(ttd.move, rootPos) : Move::None;
-        if (ponderMove == Move::None || !legalMoves.contains(ponderMove))
+
+        if (ponderMove == Move::None || !oLegalMoves.contains(ponderMove))
         {
             ponderMove = Move::None;
+
             for (auto&& th : threads)
             {
                 if (th->worker.get() == this || th->worker->completedDepth == DEPTH_ZERO)
@@ -2032,6 +2040,7 @@ bool Worker::ponder_move_extracted() noexcept {
                     break;
                 }
             }
+
             if (ponderMove == Move::None)
                 for (auto&& th : threads)
                 {
@@ -2043,10 +2052,11 @@ bool Worker::ponder_move_extracted() noexcept {
                         break;
                     }
                 }
+
             if (ponderMove == Move::None)
             {
-                std::uniform_int_distribution<std::size_t> distribute(0, legalMoves.size() - 1);
-                ponderMove = *(legalMoves.begin() + distribute(prng));
+                std::uniform_int_distribution<std::size_t> distribution(0, oLegalMoves.size() - 1);
+                ponderMove = *(oLegalMoves.begin() + distribution(prng));
             }
         }
 

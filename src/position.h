@@ -36,8 +36,6 @@
 
 namespace DON {
 
-class TranspositionTable;
-
 struct Zobrist final {
    public:
     static void init() noexcept;
@@ -148,6 +146,8 @@ static_assert(std::is_standard_layout_v<State> && std::is_trivially_copyable_v<S
               "State must be standard-layout and trivially copyable");
 //static_assert(sizeof(State) == 248, "State size");
 
+class Worker;
+
 // Position class stores information regarding the board representation as
 // pieces, active color, hash keys, castling info, etc. (Size = 504)
 // Important methods are do_move() and undo_move(),
@@ -251,10 +251,10 @@ class Position final {
 
     // clang-format off
     // Doing and undoing moves
-    DirtyBoard do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* const tt = nullptr) noexcept;
-    DirtyBoard do_move(Move m, State& newSt, const TranspositionTable* const tt = nullptr) noexcept;
+    DirtyBoard do_move(Move m, State& newSt, bool isCheck, const Worker* const worker = nullptr) noexcept;
+    DirtyBoard do_move(Move m, State& newSt, const Worker* const worker = nullptr) noexcept;
     void       undo_move(Move m) noexcept;
-    void       do_null_move(State& newSt, const TranspositionTable* const tt = nullptr) noexcept;
+    void       do_null_move(State& newSt, const Worker* const worker = nullptr) noexcept;
     void       undo_null_move() noexcept;
     // clang-format on
 
@@ -1182,9 +1182,8 @@ inline void Position::update_pc_threats(Square              s,
 #endif
 }
 
-inline DirtyBoard
-Position::do_move(Move m, State& newSt, const TranspositionTable* const tt) noexcept {
-    return do_move(m, newSt, check(m), tt);
+inline DirtyBoard Position::do_move(Move m, State& newSt, const Worker* const worker) noexcept {
+    return do_move(m, newSt, check(m), worker);
 }
 
 inline constexpr Square* Position::base(Color c) noexcept {  //

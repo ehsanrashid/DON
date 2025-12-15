@@ -27,6 +27,7 @@
 #include "movegen.h"
 #include "prng.h"
 #include "syzygy/tbbase.h"
+#include "search.h"
 #include "tt.h"
 
 namespace DON {
@@ -803,7 +804,7 @@ void Position::do_castling(Color             ac,
 // Makes a move, and saves all necessary information to new state.
 // The move is assumed to be legal.
 DirtyBoard
-Position::do_move(Move m, State& newSt, bool isCheck, const TranspositionTable* const tt) noexcept {
+Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
@@ -1022,8 +1023,17 @@ DO_MOVE_END:
         k ^= Zobrist::castling(castling_rights());
     }
     // Speculative prefetch as early as possible
-    if (tt != nullptr && !is_ok(enPassantSq))
-        prefetch(tt->cluster(k ^ Zobrist::mr50(rule50_count())));
+    if (worker != nullptr)
+    {
+        if (!is_ok(enPassantSq))
+            prefetch(worker->tt.cluster(k ^ Zobrist::mr50(rule50_count())));
+        prefetch(&worker->pawnCorrectionHistory[correction_index(pawn_key(WHITE))][0][0]);
+        prefetch(&worker->pawnCorrectionHistory[correction_index(pawn_key(BLACK))][0][0]);
+        prefetch(&worker->minorCorrectionHistory[correction_index(minor_key(WHITE))][0][0]);
+        prefetch(&worker->minorCorrectionHistory[correction_index(minor_key(BLACK))][0][0]);
+        prefetch(&worker->nonPawnCorrectionHistory[correction_index(non_pawn_key(WHITE))][0][0]);
+        prefetch(&worker->nonPawnCorrectionHistory[correction_index(non_pawn_key(BLACK))][0][0]);
+    }
 
     ac = activeColor = ~ac;
 
@@ -1041,8 +1051,8 @@ DO_MOVE_END:
     // Set the key with the updated key
     st->key = k;
     // Speculative prefetch as early as possible
-    if (tt != nullptr)
-        prefetch(tt->cluster(key()));
+    if (worker != nullptr)
+        prefetch(worker->tt.cluster(key()));
 
     // Calculate the repetition info.
     // It is the ply distance from the previous occurrence of the same position,
@@ -1152,7 +1162,7 @@ UNDO_MOVE_END:
 
 // Makes a null move
 // It flips the active color without executing any move on the board.
-void Position::do_null_move(State& newSt, const TranspositionTable* const tt) noexcept {
+void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
     assert(&newSt != st);
     assert(checkers_bb() == 0);
 
@@ -1172,8 +1182,8 @@ void Position::do_null_move(State& newSt, const TranspositionTable* const tt) no
 
     st->key = k;
     // Speculative prefetch as early as possible
-    if (tt != nullptr)
-        prefetch(tt->cluster(key()));
+    if (worker != nullptr)
+        prefetch(worker->tt.cluster(key()));
 
     activeColor = ~active_color();
 
