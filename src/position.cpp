@@ -1022,7 +1022,7 @@ DO_MOVE_END:
         st->castlingRights &= ~cr;
         k ^= Zobrist::castling(castling_rights());
     }
-    // Speculative prefetch as early as possible
+
     if (worker != nullptr)
     {
         if (!is_ok(enPassantSq))
@@ -1046,7 +1046,7 @@ DO_MOVE_END:
 
     // Set the key with the updated key
     st->key = k;
-    // Speculative prefetch as early as possible
+
     if (worker != nullptr)
         worker->prefetch_tt(key());
 
@@ -1178,7 +1178,7 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
     }
 
     st->key = k;
-    // Speculative prefetch as early as possible
+
     if (worker != nullptr)
         worker->prefetch_tt(key());
 

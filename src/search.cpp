@@ -223,6 +223,7 @@ void Worker::ensure_network_replicated() noexcept {
     (void) (networks[numaAccessToken]);
 }
 
+// Speculative prefetch as early as possible
 void Worker::prefetch_tt(Key key) const noexcept { prefetch(tt.cluster(key)); }
 
 void Worker::prefetch_histories(const Position& pos) const noexcept {
