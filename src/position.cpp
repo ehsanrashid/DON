@@ -844,8 +844,6 @@ Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker
 
     auto movedPt = type_of(movedPc);
 
-    Key movedKey;
-
     DirtyBoard db;
 
     db.dp.movedPc        = movedPc;
@@ -867,6 +865,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker
         enPassantSq = SQ_NONE;
     }
 
+    Key  movedKey;
     bool capture;
 
     // If the move is a castling, do some special work
