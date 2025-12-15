@@ -683,7 +683,7 @@ void Position::set_ext_state() noexcept {
     // clang-format on
 }
 
-// Check can do en-passant
+// Check en-passant possible
 template<bool After>
 bool Position::enpassant_possible(Color           ac,
                                   Square          enPassantSq,
