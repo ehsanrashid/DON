@@ -596,6 +596,9 @@ class FixedVector final: public IFixedVector<T> {
     [[nodiscard]] bool        empty() const noexcept override { return size() == 0; }
     [[nodiscard]] bool        full() const noexcept override { return size() == capacity(); }
 
+    T*       data() noexcept override { return _data.data(); }
+    const T* data() const noexcept override { return _data.data(); }
+
     T*       begin() noexcept override { return data(); }
     T*       end() noexcept override { return begin() + size(); }
     const T* begin() const noexcept override { return data(); }
@@ -605,18 +608,18 @@ class FixedVector final: public IFixedVector<T> {
 
     bool push_back(const T& value) noexcept override {
         assert(size() < capacity());
-        _data[_size++] = value;  // copy-assign into pre-initialized slot
+        data()[_size++] = value;  // copy-assign into pre-initialized slot
         return true;
     }
     bool push_back(T&& value) noexcept override {
         assert(size() < capacity());
-        _data[_size++] = std::move(value);
+        data()[_size++] = std::move(value);
         return true;
     }
     template<typename... Args>
     bool emplace_back(Args&&... args) noexcept {
         assert(size() < capacity());
-        _data[_size++] = T(std::forward<Args>(args)...);
+        data()[_size++] = T(std::forward<Args>(args)...);
         return true;
     }
 
@@ -627,25 +630,22 @@ class FixedVector final: public IFixedVector<T> {
 
     T& back() noexcept override {
         assert(size() > 0);
-        return _data[size() - 1];
+        return data()[size() - 1];
     }
     const T& back() const noexcept override {
         assert(size() > 0);
-        return _data[size() - 1];
+        return data()[size() - 1];
     }
-
-    T*       data() noexcept override { return _data.data(); }
-    const T* data() const noexcept override { return _data.data(); }
 
     T& operator[](std::size_t idx) noexcept override {
         assert(idx < size());
         assert(size() <= capacity());
-        return _data[idx];
+        return data()[idx];
     }
     const T& operator[](std::size_t idx) const noexcept override {
         assert(idx < size());
         assert(size() <= capacity());
-        return _data[idx];
+        return data()[idx];
     }
 
     void size(std::size_t newSize) noexcept override {
@@ -655,9 +655,9 @@ class FixedVector final: public IFixedVector<T> {
     }
 
     T* make_space(std::size_t space) noexcept override {
-        T* value = &_data[_size];
+        T* value = &data()[size()];
         _size += space;
-        assert(_size <= capacity());
+        assert(size() <= capacity());
         return value;
     }
 
