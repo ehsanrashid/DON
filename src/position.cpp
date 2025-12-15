@@ -750,9 +750,9 @@ bool Position::enpassant_possible(Color           ac,
 
     while (epPawnsBB != 0)
     {
-        Square pawnSq = pop_lsq(epPawnsBB);
+        Square epPawnSq = pop_lsq(epPawnsBB);
 
-        if ((slide_attackers_bb(kingSq, occupancyBB ^ pawnSq) & attackersBB) == 0)
+        if ((slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq) & attackersBB) == 0)
         {
             epPossible = true;
 
@@ -762,7 +762,7 @@ bool Position::enpassant_possible(Color           ac,
         else
         {
             if (_epPawnsBB != nullptr)
-                *_epPawnsBB ^= pawnSq;
+                *_epPawnsBB ^= epPawnSq;
         }
     }
 
