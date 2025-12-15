@@ -222,7 +222,7 @@ void PerftTable::resize(std::size_t ptSize, ThreadPool& threads) noexcept {
 // Initializes the entire perft table to zero, in a multi-threaded way.
 void PerftTable::init(ThreadPool& threads) noexcept {
 
-    std::size_t threadCount = threads.size();
+    const std::size_t threadCount = threads.size();
 
     for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
     {

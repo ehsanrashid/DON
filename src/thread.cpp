@@ -97,7 +97,7 @@ void ThreadPool::set(const NumaConfig&                       numaConfig,
                      const MainSearchManager::UpdateContext& updateContext) noexcept {
     clear();
 
-    std::size_t threadCount = sharedState.options["Threads"];
+    const std::size_t threadCount = sharedState.options["Threads"];
     assert(threadCount != 0);
 
     // Create new thread(s)
@@ -110,7 +110,7 @@ void ThreadPool::set(const NumaConfig&                       numaConfig,
     // unless we know for sure that we span NUMA nodes and replication is required.
     const std::string numaPolicy = sharedState.options["NumaPolicy"];
 
-    const bool threadBindEnabled = [&]() {
+    const bool threadBindable = [&]() {
         if (numaPolicy == "none")
             return false;
 
@@ -121,15 +121,15 @@ void ThreadPool::set(const NumaConfig&                       numaConfig,
         return true;
     }();
 
-    numaNodeBoundThreadIds = threadBindEnabled
+    numaNodeBoundThreadIds = threadBindable
                              ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
                              : std::vector<NumaIndex>{};
 
-    const auto* numaConfigPtr = threadBindEnabled ? &numaConfig : nullptr;
+    const auto* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
 
     for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
     {
-        NumaIndex numaIdx = threadBindEnabled ? numaNodeBoundThreadIds[threadId] : 0;
+        NumaIndex numaIdx = threadBindable ? numaNodeBoundThreadIds[threadId] : 0;
 
         ISearchManagerPtr searchManager;
         if (threadId == 0)
@@ -140,7 +140,7 @@ void ThreadPool::set(const NumaConfig&                       numaConfig,
         // When not binding threads want to force all access to happen from the same
         // NUMA node, because in case of NUMA replicated memory accesses don't
         // want to trash cache in case the threads get scheduled on the same NUMA node.
-        auto nodeBinder = OptionalThreadToNumaNodeBinder(numaIdx, numaConfigPtr);
+        OptionalThreadToNumaNodeBinder nodeBinder(numaIdx, numaConfigPtr);
 
         threads.emplace_back(
           std::make_unique<Thread>(threadId, sharedState, std::move(searchManager), nodeBinder));
@@ -158,6 +158,7 @@ Thread* ThreadPool::best_thread() const noexcept {
     for (auto&& th : threads)
     {
         auto curValue = th->worker->rootMoves[0].curValue;
+
         if (minCurValue > curValue)
             minCurValue = curValue;
     }
@@ -241,42 +242,55 @@ void ThreadPool::start(Position&      pos,
 
     const MoveList<LEGAL> legalMoves(pos);
 
-    bool emplace = true;
-    for (const auto& move : limit.searchMoves)
+    if (!limit.searchMoves.empty())
     {
-        if (emplace && rootMoves.size() == legalMoves.size())
-            break;
-        Move m  = UCI::mix_to_move(move, pos, legalMoves);
-        emplace = m != Move::None && !rootMoves.contains(m);
-        if (emplace)
-            rootMoves.emplace_back(m);
-    }
+        bool emplace = true;
+        for (const auto& move : limit.searchMoves)
+        {
+            if (emplace && rootMoves.size() == legalMoves.size())
+                break;
 
-    if (limit.searchMoves.empty())
+            Move m = UCI::mix_to_move(move, pos, legalMoves);
+
+            emplace = m != Move::None && !rootMoves.contains(m);
+
+            if (emplace)
+                rootMoves.emplace_back(m);
+        }
+    }
+    else
+    {
         for (auto m : legalMoves)
             rootMoves.emplace_back(m);
-
-    bool erase = true;
-    for (const auto& move : limit.ignoreMoves)
-    {
-        if (erase && rootMoves.empty())
-            break;
-        Move m = UCI::mix_to_move(move, pos, legalMoves);
-        erase  = m != Move::None;
-        if (erase)
-            erase = rootMoves.erase(m);
     }
 
-    bool timeManagerActive = limit.use_time_manager() && options["NodesTime"] == 0;
+    if (!limit.ignoreMoves.empty())
+    {
+        bool erase = true;
+        for (const auto& move : limit.ignoreMoves)
+        {
+            if (erase && rootMoves.empty())
+                break;
+
+            Move m = UCI::mix_to_move(move, pos, legalMoves);
+
+            erase = m != Move::None;
+
+            if (erase)
+                erase = rootMoves.erase(m);
+        }
+    }
+
+    bool useTimeManager = limit.use_time_manager() && options["NodesTime"] == 0;
 
     auto& clock = limit.clocks[pos.active_color()];
 
-    // If time manager is active, don't use more than 5% of clock time.
+    // If time manager is active, don't use more than 5% of clock time
     auto startTime = std::chrono::steady_clock::now();
 
     const auto time_to_abort = [&]() noexcept -> bool {
         auto endTime = std::chrono::steady_clock::now();
-        return timeManagerActive
+        return useTimeManager
             && std::chrono::duration<double, std::milli>(endTime - startTime).count()
                  > (0.0500 + 0.0500 * std::clamp((clock.inc - clock.time) / 100.0, 0.0, 1.0))
                      * clock.time;

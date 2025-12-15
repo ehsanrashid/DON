@@ -1094,7 +1094,7 @@ split(std::string_view str, std::string_view delimiter, bool trimPart = false) n
         if (trimPart)
             part = trim(part);
 
-        if (!part.empty())
+        if (!is_whitespace(part))
             parts.emplace_back(part);
 
         beg = end + delimiter.size();
@@ -1106,7 +1106,7 @@ split(std::string_view str, std::string_view delimiter, bool trimPart = false) n
     if (trimPart)
         part = trim(part);
 
-    if (!part.empty())
+    if (!is_whitespace(part))
         parts.emplace_back(part);
 
     return parts;

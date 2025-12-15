@@ -24,12 +24,10 @@
 #include <sstream>
 #include <utility>
 
-#include "history.h"
 #include "movegen.h"
 #include "prng.h"
 #include "search.h"
 #include "syzygy/tbbase.h"
-#include "tt.h"
 
 namespace DON {
 
@@ -467,6 +465,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 void Position::set(std::string_view code, Color c, State* const newSt) noexcept {
     assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string_view::npos);
     assert(is_ok(c));
+    assert(newSt != nullptr);
 
     StdArray<std::string, COLOR_NB> sides{
       std::string{code.substr(code.find('K', 1))},                // Weak
@@ -1027,13 +1026,9 @@ DO_MOVE_END:
     if (worker != nullptr)
     {
         if (!is_ok(enPassantSq))
-            prefetch(worker->tt.cluster(k ^ Zobrist::mr50(rule50_count())));
-        prefetch(&worker->pawnCorrectionHistory[correction_index(pawn_key(WHITE))][0][0]);
-        prefetch(&worker->pawnCorrectionHistory[correction_index(pawn_key(BLACK))][0][0]);
-        prefetch(&worker->minorCorrectionHistory[correction_index(minor_key(WHITE))][0][0]);
-        prefetch(&worker->minorCorrectionHistory[correction_index(minor_key(BLACK))][0][0]);
-        prefetch(&worker->nonPawnCorrectionHistory[correction_index(non_pawn_key(WHITE))][0][0]);
-        prefetch(&worker->nonPawnCorrectionHistory[correction_index(non_pawn_key(BLACK))][0][0]);
+            worker->prefetch_tt(k ^ Zobrist::mr50(rule50_count()));
+
+        worker->prefetch_histories(*this);
     }
 
     ac = activeColor = ~ac;
@@ -1053,7 +1048,7 @@ DO_MOVE_END:
     st->key = k;
     // Speculative prefetch as early as possible
     if (worker != nullptr)
-        prefetch(worker->tt.cluster(key()));
+        worker->prefetch_tt(key());
 
     // Calculate the repetition info.
     // It is the ply distance from the previous occurrence of the same position,
@@ -1185,7 +1180,7 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
     st->key = k;
     // Speculative prefetch as early as possible
     if (worker != nullptr)
-        prefetch(worker->tt.cluster(key()));
+        worker->prefetch_tt(key());
 
     activeColor = ~active_color();
 
@@ -1350,7 +1345,7 @@ bool Position::check(Move m) const noexcept {
     // the unusual case of a discovered check through the captured pawn.
     case EN_PASSANT : {
         Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
-        return slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac);
+        return (slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac)) != 0;
     }
     case CASTLING :
         // Castling is encoded as "king captures rook"

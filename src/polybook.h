@@ -64,7 +64,7 @@ class PolyBook final {
         std::uint32_t learn;
     };
 
-    using EntryVector = std::vector<Entry>;
+    using Entries = std::vector<Entry>;
 
     PolyBook() noexcept                           = default;
     PolyBook(const PolyBook&) noexcept            = delete;
@@ -86,11 +86,11 @@ class PolyBook final {
 
     std::size_t key_index(Key key) const noexcept;
 
-    EntryVector key_candidates(Key key) const noexcept;
+    Entries key_candidates(Key key) const noexcept;
 
     std::string filename;
 
-    EntryVector entries;
+    Entries entries;
 };
 
 }  // namespace DON
