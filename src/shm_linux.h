@@ -358,11 +358,12 @@ class SharedMemory final: public internal::BaseSharedMemory {
         return sizeof(T) + sizeof(internal::ShmHeader);
     }
 
-    static std::string make_sentinel_base(const std::string& name) {
+    static std::string make_sentinel_base(const std::string& name) noexcept {
+        std::string str(32, '\0');
+
         std::uint64_t hash = std::hash<std::string>{}(name);
-        char          buf[32];
-        std::snprintf(buf, sizeof(buf), "don_shm_%016" PRIx64, hash);
-        return buf;
+        std::snprintf(str.data(), str.size(), "don_shm_%016" PRIx64, hash);
+        return str;
     }
 
     static bool pid_is_alive(pid_t pid) noexcept {
