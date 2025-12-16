@@ -35,7 +35,7 @@
 
 #if defined(__ANDROID__)
     #include <limits.h>
-    #define MAX_SEM_NAME_LEN NAME_MAX
+    #define SHM_NAME_MAX_SIZE NAME_MAX
 #elif defined(_WIN32)
     #if !defined(NOMINMAX)
         #define NOMINMAX  // Disable min()/max() macros
@@ -83,21 +83,21 @@
     #if defined(__APPLE__)
         #include <mach-o/dyld.h>
         #include <sys/syslimits.h>
-        #define MAX_SEM_NAME_LEN 31
+        #define SHM_NAME_MAX_SIZE 31
     #elif defined(__linux__) || defined(__NetBSD__) || defined(__DragonFly__)
         #include <limits.h>
         #include <unistd.h>
-        #define MAX_SEM_NAME_LEN NAME_MAX
+        #define SHM_NAME_MAX_SIZE NAME_MAX
     #elif defined(__sun)  // Solaris
         #include <stdlib.h>
-        #define MAX_SEM_NAME_LEN 255
+        #define SHM_NAME_MAX_SIZE 255
     #elif defined(__FreeBSD__)
         #include <sys/sysctl.h>
         #include <sys/types.h>
         #include <unistd.h>
-        #define MAX_SEM_NAME_LEN 255
+        #define SHM_NAME_MAX_SIZE 255
     #else
-        #define MAX_SEM_NAME_LEN 255
+        #define SHM_NAME_MAX_SIZE 255
     #endif
 #endif
 
@@ -1140,19 +1140,19 @@ struct SystemWideSharedConstant final {
     // Content is addressed by its hash. An additional discriminator can be added to account for differences
     // that are not present in the content, for example NUMA node allocation.
     SystemWideSharedConstant(const T& value, std::size_t discriminator = 0) noexcept {
-        std::size_t contentHash    = std::hash<T>{}(value);
+        std::size_t valueHash      = std::hash<T>{}(value);
         std::size_t executableHash = std::hash<std::string>{}(executable_path());
 
-        std::string shmName = "Local\\don_" + std::to_string(contentHash)  //
-                            + "$" + std::to_string(executableHash)         //
+        std::string shmName = "Local\\don_" + std::to_string(valueHash)  //
+                            + "$" + std::to_string(executableHash)       //
                             + "$" + std::to_string(discriminator);
 #if !defined(_WIN32)
         // POSIX shared memory names must start with a slash
         shmName = "/don_" + create_hash_string(shmName);
 
-        // Hash name and make sure it is not longer than MAX_SEM_NAME_LEN
-        if (shmName.size() > MAX_SEM_NAME_LEN)
-            shmName = shmName.substr(0, MAX_SEM_NAME_LEN - 1);
+        // Hash name and make sure it is not longer than SHM_NAME_MAX_SIZE
+        if (shmName.size() > SHM_NAME_MAX_SIZE)
+            shmName = shmName.substr(0, SHM_NAME_MAX_SIZE - 1);
 #endif
 
         SharedMemoryBackend<T> shmBackend(shmName, value);
