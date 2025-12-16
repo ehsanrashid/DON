@@ -138,7 +138,11 @@ inline std::string executable_path() noexcept {
     std::size_t executableSize       = 0;
 
 #if defined(_WIN32)
-    executableSize = GetModuleFileName(nullptr, executablePath, sizeof(executablePath));
+    DWORD size = GetModuleFileName(nullptr, executablePath, sizeof(executablePath));
+
+    executableSize = std::min(std::size_t(size), sizeof(executablePath) - 1);
+
+    executablePath[executableSize] = '\0';
 #else
     #if defined(__APPLE__)
     std::uint32_t size = std::uint32_t(sizeof(executablePath));
@@ -171,9 +175,10 @@ inline std::string executable_path() noexcept {
         executableSize = std::strlen(executablePath);
     }
     #elif defined(__FreeBSD__)
-    std::size_t      size = sizeof(executablePath);
-    StdArray<int, 4> mib{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
-    if (sysctl(mib.data(), mib.size(), executablePath, &size, nullptr, 0) == 0)
+    constexpr StdArray<int, 4> MIB{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
+
+    std::size_t size = sizeof(executablePath);
+    if (sysctl(MIB.data(), MIB.size(), executablePath, &size, nullptr, 0) == 0)
     {
         executableSize = std::min(size, sizeof(executablePath) - 1);
 
