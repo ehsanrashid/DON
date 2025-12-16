@@ -135,50 +135,55 @@ inline std::string to_string(SystemWideSharedConstantAllocationStatus status) no
 
 inline std::string executable_path() noexcept {
     char        executablePath[4096] = {0};
-    std::size_t executableLen        = 0;
+    std::size_t executableSize       = 0;
 
 #if defined(_WIN32)
-    executableLen = GetModuleFileName(nullptr, executablePath, sizeof(executablePath));
+    executableSize = GetModuleFileName(nullptr, executablePath, sizeof(executablePath));
 #else
     #if defined(__APPLE__)
-    std::uint32_t size = sizeof(executablePath);
+    std::uint32_t size = std::uint32_t(sizeof(executablePath));
     if (_NSGetExecutablePath(executablePath, &size) == 0)
     {
-        executableLen = std::strlen(executablePath);
+        executableSize = std::strlen(executablePath);
     }
     #elif defined(__linux__)
-    ssize_t len = readlink("/proc/self/exe", executablePath, sizeof(executablePath) - 1);
-    if (len >= 0)
+    ssize_t size = readlink("/proc/self/exe", executablePath, sizeof(executablePath) - 1);
+    if (size >= 0)
     {
-        executablePath[len] = '\0';
-        executableLen       = len;
+        executableSize = size;
+
+        executablePath[executableSize] = '\0';
     }
     #elif defined(__NetBSD__) || defined(__DragonFly__)
-    ssize_t len = readlink("/proc/curproc/exe", executablePath, sizeof(executablePath) - 1);
-    if (len >= 0)
+    ssize_t size = readlink("/proc/curproc/exe", executablePath, sizeof(executablePath) - 1);
+    if (size >= 0)
     {
-        executablePath[len] = '\0';
-        executableLen       = len;
+        executableSize = size;
+
+        executablePath[executableSize] = '\0';
     }
     #elif defined(__sun)  // Solaris
     const char* path = getexecname();
-    if (path)
+    if (path != nullptr)
     {
         std::strncpy(executablePath, path, sizeof(executablePath) - 1);
-        executableLen = std::strlen(executablePath);
+
+        executableSize = std::strlen(executablePath);
     }
     #elif defined(__FreeBSD__)
     std::size_t      size = sizeof(executablePath);
     StdArray<int, 4> mib{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
-    if (sysctl(mib.data(), mib.size(), executablePath, &size, NULL, 0) == 0)
+    if (sysctl(mib.data(), mib.size(), executablePath, &size, nullptr, 0) == 0)
     {
-        executableLen = std::strlen(executablePath);
+        executableSize = std::min(size, sizeof(executablePath) - 1);
+
+        executablePath[executableSize] = '\0';
     }
     #endif
 #endif
 
     // In case of any error the path will be empty.
-    return std::string(executablePath, executableLen);
+    return std::string(executablePath, executableSize);
 }
 
 #if defined(__ANDROID__)
