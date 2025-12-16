@@ -270,7 +270,7 @@ class SharedMemoryBackend final {
 
     bool is_valid() const noexcept { return status == Status::Success; }
 
-    void* get() const noexcept { return is_valid() ? pMapAddr : nullptr; }
+    void* get() const noexcept { return is_valid() ? mapAddress : nullptr; }
 
     ~SharedMemoryBackend() noexcept { cleanup(); }
 
@@ -279,27 +279,29 @@ class SharedMemoryBackend final {
 
     SharedMemoryBackend(SharedMemoryBackend&& shmBackend) noexcept :
         hMapFile(shmBackend.hMapFile),
-        pMapAddr(shmBackend.pMapAddr),
+        mapAddress(shmBackend.mapAddress),
         status(shmBackend.status),
         lastErrorStr(std::move(shmBackend.lastErrorStr)) {
 
-        shmBackend.pMapAddr = nullptr;
-        shmBackend.hMapFile = nullptr;
-        shmBackend.status   = Status::NotInitialized;
+        shmBackend.mapAddress = nullptr;
+        shmBackend.hMapFile   = nullptr;
+        shmBackend.status     = Status::NotInitialized;
     }
     SharedMemoryBackend& operator=(SharedMemoryBackend&& shmBackend) noexcept {
         if (this == &shmBackend)
             return *this;
 
         cleanup();
+
         hMapFile     = shmBackend.hMapFile;
-        pMapAddr     = shmBackend.pMapAddr;
+        mapAddress   = shmBackend.mapAddress;
         status       = shmBackend.status;
         lastErrorStr = std::move(shmBackend.lastErrorStr);
 
-        shmBackend.pMapAddr = nullptr;
-        shmBackend.hMapFile = nullptr;
-        shmBackend.status   = Status::NotInitialized;
+        shmBackend.hMapFile   = nullptr;
+        shmBackend.mapAddress = nullptr;
+        shmBackend.status     = Status::NotInitialized;
+
         return *this;
     }
 
@@ -368,9 +370,9 @@ class SharedMemoryBackend final {
             return;
         }
 
-        pMapAddr = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, totalSize);
+        mapAddress = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, totalSize);
 
-        if (pMapAddr == nullptr)
+        if (mapAddress == nullptr)
         {
             status       = Status::MapViewError;
             lastErrorStr = error_to_string(GetLastError());
@@ -402,9 +404,9 @@ class SharedMemoryBackend final {
 
         // Crucially, place the object first to ensure alignment
         volatile DWORD* isInitialized =
-          std::launder(reinterpret_cast<DWORD*>(reinterpret_cast<char*>(pMapAddr) + sizeof(T)));
+          std::launder(reinterpret_cast<DWORD*>(reinterpret_cast<char*>(mapAddress) + sizeof(T)));
 
-        T* object = std::launder(reinterpret_cast<T*>(pMapAddr));
+        T* object = std::launder(reinterpret_cast<T*>(mapAddress));
 
         if (*isInitialized != IS_INITIALIZED_VALUE)
         {
@@ -428,10 +430,10 @@ class SharedMemoryBackend final {
     }
 
     void cleanup_partial() noexcept {
-        if (pMapAddr != nullptr)
+        if (mapAddress != nullptr)
         {
-            UnmapViewOfFile(pMapAddr);
-            pMapAddr = nullptr;
+            UnmapViewOfFile(mapAddress);
+            mapAddress = nullptr;
         }
         if (hMapFile != nullptr)
         {
@@ -440,22 +442,11 @@ class SharedMemoryBackend final {
         }
     }
 
-    void cleanup() noexcept {
-        if (pMapAddr != nullptr)
-        {
-            UnmapViewOfFile(pMapAddr);
-            pMapAddr = nullptr;
-        }
-        if (hMapFile != nullptr)
-        {
-            CloseHandle(hMapFile);
-            hMapFile = nullptr;
-        }
-    }
+    void cleanup() noexcept { cleanup_partial(); }
 
-    HANDLE      hMapFile = nullptr;
-    void*       pMapAddr = nullptr;
-    Status      status   = Status::NotInitialized;
+    HANDLE      hMapFile   = nullptr;
+    void*       mapAddress = nullptr;
+    Status      status     = Status::NotInitialized;
     std::string lastErrorStr;
 };
 

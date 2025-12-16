@@ -218,45 +218,19 @@ class TBFile: public std::ifstream {
 
     // Memory map the file and check it
     template<TBType T>
-    std::uint8_t* map(void** baseAddress, std::uint64_t* mapping) noexcept {
+    std::uint8_t* map(void** mapAddress, std::uint64_t* mapping) noexcept {
 
         if (is_open())
             close();  // Need to re-open to get native file descriptor
 
-#if !defined(_WIN32)
-        int fd = ::open(filename.c_str(), O_RDONLY);
+#if defined(_WIN32)
 
-        if (fd == -1)
-            return *baseAddress = nullptr, nullptr;
-
-        struct stat st;
-        fstat(fd, &st);
-
-        if (st.st_size % 64 != 16)
-        {
-            std::cerr << "Corrupt tablebase file " << filename << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
-
-        *mapping     = st.st_size;
-        *baseAddress = mmap(nullptr, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
-    #if defined(MADV_RANDOM)
-        madvise(*baseAddress, st.st_size, MADV_RANDOM);
-    #endif
-        ::close(fd);
-
-        if (*baseAddress == MAP_FAILED)
-        {
-            std::cerr << "mmap() failed, name = " << filename << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
-#else
         // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
         HANDLE fd = CreateFile(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
                                OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
 
         if (fd == INVALID_HANDLE_VALUE)
-            return *baseAddress = nullptr, nullptr;
+            return *mapAddress = nullptr, nullptr;
 
         DWORD hiSize;
         DWORD loSize = GetFileSize(fd, &hiSize);
@@ -268,6 +242,7 @@ class TBFile: public std::ifstream {
         }
 
         HANDLE hMapFile = CreateFileMapping(fd, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
+
         CloseHandle(fd);
 
         if (hMapFile == nullptr)
@@ -276,18 +251,50 @@ class TBFile: public std::ifstream {
             std::exit(EXIT_FAILURE);
         }
 
-        *mapping     = std::uint64_t(hMapFile);
-        *baseAddress = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
+        *mapping = std::uint64_t(hMapFile);
 
-        if (!*baseAddress)
+        *mapAddress = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
+
+        if (*mapAddress == nullptr)
         {
             std::cerr << "MapViewOfFile() failed, name = " << filename
                       << ", error = " << GetLastError() << std::endl;
             std::exit(EXIT_FAILURE);
         }
+
+#else
+
+        int fd = ::open(filename.c_str(), O_RDONLY);
+
+        if (fd == -1)
+            return *mapAddress = nullptr, nullptr;
+
+        struct stat st;
+        fstat(fd, &st);
+
+        if (st.st_size % 64 != 16)
+        {
+            std::cerr << "Corrupt tablebase file " << filename << std::endl;
+            std::exit(EXIT_FAILURE);
+        }
+
+        *mapping = st.st_size;
+
+        *mapAddress = mmap(nullptr, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    #if defined(MADV_RANDOM)
+        madvise(*mapAddress, st.st_size, MADV_RANDOM);
+    #endif
+        ::close(fd);
+
+        if (*mapAddress == MAP_FAILED)
+        {
+            std::cerr << "mmap() failed, name = " << filename << std::endl;
+            std::exit(EXIT_FAILURE);
+        }
+
 #endif
 
-        auto* data = (std::uint8_t*) (*baseAddress);
+        std::uint8_t* data = (std::uint8_t*) (*mapAddress);
 
         constexpr StdArray<std::uint8_t, 2, 4> Magics{{
           {0xD7, 0x66, 0x0C, 0xA5},  //
@@ -299,27 +306,27 @@ class TBFile: public std::ifstream {
         if (std::memcmp(data, magic.data(), magic.size()) != 0)
         {
             std::cerr << "Corrupted table in file " << filename << std::endl;
-            unmap(*baseAddress, *mapping);
-            return *baseAddress = nullptr, nullptr;
+            unmap(*mapAddress, *mapping);
+            return *mapAddress = nullptr, nullptr;
         }
 
         return data + magic.size();  // Skip Magics's header
     }
 
-    static void unmap(void* baseAddress, std::uint64_t mapping) noexcept {
+    static void unmap(void* mapAddress, std::uint64_t mapping) noexcept {
 
-#if !defined(_WIN32)
-        munmap(baseAddress, mapping);
-#else
-        UnmapViewOfFile(baseAddress);
+#if defined(_WIN32)
+        UnmapViewOfFile(mapAddress);
         CloseHandle((HANDLE) mapping);
+#else
+        munmap(mapAddress, mapping);
 #endif
     }
 
     static bool init(std::string_view paths) noexcept {
         // Multiple directories are separated
         // by ";" on Windows and
-        // by ":" on Unix-based operating systems.
+        // by ":" on Unix-based operating systems
         //
         // Example:
         // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
@@ -336,11 +343,14 @@ class TBFile: public std::ifstream {
         if (!paths.empty())
         {
             std::istringstream iss{std::string(paths)};
-            std::string        path;
+
+            std::string path;
+
             while (std::getline(iss, path, PathSeparator))
                 if (!path.empty())
                     Paths.push_back(path);
         }
+
         return !Paths.empty();
     }
 
@@ -397,7 +407,7 @@ struct TBTable final {
     static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
 
     std::atomic<bool> ready{false};
-    void*             baseAddress = nullptr;
+    void*             mapAddress = nullptr;
     std::uint8_t*     map;
     std::uint64_t     mapping;
 
@@ -415,8 +425,8 @@ struct TBTable final {
     explicit TBTable(const TBTable<WDL>& wdlTable) noexcept;
 
     ~TBTable() noexcept {
-        if (baseAddress != nullptr)
-            TBFile::unmap(baseAddress, mapping);
+        if (mapAddress != nullptr)
+            TBFile::unmap(mapAddress, mapping);
     }
 };
 
@@ -1293,12 +1303,12 @@ void* mapped(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
     // Use 'acquire' to avoid a thread reading 'ready' == true while
     // another is still working. (compiler reordering may cause this).
     if (entry.ready.load(std::memory_order_acquire))
-        return entry.baseAddress;  // Could be nullptr if file does not exist
+        return entry.mapAddress;  // Could be nullptr if file does not exist
 
     std::scoped_lock scopedLock(mutex);
 
     if (entry.ready.load(std::memory_order_relaxed))  // Recheck under lock
-        return entry.baseAddress;
+        return entry.mapAddress;
 
     // Pieces strings in decreasing order for each color, like ("KPP","KR")
     StdArray<std::string, COLOR_NB> pieces{};
@@ -1310,13 +1320,13 @@ void* mapped(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
                                                          : pieces[BLACK] + 'v' + pieces[WHITE])
                       + (T == WDL ? WDL_EXT : DTZ_EXT).data();
 
-    std::uint8_t* data = TBFile(fname).map<T>(&entry.baseAddress, &entry.mapping);
+    std::uint8_t* data = TBFile(fname).map<T>(&entry.mapAddress, &entry.mapping);
 
     if (data != nullptr)
         set(entry, data);
 
     entry.ready.store(true, std::memory_order_release);
-    return entry.baseAddress;
+    return entry.mapAddress;
 }
 
 template<TBType T, typename Ret = typename TBTable<T>::Ret>
