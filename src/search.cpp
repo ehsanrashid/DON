@@ -223,6 +223,18 @@ void Worker::ensure_network_replicated() noexcept {
     (void) (networks[numaAccessToken]);
 }
 
+// Speculative prefetch as early as possible
+void Worker::prefetch_tt(Key key) const noexcept { prefetch(tt.cluster(key)); }
+
+void Worker::prefetch_histories(const Position& pos) const noexcept {
+    prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][0][0]);
+    prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][0][0]);
+    prefetch(&minorCorrectionHistory[correction_index(pos.minor_key(WHITE))][0][0]);
+    prefetch(&minorCorrectionHistory[correction_index(pos.minor_key(BLACK))][0][0]);
+    prefetch(&nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][0][0]);
+    prefetch(&nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][0][0]);
+}
+
 void Worker::start_search() noexcept {
     auto* const mainManager = is_main_worker() ? main_manager() : nullptr;
 
@@ -1125,7 +1137,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     std::uint8_t moveCount = 0;
 
-    StdArray<MoveFixedVector, 2> worseMoves;
+    StdArray<SearchedMoves, 2> searchedMoves;
 
     const History<HPieceSq>* contHistory[8]{
       (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
@@ -1520,7 +1532,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Collection of worse moves
         if (move != bestMove && moveCount <= MOVE_CAPACITY)
-            worseMoves[capture].push_back(move);
+            searchedMoves[capture].push_back(move);
     }
 
     assert(moveCount != 0 || !ss->inCheck || exclude || (MoveList<LEGAL, true>(pos).empty()));
@@ -1543,7 +1555,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
     {
-        update_histories(pos, ss, pawnIndex, depth, bestMove, worseMoves);
+        update_histories(pos, ss, pawnIndex, depth, bestMove, searchedMoves);
 
         if constexpr (!RootNode)
             ttMoveHistory << (bestMove == ttd.move ? +809 : -865);
@@ -1923,7 +1935,7 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::u
 }
 
 // Updates history at the end of search() when a bestMove is found
-void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bestMove, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept {
+void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(ss->moveCount != 0);
 
     int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * (bestMove == ss->ttMove);
@@ -1938,12 +1950,12 @@ void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_
         update_quiet_histories(pos, ss, pawnIndex, bestMove, 0.8887 * bonus);
 
         // Decrease history for all non-best quiet moves
-        for (auto quietMove : worseMoves[0])
+        for (auto quietMove : searchedMoves[0])
             update_quiet_histories(pos, ss, pawnIndex, quietMove, -1.0596 * malus);
     }
 
     // Decrease history for all non-best capture moves
-    for (auto captureMove : worseMoves[1])
+    for (auto captureMove : searchedMoves[1])
         update_capture_history(pos, captureMove, -1.4141 * malus);
 
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
@@ -2077,16 +2089,16 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     if (!options["SyzygyPVExtend"])
         return;
 
-    bool timeManagerActive = limit.use_time_manager() && options["NodesTime"] == 0;
+    bool useTimeManager = limit.use_time_manager() && options["NodesTime"] == 0;
 
-    TimePoint moveOverhead = options["MoveOverhead"];
+    const TimePoint moveOverhead = options["MoveOverhead"];
 
-    // If time manager is active, don't use more than 50% of moveOverhead time.
+    // If time manager is active, don't use more than 50% of moveOverhead time
     auto startTime = std::chrono::steady_clock::now();
 
     const auto time_to_abort = [&]() noexcept -> bool {
         auto endTime = std::chrono::steady_clock::now();
-        return timeManagerActive
+        return useTimeManager
             && std::chrono::duration<double, std::milli>(endTime - startTime).count()
                  > 0.5000 * moveOverhead;
     };
@@ -2355,8 +2367,8 @@ void Skill::init(const Options& options) noexcept {
         std::uint16_t uciELO = options["UCI_ELO"];
 
         auto e = double(uciELO - MIN_ELO) / (MAX_ELO - MIN_ELO);
-        auto x = ((37.2473 * e - 40.8525) * e + 22.2943) * e - 0.311438;
-        level  = std::clamp(x, MIN_LEVEL, MAX_LEVEL - 0.01);
+        auto l = ((37.2473 * e - 40.8525) * e + 22.2943) * e - 0.311438;
+        level  = std::clamp(l, MIN_LEVEL, MAX_LEVEL - 0.01);
     }
     else
     {

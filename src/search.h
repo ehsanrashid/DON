@@ -53,7 +53,7 @@ struct Networks;
 }
 
 inline constexpr std::size_t MOVE_CAPACITY = 32;
-using MoveFixedVector                      = FixedVector<Move, MOVE_CAPACITY>;
+using SearchedMoves                        = FixedVector<Move, MOVE_CAPACITY>;
 
 inline constexpr std::size_t DEFAULT_MULTI_PV = 1;
 
@@ -534,6 +534,9 @@ class Worker final {
 
     void ensure_network_replicated() noexcept;
 
+    void prefetch_tt(Key key) const noexcept;
+    void prefetch_histories(const Position& pos) const noexcept;
+
     // Called when the program receives the UCI 'go' command.
     // It searches from the root position and outputs the "bestmove".
     void start_search() noexcept;
@@ -580,7 +583,7 @@ class Worker final {
     void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
 
     void update_quiet_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Move m, int bonus) noexcept;
-    void update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bestMove, const StdArray<MoveFixedVector, 2>& worseMoves) noexcept;
+    void update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
 
     void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* const ss) noexcept;
@@ -640,7 +643,6 @@ class Worker final {
     NNUE::AccumulatorCaches accCaches;
 
     friend class MainSearchManager;
-    friend class Position;
     friend class ThreadPool;
 };
 

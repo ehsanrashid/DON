@@ -555,6 +555,9 @@ struct IFixedVector {
     virtual bool        empty() const noexcept = 0;
     virtual bool        full() const noexcept  = 0;
 
+    virtual T*       data() noexcept       = 0;
+    virtual const T* data() const noexcept = 0;
+
     virtual T*       begin() noexcept        = 0;
     virtual T*       end() noexcept          = 0;
     virtual const T* begin() const noexcept  = 0;
@@ -569,9 +572,6 @@ struct IFixedVector {
 
     virtual T&       back() noexcept       = 0;
     virtual const T& back() const noexcept = 0;
-
-    virtual T*       data() noexcept       = 0;
-    virtual const T* data() const noexcept = 0;
 
     virtual T&       operator[](std::size_t idx) noexcept       = 0;
     virtual const T& operator[](std::size_t idx) const noexcept = 0;
@@ -596,6 +596,9 @@ class FixedVector final: public IFixedVector<T> {
     [[nodiscard]] bool        empty() const noexcept override { return size() == 0; }
     [[nodiscard]] bool        full() const noexcept override { return size() == capacity(); }
 
+    T*       data() noexcept override { return _data.data(); }
+    const T* data() const noexcept override { return _data.data(); }
+
     T*       begin() noexcept override { return data(); }
     T*       end() noexcept override { return begin() + size(); }
     const T* begin() const noexcept override { return data(); }
@@ -605,18 +608,18 @@ class FixedVector final: public IFixedVector<T> {
 
     bool push_back(const T& value) noexcept override {
         assert(size() < capacity());
-        _data[_size++] = value;  // copy-assign into pre-initialized slot
+        data()[_size++] = value;  // copy-assign into pre-initialized slot
         return true;
     }
     bool push_back(T&& value) noexcept override {
         assert(size() < capacity());
-        _data[_size++] = std::move(value);
+        data()[_size++] = std::move(value);
         return true;
     }
     template<typename... Args>
     bool emplace_back(Args&&... args) noexcept {
         assert(size() < capacity());
-        _data[_size++] = T(std::forward<Args>(args)...);
+        data()[_size++] = T(std::forward<Args>(args)...);
         return true;
     }
 
@@ -627,25 +630,22 @@ class FixedVector final: public IFixedVector<T> {
 
     T& back() noexcept override {
         assert(size() > 0);
-        return _data[size() - 1];
+        return data()[size() - 1];
     }
     const T& back() const noexcept override {
         assert(size() > 0);
-        return _data[size() - 1];
+        return data()[size() - 1];
     }
-
-    T*       data() noexcept override { return _data.data(); }
-    const T* data() const noexcept override { return _data.data(); }
 
     T& operator[](std::size_t idx) noexcept override {
         assert(idx < size());
         assert(size() <= capacity());
-        return _data[idx];
+        return data()[idx];
     }
     const T& operator[](std::size_t idx) const noexcept override {
         assert(idx < size());
         assert(size() <= capacity());
-        return _data[idx];
+        return data()[idx];
     }
 
     void size(std::size_t newSize) noexcept override {
@@ -655,9 +655,9 @@ class FixedVector final: public IFixedVector<T> {
     }
 
     T* make_space(std::size_t space) noexcept override {
-        T* value = &_data[_size];
+        T* value = &data()[size()];
         _size += space;
-        assert(_size <= capacity());
+        assert(size() <= capacity());
         return value;
     }
 
@@ -676,18 +676,18 @@ class FixedString final {
     FixedString() noexcept { clear(); }
 
     FixedString(const char* str) {
-        size_t size = std::strlen(str);
-        if (size > capacity())
+        std::size_t strSize = std::strlen(str);
+        if (strSize > capacity())
             std::terminate();
-        std::memcpy(_data.data(), str, size);
-        _size = size;
+        std::memcpy(data(), str, strSize);
+        _size = strSize;
         null_terminate();
     }
 
     FixedString(const std::string& str) {
         if (str.size() > capacity())
             std::terminate();
-        std::memcpy(_data.data(), str.data(), str.size());
+        std::memcpy(data(), str.data(), str.size());
         _size = str.size();
         null_terminate();
     }
@@ -698,6 +698,11 @@ class FixedString final {
     [[nodiscard]] constexpr bool        empty() const noexcept { return size() == 0; }
     [[nodiscard]] constexpr bool        full() const noexcept { return size() == capacity(); }
 
+    constexpr char*       data() noexcept { return _data.data(); }
+    constexpr const char* data() const noexcept { return _data.data(); }
+
+    constexpr const char* c_str() const noexcept { return data(); }
+
     constexpr char*       begin() noexcept { return data(); }
     constexpr char*       end() noexcept { return begin() + size(); }
     constexpr const char* begin() const noexcept { return data(); }
@@ -705,42 +710,45 @@ class FixedString final {
     constexpr const char* cbegin() const noexcept { return data(); }
     constexpr const char* cend() const noexcept { return cbegin() + size(); }
 
-    constexpr const char* c_str() const noexcept { return _data.data(); }
-    constexpr const char* data() const noexcept { return _data.data(); }
-
     constexpr char& operator[](std::size_t idx) noexcept {
         assert(idx < size());
-        return _data[idx];
+        return data()[idx];
     }
     constexpr const char& operator[](std::size_t idx) const noexcept {
         assert(idx < size());
-        return _data[idx];
+        return data()[idx];
     }
 
-    void null_terminate() noexcept { _data[_size] = '\0'; }
+    void null_terminate() noexcept { data()[size()] = '\0'; }
 
     FixedString& operator+=(const char* str) {
-        std::size_t size = std::strlen(str);
-        if (_size + size > capacity())
+        std::size_t strSize = std::strlen(str);
+        if (size() + strSize > capacity())
             std::terminate();
-        std::memcpy(_data.data() + _size, str, size);
-        _size += size;
+        std::memcpy(data() + size(), str, strSize);
+        _size += strSize;
         null_terminate();
         return *this;
     }
-
-    FixedString& operator+=(const FixedString& fixedStr) { return (*this += fixedStr.c_str()); }
+    FixedString& operator+=(const std::string& str) {
+        *this += str.data();
+        return *this;
+    }
+    FixedString& operator+=(const FixedString& fixedStr) {
+        *this += fixedStr.data();
+        return *this;
+    }
 
     operator std::string() const noexcept { return std::string(data(), size()); }
     operator std::string_view() const noexcept { return std::string_view(data(), size()); }
 
     template<typename T>
-    bool operator==(const T& other) const noexcept {
-        return (std::string_view) (*this) == other;
+    bool operator==(const T& t) const noexcept {
+        return (std::string_view) (*this) == t;
     }
     template<typename T>
-    bool operator!=(const T& other) const noexcept {
-        return !(*this == other);
+    bool operator!=(const T& t) const noexcept {
+        return !(*this == t);
     }
 
     void clear() noexcept {
@@ -1094,7 +1102,7 @@ split(std::string_view str, std::string_view delimiter, bool trimPart = false) n
         if (trimPart)
             part = trim(part);
 
-        if (!part.empty())
+        if (!is_whitespace(part))
             parts.emplace_back(part);
 
         beg = end + delimiter.size();
@@ -1106,7 +1114,7 @@ split(std::string_view str, std::string_view delimiter, bool trimPart = false) n
     if (trimPart)
         part = trim(part);
 
-    if (!part.empty())
+    if (!is_whitespace(part))
         parts.emplace_back(part);
 
     return parts;

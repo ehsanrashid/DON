@@ -108,14 +108,13 @@ class Thread final {
     WorkerPtr worker;
 };
 
-// Blocks on the condition variable
-// until the thread has finished job.
+// Blocks on the condition variable until the thread has finished job
 inline void Thread::wait_finish() noexcept {
     std::unique_lock uniqueLock(mutex);
     condVar.wait(uniqueLock, [this] { return !busy; });
 }
 
-// Launching a function in the thread
+// Launching a job in the thread
 inline void Thread::run_custom_job(JobFunc job) noexcept {
     {
         std::unique_lock uniqueLock(mutex);
@@ -230,12 +229,12 @@ inline void ThreadPool::clear() noexcept {
 
 // Sets threadPool data to initial values
 inline void ThreadPool::init() noexcept {
-
     if (empty())
         return;
 
     for (auto&& th : threads)
         th->init();
+
     for (auto&& th : threads)
         th->wait_finish();
 

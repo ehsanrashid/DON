@@ -187,7 +187,7 @@ void TranspositionTable::resize(std::size_t ttSize, ThreadPool& threads) noexcep
 void TranspositionTable::init(ThreadPool& threads) noexcept {
     generation8 = 0;
 
-    std::size_t threadCount = threads.size();
+    const std::size_t threadCount = threads.size();
 
     for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
     {

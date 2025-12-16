@@ -25,7 +25,11 @@
     #endif
 #endif
 
-#if defined(__linux__) && !defined(__ANDROID__)
+#if defined(__ANDROID__)
+
+#elif defined(_WIN32)
+    #include <iostream>
+#elif defined(__linux__)
     #include <sys/mman.h>
 #endif
 
@@ -33,10 +37,6 @@
   || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) && !defined(_WIN32)) \
   || defined(__e2k__)
     #define POSIX_ALIGNED
-#endif
-
-#if defined(_WIN32)
-    #include <iostream>
 #endif
 
 #include "misc.h"  // IWYU pragma: keep

@@ -35,10 +35,8 @@
 
 #if defined(__ANDROID__)
     #include <limits.h>
-    #define MAX_SEM_NAME_LEN NAME_MAX
-#endif
-
-#if defined(_WIN32)
+    #define SHM_NAME_MAX_SIZE NAME_MAX
+#elif defined(_WIN32)
     #if !defined(NOMINMAX)
         #define NOMINMAX  // Disable min()/max() macros
     #endif
@@ -59,30 +57,49 @@
         #undef small
     #endif
 #else
+    #include <atomic>
+    #include <cassert>
+    #include <cerrno>
+    #include <cstdio>
+    #include <cstdlib>
     #include <cstring>
+    #include <dirent.h>
     #include <fcntl.h>
+    #include <inttypes.h>
+    #include <mutex>
+    #include <new>
+    #include <optional>
     #include <pthread.h>
     #include <semaphore.h>
+    #include <signal.h>
+    #include <string>
+    #include <sys/file.h>
     #include <sys/mman.h>
     #include <sys/stat.h>
+    #include <type_traits>
     #include <unistd.h>
-#endif
+    #include <unordered_set>
 
-#if defined(__APPLE__)
-    #include <mach-o/dyld.h>
-    #include <sys/syslimits.h>
-#elif defined(__sun)
-    #include <stdlib.h>
-#elif defined(__FreeBSD__)
-    #include <sys/sysctl.h>
-    #include <sys/types.h>
-    #include <unistd.h>
-#elif defined(__NetBSD__) || defined(__DragonFly__) || defined(__linux__)
-    #include <limits.h>
-    #include <unistd.h>
+    #if defined(__APPLE__)
+        #include <mach-o/dyld.h>
+        #include <sys/syslimits.h>
+        #define SHM_NAME_MAX_SIZE 31
+    #elif defined(__linux__) || defined(__NetBSD__) || defined(__DragonFly__)
+        #include <limits.h>
+        #include <unistd.h>
+        #define SHM_NAME_MAX_SIZE NAME_MAX
+    #elif defined(__sun)  // Solaris
+        #include <stdlib.h>
+        #define SHM_NAME_MAX_SIZE 255
+    #elif defined(__FreeBSD__)
+        #include <sys/sysctl.h>
+        #include <sys/types.h>
+        #include <unistd.h>
+        #define SHM_NAME_MAX_SIZE 255
+    #else
+        #define SHM_NAME_MAX_SIZE 255
+    #endif
 #endif
-
-#include "shm_linux.h"
 
 #include "memory.h"
 #include "misc.h"
@@ -96,67 +113,112 @@ namespace DON {
 // If the path is longer than 4095 bytes the hash will be computed from an unspecified
 // amount of bytes of the path; in particular it can a hash of an empty string.
 
-inline std::string executable_path() noexcept {
-    char        executablePath[4096] = {0};
-    std::size_t pathLength           = 0;
-
-#if defined(_WIN32)
-    pathLength = GetModuleFileName(NULL, executablePath, sizeof(executablePath));
-
-#elif defined(__APPLE__)
-    std::uint32_t size = sizeof(executablePath);
-    if (_NSGetExecutablePath(executablePath, &size) == 0)
-    {
-        pathLength = std::strlen(executablePath);
-    }
-
-#elif defined(__sun)  // Solaris
-    const char* path = getexecname();
-    if (path)
-    {
-        std::strncpy(executablePath, path, sizeof(executablePath) - 1);
-        pathLength = std::strlen(executablePath);
-    }
-
-#elif defined(__FreeBSD__)
-    size_t size   = sizeof(executablePath);
-    int    mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
-    if (sysctl(mib, 4, executablePath, &size, NULL, 0) == 0)
-    {
-        pathLength = std::strlen(executablePath);
-    }
-
-#elif defined(__NetBSD__) || defined(__DragonFly__)
-    ssize_t len = readlink("/proc/curproc/exe", executablePath, sizeof(executablePath) - 1);
-    if (len >= 0)
-    {
-        executablePath[len] = '\0';
-        pathLength          = len;
-    }
-
-#elif defined(__linux__)
-    ssize_t len = readlink("/proc/self/exe", executablePath, sizeof(executablePath) - 1);
-    if (len >= 0)
-    {
-        executablePath[len] = '\0';
-        pathLength          = len;
-    }
-
-#endif
-
-    // In case of any error the path will be empty.
-    return std::string(executablePath, pathLength);
-}
-
 enum class SystemWideSharedConstantAllocationStatus {
     NoAllocation,
     LocalMemory,
     SharedMemory
 };
 
-#if defined(_WIN32)
+inline std::string to_string(SystemWideSharedConstantAllocationStatus status) noexcept {
+    switch (status)
+    {
+    case SystemWideSharedConstantAllocationStatus::NoAllocation :
+        return "No allocation";
+    case SystemWideSharedConstantAllocationStatus::LocalMemory :
+        return "Local memory";
+    case SystemWideSharedConstantAllocationStatus::SharedMemory :
+        return "Shared memory";
+    default :
+        return "Unknown status";
+    }
+}
 
-// Get the error message string, if any.
+inline std::string executable_path() noexcept {
+    char        executablePath[4096] = {0};
+    std::size_t executableSize       = 0;
+
+#if defined(_WIN32)
+    DWORD size = GetModuleFileName(nullptr, executablePath, sizeof(executablePath));
+
+    executableSize = std::min(std::size_t(size), sizeof(executablePath) - 1);
+
+    executablePath[executableSize] = '\0';
+#else
+    #if defined(__APPLE__)
+    std::uint32_t size = std::uint32_t(sizeof(executablePath));
+    if (_NSGetExecutablePath(executablePath, &size) == 0)
+    {
+        executableSize = std::strlen(executablePath);
+    }
+    #elif defined(__linux__)
+    ssize_t size = readlink("/proc/self/exe", executablePath, sizeof(executablePath) - 1);
+    if (size >= 0)
+    {
+        executableSize = size;
+
+        executablePath[executableSize] = '\0';
+    }
+    #elif defined(__NetBSD__) || defined(__DragonFly__)
+    ssize_t size = readlink("/proc/curproc/exe", executablePath, sizeof(executablePath) - 1);
+    if (size >= 0)
+    {
+        executableSize = size;
+
+        executablePath[executableSize] = '\0';
+    }
+    #elif defined(__sun)  // Solaris
+    const char* path = getexecname();
+    if (path != nullptr)
+    {
+        std::strncpy(executablePath, path, sizeof(executablePath) - 1);
+
+        executableSize = std::strlen(executablePath);
+    }
+    #elif defined(__FreeBSD__)
+    constexpr StdArray<int, 4> MIB{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
+
+    std::size_t size = sizeof(executablePath);
+    if (sysctl(MIB.data(), MIB.size(), executablePath, &size, nullptr, 0) == 0)
+    {
+        executableSize = std::min(size, sizeof(executablePath) - 1);
+
+        executablePath[executableSize] = '\0';
+    }
+    #endif
+#endif
+
+    // In case of any error the path will be empty.
+    return std::string(executablePath, executableSize);
+}
+
+#if defined(__ANDROID__)
+
+// For systems that don't have shared memory, or support is troublesome.
+// The way fallback is done is that need a dummy backend.
+template<typename T>
+class SharedMemoryBackend final {
+   public:
+    SharedMemoryBackend() = default;
+
+    SharedMemoryBackend([[maybe_unused]] const std::string& shmName,
+                        [[maybe_unused]] const T&           value) noexcept {}
+
+    bool is_valid() const noexcept { return false; }
+
+    void* get() const noexcept { return nullptr; }
+
+    SystemWideSharedConstantAllocationStatus get_status() const noexcept {
+        return SystemWideSharedConstantAllocationStatus::NoAllocation;
+    }
+
+    std::optional<std::string> get_error_message() const noexcept {
+        return "Dummy Shared Memory Backend";
+    }
+};
+
+#elif defined(_WIN32)
+
+// Get the error message string, if any
 inline std::string error_to_string(DWORD errorId) noexcept {
     if (errorId == 0)
         return {};
@@ -182,7 +244,7 @@ inline std::string error_to_string(DWORD errorId) noexcept {
     return message;
 }
 
-// Utilizes shared memory to store the value. It is deduplicated system-wide (for the single user).
+// Utilizes shared memory to store the value. It is deduplicated system-wide (for the single user)
 template<typename T>
 class SharedMemoryBackend final {
    public:
@@ -209,30 +271,6 @@ class SharedMemoryBackend final {
     }
 
     bool is_valid() const noexcept { return status == Status::Success; }
-
-    std::optional<std::string> get_error_message() const noexcept {
-        switch (status)
-        {
-        case Status::Success :
-            return std::nullopt;
-        case Status::LargePageAllocationError :
-            return "Failed to allocate large page memory";
-        case Status::FileMappingError :
-            return "Failed to create file mapping: " + lastErrorStr;
-        case Status::MapViewError :
-            return "Failed to map view: " + lastErrorStr;
-        case Status::MutexCreateError :
-            return "Failed to create mutex: " + lastErrorStr;
-        case Status::MutexWaitError :
-            return "Failed to wait on mutex: " + lastErrorStr;
-        case Status::MutexReleaseError :
-            return "Failed to release mutex: " + lastErrorStr;
-        case Status::NotInitialized :
-            return "Not initialized";
-        default :
-            return "Unknown error";
-        }
-    }
 
     void* get() const noexcept { return is_valid() ? pMapAddr : nullptr; }
 
@@ -270,6 +308,30 @@ class SharedMemoryBackend final {
     SystemWideSharedConstantAllocationStatus get_status() const noexcept {
         return status == Status::Success ? SystemWideSharedConstantAllocationStatus::SharedMemory
                                          : SystemWideSharedConstantAllocationStatus::NoAllocation;
+    }
+
+    std::optional<std::string> get_error_message() const noexcept {
+        switch (status)
+        {
+        case Status::Success :
+            return std::nullopt;
+        case Status::LargePageAllocationError :
+            return "Failed to allocate large page memory";
+        case Status::FileMappingError :
+            return "Failed to create file mapping: " + lastErrorStr;
+        case Status::MapViewError :
+            return "Failed to map view: " + lastErrorStr;
+        case Status::MutexCreateError :
+            return "Failed to create mutex: " + lastErrorStr;
+        case Status::MutexWaitError :
+            return "Failed to wait on mutex: " + lastErrorStr;
+        case Status::MutexReleaseError :
+            return "Failed to release mutex: " + lastErrorStr;
+        case Status::NotInitialized :
+            return "Not initialized";
+        default :
+            return "Unknown error";
+        }
     }
 
    private:
@@ -394,7 +456,609 @@ class SharedMemoryBackend final {
     std::string lastErrorStr;
 };
 
-#elif !defined(__ANDROID__)
+#else
+
+namespace internal {
+
+struct ShmHeader final {
+    static constexpr std::uint32_t SHM_MAGIC = 0xAD5F1A12U;
+
+    pthread_mutex_t            mutex;
+    std::atomic<std::uint32_t> refCount{0};
+    std::atomic<bool>          initialized{false};
+    std::uint32_t              magic = SHM_MAGIC;
+};
+
+class BaseSharedMemory {
+   public:
+    virtual ~BaseSharedMemory() = default;
+
+    virtual void               close() noexcept      = 0;
+    virtual const std::string& name() const noexcept = 0;
+};
+
+class SharedMemoryRegistry final {
+   public:
+    static void register_instance(BaseSharedMemory* memory) {
+        std::scoped_lock scopeLock(mutex);
+        activeMemories.insert(memory);
+    }
+
+    static void unregister_instance(BaseSharedMemory* memory) {
+        std::scoped_lock scopeLock(mutex);
+        activeMemories.erase(memory);
+    }
+
+    static void cleanup_all() noexcept {
+        std::scoped_lock scopeLock(mutex);
+        for (auto* memory : activeMemories)
+            memory->close();
+        activeMemories.clear();
+    }
+
+   private:
+    static inline std::mutex                            mutex;
+    static inline std::unordered_set<BaseSharedMemory*> activeMemories;
+};
+
+class CleanupHooks final {
+   public:
+    static void ensure_registered() noexcept {
+        std::call_once(registerOnce, register_signal_handlers);
+    }
+
+   private:
+    static void handle_signal(int sig) noexcept {
+        SharedMemoryRegistry::cleanup_all();
+        _Exit(128 + sig);
+    }
+
+    static void register_signal_handlers() noexcept {
+        std::atexit([]() { SharedMemoryRegistry::cleanup_all(); });
+
+        constexpr int signals[]{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
+                                SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
+
+        struct sigaction sa;
+        sa.sa_handler = handle_signal;
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = 0;
+
+        for (int sig : signals)
+            sigaction(sig, &sa, nullptr);
+    }
+
+    static inline std::once_flag registerOnce;
+};
+
+inline int portable_fallocate(int fd, off_t offset, off_t length) noexcept {
+    #if defined(__APPLE__)
+    fstore_t store = {F_ALLOCATECONTIG, F_PEOFPOSMODE, offset, length, 0};
+    int      rc    = fcntl(fd, F_PREALLOCATE, &store);
+    if (rc == -1)
+    {
+        store.fst_flags = F_ALLOCATEALL;
+        rc              = fcntl(fd, F_PREALLOCATE, &store);
+    }
+    if (rc != -1)
+        rc = ftruncate(fd, offset + length);
+    return rc;
+    #else
+    return posix_fallocate(fd, offset, length);
+    #endif
+}
+
+}  // namespace internal
+
+template<typename T>
+class SharedMemory final: public internal::BaseSharedMemory {
+    static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
+    static_assert(!std::is_pointer_v<T>, "T cannot be a pointer type");
+
+   public:
+    explicit SharedMemory(const std::string& name) noexcept :
+        _name(name),
+        totalSize(calculate_total_size()),
+        sentinelBase(make_sentinel_base(name)) {}
+
+    ~SharedMemory() noexcept override {
+        internal::SharedMemoryRegistry::unregister_instance(this);
+        close();
+    }
+
+    SharedMemory(const SharedMemory&)            = delete;
+    SharedMemory& operator=(const SharedMemory&) = delete;
+
+    SharedMemory(SharedMemory&& sharedMem) noexcept :
+        _name(std::move(sharedMem._name)),
+        _fd(sharedMem._fd),
+        mappedPtr(sharedMem.mappedPtr),
+        dataPtr(sharedMem.dataPtr),
+        shmHeader(sharedMem.shmHeader),
+        totalSize(sharedMem.totalSize),
+        sentinelBase(std::move(sharedMem.sentinelBase)),
+        sentinelPath(std::move(sharedMem.sentinelPath)) {
+
+        internal::SharedMemoryRegistry::unregister_instance(&sharedMem);
+        internal::SharedMemoryRegistry::register_instance(this);
+        sharedMem.reset();
+    }
+
+    SharedMemory& operator=(SharedMemory&& sharedMem) noexcept {
+        if (this == &sharedMem)
+            return *this;
+
+        internal::SharedMemoryRegistry::unregister_instance(this);
+        close();
+
+        _name        = std::move(sharedMem._name);
+        _fd          = sharedMem._fd;
+        mappedPtr    = sharedMem.mappedPtr;
+        dataPtr      = sharedMem.dataPtr;
+        shmHeader    = sharedMem.shmHeader;
+        totalSize    = sharedMem.totalSize;
+        sentinelBase = std::move(sharedMem.sentinelBase);
+        sentinelPath = std::move(sharedMem.sentinelPath);
+
+        internal::SharedMemoryRegistry::unregister_instance(&sharedMem);
+        internal::SharedMemoryRegistry::register_instance(this);
+
+        sharedMem.reset();
+        return *this;
+    }
+
+    [[nodiscard]] bool open(const T& initialValue) noexcept {
+        internal::CleanupHooks::ensure_registered();
+
+        bool staleRetried = false;
+
+        while (true)
+        {
+            if (is_open())
+                return false;
+
+            bool newCreated = false;
+
+            _fd = shm_open(_name.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
+
+            if (_fd == -1)
+            {
+                _fd = shm_open(_name.c_str(), O_RDWR, 0666);
+                if (_fd == -1)
+                    return false;
+            }
+            else
+                newCreated = true;
+
+            if (!lock_file(LOCK_EX))
+            {
+                ::close(_fd);
+                reset();
+                return false;
+            }
+
+            bool headerInvalid = false;
+            bool success =
+              newCreated ? setup_new_region(initialValue) : setup_existing_region(headerInvalid);
+
+            if (!success)
+            {
+                if (newCreated || headerInvalid)
+                    shm_unlink(_name.c_str());
+                if (mappedPtr != nullptr)
+                    unmap_region();
+                unlock_file();
+                ::close(_fd);
+                reset();
+
+                if (!newCreated && headerInvalid && !staleRetried)
+                {
+                    staleRetried = true;
+                    continue;
+                }
+                return false;
+            }
+
+            if (!lock_shared_mutex())
+            {
+                if (newCreated)
+                    shm_unlink(_name.c_str());
+                if (mappedPtr != nullptr)
+                    unmap_region();
+                unlock_file();
+                ::close(_fd);
+                reset();
+
+                if (!newCreated && !staleRetried)
+                {
+                    staleRetried = true;
+                    continue;
+                }
+                return false;
+            }
+
+            if (!create_sentinel_file_locked())
+            {
+                unlock_shared_mutex();
+                unmap_region();
+                if (newCreated)
+                    shm_unlink(_name.c_str());
+                unlock_file();
+                ::close(_fd);
+                reset();
+                return false;
+            }
+
+            shmHeader->refCount.fetch_add(1, std::memory_order_acq_rel);
+
+            unlock_shared_mutex();
+            unlock_file();
+            internal::SharedMemoryRegistry::register_instance(this);
+            return true;
+        }
+    }
+
+    void close() noexcept override {
+        if (_fd == -1 && mappedPtr == nullptr)
+            return;
+
+        bool regionRemove = false;
+        bool fileLocked   = lock_file(LOCK_EX);
+        bool mutexLocked  = false;
+
+        if (fileLocked && shmHeader != nullptr)
+            mutexLocked = lock_shared_mutex();
+
+        if (mutexLocked)
+        {
+            if (shmHeader != nullptr)
+                shmHeader->refCount.fetch_sub(1, std::memory_order_acq_rel);
+            remove_sentinel_file();
+            regionRemove = !has_other_live_sentinels_locked();
+            unlock_shared_mutex();
+        }
+        else
+        {
+            remove_sentinel_file();
+            decrement_refcount_relaxed();
+        }
+
+        unmap_region();
+
+        if (regionRemove)
+            shm_unlink(_name.c_str());
+
+        if (fileLocked)
+            unlock_file();
+
+        if (_fd != -1)
+        {
+            ::close(_fd);
+            _fd = -1;
+        }
+
+        reset();
+    }
+
+    const std::string& name() const noexcept override { return _name; }
+
+    [[nodiscard]] bool is_open() const noexcept {
+        return _fd != -1 && mappedPtr != nullptr && dataPtr != nullptr;
+    }
+
+    [[nodiscard]] const T& get() const noexcept { return *dataPtr; }
+
+    [[nodiscard]] const T* operator->() const noexcept { return dataPtr; }
+
+    [[nodiscard]] const T& operator*() const noexcept { return *dataPtr; }
+
+    [[nodiscard]] uint32_t ref_count() const noexcept {
+        return shmHeader != nullptr ? shmHeader->refCount.load(std::memory_order_acquire) : 0;
+    }
+
+    [[nodiscard]] bool is_initialized() const noexcept {
+        return shmHeader != nullptr ? shmHeader->initialized.load(std::memory_order_acquire)
+                                    : false;
+    }
+
+    static void cleanup_all_instances() noexcept { internal::SharedMemoryRegistry::cleanup_all(); }
+
+   private:
+    static constexpr std::size_t calculate_total_size() noexcept {
+        return sizeof(T) + sizeof(internal::ShmHeader);
+    }
+
+    static std::string make_sentinel_base(const std::string& name) noexcept {
+        std::string str(32, '\0');
+
+        std::uint64_t hash = std::hash<std::string>{}(name);
+        std::snprintf(str.data(), str.size(), "don_shm_%016" PRIx64, hash);
+        return str;
+    }
+
+    static bool is_pid_alive(pid_t pid) noexcept {
+        if (pid <= 0)
+            return false;
+
+        if (kill(pid, 0) == 0)
+            return true;
+
+        return errno == EPERM;
+    }
+
+    void reset() noexcept {
+        _fd       = -1;
+        mappedPtr = nullptr;
+        dataPtr   = nullptr;
+        shmHeader = nullptr;
+        sentinelPath.clear();
+    }
+
+    void unmap_region() noexcept {
+        if (mappedPtr == nullptr)
+            return;
+
+        munmap(mappedPtr, totalSize);
+        mappedPtr = nullptr;
+        dataPtr   = nullptr;
+        shmHeader = nullptr;
+    }
+
+    [[nodiscard]] bool lock_file(int operation) noexcept {
+        if (_fd == -1)
+            return false;
+
+        while (flock(_fd, operation) == -1)
+        {
+            if (errno == EINTR)
+                continue;
+            return false;
+        }
+        return true;
+    }
+
+    void unlock_file() noexcept {
+        if (_fd == -1)
+            return;
+
+        while (flock(_fd, LOCK_UN) == -1)
+        {
+            if (errno == EINTR)
+                continue;
+            break;
+        }
+    }
+
+    std::string sentinel_full_path(pid_t pid) const {
+        std::string path = "/dev/shm/";
+        path += sentinelBase;
+        path.push_back('.');
+        path += std::to_string(pid);
+        return path;
+    }
+
+    void decrement_refcount_relaxed() noexcept {
+        if (shmHeader == nullptr)
+            return;
+
+        std::uint32_t expected = shmHeader->refCount.load(std::memory_order_relaxed);
+        while (expected != 0
+               && !shmHeader->refCount.compare_exchange_weak(
+                 expected, expected - 1, std::memory_order_acq_rel, std::memory_order_relaxed))
+        {}
+    }
+
+    bool create_sentinel_file_locked() noexcept {
+        if (shmHeader == nullptr)
+            return false;
+
+        pid_t selfPid = getpid();
+        sentinelPath  = sentinel_full_path(selfPid);
+
+        for (int attempt = 0; attempt < 2; ++attempt)
+        {
+            int fd = ::open(sentinelPath.c_str(), O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC, 0600);
+            if (fd != -1)
+            {
+                ::close(fd);
+                return true;
+            }
+
+            if (errno == EEXIST)
+            {
+                ::unlink(sentinelPath.c_str());
+                decrement_refcount_relaxed();
+                continue;
+            }
+
+            break;
+        }
+
+        sentinelPath.clear();
+        return false;
+    }
+
+    void remove_sentinel_file() noexcept {
+        if (sentinelPath.empty())
+            return;
+
+        ::unlink(sentinelPath.c_str());
+        sentinelPath.clear();
+    }
+
+    [[nodiscard]] bool initialize_shared_mutex() noexcept {
+        if (shmHeader == nullptr)
+            return false;
+
+        pthread_mutexattr_t attr;
+        if (pthread_mutexattr_init(&attr) != 0)
+            return false;
+
+        int rc = pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
+    #if defined(PTHREAD_MUTEX_ROBUST)
+        if (rc == 0)
+            rc = pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
+    #endif
+        if (rc == 0)
+            rc = pthread_mutex_init(&shmHeader->mutex, &attr);
+
+        pthread_mutexattr_destroy(&attr);
+        return rc == 0;
+    }
+
+    [[nodiscard]] bool lock_shared_mutex() noexcept {
+        if (shmHeader == nullptr)
+            return false;
+
+        while (true)
+        {
+            int rc = pthread_mutex_lock(&shmHeader->mutex);
+            if (rc == 0)
+                return true;
+
+    #if defined(PTHREAD_MUTEX_ROBUST)
+            if (rc == EOWNERDEAD)
+            {
+                if (pthread_mutex_consistent(&shmHeader->mutex) == 0)
+                    return true;
+                return false;
+            }
+    #endif
+
+            if (rc == EINTR)
+                continue;
+
+            return false;
+        }
+    }
+
+    void unlock_shared_mutex() noexcept {
+        if (shmHeader != nullptr)
+            pthread_mutex_unlock(&shmHeader->mutex);
+    }
+
+    bool has_other_live_sentinels_locked() const noexcept {
+        DIR* dir = opendir("/dev/shm");
+        if (dir == nullptr)
+            return false;
+
+        std::string prefix = sentinelBase + ".";
+        bool        found  = false;
+
+        while (dirent* entry = readdir(dir))
+        {
+            std::string name = entry->d_name;
+            if (name.rfind(prefix, 0) != 0)
+                continue;
+
+            auto  pidStr = name.substr(prefix.size());
+            char* endPtr = nullptr;
+            long  pidVal = std::strtol(pidStr.c_str(), &endPtr, 10);
+            if (endPtr == nullptr || *endPtr != '\0')
+                continue;
+
+            pid_t pid = pid_t(pidVal);
+            if (is_pid_alive(pid))
+            {
+                found = true;
+                break;
+            }
+
+            std::string stalePath = "/dev/shm/" + name;
+            ::unlink(stalePath.c_str());
+            const_cast<SharedMemory*>(this)->decrement_refcount_relaxed();
+        }
+
+        closedir(dir);
+        return found;
+    }
+
+    [[nodiscard]] bool setup_new_region(const T& initialValue) noexcept {
+        if (ftruncate(_fd, off_t(totalSize)) == -1)
+            return false;
+
+        if (internal::portable_fallocate(_fd, 0, off_t(totalSize)) != 0)
+            return false;
+
+        mappedPtr = mmap(nullptr, totalSize, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
+        if (mappedPtr == MAP_FAILED)
+        {
+            mappedPtr = nullptr;
+            perror("mmap");
+            return false;
+        }
+
+        dataPtr = static_cast<T*>(mappedPtr);
+        shmHeader =
+          reinterpret_cast<internal::ShmHeader*>(static_cast<char*>(mappedPtr) + sizeof(T));
+
+        new (shmHeader) internal::ShmHeader{};
+        new (dataPtr) T{initialValue};
+
+        if (!initialize_shared_mutex())
+            return false;
+
+        shmHeader->refCount.store(0, std::memory_order_release);
+        shmHeader->initialized.store(true, std::memory_order_release);
+        return true;
+    }
+
+    [[nodiscard]] bool setup_existing_region(bool& headerInvalid) noexcept {
+        headerInvalid = false;
+
+        struct stat st;
+        fstat(_fd, &st);
+        if (std::size_t(st.st_size) < totalSize)
+        {
+            headerInvalid = true;
+            return false;
+        }
+
+        mappedPtr = mmap(nullptr, totalSize, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
+        if (mappedPtr == MAP_FAILED)
+        {
+            mappedPtr = nullptr;
+            perror("mmap");
+            return false;
+        }
+
+        dataPtr   = static_cast<T*>(mappedPtr);
+        shmHeader = std::launder(
+          reinterpret_cast<internal::ShmHeader*>(static_cast<char*>(mappedPtr) + sizeof(T)));
+
+        if (shmHeader == nullptr)
+            return false;
+
+        if (!shmHeader->initialized.load(std::memory_order_acquire)
+            || shmHeader->magic != internal::ShmHeader::SHM_MAGIC)
+        {
+            headerInvalid = true;
+            unmap_region();
+            return false;
+        }
+
+        return true;
+    }
+
+    std::string _name;
+    int         _fd = -1;
+
+    void*                mappedPtr = nullptr;
+    T*                   dataPtr   = nullptr;
+    internal::ShmHeader* shmHeader = nullptr;
+    std::size_t          totalSize = 0;
+    std::string          sentinelBase;
+    std::string          sentinelPath;
+};
+
+template<typename T>
+[[nodiscard]] std::optional<SharedMemory<T>> create_shared(const std::string& name,
+                                                           const T& initialValue) noexcept {
+    SharedMemory<T> shm(name);
+    if (shm.open(initialValue))
+        return shm;
+    return std::nullopt;
+}
 
 template<typename T>
 class SharedMemoryBackend final {
@@ -404,12 +1068,12 @@ class SharedMemoryBackend final {
     SharedMemoryBackend(const std::string& shmName, const T& value) noexcept :
         shm(create_shared<T>(shmName, value)) {}
 
+    bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
+
     void* get() const noexcept {
         const T* ptr = &shm->get();
         return reinterpret_cast<void*>(const_cast<T*>(ptr));
     }
-
-    bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
 
     SystemWideSharedConstantAllocationStatus get_status() const noexcept {
         return is_valid() ? SystemWideSharedConstantAllocationStatus::SharedMemory
@@ -433,49 +1097,24 @@ class SharedMemoryBackend final {
     std::optional<SharedMemory<T>> shm;
 };
 
-#else
-
-// For systems that don't have shared memory, or support is troublesome.
-// The way fallback is done is that need a dummy backend.
-template<typename T>
-class SharedMemoryBackend final {
-   public:
-    SharedMemoryBackend() = default;
-
-    SharedMemoryBackend([[maybe_unused]] const std::string& shmName,
-                        [[maybe_unused]] const T&           value) noexcept {}
-
-    void* get() const noexcept { return nullptr; }
-
-    bool is_valid() const noexcept { return false; }
-
-    SystemWideSharedConstantAllocationStatus get_status() const noexcept {
-        return SystemWideSharedConstantAllocationStatus::NoAllocation;
-    }
-
-    std::optional<std::string> get_error_message() const noexcept {
-        return "Dummy SharedMemoryBackend";
-    }
-};
-
 #endif
 
 template<typename T>
-struct SharedMemoryBackendFallback final {
-    SharedMemoryBackendFallback() noexcept = default;
+struct FallbackSharedMemoryBackend final {
+    FallbackSharedMemoryBackend() noexcept = default;
 
-    SharedMemoryBackendFallback(const std::string&, const T& value) noexcept :
+    FallbackSharedMemoryBackend(const std::string&, const T& value) noexcept :
         fallbackObj(make_unique_aligned_large_pages<T>(value)) {}
 
     void* get() const { return fallbackObj.get(); }
 
-    SharedMemoryBackendFallback(const SharedMemoryBackendFallback&) noexcept            = delete;
-    SharedMemoryBackendFallback& operator=(const SharedMemoryBackendFallback&) noexcept = delete;
+    FallbackSharedMemoryBackend(const FallbackSharedMemoryBackend&) noexcept            = delete;
+    FallbackSharedMemoryBackend& operator=(const FallbackSharedMemoryBackend&) noexcept = delete;
 
-    SharedMemoryBackendFallback(SharedMemoryBackendFallback&& shmFallback) noexcept :
-        fallbackObj(std::move(shmFallback.fallbackObj)) {}
-    SharedMemoryBackendFallback& operator=(SharedMemoryBackendFallback&& shmFallback) noexcept {
-        fallbackObj = std::move(shmFallback.fallbackObj);
+    FallbackSharedMemoryBackend(FallbackSharedMemoryBackend&& fallbackBackend) noexcept :
+        fallbackObj(std::move(fallbackBackend.fallbackObj)) {}
+    FallbackSharedMemoryBackend& operator=(FallbackSharedMemoryBackend&& fallbackBackend) noexcept {
+        fallbackObj = std::move(fallbackBackend.fallbackObj);
         return *this;
     }
 
@@ -511,19 +1150,19 @@ struct SystemWideSharedConstant final {
     // Content is addressed by its hash. An additional discriminator can be added to account for differences
     // that are not present in the content, for example NUMA node allocation.
     SystemWideSharedConstant(const T& value, std::size_t discriminator = 0) noexcept {
-        std::size_t contentHash    = std::hash<T>{}(value);
+        std::size_t valueHash      = std::hash<T>{}(value);
         std::size_t executableHash = std::hash<std::string>{}(executable_path());
 
-        std::string shmName = "Local\\don_" + std::to_string(contentHash)  //
-                            + "$" + std::to_string(executableHash)         //
+        std::string shmName = "Local\\don_" + std::to_string(valueHash)  //
+                            + "$" + std::to_string(executableHash)       //
                             + "$" + std::to_string(discriminator);
 #if !defined(_WIN32)
         // POSIX shared memory names must start with a slash
         shmName = "/don_" + create_hash_string(shmName);
 
-        // hash name and make sure it is not longer than MAX_SEM_NAME_LEN
-        if (shmName.size() > MAX_SEM_NAME_LEN)
-            shmName = shmName.substr(0, MAX_SEM_NAME_LEN - 1);
+        // Hash name and make sure it is not longer than SHM_NAME_MAX_SIZE
+        if (shmName.size() > SHM_NAME_MAX_SIZE)
+            shmName = shmName.substr(0, SHM_NAME_MAX_SIZE - 1);
 #endif
 
         SharedMemoryBackend<T> shmBackend(shmName, value);
@@ -531,7 +1170,7 @@ struct SystemWideSharedConstant final {
         if (shmBackend.is_valid())
             backend = std::move(shmBackend);
         else
-            backend = SharedMemoryBackendFallback<T>(shmName, value);
+            backend = FallbackSharedMemoryBackend<T>(shmName, value);
     }
 
     SystemWideSharedConstant(const SystemWideSharedConstant&) noexcept            = delete;
@@ -549,7 +1188,6 @@ struct SystemWideSharedConstant final {
     }
 
     bool operator==(std::nullptr_t) const noexcept { return get_ptr() == nullptr; }
-
     bool operator!=(std::nullptr_t) const noexcept { return get_ptr() != nullptr; }
 
     SystemWideSharedConstantAllocationStatus get_status() const noexcept {
@@ -586,7 +1224,7 @@ struct SystemWideSharedConstant final {
           backend);
     }
 
-    std::variant<std::monostate, SharedMemoryBackend<T>, SharedMemoryBackendFallback<T>> backend;
+    std::variant<std::monostate, SharedMemoryBackend<T>, FallbackSharedMemoryBackend<T>> backend;
 };
 
 }  // namespace DON

@@ -625,13 +625,13 @@ inline bool Position::has_castling_rights(Color c, CastlingSide cs) const noexce
 // Checks if squares between king and rook are empty
 inline bool Position::castling_full_path_clear(Color c, CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
-    return (pieces_bb() & castlings.fullPathBB[c][cs]) == 0;
+    return (castlings.fullPathBB[c][cs] & pieces_bb()) == 0;
 }
 
 // Checks if the castling king path is attacked
 inline bool Position::castling_king_path_clear(Color c, CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
-    return (acc_attacks_bb<KING>() & castlings.kingPathBB[c][cs]) == 0;
+    return (castlings.kingPathBB[c][cs] & acc_attacks_bb<KING>()) == 0;
 }
 
 inline Square Position::castling_rook_sq(Color c, CastlingSide cs) const noexcept {

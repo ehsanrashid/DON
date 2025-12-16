@@ -555,10 +555,10 @@ std::size_t PolyBook::key_index(Key key) const noexcept {
     return entries.size();
 }
 
-PolyBook::EntryVector PolyBook::key_candidates(Key key) const noexcept {
+PolyBook::Entries PolyBook::key_candidates(Key key) const noexcept {
     std::size_t index = key_index(key);
 
-    EntryVector candidates;
+    Entries candidates;
 
     if (index >= entries.size())
         return candidates;
@@ -583,7 +583,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
     Key key = PGZob.key(pos);
 
-    EntryVector candidates = key_candidates(key);
+    Entries candidates = key_candidates(key);
 
     if (candidates.empty())
         return Move::None;
@@ -622,7 +622,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
         // clang-format on
     }
 
-    std::cerr << std::left << std::setfill(' ') << std::endl;
+    std::cerr << std::setfill(' ') << std::left << std::endl;
 #endif
 
     Move move, bestMove = Move::None;

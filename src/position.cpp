@@ -24,12 +24,10 @@
 #include <sstream>
 #include <utility>
 
-#include "history.h"
 #include "movegen.h"
 #include "prng.h"
 #include "search.h"
 #include "syzygy/tbbase.h"
-#include "tt.h"
 
 namespace DON {
 
@@ -85,14 +83,19 @@ class CuckooTable final {
 
     void insert(Cuckoo cuckoo) noexcept {
         assert(!cuckoo.empty());
+
         std::size_t index = H<0>(cuckoo.key);
+
         while (true)
         {
             std::swap(cuckoos[index], cuckoo);
+
             if (cuckoo.empty())  // Arrived at empty slot?
                 break;
+
             index ^= H<0>(cuckoo.key) ^ H<1>(cuckoo.key);  // Push victim to alternative slot
         }
+
         ++count;
     }
 
@@ -110,6 +113,7 @@ class CuckooTable final {
             {
                 if (pt == PAWN)
                     continue;
+
                 for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
                     for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
                         if (attacks_bb(s1, pt) & s2)
@@ -123,6 +127,7 @@ class CuckooTable final {
                             insert({key, move});
                         }
             }
+
         assert(count == 3668);
     }
 
@@ -131,6 +136,7 @@ class CuckooTable final {
             (index = H<0>(key), cuckoos[index].key == key)
             || (index = H<1>(key), cuckoos[index].key == key))
             return index;
+
         return size();
     }
 
@@ -467,6 +473,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 void Position::set(std::string_view code, Color c, State* const newSt) noexcept {
     assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string_view::npos);
     assert(is_ok(c));
+    assert(newSt != nullptr);
 
     StdArray<std::string, COLOR_NB> sides{
       std::string{code.substr(code.find('K', 1))},                // Weak
@@ -676,17 +683,17 @@ void Position::set_ext_state() noexcept {
     // clang-format on
 }
 
-// Check can do en-passant
+// Check en-passant possible
 template<bool After>
 bool Position::enpassant_possible(Color           ac,
                                   Square          enPassantSq,
                                   Bitboard* const _epPawnsBB) const noexcept {
     assert(is_ok(enPassantSq));
 
-    // En-passant attackers
     Bitboard epPawnsBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
     if (_epPawnsBB != nullptr)
         *_epPawnsBB = epPawnsBB;
+
     if (epPawnsBB == 0)
         return false;
 
@@ -695,6 +702,7 @@ bool Position::enpassant_possible(Color           ac,
         capturedSq = enPassantSq - pawn_spush(ac);
     else
         capturedSq = enPassantSq + pawn_spush(ac);
+
     assert((pieces_bb(~ac, PAWN) & capturedSq) != 0);
 
     Square kingSq = square<KING>(ac);
@@ -721,7 +729,7 @@ bool Position::enpassant_possible(Color           ac,
             }
 
             Bitboard kingFileBB = file_bb(kingSq);
-            // If there is no pawn on our king's file and thus both pawns are pinned by bishops.
+            // If there is no pawn on our king's file and thus both pawns are pinned by bishops
             if ((epPawnsBB & kingFileBB) == 0)
             {
                 if (_epPawnsBB != nullptr)
@@ -743,9 +751,9 @@ bool Position::enpassant_possible(Color           ac,
 
     while (epPawnsBB != 0)
     {
-        Square pawnSq = pop_lsq(epPawnsBB);
+        Square epPawnSq = pop_lsq(epPawnsBB);
 
-        if ((slide_attackers_bb(kingSq, occupancyBB ^ pawnSq) & attackersBB) == 0)
+        if ((slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq) & attackersBB) == 0)
         {
             epPossible = true;
 
@@ -755,7 +763,7 @@ bool Position::enpassant_possible(Color           ac,
         else
         {
             if (_epPawnsBB != nullptr)
-                *_epPawnsBB ^= pawnSq;
+                *_epPawnsBB ^= epPawnSq;
         }
     }
 
@@ -836,8 +844,6 @@ Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker
 
     auto movedPt = type_of(movedPc);
 
-    Key movedKey;
-
     DirtyBoard db;
 
     db.dp.movedPc        = movedPc;
@@ -859,6 +865,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker
         enPassantSq = SQ_NONE;
     }
 
+    Key  movedKey;
     bool capture;
 
     // If the move is a castling, do some special work
@@ -1023,17 +1030,13 @@ DO_MOVE_END:
         st->castlingRights &= ~cr;
         k ^= Zobrist::castling(castling_rights());
     }
-    // Speculative prefetch as early as possible
+
     if (worker != nullptr)
     {
         if (!is_ok(enPassantSq))
-            prefetch(worker->tt.cluster(k ^ Zobrist::mr50(rule50_count())));
-        prefetch(&worker->pawnCorrectionHistory[correction_index(pawn_key(WHITE))][0][0]);
-        prefetch(&worker->pawnCorrectionHistory[correction_index(pawn_key(BLACK))][0][0]);
-        prefetch(&worker->minorCorrectionHistory[correction_index(minor_key(WHITE))][0][0]);
-        prefetch(&worker->minorCorrectionHistory[correction_index(minor_key(BLACK))][0][0]);
-        prefetch(&worker->nonPawnCorrectionHistory[correction_index(non_pawn_key(WHITE))][0][0]);
-        prefetch(&worker->nonPawnCorrectionHistory[correction_index(non_pawn_key(BLACK))][0][0]);
+            worker->prefetch_tt(k ^ Zobrist::mr50(rule50_count()));
+
+        worker->prefetch_histories(*this);
     }
 
     ac = activeColor = ~ac;
@@ -1051,9 +1054,9 @@ DO_MOVE_END:
 
     // Set the key with the updated key
     st->key = k;
-    // Speculative prefetch as early as possible
+
     if (worker != nullptr)
-        prefetch(worker->tt.cluster(key()));
+        worker->prefetch_tt(key());
 
     // Calculate the repetition info.
     // It is the ply distance from the previous occurrence of the same position,
@@ -1183,9 +1186,9 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
     }
 
     st->key = k;
-    // Speculative prefetch as early as possible
+
     if (worker != nullptr)
-        prefetch(worker->tt.cluster(key()));
+        worker->prefetch_tt(key());
 
     activeColor = ~active_color();
 
@@ -1350,7 +1353,7 @@ bool Position::check(Move m) const noexcept {
     // the unusual case of a discovered check through the captured pawn.
     case EN_PASSANT : {
         Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
-        return slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac);
+        return (slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac)) != 0;
     }
     case CASTLING :
         // Castling is encoded as "king captures rook"
