@@ -295,7 +295,9 @@ struct Limit final {
 
     constexpr Limit() noexcept = default;
 
-    bool use_time_manager() const noexcept { return clocks[WHITE].time || clocks[BLACK].time; }
+    bool use_time_manager() const noexcept {
+        return clocks[WHITE].time != 0 || clocks[BLACK].time != 0;
+    }
 
     std::uint16_t calls_count() const noexcept {
         return nodes != 0 ? std::min(1 + int(std::ceil(nodes / 1024.0)), 512) : 512;
