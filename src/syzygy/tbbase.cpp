@@ -358,13 +358,11 @@ class TBFile: public std::ifstream {
 
     // Look for and open the file among the Paths directories
     // where the .rtbw and .rtbz files can be found.
-    static Strings Paths;
+    static inline Strings Paths;
 
    private:
     std::string filename;
 };
-
-Strings TBFile::Paths;
 
 // struct PairsData contains low-level indexing information to access TB data.
 // There are 8, 4, or 2 PairsData records for each TBTable, according to the type
@@ -1471,8 +1469,8 @@ void init() noexcept {
     }
 
     // A1D1D4Map[] encodes a square in the a1-d1-d4 triangle to 0..9
-    std::vector<Square> onDiagonal;
     code = 0;
+    std::vector<Square> onDiagonal;
     for (Square s = SQ_A1; s <= SQ_D4; ++s)
     {
         if (file_of(s) <= FILE_D)
@@ -1493,8 +1491,8 @@ void init() noexcept {
 
     // KKMap[] encodes all the 462 possible legal positions of 2 kings where the first is in the a1-d1-d4 triangle.
     // If the first king is on the a1-d4 diagonal, the other one shall not be above the a1-h8 diagonal.
-    std::vector<std::pair<int, Square>> bothOnDiagonal;
     code = 0;
+    std::vector<std::pair<int, Square>> bothOnDiagonal;
     for (std::size_t map = 0; map < KKMap.size(); ++map)
     {
         for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1)
@@ -1529,7 +1527,7 @@ void init() noexcept {
     // There are Binomial[k][n] ways to choose k elements from a set of n elements.
     for (std::size_t k = 0; k < Binomial.size(); ++k)
     {
-        for (std::size_t n = k; n < SQUARE_NB; ++n)
+        for (std::size_t n = k; n < Binomial[k].size(); ++n)
         {
             Binomial[k][n] = k == 0 || k == n  //
                              ? 1
