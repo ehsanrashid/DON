@@ -119,8 +119,8 @@ inline std::string executable_path() noexcept {
     }
 
 #elif defined(__FreeBSD__)
-    size_t size   = sizeof(executablePath);
-    int    mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
+    std::size_t size   = sizeof(executablePath);
+    int         mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
     if (sysctl(mib, 4, executablePath, &size, NULL, 0) == 0)
     {
         pathLength = std::strlen(executablePath);

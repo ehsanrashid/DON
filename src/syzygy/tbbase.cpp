@@ -1138,13 +1138,9 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     // See https://en.wikipedia.org/wiki/Huffman_coding
     // The canonical code is ordered such that longer symbols (in terms of
     // the number of bits of their Huffman code) have a lower numeric value,
-    // so that d->lowestSym[i] >= d->lowestSym[i+1] (when read as LittleEndian).
+    // so that pd->lowestSym[i] >= pd->lowestSym[i+1] (when read as LittleEndian).
     // Starting from this compute a base64[] table indexed by symbol length
-    // and containing 64 bit values so that d->base64[i] >= d->base64[i+1].
-
-    // Implementation note: first cast the unsigned size_t "base64.size()"
-    // to a signed int "base64_size" variable and then are able to subtract 2,
-    // avoiding unsigned overflow warnings.
+    // and containing 64 bit values so that pd->base64[i] >= pd->base64[i+1].
 
     std::size_t base64Size = pd->base64.size();
     for (std::size_t i = base64Size != 0 ? base64Size - 1 : 0; i-- > 0;)
@@ -1157,12 +1153,13 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
         assert(2 * pd->base64[i] >= pd->base64[i + 1]);
     }
 
-    // Now left-shift by an amount so that d->base64[i] gets shifted 1 bit more
-    // than d->base64[i+1] and given the above assert condition, ensure that
-    // d->base64[i] >= d->base64[i+1]. Moreover for any symbol s64 of length i
-    // and right-padded to 64 bits holds d->base64[i-1] >= s64 >= d->base64[i].
+    // Now left-shift by an amount so that pd->base64[i] gets shifted 1-bit more
+    // than pd->base64[i+1] and given the above assert condition.
+    // Ensure that pd->base64[i] >= pd->base64[i+1].
+    // Moreover for any symbol s64 of length i and right-padded to 64 bits holds
+    // pd->base64[i-1] >= s64 >= pd->base64[i].
     for (std::size_t i = 0; i < base64Size; ++i)
-        pd->base64[i] <<= 64 - i - pd->minSymLen;  // Right-padding to 64 bits
+        pd->base64[i] <<= 64 - i - pd->minSymLen;  // Right-padding to 64-bit
 
     data += base64Size * sizeof(Sym);
     pd->symLen.resize(number<std::uint16_t, Little>(data));

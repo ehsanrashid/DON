@@ -354,7 +354,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
     static void cleanup_all_instances() noexcept { internal::SharedMemoryRegistry::cleanup_all(); }
 
    private:
-    static constexpr size_t calculate_total_size() noexcept {
+    static constexpr std::size_t calculate_total_size() noexcept {
         return sizeof(T) + sizeof(internal::ShmHeader);
     }
 
