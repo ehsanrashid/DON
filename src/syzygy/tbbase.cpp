@@ -1523,13 +1523,13 @@ void init() noexcept {
 
     // Binomial[] stores the Binomial Coefficients using Pascal rule.
     // There are Binomial[k][n] ways to choose k elements from a set of n elements.
-    Binomial[0][0] = 1;
-    for (std::size_t n = 1; n < SQUARE_NB; ++n)  // Squares
+    for (std::size_t k = 0; k < Binomial.size(); ++k)
     {
-        for (std::size_t k = 0; k < std::min(n + 1, Binomial.size()); ++k)  // Pieces
+        for (std::size_t n = k; n < SQUARE_NB; ++n)
         {
-            Binomial[k][n] = (k > 0 ? Binomial[k - 1][n - 1] : 0)  //
-                           + (k < n ? Binomial[k][n - 1] : 0);
+            Binomial[k][n] = k == 0 || k == n  //
+                             ? 1
+                             : Binomial[k - 1][n - 1] + Binomial[k][n - 1];
         }
     }
 
