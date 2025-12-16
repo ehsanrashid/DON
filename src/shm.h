@@ -84,7 +84,7 @@
         #include <mach-o/dyld.h>
         #include <sys/syslimits.h>
         #define MAX_SEM_NAME_LEN 31
-    #elif defined(__NetBSD__) || defined(__DragonFly__) || defined(__linux__)
+    #elif defined(__linux__) || defined(__NetBSD__) || defined(__DragonFly__)
         #include <limits.h>
         #include <unistd.h>
         #define MAX_SEM_NAME_LEN NAME_MAX
@@ -146,6 +146,20 @@ inline std::string executable_path() noexcept {
     {
         executableLen = std::strlen(executablePath);
     }
+    #elif defined(__linux__)
+    ssize_t len = readlink("/proc/self/exe", executablePath, sizeof(executablePath) - 1);
+    if (len >= 0)
+    {
+        executablePath[len] = '\0';
+        executableLen       = len;
+    }
+    #elif defined(__NetBSD__) || defined(__DragonFly__)
+    ssize_t len = readlink("/proc/curproc/exe", executablePath, sizeof(executablePath) - 1);
+    if (len >= 0)
+    {
+        executablePath[len] = '\0';
+        executableLen       = len;
+    }
     #elif defined(__sun)  // Solaris
     const char* path = getexecname();
     if (path)
@@ -159,20 +173,6 @@ inline std::string executable_path() noexcept {
     if (sysctl(mib.data(), mib.size(), executablePath, &size, NULL, 0) == 0)
     {
         executableLen = std::strlen(executablePath);
-    }
-    #elif defined(__NetBSD__) || defined(__DragonFly__)
-    ssize_t len = readlink("/proc/curproc/exe", executablePath, sizeof(executablePath) - 1);
-    if (len >= 0)
-    {
-        executablePath[len] = '\0';
-        executableLen       = len;
-    }
-    #elif defined(__linux__)
-    ssize_t len = readlink("/proc/self/exe", executablePath, sizeof(executablePath) - 1);
-    if (len >= 0)
-    {
-        executablePath[len] = '\0';
-        executableLen       = len;
     }
     #endif
 #endif
