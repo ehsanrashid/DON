@@ -304,7 +304,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
 
         if (mutexLocked)
         {
-            if (shmHeader)
+            if (shmHeader != nullptr)
                 shmHeader->refCount.fetch_sub(1, std::memory_order_acq_rel);
             remove_sentinel_file();
             regionRemove = !has_other_live_sentinels_locked();
@@ -344,11 +344,12 @@ class SharedMemory final: public internal::BaseSharedMemory {
     [[nodiscard]] const T& operator*() const noexcept { return *dataPtr; }
 
     [[nodiscard]] uint32_t ref_count() const noexcept {
-        return shmHeader ? shmHeader->refCount.load(std::memory_order_acquire) : 0;
+        return shmHeader != nullptr ? shmHeader->refCount.load(std::memory_order_acquire) : 0;
     }
 
     [[nodiscard]] bool is_initialized() const noexcept {
-        return shmHeader ? shmHeader->initialized.load(std::memory_order_acquire) : false;
+        return shmHeader != nullptr ? shmHeader->initialized.load(std::memory_order_acquire)
+                                    : false;
     }
 
     static void cleanup_all_instances() noexcept { internal::SharedMemoryRegistry::cleanup_all(); }
@@ -428,7 +429,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
     }
 
     void decrement_refcount_relaxed() noexcept {
-        if (!shmHeader)
+        if (shmHeader == nullptr)
             return;
 
         std::uint32_t expected = shmHeader->refCount.load(std::memory_order_relaxed);
@@ -439,7 +440,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
     }
 
     bool create_sentinel_file_locked() noexcept {
-        if (!shmHeader)
+        if (shmHeader == nullptr)
             return false;
 
         pid_t selfPid = getpid();
@@ -477,7 +478,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
     }
 
     [[nodiscard]] bool initialize_shared_mutex() noexcept {
-        if (!shmHeader)
+        if (shmHeader == nullptr)
             return false;
 
         pthread_mutexattr_t attr;
@@ -497,7 +498,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
     }
 
     [[nodiscard]] bool lock_shared_mutex() noexcept {
-        if (!shmHeader)
+        if (shmHeader == nullptr)
             return false;
 
         while (true)
@@ -523,7 +524,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
     }
 
     void unlock_shared_mutex() noexcept {
-        if (shmHeader)
+        if (shmHeader != nullptr)
             pthread_mutex_unlock(&shmHeader->mutex);
     }
 
@@ -613,6 +614,9 @@ class SharedMemory final: public internal::BaseSharedMemory {
         dataPtr   = static_cast<T*>(mappedPtr);
         shmHeader = std::launder(
           reinterpret_cast<internal::ShmHeader*>(static_cast<char*>(mappedPtr) + sizeof(T)));
+
+        if (shmHeader == nullptr)
+            return false;
 
         if (!shmHeader->initialized.load(std::memory_order_acquire)
             || shmHeader->magic != internal::ShmHeader::SHM_MAGIC)
