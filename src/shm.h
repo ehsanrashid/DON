@@ -121,54 +121,50 @@ enum class SystemWideSharedConstantAllocationStatus {
 
 inline std::string executable_path() noexcept {
     char        executablePath[4096] = {0};
-    std::size_t pathLength           = 0;
+    std::size_t executableLen        = 0;
 
 #if defined(_WIN32)
-    pathLength = GetModuleFileName(nullptr, executablePath, sizeof(executablePath));
-
-#elif defined(__APPLE__)
+    executableLen = GetModuleFileName(nullptr, executablePath, sizeof(executablePath));
+#else
+    #if defined(__APPLE__)
     std::uint32_t size = sizeof(executablePath);
     if (_NSGetExecutablePath(executablePath, &size) == 0)
     {
-        pathLength = std::strlen(executablePath);
+        executableLen = std::strlen(executablePath);
     }
-
-#elif defined(__sun)  // Solaris
+    #elif defined(__sun)  // Solaris
     const char* path = getexecname();
     if (path)
     {
         std::strncpy(executablePath, path, sizeof(executablePath) - 1);
-        pathLength = std::strlen(executablePath);
+        executableLen = std::strlen(executablePath);
     }
-
-#elif defined(__FreeBSD__)
-    std::size_t size   = sizeof(executablePath);
-    int         mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
-    if (sysctl(mib, 4, executablePath, &size, NULL, 0) == 0)
+    #elif defined(__FreeBSD__)
+    std::size_t      size = sizeof(executablePath);
+    StdArray<int, 4> mib{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
+    if (sysctl(mib.data(), mib.size(), executablePath, &size, NULL, 0) == 0)
     {
-        pathLength = std::strlen(executablePath);
+        executableLen = std::strlen(executablePath);
     }
-
-#elif defined(__NetBSD__) || defined(__DragonFly__)
+    #elif defined(__NetBSD__) || defined(__DragonFly__)
     ssize_t len = readlink("/proc/curproc/exe", executablePath, sizeof(executablePath) - 1);
     if (len >= 0)
     {
         executablePath[len] = '\0';
-        pathLength          = len;
+        executableLen       = len;
     }
-
-#elif defined(__linux__)
+    #elif defined(__linux__)
     ssize_t len = readlink("/proc/self/exe", executablePath, sizeof(executablePath) - 1);
     if (len >= 0)
     {
         executablePath[len] = '\0';
-        pathLength          = len;
+        executableLen       = len;
     }
-
+    #endif
 #endif
 
     // In case of any error the path will be empty.
-    return std::string(executablePath, pathLength);
+    return std::string(executablePath, executableLen);
 }
 
 #if defined(_WIN32)
