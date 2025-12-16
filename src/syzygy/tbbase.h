@@ -41,6 +41,7 @@ enum WDLScore : std::int8_t {
     WDL_CURSED_WIN   = +1,  // Win, but draw under 50-move rule
     WDL_WIN          = +2,  // Win
 };
+
 constexpr WDLScore operator-(WDLScore wdlScore) noexcept { return WDLScore(-int(wdlScore)); }
 
 // Possible states after a probing operation
