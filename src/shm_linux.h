@@ -366,7 +366,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
         return str;
     }
 
-    static bool pid_is_alive(pid_t pid) noexcept {
+    static bool is_pid_alive(pid_t pid) noexcept {
         if (pid <= 0)
             return false;
 
@@ -548,7 +548,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
                 continue;
 
             pid_t pid = pid_t(value);
-            if (pid_is_alive(pid))
+            if (is_pid_alive(pid))
             {
                 found = true;
                 break;
