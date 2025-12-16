@@ -115,8 +115,8 @@ StdArray<std::size_t, SQUARE_NB>     A1D1D4Map;
 StdArray<std::size_t, 10, SQUARE_NB> KKMap;  // [A1D1D4Map][SQUARE_NB]
 
 StdArray<std::size_t, 6, SQUARE_NB>   Binomial;     // [k][n] k elements from a set of n elements
-StdArray<std::size_t, 6, SQUARE_NB>   LeadPawnIdx;  // [leadPawnCnt][SQUARE_NB]
-StdArray<std::size_t, 6, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE_A..FILE_D]
+StdArray<std::size_t, 6, SQUARE_NB>   LeadPawnIdx;  // [leadPawnSize][SQUARE_NB]
+StdArray<std::size_t, 6, FILE_NB / 2> LeadPawnSize; // [leadPawnSize][FILE_A..FILE_D]
 // clang-format on
 
 constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
@@ -407,9 +407,10 @@ struct TBTable final {
     static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
 
     std::atomic<bool> ready{false};
-    void*             mapAddress = nullptr;
-    std::uint8_t*     map;
-    std::uint64_t     mapping;
+
+    void*         mapAddress = nullptr;
+    std::uint8_t* map;
+    std::uint64_t mapping;
 
     StdArray<Key, COLOR_NB>                 key;
     std::uint8_t                            pieceCount;
@@ -815,8 +816,8 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
     std::size_t size = 0;
 
-    Bitboard    leadPawnsBB = 0;
-    std::size_t leadPawnCnt = 0;
+    Bitboard    leadPawnsBB  = 0;
+    std::size_t leadPawnSize = 0;
 
     File tbFile = FILE_A;
 
@@ -842,10 +843,10 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
             ++size;
         }
 
-        leadPawnCnt = size;
+        leadPawnSize = size;
 
         std::swap(squares[0],
-                  *std::max_element(squares.begin(), squares.begin() + leadPawnCnt, pawns_comp));
+                  *std::max_element(squares.begin(), squares.begin() + leadPawnSize, pawns_comp));
 
         tbFile = fold_to_edge(file_of(squares[0]));
     }
@@ -875,7 +876,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
     // Then reorder the pieces to have the same sequence as the one stored
     // in pieces[i]: the sequence that ensures the best compression.
-    for (std::size_t i = leadPawnCnt; i < size - 1; ++i)
+    for (std::size_t i = leadPawnSize; i < size - 1; ++i)
         for (std::size_t j = i + 1; j < size; ++j)
             if (pd->pieces[i] == pieces[j])
             {
@@ -895,11 +896,11 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // proceeding in ascending order.
     if (entry->hasPawns)
     {
-        idx = LeadPawnIdx[leadPawnCnt][squares[0]];
+        idx = LeadPawnIdx[leadPawnSize][squares[0]];
 
-        std::stable_sort(squares.begin() + 1, squares.begin() + leadPawnCnt, pawns_comp);
+        std::stable_sort(squares.begin() + 1, squares.begin() + leadPawnSize, pawns_comp);
 
-        for (std::size_t i = 1; i < leadPawnCnt; ++i)
+        for (std::size_t i = 1; i < leadPawnSize; ++i)
             idx += Binomial[i][PawnsMap[squares[i]]];
 
         goto ENCODE_END;  // With pawns have finished special treatments
@@ -1494,7 +1495,7 @@ void init() noexcept {
     code = 47;  // Available squares when lead pawn is in a2
     // Init the tables for the encoding of leading pawn group:
     // with 7-men TB can have up to 5 leading pawns (KPPPPPK).
-    for (std::size_t leadPawnCnt = 1; leadPawnCnt <= 5; ++leadPawnCnt)
+    for (std::size_t leadPawnSize = 1; leadPawnSize <= 5; ++leadPawnSize)
         for (File f = FILE_A; f <= FILE_D; ++f)
         {
             // Restart the index at every file because TB table is split
@@ -1512,16 +1513,18 @@ void init() noexcept {
                 // below or more toward the edge of sq. There are 47 available
                 // squares when sq = a2 and reduced by 2 for any rank increase
                 // due to mirroring: sq == a3 -> no a2, h2, so PawnsMap[a3] = 45
-                if (leadPawnCnt == 1)
+                if (leadPawnSize == 1)
                 {
                     PawnsMap[s]            = code--;
                     PawnsMap[flip_file(s)] = code--;
                 }
-                LeadPawnIdx[leadPawnCnt][s] = idx;
-                idx += Binomial[leadPawnCnt - 1][PawnsMap[s]];
+
+                LeadPawnIdx[leadPawnSize][s] = idx;
+                idx += Binomial[leadPawnSize - 1][PawnsMap[s]];
             }
+
             // After a file is traversed, store the cumulated per-file index
-            LeadPawnSize[leadPawnCnt][f] = idx;
+            LeadPawnSize[leadPawnSize][f] = idx;
         }
 }
 
