@@ -1709,7 +1709,9 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Active, bool
         pos.do_move(rm.pv[0], st);
 
         ProbeState ps = PS_OK;
-        int        dtzScore;
+
+        int dtzScore;
+
         // Calculate dtzScore for the current move counting from the root position
         if (pos.rule50_count() == 0)
         {
@@ -1731,7 +1733,7 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Active, bool
         }
 
         // Make sure that a mating move is assigned a dtzScore value of 1
-        if (dtzScore == 2 && pos.checkers_bb() && MoveList<LEGAL, true>(pos).empty())
+        if (dtzScore == 2 && pos.checkers_bb() != 0 && MoveList<LEGAL, true>(pos).empty())
             dtzScore = 1;
 
         pos.undo_move(rm.pv[0]);
