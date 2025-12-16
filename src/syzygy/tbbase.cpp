@@ -1665,7 +1665,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
         dtzScore = zeroing ? -before_zeroing_dtz(search<false>(pos, ps)) : -probe_dtz(pos, ps);
 
         // If the move mates, force min DTZ-score to 1
-        if (dtzScore == 1 && pos.checkers_bb() && MoveList<LEGAL, true>(pos).empty())
+        if (dtzScore == 1 && pos.checkers_bb() != 0 && MoveList<LEGAL, true>(pos).empty())
             minDtzScore = 1;
 
         // Convert result from 1-ply search. Zeroing moves are already accounted
