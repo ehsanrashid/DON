@@ -1072,7 +1072,9 @@ class SharedMemoryBackend final {
 
     bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
 
-    void* get() const noexcept { return is_valid() ? &shm->get() : nullptr; }
+    void* get() const noexcept {
+        return is_valid() ? reinterpret_cast<void*>(&shm->get()) : nullptr;
+    }
 
     SystemWideSharedConstantAllocationStatus get_status() const noexcept {
         return is_valid() ? SystemWideSharedConstantAllocationStatus::SharedMemory
