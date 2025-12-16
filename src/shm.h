@@ -134,7 +134,7 @@ inline std::string to_string(SystemWideSharedConstantAllocationStatus status) no
 }
 
 inline std::string executable_path() noexcept {
-    char        executablePath[4096] = {0};
+    char        executablePath[4096] = {'\0'};
     std::size_t executableSize       = 0;
 
 #if defined(_WIN32)
@@ -143,14 +143,13 @@ inline std::string executable_path() noexcept {
     executableSize = std::min(std::size_t(size), sizeof(executablePath) - 1);
 
     executablePath[executableSize] = '\0';
-#else
-    #if defined(__APPLE__)
+#elif defined(__APPLE__)
     std::uint32_t size = std::uint32_t(sizeof(executablePath));
     if (_NSGetExecutablePath(executablePath, &size) == 0)
     {
         executableSize = std::strlen(executablePath);
     }
-    #elif defined(__linux__)
+#elif defined(__linux__)
     ssize_t size = readlink("/proc/self/exe", executablePath, sizeof(executablePath) - 1);
     if (size >= 0)
     {
@@ -158,7 +157,7 @@ inline std::string executable_path() noexcept {
 
         executablePath[executableSize] = '\0';
     }
-    #elif defined(__NetBSD__) || defined(__DragonFly__)
+#elif defined(__NetBSD__) || defined(__DragonFly__)
     ssize_t size = readlink("/proc/curproc/exe", executablePath, sizeof(executablePath) - 1);
     if (size >= 0)
     {
@@ -166,7 +165,7 @@ inline std::string executable_path() noexcept {
 
         executablePath[executableSize] = '\0';
     }
-    #elif defined(__sun)  // Solaris
+#elif defined(__sun)  // Solaris
     const char* path = getexecname();
     if (path != nullptr)
     {
@@ -174,7 +173,7 @@ inline std::string executable_path() noexcept {
 
         executableSize = std::strlen(executablePath);
     }
-    #elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__)
     constexpr StdArray<int, 4> MIB{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
 
     std::size_t size = sizeof(executablePath);
@@ -184,10 +183,9 @@ inline std::string executable_path() noexcept {
 
         executablePath[executableSize] = '\0';
     }
-    #endif
 #endif
 
-    // In case of any error the path will be empty.
+    // In case of any error the path will be empty
     return std::string(executablePath, executableSize);
 }
 
