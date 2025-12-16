@@ -52,10 +52,10 @@ enum ProbeState : std::int8_t {
 };
 
 struct Config final {
-    bool         rootInTB     = false;
-    std::uint8_t cardinality  = 0;
-    Depth        probeDepth   = DEPTH_ZERO;
-    bool         rule50Active = false;
+    bool         rootInTB    = false;
+    std::uint8_t cardinality = 0;
+    Depth        probeDepth  = DEPTH_ZERO;
+    bool         useRule50   = false;
 };
 
 inline std::uint8_t MaxCardinality;
@@ -68,8 +68,8 @@ int      probe_dtz(Position& pos, ProbeState* ps) noexcept;
 
 // clang-format off
 
-bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool rule50Active, bool rankDTZ = false, TimeFunc time_to_abort = []() { return false; }) noexcept;
-bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool rule50Active) noexcept;
+bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ = false, TimeFunc time_to_abort = []() { return false; }) noexcept;
+bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept;
 
 Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool rankDTZ = false, TimeFunc time_to_abort = []() { return false; }) noexcept;
 

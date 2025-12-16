@@ -929,7 +929,7 @@ Value Worker::search(Position&    pos,
                 {
                     tbHits.fetch_add(1, std::memory_order_relaxed);
 
-                    auto drawValue = tbConfig.rule50Active ? 1 : 0;
+                    auto drawValue = tbConfig.useRule50 ? 1 : 0;
 
                     // Use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to value
                     value = wdlScore < -drawValue ? -VALUE_TB + ss->ply
@@ -2105,7 +2105,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     bool aborted = false;
 
-    bool rule50Active = options["Syzygy50MoveRule"];
+    bool useRule50 = options["Syzygy50MoveRule"];
 
     auto& rootMove = rootMoves[index];
 
@@ -2136,7 +2136,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime
-        if (tbCfg.rootInTB && rootPos.is_draw(ply, rule50Active))
+        if (tbCfg.rootInTB && rootPos.is_draw(ply, useRule50))
         {
             --ply;
             rootPos.undo_move(pvMove);
@@ -2154,7 +2154,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     // Step 2. Now extend the PV to mate, as if the user explores syzygy-tables.info using
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
-    while (!(rule50Active && rootPos.is_draw(0)))
+    while (!(useRule50 && rootPos.is_draw(0)))
     {
         if (aborted || (aborted = time_to_abort()))
             break;
