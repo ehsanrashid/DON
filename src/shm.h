@@ -1055,8 +1055,10 @@ template<typename T>
 [[nodiscard]] std::optional<SharedMemory<T>> create_shared(const std::string& name,
                                                            const T& initialValue) noexcept {
     SharedMemory<T> shm(name);
+
     if (shm.open(initialValue))
         return shm;
+
     return std::nullopt;
 }
 
@@ -1070,10 +1072,7 @@ class SharedMemoryBackend final {
 
     bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
 
-    void* get() const noexcept {
-        const T* ptr = &shm->get();
-        return reinterpret_cast<void*>(const_cast<T*>(ptr));
-    }
+    void* get() const noexcept { return is_valid() ? &shm->get() : nullptr; }
 
     SystemWideSharedConstantAllocationStatus get_status() const noexcept {
         return is_valid() ? SystemWideSharedConstantAllocationStatus::SharedMemory
