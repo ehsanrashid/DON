@@ -986,6 +986,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
         idx = KKMap[A1D1D4Map[squares[0]]][squares[1]];
 
 ENCODE_END:
+
     idx *= pd->groupIdx[0];
 
     Square* groupSq = squares.data() + pd->groupLen[0];
@@ -994,6 +995,7 @@ ENCODE_END:
     bool pawnsRemaining = entry->hasPawns && entry->pawnCount[BLACK];
 
     std::size_t next = 0;
+
     while (pd->groupLen[++next])
     {
         std::stable_sort(groupSq, groupSq + pd->groupLen[next]);
@@ -1003,13 +1005,16 @@ ENCODE_END:
         // groups (similar to what was done earlier for leading group pieces).
         for (std::int32_t i = 0; i < pd->groupLen[next]; ++i)
         {
-            auto adjust =
-              std::count_if(squares.data(), groupSq, [&](Square s) { return groupSq[i] > s; });
-            n += Binomial[i + 1][int(groupSq[i]) - adjust - 8 * pawnsRemaining];
+            auto adjust = std::count_if(squares.data(), groupSq,  //
+                                        [&](Square s) { return groupSq[i] > s; });
+
+            n += Binomial[i + 1][int(groupSq[i]) - adjust - (pawnsRemaining ? 8 : 0)];
         }
 
         pawnsRemaining = false;
+
         idx += n * pd->groupIdx[next];
+
         groupSq += pd->groupLen[next];
     }
 
@@ -1466,7 +1471,7 @@ void init() noexcept {
     }
 
     // A1D1D4Map[] encodes a square in the a1-d1-d4 triangle to 0..9
-    std::vector<Square> diagonal;
+    std::vector<Square> onDiagonal;
     code = 0;
     for (Square s = SQ_A1; s <= SQ_D4; ++s)
     {
@@ -1476,26 +1481,25 @@ void init() noexcept {
                 A1D1D4Map[s] = code++;
 
             else if (!off_A1H8(s))
-                diagonal.push_back(s);
+                onDiagonal.push_back(s);
         }
     }
 
     // Diagonal squares are encoded as last ones
-    for (Square s : diagonal)
+    for (Square s : onDiagonal)
     {
         A1D1D4Map[s] = code++;
     }
 
-    // KKMap[] encodes all the 462 possible legal positions of two kings where
-    // the first is in the a1-d1-d4 triangle. If the first king is on the a1-d4
-    // diagonal, the other one shall not be above the a1-h8 diagonal.
+    // KKMap[] encodes all the 462 possible legal positions of 2 kings where the first is in the a1-d1-d4 triangle.
+    // If the first king is on the a1-d4 diagonal, the other one shall not be above the a1-h8 diagonal.
     std::vector<std::pair<int, Square>> bothOnDiagonal;
     code = 0;
-    for (std::size_t idx = 0; idx < KKMap.size(); ++idx)
+    for (std::size_t map = 0; map < KKMap.size(); ++map)
     {
         for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1)
         {
-            if (A1D1D4Map[s1] == idx && (idx || s1 == SQ_B1))  // SQ_B1 is mapped to 0
+            if (A1D1D4Map[s1] == map && (map != 0 || s1 == SQ_B1))  // SQ_B1 is mapped to 0
             {
                 for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
                 {
@@ -1506,19 +1510,19 @@ void init() noexcept {
                         continue;  // First on diagonal, second above
 
                     else if (!off_A1H8(s1) && !off_A1H8(s2))
-                        bothOnDiagonal.emplace_back(idx, s2);
+                        bothOnDiagonal.emplace_back(map, s2);
 
                     else
-                        KKMap[idx][s2] = code++;
+                        KKMap[map][s2] = code++;
                 }
             }
         }
     }
 
     // Legal positions with both kings on a diagonal are encoded as last ones
-    for (const auto& [idx, s] : bothOnDiagonal)
+    for (const auto& [map, s] : bothOnDiagonal)
     {
-        KKMap[idx][s] = code++;
+        KKMap[map][s] = code++;
     }
 
     // Binomial[] stores the Binomial Coefficients using Pascal rule.
