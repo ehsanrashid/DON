@@ -335,7 +335,9 @@ class SharedMemory final: public internal::BaseSharedMemory {
 
     const std::string& name() const noexcept override { return _name; }
 
-    [[nodiscard]] bool is_open() const noexcept { return _fd != -1 && mappedPtr && dataPtr; }
+    [[nodiscard]] bool is_open() const noexcept {
+        return _fd != -1 && mappedPtr != nullptr && dataPtr != nullptr;
+    }
 
     [[nodiscard]] const T& get() const noexcept { return *dataPtr; }
 
@@ -386,13 +388,13 @@ class SharedMemory final: public internal::BaseSharedMemory {
     }
 
     void unmap_region() noexcept {
-        if (mappedPtr != nullptr)
-        {
-            munmap(mappedPtr, totalSize);
-            mappedPtr = nullptr;
-            dataPtr   = nullptr;
-            shmHeader = nullptr;
-        }
+        if (mappedPtr == nullptr)
+            return;
+
+        munmap(mappedPtr, totalSize);
+        mappedPtr = nullptr;
+        dataPtr   = nullptr;
+        shmHeader = nullptr;
     }
 
     [[nodiscard]] bool lock_file(int operation) noexcept {
@@ -470,11 +472,11 @@ class SharedMemory final: public internal::BaseSharedMemory {
     }
 
     void remove_sentinel_file() noexcept {
-        if (!sentinelPath.empty())
-        {
-            ::unlink(sentinelPath.c_str());
-            sentinelPath.clear();
-        }
+        if (sentinelPath.empty())
+            return;
+
+        ::unlink(sentinelPath.c_str());
+        sentinelPath.clear();
     }
 
     [[nodiscard]] bool initialize_shared_mutex() noexcept {
@@ -544,11 +546,11 @@ class SharedMemory final: public internal::BaseSharedMemory {
 
             auto  pidStr = name.substr(prefix.size());
             char* endPtr = nullptr;
-            long  value  = std::strtol(pidStr.c_str(), &endPtr, 10);
+            long  pidVal = std::strtol(pidStr.c_str(), &endPtr, 10);
             if (endPtr == nullptr || *endPtr != '\0')
                 continue;
 
-            pid_t pid = pid_t(value);
+            pid_t pid = pid_t(pidVal);
             if (is_pid_alive(pid))
             {
                 found = true;
@@ -575,6 +577,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
         if (mappedPtr == MAP_FAILED)
         {
             mappedPtr = nullptr;
+            perror("mmap");
             return false;
         }
 
@@ -608,6 +611,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
         if (mappedPtr == MAP_FAILED)
         {
             mappedPtr = nullptr;
+            perror("mmap");
             return false;
         }
 
