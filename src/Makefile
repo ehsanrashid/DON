@@ -60,7 +60,7 @@ SRCS := benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp \
     nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp syzygy/tbbase.cpp
 
 HEADERS := benchmark.h bitboard.h engine.h evaluate.h history.h memory.h misc.h movegen.h \
-    movepick.h numa.h perft.h polybook.h position.h prng.h search.h shm.h shm_linux.h \
+    movepick.h numa.h perft.h polybook.h position.h prng.h search.h shm.h \
     thread.h thread_win32_osx.h timeman.h tt.h tune.h types.h uci.h ucioption.h \
     nnue/features/full_threats.h nnue/features/half_ka_v2_hm.h \
     nnue/layers/affine_transform.h nnue/layers/affine_transform_sparse_input.h \
