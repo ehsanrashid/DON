@@ -453,8 +453,8 @@ class MainSearchManager final: public ISearchManager {
         OnUpdateMove  onUpdateMove;
     };
 
-    constexpr MainSearchManager() noexcept = delete;
-    explicit constexpr MainSearchManager(const UpdateContext& updateContext) noexcept :
+    MainSearchManager() noexcept = delete;
+    explicit MainSearchManager(const UpdateContext& updateContext) noexcept :
         updateCxt(updateContext) {}
 
     void init() noexcept;
@@ -468,23 +468,23 @@ class MainSearchManager final: public ISearchManager {
 
     const UpdateContext& updateCxt;
 
-    std::uint16_t callsCount{};
-    bool          ponder{};
-    bool          ponderhitStop{};
-    double        sumMoveChanges{};
-    double        timeReduction{};
-    Skill         skill{};
-    TimeManager   timeManager{};
+    std::uint16_t callsCount;
+    bool          ponder;
+    bool          ponderhitStop;
+    double        sumMoveChanges;
+    double        timeReduction;
+    Skill         skill;
+    TimeManager   timeManager;
 
-    bool   moveFirst{};
-    Value  preBestCurValue{};
-    Value  preBestAvgValue{};
-    double preTimeReduction{};
+    bool   moveFirst;
+    Value  preBestCurValue;
+    Value  preBestAvgValue;
+    double preTimeReduction;
 };
 
 class NullSearchManager final: public ISearchManager {
    public:
-    constexpr NullSearchManager() noexcept = default;
+    NullSearchManager() noexcept = default;
 
     void check_time(Worker&) noexcept override {}
 };
