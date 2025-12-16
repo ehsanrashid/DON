@@ -676,7 +676,7 @@ class FixedString final {
     FixedString() noexcept { clear(); }
 
     FixedString(const char* str) {
-        size_t strSize = std::strlen(str);
+        std::size_t strSize = std::strlen(str);
         if (strSize > capacity())
             std::terminate();
         std::memcpy(data(), str, strSize);
@@ -730,9 +730,12 @@ class FixedString final {
         null_terminate();
         return *this;
     }
-
+    FixedString& operator+=(const std::string& str) {
+        *this += str.data();
+        return *this;
+    }
     FixedString& operator+=(const FixedString& fixedStr) {
-        *this += fixedStr.c_str();
+        *this += fixedStr.data();
         return *this;
     }
 
