@@ -37,14 +37,10 @@
 #include <utility>
 #include <vector>
 
-// Support linux very well, but explicitly do NOT support Android,
-// because there is no affected systems, not worth maintaining.
-#if defined(__linux__) && !defined(__ANDROID__)
-    #if !defined(_GNU_SOURCE)
-        #define _GNU_SOURCE
-    #endif
-    #include <sched.h>
-#elif defined(_WIN64)
+// Explicitly don't support Android because there is no affected systems, not worth maintaining.
+#if defined(__ANDROID__)
+
+#elif defined(_WIN32)
     #if !defined(NOMINMAX)
         #define NOMINMAX  // Disable min()/max() macros
     #endif
@@ -64,6 +60,12 @@
     #if defined(small)
         #undef small
     #endif
+// Support linux very well
+#elif defined(__linux__)
+    #if !defined(_GNU_SOURCE)
+        #define _GNU_SOURCE
+    #endif
+    #include <sched.h>
 #endif
 
 #include "misc.h"
@@ -74,7 +76,7 @@ namespace DON {
 using CpuIndex  = std::size_t;
 using NumaIndex = std::size_t;
 
-#if defined(_WIN64)
+#if defined(_WIN32)
 // On Windows each processor group can have up to 64 processors.
 // https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
 inline constexpr std::size_t WIN_PROCESSOR_GROUP_SIZE = 64;
@@ -91,7 +93,7 @@ inline CpuIndex hardware_concurrency() noexcept {
     // Get all processors across all processor groups on windows, since
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
-#if defined(_WIN64)
+#if defined(_WIN32)
     concurrency = std::max<CpuIndex>(concurrency, GetActiveProcessorCount(ALL_PROCESSOR_GROUPS));
 #endif
 
@@ -100,7 +102,9 @@ inline CpuIndex hardware_concurrency() noexcept {
 
 inline const CpuIndex SYSTEM_THREADS_NB = std::max<CpuIndex>(hardware_concurrency(), 1);
 
-#if defined(_WIN64)
+#if defined(__ANDROID__)
+
+#elif defined(_WIN32)
 
 struct WindowsAffinity final {
     std::optional<std::set<CpuIndex>> get_combined() const {
@@ -354,9 +358,11 @@ inline WindowsAffinity get_process_affinity() noexcept {
     return winAffinity;
 }
 
-#endif
+inline static const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
+inline static const auto STARTUP_OLD_AFFINITY_API_USE =
+  STARTUP_PROCESSOR_AFFINITY.likely_used_old_api();
 
-#if defined(__linux__) && !defined(__ANDROID__)
+#elif defined(__linux__)
 
 inline std::set<CpuIndex> get_process_affinity() noexcept {
 
@@ -399,17 +405,7 @@ inline std::set<CpuIndex> get_process_affinity() noexcept {
     return cpus;
 }
 
-#endif
-
-#if defined(__linux__) && !defined(__ANDROID__)
-
 inline static const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
-
-#elif defined(_WIN64)
-
-inline static const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
-inline static const auto STARTUP_OLD_AFFINITY_API_USE =
-  STARTUP_PROCESSOR_AFFINITY.likely_used_old_api();
 
 #endif
 
@@ -452,67 +448,12 @@ class NumaConfig final {
     static NumaConfig from_system([[maybe_unused]] bool processAffinityRespect = true) noexcept {
         NumaConfig numaCfg = empty();
 
-#if defined(__linux__) && !defined(__ANDROID__)
+#if defined(__ANDROID__)
+        // Fallback for unsupported systems.
+        for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
+            numaCfg.add_cpu_to_node(NumaIndex{0}, cpuIdx);
 
-        std::set<CpuIndex> allowedCpus;
-
-        if (processAffinityRespect)
-            allowedCpus = STARTUP_PROCESSOR_AFFINITY;
-
-        auto is_cpu_allowed = [processAffinityRespect, &allowedCpus](CpuIndex cpuIdx) {
-            return !processAffinityRespect || allowedCpus.count(cpuIdx) == 1;
-        };
-
-        // On Linux things are straightforward, since there's no processor groups and
-        // any thread can be scheduled on all processors.
-        // Try to gather this information from the sysfs first
-        // https://www.kernel.org/doc/Documentation/ABI/stable/sysfs-devices-node
-
-        bool fallbackUse = false;
-        auto fallback    = [&]() {
-            fallbackUse = true;
-            numaCfg     = empty();
-        };
-
-        // /sys/devices/system/node/online contains information about active NUMA nodes
-        auto nodeIdxStr = read_file_to_string("/sys/devices/system/node/online");
-        if (!nodeIdxStr.has_value() || nodeIdxStr->empty())
-        {
-            fallback();
-        }
-        else
-        {
-            *nodeIdxStr = remove_whitespace(*nodeIdxStr);
-            for (CpuIndex n : shortened_string_to_indices(*nodeIdxStr))
-            {
-                // /sys/devices/system/node/node.../cpulist
-                std::string path =
-                  std::string("/sys/devices/system/node/node") + std::to_string(n) + "/cpulist";
-                auto cpuIdxStr = read_file_to_string(path);
-                // Now, only bail if the file does not exist. Some nodes may be
-                // empty, that's fine. An empty node still has a file that appears
-                // to have some whitespace, so need to handle that.
-                if (!cpuIdxStr.has_value())
-                {
-                    fallback();
-                    break;
-                }
-                else
-                {
-                    *cpuIdxStr = remove_whitespace(*cpuIdxStr);
-                    for (CpuIndex cpuIdx : shortened_string_to_indices(*cpuIdxStr))
-                        if (is_cpu_allowed(cpuIdx))
-                            numaCfg.add_cpu_to_node(n, cpuIdx);
-                }
-            }
-        }
-
-        if (fallbackUse)
-            for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
-                if (is_cpu_allowed(cpuIdx))
-                    numaCfg.add_cpu_to_node(NumaIndex{0}, cpuIdx);
-
-#elif defined(_WIN64)
+#elif defined(_WIN32)
 
         std::optional<std::set<CpuIndex>> allowedCpus;
 
@@ -593,11 +534,65 @@ class NumaConfig final {
             numaCfg = std::move(splitNumaCfg);
         }
 
-#else
+#elif defined(__linux__)
 
-        // Fallback for unsupported systems.
-        for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
-            numaCfg.add_cpu_to_node(NumaIndex{0}, cpuIdx);
+        std::set<CpuIndex> allowedCpus;
+
+        if (processAffinityRespect)
+            allowedCpus = STARTUP_PROCESSOR_AFFINITY;
+
+        auto is_cpu_allowed = [processAffinityRespect, &allowedCpus](CpuIndex cpuIdx) {
+            return !processAffinityRespect || allowedCpus.count(cpuIdx) == 1;
+        };
+
+        // On Linux things are straightforward, since there's no processor groups and
+        // any thread can be scheduled on all processors.
+        // Try to gather this information from the sysfs first
+        // https://www.kernel.org/doc/Documentation/ABI/stable/sysfs-devices-node
+
+        bool useFallback = false;
+        auto fallback    = [&]() {
+            useFallback = true;
+            numaCfg     = empty();
+        };
+
+        // /sys/devices/system/node/online contains information about active NUMA nodes
+        auto nodeIdxStr = read_file_to_string("/sys/devices/system/node/online");
+        if (!nodeIdxStr.has_value() || nodeIdxStr->empty())
+        {
+            fallback();
+        }
+        else
+        {
+            *nodeIdxStr = remove_whitespace(*nodeIdxStr);
+            for (CpuIndex n : shortened_string_to_indices(*nodeIdxStr))
+            {
+                // /sys/devices/system/node/node.../cpulist
+                std::string path =
+                  std::string("/sys/devices/system/node/node") + std::to_string(n) + "/cpulist";
+                auto cpuIdxStr = read_file_to_string(path);
+                // Now, only bail if the file does not exist. Some nodes may be
+                // empty, that's fine. An empty node still has a file that appears
+                // to have some whitespace, so need to handle that.
+                if (!cpuIdxStr.has_value())
+                {
+                    fallback();
+                    break;
+                }
+                else
+                {
+                    *cpuIdxStr = remove_whitespace(*cpuIdxStr);
+                    for (CpuIndex cpuIdx : shortened_string_to_indices(*cpuIdxStr))
+                        if (is_cpu_allowed(cpuIdx))
+                            numaCfg.add_cpu_to_node(n, cpuIdx);
+                }
+            }
+        }
+
+        if (useFallback)
+            for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
+                if (is_cpu_allowed(cpuIdx))
+                    numaCfg.add_cpu_to_node(NumaIndex{0}, cpuIdx);
 
 #endif
 
@@ -776,31 +771,9 @@ class NumaConfig final {
         if (numaIdx >= nodes_size() || node_cpus_size(numaIdx) == 0)
             std::exit(EXIT_FAILURE);
 
-#if defined(__linux__) && !defined(__ANDROID__)
+#if defined(__ANDROID__)
 
-        cpu_set_t* mask = CPU_ALLOC(maxCpuIndex + 1);
-        if (mask == nullptr)
-            std::exit(EXIT_FAILURE);
-
-        const std::size_t maskSize = CPU_ALLOC_SIZE(maxCpuIndex + 1);
-
-        CPU_ZERO_S(maskSize, mask);
-
-        for (CpuIndex cpuIdx : nodes[numaIdx])
-            CPU_SET_S(cpuIdx, maskSize, mask);
-
-        int status = sched_setaffinity(0, maskSize, mask);
-
-        CPU_FREE(mask);
-
-        if (status != 0)
-            std::exit(EXIT_FAILURE);
-
-        // Yield this thread just to be sure it gets rescheduled.
-        // This is defensive, allowed because this code is not performance critical.
-        sched_yield();
-
-#elif defined(_WIN64)
+#elif defined(_WIN32)
 
         // Requires Windows 11. No good way to set thread affinity spanning processor groups before that.
         HMODULE hK32Module = GetModuleHandle(TEXT("kernel32.dll"));
@@ -890,6 +863,30 @@ class NumaConfig final {
             // This is defensive, allowed because this code is not performance critical.
             SwitchToThread();
         }
+
+#elif defined(__linux__)
+
+        cpu_set_t* mask = CPU_ALLOC(maxCpuIndex + 1);
+        if (mask == nullptr)
+            std::exit(EXIT_FAILURE);
+
+        const std::size_t maskSize = CPU_ALLOC_SIZE(maxCpuIndex + 1);
+
+        CPU_ZERO_S(maskSize, mask);
+
+        for (CpuIndex cpuIdx : nodes[numaIdx])
+            CPU_SET_S(cpuIdx, maskSize, mask);
+
+        int status = sched_setaffinity(0, maskSize, mask);
+
+        CPU_FREE(mask);
+
+        if (status != 0)
+            std::exit(EXIT_FAILURE);
+
+        // Yield this thread just to be sure it gets rescheduled.
+        // This is defensive, allowed because this code is not performance critical.
+        sched_yield();
 
 #endif
 

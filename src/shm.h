@@ -33,7 +33,10 @@
 #include <utility>
 #include <variant>
 
-#if defined(_WIN32)
+#if defined(__ANDROID__)
+    #include <limits.h>
+    #define MAX_SEM_NAME_LEN NAME_MAX
+#elif defined(_WIN32)
     #if !defined(NOMINMAX)
         #define NOMINMAX  // Disable min()/max() macros
     #endif
@@ -77,10 +80,7 @@
     #include <unistd.h>
     #include <unordered_set>
 
-    #if defined(__ANDROID__)
-        #include <limits.h>
-        #define MAX_SEM_NAME_LEN NAME_MAX
-    #elif defined(__APPLE__)
+    #if defined(__APPLE__)
         #include <mach-o/dyld.h>
         #include <sys/syslimits.h>
         #define MAX_SEM_NAME_LEN 31
@@ -88,7 +88,7 @@
         #include <limits.h>
         #include <unistd.h>
         #define MAX_SEM_NAME_LEN NAME_MAX
-    #elif defined(__sun)
+    #elif defined(__sun)  // Solaris
         #include <stdlib.h>
         #define MAX_SEM_NAME_LEN 255
     #elif defined(__FreeBSD__)
@@ -118,6 +118,20 @@ enum class SystemWideSharedConstantAllocationStatus {
     LocalMemory,
     SharedMemory
 };
+
+inline std::string to_string(SystemWideSharedConstantAllocationStatus status) noexcept {
+    switch (status)
+    {
+    case SystemWideSharedConstantAllocationStatus::NoAllocation :
+        return "No allocation";
+    case SystemWideSharedConstantAllocationStatus::LocalMemory :
+        return "Local memory";
+    case SystemWideSharedConstantAllocationStatus::SharedMemory :
+        return "Shared memory";
+    default :
+        return "Unknown status";
+    }
+}
 
 inline std::string executable_path() noexcept {
     char        executablePath[4096] = {0};
@@ -167,7 +181,32 @@ inline std::string executable_path() noexcept {
     return std::string(executablePath, executableLen);
 }
 
-#if defined(_WIN32)
+#if defined(__ANDROID__)
+
+// For systems that don't have shared memory, or support is troublesome.
+// The way fallback is done is that need a dummy backend.
+template<typename T>
+class SharedMemoryBackend final {
+   public:
+    SharedMemoryBackend() = default;
+
+    SharedMemoryBackend([[maybe_unused]] const std::string& shmName,
+                        [[maybe_unused]] const T&           value) noexcept {}
+
+    void* get() const noexcept { return nullptr; }
+
+    bool is_valid() const noexcept { return false; }
+
+    SystemWideSharedConstantAllocationStatus get_status() const noexcept {
+        return SystemWideSharedConstantAllocationStatus::NoAllocation;
+    }
+
+    std::optional<std::string> get_error_message() const noexcept {
+        return "Dummy Shared Memory Backend";
+    }
+};
+
+#elif defined(_WIN32)
 
 // Get the error message string, if any
 inline std::string error_to_string(DWORD errorId) noexcept {
@@ -409,8 +448,6 @@ class SharedMemoryBackend final {
 
 #else
 
-    #if !defined(__ANDROID__)
-
 namespace internal {
 
 struct ShmHeader final {
@@ -485,7 +522,7 @@ class CleanupHooks final {
 };
 
 inline int portable_fallocate(int fd, off_t offset, off_t length) noexcept {
-        #if defined(__APPLE__)
+    #if defined(__APPLE__)
     fstore_t store = {F_ALLOCATECONTIG, F_PEOFPOSMODE, offset, length, 0};
     int      rc    = fcntl(fd, F_PREALLOCATE, &store);
     if (rc == -1)
@@ -496,9 +533,9 @@ inline int portable_fallocate(int fd, off_t offset, off_t length) noexcept {
     if (rc != -1)
         rc = ftruncate(fd, offset + length);
     return rc;
-        #else
+    #else
     return posix_fallocate(fd, offset, length);
-        #endif
+    #endif
 }
 
 }  // namespace internal
@@ -848,10 +885,10 @@ class SharedMemory final: public internal::BaseSharedMemory {
             return false;
 
         int rc = pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
-        #if defined(PTHREAD_MUTEX_ROBUST)
+    #if defined(PTHREAD_MUTEX_ROBUST)
         if (rc == 0)
             rc = pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
-        #endif
+    #endif
         if (rc == 0)
             rc = pthread_mutex_init(&shmHeader->mutex, &attr);
 
@@ -869,14 +906,14 @@ class SharedMemory final: public internal::BaseSharedMemory {
             if (rc == 0)
                 return true;
 
-        #if defined(PTHREAD_MUTEX_ROBUST)
+    #if defined(PTHREAD_MUTEX_ROBUST)
             if (rc == EOWNERDEAD)
             {
                 if (pthread_mutex_consistent(&shmHeader->mutex) == 0)
                     return true;
                 return false;
             }
-        #endif
+    #endif
 
             if (rc == EINTR)
                 continue;
@@ -1049,33 +1086,6 @@ class SharedMemoryBackend final {
    private:
     std::optional<SharedMemory<T>> shm;
 };
-
-    #else
-
-// For systems that don't have shared memory, or support is troublesome.
-// The way fallback is done is that need a dummy backend.
-template<typename T>
-class SharedMemoryBackend final {
-   public:
-    SharedMemoryBackend() = default;
-
-    SharedMemoryBackend([[maybe_unused]] const std::string& shmName,
-                        [[maybe_unused]] const T&           value) noexcept {}
-
-    void* get() const noexcept { return nullptr; }
-
-    bool is_valid() const noexcept { return false; }
-
-    SystemWideSharedConstantAllocationStatus get_status() const noexcept {
-        return SystemWideSharedConstantAllocationStatus::NoAllocation;
-    }
-
-    std::optional<std::string> get_error_message() const noexcept {
-        return "Dummy SharedMemoryBackend";
-    }
-};
-
-    #endif
 
 #endif
 
