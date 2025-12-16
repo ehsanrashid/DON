@@ -248,13 +248,13 @@ class SharedMemoryBackend final {
    public:
     enum class Status {
         Success,
-        LargePageAllocationError,
+        NotInitialized,
         FileMappingError,
         MapViewError,
         MutexCreateError,
         MutexWaitError,
         MutexReleaseError,
-        NotInitialized
+        LargePageAllocationError,
     };
 
     static constexpr DWORD IS_INITIALIZED_VALUE = 1;
@@ -313,8 +313,8 @@ class SharedMemoryBackend final {
         {
         case Status::Success :
             return std::nullopt;
-        case Status::LargePageAllocationError :
-            return "Failed to allocate large page memory";
+        case Status::NotInitialized :
+            return "Not initialized";
         case Status::FileMappingError :
             return "Failed to create file mapping: " + lastErrorStr;
         case Status::MapViewError :
@@ -325,8 +325,8 @@ class SharedMemoryBackend final {
             return "Failed to wait on mutex: " + lastErrorStr;
         case Status::MutexReleaseError :
             return "Failed to release mutex: " + lastErrorStr;
-        case Status::NotInitialized :
-            return "Not initialized";
+        case Status::LargePageAllocationError :
+            return "Failed to allocate large page memory";
         default :
             return "Unknown error";
         }
@@ -349,16 +349,17 @@ class SharedMemoryBackend final {
               DWORD loTotalSize = roundedTotalSize;
     #endif
 
-              return CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
+              return CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,
                                        PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,  //
                                        hiTotalSize, loTotalSize, shmName.c_str());
           },
           []() { return (void*) nullptr; });
 
-        // Fallback to normal allocation if no large pages available.
+        // Fallback to normal allocation if no large pages available
         if (hMapFile == nullptr)
-            hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0,  //
-                                         totalSize, shmName.c_str());
+            hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,  //
+                                         PAGE_READWRITE,                 //
+                                         0, totalSize, shmName.c_str());
 
         if (hMapFile == nullptr)
         {
@@ -368,6 +369,7 @@ class SharedMemoryBackend final {
         }
 
         pMapAddr = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, totalSize);
+
         if (pMapAddr == nullptr)
         {
             status       = Status::MapViewError;
@@ -378,7 +380,9 @@ class SharedMemoryBackend final {
 
         // Use named mutex to ensure only one initializer
         std::string mutexName = shmName + "$mutex";
-        HANDLE      hMutex    = CreateMutex(NULL, FALSE, mutexName.c_str());
+
+        HANDLE hMutex = CreateMutex(nullptr, FALSE, mutexName.c_str());
+
         if (hMutex == nullptr)
         {
             status       = Status::MutexCreateError;
@@ -396,9 +400,10 @@ class SharedMemoryBackend final {
             return;
         }
 
-        // Crucially, place the object first to ensure alignment.
+        // Crucially, place the object first to ensure alignment
         volatile DWORD* isInitialized =
           std::launder(reinterpret_cast<DWORD*>(reinterpret_cast<char*>(pMapAddr) + sizeof(T)));
+
         T* object = std::launder(reinterpret_cast<T*>(pMapAddr));
 
         if (*isInitialized != IS_INITIALIZED_VALUE)
