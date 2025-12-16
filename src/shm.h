@@ -193,9 +193,9 @@ class SharedMemoryBackend final {
     SharedMemoryBackend([[maybe_unused]] const std::string& shmName,
                         [[maybe_unused]] const T&           value) noexcept {}
 
-    void* get() const noexcept { return nullptr; }
-
     bool is_valid() const noexcept { return false; }
+
+    void* get() const noexcept { return nullptr; }
 
     SystemWideSharedConstantAllocationStatus get_status() const noexcept {
         return SystemWideSharedConstantAllocationStatus::NoAllocation;
@@ -262,30 +262,6 @@ class SharedMemoryBackend final {
 
     bool is_valid() const noexcept { return status == Status::Success; }
 
-    std::optional<std::string> get_error_message() const noexcept {
-        switch (status)
-        {
-        case Status::Success :
-            return std::nullopt;
-        case Status::LargePageAllocationError :
-            return "Failed to allocate large page memory";
-        case Status::FileMappingError :
-            return "Failed to create file mapping: " + lastErrorStr;
-        case Status::MapViewError :
-            return "Failed to map view: " + lastErrorStr;
-        case Status::MutexCreateError :
-            return "Failed to create mutex: " + lastErrorStr;
-        case Status::MutexWaitError :
-            return "Failed to wait on mutex: " + lastErrorStr;
-        case Status::MutexReleaseError :
-            return "Failed to release mutex: " + lastErrorStr;
-        case Status::NotInitialized :
-            return "Not initialized";
-        default :
-            return "Unknown error";
-        }
-    }
-
     void* get() const noexcept { return is_valid() ? pMapAddr : nullptr; }
 
     ~SharedMemoryBackend() noexcept { cleanup(); }
@@ -322,6 +298,30 @@ class SharedMemoryBackend final {
     SystemWideSharedConstantAllocationStatus get_status() const noexcept {
         return status == Status::Success ? SystemWideSharedConstantAllocationStatus::SharedMemory
                                          : SystemWideSharedConstantAllocationStatus::NoAllocation;
+    }
+
+    std::optional<std::string> get_error_message() const noexcept {
+        switch (status)
+        {
+        case Status::Success :
+            return std::nullopt;
+        case Status::LargePageAllocationError :
+            return "Failed to allocate large page memory";
+        case Status::FileMappingError :
+            return "Failed to create file mapping: " + lastErrorStr;
+        case Status::MapViewError :
+            return "Failed to map view: " + lastErrorStr;
+        case Status::MutexCreateError :
+            return "Failed to create mutex: " + lastErrorStr;
+        case Status::MutexWaitError :
+            return "Failed to wait on mutex: " + lastErrorStr;
+        case Status::MutexReleaseError :
+            return "Failed to release mutex: " + lastErrorStr;
+        case Status::NotInitialized :
+            return "Not initialized";
+        default :
+            return "Unknown error";
+        }
     }
 
    private:
@@ -1058,12 +1058,12 @@ class SharedMemoryBackend final {
     SharedMemoryBackend(const std::string& shmName, const T& value) noexcept :
         shm(create_shared<T>(shmName, value)) {}
 
+    bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
+
     void* get() const noexcept {
         const T* ptr = &shm->get();
         return reinterpret_cast<void*>(const_cast<T*>(ptr));
     }
-
-    bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
 
     SystemWideSharedConstantAllocationStatus get_status() const noexcept {
         return is_valid() ? SystemWideSharedConstantAllocationStatus::SharedMemory
