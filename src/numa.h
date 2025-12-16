@@ -76,7 +76,7 @@ namespace DON {
 using CpuIndex  = std::size_t;
 using NumaIndex = std::size_t;
 
-#if defined(_WIN32)
+#if defined(_WIN64)
 // On Windows each processor group can have up to 64 processors.
 // https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
 inline constexpr std::size_t WIN_PROCESSOR_GROUP_SIZE = 64;
@@ -93,7 +93,7 @@ inline CpuIndex hardware_concurrency() noexcept {
     // Get all processors across all processor groups on windows, since
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
-#if defined(_WIN32)
+#if defined(_WIN64)
     concurrency = std::max<CpuIndex>(concurrency, GetActiveProcessorCount(ALL_PROCESSOR_GROUPS));
 #endif
 
@@ -104,7 +104,7 @@ inline const CpuIndex SYSTEM_THREADS_NB = std::max<CpuIndex>(hardware_concurrenc
 
 #if defined(__ANDROID__)
 
-#elif defined(_WIN32)
+#elif defined(_WIN64)
 
 struct WindowsAffinity final {
     std::optional<std::set<CpuIndex>> get_combined() const {
@@ -449,11 +449,12 @@ class NumaConfig final {
         NumaConfig numaCfg = empty();
 
 #if defined(__ANDROID__)
-        // Fallback for unsupported systems.
+
+        // Fallback for unsupported systems
         for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
             numaCfg.add_cpu_to_node(NumaIndex{0}, cpuIdx);
 
-#elif defined(_WIN32)
+#elif defined(_WIN64)
 
         std::optional<std::set<CpuIndex>> allowedCpus;
 
@@ -593,6 +594,12 @@ class NumaConfig final {
             for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
                 if (is_cpu_allowed(cpuIdx))
                     numaCfg.add_cpu_to_node(NumaIndex{0}, cpuIdx);
+
+#else
+
+        // Fallback for unsupported systems
+        for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
+            numaCfg.add_cpu_to_node(NumaIndex{0}, cpuIdx);
 
 #endif
 
@@ -773,7 +780,7 @@ class NumaConfig final {
 
 #if defined(__ANDROID__)
 
-#elif defined(_WIN32)
+#elif defined(_WIN64)
 
         // Requires Windows 11. No good way to set thread affinity spanning processor groups before that.
         HMODULE hK32Module = GetModuleHandle(TEXT("kernel32.dll"));
