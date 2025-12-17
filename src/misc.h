@@ -376,7 +376,7 @@ class MultiArray {
     void fill(const U& v) noexcept {
         static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
 
-        for (auto& element : *this)
+        for (auto& element : _data)
         {
             if constexpr (sizeof...(Sizes) == 0)
                 element = v;
@@ -423,14 +423,14 @@ class MultiArray {
         return _data;
     }
 
-    constexpr void swap(MultiArray<T, Size, Sizes...>& multiArr) noexcept {
-        _data.swap(multiArr._data);
-    }
-
-    constexpr MultiArray& operator=(const StdArray<T, Size, Sizes...>& stdArr) {
+    constexpr MultiArray& operator=(const StdArray<T, Size, Sizes...>& stdArr) noexcept {
         for (std::size_t i = 0; i < Size; ++i)
             _data[i] = stdArr[i];
         return *this;
+    }
+
+    constexpr void swap(MultiArray<T, Size, Sizes...>& multiArr) noexcept {
+        _data.swap(multiArr._data);
     }
 
    private:
