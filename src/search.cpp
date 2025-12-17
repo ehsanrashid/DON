@@ -52,7 +52,7 @@ StdArray<std::int16_t, MAX_MOVES> Reductions{};  // [depth or moveCount]
 constexpr int
 reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
-    return 1182 + reductionScale - deltaRatio + !improve * int(0.4648 * reductionScale);
+    return 1182 + reductionScale - deltaRatio + (improve ? 0 : int(0.4648 * reductionScale));
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
@@ -1001,7 +1001,7 @@ Value Worker::search(Position&    pos,
             Value futilityMult = 53 + 23 * cond;
 
             return depth * futilityMult
-                 - int(((2.4160 * improve) + (0.3232 * worsen)) * futilityMult)
+                 - int(((improve ? 2.4160 : 0.0) + (worsen ? 0.3232 : 0.0)) * futilityMult)
                  + int(5.7252e-6 * absCorrectionValue);
         };
 
@@ -1065,7 +1065,7 @@ Value Worker::search(Position&    pos,
     if (depth > 2 && !is_decisive(beta))
     {
         // clang-format off
-        Value probCutBeta = std::min(235 + beta - 63 * improve, +VALUE_INFINITE);
+        Value probCutBeta = std::min(235 + beta - (improve ? 63 : 0), +VALUE_INFINITE);
         assert(beta < probCutBeta && probCutBeta <= +VALUE_INFINITE);
 
         // If value from transposition table is less than probCutBeta, don't attempt probCut
@@ -1199,7 +1199,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (!RootNode && hasNonPawn && !is_loss(bestValue))
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
-            mp.quietAllowed &= moveCount < (3 + depth * depth) >> !improve;
+            mp.quietAllowed &= moveCount < ((3 + depth * depth) >> (improve ? 0 : 1));
 
             // Reduced depth of the next LMR search
             Depth lmrDepth = newDepth - r / 1024;
