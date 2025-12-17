@@ -199,17 +199,18 @@ void Worker::init() noexcept {
     captureHistory.fill(-689);
     quietHistory.fill(68);
     pawnHistory.fill(-1238);
+    ttMoveHistory = 0;
+
     for (bool inCheck : {false, true})
         for (bool capture : {false, true})
             for (auto& toPieceSqHist : continuationHistory[inCheck][capture])
                 for (auto& pieceSqHist : toPieceSqHist)
                     pieceSqHist.fill(-529);
 
-    ttMoveHistory = 0;
-
     pawnCorrectionHistory.fill(5);
     minorCorrectionHistory.fill(0);
     nonPawnCorrectionHistory.fill(0);
+
     for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(8);

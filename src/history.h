@@ -86,10 +86,10 @@ enum HistoryType : std::uint8_t {
     HCapture,       // By move's [piece][dstSq][captured piece type]
     HQuiet,         // By color and move's orgSq and dstSq squares
     HPawn,          // By pawn structure and a move's [piece][dstSq]
+    HLowPlyQuiet,   // By ply and move's orgSq and dstSq squares
+    HTTMove,        //
     HPieceSq,       // By move's [piece][dstSq]
     HContinuation,  // By combination of pair of moves
-    HLowPlyQuiet,   // By ply and move's orgSq and dstSq squares
-    HTTMove,
 };
 
 namespace internal {
@@ -117,16 +117,6 @@ struct HistoryDef<HPawn> final {
     using Type = StatsContainer<8192, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
 };
 
-template<>
-struct HistoryDef<HPieceSq> final {
-    using Type = StatsContainer<30000, PIECE_NB, SQUARE_NB>;
-};
-
-template<>
-struct HistoryDef<HContinuation> final {
-    using Type = MultiArray<HistoryDef<HPieceSq>::Type, PIECE_NB, SQUARE_NB>;
-};
-
 // It is used to improve quiet move ordering near the root.
 template<>
 struct HistoryDef<HLowPlyQuiet> final {
@@ -136,6 +126,16 @@ struct HistoryDef<HLowPlyQuiet> final {
 template<>
 struct HistoryDef<HTTMove> final {
     using Type = StatsEntry<std::int16_t, 8192>;
+};
+
+template<>
+struct HistoryDef<HPieceSq> final {
+    using Type = StatsContainer<30000, PIECE_NB, SQUARE_NB>;
+};
+
+template<>
+struct HistoryDef<HContinuation> final {
+    using Type = MultiArray<HistoryDef<HPieceSq>::Type, PIECE_NB, SQUARE_NB>;
 };
 }  // namespace internal
 
@@ -150,8 +150,8 @@ using History = typename internal::HistoryDef<T>::Type;
 enum CorrectionHistoryType : std::uint8_t {
     CHPawn,          // By color and pawn structure
     CHMinor,         // By color and minor piece (Knight, Bishop) structure
-    CHNonPawn,       // By color and non-pawn structure
-    CHPieceSq,       // By move's [piece][sq]
+    CHNonPawn,       // By color and non-pawn piece structure
+    CHPieceSq,       // By move's [piece][dstSq]
     CHContinuation,  // By combination of pair of moves
 };
 

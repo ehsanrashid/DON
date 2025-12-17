@@ -616,10 +616,9 @@ class Worker final {
     History<HQuiet>       quietHistory;
     History<HPawn>        pawnHistory;
     History<HLowPlyQuiet> lowPlyQuietHistory;
+    History<HTTMove>      ttMoveHistory;
 
     StdArray<History<HContinuation>, 2, 2> continuationHistory;  // [inCheck][capture]
-
-    History<HTTMove> ttMoveHistory;
 
     // Correction History
     CorrectionHistory<CHPawn>         pawnCorrectionHistory;
