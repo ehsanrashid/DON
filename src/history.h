@@ -66,9 +66,9 @@ inline constexpr std::uint16_t LOW_PLY_SIZE = 5;
 
 inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 
-inline constexpr std::size_t UINT_16_HISTORY_SIZE = 0x10000;
-static_assert((UINT_16_HISTORY_SIZE & (UINT_16_HISTORY_SIZE - 1)) == 0,
-              "UINT_16_HISTORY_SIZE has to be a power of 2");
+inline constexpr std::size_t UINT16_HISTORY_SIZE = 0x10000;
+static_assert((UINT16_HISTORY_SIZE & (UINT16_HISTORY_SIZE - 1)) == 0,
+              "UINT16_HISTORY_SIZE has to be a power of 2");
 
 inline constexpr std::size_t PAWN_HISTORY_SIZE = 0x4000;
 static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
@@ -109,7 +109,7 @@ struct HistoryDef<HCapture> final {
 // see https://www.chessprogramming.org/Butterfly_Boards
 template<>
 struct HistoryDef<HQuiet> final {
-    using Type = StatsContainer<7183, COLOR_NB, UINT_16_HISTORY_SIZE>;
+    using Type = StatsContainer<7183, COLOR_NB, UINT16_HISTORY_SIZE>;
 };
 
 template<>
@@ -130,7 +130,7 @@ struct HistoryDef<HContinuation> final {
 // It is used to improve quiet move ordering near the root.
 template<>
 struct HistoryDef<HLowPlyQuiet> final {
-    using Type = StatsContainer<7183, LOW_PLY_SIZE, UINT_16_HISTORY_SIZE>;
+    using Type = StatsContainer<7183, LOW_PLY_SIZE, UINT16_HISTORY_SIZE>;
 };
 
 template<>
@@ -164,17 +164,17 @@ struct CorrectionHistoryDef;
 
 template<>
 struct CorrectionHistoryDef<CHPawn> final {
-    using Type = CorrectionStatsContainer<UINT_16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsContainer<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryDef<CHMinor> final {
-    using Type = CorrectionStatsContainer<UINT_16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsContainer<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryDef<CHNonPawn> final {
-    using Type = CorrectionStatsContainer<UINT_16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsContainer<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
