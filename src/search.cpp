@@ -472,6 +472,7 @@ void Worker::iterative_deepening() noexcept {
             // Reset aspiration window starting size
             int delta = 5 + std::min(int(threads.size()) - 1, 8)  //
                       + int(1.1111e-4 * std ::abs(avgSqrValue));
+
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
 
@@ -486,6 +487,7 @@ void Worker::iterative_deepening() noexcept {
             {
                 rootDelta = beta - alpha;
                 assert(rootDelta > 0);
+
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
                 Depth adjustedDepth = rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4;
@@ -522,6 +524,7 @@ void Worker::iterative_deepening() noexcept {
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;
+
                     if (mainManager != nullptr)
                         mainManager->ponderhitStop = false;
                 }
@@ -611,6 +614,7 @@ void Worker::iterative_deepening() noexcept {
             {
                 mainManager->sumMoveChanges +=
                   th->worker->moveChanges.load(std::memory_order_relaxed);
+
                 th->worker->moveChanges.store(0, std::memory_order_relaxed);
             }
 
@@ -620,8 +624,8 @@ void Worker::iterative_deepening() noexcept {
             auto inconsistencyFactor = std::clamp(0.11850
                                                 + 0.02240 * (mainManager->preBestAvgValue - bestValue)
                                                 + 0.00930 * (mainManager->preBestCurValue - bestValue),
-                                           0.9999 - 0.4299 * !mainManager->moveFirst,
-                                           1.0001 + 0.6999 * !mainManager->moveFirst);
+                                                   0.9999 - (mainManager->moveFirst ? 0.0 : 0.4299),
+                                                   1.0001 + (mainManager->moveFirst ? 0.0 : 0.6999));
 
             // Compute stable depth (difference between the current search depth and the last best depth)
             Depth stableDepth = completedDepth - lastBestDepth;
@@ -658,6 +662,7 @@ void Worker::iterative_deepening() noexcept {
             if (rootMoves.size() == 1)
             {
                 totalTime *= 0.5500;
+
                 if (totalTime > 502)
                     totalTime = 502;
             }

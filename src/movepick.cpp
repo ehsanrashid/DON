@@ -52,9 +52,9 @@ MovePicker::MovePicker(const Position&                 p,
     threshold(th) {
     assert(ttMove == Move::None || pos.legal(ttMove));
 
-    stage = pos.checkers_bb() != 0 ? STG_EVA_TT + int(!(ttMove != Move::None))
-          : threshold < 0          ? STG_ENC_TT + int(!(ttMove != Move::None))
-                          : STG_QS_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
+    stage = pos.checkers_bb() != 0 ? STG_EVA_TT + (ttMove != Move::None ? 0 : 1)
+          : threshold < 0          ? STG_ENC_TT + (ttMove != Move::None ? 0 : 1)
+                          : STG_QS_TT + (ttMove != Move::None && pos.capture_promo(ttMove) ? 0 : 1);
 }
 
 // MovePicker constructor for ProbCut:
@@ -70,7 +70,7 @@ MovePicker::MovePicker(const Position&           p,
     assert(pos.checkers_bb() == 0);
     assert(ttMove == Move::None || pos.legal(ttMove));
 
-    stage = STG_PROBCUT_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
+    stage = STG_PROBCUT_TT + (ttMove != Move::None && pos.capture_promo(ttMove) ? 0 : 1);
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -81,6 +81,7 @@ template<>
 MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveList) noexcept {
 
     iterator itr = cur;
+
     for (auto move : moveList)
     {
         auto& m = *itr++;
@@ -95,6 +96,7 @@ MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveL
         m.value = 7 * piece_value(capturedPt)  //
                 + (*captureHistory)[movedPc][dstSq][capturedPt];
     }
+
     return itr;
 }
 
@@ -111,6 +113,7 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
     std::uint16_t pawnIndex = pawn_index(pos.pawn_key());
 
     iterator itr = cur;
+
     for (auto move : moveList)
     {
         auto& m = *itr++;
@@ -138,9 +141,9 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
 
         // Bonus for checks
         if (pos.check(m))
-            m.value += 0x4000 * (pos.see(m) >= -75) + 0x1000 * pos.dbl_check(m);
+            m.value += (pos.see(m) >= -75 ? 0x4000 : 0) + (pos.dbl_check(m) ? 0x1000 : 0);
 
-        m.value += 0x1000 * (pos.fork(m) && pos.see(m) >= -50);
+        m.value += pos.fork(m) && pos.see(m) >= -50 ? 0x1000 : 0;
 
         if (movedPt == KING)
             continue;
@@ -148,15 +151,16 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
         // Penalty for moving to square attacked by lesser piece
         // Bonus for escaping from square attacked by lesser piece
         int weight =
-          ((pos.acc_less_attacks_bb(movedPt) & dstSq) != 0   ? -19 * ((blockersBB & orgSq) == 0)
+          ((pos.acc_less_attacks_bb(movedPt) & dstSq) != 0   ? ((blockersBB & orgSq) == 0 ? -19 : 0)
            : (threatsBB & orgSq) != 0                        ? +23
            : (pos.acc_less_attacks_bb(movedPt) & orgSq) != 0 ? +20
                                                              : 0);
         m.value += weight * piece_value(movedPt);
 
         // Penalty for moving pinner piece
-        m.value -= 0x400 * ((pinnersBB & orgSq) != 0 && !aligned(kingSq, orgSq, dstSq));
+        m.value -= (pinnersBB & orgSq) != 0 && !aligned(kingSq, orgSq, dstSq) ? 0x400 : 0;
     }
+
     return itr;
 }
 
@@ -164,6 +168,7 @@ template<>
 MovePicker::iterator MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveList) noexcept {
 
     iterator itr = cur;
+
     for (auto move : moveList)
     {
         auto& m = *itr++;
@@ -176,6 +181,7 @@ MovePicker::iterator MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveL
 
         m.value = piece_value(capturedPt);
     }
+
     return itr;
 }
 
@@ -185,6 +191,7 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
     Color ac = pos.active_color();
 
     iterator itr = cur;
+
     for (auto move : moveList)
     {
         auto& m = *itr++;
@@ -199,6 +206,7 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
         m.value = (*quietHistory)[ac][m.raw()]  //
                 + (*continuationHistory[0])[movedPc][dstSq];
     }
+
     return itr;
 }
 
