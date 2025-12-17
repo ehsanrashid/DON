@@ -402,13 +402,15 @@ class MultiArray {
 
     // void print() const noexcept {
     //     std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
-    //     for (auto& element : *this)
+    //
+    //     for (auto& element : _data)
     //     {
     //         if constexpr (sizeof...(Sizes) == 0)
     //             std::cout << element << ' ';
     //         else
     //             element.print();
     //     }
+    //
     //     std::cout << std::endl;
     // }
 
