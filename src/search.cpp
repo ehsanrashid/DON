@@ -1001,7 +1001,8 @@ Value Worker::search(Position&    pos,
             Value futilityMult = 53 + 23 * cond;
 
             return depth * futilityMult
-                 - int(((improve ? 2.4160 : 0.0) + (worsen ? 0.3232 : 0.0)) * futilityMult)
+                 - ((improve ? int(2.4160 * futilityMult) : 0)
+                    + (worsen ? int(0.3232 * futilityMult) : 0))
                  + int(5.7252e-6 * absCorrectionValue);
         };
 
