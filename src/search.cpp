@@ -1000,9 +1000,8 @@ Value Worker::search(Position&    pos,
         const auto futility_margin = [&](bool cond) noexcept {
             Value futilityMult = 53 + 23 * cond;
 
-            return futilityMult * depth                  //
-                 - int(2.4160 * futilityMult) * improve  //
-                 - int(0.3232 * futilityMult) * worsen   //
+            return depth * futilityMult
+                 - int(((2.4160 * improve) + (0.3232 * worsen)) * futilityMult)
                  + int(5.7252e-6 * absCorrectionValue);
         };
 
