@@ -414,6 +414,10 @@ class MultiArray {
     //     std::cout << std::endl;
     // }
 
+    constexpr void swap(MultiArray<T, Size, Sizes...>& multiArr) noexcept {
+        _data.swap(multiArr._data);
+    }
+
     template<bool NoExtraDimension = sizeof...(Sizes) == 0,
              typename              = typename std::enable_if_t<NoExtraDimension, bool>>
     constexpr operator StdArray<T, Size>&() noexcept {
@@ -429,10 +433,6 @@ class MultiArray {
         for (std::size_t i = 0; i < Size; ++i)
             _data[i] = stdArr[i];
         return *this;
-    }
-
-    constexpr void swap(MultiArray<T, Size, Sizes...>& multiArr) noexcept {
-        _data.swap(multiArr._data);
     }
 
    private:
@@ -534,7 +534,7 @@ class MultiVector final {
     void fill(U v) noexcept {
         static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
 
-        for (auto& element : *this)
+        for (auto& element : _data)
         {
             if constexpr (sizeof...(Sizes) == 0)
                 element = v;
@@ -543,15 +543,32 @@ class MultiVector final {
         }
     }
 
+    template<typename U>
+    void fill_n(std::size_t begIdx, std::size_t count, const U& v) noexcept {
+        static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
+
+        const std::size_t endIdx = std::min(begIdx + count, size());
+
+        for (std::size_t i = begIdx; i < endIdx; ++i)
+        {
+            if constexpr (sizeof...(Sizes) == 0)
+                _data[i] = v;
+            else
+                _data[i].fill(v);
+        }
+    }
+
     // void print() const noexcept {
     //     std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
-    //     for (auto& element : *this)
+    //
+    //     for (auto& element : _data)
     //     {
     //         if constexpr (sizeof...(Sizes) == 0)
     //             std::cout << element << ' ';
     //         else
     //             element.print();
     //     }
+    //
     //     std::cout << std::endl;
     // }
 
