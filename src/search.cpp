@@ -1371,7 +1371,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r += ttCapture ? 1119 : 0;
 
         // Increase reduction if current ply has a lot of fail high
-        r += ss->cutoffCount > 2 ? 991 + 923 * AllNode : 0;
+        r += ss->cutoffCount > 2 ? 991 + (AllNode ? 923 : 0) : 0;
 
         // For first picked move (ttMove) reduce reduction
         r -= move == ttd.move ? 2151 : 0;
