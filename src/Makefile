@@ -1058,6 +1058,7 @@ config-sanity: net
 	echo "sse41: '$(sse41)'" && \
 	echo "avx2: '$(avx2)'" && \
 	echo "bmi2: '$(bmi2)'" && \
+	echo "compressed: '$(compressed)'" && \
 	echo "avxvnni: '$(avxvnni)'" && \
 	echo "avx512: '$(avx512)'" && \
 	echo "vnni512: '$(vnni512)'" && \
@@ -1096,6 +1097,7 @@ config-sanity: net
 	(test "$(sse41)" = "yes" || test "$(sse41)" = "no") && \
 	(test "$(avx2)" = "yes" || test "$(avx2)" = "no") && \
 	(test "$(bmi2)" = "yes" || test "$(bmi2)" = "no") && \
+	(test "$(compressed)" = "yes" || test "$(compressed)" = "no") && \
 	(test "$(avx512)" = "yes" || test "$(avx512)" = "no") && \
 	(test "$(vnni512)" = "yes" || test "$(vnni512)" = "no") && \
 	(test "$(avx512icl)" = "yes" || test "$(avx512icl)" = "no") && \
