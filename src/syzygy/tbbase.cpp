@@ -1527,7 +1527,12 @@ void init() noexcept {
     // There are Binomial[k][n] ways to choose k elements from a set of n elements.
     for (std::size_t k = 0; k < Binomial.size(); ++k)
     {
-        for (std::size_t n = k; n < Binomial[k].size(); ++n)
+        std::size_t n = 0;
+        for (; n < k; ++n)
+        {
+            Binomial[k][n] = 0;
+        }
+        for (; n < Binomial[k].size(); ++n)
         {
             Binomial[k][n] = k == 0 || k == n  //
                              ? 1
