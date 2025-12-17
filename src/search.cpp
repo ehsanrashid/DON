@@ -998,7 +998,7 @@ Value Worker::search(Position&    pos,
     // The depth condition is important for mate finding.
     {
         const auto futility_margin = [&](bool cond) noexcept {
-            Value futilityMult = 53 + 23 * cond;
+            Value futilityMult = 53 + (cond ? 23 : 0);
 
             return depth * futilityMult
                  - ((improve ? int(2.4160 * futilityMult) : 0)
@@ -1523,7 +1523,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Reduce depth for other moves if have found at least one score improvement
                 if (depth < 16 && !is_decisive(value))
                 {
-                    depth -= 1 + (depth < 8);
+                    depth -= 1 + (depth < 8 ? 1 : 0);
 
                     if (depth < 1)
                         depth = 1;
