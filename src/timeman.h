@@ -39,8 +39,11 @@ class TimeManager final {
     TimeManager& operator=(TimeManager&&) noexcept      = delete;
 
     TimePoint optimum() const noexcept { return optimumTime; }
+
     TimePoint maximum() const noexcept { return maximumTime; }
+
     TimePoint elapsed() const noexcept { return now() - startTime; }
+
     template<typename NodesFunc>
     TimePoint elapsed(NodesFunc&& nodes) const noexcept {
         return use_nodes_time() ? TimePoint(nodes()) : elapsed();

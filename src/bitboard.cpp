@@ -39,9 +39,31 @@ namespace {
 constexpr StdArray<std::size_t, 2> TABLE_SIZES{0x1480, 0x19000};
 
 // Stores bishop & rook attacks
-alignas(CACHE_LINE_SIZE) StdArray<Bitboard, TABLE_SIZES[0] + TABLE_SIZES[1]> AttacksTable;
+alignas(CACHE_LINE_SIZE) StdArray<
+#if defined(USE_BMI2)
+    #if defined(USE_COMPRESSED)
+  Bitboard16
+    #else
+  Bitboard
+    #endif
+#else
+  Bitboard
+#endif
+  ,
+  TABLE_SIZES[0] + TABLE_SIZES[1]> AttacksTable;
 
-alignas(CACHE_LINE_SIZE) constexpr StdArray<TableView<Bitboard>, 2> TableViews{
+alignas(CACHE_LINE_SIZE) constexpr StdArray<TableView<
+#if defined(USE_BMI2)
+    #if defined(USE_COMPRESSED)
+                                              Bitboard16
+    #else
+                                              Bitboard
+    #endif
+#else
+                                              Bitboard
+#endif
+                                              >,
+                                            2> TableViews{
   TableView{AttacksTable.data() + 0x000000000000, TABLE_SIZES[0]},
   TableView{AttacksTable.data() + TABLE_SIZES[0], TABLE_SIZES[1]}};
 
@@ -113,19 +135,27 @@ void init_magics() noexcept {
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
         //assert(s == SQ_A1 || size <= RefSizes[PT - BISHOP]);
-        magic.attacksBB = s == SQ_A1 ? TableViews[PT - BISHOP].data()  //
-                                     : &Magics[s - 1][PT - BISHOP].attacksBB[size];
-        assert(magic.attacksBB != nullptr);
+        magic.attacksBBs = s == SQ_A1 ? TableViews[PT - BISHOP].data()  //
+                                      : &Magics[s - 1][PT - BISHOP].attacksBBs[size];
+        assert(magic.attacksBBs != nullptr);
+
+        Bitboard slidingAttacksBB = sliding_attacks_bb<PT>(s);
 
         // Board edges are not considered in the relevant occupancies
         Bitboard edgesBB = (EDGE_FILES_BB & ~file_bb(s)) | (PROMOTION_RANKS_BB & ~rank_bb(s));
-        // Mask excludes edges
-        magic.maskBB = sliding_attacks_bb<PT>(s) & ~edgesBB;
 
-#if !defined(USE_BMI2)
+        // Mask excludes edges
+        magic.maskBB = slidingAttacksBB & ~edgesBB;
+
+#if defined(USE_BMI2)
+    #if defined(USE_COMPRESSED)
+        magic.exmaskBB = slidingAttacksBB;
+    #endif
+#else
         StdArray<Bitboard, SubSizes[PT - BISHOP]> referenceBBs;
         StdArray<Bitboard, SubSizes[PT - BISHOP]> occupancyBBs;
 #endif
+
         size = 0;
         // Use Carry-Rippler trick to enumerate all subsets of masks[s] and
         // store the corresponding sliding attack bitboard in referenceBBs[].
@@ -185,10 +215,10 @@ void init_magics() noexcept {
 
                 if (epoch[idx] < cnt)
                 {
-                    epoch[idx]           = cnt;
-                    magic.attacksBB[idx] = referenceBBs[i];
+                    epoch[idx]            = cnt;
+                    magic.attacksBBs[idx] = referenceBBs[i];
                 }
-                else if (magic.attacksBB[idx] != referenceBBs[i])
+                else if (magic.attacksBBs[idx] != referenceBBs[i])
                 {
                     valid = false;
                     break;

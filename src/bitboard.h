@@ -35,17 +35,31 @@
 #include "types.h"
 
 #if defined(_MSC_VER)
-    #include <intrin.h>  // Microsoft header for _BitScanForward64() && _BitScanForward()
+    #include <intrin.h>  // Microsoft header for _BitScanForward64() & _BitScanForward()
     #if defined(USE_POPCNT)
         #include <nmmintrin.h>  // Microsoft header for _mm_popcnt_u64()
     #endif
 #endif
 
 #if defined(USE_BMI2)
-    #include <immintrin.h>  // Header for _pext_u64() intrinsic
+    #include <immintrin.h>  // Header for _pext_u64() & _pdep_u64() intrinsic
+
+    // * _pext_u64(src, mask) - Parallel Bits Extract
+    // Extracts the bits from the 64-bit 'src' corresponding to the 1-bits in 'mask',
+    // and packs them contiguously into the lower bits of the result.
+
+    // * _pdep_u64(src, mask) - Parallel Bits Deposit
+    // Deposits the lower bits of 'src' into the positions of the 1-bits in 'mask',
+    // leaving all other bits as zero.
 #endif
 
 namespace DON {
+
+#if defined(USE_BMI2)
+    #if defined(USE_COMPRESSED)
+using Bitboard16 = std::uint16_t;
+    #endif
+#endif
 
 namespace BitBoard {
 
@@ -114,28 +128,50 @@ struct Magic final {
     Magic& operator=(const Magic&) noexcept = delete;
     Magic& operator=(Magic&&) noexcept      = delete;
 
-    Bitboard* attacksBB;
+#if defined(USE_BMI2)
+    #if defined(USE_COMPRESSED)
+    Bitboard16* attacksBBs;
+    Bitboard    maskBB;
+    Bitboard    exmaskBB;
+    #else
+    Bitboard* attacksBBs;
     Bitboard  maskBB;
-
-#if !defined(USE_BMI2)
+    #endif
+#else
+    Bitboard*    attacksBBs;
+    Bitboard     maskBB;
     Bitboard     magicBB;
     std::uint8_t shift;
-#else
+#endif
+
+
+#if defined(USE_BMI2)
     void attacks_bb(Bitboard occupancyBB, Bitboard referenceBB) noexcept {
-        attacksBB[index(occupancyBB)] = referenceBB;
+        attacksBBs[index(occupancyBB)] =
+    #if defined(USE_COMPRESSED)
+          _pext_u64(referenceBB, exmaskBB)
+    #else
+          referenceBB
+    #endif
+          ;
     }
 #endif
 
     Bitboard attacks_bb(Bitboard occupancyBB) const noexcept {
-        return attacksBB[index(occupancyBB)];
+#if defined(USE_BMI2)
+    #if defined(USE_COMPRESSED)
+        return _pdep_u64(attacksBBs[index(occupancyBB)], exmaskBB);
+    #else
+        return attacksBBs[index(occupancyBB)];
+    #endif
+#else
+        return attacksBBs[index(occupancyBB)];
+#endif
     }
 
     // Compute the attack's index using the 'magic bitboards' approach
     std::uint16_t index(Bitboard occupancyBB) const noexcept {
-
 #if defined(USE_BMI2)
-        // _pext_u64(Parallel Bits Extract) extracts bits from a 64-bit integer
-        // according to a specified mask and compresses them into a contiguous block in the lower bits
         return _pext_u64(occupancyBB, maskBB);
 #else
     #if defined(IS_64BIT)
