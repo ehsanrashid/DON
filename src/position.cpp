@@ -159,11 +159,8 @@ void Zobrist::init() noexcept {
         for (PieceType pt : PIECE_TYPES)
             std::generate(PieceSquare[c][pt].begin(), PieceSquare[c][pt].end(), prng_rand);
 
-        auto itr1 = PieceSquare[c][PAWN].begin() + SQ_A1;
-        std::fill(itr1, itr1 + PAWN_OFFSET, 0);
-
-        auto itr2 = PieceSquare[c][PAWN].begin() + SQ_A8;
-        std::fill(itr2, itr2 + PAWN_OFFSET, 0);
+        std::fill_n(PieceSquare[c][PAWN].begin() + SQ_A1, PAWN_OFFSET, 0);
+        std::fill_n(PieceSquare[c][PAWN].begin() + SQ_A8, PAWN_OFFSET, 0);
     }
 
     std::generate(Castling.begin(), Castling.end(), prng_rand);

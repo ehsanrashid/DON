@@ -373,14 +373,30 @@ class MultiArray {
 
     // Recursively fill all dimensions by calling the sub fill method
     template<typename U>
-    void fill(const U& v) {
+    void fill(const U& v) noexcept {
         static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
+
         for (auto& element : *this)
         {
             if constexpr (sizeof...(Sizes) == 0)
                 element = v;
             else
                 element.fill(v);
+        }
+    }
+
+    template<typename U>
+    void fill_range(std::size_t begIdx, std::size_t count, const U& v) noexcept {
+        static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
+
+        const std::size_t endIdx = std::min(begIdx + count, size());
+
+        for (std::size_t i = begIdx; i < endIdx; ++i)
+        {
+            if constexpr (sizeof...(Sizes) == 0)
+                _data[i] = v;
+            else
+                _data[i].fill(v);
         }
     }
 
