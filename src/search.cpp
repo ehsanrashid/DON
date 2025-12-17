@@ -1921,7 +1921,7 @@ void Worker::update_pawn_history(std::uint16_t pawnIndex, Piece movedPc, Square 
 }
 void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept {
     assert(m.is_ok());
-    if (ssPly < LOW_PLY_SIZE)
+    if (ssPly < LOW_PLY_QUIET_SIZE)
         lowPlyQuietHistory[ssPly][m.raw()] << bonus;
 }
 

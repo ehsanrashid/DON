@@ -148,7 +148,7 @@ class MovePicker final {
     const History<H_PAWN>*          pawnHistory         = nullptr;
     const History<H_LOW_PLY_QUIET>* lowPlyQuietHistory  = nullptr;
     const History<H_PIECE_SQ>**     continuationHistory = nullptr;
-    const std::int16_t              ssPly               = LOW_PLY_SIZE;
+    const std::int16_t              ssPly               = LOW_PLY_QUIET_SIZE;
     const int                       threshold;
 
     StdArray<value_type, MAX_MOVES> moves;

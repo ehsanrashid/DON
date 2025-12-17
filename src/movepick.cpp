@@ -133,7 +133,7 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
                 + (*continuationHistory[6])[movedPc][dstSq]      //
                 + (*continuationHistory[7])[movedPc][dstSq];
 
-        if (ssPly < LOW_PLY_SIZE)
+        if (ssPly < LOW_PLY_QUIET_SIZE)
             m.value += 8 * (*lowPlyQuietHistory)[ssPly][m.raw()] / (1 + ssPly);
 
         // Bonus for checks

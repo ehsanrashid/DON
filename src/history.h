@@ -62,7 +62,7 @@ class StatsEntry final {
 };
 
 
-inline constexpr std::uint16_t LOW_PLY_SIZE = 5;
+inline constexpr std::uint16_t LOW_PLY_QUIET_SIZE = 5;
 
 inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 
@@ -120,7 +120,7 @@ struct HistoryDef<H_PAWN> final {
 // It is used to improve quiet move ordering near the root.
 template<>
 struct HistoryDef<H_LOW_PLY_QUIET> final {
-    using Type = StatsContainer<7183, LOW_PLY_SIZE, UINT16_HISTORY_SIZE>;
+    using Type = StatsContainer<7183, LOW_PLY_QUIET_SIZE, UINT16_HISTORY_SIZE>;
 };
 
 template<>
