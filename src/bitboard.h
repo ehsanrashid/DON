@@ -56,7 +56,7 @@
 namespace DON {
 
 #if defined(USE_BMI2)
-    #if defined(USE_COMPRESS_BB)
+    #if defined(USE_COMPRESSED)
 using Bitboard16 = std::uint16_t;
     #endif
 #endif
@@ -129,7 +129,7 @@ struct Magic final {
     Magic& operator=(Magic&&) noexcept      = delete;
 
 #if defined(USE_BMI2)
-    #if defined(USE_COMPRESS_BB)
+    #if defined(USE_COMPRESSED)
     Bitboard16* attacksBBs;
     Bitboard    maskBB;
     Bitboard    exmaskBB;
@@ -148,7 +148,7 @@ struct Magic final {
 #if defined(USE_BMI2)
     void attacks_bb(Bitboard occupancyBB, Bitboard referenceBB) noexcept {
         attacksBBs[index(occupancyBB)] =
-    #if defined(USE_COMPRESS_BB)
+    #if defined(USE_COMPRESSED)
           _pext_u64(referenceBB, exmaskBB)
     #else
           referenceBB
@@ -159,7 +159,7 @@ struct Magic final {
 
     Bitboard attacks_bb(Bitboard occupancyBB) const noexcept {
 #if defined(USE_BMI2)
-    #if defined(USE_COMPRESS_BB)
+    #if defined(USE_COMPRESSED)
         return _pdep_u64(attacksBBs[index(occupancyBB)], exmaskBB);
     #else
         return attacksBBs[index(occupancyBB)];

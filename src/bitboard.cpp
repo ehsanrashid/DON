@@ -41,7 +41,7 @@ constexpr StdArray<std::size_t, 2> TABLE_SIZES{0x1480, 0x19000};
 // Stores bishop & rook attacks
 alignas(CACHE_LINE_SIZE) StdArray<
 #if defined(USE_BMI2)
-    #if defined(USE_COMPRESS_BB)
+    #if defined(USE_COMPRESSED)
   Bitboard16
     #else
   Bitboard
@@ -54,7 +54,7 @@ alignas(CACHE_LINE_SIZE) StdArray<
 
 alignas(CACHE_LINE_SIZE) constexpr StdArray<TableView<
 #if defined(USE_BMI2)
-    #if defined(USE_COMPRESS_BB)
+    #if defined(USE_COMPRESSED)
                                               Bitboard16
     #else
                                               Bitboard
@@ -148,7 +148,7 @@ void init_magics() noexcept {
         magic.maskBB = slidingAttacksBB & ~edgesBB;
 
 #if defined(USE_BMI2)
-    #if defined(USE_COMPRESS_BB)
+    #if defined(USE_COMPRESSED)
         magic.exmaskBB = slidingAttacksBB;
     #endif
 #else
