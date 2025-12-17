@@ -386,7 +386,7 @@ class MultiArray {
     }
 
     template<typename U>
-    void fill_range(std::size_t begIdx, std::size_t count, const U& v) noexcept {
+    void fill_n(std::size_t begIdx, std::size_t count, const U& v) noexcept {
         static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
 
         const std::size_t endIdx = std::min(begIdx + count, size());
