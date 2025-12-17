@@ -94,17 +94,17 @@ class MovePicker final {
     using const_iterator  = const_pointer;
     using size_type       = std::size_t;
 
-    MovePicker(const Position&              p,
-               Move                         ttm,
-               const History<HCapture>*     captureHist,
-               const History<HQuiet>*       quietHist,
-               const History<HPawn>*        pawnHist,
-               const History<HLowPlyQuiet>* lowPlyQuietHist,
-               const History<HPieceSq>**    continuationHist,
-               std::int16_t                 ply,
-               int                          th = 0) noexcept;
+    MovePicker(const Position&                 p,
+               Move                            ttm,
+               const History<H_CAPTURE>*       captureHist,
+               const History<H_QUIET>*         quietHist,
+               const History<H_PAWN>*          pawnHist,
+               const History<H_LOW_PLY_QUIET>* lowPlyQuietHist,
+               const History<H_PIECE_SQ>**     continuationHist,
+               std::int16_t                    ply,
+               int                             th = 0) noexcept;
 
-    MovePicker(const Position& p, Move ttm, const History<HCapture>* captureHist, int th) noexcept;
+    MovePicker(const Position& p, Move ttm, const History<H_CAPTURE>* captureHist, int th) noexcept;
 
     MovePicker() noexcept                             = delete;
     MovePicker(const MovePicker&) noexcept            = delete;
@@ -141,15 +141,15 @@ class MovePicker final {
     [[nodiscard]] pointer       data() noexcept { return moves.data(); }
     [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }
 
-    const Position&              pos;
-    Move                         ttMove;
-    const History<HCapture>*     captureHistory      = nullptr;
-    const History<HQuiet>*       quietHistory        = nullptr;
-    const History<HPawn>*        pawnHistory         = nullptr;
-    const History<HLowPlyQuiet>* lowPlyQuietHistory  = nullptr;
-    const History<HPieceSq>**    continuationHistory = nullptr;
-    const std::int16_t           ssPly               = LOW_PLY_SIZE;
-    const int                    threshold;
+    const Position&                 pos;
+    Move                            ttMove;
+    const History<H_CAPTURE>*       captureHistory      = nullptr;
+    const History<H_QUIET>*         quietHistory        = nullptr;
+    const History<H_PAWN>*          pawnHistory         = nullptr;
+    const History<H_LOW_PLY_QUIET>* lowPlyQuietHistory  = nullptr;
+    const History<H_PIECE_SQ>**     continuationHistory = nullptr;
+    const std::int16_t              ssPly               = LOW_PLY_SIZE;
+    const int                       threshold;
 
     StdArray<value_type, MAX_MOVES> moves;
     iterator                        cur, endCur, endBadCapture, begBadQuiet, endMove = nullptr;

@@ -506,9 +506,9 @@ constexpr NodeType operator~(NodeType nt) noexcept { return NodeType((int(nt) ^ 
 // Each search thread has its own array of Stack objects, indexed by the ply. (Size = 40)
 struct Stack final {
    public:
-    Move*                         pv;
-    History<HPieceSq>*            pieceSqHistory;
-    CorrectionHistory<CHPieceSq>* pieceSqCorrectionHistory;
+    Move*                           pv;
+    History<H_PIECE_SQ>*            pieceSqHistory;
+    CorrectionHistory<CH_PIECE_SQ>* pieceSqCorrectionHistory;
 
     int          history;
     Value        staticEval;
@@ -611,20 +611,22 @@ class Worker final {
     std::size_t   multiPV, curIdx, endIdx;
     std::uint16_t selDepth;
 
-    // History
-    History<HCapture>     captureHistory;
-    History<HQuiet>       quietHistory;
-    History<HPawn>        pawnHistory;
-    History<HLowPlyQuiet> lowPlyQuietHistory;
-    History<HTTMove>      ttMoveHistory;
+    // Histories
+    History<H_CAPTURE>       captureHistory;
+    History<H_QUIET>         quietHistory;
+    History<H_PAWN>          pawnHistory;
+    History<H_LOW_PLY_QUIET> lowPlyQuietHistory;
+    History<H_TT_MOVE>       ttMoveHistory;
 
-    StdArray<History<HContinuation>, 2, 2> continuationHistory;  // [inCheck][capture]
+    StdArray<History<H_CONTINUATION>, 2, 2> continuationHistory;  // [inCheck][capture]
 
-    // Correction History
-    CorrectionHistory<CHPawn>         pawnCorrectionHistory;
-    CorrectionHistory<CHMinor>        minorCorrectionHistory;
-    CorrectionHistory<CHNonPawn>      nonPawnCorrectionHistory;
-    CorrectionHistory<CHContinuation> continuationCorrectionHistory;
+    // Correction Histories
+    CorrectionHistory<CH_PAWN>     pawnCorrectionHistory;
+    CorrectionHistory<CH_MINOR>    minorCorrectionHistory;
+    CorrectionHistory<CH_NON_PAWN> nonPawnCorrectionHistory;
+
+    CorrectionHistory<CH_CONTINUATION> continuationCorrectionHistory;
+
 
     StdArray<std::int32_t, COLOR_NB> optimism;
 

@@ -1140,7 +1140,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     StdArray<SearchedMoves, 2> searchedMoves;
 
-    const History<HPieceSq>* contHistory[8]{
+    const History<H_PIECE_SQ>* contHistory[8]{
       (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
       (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,  //
       (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,  //
@@ -1741,7 +1741,7 @@ QS_MOVES_LOOP:
 
     std::uint8_t moveCount = 0;
 
-    const History<HPieceSq>* contHistory[1]{(ss - 1)->pieceSqHistory};
+    const History<H_PIECE_SQ>* contHistory[1]{(ss - 1)->pieceSqHistory};
 
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
