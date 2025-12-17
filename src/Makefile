@@ -152,6 +152,7 @@ ssse3 = no
 sse41 = no
 avx2 = no
 bmi2 = no
+compress_bb = no
 avxvnni = no
 avx512 = no
 vnni512 = no
@@ -803,6 +804,9 @@ ifeq ($(bmi2), yes)
     CXXFLAGS += -DUSE_BMI2
     ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
         CXXFLAGS += -mbmi2
+    endif
+    ifeq ($(compress_bb), yes)
+        CXXFLAGS += -DUSE_COMPRESS_BB
     endif
 endif
 
