@@ -41,7 +41,11 @@ constexpr StdArray<std::size_t, 2> TABLE_SIZES{0x1480, 0x19000};
 // Stores bishop & rook attacks
 alignas(CACHE_LINE_SIZE) StdArray<
 #if defined(USE_BMI2)
+    #if defined(USE_COMPRESS_BB)
   Bitboard16
+    #else
+  Bitboard
+    #endif
 #else
   Bitboard
 #endif
@@ -50,7 +54,11 @@ alignas(CACHE_LINE_SIZE) StdArray<
 
 alignas(CACHE_LINE_SIZE) constexpr StdArray<TableView<
 #if defined(USE_BMI2)
+    #if defined(USE_COMPRESS_BB)
                                               Bitboard16
+    #else
+                                              Bitboard
+    #endif
 #else
                                               Bitboard
 #endif
@@ -127,9 +135,9 @@ void init_magics() noexcept {
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
         //assert(s == SQ_A1 || size <= RefSizes[PT - BISHOP]);
-        magic.attacks = s == SQ_A1 ? TableViews[PT - BISHOP].data()  //
-                                   : &Magics[s - 1][PT - BISHOP].attacks[size];
-        assert(magic.attacks != nullptr);
+        magic.attacksBBs = s == SQ_A1 ? TableViews[PT - BISHOP].data()  //
+                                      : &Magics[s - 1][PT - BISHOP].attacksBBs[size];
+        assert(magic.attacksBBs != nullptr);
 
         Bitboard slidingAttacksBB = sliding_attacks_bb<PT>(s);
 
@@ -140,7 +148,9 @@ void init_magics() noexcept {
         magic.maskBB = slidingAttacksBB & ~edgesBB;
 
 #if defined(USE_BMI2)
+    #if defined(USE_COMPRESS_BB)
         magic.exmaskBB = slidingAttacksBB;
+    #endif
 #else
         StdArray<Bitboard, SubSizes[PT - BISHOP]> referenceBBs;
         StdArray<Bitboard, SubSizes[PT - BISHOP]> occupancyBBs;
@@ -205,10 +215,10 @@ void init_magics() noexcept {
 
                 if (epoch[idx] < cnt)
                 {
-                    epoch[idx]         = cnt;
-                    magic.attacks[idx] = referenceBBs[i];
+                    epoch[idx]            = cnt;
+                    magic.attacksBBs[idx] = referenceBBs[i];
                 }
-                else if (magic.attacks[idx] != referenceBBs[i])
+                else if (magic.attacksBBs[idx] != referenceBBs[i])
                 {
                     valid = false;
                     break;
