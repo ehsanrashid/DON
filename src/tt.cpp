@@ -174,6 +174,7 @@ void TranspositionTable::resize(std::size_t ttSize, ThreadPool& threads) noexcep
     assert(clusterCount % 2 == 0);
 
     clusters = static_cast<TTCluster*>(alloc_aligned_large_pages(clusterCount * sizeof(TTCluster)));
+
     if (clusters == nullptr)
     {
         std::cerr << "Failed to allocate " << ttSize << "MB for transposition table." << std::endl;
