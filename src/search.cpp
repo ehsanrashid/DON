@@ -1193,7 +1193,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         int r = reduction(depth, moveCount, deltaRatio, improve);
 
         // (*Scaler) Increase reduction for pvHit nodes, Larger values scales well
-        r += 946 * ss->ttPv;
+        r += ss->ttPv ? 946 : 0;
 
         // Step 14. Pruning at shallow depths
         // Depth conditions are important for mate finding.
@@ -1245,9 +1245,9 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // (*Scaler) Generally, more frequent futility pruning scales well
                 if (lmrDepth < 13 && !check && !ss->inCheck)
                 {
-                    Value futilityValue = std::min(42 + ss->staticEval + 127 * lmrDepth  //
-                                                     + 85 * (ss->staticEval > alpha)     //
-                                                     + 161 * (bestMove == Move::None),
+                    Value futilityValue = std::min(42 + ss->staticEval + 127 * lmrDepth   //
+                                                     + (ss->staticEval > alpha ? 85 : 0)  //
+                                                     + (bestMove == Move::None ? 161 : 0),
                                                    +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                     {
@@ -1259,7 +1259,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for quiets and checks
-                int margin = -std::max(64 * depth * check + 25 * lmrDepth * std::abs(lmrDepth), 0);
+                int margin =
+                  -std::max((check ? 64 * depth : 0) + 25 * lmrDepth * std::abs(lmrDepth), 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
                   && pos.see(move) < margin)
@@ -1282,8 +1283,9 @@ S_MOVES_LOOP:  // When in check, search starts here
             && !is_decisive(ttd.value) && ttd.depth >= depth - 3 && (ttd.bound & BOUND_LOWER)
             && !is_shuffling(pos, ss, move))
         {
-            Value singularBeta = std::max(
-              ttd.value - int((0.8833 + 1.2500 * (!PVNode && ss->ttPv)) * depth), -VALUE_INFINITE);
+            Value singularBeta =
+              std::max(ttd.value - int((0.8833 + (!PVNode && ss->ttPv ? 1.2500 : 0.0)) * depth),
+                       -VALUE_INFINITE);
             assert(singularBeta >= -VALUE_INFINITE);
             Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
@@ -1296,13 +1298,15 @@ S_MOVES_LOOP:  // When in check, search starts here
             if (value <= singularBeta)
             {
                 int corrValue = int(4.3351e-6 * absCorrectionValue);
-                // clang-format off
-                int doubleMargin = -4 + 199 * PVNode - 201 * !ttCapture - corrValue - 42 * (1 * ss->ply > 1 * rootDepth) - 7.0271e-3 * ttMoveHistory;
-                int tripleMargin = 73 + 302 * PVNode - 248 * !ttCapture - corrValue - 50 * (2 * ss->ply > 3 * rootDepth) + 90 * ss->ttPv;
 
-                extension = 1 + (value <= singularBeta - doubleMargin)
-                              + (value <= singularBeta - tripleMargin);
+                // clang-format off
+                int doubleMargin = -4 + (PVNode ? 199 : 0) - (ttCapture ? 0 : 201) - corrValue - (1 * ss->ply > 1 * rootDepth ? 42 : 0) - 7.0271e-3 * ttMoveHistory;
+                int tripleMargin = 73 + (PVNode ? 302 : 0) - (ttCapture ? 0 : 248) - corrValue - (2 * ss->ply > 3 * rootDepth ? 50 : 0) + (ss->ttPv ? 90 : 0);
+
+                extension = 1 + (value <= singularBeta - doubleMargin ? 1 : 0)
+                              + (value <= singularBeta - tripleMargin ? 1 : 0);
                 // clang-format on
+
                 if (depth < MAX_PLY - 1)
                     ++depth;
             }
@@ -1499,8 +1503,10 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // In case have an alternative move equal in eval to the current bestMove,
         // promote it to bestMove by pretending it just exceeds alpha (but not beta).
-        bool inc = value == bestValue && (nodes.load(std::memory_order_relaxed) & 0xE) == 0
-                && 2 + ss->ply >= rootDepth && !is_win(std::abs(value) + 1);
+        int inc = value == bestValue && (nodes.load(std::memory_order_relaxed) & 0xE) == 0
+                   && 2 + ss->ply >= rootDepth && !is_win(std::abs(value) + 1)
+                  ? 1
+                  : 0;
 
         if (bestValue < value + inc)
         {
@@ -1517,7 +1523,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 {
                     // (*Scaler) Infrequent and small cutoff increments scales well
                     if constexpr (!RootNode)
-                        (ss - 1)->cutoffCount += PVNode || (extension < 2);
+                        (ss - 1)->cutoffCount += PVNode || extension < 2 ? 1 : 0;
+
                     break;  // Fail-high
                 }
 
@@ -1575,9 +1582,9 @@ S_MOVES_LOOP:  // When in check, search starts here
                             // Increase bonus when depth is high
                             + std::min(56 * depth, 489)
                             // Increase bonus when bestValue is lower than current static evaluation
-                            + 147 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107)
+                            + (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107 ? 147 : 0)
                             // Increase bonus when bestValue is higher than previous static evaluation
-                            + 156 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 65)
+                            + (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval -  65 ? 156 : 0)
                             // Increase bonus when the previous moveCount is high
                             +  80 * std::min(((ss - 1)->moveCount - 1) / 5, 4)
                             // Increase bonus if the previous move has a bad history
@@ -1586,8 +1593,10 @@ S_MOVES_LOOP:  // When in check, search starts here
             int bonus = bonusScale * std::min(-87 + 141 * depth, +1351);
 
             update_quiet_history(~ac, (ss - 1)->move, 7.4158e-3 * bonus);
+
             if (preNonPawn)
                 update_pawn_history(pawnIndex, pos[preSq], preSq, 35.4004e-3 * bonus);
+
             update_continuation_history(ss - 1, pos[preSq], preSq, 12.3901e-3 * bonus);
         }
         // Bonus for prior capture move
@@ -1595,13 +1604,14 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             auto captured = type_of(pos.captured_pc());
             assert(captured != NO_PIECE_TYPE);
+
             update_capture_history(pos[preSq], preSq, captured, 1012);
         }
     }
 
     // If no good move is found and the previous position was pvHit, then the previous
     // opponent move is probably good and the new position is added to the search tree.
-    ss->ttPv |= (bestValue <= alpha && (ss - 1)->ttPv);
+    ss->ttPv |= bestValue <= alpha && (ss - 1)->ttPv;
 
     // Save gathered information in transposition table
     if ((!RootNode || curIdx == 0) && !exclude)
@@ -1924,6 +1934,7 @@ void Worker::update_pawn_history(std::uint16_t pawnIndex, Piece movedPc, Square 
 }
 void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept {
     assert(m.is_ok());
+
     if (ssPly < LOW_PLY_QUIET_SIZE)
         lowPlyQuietHistory[ssPly][m.raw()] << bonus;
 }
@@ -1933,8 +1944,11 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::u
     assert(m.is_ok());
 
     update_quiet_history(pos.active_color(), m, 1.0000 * bonus);
+
     update_pawn_history(pawnIndex, pos.moved_pc(m), m.dst_sq(), (bonus > 0 ? 0.8837 : 0.4932) * bonus);
+
     update_low_ply_quiet_history(ss->ply, m, 0.7861 * bonus);
+
     update_continuation_history(ss, pos.moved_pc(m), m.dst_sq(), 0.8750 * bonus);
 }
 
