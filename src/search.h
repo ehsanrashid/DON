@@ -295,7 +295,9 @@ struct Limit final {
 
     constexpr Limit() noexcept = default;
 
-    bool use_time_manager() const noexcept { return clocks[WHITE].time || clocks[BLACK].time; }
+    bool use_time_manager() const noexcept {
+        return clocks[WHITE].time != 0 || clocks[BLACK].time != 0;
+    }
 
     std::uint16_t calls_count() const noexcept {
         return nodes != 0 ? std::min(1 + int(std::ceil(nodes / 1024.0)), 512) : 512;
@@ -453,8 +455,8 @@ class MainSearchManager final: public ISearchManager {
         OnUpdateMove  onUpdateMove;
     };
 
-    constexpr MainSearchManager() noexcept = delete;
-    explicit constexpr MainSearchManager(const UpdateContext& updateContext) noexcept :
+    MainSearchManager() noexcept = delete;
+    explicit MainSearchManager(const UpdateContext& updateContext) noexcept :
         updateCxt(updateContext) {}
 
     void init() noexcept;
@@ -468,23 +470,23 @@ class MainSearchManager final: public ISearchManager {
 
     const UpdateContext& updateCxt;
 
-    std::uint16_t callsCount{};
-    bool          ponder{};
-    bool          ponderhitStop{};
-    double        sumMoveChanges{};
-    double        timeReduction{};
-    Skill         skill{};
-    TimeManager   timeManager{};
+    std::uint16_t callsCount;
+    bool          ponder;
+    bool          ponderhitStop;
+    double        sumMoveChanges;
+    double        timeReduction;
+    Skill         skill;
+    TimeManager   timeManager;
 
-    bool   moveFirst{};
-    Value  preBestCurValue{};
-    Value  preBestAvgValue{};
-    double preTimeReduction{};
+    bool   moveFirst;
+    Value  preBestCurValue;
+    Value  preBestAvgValue;
+    double preTimeReduction;
 };
 
 class NullSearchManager final: public ISearchManager {
    public:
-    constexpr NullSearchManager() noexcept = default;
+    NullSearchManager() noexcept = default;
 
     void check_time(Worker&) noexcept override {}
 };
@@ -504,9 +506,9 @@ constexpr NodeType operator~(NodeType nt) noexcept { return NodeType((int(nt) ^ 
 // Each search thread has its own array of Stack objects, indexed by the ply. (Size = 40)
 struct Stack final {
    public:
-    Move*                         pv;
-    History<HPieceSq>*            pieceSqHistory;
-    CorrectionHistory<CHPieceSq>* pieceSqCorrectionHistory;
+    Move*                           pv;
+    History<H_PIECE_SQ>*            pieceSqHistory;
+    CorrectionHistory<CH_PIECE_SQ>* pieceSqCorrectionHistory;
 
     int          history;
     Value        staticEval;
@@ -535,7 +537,7 @@ class Worker final {
     void ensure_network_replicated() noexcept;
 
     void prefetch_tt(Key key) const noexcept;
-    void prefetch_histories(const Position& pos) const noexcept;
+    void prefetch_correction_histories(const Position& pos) const noexcept;
 
     // Called when the program receives the UCI 'go' command.
     // It searches from the root position and outputs the "bestmove".
@@ -585,7 +587,7 @@ class Worker final {
     void update_quiet_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Move m, int bonus) noexcept;
     void update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
 
-    void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
+    void update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* const ss) noexcept;
     // clang-format on
 
@@ -609,21 +611,22 @@ class Worker final {
     std::size_t   multiPV, curIdx, endIdx;
     std::uint16_t selDepth;
 
-    // History
-    History<HCapture>     captureHistory;
-    History<HQuiet>       quietHistory;
-    History<HPawn>        pawnHistory;
-    History<HLowPlyQuiet> lowPlyQuietHistory;
+    // Histories
+    History<H_CAPTURE>       captureHistory;
+    History<H_QUIET>         quietHistory;
+    History<H_PAWN>          pawnHistory;
+    History<H_LOW_PLY_QUIET> lowPlyQuietHistory;
+    History<H_TT_MOVE>       ttMoveHistory;
 
-    StdArray<History<HContinuation>, 2, 2> continuationHistory;  // [inCheck][capture]
+    StdArray<History<H_CONTINUATION>, 2, 2> continuationHistory;  // [inCheck][capture]
 
-    History<HTTMove> ttMoveHistory;
+    // Correction Histories
+    CorrectionHistory<CH_PAWN>     pawnCorrectionHistory;
+    CorrectionHistory<CH_MINOR>    minorCorrectionHistory;
+    CorrectionHistory<CH_NON_PAWN> nonPawnCorrectionHistory;
 
-    // Correction History
-    CorrectionHistory<CHPawn>         pawnCorrectionHistory;
-    CorrectionHistory<CHMinor>        minorCorrectionHistory;
-    CorrectionHistory<CHNonPawn>      nonPawnCorrectionHistory;
-    CorrectionHistory<CHContinuation> continuationCorrectionHistory;
+    CorrectionHistory<CH_CONTINUATION> continuationCorrectionHistory;
+
 
     StdArray<std::int32_t, COLOR_NB> optimism;
 

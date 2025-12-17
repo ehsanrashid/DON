@@ -159,11 +159,8 @@ void Zobrist::init() noexcept {
         for (PieceType pt : PIECE_TYPES)
             std::generate(PieceSquare[c][pt].begin(), PieceSquare[c][pt].end(), prng_rand);
 
-        auto itr1 = PieceSquare[c][PAWN].begin() + SQ_A1;
-        std::fill(itr1, itr1 + PAWN_OFFSET, 0);
-
-        auto itr2 = PieceSquare[c][PAWN].begin() + SQ_A8;
-        std::fill(itr2, itr2 + PAWN_OFFSET, 0);
+        std::fill_n(PieceSquare[c][PAWN].begin() + SQ_A1, PAWN_OFFSET, 0);
+        std::fill_n(PieceSquare[c][PAWN].begin() + SQ_A8, PAWN_OFFSET, 0);
     }
 
     std::generate(Castling.begin(), Castling.end(), prng_rand);
@@ -1036,7 +1033,7 @@ DO_MOVE_END:
         if (!is_ok(enPassantSq))
             worker->prefetch_tt(k ^ Zobrist::mr50(rule50_count()));
 
-        worker->prefetch_histories(*this);
+        worker->prefetch_correction_histories(*this);
     }
 
     ac = activeColor = ~ac;
@@ -1769,15 +1766,15 @@ bool Position::is_repetition(std::int16_t ply) const noexcept {
 
 // Tests whether the current position is drawn by repetition or by 50-move rule.
 // It also detect stalemates.
-bool Position::is_draw(std::int16_t ply, bool rule50Active, bool chkStalemate) const noexcept {
+bool Position::is_draw(std::int16_t ply, bool useRule50, bool useStalemate) const noexcept {
     return
       // Draw by Repetition
       is_repetition(ply)
       // Draw by 50-move rule
-      || (rule50Active && rule50_count() >= 2 * DrawMoveCount
+      || (useRule50 && rule50_count() >= 2 * DrawMoveCount
           && (checkers_bb() == 0 || !MoveList<LEGAL, true>(*this).empty()))
       // Draw by Stalemate
-      || (chkStalemate && checkers_bb() == 0 && MoveList<LEGAL, true>(*this).empty());
+      || (useStalemate && checkers_bb() == 0 && MoveList<LEGAL, true>(*this).empty());
 }
 
 // Tests whether there has been at least one repetition

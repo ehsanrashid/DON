@@ -199,17 +199,18 @@ void Worker::init() noexcept {
     captureHistory.fill(-689);
     quietHistory.fill(68);
     pawnHistory.fill(-1238);
+    ttMoveHistory = 0;
+
     for (bool inCheck : {false, true})
         for (bool capture : {false, true})
             for (auto& toPieceSqHist : continuationHistory[inCheck][capture])
                 for (auto& pieceSqHist : toPieceSqHist)
                     pieceSqHist.fill(-529);
 
-    ttMoveHistory = 0;
-
     pawnCorrectionHistory.fill(5);
     minorCorrectionHistory.fill(0);
     nonPawnCorrectionHistory.fill(0);
+
     for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(8);
@@ -226,7 +227,7 @@ void Worker::ensure_network_replicated() noexcept {
 // Speculative prefetch as early as possible
 void Worker::prefetch_tt(Key key) const noexcept { prefetch(tt.cluster(key)); }
 
-void Worker::prefetch_histories(const Position& pos) const noexcept {
+void Worker::prefetch_correction_histories(const Position& pos) const noexcept {
     prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][0][0]);
     prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][0][0]);
     prefetch(&minorCorrectionHistory[correction_index(pos.minor_key(WHITE))][0][0]);
@@ -929,7 +930,7 @@ Value Worker::search(Position&    pos,
                 {
                     tbHits.fetch_add(1, std::memory_order_relaxed);
 
-                    auto drawValue = tbConfig.rule50Active ? 1 : 0;
+                    auto drawValue = tbConfig.useRule50 ? 1 : 0;
 
                     // Use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to value
                     value = wdlScore < -drawValue ? -VALUE_TB + ss->ply
@@ -1139,7 +1140,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     StdArray<SearchedMoves, 2> searchedMoves;
 
-    const History<HPieceSq>* contHistory[8]{
+    const History<H_PIECE_SQ>* contHistory[8]{
       (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
       (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,  //
       (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,  //
@@ -1613,7 +1614,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         && (bestValue > ss->staticEval) == (bestMove != Move::None))
     {
         int bonus = (bestValue - ss->staticEval) * depth / (8 + 2 * (bestMove != Move::None));
-        update_correction_history(pos, ss, bonus);
+        update_correction_histories(pos, ss, bonus);
     }
 
     assert(is_ok(bestValue));
@@ -1740,7 +1741,7 @@ QS_MOVES_LOOP:
 
     std::uint8_t moveCount = 0;
 
-    const History<HPieceSq>* contHistory[1]{(ss - 1)->pieceSqHistory};
+    const History<H_PIECE_SQ>* contHistory[1]{(ss - 1)->pieceSqHistory};
 
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
@@ -1920,7 +1921,7 @@ void Worker::update_pawn_history(std::uint16_t pawnIndex, Piece movedPc, Square 
 }
 void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept {
     assert(m.is_ok());
-    if (ssPly < LOW_PLY_SIZE)
+    if (ssPly < LOW_PLY_QUIET_SIZE)
         lowPlyQuietHistory[ssPly][m.raw()] << bonus;
 }
 
@@ -1964,7 +1965,7 @@ void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_
         update_continuation_history(ss - 1, pos[preSq], preSq, -0.5879 * malus);
 }
 
-void Worker::update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept {
+void Worker::update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept {
     Color ac = pos.active_color();
 
     bonus = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
@@ -2105,7 +2106,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     bool aborted = false;
 
-    bool rule50Active = options["Syzygy50MoveRule"];
+    bool useRule50 = options["Syzygy50MoveRule"];
 
     auto& rootMove = rootMoves[index];
 
@@ -2136,7 +2137,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime
-        if (tbCfg.rootInTB && rootPos.is_draw(ply, rule50Active))
+        if (tbCfg.rootInTB && rootPos.is_draw(ply, useRule50))
         {
             --ply;
             rootPos.undo_move(pvMove);
@@ -2154,7 +2155,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     // Step 2. Now extend the PV to mate, as if the user explores syzygy-tables.info using
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
-    while (!(rule50Active && rootPos.is_draw(0)))
+    while (!(useRule50 && rootPos.is_draw(0)))
     {
         if (aborted || (aborted = time_to_abort()))
             break;

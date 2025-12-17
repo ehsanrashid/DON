@@ -62,13 +62,13 @@ class StatsEntry final {
 };
 
 
-inline constexpr std::uint16_t LOW_PLY_SIZE = 5;
+inline constexpr std::uint16_t LOW_PLY_QUIET_SIZE = 5;
 
 inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 
-inline constexpr std::size_t UINT_16_HISTORY_SIZE = 0x10000;
-static_assert((UINT_16_HISTORY_SIZE & (UINT_16_HISTORY_SIZE - 1)) == 0,
-              "UINT_16_HISTORY_SIZE has to be a power of 2");
+inline constexpr std::size_t UINT16_HISTORY_SIZE = 0x10000;
+static_assert((UINT16_HISTORY_SIZE & (UINT16_HISTORY_SIZE - 1)) == 0,
+              "UINT16_HISTORY_SIZE has to be a power of 2");
 
 inline constexpr std::size_t PAWN_HISTORY_SIZE = 0x4000;
 static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
@@ -83,13 +83,13 @@ constexpr std::uint16_t correction_index(Key corrKey) noexcept {  //
 }
 
 enum HistoryType : std::uint8_t {
-    HCapture,       // By move's [piece][dstSq][captured piece type]
-    HQuiet,         // By color and move's orgSq and dstSq squares
-    HPawn,          // By pawn structure and a move's [piece][dstSq]
-    HPieceSq,       // By move's [piece][dstSq]
-    HContinuation,  // By combination of pair of moves
-    HLowPlyQuiet,   // By ply and move's orgSq and dstSq squares
-    HTTMove,
+    H_CAPTURE,        // By move's [piece][dstSq][captured piece type]
+    H_QUIET,          // By color and move's orgSq and dstSq squares
+    H_PAWN,           // By pawn structure and a move's [piece][dstSq]
+    H_LOW_PLY_QUIET,  // By ply and move's orgSq and dstSq squares
+    H_TT_MOVE,        //
+    H_PIECE_SQ,       // By move's [piece][dstSq]
+    H_CONTINUATION,   // By combination of pair of moves
 };
 
 namespace internal {
@@ -100,7 +100,7 @@ template<HistoryType T>
 struct HistoryDef;
 
 template<>
-struct HistoryDef<HCapture> final {
+struct HistoryDef<H_CAPTURE> final {
     using Type = StatsContainer<10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 };
 
@@ -108,34 +108,34 @@ struct HistoryDef<HCapture> final {
 // It is used for reduction and move ordering decisions.
 // see https://www.chessprogramming.org/Butterfly_Boards
 template<>
-struct HistoryDef<HQuiet> final {
-    using Type = StatsContainer<7183, COLOR_NB, UINT_16_HISTORY_SIZE>;
+struct HistoryDef<H_QUIET> final {
+    using Type = StatsContainer<7183, COLOR_NB, UINT16_HISTORY_SIZE>;
 };
 
 template<>
-struct HistoryDef<HPawn> final {
+struct HistoryDef<H_PAWN> final {
     using Type = StatsContainer<8192, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
-};
-
-template<>
-struct HistoryDef<HPieceSq> final {
-    using Type = StatsContainer<30000, PIECE_NB, SQUARE_NB>;
-};
-
-template<>
-struct HistoryDef<HContinuation> final {
-    using Type = MultiArray<HistoryDef<HPieceSq>::Type, PIECE_NB, SQUARE_NB>;
 };
 
 // It is used to improve quiet move ordering near the root.
 template<>
-struct HistoryDef<HLowPlyQuiet> final {
-    using Type = StatsContainer<7183, LOW_PLY_SIZE, UINT_16_HISTORY_SIZE>;
+struct HistoryDef<H_LOW_PLY_QUIET> final {
+    using Type = StatsContainer<7183, LOW_PLY_QUIET_SIZE, UINT16_HISTORY_SIZE>;
 };
 
 template<>
-struct HistoryDef<HTTMove> final {
+struct HistoryDef<H_TT_MOVE> final {
     using Type = StatsEntry<std::int16_t, 8192>;
+};
+
+template<>
+struct HistoryDef<H_PIECE_SQ> final {
+    using Type = StatsContainer<30000, PIECE_NB, SQUARE_NB>;
+};
+
+template<>
+struct HistoryDef<H_CONTINUATION> final {
+    using Type = MultiArray<HistoryDef<H_PIECE_SQ>::Type, PIECE_NB, SQUARE_NB>;
 };
 }  // namespace internal
 
@@ -148,11 +148,11 @@ using History = typename internal::HistoryDef<T>::Type;
 // see https://www.chessprogramming.org/Static_Evaluation_Correction_History
 
 enum CorrectionHistoryType : std::uint8_t {
-    CHPawn,          // By color and pawn structure
-    CHMinor,         // By color and minor piece (Knight, Bishop) structure
-    CHNonPawn,       // By color and non-pawn structure
-    CHPieceSq,       // By move's [piece][sq]
-    CHContinuation,  // By combination of pair of moves
+    CH_PAWN,          // By color and pawn structure
+    CH_MINOR,         // By color and minor piece (Knight, Bishop) structure
+    CH_NON_PAWN,      // By color and non-pawn piece structure
+    CH_PIECE_SQ,      // By move's [piece][dstSq]
+    CH_CONTINUATION,  // By combination of pair of moves
 };
 
 namespace internal {
@@ -163,28 +163,28 @@ template<CorrectionHistoryType T>
 struct CorrectionHistoryDef;
 
 template<>
-struct CorrectionHistoryDef<CHPawn> final {
-    using Type = CorrectionStatsContainer<UINT_16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+struct CorrectionHistoryDef<CH_PAWN> final {
+    using Type = CorrectionStatsContainer<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
-struct CorrectionHistoryDef<CHMinor> final {
-    using Type = CorrectionStatsContainer<UINT_16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+struct CorrectionHistoryDef<CH_MINOR> final {
+    using Type = CorrectionStatsContainer<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
-struct CorrectionHistoryDef<CHNonPawn> final {
-    using Type = CorrectionStatsContainer<UINT_16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+struct CorrectionHistoryDef<CH_NON_PAWN> final {
+    using Type = CorrectionStatsContainer<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
-struct CorrectionHistoryDef<CHPieceSq> final {
+struct CorrectionHistoryDef<CH_PIECE_SQ> final {
     using Type = CorrectionStatsContainer<PIECE_NB, SQUARE_NB>;
 };
 
 template<>
-struct CorrectionHistoryDef<CHContinuation> final {
-    using Type = MultiArray<CorrectionHistoryDef<CHPieceSq>::Type, PIECE_NB, SQUARE_NB>;
+struct CorrectionHistoryDef<CH_CONTINUATION> final {
+    using Type = MultiArray<CorrectionHistoryDef<CH_PIECE_SQ>::Type, PIECE_NB, SQUARE_NB>;
 };
 }  // namespace internal
 

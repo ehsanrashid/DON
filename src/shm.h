@@ -134,7 +134,7 @@ inline std::string to_string(SystemWideSharedConstantAllocationStatus status) no
 }
 
 inline std::string executable_path() noexcept {
-    char        executablePath[4096] = {0};
+    char        executablePath[4096] = {'\0'};
     std::size_t executableSize       = 0;
 
 #if defined(_WIN32)
@@ -143,14 +143,13 @@ inline std::string executable_path() noexcept {
     executableSize = std::min(std::size_t(size), sizeof(executablePath) - 1);
 
     executablePath[executableSize] = '\0';
-#else
-    #if defined(__APPLE__)
+#elif defined(__APPLE__)
     std::uint32_t size = std::uint32_t(sizeof(executablePath));
     if (_NSGetExecutablePath(executablePath, &size) == 0)
     {
         executableSize = std::strlen(executablePath);
     }
-    #elif defined(__linux__)
+#elif defined(__linux__)
     ssize_t size = readlink("/proc/self/exe", executablePath, sizeof(executablePath) - 1);
     if (size >= 0)
     {
@@ -158,7 +157,7 @@ inline std::string executable_path() noexcept {
 
         executablePath[executableSize] = '\0';
     }
-    #elif defined(__NetBSD__) || defined(__DragonFly__)
+#elif defined(__NetBSD__) || defined(__DragonFly__)
     ssize_t size = readlink("/proc/curproc/exe", executablePath, sizeof(executablePath) - 1);
     if (size >= 0)
     {
@@ -166,7 +165,7 @@ inline std::string executable_path() noexcept {
 
         executablePath[executableSize] = '\0';
     }
-    #elif defined(__sun)  // Solaris
+#elif defined(__sun)  // Solaris
     const char* path = getexecname();
     if (path != nullptr)
     {
@@ -174,7 +173,7 @@ inline std::string executable_path() noexcept {
 
         executableSize = std::strlen(executablePath);
     }
-    #elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__)
     constexpr StdArray<int, 4> MIB{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
 
     std::size_t size = sizeof(executablePath);
@@ -184,10 +183,9 @@ inline std::string executable_path() noexcept {
 
         executablePath[executableSize] = '\0';
     }
-    #endif
 #endif
 
-    // In case of any error the path will be empty.
+    // In case of any error the path will be empty
     return std::string(executablePath, executableSize);
 }
 
@@ -250,13 +248,13 @@ class SharedMemoryBackend final {
    public:
     enum class Status {
         Success,
-        LargePageAllocationError,
+        NotInitialized,
         FileMappingError,
         MapViewError,
         MutexCreateError,
         MutexWaitError,
         MutexReleaseError,
-        NotInitialized
+        LargePageAllocationError,
     };
 
     static constexpr DWORD IS_INITIALIZED_VALUE = 1;
@@ -272,7 +270,7 @@ class SharedMemoryBackend final {
 
     bool is_valid() const noexcept { return status == Status::Success; }
 
-    void* get() const noexcept { return is_valid() ? pMapAddr : nullptr; }
+    void* get() const noexcept { return is_valid() ? mapAddress : nullptr; }
 
     ~SharedMemoryBackend() noexcept { cleanup(); }
 
@@ -281,27 +279,29 @@ class SharedMemoryBackend final {
 
     SharedMemoryBackend(SharedMemoryBackend&& shmBackend) noexcept :
         hMapFile(shmBackend.hMapFile),
-        pMapAddr(shmBackend.pMapAddr),
+        mapAddress(shmBackend.mapAddress),
         status(shmBackend.status),
         lastErrorStr(std::move(shmBackend.lastErrorStr)) {
 
-        shmBackend.pMapAddr = nullptr;
-        shmBackend.hMapFile = nullptr;
-        shmBackend.status   = Status::NotInitialized;
+        shmBackend.mapAddress = nullptr;
+        shmBackend.hMapFile   = nullptr;
+        shmBackend.status     = Status::NotInitialized;
     }
     SharedMemoryBackend& operator=(SharedMemoryBackend&& shmBackend) noexcept {
         if (this == &shmBackend)
             return *this;
 
         cleanup();
+
         hMapFile     = shmBackend.hMapFile;
-        pMapAddr     = shmBackend.pMapAddr;
+        mapAddress   = shmBackend.mapAddress;
         status       = shmBackend.status;
         lastErrorStr = std::move(shmBackend.lastErrorStr);
 
-        shmBackend.pMapAddr = nullptr;
-        shmBackend.hMapFile = nullptr;
-        shmBackend.status   = Status::NotInitialized;
+        shmBackend.hMapFile   = nullptr;
+        shmBackend.mapAddress = nullptr;
+        shmBackend.status     = Status::NotInitialized;
+
         return *this;
     }
 
@@ -315,8 +315,8 @@ class SharedMemoryBackend final {
         {
         case Status::Success :
             return std::nullopt;
-        case Status::LargePageAllocationError :
-            return "Failed to allocate large page memory";
+        case Status::NotInitialized :
+            return "Not initialized";
         case Status::FileMappingError :
             return "Failed to create file mapping: " + lastErrorStr;
         case Status::MapViewError :
@@ -327,8 +327,8 @@ class SharedMemoryBackend final {
             return "Failed to wait on mutex: " + lastErrorStr;
         case Status::MutexReleaseError :
             return "Failed to release mutex: " + lastErrorStr;
-        case Status::NotInitialized :
-            return "Not initialized";
+        case Status::LargePageAllocationError :
+            return "Failed to allocate large page memory";
         default :
             return "Unknown error";
         }
@@ -351,16 +351,17 @@ class SharedMemoryBackend final {
               DWORD loTotalSize = roundedTotalSize;
     #endif
 
-              return CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
+              return CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,
                                        PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,  //
                                        hiTotalSize, loTotalSize, shmName.c_str());
           },
           []() { return (void*) nullptr; });
 
-        // Fallback to normal allocation if no large pages available.
+        // Fallback to normal allocation if no large pages available
         if (hMapFile == nullptr)
-            hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0,  //
-                                         totalSize, shmName.c_str());
+            hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,  //
+                                         PAGE_READWRITE,                 //
+                                         0, totalSize, shmName.c_str());
 
         if (hMapFile == nullptr)
         {
@@ -369,8 +370,9 @@ class SharedMemoryBackend final {
             return;
         }
 
-        pMapAddr = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, totalSize);
-        if (pMapAddr == nullptr)
+        mapAddress = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, totalSize);
+
+        if (mapAddress == nullptr)
         {
             status       = Status::MapViewError;
             lastErrorStr = error_to_string(GetLastError());
@@ -380,7 +382,9 @@ class SharedMemoryBackend final {
 
         // Use named mutex to ensure only one initializer
         std::string mutexName = shmName + "$mutex";
-        HANDLE      hMutex    = CreateMutex(NULL, FALSE, mutexName.c_str());
+
+        HANDLE hMutex = CreateMutex(nullptr, FALSE, mutexName.c_str());
+
         if (hMutex == nullptr)
         {
             status       = Status::MutexCreateError;
@@ -398,10 +402,11 @@ class SharedMemoryBackend final {
             return;
         }
 
-        // Crucially, place the object first to ensure alignment.
+        // Crucially, place the object first to ensure alignment
         volatile DWORD* isInitialized =
-          std::launder(reinterpret_cast<DWORD*>(reinterpret_cast<char*>(pMapAddr) + sizeof(T)));
-        T* object = std::launder(reinterpret_cast<T*>(pMapAddr));
+          std::launder(reinterpret_cast<DWORD*>(reinterpret_cast<char*>(mapAddress) + sizeof(T)));
+
+        T* object = std::launder(reinterpret_cast<T*>(mapAddress));
 
         if (*isInitialized != IS_INITIALIZED_VALUE)
         {
@@ -425,10 +430,10 @@ class SharedMemoryBackend final {
     }
 
     void cleanup_partial() noexcept {
-        if (pMapAddr != nullptr)
+        if (mapAddress != nullptr)
         {
-            UnmapViewOfFile(pMapAddr);
-            pMapAddr = nullptr;
+            UnmapViewOfFile(mapAddress);
+            mapAddress = nullptr;
         }
         if (hMapFile != nullptr)
         {
@@ -437,22 +442,11 @@ class SharedMemoryBackend final {
         }
     }
 
-    void cleanup() noexcept {
-        if (pMapAddr != nullptr)
-        {
-            UnmapViewOfFile(pMapAddr);
-            pMapAddr = nullptr;
-        }
-        if (hMapFile != nullptr)
-        {
-            CloseHandle(hMapFile);
-            hMapFile = nullptr;
-        }
-    }
+    void cleanup() noexcept { cleanup_partial(); }
 
-    HANDLE      hMapFile = nullptr;
-    void*       pMapAddr = nullptr;
-    Status      status   = Status::NotInitialized;
+    HANDLE      hMapFile   = nullptr;
+    void*       mapAddress = nullptr;
+    Status      status     = Status::NotInitialized;
     std::string lastErrorStr;
 };
 
@@ -1055,8 +1049,10 @@ template<typename T>
 [[nodiscard]] std::optional<SharedMemory<T>> create_shared(const std::string& name,
                                                            const T& initialValue) noexcept {
     SharedMemory<T> shm(name);
+
     if (shm.open(initialValue))
         return shm;
+
     return std::nullopt;
 }
 
@@ -1071,8 +1067,7 @@ class SharedMemoryBackend final {
     bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
 
     void* get() const noexcept {
-        const T* ptr = &shm->get();
-        return reinterpret_cast<void*>(const_cast<T*>(ptr));
+        return is_valid() ? reinterpret_cast<void*>(const_cast<T*>(&shm->get())) : nullptr;
     }
 
     SystemWideSharedConstantAllocationStatus get_status() const noexcept {
