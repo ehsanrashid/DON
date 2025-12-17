@@ -153,11 +153,11 @@ Thread* ThreadPool::best_thread() const noexcept {
 
     Thread* bestThread = main_thread();
 
-    Value minCurValue = +VALUE_INFINITE;
+    Value minCurValue = +VALUE_NONE;
     // Find the minimum value of all threads
     for (auto&& th : threads)
     {
-        auto curValue = th->worker->rootMoves[0].curValue;
+        Value curValue = th->worker->rootMoves[0].curValue;
 
         if (minCurValue > curValue)
             minCurValue = curValue;

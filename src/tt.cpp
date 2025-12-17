@@ -112,8 +112,6 @@ struct TTEntry final {
             value16 = v;
             eval16  = ev;
         }
-        else if (depth() > 4 && bound() != BOUND_EXACT)
-            --depth8;
     }
 
     void clear() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(*this)); }
