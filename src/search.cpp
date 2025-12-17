@@ -1358,22 +1358,23 @@ S_MOVES_LOOP:  // When in check, search starts here
         r -= int(32.9272e-6 * absCorrectionValue);
 
         // (*Scaler) Decrease reduction if position is or has been on the PV
-        r -= (2719 + 983 * PVNode + 922 * (is_valid(ttd.value) && ttd.value > alpha)
-              + (934 + 1011 * CutNode) * (ttd.depth >= depth))
-           * ss->ttPv;
+        r -= ss->ttPv
+             ? 2719 + (PVNode ? 983 : 0) + (is_valid(ttd.value) && ttd.value > alpha ? 922 : 0)
+                 + (ttd.depth >= depth ? 934 + (CutNode ? 1011 : 0) : 0)
+             : 0;
 
         // Increase reduction for CutNode
         if constexpr (CutNode)
-            r += 3372 + 997 * (ttd.move == Move::None);
+            r += 3372 + (ttd.move == Move::None ? 997 : 0);
 
         // Increase reduction if ttMove is a capture
-        r += 1119 * ttCapture;
+        r += ttCapture ? 1119 : 0;
 
         // Increase reduction if current ply has a lot of fail high
-        r += (991 + 923 * AllNode) * (ss->cutoffCount > 2);
+        r += ss->cutoffCount > 2 ? 991 + 923 * AllNode : 0;
 
         // For first picked move (ttMove) reduce reduction
-        r -= 2151 * (move == ttd.move);
+        r -= move == ttd.move ? 2151 : 0;
 
         // Decrease/Increase reduction for moves with a good/bad history
         r -= int(103.7598e-3 * ss->history);
@@ -1383,7 +1384,8 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
-            Depth redDepth = std::max(std::min(newDepth - r / 1024, newDepth + 2), 1) + PVNode;
+            Depth redDepth =
+              std::max(std::min(newDepth - r / 1024, newDepth + 2), 1) + (PVNode ? 1 : 0);
 
             value = -search<Cut>(pos, ss + 1, -alpha - 1, -alpha, redDepth, newDepth - redDepth);
 
@@ -1394,9 +1396,9 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Adjust full-depth search based on LMR value
                 newDepth +=
                   // - if the value was good enough search deeper
-                  +(value > 43 + bestValue + 2 * newDepth && redDepth < newDepth)
+                  +(value > 43 + bestValue + 2 * newDepth && redDepth < newDepth ? 1 : 0)
                   // - if the value was bad enough search shallower
-                  - (value < 9 + bestValue);
+                  - (value < 9 + bestValue ? 1 : 0);
 
                 if (redDepth < newDepth)
                     value = -search<~NT>(pos, ss + 1, -alpha - 1, -alpha, newDepth);
@@ -1409,11 +1411,12 @@ S_MOVES_LOOP:  // When in check, search starts here
         else if (!PVNode || moveCount > 1)
         {
             // Increase reduction if ttMove is not present
-            r += 1140 * (ttd.move == Move::None);
+            r += ttd.move == Move::None ? 1140 : 0;
 
             // Reduce search depth if expected reduction is high
-            value = -search<~NT>(pos, ss + 1, -alpha - 1, -alpha,
-                                 newDepth - (r > 3957) - (r > 5654 && newDepth > 2));
+            value =
+              -search<~NT>(pos, ss + 1, -alpha - 1, -alpha,
+                           newDepth - ((r > 3957 ? 1 : 0) + (r > 5654 && newDepth > 2 ? 1 : 0)));
         }
 
         // For PV nodes only, do a full PV search on the first move or after a fail high,
