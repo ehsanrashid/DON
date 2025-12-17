@@ -226,7 +226,7 @@ void Worker::ensure_network_replicated() noexcept {
 // Speculative prefetch as early as possible
 void Worker::prefetch_tt(Key key) const noexcept { prefetch(tt.cluster(key)); }
 
-void Worker::prefetch_histories(const Position& pos) const noexcept {
+void Worker::prefetch_correction_histories(const Position& pos) const noexcept {
     prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][0][0]);
     prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][0][0]);
     prefetch(&minorCorrectionHistory[correction_index(pos.minor_key(WHITE))][0][0]);
@@ -1613,7 +1613,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         && (bestValue > ss->staticEval) == (bestMove != Move::None))
     {
         int bonus = (bestValue - ss->staticEval) * depth / (8 + 2 * (bestMove != Move::None));
-        update_correction_history(pos, ss, bonus);
+        update_correction_histories(pos, ss, bonus);
     }
 
     assert(is_ok(bestValue));
@@ -1964,7 +1964,7 @@ void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_
         update_continuation_history(ss - 1, pos[preSq], preSq, -0.5879 * malus);
 }
 
-void Worker::update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept {
+void Worker::update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept {
     Color ac = pos.active_color();
 
     bonus = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);

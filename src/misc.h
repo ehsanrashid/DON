@@ -122,7 +122,7 @@ class SyncOstream final {
         uniqueLock(std::move(syncOs.uniqueLock)) {}
 
     SyncOstream& operator=(const SyncOstream&) noexcept = delete;
-    // Prefer deleting move-assignment to avoid unlock window.
+    // Prefer deleting move-assignment to avoid unlock window
     SyncOstream& operator=(SyncOstream&&) noexcept = delete;
 
     ~SyncOstream() noexcept = default;

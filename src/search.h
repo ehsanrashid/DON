@@ -537,7 +537,7 @@ class Worker final {
     void ensure_network_replicated() noexcept;
 
     void prefetch_tt(Key key) const noexcept;
-    void prefetch_histories(const Position& pos) const noexcept;
+    void prefetch_correction_histories(const Position& pos) const noexcept;
 
     // Called when the program receives the UCI 'go' command.
     // It searches from the root position and outputs the "bestmove".
@@ -587,7 +587,7 @@ class Worker final {
     void update_quiet_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Move m, int bonus) noexcept;
     void update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
 
-    void update_correction_history(const Position& pos, Stack* const ss, int bonus) noexcept;
+    void update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* const ss) noexcept;
     // clang-format on
 
