@@ -52,9 +52,9 @@ MovePicker::MovePicker(const Position&                 p,
     threshold(th) {
     assert(ttMove == Move::None || pos.legal(ttMove));
 
-    stage = pos.checkers_bb() != 0 ? STG_EVA_TT + (ttMove != Move::None ? 0 : 1)
-          : threshold < 0          ? STG_ENC_TT + (ttMove != Move::None ? 0 : 1)
-                          : STG_QS_TT + (ttMove != Move::None && pos.capture_promo(ttMove) ? 0 : 1);
+    stage = pos.checkers_bb() != 0 ? STG_EVA_TT + int(!(ttMove != Move::None))
+          : threshold < 0          ? STG_ENC_TT + int(!(ttMove != Move::None))
+                          : STG_QS_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
 }
 
 // MovePicker constructor for ProbCut:
@@ -70,7 +70,7 @@ MovePicker::MovePicker(const Position&           p,
     assert(pos.checkers_bb() == 0);
     assert(ttMove == Move::None || pos.legal(ttMove));
 
-    stage = STG_PROBCUT_TT + (ttMove != Move::None && pos.capture_promo(ttMove) ? 0 : 1);
+    stage = STG_PROBCUT_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -141,9 +141,9 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
 
         // Bonus for checks
         if (pos.check(m))
-            m.value += (pos.see(m) >= -75 ? 0x4000 : 0) + (pos.dbl_check(m) ? 0x1000 : 0);
+            m.value += (pos.see(m) >= -75) * 0x4000 + pos.dbl_check(m) * 0x1000;
 
-        m.value += pos.fork(m) && pos.see(m) >= -50 ? 0x1000 : 0;
+        m.value += (pos.fork(m) && pos.see(m) >= -50) * 0x1000;
 
         if (movedPt == KING)
             continue;
@@ -151,14 +151,14 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
         // Penalty for moving to square attacked by lesser piece
         // Bonus for escaping from square attacked by lesser piece
         int weight =
-          ((pos.acc_less_attacks_bb(movedPt) & dstSq) != 0   ? ((blockersBB & orgSq) == 0 ? -19 : 0)
+          ((pos.acc_less_attacks_bb(movedPt) & dstSq) != 0   ? ((blockersBB & orgSq) == 0) * -19
            : (threatsBB & orgSq) != 0                        ? +23
            : (pos.acc_less_attacks_bb(movedPt) & orgSq) != 0 ? +20
                                                              : 0);
         m.value += weight * piece_value(movedPt);
 
         // Penalty for moving pinner piece
-        m.value -= (pinnersBB & orgSq) != 0 && !aligned(kingSq, orgSq, dstSq) ? 0x400 : 0;
+        m.value -= ((pinnersBB & orgSq) != 0 && !aligned(kingSq, orgSq, dstSq)) * 0x400;
     }
 
     return itr;

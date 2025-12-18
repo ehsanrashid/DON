@@ -371,10 +371,13 @@ struct Skill final {
 
     Move pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickBest = true) noexcept;
 
-    static constexpr double        MIN_LEVEL = 00.0;
-    static constexpr double        MAX_LEVEL = 20.0;
-    static constexpr std::uint16_t MIN_ELO   = 1320;
-    static constexpr std::uint16_t MAX_ELO   = 3190;
+    static constexpr double MIN_LEVEL = 00.0;
+    static constexpr double MAX_LEVEL = 20.0;
+
+    static constexpr std::uint16_t MIN_ELO = 1320;
+    static constexpr std::uint16_t MAX_ELO = 3190;
+
+    static constexpr std::size_t MULTI_PV = 4;
 
    private:
     double level{MAX_LEVEL};
