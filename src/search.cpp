@@ -1510,8 +1510,9 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // In case have an alternative move equal in eval to the current bestMove,
         // promote it to bestMove by pretending it just exceeds alpha (but not beta).
-        int inc = value == bestValue && (nodes.load(std::memory_order_relaxed) & 0xE) == 0
-               && 2 + ss->ply >= rootDepth && !is_win(std::abs(value) + 1);
+        int inc = int(value == bestValue && 2 + ss->ply >= rootDepth
+                      && (nodes.load(std::memory_order_relaxed) & 0xE) == 0
+                      && !is_win(std::abs(value) + 1));
 
         if (bestValue < value + inc)
         {
