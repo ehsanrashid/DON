@@ -231,6 +231,7 @@ void init_magics() noexcept {
         }
 #endif
     }
+
     assert(totalSize == TABLE_SIZES[PT - BISHOP]);
 }
 
