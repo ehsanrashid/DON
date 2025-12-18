@@ -96,14 +96,14 @@ enum HistoryType : std::uint8_t {
 
 namespace internal {
 template<int D, std::size_t... Sizes>
-using StatsContainer = MultiArray<StatsEntry<std::int16_t, D>, Sizes...>;
+using StatsMultiArray = MultiArray<StatsEntry<std::int16_t, D>, Sizes...>;
 
 template<HistoryType T>
 struct HistoryDef;
 
 template<>
 struct HistoryDef<H_CAPTURE> final {
-    using Type = StatsContainer<10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
+    using Type = StatsMultiArray<10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 };
 
 // It records how often quiet moves have been successful or not during the current search,
@@ -111,18 +111,18 @@ struct HistoryDef<H_CAPTURE> final {
 // see https://www.chessprogramming.org/Butterfly_Boards
 template<>
 struct HistoryDef<H_QUIET> final {
-    using Type = StatsContainer<7183, COLOR_NB, UINT16_HISTORY_SIZE>;
+    using Type = StatsMultiArray<7183, COLOR_NB, UINT16_HISTORY_SIZE>;
 };
 
 template<>
 struct HistoryDef<H_PAWN> final {
-    using Type = StatsContainer<8192, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
+    using Type = StatsMultiArray<8192, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
 };
 
 // It is used to improve quiet move ordering near the root.
 template<>
 struct HistoryDef<H_LOW_PLY_QUIET> final {
-    using Type = StatsContainer<7183, LOW_PLY_QUIET_SIZE, UINT16_HISTORY_SIZE>;
+    using Type = StatsMultiArray<7183, LOW_PLY_QUIET_SIZE, UINT16_HISTORY_SIZE>;
 };
 
 template<>
@@ -132,7 +132,7 @@ struct HistoryDef<H_TT_MOVE> final {
 
 template<>
 struct HistoryDef<H_PIECE_SQ> final {
-    using Type = StatsContainer<30000, PIECE_NB, SQUARE_NB>;
+    using Type = StatsMultiArray<30000, PIECE_NB, SQUARE_NB>;
 };
 
 template<>
@@ -159,29 +159,29 @@ enum CorrectionHistoryType : std::uint8_t {
 
 namespace internal {
 template<std::size_t... Sizes>
-using CorrectionStatsContainer = StatsContainer<CORRECTION_HISTORY_LIMIT, Sizes...>;
+using CorrectionStatsMultiArray = StatsMultiArray<CORRECTION_HISTORY_LIMIT, Sizes...>;
 
 template<CorrectionHistoryType T>
 struct CorrectionHistoryDef;
 
 template<>
 struct CorrectionHistoryDef<CH_PAWN> final {
-    using Type = CorrectionStatsContainer<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsMultiArray<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryDef<CH_MINOR> final {
-    using Type = CorrectionStatsContainer<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsMultiArray<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryDef<CH_NON_PAWN> final {
-    using Type = CorrectionStatsContainer<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = CorrectionStatsMultiArray<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
 };
 
 template<>
 struct CorrectionHistoryDef<CH_PIECE_SQ> final {
-    using Type = CorrectionStatsContainer<PIECE_NB, SQUARE_NB>;
+    using Type = CorrectionStatsMultiArray<PIECE_NB, SQUARE_NB>;
 };
 
 template<>

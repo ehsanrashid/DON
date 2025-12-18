@@ -19,6 +19,7 @@
 #include <memory>
 
 #include "bitboard.h"
+#include "memory.h"
 #include "misc.h"
 #include "nnue/features/full_threats.h"
 #include "position.h"
