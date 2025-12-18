@@ -335,7 +335,7 @@ void Worker::start_search() noexcept {
     // However, if pondering or in an infinite search, the UCI protocol states that
     // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
     // Therefore simply wait here until the GUI sends one of those commands.
-    while (!threads.stop.load(std::memory_order_relaxed) && (mainManager->ponder || limit.infinite))
+    while (!threads.stop.load(std::memory_order_relaxed) && (limit.infinite || mainManager->ponder))
     {}  // Busy wait for a stop or a mainManager->ponder reset
 
     // Stop the threads if not already stopped
