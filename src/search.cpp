@@ -372,7 +372,7 @@ void Worker::start_search() noexcept {
 
         if (limit.use_time_manager())
         {
-            mainManager->moveFirst        = false;
+            mainManager->initial          = false;
             mainManager->preBestCurValue  = bestWorker->rootMoves[0].curValue;
             mainManager->preBestAvgValue  = bestWorker->rootMoves[0].avgValue;
             mainManager->preTimeReduction = mainManager->timeReduction;
@@ -625,8 +625,8 @@ void Worker::iterative_deepening() noexcept {
             auto inconsistencyFactor = std::clamp(0.11850
                                                 + 0.02240 * (mainManager->preBestAvgValue - bestValue)
                                                 + 0.00930 * (mainManager->preBestCurValue - bestValue),
-                                                   0.9999 - !mainManager->moveFirst * 0.4299,
-                                                   1.0001 + !mainManager->moveFirst * 0.6999);
+                                                   0.9999 - !mainManager->initial * 0.4299,
+                                                   1.0001 + !mainManager->initial * 0.6999);
 
             // Compute stable depth (difference between the current search depth and the last best depth)
             Depth stableDepth = completedDepth - lastBestDepth;
@@ -2239,7 +2239,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 void MainSearchManager::init() noexcept {
 
     timeManager.init();
-    moveFirst        = true;
+    initial          = true;
     preBestCurValue  = VALUE_ZERO;
     preBestAvgValue  = VALUE_ZERO;
     preTimeReduction = 0.85;
