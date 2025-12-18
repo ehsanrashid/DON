@@ -74,11 +74,13 @@ inline constexpr std::size_t PAWN_HISTORY_SIZE = 0x4000;
 static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
               "PAWN_HISTORY_SIZE has to be a power of 2");
 
-constexpr std::uint16_t pawn_index(Key pawnKey) noexcept {  //
+constexpr std::uint16_t pawn_index(Key pawnKey) noexcept {
     return compress_key16(pawnKey) & (PAWN_HISTORY_SIZE - 1);
 }
 
 inline constexpr std::size_t BASE_CORRECTION_HISTORY_SIZE = UINT16_HISTORY_SIZE;
+static_assert((BASE_CORRECTION_HISTORY_SIZE & (BASE_CORRECTION_HISTORY_SIZE - 1)) == 0,
+              "BASE_CORRECTION_HISTORY_SIZE has to be a power of 2");
 
 constexpr std::uint16_t correction_index(Key corrKey) noexcept {  //
     return compress_key16(corrKey);
@@ -193,6 +195,18 @@ struct CorrectionHistoryDef<CH_CONTINUATION> final {
 // Alias template for convenience
 template<CorrectionHistoryType T>
 using CorrectionHistory = typename internal::CorrectionHistoryDef<T>::Type;
+
+
+struct CorrectionHistories final {
+   public:
+    CorrectionHistories(std::size_t threadCount) noexcept :
+        Size(threadCount * BASE_CORRECTION_HISTORY_SIZE) {}
+
+    std::size_t size() const noexcept { return Size; }
+
+   private:
+    const std::size_t Size;
+};
 
 }  // namespace DON
 

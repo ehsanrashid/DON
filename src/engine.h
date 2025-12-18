@@ -23,9 +23,11 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "history.h"
 #include "misc.h"
 #include "nnue/network.h"
 #include "numa.h"
@@ -112,10 +114,11 @@ class Engine final {
 
     NumaReplicationContext numaContext;
 
-    Options                                      options;
-    ThreadPool                                   threads;
-    TranspositionTable                           tt;
-    SystemWideLazyNumaReplicated<NNUE::Networks> networks;
+    Options                                            options;
+    ThreadPool                                         threads;
+    TranspositionTable                                 tt;
+    SystemWideLazyNumaReplicated<NNUE::Networks>       networks;
+    std::unordered_map<NumaIndex, CorrectionHistories> correctionHistories;
 
     StateListPtr states;
     Position     pos;

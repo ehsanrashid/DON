@@ -28,6 +28,7 @@
 #include <initializer_list>
 #include <memory>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -389,16 +390,19 @@ struct SharedState final {
     SharedState(const Options&                                      engOptions,
                 const SystemWideLazyNumaReplicated<NNUE::Networks>& nnueNetworks,
                 ThreadPool&                                         threadPool,
-                TranspositionTable&                                 transpositionTable) noexcept :
+                TranspositionTable&                                 transpositionTable,
+                std::unordered_map<NumaIndex, CorrectionHistories>  correctionHists) noexcept :
         options(engOptions),
         networks(nnueNetworks),
         threads(threadPool),
-        tt(transpositionTable) {}
+        tt(transpositionTable),
+        correctionHistories(correctionHists) {}
 
     const Options&                                      options;
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
     ThreadPool&                                         threads;
     TranspositionTable&                                 tt;
+    std::unordered_map<NumaIndex, CorrectionHistories>  correctionHistories;
 };
 
 class Worker;
