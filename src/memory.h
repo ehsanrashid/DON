@@ -371,6 +371,7 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
     // Still need to query GetLastError() to ensure that the privileges were actually obtained.
     SetLastError(ERROR_SUCCESS);
+
     if (!advapi.adjustTokenPrivileges(hProcess, FALSE, &newTp, sizeof(oldTp), &oldTp, &oldTpLen)
         || GetLastError() != ERROR_SUCCESS)
         return failureFunc();

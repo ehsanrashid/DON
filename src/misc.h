@@ -361,8 +361,8 @@ class MultiArray {
     constexpr auto&       back() noexcept { return _data.back(); }
     constexpr const auto& back() const noexcept { return _data.back(); }
 
-    auto*       data() { return _data.data(); }
-    const auto* data() const { return _data.data(); }
+    auto*       data() noexcept { return _data.data(); }
+    const auto* data() const noexcept { return _data.data(); }
 
     constexpr auto max_size() const noexcept { return _data.max_size(); }
 
@@ -443,17 +443,20 @@ class MultiArray {
     ArrayType _data;
 };
 
-template<typename T, std::size_t SizeMultiplier>
-class LargePageArray final {
+template<typename T>
+class DynamicArray final {
    public:
-    explicit LargePageArray(std::size_t n) noexcept :
-        _size(n * SizeMultiplier) {
+    explicit DynamicArray(std::size_t count, std::size_t baseSize) noexcept :
+        _size((count != 0 ? count : 1) * baseSize) {
+        assert(baseSize != 0);
+
         _data = make_unique_aligned_large_page<T[]>(size());
     }
 
     std::size_t size() const noexcept { return _size; }
 
-    auto* data() noexcept { return _data.get(); }
+    T*       data() noexcept { return _data.get(); }
+    const T* data() const noexcept { return _data.get(); }
 
     T& operator[](std::size_t idx) noexcept {
         assert(idx < size());

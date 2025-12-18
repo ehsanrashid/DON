@@ -39,7 +39,7 @@
     #define POSIX_ALIGNED
 #endif
 
-#include "misc.h"
+#include "misc.h"  // IWYU pragma: keep
 
 namespace DON {
 
