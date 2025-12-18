@@ -662,7 +662,7 @@ class FixedVector final {
 
    private:
     StdArray<T, Capacity> _data;
-    SizeType              _size{0};
+    SizeType              _size = 0;
 };
 
 template<std::size_t Capacity>

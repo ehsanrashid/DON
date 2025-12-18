@@ -289,8 +289,8 @@ class RootMoves final {
 struct Limit final {
    public:
     struct Clock final {
-        TimePoint time{0};
-        TimePoint inc{0};
+        TimePoint time = 0;
+        TimePoint inc  = 0;
     };
 
     constexpr Limit() noexcept = default;
@@ -303,18 +303,18 @@ struct Limit final {
         return nodes != 0 ? std::min(1 + int(std::ceil(nodes / 1024.0)), 512) : 512;
     }
 
-    TimePoint startTime{0};
+    TimePoint startTime = 0;
 
     StdArray<Clock, COLOR_NB> clocks{};
 
-    std::uint8_t  movesToGo{0};
-    std::uint8_t  mate{0};
-    TimePoint     moveTime{0};
-    Depth         depth{DEPTH_ZERO};
-    std::uint64_t nodes{0};
-    bool          infinite{false};
-    bool          ponder{false};
-    bool          perft{false}, detail{false};
+    std::uint8_t  movesToGo = 0;
+    std::uint8_t  mate      = 0;
+    TimePoint     moveTime  = 0;
+    Depth         depth     = DEPTH_ZERO;
+    std::uint64_t nodes     = 0;
+    bool          infinite  = false;
+    bool          ponder    = false;
+    bool          perft = false, detail = false;
 
     Strings searchMoves{}, ignoreMoves{};
 };
@@ -380,8 +380,8 @@ struct Skill final {
     static constexpr std::size_t MULTI_PV = 4;
 
    private:
-    double level{MAX_LEVEL};
-    Move   bestMove{Move::None};
+    double level    = MAX_LEVEL;
+    Move   bestMove = Move::None;
 };
 
 // SharedState stores the engine options, networks, thread pool, and transposition table.

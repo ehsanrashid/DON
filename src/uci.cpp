@@ -664,7 +664,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     static_assert(HashfullAges.size() == 2 && HashfullAges[0] == 0 && HashfullAges[1] == 31,
                   "Incorrect HashfullAges[].");
 
-    std::uint16_t                                hashfullCount{0};
+    std::uint16_t                                hashfullCount = 0;
     StdArray<std::uint16_t, HashfullAges.size()> maxHashfull{};
     StdArray<std::uint32_t, HashfullAges.size()> sumHashfull{};
 

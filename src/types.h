@@ -600,7 +600,7 @@ class Move {
         std::size_t operator()(Move m) const noexcept { return make_hash(m.move); }
     };
 
-    constexpr Move() noexcept = default;
+    Move() noexcept = default;
     // Constructors using delegating syntax
     constexpr explicit Move(std::uint16_t m) noexcept :
         move(m) {}
@@ -640,7 +640,7 @@ class Move {
     static const Move Null;
 
    protected:
-    std::uint16_t move{0};
+    std::uint16_t move;
 };
 
 // **Define the constexpr static members outside the class**

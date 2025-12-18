@@ -104,7 +104,7 @@ class XorShift64Star final {
     constexpr void jump() noexcept {
         constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
 
-        std::uint64_t t{0};
+        std::uint64_t t = 0;
         for (std::uint8_t b = 0; b < 64; ++b)
         {
             if (((JumpMask >> b) & 1) != 0)
