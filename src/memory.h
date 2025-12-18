@@ -52,16 +52,19 @@
     #include <psapi.h>
 #endif
 
-namespace DON {
-
 #define ASSERT_ALIGNED(ptr, alignment) \
     assert(reinterpret_cast<std::uintptr_t>(ptr) % alignment == 0)
 
+namespace DON {
+
 void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept;
-void  free_aligned_std(void* mem) noexcept;
+
+void free_aligned_std(void* mem) noexcept;
+
 // memory aligned by page size, min alignment: 4096 bytes
 void* alloc_aligned_large_page(std::size_t allocSize) noexcept;
-bool  free_aligned_large_page(void* mem) noexcept;
+
+bool free_aligned_large_page(void* mem) noexcept;
 
 bool has_large_page() noexcept;
 
@@ -259,6 +262,7 @@ template<std::size_t Alignment, typename T>
     ptrInt      = round_up_pow2(ptrInt, static_cast<std::uintptr_t>(Alignment));
     return reinterpret_cast<T*>(ptrInt);
 }
+
 template<std::size_t Alignment, typename T>
 [[nodiscard]] constexpr const T* align_ptr_up(const T* ptr) noexcept {
     using U = std::remove_const_t<T>;
@@ -278,9 +282,10 @@ struct Advapi final {
     using AdjustTokenPrivileges_ = BOOL(WINAPI*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
     // clang-format on
 
-    static constexpr LPCSTR ModuleName = TEXT("advapi32.dll");
+    static constexpr LPCSTR MODULE_NAME = TEXT("advapi32.dll");
 
     constexpr Advapi() noexcept = default;
+
     ~Advapi() noexcept { free(); }
 
     // The needed Windows API for processor groups could be missed from old Windows versions,
@@ -288,27 +293,36 @@ struct Advapi final {
     // try to load them at runtime.
     bool load() noexcept {
 
-        hModule = GetModuleHandle(ModuleName);
+        hModule = GetModuleHandle(MODULE_NAME);
+
         if (hModule == nullptr)
         {
-            hModule = LoadLibraryEx(ModuleName, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+            hModule = LoadLibraryEx(MODULE_NAME, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+
             if (hModule == nullptr)
-                hModule = LoadLibrary(ModuleName);  // optional last resort
+                hModule = LoadLibrary(MODULE_NAME);  // optional last resort
+
             if (hModule == nullptr)
                 return false;
+
             loaded = true;
         }
 
         openProcessToken =
           OpenProcessToken_((void (*)()) GetProcAddress(hModule, "OpenProcessToken"));
+
         if (openProcessToken == nullptr)
             return false;
+
         lookupPrivilegeValue =
           LookupPrivilegeValue_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueA"));
+
         if (lookupPrivilegeValue == nullptr)
             return false;
+
         adjustTokenPrivileges =
           AdjustTokenPrivileges_((void (*)()) GetProcAddress(hModule, "AdjustTokenPrivileges"));
+
         if (adjustTokenPrivileges == nullptr)
             return false;
 
@@ -318,6 +332,7 @@ struct Advapi final {
     void free() noexcept {
         if (loaded && hModule != nullptr)
             FreeLibrary(hModule);
+
         hModule = nullptr;
         loaded  = false;
     }

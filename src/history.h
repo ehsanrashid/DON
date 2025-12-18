@@ -78,6 +78,8 @@ constexpr std::uint16_t pawn_index(Key pawnKey) noexcept {  //
     return compress_key16(pawnKey) & (PAWN_HISTORY_SIZE - 1);
 }
 
+inline constexpr std::size_t BASE_CORRECTION_HISTORY_SIZE = UINT16_HISTORY_SIZE;
+
 constexpr std::uint16_t correction_index(Key corrKey) noexcept {  //
     return compress_key16(corrKey);
 }

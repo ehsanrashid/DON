@@ -446,11 +446,11 @@ class MultiArray {
 template<typename T>
 class DynamicArray final {
    public:
-    explicit DynamicArray(std::size_t count, std::size_t baseSize) noexcept :
-        _size((count != 0 ? count : 1) * baseSize) {
-        assert(baseSize != 0);
+    explicit DynamicArray(std::size_t size) noexcept :
+        _size(size) {
+        assert(size != 0);
 
-        _data = make_unique_aligned_large_page<T[]>(size());
+        _data = make_unique_aligned_large_page<T[]>(size);
     }
 
     std::size_t size() const noexcept { return _size; }
