@@ -446,8 +446,8 @@ class MultiArray {
 template<typename T, std::size_t SizeMultiplier>
 class LargePageArray final {
    public:
-    explicit LargePageArray(std::size_t s) noexcept {
-        _size = s * SizeMultiplier;
+    explicit LargePageArray(std::size_t n) noexcept :
+        _size(n * SizeMultiplier) {
         _data = make_unique_aligned_large_page<T[]>(size());
     }
 
@@ -469,7 +469,7 @@ class LargePageArray final {
         assert(begIdx < size());
         assert(endIdx <= size());
 
-        if (endIdx > size)
+        if (endIdx > size())
             endIdx = size();
 
         for (std::size_t idx = begIdx; idx < endIdx; ++idx)
