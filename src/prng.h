@@ -22,6 +22,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <type_traits>
 
 #include "misc.h"
@@ -105,10 +106,13 @@ class XorShift64Star final {
         constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
 
         std::uint64_t t = 0;
-        for (std::uint8_t b = 0; b < 64; ++b)
+
+        constexpr unsigned Bits = std::numeric_limits<std::uint64_t>::digits;
+        for (unsigned b = 0; b < Bits; ++b)
         {
-            if (((JumpMask >> b) & 1) != 0)
+            if ((JumpMask & (1ULL << b)) != 0)
                 t ^= s;
+
             rand64();
         }
 
@@ -158,14 +162,19 @@ class XoShiRo256Star final {
         };
 
         StdArray<std::uint64_t, Size> t{};
-        for (std::uint64_t jumpMask : JumpMasks)
-            for (std::uint8_t b = 0; b < 64; ++b)
+
+        for (const std::uint64_t JumpMask : JumpMasks)
+        {
+            constexpr unsigned Bits = std::numeric_limits<std::uint64_t>::digits;
+            for (unsigned b = 0; b < Bits; ++b)
             {
-                if (((jumpMask >> b) & 1) != 0)
+                if ((JumpMask & (1ULL << b)) != 0)
                     for (std::size_t i = 0; i < Size; ++i)
                         t[i] ^= s[i];
+
                 rand64();
             }
+        }
 
         for (std::size_t i = 0; i < Size; ++i)
             s[i] = t[i];
