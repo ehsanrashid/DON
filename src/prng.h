@@ -105,9 +105,10 @@ class XorShift64Star final {
     constexpr void jump() noexcept {
         constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
 
+        constexpr unsigned Bits = std::numeric_limits<std::uint64_t>::digits;
+
         std::uint64_t t = 0;
 
-        constexpr unsigned Bits = std::numeric_limits<std::uint64_t>::digits;
         for (unsigned b = 0; b < Bits; ++b)
         {
             if ((JumpMask & (1ULL << b)) != 0)
@@ -161,11 +162,12 @@ class XoShiRo256Star final {
           0xA9582618E03FC9AAULL, 0x39ABDC4529B1661CULL   //
         };
 
+        constexpr unsigned Bits = std::numeric_limits<std::uint64_t>::digits;
+
         StdArray<std::uint64_t, Size> t{};
 
         for (const std::uint64_t JumpMask : JumpMasks)
         {
-            constexpr unsigned Bits = std::numeric_limits<std::uint64_t>::digits;
             for (unsigned b = 0; b < Bits; ++b)
             {
                 if ((JumpMask & (1ULL << b)) != 0)
