@@ -625,8 +625,8 @@ void Worker::iterative_deepening() noexcept {
             auto inconsistencyFactor = std::clamp(0.11850
                                                 + 0.02240 * (mainManager->preBestAvgValue - bestValue)
                                                 + 0.00930 * (mainManager->preBestCurValue - bestValue),
-                                                   0.9999 - !mainManager->initial * 0.4299,
-                                                   1.0001 + !mainManager->initial * 0.6999);
+                                                   1.0000 - !mainManager->initial * 0.4300,
+                                                   1.0000 + !mainManager->initial * 0.7000);
 
             // Compute stable depth (difference between the current search depth and the last best depth)
             Depth stableDepth = completedDepth - lastBestDepth;
