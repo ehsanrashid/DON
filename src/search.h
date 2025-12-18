@@ -377,7 +377,7 @@ struct Skill final {
     static constexpr std::uint16_t MIN_ELO = 1320;
     static constexpr std::uint16_t MAX_ELO = 3190;
 
-    static constexpr std::size_t MULTI_PV = 4;
+    static constexpr std::size_t MIN_MULTI_PV = 4;
 
    private:
     double level    = MAX_LEVEL;

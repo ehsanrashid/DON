@@ -247,15 +247,17 @@ void Worker::start_search() noexcept {
     lowPlyQuietHistory.fill(97);
 
     multiPV = DEFAULT_MULTI_PV;
+
     if (mainManager != nullptr)
     {
         multiPV = options["MultiPV"];
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
-            if (multiPV < Skill::MULTI_PV)
-                multiPV = Skill::MULTI_PV;
+            if (multiPV < Skill::MIN_MULTI_PV)
+                multiPV = Skill::MIN_MULTI_PV;
     }
+
     if (multiPV > rootMoves.size())
         multiPV = rootMoves.size();
 
@@ -359,9 +361,10 @@ void Worker::start_search() noexcept {
             for (auto&& th : threads)
                 th->worker->rootMoves.swap_to_front(skillMove);
         }
-
-        if (multiPV == 1 && threads.size() > 1 && limit.mate == 0  //&& limit.depth == DEPTH_ZERO
-            && rootMoves[0].pv[0] != Move::None)
+        else if (threads.size() > 1 && multiPV == 1
+                 && limit.mate == 0
+                 //&& limit.depth == DEPTH_ZERO
+                 && rootMoves[0].pv[0] != Move::None)
         {
             bestWorker = threads.best_thread()->worker.get();
 
