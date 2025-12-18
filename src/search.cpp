@@ -246,11 +246,12 @@ void Worker::start_search() noexcept {
 
     lowPlyQuietHistory.fill(97);
 
-    multiPV = DEFAULT_MULTI_PV;
+    multiPV = 1;
 
     if (mainManager != nullptr)
     {
         multiPV = options["MultiPV"];
+
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())

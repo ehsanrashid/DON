@@ -55,8 +55,6 @@ struct Networks;
 inline constexpr std::size_t MOVE_CAPACITY = 32;
 using SearchedMoves                        = FixedVector<Move, MOVE_CAPACITY>;
 
-inline constexpr std::size_t DEFAULT_MULTI_PV = 1;
-
 inline PolyBook Book;
 
 namespace Search {
