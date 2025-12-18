@@ -447,13 +447,9 @@ class Position final {
     static constexpr auto CASTLING_RIGHTS_INDICES = []() constexpr {
         StdArray<std::uint8_t, SQUARE_NB> castlingRightsIndices{};
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
-        {
-            auto rank                = rank_of(s);
-            auto file                = file_of(s);
-            castlingRightsIndices[s] = rank == RANK_1 ? WHITE * FILE_NB + file
-                                     : rank == RANK_8 ? BLACK * FILE_NB + file
-                                                      : COLOR_NB * FILE_NB;
-        }
+            castlingRightsIndices[s] = rank_of(s) == RANK_1 ? WHITE * FILE_NB + file_of(s)
+                                     : rank_of(s) == RANK_8 ? BLACK * FILE_NB + file_of(s)
+                                                            : COLOR_NB * FILE_NB;
         return castlingRightsIndices;
     }();
 
