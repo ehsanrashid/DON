@@ -209,14 +209,18 @@ void Engine::init() noexcept {
 }
 
 void Engine::resize_threads_tt() noexcept {
+
     threads.set(numaContext.numa_config(), {options, networks, threads, tt}, updateContext);
+
     // Reallocate the hash with the new threadpool size
     resize_tt(options["Hash"]);
+
     threads.ensure_network_replicated();
 }
 
 void Engine::resize_tt(std::size_t ttSize) noexcept {
     wait_finish();
+
     tt.resize(ttSize, threads);
 }
 
@@ -245,6 +249,7 @@ void Engine::dump(std::optional<std::string_view> dumpFile) const noexcept {
 
 void Engine::eval() noexcept {
     verify_networks();
+
     std::cout << '\n' << Evaluate::trace(pos, *networks) << std::endl;
 }
 
@@ -306,6 +311,7 @@ std::string Engine::get_thread_allocation_info_str() const noexcept {
 }
 
 void Engine::verify_networks() const noexcept {
+
     networks->big.verify(options["BigEvalFile"]);
     networks->small.verify(options["SmallEvalFile"]);
 
@@ -326,31 +332,41 @@ void Engine::verify_networks() const noexcept {
 }
 
 void Engine::load_networks() noexcept {
+
     networks.modify_and_replicate([this](NNUE::Networks& nets) {
         nets.big.load(binaryDirectory, options["BigEvalFile"]);
         nets.small.load(binaryDirectory, options["SmallEvalFile"]);
     });
+
     threads.init();
+
     threads.ensure_network_replicated();
 }
 
 void Engine::load_big_network(std::string_view netFile) noexcept {
+
     networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) {
         nets.big.load(binaryDirectory, std::string(netFile));
     });
+
     threads.init();
+
     threads.ensure_network_replicated();
 }
 
 void Engine::load_small_network(std::string_view netFile) noexcept {
+
     networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) {
         nets.small.load(binaryDirectory, std::string(netFile));
     });
+
     threads.init();
+
     threads.ensure_network_replicated();
 }
 
 void Engine::save_networks(const StdArray<std::optional<std::string>, 2>& netFiles) noexcept {
+
     networks.modify_and_replicate([&](const NNUE::Networks& nets) {
         nets.big.save(netFiles[0]);
         nets.small.save(netFiles[1]);

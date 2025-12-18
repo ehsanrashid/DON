@@ -73,13 +73,16 @@ using WorkerPtr = LargePagePtr<Worker>;
 // the search is finished, it goes back to idle_func() waiting for a new signal.
 class Thread final {
    public:
-    Thread(std::size_t                           id,
+    Thread(std::size_t                           thId,
+           std::size_t                           nId,
            const SharedState&                    sharedState,
            ISearchManagerPtr                     searchManager,
            const OptionalThreadToNumaNodeBinder& nodeBinder) noexcept;
     ~Thread() noexcept;
 
-    std::size_t id() const noexcept { return idx; }
+    std::size_t thread_id() const noexcept { return threadId; }
+
+    std::size_t numa_id() const noexcept { return numaId; }
 
     void ensure_network_replicated() const noexcept;
 
@@ -97,8 +100,9 @@ class Thread final {
     // Set before starting nativeThread
     bool dead = false, busy = true;
 
-    const std::size_t       idx;
-    const std::size_t       threadCount;
+    const std::size_t threadId;
+    const std::size_t numaId;
+
     std::mutex              mutex;
     std::condition_variable condVar;
     NativeThread            nativeThread;
@@ -111,29 +115,36 @@ class Thread final {
 // Blocks on the condition variable until the thread has finished job
 inline void Thread::wait_finish() noexcept {
     std::unique_lock uniqueLock(mutex);
+
     condVar.wait(uniqueLock, [this] { return !busy; });
 }
 
 // Launching a job in the thread
-inline void Thread::run_custom_job(JobFunc job) noexcept {
+inline void Thread::run_custom_job(JobFunc jobFn) noexcept {
     {
         std::unique_lock uniqueLock(mutex);
+
         condVar.wait(uniqueLock, [this] { return !busy; });
-        jobFunc = std::move(job);
-        busy    = true;
+
+        jobFunc = std::move(jobFn);
+
+        busy = true;
     }
+
     condVar.notify_one();
 }
 
 // Wakes up the thread that will initialize the worker
 inline void Thread::init() noexcept {
     assert(worker != nullptr);
+
     run_custom_job([this]() { worker->init(); });
 }
 
 // Wakes up the thread that will start the search on worker
 inline void Thread::start_search() noexcept {
     assert(worker != nullptr);
+
     run_custom_job([this]() { worker->start_search(); });
 }
 
@@ -177,22 +188,27 @@ class ThreadPool final {
 
     void init() noexcept;
 
-    Thread*            main_thread() const noexcept;
-    Thread*            best_thread() const noexcept;
+    Thread* main_thread() const noexcept;
+
     MainSearchManager* main_manager() const noexcept;
 
+    Thread* best_thread() const noexcept;
+
     std::uint64_t nodes() const noexcept;
+
     std::uint64_t tbHits() const noexcept;
 
     void
     start(Position& pos, StateListPtr& states, const Limit& limit, const Options& options) noexcept;
 
     void start_search() const noexcept;
+
     void wait_finish() const noexcept;
 
     void ensure_network_replicated() const noexcept;
 
     void run_on_thread(std::size_t threadId, JobFunc job) noexcept;
+
     void wait_on_thread(std::size_t threadId) noexcept;
 
     std::vector<std::size_t> get_bound_thread_counts() const noexcept;

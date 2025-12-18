@@ -21,9 +21,9 @@
 #include <chrono>
 #include <ratio>
 #include <string>
-#include <type_traits>
 #include <unordered_map>
 
+#include "bitboard.h"
 #include "movegen.h"
 #include "syzygy/tbbase.h"
 #include "types.h"
@@ -32,24 +32,35 @@
 
 namespace DON {
 
+namespace {
+
+std::size_t next_pow2(std::uint64_t count) noexcept {
+    return count <= 1 ? 1 : 2ULL << constexpr_msb(count - 1);
+}
+
+}  // namespace
+
 // Constructor launches the thread and waits until it goes to sleep
 // in idle_func(). Note that 'dead' and 'busy' should be already set.
-Thread::Thread(std::size_t                           id,
+Thread::Thread(std::size_t                           thId,
+               std::size_t                           nId,
                const SharedState&                    sharedState,
                ISearchManagerPtr                     searchManager,
                const OptionalThreadToNumaNodeBinder& nodeBinder) noexcept :
-    idx(id),
-    threadCount(sharedState.options["Threads"]),
+    threadId(thId),
+    numaId(nId),
     nativeThread(&Thread::idle_func, this) {
 
     wait_finish();
-    run_custom_job([this, id, &sharedState, &searchManager, &nodeBinder]() {
+
+    run_custom_job([this, &sharedState, &searchManager, &nodeBinder]() {
         // Use the binder to [maybe] bind the threads to a NUMA node before doing
         // the Worker allocation.
         // Ideally would also allocate the SearchManager here, but that's minor.
-        worker = make_unique_aligned_large_pages<Worker>(id, sharedState, std::move(searchManager),
-                                                         nodeBinder());
+        worker = make_unique_aligned_large_pages<Worker>(threadId, sharedState,
+                                                         std::move(searchManager), nodeBinder());
     });
+
     wait_finish();
 }
 
@@ -59,7 +70,9 @@ Thread::~Thread() noexcept {
     assert(!busy);
 
     dead = true;
+
     run_custom_job([]() { return; });
+
     nativeThread.join();
 }
 
@@ -71,20 +84,22 @@ void Thread::idle_func() noexcept {
     while (true)
     {
         std::unique_lock uniqueLock(mutex);
+
         busy = false;
-        condVar.notify_one();  // Wake up anyone waiting for search finished
+
+        condVar.notify_one();  // Wake up anyone waiting for job finished
         condVar.wait(uniqueLock, [this] { return busy; });
 
         if (dead)
             break;
 
-        auto job = std::move(jobFunc);
-        jobFunc  = nullptr;
+        JobFunc jobFn = std::move(jobFunc);
+        jobFunc       = nullptr;
 
         uniqueLock.unlock();
 
-        if (job)
-            job();
+        if (jobFn)
+            jobFn();
     }
 }
 
@@ -125,6 +140,36 @@ void ThreadPool::set(const NumaConfig&                       numaConfig,
                              ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
                              : std::vector<NumaIndex>{};
 
+    std::unordered_map<NumaIndex, std::size_t> numaIds;
+
+    if (numaNodeBoundThreadIds.empty())
+    {
+        // Pretend all threads are part of numa node 0
+        numaIds[0] = threadCount;
+    }
+    else
+    {
+        for (std::size_t i = 0; i < numaNodeBoundThreadIds.size(); ++i)
+            ++numaIds[numaNodeBoundThreadIds[i]];
+    }
+
+    for (const auto& [numaIdx, count] : numaIds)
+    {
+        const auto f = [_numaIdx = numaIdx, _count = count]() {
+            //sharedState.sharedHistories.try_emplace(_numaIdx, next_pow2(_count));
+            next_pow2(_count);
+            (void) _numaIdx;
+            (void) _count;
+        };
+
+        if (threadBindable)
+            numaConfig.execute_on_numa_node(numaIdx, f);
+        else
+            f();
+    }
+
+    numaIds.clear();
+
     const auto* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
 
     for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
@@ -142,8 +187,10 @@ void ThreadPool::set(const NumaConfig&                       numaConfig,
         // want to trash cache in case the threads get scheduled on the same NUMA node.
         OptionalThreadToNumaNodeBinder nodeBinder(numaIdx, numaConfigPtr);
 
-        threads.emplace_back(
-          std::make_unique<Thread>(threadId, sharedState, std::move(searchManager), nodeBinder));
+        threads.emplace_back(std::make_unique<Thread>(threadId, numaIds[numaIdx], sharedState,
+                                                      std::move(searchManager), nodeBinder));
+
+        ++numaIds[numaIdx];
     }
 
     init();
@@ -329,11 +376,13 @@ void ThreadPool::start(Position&      pos,
 
 void ThreadPool::run_on_thread(std::size_t threadId, JobFunc job) noexcept {
     assert(threadId < size());
+
     threads[threadId]->run_custom_job(std::move(job));
 }
 
 void ThreadPool::wait_on_thread(std::size_t threadId) noexcept {
     assert(threadId < size());
+
     threads[threadId]->wait_finish();
 }
 
