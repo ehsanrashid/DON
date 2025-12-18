@@ -84,7 +84,9 @@ class XorShift64Star final {
    public:
     explicit XorShift64Star(std::uint64_t seed = 1ULL) noexcept {
         SplitMix64 sm64(seed);
+
         s = sm64.next();
+
         // Avoid zero state
         if (s == 0)
             s = 1ULL;
@@ -103,6 +105,7 @@ class XorShift64Star final {
 
     // XorShift64* jump implementation
     constexpr void jump() noexcept {
+
         constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
 
         constexpr unsigned Bits = std::numeric_limits<std::uint64_t>::digits;
@@ -137,8 +140,10 @@ class XoShiRo256Star final {
    public:
     explicit XoShiRo256Star(std::uint64_t seed = 1ULL) noexcept {
         SplitMix64 sm64(seed);
-        for (std::size_t i = 0; i < Size; ++i)
+
+        for (std::size_t i = 0; i < SIZE; ++i)
             s[i] = sm64.next();
+
         // Avoid all-zero state
         if (std::all_of(s.begin(), s.end(), [](auto x) { return x == 0; }))
             s[0] = 1ULL;
@@ -157,28 +162,29 @@ class XoShiRo256Star final {
 
     // XoShiRo256** jump implementation
     constexpr void jump() noexcept {
-        constexpr StdArray<std::uint64_t, Size> JumpMasks{
+
+        constexpr StdArray<std::uint64_t, SIZE> JumpMasks{
           0x180EC6D33CFD0ABAULL, 0xD5A61266F0C9392CULL,  //
           0xA9582618E03FC9AAULL, 0x39ABDC4529B1661CULL   //
         };
 
         constexpr unsigned Bits = std::numeric_limits<std::uint64_t>::digits;
 
-        StdArray<std::uint64_t, Size> t{};
+        StdArray<std::uint64_t, SIZE> t{};
 
         for (const std::uint64_t JumpMask : JumpMasks)
         {
             for (unsigned b = 0; b < Bits; ++b)
             {
                 if ((JumpMask & (1ULL << b)) != 0)
-                    for (std::size_t i = 0; i < Size; ++i)
+                    for (std::size_t i = 0; i < SIZE; ++i)
                         t[i] ^= s[i];
 
                 rand64();
             }
         }
 
-        for (std::size_t i = 0; i < Size; ++i)
+        for (std::size_t i = 0; i < SIZE; ++i)
             s[i] = t[i];
     }
 
@@ -196,9 +202,9 @@ class XoShiRo256Star final {
         return rs1;
     }
 
-    static constexpr std::size_t Size = 4;
+    static constexpr std::size_t SIZE = 4;
 
-    StdArray<std::uint64_t, Size> s;
+    StdArray<std::uint64_t, SIZE> s;
 };
 
 // Template PRNG wrapper
