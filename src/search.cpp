@@ -656,16 +656,18 @@ void Worker::iterative_deepening() noexcept {
             TimePoint totalTime = mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor;
             assert(totalTime >= 0.0);
             // clang-format on
+
             // Cap totalTime to the available maximum time
             if (totalTime > mainManager->timeManager.maximum())
                 totalTime = mainManager->timeManager.maximum();
+
             // Cap totalTime in case of a single legal move for a better viewer experience
             if (rootMoves.size() == 1)
             {
                 totalTime *= 0.5500;
 
-                if (totalTime > 502)
-                    totalTime = 502;
+                if (totalTime > TimeManager::SINGLE_MOVE_MAX_TIME)
+                    totalTime = TimeManager::SINGLE_MOVE_MAX_TIME;
             }
 
             TimePoint elapsedTime = mainManager->elapsed(threads);
