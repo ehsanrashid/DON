@@ -150,7 +150,7 @@ void init_magics() noexcept {
 
 #if defined(USE_BMI2)
     #if defined(USE_COMPRESSED)
-        magic.exmaskBB = slidingAttacksBB;
+        magic.reMaskBB = slidingAttacksBB;
     #endif
 #else
         StdArray<Bitboard, SubSizes[PT - BISHOP]> referenceBBs;
