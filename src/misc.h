@@ -642,7 +642,7 @@ inline std::string create_hash_string(std::string_view str) noexcept {
 }
 
 constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
-#if defined(IS_64BIT) && defined(__GNUC__)
+#if defined(__GNUC__) && defined(IS_64BIT)
     __extension__ using uint128 = unsigned __int128;
     return (uint128(u1) * uint128(u2)) >> 64;
 #else
