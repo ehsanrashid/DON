@@ -92,6 +92,7 @@ constexpr int sign(T x) noexcept {
     // NaN -> 0; unsigned types never return -1
     return (T(0) < x) - (x < T(0));  // Returns 1 for positive, -1 for negative, and 0 for zero
 }
+
 // Return the square of a number, using a wider type to avoid overflow
 template<typename T>
 constexpr auto sqr(T x) noexcept {
@@ -99,6 +100,7 @@ constexpr auto sqr(T x) noexcept {
     using Wider = std::conditional_t<std::is_integral_v<T>, long long, T>;
     return Wider(x) * x;
 }
+
 // Return the square of a number multiplied by its sign, using a wider type to avoid overflow
 template<typename T>
 constexpr auto sign_sqr(T x) noexcept {
@@ -439,147 +441,6 @@ class MultiArray {
     ArrayType _data;
 };
 
-template<typename T, std::size_t Size, std::size_t... Sizes>
-class MultiVector;
-
-namespace internal {
-
-// Recursive template to define multi-dimensional vector
-template<typename T, std::size_t Size, std::size_t... Sizes>
-struct MultiVectorDef final {
-    using Type = MultiVector<T, Sizes...>;
-};
-// Base case: single-dimensional vector
-template<typename T, std::size_t Size>
-struct MultiVectorDef<T, Size> final {
-    using Type = T;
-};
-}  // namespace internal
-
-// Base: only one size argument -> vector<T>
-template<typename T>
-inline std::vector<T> make_std_vector(std::size_t size) noexcept {
-    return std::vector<T>(size);
-}
-
-// Recursive: size, then sizes...
-template<typename T, typename... Sizes>
-inline auto make_std_vector(std::size_t size, Sizes... sizes) noexcept {
-    static_assert(sizeof...(Sizes) >= 1, "provide at least one size in recursive overload");
-    using Inner = decltype(make_std_vector<T>(sizes...));
-    return std::vector<Inner>(size, make_std_vector<T>(sizes...));
-}
-
-// MultiVector is a generic N-dimensional vector.
-// The template parameter T is the base type of the MultiVector
-// The template parameters (Size and Sizes) is the dimensions of the MultiVector.
-template<typename T, std::size_t Size, std::size_t... Sizes>
-class MultiVector final {
-   private:
-    using ElementType = typename internal::MultiVectorDef<T, Size, Sizes...>::Type;
-    using VectorType  = std::vector<ElementType>;
-
-   public:
-    using value_type             = typename VectorType::value_type;
-    using size_type              = typename VectorType::size_type;
-    using difference_type        = typename VectorType::difference_type;
-    using reference              = typename VectorType::reference;
-    using const_reference        = typename VectorType::const_reference;
-    using pointer                = typename VectorType::pointer;
-    using const_pointer          = typename VectorType::const_pointer;
-    using iterator               = typename VectorType::iterator;
-    using const_iterator         = typename VectorType::const_iterator;
-    using reverse_iterator       = typename VectorType::reverse_iterator;
-    using const_reverse_iterator = typename VectorType::const_reverse_iterator;
-
-    MultiVector() noexcept = default;
-
-    constexpr auto begin() const noexcept { return _data.begin(); }
-    constexpr auto end() const noexcept { return _data.end(); }
-    constexpr auto begin() noexcept { return _data.begin(); }
-    constexpr auto end() noexcept { return _data.end(); }
-
-    constexpr auto cbegin() const noexcept { return _data.cbegin(); }
-    constexpr auto cend() const noexcept { return _data.cend(); }
-
-    constexpr auto rbegin() const noexcept { return _data.rbegin(); }
-    constexpr auto rend() const noexcept { return _data.rend(); }
-    constexpr auto rbegin() noexcept { return _data.rbegin(); }
-    constexpr auto rend() noexcept { return _data.rend(); }
-
-    constexpr auto crbegin() const noexcept { return _data.crbegin(); }
-    constexpr auto crend() const noexcept { return _data.crend(); }
-
-    constexpr auto&       front() noexcept { return _data.front(); }
-    constexpr const auto& front() const noexcept { return _data.front(); }
-    constexpr auto&       back() noexcept { return _data.back(); }
-    constexpr const auto& back() const noexcept { return _data.back(); }
-
-    auto*       data() { return _data.data(); }
-    const auto* data() const { return _data.data(); }
-
-    constexpr auto max_size() const noexcept { return _data.max_size(); }
-
-    constexpr auto size() const noexcept { return _data.size(); }
-    constexpr auto empty() const noexcept { return _data.empty(); }
-
-    constexpr const auto& at(size_type idx) const noexcept { return _data.at(idx); }
-    constexpr auto&       at(size_type idx) noexcept { return _data.at(idx); }
-
-    constexpr auto& operator[](size_type idx) const noexcept { return _data[idx]; }
-    constexpr auto& operator[](size_type idx) noexcept { return _data[idx]; }
-
-    // Recursively fill all dimensions by calling the sub fill method
-    template<typename U>
-    void fill(U v) noexcept {
-        static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
-
-        for (auto& element : _data)
-        {
-            if constexpr (sizeof...(Sizes) == 0)
-                element = v;
-            else
-                element.fill(v);
-        }
-    }
-
-    template<typename U>
-    void fill_n(std::size_t begIdx, std::size_t count, const U& v) noexcept {
-        static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
-
-        const std::size_t endIdx = std::min(begIdx + count, size());
-
-        for (std::size_t i = begIdx; i < endIdx; ++i)
-        {
-            if constexpr (sizeof...(Sizes) == 0)
-                _data[i] = v;
-            else
-                _data[i].fill(v);
-        }
-    }
-
-    // void print() const noexcept {
-    //     std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
-    //
-    //     for (auto& element : _data)
-    //     {
-    //         if constexpr (sizeof...(Sizes) == 0)
-    //             std::cout << element << ' ';
-    //         else
-    //             element.print();
-    //     }
-    //
-    //     std::cout << std::endl;
-    // }
-
-    constexpr void swap(MultiVector<T, Size, Sizes...>& multiVec) noexcept {
-        _data.swap(multiVec._data);
-    }
-
-   private:
-    VectorType _data = make_std_vector<ElementType>(Size);
-};
-
 template<typename T, std::size_t Capacity, typename SizeType = std::size_t>
 class FixedVector final {
     static_assert(Capacity > 0, "Capacity must be > 0");
@@ -662,7 +523,7 @@ class FixedVector final {
 
    private:
     StdArray<T, Capacity> _data;
-    SizeType              _size{0};
+    SizeType              _size = 0;
 };
 
 template<std::size_t Capacity>
@@ -781,7 +642,7 @@ inline std::string create_hash_string(std::string_view str) noexcept {
 }
 
 constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
-#if defined(IS_64BIT) && defined(__GNUC__)
+#if defined(__GNUC__) && defined(IS_64BIT)
     __extension__ using uint128 = unsigned __int128;
     return (uint128(u1) * uint128(u2)) >> 64;
 #else

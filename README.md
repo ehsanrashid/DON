@@ -11,10 +11,6 @@
   <br>
   [Report bug][issue-link]
   ·
-  [Open a discussion][discussions-link]
-  ·
-  [Discord][discord-link]
-  ·
   [Blog][website-blog-link]
 
   [![Build][build-badge]][build-link]
@@ -24,8 +20,6 @@
   [![Commits][commits-badge]][commits-link]
   <br>
   [![Website][website-badge]][website-link]
-  [![Fishtest][fishtest-badge]][fishtest-link]
-  [![Discord][discord-badge]][discord-link]
 
 </div>
 
@@ -61,31 +55,17 @@ This distribution of DON consists of the following files:
 
 __See [Contributing Guide](CONTRIBUTING.md).__
 
-### Donating hardware
-
-Improving DON requires a massive amount of testing. You can donate your
-hardware resources by installing the [Fishtest Worker][worker-link] and viewing
-the current tests on [Fishtest][fishtest-link].
-
 ### Improving the code
 
-In the [chessprogramming wiki][programming-link], many techniques used in
+In the [chess programming wiki][programming-link], many techniques used in
 DON are explained with a lot of background information.
-The [section on DON][programming-don-link] describes many features
+The [chess programming DON][programming-don-link] describes many features
 and techniques used by DON. However, it is generic rather than
 focused on DON's precise implementation.
 
-The engine testing is done on [Fishtest][fishtest-link].
-If you want to help improve DON, please read this [guideline][guideline-link]
-first, where the basics of DON development are explained.
-
-Discussions about DON take place these days mainly in the DON
-[Discord server][discord-link]. This is also the best place to ask questions
-about the codebase and how to improve it.
-
 ## Compiling DON
 
-DON has support for 32 or 64-bit CPUs, certain hardware instructions,
+DON has support for 32-bit or 64-bit CPUs, certain hardware instructions,
 big-endian machines such as Power PC, and other platforms.
 
 On Unix-like systems, it should be easy to compile DON directly from the
@@ -127,11 +107,7 @@ project][lc0-data-link], which is made available under the [Open Database Licens
 [authors-link]:         https://github.com/ehsanrashid/DON/blob/main/AUTHORS
 [build-link]:           https://github.com/ehsanrashid/DON/actions/workflows/don.yml
 [commits-link]:         https://github.com/ehsanrashid/DON/commits/main
-[discord-link]:         https://discord.gg/GWDRS3kU6R
 [issue-link]:           https://github.com/ehsanrashid/DON/issues/new?assignees=&labels=&template=BUG-REPORT.yml
-[discussions-link]:     https://github.com/ehsanrashid/DON/discussions/new
-[fishtest-link]:        https://tests.donchess.org/tests
-[guideline-link]:       https://github.com/ehsanrashid/DON/fishtest/wiki/Creating-my-first-test
 [license-link]:         https://github.com/ehsanrashid/DON/blob/main/Copying.txt
 [programming-link]:     https://www.chessprogramming.org/Main_Page
 [programming-don-link]: https://www.chessprogramming.org/DON
@@ -152,8 +128,6 @@ project][lc0-data-link], which is made available under the [Open Database Licens
 
 [build-badge]:          https://img.shields.io/github/actions/workflow/status/official-don/DON/don.yml?branch=master&style=for-the-badge&label=don&logo=github
 [commits-badge]:        https://img.shields.io/github/commits-since/official-don/DON/latest?style=for-the-badge
-[discord-badge]:        https://img.shields.io/discord/435943710472011776?style=for-the-badge&label=discord&logo=Discord
-[fishtest-badge]:       https://img.shields.io/website?style=for-the-badge&down_color=red&down_message=Offline&label=Fishtest&up_color=success&up_message=Online&url=https%3A%2F%2Ftests.donchess.org%2Ftests%2Ffinished
 [license-badge]:        https://img.shields.io/github/license/official-don/DON?style=for-the-badge&label=license&color=success
 [release-badge]:        https://img.shields.io/github/v/release/official-don/DON?style=for-the-badge&label=official%20release
 [website-badge]:        https://img.shields.io/website?style=for-the-badge&down_color=red&down_message=Offline&label=website&up_color=success&up_message=Online&url=https%3A%2F%2Fdonchess.org

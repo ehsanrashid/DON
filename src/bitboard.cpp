@@ -72,6 +72,7 @@ template<PieceType PT>
 Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attacks_bb()");
     assert(is_ok(s));
+
     constexpr StdArray<Direction, 2, 4> Directions{{
       {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},  //
       {NORTH, SOUTH, EAST, WEST}                         //
@@ -149,7 +150,7 @@ void init_magics() noexcept {
 
 #if defined(USE_BMI2)
     #if defined(USE_COMPRESSED)
-        magic.exmaskBB = slidingAttacksBB;
+        magic.reMaskBB = slidingAttacksBB;
     #endif
 #else
         StdArray<Bitboard, SubSizes[PT - BISHOP]> referenceBBs;
@@ -162,11 +163,11 @@ void init_magics() noexcept {
         Bitboard occupancyBB = 0;
         do
         {
-#if !defined(USE_BMI2)
+#if defined(USE_BMI2)
+            magic.attacks_bb(occupancyBB, sliding_attacks_bb<PT>(s, occupancyBB));
+#else
             referenceBBs[size] = sliding_attacks_bb<PT>(s, occupancyBB);
             occupancyBBs[size] = occupancyBB;
-#else
-            magic.attacks_bb(occupancyBB, sliding_attacks_bb<PT>(s, occupancyBB));
 #endif
             ++size;
             occupancyBB = (occupancyBB - magic.maskBB) & magic.maskBB;
@@ -201,7 +202,7 @@ void init_magics() noexcept {
                 magic.magicBB = prng.sparse_rand<Bitboard>();
             while (popcount((magic.magicBB * magic.maskBB) >> 56) < 6);
 
-            bool valid = true;
+            bool magicOk = true;
             // A good magic must map every possible occupancy to an index that
             // looks up the correct sliding attack in the attacks[s] database.
             // Note that build up the database for square 's' as a side effect
@@ -220,16 +221,17 @@ void init_magics() noexcept {
                 }
                 else if (magic.attacksBBs[idx] != referenceBBs[i])
                 {
-                    valid = false;
+                    magicOk = false;
                     break;
                 }
             }
 
-            if (valid)
-                break;  // Found magic
+            if (magicOk)
+                break;
         }
 #endif
     }
+
     assert(totalSize == TABLE_SIZES[PT - BISHOP]);
 }
 

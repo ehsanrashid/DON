@@ -55,8 +55,6 @@ struct Networks;
 inline constexpr std::size_t MOVE_CAPACITY = 32;
 using SearchedMoves                        = FixedVector<Move, MOVE_CAPACITY>;
 
-inline constexpr std::size_t DEFAULT_MULTI_PV = 1;
-
 inline PolyBook Book;
 
 namespace Search {
@@ -289,8 +287,8 @@ class RootMoves final {
 struct Limit final {
    public:
     struct Clock final {
-        TimePoint time{0};
-        TimePoint inc{0};
+        TimePoint time = 0;
+        TimePoint inc  = 0;
     };
 
     constexpr Limit() noexcept = default;
@@ -303,18 +301,18 @@ struct Limit final {
         return nodes != 0 ? std::min(1 + int(std::ceil(nodes / 1024.0)), 512) : 512;
     }
 
-    TimePoint startTime{0};
+    TimePoint startTime = 0;
 
     StdArray<Clock, COLOR_NB> clocks{};
 
-    std::uint8_t  movesToGo{0};
-    std::uint8_t  mate{0};
-    TimePoint     moveTime{0};
-    Depth         depth{DEPTH_ZERO};
-    std::uint64_t nodes{0};
-    bool          infinite{false};
-    bool          ponder{false};
-    bool          perft{false}, detail{false};
+    std::uint8_t  movesToGo = 0;
+    std::uint8_t  mate      = 0;
+    TimePoint     moveTime  = 0;
+    Depth         depth     = DEPTH_ZERO;
+    std::uint64_t nodes     = 0;
+    bool          infinite  = false;
+    bool          ponder    = false;
+    bool          perft = false, detail = false;
 
     Strings searchMoves{}, ignoreMoves{};
 };
@@ -371,14 +369,17 @@ struct Skill final {
 
     Move pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickBest = true) noexcept;
 
-    static constexpr double        MIN_LEVEL = 00.0;
-    static constexpr double        MAX_LEVEL = 20.0;
-    static constexpr std::uint16_t MIN_ELO   = 1320;
-    static constexpr std::uint16_t MAX_ELO   = 3190;
+    static constexpr double MIN_LEVEL = 00.0;
+    static constexpr double MAX_LEVEL = 20.0;
+
+    static constexpr std::uint16_t MIN_ELO = 1320;
+    static constexpr std::uint16_t MAX_ELO = 3190;
+
+    static constexpr std::size_t MIN_MULTI_PV = 4;
 
    private:
-    double level{MAX_LEVEL};
-    Move   bestMove{Move::None};
+    double level    = MAX_LEVEL;
+    Move   bestMove = Move::None;
 };
 
 // SharedState stores the engine options, networks, thread pool, and transposition table.
@@ -478,7 +479,7 @@ class MainSearchManager final: public ISearchManager {
     Skill         skill;
     TimeManager   timeManager;
 
-    bool   moveFirst;
+    bool   initial;
     Value  preBestCurValue;
     Value  preBestAvgValue;
     double preTimeReduction;

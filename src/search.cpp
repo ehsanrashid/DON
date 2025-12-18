@@ -246,16 +246,19 @@ void Worker::start_search() noexcept {
 
     lowPlyQuietHistory.fill(97);
 
-    multiPV = DEFAULT_MULTI_PV;
+    multiPV = 1;
+
     if (mainManager != nullptr)
     {
         multiPV = options["MultiPV"];
+
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
-            if (multiPV < 4)
-                multiPV = 4;
+            if (multiPV < Skill::MIN_MULTI_PV)
+                multiPV = Skill::MIN_MULTI_PV;
     }
+
     if (multiPV > rootMoves.size())
         multiPV = rootMoves.size();
 
@@ -332,7 +335,7 @@ void Worker::start_search() noexcept {
     // However, if pondering or in an infinite search, the UCI protocol states that
     // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
     // Therefore simply wait here until the GUI sends one of those commands.
-    while (!threads.stop.load(std::memory_order_relaxed) && (mainManager->ponder || limit.infinite))
+    while (!threads.stop.load(std::memory_order_relaxed) && (limit.infinite || mainManager->ponder))
     {}  // Busy wait for a stop or a mainManager->ponder reset
 
     // Stop the threads if not already stopped
@@ -359,9 +362,10 @@ void Worker::start_search() noexcept {
             for (auto&& th : threads)
                 th->worker->rootMoves.swap_to_front(skillMove);
         }
-
-        if (multiPV == 1 && threads.size() > 1 && limit.mate == 0  //&& limit.depth == DEPTH_ZERO
-            && rootMoves[0].pv[0] != Move::None)
+        else if (threads.size() > 1 && multiPV == 1
+                 && limit.mate == 0
+                 //&& limit.depth == DEPTH_ZERO
+                 && rootMoves[0].pv[0] != Move::None)
         {
             bestWorker = threads.best_thread()->worker.get();
 
@@ -372,7 +376,7 @@ void Worker::start_search() noexcept {
 
         if (limit.use_time_manager())
         {
-            mainManager->moveFirst        = false;
+            mainManager->initial          = false;
             mainManager->preBestCurValue  = bestWorker->rootMoves[0].curValue;
             mainManager->preBestAvgValue  = bestWorker->rootMoves[0].avgValue;
             mainManager->preTimeReduction = mainManager->timeReduction;
@@ -412,6 +416,7 @@ void Worker::iterative_deepening() noexcept {
 
         if (i >= 0)
             continue;
+
         // Use as a sentinel
         (ss + i)->staticEval               = VALUE_NONE;
         (ss + i)->pieceSqHistory           = &continuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
@@ -472,6 +477,7 @@ void Worker::iterative_deepening() noexcept {
             // Reset aspiration window starting size
             int delta = 5 + std::min(int(threads.size()) - 1, 8)  //
                       + int(1.1111e-4 * std ::abs(avgSqrValue));
+
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
 
@@ -486,6 +492,7 @@ void Worker::iterative_deepening() noexcept {
             {
                 rootDelta = beta - alpha;
                 assert(rootDelta > 0);
+
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
                 Depth adjustedDepth = rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4;
@@ -522,6 +529,7 @@ void Worker::iterative_deepening() noexcept {
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;
+
                     if (mainManager != nullptr)
                         mainManager->ponderhitStop = false;
                 }
@@ -611,6 +619,7 @@ void Worker::iterative_deepening() noexcept {
             {
                 mainManager->sumMoveChanges +=
                   th->worker->moveChanges.load(std::memory_order_relaxed);
+
                 th->worker->moveChanges.store(0, std::memory_order_relaxed);
             }
 
@@ -620,8 +629,8 @@ void Worker::iterative_deepening() noexcept {
             auto inconsistencyFactor = std::clamp(0.11850
                                                 + 0.02240 * (mainManager->preBestAvgValue - bestValue)
                                                 + 0.00930 * (mainManager->preBestCurValue - bestValue),
-                                           0.9999 - 0.4299 * !mainManager->moveFirst,
-                                           1.0001 + 0.6999 * !mainManager->moveFirst);
+                                                   1.0000 - !mainManager->initial * 0.4300,
+                                                   1.0000 + !mainManager->initial * 0.7000);
 
             // Compute stable depth (difference between the current search depth and the last best depth)
             Depth stableDepth = completedDepth - lastBestDepth;
@@ -651,15 +660,18 @@ void Worker::iterative_deepening() noexcept {
             TimePoint totalTime = mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor;
             assert(totalTime >= 0.0);
             // clang-format on
+
             // Cap totalTime to the available maximum time
             if (totalTime > mainManager->timeManager.maximum())
                 totalTime = mainManager->timeManager.maximum();
+
             // Cap totalTime in case of a single legal move for a better viewer experience
             if (rootMoves.size() == 1)
             {
                 totalTime *= 0.5500;
-                if (totalTime > 502)
-                    totalTime = 502;
+
+                if (totalTime > TimeManager::SINGLE_MOVE_MAX_TIME)
+                    totalTime = TimeManager::SINGLE_MOVE_MAX_TIME;
             }
 
             TimePoint elapsedTime = mainManager->elapsed(threads);
@@ -930,7 +942,7 @@ Value Worker::search(Position&    pos,
                 {
                     tbHits.fetch_add(1, std::memory_order_relaxed);
 
-                    auto drawValue = tbConfig.useRule50 ? 1 : 0;
+                    int drawValue = tbConfig.useRule50 * 1;
 
                     // Use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to value
                     value = wdlScore < -drawValue ? -VALUE_TB + ss->ply
@@ -998,11 +1010,11 @@ Value Worker::search(Position&    pos,
     // The depth condition is important for mate finding.
     {
         const auto futility_margin = [&](bool cond) noexcept {
-            Value futilityMult = 53 + 23 * cond;
+            Value futilityMult = 53 + cond * 23;
 
-            return futilityMult * depth                  //
-                 - int(2.4160 * futilityMult) * improve  //
-                 - int(0.3232 * futilityMult) * worsen   //
+            return depth * futilityMult                  //
+                 - improve * int(2.4160 * futilityMult)  //
+                 - worsen * int(0.3232 * futilityMult)   //
                  + int(5.7252e-6 * absCorrectionValue);
         };
 
@@ -1066,7 +1078,7 @@ Value Worker::search(Position&    pos,
     if (depth > 2 && !is_decisive(beta))
     {
         // clang-format off
-        Value probCutBeta = std::min(235 + beta - 63 * improve, +VALUE_INFINITE);
+        Value probCutBeta = std::min(235 + beta - improve * 63, +VALUE_INFINITE);
         assert(beta < probCutBeta && probCutBeta <= +VALUE_INFINITE);
 
         // If value from transposition table is less than probCutBeta, don't attempt probCut
@@ -1193,14 +1205,14 @@ S_MOVES_LOOP:  // When in check, search starts here
         int r = reduction(depth, moveCount, deltaRatio, improve);
 
         // (*Scaler) Increase reduction for pvHit nodes, Larger values scales well
-        r += 946 * ss->ttPv;
+        r += ss->ttPv * 946;
 
         // Step 14. Pruning at shallow depths
         // Depth conditions are important for mate finding.
         if (!RootNode && hasNonPawn && !is_loss(bestValue))
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
-            mp.quietAllowed &= moveCount < (3 + depth * depth) >> !improve;
+            mp.quietAllowed &= moveCount < ((3 + depth * depth) >> !improve);
 
             // Reduced depth of the next LMR search
             Depth lmrDepth = newDepth - r / 1024;
@@ -1246,8 +1258,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (lmrDepth < 13 && !check && !ss->inCheck)
                 {
                     Value futilityValue = std::min(42 + ss->staticEval + 127 * lmrDepth  //
-                                                     + 85 * (ss->staticEval > alpha)     //
-                                                     + 161 * (bestMove == Move::None),
+                                                     + (ss->staticEval > alpha) * 85     //
+                                                     + (bestMove == Move::None) * 161,
                                                    +VALUE_INFINITE);
                     if (futilityValue <= alpha)
                     {
@@ -1259,7 +1271,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for quiets and checks
-                int margin = -std::max(64 * depth * check + 25 * lmrDepth * std::abs(lmrDepth), 0);
+                int margin = -std::max(check * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth), 0);
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
                   && pos.see(move) < margin)
@@ -1283,7 +1295,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             && !is_shuffling(pos, ss, move))
         {
             Value singularBeta = std::max(
-              ttd.value - int((0.8833 + 1.2500 * (!PVNode && ss->ttPv)) * depth), -VALUE_INFINITE);
+              ttd.value - int((0.8833 + (!PVNode && ss->ttPv) * 1.2500) * depth), -VALUE_INFINITE);
             assert(singularBeta >= -VALUE_INFINITE);
             Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
@@ -1296,13 +1308,15 @@ S_MOVES_LOOP:  // When in check, search starts here
             if (value <= singularBeta)
             {
                 int corrValue = int(4.3351e-6 * absCorrectionValue);
+
                 // clang-format off
-                int doubleMargin = -4 + 199 * PVNode - 201 * !ttCapture - corrValue - 42 * (1 * ss->ply > 1 * rootDepth) - 7.0271e-3 * ttMoveHistory;
-                int tripleMargin = 73 + 302 * PVNode - 248 * !ttCapture - corrValue - 50 * (2 * ss->ply > 3 * rootDepth) + 90 * ss->ttPv;
+                int doubleMargin = -4 + PVNode * 199 - !ttCapture * 201 - corrValue - (1 * ss->ply > 1 * rootDepth) * 42 - 7.0271e-3 * ttMoveHistory;
+                int tripleMargin = 73 + PVNode * 302 - !ttCapture * 248 - corrValue - (2 * ss->ply > 3 * rootDepth) * 50 + ss->ttPv * 90;
 
                 extension = 1 + (value <= singularBeta - doubleMargin)
                               + (value <= singularBeta - tripleMargin);
                 // clang-format on
+
                 if (depth < MAX_PLY - 1)
                     ++depth;
             }
@@ -1358,22 +1372,22 @@ S_MOVES_LOOP:  // When in check, search starts here
         r -= int(32.9272e-6 * absCorrectionValue);
 
         // (*Scaler) Decrease reduction if position is or has been on the PV
-        r -= (2719 + 983 * PVNode + 922 * (is_valid(ttd.value) && ttd.value > alpha)
-              + (934 + 1011 * CutNode) * (ttd.depth >= depth))
-           * ss->ttPv;
+        r -= ss->ttPv
+           * (2719 + PVNode * 983 + (is_valid(ttd.value) && ttd.value > alpha) * 922
+              + (ttd.depth >= depth) * (934 + CutNode * 1011));
 
         // Increase reduction for CutNode
         if constexpr (CutNode)
-            r += 3372 + 997 * (ttd.move == Move::None);
+            r += 3372 + (ttd.move == Move::None) * 997;
 
         // Increase reduction if ttMove is a capture
-        r += 1119 * ttCapture;
+        r += ttCapture * 1119;
 
         // Increase reduction if current ply has a lot of fail high
-        r += (991 + 923 * AllNode) * (ss->cutoffCount > 2);
+        r += (ss->cutoffCount > 2) * (991 + AllNode * 923);
 
         // For first picked move (ttMove) reduce reduction
-        r -= 2151 * (move == ttd.move);
+        r -= (move == ttd.move) * 2151;
 
         // Decrease/Increase reduction for moves with a good/bad history
         r -= int(103.7598e-3 * ss->history);
@@ -1383,7 +1397,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
-            Depth redDepth = std::max(std::min(newDepth - r / 1024, newDepth + 2), 1) + PVNode;
+            Depth redDepth = std::max(std::min(newDepth - r / 1024, newDepth + 2), 1) + PVNode * 1;
 
             value = -search<Cut>(pos, ss + 1, -alpha - 1, -alpha, redDepth, newDepth - redDepth);
 
@@ -1409,11 +1423,11 @@ S_MOVES_LOOP:  // When in check, search starts here
         else if (!PVNode || moveCount > 1)
         {
             // Increase reduction if ttMove is not present
-            r += 1140 * (ttd.move == Move::None);
+            r += (ttd.move == Move::None) * 1140;
 
             // Reduce search depth if expected reduction is high
             value = -search<~NT>(pos, ss + 1, -alpha - 1, -alpha,
-                                 newDepth - (r > 3957) - (r > 5654 && newDepth > 2));
+                                 newDepth - ((r > 3957) + (r > 5654 && newDepth > 2)));
         }
 
         // For PV nodes only, do a full PV search on the first move or after a fail high,
@@ -1496,8 +1510,9 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // In case have an alternative move equal in eval to the current bestMove,
         // promote it to bestMove by pretending it just exceeds alpha (but not beta).
-        bool inc = value == bestValue && (nodes.load(std::memory_order_relaxed) & 0xE) == 0
-                && 2 + ss->ply >= rootDepth && !is_win(std::abs(value) + 1);
+        int inc = int(value == bestValue && 2 + ss->ply >= rootDepth
+                      && (nodes.load(std::memory_order_relaxed) & 0xE) == 0
+                      && !is_win(std::abs(value) + 1));
 
         if (bestValue < value + inc)
         {
@@ -1514,7 +1529,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 {
                     // (*Scaler) Infrequent and small cutoff increments scales well
                     if constexpr (!RootNode)
-                        (ss - 1)->cutoffCount += PVNode || (extension < 2);
+                        (ss - 1)->cutoffCount += PVNode || extension < 2;
+
                     break;  // Fail-high
                 }
 
@@ -1572,9 +1588,9 @@ S_MOVES_LOOP:  // When in check, search starts here
                             // Increase bonus when depth is high
                             + std::min(56 * depth, 489)
                             // Increase bonus when bestValue is lower than current static evaluation
-                            + 147 * (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107)
+                            + (!(ss    )->inCheck && bestValue <= +(ss    )->staticEval - 107) * 147
                             // Increase bonus when bestValue is higher than previous static evaluation
-                            + 156 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval - 65)
+                            + (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->staticEval -  65) * 156
                             // Increase bonus when the previous moveCount is high
                             +  80 * std::min(((ss - 1)->moveCount - 1) / 5, 4)
                             // Increase bonus if the previous move has a bad history
@@ -1583,8 +1599,10 @@ S_MOVES_LOOP:  // When in check, search starts here
             int bonus = bonusScale * std::min(-87 + 141 * depth, +1351);
 
             update_quiet_history(~ac, (ss - 1)->move, 7.4158e-3 * bonus);
+
             if (preNonPawn)
                 update_pawn_history(pawnIndex, pos[preSq], preSq, 35.4004e-3 * bonus);
+
             update_continuation_history(ss - 1, pos[preSq], preSq, 12.3901e-3 * bonus);
         }
         // Bonus for prior capture move
@@ -1592,13 +1610,14 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             auto captured = type_of(pos.captured_pc());
             assert(captured != NO_PIECE_TYPE);
+
             update_capture_history(pos[preSq], preSq, captured, 1012);
         }
     }
 
     // If no good move is found and the previous position was pvHit, then the previous
     // opponent move is probably good and the new position is added to the search tree.
-    ss->ttPv |= (bestValue <= alpha && (ss - 1)->ttPv);
+    ss->ttPv |= bestValue <= alpha && (ss - 1)->ttPv;
 
     // Save gathered information in transposition table
     if ((!RootNode || curIdx == 0) && !exclude)
@@ -1613,7 +1632,8 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (!ss->inCheck && (bestMove == Move::None || !pos.capture(bestMove))
         && (bestValue > ss->staticEval) == (bestMove != Move::None))
     {
-        int bonus = (bestValue - ss->staticEval) * depth / (8 + 2 * (bestMove != Move::None));
+        int bonus = (bestValue - ss->staticEval) * depth / (8 + (bestMove != Move::None) * 2);
+
         update_correction_histories(pos, ss, bonus);
     }
 
@@ -1921,6 +1941,7 @@ void Worker::update_pawn_history(std::uint16_t pawnIndex, Piece movedPc, Square 
 }
 void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept {
     assert(m.is_ok());
+
     if (ssPly < LOW_PLY_QUIET_SIZE)
         lowPlyQuietHistory[ssPly][m.raw()] << bonus;
 }
@@ -1930,8 +1951,11 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::u
     assert(m.is_ok());
 
     update_quiet_history(pos.active_color(), m, 1.0000 * bonus);
+
     update_pawn_history(pawnIndex, pos.moved_pc(m), m.dst_sq(), (bonus > 0 ? 0.8837 : 0.4932) * bonus);
+
     update_low_ply_quiet_history(ss->ply, m, 0.7861 * bonus);
+
     update_continuation_history(ss, pos.moved_pc(m), m.dst_sq(), 0.8750 * bonus);
 }
 
@@ -2223,7 +2247,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 void MainSearchManager::init() noexcept {
 
     timeManager.init();
-    moveFirst        = true;
+    initial          = true;
     preBestCurValue  = VALUE_ZERO;
     preBestAvgValue  = VALUE_ZERO;
     preTimeReduction = 0.85;

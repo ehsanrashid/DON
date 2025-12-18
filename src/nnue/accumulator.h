@@ -209,7 +209,7 @@ struct AccumulatorStack final {
 
     StdArray<AccumulatorState<PSQFeatureSet>, MAX_SIZE>    psqAccumulators;
     StdArray<AccumulatorState<ThreatFeatureSet>, MAX_SIZE> threatAccumulators;
-    std::size_t                                            size{1};
+    std::size_t                                            size = 1;
 };
 
 }  // namespace NNUE

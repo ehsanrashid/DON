@@ -61,6 +61,8 @@ class TimeManager final {
 
     void advance_time_nodes(std::int64_t nodes) noexcept;
 
+    static constexpr TimePoint SINGLE_MOVE_MAX_TIME = 502;
+
    private:
     TimePoint startTime;
     TimePoint optimumTime;

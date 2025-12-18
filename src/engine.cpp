@@ -91,7 +91,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("Save Hash",            Option(OnCng([this](const Option&) { return save_hash() ? "Save succeeded" : "Save failed"; })));
     options.add("Load Hash",            Option(OnCng([this](const Option&) { return load_hash() ? "Load succeeded" : "Load failed"; })));
     options.add("Ponder",               Option(false));
-    options.add("MultiPV",              Option(DEFAULT_MULTI_PV, 1, MAX_MOVES));
+    options.add("MultiPV",              Option(1, 1, MAX_MOVES));
     options.add("SkillLevel",           Option(Skill::MAX_LEVEL, Skill::MIN_LEVEL, Skill::MAX_LEVEL));
     options.add("MoveOverhead",         Option(10, 0, 5000));
     options.add("NodesTime",            Option(0, 0, 10000));
