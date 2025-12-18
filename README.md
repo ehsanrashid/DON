@@ -11,8 +11,6 @@
   <br>
   [Report bug][issue-link]
   ·
-  [Open a discussion][discussions-link]
-  ·
   [Blog][website-blog-link]
 
   [![Build][build-badge]][build-link]
@@ -61,13 +59,13 @@ __See [Contributing Guide](CONTRIBUTING.md).__
 
 In the [chess programming wiki][programming-link], many techniques used in
 DON are explained with a lot of background information.
-The [section on DON][programming-don-link] describes many features
+The [chess programming DON][programming-don-link] describes many features
 and techniques used by DON. However, it is generic rather than
 focused on DON's precise implementation.
 
 ## Compiling DON
 
-DON has support for 32 or 64-bit CPUs, certain hardware instructions,
+DON has support for 32-bit or 64-bit CPUs, certain hardware instructions,
 big-endian machines such as Power PC, and other platforms.
 
 On Unix-like systems, it should be easy to compile DON directly from the
