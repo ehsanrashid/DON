@@ -57,8 +57,8 @@ Thread::Thread(std::size_t                           thId,
         // Use the binder to [maybe] bind the threads to a NUMA node before doing
         // the Worker allocation.
         // Ideally would also allocate the SearchManager here, but that's minor.
-        worker = make_unique_aligned_large_pages<Worker>(threadId, sharedState,
-                                                         std::move(searchManager), nodeBinder());
+        worker = make_unique_aligned_large_page<Worker>(threadId, sharedState,
+                                                        std::move(searchManager), nodeBinder());
     });
 
     wait_finish();

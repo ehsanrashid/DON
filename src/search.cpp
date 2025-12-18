@@ -626,11 +626,11 @@ void Worker::iterative_deepening() noexcept {
             // clang-format off
 
             // Compute evaluation inconsistency based on differences from previous best scores
-            auto inconsistencyFactor = std::clamp(0.11850
-                                                + 0.02240 * (mainManager->preBestAvgValue - bestValue)
-                                                + 0.00930 * (mainManager->preBestCurValue - bestValue),
-                                                   1.0000 - !mainManager->initial * 0.4300,
-                                                   1.0000 + !mainManager->initial * 0.7000);
+            double inconsistencyFactor = std::clamp(0.1185
+                                                  + 0.0224 * (mainManager->preBestAvgValue - bestValue)
+                                                  + 0.0093 * (mainManager->preBestCurValue - bestValue),
+                                                    1.0000 - !mainManager->initial * 0.4300,
+                                                    1.0000 + !mainManager->initial * 0.7000);
 
             // Compute stable depth (difference between the current search depth and the last best depth)
             Depth stableDepth = completedDepth - lastBestDepth;
@@ -640,17 +640,17 @@ void Worker::iterative_deepening() noexcept {
             mainManager->timeReduction = 0.6600 + 0.8500 / (0.9800 + std::exp(0.5100 * (12.1500 - stableDepth)));
 
             // Compute ease factor that factors in previous time reduction
-            auto easeFactor = 0.4386 * (1.4300 + mainManager->preTimeReduction) / mainManager->timeReduction;
+            double easeFactor = 0.4386 * (1.4300 + mainManager->preTimeReduction) / mainManager->timeReduction;
 
             // Compute move instability factor based on the total move changes and the number of threads
-            auto instabilityFactor = 1.0200 + 2.1400 * mainManager->sumMoveChanges / threads.size();
+            double instabilityFactor = 1.0200 + 2.1400 * mainManager->sumMoveChanges / threads.size();
 
             // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
-            auto nodeEffortExcess = -933.40 + 1000.0 * rootMoves[0].nodes / std::max(nodes.load(std::memory_order_relaxed), std::uint64_t(1));
-            auto nodeEffortFactor = 1.0 - 37.5207e-4 * std::max(nodeEffortExcess, 0.0);
+            double nodeEffortExcess = -933.40 + 1000.0 * rootMoves[0].nodes / std::max(nodes.load(std::memory_order_relaxed), std::uint64_t(1));
+            double nodeEffortFactor = 1.0 - 37.5207e-4 * std::max(nodeEffortExcess, 0.0);
 
             // Compute recapture factor that reduces time if recapture conditions are met
-            auto recaptureFactor = 1.0;
+            double recaptureFactor = 1.0;
             if ( rootPos.captured_sq() == rootMoves[0].pv[0].dst_sq()
              && (rootPos.captured_sq() & rootPos.pieces_bb(~ac))
              && rootPos.see(rootMoves[0].pv[0]) >= 200)
@@ -687,7 +687,7 @@ void Worker::iterative_deepening() noexcept {
                     threads.stop.store(true, std::memory_order_relaxed);
             }
 
-            if (!mainManager->ponder && elapsedTime > 0.5030 * totalTime)
+            if (!mainManager->ponder && elapsedTime > TimePoint(0.5030 * totalTime))
                 threads.research.store(true, std::memory_order_relaxed);
 
             mainManager->preBestCurValue = bestValue;

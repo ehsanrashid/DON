@@ -338,7 +338,7 @@ class SharedMemoryBackend final {
     void initialize(const std::string& shmName, const T& value) noexcept {
         std::size_t totalSize = sizeof(T) + sizeof(IS_INITIALIZED_VALUE);
 
-        // Try allocating with large pages first.
+        // Try allocating with large page first
         hMapFile = try_with_windows_lock_memory_privilege(
           [&](std::size_t largePageSize) {
               std::size_t roundedTotalSize = round_up_pow2(totalSize, largePageSize);
@@ -357,7 +357,7 @@ class SharedMemoryBackend final {
           },
           []() { return (void*) nullptr; });
 
-        // Fallback to normal allocation if no large pages available
+        // Fallback to normal allocation if no large page available
         if (hMapFile == nullptr)
             hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,  //
                                          PAGE_READWRITE,                 //
@@ -1099,7 +1099,7 @@ struct FallbackSharedMemoryBackend final {
     FallbackSharedMemoryBackend() noexcept = default;
 
     FallbackSharedMemoryBackend(const std::string&, const T& value) noexcept :
-        fallbackObj(make_unique_aligned_large_pages<T>(value)) {}
+        fallbackObj(make_unique_aligned_large_page<T>(value)) {}
 
     void* get() const { return fallbackObj.get(); }
 

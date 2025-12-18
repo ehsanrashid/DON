@@ -47,6 +47,8 @@
     #include <xmmintrin.h>  // Microsoft header for _mm_prefetch()
 #endif
 
+#include "memory.h"
+
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
 
@@ -393,12 +395,12 @@ class MultiArray {
 
         const std::size_t endIdx = std::min(begIdx + count, size());
 
-        for (std::size_t i = begIdx; i < endIdx; ++i)
+        for (std::size_t idx = begIdx; idx < endIdx; ++idx)
         {
             if constexpr (sizeof...(Sizes) == 0)
-                _data[i] = v;
+                _data[idx] = v;
             else
-                _data[i].fill(v);
+                _data[idx].fill(v);
         }
     }
 
@@ -439,6 +441,44 @@ class MultiArray {
 
    private:
     ArrayType _data;
+};
+
+template<typename T, std::size_t SizeMultiplier>
+class LargePageArray final {
+   public:
+    explicit LargePageArray(std::size_t s) noexcept {
+        _size = s * SizeMultiplier;
+        _data = make_unique_aligned_large_page<T[]>(size());
+    }
+
+    std::size_t size() const noexcept { return _size; }
+
+    auto* data() noexcept { return _data.get(); }
+
+    T& operator[](std::size_t idx) noexcept {
+        assert(idx < size());
+        return data()[idx];
+    }
+    const T& operator[](std::size_t idx) const noexcept {
+        assert(idx < size());
+        return data()[idx];
+    }
+
+    template<typename U>
+    void fill(std::size_t begIdx, std::size_t endIdx, const U& v) noexcept {
+        assert(begIdx < size());
+        assert(endIdx <= size());
+
+        if (endIdx > size)
+            endIdx = size();
+
+        for (std::size_t idx = begIdx; idx < endIdx; ++idx)
+            data()[idx].fill(v);
+    }
+
+   private:
+    LargePagePtr<T[]> _data;
+    std::size_t       _size;
 };
 
 template<typename T, std::size_t Capacity, typename SizeType = std::size_t>

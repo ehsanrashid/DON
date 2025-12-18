@@ -60,10 +60,10 @@ namespace DON {
 void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept;
 void  free_aligned_std(void* mem) noexcept;
 // memory aligned by page size, min alignment: 4096 bytes
-void* alloc_aligned_large_pages(std::size_t allocSize) noexcept;
-bool  free_aligned_large_pages(void* mem) noexcept;
+void* alloc_aligned_large_page(std::size_t allocSize) noexcept;
+bool  free_aligned_large_page(void* mem) noexcept;
 
-bool has_large_pages() noexcept;
+bool has_large_page() noexcept;
 
 // Round up to multiples of alignment
 template<typename T>
@@ -203,14 +203,14 @@ make_unique_aligned_std(std::size_t size) noexcept {
 template<typename T>
 struct LargePageDeleter final {
     void operator()(T* mem) const noexcept {
-        return memory_deleter<T>(mem, free_aligned_large_pages);
+        return memory_deleter<T>(mem, free_aligned_large_page);
     }
 };
 
 template<typename T>
 struct LargePageArrayDeleter final {
     void operator()(T* mem) const noexcept {
-        return memory_array_deleter<T>(mem, free_aligned_large_pages);
+        return memory_array_deleter<T>(mem, free_aligned_large_page);
     }
 };
 
@@ -220,28 +220,28 @@ using LargePagePtr =
                      std::unique_ptr<T, LargePageArrayDeleter<std::remove_extent_t<T>>>,
                      std::unique_ptr<T, LargePageDeleter<T>>>;
 
-// make_unique_aligned_large_pages() for single objects
+// make_unique_aligned_large_page() for single objects
 template<typename T, typename... Args>
 std::enable_if_t<!std::is_array_v<T>, LargePagePtr<T>>
-make_unique_aligned_large_pages(Args&&... args) noexcept {
+make_unique_aligned_large_page(Args&&... args) noexcept {
     static_assert(alignof(T) <= 4096,
-                  "alloc_aligned_large_pages() may fail for such a big alignment requirement of T");
+                  "alloc_aligned_large_page() may fail for such a big alignment requirement of T");
 
-    auto* obj = memory_allocator<T>(alloc_aligned_large_pages, std::forward<Args>(args)...);
+    auto* obj = memory_allocator<T>(alloc_aligned_large_page, std::forward<Args>(args)...);
 
     return LargePagePtr<T>(obj);
 }
 
-// make_unique_aligned_large_pages() for arrays of unknown bound
+// make_unique_aligned_large_page() for arrays of unknown bound
 template<typename T>
 std::enable_if_t<std::is_array_v<T>, LargePagePtr<T>>
-make_unique_aligned_large_pages(std::size_t size) {
+make_unique_aligned_large_page(std::size_t size) {
     using ElementType = std::remove_extent_t<T>;
 
     static_assert(alignof(ElementType) <= 4096,
-                  "alloc_aligned_large_pages() may fail for such a big alignment requirement of T");
+                  "alloc_aligned_large_page() may fail for such a big alignment requirement of T");
 
-    auto* mem = memory_allocator<T>(alloc_aligned_large_pages, size);
+    auto* mem = memory_allocator<T>(alloc_aligned_large_page, size);
 
     return LargePagePtr<T>(mem);
 }
