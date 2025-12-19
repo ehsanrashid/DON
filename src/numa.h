@@ -618,7 +618,9 @@ class NumaConfig final {
     // ':'-separated numa nodes
     // ','-separated cpu indices
     // supports "first-last" range syntax for cpu indices
-    // For example "0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"
+    // For example:
+    // "0-7:8-15:16-23:24-31"
+    // "0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"
     static NumaConfig from_string(std::string_view str) noexcept {
         NumaConfig numaCfg = empty();
 

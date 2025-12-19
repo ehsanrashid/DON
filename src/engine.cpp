@@ -73,7 +73,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
 
     using OnCng = Option::OnChange;
 
-    options.add("NumaPolicy",           Option("auto", "var none var auto var system var hardware var default", OnCng([this](const Option& o) {
+    options.add("NumaPolicy",           Option("auto", OnCng([this](const Option& o) {
         set_numa_config(o);
         return get_numa_config_info_str() + '\n'
              + get_thread_allocation_info_str();
@@ -138,10 +138,6 @@ void Engine::set_numa_config(std::string_view str) noexcept {
     else if (str == "hardware")
         // Don't respect affinity set in the system
         numaContext.set_numa_config(NumaConfig::from_system(false));
-
-    else if (str == "default")
-        numaContext.set_numa_config(
-          NumaConfig::from_string("0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"));
 
     else
         numaContext.set_numa_config(NumaConfig::from_string(str));

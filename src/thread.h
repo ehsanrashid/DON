@@ -75,6 +75,7 @@ class Thread final {
    public:
     Thread(std::size_t                           thId,
            std::size_t                           nId,
+           std::size_t                           nCount,
            const SharedState&                    sharedState,
            ISearchManagerPtr                     searchManager,
            const OptionalThreadToNumaNodeBinder& nodeBinder) noexcept;
@@ -183,7 +184,7 @@ class ThreadPool final {
     void clear() noexcept;
 
     void set(const NumaConfig&                       numaConfig,
-             const SharedState&                      sharedState,
+             SharedState                             sharedState,
              const MainSearchManager::UpdateContext& updateContext) noexcept;
 
     void init() noexcept;
@@ -226,7 +227,7 @@ class ThreadPool final {
     }
 
     std::vector<ThreadPtr> threads;
-    std::vector<NumaIndex> numaNodeBoundThreadIds;
+    std::vector<NumaIndex> threadBoundNumaNodes;
     StateListPtr           setupStates;
 };
 
@@ -240,7 +241,7 @@ inline void ThreadPool::clear() noexcept {
     main_thread()->wait_finish();
 
     threads.clear();
-    numaNodeBoundThreadIds.clear();
+    threadBoundNumaNodes.clear();
 }
 
 // Sets threadPool data to initial values

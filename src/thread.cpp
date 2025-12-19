@@ -44,6 +44,7 @@ std::size_t next_pow2(std::uint64_t count) noexcept {
 // in idle_func(). Note that 'dead' and 'busy' should be already set.
 Thread::Thread(std::size_t                           thId,
                std::size_t                           nId,
+               std::size_t                           nCount,
                const SharedState&                    sharedState,
                ISearchManagerPtr                     searchManager,
                const OptionalThreadToNumaNodeBinder& nodeBinder) noexcept :
@@ -53,11 +54,11 @@ Thread::Thread(std::size_t                           thId,
 
     wait_finish();
 
-    run_custom_job([this, &sharedState, &searchManager, &nodeBinder]() {
+    run_custom_job([this, nCount, &sharedState, &searchManager, &nodeBinder]() {
         // Use the binder to [maybe] bind the threads to a NUMA node before doing
         // the Worker allocation.
         // Ideally would also allocate the SearchManager here, but that's minor.
-        worker = make_unique_aligned_large_page<Worker>(threadId, sharedState,
+        worker = make_unique_aligned_large_page<Worker>(threadId, numaId, nCount, sharedState,
                                                         std::move(searchManager), nodeBinder());
     });
 
@@ -108,7 +109,7 @@ void Thread::idle_func() noexcept {
 // Created and launched threads will immediately go to sleep in idle_func.
 // Upon resizing, threads are recreated to allow for binding if necessary.
 void ThreadPool::set(const NumaConfig&                       numaConfig,
-                     const SharedState&                      sharedState,
+                     SharedState                             sharedState,
                      const MainSearchManager::UpdateContext& updateContext) noexcept {
     clear();
 
@@ -136,45 +137,45 @@ void ThreadPool::set(const NumaConfig&                       numaConfig,
         return true;
     }();
 
-    numaNodeBoundThreadIds = threadBindable
-                             ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
-                             : std::vector<NumaIndex>{};
+    threadBoundNumaNodes = threadBindable
+                           ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
+                           : std::vector<NumaIndex>{};
 
-    std::unordered_map<NumaIndex, std::size_t> numaIds;
+    std::unordered_map<NumaIndex, std::size_t> nodeThreadCount;
 
-    if (numaNodeBoundThreadIds.empty())
+    if (threadBoundNumaNodes.empty())
     {
         // Pretend all threads are part of numa node 0
-        numaIds[0] = threadCount;
+        nodeThreadCount[0] = threadCount;
     }
     else
     {
-        for (std::size_t i = 0; i < numaNodeBoundThreadIds.size(); ++i)
-            ++numaIds[numaNodeBoundThreadIds[i]];
+        for (std::size_t i = 0; i < threadBoundNumaNodes.size(); ++i)
+            ++nodeThreadCount[threadBoundNumaNodes[i]];
     }
 
-    for (const auto& [numaIdx, count] : numaIds)
+    sharedState.correctionHistories.clear();
+    sharedState.correctionHistories.reserve(threadCount);
+
+    for (const auto& [numaIdx, count] : nodeThreadCount)
     {
-        const auto f = [_numaIdx = numaIdx, _count = count]() {
-            //sharedState.sharedHistories.try_emplace(_numaIdx, next_pow2(_count));
-            next_pow2(_count);
-            (void) _numaIdx;
-            (void) _count;
+        const auto create_history = [&, _numaIdx = numaIdx, _count = count]() noexcept {
+            sharedState.correctionHistories.try_emplace(_numaIdx, next_pow2(_count));
         };
 
         if (threadBindable)
-            numaConfig.execute_on_numa_node(numaIdx, f);
+            numaConfig.execute_on_numa_node(numaIdx, create_history);
         else
-            f();
+            create_history();
     }
-
-    numaIds.clear();
 
     const auto* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
 
+    std::unordered_map<NumaIndex, std::size_t> numaIds;
+
     for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
     {
-        NumaIndex numaIdx = threadBindable ? numaNodeBoundThreadIds[threadId] : 0;
+        NumaIndex numaIdx = threadBindable ? threadBoundNumaNodes[threadId] : 0;
 
         ISearchManagerPtr searchManager;
         if (threadId == 0)
@@ -187,10 +188,9 @@ void ThreadPool::set(const NumaConfig&                       numaConfig,
         // want to trash cache in case the threads get scheduled on the same NUMA node.
         OptionalThreadToNumaNodeBinder nodeBinder(numaIdx, numaConfigPtr);
 
-        threads.emplace_back(std::make_unique<Thread>(threadId, numaIds[numaIdx], sharedState,
+        threads.emplace_back(std::make_unique<Thread>(threadId, numaIds[numaIdx]++,
+                                                      nodeThreadCount[numaIdx], sharedState,
                                                       std::move(searchManager), nodeBinder));
-
-        ++numaIds[numaIdx];
     }
 
     init();
@@ -389,14 +389,14 @@ void ThreadPool::wait_on_thread(std::size_t threadId) noexcept {
 std::vector<std::size_t> ThreadPool::get_bound_thread_counts() const noexcept {
     std::vector<std::size_t> threadCounts;
 
-    if (!numaNodeBoundThreadIds.empty())
+    if (!threadBoundNumaNodes.empty())
     {
         NumaIndex maxNumaIdx =
-          *std::max_element(numaNodeBoundThreadIds.begin(), numaNodeBoundThreadIds.end());
+          *std::max_element(threadBoundNumaNodes.begin(), threadBoundNumaNodes.end());
 
         threadCounts.resize(1 + maxNumaIdx, 0);
 
-        for (NumaIndex numaIdx : numaNodeBoundThreadIds)
+        for (NumaIndex numaIdx : threadBoundNumaNodes)
             ++threadCounts[numaIdx];
     }
 

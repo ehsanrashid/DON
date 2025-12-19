@@ -532,7 +532,9 @@ struct Stack final {
 class Worker final {
    public:
     Worker() noexcept = delete;
-    Worker(std::size_t               threadId,
+    Worker(std::size_t               thId,
+           std::size_t               nId,
+           std::size_t               nCount,
            const SharedState&        sharedState,
            ISearchManagerPtr         searchManager,
            NumaReplicatedAccessToken accessToken) noexcept;
@@ -549,7 +551,7 @@ class Worker final {
     void start_search() noexcept;
 
    private:
-    bool is_main_worker() const noexcept { return threadIdx == 0; }
+    bool is_main_worker() const noexcept { return threadId == 0; }
 
     // Get a pointer to the search manager,
     // Only allowed to be called by the main worker.
@@ -635,7 +637,7 @@ class Worker final {
 
     StdArray<std::int32_t, COLOR_NB> optimism;
 
-    const std::size_t threadIdx;
+    const std::size_t threadId, numaId, numaCount;
 
     // The main thread has a MainSearchManager, the others have a NullSearchManager
     ISearchManagerPtr manager;
