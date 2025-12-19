@@ -111,12 +111,11 @@ class Engine final {
    private:
     const std::string binaryDirectory;
 
-    NumaReplicationContext numaContext;
-
+    NumaReplicationContext                       numaContext;
+    SystemWideLazyNumaReplicated<NNUE::Networks> networks;
     Options                                      options;
     Threads                                      threads;
     TranspositionTable                           transpositionTable;
-    SystemWideLazyNumaReplicated<NNUE::Networks> networks;
     CorrectionHistoriesMap                       correctionHistories;
 
     StateListPtr states;

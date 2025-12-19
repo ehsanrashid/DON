@@ -386,19 +386,19 @@ struct Skill final {
 // It is used to easily forward data to the Worker class.
 struct SharedState final {
    public:
-    SharedState(const Options&                                      engOptions,
-                const SystemWideLazyNumaReplicated<NNUE::Networks>& nnueNetworks,
+    SharedState(const SystemWideLazyNumaReplicated<NNUE::Networks>& nnueNetworks,
+                const Options&                                      engOptions,
                 Threads&                                            threadPool,
                 TranspositionTable&                                 transpositionTable,
                 CorrectionHistoriesMap&                             correctionHists) noexcept :
-        options(engOptions),
         networks(nnueNetworks),
+        options(engOptions),
         threads(threadPool),
         tt(transpositionTable),
         correctionHistories(correctionHists) {}
 
-    const Options&                                      options;
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
+    const Options&                                      options;
     Threads&                                            threads;
     TranspositionTable&                                 tt;
     CorrectionHistoriesMap&                             correctionHistories;
