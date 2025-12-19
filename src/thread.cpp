@@ -148,19 +148,19 @@ void Threads::set(const NumaConfig&                       numaConfig,
             ++numaThreadCounts[threadBoundNumaNodes[i]];
     }
 
-    sharedState.correctionHistories.clear();
-    sharedState.correctionHistories.reserve(threadCount);
+    sharedState.correctionHistoriesMap.clear();
+    sharedState.correctionHistoriesMap.reserve(threadCount);
 
     for (const auto& [numaIdx, count] : numaThreadCounts)
     {
-        const auto create_history = [&, _numaIdx = numaIdx, _count = count]() noexcept {
-            sharedState.correctionHistories.try_emplace(_numaIdx, std::size_t(next_pow2(_count)));
+        const auto update_shared = [&, _numaIdx = numaIdx, _count = count]() noexcept {
+            sharedState.correctionHistoriesMap.try_emplace(_numaIdx, next_pow2(_count));
         };
 
         if (threadBindable)
-            numaConfig.execute_on_numa_node(numaIdx, create_history);
+            numaConfig.execute_on_numa_node(numaIdx, update_shared);
         else
-            create_history();
+            update_shared();
     }
 
     const auto* numaConfigPtr = threadBindable ? &numaConfig : nullptr;

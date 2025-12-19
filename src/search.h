@@ -390,18 +390,18 @@ struct SharedState final {
                 const Options&                                      opts,
                 Threads&                                            ths,
                 TranspositionTable&                                 tt,
-                CorrectionHistoriesMap&                             corrHists) noexcept :
+                CorrectionHistoriesMap&                             corrHistsMap) noexcept :
         networks(nets),
         options(opts),
         threads(ths),
         transpositionTable(tt),
-        correctionHistories(corrHists) {}
+        correctionHistoriesMap(corrHistsMap) {}
 
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
     const Options&                                      options;
     Threads&                                            threads;
     TranspositionTable&                                 transpositionTable;
-    CorrectionHistoriesMap&                             correctionHistories;
+    CorrectionHistoriesMap&                             correctionHistoriesMap;
 };
 
 class Worker;
@@ -606,10 +606,11 @@ class Worker final {
 
     NumaReplicatedAccessToken                           numaAccessToken;
     ISearchManagerPtr                                   manager;
-    const Options&                                      options;
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
+    const Options&                                      options;
     Threads&                                            threads;
     TranspositionTable&                                 transpositionTable;
+    CorrectionHistories&                                correctionHistories;
     NNUE::AccumulatorCaches                             accCaches;
     NNUE::AccumulatorStack                              accStack;
 

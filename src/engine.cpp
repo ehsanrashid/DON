@@ -64,9 +64,8 @@ Engine::Engine(std::optional<std::string> path) noexcept :
       numaContext,
       // Heap-allocate because sizeof(NNUE::Networks) is large
       std::make_unique<NNUE::Networks>(
-        std::make_unique<NNUE::BigNetwork>  (NNUE::EvalFile{EvalFileDefaultNameBig  , "None", ""}, NNUE::EmbeddedType::BIG),
-        std::make_unique<NNUE::SmallNetwork>(NNUE::EvalFile{EvalFileDefaultNameSmall, "None", ""}, NNUE::EmbeddedType::SMALL)))
-    {
+        std::make_unique<NNUE::BigNetwork  >(NNUE::EvalFile{EvalFileDefaultNameBig  , "None", ""}, NNUE::EmbeddedType::BIG  ),
+        std::make_unique<NNUE::SmallNetwork>(NNUE::EvalFile{EvalFileDefaultNameSmall, "None", ""}, NNUE::EmbeddedType::SMALL))) {
 
     using OnCng = Option::OnChange;
 
@@ -115,6 +114,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     // clang-format on
 
     load_networks();
+
     resize_threads_tt();
 
     setup();
@@ -122,8 +122,8 @@ Engine::Engine(std::optional<std::string> path) noexcept :
 
 Engine::~Engine() noexcept { wait_finish(); }
 
-const Options& Engine::get_options() const noexcept { return options; }
 Options&       Engine::get_options() noexcept { return options; }
+const Options& Engine::get_options() const noexcept { return options; }
 
 void Engine::set_numa_config(std::string_view str) noexcept {
     if (str == "none")
@@ -208,7 +208,7 @@ void Engine::init() noexcept {
 void Engine::resize_threads_tt() noexcept {
 
     threads.set(numaContext.numa_config(),
-                {networks, options, threads, transpositionTable, correctionHistories},
+                {networks, options, threads, transpositionTable, correctionHistoriesMap},
                 updateContext);
 
     // Reallocate the hash with the new threadpool size

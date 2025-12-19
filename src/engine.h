@@ -50,8 +50,8 @@ class Engine final {
     Engine& operator=(const Engine&) noexcept = delete;
     Engine& operator=(Engine&&) noexcept      = delete;
 
-    const Options& get_options() const noexcept;
     Options&       get_options() noexcept;
+    const Options& get_options() const noexcept;
 
     void set_numa_config(std::string_view str) noexcept;
 
@@ -116,7 +116,7 @@ class Engine final {
     Options                                      options;
     Threads                                      threads;
     TranspositionTable                           transpositionTable;
-    CorrectionHistoriesMap                       correctionHistories;
+    CorrectionHistoriesMap                       correctionHistoriesMap;
 
     StateListPtr states;
     Position     pos;

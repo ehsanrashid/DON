@@ -187,10 +187,11 @@ Worker::Worker(std::size_t               threadIdx,
     numaThreadCount(numaThreadCnt),
     numaAccessToken(accessToken),
     manager(std::move(searchManager)),
-    options(sharedState.options),
     networks(sharedState.networks),
+    options(sharedState.options),
     threads(sharedState.threads),
     transpositionTable(sharedState.transpositionTable),
+    correctionHistories(sharedState.correctionHistoriesMap.at(accessToken.numa_index())),
     accCaches(networks[accessToken]) {
 
     init();
