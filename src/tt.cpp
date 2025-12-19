@@ -215,7 +215,7 @@ TTCluster* TranspositionTable::cluster(Key key) const noexcept {
 ProbResult TranspositionTable::probe(Key key) const noexcept {
 
     auto* const ttc   = cluster(key);
-    Key16       key16 = compress_key16(key);
+    Key16       key16 = Key16(key);
 
     for (auto& entry : ttc->entries)
         if (entry.key16 == key16)

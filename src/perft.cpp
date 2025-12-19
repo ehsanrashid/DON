@@ -247,7 +247,7 @@ ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
     auto* const ptc = cluster(key);
 
-    Key32 key32 = compress_key32(key);
+    Key32 key32 = Key32(key);
     for (auto& entry : ptc->entries)
         if (entry.key32 == key32 && entry.depth16 == depth)
             return {true, &entry};
@@ -337,7 +337,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
                     {
                         iPerftData = perft<false>(pos, depth - 1, detail);
 
-                        pte->save(compress_key32(key), depth - 1, iPerftData.nodes);
+                        pte->save(key, depth - 1, iPerftData.nodes);
                     }
                 }
                 else
