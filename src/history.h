@@ -27,11 +27,10 @@
 #include <unordered_map>
 
 #include "misc.h"
+#include "numa.h"
 #include "types.h"
 
 namespace DON {
-
-using NumaIndex = std::size_t;
 
 // StatsEntry is the container of various numerical statistics.
 // Use a class instead of a naked value to directly call history update operator<<() on the entry.
