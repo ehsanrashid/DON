@@ -204,6 +204,8 @@ void Threads::set(const NumaConfig&                       numaConfig,
                                                       std::move(searchManager), sharedState));
     }
 
+    assert(threads.size() == threadCount);
+
     init();
 }
 
