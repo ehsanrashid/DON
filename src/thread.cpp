@@ -137,30 +137,47 @@ void Threads::set(const NumaConfig&                       numaConfig,
 
     std::unordered_map<NumaIndex, std::size_t> numaThreadCounts;
 
+    numaThreadCounts.reserve(threadBoundNumaNodes.empty() ? 1 : threadBoundNumaNodes.size());
+
     if (threadBoundNumaNodes.empty())
     {
-        // Pretend all threads are part of numa node 0
-        numaThreadCounts[0] = threadCount;
+        // All threads belong to NUMA node 0
+        numaThreadCounts.emplace(0, threadCount);
     }
     else
     {
-        for (std::size_t i = 0; i < threadBoundNumaNodes.size(); ++i)
-            ++numaThreadCounts[threadBoundNumaNodes[i]];
+        for (NumaIndex numaIdx : threadBoundNumaNodes)
+            ++numaThreadCounts[numaIdx];
     }
 
-    sharedState.sharedHistoriesMap.clear();
-    sharedState.sharedHistoriesMap.reserve(threadCount);
+    // Prepare shared histories map
+    auto& sharedHistoriesMap = sharedState.sharedHistoriesMap;
 
-    for (const auto& [numaIdx, count] : numaThreadCounts)
+    sharedHistoriesMap.clear();
+    sharedHistoriesMap.max_load_factor(1.0f);
+    sharedHistoriesMap.reserve(numaThreadCounts.size());
+
+    // Populate shared histories map (optionally NUMA-bound)
+    if (!threadBindable)
     {
-        const auto update_shared = [&, _numaIdx = numaIdx, _count = count]() noexcept {
-            sharedState.sharedHistoriesMap.try_emplace(_numaIdx, next_pow2(_count));
-        };
+        for (const auto& [numaIdx, count] : numaThreadCounts)
+        {
+            const std::size_t roundedSize = next_pow2(count);
 
-        if (threadBindable)
-            numaConfig.execute_on_numa_node(numaIdx, update_shared);
-        else
-            update_shared();
+            sharedHistoriesMap.try_emplace(numaIdx, roundedSize);
+        }
+    }
+    else
+    {
+        for (const auto& [numaIdx, count] : numaThreadCounts)
+        {
+            const std::size_t roundedSize = next_pow2(count);
+
+            numaConfig.execute_on_numa_node(
+              numaIdx, [&sharedHistoriesMap, numaIdx, roundedSize]() noexcept {
+                  sharedHistoriesMap.try_emplace(numaIdx, roundedSize);
+              });
+        }
     }
 
     const auto* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
