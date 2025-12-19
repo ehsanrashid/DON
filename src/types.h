@@ -81,8 +81,6 @@ namespace DON {
 
 using Bitboard = std::uint64_t;
 using Key      = std::uint64_t;
-using Key32    = std::uint32_t;
-using Key16    = std::uint16_t;
 
 static_assert(sizeof(Bitboard) == 8, "Expected 64-bit Bitboard");
 static_assert(sizeof(Key) == 8, "Expected 64-bit Key");

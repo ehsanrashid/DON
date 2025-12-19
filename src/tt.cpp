@@ -43,6 +43,8 @@ constexpr std::uint8_t GENERATION_MASK = (0xFF << RESERVED_BITS) & 0xFF;
 // Maximum generation value before wrapping around
 constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 
+static_assert(std::is_same_v<uint16_t, std::uint16_t>);
+
 // TTEntry is the 10 bytes transposition table entry
 // Defined as below:
 // key          16 bit
@@ -95,8 +97,14 @@ struct TTEntry final {
    private:
     // Populates the TTEntry with a new node's data, possibly
     // overwriting an old position. The update is not atomic and can be racy.
-    void save(
-      Key16 k16, Depth d, Move m, bool pv, Bound b, Value v, Value ev, std::uint8_t gen) noexcept {
+    void save(std::uint16_t k16,
+              Depth         d,
+              Move          m,
+              bool          pv,
+              Bound         b,
+              Value         v,
+              Value         ev,
+              std::uint8_t  gen) noexcept {
         assert(d > DEPTH_OFFSET);
         assert(d <= 0xFF + DEPTH_OFFSET);
 
@@ -116,12 +124,12 @@ struct TTEntry final {
 
     void clear() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(*this)); }
 
-    Key16        key16;
-    Move         move16;
-    std::uint8_t depth8;
-    std::uint8_t data8;
-    Value        value16;
-    Value        eval16;
+    std::uint16_t key16;
+    Move          move16;
+    std::uint8_t  depth8;
+    std::uint8_t  data8;
+    Value         value16;
+    Value         eval16;
 
     friend class TTUpdater;
     friend class TranspositionTable;
@@ -214,8 +222,8 @@ TTCluster* TranspositionTable::cluster(Key key) const noexcept {
 // It returns pointer to the TTEntry if the position is found.
 ProbResult TranspositionTable::probe(Key key) const noexcept {
 
-    auto* const ttc   = cluster(key);
-    Key16       key16 = Key16(key);
+    auto* const         ttc   = cluster(key);
+    const std::uint16_t key16 = std::uint16_t(key);
 
     for (auto& entry : ttc->entries)
         if (entry.key16 == key16)

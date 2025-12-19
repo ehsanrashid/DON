@@ -141,7 +141,7 @@ struct PTEntry final {
 
     constexpr std::uint64_t nodes() const noexcept { return nodes64; }
 
-    void save(Key32 k32, Depth d, std::uint64_t n) noexcept {
+    void save(std::uint32_t k32, Depth d, std::uint64_t n) noexcept {
         if ((key32 == k32 && depth16 >= d) || nodes64 >= 10000 + n)
             return;
         key32   = k32;
@@ -150,7 +150,7 @@ struct PTEntry final {
     }
 
    private:
-    Key32         key32;
+    std::uint32_t key32;
     Depth         depth16;
     std::uint64_t nodes64;
 
@@ -190,7 +190,7 @@ class PerftTable final {
    private:
     void free() noexcept;
 
-    auto* cluster(Key key) const noexcept { return &clusters[mul_hi64(key, clusterCount)]; }
+    PTCluster* cluster(Key key) const noexcept { return &clusters[mul_hi64(key, clusterCount)]; }
 
     PTCluster*  clusters = nullptr;
     std::size_t clusterCount;
@@ -245,9 +245,9 @@ void PerftTable::init(Threads& threads) noexcept {
 
 ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
-    auto* const ptc = cluster(key);
+    auto* const         ptc   = cluster(key);
+    const std::uint32_t key32 = std::uint32_t(key);
 
-    Key32 key32 = Key32(key);
     for (auto& entry : ptc->entries)
         if (entry.key32 == key32 && entry.depth16 == depth)
             return {true, &entry};
