@@ -174,8 +174,8 @@ void Threads::set(const NumaConfig&                       numaConfig,
             const std::size_t roundedSize = next_pow2(count);
 
             numaConfig.execute_on_numa_node(
-              numaIdx, [&sharedHistoriesMap, numaIdx, roundedSize]() noexcept {
-                  sharedHistoriesMap.try_emplace(numaIdx, roundedSize);
+              numaIdx, [&sharedHistoriesMap, _numaIdx = numaIdx, roundedSize]() noexcept {
+                  sharedHistoriesMap.try_emplace(_numaIdx, roundedSize);
               });
         }
     }
