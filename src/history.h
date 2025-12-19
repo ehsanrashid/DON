@@ -75,17 +75,11 @@ inline constexpr std::size_t PAWN_HISTORY_SIZE = 0x4000;
 static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
               "PAWN_HISTORY_SIZE has to be a power of 2");
 
-constexpr std::uint16_t pawn_index(Key pawnKey) noexcept {
-    return pawnKey & (PAWN_HISTORY_SIZE - 1);
-}
+constexpr std::size_t pawn_index(Key pawnKey) noexcept { return pawnKey & (PAWN_HISTORY_SIZE - 1); }
 
 inline constexpr std::size_t CORRECTION_HISTORY_BASE_SIZE = UINT16_HISTORY_SIZE;
 static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)) == 0,
               "CORRECTION_HISTORY_BASE_SIZE has to be a power of 2");
-
-constexpr std::uint16_t correction_index(Key corrKey) noexcept {
-    return corrKey & (UINT16_HISTORY_SIZE - 1);
-}
 
 enum HistoryType : std::uint8_t {
     H_CAPTURE,        // By move's [piece][dstSq][captured piece type]
@@ -171,17 +165,17 @@ struct CorrectionHistoryDef;
 
 template<>
 struct CorrectionHistoryDef<CH_PAWN> final {
-    using Type = CorrectionStatsMultiArray<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = DynamicArray<CorrectionStatsMultiArray<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
 struct CorrectionHistoryDef<CH_MINOR> final {
-    using Type = CorrectionStatsMultiArray<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = DynamicArray<CorrectionStatsMultiArray<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
 struct CorrectionHistoryDef<CH_NON_PAWN> final {
-    using Type = CorrectionStatsMultiArray<UINT16_HISTORY_SIZE, COLOR_NB, COLOR_NB>;
+    using Type = DynamicArray<CorrectionStatsMultiArray<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
@@ -203,15 +197,53 @@ using CorrectionHistory = typename internal::CorrectionHistoryDef<T>::Type;
 struct CorrectionHistories final {
    public:
     CorrectionHistories(std::size_t count) noexcept :
-        Size(count * CORRECTION_HISTORY_BASE_SIZE) {}
+        Size(count * CORRECTION_HISTORY_BASE_SIZE),
+        pawnCorr(Size),
+        minorCorr(Size),
+        nonPawnCorr(Size) {
+        assert(count != 0 && (count & (count - 1)) == 0);
+    }
 
     std::size_t size() const noexcept { return Size; }
 
     std::size_t mask() const noexcept { return size() - 1; }
 
+    std::size_t index(Key corrKey) const noexcept { return corrKey & mask(); }
+
+    template<Color C>
+    auto& pawn(Key pawnKey) noexcept {
+        return pawnCorr[index(pawnKey)][C];
+    }
+    template<Color C>
+    const auto& pawn(Key pawnKey) const noexcept {
+        return pawnCorr[index(pawnKey)][C];
+    }
+
+    template<Color C>
+    auto& minor(Key minorKey) noexcept {
+        return minorCorr[index(minorKey)][C];
+    }
+    template<Color C>
+    const auto& minor(Key minorKey) const noexcept {
+        return minorCorr[index(minorKey)][C];
+    }
+
+    template<Color C>
+    auto& non_pawn(Key nonPawnKey) noexcept {
+        return nonPawnCorr[index(nonPawnKey)][C];
+    }
+    template<Color C>
+    const auto& non_pawn(Key nonPawnKey) const noexcept {
+        return nonPawnCorr[index(nonPawnKey)][C];
+    }
 
    private:
     const std::size_t Size;
+
+   public:
+    CorrectionHistory<CH_PAWN>     pawnCorr;
+    CorrectionHistory<CH_MINOR>    minorCorr;
+    CorrectionHistory<CH_NON_PAWN> nonPawnCorr;
 };
 
 using CorrectionHistoriesMap = std::unordered_map<std::size_t, CorrectionHistories>;

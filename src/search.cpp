@@ -211,9 +211,14 @@ void Worker::init() noexcept {
                 for (auto& pieceSqHist : toPieceSqHist)
                     pieceSqHist.fill(-529);
 
-    pawnCorrectionHistory.fill(5);
-    minorCorrectionHistory.fill(0);
-    nonPawnCorrectionHistory.fill(0);
+    // Each thread is responsible for clearing their part of correction history
+    std::size_t size   = correctionHistories.size() / numaThreadCount;
+    std::size_t begIdx = numaId * size;
+    std::size_t endIdx = std::min(begIdx + size, correctionHistories.size());
+
+    correctionHistories.pawnCorr.fill(begIdx, endIdx, 5);
+    correctionHistories.minorCorr.fill(begIdx, endIdx, 0);
+    correctionHistories.nonPawnCorr.fill(begIdx, endIdx, 0);
 
     for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
@@ -232,12 +237,12 @@ void Worker::ensure_network_replicated() noexcept {
 void Worker::prefetch_tt(Key key) const noexcept { prefetch(transpositionTable.cluster(key)); }
 
 void Worker::prefetch_correction_histories(const Position& pos) const noexcept {
-    prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][0][0]);
-    prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][0][0]);
-    prefetch(&minorCorrectionHistory[correction_index(pos.minor_key(WHITE))][0][0]);
-    prefetch(&minorCorrectionHistory[correction_index(pos.minor_key(BLACK))][0][0]);
-    prefetch(&nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][0][0]);
-    prefetch(&nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][0][0]);
+    prefetch(&correctionHistories.pawn<WHITE>(pos.pawn_key(WHITE)));
+    prefetch(&correctionHistories.pawn<BLACK>(pos.pawn_key(BLACK)));
+    prefetch(&correctionHistories.minor<WHITE>(pos.minor_key(WHITE)));
+    prefetch(&correctionHistories.minor<BLACK>(pos.minor_key(BLACK)));
+    prefetch(&correctionHistories.non_pawn<WHITE>(pos.non_pawn_key(WHITE)));
+    prefetch(&correctionHistories.non_pawn<BLACK>(pos.non_pawn_key(BLACK)));
 }
 
 void Worker::start_search() noexcept {
@@ -463,20 +468,20 @@ void Worker::iterative_deepening() noexcept {
         if (threads.research.load(std::memory_order_relaxed))
             ++researchCnt;
 
-        std::size_t begIdx = endIdx = 0;
+        std::size_t begPV = endPV = 0;
         // MultiPV loop. Perform a full root search for each PV line
-        for (curIdx = 0; curIdx < multiPV; ++curIdx)
+        for (curPV = 0; curPV < multiPV; ++curPV)
         {
-            if (curIdx == endIdx)
-                for (begIdx = endIdx++; endIdx < rootMoves.size(); ++endIdx)
-                    if (rootMoves[endIdx].tbRank != rootMoves[begIdx].tbRank)
+            if (curPV == endPV)
+                for (begPV = endPV++; endPV < rootMoves.size(); ++endPV)
+                    if (rootMoves[endPV].tbRank != rootMoves[begPV].tbRank)
                         break;
 
             // Reset UCI info selDepth for each depth and each PV line
             selDepth = 1;
 
-            auto avgValue    = rootMoves[curIdx].avgValue;
-            auto avgSqrValue = rootMoves[curIdx].avgSqrValue;
+            auto avgValue    = rootMoves[curPV].avgValue;
+            auto avgSqrValue = rootMoves[curPV].avgSqrValue;
 
             // Reset aspiration window starting size
             int delta = 5 + std::min(int(threads.size()) - 1, 8)  //
@@ -512,7 +517,7 @@ void Worker::iterative_deepening() noexcept {
                 // and want to keep the same order for all the moves except the
                 // new PV that goes to the front. Note that in the case of MultiPV
                 // search the already searched PV lines are preserved.
-                rootMoves.sort(curIdx, endIdx);
+                rootMoves.sort(curPV, endPV);
 
                 // If the search has been stopped, break immediately.
                 // Sorting is safe because RootMoves is still valid,
@@ -556,11 +561,11 @@ void Worker::iterative_deepening() noexcept {
             }
 
             // Sort the PV lines searched so far
-            rootMoves.sort(begIdx, 1 + curIdx);
+            rootMoves.sort(begPV, 1 + curPV);
 
             // Give some update about the PV
             if (mainManager != nullptr
-                && (threads.stop.load(std::memory_order_relaxed) || 1 + curIdx == multiPV
+                && (threads.stop.load(std::memory_order_relaxed) || 1 + curPV == multiPV
                     || rootDepth > 30)
                 // A thread that aborted search can have mated-in/TB-loss PV and score
                 // that cannot be trusted, i.e. it can be delayed or refuted if have
@@ -792,7 +797,7 @@ Value Worker::search(Position&    pos,
     auto [ttd, ttu] = transpositionTable.probe(key);
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
-    ttd.move  = RootNode ? rootMoves[curIdx].pv[0]
+    ttd.move  = RootNode ? rootMoves[curPV].pv[0]
               : ttd.hit  ? legal_tt_move(ttd.move, pos)
                          : Move::None;
     assert(ttd.move == Move::None || pos.legal(ttd.move));
@@ -1106,7 +1111,7 @@ Value Worker::search(Position&    pos,
             // At root obey the "searchmoves" option and skip moves not listed in RootMove List.
             // In MultiPV mode also skip PV moves that have been already searched and those of lower "TB rank".
             if constexpr (RootNode)
-                if (!rootMoves.contains(curIdx, endIdx, move))
+                if (!rootMoves.contains(curPV, endPV, move))
                     continue;
 
             do_move(pos, move, st, ss);
@@ -1177,7 +1182,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // At root obey the "searchmoves" option and skip moves not listed in RootMove List.
         // In MultiPV mode also skip PV moves that have been already searched and those of lower "TB rank".
         if constexpr (RootNode)
-            if (!rootMoves.contains(curIdx, endIdx, move))
+            if (!rootMoves.contains(curPV, endPV, move))
                 continue;
 
         ss->moveCount = ++moveCount;
@@ -1186,7 +1191,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             if (is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
             {
                 std::string currMove       = UCI::move_to_can(move);
-                std::size_t currMoveNumber = curIdx + moveCount;
+                std::size_t currMoveNumber = curPV + moveCount;
                 main_manager()->updateCxt.onUpdateIter({rootDepth, currMove, currMoveNumber});
             }
 
@@ -1502,7 +1507,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Record how often the best move has been changed in each iteration.
                 // This information is used for time management.
                 // In MultiPV mode, must take care to only do this for the first PV line.
-                if (moveCount > 1 && curIdx == 0)
+                if (moveCount > 1 && curPV == 0)
                     moveChanges.fetch_add(1, std::memory_order_relaxed);
             }
             else
@@ -1624,7 +1629,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     ss->ttPv |= bestValue <= alpha && (ss - 1)->ttPv;
 
     // Save gathered information in transposition table
-    if ((!RootNode || curIdx == 0) && !exclude)
+    if ((!RootNode || curPV == 0) && !exclude)
         ttu.update(moveCount != 0 ? depth : std::min(depth + 6, MAX_PLY - 1), bestMove, ss->ttPv,
                    bestValue >= beta                  ? BOUND_LOWER
                    : PVNode && bestMove != Move::None ? BOUND_EXACT
@@ -1998,12 +2003,12 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 
     bonus = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
 
-       pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]     << 1.0000 * bonus;
-       pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac]     << 1.0000 * bonus;
-      minorCorrectionHistory[correction_index(pos.minor_key(WHITE))][WHITE][ac]    << 1.2188 * bonus;
-      minorCorrectionHistory[correction_index(pos.minor_key(BLACK))][BLACK][ac]    << 1.2188 * bonus;
-    nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac] << 1.3906 * bonus;
-    nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac] << 1.3906 * bonus;
+    correctionHistories.    pawn<WHITE>(pos.    pawn_key(WHITE))[ac] << 1.0000 * bonus;
+    correctionHistories.    pawn<BLACK>(pos.    pawn_key(BLACK))[ac] << 1.0000 * bonus;
+    correctionHistories.   minor<WHITE>(pos.   minor_key(WHITE))[ac] << 1.2188 * bonus;
+    correctionHistories.   minor<BLACK>(pos.   minor_key(BLACK))[ac] << 1.2188 * bonus;
+    correctionHistories.non_pawn<WHITE>(pos.non_pawn_key(WHITE))[ac] << 1.3906 * bonus;
+    correctionHistories.non_pawn<BLACK>(pos.non_pawn_key(BLACK))[ac] << 1.3906 * bonus;
 
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
@@ -2022,12 +2027,12 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
     return std::clamp<std::int64_t>(
-           + 5174LL * (   pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
-                     +    pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac])
-           + 4411LL * (  minorCorrectionHistory[correction_index(pos.minor_key(WHITE))][WHITE][ac]
-                     +   minorCorrectionHistory[correction_index(pos.minor_key(BLACK))][BLACK][ac])
-           +11168LL * (nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac]
-                     + nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac])
+           + 5174LL * (correctionHistories.    pawn<WHITE>(pos.    pawn_key(WHITE))[ac]
+                     + correctionHistories.    pawn<BLACK>(pos.    pawn_key(BLACK))[ac])
+           + 4411LL * (correctionHistories.   minor<WHITE>(pos.   minor_key(WHITE))[ac]
+                     + correctionHistories.   minor<BLACK>(pos.   minor_key(BLACK))[ac])
+           +11168LL * (correctionHistories.non_pawn<WHITE>(pos.non_pawn_key(WHITE))[ac]
+                     + correctionHistories.non_pawn<BLACK>(pos.non_pawn_key(BLACK))[ac])
            + 7841LL * (is_ok(preSq)
                       ? (*(ss - 2)->pieceSqCorrectionHistory)[pos[preSq]][preSq]
                       + (*(ss - 4)->pieceSqCorrectionHistory)[pos[preSq]][preSq]
@@ -2336,7 +2341,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
             v = rm.tbValue;
 
         // tablebase- and previous-scores are exact
-        bool exact = i != worker.curIdx || tb || !updated;
+        bool exact = i != worker.curPV || tb || !updated;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
         if (is_decisive(v) && !is_mate(v) && (exact || !(rm.boundLower || rm.boundUpper)))

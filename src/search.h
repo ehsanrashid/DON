@@ -613,7 +613,7 @@ class Worker final {
     Tablebase::Config tbConfig;
 
     Depth         rootDepth, completedDepth;
-    std::size_t   multiPV, curIdx, endIdx;
+    std::size_t   multiPV, curPV, endPV;
     std::uint16_t selDepth;
     int           rootDelta;
     std::int16_t  nmpPly;
@@ -630,10 +630,6 @@ class Worker final {
     StdArray<History<H_CONTINUATION>, 2, 2> continuationHistory;  // [inCheck][capture]
 
     // Correction Histories
-    CorrectionHistory<CH_PAWN>     pawnCorrectionHistory;
-    CorrectionHistory<CH_MINOR>    minorCorrectionHistory;
-    CorrectionHistory<CH_NON_PAWN> nonPawnCorrectionHistory;
-
     CorrectionHistory<CH_CONTINUATION> continuationCorrectionHistory;
 
     friend class MainSearchManager;
