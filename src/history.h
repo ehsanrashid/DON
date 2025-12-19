@@ -76,15 +76,15 @@ static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
               "PAWN_HISTORY_SIZE has to be a power of 2");
 
 constexpr std::uint16_t pawn_index(Key pawnKey) noexcept {
-    return compress_key16(pawnKey) & (PAWN_HISTORY_SIZE - 1);
+    return pawnKey & (PAWN_HISTORY_SIZE - 1);
 }
 
-inline constexpr std::size_t BASE_CORRECTION_HISTORY_SIZE = UINT16_HISTORY_SIZE;
-static_assert((BASE_CORRECTION_HISTORY_SIZE & (BASE_CORRECTION_HISTORY_SIZE - 1)) == 0,
-              "BASE_CORRECTION_HISTORY_SIZE has to be a power of 2");
+inline constexpr std::size_t CORRECTION_HISTORY_BASE_SIZE = UINT16_HISTORY_SIZE;
+static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)) == 0,
+              "CORRECTION_HISTORY_BASE_SIZE has to be a power of 2");
 
-constexpr std::uint16_t correction_index(Key corrKey) noexcept {  //
-    return compress_key16(corrKey);
+constexpr std::uint16_t correction_index(Key corrKey) noexcept {
+    return corrKey & (UINT16_HISTORY_SIZE - 1);
 }
 
 enum HistoryType : std::uint8_t {
@@ -203,7 +203,7 @@ using CorrectionHistory = typename internal::CorrectionHistoryDef<T>::Type;
 struct CorrectionHistories final {
    public:
     CorrectionHistories(std::size_t count) noexcept :
-        Size(count * BASE_CORRECTION_HISTORY_SIZE) {}
+        Size(count * CORRECTION_HISTORY_BASE_SIZE) {}
 
     std::size_t size() const noexcept { return Size; }
 
