@@ -102,23 +102,6 @@ constexpr Bitboard color_bb() noexcept {
     return C == WHITE ? WhiteBB : BlackBB;
 }
 
-constexpr std::uint8_t msb_index(Bitboard b) noexcept {
-    constexpr StdArray<std::uint8_t, SQUARE_NB> MSBIndices{
-      0,  47, 1,  56, 48, 27, 2,  60,  //
-      57, 49, 41, 37, 28, 16, 3,  61,  //
-      54, 58, 35, 52, 50, 42, 21, 44,  //
-      38, 32, 29, 23, 17, 11, 4,  62,  //
-      46, 55, 26, 59, 40, 36, 15, 53,  //
-      34, 51, 20, 43, 31, 22, 10, 45,  //
-      25, 39, 14, 33, 19, 30, 9,  24,  //
-      13, 18, 8,  12, 7,  6,  5,  63   //
-    };
-
-    constexpr std::uint64_t Debruijn64 = 0x03F79D71B4CB0A89ULL;
-
-    return MSBIndices[(b * Debruijn64) >> 58];
-}
-
 // Magic holds all magic bitboards relevant data for a single square
 struct Magic final {
    public:
@@ -481,6 +464,23 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
 #endif
 }
 
+constexpr std::uint8_t msb_index(Bitboard b) noexcept {
+    constexpr StdArray<std::uint8_t, SQUARE_NB> MSBIndices{
+      0,  47, 1,  56, 48, 27, 2,  60,  //
+      57, 49, 41, 37, 28, 16, 3,  61,  //
+      54, 58, 35, 52, 50, 42, 21, 44,  //
+      38, 32, 29, 23, 17, 11, 4,  62,  //
+      46, 55, 26, 59, 40, 36, 15, 53,  //
+      34, 51, 20, 43, 31, 22, 10, 45,  //
+      25, 39, 14, 33, 19, 30, 9,  24,  //
+      13, 18, 8,  12, 7,  6,  5,  63   //
+    };
+
+    constexpr std::uint64_t Debruijn64 = 0x03F79D71B4CB0A89ULL;
+
+    return MSBIndices[(b * Debruijn64) >> 58];
+}
+
 // Fills from the MSB down to bit 0.
 // e.g. 0001'0010 -> 0001'1111
 constexpr Bitboard fill_prefix_bb(Bitboard b) noexcept {
@@ -497,10 +497,15 @@ constexpr std::uint8_t constexpr_lsb(Bitboard b) noexcept {
     b ^= b - 1;
     return msb_index(b);
 }
+
 constexpr std::uint8_t constexpr_msb(Bitboard b) noexcept {
     assert(b);
     b = fill_prefix_bb(b);
     return msb_index(b);
+}
+
+constexpr Bitboard next_pow2(Bitboard b) noexcept {
+    return b <= 1 ? 1 : 2ULL << constexpr_msb(b - 1);
 }
 
 // Returns the least significant bit in the non-zero bitboard

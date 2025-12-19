@@ -73,9 +73,9 @@ using WorkerPtr = LargePagePtr<Worker>;
 // the search is finished, it goes back to idle_func() waiting for a new signal.
 class Thread final {
    public:
-    Thread(std::size_t                           thId,
-           std::size_t                           nId,
-           std::size_t                           nCount,
+    Thread(std::size_t                           threadIdx,
+           std::size_t                           numaIdx,
+           std::size_t                           numaThreadCount,
            const SharedState&                    sharedState,
            ISearchManagerPtr                     searchManager,
            const OptionalThreadToNumaNodeBinder& nodeBinder) noexcept;

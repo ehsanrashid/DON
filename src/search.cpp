@@ -176,16 +176,16 @@ void init() noexcept {
 
 }  // namespace Search
 
-Worker::Worker(std::size_t               thId,
-               std::size_t               nId,
-               std::size_t               nCount,
+Worker::Worker(std::size_t               threadIdx,
+               std::size_t               numaIdx,
+               std::size_t               numaThreadCnt,
                const SharedState&        sharedState,
                ISearchManagerPtr         searchManager,
                NumaReplicatedAccessToken accessToken) noexcept :
     // Unpack the SharedState struct into member variables
-    threadId(thId),
-    numaId(nId),
-    numaCount(nCount),
+    threadId(threadIdx),
+    numaId(numaIdx),
+    numaThreadCount(numaThreadCnt),
     manager(std::move(searchManager)),
     options(sharedState.options),
     networks(sharedState.networks),

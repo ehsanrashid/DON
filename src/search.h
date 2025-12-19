@@ -391,7 +391,7 @@ struct SharedState final {
                 const SystemWideLazyNumaReplicated<NNUE::Networks>& nnueNetworks,
                 ThreadPool&                                         threadPool,
                 TranspositionTable&                                 transpositionTable,
-                std::unordered_map<NumaIndex, CorrectionHistories>  correctionHists) noexcept :
+                CorrectionHistoriesMap&                             correctionHists) noexcept :
         options(engOptions),
         networks(nnueNetworks),
         threads(threadPool),
@@ -402,7 +402,7 @@ struct SharedState final {
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
     ThreadPool&                                         threads;
     TranspositionTable&                                 tt;
-    std::unordered_map<NumaIndex, CorrectionHistories>  correctionHistories;
+    CorrectionHistoriesMap&                             correctionHistories;
 };
 
 class Worker;
@@ -532,9 +532,9 @@ struct Stack final {
 class Worker final {
    public:
     Worker() noexcept = delete;
-    Worker(std::size_t               thId,
-           std::size_t               nId,
-           std::size_t               nCount,
+    Worker(std::size_t               threadIdx,
+           std::size_t               numaIdx,
+           std::size_t               numaThreadCnt,
            const SharedState&        sharedState,
            ISearchManagerPtr         searchManager,
            NumaReplicatedAccessToken accessToken) noexcept;
@@ -637,7 +637,7 @@ class Worker final {
 
     StdArray<std::int32_t, COLOR_NB> optimism;
 
-    const std::size_t threadId, numaId, numaCount;
+    const std::size_t threadId, numaId, numaThreadCount;
 
     // The main thread has a MainSearchManager, the others have a NullSearchManager
     ISearchManagerPtr manager;

@@ -114,11 +114,11 @@ class Engine final {
 
     NumaReplicationContext numaContext;
 
-    Options                                            options;
-    ThreadPool                                         threads;
-    TranspositionTable                                 tt;
-    SystemWideLazyNumaReplicated<NNUE::Networks>       networks;
-    std::unordered_map<NumaIndex, CorrectionHistories> correctionHistories;
+    Options                                      options;
+    ThreadPool                                   threads;
+    TranspositionTable                           tt;
+    SystemWideLazyNumaReplicated<NNUE::Networks> networks;
+    CorrectionHistoriesMap                       correctionHistories;
 
     StateListPtr states;
     Position     pos;
