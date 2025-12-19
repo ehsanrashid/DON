@@ -26,10 +26,10 @@
 #include "bitboard.h"
 #include "history.h"
 #include "movegen.h"
-#include "syzygy/tbbase.h"
+#include "option.h"
+#include "syzygy/tablebase.h"
 #include "types.h"
 #include "uci.h"
-#include "ucioption.h"
 
 namespace DON {
 
@@ -38,9 +38,9 @@ namespace DON {
 Thread::Thread(std::size_t                           threadIdx,
                std::size_t                           numaIdx,
                std::size_t                           numaThreadCount,
-               const SharedState&                    sharedState,
+               const OptionalThreadToNumaNodeBinder& nodeBinder,
                ISearchManagerPtr                     searchManager,
-               const OptionalThreadToNumaNodeBinder& nodeBinder) noexcept :
+               const SharedState&                    sharedState) noexcept :
     threadId(threadIdx),
     numaId(numaIdx),
     nativeThread(&Thread::idle_func, this) {
@@ -52,8 +52,8 @@ Thread::Thread(std::size_t                           threadIdx,
         // the Worker allocation.
         // Ideally would also allocate the SearchManager here, but that's minor.
         worker = make_unique_aligned_large_page<Worker>(thread_id(), numa_id(), numaThreadCount,
-                                                        sharedState, std::move(searchManager),
-                                                        nodeBinder());
+                                                        nodeBinder(), std::move(searchManager),
+                                                        sharedState);
     });
 
     wait_finish();
@@ -183,8 +183,8 @@ void Threads::set(const NumaConfig&                       numaConfig,
         OptionalThreadToNumaNodeBinder nodeBinder(numaIdx, numaConfigPtr);
 
         threads.emplace_back(std::make_unique<Thread>(threadId, numaIds[numaIdx]++,
-                                                      numaThreadCounts[numaIdx], sharedState,
-                                                      std::move(searchManager), nodeBinder));
+                                                      numaThreadCounts[numaIdx], nodeBinder,
+                                                      std::move(searchManager), sharedState));
     }
 
     init();
@@ -337,7 +337,7 @@ void Threads::start(Position&      pos,
                      * clock.time;
     };
 
-    auto tbConfig = Tablebases::rank_root_moves(pos, rootMoves, options, false, time_to_abort);
+    auto tbConfig = Tablebase::rank_root_moves(pos, rootMoves, options, false, time_to_abort);
 
     // After ownership transfer 'states' becomes empty, so if stop the search
     // and call 'go' again without setting a new position states.get() == nullptr.

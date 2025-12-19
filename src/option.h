@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UCIOPTION_H_INCLUDED
-#define UCIOPTION_H_INCLUDED
+#ifndef OPTION_H_INCLUDED
+#define OPTION_H_INCLUDED
 
 #include <cstddef>
 #include <cstdint>
@@ -33,7 +33,7 @@
 
 namespace DON {
 
-// Because the UCI options should be case-insensitive
+// Because the options should be case-insensitive
 
 // Define a custom case-insensitive hash
 struct CaseInsensitiveHash final {
@@ -62,7 +62,7 @@ std::string_view to_string(OptionType ot) noexcept;
 
 class Options;
 
-// The Option class implements each option as specified by the UCI protocol
+// Option class implements each option as specified by the UCI protocol
 class Option final {
    public:
     using OnChange = std::function<std::optional<std::string>(const Option&)>;
@@ -158,4 +158,4 @@ class Options final {
 
 }  // namespace DON
 
-#endif  // #ifndef UCIOPTION_H_INCLUDED
+#endif  // #ifndef OPTION_H_INCLUDED

@@ -30,12 +30,12 @@
 #include "misc.h"
 #include "nnue/network.h"
 #include "numa.h"
+#include "option.h"
 #include "position.h"
 #include "search.h"
 #include "thread.h"
 #include "tt.h"
 #include "types.h"
-#include "ucioption.h"
 
 namespace DON {
 

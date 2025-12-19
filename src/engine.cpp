@@ -33,7 +33,7 @@
 #include "perft.h"
 #include "polybook.h"
 #include "shm.h"
-#include "syzygy/tbbase.h"
+#include "syzygy/tablebase.h"
 #include "uci.h"
 
 namespace DON {
@@ -105,7 +105,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("BookFile",             Option("", OnCng([](const Option& o) { return Book.load(o) ? "Load succeeded" : "Load failed"; })));
     options.add("BookProbeDepth",       Option(100, 1, 256));
     options.add("BookPickBest",         Option(true));
-    options.add("SyzygyPath",           Option("", OnCng([](const Option& o) { Tablebases::init(o); return std::nullopt; })));
+    options.add("SyzygyPath",           Option("", OnCng([](const Option& o) { Tablebase::init(o); return std::nullopt; })));
     options.add("SyzygyProbeLimit",     Option(7, 0, 7));
     options.add("SyzygyProbeDepth",     Option(1, 1, 100));
     options.add("Syzygy50MoveRule",     Option(true));
@@ -196,7 +196,7 @@ void Engine::wait_finish() const noexcept { threads.main_thread()->wait_finish()
 void Engine::init() noexcept {
     wait_finish();
 
-    Tablebases::init(options["SyzygyPath"]);  // Free mapped files
+    Tablebase::init(options["SyzygyPath"]);  // Free mapped files
 
     if (options["HashRetain"])
         return;

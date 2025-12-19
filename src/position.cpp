@@ -27,7 +27,7 @@
 #include "movegen.h"
 #include "prng.h"
 #include "search.h"
-#include "syzygy/tbbase.h"
+#include "syzygy/tablebase.h"
 
 namespace DON {
 
@@ -2195,19 +2195,19 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     os << "\nRepetition: " << pos.repetition();
 
-    if (Tablebases::MaxCardinality >= pos.count() && !pos.has_castling_rights())
+    if (Tablebase::MaxCardinality >= pos.count() && !pos.has_castling_rights())
     {
         State    st;
         Position p;
         p.set(pos, &st);
 
-        Tablebases::ProbeState wdlPs, dtzPs;
+        Tablebase::ProbeState wdlPs, dtzPs;
 
-        auto wdlScore = Tablebases::probe_wdl(p, &wdlPs);
-        auto dtzScore = Tablebases::probe_dtz(p, &dtzPs);
+        auto wdlScore = Tablebase::probe_wdl(p, &wdlPs);
+        auto dtzScore = Tablebase::probe_dtz(p, &dtzPs);
 
-        os << "\nTablebases WDL: " << std::setw(4) << int(wdlScore) << " (" << int(wdlPs) << ")"
-           << "\nTablebases DTZ: " << std::setw(4) << int(dtzScore) << " (" << int(dtzPs) << ")";
+        os << "\nTablebase WDL: " << std::setw(4) << int(wdlScore) << " (" << int(wdlPs) << ")"
+           << "\nTablebase DTZ: " << std::setw(4) << int(dtzScore) << " (" << int(dtzPs) << ")";
     }
 
     return os;

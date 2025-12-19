@@ -38,7 +38,7 @@
 #include "numa.h"
 #include "polybook.h"
 #include "position.h"
-#include "syzygy/tbbase.h"
+#include "syzygy/tablebase.h"
 #include "timeman.h"
 #include "types.h"
 
@@ -534,9 +534,9 @@ class Worker final {
     Worker(std::size_t               threadIdx,
            std::size_t               numaIdx,
            std::size_t               numaThreadCnt,
-           const SharedState&        sharedState,
+           NumaReplicatedAccessToken accessToken,
            ISearchManagerPtr         searchManager,
-           NumaReplicatedAccessToken accessToken) noexcept;
+           const SharedState&        sharedState) noexcept;
 
     void init() noexcept;
 
@@ -601,21 +601,35 @@ class Worker final {
 
     void extend_tb_pv(std::size_t index, Value& value) noexcept;
 
-    Limit              limit;
-    Tablebases::Config tbConfig;
+
+    const std::size_t threadId, numaId, numaThreadCount;
+
+    NumaReplicatedAccessToken                           numaAccessToken;
+    ISearchManagerPtr                                   manager;
+    const Options&                                      options;
+    const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
+    Threads&                                            threads;
+    TranspositionTable&                                 tt;
+    NNUE::AccumulatorCaches                             accCaches;
+    NNUE::AccumulatorStack                              accStack;
+
+    std::atomic<std::uint64_t> nodes, tbHits;
+    std::atomic<std::uint16_t> moveChanges;
+
+    Limit             limit;
+    Tablebase::Config tbConfig;
 
     Position  rootPos;
     State     rootState;
     RootMoves rootMoves;
     Depth     rootDepth, completedDepth;
 
-    std::atomic<std::uint64_t> nodes, tbHits;
-    std::atomic<std::uint16_t> moveChanges;
-
     int           rootDelta;
     std::int16_t  nmpPly;
     std::size_t   multiPV, curIdx, endIdx;
     std::uint16_t selDepth;
+
+    StdArray<std::int32_t, COLOR_NB> optimism;
 
     // Histories
     History<H_CAPTURE>       captureHistory;
@@ -632,24 +646,6 @@ class Worker final {
     CorrectionHistory<CH_NON_PAWN> nonPawnCorrectionHistory;
 
     CorrectionHistory<CH_CONTINUATION> continuationCorrectionHistory;
-
-
-    StdArray<std::int32_t, COLOR_NB> optimism;
-
-    const std::size_t threadId, numaId, numaThreadCount;
-
-    // The main thread has a MainSearchManager, the others have a NullSearchManager
-    ISearchManagerPtr manager;
-
-    const Options&                                      options;
-    const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
-    Threads&                                            threads;
-    TranspositionTable&                                 tt;
-    // Used by NNUE
-    NumaReplicatedAccessToken numaAccessToken;
-
-    NNUE::AccumulatorStack  accStack;
-    NNUE::AccumulatorCaches accCaches;
 
     friend class MainSearchManager;
     friend class Threads;

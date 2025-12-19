@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "tbbase.h"
+#include "tablebase.h"
 
 #include <algorithm>
 #include <array>
@@ -65,13 +65,13 @@
 #include "../bitboard.h"
 #include "../misc.h"
 #include "../movegen.h"
+#include "../option.h"
 #include "../position.h"
 #include "../search.h"
 #include "../types.h"
 #include "../uci.h"
-#include "../ucioption.h"
 
-using namespace DON::Tablebases;
+using namespace DON::Tablebase;
 
 namespace DON {
 
@@ -196,15 +196,15 @@ struct LR final {
 
 static_assert(sizeof(LR) == 3, "LR tree entry must be 3 bytes");
 
-// Tablebases data layout is structured as following:
+// Tablebase data layout is structured as following:
 //
 //  TBFile:   memory maps/unmaps the physical .rtbw and .rtbz files
 //  TBTable:  one object for each file with corresponding indexing information
 //  TBTables: has ownership of TBTable objects, keeping a list and a hash
 
-// class TBFile memory maps/unmaps the single .rtbw and .rtbz files. Files are
-// memory mapped for best performance. Files are mapped at first access: at init
-// time only existence of the file is checked.
+// TBFile class memory maps/unmaps the single ".rtbw" and ".rtbz" files.
+// Files are memory mapped for best performance.
+// Files are mapped at first access: at init time only existence of the file is checked.
 class TBFile: public std::ifstream {
    public:
     explicit TBFile(std::string_view file) noexcept {
@@ -212,7 +212,9 @@ class TBFile: public std::ifstream {
         for (const auto& path : Paths)
         {
             filename = path + "/" + file.data();
+
             open(filename);
+
             if (is_open())
                 return;
         }
@@ -283,9 +285,11 @@ class TBFile: public std::ifstream {
         *mapping = stat.st_size;
 
         *mapAddress = mmap(nullptr, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+
     #if defined(MADV_RANDOM)
         madvise(*mapAddress, stat.st_size, MADV_RANDOM);
     #endif
+
         ::close(fd);
 
         if (*mapAddress == MAP_FAILED)
@@ -316,7 +320,6 @@ class TBFile: public std::ifstream {
     }
 
     static void unmap(void* mapAddress, std::uint64_t mapping) noexcept {
-
 #if defined(_WIN32)
         UnmapViewOfFile(mapAddress);
         CloseHandle((HANDLE) mapping);
@@ -1453,7 +1456,7 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
 }  // namespace
 
-namespace Tablebases {
+namespace Tablebase {
 
 // Called at startup to create the various tables
 void init() noexcept {
@@ -1920,5 +1923,5 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
 
 // clang-format on
 
-}  // namespace Tablebases
+}  // namespace Tablebase
 }  // namespace DON

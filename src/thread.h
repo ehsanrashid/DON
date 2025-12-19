@@ -76,9 +76,9 @@ class Thread final {
     Thread(std::size_t                           threadIdx,
            std::size_t                           numaIdx,
            std::size_t                           numaThreadCount,
-           const SharedState&                    sharedState,
+           const OptionalThreadToNumaNodeBinder& nodeBinder,
            ISearchManagerPtr                     searchManager,
-           const OptionalThreadToNumaNodeBinder& nodeBinder) noexcept;
+           const SharedState&                    sharedState) noexcept;
     ~Thread() noexcept;
 
     std::size_t thread_id() const noexcept { return threadId; }
@@ -101,8 +101,7 @@ class Thread final {
     // Set before starting nativeThread
     bool dead = false, busy = true;
 
-    const std::size_t threadId;
-    const std::size_t numaId;
+    const std::size_t threadId, numaId;
 
     std::mutex              mutex;
     std::condition_variable condVar;

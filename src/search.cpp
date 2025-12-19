@@ -30,11 +30,11 @@
 #include "movegen.h"
 #include "movepick.h"
 #include "nnue/network.h"
+#include "option.h"
 #include "prng.h"
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
-#include "ucioption.h"
 
 namespace DON {
 
@@ -179,19 +179,19 @@ void init() noexcept {
 Worker::Worker(std::size_t               threadIdx,
                std::size_t               numaIdx,
                std::size_t               numaThreadCnt,
-               const SharedState&        sharedState,
+               NumaReplicatedAccessToken accessToken,
                ISearchManagerPtr         searchManager,
-               NumaReplicatedAccessToken accessToken) noexcept :
+               const SharedState&        sharedState) noexcept :
     // Unpack the SharedState struct into member variables
     threadId(threadIdx),
     numaId(numaIdx),
     numaThreadCount(numaThreadCnt),
+    numaAccessToken(accessToken),
     manager(std::move(searchManager)),
     options(sharedState.options),
     networks(sharedState.networks),
     threads(sharedState.threads),
     tt(sharedState.tt),
-    numaAccessToken(accessToken),
     accCaches(networks[accessToken]) {
 
     init();
@@ -924,7 +924,7 @@ Value Worker::search(Position&    pos,
 
     Move move, bestMove = Move::None;
 
-    // Step 6. Tablebases probe
+    // Step 6. Tablebase probe
     if constexpr (!RootNode)
         if (!exclude && tbConfig.cardinality != 0)
         {
@@ -934,15 +934,15 @@ Value Worker::search(Position&    pos,
                 && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth)
                 && pos.rule50_count() == 0 && !pos.has_castling_rights())
             {
-                Tablebases::ProbeState wdlPs;
+                Tablebase::ProbeState wdlPs;
 
-                auto wdlScore = Tablebases::probe_wdl(pos, &wdlPs);
+                auto wdlScore = Tablebase::probe_wdl(pos, &wdlPs);
 
                 // Force check of time on the next occasion
                 if (is_main_worker())
                     main_manager()->callsCount = 1;
 
-                if (wdlPs != Tablebases::PS_FAIL)
+                if (wdlPs != Tablebase::PS_FAIL)
                 {
                     tbHits.fetch_add(1, std::memory_order_relaxed);
 
@@ -2155,7 +2155,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         for (auto m : MoveList<LEGAL>(rootPos))
             rms.emplace_back(m);
 
-        auto tbCfg = Tablebases::rank_root_moves(rootPos, rms, options, false, time_to_abort);
+        auto tbCfg = Tablebase::rank_root_moves(rootPos, rms, options, false, time_to_abort);
 
         if (rms.find(pvMove)->tbRank != rms[0].tbRank)
             break;
@@ -2214,7 +2214,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         });
 
         // The winning side tries to minimize DTZ, the losing side maximizes it
-        auto tbCfg = Tablebases::rank_root_moves(rootPos, rms, options, true, time_to_abort);
+        auto tbCfg = Tablebase::rank_root_moves(rootPos, rms, options, true, time_to_abort);
 
         // If DTZ is not available might not find a mate, so bail out
         if (!tbCfg.rootInTB || tbCfg.cardinality != 0)

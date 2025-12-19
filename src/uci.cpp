@@ -33,9 +33,9 @@
 #include "benchmark.h"
 #include "bitboard.h"
 #include "memory.h"
+#include "option.h"
 #include "position.h"
 #include "search.h"
-#include "ucioption.h"
 
 namespace DON {
 
