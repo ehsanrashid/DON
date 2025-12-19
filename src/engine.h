@@ -114,8 +114,8 @@ class Engine final {
     NumaReplicationContext numaContext;
 
     Options                                      options;
-    ThreadPool                                   threads;
-    TranspositionTable                           tt;
+    Threads                                      threads;
+    TranspositionTable                           transpositionTable;
     SystemWideLazyNumaReplicated<NNUE::Networks> networks;
     CorrectionHistoriesMap                       correctionHistories;
 

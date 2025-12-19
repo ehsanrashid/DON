@@ -45,7 +45,7 @@
 namespace DON {
 
 class Options;
-class ThreadPool;
+class Threads;
 class TranspositionTable;
 
 namespace NNUE {
@@ -388,7 +388,7 @@ struct SharedState final {
    public:
     SharedState(const Options&                                      engOptions,
                 const SystemWideLazyNumaReplicated<NNUE::Networks>& nnueNetworks,
-                ThreadPool&                                         threadPool,
+                Threads&                                            threadPool,
                 TranspositionTable&                                 transpositionTable,
                 CorrectionHistoriesMap&                             correctionHists) noexcept :
         options(engOptions),
@@ -399,7 +399,7 @@ struct SharedState final {
 
     const Options&                                      options;
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
-    ThreadPool&                                         threads;
+    Threads&                                            threads;
     TranspositionTable&                                 tt;
     CorrectionHistoriesMap&                             correctionHistories;
 };
@@ -468,7 +468,7 @@ class MainSearchManager final: public ISearchManager {
     void check_time(Worker& worker) noexcept override;
 
     TimePoint elapsed() const noexcept;
-    TimePoint elapsed(const ThreadPool& threads) const noexcept;
+    TimePoint elapsed(const Threads& threads) const noexcept;
 
     void show_pv(Worker& worker, Depth depth) const noexcept;
 
@@ -643,7 +643,7 @@ class Worker final {
 
     const Options&                                      options;
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
-    ThreadPool&                                         threads;
+    Threads&                                            threads;
     TranspositionTable&                                 tt;
     // Used by NNUE
     NumaReplicatedAccessToken numaAccessToken;
@@ -652,7 +652,7 @@ class Worker final {
     NNUE::AccumulatorCaches accCaches;
 
     friend class MainSearchManager;
-    friend class ThreadPool;
+    friend class Threads;
 };
 
 }  // namespace DON

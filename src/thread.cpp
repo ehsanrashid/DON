@@ -102,9 +102,9 @@ void Thread::idle_func() noexcept {
 // Creates/destroys threads to match the requested number.
 // Created and launched threads will immediately go to sleep in idle_func.
 // Upon resizing, threads are recreated to allow for binding if necessary.
-void ThreadPool::set(const NumaConfig&                       numaConfig,
-                     SharedState                             sharedState,
-                     const MainSearchManager::UpdateContext& updateContext) noexcept {
+void Threads::set(const NumaConfig&                       numaConfig,
+                  SharedState                             sharedState,
+                  const MainSearchManager::UpdateContext& updateContext) noexcept {
     clear();
 
     const std::size_t threadCount = sharedState.options["Threads"];
@@ -190,7 +190,7 @@ void ThreadPool::set(const NumaConfig&                       numaConfig,
     init();
 }
 
-Thread* ThreadPool::best_thread() const noexcept {
+Thread* Threads::best_thread() const noexcept {
 
     Thread* bestThread = main_thread();
 
@@ -269,10 +269,10 @@ Thread* ThreadPool::best_thread() const noexcept {
 
 // Wakes up main thread waiting in idle_func() and returns immediately.
 // Main thread will wake up other threads and start the search.
-void ThreadPool::start(Position&      pos,
-                       StateListPtr&  states,
-                       const Limit&   limit,
-                       const Options& options) noexcept {
+void Threads::start(Position&      pos,
+                    StateListPtr&  states,
+                    const Limit&   limit,
+                    const Options& options) noexcept {
     main_thread()->wait_finish();
 
     stop.store(false, std::memory_order_relaxed);
@@ -368,19 +368,19 @@ void ThreadPool::start(Position&      pos,
     main_thread()->start_search();
 }
 
-void ThreadPool::run_on_thread(std::size_t threadId, JobFunc job) noexcept {
+void Threads::run_on_thread(std::size_t threadId, JobFunc job) noexcept {
     assert(threadId < size());
 
     threads[threadId]->run_custom_job(std::move(job));
 }
 
-void ThreadPool::wait_on_thread(std::size_t threadId) noexcept {
+void Threads::wait_on_thread(std::size_t threadId) noexcept {
     assert(threadId < size());
 
     threads[threadId]->wait_finish();
 }
 
-std::vector<std::size_t> ThreadPool::get_bound_thread_counts() const noexcept {
+std::vector<std::size_t> Threads::get_bound_thread_counts() const noexcept {
     std::vector<std::size_t> threadCounts;
 
     if (!threadBoundNumaNodes.empty())

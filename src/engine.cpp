@@ -62,7 +62,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     numaContext(NumaConfig::from_system()),
     options(),
     threads(),
-    tt(),
+    transpositionTable(),
     networks(
       numaContext,
       // Heap-allocate because sizeof(NNUE::Networks) is large
@@ -202,12 +202,13 @@ void Engine::init() noexcept {
         return;
 
     threads.init();
-    tt.init(threads);
+    transpositionTable.init(threads);
 }
 
 void Engine::resize_threads_tt() noexcept {
 
-    threads.set(numaContext.numa_config(), {options, networks, threads, tt, correctionHistories},
+    threads.set(numaContext.numa_config(),
+                {options, networks, threads, transpositionTable, correctionHistories},
                 updateContext);
 
     // Reallocate the hash with the new threadpool size
@@ -219,7 +220,7 @@ void Engine::resize_threads_tt() noexcept {
 void Engine::resize_tt(std::size_t ttSize) noexcept {
     wait_finish();
 
-    tt.resize(ttSize, threads);
+    transpositionTable.resize(ttSize, threads);
 }
 
 void Engine::show() const noexcept { std::cout << pos << std::endl; }
@@ -255,7 +256,9 @@ void Engine::flip() noexcept { pos.flip(); }
 
 void Engine::mirror() noexcept { pos.mirror(); }
 
-std::uint16_t Engine::hashfull(std::uint8_t maxAge) const noexcept { return tt.hashfull(maxAge); }
+std::uint16_t Engine::hashfull(std::uint8_t maxAge) const noexcept {
+    return transpositionTable.hashfull(maxAge);
+}
 
 std::string Engine::get_numa_config_str() const noexcept {
     return numaContext.numa_config().to_string();
@@ -371,9 +374,9 @@ void Engine::save_networks(const StdArray<std::optional<std::string>, 2>& netFil
     });
 }
 
-bool Engine::save_hash() const noexcept { return tt.save(options["HashFile"]); }
+bool Engine::save_hash() const noexcept { return transpositionTable.save(options["HashFile"]); }
 
-bool Engine::load_hash() noexcept { return tt.load(options["HashFile"], threads); }
+bool Engine::load_hash() noexcept { return transpositionTable.load(options["HashFile"], threads); }
 
 void Engine::set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept {
     updateContext.onUpdateShort = std::move(f);

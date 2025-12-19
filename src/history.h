@@ -207,6 +207,9 @@ struct CorrectionHistories final {
 
     std::size_t size() const noexcept { return Size; }
 
+    std::size_t mask() const noexcept { return size() - 1; }
+
+
    private:
     const std::size_t Size;
 };

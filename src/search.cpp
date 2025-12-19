@@ -2301,7 +2301,7 @@ TimePoint MainSearchManager::elapsed() const noexcept { return timeManager.elaps
 // If the 'NodesTime' option is enabled, return the count of nodes searched instead.
 // This function is called to check whether the search should be stopped
 // based on predefined thresholds like total time or total nodes.
-TimePoint MainSearchManager::elapsed(const ThreadPool& threads) const noexcept {
+TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
     return timeManager.elapsed([&threads]() { return threads.nodes(); });
 }
 

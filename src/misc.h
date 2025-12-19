@@ -731,64 +731,78 @@ class MemoryStreamBuf final: public std::streambuf {
     }
 };
 
-// Fancy logging facility. The trick here is to replace cin.rdbuf() and cout.rdbuf()
-// with two Tie objects that tie std::cin and std::cout to a file stream.
+// Fancy logging facility.
+// The trick here is to replace cin.rdbuf() and cout.rdbuf() with 2 TieStreamBuf objects
+// that tie std::cin and std::cout to a file stream.
 // Can toggle the logging of std::cout and std:cin at runtime whilst preserving
 // usual I/O functionality, all without changing a single line of code!
 // Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
 // MSVC requires split streambuf for std::cin and std::cout.
-class Tie final: public std::streambuf {
+class TieStreamBuf final: public std::streambuf {
    public:
     using traits_type = std::streambuf::traits_type;
     using int_type    = traits_type::int_type;
     using char_type   = traits_type::char_type;
 
-    Tie() noexcept = delete;
-    Tie(std::streambuf* pBuf, std::streambuf* mBuf) noexcept :
-        primaryBuf(pBuf),
-        mirrorBuf(mBuf) {}
+    TieStreamBuf() noexcept = delete;
+    TieStreamBuf(std::streambuf* pStmbuf, std::streambuf* mStmbuf) noexcept :
+        pStreambuf(pStmbuf),
+        mStreambuf(mStmbuf) {}
 
     int_type overflow(int_type ch) override {
-        if (primaryBuf == nullptr)
+        if (pStreambuf == nullptr)
             return traits_type::eof();
-        int_type putCh = primaryBuf->sputc(traits_type::to_char_type(ch));
+
+        int_type putCh = pStreambuf->sputc(traits_type::to_char_type(ch));
+
         if (traits_type::eq_int_type(putCh, traits_type::eof()))
             return putCh;
+
         return mirror_put_with_prefix(putCh, "<< ", preOutCh);
     }
 
     int_type underflow() override {
-        if (primaryBuf == nullptr)
+        if (pStreambuf == nullptr)
             return traits_type::eof();
-        return primaryBuf->sgetc();
+
+        return pStreambuf->sgetc();
     }
 
     int_type uflow() override {
-        if (primaryBuf == nullptr)
+        if (pStreambuf == nullptr)
             return traits_type::eof();
-        int_type ch = primaryBuf->sbumpc();
+
+        int_type ch = pStreambuf->sbumpc();
+
         if (traits_type::eq_int_type(ch, traits_type::eof()))
             return ch;
+
         return mirror_put_with_prefix(ch, ">> ", preInCh);
     }
 
     int sync() override {
-        int r1 = primaryBuf != nullptr ? primaryBuf->pubsync() : 0;
-        int r2 = mirrorBuf != nullptr ? mirrorBuf->pubsync() : 0;
+        int r1 = pStreambuf != nullptr ? pStreambuf->pubsync() : 0;
+        int r2 = mStreambuf != nullptr ? mStreambuf->pubsync() : 0;
+
         return (r1 == 0 && r2 == 0) ? 0 : -1;
     }
 
-    std::streambuf *primaryBuf, *mirrorBuf;
+    std::streambuf* primary() { return pStreambuf; }
+    std::streambuf* mirror() { return mStreambuf; }
 
    private:
     int_type
     mirror_put_with_prefix(int_type ch, std::string_view prefix, char_type& preCh) noexcept {
-        if (mirrorBuf == nullptr)
+        if (mStreambuf == nullptr)
             return traits_type::not_eof(ch);
+
         if (preCh == '\n')
-            mirrorBuf->sputn(prefix.data(), std::streamsize(prefix.size()));
-        return mirrorBuf->sputc(preCh = traits_type::to_char_type(ch));
+            mStreambuf->sputn(prefix.data(), std::streamsize(prefix.size()));
+
+        return mStreambuf->sputc(preCh = traits_type::to_char_type(ch));
     }
+
+    std::streambuf *pStreambuf, *mStreambuf;
 
     char_type preOutCh = '\n';
     char_type preInCh  = '\n';
@@ -814,8 +828,8 @@ class Logger final {
         is(_is),
         os(_os),
         ofs(),
-        iTie(is.rdbuf(), ofs.rdbuf()),
-        oTie(os.rdbuf(), ofs.rdbuf()) {}
+        iTieStreamBuf(is.rdbuf(), ofs.rdbuf()),
+        oTieStreamBuf(os.rdbuf(), ofs.rdbuf()) {}
 
     ~Logger() noexcept { stop(); }
 
@@ -853,8 +867,8 @@ class Logger final {
 
         write_timestamped("->");
 
-        is.rdbuf(&iTie);
-        os.rdbuf(&oTie);
+        is.rdbuf(&iTieStreamBuf);
+        os.rdbuf(&oTieStreamBuf);
 
         return true;
     }
@@ -864,8 +878,8 @@ class Logger final {
         if (!is_open())
             return;
 
-        os.rdbuf(oTie.primaryBuf);
-        is.rdbuf(iTie.primaryBuf);
+        os.rdbuf(oTieStreamBuf.primary());
+        is.rdbuf(iTieStreamBuf.primary());
 
         write_timestamped("<-");
 
@@ -877,7 +891,8 @@ class Logger final {
     std::istream& is;
     std::ostream& os;
     std::ofstream ofs;
-    Tie           iTie, oTie;
+
+    TieStreamBuf iTieStreamBuf, oTieStreamBuf;
 
     std::string filename;
     std::mutex  mutex;

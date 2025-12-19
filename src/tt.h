@@ -83,7 +83,7 @@ class TTUpdater final {
     std::uint8_t     generation;
 };
 
-class ThreadPool;
+class Threads;
 
 struct ProbResult final {
     TTData    data;
@@ -105,9 +105,9 @@ class TranspositionTable final {
 
     void increment_generation() noexcept;
 
-    void resize(std::size_t ttSize, ThreadPool& threads) noexcept;
+    void resize(std::size_t ttSize, Threads& threads) noexcept;
 
-    void init(ThreadPool& threads) noexcept;
+    void init(Threads& threads) noexcept;
 
     TTCluster* cluster(Key key) const noexcept;
 
@@ -116,7 +116,7 @@ class TranspositionTable final {
     std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
 
     bool save(std::string_view hashFile) const noexcept;
-    bool load(std::string_view hashFile, ThreadPool& threads) noexcept;
+    bool load(std::string_view hashFile, Threads& threads) noexcept;
 
    private:
     void free() noexcept;
