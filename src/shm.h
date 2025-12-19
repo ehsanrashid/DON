@@ -530,13 +530,13 @@ class CleanupHooks final {
           SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ  //
         };
 
-        struct sigaction sigaction;
-        sigaction.sa_handler = signal_handler;
-        sigemptyset(&sigaction.sa_mask);
-        sigaction.sa_flags = 0;
+        struct sigaction sigAction;
+        sigAction.sa_handler = signal_handler;
+        sigemptyset(&sigAction.sa_mask);
+        sigAction.sa_flags = 0;
 
         for (int signal : Signals)
-            sigaction(signal, &sigaction, nullptr);
+            sigaction(signal, &sigAction, nullptr);
     }
 
     static inline std::once_flag registerOnce;
