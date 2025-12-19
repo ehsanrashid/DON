@@ -157,6 +157,7 @@ enum CorrectionHistoryType : std::uint8_t {
 };
 
 namespace internal {
+
 template<std::size_t... Sizes>
 using CorrectionStatsMultiArray = StatsMultiArray<CORRECTION_HISTORY_LIMIT, Sizes...>;
 
@@ -187,6 +188,7 @@ template<>
 struct CorrectionHistoryDef<CH_CONTINUATION> final {
     using Type = MultiArray<CorrectionHistoryDef<CH_PIECE_SQ>::Type, PIECE_NB, SQUARE_NB>;
 };
+
 }  // namespace internal
 
 // Alias template for convenience

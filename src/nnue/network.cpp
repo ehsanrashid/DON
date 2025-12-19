@@ -78,13 +78,8 @@ Embedded get_embedded(EmbeddedType embType) noexcept {
            : Embedded(gSmallEmbeddedData, gSmallEmbeddedEnd, gSmallEmbeddedSize);
 }
 
-}  // namespace
-
-namespace internal {
-
-namespace {
 // Read network header
-bool read_header(std::istream& is, std::uint32_t& hash, std::string& netDescription) noexcept {
+bool _read_header(std::istream& is, std::uint32_t& hash, std::string& netDescription) noexcept {
     std::uint32_t fileVersion, descSize;
     fileVersion = read_little_endian<std::uint32_t>(is);
     hash        = read_little_endian<std::uint32_t>(is);
@@ -98,9 +93,9 @@ bool read_header(std::istream& is, std::uint32_t& hash, std::string& netDescript
 }
 
 // Write network header
-bool write_header(std::ostream&      os,
-                  std::uint32_t      hash,
-                  const std::string& netDescription) noexcept {
+bool _write_header(std::ostream&      os,
+                   std::uint32_t      hash,
+                   const std::string& netDescription) noexcept {
     write_little_endian<std::uint32_t>(os, FILE_VERSION);
     write_little_endian<std::uint32_t>(os, hash);
     write_little_endian<std::uint32_t>(os, netDescription.size());
@@ -111,7 +106,7 @@ bool write_header(std::ostream&      os,
 
 // Read evaluation function parameters
 template<typename T>
-bool read_parameters(std::istream& is, T& reference) noexcept {
+bool _read_parameters(std::istream& is, T& reference) noexcept {
     std::uint32_t hash;
     hash = read_little_endian<std::uint32_t>(is);
     if (!is || hash != T::hash())
@@ -122,14 +117,14 @@ bool read_parameters(std::istream& is, T& reference) noexcept {
 
 // Write evaluation function parameters
 template<typename T>
-bool write_parameters(std::ostream& os, const T& reference) noexcept {
+bool _write_parameters(std::ostream& os, const T& reference) noexcept {
     write_little_endian<std::uint32_t>(os, T::hash());
 
     return reference.write_parameters(os);
 }
 
 }  // namespace
-}  // namespace internal
+
 
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load(std::string_view rootDirectory,
@@ -337,14 +332,14 @@ template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::read_parameters(std::istream& is,
                                                  std::string&  netDescription) noexcept {
     std::uint32_t hash;
-    if (!internal::read_header(is, hash, netDescription))
+    if (!_read_header(is, hash, netDescription))
         return false;
     if (hash != Network::Hash)
         return false;
-    if (!internal::read_parameters(is, featureTransformer))
+    if (!_read_parameters(is, featureTransformer))
         return false;
     for (std::size_t i = 0; i < LayerStacks; ++i)
-        if (!internal::read_parameters(is, network[i]))
+        if (!_read_parameters(is, network[i]))
             return false;
 
     return bool(is) && is.peek() == std::ios::traits_type::eof();
@@ -353,12 +348,12 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& is,
 template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::write_parameters(
   std::ostream& os, const std::string& netDescription) const noexcept {
-    if (!internal::write_header(os, Network::Hash, netDescription))
+    if (!_write_header(os, Network::Hash, netDescription))
         return false;
-    if (!internal::write_parameters(os, featureTransformer))
+    if (!_write_parameters(os, featureTransformer))
         return false;
     for (std::size_t i = 0; i < LayerStacks; ++i)
-        if (!internal::write_parameters(os, network[i]))
+        if (!_write_parameters(os, network[i]))
             return false;
 
     return bool(os);
