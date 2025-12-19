@@ -386,21 +386,21 @@ struct Skill final {
 // It is used to easily forward data to the Worker class.
 struct SharedState final {
    public:
-    SharedState(const SystemWideLazyNumaReplicated<NNUE::Networks>& nnueNetworks,
-                const Options&                                      engOptions,
-                Threads&                                            threadPool,
-                TranspositionTable&                                 transpositionTable,
-                CorrectionHistoriesMap&                             correctionHists) noexcept :
-        networks(nnueNetworks),
-        options(engOptions),
-        threads(threadPool),
-        tt(transpositionTable),
-        correctionHistories(correctionHists) {}
+    SharedState(const SystemWideLazyNumaReplicated<NNUE::Networks>& nets,
+                const Options&                                      opts,
+                Threads&                                            ths,
+                TranspositionTable&                                 tt,
+                CorrectionHistoriesMap&                             corrHists) noexcept :
+        networks(nets),
+        options(opts),
+        threads(ths),
+        transpositionTable(tt),
+        correctionHistories(corrHists) {}
 
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
     const Options&                                      options;
     Threads&                                            threads;
-    TranspositionTable&                                 tt;
+    TranspositionTable&                                 transpositionTable;
     CorrectionHistoriesMap&                             correctionHistories;
 };
 
@@ -609,25 +609,24 @@ class Worker final {
     const Options&                                      options;
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
     Threads&                                            threads;
-    TranspositionTable&                                 tt;
+    TranspositionTable&                                 transpositionTable;
     NNUE::AccumulatorCaches                             accCaches;
     NNUE::AccumulatorStack                              accStack;
 
     std::atomic<std::uint64_t> nodes, tbHits;
     std::atomic<std::uint16_t> moveChanges;
 
+    Position          rootPos;
+    State             rootState;
+    RootMoves         rootMoves;
     Limit             limit;
     Tablebase::Config tbConfig;
 
-    Position  rootPos;
-    State     rootState;
-    RootMoves rootMoves;
-    Depth     rootDepth, completedDepth;
-
-    int           rootDelta;
-    std::int16_t  nmpPly;
+    Depth         rootDepth, completedDepth;
     std::size_t   multiPV, curIdx, endIdx;
     std::uint16_t selDepth;
+    int           rootDelta;
+    std::int16_t  nmpPly;
 
     StdArray<std::int32_t, COLOR_NB> optimism;
 

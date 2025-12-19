@@ -151,6 +151,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
     pos.set(fen, &states->back());
 
     std::int16_t ply = 1;
+
     for (const auto& move : moves)
     {
         Move m = UCI::mix_to_move(move, pos, MoveList<LEGAL>(pos));
@@ -162,8 +163,10 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
         }
 
         assert(pos.rule50_count() <= 100);
+
         states->emplace_back();
         pos.do_move(m, states->back());
+
         ++ply;
     }
 }

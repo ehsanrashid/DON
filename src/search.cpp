@@ -182,7 +182,6 @@ Worker::Worker(std::size_t               threadIdx,
                NumaReplicatedAccessToken accessToken,
                ISearchManagerPtr         searchManager,
                const SharedState&        sharedState) noexcept :
-    // Unpack the SharedState struct into member variables
     threadId(threadIdx),
     numaId(numaIdx),
     numaThreadCount(numaThreadCnt),
@@ -191,13 +190,13 @@ Worker::Worker(std::size_t               threadIdx,
     options(sharedState.options),
     networks(sharedState.networks),
     threads(sharedState.threads),
-    tt(sharedState.tt),
+    transpositionTable(sharedState.transpositionTable),
     accCaches(networks[accessToken]) {
 
     init();
 }
 
-// Initialize the Worker
+// Initialize the worker
 void Worker::init() noexcept {
 
     captureHistory.fill(-689);
@@ -229,7 +228,7 @@ void Worker::ensure_network_replicated() noexcept {
 }
 
 // Speculative prefetch as early as possible
-void Worker::prefetch_tt(Key key) const noexcept { prefetch(tt.cluster(key)); }
+void Worker::prefetch_tt(Key key) const noexcept { prefetch(transpositionTable.cluster(key)); }
 
 void Worker::prefetch_correction_histories(const Position& pos) const noexcept {
     prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][0][0]);
@@ -243,12 +242,8 @@ void Worker::prefetch_correction_histories(const Position& pos) const noexcept {
 void Worker::start_search() noexcept {
     auto* const mainManager = is_main_worker() ? main_manager() : nullptr;
 
-    accStack.reset();
-
     rootDepth = completedDepth = DEPTH_ZERO;
     nmpPly                     = 0;
-
-    lowPlyQuietHistory.fill(97);
 
     multiPV = 1;
 
@@ -266,6 +261,10 @@ void Worker::start_search() noexcept {
     if (multiPV > rootMoves.size())
         multiPV = rootMoves.size();
 
+    accStack.reset();
+
+    lowPlyQuietHistory.fill(97);
+
     // Non-main threads go directly to iterative_deepening()
     if (mainManager == nullptr)
     {
@@ -282,7 +281,7 @@ void Worker::start_search() noexcept {
     mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
                                   options, limit);
     if (!limit.infinite)
-        tt.increment_generation();
+        transpositionTable.increment_generation();
 
     bool think = false;
 
@@ -789,7 +788,7 @@ Value Worker::search(Position&    pos,
     const bool exclude = excludedMove != Move::None;
 
     // Step 4. Transposition table lookup
-    auto [ttd, ttu] = tt.probe(key);
+    auto [ttd, ttu] = transpositionTable.probe(key);
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = RootNode ? rootMoves[curIdx].pv[0]
@@ -897,7 +896,7 @@ Value Worker::search(Position&    pos,
             {
                 pos.do_move(ttd.move, st, this);
 
-                auto [_ttd, _ttu] = tt.probe(pos.key());
+                auto [_ttd, _ttu] = transpositionTable.probe(pos.key());
                 _ttd.value        = _ttd.hit  //
                                     ? value_from_tt(_ttd.value, ss->ply, pos.rule50_count())
                                     : VALUE_NONE;
@@ -1686,7 +1685,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
     // Step 3. Transposition table lookup
-    auto [ttd, ttu] = tt.probe(key);
+    auto [ttd, ttu] = transpositionTable.probe(key);
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = ttd.hit ? legal_tt_move(ttd.move, pos) : Move::None;
@@ -2062,7 +2061,7 @@ bool Worker::ponder_move_extracted() noexcept {
     {
         Move ponderMove;
 
-        auto [ttd, ttu] = tt.probe(rootPos.key());
+        auto [ttd, ttu] = transpositionTable.probe(rootPos.key());
 
         ponderMove = ttd.hit ? legal_tt_move(ttd.move, rootPos) : Move::None;
 
@@ -2144,8 +2143,8 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     auto& rootSt = states.emplace_back();
     rootPos.do_move(rootMove.pv[0], rootSt);
 
-    // Step 1. Walk the PV to the last position in TB with correct decisive score
     std::int16_t ply = 1;
+    // Step 1. Walk the PV to the last position in TB with correct decisive score
     while (std::size_t(ply) < rootMove.pv.size())
     {
         auto pvMove = rootMove.pv[ply];
@@ -2313,7 +2312,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
     TimePoint     time     = std::max(elapsed(), TimePoint(1));
     std::uint64_t nodes    = worker.threads.nodes();
-    std::uint16_t hashfull = worker.tt.hashfull();
+    std::uint16_t hashfull = worker.transpositionTable.hashfull();
     std::uint64_t tbHits   = worker.threads.tbHits() + (tbConfig.rootInTB ? rootMoves.size() : 0);
 
     for (std::size_t i = 0; i < worker.multiPV; ++i)

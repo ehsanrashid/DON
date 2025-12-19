@@ -202,8 +202,8 @@ using CorrectionHistory = typename internal::CorrectionHistoryDef<T>::Type;
 
 struct CorrectionHistories final {
    public:
-    CorrectionHistories(std::size_t threadCount) noexcept :
-        Size(threadCount * BASE_CORRECTION_HISTORY_SIZE) {}
+    CorrectionHistories(std::size_t count) noexcept :
+        Size(count * BASE_CORRECTION_HISTORY_SIZE) {}
 
     std::size_t size() const noexcept { return Size; }
 
