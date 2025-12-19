@@ -27,8 +27,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <exception>  // IWYU pragma: keep
-// IWYU pragma: no_include <__exception/terminate.h>
+#include <exception>
 #include <fstream>
 #include <functional>
 #include <iomanip>
@@ -745,15 +744,15 @@ class TieStreamBuf final: public std::streambuf {
     using char_type   = traits_type::char_type;
 
     TieStreamBuf() noexcept = delete;
-    TieStreamBuf(std::streambuf* pStmbuf, std::streambuf* mStmbuf) noexcept :
-        pStreambuf(pStmbuf),
-        mStreambuf(mStmbuf) {}
+    TieStreamBuf(std::streambuf* pB, std::streambuf* mB) noexcept :
+        pBuf(pB),
+        mBuf(mB) {}
 
     int_type overflow(int_type ch) override {
-        if (pStreambuf == nullptr)
+        if (pBuf == nullptr)
             return traits_type::eof();
 
-        int_type putCh = pStreambuf->sputc(traits_type::to_char_type(ch));
+        int_type putCh = pBuf->sputc(traits_type::to_char_type(ch));
 
         if (traits_type::eq_int_type(putCh, traits_type::eof()))
             return putCh;
@@ -762,17 +761,17 @@ class TieStreamBuf final: public std::streambuf {
     }
 
     int_type underflow() override {
-        if (pStreambuf == nullptr)
+        if (pBuf == nullptr)
             return traits_type::eof();
 
-        return pStreambuf->sgetc();
+        return pBuf->sgetc();
     }
 
     int_type uflow() override {
-        if (pStreambuf == nullptr)
+        if (pBuf == nullptr)
             return traits_type::eof();
 
-        int_type ch = pStreambuf->sbumpc();
+        int_type ch = pBuf->sbumpc();
 
         if (traits_type::eq_int_type(ch, traits_type::eof()))
             return ch;
@@ -781,28 +780,28 @@ class TieStreamBuf final: public std::streambuf {
     }
 
     int sync() override {
-        int r1 = pStreambuf != nullptr ? pStreambuf->pubsync() : 0;
-        int r2 = mStreambuf != nullptr ? mStreambuf->pubsync() : 0;
+        int r1 = pBuf != nullptr ? pBuf->pubsync() : 0;
+        int r2 = mBuf != nullptr ? mBuf->pubsync() : 0;
 
         return (r1 == 0 && r2 == 0) ? 0 : -1;
     }
 
-    std::streambuf* primary() { return pStreambuf; }
-    std::streambuf* mirror() { return mStreambuf; }
+    std::streambuf* pbuf() { return pBuf; }
+    std::streambuf* mbuf() { return mBuf; }
 
    private:
     int_type
     mirror_put_with_prefix(int_type ch, std::string_view prefix, char_type& preCh) noexcept {
-        if (mStreambuf == nullptr)
+        if (mBuf == nullptr)
             return traits_type::not_eof(ch);
 
         if (preCh == '\n')
-            mStreambuf->sputn(prefix.data(), std::streamsize(prefix.size()));
+            mBuf->sputn(prefix.data(), std::streamsize(prefix.size()));
 
-        return mStreambuf->sputc(preCh = traits_type::to_char_type(ch));
+        return mBuf->sputc(preCh = traits_type::to_char_type(ch));
     }
 
-    std::streambuf *pStreambuf, *mStreambuf;
+    std::streambuf *pBuf, *mBuf;
 
     char_type preOutCh = '\n';
     char_type preInCh  = '\n';
@@ -878,8 +877,8 @@ class Logger final {
         if (!is_open())
             return;
 
-        os.rdbuf(oTieStreamBuf.primary());
-        is.rdbuf(iTieStreamBuf.primary());
+        os.rdbuf(oTieStreamBuf.pbuf());
+        is.rdbuf(iTieStreamBuf.pbuf());
 
         write_timestamped("<-");
 
