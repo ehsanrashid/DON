@@ -390,7 +390,7 @@ struct SharedState final {
     const Options&                                      options;
     Threads&                                            threads;
     TranspositionTable&                                 transpositionTable;
-    CorrectionHistoriesMap&                             correctionHistoriesMap;
+    SharedHistoriesMap&                                 sharedHistoriesMap;
 };
 
 class Worker;
@@ -599,7 +599,7 @@ class Worker final {
     const Options&                                      options;
     Threads&                                            threads;
     TranspositionTable&                                 transpositionTable;
-    CorrectionHistories&                                correctionHistories;
+    SharedHistories&                                    sharedHistories;
     NNUE::AccumulatorCaches                             accCaches;
     NNUE::AccumulatorStack                              accStack;
 

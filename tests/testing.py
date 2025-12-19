@@ -59,7 +59,7 @@ race:DON::TTEntry::clear
 race:DON::TTUpdater::update
 race:DON::TranspositionTable::probe
 race:DON::TranspositionTable::hashfull
-race:DON::StatsEntry
+race:DON::Worker::update_correction_histories
 race:DON::Worker::correction_value
 """
             )

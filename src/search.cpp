@@ -191,7 +191,7 @@ Worker::Worker(std::size_t               threadIdx,
     options(sharedState.options),
     threads(sharedState.threads),
     transpositionTable(sharedState.transpositionTable),
-    correctionHistories(sharedState.correctionHistoriesMap.at(accessToken.numa_index())),
+    sharedHistories(sharedState.sharedHistoriesMap.at(accessToken.numa_index())),
     accCaches(networks[accessToken]) {
 
     init();
@@ -212,13 +212,13 @@ void Worker::init() noexcept {
                     pieceSqHist.fill(-529);
 
     // Each thread is responsible for clearing their part of correction history
-    std::size_t size   = correctionHistories.size() / numaThreadCount;
+    std::size_t size   = sharedHistories.size() / numaThreadCount;
     std::size_t begIdx = numaId * size;
-    std::size_t endIdx = std::min(begIdx + size, correctionHistories.size());
+    std::size_t endIdx = std::min(begIdx + size, sharedHistories.size());
 
-    correctionHistories.pawnCorr.fill(begIdx, endIdx, 5);
-    correctionHistories.minorCorr.fill(begIdx, endIdx, 0);
-    correctionHistories.nonPawnCorr.fill(begIdx, endIdx, 0);
+    sharedHistories.pawn_correction().fill(begIdx, endIdx, 5);
+    sharedHistories.minor_correction().fill(begIdx, endIdx, 0);
+    sharedHistories.non_pawn_correction().fill(begIdx, endIdx, 0);
 
     for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
@@ -237,12 +237,12 @@ void Worker::ensure_network_replicated() noexcept {
 void Worker::prefetch_tt(Key key) const noexcept { prefetch(transpositionTable.cluster(key)); }
 
 void Worker::prefetch_correction_histories(const Position& pos) const noexcept {
-    prefetch(&correctionHistories.pawn<WHITE>(pos.pawn_key(WHITE)));
-    prefetch(&correctionHistories.pawn<BLACK>(pos.pawn_key(BLACK)));
-    prefetch(&correctionHistories.minor<WHITE>(pos.minor_key(WHITE)));
-    prefetch(&correctionHistories.minor<BLACK>(pos.minor_key(BLACK)));
-    prefetch(&correctionHistories.non_pawn<WHITE>(pos.non_pawn_key(WHITE)));
-    prefetch(&correctionHistories.non_pawn<BLACK>(pos.non_pawn_key(BLACK)));
+    prefetch(&sharedHistories.pawn_correction<WHITE>(pos.pawn_key(WHITE)));
+    prefetch(&sharedHistories.pawn_correction<BLACK>(pos.pawn_key(BLACK)));
+    prefetch(&sharedHistories.minor_correction<WHITE>(pos.minor_key(WHITE)));
+    prefetch(&sharedHistories.minor_correction<BLACK>(pos.minor_key(BLACK)));
+    prefetch(&sharedHistories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE)));
+    prefetch(&sharedHistories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK)));
 }
 
 void Worker::start_search() noexcept {
@@ -2003,12 +2003,12 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 
     bonus = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
 
-    correctionHistories.    pawn<WHITE>(pos.    pawn_key(WHITE))[ac] << 1.0000 * bonus;
-    correctionHistories.    pawn<BLACK>(pos.    pawn_key(BLACK))[ac] << 1.0000 * bonus;
-    correctionHistories.   minor<WHITE>(pos.   minor_key(WHITE))[ac] << 1.2188 * bonus;
-    correctionHistories.   minor<BLACK>(pos.   minor_key(BLACK))[ac] << 1.2188 * bonus;
-    correctionHistories.non_pawn<WHITE>(pos.non_pawn_key(WHITE))[ac] << 1.3906 * bonus;
-    correctionHistories.non_pawn<BLACK>(pos.non_pawn_key(BLACK))[ac] << 1.3906 * bonus;
+    sharedHistories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac] << 1.0000 * bonus;
+    sharedHistories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac] << 1.0000 * bonus;
+    sharedHistories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac] << 1.2188 * bonus;
+    sharedHistories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac] << 1.2188 * bonus;
+    sharedHistories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac] << 1.3906 * bonus;
+    sharedHistories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac] << 1.3906 * bonus;
 
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
@@ -2027,12 +2027,12 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
     return std::clamp<std::int64_t>(
-           + 5174LL * (correctionHistories.    pawn<WHITE>(pos.    pawn_key(WHITE))[ac]
-                     + correctionHistories.    pawn<BLACK>(pos.    pawn_key(BLACK))[ac])
-           + 4411LL * (correctionHistories.   minor<WHITE>(pos.   minor_key(WHITE))[ac]
-                     + correctionHistories.   minor<BLACK>(pos.   minor_key(BLACK))[ac])
-           +11168LL * (correctionHistories.non_pawn<WHITE>(pos.non_pawn_key(WHITE))[ac]
-                     + correctionHistories.non_pawn<BLACK>(pos.non_pawn_key(BLACK))[ac])
+           + 5174LL * (sharedHistories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
+                     + sharedHistories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
+           + 4411LL * (sharedHistories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
+                     + sharedHistories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
+           +11168LL * (sharedHistories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
+                     + sharedHistories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac])
            + 7841LL * (is_ok(preSq)
                       ? (*(ss - 2)->pieceSqCorrectionHistory)[pos[preSq]][preSq]
                       + (*(ss - 4)->pieceSqCorrectionHistory)[pos[preSq]][preSq]

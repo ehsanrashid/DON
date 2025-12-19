@@ -505,7 +505,9 @@ constexpr std::uint8_t constexpr_msb(Bitboard b) noexcept {
 }
 
 constexpr Bitboard next_pow2(Bitboard b) noexcept {
-    return b <= 1 ? 1 : 2ULL << constexpr_msb(b - 1);
+    return b < 0x0000000000000002ULL ? 0x0000000000000001ULL
+         : b > 0x4000000000000000ULL ? 0x8000000000000000ULL
+                                     : 2ULL << constexpr_msb(b - 1);
 }
 
 // Returns the least significant bit in the non-zero bitboard

@@ -148,13 +148,13 @@ void Threads::set(const NumaConfig&                       numaConfig,
             ++numaThreadCounts[threadBoundNumaNodes[i]];
     }
 
-    sharedState.correctionHistoriesMap.clear();
-    sharedState.correctionHistoriesMap.reserve(threadCount);
+    sharedState.sharedHistoriesMap.clear();
+    sharedState.sharedHistoriesMap.reserve(threadCount);
 
     for (const auto& [numaIdx, count] : numaThreadCounts)
     {
         const auto update_shared = [&, _numaIdx = numaIdx, _count = count]() noexcept {
-            sharedState.correctionHistoriesMap.try_emplace(_numaIdx, next_pow2(_count));
+            sharedState.sharedHistoriesMap.try_emplace(_numaIdx, next_pow2(_count));
         };
 
         if (threadBindable)

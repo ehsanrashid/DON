@@ -208,7 +208,7 @@ void Engine::init() noexcept {
 void Engine::resize_threads_tt() noexcept {
 
     threads.set(numaContext.numa_config(),
-                {networks, options, threads, transpositionTable, correctionHistoriesMap},
+                {networks, options, threads, transpositionTable, sharedHistoriesMap},
                 updateContext);
 
     // Reallocate the hash with the new threadpool size

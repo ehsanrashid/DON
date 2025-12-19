@@ -158,7 +158,7 @@ using StateListPtr = std::unique_ptr<StateList>;
 using ThreadPtr = std::unique_ptr<Thread>;
 
 // Threads handles all the threads-related stuff like
-// init, starting, parking and, most importantly, launching a thread.
+// launching, initializing, starting and parking a thread.
 // All the access to threads is done through this class.
 class Threads final {
    public:
