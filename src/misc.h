@@ -722,6 +722,15 @@ inline TimePoint now() noexcept {
 
 std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept;
 
+// C++ way to prepare a buffer for a memory stream
+class MemoryStreamBuf final: public std::streambuf {
+   public:
+    MemoryStreamBuf(char* p, std::size_t n) noexcept {
+        setg(p, p, p + n);
+        setp(p, p + n);
+    }
+};
+
 // Fancy logging facility. The trick here is to replace cin.rdbuf() and cout.rdbuf()
 // with two Tie objects that tie std::cin and std::cout to a file stream.
 // Can toggle the logging of std::cout and std:cin at runtime whilst preserving

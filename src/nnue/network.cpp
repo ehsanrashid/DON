@@ -54,25 +54,30 @@ const unsigned int         gSmallEmbeddedSize    = 1;
 
 namespace DON::NNUE {
 
-struct EmbeddedNNUE final {
-    EmbeddedNNUE(const unsigned char*       embeddedData,
-                 const unsigned char* const embeddedEnd,
-                 const unsigned int         embeddedSize) noexcept :
+namespace {
+
+struct Embedded final {
+   public:
+    Embedded(const unsigned char*       embeddedData,
+             const unsigned char* const embeddedEnd,
+             const unsigned int         embeddedSize) noexcept :
         data(embeddedData),
         end(embeddedEnd),
         size(embeddedSize) {}
+
     const unsigned char*       data;
     const unsigned char* const end;
     const unsigned int         size;
 };
 
-namespace {
-EmbeddedNNUE get_embedded(EmbeddedType embType) noexcept {
+Embedded get_embedded(EmbeddedType embType) noexcept {
     assert(embType == EmbeddedType::BIG || embType == EmbeddedType::SMALL);
+
     return embType == EmbeddedType::BIG
-           ? EmbeddedNNUE(gBigEmbeddedData, gBigEmbeddedEnd, gBigEmbeddedSize)
-           : EmbeddedNNUE(gSmallEmbeddedData, gSmallEmbeddedEnd, gSmallEmbeddedSize);
+           ? Embedded(gBigEmbeddedData, gBigEmbeddedEnd, gBigEmbeddedSize)
+           : Embedded(gSmallEmbeddedData, gSmallEmbeddedEnd, gSmallEmbeddedSize);
 }
+
 }  // namespace
 
 namespace internal {
@@ -273,25 +278,13 @@ Network<Arch, Transformer>::trace(const Position&                         pos,
     return netTrace;
 }
 
-namespace {
-
-// C++ way to prepare a buffer for a memory stream
-class MemoryBuf final: public std::streambuf {
-   public:
-    MemoryBuf(char* p, std::size_t n) noexcept {
-        setg(p, p, p + n);
-        setp(p, p + n);
-    }
-};
-
-}  // namespace
-
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_user_net(const std::string& dir,
                                                const std::string& netFile) noexcept {
     std::ifstream ifs(dir + netFile, std::ios::binary);
 
     auto description = load(ifs);
+
     if (description.has_value())
     {
         evalFile.currentName    = netFile;
@@ -303,12 +296,13 @@ template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_internal() noexcept {
     const auto embedded = get_embedded(embeddedType);
 
-    MemoryBuf buffer(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
-                     std::size_t(embedded.size));
+    MemoryStreamBuf streamBuf(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
+                              std::size_t(embedded.size));
 
-    std::istream is(&buffer);
+    std::istream is(&streamBuf);
 
     auto description = load(is);
+
     if (description.has_value())
     {
         evalFile.currentName    = evalFile.defaultName;
