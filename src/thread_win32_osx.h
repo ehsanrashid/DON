@@ -37,22 +37,30 @@ class NativeThread final {
     template<typename Function, typename... Args>
     NativeThread(Function&& func, Args&&... args) noexcept {
         using Func = std::function<void()>;
+
         auto* funcPtr =
           new Func(std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
 
         const auto start_routine = [](void* ptr) noexcept -> void* {
             auto* fnPtr = reinterpret_cast<Func*>(ptr);
+
             // Call the function
             (*fnPtr)();
+
             delete fnPtr;
+
             return nullptr;
         };
 
         pthread_attr_t attr;
+
         pthread_attr_init(&attr);
+
         pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
+
         if (pthread_create(&thread, &attr, start_routine, funcPtr) != 0)
             delete funcPtr;
+
         pthread_attr_destroy(&attr);
     }
 

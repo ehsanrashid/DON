@@ -312,6 +312,7 @@ struct MultiArrayDef<T, Size> final {
     static_assert(Size >= 0, "dimension must be >= 0");
     using Type = T;
 };
+
 }  // namespace internal
 
 template<typename T, std::size_t Size, std::size_t... Sizes>

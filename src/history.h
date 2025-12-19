@@ -27,7 +27,6 @@
 #include <unordered_map>
 
 #include "misc.h"
-#include "numa.h"
 #include "types.h"
 
 namespace DON {
@@ -99,6 +98,7 @@ enum HistoryType : std::uint8_t {
 };
 
 namespace internal {
+
 template<int D, std::size_t... Sizes>
 using StatsMultiArray = MultiArray<StatsEntry<std::int16_t, D>, Sizes...>;
 
@@ -143,6 +143,7 @@ template<>
 struct HistoryDef<H_CONTINUATION> final {
     using Type = MultiArray<HistoryDef<H_PIECE_SQ>::Type, PIECE_NB, SQUARE_NB>;
 };
+
 }  // namespace internal
 
 // Alias template for convenience
@@ -210,7 +211,7 @@ struct CorrectionHistories final {
     const std::size_t Size;
 };
 
-using CorrectionHistoriesMap = std::unordered_map<NumaIndex, CorrectionHistories>;
+using CorrectionHistoriesMap = std::unordered_map<std::size_t, CorrectionHistories>;
 
 }  // namespace DON
 

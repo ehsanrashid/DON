@@ -122,6 +122,7 @@ bool write_parameters(std::ostream& os, const T& reference) noexcept {
 
     return reference.write_parameters(os);
 }
+
 }  // namespace
 }  // namespace internal
 

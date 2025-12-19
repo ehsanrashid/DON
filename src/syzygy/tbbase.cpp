@@ -271,20 +271,20 @@ class TBFile: public std::ifstream {
         if (fd == -1)
             return *mapAddress = nullptr, nullptr;
 
-        struct stat st;
-        fstat(fd, &st);
+        struct stat stat;
+        fstat(fd, &stat);
 
-        if (st.st_size % 64 != 16)
+        if (stat.st_size % 64 != 16)
         {
             std::cerr << "Corrupt tablebase file " << filename << std::endl;
             std::exit(EXIT_FAILURE);
         }
 
-        *mapping = st.st_size;
+        *mapping = stat.st_size;
 
-        *mapAddress = mmap(nullptr, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+        *mapAddress = mmap(nullptr, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
     #if defined(MADV_RANDOM)
-        madvise(*mapAddress, st.st_size, MADV_RANDOM);
+        madvise(*mapAddress, stat.st_size, MADV_RANDOM);
     #endif
         ::close(fd);
 
