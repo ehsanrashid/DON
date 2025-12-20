@@ -45,13 +45,6 @@ constexpr std::uint8_t GENERATION_MASK = (0xFF << RESERVED_BITS) & 0xFF;
 // Maximum generation value before wrapping around
 constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 
-constexpr std::uint16_t compress_key16(Key key) noexcept {
-    return ((key >> 00) & 0xFFFF)  //
-         ^ ((key >> 16) & 0xFFF0)  //
-         ^ ((key >> 32) & 0xFF00)  //
-         ^ ((key >> 48) & 0xF000);
-}
-
 }  // namespace
 
 // TTEntry is the 10 bytes transposition table entry

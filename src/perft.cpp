@@ -37,11 +37,6 @@ namespace DON::Perft {
 
 namespace {
 
-constexpr std::uint32_t compress_key32(Key key) noexcept {
-    return ((key >> 00) & 0xFFFFFFFF)  //
-         ^ ((key >> 32) & 0xFFFF0000);
-}
-
 struct PerftData final {
 
     void classify(Position& pos, Move m) noexcept;
