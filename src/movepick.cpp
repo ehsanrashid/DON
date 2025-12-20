@@ -110,7 +110,7 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
     Bitboard pinnersBB  = pos.pinners_bb();
     Bitboard threatsBB  = pos.threats_bb();
 
-    std::uint32_t pawnIndex = pawn_index(pos.pawn_key());
+    std::size_t pawnIndex = pawn_index(pos.pawn_key());
 
     iterator itr = cur;
 

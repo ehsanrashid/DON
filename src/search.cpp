@@ -869,7 +869,7 @@ Value Worker::search(Position&    pos,
     if (depth > 1 && red >= 2 && ss->staticEval > 169 - (ss - 1)->staticEval)
         --depth;
 
-    std::uint32_t pawnIndex = pawn_index(pos.pawn_key());
+    std::size_t pawnIndex = pawn_index(pos.pawn_key());
 
     State st;
 
@@ -1945,7 +1945,7 @@ void Worker::update_capture_history(const Position& pos, Move m, int bonus) noex
 void Worker::update_quiet_history(Color ac, Move m, int bonus) noexcept {
     quietHistory[ac][m.raw()] << bonus;
 }
-void Worker::update_pawn_history(std::uint32_t pawnIndex, Piece movedPc, Square dstSq, int bonus) noexcept {
+void Worker::update_pawn_history(std::size_t pawnIndex, Piece movedPc, Square dstSq, int bonus) noexcept {
     pawnHistory[pawnIndex][movedPc][dstSq] << bonus;
 }
 void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept {
@@ -1956,7 +1956,7 @@ void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus)
 }
 
 // Updates quiet histories (move sorting heuristics)
-void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::uint32_t pawnIndex, Move m, int bonus) noexcept {
+void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::size_t pawnIndex, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
     update_quiet_history(pos.active_color(), m, 1.0000 * bonus);
@@ -1969,7 +1969,7 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::u
 }
 
 // Updates history at the end of search() when a bestMove is found
-void Worker::update_histories(const Position& pos, Stack* const ss, std::uint32_t pawnIndex, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position& pos, Stack* const ss, std::size_t pawnIndex, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(ss->moveCount != 0);
 
     int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * (bestMove == ss->ttMove);
