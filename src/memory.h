@@ -71,9 +71,12 @@ bool has_large_page() noexcept;
 // Round up to multiples of alignment
 template<typename T>
 [[nodiscard]] constexpr T round_up_pow2(T size, T alignment) noexcept {
-    static_assert(std::is_unsigned_v<T>);
-    assert(alignment && (alignment & (alignment - 1)) == 0);
+    static_assert(std::is_unsigned_v<T>, "round_up_pow2 requires an unsigned type");
+    // Alignment must be non-zero power of 2
+    assert(alignment != 0 && (alignment & (alignment - 1)) == 0);
+
     T mask = alignment - 1;
+    // Avoid overflow: if size + mask overflows, it wraps around
     return (size + mask) & ~mask;
 }
 
@@ -250,12 +253,12 @@ make_unique_aligned_large_page(std::size_t size) {
 }
 
 // Get the first aligned element of an array.
-// ptr must point to an array of size at least `sizeof(T) * N + alignment` bytes,
+// ptr must point to an array of size at least 'sizeof(T) * N + alignment' bytes,
 // where N is the number of elements in the array.
 template<std::size_t Alignment, typename T>
 [[nodiscard]] constexpr T* align_ptr_up(T* ptr) noexcept {
-    static_assert(Alignment && !(Alignment & (Alignment - 1)),
-                  "Alignment must be a non-zero power of two");
+    static_assert(Alignment != 0 && (Alignment & (Alignment - 1)) == 0,
+                  "Alignment must be non-zero power of 2");
     static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
 
     auto ptrInt = reinterpret_cast<std::uintptr_t>(ptr);
@@ -265,8 +268,7 @@ template<std::size_t Alignment, typename T>
 
 template<std::size_t Alignment, typename T>
 [[nodiscard]] constexpr const T* align_ptr_up(const T* ptr) noexcept {
-    using U = std::remove_const_t<T>;
-    return const_cast<const T*>(align_ptr_up<Alignment>(const_cast<U*>(ptr)));
+    return reinterpret_cast<const T*>(align_ptr_up<Alignment>(const_cast<T*>(ptr)));
 }
 
 #if defined(_WIN32)
