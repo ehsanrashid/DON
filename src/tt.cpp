@@ -33,6 +33,8 @@
 
 namespace DON {
 
+namespace {
+
 // Number of bits reserved for other fields in the data8 byte
 constexpr std::uint8_t RESERVED_BITS = 3;
 // Increment value for the generation field, used to bump generation
@@ -43,7 +45,14 @@ constexpr std::uint8_t GENERATION_MASK = (0xFF << RESERVED_BITS) & 0xFF;
 // Maximum generation value before wrapping around
 constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 
-static_assert(std::is_same_v<uint16_t, std::uint16_t>);
+constexpr std::uint16_t compress_key16(Key key) noexcept {
+    return ((key >> 00) & 0xFFFF)  //
+         ^ ((key >> 16) & 0xFFF0)  //
+         ^ ((key >> 32) & 0xFF00)  //
+         ^ ((key >> 48) & 0xF000);
+}
+
+}  // namespace
 
 // TTEntry is the 10 bytes transposition table entry
 // Defined as below:
@@ -223,7 +232,7 @@ TTCluster* TranspositionTable::cluster(Key key) const noexcept {
 ProbResult TranspositionTable::probe(Key key) const noexcept {
 
     auto* const         ttc   = cluster(key);
-    const std::uint16_t key16 = std::uint16_t(key);
+    const std::uint16_t key16 = compress_key16(key);
 
     for (auto& entry : ttc->entries)
         if (entry.key16 == key16)

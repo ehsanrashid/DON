@@ -75,7 +75,9 @@ inline constexpr std::size_t PAWN_HISTORY_SIZE = 0x4000;
 static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
               "PAWN_HISTORY_SIZE has to be a power of 2");
 
-constexpr std::size_t pawn_index(Key pawnKey) noexcept { return pawnKey & (PAWN_HISTORY_SIZE - 1); }
+constexpr std::uint32_t pawn_index(Key pawnKey) noexcept {
+    return pawnKey & (PAWN_HISTORY_SIZE - 1);
+}
 
 inline constexpr std::size_t CORRECTION_HISTORY_BASE_SIZE = 0x10000;
 static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)) == 0,

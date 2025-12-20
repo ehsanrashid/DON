@@ -37,6 +37,11 @@ namespace DON::Perft {
 
 namespace {
 
+constexpr std::uint32_t compress_key32(Key key) noexcept {
+    return ((key >> 00) & 0xFFFFFFFF)  //
+         ^ ((key >> 32) & 0xFFFF0000);
+}
+
 struct PerftData final {
 
     void classify(Position& pos, Move m) noexcept;
@@ -246,7 +251,7 @@ void PerftTable::init(Threads& threads) noexcept {
 ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
     auto* const         ptc   = cluster(key);
-    const std::uint32_t key32 = std::uint32_t(key);
+    const std::uint32_t key32 = compress_key32(key);
 
     for (auto& entry : ptc->entries)
         if (entry.key32 == key32 && entry.depth16 == depth)
@@ -337,7 +342,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
                     {
                         iPerftData = perft<false>(pos, depth - 1, detail);
 
-                        pte->save(key, depth - 1, iPerftData.nodes);
+                        pte->save(compress_key32(key), depth - 1, iPerftData.nodes);
                     }
                 }
                 else
