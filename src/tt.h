@@ -71,10 +71,10 @@ class TTUpdater final {
 
     void update(Depth d, Move m, bool pv, Bound b, Value v, Value ev) noexcept;
 
-    TTEntry*         tte;
-    TTCluster* const ttc;
-    std::uint16_t    key16;
-    std::uint8_t     generation;
+    TTEntry*            tte;
+    TTCluster* const    ttc;
+    const std::uint16_t key16;
+    const std::uint8_t  generation;
 };
 
 class Threads;
