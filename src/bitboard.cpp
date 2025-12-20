@@ -20,10 +20,7 @@
 #include <algorithm>
 #include <initializer_list>
 #include <memory>
-#include <mutex>
-#include <shared_mutex>
-#include <unordered_map>
-#include <utility>
+
 #if !defined(USE_POPCNT)
     #include <bitset>
 #endif
@@ -239,18 +236,6 @@ void init_magics() noexcept {
 template void init_magics<BISHOP>() noexcept;
 template void init_magics<ROOK>() noexcept;
 
-// ThreadSafeCache: groups (mutex + storage + pre-reserve)
-template<typename Key, typename Value>
-struct ThreadSafeCache final {
-    ThreadSafeCache(std::size_t reserve = 1024, float loadFactor = 0.75f) noexcept {
-        storage.reserve(reserve);
-        storage.max_load_factor(loadFactor);
-    }
-
-    std::shared_mutex                               mutex;
-    std::unordered_map<Key, std::unique_ptr<Value>> storage;
-};
-
 }  // namespace
 
 namespace BitBoard {
@@ -351,33 +336,22 @@ std::string pretty_str(Bitboard b) noexcept {
 }
 
 std::string_view pretty(Bitboard b) noexcept {
+    // Fully RAII-compliant — destructor runs at program exit
+    //static auto cache = ConcurrentCache<Bitboard, std::string>(1024, 0.75f);
+
     // Standard intentional "leaky singleton" pattern.
     // Thread-safe static initialization, never deleted.
     // Ensures the cache lives for the entire program.
-    static auto& cache = *new ThreadSafeCache<Bitboard, std::string>(1024, 0.75f);
+    //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(1024, 0.75f);
+    static auto& cache = *([] {
+        static auto ptr = std::make_unique<ConcurrentCache<Bitboard, std::string>>(1024, 0.75f);
+        return ptr.get();
+    })();
 
-    // Fast path: shared (read) lock
-    {
-        std::shared_lock readLock(cache.mutex);
+    //return cache.access_or_build(b, pretty_str(b));
 
-        if (auto itr = cache.storage.find(b); itr != cache.storage.end())
-            return std::string_view{*itr->second};
-    }
-
-    // Build outside locks (may throw) — reduces lock contention
-    auto prettyStr = std::make_unique<std::string>(pretty_str(b));
-
-    // Slow path: exclusive (write) lock to insert (double-check to avoid races)
-    {
-        std::unique_lock writeLock(cache.mutex);
-
-        // Check again to avoid duplicate insertion if another thread inserted meanwhile
-        if (auto itr = cache.storage.find(b); itr != cache.storage.end())
-            return std::string_view{*itr->second};
-
-        auto [itr, inserted] = cache.storage.emplace(b, std::move(prettyStr));
-        return std::string_view{*itr->second};
-    }
+    return cache.transform_access_or_build(
+      b, [](const std::string& s) noexcept -> std::string_view { return s; }, pretty_str(b));
 }
 
 }  // namespace BitBoard

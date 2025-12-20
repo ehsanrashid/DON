@@ -35,11 +35,13 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <shared_mutex>
 #include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -661,6 +663,62 @@ class FixedString final {
    private:
     StdArray<char, Capacity + 1> _data;  // +1 for null terminator
     std::size_t                  _size;
+};
+
+// ConcurrentCache: groups (mutex + storage + pre-reserve)
+template<typename Key, typename Value>
+class ConcurrentCache final {
+   public:
+    ConcurrentCache(std::size_t reserve = 1024, float loadFactor = 0.75f) noexcept {
+        storage.reserve(reserve);
+        storage.max_load_factor(loadFactor);
+    }
+
+    // Args... are forwarded to Value constructor
+    template<typename... Args>
+    Value& access_or_build(const Key& key, Args&&... args) {
+        return _access_or_build(key, std::forward<Args>(args)...);
+    }
+
+    // Transformer is callable: Value& -> any return type
+    // Args... are forwarded to Value constructor
+    template<typename Transformer, typename... Args>
+    auto transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) {
+        return std::forward<Transformer>(transformer)(
+          _access_or_build(key, std::forward<Args>(args)...));
+    }
+
+   private:
+    // Thread-safe access or build
+    template<typename... Args>
+    Value& _access_or_build(const Key& key, Args&&... args) noexcept {
+
+        // Fast path: shared (read) lock
+        {
+            std::shared_lock lock(mutex);
+
+            if (auto itr = storage.find(key); itr != storage.end())
+                return *itr->second;
+        }
+
+        // Slow path: exclusive (write) lock to insert (double-check to avoid races)
+        {
+            std::unique_lock lock(mutex);
+
+            // Double-check
+            if (auto itr = storage.find(key); itr != storage.end())
+                return *itr->second;
+
+            // Build the value internally inside lock — reduces lock contention
+            auto [itr, inserted] =
+              storage.emplace(key, std::make_unique<Value>(std::forward<Args>(args)...));
+
+            return *itr->second;
+        }
+    }
+
+    std::shared_mutex                               mutex;
+    std::unordered_map<Key, std::unique_ptr<Value>> storage;
 };
 
 template<typename T>
