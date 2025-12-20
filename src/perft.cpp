@@ -141,12 +141,14 @@ struct PTEntry final {
 
     constexpr std::uint64_t nodes() const noexcept { return nodes64; }
 
-    void save(std::uint32_t k32, Depth d, std::uint64_t n) noexcept {
-        if ((key32 == k32 && depth16 >= d) || nodes64 >= 10000 + n)
-            return;
-        key32   = k32;
-        depth16 = d;
-        nodes64 = n;
+    void save(std::uint32_t k, Depth d, std::uint64_t n) noexcept {
+
+        if ((key32 != k || depth16 < d) && nodes64 < 10000 + n)
+        {
+            key32   = k;
+            depth16 = d;
+            nodes64 = n;
+        }
     }
 
    private:

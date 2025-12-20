@@ -122,17 +122,17 @@ void* alloc_aligned_large_page(std::size_t allocSize) noexcept {
     // Fall back to regular, page-aligned, allocation if necessary
     if (mem == nullptr)
     {
-        constexpr std::size_t Alignment =
-    #if defined(_WIN64)
-          4 * 1024
-    #else
-          256
-    #endif
-          ;
+        //    constexpr std::size_t Alignment =
+        //#if defined(_WIN64)
+        //      4 * 1024
+        //#else
+        //      256
+        //#endif
+        //      ;
 
-        std::size_t roundedAllocSize = round_up_pow2(allocSize, Alignment);
+        //    std::size_t roundedAllocSize = round_up_pow2(allocSize, Alignment);
 
-        mem = VirtualAlloc(nullptr, roundedAllocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+        mem = VirtualAlloc(nullptr, allocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     }
 #else
     constexpr std::size_t Alignment =
