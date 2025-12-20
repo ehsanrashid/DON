@@ -126,7 +126,7 @@ void* alloc_aligned_large_page(std::size_t allocSize) noexcept {
     #if defined(_WIN64)
           4 * 1024
     #else
-          1024
+          256
     #endif
           ;
 

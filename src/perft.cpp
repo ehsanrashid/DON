@@ -246,7 +246,7 @@ void PerftTable::init(Threads& threads) noexcept {
 ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
     auto* const         ptc   = cluster(key);
-    const std::uint32_t key32 = compress_key32(key);
+    const std::uint32_t key32 = std::uint32_t(key);
 
     for (auto& entry : ptc->entries)
         if (entry.key32 == key32 && entry.depth16 == depth)
@@ -337,7 +337,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
                     {
                         iPerftData = perft<false>(pos, depth - 1, detail);
 
-                        pte->save(compress_key32(key), depth - 1, iPerftData.nodes);
+                        pte->save(std::uint32_t(key), depth - 1, iPerftData.nodes);
                     }
                 }
                 else
