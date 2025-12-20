@@ -20,10 +20,7 @@
 #include <algorithm>
 #include <initializer_list>
 #include <memory>
-#include <mutex>
-#include <shared_mutex>
-#include <unordered_map>
-#include <utility>
+
 #if !defined(USE_POPCNT)
     #include <bitset>
 #endif
@@ -339,35 +336,26 @@ std::string pretty_str(Bitboard b) noexcept {
 }
 
 std::string_view pretty(Bitboard b) noexcept {
-    static std::shared_mutex                                          mutex;
-    static std::unordered_map<Bitboard, std::unique_ptr<std::string>> cache;
-    // One-time reserve to reduce rehashes (runs once, thread-safe since C++11)
-    [[maybe_unused]] static const bool reserved = []() {
-        cache.reserve(1024);           // choose an appropriate capacity
-        cache.max_load_factor(0.75f);  // optional: tune load factor
-        return true;
-    }();
-    assert(reserved);
+    constexpr std::size_t Reserve    = 1024;
+    constexpr float       LoadFactor = 0.75f;
 
-    // Fast path: shared (read) lock
-    {
-        std::shared_lock readLock(mutex);
-        if (auto itr = cache.find(b); itr != cache.end())
-            return std::string_view{*itr->second};
-    }
+    // Thread-safe static initialization
 
-    // Build outside locks (may throw) — reduces lock contention
-    auto str = std::make_unique<std::string>(pretty_str(b));
+    // Fully RAII-compliant — destructor runs at program exit
+    //static auto cache = ConcurrentCache<Bitboard, std::string>(Reserve, LoadFactor);
 
-    // Slow path: exclusive (write) lock to insert (double-check to avoid races)
-    {
-        std::unique_lock writeLock(mutex);
-        // Check again to avoid duplicate insertion if another thread inserted meanwhile
-        if (auto itr = cache.find(b); itr != cache.end())
-            return std::string_view{*itr->second};
-        auto [itr, inserted] = cache.emplace(b, std::move(str));
-        return std::string_view{*itr->second};
-    }
+    // Standard intentional "leaky singleton" pattern.
+    // Ensures the cache lives for the entire program, never deleted.
+    //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(Reserve, LoadFactor);
+    static auto& cache = *([=] {
+        static auto pCache =
+          std::make_unique<ConcurrentCache<Bitboard, std::string>>(Reserve, LoadFactor);
+        return pCache.get();
+    })();
+
+    //return cache.access_or_build(b, pretty_str(b));
+    return cache.transform_access_or_build(
+      b, [](const std::string& str) noexcept -> std::string_view { return str; }, pretty_str(b));
 }
 
 }  // namespace BitBoard

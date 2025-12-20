@@ -33,6 +33,8 @@
 
 namespace DON {
 
+namespace {
+
 // Number of bits reserved for other fields in the data8 byte
 constexpr std::uint8_t RESERVED_BITS = 3;
 // Increment value for the generation field, used to bump generation
@@ -42,6 +44,8 @@ constexpr std::uint8_t GENERATION_MASK = (0xFF << RESERVED_BITS) & 0xFF;
 // Generation cycle length, handles overflow correctly
 // Maximum generation value before wrapping around
 constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
+
+}  // namespace
 
 // TTEntry is the 10 bytes transposition table entry
 // Defined as below:
@@ -95,18 +99,25 @@ struct TTEntry final {
    private:
     // Populates the TTEntry with a new node's data, possibly
     // overwriting an old position. The update is not atomic and can be racy.
-    void save(
-      Key16 k16, Depth d, Move m, bool pv, Bound b, Value v, Value ev, std::uint8_t gen) noexcept {
+    void save(std::uint16_t k,
+              Depth         d,
+              Move          m,
+              bool          pv,
+              Bound         b,
+              Value         v,
+              Value         ev,
+              std::uint8_t  gen) noexcept {
         assert(d > DEPTH_OFFSET);
         assert(d <= 0xFF + DEPTH_OFFSET);
 
         // Preserve the old move if don't have a new one
-        if (key16 != k16 || m != Move::None)
+        if (key16 != k || m != Move::None)
             move16 = m;
+
         // Overwrite less valuable entries (cheapest checks first)
-        if (key16 != k16 || b == BOUND_EXACT || depth() < 4 + d + 2 * pv || relative_age(gen) != 0)
+        if (key16 != k || b == BOUND_EXACT || depth() < 4 + d + 2 * pv || relative_age(gen) != 0)
         {
-            key16   = k16;
+            key16   = k;
             depth8  = d - DEPTH_OFFSET;
             data8   = gen | (pv << 2) | b;
             value16 = v;
@@ -116,12 +127,12 @@ struct TTEntry final {
 
     void clear() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(*this)); }
 
-    Key16        key16;
-    Move         move16;
-    std::uint8_t depth8;
-    std::uint8_t data8;
-    Value        value16;
-    Value        eval16;
+    std::uint16_t key16;
+    Move          move16;
+    std::uint8_t  depth8;
+    std::uint8_t  data8;
+    Value         value16;
+    Value         eval16;
 
     friend class TTUpdater;
     friend class TranspositionTable;
@@ -157,7 +168,7 @@ void TTUpdater::update(Depth d, Move m, bool pv, Bound b, Value v, Value ev) noe
 TranspositionTable::~TranspositionTable() noexcept { free(); }
 
 void TranspositionTable::free() noexcept {
-    [[maybe_unused]] bool success = free_aligned_large_pages(clusters);
+    [[maybe_unused]] bool success = free_aligned_large_page(clusters);
     assert(success);
 }
 
@@ -165,13 +176,13 @@ void TranspositionTable::increment_generation() noexcept { generation8 += GENERA
 
 // Sets the size of the transposition table, measured in megabytes (MB).
 // Transposition table consists of even number of clusters.
-void TranspositionTable::resize(std::size_t ttSize, ThreadPool& threads) noexcept {
+void TranspositionTable::resize(std::size_t ttSize, Threads& threads) noexcept {
     free();
 
     clusterCount = ttSize * 1024 * 1024 / sizeof(TTCluster);
     assert(clusterCount % 2 == 0);
 
-    clusters = static_cast<TTCluster*>(alloc_aligned_large_pages(clusterCount * sizeof(TTCluster)));
+    clusters = static_cast<TTCluster*>(alloc_aligned_large_page(clusterCount * sizeof(TTCluster)));
 
     if (clusters == nullptr)
     {
@@ -183,7 +194,7 @@ void TranspositionTable::resize(std::size_t ttSize, ThreadPool& threads) noexcep
 }
 
 // Initializes the entire transposition table to zero, in a multi-threaded way.
-void TranspositionTable::init(ThreadPool& threads) noexcept {
+void TranspositionTable::init(Threads& threads) noexcept {
     generation8 = 0;
 
     const std::size_t threadCount = threads.size();
@@ -214,8 +225,8 @@ TTCluster* TranspositionTable::cluster(Key key) const noexcept {
 // It returns pointer to the TTEntry if the position is found.
 ProbResult TranspositionTable::probe(Key key) const noexcept {
 
-    auto* const ttc   = cluster(key);
-    Key16       key16 = compress_key16(key);
+    auto* const         ttc   = cluster(key);
+    const std::uint16_t key16 = compress_key16(key);
 
     for (auto& entry : ttc->entries)
         if (entry.key16 == key16)
@@ -293,7 +304,7 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
     return writtenSize == DataSize && ofs.good();
 }
 
-bool TranspositionTable::load(std::string_view hashFile, ThreadPool& threads) noexcept {
+bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexcept {
 
     if (hashFile.empty())
     {

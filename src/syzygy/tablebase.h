@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SYZYGY_TBBASE_H_INCLUDED
-#define SYZYGY_TBBASE_H_INCLUDED
+#ifndef SYZYGY_TABLEBASE_H_INCLUDED
+#define SYZYGY_TABLEBASE_H_INCLUDED
 
 #include <cstdint>
 #include <functional>
@@ -32,7 +32,7 @@ class Options;
 
 using TimeFunc = std::function<bool()>;
 
-namespace Tablebases {
+namespace Tablebase {
 
 enum WDLScore : std::int8_t {
     WDL_LOSS         = -2,  // Loss
@@ -76,7 +76,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
 
 // clang-format on
 
-}  // namespace Tablebases
+}  // namespace Tablebase
 }  // namespace DON
 
-#endif  // #ifndef SYZYGY_TBBASE_H_INCLUDED
+#endif  // #ifndef SYZYGY_TABLEBASE_H_INCLUDED

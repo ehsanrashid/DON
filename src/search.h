@@ -38,14 +38,14 @@
 #include "numa.h"
 #include "polybook.h"
 #include "position.h"
-#include "syzygy/tbbase.h"
+#include "syzygy/tablebase.h"
 #include "timeman.h"
 #include "types.h"
 
 namespace DON {
 
 class Options;
-class ThreadPool;
+class Threads;
 class TranspositionTable;
 
 namespace NNUE {
@@ -386,19 +386,11 @@ struct Skill final {
 // It is used to easily forward data to the Worker class.
 struct SharedState final {
    public:
-    SharedState(const Options&                                      engOptions,
-                const SystemWideLazyNumaReplicated<NNUE::Networks>& nnueNetworks,
-                ThreadPool&                                         threadPool,
-                TranspositionTable&                                 transpositionTable) noexcept :
-        options(engOptions),
-        networks(nnueNetworks),
-        threads(threadPool),
-        tt(transpositionTable) {}
-
-    const Options&                                      options;
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
-    ThreadPool&                                         threads;
-    TranspositionTable&                                 tt;
+    const Options&                                      options;
+    Threads&                                            threads;
+    TranspositionTable&                                 transpositionTable;
+    SharedHistoriesMap&                                 sharedHistoriesMap;
 };
 
 class Worker;
@@ -465,7 +457,7 @@ class MainSearchManager final: public ISearchManager {
     void check_time(Worker& worker) noexcept override;
 
     TimePoint elapsed() const noexcept;
-    TimePoint elapsed(const ThreadPool& threads) const noexcept;
+    TimePoint elapsed(const Threads& threads) const noexcept;
 
     void show_pv(Worker& worker, Depth depth) const noexcept;
 
@@ -528,10 +520,12 @@ struct Stack final {
 class Worker final {
    public:
     Worker() noexcept = delete;
-    Worker(std::size_t               threadId,
-           const SharedState&        sharedState,
+    Worker(std::size_t               threadIdx,
+           std::size_t               numaIdx,
+           std::size_t               numaThreadCnt,
+           NumaReplicatedAccessToken accessToken,
            ISearchManagerPtr         searchManager,
-           NumaReplicatedAccessToken accessToken) noexcept;
+           const SharedState&        sharedState) noexcept;
 
     void init() noexcept;
 
@@ -545,7 +539,7 @@ class Worker final {
     void start_search() noexcept;
 
    private:
-    bool is_main_worker() const noexcept { return threadIdx == 0; }
+    bool is_main_worker() const noexcept { return threadId == 0; }
 
     // Get a pointer to the search manager,
     // Only allowed to be called by the main worker.
@@ -582,11 +576,11 @@ class Worker final {
     void update_capture_history(Piece pc, Square dstSq, PieceType captured, int bonus) noexcept;
     void update_capture_history(const Position& pos, Move m, int bonus) noexcept;
     void update_quiet_history(Color ac, Move m, int bonus) noexcept;
-    void update_pawn_history(std::uint16_t pawnIndex, Piece pc, Square dstSq, int bonus) noexcept;
+    void update_pawn_history(std::size_t pawnIndex, Piece pc, Square dstSq, int bonus) noexcept;
     void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
 
-    void update_quiet_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Move m, int bonus) noexcept;
-    void update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
+    void update_quiet_histories(const Position& pos, Stack* const ss, std::size_t pawnIndex, Move m, int bonus) noexcept;
+    void update_histories(const Position& pos, Stack* const ss, std::size_t pawnIndex, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
 
     void update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* const ss) noexcept;
@@ -596,21 +590,35 @@ class Worker final {
 
     void extend_tb_pv(std::size_t index, Value& value) noexcept;
 
-    Limit              limit;
-    Tablebases::Config tbConfig;
 
-    Position  rootPos;
-    State     rootState;
-    RootMoves rootMoves;
-    Depth     rootDepth, completedDepth;
+    const std::size_t threadId, numaId, numaThreadCount;
+
+    NumaReplicatedAccessToken                           numaAccessToken;
+    ISearchManagerPtr                                   manager;
+    const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
+    const Options&                                      options;
+    Threads&                                            threads;
+    TranspositionTable&                                 transpositionTable;
+    SharedHistories&                                    sharedHistories;
+    NNUE::AccumulatorCaches                             accCaches;
+    NNUE::AccumulatorStack                              accStack;
 
     std::atomic<std::uint64_t> nodes, tbHits;
     std::atomic<std::uint16_t> moveChanges;
 
+    Position          rootPos;
+    State             rootState;
+    RootMoves         rootMoves;
+    Limit             limit;
+    Tablebase::Config tbConfig;
+
+    Depth         rootDepth, completedDepth;
+    std::size_t   multiPV, curPV, endPV;
+    std::uint16_t selDepth;
     int           rootDelta;
     std::int16_t  nmpPly;
-    std::size_t   multiPV, curIdx, endIdx;
-    std::uint16_t selDepth;
+
+    StdArray<std::int32_t, COLOR_NB> optimism;
 
     // Histories
     History<H_CAPTURE>       captureHistory;
@@ -622,32 +630,10 @@ class Worker final {
     StdArray<History<H_CONTINUATION>, 2, 2> continuationHistory;  // [inCheck][capture]
 
     // Correction Histories
-    CorrectionHistory<CH_PAWN>     pawnCorrectionHistory;
-    CorrectionHistory<CH_MINOR>    minorCorrectionHistory;
-    CorrectionHistory<CH_NON_PAWN> nonPawnCorrectionHistory;
-
     CorrectionHistory<CH_CONTINUATION> continuationCorrectionHistory;
 
-
-    StdArray<std::int32_t, COLOR_NB> optimism;
-
-    const std::size_t threadIdx;
-
-    // The main thread has a MainSearchManager, the others have a NullSearchManager
-    ISearchManagerPtr manager;
-
-    const Options&                                      options;
-    const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
-    ThreadPool&                                         threads;
-    TranspositionTable&                                 tt;
-    // Used by NNUE
-    NumaReplicatedAccessToken numaAccessToken;
-
-    NNUE::AccumulatorStack  accStack;
-    NNUE::AccumulatorCaches accCaches;
-
     friend class MainSearchManager;
-    friend class ThreadPool;
+    friend class Threads;
 };
 
 }  // namespace DON

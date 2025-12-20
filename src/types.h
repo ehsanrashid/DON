@@ -81,8 +81,6 @@ namespace DON {
 
 using Bitboard = std::uint64_t;
 using Key      = std::uint64_t;
-using Key32    = std::uint32_t;
-using Key16    = std::uint16_t;
 
 static_assert(sizeof(Bitboard) == 8, "Expected 64-bit Bitboard");
 static_assert(sizeof(Key) == 8, "Expected 64-bit Key");
@@ -562,11 +560,12 @@ constexpr std::uint64_t make_hash(std::uint64_t seed) noexcept {
     return 0x14057B7EF767814FULL + 0x5851F42D4C957F2DULL * seed;
 }
 
-constexpr Key32 compress_key32(Key key) noexcept {
+constexpr std::uint32_t compress_key32(Key key) noexcept {
     return ((key >> 00) & 0xFFFFFFFF)  //
          ^ ((key >> 32) & 0xFFFF0000);
 }
-constexpr Key16 compress_key16(Key key) noexcept {
+
+constexpr std::uint16_t compress_key16(Key key) noexcept {
     return ((key >> 00) & 0xFFFF)  //
          ^ ((key >> 16) & 0xFFF0)  //
          ^ ((key >> 32) & 0xFF00)  //
@@ -633,7 +632,10 @@ class Move {
 
     //constexpr explicit operator bool() const noexcept { return move != 0; }
 
-    constexpr Move reverse() const noexcept { return Move{dst_sq(), org_sq()}; }
+    constexpr Move reverse() const noexcept {
+        assert(type_of() == NORMAL);
+        return Move{dst_sq(), org_sq()};
+    }
 
     // Declare static const members (to be defined later)
     static const Move None;

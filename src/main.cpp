@@ -19,11 +19,12 @@
 #include <memory>
 
 #include "bitboard.h"
+#include "memory.h"
 #include "misc.h"
 #include "nnue/features/full_threats.h"
 #include "position.h"
 #include "search.h"
-#include "syzygy/tbbase.h"
+#include "syzygy/tablebase.h"
 #include "tune.h"
 #include "uci.h"
 
@@ -37,7 +38,7 @@ int main(int argc, const char* argv[]) {
     Position::init();
     NNUE::Features::FullThreats::init();
     Search::init();
-    Tablebases::init();
+    Tablebase::init();
 
     auto uci = std::make_unique<UCI>(argc, argv);
 

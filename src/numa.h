@@ -618,7 +618,9 @@ class NumaConfig final {
     // ':'-separated numa nodes
     // ','-separated cpu indices
     // supports "first-last" range syntax for cpu indices
-    // For example "0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"
+    // For example:
+    // "0-7:8-15:16-23:24-31"
+    // "0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"
     static NumaConfig from_string(std::string_view str) noexcept {
         NumaConfig numaCfg = empty();
 
@@ -662,6 +664,7 @@ class NumaConfig final {
 
     CpuIndex node_cpus_size(NumaIndex numaIdx) const noexcept {
         assert(numaIdx < nodes_size());
+
         return nodes[numaIdx].size();
     }
 
@@ -1051,6 +1054,7 @@ class NumaReplicated final: public BaseNumaReplicated {
     NumaReplicated& operator=(NumaReplicated&& numaRep) noexcept {
         if (this == &numaRep)
             return *this;
+
         BaseNumaReplicated::operator=(std::move(numaRep));
         instances = std::exchange(numaRep.instances, {});
         return *this;
@@ -1065,6 +1069,7 @@ class NumaReplicated final: public BaseNumaReplicated {
 
     const T& operator[](NumaReplicatedAccessToken token) const noexcept {
         assert(token.numa_index() < instances.size());
+
         return *(instances[token.numa_index()]);
     }
 
@@ -1134,6 +1139,7 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
     LazyNumaReplicated& operator=(LazyNumaReplicated&& lazyNumaRep) noexcept {
         if (this == &lazyNumaRep)
             return *this;
+
         BaseNumaReplicated::operator=(std::move(lazyNumaRep));
         instances = std::exchange(lazyNumaRep.instances, {});
         return *this;
@@ -1148,6 +1154,7 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
 
     const T& operator[](NumaReplicatedAccessToken token) const noexcept {
         assert(token.numa_index() < instances.size());
+
         ensure_present(token.numa_index());
         return *(instances[token.numa_index()]);
     }
@@ -1179,7 +1186,8 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
 
         assert(numaIdx != 0);
 
-        std::unique_lock uniqueLock(mutex);
+        std::unique_lock lock(mutex);
+
         // Check again for races.
         if (instances[numaIdx] != nullptr)
             return;
@@ -1243,6 +1251,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
     SystemWideLazyNumaReplicated& operator=(SystemWideLazyNumaReplicated&& sysNumaRep) noexcept {
         if (this == &sysNumaRep)
             return *this;
+
         BaseNumaReplicated::operator=(std::move(sysNumaRep));
         instances = std::exchange(sysNumaRep.instances, {});
         return *this;
@@ -1257,6 +1266,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
     const T& operator[](NumaReplicatedAccessToken token) const noexcept {
         assert(token.numa_index() < instances.size());
+
         ensure_present(token.numa_index());
         return *(instances[token.numa_index()]);
     }
@@ -1310,7 +1320,8 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
         assert(idx != 0);
 
-        std::unique_lock<std::mutex> uniqueLock(mutex);
+        std::unique_lock lock(mutex);
+
         // Check again for races.
         if (instances[idx] != nullptr)
             return;
@@ -1343,6 +1354,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         else
         {
             assert(cfg.nodes_size() == 1);
+
             instances.emplace_back(SystemWideSharedConstant<T>(*source, get_discriminator(0)));
         }
     }
@@ -1369,11 +1381,13 @@ class NumaReplicationContext final {
 
     void attach(BaseNumaReplicated* numaRep) noexcept {
         assert(trackedReplicated.count(numaRep) == 0);
+
         trackedReplicated.insert(numaRep);
     }
 
     void detach(BaseNumaReplicated* numaRep) noexcept {
         assert(trackedReplicated.count(numaRep) == 1);
+
         trackedReplicated.erase(numaRep);
     }
 
@@ -1381,12 +1395,14 @@ class NumaReplicationContext final {
     void move_attached(BaseNumaReplicated* oldNumaRep, BaseNumaReplicated* newNumaRep) noexcept {
         assert(trackedReplicated.count(oldNumaRep) == 1);
         assert(trackedReplicated.count(newNumaRep) == 0);
+
         trackedReplicated.erase(oldNumaRep);
         trackedReplicated.insert(newNumaRep);
     }
 
     void set_numa_config(NumaConfig&& numaCfg) noexcept {
         numaConfig = std::move(numaCfg);
+
         for (auto&& numaRep : trackedReplicated)
             numaRep->on_numa_config_changed();
     }

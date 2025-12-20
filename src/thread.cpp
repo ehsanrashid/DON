@@ -21,35 +21,41 @@
 #include <chrono>
 #include <ratio>
 #include <string>
-#include <type_traits>
 #include <unordered_map>
 
+#include "bitboard.h"
+#include "history.h"
 #include "movegen.h"
-#include "syzygy/tbbase.h"
+#include "option.h"
+#include "syzygy/tablebase.h"
 #include "types.h"
 #include "uci.h"
-#include "ucioption.h"
 
 namespace DON {
 
 // Constructor launches the thread and waits until it goes to sleep
 // in idle_func(). Note that 'dead' and 'busy' should be already set.
-Thread::Thread(std::size_t                           id,
-               const SharedState&                    sharedState,
+Thread::Thread(std::size_t                           threadIdx,
+               std::size_t                           numaIdx,
+               std::size_t                           numaThreadCount,
+               const OptionalThreadToNumaNodeBinder& nodeBinder,
                ISearchManagerPtr                     searchManager,
-               const OptionalThreadToNumaNodeBinder& nodeBinder) noexcept :
-    idx(id),
-    threadCount(sharedState.options["Threads"]),
+               const SharedState&                    sharedState) noexcept :
+    threadId(threadIdx),
+    numaId(numaIdx),
     nativeThread(&Thread::idle_func, this) {
 
     wait_finish();
-    run_custom_job([this, id, &sharedState, &searchManager, &nodeBinder]() {
+
+    run_custom_job([this, numaThreadCount, &sharedState, &searchManager, &nodeBinder]() {
         // Use the binder to [maybe] bind the threads to a NUMA node before doing
         // the Worker allocation.
         // Ideally would also allocate the SearchManager here, but that's minor.
-        worker = make_unique_aligned_large_pages<Worker>(id, sharedState, std::move(searchManager),
-                                                         nodeBinder());
+        worker = make_unique_aligned_large_page<Worker>(thread_id(), numa_id(), numaThreadCount,
+                                                        nodeBinder(), std::move(searchManager),
+                                                        sharedState);
     });
+
     wait_finish();
 }
 
@@ -59,7 +65,9 @@ Thread::~Thread() noexcept {
     assert(!busy);
 
     dead = true;
+
     run_custom_job([]() { return; });
+
     nativeThread.join();
 }
 
@@ -70,21 +78,23 @@ void Thread::ensure_network_replicated() const noexcept { worker->ensure_network
 void Thread::idle_func() noexcept {
     while (true)
     {
-        std::unique_lock uniqueLock(mutex);
+        std::unique_lock lock(mutex);
+
         busy = false;
-        condVar.notify_one();  // Wake up anyone waiting for search finished
-        condVar.wait(uniqueLock, [this] { return busy; });
+
+        condVar.notify_one();  // Wake up anyone waiting for job finished
+        condVar.wait(lock, [this] { return busy; });
 
         if (dead)
             break;
 
-        auto job = std::move(jobFunc);
-        jobFunc  = nullptr;
+        JobFunc jobFn = std::move(jobFunc);
+        jobFunc       = nullptr;
 
-        uniqueLock.unlock();
+        lock.unlock();
 
-        if (job)
-            job();
+        if (jobFn)
+            jobFn();
     }
 }
 
@@ -92,9 +102,9 @@ void Thread::idle_func() noexcept {
 // Creates/destroys threads to match the requested number.
 // Created and launched threads will immediately go to sleep in idle_func.
 // Upon resizing, threads are recreated to allow for binding if necessary.
-void ThreadPool::set(const NumaConfig&                       numaConfig,
-                     const SharedState&                      sharedState,
-                     const MainSearchManager::UpdateContext& updateContext) noexcept {
+void Threads::set(const NumaConfig&                       numaConfig,
+                  SharedState                             sharedState,
+                  const MainSearchManager::UpdateContext& updateContext) noexcept {
     clear();
 
     const std::size_t threadCount = sharedState.options["Threads"];
@@ -121,15 +131,62 @@ void ThreadPool::set(const NumaConfig&                       numaConfig,
         return true;
     }();
 
-    numaNodeBoundThreadIds = threadBindable
-                             ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
-                             : std::vector<NumaIndex>{};
+    threadBoundNumaNodes = threadBindable
+                           ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
+                           : std::vector<NumaIndex>{};
+
+    std::unordered_map<NumaIndex, std::size_t> numaThreadCounts;
+
+    numaThreadCounts.reserve(threadBoundNumaNodes.empty() ? 1 : threadBoundNumaNodes.size());
+
+    if (threadBoundNumaNodes.empty())
+    {
+        // All threads belong to NUMA node 0
+        numaThreadCounts.emplace(0, threadCount);
+    }
+    else
+    {
+        for (NumaIndex numaIdx : threadBoundNumaNodes)
+            ++numaThreadCounts[numaIdx];
+    }
+
+    // Prepare shared histories map
+    auto& sharedHistoriesMap = sharedState.sharedHistoriesMap;
+
+    sharedHistoriesMap.clear();
+    sharedHistoriesMap.max_load_factor(1.0f);
+    sharedHistoriesMap.reserve(numaThreadCounts.size());
+
+    // Populate shared histories map (optionally NUMA-bound)
+    if (!threadBindable)
+    {
+        for (const auto& [numaIdx, count] : numaThreadCounts)
+        {
+            const std::size_t roundedSize = next_pow2(count);
+
+            sharedHistoriesMap.try_emplace(numaIdx, roundedSize);
+        }
+    }
+    else
+    {
+        for (const auto& [numaIdx, count] : numaThreadCounts)
+        {
+            const std::size_t roundedSize = next_pow2(count);
+
+            numaConfig.execute_on_numa_node(
+              numaIdx, [&sharedHistoriesMap, _numaIdx = numaIdx, roundedSize]() noexcept {
+                  sharedHistoriesMap.try_emplace(_numaIdx, roundedSize);
+              });
+        }
+    }
 
     const auto* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
 
+    std::unordered_map<NumaIndex, std::size_t> numaIds;
+
     for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
     {
-        NumaIndex numaIdx = threadBindable ? numaNodeBoundThreadIds[threadId] : 0;
+        NumaIndex numaIdx = threadBindable ? threadBoundNumaNodes[threadId] : 0;
 
         ISearchManagerPtr searchManager;
         if (threadId == 0)
@@ -142,14 +199,17 @@ void ThreadPool::set(const NumaConfig&                       numaConfig,
         // want to trash cache in case the threads get scheduled on the same NUMA node.
         OptionalThreadToNumaNodeBinder nodeBinder(numaIdx, numaConfigPtr);
 
-        threads.emplace_back(
-          std::make_unique<Thread>(threadId, sharedState, std::move(searchManager), nodeBinder));
+        threads.emplace_back(std::make_unique<Thread>(threadId, numaIds[numaIdx]++,
+                                                      numaThreadCounts[numaIdx], nodeBinder,
+                                                      std::move(searchManager), sharedState));
     }
+
+    assert(size() == threadCount);
 
     init();
 }
 
-Thread* ThreadPool::best_thread() const noexcept {
+Thread* Threads::best_thread() const noexcept {
 
     Thread* bestThread = main_thread();
 
@@ -228,10 +288,10 @@ Thread* ThreadPool::best_thread() const noexcept {
 
 // Wakes up main thread waiting in idle_func() and returns immediately.
 // Main thread will wake up other threads and start the search.
-void ThreadPool::start(Position&      pos,
-                       StateListPtr&  states,
-                       const Limit&   limit,
-                       const Options& options) noexcept {
+void Threads::start(Position&      pos,
+                    StateListPtr&  states,
+                    const Limit&   limit,
+                    const Options& options) noexcept {
     main_thread()->wait_finish();
 
     stop.store(false, std::memory_order_relaxed);
@@ -296,7 +356,7 @@ void ThreadPool::start(Position&      pos,
                      * clock.time;
     };
 
-    auto tbConfig = Tablebases::rank_root_moves(pos, rootMoves, options, false, time_to_abort);
+    auto tbConfig = Tablebase::rank_root_moves(pos, rootMoves, options, false, time_to_abort);
 
     // After ownership transfer 'states' becomes empty, so if stop the search
     // and call 'go' again without setting a new position states.get() == nullptr.
@@ -327,27 +387,29 @@ void ThreadPool::start(Position&      pos,
     main_thread()->start_search();
 }
 
-void ThreadPool::run_on_thread(std::size_t threadId, JobFunc job) noexcept {
+void Threads::run_on_thread(std::size_t threadId, JobFunc job) noexcept {
     assert(threadId < size());
+
     threads[threadId]->run_custom_job(std::move(job));
 }
 
-void ThreadPool::wait_on_thread(std::size_t threadId) noexcept {
+void Threads::wait_on_thread(std::size_t threadId) noexcept {
     assert(threadId < size());
+
     threads[threadId]->wait_finish();
 }
 
-std::vector<std::size_t> ThreadPool::get_bound_thread_counts() const noexcept {
+std::vector<std::size_t> Threads::get_bound_thread_counts() const noexcept {
     std::vector<std::size_t> threadCounts;
 
-    if (!numaNodeBoundThreadIds.empty())
+    if (!threadBoundNumaNodes.empty())
     {
         NumaIndex maxNumaIdx =
-          *std::max_element(numaNodeBoundThreadIds.begin(), numaNodeBoundThreadIds.end());
+          *std::max_element(threadBoundNumaNodes.begin(), threadBoundNumaNodes.end());
 
         threadCounts.resize(1 + maxNumaIdx, 0);
 
-        for (NumaIndex numaIdx : numaNodeBoundThreadIds)
+        for (NumaIndex numaIdx : threadBoundNumaNodes)
             ++threadCounts[numaIdx];
     }
 

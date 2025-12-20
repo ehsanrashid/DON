@@ -21,8 +21,8 @@
 #include <cassert>
 #include <cmath>
 
+#include "option.h"
 #include "search.h"
-#include "ucioption.h"
 
 namespace DON {
 

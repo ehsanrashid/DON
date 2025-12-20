@@ -23,7 +23,7 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "ucioption.h"
+#include "option.h"
 
 namespace DON {
 

@@ -52,18 +52,21 @@
     #include <psapi.h>
 #endif
 
-namespace DON {
-
 #define ASSERT_ALIGNED(ptr, alignment) \
     assert(reinterpret_cast<std::uintptr_t>(ptr) % alignment == 0)
 
-void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept;
-void  free_aligned_std(void* mem) noexcept;
-// memory aligned by page size, min alignment: 4096 bytes
-void* alloc_aligned_large_pages(std::size_t allocSize) noexcept;
-bool  free_aligned_large_pages(void* mem) noexcept;
+namespace DON {
 
-bool has_large_pages() noexcept;
+void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept;
+
+void free_aligned_std(void* mem) noexcept;
+
+// memory aligned by page size, min alignment: 4096 bytes
+void* alloc_aligned_large_page(std::size_t allocSize) noexcept;
+
+bool free_aligned_large_page(void* mem) noexcept;
+
+bool has_large_page() noexcept;
 
 // Round up to multiples of alignment
 template<typename T>
@@ -203,14 +206,14 @@ make_unique_aligned_std(std::size_t size) noexcept {
 template<typename T>
 struct LargePageDeleter final {
     void operator()(T* mem) const noexcept {
-        return memory_deleter<T>(mem, free_aligned_large_pages);
+        return memory_deleter<T>(mem, free_aligned_large_page);
     }
 };
 
 template<typename T>
 struct LargePageArrayDeleter final {
     void operator()(T* mem) const noexcept {
-        return memory_array_deleter<T>(mem, free_aligned_large_pages);
+        return memory_array_deleter<T>(mem, free_aligned_large_page);
     }
 };
 
@@ -220,28 +223,28 @@ using LargePagePtr =
                      std::unique_ptr<T, LargePageArrayDeleter<std::remove_extent_t<T>>>,
                      std::unique_ptr<T, LargePageDeleter<T>>>;
 
-// make_unique_aligned_large_pages() for single objects
+// make_unique_aligned_large_page() for single objects
 template<typename T, typename... Args>
 std::enable_if_t<!std::is_array_v<T>, LargePagePtr<T>>
-make_unique_aligned_large_pages(Args&&... args) noexcept {
+make_unique_aligned_large_page(Args&&... args) noexcept {
     static_assert(alignof(T) <= 4096,
-                  "alloc_aligned_large_pages() may fail for such a big alignment requirement of T");
+                  "alloc_aligned_large_page() may fail for such a big alignment requirement of T");
 
-    auto* obj = memory_allocator<T>(alloc_aligned_large_pages, std::forward<Args>(args)...);
+    auto* obj = memory_allocator<T>(alloc_aligned_large_page, std::forward<Args>(args)...);
 
     return LargePagePtr<T>(obj);
 }
 
-// make_unique_aligned_large_pages() for arrays of unknown bound
+// make_unique_aligned_large_page() for arrays of unknown bound
 template<typename T>
 std::enable_if_t<std::is_array_v<T>, LargePagePtr<T>>
-make_unique_aligned_large_pages(std::size_t size) {
+make_unique_aligned_large_page(std::size_t size) {
     using ElementType = std::remove_extent_t<T>;
 
     static_assert(alignof(ElementType) <= 4096,
-                  "alloc_aligned_large_pages() may fail for such a big alignment requirement of T");
+                  "alloc_aligned_large_page() may fail for such a big alignment requirement of T");
 
-    auto* mem = memory_allocator<T>(alloc_aligned_large_pages, size);
+    auto* mem = memory_allocator<T>(alloc_aligned_large_page, size);
 
     return LargePagePtr<T>(mem);
 }
@@ -259,6 +262,7 @@ template<std::size_t Alignment, typename T>
     ptrInt      = round_up_pow2(ptrInt, static_cast<std::uintptr_t>(Alignment));
     return reinterpret_cast<T*>(ptrInt);
 }
+
 template<std::size_t Alignment, typename T>
 [[nodiscard]] constexpr const T* align_ptr_up(const T* ptr) noexcept {
     using U = std::remove_const_t<T>;
@@ -278,9 +282,10 @@ struct Advapi final {
     using AdjustTokenPrivileges_ = BOOL(WINAPI*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
     // clang-format on
 
-    static constexpr LPCSTR ModuleName = TEXT("advapi32.dll");
+    static constexpr LPCSTR MODULE_NAME = TEXT("advapi32.dll");
 
     constexpr Advapi() noexcept = default;
+
     ~Advapi() noexcept { free(); }
 
     // The needed Windows API for processor groups could be missed from old Windows versions,
@@ -288,27 +293,36 @@ struct Advapi final {
     // try to load them at runtime.
     bool load() noexcept {
 
-        hModule = GetModuleHandle(ModuleName);
+        hModule = GetModuleHandle(MODULE_NAME);
+
         if (hModule == nullptr)
         {
-            hModule = LoadLibraryEx(ModuleName, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+            hModule = LoadLibraryEx(MODULE_NAME, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+
             if (hModule == nullptr)
-                hModule = LoadLibrary(ModuleName);  // optional last resort
+                hModule = LoadLibrary(MODULE_NAME);  // optional last resort
+
             if (hModule == nullptr)
                 return false;
+
             loaded = true;
         }
 
         openProcessToken =
           OpenProcessToken_((void (*)()) GetProcAddress(hModule, "OpenProcessToken"));
+
         if (openProcessToken == nullptr)
             return false;
+
         lookupPrivilegeValue =
           LookupPrivilegeValue_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueA"));
+
         if (lookupPrivilegeValue == nullptr)
             return false;
+
         adjustTokenPrivileges =
           AdjustTokenPrivileges_((void (*)()) GetProcAddress(hModule, "AdjustTokenPrivileges"));
+
         if (adjustTokenPrivileges == nullptr)
             return false;
 
@@ -318,6 +332,7 @@ struct Advapi final {
     void free() noexcept {
         if (loaded && hModule != nullptr)
             FreeLibrary(hModule);
+
         hModule = nullptr;
         loaded  = false;
     }
@@ -371,6 +386,7 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
     // Still need to query GetLastError() to ensure that the privileges were actually obtained.
     SetLastError(ERROR_SUCCESS);
+
     if (!advapi.adjustTokenPrivileges(hProcess, FALSE, &newTp, sizeof(oldTp), &oldTp, &oldTpLen)
         || GetLastError() != ERROR_SUCCESS)
         return failureFunc();

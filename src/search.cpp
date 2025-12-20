@@ -30,11 +30,11 @@
 #include "movegen.h"
 #include "movepick.h"
 #include "nnue/network.h"
+#include "option.h"
 #include "prng.h"
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
-#include "ucioption.h"
 
 namespace DON {
 
@@ -176,24 +176,28 @@ void init() noexcept {
 
 }  // namespace Search
 
-Worker::Worker(std::size_t               threadId,
-               const SharedState&        sharedState,
+Worker::Worker(std::size_t               threadIdx,
+               std::size_t               numaIdx,
+               std::size_t               numaThreadCnt,
+               NumaReplicatedAccessToken accessToken,
                ISearchManagerPtr         searchManager,
-               NumaReplicatedAccessToken accessToken) noexcept :
-    // Unpack the SharedState struct into member variables
-    threadIdx(threadId),
-    manager(std::move(searchManager)),
-    options(sharedState.options),
-    networks(sharedState.networks),
-    threads(sharedState.threads),
-    tt(sharedState.tt),
+               const SharedState&        sharedState) noexcept :
+    threadId(threadIdx),
+    numaId(numaIdx),
+    numaThreadCount(numaThreadCnt),
     numaAccessToken(accessToken),
+    manager(std::move(searchManager)),
+    networks(sharedState.networks),
+    options(sharedState.options),
+    threads(sharedState.threads),
+    transpositionTable(sharedState.transpositionTable),
+    sharedHistories(sharedState.sharedHistoriesMap.at(accessToken.numa_index())),
     accCaches(networks[accessToken]) {
 
     init();
 }
 
-// Initialize the Worker
+// Initialize the worker
 void Worker::init() noexcept {
 
     captureHistory.fill(-689);
@@ -207,9 +211,14 @@ void Worker::init() noexcept {
                 for (auto& pieceSqHist : toPieceSqHist)
                     pieceSqHist.fill(-529);
 
-    pawnCorrectionHistory.fill(5);
-    minorCorrectionHistory.fill(0);
-    nonPawnCorrectionHistory.fill(0);
+    // Each thread is responsible for clearing their part of correction history
+    std::size_t size   = sharedHistories.size() / numaThreadCount;
+    std::size_t begIdx = numaId * size;
+    std::size_t endIdx = std::min(begIdx + size, sharedHistories.size());
+
+    sharedHistories.pawn_correction().fill(begIdx, endIdx, 5);
+    sharedHistories.minor_correction().fill(begIdx, endIdx, 0);
+    sharedHistories.non_pawn_correction().fill(begIdx, endIdx, 0);
 
     for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
@@ -225,26 +234,22 @@ void Worker::ensure_network_replicated() noexcept {
 }
 
 // Speculative prefetch as early as possible
-void Worker::prefetch_tt(Key key) const noexcept { prefetch(tt.cluster(key)); }
+void Worker::prefetch_tt(Key key) const noexcept { prefetch(transpositionTable.cluster(key)); }
 
 void Worker::prefetch_correction_histories(const Position& pos) const noexcept {
-    prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][0][0]);
-    prefetch(&pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][0][0]);
-    prefetch(&minorCorrectionHistory[correction_index(pos.minor_key(WHITE))][0][0]);
-    prefetch(&minorCorrectionHistory[correction_index(pos.minor_key(BLACK))][0][0]);
-    prefetch(&nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][0][0]);
-    prefetch(&nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][0][0]);
+    prefetch(&sharedHistories.pawn_correction<WHITE>(pos.pawn_key(WHITE)));
+    prefetch(&sharedHistories.pawn_correction<BLACK>(pos.pawn_key(BLACK)));
+    prefetch(&sharedHistories.minor_correction<WHITE>(pos.minor_key(WHITE)));
+    prefetch(&sharedHistories.minor_correction<BLACK>(pos.minor_key(BLACK)));
+    prefetch(&sharedHistories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE)));
+    prefetch(&sharedHistories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK)));
 }
 
 void Worker::start_search() noexcept {
     auto* const mainManager = is_main_worker() ? main_manager() : nullptr;
 
-    accStack.reset();
-
     rootDepth = completedDepth = DEPTH_ZERO;
     nmpPly                     = 0;
-
-    lowPlyQuietHistory.fill(97);
 
     multiPV = 1;
 
@@ -262,6 +267,10 @@ void Worker::start_search() noexcept {
     if (multiPV > rootMoves.size())
         multiPV = rootMoves.size();
 
+    accStack.reset();
+
+    lowPlyQuietHistory.fill(97);
+
     // Non-main threads go directly to iterative_deepening()
     if (mainManager == nullptr)
     {
@@ -278,7 +287,7 @@ void Worker::start_search() noexcept {
     mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
                                   options, limit);
     if (!limit.infinite)
-        tt.increment_generation();
+        transpositionTable.increment_generation();
 
     bool think = false;
 
@@ -459,20 +468,20 @@ void Worker::iterative_deepening() noexcept {
         if (threads.research.load(std::memory_order_relaxed))
             ++researchCnt;
 
-        std::size_t begIdx = endIdx = 0;
+        std::size_t begPV = endPV = 0;
         // MultiPV loop. Perform a full root search for each PV line
-        for (curIdx = 0; curIdx < multiPV; ++curIdx)
+        for (curPV = 0; curPV < multiPV; ++curPV)
         {
-            if (curIdx == endIdx)
-                for (begIdx = endIdx++; endIdx < rootMoves.size(); ++endIdx)
-                    if (rootMoves[endIdx].tbRank != rootMoves[begIdx].tbRank)
+            if (curPV == endPV)
+                for (begPV = endPV++; endPV < rootMoves.size(); ++endPV)
+                    if (rootMoves[endPV].tbRank != rootMoves[begPV].tbRank)
                         break;
 
             // Reset UCI info selDepth for each depth and each PV line
             selDepth = 1;
 
-            auto avgValue    = rootMoves[curIdx].avgValue;
-            auto avgSqrValue = rootMoves[curIdx].avgSqrValue;
+            auto avgValue    = rootMoves[curPV].avgValue;
+            auto avgSqrValue = rootMoves[curPV].avgSqrValue;
 
             // Reset aspiration window starting size
             int delta = 5 + std::min(int(threads.size()) - 1, 8)  //
@@ -508,7 +517,7 @@ void Worker::iterative_deepening() noexcept {
                 // and want to keep the same order for all the moves except the
                 // new PV that goes to the front. Note that in the case of MultiPV
                 // search the already searched PV lines are preserved.
-                rootMoves.sort(curIdx, endIdx);
+                rootMoves.sort(curPV, endPV);
 
                 // If the search has been stopped, break immediately.
                 // Sorting is safe because RootMoves is still valid,
@@ -552,11 +561,11 @@ void Worker::iterative_deepening() noexcept {
             }
 
             // Sort the PV lines searched so far
-            rootMoves.sort(begIdx, 1 + curIdx);
+            rootMoves.sort(begPV, 1 + curPV);
 
             // Give some update about the PV
             if (mainManager != nullptr
-                && (threads.stop.load(std::memory_order_relaxed) || 1 + curIdx == multiPV
+                && (threads.stop.load(std::memory_order_relaxed) || 1 + curPV == multiPV
                     || rootDepth > 30)
                 // A thread that aborted search can have mated-in/TB-loss PV and score
                 // that cannot be trusted, i.e. it can be delayed or refuted if have
@@ -626,11 +635,11 @@ void Worker::iterative_deepening() noexcept {
             // clang-format off
 
             // Compute evaluation inconsistency based on differences from previous best scores
-            auto inconsistencyFactor = std::clamp(0.11850
-                                                + 0.02240 * (mainManager->preBestAvgValue - bestValue)
-                                                + 0.00930 * (mainManager->preBestCurValue - bestValue),
-                                                   1.0000 - !mainManager->initial * 0.4300,
-                                                   1.0000 + !mainManager->initial * 0.7000);
+            double inconsistencyFactor = std::clamp(0.1185
+                                                  + 0.0224 * (mainManager->preBestAvgValue - bestValue)
+                                                  + 0.0093 * (mainManager->preBestCurValue - bestValue),
+                                                    1.0000 - !mainManager->initial * 0.4300,
+                                                    1.0000 + !mainManager->initial * 0.7000);
 
             // Compute stable depth (difference between the current search depth and the last best depth)
             Depth stableDepth = completedDepth - lastBestDepth;
@@ -640,17 +649,17 @@ void Worker::iterative_deepening() noexcept {
             mainManager->timeReduction = 0.6600 + 0.8500 / (0.9800 + std::exp(0.5100 * (12.1500 - stableDepth)));
 
             // Compute ease factor that factors in previous time reduction
-            auto easeFactor = 0.4386 * (1.4300 + mainManager->preTimeReduction) / mainManager->timeReduction;
+            double easeFactor = 0.4386 * (1.4300 + mainManager->preTimeReduction) / mainManager->timeReduction;
 
             // Compute move instability factor based on the total move changes and the number of threads
-            auto instabilityFactor = 1.0200 + 2.1400 * mainManager->sumMoveChanges / threads.size();
+            double instabilityFactor = 1.0200 + 2.1400 * mainManager->sumMoveChanges / threads.size();
 
             // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
-            auto nodeEffortExcess = -933.40 + 1000.0 * rootMoves[0].nodes / std::max(nodes.load(std::memory_order_relaxed), std::uint64_t(1));
-            auto nodeEffortFactor = 1.0 - 37.5207e-4 * std::max(nodeEffortExcess, 0.0);
+            double nodeEffortExcess = -933.40 + 1000.0 * rootMoves[0].nodes / std::max(nodes.load(std::memory_order_relaxed), std::uint64_t(1));
+            double nodeEffortFactor = 1.0 - 37.5207e-4 * std::max(nodeEffortExcess, 0.0);
 
             // Compute recapture factor that reduces time if recapture conditions are met
-            auto recaptureFactor = 1.0;
+            double recaptureFactor = 1.0;
             if ( rootPos.captured_sq() == rootMoves[0].pv[0].dst_sq()
              && (rootPos.captured_sq() & rootPos.pieces_bb(~ac))
              && rootPos.see(rootMoves[0].pv[0]) >= 200)
@@ -687,7 +696,7 @@ void Worker::iterative_deepening() noexcept {
                     threads.stop.store(true, std::memory_order_relaxed);
             }
 
-            if (!mainManager->ponder && elapsedTime > 0.5030 * totalTime)
+            if (!mainManager->ponder && elapsedTime > TimePoint(0.5030 * totalTime))
                 threads.research.store(true, std::memory_order_relaxed);
 
             mainManager->preBestCurValue = bestValue;
@@ -785,10 +794,10 @@ Value Worker::search(Position&    pos,
     const bool exclude = excludedMove != Move::None;
 
     // Step 4. Transposition table lookup
-    auto [ttd, ttu] = tt.probe(key);
+    auto [ttd, ttu] = transpositionTable.probe(key);
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
-    ttd.move  = RootNode ? rootMoves[curIdx].pv[0]
+    ttd.move  = RootNode ? rootMoves[curPV].pv[0]
               : ttd.hit  ? legal_tt_move(ttd.move, pos)
                          : Move::None;
     assert(ttd.move == Move::None || pos.legal(ttd.move));
@@ -860,7 +869,7 @@ Value Worker::search(Position&    pos,
     if (depth > 1 && red >= 2 && ss->staticEval > 169 - (ss - 1)->staticEval)
         --depth;
 
-    std::uint16_t pawnIndex = pawn_index(pos.pawn_key());
+    std::size_t pawnIndex = pawn_index(pos.pawn_key());
 
     State st;
 
@@ -893,7 +902,7 @@ Value Worker::search(Position&    pos,
             {
                 pos.do_move(ttd.move, st, this);
 
-                auto [_ttd, _ttu] = tt.probe(pos.key());
+                auto [_ttd, _ttu] = transpositionTable.probe(pos.key());
                 _ttd.value        = _ttd.hit  //
                                     ? value_from_tt(_ttd.value, ss->ply, pos.rule50_count())
                                     : VALUE_NONE;
@@ -920,7 +929,7 @@ Value Worker::search(Position&    pos,
 
     Move move, bestMove = Move::None;
 
-    // Step 6. Tablebases probe
+    // Step 6. Tablebase probe
     if constexpr (!RootNode)
         if (!exclude && tbConfig.cardinality != 0)
         {
@@ -930,15 +939,15 @@ Value Worker::search(Position&    pos,
                 && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth)
                 && pos.rule50_count() == 0 && !pos.has_castling_rights())
             {
-                Tablebases::ProbeState wdlPs;
+                Tablebase::ProbeState wdlPs;
 
-                auto wdlScore = Tablebases::probe_wdl(pos, &wdlPs);
+                auto wdlScore = Tablebase::probe_wdl(pos, &wdlPs);
 
                 // Force check of time on the next occasion
                 if (is_main_worker())
                     main_manager()->callsCount = 1;
 
-                if (wdlPs != Tablebases::PS_FAIL)
+                if (wdlPs != Tablebase::PS_FAIL)
                 {
                     tbHits.fetch_add(1, std::memory_order_relaxed);
 
@@ -1102,7 +1111,7 @@ Value Worker::search(Position&    pos,
             // At root obey the "searchmoves" option and skip moves not listed in RootMove List.
             // In MultiPV mode also skip PV moves that have been already searched and those of lower "TB rank".
             if constexpr (RootNode)
-                if (!rootMoves.contains(curIdx, endIdx, move))
+                if (!rootMoves.contains(curPV, endPV, move))
                     continue;
 
             do_move(pos, move, st, ss);
@@ -1173,7 +1182,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // At root obey the "searchmoves" option and skip moves not listed in RootMove List.
         // In MultiPV mode also skip PV moves that have been already searched and those of lower "TB rank".
         if constexpr (RootNode)
-            if (!rootMoves.contains(curIdx, endIdx, move))
+            if (!rootMoves.contains(curPV, endPV, move))
                 continue;
 
         ss->moveCount = ++moveCount;
@@ -1182,7 +1191,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             if (is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
             {
                 std::string currMove       = UCI::move_to_can(move);
-                std::size_t currMoveNumber = curIdx + moveCount;
+                std::size_t currMoveNumber = curPV + moveCount;
                 main_manager()->updateCxt.onUpdateIter({rootDepth, currMove, currMoveNumber});
             }
 
@@ -1498,7 +1507,7 @@ S_MOVES_LOOP:  // When in check, search starts here
                 // Record how often the best move has been changed in each iteration.
                 // This information is used for time management.
                 // In MultiPV mode, must take care to only do this for the first PV line.
-                if (moveCount > 1 && curIdx == 0)
+                if (moveCount > 1 && curPV == 0)
                     moveChanges.fetch_add(1, std::memory_order_relaxed);
             }
             else
@@ -1620,7 +1629,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     ss->ttPv |= bestValue <= alpha && (ss - 1)->ttPv;
 
     // Save gathered information in transposition table
-    if ((!RootNode || curIdx == 0) && !exclude)
+    if ((!RootNode || curPV == 0) && !exclude)
         ttu.update(moveCount != 0 ? depth : std::min(depth + 6, MAX_PLY - 1), bestMove, ss->ttPv,
                    bestValue >= beta                  ? BOUND_LOWER
                    : PVNode && bestMove != Move::None ? BOUND_EXACT
@@ -1682,7 +1691,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     assert(0 <= ss->ply && ss->ply < MAX_PLY);
 
     // Step 3. Transposition table lookup
-    auto [ttd, ttu] = tt.probe(key);
+    auto [ttd, ttu] = transpositionTable.probe(key);
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = ttd.hit ? legal_tt_move(ttd.move, pos) : Move::None;
@@ -1936,7 +1945,7 @@ void Worker::update_capture_history(const Position& pos, Move m, int bonus) noex
 void Worker::update_quiet_history(Color ac, Move m, int bonus) noexcept {
     quietHistory[ac][m.raw()] << bonus;
 }
-void Worker::update_pawn_history(std::uint16_t pawnIndex, Piece movedPc, Square dstSq, int bonus) noexcept {
+void Worker::update_pawn_history(std::size_t pawnIndex, Piece movedPc, Square dstSq, int bonus) noexcept {
     pawnHistory[pawnIndex][movedPc][dstSq] << bonus;
 }
 void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept {
@@ -1947,7 +1956,7 @@ void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus)
 }
 
 // Updates quiet histories (move sorting heuristics)
-void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Move m, int bonus) noexcept {
+void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::size_t pawnIndex, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
     update_quiet_history(pos.active_color(), m, 1.0000 * bonus);
@@ -1960,7 +1969,7 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::u
 }
 
 // Updates history at the end of search() when a bestMove is found
-void Worker::update_histories(const Position& pos, Stack* const ss, std::uint16_t pawnIndex, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position& pos, Stack* const ss, std::size_t pawnIndex, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(ss->moveCount != 0);
 
     int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * (bestMove == ss->ttMove);
@@ -1994,12 +2003,12 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 
     bonus = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
 
-       pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]     << 1.0000 * bonus;
-       pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac]     << 1.0000 * bonus;
-      minorCorrectionHistory[correction_index(pos.minor_key(WHITE))][WHITE][ac]    << 1.2188 * bonus;
-      minorCorrectionHistory[correction_index(pos.minor_key(BLACK))][BLACK][ac]    << 1.2188 * bonus;
-    nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac] << 1.3906 * bonus;
-    nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac] << 1.3906 * bonus;
+    sharedHistories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac] << 1.0000 * bonus;
+    sharedHistories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac] << 1.0000 * bonus;
+    sharedHistories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac] << 1.2188 * bonus;
+    sharedHistories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac] << 1.2188 * bonus;
+    sharedHistories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac] << 1.3906 * bonus;
+    sharedHistories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac] << 1.3906 * bonus;
 
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
@@ -2018,12 +2027,12 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
     return std::clamp<std::int64_t>(
-           + 5174LL * (   pawnCorrectionHistory[correction_index(pos.pawn_key(WHITE))][WHITE][ac]
-                     +    pawnCorrectionHistory[correction_index(pos.pawn_key(BLACK))][BLACK][ac])
-           + 4411LL * (  minorCorrectionHistory[correction_index(pos.minor_key(WHITE))][WHITE][ac]
-                     +   minorCorrectionHistory[correction_index(pos.minor_key(BLACK))][BLACK][ac])
-           +11168LL * (nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(WHITE))][WHITE][ac]
-                     + nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(BLACK))][BLACK][ac])
+           + 5174LL * (sharedHistories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
+                     + sharedHistories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
+           + 4411LL * (sharedHistories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
+                     + sharedHistories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
+           +11168LL * (sharedHistories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
+                     + sharedHistories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac])
            + 7841LL * (is_ok(preSq)
                       ? (*(ss - 2)->pieceSqCorrectionHistory)[pos[preSq]][preSq]
                       + (*(ss - 4)->pieceSqCorrectionHistory)[pos[preSq]][preSq]
@@ -2058,7 +2067,7 @@ bool Worker::ponder_move_extracted() noexcept {
     {
         Move ponderMove;
 
-        auto [ttd, ttu] = tt.probe(rootPos.key());
+        auto [ttd, ttu] = transpositionTable.probe(rootPos.key());
 
         ponderMove = ttd.hit ? legal_tt_move(ttd.move, rootPos) : Move::None;
 
@@ -2140,8 +2149,8 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     auto& rootSt = states.emplace_back();
     rootPos.do_move(rootMove.pv[0], rootSt);
 
-    // Step 1. Walk the PV to the last position in TB with correct decisive score
     std::int16_t ply = 1;
+    // Step 1. Walk the PV to the last position in TB with correct decisive score
     while (std::size_t(ply) < rootMove.pv.size())
     {
         auto pvMove = rootMove.pv[ply];
@@ -2151,7 +2160,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         for (auto m : MoveList<LEGAL>(rootPos))
             rms.emplace_back(m);
 
-        auto tbCfg = Tablebases::rank_root_moves(rootPos, rms, options, false, time_to_abort);
+        auto tbCfg = Tablebase::rank_root_moves(rootPos, rms, options, false, time_to_abort);
 
         if (rms.find(pvMove)->tbRank != rms[0].tbRank)
             break;
@@ -2210,7 +2219,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         });
 
         // The winning side tries to minimize DTZ, the losing side maximizes it
-        auto tbCfg = Tablebases::rank_root_moves(rootPos, rms, options, true, time_to_abort);
+        auto tbCfg = Tablebase::rank_root_moves(rootPos, rms, options, true, time_to_abort);
 
         // If DTZ is not available might not find a mate, so bail out
         if (!tbCfg.rootInTB || tbCfg.cardinality != 0)
@@ -2297,7 +2306,7 @@ TimePoint MainSearchManager::elapsed() const noexcept { return timeManager.elaps
 // If the 'NodesTime' option is enabled, return the count of nodes searched instead.
 // This function is called to check whether the search should be stopped
 // based on predefined thresholds like total time or total nodes.
-TimePoint MainSearchManager::elapsed(const ThreadPool& threads) const noexcept {
+TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
     return timeManager.elapsed([&threads]() { return threads.nodes(); });
 }
 
@@ -2309,7 +2318,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
     TimePoint     time     = std::max(elapsed(), TimePoint(1));
     std::uint64_t nodes    = worker.threads.nodes();
-    std::uint16_t hashfull = worker.tt.hashfull();
+    std::uint16_t hashfull = worker.transpositionTable.hashfull();
     std::uint64_t tbHits   = worker.threads.tbHits() + (tbConfig.rootInTB ? rootMoves.size() : 0);
 
     for (std::size_t i = 0; i < worker.multiPV; ++i)
@@ -2332,7 +2341,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
             v = rm.tbValue;
 
         // tablebase- and previous-scores are exact
-        bool exact = i != worker.curIdx || tb || !updated;
+        bool exact = i != worker.curPV || tb || !updated;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
         if (is_decisive(v) && !is_mate(v) && (exact || !(rm.boundLower || rm.boundUpper)))

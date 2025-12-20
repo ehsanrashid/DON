@@ -73,13 +73,17 @@ using WorkerPtr = LargePagePtr<Worker>;
 // the search is finished, it goes back to idle_func() waiting for a new signal.
 class Thread final {
    public:
-    Thread(std::size_t                           id,
-           const SharedState&                    sharedState,
+    Thread(std::size_t                           threadIdx,
+           std::size_t                           numaIdx,
+           std::size_t                           numaThreadCount,
+           const OptionalThreadToNumaNodeBinder& nodeBinder,
            ISearchManagerPtr                     searchManager,
-           const OptionalThreadToNumaNodeBinder& nodeBinder) noexcept;
+           const SharedState&                    sharedState) noexcept;
     ~Thread() noexcept;
 
-    std::size_t id() const noexcept { return idx; }
+    std::size_t thread_id() const noexcept { return threadId; }
+
+    std::size_t numa_id() const noexcept { return numaId; }
 
     void ensure_network_replicated() const noexcept;
 
@@ -97,8 +101,8 @@ class Thread final {
     // Set before starting nativeThread
     bool dead = false, busy = true;
 
-    const std::size_t       idx;
-    const std::size_t       threadCount;
+    const std::size_t threadId, numaId;
+
     std::mutex              mutex;
     std::condition_variable condVar;
     NativeThread            nativeThread;
@@ -110,30 +114,37 @@ class Thread final {
 
 // Blocks on the condition variable until the thread has finished job
 inline void Thread::wait_finish() noexcept {
-    std::unique_lock uniqueLock(mutex);
-    condVar.wait(uniqueLock, [this] { return !busy; });
+    std::unique_lock lock(mutex);
+
+    condVar.wait(lock, [this] { return !busy; });
 }
 
 // Launching a job in the thread
-inline void Thread::run_custom_job(JobFunc job) noexcept {
+inline void Thread::run_custom_job(JobFunc jobFn) noexcept {
     {
-        std::unique_lock uniqueLock(mutex);
-        condVar.wait(uniqueLock, [this] { return !busy; });
-        jobFunc = std::move(job);
-        busy    = true;
+        std::unique_lock lock(mutex);
+
+        condVar.wait(lock, [this] { return !busy; });
+
+        jobFunc = std::move(jobFn);
+
+        busy = true;
     }
+
     condVar.notify_one();
 }
 
 // Wakes up the thread that will initialize the worker
 inline void Thread::init() noexcept {
     assert(worker != nullptr);
+
     run_custom_job([this]() { worker->init(); });
 }
 
 // Wakes up the thread that will start the search on worker
 inline void Thread::start_search() noexcept {
     assert(worker != nullptr);
+
     run_custom_job([this]() { worker->start_search(); });
 }
 
@@ -146,17 +157,17 @@ using StateListPtr = std::unique_ptr<StateList>;
 
 using ThreadPtr = std::unique_ptr<Thread>;
 
-// ThreadPool struct handles all the threads-related stuff like init, starting,
-// parking and, most importantly, launching a thread.
+// Threads handles all the threads-related stuff like
+// launching, initializing, starting and parking a thread.
 // All the access to threads is done through this class.
-class ThreadPool final {
+class Threads final {
    public:
-    ThreadPool() noexcept                             = default;
-    ThreadPool(const ThreadPool&) noexcept            = delete;
-    ThreadPool(ThreadPool&&) noexcept                 = delete;
-    ThreadPool& operator=(const ThreadPool&) noexcept = delete;
-    ThreadPool& operator=(ThreadPool&&) noexcept      = delete;
-    ~ThreadPool() noexcept;
+    Threads() noexcept                          = default;
+    Threads(const Threads&) noexcept            = delete;
+    Threads(Threads&&) noexcept                 = delete;
+    Threads& operator=(const Threads&) noexcept = delete;
+    Threads& operator=(Threads&&) noexcept      = delete;
+    ~Threads() noexcept;
 
     auto begin() noexcept { return threads.begin(); }
     auto end() noexcept { return threads.end(); }
@@ -172,27 +183,32 @@ class ThreadPool final {
     void clear() noexcept;
 
     void set(const NumaConfig&                       numaConfig,
-             const SharedState&                      sharedState,
+             SharedState                             sharedState,
              const MainSearchManager::UpdateContext& updateContext) noexcept;
 
     void init() noexcept;
 
-    Thread*            main_thread() const noexcept;
-    Thread*            best_thread() const noexcept;
+    Thread* main_thread() const noexcept;
+
     MainSearchManager* main_manager() const noexcept;
 
+    Thread* best_thread() const noexcept;
+
     std::uint64_t nodes() const noexcept;
+
     std::uint64_t tbHits() const noexcept;
 
     void
     start(Position& pos, StateListPtr& states, const Limit& limit, const Options& options) noexcept;
 
     void start_search() const noexcept;
+
     void wait_finish() const noexcept;
 
     void ensure_network_replicated() const noexcept;
 
     void run_on_thread(std::size_t threadId, JobFunc job) noexcept;
+
     void wait_on_thread(std::size_t threadId) noexcept;
 
     std::vector<std::size_t> get_bound_thread_counts() const noexcept;
@@ -210,25 +226,25 @@ class ThreadPool final {
     }
 
     std::vector<ThreadPtr> threads;
-    std::vector<NumaIndex> numaNodeBoundThreadIds;
+    std::vector<NumaIndex> threadBoundNumaNodes;
     StateListPtr           setupStates;
 };
 
-inline ThreadPool::~ThreadPool() noexcept { clear(); }
+inline Threads::~Threads() noexcept { clear(); }
 
 // Destroy any existing thread(s)
-inline void ThreadPool::clear() noexcept {
+inline void Threads::clear() noexcept {
     if (empty())
         return;
 
     main_thread()->wait_finish();
 
     threads.clear();
-    numaNodeBoundThreadIds.clear();
+    threadBoundNumaNodes.clear();
 }
 
-// Sets threadPool data to initial values
-inline void ThreadPool::init() noexcept {
+// Sets data to initial values
+inline void Threads::init() noexcept {
     if (empty())
         return;
 
@@ -241,19 +257,19 @@ inline void ThreadPool::init() noexcept {
     main_manager()->init();
 }
 
-inline Thread* ThreadPool::main_thread() const noexcept { return front().get(); }
+inline Thread* Threads::main_thread() const noexcept { return front().get(); }
 
-inline MainSearchManager* ThreadPool::main_manager() const noexcept {
+inline MainSearchManager* Threads::main_manager() const noexcept {
     return main_thread()->worker->main_manager();
 }
 
-inline std::uint64_t ThreadPool::nodes() const noexcept { return accumulate(&Worker::nodes); }
+inline std::uint64_t Threads::nodes() const noexcept { return accumulate(&Worker::nodes); }
 
-inline std::uint64_t ThreadPool::tbHits() const noexcept { return accumulate(&Worker::tbHits); }
+inline std::uint64_t Threads::tbHits() const noexcept { return accumulate(&Worker::tbHits); }
 
 // Start non-main threads
 // Will be invoked by main thread after it has started searching
-inline void ThreadPool::start_search() const noexcept {
+inline void Threads::start_search() const noexcept {
 
     for (auto&& th : threads)
         if (th != front())
@@ -261,14 +277,14 @@ inline void ThreadPool::start_search() const noexcept {
 }
 
 // Wait for non-main threads
-inline void ThreadPool::wait_finish() const noexcept {
+inline void Threads::wait_finish() const noexcept {
 
     for (auto&& th : threads)
         if (th != front())
             th->wait_finish();
 }
 
-inline void ThreadPool::ensure_network_replicated() const noexcept {
+inline void Threads::ensure_network_replicated() const noexcept {
 
     for (auto&& th : threads)
         th->ensure_network_replicated();

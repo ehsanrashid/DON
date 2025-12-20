@@ -37,25 +37,25 @@ namespace DON::Perft {
 
 namespace {
 
-struct PerftInfo final {
+struct PerftData final {
 
     void classify(Position& pos, Move m) noexcept;
 
-    void operator+=(const PerftInfo& perftInfo) noexcept;
+    void operator+=(const PerftData& perftData) noexcept;
 
     std::uint64_t nodes     = 0;
-    std::uint64_t capture   = 0;
-    std::uint64_t enpassant = 0;
-    std::uint64_t anyCheck  = 0;
-    std::uint64_t dscCheck  = 0;
-    std::uint64_t dblCheck  = 0;
-    std::uint64_t castle    = 0;
-    std::uint64_t promotion = 0;
-    std::uint64_t checkmate = 0;
-    std::uint64_t stalemate = 0;
+    std::uint32_t capture   = 0;
+    std::uint32_t enpassant = 0;
+    std::uint32_t anyCheck  = 0;
+    std::uint32_t dscCheck  = 0;
+    std::uint32_t dblCheck  = 0;
+    std::uint32_t castle    = 0;
+    std::uint32_t promotion = 0;
+    std::uint32_t checkmate = 0;
+    std::uint32_t stalemate = 0;
 };
 
-void PerftInfo::classify(Position& pos, Move m) noexcept {
+void PerftData::classify(Position& pos, Move m) noexcept {
 
     Square orgSq = m.org_sq(), dstSq = m.dst_sq();
 
@@ -124,24 +124,24 @@ void PerftInfo::classify(Position& pos, Move m) noexcept {
     }
 }
 
-void PerftInfo::operator+=(const PerftInfo& perftInfo) noexcept {
-    nodes += perftInfo.nodes;
-    capture += perftInfo.capture;
-    enpassant += perftInfo.enpassant;
-    anyCheck += perftInfo.anyCheck;
-    dscCheck += perftInfo.dscCheck;
-    dblCheck += perftInfo.dblCheck;
-    castle += perftInfo.castle;
-    promotion += perftInfo.promotion;
-    checkmate += perftInfo.checkmate;
-    stalemate += perftInfo.stalemate;
+void PerftData::operator+=(const PerftData& perftData) noexcept {
+    nodes += perftData.nodes;
+    capture += perftData.capture;
+    enpassant += perftData.enpassant;
+    anyCheck += perftData.anyCheck;
+    dscCheck += perftData.dscCheck;
+    dblCheck += perftData.dblCheck;
+    castle += perftData.castle;
+    promotion += perftData.promotion;
+    checkmate += perftData.checkmate;
+    stalemate += perftData.stalemate;
 }
 
 struct PTEntry final {
 
     constexpr std::uint64_t nodes() const noexcept { return nodes64; }
 
-    void save(Key32 k32, Depth d, std::uint64_t n) noexcept {
+    void save(std::uint32_t k32, Depth d, std::uint64_t n) noexcept {
         if ((key32 == k32 && depth16 >= d) || nodes64 >= 10000 + n)
             return;
         key32   = k32;
@@ -150,7 +150,7 @@ struct PTEntry final {
     }
 
    private:
-    Key32         key32;
+    std::uint32_t key32;
     Depth         depth16;
     std::uint64_t nodes64;
 
@@ -181,16 +181,16 @@ class PerftTable final {
     PerftTable& operator=(PerftTable&&) noexcept      = delete;
     ~PerftTable() noexcept;
 
-    void resize(std::size_t mbSize, ThreadPool& threads) noexcept;
+    void resize(std::size_t mbSize, Threads& threads) noexcept;
 
-    void init(ThreadPool& threads) noexcept;
+    void init(Threads& threads) noexcept;
 
     ProbResult probe(Key key, Depth depth) const noexcept;
 
    private:
     void free() noexcept;
 
-    auto* cluster(Key key) const noexcept { return &clusters[mul_hi64(key, clusterCount)]; }
+    PTCluster* cluster(Key key) const noexcept { return &clusters[mul_hi64(key, clusterCount)]; }
 
     PTCluster*  clusters = nullptr;
     std::size_t clusterCount;
@@ -199,17 +199,17 @@ class PerftTable final {
 PerftTable::~PerftTable() noexcept { free(); }
 
 void PerftTable::free() noexcept {
-    [[maybe_unused]] bool success = free_aligned_large_pages(clusters);
+    [[maybe_unused]] bool success = free_aligned_large_page(clusters);
     assert(success);
 }
 
-void PerftTable::resize(std::size_t ptSize, ThreadPool& threads) noexcept {
+void PerftTable::resize(std::size_t ptSize, Threads& threads) noexcept {
     free();
 
     clusterCount = ptSize * 1024 * 1024 / sizeof(PTCluster);
     assert(clusterCount % 2 == 0);
 
-    clusters = static_cast<PTCluster*>(alloc_aligned_large_pages(clusterCount * sizeof(PTCluster)));
+    clusters = static_cast<PTCluster*>(alloc_aligned_large_page(clusterCount * sizeof(PTCluster)));
 
     if (clusters == nullptr)
     {
@@ -221,7 +221,7 @@ void PerftTable::resize(std::size_t ptSize, ThreadPool& threads) noexcept {
 }
 
 // Initializes the entire perft table to zero, in a multi-threaded way.
-void PerftTable::init(ThreadPool& threads) noexcept {
+void PerftTable::init(Threads& threads) noexcept {
 
     const std::size_t threadCount = threads.size();
 
@@ -245,9 +245,9 @@ void PerftTable::init(ThreadPool& threads) noexcept {
 
 ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
-    auto* const ptc = cluster(key);
+    auto* const         ptc   = cluster(key);
+    const std::uint32_t key32 = compress_key32(key);
 
-    Key32 key32 = compress_key32(key);
     for (auto& entry : ptc->entries)
         if (entry.key32 == key32 && entry.depth16 == depth)
             return {true, &entry};
@@ -269,7 +269,7 @@ constexpr bool use_perft_table(Depth depth, bool detail) noexcept { return !deta
 // All the leaf nodes up to the given depth are generated and counted,
 // and the sum is returned.
 template<bool RootNode>
-PerftInfo perft(Position& pos, Depth depth, bool detail) noexcept {
+PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
 
     if (RootNode)
     {
@@ -292,16 +292,18 @@ PerftInfo perft(Position& pos, Depth depth, bool detail) noexcept {
 
     std::uint16_t count = 0;
 
-    PerftInfo perftInfo;
+    PerftData perftData;
 
     for (auto m : MoveList<LEGAL>(pos))
     {
-        PerftInfo iPerftInfo;
+        PerftData iPerftData;
+
         if (RootNode && depth <= 1)
         {
-            iPerftInfo.nodes++;
+            iPerftData.nodes++;
+
             if (detail)
-                iPerftInfo.classify(pos, m);
+                iPerftData.classify(pos, m);
         }
         else
         {
@@ -312,37 +314,42 @@ PerftInfo perft(Position& pos, Depth depth, bool detail) noexcept {
             if (depth <= 2)
             {
                 const MoveList<LEGAL> iLegalMoves(pos);
-                iPerftInfo.nodes += iLegalMoves.size();
+
+                iPerftData.nodes += iLegalMoves.size();
+
                 if (detail)
                     for (auto im : iLegalMoves)
-                        iPerftInfo.classify(pos, im);
+                        iPerftData.classify(pos, im);
             }
             else
             {
                 if (use_perft_table(depth, detail))
                 {
-                    Key key           = pos.key(-pos.rule50_count());
+                    Key key = pos.key(-pos.rule50_count());
+
                     auto [ptHit, pte] = perftTable.probe(key, depth - 1);
+
                     if (ptHit)
                     {
-                        iPerftInfo.nodes += pte->nodes();
+                        iPerftData.nodes += pte->nodes();
                     }
                     else
                     {
-                        iPerftInfo = perft<false>(pos, depth - 1, detail);
-                        pte->save(compress_key32(key), depth - 1, iPerftInfo.nodes);
+                        iPerftData = perft<false>(pos, depth - 1, detail);
+
+                        pte->save(compress_key32(key), depth - 1, iPerftData.nodes);
                     }
                 }
                 else
                 {
-                    iPerftInfo = perft<false>(pos, depth - 1, detail);
+                    iPerftData = perft<false>(pos, depth - 1, detail);
                 }
             }
 
             pos.undo_move(m);
         }
 
-        perftInfo += iPerftInfo;
+        perftData += iPerftData;
 
         if (RootNode)
         {
@@ -361,18 +368,18 @@ PerftInfo perft(Position& pos, Depth depth, bool detail) noexcept {
 
             std::cout << std::right << std::setfill('0') << std::setw(2) << count << " "  //
                       << std::left << move << ":"                                         //
-                      << std::right << std::setfill('.') << std::setw(16) << iPerftInfo.nodes;
+                      << std::right << std::setfill('.') << std::setw(16) << iPerftData.nodes;
 
             if (detail)
-                std::cout << "   " << std::setw(12) << iPerftInfo.capture    //
-                          << "   " << std::setw(10) << iPerftInfo.enpassant  //
-                          << "   " << std::setw(10) << iPerftInfo.anyCheck   //
-                          << "   " << std::setw(10) << iPerftInfo.dscCheck   //
-                          << "   " << std::setw(10) << iPerftInfo.dblCheck   //
-                          << "   " << std::setw(10) << iPerftInfo.castle     //
-                          << "   " << std::setw(10) << iPerftInfo.promotion  //
-                          << "   " << std::setw(10) << iPerftInfo.checkmate  //
-                          << "   " << std::setw(10) << iPerftInfo.stalemate;
+                std::cout << "   " << std::setw(12) << iPerftData.capture    //
+                          << "   " << std::setw(10) << iPerftData.enpassant  //
+                          << "   " << std::setw(10) << iPerftData.anyCheck   //
+                          << "   " << std::setw(10) << iPerftData.dscCheck   //
+                          << "   " << std::setw(10) << iPerftData.dblCheck   //
+                          << "   " << std::setw(10) << iPerftData.castle     //
+                          << "   " << std::setw(10) << iPerftData.promotion  //
+                          << "   " << std::setw(10) << iPerftData.checkmate  //
+                          << "   " << std::setw(10) << iPerftData.stalemate;
 
             std::cout << std::setfill(' ') << std::left << std::endl;
         }
@@ -382,33 +389,33 @@ PerftInfo perft(Position& pos, Depth depth, bool detail) noexcept {
     {
         std::cout << "Sum         :";
         std::cout << std::right << std::setfill('.');
-        std::cout << std::setw(16) << perftInfo.nodes;
+        std::cout << std::setw(16) << perftData.nodes;
 
         if (detail)
-            std::cout << " " << std::setw(14) << perftInfo.capture    //
-                      << " " << std::setw(12) << perftInfo.enpassant  //
-                      << " " << std::setw(12) << perftInfo.anyCheck   //
-                      << " " << std::setw(12) << perftInfo.dscCheck   //
-                      << " " << std::setw(12) << perftInfo.dblCheck   //
-                      << " " << std::setw(12) << perftInfo.castle     //
-                      << " " << std::setw(12) << perftInfo.promotion  //
-                      << " " << std::setw(12) << perftInfo.checkmate  //
-                      << " " << std::setw(12) << perftInfo.stalemate;
+            std::cout << " " << std::setw(14) << perftData.capture    //
+                      << " " << std::setw(12) << perftData.enpassant  //
+                      << " " << std::setw(12) << perftData.anyCheck   //
+                      << " " << std::setw(12) << perftData.dscCheck   //
+                      << " " << std::setw(12) << perftData.dblCheck   //
+                      << " " << std::setw(12) << perftData.castle     //
+                      << " " << std::setw(12) << perftData.promotion  //
+                      << " " << std::setw(12) << perftData.checkmate  //
+                      << " " << std::setw(12) << perftData.stalemate;
 
         std::cout << std::setfill(' ') << std::left << std::endl;
     }
 
-    return perftInfo;
+    return perftData;
 }
 
 // Explicit template instantiations:
-template PerftInfo perft<false>(Position& pos, Depth depth, bool detail) noexcept;
-template PerftInfo perft<true>(Position& pos, Depth depth, bool detail) noexcept;
+template PerftData perft<false>(Position& pos, Depth depth, bool detail) noexcept;
+template PerftData perft<true>(Position& pos, Depth depth, bool detail) noexcept;
 
 }  // namespace
 
 std::uint64_t
-perft(Position& pos, std::size_t ptSize, ThreadPool& threads, Depth depth, bool detail) noexcept {
+perft(Position& pos, std::size_t ptSize, Threads& threads, Depth depth, bool detail) noexcept {
 
     if (use_perft_table(depth, detail))
         perftTable.resize(ptSize, threads);

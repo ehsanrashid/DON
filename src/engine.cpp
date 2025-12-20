@@ -33,7 +33,7 @@
 #include "perft.h"
 #include "polybook.h"
 #include "shm.h"
-#include "syzygy/tbbase.h"
+#include "syzygy/tablebase.h"
 #include "uci.h"
 
 namespace DON {
@@ -60,19 +60,16 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     // clang-format off
     binaryDirectory(path ? CommandLine::binary_directory(*path) : ""),
     numaContext(NumaConfig::from_system()),
-    options(),
-    threads(),
-    tt(),
     networks(
       numaContext,
       // Heap-allocate because sizeof(NNUE::Networks) is large
       std::make_unique<NNUE::Networks>(
-        std::make_unique<NNUE::BigNetwork>  (NNUE::EvalFile{EvalFileDefaultNameBig  , "None", ""}, NNUE::EmbeddedType::BIG),
+        std::make_unique<NNUE::BigNetwork  >(NNUE::EvalFile{EvalFileDefaultNameBig  , "None", ""}, NNUE::EmbeddedType::BIG  ),
         std::make_unique<NNUE::SmallNetwork>(NNUE::EvalFile{EvalFileDefaultNameSmall, "None", ""}, NNUE::EmbeddedType::SMALL))) {
 
     using OnCng = Option::OnChange;
 
-    options.add("NumaPolicy",           Option("auto", "var none var auto var system var hardware var default", OnCng([this](const Option& o) {
+    options.add("NumaPolicy",           Option("auto", OnCng([this](const Option& o) {
         set_numa_config(o);
         return get_numa_config_info_str() + '\n'
              + get_thread_allocation_info_str();
@@ -104,7 +101,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("BookFile",             Option("", OnCng([](const Option& o) { return Book.load(o) ? "Load succeeded" : "Load failed"; })));
     options.add("BookProbeDepth",       Option(100, 1, 256));
     options.add("BookPickBest",         Option(true));
-    options.add("SyzygyPath",           Option("", OnCng([](const Option& o) { Tablebases::init(o); return std::nullopt; })));
+    options.add("SyzygyPath",           Option("", OnCng([](const Option& o) { Tablebase::init(o); return std::nullopt; })));
     options.add("SyzygyProbeLimit",     Option(7, 0, 7));
     options.add("SyzygyProbeDepth",     Option(1, 1, 100));
     options.add("Syzygy50MoveRule",     Option(true));
@@ -117,6 +114,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     // clang-format on
 
     load_networks();
+
     resize_threads_tt();
 
     setup();
@@ -124,8 +122,8 @@ Engine::Engine(std::optional<std::string> path) noexcept :
 
 Engine::~Engine() noexcept { wait_finish(); }
 
-const Options& Engine::get_options() const noexcept { return options; }
 Options&       Engine::get_options() noexcept { return options; }
+const Options& Engine::get_options() const noexcept { return options; }
 
 void Engine::set_numa_config(std::string_view str) noexcept {
     if (str == "none")
@@ -137,10 +135,6 @@ void Engine::set_numa_config(std::string_view str) noexcept {
     else if (str == "hardware")
         // Don't respect affinity set in the system
         numaContext.set_numa_config(NumaConfig::from_system(false));
-
-    else if (str == "default")
-        numaContext.set_numa_config(
-          NumaConfig::from_string("0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"));
 
     else
         numaContext.set_numa_config(NumaConfig::from_string(str));
@@ -157,6 +151,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
     pos.set(fen, &states->back());
 
     std::int16_t ply = 1;
+
     for (const auto& move : moves)
     {
         Move m = UCI::mix_to_move(move, pos, MoveList<LEGAL>(pos));
@@ -168,8 +163,10 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
         }
 
         assert(pos.rule50_count() <= 100);
+
         states->emplace_back();
         pos.do_move(m, states->back());
+
         ++ply;
     }
 }
@@ -199,25 +196,31 @@ void Engine::wait_finish() const noexcept { threads.main_thread()->wait_finish()
 void Engine::init() noexcept {
     wait_finish();
 
-    Tablebases::init(options["SyzygyPath"]);  // Free mapped files
+    Tablebase::init(options["SyzygyPath"]);  // Free mapped files
 
     if (options["HashRetain"])
         return;
 
     threads.init();
-    tt.init(threads);
+    transpositionTable.init(threads);
 }
 
 void Engine::resize_threads_tt() noexcept {
-    threads.set(numaContext.numa_config(), {options, networks, threads, tt}, updateContext);
+
+    threads.set(numaContext.numa_config(),
+                {networks, options, threads, transpositionTable, sharedHistoriesMap},
+                updateContext);
+
     // Reallocate the hash with the new threadpool size
     resize_tt(options["Hash"]);
+
     threads.ensure_network_replicated();
 }
 
 void Engine::resize_tt(std::size_t ttSize) noexcept {
     wait_finish();
-    tt.resize(ttSize, threads);
+
+    transpositionTable.resize(ttSize, threads);
 }
 
 void Engine::show() const noexcept { std::cout << pos << std::endl; }
@@ -245,6 +248,7 @@ void Engine::dump(std::optional<std::string_view> dumpFile) const noexcept {
 
 void Engine::eval() noexcept {
     verify_networks();
+
     std::cout << '\n' << Evaluate::trace(pos, *networks) << std::endl;
 }
 
@@ -252,7 +256,9 @@ void Engine::flip() noexcept { pos.flip(); }
 
 void Engine::mirror() noexcept { pos.mirror(); }
 
-std::uint16_t Engine::hashfull(std::uint8_t maxAge) const noexcept { return tt.hashfull(maxAge); }
+std::uint16_t Engine::hashfull(std::uint8_t maxAge) const noexcept {
+    return transpositionTable.hashfull(maxAge);
+}
 
 std::string Engine::get_numa_config_str() const noexcept {
     return numaContext.numa_config().to_string();
@@ -306,6 +312,7 @@ std::string Engine::get_thread_allocation_info_str() const noexcept {
 }
 
 void Engine::verify_networks() const noexcept {
+
     networks->big.verify(options["BigEvalFile"]);
     networks->small.verify(options["SmallEvalFile"]);
 
@@ -326,40 +333,50 @@ void Engine::verify_networks() const noexcept {
 }
 
 void Engine::load_networks() noexcept {
+
     networks.modify_and_replicate([this](NNUE::Networks& nets) {
         nets.big.load(binaryDirectory, options["BigEvalFile"]);
         nets.small.load(binaryDirectory, options["SmallEvalFile"]);
     });
+
     threads.init();
+
     threads.ensure_network_replicated();
 }
 
 void Engine::load_big_network(std::string_view netFile) noexcept {
+
     networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) {
         nets.big.load(binaryDirectory, std::string(netFile));
     });
+
     threads.init();
+
     threads.ensure_network_replicated();
 }
 
 void Engine::load_small_network(std::string_view netFile) noexcept {
+
     networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) {
         nets.small.load(binaryDirectory, std::string(netFile));
     });
+
     threads.init();
+
     threads.ensure_network_replicated();
 }
 
 void Engine::save_networks(const StdArray<std::optional<std::string>, 2>& netFiles) noexcept {
+
     networks.modify_and_replicate([&](const NNUE::Networks& nets) {
         nets.big.save(netFiles[0]);
         nets.small.save(netFiles[1]);
     });
 }
 
-bool Engine::save_hash() const noexcept { return tt.save(options["HashFile"]); }
+bool Engine::save_hash() const noexcept { return transpositionTable.save(options["HashFile"]); }
 
-bool Engine::load_hash() noexcept { return tt.load(options["HashFile"], threads); }
+bool Engine::load_hash() noexcept { return transpositionTable.load(options["HashFile"], threads); }
 
 void Engine::set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept {
     updateContext.onUpdateShort = std::move(f);

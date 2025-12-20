@@ -29,11 +29,11 @@
 #include "bitboard.h"
 #include "misc.h"
 #include "movegen.h"
+#include "option.h"
 #include "position.h"
 #include "prng.h"
 #include "search.h"
 #include "uci.h"
-#include "ucioption.h"
 
 namespace DON {
 

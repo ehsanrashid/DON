@@ -85,15 +85,15 @@ void free_aligned_std(void* mem) noexcept {
 #endif
 }
 
-// Return suitably aligned memory, if possible using large pages.
+// Return suitably aligned memory, if possible using large page
 #if defined(_WIN32)
 namespace {
 
-void* alloc_windows_aligned_large_pages(std::size_t allocSize) noexcept {
+void* alloc_windows_aligned_large_page(std::size_t allocSize) noexcept {
 
     return try_with_windows_lock_memory_privilege(
       [&](std::size_t largePageSize) {
-          // Round up size to full large pages
+          // Round up size to full large page
           std::size_t roundedAllocSize = round_up_pow2(allocSize, largePageSize);
           // Allocate large page memory
           void* mem = VirtualAlloc(nullptr, roundedAllocSize,
@@ -101,7 +101,7 @@ void* alloc_windows_aligned_large_pages(std::size_t allocSize) noexcept {
           if (mem == nullptr)
           {
               std::cerr << "Failed to allocate " << (roundedAllocSize >> 20)
-                        << "MB for large pages memory." << std::endl;
+                        << "MB for large page memory." << std::endl;
               std::cerr << "Error code: " << u32_to_string(GetLastError()) << std::endl;
           }
           return mem;
@@ -112,17 +112,23 @@ void* alloc_windows_aligned_large_pages(std::size_t allocSize) noexcept {
 }  // namespace
 #endif
 
-// Alloc Aligned Large Pages
-void* alloc_aligned_large_pages(std::size_t allocSize) noexcept {
+// Allocate aligned large page
+void* alloc_aligned_large_page(std::size_t allocSize) noexcept {
 
     void* mem;
 #if defined(_WIN32)
-    // Try to allocate large pages
-    mem = alloc_windows_aligned_large_pages(allocSize);
+    // Try to allocate large page
+    mem = alloc_windows_aligned_large_page(allocSize);
     // Fall back to regular, page-aligned, allocation if necessary
     if (mem == nullptr)
     {
-        constexpr std::size_t Alignment = 4 * 1024;
+        constexpr std::size_t Alignment =
+    #if defined(_WIN64)
+          4 * 1024
+    #else
+          1024
+    #endif
+          ;
 
         std::size_t roundedAllocSize = round_up_pow2(allocSize, Alignment);
 
@@ -148,14 +154,14 @@ void* alloc_aligned_large_pages(std::size_t allocSize) noexcept {
     return mem;
 }
 
-// Free Aligned Large Pages.
+// Free aligned large page
 // The effect is a nop if mem == nullptr
-bool free_aligned_large_pages(void* mem) noexcept {
+bool free_aligned_large_page(void* mem) noexcept {
 
 #if defined(_WIN32)
     if (mem != nullptr && !VirtualFree(mem, 0, MEM_RELEASE))
     {
-        std::cerr << "Failed to free large pages memory." << std::endl;
+        std::cerr << "Failed to free large page memory." << std::endl;
         std::cerr << "Error code: " << u32_to_string(GetLastError()) << std::endl;
         return false;
     }
@@ -165,14 +171,14 @@ bool free_aligned_large_pages(void* mem) noexcept {
     return true;
 }
 
-// Check Large Pages support
-bool has_large_pages() noexcept {
+// Check large page support
+bool has_large_page() noexcept {
 
 #if defined(_WIN32)
-    void* mem = alloc_windows_aligned_large_pages(2 * 1024 * 1024);  // 2MB page-size assumed
+    void* mem = alloc_windows_aligned_large_page(2 * 1024 * 1024);  // 2MB page-size assumed
     if (mem == nullptr)
         return false;
-    [[maybe_unused]] bool success = free_aligned_large_pages(mem);
+    [[maybe_unused]] bool success = free_aligned_large_page(mem);
     assert(success);
     return true;
 #elif defined(__linux__)

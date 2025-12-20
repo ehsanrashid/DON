@@ -68,22 +68,16 @@ class TTUpdater final {
     TTUpdater(TTUpdater&&) noexcept                 = default;
     TTUpdater& operator=(const TTUpdater&) noexcept = delete;
     TTUpdater& operator=(TTUpdater&&) noexcept      = delete;
-    TTUpdater(TTEntry* te, TTCluster* const tc, Key16 k16, std::uint8_t gen) noexcept :
-        tte(te),
-        ttc(tc),
-        key16(k16),
-        generation(gen) {}
 
     void update(Depth d, Move m, bool pv, Bound b, Value v, Value ev) noexcept;
 
-   private:
-    TTEntry*         tte;
-    TTCluster* const ttc;
-    Key16            key16;
-    std::uint8_t     generation;
+    TTEntry*            tte;
+    TTCluster* const    ttc;
+    const std::uint16_t key16;
+    const std::uint8_t  generation;
 };
 
-class ThreadPool;
+class Threads;
 
 struct ProbResult final {
     TTData    data;
@@ -105,9 +99,9 @@ class TranspositionTable final {
 
     void increment_generation() noexcept;
 
-    void resize(std::size_t ttSize, ThreadPool& threads) noexcept;
+    void resize(std::size_t ttSize, Threads& threads) noexcept;
 
-    void init(ThreadPool& threads) noexcept;
+    void init(Threads& threads) noexcept;
 
     TTCluster* cluster(Key key) const noexcept;
 
@@ -116,7 +110,7 @@ class TranspositionTable final {
     std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
 
     bool save(std::string_view hashFile) const noexcept;
-    bool load(std::string_view hashFile, ThreadPool& threads) noexcept;
+    bool load(std::string_view hashFile, Threads& threads) noexcept;
 
    private:
     void free() noexcept;

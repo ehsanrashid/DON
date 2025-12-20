@@ -134,23 +134,24 @@ inline std::string to_string(SystemWideSharedConstantAllocationStatus status) no
 }
 
 inline std::string executable_path() noexcept {
-    char        executablePath[4096] = {'\0'};
-    std::size_t executableSize       = 0;
+    StdArray<char, 4096> executablePath;
+    executablePath.fill('\0');
+    std::size_t executableSize = 0;
 
 #if defined(_WIN32)
-    DWORD size = GetModuleFileName(nullptr, executablePath, sizeof(executablePath));
+    DWORD size = GetModuleFileName(nullptr, executablePath.data(), DWORD(executablePath.size()));
 
-    executableSize = std::min(std::size_t(size), sizeof(executablePath) - 1);
+    executableSize = std::min(std::size_t(size), executablePath.size() - 1);
 
     executablePath[executableSize] = '\0';
 #elif defined(__APPLE__)
-    std::uint32_t size = std::uint32_t(sizeof(executablePath));
-    if (_NSGetExecutablePath(executablePath, &size) == 0)
+    std::uint32_t size = std::uint32_t(executablePath.size());
+    if (_NSGetExecutablePath(executablePath.data(), &size) == 0)
     {
-        executableSize = std::strlen(executablePath);
+        executableSize = std::strlen(executablePath.data());
     }
 #elif defined(__linux__)
-    ssize_t size = readlink("/proc/self/exe", executablePath, sizeof(executablePath) - 1);
+    ssize_t size = readlink("/proc/self/exe", executablePath.data(), executablePath.size() - 1);
     if (size >= 0)
     {
         executableSize = size;
@@ -158,7 +159,7 @@ inline std::string executable_path() noexcept {
         executablePath[executableSize] = '\0';
     }
 #elif defined(__NetBSD__) || defined(__DragonFly__)
-    ssize_t size = readlink("/proc/curproc/exe", executablePath, sizeof(executablePath) - 1);
+    ssize_t size = readlink("/proc/curproc/exe", executablePath.data(), executablePath.size() - 1);
     if (size >= 0)
     {
         executableSize = size;
@@ -169,24 +170,24 @@ inline std::string executable_path() noexcept {
     const char* path = getexecname();
     if (path != nullptr)
     {
-        std::strncpy(executablePath, path, sizeof(executablePath) - 1);
+        std::strncpy(executablePath.data(), path, executablePath.size() - 1);
 
-        executableSize = std::strlen(executablePath);
+        executableSize = std::strlen(executablePath.data());
     }
 #elif defined(__FreeBSD__)
     constexpr StdArray<int, 4> MIB{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
 
-    std::size_t size = sizeof(executablePath);
-    if (sysctl(MIB.data(), MIB.size(), executablePath, &size, nullptr, 0) == 0)
+    std::size_t size = executablePath.size();
+    if (sysctl(MIB.data(), MIB.size(), executablePath.data(), &size, nullptr, 0) == 0)
     {
-        executableSize = std::min(size, sizeof(executablePath) - 1);
+        executableSize = std::min(size, executablePath.size() - 1);
 
         executablePath[executableSize] = '\0';
     }
 #endif
 
     // In case of any error the path will be empty
-    return std::string(executablePath, executableSize);
+    return std::string(executablePath.data(), executableSize);
 }
 
 #if defined(__ANDROID__)
@@ -338,7 +339,7 @@ class SharedMemoryBackend final {
     void initialize(const std::string& shmName, const T& value) noexcept {
         std::size_t totalSize = sizeof(T) + sizeof(IS_INITIALIZED_VALUE);
 
-        // Try allocating with large pages first.
+        // Try allocating with large page first
         hMapFile = try_with_windows_lock_memory_privilege(
           [&](std::size_t largePageSize) {
               std::size_t roundedTotalSize = round_up_pow2(totalSize, largePageSize);
@@ -357,7 +358,7 @@ class SharedMemoryBackend final {
           },
           []() { return (void*) nullptr; });
 
-        // Fallback to normal allocation if no large pages available
+        // Fallback to normal allocation if no large page available
         if (hMapFile == nullptr)
             hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,  //
                                          PAGE_READWRITE,                 //
@@ -376,6 +377,7 @@ class SharedMemoryBackend final {
         {
             status       = Status::MapViewError;
             lastErrorStr = error_to_string(GetLastError());
+
             cleanup_partial();
             return;
         }
@@ -389,6 +391,7 @@ class SharedMemoryBackend final {
         {
             status       = Status::MutexCreateError;
             lastErrorStr = error_to_string(GetLastError());
+
             cleanup_partial();
             return;
         }
@@ -397,6 +400,7 @@ class SharedMemoryBackend final {
         {
             status       = Status::MutexWaitError;
             lastErrorStr = error_to_string(GetLastError());
+
             cleanup_partial();
             CloseHandle(hMutex);
             return;
@@ -412,6 +416,7 @@ class SharedMemoryBackend final {
         {
             // First time initialization, message for debug purposes
             new (object) T{value};
+
             *isInitialized = IS_INITIALIZED_VALUE;
         }
 
@@ -419,6 +424,7 @@ class SharedMemoryBackend final {
         {
             status       = Status::MutexReleaseError;
             lastErrorStr = error_to_string(GetLastError());
+
             cleanup_partial();
             CloseHandle(hMutex);
             return;
@@ -473,79 +479,99 @@ class BaseSharedMemory {
 
 class SharedMemoryRegistry final {
    public:
-    static void register_instance(BaseSharedMemory* memory) {
-        std::scoped_lock scopeLock(mutex);
-        activeMemories.insert(memory);
+    static void register_memory(BaseSharedMemory* memory) {
+        std::scoped_lock lock(mutex);
+
+        memories.insert(memory);
     }
 
-    static void unregister_instance(BaseSharedMemory* memory) {
-        std::scoped_lock scopeLock(mutex);
-        activeMemories.erase(memory);
+    static void unregister_memory(BaseSharedMemory* memory) {
+        std::scoped_lock lock(mutex);
+
+        memories.erase(memory);
     }
 
-    static void cleanup_all() noexcept {
-        std::scoped_lock scopeLock(mutex);
-        for (auto* memory : activeMemories)
+    static void clear() noexcept {
+        std::scoped_lock lock(mutex);
+
+        for (auto* memory : memories)
             memory->close();
-        activeMemories.clear();
+
+        memories.clear();
     }
 
    private:
+    SharedMemoryRegistry() noexcept                                       = delete;
+    SharedMemoryRegistry(const SharedMemoryRegistry&) noexcept            = delete;
+    SharedMemoryRegistry(SharedMemoryRegistry&&) noexcept                 = delete;
+    SharedMemoryRegistry& operator=(const SharedMemoryRegistry&) noexcept = delete;
+    SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
+
     static inline std::mutex                            mutex;
-    static inline std::unordered_set<BaseSharedMemory*> activeMemories;
+    static inline std::unordered_set<BaseSharedMemory*> memories;
 };
 
 class CleanupHooks final {
    public:
     static void ensure_registered() noexcept {
-        std::call_once(registerOnce, register_signal_handlers);
+        std::call_once(registerOnceFlag, register_signal_handlers);
     }
 
    private:
-    static void handle_signal(int sig) noexcept {
-        SharedMemoryRegistry::cleanup_all();
+    CleanupHooks() noexcept                               = delete;
+    CleanupHooks(const CleanupHooks&) noexcept            = delete;
+    CleanupHooks(CleanupHooks&&) noexcept                 = delete;
+    CleanupHooks& operator=(const CleanupHooks&) noexcept = delete;
+    CleanupHooks& operator=(CleanupHooks&&) noexcept      = delete;
+
+    static void signal_handler(int sig) noexcept {
+        SharedMemoryRegistry::clear();
         _Exit(128 + sig);
     }
 
     static void register_signal_handlers() noexcept {
-        std::atexit([]() { SharedMemoryRegistry::cleanup_all(); });
+        std::atexit([]() { SharedMemoryRegistry::clear(); });
 
-        constexpr int signals[]{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
-                                SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
+        constexpr int Signals[]{
+          SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
+          SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ  //
+        };
 
-        struct sigaction sa;
-        sa.sa_handler = handle_signal;
-        sigemptyset(&sa.sa_mask);
-        sa.sa_flags = 0;
+        struct sigaction sigAction;
+        sigAction.sa_handler = signal_handler;
+        sigemptyset(&sigAction.sa_mask);
+        sigAction.sa_flags = 0;
 
-        for (int sig : signals)
-            sigaction(sig, &sa, nullptr);
+        for (int signal : Signals)
+            sigaction(signal, &sigAction, nullptr);
     }
 
-    static inline std::once_flag registerOnce;
+    static inline std::once_flag registerOnceFlag;
 };
 
 inline int portable_fallocate(int fd, off_t offset, off_t length) noexcept {
     #if defined(__APPLE__)
     fstore_t store = {F_ALLOCATECONTIG, F_PEOFPOSMODE, offset, length, 0};
-    int      rc    = fcntl(fd, F_PREALLOCATE, &store);
+
+    int rc = fcntl(fd, F_PREALLOCATE, &store);
     if (rc == -1)
     {
         store.fst_flags = F_ALLOCATEALL;
-        rc              = fcntl(fd, F_PREALLOCATE, &store);
+
+        rc = fcntl(fd, F_PREALLOCATE, &store);
     }
+
     if (rc != -1)
         rc = ftruncate(fd, offset + length);
+
     return rc;
     #else
     return posix_fallocate(fd, offset, length);
     #endif
 }
 
-}  // namespace internal
-
 template<typename T>
-class SharedMemory final: public internal::BaseSharedMemory {
+class SharedMemory final: public BaseSharedMemory {
     static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
     static_assert(!std::is_pointer_v<T>, "T cannot be a pointer type");
 
@@ -556,7 +582,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
         sentinelBase(make_sentinel_base(name)) {}
 
     ~SharedMemory() noexcept override {
-        internal::SharedMemoryRegistry::unregister_instance(this);
+        SharedMemoryRegistry::unregister_memory(this);
         close();
     }
 
@@ -573,8 +599,8 @@ class SharedMemory final: public internal::BaseSharedMemory {
         sentinelBase(std::move(sharedMem.sentinelBase)),
         sentinelPath(std::move(sharedMem.sentinelPath)) {
 
-        internal::SharedMemoryRegistry::unregister_instance(&sharedMem);
-        internal::SharedMemoryRegistry::register_instance(this);
+        SharedMemoryRegistry::unregister_memory(&sharedMem);
+        SharedMemoryRegistry::register_memory(this);
         sharedMem.reset();
     }
 
@@ -582,7 +608,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
         if (this == &sharedMem)
             return *this;
 
-        internal::SharedMemoryRegistry::unregister_instance(this);
+        SharedMemoryRegistry::unregister_memory(this);
         close();
 
         _name        = std::move(sharedMem._name);
@@ -594,15 +620,15 @@ class SharedMemory final: public internal::BaseSharedMemory {
         sentinelBase = std::move(sharedMem.sentinelBase);
         sentinelPath = std::move(sharedMem.sentinelPath);
 
-        internal::SharedMemoryRegistry::unregister_instance(&sharedMem);
-        internal::SharedMemoryRegistry::register_instance(this);
+        SharedMemoryRegistry::unregister_memory(&sharedMem);
+        SharedMemoryRegistry::register_memory(this);
 
         sharedMem.reset();
         return *this;
     }
 
     [[nodiscard]] bool open(const T& initialValue) noexcept {
-        internal::CleanupHooks::ensure_registered();
+        CleanupHooks::ensure_registered();
 
         bool staleRetried = false;
 
@@ -618,6 +644,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
             if (_fd == -1)
             {
                 _fd = shm_open(_name.c_str(), O_RDWR, 0666);
+
                 if (_fd == -1)
                     return false;
             }
@@ -627,11 +654,14 @@ class SharedMemory final: public internal::BaseSharedMemory {
             if (!lock_file(LOCK_EX))
             {
                 ::close(_fd);
+
                 reset();
+
                 return false;
             }
 
             bool headerInvalid = false;
+
             bool success =
               newCreated ? setup_new_region(initialValue) : setup_existing_region(headerInvalid);
 
@@ -639,10 +669,13 @@ class SharedMemory final: public internal::BaseSharedMemory {
             {
                 if (newCreated || headerInvalid)
                     shm_unlink(_name.c_str());
-                if (mappedPtr != nullptr)
-                    unmap_region();
+
+                unmap_region();
+
                 unlock_file();
+
                 ::close(_fd);
+
                 reset();
 
                 if (!newCreated && headerInvalid && !staleRetried)
@@ -650,6 +683,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
                     staleRetried = true;
                     continue;
                 }
+
                 return false;
             }
 
@@ -657,10 +691,13 @@ class SharedMemory final: public internal::BaseSharedMemory {
             {
                 if (newCreated)
                     shm_unlink(_name.c_str());
-                if (mappedPtr != nullptr)
-                    unmap_region();
+
+                unmap_region();
+
                 unlock_file();
+
                 ::close(_fd);
+
                 reset();
 
                 if (!newCreated && !staleRetried)
@@ -668,26 +705,36 @@ class SharedMemory final: public internal::BaseSharedMemory {
                     staleRetried = true;
                     continue;
                 }
+
                 return false;
             }
 
             if (!create_sentinel_file_locked())
             {
                 unlock_shared_mutex();
+
                 unmap_region();
+
                 if (newCreated)
                     shm_unlink(_name.c_str());
+
                 unlock_file();
+
                 ::close(_fd);
+
                 reset();
+
                 return false;
             }
 
             shmHeader->refCount.fetch_add(1, std::memory_order_acq_rel);
 
             unlock_shared_mutex();
+
             unlock_file();
-            internal::SharedMemoryRegistry::register_instance(this);
+
+            SharedMemoryRegistry::register_memory(this);
+
             return true;
         }
     }
@@ -707,13 +754,17 @@ class SharedMemory final: public internal::BaseSharedMemory {
         {
             if (shmHeader != nullptr)
                 shmHeader->refCount.fetch_sub(1, std::memory_order_acq_rel);
+
             remove_sentinel_file();
+
             regionRemove = !has_other_live_sentinels_locked();
+
             unlock_shared_mutex();
         }
         else
         {
             remove_sentinel_file();
+
             decrement_refcount_relaxed();
         }
 
@@ -755,11 +806,9 @@ class SharedMemory final: public internal::BaseSharedMemory {
                                     : false;
     }
 
-    static void cleanup_all_instances() noexcept { internal::SharedMemoryRegistry::cleanup_all(); }
-
    private:
     static constexpr std::size_t calculate_total_size() noexcept {
-        return sizeof(T) + sizeof(internal::ShmHeader);
+        return sizeof(T) + sizeof(ShmHeader);
     }
 
     static std::string make_sentinel_base(const std::string& name) noexcept {
@@ -884,19 +933,23 @@ class SharedMemory final: public internal::BaseSharedMemory {
         if (shmHeader == nullptr)
             return false;
 
-        pthread_mutexattr_t attr;
-        if (pthread_mutexattr_init(&attr) != 0)
+        pthread_mutexattr_t mutexattr;
+
+        if (pthread_mutexattr_init(&mutexattr) != 0)
             return false;
 
-        int rc = pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
+        int rc = pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED);
+
     #if defined(PTHREAD_MUTEX_ROBUST)
         if (rc == 0)
-            rc = pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
+            rc = pthread_mutexattr_setrobust(&mutexattr, PTHREAD_MUTEX_ROBUST);
     #endif
-        if (rc == 0)
-            rc = pthread_mutex_init(&shmHeader->mutex, &attr);
 
-        pthread_mutexattr_destroy(&attr);
+        if (rc == 0)
+            rc = pthread_mutex_init(&shmHeader->mutex, &mutexattr);
+
+        pthread_mutexattr_destroy(&mutexattr);
+
         return rc == 0;
     }
 
@@ -907,6 +960,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
         while (true)
         {
             int rc = pthread_mutex_lock(&shmHeader->mutex);
+
             if (rc == 0)
                 return true;
 
@@ -933,21 +987,25 @@ class SharedMemory final: public internal::BaseSharedMemory {
 
     bool has_other_live_sentinels_locked() const noexcept {
         DIR* dir = opendir("/dev/shm");
+
         if (dir == nullptr)
             return false;
 
         std::string prefix = sentinelBase + ".";
-        bool        found  = false;
+
+        bool found = false;
 
         while (dirent* entry = readdir(dir))
         {
             std::string name = entry->d_name;
+
             if (name.rfind(prefix, 0) != 0)
                 continue;
 
             auto  pidStr = name.substr(prefix.size());
             char* endPtr = nullptr;
             long  pidVal = std::strtol(pidStr.c_str(), &endPtr, 10);
+
             if (endPtr == nullptr || *endPtr != '\0')
                 continue;
 
@@ -964,6 +1022,7 @@ class SharedMemory final: public internal::BaseSharedMemory {
         }
 
         closedir(dir);
+
         return found;
     }
 
@@ -971,10 +1030,11 @@ class SharedMemory final: public internal::BaseSharedMemory {
         if (ftruncate(_fd, off_t(totalSize)) == -1)
             return false;
 
-        if (internal::portable_fallocate(_fd, 0, off_t(totalSize)) != 0)
+        if (portable_fallocate(_fd, 0, off_t(totalSize)) != 0)
             return false;
 
         mappedPtr = mmap(nullptr, totalSize, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
+
         if (mappedPtr == MAP_FAILED)
         {
             mappedPtr = nullptr;
@@ -983,10 +1043,11 @@ class SharedMemory final: public internal::BaseSharedMemory {
         }
 
         dataPtr = static_cast<T*>(mappedPtr);
-        shmHeader =
-          reinterpret_cast<internal::ShmHeader*>(static_cast<char*>(mappedPtr) + sizeof(T));
 
-        new (shmHeader) internal::ShmHeader{};
+        shmHeader = reinterpret_cast<ShmHeader*>(static_cast<char*>(mappedPtr) + sizeof(T));
+
+        new (shmHeader) ShmHeader{};
+
         new (dataPtr) T{initialValue};
 
         if (!initialize_shared_mutex())
@@ -994,40 +1055,47 @@ class SharedMemory final: public internal::BaseSharedMemory {
 
         shmHeader->refCount.store(0, std::memory_order_release);
         shmHeader->initialized.store(true, std::memory_order_release);
+
         return true;
     }
 
     [[nodiscard]] bool setup_existing_region(bool& headerInvalid) noexcept {
         headerInvalid = false;
 
-        struct stat st;
-        fstat(_fd, &st);
-        if (std::size_t(st.st_size) < totalSize)
+        struct stat stat;
+        fstat(_fd, &stat);
+
+        if (std::size_t(stat.st_size) < totalSize)
         {
             headerInvalid = true;
             return false;
         }
 
         mappedPtr = mmap(nullptr, totalSize, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
+
         if (mappedPtr == MAP_FAILED)
         {
             mappedPtr = nullptr;
+
             perror("mmap");
+
             return false;
         }
 
-        dataPtr   = static_cast<T*>(mappedPtr);
-        shmHeader = std::launder(
-          reinterpret_cast<internal::ShmHeader*>(static_cast<char*>(mappedPtr) + sizeof(T)));
+        dataPtr = static_cast<T*>(mappedPtr);
+        shmHeader =
+          std::launder(reinterpret_cast<ShmHeader*>(static_cast<char*>(mappedPtr) + sizeof(T)));
 
         if (shmHeader == nullptr)
             return false;
 
         if (!shmHeader->initialized.load(std::memory_order_acquire)
-            || shmHeader->magic != internal::ShmHeader::SHM_MAGIC)
+            || shmHeader->magic != ShmHeader::SHM_MAGIC)
         {
             headerInvalid = true;
+
             unmap_region();
+
             return false;
         }
 
@@ -1037,17 +1105,17 @@ class SharedMemory final: public internal::BaseSharedMemory {
     std::string _name;
     int         _fd = -1;
 
-    void*                mappedPtr = nullptr;
-    T*                   dataPtr   = nullptr;
-    internal::ShmHeader* shmHeader = nullptr;
-    std::size_t          totalSize = 0;
-    std::string          sentinelBase;
-    std::string          sentinelPath;
+    void*       mappedPtr = nullptr;
+    T*          dataPtr   = nullptr;
+    ShmHeader*  shmHeader = nullptr;
+    std::size_t totalSize = 0;
+    std::string sentinelBase;
+    std::string sentinelPath;
 };
 
 template<typename T>
-[[nodiscard]] std::optional<SharedMemory<T>> create_shared(const std::string& name,
-                                                           const T& initialValue) noexcept {
+[[nodiscard]] std::optional<SharedMemory<T>> create_shared_memory(const std::string& name,
+                                                                  const T& initialValue) noexcept {
     SharedMemory<T> shm(name);
 
     if (shm.open(initialValue))
@@ -1056,13 +1124,15 @@ template<typename T>
     return std::nullopt;
 }
 
+}  // namespace internal
+
 template<typename T>
 class SharedMemoryBackend final {
    public:
     SharedMemoryBackend() = default;
 
     SharedMemoryBackend(const std::string& shmName, const T& value) noexcept :
-        shm(create_shared<T>(shmName, value)) {}
+        shm(internal::create_shared_memory<T>(shmName, value)) {}
 
     bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
 
@@ -1089,7 +1159,7 @@ class SharedMemoryBackend final {
     }
 
    private:
-    std::optional<SharedMemory<T>> shm;
+    std::optional<internal::SharedMemory<T>> shm;
 };
 
 #endif
@@ -1099,7 +1169,7 @@ struct FallbackSharedMemoryBackend final {
     FallbackSharedMemoryBackend() noexcept = default;
 
     FallbackSharedMemoryBackend(const std::string&, const T& value) noexcept :
-        fallbackObj(make_unique_aligned_large_pages<T>(value)) {}
+        fallbackObj(make_unique_aligned_large_page<T>(value)) {}
 
     void* get() const { return fallbackObj.get(); }
 

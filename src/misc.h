@@ -35,17 +35,21 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <shared_mutex>
 #include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 #if defined(_MSC_VER) && defined(USE_PREFETCH)
     #include <xmmintrin.h>  // Microsoft header for _mm_prefetch()
 #endif
+
+#include "memory.h"
 
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
@@ -112,16 +116,18 @@ constexpr auto sign_sqr(T x) noexcept {
 inline constexpr std::uint16_t LittleEndianValue = 1;
 inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;
 
-class SyncOstream final {
+class [[nodiscard]] SyncOstream final {
    public:
-    explicit SyncOstream(std::ostream& os) noexcept :
-        ostream(&os),
-        uniqueLock(mutex) {}
+    explicit SyncOstream(std::ostream& _os) noexcept :
+        os(&_os),
+        lock(mutex) {}
     SyncOstream(const SyncOstream&) noexcept = delete;
     // Move-constructible so factories can return by value
     SyncOstream(SyncOstream&& syncOs) noexcept :
-        ostream(syncOs.ostream),
-        uniqueLock(std::move(syncOs.uniqueLock)) {}
+        os(syncOs.os),
+        lock(std::move(syncOs.lock)) {
+        syncOs.os = nullptr;
+    }
 
     SyncOstream& operator=(const SyncOstream&) noexcept = delete;
     // Prefer deleting move-assignment to avoid unlock window
@@ -131,43 +137,57 @@ class SyncOstream final {
 
     template<typename T>
     SyncOstream& operator<<(T&& x) & noexcept {
-        *ostream << std::forward<T>(x);
+        assert(os != nullptr && "Use of moved-from SyncOstream");
+
+        *os << std::forward<T>(x);
         return *this;
     }
     template<typename T>
     SyncOstream&& operator<<(T&& x) && noexcept {
-        *ostream << std::forward<T>(x);
+        assert(os != nullptr && "Use of moved-from SyncOstream");
+
+        *os << std::forward<T>(x);
         return std::move(*this);
     }
 
     using IosManip = std::ios& (*) (std::ios&);
     SyncOstream& operator<<(IosManip manip) & noexcept {
-        manip(*ostream);
+        assert(os != nullptr && "Use of moved-from SyncOstream");
+
+        manip(*os);
         return *this;
     }
     SyncOstream&& operator<<(IosManip manip) && noexcept {
-        manip(*ostream);
+        assert(os != nullptr && "Use of moved-from SyncOstream");
+
+        manip(*os);
         return std::move(*this);
     }
 
     using OstreamManip = std::ostream& (*) (std::ostream&);
     SyncOstream& operator<<(OstreamManip manip) & noexcept {
-        manip(*ostream);
+        assert(os != nullptr && "Use of moved-from SyncOstream");
+
+        manip(*os);
         return *this;
     }
     SyncOstream&& operator<<(OstreamManip manip) && noexcept {
-        manip(*ostream);
+        assert(os != nullptr && "Use of moved-from SyncOstream");
+
+        manip(*os);
         return std::move(*this);
     }
 
    private:
     static inline std::mutex mutex;
 
-    std::ostream*                ostream;
-    std::unique_lock<std::mutex> uniqueLock;
+    std::ostream*                os;
+    std::unique_lock<std::mutex> lock;
 };
 
-inline SyncOstream sync_os(std::ostream& os = std::cout) { return SyncOstream(os); }
+[[nodiscard]] inline SyncOstream sync_os(std::ostream& os = std::cout) noexcept {
+    return SyncOstream(os);
+}
 
 // --- TableView with size ---
 template<typename T>
@@ -310,6 +330,7 @@ struct MultiArrayDef<T, Size> final {
     static_assert(Size >= 0, "dimension must be >= 0");
     using Type = T;
 };
+
 }  // namespace internal
 
 template<typename T, std::size_t Size, std::size_t... Sizes>
@@ -359,8 +380,8 @@ class MultiArray {
     constexpr auto&       back() noexcept { return _data.back(); }
     constexpr const auto& back() const noexcept { return _data.back(); }
 
-    auto*       data() { return _data.data(); }
-    const auto* data() const { return _data.data(); }
+    auto*       data() noexcept { return _data.data(); }
+    const auto* data() const noexcept { return _data.data(); }
 
     constexpr auto max_size() const noexcept { return _data.max_size(); }
 
@@ -393,12 +414,12 @@ class MultiArray {
 
         const std::size_t endIdx = std::min(begIdx + count, size());
 
-        for (std::size_t i = begIdx; i < endIdx; ++i)
+        for (std::size_t idx = begIdx; idx < endIdx; ++idx)
         {
             if constexpr (sizeof...(Sizes) == 0)
-                _data[i] = v;
+                _data[idx] = v;
             else
-                _data[i].fill(v);
+                _data[idx].fill(v);
         }
     }
 
@@ -439,6 +460,47 @@ class MultiArray {
 
    private:
     ArrayType _data;
+};
+
+template<typename T>
+class DynamicArray final {
+   public:
+    explicit DynamicArray(std::size_t size) noexcept :
+        _size(size) {
+        assert(size != 0);
+
+        _data = make_unique_aligned_large_page<T[]>(size);
+    }
+
+    std::size_t size() const noexcept { return _size; }
+
+    T*       data() noexcept { return _data.get(); }
+    const T* data() const noexcept { return _data.get(); }
+
+    T& operator[](std::size_t idx) noexcept {
+        assert(idx < size());
+        return data()[idx];
+    }
+    const T& operator[](std::size_t idx) const noexcept {
+        assert(idx < size());
+        return data()[idx];
+    }
+
+    template<typename U>
+    void fill(std::size_t begIdx, std::size_t endIdx, const U& v) noexcept {
+        assert(begIdx < size());
+        assert(endIdx <= size());
+
+        if (endIdx > size())
+            endIdx = size();
+
+        for (std::size_t idx = begIdx; idx < endIdx; ++idx)
+            data()[idx].fill(v);
+    }
+
+   private:
+    LargePagePtr<T[]> _data;
+    std::size_t       _size;
 };
 
 template<typename T, std::size_t Capacity, typename SizeType = std::size_t>
@@ -619,6 +681,63 @@ class FixedString final {
     std::size_t                  _size;
 };
 
+// ConcurrentCache: groups (mutex + storage + pre-reserve)
+template<typename Key, typename Value>
+class ConcurrentCache final {
+   public:
+    ConcurrentCache(std::size_t reserve = 1024, float loadFactor = 0.75f) noexcept {
+        storage.reserve(reserve);
+        storage.max_load_factor(loadFactor);
+    }
+
+    // Args... are forwarded to Value constructor
+    template<typename... Args>
+    Value& access_or_build(const Key& key, Args&&... args) noexcept {
+        return _access_or_build(key, std::forward<Args>(args)...);
+    }
+
+    // Transformer is callable: Value& -> any return type
+    // Args... are forwarded to Value constructor
+    template<typename Transformer, typename... Args>
+    auto
+    transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) noexcept {
+        return std::forward<Transformer>(transformer)(
+          _access_or_build(key, std::forward<Args>(args)...));
+    }
+
+   private:
+    // Thread-safe access or build
+    template<typename... Args>
+    Value& _access_or_build(const Key& key, Args&&... args) noexcept {
+
+        // Fast path: shared (read) lock
+        {
+            std::shared_lock lock(mutex);
+
+            if (auto itr = storage.find(key); itr != storage.end())
+                return *itr->second;
+        }
+
+        // Slow path: exclusive (write) lock to insert (double-check to avoid races)
+        {
+            std::unique_lock lock(mutex);
+
+            // Double-check
+            if (auto itr = storage.find(key); itr != storage.end())
+                return *itr->second;
+
+            // Build the value internally inside lock - reduces lock contention
+            auto [itr, inserted] =
+              storage.emplace(key, std::make_unique<Value>(std::forward<Args>(args)...));
+
+            return *itr->second;
+        }
+    }
+
+    std::shared_mutex                               mutex;
+    std::unordered_map<Key, std::unique_ptr<Value>> storage;
+};
+
 template<typename T>
 inline void combine_hash(std::size_t& seed, const T& v) noexcept {
     seed ^= std::hash<T>{}(v) + 0x9E3779B9U + (seed << 6) + (seed >> 2);
@@ -678,64 +797,87 @@ inline TimePoint now() noexcept {
 
 std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept;
 
-// Fancy logging facility. The trick here is to replace cin.rdbuf() and cout.rdbuf()
-// with two Tie objects that tie std::cin and std::cout to a file stream.
+// C++ way to prepare a buffer for a memory stream
+class MemoryStreamBuf final: public std::streambuf {
+   public:
+    MemoryStreamBuf(char* p, std::size_t n) noexcept {
+        setg(p, p, p + n);
+        setp(p, p + n);
+    }
+};
+
+// Fancy logging facility.
+// The trick here is to replace cin.rdbuf() and cout.rdbuf() with 2 TieStreamBuf objects
+// that tie std::cin and std::cout to a file stream.
 // Can toggle the logging of std::cout and std:cin at runtime whilst preserving
 // usual I/O functionality, all without changing a single line of code!
 // Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
 // MSVC requires split streambuf for std::cin and std::cout.
-class Tie final: public std::streambuf {
+class TieStreamBuf final: public std::streambuf {
    public:
     using traits_type = std::streambuf::traits_type;
     using int_type    = traits_type::int_type;
     using char_type   = traits_type::char_type;
 
-    Tie() noexcept = delete;
-    Tie(std::streambuf* pBuf, std::streambuf* mBuf) noexcept :
-        primaryBuf(pBuf),
-        mirrorBuf(mBuf) {}
+    TieStreamBuf() noexcept = delete;
+    TieStreamBuf(std::streambuf* pB, std::streambuf* mB) noexcept :
+        pBuf(pB),
+        mBuf(mB) {}
 
     int_type overflow(int_type ch) override {
-        if (primaryBuf == nullptr)
+        if (pBuf == nullptr)
             return traits_type::eof();
-        int_type putCh = primaryBuf->sputc(traits_type::to_char_type(ch));
+
+        int_type putCh = pBuf->sputc(traits_type::to_char_type(ch));
+
         if (traits_type::eq_int_type(putCh, traits_type::eof()))
             return putCh;
+
         return mirror_put_with_prefix(putCh, "<< ", preOutCh);
     }
 
     int_type underflow() override {
-        if (primaryBuf == nullptr)
+        if (pBuf == nullptr)
             return traits_type::eof();
-        return primaryBuf->sgetc();
+
+        return pBuf->sgetc();
     }
 
     int_type uflow() override {
-        if (primaryBuf == nullptr)
+        if (pBuf == nullptr)
             return traits_type::eof();
-        int_type ch = primaryBuf->sbumpc();
+
+        int_type ch = pBuf->sbumpc();
+
         if (traits_type::eq_int_type(ch, traits_type::eof()))
             return ch;
+
         return mirror_put_with_prefix(ch, ">> ", preInCh);
     }
 
     int sync() override {
-        int r1 = primaryBuf != nullptr ? primaryBuf->pubsync() : 0;
-        int r2 = mirrorBuf != nullptr ? mirrorBuf->pubsync() : 0;
+        int r1 = pBuf != nullptr ? pBuf->pubsync() : 0;
+        int r2 = mBuf != nullptr ? mBuf->pubsync() : 0;
+
         return (r1 == 0 && r2 == 0) ? 0 : -1;
     }
 
-    std::streambuf *primaryBuf, *mirrorBuf;
+    std::streambuf* pbuf() { return pBuf; }
+    std::streambuf* mbuf() { return mBuf; }
 
    private:
     int_type
     mirror_put_with_prefix(int_type ch, std::string_view prefix, char_type& preCh) noexcept {
-        if (mirrorBuf == nullptr)
+        if (mBuf == nullptr)
             return traits_type::not_eof(ch);
+
         if (preCh == '\n')
-            mirrorBuf->sputn(prefix.data(), std::streamsize(prefix.size()));
-        return mirrorBuf->sputc(preCh = traits_type::to_char_type(ch));
+            mBuf->sputn(prefix.data(), std::streamsize(prefix.size()));
+
+        return mBuf->sputc(preCh = traits_type::to_char_type(ch));
     }
+
+    std::streambuf *pBuf, *mBuf;
 
     char_type preOutCh = '\n';
     char_type preInCh  = '\n';
@@ -745,13 +887,15 @@ class Logger final {
    public:
     // Start logging to `logFile`. Returns true on success.
     static bool start(std::string_view logFile) noexcept {
-        std::scoped_lock scopedLock(instance().mutex);
+        std::scoped_lock lock(instance().mutex);
+
         return instance().open(logFile);
     }
 
     // Stop logging. Restores original streams and closes the file.
     static void stop() noexcept {
-        std::scoped_lock scopedLock(instance().mutex);
+        std::scoped_lock lock(instance().mutex);
+
         instance().close();
     }
 
@@ -760,22 +904,30 @@ class Logger final {
     Logger(std::istream& _is, std::ostream& _os) noexcept :
         is(_is),
         os(_os),
-        ofs(),
+        isBuf(is.rdbuf()),
+        osBuf(os.rdbuf()),
         iTie(is.rdbuf(), ofs.rdbuf()),
         oTie(os.rdbuf(), ofs.rdbuf()) {}
 
-    ~Logger() noexcept { stop(); }
+    ~Logger() noexcept = default;
 
     // Single shared instance
     static Logger& instance() noexcept {
-        static Logger logger(std::cin, std::cout);  // Tie std::cin and std::cout to a file.
+        // Tie std::cin and std::cout to a file
+        static Logger logger(std::cin, std::cout);
+
         return logger;
     }
 
     bool is_open() const noexcept { return ofs.is_open(); }
 
-    void write_timestamped(std::string_view suffix) noexcept {
-        ofs << '[' << format_time(std::chrono::system_clock::now()) << "] " << suffix << std::endl;
+    void write_timestamp(std::string_view suffix) noexcept {
+        if (!ofs.is_open())
+            return;
+
+        std::string time = format_time(std::chrono::system_clock::now());
+
+        ofs << '[' << time << "] " << suffix << std::endl;
     }
 
     // Open log file; caller must hold mutex
@@ -792,13 +944,14 @@ class Logger final {
         filename = logFile;
 
         ofs.open(filename, std::ios::out | std::ios::app);
+
         if (!is_open())
         {
             std::cerr << "Unable to open Log file: " << filename << std::endl;
             return false;
         }
 
-        write_timestamped("->");
+        write_timestamp("->");
 
         is.rdbuf(&iTie);
         os.rdbuf(&oTie);
@@ -811,10 +964,10 @@ class Logger final {
         if (!is_open())
             return;
 
-        os.rdbuf(oTie.primaryBuf);
-        is.rdbuf(iTie.primaryBuf);
+        is.rdbuf(isBuf);
+        os.rdbuf(osBuf);
 
-        write_timestamped("<-");
+        write_timestamp("<-");
 
         ofs.close();
 
@@ -823,11 +976,16 @@ class Logger final {
 
     std::istream& is;
     std::ostream& os;
+
+    std::streambuf *isBuf = nullptr, *osBuf = nullptr;
+
     std::ofstream ofs;
-    Tie           iTie, oTie;
+
+    TieStreamBuf iTie, oTie;
 
     std::string filename;
-    std::mutex  mutex;
+
+    std::mutex mutex;
 };
 
 #if !defined(NDEBUG)

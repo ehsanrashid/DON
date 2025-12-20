@@ -26,15 +26,16 @@
 #include <utility>
 #include <vector>
 
+#include "history.h"
 #include "misc.h"
 #include "nnue/network.h"
 #include "numa.h"
+#include "option.h"
 #include "position.h"
 #include "search.h"
 #include "thread.h"
 #include "tt.h"
 #include "types.h"
-#include "ucioption.h"
 
 namespace DON {
 
@@ -49,8 +50,8 @@ class Engine final {
     Engine& operator=(const Engine&) noexcept = delete;
     Engine& operator=(Engine&&) noexcept      = delete;
 
-    const Options& get_options() const noexcept;
     Options&       get_options() noexcept;
+    const Options& get_options() const noexcept;
 
     void set_numa_config(std::string_view str) noexcept;
 
@@ -110,12 +111,12 @@ class Engine final {
    private:
     const std::string binaryDirectory;
 
-    NumaReplicationContext numaContext;
-
-    Options                                      options;
-    ThreadPool                                   threads;
-    TranspositionTable                           tt;
+    NumaReplicationContext                       numaContext;
     SystemWideLazyNumaReplicated<NNUE::Networks> networks;
+    Options                                      options;
+    Threads                                      threads;
+    TranspositionTable                           transpositionTable;
+    SharedHistoriesMap                           sharedHistoriesMap;
 
     StateListPtr states;
     Position     pos;
