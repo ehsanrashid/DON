@@ -514,10 +514,16 @@ class SharedMemoryRegistry final {
 class CleanupHooks final {
    public:
     static void ensure_registered() noexcept {
-        std::call_once(registerOnce, register_signal_handlers);
+        std::call_once(registerOnceFlag, register_signal_handlers);
     }
 
    private:
+    CleanupHooks() noexcept                               = delete;
+    CleanupHooks(const CleanupHooks&) noexcept            = delete;
+    CleanupHooks(CleanupHooks&&) noexcept                 = delete;
+    CleanupHooks& operator=(const CleanupHooks&) noexcept = delete;
+    CleanupHooks& operator=(CleanupHooks&&) noexcept      = delete;
+
     static void signal_handler(int sig) noexcept {
         SharedMemoryRegistry::clear();
         _Exit(128 + sig);
@@ -540,7 +546,7 @@ class CleanupHooks final {
             sigaction(signal, &sigAction, nullptr);
     }
 
-    static inline std::once_flag registerOnce;
+    static inline std::once_flag registerOnceFlag;
 };
 
 inline int portable_fallocate(int fd, off_t offset, off_t length) noexcept {
@@ -638,6 +644,7 @@ class SharedMemory final: public BaseSharedMemory {
             if (_fd == -1)
             {
                 _fd = shm_open(_name.c_str(), O_RDWR, 0666);
+
                 if (_fd == -1)
                     return false;
             }
@@ -647,11 +654,14 @@ class SharedMemory final: public BaseSharedMemory {
             if (!lock_file(LOCK_EX))
             {
                 ::close(_fd);
+
                 reset();
+
                 return false;
             }
 
             bool headerInvalid = false;
+
             bool success =
               newCreated ? setup_new_region(initialValue) : setup_existing_region(headerInvalid);
 
@@ -659,10 +669,13 @@ class SharedMemory final: public BaseSharedMemory {
             {
                 if (newCreated || headerInvalid)
                     shm_unlink(_name.c_str());
-                if (mappedPtr != nullptr)
-                    unmap_region();
+
+                unmap_region();
+
                 unlock_file();
+
                 ::close(_fd);
+
                 reset();
 
                 if (!newCreated && headerInvalid && !staleRetried)
@@ -670,6 +683,7 @@ class SharedMemory final: public BaseSharedMemory {
                     staleRetried = true;
                     continue;
                 }
+
                 return false;
             }
 
@@ -677,10 +691,13 @@ class SharedMemory final: public BaseSharedMemory {
             {
                 if (newCreated)
                     shm_unlink(_name.c_str());
-                if (mappedPtr != nullptr)
-                    unmap_region();
+
+                unmap_region();
+
                 unlock_file();
+
                 ::close(_fd);
+
                 reset();
 
                 if (!newCreated && !staleRetried)
@@ -688,26 +705,36 @@ class SharedMemory final: public BaseSharedMemory {
                     staleRetried = true;
                     continue;
                 }
+
                 return false;
             }
 
             if (!create_sentinel_file_locked())
             {
                 unlock_shared_mutex();
+
                 unmap_region();
+
                 if (newCreated)
                     shm_unlink(_name.c_str());
+
                 unlock_file();
+
                 ::close(_fd);
+
                 reset();
+
                 return false;
             }
 
             shmHeader->refCount.fetch_add(1, std::memory_order_acq_rel);
 
             unlock_shared_mutex();
+
             unlock_file();
+
             SharedMemoryRegistry::register_memory(this);
+
             return true;
         }
     }
@@ -727,13 +754,17 @@ class SharedMemory final: public BaseSharedMemory {
         {
             if (shmHeader != nullptr)
                 shmHeader->refCount.fetch_sub(1, std::memory_order_acq_rel);
+
             remove_sentinel_file();
+
             regionRemove = !has_other_live_sentinels_locked();
+
             unlock_shared_mutex();
         }
         else
         {
             remove_sentinel_file();
+
             decrement_refcount_relaxed();
         }
 
@@ -1045,7 +1076,9 @@ class SharedMemory final: public BaseSharedMemory {
         if (mappedPtr == MAP_FAILED)
         {
             mappedPtr = nullptr;
+
             perror("mmap");
+
             return false;
         }
 
@@ -1060,7 +1093,9 @@ class SharedMemory final: public BaseSharedMemory {
             || shmHeader->magic != ShmHeader::SHM_MAGIC)
         {
             headerInvalid = true;
+
             unmap_region();
+
             return false;
         }
 

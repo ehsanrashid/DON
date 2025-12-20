@@ -239,6 +239,18 @@ void init_magics() noexcept {
 template void init_magics<BISHOP>() noexcept;
 template void init_magics<ROOK>() noexcept;
 
+// ThreadSafeCache: groups (mutex + storage + pre-reserve)
+template<typename Key, typename Value>
+struct ThreadSafeCache final {
+    ThreadSafeCache(std::size_t reserve = 1024, float loadFactor = 0.75f) noexcept {
+        storage.reserve(reserve);
+        storage.max_load_factor(loadFactor);
+    }
+
+    std::shared_mutex                               mutex;
+    std::unordered_map<Key, std::unique_ptr<Value>> storage;
+};
+
 }  // namespace
 
 namespace BitBoard {
@@ -339,37 +351,31 @@ std::string pretty_str(Bitboard b) noexcept {
 }
 
 std::string_view pretty(Bitboard b) noexcept {
-    static std::shared_mutex                                          mutex;
-    static std::unordered_map<Bitboard, std::unique_ptr<std::string>> cache;
-    // One-time reserve to reduce rehashes (runs once, thread-safe since C++11)
-    [[maybe_unused]] static const bool reserved = []() {
-        cache.reserve(1024);           // choose an appropriate capacity
-        cache.max_load_factor(0.75f);  // optional: tune load factor
-        return true;
-    }();
-
-    assert(reserved);
+    // Standard intentional "leaky singleton" pattern.
+    // Thread-safe static initialization, never deleted.
+    // Ensures the cache lives for the entire program.
+    static auto& cache = *new ThreadSafeCache<Bitboard, std::string>(1024, 0.75f);
 
     // Fast path: shared (read) lock
     {
-        std::shared_lock readLock(mutex);
+        std::shared_lock readLock(cache.mutex);
 
-        if (auto itr = cache.find(b); itr != cache.end())
+        if (auto itr = cache.storage.find(b); itr != cache.storage.end())
             return std::string_view{*itr->second};
     }
 
     // Build outside locks (may throw) — reduces lock contention
-    auto str = std::make_unique<std::string>(pretty_str(b));
+    auto prettyStr = std::make_unique<std::string>(pretty_str(b));
 
     // Slow path: exclusive (write) lock to insert (double-check to avoid races)
     {
-        std::unique_lock writeLock(mutex);
+        std::unique_lock writeLock(cache.mutex);
 
         // Check again to avoid duplicate insertion if another thread inserted meanwhile
-        if (auto itr = cache.find(b); itr != cache.end())
+        if (auto itr = cache.storage.find(b); itr != cache.storage.end())
             return std::string_view{*itr->second};
 
-        auto [itr, inserted] = cache.emplace(b, std::move(str));
+        auto [itr, inserted] = cache.storage.emplace(b, std::move(prettyStr));
         return std::string_view{*itr->second};
     }
 }
