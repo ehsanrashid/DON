@@ -70,16 +70,17 @@ struct TTEntry final {
     TTEntry& operator=(const TTEntry&) noexcept = delete;
     TTEntry& operator=(TTEntry&&) noexcept      = delete;
 
-    constexpr Move  move() const noexcept { return move16; }
-    constexpr bool  occupied() const noexcept { return depth8 != 0; }
-    constexpr Depth depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
-    constexpr bool  pv() const noexcept { return (data8 & 0x4) != 0; }
-    constexpr Bound bound() const noexcept { return Bound(data8 & 0x3); }
-    //constexpr std::uint8_t generation() const noexcept { return std::uint8_t(data8 & GENERATION_MASK); }
-    constexpr Value value() const noexcept { return value16; }
-    constexpr Value eval() const noexcept { return eval16; }
-
    public:
+    constexpr std::uint16_t key() const noexcept { return key16; }
+    constexpr Move          move() const noexcept { return move16; }
+    constexpr bool          occupied() const noexcept { return depth8 != 0; }
+    constexpr Depth         depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
+    constexpr bool          pv() const noexcept { return (data8 & 0x4) != 0; }
+    constexpr Bound         bound() const noexcept { return Bound(data8 & 0x3); }
+    constexpr std::uint8_t  generation() const noexcept { return data8 & GENERATION_MASK; }
+    constexpr Value         value() const noexcept { return value16; }
+    constexpr Value         eval() const noexcept { return eval16; }
+
     // Convert internal bitfields to TTData
     TTData read() const noexcept {
         return TTData{move(), value(), eval(), depth(), bound(), occupied(), pv()};
@@ -96,7 +97,6 @@ struct TTEntry final {
 
     std::int16_t worth(std::uint8_t gen) const noexcept { return depth8 - relative_age(gen); }
 
-   private:
     // Populates the TTEntry with a new node's data, possibly
     // overwriting an old position. The update is not atomic and can be racy.
     void save(std::uint16_t k,
@@ -127,6 +127,7 @@ struct TTEntry final {
 
     void clear() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(*this)); }
 
+   private:
     std::uint16_t key16;
     Move          move16;
     std::uint8_t  depth8;
@@ -134,8 +135,7 @@ struct TTEntry final {
     Value         value16;
     Value         eval16;
 
-    friend class TTUpdater;
-    friend class TranspositionTable;
+    //friend class TranspositionTable;
 };
 
 static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");
@@ -159,7 +159,7 @@ struct TTCluster final {
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
 void TTUpdater::update(Depth d, Move m, bool pv, Bound b, Value v, Value ev) noexcept {
-    for (; tte != &ttc->entries[0] && (tte - 1)->key16 == key16; --tte)
+    for (; tte != &ttc->entries[0] && (tte - 1)->key() == key16; --tte)
         tte->clear();
 
     tte->save(key16, d, m, pv, b, v, ev, generation);
@@ -227,13 +227,13 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
 
     auto* const ttc = cluster(key);
 
-    const std::uint16_t key16 = ((key >> 00) & 0xFFFF)  //
-                              ^ ((key >> 16) & 0xFFF0)  //
-                              ^ ((key >> 32) & 0xFF00)  //
-                              ^ ((key >> 48) & 0xF000);
+    const std::uint16_t key16 = ((key >> 00) & 0xFFFFU)  //
+                              ^ ((key >> 16) & 0xFFF0U)  //
+                              ^ ((key >> 32) & 0xFF00U)  //
+                              ^ ((key >> 48) & 0xF000U);
 
     for (auto& entry : ttc->entries)
-        if (entry.key16 == key16)
+        if (entry.key() == key16)
             return {entry.read(), TTUpdater{&entry, ttc, key16, generation8}};
 
     // Find an entry to be replaced according to the replacement strategy
