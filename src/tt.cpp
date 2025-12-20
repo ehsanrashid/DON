@@ -225,8 +225,12 @@ TTCluster* TranspositionTable::cluster(Key key) const noexcept {
 // It returns pointer to the TTEntry if the position is found.
 ProbResult TranspositionTable::probe(Key key) const noexcept {
 
-    auto* const         ttc   = cluster(key);
-    const std::uint16_t key16 = std::uint16_t(key);
+    auto* const ttc = cluster(key);
+
+    const std::uint16_t key16 = ((key >> 00) & 0xFFFF)  //
+                              ^ ((key >> 16) & 0xFFF0)  //
+                              ^ ((key >> 32) & 0xFF00)  //
+                              ^ ((key >> 48) & 0xF000);
 
     for (auto& entry : ttc->entries)
         if (entry.key16 == key16)

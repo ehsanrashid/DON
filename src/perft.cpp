@@ -247,7 +247,8 @@ void PerftTable::init(Threads& threads) noexcept {
 
 ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
-    auto* const         ptc   = cluster(key);
+    auto* const ptc = cluster(key);
+
     const std::uint32_t key32 = std::uint32_t(key);
 
     for (auto& entry : ptc->entries)
