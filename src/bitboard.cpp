@@ -336,22 +336,26 @@ std::string pretty_str(Bitboard b) noexcept {
 }
 
 std::string_view pretty(Bitboard b) noexcept {
+    constexpr std::size_t Reserve    = 1024;
+    constexpr float       LoadFactor = 0.75f;
+
+    // Thread-safe static initialization
+
     // Fully RAII-compliant — destructor runs at program exit
-    //static auto cache = ConcurrentCache<Bitboard, std::string>(1024, 0.75f);
+    //static auto cache = ConcurrentCache<Bitboard, std::string>(Reserve, LoadFactor);
 
     // Standard intentional "leaky singleton" pattern.
-    // Thread-safe static initialization, never deleted.
-    // Ensures the cache lives for the entire program.
-    //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(1024, 0.75f);
-    static auto& cache = *([] {
-        static auto ptr = std::make_unique<ConcurrentCache<Bitboard, std::string>>(1024, 0.75f);
-        return ptr.get();
+    // Ensures the cache lives for the entire program, never deleted.
+    //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(Reserve, LoadFactor);
+    static auto& cache = *([=] {
+        static auto pCache =
+          std::make_unique<ConcurrentCache<Bitboard, std::string>>(Reserve, LoadFactor);
+        return pCache.get();
     })();
 
     //return cache.access_or_build(b, pretty_str(b));
-
     return cache.transform_access_or_build(
-      b, [](const std::string& s) noexcept -> std::string_view { return s; }, pretty_str(b));
+      b, [](const std::string& str) noexcept -> std::string_view { return str; }, pretty_str(b));
 }
 
 }  // namespace BitBoard
