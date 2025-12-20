@@ -180,6 +180,7 @@ void TranspositionTable::resize(std::size_t ttSize, Threads& threads) noexcept {
     free();
 
     clusterCount = ttSize * 1024 * 1024 / sizeof(TTCluster);
+
     assert(clusterCount % 2 == 0);
 
     clusters = static_cast<TTCluster*>(alloc_aligned_large_page(clusterCount * sizeof(TTCluster)));
@@ -227,10 +228,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
 
     auto* const ttc = cluster(key);
 
-    const std::uint16_t key16 = ((key >> 00) & 0xFFFFU)  //
-                              ^ ((key >> 16) & 0xFFF0U)  //
-                              ^ ((key >> 32) & 0xFF00U)  //
-                              ^ ((key >> 48) & 0xF000U);
+    const std::uint16_t key16 = std::uint16_t(key);
 
     for (auto& entry : ttc->entries)
         if (entry.key() == key16)
@@ -238,6 +236,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
 
     // Find an entry to be replaced according to the replacement strategy
     auto* rte = &ttc->entries[0];
+
     for (std::size_t i = 1; i < ttc->entries.size(); ++i)
         if (rte->worth(generation8) > ttc->entries[i].worth(generation8))
             rte = &ttc->entries[i];

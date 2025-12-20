@@ -209,6 +209,7 @@ void PerftTable::resize(std::size_t ptSize, Threads& threads) noexcept {
     free();
 
     clusterCount = ptSize * 1024 * 1024 / sizeof(PTCluster);
+
     assert(clusterCount % 2 == 0);
 
     clusters = static_cast<PTCluster*>(alloc_aligned_large_page(clusterCount * sizeof(PTCluster)));
@@ -257,6 +258,7 @@ ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
     auto* const fte = &ptc->entries[0];
     auto*       rte = fte;
+
     for (std::size_t i = 1; i < ptc->entries.size(); ++i)
         if (rte->depth16 > ptc->entries[i].depth16)
             rte = &ptc->entries[i];

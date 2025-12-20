@@ -110,9 +110,9 @@ void init_magics() noexcept {
     constexpr StdArray<std::uint16_t, RANK_NB> Seeds{
     // clang-format off
     #if defined(IS_64BIT)
-      0x076F, 0x3763, 0x1048, 0x0B94, 0x2CC3, 0x04FE, 0x161F, 0x60F9
+      0x02D8, 0x284C, 0xD6E5, 0x8023, 0x2FF9, 0x3AFC, 0x4105, 0x00FF
     #else
-      0x5307, 0x125E, 0x0951, 0x01F5, 0x015A, 0x1B4A, 0x00CE, 0x142A
+      0x2311, 0xAE10, 0xD447, 0x9856, 0x1663, 0x73E5, 0x99D0, 0x427C
     #endif
       // clang-format on
     };
@@ -184,7 +184,7 @@ void init_magics() noexcept {
     #endif
           - popcount(magic.maskBB);
 
-        PRNG<XoShiRo256Star> prng(Seeds[rank_of(s)]);
+        XorShift64Star prng(Seeds[rank_of(s)]);
 
         StdArray<std::uint32_t, SubSizes[PT - BISHOP]> epoch{};
         std::uint32_t                                  cnt = 0;
