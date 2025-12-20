@@ -70,14 +70,14 @@ struct TTEntry final {
     TTEntry& operator=(const TTEntry&) noexcept = delete;
     TTEntry& operator=(TTEntry&&) noexcept      = delete;
 
-    constexpr auto move() const noexcept { return move16; }
-    constexpr auto occupied() const noexcept { return depth8 != 0; }
-    constexpr auto depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
-    constexpr auto pv() const noexcept { return (data8 & 0x4) != 0; }
-    constexpr auto bound() const noexcept { return Bound(data8 & 0x3); }
-    //constexpr auto generation() const noexcept { return std::uint8_t(data8 & GENERATION_MASK); }
-    constexpr auto value() const noexcept { return value16; }
-    constexpr auto eval() const noexcept { return eval16; }
+    constexpr Move  move() const noexcept { return move16; }
+    constexpr bool  occupied() const noexcept { return depth8 != 0; }
+    constexpr Depth depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
+    constexpr bool  pv() const noexcept { return (data8 & 0x4) != 0; }
+    constexpr Bound bound() const noexcept { return Bound(data8 & 0x3); }
+    //constexpr std::uint8_t generation() const noexcept { return std::uint8_t(data8 & GENERATION_MASK); }
+    constexpr Value value() const noexcept { return value16; }
+    constexpr Value eval() const noexcept { return eval16; }
 
    public:
     // Convert internal bitfields to TTData
@@ -226,7 +226,7 @@ TTCluster* TranspositionTable::cluster(Key key) const noexcept {
 ProbResult TranspositionTable::probe(Key key) const noexcept {
 
     auto* const         ttc   = cluster(key);
-    const std::uint16_t key16 = compress_key16(key);
+    const std::uint16_t key16 = std::uint16_t(key);
 
     for (auto& entry : ttc->entries)
         if (entry.key16 == key16)

@@ -560,8 +560,6 @@ constexpr std::uint64_t make_hash(std::uint64_t seed) noexcept {
     return 0x14057B7EF767814FULL + 0x5851F42D4C957F2DULL * seed;
 }
 
-constexpr std::uint16_t compress_key16(Key key) noexcept { return key & 0xFFFFULL; }
-
 // A move needs 16 bits to be stored
 //
 // bit  0- 5: destination square (from 0 to 63)
