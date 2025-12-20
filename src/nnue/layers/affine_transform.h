@@ -293,7 +293,7 @@ class AffineTransform final {
     #undef vec_add_dpbusd_32
         }
 #else
-        // Use old implementation for the other architectures.
+        // Use old implementation for the other architectures
         affine_transform_non_ssse3<InputDimensions, PaddedInputDimensions, OutputDimensions>(
           biases, weights, input, output);
 #endif
