@@ -99,7 +99,7 @@ struct TTEntry final {
    private:
     // Populates the TTEntry with a new node's data, possibly
     // overwriting an old position. The update is not atomic and can be racy.
-    void save(std::uint16_t k16,
+    void save(std::uint16_t k,
               Depth         d,
               Move          m,
               bool          pv,
@@ -111,12 +111,13 @@ struct TTEntry final {
         assert(d <= 0xFF + DEPTH_OFFSET);
 
         // Preserve the old move if don't have a new one
-        if (key16 != k16 || m != Move::None)
+        if (key16 != k || m != Move::None)
             move16 = m;
+
         // Overwrite less valuable entries (cheapest checks first)
-        if (key16 != k16 || b == BOUND_EXACT || depth() < 4 + d + 2 * pv || relative_age(gen) != 0)
+        if (key16 != k || b == BOUND_EXACT || depth() < 4 + d + 2 * pv || relative_age(gen) != 0)
         {
-            key16   = k16;
+            key16   = k;
             depth8  = d - DEPTH_OFFSET;
             data8   = gen | (pv << 2) | b;
             value16 = v;
