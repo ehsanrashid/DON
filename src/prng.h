@@ -29,24 +29,6 @@
 
 namespace DON {
 
-// Bitwise rotate left
-template<typename T>
-constexpr T rotl(T v, unsigned k) noexcept {
-    static_assert(std::is_unsigned_v<T>, "rotl requires unsigned type");
-    constexpr unsigned B = 8 * sizeof(T);
-    k %= B;
-    return T((v << k) | (v >> (B - k)));
-}
-
-// Bitwise rotate right
-template<typename T>
-constexpr T rotr(T v, unsigned k) noexcept {
-    static_assert(std::is_unsigned_v<T>, "rotr requires unsigned type");
-    constexpr unsigned B = 8 * sizeof(T);
-    k %= B;
-    return T((v >> k) | (v << (B - k)));
-}
-
 // SplitMix64 is used to initialize the state of the main generator.
 // This is the standard, high-quality way to expand a single seed.
 class SplitMix64 final {
@@ -82,11 +64,8 @@ class SplitMix64 final {
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class XorShift64Star final {
    public:
-    explicit XorShift64Star(std::uint64_t seed = 1ULL) noexcept {
-        SplitMix64 sm64(seed);
-
-        s = sm64.next();
-
+    explicit constexpr XorShift64Star(std::uint64_t seed = 1ULL) noexcept :
+        s(SplitMix64(seed).next()) {
         // Avoid zero state
         if (s == 0)
             s = 1ULL;

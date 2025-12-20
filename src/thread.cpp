@@ -151,11 +151,11 @@ void Threads::set(const NumaConfig&                       numaConfig,
     }
 
     // Prepare shared histories map
-    auto& sharedHistoriesMap = sharedState.sharedHistoriesMap;
+    auto& historiesMap = sharedState.historiesMap;
 
-    sharedHistoriesMap.clear();
-    sharedHistoriesMap.max_load_factor(1.0f);
-    sharedHistoriesMap.reserve(numaThreadCounts.size());
+    historiesMap.clear();
+    historiesMap.max_load_factor(1.0f);
+    historiesMap.reserve(numaThreadCounts.size());
 
     // Populate shared histories map (optionally NUMA-bound)
     if (!threadBindable)
@@ -164,7 +164,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
         {
             const std::size_t roundedSize = next_pow2(count);
 
-            sharedHistoriesMap.try_emplace(numaIdx, roundedSize);
+            historiesMap.try_emplace(numaIdx, roundedSize);
         }
     }
     else
@@ -174,8 +174,8 @@ void Threads::set(const NumaConfig&                       numaConfig,
             const std::size_t roundedSize = next_pow2(count);
 
             numaConfig.execute_on_numa_node(
-              numaIdx, [&sharedHistoriesMap, _numaIdx = numaIdx, roundedSize]() noexcept {
-                  sharedHistoriesMap.try_emplace(_numaIdx, roundedSize);
+              numaIdx, [&historiesMap, _numaIdx = numaIdx, roundedSize]() noexcept {
+                  historiesMap.try_emplace(_numaIdx, roundedSize);
               });
         }
     }

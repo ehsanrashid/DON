@@ -159,10 +159,10 @@ struct TTCluster final {
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
 void TTUpdater::update(Depth d, Move m, bool pv, Bound b, Value v, Value ev) noexcept {
-    for (; tte != &ttc->entries[0] && (tte - 1)->key() == key16; --tte)
+    for (; tte != &ttc->entries[0] && (tte - 1)->key() == key; --tte)
         tte->clear();
 
-    tte->save(key16, d, m, pv, b, v, ev, generation);
+    tte->save(key, d, m, pv, b, v, ev, generation);
 }
 
 TranspositionTable::~TranspositionTable() noexcept { free(); }

@@ -72,7 +72,7 @@ class TTUpdater final {
     TTUpdater(TTEntry* te, TTCluster* tc, std::uint16_t k, std::uint8_t gen) noexcept :
         tte(te),
         ttc(tc),
-        key16(k),
+        key(k),
         generation(gen) {}
 
     void update(Depth d, Move m, bool pv, Bound b, Value v, Value ev) noexcept;
@@ -80,7 +80,7 @@ class TTUpdater final {
    private:
     TTEntry*            tte;
     TTCluster* const    ttc;
-    const std::uint16_t key16;
+    const std::uint16_t key;
     const std::uint8_t  generation;
 };
 
