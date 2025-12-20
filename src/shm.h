@@ -480,19 +480,19 @@ class BaseSharedMemory {
 class SharedMemoryRegistry final {
    public:
     static void register_memory(BaseSharedMemory* memory) {
-        std::scoped_lock scopeLock(mutex);
+        std::scoped_lock lock(mutex);
 
         memories.insert(memory);
     }
 
     static void unregister_memory(BaseSharedMemory* memory) {
-        std::scoped_lock scopeLock(mutex);
+        std::scoped_lock lock(mutex);
 
         memories.erase(memory);
     }
 
     static void clear() noexcept {
-        std::scoped_lock scopeLock(mutex);
+        std::scoped_lock lock(mutex);
 
         for (auto* memory : memories)
             memory->close();

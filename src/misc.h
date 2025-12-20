@@ -116,16 +116,18 @@ constexpr auto sign_sqr(T x) noexcept {
 inline constexpr std::uint16_t LittleEndianValue = 1;
 inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;
 
-class SyncOstream final {
+class [[nodiscard]] SyncOstream final {
    public:
-    explicit SyncOstream(std::ostream& os) noexcept :
-        ostream(&os),
-        uniqueLock(mutex) {}
+    explicit SyncOstream(std::ostream& _os) noexcept :
+        os(&_os),
+        lock(mutex) {}
     SyncOstream(const SyncOstream&) noexcept = delete;
     // Move-constructible so factories can return by value
     SyncOstream(SyncOstream&& syncOs) noexcept :
-        ostream(syncOs.ostream),
-        uniqueLock(std::move(syncOs.uniqueLock)) {}
+        os(syncOs.os),
+        lock(std::move(syncOs.lock)) {
+        syncOs.os = nullptr;
+    }
 
     SyncOstream& operator=(const SyncOstream&) noexcept = delete;
     // Prefer deleting move-assignment to avoid unlock window
@@ -135,43 +137,57 @@ class SyncOstream final {
 
     template<typename T>
     SyncOstream& operator<<(T&& x) & noexcept {
-        *ostream << std::forward<T>(x);
+        assert(os != nullptr && "Use of moved-from SyncOstream");
+
+        *os << std::forward<T>(x);
         return *this;
     }
     template<typename T>
     SyncOstream&& operator<<(T&& x) && noexcept {
-        *ostream << std::forward<T>(x);
+        assert(os != nullptr && "Use of moved-from SyncOstream");
+
+        *os << std::forward<T>(x);
         return std::move(*this);
     }
 
     using IosManip = std::ios& (*) (std::ios&);
     SyncOstream& operator<<(IosManip manip) & noexcept {
-        manip(*ostream);
+        assert(os != nullptr && "Use of moved-from SyncOstream");
+
+        manip(*os);
         return *this;
     }
     SyncOstream&& operator<<(IosManip manip) && noexcept {
-        manip(*ostream);
+        assert(os != nullptr && "Use of moved-from SyncOstream");
+
+        manip(*os);
         return std::move(*this);
     }
 
     using OstreamManip = std::ostream& (*) (std::ostream&);
     SyncOstream& operator<<(OstreamManip manip) & noexcept {
-        manip(*ostream);
+        assert(os != nullptr && "Use of moved-from SyncOstream");
+
+        manip(*os);
         return *this;
     }
     SyncOstream&& operator<<(OstreamManip manip) && noexcept {
-        manip(*ostream);
+        assert(os != nullptr && "Use of moved-from SyncOstream");
+
+        manip(*os);
         return std::move(*this);
     }
 
    private:
     static inline std::mutex mutex;
 
-    std::ostream*                ostream;
-    std::unique_lock<std::mutex> uniqueLock;
+    std::ostream*                os;
+    std::unique_lock<std::mutex> lock;
 };
 
-inline SyncOstream sync_os(std::ostream& os = std::cout) { return SyncOstream(os); }
+[[nodiscard]] inline SyncOstream sync_os(std::ostream& os = std::cout) noexcept {
+    return SyncOstream(os);
+}
 
 // --- TableView with size ---
 template<typename T>
@@ -676,14 +692,15 @@ class ConcurrentCache final {
 
     // Args... are forwarded to Value constructor
     template<typename... Args>
-    Value& access_or_build(const Key& key, Args&&... args) {
+    Value& access_or_build(const Key& key, Args&&... args) noexcept {
         return _access_or_build(key, std::forward<Args>(args)...);
     }
 
     // Transformer is callable: Value& -> any return type
     // Args... are forwarded to Value constructor
     template<typename Transformer, typename... Args>
-    auto transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) {
+    auto
+    transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) noexcept {
         return std::forward<Transformer>(transformer)(
           _access_or_build(key, std::forward<Args>(args)...));
     }
@@ -709,7 +726,7 @@ class ConcurrentCache final {
             if (auto itr = storage.find(key); itr != storage.end())
                 return *itr->second;
 
-            // Build the value internally inside lock — reduces lock contention
+            // Build the value internally inside lock - reduces lock contention
             auto [itr, inserted] =
               storage.emplace(key, std::make_unique<Value>(std::forward<Args>(args)...));
 
@@ -870,13 +887,15 @@ class Logger final {
    public:
     // Start logging to `logFile`. Returns true on success.
     static bool start(std::string_view logFile) noexcept {
-        std::scoped_lock scopedLock(instance().mutex);
+        std::scoped_lock lock(instance().mutex);
+
         return instance().open(logFile);
     }
 
     // Stop logging. Restores original streams and closes the file.
     static void stop() noexcept {
-        std::scoped_lock scopedLock(instance().mutex);
+        std::scoped_lock lock(instance().mutex);
+
         instance().close();
     }
 
@@ -885,22 +904,30 @@ class Logger final {
     Logger(std::istream& _is, std::ostream& _os) noexcept :
         is(_is),
         os(_os),
-        ofs(),
-        iTieStreamBuf(is.rdbuf(), ofs.rdbuf()),
-        oTieStreamBuf(os.rdbuf(), ofs.rdbuf()) {}
+        isBuf(is.rdbuf()),
+        osBuf(os.rdbuf()),
+        iTie(is.rdbuf(), ofs.rdbuf()),
+        oTie(os.rdbuf(), ofs.rdbuf()) {}
 
-    ~Logger() noexcept { stop(); }
+    ~Logger() noexcept = default;
 
     // Single shared instance
     static Logger& instance() noexcept {
-        static Logger logger(std::cin, std::cout);  // Tie std::cin and std::cout to a file.
+        // Tie std::cin and std::cout to a file
+        static Logger logger(std::cin, std::cout);
+
         return logger;
     }
 
     bool is_open() const noexcept { return ofs.is_open(); }
 
-    void write_timestamped(std::string_view suffix) noexcept {
-        ofs << '[' << format_time(std::chrono::system_clock::now()) << "] " << suffix << std::endl;
+    void write_timestamp(std::string_view suffix) noexcept {
+        if (!ofs.is_open())
+            return;
+
+        std::string time = format_time(std::chrono::system_clock::now());
+
+        ofs << '[' << time << "] " << suffix << std::endl;
     }
 
     // Open log file; caller must hold mutex
@@ -917,16 +944,17 @@ class Logger final {
         filename = logFile;
 
         ofs.open(filename, std::ios::out | std::ios::app);
+
         if (!is_open())
         {
             std::cerr << "Unable to open Log file: " << filename << std::endl;
             return false;
         }
 
-        write_timestamped("->");
+        write_timestamp("->");
 
-        is.rdbuf(&iTieStreamBuf);
-        os.rdbuf(&oTieStreamBuf);
+        is.rdbuf(&iTie);
+        os.rdbuf(&oTie);
 
         return true;
     }
@@ -936,10 +964,10 @@ class Logger final {
         if (!is_open())
             return;
 
-        os.rdbuf(oTieStreamBuf.pbuf());
-        is.rdbuf(iTieStreamBuf.pbuf());
+        is.rdbuf(isBuf);
+        os.rdbuf(osBuf);
 
-        write_timestamped("<-");
+        write_timestamp("<-");
 
         ofs.close();
 
@@ -948,12 +976,16 @@ class Logger final {
 
     std::istream& is;
     std::ostream& os;
+
+    std::streambuf *isBuf = nullptr, *osBuf = nullptr;
+
     std::ofstream ofs;
 
-    TieStreamBuf iTieStreamBuf, oTieStreamBuf;
+    TieStreamBuf iTie, oTie;
 
     std::string filename;
-    std::mutex  mutex;
+
+    std::mutex mutex;
 };
 
 #if !defined(NDEBUG)

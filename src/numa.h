@@ -1186,7 +1186,8 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
 
         assert(numaIdx != 0);
 
-        std::unique_lock uniqueLock(mutex);
+        std::unique_lock lock(mutex);
+
         // Check again for races.
         if (instances[numaIdx] != nullptr)
             return;
@@ -1319,7 +1320,8 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
         assert(idx != 0);
 
-        std::unique_lock<std::mutex> uniqueLock(mutex);
+        std::unique_lock lock(mutex);
+
         // Check again for races.
         if (instances[idx] != nullptr)
             return;

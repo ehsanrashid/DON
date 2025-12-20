@@ -78,12 +78,12 @@ void Thread::ensure_network_replicated() const noexcept { worker->ensure_network
 void Thread::idle_func() noexcept {
     while (true)
     {
-        std::unique_lock uniqueLock(mutex);
+        std::unique_lock lock(mutex);
 
         busy = false;
 
         condVar.notify_one();  // Wake up anyone waiting for job finished
-        condVar.wait(uniqueLock, [this] { return busy; });
+        condVar.wait(lock, [this] { return busy; });
 
         if (dead)
             break;
@@ -91,7 +91,7 @@ void Thread::idle_func() noexcept {
         JobFunc jobFn = std::move(jobFunc);
         jobFunc       = nullptr;
 
-        uniqueLock.unlock();
+        lock.unlock();
 
         if (jobFn)
             jobFn();

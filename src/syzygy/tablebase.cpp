@@ -1329,7 +1329,7 @@ void* mapped(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
     if (entry.ready.load(std::memory_order_acquire))
         return entry.mapAddress;  // Could be nullptr if file does not exist
 
-    std::scoped_lock scopedLock(mutex);
+    std::scoped_lock lock(mutex);
 
     if (entry.ready.load(std::memory_order_relaxed))  // Recheck under lock
         return entry.mapAddress;
