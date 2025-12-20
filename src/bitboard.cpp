@@ -209,7 +209,7 @@ void init_magics() noexcept {
             ++cnt;
             for (std::uint16_t i = 0; i < size; ++i)
             {
-                auto idx = magic.index(occupancyBBs[i]);
+                std::uint16_t idx = magic.index(occupancyBBs[i]);
 
                 if (epoch[idx] < cnt)
                 {

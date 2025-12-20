@@ -158,9 +158,11 @@ struct Magic final {
     #if defined(IS_64BIT)
         return ((occupancyBB & maskBB) * magicBB) >> shift;
     #else
-        std::uint32_t lo = std::uint32_t(occupancyBB >> 00) & std::uint32_t(maskBB >> 00);
-        std::uint32_t hi = std::uint32_t(occupancyBB >> 32) & std::uint32_t(maskBB >> 32);
-        return (lo * std::uint32_t(magicBB >> 00) ^ hi * std::uint32_t(magicBB >> 32)) >> shift;
+        std::uint32_t lo  = std::uint32_t(occupancyBB >> 00) & std::uint32_t(maskBB >> 00);
+        std::uint32_t hi  = std::uint32_t(occupancyBB >> 32) & std::uint32_t(maskBB >> 32);
+        std::uint32_t mlo = std::uint32_t(magicBB >> 00);
+        std::uint32_t mhi = std::uint32_t(magicBB >> 32);
+        return ((lo * mlo) ^ (hi * mhi)) >> shift;
     #endif
 #endif
     }

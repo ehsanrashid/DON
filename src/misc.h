@@ -210,11 +210,11 @@ class TableView final {
 
     constexpr T& operator[](std::size_t idx) noexcept {
         assert(idx < size());
-        return _data[idx];
+        return data()[idx];
     }
     constexpr T& operator[](std::size_t idx) const noexcept {
         assert(idx < size());
-        return _data[idx];
+        return data()[idx];
     }
 
    private:
