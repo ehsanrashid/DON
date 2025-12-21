@@ -63,14 +63,13 @@ constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 // since memory is fastest sequentially.
 // Equally, the store order in save() matches this order.
 struct TTEntry final {
-   private:
-    TTEntry() noexcept                          = delete;
+   public:
+    TTEntry() noexcept                          = default;
     TTEntry(const TTEntry&) noexcept            = delete;
     TTEntry(TTEntry&&) noexcept                 = delete;
-    TTEntry& operator=(const TTEntry&) noexcept = delete;
+    TTEntry& operator=(const TTEntry&) noexcept = default;
     TTEntry& operator=(TTEntry&&) noexcept      = delete;
 
-   public:
     constexpr std::uint16_t key() const noexcept { return key16; }
     constexpr bool          occupied() const noexcept { return depth8 != 0; }
     constexpr Depth         depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
@@ -142,14 +141,13 @@ static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");
 // TTCluster size should divide the size of a cache-line for best performance,
 // as the cache-line is prefetched when possible.
 struct TTCluster final {
-   private:
-    TTCluster() noexcept                            = delete;
+   public:
+    TTCluster() noexcept                            = default;
     TTCluster(const TTCluster&) noexcept            = delete;
     TTCluster(TTCluster&&) noexcept                 = delete;
-    TTCluster& operator=(const TTCluster&) noexcept = delete;
+    TTCluster& operator=(const TTCluster&) noexcept = default;
     TTCluster& operator=(TTCluster&&) noexcept      = delete;
 
-   public:
     StdArray<TTEntry, 3> entries;
     StdArray<char, 2>    padding;  // Pad to 32 bytes
 };
@@ -209,7 +207,7 @@ void TranspositionTable::init(Threads& threads) noexcept {
             std::size_t start = stride * threadId + std::min(threadId, remain);
             std::size_t count = stride + (threadId < remain);
 
-            std::memset(static_cast<void*>(&clusters[start]), 0, count * sizeof(TTCluster));
+            std::memset(&clusters[start], 0, count * sizeof(TTCluster));
         });
     }
 

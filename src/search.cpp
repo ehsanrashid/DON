@@ -979,7 +979,8 @@ Value Worker::search(Position&    pos,
                         {
                             bestValue = value;
 
-                            alpha = std::max(alpha, bestValue);
+                            if (alpha < bestValue)
+                                alpha = bestValue;
                         }
                         else
                             maxValue = value;
