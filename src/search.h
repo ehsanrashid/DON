@@ -504,7 +504,7 @@ struct Stack final {
     CorrectionHistory<CH_PIECE_SQ>* pieceSqCorrectionHistory;
 
     int          history;
-    Value        staticEval;
+    Value        evalValue;
     std::int16_t ply;
     Move         move;
     Move         ttMove;

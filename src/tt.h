@@ -48,13 +48,13 @@ struct TTData final {
     TTData& operator=(TTData&&) noexcept      = delete;
 
     static TTData empty() noexcept {
-        return {Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, BOUND_NONE, false, false};
+        return {DEPTH_OFFSET, Move::None, VALUE_NONE, VALUE_NONE, BOUND_NONE, false, false};
     }
 
+    Depth depth;
     Move  move;
     Value value;
-    Value eval;
-    Depth depth;
+    Value evalValue;
     Bound bound;
     bool  hit;
     bool  pv;
@@ -79,7 +79,7 @@ class TTUpdater final {
         key(k),
         generation(gen) {}
 
-    void update(Depth d, Move m, Bound b, bool pv, Value v, Value ev) noexcept;
+    void update(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept;
 
    private:
     TTEntry*            tte;

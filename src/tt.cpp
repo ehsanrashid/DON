@@ -51,13 +51,13 @@ constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 // Defined as below:
 // key          16 bit
 // move         16 bit
+// value        16 bit
+// evalValue    16 bit
 // depth         8 bit
 // meta          8 bit
 //  - bound      2 bit
 //  - pv         1 bit
 //  - generation 5 bit
-// value        16 bit
-// eval         16 bit
 //
 // These fields are in the same order as accessed by TT::probe(),
 // since memory is fastest sequentially.
@@ -72,18 +72,18 @@ struct TTEntry final {
 
    public:
     constexpr std::uint16_t key() const noexcept { return key16; }
-    constexpr Move          move() const noexcept { return move16; }
     constexpr bool          occupied() const noexcept { return depth8 != 0; }
     constexpr Depth         depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
+    constexpr Move          move() const noexcept { return move16; }
+    constexpr Value         value() const noexcept { return val16; }
+    constexpr Value         eval_value() const noexcept { return eVal16; }
     constexpr Bound         bound() const noexcept { return Bound(meta8 & 0x3); }
     constexpr bool          pv() const noexcept { return (meta8 & 0x4) != 0; }
     constexpr std::uint8_t  generation() const noexcept { return meta8 & GENERATION_MASK; }
-    constexpr Value         value() const noexcept { return value16; }
-    constexpr Value         eval() const noexcept { return eval16; }
 
     // Convert internal bitfields to TTData
     TTData read() const noexcept {
-        return TTData{move(), value(), eval(), depth(), bound(), occupied(), pv()};
+        return {depth(), move(), value(), eval_value(), bound(), occupied(), pv()};
     }
 
     // The returned age is a multiple of GENERATION_DELTA
@@ -100,13 +100,13 @@ struct TTEntry final {
     // Populates the TTEntry with a new node's data, possibly
     // overwriting an old position. The update is not atomic and can be racy.
     void save(std::uint16_t k,
-              Depth         d,
               Move          m,
+              Value         v,
+              Value         ev,
+              Depth         d,
               Bound         b,
               bool          pv,
-              std::uint8_t  gen,
-              Value         v,
-              Value         ev) noexcept {
+              std::uint8_t  gen) noexcept {
         assert(d > DEPTH_OFFSET);
         assert(d <= 0xFF + DEPTH_OFFSET);
 
@@ -117,11 +117,11 @@ struct TTEntry final {
         // Overwrite less valuable entries (cheapest checks first)
         if (key() != k || b == BOUND_EXACT || depth() < 4 + d + 2 * pv || relative_age(gen) != 0)
         {
-            key16   = k;
-            depth8  = d - DEPTH_OFFSET;
-            meta8   = gen | (pv << 2) | b;
-            value16 = v;
-            eval16  = ev;
+            key16  = k;
+            val16  = v;
+            eVal16 = ev;
+            depth8 = d - DEPTH_OFFSET;
+            meta8  = gen | (pv << 2) | b;
         }
     }
 
@@ -130,10 +130,10 @@ struct TTEntry final {
    private:
     std::uint16_t key16;
     Move          move16;
+    Value         val16;
+    Value         eVal16;
     std::uint8_t  depth8;
     std::uint8_t  meta8;
-    Value         value16;
-    Value         eval16;
 };
 
 static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");
@@ -156,12 +156,12 @@ struct TTCluster final {
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
-void TTUpdater::update(Depth d, Move m, Bound b, bool pv, Value v, Value ev) noexcept {
+void TTUpdater::update(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept {
 
     for (auto* const fte = &ttc->entries[0]; tte != fte && (tte - 1)->key() == key; --tte)
         tte->clear();
 
-    tte->save(key, d, m, b, pv, generation, v, ev);
+    tte->save(key, m, v, ev, d, b, pv, generation);
 }
 
 TranspositionTable::~TranspositionTable() noexcept { free(); }
