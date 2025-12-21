@@ -52,10 +52,10 @@ constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 // key          16 bit
 // move         16 bit
 // depth         8 bit
-// data          8 bit
-//  - generation 5 bit
-//  - pv         1 bit
+// meta          8 bit
 //  - bound      2 bit
+//  - pv         1 bit
+//  - generation 5 bit
 // value        16 bit
 // eval         16 bit
 //
@@ -75,9 +75,9 @@ struct TTEntry final {
     constexpr Move          move() const noexcept { return move16; }
     constexpr bool          occupied() const noexcept { return depth8 != 0; }
     constexpr Depth         depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
-    constexpr bool          pv() const noexcept { return (data8 & 0x4) != 0; }
-    constexpr Bound         bound() const noexcept { return Bound(data8 & 0x3); }
-    constexpr std::uint8_t  generation() const noexcept { return data8 & GENERATION_MASK; }
+    constexpr Bound         bound() const noexcept { return Bound(meta8 & 0x3); }
+    constexpr bool          pv() const noexcept { return (meta8 & 0x4) != 0; }
+    constexpr std::uint8_t  generation() const noexcept { return meta8 & GENERATION_MASK; }
     constexpr Value         value() const noexcept { return value16; }
     constexpr Value         eval() const noexcept { return eval16; }
 
@@ -92,7 +92,7 @@ struct TTEntry final {
         // add GENERATION_CYCLE (256 is the modulus, plus what is needed to keep
         // the unrelated lowest n bits from affecting the relative age)
         // to calculate the entry age correctly even after gen overflows into the next cycle.
-        return (GENERATION_CYCLE + gen - data8) & GENERATION_MASK;
+        return (GENERATION_CYCLE + gen - meta8) & GENERATION_MASK;
     }
 
     std::int16_t worth(std::uint8_t gen) const noexcept { return depth8 - relative_age(gen); }
@@ -104,9 +104,9 @@ struct TTEntry final {
               Move          m,
               bool          pv,
               Bound         b,
+              std::uint8_t  gen,
               Value         v,
-              Value         ev,
-              std::uint8_t  gen) noexcept {
+              Value         ev) noexcept {
         assert(d > DEPTH_OFFSET);
         assert(d <= 0xFF + DEPTH_OFFSET);
 
@@ -119,7 +119,7 @@ struct TTEntry final {
         {
             key16   = k;
             depth8  = d - DEPTH_OFFSET;
-            data8   = gen | (pv << 2) | b;
+            meta8   = gen | (pv << 2) | b;
             value16 = v;
             eval16  = ev;
         }
@@ -131,7 +131,7 @@ struct TTEntry final {
     std::uint16_t key16;
     Move          move16;
     std::uint8_t  depth8;
-    std::uint8_t  data8;
+    std::uint8_t  meta8;
     Value         value16;
     Value         eval16;
 };
@@ -157,10 +157,11 @@ struct TTCluster final {
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
 void TTUpdater::update(Depth d, Move m, bool pv, Bound b, Value v, Value ev) noexcept {
-    for (; tte != &ttc->entries[0] && (tte - 1)->key() == key; --tte)
+
+    for (auto* const fte = &ttc->entries[0]; tte != fte && (tte - 1)->key() == key; --tte)
         tte->clear();
 
-    tte->save(key, d, m, pv, b, v, ev, generation);
+    tte->save(key, d, m, pv, b, generation, v, ev);
 }
 
 TranspositionTable::~TranspositionTable() noexcept { free(); }
@@ -239,8 +240,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
         if (rte->worth(generation8) > ttc->entries[i].worth(generation8))
             rte = &ttc->entries[i];
 
-    return {TTData{Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, BOUND_NONE, false, false},
-            TTUpdater{rte, ttc, key16, generation8}};
+    return {TTData::empty(), TTUpdater{rte, ttc, key16, generation8}};
 }
 
 // Returns an approximation of the hashtable occupation during a search.

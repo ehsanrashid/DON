@@ -47,6 +47,10 @@ struct TTData final {
     TTData& operator=(const TTData&) noexcept = delete;
     TTData& operator=(TTData&&) noexcept      = delete;
 
+    static TTData empty() noexcept {
+        return {Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, BOUND_NONE, false, false};
+    }
+
     Move  move;
     Value value;
     Value eval;
