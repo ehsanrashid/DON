@@ -135,6 +135,7 @@ struct State final {
         std::size_t size = reinterpret_cast<const char*>(&(st->*member))  //
                          - reinterpret_cast<const char*>(st);
 
+        assert(size <= sizeof(*this) && "size exceeds object size");
         //// Defensive clamp (shouldn't be needed if member belongs to State)
         //if (size > sizeof(*this))
         //    size = sizeof(*this);

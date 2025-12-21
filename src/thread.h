@@ -196,7 +196,9 @@ class Threads final {
 
     std::uint64_t nodes() const noexcept;
 
-    std::uint64_t tbHits() const noexcept;
+    std::uint64_t tb_hits() const noexcept;
+
+    std::uint64_t move_changes() const noexcept;
 
     void
     start(Position& pos, StateListPtr& states, const Limit& limit, const Options& options) noexcept;
@@ -265,7 +267,11 @@ inline MainSearchManager* Threads::main_manager() const noexcept {
 
 inline std::uint64_t Threads::nodes() const noexcept { return accumulate(&Worker::nodes); }
 
-inline std::uint64_t Threads::tbHits() const noexcept { return accumulate(&Worker::tbHits); }
+inline std::uint64_t Threads::tb_hits() const noexcept { return accumulate(&Worker::tbHits); }
+
+inline std::uint64_t Threads::move_changes() const noexcept {
+    return accumulate(&Worker::moveChanges);
+}
 
 // Start non-main threads
 // Will be invoked by main thread after it has started searching

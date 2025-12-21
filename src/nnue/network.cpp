@@ -125,7 +125,6 @@ bool _write_parameters(std::ostream& os, const T& reference) noexcept {
 
 }  // namespace
 
-
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load(std::string_view rootDirectory,
                                       std::string      netFile) noexcept {
@@ -291,10 +290,10 @@ template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_internal() noexcept {
     const auto embedded = get_embedded(embeddedType);
 
-    MemoryStreamBuf streamBuf(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
-                              std::size_t(embedded.size));
+    MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
+                        std::size_t(embedded.size));
 
-    std::istream is(&streamBuf);
+    std::istream is(&buf);
 
     auto description = load(is);
 

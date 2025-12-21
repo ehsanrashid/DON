@@ -626,13 +626,11 @@ void Worker::iterative_deepening() noexcept {
             && !(mainManager->ponderhitStop || threads.stop.load(std::memory_order_relaxed)))
         {
             // Use part of the gained time from a previous stable move for the current move
-            for (auto&& th : threads)
-            {
-                mainManager->sumMoveChanges +=
-                  th->worker->moveChanges.load(std::memory_order_relaxed);
+            mainManager->sumMoveChanges += threads.move_changes();
 
+            // Reset move changes
+            for (auto&& th : threads)
                 th->worker->moveChanges.store(0, std::memory_order_relaxed);
-            }
 
             // clang-format off
 
@@ -2324,7 +2322,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     TimePoint     time     = std::max(elapsed(), TimePoint(1));
     std::uint64_t nodes    = worker.threads.nodes();
     std::uint16_t hashfull = worker.transpositionTable.hashfull();
-    std::uint64_t tbHits   = worker.threads.tbHits() + (tbConfig.rootInTB ? rootMoves.size() : 0);
+    std::uint64_t tbHits   = worker.threads.tb_hits() + (tbConfig.rootInTB ? rootMoves.size() : 0);
 
     for (std::size_t i = 0; i < worker.multiPV; ++i)
     {

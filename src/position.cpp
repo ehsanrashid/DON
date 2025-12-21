@@ -816,7 +816,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker
 
     Key k = st->key ^ Zobrist::turn();
 
-    newSt.switch_to_prefix(st);
+    newSt.switch_to_prefix(st, &State::key);
 
     st = &newSt;
 
@@ -1169,7 +1169,7 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
 
     Key k = st->key ^ Zobrist::turn();
 
-    newSt.switch_to_prefix(st);
+    newSt.switch_to_prefix(st, &State::key);
 
     st = &newSt;
 
