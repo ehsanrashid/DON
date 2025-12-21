@@ -94,14 +94,14 @@ enum HistoryType : std::uint8_t {
 namespace internal {
 
 template<int D, std::size_t... Sizes>
-using StatsMultiArray = MultiArray<StatsEntry<std::int16_t, D>, Sizes...>;
+using Stats = MultiArray<StatsEntry<std::int16_t, D>, Sizes...>;
 
 template<HistoryType T>
 struct HistoryDef;
 
 template<>
 struct HistoryDef<H_CAPTURE> final {
-    using Type = StatsMultiArray<10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
+    using Type = Stats<10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 };
 
 // It records how often quiet moves have been successful or not during the current search,
@@ -109,18 +109,18 @@ struct HistoryDef<H_CAPTURE> final {
 // see https://www.chessprogramming.org/Butterfly_Boards
 template<>
 struct HistoryDef<H_QUIET> final {
-    using Type = StatsMultiArray<7183, COLOR_NB, QUIET_HISTORY_SIZE>;
+    using Type = Stats<7183, COLOR_NB, QUIET_HISTORY_SIZE>;
 };
 
 template<>
 struct HistoryDef<H_PAWN> final {
-    using Type = StatsMultiArray<8192, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
+    using Type = Stats<8192, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
 };
 
 // It is used to improve quiet move ordering near the root.
 template<>
 struct HistoryDef<H_LOW_PLY_QUIET> final {
-    using Type = StatsMultiArray<7183, LOW_PLY_QUIET_SIZE, QUIET_HISTORY_SIZE>;
+    using Type = Stats<7183, LOW_PLY_QUIET_SIZE, QUIET_HISTORY_SIZE>;
 };
 
 template<>
@@ -130,7 +130,7 @@ struct HistoryDef<H_TT_MOVE> final {
 
 template<>
 struct HistoryDef<H_PIECE_SQ> final {
-    using Type = StatsMultiArray<30000, PIECE_NB, SQUARE_NB>;
+    using Type = Stats<30000, PIECE_NB, SQUARE_NB>;
 };
 
 template<>
@@ -159,29 +159,29 @@ enum CorrectionHistoryType : std::uint8_t {
 namespace internal {
 
 template<std::size_t... Sizes>
-using CorrectionStatsMultiArray = StatsMultiArray<CORRECTION_HISTORY_LIMIT, Sizes...>;
+using CorrectionStats = Stats<CORRECTION_HISTORY_LIMIT, Sizes...>;
 
 template<CorrectionHistoryType T>
 struct CorrectionHistoryDef;
 
 template<>
 struct CorrectionHistoryDef<CH_PAWN> final {
-    using Type = DynamicArray<CorrectionStatsMultiArray<COLOR_NB, COLOR_NB>>;
+    using Type = DynamicArray<CorrectionStats<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
 struct CorrectionHistoryDef<CH_MINOR> final {
-    using Type = DynamicArray<CorrectionStatsMultiArray<COLOR_NB, COLOR_NB>>;
+    using Type = DynamicArray<CorrectionStats<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
 struct CorrectionHistoryDef<CH_NON_PAWN> final {
-    using Type = DynamicArray<CorrectionStatsMultiArray<COLOR_NB, COLOR_NB>>;
+    using Type = DynamicArray<CorrectionStats<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
 struct CorrectionHistoryDef<CH_PIECE_SQ> final {
-    using Type = CorrectionStatsMultiArray<PIECE_NB, SQUARE_NB>;
+    using Type = CorrectionStats<PIECE_NB, SQUARE_NB>;
 };
 
 template<>
@@ -196,63 +196,66 @@ template<CorrectionHistoryType T>
 using CorrectionHistory = typename internal::CorrectionHistoryDef<T>::Type;
 
 
-class SharedHistories final {
+class Histories final {
    public:
-    SharedHistories(std::size_t count) noexcept :
-        Size(count * CORRECTION_HISTORY_BASE_SIZE),
-        pawnCorrection(size()),
-        minorCorrection(size()),
-        nonPawnCorrection(size()) {
+    Histories() = delete;
+    Histories(std::size_t count) noexcept :
+        correctionSize(count * CORRECTION_HISTORY_BASE_SIZE),
+        pawnCorrection(correction_size()),
+        minorCorrection(correction_size()),
+        nonPawnCorrection(correction_size()) {
         assert(count != 0 && (count & (count - 1)) == 0);
-        assert((size() & (size() - 1)) == 0);
+        assert((correction_size() & (correction_size() - 1)) == 0);
     }
 
-    std::size_t size() const noexcept { return Size; }
+    std::size_t correction_size() const noexcept { return correctionSize; }
 
-    std::size_t index(Key corrKey) const noexcept { return corrKey & (size() - 1); }
+    std::size_t correction_index(Key corrKey) const noexcept {
+        return corrKey & (correction_size() - 1);
+    }
 
     auto& pawn_correction() noexcept { return pawnCorrection; }
 
     template<Color C>
     auto& pawn_correction(Key pawnKey) noexcept {
-        return pawnCorrection[index(pawnKey)][C];
+        return pawnCorrection[correction_index(pawnKey)][C];
     }
     template<Color C>
     const auto& pawn_correction(Key pawnKey) const noexcept {
-        return pawnCorrection[index(pawnKey)][C];
+        return pawnCorrection[correction_index(pawnKey)][C];
     }
 
     auto& minor_correction() noexcept { return minorCorrection; }
 
     template<Color C>
     auto& minor_correction(Key minorKey) noexcept {
-        return minorCorrection[index(minorKey)][C];
+        return minorCorrection[correction_index(minorKey)][C];
     }
     template<Color C>
     const auto& minor_correction(Key minorKey) const noexcept {
-        return minorCorrection[index(minorKey)][C];
+        return minorCorrection[correction_index(minorKey)][C];
     }
 
     auto& non_pawn_correction() noexcept { return nonPawnCorrection; }
 
     template<Color C>
     auto& non_pawn_correction(Key nonPawnKey) noexcept {
-        return nonPawnCorrection[index(nonPawnKey)][C];
+        return nonPawnCorrection[correction_index(nonPawnKey)][C];
     }
     template<Color C>
     const auto& non_pawn_correction(Key nonPawnKey) const noexcept {
-        return nonPawnCorrection[index(nonPawnKey)][C];
+        return nonPawnCorrection[correction_index(nonPawnKey)][C];
     }
 
    private:
-    const std::size_t Size;
+    const std::size_t correctionSize;
 
     CorrectionHistory<CH_PAWN>     pawnCorrection;
     CorrectionHistory<CH_MINOR>    minorCorrection;
     CorrectionHistory<CH_NON_PAWN> nonPawnCorrection;
 };
 
-using SharedHistoriesMap = std::unordered_map<std::size_t, SharedHistories>;
+using HistoriesMap = std::unordered_map<std::size_t, Histories>;
 
 }  // namespace DON
 

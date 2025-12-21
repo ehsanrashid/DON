@@ -47,7 +47,7 @@ namespace DON::NNUE::Layers {
 #if !defined(ENABLE_SEQ_OPT)
 
 template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType OutputDimensions>
-inline void affine_transform_non_ssse3(
+inline void transform_affine_non_ssse3(
   const StdArray<std::int32_t, OutputDimensions>&                        biases,
   const StdArray<std::int8_t, OutputDimensions * PaddedInputDimensions>& weights,
   const std::uint8_t*                                                    input,
@@ -293,8 +293,8 @@ class AffineTransform final {
     #undef vec_add_dpbusd_32
         }
 #else
-        // Use old implementation for the other architectures.
-        affine_transform_non_ssse3<InputDimensions, PaddedInputDimensions, OutputDimensions>(
+        // Use old implementation for the other architectures
+        transform_affine_non_ssse3<InputDimensions, PaddedInputDimensions, OutputDimensions>(
           biases, weights, input, output);
 #endif
     }

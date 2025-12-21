@@ -27,6 +27,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <numeric>
 #include <utility>
 #include <vector>
 
@@ -194,10 +195,6 @@ class Threads final {
 
     Thread* best_thread() const noexcept;
 
-    std::uint64_t nodes() const noexcept;
-
-    std::uint64_t tbHits() const noexcept;
-
     void
     start(Position& pos, StateListPtr& states, const Limit& limit, const Options& options) noexcept;
 
@@ -213,18 +210,20 @@ class Threads final {
 
     std::vector<std::size_t> get_bound_thread_counts() const noexcept;
 
+    template<typename T>
+    std::uint64_t sum_of(std::atomic<T> Worker::* member,
+                         std::uint64_t            initialValue = 0) const noexcept {
+
+        return std::transform_reduce(
+          threads.begin(), threads.end(), initialValue, std::plus<>{},
+          [member](const auto& th) noexcept {
+              return (th->worker.get()->*member).load(std::memory_order_relaxed);
+          });
+    }
+
     std::atomic<bool> stop, abort, research;
 
    private:
-    template<typename T>
-    std::uint64_t accumulate(std::atomic<T> Worker::* member,
-                             std::uint64_t            sum = {}) const noexcept {
-
-        for (auto&& th : threads)
-            sum += (th->worker.get()->*member).load(std::memory_order_relaxed);
-        return sum;
-    }
-
     std::vector<ThreadPtr> threads;
     std::vector<NumaIndex> threadBoundNumaNodes;
     StateListPtr           setupStates;
@@ -262,10 +261,6 @@ inline Thread* Threads::main_thread() const noexcept { return front().get(); }
 inline MainSearchManager* Threads::main_manager() const noexcept {
     return main_thread()->worker->main_manager();
 }
-
-inline std::uint64_t Threads::nodes() const noexcept { return accumulate(&Worker::nodes); }
-
-inline std::uint64_t Threads::tbHits() const noexcept { return accumulate(&Worker::tbHits); }
 
 // Start non-main threads
 // Will be invoked by main thread after it has started searching

@@ -47,9 +47,13 @@ struct TTData final {
     TTData& operator=(const TTData&) noexcept = delete;
     TTData& operator=(TTData&&) noexcept      = delete;
 
+    static TTData empty() noexcept {
+        return {Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, BOUND_NONE, false, false};
+    }
+
     Move  move;
     Value value;
-    Value eval;
+    Value evalValue;
     Depth depth;
     Bound bound;
     bool  hit;
@@ -69,11 +73,18 @@ class TTUpdater final {
     TTUpdater& operator=(const TTUpdater&) noexcept = delete;
     TTUpdater& operator=(TTUpdater&&) noexcept      = delete;
 
-    void update(Depth d, Move m, bool pv, Bound b, Value v, Value ev) noexcept;
+    TTUpdater(TTEntry* te, TTCluster* tc, std::uint16_t k, std::uint8_t gen) noexcept :
+        tte(te),
+        ttc(tc),
+        key(k),
+        generation(gen) {}
 
+    void update(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept;
+
+   private:
     TTEntry*            tte;
     TTCluster* const    ttc;
-    const std::uint16_t key16;
+    const std::uint16_t key;
     const std::uint8_t  generation;
 };
 

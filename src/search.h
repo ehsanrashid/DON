@@ -390,7 +390,7 @@ struct SharedState final {
     const Options&                                      options;
     Threads&                                            threads;
     TranspositionTable&                                 transpositionTable;
-    SharedHistoriesMap&                                 sharedHistoriesMap;
+    HistoriesMap&                                       historiesMap;
 };
 
 class Worker;
@@ -471,7 +471,7 @@ class MainSearchManager final: public ISearchManager {
     Skill         skill;
     TimeManager   timeManager;
 
-    bool   initial;
+    bool   atFirst;
     Value  preBestCurValue;
     Value  preBestAvgValue;
     double preTimeReduction;
@@ -504,7 +504,7 @@ struct Stack final {
     CorrectionHistory<CH_PIECE_SQ>* pieceSqCorrectionHistory;
 
     int          history;
-    Value        staticEval;
+    Value        evalValue;
     std::int16_t ply;
     Move         move;
     Move         ttMove;
@@ -599,7 +599,7 @@ class Worker final {
     const Options&                                      options;
     Threads&                                            threads;
     TranspositionTable&                                 transpositionTable;
-    SharedHistories&                                    sharedHistories;
+    Histories&                                          histories;
     NNUE::AccumulatorCaches                             accCaches;
     NNUE::AccumulatorStack                              accStack;
 

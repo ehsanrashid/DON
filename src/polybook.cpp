@@ -576,7 +576,7 @@ PolyBook::Entries PolyBook::key_candidates(Key key) const noexcept {
 
 Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& options) noexcept {
     assert(!rootMoves.empty());
-    static PRNG<XorShift64Star> prng(now());
+    static XorShift64Star prng(now());
 
     if (!(options["OwnBook"] && !empty() && pos.move_num() <= options["BookProbeDepth"]))
         return Move::None;

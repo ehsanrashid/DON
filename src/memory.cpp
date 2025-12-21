@@ -98,12 +98,14 @@ void* alloc_windows_aligned_large_page(std::size_t allocSize) noexcept {
           // Allocate large page memory
           void* mem = VirtualAlloc(nullptr, roundedAllocSize,
                                    MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
           if (mem == nullptr)
           {
               std::cerr << "Failed to allocate " << (roundedAllocSize >> 20)
                         << "MB for large page memory." << std::endl;
               std::cerr << "Error code: " << u32_to_string(GetLastError()) << std::endl;
           }
+
           return mem;
       },
       []() { return (void*) nullptr; });

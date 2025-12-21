@@ -150,7 +150,7 @@ CuckooTable<0x2000> Cuckoos;
 }  // namespace
 
 void Zobrist::init() noexcept {
-    PRNG<XoShiRo256Star> prng(0x105524ULL);
+    XorShift64Star prng(0x105524ULL);
 
     const auto prng_rand = [&] { return prng.template rand<Key>(); };
 
@@ -816,7 +816,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker
 
     Key k = st->key ^ Zobrist::turn();
 
-    newSt.switch_to_prefix(st);
+    newSt.switch_to_prefix(st, &State::key);
 
     st = &newSt;
 
@@ -1169,7 +1169,7 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
 
     Key k = st->key ^ Zobrist::turn();
 
-    newSt.switch_to_prefix(st);
+    newSt.switch_to_prefix(st, &State::key);
 
     st = &newSt;
 
@@ -1479,7 +1479,7 @@ Key Position::move_key(Move m) const noexcept {
 
     return moveKey  //
          ^ Zobrist::piece_square(~ac, type_of(capturedPc), capturedSq)
-         ^ Zobrist::mr50(!is_ok(capturedPc) && movedPt != PAWN ? rule50_count() + 1 : 0);
+         ^ Zobrist::mr50(is_ok(capturedPc) || movedPt == PAWN ? 0 : 1 + rule50_count());
 }
 
 // Tests if the SEE (Static Exchange Evaluation) value of the move
@@ -2051,8 +2051,8 @@ bool Position::_is_ok() const noexcept {
     if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
         assert(false && "Position::_is_ok(): King Checker");
 
-    if (st->key != compute_key())
-        assert(false && "Position::_is_ok(): Key");
+    if (raw_key() != compute_key())
+        assert(false && "Position::_is_ok(): Raw Key");
 
     if (Fast)
         return true;

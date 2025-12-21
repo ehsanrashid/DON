@@ -141,12 +141,14 @@ struct PTEntry final {
 
     constexpr std::uint64_t nodes() const noexcept { return nodes64; }
 
-    void save(std::uint32_t k32, Depth d, std::uint64_t n) noexcept {
-        if ((key32 == k32 && depth16 >= d) || nodes64 >= 10000 + n)
-            return;
-        key32   = k32;
-        depth16 = d;
-        nodes64 = n;
+    void save(std::uint32_t k, Depth d, std::uint64_t n) noexcept {
+
+        if ((key32 != k || depth16 < d) && nodes64 < 10000 + n)
+        {
+            key32   = k;
+            depth16 = d;
+            nodes64 = n;
+        }
     }
 
    private:
@@ -207,6 +209,7 @@ void PerftTable::resize(std::size_t ptSize, Threads& threads) noexcept {
     free();
 
     clusterCount = ptSize * 1024 * 1024 / sizeof(PTCluster);
+
     assert(clusterCount % 2 == 0);
 
     clusters = static_cast<PTCluster*>(alloc_aligned_large_page(clusterCount * sizeof(PTCluster)));
@@ -245,8 +248,9 @@ void PerftTable::init(Threads& threads) noexcept {
 
 ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
-    auto* const         ptc   = cluster(key);
-    const std::uint32_t key32 = compress_key32(key);
+    auto* const ptc = cluster(key);
+
+    const std::uint32_t key32 = std::uint32_t(key);
 
     for (auto& entry : ptc->entries)
         if (entry.key32 == key32 && entry.depth16 == depth)
@@ -254,6 +258,7 @@ ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
     auto* const fte = &ptc->entries[0];
     auto*       rte = fte;
+
     for (std::size_t i = 1; i < ptc->entries.size(); ++i)
         if (rte->depth16 > ptc->entries[i].depth16)
             rte = &ptc->entries[i];
@@ -325,7 +330,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
             {
                 if (use_perft_table(depth, detail))
                 {
-                    Key key = pos.key(-pos.rule50_count());
+                    Key key = pos.raw_key();
 
                     auto [ptHit, pte] = perftTable.probe(key, depth - 1);
 
@@ -337,7 +342,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
                     {
                         iPerftData = perft<false>(pos, depth - 1, detail);
 
-                        pte->save(compress_key32(key), depth - 1, iPerftData.nodes);
+                        pte->save(std::uint32_t(key), depth - 1, iPerftData.nodes);
                     }
                 }
                 else

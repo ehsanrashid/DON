@@ -29,24 +29,6 @@
 
 namespace DON {
 
-// Bitwise rotate left
-template<typename T>
-constexpr T rotl(T v, unsigned k) noexcept {
-    static_assert(std::is_unsigned_v<T>, "rotl requires unsigned type");
-    constexpr unsigned B = 8 * sizeof(T);
-    k %= B;
-    return T((v << k) | (v >> (B - k)));
-}
-
-// Bitwise rotate right
-template<typename T>
-constexpr T rotr(T v, unsigned k) noexcept {
-    static_assert(std::is_unsigned_v<T>, "rotr requires unsigned type");
-    constexpr unsigned B = 8 * sizeof(T);
-    k %= B;
-    return T((v >> k) | (v << (B - k)));
-}
-
 // SplitMix64 is used to initialize the state of the main generator.
 // This is the standard, high-quality way to expand a single seed.
 class SplitMix64 final {
@@ -82,11 +64,8 @@ class SplitMix64 final {
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class XorShift64Star final {
    public:
-    explicit XorShift64Star(std::uint64_t seed = 1ULL) noexcept {
-        SplitMix64 sm64(seed);
-
-        s = sm64.next();
-
+    explicit constexpr XorShift64Star(std::uint64_t seed = 1ULL) noexcept :
+        s(SplitMix64(seed).next()) {
         // Avoid zero state
         if (s == 0)
             s = 1ULL;
@@ -133,101 +112,6 @@ class XorShift64Star final {
     }
 
     std::uint64_t s;
-};
-
-// XoShiRo256** (short for "xor, shift, rotate") Pseudo-Random Number Generator
-class XoShiRo256Star final {
-   public:
-    explicit XoShiRo256Star(std::uint64_t seed = 1ULL) noexcept {
-        SplitMix64 sm64(seed);
-
-        for (std::size_t i = 0; i < SIZE; ++i)
-            s[i] = sm64.next();
-
-        // Avoid all-zero state
-        if (std::all_of(s.begin(), s.end(), [](auto x) { return x == 0; }))
-            s[0] = 1ULL;
-    }
-
-    template<typename T>
-    constexpr T rand() noexcept {
-        return T(rand64());
-    }
-
-    // Sparse random (1/8 bits set on average)
-    template<typename T>
-    constexpr T sparse_rand() noexcept {
-        return T(rand64() & rand64() & rand64());
-    }
-
-    // XoShiRo256** jump implementation
-    constexpr void jump() noexcept {
-
-        constexpr StdArray<std::uint64_t, SIZE> JumpMasks{
-          0x180EC6D33CFD0ABAULL, 0xD5A61266F0C9392CULL,  //
-          0xA9582618E03FC9AAULL, 0x39ABDC4529B1661CULL   //
-        };
-
-        constexpr unsigned Bits = std::numeric_limits<std::uint64_t>::digits;
-
-        StdArray<std::uint64_t, SIZE> t{};
-
-        for (const std::uint64_t JumpMask : JumpMasks)
-        {
-            for (unsigned b = 0; b < Bits; ++b)
-            {
-                if ((JumpMask & (1ULL << b)) != 0)
-                    for (std::size_t i = 0; i < SIZE; ++i)
-                        t[i] ^= s[i];
-
-                rand64();
-            }
-        }
-
-        for (std::size_t i = 0; i < SIZE; ++i)
-            s[i] = t[i];
-    }
-
-   private:
-    // XoShiRo256** algorithm implementation
-    constexpr std::uint64_t rand64() noexcept {
-        std::uint64_t rs1 = rotl(s[1] * 5, 7) * 9;
-        std::uint64_t ss1 = s[1] << 17;
-        s[2] ^= s[0];
-        s[3] ^= s[1];
-        s[1] ^= s[2];
-        s[0] ^= s[3];
-        s[2] ^= ss1;
-        s[3] = rotl(s[3], 45);
-        return rs1;
-    }
-
-    static constexpr std::size_t SIZE = 4;
-
-    StdArray<std::uint64_t, SIZE> s;
-};
-
-// Template PRNG wrapper
-template<typename Generator>
-class PRNG final {
-   public:
-    explicit constexpr PRNG(std::uint64_t seed = 1ULL) noexcept :
-        generator(seed) {}
-
-    template<typename T>
-    constexpr T rand() noexcept {
-        return generator.template rand<T>();
-    }
-
-    template<typename T>
-    constexpr T sparse_rand() noexcept {
-        return generator.template sparse_rand<T>();
-    }
-
-    constexpr void jump() noexcept { generator.jump(); }
-
-   private:
-    Generator generator;
 };
 
 }  // namespace DON
