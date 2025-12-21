@@ -27,6 +27,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <numeric>
 #include <utility>
 #include <vector>
 
@@ -210,13 +211,14 @@ class Threads final {
     std::vector<std::size_t> get_bound_thread_counts() const noexcept;
 
     template<typename T>
-    std::uint64_t accumulate(std::atomic<T> Worker::* member,
-                             std::uint64_t            sum = 0) const noexcept {
+    std::uint64_t sum_of(std::atomic<T> Worker::* member,
+                         std::uint64_t            initialValue = 0) const noexcept {
 
-        for (auto&& th : threads)
-            sum += (th->worker.get()->*member).load(std::memory_order_relaxed);
-
-        return sum;
+        return std::transform_reduce(
+          threads.begin(), threads.end(), initialValue, std::plus<>{},
+          [member](const auto& th) noexcept {
+              return (th->worker.get()->*member).load(std::memory_order_relaxed);
+          });
     }
 
     std::atomic<bool> stop, abort, research;
