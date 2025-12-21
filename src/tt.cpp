@@ -102,8 +102,8 @@ struct TTEntry final {
     void save(std::uint16_t k,
               Depth         d,
               Move          m,
-              bool          pv,
               Bound         b,
+              bool          pv,
               std::uint8_t  gen,
               Value         v,
               Value         ev) noexcept {
@@ -111,11 +111,11 @@ struct TTEntry final {
         assert(d <= 0xFF + DEPTH_OFFSET);
 
         // Preserve the old move if don't have a new one
-        if (key16 != k || m != Move::None)
+        if (key() != k || m != Move::None)
             move16 = m;
 
         // Overwrite less valuable entries (cheapest checks first)
-        if (key16 != k || b == BOUND_EXACT || depth() < 4 + d + 2 * pv || relative_age(gen) != 0)
+        if (key() != k || b == BOUND_EXACT || depth() < 4 + d + 2 * pv || relative_age(gen) != 0)
         {
             key16   = k;
             depth8  = d - DEPTH_OFFSET;
@@ -156,12 +156,12 @@ struct TTCluster final {
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
-void TTUpdater::update(Depth d, Move m, bool pv, Bound b, Value v, Value ev) noexcept {
+void TTUpdater::update(Depth d, Move m, Bound b, bool pv, Value v, Value ev) noexcept {
 
     for (auto* const fte = &ttc->entries[0]; tte != fte && (tte - 1)->key() == key; --tte)
         tte->clear();
 
-    tte->save(key, d, m, pv, b, generation, v, ev);
+    tte->save(key, d, m, b, pv, generation, v, ev);
 }
 
 TranspositionTable::~TranspositionTable() noexcept { free(); }

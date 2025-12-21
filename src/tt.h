@@ -79,7 +79,7 @@ class TTUpdater final {
         key(k),
         generation(gen) {}
 
-    void update(Depth d, Move m, bool pv, Bound b, Value v, Value ev) noexcept;
+    void update(Depth d, Move m, Bound b, bool pv, Value v, Value ev) noexcept;
 
    private:
     TTEntry*            tte;
