@@ -125,7 +125,7 @@ struct TTEntry final {
         }
     }
 
-    void clear() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(*this)); }
+    void clear() noexcept { std::memset(this, 0, sizeof(*this)); }
 
    private:
     std::uint16_t key16;
@@ -134,8 +134,6 @@ struct TTEntry final {
     std::uint8_t  data8;
     Value         value16;
     Value         eval16;
-
-    //friend class TranspositionTable;
 };
 
 static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");

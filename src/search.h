@@ -471,7 +471,7 @@ class MainSearchManager final: public ISearchManager {
     Skill         skill;
     TimeManager   timeManager;
 
-    bool   initial;
+    bool   atFirst;
     Value  preBestCurValue;
     Value  preBestAvgValue;
     double preTimeReduction;
