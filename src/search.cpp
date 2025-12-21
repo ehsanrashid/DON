@@ -47,7 +47,7 @@ namespace DON {
 namespace {
 
 // Reductions lookup table initialized at startup
-StdArray<std::int16_t, MAX_MOVES> Reductions{};  // [depth or moveCount]
+StdArray<std::int16_t, MAX_MOVES> Reductions;  // [depth or moveCount]
 
 constexpr int
 reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
@@ -171,6 +171,8 @@ bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcep
 namespace Search {
 
 void init() noexcept {
+
+    Reductions[0] = 0;
 
     for (std::size_t i = 1; i < Reductions.size(); ++i)
         Reductions[i] = 21.4609 * std::log(i);
