@@ -330,7 +330,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
             {
                 if (use_perft_table(depth, detail))
                 {
-                    Key key = pos.key(-pos.rule50_count());
+                    Key key = pos.raw_key();
 
                     auto [ptHit, pte] = perftTable.probe(key, depth - 1);
 

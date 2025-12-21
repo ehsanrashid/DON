@@ -1479,7 +1479,7 @@ Key Position::move_key(Move m) const noexcept {
 
     return moveKey  //
          ^ Zobrist::piece_square(~ac, type_of(capturedPc), capturedSq)
-         ^ Zobrist::mr50(!is_ok(capturedPc) && movedPt != PAWN ? rule50_count() + 1 : 0);
+         ^ Zobrist::mr50(is_ok(capturedPc) || movedPt == PAWN ? 0 : 1 + rule50_count());
 }
 
 // Tests if the SEE (Static Exchange Evaluation) value of the move
@@ -2051,8 +2051,8 @@ bool Position::_is_ok() const noexcept {
     if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
         assert(false && "Position::_is_ok(): King Checker");
 
-    if (st->key != compute_key())
-        assert(false && "Position::_is_ok(): Key");
+    if (raw_key() != compute_key())
+        assert(false && "Position::_is_ok(): Raw Key");
 
     if (Fast)
         return true;

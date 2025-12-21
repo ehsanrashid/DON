@@ -48,13 +48,13 @@ struct TTData final {
     TTData& operator=(TTData&&) noexcept      = delete;
 
     static TTData empty() noexcept {
-        return {DEPTH_OFFSET, Move::None, VALUE_NONE, VALUE_NONE, BOUND_NONE, false, false};
+        return {Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, BOUND_NONE, false, false};
     }
 
-    Depth depth;
     Move  move;
     Value value;
     Value evalValue;
+    Depth depth;
     Bound bound;
     bool  hit;
     bool  pv;

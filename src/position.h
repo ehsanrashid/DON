@@ -49,7 +49,10 @@ struct Zobrist final {
         return piece_square(color_of(pc), type_of(pc), s);
     }
 
-    static Key castling(CastlingRights cr) noexcept { return Castling[cr]; }
+    static Key castling(CastlingRights cr) noexcept {
+        assert(0 <= cr && cr < Castling.size());
+        return Castling[cr];
+    }
 
     static Key enpassant(Square enPassantSq) noexcept {
         assert(is_ok(enPassantSq));
@@ -59,7 +62,7 @@ struct Zobrist final {
     static Key turn() noexcept { return Turn; }
 
     static Key mr50(std::int16_t rule50Count) noexcept {
-        std::int16_t idx = rule50Count - R50_OFFSET;
+        auto idx = rule50Count - R50_OFFSET;
         return idx < 0 ? 0 : MR50[std::min(idx / R50_FACTOR, int(MR50.size()) - 1)];
     }
 
@@ -286,7 +289,8 @@ class Position final {
     Piece promoted_pc() const noexcept;
 
     // Hash keys
-    Key key(std::int16_t r50 = 0) const noexcept;
+    Key raw_key() const noexcept;
+    Key key() const noexcept;
     Key pawn_key(Color c) const noexcept;
     Key pawn_key() const noexcept;
     Key minor_key(Color c) const noexcept;
@@ -775,9 +779,9 @@ inline Piece Position::captured_pc() const noexcept { return st->capturedPc; }
 
 inline Piece Position::promoted_pc() const noexcept { return st->promotedPc; }
 
-inline Key Position::key(std::int16_t r50) const noexcept {
-    return st->key ^ Zobrist::mr50(rule50_count() + r50);
-}
+inline Key Position::raw_key() const noexcept { return st->key; }
+
+inline Key Position::key() const noexcept { return raw_key() ^ Zobrist::mr50(rule50_count()); }
 
 inline Key Position::pawn_key(Color c) const noexcept { return st->pawnKeys[c]; }
 

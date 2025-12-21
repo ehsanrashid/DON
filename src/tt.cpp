@@ -83,7 +83,7 @@ struct TTEntry final {
 
     // Convert internal bitfields to TTData
     TTData read() const noexcept {
-        return {depth(), move(), value(), eval_value(), bound(), occupied(), pv()};
+        return {move(), value(), eval_value(), depth(), bound(), occupied(), pv()};
     }
 
     // The returned age is a multiple of GENERATION_DELTA
