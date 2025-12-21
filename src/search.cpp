@@ -137,16 +137,16 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dstSq, int bo
     };
 
     // In check only update 2-ply continuation history
-    std::size_t contHistorySize = ss->inCheck ? 2 : MaxContHistorySize;
+    const std::size_t contHistorySize = ss->inCheck ? 2 : MaxContHistorySize;
 
     for (std::size_t i = 0; i < contHistorySize; ++i)
     {
-        Stack* const stack = (ss - 1) - i;
+        auto* const ssi = (ss - 1) - i;
 
-        if (!stack->move.is_ok())
+        if (!ssi->move.is_ok())
             break;
 
-        (*stack->pieceSqHistory)[pc][dstSq]
+        (*ssi->pieceSqHistory)[pc][dstSq]
           << int(ContHistoryWeights[i] * bonus) + ContHistoryOffsets[i];
     }
 }
