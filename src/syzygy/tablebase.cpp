@@ -103,8 +103,13 @@ constexpr std::uint32_t MAX_TB_PIECES = 7;
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit.
 constexpr std::int32_t MAX_DTZ = 1 << 18;
 
-constexpr std::string_view WDL_EXT{".rtbw"};
 constexpr std::string_view DTZ_EXT{".rtbz"};
+constexpr std::string_view WDL_EXT{".rtbw"};
+
+constexpr StdArray<std::uint8_t, 2, 4> MAGIC_DATAS{{
+  {0xD7, 0x66, 0x0C, 0xA5},  // Distance-to-Zero (DTZ) = 0xA50C66D7
+  {0x71, 0xE8, 0x23, 0x5D}   // Win-Draw-Loss    (WDL) = 0x5D23E871
+}};
 
 // clang-format off
 constexpr StdArray<int, 5>          WDL_MAP  {1, 3, 0, 2, 0};
@@ -234,7 +239,11 @@ class TBFile: public std::ifstream {
                                OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
 
         if (fd == INVALID_HANDLE_VALUE)
-            return *mapAddress = nullptr, nullptr;
+        {
+            *mapAddress = nullptr;
+
+            return nullptr;
+        }
 
         DWORD hiSize;
         DWORD loSize = GetFileSize(fd, &hiSize);
@@ -242,6 +251,7 @@ class TBFile: public std::ifstream {
         if (loSize % 64 != 16)
         {
             std::cerr << "Corrupt tablebase file " << filename << std::endl;
+
             std::exit(EXIT_FAILURE);
         }
 
@@ -252,6 +262,7 @@ class TBFile: public std::ifstream {
         if (hMapFile == nullptr)
         {
             std::cerr << "CreateFileMapping() failed, name = " << filename << std::endl;
+
             std::exit(EXIT_FAILURE);
         }
 
@@ -263,6 +274,7 @@ class TBFile: public std::ifstream {
         {
             std::cerr << "MapViewOfFile() failed, name = " << filename
                       << ", error = " << GetLastError() << std::endl;
+
             std::exit(EXIT_FAILURE);
         }
 
@@ -271,7 +283,11 @@ class TBFile: public std::ifstream {
         int fd = ::open(filename.c_str(), O_RDONLY);
 
         if (fd == -1)
-            return *mapAddress = nullptr, nullptr;
+        {
+            *mapAddress = nullptr;
+
+            return nullptr;
+        }
 
         struct stat stat;
         fstat(fd, &stat);
@@ -279,6 +295,7 @@ class TBFile: public std::ifstream {
         if (stat.st_size % 64 != 16)
         {
             std::cerr << "Corrupt tablebase file " << filename << std::endl;
+
             std::exit(EXIT_FAILURE);
         }
 
@@ -295,6 +312,7 @@ class TBFile: public std::ifstream {
         if (*mapAddress == MAP_FAILED)
         {
             std::cerr << "mmap() failed, name = " << filename << std::endl;
+
             std::exit(EXIT_FAILURE);
         }
 
@@ -302,21 +320,20 @@ class TBFile: public std::ifstream {
 
         std::uint8_t* data = (std::uint8_t*) (*mapAddress);
 
-        constexpr StdArray<std::uint8_t, 2, 4> Magics{{
-          {0xD7, 0x66, 0x0C, 0xA5},  //
-          {0x71, 0xE8, 0x23, 0x5D}   //
-        }};
+        constexpr auto& MagicData = MAGIC_DATAS[T == WDL];
 
-        const auto& magic = Magics[T == WDL];
-
-        if (std::memcmp(data, magic.data(), magic.size()) != 0)
+        if (std::memcmp(data, MagicData.data(), MagicData.size()) != 0)
         {
             std::cerr << "Corrupted table in file " << filename << std::endl;
+
             unmap(*mapAddress, *mapping);
-            return *mapAddress = nullptr, nullptr;
+
+            *mapAddress = nullptr;
+
+            return nullptr;
         }
 
-        return data + magic.size();  // Skip Magics's header
+        return data + MagicData.size();  // Skip Magics's header
     }
 
     static void unmap(void* mapAddress, std::uint64_t mapping) noexcept {
@@ -367,7 +384,7 @@ class TBFile: public std::ifstream {
     std::string filename;
 };
 
-// struct PairsData contains low-level indexing information to access TB data.
+// PairsData contains low-level indexing information to access TB data.
 // There are 8, 4, or 2 PairsData records for each TBTable, according to the type
 // of table and if positions have pawns or not. It is populated at first access.
 struct PairsData final {
@@ -399,10 +416,10 @@ struct PairsData final {
       mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
 };
 
-// struct TBTable contains indexing information to access the corresponding TBFile.
-// There are 2 types of TBTable, corresponding to a WDL or a DTZ file. TBTable
-// is populated at init time but the nested PairsData records are populated at
-// first access, when the corresponding file is memory mapped.
+// TBTable contains indexing information to access the corresponding TBFile.
+// There are 2 types of TBTable, corresponding to a WDL or a DTZ file.
+// TBTable is populated at init time but the nested PairsData records
+// are populated at first access, when the corresponding file is memory mapped.
 template<TBType T>
 struct TBTable final {
     using Ret = std::conditional_t<T == WDL, WDLScore, int>;
@@ -435,8 +452,7 @@ struct TBTable final {
 };
 
 template<>
-TBTable<WDL>::TBTable(std::string_view code) noexcept :
-    TBTable() {
+TBTable<WDL>::TBTable(std::string_view code) noexcept {
 
     State    st;
     Position pos;
@@ -466,8 +482,7 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept :
 }
 
 template<>
-TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept :
-    TBTable() {
+TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept {
 
     // Use the corresponding WDL table to avoid recalculating all from scratch
     key[WHITE]       = wdlTable.key[WHITE];
@@ -479,8 +494,8 @@ TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept :
     pawnCount[BLACK] = wdlTable.pawnCount[BLACK];
 }
 
-// class TBTables creates and keeps ownership of the TBTable objects,
-// one for each TB file found. It supports a fast, hash-based, table lookup.
+// TBTables creates and keeps ownership of the TBTable objects, for each TB file found.
+// It supports a fast, hash-based, table lookup.
 // Populated at init time, accessed at probe time.
 class TBTables final {
 
@@ -504,28 +519,40 @@ class TBTables final {
         Entry entry{key, wdlTable, dtzTable};
 
         std::size_t homeBucket = index(key);
+
         // Ensure last element is empty to avoid overflow when looking up
-        for (auto bucket = homeBucket; bucket < SIZE + OVER_FLOW - 1; ++bucket)
+        for (std::size_t bucket = homeBucket; bucket < SIZE + OVER_FLOW - 1; ++bucket)
         {
-            Key oKey = entries[bucket].key;
-            if (oKey == key || entries[bucket].get<WDL>() == nullptr)
+            Entry& oEntry = entries[bucket];
+
+            Key oKey = oEntry.key;
+
+            // Empty slot or matching key -> insert here
+            if (oKey == key || oEntry.get<WDL>() == nullptr)
             {
-                entries[bucket] = entry;
+                oEntry = entry;
+
                 return;
             }
 
-            // Robin Hood hashing: If probed for longer than this element,
-            // insert here and search for a new spot for the other element instead.
             std::size_t oHomeBucket = index(oKey);
-            if (homeBucket < oHomeBucket)
+
+            // Compute probe distances
+            std::size_t dist  = bucket - homeBucket;   // distance of new entry
+            std::size_t oDist = bucket - oHomeBucket;  // distance of existing entry
+
+            // Robin Hood swap: new entry has probed farther -> steal this slot
+            if (dist > oDist)
             {
-                homeBucket = oHomeBucket;
-                key        = oKey;
-                std::swap(entry, entries[bucket]);
+                std::swap(entry, oEntry);
+
+                key        = oKey;         // displaced entry key
+                homeBucket = oHomeBucket;  // displaced entry home
             }
         }
 
         std::cerr << "TB hash table size too low!" << std::endl;
+
         std::exit(EXIT_FAILURE);
     }
 
@@ -546,14 +573,20 @@ class TBTables final {
     template<TBType T>
     TBTable<T>* get(Key key) noexcept {
         for (const Entry* entry = &entries[index(key)];; ++entry)
-            if (entry->key == key || !entry->get<T>())
-                return entry->get<T>();
+        {
+            auto* table = entry->get<T>();
+
+            if (entry->key == key || table == nullptr)
+                return table;
+        }
     }
 
     void clear() noexcept {
-        entries.fill({});
+        std::memset(entries.data(), 0, sizeof(entries));
+
         wdlTables.clear();
         dtzTables.clear();
+
         wdlCount = 0;
         dtzCount = 0;
     }
@@ -596,7 +629,8 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     wdlFile.close();
     ++wdlCount;
 
-    MaxCardinality = std::max<std::size_t>(MaxCardinality, pieces.size());
+    if (MaxCardinality < pieces.size())
+        MaxCardinality = pieces.size();
 
     wdlTables.emplace_back(code);
     dtzTables.emplace_back(wdlTables.back());

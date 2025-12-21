@@ -369,6 +369,7 @@ class SharedMemoryBackend final {
         {
             status       = Status::FileMappingError;
             lastErrorStr = error_to_string(GetLastError());
+
             return;
         }
 
