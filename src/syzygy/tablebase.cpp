@@ -101,20 +101,19 @@ enum TBFlag : std::uint8_t {
 // Max number of supported piece
 constexpr std::uint32_t MAX_TB_PIECES = 7;
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit.
-constexpr std::int32_t MAX_DTZ = 1 << 18;
+constexpr std::int32_t MAX_DTZ = 0x40000;
 
-constexpr std::string_view DTZ_EXT{".rtbz"};
-constexpr std::string_view WDL_EXT{".rtbw"};
+constexpr StdArray<std::string_view, 2> EXT{".rtbw", ".rtbz"};
 
 constexpr StdArray<std::uint8_t, 2, 4> MAGIC_DATAS{{
+  {0x71, 0xE8, 0x23, 0x5D},  // Win-Draw-Loss    (WDL) = 0x5D23E871
   {0xD7, 0x66, 0x0C, 0xA5},  // Distance-to-Zero (DTZ) = 0xA50C66D7
-  {0x71, 0xE8, 0x23, 0x5D}   // Win-Draw-Loss    (WDL) = 0x5D23E871
 }};
 
 // clang-format off
-constexpr StdArray<int, 5>          WDL_MAP  {1, 3, 0, 2, 0};
+constexpr StdArray<int         , 5> WDL_MAP  {1, 3, 0, 2, 0};
 constexpr StdArray<std::int32_t, 5> WDL_RANK {-MAX_DTZ, -MAX_DTZ + 101, 0, +MAX_DTZ - 101, +MAX_DTZ};
-constexpr StdArray<Value, 5>        WDL_VALUE{VALUE_MATED_IN_MAX_PLY + 1, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, VALUE_MATES_IN_MAX_PLY - 1};
+constexpr StdArray<Value       , 5> WDL_VALUE{VALUE_MATED_IN_MAX_PLY + 1, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, VALUE_MATES_IN_MAX_PLY - 1};
 
 StdArray<std::size_t, SQUARE_NB>     B1H1H7Map;
 StdArray<std::size_t, SQUARE_NB>     A1D1D4Map;
@@ -126,10 +125,10 @@ StdArray<std::size_t, MAX_TB_PIECES - 1, SQUARE_NB>   LeadPawnIdx;  // [leadPawn
 StdArray<std::size_t, MAX_TB_PIECES - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE_A..FILE_D]
 // clang-format on
 
-constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
-
 // Comparison function to sort leading pawns in ascending PawnsMap[] order
-bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
+constexpr bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
+
+constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 
 template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
 void swap_endian(T& x) noexcept {
@@ -320,7 +319,7 @@ class TBFile: public std::ifstream {
 
         std::uint8_t* data = (std::uint8_t*) (*mapAddress);
 
-        constexpr auto& MagicData = MAGIC_DATAS[T == WDL];
+        constexpr auto& MagicData = MAGIC_DATAS[T];
 
         if (std::memcmp(data, MagicData.data(), MagicData.size()) != 0)
         {
@@ -607,22 +606,26 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     std::string code;
     code.reserve(pieces.size() + 2);
+
     for (PieceType pt : pieces)
         code += to_char(pt);
+
     std::size_t pos = code.find('K', 1);
     assert(!code.empty() && code[0] == 'K' && pos != std::string::npos);
+
     if (pos == std::string::npos)
         return;
+
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    TBFile dtzFile(code + DTZ_EXT.data());
+    TBFile dtzFile(code + EXT[DTZ].data());
     if (dtzFile.is_open())
     {
         dtzFile.close();
         ++dtzCount;
     }
 
-    TBFile wdlFile(code + WDL_EXT.data());
+    TBFile wdlFile(code + EXT[WDL].data());
     if (!wdlFile.is_open())  // Only WDL file is checked
         return;
 
@@ -882,8 +885,14 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
         leadPawnCnt = size;
 
-        std::swap(squares[0],
-                  *std::max_element(squares.begin(), squares.begin() + leadPawnCnt, pawns_comp));
+        if (leadPawnCnt > squares.size())
+            leadPawnCnt = squares.size();
+
+        if (leadPawnCnt != 0)
+        {
+            auto itr = std::max_element(squares.begin(), squares.begin() + leadPawnCnt, pawns_comp);
+            std::swap(squares[0], *itr);
+        }
 
         tbFile = fold_to_edge(file_of(squares[0]));
     }
@@ -1374,9 +1383,23 @@ void* mapped(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
         for (auto itr = PIECE_TYPES.rbegin(); itr != PIECE_TYPES.rend(); ++itr)
             pieces[c].append(pos.count(c, *itr), to_char(*itr));
 
-    std::string fname = (materialKey == entry.key[WHITE] ? pieces[WHITE] + 'v' + pieces[BLACK]
-                                                         : pieces[BLACK] + 'v' + pieces[WHITE])
-                      + (T == WDL ? WDL_EXT : DTZ_EXT).data();
+    std::string fname;
+    fname.reserve(32);
+
+    if (materialKey == entry.key[WHITE])
+    {
+        fname += pieces[WHITE];
+        fname += 'v';
+        fname += pieces[BLACK];
+    }
+    else
+    {
+        fname += pieces[BLACK];
+        fname += 'v';
+        fname += pieces[WHITE];
+    }
+
+    fname += EXT[T].data();
 
     std::uint8_t* data = TBFile(fname).map<T>(&entry.mapAddress, &entry.mapping);
 
@@ -1703,19 +1726,19 @@ WDLScore probe_wdl(Position& pos, ProbeState* ps) noexcept {
 //     1 < n <= 100 : win in n ply (assuming 50-move counter == 0)
 //   100 < n        : win, but draw under 50-move rule
 //
-// The return WDL-score n can be off by 1: a return WDL-score -n can mean a loss
-// in n+1 ply and a return WDL-score +n can mean a win in n+1 ply. This
-// cannot happen for tables with positions exactly on the "edge" of
-// the 50-move rule.
+// The return WDL-score n can be off by 1:
+//  - return WDL-score -n can mean a loss in n+1 ply and
+//  - return WDL-score +n can mean a win in n+1 ply.
+// This cannot happen for tables with positions exactly
+// on the "edge" of the 50-move rule.
 //
-// This implies that if DTZ-score > 0 is returned, the position is certainly
-// a win if DTZ-score + 50-move-counter < 100. Care must be taken that the engine
-// picks moves that preserve DTZ-score + 50-move-counter < 100.
+// This implies that if DTZ-score > 0 is returned,
+// the position is certainly a win if DTZ-score + 50-move-counter < 100.
+// Care must be taken that the engine picks moves that preserve DTZ-score + 50-move-counter < 100.
 //
-// If n = 100 immediately after a capture or pawn move, then the position
-// is also certainly a win, and during the whole phase until the next
-// capture or pawn move, the inequality to be preserved is
-// DTZ-score + 50-move-counter <= 100.
+// If n = 100 immediately after a capture or pawn move,
+// then the position is also certainly a win, and during the whole phase until the next
+// capture or pawn move, the inequality to be preserved is DTZ-score + 50-move-counter <= 100.
 //
 // In short, if a move is available resulting in DTZ-score + 50-move-counter < 100,
 // then do not accept moves leading to DTZ-score + 50-move-counter == 100.
