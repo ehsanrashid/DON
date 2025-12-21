@@ -362,7 +362,7 @@ void Worker::start_search() noexcept {
     {
         // When playing in 'Nodes as Time' mode, advance the time nodes before exiting.
         if (mainManager->timeManager.use_nodes_time())
-            mainManager->timeManager.advance_time_nodes(threads.nodes()
+            mainManager->timeManager.advance_time_nodes(threads.accumulate(&Worker::nodes)
                                                         - limit.clocks[rootPos.active_color()].inc);
 
         // If the skill is enabled, swap the best PV line with the sub-optimal one
@@ -626,7 +626,7 @@ void Worker::iterative_deepening() noexcept {
             && !(mainManager->ponderhitStop || threads.stop.load(std::memory_order_relaxed)))
         {
             // Use part of the gained time from a previous stable move for the current move
-            mainManager->sumMoveChanges += threads.move_changes();
+            mainManager->sumMoveChanges += threads.accumulate(&Worker::moveChanges);
 
             // Reset move changes
             for (auto&& th : threads)
@@ -2284,6 +2284,7 @@ void MainSearchManager::check_time(Worker& worker) noexcept {
         Debug::print();
     }
 #endif
+
     // clang-format off
     if (
       // Should not stop pondering until told so by the GUI
@@ -2292,8 +2293,8 @@ void MainSearchManager::check_time(Worker& worker) noexcept {
       // score and PV in a multi-threaded environment to prove mated-in scores.
       && worker.completedDepth > DEPTH_ZERO
       && ((worker.limit.use_time_manager() && (ponderhitStop || elapsedTime >= timeManager.maximum()))
-       || (worker.limit.moveTime != 0      &&                   elapsedTime >= worker.limit.moveTime)
-       || (worker.limit.nodes != 0         &&        worker.threads.nodes() >= worker.limit.nodes)))
+       || (worker.limit.moveTime != 0 &&                        elapsedTime >= worker.limit.moveTime)
+       || (worker.limit.nodes != 0 && worker.threads.accumulate(&Worker::nodes) >= worker.limit.nodes)))
     {
         worker.threads.stop.store(true, std::memory_order_relaxed);
         worker.threads.abort.store(true, std::memory_order_relaxed);
@@ -2310,7 +2311,7 @@ TimePoint MainSearchManager::elapsed() const noexcept { return timeManager.elaps
 // This function is called to check whether the search should be stopped
 // based on predefined thresholds like total time or total nodes.
 TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
-    return timeManager.elapsed([&threads]() { return threads.nodes(); });
+    return timeManager.elapsed([&threads]() { return threads.accumulate(&Worker::nodes); });
 }
 
 void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
@@ -2320,9 +2321,10 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     const auto& tbConfig  = worker.tbConfig;
 
     TimePoint     time     = std::max(elapsed(), TimePoint(1));
-    std::uint64_t nodes    = worker.threads.nodes();
+    std::uint64_t nodes    = worker.threads.accumulate(&Worker::nodes);
     std::uint16_t hashfull = worker.transpositionTable.hashfull();
-    std::uint64_t tbHits   = worker.threads.tb_hits() + (tbConfig.rootInTB ? rootMoves.size() : 0);
+    std::uint64_t tbHits   = worker.threads.accumulate(&Worker::tbHits)  //
+                         + (tbConfig.rootInTB ? rootMoves.size() : 0);
 
     for (std::size_t i = 0; i < worker.multiPV; ++i)
     {

@@ -194,12 +194,6 @@ class Threads final {
 
     Thread* best_thread() const noexcept;
 
-    std::uint64_t nodes() const noexcept;
-
-    std::uint64_t tb_hits() const noexcept;
-
-    std::uint64_t move_changes() const noexcept;
-
     void
     start(Position& pos, StateListPtr& states, const Limit& limit, const Options& options) noexcept;
 
@@ -215,18 +209,19 @@ class Threads final {
 
     std::vector<std::size_t> get_bound_thread_counts() const noexcept;
 
-    std::atomic<bool> stop, abort, research;
-
-   private:
     template<typename T>
     std::uint64_t accumulate(std::atomic<T> Worker::* member,
-                             std::uint64_t            sum = {}) const noexcept {
+                             std::uint64_t            sum = 0) const noexcept {
 
         for (auto&& th : threads)
             sum += (th->worker.get()->*member).load(std::memory_order_relaxed);
+
         return sum;
     }
 
+    std::atomic<bool> stop, abort, research;
+
+   private:
     std::vector<ThreadPtr> threads;
     std::vector<NumaIndex> threadBoundNumaNodes;
     StateListPtr           setupStates;
@@ -263,14 +258,6 @@ inline Thread* Threads::main_thread() const noexcept { return front().get(); }
 
 inline MainSearchManager* Threads::main_manager() const noexcept {
     return main_thread()->worker->main_manager();
-}
-
-inline std::uint64_t Threads::nodes() const noexcept { return accumulate(&Worker::nodes); }
-
-inline std::uint64_t Threads::tb_hits() const noexcept { return accumulate(&Worker::tbHits); }
-
-inline std::uint64_t Threads::move_changes() const noexcept {
-    return accumulate(&Worker::moveChanges);
 }
 
 // Start non-main threads
