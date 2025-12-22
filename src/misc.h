@@ -770,7 +770,12 @@ class ConcurrentCache final {
             std::shared_lock lock(mutex);
 
             if (auto itr = storage.find(key); itr != storage.end())
-                return itr->second->init(std::forward<Args>(args)...);
+            {
+                if constexpr (sizeof(Value) <= THRESHOLD_SIZE)
+                    return itr->second.init(std::forward<Args>(args)...);
+                else
+                    return itr->second->init(std::forward<Args>(args)...);
+            }
         }
 
         // Slow path: exclusive (write) lock to insert new LazyValue if missing
@@ -779,10 +784,19 @@ class ConcurrentCache final {
 
             auto& entry = storage[key];
 
-            if (!entry)
-                entry = std::make_unique<LazyValue<Value>>();
+            if constexpr (sizeof(Value) <= THRESHOLD_SIZE)
+            {
+                // inline: default-constructed already in map
+                return entry.init(std::forward<Args>(args)...);
+            }
+            else
+            {
+                // heap: allocate if missing
+                if (!entry)
+                    entry = std::make_unique<LazyValue<Value>>();
 
-            return entry->init(std::forward<Args>(args)...);
+                return entry->init(std::forward<Args>(args)...);
+            }
         }
     }
 
@@ -796,8 +810,15 @@ class ConcurrentCache final {
     }
 
    private:
-    std::shared_mutex                                          mutex;
-    std::unordered_map<Key, std::unique_ptr<LazyValue<Value>>> storage;
+    static constexpr std::size_t THRESHOLD_SIZE = 128;  // bytes
+
+    using StorageValue = std::conditional_t<sizeof(Value) <= THRESHOLD_SIZE,
+                                            LazyValue<Value>,                  // inline
+                                            std::unique_ptr<LazyValue<Value>>  // heap
+                                            >;
+
+    std::shared_mutex                     mutex;
+    std::unordered_map<Key, StorageValue> storage;
 };
 
 template<typename T>
