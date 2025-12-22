@@ -91,7 +91,7 @@ struct AccumulatorUpdateContext final {
         vec_t      acc[Tiling::RegCount];
         psqt_vec_t psqt[Tiling::PSQTRegCount];
 
-        const auto* threatWeights = &featureTransformer.threatWeights[0];
+        const auto* threatWeights = featureTransformer.threatWeights.data();
 
         // clang-format off
         for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
@@ -142,7 +142,7 @@ struct AccumulatorUpdateContext final {
             threatWeights += Tiling::TileHeight;
         }
 
-        const auto* threatPsqtWeights = &featureTransformer.threatPsqtWeights[0];
+        const auto* threatPsqtWeights = featureTransformer.threatPsqtWeights.data();
 
         for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j)
         {
@@ -424,7 +424,7 @@ void update_accumulator_refresh_cache(Color                                 pers
     vec_t      acc[Tiling::RegCount];
     psqt_vec_t psqt[Tiling::PSQTRegCount];
 
-    const auto* weights = &featureTransformer.weights[0];
+    const auto* weights = featureTransformer.weights.data();
 
     // clang-format off
     for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
@@ -474,7 +474,7 @@ void update_accumulator_refresh_cache(Color                                 pers
         weights += Tiling::TileHeight;
     }
 
-    const auto* psqtWeights = &featureTransformer.psqtWeights[0];
+    const auto* psqtWeights = featureTransformer.psqtWeights.data();
 
     for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j)
     {
@@ -555,7 +555,7 @@ void update_threats_accumulator_full(Color                                 persp
     vec_t      acc[Tiling::RegCount];
     psqt_vec_t psqt[Tiling::PSQTRegCount];
 
-    const auto* threatWeights = &featureTransformer.threatWeights[0];
+    const auto* threatWeights = featureTransformer.threatWeights.data();
 
     // clang-format off
     for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
@@ -590,7 +590,7 @@ void update_threats_accumulator_full(Color                                 persp
         threatWeights += Tiling::TileHeight;
     }
 
-    const auto* threatPsqtWeights = &featureTransformer.threatPsqtWeights[0];
+    const auto* threatPsqtWeights = featureTransformer.threatPsqtWeights.data();
 
     for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j)
     {
