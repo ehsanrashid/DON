@@ -91,6 +91,8 @@ struct AccumulatorUpdateContext final {
         vec_t      acc[Tiling::RegCount];
         psqt_vec_t psqt[Tiling::PSQTRegCount];
 
+        const auto* threatWeights = &featureTransformer.threatWeights[0];
+
         // clang-format off
         for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
         {
@@ -102,8 +104,8 @@ struct AccumulatorUpdateContext final {
 
             for (IndexType i = 0; i < removed.size(); ++i)
             {
-                auto  offset = removed[i] * Dimensions + j * Tiling::TileHeight;
-                auto* column = reinterpret_cast<const vec_i8_t*>(&featureTransformer.threatWeights[offset]);
+                auto  offset = removed[i] * Dimensions;
+                auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset]);
 
     #if defined(USE_NEON)
                 for (IndexType k = 0; k < Tiling::RegCount; k += 2)
@@ -119,8 +121,8 @@ struct AccumulatorUpdateContext final {
 
             for (IndexType i = 0; i < added.size(); ++i)
             {
-                auto  offset = added[i] * Dimensions + j * Tiling::TileHeight;
-                auto* column = reinterpret_cast<const vec_i8_t*>(&featureTransformer.threatWeights[offset]);
+                auto  offset = added[i] * Dimensions;
+                auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset]);
 
     #if defined(USE_NEON)
                 for (IndexType k = 0; k < Tiling::RegCount; k += 2)
@@ -136,7 +138,11 @@ struct AccumulatorUpdateContext final {
 
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
                 vec_store(&targetTile[k], acc[k]);
+
+            threatWeights += Tiling::TileHeight;
         }
+
+        const auto* threatPsqtWeights = &featureTransformer.threatPsqtWeights[0];
 
         for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j)
         {
@@ -148,8 +154,8 @@ struct AccumulatorUpdateContext final {
 
             for (IndexType i = 0; i < removed.size(); ++i)
             {
-                auto  offset     = removed[i] * PSQTBuckets + j * Tiling::PSQTTileHeight;
-                auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&featureTransformer.threatPsqtWeights[offset]);
+                auto  offset     = removed[i] * PSQTBuckets;
+                auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&threatPsqtWeights[offset]);
 
                 for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
                     psqt[k] = vec_sub_psqt_32(psqt[k], columnPsqt[k]);
@@ -157,8 +163,8 @@ struct AccumulatorUpdateContext final {
 
             for (IndexType i = 0; i < added.size(); ++i)
             {
-                auto  offset     = added[i] * PSQTBuckets + j * Tiling::PSQTTileHeight;
-                auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&featureTransformer.threatPsqtWeights[offset]);
+                auto  offset     = added[i] * PSQTBuckets;
+                auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&threatPsqtWeights[offset]);
 
                 for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
                     psqt[k] = vec_add_psqt_32(psqt[k], columnPsqt[k]);
@@ -166,6 +172,8 @@ struct AccumulatorUpdateContext final {
 
             for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
                 vec_store_psqt(&targetPsqtTile[k], psqt[k]);
+
+            threatPsqtWeights += Tiling::PSQTTileHeight;
         }
         // clang-format on
 #else
@@ -416,6 +424,8 @@ void update_accumulator_refresh_cache(Color                                 pers
     vec_t      acc[Tiling::RegCount];
     psqt_vec_t psqt[Tiling::PSQTRegCount];
 
+    const auto* weights = &featureTransformer.weights[0];
+
     // clang-format off
     for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
     {
@@ -428,10 +438,10 @@ void update_accumulator_refresh_cache(Color                                 pers
         std::size_t i = 0;
         for (; i < std::min(removed.size(), added.size()); ++i)
         {
-            auto  offsetR = removed[i] * Dimensions + j * Tiling::TileHeight;
-            auto* columnR = reinterpret_cast<const vec_t*>(&featureTransformer.weights[offsetR]);
-            auto  offsetA = added[i] * Dimensions + j * Tiling::TileHeight;
-            auto* columnA = reinterpret_cast<const vec_t*>(&featureTransformer.weights[offsetA]);
+            auto  offsetR = removed[i] * Dimensions;
+            auto* columnR = reinterpret_cast<const vec_t*>(&weights[offsetR]);
+            auto  offsetA = added[i] * Dimensions;
+            auto* columnA = reinterpret_cast<const vec_t*>(&weights[offsetA]);
 
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
                 acc[k] = fused<Vec16Wrapper, Add, Sub>(acc[k], columnA[k], columnR[k]);
@@ -439,8 +449,8 @@ void update_accumulator_refresh_cache(Color                                 pers
 
         for (; i < removed.size(); ++i)
         {
-            auto  offset = removed[i] * Dimensions + j * Tiling::TileHeight;
-            auto* column = reinterpret_cast<const vec_t*>(&featureTransformer.weights[offset]);
+            auto  offset = removed[i] * Dimensions;
+            auto* column = reinterpret_cast<const vec_t*>(&weights[offset]);
 
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
                 acc[k] = vec_sub_16(acc[k], column[k]);
@@ -448,8 +458,8 @@ void update_accumulator_refresh_cache(Color                                 pers
 
         for (; i < added.size(); ++i)
         {
-            auto  offset = added[i] * Dimensions + j * Tiling::TileHeight;
-            auto* column = reinterpret_cast<const vec_t*>(&featureTransformer.weights[offset]);
+            auto  offset = added[i] * Dimensions;
+            auto* column = reinterpret_cast<const vec_t*>(&weights[offset]);
 
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
                 acc[k] = vec_add_16(acc[k], column[k]);
@@ -460,7 +470,11 @@ void update_accumulator_refresh_cache(Color                                 pers
             vec_store(&entryTile[k], acc[k]);
             vec_store(&accTile[k], acc[k]);
         }
+
+        weights += Tiling::TileHeight;
     }
+
+    const auto* psqtWeights = &featureTransformer.psqtWeights[0];
 
     for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j)
     {
@@ -472,8 +486,8 @@ void update_accumulator_refresh_cache(Color                                 pers
 
         for (std::size_t i = 0; i < removed.size(); ++i)
         {
-            auto  offset = removed[i] * PSQTBuckets + j * Tiling::PSQTTileHeight;
-            auto* column = reinterpret_cast<const psqt_vec_t*>(&featureTransformer.psqtWeights[offset]);
+            auto  offset = removed[i] * PSQTBuckets;
+            auto* column = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
 
             for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = vec_sub_psqt_32(psqt[k], column[k]);
@@ -481,8 +495,8 @@ void update_accumulator_refresh_cache(Color                                 pers
 
         for (std::size_t i = 0; i < added.size(); ++i)
         {
-            auto  offset = added[i] * PSQTBuckets + j * Tiling::PSQTTileHeight;
-            auto* column = reinterpret_cast<const psqt_vec_t*>(&featureTransformer.psqtWeights[offset]);
+            auto  offset = added[i] * PSQTBuckets;
+            auto* column = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
 
             for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = vec_add_psqt_32(psqt[k], column[k]);
@@ -493,6 +507,8 @@ void update_accumulator_refresh_cache(Color                                 pers
             vec_store_psqt(&accPsqtTile  [k], psqt[k]);
             vec_store_psqt(&entryPsqtTile[k], psqt[k]);
         }
+
+        psqtWeights += Tiling::PSQTTileHeight;
     }
     // clang-format on
 #else
@@ -539,6 +555,8 @@ void update_threats_accumulator_full(Color                                 persp
     vec_t      acc[Tiling::RegCount];
     psqt_vec_t psqt[Tiling::PSQTRegCount];
 
+    const auto* threatWeights = &featureTransformer.threatWeights[0];
+
     // clang-format off
     for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
     {
@@ -551,8 +569,8 @@ void update_threats_accumulator_full(Color                                 persp
 
         for (; i < active.size(); ++i)
         {
-            auto  offset = active[i] * Dimensions + j * Tiling::TileHeight;
-            auto* column = reinterpret_cast<const vec_i8_t*>(&featureTransformer.threatWeights[offset]);
+            auto  offset = active[i] * Dimensions;
+            auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset]);
 
     #if defined(USE_NEON)
             for (IndexType k = 0; k < Tiling::RegCount; k += 2)
@@ -568,7 +586,11 @@ void update_threats_accumulator_full(Color                                 persp
 
         for (IndexType k = 0; k < Tiling::RegCount; ++k)
             vec_store(&accTile[k], acc[k]);
+
+        threatWeights += Tiling::TileHeight;
     }
+
+    const auto* threatPsqtWeights = &featureTransformer.threatPsqtWeights[0];
 
     for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j)
     {
@@ -579,8 +601,8 @@ void update_threats_accumulator_full(Color                                 persp
 
         for (IndexType i = 0; i < active.size(); ++i)
         {
-            auto  offset = active[i] * PSQTBuckets + j * Tiling::PSQTTileHeight;
-            auto* column = reinterpret_cast<const psqt_vec_t*>(&featureTransformer.threatPsqtWeights[offset]);
+            auto  offset = active[i] * PSQTBuckets;
+            auto* column = reinterpret_cast<const psqt_vec_t*>(&threatPsqtWeights[offset]);
 
             for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = vec_add_psqt_32(psqt[k], column[k]);
@@ -588,6 +610,8 @@ void update_threats_accumulator_full(Color                                 persp
 
         for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
             vec_store_psqt(&accPsqtTile[k], psqt[k]);
+
+        threatPsqtWeights += Tiling::PSQTTileHeight;
     }
     // clang-format on
 #else
