@@ -168,7 +168,7 @@ struct Magic final {
 };
 
 #if !defined(USE_POPCNT)
-alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, 1 << 16> PopCnt;
+alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, 0x10000> PopCnt;
 #endif
 
 // clang-format off

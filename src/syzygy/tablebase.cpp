@@ -100,7 +100,7 @@ enum TBFlag : std::uint8_t {
 
 // Max number of supported piece
 constexpr std::uint32_t MAX_TB_PIECES = 7;
-// Max DTZ supported (2 times), large enough to deal with the syzygy TB limit.
+// Max DTZ supported (2 times), large enough to deal with the syzygy TB limit
 constexpr std::int32_t MAX_DTZ = 0x40000;
 
 constexpr StdArray<std::string_view, 2> EXT{".rtbw", ".rtbz"};
@@ -111,6 +111,7 @@ constexpr StdArray<std::uint8_t, 2, 4> MAGIC_DATAS{{
 }};
 
 // clang-format off
+
 constexpr StdArray<int         , 5> WDL_MAP  {1, 3, 0, 2, 0};
 constexpr StdArray<std::int32_t, 5> WDL_RANK {-MAX_DTZ, -MAX_DTZ + 101, 0, +MAX_DTZ - 101, +MAX_DTZ};
 constexpr StdArray<Value       , 5> WDL_VALUE{VALUE_MATED_IN_MAX_PLY + 1, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, VALUE_MATES_IN_MAX_PLY - 1};
@@ -123,6 +124,7 @@ StdArray<std::size_t, SQUARE_NB>     PawnsMap;
 StdArray<std::size_t, MAX_TB_PIECES - 1, SQUARE_NB>   Binomial;     // [k][n] k elements from a set of n elements
 StdArray<std::size_t, MAX_TB_PIECES - 1, SQUARE_NB>   LeadPawnIdx;  // [leadPawnCnt][SQUARE_NB]
 StdArray<std::size_t, MAX_TB_PIECES - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE_A..FILE_D]
+
 // clang-format on
 
 // Comparison function to sort leading pawns in ascending PawnsMap[] order
@@ -209,7 +211,7 @@ static_assert(sizeof(LR) == 3, "LR tree entry must be 3 bytes");
 // TBFile class memory maps/unmaps the single ".rtbw" and ".rtbz" files.
 // Files are memory mapped for best performance.
 // Files are mapped at first access: at init time only existence of the file is checked.
-class TBFile: public std::ifstream {
+class TBFile {
    public:
     explicit TBFile(std::string_view file) noexcept {
 
@@ -217,12 +219,25 @@ class TBFile: public std::ifstream {
         {
             filename = path + "/" + file.data();
 
-            open(filename);
-
-            if (is_open())
+            if (open())
                 return;
         }
     }
+
+    std::ifstream& stream() noexcept { return ifs; }
+
+    bool open() noexcept {
+        if (is_open())
+            return true;
+
+        ifs.open(filename, std::ios::binary);
+
+        return is_open();
+    }
+
+    bool is_open() const noexcept { return ifs.is_open(); }
+
+    void close() noexcept { ifs.close(); }
 
     // Memory map the file and check it
     template<TBType T>
@@ -381,6 +396,8 @@ class TBFile: public std::ifstream {
 
    private:
     std::string filename;
+
+    std::ifstream ifs;
 };
 
 // PairsData contains low-level indexing information to access TB data.
@@ -423,31 +440,28 @@ template<TBType T>
 struct TBTable final {
     using Ret = std::conditional_t<T == WDL, WDLScore, int>;
 
+    TBTable() noexcept = default;
+    explicit TBTable(std::string_view code) noexcept;
+    explicit TBTable(const TBTable<WDL>& wdlTable) noexcept;
+
+    ~TBTable() noexcept;
+
+    PairsData* get(int ac, int f) noexcept;
+
     static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
 
     std::atomic<bool> ready{false};
 
     void*         mapAddress = nullptr;
-    std::uint8_t* map;
-    std::uint64_t mapping;
+    std::uint8_t* map        = nullptr;
+    std::uint64_t mapping    = 0;
 
     StdArray<Key, COLOR_NB>                 key;
     std::uint8_t                            pieceCount;
     bool                                    hasPawns;
     bool                                    hasUniquePieces;
     StdArray<std::uint8_t, COLOR_NB>        pawnCount;  // [Lead color / other color]
-    StdArray<PairsData, SIDES, FILE_NB / 2> items;      // [wtm / btm][FILE_A..FILE_D or 0]
-
-    PairsData* get(int ac, int f) noexcept { return &items[ac % SIDES][hasPawns ? f : 0]; }
-
-    TBTable() noexcept = default;
-    explicit TBTable(std::string_view code) noexcept;
-    explicit TBTable(const TBTable<WDL>& wdlTable) noexcept;
-
-    ~TBTable() noexcept {
-        if (mapAddress != nullptr)
-            TBFile::unmap(mapAddress, mapping);
-    }
+    StdArray<PairsData, SIDES, FILE_NB / 2> items;      // [color][FILE_A..FILE_D]
 };
 
 template<>
@@ -491,6 +505,17 @@ TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept {
     hasUniquePieces  = wdlTable.hasUniquePieces;
     pawnCount[WHITE] = wdlTable.pawnCount[WHITE];
     pawnCount[BLACK] = wdlTable.pawnCount[BLACK];
+}
+
+template<TBType T>
+TBTable<T>::~TBTable() noexcept {
+    if (mapAddress != nullptr)
+        TBFile::unmap(mapAddress, mapping);
+}
+
+template<TBType T>
+PairsData* TBTable<T>::get(int ac, int f) noexcept {
+    return &items[ac % SIDES][hasPawns ? f : 0];
 }
 
 // TBTables creates and keeps ownership of the TBTable objects, for each TB file found.
@@ -618,14 +643,14 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    TBFile dtzFile(code + EXT[DTZ].data());
+    TBFile dtzFile(code + std::string(EXT[DTZ]));
     if (dtzFile.is_open())
     {
         dtzFile.close();
         ++dtzCount;
     }
 
-    TBFile wdlFile(code + EXT[WDL].data());
+    TBFile wdlFile(code + std::string(EXT[WDL]));
     if (!wdlFile.is_open())  // Only WDL file is checked
         return;
 
@@ -1399,7 +1424,7 @@ void* mapped(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
         fname += pieces[WHITE];
     }
 
-    fname += EXT[T].data();
+    fname += EXT[T];
 
     std::uint8_t* data = TBFile(fname).map<T>(&entry.mapAddress, &entry.mapping);
 
@@ -1808,10 +1833,45 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
 // clang-format off
 
+// Use the WDL-tables to rank root moves.
+// This is a fallback for the case that some or all DTZ-tables are missing.
+//
+// A return value false indicates that not all probes were successful.
+bool probe_wdl_root(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept {
+    // Probe and rank each move
+    for (auto& rm : rootMoves)
+    {
+        State st;
+        pos.do_move(rm.pv[0], st);
+
+        ProbeState ps = PS_OK;
+
+        WDLScore wdlScore = pos.is_draw(1) ? WDL_DRAW : -probe_wdl(pos, &ps);
+
+        pos.undo_move(rm.pv[0]);
+
+        if (ps == PS_FAIL)
+            return false;
+
+        rm.tbRank = WDL_RANK[wdlScore + 2];
+
+        if (!useRule50)
+            wdlScore = wdlScore > WDL_DRAW
+                       ? WDL_WIN
+                     : wdlScore < WDL_DRAW
+                       ? WDL_LOSS
+                       : WDL_DRAW;
+
+        rm.tbValue = WDL_VALUE[wdlScore + 2];
+    }
+
+    return true;
+}
+
 // Use the DTZ-tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ, TimeFunc time_to_abort) noexcept {
+bool probe_dtz_root(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ, TimeFunc time_to_abort) noexcept {
     // Obtain 50-move counter for the root position
     std::int16_t rule50Count = pos.rule50_count();
 
@@ -1889,41 +1949,6 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool ra
     return true;
 }
 
-// Use the WDL-tables to rank root moves.
-// This is a fallback for the case that some or all DTZ-tables are missing.
-//
-// A return value false indicates that not all probes were successful.
-bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept {
-    // Probe and rank each move
-    for (auto& rm : rootMoves)
-    {
-        State st;
-        pos.do_move(rm.pv[0], st);
-
-        ProbeState ps = PS_OK;
-
-        WDLScore wdlScore = pos.is_draw(1) ? WDL_DRAW : -probe_wdl(pos, &ps);
-
-        pos.undo_move(rm.pv[0]);
-
-        if (ps == PS_FAIL)
-            return false;
-
-        rm.tbRank = WDL_RANK[wdlScore + 2];
-
-        if (!useRule50)
-            wdlScore = wdlScore > WDL_DRAW
-                       ? WDL_WIN
-                     : wdlScore < WDL_DRAW
-                       ? WDL_LOSS
-                       : WDL_DRAW;
-
-        rm.tbValue = WDL_VALUE[wdlScore + 2];
-    }
-
-    return true;
-}
-
 Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool rankDTZ, TimeFunc time_to_abort) noexcept {
     Config config;
 
@@ -1947,13 +1972,13 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
     if (config.cardinality >= pos.count() && !pos.has_castling_rights())
     {
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
-        config.rootInTB = probe_root_dtz(pos, rootMoves, config.useRule50, rankDTZ, time_to_abort);
+        config.rootInTB = probe_dtz_root(pos, rootMoves, config.useRule50, rankDTZ, time_to_abort);
 
         if (!config.rootInTB)
         {
             // DTZ-tables are missing/aborted; try to rank moves using WDL-tables
             dtzAvailable    = false;
-            config.rootInTB = probe_root_wdl(pos, rootMoves, config.useRule50);
+            config.rootInTB = probe_wdl_root(pos, rootMoves, config.useRule50);
         }
     }
 
@@ -1970,7 +1995,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
     }
     else
     {
-        // Clean up if probe_root_dtz() and probe_root_wdl() have failed
+        // Clean up if probe_dtz_root() and probe_wdl_root() have failed
         for (auto& rm : rootMoves)
             rm.tbRank = 0;
     }
