@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <array>
-#include <atomic>
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -1385,7 +1384,7 @@ void set(T& entry, std::uint8_t* data) noexcept {
 // Called at every probe, memory map, and init only at first access.
 // Function is thread safe and can be called concurrently.
 template<TBType T>
-void* mapped(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
+void* init(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
     // Fast path: already initialized
     if (entry.is_done())
         return entry.mapAddress;
@@ -1443,9 +1442,9 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRA
     if (materialKey == 0)  // KvK, pos.count() == 2
         return Ret(WDL_DRAW);
 
-    auto* entry = tbTables.get<T>(materialKey);
+    TBTable<T>* entry = tbTables.get<T>(materialKey);
 
-    if (entry == nullptr || mapped(pos, materialKey, *entry) == nullptr)
+    if (entry == nullptr || init(pos, materialKey, *entry) == nullptr)
         return *ps = PS_FAIL, Ret();
 
     return do_probe_table(pos, materialKey, entry, wdlScore, ps);

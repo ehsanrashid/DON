@@ -694,8 +694,8 @@ struct AtomicOnce {
         return *this;
     }
 
-    AtomicOnce(AtomicOnce&&) noexcept            = default;
-    AtomicOnce& operator=(AtomicOnce&&) noexcept = default;
+    AtomicOnce(AtomicOnce&&) noexcept            = delete;
+    AtomicOnce& operator=(AtomicOnce&&) noexcept = delete;
 
     // Fast path: returns true if already done
     bool is_done() const noexcept { return once.load(std::memory_order_acquire); }
