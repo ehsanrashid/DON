@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <array>
-#include <atomic>
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -28,9 +27,7 @@
 #include <initializer_list>
 #include <iostream>
 #include <iterator>
-#include <mutex>
 #include <sstream>
-#include <string>
 #include <sys/stat.h>
 #include <type_traits>
 #include <utility>
@@ -57,6 +54,7 @@
         #undef small
     #endif
 #else
+    #include <cerrno>
     #include <fcntl.h>
     #include <sys/mman.h>
     #include <unistd.h>
@@ -100,16 +98,21 @@ enum TBFlag : std::uint8_t {
 
 // Max number of supported piece
 constexpr std::uint32_t MAX_TB_PIECES = 7;
-// Max DTZ supported (2 times), large enough to deal with the syzygy TB limit.
-constexpr std::int32_t MAX_DTZ = 1 << 18;
+// Max DTZ supported (2 times), large enough to deal with the syzygy TB limit
+constexpr std::int32_t MAX_DTZ = 0x40000;
 
-constexpr std::string_view WDL_EXT{".rtbw"};
-constexpr std::string_view DTZ_EXT{".rtbz"};
+constexpr StdArray<std::string_view, 2> EXT{".rtbw", ".rtbz"};
+
+constexpr StdArray<std::uint8_t, 2, 4> TB_MAGICS{{
+  {0x71, 0xE8, 0x23, 0x5D},  // Win-Draw-Loss    (WDL) = 0x5D23E871
+  {0xD7, 0x66, 0x0C, 0xA5},  // Distance-to-Zero (DTZ) = 0xA50C66D7
+}};
 
 // clang-format off
-constexpr StdArray<int, 5>          WDL_MAP  {1, 3, 0, 2, 0};
+
+constexpr StdArray<int         , 5> WDL_MAP  {1, 3, 0, 2, 0};
 constexpr StdArray<std::int32_t, 5> WDL_RANK {-MAX_DTZ, -MAX_DTZ + 101, 0, +MAX_DTZ - 101, +MAX_DTZ};
-constexpr StdArray<Value, 5>        WDL_VALUE{VALUE_MATED_IN_MAX_PLY + 1, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, VALUE_MATES_IN_MAX_PLY - 1};
+constexpr StdArray<Value       , 5> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
 
 StdArray<std::size_t, SQUARE_NB>     B1H1H7Map;
 StdArray<std::size_t, SQUARE_NB>     A1D1D4Map;
@@ -119,12 +122,32 @@ StdArray<std::size_t, SQUARE_NB>     PawnsMap;
 StdArray<std::size_t, MAX_TB_PIECES - 1, SQUARE_NB>   Binomial;     // [k][n] k elements from a set of n elements
 StdArray<std::size_t, MAX_TB_PIECES - 1, SQUARE_NB>   LeadPawnIdx;  // [leadPawnCnt][SQUARE_NB]
 StdArray<std::size_t, MAX_TB_PIECES - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE_A..FILE_D]
+
 // clang-format on
+
+// Comparison function to sort leading pawns in ascending PawnsMap[] order
+constexpr bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
 
 constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 
-// Comparison function to sort leading pawns in ascending PawnsMap[] order
-bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
+// DTZ-tables don't store valid scores for moves that reset the rule50 counter
+// like captures and pawn moves but can easily recover the correct DTZ-score of the
+// previous move if know the position's WDL-score.
+constexpr int before_zeroing_dtz(WDLScore wdlScore) noexcept {
+    switch (wdlScore)
+    {
+    case WDL_BLESSED_LOSS :
+        return -101;
+    case WDL_LOSS :
+        return -1;
+    case WDL_WIN :
+        return +1;
+    case WDL_CURSED_WIN :
+        return +101;
+    default :
+        return 0;
+    }
+}
 
 template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
 void swap_endian(T& x) noexcept {
@@ -151,29 +174,10 @@ T number(void* addr) noexcept {
     return v;
 }
 
-// DTZ-tables don't store valid scores for moves that reset the rule50 counter
-// like captures and pawn moves but can easily recover the correct DTZ-score of the
-// previous move if know the position's WDL-score.
-int before_zeroing_dtz(WDLScore wdlScore) noexcept {
-    switch (wdlScore)
-    {
-    case WDL_BLESSED_LOSS :
-        return -101;
-    case WDL_LOSS :
-        return -1;
-    case WDL_WIN :
-        return +1;
-    case WDL_CURSED_WIN :
-        return +101;
-    default :
-        return 0;
-    }
-}
-
 // Numbers in little-endian used by sparseIndex[] to point into blockLength[]
 struct SparseEntry final {
-    char block[4];   // Number of block
-    char offset[2];  // Offset within the block
+    StdArray<char, 4> block;   // Number of block
+    StdArray<char, 2> offset;  // Offset within the block
 };
 
 static_assert(sizeof(SparseEntry) == 6, "SparseEntry must be 6 bytes");
@@ -205,127 +209,33 @@ static_assert(sizeof(LR) == 3, "LR tree entry must be 3 bytes");
 // TBFile class memory maps/unmaps the single ".rtbw" and ".rtbz" files.
 // Files are memory mapped for best performance.
 // Files are mapped at first access: at init time only existence of the file is checked.
-class TBFile: public std::ifstream {
+class TBFile final {
    public:
     explicit TBFile(std::string_view file) noexcept {
 
+        constexpr char PathSeparator =
+#if defined(_WIN32)
+          '\\'
+#else
+          '/'
+#endif
+          ;
+
+        filename.clear();
+
         for (const auto& path : Paths)
         {
-            filename = path + "/" + file.data();
+            std::string fn = path + PathSeparator + std::string(file);
 
-            open(filename);
+            std::ifstream ifs(fn, std::ios::binary);
 
-            if (is_open())
-                return;
+            if (ifs.is_open())
+            {
+                filename = std::move(fn);
+
+                break;
+            }
         }
-    }
-
-    // Memory map the file and check it
-    template<TBType T>
-    std::uint8_t* map(void** mapAddress, std::uint64_t* mapping) noexcept {
-
-        if (is_open())
-            close();  // Need to re-open to get native file descriptor
-
-#if defined(_WIN32)
-
-        // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
-        HANDLE fd = CreateFile(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
-                               OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
-
-        if (fd == INVALID_HANDLE_VALUE)
-            return *mapAddress = nullptr, nullptr;
-
-        DWORD hiSize;
-        DWORD loSize = GetFileSize(fd, &hiSize);
-
-        if (loSize % 64 != 16)
-        {
-            std::cerr << "Corrupt tablebase file " << filename << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
-
-        HANDLE hMapFile = CreateFileMapping(fd, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
-
-        CloseHandle(fd);
-
-        if (hMapFile == nullptr)
-        {
-            std::cerr << "CreateFileMapping() failed, name = " << filename << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
-
-        *mapping = std::uint64_t(hMapFile);
-
-        *mapAddress = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
-
-        if (*mapAddress == nullptr)
-        {
-            std::cerr << "MapViewOfFile() failed, name = " << filename
-                      << ", error = " << GetLastError() << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
-
-#else
-
-        int fd = ::open(filename.c_str(), O_RDONLY);
-
-        if (fd == -1)
-            return *mapAddress = nullptr, nullptr;
-
-        struct stat stat;
-        fstat(fd, &stat);
-
-        if (stat.st_size % 64 != 16)
-        {
-            std::cerr << "Corrupt tablebase file " << filename << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
-
-        *mapping = stat.st_size;
-
-        *mapAddress = mmap(nullptr, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
-
-    #if defined(MADV_RANDOM)
-        madvise(*mapAddress, stat.st_size, MADV_RANDOM);
-    #endif
-
-        ::close(fd);
-
-        if (*mapAddress == MAP_FAILED)
-        {
-            std::cerr << "mmap() failed, name = " << filename << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
-
-#endif
-
-        std::uint8_t* data = (std::uint8_t*) (*mapAddress);
-
-        constexpr StdArray<std::uint8_t, 2, 4> Magics{{
-          {0xD7, 0x66, 0x0C, 0xA5},  //
-          {0x71, 0xE8, 0x23, 0x5D}   //
-        }};
-
-        const auto& magic = Magics[T == WDL];
-
-        if (std::memcmp(data, magic.data(), magic.size()) != 0)
-        {
-            std::cerr << "Corrupted table in file " << filename << std::endl;
-            unmap(*mapAddress, *mapping);
-            return *mapAddress = nullptr, nullptr;
-        }
-
-        return data + magic.size();  // Skip Magics's header
-    }
-
-    static void unmap(void* mapAddress, std::uint64_t mapping) noexcept {
-#if defined(_WIN32)
-        UnmapViewOfFile(mapAddress);
-        CloseHandle((HANDLE) mapping);
-#else
-        munmap(mapAddress, mapping);
-#endif
     }
 
     static bool init(std::string_view paths) noexcept {
@@ -359,11 +269,163 @@ class TBFile: public std::ifstream {
         return !Paths.empty();
     }
 
+    // Memory map the file and check it
+    template<TBType T>
+    static std::uint8_t*
+    map(std::string_view filename, void** mappedPtr, std::uint64_t* mapping) noexcept {
+
+#if defined(_WIN32)
+
+        // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
+        HANDLE fd = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+                               OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
+
+        if (fd == INVALID_HANDLE_VALUE)
+        {
+            *mappedPtr = nullptr;
+
+            return nullptr;
+        }
+
+        DWORD hiSize;
+        DWORD loSize = GetFileSize(fd, &hiSize);
+
+        if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
+        {
+            std::cerr << "GetFileSize() failed" << std::endl;
+
+            CloseHandle(fd);
+
+            *mappedPtr = nullptr;
+
+            return nullptr;
+        }
+
+        if (loSize % 64 != 16)
+        {
+            std::cerr << "Corrupt tablebase file " << filename << std::endl;
+
+            std::exit(EXIT_FAILURE);
+        }
+
+        HANDLE hMapFile = CreateFileMapping(fd, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
+
+        CloseHandle(fd);
+
+        if (hMapFile == nullptr)
+        {
+            std::cerr << "CreateFileMapping() failed, name = " << filename << std::endl;
+
+            std::exit(EXIT_FAILURE);
+        }
+
+        *mapping = std::uint64_t(hMapFile);
+
+        *mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
+
+        if (*mappedPtr == nullptr)
+        {
+            std::cerr << "MapViewOfFile() failed, name = " << filename
+                      << ", error = " << GetLastError() << std::endl;
+
+            CloseHandle(hMapFile);
+
+            std::exit(EXIT_FAILURE);
+        }
+
+#else
+
+        int fd = ::open(filename.data(), O_RDONLY);
+
+        if (fd == -1)
+        {
+            *mappedPtr = nullptr;
+
+            return nullptr;
+        }
+
+        struct stat objStat;
+
+        if (fstat(fd, &objStat) == -1)
+        {
+            std::cerr << "fstat failed: " << strerror(errno) << std::endl;
+
+            ::close(fd);
+
+            *mappedPtr = nullptr;
+
+            return nullptr;
+        }
+
+        if (objStat.st_size % 64 != 16)
+        {
+            std::cerr << "Corrupt tablebase file " << filename << std::endl;
+
+            ::close(fd);
+
+            std::exit(EXIT_FAILURE);
+        }
+
+        *mapping = objStat.st_size;
+
+        *mappedPtr = mmap(nullptr, objStat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+
+        if (*mappedPtr == MAP_FAILED)
+        {
+            std::cerr << "mmap() failed, name = " << filename << std::endl;
+
+            ::close(fd);
+
+            std::exit(EXIT_FAILURE);
+        }
+
+    #if defined(MADV_RANDOM)
+        madvise(*mappedPtr, objStat.st_size, MADV_RANDOM);
+    #endif
+
+        ::close(fd);
+
+#endif
+
+        std::uint8_t* data = (std::uint8_t*) (*mappedPtr);
+
+        constexpr auto& TBMagic = TB_MAGICS[T];
+
+        if (std::memcmp(data, TBMagic.data(), TBMagic.size()) != 0)
+        {
+            std::cerr << "Corrupted table in file " << filename << std::endl;
+
+            unmap(*mappedPtr, *mapping);
+
+            *mappedPtr = nullptr;
+
+            return nullptr;
+        }
+
+        return data + TBMagic.size();  // Skip TB Magic header
+    }
+
+    static void unmap(void* mappedPtr, std::uint64_t mapping) noexcept {
+#if defined(_WIN32)
+        if (mappedPtr != nullptr)
+            UnmapViewOfFile(mappedPtr);
+        if (mapping)
+            CloseHandle((HANDLE) mapping);
+#else
+        if (mappedPtr != nullptr)
+            munmap(mappedPtr, mapping);
+#endif
+    }
+
+    bool exists() const noexcept { return !filename.empty(); }
+
+    std::string_view file_name() const noexcept { return filename; }
+
+   private:
     // Look for and open the file among the Paths directories
     // where the .rtbw and .rtbz files can be found.
     static inline Strings Paths;
 
-   private:
     std::string filename;
 };
 
@@ -407,11 +469,19 @@ template<TBType T>
 struct TBTable final {
     using Ret = std::conditional_t<T == WDL, WDLScore, int>;
 
+    PairsData* get(int ac, int f) noexcept { return &items[ac % SIDES][hasPawns ? f : 0]; }
+
+    TBTable() noexcept = default;
+    explicit TBTable(std::string_view code) noexcept;
+    explicit TBTable(const TBTable<WDL>& wdlTable) noexcept;
+
+    ~TBTable() noexcept;
+
     static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
 
-    std::atomic<bool> ready{false};
+    InitOnce initOnce;
 
-    void*         mapAddress = nullptr;
+    void*         mappedPtr = nullptr;
     std::uint8_t* map;
     std::uint64_t mapping;
 
@@ -420,18 +490,7 @@ struct TBTable final {
     bool                                    hasPawns;
     bool                                    hasUniquePieces;
     StdArray<std::uint8_t, COLOR_NB>        pawnCount;  // [Lead color / other color]
-    StdArray<PairsData, SIDES, FILE_NB / 2> items;      // [wtm / btm][FILE_A..FILE_D or 0]
-
-    PairsData* get(int ac, int f) noexcept { return &items[ac % SIDES][hasPawns ? f : 0]; }
-
-    TBTable() noexcept = default;
-    explicit TBTable(std::string_view code) noexcept;
-    explicit TBTable(const TBTable<WDL>& wdlTable) noexcept;
-
-    ~TBTable() noexcept {
-        if (mapAddress != nullptr)
-            TBFile::unmap(mapAddress, mapping);
-    }
+    StdArray<PairsData, SIDES, FILE_NB / 2> items;      // [color][FILE_A..FILE_D]
 };
 
 template<>
@@ -477,6 +536,11 @@ TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept :
     hasUniquePieces  = wdlTable.hasUniquePieces;
     pawnCount[WHITE] = wdlTable.pawnCount[WHITE];
     pawnCount[BLACK] = wdlTable.pawnCount[BLACK];
+}
+
+template<TBType T>
+TBTable<T>::~TBTable() noexcept {
+    TBFile::unmap(mappedPtr, mapping);
 }
 
 // class TBTables creates and keeps ownership of the TBTable objects,
@@ -582,21 +646,18 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
         return;
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    TBFile dtzFile(code + DTZ_EXT.data());
-    if (dtzFile.is_open())
-    {
-        dtzFile.close();
+    TBFile dtzFile(code + std::string(EXT[DTZ]));
+    if (dtzFile.exists())
         ++dtzCount;
-    }
 
-    TBFile wdlFile(code + WDL_EXT.data());
-    if (!wdlFile.is_open())  // Only WDL file is checked
+    TBFile wdlFile(code + std::string(EXT[WDL]));
+    if (wdlFile.exists())
+        ++wdlCount;
+    else  // Only WDL file is checked
         return;
 
-    wdlFile.close();
-    ++wdlCount;
-
-    MaxCardinality = std::max<std::size_t>(MaxCardinality, pieces.size());
+    if (MaxCardinality < pieces.size())
+        MaxCardinality = pieces.size();
 
     wdlTables.emplace_back(code);
     dtzTables.emplace_back(wdlTables.back());
@@ -647,8 +708,8 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     auto k = std::uint32_t(idx / pd->span);
 
     // Then read the corresponding SparseIndex[] entry
-    auto block  = number<std::uint32_t, LITTLE>(&pd->sparseIndex[k].block);
-    int  offset = number<std::uint16_t, LITTLE>(&pd->sparseIndex[k].offset);
+    auto block  = number<std::uint32_t, LITTLE>(pd->sparseIndex[k].block.data());
+    int  offset = number<std::uint16_t, LITTLE>(pd->sparseIndex[k].offset.data());
 
     // Now compute the difference idx - I(k). From the definition of k,
     //
@@ -674,9 +735,10 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     // Read the first 64 bits in our block, this is a (truncated) sequence of
     // unknown number of symbols of unknown length but the first one
     // is at the beginning of this 64-bit sequence.
-    auto buf64     = number<std::uint64_t, BIG>(ptr);
-    int  buf64Size = 64;
+    auto buf64 = number<std::uint64_t, BIG>(ptr);
     ptr += 2;
+
+    int buf64Size = 64;
     Sym sym;
 
     while (true)
@@ -719,7 +781,7 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     // Binary-search for our value recursively expanding into the left and
     // right child symbols until reach a leaf node where symLen[sym] + 1 == 1
     // that will store the value need.
-    while (pd->symLen[sym])
+    while (pd->symLen[sym] != 0)
     {
         Sym lSym = pd->btree[sym].get<true>();
 
@@ -848,8 +910,9 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
         leadPawnCnt = size;
 
-        std::swap(squares[0],
-                  *std::max_element(squares.begin(), squares.begin() + leadPawnCnt, pawns_comp));
+        if (leadPawnCnt != 0)
+            std::swap(squares[0], *std::max_element(squares.begin(), squares.begin() + leadPawnCnt,
+                                                    pawns_comp));
 
         tbFile = fold_to_edge(file_of(squares[0]));
     }
@@ -858,7 +921,10 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // move or only for black to move, so check for side to move to be ac,
     // early exit otherwise.
     if (!check_ac(entry, activeColor, tbFile))
-        return *ps = PS_AC_CHANGED, Ret();
+    {
+        *ps = PS_AC_CHANGED;
+        return Ret();
+    }
 
     // Now ready to get all the position pieces (but the lead pawns)
     // and directly map them to the correct square and color.
@@ -1321,37 +1387,58 @@ void set(T& entry, std::uint8_t* data) noexcept {
 // Called at every probe, memory map, and init only at first access.
 // Function is thread safe and can be called concurrently.
 template<TBType T>
-void* mapped(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
-    static std::mutex mutex;
+void* init(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
+    // Fast path: already initialized
+    if (entry.initOnce.is_initialized())
+        return entry.mappedPtr;  // could be nullptr if file missing
 
-    // Use 'acquire' to avoid a thread reading 'ready' == true while
-    // another is still working. (compiler reordering may cause this).
-    if (entry.ready.load(std::memory_order_acquire))
-        return entry.mapAddress;  // Could be nullptr if file does not exist
+    if (entry.initOnce.try_init())
+    {
+        // This thread is responsible for initialization
 
-    std::scoped_lock lock(mutex);
+        // Pieces strings in decreasing order for each color, like ("KPP","KR")
+        StdArray<std::string, COLOR_NB> pieces{};
+        for (Color c : {WHITE, BLACK})
+            for (auto itr = PIECE_TYPES.rbegin(); itr != PIECE_TYPES.rend(); ++itr)
+                pieces[c].append(pos.count(c, *itr), to_char(*itr));
 
-    if (entry.ready.load(std::memory_order_relaxed))  // Recheck under lock
-        return entry.mapAddress;
+        std::string fname;
+        fname.reserve(pieces[WHITE].size() + pieces[BLACK].size() + 1 + EXT[T].size());
 
-    // Pieces strings in decreasing order for each color, like ("KPP","KR")
-    StdArray<std::string, COLOR_NB> pieces{};
-    for (Color c : {WHITE, BLACK})
-        for (auto itr = PIECE_TYPES.rbegin(); itr != PIECE_TYPES.rend(); ++itr)
-            pieces[c].append(pos.count(c, *itr), to_char(*itr));
+        if (materialKey == entry.key[WHITE])
+        {
+            fname += pieces[WHITE];
+            fname += 'v';
+            fname += pieces[BLACK];
+        }
+        else
+        {
+            fname += pieces[BLACK];
+            fname += 'v';
+            fname += pieces[WHITE];
+        }
 
-    std::string fname = (materialKey == entry.key[WHITE] ? pieces[WHITE] + 'v' + pieces[BLACK]
-                                                         : pieces[BLACK] + 'v' + pieces[WHITE])
-                      + (T == WDL ? WDL_EXT : DTZ_EXT).data();
+        fname += EXT[T];
 
-    std::uint8_t* data = TBFile(fname).map<T>(&entry.mapAddress, &entry.mapping);
+        TBFile tbFile(fname);
 
-    if (data != nullptr)
-        set(entry, data);
+        std::uint8_t* data = tbFile.exists()
+                             ? TBFile::map<T>(tbFile.file_name(), &entry.mappedPtr, &entry.mapping)
+                             : nullptr;
 
-    entry.ready.store(true, std::memory_order_release);
+        if (data != nullptr)
+            set(entry, data);
 
-    return entry.mapAddress;
+        // mark done for all threads
+        entry.initOnce.set_initialized();
+    }
+    else
+    {
+        // Other threads spin until initialization completes
+        entry.initOnce.wait_until_initialized();
+    }
+
+    return entry.mappedPtr;
 }
 
 template<TBType T, typename Ret = typename TBTable<T>::Ret>
@@ -1362,10 +1449,13 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRA
     if (materialKey == 0)  // KvK, pos.count() == 2
         return Ret(WDL_DRAW);
 
-    auto* entry = tbTables.get<T>(materialKey);
+    TBTable<T>* entry = tbTables.get<T>(materialKey);
 
-    if (entry == nullptr || mapped(pos, materialKey, *entry) == nullptr)
-        return *ps = PS_FAIL, Ret();
+    if (entry == nullptr || init(pos, materialKey, *entry) == nullptr)
+    {
+        *ps = PS_FAIL;
+        return Ret();
+    }
 
     return do_probe_table(pos, materialKey, entry, wdlScore, ps);
 }
@@ -1669,22 +1759,19 @@ WDLScore probe_wdl(Position& pos, ProbeState* ps) noexcept {
 //     1 < n <= 100 : win in n ply (assuming 50-move counter == 0)
 //   100 < n        : win, but draw under 50-move rule
 //
-// The return WDL-score n can be off by 1: a return WDL-score -n can mean a loss
-// in n+1 ply and a return WDL-score +n can mean a win in n+1 ply. This
-// cannot happen for tables with positions exactly on the "edge" of
-// the 50-move rule.
+// The return WDL-score n can be off by 1:
+//  - return WDL-score -n can mean a loss in n+1 ply and
+//  - return WDL-score +n can mean a win in n+1 ply.
+// This cannot happen for tables with positions exactly
+// on the "edge" of the 50-move rule.
 //
-// This implies that if DTZ-score > 0 is returned, the position is certainly
-// a win if DTZ-score + 50-move-counter < 100. Care must be taken that the engine
-// picks moves that preserve DTZ-score + 50-move-counter < 100.
+// This implies that if DTZ-score > 0 is returned,
+// the position is certainly a win if DTZ-score + 50-move-counter < 100.
+// Care must be taken that the engine picks moves that preserve DTZ-score + 50-move-counter < 100.
 //
-// If n = 100 immediately after a capture or pawn move, then the position
-// is also certainly a win, and during the whole phase until the next
-// capture or pawn move, the inequality to be preserved is
-// DTZ-score + 50-move-counter <= 100.
-//
-// In short, if a move is available resulting in DTZ-score + 50-move-counter < 100,
-// then do not accept moves leading to DTZ-score + 50-move-counter == 100.
+// If n = 100 immediately after a capture or pawn move,
+// then the position is also certainly a win, and during the whole phase until the next
+// capture or pawn move, the inequality to be preserved is DTZ-score + 50-move-counter <= 100.
 int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
     *ps = PS_OK;
@@ -1751,10 +1838,45 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
 // clang-format off
 
+// Use the WDL-tables to rank root moves.
+// This is a fallback for the case that some or all DTZ-tables are missing.
+//
+// A return value false indicates that not all probes were successful.
+bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept {
+    // Probe and rank each move
+    for (auto& rm : rootMoves)
+    {
+        State st;
+        pos.do_move(rm.pv[0], st);
+
+        ProbeState ps = PS_OK;
+
+        WDLScore wdlScore = pos.is_draw(1) ? WDL_DRAW : -probe_wdl(pos, &ps);
+
+        pos.undo_move(rm.pv[0]);
+
+        if (ps == PS_FAIL)
+            return false;
+
+        rm.tbRank = WDL_RANK[wdlScore + 2];
+
+        if (!useRule50)
+            wdlScore = wdlScore > WDL_DRAW
+                       ? WDL_WIN
+                     : wdlScore < WDL_DRAW
+                       ? WDL_LOSS
+                       : WDL_DRAW;
+
+        rm.tbValue = WDL_VALUE[wdlScore + 2];
+    }
+
+    return true;
+}
+
 // Use the DTZ-tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ, TimeFunc time_to_abort) noexcept {
+bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ, TimeFunc time_to_abort) noexcept {
     // Obtain 50-move counter for the root position
     std::int16_t rule50Count = pos.rule50_count();
 
@@ -1810,10 +1932,10 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool ra
         // Better moves are ranked higher. Certain wins are ranked equally.
         // Losing moves are ranked equally unless a 50-move draw is in sight.
         int r = dtzScore > 0 ? (+1 * dtzScore + rule50Count < 100 && !hasRepeated
-                                  ? +MAX_DTZ - (rankDTZ ? dtzScore : 0)
+                                  ? +MAX_DTZ - (rankDTZ ? +dtzScore : 0)
                                   : +MAX_DTZ / 2 - (+dtzScore + rule50Count))
               : dtzScore < 0 ? (-2 * dtzScore + rule50Count < 100
-                                  ? -MAX_DTZ - (rankDTZ ? dtzScore : 0)
+                                  ? -MAX_DTZ + (rankDTZ ? -dtzScore : 0)
                                   : -MAX_DTZ / 2 + (-dtzScore + rule50Count))
                              : 0;
 
@@ -1822,46 +1944,11 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool ra
         // Determine the WDL-score to be displayed for this move.
         // Assign at least 1 cp to cursed wins and let it grow to 49 cp
         // as the positions gets closer to a real win.
-        rm.tbValue = r >= bound ? VALUE_MATES_IN_MAX_PLY - 1
-                   : r > 0      ? Value((std::max(r - (+MAX_DTZ / 2 - 200), +3) * VALUE_PAWN) / 200)
+        rm.tbValue = r >= bound ? +VALUE_TB
+                   : r > 0      ? Value((std::max(r - (MAX_DTZ / 2 - 200), +3) * VALUE_PAWN) / 200)
                    : r == 0     ? VALUE_DRAW
-                   : r > -bound ? Value((std::min(r + (+MAX_DTZ / 2 - 200), -3) * VALUE_PAWN) / 200)
-                                : VALUE_MATED_IN_MAX_PLY + 1;
-    }
-
-    return true;
-}
-
-// Use the WDL-tables to rank root moves.
-// This is a fallback for the case that some or all DTZ-tables are missing.
-//
-// A return value false indicates that not all probes were successful.
-bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept {
-    // Probe and rank each move
-    for (auto& rm : rootMoves)
-    {
-        State st;
-        pos.do_move(rm.pv[0], st);
-
-        ProbeState ps = PS_OK;
-
-        WDLScore wdlScore = pos.is_draw(1) ? WDL_DRAW : -probe_wdl(pos, &ps);
-
-        pos.undo_move(rm.pv[0]);
-
-        if (ps == PS_FAIL)
-            return false;
-
-        rm.tbRank = WDL_RANK[wdlScore + 2];
-
-        if (!useRule50)
-            wdlScore = wdlScore > WDL_DRAW
-                       ? WDL_WIN
-                     : wdlScore < WDL_DRAW
-                       ? WDL_LOSS
-                       : WDL_DRAW;
-
-        rm.tbValue = WDL_VALUE[wdlScore + 2];
+                   : r > -bound ? Value((std::min(r + (MAX_DTZ / 2 - 200), -3) * VALUE_PAWN) / 200)
+                                : -VALUE_TB;
     }
 
     return true;
@@ -1890,13 +1977,13 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
     if (config.cardinality >= pos.count() && !pos.has_castling_rights())
     {
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
-        config.rootInTB = probe_root_dtz(pos, rootMoves, config.useRule50, rankDTZ, time_to_abort);
+        config.rootInTB = rank_root_moves_dtz(pos, rootMoves, config.useRule50, rankDTZ, time_to_abort);
 
         if (!config.rootInTB)
         {
             // DTZ-tables are missing/aborted; try to rank moves using WDL-tables
             dtzAvailable    = false;
-            config.rootInTB = probe_root_wdl(pos, rootMoves, config.useRule50);
+            config.rootInTB = rank_root_moves_wdl(pos, rootMoves, config.useRule50);
         }
     }
 
@@ -1913,7 +2000,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
     }
     else
     {
-        // Clean up if probe_root_dtz() and probe_root_wdl() have failed
+        // Clean up if rank_root_moves_dtz() and rank_root_moves_wdl() have failed
         for (auto& rm : rootMoves)
             rm.tbRank = 0;
     }

@@ -271,7 +271,7 @@ class SharedMemoryBackend final {
 
     bool is_valid() const noexcept { return status == Status::Success; }
 
-    void* get() const noexcept { return is_valid() ? mapAddress : nullptr; }
+    void* get() const noexcept { return is_valid() ? mappedPtr : nullptr; }
 
     ~SharedMemoryBackend() noexcept { cleanup(); }
 
@@ -280,13 +280,13 @@ class SharedMemoryBackend final {
 
     SharedMemoryBackend(SharedMemoryBackend&& shmBackend) noexcept :
         hMapFile(shmBackend.hMapFile),
-        mapAddress(shmBackend.mapAddress),
+        mappedPtr(shmBackend.mappedPtr),
         status(shmBackend.status),
         lastErrorStr(std::move(shmBackend.lastErrorStr)) {
 
-        shmBackend.mapAddress = nullptr;
-        shmBackend.hMapFile   = nullptr;
-        shmBackend.status     = Status::NotInitialized;
+        shmBackend.mappedPtr = nullptr;
+        shmBackend.hMapFile  = nullptr;
+        shmBackend.status    = Status::NotInitialized;
     }
     SharedMemoryBackend& operator=(SharedMemoryBackend&& shmBackend) noexcept {
         if (this == &shmBackend)
@@ -295,13 +295,13 @@ class SharedMemoryBackend final {
         cleanup();
 
         hMapFile     = shmBackend.hMapFile;
-        mapAddress   = shmBackend.mapAddress;
+        mappedPtr    = shmBackend.mappedPtr;
         status       = shmBackend.status;
         lastErrorStr = std::move(shmBackend.lastErrorStr);
 
-        shmBackend.hMapFile   = nullptr;
-        shmBackend.mapAddress = nullptr;
-        shmBackend.status     = Status::NotInitialized;
+        shmBackend.hMapFile  = nullptr;
+        shmBackend.mappedPtr = nullptr;
+        shmBackend.status    = Status::NotInitialized;
 
         return *this;
     }
@@ -369,12 +369,13 @@ class SharedMemoryBackend final {
         {
             status       = Status::FileMappingError;
             lastErrorStr = error_to_string(GetLastError());
+
             return;
         }
 
-        mapAddress = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, totalSize);
+        mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, totalSize);
 
-        if (mapAddress == nullptr)
+        if (mappedPtr == nullptr)
         {
             status       = Status::MapViewError;
             lastErrorStr = error_to_string(GetLastError());
@@ -409,9 +410,9 @@ class SharedMemoryBackend final {
 
         // Crucially, place the object first to ensure alignment
         volatile DWORD* isInitialized =
-          std::launder(reinterpret_cast<DWORD*>(reinterpret_cast<char*>(mapAddress) + sizeof(T)));
+          std::launder(reinterpret_cast<DWORD*>(reinterpret_cast<char*>(mappedPtr) + sizeof(T)));
 
-        T* object = std::launder(reinterpret_cast<T*>(mapAddress));
+        T* object = std::launder(reinterpret_cast<T*>(mappedPtr));
 
         if (*isInitialized != IS_INITIALIZED_VALUE)
         {
@@ -437,10 +438,10 @@ class SharedMemoryBackend final {
     }
 
     void cleanup_partial() noexcept {
-        if (mapAddress != nullptr)
+        if (mappedPtr != nullptr)
         {
-            UnmapViewOfFile(mapAddress);
-            mapAddress = nullptr;
+            UnmapViewOfFile(mappedPtr);
+            mappedPtr = nullptr;
         }
         if (hMapFile != nullptr)
         {
@@ -451,9 +452,9 @@ class SharedMemoryBackend final {
 
     void cleanup() noexcept { cleanup_partial(); }
 
-    HANDLE      hMapFile   = nullptr;
-    void*       mapAddress = nullptr;
-    Status      status     = Status::NotInitialized;
+    HANDLE      hMapFile  = nullptr;
+    void*       mappedPtr = nullptr;
+    Status      status    = Status::NotInitialized;
     std::string lastErrorStr;
 };
 
@@ -902,6 +903,7 @@ class SharedMemory final: public BaseSharedMemory {
         for (int attempt = 0; attempt < 2; ++attempt)
         {
             int fd = ::open(sentinelPath.c_str(), O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC, 0600);
+
             if (fd != -1)
             {
                 ::close(fd);
@@ -1038,8 +1040,10 @@ class SharedMemory final: public BaseSharedMemory {
 
         if (mappedPtr == MAP_FAILED)
         {
+            std::cerr << "mmap() failed" << std::endl;
+
             mappedPtr = nullptr;
-            perror("mmap");
+
             return false;
         }
 
@@ -1063,12 +1067,19 @@ class SharedMemory final: public BaseSharedMemory {
     [[nodiscard]] bool setup_existing_region(bool& headerInvalid) noexcept {
         headerInvalid = false;
 
-        struct stat stat;
-        fstat(_fd, &stat);
+        struct stat objStat;
 
-        if (std::size_t(stat.st_size) < totalSize)
+        if (fstat(_fd, &objStat) == -1)
+        {
+            std::cerr << "fstat failed: " << strerror(errno) << std::endl;
+
+            return false;
+        }
+
+        if (std::size_t(objStat.st_size) < totalSize)
         {
             headerInvalid = true;
+
             return false;
         }
 
@@ -1076,9 +1087,9 @@ class SharedMemory final: public BaseSharedMemory {
 
         if (mappedPtr == MAP_FAILED)
         {
-            mappedPtr = nullptr;
+            std::cerr << "mmap() failed" << std::endl;
 
-            perror("mmap");
+            mappedPtr = nullptr;
 
             return false;
         }

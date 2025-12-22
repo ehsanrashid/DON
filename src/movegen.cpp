@@ -432,7 +432,7 @@ Move* generate(const Position& pos, Move* moves) noexcept {
                     || GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET,
                   "Unsupported generate type in generate()");
 
-    assert((GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET) == bool(pos.checkers_bb()));
+    assert((GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET) == (pos.checkers_bb() != 0));
 
     return pos.active_color() == WHITE ? generate_moves<WHITE, GT, Any>(pos, moves)
                                        : generate_moves<BLACK, GT, Any>(pos, moves);

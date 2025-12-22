@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <cctype>
 #include <chrono>
@@ -40,6 +41,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -681,6 +683,82 @@ class FixedString final {
     std::size_t                  _size;
 };
 
+struct InitOnce final {
+   public:
+    InitOnce() = default;
+
+    InitOnce(const InitOnce& initOnce) noexcept :
+        state(initOnce.state.load(std::memory_order_relaxed)) {}
+    InitOnce& operator=(const InitOnce& initOnce) noexcept {
+        state.store(initOnce.state.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        return *this;
+    }
+
+    InitOnce(InitOnce&&) noexcept            = delete;
+    InitOnce& operator=(InitOnce&&) noexcept = delete;
+
+    // Check if initialization is complete
+    bool is_initialized() const noexcept {
+        return state.load(std::memory_order_acquire) == Initialized;
+    }
+
+    // Attempt to become the initializing thread
+    // Returns true if this thread is responsible for initialization
+    bool try_init() noexcept {
+        State expected = Uninitialized;
+        return state.compare_exchange_strong(expected, InProgress, std::memory_order_acq_rel,
+                                             std::memory_order_relaxed);
+    }
+
+    // Spin-wait until initialization is done
+    void wait_until_initialized() const noexcept {
+        while (state.load(std::memory_order_acquire) != Initialized)
+            std::this_thread::yield();
+    }
+
+    // Mark initialization as done
+    void set_initialized() noexcept { state.store(Initialized, std::memory_order_release); }
+
+   private:
+    enum State {
+        Uninitialized,
+        InProgress,
+        Initialized,
+    };
+
+    std::atomic<State> state{Uninitialized};
+};
+
+// LazyValue wraps a Value with AtomicOnce for safe lazy initialization
+template<typename Value>
+struct LazyValue final {
+    template<typename... Args>
+    Value& init(Args&&... args) noexcept {
+        // Fast path: already initialized
+        if (initOnce.is_initialized())
+            return value;
+
+        if (initOnce.try_init())
+        {
+            // first thread initializes
+            value = Value(std::forward<Args>(args)...);
+
+            initOnce.set_initialized();
+        }
+        else
+        {
+            // other threads wait until ready
+            initOnce.wait_until_initialized();
+        }
+
+        return value;
+    }
+
+   private:
+    Value    value;
+    InitOnce initOnce;
+};
+
 // ConcurrentCache: groups (mutex + storage + pre-reserve)
 template<typename Key, typename Value>
 class ConcurrentCache final {
@@ -690,10 +768,43 @@ class ConcurrentCache final {
         storage.max_load_factor(loadFactor);
     }
 
+    // Thread-safe access or build
     // Args... are forwarded to Value constructor
     template<typename... Args>
     Value& access_or_build(const Key& key, Args&&... args) noexcept {
-        return _access_or_build(key, std::forward<Args>(args)...);
+        // Fast path: shared (read) lock to access
+        {
+            std::shared_lock lock(mutex);
+
+            if (auto itr = storage.find(key); itr != storage.end())
+            {
+                if constexpr (sizeof(Value) <= THRESHOLD_SIZE)
+                    return itr->second.init(std::forward<Args>(args)...);
+                else
+                    return itr->second->init(std::forward<Args>(args)...);
+            }
+        }
+
+        // Slow path: exclusive (write) lock to insert new LazyValue if missing
+        {
+            std::unique_lock lock(mutex);
+
+            auto& entry = storage[key];
+
+            if constexpr (sizeof(Value) <= THRESHOLD_SIZE)
+            {
+                // inline: default-constructed already in map
+                return entry.init(std::forward<Args>(args)...);
+            }
+            else
+            {
+                // heap: allocate if missing
+                if (!entry)
+                    entry = std::make_unique<LazyValue<Value>>();
+
+                return entry->init(std::forward<Args>(args)...);
+            }
+        }
     }
 
     // Transformer is callable: Value& -> any return type
@@ -702,40 +813,19 @@ class ConcurrentCache final {
     auto
     transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) noexcept {
         return std::forward<Transformer>(transformer)(
-          _access_or_build(key, std::forward<Args>(args)...));
+          access_or_build(key, std::forward<Args>(args)...));
     }
 
    private:
-    // Thread-safe access or build
-    template<typename... Args>
-    Value& _access_or_build(const Key& key, Args&&... args) noexcept {
+    static constexpr std::size_t THRESHOLD_SIZE = 128;  // bytes
 
-        // Fast path: shared (read) lock
-        {
-            std::shared_lock lock(mutex);
+    using StorageValue = std::conditional_t<sizeof(Value) <= THRESHOLD_SIZE,
+                                            LazyValue<Value>,                  // inline
+                                            std::unique_ptr<LazyValue<Value>>  // heap
+                                            >;
 
-            if (auto itr = storage.find(key); itr != storage.end())
-                return *itr->second;
-        }
-
-        // Slow path: exclusive (write) lock to insert (double-check to avoid races)
-        {
-            std::unique_lock lock(mutex);
-
-            // Double-check
-            if (auto itr = storage.find(key); itr != storage.end())
-                return *itr->second;
-
-            // Build the value internally inside lock - reduces lock contention
-            auto [itr, inserted] =
-              storage.emplace(key, std::make_unique<Value>(std::forward<Args>(args)...));
-
-            return *itr->second;
-        }
-    }
-
-    std::shared_mutex                               mutex;
-    std::unordered_map<Key, std::unique_ptr<Value>> storage;
+    std::shared_mutex                     mutex;
+    std::unordered_map<Key, StorageValue> storage;
 };
 
 template<typename T>

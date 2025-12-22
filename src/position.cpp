@@ -2206,8 +2206,10 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
         auto wdlScore = Tablebase::probe_wdl(p, &wdlPs);
         auto dtzScore = Tablebase::probe_dtz(p, &dtzPs);
 
-        os << "\nTablebase WDL: " << std::setw(4) << int(wdlScore) << " (" << int(wdlPs) << ")"
-           << "\nTablebase DTZ: " << std::setw(4) << int(dtzScore) << " (" << int(dtzPs) << ")";
+        os << "\nTablebase WDL: " << std::setw(4) << to_string(wdlScore)  //
+           << " (" << to_string(wdlPs) << ")";
+        os << "\nTablebase DTZ: " << std::setw(4) << std::to_string(dtzScore)  //
+           << " (" << to_string(dtzPs) << ")";
     }
 
     return os;
