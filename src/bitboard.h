@@ -112,23 +112,6 @@ struct Magic final {
     Magic& operator=(Magic&&) noexcept      = delete;
 
 #if defined(USE_BMI2)
-    #if defined(USE_COMPRESSED)
-    Bitboard16* attacksBBs;
-    Bitboard    maskBB;
-    Bitboard    reMaskBB;
-    #else
-    Bitboard* attacksBBs;
-    Bitboard  maskBB;
-    #endif
-#else
-    Bitboard*    attacksBBs;
-    Bitboard     maskBB;
-    Bitboard     magicBB;
-    std::uint8_t shift;
-#endif
-
-
-#if defined(USE_BMI2)
     void attacks_bb(Bitboard occupancyBB, Bitboard referenceBB) noexcept {
     #if defined(USE_COMPRESSED)
         attacksBBs[index(occupancyBB)] = _pext_u64(referenceBB, reMaskBB);
@@ -166,22 +149,38 @@ struct Magic final {
     #endif
 #endif
     }
+
+#if defined(USE_BMI2)
+    #if defined(USE_COMPRESSED)
+    Bitboard16* attacksBBs;
+    Bitboard    maskBB;
+    Bitboard    reMaskBB;
+    #else
+    Bitboard* attacksBBs;
+    Bitboard  maskBB;
+    #endif
+#else
+    Bitboard*    attacksBBs;
+    Bitboard     maskBB;
+    Bitboard     magicBB;
+    std::uint8_t shift;
+#endif
 };
 
 #if !defined(USE_POPCNT)
-alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, 1 << 16> PopCnt{};
+alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, 0x10000> PopCnt;
 #endif
 
 // clang-format off
-alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB> Distances{};
+alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB> Distances;
 
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     LineBBs{};
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     BetweenBBs{};
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     PassRayBBs{};
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, PIECE_TYPE_NB> AttacksBBs{};
-alignas(CACHE_LINE_SIZE) inline StdArray<Magic   , SQUARE_NB, 2>             Magics{};  // BISHOP or ROOK
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     LineBBs;
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     BetweenBBs;
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     PassRayBBs;
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, PIECE_TYPE_NB> AttacksBBs;
+alignas(CACHE_LINE_SIZE) inline StdArray<Magic   , SQUARE_NB, 2>             Magics;  // BISHOP or ROOK
 
-alignas(CACHE_LINE_SIZE) inline StdArray<bool, SQUARE_NB, SQUARE_NB, SQUARE_NB> Aligneds{};
+alignas(CACHE_LINE_SIZE) inline StdArray<bool, SQUARE_NB, SQUARE_NB, SQUARE_NB> Aligneds;
 // clang-format on
 
 constexpr Bitboard square_bb(Square s) noexcept {
