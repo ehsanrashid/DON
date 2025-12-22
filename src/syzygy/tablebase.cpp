@@ -735,9 +735,10 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     // Read the first 64 bits in our block, this is a (truncated) sequence of
     // unknown number of symbols of unknown length but the first one
     // is at the beginning of this 64-bit sequence.
-    auto buf64     = number<std::uint64_t, BIG>(ptr);
-    int  buf64Size = 64;
+    auto buf64 = number<std::uint64_t, BIG>(ptr);
     ptr += 2;
+
+    int buf64Size = 64;
     Sym sym;
 
     while (true)
