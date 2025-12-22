@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <array>
-#include <atomic>
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -28,7 +27,6 @@
 #include <initializer_list>
 #include <iostream>
 #include <iterator>
-#include <mutex>
 #include <sstream>
 #include <sys/stat.h>
 #include <type_traits>
@@ -56,6 +54,7 @@
         #undef small
     #endif
 #else
+    #include <cerrno>
     #include <fcntl.h>
     #include <sys/mman.h>
     #include <unistd.h>
