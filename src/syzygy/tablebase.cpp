@@ -539,7 +539,7 @@ TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept :
 }
 
 template<TBType T>
-inline TBTable<T>::~TBTable() noexcept {
+TBTable<T>::~TBTable() noexcept {
     TBFile::unmap(mappedPtr, mapping);
 }
 
@@ -780,7 +780,7 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     // Binary-search for our value recursively expanding into the left and
     // right child symbols until reach a leaf node where symLen[sym] + 1 == 1
     // that will store the value need.
-    while (pd->symLen[sym])
+    while (pd->symLen[sym] != 0)
     {
         Sym lSym = pd->btree[sym].get<true>();
 
