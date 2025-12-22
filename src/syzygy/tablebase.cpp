@@ -227,7 +227,7 @@ class TBFile: public std::ifstream {
 
     // Memory map the file and check it
     template<TBType T>
-    std::uint8_t* map(void** mapAddress, std::uint64_t* mapping) noexcept {
+    std::uint8_t* map(void** mappedPtr, std::uint64_t* mapping) noexcept {
 
         if (is_open())
             close();  // Need to re-open to get native file descriptor
@@ -240,13 +240,24 @@ class TBFile: public std::ifstream {
 
         if (fd == INVALID_HANDLE_VALUE)
         {
-            *mapAddress = nullptr;
+            *mappedPtr = nullptr;
 
             return nullptr;
         }
 
         DWORD hiSize;
         DWORD loSize = GetFileSize(fd, &hiSize);
+
+        if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
+        {
+            std::cerr << "GetFileSize() failed" << std::endl;
+
+            CloseHandle(fd);
+
+            *mappedPtr = nullptr;
+
+            return nullptr;
+        }
 
         if (loSize % 64 != 16)
         {
@@ -268,12 +279,14 @@ class TBFile: public std::ifstream {
 
         *mapping = std::uint64_t(hMapFile);
 
-        *mapAddress = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
+        *mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
 
-        if (*mapAddress == nullptr)
+        if (*mappedPtr == nullptr)
         {
             std::cerr << "MapViewOfFile() failed, name = " << filename
                       << ", error = " << GetLastError() << std::endl;
+
+            CloseHandle(hMapFile);
 
             std::exit(EXIT_FAILURE);
         }
@@ -284,41 +297,55 @@ class TBFile: public std::ifstream {
 
         if (fd == -1)
         {
-            *mapAddress = nullptr;
+            *mappedPtr = nullptr;
 
             return nullptr;
         }
 
         struct stat objStat;
-        fstat(fd, &objStat);
+
+        if (fstat(fd, &objStat) == -1)
+        {
+            std::cerr << "fstat failed: " << strerror(errno) << std::endl;
+
+            ::close(fd);
+
+            *mappedPtr = nullptr;
+
+            return nullptr;
+        }
 
         if (objStat.st_size % 64 != 16)
         {
             std::cerr << "Corrupt tablebase file " << filename << std::endl;
+
+            ::close(fd);
 
             std::exit(EXIT_FAILURE);
         }
 
         *mapping = objStat.st_size;
 
-        *mapAddress = mmap(nullptr, objStat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+        *mappedPtr = mmap(nullptr, objStat.st_size, PROT_READ, MAP_SHARED, fd, 0);
 
-    #if defined(MADV_RANDOM)
-        madvise(*mapAddress, objStat.st_size, MADV_RANDOM);
-    #endif
-
-        ::close(fd);
-
-        if (*mapAddress == MAP_FAILED)
+        if (*mappedPtr == MAP_FAILED)
         {
             std::cerr << "mmap() failed, name = " << filename << std::endl;
+
+            ::close(fd);
 
             std::exit(EXIT_FAILURE);
         }
 
+    #if defined(MADV_RANDOM)
+        madvise(*mappedPtr, objStat.st_size, MADV_RANDOM);
+    #endif
+
+        ::close(fd);
+
 #endif
 
-        std::uint8_t* data = (std::uint8_t*) (*mapAddress);
+        std::uint8_t* data = (std::uint8_t*) (*mappedPtr);
 
         constexpr auto& TBMagic = TB_MAGICS[T];
 
@@ -326,9 +353,9 @@ class TBFile: public std::ifstream {
         {
             std::cerr << "Corrupted table in file " << filename << std::endl;
 
-            unmap(*mapAddress, *mapping);
+            unmap(*mappedPtr, *mapping);
 
-            *mapAddress = nullptr;
+            *mappedPtr = nullptr;
 
             return nullptr;
         }
@@ -336,12 +363,15 @@ class TBFile: public std::ifstream {
         return data + TBMagic.size();  // Skip TB Magic header
     }
 
-    static void unmap(void* mapAddress, std::uint64_t mapping) noexcept {
+    static void unmap(void* mappedPtr, std::uint64_t mapping) noexcept {
 #if defined(_WIN32)
-        UnmapViewOfFile(mapAddress);
-        CloseHandle((HANDLE) mapping);
+        if (mappedPtr != nullptr)
+            UnmapViewOfFile(mappedPtr);
+        if (mapping)
+            CloseHandle((HANDLE) mapping);
 #else
-        munmap(mapAddress, mapping);
+        if (mappedPtr != nullptr)
+            munmap(mappedPtr, mapping);
 #endif
     }
 
@@ -428,7 +458,7 @@ struct TBTable final {
 
     std::atomic<bool> ready{false};
 
-    void*         mapAddress = nullptr;
+    void*         mappedPtr = nullptr;
     std::uint8_t* map;
     std::uint64_t mapping;
 
@@ -445,10 +475,7 @@ struct TBTable final {
     explicit TBTable(std::string_view code) noexcept;
     explicit TBTable(const TBTable<WDL>& wdlTable) noexcept;
 
-    ~TBTable() noexcept {
-        if (mapAddress != nullptr)
-            TBFile::unmap(mapAddress, mapping);
-    }
+    ~TBTable() noexcept;
 };
 
 template<>
@@ -494,6 +521,11 @@ TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept :
     hasUniquePieces  = wdlTable.hasUniquePieces;
     pawnCount[WHITE] = wdlTable.pawnCount[WHITE];
     pawnCount[BLACK] = wdlTable.pawnCount[BLACK];
+}
+
+template<TBType T>
+inline TBTable<T>::~TBTable() noexcept {
+    TBFile::unmap(mappedPtr, mapping);
 }
 
 // class TBTables creates and keeps ownership of the TBTable objects,
@@ -1345,12 +1377,12 @@ void* init(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
     // Use 'acquire' to avoid a thread reading 'ready' == true while
     // another is still working. (compiler reordering may cause this).
     if (entry.ready.load(std::memory_order_acquire))
-        return entry.mapAddress;  // Could be nullptr if file does not exist
+        return entry.mappedPtr;  // Could be nullptr if file does not exist
 
     std::scoped_lock lock(mutex);
 
     if (entry.ready.load(std::memory_order_relaxed))  // Recheck under lock
-        return entry.mapAddress;
+        return entry.mappedPtr;
 
     // Pieces strings in decreasing order for each color, like ("KPP","KR")
     StdArray<std::string, COLOR_NB> pieces{};
@@ -1379,14 +1411,14 @@ void* init(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
 
     fname += EXT[T];
 
-    std::uint8_t* data = TBFile(fname).map<T>(&entry.mapAddress, &entry.mapping);
+    std::uint8_t* data = TBFile(fname).map<T>(&entry.mappedPtr, &entry.mapping);
 
     if (data != nullptr)
         set(entry, data);
 
     entry.ready.store(true, std::memory_order_release);
 
-    return entry.mapAddress;
+    return entry.mappedPtr;
 }
 
 template<TBType T, typename Ret = typename TBTable<T>::Ret>

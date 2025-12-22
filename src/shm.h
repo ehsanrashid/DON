@@ -903,6 +903,7 @@ class SharedMemory final: public BaseSharedMemory {
         for (int attempt = 0; attempt < 2; ++attempt)
         {
             int fd = ::open(sentinelPath.c_str(), O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC, 0600);
+
             if (fd != -1)
             {
                 ::close(fd);
@@ -1067,7 +1068,13 @@ class SharedMemory final: public BaseSharedMemory {
         headerInvalid = false;
 
         struct stat objStat;
-        fstat(_fd, &objStat);
+
+        if (fstat(fd, &objStat) == -1)
+        {
+            std::cerr << "fstat failed: " << strerror(errno) << std::endl;
+
+            return false;
+        }
 
         if (std::size_t(objStat.st_size) < totalSize)
         {
