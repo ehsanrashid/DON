@@ -551,18 +551,23 @@ class TBTables final {
     template<TBType T>
     [[nodiscard]] TBTable<T>* get(Key key) noexcept {
 
-        std::size_t bucket = key & (SIZE - 1);
+        std::size_t bucket = key & MASK;
 
-        while (true)
+        for (std::size_t distance = 0;; ++distance)
         {
             Entry& entry = entries[bucket];
+            auto*  table = entry.get<T>();
 
-            auto* table = entry.get<T>();
-
+            // Found key or reached empty slot
             if (entry.key == key || table == nullptr)
                 return table;
 
-            bucket = (bucket + 1) & (SIZE - 1);
+            // Robin Hood early exit (Optional)
+            // Stop early if have probed farther than the entry's home bucket
+            if (distance > ((bucket - entry.bucket) & MASK))
+                return nullptr;  // key cannot be in table
+
+            bucket = (bucket + 1) & MASK;
         }
     }
 
@@ -587,6 +592,7 @@ class TBTables final {
 
    private:
     struct Entry final {
+       public:
         template<TBType T>
         TBTable<T>* get() const noexcept {
             if constexpr (T == WDL)
@@ -596,14 +602,15 @@ class TBTables final {
         }
 
         Key           key;
+        std::size_t   bucket;
         TBTable<WDL>* wdlTable;
         TBTable<DTZ>* dtzTable;
     };
 
     void insert(Key key, TBTable<WDL>* wdlTable, TBTable<DTZ>* dtzTable) noexcept {
-        Entry entry{key, wdlTable, dtzTable};
+        Entry entry{key, key & MASK, wdlTable, dtzTable};
 
-        std::size_t bucket = key & (SIZE - 1);
+        std::size_t bucket = entry.bucket;
 
         std::size_t distance = 0;
 
@@ -611,20 +618,18 @@ class TBTables final {
         {
             Entry& curEntry = entries[bucket];
 
-            Key curKey = curEntry.key;
-
             // Insert if empty or replace if key exists
-            if (curEntry.get<WDL>() == nullptr || curKey == key)
+            if (curEntry.get<WDL>() == nullptr || curEntry.key == key)
             {
                 curEntry = entry;
+
                 break;
             }
 
-            // Compute probe distance of the existing entry
-            std::size_t curBucket   = curKey & (SIZE - 1);
-            std::size_t curDistance = (bucket + SIZE - curBucket) & (SIZE - 1);
+            // Compute circular probe distance of the existing entry
+            std::size_t curDistance = (bucket - curEntry.bucket) & MASK;
 
-            // Robin Hood swap if current entry has probed less than the new entry
+            // Robin Hood swap if new entry has probed farther than existing
             if (distance > curDistance)
             {
                 std::swap(entry, curEntry);
@@ -633,11 +638,12 @@ class TBTables final {
             }
 
             // Move to the next bucket
-            bucket = (bucket + 1) & (SIZE - 1);
+            bucket = (bucket + 1) & MASK;
 
             ++distance;
 
             // Safety check to prevent infinite loop
+            assert(distance < SIZE && "TB hash table size too low!");
             if (distance >= SIZE)
             {
                 std::cerr << "TB hash table size too low!" << std::endl;
@@ -649,6 +655,7 @@ class TBTables final {
 
     // 4K table, indexed by key's 12 lsb
     static constexpr std::size_t SIZE = 0x1000;
+    static constexpr std::size_t MASK = SIZE - 1;
 
     StdArray<Entry, SIZE> entries;
 
