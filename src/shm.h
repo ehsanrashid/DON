@@ -1069,7 +1069,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         struct stat objStat;
 
-        if (fstat(fd, &objStat) == -1)
+        if (fstat(_fd, &objStat) == -1)
         {
             std::cerr << "fstat failed: " << strerror(errno) << std::endl;
 
