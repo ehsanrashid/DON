@@ -547,6 +547,45 @@ TBTable<T>::~TBTable() noexcept {
 // Populated at init time, accessed at probe time.
 class TBTables final {
 
+   public:
+    template<TBType T>
+    [[nodiscard]] TBTable<T>* get(Key key) noexcept {
+
+        std::size_t bucket = key & (SIZE - 1);
+
+        while (true)
+        {
+            Entry& entry = entries[bucket];
+
+            auto* table = entry.get<T>();
+
+            if (entry.key == key || table == nullptr)
+                return table;
+
+            bucket = (bucket + 1) & (SIZE - 1);
+        }
+    }
+
+    void clear() noexcept {
+        std::memset(entries.data(), 0, sizeof(entries));
+
+        wdlTables.clear();
+        dtzTables.clear();
+
+        wdlCount = 0;
+        dtzCount = 0;
+    }
+
+    std::string info() const noexcept {
+        return "Tablebase: "                            //
+             + std::to_string(wdlCount) + " WDL and "   //
+             + std::to_string(dtzCount) + " DTZ found"  //
+             + " (up to " + std::to_string(int(MaxCardinality)) + "-man).";
+    }
+
+    void add(const std::vector<PieceType>& pieces) noexcept;
+
+   private:
     struct Entry final {
         template<TBType T>
         TBTable<T>* get() const noexcept {
@@ -561,74 +600,63 @@ class TBTables final {
         TBTable<DTZ>* dtzTable;
     };
 
-    static constexpr std::size_t index(Key key) noexcept { return key & (SIZE - 1); }
-
     void insert(Key key, TBTable<WDL>* wdlTable, TBTable<DTZ>* dtzTable) noexcept {
         Entry entry{key, wdlTable, dtzTable};
 
-        std::size_t homeBucket = index(key);
-        // Ensure last element is empty to avoid overflow when looking up
-        for (auto bucket = homeBucket; bucket < SIZE + OVER_FLOW - 1; ++bucket)
+        std::size_t bucket = key & (SIZE - 1);
+
+        std::size_t distance = 0;
+
+        while (true)
         {
-            Key oKey = entries[bucket].key;
-            if (oKey == key || entries[bucket].get<WDL>() == nullptr)
+            Entry& curEntry = entries[bucket];
+
+            Key curKey = curEntry.key;
+
+            // Insert if empty or replace if key exists
+            if (curEntry.get<WDL>() == nullptr || curKey == key)
             {
-                entries[bucket] = entry;
-                return;
+                curEntry = entry;
+                break;
             }
 
-            // Robin Hood hashing: If probed for longer than this element,
-            // insert here and search for a new spot for the other element instead.
-            std::size_t oHomeBucket = index(oKey);
-            if (homeBucket < oHomeBucket)
+            // Compute probe distance of the existing entry
+            std::size_t curBucket   = curKey & (SIZE - 1);
+            std::size_t curDistance = (bucket + SIZE - curBucket) & (SIZE - 1);
+
+            // Robin Hood swap if current entry has probed less than the new entry
+            if (distance > curDistance)
             {
-                homeBucket = oHomeBucket;
-                key        = oKey;
-                std::swap(entry, entries[bucket]);
+                std::swap(entry, curEntry);
+
+                distance = curDistance;  // reset probe distance for the new entry
+            }
+
+            // Move to the next bucket
+            bucket = (bucket + 1) & (SIZE - 1);
+
+            ++distance;
+
+            // Safety check to prevent infinite loop
+            if (distance >= SIZE)
+            {
+                std::cerr << "TB hash table size too low!" << std::endl;
+
+                std::exit(EXIT_FAILURE);
             }
         }
-
-        std::cerr << "TB hash table size too low!" << std::endl;
-        std::exit(EXIT_FAILURE);
     }
 
     // 4K table, indexed by key's 12 lsb
-    static constexpr std::size_t SIZE = 1 << 12;
-    // Number of elements allowed to map to the last bucket
-    static constexpr std::size_t OVER_FLOW = 1;
+    static constexpr std::size_t SIZE = 0x1000;
 
-    StdArray<Entry, SIZE + OVER_FLOW> entries;
+    StdArray<Entry, SIZE> entries;
 
     std::deque<TBTable<WDL>> wdlTables;
     std::deque<TBTable<DTZ>> dtzTables;
 
     std::size_t wdlCount = 0;
     std::size_t dtzCount = 0;
-
-   public:
-    template<TBType T>
-    TBTable<T>* get(Key key) noexcept {
-        for (const Entry* entry = &entries[index(key)];; ++entry)
-            if (entry->key == key || !entry->get<T>())
-                return entry->get<T>();
-    }
-
-    void clear() noexcept {
-        entries.fill({});
-        wdlTables.clear();
-        dtzTables.clear();
-        wdlCount = 0;
-        dtzCount = 0;
-    }
-
-    std::string info() const noexcept {
-        return "Tablebase: "                            //
-             + std::to_string(wdlCount) + " WDL and "   //
-             + std::to_string(dtzCount) + " DTZ found"  //
-             + " (up to " + std::to_string(int(MaxCardinality)) + "-man).";
-    }
-
-    void add(const std::vector<PieceType>& pieces) noexcept;
 };
 
 // If the corresponding file exists two new objects TBTable<WDL> and TBTable<DTZ>
