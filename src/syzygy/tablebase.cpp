@@ -99,16 +99,21 @@ enum TBFlag : std::uint8_t {
 
 // Max number of supported piece
 constexpr std::uint32_t MAX_TB_PIECES = 7;
-// Max DTZ supported (2 times), large enough to deal with the syzygy TB limit.
-constexpr std::int32_t MAX_DTZ = 1 << 18;
+// Max DTZ supported (2 times), large enough to deal with the syzygy TB limit
+constexpr std::int32_t MAX_DTZ = 0x40000;
 
-constexpr std::string_view WDL_EXT{".rtbw"};
-constexpr std::string_view DTZ_EXT{".rtbz"};
+constexpr StdArray<std::string_view, 2> EXT{".rtbw", ".rtbz"};
+
+constexpr StdArray<std::uint8_t, 2, 4> TB_MAGICS{{
+  {0x71, 0xE8, 0x23, 0x5D},  // Win-Draw-Loss    (WDL) = 0x5D23E871
+  {0xD7, 0x66, 0x0C, 0xA5},  // Distance-to-Zero (DTZ) = 0xA50C66D7
+}};
 
 // clang-format off
-constexpr StdArray<int, 5>          WDL_MAP  {1, 3, 0, 2, 0};
+
+constexpr StdArray<int         , 5> WDL_MAP  {1, 3, 0, 2, 0};
 constexpr StdArray<std::int32_t, 5> WDL_RANK {-MAX_DTZ, -MAX_DTZ + 101, 0, +MAX_DTZ - 101, +MAX_DTZ};
-constexpr StdArray<Value, 5>        WDL_VALUE{VALUE_MATED_IN_MAX_PLY + 1, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, VALUE_MATES_IN_MAX_PLY - 1};
+constexpr StdArray<Value       , 5> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
 
 StdArray<std::size_t, SQUARE_NB>     B1H1H7Map;
 StdArray<std::size_t, SQUARE_NB>     A1D1D4Map;
@@ -118,12 +123,32 @@ StdArray<std::size_t, SQUARE_NB>     PawnsMap;
 StdArray<std::size_t, MAX_TB_PIECES - 1, SQUARE_NB>   Binomial;     // [k][n] k elements from a set of n elements
 StdArray<std::size_t, MAX_TB_PIECES - 1, SQUARE_NB>   LeadPawnIdx;  // [leadPawnCnt][SQUARE_NB]
 StdArray<std::size_t, MAX_TB_PIECES - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE_A..FILE_D]
+
 // clang-format on
+
+// Comparison function to sort leading pawns in ascending PawnsMap[] order
+constexpr bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
 
 constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 
-// Comparison function to sort leading pawns in ascending PawnsMap[] order
-bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
+// DTZ-tables don't store valid scores for moves that reset the rule50 counter
+// like captures and pawn moves but can easily recover the correct DTZ-score of the
+// previous move if know the position's WDL-score.
+constexpr int before_zeroing_dtz(WDLScore wdlScore) noexcept {
+    switch (wdlScore)
+    {
+    case WDL_BLESSED_LOSS :
+        return -101;
+    case WDL_LOSS :
+        return -1;
+    case WDL_WIN :
+        return +1;
+    case WDL_CURSED_WIN :
+        return +101;
+    default :
+        return 0;
+    }
+}
 
 template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
 void swap_endian(T& x) noexcept {
@@ -150,29 +175,10 @@ T number(void* addr) noexcept {
     return v;
 }
 
-// DTZ-tables don't store valid scores for moves that reset the rule50 counter
-// like captures and pawn moves but can easily recover the correct DTZ-score of the
-// previous move if know the position's WDL-score.
-int before_zeroing_dtz(WDLScore wdlScore) noexcept {
-    switch (wdlScore)
-    {
-    case WDL_BLESSED_LOSS :
-        return -101;
-    case WDL_LOSS :
-        return -1;
-    case WDL_WIN :
-        return +1;
-    case WDL_CURSED_WIN :
-        return +101;
-    default :
-        return 0;
-    }
-}
-
 // Numbers in little-endian used by sparseIndex[] to point into blockLength[]
 struct SparseEntry final {
-    char block[4];   // Number of block
-    char offset[2];  // Offset within the block
+    StdArray<char, 4> block;   // Number of block
+    StdArray<char, 2> offset;  // Offset within the block
 };
 
 static_assert(sizeof(SparseEntry) == 6, "SparseEntry must be 6 bytes");
@@ -314,21 +320,20 @@ class TBFile: public std::ifstream {
 
         std::uint8_t* data = (std::uint8_t*) (*mapAddress);
 
-        constexpr StdArray<std::uint8_t, 2, 4> Magics{{
-          {0xD7, 0x66, 0x0C, 0xA5},  //
-          {0x71, 0xE8, 0x23, 0x5D}   //
-        }};
+        constexpr auto& TBMagic = TB_MAGICS[T];
 
-        const auto& magic = Magics[T == WDL];
-
-        if (std::memcmp(data, magic.data(), magic.size()) != 0)
+        if (std::memcmp(data, TBMagic.data(), TBMagic.size()) != 0)
         {
             std::cerr << "Corrupted table in file " << filename << std::endl;
+
             unmap(*mapAddress, *mapping);
-            return *mapAddress = nullptr, nullptr;
+
+            *mapAddress = nullptr;
+
+            return nullptr;
         }
 
-        return data + magic.size();  // Skip Magics's header
+        return data + TBMagic.size();  // Skip TB Magic header
     }
 
     static void unmap(void* mapAddress, std::uint64_t mapping) noexcept {
@@ -594,14 +599,14 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
         return;
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    TBFile dtzFile(code + DTZ_EXT.data());
+    TBFile dtzFile(code + std::string(EXT[DTZ]));
     if (dtzFile.is_open())
     {
         dtzFile.close();
         ++dtzCount;
     }
 
-    TBFile wdlFile(code + WDL_EXT.data());
+    TBFile wdlFile(code + std::string(EXT[WDL]));
     if (!wdlFile.is_open())  // Only WDL file is checked
         return;
 
@@ -659,8 +664,8 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     auto k = std::uint32_t(idx / pd->span);
 
     // Then read the corresponding SparseIndex[] entry
-    auto block  = number<std::uint32_t, LITTLE>(&pd->sparseIndex[k].block);
-    int  offset = number<std::uint16_t, LITTLE>(&pd->sparseIndex[k].offset);
+    auto block  = number<std::uint32_t, LITTLE>(pd->sparseIndex[k].block.data());
+    int  offset = number<std::uint16_t, LITTLE>(pd->sparseIndex[k].offset.data());
 
     // Now compute the difference idx - I(k). From the definition of k,
     //
@@ -860,8 +865,9 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
         leadPawnCnt = size;
 
-        std::swap(squares[0],
-                  *std::max_element(squares.begin(), squares.begin() + leadPawnCnt, pawns_comp));
+        if (leadPawnCnt != 0)
+            std::swap(squares[0], *std::max_element(squares.begin(), squares.begin() + leadPawnCnt,
+                                                    pawns_comp));
 
         tbFile = fold_to_edge(file_of(squares[0]));
     }
@@ -1333,7 +1339,7 @@ void set(T& entry, std::uint8_t* data) noexcept {
 // Called at every probe, memory map, and init only at first access.
 // Function is thread safe and can be called concurrently.
 template<TBType T>
-void* mapped(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
+void* init(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
     static std::mutex mutex;
 
     // Use 'acquire' to avoid a thread reading 'ready' == true while
@@ -1352,9 +1358,26 @@ void* mapped(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
         for (auto itr = PIECE_TYPES.rbegin(); itr != PIECE_TYPES.rend(); ++itr)
             pieces[c].append(pos.count(c, *itr), to_char(*itr));
 
-    std::string fname = (materialKey == entry.key[WHITE] ? pieces[WHITE] + 'v' + pieces[BLACK]
-                                                         : pieces[BLACK] + 'v' + pieces[WHITE])
-                      + (T == WDL ? WDL_EXT : DTZ_EXT).data();
+    std::string fname;
+
+    std::size_t reserve = pieces[WHITE].size() + pieces[BLACK].size() + 1 + EXT[T].size();
+
+    fname.reserve(reserve);
+
+    if (materialKey == entry.key[WHITE])
+    {
+        fname += pieces[WHITE];
+        fname += 'v';
+        fname += pieces[BLACK];
+    }
+    else
+    {
+        fname += pieces[BLACK];
+        fname += 'v';
+        fname += pieces[WHITE];
+    }
+
+    fname += EXT[T];
 
     std::uint8_t* data = TBFile(fname).map<T>(&entry.mapAddress, &entry.mapping);
 
@@ -1374,9 +1397,9 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRA
     if (materialKey == 0)  // KvK, pos.count() == 2
         return Ret(WDL_DRAW);
 
-    auto* entry = tbTables.get<T>(materialKey);
+    TBTable<T>* entry = tbTables.get<T>(materialKey);
 
-    if (entry == nullptr || mapped(pos, materialKey, *entry) == nullptr)
+    if (entry == nullptr || init(pos, materialKey, *entry) == nullptr)
         return *ps = PS_FAIL, Ret();
 
     return do_probe_table(pos, materialKey, entry, wdlScore, ps);
@@ -1681,22 +1704,19 @@ WDLScore probe_wdl(Position& pos, ProbeState* ps) noexcept {
 //     1 < n <= 100 : win in n ply (assuming 50-move counter == 0)
 //   100 < n        : win, but draw under 50-move rule
 //
-// The return WDL-score n can be off by 1: a return WDL-score -n can mean a loss
-// in n+1 ply and a return WDL-score +n can mean a win in n+1 ply. This
-// cannot happen for tables with positions exactly on the "edge" of
-// the 50-move rule.
+// The return WDL-score n can be off by 1:
+//  - return WDL-score -n can mean a loss in n+1 ply and
+//  - return WDL-score +n can mean a win in n+1 ply.
+// This cannot happen for tables with positions exactly
+// on the "edge" of the 50-move rule.
 //
-// This implies that if DTZ-score > 0 is returned, the position is certainly
-// a win if DTZ-score + 50-move-counter < 100. Care must be taken that the engine
-// picks moves that preserve DTZ-score + 50-move-counter < 100.
+// This implies that if DTZ-score > 0 is returned,
+// the position is certainly a win if DTZ-score + 50-move-counter < 100.
+// Care must be taken that the engine picks moves that preserve DTZ-score + 50-move-counter < 100.
 //
-// If n = 100 immediately after a capture or pawn move, then the position
-// is also certainly a win, and during the whole phase until the next
-// capture or pawn move, the inequality to be preserved is
-// DTZ-score + 50-move-counter <= 100.
-//
-// In short, if a move is available resulting in DTZ-score + 50-move-counter < 100,
-// then do not accept moves leading to DTZ-score + 50-move-counter == 100.
+// If n = 100 immediately after a capture or pawn move,
+// then the position is also certainly a win, and during the whole phase until the next
+// capture or pawn move, the inequality to be preserved is DTZ-score + 50-move-counter <= 100.
 int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
     *ps = PS_OK;
@@ -1763,10 +1783,45 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
 // clang-format off
 
+// Use the WDL-tables to rank root moves.
+// This is a fallback for the case that some or all DTZ-tables are missing.
+//
+// A return value false indicates that not all probes were successful.
+bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept {
+    // Probe and rank each move
+    for (auto& rm : rootMoves)
+    {
+        State st;
+        pos.do_move(rm.pv[0], st);
+
+        ProbeState ps = PS_OK;
+
+        WDLScore wdlScore = pos.is_draw(1) ? WDL_DRAW : -probe_wdl(pos, &ps);
+
+        pos.undo_move(rm.pv[0]);
+
+        if (ps == PS_FAIL)
+            return false;
+
+        rm.tbRank = WDL_RANK[wdlScore + 2];
+
+        if (!useRule50)
+            wdlScore = wdlScore > WDL_DRAW
+                       ? WDL_WIN
+                     : wdlScore < WDL_DRAW
+                       ? WDL_LOSS
+                       : WDL_DRAW;
+
+        rm.tbValue = WDL_VALUE[wdlScore + 2];
+    }
+
+    return true;
+}
+
 // Use the DTZ-tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ, TimeFunc time_to_abort) noexcept {
+bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ, TimeFunc time_to_abort) noexcept {
     // Obtain 50-move counter for the root position
     std::int16_t rule50Count = pos.rule50_count();
 
@@ -1822,10 +1877,10 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool ra
         // Better moves are ranked higher. Certain wins are ranked equally.
         // Losing moves are ranked equally unless a 50-move draw is in sight.
         int r = dtzScore > 0 ? (+1 * dtzScore + rule50Count < 100 && !hasRepeated
-                                  ? +MAX_DTZ - (rankDTZ ? dtzScore : 0)
+                                  ? +MAX_DTZ - (rankDTZ ? +dtzScore : 0)
                                   : +MAX_DTZ / 2 - (+dtzScore + rule50Count))
               : dtzScore < 0 ? (-2 * dtzScore + rule50Count < 100
-                                  ? -MAX_DTZ - (rankDTZ ? dtzScore : 0)
+                                  ? -MAX_DTZ + (rankDTZ ? -dtzScore : 0)
                                   : -MAX_DTZ / 2 + (-dtzScore + rule50Count))
                              : 0;
 
@@ -1834,46 +1889,11 @@ bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool ra
         // Determine the WDL-score to be displayed for this move.
         // Assign at least 1 cp to cursed wins and let it grow to 49 cp
         // as the positions gets closer to a real win.
-        rm.tbValue = r >= bound ? VALUE_MATES_IN_MAX_PLY - 1
-                   : r > 0      ? Value((std::max(r - (+MAX_DTZ / 2 - 200), +3) * VALUE_PAWN) / 200)
+        rm.tbValue = r >= bound ? +VALUE_TB
+                   : r > 0      ? Value((std::max(r - (MAX_DTZ / 2 - 200), +3) * VALUE_PAWN) / 200)
                    : r == 0     ? VALUE_DRAW
-                   : r > -bound ? Value((std::min(r + (+MAX_DTZ / 2 - 200), -3) * VALUE_PAWN) / 200)
-                                : VALUE_MATED_IN_MAX_PLY + 1;
-    }
-
-    return true;
-}
-
-// Use the WDL-tables to rank root moves.
-// This is a fallback for the case that some or all DTZ-tables are missing.
-//
-// A return value false indicates that not all probes were successful.
-bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept {
-    // Probe and rank each move
-    for (auto& rm : rootMoves)
-    {
-        State st;
-        pos.do_move(rm.pv[0], st);
-
-        ProbeState ps = PS_OK;
-
-        WDLScore wdlScore = pos.is_draw(1) ? WDL_DRAW : -probe_wdl(pos, &ps);
-
-        pos.undo_move(rm.pv[0]);
-
-        if (ps == PS_FAIL)
-            return false;
-
-        rm.tbRank = WDL_RANK[wdlScore + 2];
-
-        if (!useRule50)
-            wdlScore = wdlScore > WDL_DRAW
-                       ? WDL_WIN
-                     : wdlScore < WDL_DRAW
-                       ? WDL_LOSS
-                       : WDL_DRAW;
-
-        rm.tbValue = WDL_VALUE[wdlScore + 2];
+                   : r > -bound ? Value((std::min(r + (MAX_DTZ / 2 - 200), -3) * VALUE_PAWN) / 200)
+                                : -VALUE_TB;
     }
 
     return true;
@@ -1902,13 +1922,13 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
     if (config.cardinality >= pos.count() && !pos.has_castling_rights())
     {
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
-        config.rootInTB = probe_root_dtz(pos, rootMoves, config.useRule50, rankDTZ, time_to_abort);
+        config.rootInTB = rank_root_moves_dtz(pos, rootMoves, config.useRule50, rankDTZ, time_to_abort);
 
         if (!config.rootInTB)
         {
             // DTZ-tables are missing/aborted; try to rank moves using WDL-tables
             dtzAvailable    = false;
-            config.rootInTB = probe_root_wdl(pos, rootMoves, config.useRule50);
+            config.rootInTB = rank_root_moves_wdl(pos, rootMoves, config.useRule50);
         }
     }
 
@@ -1925,7 +1945,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
     }
     else
     {
-        // Clean up if probe_root_dtz() and probe_root_wdl() have failed
+        // Clean up if rank_root_moves_dtz() and rank_root_moves_wdl() have failed
         for (auto& rm : rootMoves)
             rm.tbRank = 0;
     }

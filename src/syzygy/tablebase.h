@@ -62,12 +62,12 @@ enum ProbeState : std::int8_t {
     PS_BEST_MOVE_ZEROING = +2   // Best move zeroes DTZ (capture or pawn move)
 };
 
-inline std::string to_string(ProbeState ps) noexcept {
-    return ps == PS_FAIL              ? "Failed"
-         : ps == PS_OK                ? "Success"
-         : ps == PS_AC_CHANGED        ? "Active color changed"
-         : ps == PS_BEST_MOVE_ZEROING ? "Best move zeroing"
-                                      : "None";
+inline std::string to_string(ProbeState v) noexcept {
+    return v == PS_FAIL              ? "Failed"
+         : v == PS_OK                ? "Success"
+         : v == PS_AC_CHANGED        ? "Active color changed"
+         : v == PS_BEST_MOVE_ZEROING ? "Best move zeroing"
+                                     : "None";
 }
 
 struct Config final {
@@ -87,8 +87,8 @@ int      probe_dtz(Position& pos, ProbeState* ps) noexcept;
 
 // clang-format off
 
-bool probe_root_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ = false, TimeFunc time_to_abort = []() { return false; }) noexcept;
-bool probe_root_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept;
+bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept;
+bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ = false, TimeFunc time_to_abort = []() { return false; }) noexcept;
 
 Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool rankDTZ = false, TimeFunc time_to_abort = []() { return false; }) noexcept;
 
