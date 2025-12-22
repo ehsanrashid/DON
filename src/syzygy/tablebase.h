@@ -62,12 +62,12 @@ enum ProbeState : std::int8_t {
     PS_BEST_MOVE_ZEROING = +2   // Best move zeroes DTZ (capture or pawn move)
 };
 
-inline std::string to_string(ProbeState v) noexcept {
-    return v == PS_FAIL              ? "Failed"
-         : v == PS_OK                ? "Success"
-         : v == PS_AC_CHANGED        ? "Active color changed"
-         : v == PS_BEST_MOVE_ZEROING ? "Best move zeroing"
-                                     : "None";
+inline std::string to_string(ProbeState ps) noexcept {
+    return ps == PS_FAIL              ? "Failed"
+         : ps == PS_OK                ? "Success"
+         : ps == PS_AC_CHANGED        ? "Active color changed"
+         : ps == PS_BEST_MOVE_ZEROING ? "Best move zeroing"
+                                      : "None";
 }
 
 struct Config final {
