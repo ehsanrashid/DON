@@ -921,7 +921,10 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // move or only for black to move, so check for side to move to be ac,
     // early exit otherwise.
     if (!check_ac(entry, activeColor, tbFile))
-        return *ps = PS_AC_CHANGED, Ret();
+    {
+        *ps = PS_AC_CHANGED;
+        return Ret();
+    }
 
     // Now ready to get all the position pieces (but the lead pawns)
     // and directly map them to the correct square and color.
@@ -1449,7 +1452,10 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRA
     TBTable<T>* entry = tbTables.get<T>(materialKey);
 
     if (entry == nullptr || init(pos, materialKey, *entry) == nullptr)
-        return *ps = PS_FAIL, Ret();
+    {
+        *ps = PS_FAIL;
+        return Ret();
+    }
 
     return do_probe_table(pos, materialKey, entry, wdlScore, ps);
 }
