@@ -30,7 +30,6 @@
 #include <iterator>
 #include <mutex>
 #include <sstream>
-#include <string>
 #include <sys/stat.h>
 #include <type_traits>
 #include <utility>
@@ -132,6 +131,25 @@ constexpr bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] <
 
 constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 
+// DTZ-tables don't store valid scores for moves that reset the rule50 counter
+// like captures and pawn moves but can easily recover the correct DTZ-score of the
+// previous move if know the position's WDL-score.
+constexpr int before_zeroing_dtz(WDLScore wdlScore) noexcept {
+    switch (wdlScore)
+    {
+    case WDL_BLESSED_LOSS :
+        return -101;
+    case WDL_LOSS :
+        return -1;
+    case WDL_WIN :
+        return +1;
+    case WDL_CURSED_WIN :
+        return +101;
+    default :
+        return 0;
+    }
+}
+
 template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
 void swap_endian(T& x) noexcept {
     static_assert(std::is_unsigned_v<T>, "Argument of swap_endian not unsigned");
@@ -157,29 +175,10 @@ T number(void* addr) noexcept {
     return v;
 }
 
-// DTZ-tables don't store valid scores for moves that reset the rule50 counter
-// like captures and pawn moves but can easily recover the correct DTZ-score of the
-// previous move if know the position's WDL-score.
-int before_zeroing_dtz(WDLScore wdlScore) noexcept {
-    switch (wdlScore)
-    {
-    case WDL_BLESSED_LOSS :
-        return -101;
-    case WDL_LOSS :
-        return -1;
-    case WDL_WIN :
-        return +1;
-    case WDL_CURSED_WIN :
-        return +101;
-    default :
-        return 0;
-    }
-}
-
 // Numbers in little-endian used by sparseIndex[] to point into blockLength[]
 struct SparseEntry final {
-    char block[4];   // Number of block
-    char offset[2];  // Offset within the block
+    StdArray<char, 4> block;   // Number of block
+    StdArray<char, 2> offset;  // Offset within the block
 };
 
 static_assert(sizeof(SparseEntry) == 6, "SparseEntry must be 6 bytes");
@@ -709,8 +708,8 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     auto k = std::uint32_t(idx / pd->span);
 
     // Then read the corresponding SparseIndex[] entry
-    auto block  = number<std::uint32_t, LITTLE>(&pd->sparseIndex[k].block);
-    int  offset = number<std::uint16_t, LITTLE>(&pd->sparseIndex[k].offset);
+    auto block  = number<std::uint32_t, LITTLE>(pd->sparseIndex[k].block.data());
+    int  offset = number<std::uint16_t, LITTLE>(pd->sparseIndex[k].offset.data());
 
     // Now compute the difference idx - I(k). From the definition of k,
     //
@@ -1837,7 +1836,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 // This is a fallback for the case that some or all DTZ-tables are missing.
 //
 // A return value false indicates that not all probes were successful.
-bool probe_wdl_root(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept {
+bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept {
     // Probe and rank each move
     for (auto& rm : rootMoves)
     {
@@ -1871,7 +1870,7 @@ bool probe_wdl_root(Position& pos, RootMoves& rootMoves, bool useRule50) noexcep
 // Use the DTZ-tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool probe_dtz_root(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ, TimeFunc time_to_abort) noexcept {
+bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ, TimeFunc time_to_abort) noexcept {
     // Obtain 50-move counter for the root position
     std::int16_t rule50Count = pos.rule50_count();
 
@@ -1927,10 +1926,10 @@ bool probe_dtz_root(Position& pos, RootMoves& rootMoves, bool useRule50, bool ra
         // Better moves are ranked higher. Certain wins are ranked equally.
         // Losing moves are ranked equally unless a 50-move draw is in sight.
         int r = dtzScore > 0 ? (+1 * dtzScore + rule50Count < 100 && !hasRepeated
-                                  ? +MAX_DTZ - (rankDTZ ? dtzScore : 0)
+                                  ? +MAX_DTZ - (rankDTZ ? +dtzScore : 0)
                                   : +MAX_DTZ / 2 - (+dtzScore + rule50Count))
               : dtzScore < 0 ? (-2 * dtzScore + rule50Count < 100
-                                  ? -MAX_DTZ - (rankDTZ ? dtzScore : 0)
+                                  ? -MAX_DTZ + (rankDTZ ? -dtzScore : 0)
                                   : -MAX_DTZ / 2 + (-dtzScore + rule50Count))
                              : 0;
 
@@ -1940,9 +1939,9 @@ bool probe_dtz_root(Position& pos, RootMoves& rootMoves, bool useRule50, bool ra
         // Assign at least 1 cp to cursed wins and let it grow to 49 cp
         // as the positions gets closer to a real win.
         rm.tbValue = r >= bound ? VALUE_MATES_IN_MAX_PLY - 1
-                   : r > 0      ? Value((std::max(r - (+MAX_DTZ / 2 - 200), +3) * VALUE_PAWN) / 200)
+                   : r > 0      ? Value((std::max(r - (MAX_DTZ / 2 - 200), +3) * VALUE_PAWN) / 200)
                    : r == 0     ? VALUE_DRAW
-                   : r > -bound ? Value((std::min(r + (+MAX_DTZ / 2 - 200), -3) * VALUE_PAWN) / 200)
+                   : r > -bound ? Value((std::min(r + (MAX_DTZ / 2 - 200), -3) * VALUE_PAWN) / 200)
                                 : VALUE_MATED_IN_MAX_PLY + 1;
     }
 
@@ -1972,13 +1971,13 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
     if (config.cardinality >= pos.count() && !pos.has_castling_rights())
     {
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
-        config.rootInTB = probe_dtz_root(pos, rootMoves, config.useRule50, rankDTZ, time_to_abort);
+        config.rootInTB = rank_root_moves_dtz(pos, rootMoves, config.useRule50, rankDTZ, time_to_abort);
 
         if (!config.rootInTB)
         {
             // DTZ-tables are missing/aborted; try to rank moves using WDL-tables
             dtzAvailable    = false;
-            config.rootInTB = probe_wdl_root(pos, rootMoves, config.useRule50);
+            config.rootInTB = rank_root_moves_wdl(pos, rootMoves, config.useRule50);
         }
     }
 
@@ -1995,7 +1994,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
     }
     else
     {
-        // Clean up if probe_dtz_root() and probe_wdl_root() have failed
+        // Clean up if rank_root_moves_dtz() and rank_root_moves_wdl() have failed
         for (auto& rm : rootMoves)
             rm.tbRank = 0;
     }

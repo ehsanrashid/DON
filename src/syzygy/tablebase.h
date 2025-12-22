@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <string>
 #include <string_view>
 
 #include "../types.h"
@@ -42,6 +43,15 @@ enum WDLScore : std::int8_t {
     WDL_WIN          = +2,  // Win
 };
 
+inline std::string to_string(WDLScore wdlScore) noexcept {
+    return wdlScore == WDL_LOSS         ? "Loss"
+         : wdlScore == WDL_BLESSED_LOSS ? "Blessed loss"
+         : wdlScore == WDL_DRAW         ? "Draw"
+         : wdlScore == WDL_CURSED_WIN   ? "Cursed win"
+         : wdlScore == WDL_WIN          ? "Win"
+                                        : "None";
+}
+
 constexpr WDLScore operator-(WDLScore wdlScore) noexcept { return WDLScore(-int(wdlScore)); }
 
 // Possible states after a probing operation
@@ -51,6 +61,14 @@ enum ProbeState : std::int8_t {
     PS_AC_CHANGED        = -1,  // DTZ should check the other side
     PS_BEST_MOVE_ZEROING = +2   // Best move zeroes DTZ (capture or pawn move)
 };
+
+inline std::string to_string(ProbeState v) noexcept {
+    return v == PS_FAIL              ? "Failed"
+         : v == PS_OK                ? "Success"
+         : v == PS_AC_CHANGED        ? "Active color changed"
+         : v == PS_BEST_MOVE_ZEROING ? "Best move zeroing"
+                                     : "None";
+}
 
 struct Config final {
     bool         rootInTB    = false;
@@ -69,8 +87,8 @@ int      probe_dtz(Position& pos, ProbeState* ps) noexcept;
 
 // clang-format off
 
-bool probe_wdl_root(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept;
-bool probe_dtz_root(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ = false, TimeFunc time_to_abort = []() { return false; }) noexcept;
+bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept;
+bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ = false, TimeFunc time_to_abort = []() { return false; }) noexcept;
 
 Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool rankDTZ = false, TimeFunc time_to_abort = []() { return false; }) noexcept;
 
