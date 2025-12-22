@@ -317,13 +317,13 @@ struct DirtyThreat final {
              | (threatenedSq << ThreatenedSqOffset) | (sq << SqOffset);
     }
 
-    Square sq() const noexcept { return Square((data >> SqOffset) & 0x3F); }
-    Square threatened_sq() const noexcept { return Square((data >> ThreatenedSqOffset) & 0x3F); }
+    Square sq() const noexcept { return Square((data >> SqOffset) & 0xFF); }
+    Square threatened_sq() const noexcept { return Square((data >> ThreatenedSqOffset) & 0xFF); }
     Piece  pc() const noexcept { return Piece((data >> PcOffset) & 0xF); }
     Piece  threatened_pc() const noexcept { return Piece((data >> ThreatenedPcOffset) & 0xF); }
-    bool   add() const noexcept { return data >> 31; }
+    bool   add() const noexcept { return (data >> 31) != 0; }
 
-    std::uint32_t raw() noexcept { return data; }
+    std::uint32_t raw() const noexcept { return data; }
 
    private:
     std::uint32_t data;
