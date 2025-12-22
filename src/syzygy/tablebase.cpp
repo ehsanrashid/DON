@@ -210,32 +210,75 @@ static_assert(sizeof(LR) == 3, "LR tree entry must be 3 bytes");
 // TBFile class memory maps/unmaps the single ".rtbw" and ".rtbz" files.
 // Files are memory mapped for best performance.
 // Files are mapped at first access: at init time only existence of the file is checked.
-class TBFile: public std::ifstream {
+class TBFile final {
    public:
     explicit TBFile(std::string_view file) noexcept {
 
+        constexpr char PathSeparator =
+#if defined(_WIN32)
+          '\\'
+#else
+          '/'
+#endif
+          ;
+
+        filename.clear();
+
         for (const auto& path : Paths)
         {
-            filename = path + "/" + file.data();
+            std::string fn = path + PathSeparator + std::string(file);
 
-            open(filename);
+            std::ifstream ifs(fn, std::ios::binary);
 
-            if (is_open())
-                return;
+            if (ifs.is_open())
+            {
+                filename = std::move(fn);
+
+                break;
+            }
         }
+    }
+
+    static bool init(std::string_view paths) noexcept {
+        // Multiple directories are separated
+        // by ";" on Windows and
+        // by ":" on Unix-based operating systems
+        //
+        // Example:
+        // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
+        constexpr char PathSeparator =
+#if defined(_WIN32)
+          ';'
+#else
+          ':'
+#endif
+          ;
+
+        Paths.clear();
+
+        if (!paths.empty())
+        {
+            std::istringstream iss{std::string(paths)};
+
+            std::string path;
+
+            while (std::getline(iss, path, PathSeparator))
+                if (!path.empty())
+                    Paths.push_back(path);
+        }
+
+        return !Paths.empty();
     }
 
     // Memory map the file and check it
     template<TBType T>
-    std::uint8_t* map(void** mappedPtr, std::uint64_t* mapping) noexcept {
-
-        if (is_open())
-            close();  // Need to re-open to get native file descriptor
+    static std::uint8_t*
+    map(std::string_view filename, void** mappedPtr, std::uint64_t* mapping) noexcept {
 
 #if defined(_WIN32)
 
         // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
-        HANDLE fd = CreateFile(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+        HANDLE fd = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr,
                                OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
 
         if (fd == INVALID_HANDLE_VALUE)
@@ -293,7 +336,7 @@ class TBFile: public std::ifstream {
 
 #else
 
-        int fd = ::open(filename.c_str(), O_RDONLY);
+        int fd = ::open(filename.data(), O_RDONLY);
 
         if (fd == -1)
         {
@@ -375,42 +418,15 @@ class TBFile: public std::ifstream {
 #endif
     }
 
-    static bool init(std::string_view paths) noexcept {
-        // Multiple directories are separated
-        // by ";" on Windows and
-        // by ":" on Unix-based operating systems
-        //
-        // Example:
-        // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
-        constexpr char PathSeparator =
-#if defined(_WIN32)
-          ';'
-#else
-          ':'
-#endif
-          ;
+    bool exists() const noexcept { return !filename.empty(); }
 
-        Paths.clear();
+    std::string_view file_name() const noexcept { return filename; }
 
-        if (!paths.empty())
-        {
-            std::istringstream iss{std::string(paths)};
-
-            std::string path;
-
-            while (std::getline(iss, path, PathSeparator))
-                if (!path.empty())
-                    Paths.push_back(path);
-        }
-
-        return !Paths.empty();
-    }
-
+   private:
     // Look for and open the file among the Paths directories
     // where the .rtbw and .rtbz files can be found.
     static inline Strings Paths;
 
-   private:
     std::string filename;
 };
 
@@ -454,9 +470,17 @@ template<TBType T>
 struct TBTable final {
     using Ret = std::conditional_t<T == WDL, WDLScore, int>;
 
+    PairsData* get(int ac, int f) noexcept { return &items[ac % SIDES][hasPawns ? f : 0]; }
+
+    TBTable() noexcept = default;
+    explicit TBTable(std::string_view code) noexcept;
+    explicit TBTable(const TBTable<WDL>& wdlTable) noexcept;
+
+    ~TBTable() noexcept;
+
     static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
 
-    std::atomic<bool> ready{false};
+    InitOnce initOnce;
 
     void*         mappedPtr = nullptr;
     std::uint8_t* map;
@@ -467,15 +491,7 @@ struct TBTable final {
     bool                                    hasPawns;
     bool                                    hasUniquePieces;
     StdArray<std::uint8_t, COLOR_NB>        pawnCount;  // [Lead color / other color]
-    StdArray<PairsData, SIDES, FILE_NB / 2> items;      // [wtm / btm][FILE_A..FILE_D or 0]
-
-    PairsData* get(int ac, int f) noexcept { return &items[ac % SIDES][hasPawns ? f : 0]; }
-
-    TBTable() noexcept = default;
-    explicit TBTable(std::string_view code) noexcept;
-    explicit TBTable(const TBTable<WDL>& wdlTable) noexcept;
-
-    ~TBTable() noexcept;
+    StdArray<PairsData, SIDES, FILE_NB / 2> items;      // [color][FILE_A..FILE_D]
 };
 
 template<>
@@ -632,20 +648,17 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
     TBFile dtzFile(code + std::string(EXT[DTZ]));
-    if (dtzFile.is_open())
-    {
-        dtzFile.close();
+    if (dtzFile.exists())
         ++dtzCount;
-    }
 
     TBFile wdlFile(code + std::string(EXT[WDL]));
-    if (!wdlFile.is_open())  // Only WDL file is checked
+    if (wdlFile.exists())
+        ++wdlCount;
+    else  // Only WDL file is checked
         return;
 
-    wdlFile.close();
-    ++wdlCount;
-
-    MaxCardinality = std::max<std::size_t>(MaxCardinality, pieces.size());
+    if (MaxCardinality < pieces.size())
+        MaxCardinality = pieces.size();
 
     wdlTables.emplace_back(code);
     dtzTables.emplace_back(wdlTables.back());
@@ -1372,51 +1385,55 @@ void set(T& entry, std::uint8_t* data) noexcept {
 // Function is thread safe and can be called concurrently.
 template<TBType T>
 void* init(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
-    static std::mutex mutex;
+    // Fast path: already initialized
+    if (entry.initOnce.is_initialized())
+        return entry.mappedPtr;  // could be nullptr if file missing
 
-    // Use 'acquire' to avoid a thread reading 'ready' == true while
-    // another is still working. (compiler reordering may cause this).
-    if (entry.ready.load(std::memory_order_acquire))
-        return entry.mappedPtr;  // Could be nullptr if file does not exist
-
-    std::scoped_lock lock(mutex);
-
-    if (entry.ready.load(std::memory_order_relaxed))  // Recheck under lock
-        return entry.mappedPtr;
-
-    // Pieces strings in decreasing order for each color, like ("KPP","KR")
-    StdArray<std::string, COLOR_NB> pieces{};
-    for (Color c : {WHITE, BLACK})
-        for (auto itr = PIECE_TYPES.rbegin(); itr != PIECE_TYPES.rend(); ++itr)
-            pieces[c].append(pos.count(c, *itr), to_char(*itr));
-
-    std::string fname;
-
-    std::size_t reserve = pieces[WHITE].size() + pieces[BLACK].size() + 1 + EXT[T].size();
-
-    fname.reserve(reserve);
-
-    if (materialKey == entry.key[WHITE])
+    if (entry.initOnce.try_init())
     {
-        fname += pieces[WHITE];
-        fname += 'v';
-        fname += pieces[BLACK];
+        // This thread is responsible for initialization
+
+        // Pieces strings in decreasing order for each color, like ("KPP","KR")
+        StdArray<std::string, COLOR_NB> pieces{};
+        for (Color c : {WHITE, BLACK})
+            for (auto itr = PIECE_TYPES.rbegin(); itr != PIECE_TYPES.rend(); ++itr)
+                pieces[c].append(pos.count(c, *itr), to_char(*itr));
+
+        std::string fname;
+        fname.reserve(pieces[WHITE].size() + pieces[BLACK].size() + 1 + EXT[T].size());
+
+        if (materialKey == entry.key[WHITE])
+        {
+            fname += pieces[WHITE];
+            fname += 'v';
+            fname += pieces[BLACK];
+        }
+        else
+        {
+            fname += pieces[BLACK];
+            fname += 'v';
+            fname += pieces[WHITE];
+        }
+
+        fname += EXT[T];
+
+        TBFile tbFile(fname);
+
+        std::uint8_t* data = tbFile.exists()
+                             ? TBFile::map<T>(tbFile.file_name(), &entry.mappedPtr, &entry.mapping)
+                             : nullptr;
+
+        if (data != nullptr)
+            set(entry, data);
+
+        // mark done for all threads
+        entry.initOnce.set_initialized();
     }
     else
     {
-        fname += pieces[BLACK];
-        fname += 'v';
-        fname += pieces[WHITE];
+        // Other threads spin until initialization completes
+        entry.initOnce.wait_until_initialized();
     }
-
-    fname += EXT[T];
-
-    std::uint8_t* data = TBFile(fname).map<T>(&entry.mappedPtr, &entry.mapping);
-
-    if (data != nullptr)
-        set(entry, data);
-
-    entry.ready.store(true, std::memory_order_release);
 
     return entry.mappedPtr;
 }

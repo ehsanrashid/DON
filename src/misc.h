@@ -683,42 +683,50 @@ class FixedString final {
     std::size_t                  _size;
 };
 
-struct AtomicDone final {
+struct InitOnce final {
    public:
-    AtomicDone() = default;
+    InitOnce() = default;
 
-    AtomicDone(const AtomicDone& atomDone) noexcept :
-        done(atomDone.done.load(std::memory_order_relaxed)) {}
-    AtomicDone& operator=(const AtomicDone& atomDone) noexcept {
-        done.store(atomDone.done.load(std::memory_order_relaxed), std::memory_order_relaxed);
+    InitOnce(const InitOnce& initOnce) noexcept :
+        state(initOnce.state.load(std::memory_order_relaxed)) {}
+    InitOnce& operator=(const InitOnce& initOnce) noexcept {
+        state.store(initOnce.state.load(std::memory_order_relaxed), std::memory_order_relaxed);
         return *this;
     }
 
-    AtomicDone(AtomicDone&&) noexcept            = delete;
-    AtomicDone& operator=(AtomicDone&&) noexcept = delete;
+    InitOnce(InitOnce&&) noexcept            = delete;
+    InitOnce& operator=(InitOnce&&) noexcept = delete;
 
-    // Fast path: returns true if already done
-    bool is_done() const noexcept { return done.load(std::memory_order_acquire); }
-
-    // Attempt to become the initializing thread
-    // Returns true if caller is responsible for initialization
-    bool try_start() noexcept {
-        bool expected = false;
-        return done.compare_exchange_strong(expected, true, std::memory_order_acquire,
-                                            std::memory_order_relaxed);
+    // Check if initialization is complete
+    bool is_initialized() const noexcept {
+        return state.load(std::memory_order_acquire) == Initialized;
     }
 
-    // Spin-wait until ready
-    void wait_until_done() const noexcept {
-        while (!done.load(std::memory_order_acquire))
+    // Attempt to become the initializing thread
+    // Returns true if this thread is responsible for initialization
+    bool try_init() noexcept {
+        State expected = Uninitialized;
+        return state.compare_exchange_strong(expected, InProgress, std::memory_order_acq_rel,
+                                             std::memory_order_relaxed);
+    }
+
+    // Spin-wait until initialization is done
+    void wait_until_initialized() const noexcept {
+        while (state.load(std::memory_order_acquire) != Initialized)
             std::this_thread::yield();
     }
 
-    // Mark initialization complete
-    void set_done() noexcept { done.store(true, std::memory_order_release); }
+    // Mark initialization as done
+    void set_initialized() noexcept { state.store(Initialized, std::memory_order_release); }
 
    private:
-    std::atomic<bool> done{false};
+    enum State {
+        Uninitialized,
+        InProgress,
+        Initialized,
+    };
+
+    std::atomic<State> state{Uninitialized};
 };
 
 // LazyValue wraps a Value with AtomicOnce for safe lazy initialization
@@ -727,28 +735,28 @@ struct LazyValue final {
     template<typename... Args>
     Value& init(Args&&... args) noexcept {
         // Fast path: already initialized
-        if (atomDone.is_done())
+        if (initOnce.is_initialized())
             return value;
 
-        if (atomDone.try_start())
+        if (initOnce.try_init())
         {
             // first thread initializes
             value = Value(std::forward<Args>(args)...);
 
-            atomDone.set_done();
+            initOnce.set_initialized();
         }
         else
         {
             // other threads wait until ready
-            atomDone.wait_until_done();
+            initOnce.wait_until_initialized();
         }
 
         return value;
     }
 
    private:
-    Value      value;
-    AtomicDone atomDone;
+    Value    value;
+    InitOnce initOnce;
 };
 
 // ConcurrentCache: groups (mutex + storage + pre-reserve)
@@ -819,7 +827,6 @@ class ConcurrentCache final {
     std::shared_mutex                     mutex;
     std::unordered_map<Key, StorageValue> storage;
 };
-
 
 template<typename T>
 inline void combine_hash(std::size_t& seed, const T& v) noexcept {
