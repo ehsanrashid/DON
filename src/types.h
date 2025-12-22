@@ -335,7 +335,8 @@ static_assert(sizeof(DirtyThreat) == 4, "DirtyThreat Size");
 // Moving a piece also can reveal at most 8 discovered attacks.
 // This implies that a non-castling move can change at most (8 + 16) * 3 + 8 = 80 features.
 // By similar logic, a castling move can change at most (5 + 1 + 3 + 9) * 2 = 36 features.
-// Thus, 80 + 16 = 96 should work as an upper bound.
+// Thus, 80 should work as an upper bound. Finally, 16 entries are added to accommodate
+// unmasked vector stores near the end of the list.
 using DirtyThreatList = FixedVector<DirtyThreat, 96>;
 
 struct DirtyThreats final {

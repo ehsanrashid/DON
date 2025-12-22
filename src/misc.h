@@ -899,7 +899,7 @@ class MemoryStreamBuf final: public std::streambuf {
 // Fancy logging facility.
 // The trick here is to replace cin.rdbuf() and cout.rdbuf() with 2 TieStreamBuf objects
 // that tie std::cin and std::cout to a file stream.
-// Can toggle the logging of std::cout and std:cin at runtime whilst preserving
+// Can toggle the logging of std::cout and std::cin at runtime whilst preserving
 // usual I/O functionality, all without changing a single line of code!
 // Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
 // MSVC requires split streambuf for std::cin and std::cout.

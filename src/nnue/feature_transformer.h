@@ -170,30 +170,23 @@ class FeatureTransformer final {
 
         if (UseThreats)
         {
-            auto combinedWeights =
-              std::make_unique<StdArray<WeightType, TotalInputDimensions * HalfDimensions>>();
+            read_little_endian<ThreatWeightType>(is, threatWeights);
+
+            read_leb_128<WeightType>(is, weights);
+
             auto combinedPsqtWeights =
               std::make_unique<StdArray<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
 
-            read_leb_128(is, *combinedWeights);
-
-            std::copy(combinedWeights->begin(),
-                      combinedWeights->begin() + ThreatInputDimensions * HalfDimensions,
-                      threatWeights.begin());
-
-            std::copy(combinedWeights->begin() + ThreatInputDimensions * HalfDimensions,
-                      combinedWeights->begin() + TotalInputDimensions * HalfDimensions,
-                      weights.begin());
-
-            read_leb_128(is, *combinedPsqtWeights);
+            read_leb_128<PSQTWeightType>(is, *combinedPsqtWeights);
 
             std::copy(combinedPsqtWeights->begin(),
                       combinedPsqtWeights->begin() + ThreatInputDimensions * PSQTBuckets,
-                      threatPsqtWeights.begin());
+                      std::begin(threatPsqtWeights));
 
             std::copy(combinedPsqtWeights->begin() + ThreatInputDimensions * PSQTBuckets,
-                      combinedPsqtWeights->begin() + TotalInputDimensions * PSQTBuckets,
-                      psqtWeights.begin());
+                      combinedPsqtWeights->begin()
+                        + (ThreatInputDimensions + InputDimensions) * PSQTBuckets,
+                      std::begin(psqtWeights));
         }
         else
         {
@@ -202,12 +195,9 @@ class FeatureTransformer final {
         }
 
         permute_weights<true>();
-        if (UseThreats)
-        {}
-        else
-        {
+
+        if (!UseThreats)
             scale_weights<true>();
-        }
 
         return !is.fail();
     }
@@ -217,41 +207,30 @@ class FeatureTransformer final {
         std::unique_ptr<FeatureTransformer> copy = std::make_unique<FeatureTransformer>(*this);
 
         copy->template permute_weights<false>();
-        if (UseThreats)
-        {}
-        else
-        {
+
+        if (!UseThreats)
             copy->template scale_weights<false>();
-        }
 
         write_leb_128(os, copy->biases);
 
         if (UseThreats)
         {
-            auto combinedWeights =
-              std::make_unique<StdArray<WeightType, TotalInputDimensions * HalfDimensions>>();
+            write_little_endian<ThreatWeightType>(os, copy->threatWeights);
+
+            write_leb_128<WeightType>(os, copy->weights);
+
             auto combinedPsqtWeights =
               std::make_unique<StdArray<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
 
-            std::copy(copy->threatWeights.begin(),
-                      copy->threatWeights.begin() + ThreatInputDimensions * HalfDimensions,
-                      combinedWeights->begin());
-
-            std::copy(copy->weights.begin(),
-                      copy->weights.begin() + InputDimensions * HalfDimensions,
-                      combinedWeights->begin() + ThreatInputDimensions * HalfDimensions);
-
-            write_leb_128(os, *combinedWeights);
-
-            std::copy(copy->threatPsqtWeights.begin(),
-                      copy->threatPsqtWeights.begin() + ThreatInputDimensions * PSQTBuckets,
+            std::copy(std::begin(copy->threatPsqtWeights),
+                      std::begin(copy->threatPsqtWeights) + ThreatInputDimensions * PSQTBuckets,
                       combinedPsqtWeights->begin());
 
-            std::copy(copy->psqtWeights.begin(),
-                      copy->psqtWeights.begin() + InputDimensions * PSQTBuckets,
+            std::copy(std::begin(copy->psqtWeights),
+                      std::begin(copy->psqtWeights) + InputDimensions * PSQTBuckets,
                       combinedPsqtWeights->begin() + ThreatInputDimensions * PSQTBuckets);
 
-            write_leb_128(os, *combinedPsqtWeights);
+            write_leb_128<PSQTWeightType>(os, *combinedPsqtWeights);
         }
         else
         {

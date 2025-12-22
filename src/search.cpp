@@ -158,7 +158,7 @@ Value adjust_eval_value(Value evalValue, int correctionValue) noexcept {
 }
 
 bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcept {
-    return !(pos.capture_promo(move) || pos.rule50_count() < 10 || pos.null_ply() < 6
+    return !(pos.capture_promo(move) || pos.rule50_count() < 10 || pos.null_ply() <= 6
              || ss->ply < 20)
         && (ss - 2)->move.is_ok() && move.org_sq() == (ss - 2)->move.dst_sq()
         && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq()
