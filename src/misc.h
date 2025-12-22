@@ -19,6 +19,7 @@
 #define MISC_H_INCLUDED
 
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <cassert>
 #include <cctype>
@@ -40,6 +41,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -679,6 +681,44 @@ class FixedString final {
    private:
     StdArray<char, Capacity + 1> _data;  // +1 for null terminator
     std::size_t                  _size;
+};
+
+struct AtomicOnce {
+   public:
+    AtomicOnce() = default;
+
+    AtomicOnce(const AtomicOnce& atomicOnce) noexcept :
+        once(atomicOnce.once.load(std::memory_order_relaxed)) {}
+    AtomicOnce& operator=(const AtomicOnce& atomicOnce) noexcept {
+        once.store(atomicOnce.once.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        return *this;
+    }
+
+    AtomicOnce(AtomicOnce&&) noexcept            = default;
+    AtomicOnce& operator=(AtomicOnce&&) noexcept = default;
+
+    // Fast path: returns true if already done
+    bool is_done() const noexcept { return once.load(std::memory_order_acquire); }
+
+    // Attempt to become the initializing thread
+    // Returns true if caller is responsible for initialization
+    bool try_start() noexcept {
+        bool expected = false;
+        return once.compare_exchange_strong(expected, true, std::memory_order_acquire,
+                                            std::memory_order_relaxed);
+    }
+
+    // Spin-wait until ready
+    void wait_until_done() const noexcept {
+        while (!once.load(std::memory_order_acquire))
+            std::this_thread::yield();
+    }
+
+    // Mark initialization complete
+    void set_done() noexcept { once.store(true, std::memory_order_release); }
+
+   private:
+    std::atomic<bool> once{false};
 };
 
 // ConcurrentCache: groups (mutex + storage + pre-reserve)

@@ -28,7 +28,6 @@
 #include <initializer_list>
 #include <iostream>
 #include <iterator>
-#include <mutex>
 #include <sstream>
 #include <sys/stat.h>
 #include <type_traits>
@@ -104,7 +103,7 @@ constexpr std::int32_t MAX_DTZ = 0x40000;
 
 constexpr StdArray<std::string_view, 2> EXT{".rtbw", ".rtbz"};
 
-constexpr StdArray<std::uint8_t, 2, 4> MAGIC_DATAS{{
+constexpr StdArray<std::uint8_t, 2, 4> TB_MAGICS{{
   {0x71, 0xE8, 0x23, 0x5D},  // Win-Draw-Loss    (WDL) = 0x5D23E871
   {0xD7, 0x66, 0x0C, 0xA5},  // Distance-to-Zero (DTZ) = 0xA50C66D7
 }};
@@ -113,7 +112,7 @@ constexpr StdArray<std::uint8_t, 2, 4> MAGIC_DATAS{{
 
 constexpr StdArray<int         , 5> WDL_MAP  {1, 3, 0, 2, 0};
 constexpr StdArray<std::int32_t, 5> WDL_RANK {-MAX_DTZ, -MAX_DTZ + 101, 0, +MAX_DTZ - 101, +MAX_DTZ};
-constexpr StdArray<Value       , 5> WDL_VALUE{VALUE_MATED_IN_MAX_PLY + 1, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, VALUE_MATES_IN_MAX_PLY - 1};
+constexpr StdArray<Value       , 5> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
 
 StdArray<std::size_t, SQUARE_NB>     B1H1H7Map;
 StdArray<std::size_t, SQUARE_NB>     A1D1D4Map;
@@ -333,9 +332,9 @@ class TBFile {
 
         std::uint8_t* data = (std::uint8_t*) (*mapAddress);
 
-        constexpr auto& MagicData = MAGIC_DATAS[T];
+        constexpr auto& TBMagic = TB_MAGICS[T];
 
-        if (std::memcmp(data, MagicData.data(), MagicData.size()) != 0)
+        if (std::memcmp(data, TBMagic.data(), TBMagic.size()) != 0)
         {
             std::cerr << "Corrupted table in file " << filename << std::endl;
 
@@ -346,7 +345,7 @@ class TBFile {
             return nullptr;
         }
 
-        return data + MagicData.size();  // Skip Magics's header
+        return data + TBMagic.size();  // Skip Magics's header
     }
 
     static void unmap(void* mapAddress, std::uint64_t mapping) noexcept {
@@ -436,7 +435,7 @@ struct PairsData final {
 // TBTable is populated at init time but the nested PairsData records
 // are populated at first access, when the corresponding file is memory mapped.
 template<TBType T>
-struct TBTable final {
+struct TBTable final: public AtomicOnce {
     using Ret = std::conditional_t<T == WDL, WDLScore, int>;
 
     TBTable() noexcept = default;
@@ -448,8 +447,6 @@ struct TBTable final {
     PairsData* get(int ac, int f) noexcept;
 
     static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
-
-    std::atomic<bool> ready{false};
 
     void*         mapAddress = nullptr;
     std::uint8_t* map        = nullptr;
@@ -1389,17 +1386,19 @@ void set(T& entry, std::uint8_t* data) noexcept {
 // Function is thread safe and can be called concurrently.
 template<TBType T>
 void* mapped(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
-    static std::mutex mutex;
-
-    // Use 'acquire' to avoid a thread reading 'ready' == true while
-    // another is still working. (compiler reordering may cause this).
-    if (entry.ready.load(std::memory_order_acquire))
-        return entry.mapAddress;  // Could be nullptr if file does not exist
-
-    std::scoped_lock lock(mutex);
-
-    if (entry.ready.load(std::memory_order_relaxed))  // Recheck under lock
+    // Fast path: already initialized
+    if (entry.is_done())
         return entry.mapAddress;
+
+    // Try to become the initializing thread
+    if (!entry.try_start())
+    {
+        // Another thread is initializing, spin until ready
+        entry.wait_until_done();
+        return entry.mapAddress;
+    }
+
+    // Initializing thread now
 
     // Pieces strings in decreasing order for each color, like ("KPP","KR")
     StdArray<std::string, COLOR_NB> pieces{};
@@ -1430,7 +1429,8 @@ void* mapped(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
     if (data != nullptr)
         set(entry, data);
 
-    entry.ready.store(true, std::memory_order_release);
+    // Mark initialization complete (release semantics)
+    entry.set_done();
 
     return entry.mapAddress;
 }

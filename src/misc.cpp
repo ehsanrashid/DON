@@ -17,7 +17,6 @@
 
 #include "misc.h"
 
-#include <atomic>
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
