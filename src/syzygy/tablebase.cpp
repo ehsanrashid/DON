@@ -30,7 +30,6 @@
 #include <iterator>
 #include <mutex>
 #include <sstream>
-#include <string>
 #include <sys/stat.h>
 #include <type_traits>
 #include <utility>
@@ -234,7 +233,11 @@ class TBFile: public std::ifstream {
                                OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
 
         if (fd == INVALID_HANDLE_VALUE)
-            return *mapAddress = nullptr, nullptr;
+        {
+            *mapAddress = nullptr;
+
+            return nullptr;
+        }
 
         DWORD hiSize;
         DWORD loSize = GetFileSize(fd, &hiSize);
@@ -242,6 +245,7 @@ class TBFile: public std::ifstream {
         if (loSize % 64 != 16)
         {
             std::cerr << "Corrupt tablebase file " << filename << std::endl;
+
             std::exit(EXIT_FAILURE);
         }
 
@@ -252,6 +256,7 @@ class TBFile: public std::ifstream {
         if (hMapFile == nullptr)
         {
             std::cerr << "CreateFileMapping() failed, name = " << filename << std::endl;
+
             std::exit(EXIT_FAILURE);
         }
 
@@ -263,6 +268,7 @@ class TBFile: public std::ifstream {
         {
             std::cerr << "MapViewOfFile() failed, name = " << filename
                       << ", error = " << GetLastError() << std::endl;
+
             std::exit(EXIT_FAILURE);
         }
 
@@ -271,23 +277,28 @@ class TBFile: public std::ifstream {
         int fd = ::open(filename.c_str(), O_RDONLY);
 
         if (fd == -1)
-            return *mapAddress = nullptr, nullptr;
+        {
+            *mapAddress = nullptr;
 
-        struct stat stat;
-        fstat(fd, &stat);
+            return nullptr;
+        }
 
-        if (stat.st_size % 64 != 16)
+        struct stat objStat;
+        fstat(fd, &objStat);
+
+        if (objStat.st_size % 64 != 16)
         {
             std::cerr << "Corrupt tablebase file " << filename << std::endl;
+
             std::exit(EXIT_FAILURE);
         }
 
-        *mapping = stat.st_size;
+        *mapping = objStat.st_size;
 
-        *mapAddress = mmap(nullptr, stat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+        *mapAddress = mmap(nullptr, objStat.st_size, PROT_READ, MAP_SHARED, fd, 0);
 
     #if defined(MADV_RANDOM)
-        madvise(*mapAddress, stat.st_size, MADV_RANDOM);
+        madvise(*mapAddress, objStat.st_size, MADV_RANDOM);
     #endif
 
         ::close(fd);
@@ -295,6 +306,7 @@ class TBFile: public std::ifstream {
         if (*mapAddress == MAP_FAILED)
         {
             std::cerr << "mmap() failed, name = " << filename << std::endl;
+
             std::exit(EXIT_FAILURE);
         }
 

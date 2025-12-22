@@ -94,6 +94,12 @@ class MovePicker final {
     using const_iterator  = const_pointer;
     using size_type       = std::size_t;
 
+    MovePicker() noexcept                             = delete;
+    MovePicker(const MovePicker&) noexcept            = delete;
+    MovePicker(MovePicker&&) noexcept                 = delete;
+    MovePicker& operator=(const MovePicker&) noexcept = delete;
+    MovePicker& operator=(MovePicker&&) noexcept      = delete;
+
     MovePicker(const Position&                 p,
                Move                            ttm,
                const History<H_CAPTURE>*       captureHist,
@@ -105,12 +111,6 @@ class MovePicker final {
                int                             th = 0) noexcept;
 
     MovePicker(const Position& p, Move ttm, const History<H_CAPTURE>* captureHist, int th) noexcept;
-
-    MovePicker() noexcept                             = delete;
-    MovePicker(const MovePicker&) noexcept            = delete;
-    MovePicker(MovePicker&&) noexcept                 = delete;
-    MovePicker& operator=(const MovePicker&) noexcept = delete;
-    MovePicker& operator=(MovePicker&&) noexcept      = delete;
 
     [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
     [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }

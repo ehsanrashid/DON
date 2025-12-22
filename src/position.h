@@ -21,7 +21,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstddef>  // IWYU pragma: keep
 #include <cstdint>
 #include <cstring>
 #include <initializer_list>
@@ -89,14 +88,12 @@ struct Zobrist final {
 // State struct stores information needed to restore Position object
 // to its previous state when retract any move. (Size = 248)
 struct State final {
-   private:
-    constexpr State(State&&) noexcept            = delete;
-    constexpr State& operator=(State&&) noexcept = delete;
-
    public:
-    State() noexcept                                     = default;
-    constexpr State(const State&) noexcept               = default;
-    constexpr State& operator=(const State& st) noexcept = default;
+    State() noexcept                           = default;
+    State(const State&) noexcept               = delete;
+    State(State&&) noexcept                    = delete;
+    State& operator=(const State& st) noexcept = default;
+    State& operator=(State&&) noexcept         = delete;
 
     void clear() noexcept;
 
@@ -163,10 +160,8 @@ class Position final {
     Position() noexcept                           = default;
     Position(const Position&) noexcept            = default;
     Position& operator=(const Position&) noexcept = default;
-
-   private:
-    constexpr Position(Position&&) noexcept            = delete;
-    constexpr Position& operator=(Position&&) noexcept = delete;
+    Position(Position&&) noexcept                 = delete;
+    Position& operator=(Position&&) noexcept      = delete;
 
     void clear() noexcept;
 

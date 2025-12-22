@@ -56,6 +56,12 @@ struct MoveList final {
     using iterator        = const_iterator;
     using size_type       = std::size_t;
 
+    MoveList() noexcept                           = delete;
+    MoveList(const MoveList&) noexcept            = delete;
+    MoveList(MoveList&&) noexcept                 = delete;
+    MoveList& operator=(const MoveList&) noexcept = delete;
+    MoveList& operator=(MoveList&&) noexcept      = delete;
+
     // Generate moves into the internal buffer.
     explicit MoveList(const Position& pos) noexcept :
         endMove(generate<GT, Any>(pos, moves.data())) {
@@ -63,12 +69,6 @@ struct MoveList final {
         assert(moves.data() <= endMove && endMove <= moves.data() + MAX_MOVES);
 #endif
     }
-
-    MoveList() noexcept                           = delete;
-    MoveList(const MoveList&) noexcept            = delete;
-    MoveList(MoveList&&) noexcept                 = delete;
-    MoveList& operator=(const MoveList&) noexcept = delete;
-    MoveList& operator=(MoveList&&) noexcept      = delete;
 
     [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
     [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }

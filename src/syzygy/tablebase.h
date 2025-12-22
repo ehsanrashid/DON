@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <string>
 #include <string_view>
 
 #include "../types.h"
@@ -42,6 +43,15 @@ enum WDLScore : std::int8_t {
     WDL_WIN          = +2,  // Win
 };
 
+inline std::string to_string(WDLScore wdlScore) noexcept {
+    return wdlScore == WDL_LOSS         ? "Loss"
+         : wdlScore == WDL_BLESSED_LOSS ? "Blessed loss"
+         : wdlScore == WDL_DRAW         ? "Draw"
+         : wdlScore == WDL_CURSED_WIN   ? "Cursed win"
+         : wdlScore == WDL_WIN          ? "Win"
+                                        : "None";
+}
+
 constexpr WDLScore operator-(WDLScore wdlScore) noexcept { return WDLScore(-int(wdlScore)); }
 
 // Possible states after a probing operation
@@ -51,6 +61,14 @@ enum ProbeState : std::int8_t {
     PS_AC_CHANGED        = -1,  // DTZ should check the other side
     PS_BEST_MOVE_ZEROING = +2   // Best move zeroes DTZ (capture or pawn move)
 };
+
+inline std::string to_string(ProbeState ps) noexcept {
+    return ps == PS_FAIL              ? "Failed"
+         : ps == PS_OK                ? "Success"
+         : ps == PS_AC_CHANGED        ? "Active color changed"
+         : ps == PS_BEST_MOVE_ZEROING ? "Best move zeroing"
+                                      : "None";
+}
 
 struct Config final {
     bool         rootInTB    = false;
