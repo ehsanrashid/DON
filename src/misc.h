@@ -685,53 +685,53 @@ class FixedString final {
 
 struct InitOnce final {
    public:
-    InitOnce() = default;
-
-    InitOnce(const InitOnce& initOnce) noexcept :
-        state(initOnce.state.load(std::memory_order_relaxed)) {}
-    InitOnce& operator=(const InitOnce& initOnce) noexcept {
-        state.store(initOnce.state.load(std::memory_order_relaxed), std::memory_order_relaxed);
-        return *this;
-    }
-
-    InitOnce(InitOnce&&) noexcept            = delete;
-    InitOnce& operator=(InitOnce&&) noexcept = delete;
+    InitOnce()                           = default;
+    InitOnce(const InitOnce&)            = delete;
+    InitOnce(InitOnce&&)                 = delete;
+    InitOnce& operator=(const InitOnce&) = delete;
+    InitOnce& operator=(InitOnce&&)      = delete;
 
     // Check if initialization is complete
-    bool is_initialized() const noexcept {
-        return state.load(std::memory_order_acquire) == Initialized;
+    [[nodiscard]] bool is_initialized() const noexcept {
+        return state.load(std::memory_order_acquire) == State::Initialized;
     }
 
     // Attempt to become the initializing thread
     // Returns true if this thread is responsible for initialization
-    bool try_init() noexcept {
-        State expected = Uninitialized;
-        return state.compare_exchange_strong(expected, InProgress, std::memory_order_acq_rel,
-                                             std::memory_order_relaxed);
+    [[nodiscard]] bool try_init() noexcept {
+        State expected = State::Uninitialized;
+        return state.compare_exchange_strong(expected, State::Initializing,
+                                             std::memory_order_acq_rel, std::memory_order_relaxed);
     }
 
-    // Spin-wait until initialization is done
+    // Spin-wait until initialization is complete
     void wait_until_initialized() const noexcept {
-        while (state.load(std::memory_order_acquire) != Initialized)
+        while (state.load(std::memory_order_acquire) != State::Initialized)
             std::this_thread::yield();
     }
 
-    // Mark initialization as done
-    void set_initialized() noexcept { state.store(Initialized, std::memory_order_release); }
+    // Mark initialization as complete
+    void set_initialized() noexcept { state.store(State::Initialized, std::memory_order_release); }
 
    private:
-    enum State {
+    enum class State : int {
         Uninitialized,
-        InProgress,
-        Initialized,
+        Initializing,
+        Initialized
     };
 
-    std::atomic<State> state{Uninitialized};
+    std::atomic<State> state{State::Uninitialized};
 };
 
-// LazyValue wraps a Value with AtomicOnce for safe lazy initialization
+// LazyValue wraps a Value with InitOnce for safe lazy initialization
 template<typename Value>
 struct LazyValue final {
+    LazyValue()                            = default;
+    LazyValue(const LazyValue&)            = delete;
+    LazyValue(LazyValue&&)                 = delete;
+    LazyValue& operator=(const LazyValue&) = delete;
+    LazyValue& operator=(LazyValue&&)      = delete;
+
     template<typename... Args>
     Value& init(Args&&... args) noexcept {
         // Fast path: already initialized
@@ -740,14 +740,14 @@ struct LazyValue final {
 
         if (initOnce.try_init())
         {
-            // first thread initializes
+            // First thread initializes
             value = Value(std::forward<Args>(args)...);
 
             initOnce.set_initialized();
         }
         else
         {
-            // other threads wait until ready
+            // Other threads wait until initialized
             initOnce.wait_until_initialized();
         }
 

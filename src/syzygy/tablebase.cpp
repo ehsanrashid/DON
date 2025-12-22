@@ -26,7 +26,6 @@
 #include <fstream>
 #include <initializer_list>
 #include <iostream>
-#include <iterator>
 #include <sstream>
 #include <sys/stat.h>
 #include <type_traits>
@@ -1394,13 +1393,13 @@ void* init(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
 
     if (entry.initOnce.try_init())
     {
-        // This thread is responsible for initialization
+        // First thread is responsible for initialization
 
         // Pieces strings in decreasing order for each color, like ("KPP","KR")
         StdArray<std::string, COLOR_NB> pieces{};
         for (Color c : {WHITE, BLACK})
-            for (auto itr = PIECE_TYPES.rbegin(); itr != PIECE_TYPES.rend(); ++itr)
-                pieces[c].append(pos.count(c, *itr), to_char(*itr));
+            for (std::size_t i = PIECE_TYPES.size(); i-- > 0;)
+                pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
 
         std::string fname;
         fname.reserve(pieces[WHITE].size() + pieces[BLACK].size() + 1 + EXT[T].size());
@@ -1429,7 +1428,7 @@ void* init(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
         if (data != nullptr)
             set(entry, data);
 
-        // mark done for all threads
+        // Mark initialized for all threads
         entry.initOnce.set_initialized();
     }
     else
