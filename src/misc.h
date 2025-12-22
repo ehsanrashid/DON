@@ -683,14 +683,15 @@ class FixedString final {
     std::size_t                  _size;
 };
 
-struct AtomicOnce {
+struct AtomicOnce final {
    public:
     AtomicOnce() = default;
 
-    AtomicOnce(const AtomicOnce& atomicOnce) noexcept :
-        once(atomicOnce.once.load(std::memory_order_relaxed)) {}
-    AtomicOnce& operator=(const AtomicOnce& atomicOnce) noexcept {
-        once.store(atomicOnce.once.load(std::memory_order_relaxed), std::memory_order_relaxed);
+    AtomicOnce(const AtomicOnce& atomOnce) noexcept :
+        atomicOnce(atomOnce.atomicOnce.load(std::memory_order_relaxed)) {}
+    AtomicOnce& operator=(const AtomicOnce& atomOnce) noexcept {
+        atomicOnce.store(atomOnce.atomicOnce.load(std::memory_order_relaxed),
+                         std::memory_order_relaxed);
         return *this;
     }
 
@@ -698,27 +699,57 @@ struct AtomicOnce {
     AtomicOnce& operator=(AtomicOnce&&) noexcept = delete;
 
     // Fast path: returns true if already done
-    bool is_done() const noexcept { return once.load(std::memory_order_acquire); }
+    bool is_done() const noexcept { return atomicOnce.load(std::memory_order_acquire); }
 
     // Attempt to become the initializing thread
     // Returns true if caller is responsible for initialization
     bool try_start() noexcept {
         bool expected = false;
-        return once.compare_exchange_strong(expected, true, std::memory_order_acquire,
-                                            std::memory_order_relaxed);
+        return atomicOnce.compare_exchange_strong(expected, true, std::memory_order_acquire,
+                                                  std::memory_order_relaxed);
     }
 
     // Spin-wait until ready
     void wait_until_done() const noexcept {
-        while (!once.load(std::memory_order_acquire))
+        while (!atomicOnce.load(std::memory_order_acquire))
             std::this_thread::yield();
     }
 
     // Mark initialization complete
-    void set_done() noexcept { once.store(true, std::memory_order_release); }
+    void set_done() noexcept { atomicOnce.store(true, std::memory_order_release); }
 
    private:
-    std::atomic<bool> once{false};
+    std::atomic<bool> atomicOnce{false};
+};
+
+// LazyValue wraps a Value with AtomicOnce for safe lazy initialization
+template<typename Value>
+struct LazyValue final {
+    template<typename... Args>
+    Value& init(Args&&... args) noexcept {
+        // Fast path: already initialized
+        if (atomicOnce.is_done())
+            return value;
+
+        if (atomicOnce.try_start())
+        {
+            // first thread initializes
+            value = Value(std::forward<Args>(args)...);
+
+            atomicOnce.set_done();
+        }
+        else
+        {
+            // other threads wait until ready
+            atomicOnce.wait_until_done();
+        }
+
+        return value;
+    }
+
+   private:
+    Value      value;
+    AtomicOnce atomicOnce;
 };
 
 // ConcurrentCache: groups (mutex + storage + pre-reserve)
@@ -730,10 +761,29 @@ class ConcurrentCache final {
         storage.max_load_factor(loadFactor);
     }
 
+    // Thread-safe access or build
     // Args... are forwarded to Value constructor
     template<typename... Args>
     Value& access_or_build(const Key& key, Args&&... args) noexcept {
-        return _access_or_build(key, std::forward<Args>(args)...);
+        // Fast path: shared (read) lock to access
+        {
+            std::shared_lock lock(mutex);
+
+            if (auto itr = storage.find(key); itr != storage.end())
+                return itr->second->init(std::forward<Args>(args)...);
+        }
+
+        // Slow path: exclusive (write) lock to insert new LazyValue if missing
+        {
+            std::unique_lock lock(mutex);
+
+            auto& entry = storage[key];
+
+            if (!entry)
+                entry = std::make_unique<LazyValue<Value>>();
+
+            return entry->init(std::forward<Args>(args)...);
+        }
     }
 
     // Transformer is callable: Value& -> any return type
@@ -742,40 +792,12 @@ class ConcurrentCache final {
     auto
     transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) noexcept {
         return std::forward<Transformer>(transformer)(
-          _access_or_build(key, std::forward<Args>(args)...));
+          access_or_build(key, std::forward<Args>(args)...));
     }
 
    private:
-    // Thread-safe access or build
-    template<typename... Args>
-    Value& _access_or_build(const Key& key, Args&&... args) noexcept {
-
-        // Fast path: shared (read) lock
-        {
-            std::shared_lock lock(mutex);
-
-            if (auto itr = storage.find(key); itr != storage.end())
-                return *itr->second;
-        }
-
-        // Slow path: exclusive (write) lock to insert (double-check to avoid races)
-        {
-            std::unique_lock lock(mutex);
-
-            // Double-check
-            if (auto itr = storage.find(key); itr != storage.end())
-                return *itr->second;
-
-            // Build the value internally inside lock - reduces lock contention
-            auto [itr, inserted] =
-              storage.emplace(key, std::make_unique<Value>(std::forward<Args>(args)...));
-
-            return *itr->second;
-        }
-    }
-
-    std::shared_mutex                               mutex;
-    std::unordered_map<Key, std::unique_ptr<Value>> storage;
+    std::shared_mutex                                          mutex;
+    std::unordered_map<Key, std::unique_ptr<LazyValue<Value>>> storage;
 };
 
 template<typename T>

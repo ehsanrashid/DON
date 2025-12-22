@@ -434,7 +434,8 @@ struct PairsData final {
 // TBTable is populated at init time but the nested PairsData records
 // are populated at first access, when the corresponding file is memory mapped.
 template<TBType T>
-struct TBTable final: public AtomicOnce {
+struct TBTable final {
+   public:
     using Ret = std::conditional_t<T == WDL, WDLScore, int>;
 
     TBTable() noexcept = default;
@@ -444,6 +445,14 @@ struct TBTable final: public AtomicOnce {
     ~TBTable() noexcept;
 
     PairsData* get(int ac, int f) noexcept;
+
+    bool is_done() const noexcept { return atomicOnce.is_done(); }
+
+    bool try_start() noexcept { return atomicOnce.try_start(); }
+
+    void wait_until_done() const noexcept { atomicOnce.wait_until_done(); }
+
+    void set_done() noexcept { atomicOnce.set_done(); }
 
     static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
 
@@ -457,6 +466,9 @@ struct TBTable final: public AtomicOnce {
     bool                                    hasUniquePieces;
     StdArray<std::uint8_t, COLOR_NB>        pawnCount;  // [Lead color / other color]
     StdArray<PairsData, SIDES, FILE_NB / 2> items;      // [color][FILE_A..FILE_D]
+
+   private:
+    AtomicOnce atomicOnce;
 };
 
 template<>
@@ -1390,46 +1402,50 @@ void* init(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
         return entry.mapAddress;
 
     // Try to become the initializing thread
-    if (!entry.try_start())
+    if (entry.try_start())
     {
-        // Another thread is initializing, spin until ready
-        entry.wait_until_done();
-        return entry.mapAddress;
-    }
+        // Initializing thread now
 
-    // Initializing thread now
+        // Pieces strings in decreasing order for each color, like ("KPP","KR")
+        StdArray<std::string, COLOR_NB> pieces{};
+        for (Color c : {WHITE, BLACK})
+            for (auto itr = PIECE_TYPES.rbegin(); itr != PIECE_TYPES.rend(); ++itr)
+                pieces[c].append(pos.count(c, *itr), to_char(*itr));
 
-    // Pieces strings in decreasing order for each color, like ("KPP","KR")
-    StdArray<std::string, COLOR_NB> pieces{};
-    for (Color c : {WHITE, BLACK})
-        for (auto itr = PIECE_TYPES.rbegin(); itr != PIECE_TYPES.rend(); ++itr)
-            pieces[c].append(pos.count(c, *itr), to_char(*itr));
+        std::string fname;
 
-    std::string fname;
-    fname.reserve(32);
+        std::size_t reserve = pieces[WHITE].size() + pieces[BLACK].size() + 1 + EXT[T].size();
 
-    if (materialKey == entry.key[WHITE])
-    {
-        fname += pieces[WHITE];
-        fname += 'v';
-        fname += pieces[BLACK];
+        fname.reserve(reserve);
+
+        if (materialKey == entry.key[WHITE])
+        {
+            fname += pieces[WHITE];
+            fname += 'v';
+            fname += pieces[BLACK];
+        }
+        else
+        {
+            fname += pieces[BLACK];
+            fname += 'v';
+            fname += pieces[WHITE];
+        }
+
+        fname += EXT[T];
+
+        std::uint8_t* data = TBFile(fname).map<T>(&entry.mapAddress, &entry.mapping);
+
+        if (data != nullptr)
+            set(entry, data);
+
+        // Mark initialization complete (release semantics)
+        entry.set_done();
     }
     else
     {
-        fname += pieces[BLACK];
-        fname += 'v';
-        fname += pieces[WHITE];
+        // Another thread is initializing, spin until ready
+        entry.wait_until_done();
     }
-
-    fname += EXT[T];
-
-    std::uint8_t* data = TBFile(fname).map<T>(&entry.mapAddress, &entry.mapping);
-
-    if (data != nullptr)
-        set(entry, data);
-
-    // Mark initialization complete (release semantics)
-    entry.set_done();
 
     return entry.mapAddress;
 }
