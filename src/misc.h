@@ -706,8 +706,18 @@ struct InitOnce final {
 
     // Spin-wait until initialization is complete
     void wait_until_initialized() const noexcept {
+        std::size_t spin = 1;
         while (state.load(std::memory_order_acquire) != State::Initialized)
-            std::this_thread::yield();
+        {
+            // Exponential backoff
+            for (std::size_t i = 0; i < spin; ++i)
+                std::this_thread::yield();
+            // Limit maximum backoff
+            if (spin < 16)
+                spin <<= 1;
+            // Optional tiny sleep to reduce CPU usage for longer waits
+            std::this_thread::sleep_for(std::chrono::nanoseconds(50));
+        }
     }
 
     // Mark initialization as complete
