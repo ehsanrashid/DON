@@ -18,11 +18,11 @@
 #ifndef BITBOARD_H_INCLUDED
 #define BITBOARD_H_INCLUDED
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cmath>  // IWYU pragma: keep
 #include <cstdint>
-#include <cstdlib>
 #include <initializer_list>
 #include <string>
 #include <string_view>
@@ -166,12 +166,6 @@ struct Magic final {
     std::uint8_t shift;
 #endif
 };
-
-// clang-format off
-alignas(CACHE_LINE_SIZE) inline StdArray<Magic   , SQUARE_NB, 2>         Magics;  // BISHOP or ROOK
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> BetweenBBs;
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> PassRayBBs;
-// clang-format on
 
 constexpr Bitboard square_bb(Square s) noexcept {
     assert(is_ok(s));
@@ -436,6 +430,12 @@ constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
     }
 }
 
+// clang-format off
+alignas(CACHE_LINE_SIZE) inline StdArray<Magic   , SQUARE_NB, 2>         Magics;  // BISHOP or ROOK
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> BetweenBBs;
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> PassRayBBs;
+// clang-format on
+
 template<PieceType PT>
 constexpr Bitboard attacks_bb(const StdArray<Magic, 2>& magic, Bitboard occupancyBB) noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in attacks_bb()");
@@ -502,8 +502,7 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto LineBBs = []() constexpr {
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             for (PieceType pt : {BISHOP, ROOK})
                 if (AttacksBBs[s1][pt] & s2)
-                    lineBBs[s1][s2] =
-                      (AttacksBBs[s1][pt] & AttacksBBs[s2][pt]) | square_bb(s1) | square_bb(s2);
+                    lineBBs[s1][s2] = (AttacksBBs[s1][pt] & AttacksBBs[s2][pt]) | s1 | s2;
 
     return lineBBs;
 }();
@@ -514,14 +513,15 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto LineBBs = []() constexpr {
 // For instance, line_bb(SQ_C4, SQ_F7) will return a bitboard with the A2-G8 diagonal.
 constexpr Bitboard line_bb(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
+
     return LineBBs[s1][s2];
 }
 
 // Returns true if the squares s1, s2 and s3 are aligned on straight or diagonal line.
 constexpr bool aligned(Square s1, Square s2, Square s3) noexcept {
-    assert(is_ok(s1) && is_ok(s2) && is_ok(s3));
+    assert(is_ok(s3));
 
-    return (line_bb(s1, s2) & square_bb(s3)) != 0;
+    return (line_bb(s1, s2) & s3) != 0;
 }
 
 // Returns a bitboard representing the squares in the semi-open segment

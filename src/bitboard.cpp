@@ -17,7 +17,7 @@
 
 #include "bitboard.h"
 
-#include <algorithm>
+#include <cstdlib>
 #include <memory>
 
 #if !defined(USE_BMI2)
