@@ -442,7 +442,7 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
     if (initOnce.is_initialized())
         return mappedPtr;  // could be nullptr if file missing
 
-    if (initOnce.try_init())
+    if (initOnce.attempt_initialization())
     {
         // First thread is responsible for initialization
 

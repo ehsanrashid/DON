@@ -698,7 +698,7 @@ struct InitOnce final {
 
     // Attempt to become the initializing thread
     // Returns true if this thread is responsible for initialization
-    [[nodiscard]] bool try_init() noexcept {
+    [[nodiscard]] bool attempt_initialization() noexcept {
         State expected = State::Uninitialized;
         return state.compare_exchange_strong(expected, State::Initializing,
                                              std::memory_order_acq_rel, std::memory_order_relaxed);
@@ -748,16 +748,17 @@ struct LazyValue final {
         if (initOnce.is_initialized())
             return value;
 
-        if (initOnce.try_init())
+        if (initOnce.attempt_initialization())
         {
             // First thread initializes
             value = Value(std::forward<Args>(args)...);
 
+            // Mark initialized for all threads
             initOnce.set_initialized();
         }
         else
         {
-            // Other threads wait until initialized
+            // Other threads spin until initialization completes
             initOnce.wait_until_initialized();
         }
 
