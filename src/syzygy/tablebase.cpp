@@ -377,8 +377,8 @@ struct TBTable final {
 
    private:
     void*         mappedPtr = nullptr;
-    std::uint8_t* mapPtr;
-    std::uint64_t mapping;
+    std::uint8_t* mapPtr    = nullptr;
+    std::uint64_t mapping   = 0;
     InitOnce      initOnce;
 };
 
@@ -490,7 +490,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (fd == INVALID_HANDLE_VALUE)
     {
-        mappedPtr = nullptr;
+        assert(mappedPtr == nullptr);
 
         return nullptr;
     }
@@ -504,7 +504,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
         CloseHandle(fd);
 
-        mappedPtr = nullptr;
+        assert(mappedPtr == nullptr);
 
         return nullptr;
     }
@@ -547,7 +547,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (fd == -1)
     {
-        mappedPtr = nullptr;
+        assert(mappedPtr == nullptr);
 
         return nullptr;
     }
@@ -560,7 +560,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
         ::close(fd);
 
-        mappedPtr = nullptr;
+        assert(mappedPtr == nullptr);
 
         return nullptr;
     }
@@ -574,9 +574,10 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
         std::exit(EXIT_FAILURE);
     }
 
+    // Store mapping size
     mapping = objStat.st_size;
 
-    mappedPtr = mmap(nullptr, objStat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    mappedPtr = mmap(nullptr, mapping, PROT_READ, MAP_SHARED, fd, 0);
 
     if (mappedPtr == MAP_FAILED)
     {
@@ -588,7 +589,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
     }
 
     #if defined(MADV_RANDOM)
-    madvise(mappedPtr, objStat.st_size, MADV_RANDOM);
+    madvise(mappedPtr, mapping, MADV_RANDOM);
     #endif
 
     ::close(fd);
@@ -605,8 +606,6 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
         unmap();
 
-        mappedPtr = nullptr;
-
         return nullptr;
     }
 
@@ -617,12 +616,22 @@ template<TBType T>
 void TBTable<T>::unmap() noexcept {
 #if defined(_WIN32)
     if (mappedPtr != nullptr)
+    {
         UnmapViewOfFile(mappedPtr);
+        mappedPtr = nullptr;
+    }
     if (mapping != 0)
-        CloseHandle((HANDLE) mapping);
+    {
+        CloseHandle(HANDLE(mapping));
+        mapping = 0;
+    }
 #else
     if (mappedPtr != nullptr)
+    {
         munmap(mappedPtr, mapping);
+        mappedPtr = nullptr;
+        mapping   = 0;
+    }
 #endif
 }
 
