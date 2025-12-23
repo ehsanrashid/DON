@@ -551,24 +551,21 @@ class TBTables final {
     template<TBType T>
     [[nodiscard]] TBTable<T>* get(Key key) noexcept {
 
-        std::size_t bucket = key & MASK;
-
-        for (std::size_t distance = 0;; ++distance)
+        for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
+            std::size_t bucket = (key + distance) & MASK;
+
             Entry& entry = entries[bucket];
             auto*  table = entry.get<T>();
 
-            // Found key or reached empty slot
-            if (entry.key == key || table == nullptr)
-                return table;
-
-            // Robin Hood early exit (Optional)
-            // Stop early if have probed farther than the entry's home bucket
-            if (distance > ((bucket - entry.bucket) & MASK))
-                return nullptr;  // key cannot be in table
-
-            bucket = (bucket + 1) & MASK;
+            // Return if found key or empty slot, else terminate if distance exceeded
+            if (entry.key == key || table == nullptr
+                || distance > ((bucket - (entry.key & MASK)) & MASK))
+                return (entry.key == key || table != nullptr) ? table : nullptr;
         }
+
+        // Safety fallback: key not found
+        return nullptr;
     }
 
     void clear() noexcept {
@@ -576,15 +573,12 @@ class TBTables final {
 
         wdlTables.clear();
         dtzTables.clear();
-
-        wdlCount = 0;
-        dtzCount = 0;
     }
 
     std::string info() const noexcept {
-        return "Tablebase: "                            //
-             + std::to_string(wdlCount) + " WDL and "   //
-             + std::to_string(dtzCount) + " DTZ found"  //
+        return "Tablebase: "                                    //
+             + std::to_string(wdlTables.size()) + " WDL and "   //
+             + std::to_string(dtzTables.size()) + " DTZ found"  //
              + " (up to " + std::to_string(int(MaxCardinality)) + "-man).";
     }
 
@@ -602,20 +596,17 @@ class TBTables final {
         }
 
         Key           key;
-        std::size_t   bucket;
         TBTable<WDL>* wdlTable;
         TBTable<DTZ>* dtzTable;
     };
 
     void insert(Key key, TBTable<WDL>* wdlTable, TBTable<DTZ>* dtzTable) noexcept {
-        Entry entry{key, key & MASK, wdlTable, dtzTable};
+        Entry entry{key, wdlTable, dtzTable};
 
-        std::size_t bucket = entry.bucket;
-
-        std::size_t distance = 0;
-
-        while (true)
+        for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
+            std::size_t bucket = (key + distance) & MASK;
+
             Entry& curEntry = entries[bucket];
 
             // Insert if empty or replace if key exists
@@ -623,11 +614,11 @@ class TBTables final {
             {
                 curEntry = entry;
 
-                break;
+                return;
             }
 
             // Compute circular probe distance of the existing entry
-            std::size_t curDistance = (bucket - curEntry.bucket) & MASK;
+            std::size_t curDistance = (bucket - (curEntry.key & MASK)) & MASK;
 
             // Robin Hood swap if new entry has probed farther than existing
             if (distance > curDistance)
@@ -636,21 +627,12 @@ class TBTables final {
 
                 distance = curDistance;  // reset probe distance for the new entry
             }
-
-            // Move to the next bucket
-            bucket = (bucket + 1) & MASK;
-
-            ++distance;
-
-            // Safety check to prevent infinite loop
-            assert(distance < SIZE && "TB hash table size too low!");
-            if (distance >= SIZE)
-            {
-                std::cerr << "TB hash table size too low!" << std::endl;
-
-                std::exit(EXIT_FAILURE);
-            }
         }
+
+        // Safety check: table is full or SIZE too small
+        std::cerr << "TB hash table size too small!" << std::endl;
+
+        std::exit(EXIT_FAILURE);
     }
 
     // 4K table, indexed by key's 12 lsb
@@ -661,9 +643,6 @@ class TBTables final {
 
     std::deque<TBTable<WDL>> wdlTables;
     std::deque<TBTable<DTZ>> dtzTables;
-
-    std::size_t wdlCount = 0;
-    std::size_t dtzCount = 0;
 };
 
 // If the corresponding file exists two new objects TBTable<WDL> and TBTable<DTZ>
@@ -672,22 +651,21 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     std::string code;
     code.reserve(pieces.size() + 2);
+
     for (PieceType pt : pieces)
         code += to_char(pt);
+
     std::size_t pos = code.find('K', 1);
+
     assert(!code.empty() && code[0] == 'K' && pos != std::string::npos);
+
     if (pos == std::string::npos)
         return;
+
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    TBFile dtzFile(code + std::string(EXT[DTZ]));
-    if (dtzFile.exists())
-        ++dtzCount;
-
-    TBFile wdlFile(code + std::string(EXT[WDL]));
-    if (wdlFile.exists())
-        ++wdlCount;
-    else  // Only WDL file is checked
+    // Only WDL file is checked
+    if (!TBFile(code + std::string(EXT[WDL])).exists())
         return;
 
     if (MaxCardinality < pieces.size())
