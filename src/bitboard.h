@@ -169,6 +169,7 @@ struct Magic final {
 
 constexpr Bitboard square_bb(Square s) noexcept {
     assert(is_ok(s));
+
     return (1ULL << s);
 }
 
@@ -560,10 +561,16 @@ constexpr std::uint8_t constexpr_popcount(Bitboard b) noexcept {
     // asm ("popcnt %0, %0" : "+r" (b) :: "cc");
     // return b;
 
-    b = b - ((b >> 1) & 0x5555555555555555ULL);
-    b = (b & 0x3333333333333333ULL) + ((b >> 2) & 0x3333333333333333ULL);
-    b = (b + (b >> 4)) & 0x0F0F0F0F0F0F0F0FULL;
-    return (b * 0x0101010101010101ULL) >> 56;
+
+    constexpr Bitboard k1 = 0x5555555555555555ULL;
+    constexpr Bitboard k2 = 0x3333333333333333ULL;
+    constexpr Bitboard k3 = 0x0F0F0F0F0F0F0F0FULL;
+    constexpr Bitboard kf = 0x0101010101010101ULL;
+
+    b = b - ((b >> 1) & k1);
+    b = (b & k2) + ((b >> 2) & k2);
+    b = (b + (b >> 4)) & k3;
+    return (b * kf) >> 56;
 }
 
 constexpr std::uint8_t msb_index(Bitboard b) noexcept {
@@ -578,7 +585,7 @@ constexpr std::uint8_t msb_index(Bitboard b) noexcept {
       13, 18, 8,  12, 7,  6,  5,  63   //
     };
 
-    constexpr std::uint64_t Debruijn64 = 0x03F79D71B4CB0A89ULL;
+    constexpr Bitboard Debruijn64 = 0x03F79D71B4CB0A89ULL;
 
     return MSBIndices[(b * Debruijn64) >> 58];
 }
@@ -635,18 +642,23 @@ constexpr Bitboard next_pow2(Bitboard b) noexcept {
 
 #if !defined(USE_POPCNT)
 
-constexpr std::uint8_t popcount16(std::uint16_t x) noexcept {
-    x = x - ((x >> 1) & 0x5555U);
-    x = (x & 0x3333U) + ((x >> 2) & 0x3333U);
-    x = (x + (x >> 4)) & 0x0F0FU;
-    return (x * 0x0101U) >> 8;
+constexpr std::uint8_t constexpr_popcount16(std::uint16_t x) noexcept {
+    constexpr std::uint16_t k1 = 0x5555U;
+    constexpr std::uint16_t k2 = 0x3333U;
+    constexpr std::uint16_t k3 = 0x0F0FU;
+    constexpr std::uint16_t kf = 0x0101U;
+
+    x = x - ((x >> 1) & k1);
+    x = (x & k2) + ((x >> 2) & k2);
+    x = (x + (x >> 4)) & k3;
+    return (x * kf) >> 8;
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto PopCnts = []() constexpr {
     StdArray<std::uint8_t, 0x10000> popCnts{};
 
     for (std::size_t i = 0; i < popCnts.size(); ++i)
-        popCnts[i] = popcount16(i);
+        popCnts[i] = constexpr_popcount16(i);
 
     return popCnts;
 }();
