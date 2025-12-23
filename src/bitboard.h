@@ -562,15 +562,15 @@ constexpr std::uint8_t constexpr_popcount(Bitboard b) noexcept {
     // return b;
 
 
-    constexpr Bitboard k1 = 0x5555555555555555ULL;
-    constexpr Bitboard k2 = 0x3333333333333333ULL;
-    constexpr Bitboard k3 = 0x0F0F0F0F0F0F0F0FULL;
-    constexpr Bitboard kf = 0x0101010101010101ULL;
+    constexpr Bitboard K1 = 0x5555555555555555ULL;
+    constexpr Bitboard K2 = 0x3333333333333333ULL;
+    constexpr Bitboard K4 = 0x0F0F0F0F0F0F0F0FULL;
+    constexpr Bitboard Kf = 0x0101010101010101ULL;
 
-    b = b - ((b >> 1) & k1);
-    b = (b & k2) + ((b >> 2) & k2);
-    b = (b + (b >> 4)) & k3;
-    return (b * kf) >> 56;
+    b = b - ((b >> 1) & K1);
+    b = (b & K2) + ((b >> 2) & K2);
+    b = (b + (b >> 4)) & K4;
+    return (b * Kf) >> 56;
 }
 
 constexpr std::uint8_t msb_index(Bitboard b) noexcept {
@@ -643,18 +643,18 @@ constexpr Bitboard next_pow2(Bitboard b) noexcept {
 #if !defined(USE_POPCNT)
 
 constexpr std::uint8_t constexpr_popcount16(std::uint16_t x) noexcept {
-    constexpr std::uint16_t k1 = 0x5555U;
-    constexpr std::uint16_t k2 = 0x3333U;
-    constexpr std::uint16_t k3 = 0x0F0FU;
-    constexpr std::uint16_t kf = 0x0101U;
+    constexpr std::uint16_t K1 = 0x5555U;
+    constexpr std::uint16_t K2 = 0x3333U;
+    constexpr std::uint16_t K4 = 0x0F0FU;
+    constexpr std::uint16_t Kf = 0x0101U;
 
-    x = x - ((x >> 1) & k1);
-    x = (x & k2) + ((x >> 2) & k2);
-    x = (x + (x >> 4)) & k3;
-    return (x * kf) >> 8;
+    x = x - ((x >> 1) & K1);
+    x = (x & K2) + ((x >> 2) & K2);
+    x = (x + (x >> 4)) & K4;
+    return (x * Kf) >> 8;
 }
 
-alignas(CACHE_LINE_SIZE) inline constexpr auto PopCnts = []() constexpr {
+alignas(CACHE_LINE_SIZE) inline const auto PopCnts = []() {
     StdArray<std::uint8_t, 0x10000> popCnts{};
 
     for (std::size_t i = 0; i < popCnts.size(); ++i)
