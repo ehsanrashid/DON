@@ -17,7 +17,6 @@
 
 #include "bitboard.h"
 
-#include <cstdlib>
 #include <memory>
 
 #if !defined(USE_BMI2)
@@ -219,16 +218,14 @@ void init() noexcept {
         {
             Bitboard s2BB = square_bb(s2);
 
-            // clang-format off
             for (PieceType pt : {BISHOP, ROOK})
                 if (AttacksBBs[s1][pt] & s2)
                 {
-                    BetweenBBs[s1][s2] =  attacks_bb(s1, pt, s2BB) &  attacks_bb(s2, pt, s1BB);
-                    PassRayBBs[s1][s2] =  attacks_bb(s1, pt,    0) & (attacks_bb(s2, pt, s1BB)  | s2BB);
+                    BetweenBBs[s1][s2] = attacks_bb(s1, pt, s2BB) & attacks_bb(s2, pt, s1BB);
+                    PassRayBBs[s1][s2] = attacks_bb(s1, pt, 0) & (attacks_bb(s2, pt, s1BB) | s2BB);
                 }
 
             BetweenBBs[s1][s2] |= s2BB;
-            // clang-format on
         }
     }
 }
