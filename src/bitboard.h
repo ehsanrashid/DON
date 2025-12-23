@@ -167,17 +167,11 @@ struct Magic final {
 #endif
 };
 
-#if !defined(USE_POPCNT)
-alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, 0x10000> PopCnt;
-#endif
-
 // clang-format off
-alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB> Distances;
-
+alignas(CACHE_LINE_SIZE) inline StdArray<Magic   , SQUARE_NB, 2>             Magics;  // BISHOP or ROOK
 alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     LineBBs;
 alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     BetweenBBs;
 alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     PassRayBBs;
-alignas(CACHE_LINE_SIZE) inline StdArray<Magic   , SQUARE_NB, 2>             Magics;  // BISHOP or ROOK
 
 alignas(CACHE_LINE_SIZE) inline StdArray<bool, SQUARE_NB, SQUARE_NB, SQUARE_NB> Aligneds;
 // clang-format on
@@ -266,21 +260,36 @@ constexpr std::uint8_t distance(Square, Square) noexcept {
     return 0;
 }
 
+constexpr std::uint8_t constexpr_abs(int x) noexcept { return x < 0 ? -x : x; }
+
 template<>
 constexpr std::uint8_t distance<File>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
-    return std::abs(file_of(s1) - file_of(s2));
+
+    return constexpr_abs(file_of(s1) - file_of(s2));
 }
 
 template<>
 constexpr std::uint8_t distance<Rank>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
-    return std::abs(rank_of(s1) - rank_of(s2));
+
+    return constexpr_abs(rank_of(s1) - rank_of(s2));
 }
+
+alignas(CACHE_LINE_SIZE) inline constexpr auto Distances = []() constexpr {
+    StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB> distances{};
+
+    for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            distances[s1][s2] = std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
+
+    return distances;
+}();
 
 template<>
 constexpr std::uint8_t distance<Square>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
+
     return Distances[s1][s2];
 }
 
@@ -343,9 +352,7 @@ constexpr Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) 
     assert(is_ok(s));
 
     Square sq = s + d;
-    return is_ok(sq) && std::max(distance<File>(s, sq), distance<Rank>(s, sq)) <= dist
-           ? square_bb(sq)
-           : 0;
+    return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
 }
 
 // Computes sliding attack
@@ -609,6 +616,29 @@ constexpr Bitboard next_pow2(Bitboard b) noexcept {
                                      : 2ULL << constexpr_msb(b - 1);
 }
 
+#if !defined(USE_POPCNT)
+
+constexpr std::uint8_t popcount16(std::uint16_t x) noexcept {
+    std::uint8_t count = 0;
+    while (x)
+    {
+        count += x & 1;
+        x >>= 1;
+    }
+    return count;
+}
+
+alignas(CACHE_LINE_SIZE) inline constexpr auto PopCnts = []() constexpr {
+    StdArray<std::uint8_t, 0x10000> popCnts{};
+
+    for (std::size_t i = 0; i < popCnts.size(); ++i)
+        popCnts[i] = popcount16(i);
+
+    return popCnts;
+}();
+
+#endif
+
 // Counts the number of non-zero bits in the bitboard
 inline std::uint8_t popcount(Bitboard b) noexcept {
 
@@ -616,7 +646,7 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
     StdArray<std::uint16_t, 4> b16;
     static_assert(sizeof(b16) == sizeof(b));
     std::memcpy(b16.data(), &b, sizeof(b16));
-    return PopCnt[b16[0]] + PopCnt[b16[1]] + PopCnt[b16[2]] + PopCnt[b16[3]];
+    return PopCnts[b16[0]] + PopCnts[b16[1]] + PopCnts[b16[2]] + PopCnts[b16[3]];
 #elif defined(__GNUC__)  // (GCC, Clang, ICX)
     return __builtin_popcountll(b);
 #elif defined(_MSC_VER)

@@ -20,10 +20,6 @@
 #include <algorithm>
 #include <memory>
 
-#if !defined(USE_POPCNT)
-    #include <bitset>
-#endif
-
 #if !defined(USE_BMI2)
     #include "prng.h"
 #endif
@@ -211,15 +207,6 @@ namespace BitBoard {
 // Initializes various bitboard tables.
 // It is called at startup.
 void init() noexcept {
-
-#if !defined(USE_POPCNT)
-    for (std::size_t i = 0; i < PopCnt.size(); ++i)
-        PopCnt[i] = std::bitset<16>(i).count();
-#endif
-
-    for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-        for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-            Distances[s1][s2] = std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
 
     init_magics<BISHOP>();
     init_magics<ROOK>();
