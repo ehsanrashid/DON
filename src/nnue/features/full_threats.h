@@ -48,10 +48,13 @@ class FullThreats final {
     static constexpr IndexType Dimensions = 79856;
 
     struct FusedData final {
+        FusedData() = delete;
+        FusedData(Square remSq) noexcept :
+            dp2removedSq(remSq) {}
+
+        Square   dp2removedSq;
         Bitboard dp2removedOriginBB = 0;
         Bitboard dp2removedTargetBB = 0;
-
-        Square dp2removedSq;
     };
 
     // Maximum number of simultaneously active features.

@@ -55,14 +55,14 @@ StdArray<ExtraOffset, PIECE_NB> ExtraOffsets;
 // Information on a particular pair of pieces and whether they should be excluded
 struct PiecePairData final {
    public:
-    PiecePairData() {}
-    PiecePairData(IndexType featureBaseIndex, bool excluded, bool semiExcluded) noexcept {
-        data = (featureBaseIndex << 8) | (excluded << 1) | (semiExcluded && !excluded);
-    }
+    constexpr PiecePairData() noexcept :
+        data(0) {}
+    constexpr PiecePairData(IndexType featureBaseIndex, bool excluded, bool semiExcluded) noexcept :
+        data((featureBaseIndex << 8) | (excluded << 1) | (semiExcluded && !excluded)) {}
 
     // lsb: excluded if orgSq < dstSq; 2nd lsb: always excluded
-    std::uint8_t excluded_pair_info() const { return (data >> 0) & 0xFF; }
-    IndexType    feature_base_index() const { return (data >> 8); }
+    constexpr std::uint8_t excluded_pair_info() const noexcept { return (data >> 0) & 0xFF; }
+    constexpr IndexType    feature_base_index() const noexcept { return (data >> 8); }
 
     // Layout: bits 8..31 are the index contribution of this piece pair, bits 0 and 1 are exclusion info
     std::uint32_t data;
