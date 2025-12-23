@@ -29,7 +29,7 @@ namespace DON {
 // for the build process (profile-build and fishtest) to work.
 // Do not change the name of the macro or the location where this macro is defined,
 // as it is used in the Makefile/Fishtest.
-#define EvalFileDefaultNameBig "nn-2962dca31855.nnue"
+#define EvalFileDefaultNameBig "nn-c288c895ea92.nnue"
 #define EvalFileDefaultNameSmall "nn-37f18f62d772.nnue"
 
 class Position;

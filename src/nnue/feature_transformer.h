@@ -170,22 +170,14 @@ class FeatureTransformer final {
 
         if (UseThreats)
         {
-            auto combinedWeights =
-              std::make_unique<StdArray<WeightType, TotalInputDimensions * HalfDimensions>>();
+            read_little_endian<ThreatWeightType>(is, threatWeights);
+
+            read_leb_128<WeightType>(is, weights);
+
             auto combinedPsqtWeights =
               std::make_unique<StdArray<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
 
-            read_leb_128(is, *combinedWeights);
-
-            std::copy(combinedWeights->begin(),
-                      combinedWeights->begin() + ThreatInputDimensions * HalfDimensions,
-                      threatWeights.begin());
-
-            std::copy(combinedWeights->begin() + ThreatInputDimensions * HalfDimensions,
-                      combinedWeights->begin() + TotalInputDimensions * HalfDimensions,
-                      weights.begin());
-
-            read_leb_128(is, *combinedPsqtWeights);
+            read_leb_128<PSQTWeightType>(is, *combinedPsqtWeights);
 
             std::copy(combinedPsqtWeights->begin(),
                       combinedPsqtWeights->begin() + ThreatInputDimensions * PSQTBuckets,
@@ -202,12 +194,9 @@ class FeatureTransformer final {
         }
 
         permute_weights<true>();
-        if (UseThreats)
-        {}
-        else
-        {
+
+        if (!UseThreats)
             scale_weights<true>();
-        }
 
         return !is.fail();
     }
@@ -217,31 +206,20 @@ class FeatureTransformer final {
         std::unique_ptr<FeatureTransformer> copy = std::make_unique<FeatureTransformer>(*this);
 
         copy->template permute_weights<false>();
-        if (UseThreats)
-        {}
-        else
-        {
+
+        if (!UseThreats)
             copy->template scale_weights<false>();
-        }
 
         write_leb_128(os, copy->biases);
 
         if (UseThreats)
         {
-            auto combinedWeights =
-              std::make_unique<StdArray<WeightType, TotalInputDimensions * HalfDimensions>>();
+            write_little_endian<ThreatWeightType>(os, copy->threatWeights);
+
+            write_leb_128<WeightType>(os, copy->weights);
+
             auto combinedPsqtWeights =
               std::make_unique<StdArray<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
-
-            std::copy(copy->threatWeights.begin(),
-                      copy->threatWeights.begin() + ThreatInputDimensions * HalfDimensions,
-                      combinedWeights->begin());
-
-            std::copy(copy->weights.begin(),
-                      copy->weights.begin() + InputDimensions * HalfDimensions,
-                      combinedWeights->begin() + ThreatInputDimensions * HalfDimensions);
-
-            write_leb_128(os, *combinedWeights);
 
             std::copy(copy->threatPsqtWeights.begin(),
                       copy->threatPsqtWeights.begin() + ThreatInputDimensions * PSQTBuckets,
@@ -251,7 +229,7 @@ class FeatureTransformer final {
                       copy->psqtWeights.begin() + InputDimensions * PSQTBuckets,
                       combinedPsqtWeights->begin() + ThreatInputDimensions * PSQTBuckets);
 
-            write_leb_128(os, *combinedPsqtWeights);
+            write_leb_128<PSQTWeightType>(os, *combinedPsqtWeights);
         }
         else
         {
@@ -443,11 +421,11 @@ class FeatureTransformer final {
     }
 
     // clang-format off
-    alignas(CACHE_LINE_SIZE) StdArray<BiasType, HalfDimensions> biases;
-    alignas(CACHE_LINE_SIZE) StdArray<WeightType, InputDimensions * HalfDimensions> weights;
-    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType, InputDimensions * PSQTBuckets> psqtWeights;
-    alignas(CACHE_LINE_SIZE) StdArray<ThreatWeightType, UseThreats ? ThreatInputDimensions * HalfDimensions : 0> threatWeights;
-    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType, UseThreats ? ThreatInputDimensions * PSQTBuckets : 0> threatPsqtWeights;
+    alignas(CACHE_LINE_SIZE) StdArray<BiasType          , HalfDimensions>                                          biases;
+    alignas(CACHE_LINE_SIZE) StdArray<ThreatWeightType  , UseThreats ? ThreatInputDimensions * HalfDimensions : 0> threatWeights;
+    alignas(CACHE_LINE_SIZE) StdArray<WeightType        , InputDimensions * HalfDimensions>                        weights;
+    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType    , UseThreats ? ThreatInputDimensions * PSQTBuckets : 0>    threatPsqtWeights;
+    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType    , InputDimensions * PSQTBuckets>                           psqtWeights;
     // clang-format on
 };
 

@@ -158,7 +158,7 @@ Value adjust_eval_value(Value evalValue, int correctionValue) noexcept {
 }
 
 bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcept {
-    return !(pos.capture_promo(move) || pos.rule50_count() < 10 || pos.null_ply() < 6
+    return !(pos.capture_promo(move) || pos.rule50_count() < 10 || pos.null_ply() <= 6
              || ss->ply < 20)
         && (ss - 2)->move.is_ok() && move.org_sq() == (ss - 2)->move.dst_sq()
         && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq()
@@ -1023,9 +1023,8 @@ Value Worker::search(Position&    pos,
         const auto futility_margin = [&](bool cond) noexcept {
             Value futilityMult = 53 + cond * 23;
 
-            return depth * futilityMult                  //
-                 - improve * int(2.4160 * futilityMult)  //
-                 - worsen * int(0.3232 * futilityMult)   //
+            return depth * futilityMult                                      //
+                 - int((improve * 2.4160 + worsen * 0.3232) * futilityMult)  //
                  + int(5.7252e-6 * absCorrectionValue);
         };
 

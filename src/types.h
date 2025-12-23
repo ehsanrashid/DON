@@ -317,13 +317,13 @@ struct DirtyThreat final {
              | (threatenedSq << ThreatenedSqOffset) | (sq << SqOffset);
     }
 
-    Square sq() const noexcept { return Square((data >> SqOffset) & 0x3F); }
-    Square threatened_sq() const noexcept { return Square((data >> ThreatenedSqOffset) & 0x3F); }
+    Square sq() const noexcept { return Square((data >> SqOffset) & 0xFF); }
+    Square threatened_sq() const noexcept { return Square((data >> ThreatenedSqOffset) & 0xFF); }
     Piece  pc() const noexcept { return Piece((data >> PcOffset) & 0xF); }
     Piece  threatened_pc() const noexcept { return Piece((data >> ThreatenedPcOffset) & 0xF); }
-    bool   add() const noexcept { return data >> 31; }
+    bool   add() const noexcept { return (data >> 31) != 0; }
 
-    std::uint32_t raw() noexcept { return data; }
+    std::uint32_t raw() const noexcept { return data; }
 
    private:
     std::uint32_t data;
@@ -335,7 +335,8 @@ static_assert(sizeof(DirtyThreat) == 4, "DirtyThreat Size");
 // Moving a piece also can reveal at most 8 discovered attacks.
 // This implies that a non-castling move can change at most (8 + 16) * 3 + 8 = 80 features.
 // By similar logic, a castling move can change at most (5 + 1 + 3 + 9) * 2 = 36 features.
-// Thus, 80 + 16 = 96 should work as an upper bound.
+// Thus, 80 should work as an upper bound. Finally, 16 entries are added to accommodate
+// unmasked vector stores near the end of the list.
 using DirtyThreatList = FixedVector<DirtyThreat, 96>;
 
 struct DirtyThreats final {

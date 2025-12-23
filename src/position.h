@@ -413,7 +413,7 @@ class Position final {
     void update_pc_threats(Square              s,
                            Piece               pc,
                            DirtyThreats* const dts,
-                           Bitboard            targetBB = FULL_BB) noexcept;
+                           Bitboard            targetBB = FULL_BB) const noexcept;
 
     template<bool Do>
     void do_castling(Color             ac,
@@ -1063,10 +1063,10 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
 
 // Put newly threatened pieces
 template<bool Put, bool ComputeRay>
-inline void Position::update_pc_threats(Square              s,
-                                        Piece               pc,
-                                        DirtyThreats* const dts,
-                                        Bitboard            targetBB) noexcept {
+inline void Position::update_pc_threats(Square                    s,
+                                        Piece                     pc,
+                                        DirtyThreats* const       dts,
+                                        [[maybe_unused]] Bitboard targetBB) const noexcept {
 
     Bitboard occupancyBB = pieces_bb();
 

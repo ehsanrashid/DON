@@ -685,69 +685,80 @@ class FixedString final {
 
 struct InitOnce final {
    public:
-    InitOnce() = default;
-
-    InitOnce(const InitOnce& initOnce) noexcept :
-        state(initOnce.state.load(std::memory_order_relaxed)) {}
-    InitOnce& operator=(const InitOnce& initOnce) noexcept {
-        state.store(initOnce.state.load(std::memory_order_relaxed), std::memory_order_relaxed);
-        return *this;
-    }
-
-    InitOnce(InitOnce&&) noexcept            = delete;
-    InitOnce& operator=(InitOnce&&) noexcept = delete;
+    InitOnce()                           = default;
+    InitOnce(const InitOnce&)            = delete;
+    InitOnce(InitOnce&&)                 = delete;
+    InitOnce& operator=(const InitOnce&) = delete;
+    InitOnce& operator=(InitOnce&&)      = delete;
 
     // Check if initialization is complete
-    bool is_initialized() const noexcept {
-        return state.load(std::memory_order_acquire) == Initialized;
+    [[nodiscard]] bool is_initialized() const noexcept {
+        return state.load(std::memory_order_acquire) == State::Initialized;
     }
 
     // Attempt to become the initializing thread
     // Returns true if this thread is responsible for initialization
-    bool try_init() noexcept {
-        State expected = Uninitialized;
-        return state.compare_exchange_strong(expected, InProgress, std::memory_order_acq_rel,
-                                             std::memory_order_relaxed);
+    [[nodiscard]] bool attempt_initialization() noexcept {
+        State expected = State::Uninitialized;
+        return state.compare_exchange_strong(expected, State::Initializing,
+                                             std::memory_order_acq_rel, std::memory_order_relaxed);
     }
 
-    // Spin-wait until initialization is done
+    // Spin-wait until initialization is complete
     void wait_until_initialized() const noexcept {
-        while (state.load(std::memory_order_acquire) != Initialized)
-            std::this_thread::yield();
+        std::size_t spin = 1;
+        while (state.load(std::memory_order_acquire) != State::Initialized)
+        {
+            // Exponential backoff
+            for (std::size_t i = 0; i < spin; ++i)
+                std::this_thread::yield();
+            // Limit maximum backoff
+            if (spin < 16)
+                spin <<= 1;
+            // Optional tiny sleep to reduce CPU usage for longer waits
+            std::this_thread::sleep_for(std::chrono::nanoseconds(50));
+        }
     }
 
-    // Mark initialization as done
-    void set_initialized() noexcept { state.store(Initialized, std::memory_order_release); }
+    // Mark initialization as complete
+    void set_initialized() noexcept { state.store(State::Initialized, std::memory_order_release); }
 
    private:
-    enum State {
+    enum class State : std::uint8_t {
         Uninitialized,
-        InProgress,
+        Initializing,
         Initialized,
     };
 
-    std::atomic<State> state{Uninitialized};
+    std::atomic<State> state{State::Uninitialized};
 };
 
-// LazyValue wraps a Value with AtomicOnce for safe lazy initialization
+// LazyValue wraps a Value with InitOnce for safe lazy initialization
 template<typename Value>
 struct LazyValue final {
+    LazyValue()                            = default;
+    LazyValue(const LazyValue&)            = delete;
+    LazyValue(LazyValue&&)                 = delete;
+    LazyValue& operator=(const LazyValue&) = delete;
+    LazyValue& operator=(LazyValue&&)      = delete;
+
     template<typename... Args>
     Value& init(Args&&... args) noexcept {
         // Fast path: already initialized
         if (initOnce.is_initialized())
             return value;
 
-        if (initOnce.try_init())
+        if (initOnce.attempt_initialization())
         {
-            // first thread initializes
+            // First thread initializes
             value = Value(std::forward<Args>(args)...);
 
+            // Mark initialized for all threads
             initOnce.set_initialized();
         }
         else
         {
-            // other threads wait until ready
+            // Other threads spin until initialization completes
             initOnce.wait_until_initialized();
         }
 
@@ -899,7 +910,7 @@ class MemoryStreamBuf final: public std::streambuf {
 // Fancy logging facility.
 // The trick here is to replace cin.rdbuf() and cout.rdbuf() with 2 TieStreamBuf objects
 // that tie std::cin and std::cout to a file stream.
-// Can toggle the logging of std::cout and std:cin at runtime whilst preserving
+// Can toggle the logging of std::cout and std::cin at runtime whilst preserving
 // usual I/O functionality, all without changing a single line of code!
 // Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
 // MSVC requires split streambuf for std::cin and std::cout.
