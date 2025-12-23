@@ -1417,12 +1417,13 @@ S_MOVES_LOOP:  // When in check, search starts here
             // Shallower searches here don't scales well.
             if (value > alpha)
             {
+                // If the value was good enough search deeper
+                bool extend = value > 44 + bestValue + newDepth && redDepth < newDepth;
+                // If the value was bad enough search shallower
+                bool reduce = value < 9 + bestValue;
+
                 // Adjust full-depth search based on LMR value
-                newDepth +=
-                  // - if the value was good enough search deeper
-                  +(value > 43 + bestValue + 2 * newDepth && redDepth < newDepth)
-                  // - if the value was bad enough search shallower
-                  - (value < 9 + bestValue);
+                newDepth += int(extend) - int(reduce);
 
                 if (redDepth < newDepth)
                     value = -search<~NT>(pos, ss + 1, -alpha - 1, -alpha, newDepth);
@@ -1522,15 +1523,15 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // In case have an alternative move equal in eval to the current bestMove,
         // promote it to bestMove by pretending it just exceeds alpha (but not beta).
-        int inc = int(value == bestValue && 2 + ss->ply >= rootDepth
-                      && (nodes.load(std::memory_order_relaxed) & 0xE) == 0
-                      && !is_win(std::abs(value) + 1));
+        bool inc = value == bestValue && 2 + ss->ply >= rootDepth
+                && (nodes.load(std::memory_order_relaxed) & 0xE) == 0
+                && !is_win(std::abs(value) + 1);
 
-        if (bestValue < value + inc)
+        if (bestValue < value + int(inc))
         {
             bestValue = value;
 
-            if (alpha < value + inc)
+            if (alpha < value + int(inc))
             {
                 bestMove = move;
 
@@ -1976,8 +1977,8 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::s
 void Worker::update_histories(const Position& pos, Stack* const ss, std::size_t pawnIndex, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(ss->moveCount != 0);
 
-    int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * (bestMove == ss->ttMove);
-    int malus = std::max(std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount, 1);
+    const int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * (bestMove == ss->ttMove);
+    const int malus = std::max(std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount, 1);
 
     if (pos.capture_promo(bestMove))
     {
@@ -1988,13 +1989,15 @@ void Worker::update_histories(const Position& pos, Stack* const ss, std::size_t 
         update_quiet_histories(pos, ss, pawnIndex, bestMove, 0.8887 * bonus);
 
         // Decrease history for all non-best quiet moves
-        for (auto quietMove : searchedMoves[0])
-            update_quiet_histories(pos, ss, pawnIndex, quietMove, -1.0596 * malus);
+        const auto& quietMoves = searchedMoves[0];
+        for (std::size_t i = 0; i < quietMoves.size(); ++i)
+            update_quiet_histories(pos, ss, pawnIndex, quietMoves[i], -1.0596 * (i < 5 ? 1.0 : 5.0 / (i + 1)) * malus);
     }
 
     // Decrease history for all non-best capture moves
-    for (auto captureMove : searchedMoves[1])
-        update_capture_history(pos, captureMove, -1.4141 * malus);
+    const auto& captureMoves = searchedMoves[1];
+    for (std::size_t i = 0; i < captureMoves.size(); ++i)
+        update_capture_history(pos, captureMoves[i], -1.4141 * malus);
 
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted.
