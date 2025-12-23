@@ -342,6 +342,7 @@ constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
 // If the step is off the board, returns empty bitboard.
 constexpr Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) noexcept {
     assert(is_ok(s));
+
     Square sq = s + d;
     return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
 }
@@ -465,21 +466,7 @@ constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept
     return attacks_bb(s, type_of(pc), occupancyBB);
 }
 
-// Counts the number of non-zero bits in the bitboard
-inline std::uint8_t popcount(Bitboard b) noexcept {
-
-#if !defined(USE_POPCNT)
-    StdArray<std::uint16_t, 4> b16;
-    static_assert(sizeof(b16) == sizeof(b));
-    std::memcpy(b16.data(), &b, sizeof(b16));
-    return PopCnt[b16[0]] + PopCnt[b16[1]] + PopCnt[b16[2]] + PopCnt[b16[3]];
-#elif defined(__GNUC__)  // (GCC, Clang, ICX)
-    return __builtin_popcountll(b);
-#elif defined(_MSC_VER)
-    return _mm_popcnt_u64(b);
-#else  // Compiler is neither GCC nor MSVC compatible
-    #error "Compiler not supported."
-    // Using a fallback implementation
+constexpr std::uint8_t constexpr_popcount(Bitboard b) noexcept {
 
     // std::uint8_t count = 0;
     // while (b != 0)
@@ -492,11 +479,10 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
     // asm ("popcnt %0, %0" : "+r" (b) :: "cc");
     // return b;
 
-    b -= ((b >> 1) & 0x5555555555555555ULL);
-    b = ((b >> 2) & 0x3333333333333333ULL) + (b & 0x3333333333333333ULL);
-    b = ((b >> 4) + b) & 0x0F0F0F0F0F0F0F0FULL;
+    b = b - ((b >> 1) & 0x5555555555555555ULL);
+    b = (b & 0x3333333333333333ULL) + ((b >> 2) & 0x3333333333333333ULL);
+    b = (b + (b >> 4)) & 0x0F0F0F0F0F0F0F0FULL;
     return (b * 0x0101010101010101ULL) >> 56;
-#endif
 }
 
 constexpr std::uint8_t msb_index(Bitboard b) noexcept {
@@ -528,13 +514,34 @@ constexpr Bitboard fill_postfix_bb(Bitboard b) noexcept {
 }
 
 constexpr std::uint8_t constexpr_lsb(Bitboard b) noexcept {
-    assert(b);
+    assert(b != 0);
+
+    // std::uint8_t idx = 0;
+    // while (!(b & 1))
+    // {
+    //     ++idx;
+    //     b >>= 1;
+    // }
+    // return Square(idx);
+
+    // asm ("bsfq %0, %0" : "+r" (b) :: "cc");
+    // return Square(b);
+
     b ^= b - 1;
     return msb_index(b);
 }
 
 constexpr std::uint8_t constexpr_msb(Bitboard b) noexcept {
-    assert(b);
+    assert(b != 0);
+
+    // std::uint8_t idx = 0;
+    // while (b >>= 1)
+    //     ++idx;
+    // return Square(idx);
+
+    // asm ("bsrq %0, %0" : "+r" (b) :: "cc");
+    // return Square(b);
+
     b = fill_prefix_bb(b);
     return msb_index(b);
 }
@@ -545,9 +552,28 @@ constexpr Bitboard next_pow2(Bitboard b) noexcept {
                                      : 2ULL << constexpr_msb(b - 1);
 }
 
+// Counts the number of non-zero bits in the bitboard
+inline std::uint8_t popcount(Bitboard b) noexcept {
+
+#if !defined(USE_POPCNT)
+    StdArray<std::uint16_t, 4> b16;
+    static_assert(sizeof(b16) == sizeof(b));
+    std::memcpy(b16.data(), &b, sizeof(b16));
+    return PopCnt[b16[0]] + PopCnt[b16[1]] + PopCnt[b16[2]] + PopCnt[b16[3]];
+#elif defined(__GNUC__)  // (GCC, Clang, ICX)
+    return __builtin_popcountll(b);
+#elif defined(_MSC_VER)
+    return _mm_popcnt_u64(b);
+#else  // Compiler is neither GCC nor MSVC compatible
+    #error "Compiler not supported."
+    // Using a fallback implementation
+    return constexpr_popcount(b);
+#endif
+}
+
 // Returns the least significant bit in the non-zero bitboard
 inline Square lsq(Bitboard b) noexcept {
-    assert(b);
+    assert(b != 0);
 
 #if defined(__GNUC__)  // (GCC, Clang, ICX)
     return Square(__builtin_ctzll(b));
@@ -571,25 +597,13 @@ inline Square lsq(Bitboard b) noexcept {
 #else  // Compiler is neither GCC nor MSVC compatible
     #error "Compiler not supported."
     // Using a fallback implementation
-
-    // std::uint8_t idx = 0;
-    // while (!(b & 1))
-    // {
-    //     ++idx;
-    //     b >>= 1;
-    // }
-    // return Square(idx);
-
-    // asm ("bsfq %0, %0" : "+r" (b) :: "cc");
-    // return Square(b);
-
     return Square(constexpr_lsb(b));
 #endif
 }
 
 // Returns the most significant bit in the non-zero bitboard
 inline Square msq(Bitboard b) noexcept {
-    assert(b);
+    assert(b != 0);
 
 #if defined(__GNUC__)  // (GCC, Clang, ICX)
     return Square(__builtin_clzll(b) ^ 63);
@@ -613,22 +627,14 @@ inline Square msq(Bitboard b) noexcept {
 #else  // Compiler is neither GCC nor MSVC compatible
     #error "Compiler not supported."
     // Using a fallback implementation
-
-    // std::uint8_t idx = 0;
-    // while (b >>= 1)
-    //     ++idx;
-    // return Square(idx);
-
-    // asm ("bsrq %0, %0" : "+r" (b) :: "cc");
-    // return Square(b);
-
     return Square(constexpr_msb(b));
 #endif
 }
 
 // Returns and clears the least significant bit in the non-zero bitboard
 inline Square pop_lsq(Bitboard& b) noexcept {
-    assert(b);
+    assert(b != 0);
+
     Square s = lsq(b);
     b &= b - 1;
     return s;
@@ -636,7 +642,8 @@ inline Square pop_lsq(Bitboard& b) noexcept {
 
 // Returns and clears the most significant bit in the non-zero bitboard
 inline Square pop_msq(Bitboard& b) noexcept {
-    assert(b);
+    assert(b != 0);
+
     Square s = msq(b);
     b ^= s;
     return s;
@@ -645,7 +652,8 @@ inline Square pop_msq(Bitboard& b) noexcept {
 // Returns the bitboard of the least significant square of the non-zero bitboard.
 // It is equivalent to square_bb(lsb(bb)).
 constexpr Bitboard lsq_bb(Bitboard b) noexcept {
-    assert(b);
+    assert(b != 0);
+
     return b & -b;
 }
 
