@@ -304,7 +304,7 @@ class TBFile final {
     std::string filename;
 };
 
-// struct PairsData contains low-level indexing information to access TB data.
+// PairsData contains low-level indexing information to access TB data.
 // There are 8, 4, or 2 PairsData records for each TBTable, according to the type
 // of table and if positions have pawns or not. It is populated at first access.
 struct PairsData final {
@@ -336,10 +336,10 @@ struct PairsData final {
       mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
 };
 
-// struct TBTable contains indexing information to access the corresponding TBFile.
-// There are 2 types of TBTable, corresponding to a WDL or a DTZ file. TBTable
-// is populated at init time but the nested PairsData records are populated at
-// first access, when the corresponding file is memory mapped.
+// TBTable contains indexing information to access the corresponding TBFile.
+// There are 2 types of TBTable, corresponding to a WDL or a DTZ file.
+// TBTable is populated at init time but the nested PairsData records are
+// populated at first access, when the corresponding file is memory mapped.
 template<TBType T>
 struct TBTable final {
     using Ret = std::conditional_t<T == WDL, WDLScore, int>;
@@ -836,8 +836,9 @@ std::uint8_t* TBTable<DTZ>::set_dtz_map(std::uint8_t* data, File maxFile) noexce
     return data += std::uintptr_t(data) & 1;  // Word alignment
 }
 
-// class TBTables creates and keeps ownership of the TBTable objects,
-// one for each TB file found. It supports a fast, hash-based, table lookup.
+// TBTables creates and keeps ownership of the TBTable objects,
+// one for each TB file found.
+// It supports a fast, hash-based, table lookup.
 // Populated at init time, accessed at probe time.
 class TBTables final {
 
@@ -894,8 +895,7 @@ class TBTables final {
         TBTable<DTZ>* dtzTable;
     };
 
-    void insert(Key key, TBTable<WDL>* wdlTable, TBTable<DTZ>* dtzTable) noexcept {
-        Entry entry{key, wdlTable, dtzTable};
+    void insert(Key key, Entry entry) noexcept {
 
         for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
@@ -974,8 +974,8 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     auto* dtzTable = &dtzTables.back();
 
     // Insert into the hash keys for both colors: KRvK with KR white and black
-    insert(wdlTable->key[WHITE], wdlTable, dtzTable);
-    insert(wdlTable->key[BLACK], wdlTable, dtzTable);
+    insert(wdlTable->key[WHITE], {wdlTable->key[WHITE], wdlTable, dtzTable});
+    insert(wdlTable->key[BLACK], {wdlTable->key[BLACK], wdlTable, dtzTable});
 }
 
 TBTables tbTables;
