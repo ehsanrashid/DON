@@ -202,37 +202,36 @@ static_assert(sizeof(LR) == 3, "LR tree entry must be 3 bytes");
 
 // Tablebase data layout is structured as following:
 //
-//  TBFile:   memory maps/unmaps the physical .rtbw and .rtbz files
+//  TBMapper: memory maps/unmaps the physical .rtbw and .rtbz files
 //  TBTable:  one object for each file with corresponding indexing information
 //  TBTables: has ownership of TBTable objects, keeping a list and a hash
 
-// TBFile class memory maps/unmaps the single ".rtbw" and ".rtbz" files.
-// Files are memory mapped for best performance.
-// Files are mapped at first access: at init time only existence of the file is checked.
-class TBFile final {
+// TBPaths manages the list of directories where tablebase files(.rtbw /.rtbz)
+// can be found. It provides a central repository for all search paths used
+// by tablebase loading routines.
+// Responsibilities:
+// 1. Initialize the tablebase paths from a platform-specific separator string.
+//    - ';' on Windows
+//    - ':' on Unix/Linux
+// 2. Store the paths internally as std::filesystem::path objects for safe
+//    concatenation and cross-platform handling of path separators.
+// 3. Provide read-only access to the list of paths for other classes, e.g. TBFile.
+//
+// Usage:
+// - Call TBPaths::init(paths) once at startup to populate the path list.
+// - Use TBPaths::get() to access the paths when searching for files.
+//
+// Example:
+//     TBPaths::init("C:\\tb\\wdl;D:\\tb\\dtz");
+//     for (const auto& dir : TBPaths::get()) { ... }
+//
+// Notes:
+// - The class is final and all members are static, making it essentially a
+//   singleton for the tablebase search paths.
+// - Paths are stored in std::filesystem::path to simplify concatenation
+//   with filenames and to be cross-platform safe.
+class TBPaths final {
    public:
-    explicit TBFile(std::string_view file) noexcept {
-
-        filename.clear();
-
-        for (const auto& path : Paths)
-        {
-            std::filesystem::path fn = path / file;  // safe path concatenation
-
-            std::ifstream ifs(fn, std::ios::binary);
-
-            if (ifs.is_open())
-            {
-                filename = fn.string();
-
-                break;
-            }
-        }
-    }
-
-    TBFile(std::string_view base, std::string_view ext) noexcept :
-        TBFile(std::string(base) + std::string(ext)) {}
-
     static bool init(std::string_view paths) noexcept {
         // Multiple directories are separated
         // by ";" on Windows and
@@ -264,6 +263,60 @@ class TBFile final {
         return !Paths.empty();
     }
 
+    static const auto& get() noexcept { return Paths; }
+
+   private:
+    TBPaths() noexcept                          = delete;
+    TBPaths(const TBPaths&) noexcept            = delete;
+    TBPaths(TBPaths&&) noexcept                 = delete;
+    TBPaths& operator=(const TBPaths&) noexcept = delete;
+    TBPaths& operator=(TBPaths&&) noexcept      = delete;
+
+    static inline std::vector<std::filesystem::path> Paths;
+};
+
+// TBFile look for the file among the Paths directories
+// where the .rtbw and .rtbz files can be found.
+class TBFile final {
+   public:
+    explicit TBFile(std::string_view file) noexcept {
+
+        filename.clear();
+
+        for (const auto& dir : TBPaths::get())
+        {
+            std::string fn = (dir / file).string();  // path concatenation
+            if (std::ifstream(fn, std::ios::binary).is_open())
+            {
+                filename = std::move(fn);
+                break;
+            }
+        }
+    }
+
+    TBFile(std::string_view base, std::string_view ext) noexcept :
+        TBFile(std::filesystem::path(base).replace_extension(ext).string()) {}
+
+    std::string_view file_name() const noexcept { return filename; }
+
+    bool exists() const noexcept { return !file_name().empty(); }
+
+   private:
+    std::string filename;
+};
+
+// TBMapper memory maps/unmaps the single ".rtbw" and ".rtbz" files.
+// Files are memory mapped for best performance.
+// Files are mapped at first access: at init time only existence of the file is checked.
+struct TBMapper final {
+   private:
+    TBMapper() noexcept                           = delete;
+    TBMapper(const TBMapper&) noexcept            = delete;
+    TBMapper(TBMapper&&) noexcept                 = delete;
+    TBMapper& operator=(const TBMapper&) noexcept = delete;
+    TBMapper& operator=(TBMapper&&) noexcept      = delete;
+
+   public:
     // Memory map the file and check it
     template<TBType T>
     static std::uint8_t*
@@ -411,17 +464,6 @@ class TBFile final {
             munmap(mappedPtr, mapping);
 #endif
     }
-
-    bool exists() const noexcept { return !filename.empty(); }
-
-    std::string_view file_name() const noexcept { return filename; }
-
-   private:
-    // Look for and open the file among the Paths directories
-    // where the .rtbw and .rtbz files can be found.
-    static inline std::vector<std::filesystem::path> Paths;
-
-    std::string filename;
 };
 
 // struct PairsData contains low-level indexing information to access TB data.
@@ -535,7 +577,7 @@ TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept :
 
 template<TBType T>
 TBTable<T>::~TBTable() noexcept {
-    TBFile::unmap(mappedPtr, mapping);
+    TBMapper::unmap(mappedPtr, mapping);
 }
 
 // class TBTables creates and keeps ownership of the TBTable objects,
@@ -1435,9 +1477,9 @@ void* init(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
 
         TBFile tbFile(fname);
 
-        std::uint8_t* data = tbFile.exists()
-                             ? TBFile::map<T>(tbFile.file_name(), &entry.mappedPtr, &entry.mapping)
-                             : nullptr;
+        std::uint8_t* data =
+          tbFile.exists() ? TBMapper::map<T>(tbFile.file_name(), &entry.mappedPtr, &entry.mapping)
+                          : nullptr;
 
         if (data != nullptr)
             set(entry, data);
@@ -1698,7 +1740,7 @@ void init(std::string_view paths) noexcept {
 
     tbTables.clear();
 
-    if (!TBFile::init(paths))
+    if (!TBPaths::init(paths))
         return;
 
     // Add entries in TB-tables if the corresponding WDL file exists
