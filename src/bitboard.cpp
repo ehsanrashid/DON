@@ -223,19 +223,11 @@ void init() noexcept {
             for (PieceType pt : {BISHOP, ROOK})
                 if (AttacksBBs[s1][pt] & s2)
                 {
-                    LineBBs   [s1][s2] = (attacks_bb(s1, pt,    0) &  attacks_bb(s2, pt,    0)) | s1BB | s2BB;
                     BetweenBBs[s1][s2] =  attacks_bb(s1, pt, s2BB) &  attacks_bb(s2, pt, s1BB);
                     PassRayBBs[s1][s2] =  attacks_bb(s1, pt,    0) & (attacks_bb(s2, pt, s1BB)  | s2BB);
                 }
 
             BetweenBBs[s1][s2] |= s2BB;
-
-            for (Square s3 = SQ_A1; s3 <= SQ_H8; ++s3)
-            {
-                Bitboard s3BB = square_bb(s3);
-
-                Aligneds[s1][s2][s3] = (LineBBs[s1][s2] & s3BB) != 0;
-            }
             // clang-format on
         }
     }

@@ -168,12 +168,9 @@ struct Magic final {
 };
 
 // clang-format off
-alignas(CACHE_LINE_SIZE) inline StdArray<Magic   , SQUARE_NB, 2>             Magics;  // BISHOP or ROOK
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     LineBBs;
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     BetweenBBs;
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     PassRayBBs;
-
-alignas(CACHE_LINE_SIZE) inline StdArray<bool, SQUARE_NB, SQUARE_NB, SQUARE_NB> Aligneds;
+alignas(CACHE_LINE_SIZE) inline StdArray<Magic   , SQUARE_NB, 2>         Magics;  // BISHOP or ROOK
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> BetweenBBs;
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> PassRayBBs;
 // clang-format on
 
 constexpr Bitboard square_bb(Square s) noexcept {
@@ -220,38 +217,6 @@ constexpr Bitboard operator^(Bitboard b, Rank r) noexcept { return b ^ rank_bb(r
 
 constexpr bool more_than_one(Bitboard b) noexcept { return (b & (b - 1)) != 0; }
 constexpr bool exactly_one(Bitboard b) noexcept { return b != 0 && !more_than_one(b); }
-
-// Returns a bitboard representing an entire line (from board edge to board edge)
-// passing through the squares s1 and s2.
-// If the given squares are not on a same file/rank/diagonal, it returns 0.
-// For instance, line_bb(SQ_C4, SQ_F7) will return a bitboard with the A2-G8 diagonal.
-constexpr Bitboard line_bb(Square s1, Square s2) noexcept {
-    assert(is_ok(s1) && is_ok(s2));
-    return LineBBs[s1][s2];
-}
-
-// Returns a bitboard representing the squares in the semi-open segment
-// between the squares s1 and s2 (excluding s1 but including s2).
-// If the given squares are not on a same file/rank/diagonal, it returns s2.
-// For instance, between_bb(SQ_C4, SQ_F7) will return a bitboard with squares D5, E6 and F7,
-// but between_bb(SQ_E6, SQ_F8) will return a bitboard with the square F8.
-// This trick allows to generate non-king evasion moves faster:
-// the defending piece must either interpose itself to cover the check or capture the checking piece.
-constexpr Bitboard between_bb(Square s1, Square s2) noexcept {
-    assert(is_ok(s1) && is_ok(s2));
-    return BetweenBBs[s1][s2];
-}
-// Returns a bitboard between the squares s1 and s2 (excluding s1 and s2).
-constexpr Bitboard between_ex_bb(Square s1, Square s2) noexcept { return between_bb(s1, s2) ^ s2; }
-
-// Returns a bitboard representing a ray from the square s1 passing s2.
-constexpr Bitboard pass_ray_bb(Square s1, Square s2) noexcept {
-    assert(is_ok(s1) && is_ok(s2));
-    return PassRayBBs[s1][s2];
-}
-
-// Returns true if the squares s1, s2 and s3 are aligned on straight or diagonal line.
-constexpr bool aligned(Square s1, Square s2, Square s3) noexcept { return Aligneds[s1][s2][s3]; }
 
 // Return the distance between s1 and s2, defined as the number of steps for a king in s1 to reach s2.
 template<typename T = Square>
@@ -530,6 +495,58 @@ constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept
     return attacks_bb(s, type_of(pc), occupancyBB);
 }
 
+alignas(CACHE_LINE_SIZE) inline constexpr auto LineBBs = []() constexpr {
+    StdArray<Bitboard, SQUARE_NB, SQUARE_NB> lineBBs{};
+
+    for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            for (PieceType pt : {BISHOP, ROOK})
+                if (AttacksBBs[s1][pt] & s2)
+                    lineBBs[s1][s2] =
+                      (AttacksBBs[s1][pt] & AttacksBBs[s2][pt]) | square_bb(s1) | square_bb(s2);
+
+    return lineBBs;
+}();
+
+// Returns a bitboard representing an entire line (from board edge to board edge)
+// passing through the squares s1 and s2.
+// If the given squares are not on a same file/rank/diagonal, it returns 0.
+// For instance, line_bb(SQ_C4, SQ_F7) will return a bitboard with the A2-G8 diagonal.
+constexpr Bitboard line_bb(Square s1, Square s2) noexcept {
+    assert(is_ok(s1) && is_ok(s2));
+    return LineBBs[s1][s2];
+}
+
+// Returns true if the squares s1, s2 and s3 are aligned on straight or diagonal line.
+constexpr bool aligned(Square s1, Square s2, Square s3) noexcept {
+    assert(is_ok(s1) && is_ok(s2) && is_ok(s3));
+
+    return (line_bb(s1, s2) & square_bb(s3)) != 0;
+}
+
+// Returns a bitboard representing the squares in the semi-open segment
+// between the squares s1 and s2 (excluding s1 but including s2).
+// If the given squares are not on a same file/rank/diagonal, it returns s2.
+// For instance, between_bb(SQ_C4, SQ_F7) will return a bitboard with squares D5, E6 and F7,
+// but between_bb(SQ_E6, SQ_F8) will return a bitboard with the square F8.
+// This trick allows to generate non-king evasion moves faster:
+// the defending piece must either interpose itself to cover the check or capture the checking piece.
+constexpr Bitboard between_bb(Square s1, Square s2) noexcept {
+    assert(is_ok(s1) && is_ok(s2));
+
+    return BetweenBBs[s1][s2];
+}
+
+// Returns a bitboard between the squares s1 and s2 (excluding s1 and s2).
+constexpr Bitboard between_ex_bb(Square s1, Square s2) noexcept { return between_bb(s1, s2) ^ s2; }
+
+// Returns a bitboard representing a ray from the square s1 passing s2.
+constexpr Bitboard pass_ray_bb(Square s1, Square s2) noexcept {
+    assert(is_ok(s1) && is_ok(s2));
+
+    return PassRayBBs[s1][s2];
+}
+
 constexpr std::uint8_t constexpr_popcount(Bitboard b) noexcept {
 
     // std::uint8_t count = 0;
@@ -619,13 +636,10 @@ constexpr Bitboard next_pow2(Bitboard b) noexcept {
 #if !defined(USE_POPCNT)
 
 constexpr std::uint8_t popcount16(std::uint16_t x) noexcept {
-    std::uint8_t count = 0;
-    while (x)
-    {
-        count += x & 1;
-        x >>= 1;
-    }
-    return count;
+    x = x - ((x >> 1) & 0x5555U);
+    x = (x & 0x3333U) + ((x >> 2) & 0x3333U);
+    x = (x + (x >> 4)) & 0x0F0FU;
+    return (x * 0x0101U) >> 8;
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto PopCnts = []() constexpr {
