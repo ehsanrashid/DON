@@ -232,7 +232,7 @@ constexpr bool exactly_one(Bitboard b) noexcept { return b != 0 && !more_than_on
 // passing through the squares s1 and s2.
 // If the given squares are not on a same file/rank/diagonal, it returns 0.
 // For instance, line_bb(SQ_C4, SQ_F7) will return a bitboard with the A2-G8 diagonal.
-inline Bitboard line_bb(Square s1, Square s2) noexcept {
+constexpr Bitboard line_bb(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
     return LineBBs[s1][s2];
 }
@@ -244,47 +244,50 @@ inline Bitboard line_bb(Square s1, Square s2) noexcept {
 // but between_bb(SQ_E6, SQ_F8) will return a bitboard with the square F8.
 // This trick allows to generate non-king evasion moves faster:
 // the defending piece must either interpose itself to cover the check or capture the checking piece.
-inline Bitboard between_bb(Square s1, Square s2) noexcept {
+constexpr Bitboard between_bb(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
     return BetweenBBs[s1][s2];
 }
 // Returns a bitboard between the squares s1 and s2 (excluding s1 and s2).
-inline Bitboard between_ex_bb(Square s1, Square s2) noexcept { return between_bb(s1, s2) ^ s2; }
+constexpr Bitboard between_ex_bb(Square s1, Square s2) noexcept { return between_bb(s1, s2) ^ s2; }
 
 // Returns a bitboard representing a ray from the square s1 passing s2.
-inline Bitboard pass_ray_bb(Square s1, Square s2) noexcept {
+constexpr Bitboard pass_ray_bb(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
     return PassRayBBs[s1][s2];
 }
 
 // Returns true if the squares s1, s2 and s3 are aligned on straight or diagonal line.
-inline bool aligned(Square s1, Square s2, Square s3) noexcept { return Aligneds[s1][s2][s3]; }
+constexpr bool aligned(Square s1, Square s2, Square s3) noexcept { return Aligneds[s1][s2][s3]; }
 
 // Return the distance between s1 and s2, defined as the number of steps for a king in s1 to reach s2.
 template<typename T = Square>
-inline std::uint8_t distance(Square s1, Square s2) noexcept;
+constexpr std::uint8_t distance(Square s1, Square s2) noexcept {
+    static_assert(sizeof(T) == 0, "Unsupported distance type");
+    return 0;
+}
 
 template<>
-inline std::uint8_t distance<File>(Square s1, Square s2) noexcept {
+constexpr std::uint8_t distance<File>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
     return std::abs(file_of(s1) - file_of(s2));
 }
 
 template<>
-inline std::uint8_t distance<Rank>(Square s1, Square s2) noexcept {
+constexpr std::uint8_t distance<Rank>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
     return std::abs(rank_of(s1) - rank_of(s2));
 }
 
 template<>
-inline std::uint8_t distance<Square>(Square s1, Square s2) noexcept {
+constexpr std::uint8_t distance<Square>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
     return Distances[s1][s2];
 }
 
 // Returns the bitboard of target square from the given square for the given step.
 // If the step is off the board, returns empty bitboard.
-inline Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) noexcept {
+constexpr Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) noexcept {
     assert(is_ok(s));
     Square sq = s + d;
     return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
