@@ -49,7 +49,7 @@ using BiasType         = std::int16_t;
 using WeightType       = std::int16_t;
 using PSQTWeightType   = std::int32_t;
 using ThreatWeightType = std::int8_t;
-using IndexType        = std::uint32_t;
+using IndexType        = std::size_t;
 
 // Type of input feature after conversion
 using TransformedFeatureType = std::uint8_t;

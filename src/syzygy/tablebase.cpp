@@ -452,28 +452,18 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
             for (std::size_t i = PIECE_TYPES.size(); i-- > 0;)
                 pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
 
-        std::string fname;
-        fname.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
+        std::string base;
+        base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
 
-        if (materialKey == key[WHITE])
-        {
-            fname += pieces[WHITE];
-            fname += 'v';
-            fname += pieces[BLACK];
-        }
-        else
-        {
-            fname += pieces[BLACK];
-            fname += 'v';
-            fname += pieces[WHITE];
-        }
+        Color c = materialKey == key[WHITE] ? WHITE : BLACK;
 
-        TBFile tbFile(fname, EXT[T]);
+        base += pieces[c];
+        base += 'v';
+        base += pieces[~c];
 
-        std::uint8_t* data = tbFile.exists() ? map(tbFile.file_name()) : nullptr;
+        TBFile tbFile(base, EXT[T]);
 
-        if (data != nullptr)
-            set(data);
+        set(tbFile.exists() ? map(tbFile.file_name()) : nullptr);
 
         // Mark initialized for all threads
         initOnce.set_initialized();
@@ -641,6 +631,9 @@ void TBTable<T>::unmap() noexcept {
 template<TBType T>
 void TBTable<T>::set(std::uint8_t* data) noexcept {
 
+    if (data == nullptr)
+        return;
+
     assert((key[WHITE] != key[BLACK]) == bool(*data & 1));
     assert(hasPawns == bool(*data & 2));
 
@@ -659,8 +652,8 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
         for (std::size_t i = 0; i < sides; ++i)
             *get(i, f) = PairsData();
 
-        int order[2][2]{{*data & 0xF, pp ? *(data + 1) & 0xF : 0xF},
-                        {*data >> 4, pp ? *(data + 1) >> 4 : 0xF}};
+        int order[2][2]{{int(*data & 0xF), int(pp ? *(data + 1) & 0xF : 0xF)},
+                        {int(*data >> 4), int(pp ? *(data + 1) >> 4 : 0xF)}};
 
         data += 1 + pp;
 
@@ -686,6 +679,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
         for (std::size_t i = 0; i < sides; ++i)
         {
             (pd = get(i, f))->sparseIndex = (SparseEntry*) (data);
+
             data += pd->sparseIndexSize * sizeof(SparseEntry);
         }
 
@@ -693,6 +687,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
         for (std::size_t i = 0; i < sides; ++i)
         {
             (pd = get(i, f))->blockLength = (std::uint16_t*) (data);
+
             data += pd->blockLengthSize * sizeof(std::uint16_t);
         }
 
@@ -700,7 +695,9 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
         for (std::size_t i = 0; i < sides; ++i)
         {
             data = (std::uint8_t*) ((std::uintptr_t(data) + 0x3F) & ~0x3F);  // 64 byte alignment
+
             (pd = get(i, f))->data = data;
+
             data += pd->blockCount * pd->blockSize;
         }
 }

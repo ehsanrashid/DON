@@ -18,10 +18,6 @@
 #ifndef THREAD_WIN32_OSX_H_INCLUDED
 #define THREAD_WIN32_OSX_H_INCLUDED
 
-// On OSX threads other than the main thread are created with a reduced stack
-// size of 512KB by default, this is too low for deep searches, which require
-// somewhat more than 1MB stack, so adjust it to 8MB.
-
 #if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(USE_PTHREADS)
 
     #include <functional>
@@ -30,6 +26,9 @@
 
 namespace DON {
 
+// On OSX threads other than the main thread are created with a reduced stack
+// size of 512KB by default, this is too low for deep searches,
+// which require somewhat more than 1MB stack, so adjust it to 8MB.
 class NativeThread final {
    public:
     NativeThread() noexcept = delete;
@@ -42,7 +41,7 @@ class NativeThread final {
           new Func(std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
 
         const auto start_routine = [](void* ptr) noexcept -> void* {
-            auto* fnPtr = reinterpret_cast<Func*>(ptr);
+            auto* fnPtr = static_cast<Func*>(ptr);
 
             // Call the function
             (*fnPtr)();
@@ -54,12 +53,18 @@ class NativeThread final {
 
         pthread_attr_t attr;
 
-        pthread_attr_init(&attr);
+        if (pthread_attr_init(&attr) != 0)
+        {
+            delete funcPtr;
+            return;
+        }
 
         pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
 
         if (pthread_create(&thread, &attr, start_routine, funcPtr) != 0)
+        {
             delete funcPtr;
+        }
 
         pthread_attr_destroy(&attr);
     }
