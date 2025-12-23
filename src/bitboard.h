@@ -285,45 +285,6 @@ constexpr std::uint8_t distance<Square>(Square s1, Square s2) noexcept {
     return Distances[s1][s2];
 }
 
-// Returns the bitboard of target square from the given square for the given step.
-// If the step is off the board, returns empty bitboard.
-constexpr Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) noexcept {
-    assert(is_ok(s));
-    Square sq = s + d;
-    return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
-}
-
-// Computes sliding attack
-template<PieceType PT>
-constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexcept {
-    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attacks_bb()");
-    assert(is_ok(s));
-
-    constexpr StdArray<Direction, 2, 4> Directions{{
-      {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},  //
-      {NORTH, SOUTH, EAST, WEST}                         //
-    }};
-
-    Bitboard attacksBB = 0;
-
-    for (Direction d : Directions[PT - BISHOP])
-    {
-        Square sq = s;
-
-        for (Bitboard dstBB; (dstBB = destination_bb(sq, d));)
-        {
-            attacksBB |= dstBB;
-
-            sq += d;
-
-            if (occupancyBB & sq)
-                break;
-        }
-    }
-
-    return attacksBB;
-}
-
 // Shifts a bitboard as specified by the direction
 template<Direction D>
 constexpr Bitboard shift_bb(Bitboard b) noexcept {
@@ -375,6 +336,45 @@ constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
     return c == WHITE  //
            ? pawn_attacks_bb<WHITE>(pawns)
            : pawn_attacks_bb<BLACK>(pawns);
+}
+
+// Returns the bitboard of target square from the given square for the given step.
+// If the step is off the board, returns empty bitboard.
+constexpr Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) noexcept {
+    assert(is_ok(s));
+    Square sq = s + d;
+    return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
+}
+
+// Computes sliding attack
+template<PieceType PT>
+constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexcept {
+    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attacks_bb()");
+    assert(is_ok(s));
+
+    constexpr StdArray<Direction, 2, 4> Directions{{
+      {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},  //
+      {NORTH, SOUTH, EAST, WEST}                         //
+    }};
+
+    Bitboard attacksBB = 0;
+
+    for (Direction d : Directions[PT - BISHOP])
+    {
+        Square sq = s;
+
+        for (Bitboard dstBB = 0; (dstBB = destination_bb(sq, d)) != 0;)
+        {
+            attacksBB |= dstBB;
+
+            sq += d;
+
+            if (occupancyBB & sq)
+                break;
+        }
+    }
+
+    return attacksBB;
 }
 
 // Returns the pseudo attacks of the given piece type assuming an empty board
