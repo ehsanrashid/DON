@@ -1136,15 +1136,18 @@ WDLScore map_score(TBTable<WDL>*, File, int value, WDLScore) noexcept {
 
 int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdlScore) noexcept {
 
-    auto* pd     = entry->get(0, f);
-    auto  flags  = pd->flags;
-    auto* mapPtr = entry->map_ptr();
-    auto* mapIdx = pd->mapIdx.data();
+    auto* pd    = entry->get(0, f);
+    auto  flags = pd->flags;
 
-    auto idx = mapIdx[WDL_MAP[wdlScore + 2]] + value;
+    if ((flags & MAPPED) != 0)
+    {
+        auto* mapPtr = entry->map_ptr();
+        auto* mapIdx = pd->mapIdx.data();
 
-    if (flags & MAPPED)
-        value = (flags & WIDE) ? ((std::uint16_t*) mapPtr)[idx] : mapPtr[idx];
+        auto idx = mapIdx[WDL_MAP[wdlScore + 2]] + value;
+
+        value = (flags & WIDE) != 0 ? ((std::uint16_t*) mapPtr)[idx] : mapPtr[idx];
+    }
 
     // DTZ-tables store distance to zero in number of moves or plies.
     // So have to convert to plies when needed.
