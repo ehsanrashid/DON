@@ -149,28 +149,32 @@ constexpr int before_zeroing_dtz(WDLScore wdlScore) noexcept {
     }
 }
 
-template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
+template<typename T>
 void swap_endian(T& x) noexcept {
-    static_assert(std::is_unsigned_v<T>, "Argument of swap_endian not unsigned");
+    static_assert(std::is_unsigned_v<T>, "swap_endian() requires unsigned type");
 
-    std::uint8_t tmp, *c = (std::uint8_t*) (&x);
-    for (int i = 0; i < Half; ++i)
-        tmp = c[i], c[i] = c[End - i], c[End - i] = tmp;
+    if constexpr (sizeof(T) > 1)
+    {
+        auto* bytes = reinterpret_cast<std::uint8_t*>(&x);
+
+        for (std::size_t i = 0; i < sizeof(T) / 2; ++i)
+            std::swap(bytes[i], bytes[sizeof(T) - 1 - i]);
+    }
 }
-template<>
-void swap_endian<std::uint8_t>(std::uint8_t&) noexcept {}
 
-template<typename T, Endian Endian>
-T number(void* addr) noexcept {
+template<typename T, Endian E>
+T number(const void* const addr) noexcept {
     T v;
 
-    if (std::uintptr_t(addr) & (alignof(T) - 1))  // Unaligned pointer (very rare)
-        std::memcpy(&v, addr, sizeof(v));
-    else
-        v = *((T*) (addr));
+    // Use memcpy for unaligned access, otherwise direct read
+    if (reinterpret_cast<std::uintptr_t>(addr) % alignof(T) == 0)
+        v = *reinterpret_cast<const T*>(addr);
+    else  // Unaligned pointer (very rare)
+        std::memcpy(&v, addr, sizeof(T));
 
-    if (Endian != IsLittleEndian)
+    if constexpr (E != IsLittleEndian)
         swap_endian(v);
+
     return v;
 }
 
