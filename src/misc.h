@@ -714,10 +714,10 @@ struct InitOnce final {
     void set_initialized() noexcept { state.store(State::Initialized, std::memory_order_release); }
 
    private:
-    enum class State : int {
+    enum class State : std::uint8_t {
         Uninitialized,
         Initializing,
-        Initialized
+        Initialized,
     };
 
     std::atomic<State> state{State::Uninitialized};
