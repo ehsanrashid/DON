@@ -364,7 +364,7 @@ struct TBTable final {
 
     void set(std::uint8_t* data) noexcept;
 
-    void set_groups(PairsData* pd, int order[2], File f) noexcept;
+    void set_groups(PairsData* pd, const StdArray<int, 2>& order, File f) noexcept;
 
     std::uint8_t* set_dtz_map(std::uint8_t* data, File) noexcept;
 
@@ -664,8 +664,10 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
         for (std::size_t i = 0; i < sides; ++i)
             *get(i, f) = PairsData();
 
-        int order[2][2]{{int(*data & 0xF), int(pp ? *(data + 1) & 0xF : 0xF)},
-                        {int(*data >> 4), int(pp ? *(data + 1) >> 4 : 0xF)}};
+        StdArray<int, 2, 2> order{{
+          {{int(*data & 0xF), int(pp ? *(data + 1) & 0xF : 0xF)}},
+          {{int(*data >> 4), int(pp ? *(data + 1) >> 4 : 0xF)}}  //
+        }};
 
         data += 1 + pp;
 
@@ -725,21 +727,25 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
 // The actual grouping depends on the TB generator and can be inferred from the
 // sequence of pieces in piece[] array.
 template<TBType T>
-void TBTable<T>::set_groups(PairsData* pd, int order[2], File f) noexcept {
+void TBTable<T>::set_groups(PairsData* pd, const StdArray<int, 2>& order, File f) noexcept {
 
     std::size_t n = 0;
 
     pd->groupLen[n] = 1;
 
-    std::int32_t firstLen = hasPawns ? 0 : hasUniquePieces ? 3 : 2;
+    std::size_t firstLen = hasPawns ? 0 : hasUniquePieces ? 3 : 2;
     // Number of pieces per group is stored in groupLen[], for instance in KRKN
     // the encoder will default on '111', so groupLen[] will be (3, 1).
-    for (std::int32_t i = 1; i < pieceCount; ++i)
+    for (std::uint8_t i = 1; i < pieceCount; ++i)
     {
-        if (--firstLen > 0 || pd->pieces[i] == pd->pieces[i - 1])
-            pd->groupLen[n]++;
-        else
-            pd->groupLen[++n] = 1;
+        // Determine whether to extend current group
+        bool extend = firstLen > 1 || pd->pieces[i] == pd->pieces[i - 1];
+        // Move to next group if not extending
+        n += int(!extend);
+        // Increment current group if extending, or initialize new group if not
+        pd->groupLen[n] = int(extend) * (pd->groupLen[n] + 1) + int(!extend);
+        // Decrement firstLen if it contributed to the extension
+        firstLen -= int(firstLen > 1);
     }
 
     pd->groupLen[++n] = 0;  // Zero-terminated
