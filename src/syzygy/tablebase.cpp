@@ -402,20 +402,21 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept {
 
     // Set the leading color. In case both sides have pawns the leading color
     // is the side with fewer pawns because this leads to better compression.
-    bool c = pos.count<PAWN>(BLACK) == 0
-          || (pos.count<PAWN>(WHITE) != 0 && pos.count<PAWN>(BLACK) >= pos.count<PAWN>(WHITE));
+    Color c = pos.count<PAWN>(BLACK) == 0
+               || (pos.count<PAWN>(WHITE) != 0 && pos.count<PAWN>(WHITE) <= pos.count<PAWN>(BLACK))
+              ? WHITE
+              : BLACK;
 
-    pawnCount[WHITE] = pos.count<PAWN>(c ? WHITE : BLACK);
-    pawnCount[BLACK] = pos.count<PAWN>(c ? BLACK : WHITE);
+    pawnCount[WHITE] = pos.count<PAWN>(c);
+    pawnCount[BLACK] = pos.count<PAWN>(~c);
 
     pos.set(code, BLACK, &st);
     key[BLACK] = pos.material_key();
 }
 
+// Use the corresponding WDL table to avoid recalculating all from scratch
 template<>
 TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept {
-
-    // Use the corresponding WDL table to avoid recalculating all from scratch
     key[WHITE]       = wdlTable.key[WHITE];
     key[BLACK]       = wdlTable.key[BLACK];
     pieceCount       = wdlTable.pieceCount;
@@ -641,8 +642,8 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
     if (data == nullptr)
         return;
 
-    assert((key[WHITE] != key[BLACK]) == bool(*data & 1));
-    assert(hasPawns == bool(*data & 2));
+    assert((key[WHITE] != key[BLACK]) == ((*data & 1) != 0));
+    assert(hasPawns == ((*data & 2) != 0));
 
     ++data;  // First byte stores flags
 
@@ -1118,9 +1119,9 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
 
 bool check_ac(TBTable<WDL>*, int, File) noexcept { return true; }
 
-bool check_ac(TBTable<DTZ>* entry, int ac, File f) noexcept {
-    return (entry->get(ac, f)->flags & ACTIVE_COLOR) == ac
-        || (!entry->hasPawns && entry->key[WHITE] == entry->key[BLACK]);
+bool check_ac(TBTable<DTZ>* table, int ac, File f) noexcept {
+    return (table->get(ac, f)->flags & ACTIVE_COLOR) == ac
+        || (!table->hasPawns && table->key[WHITE] == table->key[BLACK]);
 }
 
 // DTZ scores are sorted by frequency of occurrence and
@@ -1132,14 +1133,14 @@ WDLScore map_score(TBTable<WDL>*, File, int value, WDLScore) noexcept {
     return WDLScore(value - 2);
 }
 
-int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdlScore) noexcept {
+int map_score(TBTable<DTZ>* table, File f, int value, WDLScore wdlScore) noexcept {
 
-    auto* pd    = entry->get(0, f);
+    auto* pd    = table->get(0, f);
     auto  flags = pd->flags;
 
     if ((flags & MAPPED) != 0)
     {
-        auto* mapPtr = entry->map_ptr();
+        auto* mapPtr = table->map_ptr();
         auto* mapIdx = pd->mapIdx.data();
 
         auto idx = mapIdx[WDL_MAP[wdlScore + 2]] + value;
@@ -1176,19 +1177,19 @@ int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdlScore) noexcep
 //
 template<typename T, typename Ret = typename T::Ret>
 CLANG_AVX512_BUG_FIX Ret do_probe_table(
-  T* entry, const Position& pos, Key materialKey, WDLScore wdlScore, ProbeState* ps) noexcept {
+  T* table, const Position& pos, Key materialKey, WDLScore wdlScore, ProbeState* ps) noexcept {
 
     // A given TB entry like KRK has associated two material keys: KRvk and Kvkr.
     // If both sides have the same pieces keys are equal. In this case TB-tables
     // only stores the 'white to move' case, so if the position to lookup has black
     // to move, need to switch the color and flip the squares before to lookup.
-    bool blackSymmetric = pos.active_color() == BLACK && entry->key[WHITE] == entry->key[BLACK];
+    bool blackSymmetric = pos.active_color() == BLACK && table->key[WHITE] == table->key[BLACK];
 
     // TB files are calculated for white as the stronger side. For instance, we
     // have KRvK, not KvKR. A position where the stronger side is white will have
-    // its material key == entry->key[WHITE], otherwise have to switch the color
+    // its material key == table->key[WHITE], otherwise have to switch the color
     // and flip the squares before to lookup.
-    bool blackStronger = materialKey != entry->key[WHITE];
+    bool blackStronger = materialKey != table->key[WHITE];
 
     bool flip = (blackSymmetric || blackStronger);
 
@@ -1207,11 +1208,11 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // For pawns, TB files store 4 separate tables according if leading pawn is on
     // file a, b, c or d after reordering. The leading pawn is the one with maximum
     // PawnsMap[] value, that is the one most toward the edges and with lowest rank.
-    if (entry->hasPawns)
+    if (table->hasPawns)
     {
         // In all the 4 tables, pawns are at the beginning of the piece sequence and
         // their color is the reference one. So just pick the first one.
-        Piece pc = entry->get(0, 0)->pieces[0];
+        Piece pc = table->get(0, 0)->pieces[0];
         if (flip)
             pc = flip_color(pc);
 
@@ -1238,7 +1239,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // DTZ-tables are one-sided, i.e. they store positions only for white to
     // move or only for black to move, so check for side to move to be ac,
     // early exit otherwise.
-    if (!check_ac(entry, activeColor, tbFile))
+    if (!check_ac(table, activeColor, tbFile))
     {
         *ps = PS_AC_CHANGED;
         return Ret();
@@ -1259,7 +1260,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
 
     assert(size >= 2);
 
-    PairsData* pd = entry->get(activeColor, tbFile);
+    PairsData* pd = table->get(activeColor, tbFile);
 
     // Then reorder the pieces to have the same sequence as the one stored
     // in pieces[i]: the sequence that ensures the best compression.
@@ -1281,7 +1282,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     std::uint64_t idx = 0;
     // Encode leading pawns starting with the one with minimum PawnsMap[] and
     // proceeding in ascending order.
-    if (entry->hasPawns)
+    if (table->hasPawns)
     {
         idx = LeadPawnIdx[leadPawnCnt][squares[0]];
 
@@ -1338,7 +1339,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // swapped and still get the same position.)
     //
     // In case have at least 3 unique pieces (including kings) encode them together.
-    if (entry->hasUniquePieces)
+    if (table->hasUniquePieces)
     {
         int adjust1 = (squares[1] > squares[0]);
         int adjust2 = (squares[2] > squares[0]) + (squares[2] > squares[1]);
@@ -1377,7 +1378,7 @@ ENCODE_END:
     Square* groupSq = squares.data() + pd->groupLen[0];
 
     // Encode remaining pawns and then pieces according to square, in ascending order
-    bool pawnsRemaining = entry->hasPawns && entry->pawnCount[BLACK];
+    bool pawnsRemaining = table->hasPawns && table->pawnCount[BLACK];
 
     std::size_t next = 0;
 
@@ -1404,7 +1405,7 @@ ENCODE_END:
     }
 
     // Now that have the index, decompress the pair and get the WDL-score
-    return map_score(entry, tbFile, decompress_pairs(pd, idx), wdlScore);
+    return map_score(table, tbFile, decompress_pairs(pd, idx), wdlScore);
 }
 
 #undef CLANG_AVX512_BUG_FIX
@@ -1518,15 +1519,15 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRA
     if (materialKey == 0)  // KvK, pos.count() == 2
         return Ret(WDL_DRAW);
 
-    TBTable<T>* entry = tbTables.get<T>(materialKey);
+    TBTable<T>* table = tbTables.get<T>(materialKey);
 
-    if (entry == nullptr || entry->init(pos, materialKey) == nullptr)
+    if (table == nullptr || table->init(pos, materialKey) == nullptr)
     {
         *ps = PS_FAIL;
         return Ret();
     }
 
-    return do_probe_table(entry, pos, materialKey, wdlScore, ps);
+    return do_probe_table(table, pos, materialKey, wdlScore, ps);
 }
 
 // For a position where the side to move has a winning capture it is not necessary
