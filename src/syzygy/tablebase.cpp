@@ -172,7 +172,7 @@ T number(const void* const addr) noexcept {
     else  // Unaligned pointer (very rare)
         std::memcpy(&v, addr, sizeof(T));
 
-    if constexpr (E != IsLittleEndian)
+    if (E != IsLittleEndian)
         swap_endian(v);
 
     return v;
