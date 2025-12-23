@@ -262,7 +262,7 @@ constexpr bool aligned(Square s1, Square s2, Square s3) noexcept { return Aligne
 
 // Return the distance between s1 and s2, defined as the number of steps for a king in s1 to reach s2.
 template<typename T = Square>
-constexpr std::uint8_t distance(Square s1, Square s2) noexcept {
+constexpr std::uint8_t distance(Square, Square) noexcept {
     static_assert(sizeof(T) == 0, "Unsupported distance type");
     return 0;
 }
@@ -291,6 +291,37 @@ constexpr Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) 
     assert(is_ok(s));
     Square sq = s + d;
     return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
+}
+
+// Computes sliding attack
+template<PieceType PT>
+constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexcept {
+    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attacks_bb()");
+    assert(is_ok(s));
+
+    constexpr StdArray<Direction, 2, 4> Directions{{
+      {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},  //
+      {NORTH, SOUTH, EAST, WEST}                         //
+    }};
+
+    Bitboard attacksBB = 0;
+
+    for (Direction d : Directions[PT - BISHOP])
+    {
+        Square sq = s;
+
+        for (Bitboard dstBB; (dstBB = destination_bb(sq, d));)
+        {
+            attacksBB |= dstBB;
+
+            sq += d;
+
+            if (occupancyBB & sq)
+                break;
+        }
+    }
+
+    return attacksBB;
 }
 
 // Shifts a bitboard as specified by the direction

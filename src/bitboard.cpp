@@ -64,37 +64,6 @@ alignas(CACHE_LINE_SIZE) constexpr StdArray<TableView<
   TableView{AttacksTable.data() + 0x000000000000, TABLE_SIZES[0]},
   TableView{AttacksTable.data() + TABLE_SIZES[0], TABLE_SIZES[1]}};
 
-// Computes sliding attack
-template<PieceType PT>
-Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexcept {
-    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attacks_bb()");
-    assert(is_ok(s));
-
-    constexpr StdArray<Direction, 2, 4> Directions{{
-      {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},  //
-      {NORTH, SOUTH, EAST, WEST}                         //
-    }};
-
-    Bitboard attacksBB = 0;
-
-    for (Direction d : Directions[PT - BISHOP])
-    {
-        Square sq = s;
-
-        for (Bitboard dstBB; (dstBB = destination_bb(sq, d));)
-        {
-            attacksBB |= dstBB;
-
-            sq += d;
-
-            if (occupancyBB & sq)
-                break;
-        }
-    }
-
-    return attacksBB;
-}
-
 // Computes all rook and bishop attacks at startup.
 // Magic bitboards are used to look up attacks of sliding pieces.
 // As a reference see https://www.chessprogramming.org/Magic_Bitboards.
