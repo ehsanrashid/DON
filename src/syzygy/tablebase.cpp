@@ -202,7 +202,6 @@ static_assert(sizeof(LR) == 3, "LR tree entry must be 3 bytes");
 
 // Tablebase data layout is structured as following:
 //
-//  TBMapper: memory maps/unmaps the physical .rtbw and .rtbz files
 //  TBTable:  one object for each file with corresponding indexing information
 //  TBTables: has ownership of TBTable objects, keeping a list and a hash
 
@@ -305,167 +304,6 @@ class TBFile final {
     std::string filename;
 };
 
-// TBMapper memory maps/unmaps the single ".rtbw" and ".rtbz" files.
-// Files are memory mapped for best performance.
-// Files are mapped at first access: at init time only existence of the file is checked.
-struct TBMapper final {
-   private:
-    TBMapper() noexcept                           = delete;
-    TBMapper(const TBMapper&) noexcept            = delete;
-    TBMapper(TBMapper&&) noexcept                 = delete;
-    TBMapper& operator=(const TBMapper&) noexcept = delete;
-    TBMapper& operator=(TBMapper&&) noexcept      = delete;
-
-   public:
-    // Memory map the file and check it
-    template<TBType T>
-    static std::uint8_t*
-    map(std::string_view filename, void** mappedPtr, std::uint64_t* mapping) noexcept {
-
-#if defined(_WIN32)
-
-        // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
-        HANDLE fd = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr,
-                               OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
-
-        if (fd == INVALID_HANDLE_VALUE)
-        {
-            *mappedPtr = nullptr;
-
-            return nullptr;
-        }
-
-        DWORD hiSize;
-        DWORD loSize = GetFileSize(fd, &hiSize);
-
-        if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
-        {
-            std::cerr << "GetFileSize() failed" << std::endl;
-
-            CloseHandle(fd);
-
-            *mappedPtr = nullptr;
-
-            return nullptr;
-        }
-
-        if (loSize % 64 != 16)
-        {
-            std::cerr << "Corrupt tablebase file " << filename << std::endl;
-
-            std::exit(EXIT_FAILURE);
-        }
-
-        HANDLE hMapFile = CreateFileMapping(fd, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
-
-        CloseHandle(fd);
-
-        if (hMapFile == nullptr)
-        {
-            std::cerr << "CreateFileMapping() failed, name = " << filename << std::endl;
-
-            std::exit(EXIT_FAILURE);
-        }
-
-        *mapping = std::uint64_t(hMapFile);
-
-        *mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
-
-        if (*mappedPtr == nullptr)
-        {
-            std::cerr << "MapViewOfFile() failed, name = " << filename
-                      << ", error = " << GetLastError() << std::endl;
-
-            CloseHandle(hMapFile);
-
-            std::exit(EXIT_FAILURE);
-        }
-
-#else
-
-        int fd = ::open(filename.data(), O_RDONLY);
-
-        if (fd == -1)
-        {
-            *mappedPtr = nullptr;
-
-            return nullptr;
-        }
-
-        struct stat objStat;
-
-        if (fstat(fd, &objStat) == -1)
-        {
-            std::cerr << "fstat failed: " << strerror(errno) << std::endl;
-
-            ::close(fd);
-
-            *mappedPtr = nullptr;
-
-            return nullptr;
-        }
-
-        if (objStat.st_size % 64 != 16)
-        {
-            std::cerr << "Corrupt tablebase file " << filename << std::endl;
-
-            ::close(fd);
-
-            std::exit(EXIT_FAILURE);
-        }
-
-        *mapping = objStat.st_size;
-
-        *mappedPtr = mmap(nullptr, objStat.st_size, PROT_READ, MAP_SHARED, fd, 0);
-
-        if (*mappedPtr == MAP_FAILED)
-        {
-            std::cerr << "mmap() failed, name = " << filename << std::endl;
-
-            ::close(fd);
-
-            std::exit(EXIT_FAILURE);
-        }
-
-    #if defined(MADV_RANDOM)
-        madvise(*mappedPtr, objStat.st_size, MADV_RANDOM);
-    #endif
-
-        ::close(fd);
-
-#endif
-
-        std::uint8_t* data = (std::uint8_t*) (*mappedPtr);
-
-        constexpr auto& TBMagic = TB_MAGICS[T];
-
-        if (std::memcmp(data, TBMagic.data(), TBMagic.size()) != 0)
-        {
-            std::cerr << "Corrupted table in file " << filename << std::endl;
-
-            unmap(*mappedPtr, *mapping);
-
-            *mappedPtr = nullptr;
-
-            return nullptr;
-        }
-
-        return data + TBMagic.size();  // Skip TB Magic header
-    }
-
-    static void unmap(void* mappedPtr, std::uint64_t mapping) noexcept {
-#if defined(_WIN32)
-        if (mappedPtr != nullptr)
-            UnmapViewOfFile(mappedPtr);
-        if (mapping)
-            CloseHandle((HANDLE) mapping);
-#else
-        if (mappedPtr != nullptr)
-            munmap(mappedPtr, mapping);
-#endif
-    }
-};
-
 // struct PairsData contains low-level indexing information to access TB data.
 // There are 8, 4, or 2 PairsData records for each TBTable, according to the type
 // of table and if positions have pawns or not. It is populated at first access.
@@ -514,13 +352,21 @@ struct TBTable final {
 
     ~TBTable() noexcept;
 
+    void* init(const Position& pos, Key materialKey) noexcept;
+
+    std::uint8_t* map(std::string_view filename) noexcept;
+
+    void unmap() noexcept;
+
+    void set(std::uint8_t* data) noexcept;
+
+    void set_groups(PairsData* pd, int order[2], File f) noexcept;
+
+    std::uint8_t* set_dtz_map(std::uint8_t* data, File) noexcept;
+
+    std::uint8_t* map_ptr() noexcept { return mapPtr; }
+
     static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
-
-    InitOnce initOnce;
-
-    void*         mappedPtr = nullptr;
-    std::uint8_t* map;
-    std::uint64_t mapping;
 
     StdArray<Key, COLOR_NB>                 key;
     std::uint8_t                            pieceCount;
@@ -528,6 +374,12 @@ struct TBTable final {
     bool                                    hasUniquePieces;
     StdArray<std::uint8_t, COLOR_NB>        pawnCount;  // [Lead color / other color]
     StdArray<PairsData, SIDES, FILE_NB / 2> items;      // [color][FILE_A..FILE_D]
+
+   private:
+    void*         mappedPtr = nullptr;
+    std::uint8_t* mapPtr;
+    std::uint64_t mapping;
+    InitOnce      initOnce;
 };
 
 template<>
@@ -577,7 +429,411 @@ TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept :
 
 template<TBType T>
 TBTable<T>::~TBTable() noexcept {
-    TBMapper::unmap(mappedPtr, mapping);
+    unmap();
+}
+
+// If the TB file corresponding to the given position is already memory-mapped
+// then return its base address, otherwise, try to memory map and init it.
+// Called at every probe, memory map, and init only at first access.
+// Function is thread safe and can be called concurrently.
+template<TBType T>
+void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
+    // Fast path: already initialized
+    if (initOnce.is_initialized())
+        return mappedPtr;  // could be nullptr if file missing
+
+    if (initOnce.try_init())
+    {
+        // First thread is responsible for initialization
+
+        // Pieces strings in decreasing order for each color, like ("KPP","KR")
+        StdArray<std::string, COLOR_NB> pieces{};
+        for (Color c : {WHITE, BLACK})
+            for (std::size_t i = PIECE_TYPES.size(); i-- > 0;)
+                pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
+
+        std::string fname;
+        fname.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
+
+        if (materialKey == key[WHITE])
+        {
+            fname += pieces[WHITE];
+            fname += 'v';
+            fname += pieces[BLACK];
+        }
+        else
+        {
+            fname += pieces[BLACK];
+            fname += 'v';
+            fname += pieces[WHITE];
+        }
+
+        TBFile tbFile(fname, EXT[T]);
+
+        std::uint8_t* data = tbFile.exists() ? map(tbFile.file_name()) : nullptr;
+
+        if (data != nullptr)
+            set(data);
+
+        // Mark initialized for all threads
+        initOnce.set_initialized();
+    }
+    else
+    {
+        // Other threads spin until initialization completes
+        initOnce.wait_until_initialized();
+    }
+
+    return mappedPtr;
+}
+
+// Memory maps/unmaps the single ".rtbw" and ".rtbz" files.
+// Files are memory mapped for best performance.
+// Files are mapped at first access: at init time only existence of the file is checked.
+template<TBType T>
+std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
+#if defined(_WIN32)
+
+    // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
+    HANDLE fd = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+                           FILE_FLAG_RANDOM_ACCESS, nullptr);
+
+    if (fd == INVALID_HANDLE_VALUE)
+    {
+        mappedPtr = nullptr;
+
+        return nullptr;
+    }
+
+    DWORD hiSize;
+    DWORD loSize = GetFileSize(fd, &hiSize);
+
+    if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
+    {
+        std::cerr << "GetFileSize() failed" << std::endl;
+
+        CloseHandle(fd);
+
+        mappedPtr = nullptr;
+
+        return nullptr;
+    }
+
+    if (loSize % 64 != 16)
+    {
+        std::cerr << "Corrupt tablebase file " << filename << std::endl;
+
+        std::exit(EXIT_FAILURE);
+    }
+
+    HANDLE hMapFile = CreateFileMapping(fd, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
+
+    CloseHandle(fd);
+
+    if (hMapFile == nullptr)
+    {
+        std::cerr << "CreateFileMapping() failed, name = " << filename << std::endl;
+
+        std::exit(EXIT_FAILURE);
+    }
+
+    mapping = std::uint64_t(hMapFile);
+
+    mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
+
+    if (mappedPtr == nullptr)
+    {
+        std::cerr << "MapViewOfFile() failed, name = " << filename << ", error = " << GetLastError()
+                  << std::endl;
+
+        CloseHandle(hMapFile);
+
+        std::exit(EXIT_FAILURE);
+    }
+
+#else
+
+    int fd = ::open(filename.data(), O_RDONLY);
+
+    if (fd == -1)
+    {
+        mappedPtr = nullptr;
+
+        return nullptr;
+    }
+
+    struct stat objStat;
+
+    if (fstat(fd, &objStat) == -1)
+    {
+        std::cerr << "fstat failed: " << strerror(errno) << std::endl;
+
+        ::close(fd);
+
+        mappedPtr = nullptr;
+
+        return nullptr;
+    }
+
+    if (objStat.st_size % 64 != 16)
+    {
+        std::cerr << "Corrupt tablebase file " << filename << std::endl;
+
+        ::close(fd);
+
+        std::exit(EXIT_FAILURE);
+    }
+
+    mapping = objStat.st_size;
+
+    mappedPtr = mmap(nullptr, objStat.st_size, PROT_READ, MAP_SHARED, fd, 0);
+
+    if (mappedPtr == MAP_FAILED)
+    {
+        std::cerr << "mmap() failed, name = " << filename << std::endl;
+
+        ::close(fd);
+
+        std::exit(EXIT_FAILURE);
+    }
+
+    #if defined(MADV_RANDOM)
+    madvise(mappedPtr, objStat.st_size, MADV_RANDOM);
+    #endif
+
+    ::close(fd);
+
+#endif
+
+    std::uint8_t* data = (std::uint8_t*) (mappedPtr);
+
+    constexpr auto& TBMagic = TB_MAGICS[T];
+
+    if (std::memcmp(data, TBMagic.data(), TBMagic.size()) != 0)
+    {
+        std::cerr << "Corrupted table in file " << filename << std::endl;
+
+        unmap();
+
+        mappedPtr = nullptr;
+
+        return nullptr;
+    }
+
+    return data + TBMagic.size();  // Skip TB Magic header
+}
+
+template<TBType T>
+void TBTable<T>::unmap() noexcept {
+#if defined(_WIN32)
+    if (mappedPtr != nullptr)
+        UnmapViewOfFile(mappedPtr);
+    if (mapping != 0)
+        CloseHandle((HANDLE) mapping);
+#else
+    if (mappedPtr != nullptr)
+        munmap(mappedPtr, mapping);
+#endif
+}
+
+// Populate entry's PairsData records with data from the just memory-mapped file.
+// Called at first access.
+template<TBType T>
+void TBTable<T>::set(std::uint8_t* data) noexcept {
+
+    assert((key[WHITE] != key[BLACK]) == bool(*data & 1));
+    assert(hasPawns == bool(*data & 2));
+
+    ++data;  // First byte stores flags
+
+    const std::size_t sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
+
+    const File maxFile = hasPawns ? FILE_D : FILE_A;
+
+    bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
+
+    assert(!pp || pawnCount[WHITE] != 0);
+
+    for (File f = FILE_A; f <= maxFile; ++f)
+    {
+        for (std::size_t i = 0; i < sides; ++i)
+            *get(i, f) = PairsData();
+
+        int order[2][2]{{*data & 0xF, pp ? *(data + 1) & 0xF : 0xF},
+                        {*data >> 4, pp ? *(data + 1) >> 4 : 0xF}};
+
+        data += 1 + pp;
+
+        for (std::uint8_t k = 0; k < pieceCount; ++k, ++data)
+            for (std::size_t i = 0; i < sides; ++i)
+                get(i, f)->pieces[k] = Piece(i ? *data >> 4 : *data & 0xF);
+
+        for (std::size_t i = 0; i < sides; ++i)
+            set_groups(get(i, f), order[i], f);
+    }
+
+    data += std::uintptr_t(data) & 1;  // Word alignment
+
+    for (File f = FILE_A; f <= maxFile; ++f)
+        for (std::size_t i = 0; i < sides; ++i)
+            data = set_sizes(get(i, f), data);
+
+    data = set_dtz_map(data, maxFile);
+
+    PairsData* pd;
+
+    for (File f = FILE_A; f <= maxFile; ++f)
+        for (std::size_t i = 0; i < sides; ++i)
+        {
+            (pd = get(i, f))->sparseIndex = (SparseEntry*) (data);
+            data += pd->sparseIndexSize * sizeof(SparseEntry);
+        }
+
+    for (File f = FILE_A; f <= maxFile; ++f)
+        for (std::size_t i = 0; i < sides; ++i)
+        {
+            (pd = get(i, f))->blockLength = (std::uint16_t*) (data);
+            data += pd->blockLengthSize * sizeof(std::uint16_t);
+        }
+
+    for (File f = FILE_A; f <= maxFile; ++f)
+        for (std::size_t i = 0; i < sides; ++i)
+        {
+            data = (std::uint8_t*) ((std::uintptr_t(data) + 0x3F) & ~0x3F);  // 64 byte alignment
+            (pd = get(i, f))->data = data;
+            data += pd->blockCount * pd->blockSize;
+        }
+}
+
+// Group together pieces that will be encoded together. The general rule is that
+// a group contains pieces of the same type and color. The exception is the leading
+// group that, in case of positions without pawns, can be formed by 3 different
+// pieces (default) or by the king pair when there is not a unique piece apart
+// from the kings. When there are pawns, pawns are always first in pieces[].
+//
+// As example KRKN -> KRK + N, KNNK -> KK + NN, KPPKP -> P + PP + K + K
+//
+// The actual grouping depends on the TB generator and can be inferred from the
+// sequence of pieces in piece[] array.
+template<TBType T>
+void TBTable<T>::set_groups(PairsData* pd, int order[2], File f) noexcept {
+
+    std::size_t n = 0;
+
+    pd->groupLen[n] = 1;
+
+    std::int32_t firstLen = hasPawns ? 0 : hasUniquePieces ? 3 : 2;
+    // Number of pieces per group is stored in groupLen[], for instance in KRKN
+    // the encoder will default on '111', so groupLen[] will be (3, 1).
+    for (std::int32_t i = 1; i < pieceCount; ++i)
+    {
+        if (--firstLen > 0 || pd->pieces[i] == pd->pieces[i - 1])
+            pd->groupLen[n]++;
+        else
+            pd->groupLen[++n] = 1;
+    }
+
+    pd->groupLen[++n] = 0;  // Zero-terminated
+
+    // The sequence in pieces[] defines the groups, but not the order in which
+    // they are encoded. If the pieces in a group g can be combined on the board
+    // in N(g) different ways, then the position encoding will be of the form:
+    //
+    //       g1 * N(g2) * N(g3) + g2 * N(g3) + g3
+    //
+    // This ensures unique encoding for the whole position. The order of the
+    // groups is a per-table parameter and could not follow the canonical leading
+    // pawns/pieces -> remaining pawns -> remaining pieces. In particular the
+    // first group is at order[0] position and the remaining pawns, when present,
+    // are at order[1] position.
+    bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
+
+    std::size_t next = pp ? 2 : 1;
+
+    std::size_t freeLen = SQUARE_NB - pd->groupLen[0] - (pp ? pd->groupLen[1] : 0);
+
+    std::uint64_t idx = 1;
+
+    for (int k = 0; k == order[0] || k == order[1] || next < n; ++k)
+    {
+        // Leading pawns or pieces
+        if (k == order[0])
+        {
+            pd->groupIdx[0] = idx;
+
+            idx *= hasPawns  //
+                   ? LeadPawnSize[pd->groupLen[0]][f]
+                   : hasUniquePieces  //
+                       ? 31332
+                       : 462;
+        }
+        // Remaining pawns
+        else if (k == order[1])
+        {
+            pd->groupIdx[1] = idx;
+
+            idx *= Binomial[pd->groupLen[1]][48 - pd->groupLen[0]];
+        }
+        // Remaining pieces
+        else
+        {
+            pd->groupIdx[next] = idx;
+
+            idx *= Binomial[pd->groupLen[next]][freeLen];
+            assert(int(freeLen) >= pd->groupLen[next]);
+
+            freeLen -= pd->groupLen[next];
+
+            ++next;
+        }
+    }
+
+    pd->groupIdx[n] = idx;
+}
+
+template<>
+std::uint8_t* TBTable<WDL>::set_dtz_map(std::uint8_t*         data,
+                                        [[maybe_unused]] File maxFile) noexcept {
+    return data;
+}
+
+template<>
+std::uint8_t* TBTable<DTZ>::set_dtz_map(std::uint8_t* data, File maxFile) noexcept {
+    mapPtr = data;
+
+    for (File f = FILE_A; f <= maxFile; ++f)
+    {
+        auto* pd = get(0, f);
+
+        auto flags = pd->flags;
+
+        if (flags & MAPPED)
+        {
+            if (flags & WIDE)
+            {
+                data += std::uintptr_t(data) & 1;  // Word alignment, may have a mixed table
+
+                for (std::size_t i = 0; i < 4; ++i)
+                {
+                    // Sequence like 3,x,x,x,1,x,0,2,x,x
+                    pd->mapIdx[i] = 1 + (std::uint16_t*) (data) - (std::uint16_t*) (mapPtr);
+
+                    data += 2 + 2 * number<std::uint16_t, LITTLE>(data);
+                }
+            }
+            else
+            {
+                for (std::size_t i = 0; i < 4; ++i)
+                {
+                    pd->mapIdx[i] = 1 + data - mapPtr;
+
+                    data += 1 + *data;
+                }
+            }
+        }
+    }
+
+    return data += std::uintptr_t(data) & 1;  // Word alignment
 }
 
 // class TBTables creates and keeps ownership of the TBTable objects,
@@ -876,13 +1132,13 @@ int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdlScore) noexcep
 
     auto* pd     = entry->get(0, f);
     auto  flags  = pd->flags;
-    auto* map    = entry->map;
+    auto* mapPtr = entry->map_ptr();
     auto* mapIdx = pd->mapIdx.data();
 
     auto idx = mapIdx[WDL_MAP[wdlScore + 2]] + value;
 
     if (flags & MAPPED)
-        value = (flags & WIDE) ? ((std::uint16_t*) map)[idx] : map[idx];
+        value = (flags & WIDE) ? ((std::uint16_t*) mapPtr)[idx] : mapPtr[idx];
 
     // DTZ-tables store distance to zero in number of moves or plies.
     // So have to convert to plies when needed.
@@ -913,7 +1169,7 @@ int map_score(TBTable<DTZ>* entry, File f, int value, WDLScore wdlScore) noexcep
 //
 template<typename T, typename Ret = typename T::Ret>
 CLANG_AVX512_BUG_FIX Ret do_probe_table(
-  const Position& pos, Key materialKey, T* entry, WDLScore wdlScore, ProbeState* ps) noexcept {
+  T* entry, const Position& pos, Key materialKey, WDLScore wdlScore, ProbeState* ps) noexcept {
 
     // A given TB entry like KRK has associated two material keys: KRvk and Kvkr.
     // If both sides have the same pieces keys are equal. In this case TB-tables
@@ -1146,89 +1402,6 @@ ENCODE_END:
 
 #undef CLANG_AVX512_BUG_FIX
 
-// Group together pieces that will be encoded together. The general rule is that
-// a group contains pieces of the same type and color. The exception is the leading
-// group that, in case of positions without pawns, can be formed by 3 different
-// pieces (default) or by the king pair when there is not a unique piece apart
-// from the kings. When there are pawns, pawns are always first in pieces[].
-//
-// As example KRKN -> KRK + N, KNNK -> KK + NN, KPPKP -> P + PP + K + K
-//
-// The actual grouping depends on the TB generator and can be inferred from the
-// sequence of pieces in piece[] array.
-template<typename T>
-void set_groups(T& entry, PairsData* pd, int order[2], File f) noexcept {
-
-    std::size_t n = 0;
-
-    pd->groupLen[n] = 1;
-
-    std::int32_t firstLen = entry.hasPawns ? 0 : entry.hasUniquePieces ? 3 : 2;
-    // Number of pieces per group is stored in groupLen[], for instance in KRKN
-    // the encoder will default on '111', so groupLen[] will be (3, 1).
-    for (std::int32_t i = 1; i < entry.pieceCount; ++i)
-        if (--firstLen > 0 || pd->pieces[i] == pd->pieces[i - 1])
-            pd->groupLen[n]++;
-        else
-            pd->groupLen[++n] = 1;
-    pd->groupLen[++n] = 0;  // Zero-terminated
-
-    // The sequence in pieces[] defines the groups, but not the order in which
-    // they are encoded. If the pieces in a group g can be combined on the board
-    // in N(g) different ways, then the position encoding will be of the form:
-    //
-    //       g1 * N(g2) * N(g3) + g2 * N(g3) + g3
-    //
-    // This ensures unique encoding for the whole position. The order of the
-    // groups is a per-table parameter and could not follow the canonical leading
-    // pawns/pieces -> remaining pawns -> remaining pieces. In particular the
-    // first group is at order[0] position and the remaining pawns, when present,
-    // are at order[1] position.
-    bool pp = entry.hasPawns && entry.pawnCount[BLACK] != 0;  // Pawns on both sides
-
-    std::size_t next = pp ? 2 : 1;
-
-    std::size_t freeLen = SQUARE_NB - pd->groupLen[0] - (pp ? pd->groupLen[1] : 0);
-
-    std::uint64_t idx = 1;
-
-    for (int k = 0; k == order[0] || k == order[1] || next < n; ++k)
-    {
-        // Leading pawns or pieces
-        if (k == order[0])
-        {
-            pd->groupIdx[0] = idx;
-
-            idx *= entry.hasPawns  //
-                   ? LeadPawnSize[pd->groupLen[0]][f]
-                   : entry.hasUniquePieces  //
-                       ? 31332
-                       : 462;
-        }
-        // Remaining pawns
-        else if (k == order[1])
-        {
-            pd->groupIdx[1] = idx;
-
-            idx *= Binomial[pd->groupLen[1]][48 - pd->groupLen[0]];
-        }
-        // Remaining pieces
-        else
-        {
-            pd->groupIdx[next] = idx;
-
-            idx *= Binomial[pd->groupLen[next]][freeLen];
-            assert(int(freeLen) >= pd->groupLen[next]);
-
-            freeLen -= pd->groupLen[next];
-
-            ++next;
-        }
-    }
-
-    pd->groupIdx[n] = idx;
-}
-
 // In Recursive Pairing each symbol represents a pair of children symbols. So
 // read d->btree[] symbols data and expand each one in his left and right child
 // symbol until reaching the leaves that represent the symbol value.
@@ -1330,172 +1503,6 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     return data + pd->symLen.size() * sizeof(LR) + (pd->symLen.size() & 1);
 }
 
-std::uint8_t* set_dtz_map(TBTable<WDL>&, std::uint8_t* data, File) noexcept { return data; }
-
-std::uint8_t* set_dtz_map(TBTable<DTZ>& entry, std::uint8_t* data, File maxFile) noexcept {
-
-    entry.map = data;
-
-    for (File f = FILE_A; f <= maxFile; ++f)
-    {
-        auto* pd = entry.get(0, f);
-
-        auto flags = pd->flags;
-
-        if (flags & MAPPED)
-        {
-            if (flags & WIDE)
-            {
-                data += std::uintptr_t(data) & 1;  // Word alignment, may have a mixed table
-
-                for (std::size_t i = 0; i < 4; ++i)
-                {
-                    // Sequence like 3,x,x,x,1,x,0,2,x,x
-                    pd->mapIdx[i] = 1 + (std::uint16_t*) (data) - (std::uint16_t*) (entry.map);
-                    data += 2 + 2 * number<std::uint16_t, LITTLE>(data);
-                }
-            }
-            else
-            {
-                for (std::size_t i = 0; i < 4; ++i)
-                {
-                    pd->mapIdx[i] = 1 + data - entry.map;
-                    data += 1 + *data;
-                }
-            }
-        }
-    }
-
-    return data += std::uintptr_t(data) & 1;  // Word alignment
-}
-
-// Populate entry's PairsData records with data from the just memory-mapped file.
-// Called at first access.
-template<typename T>
-void set(T& entry, std::uint8_t* data) noexcept {
-
-    assert((entry.key[WHITE] != entry.key[BLACK]) == bool(*data & 1));
-    assert(entry.hasPawns == bool(*data & 2));
-
-    ++data;  // First byte stores flags
-
-    const std::size_t sides = T::SIDES == 2 && entry.key[WHITE] != entry.key[BLACK] ? 2 : 1;
-
-    const File maxFile = entry.hasPawns ? FILE_D : FILE_A;
-
-    bool pp = entry.hasPawns && entry.pawnCount[BLACK] != 0;  // Pawns on both sides
-
-    assert(!pp || entry.pawnCount[WHITE] != 0);
-
-    for (File f = FILE_A; f <= maxFile; ++f)
-    {
-        for (std::size_t i = 0; i < sides; ++i)
-            *entry.get(i, f) = PairsData();
-
-        int order[2][2]{{*data & 0xF, pp ? *(data + 1) & 0xF : 0xF},
-                        {*data >> 4, pp ? *(data + 1) >> 4 : 0xF}};
-        data += 1 + pp;
-
-        for (std::uint8_t k = 0; k < entry.pieceCount; ++k, ++data)
-            for (std::size_t i = 0; i < sides; ++i)
-                entry.get(i, f)->pieces[k] = Piece(i ? *data >> 4 : *data & 0xF);
-
-        for (std::size_t i = 0; i < sides; ++i)
-            set_groups(entry, entry.get(i, f), order[i], f);
-    }
-
-    data += std::uintptr_t(data) & 1;  // Word alignment
-
-    for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < sides; ++i)
-            data = set_sizes(entry.get(i, f), data);
-
-    data = set_dtz_map(entry, data, maxFile);
-
-    PairsData* pd;
-
-    for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < sides; ++i)
-        {
-            (pd = entry.get(i, f))->sparseIndex = (SparseEntry*) (data);
-            data += pd->sparseIndexSize * sizeof(SparseEntry);
-        }
-
-    for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < sides; ++i)
-        {
-            (pd = entry.get(i, f))->blockLength = (std::uint16_t*) (data);
-            data += pd->blockLengthSize * sizeof(std::uint16_t);
-        }
-
-    for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < sides; ++i)
-        {
-            data = (std::uint8_t*) ((std::uintptr_t(data) + 0x3F) & ~0x3F);  // 64 byte alignment
-            (pd = entry.get(i, f))->data = data;
-            data += pd->blockCount * pd->blockSize;
-        }
-}
-
-// If the TB file corresponding to the given position is already memory-mapped
-// then return its base address, otherwise, try to memory map and init it.
-// Called at every probe, memory map, and init only at first access.
-// Function is thread safe and can be called concurrently.
-template<TBType T>
-void* init(const Position& pos, Key materialKey, TBTable<T>& entry) noexcept {
-    // Fast path: already initialized
-    if (entry.initOnce.is_initialized())
-        return entry.mappedPtr;  // could be nullptr if file missing
-
-    if (entry.initOnce.try_init())
-    {
-        // First thread is responsible for initialization
-
-        // Pieces strings in decreasing order for each color, like ("KPP","KR")
-        StdArray<std::string, COLOR_NB> pieces{};
-        for (Color c : {WHITE, BLACK})
-            for (std::size_t i = PIECE_TYPES.size(); i-- > 0;)
-                pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
-
-        std::string fname;
-        fname.reserve(pieces[WHITE].size() + pieces[BLACK].size() + 1 + EXT[T].size());
-
-        if (materialKey == entry.key[WHITE])
-        {
-            fname += pieces[WHITE];
-            fname += 'v';
-            fname += pieces[BLACK];
-        }
-        else
-        {
-            fname += pieces[BLACK];
-            fname += 'v';
-            fname += pieces[WHITE];
-        }
-
-        fname += EXT[T];
-
-        TBFile tbFile(fname);
-
-        std::uint8_t* data =
-          tbFile.exists() ? TBMapper::map<T>(tbFile.file_name(), &entry.mappedPtr, &entry.mapping)
-                          : nullptr;
-
-        if (data != nullptr)
-            set(entry, data);
-
-        // Mark initialized for all threads
-        entry.initOnce.set_initialized();
-    }
-    else
-    {
-        // Other threads spin until initialization completes
-        entry.initOnce.wait_until_initialized();
-    }
-
-    return entry.mappedPtr;
-}
-
 template<TBType T, typename Ret = typename TBTable<T>::Ret>
 Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRAW) noexcept {
 
@@ -1506,13 +1513,13 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRA
 
     TBTable<T>* entry = tbTables.get<T>(materialKey);
 
-    if (entry == nullptr || init(pos, materialKey, *entry) == nullptr)
+    if (entry == nullptr || entry->init(pos, materialKey) == nullptr)
     {
         *ps = PS_FAIL;
         return Ret();
     }
 
-    return do_probe_table(pos, materialKey, entry, wdlScore, ps);
+    return do_probe_table(entry, pos, materialKey, wdlScore, ps);
 }
 
 // For a position where the side to move has a winning capture it is not necessary
