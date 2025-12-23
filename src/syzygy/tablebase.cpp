@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <deque>
+#include <filesystem>
 #include <fstream>
 #include <initializer_list>
 #include <iostream>
@@ -212,30 +213,25 @@ class TBFile final {
    public:
     explicit TBFile(std::string_view file) noexcept {
 
-        constexpr char PathSeparator =
-#if defined(_WIN32)
-          '\\'
-#else
-          '/'
-#endif
-          ;
-
         filename.clear();
 
         for (const auto& path : Paths)
         {
-            std::string fn = path + PathSeparator + std::string(file);
+            std::filesystem::path fn = path / file;  // safe path concatenation
 
             std::ifstream ifs(fn, std::ios::binary);
 
             if (ifs.is_open())
             {
-                filename = std::move(fn);
+                filename = fn.string();
 
                 break;
             }
         }
     }
+
+    TBFile(std::string_view base, std::string_view ext) noexcept :
+        TBFile(std::string(base) + std::string(ext)) {}
 
     static bool init(std::string_view paths) noexcept {
         // Multiple directories are separated
@@ -262,7 +258,7 @@ class TBFile final {
 
             while (std::getline(iss, path, PathSeparator))
                 if (!path.empty())
-                    Paths.push_back(path);
+                    Paths.emplace_back(path);
         }
 
         return !Paths.empty();
@@ -423,7 +419,7 @@ class TBFile final {
    private:
     // Look for and open the file among the Paths directories
     // where the .rtbw and .rtbz files can be found.
-    static inline Strings Paths;
+    static inline std::vector<std::filesystem::path> Paths;
 
     std::string filename;
 };
@@ -579,7 +575,7 @@ class TBTables final {
         return "Tablebase: "                                    //
              + std::to_string(wdlTables.size()) + " WDL and "   //
              + std::to_string(dtzTables.size()) + " DTZ found"  //
-             + " (up to " + std::to_string(int(MaxCardinality)) + "-man).";
+             + " (up to " + std::to_string(MaxCardinality) + "-man).";
     }
 
     void add(const std::vector<PieceType>& pieces) noexcept;
@@ -665,18 +661,23 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
     // Only WDL file is checked
-    if (!TBFile(code + std::string(EXT[WDL])).exists())
+    if (!TBFile(code, EXT[WDL]).exists())
         return;
 
-    if (MaxCardinality < pieces.size())
-        MaxCardinality = pieces.size();
+    const std::size_t pieceCount = pieces.size();
+    if (MaxCardinality < pieceCount)
+        MaxCardinality = pieceCount;
 
     wdlTables.emplace_back(code);
     dtzTables.emplace_back(wdlTables.back());
 
+    // Pointers to newly added tables
+    auto* wdlTable = &wdlTables.back();
+    auto* dtzTable = &dtzTables.back();
+
     // Insert into the hash keys for both colors: KRvK with KR white and black
-    insert(wdlTables.back().key[WHITE], &wdlTables.back(), &dtzTables.back());
-    insert(wdlTables.back().key[BLACK], &wdlTables.back(), &dtzTables.back());
+    insert(wdlTable->key[WHITE], wdlTable, dtzTable);
+    insert(wdlTable->key[BLACK], wdlTable, dtzTable);
 }
 
 TBTables tbTables;
