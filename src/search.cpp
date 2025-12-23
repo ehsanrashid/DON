@@ -196,10 +196,7 @@ Worker::Worker(std::size_t               threadIdx,
     threads(sharedState.threads),
     transpositionTable(sharedState.transpositionTable),
     histories(sharedState.historiesMap.at(accessToken.numa_index())),
-    accCaches(networks[accessToken]) {
-
-    init();
-}
+    accCaches(networks[accessToken]) {}
 
 // Initialize the worker
 void Worker::init() noexcept {

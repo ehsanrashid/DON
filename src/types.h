@@ -585,13 +585,13 @@ class Move {
     // Hash function for unordered containers (e.g., std::unordered_set, std::unordered_map).
     // Uses make_hash function to produce a unique hash value for move
     struct Hash final {
-        std::size_t operator()(Move m) const noexcept { return make_hash(m.move); }
+        std::size_t operator()(Move m) const noexcept { return make_hash(m.data); }
     };
 
     Move() noexcept = default;
     // Constructors using delegating syntax
-    constexpr explicit Move(std::uint16_t m) noexcept :
-        move(m) {}
+    constexpr explicit Move(std::uint16_t d) noexcept :
+        data(d) {}
     constexpr Move(MoveType T, Square orgSq, Square dstSq) noexcept :
         Move(T | (int(orgSq) << 6) | (int(dstSq) << 0)) {}
     constexpr Move(Square orgSq, Square dstSq) noexcept :
@@ -600,20 +600,20 @@ class Move {
         Move(MoveType(PROMOTION | ((int(promoPt) - int(KNIGHT)) << 12)), orgSq, dstSq) {}
 
     // Accessors: extract parts of the move
-    constexpr Square    org_sq() const noexcept { return Square((move >> 6) & 0x3F); }
-    constexpr Square    dst_sq() const noexcept { return Square((move >> 0) & 0x3F); }
-    constexpr MoveType  type_of() const noexcept { return MoveType(move & TYPE_MASK); }
+    constexpr Square    org_sq() const noexcept { return Square((data >> 6) & 0x3F); }
+    constexpr Square    dst_sq() const noexcept { return Square((data >> 0) & 0x3F); }
+    constexpr MoveType  type_of() const noexcept { return MoveType(data & TYPE_MASK); }
     constexpr PieceType promotion_type() const noexcept {
-        return PieceType(((move >> 12) & 0x3) + int(KNIGHT));
+        return PieceType(((data >> 12) & 0x3) + int(KNIGHT));
     }
 
     constexpr Value promotion_value() const noexcept {
         return type_of() == PROMOTION ? piece_value(promotion_type()) - VALUE_PAWN : VALUE_ZERO;
     }
 
-    constexpr std::uint16_t raw() const noexcept { return move; }
+    constexpr std::uint16_t raw() const noexcept { return data; }
 
-    friend constexpr bool operator==(Move m1, Move m2) noexcept { return m1.move == m2.move; }
+    friend constexpr bool operator==(Move m1, Move m2) noexcept { return m1.data == m2.data; }
     friend constexpr bool operator!=(Move m1, Move m2) noexcept { return !(m1 == m2); }
 
     // Validity check: ensures move is not None or Null
@@ -631,7 +631,7 @@ class Move {
     static const Move Null;
 
    protected:
-    std::uint16_t move;
+    std::uint16_t data;
 };
 
 // **Define the constexpr static members outside the class**

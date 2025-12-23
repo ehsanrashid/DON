@@ -19,6 +19,7 @@
 #define HISTORY_H_INCLUDED
 
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <cmath>
 #include <cstdint>
@@ -35,7 +36,7 @@ namespace DON {
 // Use a class instead of a naked value to directly call history update operator<<() on the entry.
 // The first template parameter T is the base type of the StatsEntry and
 // the second template parameter D limits the range of updates in [-D, D] when update values with the << operator
-template<typename T, int D>
+template<typename T, int D, bool Atomic = false>
 class StatsEntry final {
     static_assert(std::is_arithmetic_v<T>, "T must be arithmetic");
     static_assert(std::is_signed_v<T> && std::is_integral_v<T>,
@@ -44,22 +45,33 @@ class StatsEntry final {
     static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
 
    public:
-    void operator=(T v) noexcept { value = v; }
+    void operator=(const T& v) noexcept {
+        if constexpr (Atomic)
+            value.store(v, std::memory_order_relaxed);
+        else
+            value = v;
+    }
 
-    operator T() const noexcept { return value; }
+    operator T() const noexcept {
+        if constexpr (Atomic)
+            return value.load(std::memory_order_relaxed);
+        else
+            return value;
+    }
 
     // Overload operator<< to modify the value
     void operator<<(int bonus) noexcept {
         // Make sure that bonus is in range [-D, +D]
         int clampedBonus = std::clamp(bonus, -D, +D);
         // Apply gravity-based adjustment
-        value += clampedBonus - value * std::abs(clampedBonus) / D;
+        T val = *this;
+        *this = val + clampedBonus - val * std::abs(clampedBonus) / D;
 
-        assert(std::abs(value) <= D);
+        assert(std::abs(T(*this)) <= D);
     }
 
    private:
-    T value;
+    std::conditional_t<Atomic, std::atomic<T>, T> value;
 };
 
 
@@ -161,22 +173,26 @@ namespace internal {
 template<std::size_t... Sizes>
 using CorrectionStats = Stats<CORRECTION_HISTORY_LIMIT, Sizes...>;
 
+template<std::size_t... Sizes>
+using CorrectionStatsAtomic =
+  MultiArray<StatsEntry<std::int16_t, CORRECTION_HISTORY_LIMIT, true>, Sizes...>;
+
 template<CorrectionHistoryType T>
 struct CorrectionHistoryDef;
 
 template<>
 struct CorrectionHistoryDef<CH_PAWN> final {
-    using Type = DynamicArray<CorrectionStats<COLOR_NB, COLOR_NB>>;
+    using Type = DynamicArray<CorrectionStatsAtomic<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
 struct CorrectionHistoryDef<CH_MINOR> final {
-    using Type = DynamicArray<CorrectionStats<COLOR_NB, COLOR_NB>>;
+    using Type = DynamicArray<CorrectionStatsAtomic<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
 struct CorrectionHistoryDef<CH_NON_PAWN> final {
-    using Type = DynamicArray<CorrectionStats<COLOR_NB, COLOR_NB>>;
+    using Type = DynamicArray<CorrectionStatsAtomic<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
