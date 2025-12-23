@@ -18,7 +18,6 @@
 #include "bitboard.h"
 
 #include <algorithm>
-#include <initializer_list>
 #include <memory>
 
 #if !defined(USE_POPCNT)
@@ -229,25 +228,11 @@ void init() noexcept {
     {
         Bitboard s1BB = square_bb(s1);
 
-        AttacksBBs[s1][WHITE] = pawn_attacks_bb<WHITE>(s1BB);
-        AttacksBBs[s1][BLACK] = pawn_attacks_bb<BLACK>(s1BB);
-
-        // clang-format off
-        for (auto dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
-                         WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
-            AttacksBBs[s1][KNIGHT] |= destination_bb(s1, dir, 2);
-
-        AttacksBBs[s1][BISHOP] = attacks_bb<BISHOP>(s1, 0);
-        AttacksBBs[s1][ROOK]   = attacks_bb<ROOK  >(s1, 0);
-        AttacksBBs[s1][QUEEN]  = AttacksBBs[s1][BISHOP] | AttacksBBs[s1][ROOK];
-
-        for (auto dir : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
-            AttacksBBs[s1][KING] |= destination_bb(s1, dir);
-
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
             Bitboard s2BB = square_bb(s2);
 
+            // clang-format off
             for (PieceType pt : {BISHOP, ROOK})
                 if (AttacksBBs[s1][pt] & s2)
                 {
@@ -264,8 +249,8 @@ void init() noexcept {
 
                 Aligneds[s1][s2][s3] = (LineBBs[s1][s2] & s3BB) != 0;
             }
+            // clang-format on
         }
-        // clang-format on
     }
 }
 

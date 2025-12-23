@@ -23,12 +23,12 @@
 #include <cmath>  // IWYU pragma: keep
 #include <cstdint>
 #include <cstdlib>
+#include <initializer_list>
+#include <string>
+#include <string_view>
+
 #if !defined(USE_POPCNT)
     #include <cstring>
-#endif
-#if !defined(NDEBUG)
-    #include <string>
-    #include <string_view>
 #endif
 
 #include "misc.h"
@@ -177,7 +177,6 @@ alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB> Dis
 alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     LineBBs;
 alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     BetweenBBs;
 alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     PassRayBBs;
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, PIECE_TYPE_NB> AttacksBBs;
 alignas(CACHE_LINE_SIZE) inline StdArray<Magic   , SQUARE_NB, 2>             Magics;  // BISHOP or ROOK
 
 alignas(CACHE_LINE_SIZE) inline StdArray<bool, SQUARE_NB, SQUARE_NB, SQUARE_NB> Aligneds;
@@ -344,7 +343,9 @@ constexpr Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) 
     assert(is_ok(s));
 
     Square sq = s + d;
-    return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
+    return is_ok(sq) && std::max(distance<File>(s, sq), distance<Rank>(s, sq)) <= dist
+           ? square_bb(sq)
+           : 0;
 }
 
 // Computes sliding attack
@@ -378,11 +379,63 @@ constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexce
     return attacksBB;
 }
 
+constexpr Bitboard knight_attacks_bb(Square s) noexcept {
+    Bitboard b = 0;
+    for (auto dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH, WEST_2 + NORTH,
+                     EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
+        b |= destination_bb(s, dir, 2);
+    return b;
+}
+
+constexpr Bitboard king_attacks_bb(Square s) noexcept {
+    Bitboard b = 0;
+    for (auto dir : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
+        b |= destination_bb(s, dir);
+    return b;
+}
+
+template<PieceType PT>
+constexpr Bitboard pseudo_attacks_bb(Square s) noexcept {
+    assert(is_ok(s));
+
+    if constexpr (PT == KNIGHT)
+        return knight_attacks_bb(s);
+    if constexpr (PT == BISHOP)
+        return sliding_attacks_bb<BISHOP>(s, 0);
+    if constexpr (PT == ROOK)
+        return sliding_attacks_bb<ROOK>(s, 0);
+    if constexpr (PT == QUEEN)
+        return sliding_attacks_bb<BISHOP>(s, 0) | sliding_attacks_bb<ROOK>(s, 0);
+    if constexpr (PT == KING)
+        return king_attacks_bb(s);
+    assert(false);
+    return 0;
+}
+
+alignas(CACHE_LINE_SIZE) inline constexpr auto AttacksBBs = []() constexpr {
+    StdArray<Bitboard, SQUARE_NB, PIECE_TYPE_NB> attacksBBs{};
+
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    {
+        attacksBBs[s][WHITE] = pawn_attacks_bb<WHITE>(square_bb(s));
+        attacksBBs[s][BLACK] = pawn_attacks_bb<BLACK>(square_bb(s));
+
+        attacksBBs[s][KNIGHT] = pseudo_attacks_bb<KNIGHT>(s);
+        attacksBBs[s][BISHOP] = pseudo_attacks_bb<BISHOP>(s);
+        attacksBBs[s][ROOK]   = pseudo_attacks_bb<ROOK>(s);
+        attacksBBs[s][QUEEN]  = attacksBBs[s][BISHOP] | attacksBBs[s][ROOK];
+        attacksBBs[s][KING]   = pseudo_attacks_bb<KING>(s);
+    }
+
+    return attacksBBs;
+}();
+
 // Returns the pseudo attacks of the given piece type assuming an empty board
 template<PieceType PT>
 constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Color c = COLOR_NB) noexcept {
     static_assert(is_ok(PT), "Unsupported piece type in attacks_bb()");
     assert(is_ok(s) && (PT != PAWN || is_ok(c)));
+
     if constexpr (PT == PAWN)
         return AttacksBBs[s][c];
     return AttacksBBs[s][PT];
@@ -390,6 +443,7 @@ constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Color c = COLOR_NB) noe
 
 constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
     assert(is_ok(s));
+
     switch (type_of(pc))
     {
     case PAWN :
@@ -422,6 +476,7 @@ template<PieceType PT>
 constexpr Bitboard attacks_bb(Square s, Bitboard occupancyBB) noexcept {
     static_assert(PT != PAWN, "Unsupported piece type in attacks_bb()");
     assert(is_ok(s));
+
     if constexpr (PT == KNIGHT)
         return attacks_bb<KNIGHT>(s);
     if constexpr (PT == BISHOP)
@@ -441,6 +496,7 @@ constexpr Bitboard attacks_bb(Square s, Bitboard occupancyBB) noexcept {
 constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupancyBB = 0) noexcept {
     assert(pt != PAWN);
     assert(is_ok(s));
+
     switch (pt)
     {
     case KNIGHT :
@@ -461,6 +517,7 @@ constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupancyBB = 0) 
 
 constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept {
     assert(is_ok(s));
+
     if (type_of(pc) == PAWN)
         return attacks_bb<PAWN>(s, color_of(pc));
     return attacks_bb(s, type_of(pc), occupancyBB);
