@@ -850,7 +850,7 @@ class TBTables final {
 
    public:
     template<TBType T>
-    [[nodiscard]] TBTable<T>* get(Key key) noexcept {
+    [[nodiscard]] TBTable<T>* get(const Key key) noexcept {
 
         for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
@@ -901,7 +901,7 @@ class TBTables final {
         TBTable<DTZ>* dtzTable;
     };
 
-    void insert(Key key, Entry entry) noexcept {
+    void insert(const Key key, Entry entry) noexcept {
 
         for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
