@@ -383,8 +383,7 @@ struct TBTable final {
 };
 
 template<>
-TBTable<WDL>::TBTable(std::string_view code) noexcept :
-    TBTable() {
+TBTable<WDL>::TBTable(std::string_view code) noexcept {
 
     State    st;
     Position pos;
@@ -414,8 +413,7 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept :
 }
 
 template<>
-TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept :
-    TBTable() {
+TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept {
 
     // Use the corresponding WDL table to avoid recalculating all from scratch
     key[WHITE]       = wdlTable.key[WHITE];
