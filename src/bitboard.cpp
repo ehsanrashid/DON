@@ -220,7 +220,7 @@ void init() noexcept {
 
             for (PieceType pt : {BISHOP, ROOK})
             {
-                if (ATTACKS_BBs[s1][pt] & s2)
+                if ((attacks_bb(s1, pt) & s2) != 0)
                 {
                     BetweenBBs[s1][s2] = attacks_bb(s1, pt, s2BB) & attacks_bb(s2, pt, s1BB);
                     PassRayBBs[s1][s2] = attacks_bb(s1, pt, 0) & (attacks_bb(s2, pt, s1BB) | s2BB);

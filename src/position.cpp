@@ -100,7 +100,8 @@ class CuckooTable final {
     }
 
     void clear() noexcept {
-        cuckoos.fill({0, Move::None});
+        std::memset(cuckoos.data(), 0, sizeof(cuckoos));
+
         count = 0;
     }
 
@@ -116,7 +117,8 @@ class CuckooTable final {
 
                 for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
                     for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
-                        if (attacks_bb(s1, pt) & s2)
+                    {
+                        if ((attacks_bb(s1, pt, 0) & s2) != 0)
                         {
                             Key key = Zobrist::piece_square(c, pt, s1)
                                     ^ Zobrist::piece_square(c, pt, s2)  //
@@ -126,6 +128,7 @@ class CuckooTable final {
 
                             insert({key, move});
                         }
+                    }
             }
 
         assert(count == 3668);
@@ -159,8 +162,8 @@ void Zobrist::init() noexcept {
         for (PieceType pt : PIECE_TYPES)
             std::generate(PieceSquare[c][pt].begin(), PieceSquare[c][pt].end(), prng_rand);
 
-        std::fill_n(PieceSquare[c][PAWN].begin() + SQ_A1, PAWN_OFFSET, 0);
-        std::fill_n(PieceSquare[c][PAWN].begin() + SQ_A8, PAWN_OFFSET, 0);
+        std::memset(&PieceSquare[c][PAWN][SQ_A1], 0, PAWN_OFFSET * sizeof(Key));
+        std::memset(&PieceSquare[c][PAWN][SQ_A8], 0, PAWN_OFFSET * sizeof(Key));
     }
 
     std::generate(Castling.begin(), Castling.end(), prng_rand);
@@ -201,7 +204,7 @@ void Position::clear() noexcept {
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
-            pieceList[c][pt].set(OFFSETS[pt - 1], CAPACITIES[pt - 1], 0);
+            pieceLists[c][pt].set(OFFSETS[pt - 1], CAPACITIES[pt - 1], 0);
 
     st          = nullptr;
     gamePly     = 0;
@@ -483,6 +486,7 @@ void Position::set(std::string_view code, Color c, State* const newSt) noexcept 
 
     std::string fens;
     fens.reserve(64);
+
     fens += "8/";
     fens += sides[WHITE];
     fens += digit_to_char(8 - sides[WHITE].size());

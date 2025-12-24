@@ -74,15 +74,15 @@ struct Zobrist final {
     Zobrist& operator=(const Zobrist&) noexcept = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
-    static inline StdArray<Key, COLOR_NB, PIECE_TYPE_NB - 1, SQUARE_NB> PieceSquare{};
-    static inline StdArray<Key, CASTLING_RIGHTS_NB>                     Castling{};
-    static inline StdArray<Key, FILE_NB>                                Enpassant{};
-    static inline Key                                                   Turn{};
+    static inline StdArray<Key, COLOR_NB, 1 + PIECE_CNT, SQUARE_NB> PieceSquare;
+    static inline StdArray<Key, CASTLING_RIGHTS_NB>                 Castling;
+    static inline StdArray<Key, FILE_NB>                            Enpassant;
+    static inline Key                                               Turn;
 
     static constexpr std::uint8_t R50_OFFSET = 14;
     static constexpr std::uint8_t R50_FACTOR = 8;
 
-    static inline StdArray<Key, (MAX_PLY + 1 - R50_OFFSET) / R50_FACTOR + 2> MR50{};
+    static inline StdArray<Key, (MAX_PLY + 1 - R50_OFFSET) / R50_FACTOR + 2> MR50;
 };
 
 // State struct stores information needed to restore Position object
@@ -90,7 +90,7 @@ struct Zobrist final {
 struct State final {
    public:
     State() noexcept                           = default;
-    State(const State&) noexcept               = delete;
+    State(const State&) noexcept               = default;
     State(State&&) noexcept                    = delete;
     State& operator=(const State& st) noexcept = default;
     State& operator=(State&&) noexcept         = delete;
@@ -159,8 +159,8 @@ class Position final {
 
     Position() noexcept                           = default;
     Position(const Position&) noexcept            = default;
-    Position& operator=(const Position&) noexcept = default;
     Position(Position&&) noexcept                 = delete;
+    Position& operator=(const Position&) noexcept = default;
     Position& operator=(Position&&) noexcept      = delete;
 
     void clear() noexcept;
@@ -176,7 +176,7 @@ class Position final {
     [[nodiscard]] const auto& piece_map() const noexcept;
     [[nodiscard]] const auto& type_bbs() const noexcept;
     [[nodiscard]] const auto& color_bbs() const noexcept;
-    [[nodiscard]] const auto& piece_list() const noexcept;
+    [[nodiscard]] const auto& piece_lists() const noexcept;
 
     [[nodiscard]] Piece    operator[](Square s) const noexcept;
     [[nodiscard]] Bitboard operator[](PieceType pt) const noexcept;
@@ -463,7 +463,7 @@ class Position final {
     // Backing Square Table: [COLOR_NB][TOTAL_CAPACITY]
     StdArray<Square, COLOR_NB, TOTAL_CAPACITY> squaresTable;
     // Generic CountTableView slices
-    StdArray<CountTableView<Square>, COLOR_NB, 1 + PIECE_CNT> pieceList;
+    StdArray<CountTableView<Square>, COLOR_NB, 1 + PIECE_CNT> pieceLists;
 
     StdArray<std::uint8_t, SQUARE_NB>            indexMap;
     StdArray<Piece, SQUARE_NB>                   pieceMap;
@@ -485,7 +485,7 @@ inline const auto& Position::type_bbs() const noexcept { return typeBBs; }
 
 inline const auto& Position::color_bbs() const noexcept { return colorBBs; }
 
-inline const auto& Position::piece_list() const noexcept { return pieceList; }
+inline const auto& Position::piece_lists() const noexcept { return pieceLists; }
 
 inline Piece Position::operator[](Square s) const noexcept { return pieceMap[s]; }
 
@@ -512,7 +512,7 @@ inline Bitboard Position::pieces_bb(Color c, PieceTypes... pts) const noexcept {
 }
 
 inline const auto& Position::squares(Color c, PieceType pt) const noexcept {
-    return pieceList[c][pt];
+    return pieceLists[c][pt];
 }
 
 template<PieceType PT>
@@ -921,7 +921,7 @@ inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept 
     pieceMap[s] = pc;
     colorBBs[c] |= sBB;
     typeBBs[ALL] |= typeBBs[pt] |= sBB;
-    auto& pL = pieceList[c][pt];
+    auto& pL = pieceLists[c][pt];
     auto* pB = base(c);
 
     indexMap[s] = pL.count();
@@ -950,7 +950,7 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     typeBBs[pt] ^= sBB;
     typeBBs[ALL] ^= sBB;
     auto  idx = indexMap[s];
-    auto& pL  = pieceList[c][pt];
+    auto& pL  = pieceLists[c][pt];
     auto* pB  = base(c);
     assert(idx < pL.size());
     Square sq    = pL.back(pB);
@@ -982,7 +982,7 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     typeBBs[pt] ^= s1s2BB;
     typeBBs[ALL] ^= s1s2BB;
     auto  idx = indexMap[s1];
-    auto& pL  = pieceList[c][pt];
+    auto& pL  = pieceLists[c][pt];
     auto* pB  = base(c);
     assert(idx < pL.size());
     indexMap[s2] = idx;

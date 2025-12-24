@@ -347,28 +347,35 @@ constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexce
 }
 
 constexpr Bitboard knight_attacks_bb(Square s) noexcept {
+    assert(is_ok(s));
+
     Bitboard attacksBB = 0;
+
     for (auto dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH, WEST_2 + NORTH,
                      EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
         attacksBB |= destination_bb(s, dir, 2);
+
     return attacksBB;
 }
 
 constexpr Bitboard king_attacks_bb(Square s) noexcept {
+    assert(is_ok(s));
+
     Bitboard attacksBB = 0;
+
     for (auto dir : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
         attacksBB |= destination_bb(s, dir);
+
     return attacksBB;
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto ATTACKS_BBs = []() constexpr {
-    StdArray<Bitboard, SQUARE_NB, PIECE_TYPE_NB> attacksBBs{};
+    StdArray<Bitboard, SQUARE_NB, 1 + PIECE_CNT> attacksBBs{};
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        attacksBBs[s][WHITE] = pawn_attacks_bb<WHITE>(square_bb(s));
-        attacksBBs[s][BLACK] = pawn_attacks_bb<BLACK>(square_bb(s));
-
+        attacksBBs[s][WHITE]  = pawn_attacks_bb<WHITE>(square_bb(s));
+        attacksBBs[s][BLACK]  = pawn_attacks_bb<BLACK>(square_bb(s));
         attacksBBs[s][KNIGHT] = knight_attacks_bb(s);
         attacksBBs[s][BISHOP] = sliding_attacks_bb<BISHOP>(s);
         attacksBBs[s][ROOK]   = sliding_attacks_bb<ROOK>(s);
@@ -379,6 +386,12 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto ATTACKS_BBs = []() constexpr {
     return attacksBBs;
 }();
 
+constexpr Bitboard attacks_bb(Square s, std::size_t idx) noexcept {
+    assert(is_ok(s));
+
+    return ATTACKS_BBs[s][idx];
+}
+
 // Returns the pseudo attacks of the given piece type assuming an empty board
 template<PieceType PT>
 constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Color c = COLOR_NB) noexcept {
@@ -386,9 +399,9 @@ constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Color c = COLOR_NB) noe
     assert(is_ok(s) && (PT != PAWN || is_ok(c)));
 
     if constexpr (PT == PAWN)
-        return ATTACKS_BBs[s][c];
+        return attacks_bb(s, c);
 
-    return ATTACKS_BBs[s][PT];
+    return attacks_bb(s, PT);
 }
 
 constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
@@ -446,7 +459,7 @@ constexpr Bitboard attacks_bb(Square s, Bitboard occupancyBB) noexcept {
 
 // Returns the attacks by the given piece type.
 // Sliding piece attacks do not continue passed an occupied square.
-constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupancyBB = 0) noexcept {
+constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupancyBB) noexcept {
     assert(pt != PAWN);
     assert(is_ok(s));
 
@@ -482,8 +495,8 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBs = []() constexpr {
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             for (PieceType pt : {BISHOP, ROOK})
-                if (ATTACKS_BBs[s1][pt] & s2)
-                    lineBBs[s1][s2] = (ATTACKS_BBs[s1][pt] & ATTACKS_BBs[s2][pt]) | s1 | s2;
+                if ((attacks_bb(s1, pt) & s2) != 0)
+                    lineBBs[s1][s2] = (attacks_bb(s1, pt) & attacks_bb(s2, pt)) | s1 | s2;
 
     return lineBBs;
 }();
