@@ -236,7 +236,7 @@ constexpr std::uint8_t distance<Rank>(Square s1, Square s2) noexcept {
     return constexpr_abs(rank_of(s1) - rank_of(s2));
 }
 
-alignas(CACHE_LINE_SIZE) inline constexpr auto Distances = []() constexpr {
+alignas(CACHE_LINE_SIZE) inline constexpr auto DISTANCES = []() constexpr {
     StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB> distances{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
@@ -250,7 +250,7 @@ template<>
 constexpr std::uint8_t distance<Square>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return Distances[s1][s2];
+    return DISTANCES[s1][s2];
 }
 
 // Shifts a bitboard as specified by the direction
@@ -361,7 +361,7 @@ constexpr Bitboard king_attacks_bb(Square s) noexcept {
     return attacksBB;
 }
 
-alignas(CACHE_LINE_SIZE) inline constexpr auto AttacksBBs = []() constexpr {
+alignas(CACHE_LINE_SIZE) inline constexpr auto ATTACKS_BBs = []() constexpr {
     StdArray<Bitboard, SQUARE_NB, PIECE_TYPE_NB> attacksBBs{};
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -386,9 +386,9 @@ constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Color c = COLOR_NB) noe
     assert(is_ok(s) && (PT != PAWN || is_ok(c)));
 
     if constexpr (PT == PAWN)
-        return AttacksBBs[s][c];
+        return ATTACKS_BBs[s][c];
 
-    return AttacksBBs[s][PT];
+    return ATTACKS_BBs[s][PT];
 }
 
 constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
@@ -476,14 +476,14 @@ constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept
     return attacks_bb(s, type_of(pc), occupancyBB);
 }
 
-alignas(CACHE_LINE_SIZE) inline constexpr auto LineBBs = []() constexpr {
+alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBs = []() constexpr {
     StdArray<Bitboard, SQUARE_NB, SQUARE_NB> lineBBs{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             for (PieceType pt : {BISHOP, ROOK})
-                if (AttacksBBs[s1][pt] & s2)
-                    lineBBs[s1][s2] = (AttacksBBs[s1][pt] & AttacksBBs[s2][pt]) | s1 | s2;
+                if (ATTACKS_BBs[s1][pt] & s2)
+                    lineBBs[s1][s2] = (ATTACKS_BBs[s1][pt] & ATTACKS_BBs[s2][pt]) | s1 | s2;
 
     return lineBBs;
 }();
@@ -495,7 +495,7 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto LineBBs = []() constexpr {
 constexpr Bitboard line_bb(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return LineBBs[s1][s2];
+    return LINE_BBs[s1][s2];
 }
 
 // Returns true if the squares s1, s2 and s3 are aligned on straight or diagonal line.
@@ -638,7 +638,7 @@ constexpr std::uint8_t constexpr_popcount16(std::uint16_t x) noexcept {
     return (x * Kf) >> 8;
 }
 
-alignas(CACHE_LINE_SIZE) inline const auto PopCnts = []() {
+alignas(CACHE_LINE_SIZE) inline const auto POP_CNTS = []() {
     StdArray<std::uint8_t, 0x10000> popCnts{};
 
     for (std::size_t i = 0; i < popCnts.size(); ++i)
@@ -656,7 +656,7 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
     StdArray<std::uint16_t, 4> b16;
     static_assert(sizeof(b16) == sizeof(b));
     std::memcpy(b16.data(), &b, sizeof(b16));
-    return PopCnts[b16[0]] + PopCnts[b16[1]] + PopCnts[b16[2]] + PopCnts[b16[3]];
+    return POP_CNTS[b16[0]] + POP_CNTS[b16[1]] + POP_CNTS[b16[2]] + POP_CNTS[b16[3]];
 #elif defined(__GNUC__)  // (GCC, Clang, ICX)
     return __builtin_popcountll(b);
 #elif defined(_MSC_VER)

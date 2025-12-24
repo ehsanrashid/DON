@@ -355,7 +355,7 @@ class Position final {
 
     void dump(std::ostream& os = std::cout) const noexcept;
 
-    static constexpr StdArray<std::size_t, PIECES> CAPACITY  //
+    static constexpr StdArray<std::size_t, PIECES> CAPACITIES  //
       {11, 13, 13, 13, 13, 1};
 
     static inline bool Chess960 = false;
@@ -431,25 +431,31 @@ class Position final {
 
     static constexpr std::size_t TOTAL_CAPACITY = []() constexpr {
         std::size_t totalCapacity = 0;
+
         for (std::size_t i = 0; i < PIECES; ++i)
-            totalCapacity += CAPACITY[i];
+            totalCapacity += CAPACITIES[i];
+
         return totalCapacity;
     }();
 
-    static constexpr auto OFFSET = []() constexpr {
-        StdArray<std::size_t, PIECES> offset{};
-        offset[0] = 0;
+    static constexpr auto OFFSETS = []() constexpr {
+        StdArray<std::size_t, PIECES> offsets{};
+
+        offsets[0] = 0;
         for (std::size_t i = 1; i < PIECES; ++i)
-            offset[i] = offset[i - 1] + CAPACITY[i - 1];
-        return offset;
+            offsets[i] = offsets[i - 1] + CAPACITIES[i - 1];
+
+        return offsets;
     }();
 
     static constexpr auto CASTLING_RIGHTS_INDICES = []() constexpr {
         StdArray<std::uint8_t, SQUARE_NB> castlingRightsIndices{};
+
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
             castlingRightsIndices[s] = rank_of(s) == RANK_1 ? WHITE * FILE_NB + file_of(s)
                                      : rank_of(s) == RANK_8 ? BLACK * FILE_NB + file_of(s)
                                                             : COLOR_NB * FILE_NB;
+
         return castlingRightsIndices;
     }();
 

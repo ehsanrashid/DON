@@ -201,7 +201,7 @@ void Position::clear() noexcept {
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
-            pieceList[c][pt].set(OFFSET[pt - 1], CAPACITY[pt - 1], 0);
+            pieceList[c][pt].set(OFFSETS[pt - 1], CAPACITIES[pt - 1], 0);
 
     st          = nullptr;
     gamePly     = 0;

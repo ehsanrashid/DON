@@ -285,9 +285,9 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     const auto* pB = pos.base(AC);
 
     const std::size_t n = pL.count();
-    assert(n <= Position::CAPACITY[PT - 1]);
+    assert(n <= Position::CAPACITIES[PT - 1]);
 
-    StdArray<Square, Position::CAPACITY[PT - 1]> sortedSqs;
+    StdArray<Square, Position::CAPACITIES[PT - 1]> sortedSqs;
 
     if (n != 0)
         std::memcpy(sortedSqs.data(), pL.data(pB), n * sizeof(Square));

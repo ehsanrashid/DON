@@ -219,11 +219,13 @@ void init() noexcept {
             Bitboard s2BB = square_bb(s2);
 
             for (PieceType pt : {BISHOP, ROOK})
-                if (AttacksBBs[s1][pt] & s2)
+            {
+                if (ATTACKS_BBs[s1][pt] & s2)
                 {
                     BetweenBBs[s1][s2] = attacks_bb(s1, pt, s2BB) & attacks_bb(s2, pt, s1BB);
                     PassRayBBs[s1][s2] = attacks_bb(s1, pt, 0) & (attacks_bb(s2, pt, s1BB) | s2BB);
                 }
+            }
 
             BetweenBBs[s1][s2] |= s2BB;
         }
