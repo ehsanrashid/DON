@@ -45,7 +45,7 @@ constexpr IndexType PS_B_QUEEN  = 9 * SQUARE_NB;
 constexpr IndexType PS_KING     = 10 * SQUARE_NB;
 constexpr IndexType PS_NB       = 11 * SQUARE_NB;
 
-constexpr StdArray<IndexType, COLOR_NB, PIECE_NB> PieceSquareIndices{{
+constexpr StdArray<IndexType, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
   // Convention: W - us, B - them
   // Viewed from other side, W and B are reversed
   {PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE,   //
@@ -55,7 +55,7 @@ constexpr StdArray<IndexType, COLOR_NB, PIECE_NB> PieceSquareIndices{{
 }};
 
 #define B(v) (v * PS_NB)
-constexpr StdArray<IndexType, SQUARE_NB> KingBuckets{
+constexpr StdArray<IndexType, SQUARE_NB> KING_BUCKETS{
   B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28),  //
   B(24), B(25), B(26), B(27), B(27), B(26), B(25), B(24),  //
   B(20), B(21), B(22), B(23), B(23), B(22), B(21), B(20),  //
@@ -80,11 +80,12 @@ static_assert(orientation(SQ_A8) == SQ_H1);
 static_assert(orientation(SQ_H8) == SQ_A1);
 
 // Index of a feature for king position and piece on square
-ALWAYS_INLINE IndexType make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
+ALWAYS_INLINE constexpr IndexType
+make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
     int relOrientation = relative_sq(perspective, orientation(kingSq));
-    return (int(s) ^ relOrientation)            //
-         + PieceSquareIndices[perspective][pc]  //
-         + KingBuckets[relative_sq(perspective, kingSq)];
+    return (int(s) ^ relOrientation)              //
+         + PIECE_SQUARE_INDICES[perspective][pc]  //
+         + KING_BUCKETS[relative_sq(perspective, kingSq)];
 }
 
 }  // namespace

@@ -108,12 +108,12 @@ enum PieceType : std::int8_t {
     PIECE_TYPE_NB = 8
 };
 
-inline constexpr std::size_t PIECES = PIECE_TYPE_NB - 2;
+inline constexpr std::size_t PIECE_CNT = PIECE_TYPE_NB - 2;
 
-constexpr StdArray<PieceType, PIECES> PIECE_TYPES{
+constexpr StdArray<PieceType, PIECE_CNT> PIECE_TYPES{
   PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
 };
-constexpr StdArray<PieceType, PIECES - 2> NON_PAWN_PIECE_TYPES{
+constexpr StdArray<PieceType, PIECE_CNT - 2> NON_PAWN_PIECE_TYPES{
   KNIGHT, BISHOP, ROOK, QUEEN
 };
 
@@ -156,7 +156,7 @@ inline constexpr Value VALUE_ROOK   = 1276;
 inline constexpr Value VALUE_QUEEN  = 2538;
 
 constexpr Value piece_value(PieceType pt) noexcept {
-    constexpr StdArray<Value, PIECES + 1> PieceValues{
+    constexpr StdArray<Value, 1 + PIECE_CNT> PieceValues{
       VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO};
 
     return PieceValues[pt];

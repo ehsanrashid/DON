@@ -355,8 +355,7 @@ class Position final {
 
     void dump(std::ostream& os = std::cout) const noexcept;
 
-    static constexpr StdArray<std::size_t, PIECES> CAPACITIES  //
-      {11, 13, 13, 13, 13, 1};
+    static constexpr StdArray<std::size_t, PIECE_CNT> CAPACITIES{11, 13, 13, 13, 13, 1};
 
     static inline bool Chess960 = false;
 
@@ -432,17 +431,17 @@ class Position final {
     static constexpr std::size_t TOTAL_CAPACITY = []() constexpr {
         std::size_t totalCapacity = 0;
 
-        for (std::size_t i = 0; i < PIECES; ++i)
+        for (std::size_t i = 0; i < PIECE_CNT; ++i)
             totalCapacity += CAPACITIES[i];
 
         return totalCapacity;
     }();
 
     static constexpr auto OFFSETS = []() constexpr {
-        StdArray<std::size_t, PIECES> offsets{};
+        StdArray<std::size_t, PIECE_CNT> offsets{};
 
         offsets[0] = 0;
-        for (std::size_t i = 1; i < PIECES; ++i)
+        for (std::size_t i = 1; i < PIECE_CNT; ++i)
             offsets[i] = offsets[i - 1] + CAPACITIES[i - 1];
 
         return offsets;
@@ -464,7 +463,7 @@ class Position final {
     // Backing Square Table: [COLOR_NB][TOTAL_CAPACITY]
     StdArray<Square, COLOR_NB, TOTAL_CAPACITY> squaresTable;
     // Generic CountTableView slices
-    StdArray<CountTableView<Square>, COLOR_NB, 1 + PIECES> pieceList;
+    StdArray<CountTableView<Square>, COLOR_NB, 1 + PIECE_CNT> pieceList;
 
     StdArray<std::uint8_t, SQUARE_NB>            indexMap;
     StdArray<Piece, SQUARE_NB>                   pieceMap;
