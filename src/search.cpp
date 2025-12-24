@@ -46,8 +46,16 @@ namespace DON {
 
 namespace {
 
-// Reductions lookup table initialized at startup
-StdArray<std::int16_t, MAX_MOVES> Reductions;  // [depth or moveCount]
+// Reductions lookup table using [depth or moveCount]
+alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
+    StdArray<std::int16_t, MAX_MOVES> reductions{};
+
+    reductions[0] = 0;
+    for (std::size_t i = 1; i < reductions.size(); ++i)
+        reductions[i] = 21.4609 * constexpr_log(i);
+
+    return reductions;
+}();
 
 constexpr int
 reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
@@ -167,18 +175,6 @@ bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcep
 }
 
 }  // namespace
-
-namespace Search {
-
-void init() noexcept {
-
-    Reductions[0] = 0;
-
-    for (std::size_t i = 1; i < Reductions.size(); ++i)
-        Reductions[i] = 21.4609 * std::log(i);
-}
-
-}  // namespace Search
 
 Worker::Worker(std::size_t               threadIdx,
                std::size_t               numaIdx,

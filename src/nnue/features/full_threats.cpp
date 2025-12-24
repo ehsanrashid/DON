@@ -20,6 +20,7 @@
 #include "full_threats.h"
 
 #include <array>
+#include <cassert>
 #include <initializer_list>
 
 #include "../../bitboard.h"
@@ -43,7 +44,7 @@ constexpr StdArray<int, PIECE_CNT, PIECE_CNT> Map{{
   {0, +1, +2, +3, -1, -1}   //
 }};
 
-alignas(CACHE_LINE_SIZE) constexpr auto LUT_INDICES = []() constexpr noexcept {
+alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
     StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB, 1 + PIECE_CNT> lutIndices{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
@@ -99,9 +100,9 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
             {
                 threatTable.squareOffsets[pc][s] = threatCount;
 
-                Bitboard threatsBB = pt != PAWN                 ? attacks_bb(s, pt)
-                                   : (SQ_A2 <= s && s <= SQ_H7) ? attacks_bb(s, c)
-                                                                : 0;
+                Bitboard threatsBB = pt != PAWN               ? attacks_bb(s, pt)
+                                   : SQ_A2 <= s && s <= SQ_H7 ? attacks_bb(s, c)
+                                                              : 0;
 
                 threatCount += constexpr_popcount(threatsBB);
             }

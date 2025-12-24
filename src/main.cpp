@@ -35,7 +35,6 @@ int main(int argc, const char* argv[]) {
 
     BitBoard::init();
     Position::init();
-    Search::init();
     Tablebase::init();
 
     auto uci = std::make_unique<UCI>(argc, argv);
