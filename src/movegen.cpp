@@ -52,7 +52,7 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* moves) noexcept {
 
 #if defined(USE_AVX512ICL)
     (void) AC;
-    alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr {
+    alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr noexcept {
         StdArray<Move, SQUARE_NB> table{};
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
@@ -127,7 +127,7 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* moves) noexcept {
 
 #if defined(USE_AVX512ICL)
     (void) AC;
-    alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr {
+    alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr noexcept {
         StdArray<Move, SQUARE_NB> table{};
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
             table[s] = Move{SQUARE_ZERO, s};

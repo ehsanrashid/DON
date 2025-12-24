@@ -468,7 +468,7 @@ template<bool Upper = false>
 }
 
 // Build a compile-time table: "a1", "b1", ..., "h8"
-alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARE_CHARS = []() constexpr {
+alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARE_CHARS = []() constexpr noexcept {
     StdArray<char, SQUARE_NB, 2> squareChars{};
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)

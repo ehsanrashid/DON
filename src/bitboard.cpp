@@ -58,7 +58,7 @@ alignas(CACHE_LINE_SIZE) constexpr StdArray<TableView<
   TableView{AttacksTable.data() + 0x000000000000, TABLE_SIZES[0]},
   TableView{AttacksTable.data() + TABLE_SIZES[0], TABLE_SIZES[1]}};
 
-// Computes all rook and bishop attacks at startup.
+// Computes all bishop & rook attacks at startup.
 // Magic bitboards are used to look up attacks of sliding pieces.
 // As a reference see https://www.chessprogramming.org/Magic_Bitboards.
 // In particular, here use the so called "fancy" approach.
@@ -100,21 +100,21 @@ void init_magics() noexcept {
                                       : &Magics[s - 1][PT - BISHOP].attacksBBs[size];
         assert(magic.attacksBBs != nullptr);
 
-        Bitboard slidingAttacksBB = sliding_attacks_bb<PT>(s);
+        Bitboard pseudoAttacksBB = attacks_bb(s, PT);
 
         // Board edges are not considered in the relevant occupancies
         Bitboard edgesBB = (EDGE_FILES_BB & ~file_bb(s)) | (PROMOTION_RANKS_BB & ~rank_bb(s));
 
         // Mask excludes edges
-        magic.maskBB = slidingAttacksBB & ~edgesBB;
+        magic.maskBB = pseudoAttacksBB & ~edgesBB;
 
 #if defined(USE_BMI2)
     #if defined(USE_COMPRESSED)
-        magic.reMaskBB = slidingAttacksBB;
+        magic.reMaskBB = pseudoAttacksBB;
     #endif
 #else
-        StdArray<Bitboard, SubSizes[PT - BISHOP]> referenceBBs;
         StdArray<Bitboard, SubSizes[PT - BISHOP]> occupancyBBs;
+        StdArray<Bitboard, SubSizes[PT - BISHOP]> referenceBBs;
 #endif
 
         size = 0;
@@ -123,11 +123,13 @@ void init_magics() noexcept {
         Bitboard occupancyBB = 0;
         do
         {
+            Bitboard slidingAttacksBB = sliding_attacks_bb<PT>(s, occupancyBB);
+
 #if defined(USE_BMI2)
-            magic.attacks_bb(occupancyBB, sliding_attacks_bb<PT>(s, occupancyBB));
+            magic.attacks_bb(occupancyBB, slidingAttacksBB);
 #else
-            referenceBBs[size] = sliding_attacks_bb<PT>(s, occupancyBB);
             occupancyBBs[size] = occupancyBB;
+            referenceBBs[size] = slidingAttacksBB;
 #endif
             ++size;
             occupancyBB = (occupancyBB - magic.maskBB) & magic.maskBB;

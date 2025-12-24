@@ -63,8 +63,6 @@ class FullThreats final {
     using DirtyType = DirtyThreats;
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
-    static void init() noexcept;
-
     // Get a list of indices for active features
     static void
     append_active_indices(Color perspective, const Position& pos, IndexList& active) noexcept;

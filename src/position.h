@@ -428,7 +428,7 @@ class Position final {
     // Static Exchange Evaluation
     bool see_ge(Move m, int threshold) const noexcept;
 
-    static constexpr std::size_t TOTAL_CAPACITY = []() constexpr {
+    static constexpr std::size_t TOTAL_CAPACITY = []() constexpr noexcept {
         std::size_t totalCapacity = 0;
 
         for (std::size_t i = 0; i < PIECE_CNT; ++i)
@@ -437,7 +437,7 @@ class Position final {
         return totalCapacity;
     }();
 
-    static constexpr auto OFFSETS = []() constexpr {
+    static constexpr auto OFFSETS = []() constexpr noexcept {
         StdArray<std::size_t, PIECE_CNT> offsets{};
 
         offsets[0] = 0;
@@ -447,7 +447,7 @@ class Position final {
         return offsets;
     }();
 
-    static constexpr auto CASTLING_RIGHTS_INDICES = []() constexpr {
+    static constexpr auto CASTLING_RIGHTS_INDICES = []() constexpr noexcept {
         StdArray<std::uint8_t, SQUARE_NB> castlingRightsIndices{};
 
         for (Square s = SQ_A1; s <= SQ_H8; ++s)

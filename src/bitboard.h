@@ -236,7 +236,7 @@ constexpr std::uint8_t distance<Rank>(Square s1, Square s2) noexcept {
     return constexpr_abs(rank_of(s1) - rank_of(s2));
 }
 
-alignas(CACHE_LINE_SIZE) inline constexpr auto DISTANCES = []() constexpr {
+alignas(CACHE_LINE_SIZE) inline constexpr auto DISTANCES = []() constexpr noexcept {
     StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB> distances{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
@@ -283,27 +283,27 @@ constexpr Bitboard shift_bb(Bitboard b) noexcept {
 template<Color C>
 constexpr Bitboard pawn_push_bb(Bitboard pawns) noexcept {
     static_assert(is_ok(C), "Invalid color for pawn_push_bb()");
+
     return shift_bb<pawn_spush(C)>(pawns);
 }
 constexpr Bitboard pawn_push_bb(Bitboard pawns, Color c) noexcept {
     assert(is_ok(c));
-    return c == WHITE  //
-           ? pawn_push_bb<WHITE>(pawns)
-           : pawn_push_bb<BLACK>(pawns);
+
+    return c == WHITE ? pawn_push_bb<WHITE>(pawns) : pawn_push_bb<BLACK>(pawns);
 }
 
 // Returns the squares attacked by pawns of the given color from the given bitboard
 template<Color C>
 constexpr Bitboard pawn_attacks_bb(Bitboard pawns) noexcept {
     static_assert(is_ok(C), "Invalid color for pawn_attacks_bb()");
+
     return shift_bb<(C == WHITE ? NORTH_WEST : SOUTH_WEST)>(pawns)
          | shift_bb<(C == WHITE ? NORTH_EAST : SOUTH_EAST)>(pawns);
 }
 constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
     assert(is_ok(c));
-    return c == WHITE  //
-           ? pawn_attacks_bb<WHITE>(pawns)
-           : pawn_attacks_bb<BLACK>(pawns);
+
+    return c == WHITE ? pawn_attacks_bb<WHITE>(pawns) : pawn_attacks_bb<BLACK>(pawns);
 }
 
 // Returns the bitboard of target square from the given square for the given step.
@@ -369,7 +369,7 @@ constexpr Bitboard king_attacks_bb(Square s) noexcept {
     return attacksBB;
 }
 
-alignas(CACHE_LINE_SIZE) inline constexpr auto ATTACKS_BBs = []() constexpr {
+alignas(CACHE_LINE_SIZE) inline constexpr auto ATTACKS_BBs = []() constexpr noexcept {
     StdArray<Bitboard, SQUARE_NB, 1 + PIECE_CNT> attacksBBs{};
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -377,8 +377,8 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto ATTACKS_BBs = []() constexpr {
         attacksBBs[s][WHITE]  = pawn_attacks_bb<WHITE>(square_bb(s));
         attacksBBs[s][BLACK]  = pawn_attacks_bb<BLACK>(square_bb(s));
         attacksBBs[s][KNIGHT] = knight_attacks_bb(s);
-        attacksBBs[s][BISHOP] = sliding_attacks_bb<BISHOP>(s);
-        attacksBBs[s][ROOK]   = sliding_attacks_bb<ROOK>(s);
+        attacksBBs[s][BISHOP] = sliding_attacks_bb<BISHOP>(s, 0);
+        attacksBBs[s][ROOK]   = sliding_attacks_bb<ROOK>(s, 0);
         attacksBBs[s][QUEEN]  = attacksBBs[s][BISHOP] | attacksBBs[s][ROOK];
         attacksBBs[s][KING]   = king_attacks_bb(s);
     }
@@ -489,7 +489,7 @@ constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept
     return attacks_bb(s, type_of(pc), occupancyBB);
 }
 
-alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBs = []() constexpr {
+alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBs = []() constexpr noexcept {
     StdArray<Bitboard, SQUARE_NB, SQUARE_NB> lineBBs{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
@@ -557,7 +557,6 @@ constexpr std::uint8_t constexpr_popcount(Bitboard b) noexcept {
 
     // asm ("popcnt %0, %0" : "+r" (b) :: "cc");
     // return b;
-
 
     constexpr Bitboard K1 = 0x5555555555555555ULL;
     constexpr Bitboard K2 = 0x3333333333333333ULL;
