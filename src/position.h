@@ -1076,7 +1076,8 @@ inline void Position::update_pc_threats(Square                    s,
     Bitboard occupancyBB = pieces_bb();
 
     const auto attacksBB = [&]() noexcept {
-        StdArray<Bitboard, 7> _;
+        StdArray<Bitboard, 1 + PIECE_CNT> _;
+
         _[WHITE]  = attacks_bb<PAWN>(s, WHITE);
         _[BLACK]  = attacks_bb<PAWN>(s, BLACK);
         _[KNIGHT] = attacks_bb<KNIGHT>(s);
@@ -1084,6 +1085,7 @@ inline void Position::update_pc_threats(Square                    s,
         _[ROOK]   = attacks_bb<ROOK>(s, occupancyBB);
         _[QUEEN]  = _[BISHOP] | _[ROOK];
         _[KING]   = attacks_bb<KING>(s);
+
         return _;
     }();
 
@@ -1115,6 +1117,7 @@ inline void Position::update_pc_threats(Square                    s,
     }
 
     Bitboard attackersBB = slidersBB | nonSlidersBB;
+
     if (attackersBB == 0)
         return;  // Square s is threatened iff there's at least one attacker
 
@@ -1140,15 +1143,16 @@ inline void Position::update_pc_threats(Square                    s,
     }
 #endif
 
-    while (slidersBB != 0)
+    if constexpr (ComputeRay)
     {
-        Square sliderSq = pop_lsq(slidersBB);
-        Piece  sliderPc = piece(sliderSq);
-
-        assert(is_ok(sliderPc));
-
-        if constexpr (ComputeRay)
+        while (slidersBB != 0)
         {
+            Square sliderSq = pop_lsq(slidersBB);
+            Piece  sliderPc = piece(sliderSq);
+
+            assert(sliderSq != s);
+            assert(is_ok(sliderPc));
+
             Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
             Bitboard discoveredBB = passRayBB & ~between_bb(sliderSq, s)  //
                                   & attacksBB[QUEEN] & occupancyBB;
@@ -1163,10 +1167,14 @@ inline void Position::update_pc_threats(Square                    s,
 
                 dts->add<!Put>(sliderSq, threatenedSq, sliderPc, threatenedPc);
             }
-        }
 #if !defined(USE_AVX512ICL)  // for ICL, direct threats were processed earlier (attackersBB)
-        dts->add<Put>(sliderSq, s, sliderPc, pc);
+            dts->add<Put>(sliderSq, s, sliderPc, pc);
 #endif
+        }
+    }
+    else
+    {
+        nonSlidersBB |= slidersBB;
     }
 
 #if !defined(USE_AVX512ICL)
