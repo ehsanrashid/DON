@@ -18,17 +18,17 @@
 #ifndef BITBOARD_H_INCLUDED
 #define BITBOARD_H_INCLUDED
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cmath>  // IWYU pragma: keep
 #include <cstdint>
-#include <cstdlib>
+#include <initializer_list>
+#include <string>
+#include <string_view>
+
 #if !defined(USE_POPCNT)
     #include <cstring>
-#endif
-#if !defined(NDEBUG)
-    #include <string>
-    #include <string_view>
 #endif
 
 #include "misc.h"
@@ -167,24 +167,9 @@ struct Magic final {
 #endif
 };
 
-#if !defined(USE_POPCNT)
-alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, 0x10000> PopCnt;
-#endif
-
-// clang-format off
-alignas(CACHE_LINE_SIZE) inline StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB> Distances;
-
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     LineBBs;
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     BetweenBBs;
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB>     PassRayBBs;
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, PIECE_TYPE_NB> AttacksBBs;
-alignas(CACHE_LINE_SIZE) inline StdArray<Magic   , SQUARE_NB, 2>             Magics;  // BISHOP or ROOK
-
-alignas(CACHE_LINE_SIZE) inline StdArray<bool, SQUARE_NB, SQUARE_NB, SQUARE_NB> Aligneds;
-// clang-format on
-
 constexpr Bitboard square_bb(Square s) noexcept {
     assert(is_ok(s));
+
     return (1ULL << s);
 }
 
@@ -228,66 +213,44 @@ constexpr Bitboard operator^(Bitboard b, Rank r) noexcept { return b ^ rank_bb(r
 constexpr bool more_than_one(Bitboard b) noexcept { return (b & (b - 1)) != 0; }
 constexpr bool exactly_one(Bitboard b) noexcept { return b != 0 && !more_than_one(b); }
 
-// Returns a bitboard representing an entire line (from board edge to board edge)
-// passing through the squares s1 and s2.
-// If the given squares are not on a same file/rank/diagonal, it returns 0.
-// For instance, line_bb(SQ_C4, SQ_F7) will return a bitboard with the A2-G8 diagonal.
-inline Bitboard line_bb(Square s1, Square s2) noexcept {
-    assert(is_ok(s1) && is_ok(s2));
-    return LineBBs[s1][s2];
-}
-
-// Returns a bitboard representing the squares in the semi-open segment
-// between the squares s1 and s2 (excluding s1 but including s2).
-// If the given squares are not on a same file/rank/diagonal, it returns s2.
-// For instance, between_bb(SQ_C4, SQ_F7) will return a bitboard with squares D5, E6 and F7,
-// but between_bb(SQ_E6, SQ_F8) will return a bitboard with the square F8.
-// This trick allows to generate non-king evasion moves faster:
-// the defending piece must either interpose itself to cover the check or capture the checking piece.
-inline Bitboard between_bb(Square s1, Square s2) noexcept {
-    assert(is_ok(s1) && is_ok(s2));
-    return BetweenBBs[s1][s2];
-}
-// Returns a bitboard between the squares s1 and s2 (excluding s1 and s2).
-inline Bitboard between_ex_bb(Square s1, Square s2) noexcept { return between_bb(s1, s2) ^ s2; }
-
-// Returns a bitboard representing a ray from the square s1 passing s2.
-inline Bitboard pass_ray_bb(Square s1, Square s2) noexcept {
-    assert(is_ok(s1) && is_ok(s2));
-    return PassRayBBs[s1][s2];
-}
-
-// Returns true if the squares s1, s2 and s3 are aligned on straight or diagonal line.
-inline bool aligned(Square s1, Square s2, Square s3) noexcept { return Aligneds[s1][s2][s3]; }
-
 // Return the distance between s1 and s2, defined as the number of steps for a king in s1 to reach s2.
 template<typename T = Square>
-inline std::uint8_t distance(Square s1, Square s2) noexcept;
+constexpr std::uint8_t distance(Square, Square) noexcept {
+    static_assert(sizeof(T) == 0, "Unsupported distance type");
+    return 0;
+}
+
+constexpr std::uint8_t constexpr_abs(int x) noexcept { return x < 0 ? -x : x; }
 
 template<>
-inline std::uint8_t distance<File>(Square s1, Square s2) noexcept {
+constexpr std::uint8_t distance<File>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
-    return std::abs(file_of(s1) - file_of(s2));
+
+    return constexpr_abs(file_of(s1) - file_of(s2));
 }
 
 template<>
-inline std::uint8_t distance<Rank>(Square s1, Square s2) noexcept {
+constexpr std::uint8_t distance<Rank>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
-    return std::abs(rank_of(s1) - rank_of(s2));
+
+    return constexpr_abs(rank_of(s1) - rank_of(s2));
 }
+
+alignas(CACHE_LINE_SIZE) inline constexpr auto DISTANCES = []() constexpr noexcept {
+    StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB> distances{};
+
+    for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            distances[s1][s2] = std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
+
+    return distances;
+}();
 
 template<>
-inline std::uint8_t distance<Square>(Square s1, Square s2) noexcept {
+constexpr std::uint8_t distance<Square>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
-    return Distances[s1][s2];
-}
 
-// Returns the bitboard of target square from the given square for the given step.
-// If the step is off the board, returns empty bitboard.
-inline Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) noexcept {
-    assert(is_ok(s));
-    Square sq = s + d;
-    return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
+    return DISTANCES[s1][s2];
 }
 
 // Shifts a bitboard as specified by the direction
@@ -320,27 +283,113 @@ constexpr Bitboard shift_bb(Bitboard b) noexcept {
 template<Color C>
 constexpr Bitboard pawn_push_bb(Bitboard pawns) noexcept {
     static_assert(is_ok(C), "Invalid color for pawn_push_bb()");
+
     return shift_bb<pawn_spush(C)>(pawns);
 }
 constexpr Bitboard pawn_push_bb(Bitboard pawns, Color c) noexcept {
     assert(is_ok(c));
-    return c == WHITE  //
-           ? pawn_push_bb<WHITE>(pawns)
-           : pawn_push_bb<BLACK>(pawns);
+
+    return c == WHITE ? pawn_push_bb<WHITE>(pawns) : pawn_push_bb<BLACK>(pawns);
 }
 
 // Returns the squares attacked by pawns of the given color from the given bitboard
 template<Color C>
 constexpr Bitboard pawn_attacks_bb(Bitboard pawns) noexcept {
     static_assert(is_ok(C), "Invalid color for pawn_attacks_bb()");
+
     return shift_bb<(C == WHITE ? NORTH_WEST : SOUTH_WEST)>(pawns)
          | shift_bb<(C == WHITE ? NORTH_EAST : SOUTH_EAST)>(pawns);
 }
 constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
     assert(is_ok(c));
-    return c == WHITE  //
-           ? pawn_attacks_bb<WHITE>(pawns)
-           : pawn_attacks_bb<BLACK>(pawns);
+
+    return c == WHITE ? pawn_attacks_bb<WHITE>(pawns) : pawn_attacks_bb<BLACK>(pawns);
+}
+
+// Returns the bitboard of target square from the given square for the given step.
+// If the step is off the board, returns empty bitboard.
+constexpr Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) noexcept {
+    assert(is_ok(s));
+
+    Square sq = s + d;
+    return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
+}
+
+// Computes sliding attack
+template<PieceType PT>
+constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexcept {
+    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attacks_bb()");
+    assert(is_ok(s));
+
+    constexpr StdArray<Direction, 2, 4> Directions{{
+      {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},  //
+      {NORTH, SOUTH, EAST, WEST}                         //
+    }};
+
+    Bitboard attacksBB = 0;
+
+    for (Direction d : Directions[PT - BISHOP])
+    {
+        Square sq = s;
+
+        for (Bitboard dstBB = 0; (dstBB = destination_bb(sq, d)) != 0;)
+        {
+            attacksBB |= dstBB;
+
+            sq += d;
+
+            if (occupancyBB & sq)
+                break;
+        }
+    }
+
+    return attacksBB;
+}
+
+constexpr Bitboard knight_attacks_bb(Square s) noexcept {
+    assert(is_ok(s));
+
+    Bitboard attacksBB = 0;
+
+    for (auto dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH, WEST_2 + NORTH,
+                     EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
+        attacksBB |= destination_bb(s, dir, 2);
+
+    return attacksBB;
+}
+
+constexpr Bitboard king_attacks_bb(Square s) noexcept {
+    assert(is_ok(s));
+
+    Bitboard attacksBB = 0;
+
+    for (auto dir : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
+        attacksBB |= destination_bb(s, dir);
+
+    return attacksBB;
+}
+
+alignas(CACHE_LINE_SIZE) inline constexpr auto ATTACKS_BBs = []() constexpr noexcept {
+    StdArray<Bitboard, SQUARE_NB, 1 + PIECE_CNT> attacksBBs{};
+
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    {
+        attacksBBs[s][WHITE]  = pawn_attacks_bb<WHITE>(square_bb(s));
+        attacksBBs[s][BLACK]  = pawn_attacks_bb<BLACK>(square_bb(s));
+        attacksBBs[s][KNIGHT] = knight_attacks_bb(s);
+        attacksBBs[s][BISHOP] = sliding_attacks_bb<BISHOP>(s, 0);
+        attacksBBs[s][ROOK]   = sliding_attacks_bb<ROOK>(s, 0);
+        attacksBBs[s][QUEEN]  = attacksBBs[s][BISHOP] | attacksBBs[s][ROOK];
+        attacksBBs[s][KING]   = king_attacks_bb(s);
+    }
+
+    return attacksBBs;
+}();
+
+constexpr Bitboard attacks_bb(Square s, std::size_t idx) noexcept {
+    assert(is_ok(s));
+
+    return ATTACKS_BBs[s][idx];
 }
 
 // Returns the pseudo attacks of the given piece type assuming an empty board
@@ -348,13 +397,16 @@ template<PieceType PT>
 constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Color c = COLOR_NB) noexcept {
     static_assert(is_ok(PT), "Unsupported piece type in attacks_bb()");
     assert(is_ok(s) && (PT != PAWN || is_ok(c)));
+
     if constexpr (PT == PAWN)
-        return AttacksBBs[s][c];
-    return AttacksBBs[s][PT];
+        return attacks_bb(s, c);
+
+    return attacks_bb(s, PT);
 }
 
 constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
     assert(is_ok(s));
+
     switch (type_of(pc))
     {
     case PAWN :
@@ -375,9 +427,12 @@ constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
     }
 }
 
+alignas(CACHE_LINE_SIZE) inline StdArray<Magic, SQUARE_NB, 2> Magics;  // BISHOP or ROOK
+
 template<PieceType PT>
 constexpr Bitboard attacks_bb(const StdArray<Magic, 2>& magic, Bitboard occupancyBB) noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in attacks_bb()");
+
     return magic[PT - BISHOP].attacks_bb(occupancyBB);
 }
 
@@ -387,6 +442,7 @@ template<PieceType PT>
 constexpr Bitboard attacks_bb(Square s, Bitboard occupancyBB) noexcept {
     static_assert(PT != PAWN, "Unsupported piece type in attacks_bb()");
     assert(is_ok(s));
+
     if constexpr (PT == KNIGHT)
         return attacks_bb<KNIGHT>(s);
     if constexpr (PT == BISHOP)
@@ -403,9 +459,10 @@ constexpr Bitboard attacks_bb(Square s, Bitboard occupancyBB) noexcept {
 
 // Returns the attacks by the given piece type.
 // Sliding piece attacks do not continue passed an occupied square.
-constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupancyBB = 0) noexcept {
+constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupancyBB) noexcept {
     assert(pt != PAWN);
     assert(is_ok(s));
+
     switch (pt)
     {
     case KNIGHT :
@@ -426,26 +483,69 @@ constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupancyBB = 0) 
 
 constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept {
     assert(is_ok(s));
+
     if (type_of(pc) == PAWN)
         return attacks_bb<PAWN>(s, color_of(pc));
     return attacks_bb(s, type_of(pc), occupancyBB);
 }
 
-// Counts the number of non-zero bits in the bitboard
-inline std::uint8_t popcount(Bitboard b) noexcept {
+alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBs = []() constexpr noexcept {
+    StdArray<Bitboard, SQUARE_NB, SQUARE_NB> lineBBs{};
 
-#if !defined(USE_POPCNT)
-    StdArray<std::uint16_t, 4> b16;
-    static_assert(sizeof(b16) == sizeof(b));
-    std::memcpy(b16.data(), &b, sizeof(b16));
-    return PopCnt[b16[0]] + PopCnt[b16[1]] + PopCnt[b16[2]] + PopCnt[b16[3]];
-#elif defined(__GNUC__)  // (GCC, Clang, ICX)
-    return __builtin_popcountll(b);
-#elif defined(_MSC_VER)
-    return _mm_popcnt_u64(b);
-#else  // Compiler is neither GCC nor MSVC compatible
-    #error "Compiler not supported."
-    // Using a fallback implementation
+    for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            for (PieceType pt : {BISHOP, ROOK})
+                if ((attacks_bb(s1, pt) & s2) != 0)
+                    lineBBs[s1][s2] = (attacks_bb(s1, pt) & attacks_bb(s2, pt)) | s1 | s2;
+
+    return lineBBs;
+}();
+
+// Returns a bitboard representing an entire line (from board edge to board edge)
+// passing through the squares s1 and s2.
+// If the given squares are not on a same file/rank/diagonal, it returns 0.
+// For instance, line_bb(SQ_C4, SQ_F7) will return a bitboard with the A2-G8 diagonal.
+constexpr Bitboard line_bb(Square s1, Square s2) noexcept {
+    assert(is_ok(s1) && is_ok(s2));
+
+    return LINE_BBs[s1][s2];
+}
+
+// Returns true if the squares s1, s2 and s3 are aligned on straight or diagonal line.
+constexpr bool aligned(Square s1, Square s2, Square s3) noexcept {
+    assert(is_ok(s3));
+
+    return (line_bb(s1, s2) & s3) != 0;
+}
+
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> BetweenBBs;
+
+// Returns a bitboard representing the squares in the semi-open segment
+// between the squares s1 and s2 (excluding s1 but including s2).
+// If the given squares are not on a same file/rank/diagonal, it returns s2.
+// For instance, between_bb(SQ_C4, SQ_F7) will return a bitboard with squares D5, E6 and F7,
+// but between_bb(SQ_E6, SQ_F8) will return a bitboard with the square F8.
+// This trick allows to generate non-king evasion moves faster:
+// the defending piece must either interpose itself to cover the check or capture the checking piece.
+constexpr Bitboard between_bb(Square s1, Square s2) noexcept {
+    assert(is_ok(s1) && is_ok(s2));
+
+    return BetweenBBs[s1][s2];
+}
+
+// Returns a bitboard between the squares s1 and s2 (excluding s1 and s2).
+constexpr Bitboard between_ex_bb(Square s1, Square s2) noexcept { return between_bb(s1, s2) ^ s2; }
+
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> PassRayBBs;
+
+// Returns a bitboard representing a ray from the square s1 passing s2.
+constexpr Bitboard pass_ray_bb(Square s1, Square s2) noexcept {
+    assert(is_ok(s1) && is_ok(s2));
+
+    return PassRayBBs[s1][s2];
+}
+
+constexpr std::uint8_t constexpr_popcount(Bitboard b) noexcept {
 
     // std::uint8_t count = 0;
     // while (b != 0)
@@ -458,11 +558,15 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
     // asm ("popcnt %0, %0" : "+r" (b) :: "cc");
     // return b;
 
-    b -= ((b >> 1) & 0x5555555555555555ULL);
-    b = ((b >> 2) & 0x3333333333333333ULL) + (b & 0x3333333333333333ULL);
-    b = ((b >> 4) + b) & 0x0F0F0F0F0F0F0F0FULL;
-    return (b * 0x0101010101010101ULL) >> 56;
-#endif
+    constexpr Bitboard K1 = 0x5555555555555555ULL;
+    constexpr Bitboard K2 = 0x3333333333333333ULL;
+    constexpr Bitboard K4 = 0x0F0F0F0F0F0F0F0FULL;
+    constexpr Bitboard Kf = 0x0101010101010101ULL;
+
+    b = b - ((b >> 1) & K1);
+    b = (b & K2) + ((b >> 2) & K2);
+    b = (b + (b >> 4)) & K4;
+    return (b * Kf) >> 56;
 }
 
 constexpr std::uint8_t msb_index(Bitboard b) noexcept {
@@ -477,7 +581,7 @@ constexpr std::uint8_t msb_index(Bitboard b) noexcept {
       13, 18, 8,  12, 7,  6,  5,  63   //
     };
 
-    constexpr std::uint64_t Debruijn64 = 0x03F79D71B4CB0A89ULL;
+    constexpr Bitboard Debruijn64 = 0x03F79D71B4CB0A89ULL;
 
     return MSBIndices[(b * Debruijn64) >> 58];
 }
@@ -494,13 +598,34 @@ constexpr Bitboard fill_postfix_bb(Bitboard b) noexcept {
 }
 
 constexpr std::uint8_t constexpr_lsb(Bitboard b) noexcept {
-    assert(b);
+    assert(b != 0);
+
+    // std::uint8_t idx = 0;
+    // while (!(b & 1))
+    // {
+    //     ++idx;
+    //     b >>= 1;
+    // }
+    // return Square(idx);
+
+    // asm ("bsfq %0, %0" : "+r" (b) :: "cc");
+    // return Square(b);
+
     b ^= b - 1;
     return msb_index(b);
 }
 
 constexpr std::uint8_t constexpr_msb(Bitboard b) noexcept {
-    assert(b);
+    assert(b != 0);
+
+    // std::uint8_t idx = 0;
+    // while (b >>= 1)
+    //     ++idx;
+    // return Square(idx);
+
+    // asm ("bsrq %0, %0" : "+r" (b) :: "cc");
+    // return Square(b);
+
     b = fill_prefix_bb(b);
     return msb_index(b);
 }
@@ -511,9 +636,53 @@ constexpr Bitboard next_pow2(Bitboard b) noexcept {
                                      : 2ULL << constexpr_msb(b - 1);
 }
 
+#if !defined(USE_POPCNT)
+
+constexpr std::uint8_t constexpr_popcount16(std::uint16_t x) noexcept {
+    constexpr std::uint16_t K1 = 0x5555U;
+    constexpr std::uint16_t K2 = 0x3333U;
+    constexpr std::uint16_t K4 = 0x0F0FU;
+    constexpr std::uint16_t Kf = 0x0101U;
+
+    x = x - ((x >> 1) & K1);
+    x = (x & K2) + ((x >> 2) & K2);
+    x = (x + (x >> 4)) & K4;
+    return (x * Kf) >> 8;
+}
+
+alignas(CACHE_LINE_SIZE) inline const auto POP_CNTS = []() {
+    StdArray<std::uint8_t, 0x10000> popCnts{};
+
+    for (std::size_t i = 0; i < popCnts.size(); ++i)
+        popCnts[i] = constexpr_popcount16(i);
+
+    return popCnts;
+}();
+
+#endif
+
+// Counts the number of non-zero bits in the bitboard
+inline std::uint8_t popcount(Bitboard b) noexcept {
+
+#if !defined(USE_POPCNT)
+    StdArray<std::uint16_t, 4> b16;
+    static_assert(sizeof(b16) == sizeof(b));
+    std::memcpy(b16.data(), &b, sizeof(b16));
+    return POP_CNTS[b16[0]] + POP_CNTS[b16[1]] + POP_CNTS[b16[2]] + POP_CNTS[b16[3]];
+#elif defined(__GNUC__)  // (GCC, Clang, ICX)
+    return __builtin_popcountll(b);
+#elif defined(_MSC_VER)
+    return _mm_popcnt_u64(b);
+#else  // Compiler is neither GCC nor MSVC compatible
+    #error "Compiler not supported."
+    // Using a fallback implementation
+    return constexpr_popcount(b);
+#endif
+}
+
 // Returns the least significant bit in the non-zero bitboard
 inline Square lsq(Bitboard b) noexcept {
-    assert(b);
+    assert(b != 0);
 
 #if defined(__GNUC__)  // (GCC, Clang, ICX)
     return Square(__builtin_ctzll(b));
@@ -537,25 +706,13 @@ inline Square lsq(Bitboard b) noexcept {
 #else  // Compiler is neither GCC nor MSVC compatible
     #error "Compiler not supported."
     // Using a fallback implementation
-
-    // std::uint8_t idx = 0;
-    // while (!(b & 1))
-    // {
-    //     ++idx;
-    //     b >>= 1;
-    // }
-    // return Square(idx);
-
-    // asm ("bsfq %0, %0" : "+r" (b) :: "cc");
-    // return Square(b);
-
     return Square(constexpr_lsb(b));
 #endif
 }
 
 // Returns the most significant bit in the non-zero bitboard
 inline Square msq(Bitboard b) noexcept {
-    assert(b);
+    assert(b != 0);
 
 #if defined(__GNUC__)  // (GCC, Clang, ICX)
     return Square(__builtin_clzll(b) ^ 63);
@@ -579,22 +736,14 @@ inline Square msq(Bitboard b) noexcept {
 #else  // Compiler is neither GCC nor MSVC compatible
     #error "Compiler not supported."
     // Using a fallback implementation
-
-    // std::uint8_t idx = 0;
-    // while (b >>= 1)
-    //     ++idx;
-    // return Square(idx);
-
-    // asm ("bsrq %0, %0" : "+r" (b) :: "cc");
-    // return Square(b);
-
     return Square(constexpr_msb(b));
 #endif
 }
 
 // Returns and clears the least significant bit in the non-zero bitboard
 inline Square pop_lsq(Bitboard& b) noexcept {
-    assert(b);
+    assert(b != 0);
+
     Square s = lsq(b);
     b &= b - 1;
     return s;
@@ -602,7 +751,8 @@ inline Square pop_lsq(Bitboard& b) noexcept {
 
 // Returns and clears the most significant bit in the non-zero bitboard
 inline Square pop_msq(Bitboard& b) noexcept {
-    assert(b);
+    assert(b != 0);
+
     Square s = msq(b);
     b ^= s;
     return s;
@@ -611,7 +761,8 @@ inline Square pop_msq(Bitboard& b) noexcept {
 // Returns the bitboard of the least significant square of the non-zero bitboard.
 // It is equivalent to square_bb(lsb(bb)).
 constexpr Bitboard lsq_bb(Bitboard b) noexcept {
-    assert(b);
+    assert(b != 0);
+
     return b & -b;
 }
 

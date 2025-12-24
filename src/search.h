@@ -57,12 +57,6 @@ using SearchedMoves                        = FixedVector<Move, MOVE_CAPACITY>;
 
 inline PolyBook Book;
 
-namespace Search {
-
-void init() noexcept;
-
-}  // namespace Search
-
 // RootMove is used for moves at the root of the tree.
 // For each root move store a score and a PV
 // (really a refutation in the case of moves which fail low).

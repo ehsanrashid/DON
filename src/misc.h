@@ -114,6 +114,44 @@ constexpr auto sign_sqr(T x) noexcept {
     return sign(x) * sqr(x);
 }
 
+// Minimax-style polynomial approximation for ln(1 + f), f in [0,1)
+constexpr double constexpr_approx_log1p(double f) noexcept {
+    // clang-format off
+    return f * ( 1.0
+         + f * (-0.5
+         + f * ( 0.33333333333333333
+         + f * (-0.25
+         + f * ( 0.2
+         + f * (-0.16666666666666666))))));
+    // clang-format on
+}
+
+// constexpr natural logarithm using range reduction + polynomial
+constexpr double constexpr_log(double x) noexcept {
+    constexpr double LN2 = 0.693147180559945309417232121458176568;
+
+    if (x <= 0.0)
+        return -1e300;  // Undefined, but safe for compile-time tables
+
+    int exponent = 0;
+
+    // Range reduction: x = mantissa * 2^exponent : normalize x into [1, 2)
+    while (x >= 2.0)
+    {
+        x *= 0.5;
+        ++exponent;
+    }
+    while (x < 1.0)
+    {
+        x *= 2.0;
+        --exponent;
+    }
+
+    // mantissa in [1,2) -> f in [0,1)
+    // ln(x) = ln(m) + exponent * ln(2)
+    return constexpr_approx_log1p(x - 1.0) + exponent * LN2;
+}
+
 // True if and only if the binary is compiled on a little-endian machine
 inline constexpr std::uint16_t LittleEndianValue = 1;
 inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;

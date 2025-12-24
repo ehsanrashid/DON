@@ -17,13 +17,7 @@
 
 #include "bitboard.h"
 
-#include <algorithm>
-#include <initializer_list>
 #include <memory>
-
-#if !defined(USE_POPCNT)
-    #include <bitset>
-#endif
 
 #if !defined(USE_BMI2)
     #include "prng.h"
@@ -64,38 +58,7 @@ alignas(CACHE_LINE_SIZE) constexpr StdArray<TableView<
   TableView{AttacksTable.data() + 0x000000000000, TABLE_SIZES[0]},
   TableView{AttacksTable.data() + TABLE_SIZES[0], TABLE_SIZES[1]}};
 
-// Computes sliding attack
-template<PieceType PT>
-Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexcept {
-    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attacks_bb()");
-    assert(is_ok(s));
-
-    constexpr StdArray<Direction, 2, 4> Directions{{
-      {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},  //
-      {NORTH, SOUTH, EAST, WEST}                         //
-    }};
-
-    Bitboard attacksBB = 0;
-
-    for (Direction d : Directions[PT - BISHOP])
-    {
-        Square sq = s;
-
-        for (Bitboard dstBB; (dstBB = destination_bb(sq, d));)
-        {
-            attacksBB |= dstBB;
-
-            sq += d;
-
-            if (occupancyBB & sq)
-                break;
-        }
-    }
-
-    return attacksBB;
-}
-
-// Computes all rook and bishop attacks at startup.
+// Computes all bishop & rook attacks at startup.
 // Magic bitboards are used to look up attacks of sliding pieces.
 // As a reference see https://www.chessprogramming.org/Magic_Bitboards.
 // In particular, here use the so called "fancy" approach.
@@ -137,21 +100,21 @@ void init_magics() noexcept {
                                       : &Magics[s - 1][PT - BISHOP].attacksBBs[size];
         assert(magic.attacksBBs != nullptr);
 
-        Bitboard slidingAttacksBB = sliding_attacks_bb<PT>(s);
+        Bitboard pseudoAttacksBB = attacks_bb(s, PT);
 
         // Board edges are not considered in the relevant occupancies
         Bitboard edgesBB = (EDGE_FILES_BB & ~file_bb(s)) | (PROMOTION_RANKS_BB & ~rank_bb(s));
 
         // Mask excludes edges
-        magic.maskBB = slidingAttacksBB & ~edgesBB;
+        magic.maskBB = pseudoAttacksBB & ~edgesBB;
 
 #if defined(USE_BMI2)
     #if defined(USE_COMPRESSED)
-        magic.reMaskBB = slidingAttacksBB;
+        magic.reMaskBB = pseudoAttacksBB;
     #endif
 #else
-        StdArray<Bitboard, SubSizes[PT - BISHOP]> referenceBBs;
         StdArray<Bitboard, SubSizes[PT - BISHOP]> occupancyBBs;
+        StdArray<Bitboard, SubSizes[PT - BISHOP]> referenceBBs;
 #endif
 
         size = 0;
@@ -160,11 +123,13 @@ void init_magics() noexcept {
         Bitboard occupancyBB = 0;
         do
         {
+            Bitboard slidingAttacksBB = sliding_attacks_bb<PT>(s, occupancyBB);
+
 #if defined(USE_BMI2)
-            magic.attacks_bb(occupancyBB, sliding_attacks_bb<PT>(s, occupancyBB));
+            magic.attacks_bb(occupancyBB, slidingAttacksBB);
 #else
-            referenceBBs[size] = sliding_attacks_bb<PT>(s, occupancyBB);
             occupancyBBs[size] = occupancyBB;
+            referenceBBs[size] = slidingAttacksBB;
 #endif
             ++size;
             occupancyBB = (occupancyBB - magic.maskBB) & magic.maskBB;
@@ -244,15 +209,6 @@ namespace BitBoard {
 // It is called at startup.
 void init() noexcept {
 
-#if !defined(USE_POPCNT)
-    for (std::size_t i = 0; i < PopCnt.size(); ++i)
-        PopCnt[i] = std::bitset<16>(i).count();
-#endif
-
-    for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-        for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-            Distances[s1][s2] = std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
-
     init_magics<BISHOP>();
     init_magics<ROOK>();
 
@@ -260,43 +216,21 @@ void init() noexcept {
     {
         Bitboard s1BB = square_bb(s1);
 
-        AttacksBBs[s1][WHITE] = pawn_attacks_bb<WHITE>(s1BB);
-        AttacksBBs[s1][BLACK] = pawn_attacks_bb<BLACK>(s1BB);
-
-        // clang-format off
-        for (auto dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
-                         WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
-            AttacksBBs[s1][KNIGHT] |= destination_bb(s1, dir, 2);
-
-        AttacksBBs[s1][BISHOP] = attacks_bb<BISHOP>(s1, 0);
-        AttacksBBs[s1][ROOK]   = attacks_bb<ROOK  >(s1, 0);
-        AttacksBBs[s1][QUEEN]  = AttacksBBs[s1][BISHOP] | AttacksBBs[s1][ROOK];
-
-        for (auto dir : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
-            AttacksBBs[s1][KING] |= destination_bb(s1, dir);
-
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
             Bitboard s2BB = square_bb(s2);
 
             for (PieceType pt : {BISHOP, ROOK})
-                if (AttacksBBs[s1][pt] & s2)
+            {
+                if ((attacks_bb(s1, pt) & s2) != 0)
                 {
-                    LineBBs   [s1][s2] = (attacks_bb(s1, pt,    0) &  attacks_bb(s2, pt,    0)) | s1BB | s2BB;
-                    BetweenBBs[s1][s2] =  attacks_bb(s1, pt, s2BB) &  attacks_bb(s2, pt, s1BB);
-                    PassRayBBs[s1][s2] =  attacks_bb(s1, pt,    0) & (attacks_bb(s2, pt, s1BB)  | s2BB);
+                    BetweenBBs[s1][s2] = attacks_bb(s1, pt, s2BB) & attacks_bb(s2, pt, s1BB);
+                    PassRayBBs[s1][s2] = attacks_bb(s1, pt, 0) & (attacks_bb(s2, pt, s1BB) | s2BB);
                 }
+            }
 
             BetweenBBs[s1][s2] |= s2BB;
-
-            for (Square s3 = SQ_A1; s3 <= SQ_H8; ++s3)
-            {
-                Bitboard s3BB = square_bb(s3);
-
-                Aligneds[s1][s2][s3] = (LineBBs[s1][s2] & s3BB) != 0;
-            }
         }
-        // clang-format on
     }
 }
 

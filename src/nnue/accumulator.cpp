@@ -275,9 +275,7 @@ void update_accumulator_incremental_double(
     assert(!middleState.acc<TransformedFeatureDimensions>().computed[perspective]);
     assert(!targetState.acc<TransformedFeatureDimensions>().computed[perspective]);
 
-    ThreatFeatureSet::FusedData fusedData;
-
-    fusedData.dp2removedSq = dp2.removeSq;
+    ThreatFeatureSet::FusedData fusedData(dp2.removeSq);
 
     ThreatFeatureSet::IndexList removed, added;
     ThreatFeatureSet::append_changed_indices(perspective, kingSq, middleState.dirtyType, removed,

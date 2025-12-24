@@ -43,7 +43,7 @@ union Zobrist final {
    public:
     // Size = 2 * 6 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
     static constexpr std::size_t Size =
-      COLOR_NB * PIECES * SQUARE_NB + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1;
+      COLOR_NB * PIECE_CNT * SQUARE_NB + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1;
 
     constexpr Zobrist(const StdArray<Key, Size>& keys) noexcept :
         Keys{keys} {}
@@ -87,10 +87,10 @@ union Zobrist final {
     StdArray<Key, Size> Keys;
 
     struct {
-        StdArray<Key, COLOR_NB, PIECES, SQUARE_NB> PieceSquare;  // [color][piece-type][square]
-        StdArray<Key, COLOR_NB * CASTLING_SIDE_NB> Castling;     // [castle-right]
-        StdArray<Key, FILE_NB>                     Enpassant;    // [file]
-        Key                                        Turn;
+        StdArray<Key, COLOR_NB, PIECE_CNT, SQUARE_NB> PieceSquare;  // [color][piece-type][square]
+        StdArray<Key, COLOR_NB * CASTLING_SIDE_NB>    Castling;     // [castle-right]
+        StdArray<Key, FILE_NB>                        Enpassant;    // [file]
+        Key                                           Turn;
     } _;
 };
 

@@ -108,12 +108,12 @@ enum PieceType : std::int8_t {
     PIECE_TYPE_NB = 8
 };
 
-inline constexpr std::size_t PIECES = PIECE_TYPE_NB - 2;
+inline constexpr std::size_t PIECE_CNT = PIECE_TYPE_NB - 2;
 
-constexpr StdArray<PieceType, PIECES> PIECE_TYPES{
+constexpr StdArray<PieceType, PIECE_CNT> PIECE_TYPES{
   PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
 };
-constexpr StdArray<PieceType, PIECES - 2> NON_PAWN_PIECE_TYPES{
+constexpr StdArray<PieceType, PIECE_CNT - 2> NON_PAWN_PIECE_TYPES{
   KNIGHT, BISHOP, ROOK, QUEEN
 };
 
@@ -156,7 +156,7 @@ inline constexpr Value VALUE_ROOK   = 1276;
 inline constexpr Value VALUE_QUEEN  = 2538;
 
 constexpr Value piece_value(PieceType pt) noexcept {
-    constexpr StdArray<Value, PIECES + 1> PieceValues{
+    constexpr StdArray<Value, 1 + PIECE_CNT> PieceValues{
       VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO};
 
     return PieceValues[pt];
@@ -283,78 +283,6 @@ enum CastlingRights : std::uint8_t {
     ANY_CASTLING = WHITE_CASTLING | BLACK_CASTLING,
 
     CASTLING_RIGHTS_NB = 16
-};
-
-// Keep track of what a move changes on the board (used by NNUE)
-struct DirtyPiece final {
-   public:
-    constexpr DirtyPiece() noexcept = default;
-
-    Piece  movedPc = NO_PIECE;                // this is never allowed to be NO_PIECE
-    Square orgSq = SQ_NONE, dstSq = SQ_NONE;  // dstSq should be SQ_NONE for promotions
-
-    // if {add, remove}Sq is SQ_NONE, {add, remove}Pc is allowed to be uninitialized
-    // castling uses addSq and removeSq to remove and add the rook
-    Square removeSq = SQ_NONE, addSq = SQ_NONE;
-    Piece  removePc = NO_PIECE, addPc = NO_PIECE;
-};
-
-// Keep track of what threats change on the board (used by NNUE)
-struct DirtyThreat final {
-   public:
-    static constexpr std::uint8_t SqOffset           = 0;
-    static constexpr std::uint8_t ThreatenedSqOffset = 8;
-    static constexpr std::uint8_t PcOffset           = 16;
-    static constexpr std::uint8_t ThreatenedPcOffset = 20;
-
-    DirtyThreat() noexcept {
-        // Don't initialize data
-    }
-    DirtyThreat(std::uint32_t d) noexcept :
-        data(d) {}
-    DirtyThreat(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool add) noexcept {
-        data = (add << 31) | (threatenedPc << ThreatenedPcOffset) | (pc << PcOffset)
-             | (threatenedSq << ThreatenedSqOffset) | (sq << SqOffset);
-    }
-
-    Square sq() const noexcept { return Square((data >> SqOffset) & 0xFF); }
-    Square threatened_sq() const noexcept { return Square((data >> ThreatenedSqOffset) & 0xFF); }
-    Piece  pc() const noexcept { return Piece((data >> PcOffset) & 0xF); }
-    Piece  threatened_pc() const noexcept { return Piece((data >> ThreatenedPcOffset) & 0xF); }
-    bool   add() const noexcept { return (data >> 31) != 0; }
-
-    std::uint32_t raw() const noexcept { return data; }
-
-   private:
-    std::uint32_t data;
-};
-
-static_assert(sizeof(DirtyThreat) == 4, "DirtyThreat Size");
-
-// A piece can be involved in at most 8 outgoing attacks and 16 incoming attacks.
-// Moving a piece also can reveal at most 8 discovered attacks.
-// This implies that a non-castling move can change at most (8 + 16) * 3 + 8 = 80 features.
-// By similar logic, a castling move can change at most (5 + 1 + 3 + 9) * 2 = 36 features.
-// Thus, 80 should work as an upper bound. Finally, 16 entries are added to accommodate
-// unmasked vector stores near the end of the list.
-using DirtyThreatList = FixedVector<DirtyThreat, 96>;
-
-struct DirtyThreats final {
-   public:
-    template<bool Add>
-    void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept;
-
-    DirtyThreatList list;
-    Color           ac;
-    Square          kingSq, preKingSq;
-
-    Bitboard threateningBB, threatenedBB;
-};
-
-struct DirtyBoard final {
-   public:
-    DirtyPiece   dp;
-    DirtyThreats dts;
 };
 
 // clang-format off
@@ -540,15 +468,18 @@ template<bool Upper = false>
 }
 
 // Build a compile-time table: "a1", "b1", ..., "h8"
-alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARE_CHARS = []() constexpr {
+alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARE_CHARS = []() constexpr noexcept {
     StdArray<char, SQUARE_NB, 2> squareChars{};
+
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
         squareChars[s] = {to_char(file_of(s)), to_char(rank_of(s))};
+
     return squareChars;
 }();
 
 [[nodiscard]] constexpr std::string_view to_square(Square s) noexcept {
     assert(is_ok(s));
+
     return {SQUARE_CHARS[s].data(), 2};
 }
 
@@ -585,13 +516,13 @@ class Move {
     // Hash function for unordered containers (e.g., std::unordered_set, std::unordered_map).
     // Uses make_hash function to produce a unique hash value for move
     struct Hash final {
-        std::size_t operator()(Move m) const noexcept { return make_hash(m.move); }
+        std::size_t operator()(Move m) const noexcept { return make_hash(m.data); }
     };
 
     Move() noexcept = default;
     // Constructors using delegating syntax
-    constexpr explicit Move(std::uint16_t m) noexcept :
-        move(m) {}
+    constexpr explicit Move(std::uint16_t d) noexcept :
+        data(d) {}
     constexpr Move(MoveType T, Square orgSq, Square dstSq) noexcept :
         Move(T | (int(orgSq) << 6) | (int(dstSq) << 0)) {}
     constexpr Move(Square orgSq, Square dstSq) noexcept :
@@ -600,20 +531,20 @@ class Move {
         Move(MoveType(PROMOTION | ((int(promoPt) - int(KNIGHT)) << 12)), orgSq, dstSq) {}
 
     // Accessors: extract parts of the move
-    constexpr Square    org_sq() const noexcept { return Square((move >> 6) & 0x3F); }
-    constexpr Square    dst_sq() const noexcept { return Square((move >> 0) & 0x3F); }
-    constexpr MoveType  type_of() const noexcept { return MoveType(move & TYPE_MASK); }
+    constexpr Square    org_sq() const noexcept { return Square((data >> 6) & 0x3F); }
+    constexpr Square    dst_sq() const noexcept { return Square((data >> 0) & 0x3F); }
+    constexpr MoveType  type_of() const noexcept { return MoveType(data & TYPE_MASK); }
     constexpr PieceType promotion_type() const noexcept {
-        return PieceType(((move >> 12) & 0x3) + int(KNIGHT));
+        return PieceType(((data >> 12) & 0x3) + int(KNIGHT));
     }
 
     constexpr Value promotion_value() const noexcept {
         return type_of() == PROMOTION ? piece_value(promotion_type()) - VALUE_PAWN : VALUE_ZERO;
     }
 
-    constexpr std::uint16_t raw() const noexcept { return move; }
+    constexpr std::uint16_t raw() const noexcept { return data; }
 
-    friend constexpr bool operator==(Move m1, Move m2) noexcept { return m1.move == m2.move; }
+    friend constexpr bool operator==(Move m1, Move m2) noexcept { return m1.data == m2.data; }
     friend constexpr bool operator!=(Move m1, Move m2) noexcept { return !(m1 == m2); }
 
     // Validity check: ensures move is not None or Null
@@ -631,7 +562,7 @@ class Move {
     static const Move Null;
 
    protected:
-    std::uint16_t move;
+    std::uint16_t data;
 };
 
 // **Define the constexpr static members outside the class**
@@ -639,6 +570,78 @@ inline constexpr Move Move::None{SQ_A1, SQ_A1};
 inline constexpr Move Move::Null{SQ_H8, SQ_H8};
 
 using Moves = std::vector<Move>;
+
+// Keep track of what a move changes on the board (used by NNUE)
+struct DirtyPiece final {
+   public:
+    constexpr DirtyPiece() noexcept = default;
+
+    Piece  movedPc = NO_PIECE;                // this is never allowed to be NO_PIECE
+    Square orgSq = SQ_NONE, dstSq = SQ_NONE;  // dstSq should be SQ_NONE for promotions
+
+    // if {add, remove}Sq is SQ_NONE, {add, remove}Pc is allowed to be uninitialized
+    // castling uses addSq and removeSq to remove and add the rook
+    Square removeSq = SQ_NONE, addSq = SQ_NONE;
+    Piece  removePc = NO_PIECE, addPc = NO_PIECE;
+};
+
+// Keep track of what threats change on the board (used by NNUE)
+struct DirtyThreat final {
+   public:
+    static constexpr std::uint8_t SqOffset           = 0;
+    static constexpr std::uint8_t ThreatenedSqOffset = 8;
+    static constexpr std::uint8_t PcOffset           = 16;
+    static constexpr std::uint8_t ThreatenedPcOffset = 20;
+
+    DirtyThreat() noexcept {
+        // Don't initialize data
+    }
+    DirtyThreat(std::uint32_t d) noexcept :
+        data(d) {}
+    DirtyThreat(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool add) noexcept {
+        data = (add << 31) | (threatenedPc << ThreatenedPcOffset) | (pc << PcOffset)
+             | (threatenedSq << ThreatenedSqOffset) | (sq << SqOffset);
+    }
+
+    Square sq() const noexcept { return Square((data >> SqOffset) & 0xFF); }
+    Square threatened_sq() const noexcept { return Square((data >> ThreatenedSqOffset) & 0xFF); }
+    Piece  pc() const noexcept { return Piece((data >> PcOffset) & 0xF); }
+    Piece  threatened_pc() const noexcept { return Piece((data >> ThreatenedPcOffset) & 0xF); }
+    bool   add() const noexcept { return (data >> 31) != 0; }
+
+    std::uint32_t raw() const noexcept { return data; }
+
+   private:
+    std::uint32_t data;
+};
+
+static_assert(sizeof(DirtyThreat) == 4, "DirtyThreat Size");
+
+// A piece can be involved in at most 8 outgoing attacks and 16 incoming attacks.
+// Moving a piece also can reveal at most 8 discovered attacks.
+// This implies that a non-castling move can change at most (8 + 16) * 3 + 8 = 80 features.
+// By similar logic, a castling move can change at most (5 + 1 + 3 + 9) * 2 = 36 features.
+// Thus, 80 should work as an upper bound. Finally, 16 entries are added to accommodate
+// unmasked vector stores near the end of the list.
+using DirtyThreatList = FixedVector<DirtyThreat, 96>;
+
+struct DirtyThreats final {
+   public:
+    template<bool Add>
+    void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept;
+
+    DirtyThreatList list;
+    Color           ac;
+    Square          kingSq, preKingSq;
+
+    Bitboard threateningBB, threatenedBB;
+};
+
+struct DirtyBoard final {
+   public:
+    DirtyPiece   dp;
+    DirtyThreats dts;
+};
 
 template<typename T, typename... Ts>
 struct is_all_same final {

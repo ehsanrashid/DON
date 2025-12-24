@@ -74,15 +74,15 @@ struct Zobrist final {
     Zobrist& operator=(const Zobrist&) noexcept = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
-    static inline StdArray<Key, COLOR_NB, PIECE_TYPE_NB - 1, SQUARE_NB> PieceSquare{};
-    static inline StdArray<Key, CASTLING_RIGHTS_NB>                     Castling{};
-    static inline StdArray<Key, FILE_NB>                                Enpassant{};
-    static inline Key                                                   Turn{};
+    static inline StdArray<Key, COLOR_NB, 1 + PIECE_CNT, SQUARE_NB> PieceSquare;
+    static inline StdArray<Key, CASTLING_RIGHTS_NB>                 Castling;
+    static inline StdArray<Key, FILE_NB>                            Enpassant;
+    static inline Key                                               Turn;
 
     static constexpr std::uint8_t R50_OFFSET = 14;
     static constexpr std::uint8_t R50_FACTOR = 8;
 
-    static inline StdArray<Key, (MAX_PLY + 1 - R50_OFFSET) / R50_FACTOR + 2> MR50{};
+    static inline StdArray<Key, (MAX_PLY + 1 - R50_OFFSET) / R50_FACTOR + 2> MR50;
 };
 
 // State struct stores information needed to restore Position object
@@ -90,7 +90,7 @@ struct Zobrist final {
 struct State final {
    public:
     State() noexcept                           = default;
-    State(const State&) noexcept               = delete;
+    State(const State&) noexcept               = default;
     State(State&&) noexcept                    = delete;
     State& operator=(const State& st) noexcept = default;
     State& operator=(State&&) noexcept         = delete;
@@ -159,8 +159,8 @@ class Position final {
 
     Position() noexcept                           = default;
     Position(const Position&) noexcept            = default;
-    Position& operator=(const Position&) noexcept = default;
     Position(Position&&) noexcept                 = delete;
+    Position& operator=(const Position&) noexcept = default;
     Position& operator=(Position&&) noexcept      = delete;
 
     void clear() noexcept;
@@ -176,7 +176,7 @@ class Position final {
     [[nodiscard]] const auto& piece_map() const noexcept;
     [[nodiscard]] const auto& type_bbs() const noexcept;
     [[nodiscard]] const auto& color_bbs() const noexcept;
-    [[nodiscard]] const auto& piece_list() const noexcept;
+    [[nodiscard]] const auto& piece_lists() const noexcept;
 
     [[nodiscard]] Piece    operator[](Square s) const noexcept;
     [[nodiscard]] Bitboard operator[](PieceType pt) const noexcept;
@@ -355,8 +355,7 @@ class Position final {
 
     void dump(std::ostream& os = std::cout) const noexcept;
 
-    static constexpr StdArray<std::size_t, PIECES> CAPACITY  //
-      {11, 13, 13, 13, 13, 1};
+    static constexpr StdArray<std::size_t, PIECE_CNT> CAPACITIES{11, 13, 13, 13, 13, 1};
 
     static inline bool Chess960 = false;
 
@@ -429,27 +428,33 @@ class Position final {
     // Static Exchange Evaluation
     bool see_ge(Move m, int threshold) const noexcept;
 
-    static constexpr std::size_t TOTAL_CAPACITY = []() constexpr {
+    static constexpr std::size_t TOTAL_CAPACITY = []() constexpr noexcept {
         std::size_t totalCapacity = 0;
-        for (std::size_t i = 0; i < PIECES; ++i)
-            totalCapacity += CAPACITY[i];
+
+        for (std::size_t i = 0; i < PIECE_CNT; ++i)
+            totalCapacity += CAPACITIES[i];
+
         return totalCapacity;
     }();
 
-    static constexpr auto OFFSET = []() constexpr {
-        StdArray<std::size_t, PIECES> offset{};
-        offset[0] = 0;
-        for (std::size_t i = 1; i < PIECES; ++i)
-            offset[i] = offset[i - 1] + CAPACITY[i - 1];
-        return offset;
+    static constexpr auto OFFSETS = []() constexpr noexcept {
+        StdArray<std::size_t, PIECE_CNT> offsets{};
+
+        offsets[0] = 0;
+        for (std::size_t i = 1; i < PIECE_CNT; ++i)
+            offsets[i] = offsets[i - 1] + CAPACITIES[i - 1];
+
+        return offsets;
     }();
 
-    static constexpr auto CASTLING_RIGHTS_INDICES = []() constexpr {
+    static constexpr auto CASTLING_RIGHTS_INDICES = []() constexpr noexcept {
         StdArray<std::uint8_t, SQUARE_NB> castlingRightsIndices{};
+
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
             castlingRightsIndices[s] = rank_of(s) == RANK_1 ? WHITE * FILE_NB + file_of(s)
                                      : rank_of(s) == RANK_8 ? BLACK * FILE_NB + file_of(s)
                                                             : COLOR_NB * FILE_NB;
+
         return castlingRightsIndices;
     }();
 
@@ -458,7 +463,7 @@ class Position final {
     // Backing Square Table: [COLOR_NB][TOTAL_CAPACITY]
     StdArray<Square, COLOR_NB, TOTAL_CAPACITY> squaresTable;
     // Generic CountTableView slices
-    StdArray<CountTableView<Square>, COLOR_NB, 1 + PIECES> pieceList;
+    StdArray<CountTableView<Square>, COLOR_NB, 1 + PIECE_CNT> pieceLists;
 
     StdArray<std::uint8_t, SQUARE_NB>            indexMap;
     StdArray<Piece, SQUARE_NB>                   pieceMap;
@@ -480,7 +485,7 @@ inline const auto& Position::type_bbs() const noexcept { return typeBBs; }
 
 inline const auto& Position::color_bbs() const noexcept { return colorBBs; }
 
-inline const auto& Position::piece_list() const noexcept { return pieceList; }
+inline const auto& Position::piece_lists() const noexcept { return pieceLists; }
 
 inline Piece Position::operator[](Square s) const noexcept { return pieceMap[s]; }
 
@@ -507,7 +512,7 @@ inline Bitboard Position::pieces_bb(Color c, PieceTypes... pts) const noexcept {
 }
 
 inline const auto& Position::squares(Color c, PieceType pt) const noexcept {
-    return pieceList[c][pt];
+    return pieceLists[c][pt];
 }
 
 template<PieceType PT>
@@ -916,7 +921,7 @@ inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept 
     pieceMap[s] = pc;
     colorBBs[c] |= sBB;
     typeBBs[ALL] |= typeBBs[pt] |= sBB;
-    auto& pL = pieceList[c][pt];
+    auto& pL = pieceLists[c][pt];
     auto* pB = base(c);
 
     indexMap[s] = pL.count();
@@ -945,7 +950,7 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     typeBBs[pt] ^= sBB;
     typeBBs[ALL] ^= sBB;
     auto  idx = indexMap[s];
-    auto& pL  = pieceList[c][pt];
+    auto& pL  = pieceLists[c][pt];
     auto* pB  = base(c);
     assert(idx < pL.size());
     Square sq    = pL.back(pB);
@@ -977,7 +982,7 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     typeBBs[pt] ^= s1s2BB;
     typeBBs[ALL] ^= s1s2BB;
     auto  idx = indexMap[s1];
-    auto& pL  = pieceList[c][pt];
+    auto& pL  = pieceLists[c][pt];
     auto* pB  = base(c);
     assert(idx < pL.size());
     indexMap[s2] = idx;
@@ -1071,7 +1076,8 @@ inline void Position::update_pc_threats(Square                    s,
     Bitboard occupancyBB = pieces_bb();
 
     const auto attacksBB = [&]() noexcept {
-        StdArray<Bitboard, 7> _;
+        StdArray<Bitboard, 1 + PIECE_CNT> _;
+
         _[WHITE]  = attacks_bb<PAWN>(s, WHITE);
         _[BLACK]  = attacks_bb<PAWN>(s, BLACK);
         _[KNIGHT] = attacks_bb<KNIGHT>(s);
@@ -1079,6 +1085,7 @@ inline void Position::update_pc_threats(Square                    s,
         _[ROOK]   = attacks_bb<ROOK>(s, occupancyBB);
         _[QUEEN]  = _[BISHOP] | _[ROOK];
         _[KING]   = attacks_bb<KING>(s);
+
         return _;
     }();
 
@@ -1110,6 +1117,7 @@ inline void Position::update_pc_threats(Square                    s,
     }
 
     Bitboard attackersBB = slidersBB | nonSlidersBB;
+
     if (attackersBB == 0)
         return;  // Square s is threatened iff there's at least one attacker
 
@@ -1135,15 +1143,16 @@ inline void Position::update_pc_threats(Square                    s,
     }
 #endif
 
-    while (slidersBB != 0)
+    if constexpr (ComputeRay)
     {
-        Square sliderSq = pop_lsq(slidersBB);
-        Piece  sliderPc = piece(sliderSq);
-
-        assert(is_ok(sliderPc));
-
-        if constexpr (ComputeRay)
+        while (slidersBB != 0)
         {
+            Square sliderSq = pop_lsq(slidersBB);
+            Piece  sliderPc = piece(sliderSq);
+
+            assert(sliderSq != s);
+            assert(is_ok(sliderPc));
+
             Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
             Bitboard discoveredBB = passRayBB & ~between_bb(sliderSq, s)  //
                                   & attacksBB[QUEEN] & occupancyBB;
@@ -1158,10 +1167,14 @@ inline void Position::update_pc_threats(Square                    s,
 
                 dts->add<!Put>(sliderSq, threatenedSq, sliderPc, threatenedPc);
             }
-        }
 #if !defined(USE_AVX512ICL)  // for ICL, direct threats were processed earlier (attackersBB)
-        dts->add<Put>(sliderSq, s, sliderPc, pc);
+            dts->add<Put>(sliderSq, s, sliderPc, pc);
 #endif
+        }
+    }
+    else
+    {
+        nonSlidersBB |= slidersBB;
     }
 
 #if !defined(USE_AVX512ICL)

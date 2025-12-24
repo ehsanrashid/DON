@@ -149,28 +149,32 @@ constexpr int before_zeroing_dtz(WDLScore wdlScore) noexcept {
     }
 }
 
-template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
+template<typename T>
 void swap_endian(T& x) noexcept {
-    static_assert(std::is_unsigned_v<T>, "Argument of swap_endian not unsigned");
+    static_assert(std::is_unsigned_v<T>, "swap_endian() requires unsigned type");
 
-    std::uint8_t tmp, *c = (std::uint8_t*) (&x);
-    for (int i = 0; i < Half; ++i)
-        tmp = c[i], c[i] = c[End - i], c[End - i] = tmp;
+    if constexpr (sizeof(T) > 1)
+    {
+        auto* bytes = reinterpret_cast<std::uint8_t*>(&x);
+
+        for (std::size_t i = 0; i < sizeof(T) / 2; ++i)
+            std::swap(bytes[i], bytes[sizeof(T) - 1 - i]);
+    }
 }
-template<>
-void swap_endian<std::uint8_t>(std::uint8_t&) noexcept {}
 
-template<typename T, Endian Endian>
-T number(void* addr) noexcept {
+template<typename T, Endian E>
+T number(const void* const addr) noexcept {
     T v;
 
-    if (std::uintptr_t(addr) & (alignof(T) - 1))  // Unaligned pointer (very rare)
-        std::memcpy(&v, addr, sizeof(v));
-    else
-        v = *((T*) (addr));
+    // Use memcpy for unaligned access, otherwise direct read
+    if (reinterpret_cast<std::uintptr_t>(addr) % alignof(T) == 0)
+        v = *reinterpret_cast<const T*>(addr);
+    else  // Unaligned pointer (very rare)
+        std::memcpy(&v, addr, sizeof(T));
 
-    if (Endian != IsLittleEndian)
+    if (E != IsLittleEndian)
         swap_endian(v);
+
     return v;
 }
 
@@ -360,7 +364,7 @@ struct TBTable final {
 
     void set(std::uint8_t* data) noexcept;
 
-    void set_groups(PairsData* pd, int order[2], File f) noexcept;
+    void set_groups(PairsData* pd, const StdArray<int, 2>& order, File f) noexcept;
 
     std::uint8_t* set_dtz_map(std::uint8_t* data, File) noexcept;
 
@@ -660,8 +664,10 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
         for (std::size_t i = 0; i < sides; ++i)
             *get(i, f) = PairsData();
 
-        int order[2][2]{{int(*data & 0xF), int(pp ? *(data + 1) & 0xF : 0xF)},
-                        {int(*data >> 4), int(pp ? *(data + 1) >> 4 : 0xF)}};
+        StdArray<int, 2, 2> order{{
+          {{int(*data & 0xF), int(pp ? *(data + 1) & 0xF : 0xF)}},
+          {{int(*data >> 4), int(pp ? *(data + 1) >> 4 : 0xF)}}  //
+        }};
 
         data += 1 + pp;
 
@@ -721,21 +727,25 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
 // The actual grouping depends on the TB generator and can be inferred from the
 // sequence of pieces in piece[] array.
 template<TBType T>
-void TBTable<T>::set_groups(PairsData* pd, int order[2], File f) noexcept {
+void TBTable<T>::set_groups(PairsData* pd, const StdArray<int, 2>& order, File f) noexcept {
 
     std::size_t n = 0;
 
     pd->groupLen[n] = 1;
 
-    std::int32_t firstLen = hasPawns ? 0 : hasUniquePieces ? 3 : 2;
+    std::size_t firstLen = hasPawns ? 0 : hasUniquePieces ? 3 : 2;
     // Number of pieces per group is stored in groupLen[], for instance in KRKN
     // the encoder will default on '111', so groupLen[] will be (3, 1).
-    for (std::int32_t i = 1; i < pieceCount; ++i)
+    for (std::uint8_t i = 1; i < pieceCount; ++i)
     {
-        if (--firstLen > 0 || pd->pieces[i] == pd->pieces[i - 1])
-            pd->groupLen[n]++;
-        else
-            pd->groupLen[++n] = 1;
+        // Determine whether to extend current group
+        bool extend = firstLen > 1 || pd->pieces[i] == pd->pieces[i - 1];
+        // Move to next group if not extending
+        n += int(!extend);
+        // Increment current group if extending, or initialize new group if not
+        pd->groupLen[n] = int(extend) * (pd->groupLen[n] + 1) + int(!extend);
+        // Decrement firstLen if it contributed to the extension
+        firstLen -= int(firstLen > 1);
     }
 
     pd->groupLen[++n] = 0;  // Zero-terminated
