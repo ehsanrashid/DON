@@ -22,7 +22,6 @@
 #include "memory.h"
 #include "misc.h"
 #include "position.h"
-#include "search.h"
 #include "syzygy/tablebase.h"
 #include "tune.h"
 #include "uci.h"

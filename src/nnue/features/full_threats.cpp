@@ -33,7 +33,7 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr StdArray<int, PIECE_TYPE_NB> MaxTargets{0, 6, 12, 10, 10, 12, 8, 0};
+constexpr StdArray<int, 1 + PIECE_CNT> MaxTargets{0, 6, 12, 10, 10, 12, 8};
 
 constexpr StdArray<int, PIECE_CNT, PIECE_CNT> Map{{
   {0, +1, -1, +2, -1, -1},  //
@@ -43,36 +43,6 @@ constexpr StdArray<int, PIECE_CNT, PIECE_CNT> Map{{
   {0, +1, +2, +3, +4, +5},  //
   {0, +1, +2, +3, -1, -1}   //
 }};
-
-alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
-    StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB, 1 + PIECE_CNT> lutIndices{};
-
-    for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-        for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-        {
-            Bitboard s2MaskBB = square_bb(s2) - 1;
-            // clang-format off
-            lutIndices[s1][s2][WHITE ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, WHITE));
-            lutIndices[s1][s2][BLACK ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, BLACK));
-            lutIndices[s1][s2][KNIGHT] = constexpr_popcount(s2MaskBB & attacks_bb(s1, KNIGHT));
-            lutIndices[s1][s2][BISHOP] = constexpr_popcount(s2MaskBB & attacks_bb(s1, BISHOP));
-            lutIndices[s1][s2][ROOK  ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, ROOK));
-            lutIndices[s1][s2][QUEEN ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, QUEEN));
-            lutIndices[s1][s2][KING  ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, KING));
-            // clang-format on
-        }
-
-    return lutIndices;
-}();
-
-constexpr std::uint8_t lut_index(Piece pc, Square s1, Square s2) noexcept {
-    assert(is_ok(s1) && is_ok(s2));
-
-    if (type_of(pc) == PAWN)
-        return LUT_INDICES[s1][s2][color_of(pc)];
-
-    return LUT_INDICES[s1][s2][type_of(pc)];
-}
 
 struct PieceThreat final {
     IndexType threatCount;  // Total number of threats this piece can generate
@@ -164,6 +134,36 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
 
     return lutDatas;
 }();
+
+alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
+    StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB, 1 + PIECE_CNT> lutIndices{};
+
+    for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+        {
+            Bitboard s2MaskBB = square_bb(s2) - 1;
+            // clang-format off
+            lutIndices[s1][s2][WHITE ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, WHITE));
+            lutIndices[s1][s2][BLACK ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, BLACK));
+            lutIndices[s1][s2][KNIGHT] = constexpr_popcount(s2MaskBB & attacks_bb(s1, KNIGHT));
+            lutIndices[s1][s2][BISHOP] = constexpr_popcount(s2MaskBB & attacks_bb(s1, BISHOP));
+            lutIndices[s1][s2][ROOK  ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, ROOK));
+            lutIndices[s1][s2][QUEEN ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, QUEEN));
+            lutIndices[s1][s2][KING  ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, KING));
+            // clang-format on
+        }
+
+    return lutIndices;
+}();
+
+constexpr std::uint8_t lut_index(Piece pc, Square s1, Square s2) noexcept {
+    assert(is_ok(s1) && is_ok(s2));
+
+    if (type_of(pc) == PAWN)
+        return LUT_INDICES[s1][s2][color_of(pc)];
+
+    return LUT_INDICES[s1][s2][type_of(pc)];
+}
 
 // The final index is calculated from summing data found in 2 LUTs,
 // as well as SQUARE_OFFSETS[attacker][orgSq]
