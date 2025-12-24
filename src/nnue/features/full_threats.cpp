@@ -229,26 +229,33 @@ void FullThreats::append_active_indices(Color           perspective,
 
             if (pt == PAWN)
             {
-                Bitboard lAttacks =
-                  (c == WHITE ? shift_bb<NORTH_EAST>(pcBB) : shift_bb<SOUTH_WEST>(pcBB))
-                  & occupancyBB;
+                Bitboard lAttacks = (c == WHITE  //
+                                       ? shift_bb<NORTH_EAST>(pcBB)
+                                       : shift_bb<SOUTH_WEST>(pcBB))
+                                  & occupancyBB;
+
                 auto rDir = c == WHITE ? NORTH_EAST : SOUTH_WEST;
+
                 while (lAttacks != 0)
                 {
-                    Square dstSq    = pop_lsq(lAttacks);
-                    Square orgSq    = dstSq - rDir;
-                    Piece  attacked = pos[dstSq];
+                    Square dstSq      = pop_lsq(lAttacks);
+                    Square orgSq      = dstSq - rDir;
+                    Piece  attackedPc = pos[dstSq];
 
                     IndexType index =
-                      make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attacked);
+                      make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
+
                     if (index < Dimensions)
                         active.push_back(index);
                 }
 
-                Bitboard rAttacks =
-                  (c == WHITE ? shift_bb<NORTH_WEST>(pcBB) : shift_bb<SOUTH_EAST>(pcBB))
-                  & occupancyBB;
+                Bitboard rAttacks = (c == WHITE  //
+                                       ? shift_bb<NORTH_WEST>(pcBB)
+                                       : shift_bb<SOUTH_EAST>(pcBB))
+                                  & occupancyBB;
+
                 auto lDir = c == WHITE ? NORTH_WEST : SOUTH_EAST;
+
                 while (rAttacks != 0)
                 {
                     Square dstSq      = pop_lsq(rAttacks);
@@ -257,6 +264,7 @@ void FullThreats::append_active_indices(Color           perspective,
 
                     IndexType index =
                       make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
+
                     if (index < Dimensions)
                         active.push_back(index);
                 }
@@ -275,6 +283,7 @@ void FullThreats::append_active_indices(Color           perspective,
 
                         IndexType index =
                           make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
+
                         if (index < Dimensions)
                             active.push_back(index);
                     }
