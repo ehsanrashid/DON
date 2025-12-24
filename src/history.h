@@ -224,10 +224,11 @@ class Histories final {
         assert((correction_size() & (correction_size() - 1)) == 0);
     }
 
-    std::size_t correction_size() const noexcept { return correctionSize; }
+    constexpr std::size_t correction_size() const noexcept { return correctionSize; }
+    constexpr std::size_t correction_mask() const noexcept { return correction_size() - 1; }
 
-    std::size_t correction_index(Key corrKey) const noexcept {
-        return corrKey & (correction_size() - 1);
+    constexpr std::size_t correction_index(Key corrKey) const noexcept {
+        return corrKey & correction_mask();
     }
 
     auto& pawn_correction() noexcept { return pawnCorrection; }
