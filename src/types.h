@@ -617,7 +617,7 @@ struct DirtyThreat final {
     }
     constexpr bool add() const noexcept { return (data >> 31) != 0; }
 
-    std::uint32_t raw() const noexcept { return data; }
+    constexpr std::uint32_t raw() const noexcept { return data; }
 
    private:
     std::uint32_t data;
@@ -660,6 +660,11 @@ template<typename... Ts>
 constexpr auto is_all_same_v = is_all_same<Ts...>::value;
 
 }  // namespace DON
+
+template<>
+struct std::hash<DON::Move> {
+    std::size_t operator()(DON::Move m) const noexcept { return DON::make_hash(m.raw()); }
+};
 
 #endif  // #ifndef TYPES_H_INCLUDED
 

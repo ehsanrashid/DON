@@ -97,9 +97,12 @@ struct PiecePairData final {
         data((featureBaseIndex << 8) | (excluded << 1) | (semiExcluded && !excluded)) {}
 
     // lsb: excluded if orgSq < dstSq; 2nd lsb: always excluded
-    constexpr std::uint8_t excluded_pair_info() const noexcept { return (data >> 0) & 0xFF; }
-    constexpr IndexType    feature_base_index() const noexcept { return (data >> 8); }
+    constexpr std::uint8_t excluded_pair_info() const noexcept {
+        return std::uint8_t((data >> 0) & 0xFF);
+    }
+    constexpr IndexType feature_base_index() const noexcept { return IndexType(data >> 8); }
 
+   private:
     // Layout: bits 8..31 are the index contribution of this piece pair, bits 0 and 1 are exclusion info
     std::uint32_t data;
 };
