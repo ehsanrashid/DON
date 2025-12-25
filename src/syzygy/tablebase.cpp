@@ -1872,7 +1872,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
         return 0;
 
     if (*ps != PS_AC_CHANGED)
-        return (dtzScore + 100 * (wdlScore == WDL_BLESSED_LOSS || wdlScore == WDL_CURSED_WIN))
+        return (dtzScore + (wdlScore == WDL_BLESSED_LOSS || wdlScore == WDL_CURSED_WIN) * 100)
              * sign(wdlScore);
 
     // DTZ-score stores results for the other side, so need to do a 1-ply search
@@ -1913,7 +1913,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     }
 
     // When there are no legal moves, the position is mate: return -1
-    return minDtzScore == 0xFFFF ? -1 : minDtzScore;
+    return minDtzScore != 0xFFFF ? minDtzScore : -1;
 }
 
 // clang-format off
