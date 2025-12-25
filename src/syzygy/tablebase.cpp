@@ -1992,7 +1992,7 @@ bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bo
         {
             // Otherwise, take dtzScore for the new position and correct by 1 ply
             dtzScore = -probe_dtz(pos, &ps);
-            dtzScore = dtzScore > 0 ? dtzScore + 1 : dtzScore < 0 ? dtzScore - 1 : dtzScore;
+            dtzScore += sign(dtzScore);
         }
 
         // Make sure that a mating move is assigned a dtzScore value of 1
