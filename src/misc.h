@@ -115,7 +115,7 @@ constexpr auto sign_sqr(T x) noexcept {
 }
 
 // Minimax-style polynomial approximation for ln(1 + f), f in [0,1)
-constexpr double constexpr_approx_log1p(double f) noexcept {
+constexpr double constexpr_approx_1p_log(double f) noexcept {
     // clang-format off
     return f * ( 1.0
          + f * (-0.5
@@ -138,18 +138,18 @@ constexpr double constexpr_log(double x) noexcept {
     // Range reduction: x = mantissa * 2^exponent : normalize x into [1, 2)
     while (x >= 2.0)
     {
-        x *= 0.5;
         ++exponent;
+        x *= 0.5;
     }
     while (x < 1.0)
     {
-        x *= 2.0;
         --exponent;
+        x *= 2.0;
     }
 
     // mantissa in [1,2) -> f in [0,1)
     // ln(x) = ln(m) + exponent * ln(2)
-    return constexpr_approx_log1p(x - 1.0) + exponent * LN2;
+    return constexpr_approx_1p_log(x - 1.0) + exponent * LN2;
 }
 
 // True if and only if the binary is compiled on a little-endian machine
