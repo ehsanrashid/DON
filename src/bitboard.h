@@ -322,8 +322,8 @@ constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexce
     assert(is_ok(s));
 
     constexpr StdArray<Direction, 2, 4> Directions{{
-      {NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST},  //
-      {NORTH, SOUTH, EAST, WEST}                         //
+      {SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST},  //
+      {SOUTH, WEST, EAST, NORTH}                         //
     }};
 
     Bitboard attacksBB = 0;
