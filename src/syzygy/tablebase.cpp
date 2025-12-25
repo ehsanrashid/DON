@@ -743,7 +743,7 @@ void TBTable<T>::set_groups(PairsData* pd, const StdArray<int, 2>& order, File f
         // Move to next group if not extending
         n += int(!extend);
         // Increment current group if extending, or initialize new group if not
-        pd->groupLen[n] = int(extend) * (pd->groupLen[n] + 1) + int(!extend);
+        pd->groupLen[n] = 1 + int(extend) * pd->groupLen[n];
         // Decrement firstLen if it contributed to the extension
         firstLen -= int(firstLen > 1);
     }

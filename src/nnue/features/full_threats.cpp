@@ -33,9 +33,9 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr StdArray<int, 1 + PIECE_CNT> MaxTargets{0, 6, 12, 10, 10, 12, 8};
+constexpr StdArray<int, PIECE_CNT> MAX_TARGETS{6, 12, 10, 10, 12, 8};
 
-constexpr StdArray<int, PIECE_CNT, PIECE_CNT> Map{{
+constexpr StdArray<int, PIECE_CNT, PIECE_CNT> MAP{{
   {0, +1, -1, +2, -1, -1},  //
   {0, +1, +2, +3, +4, +5},  //
   {0, +1, +2, +3, -1, +4},  //
@@ -79,7 +79,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
 
             threatTable.pieceThreats[pc] = {threatCount, baseOffset};
 
-            baseOffset += MaxTargets[pt] * threatCount;
+            baseOffset += MAX_TARGETS[pt - 1] * threatCount;
         }
 
     return threatTable;
@@ -119,12 +119,15 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
 
                     bool enemy = (attackerPc ^ attackedPc) == 8;
 
-                    int map = Map[attackerPt - 1][attackedPt - 1];
+                    int map = MAP[attackerPt - 1][attackedPt - 1];
 
-                    IndexType featureBaseIndex = PIECE_THREATS[attackerPc].baseOffset
-                                               + (attackedC * (MaxTargets[attackerPt] / 2) + map)
-                                                   * PIECE_THREATS[attackerPc].threatCount;
-                    bool excluded     = map < 0;
+                    IndexType featureBaseIndex =
+                      PIECE_THREATS[attackerPc].baseOffset
+                      + (attackedC * (MAX_TARGETS[attackerPt - 1] / 2) + map)
+                          * PIECE_THREATS[attackerPc].threatCount;
+
+                    bool excluded = map < 0;
+
                     bool semiExcluded = attackerPt == attackedPt && (enemy || attackerPt != PAWN);
 
                     lutDatas[attackerPc][attackedPc] =
@@ -135,23 +138,34 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
     return lutDatas;
 }();
 
-alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
+alignas(CACHE_LINE_SIZE) constexpr auto LUT_INDICES = []() constexpr noexcept {
     StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB, 1 + PIECE_CNT> lutIndices{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+    {
+        // clang-format off
+        Bitboard  whiteAttacksBB = attacks_bb(s1, WHITE);
+        Bitboard  blackAttacksBB = attacks_bb(s1, BLACK);
+        Bitboard knightAttacksBB = attacks_bb(s1, KNIGHT);
+        Bitboard bishopAttacksBB = attacks_bb(s1, BISHOP);
+        Bitboard   rookAttacksBB = attacks_bb(s1, ROOK);
+        Bitboard  queenAttacksBB = attacks_bb(s1, QUEEN);
+        Bitboard   kingAttacksBB = attacks_bb(s1, KING);
+
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
             Bitboard s2MaskBB = square_bb(s2) - 1;
-            // clang-format off
-            lutIndices[s1][s2][WHITE ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, WHITE));
-            lutIndices[s1][s2][BLACK ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, BLACK));
-            lutIndices[s1][s2][KNIGHT] = constexpr_popcount(s2MaskBB & attacks_bb(s1, KNIGHT));
-            lutIndices[s1][s2][BISHOP] = constexpr_popcount(s2MaskBB & attacks_bb(s1, BISHOP));
-            lutIndices[s1][s2][ROOK  ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, ROOK));
-            lutIndices[s1][s2][QUEEN ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, QUEEN));
-            lutIndices[s1][s2][KING  ] = constexpr_popcount(s2MaskBB & attacks_bb(s1, KING));
-            // clang-format on
+
+            lutIndices[s1][s2][WHITE ] = constexpr_popcount(s2MaskBB & whiteAttacksBB);
+            lutIndices[s1][s2][BLACK ] = constexpr_popcount(s2MaskBB & blackAttacksBB);
+            lutIndices[s1][s2][KNIGHT] = constexpr_popcount(s2MaskBB & knightAttacksBB);
+            lutIndices[s1][s2][BISHOP] = constexpr_popcount(s2MaskBB & bishopAttacksBB);
+            lutIndices[s1][s2][ROOK  ] = constexpr_popcount(s2MaskBB & rookAttacksBB);
+            lutIndices[s1][s2][QUEEN ] = constexpr_popcount(s2MaskBB & queenAttacksBB);
+            lutIndices[s1][s2][KING  ] = constexpr_popcount(s2MaskBB & kingAttacksBB);
         }
+        // clang-format on
+    }
 
     return lutIndices;
 }();
