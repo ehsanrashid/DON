@@ -108,11 +108,13 @@ Option::operator int() const noexcept {
 
 Option::operator std::string() const noexcept {
     assert(type == OPT_STRING || type == OPT_COMBO);
+
     return currentValue;
 }
 
 Option::operator std::string_view() const noexcept {
     assert(type == OPT_STRING || type == OPT_COMBO);
+
     return currentValue;
 }
 
