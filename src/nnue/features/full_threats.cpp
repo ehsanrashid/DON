@@ -138,34 +138,23 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
     return lutDatas;
 }();
 
-alignas(CACHE_LINE_SIZE) constexpr auto LUT_INDICES = []() constexpr noexcept {
-    StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB, 1 + PIECE_CNT> lutIndices{};
+alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
+    StdArray<std::uint8_t, 1 + PIECE_CNT, SQUARE_NB, SQUARE_NB> lutIndices{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-    {
-        // clang-format off
-        Bitboard  whiteAttacksBB = attacks_bb(s1, WHITE);
-        Bitboard  blackAttacksBB = attacks_bb(s1, BLACK);
-        Bitboard knightAttacksBB = attacks_bb(s1, KNIGHT);
-        Bitboard bishopAttacksBB = attacks_bb(s1, BISHOP);
-        Bitboard   rookAttacksBB = attacks_bb(s1, ROOK);
-        Bitboard  queenAttacksBB = attacks_bb(s1, QUEEN);
-        Bitboard   kingAttacksBB = attacks_bb(s1, KING);
-
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
             Bitboard s2MaskBB = square_bb(s2) - 1;
-
-            lutIndices[s1][s2][WHITE ] = constexpr_popcount(s2MaskBB & whiteAttacksBB);
-            lutIndices[s1][s2][BLACK ] = constexpr_popcount(s2MaskBB & blackAttacksBB);
-            lutIndices[s1][s2][KNIGHT] = constexpr_popcount(s2MaskBB & knightAttacksBB);
-            lutIndices[s1][s2][BISHOP] = constexpr_popcount(s2MaskBB & bishopAttacksBB);
-            lutIndices[s1][s2][ROOK  ] = constexpr_popcount(s2MaskBB & rookAttacksBB);
-            lutIndices[s1][s2][QUEEN ] = constexpr_popcount(s2MaskBB & queenAttacksBB);
-            lutIndices[s1][s2][KING  ] = constexpr_popcount(s2MaskBB & kingAttacksBB);
+            // clang-format off
+            lutIndices[WHITE ][s1][s2] = constexpr_popcount(s2MaskBB & attacks_bb(s1, WHITE));
+            lutIndices[BLACK ][s1][s2] = constexpr_popcount(s2MaskBB & attacks_bb(s1, BLACK));
+            lutIndices[KNIGHT][s1][s2] = constexpr_popcount(s2MaskBB & attacks_bb(s1, KNIGHT));
+            lutIndices[BISHOP][s1][s2] = constexpr_popcount(s2MaskBB & attacks_bb(s1, BISHOP));
+            lutIndices[ROOK  ][s1][s2] = constexpr_popcount(s2MaskBB & attacks_bb(s1, ROOK));
+            lutIndices[QUEEN ][s1][s2] = constexpr_popcount(s2MaskBB & attacks_bb(s1, QUEEN));
+            lutIndices[KING  ][s1][s2] = constexpr_popcount(s2MaskBB & attacks_bb(s1, KING));
+            // clang-format on
         }
-        // clang-format on
-    }
 
     return lutIndices;
 }();
@@ -174,9 +163,9 @@ constexpr std::uint8_t lut_index(Piece pc, Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
     if (type_of(pc) == PAWN)
-        return LUT_INDICES[s1][s2][color_of(pc)];
+        return LUT_INDICES[color_of(pc)][s1][s2];
 
-    return LUT_INDICES[s1][s2][type_of(pc)];
+    return LUT_INDICES[type_of(pc)][s1][s2];
 }
 
 // The final index is calculated from summing data found in 2 LUTs,
