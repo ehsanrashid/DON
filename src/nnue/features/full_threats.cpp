@@ -93,7 +93,7 @@ struct PiecePairData final {
    public:
     constexpr PiecePairData() noexcept :
         data(0) {}
-    constexpr PiecePairData(IndexType featureBaseIndex, bool excluded, bool semiExcluded) noexcept :
+    constexpr PiecePairData(bool semiExcluded, bool excluded, IndexType featureBaseIndex) noexcept :
         data((featureBaseIndex << 8) | (excluded << 1) | (semiExcluded && !excluded)) {}
 
     // lsb: excluded if orgSq < dstSq; 2nd lsb: always excluded
@@ -121,17 +121,17 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
 
                     int map = MAP[attackerPt - 1][attackedPt - 1];
 
+                    bool semiExcluded = attackerPt == attackedPt && (enemy || attackerPt != PAWN);
+
+                    bool excluded = map < 0;
+
                     IndexType featureBaseIndex =
                       PIECE_THREATS[attackerPc].baseOffset
                       + (attackedC * (MAX_TARGETS[attackerPt - 1] / 2) + map)
                           * PIECE_THREATS[attackerPc].threatCount;
 
-                    bool excluded = map < 0;
-
-                    bool semiExcluded = attackerPt == attackedPt && (enemy || attackerPt != PAWN);
-
                     lutDatas[attackerPc][attackedPc] =
-                      PiecePairData(featureBaseIndex, excluded, semiExcluded);
+                      PiecePairData(semiExcluded, excluded, featureBaseIndex);
                 }
         }
 
