@@ -473,8 +473,6 @@ class MainSearchManager final: public ISearchManager {
 
 class NullSearchManager final: public ISearchManager {
    public:
-    NullSearchManager() noexcept = default;
-
     void check_time(Worker&) noexcept override {}
 };
 
