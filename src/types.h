@@ -242,15 +242,15 @@ enum Direction : std::int8_t {
     WEST  = -EAST,
     SOUTH = -NORTH,
 
-    NORTH_EAST = NORTH + EAST,
-    SOUTH_EAST = SOUTH + EAST,
     SOUTH_WEST = SOUTH + WEST,
+    SOUTH_EAST = SOUTH + EAST,
     NORTH_WEST = NORTH + WEST,
+    NORTH_EAST = NORTH + EAST,
 
-    EAST_2  = EAST + EAST,
-    WEST_2  = WEST + WEST,
-    NORTH_2 = NORTH + NORTH,
     SOUTH_2 = SOUTH + SOUTH,
+    WEST_2  = WEST + WEST,
+    EAST_2  = EAST + EAST,
+    NORTH_2 = NORTH + NORTH,
 };
 
 enum Bound : std::uint8_t {
@@ -596,20 +596,28 @@ struct DirtyThreat final {
     DirtyThreat() noexcept {
         // Don't initialize data
     }
-    DirtyThreat(std::uint32_t d) noexcept :
+    constexpr explicit DirtyThreat(std::uint32_t d) noexcept :
         data(d) {}
-    DirtyThreat(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool add) noexcept {
-        data = (add << 31) | (threatenedPc << ThreatenedPcOffset) | (pc << PcOffset)
-             | (threatenedSq << ThreatenedSqOffset) | (sq << SqOffset);
+    constexpr DirtyThreat(
+      Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool add) noexcept :
+        data((add << 31) | (threatenedPc << ThreatenedPcOffset) | (pc << PcOffset)
+             | (threatenedSq << ThreatenedSqOffset) | (sq << SqOffset)) {}
+
+    constexpr Square sq() const noexcept {  //
+        return Square((data >> SqOffset) & 0xFF);
     }
+    constexpr Square threatened_sq() const noexcept {
+        return Square((data >> ThreatenedSqOffset) & 0xFF);
+    }
+    constexpr Piece pc() const noexcept {  //
+        return Piece((data >> PcOffset) & 0xF);
+    }
+    constexpr Piece threatened_pc() const noexcept {
+        return Piece((data >> ThreatenedPcOffset) & 0xF);
+    }
+    constexpr bool add() const noexcept { return (data >> 31) != 0; }
 
-    Square sq() const noexcept { return Square((data >> SqOffset) & 0xFF); }
-    Square threatened_sq() const noexcept { return Square((data >> ThreatenedSqOffset) & 0xFF); }
-    Piece  pc() const noexcept { return Piece((data >> PcOffset) & 0xF); }
-    Piece  threatened_pc() const noexcept { return Piece((data >> ThreatenedPcOffset) & 0xF); }
-    bool   add() const noexcept { return (data >> 31) != 0; }
-
-    std::uint32_t raw() const noexcept { return data; }
+    constexpr std::uint32_t raw() const noexcept { return data; }
 
    private:
     std::uint32_t data;
@@ -652,6 +660,11 @@ template<typename... Ts>
 constexpr auto is_all_same_v = is_all_same<Ts...>::value;
 
 }  // namespace DON
+
+template<>
+struct std::hash<DON::Move> {
+    std::size_t operator()(DON::Move m) const noexcept { return DON::make_hash(m.raw()); }
+};
 
 #endif  // #ifndef TYPES_H_INCLUDED
 

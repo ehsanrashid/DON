@@ -743,7 +743,7 @@ void TBTable<T>::set_groups(PairsData* pd, const StdArray<int, 2>& order, File f
         // Move to next group if not extending
         n += int(!extend);
         // Increment current group if extending, or initialize new group if not
-        pd->groupLen[n] = int(extend) * (pd->groupLen[n] + 1) + int(!extend);
+        pd->groupLen[n] = 1 + int(extend) * pd->groupLen[n];
         // Decrement firstLen if it contributed to the extension
         firstLen -= int(firstLen > 1);
     }
@@ -1872,7 +1872,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
         return 0;
 
     if (*ps != PS_AC_CHANGED)
-        return (dtzScore + 100 * (wdlScore == WDL_BLESSED_LOSS || wdlScore == WDL_CURSED_WIN))
+        return (dtzScore + (wdlScore == WDL_BLESSED_LOSS || wdlScore == WDL_CURSED_WIN) * 100)
              * sign(wdlScore);
 
     // DTZ-score stores results for the other side, so need to do a 1-ply search
@@ -1913,7 +1913,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     }
 
     // When there are no legal moves, the position is mate: return -1
-    return minDtzScore == 0xFFFF ? -1 : minDtzScore;
+    return minDtzScore != 0xFFFF ? minDtzScore : -1;
 }
 
 // clang-format off
@@ -1992,7 +1992,7 @@ bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bo
         {
             // Otherwise, take dtzScore for the new position and correct by 1 ply
             dtzScore = -probe_dtz(pos, &ps);
-            dtzScore = dtzScore > 0 ? dtzScore + 1 : dtzScore < 0 ? dtzScore - 1 : dtzScore;
+            dtzScore += sign(dtzScore);
         }
 
         // Make sure that a mating move is assigned a dtzScore value of 1

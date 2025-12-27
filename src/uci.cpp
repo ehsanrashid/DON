@@ -68,7 +68,7 @@ enum Command : std::uint8_t {
 };
 
 // clang-format off
-const std::unordered_map<std::string_view, Command> CommandMap{
+const std::unordered_map<std::string_view, Command> COMMAND_MAP{
   {"stop",       CMD_STOP},
   {"quit",       CMD_QUIT},
   {"ponderhit",  CMD_PONDERHIT},
@@ -90,12 +90,14 @@ const std::unordered_map<std::string_view, Command> CommandMap{
   {"--help",     CMD_HELP},
   {"help",       CMD_HELP},
   {"--license",  CMD_HELP},
-  {"license",    CMD_HELP}};
+  {"license",    CMD_HELP}
+};
 // clang-format on
 
 Command to_command(std::string_view command) noexcept {
-    auto itr = CommandMap.find(command);
-    return itr != CommandMap.end() ? itr->second : CMD_NONE;
+    auto itr = COMMAND_MAP.find(command);
+
+    return itr != COMMAND_MAP.end() ? itr->second : CMD_NONE;
 }
 
 Limit parse_limit(std::istream& is) noexcept {
@@ -199,7 +201,7 @@ UCI::UCI(int argc, const char* argv[]) noexcept :
     engine(argv[0]),
     commandLine(argc, argv) {
 
-    options().set_info_listener([](const std::optional<std::string>& optStr) {
+    options().set_info_listener([](const std::optional<std::string>& optStr) noexcept {
         if (optStr.has_value())
             print_info_string(*optStr);
     });
@@ -208,16 +210,20 @@ UCI::UCI(int argc, const char* argv[]) noexcept :
 }
 
 void UCI::run() noexcept {
+
     std::string command;
     command.reserve(256);
+
     for (std::size_t i = 1; i < commandLine.arguments.size(); ++i)
     {
         if (!command.empty())
-            command.push_back(' ');
+            command += ' ';
+
         command.append(commandLine.arguments[i].data(), commandLine.arguments[i].size());
     }
 
     const bool running = commandLine.arguments.size() <= 1;
+
     if (!running && is_whitespace(command))
         return;
 
@@ -233,6 +239,7 @@ void UCI::run() noexcept {
 
         if (command == "quit")
             break;
+
     } while (running);
 }
 
@@ -413,6 +420,7 @@ void UCI::position(std::istream& is) noexcept {
     else if (token.size() >= 1 && token[0] == 'f')  // "fen"
     {
         fen.reserve(64);
+
         std::size_t i = 0;
         while (is >> token && i < 6)  // Consume the "moves" token, if any
         {
@@ -467,6 +475,7 @@ void UCI::setoption(std::istream& is) noexcept {
     {
         if (!name.empty())
             name += ' ';
+
         name += token;
     }
 
@@ -476,6 +485,7 @@ void UCI::setoption(std::istream& is) noexcept {
     {
         if (!value.empty())
             value += ' ';
+
         value += token;
     }
 
@@ -518,6 +528,7 @@ void UCI::bench(std::istream& is) noexcept {
 
         std::string token;
         iss >> token;
+
         if (token.empty())
             continue;
 
@@ -619,6 +630,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
         std::string token;
         iss >> token;
+
         if (token.empty())
             continue;
 
@@ -694,6 +706,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
         std::string token;
         iss >> token;
+
         if (token.empty())
             continue;
 
@@ -779,15 +792,15 @@ struct WinRateParams final {
 WinRateParams win_rate_params(const Position& pos) noexcept {
 
     // clang-format off
-    constexpr StdArray<double, 4> as{-13.50030198,   40.92780883, -36.82753545, 386.83004070};
-    constexpr StdArray<double, 4> bs{ 96.53354896, -165.79058388,  90.89679019,  49.29561889};
+    constexpr StdArray<double, 4> As{-13.50030198,   40.92780883, -36.82753545, 386.83004070};
+    constexpr StdArray<double, 4> Bs{ 96.53354896, -165.79058388,  90.89679019,  49.29561889};
     // clang-format on
 
     // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (17.2414e-3).
     double m = 17.2414e-3 * std::clamp(pos.std_material(), 17, 78);
     // Return a = p_a(material) and b = p_b(material).
-    double a = ((as[0] * m + as[1]) * m + as[2]) * m + as[3];
-    double b = ((bs[0] * m + bs[1]) * m + bs[2]) * m + bs[3];
+    double a = ((As[0] * m + As[1]) * m + As[2]) * m + As[3];
+    double b = ((Bs[0] * m + Bs[1]) * m + Bs[2]) * m + Bs[3];
 
     return {a, b};
 }
@@ -833,11 +846,13 @@ std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
 
     std::string wdl;
     wdl.reserve(16);
+
     wdl += std::to_string(wdlW);
     wdl += ' ';
     wdl += std::to_string(wdlD);
     wdl += ' ';
     wdl += std::to_string(wdlL);
+
     return wdl;
 }
 
