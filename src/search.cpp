@@ -1393,8 +1393,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r += (!capture && depth >= 12) * 256;
 
         // Increase reduction if current ply has a lot of fail high
-        r += (ss->cutoffCount > 1)
-           * (120 + (ss->cutoffCount > 2) * 1024 + (ss->cutoffCount > 3) * 100 + AllNode * 1024);
+        r += (ss->cutoffCount > 1) * (120 + (ss->cutoffCount - 2) * 256 + AllNode * 1024);
 
         // For first picked move (ttMove) reduce reduction
         r -= (move == ttd.move) * 2151;
