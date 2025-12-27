@@ -1402,6 +1402,10 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Decrease/Increase reduction for moves with a good/bad history
         r -= int(103.7598e-3 * ss->history);
 
+        // Scale up reductions for expected ALL nodes
+        if constexpr (AllNode)
+            r = r * (depth + 2) / (depth + 1);
+
         // Step 17. Late moves reduction / extension (LMR)
         if (depth > 1 && moveCount > 1)
         {
