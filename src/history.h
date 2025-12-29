@@ -83,11 +83,9 @@ inline constexpr std::size_t QUIET_HISTORY_SIZE = 0x10000;  // Max upto 16-bit
 static_assert((QUIET_HISTORY_SIZE & (QUIET_HISTORY_SIZE - 1)) == 0,
               "QUIET_HISTORY_SIZE has to be a power of 2");
 
-inline constexpr std::size_t PAWN_HISTORY_SIZE = 0x4000;
-static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
+inline constexpr std::size_t PAWN_HISTORY_BASE_SIZE = 0x4000;
+static_assert((PAWN_HISTORY_BASE_SIZE & (PAWN_HISTORY_BASE_SIZE - 1)) == 0,
               "PAWN_HISTORY_SIZE has to be a power of 2");
-
-constexpr std::size_t pawn_index(Key pawnKey) noexcept { return pawnKey & (PAWN_HISTORY_SIZE - 1); }
 
 inline constexpr std::size_t CORRECTION_HISTORY_BASE_SIZE = 0x10000;
 static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)) == 0,
@@ -108,6 +106,9 @@ namespace internal {
 template<int D, std::size_t... Sizes>
 using Stats = MultiArray<StatsEntry<std::int16_t, D>, Sizes...>;
 
+template<int D, std::size_t... Sizes>
+using AtomicStats = MultiArray<StatsEntry<std::int16_t, D, true>, Sizes...>;
+
 template<HistoryType T>
 struct HistoryDef;
 
@@ -126,7 +127,7 @@ struct HistoryDef<H_QUIET> final {
 
 template<>
 struct HistoryDef<H_PAWN> final {
-    using Type = Stats<8192, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
+    using Type = DynamicArray<AtomicStats<8192, PIECE_NB, SQUARE_NB>>;
 };
 
 // It is used to improve quiet move ordering near the root.
@@ -174,25 +175,24 @@ template<std::size_t... Sizes>
 using CorrectionStats = Stats<CORRECTION_HISTORY_LIMIT, Sizes...>;
 
 template<std::size_t... Sizes>
-using CorrectionStatsAtomic =
-  MultiArray<StatsEntry<std::int16_t, CORRECTION_HISTORY_LIMIT, true>, Sizes...>;
+using AtomicCorrectionStats = AtomicStats<CORRECTION_HISTORY_LIMIT, Sizes...>;
 
 template<CorrectionHistoryType T>
 struct CorrectionHistoryDef;
 
 template<>
 struct CorrectionHistoryDef<CH_PAWN> final {
-    using Type = DynamicArray<CorrectionStatsAtomic<COLOR_NB, COLOR_NB>>;
+    using Type = DynamicArray<AtomicCorrectionStats<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
 struct CorrectionHistoryDef<CH_MINOR> final {
-    using Type = DynamicArray<CorrectionStatsAtomic<COLOR_NB, COLOR_NB>>;
+    using Type = DynamicArray<AtomicCorrectionStats<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
 struct CorrectionHistoryDef<CH_NON_PAWN> final {
-    using Type = DynamicArray<CorrectionStatsAtomic<COLOR_NB, COLOR_NB>>;
+    using Type = DynamicArray<AtomicCorrectionStats<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
@@ -216,13 +216,27 @@ class Histories final {
    public:
     Histories() = delete;
     Histories(std::size_t count) noexcept :
+        pawnSize(count * PAWN_HISTORY_BASE_SIZE),
         correctionSize(count * CORRECTION_HISTORY_BASE_SIZE),
+        _pawn(pawn_size()),
         pawnCorrection(correction_size()),
         minorCorrection(correction_size()),
         nonPawnCorrection(correction_size()) {
         assert(count != 0 && (count & (count - 1)) == 0);
+        assert((pawn_size() & (pawn_size() - 1)) == 0);
         assert((correction_size() & (correction_size() - 1)) == 0);
     }
+
+    constexpr std::size_t pawn_size() const noexcept { return pawnSize; }
+    constexpr std::size_t pawn_mask() const noexcept { return pawn_size() - 1; }
+
+    constexpr std::size_t pawn_index(Key pawnKey) const noexcept { return pawnKey & pawn_mask(); }
+
+    auto& pawn() noexcept { return _pawn; }
+
+    auto&       pawn(Key pawnKey) noexcept { return _pawn[pawn_index(pawnKey)]; }
+    const auto& pawn(Key pawnKey) const noexcept { return _pawn[pawn_index(pawnKey)]; }
+
 
     constexpr std::size_t correction_size() const noexcept { return correctionSize; }
     constexpr std::size_t correction_mask() const noexcept { return correction_size() - 1; }
@@ -265,7 +279,10 @@ class Histories final {
     }
 
    private:
+    const std::size_t pawnSize;
     const std::size_t correctionSize;
+
+    History<H_PAWN> _pawn;
 
     CorrectionHistory<CH_PAWN>     pawnCorrection;
     CorrectionHistory<CH_MINOR>    minorCorrection;

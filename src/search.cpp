@@ -199,7 +199,6 @@ void Worker::init() noexcept {
 
     captureHistory.fill(-689);
     quietHistory.fill(68);
-    pawnHistory.fill(-1238);
     ttMoveHistory = 0;
 
     for (bool inCheck : {false, true})
@@ -209,9 +208,22 @@ void Worker::init() noexcept {
                     pieceSqHist.fill(-529);
 
     // Each thread is responsible for clearing their part of correction history
-    std::size_t size   = histories.correction_size() / numaThreadCount;
-    std::size_t begIdx = numaId * size;
-    std::size_t endIdx = std::min(begIdx + size, histories.correction_size());
+    std::size_t Size;
+    std::size_t perSize;
+    std::size_t begIdx;
+    std::size_t endIdx;
+
+    Size    = histories.pawn_size();
+    perSize = Size / numaThreadCount;
+    begIdx  = numaId * perSize;
+    endIdx  = std::min(begIdx + perSize, Size);
+
+    histories.pawn().fill(begIdx, endIdx, -1238);
+
+    Size    = histories.correction_size();
+    perSize = Size / numaThreadCount;
+    begIdx  = numaId * perSize;
+    endIdx  = std::min(begIdx + perSize, Size);
 
     histories.pawn_correction().fill(begIdx, endIdx, 5);
     histories.minor_correction().fill(begIdx, endIdx, 0);
@@ -864,7 +876,7 @@ Value Worker::search(Position&    pos,
     if (depth > 1 && red >= 2 && ss->evalValue > 169 - (ss - 1)->evalValue)
         --depth;
 
-    std::size_t pawnIndex = pawn_index(pos.pawn_key());
+    Key pawnKey = pos.pawn_key();
 
     State st;
 
@@ -879,7 +891,7 @@ Value Worker::search(Position&    pos,
         {
             // Bonus for a quiet ttMove
             if (!ttCapture)
-                update_quiet_histories(pos, ss, pawnIndex, ttd.move,
+                update_quiet_histories(pos, ss, pawnKey, ttd.move,
                                        std::min(-72 + 132 * depth, +985));
 
             // Extra penalty for early quiet moves of the previous ply
@@ -992,9 +1004,10 @@ Value Worker::search(Position&    pos,
     {
         int bonus = 59 + std::clamp(-((ss - 1)->evalValue + (ss - 0)->evalValue), -209, +167);
 
-        update_quiet_history(~ac, (ss - 1)->move, 9.0000 * bonus);
         if (!ttd.hit && preNonPawn)
-            update_pawn_history(pawnIndex, pos[preSq], preSq, 13.0000 * bonus);
+            update_pawn_history(pawnKey, pos[preSq], preSq, 13.0000 * bonus);
+
+        update_quiet_history(~ac, (ss - 1)->move, 9.0000 * bonus);
     }
 
     // Step 7. Razoring
@@ -1162,7 +1175,7 @@ S_MOVES_LOOP:  // When in check, search starts here
       (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory   //
     };
 
-    MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &pawnHistory, &lowPlyQuietHistory,
+    MovePicker mp(pos, ttd.move, &histories, &captureHistory, &quietHistory, &lowPlyQuietHistory,
                   contHistory, ss->ply, -1);
     // Step 13. Loop through all legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
@@ -1244,7 +1257,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             }
             else
             {
-                int history = pawnHistory[pawnIndex][movedPc][dstSq]
+                int history = histories.pawn(pawnKey)[movedPc][dstSq]
                             + (*contHistory[0])[movedPc][dstSq]  //
                             + (*contHistory[1])[movedPc][dstSq];
 
@@ -1586,7 +1599,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
     {
-        update_histories(pos, ss, pawnIndex, depth, bestMove, searchedMoves);
+        update_histories(pos, ss, pawnKey, depth, bestMove, searchedMoves);
 
         if constexpr (!RootNode)
             ttMoveHistory << (bestMove == ttd.move ? +809 : -865);
@@ -1612,10 +1625,10 @@ S_MOVES_LOOP:  // When in check, search starts here
             // clang-format on
             int bonus = bonusScale * std::min(-87 + 141 * depth, +1351);
 
-            update_quiet_history(~ac, (ss - 1)->move, 7.4158e-3 * bonus);
-
             if (preNonPawn)
-                update_pawn_history(pawnIndex, pos[preSq], preSq, 35.4004e-3 * bonus);
+                update_pawn_history(pawnKey, pos[preSq], preSq, 35.4004e-3 * bonus);
+
+            update_quiet_history(~ac, (ss - 1)->move, 7.4158e-3 * bonus);
 
             update_continuation_history(ss - 1, pos[preSq], preSq, 12.3901e-3 * bonus);
         }
@@ -1780,7 +1793,7 @@ QS_MOVES_LOOP:
 
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
-    MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &pawnHistory, &lowPlyQuietHistory,
+    MovePicker mp(pos, ttd.move, &histories, &captureHistory, &quietHistory, &lowPlyQuietHistory,
                   contHistory, ss->ply);
     // Step 5. Loop through all legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
@@ -1942,6 +1955,10 @@ Value Worker::evaluate(const Position& pos) noexcept {
 
 // clang-format off
 
+void Worker::update_pawn_history(Key pawnKey, Piece movedPc, Square dstSq, int bonus) noexcept {
+    histories.pawn(pawnKey)[movedPc][dstSq] << bonus;
+}
+
 void Worker::update_capture_history(Piece movedPc, Square dstSq, PieceType capturedPt, int bonus) noexcept {
     captureHistory[movedPc][dstSq][capturedPt] << bonus;
 }
@@ -1951,9 +1968,6 @@ void Worker::update_capture_history(const Position& pos, Move m, int bonus) noex
 void Worker::update_quiet_history(Color ac, Move m, int bonus) noexcept {
     quietHistory[ac][m.raw()] << bonus;
 }
-void Worker::update_pawn_history(std::size_t pawnIndex, Piece movedPc, Square dstSq, int bonus) noexcept {
-    pawnHistory[pawnIndex][movedPc][dstSq] << bonus;
-}
 void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
@@ -1962,12 +1976,12 @@ void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus)
 }
 
 // Updates quiet histories (move sorting heuristics)
-void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::size_t pawnIndex, Move m, int bonus) noexcept {
+void Worker::update_quiet_histories(const Position& pos, Stack* const ss, Key pawnKey, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
-    update_quiet_history(pos.active_color(), m, 1.0000 * bonus);
+    update_pawn_history(pawnKey, pos.moved_pc(m), m.dst_sq(), (bonus > 0 ? 0.8837 : 0.4932) * bonus);
 
-    update_pawn_history(pawnIndex, pos.moved_pc(m), m.dst_sq(), (bonus > 0 ? 0.8837 : 0.4932) * bonus);
+    update_quiet_history(pos.active_color(), m, 1.0000 * bonus);
 
     update_low_ply_quiet_history(ss->ply, m, 0.7861 * bonus);
 
@@ -1975,7 +1989,7 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, std::s
 }
 
 // Updates history at the end of search() when a bestMove is found
-void Worker::update_histories(const Position& pos, Stack* const ss, std::size_t pawnIndex, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position& pos, Stack* const ss, Key pawnKey, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(ss->moveCount != 0);
 
     const int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * (bestMove == ss->ttMove);
@@ -1987,12 +2001,12 @@ void Worker::update_histories(const Position& pos, Stack* const ss, std::size_t 
     }
     else
     {
-        update_quiet_histories(pos, ss, pawnIndex, bestMove, 0.8887 * bonus);
+        update_quiet_histories(pos, ss, pawnKey, bestMove, 0.8887 * bonus);
 
         // Decrease history for all non-best quiet moves
         const auto& quietMoves = searchedMoves[0];
         for (std::size_t i = 0; i < quietMoves.size(); ++i)
-            update_quiet_histories(pos, ss, pawnIndex, quietMoves[i], -1.0596 * (i < 5 ? 1.0 : 5.0 / (i + 1)) * malus);
+            update_quiet_histories(pos, ss, pawnKey, quietMoves[i], -1.0596 * (i < 5 ? 1.0 : 5.0 / (i + 1)) * malus);
     }
 
     // Decrease history for all non-best capture moves
