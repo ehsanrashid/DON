@@ -113,20 +113,20 @@ namespace DON {
 // If the path is longer than 4095 bytes the hash will be computed from an unspecified
 // amount of bytes of the path; in particular it can a hash of an empty string.
 
-enum class SystemWideSharedConstantAllocationStatus {
+enum class SharedMemoryAllocationStatus {
     NoAllocation,
     LocalMemory,
     SharedMemory
 };
 
-inline std::string to_string(SystemWideSharedConstantAllocationStatus status) noexcept {
+inline std::string to_string(SharedMemoryAllocationStatus status) noexcept {
     switch (status)
     {
-    case SystemWideSharedConstantAllocationStatus::NoAllocation :
+    case SharedMemoryAllocationStatus::NoAllocation :
         return "No allocation";
-    case SystemWideSharedConstantAllocationStatus::LocalMemory :
+    case SharedMemoryAllocationStatus::LocalMemory :
         return "Local memory";
-    case SystemWideSharedConstantAllocationStatus::SharedMemory :
+    case SharedMemoryAllocationStatus::SharedMemory :
         return "Shared memory";
     default :
         return "Unknown status";
@@ -195,19 +195,19 @@ inline std::string executable_path() noexcept {
 // For systems that don't have shared memory, or support is troublesome.
 // The way fallback is done is that need a dummy backend.
 template<typename T>
-class SharedMemoryBackend final {
+class BackendSharedMemory final {
    public:
-    SharedMemoryBackend() = default;
+    BackendSharedMemory() = default;
 
-    SharedMemoryBackend([[maybe_unused]] const std::string& shmName,
+    BackendSharedMemory([[maybe_unused]] const std::string& shmName,
                         [[maybe_unused]] const T&           value) noexcept {}
 
     bool is_valid() const noexcept { return false; }
 
     void* get() const noexcept { return nullptr; }
 
-    SystemWideSharedConstantAllocationStatus get_status() const noexcept {
-        return SystemWideSharedConstantAllocationStatus::NoAllocation;
+    SharedMemoryAllocationStatus get_status() const noexcept {
+        return SharedMemoryAllocationStatus::NoAllocation;
     }
 
     std::optional<std::string> get_error_message() const noexcept {
@@ -245,7 +245,7 @@ inline std::string error_to_string(DWORD errorId) noexcept {
 
 // Utilizes shared memory to store the value. It is deduplicated system-wide (for the single user)
 template<typename T>
-class SharedMemoryBackend final {
+class BackendSharedMemory final {
    public:
     enum class Status {
         Success,
@@ -258,12 +258,12 @@ class SharedMemoryBackend final {
         LargePageAllocationError,
     };
 
-    static constexpr DWORD IS_INITIALIZED_VALUE = 1;
+    static constexpr DWORD IS_INITIALIZED = 1;
 
-    SharedMemoryBackend() noexcept :
+    BackendSharedMemory() noexcept :
         status(Status::NotInitialized) {};
 
-    SharedMemoryBackend(const std::string& shmName, const T& value) noexcept :
+    BackendSharedMemory(const std::string& shmName, const T& value) noexcept :
         status(Status::NotInitialized) {
 
         initialize(shmName, value);
@@ -273,42 +273,42 @@ class SharedMemoryBackend final {
 
     void* get() const noexcept { return is_valid() ? mappedPtr : nullptr; }
 
-    ~SharedMemoryBackend() noexcept { cleanup(); }
+    ~BackendSharedMemory() noexcept { cleanup(); }
 
-    SharedMemoryBackend(const SharedMemoryBackend&) noexcept            = delete;
-    SharedMemoryBackend& operator=(const SharedMemoryBackend&) noexcept = delete;
+    BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
+    BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
 
-    SharedMemoryBackend(SharedMemoryBackend&& shmBackend) noexcept :
-        hMapFile(shmBackend.hMapFile),
-        mappedPtr(shmBackend.mappedPtr),
-        status(shmBackend.status),
-        lastErrorStr(std::move(shmBackend.lastErrorStr)) {
+    BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept :
+        hMapFile(backendShm.hMapFile),
+        mappedPtr(backendShm.mappedPtr),
+        status(backendShm.status),
+        lastErrorStr(std::move(backendShm.lastErrorStr)) {
 
-        shmBackend.mappedPtr = nullptr;
-        shmBackend.hMapFile  = nullptr;
-        shmBackend.status    = Status::NotInitialized;
+        backendShm.mappedPtr = nullptr;
+        backendShm.hMapFile  = nullptr;
+        backendShm.status    = Status::NotInitialized;
     }
-    SharedMemoryBackend& operator=(SharedMemoryBackend&& shmBackend) noexcept {
-        if (this == &shmBackend)
+    BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept {
+        if (this == &backendShm)
             return *this;
 
         cleanup();
 
-        hMapFile     = shmBackend.hMapFile;
-        mappedPtr    = shmBackend.mappedPtr;
-        status       = shmBackend.status;
-        lastErrorStr = std::move(shmBackend.lastErrorStr);
+        hMapFile     = backendShm.hMapFile;
+        mappedPtr    = backendShm.mappedPtr;
+        status       = backendShm.status;
+        lastErrorStr = std::move(backendShm.lastErrorStr);
 
-        shmBackend.hMapFile  = nullptr;
-        shmBackend.mappedPtr = nullptr;
-        shmBackend.status    = Status::NotInitialized;
+        backendShm.hMapFile  = nullptr;
+        backendShm.mappedPtr = nullptr;
+        backendShm.status    = Status::NotInitialized;
 
         return *this;
     }
 
-    SystemWideSharedConstantAllocationStatus get_status() const noexcept {
-        return status == Status::Success ? SystemWideSharedConstantAllocationStatus::SharedMemory
-                                         : SystemWideSharedConstantAllocationStatus::NoAllocation;
+    SharedMemoryAllocationStatus get_status() const noexcept {
+        return status == Status::Success ? SharedMemoryAllocationStatus::SharedMemory
+                                         : SharedMemoryAllocationStatus::NoAllocation;
     }
 
     std::optional<std::string> get_error_message() const noexcept {
@@ -337,7 +337,7 @@ class SharedMemoryBackend final {
 
    private:
     void initialize(const std::string& shmName, const T& value) noexcept {
-        std::size_t totalSize = sizeof(T) + sizeof(IS_INITIALIZED_VALUE);
+        std::size_t totalSize = sizeof(T) + sizeof(IS_INITIALIZED);
 
         // Try allocating with large page first
         hMapFile = try_with_windows_lock_memory_privilege(
@@ -414,12 +414,12 @@ class SharedMemoryBackend final {
 
         T* object = std::launder(reinterpret_cast<T*>(mappedPtr));
 
-        if (*isInitialized != IS_INITIALIZED_VALUE)
+        if (*isInitialized != IS_INITIALIZED)
         {
             // First time initialization, message for debug purposes
             new (object) T{value};
 
-            *isInitialized = IS_INITIALIZED_VALUE;
+            *isInitialized = IS_INITIALIZED;
         }
 
         if (!ReleaseMutex(hMutex))
@@ -1139,11 +1139,11 @@ template<typename T>
 }  // namespace internal
 
 template<typename T>
-class SharedMemoryBackend final {
+class BackendSharedMemory final {
    public:
-    SharedMemoryBackend() = default;
+    BackendSharedMemory() = default;
 
-    SharedMemoryBackend(const std::string& shmName, const T& value) noexcept :
+    BackendSharedMemory(const std::string& shmName, const T& value) noexcept :
         shm(internal::create_shared_memory<T>(shmName, value)) {}
 
     bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
@@ -1152,9 +1152,9 @@ class SharedMemoryBackend final {
         return is_valid() ? reinterpret_cast<void*>(const_cast<T*>(&shm->get())) : nullptr;
     }
 
-    SystemWideSharedConstantAllocationStatus get_status() const noexcept {
-        return is_valid() ? SystemWideSharedConstantAllocationStatus::SharedMemory
-                          : SystemWideSharedConstantAllocationStatus::NoAllocation;
+    SharedMemoryAllocationStatus get_status() const noexcept {
+        return is_valid() ? SharedMemoryAllocationStatus::SharedMemory
+                          : SharedMemoryAllocationStatus::NoAllocation;
     }
 
     std::optional<std::string> get_error_message() const noexcept {
@@ -1177,27 +1177,28 @@ class SharedMemoryBackend final {
 #endif
 
 template<typename T>
-struct FallbackSharedMemoryBackend final {
-    FallbackSharedMemoryBackend() noexcept = default;
+struct FallbackBackendSharedMemory final {
+    FallbackBackendSharedMemory() noexcept = default;
 
-    FallbackSharedMemoryBackend(const std::string&, const T& value) noexcept :
+    FallbackBackendSharedMemory(const std::string&, const T& value) noexcept :
         fallbackObj(make_unique_aligned_large_page<T>(value)) {}
 
     void* get() const { return fallbackObj.get(); }
 
-    FallbackSharedMemoryBackend(const FallbackSharedMemoryBackend&) noexcept            = delete;
-    FallbackSharedMemoryBackend& operator=(const FallbackSharedMemoryBackend&) noexcept = delete;
+    FallbackBackendSharedMemory(const FallbackBackendSharedMemory&) noexcept            = delete;
+    FallbackBackendSharedMemory& operator=(const FallbackBackendSharedMemory&) noexcept = delete;
 
-    FallbackSharedMemoryBackend(FallbackSharedMemoryBackend&& fallbackBackend) noexcept :
-        fallbackObj(std::move(fallbackBackend.fallbackObj)) {}
-    FallbackSharedMemoryBackend& operator=(FallbackSharedMemoryBackend&& fallbackBackend) noexcept {
-        fallbackObj = std::move(fallbackBackend.fallbackObj);
+    FallbackBackendSharedMemory(FallbackBackendSharedMemory&& fallbackBackendShm) noexcept :
+        fallbackObj(std::move(fallbackBackendShm.fallbackObj)) {}
+    FallbackBackendSharedMemory&
+    operator=(FallbackBackendSharedMemory&& fallbackBackendShm) noexcept {
+        fallbackObj = std::move(fallbackBackendShm.fallbackObj);
         return *this;
     }
 
-    SystemWideSharedConstantAllocationStatus get_status() const noexcept {
-        return fallbackObj == nullptr ? SystemWideSharedConstantAllocationStatus::NoAllocation
-                                      : SystemWideSharedConstantAllocationStatus::LocalMemory;
+    SharedMemoryAllocationStatus get_status() const noexcept {
+        return fallbackObj == nullptr ? SharedMemoryAllocationStatus::NoAllocation
+                                      : SharedMemoryAllocationStatus::LocalMemory;
     }
 
     std::optional<std::string> get_error_message() const noexcept {
@@ -1213,7 +1214,7 @@ struct FallbackSharedMemoryBackend final {
 
 // Platform-independent wrapper
 template<typename T>
-struct SystemWideSharedConstant final {
+struct SystemWideSharedMemory final {
    public:
     // Can't run the destructor because it may be in a completely different process.
     // The object stored must also be obviously in-line but can't check for that,
@@ -1222,11 +1223,11 @@ struct SystemWideSharedConstant final {
     static_assert(std::is_trivially_move_constructible_v<T>);
     static_assert(std::is_trivially_copy_constructible_v<T>);
 
-    SystemWideSharedConstant() noexcept = default;
+    SystemWideSharedMemory() noexcept = default;
 
     // Content is addressed by its hash. An additional discriminator can be added to account for differences
     // that are not present in the content, for example NUMA node allocation.
-    SystemWideSharedConstant(const T& value, std::size_t discriminator = 0) noexcept {
+    SystemWideSharedMemory(const T& value, std::size_t discriminator = 0) noexcept {
         std::size_t valueHash      = std::hash<T>{}(value);
         std::size_t executableHash = std::hash<std::string>{}(executable_path());
 
@@ -1242,21 +1243,21 @@ struct SystemWideSharedConstant final {
             shmName = shmName.substr(0, SHM_NAME_MAX_SIZE - 1);
 #endif
 
-        SharedMemoryBackend<T> shmBackend(shmName, value);
+        BackendSharedMemory<T> backendShmm(shmName, value);
 
-        if (shmBackend.is_valid())
-            backend = std::move(shmBackend);
+        if (backendShmm.is_valid())
+            backendShm = std::move(backendShmm);
         else
-            backend = FallbackSharedMemoryBackend<T>(shmName, value);
+            backendShm = FallbackBackendSharedMemory<T>(shmName, value);
     }
 
-    SystemWideSharedConstant(const SystemWideSharedConstant&) noexcept            = delete;
-    SystemWideSharedConstant& operator=(const SystemWideSharedConstant&) noexcept = delete;
+    SystemWideSharedMemory(const SystemWideSharedMemory&) noexcept            = delete;
+    SystemWideSharedMemory& operator=(const SystemWideSharedMemory&) noexcept = delete;
 
-    SystemWideSharedConstant(SystemWideSharedConstant&& sysConstant) noexcept :
-        backend(std::move(sysConstant.backend)) {}
-    SystemWideSharedConstant& operator=(SystemWideSharedConstant&& sysConstant) noexcept {
-        backend = std::move(sysConstant.backend);
+    SystemWideSharedMemory(SystemWideSharedMemory&& systemWideShm) noexcept :
+        backendShm(std::move(systemWideShm.backendShm)) {}
+    SystemWideSharedMemory& operator=(SystemWideSharedMemory&& systemWideShm) noexcept {
+        backendShm = std::move(systemWideShm.backendShm);
         return *this;
     }
 
@@ -1265,17 +1266,17 @@ struct SystemWideSharedConstant final {
     }
 
     bool operator==(std::nullptr_t) const noexcept { return get_ptr() == nullptr; }
-    bool operator!=(std::nullptr_t) const noexcept { return get_ptr() != nullptr; }
+    bool operator!=(std::nullptr_t) const noexcept { return !(*this == nullptr); }
 
-    SystemWideSharedConstantAllocationStatus get_status() const noexcept {
+    SharedMemoryAllocationStatus get_status() const noexcept {
         return std::visit(
-          [](const auto& end) -> SystemWideSharedConstantAllocationStatus {
+          [](const auto& end) -> SharedMemoryAllocationStatus {
               if constexpr (std::is_same_v<std::decay_t<decltype(end)>, std::monostate>)
-                  return SystemWideSharedConstantAllocationStatus::NoAllocation;
+                  return SharedMemoryAllocationStatus::NoAllocation;
               else
                   return end.get_status();
           },
-          backend);
+          backendShm);
     }
 
     std::optional<std::string> get_error_message() const noexcept {
@@ -1286,7 +1287,7 @@ struct SystemWideSharedConstant final {
               else
                   return end.get_error_message();
           },
-          backend);
+          backendShm);
     }
 
    private:
@@ -1298,10 +1299,10 @@ struct SystemWideSharedConstant final {
               else
                   return end.get();
           },
-          backend);
+          backendShm);
     }
 
-    std::variant<std::monostate, SharedMemoryBackend<T>, FallbackSharedMemoryBackend<T>> backend;
+    std::variant<std::monostate, BackendSharedMemory<T>, FallbackBackendSharedMemory<T>> backendShm;
 };
 
 }  // namespace DON

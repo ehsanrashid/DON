@@ -223,27 +223,27 @@ class Histories final {
         minorCorrectionHistory(correction_size()),
         nonPawnCorrectionHistory(correction_size()) {
         assert(count != 0 && (count & (count - 1)) == 0);
-        assert((pawn_size() & (pawn_size() - 1)) == 0);
-        assert((correction_size() & (correction_size() - 1)) == 0);
     }
 
     constexpr std::size_t pawn_size() const noexcept { return pawnSize; }
     constexpr std::size_t pawn_mask() const noexcept { return pawn_size() - 1; }
 
-    constexpr std::size_t pawn_index(Key pawnKey) const noexcept { return pawnKey & pawn_mask(); }
+    constexpr std::size_t pawn_index(Key pawnKey) const noexcept {  //
+        return pawnKey & pawn_mask();
+    }
+
+    constexpr std::size_t correction_size() const noexcept { return correctionSize; }
+    constexpr std::size_t correction_mask() const noexcept { return correction_size() - 1; }
+
+    constexpr std::size_t correction_index(Key correctionKey) const noexcept {  //
+        return correctionKey & correction_mask();
+    }
+
 
     auto& pawn() noexcept { return pawnHistory; }
 
     auto&       pawn(Key pawnKey) noexcept { return pawnHistory[pawn_index(pawnKey)]; }
     const auto& pawn(Key pawnKey) const noexcept { return pawnHistory[pawn_index(pawnKey)]; }
-
-
-    constexpr std::size_t correction_size() const noexcept { return correctionSize; }
-    constexpr std::size_t correction_mask() const noexcept { return correction_size() - 1; }
-
-    constexpr std::size_t correction_index(Key correctionKey) const noexcept {
-        return correctionKey & correction_mask();
-    }
 
     auto& pawn_correction() noexcept { return pawnCorrectionHistory; }
 

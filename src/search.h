@@ -569,8 +569,8 @@ class Worker final {
     void update_quiet_history(Color ac, Move m, int bonus) noexcept;
     void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
 
-    void update_quiet_histories(const Position& pos, Stack* const ss, Key pawnKey, Move m, int bonus) noexcept;
-    void update_histories(const Position& pos, Stack* const ss, Key pawnKey, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
+    void update_quiet_histories(const Position& pos, Key pawnKey, Stack* const ss, Move m, int bonus) noexcept;
+    void update_histories(const Position& pos, Key pawnKey, Stack* const ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
 
     void update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* const ss) noexcept;

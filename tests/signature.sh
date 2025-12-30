@@ -18,9 +18,9 @@ error() {
 trap 'error ${LINENO}' ERR
 
 # obtain signature
-signature=`eval "$WINE_PATH ./DON bench 2>&1" | grep "Total nodes     : " | awk '{print $4}'`
+signature=`eval "$RUN_PREFIX ./DON bench 2>&1" | grep "Total nodes     : " | awk '{print $4}'`
 
-#eval "$WINE_PATH ./DON bench" > "$StdoutFile" 2> "$StderrFile" || error ${LINENO}
+#eval "$RUN_PREFIX ./DON bench" > "$StdoutFile" 2> "$StderrFile" || error ${LINENO}
 #signature=$(grep "Total nodes     : " "$StderrFile" | awk '{print $4}')
 
 #rm -f "$StdoutFile" "$StderrFile"
