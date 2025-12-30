@@ -104,7 +104,7 @@ class FeatureTransformer final {
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t hash() noexcept {
-        return (UseThreats ? ThreatFeatureSet::Hash : PSQFeatureSet::Hash) ^ (OutputDimensions * 2);
+        return (UseThreats ? ThreatFeatureSet::Hash : PSQFeatureSet::Hash) ^ (2 * OutputDimensions);
     }
 
     // Store the order by which 128-bit blocks of a 1024-bit data must
