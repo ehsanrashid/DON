@@ -18,7 +18,6 @@
 #include "engine.h"
 
 #include <algorithm>
-#include <atomic>
 #include <cassert>
 #include <deque>
 #include <fstream>
