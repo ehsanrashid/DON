@@ -521,7 +521,7 @@ inline std::uint8_t Position::count(Color c) const noexcept {
 
 template<PieceType PT>
 inline std::uint8_t Position::count() const noexcept {
-    return count<PT>(WHITE) + count<PT>(BLACK);
+    return popcount(pieces_bb(PT));
 }
 
 inline std::uint8_t Position::count(Piece pc) const noexcept {

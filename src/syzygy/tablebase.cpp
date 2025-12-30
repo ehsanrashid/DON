@@ -396,10 +396,12 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept {
     Position pos;
 
     pos.set(code, WHITE, &st);
+
     key[WHITE] = pos.material_key();
 
     pieceCount = pos.count();
-    hasPawns   = pos.count<PAWN>() != 0;
+
+    hasPawns = pos.pieces_bb(PAWN) != 0;
 
     hasUniquePieces = false;
     for (Color c : {WHITE, BLACK})
@@ -415,9 +417,11 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept {
               : BLACK;
 
     pawnCount[WHITE] = pos.count<PAWN>(c);
+
     pawnCount[BLACK] = pos.count<PAWN>(~c);
 
     pos.set(code, BLACK, &st);
+
     key[BLACK] = pos.material_key();
 }
 
