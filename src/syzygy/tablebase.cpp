@@ -101,11 +101,14 @@ constexpr std::uint32_t MAX_TB_PIECES = 7;
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit
 constexpr std::int32_t MAX_DTZ = 0x40000;
 
-constexpr StdArray<std::string_view, 2> EXT{".rtbw", ".rtbz"};
+constexpr StdArray<std::string_view, 2> EXT{
+  ".rtbw",  // Win-Draw-Loss    (WDL)
+  ".rtbz"   // Distance-to-Zero (DTZ)
+};
 
 constexpr StdArray<std::uint8_t, 2, 4> TB_MAGICS{{
   {0x71, 0xE8, 0x23, 0x5D},  // Win-Draw-Loss    (WDL) = 0x5D23E871
-  {0xD7, 0x66, 0x0C, 0xA5},  // Distance-to-Zero (DTZ) = 0xA50C66D7
+  {0xD7, 0x66, 0x0C, 0xA5}   // Distance-to-Zero (DTZ) = 0xA50C66D7
 }};
 
 // clang-format off
