@@ -879,7 +879,7 @@ Value Worker::search(Position&    pos,
         {
             // Bonus for a quiet ttMove
             if (!ttCapture)
-                update_quiet_histories(pos, ss, pawnKey, ttd.move,
+                update_quiet_histories(pos, pawnKey, ss, ttd.move,
                                        std::min(-72 + 132 * depth, +985));
 
             // Extra penalty for early quiet moves of the previous ply
@@ -1587,7 +1587,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
     {
-        update_histories(pos, ss, pawnKey, depth, bestMove, searchedMoves);
+        update_histories(pos, pawnKey, ss, depth, bestMove, searchedMoves);
 
         if constexpr (!RootNode)
             ttMoveHistory << (bestMove == ttd.move ? +809 : -865);
@@ -1964,7 +1964,7 @@ void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus)
 }
 
 // Updates quiet histories (move sorting heuristics)
-void Worker::update_quiet_histories(const Position& pos, Stack* const ss, Key pawnKey, Move m, int bonus) noexcept {
+void Worker::update_quiet_histories(const Position& pos, Key pawnKey, Stack* const ss, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
     update_pawn_history(pawnKey, pos.moved_pc(m), m.dst_sq(), (bonus > 0 ? 0.8837 : 0.4932) * bonus);
@@ -1977,7 +1977,7 @@ void Worker::update_quiet_histories(const Position& pos, Stack* const ss, Key pa
 }
 
 // Updates history at the end of search() when a bestMove is found
-void Worker::update_histories(const Position& pos, Stack* const ss, Key pawnKey, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(ss->moveCount != 0);
 
     const int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * (bestMove == ss->ttMove);
@@ -1989,12 +1989,12 @@ void Worker::update_histories(const Position& pos, Stack* const ss, Key pawnKey,
     }
     else
     {
-        update_quiet_histories(pos, ss, pawnKey, bestMove, 0.8887 * bonus);
+        update_quiet_histories(pos, pawnKey, ss, bestMove, 0.8887 * bonus);
 
         // Decrease history for all non-best quiet moves
         const auto& quietMoves = searchedMoves[0];
         for (std::size_t i = 0; i < quietMoves.size(); ++i)
-            update_quiet_histories(pos, ss, pawnKey, quietMoves[i], -1.0596 * (i < 5 ? 1.0 : 5.0 / (i + 1)) * malus);
+            update_quiet_histories(pos, pawnKey, ss, quietMoves[i], -1.0596 * (i < 5 ? 1.0 : 5.0 / (i + 1)) * malus);
     }
 
     // Decrease history for all non-best capture moves

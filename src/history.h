@@ -228,7 +228,9 @@ class Histories final {
     constexpr std::size_t pawn_size() const noexcept { return pawnSize; }
     constexpr std::size_t pawn_mask() const noexcept { return pawn_size() - 1; }
 
-    constexpr std::size_t pawn_index(Key pawnKey) const noexcept { return pawnKey & pawn_mask(); }
+    constexpr std::size_t pawn_index(Key pawnKey) const noexcept {  //
+        return pawnKey & pawn_mask();
+    }
 
     auto& pawn() noexcept { return pawnHistory; }
 
@@ -239,7 +241,7 @@ class Histories final {
     constexpr std::size_t correction_size() const noexcept { return correctionSize; }
     constexpr std::size_t correction_mask() const noexcept { return correction_size() - 1; }
 
-    constexpr std::size_t correction_index(Key correctionKey) const noexcept {
+    constexpr std::size_t correction_index(Key correctionKey) const noexcept {  //
         return correctionKey & correction_mask();
     }
 
