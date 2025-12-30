@@ -525,7 +525,8 @@ inline const auto& Position::squares(Piece pc) const noexcept {
 }
 
 inline auto Position::squares(Color c, std::size_t& n) const noexcept {
-    StdArray<Square, SQUARE_NB> orgSqs;
+    StdArray<Square, SQUARE_NB> sqs;
+    std::memset(sqs.data(), SQ_NONE, sizeof(sqs));
 
     n = 0;
     for (PieceType pt : PIECE_TYPES)
@@ -535,16 +536,17 @@ inline auto Position::squares(Color c, std::size_t& n) const noexcept {
         if (count != 0)
         {
             const auto* pB = base(c);
-            std::memcpy(orgSqs.data() + n, pL.data(pB), count * sizeof(Square));
+            std::memcpy(sqs.data() + n, pL.data(pB), count * sizeof(Square));
             n += count;
         }
     }
 
-    return orgSqs;
+    return sqs;
 }
 
 inline auto Position::squares(std::size_t& n) const noexcept {
-    StdArray<Square, SQUARE_NB> orgSqs;
+    StdArray<Square, SQUARE_NB> sqs;
+    std::memset(sqs.data(), SQ_NONE, sizeof(sqs));
 
     n = 0;
     for (Color c : {WHITE, BLACK})
@@ -555,12 +557,12 @@ inline auto Position::squares(std::size_t& n) const noexcept {
             if (count != 0)
             {
                 const auto* pB = base(c);
-                std::memcpy(orgSqs.data() + n, pL.data(pB), count * sizeof(Square));
+                std::memcpy(sqs.data() + n, pL.data(pB), count * sizeof(Square));
                 n += count;
             }
         }
 
-    return orgSqs;
+    return sqs;
 }
 
 inline std::uint8_t Position::count(Color c, PieceType pt) const noexcept {

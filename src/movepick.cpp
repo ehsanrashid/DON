@@ -34,18 +34,18 @@ namespace DON {
 // MovePicker constructor for the main search and for the quiescence search
 MovePicker::MovePicker(const Position&                 p,
                        Move                            ttm,
+                       const Histories*                hists,
                        const History<H_CAPTURE>*       captureHist,
                        const History<H_QUIET>*         quietHist,
-                       const History<H_PAWN>*          pawnHist,
                        const History<H_LOW_PLY_QUIET>* lowPlyQuietHist,
                        const History<H_PIECE_SQ>**     continuationHist,
                        std::int16_t                    ply,
                        int                             th) noexcept :
     pos(p),
     ttMove(ttm),
+    histories(hists),
     captureHistory(captureHist),
     quietHistory(quietHist),
-    pawnHistory(pawnHist),
     lowPlyQuietHistory(lowPlyQuietHist),
     continuationHistory(continuationHist),
     ssPly(ply),
@@ -110,7 +110,7 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
     Bitboard pinnersBB  = pos.pinners_bb();
     Bitboard threatsBB  = pos.threats_bb();
 
-    std::size_t pawnIndex = pawn_index(pos.pawn_key());
+    Key pawnKey = pos.pawn_key();
 
     iterator itr = cur;
 
@@ -125,15 +125,15 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
         Piece  movedPc = pos.moved_pc(m);
         auto   movedPt = type_of(movedPc);
 
-        m.value = 2 * (*quietHistory)[ac][m.raw()]               //
-                + 2 * (*pawnHistory)[pawnIndex][movedPc][dstSq]  //
-                + (*continuationHistory[0])[movedPc][dstSq]      //
-                + (*continuationHistory[1])[movedPc][dstSq]      //
-                + (*continuationHistory[2])[movedPc][dstSq]      //
-                + (*continuationHistory[3])[movedPc][dstSq]      //
-                + (*continuationHistory[4])[movedPc][dstSq]      //
-                + (*continuationHistory[5])[movedPc][dstSq]      //
-                + (*continuationHistory[6])[movedPc][dstSq]      //
+        m.value = 2 * (*quietHistory)[ac][m.raw()]              //
+                + 2 * histories->pawn(pawnKey)[movedPc][dstSq]  //
+                + (*continuationHistory[0])[movedPc][dstSq]     //
+                + (*continuationHistory[1])[movedPc][dstSq]     //
+                + (*continuationHistory[2])[movedPc][dstSq]     //
+                + (*continuationHistory[3])[movedPc][dstSq]     //
+                + (*continuationHistory[4])[movedPc][dstSq]     //
+                + (*continuationHistory[5])[movedPc][dstSq]     //
+                + (*continuationHistory[6])[movedPc][dstSq]     //
                 + (*continuationHistory[7])[movedPc][dstSq];
 
         if (ssPly < LOW_PLY_QUIET_SIZE)

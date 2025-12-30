@@ -228,7 +228,7 @@ Thread* Threads::best_thread() const noexcept {
         return (14 + th->worker->rootMoves[0].curValue - minCurValue) * th->worker->completedDepth;
     };
 
-    std::unordered_map<Move, std::uint64_t, Move::Hash> votes(
+    std::unordered_map<Move, std::uint64_t> votes(
       2 * std::min(size(), bestThread->worker->rootMoves.size()));
 
     for (auto&& th : threads)

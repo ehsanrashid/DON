@@ -473,8 +473,6 @@ class MainSearchManager final: public ISearchManager {
 
 class NullSearchManager final: public ISearchManager {
    public:
-    NullSearchManager() noexcept = default;
-
     void check_time(Worker&) noexcept override {}
 };
 
@@ -525,9 +523,6 @@ class Worker final {
 
     void ensure_network_replicated() noexcept;
 
-    void prefetch_tt(Key key) const noexcept;
-    void prefetch_correction_histories(const Position& pos) const noexcept;
-
     // Called when the program receives the UCI 'go' command.
     // It searches from the root position and outputs the "bestmove".
     void start_search() noexcept;
@@ -567,14 +562,15 @@ class Worker final {
     Value evaluate(const Position& pos) noexcept;
 
     // clang-format off
+    void update_pawn_history(Key pawnKey, Piece pc, Square dstSq, int bonus) noexcept;
+
     void update_capture_history(Piece pc, Square dstSq, PieceType captured, int bonus) noexcept;
     void update_capture_history(const Position& pos, Move m, int bonus) noexcept;
     void update_quiet_history(Color ac, Move m, int bonus) noexcept;
-    void update_pawn_history(std::size_t pawnIndex, Piece pc, Square dstSq, int bonus) noexcept;
     void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
 
-    void update_quiet_histories(const Position& pos, Stack* const ss, std::size_t pawnIndex, Move m, int bonus) noexcept;
-    void update_histories(const Position& pos, Stack* const ss, std::size_t pawnIndex, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
+    void update_quiet_histories(const Position& pos, Stack* const ss, Key pawnKey, Move m, int bonus) noexcept;
+    void update_histories(const Position& pos, Stack* const ss, Key pawnKey, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
 
     void update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* const ss) noexcept;
@@ -617,7 +613,6 @@ class Worker final {
     // Histories
     History<H_CAPTURE>       captureHistory;
     History<H_QUIET>         quietHistory;
-    History<H_PAWN>          pawnHistory;
     History<H_LOW_PLY_QUIET> lowPlyQuietHistory;
     History<H_TT_MOVE>       ttMoveHistory;
 
@@ -627,6 +622,7 @@ class Worker final {
     CorrectionHistory<CH_CONTINUATION> continuationCorrectionHistory;
 
     friend class MainSearchManager;
+    friend class Position;
     friend class Threads;
 };
 

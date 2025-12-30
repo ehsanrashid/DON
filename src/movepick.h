@@ -102,9 +102,9 @@ class MovePicker final {
 
     MovePicker(const Position&                 p,
                Move                            ttm,
+               const Histories*                hists,
                const History<H_CAPTURE>*       captureHist,
                const History<H_QUIET>*         quietHist,
-               const History<H_PAWN>*          pawnHist,
                const History<H_LOW_PLY_QUIET>* lowPlyQuietHist,
                const History<H_PIECE_SQ>**     continuationHist,
                std::int16_t                    ply,
@@ -143,9 +143,9 @@ class MovePicker final {
 
     const Position&                 pos;
     Move                            ttMove;
+    const Histories*                histories           = nullptr;
     const History<H_CAPTURE>*       captureHistory      = nullptr;
     const History<H_QUIET>*         quietHistory        = nullptr;
-    const History<H_PAWN>*          pawnHistory         = nullptr;
     const History<H_LOW_PLY_QUIET>* lowPlyQuietHistory  = nullptr;
     const History<H_PIECE_SQ>**     continuationHistory = nullptr;
     const std::int16_t              ssPly               = LOW_PLY_QUIET_SIZE;

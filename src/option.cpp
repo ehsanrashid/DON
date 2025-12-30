@@ -31,13 +31,15 @@ namespace {
 constexpr std::string_view EMPTY_STRING{"<empty>"};
 
 // clang-format off
-const std::unordered_map<OptionType, std::string_view> OptionTypeMap{
+const std::unordered_map<OptionType, std::string_view> OPTION_TYPE_MAP{
   {OPT_BUTTON, "button"},
   {OPT_CHECK,  "check"},
   {OPT_STRING, "string"},
   {OPT_SPIN,   "spin"},
-  {OPT_COMBO,  "combo"}};
+  {OPT_COMBO,  "combo"}
+};
 // clang-format on
+
 }  // namespace
 
 std::size_t CaseInsensitiveHash::operator()(std::string_view str) const noexcept {
@@ -61,8 +63,9 @@ bool CaseInsensitiveLess::operator()(std::string_view s1, std::string_view s2) c
 }
 
 std::string_view to_string(OptionType ot) noexcept {
-    auto itr = OptionTypeMap.find(ot);
-    return itr != OptionTypeMap.end() ? itr->second : "none";
+    auto itr = OPTION_TYPE_MAP.find(ot);
+
+    return itr != OPTION_TYPE_MAP.end() ? itr->second : "none";
 }
 
 Option::Option(OnChange&& f) noexcept :
@@ -99,16 +102,19 @@ Option::Option(std::string_view v, std::string_view var, OnChange&& f) noexcept 
 
 Option::operator int() const noexcept {
     assert(type == OPT_CHECK || type == OPT_SPIN);
+
     return type == OPT_CHECK ? string_to_bool(currentValue) : std::stoi(currentValue);
 }
 
 Option::operator std::string() const noexcept {
     assert(type == OPT_STRING || type == OPT_COMBO);
+
     return currentValue;
 }
 
 Option::operator std::string_view() const noexcept {
     assert(type == OPT_STRING || type == OPT_COMBO);
+
     return currentValue;
 }
 
@@ -149,6 +155,7 @@ void Option::operator=(std::string value) noexcept {
     if (onChange)
     {
         auto optInfo = onChange(*this);
+
         if (optInfo && optionsPtr != nullptr && optionsPtr->infoListener)
             optionsPtr->infoListener(optInfo);
     }
@@ -188,6 +195,7 @@ void Options::add(std::string_view name, const Option& option) noexcept {
     if (contains(name))
     {
         std::cerr << "Option: '" << name << "' was already added!" << std::endl;
+
         std::exit(EXIT_FAILURE);
     }
 
@@ -206,15 +214,18 @@ void Options::set(std::string_view name, std::string_view value) noexcept {
 
 const Option& Options::operator[](const std::string_view name) const noexcept {
     assert(contains(name));
+
     return options.at(name);
 }
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {
 
-    std::vector<Options::Pair> pairs(options.begin(), options.end());
-    std::sort(pairs.begin(), pairs.end(),
+    std::vector<Options::Pair> opts(options.begin(), options.end());
+
+    std::sort(opts.begin(), opts.end(),
               [](const auto& op1, const auto& op2) noexcept { return op1.second < op2.second; });
-    for (const auto& [name, option] : pairs)
+
+    for (const auto& [name, option] : opts)
         os << "\noption name " << name << ' ' << option;
 
     return os;
