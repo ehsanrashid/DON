@@ -1292,7 +1292,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // To verify this do a reduced search on the position excluding the ttMove and
         // if the result is lower than ttValue minus a margin, then will extend the ttMove.
         // Recursive singular search is avoided.
-        std::int8_t extension = 0;
+        Depth extension = 0;
 
         // (*Scaler) Generally, frequent extensions scales well.
         // This includes high singularBeta values (i.e closer to ttValue) and low extension margins.
