@@ -245,7 +245,8 @@ void Worker::ensure_network_replicated() noexcept {
 // Speculative prefetch as early as possible
 void Worker::prefetch_tt(Key key) const noexcept { prefetch(transpositionTable.cluster(key)); }
 
-void Worker::prefetch_correction_histories(const Position& pos) const noexcept {
+void Worker::prefetch_histories(const Position& pos) const noexcept {
+    prefetch(&histories.pawn(pos.pawn_key()));
     prefetch(&histories.pawn_correction<WHITE>(pos.pawn_key(WHITE)));
     prefetch(&histories.pawn_correction<BLACK>(pos.pawn_key(BLACK)));
     prefetch(&histories.minor_correction<WHITE>(pos.minor_key(WHITE)));

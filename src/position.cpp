@@ -1037,7 +1037,7 @@ DO_MOVE_END:
         if (!is_ok(enPassantSq))
             worker->prefetch_tt(k ^ Zobrist::mr50(rule50_count()));
 
-        worker->prefetch_correction_histories(*this);
+        worker->prefetch_histories(*this);
     }
 
     ac = activeColor = ~ac;
