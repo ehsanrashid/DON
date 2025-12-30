@@ -28,6 +28,7 @@
 #include "prng.h"
 #include "search.h"
 #include "syzygy/tablebase.h"
+#include "tt.h"
 
 namespace DON {
 
@@ -812,6 +813,7 @@ void Position::do_castling(Color             ac,
 }
 
 // Makes a move, and saves all necessary information to new state.
+// Also prefetch tt and histories for the new position.
 // The move is assumed to be legal.
 DirtyBoard
 Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker) noexcept {
@@ -1035,9 +1037,15 @@ DO_MOVE_END:
     if (worker != nullptr)
     {
         if (!is_ok(enPassantSq))
-            worker->prefetch_tt(k ^ Zobrist::mr50(rule50_count()));
+            prefetch(worker->transpositionTable.cluster(k ^ Zobrist::mr50(rule50_count())));
 
-        worker->prefetch_histories(*this);
+        prefetch(&worker->histories.pawn(pawn_key())[movedPc][dstSq]);
+        prefetch(&worker->histories.pawn_correction<WHITE>(pawn_key(WHITE)));
+        prefetch(&worker->histories.pawn_correction<BLACK>(pawn_key(BLACK)));
+        prefetch(&worker->histories.minor_correction<WHITE>(minor_key(WHITE)));
+        prefetch(&worker->histories.minor_correction<BLACK>(minor_key(BLACK)));
+        prefetch(&worker->histories.non_pawn_correction<WHITE>(non_pawn_key(WHITE)));
+        prefetch(&worker->histories.non_pawn_correction<BLACK>(non_pawn_key(BLACK)));
     }
 
     ac = activeColor = ~ac;
@@ -1057,7 +1065,7 @@ DO_MOVE_END:
     st->key = k;
 
     if (worker != nullptr)
-        worker->prefetch_tt(key());
+        prefetch(worker->transpositionTable.cluster(key()));
 
     // Calculate the repetition info.
     // It is the ply distance from the previous occurrence of the same position,
@@ -1189,7 +1197,7 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
     st->key = k;
 
     if (worker != nullptr)
-        worker->prefetch_tt(key());
+        prefetch(worker->transpositionTable.cluster(key()));
 
     activeColor = ~active_color();
 

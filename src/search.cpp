@@ -242,19 +242,6 @@ void Worker::ensure_network_replicated() noexcept {
     (void) (networks[numaAccessToken]);
 }
 
-// Speculative prefetch as early as possible
-void Worker::prefetch_tt(Key key) const noexcept { prefetch(transpositionTable.cluster(key)); }
-
-void Worker::prefetch_histories(const Position& pos) const noexcept {
-    prefetch(&histories.pawn(pos.pawn_key()));
-    prefetch(&histories.pawn_correction<WHITE>(pos.pawn_key(WHITE)));
-    prefetch(&histories.pawn_correction<BLACK>(pos.pawn_key(BLACK)));
-    prefetch(&histories.minor_correction<WHITE>(pos.minor_key(WHITE)));
-    prefetch(&histories.minor_correction<BLACK>(pos.minor_key(BLACK)));
-    prefetch(&histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE)));
-    prefetch(&histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK)));
-}
-
 void Worker::start_search() noexcept {
     auto* const mainManager = is_main_worker() ? main_manager() : nullptr;
 

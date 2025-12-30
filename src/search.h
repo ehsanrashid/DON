@@ -523,9 +523,6 @@ class Worker final {
 
     void ensure_network_replicated() noexcept;
 
-    void prefetch_tt(Key key) const noexcept;
-    void prefetch_histories(const Position& pos) const noexcept;
-
     // Called when the program receives the UCI 'go' command.
     // It searches from the root position and outputs the "bestmove".
     void start_search() noexcept;
@@ -625,6 +622,7 @@ class Worker final {
     CorrectionHistory<CH_CONTINUATION> continuationCorrectionHistory;
 
     friend class MainSearchManager;
+    friend class Position;
     friend class Threads;
 };
 
