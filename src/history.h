@@ -218,10 +218,10 @@ class Histories final {
     Histories(std::size_t count) noexcept :
         pawnSize(count * PAWN_HISTORY_BASE_SIZE),
         correctionSize(count * CORRECTION_HISTORY_BASE_SIZE),
-        pawnH(pawn_size()),
-        pawnCorrection(correction_size()),
-        minorCorrection(correction_size()),
-        nonPawnCorrection(correction_size()) {
+        pawnHistory(pawn_size()),
+        pawnCorrectionHistory(correction_size()),
+        minorCorrectionHistory(correction_size()),
+        nonPawnCorrectionHistory(correction_size()) {
         assert(count != 0 && (count & (count - 1)) == 0);
         assert((pawn_size() & (pawn_size() - 1)) == 0);
         assert((correction_size() & (correction_size() - 1)) == 0);
@@ -232,10 +232,10 @@ class Histories final {
 
     constexpr std::size_t pawn_index(Key pawnKey) const noexcept { return pawnKey & pawn_mask(); }
 
-    auto& pawn() noexcept { return pawnH; }
+    auto& pawn() noexcept { return pawnHistory; }
 
-    auto&       pawn(Key pawnKey) noexcept { return pawnH[pawn_index(pawnKey)]; }
-    const auto& pawn(Key pawnKey) const noexcept { return pawnH[pawn_index(pawnKey)]; }
+    auto&       pawn(Key pawnKey) noexcept { return pawnHistory[pawn_index(pawnKey)]; }
+    const auto& pawn(Key pawnKey) const noexcept { return pawnHistory[pawn_index(pawnKey)]; }
 
 
     constexpr std::size_t correction_size() const noexcept { return correctionSize; }
@@ -245,48 +245,47 @@ class Histories final {
         return corrKey & correction_mask();
     }
 
-    auto& pawn_correction() noexcept { return pawnCorrection; }
+    auto& pawn_correction() noexcept { return pawnCorrectionHistory; }
 
     template<Color C>
     auto& pawn_correction(Key pawnKey) noexcept {
-        return pawnCorrection[correction_index(pawnKey)][C];
+        return pawnCorrectionHistory[correction_index(pawnKey)][C];
     }
     template<Color C>
     const auto& pawn_correction(Key pawnKey) const noexcept {
-        return pawnCorrection[correction_index(pawnKey)][C];
+        return pawnCorrectionHistory[correction_index(pawnKey)][C];
     }
 
-    auto& minor_correction() noexcept { return minorCorrection; }
+    auto& minor_correction() noexcept { return minorCorrectionHistory; }
 
     template<Color C>
     auto& minor_correction(Key minorKey) noexcept {
-        return minorCorrection[correction_index(minorKey)][C];
+        return minorCorrectionHistory[correction_index(minorKey)][C];
     }
     template<Color C>
     const auto& minor_correction(Key minorKey) const noexcept {
-        return minorCorrection[correction_index(minorKey)][C];
+        return minorCorrectionHistory[correction_index(minorKey)][C];
     }
 
-    auto& non_pawn_correction() noexcept { return nonPawnCorrection; }
+    auto& non_pawn_correction() noexcept { return nonPawnCorrectionHistory; }
 
     template<Color C>
     auto& non_pawn_correction(Key nonPawnKey) noexcept {
-        return nonPawnCorrection[correction_index(nonPawnKey)][C];
+        return nonPawnCorrectionHistory[correction_index(nonPawnKey)][C];
     }
     template<Color C>
     const auto& non_pawn_correction(Key nonPawnKey) const noexcept {
-        return nonPawnCorrection[correction_index(nonPawnKey)][C];
+        return nonPawnCorrectionHistory[correction_index(nonPawnKey)][C];
     }
 
    private:
     const std::size_t pawnSize;
     const std::size_t correctionSize;
 
-    History<H_PAWN> pawnH;
-
-    CorrectionHistory<CH_PAWN>     pawnCorrection;
-    CorrectionHistory<CH_MINOR>    minorCorrection;
-    CorrectionHistory<CH_NON_PAWN> nonPawnCorrection;
+    History<H_PAWN>                pawnHistory;
+    CorrectionHistory<CH_PAWN>     pawnCorrectionHistory;
+    CorrectionHistory<CH_MINOR>    minorCorrectionHistory;
+    CorrectionHistory<CH_NON_PAWN> nonPawnCorrectionHistory;
 };
 
 using HistoriesMap = std::unordered_map<std::size_t, Histories>;

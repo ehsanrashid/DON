@@ -208,22 +208,22 @@ void Worker::init() noexcept {
                     pieceSqHist.fill(-529);
 
     // Each thread is responsible for clearing their part of correction history
-    std::size_t Size;
+    std::size_t size;
     std::size_t perSize;
     std::size_t begIdx;
     std::size_t endIdx;
 
-    Size    = histories.pawn_size();
-    perSize = Size / numaThreadCount;
+    size    = histories.pawn_size();
+    perSize = size / numaThreadCount;
     begIdx  = numaId * perSize;
-    endIdx  = std::min(begIdx + perSize, Size);
+    endIdx  = std::min(begIdx + perSize, size);
 
     histories.pawn().fill(begIdx, endIdx, -1238);
 
-    Size    = histories.correction_size();
-    perSize = Size / numaThreadCount;
+    size    = histories.correction_size();
+    perSize = size / numaThreadCount;
     begIdx  = numaId * perSize;
-    endIdx  = std::min(begIdx + perSize, Size);
+    endIdx  = std::min(begIdx + perSize, size);
 
     histories.pawn_correction().fill(begIdx, endIdx, 5);
     histories.minor_correction().fill(begIdx, endIdx, 0);
