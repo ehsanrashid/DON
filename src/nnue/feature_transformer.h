@@ -111,20 +111,21 @@ class FeatureTransformer final {
     // be permuted so that calling packus on adjacent vectors of 16-bit
     // integers loaded from the data results in the pre-permutation order
     static constexpr auto PackusEpi16Order = []() -> StdArray<std::size_t, 8> {
+        return
 #if defined(USE_AVX512)
-        // _mm512_packus_epi16 after permutation:
-        // |   0   |   2   |   4   |   6   | // Vector 0
-        // |   1   |   3   |   5   |   7   | // Vector 1
-        // | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | // Packed Result
-        return {0, 2, 4, 6, 1, 3, 5, 7};
+          // _mm512_packus_epi16 after permutation:
+          // |   0   |   2   |   4   |   6   | // Vector 0
+          // |   1   |   3   |   5   |   7   | // Vector 1
+          // | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | // Packed Result
+          {0, 2, 4, 6, 1, 3, 5, 7};
 #elif defined(USE_AVX2)
-        // _mm256_packus_epi16 after permutation:
-        // |   0   |   2   |  |   4   |   6   | // Vector 0, 2
-        // |   1   |   3   |  |   5   |   7   | // Vector 1, 3
-        // | 0 | 1 | 2 | 3 |  | 4 | 5 | 6 | 7 | // Packed Result
-        return {0, 2, 1, 3, 4, 6, 5, 7};
+          // _mm256_packus_epi16 after permutation:
+          // |   0   |   2   |  |   4   |   6   | // Vector 0, 2
+          // |   1   |   3   |  |   5   |   7   | // Vector 1, 3
+          // | 0 | 1 | 2 | 3 |  | 4 | 5 | 6 | 7 | // Packed Result
+          {0, 2, 1, 3, 4, 6, 5, 7};
 #else
-        return {0, 1, 2, 3, 4, 5, 6, 7};
+          {0, 1, 2, 3, 4, 5, 6, 7};
 #endif
     }();
 
@@ -142,25 +143,29 @@ class FeatureTransformer final {
     template<bool Read>
     void permute_weights() noexcept {
         constexpr auto& Order = Read ? PackusEpi16Order : InversePackusEpi16Order;
+
         permute<16>(biases, Order);
+
         permute<16>(weights, Order);
+
         if (UseThreats)
             permute<8>(threatWeights, Order);
     }
 
     template<bool Read>
     void scale_weights() noexcept {
-        for (IndexType i = 0; i < HalfDimensions; ++i)
-            if constexpr (Read)
-                biases[i] *= 2;
-            else
-                biases[i] /= 2;
 
-        for (IndexType i = 0; i < HalfDimensions * InputDimensions; ++i)
+        for (auto& bias : biases)
             if constexpr (Read)
-                weights[i] *= 2;
+                bias *= 2;
             else
-                weights[i] /= 2;
+                bias /= 2;
+
+        for (auto& weight : weights)
+            if constexpr (Read)
+                weight *= 2;
+            else
+                weight /= 2;
     }
 
     // Read network parameters
@@ -190,6 +195,7 @@ class FeatureTransformer final {
         else
         {
             read_leb_128(is, weights);
+
             read_leb_128(is, psqtWeights);
         }
 
@@ -203,7 +209,7 @@ class FeatureTransformer final {
 
     // Write network parameters
     bool write_parameters(std::ostream& os) const noexcept {
-        std::unique_ptr<FeatureTransformer> copy = std::make_unique<FeatureTransformer>(*this);
+        auto copy = std::make_unique<FeatureTransformer>(*this);
 
         copy->template permute_weights<false>();
 
@@ -234,6 +240,7 @@ class FeatureTransformer final {
         else
         {
             write_leb_128(os, copy->weights);
+
             write_leb_128(os, copy->psqtWeights);
         }
 
