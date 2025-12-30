@@ -24,6 +24,7 @@
 #include <sstream>
 #include <utility>
 
+#include "history.h"
 #include "movegen.h"
 #include "prng.h"
 #include "search.h"
