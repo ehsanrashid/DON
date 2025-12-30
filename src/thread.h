@@ -210,17 +210,6 @@ class Threads final {
 
     std::vector<std::size_t> get_bound_thread_counts() const noexcept;
 
-    template<typename T>
-    std::uint64_t sum_of(std::atomic<T> Worker::* member,
-                         std::uint64_t            initialValue = 0) const noexcept {
-
-        return std::transform_reduce(
-          threads.begin(), threads.end(), initialValue, std::plus<>{},
-          [member](const auto& th) noexcept {
-              return (th->worker.get()->*member).load(std::memory_order_relaxed);
-          });
-    }
-
     bool is_stopped() const noexcept { return stop.load(std::memory_order_relaxed); }
 
     void request_stop() noexcept { stop.store(true, std::memory_order_relaxed); }
@@ -232,6 +221,17 @@ class Threads final {
     bool is_researched() const noexcept { return research.load(std::memory_order_relaxed); }
 
     void request_research() noexcept { research.store(true, std::memory_order_relaxed); }
+
+    template<typename T>
+    std::uint64_t sum_of(std::atomic<T> Worker::* member,
+                         std::uint64_t            initialValue = 0) const noexcept {
+
+        return std::transform_reduce(
+          threads.begin(), threads.end(), initialValue, std::plus<>{},
+          [member](const auto& th) noexcept {
+              return (th->worker.get()->*member).load(std::memory_order_relaxed);
+          });
+    }
 
    private:
     std::vector<ThreadPtr> threads;
