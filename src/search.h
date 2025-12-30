@@ -527,6 +527,8 @@ class Worker final {
     // It searches from the root position and outputs the "bestmove".
     void start_search() noexcept;
 
+    std::uint64_t nodes_() const noexcept { return nodes.load(std::memory_order_relaxed); }
+
    private:
     bool is_main_worker() const noexcept { return threadId == 0; }
 
@@ -594,7 +596,7 @@ class Worker final {
     NNUE::AccumulatorStack                              accStack;
 
     std::atomic<std::uint64_t> nodes, tbHits;
-    std::atomic<std::uint16_t> moveChanges;
+    std::atomic<std::uint32_t> moveChanges;
 
     Position          rootPos;
     State             rootState;

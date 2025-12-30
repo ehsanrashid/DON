@@ -221,12 +221,24 @@ class Threads final {
           });
     }
 
-    std::atomic<bool> stop, abort, research;
+    bool is_stopped() const noexcept { return stop.load(std::memory_order_relaxed); }
+
+    void request_stop() noexcept { stop.store(true, std::memory_order_relaxed); }
+
+    bool is_aborted() const noexcept { return abort.load(std::memory_order_relaxed); }
+
+    void request_abort() noexcept { abort.store(true, std::memory_order_relaxed); }
+
+    bool is_researched() const noexcept { return research.load(std::memory_order_relaxed); }
+
+    void request_research() noexcept { research.store(true, std::memory_order_relaxed); }
 
    private:
     std::vector<ThreadPtr> threads;
     std::vector<NumaIndex> threadBoundNumaNodes;
     StateListPtr           setupStates;
+
+    std::atomic<bool> stop, abort, research;
 };
 
 inline Threads::~Threads() noexcept { clear(); }

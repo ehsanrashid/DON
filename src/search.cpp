@@ -341,12 +341,12 @@ void Worker::start_search() noexcept {
     // However, if pondering or in an infinite search, the UCI protocol states that
     // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
     // Therefore simply wait here until the GUI sends one of those commands.
-    while (!threads.stop.load(std::memory_order_relaxed) && (limit.infinite || mainManager->ponder))
+    while (!threads.is_stopped() && (limit.infinite || mainManager->ponder))
     {}  // Busy wait for a stop or a mainManager->ponder reset
 
     // Stop the threads if not already stopped
     // (also raise the stop if "ponderhit" just reset mainManager->ponder).
-    threads.stop.store(true, std::memory_order_relaxed);
+    threads.request_stop();
 
     // Wait until all threads have finished
     threads.wait_finish();
@@ -449,8 +449,7 @@ void Worker::iterative_deepening() noexcept {
     Depth lastBestDepth    = DEPTH_ZERO;
 
     // Iterative deepening loop until requested to stop or the target depth is reached
-    while (!threads.stop.load(std::memory_order_relaxed)  //
-           && ++rootDepth <= MAX_PLY - 1
+    while (!threads.is_stopped() && ++rootDepth <= MAX_PLY - 1
            && (mainManager == nullptr || limit.depth == DEPTH_ZERO || rootDepth <= limit.depth))
     {
         // Age out PV variability metric
@@ -462,7 +461,7 @@ void Worker::iterative_deepening() noexcept {
         for (auto& rm : rootMoves)
             rm.preValue = rm.curValue;
 
-        if (threads.research.load(std::memory_order_relaxed))
+        if (threads.is_researched())
             ++researchCnt;
 
         std::size_t begPV = endPV = 0;
@@ -519,7 +518,7 @@ void Worker::iterative_deepening() noexcept {
                 // If the search has been stopped, break immediately.
                 // Sorting is safe because RootMoves is still valid,
                 // although it refers to the previous iteration.
-                if (threads.stop.load(std::memory_order_relaxed))
+                if (threads.is_stopped())
                     break;
 
                 // When failing high/low give some update before a re-search.
@@ -561,27 +560,25 @@ void Worker::iterative_deepening() noexcept {
             rootMoves.sort(begPV, 1 + curPV);
 
             // Give some update about the PV
-            if (mainManager != nullptr
-                && (threads.stop.load(std::memory_order_relaxed) || 1 + curPV == multiPV
-                    || rootDepth > 30)
-                // A thread that aborted search can have mated-in/TB-loss PV and score
-                // that cannot be trusted, i.e. it can be delayed or refuted if have
-                // had time to fully search other root-moves. Thus, suppress this output and
-                // below pick a proven score/PV for this thread (from the previous iteration).
-                && !(threads.abort.load(std::memory_order_relaxed)
-                     && is_loss(rootMoves[0].uciValue)))
+            if (
+              mainManager != nullptr
+              && (threads.is_stopped() || 1 + curPV == multiPV || rootDepth > 30)
+              // A thread that aborted search can have mated-in/TB-loss PV and score that cannot be trusted,
+              // i.e. it can be delayed or refuted if have had time to fully search other root-moves.
+              // Thus, suppress this output and below pick a proven score/PV for this thread (from the previous iteration).
+              && !(threads.is_aborted() && is_loss(rootMoves[0].uciValue)))
                 mainManager->show_pv(*this, rootDepth);
 
-            if (threads.stop.load(std::memory_order_relaxed))
+            if (threads.is_stopped())
                 break;
         }
 
-        if (!threads.stop.load(std::memory_order_relaxed))
+        if (!threads.is_stopped())
             completedDepth = rootDepth;
 
         // Make sure not to pick an unproven mated-in score,
         // in case this worker prematurely stopped the search (aborted-search).
-        if (threads.abort.load(std::memory_order_relaxed) && lastBestPV[0] != Move::None
+        if (threads.is_aborted() && lastBestPV[0] != Move::None
             && rootMoves[0].curValue != -VALUE_INFINITE && is_loss(rootMoves[0].curValue))
         {
             // Bring the last best rootMove to the front for best thread selection.
@@ -610,15 +607,14 @@ void Worker::iterative_deepening() noexcept {
                  && VALUE_MATE - rootMoves[0].curValue <= 2 * limit.mate)
                 || (rootMoves[0].curValue != -VALUE_INFINITE && is_mate_loss(rootMoves[0].curValue)
                     && VALUE_MATE + rootMoves[0].curValue <= 2 * limit.mate)))
-            threads.stop.store(true, std::memory_order_relaxed);
+            threads.request_stop();
 
         // If the skill is enabled and time is up, pick a sub-optimal best move
         if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))
             mainManager->skill.pick_move(rootMoves, multiPV);
 
         // Do have time for the next iteration? Can stop searching now?
-        if (limit.use_time_manager()
-            && !(mainManager->ponderhitStop || threads.stop.load(std::memory_order_relaxed)))
+        if (limit.use_time_manager() && !(mainManager->ponderhitStop || threads.is_stopped()))
         {
             // Use part of the gained time from a previous stable move for the current move
             mainManager->sumMoveChanges += threads.sum_of(&Worker::moveChanges);
@@ -650,7 +646,7 @@ void Worker::iterative_deepening() noexcept {
             double instabilityFactor = 1.0200 + 2.1400 * mainManager->sumMoveChanges / threads.size();
 
             // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
-            double nodeEffortExcess = -933.40 + 1000.0 * rootMoves[0].nodes / std::max(nodes.load(std::memory_order_relaxed), std::uint64_t(1));
+            double nodeEffortExcess = -933.40 + 1000.0 * rootMoves[0].nodes / std::max(nodes_(), std::uint64_t(1));
             double nodeEffortFactor = 1.0 - 37.5207e-4 * std::max(nodeEffortExcess, 0.0);
 
             // Compute recapture factor that reduces time if recapture conditions are met
@@ -688,11 +684,11 @@ void Worker::iterative_deepening() noexcept {
                 if (mainManager->ponder)
                     mainManager->ponderhitStop = true;
                 else
-                    threads.stop.store(true, std::memory_order_relaxed);
+                    threads.request_stop();
             }
 
             if (!mainManager->ponder && elapsedTime > TimePoint(0.5030 * totalTime))
-                threads.research.store(true, std::memory_order_relaxed);
+                threads.request_research();
 
             mainManager->preBestCurValue = bestValue;
         }
@@ -728,7 +724,7 @@ Value Worker::search(Position&    pos,
         // Check if have an upcoming move that draws by repetition
         if (alpha < VALUE_DRAW && pos.is_upcoming_repetition(ss->ply))
         {
-            alpha = draw_value(key, nodes.load(std::memory_order_relaxed));
+            alpha = draw_value(key, nodes_());
             if (alpha >= beta)
                 return alpha;
         }
@@ -760,11 +756,8 @@ Value Worker::search(Position&    pos,
     if constexpr (!RootNode)
     {
         // Step 2. Check for stopped search or maximum ply reached or immediate draw
-        if (threads.stop.load(std::memory_order_relaxed)  //
-            || ss->ply >= MAX_PLY || pos.is_draw(ss->ply))
-            return ss->ply >= MAX_PLY && !ss->inCheck
-                   ? evaluate(pos)
-                   : draw_value(key, nodes.load(std::memory_order_relaxed));
+        if (threads.is_stopped() || ss->ply >= MAX_PLY || pos.is_draw(ss->ply))
+            return ss->ply >= MAX_PLY && !ss->inCheck ? evaluate(pos) : draw_value(key, nodes_());
 
         // Step 3. Mate distance pruning.
         // Even if mate at the next move score would be at best mates_in(1 + ss->ply),
@@ -1122,7 +1115,7 @@ Value Worker::search(Position&    pos,
 
             assert(is_ok(value));
 
-            if (threads.stop.load(std::memory_order_relaxed))
+            if (threads.is_stopped())
                 return VALUE_ZERO;
 
             if (value >= probCutBeta)
@@ -1359,7 +1352,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         [[maybe_unused]] std::uint64_t preNodes;
         if constexpr (RootNode)
-            preNodes = nodes.load(std::memory_order_relaxed);
+            preNodes = nodes_();
 
         // Step 16. Make the move
         do_move(pos, move, st, check, ss);
@@ -1472,7 +1465,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Finished searching the move. If a stop occurred, the return value of
         // the search cannot be trusted, and return immediately without updating
         // best move, principal variation and transposition table.
-        if (threads.stop.load(std::memory_order_relaxed))
+        if (threads.is_stopped())
             return VALUE_ZERO;
 
         if constexpr (RootNode)
@@ -1480,7 +1473,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             auto& rm = *rootMoves.find(move);
             assert(rm.pv[0] == move);
 
-            rm.nodes += nodes.load(std::memory_order_relaxed) - preNodes;
+            rm.nodes += nodes_() - preNodes;
             // clang-format off
             rm.avgValue    = rm.avgValue    !=          -VALUE_INFINITE  ? (         value  + rm.avgValue   ) / 2 :          value;
             rm.avgSqrValue = rm.avgSqrValue != sign_sqr(-VALUE_INFINITE) ? (sign_sqr(value) + rm.avgSqrValue) / 2 : sign_sqr(value);
@@ -1525,8 +1518,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // In case have an alternative move equal in eval to the current bestMove,
         // promote it to bestMove by pretending it just exceeds alpha (but not beta).
-        bool inc = value == bestValue && 2 + ss->ply >= rootDepth
-                && (nodes.load(std::memory_order_relaxed) & 0xE) == 0
+        bool inc = value == bestValue && 2 + ss->ply >= rootDepth && (nodes_() & 0xE) == 0
                 && !is_win(std::abs(value) + 1);
 
         if (bestValue < value + int(inc))
@@ -1671,7 +1663,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Check if have an upcoming move that draws by repetition
     if (alpha < VALUE_DRAW && pos.is_upcoming_repetition(ss->ply))
     {
-        alpha = draw_value(key, nodes.load(std::memory_order_relaxed));
+        alpha = draw_value(key, nodes_());
         if (alpha >= beta)
             return alpha;
     }
@@ -2303,8 +2295,8 @@ void MainSearchManager::check_time(Worker& worker) noexcept {
        || (worker.limit.moveTime != 0 &&                        elapsedTime >= worker.limit.moveTime)
        || (worker.limit.nodes != 0 && worker.threads.sum_of(&Worker::nodes) >= worker.limit.nodes)))
     {
-        worker.threads.stop.store(true, std::memory_order_relaxed);
-        worker.threads.abort.store(true, std::memory_order_relaxed);
+        worker.threads.request_stop();
+        worker.threads.request_abort();
     }
     // clang-format on
 }
