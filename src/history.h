@@ -241,8 +241,8 @@ class Histories final {
     constexpr std::size_t correction_size() const noexcept { return correctionSize; }
     constexpr std::size_t correction_mask() const noexcept { return correction_size() - 1; }
 
-    constexpr std::size_t correction_index(Key corrKey) const noexcept {
-        return corrKey & correction_mask();
+    constexpr std::size_t correction_index(Key correctionKey) const noexcept {
+        return correctionKey & correction_mask();
     }
 
     auto& pawn_correction() noexcept { return pawnCorrectionHistory; }
