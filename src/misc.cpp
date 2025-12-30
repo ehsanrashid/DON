@@ -342,12 +342,14 @@ class MinInfo final: public Info<2> {
         _data[1].store(std::numeric_limits<std::int64_t>::max(), std::memory_order_relaxed);
     }
 };
+
 class MaxInfo final: public Info<2> {
    public:
     MaxInfo() noexcept {
         _data[1].store(std::numeric_limits<std::int64_t>::min(), std::memory_order_relaxed);
     }
 };
+
 class ExtremeInfo final: public Info<3> {
    public:
     ExtremeInfo() noexcept {
@@ -356,15 +358,16 @@ class ExtremeInfo final: public Info<3> {
     }
 };
 
-constexpr std::size_t MaxSlot = 64;
 
-StdArray<Info<2>, MaxSlot>     hit;
-StdArray<MinInfo, MaxSlot>     min;
-StdArray<MaxInfo, MaxSlot>     max;
-StdArray<ExtremeInfo, MaxSlot> extreme;
-StdArray<Info<2>, MaxSlot>     mean;
-StdArray<Info<3>, MaxSlot>     stdev;
-StdArray<Info<6>, MaxSlot>     correl;
+constexpr std::size_t MAX_SLOT = 64;
+
+StdArray<Info<2>, MAX_SLOT>     hit;
+StdArray<MinInfo, MAX_SLOT>     min;
+StdArray<MaxInfo, MAX_SLOT>     max;
+StdArray<ExtremeInfo, MAX_SLOT> extreme;
+StdArray<Info<2>, MAX_SLOT>     mean;
+StdArray<Info<3>, MAX_SLOT>     stdev;
+StdArray<Info<6>, MAX_SLOT>     correl;
 
 }  // namespace
 

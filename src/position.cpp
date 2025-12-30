@@ -198,7 +198,6 @@ void Position::clear() noexcept {
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
     std::memset(typeBBs.data(), 0, sizeof(typeBBs));
     std::memset(colorBBs.data(), 0, sizeof(colorBBs));
-    std::memset(pieceCounts.data(), 0, sizeof(pieceCounts));
     std::memset(castlingRightsMasks.data(), NO_CASTLING, sizeof(castlingRightsMasks));
     std::memset(castlings.fullPathBB.data(), 0, sizeof(castlings.fullPathBB));
     std::memset(castlings.kingPathBB.data(), 0, sizeof(castlings.kingPathBB));

@@ -185,12 +185,21 @@ class Position final {
     Piece piece(Square s) const noexcept;
     bool  empty(Square s) const noexcept;
 
-    Bitboard pieces_bb() const noexcept;
     template<typename... PieceTypes>
     Bitboard pieces_bb(PieceTypes... pts) const noexcept;
     Bitboard pieces_bb(Color c) const noexcept;
     template<typename... PieceTypes>
     Bitboard pieces_bb(Color c, PieceTypes... pts) const noexcept;
+    Bitboard pieces_bb() const noexcept;
+
+    std::uint8_t count(Color c, PieceType pt) const noexcept;
+    template<PieceType PT>
+    std::uint8_t count(Color c) const noexcept;
+    template<PieceType PT>
+    std::uint8_t count() const noexcept;
+    std::uint8_t count(Piece pc) const noexcept;
+    std::uint8_t count(Color c) const noexcept;
+    std::uint8_t count() const noexcept;
 
     [[nodiscard]] const auto& squares(Color c, PieceType pt) const noexcept;
     template<PieceType PT>
@@ -198,15 +207,6 @@ class Position final {
     [[nodiscard]] const auto& squares(Piece pc) const noexcept;
     auto                      squares(Color c, std::size_t& n) const noexcept;
     auto                      squares(std::size_t& n) const noexcept;
-
-    std::uint8_t count(Color c, PieceType pt) const noexcept;
-    template<PieceType PT>
-    std::uint8_t count(Color c) const noexcept;
-    std::uint8_t count(Piece pc) const noexcept;
-    std::uint8_t count(Color c) const noexcept;
-    std::uint8_t count() const noexcept;
-    template<PieceType PT>
-    std::uint8_t count() const noexcept;
 
     template<PieceType PT>
     Square square(Color c) const noexcept;
@@ -469,7 +469,6 @@ class Position final {
     StdArray<Piece, SQUARE_NB>                   pieceMap;
     StdArray<Bitboard, PIECE_TYPE_NB>            typeBBs;
     StdArray<Bitboard, COLOR_NB>                 colorBBs;
-    StdArray<std::uint8_t, COLOR_NB>             pieceCounts;
     StdArray<CastlingRights, COLOR_NB * FILE_NB> castlingRightsMasks;
     Castlings                                    castlings;
     State*                                       st;
@@ -497,8 +496,6 @@ inline Piece Position::piece(Square s) const noexcept { return pieceMap[s]; }
 
 inline bool Position::empty(Square s) const noexcept { return piece(s) == NO_PIECE; }
 
-inline Bitboard Position::pieces_bb() const noexcept { return typeBBs[ALL]; }
-
 template<typename... PieceTypes>
 inline Bitboard Position::pieces_bb(PieceTypes... pts) const noexcept {
     return (typeBBs[pts] | ...);
@@ -510,6 +507,30 @@ template<typename... PieceTypes>
 inline Bitboard Position::pieces_bb(Color c, PieceTypes... pts) const noexcept {
     return pieces_bb(c) & pieces_bb(pts...);
 }
+
+inline Bitboard Position::pieces_bb() const noexcept { return typeBBs[ALL]; }
+
+inline std::uint8_t Position::count(Color c, PieceType pt) const noexcept {
+    return popcount(pieces_bb(c, pt));
+}
+
+template<PieceType PT>
+inline std::uint8_t Position::count(Color c) const noexcept {
+    return count(c, PT);
+}
+
+template<PieceType PT>
+inline std::uint8_t Position::count() const noexcept {
+    return count<PT>(WHITE) + count<PT>(BLACK);
+}
+
+inline std::uint8_t Position::count(Piece pc) const noexcept {
+    return count(color_of(pc), type_of(pc));
+}
+
+inline std::uint8_t Position::count(Color c) const noexcept { return popcount(pieces_bb(c)); }
+
+inline std::uint8_t Position::count() const noexcept { return popcount(pieces_bb()); }
 
 inline const auto& Position::squares(Color c, PieceType pt) const noexcept {
     return pieceLists[c][pt];
@@ -563,28 +584,6 @@ inline auto Position::squares(std::size_t& n) const noexcept {
         }
 
     return sqs;
-}
-
-inline std::uint8_t Position::count(Color c, PieceType pt) const noexcept {
-    return squares(c, pt).count();
-}
-
-template<PieceType PT>
-inline std::uint8_t Position::count(Color c) const noexcept {
-    return count(c, PT);
-}
-
-inline std::uint8_t Position::count(Piece pc) const noexcept {
-    return count(color_of(pc), type_of(pc));
-}
-
-inline std::uint8_t Position::count(Color c) const noexcept { return pieceCounts[c]; }
-
-inline std::uint8_t Position::count() const noexcept { return count(WHITE) + count(BLACK); }
-
-template<PieceType PT>
-inline std::uint8_t Position::count() const noexcept {
-    return count<PT>(WHITE) + count<PT>(BLACK);
 }
 
 template<PieceType PT>
@@ -929,7 +928,6 @@ inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept 
     indexMap[s] = pL.count();
     pL.push_back(s, pB);
     assert(count(c) < SQUARE_NB);
-    ++pieceCounts[c];
 
     if (dts != nullptr)
         update_pc_threats<true>(s, pc, dts);
@@ -942,7 +940,7 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     Piece pc = piece(s);
     auto  c  = color_of(pc);
     auto  pt = type_of(pc);
-    assert(is_ok(pc) && count(c, pt) != 0);
+    assert(is_ok(pc) && count(c) != 0 && count(c, pt) != 0);
 
     if (dts != nullptr)
         update_pc_threats<false>(s, pc, dts);
@@ -960,8 +958,6 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     //indexMap[s]  = INDEX_NONE;
     pL.at(idx, pB) = sq;
     pL.pop_back();
-    assert(count(c) != 0);
-    --pieceCounts[c];
 
     return pc;
 }
