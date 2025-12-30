@@ -232,18 +232,18 @@ class Histories final {
         return pawnKey & pawn_mask();
     }
 
-    auto& pawn() noexcept { return pawnHistory; }
-
-    auto&       pawn(Key pawnKey) noexcept { return pawnHistory[pawn_index(pawnKey)]; }
-    const auto& pawn(Key pawnKey) const noexcept { return pawnHistory[pawn_index(pawnKey)]; }
-
-
     constexpr std::size_t correction_size() const noexcept { return correctionSize; }
     constexpr std::size_t correction_mask() const noexcept { return correction_size() - 1; }
 
     constexpr std::size_t correction_index(Key correctionKey) const noexcept {  //
         return correctionKey & correction_mask();
     }
+
+
+    auto& pawn() noexcept { return pawnHistory; }
+
+    auto&       pawn(Key pawnKey) noexcept { return pawnHistory[pawn_index(pawnKey)]; }
+    const auto& pawn(Key pawnKey) const noexcept { return pawnHistory[pawn_index(pawnKey)]; }
 
     auto& pawn_correction() noexcept { return pawnCorrectionHistory; }
 
