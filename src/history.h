@@ -45,18 +45,18 @@ class StatsEntry final {
     static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
 
    public:
-    void operator=(const T& v) noexcept {
-        if constexpr (Atomic)
-            value.store(v, std::memory_order_relaxed);
-        else
-            value = v;
-    }
-
     operator T() const noexcept {
         if constexpr (Atomic)
             return value.load(std::memory_order_relaxed);
         else
             return value;
+    }
+
+    void operator=(const T& v) noexcept {
+        if constexpr (Atomic)
+            value.store(v, std::memory_order_relaxed);
+        else
+            value = v;
     }
 
     // Overload operator<< to modify the value
