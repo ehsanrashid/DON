@@ -928,7 +928,7 @@ Value Worker::search(Position&    pos,
     if constexpr (!RootNode)
         if (!exclude && tbConfig.cardinality != 0)
         {
-            auto pieceCount = pos.count();
+            std::uint8_t pieceCount = pos.count();
 
             if (pieceCount <= tbConfig.cardinality
                 && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth)

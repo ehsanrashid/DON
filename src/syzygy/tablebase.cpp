@@ -984,7 +984,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     if (!TBFile(code, EXTS[WDL]).exists())
         return;
 
-    std::size_t pieceCount = pieces.size();
+    std::uint8_t pieceCount = pieces.size();
 
     if (MaxCardinality < pieceCount)
         MaxCardinality = pieceCount;
