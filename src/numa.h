@@ -1275,10 +1275,8 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
     const T* operator->() const noexcept { return &*instances[0]; }
 
-    std::vector<std::pair<SystemWideSharedConstantAllocationStatus, std::optional<std::string>>>
-    get_status_and_errors() const noexcept {
-        std::vector<std::pair<SystemWideSharedConstantAllocationStatus, std::optional<std::string>>>
-          status;
+    auto get_status_and_errors() const noexcept {
+        std::vector<std::pair<SharedMemoryAllocationStatus, std::optional<std::string>>> status;
         status.reserve(instances.size());
 
         for (const auto& instance : instances)
@@ -1328,7 +1326,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
         const NumaConfig& cfg = numa_config();
         cfg.execute_on_numa_node(idx, [this, idx]() {
-            instances[idx] = SystemWideSharedConstant<T>(*instances[0], get_discriminator(idx));
+            instances[idx] = SystemWideSharedMemory<T>(*instances[0], get_discriminator(idx));
         });
     }
 
@@ -1345,7 +1343,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
             assert(cfg.nodes_size() > 0);
 
             cfg.execute_on_numa_node(0, [this, &source]() {
-                instances.emplace_back(SystemWideSharedConstant<T>(*source, get_discriminator(0)));
+                instances.emplace_back(SystemWideSharedMemory<T>(*source, get_discriminator(0)));
             });
 
             // Prepare others for lazy init.
@@ -1355,12 +1353,12 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         {
             assert(cfg.nodes_size() == 1);
 
-            instances.emplace_back(SystemWideSharedConstant<T>(*source, get_discriminator(0)));
+            instances.emplace_back(SystemWideSharedMemory<T>(*source, get_discriminator(0)));
         }
     }
 
-    mutable std::vector<SystemWideSharedConstant<T>> instances;
-    mutable std::mutex                               mutex;
+    mutable std::vector<SystemWideSharedMemory<T>> instances;
+    mutable std::mutex                             mutex;
 };
 
 class NumaReplicationContext final {

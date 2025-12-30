@@ -223,8 +223,6 @@ class Histories final {
         minorCorrectionHistory(correction_size()),
         nonPawnCorrectionHistory(correction_size()) {
         assert(count != 0 && (count & (count - 1)) == 0);
-        assert((pawn_size() & (pawn_size() - 1)) == 0);
-        assert((correction_size() & (correction_size() - 1)) == 0);
     }
 
     constexpr std::size_t pawn_size() const noexcept { return pawnSize; }
