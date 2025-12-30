@@ -1188,10 +1188,11 @@ struct FallbackBackendSharedMemory final {
     FallbackBackendSharedMemory(const FallbackBackendSharedMemory&) noexcept            = delete;
     FallbackBackendSharedMemory& operator=(const FallbackBackendSharedMemory&) noexcept = delete;
 
-    FallbackBackendSharedMemory(FallbackBackendSharedMemory&& fallBackendShm) noexcept :
-        fallbackObj(std::move(fallBackendShm.fallbackObj)) {}
-    FallbackBackendSharedMemory& operator=(FallbackBackendSharedMemory&& fallBackendShm) noexcept {
-        fallbackObj = std::move(fallBackendShm.fallbackObj);
+    FallbackBackendSharedMemory(FallbackBackendSharedMemory&& fallbackBackendShm) noexcept :
+        fallbackObj(std::move(fallbackBackendShm.fallbackObj)) {}
+    FallbackBackendSharedMemory&
+    operator=(FallbackBackendSharedMemory&& fallbackBackendShm) noexcept {
+        fallbackObj = std::move(fallbackBackendShm.fallbackObj);
         return *this;
     }
 

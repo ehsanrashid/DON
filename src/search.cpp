@@ -2030,13 +2030,13 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 }
 
 int Worker::correction_value(const Position& pos, const Stack* const ss) noexcept {
-    constexpr int Limit = 0x7FFFFFFF;
+    constexpr std::int64_t Limit = 0x7FFFFFFF;
 
     Color ac = pos.active_color();
 
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
-    return std::clamp<std::int64_t>(
+    return std::clamp(
            + 5174LL * (histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
                      + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
            + 4411LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
