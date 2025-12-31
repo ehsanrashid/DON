@@ -409,16 +409,17 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept {
             if (pt != KING && pos.count(c, pt) == 1)
                 hasUniquePieces = true;
 
+    StdArray<std::uint8_t, COLOR_NB> pawnCnt{
+      pos.count(WHITE, PAWN),  //
+      pos.count(BLACK, PAWN)   //
+    };
+
     // Set the leading color. In case both sides have pawns the leading color
     // is the side with fewer pawns because this leads to better compression.
-    Color c = pos.count(BLACK, PAWN) == 0
-               || (pos.count(WHITE, PAWN) != 0 && pos.count(WHITE, PAWN) <= pos.count(BLACK, PAWN))
-              ? WHITE
-              : BLACK;
+    bool c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK]);
 
-    pawnCount[WHITE] = pos.count(c, PAWN);
-
-    pawnCount[BLACK] = pos.count(~c, PAWN);
+    pawnCount[WHITE] = pawnCnt[c ? WHITE : BLACK];
+    pawnCount[BLACK] = pawnCnt[c ? BLACK : WHITE];
 
     pos.set(code, BLACK, &st);
 
@@ -873,12 +874,21 @@ class TBTables final {
             std::size_t bucket = (key + distance) & MASK;
 
             Entry& entry = entries[bucket];
-            auto*  table = entry.get<T>();
 
-            // Return if found key or empty slot, else terminate if distance exceeded
-            if (entry.key == key || table == nullptr
-                || distance > ((bucket - (entry.key & MASK)) & MASK))
-                return (entry.key == key || table != nullptr) ? table : nullptr;
+            TBTable<T>* table = entry.get<T>();
+
+            // Key matches: return the stored table pointer
+            if (entry.key == key)
+                return table;
+
+            // If the slot is empty OR Robin Hood break condition meets meaning the key can't be further
+            // (have probed farther than the stored entry's displacement),
+            // then the key is not in the table and lookup ends here, return null pointer.
+            // displacement(entry) = how far this entry is from its ideal position
+            // distance > displacement(entry) means our search has already "overtaken"
+            // where this key would have been inserted.
+            if (table == nullptr || distance > ((bucket - (entry.key & MASK)) & MASK))
+                return nullptr;
         }
 
         // Safety fallback: key not found
@@ -917,35 +927,44 @@ class TBTables final {
         TBTable<DTZ>* dtzTable;
     };
 
-    void insert(const Key key, Entry entry) noexcept {
+    void insert(const Key key, Entry newEntry) noexcept {
 
         for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
             std::size_t bucket = (key + distance) & MASK;
 
-            Entry& curEntry = entries[bucket];
+            Entry& entry = entries[bucket];
 
-            // Insert if empty or replace if key exists
-            if (curEntry.get<WDL>() == nullptr || curEntry.key == key)
+            // Case 1: Place the entry if the slot is empty OR the key already exists
+            if (entry.get<WDL>() == nullptr || entry.key == key)
             {
-                curEntry = entry;
+                entry = newEntry;
 
                 return;
             }
 
-            // Compute circular probe distance of the existing entry
-            std::size_t curDistance = (bucket - (curEntry.key & MASK)) & MASK;
+            // Case 2: Robin Hood strategy: compare probe distances
+            // displacement(entry) = how far the current entry is from its ideal slot
+            // distance            = how far the NEW entry has already probed
+            // If have probed farther than the entry currently in the bucket,
+            // then "steal" its slot (Robin Hood rule) because newEntry are poorer.
+            std::size_t displacement = (bucket - (entry.key & MASK)) & MASK;
 
-            // Robin Hood swap if new entry has probed farther than existing
-            if (distance > curDistance)
+            if (distance > displacement)
             {
-                std::swap(entry, curEntry);
+                // Swap entries: the poorer (more probed) entry takes this slot,
+                // the richer (less probed) entry continues probing forward.
+                std::swap(newEntry, entry);
 
-                distance = curDistance;  // reset probe distance for the new entry
+                // After swap, now continue insertion using the displaced entry.
+                // Reset distance to the entry's original displacement so resume
+                // probing as if newEntry were that entry from the start.
+                distance = displacement;
             }
         }
 
-        // Safety check: table is full or SIZE too small
+        // Optional: Table full or SIZE too small
+        // May want to handle this case explicitly (e.g., assert or trigger resize).
         std::cerr << "TB hash table size too small!" << std::endl;
 
         std::exit(EXIT_FAILURE);

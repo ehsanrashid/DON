@@ -83,19 +83,19 @@ class CuckooTable final {
         return (key >> (16 * Part)) & (size() - 1);
     }
 
-    void insert(Cuckoo cuckoo) noexcept {
-        assert(!cuckoo.empty());
+    void insert(Cuckoo newCuckoo) noexcept {
+        assert(!newCuckoo.empty());
 
-        std::size_t index = H<0>(cuckoo.key);
+        std::size_t index = H<0>(newCuckoo.key);
 
         while (true)
         {
-            std::swap(cuckoos[index], cuckoo);
+            std::swap(newCuckoo, cuckoos[index]);
 
-            if (cuckoo.empty())  // Arrived at empty slot?
+            if (newCuckoo.empty())  // Arrived at empty slot?
                 break;
 
-            index ^= H<0>(cuckoo.key) ^ H<1>(cuckoo.key);  // Push victim to alternative slot
+            index ^= H<0>(newCuckoo.key) ^ H<1>(newCuckoo.key);  // Push victim to alternative slot
         }
 
         ++count;
