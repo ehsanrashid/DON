@@ -1016,7 +1016,7 @@ DirtyThreats::add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) 
         threatenedBB |= threatenedSq;
     }
 
-    list.push_back({sq, threatenedSq, pc, threatenedPc, Put});
+    dtList.push_back({sq, threatenedSq, pc, threatenedPc, Put});
 }
 
 #if defined(USE_AVX512ICL)

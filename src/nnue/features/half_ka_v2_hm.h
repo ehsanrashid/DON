@@ -63,13 +63,13 @@ class HalfKAv2_hm final {
     // Get a list of indices for recently changed features
     static void append_changed_indices(Color            perspective,
                                        Square           kingSq,
-                                       const DirtyType& dt,
+                                       const DirtyType& dp,
                                        IndexList&       removed,
                                        IndexList&       added) noexcept;
 
     // Returns whether the change stored in this DirtyType means
     // that a full accumulator refresh is required.
-    static bool requires_refresh(Color perspective, const DirtyType& dt) noexcept;
+    static bool requires_refresh(Color perspective, const DirtyType& dp) noexcept;
 };
 
 }  // namespace NNUE::Features

@@ -191,17 +191,17 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
                                    Square kingSq,
                                    Square orgSq,
                                    Square dstSq,
-                                   Piece  attacker,
-                                   Piece  attacked) noexcept {
+                                   Piece  attackerPc,
+                                   Piece  attackedPc) noexcept {
     int relOrientation = relative_sq(perspective, orientation(kingSq));
 
     orgSq = Square(int(orgSq) ^ relOrientation);
     dstSq = Square(int(dstSq) ^ relOrientation);
 
-    attacker = relative_piece(perspective, attacker);
-    attacked = relative_piece(perspective, attacked);
+    attackerPc = relative_piece(perspective, attackerPc);
+    attackedPc = relative_piece(perspective, attackedPc);
 
-    const auto& piecePairData = LUT_DATAS[attacker][attacked];
+    const auto& piecePairData = LUT_DATAS[attackerPc][attackedPc];
 
     // Some threats imply the existence of the corresponding ones in the opposite direction.
     // Filter them here to ensure only one such threat is active.
@@ -212,8 +212,8 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     if (((piecePairData.excluded_pair_info() + int(orgSq < dstSq)) & 0x2) != 0)
         return FullThreats::Dimensions;
 
-    return piecePairData.feature_base_index() + SQUARE_OFFSETS[attacker][orgSq]
-         + lut_index(attacker, orgSq, dstSq);
+    return piecePairData.feature_base_index() + SQUARE_OFFSETS[attackerPc][orgSq]
+         + lut_index(attackerPc, orgSq, dstSq);
 }
 
 }  // namespace
@@ -301,18 +301,18 @@ void FullThreats::append_active_indices(Color           perspective,
 // Get a list of indices for recently changed features
 void FullThreats::append_changed_indices(Color            perspective,
                                          Square           kingSq,
-                                         const DirtyType& dt,
+                                         const DirtyType& dts,
                                          IndexList&       removed,
                                          IndexList&       added,
                                          FusedData*       fusedData,
                                          bool             first) noexcept {
-    for (const auto& dirty : dt.list)
+    for (const auto& dt : dts.dtList)
     {
-        auto orgSq      = dirty.sq();
-        auto dstSq      = dirty.threatened_sq();
-        auto attackerPc = dirty.pc();
-        auto attackedPc = dirty.threatened_pc();
-        auto add        = dirty.add();
+        auto orgSq      = dt.sq();
+        auto dstSq      = dt.threatened_sq();
+        auto attackerPc = dt.pc();
+        auto attackedPc = dt.threatened_pc();
+        auto add        = dt.add();
 
         if (fusedData != nullptr)
         {
@@ -326,7 +326,7 @@ void FullThreats::append_changed_indices(Color            perspective,
                         continue;
                     }
                 }
-                else if (fusedData->dp2removedOriginBB & dstSq)
+                else if ((fusedData->dp2removedOriginBB & dstSq) != 0)
                     continue;
             }
 
@@ -340,19 +340,21 @@ void FullThreats::append_changed_indices(Color            perspective,
                         continue;
                     }
                 }
-                else if (fusedData->dp2removedTargetBB & orgSq)
+                else if ((fusedData->dp2removedTargetBB & orgSq) != 0)
                     continue;
             }
         }
 
-        IndexType index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
+        auto&     changed = add ? added : removed;
+        IndexType index   = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
+
         if (index < Dimensions)
-            (add ? added : removed).push_back(index);
+            changed.push_back(index);
     }
 }
 
-bool FullThreats::requires_refresh(Color perspective, const DirtyType& dt) noexcept {
-    return dt.ac == perspective && orientation(dt.kingSq) != orientation(dt.preKingSq);
+bool FullThreats::requires_refresh(Color perspective, const DirtyType& dts) noexcept {
+    return dts.ac == perspective && orientation(dts.kingSq) != orientation(dts.preKingSq);
 }
 
 }  // namespace DON::NNUE::Features

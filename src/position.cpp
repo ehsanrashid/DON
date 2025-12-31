@@ -849,8 +849,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker
     db.dts.ac            = ac;
     db.dts.preKingSq     = square<KING>(ac);
     db.dts.threateningBB = db.dts.threatenedBB = 0;
-    assert(is_ok(db.dts.preKingSq));
-    assert(db.dts.list.empty());
+    assert(db.dts.dtList.empty());
 
     // Reset en-passant square
     Square enPassantSq;

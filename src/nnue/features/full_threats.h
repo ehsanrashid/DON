@@ -70,7 +70,7 @@ class FullThreats final {
     // Get a list of indices for recently changed features
     static void append_changed_indices(Color            perspective,
                                        Square           kingSq,
-                                       const DirtyType& dt,
+                                       const DirtyType& dts,
                                        IndexList&       removed,
                                        IndexList&       added,
                                        FusedData*       fd    = nullptr,
@@ -78,7 +78,7 @@ class FullThreats final {
 
     // Returns whether the change stored in this DirtyType means
     // that a full accumulator refresh is required.
-    static bool requires_refresh(Color perspective, const DirtyType& dt) noexcept;
+    static bool requires_refresh(Color perspective, const DirtyType& dts) noexcept;
 };
 
 }  // namespace NNUE::Features

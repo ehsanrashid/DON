@@ -638,7 +638,7 @@ struct DirtyThreats final {
     template<bool Add>
     void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept;
 
-    DirtyThreatList list;
+    DirtyThreatList dtList;
     Color           ac;
     Square          kingSq, preKingSq;
 
