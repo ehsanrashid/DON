@@ -867,7 +867,7 @@ class TBTables final {
 
    public:
     template<TBType T>
-    [[nodiscard]] TBTable<T>* get(const Key key) noexcept {
+    [[nodiscard]] TBTable<T>* get(Key key) noexcept {
 
         for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
@@ -887,7 +887,7 @@ class TBTables final {
             // displacement(entry) = how far this entry is from its ideal position
             // distance > displacement(entry) means our search has already "overtaken"
             // where this key would have been inserted.
-            if (table == nullptr || distance > ((bucket - (entry.key & MASK)) & MASK))
+            if (table == nullptr || distance > entry.displacement(bucket))
                 return nullptr;
         }
 
@@ -914,6 +914,10 @@ class TBTables final {
    private:
     struct Entry final {
        public:
+        std::size_t displacement(std::size_t bucket) const noexcept {
+            return (bucket - (key & MASK)) & MASK;
+        }
+
         template<TBType T>
         TBTable<T>* get() const noexcept {
             if constexpr (T == WDL)
@@ -927,7 +931,9 @@ class TBTables final {
         TBTable<DTZ>* dtzTable;
     };
 
-    void insert(const Key key, Entry newEntry) noexcept {
+    void insert(Entry newEntry) noexcept {
+
+        Key key = newEntry.key;
 
         for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
@@ -943,12 +949,12 @@ class TBTables final {
                 return;
             }
 
-            // Case 2: Robin Hood strategy: compare probe distances
-            // displacement(entry) = how far the current entry is from its ideal slot
+            // Case 2: Robin Hood strategy rule: compare probe distances
+            // displacement(entry) = how far the entry is from its ideal slot
             // distance            = how far the NEW entry has already probed
             // If have probed farther than the entry currently in the bucket,
-            // then "steal" its slot (Robin Hood rule) because newEntry are poorer.
-            std::size_t displacement = (bucket - (entry.key & MASK)) & MASK;
+            // then "steal" its slot (Robin Hood rule) because NEW entry are poorer.
+            std::size_t displacement = entry.displacement(bucket);
 
             if (distance > displacement)
             {
@@ -958,14 +964,13 @@ class TBTables final {
 
                 // After swap, now continue insertion using the displaced entry.
                 // Reset distance to the entry's original displacement so resume
-                // probing as if newEntry were that entry from the start.
+                // probing as if NEW entry were that entry from the start.
                 distance = displacement;
             }
         }
 
-        // Optional: Table full or SIZE too small
         // May want to handle this case explicitly (e.g., assert or trigger resize).
-        std::cerr << "TB hash table size too small!" << std::endl;
+        std::cerr << "TB table full or size too small!" << std::endl;
 
         std::exit(EXIT_FAILURE);
     }
@@ -1016,8 +1021,8 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     auto* dtzTable = &dtzTables.back();
 
     // Insert into the hash keys for both colors: KRvK with KR white and black
-    insert(wdlTable->key[WHITE], {wdlTable->key[WHITE], wdlTable, dtzTable});
-    insert(wdlTable->key[BLACK], {wdlTable->key[BLACK], wdlTable, dtzTable});
+    insert({wdlTable->key[WHITE], wdlTable, dtzTable});
+    insert({wdlTable->key[BLACK], wdlTable, dtzTable});
 }
 
 TBTables tbTables;
