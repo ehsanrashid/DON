@@ -357,7 +357,7 @@ void Worker::start_search() noexcept {
     {
         // When playing in 'Nodes as Time' mode, advance the time nodes before exiting.
         if (mainManager->timeManager.use_nodes_time())
-            mainManager->timeManager.advance_time_nodes(threads.sum_of(&Worker::nodes)
+            mainManager->timeManager.advance_time_nodes(threads.sum(&Worker::nodes)
                                                         - limit.clocks[rootPos.active_color()].inc);
 
         // If the skill is enabled, swap the best PV line with the sub-optimal one
@@ -461,7 +461,7 @@ void Worker::iterative_deepening() noexcept {
         for (auto& rm : rootMoves)
             rm.preValue = rm.curValue;
 
-        if (threads.is_researched())
+        if (threads.is_researching())
             ++researchCnt;
 
         std::size_t begPV = endPV = 0;
@@ -614,14 +614,13 @@ void Worker::iterative_deepening() noexcept {
             mainManager->skill.pick_move(rootMoves, multiPV);
 
         // Do have time for the next iteration? Can stop searching now?
-        if (limit.use_time_manager() && !(mainManager->ponderhitStop || threads.is_stopped()))
+        if (limit.use_time_manager() && !(threads.is_stopped() || mainManager->ponderhitStop))
         {
             // Use part of the gained time from a previous stable move for the current move
-            mainManager->sumMoveChanges += threads.sum_of(&Worker::moveChanges);
+            mainManager->sumMoveChanges += threads.sum(&Worker::moveChanges);
 
             // Reset move changes
-            for (auto&& th : threads)
-                th->worker->moveChanges.store(0, std::memory_order_relaxed);
+            threads.set(&Worker::moveChanges, 0U);
 
             // clang-format off
 
@@ -2291,9 +2290,9 @@ void MainSearchManager::check_time(Worker& worker) noexcept {
       // Later rely on the fact that at least use the main-thread previous root-search
       // score and PV in a multi-threaded environment to prove mated-in scores.
       && worker.completedDepth > DEPTH_ZERO
-      && ((worker.limit.use_time_manager() && (ponderhitStop || elapsedTime >= timeManager.maximum()))
-       || (worker.limit.moveTime != 0 &&                        elapsedTime >= worker.limit.moveTime)
-       || (worker.limit.nodes != 0 && worker.threads.sum_of(&Worker::nodes) >= worker.limit.nodes)))
+      && ((worker.limit.use_time_manager() &&      (ponderhitStop || elapsedTime >= timeManager.maximum()))
+       || (worker.limit.moveTime != 0      &&                        elapsedTime >= worker.limit.moveTime)
+       || (worker.limit.nodes != 0         && worker.threads.sum(&Worker::nodes) >= worker.limit.nodes)))
         worker.threads.request_abort();
     // clang-format on
 }
@@ -2307,7 +2306,7 @@ TimePoint MainSearchManager::elapsed() const noexcept { return timeManager.elaps
 // This function is called to check whether the search should be stopped
 // based on predefined thresholds like total time or total nodes.
 TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
-    return timeManager.elapsed([&threads]() { return threads.sum_of(&Worker::nodes); });
+    return timeManager.elapsed([&threads]() { return threads.sum(&Worker::nodes); });
 }
 
 void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
@@ -2317,10 +2316,10 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     const auto& tbConfig  = worker.tbConfig;
 
     TimePoint     time     = std::max(elapsed(), TimePoint(1));
-    std::uint64_t nodes    = worker.threads.sum_of(&Worker::nodes);
+    std::uint64_t nodes    = worker.threads.sum(&Worker::nodes);
     std::uint16_t hashfull = worker.transpositionTable.hashfull();
-    std::uint64_t tbHits   = worker.threads.sum_of(&Worker::tbHits,  //
-                                                 tbConfig.rootInTB ? rootMoves.size() : 0);
+    std::uint64_t tbHits   = worker.threads.sum(&Worker::tbHits,  //
+                                              tbConfig.rootInTB ? rootMoves.size() : 0);
 
     for (std::size_t i = 0; i < worker.multiPV; ++i)
     {
