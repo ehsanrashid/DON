@@ -37,8 +37,8 @@ struct AccumulatorCaches;
 
 // EvalFile uses fixed string types because it's part of the network structure which must be trivial.
 struct EvalFile final {
-    // Default net name, will use one of the EvalFileDefaultName* macros defined
-    // in evaluate.h
+   public:
+    // Default net name, will use the *EvalFileDefaultName macros defined in evaluate.h
     FixedString<256> defaultName;
     // Selected net name, either via uci option or default
     FixedString<256> currentName;
@@ -47,11 +47,13 @@ struct EvalFile final {
 };
 
 struct NetworkOutput final {
+   public:
     std::int32_t psqt;
     std::int32_t positional;
 };
 
 struct NetworkTrace final {
+   public:
     StdArray<NetworkOutput, LayerStacks> netOut;
     std::size_t                          correctBucket;
 };

@@ -294,9 +294,7 @@ void Threads::start(Position&      pos,
                     const Options& options) noexcept {
     main_thread()->wait_finish();
 
-    stop.store(false, std::memory_order_relaxed);
-    abort.store(false, std::memory_order_relaxed);
-    research.store(false, std::memory_order_relaxed);
+    state.store(State::Active, std::memory_order_relaxed);
 
     RootMoves rootMoves;
 

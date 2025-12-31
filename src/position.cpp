@@ -83,19 +83,19 @@ class CuckooTable final {
         return (key >> (16 * Part)) & (size() - 1);
     }
 
-    void insert(Cuckoo cuckoo) noexcept {
-        assert(!cuckoo.empty());
+    void insert(Cuckoo newCuckoo) noexcept {
+        assert(!newCuckoo.empty());
 
-        std::size_t index = H<0>(cuckoo.key);
+        std::size_t index = H<0>(newCuckoo.key);
 
         while (true)
         {
-            std::swap(cuckoos[index], cuckoo);
+            std::swap(newCuckoo, cuckoos[index]);
 
-            if (cuckoo.empty())  // Arrived at empty slot?
+            if (newCuckoo.empty())  // Arrived at empty slot?
                 break;
 
-            index ^= H<0>(cuckoo.key) ^ H<1>(cuckoo.key);  // Push victim to alternative slot
+            index ^= H<0>(newCuckoo.key) ^ H<1>(newCuckoo.key);  // Push victim to alternative slot
         }
 
         ++count;
@@ -198,7 +198,6 @@ void Position::clear() noexcept {
     std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
     std::memset(typeBBs.data(), 0, sizeof(typeBBs));
     std::memset(colorBBs.data(), 0, sizeof(colorBBs));
-    std::memset(pieceCounts.data(), 0, sizeof(pieceCounts));
     std::memset(castlingRightsMasks.data(), NO_CASTLING, sizeof(castlingRightsMasks));
     std::memset(castlings.fullPathBB.data(), 0, sizeof(castlings.fullPathBB));
     std::memset(castlings.kingPathBB.data(), 0, sizeof(castlings.kingPathBB));
@@ -303,19 +302,12 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     }
 
     assert(file <= FILE_NB && rank == RANK_1);
-    assert(count<PAWN>(WHITE) + count<KNIGHT>(WHITE) + count<BISHOP>(WHITE)  //
-               + count<ROOK>(WHITE) + count<QUEEN>(WHITE) + count<KING>(WHITE)
-             <= 16
-           && count<PAWN>(BLACK) + count<KNIGHT>(BLACK) + count<BISHOP>(BLACK)  //
-                  + count<ROOK>(BLACK) + count<QUEEN>(BLACK) + count<KING>(BLACK)
-                <= 16);
-    assert(count<PAWN>() + count<KNIGHT>() + count<BISHOP>()  //
-             + count<ROOK>() + count<QUEEN>() + count<KING>()
-           == count());
+    assert(count(WHITE) <= 16 && count(BLACK) <= 16);
     assert(count(W_PAWN) <= 8 && count(B_PAWN) <= 8);
-    assert(count(W_KING) == 1 && count(B_KING) == 1);
-    assert(is_ok(square<KING>(WHITE)) && is_ok(square<KING>(BLACK)));
+    assert(count(WHITE, KING) == 1 && count(BLACK, KING) == 1);
+    assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
     assert((pieces_bb(PAWN) & PROMOTION_RANKS_BB) == 0);
+    assert(is_ok(square<KING>(WHITE)) && is_ok(square<KING>(BLACK)));
     assert(distance(square<KING>(WHITE), square<KING>(BLACK)) > 1);
 
     iss >> std::ws;
@@ -1959,16 +1951,16 @@ Key Position::compute_key() const noexcept {
     Key key = 0;
 
     std::size_t n;
-    auto        orgSqs = squares(n);
+    auto        sqs = squares(n);
 
-    auto       beg = orgSqs.begin();
+    auto       beg = sqs.begin();
     const auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        Square orgSq = *beg;
-        Piece  pc    = piece(orgSq);
+        Square s  = *beg;
+        Piece  pc = piece(s);
 
-        key ^= Zobrist::piece_square(pc, orgSq);
+        key ^= Zobrist::piece_square(pc, s);
     }
 
     key ^= Zobrist::castling(castling_rights());
@@ -1986,18 +1978,18 @@ Key Position::compute_minor_key() const noexcept {
     Key minorKey = 0;
 
     std::size_t n;
-    auto        orgSqs = squares(n);
+    auto        sqs = squares(n);
 
-    auto       beg = orgSqs.begin();
+    auto       beg = sqs.begin();
     const auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        Square orgSq = *beg;
-        Piece  pc    = piece(orgSq);
-        auto   pt    = type_of(pc);
+        Square s  = *beg;
+        Piece  pc = piece(s);
+        auto   pt = type_of(pc);
 
         if (pt != PAWN && pt != KING && !is_major(pt))
-            minorKey ^= Zobrist::piece_square(color_of(pc), pt, orgSq);
+            minorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
     }
 
     return minorKey;
@@ -2007,18 +1999,18 @@ Key Position::compute_major_key() const noexcept {
     Key majorKey = 0;
 
     std::size_t n;
-    auto        orgSqs = squares(n);
+    auto        sqs = squares(n);
 
-    auto       beg = orgSqs.begin();
+    auto       beg = sqs.begin();
     const auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        Square orgSq = *beg;
-        Piece  pc    = piece(orgSq);
-        auto   pt    = type_of(pc);
+        Square s  = *beg;
+        Piece  pc = piece(s);
+        auto   pt = type_of(pc);
 
         if (pt != PAWN && pt != KING && is_major(pt))
-            majorKey ^= Zobrist::piece_square(color_of(pc), pt, orgSq);
+            majorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
     }
 
     return majorKey;
@@ -2028,18 +2020,18 @@ Key Position::compute_non_pawn_key() const noexcept {
     Key nonPawnKey = 0;
 
     std::size_t n;
-    auto        orgSqs = squares(n);
+    auto        sqs = squares(n);
 
-    auto       beg = orgSqs.begin();
+    auto       beg = sqs.begin();
     const auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        Square orgSq = *beg;
-        Piece  pc    = piece(orgSq);
-        auto   pt    = type_of(pc);
+        Square s  = *beg;
+        Piece  pc = piece(s);
+        auto   pt = type_of(pc);
 
         if (pt != PAWN)
-            nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, orgSq);
+            nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, s);
     }
 
     return nonPawnKey;
@@ -2053,7 +2045,7 @@ bool Position::_is_ok() const noexcept {
     constexpr bool Fast = true;  // Quick (default) or full check?
 
     if ((active_color() != WHITE && active_color() != BLACK)   //
-        || count<KING>(WHITE) != 1 || count<KING>(BLACK) != 1  //
+        || count(WHITE, KING) != 1 || count(BLACK, KING) != 1  //
         || piece(square<KING>(WHITE)) != W_KING                //
         || piece(square<KING>(BLACK)) != B_KING                //
         || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1
@@ -2080,7 +2072,7 @@ bool Position::_is_ok() const noexcept {
         assert(false && "Position::_is_ok(): NonPawn Key");
 
     if ((pieces_bb(PAWN) & PROMOTION_RANKS_BB) != 0  //
-        || count<PAWN>(WHITE) > 8 || count<PAWN>(BLACK) > 8)
+        || count(WHITE, PAWN) > 8 || count(BLACK, PAWN) > 8)
         assert(false && "Position::_is_ok(): Pawns");
 
     if ((pieces_bb(WHITE) & pieces_bb(BLACK)) != 0
@@ -2120,12 +2112,12 @@ bool Position::_is_ok() const noexcept {
         }
 
     for (Color c : {WHITE, BLACK})
-        if (count<PAWN>(c)                                                           //
-              + std::max(count<KNIGHT>(c) - 2, 0)                                    //
+        if (count(c, PAWN)                                                           //
+              + std::max(count(c, KNIGHT) - 2, 0)                                    //
               + std::max(popcount(pieces_bb(c, BISHOP) & color_bb<WHITE>()) - 1, 0)  //
               + std::max(popcount(pieces_bb(c, BISHOP) & color_bb<BLACK>()) - 1, 0)  //
-              + std::max(count<ROOK>(c) - 2, 0)                                      //
-              + std::max(count<QUEEN>(c) - 1, 0)                                     //
+              + std::max(count(c, ROOK) - 2, 0)                                      //
+              + std::max(count(c, QUEEN) - 1, 0)                                     //
             > 8)
             assert(false && "Position::_is_ok(): Piece Count");
 

@@ -41,8 +41,8 @@
 //     const unsigned int         gEmbeddedSize;    // size of the embedded file
 // Note that this does not work in Microsoft Visual Studio.
 #if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
-INCBIN(BigEmbedded, EvalFileDefaultNameBig);
-INCBIN(SmallEmbedded, EvalFileDefaultNameSmall);
+INCBIN(BigEmbedded, BigEvalFileDefaultName);
+INCBIN(SmallEmbedded, SmallEvalFileDefaultName);
 #else
 const unsigned char        gBigEmbeddedData[1]   = {0x0};
 const unsigned char* const gBigEmbeddedEnd       = &gBigEmbeddedData[1];

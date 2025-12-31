@@ -449,6 +449,7 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
             fen = "position fen " + fen;
 
         commands.emplace_back(fen);
+
         if (!setOption)
             commands.emplace_back(command);
     }

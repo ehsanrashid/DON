@@ -765,7 +765,7 @@ struct InitOnce final {
     enum class State : std::uint8_t {
         Uninitialized,
         Initializing,
-        Initialized,
+        Initialized
     };
 
     std::atomic<State> state{State::Uninitialized};

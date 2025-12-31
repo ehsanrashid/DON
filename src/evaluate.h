@@ -26,11 +26,9 @@
 namespace DON {
 
 // The default net name MUST follow the format nn-[SHA256 first 12 digits].nnue
-// for the build process (profile-build and fishtest) to work.
-// Do not change the name of the macro or the location where this macro is defined,
-// as it is used in the Makefile/Fishtest.
-#define EvalFileDefaultNameBig "nn-c288c895ea92.nnue"
-#define EvalFileDefaultNameSmall "nn-37f18f62d772.nnue"
+// for the profile-build process to work.
+#define BigEvalFileDefaultName "nn-c288c895ea92.nnue"
+#define SmallEvalFileDefaultName "nn-37f18f62d772.nnue"
 
 class Position;
 

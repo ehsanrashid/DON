@@ -269,12 +269,6 @@ class BackendSharedMemory final {
         initialize(shmName, value);
     }
 
-    bool is_valid() const noexcept { return status == Status::Success; }
-
-    void* get() const noexcept { return is_valid() ? mappedPtr : nullptr; }
-
-    ~BackendSharedMemory() noexcept { cleanup(); }
-
     BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
 
@@ -305,6 +299,12 @@ class BackendSharedMemory final {
 
         return *this;
     }
+
+    ~BackendSharedMemory() noexcept { cleanup(); }
+
+    bool is_valid() const noexcept { return status == Status::Success; }
+
+    void* get() const noexcept { return is_valid() ? mappedPtr : nullptr; }
 
     SharedMemoryAllocationStatus get_status() const noexcept {
         return status == Status::Success ? SharedMemoryAllocationStatus::SharedMemory
@@ -1141,7 +1141,7 @@ template<typename T>
 template<typename T>
 class BackendSharedMemory final {
    public:
-    BackendSharedMemory() = default;
+    BackendSharedMemory() noexcept = default;
 
     BackendSharedMemory(const std::string& shmName, const T& value) noexcept :
         shm(internal::create_shared_memory<T>(shmName, value)) {}
@@ -1159,13 +1159,13 @@ class BackendSharedMemory final {
 
     std::optional<std::string> get_error_message() const noexcept {
         if (!shm)
-            return "Shared memory not initialized";
+            return "Shared memory not available";
 
         if (!shm->is_open())
             return "Shared memory is not open";
 
         if (!shm->is_initialized())
-            return "Not initialized";
+            return "Shared memory not initialized";
 
         return std::nullopt;
     }
@@ -1178,12 +1178,11 @@ class BackendSharedMemory final {
 
 template<typename T>
 struct FallbackBackendSharedMemory final {
+   public:
     FallbackBackendSharedMemory() noexcept = default;
 
     FallbackBackendSharedMemory(const std::string&, const T& value) noexcept :
         fallbackObj(make_unique_aligned_large_page<T>(value)) {}
-
-    void* get() const { return fallbackObj.get(); }
 
     FallbackBackendSharedMemory(const FallbackBackendSharedMemory&) noexcept            = delete;
     FallbackBackendSharedMemory& operator=(const FallbackBackendSharedMemory&) noexcept = delete;
@@ -1195,6 +1194,8 @@ struct FallbackBackendSharedMemory final {
         fallbackObj = std::move(fallbackBackendShm.fallbackObj);
         return *this;
     }
+
+    void* get() const noexcept { return fallbackObj.get(); }
 
     SharedMemoryAllocationStatus get_status() const noexcept {
         return fallbackObj == nullptr ? SharedMemoryAllocationStatus::NoAllocation

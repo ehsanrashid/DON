@@ -18,7 +18,6 @@
 #include "engine.h"
 
 #include <algorithm>
-#include <atomic>
 #include <cassert>
 #include <deque>
 #include <fstream>
@@ -64,8 +63,8 @@ Engine::Engine(std::optional<std::string> path) noexcept :
       numaContext,
       // Heap-allocate because sizeof(NNUE::Networks) is large
       std::make_unique<NNUE::Networks>(
-        std::make_unique<NNUE::BigNetwork  >(NNUE::EvalFile{EvalFileDefaultNameBig  , "None", ""}, NNUE::EmbeddedType::BIG  ),
-        std::make_unique<NNUE::SmallNetwork>(NNUE::EvalFile{EvalFileDefaultNameSmall, "None", ""}, NNUE::EmbeddedType::SMALL))) {
+        std::make_unique<NNUE::BigNetwork  >(NNUE::EvalFile{BigEvalFileDefaultName  , "None", ""}, NNUE::EmbeddedType::BIG  ),
+        std::make_unique<NNUE::SmallNetwork>(NNUE::EvalFile{SmallEvalFileDefaultName, "None", ""}, NNUE::EmbeddedType::SMALL))) {
 
     using OnCng = Option::OnChange;
 
@@ -106,8 +105,8 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("SyzygyProbeDepth",     Option(1, 1, 100));
     options.add("Syzygy50MoveRule",     Option(true));
     options.add("SyzygyPVExtend",       Option(true));
-    options.add("BigEvalFile",          Option(EvalFileDefaultNameBig  , OnCng([this](const Option& o) { load_big_network(o);   return std::nullopt; })));
-    options.add("SmallEvalFile",        Option(EvalFileDefaultNameSmall, OnCng([this](const Option& o) { load_small_network(o); return std::nullopt; })));
+    options.add("BigEvalFile",          Option(BigEvalFileDefaultName  , OnCng([this](const Option& o) { load_big_network(o);   return std::nullopt; })));
+    options.add("SmallEvalFile",        Option(SmallEvalFileDefaultName, OnCng([this](const Option& o) { load_small_network(o); return std::nullopt; })));
     options.add("ReportMinimal",        Option(false));
     options.add("LogFile",              Option("", OnCng([](const Option& o) { return Logger::start(o) ? "Logger started" : "Logger not started"; })));
     options.add("Stop Logger",          Option(OnCng([](const Option&) { Logger::stop(); return std::nullopt; })));
@@ -187,7 +186,7 @@ void Engine::start(const Limit& limit) noexcept {
     threads.start(pos, states, limit, options);
 }
 
-void Engine::stop() noexcept { threads.stop.store(true, std::memory_order_relaxed); }
+void Engine::stop() noexcept { threads.request_stop(); }
 
 void Engine::ponderhit() noexcept { threads.main_manager()->ponder = false; }
 

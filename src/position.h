@@ -150,7 +150,7 @@ static_assert(std::is_standard_layout_v<State> && std::is_trivially_copyable_v<S
 class Worker;
 
 // Position class stores information regarding the board representation as
-// pieces, active color, hash keys, castling info, etc. (Size = 504)
+// pieces, active color, hash keys, castling info, etc. (Size = 496)
 // Important methods are do_move() and undo_move(),
 // used by the search to update node info when traversing the search tree.
 class Position final {
@@ -185,12 +185,21 @@ class Position final {
     Piece piece(Square s) const noexcept;
     bool  empty(Square s) const noexcept;
 
-    Bitboard pieces_bb() const noexcept;
     template<typename... PieceTypes>
     Bitboard pieces_bb(PieceTypes... pts) const noexcept;
     Bitboard pieces_bb(Color c) const noexcept;
     template<typename... PieceTypes>
     Bitboard pieces_bb(Color c, PieceTypes... pts) const noexcept;
+    Bitboard pieces_bb(Piece pc) const noexcept;
+    Bitboard pieces_bb() const noexcept;
+
+    template<typename... PieceTypes>
+    std::uint8_t count(PieceTypes... pts) const noexcept;
+    std::uint8_t count(Color c) const noexcept;
+    template<typename... PieceTypes>
+    std::uint8_t count(Color c, PieceTypes... pts) const noexcept;
+    std::uint8_t count(Piece pc) const noexcept;
+    std::uint8_t count() const noexcept;
 
     [[nodiscard]] const auto& squares(Color c, PieceType pt) const noexcept;
     template<PieceType PT>
@@ -198,15 +207,6 @@ class Position final {
     [[nodiscard]] const auto& squares(Piece pc) const noexcept;
     auto                      squares(Color c, std::size_t& n) const noexcept;
     auto                      squares(std::size_t& n) const noexcept;
-
-    std::uint8_t count(Color c, PieceType pt) const noexcept;
-    template<PieceType PT>
-    std::uint8_t count(Color c) const noexcept;
-    std::uint8_t count(Piece pc) const noexcept;
-    std::uint8_t count(Color c) const noexcept;
-    std::uint8_t count() const noexcept;
-    template<PieceType PT>
-    std::uint8_t count() const noexcept;
 
     template<PieceType PT>
     Square square(Color c) const noexcept;
@@ -469,7 +469,6 @@ class Position final {
     StdArray<Piece, SQUARE_NB>                   pieceMap;
     StdArray<Bitboard, PIECE_TYPE_NB>            typeBBs;
     StdArray<Bitboard, COLOR_NB>                 colorBBs;
-    StdArray<std::uint8_t, COLOR_NB>             pieceCounts;
     StdArray<CastlingRights, COLOR_NB * FILE_NB> castlingRightsMasks;
     Castlings                                    castlings;
     State*                                       st;
@@ -477,7 +476,7 @@ class Position final {
     Color                                        activeColor;
 };
 
-//static_assert(sizeof(Position) == 504, "Position size");
+//static_assert(sizeof(Position) == 496, "Position size");
 
 inline const auto& Position::piece_map() const noexcept { return pieceMap; }
 
@@ -497,8 +496,6 @@ inline Piece Position::piece(Square s) const noexcept { return pieceMap[s]; }
 
 inline bool Position::empty(Square s) const noexcept { return piece(s) == NO_PIECE; }
 
-inline Bitboard Position::pieces_bb() const noexcept { return typeBBs[ALL]; }
-
 template<typename... PieceTypes>
 inline Bitboard Position::pieces_bb(PieceTypes... pts) const noexcept {
     return (typeBBs[pts] | ...);
@@ -510,6 +507,30 @@ template<typename... PieceTypes>
 inline Bitboard Position::pieces_bb(Color c, PieceTypes... pts) const noexcept {
     return pieces_bb(c) & pieces_bb(pts...);
 }
+
+inline Bitboard Position::pieces_bb(Piece pc) const noexcept {
+    return pieces_bb(color_of(pc), type_of(pc));
+}
+
+inline Bitboard Position::pieces_bb() const noexcept { return typeBBs[ALL]; }
+
+template<typename... PieceTypes>
+inline std::uint8_t Position::count(PieceTypes... pts) const noexcept {
+    return popcount(pieces_bb(pts...));
+}
+
+inline std::uint8_t Position::count(Color c) const noexcept { return popcount(pieces_bb(c)); }
+
+template<typename... PieceTypes>
+inline std::uint8_t Position::count(Color c, PieceTypes... pts) const noexcept {
+    return popcount(pieces_bb(c, pts...));
+}
+
+inline std::uint8_t Position::count(Piece pc) const noexcept {
+    return count(color_of(pc), type_of(pc));
+}
+
+inline std::uint8_t Position::count() const noexcept { return popcount(pieces_bb()); }
 
 inline const auto& Position::squares(Color c, PieceType pt) const noexcept {
     return pieceLists[c][pt];
@@ -565,31 +586,9 @@ inline auto Position::squares(std::size_t& n) const noexcept {
     return sqs;
 }
 
-inline std::uint8_t Position::count(Color c, PieceType pt) const noexcept {
-    return squares(c, pt).count();
-}
-
-template<PieceType PT>
-inline std::uint8_t Position::count(Color c) const noexcept {
-    return count(c, PT);
-}
-
-inline std::uint8_t Position::count(Piece pc) const noexcept {
-    return count(color_of(pc), type_of(pc));
-}
-
-inline std::uint8_t Position::count(Color c) const noexcept { return pieceCounts[c]; }
-
-inline std::uint8_t Position::count() const noexcept { return count(WHITE) + count(BLACK); }
-
-template<PieceType PT>
-inline std::uint8_t Position::count() const noexcept {
-    return count<PT>(WHITE) + count<PT>(BLACK);
-}
-
 template<PieceType PT>
 inline Square Position::square(Color c) const noexcept {
-    assert(count<PT>(c) == 1);
+    assert(count(c, PT) == 1);
     return squares<PT>(c).at(0, base(c));
 }
 
@@ -839,7 +838,7 @@ inline Value Position::non_pawn_value() const noexcept {
 inline bool Position::has_non_pawn(Color c) const noexcept {
 
     for (PieceType pt : NON_PAWN_PIECE_TYPES)
-        if (count(c, pt) != 0)
+        if (pieces_bb(c, pt) != 0)
             return true;
     return false;
 }
@@ -861,26 +860,25 @@ inline bool Position::bishop_paired(Color c) const noexcept {
 }
 
 inline bool Position::bishop_opposite() const noexcept {
-    return count<BISHOP>(WHITE) == 1  //
-        && count<BISHOP>(BLACK) == 1
+    return count(WHITE, BISHOP) == 1  //
+        && count(BLACK, BISHOP) == 1
         && color_opposite(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
 }
 
 inline std::size_t Position::bucket() const noexcept { return (count() - 1) / 4; }
 
 inline int Position::std_material() const noexcept {
-    return 1 * count<PAWN>() + 3 * (count<KNIGHT>() + count<BISHOP>()) + 5 * count<ROOK>()
-         + 9 * count<QUEEN>();
+    return 1 * count(PAWN) + 3 * count(KNIGHT, BISHOP) + 5 * count(ROOK) + 9 * count(QUEEN);
 }
 
-inline Value Position::material() const noexcept { return 534 * count<PAWN>() + non_pawn_value(); }
+inline Value Position::material() const noexcept { return 534 * count(PAWN) + non_pawn_value(); }
 
 // Returns a static, purely materialistic evaluation of the position from
 // the point of view of the side to move. It can be divided by VALUE_PAWN to get
 // an approximation of the material advantage on the board in terms of pawns.
 inline Value Position::evaluate() const noexcept {
     Color ac = active_color();
-    return VALUE_PAWN * (count<PAWN>(ac) - count<PAWN>(~ac))
+    return VALUE_PAWN * (count(ac, PAWN) - count(~ac, PAWN))
          + (non_pawn_value(ac) - non_pawn_value(~ac));
 }
 
@@ -928,8 +926,7 @@ inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept 
 
     indexMap[s] = pL.count();
     pL.push_back(s, pB);
-    assert(count(c) < SQUARE_NB);
-    ++pieceCounts[c];
+    assert(count(c, pt) <= CAPACITIES[pt - 1]);
 
     if (dts != nullptr)
         update_pc_threats<true>(s, pc, dts);
@@ -960,8 +957,6 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     //indexMap[s]  = INDEX_NONE;
     pL.at(idx, pB) = sq;
     pL.pop_back();
-    assert(count(c) != 0);
-    --pieceCounts[c];
 
     return pc;
 }
@@ -1048,7 +1043,7 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
 
     auto* dt = dts->list.make_space(maskCount);
 
-    __m512i templateV = _mm512_set1_epi32(templateDt.raw());
+    __m512i templateVal = _mm512_set1_epi32(templateDt.raw());
 
     // Extract the list of squares and upconvert to 32 bits.
     // There are never more than 16 incoming threats so this is sufficient.
@@ -1063,7 +1058,7 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
     threatPieces  = _mm512_slli_epi32(threatPieces, PcShift);
 
     //                                                         A | B | C
-    __m512i dirties = _mm512_ternarylogic_epi32(templateV, threatSquares, threatPieces, 254);
+    __m512i dirties = _mm512_ternarylogic_epi32(templateVal, threatSquares, threatPieces, 254);
     _mm512_storeu_si512(reinterpret_cast<__m512i*>(dt), dirties);
 }
 #endif

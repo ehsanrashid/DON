@@ -396,10 +396,12 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept {
     Position pos;
 
     pos.set(code, WHITE, &st);
+
     key[WHITE] = pos.material_key();
 
     pieceCount = pos.count();
-    hasPawns   = pos.count<PAWN>() != 0;
+
+    hasPawns = pos.pieces_bb(PAWN) != 0;
 
     hasUniquePieces = false;
     for (Color c : {WHITE, BLACK})
@@ -407,17 +409,20 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept {
             if (pt != KING && pos.count(c, pt) == 1)
                 hasUniquePieces = true;
 
+    StdArray<std::uint8_t, COLOR_NB> pawnCnt{
+      pos.count(WHITE, PAWN),  //
+      pos.count(BLACK, PAWN)   //
+    };
+
     // Set the leading color. In case both sides have pawns the leading color
     // is the side with fewer pawns because this leads to better compression.
-    Color c = pos.count<PAWN>(BLACK) == 0
-               || (pos.count<PAWN>(WHITE) != 0 && pos.count<PAWN>(WHITE) <= pos.count<PAWN>(BLACK))
-              ? WHITE
-              : BLACK;
+    bool c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK]);
 
-    pawnCount[WHITE] = pos.count<PAWN>(c);
-    pawnCount[BLACK] = pos.count<PAWN>(~c);
+    pawnCount[WHITE] = pawnCnt[c ? WHITE : BLACK];
+    pawnCount[BLACK] = pawnCnt[c ? BLACK : WHITE];
 
     pos.set(code, BLACK, &st);
+
     key[BLACK] = pos.material_key();
 }
 
@@ -862,19 +867,27 @@ class TBTables final {
 
    public:
     template<TBType T>
-    [[nodiscard]] TBTable<T>* get(const Key key) noexcept {
+    [[nodiscard]] TBTable<T>* get(Key key) noexcept {
 
         for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
             std::size_t bucket = (key + distance) & MASK;
 
             Entry& entry = entries[bucket];
-            auto*  table = entry.get<T>();
 
-            // Return if found key or empty slot, else terminate if distance exceeded
-            if (entry.key == key || table == nullptr
-                || distance > ((bucket - (entry.key & MASK)) & MASK))
-                return (entry.key == key || table != nullptr) ? table : nullptr;
+            TBTable<T>* table = entry.get<T>();
+
+            // Key matches: return the stored table pointer
+            if (entry.key == key)
+                return table;
+
+            std::size_t displacement = (bucket - entry.bucket()) & MASK;
+
+            // Stop search if:
+            // 1) Empty slot -> key not in table
+            // 2) Robin Hood break condition -> key would have been inserted earlier
+            if (table == nullptr || distance > displacement)
+                break;
         }
 
         // Safety fallback: key not found
@@ -900,6 +913,8 @@ class TBTables final {
    private:
     struct Entry final {
        public:
+        std::size_t bucket() const noexcept { return key & MASK; }
+
         template<TBType T>
         TBTable<T>* get() const noexcept {
             if constexpr (T == WDL)
@@ -913,36 +928,43 @@ class TBTables final {
         TBTable<DTZ>* dtzTable;
     };
 
-    void insert(const Key key, Entry entry) noexcept {
+    void insert(Entry newEntry) noexcept {
 
         for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
-            std::size_t bucket = (key + distance) & MASK;
+            std::size_t bucket = (newEntry.key + distance) & MASK;
 
-            Entry& curEntry = entries[bucket];
+            Entry& entry = entries[bucket];
 
-            // Insert if empty or replace if key exists
-            if (curEntry.get<WDL>() == nullptr || curEntry.key == key)
+            // Case 1: Place the entry if the slot is empty OR the key already exists
+            if (entry.get<WDL>() == nullptr || entry.key == newEntry.key)
             {
-                curEntry = entry;
-
+                entry = newEntry;
                 return;
             }
 
-            // Compute circular probe distance of the existing entry
-            std::size_t curDistance = (bucket - (curEntry.key & MASK)) & MASK;
+            // Case 2: Robin Hood strategy rule: compare probe distances
+            // displacement(entry) = how far the entry is from its ideal slot
+            // distance            = how far the NEW entry has already probed
+            // If have probed farther than the entry currently in the bucket,
+            // then "steal" its slot (Robin Hood rule) because NEW entry are poorer.
+            std::size_t displacement = (bucket - entry.bucket()) & MASK;
 
-            // Robin Hood swap if new entry has probed farther than existing
-            if (distance > curDistance)
+            if (distance > displacement)
             {
-                std::swap(entry, curEntry);
+                // Swap entries: the poorer (more probed) entry takes this slot,
+                // the richer (less probed) entry continues probing forward.
+                std::swap(newEntry, entry);
 
-                distance = curDistance;  // reset probe distance for the new entry
+                // After swap, now continue insertion using the displaced entry.
+                // Reset distance to the entry's original displacement so resume
+                // probing as if NEW entry were that entry from the start.
+                distance = displacement;
             }
         }
 
-        // Safety check: table is full or SIZE too small
-        std::cerr << "TB hash table size too small!" << std::endl;
+        // May want to handle this case explicitly (e.g., assert or trigger resize).
+        std::cerr << "TB table full or size too small!" << std::endl;
 
         std::exit(EXIT_FAILURE);
     }
@@ -980,7 +1002,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     if (!TBFile(code, EXTS[WDL]).exists())
         return;
 
-    std::size_t pieceCount = pieces.size();
+    std::uint8_t pieceCount = pieces.size();
 
     if (MaxCardinality < pieceCount)
         MaxCardinality = pieceCount;
@@ -989,12 +1011,12 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     dtzTables.emplace_back(wdlTables.back());
 
     // Pointers to newly added tables
-    auto* wdlTable = &wdlTables.back();
-    auto* dtzTable = &dtzTables.back();
+    TBTable<WDL>* wdlTable = &wdlTables.back();
+    TBTable<DTZ>* dtzTable = &dtzTables.back();
 
     // Insert into the hash keys for both colors: KRvK with KR white and black
-    insert(wdlTable->key[WHITE], {wdlTable->key[WHITE], wdlTable, dtzTable});
-    insert(wdlTable->key[BLACK], {wdlTable->key[BLACK], wdlTable, dtzTable});
+    insert({wdlTable->key[WHITE], wdlTable, dtzTable});
+    insert({wdlTable->key[BLACK], wdlTable, dtzTable});
 }
 
 TBTables tbTables;
