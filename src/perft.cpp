@@ -381,7 +381,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
               UCI::move_to_san(m, pos);
 
             std::size_t append = 10 - move.size();
-            if (append > 0)
+            if (append != 0)
             {
                 bool special = move.back() == '+' || move.back() == '#' || move.back() == '=';
                 move.append(append - special, ' ');

@@ -2311,17 +2311,21 @@ TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
 
 void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
-    const auto& rootPos   = worker.rootPos;
-    const auto& rootMoves = worker.rootMoves;
-    const auto& tbConfig  = worker.tbConfig;
+    const auto& rootPos            = worker.rootPos;
+    const auto& rootMoves          = worker.rootMoves;
+    const auto& options            = worker.options;
+    const auto& threads            = worker.threads;
+    const auto& transpositionTable = worker.transpositionTable;
+    const auto& tbConfig           = worker.tbConfig;
+    std::size_t multiPV            = worker.multiPV;
+    std::size_t curPV              = worker.curPV;
 
     TimePoint     time     = std::max(elapsed(), TimePoint(1));
-    std::uint64_t nodes    = worker.threads.sum(&Worker::nodes);
-    std::uint16_t hashfull = worker.transpositionTable.hashfull();
-    std::uint64_t tbHits   = worker.threads.sum(&Worker::tbHits,  //
-                                              tbConfig.rootInTB ? rootMoves.size() : 0);
+    std::uint64_t nodes    = threads.sum(&Worker::nodes);
+    std::uint16_t hashfull = transpositionTable.hashfull();
+    std::uint64_t tbHits   = threads.sum(&Worker::tbHits, tbConfig.rootInTB ? rootMoves.size() : 0);
 
-    for (std::size_t i = 0; i < worker.multiPV; ++i)
+    for (std::size_t i = 0; i < multiPV; ++i)
     {
         auto& rm = rootMoves[i];
 
@@ -2341,7 +2345,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
             v = rm.tbValue;
 
         // tablebase- and previous-scores are exact
-        bool exact = i != worker.curPV || tb || !updated;
+        bool exact = i != curPV || tb || !updated;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
         if (is_decisive(v) && !is_mate(v) && (exact || !(rm.boundLower || rm.boundUpper)))
@@ -2359,7 +2363,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         }
 
         std::string wdl;
-        if (worker.options["UCI_ShowWDL"])
+        if (options["UCI_ShowWDL"])
             wdl = UCI::to_wdl(v, rootPos);
 
         std::string pv;
