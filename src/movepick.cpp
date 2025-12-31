@@ -145,9 +145,6 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
 
         m.value += (pos.fork(m) && pos.see(m) >= -50) * 0x1000;
 
-        if (movedPt == KING)
-            continue;
-
         // Penalty for moving to square attacked by lesser piece
         // Bonus for escaping from square attacked by lesser piece
         int weight =

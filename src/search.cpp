@@ -864,7 +864,7 @@ Value Worker::search(Position&    pos,
     // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && !exclude && is_valid(ttd.value)        //
         && ttd.depth > depth - (ttd.value <= beta)        //
-        && (depth > 5 || CutNode == (ttd.value >= beta))  //
+        && (CutNode == (ttd.value >= beta) || depth > 5)  //
         && (ttd.bound & fail_bound(ttd.value >= beta)) != 0)
     {
         // If ttMove fails high, update move sorting heuristics on TT hit
