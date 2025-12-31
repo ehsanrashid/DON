@@ -210,17 +210,59 @@ class Threads final {
 
     std::vector<std::size_t> get_bound_thread_counts() const noexcept;
 
-    bool is_stopped() const noexcept { return stop.load(std::memory_order_relaxed); }
+    // --- queries ---
+    bool is_researched() const noexcept {
+        return state.load(std::memory_order_relaxed) == State::Research;
+    }
 
-    void request_stop() noexcept { stop.store(true, std::memory_order_relaxed); }
+    bool is_stopped() const noexcept {
+        auto current = state.load(std::memory_order_relaxed);
+        return current == State::Aborted || current == State::Stopped;
+    }
 
-    bool is_aborted() const noexcept { return abort.load(std::memory_order_relaxed); }
+    bool is_aborted() const noexcept {
+        return state.load(std::memory_order_relaxed) == State::Aborted;
+    }
 
-    void request_abort() noexcept { abort.store(true, std::memory_order_relaxed); }
+    // --- actions ---
+    void request_research() noexcept {
+        while (true)
+        {
+            // Do not override aborted or stopped
+            if (is_stopped())
+                return;
 
-    bool is_researched() const noexcept { return research.load(std::memory_order_relaxed); }
+            auto current = state.load(std::memory_order_relaxed);
 
-    void request_research() noexcept { research.store(true, std::memory_order_relaxed); }
+            if (state.compare_exchange_strong(current, State::Research, std::memory_order_relaxed))
+                return;
+
+            // If failed, loop with new state
+        }
+    }
+
+    void request_stop() noexcept {
+        while (true)
+        {
+            // Do not override aborted or stopped
+            if (is_stopped())
+                return;
+
+            auto current = state.load(std::memory_order_relaxed);
+
+            // Try to set to Stopped
+            if (state.compare_exchange_strong(current, State::Stopped, std::memory_order_relaxed))
+                return;
+
+            // If failed, loop with new state
+        }
+    }
+
+    void request_abort() noexcept {
+        // Always go to aborted
+        state.store(State::Aborted, std::memory_order_relaxed);
+    }
+
 
     template<typename T>
     std::uint64_t sum_of(std::atomic<T> Worker::* member,
@@ -234,11 +276,18 @@ class Threads final {
     }
 
    private:
+    enum class State : std::uint8_t {
+        Active,
+        Research,
+        Stopped,
+        Aborted
+    };
+
     std::vector<ThreadPtr> threads;
     std::vector<NumaIndex> threadBoundNumaNodes;
     StateListPtr           setupStates;
 
-    std::atomic<bool> stop, abort, research;
+    std::atomic<State> state;
 };
 
 inline Threads::~Threads() noexcept { clear(); }

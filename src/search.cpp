@@ -2294,10 +2294,7 @@ void MainSearchManager::check_time(Worker& worker) noexcept {
       && ((worker.limit.use_time_manager() && (ponderhitStop || elapsedTime >= timeManager.maximum()))
        || (worker.limit.moveTime != 0 &&                        elapsedTime >= worker.limit.moveTime)
        || (worker.limit.nodes != 0 && worker.threads.sum_of(&Worker::nodes) >= worker.limit.nodes)))
-    {
-        worker.threads.request_stop();
         worker.threads.request_abort();
-    }
     // clang-format on
 }
 
