@@ -838,7 +838,7 @@ inline Value Position::non_pawn_value() const noexcept {
 inline bool Position::has_non_pawn(Color c) const noexcept {
 
     for (PieceType pt : NON_PAWN_PIECE_TYPES)
-        if (count(c, pt) != 0)
+        if (pieces_bb(c, pt) != 0)
             return true;
     return false;
 }
