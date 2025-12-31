@@ -119,18 +119,11 @@ class CuckooTable final {
 
                 for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
                     for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
-                    {
                         if ((attacks_bb(s1, pt, 0) & s2) != 0)
-                        {
-                            Key key = Zobrist::piece_square(c, pt, s1)
-                                    ^ Zobrist::piece_square(c, pt, s2)  //
-                                    ^ Zobrist::turn();
-
-                            Move move = Move{s1, s2};
-
-                            insert({key, move});
-                        }
-                    }
+                            insert({Zobrist::piece_square(c, pt, s1)      //
+                                      ^ Zobrist::piece_square(c, pt, s2)  //
+                                      ^ Zobrist::turn(),
+                                    Move{s1, s2}});
             }
 
         assert(count == 3668);

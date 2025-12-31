@@ -381,10 +381,10 @@ void swap_entry(PolyBook::Entry* const e) noexcept {
 // bit 14-15: special move flag: promotion (1), en-passant (2), castling (3)
 Move pg_to_move(std::uint16_t pgMove, const MoveList<LEGAL>& legalMoves) noexcept {
 
-    Move move = Move(pgMove);
+    Move move(pgMove);
 
-    if (int pt = (move.raw() >> 12) & 0x7)
-        move = Move{move.org_sq(), move.dst_sq(), PieceType(pt + 1)};
+    if (int pt = (move.raw() >> Move::PROMO_OFFSET) & 0x7; pt != 0)
+        move = Move{move.org_sq(), move.dst_sq(), PROMOTION, PieceType(pt + 1)};
 
     std::uint16_t moveRaw = move.raw() & ~TYPE_MASK;
     for (auto m : legalMoves)
@@ -400,7 +400,9 @@ bool is_draw(Position& pos, Move m) noexcept {
 
     State st;
     pos.do_move(m, st);
+
     bool isDraw = pos.is_draw(pos.ply(), true, true);
+
     pos.undo_move(m);
 
     return isDraw;

@@ -1109,8 +1109,9 @@ inline void Position::update_pc_threats(Square                    s,
         }
 
         DirtyThreat templateDt{s, SQUARE_ZERO, pc, NO_PIECE, Put};
-        write_multiple_dirties<DirtyThreat::ThreatenedSqOffset, DirtyThreat::ThreatenedPcOffset>(
-          piece_map(), threatenedBB, templateDt, dts);
+        write_multiple_dirties<DirtyThreat::THREATENED_SQ_OFFSET,
+                               DirtyThreat::THREATENED_PC_OFFSET>(piece_map(), threatenedBB,
+                                                                  templateDt, dts);
     }
 
     Bitboard attackersBB = slidersBB | nonSlidersBB;
@@ -1125,8 +1126,8 @@ inline void Position::update_pc_threats(Square                    s,
     }
 
     DirtyThreat templateDt{SQUARE_ZERO, s, NO_PIECE, pc, Put};
-    write_multiple_dirties<DirtyThreat::SqOffset, DirtyThreat::PcOffset>(piece_map(), attackersBB,
-                                                                         templateDt, dts);
+    write_multiple_dirties<DirtyThreat::SQ_OFFSET, DirtyThreat::PC_OFFSET>(piece_map(), attackersBB,
+                                                                           templateDt, dts);
 #else
     while (threatenedBB != 0)
     {

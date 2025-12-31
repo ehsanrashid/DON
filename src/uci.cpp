@@ -918,16 +918,16 @@ Move UCI::can_to_move(std::string can, const Position& pos) noexcept {
 
 namespace {
 
-enum Ambiguity : std::uint8_t {
-    AMB_NONE,
-    AMB_RANK,
-    AMB_FILE,
-    AMB_SQUARE,
+enum class Ambiguity : std::uint8_t {
+    NONE,    // No ambiguity
+    RANK,    // Same file, different rank
+    FILE,    // Same rank, different file
+    SQUARE,  // Same rank and file; must specify full square
 };
 
-// Ambiguity if more then one piece of same type can reach 'to' with a legal move.
+// Ambiguity if more then one piece of same type can reach 'dstSq' with a legal move.
 // NOTE: for pawns it is not needed because 'orgSq' file is explicit.
-Ambiguity ambiguity(Move m, const Position& pos) noexcept {
+Ambiguity detect_ambiguity(Move m, const Position& pos) noexcept {
     assert(pos.legal(m));
 
     Color ac = pos.active_color();
@@ -936,35 +936,36 @@ Ambiguity ambiguity(Move m, const Position& pos) noexcept {
     assert(color_of(pos[orgSq]) == ac);
     PieceType movedPt = type_of(pos[orgSq]);
 
-    // If there is only one piece then move cannot be ambiguous
+    // Only one piece of this piece-type -> no ambiguity
     if (pos.count(ac, movedPt) == 1)
-        return AMB_NONE;
+        return Ambiguity::NONE;
 
     // Disambiguation if have more then one piece with same destination
-    Bitboard movedBB =
+    Bitboard candidatesBB =
       (attacks_bb(dstSq, movedPt, pos.pieces_bb()) & pos.pieces_bb(ac, movedPt)) ^ orgSq;
 
-    if (movedBB == 0)
-        return AMB_NONE;
+    if (candidatesBB == 0)
+        return Ambiguity::NONE;
 
-    Bitboard b = movedBB;
-    // If pinned piece is considered as ambiguous
-    //& ~pos.blockers_bb(ac);
+    // Remove illegal moves (e.g., blocked or pinned pieces)
+    Bitboard b = candidatesBB;
     while (b != 0)
     {
-        Square sq = pop_lsq(b);
+        Square oSq = pop_lsq(b);
 
-        Move mm = Move(sq, dstSq);
-        if (!pos.legal(mm))
-            movedBB ^= sq;
+        Move testMove(oSq, dstSq);
+
+        if (!pos.legal(testMove))
+            candidatesBB ^= oSq;
     }
 
-    if ((movedBB & file_of(orgSq)) == 0)
-        return AMB_RANK;
-    if ((movedBB & rank_of(orgSq)) == 0)
-        return AMB_FILE;
+    if ((candidatesBB & file_of(orgSq)) == 0)
+        return Ambiguity::RANK;
 
-    return AMB_SQUARE;
+    if ((candidatesBB & rank_of(orgSq)) == 0)
+        return Ambiguity::FILE;
+
+    return Ambiguity::SQUARE;
 }
 
 }  // namespace
@@ -988,53 +989,63 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     if (m.type_of() == CASTLING)
     {
         assert(movedPt == KING && rank_of(orgSq) == rank_of(dstSq));
-        auto cs = castling_side(orgSq, dstSq);
-        san     = (cs == KING_SIDE ? "O-O" : "O-O-O");
-    }
-    else
-    {
-        // Note:: For pawns is not needed because starting file is explicit.
-        if (movedPt != PAWN)
-        {
-            san = to_char(movedPt);
 
-            if (movedPt != KING)
+        san = to_string(castling_side(orgSq, dstSq));
+
+        goto SPECIAL;
+    }
+
+    // Note:: Piece letter (skip pawn as not needed because starting file is explicit)
+    if (movedPt != PAWN)
+    {
+        san = to_char(movedPt);
+
+        if (movedPt != KING)
+        {
+            // Add disambiguation if needed,
+            // when more then one piece of type 'pt' that can reach 'dst' with legal move.
+            switch (detect_ambiguity(m, pos))
             {
-                // Disambiguation if have more then one piece of type 'pt'
-                // that can reach 'dst' with any legal move.
-                switch (ambiguity(m, pos))
-                {
-                case AMB_RANK :
-                    san += to_char(file_of(orgSq));
-                    break;
-                case AMB_FILE :
-                    san += to_char(rank_of(orgSq));
-                    break;
-                case AMB_SQUARE :
-                    san += to_square(orgSq);
-                    break;
-                default :;
-                }
+            case Ambiguity::RANK :
+                san += to_char(file_of(orgSq));
+                break;
+            case Ambiguity::FILE :
+                san += to_char(rank_of(orgSq));
+                break;
+            case Ambiguity::SQUARE :
+                san += to_square(orgSq);
+                break;
+            default :;
             }
         }
-
-        if (pos.capture(m))
-        {
-            if (movedPt == PAWN)
-                san = to_char(file_of(orgSq));
-
-            san += 'x';
-        }
-
-        san += to_square(dstSq);
-
-        if (m.type_of() == PROMOTION)
-        {
-            assert(movedPt == PAWN);
-            san += '=';
-            san += char(std::toupper(to_char(m.promotion_type())));
-        }
     }
+
+    // Capture indicator
+    if (pos.capture(m))
+    {
+        if (movedPt == PAWN)
+        {
+            assert(san.empty());
+
+            san = to_char(file_of(orgSq));
+        }
+
+        san += 'x';
+    }
+
+    // Destination square
+    san += to_square(dstSq);
+
+    // Promotion type
+    if (m.type_of() == PROMOTION)
+    {
+        assert(movedPt == PAWN);
+
+        san += '=';
+        san += char(std::toupper(to_char(m.promotion_type())));
+    }
+
+SPECIAL:
 
     bool check = pos.check(m);
 
@@ -1042,8 +1053,10 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     pos.do_move(m, st, check);
 
     // Marker for check, checkmate & stalemate
-    const bool legalMovesEmpty = MoveList<LEGAL, true>(pos).empty();
-    san += check ? (legalMovesEmpty ? '#' : '+') : (legalMovesEmpty ? '=' : '\0');
+    bool legalMovesEmpty = MoveList<LEGAL, true>(pos).empty();
+
+    san += check ? (legalMovesEmpty ? '#' : '+')  //
+                 : (legalMovesEmpty ? '=' : '\0');
 
     pos.undo_move(m);
 

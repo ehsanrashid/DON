@@ -104,17 +104,20 @@ Move* splat_promotion_moves(Bitboard dstBB, Bitboard knightChecksBB, Move* moves
 
         if constexpr (All || Capture)
         {
-            *moves++ = Move{dstSq - D, dstSq, QUEEN};
+            *moves++ = Move{dstSq - D, dstSq, PROMOTION, QUEEN};
+
             if ((knightChecksBB & dstSq) != 0)
-                *moves++ = Move{dstSq - D, dstSq, KNIGHT};
+                *moves++ = Move{dstSq - D, dstSq, PROMOTION, KNIGHT};
         }
 
         if constexpr (All || (Capture && Enemy) || (Quiet && !Enemy))
         {
-            *moves++ = Move{dstSq - D, dstSq, ROOK};
-            *moves++ = Move{dstSq - D, dstSq, BISHOP};
+            *moves++ = Move{dstSq - D, dstSq, PROMOTION, ROOK};
+
+            *moves++ = Move{dstSq - D, dstSq, PROMOTION, BISHOP};
+
             if ((knightChecksBB & dstSq) == 0)
-                *moves++ = Move{dstSq - D, dstSq, KNIGHT};
+                *moves++ = Move{dstSq - D, dstSq, PROMOTION, KNIGHT};
         }
     }
 
@@ -253,7 +256,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
                 else
                     orgSq = pop_msq(orgBB);
 
-                *moves++ = Move{EN_PASSANT, orgSq, enPassantSq};
+                *moves++ = Move{orgSq, enPassantSq, EN_PASSANT};
             }
         }
     }
@@ -356,7 +359,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
                     assert(is_ok(pos.castling_rook_sq(AC, cs))
                            && (pos.pieces_bb(AC, ROOK) & pos.castling_rook_sq(AC, cs)) != 0);
 
-                    *moves++ = Move{CASTLING, kingSq, pos.castling_rook_sq(AC, cs)};
+                    *moves++ = Move{kingSq, pos.castling_rook_sq(AC, cs), CASTLING};
 
                     if constexpr (Any)
                         return moves;

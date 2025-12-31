@@ -253,38 +253,6 @@ enum Direction : std::int8_t {
     NORTH_2 = NORTH + NORTH,
 };
 
-enum Bound : std::uint8_t {
-    BOUND_NONE,
-    BOUND_UPPER,
-    BOUND_LOWER,
-    BOUND_EXACT = BOUND_UPPER | BOUND_LOWER
-};
-
-enum CastlingSide : std::uint8_t {
-    KING_SIDE,
-    QUEEN_SIDE,
-    ANY_SIDE,
-    CASTLING_SIDE_NB = 2
-};
-
-enum CastlingRights : std::uint8_t {
-    NO_CASTLING,
-
-    WHITE_OO  = 1 << 0,
-    WHITE_OOO = 1 << 1,
-
-    WHITE_CASTLING = WHITE_OO | WHITE_OOO,
-
-    BLACK_OO  = WHITE_OO << 2,
-    BLACK_OOO = WHITE_OOO << 2,
-
-    BLACK_CASTLING = BLACK_OO | BLACK_OOO,
-
-    ANY_CASTLING = WHITE_CASTLING | BLACK_CASTLING,
-
-    CASTLING_RIGHTS_NB = 16
-};
-
 // clang-format off
     #define ENABLE_INCR_OPERATORS_ON(T) \
         static_assert(std::is_enum_v<T>, "ENABLE_INCR_OPERATORS_ON requires an enum"); \
@@ -327,6 +295,45 @@ constexpr Direction operator-(Direction d1, Direction d2) noexcept { return Dire
 //constexpr Direction operator-(Square s1, Square s2) noexcept { return Direction(int(s1) - int(s2)); }
 constexpr Direction operator*(Direction d, int i) noexcept { return Direction(i * int(d)); }
 constexpr Direction operator*(int i, Direction d) noexcept { return d * i; }
+
+enum CastlingSide : std::uint8_t {
+    KING_SIDE,
+    QUEEN_SIDE,
+    ANY_SIDE,
+    CASTLING_SIDE_NB = 2
+};
+
+inline std::string to_string(CastlingSide cs) noexcept {
+    switch (cs)
+    {
+    case KING_SIDE :
+        return "O-O";
+    case QUEEN_SIDE :
+        return "O-O-O";
+    case ANY_SIDE :
+        return "O-O / O-O-O";
+    default :
+        return "";
+    }
+}
+
+enum CastlingRights : std::uint8_t {
+    NO_CASTLING,
+
+    WHITE_OO  = 1 << 0,
+    WHITE_OOO = 1 << 1,
+
+    WHITE_CASTLING = WHITE_OO | WHITE_OOO,
+
+    BLACK_OO  = WHITE_OO << 2,
+    BLACK_OOO = WHITE_OOO << 2,
+
+    BLACK_CASTLING = BLACK_OO | BLACK_OOO,
+
+    ANY_CASTLING = WHITE_CASTLING | BLACK_CASTLING,
+
+    CASTLING_RIGHTS_NB = 16
+};
 
 constexpr CastlingRights  operator| (CastlingRights cr1, CastlingRights cr2) noexcept { return CastlingRights(int(cr1) | int(cr2)); }
 constexpr CastlingRights  operator& (CastlingRights cr1, CastlingRights cr2) noexcept { return CastlingRights(int(cr1) & int(cr2)); }
@@ -513,29 +520,43 @@ enum MoveType : std::uint16_t {
 
 class Move {
    public:
-    // Hash function for unordered containers (e.g., std::unordered_set, std::unordered_map).
-    // Uses make_hash function to produce a unique hash value for move
-    struct Hash final {
-        std::size_t operator()(Move m) const noexcept { return make_hash(m.data); }
-    };
+    static constexpr std::uint8_t ORG_SQ_OFFSET = 0;
+    static constexpr std::uint8_t DST_SQ_OFFSET = 6;
+    static constexpr std::uint8_t PROMO_OFFSET  = 12;
 
     Move() noexcept = default;
     // Constructors using delegating syntax
     constexpr explicit Move(std::uint16_t d) noexcept :
         data(d) {}
-    constexpr Move(MoveType T, Square orgSq, Square dstSq) noexcept :
-        Move(T | (int(orgSq) << 6) | (int(dstSq) << 0)) {}
-    constexpr Move(Square orgSq, Square dstSq) noexcept :
-        Move(NORMAL, orgSq, dstSq) {}
-    constexpr Move(Square orgSq, Square dstSq, PieceType promoPt) noexcept :
-        Move(MoveType(PROMOTION | ((int(promoPt) - int(KNIGHT)) << 12)), orgSq, dstSq) {}
+    constexpr Move(Square    orgSq,
+                   Square    dstSq,
+                   MoveType  mt = NORMAL,
+                   PieceType pt = KNIGHT) noexcept :
+        Move(mt                                 //
+             | ((pt - KNIGHT) << PROMO_OFFSET)  //
+             | (dstSq << DST_SQ_OFFSET)         //
+             | (orgSq << ORG_SQ_OFFSET)) {}
+
+    // Factory function
+    template<MoveType MT = NORMAL>
+    static constexpr Move make(Square orgSq, Square dstSq, PieceType pt = KNIGHT) noexcept {
+        return Move(orgSq, dstSq, MT, pt);
+    }
+
+    //template<MoveType MT>
+    //constexpr Move(Square orgSq, Square dstSq, PieceType promoPt = KNIGHT) noexcept :
+    //    Move(MT | ((promoPt - KNIGHT) << PROMO_OFFSET)  //
+    //         | (orgSq << ORG_SQ_OFFSET) | (dstSq << DST_SQ_OFFSET)) {}
+
+    /*constexpr Move(Square orgSq, Square dstSq, PieceType promoPt) noexcept :
+        Move(MoveType(PROMOTION | ((promoPt - KNIGHT) << PROMO_OFFSET)), orgSq, dstSq) {}*/
 
     // Accessors: extract parts of the move
-    constexpr Square    org_sq() const noexcept { return Square((data >> 6) & 0x3F); }
-    constexpr Square    dst_sq() const noexcept { return Square((data >> 0) & 0x3F); }
+    constexpr Square    org_sq() const noexcept { return Square((data >> ORG_SQ_OFFSET) & 0x3F); }
+    constexpr Square    dst_sq() const noexcept { return Square((data >> DST_SQ_OFFSET) & 0x3F); }
     constexpr MoveType  type_of() const noexcept { return MoveType(data & TYPE_MASK); }
     constexpr PieceType promotion_type() const noexcept {
-        return PieceType(((data >> 12) & 0x3) + int(KNIGHT));
+        return PieceType(KNIGHT + ((data >> PROMO_OFFSET) & 0x3));
     }
 
     constexpr Value promotion_value() const noexcept {
@@ -571,6 +592,29 @@ inline constexpr Move Move::Null{SQ_H8, SQ_H8};
 
 using Moves = std::vector<Move>;
 
+enum class Bound : std::uint8_t {
+    NONE  = 0,
+    UPPER = 1 << 0,  // 1
+    LOWER = 1 << 1,  // 2
+    EXACT = UPPER | LOWER
+    // add more: OTHER = 1 << 2, etc.
+};
+
+// --- Bitmask operators for Bound ---
+constexpr Bound operator&(Bound bnd1, Bound bnd2) noexcept {
+    return Bound(std::uint8_t(bnd1) & std::uint8_t(bnd2));
+}
+constexpr Bound operator|(Bound bnd1, Bound bnd2) noexcept {
+    return Bound(std::uint8_t(bnd1) | std::uint8_t(bnd2));
+}
+constexpr Bound operator^(Bound bnd1, Bound bnd2) noexcept {
+    return Bound(std::uint8_t(bnd1) ^ std::uint8_t(bnd2));
+}
+constexpr Bound& operator|=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 | bnd2; }
+constexpr Bound& operator&=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 & bnd2; }
+
+constexpr bool any(Bound bnd) noexcept { return bnd != Bound::NONE; }
+
 // Keep track of what a move changes on the board (used by NNUE)
 struct DirtyPiece final {
    public:
@@ -588,10 +632,10 @@ struct DirtyPiece final {
 // Keep track of what threats change on the board (used by NNUE)
 struct DirtyThreat final {
    public:
-    static constexpr std::uint8_t SqOffset           = 0;
-    static constexpr std::uint8_t ThreatenedSqOffset = 8;
-    static constexpr std::uint8_t PcOffset           = 16;
-    static constexpr std::uint8_t ThreatenedPcOffset = 20;
+    static constexpr std::uint8_t SQ_OFFSET            = 0;
+    static constexpr std::uint8_t THREATENED_SQ_OFFSET = 8;
+    static constexpr std::uint8_t PC_OFFSET            = 16;
+    static constexpr std::uint8_t THREATENED_PC_OFFSET = 20;
 
     DirtyThreat() noexcept {
         // Don't initialize data
@@ -600,20 +644,20 @@ struct DirtyThreat final {
         data(d) {}
     constexpr DirtyThreat(
       Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool add) noexcept :
-        data((add << 31) | (threatenedPc << ThreatenedPcOffset) | (pc << PcOffset)
-             | (threatenedSq << ThreatenedSqOffset) | (sq << SqOffset)) {}
+        data((add << 31) | (threatenedPc << THREATENED_PC_OFFSET) | (pc << PC_OFFSET)
+             | (threatenedSq << THREATENED_SQ_OFFSET) | (sq << SQ_OFFSET)) {}
 
     constexpr Square sq() const noexcept {  //
-        return Square((data >> SqOffset) & 0xFF);
+        return Square((data >> SQ_OFFSET) & 0xFF);
     }
     constexpr Square threatened_sq() const noexcept {
-        return Square((data >> ThreatenedSqOffset) & 0xFF);
+        return Square((data >> THREATENED_SQ_OFFSET) & 0xFF);
     }
     constexpr Piece pc() const noexcept {  //
-        return Piece((data >> PcOffset) & 0xF);
+        return Piece((data >> PC_OFFSET) & 0xF);
     }
     constexpr Piece threatened_pc() const noexcept {
-        return Piece((data >> ThreatenedPcOffset) & 0xF);
+        return Piece((data >> THREATENED_PC_OFFSET) & 0xF);
     }
     constexpr bool add() const noexcept { return (data >> 31) != 0; }
 
@@ -638,11 +682,12 @@ struct DirtyThreats final {
     template<bool Add>
     void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept;
 
-    DirtyThreatList dtList;
-    Color           ac;
-    Square          kingSq, preKingSq;
+    Color  ac;
+    Square kingSq, preKingSq;
 
     Bitboard threateningBB, threatenedBB;
+
+    DirtyThreatList dtList;
 };
 
 struct DirtyBoard final {
@@ -661,6 +706,8 @@ constexpr auto is_all_same_v = is_all_same<Ts...>::value;
 
 }  // namespace DON
 
+// Hash function for unordered containers (e.g., std::unordered_set, std::unordered_map).
+// Uses make_hash function to produce a unique hash value for move.
 template<>
 struct std::hash<DON::Move> {
     std::size_t operator()(DON::Move m) const noexcept { return DON::make_hash(m.raw()); }

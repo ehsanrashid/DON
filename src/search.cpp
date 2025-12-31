@@ -115,7 +115,9 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::int16_t rule50Coun
     return v;
 }
 
-constexpr Bound fail_bound(bool failHigh) noexcept { return failHigh ? BOUND_LOWER : BOUND_UPPER; }
+constexpr Bound fail_bound(bool failHigh) noexcept {
+    return failHigh ? Bound::LOWER : Bound::UPPER;
+}
 
 Move legal_tt_move(Move ttMove, const Position& pos) noexcept {
     return ttMove != Move::None && pos.legal(ttMove) ? ttMove : Move::None;
@@ -828,7 +830,7 @@ Value Worker::search(Position&    pos,
         ss->evalValue = ttEvalValue = adjust_eval_value(evalValue, correctionValue);
 
         // Can ttValue be used as a better position evaluation
-        if (is_valid(ttd.value) && (ttd.bound & fail_bound(ttd.value > ttEvalValue)) != 0)
+        if (is_valid(ttd.value) && (ttd.bound & fail_bound(ttd.value > ttEvalValue)) != Bound::NONE)
             ttEvalValue = ttd.value;
     }
     else
@@ -837,7 +839,7 @@ Value Worker::search(Position&    pos,
 
         ss->evalValue = ttEvalValue = adjust_eval_value(evalValue, correctionValue);
 
-        ttu.update(Move::None, VALUE_NONE, evalValue, DEPTH_NONE, BOUND_NONE, ss->ttPv);
+        ttu.update(Move::None, VALUE_NONE, evalValue, DEPTH_NONE, Bound::NONE, ss->ttPv);
     }
 
     // Set up the improve and worsen flags.
@@ -864,7 +866,7 @@ Value Worker::search(Position&    pos,
     if (!PVNode && !exclude && is_valid(ttd.value)        //
         && ttd.depth > depth - (ttd.value <= beta)        //
         && (CutNode == (ttd.value >= beta) || depth > 5)  //
-        && (ttd.bound & fail_bound(ttd.value >= beta)) != 0)
+        && (ttd.bound & fail_bound(ttd.value >= beta)) != Bound::NONE)
     {
         // If ttMove fails high, update move sorting heuristics on TT hit
         if (ttd.move != Move::None && ttd.value >= beta)
@@ -945,12 +947,12 @@ Value Worker::search(Position&    pos,
                           : wdlScore > +drawValue ? +VALUE_TB - ss->ply
                                                   : VALUE_DRAW + 2 * wdlScore * drawValue;
 
-                    Bound bound = wdlScore < -drawValue ? BOUND_UPPER
-                                : wdlScore > +drawValue ? BOUND_LOWER
-                                                        : BOUND_EXACT;
+                    Bound bound = wdlScore < -drawValue ? Bound::UPPER
+                                : wdlScore > +drawValue ? Bound::LOWER
+                                                        : Bound::EXACT;
 
-                    if (bound == BOUND_EXACT
-                        || (bound == BOUND_LOWER ? value >= beta : value <= alpha))
+                    if (bound == Bound::EXACT
+                        || (bound == Bound::LOWER ? value >= beta : value <= alpha))
                     {
                         ttu.update(Move::None, value_to_tt(value, ss->ply), evalValue,
                                    std::min(depth + 6, MAX_PLY - 1), bound, ss->ttPv);
@@ -960,7 +962,7 @@ Value Worker::search(Position&    pos,
 
                     if constexpr (PVNode)
                     {
-                        if (bound == BOUND_LOWER)
+                        if (bound == Bound::LOWER)
                         {
                             bestValue = value;
 
@@ -1122,7 +1124,7 @@ Value Worker::search(Position&    pos,
                 // Save ProbCut data into transposition table
                 if (!exclude)
                     ttu.update(move, value_to_tt(value, ss->ply), evalValue,
-                               probCutDepth + 1, BOUND_LOWER, ss->ttPv);
+                               probCutDepth + 1, Bound::LOWER, ss->ttPv);
 
                 if (!is_decisive(value))
                     return value - (probCutBeta - beta);
@@ -1138,7 +1140,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value))
     {
         Value probCutBeta = std::min(418 + beta, +VALUE_INFINITE);
-        if (ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
+        if (ttd.value >= probCutBeta && ttd.depth >= depth - 4 && any(ttd.bound & Bound::LOWER))
             return probCutBeta;
     }
 
@@ -1289,7 +1291,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // (*Scaler) Generally, frequent extensions scales well.
         // This includes high singularBeta values (i.e closer to ttValue) and low extension margins.
         if (!RootNode && !exclude && depth > 5 + ss->ttPv && move == ttd.move && is_valid(ttd.value)
-            && !is_decisive(ttd.value) && ttd.depth >= depth - 3 && (ttd.bound & BOUND_LOWER)
+            && !is_decisive(ttd.value) && ttd.depth >= depth - 3 && any(ttd.bound & Bound::LOWER)
             && !is_shuffling(pos, ss, move))
         {
             Value singularBeta = std::max(
@@ -1629,9 +1631,9 @@ S_MOVES_LOOP:  // When in check, search starts here
     if ((!RootNode || curPV == 0) && !exclude)
         ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalValue,
                    moveCount != 0 ? depth : std::min(depth + 6, MAX_PLY - 1),
-                   bestValue >= beta                  ? BOUND_LOWER
-                   : PVNode && bestMove != Move::None ? BOUND_EXACT
-                                                      : BOUND_UPPER,
+                   bestValue >= beta                  ? Bound::LOWER
+                   : PVNode && bestMove != Move::None ? Bound::EXACT
+                                                      : Bound::UPPER,
                    ss->ttPv);
 
     // Adjust correction history if the best move is none or not a capture
@@ -1699,7 +1701,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && ttd.depth >= DEPTH_ZERO && is_valid(ttd.value)
-        && (ttd.bound & fail_bound(ttd.value >= beta)) != 0)
+        && any(ttd.bound & fail_bound(ttd.value >= beta)))
         return ttd.value;
 
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
@@ -1728,7 +1730,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
         // Can ttValue be used as a better position evaluation
         if (is_valid(ttd.value) && !is_decisive(ttd.value)
-            && (ttd.bound & fail_bound(ttd.value > bestValue)) != 0)
+            && any(ttd.bound & fail_bound(ttd.value > bestValue)))
             bestValue = ttd.value;
     }
     else
@@ -1746,7 +1748,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
         if (!ttd.hit)
             ttu.update(Move::None, value_to_tt(bestValue, ss->ply), evalValue, DEPTH_NONE,
-                       BOUND_LOWER, false);
+                       Bound::LOWER, false);
 
         return bestValue;
     }

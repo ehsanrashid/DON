@@ -91,16 +91,23 @@ constexpr auto& SQUARE_OFFSETS = THREAT_TABLE.squareOffsets;
 // Information on a particular pair of pieces and whether they should be excluded
 struct PiecePairData final {
    public:
+    static constexpr std::uint8_t EXCLUDED_PAIR_INFO_OFFSET = 0;
+    static constexpr std::uint8_t FEATURE_BASE_INDEX_OFFSET = 8;
+
     constexpr PiecePairData() noexcept :
         data(0) {}
     constexpr PiecePairData(bool semiExcluded, bool excluded, IndexType featureBaseIndex) noexcept :
-        data((featureBaseIndex << 8) | (excluded << 1) | (semiExcluded && !excluded)) {}
+        data((featureBaseIndex << FEATURE_BASE_INDEX_OFFSET)
+             | (excluded << (1 + EXCLUDED_PAIR_INFO_OFFSET))
+             | ((semiExcluded && !excluded) << EXCLUDED_PAIR_INFO_OFFSET)) {}
 
     // lsb: excluded if orgSq < dstSq; 2nd lsb: always excluded
     constexpr std::uint8_t excluded_pair_info() const noexcept {
-        return std::uint8_t((data >> 0) & 0xFF);
+        return std::uint8_t((data >> EXCLUDED_PAIR_INFO_OFFSET) & 0xFF);
     }
-    constexpr IndexType feature_base_index() const noexcept { return IndexType(data >> 8); }
+    constexpr IndexType feature_base_index() const noexcept {
+        return IndexType(data >> FEATURE_BASE_INDEX_OFFSET);
+    }
 
    private:
     // Layout: bits 8..31 are the index contribution of this piece pair, bits 0 and 1 are exclusion info
