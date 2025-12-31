@@ -411,14 +411,14 @@ TBTable<WDL>::TBTable(std::string_view code) noexcept {
 
     // Set the leading color. In case both sides have pawns the leading color
     // is the side with fewer pawns because this leads to better compression.
-    Color c = pos.count<PAWN>(BLACK) == 0
-               || (pos.count<PAWN>(WHITE) != 0 && pos.count<PAWN>(WHITE) <= pos.count<PAWN>(BLACK))
+    Color c = pos.count(BLACK, PAWN) == 0
+               || (pos.count(WHITE, PAWN) != 0 && pos.count(WHITE, PAWN) <= pos.count(BLACK, PAWN))
               ? WHITE
               : BLACK;
 
-    pawnCount[WHITE] = pos.count<PAWN>(c);
+    pawnCount[WHITE] = pos.count(c, PAWN);
 
-    pawnCount[BLACK] = pos.count<PAWN>(~c);
+    pawnCount[BLACK] = pos.count(~c, PAWN);
 
     pos.set(code, BLACK, &st);
 

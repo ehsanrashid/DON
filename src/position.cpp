@@ -302,19 +302,12 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     }
 
     assert(file <= FILE_NB && rank == RANK_1);
-    assert(count<PAWN>(WHITE) + count<KNIGHT>(WHITE) + count<BISHOP>(WHITE)  //
-               + count<ROOK>(WHITE) + count<QUEEN>(WHITE) + count<KING>(WHITE)
-             <= 16
-           && count<PAWN>(BLACK) + count<KNIGHT>(BLACK) + count<BISHOP>(BLACK)  //
-                  + count<ROOK>(BLACK) + count<QUEEN>(BLACK) + count<KING>(BLACK)
-                <= 16);
-    assert(count<PAWN>() + count<KNIGHT>() + count<BISHOP>()  //
-             + count<ROOK>() + count<QUEEN>() + count<KING>()
-           == count());
+    assert(count(WHITE) <= 16 && count(BLACK) <= 16);
     assert(count(W_PAWN) <= 8 && count(B_PAWN) <= 8);
-    assert(count(W_KING) == 1 && count(B_KING) == 1);
-    assert(is_ok(square<KING>(WHITE)) && is_ok(square<KING>(BLACK)));
+    assert(count(WHITE, KING) == 1 && count(BLACK, KING) == 1);
+    assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
     assert((pieces_bb(PAWN) & PROMOTION_RANKS_BB) == 0);
+    assert(is_ok(square<KING>(WHITE)) && is_ok(square<KING>(BLACK)));
     assert(distance(square<KING>(WHITE), square<KING>(BLACK)) > 1);
 
     iss >> std::ws;
@@ -2052,7 +2045,7 @@ bool Position::_is_ok() const noexcept {
     constexpr bool Fast = true;  // Quick (default) or full check?
 
     if ((active_color() != WHITE && active_color() != BLACK)   //
-        || count<KING>(WHITE) != 1 || count<KING>(BLACK) != 1  //
+        || count(WHITE, KING) != 1 || count(BLACK, KING) != 1  //
         || piece(square<KING>(WHITE)) != W_KING                //
         || piece(square<KING>(BLACK)) != B_KING                //
         || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1
@@ -2079,7 +2072,7 @@ bool Position::_is_ok() const noexcept {
         assert(false && "Position::_is_ok(): NonPawn Key");
 
     if ((pieces_bb(PAWN) & PROMOTION_RANKS_BB) != 0  //
-        || count<PAWN>(WHITE) > 8 || count<PAWN>(BLACK) > 8)
+        || count(WHITE, PAWN) > 8 || count(BLACK, PAWN) > 8)
         assert(false && "Position::_is_ok(): Pawns");
 
     if ((pieces_bb(WHITE) & pieces_bb(BLACK)) != 0
@@ -2119,12 +2112,12 @@ bool Position::_is_ok() const noexcept {
         }
 
     for (Color c : {WHITE, BLACK})
-        if (count<PAWN>(c)                                                           //
-              + std::max(count<KNIGHT>(c) - 2, 0)                                    //
+        if (count(c, PAWN)                                                           //
+              + std::max(count(c, KNIGHT) - 2, 0)                                    //
               + std::max(popcount(pieces_bb(c, BISHOP) & color_bb<WHITE>()) - 1, 0)  //
               + std::max(popcount(pieces_bb(c, BISHOP) & color_bb<BLACK>()) - 1, 0)  //
-              + std::max(count<ROOK>(c) - 2, 0)                                      //
-              + std::max(count<QUEEN>(c) - 1, 0)                                     //
+              + std::max(count(c, ROOK) - 2, 0)                                      //
+              + std::max(count(c, QUEEN) - 1, 0)                                     //
             > 8)
             assert(false && "Position::_is_ok(): Piece Count");
 

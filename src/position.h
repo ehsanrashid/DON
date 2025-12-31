@@ -190,15 +190,15 @@ class Position final {
     Bitboard pieces_bb(Color c) const noexcept;
     template<typename... PieceTypes>
     Bitboard pieces_bb(Color c, PieceTypes... pts) const noexcept;
+    Bitboard pieces_bb(Piece pc) const noexcept;
     Bitboard pieces_bb() const noexcept;
 
-    std::uint8_t count(Color c, PieceType pt) const noexcept;
-    template<PieceType PT>
+    template<typename... PieceTypes>
+    std::uint8_t count(PieceTypes... pts) const noexcept;
     std::uint8_t count(Color c) const noexcept;
-    template<PieceType PT>
-    std::uint8_t count() const noexcept;
+    template<typename... PieceTypes>
+    std::uint8_t count(Color c, PieceTypes... pts) const noexcept;
     std::uint8_t count(Piece pc) const noexcept;
-    std::uint8_t count(Color c) const noexcept;
     std::uint8_t count() const noexcept;
 
     [[nodiscard]] const auto& squares(Color c, PieceType pt) const noexcept;
@@ -508,27 +508,27 @@ inline Bitboard Position::pieces_bb(Color c, PieceTypes... pts) const noexcept {
     return pieces_bb(c) & pieces_bb(pts...);
 }
 
+inline Bitboard Position::pieces_bb(Piece pc) const noexcept {
+    return pieces_bb(color_of(pc), type_of(pc));
+}
+
 inline Bitboard Position::pieces_bb() const noexcept { return typeBBs[ALL]; }
 
-inline std::uint8_t Position::count(Color c, PieceType pt) const noexcept {
-    return popcount(pieces_bb(c, pt));
+template<typename... PieceTypes>
+inline std::uint8_t Position::count(PieceTypes... pts) const noexcept {
+    return popcount(pieces_bb(pts...));
 }
 
-template<PieceType PT>
-inline std::uint8_t Position::count(Color c) const noexcept {
-    return count(c, PT);
-}
+inline std::uint8_t Position::count(Color c) const noexcept { return popcount(pieces_bb(c)); }
 
-template<PieceType PT>
-inline std::uint8_t Position::count() const noexcept {
-    return popcount(pieces_bb(PT));
+template<typename... PieceTypes>
+inline std::uint8_t Position::count(Color c, PieceTypes... pts) const noexcept {
+    return popcount(pieces_bb(c, pts...));
 }
 
 inline std::uint8_t Position::count(Piece pc) const noexcept {
     return count(color_of(pc), type_of(pc));
 }
-
-inline std::uint8_t Position::count(Color c) const noexcept { return popcount(pieces_bb(c)); }
 
 inline std::uint8_t Position::count() const noexcept { return popcount(pieces_bb()); }
 
@@ -588,7 +588,7 @@ inline auto Position::squares(std::size_t& n) const noexcept {
 
 template<PieceType PT>
 inline Square Position::square(Color c) const noexcept {
-    assert(count<PT>(c) == 1);
+    assert(count(c, PT) == 1);
     return squares<PT>(c).at(0, base(c));
 }
 
@@ -860,26 +860,25 @@ inline bool Position::bishop_paired(Color c) const noexcept {
 }
 
 inline bool Position::bishop_opposite() const noexcept {
-    return count<BISHOP>(WHITE) == 1  //
-        && count<BISHOP>(BLACK) == 1
+    return count(WHITE, BISHOP) == 1  //
+        && count(BLACK, BISHOP) == 1
         && color_opposite(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
 }
 
 inline std::size_t Position::bucket() const noexcept { return (count() - 1) / 4; }
 
 inline int Position::std_material() const noexcept {
-    return 1 * count<PAWN>() + 3 * (count<KNIGHT>() + count<BISHOP>()) + 5 * count<ROOK>()
-         + 9 * count<QUEEN>();
+    return 1 * count(PAWN) + 3 * count(KNIGHT, BISHOP) + 5 * count(ROOK) + 9 * count(QUEEN);
 }
 
-inline Value Position::material() const noexcept { return 534 * count<PAWN>() + non_pawn_value(); }
+inline Value Position::material() const noexcept { return 534 * count(PAWN) + non_pawn_value(); }
 
 // Returns a static, purely materialistic evaluation of the position from
 // the point of view of the side to move. It can be divided by VALUE_PAWN to get
 // an approximation of the material advantage on the board in terms of pawns.
 inline Value Position::evaluate() const noexcept {
     Color ac = active_color();
-    return VALUE_PAWN * (count<PAWN>(ac) - count<PAWN>(~ac))
+    return VALUE_PAWN * (count(ac, PAWN) - count(~ac, PAWN))
          + (non_pawn_value(ac) - non_pawn_value(~ac));
 }
 
