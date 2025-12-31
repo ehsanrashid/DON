@@ -1017,8 +1017,8 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     dtzTables.emplace_back(wdlTables.back());
 
     // Pointers to newly added tables
-    auto* wdlTable = &wdlTables.back();
-    auto* dtzTable = &dtzTables.back();
+    TBTable<WDL>* wdlTable = &wdlTables.back();
+    TBTable<DTZ>* dtzTable = &dtzTables.back();
 
     // Insert into the hash keys for both colors: KRvK with KR white and black
     insert({wdlTable->key[WHITE], wdlTable, dtzTable});
