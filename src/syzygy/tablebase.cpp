@@ -884,10 +884,9 @@ class TBTables final {
             // If the slot is empty OR Robin Hood break condition meets meaning the key can't be further
             // (have probed farther than the stored entry's displacement),
             // then the key is not in the table and lookup ends here, return null pointer.
-            // displacement(entry) = how far this entry is from its ideal position
-            // distance > displacement(entry) means our search has already "overtaken"
-            // where this key would have been inserted.
-            if (table == nullptr || distance > entry.displacement(bucket))
+            // displacement(entry) = how far this entry is from its ideal slot
+            // distance > displacement(entry) means already "overtaken" where this key would have been inserted.
+            if (table == nullptr || distance > ((bucket - entry.bucket()) & MASK))
                 return nullptr;
         }
 
@@ -914,9 +913,7 @@ class TBTables final {
    private:
     struct Entry final {
        public:
-        std::size_t displacement(std::size_t bucket) const noexcept {
-            return (bucket - (key & MASK)) & MASK;
-        }
+        std::size_t bucket() const noexcept { return key & MASK; }
 
         template<TBType T>
         TBTable<T>* get() const noexcept {
@@ -954,7 +951,7 @@ class TBTables final {
             // distance            = how far the NEW entry has already probed
             // If have probed farther than the entry currently in the bucket,
             // then "steal" its slot (Robin Hood rule) because NEW entry are poorer.
-            std::size_t displacement = entry.displacement(bucket);
+            std::size_t displacement = (bucket - entry.bucket()) & MASK;
 
             if (distance > displacement)
             {
