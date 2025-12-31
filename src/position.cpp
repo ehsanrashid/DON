@@ -1958,16 +1958,16 @@ Key Position::compute_key() const noexcept {
     Key key = 0;
 
     std::size_t n;
-    auto        orgSqs = squares(n);
+    auto        sqs = squares(n);
 
-    auto       beg = orgSqs.begin();
+    auto       beg = sqs.begin();
     const auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        Square orgSq = *beg;
-        Piece  pc    = piece(orgSq);
+        Square s  = *beg;
+        Piece  pc = piece(s);
 
-        key ^= Zobrist::piece_square(pc, orgSq);
+        key ^= Zobrist::piece_square(pc, s);
     }
 
     key ^= Zobrist::castling(castling_rights());
@@ -1985,18 +1985,18 @@ Key Position::compute_minor_key() const noexcept {
     Key minorKey = 0;
 
     std::size_t n;
-    auto        orgSqs = squares(n);
+    auto        sqs = squares(n);
 
-    auto       beg = orgSqs.begin();
+    auto       beg = sqs.begin();
     const auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        Square orgSq = *beg;
-        Piece  pc    = piece(orgSq);
-        auto   pt    = type_of(pc);
+        Square s  = *beg;
+        Piece  pc = piece(s);
+        auto   pt = type_of(pc);
 
         if (pt != PAWN && pt != KING && !is_major(pt))
-            minorKey ^= Zobrist::piece_square(color_of(pc), pt, orgSq);
+            minorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
     }
 
     return minorKey;
@@ -2006,18 +2006,18 @@ Key Position::compute_major_key() const noexcept {
     Key majorKey = 0;
 
     std::size_t n;
-    auto        orgSqs = squares(n);
+    auto        sqs = squares(n);
 
-    auto       beg = orgSqs.begin();
+    auto       beg = sqs.begin();
     const auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        Square orgSq = *beg;
-        Piece  pc    = piece(orgSq);
-        auto   pt    = type_of(pc);
+        Square s  = *beg;
+        Piece  pc = piece(s);
+        auto   pt = type_of(pc);
 
         if (pt != PAWN && pt != KING && is_major(pt))
-            majorKey ^= Zobrist::piece_square(color_of(pc), pt, orgSq);
+            majorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
     }
 
     return majorKey;
@@ -2027,18 +2027,18 @@ Key Position::compute_non_pawn_key() const noexcept {
     Key nonPawnKey = 0;
 
     std::size_t n;
-    auto        orgSqs = squares(n);
+    auto        sqs = squares(n);
 
-    auto       beg = orgSqs.begin();
+    auto       beg = sqs.begin();
     const auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        Square orgSq = *beg;
-        Piece  pc    = piece(orgSq);
-        auto   pt    = type_of(pc);
+        Square s  = *beg;
+        Piece  pc = piece(s);
+        auto   pt = type_of(pc);
 
         if (pt != PAWN)
-            nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, orgSq);
+            nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, s);
     }
 
     return nonPawnKey;

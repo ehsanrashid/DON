@@ -927,7 +927,7 @@ inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept 
 
     indexMap[s] = pL.count();
     pL.push_back(s, pB);
-    assert(count(c) < SQUARE_NB);
+    assert(count(c, pt) <= CAPACITIES[pt - 1]);
 
     if (dts != nullptr)
         update_pc_threats<true>(s, pc, dts);
@@ -940,7 +940,7 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     Piece pc = piece(s);
     auto  c  = color_of(pc);
     auto  pt = type_of(pc);
-    assert(is_ok(pc) && count(c) != 0 && count(c, pt) != 0);
+    assert(is_ok(pc) && count(c, pt) != 0);
 
     if (dts != nullptr)
         update_pc_threats<false>(s, pc, dts);
@@ -969,7 +969,7 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     Piece pc = piece(s1);
     auto  c  = color_of(pc);
     auto  pt = type_of(pc);
-    assert(is_ok(pc) && count(c) != 0 && count(c, pt) != 0);
+    assert(is_ok(pc) && count(c, pt) != 0);
 
     if (dts != nullptr)
         update_pc_threats<false>(s1, pc, dts, s1s2BB);
