@@ -881,13 +881,13 @@ class TBTables final {
             if (entry.key == key)
                 return table;
 
-            // If the slot is empty OR Robin Hood break condition meets meaning the key can't be further
-            // (have probed farther than the stored entry's displacement),
-            // then the key is not in the table and lookup ends here, return null pointer.
-            // displacement(entry) = how far this entry is from its ideal slot
-            // distance > displacement(entry) means already "overtaken" where this key would have been inserted.
-            if (table == nullptr || distance > ((bucket - entry.bucket()) & MASK))
-                return nullptr;
+            std::size_t displacement = (bucket - entry.bucket()) & MASK;
+
+            // Stop search if:
+            // 1) Empty slot -> key not in table
+            // 2) Robin Hood break condition -> key would have been inserted earlier
+            if (table == nullptr || distance > displacement)
+                break;
         }
 
         // Safety fallback: key not found
@@ -930,19 +930,16 @@ class TBTables final {
 
     void insert(Entry newEntry) noexcept {
 
-        Key key = newEntry.key;
-
         for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
-            std::size_t bucket = (key + distance) & MASK;
+            std::size_t bucket = (newEntry.key + distance) & MASK;
 
             Entry& entry = entries[bucket];
 
             // Case 1: Place the entry if the slot is empty OR the key already exists
-            if (entry.get<WDL>() == nullptr || entry.key == key)
+            if (entry.get<WDL>() == nullptr || entry.key == newEntry.key)
             {
                 entry = newEntry;
-
                 return;
             }
 
