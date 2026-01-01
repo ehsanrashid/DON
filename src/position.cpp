@@ -301,7 +301,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     assert(rank == RANK_1);
     assert(count(WHITE) <= 16 && count(BLACK) <= 16);
     assert(count(W_PAWN) <= 8 && count(B_PAWN) <= 8);
-    assert(count(WHITE, KING) == 1 && count(BLACK, KING) == 1);
+    assert(count(W_KING) == 1 && count(B_KING) == 1);
     assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
     assert((pieces_bb(PAWN) & PROMOTION_RANKS_BB) == 0);
     assert(is_ok(square<KING>(WHITE)) && is_ok(square<KING>(BLACK)));
@@ -509,7 +509,7 @@ std::string Position::fen(bool full) const noexcept {
 
     for (Rank r = RANK_8; r >= RANK_1; --r)
     {
-        unsigned emptyCount = 0;
+        std::uint8_t emptyCount = 0;
 
         for (File f = FILE_A; f <= FILE_H; ++f)
         {
@@ -523,6 +523,7 @@ std::string Position::fen(bool full) const noexcept {
                     fens += digit_to_char(emptyCount);
 
                 fens += to_char(piece(s));
+
                 emptyCount = 0;
             }
         }
@@ -539,19 +540,35 @@ std::string Position::fen(bool full) const noexcept {
 
     if (has_castling_rights())
     {
-        if (has_castling_rights(WHITE, KING_SIDE))
-            fens += Chess960 ? to_char<true>(file_of(castling_rook_sq(WHITE, KING_SIDE))) : 'K';
-        if (has_castling_rights(WHITE, QUEEN_SIDE))
-            fens += Chess960 ? to_char<true>(file_of(castling_rook_sq(WHITE, QUEEN_SIDE))) : 'Q';
-        if (has_castling_rights(BLACK, KING_SIDE))
-            fens += Chess960 ? to_char<false>(file_of(castling_rook_sq(BLACK, KING_SIDE))) : 'k';
-        if (has_castling_rights(BLACK, QUEEN_SIDE))
-            fens += Chess960 ? to_char<false>(file_of(castling_rook_sq(BLACK, QUEEN_SIDE))) : 'q';
+        Color c;
+
+        c = WHITE;
+
+        if (has_castling_rights(c, CastlingSide::KING))
+            fens += Chess960  //
+                    ? to_char<true>(file_of(castling_rook_sq(c, CastlingSide::KING)))
+                    : 'K';
+        if (has_castling_rights(c, CastlingSide::QUEEN))
+            fens += Chess960  //
+                    ? to_char<true>(file_of(castling_rook_sq(c, CastlingSide::QUEEN)))
+                    : 'Q';
+
+        c = BLACK;
+
+        if (has_castling_rights(c, CastlingSide::KING))
+            fens += Chess960  //
+                    ? to_char<false>(file_of(castling_rook_sq(c, CastlingSide::KING)))
+                    : 'k';
+        if (has_castling_rights(c, CastlingSide::QUEEN))
+            fens += Chess960  //
+                    ? to_char<false>(file_of(castling_rook_sq(c, CastlingSide::QUEEN)))
+                    : 'q';
     }
     else
         fens += '-';
 
     fens += ' ';
+
     if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
         fens += to_square(enPassantSq);
     else
@@ -593,9 +610,9 @@ void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     Bitboard kingPathBB = between_bb(kingOrgSq, kingDstSq);
     Bitboard rookPathBB = between_bb(rookOrgSq, rookDstSq);
 
-    castlings.fullPathBB[c][cs] = (kingPathBB | rookPathBB) & ~make_bb(kingOrgSq, rookOrgSq);
-    castlings.kingPathBB[c][cs] = kingPathBB;
-    castlings.rookSq[c][cs]     = rookOrgSq;
+    castlings.fullPathBB[c][+cs] = (kingPathBB | rookPathBB) & ~make_bb(kingOrgSq, rookOrgSq);
+    castlings.kingPathBB[c][+cs] = kingPathBB;
+    castlings.rookSq[c][+cs]     = rookOrgSq;
 }
 
 // Computes the hash keys of the position, and other data
@@ -865,7 +882,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker
     {
         assert(movedPc == make_piece(ac, KING));
         assert(capturedPc == make_piece(ac, ROOK));
-        assert(has_castling_rights(ac, ANY_SIDE));
+        assert(has_castling_rights(ac, CastlingSide::ANY));
         assert(!has_castled(ac));
 
         Square rookOrgSq, rookDstSq;
@@ -1238,7 +1255,7 @@ bool Position::legal(Move m) const noexcept {
         CastlingSide cs = castling_side(orgSq, dstSq);
 
         return type_of(movedPc) == KING && (pieces_bb(ac, ROOK) & dstSq) != 0 && checkers_bb() == 0
-            && has_castling_rights() && has_castling_rights(ac, ANY_SIDE)
+            && has_castling_rights() && has_castling_rights(ac, CastlingSide::ANY)
             && relative_rank(ac, orgSq) == RANK_1 && relative_rank(ac, dstSq) == RANK_1
             && castling_rook_sq(ac, cs) == dstSq && castling_possible(ac, cs);
     }
@@ -2042,10 +2059,10 @@ bool Position::_is_ok() const noexcept {
 
     constexpr bool Fast = true;  // Quick (default) or full check?
 
-    if ((active_color() != WHITE && active_color() != BLACK)   //
-        || count(WHITE, KING) != 1 || count(BLACK, KING) != 1  //
-        || piece(square<KING>(WHITE)) != W_KING                //
-        || piece(square<KING>(BLACK)) != B_KING                //
+    if (!is_ok(active_color())                       //
+        || count(W_KING) != 1 || count(B_KING) != 1  //
+        || piece(square<KING>(WHITE)) != W_KING      //
+        || piece(square<KING>(BLACK)) != B_KING      //
         || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1
         || (is_ok(en_passant_sq()) && relative_rank(active_color(), en_passant_sq()) != RANK_6
             && !enpassant_possible(active_color(), en_passant_sq())))
@@ -2120,7 +2137,7 @@ bool Position::_is_ok() const noexcept {
             assert(false && "Position::_is_ok(): Piece Count");
 
     for (Color c : {WHITE, BLACK})
-        for (CastlingSide cs : {KING_SIDE, QUEEN_SIDE})
+        for (CastlingSide cs : {CastlingSide::KING, CastlingSide::QUEEN})
         {
             if (!has_castling_rights(c, cs))
                 continue;
@@ -2356,14 +2373,15 @@ void Position::dump(std::ostream& os) const noexcept {
     os << "Castlings:\n";
     for (Color c : {WHITE, BLACK})
     {
-        for (CastlingSide cs : {KING_SIDE, QUEEN_SIDE})
+        for (CastlingSide cs : {CastlingSide::KING, CastlingSide::QUEEN})
         {
-            os << (c == WHITE ? "W|" : "B|") << (cs == KING_SIDE ? "O-O" : "O-O-O") << ":\n";
-            os << BitBoard::pretty(castlings.fullPathBB[c][cs]);
+            os << (c == WHITE ? "W|" : "B|") << (cs == CastlingSide::KING ? "O-O" : "O-O-O")
+               << ":\n";
+            os << BitBoard::pretty(castlings.fullPathBB[c][+cs]);
             os << "\n";
-            os << BitBoard::pretty(castlings.kingPathBB[c][cs]);
+            os << BitBoard::pretty(castlings.kingPathBB[c][+cs]);
             os << "\n";
-            os << (is_ok(castlings.rookSq[c][cs]) ? to_square(castlings.rookSq[c][cs]) : "-");
+            os << (is_ok(castlings.rookSq[c][+cs]) ? to_square(castlings.rookSq[c][+cs]) : "-");
             os << "\n";
         }
         os << "\n";

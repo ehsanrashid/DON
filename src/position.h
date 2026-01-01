@@ -453,7 +453,7 @@ class Position final {
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
             castlingRightsIndices[s] = rank_of(s) == RANK_1 ? WHITE * FILE_NB + file_of(s)
                                      : rank_of(s) == RANK_8 ? BLACK * FILE_NB + file_of(s)
-                                                            : COLOR_NB * FILE_NB;
+                                                            : NONE * FILE_NB;
 
         return castlingRightsIndices;
     }();
@@ -589,6 +589,7 @@ inline auto Position::squares(std::size_t& n) const noexcept {
 template<PieceType PT>
 inline Square Position::square(Color c) const noexcept {
     assert(count(c, PT) == 1);
+
     return squares<PT>(c).at(0, base(c));
 }
 
@@ -626,18 +627,21 @@ inline bool Position::has_castling_rights(Color c, CastlingSide cs) const noexce
 // Checks if squares between king and rook are empty
 inline bool Position::castling_full_path_clear(Color c, CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
-    return (castlings.fullPathBB[c][cs] & pieces_bb()) == 0;
+
+    return (castlings.fullPathBB[c][+cs] & pieces_bb()) == 0;
 }
 
 // Checks if the castling king path is attacked
 inline bool Position::castling_king_path_clear(Color c, CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
-    return (castlings.kingPathBB[c][cs] & acc_attacks_bb<KING>()) == 0;
+
+    return (castlings.kingPathBB[c][+cs] & acc_attacks_bb<KING>()) == 0;
 }
 
 inline Square Position::castling_rook_sq(Color c, CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
-    return castlings.rookSq[c][cs];
+
+    return castlings.rookSq[c][+cs];
 }
 
 inline bool Position::castling_possible(Color c, CastlingSide cs) const noexcept {

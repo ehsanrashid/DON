@@ -352,8 +352,8 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
     {
         assert(pos.checkers_bb() == 0);
 
-        if (pos.has_castling_rights() && pos.has_castling_rights(AC, ANY_SIDE))
-            for (CastlingSide cs : {KING_SIDE, QUEEN_SIDE})
+        if (pos.has_castling_rights() && pos.has_castling_rights(AC, CastlingSide::ANY))
+            for (CastlingSide cs : {CastlingSide::KING, CastlingSide::QUEEN})
                 if (pos.castling_possible(AC, cs))
                 {
                     assert(is_ok(pos.castling_rook_sq(AC, cs))
