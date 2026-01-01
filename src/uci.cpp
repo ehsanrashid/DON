@@ -881,7 +881,7 @@ std::string UCI::move_to_can(Move m) noexcept {
 
     Square orgSq = m.org_sq(), dstSq = m.dst_sq();
 
-    if (!Position::Chess960 && m.type_of() == CASTLING)
+    if (!Position::Chess960 && m.type() == MT::CASTLING)
     {
         assert(rank_of(orgSq) == rank_of(dstSq));
         dstSq = king_castle_sq(orgSq, dstSq);
@@ -893,7 +893,7 @@ std::string UCI::move_to_can(Move m) noexcept {
     can += to_square(orgSq);
     can += to_square(dstSq);
 
-    if (m.type_of() == PROMOTION)
+    if (m.type() == MT::PROMOTION)
         can += char(std::tolower(to_char(m.promotion_type())));
 
     return can;
@@ -986,7 +986,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     std::string san;
     san.reserve(9);
 
-    if (m.type_of() == CASTLING)
+    if (m.type() == MT::CASTLING)
     {
         assert(movedPt == KING && rank_of(orgSq) == rank_of(dstSq));
 
@@ -1037,7 +1037,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     san += to_square(dstSq);
 
     // Promotion type
-    if (m.type_of() == PROMOTION)
+    if (m.type() == MT::PROMOTION)
     {
         assert(movedPt == PAWN);
 

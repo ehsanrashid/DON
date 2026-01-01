@@ -61,14 +61,15 @@ void PerftData::classify(Position& pos, Move m) noexcept {
 
     State st;
 
-    castle += m.type_of() == CASTLING;
-    promotion += m.type_of() == PROMOTION;
+    castle += m.type() == MT::CASTLING;
+
+    promotion += m.type() == MT::PROMOTION;
 
     if (pos.capture(m))
     {
         ++capture;
 
-        if (m.type_of() == EN_PASSANT)
+        if (m.type() == MT::EN_PASSANT)
             ++enpassant;
     }
 
@@ -76,7 +77,7 @@ void PerftData::classify(Position& pos, Move m) noexcept {
     {
         ++anyCheck;
 
-        if ((pos.checks_bb(m.type_of() != PROMOTION ? type_of(pos[orgSq]) : m.promotion_type())
+        if ((pos.checks_bb(m.type() != MT::PROMOTION ? type_of(pos[orgSq]) : m.promotion_type())
              & dstSq)
             == 0)
         {
@@ -86,16 +87,16 @@ void PerftData::classify(Position& pos, Move m) noexcept {
             {
                 ++dscCheck;
             }
-            else if (m.type_of() == EN_PASSANT)
+            else if (m.type() == MT::EN_PASSANT)
             {
                 Bitboard occupancyBB =
                   pos.pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
                 if (pos.slide_attackers_bb(pos.square<KING>(~ac), occupancyBB) & pos.pieces_bb(ac))
                     ++dscCheck;
             }
-            //else if (m.type_of() == CASTLING)
+            //else if (m.type() == MT::CASTLING)
             //{
-            //    if (pos.checks_bb(ROOK) & rook_castle_sq(orgSq, dstSq))
+            //    if ((pos.checks_bb(ROOK) & rook_castle_sq(orgSq, dstSq)) != 0)
             //        ++dscCheck;
             //}
         }

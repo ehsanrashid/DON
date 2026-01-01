@@ -514,15 +514,15 @@ constexpr std::uint64_t make_hash(std::uint64_t seed) noexcept {
 // Special cases are Move::None and Move::Null. Can sneak these in because
 // in any normal move destination square is always different from origin square
 // while Move::None and Move::Null have the same origin and destination square.
-enum MoveType : std::uint8_t {
-    NORMAL,
-    PROMOTION,
-    EN_PASSANT,
-    CASTLING
-};
-
 class Move {
    public:
+    enum class Type : std::uint8_t {
+        NORMAL,
+        PROMOTION,
+        EN_PASSANT,
+        CASTLING
+    };
+
     static constexpr std::uint8_t  ORG_SQ_OFFSET = 0;
     static constexpr std::uint8_t  DST_SQ_OFFSET = 6;
     static constexpr std::uint8_t  PROMO_OFFSET  = 12;
@@ -530,14 +530,15 @@ class Move {
     static constexpr std::uint16_t TYPE_MASK     = 0x3 << TYPE_OFFSET;
 
     // Factory method to create moves
-    template<MoveType MT = NORMAL>
+    template<Type T = Type::NORMAL>
     static constexpr Move make(Square orgSq, Square dstSq, PieceType pt = KNIGHT) noexcept;
 
     Move() noexcept = default;
     constexpr explicit Move(std::uint16_t d) noexcept :
         data(d) {}
     constexpr Move(Square orgSq, Square dstSq) noexcept :
-        Move((NORMAL << TYPE_OFFSET) | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET)) {}
+        Move((int(Type::NORMAL) << TYPE_OFFSET) | (dstSq << DST_SQ_OFFSET)
+             | (orgSq << ORG_SQ_OFFSET)) {}
 
     // Accessors: extract parts of the move
     constexpr Square    org_sq() const noexcept { return Square((data >> ORG_SQ_OFFSET) & 0x3F); }
@@ -545,10 +546,10 @@ class Move {
     constexpr PieceType promotion_type() const noexcept {
         return PieceType(KNIGHT + ((data >> PROMO_OFFSET) & 0x3));
     }
-    constexpr MoveType type_of() const noexcept { return MoveType((data >> TYPE_OFFSET) & 0x3); }
+    constexpr Type type() const noexcept { return Type((data >> TYPE_OFFSET) & 0x3); }
 
     constexpr Value promotion_value() const noexcept {
-        return type_of() == PROMOTION ? piece_value(promotion_type()) - VALUE_PAWN : VALUE_ZERO;
+        return type() == Type::PROMOTION ? piece_value(promotion_type()) - VALUE_PAWN : VALUE_ZERO;
     }
 
     constexpr std::uint16_t raw() const noexcept { return data; }
@@ -562,7 +563,8 @@ class Move {
     //constexpr explicit operator bool() const noexcept { return move != 0; }
 
     constexpr Move reverse() const noexcept {
-        assert(type_of() == NORMAL);
+        assert(type() == Type::NORMAL);
+
         return Move{dst_sq(), org_sq()};
     }
 
@@ -574,17 +576,20 @@ class Move {
     std::uint16_t data;
 };
 
-template<MoveType MT>
-inline constexpr Move Move::make(Square orgSq, Square dstSq, PieceType) noexcept {
-    static_assert(MT != PROMOTION, "Use make<PROMOTION>(orgSq, dstSq, pt) for promotion moves.");
+using MT = Move::Type;
 
-    return Move((MT << TYPE_OFFSET) | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET));
+template<MT T>
+inline constexpr Move Move::make(Square orgSq, Square dstSq, PieceType) noexcept {
+    static_assert(T != Type::PROMOTION,
+                  "Use make<PROMOTION>(orgSq, dstSq, pt) for promotion moves.");
+
+    return Move((int(T) << TYPE_OFFSET) | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET));
 }
 template<>
-inline constexpr Move Move::make<PROMOTION>(Square orgSq, Square dstSq, PieceType pt) noexcept {
+inline constexpr Move Move::make<MT::PROMOTION>(Square orgSq, Square dstSq, PieceType pt) noexcept {
     assert(KNIGHT <= pt && pt <= QUEEN);
 
-    return Move((PROMOTION << TYPE_OFFSET) | ((pt - KNIGHT) << PROMO_OFFSET)
+    return Move((int(MT::PROMOTION) << TYPE_OFFSET) | ((pt - KNIGHT) << PROMO_OFFSET)
                 | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET));
 }
 
@@ -595,9 +600,9 @@ inline constexpr Move Move::Null{SQ_H8, SQ_H8};
 using Moves = std::vector<Move>;
 
 enum class Bound : std::uint8_t {
-    NONE  = 0,
-    UPPER = 1 << 0,
-    LOWER = 1 << 1,
+    NONE,
+    UPPER,
+    LOWER,
     EXACT = UPPER | LOWER
 };
 
@@ -615,7 +620,9 @@ constexpr Bound& operator|=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bn
 constexpr Bound& operator&=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 & bnd2; }
 constexpr Bound& operator^=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 ^ bnd2; }
 
-constexpr bool any(Bound bnd) noexcept { return bnd != Bound::NONE; }
+constexpr bool is_ok(Bound bound) noexcept {
+    return Bound::UPPER <= bound && bound <= Bound::EXACT;
+}
 
 // Keep track of what a move changes on the board (used by NNUE)
 struct DirtyPiece final {

@@ -172,7 +172,7 @@ MovePicker::iterator MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveL
         m       = move;
 
         assert(pos.capture_promo(m));
-        assert(m.type_of() != CASTLING);
+        assert(m.type() != MT::CASTLING);
 
         auto capturedPt = pos.captured_pt(m);
 
@@ -195,7 +195,7 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
         m       = move;
 
         assert(!pos.capture_promo(m));
-        assert(m.type_of() != CASTLING);
+        assert(m.type() != MT::CASTLING);
 
         Square dstSq   = m.dst_sq();
         Piece  movedPc = pos.moved_pc(m);

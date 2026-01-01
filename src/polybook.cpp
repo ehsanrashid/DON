@@ -384,7 +384,7 @@ Move pg_to_move(std::uint16_t pgMove, const MoveList<LEGAL>& legalMoves) noexcep
     Move move(pgMove);
 
     if (int pt = (move.raw() >> Move::PROMO_OFFSET) & 0x7; pt != 0)
-        move = Move::make<PROMOTION>(move.org_sq(), move.dst_sq(), PieceType(pt + 1));
+        move = Move::make<MT::PROMOTION>(move.org_sq(), move.dst_sq(), PieceType(pt + 1));
 
     std::uint16_t moveRaw = move.raw() & ~Move::TYPE_MASK;
     for (auto m : legalMoves)

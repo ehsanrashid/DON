@@ -800,7 +800,7 @@ Value Worker::search(Position&    pos,
 
     bool preCapture = is_ok(pos.captured_pc());
     bool preNonPawn =
-      is_ok(preSq) && type_of(pos[preSq]) != PAWN && (ss - 1)->move.type_of() != PROMOTION;
+      is_ok(preSq) && type_of(pos[preSq]) != PAWN && (ss - 1)->move.type() != MT::PROMOTION;
 
     int correctionValue = correction_value(pos, ss);
 
@@ -830,7 +830,7 @@ Value Worker::search(Position&    pos,
         ss->evalValue = ttEvalValue = adjust_eval_value(evalValue, correctionValue);
 
         // Can ttValue be used as a better position evaluation
-        if (is_valid(ttd.value) && (ttd.bound & fail_bound(ttd.value > ttEvalValue)) != Bound::NONE)
+        if (is_valid(ttd.value) && is_ok(ttd.bound & fail_bound(ttd.value > ttEvalValue)))
             ttEvalValue = ttd.value;
     }
     else
@@ -866,7 +866,7 @@ Value Worker::search(Position&    pos,
     if (!PVNode && !exclude && is_valid(ttd.value)        //
         && ttd.depth > depth - (ttd.value <= beta)        //
         && (CutNode == (ttd.value >= beta) || depth > 5)  //
-        && (ttd.bound & fail_bound(ttd.value >= beta)) != Bound::NONE)
+        && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
     {
         // If ttMove fails high, update move sorting heuristics on TT hit
         if (ttd.move != Move::None && ttd.value >= beta)
@@ -1140,7 +1140,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value))
     {
         Value probCutBeta = std::min(418 + beta, +VALUE_INFINITE);
-        if (ttd.value >= probCutBeta && ttd.depth >= depth - 4 && any(ttd.bound & Bound::LOWER))
+        if (ttd.value >= probCutBeta && ttd.depth >= depth - 4 && is_ok(ttd.bound & Bound::LOWER))
             return probCutBeta;
     }
 
@@ -1291,7 +1291,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // (*Scaler) Generally, frequent extensions scales well.
         // This includes high singularBeta values (i.e closer to ttValue) and low extension margins.
         if (!RootNode && !exclude && depth > 5 + ss->ttPv && move == ttd.move && is_valid(ttd.value)
-            && !is_decisive(ttd.value) && ttd.depth >= depth - 3 && any(ttd.bound & Bound::LOWER)
+            && !is_decisive(ttd.value) && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER)
             && !is_shuffling(pos, ss, move))
         {
             Value singularBeta = std::max(
@@ -1701,7 +1701,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && ttd.depth >= DEPTH_ZERO && is_valid(ttd.value)
-        && any(ttd.bound & fail_bound(ttd.value >= beta)))
+        && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
         return ttd.value;
 
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
@@ -1730,7 +1730,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
         // Can ttValue be used as a better position evaluation
         if (is_valid(ttd.value) && !is_decisive(ttd.value)
-            && any(ttd.bound & fail_bound(ttd.value > bestValue)))
+            && is_ok(ttd.bound & fail_bound(ttd.value > bestValue)))
             bestValue = ttd.value;
     }
     else
@@ -1794,7 +1794,7 @@ QS_MOVES_LOOP:
             bool capture = pos.capture_promo(move);
 
             // Futility pruning and moveCount pruning
-            if (!check && dstSq != preSq && move.type_of() != PROMOTION && !is_loss(futBaseValue))
+            if (!check && dstSq != preSq && move.type() != MT::PROMOTION && !is_loss(futBaseValue))
             {
                 if (moveCount > 2)
                     continue;

@@ -886,25 +886,30 @@ inline Value Position::evaluate() const noexcept {
 
 inline bool Position::capture(Move m) const noexcept {
     assert(legal(m));
-    return (m.type_of() != CASTLING && !empty(m.dst_sq())) || m.type_of() == EN_PASSANT;
+
+    return (m.type() != MT::CASTLING && !empty(m.dst_sq())) || m.type() == MT::EN_PASSANT;
 }
 
 inline bool Position::capture_promo(Move m) const noexcept {
     return capture(m)
-        || (m.type_of() == PROMOTION
+        || (m.type() == MT::PROMOTION
             && (m.promotion_type() == QUEEN
                 || (m.promotion_type() == KNIGHT && (checks_bb(KNIGHT) & m.dst_sq()) != 0)));
 }
 
 inline Piece Position::moved_pc(Move m) const noexcept {
     assert(legal(m));
+
     return piece(m.org_sq());
 }
 
 inline Piece Position::captured_pc(Move m) const noexcept {
     assert(legal(m));
-    assert(m.type_of() != CASTLING);
-    return m.type_of() == EN_PASSANT ? make_piece(~active_color(), PAWN) : piece(m.dst_sq());
+    assert(m.type() != MT::CASTLING);
+
+    return m.type() == MT::EN_PASSANT  //
+           ? make_piece(~active_color(), PAWN)
+           : piece(m.dst_sq());
 }
 
 inline auto Position::captured_pt(Move m) const noexcept { return type_of(captured_pc(m)); }
