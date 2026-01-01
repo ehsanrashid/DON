@@ -562,7 +562,8 @@ class Move {
     constexpr explicit Move(std::uint16_t d) noexcept :
         data(d) {}
     constexpr Move(Square orgSq, Square dstSq) noexcept :
-        Move(make(orgSq, dstSq).raw()) {}
+        Move((int(MT::NORMAL) << TYPE_OFFSET) | (dstSq << DST_SQ_OFFSET)
+             | (orgSq << ORG_SQ_OFFSET)) {}
 
     // Accessors: extract parts of the move
     constexpr Square org_sq() const noexcept { return Square((data >> ORG_SQ_OFFSET) & 0x3F); }
