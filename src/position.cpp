@@ -202,7 +202,7 @@ void Position::clear() noexcept {
 
     st          = nullptr;
     gamePly     = 0;
-    activeColor = COLOR_NB;
+    activeColor = NONE;
 }
 
 // Initializes the position object with the given FEN string.
@@ -264,8 +264,8 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     {
         if (token == '/')
         {
-            assert(file <= FILE_NB);
             assert(rank > RANK_1);
+
             file = FILE_A;
             --rank;
         }
@@ -275,6 +275,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
             {
                 int f = char_to_digit(token);
                 assert(1 <= f && f <= 8 - file && "Position::set(): Invalid File");
+
                 file += f;  // Advance the given number of file
             }
             else
@@ -284,17 +285,20 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
         {
             if (Piece pc = to_piece(token); is_ok(pc))
             {
-                assert(file < FILE_NB);
+                assert(file <= FILE_H);
+
                 Square sq = make_square(file, rank);
                 put(sq, pc);
-                ++file;
+
+                if (file < FILE_H)
+                    ++file;
             }
             else
                 assert(false && "Position::set(): Invalid Piece");
         }
     }
 
-    assert(file <= FILE_NB && rank == RANK_1);
+    assert(rank == RANK_1);
     assert(count(WHITE) <= 16 && count(BLACK) <= 16);
     assert(count(W_PAWN) <= 8 && count(B_PAWN) <= 8);
     assert(count(WHITE, KING) == 1 && count(BLACK, KING) == 1);

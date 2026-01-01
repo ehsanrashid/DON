@@ -33,9 +33,9 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr StdArray<int, PIECE_CNT> MAX_TARGETS{6, 12, 10, 10, 12, 8};
+constexpr StdArray<int, PIECE_TYPE_CNT> MAX_TARGETS{6, 12, 10, 10, 12, 8};
 
-constexpr StdArray<int, PIECE_CNT, PIECE_CNT> MAP{{
+constexpr StdArray<int, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
   {0, +1, -1, +2, -1, -1},  //
   {0, +1, +2, +3, +4, +5},  //
   {0, +1, +2, +3, -1, +4},  //
@@ -96,10 +96,12 @@ struct PiecePairData final {
 
     constexpr PiecePairData() noexcept :
         data(0) {}
+    constexpr PiecePairData(std::uint32_t d) noexcept :
+        data(d) {}
     constexpr PiecePairData(bool semiExcluded, bool excluded, IndexType featureBaseIndex) noexcept :
-        data((featureBaseIndex << FEATURE_BASE_INDEX_OFFSET)
-             | (excluded << (1 + EXCLUDED_PAIR_INFO_OFFSET))
-             | ((semiExcluded && !excluded) << EXCLUDED_PAIR_INFO_OFFSET)) {}
+        PiecePairData((featureBaseIndex << FEATURE_BASE_INDEX_OFFSET)
+                      | (excluded << (1 + EXCLUDED_PAIR_INFO_OFFSET))
+                      | ((semiExcluded && !excluded) << EXCLUDED_PAIR_INFO_OFFSET)) {}
 
     // lsb: excluded if orgSq < dstSq; 2nd lsb: always excluded
     constexpr std::uint8_t excluded_pair_info() const noexcept {
@@ -149,7 +151,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
 }();
 
 alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
-    StdArray<std::uint8_t, 1 + PIECE_CNT, SQUARE_NB, SQUARE_NB> lutIndices{};
+    StdArray<std::uint8_t, 1 + PIECE_TYPE_CNT, SQUARE_NB, SQUARE_NB> lutIndices{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)

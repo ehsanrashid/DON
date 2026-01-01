@@ -74,10 +74,10 @@ struct Zobrist final {
     Zobrist& operator=(const Zobrist&) noexcept = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
-    static inline StdArray<Key, COLOR_NB, 1 + PIECE_CNT, SQUARE_NB> PieceSquare;
-    static inline StdArray<Key, CASTLING_RIGHTS_NB>                 Castling;
-    static inline StdArray<Key, FILE_NB>                            Enpassant;
-    static inline Key                                               Turn;
+    static inline StdArray<Key, COLOR_NB, 1 + PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
+    static inline StdArray<Key, CASTLING_RIGHTS_NB>                      Castling;
+    static inline StdArray<Key, FILE_NB>                                 Enpassant;
+    static inline Key                                                    Turn;
 
     static constexpr std::uint8_t R50_OFFSET = 14;
     static constexpr std::uint8_t R50_FACTOR = 8;
@@ -355,7 +355,7 @@ class Position final {
 
     void dump(std::ostream& os = std::cout) const noexcept;
 
-    static constexpr StdArray<std::size_t, PIECE_CNT> CAPACITIES{11, 13, 13, 13, 13, 1};
+    static constexpr StdArray<std::size_t, PIECE_TYPE_CNT> CAPACITIES{11, 13, 13, 13, 13, 1};
 
     static inline bool Chess960 = false;
 
@@ -431,17 +431,17 @@ class Position final {
     static constexpr std::size_t TOTAL_CAPACITY = []() constexpr noexcept {
         std::size_t totalCapacity = 0;
 
-        for (std::size_t i = 0; i < PIECE_CNT; ++i)
+        for (std::size_t i = 0; i < PIECE_TYPE_CNT; ++i)
             totalCapacity += CAPACITIES[i];
 
         return totalCapacity;
     }();
 
     static constexpr auto OFFSETS = []() constexpr noexcept {
-        StdArray<std::size_t, PIECE_CNT> offsets{};
+        StdArray<std::size_t, PIECE_TYPE_CNT> offsets{};
 
         offsets[0] = 0;
-        for (std::size_t i = 1; i < PIECE_CNT; ++i)
+        for (std::size_t i = 1; i < PIECE_TYPE_CNT; ++i)
             offsets[i] = offsets[i - 1] + CAPACITIES[i - 1];
 
         return offsets;
@@ -463,7 +463,7 @@ class Position final {
     // Backing Square Table: [COLOR_NB][TOTAL_CAPACITY]
     StdArray<Square, COLOR_NB, TOTAL_CAPACITY> squaresTable;
     // Generic CountTableView slices
-    StdArray<CountTableView<Square>, COLOR_NB, 1 + PIECE_CNT> pieceLists;
+    StdArray<CountTableView<Square>, COLOR_NB, 1 + PIECE_TYPE_CNT> pieceLists;
 
     StdArray<std::uint8_t, SQUARE_NB>            indexMap;
     StdArray<Piece, SQUARE_NB>                   pieceMap;
@@ -1080,7 +1080,7 @@ inline void Position::update_pc_threats(Square                    s,
     Bitboard occupancyBB = pieces_bb();
 
     const auto attacksBB = [&]() noexcept {
-        StdArray<Bitboard, 1 + PIECE_CNT> _;
+        StdArray<Bitboard, 1 + PIECE_TYPE_CNT> _;
 
         _[WHITE]  = attacks_bb<PAWN>(s, WHITE);
         _[BLACK]  = attacks_bb<PAWN>(s, BLACK);

@@ -41,27 +41,28 @@ namespace {
 
 union Zobrist final {
    public:
-    // Size = 2 * 6 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
-    static constexpr std::size_t Size =
-      COLOR_NB * PIECE_CNT * SQUARE_NB + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1;
+    // SIZE = 2 * 6 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
+    static constexpr std::size_t SIZE = (COLOR_NB * PIECE_TYPE_CNT * SQUARE_NB)  //
+                                      + (COLOR_NB * CASTLING_SIDE_NB)            //
+                                      + (FILE_NB) + 1;
 
-    constexpr Zobrist(const StdArray<Key, Size>& keys) noexcept :
+    constexpr Zobrist(const StdArray<Key, SIZE>& keys) noexcept :
         Keys{keys} {}
 
     Key key(const Position& pos) const noexcept {
         Key key = 0;
 
         std::size_t n;
-        auto        orgSqs = pos.squares(n);
+        auto        sqs = pos.squares(n);
 
-        auto       beg = orgSqs.begin();
+        auto       beg = sqs.begin();
         const auto end = beg + n;
         for (; beg != end; ++beg)
         {
-            Square orgSq = *beg;
-            Piece  pc    = pos[orgSq];
+            Square s  = *beg;
+            Piece  pc = pos[s];
 
-            key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][orgSq];
+            key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][s];
         }
 
         Bitboard castlingRightsBB = pos.castling_rights();
@@ -84,13 +85,13 @@ union Zobrist final {
     Zobrist& operator=(const Zobrist&) noexcept = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
-    StdArray<Key, Size> Keys;
+    StdArray<Key, SIZE> Keys;
 
     struct {
-        StdArray<Key, COLOR_NB, PIECE_CNT, SQUARE_NB> PieceSquare;  // [color][piece-type][square]
-        StdArray<Key, COLOR_NB * CASTLING_SIDE_NB>    Castling;     // [castle-right]
-        StdArray<Key, FILE_NB>                        Enpassant;    // [file]
-        Key                                           Turn;
+        StdArray<Key, COLOR_NB, PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
+        StdArray<Key, COLOR_NB * CASTLING_SIDE_NB>         Castling;
+        StdArray<Key, FILE_NB>                             Enpassant;
+        Key                                                Turn;
     } _;
 };
 

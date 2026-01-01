@@ -120,7 +120,7 @@ struct TTEntry final {
             val16  = v;
             eVal16 = ev;
             depth8 = d - DEPTH_OFFSET;
-            meta8  = gen | (pv << 2) | (std::uint8_t(b) << 0);
+            meta8  = gen | (std::uint8_t(pv) << 2) | (std::uint8_t(b) << 0);
         }
     }
 

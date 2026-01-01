@@ -98,33 +98,43 @@ inline constexpr std::string_view START_FEN{
 enum Color : std::uint8_t {
     WHITE,
     BLACK,
-    COLOR_NB = 2
+    NONE
 };
+
+inline constexpr std::size_t COLOR_NB = 2;
+
+[[nodiscard]] constexpr bool is_ok(Color c) noexcept { return (c == WHITE || c == BLACK); }
+
+// Toggle color
+constexpr Color operator~(Color c) noexcept { return Color(c ^ BLACK); }
 
 // clang-format off
 enum PieceType : std::int8_t {
     NO_PIECE_TYPE,
-    PAWN = 1, KNIGHT, BISHOP, ROOK, QUEEN, KING, ALL,
-    PIECE_TYPE_NB = 8
+    PAWN = 1, KNIGHT, BISHOP, ROOK, QUEEN, KING, ALL
+};
+// clang-format on
+
+inline constexpr std::size_t PIECE_TYPE_NB  = 8;
+inline constexpr std::size_t PIECE_TYPE_CNT = 6;
+
+constexpr StdArray<PieceType, PIECE_TYPE_CNT> PIECE_TYPES{
+  PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING  //
+};
+constexpr StdArray<PieceType, PIECE_TYPE_CNT - 2> NON_PAWN_PIECE_TYPES{
+  KNIGHT, BISHOP, ROOK, QUEEN  //
 };
 
-inline constexpr std::size_t PIECE_CNT = PIECE_TYPE_NB - 2;
-
-constexpr StdArray<PieceType, PIECE_CNT> PIECE_TYPES{
-  PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING
-};
-constexpr StdArray<PieceType, PIECE_CNT - 2> NON_PAWN_PIECE_TYPES{
-  KNIGHT, BISHOP, ROOK, QUEEN
-};
-
+// clang-format off
 enum Piece : std::uint8_t {
     NO_PIECE,
     W_PAWN = 0 + PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
-    B_PAWN = 8 + PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING,
-    PIECE_NB = 16
+    B_PAWN = 8 + PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING
 };
 // clang-format on
 static_assert(sizeof(Piece) == 1);
+
+inline constexpr std::size_t PIECE_NB = 16;
 
 // Value is used as an alias for std::int16_t, this is done to differentiate between
 // a search value and any other integer value. The values used in search are always
@@ -156,7 +166,7 @@ inline constexpr Value VALUE_ROOK   = 1276;
 inline constexpr Value VALUE_QUEEN  = 2538;
 
 constexpr Value piece_value(PieceType pt) noexcept {
-    constexpr StdArray<Value, 1 + PIECE_CNT> PieceValues{
+    constexpr StdArray<Value, 1 + PIECE_TYPE_CNT> PieceValues{
       VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO};
 
     return PieceValues[pt];
@@ -212,14 +222,16 @@ static_assert(DEPTH_OFFSET == MAX_PLY - 1 - 0xFF, "DEPTH_OFFSET == MAX_PLY - 1 -
 
 // clang-format off
 enum File : std::int8_t {
-    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
-    FILE_NB = 8
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H
 };
 
+inline constexpr std::size_t FILE_NB = 8;
+
 enum Rank : std::int8_t {
-    RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8,
-    RANK_NB = 8
+    RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8
 };
+
+inline constexpr std::size_t RANK_NB = 8;
 
 enum Square : std::int8_t {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
@@ -231,9 +243,11 @@ enum Square : std::int8_t {
     SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7,
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
     SQ_NONE,
-    SQUARE_ZERO = 0,
-    SQUARE_NB = 64
+    SQUARE_ZERO = 0
 };
+
+inline constexpr std::size_t SQUARE_NB = 64;
+
 // clang-format on
 
 enum Direction : std::int8_t {
@@ -299,9 +313,10 @@ constexpr Direction operator*(int i, Direction d) noexcept { return d * i; }
 enum CastlingSide : std::uint8_t {
     KING_SIDE,
     QUEEN_SIDE,
-    ANY_SIDE,
-    CASTLING_SIDE_NB = 2
+    ANY_SIDE
 };
+
+inline constexpr std::size_t CASTLING_SIDE_NB = 2;
 
 inline std::string to_string(CastlingSide cs) noexcept {
     switch (cs)
@@ -330,10 +345,10 @@ enum CastlingRights : std::uint8_t {
 
     BLACK_CASTLING = BLACK_OO | BLACK_OOO,
 
-    ANY_CASTLING = WHITE_CASTLING | BLACK_CASTLING,
-
-    CASTLING_RIGHTS_NB = 16
+    ANY_CASTLING = WHITE_CASTLING | BLACK_CASTLING
 };
+
+inline constexpr std::size_t CASTLING_RIGHTS_NB = 16;
 
 constexpr CastlingRights operator|(CastlingRights cr1, CastlingRights cr2) noexcept {
     return CastlingRights(std::uint8_t(cr1) | std::uint8_t(cr2));
@@ -355,11 +370,6 @@ constexpr CastlingRights make_cr(Color c, CastlingSide cs) noexcept {
                                               : WHITE_CASTLING)
                           << (c << 1));
 }
-
-[[nodiscard]] constexpr bool is_ok(Color c) noexcept { return (c == WHITE || c == BLACK); }
-
-// Toggle color
-constexpr Color operator~(Color c) noexcept { return Color(int(c) ^ 1); }
 
 [[nodiscard]] constexpr bool is_ok(PieceType pt) noexcept { return (PAWN <= pt && pt <= KING); }
 
@@ -503,17 +513,24 @@ constexpr std::uint64_t make_hash(std::uint64_t seed) noexcept {
     return 0x14057B7EF767814FULL + 0x5851F42D4C957F2DULL * seed;
 }
 
-// A move needs 16 bits to be stored
+// Move representation (16 bits)
+// Each move is compactly stored in a 16-bit unsigned integer.
 //
-// bit  0- 5: destination square (from 0 to 63)
-// bit  6-11: origin square (from 0 to 63)
-// bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
-// bit 14-15: special move flag: promotion (1), en-passant (2), castling (3)
-// NOTE: en-passant bit is set only when a pawn can be captured
-//
-// Special cases are Move::None and Move::Null. Can sneak these in because
-// in any normal move destination square is always different from origin square
-// while Move::None and Move::Null have the same origin and destination square.
+// Bit layout (from LSB to MSB):
+//  6-bits  0- 5  : destination square (0-63)
+//  6-bits  6-11  : origin square (0-63)
+//  2-bits 12-13  : promotion piece type offset (KNIGHT=0, BISHOP=1, ROOK=2, QUEEN=3)
+//  2-bits 14-15  : special move type flag:
+//                   NORMAL     = 0
+//                   PROMOTION  = 1
+//                   EN_PASSANT = 2
+//                   CASTLING   = 3
+// Notes:
+// - En-passant flag is set only when a pawn can capture en-passant.
+// - Special moves Move::None and Move::Null are represented by having the same
+//   origin and destination squares, which is invalid for normal moves.
+//   This guarantees they never collide with any normal move.
+// - This compact encoding allows fast move generation, comparison, and storage.
 class Move {
    public:
     enum class Type : std::uint8_t {
@@ -523,6 +540,8 @@ class Move {
         CASTLING
     };
 
+    using MT = Move::Type;
+
     static constexpr std::uint8_t  ORG_SQ_OFFSET = 0;
     static constexpr std::uint8_t  DST_SQ_OFFSET = 6;
     static constexpr std::uint8_t  PROMO_OFFSET  = 12;
@@ -530,26 +549,30 @@ class Move {
     static constexpr std::uint16_t TYPE_MASK     = 0x3 << TYPE_OFFSET;
 
     // Factory method to create moves
-    template<Type T = Type::NORMAL>
-    static constexpr Move make(Square orgSq, Square dstSq, PieceType pt = KNIGHT) noexcept;
+    template<Type T = MT::NORMAL>
+    static constexpr Move make(Square orgSq, Square dstSq, PieceType promoPt = KNIGHT) noexcept;
 
     Move() noexcept = default;
     constexpr explicit Move(std::uint16_t d) noexcept :
         data(d) {}
     constexpr Move(Square orgSq, Square dstSq) noexcept :
-        Move((int(Type::NORMAL) << TYPE_OFFSET) | (dstSq << DST_SQ_OFFSET)
+        Move((int(MT::NORMAL) << TYPE_OFFSET) | (dstSq << DST_SQ_OFFSET)
              | (orgSq << ORG_SQ_OFFSET)) {}
 
     // Accessors: extract parts of the move
-    constexpr Square    org_sq() const noexcept { return Square((data >> ORG_SQ_OFFSET) & 0x3F); }
-    constexpr Square    dst_sq() const noexcept { return Square((data >> DST_SQ_OFFSET) & 0x3F); }
+    constexpr Square org_sq() const noexcept { return Square((data >> ORG_SQ_OFFSET) & 0x3F); }
+    constexpr Square dst_sq() const noexcept { return Square((data >> DST_SQ_OFFSET) & 0x3F); }
+
     constexpr PieceType promotion_type() const noexcept {
         return PieceType(KNIGHT + ((data >> PROMO_OFFSET) & 0x3));
     }
-    constexpr Type type() const noexcept { return Type((data >> TYPE_OFFSET) & 0x3); }
+
+    constexpr MT type() const noexcept { return MT((data >> TYPE_OFFSET) & 0x3); }
 
     constexpr Value promotion_value() const noexcept {
-        return type() == Type::PROMOTION ? piece_value(promotion_type()) - VALUE_PAWN : VALUE_ZERO;
+        return type() == MT::PROMOTION  //
+               ? piece_value(promotion_type()) - VALUE_PAWN
+               : VALUE_ZERO;
     }
 
     constexpr std::uint16_t raw() const noexcept { return data; }
@@ -563,7 +586,7 @@ class Move {
     //constexpr explicit operator bool() const noexcept { return move != 0; }
 
     constexpr Move reverse() const noexcept {
-        assert(type() == Type::NORMAL);
+        assert(type() == MT::NORMAL);
 
         return Move{dst_sq(), org_sq()};
     }
@@ -576,20 +599,21 @@ class Move {
     std::uint16_t data;
 };
 
-using MT = Move::Type;
+using MT = Move::MT;
 
 template<MT T>
 inline constexpr Move Move::make(Square orgSq, Square dstSq, PieceType) noexcept {
-    static_assert(T != Type::PROMOTION,
-                  "Use make<PROMOTION>(orgSq, dstSq, pt) for promotion moves.");
+    static_assert(T != MT::PROMOTION,
+                  "Use make<MT::PROMOTION>(orgSq, dstSq, promoPt) for promotion moves.");
 
     return Move((int(T) << TYPE_OFFSET) | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET));
 }
 template<>
-inline constexpr Move Move::make<MT::PROMOTION>(Square orgSq, Square dstSq, PieceType pt) noexcept {
-    assert(KNIGHT <= pt && pt <= QUEEN);
+inline constexpr Move
+Move::make<MT::PROMOTION>(Square orgSq, Square dstSq, PieceType promoPt) noexcept {
+    assert(KNIGHT <= promoPt && promoPt <= QUEEN);
 
-    return Move((int(MT::PROMOTION) << TYPE_OFFSET) | ((pt - KNIGHT) << PROMO_OFFSET)
+    return Move((int(MT::PROMOTION) << TYPE_OFFSET) | ((promoPt - KNIGHT) << PROMO_OFFSET)
                 | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET));
 }
 
@@ -668,7 +692,7 @@ struct DirtyThreat final {
     constexpr Piece threatened_pc() const noexcept {
         return Piece((data >> THREATENED_PC_OFFSET) & 0xF);
     }
-    constexpr bool add() const noexcept { return (data >> 31) != 0; }
+    constexpr bool add() const noexcept { return ((data >> 31) & 0x1) != 0; }
 
     constexpr std::uint32_t raw() const noexcept { return data; }
 

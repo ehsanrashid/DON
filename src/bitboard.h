@@ -378,7 +378,7 @@ constexpr Bitboard king_attacks_bb(Square s) noexcept {
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto ATTACKS_BBs = []() constexpr noexcept {
-    StdArray<Bitboard, SQUARE_NB, 1 + PIECE_CNT> attacksBBs{};
+    StdArray<Bitboard, SQUARE_NB, 1 + PIECE_TYPE_CNT> attacksBBs{};
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
@@ -402,7 +402,7 @@ constexpr Bitboard attacks_bb(Square s, std::size_t idx) noexcept {
 
 // Returns the pseudo attacks of the given piece type assuming an empty board
 template<PieceType PT>
-constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Color c = COLOR_NB) noexcept {
+constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Color c = NONE) noexcept {
     static_assert(is_ok(PT), "Unsupported piece type in attacks_bb()");
     assert(is_ok(s) && (PT != PAWN || is_ok(c)));
 
