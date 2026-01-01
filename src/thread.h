@@ -282,6 +282,7 @@ class Threads final {
 
     template<typename T>
     void set(std::atomic<T> Worker::* member, T value) noexcept {
+
         for (auto&& th : threads)
             (th->worker.get()->*member).store(value, std::memory_order_relaxed);
     }

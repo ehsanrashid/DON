@@ -811,10 +811,12 @@ inline Key Position::material_key() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            if (pt == KING || count(c, pt) == 0)
+            std::uint8_t cnt = count(c, pt);
+
+            if (cnt == 0 || pt == KING)
                 continue;
 
-            Square s = Square(Zobrist::PAWN_OFFSET + count(c, pt) - 1);
+            Square s = Square(Zobrist::PAWN_OFFSET + cnt - 1);
 
             materialKey ^= Zobrist::piece_square(c, pt, s);
         }

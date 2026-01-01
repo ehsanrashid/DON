@@ -290,10 +290,10 @@ constexpr Square& operator-=(Square& s, Direction d) noexcept { return s = s - d
 
 // clang-format off
 
-constexpr Direction operator+(Direction d1, Direction d2) noexcept { return Direction(int(d1) + int(d2)); }
-constexpr Direction operator-(Direction d1, Direction d2) noexcept { return Direction(int(d1) - int(d2)); }
+constexpr Direction operator+(Direction d1, Direction d2) noexcept { return Direction(std::int8_t(d1) + std::int8_t(d2)); }
+constexpr Direction operator-(Direction d1, Direction d2) noexcept { return Direction(std::int8_t(d1) - std::int8_t(d2)); }
 //constexpr Direction operator-(Square s1, Square s2) noexcept { return Direction(int(s1) - int(s2)); }
-constexpr Direction operator*(Direction d, int i) noexcept { return Direction(i * int(d)); }
+constexpr Direction operator*(Direction d, int i) noexcept { return Direction(i * std::int8_t(d)); }
 constexpr Direction operator*(int i, Direction d) noexcept { return d * i; }
 
 enum CastlingSide : std::uint8_t {
@@ -335,8 +335,12 @@ enum CastlingRights : std::uint8_t {
     CASTLING_RIGHTS_NB = 16
 };
 
-constexpr CastlingRights  operator| (CastlingRights cr1, CastlingRights cr2) noexcept { return CastlingRights(int(cr1) | int(cr2)); }
-constexpr CastlingRights  operator& (CastlingRights cr1, CastlingRights cr2) noexcept { return CastlingRights(int(cr1) & int(cr2)); }
+constexpr CastlingRights operator|(CastlingRights cr1, CastlingRights cr2) noexcept {
+    return CastlingRights(std::uint8_t(cr1) | std::uint8_t(cr2));
+}
+constexpr CastlingRights operator&(CastlingRights cr1, CastlingRights cr2) noexcept {
+    return CastlingRights(std::uint8_t(cr1) & std::uint8_t(cr2));
+}
 constexpr CastlingRights  operator| (CastlingRights cr, int i) noexcept { return cr | CastlingRights(i); }
 constexpr CastlingRights  operator& (CastlingRights cr, int i) noexcept { return cr & CastlingRights(i); }
 constexpr CastlingRights& operator|=(CastlingRights& cr, int i) noexcept { return cr = cr | i; }
@@ -514,50 +518,34 @@ enum MoveType : std::uint16_t {
     NORMAL     = 0 << 14,
     PROMOTION  = 1 << 14,
     EN_PASSANT = 2 << 14,
-    CASTLING   = 3 << 14,
-    TYPE_MASK  = 0xC000
+    CASTLING   = 3 << 14
 };
 
 class Move {
    public:
-    static constexpr std::uint8_t ORG_SQ_OFFSET = 0;
-    static constexpr std::uint8_t DST_SQ_OFFSET = 6;
-    static constexpr std::uint8_t PROMO_OFFSET  = 12;
+    static constexpr std::uint8_t  ORG_SQ_OFFSET = 0;
+    static constexpr std::uint8_t  DST_SQ_OFFSET = 6;
+    static constexpr std::uint8_t  PROMO_OFFSET  = 12;
+    static constexpr std::uint8_t  TYPE_OFFSET   = 14;
+    static constexpr std::uint16_t TYPE_MASK     = 0x3 << TYPE_OFFSET;
+
+    // Factory method to create moves
+    template<MoveType MT = NORMAL>
+    static constexpr Move make(Square orgSq, Square dstSq, PieceType pt = KNIGHT) noexcept;
 
     Move() noexcept = default;
-    // Constructors using delegating syntax
     constexpr explicit Move(std::uint16_t d) noexcept :
         data(d) {}
-    constexpr Move(Square    orgSq,
-                   Square    dstSq,
-                   MoveType  mt = NORMAL,
-                   PieceType pt = KNIGHT) noexcept :
-        Move(mt                                 //
-             | ((pt - KNIGHT) << PROMO_OFFSET)  //
-             | (dstSq << DST_SQ_OFFSET)         //
-             | (orgSq << ORG_SQ_OFFSET)) {}
-
-    // Factory function
-    template<MoveType MT = NORMAL>
-    static constexpr Move make(Square orgSq, Square dstSq, PieceType pt = KNIGHT) noexcept {
-        return Move(orgSq, dstSq, MT, pt);
-    }
-
-    //template<MoveType MT>
-    //constexpr Move(Square orgSq, Square dstSq, PieceType promoPt = KNIGHT) noexcept :
-    //    Move(MT | ((promoPt - KNIGHT) << PROMO_OFFSET)  //
-    //         | (orgSq << ORG_SQ_OFFSET) | (dstSq << DST_SQ_OFFSET)) {}
-
-    /*constexpr Move(Square orgSq, Square dstSq, PieceType promoPt) noexcept :
-        Move(MoveType(PROMOTION | ((promoPt - KNIGHT) << PROMO_OFFSET)), orgSq, dstSq) {}*/
+    constexpr Move(Square orgSq, Square dstSq) noexcept :
+        Move(NORMAL | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET)) {}
 
     // Accessors: extract parts of the move
     constexpr Square    org_sq() const noexcept { return Square((data >> ORG_SQ_OFFSET) & 0x3F); }
     constexpr Square    dst_sq() const noexcept { return Square((data >> DST_SQ_OFFSET) & 0x3F); }
-    constexpr MoveType  type_of() const noexcept { return MoveType(data & TYPE_MASK); }
     constexpr PieceType promotion_type() const noexcept {
         return PieceType(KNIGHT + ((data >> PROMO_OFFSET) & 0x3));
     }
+    constexpr MoveType type_of() const noexcept { return MoveType(data & TYPE_MASK); }
 
     constexpr Value promotion_value() const noexcept {
         return type_of() == PROMOTION ? piece_value(promotion_type()) - VALUE_PAWN : VALUE_ZERO;
@@ -586,6 +574,20 @@ class Move {
     std::uint16_t data;
 };
 
+template<MoveType MT>
+constexpr Move Move::make(Square orgSq, Square dstSq, PieceType) noexcept {
+    static_assert(MT != PROMOTION, "Use make<PROMOTION>(orgSq, dstSq, pt) for promotion moves.");
+
+    return Move(MT | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET));
+}
+template<>
+constexpr Move Move::make<PROMOTION>(Square orgSq, Square dstSq, PieceType pt) noexcept {
+    assert(KNIGHT <= pt && pt <= QUEEN);
+
+    return Move(PROMOTION | ((pt - KNIGHT) << PROMO_OFFSET) | (dstSq << DST_SQ_OFFSET)
+                | (orgSq << ORG_SQ_OFFSET));
+}
+
 // **Define the constexpr static members outside the class**
 inline constexpr Move Move::None{SQ_A1, SQ_A1};
 inline constexpr Move Move::Null{SQ_H8, SQ_H8};
@@ -594,10 +596,9 @@ using Moves = std::vector<Move>;
 
 enum class Bound : std::uint8_t {
     NONE  = 0,
-    UPPER = 1 << 0,  // 1
-    LOWER = 1 << 1,  // 2
+    UPPER = 1 << 0,
+    LOWER = 1 << 1,
     EXACT = UPPER | LOWER
-    // add more: OTHER = 1 << 2, etc.
 };
 
 // --- Bitmask operators for Bound ---
@@ -612,6 +613,7 @@ constexpr Bound operator^(Bound bnd1, Bound bnd2) noexcept {
 }
 constexpr Bound& operator|=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 | bnd2; }
 constexpr Bound& operator&=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 & bnd2; }
+constexpr Bound& operator^=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 ^ bnd2; }
 
 constexpr bool any(Bound bnd) noexcept { return bnd != Bound::NONE; }
 
