@@ -156,8 +156,8 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dstSq, int bo
         if (!ssi->move.is_ok())
             break;
 
-        (*ssi->pieceSqHistory)[pc][dstSq]
-          << int(ContHistoryWeights[i] * bonus) + ContHistoryOffsets[i];
+        (*ssi->pieceSqHistory)[+pc][dstSq] << int(ContHistoryWeights[i] * bonus)  //
+                                                + ContHistoryOffsets[i];
     }
 }
 
@@ -426,9 +426,11 @@ void Worker::iterative_deepening() noexcept {
             continue;
 
         // Use as a sentinel
+        // clang-format off
         (ss + i)->evalValue                = VALUE_NONE;
-        (ss + i)->pieceSqHistory           = &continuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
-        (ss + i)->pieceSqCorrectionHistory = &continuationCorrectionHistory[NO_PIECE][SQUARE_ZERO];
+        (ss + i)->pieceSqHistory           = &continuationHistory[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
+        (ss + i)->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQUARE_ZERO];
+        // clang-format on
     }
 
     assert(stacks[0].ply == -StackOffset && stacks[stacks.size() - 1].ply == MAX_PLY + 1);
@@ -1217,7 +1219,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             if (capture)
             {
-                int history = captureHistory[movedPc][dstSq][captured];
+                int history = captureHistory[+movedPc][dstSq][captured];
 
                 // Futility pruning: for captures
                 if (lmrDepth < 7 && !check)
@@ -1239,9 +1241,9 @@ S_MOVES_LOOP:  // When in check, search starts here
             }
             else
             {
-                int history = histories.pawn(pawnKey)[movedPc][dstSq]
-                            + (*contHistory[0])[movedPc][dstSq]  //
-                            + (*contHistory[1])[movedPc][dstSq];
+                int history = histories.pawn(pawnKey)[+movedPc][dstSq]
+                            + (*contHistory[0])[+movedPc][dstSq]  //
+                            + (*contHistory[1])[+movedPc][dstSq];
 
                 // History based pruning
                 if (history < -4083 * depth && !check)
@@ -1361,10 +1363,10 @@ S_MOVES_LOOP:  // When in check, search starts here
         assert(captured == type_of(pos.captured_pc()));
 
         ss->history = capture ? int(6.7813 * piece_value(captured))  //
-                                  + captureHistory[movedPc][dstSq][captured]
-                              : 2 * quietHistory[ac][move.raw()]       //
-                                  + (*contHistory[0])[movedPc][dstSq]  //
-                                  + (*contHistory[1])[movedPc][dstSq];
+                                  + captureHistory[+movedPc][dstSq][captured]
+                              : 2 * quietHistory[ac][move.raw()]        //
+                                  + (*contHistory[0])[+movedPc][dstSq]  //
+                                  + (*contHistory[1])[+movedPc][dstSq];
 
         // Base reduction offset to compensate for other tweaks
         r += 714;
@@ -1901,10 +1903,12 @@ void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const 
     nodes.fetch_add(1, std::memory_order_relaxed);
     if (ss != nullptr)
     {
-        auto dstSq         = m.dst_sq();
-        ss->move           = m;
-        ss->pieceSqHistory = &continuationHistory[ss->inCheck][capture][db.dp.movedPc][dstSq];
-        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[db.dp.movedPc][dstSq];
+        // clang-format off
+        auto dstSq                   = m.dst_sq();
+        ss->move                     = m;
+        ss->pieceSqHistory           = &continuationHistory[ss->inCheck][capture][+db.dp.movedPc][dstSq];
+        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+db.dp.movedPc][dstSq];
+        // clang-format on
     }
     accStack.push(std::move(db));
 }
@@ -1921,9 +1925,11 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
     pos.do_null_move(st, this);
     if (ss != nullptr)
     {
+        // clang-format off
         ss->move                     = Move::Null;
-        ss->pieceSqHistory           = &continuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
-        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[NO_PIECE][SQUARE_ZERO];
+        ss->pieceSqHistory           = &continuationHistory[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
+        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQUARE_ZERO];
+        // clang-format on
     }
 }
 
@@ -1937,11 +1943,11 @@ Value Worker::evaluate(const Position& pos) noexcept {
 // clang-format off
 
 void Worker::update_pawn_history(Key pawnKey, Piece movedPc, Square dstSq, int bonus) noexcept {
-    histories.pawn(pawnKey)[movedPc][dstSq] << bonus;
+    histories.pawn(pawnKey)[+movedPc][dstSq] << bonus;
 }
 
 void Worker::update_capture_history(Piece movedPc, Square dstSq, PieceType capturedPt, int bonus) noexcept {
-    captureHistory[movedPc][dstSq][capturedPt] << bonus;
+    captureHistory[+movedPc][dstSq][capturedPt] << bonus;
 }
 void Worker::update_capture_history(const Position& pos, Move m, int bonus) noexcept {
     update_capture_history(pos.moved_pc(m), m.dst_sq(), pos.captured_pt(m), bonus);
@@ -2017,8 +2023,8 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 
     if (is_ok(preSq))
     {
-        (*(ss - 2)->pieceSqCorrectionHistory)[pos[preSq]][preSq]                   << 0.9922 * bonus;
-        (*(ss - 4)->pieceSqCorrectionHistory)[pos[preSq]][preSq]                   << 0.4609 * bonus;
+        (*(ss - 2)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]                   << 0.9922 * bonus;
+        (*(ss - 4)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]                   << 0.4609 * bonus;
     }
 }
 
@@ -2037,8 +2043,8 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
            +11530LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                      + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac])
            + 7841LL * (is_ok(preSq)
-                      ? (*(ss - 2)->pieceSqCorrectionHistory)[pos[preSq]][preSq]
-                      + (*(ss - 4)->pieceSqCorrectionHistory)[pos[preSq]][preSq]
+                      ? (*(ss - 2)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]
+                      + (*(ss - 4)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]
                       : 8),
             -Limit, +Limit);
 }

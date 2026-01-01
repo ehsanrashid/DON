@@ -94,7 +94,7 @@ MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveL
         auto   capturedPt = pos.captured_pt(m);
 
         m.value = 7 * piece_value(capturedPt)  //
-                + (*captureHistory)[movedPc][dstSq][capturedPt];
+                + (*captureHistory)[+movedPc][dstSq][capturedPt];
     }
 
     return itr;
@@ -125,16 +125,16 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
         Piece  movedPc = pos.moved_pc(m);
         auto   movedPt = type_of(movedPc);
 
-        m.value = 2 * (*quietHistory)[ac][m.raw()]              //
-                + 2 * histories->pawn(pawnKey)[movedPc][dstSq]  //
-                + (*continuationHistory[0])[movedPc][dstSq]     //
-                + (*continuationHistory[1])[movedPc][dstSq]     //
-                + (*continuationHistory[2])[movedPc][dstSq]     //
-                + (*continuationHistory[3])[movedPc][dstSq]     //
-                + (*continuationHistory[4])[movedPc][dstSq]     //
-                + (*continuationHistory[5])[movedPc][dstSq]     //
-                + (*continuationHistory[6])[movedPc][dstSq]     //
-                + (*continuationHistory[7])[movedPc][dstSq];
+        m.value = 2 * (*quietHistory)[ac][m.raw()]               //
+                + 2 * histories->pawn(pawnKey)[+movedPc][dstSq]  //
+                + (*continuationHistory[0])[+movedPc][dstSq]     //
+                + (*continuationHistory[1])[+movedPc][dstSq]     //
+                + (*continuationHistory[2])[+movedPc][dstSq]     //
+                + (*continuationHistory[3])[+movedPc][dstSq]     //
+                + (*continuationHistory[4])[+movedPc][dstSq]     //
+                + (*continuationHistory[5])[+movedPc][dstSq]     //
+                + (*continuationHistory[6])[+movedPc][dstSq]     //
+                + (*continuationHistory[7])[+movedPc][dstSq];
 
         if (ssPly < LOW_PLY_QUIET_SIZE)
             m.value += 8 * (*lowPlyQuietHistory)[ssPly][m.raw()] / (1 + ssPly);
@@ -201,7 +201,7 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
         Piece  movedPc = pos.moved_pc(m);
 
         m.value = (*quietHistory)[ac][m.raw()]  //
-                + (*continuationHistory[0])[movedPc][dstSq];
+                + (*continuationHistory[0])[+movedPc][dstSq];
     }
 
     return itr;

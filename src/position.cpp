@@ -188,7 +188,7 @@ void Position::clear() noexcept {
     std::memset(squaresTable.data(), SQ_NONE, sizeof(squaresTable));
     // No need to clear indexMap as it is always overwritten when putting/removing pieces
     std::memset(indexMap.data(), INDEX_NONE, sizeof(indexMap));
-    std::memset(pieceMap.data(), NO_PIECE, sizeof(pieceMap));
+    std::memset(pieceMap.data(), +Piece::NO_PIECE, sizeof(pieceMap));
     std::memset(typeBBs.data(), 0, sizeof(typeBBs));
     std::memset(colorBBs.data(), 0, sizeof(colorBBs));
     std::memset(castlingRightsMasks.data(), NO_CASTLING, sizeof(castlingRightsMasks));
@@ -300,8 +300,8 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 
     assert(rank == RANK_1);
     assert(count(WHITE) <= 16 && count(BLACK) <= 16);
-    assert(count(W_PAWN) <= 8 && count(B_PAWN) <= 8);
-    assert(count(W_KING) == 1 && count(B_KING) == 1);
+    assert(count(Piece::W_PAWN) <= 8 && count(Piece::B_PAWN) <= 8);
+    assert(count(Piece::W_KING) == 1 && count(Piece::B_KING) == 1);
     assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
     assert((pieces_bb(PAWN) & PROMOTION_RANKS_BB) == 0);
     assert(is_ok(square<KING>(WHITE)) && is_ok(square<KING>(BLACK)));
@@ -846,7 +846,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker
     Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     Piece  movedPc    = piece(orgSq);
     Piece  capturedPc = piece(m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac));
-    Piece  promotedPc = NO_PIECE;
+    Piece  promotedPc = Piece::NO_PIECE;
     assert(color_of(movedPc) == ac);
     assert(!is_ok(capturedPc)
            || (color_of(capturedPc) == (m.type() != MT::CASTLING ? ~ac : ac)
@@ -897,7 +897,7 @@ Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker
         k ^= rookKey;
         st->nonPawnKeys[ac][1] ^= rookKey;
 
-        capturedPc = NO_PIECE;
+        capturedPc = Piece::NO_PIECE;
         capture    = false;
 
         // Calculate checker only one ROOK possible
@@ -1045,7 +1045,7 @@ DO_MOVE_END:
         if (!is_ok(enPassantSq))
             prefetch(worker->transpositionTable.cluster(k ^ Zobrist::mr50(rule50_count())));
 
-        prefetch(&worker->histories.pawn(pawn_key())[movedPc][dstSq]);
+        prefetch(&worker->histories.pawn(pawn_key())[+movedPc][dstSq]);
         prefetch(&worker->histories.pawn_correction<WHITE>(pawn_key(WHITE)));
         prefetch(&worker->histories.pawn_correction<BLACK>(pawn_key(BLACK)));
         prefetch(&worker->histories.minor_correction<WHITE>(minor_key(WHITE)));
@@ -1209,8 +1209,8 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
 
     st->capturedSq = SQ_NONE;
     st->checkersBB = 0;
-    st->capturedPc = NO_PIECE;
-    st->promotedPc = NO_PIECE;
+    st->capturedPc = Piece::NO_PIECE;
+    st->promotedPc = Piece::NO_PIECE;
 
     set_ext_state();
 
@@ -2059,10 +2059,10 @@ bool Position::_is_ok() const noexcept {
 
     constexpr bool Fast = true;  // Quick (default) or full check?
 
-    if (!is_ok(active_color())                       //
-        || count(W_KING) != 1 || count(B_KING) != 1  //
-        || piece(square<KING>(WHITE)) != W_KING      //
-        || piece(square<KING>(BLACK)) != B_KING      //
+    if (!is_ok(active_color())                                     //
+        || count(Piece::W_KING) != 1 || count(Piece::B_KING) != 1  //
+        || piece(square<KING>(WHITE)) != Piece::W_KING             //
+        || piece(square<KING>(BLACK)) != Piece::B_KING             //
         || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1
         || (is_ok(en_passant_sq()) && relative_rank(active_color(), en_passant_sq()) != RANK_6
             && !enpassant_possible(active_color(), en_passant_sq())))

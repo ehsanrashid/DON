@@ -68,7 +68,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
 
             for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
-                threatTable.squareOffsets[pc][s] = threatCount;
+                threatTable.squareOffsets[+pc][s] = threatCount;
 
                 Bitboard threatsBB = pt != PAWN               ? attacks_bb(s, pt)
                                    : SQ_A2 <= s && s <= SQ_H7 ? attacks_bb(s, c)
@@ -77,7 +77,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
                 threatCount += constexpr_popcount(threatsBB);
             }
 
-            threatTable.pieceThreats[pc] = {threatCount, baseOffset};
+            threatTable.pieceThreats[+pc] = {threatCount, baseOffset};
 
             baseOffset += MAX_TARGETS[pt - 1] * threatCount;
         }
@@ -129,7 +129,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                 {
                     Piece attackedPc = make_piece(attackedC, attackedPt);
 
-                    bool enemy = (attackerPc ^ attackedPc) == 8;
+                    bool enemy = int(attackerPc ^ attackedPc) == 8;
 
                     int map = MAP[attackerPt - 1][attackedPt - 1];
 
@@ -138,11 +138,11 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                     bool excluded = map < 0;
 
                     IndexType featureBaseIndex =
-                      PIECE_THREATS[attackerPc].baseOffset
+                      PIECE_THREATS[+attackerPc].baseOffset
                       + (attackedC * (MAX_TARGETS[attackerPt - 1] / 2) + map)
-                          * PIECE_THREATS[attackerPc].threatCount;
+                          * PIECE_THREATS[+attackerPc].threatCount;
 
-                    lutDatas[attackerPc][attackedPc] =
+                    lutDatas[+attackerPc][+attackedPc] =
                       PiecePairData(semiExcluded, excluded, featureBaseIndex);
                 }
         }
@@ -210,7 +210,7 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     attackerPc = relative_piece(perspective, attackerPc);
     attackedPc = relative_piece(perspective, attackedPc);
 
-    const auto& piecePairData = LUT_DATAS[attackerPc][attackedPc];
+    const auto& piecePairData = LUT_DATAS[+attackerPc][+attackedPc];
 
     // Some threats imply the existence of the corresponding ones in the opposite direction.
     // Filter them here to ensure only one such threat is active.
@@ -221,7 +221,7 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     if (((piecePairData.excluded_pair_info() + int(orgSq < dstSq)) & 0x2) != 0)
         return FullThreats::Dimensions;
 
-    return piecePairData.feature_base_index() + SQUARE_OFFSETS[attackerPc][orgSq]
+    return piecePairData.feature_base_index() + SQUARE_OFFSETS[+attackerPc][orgSq]
          + lut_index(attackerPc, orgSq, dstSq);
 }
 

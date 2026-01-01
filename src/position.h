@@ -494,7 +494,7 @@ inline Bitboard Position::operator[](Color c) const noexcept { return colorBBs[c
 
 inline Piece Position::piece(Square s) const noexcept { return pieceMap[s]; }
 
-inline bool Position::empty(Square s) const noexcept { return piece(s) == NO_PIECE; }
+inline bool Position::empty(Square s) const noexcept { return piece(s) == Piece::NO_PIECE; }
 
 template<typename... PieceTypes>
 inline Bitboard Position::pieces_bb(PieceTypes... pts) const noexcept {
@@ -955,7 +955,7 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     if (dts != nullptr)
         update_pc_threats<false>(s, pc, dts);
 
-    pieceMap[s] = NO_PIECE;
+    pieceMap[s] = Piece::NO_PIECE;
     colorBBs[c] ^= sBB;
     typeBBs[pt] ^= sBB;
     typeBBs[ALL] ^= sBB;
@@ -984,7 +984,7 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     if (dts != nullptr)
         update_pc_threats<false>(s1, pc, dts, s1s2BB);
 
-    pieceMap[s1] = NO_PIECE;
+    pieceMap[s1] = Piece::NO_PIECE;
     pieceMap[s2] = pc;
     colorBBs[c] ^= s1s2BB;
     typeBBs[pt] ^= s1s2BB;
@@ -1119,7 +1119,7 @@ inline void Position::update_pc_threats(Square                    s,
             dts->threateningBB |= s;
         }
 
-        DirtyThreat templateDt{s, SQUARE_ZERO, pc, NO_PIECE, Put};
+        DirtyThreat templateDt{s, SQUARE_ZERO, pc, Piece::NO_PIECE, Put};
         write_multiple_dirties<DirtyThreat::THREATENED_SQ_OFFSET,
                                DirtyThreat::THREATENED_PC_OFFSET>(piece_map(), threatenedBB,
                                                                   templateDt, dts);
@@ -1136,7 +1136,7 @@ inline void Position::update_pc_threats(Square                    s,
         dts->threateningBB |= attackersBB;
     }
 
-    DirtyThreat templateDt{SQUARE_ZERO, s, NO_PIECE, pc, Put};
+    DirtyThreat templateDt{SQUARE_ZERO, s, Piece::NO_PIECE, pc, Put};
     write_multiple_dirties<DirtyThreat::SQ_OFFSET, DirtyThreat::PC_OFFSET>(piece_map(), attackersBB,
                                                                            templateDt, dts);
 #else
