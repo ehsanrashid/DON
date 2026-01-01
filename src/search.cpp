@@ -220,14 +220,16 @@ void Worker::init() noexcept {
     size    = histories.pawn_size();
     perSize = size / numaThreadCount;
     begIdx  = numaId * perSize;
-    endIdx  = std::min(begIdx + perSize, size);
+    assert(begIdx <= size);
+    endIdx = numaId + 1 == numaThreadCount ? size : std::min(begIdx + perSize, size);
 
     histories.pawn().fill(begIdx, endIdx, -1238);
 
     size    = histories.correction_size();
     perSize = size / numaThreadCount;
     begIdx  = numaId * perSize;
-    endIdx  = std::min(begIdx + perSize, size);
+    assert(begIdx <= size);
+    endIdx = numaId + 1 == numaThreadCount ? size : std::min(begIdx + perSize, size);
 
     histories.pawn_correction().fill(begIdx, endIdx, 5);
     histories.minor_correction().fill(begIdx, endIdx, 0);
