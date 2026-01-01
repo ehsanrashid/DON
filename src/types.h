@@ -556,11 +556,12 @@ class Move {
 
     using MT = Move::Type;
 
-    static constexpr std::uint8_t  ORG_SQ_OFFSET = 0;
-    static constexpr std::uint8_t  DST_SQ_OFFSET = 6;
-    static constexpr std::uint8_t  PROMO_OFFSET  = 12;
-    static constexpr std::uint8_t  TYPE_OFFSET   = 14;
-    static constexpr std::uint16_t TYPE_MASK     = 0x3 << TYPE_OFFSET;
+    static constexpr std::uint8_t ORG_SQ_OFFSET = 0;
+    static constexpr std::uint8_t DST_SQ_OFFSET = 6;
+    static constexpr std::uint8_t PROMO_OFFSET  = 12;
+    static constexpr std::uint8_t TYPE_OFFSET   = 14;
+
+    static constexpr std::uint16_t TYPE_MASK = 0x3 << TYPE_OFFSET;
 
     // Factory method to create moves
     template<Type T = MT::NORMAL>

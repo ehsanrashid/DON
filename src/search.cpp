@@ -46,6 +46,8 @@ namespace DON {
 
 namespace {
 
+constexpr int DEFAULT_QUIET_HISTORY = 68;
+
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
     StdArray<std::int16_t, MAX_MOVES> reductions{};
@@ -200,7 +202,7 @@ Worker::Worker(std::size_t               threadIdx,
 void Worker::init() noexcept {
 
     captureHistory.fill(-689);
-    quietHistory.fill(68);
+    quietHistory.fill(DEFAULT_QUIET_HISTORY);
     ttMoveHistory = 0;
 
     for (bool inCheck : {false, true})
@@ -267,6 +269,10 @@ void Worker::start_search() noexcept {
         multiPV = rootMoves.size();
 
     accStack.reset();
+
+    for (auto& colorQuietHist : quietHistory)
+        for (auto& quietHist : colorQuietHist)
+            quietHist = (3 * quietHist + DEFAULT_QUIET_HISTORY) / 4;
 
     lowPlyQuietHistory.fill(97);
 
