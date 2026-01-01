@@ -514,11 +514,11 @@ constexpr std::uint64_t make_hash(std::uint64_t seed) noexcept {
 // Special cases are Move::None and Move::Null. Can sneak these in because
 // in any normal move destination square is always different from origin square
 // while Move::None and Move::Null have the same origin and destination square.
-enum MoveType : std::uint16_t {
-    NORMAL     = 0 << 14,
-    PROMOTION  = 1 << 14,
-    EN_PASSANT = 2 << 14,
-    CASTLING   = 3 << 14
+enum MoveType : std::uint8_t {
+    NORMAL,
+    PROMOTION,
+    EN_PASSANT,
+    CASTLING
 };
 
 class Move {
@@ -537,7 +537,7 @@ class Move {
     constexpr explicit Move(std::uint16_t d) noexcept :
         data(d) {}
     constexpr Move(Square orgSq, Square dstSq) noexcept :
-        Move(NORMAL | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET)) {}
+        Move((NORMAL << TYPE_OFFSET) | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET)) {}
 
     // Accessors: extract parts of the move
     constexpr Square    org_sq() const noexcept { return Square((data >> ORG_SQ_OFFSET) & 0x3F); }
@@ -545,7 +545,7 @@ class Move {
     constexpr PieceType promotion_type() const noexcept {
         return PieceType(KNIGHT + ((data >> PROMO_OFFSET) & 0x3));
     }
-    constexpr MoveType type_of() const noexcept { return MoveType(data & TYPE_MASK); }
+    constexpr MoveType type_of() const noexcept { return MoveType((data >> TYPE_OFFSET) & 0x3); }
 
     constexpr Value promotion_value() const noexcept {
         return type_of() == PROMOTION ? piece_value(promotion_type()) - VALUE_PAWN : VALUE_ZERO;
@@ -575,17 +575,17 @@ class Move {
 };
 
 template<MoveType MT>
-constexpr Move Move::make(Square orgSq, Square dstSq, PieceType) noexcept {
+inline constexpr Move Move::make(Square orgSq, Square dstSq, PieceType) noexcept {
     static_assert(MT != PROMOTION, "Use make<PROMOTION>(orgSq, dstSq, pt) for promotion moves.");
 
-    return Move(MT | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET));
+    return Move((MT << TYPE_OFFSET) | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET));
 }
 template<>
-constexpr Move Move::make<PROMOTION>(Square orgSq, Square dstSq, PieceType pt) noexcept {
+inline constexpr Move Move::make<PROMOTION>(Square orgSq, Square dstSq, PieceType pt) noexcept {
     assert(KNIGHT <= pt && pt <= QUEEN);
 
-    return Move(PROMOTION | ((pt - KNIGHT) << PROMO_OFFSET) | (dstSq << DST_SQ_OFFSET)
-                | (orgSq << ORG_SQ_OFFSET));
+    return Move((PROMOTION << TYPE_OFFSET) | ((pt - KNIGHT) << PROMO_OFFSET)
+                | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET));
 }
 
 // **Define the constexpr static members outside the class**
