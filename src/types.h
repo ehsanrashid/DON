@@ -690,8 +690,8 @@ struct DirtyThreat final {
         data(d) {}
     constexpr DirtyThreat(
       Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool add) noexcept :
-        data((add << 31) | (+threatenedPc << THREATENED_PC_OFFSET) | (+pc << PC_OFFSET)
-             | (threatenedSq << THREATENED_SQ_OFFSET) | (sq << SQ_OFFSET)) {}
+        DirtyThreat((add << 31) | (+threatenedPc << THREATENED_PC_OFFSET) | (+pc << PC_OFFSET)
+                    | (threatenedSq << THREATENED_SQ_OFFSET) | (sq << SQ_OFFSET)) {}
 
     constexpr Square sq() const noexcept {  //
         return Square((data >> SQ_OFFSET) & 0xFF);
