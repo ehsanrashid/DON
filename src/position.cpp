@@ -300,8 +300,8 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 
     assert(rank == RANK_1);
     assert(count(WHITE) <= 16 && count(BLACK) <= 16);
-    assert(count(Piece::W_PAWN) <= 8 && count(Piece::B_PAWN) <= 8);
-    assert(count(Piece::W_KING) == 1 && count(Piece::B_KING) == 1);
+    assert(count(WHITE, PAWN) <= 8 && count(BLACK, PAWN) <= 8);
+    assert(count(WHITE, KING) == 1 && count(BLACK, KING) == 1);
     assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
     assert((pieces_bb(PAWN) & PROMOTION_RANKS_BB) == 0);
     assert(is_ok(square<KING>(WHITE)) && is_ok(square<KING>(BLACK)));
@@ -2059,10 +2059,10 @@ bool Position::_is_ok() const noexcept {
 
     constexpr bool Fast = true;  // Quick (default) or full check?
 
-    if (!is_ok(active_color())                                     //
-        || count(Piece::W_KING) != 1 || count(Piece::B_KING) != 1  //
-        || piece(square<KING>(WHITE)) != Piece::W_KING             //
-        || piece(square<KING>(BLACK)) != Piece::B_KING             //
+    if (!is_ok(active_color())                                 //
+        || count(WHITE, KING) != 1 || count(BLACK, KING) != 1  //
+        || piece(square<KING>(WHITE)) != Piece::W_KING         //
+        || piece(square<KING>(BLACK)) != Piece::B_KING         //
         || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1
         || (is_ok(en_passant_sq()) && relative_rank(active_color(), en_passant_sq()) != RANK_6
             && !enpassant_possible(active_color(), en_passant_sq())))
