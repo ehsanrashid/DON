@@ -721,23 +721,28 @@ class NumaConfig final {
             return false;
 
         std::size_t maxNodeSize = 0;
-        for (auto&& cpus : nodes)
-            if (maxNodeSize < cpus.size())
-                maxNodeSize = cpus.size();
+        if (!nodes.empty())
+            maxNodeSize = std::max_element(nodes.begin(), nodes.end(),           //
+                                           [](const auto& n1, const auto& n2) {  //
+                                               return n1.size() < n2.size();
+                                           })
+                            ->size();
 
-        auto is_node_small = [maxNodeSize](const std::set<CpuIndex>& node) noexcept {
-            constexpr double SmallNodeThreshold = 0.6;
+        std::size_t notSmallNodeCount =
+          std::count_if(nodes.begin(), nodes.end(),  //
+                        [maxNodeSize](const auto& node) noexcept {
+                            constexpr double SmallNodeThreshold = 0.6;
+                            // node considered 'not small' if it exceeds threshold
+                            return double(node.size()) / maxNodeSize > SmallNodeThreshold;
+                        });
 
-            return double(node.size()) / maxNodeSize <= SmallNodeThreshold;
-        };
-
-        std::size_t notSmallNodeCount = 0;
-        for (auto&& cpus : nodes)
-            if (!is_node_small(cpus))
-                ++notSmallNodeCount;
-
+        // Only split:
+        // if there is more than one node and
+        // if the number of threads is at least enough to satisfy either threshold:
+        //   - more than half the max node size, OR
+        //   - at least four times the number of not-small nodes
         return nodes_size() > 1
-            && (threadCount > maxNodeSize / 2 || threadCount >= 4 * notSmallNodeCount);
+            && threadCount >= std::min(1 + maxNodeSize / 2, 4 * notSmallNodeCount);
     }
 
     std::vector<NumaIndex>
@@ -958,9 +963,9 @@ class NumaConfig final {
     void remove_empty_numa_nodes() noexcept {
         std::vector<std::set<CpuIndex>> newNodes;
 
-        for (auto&& cpus : nodes)
-            if (!cpus.empty())
-                newNodes.emplace_back(std::move(cpus));
+        for (auto&& node : nodes)
+            if (!node.empty())
+                newNodes.emplace_back(std::move(node));
 
         nodes = std::move(newNodes);
     }
