@@ -526,24 +526,22 @@ inline constexpr Depth DEPTH_NONE = -1;
 inline constexpr Depth DEPTH_OFFSET = DEPTH_NONE - 1;
 static_assert(DEPTH_OFFSET == MAX_PLY - 1 - 0xFF, "DEPTH_OFFSET == MAX_PLY - 1 - 0xFF");
 
-// Linear Congruential Generator (LCG): X{n+1} = (c + a * X{n})
-// Based on a congruential pseudo-random number generator.
-constexpr std::uint64_t make_hash(std::uint64_t seed) noexcept {
-    return 0x14057B7EF767814FULL + 0x5851F42D4C957F2DULL * seed;
-}
-
 // Move representation (16 bits)
 // Each move is compactly stored in a 16-bit unsigned integer.
 //
 // Bit layout (from LSB to MSB):
 //  6-bits  0- 5 : Destination square (0-63)
 //  6-bits  6-11 : Origin square (0-63)
-//  2-bits 12-13 : Promotion piece type offset (KNIGHT=0, BISHOP=1, ROOK=2, QUEEN=3)
+//  2-bits 12-13 : Promotion piece type offset:
+//                  KNIGHT = 0
+//                  BISHOP = 1
+//                  ROOK   = 2
+//                  QUEEN  = 3
 //  2-bits 14-15 : Move type flag:
-//                   NORMAL     = 0
-//                   PROMOTION  = 1
-//                   EN_PASSANT = 2
-//                   CASTLING   = 3
+//                  NORMAL     = 0
+//                  PROMOTION  = 1
+//                  EN_PASSANT = 2
+//                  CASTLING   = 3
 // Notes:
 // - En-passant flag is set only when a pawn can capture en-passant.
 // - Special moves Move::None and Move::Null are represented by having the same
@@ -552,14 +550,12 @@ constexpr std::uint64_t make_hash(std::uint64_t seed) noexcept {
 // - This compact encoding allows fast move generation, comparison, and storage.
 class Move {
    public:
-    enum class Type : std::uint8_t {
+    enum class MT : std::uint8_t {
         NORMAL,
         PROMOTION,
         EN_PASSANT,
         CASTLING
     };
-
-    using MT = Move::Type;
 
     static constexpr std::uint8_t ORG_SQ_OFFSET = 0;
     static constexpr std::uint8_t DST_SQ_OFFSET = 6;
@@ -569,7 +565,7 @@ class Move {
     static constexpr std::uint16_t TYPE_MASK = 0x3 << TYPE_OFFSET;
 
     // Factory method to create moves
-    template<Type T = MT::NORMAL>
+    template<MT T = MT::NORMAL>
     static constexpr Move make(Square orgSq, Square dstSq, PieceType promoPt = KNIGHT) noexcept;
 
     Move() noexcept = default;
@@ -752,6 +748,12 @@ struct DirtyBoard final {
     DirtyPiece   dp;
     DirtyThreats dts;
 };
+
+// Linear Congruential Generator (LCG): X{n+1} = (c + a * X{n})
+// Based on a congruential pseudo-random number generator.
+constexpr std::uint64_t make_hash(std::uint64_t seed) noexcept {
+    return 0x14057B7EF767814FULL + 0x5851F42D4C957F2DULL * seed;
+}
 
 template<typename T, typename... Ts>
 struct is_all_same final {

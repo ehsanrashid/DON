@@ -367,9 +367,10 @@ void update_accumulator_incremental(
 Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
                     const StdArray<Piece, SQUARE_NB>& newPieces) noexcept {
 #if defined(USE_AVX512) || defined(USE_AVX2)
-    Bitboard          samedBB = 0;
-    const std::size_t size    = std::min(oldPieces.size(), newPieces.size());
-    for (std::size_t s = 0; s < size; s += 32)
+    Bitboard samedBB = 0;
+
+    const std::size_t Size = std::min(oldPieces.size(), newPieces.size());
+    for (std::size_t s = 0; s < Size; s += 32)
     {
         __m256i oldV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
         __m256i newV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
@@ -378,6 +379,7 @@ Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
         std::uint32_t equalMask = _mm256_movemask_epi8(cmpEqual);
         samedBB |= Bitboard(equalMask) << s;
     }
+
     return ~samedBB;
 #elif defined(USE_NEON)
     uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const uint8_t*>(oldPieces.data()));
@@ -392,10 +394,12 @@ Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
 
     return ~vget_lane_u64(vreinterpret_u64_u8(samedBB), 0);
 #else
-    Bitboard          changedBB = 0;
-    const std::size_t size      = std::min(oldPieces.size(), newPieces.size());
-    for (std::size_t s = 0; s < size; ++s)
+    Bitboard changedBB = 0;
+
+    const std::size_t Size = std::min(oldPieces.size(), newPieces.size());
+    for (std::size_t s = 0; s < Size; ++s)
         changedBB |= Bitboard(oldPieces[s] != newPieces[s]) << s;
+
     return changedBB;
 #endif
 }

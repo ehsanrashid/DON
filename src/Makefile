@@ -111,7 +111,7 @@ VPATH := nnue:nnue/features:syzygy
 # ssse3 = yes/no      --- -mssse3            --- Use Intel Supplemental Streaming SIMD Extensions 3
 # sse41 = yes/no      --- -msse4.1           --- Use Intel Streaming SIMD Extensions 4.1
 # avx2 = yes/no       --- -mavx2             --- Use Intel Advanced Vector Extensions 2
-# bmi2 = yes/no       --- -DUSE_BMI2         --- Use pext x86_64 asm-instruction
+# bmi2 = yes/no       --- -DUSE_BMI2         --- Use pext & pdep x86_64 asm-instruction
 # avxvnni = yes/no    --- -mavxvnni          --- Use Intel Vector Neural Network Instructions AVX
 # avx512 = yes/no     --- -mavx512bw         --- Use Intel Advanced Vector Extensions 512
 # vnni512 = yes/no    --- -mavx512vnni       --- Use Intel Vector Neural Network Instructions 512
@@ -975,8 +975,8 @@ ifneq ($(SUPPORTED_ARCH), yes)
 endif
 
 
-.PHONY: help analyze build profile-build strip install clean net \
-	objclean profileclean config-sanity FORCE \
+.PHONY: help analyze build profile-build strip install clean \
+	objclean profileclean net config-sanity FORCE \
 	clang-profile-make clang-profile-use \
 	gcc-profile-make gcc-profile-use \
 	icx-profile-make icx-profile-use \

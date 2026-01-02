@@ -972,6 +972,7 @@ class SharedMemory final: public BaseSharedMemory {
             {
                 if (pthread_mutex_consistent(&shmHeader->mutex) == 0)
                     return true;
+
                 return false;
             }
     #endif

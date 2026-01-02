@@ -71,8 +71,10 @@ constexpr void permute(std::array<T, DataSize>&                  data,
         {
             auto* const valueChunk  = &values[order[j] * BlockSize];
             auto* const bufferChunk = &buffer[j * BlockSize];
+
             std::memcpy(bufferChunk, valueChunk, BlockSize);
         }
+
         std::memcpy(values, buffer.data(), ChunkSize);
     }
 }
