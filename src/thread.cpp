@@ -36,28 +36,26 @@ namespace DON {
 // Constructor launches the thread and waits until it goes to sleep
 // in idle_func(). Note that 'dead' and 'busy' should be already set.
 Thread::Thread(std::size_t                           threadIdx,
+               std::size_t                           threadCnt,
                std::size_t                           numaIdx,
-               std::size_t                           numaThreadCount,
+               std::size_t                           numaThreadCnt,
                const OptionalThreadToNumaNodeBinder& nodeBinder,
                ISearchManagerPtr                     searchManager,
                const SharedState&                    sharedState) noexcept :
     threadId(threadIdx),
+    threadCount(threadCnt),
     numaId(numaIdx),
+    numaThreadCount(numaThreadCnt),
     nativeThread(&Thread::idle_func, this) {
-    assert(numaThreadCount != 0 && numa_id() < numaThreadCount);
+    assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
 
     wait_finish();
 
-    run_custom_job([this, numaThreadCount, &sharedState, &searchManager, &nodeBinder]() {
-        // Use the binder to [maybe] bind the threads to a NUMA node before doing the Worker allocation
-        numaAccessToken = nodeBinder();
+    numaAccessToken = nodeBinder();
 
-        worker = make_unique_aligned_large_page<Worker>(thread_id(), numa_id(), numaThreadCount,
-                                                        numaAccessToken, std::move(searchManager),
-                                                        sharedState);
-    });
-
-    wait_finish();
+    worker = make_unique_aligned_large_page<Worker>(thread_id(), numa_id(), numa_thread_count(),
+                                                    numaAccessToken, std::move(searchManager),
+                                                    sharedState);
 }
 
 // Destructor wakes up the thread in idle_func() and waits
@@ -200,7 +198,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
         // want to trash cache in case the threads get scheduled on the same NUMA node.
         OptionalThreadToNumaNodeBinder nodeBinder(numaIdx, numaConfigPtr);
 
-        threads.emplace_back(std::make_unique<Thread>(threadId, numaIds[numaIdx]++,
+        threads.emplace_back(std::make_unique<Thread>(threadId, threadCount, numaIds[numaIdx]++,
                                                       numaThreadCounts[numaIdx], nodeBinder,
                                                       std::move(searchManager), sharedState));
     }

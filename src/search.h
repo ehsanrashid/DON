@@ -527,10 +527,22 @@ class Worker final {
     // It searches from the root position and outputs the "bestmove".
     void start_search() noexcept;
 
+    constexpr std::size_t thread_id() const noexcept { return threadId; }
+
+    constexpr std::size_t numa_id() const noexcept { return numaId; }
+
+    constexpr std::size_t numa_thread_count() const noexcept { return numaThreadCount; }
+
     std::uint64_t nodes_() const noexcept { return nodes.load(std::memory_order_relaxed); }
 
    private:
-    bool is_main_worker() const noexcept { return threadId == 0; }
+    struct IndexRange final {
+       public:
+        std::size_t begIdx;
+        std::size_t endIdx;
+    };
+
+    bool is_main_worker() const noexcept { return thread_id() == 0; }
 
     // Get a pointer to the search manager,
     // Only allowed to be called by the main worker.
@@ -582,6 +594,7 @@ class Worker final {
 
     void extend_tb_pv(std::size_t index, Value& value) noexcept;
 
+    constexpr IndexRange numa_range(std::size_t size) const noexcept;
 
     const std::size_t threadId, numaId, numaThreadCount;
 

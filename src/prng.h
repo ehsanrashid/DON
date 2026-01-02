@@ -18,14 +18,7 @@
 #ifndef PRNG_H_INCLUDED
 #define PRNG_H_INCLUDED
 
-#include <algorithm>
-#include <array>
-#include <cstddef>
 #include <cstdint>
-#include <limits>
-#include <type_traits>
-
-#include "misc.h"
 
 namespace DON {
 
@@ -37,16 +30,21 @@ class SplitMix64 final {
         s(seed != 0 ? seed : 1ULL) {}
 
     constexpr std::uint64_t next() noexcept {
-        std::uint64_t z = s += 0x9E3779B97F4A7C15ULL;
+        s += 0x9E3779B97F4A7C15ULL;
 
-        z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
-        z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
-        return z ^ (z >> 31);
+        std::uint64_t t = s;
+        t               = (t ^ (t >> 30)) * 0xBF58476D1CE4E5B9ULL;
+        t               = (t ^ (t >> 27)) * 0x94D049BB133111EBULL;
+        t               = (t ^ (t >> 31));
+
+        return t;
     }
 
    private:
     std::uint64_t s;
 };
+
+constexpr std::uint64_t bit(std::uint8_t b) noexcept { return (1ULL << b); }
 
 // XorShift64* Pseudo-Random Number Generator
 // It is based on original code written and dedicated
@@ -84,16 +82,13 @@ class XorShift64Star final {
 
     // XorShift64* jump implementation
     constexpr void jump() noexcept {
-
         constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
-
-        constexpr unsigned Bits = std::numeric_limits<std::uint64_t>::digits;
 
         std::uint64_t t = 0;
 
-        for (unsigned b = 0; b < Bits; ++b)
+        for (std::uint8_t b = 0; b < 64; ++b)
         {
-            if ((JumpMask & (1ULL << b)) != 0)
+            if ((JumpMask & bit(b)) != 0)
                 t ^= s;
 
             rand64();
