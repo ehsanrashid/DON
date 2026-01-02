@@ -44,6 +44,7 @@ Thread::Thread(std::size_t                           threadIdx,
     threadId(threadIdx),
     numaId(numaIdx),
     nativeThread(&Thread::idle_func, this) {
+    assert(numaThreadCount != 0);
 
     wait_finish();
 

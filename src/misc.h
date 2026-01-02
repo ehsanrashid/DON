@@ -453,6 +453,7 @@ class MultiArray {
         static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
 
         std::size_t endIdx = begIdx + count;
+        assert(begIdx <= endIdx && endIdx <= size());
 
         if (endIdx > size())
             endIdx = size();
@@ -531,8 +532,7 @@ class DynamicArray final {
 
     template<typename U>
     void fill(std::size_t begIdx, std::size_t endIdx, const U& v) noexcept {
-        assert(begIdx < size());
-        assert(endIdx <= size());
+        assert(begIdx <= endIdx && endIdx <= size());
 
         if (endIdx > size())
             endIdx = size();
