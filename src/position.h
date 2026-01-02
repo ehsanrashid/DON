@@ -250,8 +250,7 @@ class Position final {
 
     // clang-format off
     // Doing and undoing moves
-    DirtyBoard do_move(Move m, State& newSt, bool mayCheck, const Worker* const worker = nullptr) noexcept;
-    DirtyBoard do_move(Move m, State& newSt, const Worker* const worker = nullptr) noexcept;
+    DirtyBoard do_move(Move m, State& newSt, bool mayCheck = true, const Worker* const worker = nullptr) noexcept;
     void       undo_move(Move m) noexcept;
     void       do_null_move(State& newSt, const Worker* const worker = nullptr) noexcept;
     void       undo_null_move() noexcept;
@@ -1198,10 +1197,6 @@ inline void Position::update_pc_threats(Square                    s,
         dts->add<Put>(nonSliderSq, s, nonSliderPc, pc);
     }
 #endif
-}
-
-inline DirtyBoard Position::do_move(Move m, State& newSt, const Worker* const worker) noexcept {
-    return do_move(m, newSt, true, worker);
 }
 
 inline constexpr Square* Position::base(Color c) noexcept {  //

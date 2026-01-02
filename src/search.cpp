@@ -324,7 +324,7 @@ void Worker::start_search() noexcept {
         if (bookBestMove != Move::None)
         {
             State st;
-            rootPos.do_move(bookBestMove, st, this);
+            rootPos.do_move(bookBestMove, st, true, this);
 
             RootMoves oRootMoves;
 
@@ -907,7 +907,7 @@ Value Worker::search(Position&    pos,
             if (depth >= 8 && !is_decisive(ttd.value) && ttd.move != Move::None
                 && pos.legal(ttd.move))
             {
-                pos.do_move(ttd.move, st, this);
+                pos.do_move(ttd.move, st, true, this);
 
                 auto [_ttd, _ttu] = transpositionTable.probe(pos.key());
                 _ttd.value        = _ttd.hit  //
@@ -2086,7 +2086,7 @@ bool Worker::ponder_move_extracted() noexcept {
         return false;
 
     State st;
-    rootPos.do_move(bestMove, st, this);
+    rootPos.do_move(bestMove, st, true, this);
 
     // Legal moves for the opponent
     const MoveList<LEGAL> oLegalMoves(rootPos);
