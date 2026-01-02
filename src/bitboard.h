@@ -435,7 +435,7 @@ constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
     }
 }
 
-alignas(CACHE_LINE_SIZE) inline StdArray<Magic, SQUARE_NB, 2> Magics;  // BISHOP or ROOK
+alignas(CACHE_LINE_SIZE) inline StdArray<Magic, SQUARE_NB, 2> MAGICS;  // BISHOP or ROOK
 
 template<PieceType PT>
 constexpr Bitboard attacks_bb(const StdArray<Magic, 2>& magic, Bitboard occupancyBB) noexcept {
@@ -454,9 +454,9 @@ constexpr Bitboard attacks_bb(Square s, Bitboard occupancyBB) noexcept {
     if constexpr (PT == KNIGHT)
         return attacks_bb<KNIGHT>(s);
     if constexpr (PT == BISHOP)
-        return attacks_bb<BISHOP>(Magics[s], occupancyBB);
+        return attacks_bb<BISHOP>(MAGICS[s], occupancyBB);
     if constexpr (PT == ROOK)
-        return attacks_bb<ROOK>(Magics[s], occupancyBB);
+        return attacks_bb<ROOK>(MAGICS[s], occupancyBB);
     if constexpr (PT == QUEEN)
         return attacks_bb<BISHOP>(s, occupancyBB) | attacks_bb<ROOK>(s, occupancyBB);
     if constexpr (PT == KING)
@@ -526,7 +526,7 @@ constexpr bool aligned(Square s1, Square s2, Square s3) noexcept {
     return (line_bb(s1, s2) & s3) != 0;
 }
 
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> BetweenBBs;
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> BETWEEN_BBs;
 
 // Returns a bitboard representing the squares in the semi-open segment
 // between the squares s1 and s2 (excluding s1 but including s2).
@@ -538,19 +538,19 @@ alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> Between
 constexpr Bitboard between_bb(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return BetweenBBs[s1][s2];
+    return BETWEEN_BBs[s1][s2];
 }
 
 // Returns a bitboard between the squares s1 and s2 (excluding s1 and s2).
 constexpr Bitboard between_ex_bb(Square s1, Square s2) noexcept { return between_bb(s1, s2) ^ s2; }
 
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> PassRayBBs;
+alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> PASS_RAY_BBs;
 
 // Returns a bitboard representing a ray from the square s1 passing s2.
 constexpr Bitboard pass_ray_bb(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return PassRayBBs[s1][s2];
+    return PASS_RAY_BBs[s1][s2];
 }
 
 constexpr std::uint8_t constexpr_popcount(Bitboard b) noexcept {

@@ -1573,7 +1573,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     Bitboard acAttackersBB;
 
-    const auto* magic = &Magics[dstSq];
+    const auto* magic = &MAGICS[dstSq];
 
     StdArray<bool, COLOR_NB> discovery{true, true};
 
@@ -1627,7 +1627,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
                 qrBB = pieces_bb(QUEEN, ROOK) & attacks_bb<ROOK>(dstSq) & occupancyBB;
 
-                magic = &Magics[dstSq];
+                magic = &MAGICS[dstSq];
 
                 acAttackersBB = pieces_bb(ac) & attackersBB;
             }
@@ -1720,7 +1720,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
                 qrBB = pieces_bb(QUEEN, ROOK) & attacks_bb<ROOK>(dstSq) & occupancyBB;
 
-                magic = &Magics[dstSq];
+                magic = &MAGICS[dstSq];
             }
         }
         else if ((b = pieces_bb(KNIGHT) & acAttackersBB) != 0)

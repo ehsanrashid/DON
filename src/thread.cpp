@@ -106,7 +106,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
                   const MainSearchManager::UpdateContext& updateContext) noexcept {
     clear();
 
-    const std::size_t threadCount = sharedState.options["Threads"];
+    std::size_t threadCount = sharedState.options["Threads"];
     assert(threadCount != 0);
 
     // Create new thread(s)
@@ -117,7 +117,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
     // This is undesirable, and so the default behavior (i.e. when the user does not
     // change the NumaConfig UCI setting) is to not bind the threads to processors
     // unless we know for sure that we span NUMA nodes and replication is required.
-    const std::string numaPolicy = sharedState.options["NumaPolicy"];
+    std::string numaPolicy = sharedState.options["NumaPolicy"];
 
     const bool threadBindable = [&]() {
         if (numaPolicy == "none")

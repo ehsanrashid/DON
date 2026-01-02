@@ -67,6 +67,7 @@ constexpr void permute(std::array<T, DataSize>&                  data,
         auto* const values = &byts[i];
 
         StdArray<unsigned char, ChunkSize> buffer;
+
         for (std::size_t j = 0; j < order.size(); ++j)
         {
             auto* const valueChunk  = &values[order[j] * BlockSize];
@@ -257,36 +258,39 @@ class FeatureTransformer final {
                            StdArray<OutputType, BufferSize>&         output) const {
         using namespace SIMD;
 
-        const StdArray<Color, COLOR_NB> perspectives{pos.active_color(), ~pos.active_color()};
-
         accStack.evaluate(pos, *this, cache);
 
-        const auto& accState       = accStack.state<PSQFeatureSet>();
+        const auto& psqAccState    = accStack.state<PSQFeatureSet>();
         const auto& threatAccState = accStack.state<ThreatFeatureSet>();
 
-        const auto& psqtAccumulation = (accState.acc<HalfDimensions>()).psqtAccumulation;
-        const auto& threatPsqtAccumulation =
-          (threatAccState.acc<HalfDimensions>()).psqtAccumulation;
+        // clang-format off
+        const auto& psqtAccumulation       = (psqAccState.acc<HalfDimensions>()).psqtAccumulation;
+        const auto& threatPsqtAccumulation = (threatAccState.acc<HalfDimensions>()).psqtAccumulation;
 
-        auto psqt = psqtAccumulation[perspectives[0]][bucket]  //
-                  - psqtAccumulation[perspectives[1]][bucket];
+        StdArray<Color, COLOR_NB> perspectives{pos.active_color(), ~pos.active_color()};
+
+        auto psqt = psqtAccumulation[perspectives[WHITE]][bucket]
+                  - psqtAccumulation[perspectives[BLACK]][bucket];
+
         if (UseThreats)
-            psqt += threatPsqtAccumulation[perspectives[0]][bucket]
-                  - threatPsqtAccumulation[perspectives[1]][bucket];
+            psqt += threatPsqtAccumulation[perspectives[WHITE]][bucket]
+                  - threatPsqtAccumulation[perspectives[BLACK]][bucket];
 
         psqt /= 2;
+        // clang-format on
 
-        const auto& accumulation       = (accState.acc<HalfDimensions>()).accumulation;
+        const auto& accumulation       = (psqAccState.acc<HalfDimensions>()).accumulation;
         const auto& threatAccumulation = (threatAccState.acc<HalfDimensions>()).accumulation;
 
-        for (IndexType p = 0; p < 2; ++p)
+        for (Color p : {WHITE, BLACK})
         {
             IndexType offset = p * (HalfDimensions / 2);
 
 #if defined(VECTOR)
             constexpr IndexType OutputChunkSize = MaxChunkSize;
             static_assert((HalfDimensions / 2) % OutputChunkSize == 0);
-            constexpr IndexType NumOutputChunks = HalfDimensions / 2 / OutputChunkSize;
+
+            constexpr IndexType OutputChunkCount = HalfDimensions / (2 * OutputChunkSize);
 
             vec_t* out = reinterpret_cast<vec_t*>(&output[offset]);
             // clang-format off
@@ -314,9 +318,8 @@ class FeatureTransformer final {
             // one (using packus) saves one max operation per pair.
 
             // But here we run into a problem: mullo does not preserve the
-            // sign of the multiplication. We can get around this by doing
-            // mulhi, which keeps the sign. But that requires an additional
-            // tweak.
+            // sign of the multiplication. We can get around this by doing mulhi,
+            // which keeps the sign. But that requires an additional tweak.
 
             // mulhi cuts off the last 16 bits of the resulting product,
             // which is the same as performing a rightward shift of 16 bits.
@@ -363,7 +366,7 @@ class FeatureTransformer final {
                 const vec_t* tin0 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
                 const vec_t* tin1 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][HalfDimensions / 2]));
                 // clang-format on
-                for (IndexType j = 0; j < NumOutputChunks; ++j)
+                for (IndexType j = 0; j < OutputChunkCount; ++j)
                 {
                     vec_t acc00 = vec_add_16(in0[j * 2 + 0], tin0[j * 2 + 0]);
                     vec_t acc01 = vec_add_16(in0[j * 2 + 1], tin0[j * 2 + 1]);
@@ -383,7 +386,7 @@ class FeatureTransformer final {
             }
             else
             {
-                for (IndexType j = 0; j < NumOutputChunks; ++j)
+                for (IndexType j = 0; j < OutputChunkCount; ++j)
                 {
                     vec_t acc00 = in0[j * 2 + 0];
                     vec_t acc01 = in0[j * 2 + 1];

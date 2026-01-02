@@ -91,13 +91,13 @@ void init_magics() noexcept {
         // The index must be big enough to contain all the attacks for each possible subset of the mask and so
         // is 2 power the number of 1's of the mask.
         // Hence, deduce the size of the shift to apply to the 64 or 32 bits word to get the index.
-        auto& magic = Magics[s][PT - BISHOP];
+        auto& magic = MAGICS[s][PT - BISHOP];
 
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
         //assert(s == SQ_A1 || size <= RefSizes[PT - BISHOP]);
         magic.attacksBBs = s == SQ_A1 ? TableViews[PT - BISHOP].data()  //
-                                      : &Magics[s - 1][PT - BISHOP].attacksBBs[size];
+                                      : &MAGICS[s - 1][PT - BISHOP].attacksBBs[size];
         assert(magic.attacksBBs != nullptr);
 
         Bitboard pseudoAttacksBB = attacks_bb(s, PT);
@@ -224,12 +224,13 @@ void init() noexcept {
             {
                 if ((attacks_bb(s1, pt) & s2) != 0)
                 {
-                    BetweenBBs[s1][s2] = attacks_bb(s1, pt, s2BB) & attacks_bb(s2, pt, s1BB);
-                    PassRayBBs[s1][s2] = attacks_bb(s1, pt, 0) & (attacks_bb(s2, pt, s1BB) | s2BB);
+                    BETWEEN_BBs[s1][s2] = attacks_bb(s1, pt, s2BB) & attacks_bb(s2, pt, s1BB);
+                    PASS_RAY_BBs[s1][s2] =
+                      attacks_bb(s1, pt, 0) & (attacks_bb(s2, pt, s1BB) | s2BB);
                 }
             }
 
-            BetweenBBs[s1][s2] |= s2BB;
+            BETWEEN_BBs[s1][s2] |= s2BB;
         }
     }
 }
