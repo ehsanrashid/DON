@@ -601,7 +601,7 @@ class Worker final {
 
     void extend_tb_pv(std::size_t index, Value& value) noexcept;
 
-    constexpr IndexRange numa_range(std::size_t size) const noexcept;
+    constexpr IndexRange numa_index_range(std::size_t size) const noexcept;
 
     const std::size_t threadId, threadCount, numaId, numaThreadCount;
 

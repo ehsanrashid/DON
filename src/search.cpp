@@ -201,7 +201,7 @@ Worker::Worker(std::size_t               threadIdx,
     histories(sharedState.historiesMap.at(accessToken.numa_index())),
     accCaches(networks[accessToken]) {}
 
-constexpr Worker::IndexRange Worker::numa_range(std::size_t size) const noexcept {
+constexpr Worker::IndexRange Worker::numa_index_range(std::size_t size) const noexcept {
     assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
 
     std::size_t count  = size / numa_thread_count();
@@ -218,11 +218,11 @@ void Worker::init() noexcept {
 
     // Each thread initializes its NUMA-local range of history entries to prevent false sharing
 
-    auto pawnRange = numa_range(histories.pawn_size());
+    auto pawnRange = numa_index_range(histories.pawn_size());
 
     histories.pawn().fill(pawnRange.begIdx, pawnRange.endIdx, -1238);
 
-    auto correctionRange = numa_range(histories.correction_size());
+    auto correctionRange = numa_index_range(histories.correction_size());
 
     histories.pawn_correction().fill(correctionRange.begIdx, correctionRange.endIdx, 5);
     histories.minor_correction().fill(correctionRange.begIdx, correctionRange.endIdx, 0);

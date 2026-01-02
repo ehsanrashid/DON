@@ -117,7 +117,7 @@ struct PiecePairData final {
 };
 
 // The final index is calculated from summing data found in 2 LUTs,
-// as well as SQUARE_OFFSETS[attacker][orgSq]
+// as well as SQUARE_OFFSETS[attackerPc][orgSq]
 
 alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
     StdArray<PiecePairData, PIECE_NB, PIECE_NB> lutDatas{};
