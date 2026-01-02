@@ -180,13 +180,16 @@ bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcep
 
 }  // namespace
 
+// Initialize the worker with its thread and NUMA information
 Worker::Worker(std::size_t               threadIdx,
+               std::size_t               threadCnt,
                std::size_t               numaIdx,
                std::size_t               numaThreadCnt,
                NumaReplicatedAccessToken accessToken,
                ISearchManagerPtr         searchManager,
                const SharedState&        sharedState) noexcept :
     threadId(threadIdx),
+    threadCount(threadCnt),
     numaId(numaIdx),
     numaThreadCount(numaThreadCnt),
     numaAccessToken(accessToken),
@@ -210,7 +213,7 @@ constexpr Worker::IndexRange Worker::numa_range(std::size_t size) const noexcept
     return {begIdx, endIdx};
 }
 
-// Initialize the worker
+// Initialize per-thread data structures
 void Worker::init() noexcept {
 
     // Each thread initializes its NUMA-local range of history entries to prevent false sharing
@@ -241,15 +244,17 @@ void Worker::init() noexcept {
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(8);
 
-    accCaches.init(networks[numaAccessToken]);
+    accCaches.init(networks[numa_access_token()]);
 }
 
+// Ensure that the neural networks are replicated on this NUMA node
 void Worker::ensure_network_replicated() noexcept {
     // Access once to force lazy initialization.
     // Do this because want to avoid initialization during search.
-    (void) (networks[numaAccessToken]);
+    (void) (networks[numa_access_token()]);
 }
 
+// Called when the program receives the UCI 'go' command.
 void Worker::start_search() noexcept {
     auto* const mainManager = is_main_worker() ? main_manager() : nullptr;
 
@@ -708,7 +713,8 @@ void Worker::iterative_deepening() noexcept {
     }
 }
 
-// Main search function for different type of nodes.
+// The main alpha-beta search function with negamax framework and
+// various enhancements like aspiration windows, late move reductions, etc.
 template<NodeType NT>
 Value Worker::search(Position&    pos,
                      Stack* const ss,
@@ -1665,7 +1671,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
 // Quiescence search function, which is called by the main search function,
 // should be using static evaluation only, but tactical moves may confuse the static evaluation.
-// To fight this horizon effect, implemented this qsearch of tactical moves only.
+// Therefore, quiescence search extends the search at positions where tactical moves are possible,
+// until a "quiet" position is reached.
 template<bool PVNode>
 Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) noexcept {
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
@@ -1946,7 +1953,7 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
 void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }
 
 Value Worker::evaluate(const Position& pos) noexcept {
-    return Evaluate::evaluate(pos, networks[numaAccessToken], accStack, accCaches,
+    return Evaluate::evaluate(pos, networks[numa_access_token()], accStack, accCaches,
                               optimism[pos.active_color()]);
 }
 
@@ -1985,7 +1992,7 @@ void Worker::update_quiet_histories(const Position& pos, Key pawnKey, Stack* con
     update_continuation_history(ss, pos.moved_pc(m), m.dst_sq(), 0.8750 * bonus);
 }
 
-// Updates history at the end of search() when a bestMove is found
+// Updates history at the end of search() when a bestMove is found and other searched moves are known
 void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(ss->moveCount != 0);
 
@@ -2017,6 +2024,7 @@ void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss,
         update_continuation_history(ss - 1, pos[preSq], preSq, -0.5879 * malus);
 }
 
+// Updates correction histories at the end of search() when a bestMove is found
 void Worker::update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept {
     Color ac = pos.active_color();
 
@@ -2038,6 +2046,7 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
     }
 }
 
+// Computes the correction value for the current position from the correction histories
 int Worker::correction_value(const Position& pos, const Stack* const ss) noexcept {
     constexpr std::int64_t Limit = 0x7FFFFFFF;
 
@@ -2272,6 +2281,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
           "Syzygy based PV extension requires more time, increase MoveOverhead as needed.");
 }
 
+// Initializes the time manager and resets previous search info
 void MainSearchManager::init() noexcept {
 
     timeManager.init();
@@ -2327,6 +2337,7 @@ TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
     return timeManager.elapsed([&threads]() { return threads.sum(&Worker::nodes); });
 }
 
+// Displays the principal variation (PV) along with associated information
 void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
     const auto& rootPos            = worker.rootPos;
@@ -2397,6 +2408,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     }
 }
 
+// Converts a Value to a Score object, considering the position for centipawn conversion
 Score::Score(Value v, const Position& pos) noexcept {
     assert(is_ok(v));
 
@@ -2416,6 +2428,7 @@ Score::Score(Value v, const Position& pos) noexcept {
     }
 }
 
+// Skill module for playing at reduced strength
 void Skill::init(const Options& options) noexcept {
 
     if (options["UCI_LimitStrength"])

@@ -93,6 +93,8 @@ class Thread final {
 
     constexpr std::size_t numa_thread_count() const noexcept { return numaThreadCount; }
 
+    NumaReplicatedAccessToken numa_access_token() const noexcept { return numaAccessToken; }
+
     void ensure_network_replicated() const noexcept;
 
     void wait_finish() noexcept;

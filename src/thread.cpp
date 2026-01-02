@@ -53,8 +53,9 @@ Thread::Thread(std::size_t                   threadIdx,
 
     numaAccessToken = nodeBinder();
 
-    worker = make_unique_aligned_large_page<Worker>(thread_id(), numa_id(), numa_thread_count(),
-                                                    numaAccessToken, std::move(searchManager),
+    worker = make_unique_aligned_large_page<Worker>(thread_id(), thread_count(),     //
+                                                    numa_id(), numa_thread_count(),  //
+                                                    numa_access_token(), std::move(searchManager),
                                                     sharedState);
 }
 
