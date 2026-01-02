@@ -116,6 +116,9 @@ struct PiecePairData final {
     std::uint32_t data;
 };
 
+// The final index is calculated from summing data found in 2 LUTs,
+// as well as SQUARE_OFFSETS[attacker][orgSq]
+
 alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
     StdArray<PiecePairData, PIECE_NB, PIECE_NB> lutDatas{};
 
@@ -180,13 +183,9 @@ constexpr std::uint8_t lut_index(Piece pc, Square s1, Square s2) noexcept {
     return LUT_INDICES[type_of(pc)][s1][s2];
 }
 
-// The final index is calculated from summing data found in 2 LUTs,
-// as well as SQUARE_OFFSETS[attacker][orgSq]
-
+// Mirror square to have king always on e..h files
 // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
-constexpr Square orientation(Square s) noexcept {
-    return Square(((file_of(s) >> 2) ^ 0) * int(FILE_H));
-}
+constexpr Square orientation(Square s) noexcept { return Square(((file_of(s) >> 2) ^ 0) * FILE_H); }
 
 static_assert(orientation(SQ_A1) == SQ_A1);
 static_assert(orientation(SQ_D1) == SQ_A1);
@@ -244,16 +243,16 @@ void FullThreats::append_active_indices(Color           perspective,
 
             if (pt == PAWN)
             {
-                Bitboard lAttacks = (c == WHITE  //
-                                       ? shift_bb<NORTH_EAST>(pcBB)
-                                       : shift_bb<SOUTH_WEST>(pcBB))
-                                  & occupancyBB;
+                Bitboard lAttacksBB = c == WHITE  //
+                                      ? shift_bb<NORTH_EAST>(pcBB)
+                                      : shift_bb<SOUTH_WEST>(pcBB);
+                lAttacksBB &= occupancyBB;
 
                 auto rDir = c == WHITE ? NORTH_EAST : SOUTH_WEST;
 
-                while (lAttacks != 0)
+                while (lAttacksBB != 0)
                 {
-                    Square dstSq      = pop_lsq(lAttacks);
+                    Square dstSq      = pop_lsq(lAttacksBB);
                     Square orgSq      = dstSq - rDir;
                     Piece  attackedPc = pos[dstSq];
 
@@ -264,16 +263,16 @@ void FullThreats::append_active_indices(Color           perspective,
                         active.push_back(index);
                 }
 
-                Bitboard rAttacks = (c == WHITE  //
-                                       ? shift_bb<NORTH_WEST>(pcBB)
-                                       : shift_bb<SOUTH_EAST>(pcBB))
-                                  & occupancyBB;
+                Bitboard rAttacksBB = c == WHITE  //
+                                      ? shift_bb<NORTH_WEST>(pcBB)
+                                      : shift_bb<SOUTH_EAST>(pcBB);
+                rAttacksBB &= occupancyBB;
 
                 auto lDir = c == WHITE ? NORTH_WEST : SOUTH_EAST;
 
-                while (rAttacks != 0)
+                while (rAttacksBB != 0)
                 {
-                    Square dstSq      = pop_lsq(rAttacks);
+                    Square dstSq      = pop_lsq(rAttacksBB);
                     Square orgSq      = dstSq - lDir;
                     Piece  attackedPc = pos[dstSq];
 
@@ -289,7 +288,8 @@ void FullThreats::append_active_indices(Color           perspective,
                 while (pcBB != 0)
                 {
                     Square   orgSq     = pop_lsq(pcBB);
-                    Bitboard attacksBB = attacks_bb(orgSq, pt, occupancyBB) & occupancyBB;
+                    Bitboard attacksBB = attacks_bb(orgSq, pt, occupancyBB);
+                    attacksBB &= occupancyBB;
 
                     while (attacksBB != 0)
                     {
@@ -354,8 +354,9 @@ void FullThreats::append_changed_indices(Color            perspective,
             }
         }
 
-        auto&     changed = add ? added : removed;
-        IndexType index   = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
+        auto& changed = add ? added : removed;
+
+        IndexType index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
         if (index < Dimensions)
             changed.push_back(index);

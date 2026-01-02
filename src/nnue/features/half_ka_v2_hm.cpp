@@ -67,10 +67,9 @@ constexpr StdArray<IndexType, SQUARE_NB> KING_BUCKETS{
 };
 #undef B
 
+// Mirror square to have king always on e..h files
 // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
-constexpr Square orientation(Square s) noexcept {
-    return Square(((file_of(s) >> 2) ^ 1) * int(FILE_H));
-}
+constexpr Square orientation(Square s) noexcept { return Square(((file_of(s) >> 2) ^ 1) * FILE_H); }
 
 static_assert(orientation(SQ_A1) == SQ_H1);
 static_assert(orientation(SQ_D1) == SQ_H1);

@@ -317,6 +317,7 @@ class AffineTransformSparseInput {
         const auto* end = nnz + count;
 
     #if defined(USE_VNNI)
+
         for (IndexType k = AccCount; k < RegCount; ++k)
             acc[k] = vec_zero();
 
