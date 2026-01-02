@@ -720,29 +720,31 @@ class NumaConfig final {
         if (threadCount <= 1)
             return false;
 
-        std::size_t maxNodeSize = 0;
-        if (!nodes.empty())
-            maxNodeSize = std::max_element(nodes.begin(), nodes.end(),           //
-                                           [](const auto& n1, const auto& n2) {  //
-                                               return n1.size() < n2.size();
-                                           })
-                            ->size();
+        // Only split if there is more than one node
+        if (nodes_size() <= 1)
+            return false;
 
-        std::size_t notSmallNodeCount =
+        // Compute maximum node size
+        const std::size_t maxNodeSize =
+          std::max_element(nodes.begin(), nodes.end(),  //
+                           [](const auto& node1, const auto& node2) noexcept -> bool {
+                               return node1.size() < node2.size();
+                           })
+            ->size();
+
+        // Count nodes considered 'not-small' (size > 60% of maxNodeSize)
+        const std::size_t notSmallNodeCount =
           std::count_if(nodes.begin(), nodes.end(),  //
-                        [maxNodeSize](const auto& node) noexcept {
+                        [maxNodeSize](const auto& node) noexcept -> bool {
                             constexpr double SmallNodeThreshold = 0.6;
-                            // node considered 'not small' if it exceeds threshold
+                            // node considered 'not-small' if it exceeds threshold
                             return double(node.size()) / maxNodeSize > SmallNodeThreshold;
                         });
 
-        // Only split:
-        // if there is more than one node and
-        // if the number of threads is at least enough to satisfy either threshold:
+        // Only split if enough threads for either threshold
         //   - more than half the max node size, OR
         //   - at least four times the number of not-small nodes
-        return nodes_size() > 1
-            && threadCount >= std::min(1 + maxNodeSize / 2, 4 * notSmallNodeCount);
+        return threadCount >= std::min(1 + maxNodeSize / 2, 4 * notSmallNodeCount);
     }
 
     std::vector<NumaIndex>
