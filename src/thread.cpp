@@ -183,7 +183,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
         }
     }
 
-    const auto* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
+    const NumaConfig* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
 
     std::unordered_map<NumaIndex, std::size_t> numaIds;
 

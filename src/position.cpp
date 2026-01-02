@@ -184,6 +184,13 @@ void Position::init() noexcept {
     Cuckoos.init();
 }
 
+Position::Position() noexcept {
+
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PIECE_TYPES)
+            pieceLists[c][pt].set(OFFSETS[pt - 1], CAPACITIES[pt - 1]);
+}
+
 void Position::clear() noexcept {
     std::memset(squaresTable.data(), SQ_NONE, sizeof(squaresTable));
     // No need to clear indexMap as it is always overwritten when putting/removing pieces
@@ -195,10 +202,6 @@ void Position::clear() noexcept {
     std::memset(castlings.fullPathBB.data(), 0, sizeof(castlings.fullPathBB));
     std::memset(castlings.kingPathBB.data(), 0, sizeof(castlings.kingPathBB));
     std::memset(castlings.rookSq.data(), SQ_NONE, sizeof(castlings.rookSq));
-
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
-            pieceLists[c][pt].set(OFFSETS[pt - 1], CAPACITIES[pt - 1], 0);
 
     st          = nullptr;
     gamePly     = 0;
@@ -627,11 +630,12 @@ void Position::set_state() noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            const auto& pL = squares(c, pt);
-            const auto* pB = base(c);
-            for (const Square* orgSq = pL.begin(pB); orgSq != pL.end(pB); ++orgSq)
+            const auto& pL  = squares(c, pt);
+            const auto* pB  = base(c);
+            const auto  cnt = count(c, pt);
+            for (const Square* s = pL.begin(pB); s != pL.end(pB, cnt); ++s)
             {
-                Key key = Zobrist::piece_square(c, pt, *orgSq);
+                Key key = Zobrist::piece_square(c, pt, *s);
                 assert(key != 0);
 
                 st->key ^= key;
@@ -2110,11 +2114,12 @@ bool Position::_is_ok() const noexcept {
         const auto* pB = base(c);
         for (PieceType pt : PIECE_TYPES)
         {
-            Piece       pc = make_piece(c, pt);
-            const auto& pL = squares(c, pt);
-            for (std::uint8_t i = 0; i < pL.count(); ++i)
+            Piece       pc  = make_piece(c, pt);
+            const auto& pL  = squares(c, pt);
+            const auto  cnt = count(c, pt);
+            for (std::uint8_t i = 0; i < cnt; ++i)
             {
-                Square s = pL.at(i, pB);
+                Square s = pL.at(i, pB, cnt);
                 if (piece(s) != pc || indexMap[s] != i)
                     assert(0 && "_is_ok: Piece List");
             }
@@ -2329,10 +2334,11 @@ void Position::dump(std::ostream& os) const noexcept {
         for (PieceType pt : PIECE_TYPES)
         {
             os << to_char(make_piece(c, pt)) << ": ";
-            const auto& pL = squares(c, pt);
-            const auto* pB = base(c);
-            for (const Square* orgSq = pL.begin(pB); orgSq != pL.end(pB); ++orgSq)
-                os << to_square(*orgSq) << " ";
+            const auto& pL  = squares(c, pt);
+            const auto* pB  = base(c);
+            const auto  cnt = count(c, pt);
+            for (const Square* s = pL.begin(pB); s != pL.end(pB, cnt); ++s)
+                os << to_square(*s) << " ";
             os << "\n";
         }
 

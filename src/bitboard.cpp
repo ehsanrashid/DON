@@ -43,18 +43,18 @@ alignas(CACHE_LINE_SIZE) StdArray<
   ,
   TABLE_SIZES[0] + TABLE_SIZES[1]> AttacksTable;
 
-alignas(CACHE_LINE_SIZE) constexpr StdArray<TableView<
+alignas(CACHE_LINE_SIZE) StdArray<TableView<
 #if defined(USE_BMI2)
     #if defined(USE_COMPRESSED)
-                                              Bitboard16
+                                    Bitboard16
     #else
-                                              Bitboard
+                                    Bitboard
     #endif
 #else
-                                              Bitboard
+                                    Bitboard
 #endif
-                                              >,
-                                            2> TableViews{
+                                    >,
+                                  2> TableViews{
   TableView{AttacksTable.data() + 0x000000000000, TABLE_SIZES[0]},
   TableView{AttacksTable.data() + TABLE_SIZES[0], TABLE_SIZES[1]}};
 
