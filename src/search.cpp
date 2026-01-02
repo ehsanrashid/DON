@@ -2458,9 +2458,7 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
         // RootMoves are already sorted by value in descending order
         Value maxValue = rootMoves[0].curValue;
 
-        int   tmpDelta = maxValue - rootMoves[multiPV - 1].curValue;
-        Value delta    = std::min(tmpDelta, int(VALUE_PAWN));
-        Value weakness = std::max(2.0 * (3.0 * MAX_LEVEL - level), 1.0);
+        Value delta = std::min(maxValue - rootMoves[multiPV - 1].curValue, int(VALUE_PAWN));
 
         Value bestValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.
@@ -2469,8 +2467,8 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
         for (std::size_t i = 0; i < multiPV; ++i)
         {
             Value diff  = maxValue - rootMoves[i].curValue;
-            Value noise = prng.rand<std::uint32_t>() % weakness;
-            Value push  = (weakness * diff + delta * noise) / 128;
+            Value noise = prng.rand<std::uint32_t>() % weakness();
+            Value push  = (weakness() * diff + delta * noise) / 128;
 
             Value value = rootMoves[i].curValue + push;
 
