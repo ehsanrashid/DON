@@ -725,8 +725,10 @@ class NumaConfig final {
             if (maxNodeSize < cpus.size())
                 maxNodeSize = cpus.size();
 
-        auto is_node_small = [maxNodeSize](const std::set<CpuIndex>& node) {
-            return double(node.size()) / maxNodeSize <= 0.6;
+        auto is_node_small = [maxNodeSize](const std::set<CpuIndex>& node) noexcept {
+            constexpr double SmallNodeThreshold = 0.6;
+
+            return double(node.size()) / maxNodeSize <= SmallNodeThreshold;
         };
 
         std::size_t notSmallNodeCount = 0;
@@ -740,41 +742,43 @@ class NumaConfig final {
 
     std::vector<NumaIndex>
     distribute_threads_among_numa_nodes(std::size_t threadCount) const noexcept {
-        std::vector<NumaIndex> ns;
+        std::vector<NumaIndex> numaNodes;
 
         if (nodes_size() == 1)
         {
             // Special case for when there's no NUMA nodes
             // Doesn't buy much, but let's keep the default path simple
-            ns.resize(threadCount, NumaIndex{0});
+            numaNodes.resize(threadCount, NumaIndex{0});
         }
         else
         {
             std::vector<std::size_t> occupation(nodes_size(), 0);
+
             for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
             {
                 NumaIndex bestNumaIdx = 0;
 
-                auto minFill = std::numeric_limits<double>::max();
+                auto minNodeFill = std::numeric_limits<double>::max();
+
                 for (NumaIndex numaIdx = 0; numaIdx < nodes_size(); ++numaIdx)
                 {
-                    auto fill = double(1 + occupation[numaIdx]) / node_cpus_size(numaIdx);
+                    auto nodeFill = double(1 + occupation[numaIdx]) / node_cpus_size(numaIdx);
                     // NOTE: Do want to perhaps fill the first available node up to 50% first before considering other nodes?
                     //       Probably not, because it would interfere with running multiple instances.
                     //       Basically shouldn't favor any particular node.
-                    if (minFill > fill)
+                    if (minNodeFill > nodeFill)
                     {
-                        minFill     = fill;
+                        minNodeFill = nodeFill;
                         bestNumaIdx = numaIdx;
                     }
                 }
 
-                ns.emplace_back(bestNumaIdx);
+                numaNodes.emplace_back(bestNumaIdx);
                 ++occupation[bestNumaIdx];
             }
         }
 
-        return ns;
+        return numaNodes;
     }
 
     NumaReplicatedAccessToken bind_current_thread_to_numa_node(NumaIndex numaIdx) const noexcept {

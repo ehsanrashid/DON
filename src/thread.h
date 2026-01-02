@@ -340,8 +340,10 @@ inline void Threads::init() noexcept {
     main_manager()->init();
 }
 
+// Get pointer to the main thread
 inline Thread* Threads::main_thread() const noexcept { return front().get(); }
 
+// Get pointer to the main search manager
 inline MainSearchManager* Threads::main_manager() const noexcept {
     return main_thread()->worker->main_manager();
 }
@@ -356,6 +358,7 @@ inline void Threads::start_search() const noexcept {
 }
 
 // Wait for non-main threads
+// Will be invoked by main thread after it has finished searching
 inline void Threads::wait_finish() const noexcept {
 
     for (auto&& th : threads)
@@ -363,6 +366,7 @@ inline void Threads::wait_finish() const noexcept {
             th->wait_finish();
 }
 
+// Ensure that all threads have their network replicated
 inline void Threads::ensure_network_replicated() const noexcept {
 
     for (auto&& th : threads)

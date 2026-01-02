@@ -154,8 +154,8 @@ void Threads::set(const NumaConfig&                       numaConfig,
     auto& historiesMap = sharedState.historiesMap;
 
     historiesMap.clear();
-    historiesMap.max_load_factor(1.0f);
     historiesMap.reserve(numaThreadCounts.size());
+    historiesMap.max_load_factor(1.0f);
 
     // Populate shared histories map (optionally NUMA-bound)
     if (!threadBindable)
