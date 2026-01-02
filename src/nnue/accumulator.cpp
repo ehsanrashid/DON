@@ -17,6 +17,7 @@
 
 #include "accumulator.h"
 
+#include <algorithm>
 #include <type_traits>
 #include <utility>
 
@@ -367,7 +368,9 @@ Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
                     const StdArray<Piece, SQUARE_NB>& newPieces) noexcept {
 #if defined(USE_AVX512) || defined(USE_AVX2)
     Bitboard samedBB = 0;
-    for (std::size_t s = 0; s < SQUARE_NB; s += 32)
+
+    const std::size_t Size = std::min(oldPieces.size(), newPieces.size());
+    for (std::size_t s = 0; s < Size; s += 32)
     {
         __m256i oldV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
         __m256i newV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
@@ -376,11 +379,27 @@ Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
         std::uint32_t equalMask = _mm256_movemask_epi8(cmpEqual);
         samedBB |= Bitboard(equalMask) << s;
     }
+
     return ~samedBB;
+#elif defined(USE_NEON)
+    uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const uint8_t*>(oldPieces.data()));
+    uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const uint8_t*>(newPieces.data()));
+    auto         cmp  = [=](const int i) { return vceqq_u8(oldV.val[i], newV.val[i]); };
+
+    uint8x16_t cmp_01 = vsriq_n_u8(cmp(1), cmp(0), 1);
+    uint8x16_t cmp_23 = vsriq_n_u8(cmp(3), cmp(2), 1);
+    uint8x16_t merged = vsriq_n_u8(cmp_23, cmp_01, 2);
+    merged            = vsriq_n_u8(merged, merged, 4);
+    uint8x8_t samedBB = vshrn_n_u16(vreinterpretq_u16_u8(merged), 4);
+
+    return ~vget_lane_u64(vreinterpret_u64_u8(samedBB), 0);
 #else
     Bitboard changedBB = 0;
-    for (std::size_t s = 0; s < SQUARE_NB; ++s)
+
+    const std::size_t Size = std::min(oldPieces.size(), newPieces.size());
+    for (std::size_t s = 0; s < Size; ++s)
         changedBB |= Bitboard(oldPieces[s] != newPieces[s]) << s;
+
     return changedBB;
 #endif
 }
@@ -744,7 +763,7 @@ std::size_t AccumulatorStack::last_usable_accumulator_index(Color perspective) c
         if ((accumulators<FeatureSet>()[idx].template acc<Dimensions>()).computed[perspective])
             return idx;
 
-        if (FeatureSet::requires_refresh(perspective, accumulators<FeatureSet>()[idx].dirtyType))
+        if (FeatureSet::refresh_required(perspective, accumulators<FeatureSet>()[idx].dirtyType))
             return idx;
     }
 

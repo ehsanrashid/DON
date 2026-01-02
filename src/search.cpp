@@ -46,6 +46,8 @@ namespace DON {
 
 namespace {
 
+constexpr int QUIET_HISTORY_DEFAULT_VALUE = 68;
+
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
     StdArray<std::int16_t, MAX_MOVES> reductions{};
@@ -115,7 +117,9 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::int16_t rule50Coun
     return v;
 }
 
-constexpr Bound fail_bound(bool failHigh) noexcept { return failHigh ? BOUND_LOWER : BOUND_UPPER; }
+constexpr Bound fail_bound(bool failHigh) noexcept {
+    return failHigh ? Bound::LOWER : Bound::UPPER;
+}
 
 Move legal_tt_move(Move ttMove, const Position& pos) noexcept {
     return ttMove != Move::None && pos.legal(ttMove) ? ttMove : Move::None;
@@ -154,8 +158,8 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dstSq, int bo
         if (!ssi->move.is_ok())
             break;
 
-        (*ssi->pieceSqHistory)[pc][dstSq]
-          << int(ContHistoryWeights[i] * bonus) + ContHistoryOffsets[i];
+        (*ssi->pieceSqHistory)[+pc][dstSq] << int(ContHistoryWeights[i] * bonus)  //
+                                                + ContHistoryOffsets[i];
     }
 }
 
@@ -176,13 +180,16 @@ bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcep
 
 }  // namespace
 
+// Initialize the worker with its thread and NUMA information
 Worker::Worker(std::size_t               threadIdx,
+               std::size_t               threadCnt,
                std::size_t               numaIdx,
                std::size_t               numaThreadCnt,
                NumaReplicatedAccessToken accessToken,
                ISearchManagerPtr         searchManager,
                const SharedState&        sharedState) noexcept :
     threadId(threadIdx),
+    threadCount(threadCnt),
     numaId(numaIdx),
     numaThreadCount(numaThreadCnt),
     numaAccessToken(accessToken),
@@ -194,11 +201,37 @@ Worker::Worker(std::size_t               threadIdx,
     histories(sharedState.historiesMap.at(accessToken.numa_index())),
     accCaches(networks[accessToken]) {}
 
-// Initialize the worker
+constexpr Worker::IndexRange Worker::numa_index_range(std::size_t size) const noexcept {
+    assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
+
+    std::size_t count  = size / numa_thread_count();
+    std::size_t begIdx = numa_id() * count;
+    std::size_t endIdx = numa_id() != numa_thread_count() - 1 ? begIdx + count : size;
+
+    assert(begIdx <= endIdx && endIdx <= size);
+
+    return {begIdx, endIdx};
+}
+
+// Initialize per-thread data structures
 void Worker::init() noexcept {
 
+    // Each thread initializes its NUMA-local range of history entries to prevent false sharing
+
+    auto pawnRange = numa_index_range(histories.pawn_size());
+
+    histories.pawn().fill(pawnRange.begIdx, pawnRange.endIdx, -1238);
+
+    auto correctionRange = numa_index_range(histories.correction_size());
+
+    histories.pawn_correction().fill(correctionRange.begIdx, correctionRange.endIdx, 5);
+    histories.minor_correction().fill(correctionRange.begIdx, correctionRange.endIdx, 0);
+    histories.non_pawn_correction().fill(correctionRange.begIdx, correctionRange.endIdx, 0);
+
+    // Initialize search histories
+
     captureHistory.fill(-689);
-    quietHistory.fill(68);
+    quietHistory.fill(QUIET_HISTORY_DEFAULT_VALUE);
     ttMoveHistory = 0;
 
     for (bool inCheck : {false, true})
@@ -207,41 +240,21 @@ void Worker::init() noexcept {
                 for (auto& pieceSqHist : toPieceSqHist)
                     pieceSqHist.fill(-529);
 
-    // Each thread is responsible for clearing their part of correction history
-    std::size_t size;
-    std::size_t perSize;
-    std::size_t begIdx;
-    std::size_t endIdx;
-
-    size    = histories.pawn_size();
-    perSize = size / numaThreadCount;
-    begIdx  = numaId * perSize;
-    endIdx  = std::min(begIdx + perSize, size);
-
-    histories.pawn().fill(begIdx, endIdx, -1238);
-
-    size    = histories.correction_size();
-    perSize = size / numaThreadCount;
-    begIdx  = numaId * perSize;
-    endIdx  = std::min(begIdx + perSize, size);
-
-    histories.pawn_correction().fill(begIdx, endIdx, 5);
-    histories.minor_correction().fill(begIdx, endIdx, 0);
-    histories.non_pawn_correction().fill(begIdx, endIdx, 0);
-
     for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(8);
 
-    accCaches.init(networks[numaAccessToken]);
+    accCaches.init(networks[numa_access_token()]);
 }
 
+// Ensure that the neural networks are replicated on this NUMA node
 void Worker::ensure_network_replicated() noexcept {
     // Access once to force lazy initialization.
     // Do this because want to avoid initialization during search.
-    (void) (networks[numaAccessToken]);
+    (void) (networks[numa_access_token()]);
 }
 
+// Called when the program receives the UCI 'go' command.
 void Worker::start_search() noexcept {
     auto* const mainManager = is_main_worker() ? main_manager() : nullptr;
 
@@ -265,6 +278,10 @@ void Worker::start_search() noexcept {
         multiPV = rootMoves.size();
 
     accStack.reset();
+
+    for (auto& colorQuietHist : quietHistory)
+        for (auto& quietHist : colorQuietHist)
+            quietHist = (3 * quietHist + QUIET_HISTORY_DEFAULT_VALUE) / 4;
 
     lowPlyQuietHistory.fill(97);
 
@@ -424,9 +441,11 @@ void Worker::iterative_deepening() noexcept {
             continue;
 
         // Use as a sentinel
+        // clang-format off
         (ss + i)->evalValue                = VALUE_NONE;
-        (ss + i)->pieceSqHistory           = &continuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
-        (ss + i)->pieceSqCorrectionHistory = &continuationCorrectionHistory[NO_PIECE][SQUARE_ZERO];
+        (ss + i)->pieceSqHistory           = &continuationHistory[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
+        (ss + i)->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQUARE_ZERO];
+        // clang-format on
     }
 
     assert(stacks[0].ply == -StackOffset && stacks[stacks.size() - 1].ply == MAX_PLY + 1);
@@ -694,7 +713,8 @@ void Worker::iterative_deepening() noexcept {
     }
 }
 
-// Main search function for different type of nodes.
+// The main alpha-beta search function with negamax framework and
+// various enhancements like aspiration windows, late move reductions, etc.
 template<NodeType NT>
 Value Worker::search(Position&    pos,
                      Stack* const ss,
@@ -798,7 +818,7 @@ Value Worker::search(Position&    pos,
 
     bool preCapture = is_ok(pos.captured_pc());
     bool preNonPawn =
-      is_ok(preSq) && type_of(pos[preSq]) != PAWN && (ss - 1)->move.type_of() != PROMOTION;
+      is_ok(preSq) && type_of(pos[preSq]) != PAWN && (ss - 1)->move.type() != MT::PROMOTION;
 
     int correctionValue = correction_value(pos, ss);
 
@@ -828,7 +848,7 @@ Value Worker::search(Position&    pos,
         ss->evalValue = ttEvalValue = adjust_eval_value(evalValue, correctionValue);
 
         // Can ttValue be used as a better position evaluation
-        if (is_valid(ttd.value) && (ttd.bound & fail_bound(ttd.value > ttEvalValue)) != 0)
+        if (is_valid(ttd.value) && is_ok(ttd.bound & fail_bound(ttd.value > ttEvalValue)))
             ttEvalValue = ttd.value;
     }
     else
@@ -837,7 +857,7 @@ Value Worker::search(Position&    pos,
 
         ss->evalValue = ttEvalValue = adjust_eval_value(evalValue, correctionValue);
 
-        ttu.update(Move::None, VALUE_NONE, evalValue, DEPTH_NONE, BOUND_NONE, ss->ttPv);
+        ttu.update(Move::None, VALUE_NONE, evalValue, DEPTH_NONE, Bound::NONE, ss->ttPv);
     }
 
     // Set up the improve and worsen flags.
@@ -864,7 +884,7 @@ Value Worker::search(Position&    pos,
     if (!PVNode && !exclude && is_valid(ttd.value)        //
         && ttd.depth > depth - (ttd.value <= beta)        //
         && (CutNode == (ttd.value >= beta) || depth > 5)  //
-        && (ttd.bound & fail_bound(ttd.value >= beta)) != 0)
+        && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
     {
         // If ttMove fails high, update move sorting heuristics on TT hit
         if (ttd.move != Move::None && ttd.value >= beta)
@@ -945,12 +965,12 @@ Value Worker::search(Position&    pos,
                           : wdlScore > +drawValue ? +VALUE_TB - ss->ply
                                                   : VALUE_DRAW + 2 * wdlScore * drawValue;
 
-                    Bound bound = wdlScore < -drawValue ? BOUND_UPPER
-                                : wdlScore > +drawValue ? BOUND_LOWER
-                                                        : BOUND_EXACT;
+                    Bound bound = wdlScore < -drawValue ? Bound::UPPER
+                                : wdlScore > +drawValue ? Bound::LOWER
+                                                        : Bound::EXACT;
 
-                    if (bound == BOUND_EXACT
-                        || (bound == BOUND_LOWER ? value >= beta : value <= alpha))
+                    if (bound == Bound::EXACT
+                        || (bound == Bound::LOWER ? value >= beta : value <= alpha))
                     {
                         ttu.update(Move::None, value_to_tt(value, ss->ply), evalValue,
                                    std::min(depth + 6, MAX_PLY - 1), bound, ss->ttPv);
@@ -960,7 +980,7 @@ Value Worker::search(Position&    pos,
 
                     if constexpr (PVNode)
                     {
-                        if (bound == BOUND_LOWER)
+                        if (bound == Bound::LOWER)
                         {
                             bestValue = value;
 
@@ -1122,7 +1142,7 @@ Value Worker::search(Position&    pos,
                 // Save ProbCut data into transposition table
                 if (!exclude)
                     ttu.update(move, value_to_tt(value, ss->ply), evalValue,
-                               probCutDepth + 1, BOUND_LOWER, ss->ttPv);
+                               probCutDepth + 1, Bound::LOWER, ss->ttPv);
 
                 if (!is_decisive(value))
                     return value - (probCutBeta - beta);
@@ -1138,7 +1158,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value))
     {
         Value probCutBeta = std::min(418 + beta, +VALUE_INFINITE);
-        if (ttd.value >= probCutBeta && ttd.depth >= depth - 4 && (ttd.bound & BOUND_LOWER))
+        if (ttd.value >= probCutBeta && ttd.depth >= depth - 4 && is_ok(ttd.bound & Bound::LOWER))
             return probCutBeta;
     }
 
@@ -1215,7 +1235,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             if (capture)
             {
-                int history = captureHistory[movedPc][dstSq][captured];
+                int history = captureHistory[+movedPc][dstSq][captured];
 
                 // Futility pruning: for captures
                 if (lmrDepth < 7 && !check)
@@ -1237,9 +1257,9 @@ S_MOVES_LOOP:  // When in check, search starts here
             }
             else
             {
-                int history = histories.pawn(pawnKey)[movedPc][dstSq]
-                            + (*contHistory[0])[movedPc][dstSq]  //
-                            + (*contHistory[1])[movedPc][dstSq];
+                int history = histories.pawn(pawnKey)[+movedPc][dstSq]
+                            + (*contHistory[0])[+movedPc][dstSq]  //
+                            + (*contHistory[1])[+movedPc][dstSq];
 
                 // History based pruning
                 if (history < -4083 * depth && !check)
@@ -1289,7 +1309,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // (*Scaler) Generally, frequent extensions scales well.
         // This includes high singularBeta values (i.e closer to ttValue) and low extension margins.
         if (!RootNode && !exclude && depth > 5 + ss->ttPv && move == ttd.move && is_valid(ttd.value)
-            && !is_decisive(ttd.value) && ttd.depth >= depth - 3 && (ttd.bound & BOUND_LOWER)
+            && !is_decisive(ttd.value) && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER)
             && !is_shuffling(pos, ss, move))
         {
             Value singularBeta = std::max(
@@ -1359,10 +1379,10 @@ S_MOVES_LOOP:  // When in check, search starts here
         assert(captured == type_of(pos.captured_pc()));
 
         ss->history = capture ? int(6.7813 * piece_value(captured))  //
-                                  + captureHistory[movedPc][dstSq][captured]
-                              : 2 * quietHistory[ac][move.raw()]       //
-                                  + (*contHistory[0])[movedPc][dstSq]  //
-                                  + (*contHistory[1])[movedPc][dstSq];
+                                  + captureHistory[+movedPc][dstSq][captured]
+                              : 2 * quietHistory[ac][move.raw()]        //
+                                  + (*contHistory[0])[+movedPc][dstSq]  //
+                                  + (*contHistory[1])[+movedPc][dstSq];
 
         // Base reduction offset to compensate for other tweaks
         r += 714;
@@ -1629,9 +1649,9 @@ S_MOVES_LOOP:  // When in check, search starts here
     if ((!RootNode || curPV == 0) && !exclude)
         ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalValue,
                    moveCount != 0 ? depth : std::min(depth + 6, MAX_PLY - 1),
-                   bestValue >= beta                  ? BOUND_LOWER
-                   : PVNode && bestMove != Move::None ? BOUND_EXACT
-                                                      : BOUND_UPPER,
+                   bestValue >= beta                  ? Bound::LOWER
+                   : PVNode && bestMove != Move::None ? Bound::EXACT
+                                                      : Bound::UPPER,
                    ss->ttPv);
 
     // Adjust correction history if the best move is none or not a capture
@@ -1651,7 +1671,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
 // Quiescence search function, which is called by the main search function,
 // should be using static evaluation only, but tactical moves may confuse the static evaluation.
-// To fight this horizon effect, implemented this qsearch of tactical moves only.
+// Therefore, quiescence search extends the search at positions where tactical moves are possible,
+// until a "quiet" position is reached.
 template<bool PVNode>
 Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) noexcept {
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
@@ -1699,7 +1720,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && ttd.depth >= DEPTH_ZERO && is_valid(ttd.value)
-        && (ttd.bound & fail_bound(ttd.value >= beta)) != 0)
+        && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
         return ttd.value;
 
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
@@ -1728,7 +1749,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
         // Can ttValue be used as a better position evaluation
         if (is_valid(ttd.value) && !is_decisive(ttd.value)
-            && (ttd.bound & fail_bound(ttd.value > bestValue)) != 0)
+            && is_ok(ttd.bound & fail_bound(ttd.value > bestValue)))
             bestValue = ttd.value;
     }
     else
@@ -1746,7 +1767,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
         if (!ttd.hit)
             ttu.update(Move::None, value_to_tt(bestValue, ss->ply), evalValue, DEPTH_NONE,
-                       BOUND_LOWER, false);
+                       Bound::LOWER, false);
 
         return bestValue;
     }
@@ -1792,7 +1813,7 @@ QS_MOVES_LOOP:
             bool capture = pos.capture_promo(move);
 
             // Futility pruning and moveCount pruning
-            if (!check && dstSq != preSq && move.type_of() != PROMOTION && !is_loss(futBaseValue))
+            if (!check && dstSq != preSq && move.type() != MT::PROMOTION && !is_loss(futBaseValue))
             {
                 if (moveCount > 2)
                     continue;
@@ -1899,10 +1920,12 @@ void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const 
     nodes.fetch_add(1, std::memory_order_relaxed);
     if (ss != nullptr)
     {
-        auto dstSq         = m.dst_sq();
-        ss->move           = m;
-        ss->pieceSqHistory = &continuationHistory[ss->inCheck][capture][db.dp.movedPc][dstSq];
-        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[db.dp.movedPc][dstSq];
+        // clang-format off
+        auto dstSq                   = m.dst_sq();
+        ss->move                     = m;
+        ss->pieceSqHistory           = &continuationHistory[ss->inCheck][capture][+db.dp.movedPc][dstSq];
+        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+db.dp.movedPc][dstSq];
+        // clang-format on
     }
     accStack.push(std::move(db));
 }
@@ -1919,27 +1942,29 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
     pos.do_null_move(st, this);
     if (ss != nullptr)
     {
+        // clang-format off
         ss->move                     = Move::Null;
-        ss->pieceSqHistory           = &continuationHistory[0][0][NO_PIECE][SQUARE_ZERO];
-        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[NO_PIECE][SQUARE_ZERO];
+        ss->pieceSqHistory           = &continuationHistory[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
+        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQUARE_ZERO];
+        // clang-format on
     }
 }
 
 void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }
 
 Value Worker::evaluate(const Position& pos) noexcept {
-    return Evaluate::evaluate(pos, networks[numaAccessToken], accStack, accCaches,
+    return Evaluate::evaluate(pos, networks[numa_access_token()], accStack, accCaches,
                               optimism[pos.active_color()]);
 }
 
 // clang-format off
 
 void Worker::update_pawn_history(Key pawnKey, Piece movedPc, Square dstSq, int bonus) noexcept {
-    histories.pawn(pawnKey)[movedPc][dstSq] << bonus;
+    histories.pawn(pawnKey)[+movedPc][dstSq] << bonus;
 }
 
 void Worker::update_capture_history(Piece movedPc, Square dstSq, PieceType capturedPt, int bonus) noexcept {
-    captureHistory[movedPc][dstSq][capturedPt] << bonus;
+    captureHistory[+movedPc][dstSq][capturedPt] << bonus;
 }
 void Worker::update_capture_history(const Position& pos, Move m, int bonus) noexcept {
     update_capture_history(pos.moved_pc(m), m.dst_sq(), pos.captured_pt(m), bonus);
@@ -1967,7 +1992,7 @@ void Worker::update_quiet_histories(const Position& pos, Key pawnKey, Stack* con
     update_continuation_history(ss, pos.moved_pc(m), m.dst_sq(), 0.8750 * bonus);
 }
 
-// Updates history at the end of search() when a bestMove is found
+// Updates history at the end of search() when a bestMove is found and other searched moves are known
 void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(ss->moveCount != 0);
 
@@ -1999,6 +2024,7 @@ void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss,
         update_continuation_history(ss - 1, pos[preSq], preSq, -0.5879 * malus);
 }
 
+// Updates correction histories at the end of search() when a bestMove is found
 void Worker::update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept {
     Color ac = pos.active_color();
 
@@ -2015,11 +2041,12 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 
     if (is_ok(preSq))
     {
-        (*(ss - 2)->pieceSqCorrectionHistory)[pos[preSq]][preSq]                   << 0.9922 * bonus;
-        (*(ss - 4)->pieceSqCorrectionHistory)[pos[preSq]][preSq]                   << 0.4609 * bonus;
+        (*(ss - 2)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]                   << 0.9922 * bonus;
+        (*(ss - 4)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]                   << 0.4609 * bonus;
     }
 }
 
+// Computes the correction value for the current position from the correction histories
 int Worker::correction_value(const Position& pos, const Stack* const ss) noexcept {
     constexpr std::int64_t Limit = 0x7FFFFFFF;
 
@@ -2035,8 +2062,8 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
            +11530LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                      + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac])
            + 7841LL * (is_ok(preSq)
-                      ? (*(ss - 2)->pieceSqCorrectionHistory)[pos[preSq]][preSq]
-                      + (*(ss - 4)->pieceSqCorrectionHistory)[pos[preSq]][preSq]
+                      ? (*(ss - 2)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]
+                      + (*(ss - 4)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]
                       : 8),
             -Limit, +Limit);
 }
@@ -2254,6 +2281,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
           "Syzygy based PV extension requires more time, increase MoveOverhead as needed.");
 }
 
+// Initializes the time manager and resets previous search info
 void MainSearchManager::init() noexcept {
 
     timeManager.init();
@@ -2309,6 +2337,7 @@ TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
     return timeManager.elapsed([&threads]() { return threads.sum(&Worker::nodes); });
 }
 
+// Displays the principal variation (PV) along with associated information
 void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
     const auto& rootPos            = worker.rootPos;
@@ -2379,6 +2408,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     }
 }
 
+// Converts a Value to a Score object, considering the position for centipawn conversion
 Score::Score(Value v, const Position& pos) noexcept {
     assert(is_ok(v));
 
@@ -2398,6 +2428,7 @@ Score::Score(Value v, const Position& pos) noexcept {
     }
 }
 
+// Skill module for playing at reduced strength
 void Skill::init(const Options& options) noexcept {
 
     if (options["UCI_LimitStrength"])
@@ -2426,8 +2457,8 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
     {
         // RootMoves are already sorted by value in descending order
         Value maxValue = rootMoves[0].curValue;
-        auto  delta    = std::min(maxValue - rootMoves[multiPV - 1].curValue, int(VALUE_PAWN));
-        auto  weakness = 2.0 * (3.0 * MAX_LEVEL - level);
+
+        Value delta = std::min(maxValue - rootMoves[multiPV - 1].curValue, int(VALUE_PAWN));
 
         Value bestValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.
@@ -2435,9 +2466,10 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
         // Then choose the move with the resulting highest value.
         for (std::size_t i = 0; i < multiPV; ++i)
         {
-            int push = int(weakness * (maxValue - rootMoves[i].curValue)
-                           + delta * (prng.rand<std::uint32_t>() % int(weakness)))
-                     / 128;
+            Value diff  = maxValue - rootMoves[i].curValue;
+            Value noise = prng.rand<std::uint32_t>() % weakness();
+            Value push  = (weakness() * diff + delta * noise) / 128;
+
             Value value = rootMoves[i].curValue + push;
 
             if (bestValue <= value)

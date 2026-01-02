@@ -943,7 +943,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         int rc = pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED);
 
-    #if defined(PTHREAD_MUTEX_ROBUST)
+    #if _POSIX_C_SOURCE >= 200809L
         if (rc == 0)
             rc = pthread_mutexattr_setrobust(&mutexattr, PTHREAD_MUTEX_ROBUST);
     #endif
@@ -967,11 +967,12 @@ class SharedMemory final: public BaseSharedMemory {
             if (rc == 0)
                 return true;
 
-    #if defined(PTHREAD_MUTEX_ROBUST)
+    #if _POSIX_C_SOURCE >= 200809L
             if (rc == EOWNERDEAD)
             {
                 if (pthread_mutex_consistent(&shmHeader->mutex) == 0)
                     return true;
+
                 return false;
             }
     #endif

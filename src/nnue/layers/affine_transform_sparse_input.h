@@ -19,9 +19,7 @@
 #define NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
 
 #include <algorithm>
-#include <cassert>
 #include <cstdint>
-#include <cstring>
 #include <iostream>
 
 #include "../../bitboard.h"
@@ -41,32 +39,35 @@ namespace {
 
 struct Lookup final {
 
-    static constexpr std::size_t  Size      = 256;
-    static constexpr std::uint8_t IndexSize = 8;
+    static constexpr std::size_t  SIZE       = 256;
+    static constexpr std::uint8_t INDEX_SIZE = 8;
 
-    StdArray<std::uint16_t, Size, IndexSize> indices{};
-    StdArray<std::uint8_t, Size>             popcounts{};
+    StdArray<std::uint16_t, SIZE, INDEX_SIZE> indices{};
+    StdArray<std::uint8_t, SIZE>              popcounts{};
 
     constexpr Lookup() noexcept {
-        for (std::size_t i = 0; i < Size; ++i)
+
+        for (std::size_t i = 0; i < SIZE; ++i)
         {
             std::uint8_t c = 0;
-            Bitboard     b = i;
+
+            Bitboard b = i;
             while (b != 0)
             {
                 indices[i][c++] = constexpr_lsb(b);
+
                 b &= b - 1;
             }
 
             popcounts[i] = c;
 
-            while (c < IndexSize)
+            while (c < INDEX_SIZE)
                 indices[i][c++] = 0;
         }
     }
 };
 
-alignas(CACHE_LINE_SIZE) constexpr Lookup LookupInstance{};
+alignas(CACHE_LINE_SIZE) constexpr Lookup LOOKUP{};
 
 
     #if defined(__GNUC__) || defined(__clang__)
@@ -108,7 +109,7 @@ void find_nnz(const std::int32_t* RESTRICT input,
         __m512i nnz = _mm512_maskz_compress_epi16(nnzMask, base);
         _mm512_storeu_si512(outNnz + count, nnz);
 
-        count += LookupInstance.popcounts[nnzMask];
+        count += LOOKUP.popcounts[nnzMask];
         base = _mm512_add_epi16(base, increment);
     }
     outCount = count;
@@ -130,7 +131,7 @@ void find_nnz(const std::int32_t* RESTRICT input,
         __mmask16 nnzMask = _mm512_test_epi32_mask(inputV, inputV);
         __m512i   nnzVal  = _mm512_maskz_compress_epi32(nnzMask, base);
         _mm512_mask_cvtepi32_storeu_epi16(outNnz + count, 0xFFFF, nnzVal);
-        count += LookupInstance.popcounts[nnzMask];
+        count += LOOKUP.popcounts[nnzMask];
         base = _mm512_add_epi32(base, increment);
     }
     outCount = count;
@@ -163,10 +164,9 @@ void find_nnz(const std::int32_t* RESTRICT input,
             nnz |= unsigned(vec_nnz(inputChunk)) << (j * InputSimdWidth);
         }
 
-        vec128_t offsets =
-          vec128_load(reinterpret_cast<const vec128_t*>(&LookupInstance.indices[nnz]));
+        vec128_t offsets = vec128_load(reinterpret_cast<const vec128_t*>(&LOOKUP.indices[nnz]));
         vec128_storeu(reinterpret_cast<vec128_t*>(outNnz + count), vec128_add(base, offsets));
-        count += LookupInstance.popcounts[nnz];
+        count += LOOKUP.popcounts[nnz];
         base = vec128_add(base, increment);
     }
     outCount = count;
@@ -236,7 +236,9 @@ class AffineTransformSparseInput {
 
     // Read network parameters
     bool read_parameters(std::istream& is) noexcept {
+
         read_little_endian<BiasType>(is, biases);
+
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
             weights[weight_index(i)] = read_little_endian<WeightType>(is);
 
@@ -245,7 +247,9 @@ class AffineTransformSparseInput {
 
     // Write network parameters
     bool write_parameters(std::ostream& os) const noexcept {
+
         write_little_endian<BiasType>(os, biases);
+
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
             write_little_endian<WeightType>(os, weights[weight_index(i)]);
 
@@ -317,6 +321,7 @@ class AffineTransformSparseInput {
         const auto* end = nnz + count;
 
     #if defined(USE_VNNI)
+
         for (IndexType k = AccCount; k < RegCount; ++k)
             acc[k] = vec_zero();
 

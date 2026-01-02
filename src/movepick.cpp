@@ -94,7 +94,7 @@ MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveL
         auto   capturedPt = pos.captured_pt(m);
 
         m.value = 7 * piece_value(capturedPt)  //
-                + (*captureHistory)[movedPc][dstSq][capturedPt];
+                + (*captureHistory)[+movedPc][dstSq][capturedPt];
     }
 
     return itr;
@@ -105,7 +105,6 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
 
     Color ac = pos.active_color();
 
-    Square   kingSq     = pos.square<KING>(~ac);
     Bitboard blockersBB = pos.blockers_bb(~ac);
     Bitboard pinnersBB  = pos.pinners_bb();
     Bitboard threatsBB  = pos.threats_bb();
@@ -125,16 +124,16 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
         Piece  movedPc = pos.moved_pc(m);
         auto   movedPt = type_of(movedPc);
 
-        m.value = 2 * (*quietHistory)[ac][m.raw()]              //
-                + 2 * histories->pawn(pawnKey)[movedPc][dstSq]  //
-                + (*continuationHistory[0])[movedPc][dstSq]     //
-                + (*continuationHistory[1])[movedPc][dstSq]     //
-                + (*continuationHistory[2])[movedPc][dstSq]     //
-                + (*continuationHistory[3])[movedPc][dstSq]     //
-                + (*continuationHistory[4])[movedPc][dstSq]     //
-                + (*continuationHistory[5])[movedPc][dstSq]     //
-                + (*continuationHistory[6])[movedPc][dstSq]     //
-                + (*continuationHistory[7])[movedPc][dstSq];
+        m.value = 2 * (*quietHistory)[ac][m.raw()]               //
+                + 2 * histories->pawn(pawnKey)[+movedPc][dstSq]  //
+                + (*continuationHistory[0])[+movedPc][dstSq]     //
+                + (*continuationHistory[1])[+movedPc][dstSq]     //
+                + (*continuationHistory[2])[+movedPc][dstSq]     //
+                + (*continuationHistory[3])[+movedPc][dstSq]     //
+                + (*continuationHistory[4])[+movedPc][dstSq]     //
+                + (*continuationHistory[5])[+movedPc][dstSq]     //
+                + (*continuationHistory[6])[+movedPc][dstSq]     //
+                + (*continuationHistory[7])[+movedPc][dstSq];
 
         if (ssPly < LOW_PLY_QUIET_SIZE)
             m.value += 8 * (*lowPlyQuietHistory)[ssPly][m.raw()] / (1 + ssPly);
@@ -155,7 +154,9 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
         m.value += weight * piece_value(movedPt);
 
         // Penalty for moving pinner piece
-        m.value -= ((pinnersBB & orgSq) != 0 && !aligned(kingSq, orgSq, dstSq)) * 0x400;
+        m.value -= ((pinnersBB & orgSq) != 0  //
+                    && !aligned(pos.square<KING>(~ac), orgSq, dstSq))
+                 * 0x400;
     }
 
     return itr;
@@ -172,7 +173,7 @@ MovePicker::iterator MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveL
         m       = move;
 
         assert(pos.capture_promo(m));
-        assert(m.type_of() != CASTLING);
+        assert(m.type() != MT::CASTLING);
 
         auto capturedPt = pos.captured_pt(m);
 
@@ -195,13 +196,13 @@ MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList)
         m       = move;
 
         assert(!pos.capture_promo(m));
-        assert(m.type_of() != CASTLING);
+        assert(m.type() != MT::CASTLING);
 
         Square dstSq   = m.dst_sq();
         Piece  movedPc = pos.moved_pc(m);
 
         m.value = (*quietHistory)[ac][m.raw()]  //
-                + (*continuationHistory[0])[movedPc][dstSq];
+                + (*continuationHistory[0])[+movedPc][dstSq];
     }
 
     return itr;

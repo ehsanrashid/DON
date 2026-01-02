@@ -33,9 +33,9 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr StdArray<int, PIECE_CNT> MAX_TARGETS{6, 12, 10, 10, 12, 8};
+constexpr StdArray<int, PIECE_TYPE_CNT> MAX_TARGETS{6, 12, 10, 10, 12, 8};
 
-constexpr StdArray<int, PIECE_CNT, PIECE_CNT> MAP{{
+constexpr StdArray<int, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
   {0, +1, -1, +2, -1, -1},  //
   {0, +1, +2, +3, +4, +5},  //
   {0, +1, +2, +3, -1, +4},  //
@@ -68,7 +68,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
 
             for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
-                threatTable.squareOffsets[pc][s] = threatCount;
+                threatTable.squareOffsets[+pc][s] = threatCount;
 
                 Bitboard threatsBB = pt != PAWN               ? attacks_bb(s, pt)
                                    : SQ_A2 <= s && s <= SQ_H7 ? attacks_bb(s, c)
@@ -77,7 +77,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
                 threatCount += constexpr_popcount(threatsBB);
             }
 
-            threatTable.pieceThreats[pc] = {threatCount, baseOffset};
+            threatTable.pieceThreats[+pc] = {threatCount, baseOffset};
 
             baseOffset += MAX_TARGETS[pt - 1] * threatCount;
         }
@@ -91,21 +91,33 @@ constexpr auto& SQUARE_OFFSETS = THREAT_TABLE.squareOffsets;
 // Information on a particular pair of pieces and whether they should be excluded
 struct PiecePairData final {
    public:
+    static constexpr std::uint8_t EXCLUDED_PAIR_INFO_OFFSET = 0;
+    static constexpr std::uint8_t FEATURE_BASE_INDEX_OFFSET = 8;
+
     constexpr PiecePairData() noexcept :
         data(0) {}
+    constexpr PiecePairData(std::uint32_t d) noexcept :
+        data(d) {}
     constexpr PiecePairData(bool semiExcluded, bool excluded, IndexType featureBaseIndex) noexcept :
-        data((featureBaseIndex << 8) | (excluded << 1) | (semiExcluded && !excluded)) {}
+        PiecePairData((featureBaseIndex << FEATURE_BASE_INDEX_OFFSET)
+                      | (excluded << (1 + EXCLUDED_PAIR_INFO_OFFSET))
+                      | ((semiExcluded && !excluded) << EXCLUDED_PAIR_INFO_OFFSET)) {}
 
     // lsb: excluded if orgSq < dstSq; 2nd lsb: always excluded
     constexpr std::uint8_t excluded_pair_info() const noexcept {
-        return std::uint8_t((data >> 0) & 0xFF);
+        return std::uint8_t((data >> EXCLUDED_PAIR_INFO_OFFSET) & 0xFF);
     }
-    constexpr IndexType feature_base_index() const noexcept { return IndexType(data >> 8); }
+    constexpr IndexType feature_base_index() const noexcept {
+        return IndexType(data >> FEATURE_BASE_INDEX_OFFSET);
+    }
 
    private:
     // Layout: bits 8..31 are the index contribution of this piece pair, bits 0 and 1 are exclusion info
     std::uint32_t data;
 };
+
+// The final index is calculated from summing data found in 2 LUTs,
+// as well as SQUARE_OFFSETS[attackerPc][orgSq]
 
 alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
     StdArray<PiecePairData, PIECE_NB, PIECE_NB> lutDatas{};
@@ -120,7 +132,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                 {
                     Piece attackedPc = make_piece(attackedC, attackedPt);
 
-                    bool enemy = (attackerPc ^ attackedPc) == 8;
+                    bool enemy = int(attackerPc ^ attackedPc) == 8;
 
                     int map = MAP[attackerPt - 1][attackedPt - 1];
 
@@ -129,11 +141,11 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                     bool excluded = map < 0;
 
                     IndexType featureBaseIndex =
-                      PIECE_THREATS[attackerPc].baseOffset
+                      PIECE_THREATS[+attackerPc].baseOffset
                       + (attackedC * (MAX_TARGETS[attackerPt - 1] / 2) + map)
-                          * PIECE_THREATS[attackerPc].threatCount;
+                          * PIECE_THREATS[+attackerPc].threatCount;
 
-                    lutDatas[attackerPc][attackedPc] =
+                    lutDatas[+attackerPc][+attackedPc] =
                       PiecePairData(semiExcluded, excluded, featureBaseIndex);
                 }
         }
@@ -142,7 +154,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
 }();
 
 alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
-    StdArray<std::uint8_t, 1 + PIECE_CNT, SQUARE_NB, SQUARE_NB> lutIndices{};
+    StdArray<std::uint8_t, 1 + PIECE_TYPE_CNT, SQUARE_NB, SQUARE_NB> lutIndices{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
@@ -171,13 +183,9 @@ constexpr std::uint8_t lut_index(Piece pc, Square s1, Square s2) noexcept {
     return LUT_INDICES[type_of(pc)][s1][s2];
 }
 
-// The final index is calculated from summing data found in 2 LUTs,
-// as well as SQUARE_OFFSETS[attacker][orgSq]
-
+// Mirror square to have king always on e..h files
 // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
-constexpr Square orientation(Square s) noexcept {
-    return Square(((file_of(s) >> 2) ^ 0) * int(FILE_H));
-}
+constexpr Square orientation(Square s) noexcept { return Square(((file_of(s) >> 2) ^ 0) * FILE_H); }
 
 static_assert(orientation(SQ_A1) == SQ_A1);
 static_assert(orientation(SQ_D1) == SQ_A1);
@@ -191,17 +199,17 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
                                    Square kingSq,
                                    Square orgSq,
                                    Square dstSq,
-                                   Piece  attacker,
-                                   Piece  attacked) noexcept {
+                                   Piece  attackerPc,
+                                   Piece  attackedPc) noexcept {
     int relOrientation = relative_sq(perspective, orientation(kingSq));
 
     orgSq = Square(int(orgSq) ^ relOrientation);
     dstSq = Square(int(dstSq) ^ relOrientation);
 
-    attacker = relative_piece(perspective, attacker);
-    attacked = relative_piece(perspective, attacked);
+    attackerPc = relative_piece(perspective, attackerPc);
+    attackedPc = relative_piece(perspective, attackedPc);
 
-    const auto& piecePairData = LUT_DATAS[attacker][attacked];
+    const auto& piecePairData = LUT_DATAS[+attackerPc][+attackedPc];
 
     // Some threats imply the existence of the corresponding ones in the opposite direction.
     // Filter them here to ensure only one such threat is active.
@@ -212,8 +220,8 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     if (((piecePairData.excluded_pair_info() + int(orgSq < dstSq)) & 0x2) != 0)
         return FullThreats::Dimensions;
 
-    return piecePairData.feature_base_index() + SQUARE_OFFSETS[attacker][orgSq]
-         + lut_index(attacker, orgSq, dstSq);
+    return piecePairData.feature_base_index() + SQUARE_OFFSETS[+attackerPc][orgSq]
+         + lut_index(attackerPc, orgSq, dstSq);
 }
 
 }  // namespace
@@ -235,16 +243,16 @@ void FullThreats::append_active_indices(Color           perspective,
 
             if (pt == PAWN)
             {
-                Bitboard lAttacks = (c == WHITE  //
-                                       ? shift_bb<NORTH_EAST>(pcBB)
-                                       : shift_bb<SOUTH_WEST>(pcBB))
-                                  & occupancyBB;
+                Bitboard lAttacksBB = c == WHITE  //
+                                      ? shift_bb<NORTH_EAST>(pcBB)
+                                      : shift_bb<SOUTH_WEST>(pcBB);
+                lAttacksBB &= occupancyBB;
 
                 auto rDir = c == WHITE ? NORTH_EAST : SOUTH_WEST;
 
-                while (lAttacks != 0)
+                while (lAttacksBB != 0)
                 {
-                    Square dstSq      = pop_lsq(lAttacks);
+                    Square dstSq      = pop_lsq(lAttacksBB);
                     Square orgSq      = dstSq - rDir;
                     Piece  attackedPc = pos[dstSq];
 
@@ -255,16 +263,16 @@ void FullThreats::append_active_indices(Color           perspective,
                         active.push_back(index);
                 }
 
-                Bitboard rAttacks = (c == WHITE  //
-                                       ? shift_bb<NORTH_WEST>(pcBB)
-                                       : shift_bb<SOUTH_EAST>(pcBB))
-                                  & occupancyBB;
+                Bitboard rAttacksBB = c == WHITE  //
+                                      ? shift_bb<NORTH_WEST>(pcBB)
+                                      : shift_bb<SOUTH_EAST>(pcBB);
+                rAttacksBB &= occupancyBB;
 
                 auto lDir = c == WHITE ? NORTH_WEST : SOUTH_EAST;
 
-                while (rAttacks != 0)
+                while (rAttacksBB != 0)
                 {
-                    Square dstSq      = pop_lsq(rAttacks);
+                    Square dstSq      = pop_lsq(rAttacksBB);
                     Square orgSq      = dstSq - lDir;
                     Piece  attackedPc = pos[dstSq];
 
@@ -280,7 +288,8 @@ void FullThreats::append_active_indices(Color           perspective,
                 while (pcBB != 0)
                 {
                     Square   orgSq     = pop_lsq(pcBB);
-                    Bitboard attacksBB = attacks_bb(orgSq, pt, occupancyBB) & occupancyBB;
+                    Bitboard attacksBB = attacks_bb(orgSq, pt, occupancyBB);
+                    attacksBB &= occupancyBB;
 
                     while (attacksBB != 0)
                     {
@@ -301,18 +310,18 @@ void FullThreats::append_active_indices(Color           perspective,
 // Get a list of indices for recently changed features
 void FullThreats::append_changed_indices(Color            perspective,
                                          Square           kingSq,
-                                         const DirtyType& dt,
+                                         const DirtyType& dts,
                                          IndexList&       removed,
                                          IndexList&       added,
                                          FusedData*       fusedData,
                                          bool             first) noexcept {
-    for (const auto& dirty : dt.list)
+    for (const auto& dt : dts.dtList)
     {
-        auto orgSq      = dirty.sq();
-        auto dstSq      = dirty.threatened_sq();
-        auto attackerPc = dirty.pc();
-        auto attackedPc = dirty.threatened_pc();
-        auto add        = dirty.add();
+        auto orgSq      = dt.sq();
+        auto dstSq      = dt.threatened_sq();
+        auto attackerPc = dt.pc();
+        auto attackedPc = dt.threatened_pc();
+        auto add        = dt.add();
 
         if (fusedData != nullptr)
         {
@@ -326,7 +335,7 @@ void FullThreats::append_changed_indices(Color            perspective,
                         continue;
                     }
                 }
-                else if (fusedData->dp2removedOriginBB & dstSq)
+                else if ((fusedData->dp2removedOriginBB & dstSq) != 0)
                     continue;
             }
 
@@ -340,19 +349,23 @@ void FullThreats::append_changed_indices(Color            perspective,
                         continue;
                     }
                 }
-                else if (fusedData->dp2removedTargetBB & orgSq)
+                else if ((fusedData->dp2removedTargetBB & orgSq) != 0)
                     continue;
             }
         }
 
+        auto& changed = add ? added : removed;
+
         IndexType index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
+
         if (index < Dimensions)
-            (add ? added : removed).push_back(index);
+            changed.push_back(index);
     }
 }
 
-bool FullThreats::requires_refresh(Color perspective, const DirtyType& dt) noexcept {
-    return dt.ac == perspective && orientation(dt.kingSq) != orientation(dt.preKingSq);
+// Determine if a full refresh is required based on the dirty threats
+bool FullThreats::refresh_required(Color perspective, const DirtyType& dts) noexcept {
+    return dts.ac == perspective && orientation(dts.kingSq) != orientation(dts.preKingSq);
 }
 
 }  // namespace DON::NNUE::Features

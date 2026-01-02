@@ -53,23 +53,19 @@ class HalfKAv2_hm final {
     using DirtyType = DirtyPiece;
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
-    // Get a list of indices for active features
     static void append_active_indices(Color                             perspective,
                                       Square                            kingSq,
                                       const StdArray<Piece, SQUARE_NB>& pieceMap,
                                       Bitboard                          occupancyBB,
                                       IndexList&                        active) noexcept;
 
-    // Get a list of indices for recently changed features
     static void append_changed_indices(Color            perspective,
                                        Square           kingSq,
-                                       const DirtyType& dt,
+                                       const DirtyType& dp,
                                        IndexList&       removed,
                                        IndexList&       added) noexcept;
 
-    // Returns whether the change stored in this DirtyType means
-    // that a full accumulator refresh is required.
-    static bool requires_refresh(Color perspective, const DirtyType& dt) noexcept;
+    static bool refresh_required(Color perspective, const DirtyType& dp) noexcept;
 };
 
 }  // namespace NNUE::Features

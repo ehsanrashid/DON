@@ -35,28 +35,28 @@ namespace DON {
 
 // Constructor launches the thread and waits until it goes to sleep
 // in idle_func(). Note that 'dead' and 'busy' should be already set.
-Thread::Thread(std::size_t                           threadIdx,
-               std::size_t                           numaIdx,
-               std::size_t                           numaThreadCount,
-               const OptionalThreadToNumaNodeBinder& nodeBinder,
-               ISearchManagerPtr                     searchManager,
-               const SharedState&                    sharedState) noexcept :
+Thread::Thread(std::size_t                   threadIdx,
+               std::size_t                   threadCnt,
+               std::size_t                   numaIdx,
+               std::size_t                   numaThreadCnt,
+               const ThreadToNumaNodeBinder& nodeBinder,
+               ISearchManagerPtr             searchManager,
+               const SharedState&            sharedState) noexcept :
     threadId(threadIdx),
+    threadCount(threadCnt),
     numaId(numaIdx),
+    numaThreadCount(numaThreadCnt),
     nativeThread(&Thread::idle_func, this) {
+    assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
 
     wait_finish();
 
-    run_custom_job([this, numaThreadCount, &sharedState, &searchManager, &nodeBinder]() {
-        // Use the binder to [maybe] bind the threads to a NUMA node before doing
-        // the Worker allocation.
-        // Ideally would also allocate the SearchManager here, but that's minor.
-        worker = make_unique_aligned_large_page<Worker>(thread_id(), numa_id(), numaThreadCount,
-                                                        nodeBinder(), std::move(searchManager),
-                                                        sharedState);
-    });
+    numaAccessToken = nodeBinder();
 
-    wait_finish();
+    worker = make_unique_aligned_large_page<Worker>(thread_id(), thread_count(),     //
+                                                    numa_id(), numa_thread_count(),  //
+                                                    numa_access_token(), std::move(searchManager),
+                                                    sharedState);
 }
 
 // Destructor wakes up the thread in idle_func() and waits
@@ -107,7 +107,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
                   const MainSearchManager::UpdateContext& updateContext) noexcept {
     clear();
 
-    const std::size_t threadCount = sharedState.options["Threads"];
+    std::size_t threadCount = sharedState.options["Threads"];
     assert(threadCount != 0);
 
     // Create new thread(s)
@@ -118,7 +118,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
     // This is undesirable, and so the default behavior (i.e. when the user does not
     // change the NumaConfig UCI setting) is to not bind the threads to processors
     // unless we know for sure that we span NUMA nodes and replication is required.
-    const std::string numaPolicy = sharedState.options["NumaPolicy"];
+    std::string numaPolicy = sharedState.options["NumaPolicy"];
 
     const bool threadBindable = [&]() {
         if (numaPolicy == "none")
@@ -154,8 +154,8 @@ void Threads::set(const NumaConfig&                       numaConfig,
     auto& historiesMap = sharedState.historiesMap;
 
     historiesMap.clear();
-    historiesMap.max_load_factor(1.0f);
     historiesMap.reserve(numaThreadCounts.size());
+    historiesMap.max_load_factor(1.0f);
 
     // Populate shared histories map (optionally NUMA-bound)
     if (!threadBindable)
@@ -197,9 +197,9 @@ void Threads::set(const NumaConfig&                       numaConfig,
         // When not binding threads want to force all access to happen from the same
         // NUMA node, because in case of NUMA replicated memory accesses don't
         // want to trash cache in case the threads get scheduled on the same NUMA node.
-        OptionalThreadToNumaNodeBinder nodeBinder(numaIdx, numaConfigPtr);
+        ThreadToNumaNodeBinder nodeBinder(numaIdx, numaConfigPtr);
 
-        threads.emplace_back(std::make_unique<Thread>(threadId, numaIds[numaIdx]++,
+        threads.emplace_back(std::make_unique<Thread>(threadId, threadCount, numaIds[numaIdx]++,
                                                       numaThreadCounts[numaIdx], nodeBinder,
                                                       std::move(searchManager), sharedState));
     }

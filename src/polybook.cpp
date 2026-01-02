@@ -41,27 +41,28 @@ namespace {
 
 union Zobrist final {
    public:
-    // Size = 2 * 6 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
-    static constexpr std::size_t Size =
-      COLOR_NB * PIECE_CNT * SQUARE_NB + COLOR_NB * CASTLING_SIDE_NB + FILE_NB + 1;
+    // SIZE = 2 * 6 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
+    static constexpr std::size_t SIZE = (COLOR_NB * PIECE_TYPE_CNT * SQUARE_NB)  //
+                                      + (COLOR_NB * CASTLING_SIDE_NB)            //
+                                      + (FILE_NB) + 1;
 
-    constexpr Zobrist(const StdArray<Key, Size>& keys) noexcept :
+    constexpr Zobrist(const StdArray<Key, SIZE>& keys) noexcept :
         Keys{keys} {}
 
     Key key(const Position& pos) const noexcept {
         Key key = 0;
 
         std::size_t n;
-        auto        orgSqs = pos.squares(n);
+        auto        sqs = pos.squares(n);
 
-        auto       beg = orgSqs.begin();
+        auto       beg = sqs.begin();
         const auto end = beg + n;
         for (; beg != end; ++beg)
         {
-            Square orgSq = *beg;
-            Piece  pc    = pos[orgSq];
+            Square s  = *beg;
+            Piece  pc = pos[s];
 
-            key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][orgSq];
+            key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][s];
         }
 
         Bitboard castlingRightsBB = pos.castling_rights();
@@ -84,13 +85,13 @@ union Zobrist final {
     Zobrist& operator=(const Zobrist&) noexcept = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
-    StdArray<Key, Size> Keys;
+    StdArray<Key, SIZE> Keys;
 
     struct {
-        StdArray<Key, COLOR_NB, PIECE_CNT, SQUARE_NB> PieceSquare;  // [color][piece-type][square]
-        StdArray<Key, COLOR_NB * CASTLING_SIDE_NB>    Castling;     // [castle-right]
-        StdArray<Key, FILE_NB>                        Enpassant;    // [file]
-        Key                                           Turn;
+        StdArray<Key, COLOR_NB, PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
+        StdArray<Key, COLOR_NB * CASTLING_SIDE_NB>         Castling;
+        StdArray<Key, FILE_NB>                             Enpassant;
+        Key                                                Turn;
     } _;
 };
 
@@ -381,14 +382,14 @@ void swap_entry(PolyBook::Entry* const e) noexcept {
 // bit 14-15: special move flag: promotion (1), en-passant (2), castling (3)
 Move pg_to_move(std::uint16_t pgMove, const MoveList<LEGAL>& legalMoves) noexcept {
 
-    Move move = Move(pgMove);
+    Move move(pgMove);
 
-    if (int pt = (move.raw() >> 12) & 0x7)
-        move = Move{move.org_sq(), move.dst_sq(), PieceType(pt + 1)};
+    if (int pt = (move.raw() >> Move::PROMO_OFFSET) & 0x7; pt != 0)
+        move = Move::make<MT::PROMOTION>(move.org_sq(), move.dst_sq(), PieceType(pt + 1));
 
-    std::uint16_t moveRaw = move.raw() & ~TYPE_MASK;
+    std::uint16_t moveRaw = move.raw() & ~Move::TYPE_MASK;
     for (auto m : legalMoves)
-        if ((m.raw() & ~TYPE_MASK) == moveRaw)
+        if ((m.raw() & ~Move::TYPE_MASK) == moveRaw)
             return m;
 
     return Move::None;
@@ -400,7 +401,9 @@ bool is_draw(Position& pos, Move m) noexcept {
 
     State st;
     pos.do_move(m, st);
+
     bool isDraw = pos.is_draw(pos.ply(), true, true);
+
     pos.undo_move(m);
 
     return isDraw;

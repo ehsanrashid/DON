@@ -36,8 +36,8 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
-#include <shared_mutex>
 #include <optional>
+#include <shared_mutex>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -158,15 +158,15 @@ inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianV
 
 class [[nodiscard]] SyncOstream final {
    public:
-    explicit SyncOstream(std::ostream& _os) noexcept :
-        os(&_os),
+    explicit SyncOstream(std::ostream& os) noexcept :
+        osPtr(&os),
         lock(mutex) {}
     SyncOstream(const SyncOstream&) noexcept = delete;
     // Move-constructible so factories can return by value
     SyncOstream(SyncOstream&& syncOs) noexcept :
-        os(syncOs.os),
+        osPtr(syncOs.osPtr),
         lock(std::move(syncOs.lock)) {
-        syncOs.os = nullptr;
+        syncOs.osPtr = nullptr;
     }
 
     SyncOstream& operator=(const SyncOstream&) noexcept = delete;
@@ -177,51 +177,51 @@ class [[nodiscard]] SyncOstream final {
 
     template<typename T>
     SyncOstream& operator<<(T&& x) & noexcept {
-        assert(os != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        *os << std::forward<T>(x);
+        *osPtr << std::forward<T>(x);
         return *this;
     }
     template<typename T>
     SyncOstream&& operator<<(T&& x) && noexcept {
-        assert(os != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        *os << std::forward<T>(x);
+        *osPtr << std::forward<T>(x);
         return std::move(*this);
     }
 
     using IosManip = std::ios& (*) (std::ios&);
     SyncOstream& operator<<(IosManip manip) & noexcept {
-        assert(os != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*os);
+        manip(*osPtr);
         return *this;
     }
     SyncOstream&& operator<<(IosManip manip) && noexcept {
-        assert(os != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*os);
+        manip(*osPtr);
         return std::move(*this);
     }
 
     using OstreamManip = std::ostream& (*) (std::ostream&);
     SyncOstream& operator<<(OstreamManip manip) & noexcept {
-        assert(os != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*os);
+        manip(*osPtr);
         return *this;
     }
     SyncOstream&& operator<<(OstreamManip manip) && noexcept {
-        assert(os != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*os);
+        manip(*osPtr);
         return std::move(*this);
     }
 
    private:
     static inline std::mutex mutex;
 
-    std::ostream*                os;
+    std::ostream*                osPtr;
     std::unique_lock<std::mutex> lock;
 };
 
@@ -452,7 +452,11 @@ class MultiArray {
     void fill_n(std::size_t begIdx, std::size_t count, const U& v) noexcept {
         static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
 
-        const std::size_t endIdx = std::min(begIdx + count, size());
+        std::size_t endIdx = begIdx + count;
+        assert(begIdx <= endIdx && endIdx <= size());
+
+        if (endIdx > size())
+            endIdx = size();
 
         for (std::size_t idx = begIdx; idx < endIdx; ++idx)
         {
@@ -528,8 +532,7 @@ class DynamicArray final {
 
     template<typename U>
     void fill(std::size_t begIdx, std::size_t endIdx, const U& v) noexcept {
-        assert(begIdx < size());
-        assert(endIdx <= size());
+        assert(begIdx <= endIdx && endIdx <= size());
 
         if (endIdx > size())
             endIdx = size();
@@ -609,8 +612,10 @@ class FixedVector final {
     }
 
     void size(std::size_t newSize) noexcept {
+
         if (newSize > capacity())
             newSize = capacity();
+
         _size = newSize;  // Note: doesn't construct/destroy elements
     }
 

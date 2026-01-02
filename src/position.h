@@ -74,10 +74,10 @@ struct Zobrist final {
     Zobrist& operator=(const Zobrist&) noexcept = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
-    static inline StdArray<Key, COLOR_NB, 1 + PIECE_CNT, SQUARE_NB> PieceSquare;
-    static inline StdArray<Key, CASTLING_RIGHTS_NB>                 Castling;
-    static inline StdArray<Key, FILE_NB>                            Enpassant;
-    static inline Key                                               Turn;
+    static inline StdArray<Key, COLOR_NB, 1 + PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
+    static inline StdArray<Key, CASTLING_RIGHTS_NB>                      Castling;
+    static inline StdArray<Key, FILE_NB>                                 Enpassant;
+    static inline Key                                                    Turn;
 
     static constexpr std::uint8_t R50_OFFSET = 14;
     static constexpr std::uint8_t R50_FACTOR = 8;
@@ -355,7 +355,7 @@ class Position final {
 
     void dump(std::ostream& os = std::cout) const noexcept;
 
-    static constexpr StdArray<std::size_t, PIECE_CNT> CAPACITIES{11, 13, 13, 13, 13, 1};
+    static constexpr StdArray<std::size_t, PIECE_TYPE_CNT> CAPACITIES{11, 13, 13, 13, 13, 1};
 
     static inline bool Chess960 = false;
 
@@ -431,17 +431,17 @@ class Position final {
     static constexpr std::size_t TOTAL_CAPACITY = []() constexpr noexcept {
         std::size_t totalCapacity = 0;
 
-        for (std::size_t i = 0; i < PIECE_CNT; ++i)
+        for (std::size_t i = 0; i < PIECE_TYPE_CNT; ++i)
             totalCapacity += CAPACITIES[i];
 
         return totalCapacity;
     }();
 
     static constexpr auto OFFSETS = []() constexpr noexcept {
-        StdArray<std::size_t, PIECE_CNT> offsets{};
+        StdArray<std::size_t, PIECE_TYPE_CNT> offsets{};
 
         offsets[0] = 0;
-        for (std::size_t i = 1; i < PIECE_CNT; ++i)
+        for (std::size_t i = 1; i < PIECE_TYPE_CNT; ++i)
             offsets[i] = offsets[i - 1] + CAPACITIES[i - 1];
 
         return offsets;
@@ -453,7 +453,7 @@ class Position final {
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
             castlingRightsIndices[s] = rank_of(s) == RANK_1 ? WHITE * FILE_NB + file_of(s)
                                      : rank_of(s) == RANK_8 ? BLACK * FILE_NB + file_of(s)
-                                                            : COLOR_NB * FILE_NB;
+                                                            : NONE * FILE_NB;
 
         return castlingRightsIndices;
     }();
@@ -463,7 +463,7 @@ class Position final {
     // Backing Square Table: [COLOR_NB][TOTAL_CAPACITY]
     StdArray<Square, COLOR_NB, TOTAL_CAPACITY> squaresTable;
     // Generic CountTableView slices
-    StdArray<CountTableView<Square>, COLOR_NB, 1 + PIECE_CNT> pieceLists;
+    StdArray<CountTableView<Square>, COLOR_NB, 1 + PIECE_TYPE_CNT> pieceLists;
 
     StdArray<std::uint8_t, SQUARE_NB>            indexMap;
     StdArray<Piece, SQUARE_NB>                   pieceMap;
@@ -494,7 +494,7 @@ inline Bitboard Position::operator[](Color c) const noexcept { return colorBBs[c
 
 inline Piece Position::piece(Square s) const noexcept { return pieceMap[s]; }
 
-inline bool Position::empty(Square s) const noexcept { return piece(s) == NO_PIECE; }
+inline bool Position::empty(Square s) const noexcept { return piece(s) == Piece::NO_PIECE; }
 
 template<typename... PieceTypes>
 inline Bitboard Position::pieces_bb(PieceTypes... pts) const noexcept {
@@ -589,6 +589,7 @@ inline auto Position::squares(std::size_t& n) const noexcept {
 template<PieceType PT>
 inline Square Position::square(Color c) const noexcept {
     assert(count(c, PT) == 1);
+
     return squares<PT>(c).at(0, base(c));
 }
 
@@ -626,18 +627,21 @@ inline bool Position::has_castling_rights(Color c, CastlingSide cs) const noexce
 // Checks if squares between king and rook are empty
 inline bool Position::castling_full_path_clear(Color c, CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
-    return (castlings.fullPathBB[c][cs] & pieces_bb()) == 0;
+
+    return (castlings.fullPathBB[c][+cs] & pieces_bb()) == 0;
 }
 
 // Checks if the castling king path is attacked
 inline bool Position::castling_king_path_clear(Color c, CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
-    return (castlings.kingPathBB[c][cs] & acc_attacks_bb<KING>()) == 0;
+
+    return (castlings.kingPathBB[c][+cs] & acc_attacks_bb<KING>()) == 0;
 }
 
 inline Square Position::castling_rook_sq(Color c, CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
-    return castlings.rookSq[c][cs];
+
+    return castlings.rookSq[c][+cs];
 }
 
 inline bool Position::castling_possible(Color c, CastlingSide cs) const noexcept {
@@ -811,10 +815,12 @@ inline Key Position::material_key() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            if (pt == KING || count(c, pt) == 0)
+            std::uint8_t cnt = count(c, pt);
+
+            if (cnt == 0 || pt == KING)
                 continue;
 
-            Square s = Square(Zobrist::PAWN_OFFSET + count(c, pt) - 1);
+            Square s = Square(Zobrist::PAWN_OFFSET + cnt - 1);
 
             materialKey ^= Zobrist::piece_square(c, pt, s);
         }
@@ -884,25 +890,30 @@ inline Value Position::evaluate() const noexcept {
 
 inline bool Position::capture(Move m) const noexcept {
     assert(legal(m));
-    return (m.type_of() != CASTLING && !empty(m.dst_sq())) || m.type_of() == EN_PASSANT;
+
+    return (m.type() != MT::CASTLING && !empty(m.dst_sq())) || m.type() == MT::EN_PASSANT;
 }
 
 inline bool Position::capture_promo(Move m) const noexcept {
     return capture(m)
-        || (m.type_of() == PROMOTION
+        || (m.type() == MT::PROMOTION
             && (m.promotion_type() == QUEEN
                 || (m.promotion_type() == KNIGHT && (checks_bb(KNIGHT) & m.dst_sq()) != 0)));
 }
 
 inline Piece Position::moved_pc(Move m) const noexcept {
     assert(legal(m));
+
     return piece(m.org_sq());
 }
 
 inline Piece Position::captured_pc(Move m) const noexcept {
     assert(legal(m));
-    assert(m.type_of() != CASTLING);
-    return m.type_of() == EN_PASSANT ? make_piece(~active_color(), PAWN) : piece(m.dst_sq());
+    assert(m.type() != MT::CASTLING);
+
+    return m.type() == MT::EN_PASSANT  //
+           ? make_piece(~active_color(), PAWN)
+           : piece(m.dst_sq());
 }
 
 inline auto Position::captured_pt(Move m) const noexcept { return type_of(captured_pc(m)); }
@@ -944,7 +955,7 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     if (dts != nullptr)
         update_pc_threats<false>(s, pc, dts);
 
-    pieceMap[s] = NO_PIECE;
+    pieceMap[s] = Piece::NO_PIECE;
     colorBBs[c] ^= sBB;
     typeBBs[pt] ^= sBB;
     typeBBs[ALL] ^= sBB;
@@ -973,7 +984,7 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     if (dts != nullptr)
         update_pc_threats<false>(s1, pc, dts, s1s2BB);
 
-    pieceMap[s1] = NO_PIECE;
+    pieceMap[s1] = Piece::NO_PIECE;
     pieceMap[s2] = pc;
     colorBBs[c] ^= s1s2BB;
     typeBBs[pt] ^= s1s2BB;
@@ -1016,7 +1027,7 @@ DirtyThreats::add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) 
         threatenedBB |= threatenedSq;
     }
 
-    list.push_back({sq, threatenedSq, pc, threatenedPc, Put});
+    dtList.push_back({sq, threatenedSq, pc, threatenedPc, Put});
 }
 
 #if defined(USE_AVX512ICL)
@@ -1041,7 +1052,7 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
     std::uint8_t maskCount = popcount(maskBB);
     assert(maskCount <= 16);
 
-    auto* dt = dts->list.make_space(maskCount);
+    auto* dt = dts->dtList.make_space(maskCount);
 
     __m512i templateVal = _mm512_set1_epi32(templateDt.raw());
 
@@ -1057,7 +1068,7 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
     threatSquares = _mm512_slli_epi32(threatSquares, SqShift);
     threatPieces  = _mm512_slli_epi32(threatPieces, PcShift);
 
-    //                                                         A | B | C
+    // Combine into final dirty values                         A | B | C
     __m512i dirties = _mm512_ternarylogic_epi32(templateVal, threatSquares, threatPieces, 254);
     _mm512_storeu_si512(reinterpret_cast<__m512i*>(dt), dirties);
 }
@@ -1073,7 +1084,7 @@ inline void Position::update_pc_threats(Square                    s,
     Bitboard occupancyBB = pieces_bb();
 
     const auto attacksBB = [&]() noexcept {
-        StdArray<Bitboard, 1 + PIECE_CNT> _;
+        StdArray<Bitboard, 1 + PIECE_TYPE_CNT> _;
 
         _[WHITE]  = attacks_bb<PAWN>(s, WHITE);
         _[BLACK]  = attacks_bb<PAWN>(s, BLACK);
@@ -1086,10 +1097,10 @@ inline void Position::update_pc_threats(Square                    s,
         return _;
     }();
 
-    Bitboard threatenedBB = (type_of(pc) == PAWN  //
-                               ? attacksBB[color_of(pc)]
-                               : attacksBB[type_of(pc)])
-                          & occupancyBB;
+    Bitboard threatenedBB = type_of(pc) == PAWN ? attacksBB[color_of(pc)] : attacksBB[type_of(pc)];
+
+    threatenedBB &= occupancyBB;
+
     // clang-format off
     Bitboard slidersBB    = (pieces_bb(QUEEN, BISHOP) & attacksBB[BISHOP])
                           | (pieces_bb(QUEEN, ROOK)   & attacksBB[ROOK]);
@@ -1108,9 +1119,10 @@ inline void Position::update_pc_threats(Square                    s,
             dts->threateningBB |= s;
         }
 
-        DirtyThreat templateDt{s, SQUARE_ZERO, pc, NO_PIECE, Put};
-        write_multiple_dirties<DirtyThreat::ThreatenedSqOffset, DirtyThreat::ThreatenedPcOffset>(
-          piece_map(), threatenedBB, templateDt, dts);
+        DirtyThreat templateDt{s, SQUARE_ZERO, pc, Piece::NO_PIECE, Put};
+        write_multiple_dirties<DirtyThreat::THREATENED_SQ_OFFSET,
+                               DirtyThreat::THREATENED_PC_OFFSET>(piece_map(), threatenedBB,
+                                                                  templateDt, dts);
     }
 
     Bitboard attackersBB = slidersBB | nonSlidersBB;
@@ -1124,9 +1136,9 @@ inline void Position::update_pc_threats(Square                    s,
         dts->threateningBB |= attackersBB;
     }
 
-    DirtyThreat templateDt{SQUARE_ZERO, s, NO_PIECE, pc, Put};
-    write_multiple_dirties<DirtyThreat::SqOffset, DirtyThreat::PcOffset>(piece_map(), attackersBB,
-                                                                         templateDt, dts);
+    DirtyThreat templateDt{SQUARE_ZERO, s, Piece::NO_PIECE, pc, Put};
+    write_multiple_dirties<DirtyThreat::SQ_OFFSET, DirtyThreat::PC_OFFSET>(piece_map(), attackersBB,
+                                                                           templateDt, dts);
 #else
     while (threatenedBB != 0)
     {

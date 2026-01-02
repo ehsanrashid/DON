@@ -720,61 +720,72 @@ class NumaConfig final {
         if (threadCount <= 1)
             return false;
 
-        std::size_t maxNodeSize = 0;
-        for (auto&& cpus : nodes)
-            if (maxNodeSize < cpus.size())
-                maxNodeSize = cpus.size();
+        // Only split if there is more than one node
+        if (nodes_size() <= 1)
+            return false;
 
-        auto is_node_small = [maxNodeSize](const std::set<CpuIndex>& node) {
-            return double(node.size()) / maxNodeSize <= 0.6;
-        };
+        // Compute maximum node size
+        const std::size_t maxNodeSize =
+          std::max_element(nodes.begin(), nodes.end(),  //
+                           [](const auto& node1, const auto& node2) noexcept -> bool {
+                               return node1.size() < node2.size();
+                           })
+            ->size();
 
-        std::size_t notSmallNodeCount = 0;
-        for (auto&& cpus : nodes)
-            if (!is_node_small(cpus))
-                ++notSmallNodeCount;
+        // Count nodes considered 'not-small' (size > 60% of maxNodeSize)
+        const std::size_t notSmallNodeCount =
+          std::count_if(nodes.begin(), nodes.end(),  //
+                        [maxNodeSize](const auto& node) noexcept -> bool {
+                            constexpr double SmallNodeThreshold = 0.6;
+                            // node considered 'not-small' if it exceeds threshold
+                            return double(node.size()) / maxNodeSize > SmallNodeThreshold;
+                        });
 
-        return nodes_size() > 1
-            && (threadCount > maxNodeSize / 2 || threadCount >= 4 * notSmallNodeCount);
+        // Only split if enough threads for either threshold
+        //   - more than half the max node size, OR
+        //   - at least four times the number of not-small nodes
+        return threadCount >= std::min(1 + maxNodeSize / 2, 4 * notSmallNodeCount);
     }
 
     std::vector<NumaIndex>
     distribute_threads_among_numa_nodes(std::size_t threadCount) const noexcept {
-        std::vector<NumaIndex> ns;
+        std::vector<NumaIndex> numaNodes;
 
         if (nodes_size() == 1)
         {
             // Special case for when there's no NUMA nodes
             // Doesn't buy much, but let's keep the default path simple
-            ns.resize(threadCount, NumaIndex{0});
+            numaNodes.resize(threadCount, NumaIndex{0});
         }
         else
         {
             std::vector<std::size_t> occupation(nodes_size(), 0);
+
             for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
             {
                 NumaIndex bestNumaIdx = 0;
 
-                auto minFill = std::numeric_limits<double>::max();
+                auto minNodeFill = std::numeric_limits<double>::max();
+
                 for (NumaIndex numaIdx = 0; numaIdx < nodes_size(); ++numaIdx)
                 {
-                    auto fill = double(1 + occupation[numaIdx]) / node_cpus_size(numaIdx);
+                    auto nodeFill = double(1 + occupation[numaIdx]) / node_cpus_size(numaIdx);
                     // NOTE: Do want to perhaps fill the first available node up to 50% first before considering other nodes?
                     //       Probably not, because it would interfere with running multiple instances.
                     //       Basically shouldn't favor any particular node.
-                    if (minFill > fill)
+                    if (minNodeFill > nodeFill)
                     {
-                        minFill     = fill;
+                        minNodeFill = nodeFill;
                         bestNumaIdx = numaIdx;
                     }
                 }
 
-                ns.emplace_back(bestNumaIdx);
+                numaNodes.emplace_back(bestNumaIdx);
                 ++occupation[bestNumaIdx];
             }
         }
 
-        return ns;
+        return numaNodes;
     }
 
     NumaReplicatedAccessToken bind_current_thread_to_numa_node(NumaIndex numaIdx) const noexcept {
@@ -806,6 +817,7 @@ class NumaConfig final {
               ((maxCpuIndex + 1) + WIN_PROCESSOR_GROUP_SIZE - 1) / WIN_PROCESSOR_GROUP_SIZE);
             auto groupAffinities = std::make_unique<GROUP_AFFINITY[]>(procGroupCount);
             std::memset(groupAffinities.get(), 0, procGroupCount * sizeof(*groupAffinities.get()));
+
             for (WORD procGroup = 0; procGroup < procGroupCount; ++procGroup)
                 groupAffinities[procGroup].Group = procGroup;
 
@@ -820,6 +832,7 @@ class NumaConfig final {
 
             status =
               setThreadSelectedCpuSetMasks(threadHandle, groupAffinities.get(), procGroupCount);
+
             if (status == 0)
                 std::exit(EXIT_FAILURE);
 
@@ -850,6 +863,7 @@ class NumaConfig final {
             // Use an ordered set so guaranteed to get the smallest cpu number here.
             std::size_t forcedProcGroupIndex = *(nodes[numaIdx].begin()) / WIN_PROCESSOR_GROUP_SIZE;
             groupAffinity.Group              = static_cast<WORD>(forcedProcGroupIndex);
+
             for (CpuIndex cpuIdx : nodes[numaIdx])
             {
                 std::size_t procGroupIndex   = cpuIdx / WIN_PROCESSOR_GROUP_SIZE;
@@ -866,6 +880,7 @@ class NumaConfig final {
             threadHandle = GetCurrentThread();
 
             status = SetThreadGroupAffinity(threadHandle, &groupAffinity, nullptr);
+
             if (status == 0)
                 std::exit(EXIT_FAILURE);
 
@@ -877,6 +892,7 @@ class NumaConfig final {
 #elif defined(__linux__)
 
         cpu_set_t* mask = CPU_ALLOC(maxCpuIndex + 1);
+
         if (mask == nullptr)
             std::exit(EXIT_FAILURE);
 
@@ -905,7 +921,8 @@ class NumaConfig final {
 
     template<typename FuncT>
     void execute_on_numa_node(NumaIndex numaIdx, FuncT&& f) const noexcept {
-        std::thread th([this, &f, numaIdx]() {
+
+        std::thread th([this, &f, numaIdx]() noexcept {
             bind_current_thread_to_numa_node(numaIdx);
             std::forward<FuncT>(f)();
         });
@@ -954,9 +971,9 @@ class NumaConfig final {
     void remove_empty_numa_nodes() noexcept {
         std::vector<std::set<CpuIndex>> newNodes;
 
-        for (auto&& cpus : nodes)
-            if (!cpus.empty())
-                newNodes.emplace_back(std::move(cpus));
+        for (auto&& node : nodes)
+            if (!node.empty())
+                newNodes.emplace_back(std::move(node));
 
         nodes = std::move(newNodes);
     }
@@ -965,6 +982,7 @@ class NumaConfig final {
     // Returns false if failed, i.e. when the cpu is already present
     //                          strong guarantee, the structure remains unmodified
     bool add_cpu_to_node(NumaIndex numaIdx, CpuIndex cpuIdx) noexcept {
+
         if (is_cpu_assigned(cpuIdx))
             return false;
 
@@ -984,6 +1002,7 @@ class NumaConfig final {
     // Returns false if failed.
     // i.e. when any of the cpus is already present strong guarantee, the structure remains unmodified.
     bool add_cpu_range_to_node(NumaIndex numaIdx, CpuIndex fstCpuIdx, CpuIndex lstCpuIdx) noexcept {
+
         for (auto cpuIdx = fstCpuIdx; cpuIdx <= lstCpuIdx; ++cpuIdx)
             if (is_cpu_assigned(cpuIdx))
                 return false;
@@ -1201,6 +1220,7 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
         instances.clear();
 
         const auto& numaCfg = numa_config();
+
         if (numaCfg.requires_memory_replication())
         {
             assert(numaCfg.nodes_size() > 0);
@@ -1227,7 +1247,7 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
     mutable std::mutex                      mutex;
 };
 
-// Utilizes shared memory.
+// Utilizes shared memory
 template<typename T>
 class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
    public:
@@ -1301,13 +1321,18 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
    private:
     std::size_t get_discriminator(NumaIndex idx) const noexcept {
+
         const NumaConfig& cfg    = numa_config();
         const NumaConfig& sysCfg = NumaConfig::from_system(false);
+
         // as a discriminator, locate the hardware/system numa-domain this CpuIndex belongs to
-        CpuIndex    cpu     = *cfg.nodes[idx].begin();  // get a CpuIndex from NumaIndex
-        NumaIndex   sys_idx = sysCfg.is_cpu_assigned(cpu) ? sysCfg.nodeByCpu.at(cpu) : 0;
-        std::string s       = sysCfg.to_string() + "$" + std::to_string(sys_idx);
-        return std::hash<std::string>{}(s);
+        CpuIndex cpu = *cfg.nodes[idx].begin();  // get a CpuIndex from NumaIndex
+
+        NumaIndex sysIdx = sysCfg.is_cpu_assigned(cpu) ? sysCfg.nodeByCpu.at(cpu) : 0;
+
+        std::string str = sysCfg.to_string() + "$" + std::to_string(sysIdx);
+
+        return std::hash<std::string>{}(str);
     }
 
     void ensure_present(NumaIndex idx) const noexcept {
@@ -1325,7 +1350,8 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
             return;
 
         const NumaConfig& cfg = numa_config();
-        cfg.execute_on_numa_node(idx, [this, idx]() {
+
+        cfg.execute_on_numa_node(idx, [this, idx]() noexcept {
             instances[idx] = SystemWideSharedMemory<T>(*instances[0], get_discriminator(idx));
         });
     }

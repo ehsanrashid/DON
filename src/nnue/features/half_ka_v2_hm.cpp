@@ -67,10 +67,9 @@ constexpr StdArray<IndexType, SQUARE_NB> KING_BUCKETS{
 };
 #undef B
 
+// Mirror square to have king always on e..h files
 // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
-constexpr Square orientation(Square s) noexcept {
-    return Square(((file_of(s) >> 2) ^ 1) * int(FILE_H));
-}
+constexpr Square orientation(Square s) noexcept { return Square(((file_of(s) >> 2) ^ 1) * FILE_H); }
 
 static_assert(orientation(SQ_A1) == SQ_H1);
 static_assert(orientation(SQ_D1) == SQ_H1);
@@ -83,8 +82,8 @@ static_assert(orientation(SQ_H8) == SQ_A1);
 ALWAYS_INLINE constexpr IndexType
 make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
     int relOrientation = relative_sq(perspective, orientation(kingSq));
-    return (int(s) ^ relOrientation)              //
-         + PIECE_SQUARE_INDICES[perspective][pc]  //
+    return (int(s) ^ relOrientation)               //
+         + PIECE_SQUARE_INDICES[perspective][+pc]  //
          + KING_BUCKETS[relative_sq(perspective, kingSq)];
 }
 
@@ -99,6 +98,7 @@ void HalfKAv2_hm::append_active_indices(Color                             perspe
     while (occupancyBB != 0)
     {
         Square s = pop_lsq(occupancyBB);
+
         active.push_back(make_index(perspective, kingSq, s, pieceMap[s]));
     }
 }
@@ -106,23 +106,24 @@ void HalfKAv2_hm::append_active_indices(Color                             perspe
 // Get a list of indices for recently changed features
 void HalfKAv2_hm::append_changed_indices(Color            perspective,
                                          Square           kingSq,
-                                         const DirtyType& dt,
+                                         const DirtyType& dp,
                                          IndexList&       removed,
                                          IndexList&       added) noexcept {
-    removed.push_back(make_index(perspective, kingSq, dt.orgSq, dt.movedPc));
+    removed.push_back(make_index(perspective, kingSq, dp.orgSq, dp.movedPc));
 
-    if (is_ok(dt.dstSq))
-        added.push_back(make_index(perspective, kingSq, dt.dstSq, dt.movedPc));
+    if (is_ok(dp.dstSq))
+        added.push_back(make_index(perspective, kingSq, dp.dstSq, dp.movedPc));
 
-    if (is_ok(dt.removeSq))
-        removed.push_back(make_index(perspective, kingSq, dt.removeSq, dt.removePc));
+    if (is_ok(dp.removeSq))
+        removed.push_back(make_index(perspective, kingSq, dp.removeSq, dp.removePc));
 
-    if (is_ok(dt.addSq))
-        added.push_back(make_index(perspective, kingSq, dt.addSq, dt.addPc));
+    if (is_ok(dp.addSq))
+        added.push_back(make_index(perspective, kingSq, dp.addSq, dp.addPc));
 }
 
-bool HalfKAv2_hm::requires_refresh(Color perspective, const DirtyType& dt) noexcept {
-    return dt.movedPc == make_piece(perspective, KING);
+// Determine if a full refresh is required based on the dirty piece
+bool HalfKAv2_hm::refresh_required(Color perspective, const DirtyType& dp) noexcept {
+    return dp.movedPc == make_piece(perspective, KING);
 }
 
 }  // namespace DON::NNUE::Features

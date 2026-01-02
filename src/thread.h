@@ -41,18 +41,19 @@ namespace DON {
 
 class Options;
 
-// Sometimes we don't want to actually bind the threads, but the recipient still
-// needs to think it runs on *some* NUMA node, such that it can access structures
-// that rely on NUMA node knowledge. This class encapsulates this optional process
+// Sometimes don't want to actually bind the threads, but the recipient still needs
+// to think it runs on *some* NUMA node, such that it can access structures that rely
+// on NUMA node knowledge.
+// This class encapsulates this optional process of binding a thread to a NUMA node
 // such that the recipient does not need to know whether the binding happened or not.
-class OptionalThreadToNumaNodeBinder final {
+class ThreadToNumaNodeBinder final {
    public:
-    OptionalThreadToNumaNodeBinder(NumaIndex numaId, const NumaConfig* numaCfgPtr) noexcept :
+    ThreadToNumaNodeBinder(NumaIndex numaId, const NumaConfig* numaCfgPtr) noexcept :
         numaIdx(numaId),
         numaConfigPtr(numaCfgPtr) {}
 
-    explicit OptionalThreadToNumaNodeBinder(NumaIndex numaId) noexcept :
-        OptionalThreadToNumaNodeBinder(numaId, nullptr) {}
+    explicit ThreadToNumaNodeBinder(NumaIndex numaId) noexcept :
+        ThreadToNumaNodeBinder(numaId, nullptr) {}
 
     NumaReplicatedAccessToken operator()() const noexcept {
         return numaConfigPtr != nullptr ? numaConfigPtr->bind_current_thread_to_numa_node(numaIdx)
@@ -74,17 +75,25 @@ using WorkerPtr = LargePagePtr<Worker>;
 // the search is finished, it goes back to idle_func() waiting for a new signal.
 class Thread final {
    public:
-    Thread(std::size_t                           threadIdx,
-           std::size_t                           numaIdx,
-           std::size_t                           numaThreadCount,
-           const OptionalThreadToNumaNodeBinder& nodeBinder,
-           ISearchManagerPtr                     searchManager,
-           const SharedState&                    sharedState) noexcept;
+    Thread(std::size_t                   threadIdx,
+           std::size_t                   threadCnt,
+           std::size_t                   numaIdx,
+           std::size_t                   numaThreadCnt,
+           const ThreadToNumaNodeBinder& nodeBinder,
+           ISearchManagerPtr             searchManager,
+           const SharedState&            sharedState) noexcept;
+
     ~Thread() noexcept;
 
-    std::size_t thread_id() const noexcept { return threadId; }
+    constexpr std::size_t thread_id() const noexcept { return threadId; }
 
-    std::size_t numa_id() const noexcept { return numaId; }
+    constexpr std::size_t thread_count() const noexcept { return threadCount; }
+
+    constexpr std::size_t numa_id() const noexcept { return numaId; }
+
+    constexpr std::size_t numa_thread_count() const noexcept { return numaThreadCount; }
+
+    NumaReplicatedAccessToken numa_access_token() const noexcept { return numaAccessToken; }
 
     void ensure_network_replicated() const noexcept;
 
@@ -102,12 +111,14 @@ class Thread final {
     // Set before starting nativeThread
     bool dead = false, busy = true;
 
-    const std::size_t threadId, numaId;
+    const std::size_t threadId, threadCount, numaId, numaThreadCount;
 
-    std::mutex              mutex;
-    std::condition_variable condVar;
-    NativeThread            nativeThread;
-    JobFunc                 jobFunc;
+    std::mutex                mutex;
+    std::condition_variable   condVar;
+    NativeThread              nativeThread;
+    NumaReplicatedAccessToken numaAccessToken;
+
+    JobFunc jobFunc;
 
    public:
     WorkerPtr worker;
@@ -282,6 +293,7 @@ class Threads final {
 
     template<typename T>
     void set(std::atomic<T> Worker::* member, T value) noexcept {
+
         for (auto&& th : threads)
             (th->worker.get()->*member).store(value, std::memory_order_relaxed);
     }
@@ -328,8 +340,10 @@ inline void Threads::init() noexcept {
     main_manager()->init();
 }
 
+// Get pointer to the main thread
 inline Thread* Threads::main_thread() const noexcept { return front().get(); }
 
+// Get pointer to the main search manager
 inline MainSearchManager* Threads::main_manager() const noexcept {
     return main_thread()->worker->main_manager();
 }
@@ -344,6 +358,7 @@ inline void Threads::start_search() const noexcept {
 }
 
 // Wait for non-main threads
+// Will be invoked by main thread after it has finished searching
 inline void Threads::wait_finish() const noexcept {
 
     for (auto&& th : threads)
@@ -351,6 +366,7 @@ inline void Threads::wait_finish() const noexcept {
             th->wait_finish();
 }
 
+// Ensure that all threads have their network replicated
 inline void Threads::ensure_network_replicated() const noexcept {
 
     for (auto&& th : threads)
