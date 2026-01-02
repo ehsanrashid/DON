@@ -823,7 +823,7 @@ void Position::do_castling(Color             ac,
 // Also prefetch tt and histories for the new position.
 // The move is assumed to be legal.
 DirtyBoard
-Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker) noexcept {
+Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worker) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
@@ -833,13 +833,12 @@ Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker
 
     st = &newSt;
 
-    // Increment ply counters. rule50Count will be reset to zero later on
-    // in case of a capture or a pawn move.
+    // Increment game-ply, rule50 counter, null-ply and rule50 high flag.
+    // rule50 will be reset to zero later on in case of a capture or a pawn move.
     ++gamePly;
     ++st->rule50Count;
-    st->hasRule50High |= rule50_count() >= rule50_threshold();
-
     ++st->nullPly;
+    st->hasRule50High |= rule50_count() >= rule50_threshold();
 
     Color ac = active_color();
 
@@ -899,10 +898,6 @@ Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker
 
         capturedPc = Piece::NO_PIECE;
         capture    = false;
-
-        // Calculate checker only one ROOK possible
-        st->checkersBB = isCheck ? square_bb(rookDstSq) : 0;
-        assert(!isCheck || (checkers_bb() != 0 && popcount(checkers_bb()) == 1));
 
         goto DO_MOVE_END;
     }
@@ -1021,10 +1016,6 @@ Position::do_move(Move m, State& newSt, bool isCheck, const Worker* const worker
             st->nonPawnKeys[ac][is_major(movedPt)] ^= movedKey;
     }
 
-    // Calculate checkers
-    st->checkersBB = isCheck ? attackers_bb(square<KING>(~ac)) & pieces_bb(ac) : 0;
-    assert(!isCheck || (checkers_bb() != 0 && popcount(checkers_bb()) <= 2));
-
 DO_MOVE_END:
 
     db.dts.kingSq = square<KING>(ac);
@@ -1054,10 +1045,22 @@ DO_MOVE_END:
         prefetch(&worker->histories.non_pawn_correction<BLACK>(non_pawn_key(BLACK)));
     }
 
-    ac = activeColor = ~ac;
+    // Calculate checkers bitboard
+    st->checkersBB = 0;
 
-    st->capturedPc = capturedPc;
-    st->promotedPc = promotedPc;
+    if (mayCheck)
+    {
+        Square kingSq = square<KING>(~ac);
+
+        st->checkersBB = (m.type() != MT::CASTLING  //
+                            ? attackers_bb(kingSq, pieces_bb())
+                            : attacks_bb<ROOK>(kingSq, pieces_bb()) & pieces_bb(ROOK))
+                       & pieces_bb(ac);
+
+        assert(popcount(checkers_bb()) <= 2 && (checkers_bb() & square<KING>(ac)) == 0);
+    }
+
+    ac = activeColor = ~ac;
 
     set_ext_state();
 
@@ -1067,7 +1070,7 @@ DO_MOVE_END:
         k ^= Zobrist::enpassant(enPassantSq);
     }
 
-    // Set the key with the updated key
+    // Set the final hash key
     st->key = k;
 
     if (worker != nullptr)
@@ -1090,11 +1093,15 @@ DO_MOVE_END:
 
             if (preSt->key == st->key)
             {
-                st->repetition = preSt->repetition ? -i : +i;
+                st->repetition = preSt->repetition != 0 ? -i : +i;
+
                 break;
             }
         }
     }
+
+    st->capturedPc = capturedPc;
+    st->promotedPc = promotedPc;
 
     assert(_is_ok());
 
@@ -1191,8 +1198,6 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
 
     st = &newSt;
 
-    st->nullPly = 0;
-
     if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
     {
         k ^= Zobrist::enpassant(enPassantSq);
@@ -1207,14 +1212,14 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
 
     activeColor = ~active_color();
 
-    st->capturedSq = SQ_NONE;
-    st->checkersBB = 0;
-    st->capturedPc = Piece::NO_PIECE;
-    st->promotedPc = Piece::NO_PIECE;
-
     set_ext_state();
 
+    st->nullPly    = 0;
+    st->capturedSq = SQ_NONE;
+    st->checkersBB = 0;
     st->repetition = 0;
+    st->capturedPc = Piece::NO_PIECE;
+    st->promotedPc = Piece::NO_PIECE;
 
     assert(_is_ok());
 }
