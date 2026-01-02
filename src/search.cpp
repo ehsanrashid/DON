@@ -46,7 +46,7 @@ namespace DON {
 
 namespace {
 
-constexpr int DEFAULT_QUIET_HISTORY = 68;
+constexpr int QUIET_HISTORY_DEFAULT_VALUE = 68;
 
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
@@ -202,7 +202,7 @@ Worker::Worker(std::size_t               threadIdx,
 void Worker::init() noexcept {
 
     captureHistory.fill(-689);
-    quietHistory.fill(DEFAULT_QUIET_HISTORY);
+    quietHistory.fill(QUIET_HISTORY_DEFAULT_VALUE);
     ttMoveHistory = 0;
 
     for (bool inCheck : {false, true})
@@ -213,23 +213,23 @@ void Worker::init() noexcept {
 
     // Each thread is responsible for clearing their part of correction history
     std::size_t size;
-    std::size_t perSize;
+    std::size_t count;
     std::size_t begIdx;
     std::size_t endIdx;
 
-    size    = histories.pawn_size();
-    perSize = size / numaThreadCount;
-    begIdx  = numaId * perSize;
+    size   = histories.pawn_size();
+    count  = size / numaThreadCount;
+    begIdx = numaId * count;
     assert(begIdx <= size);
-    endIdx = numaId + 1 == numaThreadCount ? size : std::min(begIdx + perSize, size);
+    endIdx = numaId + 1 == numaThreadCount ? size : std::min(begIdx + count, size);
 
     histories.pawn().fill(begIdx, endIdx, -1238);
 
-    size    = histories.correction_size();
-    perSize = size / numaThreadCount;
-    begIdx  = numaId * perSize;
+    size   = histories.correction_size();
+    count  = size / numaThreadCount;
+    begIdx = numaId * count;
     assert(begIdx <= size);
-    endIdx = numaId + 1 == numaThreadCount ? size : std::min(begIdx + perSize, size);
+    endIdx = numaId + 1 == numaThreadCount ? size : std::min(begIdx + count, size);
 
     histories.pawn_correction().fill(begIdx, endIdx, 5);
     histories.minor_correction().fill(begIdx, endIdx, 0);
@@ -274,7 +274,7 @@ void Worker::start_search() noexcept {
 
     for (auto& colorQuietHist : quietHistory)
         for (auto& quietHist : colorQuietHist)
-            quietHist = (3 * quietHist + DEFAULT_QUIET_HISTORY) / 4;
+            quietHist = (3 * quietHist + QUIET_HISTORY_DEFAULT_VALUE) / 4;
 
     lowPlyQuietHistory.fill(97);
 
