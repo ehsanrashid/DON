@@ -160,8 +160,11 @@ void Threads::set(const NumaConfig&                       numaConfig,
     // Populate shared histories map (optionally NUMA-bound)
     if (threadBindable)
     {
-        for (const auto& [numaIdx, count] : numaThreadCounts)
+        for (const auto& pair : numaThreadCounts)
         {
+            NumaIndex   numaIdx = pair.first;
+            std::size_t count   = pair.second;
+
             std::size_t roundedCount = next_pow2(count);
 
             numaConfig.execute_on_numa_node(numaIdx,
