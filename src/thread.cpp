@@ -44,16 +44,16 @@ Thread::Thread(std::size_t                           threadIdx,
     threadId(threadIdx),
     numaId(numaIdx),
     nativeThread(&Thread::idle_func, this) {
-    assert(numaThreadCount != 0);
+    assert(numaThreadCount != 0 && numa_id() < numaThreadCount);
 
     wait_finish();
 
     run_custom_job([this, numaThreadCount, &sharedState, &searchManager, &nodeBinder]() {
-        // Use the binder to [maybe] bind the threads to a NUMA node before doing
-        // the Worker allocation.
-        // Ideally would also allocate the SearchManager here, but that's minor.
+        // Use the binder to [maybe] bind the threads to a NUMA node before doing the Worker allocation
+        numaAccessToken = nodeBinder();
+
         worker = make_unique_aligned_large_page<Worker>(thread_id(), numa_id(), numaThreadCount,
-                                                        nodeBinder(), std::move(searchManager),
+                                                        numaAccessToken, std::move(searchManager),
                                                         sharedState);
     });
 

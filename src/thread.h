@@ -104,10 +104,12 @@ class Thread final {
 
     const std::size_t threadId, numaId;
 
-    std::mutex              mutex;
-    std::condition_variable condVar;
-    NativeThread            nativeThread;
-    JobFunc                 jobFunc;
+    std::mutex                mutex;
+    std::condition_variable   condVar;
+    NativeThread              nativeThread;
+    NumaReplicatedAccessToken numaAccessToken;
+
+    JobFunc jobFunc;
 
    public:
     WorkerPtr worker;
