@@ -150,7 +150,7 @@ static_assert(std::is_standard_layout_v<State> && std::is_trivially_copyable_v<S
 class Worker;
 
 // Position class stores information regarding the board representation as
-// pieces, active color, hash keys, castling info, etc. (Size = 496)
+// pieces, active color, hash keys, castling info, etc. (Size = 472)
 // Important methods are do_move() and undo_move(),
 // used by the search to update node info when traversing the search tree.
 class Position final {
@@ -476,7 +476,7 @@ class Position final {
     Color                                        activeColor;
 };
 
-//static_assert(sizeof(Position) == 496, "Position size");
+//static_assert(sizeof(Position) == 472, "Position size");
 
 inline const auto& Position::piece_map() const noexcept { return pieceMap; }
 

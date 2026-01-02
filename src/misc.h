@@ -294,7 +294,7 @@ struct OffsetView final {
         return begin(base) + count;
     }
 
-    // --- Push/pop using external count (does not update count internally) ---
+    // --- Push/pop using external count ---
     bool push_back(const T& value, T* const base, size_type count) noexcept {
         assert(count < size());
         data(base)[count] = value;
@@ -306,7 +306,7 @@ struct OffsetView final {
         return true;
     }
 
-    void pop_back(size_type count) noexcept {
+    void pop_back([[maybe_unused]] size_type count) noexcept {
         assert(count != 0);
         // just placeholder, does not modify count
     }
@@ -321,11 +321,12 @@ struct OffsetView final {
     }
 
     // --- Element access using external count ---
-    T& at(size_type idx, T* const base, size_type count) noexcept {
+    T& at(size_type idx, T* const base, [[maybe_unused]] size_type count) noexcept {
         assert(idx < count);
         return data(base)[idx];
     }
-    const T& at(size_type idx, const T* const base, size_type count) const noexcept {
+    const T&
+    at(size_type idx, const T* const base, [[maybe_unused]] size_type count) const noexcept {
         assert(idx < count);
         return data(base)[idx];
     }
