@@ -763,7 +763,7 @@ std::size_t AccumulatorStack::last_usable_accumulator_index(Color perspective) c
         if ((accumulators<FeatureSet>()[idx].template acc<Dimensions>()).computed[perspective])
             return idx;
 
-        if (FeatureSet::requires_refresh(perspective, accumulators<FeatureSet>()[idx].dirtyType))
+        if (FeatureSet::refresh_required(perspective, accumulators<FeatureSet>()[idx].dirtyType))
             return idx;
     }
 

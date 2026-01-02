@@ -35,13 +35,13 @@ namespace DON {
 
 // Constructor launches the thread and waits until it goes to sleep
 // in idle_func(). Note that 'dead' and 'busy' should be already set.
-Thread::Thread(std::size_t                           threadIdx,
-               std::size_t                           threadCnt,
-               std::size_t                           numaIdx,
-               std::size_t                           numaThreadCnt,
-               const OptionalThreadToNumaNodeBinder& nodeBinder,
-               ISearchManagerPtr                     searchManager,
-               const SharedState&                    sharedState) noexcept :
+Thread::Thread(std::size_t                   threadIdx,
+               std::size_t                   threadCnt,
+               std::size_t                   numaIdx,
+               std::size_t                   numaThreadCnt,
+               const ThreadToNumaNodeBinder& nodeBinder,
+               ISearchManagerPtr             searchManager,
+               const SharedState&            sharedState) noexcept :
     threadId(threadIdx),
     threadCount(threadCnt),
     numaId(numaIdx),
@@ -196,7 +196,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
         // When not binding threads want to force all access to happen from the same
         // NUMA node, because in case of NUMA replicated memory accesses don't
         // want to trash cache in case the threads get scheduled on the same NUMA node.
-        OptionalThreadToNumaNodeBinder nodeBinder(numaIdx, numaConfigPtr);
+        ThreadToNumaNodeBinder nodeBinder(numaIdx, numaConfigPtr);
 
         threads.emplace_back(std::make_unique<Thread>(threadId, threadCount, numaIds[numaIdx]++,
                                                       numaThreadCounts[numaIdx], nodeBinder,

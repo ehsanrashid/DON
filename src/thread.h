@@ -41,18 +41,19 @@ namespace DON {
 
 class Options;
 
-// Sometimes we don't want to actually bind the threads, but the recipient still
-// needs to think it runs on *some* NUMA node, such that it can access structures
-// that rely on NUMA node knowledge. This class encapsulates this optional process
+// Sometimes don't want to actually bind the threads, but the recipient still needs
+// to think it runs on *some* NUMA node, such that it can access structures that rely
+// on NUMA node knowledge.
+// This class encapsulates this optional process of binding a thread to a NUMA node
 // such that the recipient does not need to know whether the binding happened or not.
-class OptionalThreadToNumaNodeBinder final {
+class ThreadToNumaNodeBinder final {
    public:
-    OptionalThreadToNumaNodeBinder(NumaIndex numaId, const NumaConfig* numaCfgPtr) noexcept :
+    ThreadToNumaNodeBinder(NumaIndex numaId, const NumaConfig* numaCfgPtr) noexcept :
         numaIdx(numaId),
         numaConfigPtr(numaCfgPtr) {}
 
-    explicit OptionalThreadToNumaNodeBinder(NumaIndex numaId) noexcept :
-        OptionalThreadToNumaNodeBinder(numaId, nullptr) {}
+    explicit ThreadToNumaNodeBinder(NumaIndex numaId) noexcept :
+        ThreadToNumaNodeBinder(numaId, nullptr) {}
 
     NumaReplicatedAccessToken operator()() const noexcept {
         return numaConfigPtr != nullptr ? numaConfigPtr->bind_current_thread_to_numa_node(numaIdx)
@@ -74,13 +75,13 @@ using WorkerPtr = LargePagePtr<Worker>;
 // the search is finished, it goes back to idle_func() waiting for a new signal.
 class Thread final {
    public:
-    Thread(std::size_t                           threadIdx,
-           std::size_t                           threadCnt,
-           std::size_t                           numaIdx,
-           std::size_t                           numaThreadCnt,
-           const OptionalThreadToNumaNodeBinder& nodeBinder,
-           ISearchManagerPtr                     searchManager,
-           const SharedState&                    sharedState) noexcept;
+    Thread(std::size_t                   threadIdx,
+           std::size_t                   threadCnt,
+           std::size_t                   numaIdx,
+           std::size_t                   numaThreadCnt,
+           const ThreadToNumaNodeBinder& nodeBinder,
+           ISearchManagerPtr             searchManager,
+           const SharedState&            sharedState) noexcept;
 
     ~Thread() noexcept;
 

@@ -98,6 +98,7 @@ void HalfKAv2_hm::append_active_indices(Color                             perspe
     while (occupancyBB != 0)
     {
         Square s = pop_lsq(occupancyBB);
+
         active.push_back(make_index(perspective, kingSq, s, pieceMap[s]));
     }
 }
@@ -120,7 +121,8 @@ void HalfKAv2_hm::append_changed_indices(Color            perspective,
         added.push_back(make_index(perspective, kingSq, dp.addSq, dp.addPc));
 }
 
-bool HalfKAv2_hm::requires_refresh(Color perspective, const DirtyType& dp) noexcept {
+// Determine if a full refresh is required based on the dirty piece
+bool HalfKAv2_hm::refresh_required(Color perspective, const DirtyType& dp) noexcept {
     return dp.movedPc == make_piece(perspective, KING);
 }
 

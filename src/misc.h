@@ -158,15 +158,15 @@ inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianV
 
 class [[nodiscard]] SyncOstream final {
    public:
-    explicit SyncOstream(std::ostream& _os) noexcept :
-        os(&_os),
+    explicit SyncOstream(std::ostream& os) noexcept :
+        osPtr(&os),
         lock(mutex) {}
     SyncOstream(const SyncOstream&) noexcept = delete;
     // Move-constructible so factories can return by value
     SyncOstream(SyncOstream&& syncOs) noexcept :
-        os(syncOs.os),
+        osPtr(syncOs.osPtr),
         lock(std::move(syncOs.lock)) {
-        syncOs.os = nullptr;
+        syncOs.osPtr = nullptr;
     }
 
     SyncOstream& operator=(const SyncOstream&) noexcept = delete;
@@ -177,51 +177,51 @@ class [[nodiscard]] SyncOstream final {
 
     template<typename T>
     SyncOstream& operator<<(T&& x) & noexcept {
-        assert(os != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        *os << std::forward<T>(x);
+        *osPtr << std::forward<T>(x);
         return *this;
     }
     template<typename T>
     SyncOstream&& operator<<(T&& x) && noexcept {
-        assert(os != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        *os << std::forward<T>(x);
+        *osPtr << std::forward<T>(x);
         return std::move(*this);
     }
 
     using IosManip = std::ios& (*) (std::ios&);
     SyncOstream& operator<<(IosManip manip) & noexcept {
-        assert(os != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*os);
+        manip(*osPtr);
         return *this;
     }
     SyncOstream&& operator<<(IosManip manip) && noexcept {
-        assert(os != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*os);
+        manip(*osPtr);
         return std::move(*this);
     }
 
     using OstreamManip = std::ostream& (*) (std::ostream&);
     SyncOstream& operator<<(OstreamManip manip) & noexcept {
-        assert(os != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*os);
+        manip(*osPtr);
         return *this;
     }
     SyncOstream&& operator<<(OstreamManip manip) && noexcept {
-        assert(os != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*os);
+        manip(*osPtr);
         return std::move(*this);
     }
 
    private:
     static inline std::mutex mutex;
 
-    std::ostream*                os;
+    std::ostream*                osPtr;
     std::unique_lock<std::mutex> lock;
 };
 
