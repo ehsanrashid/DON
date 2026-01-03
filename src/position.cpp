@@ -1047,7 +1047,7 @@ DO_MOVE_END:
         prefetch(&worker->histories.non_pawn_correction<BLACK>(non_pawn_key(BLACK)));
     }
 
-    // Calculate checkers bitboard
+    // Compute checkers (if move may check)
     st->checkersBB = 0;
 
     if (mayCheck)

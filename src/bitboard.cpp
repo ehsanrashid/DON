@@ -70,15 +70,15 @@ void init_magics() noexcept {
     constexpr StdArray<std::size_t, 2> SubSizes{0x200, 0x1000};
 
     // Optimal PRNG seeds to pick the correct magics in the shortest time
-    constexpr StdArray<std::uint16_t, RANK_NB> Seeds{
-    // clang-format off
+    constexpr StdArray<std::uint16_t, 2, RANK_NB> Seeds{{
     #if defined(IS_64BIT)
-      0x02D8, 0x284C, 0xD6E5, 0x8023, 0x2FF9, 0x3AFC, 0x4105, 0x00FF
+      {0xE4D9, 0xB1E5, 0x4F73, 0x82A9, 0x323A, 0xFFF4, 0x0C61, 0x5EFA},  //
+      {0x8B99, 0x9A36, 0xD27A, 0x5F4C, 0xFC29, 0x0982, 0x10E1, 0x00AA}   //
     #else
-      0x2311, 0xAE10, 0xD447, 0x9856, 0x1663, 0x73E5, 0x99D0, 0x427C
+      {0xFE9A, 0x4968, 0xA30A, 0x3429, 0xAA36, 0xAEAF, 0x228A, 0xAA4C},  //
+      {0x02F6, 0x00C0, 0x8522, 0x0972, 0xF31A, 0xF6D0, 0xDA74, 0x98E5}   //
     #endif
-      // clang-format on
-    };
+    }};
 #endif
 
     [[maybe_unused]] std::size_t totalSize = 0;
@@ -87,10 +87,7 @@ void init_magics() noexcept {
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        // Given a square 's', the mask is the bitboard of sliding attacks from 's' computed on an empty board.
-        // The index must be big enough to contain all the attacks for each possible subset of the mask and so
-        // is 2 power the number of 1's of the mask.
-        // Hence, deduce the size of the shift to apply to the 64 or 32 bits word to get the index.
+        // Get the magic for the square and piece type
         auto& magic = MAGICS[s][PT - BISHOP];
 
         // Set the offset for the attacks table of the square.
@@ -100,12 +97,13 @@ void init_magics() noexcept {
                                       : &MAGICS[s - 1][PT - BISHOP].attacksBBs[size];
         assert(magic.attacksBBs != nullptr);
 
+        // Get the pseudo attacks on an empty board
         Bitboard pseudoAttacksBB = attacks_bb(s, PT);
 
         // Board edges are not considered in the relevant occupancies
         Bitboard edgesBB = (EDGE_FILES_BB & ~file_bb(s)) | (PROMOTION_RANKS_BB & ~rank_bb(s));
 
-        // Mask excludes edges
+        // Compute the mask of relevant occupancy bits for the square and piece type
         magic.maskBB = pseudoAttacksBB & ~edgesBB;
 
 #if defined(USE_BMI2)
@@ -141,6 +139,7 @@ void init_magics() noexcept {
 #if !defined(USE_BMI2)
         assert(size <= SubSizes[PT - BISHOP]);
 
+        // Compute the shift value (to apply to the 64-bits or 32-bits) used in the index computation
         magic.shift =
     #if defined(IS_64BIT)
           64
@@ -149,14 +148,15 @@ void init_magics() noexcept {
     #endif
           - popcount(magic.maskBB);
 
-        XorShift64Star prng(Seeds[rank_of(s)]);
+        XorShift64Star prng(Seeds[PT - BISHOP][rank_of(s)]);
 
+        // Epoch array to speed-up the magic verification process
         StdArray<std::uint32_t, SubSizes[PT - BISHOP]> epoch{};
         std::uint32_t                                  cnt = 0;
 
-        // Find a magic for square 's' picking up an (almost) random number
+        // Find a magic for square picking up an (almost) random number
         // until find the one that passes the verification test.
-        // this is trial−and−error iteration.
+        // This is trial−and−error iteration.
         while (true)
         {
             // Pick a candidate magic until it is "sparse enough"
@@ -164,14 +164,15 @@ void init_magics() noexcept {
                 magic.magicBB = prng.sparse_rand<Bitboard>();
             while (popcount((magic.magicBB * magic.maskBB) >> 56) < 6);
 
+            ++cnt;
+
             bool magicOk = true;
+
             // A good magic must map every possible occupancy to an index that
             // looks up the correct sliding attack in the attacks[s] database.
-            // Note that build up the database for square 's' as a side effect
-            // of verifying the magic.
+            // Note that build up the database for square as a side effect of verifying the magic.
             // Keep track of the attempt count and save it in epoch[], little speed-up
-            // trick to avoid resetting m.attacks[] after every failed attempt.
-            ++cnt;
+            // trick to avoid resetting magic.attacksBBs[] after every failed attempt.
             for (std::uint16_t i = 0; i < size; ++i)
             {
                 std::uint16_t idx = magic.index(occupancyBBs[i]);
