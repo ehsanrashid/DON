@@ -69,8 +69,7 @@ void PerftData::classify(Position& pos, Move m) noexcept {
     {
         ++capture;
 
-        if (m.type() == MT::EN_PASSANT)
-            ++enpassant;
+        enpassant += m.type() == MT::EN_PASSANT;
     }
 
     if (pos.check(m))
@@ -84,33 +83,27 @@ void PerftData::classify(Position& pos, Move m) noexcept {
             Color ac = pos.active_color();
 
             if (pos.blockers_bb(~ac) & orgSq)
-            {
                 ++dscCheck;
-            }
             else if (m.type() == MT::EN_PASSANT)
             {
                 Bitboard occupancyBB =
                   pos.pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
-                if (pos.slide_attackers_bb(pos.square<KING>(~ac), occupancyBB) & pos.pieces_bb(ac))
-                    ++dscCheck;
+
+                dscCheck +=
+                  (pos.slide_attackers_bb(pos.square<KING>(~ac), occupancyBB) & pos.pieces_bb(ac))
+                  != 0;
             }
             //else if (m.type() == MT::CASTLING)
-            //{
-            //    if ((pos.checks_bb(ROOK) & rook_castle_sq(orgSq, dstSq)) != 0)
-            //        ++dscCheck;
-            //}
+            //    dscCheck += (pos.checks_bb(ROOK) & rook_castle_sq(orgSq, dstSq)) != 0;
         }
 
-        if (pos.dbl_check(m))
-            ++dblCheck;
+        dblCheck += pos.dbl_check(m);
 
-        pos.do_move(m, st, true);
+        pos.do_move(m, st);
 
-        //if (more_than_one(pos.checkers_bb()))
-        //    ++dblCheck;
+        //dblCheck += more_than_one(pos.checkers_bb());
 
-        if (MoveList<LEGAL, true>(pos).empty())
-            ++checkmate;
+        checkmate += MoveList<LEGAL, true>(pos).empty();
 
         pos.undo_move(m);
     }
@@ -118,8 +111,7 @@ void PerftData::classify(Position& pos, Move m) noexcept {
     {
         pos.do_move(m, st, false);
 
-        if (MoveList<LEGAL, true>(pos).empty())
-            ++stalemate;
+        stalemate += MoveList<LEGAL, true>(pos).empty();
 
         pos.undo_move(m);
     }

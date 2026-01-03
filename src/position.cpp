@@ -1052,11 +1052,9 @@ DO_MOVE_END:
 
     if (mayCheck)
     {
-        Square kingSq = square<KING>(~ac);
-
         st->checkersBB = (m.type() != MT::CASTLING  //
-                            ? attackers_bb(kingSq, pieces_bb())
-                            : attacks_bb<ROOK>(kingSq, pieces_bb()) & pieces_bb(ROOK))
+                            ? attackers_bb(square<KING>(~ac), pieces_bb())
+                            : attacks_bb<ROOK>(square<KING>(~ac), pieces_bb()) & pieces_bb(ROOK))
                        & pieces_bb(ac);
 
         assert(popcount(checkers_bb()) <= 2 && (checkers_bb() & square<KING>(ac)) == 0);
@@ -1078,7 +1076,7 @@ DO_MOVE_END:
     if (worker != nullptr)
         prefetch(worker->transpositionTable.cluster(key()));
 
-    // Calculate the repetition info.
+    // Compute the repetition info.
     // It is the ply distance from the previous occurrence of the same position,
     // negative in the 3-fold case, or zero when the position was not repeated.
     st->repetition = 0;

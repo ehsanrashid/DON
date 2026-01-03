@@ -1047,16 +1047,13 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
 
 SPECIAL:
 
-    bool check = pos.check(m);
-
     State st;
-    pos.do_move(m, st, check);
+    pos.do_move(m, st);
 
     // Marker for check, checkmate & stalemate
-    bool legalMovesEmpty = MoveList<LEGAL, true>(pos).empty();
-
-    san += check ? (legalMovesEmpty ? '#' : '+')  //
-                 : (legalMovesEmpty ? '=' : '\0');
+    san += pos.checkers_bb() != 0  //
+           ? (MoveList<LEGAL, true>(pos).empty() ? '#' : '+')
+           : (MoveList<LEGAL, true>(pos).empty() ? '=' : '\0');
 
     pos.undo_move(m);
 

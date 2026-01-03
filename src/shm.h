@@ -1238,17 +1238,20 @@ struct SystemWideSharedMemory final {
                             + "$" + std::to_string(discriminator);
 #if !defined(_WIN32)
         // POSIX shared memory names must start with a slash
+        // then add name hashing to avoid length limits
         shmName = "/don_" + create_hash_string(shmName);
 
-        // Hash name and make sure it is not longer than SHM_NAME_MAX_SIZE
-        if (shmName.size() > SHM_NAME_MAX_SIZE)
-            shmName = shmName.substr(0, SHM_NAME_MAX_SIZE - 1);
+        constexpr std::size_t MaxNameSize = SHM_NAME_MAX_SIZE - 1;
+
+        // Truncate if longer than MaxNameSize
+        if (shmName.size() > MaxNameSize)
+            shmName.resize(MaxNameSize);
 #endif
 
-        BackendSharedMemory<T> backendShmm(shmName, value);
+        BackendSharedMemory<T> backendShm_(shmName, value);
 
-        if (backendShmm.is_valid())
-            backendShm = std::move(backendShmm);
+        if (backendShm_.is_valid())
+            backendShm = std::move(backendShm_);
         else
             backendShm = FallbackBackendSharedMemory<T>(shmName, value);
     }
