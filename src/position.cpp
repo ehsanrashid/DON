@@ -2340,14 +2340,11 @@ void Position::dump(std::ostream& os) const noexcept {
         for (File f = FILE_A; f <= FILE_H; ++f)
         {
             Square s = make_square(f, r);
-
             os << " | ";
-
-            if (indexMap[s] == INDEX_NONE)
-                os << "  ";
-            else
+            if (indexMap[s] != INDEX_NONE)
                 os << std::setw(2) << int(indexMap[s]);
-
+            else
+                os << "  ";
             os << " ";
         }
         os << " |";

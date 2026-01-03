@@ -957,10 +957,10 @@ inline Piece Position::remove(const Square s, DirtyThreats* const dts) noexcept 
 
     auto idx = indexMap[s];
     assert(idx < pieceLists[c][pt].size());
-    Square sq    = pieceLists[c][pt].back(base(c), cnt);
-    indexMap[sq] = idx;
+    Square s_    = pieceLists[c][pt].back(base(c), cnt);
+    indexMap[s_] = idx;
     //indexMap[s]  = INDEX_NONE;
-    pieceLists[c][pt].at(idx, base(c) /*, cnt*/) = sq;
+    pieceLists[c][pt].at(idx, base(c) /*, cnt*/) = s_;
     //pieceLists[c][pt].pop_back(cnt);
 
     return pc;
