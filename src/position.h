@@ -399,7 +399,7 @@ class Position final {
     template<bool After = true>
     bool enpassant_possible(Color           ac,
                             Square          enPassantSq,
-                            Bitboard* const _epPawnsBB = nullptr) const noexcept;
+                            Bitboard* const epPawnsBB_ = nullptr) const noexcept;
 
     // Other helpers
     Piece move(const Square s1, const Square s2, DirtyThreats* const dts = nullptr) noexcept;
