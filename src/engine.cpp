@@ -39,19 +39,19 @@ namespace DON {
 
 namespace {
 
-constexpr unsigned MIN_THREADS     = 1U;
-const unsigned     MAX_THREADS     = std::max(4U * unsigned(hardware_concurrency()), 1024U);
-const unsigned     DEFAULT_THREADS = std::max(1U, MIN_THREADS);
+constexpr std::uint32_t MIN_THREADS = 1U;
+const std::uint32_t     MAX_THREADS = std::max(4U * std::uint32_t(hardware_concurrency()), 1024U);
+const std::uint32_t     DEFAULT_THREADS = std::max(MIN_THREADS, 1U);
 
-constexpr unsigned MIN_HASH = 1U;
-constexpr unsigned MAX_HASH =
+constexpr std::uint32_t MIN_HASH = 1U;
+constexpr std::uint32_t MAX_HASH =
 #if defined(IS_64BIT)
   0x2000000U
 #else
   0x800U
 #endif
   ;
-constexpr unsigned DEFAULT_HASH = std::max(16U, MIN_HASH);
+constexpr std::uint32_t DEFAULT_HASH = std::max(MIN_HASH, 16U);
 
 }  // namespace
 
@@ -101,7 +101,7 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("BookProbeDepth",       Option(100, 1, 256));
     options.add("BookPickBest",         Option(true));
     options.add("SyzygyPath",           Option("", OnCng([](const Option& o) { Tablebase::init(o); return std::nullopt; })));
-    options.add("SyzygyProbeLimit",     Option(7, 0, 7));
+    options.add("SyzygyProbeLimit",     Option(Tablebase::MAX_TB_PIECES, 0, Tablebase::MAX_TB_PIECES));
     options.add("SyzygyProbeDepth",     Option(1, 1, 100));
     options.add("Syzygy50MoveRule",     Option(true));
     options.add("SyzygyPVExtend",       Option(true));
@@ -183,6 +183,7 @@ void Engine::start(const Limit& limit) noexcept {
     assert(!limit.perft);
 
     verify_networks();
+
     threads.start(pos, states, limit, options);
 }
 
@@ -228,9 +229,11 @@ void Engine::dump(std::optional<std::string_view> dumpFile) const noexcept {
     if (dumpFile.has_value())
     {
         std::ofstream ofs(std::string(dumpFile.value()), std::ios::binary);
+
         if (ofs.is_open())
         {
             pos.dump(ofs);
+
             ofs.close();
             return;
         }
@@ -273,8 +276,10 @@ std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts
     const auto& numaConfig   = numaContext.numa_config();
 
     NumaIndex numaIdx = 0;
+
     for (; numaIdx < threadCounts.size(); ++numaIdx)
         ratios.emplace_back(threadCounts[numaIdx], numaConfig.node_cpus_size(numaIdx));
+
     if (!threadCounts.empty())
         for (; numaIdx < numaConfig.nodes_size(); ++numaIdx)
             ratios.emplace_back(0, numaConfig.node_cpus_size(numaIdx));
@@ -291,6 +296,7 @@ std::string Engine::get_thread_binding_info_str() const noexcept {
         {
             if (itr != boundThreadCounts.begin())
                 oss << ':';
+
             oss << itr->first << '/' << itr->second;
         }
 
@@ -303,6 +309,7 @@ std::string Engine::get_thread_allocation_info_str() const noexcept {
     oss << "Threads: " << threads.size();
 
     auto threadBindingInfoStr = get_thread_binding_info_str();
+
     if (!threadBindingInfoStr.empty())
         oss << " with NUMA node thread binding: " << threadBindingInfoStr;
 
@@ -315,6 +322,7 @@ void Engine::verify_networks() const noexcept {
     networks->small.verify(options["SmallEvalFile"]);
 
     auto statuses = networks.get_status_and_errors();
+
     for (std::size_t i = 0; i < statuses.size(); ++i)
     {
         const auto& [status, error] = statuses[i];

@@ -96,8 +96,6 @@ enum TBFlag : std::uint8_t {
     SINGLE_VALUE = 128
 };
 
-// Max number of supported piece
-constexpr std::uint32_t MAX_TB_PIECES = 7;
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit
 constexpr std::int32_t MAX_DTZ = 0x40000;
 

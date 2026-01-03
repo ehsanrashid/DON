@@ -1401,10 +1401,6 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Increase reduction if ttMove is a capture
         r += ttCapture * 1119;
 
-        // Increase reduction for quiet moves at high depth.
-        // Quiet moves at high depth are less likely to be critical.
-        r += (!capture && depth >= 12) * 256;
-
         // Increase reduction if current ply has a lot of fail high
         r += (ss->cutoffCount > 1) * (128 + (ss->cutoffCount - 2) * 512 + AllNode * 1024);
 
@@ -1416,14 +1412,14 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Scale up reduction for AllNode
         if constexpr (AllNode)
-            r = r * (depth + 2) / (depth + 1);
+            r += r / (depth + 1);
 
         // Step 17. Late moves reduction / extension (LMR)
         if (depth > 1 && moveCount > 1)
         {
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
-            Depth redDepth = std::max(std::min(newDepth - r / 1024, newDepth + 2), 1) + PVNode * 1;
+            Depth redDepth = std::max(std::min(newDepth - r / 1024, newDepth + 2), 1) + int(PVNode);
 
             value = -search<Cut>(pos, ss + 1, -alpha - 1, -alpha, redDepth, newDepth - redDepth);
 

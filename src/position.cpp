@@ -1374,6 +1374,7 @@ bool Position::check(Move m) const noexcept {
     // the unusual case of a discovered check through the captured pawn.
     case MT::EN_PASSANT : {
         Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
+
         return (slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac)) != 0;
     }
     case MT::CASTLING :
@@ -1410,6 +1411,7 @@ bool Position::dbl_check(Move m) const noexcept {
     case MT::EN_PASSANT : {
         Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
         Bitboard checkersBB  = slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac);
+
         return more_than_one(checkersBB) || (checkersBB != 0 && (checks_bb(PAWN) & dstSq) != 0);
     }
     case MT::CASTLING :
@@ -1442,8 +1444,10 @@ bool Position::fork(Move m) const noexcept {
     case KING :
         return more_than_one(pieces_bb(~ac) & ~pieces_bb(KING, QUEEN)
                              & attacks_bb<KING>(m.dst_sq()));
-    default :;
+    default :
+        return false;
     }
+    assert(false);
     return false;
 }
 

@@ -35,6 +35,9 @@ using TimeFunc = std::function<bool()>;
 
 namespace Tablebase {
 
+// Max number of supported piece
+inline constexpr std::uint8_t MAX_TB_PIECES = 7;
+
 enum WDLScore : std::int8_t {
     WDL_LOSS         = -2,  // Loss
     WDL_BLESSED_LOSS = -1,  // Loss, but draw under 50-move rule
