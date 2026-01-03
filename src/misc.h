@@ -287,47 +287,49 @@ struct OffsetView final {
     constexpr const T* data(const T* const base) const noexcept { return base + offset(); }
 
     // --- Iterator helpers using external count ---
-    constexpr T*       begin(T* const base) noexcept { return data(base); }
-    constexpr T*       end(T* const base, size_type count) noexcept { return begin(base) + count; }
-    constexpr const T* begin(const T* const base) const noexcept { return data(base); }
-    constexpr const T* end(const T* const base, size_type count) const noexcept {
-        return begin(base) + count;
-    }
+    //constexpr T*       begin(T* const base) noexcept { return data(base); }
+    //constexpr T*       end(T* const base, size_type count) noexcept { return begin(base) + count; }
+    //constexpr const T* begin(const T* const base) const noexcept { return data(base); }
+    //constexpr const T* end(const T* const base, size_type count) const noexcept { return begin(base) + count; }
 
     // --- Push/pop using external count ---
-    bool push_back(const T& value, T* const base, size_type count) noexcept {
+    void push_back(const T& value, T* const base, size_type count) noexcept {
         assert(count < size());
+
         data(base)[count] = value;
-        return true;
     }
-    bool push_back(T&& value, T* const base, size_type count) noexcept {
+    void push_back(T&& value, T* const base, size_type count) noexcept {
         assert(count < size());
+
         data(base)[count] = std::move(value);
-        return true;
     }
 
-    void pop_back([[maybe_unused]] size_type count) noexcept {
-        assert(count != 0);
-        // just placeholder, does not modify count
-    }
+    //void pop_back([[maybe_unused]] size_type count) noexcept {
+    //    assert(count != 0);
+    //    // just placeholder, does not modify count
+    //}
 
     T& back(T* const base, size_type count) noexcept {
         assert(count != 0);
+
         return data(base)[count - 1];
     }
     const T& back(const T* const base, size_type count) const noexcept {
         assert(count != 0);
+
         return data(base)[count - 1];
     }
 
     // --- Element access using external count ---
-    T& at(size_type idx, T* const base, [[maybe_unused]] size_type count) noexcept {
-        assert(idx < count);
+    T& at(size_type idx, T* const base /*, [[maybe_unused]] size_type count*/) noexcept {
+        //assert(idx < count);
+
         return data(base)[idx];
     }
-    const T&
-    at(size_type idx, const T* const base, [[maybe_unused]] size_type count) const noexcept {
-        assert(idx < count);
+    const T& at(size_type      idx,
+                const T* const base /*, [[maybe_unused]] size_type count*/) const noexcept {
+        //assert(idx < count);
+
         return data(base)[idx];
     }
 
@@ -346,10 +348,12 @@ struct OffsetView final {
     // --- Return iterable for range-based for ---
     Iterable iterate(T* const base, size_type count) noexcept {
         assert(count <= size());
+
         return {data(base), count};
     }
     const Iterable iterate(const T* const base, size_type count) const noexcept {
         assert(count <= size());
+
         return {const_cast<T*>(data(base)), count};
     }
 

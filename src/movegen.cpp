@@ -21,6 +21,7 @@
 #include <cstring>
 #include <functional>
 #include <initializer_list>
+
 #if defined(USE_AVX512ICL)
     #include <immintrin.h>
 #endif
@@ -284,15 +285,15 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) 
                   "Unsupported piece type in generate_piece_moves()");
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
 
-    const auto& pL  = pos.squares<PT>(AC);
-    const auto  cnt = pos.count(AC, PT);
-    assert(cnt <= Position::CAPACITIES[PT - 1]);
+    const auto cnt = pos.count(AC, PT);
+
+    if (cnt == 0)
+        return moves;
 
     StdArray<Square, Position::CAPACITIES[PT - 1]> sqs;
     //std::memset(sqs.data(), SQ_NONE, sizeof(sqs));
 
-    if (cnt != 0)
-        std::memcpy(sqs.data(), pL.data(pos.base(AC)), cnt * sizeof(Square));
+    std::memcpy(sqs.data(), pos.squares(AC, PT).data(pos.base(AC)), cnt * sizeof(Square));
 
     Square*       begSq = sqs.data();
     Square* const endSq = begSq + cnt;

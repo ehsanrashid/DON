@@ -201,10 +201,7 @@ class Position final {
     std::uint8_t count(Piece pc) const noexcept;
     std::uint8_t count() const noexcept;
 
-    [[nodiscard]] auto&       squares(Color c, PieceType pt) noexcept;
     [[nodiscard]] const auto& squares(Color c, PieceType pt) const noexcept;
-    template<PieceType PT>
-    [[nodiscard]] const auto& squares(Color c) const noexcept;
     [[nodiscard]] const auto& squares(Piece pc) const noexcept;
     auto                      squares(Color c, std::size_t& n) const noexcept;
     auto                      squares(std::size_t& n) const noexcept;
@@ -327,8 +324,8 @@ class Position final {
     bool has_repeated() const noexcept;
     bool is_upcoming_repetition(std::int16_t ply) const noexcept;
 
-    void  put(Square s, const Piece pc, DirtyThreats* const dts = nullptr) noexcept;
-    Piece remove(Square s, DirtyThreats* const dts = nullptr) noexcept;
+    void  put(const Square s, const Piece pc, DirtyThreats* const dts = nullptr) noexcept;
+    Piece remove(const Square s, DirtyThreats* const dts = nullptr) noexcept;
 
     void flip() noexcept;
     void mirror() noexcept;
@@ -405,8 +402,8 @@ class Position final {
                             Bitboard* const _epPawnsBB = nullptr) const noexcept;
 
     // Other helpers
-    Piece move(Square s1, Square s2, DirtyThreats* const dts = nullptr) noexcept;
-    Piece swap(Square s, Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
+    Piece move(const Square s1, const Square s2, DirtyThreats* const dts = nullptr) noexcept;
+    Piece swap(const Square s, const Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
 
     template<bool Put, bool ComputeRay = true>
     void update_pc_threats(Square              s,
@@ -532,17 +529,8 @@ inline std::uint8_t Position::count(Piece pc) const noexcept {
 
 inline std::uint8_t Position::count() const noexcept { return popcount(pieces_bb()); }
 
-inline auto& Position::squares(Color c, PieceType pt) noexcept {  //
-    return pieceLists[c][pt];
-}
-
 inline const auto& Position::squares(Color c, PieceType pt) const noexcept {
     return pieceLists[c][pt];
-}
-
-template<PieceType PT>
-inline const auto& Position::squares(Color c) const noexcept {
-    return squares(c, PT);
 }
 
 inline const auto& Position::squares(Piece pc) const noexcept {
@@ -554,13 +542,15 @@ inline auto Position::squares(Color c, std::size_t& n) const noexcept {
     std::memset(sqs.data(), SQ_NONE, sizeof(sqs));
 
     n = 0;
+
     for (PieceType pt : PIECE_TYPES)
     {
-        const auto& pL  = squares(c, pt);
-        const auto  cnt = count(c, pt);
+        auto cnt = count(c, pt);
+
         if (cnt != 0)
         {
-            std::memcpy(sqs.data() + n, pL.data(base(c)), cnt * sizeof(Square));
+            std::memcpy(sqs.data() + n, squares(c, pt).data(base(c)), cnt * sizeof(Square));
+
             n += cnt;
         }
     }
@@ -573,14 +563,16 @@ inline auto Position::squares(std::size_t& n) const noexcept {
     std::memset(sqs.data(), SQ_NONE, sizeof(sqs));
 
     n = 0;
+
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            const auto& pL  = squares(c, pt);
-            const auto  cnt = count(c, pt);
+            auto cnt = count(c, pt);
+
             if (cnt != 0)
             {
-                std::memcpy(sqs.data() + n, pL.data(base(c)), cnt * sizeof(Square));
+                std::memcpy(sqs.data() + n, squares(c, pt).data(base(c)), cnt * sizeof(Square));
+
                 n += cnt;
             }
         }
@@ -590,10 +582,9 @@ inline auto Position::squares(std::size_t& n) const noexcept {
 
 template<PieceType PT>
 inline Square Position::square(Color c) const noexcept {
-    const auto cnt = count(c, PT);
-    assert(cnt == 1);
+    assert(count(c, PT) == 1);
 
-    return squares<PT>(c).at(0, base(c), cnt);
+    return squares(c, PT).at(0, base(c));
 }
 
 inline Square Position::en_passant_sq() const noexcept { return st->enPassantSq; }
@@ -745,7 +736,7 @@ inline Bitboard Position::attacks_by_bb(Color c) const noexcept {
         Bitboard attacksBB   = 0;
         Bitboard occupancyBB = pieces_bb() ^ square<KING>(~c);
 
-        for (Square s : squares<PT>(c).iterate(base(c), count(c, PT)))
+        for (Square s : squares(c, PT).iterate(base(c), count(c, PT)))
             attacksBB |= attacks_bb<PT>(s, occupancyBB);
 
         return attacksBB;
@@ -816,7 +807,7 @@ inline Key Position::material_key() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            const auto cnt = count(c, pt);
+            auto cnt = count(c, pt);
 
             if (cnt == 0 || pt == KING)
                 continue;
@@ -923,9 +914,10 @@ inline void Position::reset_en_passant_sq() noexcept { st->enPassantSq = SQ_NONE
 
 inline void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
 
-inline void Position::put(Square s, const Piece pc, DirtyThreats* const dts) noexcept {
+inline void Position::put(const Square s, const Piece pc, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && is_ok(pc) && empty(s));
-    Bitboard sBB = square_bb(s);
+
+    const Bitboard sBB = square_bb(s);
 
     const auto c   = color_of(pc);
     const auto pt  = type_of(pc);
@@ -935,20 +927,19 @@ inline void Position::put(Square s, const Piece pc, DirtyThreats* const dts) noe
     colorBBs[c] |= sBB;
     typeBBs[ALL] |= typeBBs[pt] |= sBB;
 
-    auto& pL = squares(c, pt);
-    auto* pB = base(c);
-
     indexMap[s] = cnt;
-    pL.push_back(s, pB, cnt);
+    pieceLists[c][pt].push_back(s, base(c), cnt);
+
     assert(count(c, pt) <= CAPACITIES[pt - 1]);
 
     if (dts != nullptr)
         update_pc_threats<true>(s, pc, dts);
 }
 
-inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
+inline Piece Position::remove(const Square s, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && !empty(s));
-    Bitboard sBB = square_bb(s);
+
+    const Bitboard sBB = square_bb(s);
 
     const Piece pc  = piece(s);
     const auto  c   = color_of(pc);
@@ -964,21 +955,21 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     typeBBs[pt] ^= sBB;
     typeBBs[ALL] ^= sBB;
 
-    auto  idx = indexMap[s];
-    auto& pL  = squares(c, pt);
-    auto* pB  = base(c);
-    assert(idx < pL.size());
-    Square sq    = pL.back(pB, cnt);
+    auto idx = indexMap[s];
+    assert(idx < pieceLists[c][pt].size());
+    Square sq    = pieceLists[c][pt].back(base(c), cnt);
     indexMap[sq] = idx;
     //indexMap[s]  = INDEX_NONE;
-    pL.at(idx, pB, cnt) = sq;
+    pieceLists[c][pt].at(idx, base(c) /*, cnt*/) = sq;
+    //pieceLists[c][pt].pop_back(cnt);
 
     return pc;
 }
 
-inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexcept {
+inline Piece Position::move(const Square s1, const Square s2, DirtyThreats* const dts) noexcept {
     assert(is_ok(s1) && is_ok(s2) && s1 != s2 && !empty(s1));
-    Bitboard s1s2BB = make_bb(s1, s2);
+
+    const Bitboard s1s2BB = make_bb(s1, s2);
 
     const Piece pc  = piece(s1);
     const auto  c   = color_of(pc);
@@ -995,13 +986,11 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     typeBBs[pt] ^= s1s2BB;
     typeBBs[ALL] ^= s1s2BB;
 
-    auto  idx = indexMap[s1];
-    auto& pL  = squares(c, pt);
-    auto* pB  = base(c);
-    assert(idx < pL.size());
+    auto idx = indexMap[s1];
+    assert(idx < pieceLists[c][pt].size());
     indexMap[s2] = idx;
     //indexMap[s1] = INDEX_NONE;
-    pL.at(idx, pB, cnt) = s2;
+    pieceLists[c][pt].at(idx, base(c) /*, cnt*/) = s2;
 
     if (dts != nullptr)
         update_pc_threats<true>(s2, pc, dts, s1s2BB);
@@ -1009,7 +998,7 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     return pc;
 }
 
-inline Piece Position::swap(Square s, Piece newPc, DirtyThreats* const dts) noexcept {
+inline Piece Position::swap(const Square s, const Piece newPc, DirtyThreats* const dts) noexcept {
 
     const Piece oldPc = remove(s);
 
