@@ -547,12 +547,12 @@ inline auto Position::squares(Color c, std::size_t& n) const noexcept {
     {
         auto cnt = count(c, pt);
 
-        if (cnt != 0)
-        {
-            std::memcpy(sqs.data() + n, squares(c, pt).data(base(c)), cnt * sizeof(Square));
+        if (cnt == 0)
+            continue;
 
-            n += cnt;
-        }
+        std::memcpy(sqs.data() + n, squares(c, pt).data(base(c)), cnt * sizeof(Square));
+
+        n += cnt;
     }
 
     return sqs;
@@ -569,12 +569,12 @@ inline auto Position::squares(std::size_t& n) const noexcept {
         {
             auto cnt = count(c, pt);
 
-            if (cnt != 0)
-            {
-                std::memcpy(sqs.data() + n, squares(c, pt).data(base(c)), cnt * sizeof(Square));
+            if (cnt == 0)
+                continue;
 
-                n += cnt;
-            }
+            std::memcpy(sqs.data() + n, squares(c, pt).data(base(c)), cnt * sizeof(Square));
+
+            n += cnt;
         }
 
     return sqs;
@@ -733,7 +733,8 @@ inline Bitboard Position::attacks_by_bb(Color c) const noexcept {
         return pawn_attacks_bb(pieces_bb(c, PAWN), c);
     else
     {
-        Bitboard attacksBB   = 0;
+        Bitboard attacksBB = 0;
+
         Bitboard occupancyBB = pieces_bb() ^ square<KING>(~c);
 
         for (Square s : squares(c, PT).iterate(base(c), count(c, PT)))
