@@ -630,12 +630,9 @@ void Position::set_state() noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            const auto& pL  = squares(c, pt);
-            const auto* pB  = base(c);
-            const auto  cnt = count(c, pt);
-            for (const Square* s = pL.begin(pB); s != pL.end(pB, cnt); ++s)
+            for (Square s : squares(c, pt).iterate(base(c), count(c, pt)))
             {
-                Key key = Zobrist::piece_square(c, pt, *s);
+                Key key = Zobrist::piece_square(c, pt, s);
                 assert(key != 0);
 
                 st->key ^= key;
@@ -2110,21 +2107,17 @@ bool Position::_is_ok() const noexcept {
                 assert(false && "Position::_is_ok(): Bitboards");
 
     for (Color c : {WHITE, BLACK})
-    {
-        const auto* pB = base(c);
         for (PieceType pt : PIECE_TYPES)
         {
-            Piece       pc  = make_piece(c, pt);
-            const auto& pL  = squares(c, pt);
-            const auto  cnt = count(c, pt);
-            for (std::uint8_t i = 0; i < cnt; ++i)
+            const Piece  pc  = make_piece(c, pt);
+            std::uint8_t idx = 0;
+            for (Square s : squares(c, pt).iterate(base(c), count(c, pt)))
             {
-                Square s = pL.at(i, pB, cnt);
-                if (piece(s) != pc || indexMap[s] != i)
+                if (piece(s) != pc || indexMap[s] != idx)
                     assert(0 && "_is_ok: Piece List");
+                ++idx;
             }
         }
-    }
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
@@ -2334,11 +2327,8 @@ void Position::dump(std::ostream& os) const noexcept {
         for (PieceType pt : PIECE_TYPES)
         {
             os << to_char(make_piece(c, pt)) << ": ";
-            const auto& pL  = squares(c, pt);
-            const auto* pB  = base(c);
-            const auto  cnt = count(c, pt);
-            for (const Square* s = pL.begin(pB); s != pL.end(pB, cnt); ++s)
-                os << to_square(*s) << " ";
+            for (Square s : squares(c, pt).iterate(base(c), count(c, pt)))
+                os << to_square(s) << " ";
             os << "\n";
         }
 

@@ -285,14 +285,14 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
 
     const auto& pL  = pos.squares<PT>(AC);
-    const auto* pB  = pos.base(AC);
     const auto  cnt = pos.count(AC, PT);
     assert(cnt <= Position::CAPACITIES[PT - 1]);
 
     StdArray<Square, Position::CAPACITIES[PT - 1]> sqs;
+    //std::memset(sqs.data(), SQ_NONE, sizeof(sqs));
 
     if (cnt != 0)
-        std::memcpy(sqs.data(), pL.data(pB), cnt * sizeof(Square));
+        std::memcpy(sqs.data(), pL.data(pos.base(AC)), cnt * sizeof(Square));
 
     Square*       begSq = sqs.data();
     Square* const endSq = begSq + cnt;

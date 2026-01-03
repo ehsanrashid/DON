@@ -331,6 +331,28 @@ struct OffsetView final {
         return data(base)[idx];
     }
 
+    // --- STL-style iterable proxy ---
+    struct Iterable final {
+       public:
+        T*       begin() { return base; }
+        T*       end() { return begin() + count; }
+        const T* begin() const { return base; }
+        const T* end() const { return begin() + count; }
+
+        T*        base;
+        size_type count;
+    };
+
+    // --- Return iterable for range-based for ---
+    Iterable iterate(T* const base, size_type count) noexcept {
+        assert(count <= size());
+        return {data(base), count};
+    }
+    const Iterable iterate(const T* const base, size_type count) const noexcept {
+        assert(count <= size());
+        return {const_cast<T*>(data(base)), count};
+    }
+
    private:
     off_type  _offset = 0;
     size_type _size   = 0;
