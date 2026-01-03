@@ -211,16 +211,13 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
 
     const auto& piecePairData = LUT_DATAS[+attackerPc][+attackedPc];
 
-    // Some threats imply the existence of the corresponding ones in the opposite direction.
-    // Filter them here to ensure only one such threat is active.
-
-    // In the below addition, the 2nd lsb gets set iff either the pair is always excluded,
-    // or the pair is semi-excluded and orgSq < dstSq.
-    // By using an unsigned compare, the following sequence can use an add-with-carry instruction.
+    // Check for excluded piece pairs
     if (((piecePairData.excluded_pair_info() + int(orgSq < dstSq)) & 0x2) != 0)
         return FullThreats::Dimensions;
 
-    return piecePairData.feature_base_index() + SQUARE_OFFSETS[+attackerPc][orgSq]
+    // Compute final index
+    return piecePairData.feature_base_index()  //
+         + SQUARE_OFFSETS[+attackerPc][orgSq]  //
          + lut_index(attackerPc, orgSq, dstSq);
 }
 

@@ -158,29 +158,32 @@ void Threads::set(const NumaConfig&                       numaConfig,
     historiesMap.max_load_factor(1.0f);
 
     // Populate shared histories map (optionally NUMA-bound)
-    if (!threadBindable)
+    if (threadBindable)
     {
-        for (const auto& [numaIdx, count] : numaThreadCounts)
+        for (const auto& pair : numaThreadCounts)
         {
-            const std::size_t roundedSize = next_pow2(count);
+            NumaIndex   numaIdx = pair.first;
+            std::size_t count   = pair.second;
 
-            historiesMap.try_emplace(numaIdx, roundedSize);
+            std::size_t roundedCount = next_pow2(count);
+
+            numaConfig.execute_on_numa_node(numaIdx,
+                                            [&historiesMap, numaIdx, roundedCount]() noexcept {
+                                                historiesMap.try_emplace(numaIdx, roundedCount);
+                                            });
         }
     }
     else
     {
         for (const auto& [numaIdx, count] : numaThreadCounts)
         {
-            const std::size_t roundedSize = next_pow2(count);
+            std::size_t roundedCount = next_pow2(count);
 
-            numaConfig.execute_on_numa_node(
-              numaIdx, [&historiesMap, _numaIdx = numaIdx, roundedSize]() noexcept {
-                  historiesMap.try_emplace(_numaIdx, roundedSize);
-              });
+            historiesMap.try_emplace(numaIdx, roundedCount);
         }
     }
 
-    const auto* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
+    const NumaConfig* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
 
     std::unordered_map<NumaIndex, std::size_t> numaIds;
 

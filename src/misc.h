@@ -229,7 +229,7 @@ class [[nodiscard]] SyncOstream final {
     return SyncOstream(os);
 }
 
-// --- TableView with size ---
+// --- TableView with pointer and size ---
 template<typename T>
 class TableView final {
    public:
@@ -239,14 +239,15 @@ class TableView final {
         _data(data),
         _size(size) {}
 
-    constexpr T*          data() noexcept { return _data; }
-    constexpr T*          data() const noexcept { return _data; }
+    constexpr T*       data() noexcept { return _data; }
+    constexpr const T* data() const noexcept { return _data; }
+
     constexpr std::size_t size() const noexcept { return _size; }
 
     constexpr T* begin() noexcept { return data(); }
-    constexpr T* end() noexcept { return data() + size(); }
+    constexpr T* end() noexcept { return begin() + size(); }
     constexpr T* begin() const noexcept { return data(); }
-    constexpr T* end() const noexcept { return data() + size(); }
+    constexpr T* end() const noexcept { return begin() + size(); }
 
     constexpr T& operator[](std::size_t idx) noexcept {
         assert(idx < size());
@@ -262,83 +263,103 @@ class TableView final {
     std::size_t _size = 0;
 };
 
-// --- TableView with size and count ---
+// --- OffsetView with offset + size ---
 template<typename T>
-struct CountTableView final {
-    using off_type  = std::uint16_t;
+struct OffsetView final {
+    using off_type  = std::uint8_t;
     using size_type = std::uint8_t;
 
-    constexpr CountTableView() noexcept = default;
-    constexpr CountTableView(off_type offset, size_type size, size_type count = 0) noexcept :
+    constexpr OffsetView() noexcept = default;
+    constexpr OffsetView(off_type offset, size_type size) noexcept :
         _offset(offset),
-        _size(size),
-        _count(count) {}
+        _size(size) {}
 
-    void set(off_type offset, size_type size, size_type count = 0) noexcept {
+    void set(off_type offset, size_type size) noexcept {
         _offset = offset;
         _size   = size;
-        _count  = count;
     }
 
-    constexpr off_type offset() const noexcept { return _offset; }
+    constexpr off_type  offset() const noexcept { return _offset; }
+    constexpr size_type size() const noexcept { return _size; }
 
+    // --- Access data from a base pointer ---
     constexpr T*       data(T* const base) noexcept { return base + offset(); }
     constexpr const T* data(const T* const base) const noexcept { return base + offset(); }
 
-    constexpr size_type size() const noexcept { return _size; }
-    constexpr size_type count() const noexcept { return _count; }
+    // --- Iterator helpers using external count ---
+    //constexpr T*       begin(T* const base) noexcept { return data(base); }
+    //constexpr T*       end(T* const base, size_type count) noexcept { return begin(base) + count; }
+    //constexpr const T* begin(const T* const base) const noexcept { return data(base); }
+    //constexpr const T* end(const T* const base, size_type count) const noexcept { return begin(base) + count; }
 
-    constexpr T*       begin(T* const base) noexcept { return data(base); }
-    constexpr T*       end(T* const base) noexcept { return data(base) + count(); }
-    constexpr const T* begin(const T* const base) const noexcept { return data(base); }
-    constexpr const T* end(const T* const base) const noexcept { return data(base) + count(); }
+    // --- Push/pop using external count ---
+    void push_back(const T& value, T* const base, size_type count) noexcept {
+        assert(count < size());
 
-    bool push_back(const T& value, T* const base) noexcept {
-        assert(count() < size());
-        data(base)[_count++] = value;
-        return true;
+        data(base)[count] = value;
     }
-    bool push_back(T&& value, T* const base) noexcept {
-        assert(count() < size());
-        data(base)[_count++] = std::move(value);
-        return true;
-    }
+    void push_back(T&& value, T* const base, size_type count) noexcept {
+        assert(count < size());
 
-    void pop_back() noexcept {
-        assert(count() != 0);
-        --_count;
+        data(base)[count] = std::move(value);
     }
 
-    T& back(T* const base) noexcept {
-        assert(count() != 0);
-        return data(base)[count() - 1];
+    //void pop_back([[maybe_unused]] size_type count) noexcept {
+    //    assert(count != 0);
+    //    // just placeholder, does not modify count
+    //}
+
+    T& back(T* const base, size_type count) noexcept {
+        assert(count != 0);
+
+        return data(base)[count - 1];
     }
-    const T& back(const T* const base) const noexcept {
-        assert(count() != 0);
-        return data(base)[count() - 1];
+    const T& back(const T* const base, size_type count) const noexcept {
+        assert(count != 0);
+
+        return data(base)[count - 1];
     }
 
-    T& at(size_type idx, T* const base) noexcept {
-        assert(idx < count());
+    // --- Element access ---
+    T& at(size_type idx, T* const base /*, [[maybe_unused]] size_type count*/) noexcept {
+        //assert(idx < count);
+
         return data(base)[idx];
     }
-    const T& at(size_type idx, const T* const base) const noexcept {
-        assert(idx < count());
+    const T& at(size_type      idx,
+                const T* const base /*, [[maybe_unused]] size_type count*/) const noexcept {
+        //assert(idx < count);
+
         return data(base)[idx];
     }
 
-    void clear() noexcept { _count = 0; }
+    // --- STL-style iterable proxy ---
+    struct Iterable final {
+       public:
+        T*       begin() { return base; }
+        T*       end() { return begin() + count; }
+        const T* begin() const { return base; }
+        const T* end() const { return begin() + count; }
 
-    void count(size_type newCount) noexcept {
-        if (newCount > size())
-            newCount = size();
-        _count = newCount;
+        T*        base;
+        size_type count;
+    };
+
+    // --- Return iterable for range-based for ---
+    Iterable iterate(T* const base, size_type count) noexcept {
+        assert(count <= size());
+
+        return {data(base), count};
+    }
+    const Iterable iterate(const T* const base, size_type count) const noexcept {
+        assert(count <= size());
+
+        return {const_cast<T*>(data(base)), count};
     }
 
    private:
     off_type  _offset = 0;
     size_type _size   = 0;
-    size_type _count  = 0;
 };
 
 template<typename T, std::size_t Size, std::size_t... Sizes>
