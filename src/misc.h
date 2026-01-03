@@ -320,7 +320,7 @@ struct OffsetView final {
         return data(base)[count - 1];
     }
 
-    // --- Element access using external count ---
+    // --- Element access ---
     T& at(size_type idx, T* const base /*, [[maybe_unused]] size_type count*/) noexcept {
         //assert(idx < count);
 

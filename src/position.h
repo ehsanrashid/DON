@@ -839,6 +839,7 @@ inline bool Position::has_non_pawn(Color c) const noexcept {
     for (PieceType pt : NON_PAWN_PIECE_TYPES)
         if (pieces_bb(c, pt) != 0)
             return true;
+
     return false;
 }
 
@@ -1216,6 +1217,7 @@ inline bool Position::SEE::operator<(int threshold) const noexcept { return !(*t
 
 inline std::uint8_t rule50_threshold(std::int8_t r50 = -4) noexcept {
     assert(r50 >= -2 * Position::DrawMoveCount);
+
     return r50 + 2 * Position::DrawMoveCount;
 }
 

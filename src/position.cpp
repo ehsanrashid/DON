@@ -2115,7 +2115,7 @@ bool Position::_is_ok() const noexcept {
             for (Square s : squares(c, pt).iterate(base(c), count(c, pt)))
             {
                 if (piece(s) != pc || indexMap[s] != idx)
-                    assert(0 && "_is_ok: Piece List");
+                    assert(0 && "Position::_is_ok(): Piece List");
                 ++idx;
             }
         }
@@ -2123,8 +2123,8 @@ bool Position::_is_ok() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            Piece pc  = make_piece(c, pt);
-            auto  cnt = count(c, pt);
+            const Piece pc  = make_piece(c, pt);
+            const auto  cnt = count(c, pt);
             if (cnt != popcount(pieces_bb(c, pt))
                 || cnt != std::count(piece_map().begin(), piece_map().end(), pc))
                 assert(false && "Position::_is_ok(): Piece List Count");
