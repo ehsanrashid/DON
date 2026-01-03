@@ -971,11 +971,10 @@ inline Piece Position::move(const Square s1, const Square s2, DirtyThreats* cons
 
     const Bitboard s1s2BB = make_bb(s1, s2);
 
-    const Piece pc  = piece(s1);
-    const auto  c   = color_of(pc);
-    const auto  pt  = type_of(pc);
-    const auto  cnt = count(c, pt);
-    assert(is_ok(pc) && cnt != 0);
+    const Piece pc = piece(s1);
+    const auto  c  = color_of(pc);
+    const auto  pt = type_of(pc);
+    assert(is_ok(pc) && count(c, pt) != 0);
 
     if (dts != nullptr)
         update_pc_threats<false>(s1, pc, dts, s1s2BB);
