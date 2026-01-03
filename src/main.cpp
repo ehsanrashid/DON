@@ -19,28 +19,15 @@
 #include <memory>
 
 #include "bitboard.h"
-#include "memory.h"
 #include "misc.h"
-#include "position.h"
-#include "syzygy/tablebase.h"
-#include "tune.h"
-#include "uci.h"
 
 using namespace DON;
 
-int main(int argc, const char* argv[]) {
+int main(int, const char*[]) {
 
     std::cout << engine_info() << std::endl;
 
-    BitBoard::init();
-    Position::init();
-    Tablebase::init();
-
-    auto uci = std::make_unique<UCI>(argc, argv);
-
-    Tune::init(uci->options());
-
-    uci->run();
+    BitBoard::find_magic_seeds();
 
     return 0;
 }
