@@ -1241,10 +1241,12 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for captures and checks
-                int margin = -std::max(166 * depth + int(34.4828e-3 * history), 0);
+                int margin = 166 * depth + int(34.4828e-3 * history);
+                if (margin < 0)
+                    margin = 0;
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                  && pos.see(move) < margin)
+                  && pos.see(move) < -margin)
                     continue;
             }
             else
@@ -1281,11 +1283,12 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for quiets and checks
-                int margin =
-                  -std::max(int(check) * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth), 0);
+                int margin = int(check) * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth);
+                if (margin < 0)
+                    margin = 0;
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                  && pos.see(move) < margin)
+                  && pos.see(move) < -margin)
                     continue;
             }
         }
@@ -1822,9 +1825,15 @@ QS_MOVES_LOOP:
                 }
 
                 // SEE based pruning
-                if (pos.see(move) < (alpha - futBaseValue))
+                int margin = alpha - futBaseValue;
+                if (margin < 0)
+                    margin = 0;
+                if (pos.see(move) < -margin)
                 {
-                    bestValue = std::min(alpha, futBaseValue);
+                    margin = std::min(alpha, futBaseValue);
+
+                    if (bestValue < margin)
+                        bestValue = margin;
                     continue;
                 }
             }
