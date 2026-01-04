@@ -1828,10 +1828,9 @@ QS_MOVES_LOOP:
                     margin = 0;
                 if (pos.see(move) < -margin)
                 {
-                    margin = std::min(alpha, futBaseValue);
-
-                    if (bestValue < margin)
-                        bestValue = margin;
+                    Value minValue = std::min(alpha, futBaseValue);
+                    if (bestValue < minValue)
+                        bestValue = minValue;
                     continue;
                 }
             }
