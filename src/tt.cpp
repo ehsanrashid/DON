@@ -255,11 +255,11 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
         for (const auto& entry : clusters[idx].entries)
             count += entry.occupied() && entry.relative_age(generation8) <= relMaxAge;
 
-    // Scale up if there were fewer clusters
-    double scale = double(requiredCount) / actualCount;
+    // Scale proportionally to requiredCount using integer arithmetic
+    // scaledCount = count * requiredCount / actualCount
+    std::uint32_t scaledCount = (count * requiredCount + actualCount - 1) / actualCount;
 
-    std::uint32_t scaledCount = std::uint32_t(scale * count);
-
+    // Normalize per entries per cluster
     return scaledCount / clusters->entries.size();
 }
 
