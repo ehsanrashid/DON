@@ -88,39 +88,13 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
 constexpr auto& PIECE_THREATS  = THREAT_TABLE.pieceThreats;
 constexpr auto& SQUARE_OFFSETS = THREAT_TABLE.squareOffsets;
 
-// Information on a particular pair of pieces and whether they should be excluded
-struct PiecePairData final {
-   public:
-    static constexpr std::uint8_t EXCLUDED_PAIR_INFO_OFFSET = 0;
-    static constexpr std::uint8_t FEATURE_BASE_INDEX_OFFSET = 8;
+constexpr std::uint8_t  EXCLUDED_PAIR_INFO_OFFSET = 31;
+constexpr std::uint32_t EXCLUDED_PAIR_INFO_MASK   = 1U << EXCLUDED_PAIR_INFO_OFFSET;
 
-    constexpr PiecePairData() noexcept :
-        data(0) {}
-    constexpr PiecePairData(std::uint32_t d) noexcept :
-        data(d) {}
-    constexpr PiecePairData(bool semiExcluded, bool excluded, IndexType featureBaseIndex) noexcept :
-        PiecePairData((featureBaseIndex << FEATURE_BASE_INDEX_OFFSET)
-                      | (excluded << (1 + EXCLUDED_PAIR_INFO_OFFSET))
-                      | ((semiExcluded && !excluded) << EXCLUDED_PAIR_INFO_OFFSET)) {}
-
-    // lsb: excluded if orgSq < dstSq; 2nd lsb: always excluded
-    constexpr std::uint8_t excluded_pair_info() const noexcept {
-        return std::uint8_t((data >> EXCLUDED_PAIR_INFO_OFFSET) & 0xFF);
-    }
-    constexpr IndexType feature_base_index() const noexcept {
-        return IndexType(data >> FEATURE_BASE_INDEX_OFFSET);
-    }
-
-   private:
-    // Layout: bits 8..31 are the index contribution of this piece pair, bits 0 and 1 are exclusion info
-    std::uint32_t data;
-};
-
-// The final index is calculated from summing data found in 2 LUTs,
-// as well as SQUARE_OFFSETS[attackerPc][orgSq]
-
+// LUT for getting data about a piece pair
+// [attackerPc][attackedPc][orgSq < dstSq]
 alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
-    StdArray<PiecePairData, PIECE_NB, PIECE_NB> lutDatas{};
+    StdArray<std::uint32_t, PIECE_NB, PIECE_NB, 2> lutDatas{};
 
     for (Color attackerC : {WHITE, BLACK})
         for (PieceType attackerPt : PIECE_TYPES)
@@ -145,14 +119,18 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                       + (attackedC * (MAX_TARGETS[attackerPt - 1] / 2) + map)
                           * PIECE_THREATS[+attackerPc].threatCount;
 
-                    lutDatas[+attackerPc][+attackedPc] =
-                      PiecePairData(semiExcluded, excluded, featureBaseIndex);
+                    lutDatas[+attackerPc][+attackedPc][0] =
+                      ((excluded) << EXCLUDED_PAIR_INFO_OFFSET) | featureBaseIndex;
+                    lutDatas[+attackerPc][+attackedPc][1] =
+                      ((excluded | semiExcluded) << EXCLUDED_PAIR_INFO_OFFSET) | featureBaseIndex;
                 }
         }
 
     return lutDatas;
 }();
 
+// LUT for counting the index of a target square among all attacked squares
+// [attackerPt][orgSq][dstSq]
 alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
     StdArray<std::uint8_t, 1 + PIECE_TYPE_CNT, SQUARE_NB, SQUARE_NB> lutIndices{};
 
@@ -174,13 +152,14 @@ alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
     return lutIndices;
 }();
 
-constexpr std::uint8_t lut_index(Piece pc, Square s1, Square s2) noexcept {
-    assert(is_ok(s1) && is_ok(s2));
+// Get LUT index for a piece, orgSq, dstSq
+constexpr std::uint8_t lut_index(Piece pc, Square orgSq, Square dstSq) noexcept {
+    assert(is_ok(orgSq) && is_ok(dstSq));
 
     if (type_of(pc) == PAWN)
-        return LUT_INDICES[color_of(pc)][s1][s2];
+        return LUT_INDICES[color_of(pc)][orgSq][dstSq];
 
-    return LUT_INDICES[type_of(pc)][s1][s2];
+    return LUT_INDICES[type_of(pc)][orgSq][dstSq];
 }
 
 // Mirror square to have king always on e..h files
@@ -209,16 +188,16 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     attackerPc = relative_piece(perspective, attackerPc);
     attackedPc = relative_piece(perspective, attackedPc);
 
-    const auto& piecePairData = LUT_DATAS[+attackerPc][+attackedPc];
+    const auto& lutData = LUT_DATAS[+attackerPc][+attackedPc][orgSq < dstSq];
 
-    // Check for excluded piece pairs
-    if (((piecePairData.excluded_pair_info() + int(orgSq < dstSq)) & 0x2) != 0)
-        return FullThreats::Dimensions;
+    if ((lutData & EXCLUDED_PAIR_INFO_MASK) != 0)
+        return FullThreats::Dimensions;  // Excluded pair
 
-    // Compute final index
-    return piecePairData.feature_base_index()  //
-         + SQUARE_OFFSETS[+attackerPc][orgSq]  //
-         + lut_index(attackerPc, orgSq, dstSq);
+    // The final index is calculated from summing data found in 2 LUTs,
+    // as well as SQUARE_OFFSETS[attackerPc][orgSq]
+    return lutData                              //
+         + lut_index(attackerPc, orgSq, dstSq)  //
+         + SQUARE_OFFSETS[+attackerPc][orgSq];
 }
 
 }  // namespace
