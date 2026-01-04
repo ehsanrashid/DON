@@ -111,9 +111,14 @@ constexpr StdArray<std::uint8_t, 2, 4> TB_MAGICS{{
 
 // clang-format off
 
-constexpr StdArray<int         , 5> WDL_MAP  {1, 3, 0, 2, 0};
-constexpr StdArray<std::int32_t, 5> WDL_RANK {-MAX_DTZ, -MAX_DTZ + 101, 0, +MAX_DTZ - 101, +MAX_DTZ};
-constexpr StdArray<Value       , 5> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
+constexpr StdArray<int         , WDL_SCORE_NB> WDL_MAP  {        1,              3,          0,              2,        0 };
+constexpr StdArray<std::int32_t, WDL_SCORE_NB> WDL_RANK {-MAX_DTZ , -MAX_DTZ + 101,          0, +MAX_DTZ - 101, +MAX_DTZ };
+constexpr StdArray<Value       , WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
+
+constexpr std::size_t wdl_index(WDLScore wdlScore) noexcept { return std::size_t(wdlScore + 2); }
+
+constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
+constexpr int off_A8H1(Square s) noexcept { return int(rank_of(s)) + int(file_of(s)); }
 
 StdArray<std::size_t, SQUARE_NB>     B1H1H7Map;
 StdArray<std::size_t, SQUARE_NB>     A1D1D4Map;
@@ -128,8 +133,6 @@ StdArray<std::size_t, MAX_TB_PIECES - 1, FILE_NB / 2> LeadPawnSize; // [leadPawn
 
 // Comparison function to sort leading pawns in ascending PawnsMap[] order
 constexpr bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
-
-constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 
 // DTZ-tables don't store valid scores for moves that reset the rule50 counter
 // like captures and pawn moves but can easily recover the correct DTZ-score of the
@@ -464,11 +467,11 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
         std::string base;
         base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
 
-        Color c = materialKey == key[WHITE] ? WHITE : BLACK;
+        bool c = materialKey == key[WHITE];
 
-        base += pieces[c];
+        base += pieces[c ? WHITE : BLACK];
         base += 'v';
-        base += pieces[~c];
+        base += pieces[c ? BLACK : WHITE];
 
         TBFile tbFile(base, EXTS[T]);
 
@@ -1177,7 +1180,7 @@ int map_score(TBTable<DTZ>* table, File f, int value, WDLScore wdlScore) noexcep
         auto* mapPtr = table->map_ptr();
         auto* mapIdx = pd->mapIdx.data();
 
-        auto idx = mapIdx[WDL_MAP[wdlScore + 2]] + value;
+        auto idx = mapIdx[WDL_MAP[wdl_index(wdlScore)]] + value;
 
         value = (flags & WIDE) != 0 ? ((std::uint16_t*) mapPtr)[idx] : mapPtr[idx];
     }
@@ -1623,9 +1626,9 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
     // Also in case of only capture moves,
     // for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7,
     // have to return with PS_BEST_MOVE_ZEROING set.
-    bool legalMovesNoMore = moveCount != 0 && moveCount == legalMoves.size();
+    bool legalMovesExhausted = moveCount != 0 && moveCount == legalMoves.size();
 
-    if (legalMovesNoMore)
+    if (legalMovesExhausted)
     {
         wdlScore = bestWdlScore;
     }
@@ -1640,7 +1643,7 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
     // DTZ stores a "don't care" WDL-score if best WDL-score is a win
     if (bestWdlScore >= wdlScore)
     {
-        *ps = legalMovesNoMore || bestWdlScore > WDL_DRAW ? PS_BEST_MOVE_ZEROING : PS_OK;
+        *ps = legalMovesExhausted || bestWdlScore > WDL_DRAW ? PS_BEST_MOVE_ZEROING : PS_OK;
         return bestWdlScore;
     }
 
@@ -1962,16 +1965,12 @@ bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) no
         if (ps == PS_FAIL)
             return false;
 
-        rm.tbRank = WDL_RANK[wdlScore + 2];
+        rm.tbRank = WDL_RANK[wdl_index(wdlScore)];
 
         if (!useRule50)
-            wdlScore = wdlScore > WDL_DRAW
-                       ? WDL_WIN
-                     : wdlScore < WDL_DRAW
-                       ? WDL_LOSS
-                       : WDL_DRAW;
+            wdlScore = normalize_wdl(wdlScore);
 
-        rm.tbValue = WDL_VALUE[wdlScore + 2];
+        rm.tbValue = WDL_VALUE[wdl_index(wdlScore)];
     }
 
     return true;

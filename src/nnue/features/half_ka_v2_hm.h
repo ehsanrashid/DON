@@ -56,7 +56,7 @@ class HalfKAv2_hm final {
     static void append_active_indices(Color                             perspective,
                                       Square                            kingSq,
                                       const StdArray<Piece, SQUARE_NB>& pieceMap,
-                                      Bitboard                          occupancyBB,
+                                      Bitboard                          changedBB,
                                       IndexList&                        active) noexcept;
 
     static void append_changed_indices(Color            perspective,
