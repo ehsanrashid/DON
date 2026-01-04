@@ -867,7 +867,7 @@ std::string UCI::to_score(const Score& score) noexcept {
                    return "cp " + std::to_string((tb.win ? +TB_CP : -TB_CP) - tb.ply);
                },
                [](Score::Mate mate) -> std::string {  //
-                   return "mate " + std::to_string((mate.ply + (mate.ply > 0)) / 2);
+                   return "mate " + std::to_string((mate.ply + int(mate.ply > 0)) / 2);
                }};
 
     return score.visit(format);

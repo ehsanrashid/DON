@@ -201,13 +201,9 @@ void TranspositionTable::init(Threads& threads) noexcept {
     {
         threads.run_on_thread(threadId, [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
-            std::size_t stride = clusterCount / threadCount;
-            std::size_t remain = clusterCount % threadCount;
+            auto [begIdx, count] = thread_index_count(threadId, threadCount, clusterCount);
 
-            std::size_t start = stride * threadId + std::min(threadId, remain);
-            std::size_t count = stride + (threadId < remain);
-
-            std::memset(&clusters[start], 0, count * sizeof(TTCluster));
+            std::memset(&clusters[begIdx], 0, count * sizeof(TTCluster));
         });
     }
 

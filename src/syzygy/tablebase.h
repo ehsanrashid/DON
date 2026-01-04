@@ -18,6 +18,7 @@
 #ifndef SYZYGY_TABLEBASE_H_INCLUDED
 #define SYZYGY_TABLEBASE_H_INCLUDED
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -36,7 +37,7 @@ using TimeFunc = std::function<bool()>;
 namespace Tablebase {
 
 // Max number of supported piece
-inline constexpr std::uint8_t MAX_TB_PIECES = 7;
+inline constexpr std::size_t MAX_TB_PIECES = 7;
 
 enum WDLScore : std::int8_t {
     WDL_LOSS         = -2,  // Loss
@@ -46,6 +47,15 @@ enum WDLScore : std::int8_t {
     WDL_WIN          = +2,  // Win
 };
 
+inline constexpr std::size_t WDL_SCORE_NB = 5;
+
+constexpr WDLScore operator-(WDLScore wdlScore) noexcept { return WDLScore(-int(wdlScore)); }
+
+// Normalize any WDLScore to pure outcome: WDL_LOSS, WDL_DRAW, WDL_WIN
+constexpr WDLScore normalize_wdl(WDLScore wdlScore) noexcept {
+    return WDLScore(2 * ((wdlScore > WDL_DRAW) - (wdlScore < WDL_DRAW)));
+}
+
 inline std::string to_string(WDLScore wdlScore) noexcept {
     return wdlScore == WDL_LOSS         ? "Loss"
          : wdlScore == WDL_BLESSED_LOSS ? "Blessed loss"
@@ -54,8 +64,6 @@ inline std::string to_string(WDLScore wdlScore) noexcept {
          : wdlScore == WDL_WIN          ? "Win"
                                         : "None";
 }
-
-constexpr WDLScore operator-(WDLScore wdlScore) noexcept { return WDLScore(-int(wdlScore)); }
 
 // Possible states after a probing operation
 enum ProbeState : std::int8_t {

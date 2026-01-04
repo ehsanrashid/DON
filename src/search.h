@@ -543,12 +543,6 @@ class Worker final {
     std::uint64_t nodes_() const noexcept { return nodes.load(std::memory_order_relaxed); }
 
    private:
-    struct IndexRange final {
-       public:
-        std::size_t begIdx;
-        std::size_t endIdx;
-    };
-
     bool is_main_worker() const noexcept { return thread_id() == 0; }
 
     // Get a pointer to the search manager,
@@ -600,8 +594,6 @@ class Worker final {
     bool ponder_move_extracted() noexcept;
 
     void extend_tb_pv(std::size_t index, Value& value) noexcept;
-
-    constexpr IndexRange numa_index_range(std::size_t size) const noexcept;
 
     const std::size_t threadId, threadCount, numaId, numaThreadCount;
 

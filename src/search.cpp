@@ -201,28 +201,17 @@ Worker::Worker(std::size_t               threadIdx,
     histories(sharedState.historiesMap.at(accessToken.numa_index())),
     accCaches(networks[accessToken]) {}
 
-constexpr Worker::IndexRange Worker::numa_index_range(std::size_t size) const noexcept {
-    assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
-
-    std::size_t count  = size / numa_thread_count();
-    std::size_t begIdx = numa_id() * count;
-    std::size_t endIdx = numa_id() != numa_thread_count() - 1 ? begIdx + count : size;
-
-    assert(begIdx <= endIdx && endIdx <= size);
-
-    return {begIdx, endIdx};
-}
-
 // Initialize per-thread data structures
 void Worker::init() noexcept {
 
     // Each thread initializes its NUMA-local range of history entries to prevent false sharing
 
-    auto pawnRange = numa_index_range(histories.pawn_size());
+    auto pawnRange = thread_index_range(numa_id(), numa_thread_count(), histories.pawn_size());
 
     histories.pawn().fill(pawnRange.begIdx, pawnRange.endIdx, -1238);
 
-    auto correctionRange = numa_index_range(histories.correction_size());
+    auto correctionRange =
+      thread_index_range(numa_id(), numa_thread_count(), histories.correction_size());
 
     histories.pawn_correction().fill(correctionRange.begIdx, correctionRange.endIdx, 5);
     histories.minor_correction().fill(correctionRange.begIdx, correctionRange.endIdx, 0);
@@ -2044,8 +2033,8 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 
     if (is_ok(preSq))
     {
-        (*(ss - 2)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]                   << 0.9922 * bonus;
-        (*(ss - 4)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]                   << 0.4609 * bonus;
+        (*(ss - 2)->pieceSqCorrectionHistory)[+pos[preSq]][preSq] << 0.9922 * bonus;
+        (*(ss - 4)->pieceSqCorrectionHistory)[+pos[preSq]][preSq] << 0.4609 * bonus;
     }
 }
 
