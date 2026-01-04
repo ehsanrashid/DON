@@ -18,6 +18,7 @@
 #ifndef SYZYGY_TABLEBASE_H_INCLUDED
 #define SYZYGY_TABLEBASE_H_INCLUDED
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>

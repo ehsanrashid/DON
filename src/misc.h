@@ -156,14 +156,18 @@ constexpr double constexpr_log(double x) noexcept {
 inline constexpr std::uint16_t LittleEndianValue = 1;
 inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;
 
-struct StartCount final {
+struct IndexCount final {
    public:
-    std::size_t start;
+    std::size_t begIdx;
     std::size_t count;
+
+    constexpr IndexCount(std::size_t beg, std::size_t cnt) noexcept :
+        begIdx(beg),
+        count(cnt) {}
 };
 
-constexpr StartCount
-thread_start_count(std::size_t threadId, std::size_t threadCount, std::size_t totalSize) noexcept {
+constexpr IndexCount
+thread_index_count(std::size_t threadId, std::size_t threadCount, std::size_t totalSize) noexcept {
     assert(threadCount != 0 && threadId < threadCount);
 
     std::size_t stride = totalSize / threadCount;
@@ -177,6 +181,10 @@ struct IndexRange final {
    public:
     std::size_t begIdx;
     std::size_t endIdx;
+
+    constexpr IndexRange(std::size_t beg, std::size_t end) noexcept :
+        begIdx(beg),
+        endIdx(end) {}
 };
 
 constexpr IndexRange

@@ -17,7 +17,6 @@
 
 #include "perft.h"
 
-#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -239,9 +238,9 @@ void PerftTable::init(Threads& threads) noexcept {
     {
         threads.run_on_thread(threadId, [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
-            auto [start, count] = thread_start_count(threadId, threadCount, clusterCount);
+            auto [begIdx, count] = thread_index_count(threadId, threadCount, clusterCount);
 
-            std::memset(&clusters[start], 0, count * sizeof(PTCluster));
+            std::memset(&clusters[begIdx], 0, count * sizeof(PTCluster));
         });
     }
 
