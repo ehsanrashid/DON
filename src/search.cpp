@@ -2003,8 +2003,11 @@ void Worker::update_quiet_histories(const Position& pos, Key pawnKey, Stack* con
 void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(ss->moveCount != 0);
 
-    const int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * int(bestMove == ss->ttMove) + (ss - 1)->history / 32;
-    const int malus = std::max(std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount, 1);
+    int bonus = std::min(- 81 + 116 * depth, +1515) + 347 * int(bestMove == ss->ttMove) + (ss - 1)->history / 32;
+    int malus = std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount;
+
+    if (malus < 1)
+        malus = 1;
 
     if (pos.capture_promo(bestMove))
     {

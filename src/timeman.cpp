@@ -76,8 +76,13 @@ void TimeManager::init(
             timeNodes = clock.time * nodesTime;  // Time is in msec
 
         // Convert from milliseconds to nodes
-        clock.time = std::max(timeNodes, std::int64_t(1));
+        clock.time = timeNodes;
+
+        if (clock.time == 0)
+            clock.time = 1;
+
         clock.inc *= nodesTime;
+
         moveOverhead *= nodesTime;
     }
 
@@ -119,7 +124,12 @@ void TimeManager::init(
         {
         // Extra time according to initial remaining Time (Only once at game start)
         if (timeAdjust == -1.0)
-            timeAdjust = std::max(-0.4126 + 0.2862 * std::log10(remainTime), 1.0e-6);
+        {
+            timeAdjust = -0.4126 + 0.2862 * std::log10(remainTime);
+
+            if (timeAdjust < 1.0e-6)
+                timeAdjust = 1.0e-6;
+        }
 
         optimumScale = timeAdjust
                      * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * logScaledTime, 4.06734e-3)
@@ -134,7 +144,12 @@ void TimeManager::init(
         {
         // Extra time according to initial remaining Time (Only once at game start)
         if (timeAdjust == -1.0)
-            timeAdjust = std::max(-0.4354 + 0.3128 * std::log10(remainTime), 1.0e-6);
+        {
+            timeAdjust = -0.4354 + 0.3128 * std::log10(remainTime);
+
+            if (timeAdjust < 1.0e-6)
+                timeAdjust = 1.0e-6;
+        }
 
         optimumScale = timeAdjust
                      * std::min(12.14310e-3 + std::min(3.21160e-3 + 32.11230e-5 * logScaledTime, 5.08017e-3)
