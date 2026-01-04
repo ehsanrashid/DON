@@ -1242,8 +1242,10 @@ S_MOVES_LOOP:  // When in check, search starts here
 
                 // SEE based pruning for captures and checks
                 int margin = 166 * depth + int(34.4828e-3 * history);
+
                 if (margin < 0)
                     margin = 0;
+
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
                   && pos.see(move) < -margin)
@@ -1277,14 +1279,17 @@ S_MOVES_LOOP:  // When in check, search starts here
                         if (!is_decisive(bestValue) && !is_win(futilityValue))
                             if (bestValue < futilityValue)
                                 bestValue = futilityValue;
+
                         continue;
                     }
                 }
 
                 // SEE based pruning for quiets and checks
                 int margin = int(check) * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth);
+
                 if (margin < 0)
                     margin = 0;
+
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
                   && pos.see(move) < -margin)
@@ -1828,18 +1833,23 @@ QS_MOVES_LOOP:
                 {
                     if (bestValue < futilityValue)
                         bestValue = futilityValue;
+
                     continue;
                 }
 
                 // SEE based pruning
                 int margin = alpha - futBaseValue;
+
                 if (margin < 0)
                     margin = 0;
+
                 if (pos.see(move) < -margin)
                 {
                     Value minValue = std::min(alpha, futBaseValue);
+
                     if (bestValue < minValue)
                         bestValue = minValue;
+
                     continue;
                 }
             }
