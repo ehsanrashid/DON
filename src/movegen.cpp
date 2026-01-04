@@ -285,7 +285,7 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) 
                   "Unsupported piece type in generate_piece_moves()");
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
 
-    const auto cnt = pos.count(AC, PT);
+    auto cnt = pos.count(AC, PT);
 
     if (cnt == 0)
         return moves;

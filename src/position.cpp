@@ -697,12 +697,12 @@ void Position::set_ext_state() noexcept {
 template<bool After>
 bool Position::enpassant_possible(Color           ac,
                                   Square          enPassantSq,
-                                  Bitboard* const epPawnsBB_) const noexcept {
+                                  Bitboard* const epPawnsBBp) const noexcept {
     assert(is_ok(enPassantSq));
 
     Bitboard epPawnsBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
-    if (epPawnsBB_ != nullptr)
-        *epPawnsBB_ = epPawnsBB;
+    if (epPawnsBBp != nullptr)
+        *epPawnsBBp = epPawnsBB;
 
     if (epPawnsBB == 0)
         return false;
@@ -722,8 +722,8 @@ bool Position::enpassant_possible(Color           ac,
         // If there are checkers other than the to be captured pawn, ep is never legal
         if ((checkers_bb() & ~square_bb(capturedSq)) != 0)
         {
-            if (epPawnsBB_ != nullptr)
-                *epPawnsBB_ = 0;
+            if (epPawnsBBp != nullptr)
+                *epPawnsBBp = 0;
 
             return false;
         }
@@ -734,8 +734,8 @@ bool Position::enpassant_possible(Color           ac,
             // If at least one is not pinned, ep is legal as there are no horizontal exposed checks
             if (!more_than_one(epPawnsBB & blockers_bb(ac)))
             {
-                if (epPawnsBB_ != nullptr)
-                    *epPawnsBB_ = epPawnsBB & ~blockers_bb(ac);
+                if (epPawnsBBp != nullptr)
+                    *epPawnsBBp = epPawnsBB & ~blockers_bb(ac);
                 return true;
             }
 
@@ -743,15 +743,15 @@ bool Position::enpassant_possible(Color           ac,
             // If there is no pawn on our king's file and thus both pawns are pinned by bishops
             if ((epPawnsBB & kingFileBB) == 0)
             {
-                if (epPawnsBB_ != nullptr)
-                    *epPawnsBB_ = 0;
+                if (epPawnsBBp != nullptr)
+                    *epPawnsBBp = 0;
                 return false;
             }
 
             // Otherwise remove the pawn on the king file, as an ep capture by it can never be legal
             epPawnsBB &= ~kingFileBB;
-            if (epPawnsBB_ != nullptr)
-                *epPawnsBB_ = epPawnsBB;
+            if (epPawnsBBp != nullptr)
+                *epPawnsBBp = epPawnsBB;
         }
     }
 
@@ -768,13 +768,13 @@ bool Position::enpassant_possible(Color           ac,
         {
             epPossible = true;
 
-            if (epPawnsBB_ == nullptr)
+            if (epPawnsBBp == nullptr)
                 break;
         }
         else
         {
-            if (epPawnsBB_ != nullptr)
-                *epPawnsBB_ ^= epPawnSq;
+            if (epPawnsBBp != nullptr)
+                *epPawnsBBp ^= epPawnSq;
         }
     }
 
@@ -2112,7 +2112,7 @@ bool Position::_is_ok() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            const Piece  pc  = make_piece(c, pt);
+            Piece        pc  = make_piece(c, pt);
             std::uint8_t idx = 0;
             for (Square s : squares(c, pt).iterate(base(c), count(c, pt)))
             {
@@ -2125,8 +2125,8 @@ bool Position::_is_ok() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            const Piece pc  = make_piece(c, pt);
-            const auto  cnt = count(c, pt);
+            Piece pc  = make_piece(c, pt);
+            auto  cnt = count(c, pt);
             if (cnt != popcount(pieces_bb(c, pt))
                 || cnt != std::count(piece_map().begin(), piece_map().end(), pc))
                 assert(false && "Position::_is_ok(): Piece List Count");

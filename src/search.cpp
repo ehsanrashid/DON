@@ -374,7 +374,7 @@ void Worker::start_search() noexcept {
             for (auto&& th : threads)
                 th->worker->rootMoves.swap_to_front(skillMove);
         }
-        else if (threads.size() > 1 && multiPV == 1
+        else if (thread_count() > 1 && multiPV == 1
                  && limit.mate == 0
                  //&& limit.depth == DEPTH_ZERO
                  && rootMoves[0].pv[0] != Move::None)
@@ -488,7 +488,7 @@ void Worker::iterative_deepening() noexcept {
             auto avgSqrValue = rootMoves[curPV].avgSqrValue;
 
             // Reset aspiration window starting size
-            int delta = 5 + std::min(int(threads.size()) - 1, 8)  //
+            int delta = 5 + std::min(int(thread_count()) - 1, 8)  //
                       + int(1.1111e-4 * std ::abs(avgSqrValue));
 
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
@@ -650,7 +650,7 @@ void Worker::iterative_deepening() noexcept {
             double easeFactor = 0.4386 * (1.4300 + mainManager->preTimeReduction) / mainManager->timeReduction;
 
             // Compute move instability factor based on the total move changes and the number of threads
-            double instabilityFactor = 1.0200 + 2.1400 * mainManager->sumMoveChanges / threads.size();
+            double instabilityFactor = 1.0200 + 2.1400 * mainManager->sumMoveChanges / thread_count();
 
             // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
             double nodeEffortExcess = -933.40 + 1000.0 * rootMoves[0].nodes / std::max(nodes_(), std::uint64_t(1));
@@ -976,7 +976,8 @@ Value Worker::search(Position&    pos,
                         {
                             bestValue = value;
 
-                            alpha = std::max(alpha, bestValue);
+                            if (alpha < bestValue)
+                                alpha = bestValue;
                         }
                         else
                             maxValue = value;
@@ -1415,7 +1416,12 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
-            Depth redDepth = std::max(std::min(newDepth - r / 1024, newDepth + 2), 1) + int(PVNode);
+            Depth redDepth = std::min(newDepth - r / 1024, newDepth + 2);
+
+            if (redDepth < 1)
+                redDepth = 1;
+
+            redDepth += int(PVNode);
 
             value = -search<Cut>(pos, ss + 1, -alpha - 1, -alpha, redDepth, newDepth - redDepth);
 
@@ -1602,7 +1608,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (!preCapture)
         {
             // clang-format off
-            int bonusScale = std::max(-215
+            int bonusScale = -215
                             // Increase bonus when depth is high
                             + std::min(56 * depth, 489)
                             // Increase bonus when bestValue is lower than current static evaluation
@@ -1612,8 +1618,11 @@ S_MOVES_LOOP:  // When in check, search starts here
                             // Increase bonus when the previous moveCount is high
                             +  80 * std::min(((ss - 1)->moveCount - 1) / 5, 4)
                             // Increase bonus if the previous move has a bad history
-                            - int(10.0000e-3 * (ss - 1)->history), 0);
+                            - int(0.01 * (ss - 1)->history);
             // clang-format on
+            if (bonusScale < 0)
+                bonusScale = 0;
+
             int bonus = bonusScale * std::min(-87 + 141 * depth, +1351);
 
             if (preNonPawn)
@@ -2337,6 +2346,7 @@ TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
 
 // Displays the principal variation (PV) along with associated information
 void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
+    assert(depth > DEPTH_ZERO);
 
     const auto& rootPos            = worker.rootPos;
     const auto& rootMoves          = worker.rootMoves;
@@ -2347,7 +2357,10 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     std::size_t multiPV            = worker.multiPV;
     std::size_t curPV              = worker.curPV;
 
-    TimePoint     time     = std::max(elapsed(), TimePoint(1));
+    TimePoint time = elapsed();
+    if (time == 0)
+        time = 1;  // Avoid division by zero
+
     std::uint64_t nodes    = threads.sum(&Worker::nodes);
     std::uint16_t hashfull = transpositionTable.hashfull();
     std::uint64_t tbHits   = threads.sum(&Worker::tbHits, tbConfig.rootInTB ? rootMoves.size() : 0);
@@ -2361,7 +2374,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if (i != 0 && depth == 1 && !updated)
             continue;
 
-        Depth d = updated ? depth : std::max(depth - 1, 1);
+        Depth d = updated ? depth : depth - int(depth > 1);
         Value v = updated ? rm.uciValue : rm.preValue;
 
         if (v == -VALUE_INFINITE)

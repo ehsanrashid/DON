@@ -81,9 +81,12 @@ void TimeManager::init(
         moveOverhead *= nodesTime;
     }
 
-    const std::int64_t scaleFactor = std::max(nodesTime, std::int64_t(1));
+    std::int64_t scaleFactor = nodesTime <= 1 ? 1 : nodesTime;
 
-    const TimePoint scaledTime = TimePoint(std::max(clock.time / scaleFactor, TimePoint(1)));
+    TimePoint scaledTime = clock.time / scaleFactor;
+
+    if (scaledTime < 1)
+        scaledTime = 1;
 
     // clang-format off
 
@@ -96,9 +99,10 @@ void TimeManager::init(
     if (scaledTime < 1000)
         centiMTG = std::max<std::uint16_t>(5.0510 * scaledTime, 101);
 
+    TimePoint remainTime = clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * moveOverhead) / 100;
     // Make sure remainTime > 0 since use it as a divisor
-    const TimePoint remainTime = TimePoint(std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * moveOverhead) / 100,
-                                                    TimePoint(1)));
+    if (remainTime < 1)
+        remainTime = 1;
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
@@ -149,11 +153,11 @@ void TimeManager::init(
 
     // Limit the maximum possible time for this move
     optimumTime = TimePoint(optimumScale * remainTime);
-    maximumTime = TimePoint(std::max(centiMTG > 100
-                                     ? std::min(TimePoint(0.825179 * clock.time - moveOverhead),
-                                                TimePoint(maximumScale * optimumTime)) - 10
-                                     : clock.time - moveOverhead,
-                                     TimePoint(1)));
+
+    maximumTime = centiMTG > 100 ? TimePoint(std::min(0.825179 * clock.time - moveOverhead, maximumScale * optimumTime)) - 10
+                                 : clock.time - moveOverhead;
+    if (maximumTime < 1)
+        maximumTime = 1;
     // clang-format on
 
     if (options["Ponder"])
@@ -163,7 +167,11 @@ void TimeManager::init(
 // When in 'Nodes as Time' mode
 void TimeManager::advance_time_nodes(std::int64_t nodes) noexcept {
     assert(use_nodes_time());
-    timeNodes = std::max(timeNodes - nodes, std::int64_t(0));
+
+    timeNodes -= nodes;
+
+    if (timeNodes < 0)
+        timeNodes = 0;
 }
 
 }  // namespace DON
