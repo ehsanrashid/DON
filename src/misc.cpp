@@ -20,6 +20,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
+#include <iomanip>
 #include <iterator>
 #include <limits>
 #if defined(_WIN32)

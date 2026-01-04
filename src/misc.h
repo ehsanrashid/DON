@@ -32,7 +32,6 @@
 // IWYU pragma: no_include <__exception/terminate.h>
 #include <fstream>
 #include <functional>
-#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -156,6 +155,64 @@ constexpr double constexpr_log(double x) noexcept {
 inline constexpr std::uint16_t LittleEndianValue = 1;
 inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;
 
+struct IndexCount final {
+   public:
+    std::size_t begIdx;
+    std::size_t count;
+
+    constexpr IndexCount(std::size_t beg, std::size_t cnt) noexcept :
+        begIdx(beg),
+        count(cnt) {}
+};
+
+constexpr IndexCount
+thread_index_count(std::size_t threadId, std::size_t threadCount, std::size_t totalSize) noexcept {
+    assert(threadCount != 0 && threadId < threadCount);
+
+    std::size_t stride = totalSize / threadCount;
+    std::size_t remain = totalSize % threadCount;  // remainder to distribute
+
+    //// Last thread takes the remainder
+    //std::size_t begIdx = threadId * stride;
+    //std::size_t count  = threadId != threadCount - 1 ? stride : totalSize - begIdx;
+
+    // Distribute remainder among the first 'remain' threads
+    std::size_t begIdx = threadId * stride + std::min(threadId, remain);
+    std::size_t count  = stride + std::size_t(threadId < remain);
+
+    return {begIdx, count};
+}
+
+struct IndexRange final {
+   public:
+    std::size_t begIdx;
+    std::size_t endIdx;
+
+    constexpr IndexRange(std::size_t beg, std::size_t end) noexcept :
+        begIdx(beg),
+        endIdx(end) {}
+};
+
+constexpr IndexRange
+thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t totalSize) noexcept {
+    assert(threadCount != 0 && threadId < threadCount);
+
+    std::size_t stride = totalSize / threadCount;
+    std::size_t remain = totalSize % threadCount;  // remainder to distribute
+
+    //// Last thread takes the remainder
+    //std::size_t begIdx = threadId * stride;
+    //std::size_t endIdx = threadId != threadCount - 1 ? begIdx + stride : totalSize;
+
+    // Distribute remainder among the first 'remain' threads
+    std::size_t begIdx = threadId * stride + std::min(threadId, remain);
+    std::size_t endIdx = begIdx + stride + std::size_t(threadId < remain);
+
+    assert(begIdx <= endIdx && endIdx <= totalSize);
+    return {begIdx, endIdx};
+}
+
+// --- Synchronized output stream ---
 class [[nodiscard]] SyncOstream final {
    public:
     explicit SyncOstream(std::ostream& os) noexcept :
@@ -838,8 +895,8 @@ struct LazyValue final {
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
-    ConcurrentCache(std::size_t reserve = 1024, float loadFactor = 0.75f) noexcept {
-        storage.reserve(reserve);
+    ConcurrentCache(std::size_t reserveSize = 1024, float loadFactor = 0.75f) noexcept {
+        storage.reserve(reserveSize);
         storage.max_load_factor(loadFactor);
     }
 
@@ -920,9 +977,7 @@ inline std::size_t raw_data_hash(const T& value) noexcept {
 }
 
 inline std::string create_hash_string(std::string_view str) noexcept {
-    return (std::ostringstream{} << std::hex << std::setfill('0')
-                                 << std::hash<std::string_view>{}(str))
-      .str();
+    return (std::ostringstream{} << std::hex << std::hash<std::string_view>{}(str)).str();
 }
 
 constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {

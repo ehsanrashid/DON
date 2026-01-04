@@ -201,28 +201,17 @@ Worker::Worker(std::size_t               threadIdx,
     histories(sharedState.historiesMap.at(accessToken.numa_index())),
     accCaches(networks[accessToken]) {}
 
-constexpr Worker::IndexRange Worker::numa_index_range(std::size_t size) const noexcept {
-    assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
-
-    std::size_t count  = size / numa_thread_count();
-    std::size_t begIdx = numa_id() * count;
-    std::size_t endIdx = numa_id() != numa_thread_count() - 1 ? begIdx + count : size;
-
-    assert(begIdx <= endIdx && endIdx <= size);
-
-    return {begIdx, endIdx};
-}
-
 // Initialize per-thread data structures
 void Worker::init() noexcept {
 
     // Each thread initializes its NUMA-local range of history entries to prevent false sharing
 
-    auto pawnRange = numa_index_range(histories.pawn_size());
+    auto pawnRange = thread_index_range(numa_id(), numa_thread_count(), histories.pawn_size());
 
     histories.pawn().fill(pawnRange.begIdx, pawnRange.endIdx, -1238);
 
-    auto correctionRange = numa_index_range(histories.correction_size());
+    auto correctionRange =
+      thread_index_range(numa_id(), numa_thread_count(), histories.correction_size());
 
     histories.pawn_correction().fill(correctionRange.begIdx, correctionRange.endIdx, 5);
     histories.minor_correction().fill(correctionRange.begIdx, correctionRange.endIdx, 0);
@@ -1246,16 +1235,17 @@ S_MOVES_LOOP:  // When in check, search starts here
                     Value futilityValue = std::min(232 + ss->evalValue + piece_value(captured)
                                                      + 217 * lmrDepth + int(0.1279 * history),
                                                    +VALUE_INFINITE);
-
                     if (futilityValue <= alpha)
                         continue;
                 }
 
                 // SEE based pruning for captures and checks
-                int margin = -std::max(166 * depth + int(34.4828e-3 * history), 0);
+                int margin = 166 * depth + int(34.4828e-3 * history);
+                if (margin < 0)
+                    margin = 0;
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                  && pos.see(move) < margin)
+                  && pos.see(move) < -margin)
                     continue;
             }
             else
@@ -1278,10 +1268,9 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (!check && lmrDepth < 13 && !ss->inCheck)
                 {
                     Value futilityValue = std::min(42 + ss->evalValue + 127 * lmrDepth  //
-                                                     + (ss->evalValue > alpha) * 85     //
-                                                     + (bestMove == Move::None) * 161,
+                                                     + int(ss->evalValue > alpha) * 85  //
+                                                     + int(bestMove == Move::None) * 161,
                                                    +VALUE_INFINITE);
-
                     if (futilityValue <= alpha)
                     {
                         if (!is_decisive(bestValue) && !is_win(futilityValue))
@@ -1292,11 +1281,12 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for quiets and checks
-                int margin =
-                  -std::max(int(check) * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth), 0);
+                int margin = int(check) * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth);
+                if (margin < 0)
+                    margin = 0;
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                  && pos.see(move) < margin)
+                  && pos.see(move) < -margin)
                     continue;
             }
         }
@@ -1331,11 +1321,11 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             if (value <= singularBeta)
             {
-                int corrValue = int(4.3351e-6 * absCorrectionValue);
+                int corrMargin = int(4.3351e-6 * absCorrectionValue);
 
                 // clang-format off
-                int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrValue - int(1 * ss->ply > 1 * rootDepth) * 42 - 7.0271e-3 * ttMoveHistory;
-                int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrValue - int(2 * ss->ply > 3 * rootDepth) * 50 + int(ss->ttPv) * 90;
+                int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrMargin - int(1 * ss->ply > 1 * rootDepth) * 42 - 7.0271e-3 * ttMoveHistory;
+                int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrMargin - int(2 * ss->ply > 3 * rootDepth) * 50 + int(ss->ttPv) * 90;
 
                 extension = 1 + int(value <= singularBeta - doubleMargin)
                               + int(value <= singularBeta - tripleMargin);
@@ -1833,9 +1823,14 @@ QS_MOVES_LOOP:
                 }
 
                 // SEE based pruning
-                if (pos.see(move) < (alpha - futBaseValue))
+                int margin = alpha - futBaseValue;
+                if (margin < 0)
+                    margin = 0;
+                if (pos.see(move) < -margin)
                 {
-                    bestValue = std::min(alpha, futBaseValue);
+                    Value minValue = std::min(alpha, futBaseValue);
+                    if (bestValue < minValue)
+                        bestValue = minValue;
                     continue;
                 }
             }
@@ -2044,8 +2039,8 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 
     if (is_ok(preSq))
     {
-        (*(ss - 2)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]                   << 0.9922 * bonus;
-        (*(ss - 4)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]                   << 0.4609 * bonus;
+        (*(ss - 2)->pieceSqCorrectionHistory)[+pos[preSq]][preSq] << 0.9922 * bonus;
+        (*(ss - 4)->pieceSqCorrectionHistory)[+pos[preSq]][preSq] << 0.4609 * bonus;
     }
 }
 

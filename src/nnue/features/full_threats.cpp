@@ -33,9 +33,9 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr StdArray<int, PIECE_TYPE_CNT> MAX_TARGETS{6, 12, 10, 10, 12, 8};
+constexpr StdArray<std::uint8_t, PIECE_TYPE_CNT> MAX_TARGETS{6, 12, 10, 10, 12, 8};
 
-constexpr StdArray<int, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
+constexpr StdArray<std::int8_t, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
   {0, +1, -1, +2, -1, -1},  //
   {0, +1, +2, +3, +4, +5},  //
   {0, +1, +2, +3, -1, +4},  //
@@ -45,26 +45,26 @@ constexpr StdArray<int, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
 }};
 
 struct PieceThreat final {
-    IndexType threatCount;  // Total number of threats this piece can generate
-    IndexType baseOffset;   // Base index in the global threat table for this piece
+    std::uint32_t threatCount;  // Total number of threats this piece can generate
+    std::uint32_t baseOffset;   // Base index in the global threat table for this piece
 };
 
 struct ThreatTable final {
-    StdArray<PieceThreat, PIECE_NB>          pieceThreats;
-    StdArray<IndexType, PIECE_NB, SQUARE_NB> squareOffsets;
+    StdArray<PieceThreat, PIECE_NB>              pieceThreats;
+    StdArray<std::uint32_t, PIECE_NB, SQUARE_NB> squareOffsets;
 };
 
 alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
     ThreatTable threatTable{};
 
-    IndexType baseOffset = 0;
+    std::uint32_t baseOffset = 0;
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
             Piece pc = make_piece(c, pt);
 
-            IndexType threatCount = 0;
+            std::uint32_t threatCount = 0;
 
             for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
@@ -88,39 +88,14 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
 constexpr auto& PIECE_THREATS  = THREAT_TABLE.pieceThreats;
 constexpr auto& SQUARE_OFFSETS = THREAT_TABLE.squareOffsets;
 
-// Information on a particular pair of pieces and whether they should be excluded
-struct PiecePairData final {
-   public:
-    static constexpr std::uint8_t EXCLUDED_PAIR_INFO_OFFSET = 0;
-    static constexpr std::uint8_t FEATURE_BASE_INDEX_OFFSET = 8;
+constexpr std::uint8_t  EXCLUDED_PAIR_INFO_OFFSET = 30;
+constexpr std::uint32_t EXCLUDED_PAIR_INFO_MASK   = (0x3U << EXCLUDED_PAIR_INFO_OFFSET);
+constexpr std::uint32_t FEATURE_BASE_INDEX_MASK   = (1U << EXCLUDED_PAIR_INFO_OFFSET) - 1U;
 
-    constexpr PiecePairData() noexcept :
-        data(0) {}
-    constexpr PiecePairData(std::uint32_t d) noexcept :
-        data(d) {}
-    constexpr PiecePairData(bool semiExcluded, bool excluded, IndexType featureBaseIndex) noexcept :
-        PiecePairData((featureBaseIndex << FEATURE_BASE_INDEX_OFFSET)
-                      | (excluded << (1 + EXCLUDED_PAIR_INFO_OFFSET))
-                      | ((semiExcluded && !excluded) << EXCLUDED_PAIR_INFO_OFFSET)) {}
-
-    // lsb: excluded if orgSq < dstSq; 2nd lsb: always excluded
-    constexpr std::uint8_t excluded_pair_info() const noexcept {
-        return std::uint8_t((data >> EXCLUDED_PAIR_INFO_OFFSET) & 0xFF);
-    }
-    constexpr IndexType feature_base_index() const noexcept {
-        return IndexType(data >> FEATURE_BASE_INDEX_OFFSET);
-    }
-
-   private:
-    // Layout: bits 8..31 are the index contribution of this piece pair, bits 0 and 1 are exclusion info
-    std::uint32_t data;
-};
-
-// The final index is calculated from summing data found in 2 LUTs,
-// as well as SQUARE_OFFSETS[attackerPc][orgSq]
-
+// LUT for getting feature base index and exclusion info
+// [attackerPc][attackedPc]
 alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
-    StdArray<PiecePairData, PIECE_NB, PIECE_NB> lutDatas{};
+    StdArray<std::uint32_t, PIECE_NB, PIECE_NB> lutDatas{};
 
     for (Color attackerC : {WHITE, BLACK})
         for (PieceType attackerPt : PIECE_TYPES)
@@ -136,23 +111,28 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
 
                     int map = MAP[attackerPt - 1][attackedPt - 1];
 
-                    bool semiExcluded = attackerPt == attackedPt && (enemy || attackerPt != PAWN);
+                    // clang-format off
 
-                    bool excluded = map < 0;
+                    bool excluded       = map < 0;
 
-                    IndexType featureBaseIndex =
-                      PIECE_THREATS[+attackerPc].baseOffset
-                      + (attackedC * (MAX_TARGETS[attackerPt - 1] / 2) + map)
-                          * PIECE_THREATS[+attackerPc].threatCount;
+                    bool semiExcluded   = attackerPt == attackedPt && (enemy || attackerPt != PAWN);
 
-                    lutDatas[+attackerPc][+attackedPc] =
-                      PiecePairData(semiExcluded, excluded, featureBaseIndex);
+                    std::uint32_t featureBaseIndex = PIECE_THREATS[+attackerPc].baseOffset
+                                                   + PIECE_THREATS[+attackerPc].threatCount
+                                                     * (attackedC * (MAX_TARGETS[attackerPt - 1] / 2) + map);
+
+                    lutDatas[+attackerPc][+attackedPc] = (std::uint32_t(excluded                ) << (1 + EXCLUDED_PAIR_INFO_OFFSET))
+                                                       | (std::uint32_t(semiExcluded & !excluded) << (0 + EXCLUDED_PAIR_INFO_OFFSET))
+                                                       | featureBaseIndex;
+                    // clang-format on
                 }
         }
 
     return lutDatas;
 }();
 
+// LUT for getting index within piece threats
+// [attackerPt][orgSq][dstSq]
 alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
     StdArray<std::uint8_t, 1 + PIECE_TYPE_CNT, SQUARE_NB, SQUARE_NB> lutIndices{};
 
@@ -174,6 +154,7 @@ alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
     return lutIndices;
 }();
 
+// Get index within piece threats
 constexpr std::uint8_t lut_index(Piece pc, Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
@@ -209,16 +190,20 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     attackerPc = relative_piece(perspective, attackerPc);
     attackedPc = relative_piece(perspective, attackedPc);
 
-    const auto& piecePairData = LUT_DATAS[+attackerPc][+attackedPc];
+    const std::uint32_t& lutData = LUT_DATAS[+attackerPc][+attackedPc];
 
-    // Check for excluded piece pairs
-    if (((piecePairData.excluded_pair_info() + int(orgSq < dstSq)) & 0x2) != 0)
+    // Excluded pair byte
+    std::uint8_t excludedPair = (lutData & EXCLUDED_PAIR_INFO_MASK) >> EXCLUDED_PAIR_INFO_OFFSET;
+    // Semi-excluded pair
+    excludedPair += std::uint8_t(orgSq < dstSq);
+    // Fully excluded pair
+    if ((excludedPair & 0x2) != 0)
         return FullThreats::Dimensions;
 
     // Compute final index
-    return piecePairData.feature_base_index()  //
-         + SQUARE_OFFSETS[+attackerPc][orgSq]  //
-         + lut_index(attackerPc, orgSq, dstSq);
+    return (lutData & FEATURE_BASE_INDEX_MASK)  //
+         + lut_index(attackerPc, orgSq, dstSq)  //
+         + SQUARE_OFFSETS[+attackerPc][orgSq];
 }
 
 }  // namespace
@@ -351,7 +336,7 @@ void FullThreats::append_changed_indices(Color            perspective,
             }
         }
 
-        auto& changed = add ? added : removed;
+        IndexList& changed = add ? added : removed;
 
         IndexType index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
