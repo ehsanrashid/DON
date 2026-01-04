@@ -243,15 +243,24 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
 std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
     assert(maxAge < 32);
 
-    std::size_t  clusterCnt = std::min(clusterCount, std::size_t(1000));
-    std::uint8_t relMaxAge  = maxAge * GENERATION_DELTA;
+    constexpr std::size_t requiredCount = 1000U;
 
-    std::uint32_t cnt = 0;
-    for (std::size_t idx = 0; idx < clusterCnt; ++idx)
+    std::size_t actualCount = std::min(requiredCount, clusterCount);
+
+    std::uint8_t relMaxAge = maxAge * GENERATION_DELTA;
+
+    std::uint32_t count = 0;
+
+    for (std::size_t idx = 0; idx < actualCount; ++idx)
         for (const auto& entry : clusters[idx].entries)
-            cnt += entry.occupied() && entry.relative_age(generation8) <= relMaxAge;
+            count += entry.occupied() && entry.relative_age(generation8) <= relMaxAge;
 
-    return cnt / clusters->entries.size();
+    // Scale up if there were fewer clusters
+    double scale = double(requiredCount) / actualCount;
+
+    std::uint32_t scaledCount = std::uint32_t(scale * count);
+
+    return scaledCount / clusters->entries.size();
 }
 
 bool TranspositionTable::save(std::string_view hashFile) const noexcept {
