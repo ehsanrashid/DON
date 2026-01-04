@@ -1660,7 +1660,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (!ss->inCheck && (bestMove == Move::None || !pos.capture(bestMove))
         && (bestValue > ss->evalValue) == (bestMove != Move::None))
     {
-        int bonus = (bestValue - ss->evalValue) * depth / (8 + (bestMove != Move::None) * 2);
+        int bonus = (bestValue - ss->evalValue) * depth / (8 + int(bestMove != Move::None) * 2);
 
         update_correction_histories(pos, ss, bonus);
     }
