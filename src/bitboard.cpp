@@ -67,16 +67,16 @@ void init_magics() noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in init_magics()");
 
 #if !defined(USE_BMI2)
-    constexpr StdArray<std::size_t, 2> SubSizes{0x200, 0x1000};
+    constexpr StdArray<std::size_t, 2> BlockSizes{0x200, 0x1000};
 
     // Optimal PRNG seeds to pick the correct magics in the shortest time
     constexpr StdArray<std::uint16_t, 2, RANK_NB> Seeds{{
     #if defined(IS_64BIT)
-      {0xE4D9, 0xB1E5, 0x4F73, 0x82A9, 0x323A, 0xFFF4, 0x0C61, 0x5EFA},  //
-      {0x8B99, 0x9A36, 0xD27A, 0x5F4C, 0xFC29, 0x0982, 0x10E1, 0x00AA}   //
+      {0xE4D9, 0xB1E5, 0x4F73, 0x82A9, 0x323A, 0xFFF4, 0x0C61, 0x5EFA},
+      {0x8B99, 0x9A36, 0xD27A, 0x5F4C, 0xFC29, 0x0982, 0x10E1, 0x00AA}
     #else
-      {0xFE9A, 0x4968, 0xA30A, 0x3429, 0xAA36, 0xAEAF, 0x228A, 0xAA4C},  //
-      {0x02F6, 0x00C0, 0x8522, 0x0972, 0xF31A, 0xF6D0, 0xDA74, 0x98E5}   //
+      {0xFE9A, 0x4968, 0xA30A, 0x3429, 0xAA36, 0xAEAF, 0x228A, 0xAA4C},
+      {0x02F6, 0x00C0, 0x8522, 0x0972, 0xF31A, 0xF6D0, 0xDA74, 0x98E5}
     #endif
     }};
 #endif
@@ -111,8 +111,8 @@ void init_magics() noexcept {
         magic.reMaskBB = pseudoAttacksBB;
     #endif
 #else
-        StdArray<Bitboard, SubSizes[PT - BISHOP]> occupancyBBs;
-        StdArray<Bitboard, SubSizes[PT - BISHOP]> referenceBBs;
+        StdArray<Bitboard, BlockSizes[PT - BISHOP]> occupancyBBs;
+        StdArray<Bitboard, BlockSizes[PT - BISHOP]> referenceBBs;
 #endif
 
         size = 0;
@@ -137,7 +137,7 @@ void init_magics() noexcept {
         totalSize += size;
 
 #if !defined(USE_BMI2)
-        assert(size <= SubSizes[PT - BISHOP]);
+        assert(size <= BlockSizes[PT - BISHOP]);
 
         // Compute the shift value (to apply to the 64-bits or 32-bits) used in the index computation
         magic.shift =
@@ -151,8 +151,8 @@ void init_magics() noexcept {
         XorShift64Star prng(Seeds[PT - BISHOP][rank_of(s)]);
 
         // Epoch array to speed-up the magic verification process
-        StdArray<std::uint32_t, SubSizes[PT - BISHOP]> epoch{};
-        std::uint32_t                                  cnt = 0;
+        StdArray<std::uint32_t, BlockSizes[PT - BISHOP]> epoch{};
+        std::uint32_t                                    cnt = 0;
 
         // Find a magic for square picking up an (almost) random number
         // until find the one that passes the verification test.

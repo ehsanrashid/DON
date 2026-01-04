@@ -1235,7 +1235,6 @@ S_MOVES_LOOP:  // When in check, search starts here
                     Value futilityValue = std::min(232 + ss->evalValue + piece_value(captured)
                                                      + 217 * lmrDepth + int(0.1279 * history),
                                                    +VALUE_INFINITE);
-
                     if (futilityValue <= alpha)
                         continue;
                 }
@@ -1269,10 +1268,9 @@ S_MOVES_LOOP:  // When in check, search starts here
                 if (!check && lmrDepth < 13 && !ss->inCheck)
                 {
                     Value futilityValue = std::min(42 + ss->evalValue + 127 * lmrDepth  //
-                                                     + (ss->evalValue > alpha) * 85     //
-                                                     + (bestMove == Move::None) * 161,
+                                                     + int(ss->evalValue > alpha) * 85  //
+                                                     + int(bestMove == Move::None) * 161,
                                                    +VALUE_INFINITE);
-
                     if (futilityValue <= alpha)
                     {
                         if (!is_decisive(bestValue) && !is_win(futilityValue))

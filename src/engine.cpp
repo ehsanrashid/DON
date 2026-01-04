@@ -116,6 +116,8 @@ Engine::Engine(std::optional<std::string> path) noexcept :
 
     resize_threads_tt();
 
+    historiesMap.max_load_factor(0.75f);
+
     setup();
 }
 
