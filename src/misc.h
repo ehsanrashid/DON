@@ -156,6 +156,44 @@ constexpr double constexpr_log(double x) noexcept {
 inline constexpr std::uint16_t LittleEndianValue = 1;
 inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;
 
+struct StartCount final {
+   public:
+    std::size_t start;
+    std::size_t count;
+};
+
+constexpr StartCount
+thread_start_count(std::size_t threadId, std::size_t threadCount, std::size_t totalSize) noexcept {
+    assert(threadCount != 0 && threadId < threadCount);
+
+    std::size_t stride = totalSize / threadCount;
+    std::size_t remain = totalSize % threadCount;
+
+    return {threadId * stride + std::min(threadId, remain),
+            stride + std::size_t(threadId < remain)};
+}
+
+struct IndexRange final {
+   public:
+    std::size_t begIdx;
+    std::size_t endIdx;
+};
+
+constexpr IndexRange
+thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t totalSize) noexcept {
+    assert(threadCount != 0 && threadId < threadCount);
+
+    std::size_t stride = totalSize / threadCount;
+
+    std::size_t begIdx = threadId * stride;
+    std::size_t endIdx = threadId != threadCount - 1 ? begIdx + stride : totalSize;
+
+    assert(begIdx <= endIdx && endIdx <= totalSize);
+
+    return {begIdx, endIdx};
+}
+
+// --- Synchronized output stream ---
 class [[nodiscard]] SyncOstream final {
    public:
     explicit SyncOstream(std::ostream& os) noexcept :

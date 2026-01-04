@@ -115,7 +115,7 @@ constexpr StdArray<int         , WDL_SCORE_NB> WDL_MAP  {        1,             
 constexpr StdArray<std::int32_t, WDL_SCORE_NB> WDL_RANK {-MAX_DTZ , -MAX_DTZ + 101,          0, +MAX_DTZ - 101, +MAX_DTZ };
 constexpr StdArray<Value       , WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
 
-constexpr std::size_t wdl_index(WDLScore wdlScore) noexcept { return std::size_t(wdlScore + 2); }
+constexpr std::size_t wdl_index(WDLScore wdlScore) noexcept { return std::size_t(wdlScore - WDL_LOSS); }
 
 constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 constexpr int off_A8H1(Square s) noexcept { return int(rank_of(s)) + int(file_of(s)); }

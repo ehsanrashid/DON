@@ -97,24 +97,26 @@ void PerftData::classify(Position& pos, Move m) noexcept {
             //    dscCheck += (pos.checks_bb(ROOK) & rook_castle_sq(orgSq, dstSq)) != 0;
         }
 
-        dblCheck += pos.dbl_check(m);
+        //dblCheck += pos.dbl_check(m);
 
         pos.do_move(m, st);
 
-        //dblCheck += more_than_one(pos.checkers_bb());
+        assert(pos.checkers_bb() != 0);
+
+        dblCheck += more_than_one(pos.checkers_bb());
 
         checkmate += MoveList<LEGAL, true>(pos).empty();
-
-        pos.undo_move(m);
     }
     else
     {
         pos.do_move(m, st, false);
 
-        stalemate += MoveList<LEGAL, true>(pos).empty();
+        assert(pos.checkers_bb() == 0);
 
-        pos.undo_move(m);
+        stalemate += MoveList<LEGAL, true>(pos).empty();
     }
+
+    pos.undo_move(m);
 }
 
 void PerftData::operator+=(const PerftData& perftData) noexcept {
@@ -237,11 +239,7 @@ void PerftTable::init(Threads& threads) noexcept {
     {
         threads.run_on_thread(threadId, [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
-            std::size_t stride = clusterCount / threadCount;
-            std::size_t remain = clusterCount % threadCount;
-
-            std::size_t start = stride * threadId + std::min(threadId, remain);
-            std::size_t count = stride + (threadId < remain);
+            auto [start, count] = thread_start_count(threadId, threadCount, clusterCount);
 
             std::memset(&clusters[start], 0, count * sizeof(PTCluster));
         });
