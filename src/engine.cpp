@@ -39,8 +39,8 @@ namespace DON {
 
 namespace {
 
-constexpr std::uint32_t MIN_THREADS = 1U;
-const std::uint32_t     MAX_THREADS = std::max(4U * std::uint32_t(hardware_concurrency()), 1024U);
+constexpr std::uint32_t MIN_THREADS     = 1U;
+const std::uint32_t     MAX_THREADS     = std::max(4U * int(hardware_concurrency()), 1024U);
 const std::uint32_t     DEFAULT_THREADS = std::max(MIN_THREADS, 1U);
 
 constexpr std::uint32_t MIN_HASH = 1U;
