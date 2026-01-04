@@ -222,31 +222,31 @@ namespace {
 template<typename Iterator, typename T, typename Compare>
 Iterator
 exponential_upper_bound(Iterator begin, Iterator end, const T& value, Compare comp) noexcept {
-    Iterator lo_bound = end - 1;
+    Iterator loBound = end - 1;
 
     // Insert at end, if value > last element
-    if (comp(*lo_bound, value))
+    if (comp(*loBound, value))
         return end;
 
     using DiffType = typename std::iterator_traits<Iterator>::difference_type;
 
     // Exponential backward search
     DiffType step = 1;
-    while (!comp(*(lo_bound - 1), value))
+    while (!comp(*(loBound - 1), value))
     {
-        if (step >= (lo_bound - begin))
+        if (step >= (loBound - begin))
         {
-            lo_bound = begin;
+            loBound = begin;
             break;
         }
 
-        lo_bound -= step;
+        loBound -= step;
         step <<= 1;
     }
 
     // Now [lo_bound..end) is a sorted subrange containing the insertion point.
     // binary search inside [lo_bound, end)
-    return std::upper_bound(lo_bound, end, value, comp);
+    return std::upper_bound(loBound, end, value, comp);
 }
 
 // Sort moves in descending order.

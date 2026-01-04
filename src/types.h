@@ -664,7 +664,7 @@ constexpr Bound& operator&=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bn
 constexpr Bound& operator^=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 ^ bnd2; }
 
 constexpr bool is_ok(Bound bound) noexcept {
-    return (Bound::UPPER <= bound && bound <= Bound::EXACT);
+    return bound != Bound::NONE && std::uint8_t(bound & Bound::EXACT) != 0;
 }
 
 // Keep track of what piece changes on the board by a move
