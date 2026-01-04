@@ -1321,11 +1321,11 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             if (value <= singularBeta)
             {
-                int corrValue = int(4.3351e-6 * absCorrectionValue);
+                int corrMargin = int(4.3351e-6 * absCorrectionValue);
 
                 // clang-format off
-                int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrValue - int(1 * ss->ply > 1 * rootDepth) * 42 - 7.0271e-3 * ttMoveHistory;
-                int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrValue - int(2 * ss->ply > 3 * rootDepth) * 50 + int(ss->ttPv) * 90;
+                int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrMargin - int(1 * ss->ply > 1 * rootDepth) * 42 - 7.0271e-3 * ttMoveHistory;
+                int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrMargin - int(2 * ss->ply > 3 * rootDepth) * 50 + int(ss->ttPv) * 90;
 
                 extension = 1 + int(value <= singularBeta - doubleMargin)
                               + int(value <= singularBeta - tripleMargin);

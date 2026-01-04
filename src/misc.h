@@ -32,7 +32,6 @@
 // IWYU pragma: no_include <__exception/terminate.h>
 #include <fstream>
 #include <functional>
-#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <mutex>
@@ -896,8 +895,8 @@ struct LazyValue final {
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
-    ConcurrentCache(std::size_t reserve = 1024, float loadFactor = 0.75f) noexcept {
-        storage.reserve(reserve);
+    ConcurrentCache(std::size_t reserveSize = 1024, float loadFactor = 0.75f) noexcept {
+        storage.reserve(reserveSize);
         storage.max_load_factor(loadFactor);
     }
 
