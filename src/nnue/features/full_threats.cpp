@@ -33,9 +33,9 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr StdArray<int, PIECE_TYPE_CNT> MAX_TARGETS{6, 12, 10, 10, 12, 8};
+constexpr StdArray<std::uint8_t, PIECE_TYPE_CNT> MAX_TARGETS{6, 12, 10, 10, 12, 8};
 
-constexpr StdArray<int, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
+constexpr StdArray<std::int8_t, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
   {0, +1, -1, +2, -1, -1},  //
   {0, +1, +2, +3, +4, +5},  //
   {0, +1, +2, +3, -1, +4},  //
@@ -45,26 +45,26 @@ constexpr StdArray<int, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
 }};
 
 struct PieceThreat final {
-    IndexType threatCount;  // Total number of threats this piece can generate
-    IndexType baseOffset;   // Base index in the global threat table for this piece
+    std::uint32_t threatCount;  // Total number of threats this piece can generate
+    std::uint32_t baseOffset;   // Base index in the global threat table for this piece
 };
 
 struct ThreatTable final {
-    StdArray<PieceThreat, PIECE_NB>          pieceThreats;
-    StdArray<IndexType, PIECE_NB, SQUARE_NB> squareOffsets;
+    StdArray<PieceThreat, PIECE_NB>              pieceThreats;
+    StdArray<std::uint32_t, PIECE_NB, SQUARE_NB> squareOffsets;
 };
 
 alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
     ThreatTable threatTable{};
 
-    IndexType baseOffset = 0;
+    std::uint32_t baseOffset = 0;
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
             Piece pc = make_piece(c, pt);
 
-            IndexType threatCount = 0;
+            std::uint32_t threatCount = 0;
 
             for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
@@ -155,13 +155,13 @@ alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
 }();
 
 // Get index within piece threats
-constexpr std::uint8_t lut_index(Piece pc, Square orgSq, Square dstSq) noexcept {
-    assert(is_ok(orgSq) && is_ok(dstSq));
+constexpr std::uint8_t lut_index(Piece pc, Square s1, Square s2) noexcept {
+    assert(is_ok(s1) && is_ok(s2));
 
     if (type_of(pc) == PAWN)
-        return LUT_INDICES[color_of(pc)][orgSq][dstSq];
+        return LUT_INDICES[color_of(pc)][s1][s2];
 
-    return LUT_INDICES[type_of(pc)][orgSq][dstSq];
+    return LUT_INDICES[type_of(pc)][s1][s2];
 }
 
 // Mirror square to have king always on e..h files
@@ -190,7 +190,7 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     attackerPc = relative_piece(perspective, attackerPc);
     attackedPc = relative_piece(perspective, attackedPc);
 
-    const uint32_t& lutData = LUT_DATAS[+attackerPc][+attackedPc];
+    const std::uint32_t& lutData = LUT_DATAS[+attackerPc][+attackedPc];
 
     // Excluded pair byte
     std::uint8_t excludedPair = (lutData & EXCLUDED_PAIR_INFO_MASK) >> EXCLUDED_PAIR_INFO_OFFSET;
