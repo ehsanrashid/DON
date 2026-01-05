@@ -28,15 +28,30 @@ namespace DON {
 
 namespace {
 
+// Safety margin subtracted from allocated time to account for
+// timer resolution, scheduling jitter, and measurement latency.
+// This helps avoid flagging under extreme time pressure.
+constexpr TimePoint TIME_SAFETY_MARGIN = 10;
+
+constexpr TimePoint MIN_MAXIMUM_TIME = 1;
+
+constexpr std::int64_t DEFAULT_SCALE_FACTOR = 1;
+
+constexpr std::uint16_t MIN_CENTI_MTG = 101;
 constexpr std::uint16_t MAX_CENTI_MTG = 5051;
+
+constexpr double INITIAL_TIME_ADJUST = -1.0;
+constexpr double MIN_TIME_ADJUST     = 1.0e-6;
+
+constexpr std::int64_t INITIAL_TIME_NODES = -1;
 
 }  // namespace
 
 void TimeManager::init() noexcept {
 
-    timeAdjust = -1.0;
+    timeAdjust = INITIAL_TIME_ADJUST;
 
-    timeNodes = -1;
+    timeNodes = INITIAL_TIME_NODES;
 }
 
 // Called at the beginning of the search and calculates
@@ -48,13 +63,13 @@ void TimeManager::init() noexcept {
 void TimeManager::init(
   Color ac, std::int16_t ply, std::int32_t moveNum, const Options& options, Limit& limit) noexcept {
     // If have no time, no need to fully initialize TM.
-    // startTime is used by movetime and nodesTime is used in elapsed calls.
+    // startTime is used by movetime and NodesTime is used in elapsed calls.
     startTime   = limit.startTime;
     auto& clock = limit.clocks[ac];
 
-    const std::int64_t nodesTime = options["NodesTime"];
+    std::int64_t NodesTime = options["NodesTime"];
 
-    useNodesTime = nodesTime > 0;
+    useNodesTime = NodesTime > 0;
 
     if (clock.time == 0)
     {
@@ -67,13 +82,13 @@ void TimeManager::init(
 
     // If have to play in 'Nodes as Time' mode, then convert from time to nodes,
     // and use resulting values in time management formulas.
-    // WARNING: to avoid time losses, the given nodesTime (nodes per millisecond)
+    // WARNING: to avoid time losses, the given NodesTime (nodes per millisecond)
     // must be much lower than the real engine speed.
     if (use_nodes_time())
     {
         // Only once at game start
-        if (timeNodes == -1)
-            timeNodes = clock.time * nodesTime;  // Time is in msec
+        if (timeNodes == INITIAL_TIME_NODES)
+            timeNodes = clock.time * NodesTime;  // Time is in msec
 
         // Convert from milliseconds to nodes
         clock.time = timeNodes;
@@ -81,12 +96,12 @@ void TimeManager::init(
         if (clock.time == 0)
             clock.time = 1;
 
-        clock.inc *= nodesTime;
+        clock.inc *= NodesTime;
 
-        moveOverhead *= nodesTime;
+        moveOverhead *= NodesTime;
     }
 
-    std::int64_t scaleFactor = nodesTime <= 1 ? 1 : nodesTime;
+    std::int64_t scaleFactor = NodesTime <= DEFAULT_SCALE_FACTOR ? DEFAULT_SCALE_FACTOR : NodesTime;
 
     TimePoint scaledTime = clock.time / scaleFactor;
 
@@ -102,7 +117,12 @@ void TimeManager::init(
 
     // If less than one second, gradually reduce mtg
     if (scaledTime < 1000)
-        centiMTG = std::max<std::uint16_t>(5.0510 * scaledTime, 101);
+    {
+        centiMTG = 5.0510 * scaledTime;
+
+        if (centiMTG < MIN_CENTI_MTG)
+            centiMTG = MIN_CENTI_MTG;
+    }
 
     TimePoint remainTime = clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * moveOverhead) / 100;
     // Make sure remainTime > 0 since use it as a divisor
@@ -123,12 +143,12 @@ void TimeManager::init(
         if (clock.inc == 0)
         {
         // Extra time according to initial remaining Time (Only once at game start)
-        if (timeAdjust == -1.0)
+        if (timeAdjust == INITIAL_TIME_ADJUST)
         {
             timeAdjust = -0.4126 + 0.2862 * std::log10(remainTime);
 
-            if (timeAdjust < 1.0e-6)
-                timeAdjust = 1.0e-6;
+            if (timeAdjust < MIN_TIME_ADJUST)
+                timeAdjust = MIN_TIME_ADJUST;
         }
 
         optimumScale = timeAdjust
@@ -143,12 +163,12 @@ void TimeManager::init(
         else
         {
         // Extra time according to initial remaining Time (Only once at game start)
-        if (timeAdjust == -1.0)
+        if (timeAdjust == INITIAL_TIME_ADJUST)
         {
             timeAdjust = -0.4354 + 0.3128 * std::log10(remainTime);
 
-            if (timeAdjust < 1.0e-6)
-                timeAdjust = 1.0e-6;
+            if (timeAdjust < MIN_TIME_ADJUST)
+                timeAdjust = MIN_TIME_ADJUST;
         }
 
         optimumScale = timeAdjust
@@ -169,10 +189,11 @@ void TimeManager::init(
     // Limit the maximum possible time for this move
     optimumTime = TimePoint(optimumScale * remainTime);
 
-    maximumTime = centiMTG > 100 ? TimePoint(std::min(0.825179 * clock.time - moveOverhead, maximumScale * optimumTime)) - 10
-                                 : clock.time - moveOverhead;
-    if (maximumTime < 1)
-        maximumTime = 1;
+    maximumTime = centiMTG >= MIN_CENTI_MTG 
+                ? TimePoint(std::min(0.825179 * clock.time - moveOverhead, maximumScale * optimumTime)) - TIME_SAFETY_MARGIN
+                : clock.time - moveOverhead;
+    if (maximumTime < MIN_MAXIMUM_TIME)
+        maximumTime = MIN_MAXIMUM_TIME;
     // clang-format on
 
     if (options["Ponder"])
@@ -185,8 +206,8 @@ void TimeManager::advance_time_nodes(std::int64_t nodes) noexcept {
 
     timeNodes -= nodes;
 
-    if (timeNodes < 0)
-        timeNodes = 0;
+    if (timeNodes <= INITIAL_TIME_NODES)
+        timeNodes = INITIAL_TIME_NODES + 1;
 }
 
 }  // namespace DON
