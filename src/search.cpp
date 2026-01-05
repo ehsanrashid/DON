@@ -1841,7 +1841,7 @@ QS_MOVES_LOOP:
                 // SEE based pruning
                 int threshold = baseFutilityValue - alpha;
 
-                if (threshold < -1)
+                if (threshold <= 0)
                     threshold = -1;
 
                 if (pos.see(move) < -threshold)
