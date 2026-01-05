@@ -111,23 +111,24 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
 
                     int map = MAP[attackerPt - 1][attackedPt - 1];
 
-                    // clang-format off
+                    bool excluded = map < 0;
 
-                    bool excluded       = map < 0;
+                    if (excluded)
+                    {
+                        lutDatas[+attackerPc][+attackedPc] = FullThreats::Dimensions;
 
-                    bool semiExcluded   = attackerPt == attackedPt && (enemy || attackerPt != PAWN);
+                        continue;
+                    }
 
-                    std::uint32_t featureBaseIndex =
-                          PIECE_THREATS[+attackerPc].baseOffset
-                        + PIECE_THREATS[+attackerPc].threatCount
+                    bool semiExcluded = attackerPt == attackedPt && (enemy || attackerPt != PAWN);
+
+                    std::uint32_t featureIndex =
+                      PIECE_THREATS[+attackerPc].baseOffset
+                      + PIECE_THREATS[+attackerPc].threatCount
                           * (attackedC * (MAX_TARGETS[attackerPt - 1] / 2) + map);
 
                     lutDatas[+attackerPc][+attackedPc] =
-                          excluded 
-                        ? FullThreats::Dimensions
-                          // bit31 = semiExcluded
-                        : (std::uint32_t(semiExcluded) << EXCLUDED_OFFSET) | featureBaseIndex;
-                    // clang-format on
+                      (std::uint32_t(semiExcluded) << EXCLUDED_OFFSET) | featureIndex;
                 }
         }
 
@@ -195,7 +196,7 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
 
     std::uint32_t lutData = LUT_DATAS[+attackerPc][+attackedPc];
 
-    if (  // Fast path: always excluded
+    if (  // Fully-excluded (fast path)
       lutData == FullThreats::Dimensions
       // Semi-excluded && Direction-dependent exclusion
       || (((lutData & EXCLUDED_MASK) >> EXCLUDED_OFFSET) != 0 && orgSq < dstSq))
