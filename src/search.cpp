@@ -506,6 +506,8 @@ void Worker::iterative_deepening() noexcept {
                 rootDelta = beta - alpha;
                 assert(rootDelta > 0);
 
+                ss->cutoffCount = 0;
+
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
                 Depth adjustedDepth = rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4;
@@ -1404,7 +1406,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r += int(ttCapture) * 1119;
 
         // Increase reduction if current ply has a lot of fail high
-        r += int(ss->cutoffCount > 1) * (128 + (ss->cutoffCount - 2) * 512 + AllNode * 1024);
+        r += int(ss->cutoffCount > 1) * (128 + 512 * (ss->cutoffCount - 2) + int(AllNode) * 1024);
 
         // For first picked move (ttMove) reduce reduction
         r -= int(move == ttd.move) * 2151;
