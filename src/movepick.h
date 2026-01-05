@@ -30,37 +30,37 @@ namespace DON {
 
 class Position;
 
-enum Stage : std::uint8_t {
-    STG_NONE,
+enum class Stage : std::uint8_t {
+    NONE,
 
     // Generate encounter moves
-    STG_ENC_TT,
-    STG_ENC_CAPTURE_INIT,
-    STG_ENC_CAPTURE_GOOD,
-    STG_ENC_QUIET_INIT,
-    STG_ENC_QUIET_GOOD,
-    STG_ENC_CAPTURE_BAD,
-    STG_ENC_QUIET_BAD,
+    ENC_TT,
+    ENC_CAPTURE_INIT,
+    ENC_CAPTURE_GOOD,
+    ENC_QUIET_INIT,
+    ENC_QUIET_GOOD,
+    ENC_CAPTURE_BAD,
+    ENC_QUIET_BAD,
 
     // Generate evasion moves
-    STG_EVA_TT,
-    STG_EVA_CAPTURE_INIT,
-    STG_EVA_CAPTURE,
-    STG_EVA_QUIET_INIT,
-    STG_EVA_QUIET,
+    EVA_TT,
+    EVA_CAPTURE_INIT,
+    EVA_CAPTURE,
+    EVA_QUIET_INIT,
+    EVA_QUIET,
 
     // Generate qsearch moves
-    STG_QS_TT,
-    STG_QS_CAPTURE_INIT,
-    STG_QS_CAPTURE,
+    QS_TT,
+    QS_CAPTURE_INIT,
+    QS_CAPTURE,
 
     // Generate probcut moves
-    STG_PROBCUT_TT,
-    STG_PROBCUT_INIT,
-    STG_PROBCUT,
+    PROBCUT_TT,
+    PROBCUT_INIT,
+    PROBCUT,
 };
 
-constexpr Stage  operator+(Stage s, int i) noexcept { return Stage(int(s) + i); }
+constexpr Stage  operator+(Stage s, int i) noexcept { return Stage(std::uint8_t(s) + i); }
 constexpr Stage& operator++(Stage& s) noexcept { return s = s + 1; }
 
 struct ExtMove final: public Move {
@@ -117,7 +117,7 @@ class MovePicker final {
 
     Move next_move() noexcept;
 
-    Stage stage = STG_NONE;
+    Stage stage = Stage::NONE;
 
     bool quietAllowed = true;
 

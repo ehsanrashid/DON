@@ -540,7 +540,10 @@ void Worker::iterative_deepening() noexcept {
                 // otherwise exit the loop.
                 if (bestValue <= alpha)
                 {
-                    beta  = std::max(+alpha, -VALUE_INFINITE + 1);
+                    beta = alpha;
+                    if (beta < -VALUE_INFINITE + 1)
+                        beta = -VALUE_INFINITE + 1;
+
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;
@@ -550,18 +553,20 @@ void Worker::iterative_deepening() noexcept {
                 }
                 else if (bestValue >= beta)
                 {
-                    alpha = std::max(+alpha, beta - delta);
-                    beta  = std::min(bestValue + delta, +VALUE_INFINITE);
+                    if (alpha < beta - delta)
+                        alpha = beta - delta;
+
+                    beta = std::min(bestValue + delta, +VALUE_INFINITE);
 
                     ++failHighCnt;
                 }
                 else
                     break;
 
-                delta *= 1.3333;
+                delta *= 1.35;
 
-                if (delta > 2 * VALUE_INFINITE)
-                    delta = 2 * VALUE_INFINITE;
+                if (delta > MAX_DELTA)
+                    delta = MAX_DELTA;
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }

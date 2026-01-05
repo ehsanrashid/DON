@@ -52,9 +52,11 @@ MovePicker::MovePicker(const Position&                 p,
     threshold(th) {
     assert(ttMove == Move::None || pos.legal(ttMove));
 
-    stage = pos.checkers_bb() != 0 ? STG_EVA_TT + int(!(ttMove != Move::None))
-          : threshold < 0          ? STG_ENC_TT + int(!(ttMove != Move::None))
-                          : STG_QS_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
+    stage = pos.checkers_bb() != 0  //
+            ? Stage::EVA_TT + int(!(ttMove != Move::None))
+            : threshold < 0
+                ? Stage::ENC_TT + int(!(ttMove != Move::None))
+                : Stage::QS_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
 }
 
 // MovePicker constructor for ProbCut:
@@ -70,7 +72,7 @@ MovePicker::MovePicker(const Position&           p,
     assert(pos.checkers_bb() == 0);
     assert(ttMove == Move::None || pos.legal(ttMove));
 
-    stage = STG_PROBCUT_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
+    stage = Stage::PROBCUT_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -277,16 +279,16 @@ Move MovePicker::next_move() noexcept {
 STAGE_SWITCH:
     switch (stage)
     {
-    case STG_ENC_TT :
-    case STG_EVA_TT :
-    case STG_QS_TT :
-    case STG_PROBCUT_TT :
+    case Stage::ENC_TT :
+    case Stage::EVA_TT :
+    case Stage::QS_TT :
+    case Stage::PROBCUT_TT :
         ++stage;
         return ttMove;
 
-    case STG_ENC_CAPTURE_INIT :
-    case STG_QS_CAPTURE_INIT :
-    case STG_PROBCUT_INIT : {
+    case Stage::ENC_CAPTURE_INIT :
+    case Stage::QS_CAPTURE_INIT :
+    case Stage::PROBCUT_INIT : {
         MoveList<ENC_CAPTURE> moveList(pos);
 
         cur = endBadCapture = moves.data();
@@ -299,7 +301,7 @@ STAGE_SWITCH:
         ++stage;
         goto STAGE_SWITCH;
 
-    case STG_ENC_CAPTURE_GOOD :
+    case Stage::ENC_CAPTURE_GOOD :
         if (select([&]() {
                 if (pos.see(*cur) >= -cur->value / 18)
                     return true;
@@ -312,7 +314,7 @@ STAGE_SWITCH:
         ++stage;
         [[fallthrough]];
 
-    case STG_ENC_QUIET_INIT :
+    case Stage::ENC_QUIET_INIT :
         if (quietAllowed)
         {
             MoveList<ENC_QUIET> moveList(pos);
@@ -325,7 +327,7 @@ STAGE_SWITCH:
         ++stage;
         [[fallthrough]];
 
-    case STG_ENC_QUIET_GOOD :
+    case Stage::ENC_QUIET_GOOD :
         if (quietAllowed)
         {
             for (; !empty(); next())
@@ -349,7 +351,7 @@ STAGE_SWITCH:
         ++stage;
         [[fallthrough]];
 
-    case STG_ENC_CAPTURE_BAD :
+    case Stage::ENC_CAPTURE_BAD :
         if (select([]() { return true; }))
             return move();
 
@@ -363,13 +365,13 @@ STAGE_SWITCH:
         ++stage;
         [[fallthrough]];
 
-    case STG_ENC_QUIET_BAD :
+    case Stage::ENC_QUIET_BAD :
         if (quietAllowed && select([]() { return true; }))
             return move();
 
         return Move::None;
 
-    case STG_EVA_CAPTURE_INIT : {
+    case Stage::EVA_CAPTURE_INIT : {
         MoveList<EVA_CAPTURE> moveList(pos);
 
         cur    = moves.data();
@@ -381,14 +383,14 @@ STAGE_SWITCH:
         ++stage;
         [[fallthrough]];
 
-    case STG_EVA_CAPTURE :
+    case Stage::EVA_CAPTURE :
         if (select([]() { return true; }))
             return move();
 
         ++stage;
         [[fallthrough]];
 
-    case STG_EVA_QUIET_INIT : {
+    case Stage::EVA_QUIET_INIT : {
         MoveList<EVA_QUIET> moveList(pos);
 
         endCur = endMove = score<EVA_QUIET>(moveList);
@@ -399,20 +401,20 @@ STAGE_SWITCH:
         ++stage;
         [[fallthrough]];
 
-    case STG_EVA_QUIET :
-    case STG_QS_CAPTURE :
+    case Stage::EVA_QUIET :
+    case Stage::QS_CAPTURE :
         if (select([]() { return true; }))
             return move();
 
         return Move::None;
 
-    case STG_PROBCUT :
+    case Stage::PROBCUT :
         if (select([&]() { return pos.see(*cur) >= threshold; }))
             return move();
 
         return Move::None;
 
-    case STG_NONE :;
+    case Stage::NONE :;
     }
     assert(false);
     return Move::None;  // Silence warning
