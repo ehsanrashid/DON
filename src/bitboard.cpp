@@ -223,7 +223,7 @@ void init() noexcept {
 
             for (PieceType pt : {BISHOP, ROOK})
             {
-                if ((attacks_bb(s1, pt) & s2) != 0)
+                if ((attacks_bb(s1, pt) & s2BB) != 0)
                 {
                     BETWEEN_BBs[s1][s2] = attacks_bb(s1, pt, s2BB) & attacks_bb(s2, pt, s1BB);
                     PASS_RAY_BBs[s1][s2] =
@@ -272,20 +272,20 @@ std::string pretty_str(Bitboard b) noexcept {
 }
 
 std::string_view pretty(Bitboard b) noexcept {
-    constexpr std::size_t ReserveSize = 1024;
-    constexpr float       LoadFactor  = 0.75f;
+    constexpr std::size_t ReserveCount = 1024;
+    constexpr float       LoadFactor   = 0.75f;
 
     // Thread-safe static initialization
 
     // Fully RAII-compliant — destructor runs at program exit
-    //static auto cache = ConcurrentCache<Bitboard, std::string>(ReserveSize, LoadFactor);
+    //static auto cache = ConcurrentCache<Bitboard, std::string>(ReserveCount, LoadFactor);
 
     // Standard intentional "leaky singleton" pattern.
     // Ensures the cache lives for the entire program, never deleted.
-    //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(ReserveSize, LoadFactor);
+    //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(ReserveCount, LoadFactor);
     static auto& cache = *([=] {
         static auto cachePtr =
-          std::make_unique<ConcurrentCache<Bitboard, std::string>>(ReserveSize, LoadFactor);
+          std::make_unique<ConcurrentCache<Bitboard, std::string>>(ReserveCount, LoadFactor);
         return cachePtr.get();
     })();
 

@@ -41,20 +41,24 @@ struct Zobrist final {
 
     static Key piece_square(Color c, PieceType pt, Square s) noexcept {
         assert(is_ok(c) && is_ok(pt) && is_ok(s));
+
         return PieceSquare[c][pt][s];
     }
     static Key piece_square(Piece pc, Square s) noexcept {
         assert(is_ok(pc) && is_ok(s));
+
         return piece_square(color_of(pc), type_of(pc), s);
     }
 
     static Key castling(CastlingRights cr) noexcept {
         assert(0 <= cr && cr < Castling.size());
+
         return Castling[cr];
     }
 
     static Key enpassant(Square enPassantSq) noexcept {
         assert(is_ok(enPassantSq));
+
         return Enpassant[file_of(enPassantSq)];
     }
 
@@ -62,6 +66,7 @@ struct Zobrist final {
 
     static Key mr50(std::int16_t rule50Count) noexcept {
         auto idx = rule50Count - R50_OFFSET;
+
         return idx < 0 ? 0 : MR50[std::min(idx / R50_FACTOR, int(MR50.size()) - 1)];
     }
 
@@ -324,8 +329,8 @@ class Position final {
     bool has_repeated() const noexcept;
     bool is_upcoming_repetition(std::int16_t ply) const noexcept;
 
-    void  put(const Square s, const Piece pc, DirtyThreats* const dts = nullptr) noexcept;
-    Piece remove(const Square s, DirtyThreats* const dts = nullptr) noexcept;
+    void  put(Square s, Piece pc, DirtyThreats* const dts = nullptr) noexcept;
+    Piece remove(Square s, DirtyThreats* const dts = nullptr) noexcept;
 
     void flip() noexcept;
     void mirror() noexcept;
@@ -399,11 +404,11 @@ class Position final {
     template<bool After = true>
     bool enpassant_possible(Color           ac,
                             Square          enPassantSq,
-                            Bitboard* const epPawnsBB_ = nullptr) const noexcept;
+                            Bitboard* const epPawnsBBp = nullptr) const noexcept;
 
     // Other helpers
-    Piece move(const Square s1, const Square s2, DirtyThreats* const dts = nullptr) noexcept;
-    Piece swap(const Square s, const Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
+    Piece move(Square s1, Square s2, DirtyThreats* const dts = nullptr) noexcept;
+    Piece swap(Square s, Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
 
     template<bool Put, bool ComputeRay = true>
     void update_pc_threats(Square              s,
@@ -601,6 +606,7 @@ inline std::int32_t Position::move_num() const noexcept {
 
 inline CastlingRights Position::castling_rights_mask(Square s) const noexcept {
     auto sIdx = CASTLING_RIGHTS_INDICES[s];
+
     return sIdx < castlingRightsMasks.size() ? castlingRightsMasks[sIdx] : NO_CASTLING;
 }
 
@@ -916,14 +922,14 @@ inline void Position::reset_en_passant_sq() noexcept { st->enPassantSq = SQ_NONE
 
 inline void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
 
-inline void Position::put(const Square s, const Piece pc, DirtyThreats* const dts) noexcept {
+inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && is_ok(pc) && empty(s));
 
     const Bitboard sBB = square_bb(s);
 
-    const auto c   = color_of(pc);
-    const auto pt  = type_of(pc);
-    const auto cnt = count(c, pt);
+    auto c   = color_of(pc);
+    auto pt  = type_of(pc);
+    auto cnt = count(c, pt);
 
     pieceMap[s] = pc;
     colorBBs[c] |= sBB;
@@ -938,15 +944,15 @@ inline void Position::put(const Square s, const Piece pc, DirtyThreats* const dt
         update_pc_threats<true>(s, pc, dts);
 }
 
-inline Piece Position::remove(const Square s, DirtyThreats* const dts) noexcept {
+inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && !empty(s));
 
-    const Bitboard sBB = square_bb(s);
+    Bitboard sBB = square_bb(s);
 
-    const Piece pc  = piece(s);
-    const auto  c   = color_of(pc);
-    const auto  pt  = type_of(pc);
-    const auto  cnt = count(c, pt);
+    Piece pc  = piece(s);
+    auto  c   = color_of(pc);
+    auto  pt  = type_of(pc);
+    auto  cnt = count(c, pt);
     assert(is_ok(pc) && cnt != 0);
 
     if (dts != nullptr)
@@ -968,14 +974,14 @@ inline Piece Position::remove(const Square s, DirtyThreats* const dts) noexcept 
     return pc;
 }
 
-inline Piece Position::move(const Square s1, const Square s2, DirtyThreats* const dts) noexcept {
+inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexcept {
     assert(is_ok(s1) && is_ok(s2) && s1 != s2 && !empty(s1));
 
     const Bitboard s1s2BB = make_bb(s1, s2);
 
-    const Piece pc = piece(s1);
-    const auto  c  = color_of(pc);
-    const auto  pt = type_of(pc);
+    Piece pc = piece(s1);
+    auto  c  = color_of(pc);
+    auto  pt = type_of(pc);
     assert(is_ok(pc) && count(c, pt) != 0);
 
     if (dts != nullptr)
@@ -999,9 +1005,9 @@ inline Piece Position::move(const Square s1, const Square s2, DirtyThreats* cons
     return pc;
 }
 
-inline Piece Position::swap(const Square s, const Piece newPc, DirtyThreats* const dts) noexcept {
+inline Piece Position::swap(Square s, Piece newPc, DirtyThreats* const dts) noexcept {
 
-    const Piece oldPc = remove(s);
+    Piece oldPc = remove(s);
 
     if (dts != nullptr)
         update_pc_threats<false, false>(s, oldPc, dts);

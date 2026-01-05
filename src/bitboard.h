@@ -31,9 +31,6 @@
     #include <cstring>
 #endif
 
-#include "misc.h"
-#include "types.h"
-
 #if defined(_MSC_VER)
     #include <intrin.h>  // Microsoft header for _BitScanForward64() & _BitScanForward()
     #if defined(USE_POPCNT)
@@ -52,6 +49,9 @@
     // Deposits the lower bits of 'src' into the positions of the 1-bits in 'mask',
     // leaving all other bits as zero.
 #endif
+
+#include "misc.h"
+#include "types.h"
 
 namespace DON {
 

@@ -100,7 +100,7 @@ inline CpuIndex hardware_concurrency() noexcept {
     return concurrency;
 }
 
-inline const CpuIndex SYSTEM_THREADS_NB = std::max<CpuIndex>(hardware_concurrency(), 1);
+inline const CpuIndex SYSTEM_THREADS_NB = std::max(int(hardware_concurrency()), 1);
 
 #if defined(__ANDROID__)
 

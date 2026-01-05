@@ -23,7 +23,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
-#include <limits>
 #include <optional>
 #include <sstream>
 #include <unordered_map>
@@ -113,50 +112,96 @@ Limit parse_limit(std::istream& is) noexcept {
         if (token == "wtime")
         {
             is >> limit.clocks[WHITE].time;
-            limit.clocks[WHITE].time = std::max(std::abs(limit.clocks[WHITE].time), TimePoint(1));
+
+            limit.clocks[WHITE].time = std::abs(limit.clocks[WHITE].time);
+
+            if (limit.clocks[WHITE].time == 0)
+                limit.clocks[WHITE].time = 1;
         }
         else if (token == "btime")
         {
             is >> limit.clocks[BLACK].time;
-            limit.clocks[BLACK].time = std::max(std::abs(limit.clocks[BLACK].time), TimePoint(1));
+
+            limit.clocks[BLACK].time = std::abs(limit.clocks[BLACK].time);
+
+            if (limit.clocks[BLACK].time == 0)
+                limit.clocks[BLACK].time = 1;
         }
         else if (token == "winc")
         {
             is >> limit.clocks[WHITE].inc;
-            limit.clocks[WHITE].inc = std::max(std::abs(limit.clocks[WHITE].inc), TimePoint(1));
+
+            limit.clocks[WHITE].inc = std::abs(limit.clocks[WHITE].inc);
+
+            if (limit.clocks[WHITE].inc == 0)
+                limit.clocks[WHITE].inc = 1;
         }
         else if (token == "binc")
         {
             is >> limit.clocks[BLACK].inc;
-            limit.clocks[BLACK].inc = std::max(std::abs(limit.clocks[BLACK].inc), TimePoint(1));
+
+            limit.clocks[BLACK].inc = std::abs(limit.clocks[BLACK].inc);
+
+            if (limit.clocks[BLACK].inc == 0)
+                limit.clocks[BLACK].inc = 1;
         }
         else if (token == "movetime")
         {
             is >> limit.moveTime;
-            limit.moveTime = std::max(std::abs(limit.moveTime), TimePoint(1));
+
+            limit.moveTime = std::abs(limit.moveTime);
+
+            if (limit.moveTime == 0)
+                limit.moveTime = 1;
         }
         else if (token == "movestogo")
         {
             std::int16_t movesToGo;
             is >> movesToGo;
-            limit.movesToGo =
-              std::clamp(std::abs(movesToGo), 1, +std::numeric_limits<std::uint8_t>::max());
+
+            movesToGo = std::abs(movesToGo);
+
+            limit.movesToGo = movesToGo;
+
+            if (movesToGo == 0)
+                limit.movesToGo = 1;
+
+            if (movesToGo > 255)
+                limit.movesToGo = 255;
         }
         else if (token == "mate")
         {
             std::int16_t mate;
             is >> mate;
-            limit.mate = std::clamp(std::abs(mate), 1, +std::numeric_limits<std::uint8_t>::max());
+
+            mate = std::abs(mate);
+
+            limit.mate = mate;
+
+            if (mate == 0)
+                limit.mate = 1;
+
+            if (mate > 255)
+                limit.mate = 255;
         }
         else if (token == "depth")
         {
             is >> limit.depth;
-            limit.depth = std::clamp(std::abs(limit.depth), 1, MAX_PLY - 1);
+
+            limit.depth = std::abs(limit.depth);
+
+            if (limit.depth == 0)
+                limit.depth = 1;
+
+            if (limit.depth > MAX_PLY - 1)
+                limit.depth = MAX_PLY - 1;
         }
         else if (token == "nodes")
         {
             is >> limit.nodes;
-            limit.nodes = std::max(limit.nodes, std::uint64_t(1));
+
+            if (limit.nodes == 0)
+                limit.nodes = 1;
         }
         else if (token == "infinite")
             limit.infinite = true;
@@ -166,8 +211,15 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             limit.perft = true;
             is >> limit.depth;
-            limit.depth = std::clamp(std::abs(limit.depth), 1, MAX_PLY - 1);
             is >> std::boolalpha >> limit.detail;
+
+            limit.depth = std::abs(limit.depth);
+
+            if (limit.depth == 0)
+                limit.depth = 1;
+
+            if (limit.depth > MAX_PLY - 1)
+                limit.depth = MAX_PLY - 1;
         }
         // "searchmoves" needs to be the last command on the line
         else if (token.size() >= 1 && token[0] == 's')  // "searchmoves"
@@ -574,7 +626,8 @@ void UCI::bench(std::istream& is) noexcept {
 
     elapsedTime += now() - startTime;
     // Ensure non-zero to avoid a 'divide by zero'
-    elapsedTime = std::max(elapsedTime, TimePoint(1));
+    if (elapsedTime == 0)
+        elapsedTime = 1;
 
 #if !defined(NDEBUG)
     Debug::print();
@@ -742,7 +795,8 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     elapsedTime += now() - startTime;
     // Ensure non-zero to avoid a 'divide by zero'
-    elapsedTime = std::max(elapsedTime, TimePoint(1));
+    if (elapsedTime == 0)
+        elapsedTime = 1;
 
 #if !defined(NDEBUG)
     Debug::print();

@@ -374,7 +374,7 @@ void Worker::start_search() noexcept {
             for (auto&& th : threads)
                 th->worker->rootMoves.swap_to_front(skillMove);
         }
-        else if (threads.size() > 1 && multiPV == 1
+        else if (thread_count() > 1 && multiPV == 1
                  && limit.mate == 0
                  //&& limit.depth == DEPTH_ZERO
                  && rootMoves[0].pv[0] != Move::None)
@@ -488,7 +488,7 @@ void Worker::iterative_deepening() noexcept {
             auto avgSqrValue = rootMoves[curPV].avgSqrValue;
 
             // Reset aspiration window starting size
-            int delta = 5 + std::min(int(threads.size()) - 1, 8)  //
+            int delta = 5 + std::min(int(thread_count()) - 1, 8)  //
                       + int(1.1111e-4 * std ::abs(avgSqrValue));
 
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
@@ -650,7 +650,7 @@ void Worker::iterative_deepening() noexcept {
             double easeFactor = 0.4386 * (1.4300 + mainManager->preTimeReduction) / mainManager->timeReduction;
 
             // Compute move instability factor based on the total move changes and the number of threads
-            double instabilityFactor = 1.0200 + 2.1400 * mainManager->sumMoveChanges / threads.size();
+            double instabilityFactor = 1.0200 + 2.1400 * mainManager->sumMoveChanges / thread_count();
 
             // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
             double nodeEffortExcess = -933.40 + 1000.0 * rootMoves[0].nodes / std::max(nodes_(), std::uint64_t(1));
@@ -976,7 +976,8 @@ Value Worker::search(Position&    pos,
                         {
                             bestValue = value;
 
-                            alpha = std::max(alpha, bestValue);
+                            if (alpha < bestValue)
+                                alpha = bestValue;
                         }
                         else
                             maxValue = value;
@@ -1005,7 +1006,7 @@ Value Worker::search(Position&    pos,
     // Step 7. Razoring
     // If eval is really low, check with qsearch then return speculative fail low.
     if constexpr (!RootNode)
-        if (!is_decisive(alpha) && ttEvalValue + 485 + 281 * depth * depth <= alpha)
+        if (ttEvalValue + 485 + 281 * depth * depth <= alpha)
         {
             value = qsearch<PVNode>(pos, ss, alpha, beta);
 
@@ -1240,12 +1241,14 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for captures and checks
-                int margin = 166 * depth + int(34.4828e-3 * history);
-                if (margin < 0)
-                    margin = 0;
+                int threshold = 166 * depth + int(34.4828e-3 * history);
+
+                if (threshold < 0)
+                    threshold = 0;
+
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                  && pos.see(move) < -margin)
+                  && pos.see(move) < -threshold)
                     continue;
             }
             else
@@ -1276,17 +1279,20 @@ S_MOVES_LOOP:  // When in check, search starts here
                         if (!is_decisive(bestValue) && !is_win(futilityValue))
                             if (bestValue < futilityValue)
                                 bestValue = futilityValue;
+
                         continue;
                     }
                 }
 
                 // SEE based pruning for quiets and checks
-                int margin = int(check) * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth);
-                if (margin < 0)
-                    margin = 0;
+                int threshold = int(check) * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth);
+
+                if (threshold < 0)
+                    threshold = 0;
+
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                  && pos.see(move) < -margin)
+                  && pos.see(move) < -threshold)
                     continue;
             }
         }
@@ -1415,7 +1421,12 @@ S_MOVES_LOOP:  // When in check, search starts here
         {
             // To prevent problems when the max value is less than the min value,
             // std::clamp has been replaced by a more robust implementation.
-            Depth redDepth = std::max(std::min(newDepth - r / 1024, newDepth + 2), 1) + int(PVNode);
+            Depth redDepth = std::min(newDepth - r / 1024, newDepth + 2);
+
+            if (redDepth < 1)
+                redDepth = 1;
+
+            redDepth += int(PVNode);
 
             value = -search<Cut>(pos, ss + 1, -alpha - 1, -alpha, redDepth, newDepth - redDepth);
 
@@ -1602,7 +1613,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (!preCapture)
         {
             // clang-format off
-            int bonusScale = std::max(-215
+            int bonusScale = -215
                             // Increase bonus when depth is high
                             + std::min(56 * depth, 489)
                             // Increase bonus when bestValue is lower than current static evaluation
@@ -1612,8 +1623,11 @@ S_MOVES_LOOP:  // When in check, search starts here
                             // Increase bonus when the previous moveCount is high
                             +  80 * std::min(((ss - 1)->moveCount - 1) / 5, 4)
                             // Increase bonus if the previous move has a bad history
-                            - int(10.0000e-3 * (ss - 1)->history), 0);
+                            - int(0.01 * (ss - 1)->history);
             // clang-format on
+            if (bonusScale < 0)
+                bonusScale = 0;
+
             int bonus = bonusScale * std::min(-87 + 141 * depth, +1351);
 
             if (preNonPawn)
@@ -1651,7 +1665,7 @@ S_MOVES_LOOP:  // When in check, search starts here
     if (!ss->inCheck && (bestMove == Move::None || !pos.capture(bestMove))
         && (bestValue > ss->evalValue) == (bestMove != Move::None))
     {
-        int bonus = (bestValue - ss->evalValue) * depth / (8 + (bestMove != Move::None) * 2);
+        int bonus = (bestValue - ss->evalValue) * depth / (8 + int(bestMove != Move::None) * 2);
 
         update_correction_histories(pos, ss, bonus);
     }
@@ -1718,14 +1732,14 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
-    Value evalValue, bestValue, futBaseValue;
+    Value evalValue, bestValue, baseFutilityValue;
 
     // Step 4. Static evaluation of the position
     if (ss->inCheck)
     {
         evalValue = VALUE_NONE;
 
-        bestValue = futBaseValue = -VALUE_INFINITE;
+        bestValue = baseFutilityValue = -VALUE_INFINITE;
 
         goto QS_MOVES_LOOP;
     }
@@ -1768,7 +1782,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (alpha < bestValue)
         alpha = bestValue;
 
-    futBaseValue = std::min(351 + ss->evalValue, +VALUE_INFINITE);
+    baseFutilityValue = std::min(351 + ss->evalValue, +VALUE_INFINITE);
 
 QS_MOVES_LOOP:
 
@@ -1806,31 +1820,37 @@ QS_MOVES_LOOP:
             bool capture = pos.capture_promo(move);
 
             // Futility pruning and moveCount pruning
-            if (!check && dstSq != preSq && move.type() != MT::PROMOTION && !is_loss(futBaseValue))
+            if (!check && dstSq != preSq && move.type() != MT::PROMOTION
+                && !is_loss(baseFutilityValue))
             {
                 if (moveCount > 2)
                     continue;
 
                 // Static evaluation + value of piece going to captured
                 Value futilityValue =
-                  std::min(futBaseValue + piece_value(pos.captured_pt(move)), +VALUE_INFINITE);
+                  std::min(baseFutilityValue + piece_value(pos.captured_pt(move)), +VALUE_INFINITE);
 
                 if (futilityValue <= alpha)
                 {
                     if (bestValue < futilityValue)
                         bestValue = futilityValue;
+
                     continue;
                 }
 
                 // SEE based pruning
-                int margin = alpha - futBaseValue;
-                if (margin < 0)
-                    margin = 0;
-                if (pos.see(move) < -margin)
+                int threshold = baseFutilityValue - alpha;
+
+                if (threshold <= 0)
+                    threshold = -1;
+
+                if (pos.see(move) < -threshold)
                 {
-                    Value minValue = std::min(alpha, futBaseValue);
+                    Value minValue = std::min(alpha, baseFutilityValue);
+
                     if (bestValue < minValue)
                         bestValue = minValue;
+
                     continue;
                 }
             }
@@ -1994,8 +2014,11 @@ void Worker::update_quiet_histories(const Position& pos, Key pawnKey, Stack* con
 void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(ss->moveCount != 0);
 
-    const int bonus =          std::min(- 81 + 116 * depth, +1515) + 347 * int(bestMove == ss->ttMove) + (ss - 1)->history / 32;
-    const int malus = std::max(std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount, 1);
+    int bonus = std::min(- 81 + 116 * depth, +1515) + 347 * int(bestMove == ss->ttMove) + (ss - 1)->history / 32;
+    int malus = std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount;
+
+    if (malus < 1)
+        malus = 1;
 
     if (pos.capture_promo(bestMove))
     {
@@ -2337,6 +2360,7 @@ TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
 
 // Displays the principal variation (PV) along with associated information
 void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
+    assert(depth > DEPTH_ZERO);
 
     const auto& rootPos            = worker.rootPos;
     const auto& rootMoves          = worker.rootMoves;
@@ -2347,7 +2371,10 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     std::size_t multiPV            = worker.multiPV;
     std::size_t curPV              = worker.curPV;
 
-    TimePoint     time     = std::max(elapsed(), TimePoint(1));
+    TimePoint time = elapsed();
+    if (time == 0)
+        time = 1;  // Avoid division by zero
+
     std::uint64_t nodes    = threads.sum(&Worker::nodes);
     std::uint16_t hashfull = transpositionTable.hashfull();
     std::uint64_t tbHits   = threads.sum(&Worker::tbHits, tbConfig.rootInTB ? rootMoves.size() : 0);
@@ -2361,7 +2388,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if (i != 0 && depth == 1 && !updated)
             continue;
 
-        Depth d = updated ? depth : std::max(depth - 1, 1);
+        Depth d = updated ? depth : depth - int(depth > 1);
         Value v = updated ? rm.uciValue : rm.preValue;
 
         if (v == -VALUE_INFINITE)

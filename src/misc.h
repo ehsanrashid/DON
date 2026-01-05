@@ -895,8 +895,8 @@ struct LazyValue final {
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
-    ConcurrentCache(std::size_t reserveSize = 1024, float loadFactor = 0.75f) noexcept {
-        storage.reserve(reserveSize);
+    ConcurrentCache(std::size_t reserveCount = 1024, float loadFactor = 0.75f) noexcept {
+        storage.reserve(reserveCount);
         storage.max_load_factor(loadFactor);
     }
 
