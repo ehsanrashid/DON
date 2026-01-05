@@ -753,7 +753,8 @@ Value Worker::search(Position&    pos,
         // Limit the depth if extensions made it too large
         if (depth > MAX_PLY - 1)
             depth = MAX_PLY - 1;
-        assert(DEPTH_ZERO < depth && depth < MAX_PLY);
+
+        assert(DEPTH_ZERO < depth && depth <= MAX_PLY - 1);
     }
 
     // Check for the available remaining time
@@ -798,7 +799,7 @@ Value Worker::search(Position&    pos,
             return alpha;
     }
 
-    assert(0 <= ss->ply && ss->ply < MAX_PLY);
+    assert(0 <= ss->ply && ss->ply <= MAX_PLY - 1);
 
     (ss + 1)->cutoffCount = 0;
 
@@ -1728,7 +1729,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (ss->ply >= MAX_PLY || pos.is_draw(ss->ply))
         return ss->ply >= MAX_PLY && !ss->inCheck ? evaluate(pos) : VALUE_DRAW;
 
-    assert(0 <= ss->ply && ss->ply < MAX_PLY);
+    assert(0 <= ss->ply && ss->ply <= MAX_PLY - 1);
 
     // Step 3. Transposition table lookup
     auto [ttd, ttu] = transpositionTable.probe(key);
