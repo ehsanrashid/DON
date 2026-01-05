@@ -527,8 +527,6 @@ inline constexpr Depth DEPTH_NONE = -1;
 inline constexpr Depth DEPTH_OFFSET = DEPTH_NONE - 1;
 static_assert(DEPTH_OFFSET == MAX_PLY - 1 - 0xFF, "DEPTH_OFFSET == MAX_PLY - 1 - 0xFF");
 
-inline constexpr int MAX_DELTA = 2 * VALUE_INFINITE;
-
 // Move representation (16 bits)
 // Each move is compactly stored in a 16-bit unsigned integer.
 //

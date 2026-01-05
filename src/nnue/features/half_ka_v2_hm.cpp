@@ -43,7 +43,6 @@ constexpr IndexType PS_B_ROOK   = 7 * SQUARE_NB;
 constexpr IndexType PS_W_QUEEN  = 8 * SQUARE_NB;
 constexpr IndexType PS_B_QUEEN  = 9 * SQUARE_NB;
 constexpr IndexType PS_KING     = 10 * SQUARE_NB;
-constexpr IndexType PS_NB       = 11 * SQUARE_NB;
 
 constexpr StdArray<IndexType, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
   // Convention: W - us, B - them
@@ -54,7 +53,7 @@ constexpr StdArray<IndexType, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
    PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE}   //
 }};
 
-#define B(v) (v * PS_NB)
+#define B(v) (v * HalfKAv2_hm::PS_NB)
 constexpr StdArray<IndexType, SQUARE_NB> KING_BUCKETS{
   B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28),  //
   B(24), B(25), B(26), B(27), B(27), B(26), B(25), B(24),  //

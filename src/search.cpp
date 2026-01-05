@@ -46,7 +46,7 @@ namespace DON {
 
 namespace {
 
-constexpr int QUIET_HISTORY_DEFAULT_VALUE = 68;
+constexpr int DEFAULT_QUIET_HISTORY_VALUE = 68;
 
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
@@ -60,7 +60,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
 }();
 
 constexpr int
-reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
+reduction(Depth depth, std::uint8_t moveCount, unsigned deltaRatio, bool improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
     return 1182 + reductionScale - deltaRatio + !improve * int(0.4648 * reductionScale);
 }
@@ -220,7 +220,7 @@ void Worker::init() noexcept {
     // Initialize search histories
 
     captureHistory.fill(-689);
-    quietHistory.fill(QUIET_HISTORY_DEFAULT_VALUE);
+    quietHistory.fill(DEFAULT_QUIET_HISTORY_VALUE);
     ttMoveHistory = 0;
 
     for (bool inCheck : {false, true})
@@ -270,7 +270,7 @@ void Worker::start_search() noexcept {
 
     for (auto& colorQuietHist : quietHistory)
         for (auto& quietHist : colorQuietHist)
-            quietHist = (3 * quietHist + QUIET_HISTORY_DEFAULT_VALUE) / 4;
+            quietHist = (3 * quietHist + DEFAULT_QUIET_HISTORY_VALUE) / 4;
 
     lowPlyQuietHistory.fill(97);
 
@@ -440,6 +440,8 @@ void Worker::iterative_deepening() noexcept {
     assert(stacks[0].ply == -StackOffset && stacks[stacks.size() - 1].ply == MAX_PLY + 1);
     assert(ss->ply == 0);
 
+    constexpr int MaxDelta = 2 * VALUE_INFINITE;
+
     StdArray<Move, MAX_PLY + 1> pv;
 
     ss->pv = pv.data();
@@ -504,7 +506,7 @@ void Worker::iterative_deepening() noexcept {
             while (true)
             {
                 rootDelta = beta - alpha;
-                assert(rootDelta > 0);
+                assert(rootDelta != 0);
 
                 ss->cutoffCount = 0;
 
@@ -541,6 +543,7 @@ void Worker::iterative_deepening() noexcept {
                 if (bestValue <= alpha)
                 {
                     beta = alpha;
+
                     if (beta < -VALUE_INFINITE + 1)
                         beta = -VALUE_INFINITE + 1;
 
@@ -565,8 +568,8 @@ void Worker::iterative_deepening() noexcept {
 
                 delta *= 1.35;
 
-                if (delta > MAX_DELTA)
-                    delta = MAX_DELTA;
+                if (delta > MaxDelta)
+                    delta = MaxDelta;
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
@@ -618,10 +621,12 @@ void Worker::iterative_deepening() noexcept {
 
         // Have found a "mate in x"?
         if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue
-            && ((rootMoves[0].curValue != +VALUE_INFINITE && is_mate_win(rootMoves[0].curValue)
-                 && VALUE_MATE - rootMoves[0].curValue <= 2 * limit.mate)
-                || (rootMoves[0].curValue != -VALUE_INFINITE && is_mate_loss(rootMoves[0].curValue)
-                    && VALUE_MATE + rootMoves[0].curValue <= 2 * limit.mate)))
+            && (  // Check for a mate win
+              (rootMoves[0].curValue != +VALUE_INFINITE && is_mate_win(rootMoves[0].curValue)
+               && VALUE_MATE - rootMoves[0].curValue <= 2 * limit.mate)
+              // or Check for a mate loss
+              || (rootMoves[0].curValue != -VALUE_INFINITE && is_mate_loss(rootMoves[0].curValue)
+                  && VALUE_MATE + rootMoves[0].curValue <= 2 * limit.mate)))
             threads.request_stop();
 
         // If the skill is enabled and time is up, pick a sub-optimal best move
@@ -748,7 +753,8 @@ Value Worker::search(Position&    pos,
         // Limit the depth if extensions made it too large
         if (depth > MAX_PLY - 1)
             depth = MAX_PLY - 1;
-        assert(DEPTH_ZERO < depth && depth < MAX_PLY);
+
+        assert(DEPTH_ZERO < depth && depth <= MAX_PLY - 1);
     }
 
     // Check for the available remaining time
@@ -793,7 +799,7 @@ Value Worker::search(Position&    pos,
             return alpha;
     }
 
-    assert(0 <= ss->ply && ss->ply < MAX_PLY);
+    assert(0 <= ss->ply && ss->ply <= MAX_PLY - 1);
 
     (ss + 1)->cutoffCount = 0;
 
@@ -1216,7 +1222,9 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
 
-        int deltaRatio = 608 * (beta - alpha) / rootDelta;
+        assert(alpha < beta);
+
+        unsigned deltaRatio = 608 * (beta - alpha) / rootDelta;
 
         int r = reduction(depth, moveCount, deltaRatio, improve);
 
@@ -1721,7 +1729,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (ss->ply >= MAX_PLY || pos.is_draw(ss->ply))
         return ss->ply >= MAX_PLY && !ss->inCheck ? evaluate(pos) : VALUE_DRAW;
 
-    assert(0 <= ss->ply && ss->ply < MAX_PLY);
+    assert(0 <= ss->ply && ss->ply <= MAX_PLY - 1);
 
     // Step 3. Transposition table lookup
     auto [ttd, ttu] = transpositionTable.probe(key);
