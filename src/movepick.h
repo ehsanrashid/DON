@@ -30,39 +30,6 @@ namespace DON {
 
 class Position;
 
-enum class Stage : std::uint8_t {
-    NONE,
-
-    // Generate encounter moves
-    ENC_TT,
-    ENC_CAPTURE_INIT,
-    ENC_CAPTURE_GOOD,
-    ENC_QUIET_INIT,
-    ENC_QUIET_GOOD,
-    ENC_CAPTURE_BAD,
-    ENC_QUIET_BAD,
-
-    // Generate evasion moves
-    EVA_TT,
-    EVA_CAPTURE_INIT,
-    EVA_CAPTURE,
-    EVA_QUIET_INIT,
-    EVA_QUIET,
-
-    // Generate qsearch moves
-    QS_TT,
-    QS_CAPTURE_INIT,
-    QS_CAPTURE,
-
-    // Generate probcut moves
-    PROBCUT_TT,
-    PROBCUT_INIT,
-    PROBCUT,
-};
-
-constexpr Stage  operator+(Stage s, int i) noexcept { return Stage(std::uint8_t(s) + i); }
-constexpr Stage& operator++(Stage& s) noexcept { return s = s + 1; }
-
 struct ExtMove final: public Move {
    public:
     using Move::operator=;
@@ -93,6 +60,39 @@ class MovePicker final {
     using iterator        = pointer;
     using const_iterator  = const_pointer;
     using size_type       = std::size_t;
+
+    enum class Stage : std::uint8_t {
+        NONE,
+
+        // Generate encounter moves
+        ENC_TT,
+        ENC_CAPTURE_INIT,
+        ENC_CAPTURE_GOOD,
+        ENC_QUIET_INIT,
+        ENC_QUIET_GOOD,
+        ENC_CAPTURE_BAD,
+        ENC_QUIET_BAD,
+
+        // Generate evasion moves
+        EVA_TT,
+        EVA_CAPTURE_INIT,
+        EVA_CAPTURE,
+        EVA_QUIET_INIT,
+        EVA_QUIET,
+
+        // Generate qsearch moves
+        QS_TT,
+        QS_CAPTURE_INIT,
+        QS_CAPTURE,
+
+        // Generate probcut moves
+        PROBCUT_TT,
+        PROBCUT_INIT,
+        PROBCUT,
+    };
+
+    friend constexpr Stage operator+(Stage s, int i) noexcept { return Stage(std::uint8_t(s) + i); }
+    friend constexpr Stage& operator++(Stage& s) noexcept { return s = s + 1; }
 
     MovePicker() noexcept                             = delete;
     MovePicker(const MovePicker&) noexcept            = delete;

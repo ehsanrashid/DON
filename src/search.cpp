@@ -46,7 +46,9 @@ namespace DON {
 
 namespace {
 
-constexpr int QUIET_HISTORY_DEFAULT_VALUE = 68;
+constexpr int MAX_DELTA = 2 * VALUE_INFINITE;
+
+constexpr int DEFAULT_QUIET_HISTORY_VALUE = 68;
 
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
@@ -220,7 +222,7 @@ void Worker::init() noexcept {
     // Initialize search histories
 
     captureHistory.fill(-689);
-    quietHistory.fill(QUIET_HISTORY_DEFAULT_VALUE);
+    quietHistory.fill(DEFAULT_QUIET_HISTORY_VALUE);
     ttMoveHistory = 0;
 
     for (bool inCheck : {false, true})
@@ -270,7 +272,7 @@ void Worker::start_search() noexcept {
 
     for (auto& colorQuietHist : quietHistory)
         for (auto& quietHist : colorQuietHist)
-            quietHist = (3 * quietHist + QUIET_HISTORY_DEFAULT_VALUE) / 4;
+            quietHist = (3 * quietHist + DEFAULT_QUIET_HISTORY_VALUE) / 4;
 
     lowPlyQuietHistory.fill(97);
 
