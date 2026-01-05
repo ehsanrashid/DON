@@ -88,9 +88,9 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
 constexpr auto& PIECE_THREATS  = THREAT_TABLE.pieceThreats;
 constexpr auto& SQUARE_OFFSETS = THREAT_TABLE.squareOffsets;
 
-constexpr std::uint8_t  EXCLUDED_OFFSET    = 31;
-constexpr std::uint32_t EXCLUDED_MASK      = 1U << EXCLUDED_OFFSET;
-constexpr std::uint32_t FEATURE_INDEX_MASK = EXCLUDED_MASK - 1U;
+constexpr std::uint8_t  SEMI_EXCLUDED_OFFSET = 31;
+constexpr std::uint32_t SEMI_EXCLUDED_MASK   = 1U << SEMI_EXCLUDED_OFFSET;
+constexpr std::uint32_t FEATURE_INDEX_MASK   = SEMI_EXCLUDED_MASK - 1U;
 
 // LUT for getting feature base index and exclusion info
 // [attackerPc][attackedPc]
@@ -128,7 +128,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                           * (attackedC * (MAX_TARGETS[attackerPt - 1] / 2) + map);
 
                     lutDatas[+attackerPc][+attackedPc] =
-                      (std::uint32_t(semiExcluded) << EXCLUDED_OFFSET) | featureIndex;
+                      (std::uint32_t(semiExcluded) << SEMI_EXCLUDED_OFFSET) | featureIndex;
                 }
         }
 
@@ -203,7 +203,7 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     if (  // Fully-excluded (fast path)
       lutData == FullThreats::Dimensions
       // Semi-excluded && Direction-dependent exclusion
-      || (((lutData & EXCLUDED_MASK) >> EXCLUDED_OFFSET) != 0 && orgSq < dstSq))
+      || (((lutData & SEMI_EXCLUDED_MASK) >> SEMI_EXCLUDED_OFFSET) != 0 && orgSq < dstSq))
         return FullThreats::Dimensions;
 
     // Compute final index
