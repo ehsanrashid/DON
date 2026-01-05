@@ -2017,10 +2017,10 @@ void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss,
     int bonus = std::min(- 81 + 116 * depth, +1515) + 347 * int(bestMove == ss->ttMove) + (ss - 1)->history / 32;
     int malus = std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount;
 
-    if (bonus < 1)
-        bonus = 1;
-    if (malus < 1)
-        malus = 1;
+    if (bonus < 0)
+        bonus = 0;
+    if (malus < 0)
+        malus = 0;
 
     if (pos.capture_promo(bestMove))
     {
