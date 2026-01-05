@@ -41,20 +41,24 @@ struct Zobrist final {
 
     static Key piece_square(Color c, PieceType pt, Square s) noexcept {
         assert(is_ok(c) && is_ok(pt) && is_ok(s));
+
         return PieceSquare[c][pt][s];
     }
     static Key piece_square(Piece pc, Square s) noexcept {
         assert(is_ok(pc) && is_ok(s));
+
         return piece_square(color_of(pc), type_of(pc), s);
     }
 
     static Key castling(CastlingRights cr) noexcept {
         assert(0 <= cr && cr < Castling.size());
+
         return Castling[cr];
     }
 
     static Key enpassant(Square enPassantSq) noexcept {
         assert(is_ok(enPassantSq));
+
         return Enpassant[file_of(enPassantSq)];
     }
 
@@ -62,6 +66,7 @@ struct Zobrist final {
 
     static Key mr50(std::int16_t rule50Count) noexcept {
         auto idx = rule50Count - R50_OFFSET;
+
         return idx < 0 ? 0 : MR50[std::min(idx / R50_FACTOR, int(MR50.size()) - 1)];
     }
 
@@ -601,6 +606,7 @@ inline std::int32_t Position::move_num() const noexcept {
 
 inline CastlingRights Position::castling_rights_mask(Square s) const noexcept {
     auto sIdx = CASTLING_RIGHTS_INDICES[s];
+
     return sIdx < castlingRightsMasks.size() ? castlingRightsMasks[sIdx] : NO_CASTLING;
 }
 

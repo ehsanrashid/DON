@@ -1006,7 +1006,7 @@ Value Worker::search(Position&    pos,
     // Step 7. Razoring
     // If eval is really low, check with qsearch then return speculative fail low.
     if constexpr (!RootNode)
-        if (!is_decisive(alpha) && ttEvalValue + 485 + 281 * depth * depth <= alpha)
+        if (ttEvalValue + 485 + 281 * depth * depth <= alpha)
         {
             value = qsearch<PVNode>(pos, ss, alpha, beta);
 
