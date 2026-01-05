@@ -620,7 +620,7 @@ class Worker final {
     Depth         rootDepth, completedDepth;
     std::size_t   multiPV, curPV, endPV;
     std::uint16_t selDepth;
-    int           rootDelta;
+    unsigned      rootDelta;
     std::int16_t  nmpPly;
 
     StdArray<std::int32_t, COLOR_NB> optimism;

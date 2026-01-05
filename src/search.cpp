@@ -62,7 +62,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
 }();
 
 constexpr int
-reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
+reduction(Depth depth, std::uint8_t moveCount, unsigned deltaRatio, bool improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
     return 1182 + reductionScale - deltaRatio + !improve * int(0.4648 * reductionScale);
 }
@@ -506,7 +506,7 @@ void Worker::iterative_deepening() noexcept {
             while (true)
             {
                 rootDelta = beta - alpha;
-                assert(rootDelta > 0);
+                assert(rootDelta != 0);
 
                 ss->cutoffCount = 0;
 
@@ -1218,7 +1218,9 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
 
-        int deltaRatio = 608 * (beta - alpha) / rootDelta;
+        assert(alpha < beta);
+
+        unsigned deltaRatio = 608 * (beta - alpha) / rootDelta;
 
         int r = reduction(depth, moveCount, deltaRatio, improve);
 
