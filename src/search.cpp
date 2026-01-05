@@ -46,8 +46,6 @@ namespace DON {
 
 namespace {
 
-constexpr int MAX_DELTA = 2 * VALUE_INFINITE;
-
 constexpr int DEFAULT_QUIET_HISTORY_VALUE = 68;
 
 // Reductions lookup table using [depth or moveCount]
@@ -442,6 +440,8 @@ void Worker::iterative_deepening() noexcept {
     assert(stacks[0].ply == -StackOffset && stacks[stacks.size() - 1].ply == MAX_PLY + 1);
     assert(ss->ply == 0);
 
+    constexpr int MaxDelta = 2 * VALUE_INFINITE;
+
     StdArray<Move, MAX_PLY + 1> pv;
 
     ss->pv = pv.data();
@@ -567,8 +567,8 @@ void Worker::iterative_deepening() noexcept {
 
                 delta *= 1.35;
 
-                if (delta > MAX_DELTA)
-                    delta = MAX_DELTA;
+                if (delta > MaxDelta)
+                    delta = MaxDelta;
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
@@ -620,10 +620,12 @@ void Worker::iterative_deepening() noexcept {
 
         // Have found a "mate in x"?
         if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue
-            && ((rootMoves[0].curValue != +VALUE_INFINITE && is_mate_win(rootMoves[0].curValue)
-                 && VALUE_MATE - rootMoves[0].curValue <= 2 * limit.mate)
-                || (rootMoves[0].curValue != -VALUE_INFINITE && is_mate_loss(rootMoves[0].curValue)
-                    && VALUE_MATE + rootMoves[0].curValue <= 2 * limit.mate)))
+            && (  // Check for a mate win
+              (rootMoves[0].curValue != +VALUE_INFINITE && is_mate_win(rootMoves[0].curValue)
+               && VALUE_MATE - rootMoves[0].curValue <= 2 * limit.mate)
+              // or Check for a mate loss
+              || (rootMoves[0].curValue != -VALUE_INFINITE && is_mate_loss(rootMoves[0].curValue)
+                  && VALUE_MATE + rootMoves[0].curValue <= 2 * limit.mate)))
             threads.request_stop();
 
         // If the skill is enabled and time is up, pick a sub-optimal best move
