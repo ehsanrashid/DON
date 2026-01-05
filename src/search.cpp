@@ -1241,14 +1241,14 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for captures and checks
-                int margin = 166 * depth + int(34.4828e-3 * history);
+                int threshold = 166 * depth + int(34.4828e-3 * history);
 
-                if (margin < 0)
-                    margin = 0;
+                if (threshold < 0)
+                    threshold = 0;
 
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                  && pos.see(move) < -margin)
+                  && pos.see(move) < -threshold)
                     continue;
             }
             else
@@ -1285,14 +1285,14 @@ S_MOVES_LOOP:  // When in check, search starts here
                 }
 
                 // SEE based pruning for quiets and checks
-                int margin = int(check) * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth);
+                int threshold = int(check) * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth);
 
-                if (margin < 0)
-                    margin = 0;
+                if (threshold < 0)
+                    threshold = 0;
 
                 if (  // Avoid pruning sacrifices of our last piece for stalemate
                   (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                  && pos.see(move) < -margin)
+                  && pos.see(move) < -threshold)
                     continue;
             }
         }
@@ -1732,14 +1732,14 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
-    Value evalValue, bestValue, futBaseValue;
+    Value evalValue, bestValue, baseFutilityValue;
 
     // Step 4. Static evaluation of the position
     if (ss->inCheck)
     {
         evalValue = VALUE_NONE;
 
-        bestValue = futBaseValue = -VALUE_INFINITE;
+        bestValue = baseFutilityValue = -VALUE_INFINITE;
 
         goto QS_MOVES_LOOP;
     }
@@ -1782,7 +1782,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (alpha < bestValue)
         alpha = bestValue;
 
-    futBaseValue = std::min(351 + ss->evalValue, +VALUE_INFINITE);
+    baseFutilityValue = std::min(351 + ss->evalValue, +VALUE_INFINITE);
 
 QS_MOVES_LOOP:
 
@@ -1820,14 +1820,15 @@ QS_MOVES_LOOP:
             bool capture = pos.capture_promo(move);
 
             // Futility pruning and moveCount pruning
-            if (!check && dstSq != preSq && move.type() != MT::PROMOTION && !is_loss(futBaseValue))
+            if (!check && dstSq != preSq && move.type() != MT::PROMOTION
+                && !is_loss(baseFutilityValue))
             {
                 if (moveCount > 2)
                     continue;
 
                 // Static evaluation + value of piece going to captured
                 Value futilityValue =
-                  std::min(futBaseValue + piece_value(pos.captured_pt(move)), +VALUE_INFINITE);
+                  std::min(baseFutilityValue + piece_value(pos.captured_pt(move)), +VALUE_INFINITE);
 
                 if (futilityValue <= alpha)
                 {
@@ -1838,14 +1839,14 @@ QS_MOVES_LOOP:
                 }
 
                 // SEE based pruning
-                int margin = alpha - futBaseValue;
+                int threshold = baseFutilityValue - alpha;
 
-                if (margin < 0)
-                    margin = 0;
+                if (threshold < 0)
+                    threshold = 0;
 
-                if (pos.see(move) < -margin)
+                if (pos.see(move) < -threshold)
                 {
-                    Value minValue = std::min(alpha, futBaseValue);
+                    Value minValue = std::min(alpha, baseFutilityValue);
 
                     if (bestValue < minValue)
                         bestValue = minValue;
