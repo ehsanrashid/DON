@@ -543,6 +543,7 @@ void Worker::iterative_deepening() noexcept {
                 if (bestValue <= alpha)
                 {
                     beta = alpha;
+
                     if (beta < -VALUE_INFINITE + 1)
                         beta = -VALUE_INFINITE + 1;
 

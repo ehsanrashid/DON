@@ -135,6 +135,10 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
     return lutDatas;
 }();
 
+constexpr IndexType feature_index(std::uint32_t lutData) noexcept {
+    return lutData & FEATURE_INDEX_MASK;
+}
+
 // LUT for getting index within piece threats
 // [attackerPt][orgSq][dstSq]
 alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
@@ -203,7 +207,7 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
         return FullThreats::Dimensions;
 
     // Compute final index
-    return (lutData & FEATURE_INDEX_MASK)       //
+    return feature_index(lutData)               //
          + lut_index(attackerPc, orgSq, dstSq)  //
          + SQUARE_OFFSETS[+attackerPc][orgSq];
 }
