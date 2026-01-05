@@ -135,6 +135,11 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
     return lutDatas;
 }();
 
+// Get if semi-excluded from LUT data
+constexpr bool is_semi_excluded(std::uint32_t lutData) noexcept {
+    return (lutData & SEMI_EXCLUDED_MASK) != 0;
+}
+// Get feature base index from LUT data
 constexpr IndexType feature_index(std::uint32_t lutData) noexcept {
     return lutData & FEATURE_INDEX_MASK;
 }
@@ -203,7 +208,7 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     if (  // Fully-excluded (fast path)
       lutData == FullThreats::Dimensions
       // Semi-excluded && Direction-dependent exclusion
-      || (((lutData & SEMI_EXCLUDED_MASK) >> SEMI_EXCLUDED_OFFSET) != 0 && orgSq < dstSq))
+      || (is_semi_excluded(lutData) && orgSq < dstSq))
         return FullThreats::Dimensions;
 
     // Compute final index
