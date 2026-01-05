@@ -506,6 +506,8 @@ void Worker::iterative_deepening() noexcept {
                 rootDelta = beta - alpha;
                 assert(rootDelta > 0);
 
+                ss->cutoffCount = 0;
+
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
                 Depth adjustedDepth = rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4;
@@ -1404,7 +1406,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r += int(ttCapture) * 1119;
 
         // Increase reduction if current ply has a lot of fail high
-        r += int(ss->cutoffCount > 1) * (128 + (ss->cutoffCount - 2) * 512 + AllNode * 1024);
+        r += int(ss->cutoffCount > 1) * (128 + 512 * (ss->cutoffCount - 2) + int(AllNode) * 1024);
 
         // For first picked move (ttMove) reduce reduction
         r -= int(move == ttd.move) * 2151;
@@ -2013,12 +2015,15 @@ void Worker::update_quiet_histories(const Position& pos, Key pawnKey, Stack* con
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
 void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(ss->moveCount != 0);
+    assert(depth > DEPTH_ZERO);
 
     int bonus = std::min(- 81 + 116 * depth, +1515) + 347 * int(bestMove == ss->ttMove) + (ss - 1)->history / 32;
     int malus = std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount;
 
-    if (malus < 1)
-        malus = 1;
+    if (bonus < 0)
+        bonus = 0;
+    if (malus < 0)
+        malus = 0;
 
     if (pos.capture_promo(bestMove))
     {
