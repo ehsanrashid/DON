@@ -44,8 +44,10 @@ class HalfKAv2_hm final {
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t Hash = 0x7F234CB8U;
 
-    // Number of feature dimensions -> (PS_NB * SQUARE_NB) / 2
-    static constexpr IndexType Dimensions = (11 * SQUARE_NB * SQUARE_NB) / 2;
+    static constexpr IndexType PS_NB = 11 * SQUARE_NB;
+
+    // Number of feature dimensions -> PS_NB * SQUARE_NB / 2
+    static constexpr IndexType Dimensions = PS_NB * SQUARE_NB / 2;
 
     // Maximum number of simultaneously active features.
     static constexpr IndexType MaxActiveDimensions = 32;
