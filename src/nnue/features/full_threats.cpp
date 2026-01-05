@@ -89,8 +89,8 @@ constexpr auto& PIECE_THREATS  = THREAT_TABLE.pieceThreats;
 constexpr auto& SQUARE_OFFSETS = THREAT_TABLE.squareOffsets;
 
 constexpr std::uint8_t  EXCLUDED_PAIR_INFO_OFFSET = 31;
-constexpr std::uint32_t EXCLUDED_PAIR_INFO_MASK   = (0x1U << EXCLUDED_PAIR_INFO_OFFSET);
-constexpr std::uint32_t FEATURE_BASE_INDEX_MASK   = (1U << EXCLUDED_PAIR_INFO_OFFSET) - 1U;
+constexpr std::uint32_t EXCLUDED_PAIR_INFO_MASK   = 1U << EXCLUDED_PAIR_INFO_OFFSET;
+constexpr std::uint32_t FEATURE_BASE_INDEX_MASK   = EXCLUDED_PAIR_INFO_MASK - 1U;
 
 // LUT for getting feature base index and exclusion info
 // [attackerPc][attackedPc]

@@ -173,9 +173,7 @@ bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcep
     return !(pos.capture_promo(move) || pos.rule50_count() < 10 || pos.null_ply() <= 6
              || ss->ply < 20)
         && (ss - 2)->move.is_ok() && move.org_sq() == (ss - 2)->move.dst_sq()
-        && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq()
-        && (ss - 6)->move.is_ok() && (ss - 4)->move.org_sq() == (ss - 6)->move.dst_sq()
-        && (ss - 8)->move.is_ok() && (ss - 6)->move.org_sq() == (ss - 8)->move.dst_sq();
+        && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq();
 }
 
 }  // namespace
@@ -2017,6 +2015,8 @@ void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss,
     int bonus = std::min(- 81 + 116 * depth, +1515) + 347 * int(bestMove == ss->ttMove) + (ss - 1)->history / 32;
     int malus = std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount;
 
+    if (bonus < 1)
+        bonus = 1;
     if (malus < 1)
         malus = 1;
 
