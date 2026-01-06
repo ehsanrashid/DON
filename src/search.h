@@ -114,7 +114,7 @@ struct RootMove final {
     Moves pv;
 };
 
-// RootMoves is a container for RootMove objects, providing utility methods
+// RootMoves a container for RootMove objects, providing utility methods
 class RootMoves final {
    public:
     using value_type      = RootMove;
