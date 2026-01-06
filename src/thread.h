@@ -281,6 +281,13 @@ class Threads final {
 
 
     template<typename T>
+    void set(std::atomic<T> Worker::* member, T value) noexcept {
+
+        for (auto&& th : threads)
+            (th->worker.get()->*member).store(value, std::memory_order_relaxed);
+    }
+
+    template<typename T>
     std::uint64_t sum(std::atomic<T> Worker::* member,
                       std::uint64_t            initialValue = 0) const noexcept {
 
@@ -289,13 +296,6 @@ class Threads final {
           [member](const ThreadPtr& th) noexcept {
               return (th->worker.get()->*member).load(std::memory_order_relaxed);
           });
-    }
-
-    template<typename T>
-    void set(std::atomic<T> Worker::* member, T value) noexcept {
-
-        for (auto&& th : threads)
-            (th->worker.get()->*member).store(value, std::memory_order_relaxed);
     }
 
    private:

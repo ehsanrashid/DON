@@ -667,6 +667,13 @@ constexpr bool is_ok(Bound bound) noexcept {
     return bound != Bound::NONE && std::uint8_t(bound & Bound::EXACT) != 0;
 }
 
+inline std::string to_string(Bound bound) noexcept {
+    return bound == Bound::UPPER ? " upperbound"
+         : bound == Bound::LOWER ? " lowerbound"
+         : bound == Bound::EXACT ? " exactbound"
+                                 : " none";
+}
+
 // Keep track of what piece changes on the board by a move
 struct DirtyPiece final {
    public:

@@ -62,7 +62,7 @@ struct MoveList final {
     MoveList& operator=(const MoveList&) noexcept = delete;
     MoveList& operator=(MoveList&&) noexcept      = delete;
 
-    // Generate moves into the internal buffer.
+    // Generate moves into the internal buffer
     explicit MoveList(const Position& pos) noexcept :
         endMove(generate<GT, Any>(pos, moves.data())) {
 #if !defined(NDEBUG)

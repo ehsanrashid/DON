@@ -48,7 +48,7 @@ Value evaluate(const Position&          pos,
 
     bool smallNet = absEvaluate > 962;
 
-    NNUE::NetworkOutput netOut{0, 0};
+    NNUE::NetworkOutput netOut;
 
     const auto compute_nnue = [&netOut = std::as_const(netOut)]() noexcept -> std::int32_t {
         return (125 * netOut.psqt + 131 * netOut.positional) / 128;

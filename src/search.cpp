@@ -1521,17 +1521,18 @@ S_MOVES_LOOP:  // When in check, search starts here
             {
                 rm.selDepth = selDepth;
                 rm.curValue = rm.uciValue = value;
-                rm.boundLower = rm.boundUpper = false;
+
+                rm.bound = Bound::NONE;
 
                 if (value >= beta)
                 {
-                    rm.boundLower = true;
-                    rm.uciValue   = beta;
+                    rm.bound    = Bound::LOWER;
+                    rm.uciValue = beta;
                 }
                 else if (value <= alpha)
                 {
-                    rm.boundUpper = true;
-                    rm.uciValue   = alpha;
+                    rm.bound    = Bound::UPPER;
+                    rm.uciValue = alpha;
                 }
 
                 rm.pv.resize(1);
@@ -2420,19 +2421,14 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         bool exact = i != curPV || tb || !updated;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
-        if (is_decisive(v) && !is_mate(v) && (exact || !(rm.boundLower || rm.boundUpper)))
+        if (is_decisive(v) && !is_mate(v) && (exact || rm.bound == Bound::NONE))
             worker.extend_tb_pv(i, v);
 
         std::string score = UCI::to_score({v, rootPos});
 
         std::string bound;
-        if (!exact)
-        {
-            if (rm.boundLower)
-                bound = " lowerbound";
-            else if (rm.boundUpper)
-                bound = " upperbound";
-        }
+        if (!exact && is_ok(rm.bound))
+            bound = to_string(rm.bound);
 
         std::string wdl;
         if (options["UCI_ShowWDL"])

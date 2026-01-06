@@ -31,11 +31,11 @@ namespace {
 // Safety margin subtracted from allocated time to account for
 // timer resolution, scheduling jitter, and measurement latency.
 // This helps avoid flagging under extreme time pressure.
-constexpr TimePoint TIME_SAFETY_MARGIN = 10;
+constexpr TimePoint SAFETY_MARGIN_TIME = 10;
 
 constexpr TimePoint MIN_MAXIMUM_TIME = 1;
 
-constexpr std::int64_t DEFAULT_SCALE_FACTOR = 1;
+constexpr std::uint64_t DEFAULT_SCALE_FACTOR = 1;
 
 constexpr std::uint16_t MIN_CENTI_MTG = 101U;
 constexpr std::uint16_t MAX_CENTI_MTG = 5051U;
@@ -67,9 +67,9 @@ void TimeManager::init(
     startTime   = limit.startTime;
     auto& clock = limit.clocks[ac];
 
-    std::int64_t NodesTime = options["NodesTime"];
+    std::uint64_t NodesTime = options["NodesTime"];
 
-    useNodesTime = NodesTime > 0;
+    useNodesTime = NodesTime != 0;
 
     if (clock.time == 0)
     {
@@ -103,7 +103,8 @@ void TimeManager::init(
         moveOverhead *= NodesTime;
     }
 
-    std::int64_t scaleFactor = NodesTime <= DEFAULT_SCALE_FACTOR ? DEFAULT_SCALE_FACTOR : NodesTime;
+    std::uint64_t scaleFactor =
+      NodesTime <= DEFAULT_SCALE_FACTOR ? DEFAULT_SCALE_FACTOR : NodesTime;
 
     TimePoint scaledTime = clock.time / scaleFactor;
 
@@ -195,7 +196,7 @@ void TimeManager::init(
     optimumTime = TimePoint(optimumScale * remainTime);
 
     maximumTime = centiMTG >= MIN_CENTI_MTG
-                ? TimePoint(std::min(0.825179 * clock.time - moveOverhead, maximumScale * optimumTime)) - TIME_SAFETY_MARGIN
+                ? TimePoint(std::min(0.825179 * clock.time - moveOverhead, maximumScale * optimumTime)) - SAFETY_MARGIN_TIME
                 : clock.time - moveOverhead;
     if (maximumTime < MIN_MAXIMUM_TIME)
         maximumTime = MIN_MAXIMUM_TIME;
