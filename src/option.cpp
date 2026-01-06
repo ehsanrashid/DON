@@ -30,16 +30,6 @@ namespace {
 
 constexpr std::string_view EMPTY_STRING{"<empty>"};
 
-// clang-format off
-const std::unordered_map<OptionType, std::string_view> OPTION_TYPE_MAP{
-  {OPT_BUTTON, "button"},
-  {OPT_CHECK,  "check"},
-  {OPT_STRING, "string"},
-  {OPT_SPIN,   "spin"},
-  {OPT_COMBO,  "combo"}
-};
-// clang-format on
-
 }  // namespace
 
 std::size_t CaseInsensitiveHash::operator()(std::string_view str) const noexcept {
@@ -62,31 +52,25 @@ bool CaseInsensitiveLess::operator()(std::string_view s1, std::string_view s2) c
                                         });
 }
 
-std::string_view to_string(OptionType ot) noexcept {
-    auto itr = OPTION_TYPE_MAP.find(ot);
-
-    return itr != OPTION_TYPE_MAP.end() ? itr->second : "none";
-}
-
 Option::Option(OnChange&& f) noexcept :
-    type(OPT_BUTTON),
+    type(Type::BUTTON),
     onChange(std::move(f)) {}
 
 Option::Option(bool v, OnChange&& f) noexcept :
-    type(OPT_CHECK),
+    type(Type::CHECK),
     onChange(std::move(f)) {
     defaultValue = currentValue = bool_to_string(v);
 }
 
 Option::Option(std::string_view v, OnChange&& f) noexcept :
-    type(OPT_STRING),
+    type(Type::STRING),
     onChange(std::move(f)) {
     defaultValue = currentValue =
       is_whitespace(v) || lower_case(std::string(v)) == EMPTY_STRING ? "" : v;
 }
 
 Option::Option(int v, int minv, int maxv, OnChange&& f) noexcept :
-    type(OPT_SPIN),
+    type(Type::SPIN),
     minValue(minv),
     maxValue(maxv),
     onChange(std::move(f)) {
@@ -94,26 +78,26 @@ Option::Option(int v, int minv, int maxv, OnChange&& f) noexcept :
 }
 
 Option::Option(std::string_view v, std::string_view var, OnChange&& f) noexcept :
-    type(OPT_COMBO),
+    type(Type::COMBO),
     onChange(std::move(f)) {
     defaultValue = currentValue = v;
     comboValues                 = split(var, "var", true);
 }
 
 Option::operator int() const noexcept {
-    assert(type == OPT_CHECK || type == OPT_SPIN);
+    assert(type == Type::CHECK || type == Type::SPIN);
 
-    return type == OPT_CHECK ? string_to_bool(currentValue) : std::stoi(currentValue);
+    return type == Type::CHECK ? string_to_bool(currentValue) : std::stoi(currentValue);
 }
 
 Option::operator std::string() const noexcept {
-    assert(type == OPT_STRING || type == OPT_COMBO);
+    assert(type == Type::STRING || type == Type::COMBO);
 
     return currentValue;
 }
 
 Option::operator std::string_view() const noexcept {
-    assert(type == OPT_STRING || type == OPT_COMBO);
+    assert(type == Type::STRING || type == Type::COMBO);
 
     return currentValue;
 }
@@ -124,24 +108,24 @@ Option::operator std::string_view() const noexcept {
 void Option::operator=(std::string value) noexcept {
     assert(is_ok(type));
 
-    if (type != OPT_BUTTON && type != OPT_STRING && value.empty())
+    if (type != Type::BUTTON && type != Type::STRING && value.empty())
         return;
 
     switch (type)
     {
-    case OPT_CHECK :
+    case Type::CHECK :
         value = lower_case(value);
         if (value != "true" && value != "false")
             return;
         break;
-    case OPT_STRING :
+    case Type::STRING :
         if (is_whitespace(value) || lower_case(value) == EMPTY_STRING)
             value.clear();
         break;
-    case OPT_SPIN :
+    case Type::SPIN :
         value = std::to_string(std::clamp(std::stoi(value), minValue, maxValue));
         break;
-    case OPT_COMBO :
+    case Type::COMBO :
         value = lower_case(value);
         if (std::find(comboValues.begin(), comboValues.end(), value) == comboValues.end())
             return;
@@ -149,7 +133,7 @@ void Option::operator=(std::string value) noexcept {
     default :;
     }
 
-    if (type != OPT_BUTTON)
+    if (type != Type::BUTTON)
         currentValue = value;
 
     if (onChange)
@@ -162,20 +146,20 @@ void Option::operator=(std::string value) noexcept {
 }
 
 std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
-    os << "type " << to_string(option.type);
+    os << "type " << Option::to_string(option.type);
 
-    if (option.type == OPT_BUTTON)
+    if (option.type == Option::Type::BUTTON)
         return os;
 
     os << " default ";
-    if (option.type == OPT_STRING && is_whitespace(option.defaultValue))
+    if (option.type == Option::Type::STRING && is_whitespace(option.defaultValue))
         os << EMPTY_STRING;
     else
         os << option.defaultValue;
 
-    if (option.type == OPT_SPIN)
+    if (option.type == Option::Type::SPIN)
         os << " min " << option.minValue << " max " << option.maxValue;
-    else if (option.type == OPT_COMBO)
+    else if (option.type == Option::Type::COMBO)
         os << std::accumulate(option.comboValues.begin(), option.comboValues.end(), std::string{},
                               [](std::string acc, std::string_view s) noexcept -> std::string {
                                   return acc.append(" var ").append(s);

@@ -48,24 +48,40 @@ struct CaseInsensitiveLess final {
     bool operator()(std::string_view s1, std::string_view s2) const noexcept;
 };
 
-enum OptionType : std::uint8_t {
-    OPT_BUTTON,
-    OPT_CHECK,
-    OPT_STRING,
-    OPT_SPIN,
-    OPT_COMBO
-};
-
-constexpr bool is_ok(OptionType ot) noexcept { return OPT_BUTTON <= ot && ot <= OPT_COMBO; }
-
-std::string_view to_string(OptionType ot) noexcept;
-
 class Options;
 
 // Option class implements each option as specified by the UCI protocol
 class Option final {
    public:
+    enum class Type : std::uint8_t {
+        BUTTON,
+        CHECK,
+        STRING,
+        SPIN,
+        COMBO
+    };
+
     using OnChange = std::function<std::optional<std::string>(const Option&)>;
+
+    static constexpr bool is_ok(Type t) noexcept { return Type::BUTTON <= t && t <= Type::COMBO; }
+
+    static std::string_view to_string(Type t) noexcept {
+        switch (t)
+        {
+        case Type::BUTTON :
+            return "button";
+        case Type::CHECK :
+            return "check";
+        case Type::STRING :
+            return "string";
+        case Type::SPIN :
+            return "spin";
+        case Type::COMBO :
+            return "combo";
+        default :
+            return "none";
+        }
+    }
 
     explicit Option(OnChange&& f = nullptr) noexcept;
     explicit Option(bool v, OnChange&& f = nullptr) noexcept;
@@ -98,7 +114,7 @@ class Option final {
     friend std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
 
    private:
-    OptionType  type;
+    Type        type;
     std::string defaultValue;
     std::string currentValue;
     int         minValue = 0, maxValue = 0;
