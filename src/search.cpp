@@ -1419,7 +1419,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r += int(ttCapture) * 1119;
 
         // Increase reduction if current ply has a lot of fail high
-        r += int(ss->cutoffCount > 1) * (128 + 512 * (ss->cutoffCount - 2) + int(AllNode) * 1024);
+        r += int(ss->cutoffCount > 1) * (128 + 384 * (ss->cutoffCount - 2) + int(AllNode) * 1024);
 
         // For first picked move (ttMove) reduce reduction
         r -= int(move == ttd.move) * 2151;
@@ -1591,7 +1591,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             }
         }
 
-        // Collection of worse moves
+        // Store bad searched move for history updates
         if (move != bestMove && moveCount <= MOVE_CAPACITY)
             searchedMoves[capture].push_back(move);
     }
