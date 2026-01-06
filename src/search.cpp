@@ -566,7 +566,7 @@ void Worker::iterative_deepening() noexcept {
                 else
                     break;
 
-                delta *= 1.35;
+                delta *= 1.33334;
 
                 if (delta > MaxDelta)
                     delta = MaxDelta;
