@@ -62,7 +62,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
 constexpr int
 reduction(Depth depth, std::uint8_t moveCount, unsigned deltaRatio, bool improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
-    return 1182 + reductionScale - deltaRatio + !improve * int(0.4648 * reductionScale);
+    return 1182 + reductionScale - deltaRatio + int(!improve) * int(0.4648 * reductionScale);
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
@@ -1174,7 +1174,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     StdArray<SearchedMoves, 2> searchedMoves;
 
-    const History<H_PIECE_SQ>* contHistory[8]{
+    const History<HType::PIECE_SQ>* contHistory[8]{
       (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
       (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,  //
       (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,  //
@@ -1591,7 +1591,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             }
         }
 
-        // Collection of worse moves
+        // Store bad searched move for history updates
         if (move != bestMove && moveCount <= MOVE_CAPACITY)
             searchedMoves[capture].push_back(move);
     }
@@ -1811,7 +1811,7 @@ QS_MOVES_LOOP:
 
     std::uint8_t moveCount = 0;
 
-    const History<H_PIECE_SQ>* contHistory[1]{(ss - 1)->pieceSqHistory};
+    const History<HType::PIECE_SQ>* contHistory[1]{(ss - 1)->pieceSqHistory};
 
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.

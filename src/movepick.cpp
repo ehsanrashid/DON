@@ -32,15 +32,15 @@ namespace DON {
 // good moves first, and how important move ordering is at the current node.
 
 // MovePicker constructor for the main search and for the quiescence search
-MovePicker::MovePicker(const Position&                 p,
-                       Move                            ttm,
-                       const Histories*                hists,
-                       const History<H_CAPTURE>*       captureHist,
-                       const History<H_QUIET>*         quietHist,
-                       const History<H_LOW_PLY_QUIET>* lowPlyQuietHist,
-                       const History<H_PIECE_SQ>**     continuationHist,
-                       std::int16_t                    ply,
-                       int                             th) noexcept :
+MovePicker::MovePicker(const Position&                  p,
+                       Move                             ttm,
+                       const Histories*                 hists,
+                       const History<HType::CAPTURE>*   captureHist,
+                       const History<HType::QUIET>*     quietHist,
+                       const History<HType::LOW_QUIET>* lowPlyQuietHist,
+                       const History<HType::PIECE_SQ>** continuationHist,
+                       std::int16_t                     ply,
+                       int                              th) noexcept :
     pos(p),
     ttMove(ttm),
     histories(hists),
@@ -61,10 +61,10 @@ MovePicker::MovePicker(const Position&                 p,
 
 // MovePicker constructor for ProbCut:
 // Generate captures with Static Exchange Evaluation (SEE) >= threshold.
-MovePicker::MovePicker(const Position&           p,
-                       Move                      ttm,
-                       const History<H_CAPTURE>* captureHist,
-                       int                       th) noexcept :
+MovePicker::MovePicker(const Position&                p,
+                       Move                           ttm,
+                       const History<HType::CAPTURE>* captureHist,
+                       int                            th) noexcept :
     pos(p),
     ttMove(ttm),
     captureHistory(captureHist),

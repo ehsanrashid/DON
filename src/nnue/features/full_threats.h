@@ -31,7 +31,7 @@ namespace DON {
 
 namespace NNUE::Features {
 
-// Feature FullThreats:
+// Feature FullThreats: Threats posed by pieces to opponent's pieces
 class FullThreats final {
    private:
     FullThreats() noexcept                              = delete;
