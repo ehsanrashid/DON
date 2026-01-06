@@ -129,8 +129,10 @@ Move legal_tt_move(Move ttMove, const Position& pos) noexcept {
 void update_pv(Move* pv, Move m, const Move* childPv) noexcept {
     assert(m.is_ok());
 
-    for (*pv++ = m; childPv != nullptr && *childPv != Move::None;)
-        *pv++ = *childPv++;
+    *pv++ = m;
+    if (childPv != nullptr)
+        while (*childPv != Move::None)
+            *pv++ = *childPv++;
     *pv = Move::None;
 }
 
