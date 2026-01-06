@@ -1174,7 +1174,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     StdArray<SearchedMoves, 2> searchedMoves;
 
-    const History<H_PIECE_SQ>* contHistory[8]{
+    const History<HType::PIECE_SQ>* contHistory[8]{
       (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
       (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,  //
       (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,  //
@@ -1419,7 +1419,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r += int(ttCapture) * 1119;
 
         // Increase reduction if current ply has a lot of fail high
-        r += int(ss->cutoffCount > 1) * (128 + 384 * (ss->cutoffCount - 2) + int(AllNode) * 1024);
+        r += int(ss->cutoffCount > 1) * (128 + 512 * (ss->cutoffCount - 2) + int(AllNode) * 1024);
 
         // For first picked move (ttMove) reduce reduction
         r -= int(move == ttd.move) * 2151;
@@ -1811,7 +1811,7 @@ QS_MOVES_LOOP:
 
     std::uint8_t moveCount = 0;
 
-    const History<H_PIECE_SQ>* contHistory[1]{(ss - 1)->pieceSqHistory};
+    const History<HType::PIECE_SQ>* contHistory[1]{(ss - 1)->pieceSqHistory};
 
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
@@ -2098,7 +2098,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
                      + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
            + 4411LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
                      + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
-           +11528LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
+           +11529LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                      + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac])
            + 7841LL * (is_ok(preSq)
                       ? (*(ss - 2)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]

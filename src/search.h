@@ -497,9 +497,9 @@ constexpr NodeType operator~(NodeType nt) noexcept { return NodeType((int(nt) ^ 
 // Each search thread has its own array of Stack objects, indexed by the ply. (Size = 40)
 struct Stack final {
    public:
-    Move*                           pv;
-    History<H_PIECE_SQ>*            pieceSqHistory;
-    CorrectionHistory<CH_PIECE_SQ>* pieceSqCorrectionHistory;
+    Move*                                pv;
+    History<HType::PIECE_SQ>*            pieceSqHistory;
+    CorrectionHistory<CHType::PIECE_SQ>* pieceSqCorrectionHistory;
 
     int          history;
     Value        evalValue;
@@ -630,15 +630,15 @@ class Worker final {
     StdArray<std::int32_t, COLOR_NB> optimism;
 
     // Histories
-    History<H_CAPTURE>       captureHistory;
-    History<H_QUIET>         quietHistory;
-    History<H_LOW_PLY_QUIET> lowPlyQuietHistory;
-    History<H_TT_MOVE>       ttMoveHistory;
+    History<HType::CAPTURE>   captureHistory;
+    History<HType::QUIET>     quietHistory;
+    History<HType::LOW_QUIET> lowPlyQuietHistory;
+    History<HType::TT_MOVE>   ttMoveHistory;
 
-    StdArray<History<H_CONTINUATION>, 2, 2> continuationHistory;  // [inCheck][capture]
+    StdArray<History<HType::CONTINUATION>, 2, 2> continuationHistory;  // [inCheck][capture]
 
     // Correction Histories
-    CorrectionHistory<CH_CONTINUATION> continuationCorrectionHistory;
+    CorrectionHistory<CHType::CONTINUATION> continuationCorrectionHistory;
 
     friend class MainSearchManager;
     friend class Position;

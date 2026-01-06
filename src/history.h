@@ -91,14 +91,14 @@ inline constexpr std::size_t CORRECTION_HISTORY_BASE_SIZE = 0x10000;
 static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)) == 0,
               "CORRECTION_HISTORY_BASE_SIZE has to be a power of 2");
 
-enum HistoryType : std::uint8_t {
-    H_CAPTURE,        // By move's [piece][dstSq][captured piece type]
-    H_QUIET,          // By color and move's orgSq and dstSq squares
-    H_PAWN,           // By pawn structure and a move's [piece][dstSq]
-    H_LOW_PLY_QUIET,  // By ply and move's orgSq and dstSq squares
-    H_TT_MOVE,        //
-    H_PIECE_SQ,       // By move's [piece][dstSq]
-    H_CONTINUATION,   // By combination of pair of moves
+enum class HType : std::uint8_t {
+    CAPTURE,       // By move's [piece][dstSq][captured piece type]
+    QUIET,         // By color and move's orgSq and dstSq squares
+    PAWN,          // By pawn structure and a move's [piece][dstSq]
+    LOW_QUIET,     // By ply and move's orgSq and dstSq squares
+    TT_MOVE,       //
+    PIECE_SQ,      // By move's [piece][dstSq]
+    CONTINUATION,  // By combination of pair of moves
 };
 
 namespace internal {
@@ -109,11 +109,11 @@ using Stats = MultiArray<StatsEntry<std::int16_t, D>, Sizes...>;
 template<int D, std::size_t... Sizes>
 using AtomicStats = MultiArray<StatsEntry<std::int16_t, D, true>, Sizes...>;
 
-template<HistoryType T>
+template<HType T>
 struct HistoryDef;
 
 template<>
-struct HistoryDef<H_CAPTURE> final {
+struct HistoryDef<HType::CAPTURE> final {
     using Type = Stats<10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 };
 
@@ -121,52 +121,52 @@ struct HistoryDef<H_CAPTURE> final {
 // It is used for reduction and move ordering decisions.
 // see https://www.chessprogramming.org/Butterfly_Boards
 template<>
-struct HistoryDef<H_QUIET> final {
+struct HistoryDef<HType::QUIET> final {
     using Type = Stats<7183, COLOR_NB, QUIET_HISTORY_SIZE>;
 };
 
 template<>
-struct HistoryDef<H_PAWN> final {
+struct HistoryDef<HType::PAWN> final {
     using Type = DynamicArray<AtomicStats<8192, PIECE_NB, SQUARE_NB>>;
 };
 
 // It is used to improve quiet move ordering near the root.
 template<>
-struct HistoryDef<H_LOW_PLY_QUIET> final {
+struct HistoryDef<HType::LOW_QUIET> final {
     using Type = Stats<7183, LOW_PLY_QUIET_SIZE, QUIET_HISTORY_SIZE>;
 };
 
 template<>
-struct HistoryDef<H_TT_MOVE> final {
+struct HistoryDef<HType::TT_MOVE> final {
     using Type = StatsEntry<std::int16_t, 8192>;
 };
 
 template<>
-struct HistoryDef<H_PIECE_SQ> final {
+struct HistoryDef<HType::PIECE_SQ> final {
     using Type = Stats<30000, PIECE_NB, SQUARE_NB>;
 };
 
 template<>
-struct HistoryDef<H_CONTINUATION> final {
-    using Type = MultiArray<HistoryDef<H_PIECE_SQ>::Type, PIECE_NB, SQUARE_NB>;
+struct HistoryDef<HType::CONTINUATION> final {
+    using Type = MultiArray<HistoryDef<HType::PIECE_SQ>::Type, PIECE_NB, SQUARE_NB>;
 };
 
 }  // namespace internal
 
 // Alias template for convenience
-template<HistoryType T>
+template<HType T>
 using History = typename internal::HistoryDef<T>::Type;
 
 // Correction histories record differences between the static evaluation of positions and their search score.
 // It is used to improve the static evaluation used by some search heuristics.
 // see https://www.chessprogramming.org/Static_Evaluation_Correction_History
 
-enum CorrectionHistoryType : std::uint8_t {
-    CH_PAWN,          // By color and pawn structure
-    CH_MINOR,         // By color and minor piece (Knight, Bishop) structure
-    CH_NON_PAWN,      // By color and non-pawn piece structure
-    CH_PIECE_SQ,      // By move's [piece][dstSq]
-    CH_CONTINUATION,  // By combination of pair of moves
+enum class CHType : std::uint8_t {
+    PAWN,          // By color and pawn structure
+    MINOR,         // By color and minor piece (Knight, Bishop) structure
+    NON_PAWN,      // By color and non-pawn piece structure
+    PIECE_SQ,      // By move's [piece][dstSq]
+    CONTINUATION,  // By combination of pair of moves
 };
 
 namespace internal {
@@ -177,44 +177,44 @@ using CorrectionStats = Stats<CORRECTION_HISTORY_LIMIT, Sizes...>;
 template<std::size_t... Sizes>
 using AtomicCorrectionStats = AtomicStats<CORRECTION_HISTORY_LIMIT, Sizes...>;
 
-template<CorrectionHistoryType T>
+template<CHType T>
 struct CorrectionHistoryDef;
 
 template<>
-struct CorrectionHistoryDef<CH_PAWN> final {
+struct CorrectionHistoryDef<CHType::PAWN> final {
     using Type = DynamicArray<AtomicCorrectionStats<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
-struct CorrectionHistoryDef<CH_MINOR> final {
+struct CorrectionHistoryDef<CHType::MINOR> final {
     using Type = DynamicArray<AtomicCorrectionStats<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
-struct CorrectionHistoryDef<CH_NON_PAWN> final {
+struct CorrectionHistoryDef<CHType::NON_PAWN> final {
     using Type = DynamicArray<AtomicCorrectionStats<COLOR_NB, COLOR_NB>>;
 };
 
 template<>
-struct CorrectionHistoryDef<CH_PIECE_SQ> final {
+struct CorrectionHistoryDef<CHType::PIECE_SQ> final {
     using Type = CorrectionStats<PIECE_NB, SQUARE_NB>;
 };
 
 template<>
-struct CorrectionHistoryDef<CH_CONTINUATION> final {
-    using Type = MultiArray<CorrectionHistoryDef<CH_PIECE_SQ>::Type, PIECE_NB, SQUARE_NB>;
+struct CorrectionHistoryDef<CHType::CONTINUATION> final {
+    using Type = MultiArray<CorrectionHistoryDef<CHType::PIECE_SQ>::Type, PIECE_NB, SQUARE_NB>;
 };
 
 }  // namespace internal
 
 // Alias template for convenience
-template<CorrectionHistoryType T>
+template<CHType T>
 using CorrectionHistory = typename internal::CorrectionHistoryDef<T>::Type;
 
 
 class Histories final {
    public:
-    Histories() = delete;
+    Histories() noexcept = delete;
     Histories(std::size_t count) noexcept :
         pawnSize(count * PAWN_HISTORY_BASE_SIZE),
         correctionSize(count * CORRECTION_HISTORY_BASE_SIZE),
@@ -282,10 +282,10 @@ class Histories final {
     const std::size_t pawnSize;
     const std::size_t correctionSize;
 
-    History<H_PAWN>                pawnHistory;
-    CorrectionHistory<CH_PAWN>     pawnCorrectionHistory;
-    CorrectionHistory<CH_MINOR>    minorCorrectionHistory;
-    CorrectionHistory<CH_NON_PAWN> nonPawnCorrectionHistory;
+    History<HType::PAWN>                pawnHistory;
+    CorrectionHistory<CHType::PAWN>     pawnCorrectionHistory;
+    CorrectionHistory<CHType::MINOR>    minorCorrectionHistory;
+    CorrectionHistory<CHType::NON_PAWN> nonPawnCorrectionHistory;
 };
 
 using HistoriesMap = std::unordered_map<std::size_t, Histories>;
