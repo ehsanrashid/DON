@@ -36,6 +36,14 @@
 #include "tt.h"
 #include "uci.h"
 
+#if defined(__GNUC__) || defined(__clang__)
+    #define RESTRICT __restrict__
+#elif defined(_MSC_VER)
+    #define RESTRICT __restrict
+#else
+    #define RESTRICT
+#endif
+
 namespace DON {
 
 // (*Scaler):
@@ -126,7 +134,7 @@ Move legal_tt_move(Move ttMove, const Position& pos) noexcept {
 }
 
 // Appends move and appends child Pv[]
-void update_pv(Move* pv, Move m, const Move* childPv) noexcept {
+void update_pv(Move* RESTRICT pv, Move m, const Move* RESTRICT childPv) noexcept {
     assert(m.is_ok());
 
     *pv++ = m;
@@ -1538,11 +1546,22 @@ S_MOVES_LOOP:  // When in check, search starts here
                     rm.uciValue = alpha;
                 }
 
-                rm.pv.resize(1);
+                rm.pv.resize(1);  // keep root move at index 0
 
-                assert((ss + 1)->pv != nullptr);
-                for (const auto* childPv = (ss + 1)->pv; *childPv != Move::None; ++childPv)
-                    rm.pv.push_back(*childPv);
+                const Move* RESTRICT childPv = (ss + 1)->pv;
+                assert(childPv != nullptr);
+
+                // Count child PV length
+                std::size_t count = 0;
+                while (childPv[count] != Move::None)
+                    ++count;
+
+                // Resize once
+                std::size_t oldSize = rm.pv.size();
+                rm.pv.resize(oldSize + count);
+
+                // Bulk copy
+                std::memcpy(rm.pv.data() + oldSize, childPv, count * sizeof(Move));
 
                 // Record how often the best move has been changed in each iteration.
                 // This information is used for time management.
@@ -2437,13 +2456,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if (options["UCI_ShowWDL"])
             wdl = UCI::to_wdl(v, rootPos);
 
-        std::string pv;
-        pv.reserve(6 * rm.pv.size());
-        for (auto m : rm.pv)
-        {
-            pv += ' ';
-            pv += UCI::move_to_can(m);
-        }
+        std::string pv = UCI::build_pv_string(rm.pv);
 
         updateCxt.onUpdateFull(
           {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, hashfull, tbHits, pv});

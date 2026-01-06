@@ -64,6 +64,8 @@ class UCI final {
     [[nodiscard]] static Move
     mix_to_move(std::string mix, Position& pos, const MoveList<LEGAL>& legalMoves) noexcept;
 
+    static std::string build_pv_string(const Moves& pvMoves) noexcept;
+
     static inline bool InfoStringStop = false;
 
    private:
