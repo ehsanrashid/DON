@@ -1163,9 +1163,9 @@ std::string UCI::build_pv_string(const Moves& pvMoves) noexcept {
     std::size_t totalSize = 0;
     for (auto m : pvMoves)
     {
-        auto str = UCI::move_to_can(m);      // returns std::string
-        totalSize += 1 + str.size();         // 1 for space + move length
-        moveStrs.push_back(std::move(str));  // store the actual string
+        auto can = UCI::move_to_can(m);  // returns std::string
+        totalSize += 1 + can.size();
+        moveStrs.push_back(std::move(can));  // store the actual string
     }
 
     // Step 2: allocate once
