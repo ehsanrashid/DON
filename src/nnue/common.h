@@ -168,53 +168,67 @@ inline void write_little_endian(std::ostream& os, const std::array<IntType, Size
             write_little_endian<IntType>(os, in[i]);
 }
 
+template<typename BufType, typename IntType, std::size_t Size>
+inline void _read_leb_128(std::istream&              is,
+                          std::size_t&               byteCount,
+                          BufType&                   buffer,
+                          std::size_t&               bufferIdx,
+                          std::array<IntType, Size>& out) {
+
+    static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
+    static_assert(sizeof(IntType) <= 4, "Not implemented for types larger than 32 bit");
+
+    IntType value = 0;
+
+    std::size_t shift = 0;
+
+    for (std::size_t i = 0; i < Size;)
+    {
+        if (bufferIdx == buffer.size())
+        {
+            is.read(reinterpret_cast<char*>(buffer.data()), std::min(bufferIdx, byteCount));
+
+            bufferIdx = 0;
+        }
+
+        std::uint8_t b = buffer[bufferIdx++];
+
+        --byteCount;
+
+        value |= (b & 0x7F) << (shift % 32);
+
+        shift += 7;
+
+        if ((b & 0x80) == 0)
+        {
+            out[i] = (shift >= 32 || (b & 0x40) == 0) ? value : value | ~((1 << shift) - 1);
+
+            value = 0;
+            shift = 0;
+            ++i;
+        }
+    }
+}
+
 // Read signed integers from a istream with LEB128 compression.
 // This puts N signed integers in the array out, compresses them with
 // the LEB128 algorithm and read the value from the istream.
 // See https://en.wikipedia.org/wiki/LEB128 for a description of the compression scheme.
-template<typename IntType, std::size_t Size>
-inline void read_leb_128(std::istream& is, std::array<IntType, Size>& out) noexcept {
-    static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
-
-    // Read and check the presence of our LEB128 magic string
+template<typename... Arrays>
+inline void read_leb_128(std::istream& is, Arrays&... outs) {
+    // Read and check the presence of LEB128 magic string
     StdArray<char, LEB128_MAGIC_STRING_SIZE> leb128MagicString;
     is.read(leb128MagicString.data(), LEB128_MAGIC_STRING_SIZE);
-    assert(!std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE));
-
-    constexpr std::size_t IntSize = sizeof(IntType);
-
-    StdArray<std::uint8_t, 4096> buffer{};
-
-    std::size_t bufferIdx = buffer.size();
+    assert(std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE)
+           == 0);
 
     std::size_t byteCount = read_little_endian<std::uint32_t>(is);
 
-    for (std::size_t i = 0; i < Size; ++i)
-    {
-        IntType value = 0;
+    StdArray<std::uint8_t, 8192> buffer{};
 
-        std::size_t shift = 0;
-        do
-        {
-            if (bufferIdx == buffer.size())
-            {
-                is.read(reinterpret_cast<char*>(buffer.data()), std::min(bufferIdx, byteCount));
-                bufferIdx = 0;
-            }
+    std::size_t bufferIdx = buffer.size();
 
-            std::uint8_t b = buffer[bufferIdx++];
-            --byteCount;
-            value |= (b & 0x7F) << shift;
-            shift += 7;
-
-            if ((b & 0x80) == 0)
-            {
-                out[i] =
-                  (shift >= 8 * IntSize || (b & 0x40) == 0) ? value : value | ~((1 << shift) - 1);
-                break;
-            }
-        } while (shift < 8 * IntSize);
-    }
+    (_read_leb_128(is, byteCount, buffer, bufferIdx, outs), ...);
 
     assert(byteCount == 0);
 }
@@ -227,7 +241,7 @@ template<typename IntType, std::size_t Size>
 inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in) noexcept {
     static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
 
-    // Write our LEB128 magic string
+    // Write LEB128 magic string
     os.write(LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE);
 
     std::size_t byteCount = 0;
