@@ -170,11 +170,10 @@ inline void write_little_endian(std::ostream& os, const std::array<IntType, Size
 
 template<typename BufType, typename IntType, std::size_t Size>
 inline void _read_leb_128(std::istream&              is,
-                          std::size_t&               byteCount,
                           BufType&                   buffer,
                           std::size_t&               bufferIdx,
-                          std::array<IntType, Size>& out) {
-
+                          std::size_t&               byteCount,
+                          std::array<IntType, Size>& out) noexcept {
     static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
     static_assert(sizeof(IntType) <= 4, "Not implemented for types larger than 32 bit");
 
@@ -191,8 +190,9 @@ inline void _read_leb_128(std::istream&              is,
             bufferIdx = 0;
         }
 
-        std::uint8_t b = buffer[bufferIdx++];
+        std::uint8_t b = buffer[bufferIdx];
 
+        ++bufferIdx;
         --byteCount;
 
         value |= (b & 0x7F) << (shift % 32);
@@ -215,7 +215,7 @@ inline void _read_leb_128(std::istream&              is,
 // the LEB128 algorithm and read the value from the istream.
 // See https://en.wikipedia.org/wiki/LEB128 for a description of the compression scheme.
 template<typename... Arrays>
-inline void read_leb_128(std::istream& is, Arrays&... outs) {
+inline void read_leb_128(std::istream& is, Arrays&... outs) noexcept {
     // Read and check the presence of LEB128 magic string
     StdArray<char, LEB128_MAGIC_STRING_SIZE> leb128MagicString;
     is.read(leb128MagicString.data(), LEB128_MAGIC_STRING_SIZE);
@@ -224,11 +224,11 @@ inline void read_leb_128(std::istream& is, Arrays&... outs) {
 
     std::size_t byteCount = read_little_endian<std::uint32_t>(is);
 
-    StdArray<std::uint8_t, 8192> buffer{};
+    StdArray<std::uint8_t, 8192> buffer;
 
     std::size_t bufferIdx = buffer.size();
 
-    (_read_leb_128(is, byteCount, buffer, bufferIdx, outs), ...);
+    (_read_leb_128(is, buffer, bufferIdx, byteCount, outs), ...);
 
     assert(byteCount == 0);
 }

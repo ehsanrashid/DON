@@ -422,11 +422,11 @@ class FeatureTransformer final {
     }
 
     // clang-format off
-    alignas(CACHE_LINE_SIZE) StdArray<BiasType          , HalfDimensions>                                          biases;
-    alignas(CACHE_LINE_SIZE) StdArray<ThreatWeightType  , UseThreats ? ThreatInputDimensions * HalfDimensions : 0> threatWeights;
-    alignas(CACHE_LINE_SIZE) StdArray<WeightType        , InputDimensions * HalfDimensions>                        weights;
-    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType    , UseThreats ? ThreatInputDimensions * PSQTBuckets : 0>    threatPsqtWeights;
-    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType    , InputDimensions * PSQTBuckets>                           psqtWeights;
+    alignas(CACHE_LINE_SIZE) StdArray<BiasType        , HalfDimensions>                                          biases;
+    alignas(CACHE_LINE_SIZE) StdArray<ThreatWeightType, UseThreats ? ThreatInputDimensions * HalfDimensions : 0> threatWeights;
+    alignas(CACHE_LINE_SIZE) StdArray<WeightType      , InputDimensions * HalfDimensions>                        weights;
+    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType  , UseThreats ? ThreatInputDimensions * PSQTBuckets : 0>    threatPsqtWeights;
+    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType  , InputDimensions * PSQTBuckets>                           psqtWeights;
     // clang-format on
 };
 
