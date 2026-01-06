@@ -37,8 +37,8 @@ constexpr TimePoint MIN_MAXIMUM_TIME = 1;
 
 constexpr std::int64_t DEFAULT_SCALE_FACTOR = 1;
 
-constexpr std::uint16_t MIN_CENTI_MTG = 101;
-constexpr std::uint16_t MAX_CENTI_MTG = 5051;
+constexpr std::uint16_t MIN_CENTI_MTG = 101U;
+constexpr std::uint16_t MAX_CENTI_MTG = 5051U;
 
 constexpr double INITIAL_TIME_ADJUST = -1.0;
 constexpr double MIN_TIME_ADJUST     = 1.0e-6;
@@ -88,13 +88,15 @@ void TimeManager::init(
     {
         // Only once at game start
         if (timeNodes == INITIAL_TIME_NODES)
+        {
             timeNodes = clock.time * NodesTime;  // Time is in msec
+
+            if (timeNodes < 1)
+                timeNodes = 1;
+        }
 
         // Convert from milliseconds to nodes
         clock.time = timeNodes;
-
-        if (clock.time == 0)
-            clock.time = 1;
 
         clock.inc *= NodesTime;
 
@@ -155,7 +157,8 @@ void TimeManager::init(
                      * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * logScaledTime, 4.06734e-3)
                                             * std::pow(2.82122 + ply, 0.466422),
                                 0.213035 * clock.time / remainTime);
-        maximumScale = std::min(std::max(3.66270 + 3.72690 * logScaledTime, 2.75068) + 78.37482e-3 * ply, 6.35772);
+        maximumScale = std::min(std::max(3.66270 + 3.72690 * logScaledTime, 2.75068) + 78.37482e-3 * ply,
+                                6.35772);
         }
         // 2) x basetime (+ z increment)
         // If there is a healthy increment, remaining time can exceed the actual available
@@ -175,15 +178,17 @@ void TimeManager::init(
                      * std::min(12.14310e-3 + std::min(3.21160e-3 + 32.11230e-5 * logScaledTime, 5.08017e-3)
                                             * std::pow(2.94693 + ply, 0.461073),
                                 0.213035 * clock.time / remainTime);
-        maximumScale = std::min(std::max(3.39770 + 3.03950 * logScaledTime, 2.94761) + 83.43972e-3 * ply, 6.67704);
+        maximumScale = std::min(std::max(3.39770 + 3.03950 * logScaledTime, 2.94761) + 83.43972e-3 * ply,
+                                6.67704);
         }
     }
     // 3) x moves in y time (+ z increment)
     else
     {
-        optimumScale = std::min((0.88000 + 85.91065e-4 * ply) / (centiMTG / 100.0),
+        optimumScale = std::min((0.00880 + 85.91065e-6 * ply) / centiMTG,
                                  0.88000 * clock.time / remainTime);
-        maximumScale = std::min( 1.30000 + 0.11000 * (centiMTG / 100.0), 8.45000);
+        maximumScale = std::min(1.30000 + 0.00110 * centiMTG,
+                                8.45000);
     }
 
     // Limit the maximum possible time for this move

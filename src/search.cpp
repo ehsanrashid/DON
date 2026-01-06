@@ -2487,6 +2487,8 @@ void Skill::init(const Options& options) noexcept {
         level = options["SkillLevel"];
     }
 
+    assert(level <= MAX_LEVEL);
+
     bestMove = Move::None;
 }
 

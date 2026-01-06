@@ -363,7 +363,7 @@ struct Skill final {
 
     bool time_to_pick(Depth depth) const noexcept { return depth == 1 + int(level); }
 
-    Value weakness() const noexcept { return std::max(2.0 * (3.0 * MAX_LEVEL - level), 1.0); }
+    Value weakness() const noexcept { return Value(2.0 * (3.0 * MAX_LEVEL - level)); }
 
     Move pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickBest = true) noexcept;
 
