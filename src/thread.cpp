@@ -183,7 +183,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
         }
     }
 
-    const NumaConfig* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
+    const NumaConfig* const numaConfigPtr = threadBindable ? &numaConfig : nullptr;
 
     std::unordered_map<NumaIndex, std::size_t> numaIds;
 
@@ -191,20 +191,30 @@ void Threads::set(const NumaConfig&                       numaConfig,
     {
         NumaIndex numaIdx = threadBindable ? threadBoundNumaNodes[threadId] : 0;
 
-        ISearchManagerPtr searchManager;
-        if (threadId == 0)
-            searchManager = std::make_unique<MainSearchManager>(updateContext);
+        // Lambda to create the thread
+        const auto create_thread = [&]() {
+            // Search manager for this thread
+            ISearchManagerPtr searchManager;
+            if (threadId == 0)
+                searchManager = std::make_unique<MainSearchManager>(updateContext);
+            else
+                searchManager = std::make_unique<NullSearchManager>();
+
+            // When not binding threads want to force all access to happen from the same
+            // NUMA node, because in case of NUMA replicated memory accesses don't want
+            // to trash cache in case the threads get scheduled on the same NUMA node.
+            ThreadToNumaNodeBinder nodeBinder(numaIdx, numaConfigPtr);
+
+            threads.emplace_back(std::make_unique<Thread>(threadId, threadCount, numaIds[numaIdx]++,
+                                                          numaThreadCounts[numaIdx], nodeBinder,
+                                                          std::move(searchManager), sharedState));
+        };
+
+        // Ensure the worker thread inherits the intended NUMA affinity at creation
+        if (threadBindable)
+            numaConfig.execute_on_numa_node(numaIdx, create_thread);
         else
-            searchManager = std::make_unique<NullSearchManager>();
-
-        // When not binding threads want to force all access to happen from the same
-        // NUMA node, because in case of NUMA replicated memory accesses don't
-        // want to trash cache in case the threads get scheduled on the same NUMA node.
-        ThreadToNumaNodeBinder nodeBinder(numaIdx, numaConfigPtr);
-
-        threads.emplace_back(std::make_unique<Thread>(threadId, threadCount, numaIds[numaIdx]++,
-                                                      numaThreadCounts[numaIdx], nodeBinder,
-                                                      std::move(searchManager), sharedState));
+            create_thread();
     }
 
     assert(size() == threadCount);

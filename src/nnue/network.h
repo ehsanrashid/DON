@@ -25,7 +25,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <utility>
 
 #include "../misc.h"
 #include "accumulator.h"
@@ -120,10 +119,9 @@ using SmallNetwork = Network<SmallNetworkArchitecture, SmallFeatureTransformer>;
 
 struct Networks final {
    public:
-    Networks(std::unique_ptr<BigNetwork>&&   bigNet,
-             std::unique_ptr<SmallNetwork>&& smallNet) noexcept :
-        big(std::move(*bigNet)),
-        small(std::move(*smallNet)) {}
+    Networks(const EvalFile& bigFile, const EvalFile& smallFile) noexcept :
+        big(bigFile, EmbeddedType::BIG),
+        small(smallFile, EmbeddedType::SMALL) {}
 
     BigNetwork   big;
     SmallNetwork small;

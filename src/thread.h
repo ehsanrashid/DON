@@ -48,7 +48,7 @@ class Options;
 // such that the recipient does not need to know whether the binding happened or not.
 class ThreadToNumaNodeBinder final {
    public:
-    ThreadToNumaNodeBinder(NumaIndex numaId, const NumaConfig* numaCfgPtr) noexcept :
+    ThreadToNumaNodeBinder(NumaIndex numaId, const NumaConfig* const numaCfgPtr) noexcept :
         numaIdx(numaId),
         numaConfigPtr(numaCfgPtr) {}
 
@@ -61,8 +61,8 @@ class ThreadToNumaNodeBinder final {
     }
 
    private:
-    NumaIndex         numaIdx;
-    const NumaConfig* numaConfigPtr;
+    const NumaIndex         numaIdx;
+    const NumaConfig* const numaConfigPtr;
 };
 
 using JobFunc   = std::function<void()>;

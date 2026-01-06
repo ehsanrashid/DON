@@ -137,7 +137,7 @@ class Options final {
       std::unordered_map<std::string_view, Option, CaseInsensitiveHash, CaseInsensitiveEqual>;
     using Pair = std::pair<UnorderedMap::key_type, UnorderedMap::mapped_type>;
 
-    using InfoCallback = std::function<void(const std::optional<std::string>)>;
+    using InfoCallback = std::function<void(std::optional<std::string>)>;
 
     Options() noexcept                          = default;
     Options(const Options&) noexcept            = delete;

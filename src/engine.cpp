@@ -62,9 +62,8 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     networks(
       numaContext,
       // Heap-allocate because sizeof(NNUE::Networks) is large
-      std::make_unique<NNUE::Networks>(
-        std::make_unique<NNUE::BigNetwork  >(NNUE::EvalFile{BigEvalFileDefaultName  , "None", ""}, NNUE::EmbeddedType::BIG  ),
-        std::make_unique<NNUE::SmallNetwork>(NNUE::EvalFile{SmallEvalFileDefaultName, "None", ""}, NNUE::EmbeddedType::SMALL))) {
+      std::make_unique<NNUE::Networks>(NNUE::EvalFile{BigEvalFileDefaultName  , "None", ""},
+                                       NNUE::EvalFile{SmallEvalFileDefaultName, "None", ""})) {
 
     using OnCng = Option::OnChange;
 
