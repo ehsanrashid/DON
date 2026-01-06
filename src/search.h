@@ -53,7 +53,8 @@ struct Networks;
 }
 
 inline constexpr std::size_t MOVE_CAPACITY = 32;
-using SearchedMoves                        = FixedVector<Move, MOVE_CAPACITY>;
+
+using SearchedMoves = FixedVector<Move, MOVE_CAPACITY>;
 
 inline PolyBook Book;
 
@@ -113,7 +114,7 @@ struct RootMove final {
     Moves pv;
 };
 
-// RootMoves stores the collection of RootMove.
+// RootMoves is a container for RootMove objects, providing utility methods
 class RootMoves final {
    public:
     using value_type      = RootMove;
@@ -277,7 +278,7 @@ class RootMoves final {
     container_type rootMoves;
 };
 
-// Limit stores information sent by the caller about the analysis required.
+// Limit encapsulates various search limits and time controls, including per-color clocks
 struct Limit final {
    public:
     struct Clock final {
@@ -311,6 +312,7 @@ struct Limit final {
     Strings searchMoves{}, ignoreMoves{};
 };
 
+// Score represents the evaluation score of a position
 class Score final {
    public:
     struct Unit final {
@@ -400,6 +402,7 @@ class ISearchManager {
     virtual void check_time(Worker&) noexcept = 0;
 };
 
+// Define a unique pointer type for ISearchManager
 using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
 
 struct ShortInfo {
@@ -473,12 +476,13 @@ class MainSearchManager final: public ISearchManager {
     double preTimeReduction;
 };
 
+// NullSearchManager is a no-op implementation of ISearchManager
 class NullSearchManager final: public ISearchManager {
    public:
     void check_time(Worker&) noexcept override {}
 };
 
-// Node type
+// NodeType indicates the type of node in the search tree.
 enum NodeType : std::uint8_t {
     Root = 6,
     PV   = 2,
