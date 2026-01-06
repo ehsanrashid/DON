@@ -189,7 +189,7 @@ void TimeManager::init(
     // Limit the maximum possible time for this move
     optimumTime = TimePoint(optimumScale * remainTime);
 
-    maximumTime = centiMTG >= MIN_CENTI_MTG 
+    maximumTime = centiMTG >= MIN_CENTI_MTG
                 ? TimePoint(std::min(0.825179 * clock.time - moveOverhead, maximumScale * optimumTime)) - TIME_SAFETY_MARGIN
                 : clock.time - moveOverhead;
     if (maximumTime < MIN_MAXIMUM_TIME)

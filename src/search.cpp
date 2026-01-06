@@ -1857,7 +1857,12 @@ QS_MOVES_LOOP:
                 int threshold = baseFutilityValue - alpha;
 
                 if (threshold <= 0)
-                    threshold = -1;
+                {
+                    threshold /= 2;
+
+                    if (threshold == 0)
+                        threshold = -1;
+                }
 
                 if (pos.see(move) < -threshold)
                 {
