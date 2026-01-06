@@ -559,8 +559,8 @@ class Move {
         CASTLING
     };
 
-    static constexpr std::uint8_t ORG_SQ_OFFSET = 0;
-    static constexpr std::uint8_t DST_SQ_OFFSET = 6;
+    static constexpr std::uint8_t DST_SQ_OFFSET = 0;
+    static constexpr std::uint8_t ORG_SQ_OFFSET = 6;
     static constexpr std::uint8_t PROMO_OFFSET  = 12;
     static constexpr std::uint8_t TYPE_OFFSET   = 14;
 
@@ -574,8 +574,8 @@ class Move {
     constexpr explicit Move(std::uint16_t d) noexcept :
         data(d) {}
     constexpr Move(Square orgSq, Square dstSq) noexcept :
-        Move((int(MT::NORMAL) << TYPE_OFFSET) | (dstSq << DST_SQ_OFFSET)
-             | (orgSq << ORG_SQ_OFFSET)) {}
+        Move((int(MT::NORMAL) << TYPE_OFFSET) | (orgSq << ORG_SQ_OFFSET)
+             | (dstSq << DST_SQ_OFFSET)) {}
 
     // Accessors: extract parts of the move
     constexpr Square org_sq() const noexcept { return Square((data >> ORG_SQ_OFFSET) & 0x3F); }
@@ -624,7 +624,7 @@ template<MT T>
 inline constexpr Move Move::make(Square orgSq, Square dstSq, PieceType) noexcept {
     static_assert(T != MT::PROMOTION, "Use make<PROMOTION>() for PROMOTION moves");
 
-    return Move((int(T) << TYPE_OFFSET) | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET));
+    return Move((int(T) << TYPE_OFFSET) | (orgSq << ORG_SQ_OFFSET) | (dstSq << DST_SQ_OFFSET));
 }
 // Specialization for PROMOTION moves
 template<>
@@ -633,7 +633,7 @@ Move::make<MT::PROMOTION>(Square orgSq, Square dstSq, PieceType promoPt) noexcep
     assert(KNIGHT <= promoPt && promoPt <= QUEEN);
 
     return Move((int(MT::PROMOTION) << TYPE_OFFSET) | ((promoPt - KNIGHT) << PROMO_OFFSET)
-                | (dstSq << DST_SQ_OFFSET) | (orgSq << ORG_SQ_OFFSET));
+                | (orgSq << ORG_SQ_OFFSET) | (dstSq << DST_SQ_OFFSET));
 }
 
 // **Define the constexpr static members outside the class**
