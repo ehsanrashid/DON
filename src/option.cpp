@@ -69,10 +69,10 @@ Option::Option(std::string_view v, OnChange&& f) noexcept :
       is_whitespace(v) || lower_case(std::string(v)) == EMPTY_STRING ? "" : v;
 }
 
-Option::Option(int v, int minv, int maxv, OnChange&& f) noexcept :
+Option::Option(int v, int minV, int maxV, OnChange&& f) noexcept :
     type(Type::SPIN),
-    minValue(minv),
-    maxValue(maxv),
+    minValue(minV),
+    maxValue(maxV),
     onChange(std::move(f)) {
     defaultValue = currentValue = std::to_string(v);
 }
@@ -138,28 +138,28 @@ void Option::operator=(std::string value) noexcept {
 
     if (onChange)
     {
-        auto optInfo = onChange(*this);
+        auto optStr = onChange(*this);
 
-        if (optInfo && optionsPtr != nullptr && optionsPtr->infoListener)
-            optionsPtr->infoListener(optInfo);
+        if (optStr && optionsPtr != nullptr && optionsPtr->infoCallback)
+            optionsPtr->infoCallback(optStr);
     }
 }
 
 std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     os << "type " << Option::to_string(option.type);
 
-    if (option.type == Option::Type::BUTTON)
+    if (option.type == OT::BUTTON)
         return os;
 
     os << " default ";
-    if (option.type == Option::Type::STRING && is_whitespace(option.defaultValue))
+    if (option.type == OT::STRING && is_whitespace(option.defaultValue))
         os << EMPTY_STRING;
     else
         os << option.defaultValue;
 
-    if (option.type == Option::Type::SPIN)
+    if (option.type == OT::SPIN)
         os << " min " << option.minValue << " max " << option.maxValue;
-    else if (option.type == Option::Type::COMBO)
+    else if (option.type == OT::COMBO)
         os << std::accumulate(option.comboValues.begin(), option.comboValues.end(), std::string{},
                               [](std::string acc, std::string_view s) noexcept -> std::string {
                                   return acc.append(" var ").append(s);
@@ -168,8 +168,8 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     return os;
 }
 
-void Options::set_info_listener(InfoListener&& infoHandler) noexcept {
-    infoListener = std::move(infoHandler);
+void Options::set_info_callback(InfoCallback&& iCallback) noexcept {
+    infoCallback = std::move(iCallback);
 }
 
 // Add option and assigns idx in the correct insertion order

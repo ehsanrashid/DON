@@ -67,7 +67,7 @@ class UCI final {
     static inline bool InfoStringStop = false;
 
    private:
-    void set_update_listeners() noexcept;
+    void set_update_callbacks() noexcept;
 
     void position(std::istream& is) noexcept;
     void go(std::istream& is) noexcept;

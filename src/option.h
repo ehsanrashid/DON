@@ -85,10 +85,11 @@ class Option final {
 
     explicit Option(OnChange&& f = nullptr) noexcept;
     explicit Option(bool v, OnChange&& f = nullptr) noexcept;
+    explicit Option(char ch, OnChange&& f = nullptr) noexcept = delete;
     explicit Option(std::string_view v, OnChange&& f = nullptr) noexcept;
     explicit Option(const char* v, OnChange&& f = nullptr) noexcept :
         Option(std::string_view(v), std::forward<OnChange>(f)) {}
-    Option(int v, int minv, int maxv, OnChange&& f = nullptr) noexcept;
+    Option(int v, int minV, int maxV, OnChange&& f = nullptr) noexcept;
     Option(std::string_view v, std::string_view var, OnChange&& f = nullptr) noexcept;
 
     operator int() const noexcept;
@@ -127,6 +128,8 @@ class Option final {
     friend class Options;
 };
 
+using OT = Option::Type;
+
 class Options final {
    public:
     // The options container is defined as a std::unordered_map<>
@@ -134,7 +137,7 @@ class Options final {
       std::unordered_map<std::string_view, Option, CaseInsensitiveHash, CaseInsensitiveEqual>;
     using Pair = std::pair<UnorderedMap::key_type, UnorderedMap::mapped_type>;
 
-    using InfoListener = std::function<void(const std::optional<std::string>&)>;
+    using InfoCallback = std::function<void(const std::optional<std::string>)>;
 
     Options() noexcept                          = default;
     Options(const Options&) noexcept            = delete;
@@ -155,7 +158,7 @@ class Options final {
     }
     auto count(std::string_view name) const noexcept { return options.count(name); }
 
-    void set_info_listener(InfoListener&& infoHandler) noexcept;
+    void set_info_callback(InfoCallback&& iCallback) noexcept;
 
     void add(std::string_view name, const Option& option) noexcept;
 
@@ -167,7 +170,7 @@ class Options final {
 
    private:
     UnorderedMap options;
-    InfoListener infoListener;
+    InfoCallback infoCallback;
 
     friend class Option;
 };

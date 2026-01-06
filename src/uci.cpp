@@ -253,12 +253,14 @@ UCI::UCI(int argc, const char* argv[]) noexcept :
     engine(argv[0]),
     commandLine(argc, argv) {
 
-    options().set_info_listener([](const std::optional<std::string>& optStr) noexcept {
-        if (optStr.has_value())
-            print_info_string(*optStr);
+    options().set_info_callback([](const std::optional<std::string> optStr) noexcept {
+        if (!optStr)
+            return;
+
+        print_info_string(*optStr);
     });
 
-    set_update_listeners();
+    set_update_callbacks();
 }
 
 void UCI::run() noexcept {
@@ -450,7 +452,7 @@ void on_update_move(const MoveInfo& mInfo) noexcept {
 
 }  // namespace
 
-void UCI::set_update_listeners() noexcept {
+void UCI::set_update_callbacks() noexcept {
     engine.set_on_update_short(on_update_short);
     engine.set_on_update_full(on_update_full);
     engine.set_on_update_iter(on_update_iter);
@@ -828,7 +830,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     // clang-format on
 
     InfoStringStop = false;
-    set_update_listeners();
+    set_update_callbacks();
 }
 
 std::uint64_t UCI::perft(Depth depth, bool detail) noexcept {
