@@ -2098,7 +2098,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
                      + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
            + 4411LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
                      + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
-           +11529LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
+           +11528LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                      + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac])
            + 7841LL * (is_ok(preSq)
                       ? (*(ss - 2)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]
