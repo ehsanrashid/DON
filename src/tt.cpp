@@ -114,13 +114,14 @@ struct TTEntry final {
             move16 = m;
 
         // Overwrite less valuable entries (cheapest checks first)
-        if (key() != k || b == Bound::EXACT || depth() < 4 + d + 2 * pv || relative_age(gen) != 0)
+        if (key() != k || b == Bound::EXACT || depth() < 4 + d + int(pv) * 2
+            || relative_age(gen) != 0)
         {
             key16  = k;
             val16  = v;
             eVal16 = ev;
             depth8 = d - DEPTH_OFFSET;
-            meta8  = gen | (std::uint8_t(pv) << 2) | (std::uint8_t(b) << 0);
+            meta8  = gen | (std::uint8_t(pv) << 2) | +b;
         }
     }
 

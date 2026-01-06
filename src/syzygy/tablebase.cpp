@@ -293,6 +293,7 @@ class TBFile final {
         for (const auto& dir : TBPaths::get())
         {
             std::string fn = (dir / file).string();  // path concatenation
+
             if (std::ifstream(fn, std::ios::binary).is_open())
             {
                 filename = std::move(fn);

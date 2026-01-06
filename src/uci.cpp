@@ -253,7 +253,7 @@ UCI::UCI(int argc, const char* argv[]) noexcept :
     engine(argv[0]),
     commandLine(argc, argv) {
 
-    options().set_info_callback([](const std::optional<std::string> optStr) noexcept {
+    options().set_info_callback([](std::optional<std::string> optStr) noexcept {
         if (!optStr)
             return;
 
@@ -276,7 +276,7 @@ void UCI::run() noexcept {
         command.append(commandLine.arguments[i].data(), commandLine.arguments[i].size());
     }
 
-    const bool running = commandLine.arguments.size() <= 1;
+    bool running = commandLine.arguments.size() <= 1;
 
     if (!running && is_whitespace(command))
         return;
@@ -292,7 +292,7 @@ void UCI::run() noexcept {
         execute(command);
 
         if (command == "quit")
-            break;
+            running = false;
 
     } while (running);
 }

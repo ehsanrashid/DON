@@ -650,6 +650,8 @@ enum class Bound : std::uint8_t {
     EXACT = UPPER | LOWER
 };
 
+constexpr std::uint8_t operator+(Bound bnd) noexcept { return std::uint8_t(bnd); }
+
 // --- Bitmask operators for Bound ---
 constexpr Bound operator&(Bound bnd1, Bound bnd2) noexcept {
     return Bound(std::uint8_t(bnd1) & std::uint8_t(bnd2));
