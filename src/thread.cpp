@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Stockfish
+  DON, UCI chess playing engine Copyright (C) 2003-2026
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -113,8 +113,8 @@ void Threads::set(const NumaConfig&                       numaConfig,
     // Create new thread(s)
 
     // Binding threads may be problematic when there's multiple NUMA nodes and
-    // multiple Stockfish instances running. In particular, if each instance
-    // runs a single thread then they would all be mapped to the first NUMA node.
+    // multiple engine instances running. In particular, if each instance runs
+    // a single thread then they would all be mapped to the first NUMA node.
     // This is undesirable, and so the default behavior (i.e. when the user does not
     // change the NumaConfig UCI setting) is to not bind the threads to processors
     // unless we know for sure that we span NUMA nodes and replication is required.
