@@ -1129,7 +1129,7 @@ class Logger final {
         iTie(is.rdbuf(), ofs.rdbuf()),
         oTie(os.rdbuf(), ofs.rdbuf()) {}
 
-    ~Logger() noexcept = default;
+    ~Logger() noexcept { close(); }
 
     // Single shared instance
     static Logger& instance() noexcept {
