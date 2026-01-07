@@ -145,8 +145,8 @@ void update_pv(Move* RESTRICT pv, Move m, const Move* RESTRICT childPv) noexcept
     *pv = Move::None;
 }
 
-// Updates histories of the move pairs formed by
-// move at ply -1, -2, -3, -4, -5, -6, -7 and -8 with move at ply 0.
+// Updates the continuation histories for the move pairs formed
+// by the current move and the moves played in previous plies.
 void update_continuation_history(Stack* const ss, Piece pc, Square dstSq, int bonus) noexcept {
     assert(is_ok(dstSq));
 
@@ -174,7 +174,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dstSq, int bo
     }
 }
 
-// Update raw evaluation according to various CorrectionHistory value
+// Adjust raw evaluation according to various correction histories value
 // and guarantee evaluation does not hit the tablebase range.
 Value adjust_eval_value(Value evalValue, int correctionValue) noexcept {
     return in_range(evalValue + int(7.6294e-6 * correctionValue));
@@ -1497,10 +1497,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             // Extends ttMove if about to dive into qsearch
             if (newDepth < 1 && move == ttd.move
-                && (  // TT entry is deep
-                  ttd.depth > 1
-                  // Handles decisive score. Improves mate finding and retrograde analysis.
-                  || (ttd.depth > 0 && is_valid(ttd.value) && is_decisive(ttd.value))))
+                && (ttd.depth > 1 || (is_valid(ttd.value) && is_decisive(ttd.value))))
                 newDepth = 1;
 
             value = -search<PV>(pos, ss + 1, -beta, -alpha, newDepth);
