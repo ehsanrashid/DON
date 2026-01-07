@@ -38,13 +38,12 @@ further discussion._
 
 ### Submitting Pull Requests
 
-- Functional changes need to be tested on fishtest.
-  See [Creating my First Test][creating-my-first-test] for more details.
-  The accompanying pull request should include a link to the test results and
-  the new bench.
+- Functional changes must be properly tested.
+  The accompanying pull request should include a link to the test results
+  and the updated benchmark.
 
 - Non-functional changes (e.g. refactoring, code style, documentation) do not
-  need to be tested on fishtest, unless they might impact performance.
+  need to be tested, unless they might impact performance.
 
 - Provide a clear and concise description of the changes in the pull request
   description.
@@ -87,7 +86,7 @@ Thank you for contributing to DON and helping us make it even better!
 [copying-link]:           https://github.com/ehsanrashid/DON/blob/main/Copying.txt
 [discord-link]:           https://discord.gg/
 [discussions-link]:       https://github.com/ehsanrashid/DON/discussions/new
-[creating-my-first-test]: https://github.com/ehsanrashid/DON/fishtest/wiki/Creating-my-first-test#create-your-test
+[creating-my-first-test]: https://github.com/ehsanrashid/DON/wiki/Creating-my-first-test#create-your-test
 [issue-tracker-link]:     https://github.com/ehsanrashid/DON/issues
 [ubuntu-compiling-link]:  https://github.com/ehsanrashid/DON/wiki/Developers#user-content-installing-a-compiler-1
 [windows-compiling-link]: https://github.com/ehsanrashid/DON/wiki/Developers#user-content-installing-a-compiler
