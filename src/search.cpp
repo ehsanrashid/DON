@@ -1111,7 +1111,7 @@ Value Worker::search(Position&    pos,
     if (depth > 2 && !is_decisive(beta))
     {
         // clang-format off
-        Value probCutBeta = std::min(235 + beta - improve * 63, +VALUE_INFINITE);
+        Value probCutBeta = std::min(235 + beta - int(improve) * 63, +VALUE_INFINITE);
         assert(beta < probCutBeta && probCutBeta <= +VALUE_INFINITE);
 
         // If value from transposition table is less than probCutBeta, don't attempt probCut

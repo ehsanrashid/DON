@@ -40,63 +40,63 @@ namespace DON {
 
 namespace {
 
-enum Command : std::uint8_t {
-    CMD_STOP,
-    CMD_QUIT,
-    CMD_PONDERHIT,
-    CMD_POSITION,
-    CMD_GO,
-    CMD_SETOPTION,
-    CMD_UCI,
-    CMD_UCINEWGAME,
-    CMD_ISREADY,
+enum class Command : std::uint8_t {
+    STOP,
+    QUIT,
+    PONDERHIT,
+    POSITION,
+    GO,
+    SETOPTION,
+    UCI,
+    UCINEWGAME,
+    ISREADY,
     // Add custom non-UCI commands, mainly for debugging purposes.
     // These commands must not be used during a search!
-    CMD_BENCH,
-    CMD_BENCHMARK,
-    CMD_SHOW,
-    CMD_DUMP,
-    CMD_EVAL,
-    CMD_FLIP,
-    CMD_MIRROR,
-    CMD_COMPILER,
-    CMD_EXPORT_NET,
-    CMD_HELP,
+    BENCH,
+    BENCHMARK,
+    SHOW,
+    DUMP,
+    EVAL,
+    FLIP,
+    MIRROR,
+    COMPILER,
+    EXPORT_NET,
+    HELP,
     // Unknown Command
-    CMD_NONE,
+    NONE,
 };
 
 // clang-format off
 const std::unordered_map<std::string_view, Command> COMMAND_MAP{
-  {"stop",       CMD_STOP},
-  {"quit",       CMD_QUIT},
-  {"ponderhit",  CMD_PONDERHIT},
-  {"position",   CMD_POSITION},
-  {"go",         CMD_GO},
-  {"setoption",  CMD_SETOPTION},
-  {"uci",        CMD_UCI},
-  {"ucinewgame", CMD_UCINEWGAME},
-  {"isready",    CMD_ISREADY},
-  {"bench",      CMD_BENCH},
-  {"benchmark",  CMD_BENCHMARK},
-  {"show",       CMD_SHOW},
-  {"dump",       CMD_DUMP},
-  {"eval",       CMD_EVAL},
-  {"flip",       CMD_FLIP},
-  {"mirror",     CMD_MIRROR},
-  {"compiler",   CMD_COMPILER},
-  {"export_net", CMD_EXPORT_NET},
-  {"--help",     CMD_HELP},
-  {"help",       CMD_HELP},
-  {"--license",  CMD_HELP},
-  {"license",    CMD_HELP}
+  {"stop",       Command::STOP},
+  {"quit",       Command::QUIT},
+  {"ponderhit",  Command::PONDERHIT},
+  {"position",   Command::POSITION},
+  {"go",         Command::GO},
+  {"setoption",  Command::SETOPTION},
+  {"uci",        Command::UCI},
+  {"ucinewgame", Command::UCINEWGAME},
+  {"isready",    Command::ISREADY},
+  {"bench",      Command::BENCH},
+  {"benchmark",  Command::BENCHMARK},
+  {"show",       Command::SHOW},
+  {"dump",       Command::DUMP},
+  {"eval",       Command::EVAL},
+  {"flip",       Command::FLIP},
+  {"mirror",     Command::MIRROR},
+  {"compiler",   Command::COMPILER},
+  {"export_net", Command::EXPORT_NET},
+  {"--help",     Command::HELP},
+  {"help",       Command::HELP},
+  {"--license",  Command::HELP},
+  {"license",    Command::HELP}
 };
 // clang-format on
 
 Command to_command(std::string_view command) noexcept {
     auto itr = COMMAND_MAP.find(command);
 
-    return itr != COMMAND_MAP.end() ? itr->second : CMD_NONE;
+    return itr != COMMAND_MAP.end() ? itr->second : Command::NONE;
 }
 
 Limit parse_limit(std::istream& is) noexcept {
@@ -310,52 +310,52 @@ void UCI::execute(std::string_view command) noexcept {
 
     switch (to_command(lower_case(token)))
     {
-    case CMD_STOP :
-    case CMD_QUIT :
+    case Command::STOP :
+    case Command::QUIT :
         engine.stop();
         break;
-    case CMD_PONDERHIT :
+    case Command::PONDERHIT :
         // The GUI sends 'ponderhit' to tell that the user has played the expected move.
         // So, 'ponderhit' is sent if pondering was done on the same move that the user has played.
         // The search should continue, but should also switch from pondering to the normal search.
         engine.ponderhit();
         break;
-    case CMD_POSITION :
+    case Command::POSITION :
         position(iss);
         break;
-    case CMD_GO :
+    case Command::GO :
         // Send info strings after the go command is sent for old GUIs and python-chess
         print_info_string(engine.get_numa_config_info_str());
         print_info_string(engine.get_thread_allocation_info_str());
 
         go(iss);
         break;
-    case CMD_SETOPTION :
+    case Command::SETOPTION :
         setoption(iss);
         break;
-    case CMD_UCI :
+    case Command::UCI :
         std::cout << engine_info(true) << '\n'  //
                   << options() << '\n'          //
                   << "uciok" << std::endl;
         break;
-    case CMD_UCINEWGAME :
+    case Command::UCINEWGAME :
         engine.init();
         break;
-    case CMD_ISREADY :
+    case Command::ISREADY :
         std::cout << "readyok" << std::endl;
         break;
     // Add custom non-UCI commands, mainly for debugging purposes.
     // These commands must not be used during a search!
-    case CMD_BENCH :
+    case Command::BENCH :
         bench(iss);
         break;
-    case CMD_BENCHMARK :
+    case Command::BENCHMARK :
         benchmark(iss);
         break;
-    case CMD_SHOW :
+    case Command::SHOW :
         engine.show();
         break;
-    case CMD_DUMP : {
+    case Command::DUMP : {
         std::optional<std::string> dumpFile;
 
         std::string input;
@@ -365,19 +365,19 @@ void UCI::execute(std::string_view command) noexcept {
         engine.dump(dumpFile);
     }
     break;
-    case CMD_EVAL :
+    case Command::EVAL :
         engine.eval();
         break;
-    case CMD_FLIP :
+    case Command::FLIP :
         engine.flip();
         break;
-    case CMD_MIRROR :
+    case Command::MIRROR :
         engine.mirror();
         break;
-    case CMD_COMPILER :
+    case Command::COMPILER :
         std::cout << compiler_info() << std::endl;
         break;
-    case CMD_EXPORT_NET : {
+    case Command::EXPORT_NET : {
         StdArray<std::optional<std::string>, 2> netFiles;
 
         std::string input;
@@ -387,7 +387,7 @@ void UCI::execute(std::string_view command) noexcept {
         engine.save_networks(netFiles);
     }
     break;
-    case CMD_HELP :
+    case Command::HELP :
         std::cout
           << "\nDON is a powerful chess engine for playing and analyzing."
              "\nIt is released as free software licensed under the GNU GPLv3 License."
@@ -588,7 +588,7 @@ void UCI::bench(std::istream& is) noexcept {
 
         switch (to_command(lower_case(token)))
         {
-        case CMD_GO : {
+        case Command::GO : {
             std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")"
                       << std::endl;
 
@@ -606,18 +606,18 @@ void UCI::bench(std::istream& is) noexcept {
             infoNodes = 0;
         }
         break;
-        case CMD_EVAL :
+        case Command::EVAL :
             std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")"
                       << std::endl;
             engine.eval();
             break;
-        case CMD_POSITION :
+        case Command::POSITION :
             position(iss);
             break;
-        case CMD_SETOPTION :
+        case Command::SETOPTION :
             setoption(iss);
             break;
-        case CMD_UCINEWGAME :
+        case Command::UCINEWGAME :
             elapsedTime += now() - startTime;
             engine.init();  // May take a while
             startTime = now();
@@ -691,7 +691,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
         switch (to_command(lower_case(token)))
         {
-        case CMD_GO : {
+        case Command::GO : {
             // One new line is produced by the search, so omit it here
             std::cerr << "\rWarmup position " << ++cnt << '/' << WarmupPositionCount;
 
@@ -705,10 +705,10 @@ void UCI::benchmark(std::istream& is) noexcept {
             infoNodes = 0;
         }
         break;
-        case CMD_POSITION :
+        case Command::POSITION :
             position(iss);
             break;
-        case CMD_UCINEWGAME :
+        case Command::UCINEWGAME :
             elapsedTime += now() - startTime;
             engine.init();  // May take a while
             startTime = now();
@@ -767,7 +767,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
         switch (to_command(lower_case(token)))
         {
-        case CMD_GO : {
+        case Command::GO : {
             // One new line is produced by the search, so omit it here
             std::cerr << "\rPosition " << ++cnt << '/' << num;
 
@@ -783,10 +783,10 @@ void UCI::benchmark(std::istream& is) noexcept {
             infoNodes = 0;
         }
         break;
-        case CMD_POSITION :
+        case Command::POSITION :
             position(iss);
             break;
-        case CMD_UCINEWGAME :
+        case Command::UCINEWGAME :
             elapsedTime += now() - startTime;
             engine.init();  // May take a while
             startTime = now();
@@ -959,6 +959,7 @@ std::string UCI::move_to_can(Move m) noexcept {
 // (g1f3, a7a8q) to the corresponding legal move, if any.
 Move UCI::can_to_move(std::string can, const MoveList<LEGAL>& legalMoves) noexcept {
     assert(4 <= can.size() && can.size() <= 5);
+
     can = lower_case(can);
 
     for (auto m : legalMoves)
@@ -1118,6 +1119,7 @@ SPECIAL:
 
 Move UCI::san_to_move(std::string san, Position& pos, const MoveList<LEGAL>& legalMoves) noexcept {
     assert(2 <= san.size() && san.size() <= 9);
+
     if (san.size() >= 2 && san[1] == '-' && (san[0] == '0' || std::tolower(san[0]) == 'o'))
         std::replace_if(san.begin(), san.end(), [](char c) { return c == 'o' || c == '0'; }, 'O');
 
@@ -1134,6 +1136,7 @@ Move UCI::san_to_move(std::string san, Position& pos) noexcept {
 
 Move UCI::mix_to_move(std::string mix, Position& pos, const MoveList<LEGAL>& legalMoves) noexcept {
     assert(2 <= mix.size() && mix.size() <= 9);
+
     Move m = Move::None;
 
     if (!legalMoves.empty() && mix.size() >= 2)
