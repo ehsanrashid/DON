@@ -721,10 +721,10 @@ void AccumulatorStack::evaluate(const Position&                       pos,
     constexpr bool UseThreats = Dimensions == BigTransformedFeatureDimensions;
 
     evaluate<PSQFeatureSet>(WHITE, pos, featureTransformer, cache);
-    if (UseThreats)
+    if constexpr (UseThreats)
         evaluate<ThreatFeatureSet>(WHITE, pos, featureTransformer, cache);
     evaluate<PSQFeatureSet>(BLACK, pos, featureTransformer, cache);
-    if (UseThreats)
+    if constexpr (UseThreats)
         evaluate<ThreatFeatureSet>(BLACK, pos, featureTransformer, cache);
 }
 

@@ -22,7 +22,6 @@
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <optional>
 #include <sstream>
