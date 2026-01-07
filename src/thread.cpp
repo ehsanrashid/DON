@@ -175,11 +175,11 @@ void Threads::set(const NumaConfig&                       numaConfig,
     }
     else
     {
-        for (const auto& [numaIdx, count] : numaThreadCounts)
+        for (const auto& [numaId, count] : numaThreadCounts)
         {
             std::size_t roundedCount = next_pow2(count);
 
-            historiesMap.try_emplace(numaIdx, roundedCount);
+            historiesMap.try_emplace(numaId, roundedCount);
         }
     }
 
@@ -187,9 +187,12 @@ void Threads::set(const NumaConfig&                       numaConfig,
 
     std::unordered_map<NumaIndex, std::size_t> numaIds;
 
-    for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
+    reserve(threadCount);
+
+    while (size() < threadCount)
     {
-        NumaIndex numaIdx = threadBindable ? threadBoundNumaNodes[threadId] : 0;
+        std::size_t threadId = size();
+        NumaIndex   numaId   = threadBindable ? threadBoundNumaNodes[threadId] : 0;
 
         // Lambda to create the thread
         const auto create_thread = [&]() {
@@ -203,16 +206,16 @@ void Threads::set(const NumaConfig&                       numaConfig,
             // When not binding threads want to force all access to happen from the same
             // NUMA node, because in case of NUMA replicated memory accesses don't want
             // to trash cache in case the threads get scheduled on the same NUMA node.
-            ThreadToNumaNodeBinder nodeBinder(numaIdx, numaConfigPtr);
+            ThreadToNumaNodeBinder nodeBinder(numaId, numaConfigPtr);
 
-            threads.emplace_back(std::make_unique<Thread>(threadId, threadCount, numaIds[numaIdx]++,
-                                                          numaThreadCounts[numaIdx], nodeBinder,
+            threads.emplace_back(std::make_unique<Thread>(threadId, threadCount, numaIds[numaId]++,
+                                                          numaThreadCounts[numaId], nodeBinder,
                                                           std::move(searchManager), sharedState));
         };
 
         // Ensure the worker thread inherits the intended NUMA affinity at creation
         if (threadBindable)
-            numaConfig.execute_on_numa_node(numaIdx, create_thread);
+            numaConfig.execute_on_numa_node(numaId, create_thread);
         else
             create_thread();
     }

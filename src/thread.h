@@ -192,6 +192,8 @@ class Threads final {
     std::size_t size() const noexcept { return threads.size(); }
     bool        empty() const noexcept { return threads.empty(); }
 
+    void reserve(std::size_t threadCount) noexcept { threads.reserve(threadCount); }
+
     void clear() noexcept;
 
     void set(const NumaConfig&                       numaConfig,
