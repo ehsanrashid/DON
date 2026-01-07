@@ -355,8 +355,6 @@ void Threads::start(Position&      pos,
         }
     }
 
-    bool useTimeManager = limit.use_time_manager() && options["NodesTime"] == 0;
-
     auto& clock = limit.clocks[pos.active_color()];
 
     // If time manager is active, don't use more than 5% of clock time
@@ -364,10 +362,11 @@ void Threads::start(Position&      pos,
 
     const auto time_to_abort = [&]() noexcept -> bool {
         auto endTime = std::chrono::steady_clock::now();
-        return useTimeManager
-            && std::chrono::duration<double, std::milli>(endTime - startTime).count()
-                 > (0.0500 + 0.0500 * std::clamp((clock.inc - clock.time) / 100.0, 0.0, 1.0))
-                     * clock.time;
+        return limit.use_time_manager()
+            && (options["NodesTime"] != 0
+                || std::chrono::duration<double, std::milli>(endTime - startTime).count()
+                     > (0.0500 + 0.0500 * std::clamp((clock.inc - clock.time) / 100.0, 0.0, 1.0))
+                         * clock.time);
     };
 
     auto tbConfig = Tablebase::rank_root_moves(pos, rootMoves, options, false, time_to_abort);

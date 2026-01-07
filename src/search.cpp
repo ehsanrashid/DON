@@ -2212,8 +2212,6 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     if (!options["SyzygyPVExtend"])
         return;
 
-    bool useTimeManager = limit.use_time_manager() && options["NodesTime"] == 0;
-
     const TimePoint moveOverhead = options["MoveOverhead"];
 
     // If time manager is active, don't use more than 50% of moveOverhead time
@@ -2221,9 +2219,10 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     const auto time_to_abort = [&]() noexcept -> bool {
         auto endTime = std::chrono::steady_clock::now();
-        return useTimeManager
-            && std::chrono::duration<double, std::milli>(endTime - startTime).count()
-                 > 0.5000 * moveOverhead;
+        return limit.use_time_manager()
+            && (options["NodesTime"] != 0
+                || std::chrono::duration<double, std::milli>(endTime - startTime).count()
+                     > 0.5000 * moveOverhead);
     };
 
     bool aborted = false;
