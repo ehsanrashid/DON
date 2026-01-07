@@ -58,6 +58,8 @@ namespace BitBoard {
 
 void init() noexcept;
 
+void find_magic_seeds() noexcept;
+
 std::string pretty_str(Bitboard b) noexcept;
 
 std::string_view pretty(Bitboard b) noexcept;

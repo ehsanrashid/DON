@@ -17,6 +17,7 @@
 
 #include "bitboard.h"
 
+#include <chrono>
 #include <memory>
 
 #if !defined(USE_BMI2)
@@ -202,6 +203,178 @@ void init_magics() noexcept {
 template void init_magics<BISHOP>() noexcept;
 template void init_magics<ROOK>() noexcept;
 
+// Evaluate candidate seed for a given rank and piece type
+template<PieceType PT>
+std::uint64_t evaluate_seed_for_rank(Rank r, std::uint16_t candidateSeed) noexcept {
+
+    constexpr StdArray<std::size_t, 2> BlockSizes{0x200, 0x1000};
+
+    std::uint64_t totalAttempts = 0;
+
+    // Evaluate all squares on the given rank (file 0..7)
+    for (File f = FILE_A; f <= FILE_H; ++f)
+    {
+        Square s = make_square(f, r);
+
+        auto magic = Magic();
+
+        Bitboard pseudoAttacksBB = attacks_bb(s, PT);
+
+        // Board edges are not considered in the relevant occupancies
+        Bitboard edgesBB = (EDGE_FILES_BB & ~file_bb(s)) | (PROMOTION_RANKS_BB & ~rank_bb(s));
+
+        // Mask excludes edges
+        magic.maskBB = pseudoAttacksBB & ~edgesBB;
+
+        StdArray<Bitboard, BlockSizes[PT - BISHOP]> occupancyBBs;
+        StdArray<Bitboard, BlockSizes[PT - BISHOP]> referenceBBs;
+
+        std::uint16_t size = 0;
+
+        // Use Carry-Rippler trick to enumerate all subsets of masks[s]
+        Bitboard occupancyBB = 0;
+        do
+        {
+            Bitboard slidingAttacksBB = sliding_attacks_bb<PT>(s, occupancyBB);
+
+            occupancyBBs[size] = occupancyBB;
+            referenceBBs[size] = slidingAttacksBB;
+
+            ++size;
+            occupancyBB = (occupancyBB - magic.maskBB) & magic.maskBB;
+
+        } while (occupancyBB != 0);
+
+        assert(size <= BlockSizes[PT - BISHOP]);
+
+        magic.shift =
+#if defined(IS_64BIT)
+          64
+#else
+          32
+#endif
+          - popcount(magic.maskBB);
+
+        XorShift64Star prng(candidateSeed);
+
+        std::uint32_t attempts = 0;
+
+        StdArray<std::uint32_t, BlockSizes[PT - BISHOP]> epoch{};
+        std::uint32_t                                    cnt = 0;
+
+        StdArray<Bitboard, BlockSizes[PT - BISHOP]> attacksBBs{};
+
+        while (true)
+        {
+            // Pick a candidate magic until it is "sparse enough"
+            do
+                magic.magicBB = prng.sparse_rand<Bitboard>();
+            while (popcount((magic.magicBB * magic.maskBB) >> 56) < 6);
+
+            ++attempts;  // count this candidate draw
+            ++cnt;
+
+            bool magicOk = true;
+
+            // A good magic must map every possible occupancy to an index that
+            // looks up the correct sliding attack in the attacks[s] database.
+            // Note that build up the database for square 's' as a side effect
+            // of verifying the magic.
+            // Keep track of the attempt count and save it in epoch[], little speed-up
+            // trick to avoid resetting m.attacks[] after every failed attempt.
+            for (std::uint16_t i = 0; i < size; ++i)
+            {
+                std::uint16_t idx = magic.index(occupancyBBs[i]);
+
+                // Slot unused for this candidate -> record mapping
+                if (epoch[idx] < cnt)
+                {
+                    epoch[idx]      = cnt;
+                    attacksBBs[idx] = referenceBBs[i];
+                }
+                // Slot already used for this candidate: verify it matches
+                else if (attacksBBs[idx] != referenceBBs[i])
+                {
+                    magicOk = false;
+                    break;
+                }
+            }
+
+            if (magicOk)
+                break;
+        }
+
+        totalAttempts += attempts;
+    }
+
+    return totalAttempts;
+}
+
+// Brute force search for best seed for one rank
+template<PieceType PT>
+std::uint16_t find_best_seed_for_rank(Rank r) noexcept {
+
+    constexpr StdArray<std::uint16_t, 2, RANK_NB> InitialSeeds{{
+#if defined(IS_64BIT)
+      {0xE4D9, 0xB1E5, 0x4F73, 0x82A9, 0x323A, 0xFFF4, 0x0C61, 0x5EFA},
+      {0x8B99, 0x9A36, 0xD27A, 0x5F4C, 0xFC29, 0x0982, 0x10E1, 0x00AA}
+#else
+      {0xFE9A, 0x4968, 0xA30A, 0x3429, 0xAA36, 0xAEAF, 0x228A, 0xAA4C},
+      {0x02F6, 0x00C0, 0x8522, 0x0972, 0xF31A, 0xF6D0, 0xDA74, 0x98E5}
+#endif
+    }};
+
+    std::uint16_t bestSeed = 1;
+
+    std::uint64_t bestAttempts = 0xFFFFFFFFFFFFFFFFULL;
+
+    for (std::uint32_t candSeed = InitialSeeds[PT - BISHOP][r]; candSeed <= 0xFFFFU; ++candSeed)
+    {
+        std::uint64_t attempts = evaluate_seed_for_rank<PT>(r, std::uint16_t(candSeed));
+
+        if (bestAttempts > attempts)
+        {
+            bestAttempts = attempts;
+
+            bestSeed = std::uint16_t(candSeed);
+
+            std::cout << "Rank " << to_char(r) << " attempts " << bestAttempts  //
+                      << " seed = 0x" << std::hex << bestSeed << std::dec << "\n";
+
+            if (bestAttempts <= 2000)
+                break;
+        }
+    }
+
+    return bestSeed;
+}
+
+// Driver that finds best seeds for all ranks for a given piece type
+template<PieceType PT>
+auto find_best_seeds() noexcept {
+    StdArray<std::uint16_t, RANK_NB> seeds;
+
+    std::cout << "Finding best seeds for piece type (" << to_char(PT) << ")...\n";
+
+    for (Rank r = RANK_1; r <= RANK_8; ++r)
+    {
+        std::cout << "Searching Rank " << to_char(r) << "...\n";
+
+        seeds[r] = find_best_seed_for_rank<PT>(r);
+    }
+
+    return seeds;
+}
+
+void print_seeds(const StdArray<std::uint16_t, RANK_NB>& seeds) noexcept {
+    std::cout << "{ ";
+
+    for (std::size_t i = 0; i < seeds.size(); ++i)
+        std::cout << "0x" << std::hex << seeds[i] << (i + 1 < seeds.size() ? ", " : " ");
+
+    std::cout << std::dec << "}\n";
+}
+
 }  // namespace
 
 namespace BitBoard {
@@ -236,6 +409,55 @@ void init() noexcept {
             BETWEEN_BBs[s1][s2] |= s2BB;
         }
     }
+}
+
+// Harness to find optimal magic bitboard seeds
+void find_magic_seeds() noexcept {
+
+    std::cout << "Seed search harness for magic bitboards" << std::endl;
+#if defined(IS_64BIT)
+    std::cout << "Compiled for 64-bit Bitboard\n" << std::endl;
+#else
+    std::cout << "Compiled for 32-bit Bitboard\n" << std::endl;
+#endif
+
+    // You can choose to optimize for BISHOP, ROOK or both.
+    // Here we run for both and print two arrays.
+    // If you prefer to combine results
+    // (e.g. pick a seed that minimizes sum of attempts across both piece types),
+    // gather both arrays and post-process.
+
+    std::chrono::steady_clock::time_point startTime, endTime;
+
+    startTime = std::chrono::steady_clock::now();
+
+    auto bishopSeeds = find_best_seeds<BISHOP>();
+
+    endTime = std::chrono::steady_clock::now();
+
+    std::cout << "Bishop search took "
+              << std::chrono::duration_cast<std::chrono::seconds>(endTime - startTime).count()
+              << "s\n"
+              << std::endl;
+
+    startTime = std::chrono::steady_clock::now();
+
+    auto rookSeeds = find_best_seeds<ROOK>();
+
+    endTime = std::chrono::steady_clock::now();
+
+    std::cout << "Rook search took "
+              << std::chrono::duration_cast<std::chrono::seconds>(endTime - startTime).count()
+              << "s\n"
+              << std::endl;
+
+    std::cout << "Best Seeds for BISHOP: ";
+    print_seeds(bishopSeeds);
+
+    std::cout << "Best Seeds for ROOK: ";
+    print_seeds(rookSeeds);
+
+    std::cout << "Done!!!\n" << std::endl;
 }
 
 // Returns an ASCII representation of a bitboard suitable
