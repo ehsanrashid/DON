@@ -1446,9 +1446,10 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Step 17. Late moves reduction / extension (LMR)
         if (depth > 1 && moveCount > 1)
         {
-            // To prevent problems when the max value is less than the min value,
-            // std::clamp has been replaced by a more robust implementation.
-            Depth redDepth = std::min(newDepth - r / 1024, newDepth + 2);
+            Depth redDepth = newDepth - r / 1024;
+
+            if (redDepth > newDepth + 2)
+                redDepth = newDepth + 2;
 
             if (redDepth < 1)
                 redDepth = 1;
