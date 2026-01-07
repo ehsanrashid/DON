@@ -209,7 +209,7 @@ Worker::Worker(std::size_t               threadIdx,
     options(sharedState.options),
     threads(sharedState.threads),
     transpositionTable(sharedState.transpositionTable),
-    histories(sharedState.historiesMap.at(accessToken.numa_index())),
+    histories(sharedState.historiesMap.at(accessToken.numa_id())),
     accCaches(networks[accessToken]) {}
 
 // Initialize per-thread data structures

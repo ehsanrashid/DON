@@ -371,8 +371,8 @@ inline std::set<CpuIndex> get_process_affinity() noexcept {
     // For unsupported systems, or in case of a soft error,
     // may assume all processors are available for use.
     [[maybe_unused]] auto set_to_all_cpus = [&]() {
-        for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
-            cpus.insert(cpuIdx);
+        for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREADS_NB; ++cpuId)
+            cpus.insert(cpuId);
     };
 
     // cpu_set_t by default holds 1024 entries. This may not be enough soon,
@@ -396,9 +396,9 @@ inline std::set<CpuIndex> get_process_affinity() noexcept {
         std::exit(EXIT_FAILURE);
     }
 
-    for (CpuIndex cpuIdx = 0; cpuIdx < MaxCpusCount; ++cpuIdx)
-        if (CPU_ISSET_S(cpuIdx, MaskSize, mask))
-            cpus.insert(cpuIdx);
+    for (CpuIndex cpuId = 0; cpuId < MaxCpusCount; ++cpuId)
+        if (CPU_ISSET_S(cpuId, MaskSize, mask))
+            cpus.insert(cpuId);
 
     CPU_FREE(mask);
 
@@ -417,13 +417,13 @@ class NumaReplicatedAccessToken final {
     NumaReplicatedAccessToken() noexcept :
         NumaReplicatedAccessToken(0) {}
 
-    explicit NumaReplicatedAccessToken(NumaIndex numaId) noexcept :
-        numaIdx(numaId) {}
+    explicit NumaReplicatedAccessToken(NumaIndex numaIdx) noexcept :
+        numaId(numaIdx) {}
 
-    NumaIndex numa_index() const noexcept { return numaIdx; }
+    NumaIndex numa_id() const noexcept { return numaId; }
 
    private:
-    NumaIndex numaIdx;
+    NumaIndex numaId;
 };
 
 // Designed as immutable, because there is no good reason to alter an already
@@ -451,8 +451,8 @@ class NumaConfig final {
 #if defined(__ANDROID__)
 
         // Fallback for unsupported systems
-        for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
-            numaCfg.add_cpu_to_node(NumaIndex{0}, cpuIdx);
+        for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREADS_NB; ++cpuId)
+            numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
 
 #elif defined(_WIN64)
 
@@ -465,8 +465,8 @@ class NumaConfig final {
         // but at least guarantee that the number of allowed processors
         // is >= number of processors in the affinity mask. In case the user
         // is not satisfied they must set the processor numbers explicitly.
-        auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuIdx) {
-            return !allowedCpus.has_value() || allowedCpus->count(cpuIdx) == 1;
+        auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) {
+            return !allowedCpus.has_value() || allowedCpus->count(cpuId) == 1;
         };
 
         WORD procGroupCount = GetActiveProcessorGroupCount();
@@ -483,9 +483,9 @@ class NumaConfig final {
                 BOOL status = GetNumaProcessorNodeEx(&procNumber, &nodeNumber);
                 if (status != 0 && nodeNumber != std::numeric_limits<USHORT>::max())
                 {
-                    CpuIndex cpuIdx = procGroup * WIN_PROCESSOR_GROUP_SIZE + number;
-                    if (is_cpu_allowed(cpuIdx))
-                        numaCfg.add_cpu_to_node(nodeNumber, cpuIdx);
+                    CpuIndex cpuId = procGroup * WIN_PROCESSOR_GROUP_SIZE + number;
+                    if (is_cpu_allowed(cpuId))
+                        numaCfg.add_cpu_to_node(nodeNumber, cpuId);
                 }
             }
 
@@ -512,24 +512,24 @@ class NumaConfig final {
         {
             NumaConfig splitNumaCfg = empty();
 
-            NumaIndex splitNumaIdx = 0;
+            NumaIndex splitNumaId = 0;
             for (const auto& cpus : numaCfg.nodes)
             {
                 if (cpus.empty())
                     continue;
 
                 std::size_t lstProcGroupIndex = *(cpus.begin()) / WIN_PROCESSOR_GROUP_SIZE;
-                for (CpuIndex cpuIdx : cpus)
+                for (CpuIndex cpuId : cpus)
                 {
-                    std::size_t procGroupIndex = cpuIdx / WIN_PROCESSOR_GROUP_SIZE;
+                    std::size_t procGroupIndex = cpuId / WIN_PROCESSOR_GROUP_SIZE;
                     if (lstProcGroupIndex != procGroupIndex)
                     {
                         lstProcGroupIndex = procGroupIndex;
-                        ++splitNumaIdx;
+                        ++splitNumaId;
                     }
-                    splitNumaCfg.add_cpu_to_node(splitNumaIdx, cpuIdx);
+                    splitNumaCfg.add_cpu_to_node(splitNumaId, cpuId);
                 }
-                ++splitNumaIdx;
+                ++splitNumaId;
             }
 
             numaCfg = std::move(splitNumaCfg);
@@ -542,8 +542,8 @@ class NumaConfig final {
         if (processAffinityRespect)
             allowedCpus = STARTUP_PROCESSOR_AFFINITY;
 
-        auto is_cpu_allowed = [processAffinityRespect, &allowedCpus](CpuIndex cpuIdx) {
-            return !processAffinityRespect || allowedCpus.count(cpuIdx) == 1;
+        auto is_cpu_allowed = [processAffinityRespect, &allowedCpus](CpuIndex cpuId) {
+            return !processAffinityRespect || allowedCpus.count(cpuId) == 1;
         };
 
         // On Linux things are straightforward, since there's no processor groups and
@@ -558,48 +558,51 @@ class NumaConfig final {
         };
 
         // /sys/devices/system/node/online contains information about active NUMA nodes
-        auto nodeIdxStr = read_file_to_string("/sys/devices/system/node/online");
-        if (!nodeIdxStr.has_value() || nodeIdxStr->empty())
+        auto nodeIdStr = read_file_to_string("/sys/devices/system/node/online");
+
+        if (!nodeIdStr.has_value() || nodeIdStr->empty())
         {
             fallback();
         }
         else
         {
-            *nodeIdxStr = remove_whitespace(*nodeIdxStr);
-            for (CpuIndex n : shortened_string_to_indices(*nodeIdxStr))
+            *nodeIdStr = remove_whitespace(*nodeIdStr);
+            for (CpuIndex n : shortened_string_to_indices(*nodeIdStr))
             {
                 // /sys/devices/system/node/node.../cpulist
                 std::string path =
                   std::string("/sys/devices/system/node/node") + std::to_string(n) + "/cpulist";
-                auto cpuIdxStr = read_file_to_string(path);
+
+                auto cpuIdStr = read_file_to_string(path);
+
                 // Now, only bail if the file does not exist. Some nodes may be
                 // empty, that's fine. An empty node still has a file that appears
                 // to have some whitespace, so need to handle that.
-                if (!cpuIdxStr.has_value())
+                if (!cpuIdStr.has_value())
                 {
                     fallback();
                     break;
                 }
                 else
                 {
-                    *cpuIdxStr = remove_whitespace(*cpuIdxStr);
-                    for (CpuIndex cpuIdx : shortened_string_to_indices(*cpuIdxStr))
-                        if (is_cpu_allowed(cpuIdx))
-                            numaCfg.add_cpu_to_node(n, cpuIdx);
+                    *cpuIdStr = remove_whitespace(*cpuIdStr);
+                    for (CpuIndex cpuId : shortened_string_to_indices(*cpuIdStr))
+                        if (is_cpu_allowed(cpuId))
+                            numaCfg.add_cpu_to_node(n, cpuId);
                 }
             }
         }
 
         if (useFallback)
-            for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
-                if (is_cpu_allowed(cpuIdx))
-                    numaCfg.add_cpu_to_node(NumaIndex{0}, cpuIdx);
+            for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREADS_NB; ++cpuId)
+                if (is_cpu_allowed(cpuId))
+                    numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
 
 #else
 
         // Fallback for unsupported systems
-        for (CpuIndex cpuIdx = 0; cpuIdx < SYSTEM_THREADS_NB; ++cpuIdx)
-            numaCfg.add_cpu_to_node(NumaIndex{0}, cpuIdx);
+        for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREADS_NB; ++cpuId)
+            numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
 
 #endif
 
@@ -624,17 +627,17 @@ class NumaConfig final {
     static NumaConfig from_string(std::string_view str) noexcept {
         NumaConfig numaCfg = empty();
 
-        NumaIndex numaIdx = 0;
+        NumaIndex numaId = 0;
         for (auto&& nodeStr : split(str, ":"))
         {
             auto indices = shortened_string_to_indices(nodeStr);
             if (!indices.empty())
             {
-                for (auto cpuIdx : indices)
-                    if (!numaCfg.add_cpu_to_node(numaIdx, cpuIdx))
+                for (auto cpuId : indices)
+                    if (!numaCfg.add_cpu_to_node(numaId, cpuId))
                         std::exit(EXIT_FAILURE);
 
-                ++numaIdx;
+                ++numaId;
             }
         }
 
@@ -644,13 +647,13 @@ class NumaConfig final {
     }
 
     NumaConfig(CpuIndex maxCpuIdx, bool affinityCtm) noexcept :
-        maxCpuIndex(maxCpuIdx),
+        maxCpuId(maxCpuIdx),
         affinityCustom(affinityCtm) {}
 
     NumaConfig() noexcept :
         NumaConfig(0, false) {
-        auto numCpus = SYSTEM_THREADS_NB;
-        add_cpu_range_to_node(NumaIndex{0}, CpuIndex{0}, numCpus - 1);
+
+        add_cpu_range_to_node(0, 0, SYSTEM_THREADS_NB - 1);
     }
 
     NumaConfig(const NumaConfig&) noexcept            = delete;
@@ -658,14 +661,14 @@ class NumaConfig final {
     NumaConfig& operator=(const NumaConfig&) noexcept = delete;
     NumaConfig& operator=(NumaConfig&&) noexcept      = default;
 
-    bool is_cpu_assigned(CpuIndex cpuIdx) const noexcept { return nodeByCpu.count(cpuIdx) == 1; }
+    bool is_cpu_assigned(CpuIndex cpuId) const noexcept { return nodeByCpu.count(cpuId) == 1; }
 
     NumaIndex nodes_size() const noexcept { return nodes.size(); }
 
-    CpuIndex node_cpus_size(NumaIndex numaIdx) const noexcept {
-        assert(numaIdx < nodes_size());
+    CpuIndex node_cpus_size(NumaIndex numaId) const noexcept {
+        assert(numaId < nodes_size());
 
-        return nodes[numaIdx].size();
+        return nodes[numaId].size();
     }
 
     CpuIndex cpus_size() const noexcept { return nodeByCpu.size(); }
@@ -763,33 +766,33 @@ class NumaConfig final {
 
             for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
             {
-                NumaIndex bestNumaIdx = 0;
+                NumaIndex bestNumaId = 0;
 
                 auto minNodeFill = std::numeric_limits<double>::max();
 
-                for (NumaIndex numaIdx = 0; numaIdx < nodes_size(); ++numaIdx)
+                for (NumaIndex numaId = 0; numaId < nodes_size(); ++numaId)
                 {
-                    auto nodeFill = double(1 + occupation[numaIdx]) / node_cpus_size(numaIdx);
+                    auto nodeFill = double(1 + occupation[numaId]) / node_cpus_size(numaId);
                     // NOTE: Do want to perhaps fill the first available node up to 50% first before considering other nodes?
                     //       Probably not, because it would interfere with running multiple instances.
                     //       Basically shouldn't favor any particular node.
                     if (minNodeFill > nodeFill)
                     {
                         minNodeFill = nodeFill;
-                        bestNumaIdx = numaIdx;
+                        bestNumaId  = numaId;
                     }
                 }
 
-                numaNodes.emplace_back(bestNumaIdx);
-                ++occupation[bestNumaIdx];
+                numaNodes.emplace_back(bestNumaId);
+                ++occupation[bestNumaId];
             }
         }
 
         return numaNodes;
     }
 
-    NumaReplicatedAccessToken bind_current_thread_to_numa_node(NumaIndex numaIdx) const noexcept {
-        if (numaIdx >= nodes_size() || node_cpus_size(numaIdx) == 0)
+    NumaReplicatedAccessToken bind_current_thread_to_numa_node(NumaIndex numaId) const noexcept {
+        if (numaId >= nodes_size() || node_cpus_size(numaId) == 0)
             std::exit(EXIT_FAILURE);
 
 #if defined(__ANDROID__)
@@ -813,18 +816,18 @@ class NumaConfig final {
         if (setThreadSelectedCpuSetMasks != nullptr)
         {
             // Only available on Windows 11 and Windows Server 2022 onwards.
-            auto procGroupCount = static_cast<WORD>(
-              ((maxCpuIndex + 1) + WIN_PROCESSOR_GROUP_SIZE - 1) / WIN_PROCESSOR_GROUP_SIZE);
+            auto procGroupCount  = static_cast<WORD>(((maxCpuId + 1) + WIN_PROCESSOR_GROUP_SIZE - 1)
+                                                     / WIN_PROCESSOR_GROUP_SIZE);
             auto groupAffinities = std::make_unique<GROUP_AFFINITY[]>(procGroupCount);
             std::memset(groupAffinities.get(), 0, procGroupCount * sizeof(*groupAffinities.get()));
 
             for (WORD procGroup = 0; procGroup < procGroupCount; ++procGroup)
                 groupAffinities[procGroup].Group = procGroup;
 
-            for (CpuIndex cpuIdx : nodes[numaIdx])
+            for (CpuIndex cpuId : nodes[numaId])
             {
-                std::size_t procGroupIndex   = cpuIdx / WIN_PROCESSOR_GROUP_SIZE;
-                std::size_t inProcGroupIndex = cpuIdx % WIN_PROCESSOR_GROUP_SIZE;
+                std::size_t procGroupIndex   = cpuId / WIN_PROCESSOR_GROUP_SIZE;
+                std::size_t inProcGroupIndex = cpuId % WIN_PROCESSOR_GROUP_SIZE;
                 groupAffinities[procGroupIndex].Mask |= KAFFINITY(1) << inProcGroupIndex;
             }
 
@@ -861,13 +864,13 @@ class NumaConfig final {
             GROUP_AFFINITY groupAffinity;
             std::memset(&groupAffinity, 0, sizeof(groupAffinity));
             // Use an ordered set so guaranteed to get the smallest cpu number here.
-            std::size_t forcedProcGroupIndex = *(nodes[numaIdx].begin()) / WIN_PROCESSOR_GROUP_SIZE;
+            std::size_t forcedProcGroupIndex = *(nodes[numaId].begin()) / WIN_PROCESSOR_GROUP_SIZE;
             groupAffinity.Group              = static_cast<WORD>(forcedProcGroupIndex);
 
-            for (CpuIndex cpuIdx : nodes[numaIdx])
+            for (CpuIndex cpuId : nodes[numaId])
             {
-                std::size_t procGroupIndex   = cpuIdx / WIN_PROCESSOR_GROUP_SIZE;
-                std::size_t inProcGroupIndex = cpuIdx % WIN_PROCESSOR_GROUP_SIZE;
+                std::size_t procGroupIndex   = cpuId / WIN_PROCESSOR_GROUP_SIZE;
+                std::size_t inProcGroupIndex = cpuId % WIN_PROCESSOR_GROUP_SIZE;
                 // Skip processors that are not in the same processor group.
                 // If everything was set up correctly this will never be an issue,
                 // but have to account for bad NUMA node specification.
@@ -891,17 +894,17 @@ class NumaConfig final {
 
 #elif defined(__linux__)
 
-        cpu_set_t* mask = CPU_ALLOC(maxCpuIndex + 1);
+        cpu_set_t* mask = CPU_ALLOC(maxCpuId + 1);
 
         if (mask == nullptr)
             std::exit(EXIT_FAILURE);
 
-        const std::size_t maskSize = CPU_ALLOC_SIZE(maxCpuIndex + 1);
+        const std::size_t maskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
 
         CPU_ZERO_S(maskSize, mask);
 
-        for (CpuIndex cpuIdx : nodes[numaIdx])
-            CPU_SET_S(cpuIdx, maskSize, mask);
+        for (CpuIndex cpuId : nodes[numaId])
+            CPU_SET_S(cpuId, maskSize, mask);
 
         int status = sched_setaffinity(0, maskSize, mask);
 
@@ -916,15 +919,15 @@ class NumaConfig final {
 
 #endif
 
-        return NumaReplicatedAccessToken(numaIdx);
+        return NumaReplicatedAccessToken(numaId);
     }
 
-    template<typename FuncT>
-    void execute_on_numa_node(NumaIndex numaIdx, FuncT&& f) const noexcept {
+    template<typename Func>
+    void execute_on_numa_node(NumaIndex numaId, Func&& f) const noexcept {
 
-        std::thread th([this, &f, numaIdx]() noexcept {
-            bind_current_thread_to_numa_node(numaIdx);
-            std::forward<FuncT>(f)();
+        std::thread th([this, &f, numaId]() noexcept {
+            bind_current_thread_to_numa_node(numaId);
+            std::forward<Func>(f)();
         });
 
         th.join();
@@ -951,15 +954,15 @@ class NumaConfig final {
 
             if (parts.size() == 1)
             {
-                auto cpuIdx = CpuIndex{str_to_size_t(parts[0])};
-                indices.emplace_back(cpuIdx);
+                auto cpuId = CpuIndex{str_to_size_t(parts[0])};
+                indices.emplace_back(cpuId);
             }
             else if (parts.size() == 2)
             {
-                auto fstCpuIdx = CpuIndex{str_to_size_t(parts[0])};
-                auto lstCpuIdx = CpuIndex{str_to_size_t(parts[1])};
-                for (auto cpuIdx = fstCpuIdx; cpuIdx <= lstCpuIdx; ++cpuIdx)
-                    indices.emplace_back(cpuIdx);
+                auto fstCpuId = CpuIndex{str_to_size_t(parts[0])};
+                auto lstCpuId = CpuIndex{str_to_size_t(parts[1])};
+                for (auto cpuId = fstCpuId; cpuId <= lstCpuId; ++cpuId)
+                    indices.emplace_back(cpuId);
             }
             else
                 assert(false);
@@ -981,19 +984,19 @@ class NumaConfig final {
     // Returns true if successful
     // Returns false if failed, i.e. when the cpu is already present
     //                          strong guarantee, the structure remains unmodified
-    bool add_cpu_to_node(NumaIndex numaIdx, CpuIndex cpuIdx) noexcept {
+    bool add_cpu_to_node(NumaIndex numaId, CpuIndex cpuId) noexcept {
 
-        if (is_cpu_assigned(cpuIdx))
+        if (is_cpu_assigned(cpuId))
             return false;
 
-        while (nodes_size() <= numaIdx)
+        while (nodes_size() <= numaId)
             nodes.emplace_back();
 
-        nodes[numaIdx].insert(cpuIdx);
-        nodeByCpu[cpuIdx] = numaIdx;
+        nodes[numaId].insert(cpuId);
+        nodeByCpu[cpuId] = numaId;
 
-        if (maxCpuIndex < cpuIdx)
-            maxCpuIndex = cpuIdx;
+        if (maxCpuId < cpuId)
+            maxCpuId = cpuId;
 
         return true;
     }
@@ -1001,28 +1004,28 @@ class NumaConfig final {
     // Returns true if successful.
     // Returns false if failed.
     // i.e. when any of the cpus is already present strong guarantee, the structure remains unmodified.
-    bool add_cpu_range_to_node(NumaIndex numaIdx, CpuIndex fstCpuIdx, CpuIndex lstCpuIdx) noexcept {
+    bool add_cpu_range_to_node(NumaIndex numaId, CpuIndex fstCpuId, CpuIndex lstCpuId) noexcept {
 
-        for (auto cpuIdx = fstCpuIdx; cpuIdx <= lstCpuIdx; ++cpuIdx)
-            if (is_cpu_assigned(cpuIdx))
+        for (auto cpuId = fstCpuId; cpuId <= lstCpuId; ++cpuId)
+            if (is_cpu_assigned(cpuId))
                 return false;
 
-        while (nodes_size() <= numaIdx)
+        while (nodes_size() <= numaId)
             nodes.emplace_back();
 
-        for (auto cpuIdx = fstCpuIdx; cpuIdx <= lstCpuIdx; ++cpuIdx)
+        for (auto cpuId = fstCpuId; cpuId <= lstCpuId; ++cpuId)
         {
-            nodes[numaIdx].insert(cpuIdx);
-            nodeByCpu[cpuIdx] = numaIdx;
+            nodes[numaId].insert(cpuId);
+            nodeByCpu[cpuId] = numaId;
         }
 
-        if (maxCpuIndex < lstCpuIdx)
-            maxCpuIndex = lstCpuIdx;
+        if (maxCpuId < lstCpuId)
+            maxCpuId = lstCpuId;
 
         return true;
     }
 
-    CpuIndex maxCpuIndex;
+    CpuIndex maxCpuId;
     bool     affinityCustom;
 };
 
@@ -1087,9 +1090,9 @@ class NumaReplicated final: public BaseNumaReplicated {
     ~NumaReplicated() noexcept override = default;
 
     const T& operator[](NumaReplicatedAccessToken token) const noexcept {
-        assert(token.numa_index() < instances.size());
+        assert(token.numa_id() < instances.size());
 
-        return *(instances[token.numa_index()]);
+        return *(instances[token.numa_id()]);
     }
 
     const T& operator*() const noexcept { return *(instances[0]); }
@@ -1117,8 +1120,8 @@ class NumaReplicated final: public BaseNumaReplicated {
         const auto& numaCfg = numa_config();
         if (numaCfg.requires_memory_replication())
         {
-            for (NumaIndex numaIdx = 0; numaIdx < numaCfg.nodes_size(); ++numaIdx)
-                numaCfg.execute_on_numa_node(numaIdx, [this, &source]() {
+            for (NumaIndex numaId = 0; numaId < numaCfg.nodes_size(); ++numaId)
+                numaCfg.execute_on_numa_node(numaId, [this, &source]() {
                     instances.emplace_back(std::make_unique<T>(source));
                 });
         }
@@ -1172,10 +1175,10 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
     ~LazyNumaReplicated() noexcept override = default;
 
     const T& operator[](NumaReplicatedAccessToken token) const noexcept {
-        assert(token.numa_index() < instances.size());
+        assert(token.numa_id() < instances.size());
 
-        ensure_present(token.numa_index());
-        return *(instances[token.numa_index()]);
+        ensure_present(token.numa_id());
+        return *(instances[token.numa_id()]);
     }
 
     const T& operator*() const noexcept { return *(instances[0]); }
@@ -1197,23 +1200,23 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
     }
 
    private:
-    void ensure_present(NumaIndex numaIdx) const noexcept {
-        assert(numaIdx < instances.size());
+    void ensure_present(NumaIndex numaId) const noexcept {
+        assert(numaId < instances.size());
 
-        if (instances[numaIdx] != nullptr)
+        if (instances[numaId] != nullptr)
             return;
 
-        assert(numaIdx != 0);
+        assert(numaId != 0);
 
         std::unique_lock lock(mutex);
 
         // Check again for races.
-        if (instances[numaIdx] != nullptr)
+        if (instances[numaId] != nullptr)
             return;
 
         const auto& numaCfg = numa_config();
         numaCfg.execute_on_numa_node(
-          numaIdx, [this, numaIdx]() { instances[numaIdx] = std::make_unique<T>(*instances[0]); });
+          numaId, [this, numaId]() { instances[numaId] = std::make_unique<T>(*instances[0]); });
     }
 
     void prepare_replicate_from(T&& source) noexcept {
@@ -1285,10 +1288,10 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
     ~SystemWideLazyNumaReplicated() noexcept override = default;
 
     const T& operator[](NumaReplicatedAccessToken token) const noexcept {
-        assert(token.numa_index() < instances.size());
+        assert(token.numa_id() < instances.size());
 
-        ensure_present(token.numa_index());
-        return *(instances[token.numa_index()]);
+        ensure_present(token.numa_id());
+        return *(instances[token.numa_id()]);
     }
 
     const T& operator*() const noexcept { return *(instances[0]); }
@@ -1305,10 +1308,10 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         return status;
     }
 
-    template<typename FuncT>
-    void modify_and_replicate(FuncT&& f) noexcept {
+    template<typename Func>
+    void modify_and_replicate(Func&& f) noexcept {
         auto source = std::make_unique<T>(*instances[0]);
-        std::forward<FuncT>(f)(*source);
+        std::forward<Func>(f)(*source);
         prepare_replicate_from(std::move(source));
     }
 
@@ -1320,64 +1323,64 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
     }
 
    private:
-    std::size_t get_discriminator(NumaIndex idx) const noexcept {
+    std::size_t get_discriminator(NumaIndex numaId) const noexcept {
 
-        const NumaConfig& cfg    = numa_config();
-        const NumaConfig& sysCfg = NumaConfig::from_system(false);
+        const NumaConfig& numaCfg = numa_config();
+        const NumaConfig& sysCfg  = NumaConfig::from_system(false);
 
         // as a discriminator, locate the hardware/system numa-domain this CpuIndex belongs to
-        CpuIndex cpu = *cfg.nodes[idx].begin();  // get a CpuIndex from NumaIndex
+        CpuIndex cpu = *numaCfg.nodes[numaId].begin();  // get a CpuIndex from NumaIndex
 
-        NumaIndex sysIdx = sysCfg.is_cpu_assigned(cpu) ? sysCfg.nodeByCpu.at(cpu) : 0;
+        NumaIndex sysId = sysCfg.is_cpu_assigned(cpu) ? sysCfg.nodeByCpu.at(cpu) : 0;
 
-        std::string str = sysCfg.to_string() + "$" + std::to_string(sysIdx);
+        std::string str = sysCfg.to_string() + "$" + std::to_string(sysId);
 
         return std::hash<std::string>{}(str);
     }
 
-    void ensure_present(NumaIndex idx) const noexcept {
-        assert(idx < instances.size());
+    void ensure_present(NumaIndex numaId) const noexcept {
+        assert(numaId < instances.size());
 
-        if (instances[idx] != nullptr)
+        if (instances[numaId] != nullptr)
             return;
 
-        assert(idx != 0);
+        assert(numaId != 0);
 
         std::unique_lock lock(mutex);
 
         // Check again for races.
-        if (instances[idx] != nullptr)
+        if (instances[numaId] != nullptr)
             return;
 
-        const NumaConfig& cfg = numa_config();
+        const NumaConfig& numaCfg = numa_config();
 
-        cfg.execute_on_numa_node(idx, [this, idx]() noexcept {
-            instances[idx] = SystemWideSharedMemory<T>(*instances[0], get_discriminator(idx));
+        numaCfg.execute_on_numa_node(numaId, [this, numaId]() noexcept {
+            instances[numaId] = SystemWideSharedMemory<T>(*instances[0], get_discriminator(numaId));
         });
     }
 
     void prepare_replicate_from(std::unique_ptr<T>&& source) noexcept {
         instances.clear();
 
-        const NumaConfig& cfg = numa_config();
+        const NumaConfig& numaCfg = numa_config();
         // We just need to make sure the first instance is there.
         // Note that we cannot move here as we need to reallocate the data
         // on the correct NUMA node.
         // Even in the case of a single NUMA node we have to copy since it's shared memory.
-        if (cfg.requires_memory_replication())
+        if (numaCfg.requires_memory_replication())
         {
-            assert(cfg.nodes_size() > 0);
+            assert(numaCfg.nodes_size() > 0);
 
-            cfg.execute_on_numa_node(0, [this, &source]() {
+            numaCfg.execute_on_numa_node(0, [this, &source]() {
                 instances.emplace_back(SystemWideSharedMemory<T>(*source, get_discriminator(0)));
             });
 
             // Prepare others for lazy init.
-            instances.resize(cfg.nodes_size());
+            instances.resize(numaCfg.nodes_size());
         }
         else
         {
-            assert(cfg.nodes_size() == 1);
+            assert(numaCfg.nodes_size() == 1);
 
             instances.emplace_back(SystemWideSharedMemory<T>(*source, get_discriminator(0)));
         }
