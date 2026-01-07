@@ -1154,4 +1154,34 @@ Move UCI::mix_to_move(std::string mix, Position& pos, const MoveList<LEGAL>& leg
     return m;
 }
 
+// Optimized PV to string conversion (bulk copy style)
+std::string UCI::build_pv_string(const Moves& pvMoves) noexcept {
+    // Step 1: store actual strings to avoid dangling references
+    Strings moveStrs;
+    moveStrs.reserve(pvMoves.size());
+
+    std::size_t totalSize = 0;
+    for (auto m : pvMoves)
+    {
+        auto can = UCI::move_to_can(m);  // returns std::string
+        totalSize += 1 + can.size();
+        moveStrs.push_back(std::move(can));  // store the actual string
+    }
+
+    // Step 2: allocate once
+    std::string pv;
+    pv.resize(totalSize);
+
+    // Step 3: fill buffer directly
+    char* ptr = pv.data();
+    for (const auto& ms : moveStrs)
+    {
+        *ptr++ = ' ';
+        std::memcpy(ptr, ms.data(), ms.size());
+        ptr += ms.size();
+    }
+
+    return pv;
+}
+
 }  // namespace DON
