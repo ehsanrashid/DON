@@ -557,15 +557,11 @@ class Worker final {
 
     void iterative_deepening() noexcept;
 
+    // clang-format off
+
     // Main search function for NodeType nodes
     template<NodeType NT>
-    Value search(Position&    pos,
-                 Stack* const ss,
-                 Value        alpha,
-                 Value        beta,
-                 Depth        depth,
-                 std::int8_t  red          = 0,
-                 Move         excludedMove = Move::None) noexcept;
+    Value search(Position& pos, Stack* const ss, Value alpha, Value beta, Depth depth, std::int8_t  red = 0, Move excludedMove = Move::None) noexcept;
 
     // Quiescence search function, which is called by the main search
     template<bool PVNode>
@@ -579,7 +575,6 @@ class Worker final {
 
     Value evaluate(const Position& pos) noexcept;
 
-    // clang-format off
     void update_pawn_history(Key pawnKey, Piece pc, Square dstSq, int bonus) noexcept;
 
     void update_capture_history(Piece pc, Square dstSq, PieceType captured, int bonus) noexcept;

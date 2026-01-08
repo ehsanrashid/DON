@@ -725,16 +725,12 @@ void Worker::iterative_deepening() noexcept {
     }
 }
 
+// clang-format off
 // The main alpha-beta search function with negamax framework and
 // various enhancements like aspiration windows, late move reductions, etc.
 template<NodeType NT>
-Value Worker::search(Position&    pos,
-                     Stack* const ss,
-                     Value        alpha,
-                     Value        beta,
-                     Depth        depth,
-                     std::int8_t  red,
-                     Move         excludedMove) noexcept {
+Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, Depth depth, std::int8_t red, Move excludedMove) noexcept {
+    // clang-format on
     constexpr bool RootNode = NT == Root;
     constexpr bool PVNode   = RootNode || NT == PV;
     constexpr bool CutNode  = NT == Cut;  // !PVNode

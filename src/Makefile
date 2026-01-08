@@ -474,8 +474,11 @@ ifeq ($(COMP), gcc)
         LDFLAGS += -latomic
     endif
 
+    # Add --no-as-needed ONLY if using GNU ld (not lld, not Darwin)
     ifneq ($(KERNEL), Darwin)
-       LDFLAGS += -Wl,--no-as-needed
+        ifeq ($(shell $(CXX) -Wl,--version 2>/dev/null | grep -iq "GNU ld" && echo yes), yes)
+            LDFLAGS += -Wl,--no-as-needed
+        endif
     endif
 endif
 
