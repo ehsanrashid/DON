@@ -226,14 +226,14 @@ template<>
 constexpr std::uint8_t distance<File>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return constexpr_abs(file_of(s1) - file_of(s2));
+    return constexpr_abs(int(file_of(s1)) - int(file_of(s2)));
 }
 
 template<>
 constexpr std::uint8_t distance<Rank>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return constexpr_abs(rank_of(s1) - rank_of(s2));
+    return constexpr_abs(int(rank_of(s1)) - int(rank_of(s2)));
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto DISTANCES = []() constexpr noexcept {

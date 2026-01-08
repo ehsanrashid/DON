@@ -97,15 +97,15 @@ inline constexpr std::string_view START_FEN{
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 
 // clang-format off
-enum File : std::int8_t {
+enum File : std::uint8_t {
     FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H
 };
 
-enum Rank : std::int8_t {
+enum Rank : std::uint8_t {
     RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8
 };
 
-enum Square : std::int8_t {
+enum Square : std::uint8_t {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
     SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
     SQ_A3, SQ_B3, SQ_C3, SQ_D3, SQ_E3, SQ_F3, SQ_G3, SQ_H3,
@@ -141,7 +141,7 @@ enum Direction : std::int8_t {
 };
 
 // clang-format off
-enum PieceType : std::int8_t {
+enum PieceType : std::uint8_t {
     NO_PIECE_TYPE,
     PAWN = 1, KNIGHT, BISHOP, ROOK, QUEEN, KING, ALL
 };

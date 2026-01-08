@@ -246,7 +246,7 @@ std::string pretty_str(Bitboard b) noexcept {
 
     str += Sep;
 
-    for (Rank r = RANK_8; r >= RANK_1; --r)
+    for (Rank r = RANK_8;; --r)
     {
         str += to_char(r);
 
@@ -258,6 +258,9 @@ std::string pretty_str(Bitboard b) noexcept {
 
         str += " |";
         str += Sep;
+
+        if (r == RANK_1)
+            break;
     }
 
     str += " ";

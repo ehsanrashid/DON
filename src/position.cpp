@@ -510,7 +510,7 @@ std::string Position::fen(bool full) const noexcept {
     std::string fens;
     fens.reserve(64);
 
-    for (Rank r = RANK_8; r >= RANK_1; --r)
+    for (Rank r = RANK_8;; --r)
     {
         std::uint8_t emptyCount = 0;
 
@@ -535,8 +535,10 @@ std::string Position::fen(bool full) const noexcept {
         if (emptyCount != 0)
             fens += digit_to_char(emptyCount);
 
-        if (r > RANK_1)
-            fens += '/';
+        if (r == RANK_1)
+            break;
+
+        fens += '/';
     }
 
     fens += active_color() == WHITE ? " w " : " b ";
@@ -1886,10 +1888,13 @@ void Position::flip() noexcept {
 
     std::string fens, token;
     // Piece placement (vertical flip)
-    for (Rank r = RANK_8; r >= RANK_1; --r)
+    for (Rank r = RANK_8;; --r)
     {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
         fens.insert(0, token + (r < RANK_8 ? '/' : ' '));
+
+        if (r == RANK_1)
+            break;
     }
 
     // Active color (will be lowercased later)
@@ -1924,11 +1929,14 @@ void Position::mirror() noexcept {
 
     std::string fens, token;
     // Piece placement (horizontal flip)
-    for (Rank r = RANK_8; r >= RANK_1; --r)
+    for (Rank r = RANK_8;; --r)
     {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
         std::reverse(token.begin(), token.end());
         fens += token + (r > RANK_1 ? '/' : ' ');
+
+        if (r == RANK_1)
+            break;
     }
 
     // Active color (will remain the same)
@@ -2171,7 +2179,7 @@ Position::operator std::string() const noexcept {
 
     str += Sep;
 
-    for (Rank r = RANK_8; r >= RANK_1; --r)
+    for (Rank r = RANK_8;; --r)
     {
         str += to_char(r);
 
@@ -2183,6 +2191,9 @@ Position::operator std::string() const noexcept {
 
         str += " |";
         str += Sep;
+
+        if (r == RANK_1)
+            break;
     }
 
     str += " ";
@@ -2337,7 +2348,7 @@ void Position::dump(std::ostream& os) const noexcept {
 
     os << "Index Map:";
     os << Sep;
-    for (Rank r = RANK_8; r >= RANK_1; --r)
+    for (Rank r = RANK_8;; --r)
     {
         os << to_char(r);
         for (File f = FILE_A; f <= FILE_H; ++f)
@@ -2352,6 +2363,9 @@ void Position::dump(std::ostream& os) const noexcept {
         }
         os << " |";
         os << Sep;
+
+        if (r == RANK_1)
+            break;
     }
     for (File f = FILE_A; f <= FILE_H; ++f)
     {
