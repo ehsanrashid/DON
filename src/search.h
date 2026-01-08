@@ -481,15 +481,15 @@ class NullSearchManager final: public ISearchManager {
     void check_time(Worker&) noexcept override {}
 };
 
-// NodeType indicates the type of node in the search tree.
-enum NodeType : std::uint8_t {
+// NT indicates the type of node in the search tree
+enum class NT : std::uint8_t {
     Root = 6,
     PV   = 2,
     Cut  = 1,
     All  = 0,
 };
 
-constexpr NodeType operator~(NodeType nt) noexcept { return NodeType((int(nt) ^ 1) & 1); }
+constexpr NT operator~(NT nt) noexcept { return NT((std::uint8_t(nt) ^ 1) & 1); }
 
 // Stack keeps track of the information need to remember from nodes
 // shallower and deeper in the tree during the search.
@@ -552,6 +552,7 @@ class Worker final {
     // Only allowed to be called by the main worker.
     MainSearchManager* main_manager() const noexcept {
         assert(is_main_worker());
+
         return static_cast<MainSearchManager*>(manager.get());
     }
 
@@ -559,8 +560,8 @@ class Worker final {
 
     // clang-format off
 
-    // Main search function for NodeType nodes
-    template<NodeType NT>
+    // Main search function for NT nodes
+    template<NT T>
     Value search(Position& pos, Stack* const ss, Value alpha, Value beta, Depth depth, std::int8_t  red = 0, Move excludedMove = Move::None) noexcept;
 
     // Quiescence search function, which is called by the main search

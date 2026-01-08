@@ -52,7 +52,7 @@ class Network final {
     static constexpr std::uint32_t Hash = Arch::hash() ^ Transformer::hash();
 
    public:
-    Network(EvalFile evFile, EmbeddedType embType) noexcept :
+    Network(const EvalFile& evFile, EmbeddedType embType) noexcept :
         evalFile(evFile),
         embeddedType(embType) {}
 

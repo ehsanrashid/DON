@@ -195,10 +195,10 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
                                    Square dstSq,
                                    Piece  attackerPc,
                                    Piece  attackedPc) noexcept {
-    int relOrientation = relative_sq(perspective, orientation(kingSq));
+    std::uint8_t relOrientation = relative_sq(perspective, orientation(kingSq));
 
-    orgSq = Square(int(orgSq) ^ relOrientation);
-    dstSq = Square(int(dstSq) ^ relOrientation);
+    orgSq = Square(std::uint8_t(orgSq) ^ relOrientation);
+    dstSq = Square(std::uint8_t(dstSq) ^ relOrientation);
 
     attackerPc = relative_piece(perspective, attackerPc);
     attackedPc = relative_piece(perspective, attackedPc);

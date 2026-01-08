@@ -1686,7 +1686,7 @@ void init() noexcept {
             if (off_A1H8(s) < 0)
                 A1D1D4Map[s] = code++;
 
-            else if (!off_A1H8(s))
+            else if (off_A1H8(s) == 0)
                 onDiagonal.push_back(s);
         }
     }
@@ -1712,10 +1712,10 @@ void init() noexcept {
                     if ((attacks_bb<KING>(s1) | s1) & s2)
                         continue;  // Illegal position
 
-                    else if (!off_A1H8(s1) && off_A1H8(s2) > 0)
+                    else if (off_A1H8(s1) == 0 && off_A1H8(s2) > 0)
                         continue;  // First on diagonal, second above
 
-                    else if (!off_A1H8(s1) && !off_A1H8(s2))
+                    else if (off_A1H8(s1) == 0 && off_A1H8(s2) == 0)
                         bothOnDiagonal.emplace_back(map, s2);
 
                     else

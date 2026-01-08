@@ -193,7 +193,7 @@ class FeatureTransformer final {
 
         permute_weights<true>();
 
-        if (!UseThreats)
+        if constexpr (!UseThreats)
             scale_weights<true>();
 
         return !is.fail();
@@ -205,7 +205,7 @@ class FeatureTransformer final {
 
         copy->template permute_weights<false>();
 
-        if (!UseThreats)
+        if constexpr (!UseThreats)
             copy->template scale_weights<false>();
 
         write_leb_128(os, copy->biases);
