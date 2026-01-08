@@ -2212,7 +2212,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     if (!options["SyzygyPVExtend"])
         return;
 
-    const TimePoint moveOverhead = options["MoveOverhead"];
+    TimePoint moveOverhead = options["MoveOverhead"];
 
     // If time manager is active, don't use more than 50% of moveOverhead time
     auto startTime = std::chrono::steady_clock::now();

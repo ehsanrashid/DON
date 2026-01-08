@@ -63,13 +63,13 @@ void TimeManager::init() noexcept {
 void TimeManager::init(
   Color ac, std::int16_t ply, std::int32_t moveNum, const Options& options, Limit& limit) noexcept {
     // If have no time, no need to fully initialize TM.
-    // startTime is used by movetime and NodesTime is used in elapsed calls.
+    // startTime is used by movetime and Nodes-Time is used in elapsed calls.
     startTime   = limit.startTime;
     auto& clock = limit.clocks[ac];
 
-    std::uint64_t NodesTime = options["NodesTime"];
+    std::uint64_t nodesTime = options["NodesTime"];
 
-    useNodesTime = NodesTime != 0;
+    useNodesTime = nodesTime != 0;
 
     if (clock.time == 0)
     {
@@ -82,14 +82,14 @@ void TimeManager::init(
 
     // If have to play in 'Nodes as Time' mode, then convert from time to nodes,
     // and use resulting values in time management formulas.
-    // WARNING: to avoid time losses, the given NodesTime (nodes per millisecond)
+    // WARNING: to avoid time losses, the given Nodes-Time (nodes per millisecond)
     // must be much lower than the real engine speed.
     if (use_nodes_time())
     {
         // Only once at game start
         if (timeNodes == INITIAL_TIME_NODES)
         {
-            timeNodes = clock.time * NodesTime;  // Time is in msec
+            timeNodes = clock.time * nodesTime;  // Time is in msec
 
             if (timeNodes < 1)
                 timeNodes = 1;
@@ -98,13 +98,13 @@ void TimeManager::init(
         // Convert from milliseconds to nodes
         clock.time = timeNodes;
 
-        clock.inc *= NodesTime;
+        clock.inc *= nodesTime;
 
-        moveOverhead *= NodesTime;
+        moveOverhead *= nodesTime;
     }
 
     std::uint64_t scaleFactor =
-      NodesTime <= DEFAULT_SCALE_FACTOR ? DEFAULT_SCALE_FACTOR : NodesTime;
+      nodesTime <= DEFAULT_SCALE_FACTOR ? DEFAULT_SCALE_FACTOR : nodesTime;
 
     TimePoint scaledTime = clock.time / scaleFactor;
 

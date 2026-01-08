@@ -661,9 +661,9 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
 
     ++data;  // First byte stores flags
 
-    const std::size_t sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
+    std::size_t sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
 
-    const File maxFile = hasPawns ? FILE_D : FILE_A;
+    File maxFile = hasPawns ? FILE_D : FILE_A;
 
     bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
 
@@ -1196,15 +1196,11 @@ int map_score(TBTable<DTZ>* table, File f, int value, WDLScore wdlScore) noexcep
     return value + 1;
 }
 
-// A temporary fix for the compiler bug with AVX-512
-#if defined(USE_AVX512)
-    #if defined(__clang__) && defined(__clang_major__) && __clang_major__ >= 15
-        #define CLANG_AVX512_BUG_FIX __attribute__((optnone))
-    #endif
-#endif
-
-#if !defined(CLANG_AVX512_BUG_FIX)
-    #define CLANG_AVX512_BUG_FIX
+// Temporary fix for the clang compiler bug with vectorization
+#if defined(__clang__) && defined(__clang_major__) && __clang_major__ >= 15
+    #define CLANG_BUG_FIX _Pragma("clang loop vectorize(disable)")
+#else
+    #define CLANG_BUG_FIX
 #endif
 
 // Compute a unique index out of a position and use it to probe the TB file.
@@ -1214,7 +1210,7 @@ int map_score(TBTable<DTZ>* table, File f, int value, WDLScore wdlScore) noexcep
 //      idx = Binomial[1][s1] + Binomial[2][s2] + ... + Binomial[k][sk]
 //
 template<typename T, typename Ret = typename T::Ret>
-CLANG_AVX512_BUG_FIX Ret do_probe_table(
+Ret do_probe_table(
   T* table, const Position& pos, Key materialKey, WDLScore wdlScore, ProbeState* ps) noexcept {
 
     // A given TB entry like KRK has associated two material keys: KRvk and Kvkr.
@@ -1229,7 +1225,7 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // and flip the squares before to lookup.
     bool blackStronger = materialKey != table->key[WHITE];
 
-    bool flip = (blackSymmetric || blackStronger);
+    bool flip = blackSymmetric || blackStronger;
 
     int activeColor = flip ? ~pos.active_color() : pos.active_color();
 
@@ -1314,8 +1310,11 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // Now map again the squares so that the square of the lead piece is in
     // the triangle A1-D1-D4.
     if (file_of(squares[0]) > FILE_D)
+    {
+        CLANG_BUG_FIX
         for (std::size_t i = 0; i < size; ++i)
             squares[i] = flip_file(squares[i]);
+    }
 
     std::uint64_t idx = 0;
     // Encode leading pawns starting with the one with minimum PawnsMap[] and
@@ -1335,19 +1334,27 @@ CLANG_AVX512_BUG_FIX Ret do_probe_table(
     // In positions without pawns, further flip the squares to ensure leading
     // piece is below RANK_5.
     if (rank_of(squares[0]) > RANK_4)
+    {
+        CLANG_BUG_FIX
         for (std::size_t i = 0; i < size; ++i)
             squares[i] = flip_rank(squares[i]);
+    }
 
     // Look for the first piece of the leading group not on the A1-D4 diagonal
     // and ensure it is mapped below the diagonal.
+    CLANG_BUG_FIX
     for (std::int32_t i = 0; i < pd->groupLen[0]; ++i)
     {
-        if (!off_A1H8(squares[i]))
+        if (off_A1H8(squares[i]) == 0)
             continue;
 
         if (off_A1H8(squares[i]) > 0)  // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
+        {
+            CLANG_BUG_FIX
             for (std::size_t j = i; j < size; ++j)
                 squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 0x3F);
+        }
+
         break;
     }
 
@@ -1446,7 +1453,7 @@ ENCODE_END:
     return map_score(table, tbFile, decompress_pairs(pd, idx), wdlScore);
 }
 
-#undef CLANG_AVX512_BUG_FIX
+#undef CLANG_BUG_FIX
 
 // In Recursive Pairing each symbol represents a pair of children symbols. So
 // read d->btree[] symbols data and expand each one in his left and right child
