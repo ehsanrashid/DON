@@ -624,10 +624,10 @@ void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
 // that once computed is updated incrementally as moves are made.
 // The function is only used when a new position is set up.
 void Position::set_state() noexcept {
+    assert(st->key == 0);
     assert(st->pawnKeys[WHITE] == 0 && st->pawnKeys[BLACK] == 0);
     assert(st->nonPawnKeys[WHITE][0] == 0 && st->nonPawnKeys[BLACK][0] == 0);
     assert(st->nonPawnKeys[WHITE][1] == 0 && st->nonPawnKeys[BLACK][1] == 0);
-    assert(st->key == 0);
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
@@ -869,13 +869,13 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
     st->key ^= Zobrist::turn();
 
     // Reset en-passant square
-    Square enPassantSq;
-    if (enPassantSq = en_passant_sq(); is_ok(enPassantSq))
+    if (is_ok(en_passant_sq()))
     {
-        st->key ^= Zobrist::enpassant(enPassantSq);
+        st->key ^= Zobrist::enpassant(en_passant_sq());
         reset_en_passant_sq();
-        enPassantSq = SQ_NONE;
     }
+
+    Square enPassantSq = SQ_NONE;
 
     Key  movedKey;
     bool capture;
@@ -1197,24 +1197,23 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
 
     st->key ^= Zobrist::turn();
 
-    if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
+    if (is_ok(en_passant_sq()))
     {
-        st->key ^= Zobrist::enpassant(enPassantSq);
+        st->key ^= Zobrist::enpassant(en_passant_sq());
         reset_en_passant_sq();
-        //enPassantSq = SQ_NONE;
     }
 
     if (worker != nullptr)
         prefetch(worker->transpositionTable.cluster(key()));
 
-    activeColor = ~active_color();
-
     st->nullPly    = 0;
     st->capturedSq = SQ_NONE;
+    st->checkersBB = 0;
+
+    activeColor = ~active_color();
 
     set_ext_state();
 
-    st->checkersBB = 0;
     st->repetition = 0;
     st->capturedPc = Piece::NO_PIECE;
     st->promotedPc = Piece::NO_PIECE;

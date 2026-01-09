@@ -49,7 +49,7 @@ class HalfKAv2_hm final {
     // Number of feature dimensions -> PS_NB * SQUARE_NB / 2
     static constexpr IndexType Dimensions = PS_NB * SQUARE_NB / 2;
 
-    // Maximum number of simultaneously active features.
+    // Maximum number of simultaneously active features
     static constexpr IndexType MaxActiveDimensions = 32;
 
     using DirtyType = DirtyPiece;

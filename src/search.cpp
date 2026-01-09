@@ -1118,7 +1118,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         // If value from transposition table is less than probCutBeta, don't attempt probCut
         if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
         {
-        Depth probCutDepth = std::clamp(depth - 5 - (ss->evalValue - beta) / 315, 0, depth - 0);
+        Depth probCutDepth = std::clamp(depth - 5 - int(3.1746e-3 * (ss->evalValue - beta)), 0, depth - 0);
         int   probCutThreshold = probCutBeta - ss->evalValue;
 
         MovePicker mp(pos, ttd.move, &captureHistory, probCutThreshold);
@@ -1357,8 +1357,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int corrMargin = int(4.3351e-6 * absCorrectionValue);
 
                 // clang-format off
-                int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrMargin - int(1 * ss->ply > 1 * rootDepth) * 42 - 7.0271e-3 * ttMoveHistory;
-                int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrMargin - int(2 * ss->ply > 3 * rootDepth) * 50 + int(ss->ttPv) * 90;
+                int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrMargin - int(7.0271e-3 * ttMoveHistory);
+                int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrMargin + int(ss->ttPv) * 90;
 
                 extension = 1 + int(value <= singularBeta - doubleMargin)
                               + int(value <= singularBeta - tripleMargin);
@@ -1616,7 +1616,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         }
 
         // Store bad searched move for history updates
-        if (move != bestMove && moveCount <= MOVE_CAPACITY)
+        if (move != bestMove && moveCount <= SEARCHED_MOVE_CAPACITY)
             searchedMoves[capture].push_back(move);
     }
 

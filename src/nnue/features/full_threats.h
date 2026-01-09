@@ -57,7 +57,7 @@ class FullThreats final {
         Bitboard dp2removedTargetBB = 0;
     };
 
-    // Maximum number of simultaneously active features.
+    // Maximum number of simultaneously active features
     static constexpr IndexType MaxActiveDimensions = 128;
 
     using DirtyType = DirtyThreats;

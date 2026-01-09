@@ -52,9 +52,9 @@ namespace NNUE {
 struct Networks;
 }
 
-inline constexpr std::size_t MOVE_CAPACITY = 32;
+inline constexpr std::uint8_t SEARCHED_MOVE_CAPACITY = 32;
 
-using SearchedMoves = FixedVector<Move, MOVE_CAPACITY>;
+using SearchedMoves = FixedVector<Move, SEARCHED_MOVE_CAPACITY, std::uint8_t>;
 
 inline PolyBook Book;
 

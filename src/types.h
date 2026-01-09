@@ -652,7 +652,7 @@ enum class Bound : std::uint8_t {
 
 constexpr std::uint8_t operator+(Bound bnd) noexcept { return std::uint8_t(bnd); }
 
-constexpr bool is_ok(Bound bound) noexcept { return +bound != 0; }
+constexpr bool is_ok(Bound bnd) noexcept { return bnd != Bound::NONE; }
 
 // --- Bitmask operators for Bound ---
 constexpr Bound operator&(Bound bnd1, Bound bnd2) noexcept {
@@ -668,11 +668,11 @@ constexpr Bound& operator|=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bn
 constexpr Bound& operator&=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 & bnd2; }
 constexpr Bound& operator^=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 ^ bnd2; }
 
-inline std::string to_string(Bound bound) noexcept {
-    return bound == Bound::UPPER ? " upperbound"
-         : bound == Bound::LOWER ? " lowerbound"
-         : bound == Bound::EXACT ? " exactbound"
-                                 : " none";
+inline std::string to_string(Bound bnd) noexcept {
+    return bnd == Bound::UPPER ? " upperbound"
+         : bnd == Bound::LOWER ? " lowerbound"
+         : bnd == Bound::EXACT ? " exactbound"
+                               : " none";
 }
 
 // Keep track of what piece changes on the board by a move
@@ -735,7 +735,7 @@ static_assert(sizeof(DirtyThreat) == 4, "DirtyThreat Size");
 // By similar logic, a castling move can change at most (5 + 1 + 3 + 9) * 2 = 36 features.
 // Thus, 80 should work as an upper bound.
 // Finally, 16 entries are added to accommodate unmasked vector stores near the end of the list.
-using DirtyThreatList = FixedVector<DirtyThreat, 96>;
+using DirtyThreatList = FixedVector<DirtyThreat, 96, std::uint8_t>;
 
 // Keep track of all threats (attacks) that change on the board by a move
 struct DirtyThreats final {

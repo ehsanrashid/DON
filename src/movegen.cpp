@@ -247,16 +247,16 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
             // An en-passant capture cannot resolve a discovered check
             assert(!(Evasion && (targetBB & (enPassantSq + Push1)) != 0));
 
-            Bitboard orgBB = notR7PawnsBB & attacks_bb<PAWN>(enPassantSq, ~AC);
-            assert(orgBB != 0);
+            Bitboard epPawnsBB = notR7PawnsBB & attacks_bb<PAWN>(enPassantSq, ~AC);
+            assert(epPawnsBB != 0);
 
-            while (orgBB != 0)
+            while (epPawnsBB != 0)
             {
                 Square orgSq;
                 if constexpr (AC == WHITE)
-                    orgSq = pop_lsq(orgBB);
+                    orgSq = pop_lsq(epPawnsBB);
                 else
-                    orgSq = pop_msq(orgBB);
+                    orgSq = pop_msq(epPawnsBB);
 
                 *moves++ = Move::make<MT::EN_PASSANT>(orgSq, enPassantSq);
             }
