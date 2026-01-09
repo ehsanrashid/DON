@@ -355,12 +355,12 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     return failureFunc();
     #else
 
-    const std::size_t largePageSize = GetLargePageMinimum();
+    std::size_t LargePageSize = GetLargePageMinimum();
 
-    if (largePageSize == 0)
+    if (LargePageSize == 0)
         return failureFunc();
 
-    assert((largePageSize & (largePageSize - 1)) == 0);
+    assert((LargePageSize & (LargePageSize - 1)) == 0);
 
     Advapi advapi;
 
@@ -394,7 +394,7 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
         return failureFunc();
 
     // Call the provided function with the privilege enabled
-    auto&& ret = successFunc(largePageSize);
+    auto&& ret = successFunc(LargePageSize);
 
     // Privilege no longer needed, restore the privileges
     //if (oldTp.PrivilegeCount > 0)

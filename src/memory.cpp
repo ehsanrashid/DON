@@ -92,9 +92,9 @@ namespace {
 void* alloc_windows_aligned_large_page(std::size_t allocSize) noexcept {
 
     return try_with_windows_lock_memory_privilege(
-      [&](std::size_t largePageSize) {
+      [&](std::size_t LargePageSize) {
           // Round up size to full large page
-          std::size_t roundedAllocSize = round_up_pow2(allocSize, largePageSize);
+          std::size_t roundedAllocSize = round_up_pow2(allocSize, LargePageSize);
           // Allocate large page memory
           void* mem = VirtualAlloc(nullptr, roundedAllocSize,
                                    MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);

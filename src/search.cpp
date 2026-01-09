@@ -69,7 +69,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
 }();
 
 constexpr int
-reduction(Depth depth, std::uint8_t moveCount, unsigned deltaRatio, bool improve) noexcept {
+reduction(Depth depth, std::uint8_t moveCount, std::uint32_t deltaRatio, bool improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
     return 1182 + reductionScale - deltaRatio + int(!improve) * int(0.4648 * reductionScale);
 }
@@ -528,7 +528,7 @@ void Worker::iterative_deepening() noexcept {
                 if (adjustedDepth < 1)
                     adjustedDepth = 1;
 
-                bestValue = search<NT::Root>(rootPos, ss, alpha, beta, adjustedDepth);
+                bestValue = search<NT::ROOT>(rootPos, ss, alpha, beta, adjustedDepth);
 
                 // Bring the best move to the front. It is critical that sorting
                 // is done with a stable algorithm because all the values but the
@@ -731,10 +731,10 @@ void Worker::iterative_deepening() noexcept {
 template<NT T>
 Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, Depth depth, std::int8_t red, Move excludedMove) noexcept {
     // clang-format on
-    constexpr bool RootNode = T == NT::Root;
+    constexpr bool RootNode = T == NT::ROOT;
     constexpr bool PVNode   = RootNode || T == NT::PV;
-    constexpr bool CutNode  = T == NT::Cut;  // !PVNode
-    constexpr bool AllNode  = T == NT::All;  // !PVNode
+    constexpr bool CutNode  = T == NT::CUT;  // !PVNode
+    constexpr bool AllNode  = T == NT::ALL;  // !PVNode
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (1 + alpha == beta));
     assert(ss->ply >= 0);
@@ -1042,14 +1042,19 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         const auto futility_margin = [&](bool cond) noexcept {
             Value futilityMult = 53 + cond * 23;
 
-            return depth * futilityMult                                      //
-                 - int((improve * 2.4160 + worsen * 0.3232) * futilityMult)  //
-                 + int(5.7252e-6 * absCorrectionValue);
+            int margin = depth * futilityMult                                      //
+                       - int((improve * 2.4160 + worsen * 0.3232) * futilityMult)  //
+                       + int(5.7252e-6 * absCorrectionValue);
+
+            if (margin < 0)
+                margin = 0;
+
+            return margin;
         };
 
         if (!ss->ttPv && !exclude && depth < 14 && !is_win(ttEvalValue) && !is_loss(beta)
             && (ttd.move == Move::None || ttCapture)
-            && ttEvalValue - std::max(futility_margin(ttd.hit), 0) >= beta)
+            && ttEvalValue - futility_margin(ttd.hit) >= beta)
             return (ttEvalValue + beta) / 2;
     }
 
@@ -1065,7 +1070,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         do_null_move(pos, st, ss);
 
-        Value nullValue = -search<NT::All>(pos, ss + 1, -beta, -beta + 1, depth - R);
+        Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
 
         undo_null_move(pos);
 
@@ -1081,7 +1086,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             // with null move pruning disabled until ply exceeds nmpPly.
             nmpPly = ss->ply + 3 * (depth - R) / 4;
 
-            Value v = search<NT::All>(pos, ss, beta - 1, beta, depth - R);
+            Value v = search<NT::ALL>(pos, ss, beta - 1, beta, depth - R);
 
             nmpPly = 0;
 
@@ -1231,7 +1236,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         assert(alpha < beta);
 
-        unsigned deltaRatio = 608 * (beta - alpha) / rootDelta;
+        std::uint32_t deltaRatio = 608 * (beta - alpha) / rootDelta;
 
         int r = reduction(depth, moveCount, deltaRatio, improve);
 
@@ -1453,7 +1458,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             redDepth += int(PVNode);
 
             value =
-              -search<NT::Cut>(pos, ss + 1, -alpha - 1, -alpha, redDepth, newDepth - redDepth);
+              -search<NT::CUT>(pos, ss + 1, -alpha - 1, -alpha, redDepth, newDepth - redDepth);
 
             // (*Scaler) Do a full-depth search when reduced LMR search fails high
             // Shallower searches here don't scales well.

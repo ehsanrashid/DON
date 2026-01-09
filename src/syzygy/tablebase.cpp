@@ -496,7 +496,6 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
 template<TBType T>
 std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 #if defined(_WIN32)
-
     // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
     HANDLE fd = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
                            FILE_FLAG_RANDOM_ACCESS, nullptr);
@@ -553,9 +552,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
         std::exit(EXIT_FAILURE);
     }
-
 #else
-
     int fd = ::open(filename.data(), O_RDONLY);
 
     if (fd == -1)
@@ -606,7 +603,6 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
     #endif
 
     ::close(fd);
-
 #endif
 
     std::uint8_t* data = (std::uint8_t*) (mappedPtr);
@@ -683,7 +679,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
 
         for (std::uint8_t k = 0; k < pieceCount; ++k, ++data)
             for (std::size_t i = 0; i < sides; ++i)
-                get(i, f)->pieces[k] = Piece(i ? *data >> 4 : *data & 0xF);
+                get(i, f)->pieces[k] = Piece(i != 0 ? (*data >> 4) : (*data & 0xF));
 
         for (std::size_t i = 0; i < sides; ++i)
             set_groups(get(i, f), order[i], f);

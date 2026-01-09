@@ -246,8 +246,8 @@ exponential_upper_bound(Iterator begin, Iterator end, const T& value, Compare co
         step <<= 1;
     }
 
-    // Now [lo_bound..end) is a sorted subrange containing the insertion point.
-    // binary search inside [lo_bound, end)
+    // Now [loBound..end) is a sorted subrange containing the insertion point.
+    // binary search inside [loBound, end)
     return std::upper_bound(loBound, end, value, comp);
 }
 

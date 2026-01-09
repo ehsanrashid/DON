@@ -483,10 +483,10 @@ class NullSearchManager final: public ISearchManager {
 
 // NT indicates the type of node in the search tree
 enum class NT : std::uint8_t {
-    Root = 6,
+    ALL  = 0,
+    CUT  = 1,
     PV   = 2,
-    Cut  = 1,
-    All  = 0,
+    ROOT = 6,
 };
 
 constexpr NT operator~(NT nt) noexcept { return NT((std::uint8_t(nt) ^ 1) & 1); }
@@ -619,7 +619,7 @@ class Worker final {
     Depth         rootDepth, completedDepth;
     std::size_t   multiPV, curPV, endPV;
     std::uint16_t selDepth;
-    unsigned      rootDelta;
+    std::uint16_t rootDelta;
     std::int16_t  nmpPly;
 
     StdArray<std::int32_t, COLOR_NB> optimism;

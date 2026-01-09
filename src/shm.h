@@ -341,9 +341,9 @@ class BackendSharedMemory final {
 
         // Try allocating with large page first
         hMapFile = try_with_windows_lock_memory_privilege(
-          [&](std::size_t largePageSize) {
+          [&](std::size_t LargePageSize) {
               // Round up size to full large page
-              std::size_t roundedTotalSize = round_up_pow2(totalSize, largePageSize);
+              std::size_t roundedTotalSize = round_up_pow2(totalSize, LargePageSize);
 
     #if defined(_WIN64)
               DWORD hiTotalSize = roundedTotalSize >> 32;
@@ -380,7 +380,7 @@ class BackendSharedMemory final {
             status       = Status::MapViewError;
             lastErrorStr = error_to_string(GetLastError());
 
-            cleanup_partial();
+            partial_cleanup();
             return;
         }
 
@@ -394,7 +394,7 @@ class BackendSharedMemory final {
             status       = Status::MutexCreateError;
             lastErrorStr = error_to_string(GetLastError());
 
-            cleanup_partial();
+            partial_cleanup();
             return;
         }
 
@@ -403,7 +403,7 @@ class BackendSharedMemory final {
             status       = Status::MutexWaitError;
             lastErrorStr = error_to_string(GetLastError());
 
-            cleanup_partial();
+            partial_cleanup();
             CloseHandle(hMutex);
             return;
         }
@@ -427,7 +427,7 @@ class BackendSharedMemory final {
             status       = Status::MutexReleaseError;
             lastErrorStr = error_to_string(GetLastError());
 
-            cleanup_partial();
+            partial_cleanup();
             CloseHandle(hMutex);
             return;
         }
@@ -437,7 +437,7 @@ class BackendSharedMemory final {
         status = Status::Success;
     }
 
-    void cleanup_partial() noexcept {
+    void partial_cleanup() noexcept {
         if (mappedPtr != nullptr)
         {
             UnmapViewOfFile(mappedPtr);
@@ -450,7 +450,7 @@ class BackendSharedMemory final {
         }
     }
 
-    void cleanup() noexcept { cleanup_partial(); }
+    void cleanup() noexcept { partial_cleanup(); }
 
     HANDLE      hMapFile  = nullptr;
     void*       mappedPtr = nullptr;

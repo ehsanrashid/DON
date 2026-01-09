@@ -262,15 +262,15 @@ constexpr std::uint8_t operator+(Piece pc) noexcept { return std::uint8_t(pc); }
 
 constexpr Piece operator^(Piece pc1, Piece pc2) noexcept { return Piece(+pc1 ^ +pc2); }
 
+[[nodiscard]] constexpr bool is_ok(Piece pc) noexcept {
+    return (Piece::W_PAWN <= pc && pc <= Piece::W_KING)
+        || (Piece::B_PAWN <= pc && pc <= Piece::B_KING);
+}
+
 [[nodiscard]] constexpr Piece make_piece(Color c, PieceType pt) noexcept {
     assert(is_ok(c) && is_ok(pt));
 
     return Piece((c << 3) | pt);
-}
-
-[[nodiscard]] constexpr bool is_ok(Piece pc) noexcept {
-    return (Piece::W_PAWN <= pc && pc <= Piece::W_KING)
-        || (Piece::B_PAWN <= pc && pc <= Piece::B_KING);
 }
 
 constexpr PieceType type_of(Piece pc) noexcept { return PieceType((+pc >> 0) & 0x7); }
@@ -652,6 +652,8 @@ enum class Bound : std::uint8_t {
 
 constexpr std::uint8_t operator+(Bound bnd) noexcept { return std::uint8_t(bnd); }
 
+constexpr bool is_ok(Bound bound) noexcept { return +bound != 0; }
+
 // --- Bitmask operators for Bound ---
 constexpr Bound operator&(Bound bnd1, Bound bnd2) noexcept {
     return Bound(std::uint8_t(bnd1) & std::uint8_t(bnd2));
@@ -665,10 +667,6 @@ constexpr Bound operator^(Bound bnd1, Bound bnd2) noexcept {
 constexpr Bound& operator|=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 | bnd2; }
 constexpr Bound& operator&=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 & bnd2; }
 constexpr Bound& operator^=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 ^ bnd2; }
-
-constexpr bool is_ok(Bound bound) noexcept {
-    return bound != Bound::NONE && std::uint8_t(bound & Bound::EXACT) != 0;
-}
 
 inline std::string to_string(Bound bound) noexcept {
     return bound == Bound::UPPER ? " upperbound"
@@ -785,4 +783,4 @@ struct std::hash<DON::Move> {
 
 #endif  // #ifndef TYPES_H_INCLUDED
 
-#include "tune.h"  // Global visibility to tuning setup
+//#include "tune.h"  // Global visibility to tuning setup

@@ -194,7 +194,7 @@ class Tune final {
 };
 
 template<typename... Args>
-constexpr void check_tune_args(Args&&...) {
+constexpr void check_tune_args(Args&&...) noexcept {
     static_assert((!std::is_fundamental_v<Args> && ...), "Tune macro arguments wrong");
 }
 

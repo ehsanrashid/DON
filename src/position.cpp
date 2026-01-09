@@ -831,9 +831,7 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
     assert(legal(m));
     assert(&newSt != st);
 
-    Key k = st->key ^ Zobrist::turn();
-
-    newSt.switch_to_prefix(st, &State::key);
+    newSt.switch_to_prefix(st, &State::checkersBB);
 
     st = &newSt;
 
@@ -868,11 +866,13 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
     db.dts.threateningBB = db.dts.threatenedBB = 0;
     assert(db.dts.dtList.empty());
 
+    st->key ^= Zobrist::turn();
+
     // Reset en-passant square
     Square enPassantSq;
     if (enPassantSq = en_passant_sq(); is_ok(enPassantSq))
     {
-        k ^= Zobrist::enpassant(enPassantSq);
+        st->key ^= Zobrist::enpassant(enPassantSq);
         reset_en_passant_sq();
         enPassantSq = SQ_NONE;
     }
@@ -897,7 +897,7 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
         Key rookKey = Zobrist::piece_square(ac, ROOK, rookOrgSq)  //
                     ^ Zobrist::piece_square(ac, ROOK, rookDstSq);
 
-        k ^= rookKey;
+        st->key ^= rookKey;
         st->nonPawnKeys[ac][1] ^= rookKey;
 
         capturedPc = Piece::NO_PIECE;
@@ -956,7 +956,7 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
         st->capturedSq = dstSq;
 
         // Update hash key
-        k ^= capturedKey;
+        st->key ^= capturedKey;
         // Reset rule 50 draw counter
         reset_rule50_count();
     }
@@ -996,7 +996,7 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
             Key promoKey = Zobrist::piece_square(ac, promotedPt, dstSq);
 
             // Update hash keys
-            k ^= promoKey;
+            st->key ^= promoKey;
             st->nonPawnKeys[ac][is_major(promotedPt)] ^= promoKey;
         }
         // Set en-passant square if the moved pawn can be captured
@@ -1025,20 +1025,20 @@ DO_MOVE_END:
     db.dts.kingSq = square<KING>(ac);
 
     // Update hash key
-    k ^= movedKey;
+    st->key ^= movedKey;
 
     // Update castling rights if needed
     if (int cr; has_castling_rights() && (cr = castling_rights_mask(orgSq, dstSq)) != NO_CASTLING)
     {
-        k ^= Zobrist::castling(castling_rights());
+        st->key ^= Zobrist::castling(castling_rights());
         st->castlingRights &= ~cr;
-        k ^= Zobrist::castling(castling_rights());
+        st->key ^= Zobrist::castling(castling_rights());
     }
 
     if (worker != nullptr)
     {
         if (!is_ok(enPassantSq))
-            prefetch(worker->transpositionTable.cluster(k ^ Zobrist::mr50(rule50_count())));
+            prefetch(worker->transpositionTable.cluster(key()));
 
         prefetch(&worker->histories.pawn(pawn_key())[+movedPc][dstSq]);
         prefetch(&worker->histories.pawn_correction<WHITE>(pawn_key(WHITE)));
@@ -1069,11 +1069,8 @@ DO_MOVE_END:
     if (is_ok(enPassantSq) && enpassant_possible(ac, enPassantSq))
     {
         st->enPassantSq = enPassantSq;
-        k ^= Zobrist::enpassant(enPassantSq);
+        st->key ^= Zobrist::enpassant(enPassantSq);
     }
-
-    // Set the final hash key
-    st->key = k;
 
     if (worker != nullptr)
         prefetch(worker->transpositionTable.cluster(key()));
@@ -1194,30 +1191,29 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
     assert(&newSt != st);
     assert(checkers_bb() == 0);
 
-    Key k = st->key ^ Zobrist::turn();
-
-    newSt.switch_to_prefix(st, &State::key);
+    newSt.switch_to_prefix(st, &State::checkersBB);
 
     st = &newSt;
 
+    st->key ^= Zobrist::turn();
+
     if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
     {
-        k ^= Zobrist::enpassant(enPassantSq);
+        st->key ^= Zobrist::enpassant(enPassantSq);
         reset_en_passant_sq();
         //enPassantSq = SQ_NONE;
     }
-
-    st->key = k;
 
     if (worker != nullptr)
         prefetch(worker->transpositionTable.cluster(key()));
 
     activeColor = ~active_color();
 
-    set_ext_state();
-
     st->nullPly    = 0;
     st->capturedSq = SQ_NONE;
+
+    set_ext_state();
+
     st->checkersBB = 0;
     st->repetition = 0;
     st->capturedPc = Piece::NO_PIECE;

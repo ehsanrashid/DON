@@ -105,6 +105,7 @@ struct State final {
     void dump(std::ostream& os = std::cout) const noexcept;
 
     // --- Copied when making a move
+    Key                        key;
     StdArray<Key, COLOR_NB>    pawnKeys;
     StdArray<Key, COLOR_NB, 2> nonPawnKeys;
     StdArray<bool, COLOR_NB>   hasCastleds;
@@ -117,7 +118,6 @@ struct State final {
     bool           hasRule50High;
 
     // --- Not copied when making a move (will be recomputed anyhow)
-    Key                               key;
     Bitboard                          checkersBB;
     StdArray<Bitboard, COLOR_NB>      pinnersBB;
     StdArray<Bitboard, COLOR_NB>      blockersBB;
@@ -131,8 +131,8 @@ struct State final {
     // Copy relevant fields from the state.
     // excluding those that will recomputed from scratch anyway and
     // then switch the state pointer to point to the new state.
-    template<typename T = Key>
-    void switch_to_prefix(const State* st, T State::* member = &State::key) noexcept {
+    template<typename T = Bitboard>
+    void switch_to_prefix(const State* st, T State::* member = &State::checkersBB) noexcept {
         // Compute offset dynamically for this object
         std::size_t size = reinterpret_cast<const char*>(&(st->*member))  //
                          - reinterpret_cast<const char*>(st);

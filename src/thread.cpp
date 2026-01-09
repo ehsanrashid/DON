@@ -146,8 +146,8 @@ void Threads::set(const NumaConfig&                       numaConfig,
     }
     else
     {
-        for (NumaIndex numaIdx : threadBoundNumaNodes)
-            ++numaThreadCounts[numaIdx];
+        for (NumaIndex numaId : threadBoundNumaNodes)
+            ++numaThreadCounts[numaId];
     }
 
     // Prepare shared histories map
@@ -158,29 +158,21 @@ void Threads::set(const NumaConfig&                       numaConfig,
     historiesMap.reserve(numaThreadCounts.size());
 
     // Populate shared histories map (optionally NUMA-bound)
-    if (threadBindable)
+    for (const auto& pair : numaThreadCounts)
     {
-        for (const auto& pair : numaThreadCounts)
-        {
-            NumaIndex   numaIdx = pair.first;
-            std::size_t count   = pair.second;
+        NumaIndex   numaId = pair.first;
+        std::size_t count  = pair.second;
 
-            std::size_t roundedCount = next_pow2(count);
-
-            numaConfig.execute_on_numa_node(numaIdx,
-                                            [&historiesMap, numaIdx, roundedCount]() noexcept {
-                                                historiesMap.try_emplace(numaIdx, roundedCount);
-                                            });
-        }
-    }
-    else
-    {
-        for (const auto& [numaId, count] : numaThreadCounts)
-        {
+        const auto create_histories = [&]() noexcept {
             std::size_t roundedCount = next_pow2(count);
 
             historiesMap.try_emplace(numaId, roundedCount);
-        }
+        };
+
+        if (threadBindable)
+            numaConfig.execute_on_numa_node(numaId, create_histories);
+        else
+            create_histories();
     }
 
     const NumaConfig* const numaConfigPtr = threadBindable ? &numaConfig : nullptr;
@@ -194,8 +186,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
         std::size_t threadId = size();
         NumaIndex   numaId   = threadBindable ? threadBoundNumaNodes[threadId] : 0;
 
-        // Lambda to create the thread
-        const auto create_thread = [&]() {
+        const auto create_thread = [&]() noexcept {
             // Search manager for this thread
             ISearchManagerPtr searchManager;
             if (threadId == 0)
@@ -417,13 +408,13 @@ std::vector<std::size_t> Threads::get_bound_thread_counts() const noexcept {
 
     if (!threadBoundNumaNodes.empty())
     {
-        NumaIndex maxNumaIdx =
+        NumaIndex maxNumaId =
           *std::max_element(threadBoundNumaNodes.begin(), threadBoundNumaNodes.end());
 
-        threadCounts.resize(1 + maxNumaIdx, 0);
+        threadCounts.resize(1 + maxNumaId, 0);
 
-        for (NumaIndex numaIdx : threadBoundNumaNodes)
-            ++threadCounts[numaIdx];
+        for (NumaIndex numaId : threadBoundNumaNodes)
+            ++threadCounts[numaId];
     }
 
     return threadCounts;
