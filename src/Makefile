@@ -480,6 +480,8 @@ ifeq ($(COMP), gcc)
             LDFLAGS += -Wl,--no-as-needed
         endif
     endif
+
+    LDFLAGS += -lstdc++fs
 endif
 
 ifeq ($(target_windows), yes)
