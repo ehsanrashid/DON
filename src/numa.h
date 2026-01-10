@@ -1020,8 +1020,8 @@ class NumaConfig final {
             for (NumaIndex nodeId : shortened_string_to_indices(*nodeIdStr))
             {
                 // /sys/devices/system/node/node.../cpulist
-                std::string path =
-                  std::string("/sys/devices/system/node/node") + std::to_string(n) + "/cpulist";
+                std::string path = std::string("/sys/devices/system/node/node")
+                                 + std::to_string(nodeId) + "/cpulist";
 
                 auto cpuIdStr = read_file_to_string(path);
 
