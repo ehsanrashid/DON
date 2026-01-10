@@ -793,7 +793,7 @@ class NumaConfig final {
         // of what set with SetThreadGroupAffinity.
         if (setThreadSelectedCpuSetMasks != nullptr)
         {
-            // Only available on Windows 11 and Windows Server 2022 onwards.
+            // Only available on Windows 11 and Windows Server 2022 onwards
             auto procGroupCount  = static_cast<WORD>(((maxCpuId + 1) + WIN_PROCESSOR_GROUP_SIZE - 1)
                                                      / WIN_PROCESSOR_GROUP_SIZE);
             auto groupAffinities = std::make_unique<GROUP_AFFINITY[]>(procGroupCount);
