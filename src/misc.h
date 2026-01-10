@@ -977,7 +977,10 @@ inline std::size_t raw_data_hash(const T& value) noexcept {
 }
 
 inline std::string create_hash_string(std::string_view str) noexcept {
-    return (std::ostringstream{} << std::hex << std::hash<std::string_view>{}(str)).str();
+    std::size_t hash = std::hash<std::string_view>{}(str);
+    char        buf[17];  // 16 hex digits + null terminator
+    std::snprintf(buf, sizeof(buf), "%llx", hash);
+    return std::string(buf);
 }
 
 constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
