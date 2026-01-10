@@ -1194,9 +1194,9 @@ int map_score(TBTable<DTZ>* table, File f, int value, WDLScore wdlScore) noexcep
 
 // Temporary fix for the clang compiler bug with vectorization
 #if defined(__clang__) && defined(__clang_major__) && __clang_major__ >= 15
-    #define CLANG_BUG_FIX _Pragma("clang loop vectorize(disable)")
+    #define DISABLE_CLANG_LOOP_VEC _Pragma("clang loop vectorize(disable)")
 #else
-    #define CLANG_BUG_FIX
+    #define DISABLE_CLANG_LOOP_VEC
 #endif
 
 // Compute a unique index out of a position and use it to probe the TB file.
@@ -1307,7 +1307,7 @@ Ret do_probe_table(
     // the triangle A1-D1-D4.
     if (file_of(squares[0]) > FILE_D)
     {
-        CLANG_BUG_FIX
+        DISABLE_CLANG_LOOP_VEC
         for (std::size_t i = 0; i < size; ++i)
             squares[i] = flip_file(squares[i]);
     }
@@ -1331,14 +1331,14 @@ Ret do_probe_table(
     // piece is below RANK_5.
     if (rank_of(squares[0]) > RANK_4)
     {
-        CLANG_BUG_FIX
+        DISABLE_CLANG_LOOP_VEC
         for (std::size_t i = 0; i < size; ++i)
             squares[i] = flip_rank(squares[i]);
     }
 
     // Look for the first piece of the leading group not on the A1-D4 diagonal
     // and ensure it is mapped below the diagonal.
-    CLANG_BUG_FIX
+    DISABLE_CLANG_LOOP_VEC
     for (std::int32_t i = 0; i < pd->groupLen[0]; ++i)
     {
         if (off_A1H8(squares[i]) == 0)
@@ -1346,7 +1346,7 @@ Ret do_probe_table(
 
         if (off_A1H8(squares[i]) > 0)  // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
         {
-            CLANG_BUG_FIX
+            DISABLE_CLANG_LOOP_VEC
             for (std::size_t j = i; j < size; ++j)
                 squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 0x3F);
         }
@@ -1449,7 +1449,7 @@ ENCODE_END:
     return map_score(table, tbFile, decompress_pairs(pd, idx), wdlScore);
 }
 
-#undef CLANG_BUG_FIX
+#undef DISABLE_CLANG_LOOP_VEC
 
 // In Recursive Pairing each symbol represents a pair of children symbols. So
 // read d->btree[] symbols data and expand each one in his left and right child
