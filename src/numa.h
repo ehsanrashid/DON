@@ -445,13 +445,13 @@ struct L3Domain final {
 // Use system NUMA nodes
 struct SystemNumaPolicy {};
 // Use system-reported L3 domains
-struct L3DomainsPolicy {};
+struct DomainsL3Policy {};
 // Group system-reported L3 domains until they reach bundleSize
 struct BundledL3Policy {
-    size_t bundleSize;
+    std::size_t bundleSize;
 };
 
-using NumaAutoPolicy = std::variant<SystemNumaPolicy, L3DomainsPolicy, BundledL3Policy>;
+using NumaAutoPolicy = std::variant<SystemNumaPolicy, DomainsL3Policy, BundledL3Policy>;
 
 // Designed as immutable, because there is no good reason to alter an already
 // existing config in a way that doesn't require recreating it completely, and
