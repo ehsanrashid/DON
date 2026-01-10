@@ -544,6 +544,11 @@ ifeq ($(COMP), clang)
         CXXFLAGS += -m$(bits)
         LDFLAGS += -m$(bits)
     endif
+
+    # Add std::filesystem library for C++17 Linux/Clang
+    ifeq ($(KERNEL), Linux)
+        LDFLAGS += -lstdc++fs
+    endif
 endif
 
 ifeq ($(KERNEL), Darwin)

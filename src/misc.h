@@ -37,7 +37,6 @@
 #include <mutex>
 #include <optional>
 #include <shared_mutex>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -977,7 +976,10 @@ inline std::size_t raw_data_hash(const T& value) noexcept {
 }
 
 inline std::string create_hash_string(std::string_view str) noexcept {
-    return (std::ostringstream{} << std::hex << std::hash<std::string_view>{}(str)).str();
+    std::string hashStr(17, '\0');  // 16 hex digits + null terminator
+    std::size_t hash = std::hash<std::string_view>{}(str);
+    std::snprintf(hashStr.data(), hashStr.size(), "%llx", static_cast<unsigned long long>(hash));
+    return hashStr;
 }
 
 constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {

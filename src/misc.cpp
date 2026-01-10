@@ -23,6 +23,7 @@
 #include <iomanip>
 #include <iterator>
 #include <limits>
+#include <sstream>
 
 #if defined(_WIN32)
     #include <direct.h>
