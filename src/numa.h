@@ -480,7 +480,7 @@ class NumaConfig final {
     // This function gets a NumaConfig based on the system's provided information.
     // The available policies are documented above.
     static NumaConfig from_system([[maybe_unused]] const AutoNumaPolicy& policy,
-                                  [[maybe_unused]] bool processAffinityRespect = true) {
+                                  [[maybe_unused]] bool processAffinityRespect = true) noexcept {
         NumaConfig numaCfg = empty();
 
 #if !(defined(_WIN64) || (defined(__linux__) && !defined(__ANDROID__)))
@@ -524,7 +524,7 @@ class NumaConfig final {
 
         if (!std::holds_alternative<SystemNumaPolicy>(policy))
         {
-            size_t l3BundleSize = 0;
+            std::size_t l3BundleSize = 0;
 
             if (const auto* v = std::get_if<BundledL3Policy>(&policy))
             {
@@ -965,7 +965,7 @@ class NumaConfig final {
     // see comment for Windows implementation of get_process_affinity.
     template<typename Pred>
     static NumaConfig from_system_numa([[maybe_unused]] bool   processAffinityRespect,
-                                       [[maybe_unused]] Pred&& is_cpu_allowed) {
+                                       [[maybe_unused]] Pred&& is_cpu_allowed) noexcept {
         NumaConfig numaCfg = empty();
 
 #if defined(_WIN64)
@@ -1063,8 +1063,10 @@ class NumaConfig final {
     }
 
     template<typename Pred>
-    static std::optional<NumaConfig> try_get_l3_aware_config(
-      bool processAffinityRespect, size_t bundleSize, [[maybe_unused]] Pred&& is_cpu_allowed) {
+    static std::optional<NumaConfig>
+    try_get_l3_aware_config(bool                    processAffinityRespect,
+                            size_t                  bundleSize,
+                            [[maybe_unused]] Pred&& is_cpu_allowed) noexcept {
         // Get the normal system configuration so that know to which NUMA node each L3 domain belongs
         NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, processAffinityRespect);
 
@@ -1167,7 +1169,8 @@ class NumaConfig final {
         return std::nullopt;
     }
 
-    static NumaConfig from_l3_info(std::vector<L3Domain>&& domains, size_t bundleSize) {
+    static NumaConfig from_l3_info(std::vector<L3Domain>&& domains,
+                                   std::size_t             bundleSize) noexcept {
         assert(!domains.empty());
 
         std::unordered_map<NumaIndex, std::vector<L3Domain>> list;
