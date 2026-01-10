@@ -481,6 +481,7 @@ ifeq ($(COMP), gcc)
         endif
     endif
 
+    # Add filesystem library for C++17 std::filesystem
     LDFLAGS += -lstdc++fs
 endif
 
