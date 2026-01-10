@@ -819,9 +819,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     ttd.move  = RootNode ? rootMoves[curPV].pv[0]
               : ttd.hit  ? legal_tt_move(ttd.move, pos)
                          : Move::None;
-    assert(ttd.move == Move::None || pos.legal(ttd.move));
+
+    bool ttmNone = ttd.move == Move::None;
+    assert(ttmNone || pos.legal(ttd.move));
     ss->ttMove     = ttd.move;
-    bool ttCapture = ttd.move != Move::None && pos.capture_promo(ttd.move);
+    bool ttCapture = !ttmNone && pos.capture_promo(ttd.move);
 
     if (!exclude)
         ss->ttPv = PVNode || (ttd.hit && ttd.pv);
@@ -899,7 +901,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
     {
         // If ttMove fails high, update move sorting heuristics on TT hit
-        if (ttd.move != Move::None && ttd.value >= beta)
+        if (!ttmNone && ttd.value >= beta)
         {
             // Bonus for a quiet ttMove
             if (!ttCapture)
@@ -916,8 +918,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         if (pos.rule50_count() < int((1.0 - 0.20 * pos.has_rule50_high()) * rule50_threshold()))
         {
             // If the depth is big enough, verify that the ttMove is really a good move
-            if (depth >= 8 && !is_decisive(ttd.value) && ttd.move != Move::None
-                && pos.legal(ttd.move))
+            if (depth >= 8 && !is_decisive(ttd.value) && !ttmNone && pos.legal(ttd.move))
             {
                 pos.do_move(ttd.move, st, true, this);
 
@@ -1040,10 +1041,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // The depth condition is important for mate finding.
     {
         const auto futility_margin = [&](bool cond) noexcept {
-            Value futilityMult = 53 + cond * 23;
+            Value futilityMult = 53 + int(cond) * 23;
 
-            int margin = depth * futilityMult                                      //
-                       - int((improve * 2.4160 + worsen * 0.3232) * futilityMult)  //
+            int margin = depth * futilityMult                                                //
+                       - int((int(improve) * 2.4160 + int(worsen) * 0.3232) * futilityMult)  //
                        + int(5.7252e-6 * absCorrectionValue);
 
             if (margin < 0)
@@ -1053,8 +1054,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         };
 
         if (!ss->ttPv && !exclude && depth < 14 && !is_win(ttEvalValue) && !is_loss(beta)
-            && (ttd.move == Move::None || ttCapture)
-            && ttEvalValue - futility_margin(ttd.hit) >= beta)
+            && (ttmNone || ttCapture) && ttEvalValue - futility_margin(ttd.hit) >= beta)
             return (ttEvalValue + beta) / 2;
     }
 
@@ -1103,7 +1103,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // For deep enough nodes without ttMoves, reduce search depth.
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
-        if (depth > 5 && red <= 3 && ttd.move == Move::None)
+        if (depth > 5 && red <= 3 && ttmNone)
             --depth;
 
     // Step 11. ProbCut
@@ -1223,6 +1223,8 @@ S_MOVES_LOOP:  // When in check, search starts here
         if constexpr (PVNode)
             (ss + 1)->pv = nullptr;
 
+        bool ttm = move == ttd.move;
+
         Square dstSq = move.dst_sq();
 
         Piece movedPc = pos.moved_pc(move);
@@ -1335,24 +1337,24 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // (*Scaler) Generally, frequent extensions scales well.
         // This includes high singularBeta values (i.e closer to ttValue) and low extension margins.
-        if (!RootNode && !exclude && depth > 5 + int(ss->ttPv) && move == ttd.move
-            && is_valid(ttd.value) && !is_decisive(ttd.value) && ttd.depth >= depth - 3
-            && is_ok(ttd.bound & Bound::LOWER) && !is_shuffling(pos, ss, move))
+        if (!RootNode && !exclude && ttm && depth > 5 + int(ss->ttPv) && is_valid(ttd.value)
+            && !is_decisive(ttd.value) && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER)
+            && !is_shuffling(pos, ss, move))
         {
             Value singularBeta =
               std::max(ttd.value - int((0.8833 + int(!PVNode && ss->ttPv) * 1.2500) * depth),
-                       -VALUE_INFINITE);
-            assert(singularBeta >= -VALUE_INFINITE);
+                       -VALUE_INFINITE + 1);
+            assert(singularBeta >= -VALUE_INFINITE + 1);
 
             Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
 
-            value = search<~~T>(pos, ss, singularBeta, singularBeta + 1, singularDepth, 0, move);
+            value = search<~~T>(pos, ss, singularBeta - 1, singularBeta, singularDepth, 0, move);
 
             ss->ttMove    = ttd.move;
             ss->moveCount = moveCount;
 
-            if (value <= singularBeta)
+            if (value < singularBeta)
             {
                 int corrMargin = int(4.3351e-6 * absCorrectionValue);
 
@@ -1360,8 +1362,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrMargin - int(7.0271e-3 * ttMoveHistory);
                 int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrMargin + int(ss->ttPv) * 90;
 
-                extension = 1 + int(value <= singularBeta - doubleMargin)
-                              + int(value <= singularBeta - tripleMargin);
+                extension = 1 + int(value < singularBeta - doubleMargin)
+                              + int(value < singularBeta - tripleMargin);
                 // clang-format on
 
                 if (depth < MAX_PLY - 1)
@@ -1425,16 +1427,16 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // Increase reduction for CutNode
         if constexpr (CutNode)
-            r += 3372 + int(ttd.move == Move::None) * 997;
+            r += 3372 + int(ttmNone) * 997;
 
         // Increase reduction if ttMove is a capture
         r += int(ttCapture) * 1119;
 
-        // Increase reduction if current ply has a lot of fail high
+        // Increase reduction if next ply has a lot of fail high
         r += int(ss->cutoffCount != 0) * (512 * ss->cutoffCount + int(AllNode) * 1024);
 
         // For first picked move (ttMove) reduce reduction
-        r -= int(move == ttd.move) * 2151;
+        r -= int(ttm) * 2151;
 
         // Decrease/Increase reduction for moves with a good/bad history
         r -= int(103.7598e-3 * ss->history);
@@ -1482,7 +1484,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         else if (!PVNode || moveCount > 1)
         {
             // Increase reduction if ttMove is not present
-            r += int(ttd.move == Move::None) * 1140;
+            r += int(ttmNone) * 1140;
 
             // Reduce search depth if expected reduction is high
             value = -search<~T>(pos, ss + 1, -alpha - 1, -alpha,
@@ -1497,7 +1499,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             (ss + 1)->pv = pv.data();
 
             // Extends ttMove if about to dive into qsearch
-            if (newDepth < 1 && move == ttd.move
+            if (newDepth < 1 && ttm
                 && (ttd.depth > 1 || (is_valid(ttd.value) && is_decisive(ttd.value))))
                 newDepth = 1;
 
