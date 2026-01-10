@@ -112,12 +112,19 @@ struct WindowsAffinity final {
         if (!newApi.has_value())
             return oldApi;
 
-        std::unordered_set<CpuIndex> intersect;
+        std::unordered_set<CpuIndex> combinedApi;
+        combinedApi.reserve(std::min(oldApi->size(), newApi->size()));
 
-        std::set_intersection(oldApi->begin(), oldApi->end(), newApi->begin(), newApi->end(),
-                              std::inserter(intersect, intersect.begin()));
+        const bool oldIsSmaller = oldApi->size() < newApi->size();
 
-        return intersect;
+        const auto& smallApi = oldIsSmaller ? *oldApi : *newApi;
+        const auto& largeApi = oldIsSmaller ? *newApi : *oldApi;
+
+        for (const auto& cpuId : smallApi)
+            if (largeApi.find(cpuId) != largeApi.end())
+                combinedApi.insert(cpuId);
+
+        return combinedApi;
     }
 
     // Since Windows 11 and Windows Server 2022 thread affinities can span
@@ -231,7 +238,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
     }
 
     // NOTE: There is no way to determine full affinity using the old API
-    //        if individual threads set affinity on different processor groups.
+    //       if individual threads set affinity on different processor groups.
 
     DWORD_PTR proc, sys;
     status = GetProcessAffinityMask(GetCurrentProcess(), &proc, &sys);
