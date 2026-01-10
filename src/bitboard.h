@@ -447,7 +447,7 @@ constexpr Bitboard attacks_bb(const StdArray<Magic, 2>& magic, Bitboard occupanc
 // Returns the attacks by the given piece type.
 // Sliding piece attacks do not continue passed an occupied square.
 template<PieceType PT>
-constexpr Bitboard attacks_bb(Square s, Bitboard occupancyBB) noexcept {
+constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Bitboard occupancyBB) noexcept {
     static_assert(PT != PAWN, "Unsupported piece type in attacks_bb()");
     assert(is_ok(s));
 
@@ -494,6 +494,7 @@ constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept
 
     if (type_of(pc) == PAWN)
         return attacks_bb<PAWN>(s, color_of(pc));
+
     return attacks_bb(s, type_of(pc), occupancyBB);
 }
 
