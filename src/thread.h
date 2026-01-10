@@ -27,7 +27,6 @@
 #include <functional>
 #include <memory>
 #include <mutex>
-#include <numeric>
 #include <utility>
 #include <vector>
 
@@ -293,11 +292,12 @@ class Threads final {
     std::uint64_t sum(std::atomic<T> Worker::* member,
                       std::uint64_t            initialValue = 0) const noexcept {
 
-        return std::transform_reduce(
-          threads.begin(), threads.end(), initialValue, std::plus<>{},
-          [member](const ThreadPtr& th) noexcept {
-              return (th->worker.get()->*member).load(std::memory_order_relaxed);
-          });
+        std::uint64_t sum = initialValue;
+
+        for (auto&& th : threads)
+            sum += (th->worker.get()->*member).load(std::memory_order_relaxed);
+
+        return sum;
     }
 
    private:
