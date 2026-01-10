@@ -480,9 +480,6 @@ ifeq ($(COMP), gcc)
             LDFLAGS += -Wl,--no-as-needed
         endif
     endif
-
-    # Add filesystem library for C++17 std::filesystem
-    LDFLAGS += -lstdc++fs
 endif
 
 ifeq ($(target_windows), yes)
@@ -546,6 +543,11 @@ ifeq ($(COMP), clang)
     else
         CXXFLAGS += -m$(bits)
         LDFLAGS += -m$(bits)
+    endif
+
+    # Add std::filesystem library for C++17 Linux/Clang
+    ifeq ($(KERNEL), Linux)
+        LDFLAGS += -lstdc++fs
     endif
 endif
 
