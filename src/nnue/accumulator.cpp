@@ -384,7 +384,7 @@ Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
 #elif defined(USE_NEON)
     uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const uint8_t*>(oldPieces.data()));
     uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const uint8_t*>(newPieces.data()));
-    auto         cmp  = [=](const int i) { return vceqq_u8(oldV.val[i], newV.val[i]); };
+    const auto   cmp  = [=](const int i) { return vceqq_u8(oldV.val[i], newV.val[i]); };
 
     uint8x16_t cmp_01 = vsriq_n_u8(cmp(1), cmp(0), 1);
     uint8x16_t cmp_23 = vsriq_n_u8(cmp(3), cmp(2), 1);
