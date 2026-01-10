@@ -451,7 +451,7 @@ struct BundledL3Policy {
     std::size_t bundleSize;
 };
 
-using NumaAutoPolicy = std::variant<SystemNumaPolicy, DomainsL3Policy, BundledL3Policy>;
+using AutoNumaPolicy = std::variant<SystemNumaPolicy, DomainsL3Policy, BundledL3Policy>;
 
 // Designed as immutable, because there is no good reason to alter an already
 // existing config in a way that doesn't require recreating it completely, and
@@ -479,7 +479,7 @@ class NumaConfig final {
    public:
     // This function gets a NumaConfig based on the system's provided information.
     // The available policies are documented above.
-    static NumaConfig from_system([[maybe_unused]] const NumaAutoPolicy& policy,
+    static NumaConfig from_system([[maybe_unused]] const AutoNumaPolicy& policy,
                                   [[maybe_unused]] bool processAffinityRespect = true) {
         NumaConfig numaCfg = empty();
 
@@ -960,9 +960,9 @@ class NumaConfig final {
     }
 
     // This function queries the system for the mapping of processors to NUMA nodes.
-    // On Linux we read from standardized kernel sysfs, with a fallback to single NUMA
-    // node. On Windows we utilize GetNumaProcessorNodeEx, which has its quirks, see
-    // comment for Windows implementation of get_process_affinity.
+    // On Linux read from standardized kernel sysfs, with a fallback to single NUMA node.
+    // On Windows utilize GetNumaProcessorNodeEx, which has its quirks,
+    // see comment for Windows implementation of get_process_affinity.
     template<typename Pred>
     static NumaConfig from_system_numa([[maybe_unused]] bool   processAffinityRespect,
                                        [[maybe_unused]] Pred&& is_cpu_allowed) {
@@ -1065,10 +1065,9 @@ class NumaConfig final {
     template<typename Pred>
     static std::optional<NumaConfig> try_get_l3_aware_config(
       bool processAffinityRespect, size_t bundleSize, [[maybe_unused]] Pred&& is_cpu_allowed) {
-        // Get the normal system configuration so we know to which NUMA node
-        // each L3 domain belongs.
-        NumaConfig systemConfig =
-          NumaConfig::from_system(SystemNumaPolicy{}, processAffinityRespect);
+        // Get the normal system configuration so that know to which NUMA node each L3 domain belongs
+        NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, processAffinityRespect);
+
         std::vector<L3Domain> l3Domains;
 
 #if defined(_WIN64)
@@ -1107,7 +1106,7 @@ class NumaConfig final {
                             || !is_cpu_allowed(cpuId))
                             continue;
 
-                        domain.systemNumaIndex = systemConfig.nodeByCpu.at(cpuId);
+                        domain.systemNumaIndex = sysCfg.nodeByCpu.at(cpuId);
                         domain.cpus.insert(cpuId);
                     }
                 }
@@ -1147,7 +1146,7 @@ class NumaConfig final {
             {
                 if (is_cpu_allowed(cpuId))
                 {
-                    domain.systemNumaIndex = systemConfig.nodeByCpu.at(cpuId);
+                    domain.systemNumaIndex = sysCfg.nodeByCpu.at(cpuId);
                     domain.cpus.insert(cpuId);
                 }
 
@@ -1560,7 +1559,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
     }
 
     void on_numa_config_changed() noexcept override {
-        // Use the first one as the source. It doesn't matter which one we use,
+        // Use the first one as the source. It doesn't matter which one used,
         // because they all must be identical, but the first one is guaranteed to exist.
         auto source = std::make_unique<T>(*instances[0]);
         prepare_replicate_from(std::move(source));
@@ -1570,7 +1569,8 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
     std::size_t get_discriminator(NumaIndex numaId) const noexcept {
 
         const NumaConfig& numaCfg = numa_config();
-        const NumaConfig& sysCfg  = NumaConfig::from_system(SystemNumaPolicy{}, false);
+
+        NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, false);
 
         // as a discriminator, locate the hardware/system numa-domain this CpuIndex belongs to
         CpuIndex cpu = *numaCfg.nodes[numaId].begin();  // get a CpuIndex from NumaIndex
@@ -1607,10 +1607,9 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         instances.clear();
 
         const NumaConfig& numaCfg = numa_config();
-        // We just need to make sure the first instance is there.
-        // Note that we cannot move here as we need to reallocate the data
-        // on the correct NUMA node.
-        // Even in the case of a single NUMA node we have to copy since it's shared memory.
+        // Just need to make sure the first instance is there.
+        // Note that cannot move here as need to reallocate the data on the correct NUMA node.
+        // Even in the case of a single NUMA node have to copy since it's shared memory.
         if (numaCfg.requires_memory_replication())
         {
             assert(numaCfg.nodes_size() > 0);

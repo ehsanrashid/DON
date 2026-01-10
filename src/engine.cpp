@@ -57,7 +57,7 @@ constexpr std::uint32_t DEFAULT_HASH = std::max(MIN_HASH, 16U);
 // This size was found to be a good balance between the Elo gain of increased
 // history sharing and the speed loss from more cross-cache accesses.
 // The user can always explicitly override this behavior.
-constexpr NumaAutoPolicy DefaultNumaPolicy = BundledL3Policy{32};
+constexpr AutoNumaPolicy DefaultNumaPolicy = BundledL3Policy{32};
 
 }  // namespace
 
