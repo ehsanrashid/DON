@@ -639,12 +639,6 @@ constexpr std::uint8_t constexpr_msb(Bitboard b) noexcept {
     return msb_index(b);
 }
 
-constexpr Bitboard next_pow2(Bitboard b) noexcept {
-    return b < 0x0000000000000002ULL ? 0x0000000000000001ULL
-         : b > 0x4000000000000000ULL ? 0x8000000000000000ULL
-                                     : 2ULL << constexpr_msb(b - 1);
-}
-
 #if !defined(USE_POPCNT)
 
 constexpr std::uint8_t constexpr_popcount16(std::uint16_t x) noexcept {

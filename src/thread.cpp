@@ -23,8 +23,8 @@
 #include <string>
 #include <unordered_map>
 
-#include "bitboard.h"
 #include "history.h"
+#include "misc.h"
 #include "movegen.h"
 #include "option.h"
 #include "syzygy/tablebase.h"
@@ -164,7 +164,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
         std::size_t count  = pair.second;
 
         const auto create_histories = [&]() noexcept {
-            std::size_t roundedCount = next_pow2(count);
+            std::size_t roundedCount = round_up_to_pow2(count);
 
             historiesMap.try_emplace(numaId, roundedCount);
         };

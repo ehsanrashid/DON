@@ -112,6 +112,22 @@ constexpr auto sign_sqr(T x) noexcept {
     return sign(x) * sqr(x);
 }
 
+constexpr std::size_t round_up_to_pow2(std::size_t x) noexcept {
+    if (x == 0)
+        return 1;
+
+    --x;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+#if SIZE_MAX > 0xFFFFFFFF
+    x |= x >> 32;  // for 64-bit size_t
+#endif
+    return x + 1;
+}
+
 // Minimax-style polynomial approximation for ln(1 + f), f in [0,1)
 constexpr double constexpr_approx_1p_log(double f) noexcept {
     // clang-format off

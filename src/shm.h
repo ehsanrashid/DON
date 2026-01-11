@@ -343,7 +343,7 @@ class BackendSharedMemory final {
         hMapFile = try_with_windows_lock_memory_privilege(
           [&](std::size_t LargePageSize) {
               // Round up size to full large page
-              std::size_t roundedTotalSize = round_up_pow2(totalSize, LargePageSize);
+              std::size_t roundedTotalSize = round_up_to_pow2_multiple(totalSize, LargePageSize);
 
     #if defined(_WIN64)
               DWORD hiTotalSize = roundedTotalSize >> 32;

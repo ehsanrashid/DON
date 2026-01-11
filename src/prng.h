@@ -26,8 +26,8 @@ namespace DON {
 // This is the standard, high-quality way to expand a single seed.
 class SplitMix64 final {
    public:
-    explicit constexpr SplitMix64(std::uint64_t seed = 1ULL) noexcept :
-        s(seed != 0 ? seed : 1ULL) {}
+    explicit constexpr SplitMix64(std::uint64_t seed = 1) noexcept :
+        s(seed != 0 ? seed : 1) {}
 
     constexpr std::uint64_t next() noexcept {
         s += 0x9E3779B97F4A7C15ULL;
@@ -62,11 +62,11 @@ constexpr std::uint64_t bit(std::uint8_t b) noexcept { return (1ULL << b); }
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class XorShift64Star final {
    public:
-    explicit constexpr XorShift64Star(std::uint64_t seed = 1ULL) noexcept :
+    explicit constexpr XorShift64Star(std::uint64_t seed = 1) noexcept :
         s(SplitMix64(seed).next()) {
         // Avoid zero state
         if (s == 0)
-            s = 1ULL;
+            s = 1;
     }
 
     template<typename T>
