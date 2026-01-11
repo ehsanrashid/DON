@@ -37,14 +37,6 @@
 #include "tt.h"
 #include "uci.h"
 
-#if defined(__GNUC__) || defined(__clang__)
-    #define RESTRICT __restrict__
-#elif defined(_MSC_VER)
-    #define RESTRICT __restrict
-#else
-    #define RESTRICT
-#endif
-
 namespace DON {
 
 // (*Scaler):
@@ -2414,8 +2406,9 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     std::size_t curPV              = worker.curPV;
 
     TimePoint time = elapsed();
+    // Avoid division by zero
     if (time == 0)
-        time = 1;  // Avoid division by zero
+        time = 1;
 
     std::uint64_t nodes    = threads.sum(&Worker::nodes);
     std::uint16_t hashfull = transpositionTable.hashfull();

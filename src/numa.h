@@ -136,7 +136,7 @@ struct WindowsAffinity final {
     // Due to the limitations of the old API cannot detect its use reliably.
     // There will be cases where detect not use but it has actually been used and vice versa.
 
-    bool likely_used_old_api() const { return oldApi.has_value() || !oldDeterminate; }
+    bool likely_use_old_api() const noexcept { return oldApi.has_value() || !oldDeterminate; }
 
     std::optional<std::unordered_set<CpuIndex>> oldApi;
     std::optional<std::unordered_set<CpuIndex>> newApi;
@@ -373,9 +373,9 @@ inline WindowsAffinity get_process_affinity() noexcept {
     return winAffinity;
 }
 
-inline static const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
-inline static const auto STARTUP_OLD_AFFINITY_API_USE =
-  STARTUP_PROCESSOR_AFFINITY.likely_used_old_api();
+inline const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
+
+inline const auto STARTUP_USE_OLD_AFFINITY_API = STARTUP_PROCESSOR_AFFINITY.likely_use_old_api();
 
 // Type machinery used to emulate Cache->GroupCount
 
@@ -482,7 +482,7 @@ inline std::unordered_set<CpuIndex> get_process_affinity() noexcept {
     return cpus;
 }
 
-inline static const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
+inline const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
 
 #endif
 
@@ -629,7 +629,7 @@ class NumaConfig final {
         //     scheduled to processors on their primary group, but they are able to
         //     be scheduled to processors on any other group.
         //
-        // used to be guarded by if (STARTUP_OLD_AFFINITY_API_USE)
+        // used to be guarded by if (STARTUP_USE_OLD_AFFINITY_API)
         {
             NumaConfig splitNumaCfg = empty();
 
@@ -900,7 +900,7 @@ class NumaConfig final {
         }
 
         // Sometimes need to force the old API, but do not use it unless necessary.
-        if (setThreadSelectedCpuSetMasks == nullptr || STARTUP_OLD_AFFINITY_API_USE)
+        if (setThreadSelectedCpuSetMasks == nullptr || STARTUP_USE_OLD_AFFINITY_API)
         {
             // On earlier windows version (since windows 7)
             // cannot run a single thread on multiple processor groups, so need to restrict the group.
@@ -1230,15 +1230,16 @@ class NumaConfig final {
                                    std::size_t             bundleSize) noexcept {
         assert(!domains.empty());
 
-        std::unordered_map<NumaIndex, std::vector<L3Domain>> list;
+        std::unordered_map<NumaIndex, std::vector<L3Domain>> numa_l3_domains;
+
         for (auto& d : domains)
-            list[d.systemNumaIndex].emplace_back(std::move(d));
+            numa_l3_domains[d.systemNumaIndex].emplace_back(std::move(d));
 
         NumaConfig numaCfg = empty();
 
-        NumaIndex n = 0;
+        NumaIndex numaId = 0;
 
-        for (auto& [_, ds] : list)
+        for (auto& [_, ds] : numa_l3_domains)
         {
             bool changed;
             // Scan through pairs and merge them. With roughly equal L3 sizes, should give a decent distribution
@@ -1246,27 +1247,23 @@ class NumaConfig final {
             {
                 changed = false;
 
-                for (std::size_t j = 0; j + 1 < ds.size(); ++j)
-                {
-                    if (ds[j].cpus.size() + ds[j + 1].cpus.size() <= bundleSize)
+                for (std::size_t i = 0; i + 1 < ds.size(); ++i)
+                    if (ds[i].cpus.size() + ds[i + 1].cpus.size() <= bundleSize)
                     {
                         changed = true;
-                        ds[j].cpus.merge(ds[j + 1].cpus);
-                        ds.erase(ds.begin() + j + 1);
+                        ds[i].cpus.merge(ds[i + 1].cpus);
+                        ds.erase(ds.begin() + i + 1);
                     }
-                }
 
                 // ds.size() has decreased if changed is true, so this loop will terminate
             } while (changed);
 
             for (const L3Domain& d : ds)
             {
-                NumaIndex dn = n++;
+                NumaIndex domainId = numaId++;
 
                 for (CpuIndex cpuId : d.cpus)
-                {
-                    numaCfg.add_cpu_to_node(dn, cpuId);
-                }
+                    numaCfg.add_cpu_to_node(domainId, cpuId);
             }
         }
 

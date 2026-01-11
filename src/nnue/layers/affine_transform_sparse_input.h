@@ -70,14 +70,6 @@ struct Lookup final {
 alignas(CACHE_LINE_SIZE) constexpr Lookup LOOKUP{};
 
 
-    #if defined(__GNUC__) || defined(__clang__)
-        #define RESTRICT __restrict__
-    #elif defined(_MSC_VER)
-        #define RESTRICT __restrict
-    #else
-        #define RESTRICT
-    #endif
-
 // Find indices of nonzero numbers in an std::int32_t array
 template<IndexType InputDimensions>
 void find_nnz(const std::int32_t* RESTRICT input,
@@ -172,8 +164,6 @@ void find_nnz(const std::int32_t* RESTRICT input,
     outCount = count;
     #endif
 }
-
-    #undef RESTRICT
 
 }  // namespace
 #endif

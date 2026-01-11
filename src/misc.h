@@ -54,7 +54,9 @@
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
 
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(__clang__)
+    #define ALWAYS_INLINE inline __attribute__((always_inline))
+#elif defined(__GNUC__)
     #define ALWAYS_INLINE inline __attribute__((always_inline))
 #elif defined(_MSC_VER)
     #define ALWAYS_INLINE __forceinline
@@ -63,15 +65,33 @@
     #define ALWAYS_INLINE inline
 #endif
 
-#if defined(__GNUC__) && !defined(__clang__)
+#if defined(__clang__)
+    #define ASSUME(cond) ((void) 0)
+#elif defined(__GNUC__)
     #if __GNUC__ >= 13
         #define ASSUME(cond) __attribute__((assume(cond)))
     #else
-        #define ASSUME(cond) ((cond) ? (void) 0 : __builtin_unreachable())
+        #define ASSUME(cond) \
+            do \
+            { \
+                if (!(cond)) \
+                    __builtin_unreachable(); \
+            } while (0)
     #endif
+#elif defined(_MSC_VER)
+    #define ASSUME(cond) __assume(cond)
 #else
-    // do nothing for other compilers
     #define ASSUME(cond) ((void) 0)
+#endif
+
+#if defined(__clang__)
+    #define RESTRICT __restrict__
+#elif defined(__GNUC__)
+    #define RESTRICT __restrict__
+#elif defined(_MSC_VER)
+    #define RESTRICT __restrict
+#else
+    #define RESTRICT
 #endif
 
 namespace DON {

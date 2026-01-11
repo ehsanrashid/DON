@@ -55,10 +55,8 @@ void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept {
     allocSize = round_up_to_pow2_multiple(allocSize, alignment);
     return std::aligned_alloc(alignment, allocSize);
 #else
-    void* mem = nullptr;
-    if (posix_memalign(&mem, alignment, allocSize) != 0)
-        return nullptr;
-    return mem;
+    void* mem;
+    return posix_memalign(&mem, alignment, allocSize) != 0 ? nullptr : mem;
 #endif
 }
 

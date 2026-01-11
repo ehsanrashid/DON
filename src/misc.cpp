@@ -38,8 +38,8 @@ namespace DON {
 namespace {
 
 constexpr std::string_view Name{"DON"};
-constexpr std::string_view Version{"dev"};
 constexpr std::string_view Author{"Ehsan Rashid"};
+constexpr std::string_view Version{"dev"};
 
 #if !defined(GIT_DATE)
 // Format date to YYYYMMDD
@@ -75,14 +75,14 @@ std::string format_date(std::string_view date) noexcept {
     if (itr == Months.end())
         return std::string(NullDate);
 
-    //unsigned monthIndex = 1 + Months.find(month) / 4;
-    unsigned monthIndex = 1 + std::distance(Months.begin(), itr);
+    //unsigned monthId = 1 + Months.find(month) / 4;
+    unsigned monthId = 1 + std::distance(Months.begin(), itr);
 
     // Format YYYYMMDD using ostringstream
     std::ostringstream oss;
-    oss << std::setfill('0')           //
-        << std::setw(4) << year        //
-        << std::setw(2) << monthIndex  //
+    oss << std::setfill('0')        //
+        << std::setw(4) << year     //
+        << std::setw(2) << monthId  //
         << std::setw(2) << day;
     return oss.str();
 }
@@ -95,15 +95,9 @@ std::string engine_info(bool uci) noexcept {
     str.reserve(64);
 
     if (uci)
-        str += "id name ";
-
+        str = "id name ";
     str += version_info();
-
-    if (uci)
-        str += "\nid author ";
-    else
-        str += " by ";
-
+    str += uci ? "\nid author " : " by ";
     str += Author;
 
     return str;
