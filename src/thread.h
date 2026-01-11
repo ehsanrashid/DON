@@ -290,9 +290,9 @@ class Threads final {
 
     template<typename T>
     std::uint64_t sum(std::atomic<T> Worker::* member,
-                      std::uint64_t            initialValue = 0) const noexcept {
+                      std::uint64_t            initialSum = 0) const noexcept {
 
-        std::uint64_t sum = initialValue;
+        std::uint64_t sum = initialSum;
 
         for (auto&& th : threads)
             sum += (th->worker.get()->*member).load(std::memory_order_relaxed);

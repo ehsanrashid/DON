@@ -312,7 +312,9 @@ constexpr Zobrist PGZob{{
 }};
 
 std::uint16_t swap_uint16(std::uint16_t n) noexcept {
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(__clang__)
+    return __builtin_bswap16(n);
+#elif defined(__GNUC__)
     return __builtin_bswap16(n);
 #elif defined(_MSC_VER)
     return _byteswap_ushort(n);
@@ -324,7 +326,9 @@ std::uint16_t swap_uint16(std::uint16_t n) noexcept {
 }
 
 std::uint32_t swap_uint32(std::uint32_t n) noexcept {
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(__clang__)
+    return __builtin_bswap32(n);
+#elif defined(__GNUC__)
     return __builtin_bswap32(n);
 #elif defined(_MSC_VER)
     return _byteswap_ulong(n);
@@ -338,7 +342,9 @@ std::uint32_t swap_uint32(std::uint32_t n) noexcept {
 }
 
 std::uint64_t swap_uint64(std::uint64_t n) noexcept {
-#if defined(__GNUC__) || defined(__clang__)
+#if defined(__clang__)
+    return __builtin_bswap64(n);
+#elif defined(__GNUC__)
     return __builtin_bswap64(n);
 #elif defined(_MSC_VER)
     return _byteswap_uint64(n);

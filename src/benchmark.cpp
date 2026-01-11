@@ -475,7 +475,7 @@ Setup benchmark(std::istream& is) noexcept {
     if (is >> setup.threads)
         setup.originalInvocation += std::to_string(setup.threads);
     else
-        setup.threads = hardware_concurrency();
+        setup.threads = SYSTEM_THREADS_NB;
 
     if (is >> setup.ttSize)
         setup.originalInvocation += ' ' + std::to_string(setup.ttSize);
