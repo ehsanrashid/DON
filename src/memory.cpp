@@ -27,11 +27,11 @@
 
 #if defined(_WIN32)
     #include <iostream>
+
+    #include "misc.h"
 #elif defined(__linux__) && !defined(__ANDROID__)
     #include <sys/mman.h>
 #endif
-
-#include "misc.h"
 
 namespace DON {
 
