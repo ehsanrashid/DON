@@ -66,7 +66,7 @@
 #endif
 
 #if defined(__clang__)
-    #define ASSUME(cond) __builtin_assume(cond)
+    #define ASSUME(cond) ((void) 0)
 #elif defined(__GNUC__)
     #if __GNUC__ >= 13
         #define ASSUME(cond) __attribute__((assume(cond)))
