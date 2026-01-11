@@ -463,9 +463,7 @@ inline std::unordered_set<CpuIndex> get_process_affinity() noexcept {
 
     CPU_ZERO_S(MaskSize, mask);
 
-    int status = sched_getaffinity(0, MaskSize, mask);
-
-    if (status != 0)
+    if (sched_getaffinity(0, MaskSize, mask) != 0)
     {
         CPU_FREE(mask);
 
