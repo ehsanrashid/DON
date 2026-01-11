@@ -1425,7 +1425,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         r += int(ttCapture) * 1119;
 
         // Increase reduction if next ply has a lot of fail high
-        r += int(ss->cutoffCount != 0) * (512 * ss->cutoffCount + int(AllNode) * 1024);
+        r += int(ss->cutoffCount > 1) * (512 * (ss->cutoffCount - 1) + int(AllNode) * 1024);
 
         // For first picked move (ttMove) reduce reduction
         r -= int(ttm) * 2151;
