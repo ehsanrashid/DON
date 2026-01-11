@@ -976,9 +976,11 @@ inline std::size_t raw_data_hash(const T& value) noexcept {
 }
 
 inline std::string create_hash_string(std::string_view str) noexcept {
-    std::string hashStr(17, '\0');  // 16 hex digits + null terminator
-    std::size_t hash = std::hash<std::string_view>{}(str);
-    std::snprintf(hashStr.data(), hashStr.size(), "%llx", static_cast<unsigned long long>(hash));
+    constexpr std::size_t Size = 16 + 1;  // 16 hex + '\0'
+
+    std::string   hashStr(Size, '\0');
+    std::uint64_t hash = std::hash<std::string_view>{}(str);
+    std::snprintf(hashStr.data(), hashStr.size(), "%016" PRIX64, hash);
     return hashStr;
 }
 
@@ -1238,12 +1240,12 @@ struct CommandLine final {
 
 [[nodiscard]] constexpr char digit_to_char(int digit) noexcept {
     assert(0 <= digit && digit <= 9 && "digit_to_char: non-digit integer");
-    return (0 <= digit && digit <= 9) ? digit + '0' : '\0';
+    return 0 <= digit && digit <= 9 ? digit + '0' : '\0';
 }
 
 [[nodiscard]] constexpr int char_to_digit(char ch) noexcept {
     assert('0' <= ch && ch <= '9' && "char_to_digit: non-digit character");
-    return ('0' <= ch && ch <= '9') ? ch - '0' : -1;
+    return '0' <= ch && ch <= '9' ? ch - '0' : -1;
 }
 
 inline std::string lower_case(std::string str) noexcept {
@@ -1292,21 +1294,23 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 
 [[nodiscard]] constexpr std::string_view ltrim(std::string_view str) noexcept {
     // Find the first non-whitespace character
-    const std::size_t beg = str.find_first_not_of(WHITE_SPACE);
-    return (beg == std::string_view::npos) ? std::string_view{} : str.substr(beg);
+    std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+    return beg == std::string_view::npos ? std::string_view{} : str.substr(beg);
 }
 
 [[nodiscard]] constexpr std::string_view rtrim(std::string_view str) noexcept {
     // Find the last non-whitespace character
-    const std::size_t end = str.find_last_not_of(WHITE_SPACE);
-    return (end == std::string_view::npos) ? std::string_view{} : str.substr(0, end + 1);
+    std::size_t end = str.find_last_not_of(WHITE_SPACE);
+    return end == std::string_view::npos ? std::string_view{} : str.substr(0, end + 1);
 }
 
 [[nodiscard]] constexpr std::string_view trim(std::string_view str) noexcept {
-    const std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+    std::size_t beg = str.find_first_not_of(WHITE_SPACE);
     if (beg == std::string_view::npos)
         return {};
-    const std::size_t end = str.find_last_not_of(WHITE_SPACE);
+
+    std::size_t end = str.find_last_not_of(WHITE_SPACE);
+
     return str.substr(beg, end - beg + 1);
     //return ltrim(rtrim(str));
 }
@@ -1359,12 +1363,16 @@ split(std::string_view str, std::string_view delimiter, bool trimPart = false) n
 }
 
 inline std::string u32_to_string(std::uint32_t u32) noexcept {
-    std::string str(11, '\0');  // "0x" + 8 hex + '\0' => 11 bytes
+    constexpr std::size_t Size = 2 + 8 + 1;  // "0x" + 8 hex + '\0'
+
+    std::string str(Size, '\0');
     std::snprintf(str.data(), str.size(), "0x%08" PRIX32, u32);
     return str;
 }
 inline std::string u64_to_string(std::uint64_t u64) noexcept {
-    std::string str(19, '\0');  // "0x" + 16 hex + '\0' >= 19 bytes
+    constexpr std::size_t Size = 2 + 16 + 1;  // "0x" + 16 hex + '\0'
+
+    std::string str(Size, '\0');
     std::snprintf(str.data(), str.size(), "0x%016" PRIX64, u64);
     return str;
 }

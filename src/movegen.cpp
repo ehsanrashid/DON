@@ -55,11 +55,13 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* moves) noexcept {
     (void) AC;
     alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr noexcept {
         StdArray<Move, SQUARE_NB> table{};
+
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
             Square sq = std::clamp(s - D, SQ_A1, SQ_H8);
             table[s]  = Move{sq, s};
         }
+
         return table;
     }();
 
@@ -133,8 +135,10 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* moves) noexcept {
     (void) AC;
     alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr noexcept {
         StdArray<Move, SQUARE_NB> table{};
+
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
             table[s] = Move{SQUARE_ZERO, s};
+
         return table;
     }();
 
