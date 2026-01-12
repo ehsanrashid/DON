@@ -23,7 +23,6 @@
 #include <cstdint>
 #include <cstring>
 #include <functional>
-#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <new>
@@ -58,25 +57,19 @@
     #endif
 #else
     #include <atomic>
-    #include <cassert>
     #include <cerrno>
     #include <cstdio>
     #include <cstdlib>
-    #include <cstring>
     #include <dirent.h>
     #include <fcntl.h>
     #include <inttypes.h>
     #include <mutex>
-    #include <new>
-    #include <optional>
     #include <pthread.h>
     #include <semaphore.h>
     #include <signal.h>
-    #include <string>
     #include <sys/file.h>
     #include <sys/mman.h>
     #include <sys/stat.h>
-    #include <type_traits>
     #include <unistd.h>
     #include <unordered_set>
 
