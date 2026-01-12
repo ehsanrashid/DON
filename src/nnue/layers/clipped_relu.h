@@ -65,7 +65,7 @@ class ClippedReLU final {
     bool write_parameters(std::ostream&) const noexcept { return true; }
 
     // Forward propagation
-    void propagate(const InputType* input, OutputType* output) const noexcept {
+    void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
 
 #if defined(USE_AVX2)
         if constexpr (InputDimensions % SIMD_WIDTH == 0)

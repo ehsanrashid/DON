@@ -50,8 +50,8 @@ template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType O
 inline void transform_affine_non_ssse3(
   const StdArray<std::int32_t, OutputDimensions>&                        biases,
   const StdArray<std::int8_t, OutputDimensions * PaddedInputDimensions>& weights,
-  const std::uint8_t*                                                    input,
-  std::int32_t*                                                          output) noexcept {
+  const std::uint8_t* RESTRICT                                           input,
+  std::int32_t* RESTRICT                                                 output) noexcept {
     #if defined(USE_SSE2) || defined(USE_NEON)
         #if defined(USE_SSE2)
     // At least a multiple of 16, with SSE2.
@@ -92,9 +92,7 @@ inline void transform_affine_non_ssse3(
         __m128i loSum32 = _mm_shufflelo_epi16(sum, _MM_SHUFFLE(1, 0, 3, 2));
         sum             = _mm_add_epi32(sum, loSum32);
         output[i]       = _mm_cvtsi128_si32(sum);
-
         #elif defined(USE_NEON)
-
         int32x4_t       sum = {biases[i]};
         const int8x8_t* row = reinterpret_cast<const int8x8_t*>(&weights[offset]);
 
@@ -106,11 +104,9 @@ inline void transform_affine_non_ssse3(
         }
 
         output[i] = SIMD::neon_m128_reduce_add_epi32(sum);
-
         #endif
     }
     #else
-
     std::memcpy(output, biases.data(), OutputDimensions * sizeof(std::int32_t));
 
     // Traverse weights in transpose order to take advantage of input sparsity
@@ -193,10 +189,9 @@ class AffineTransform final {
     }
 
     // Forward propagation
-    void propagate(const InputType* input, OutputType* output) const noexcept {
+    void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
 
 #if defined(ENABLE_SEQ_OPT)
-
         if constexpr (OutputDimensions == 1)
         {
     // Cannot use AVX512 for the last layer because there are only 32 inputs

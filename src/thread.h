@@ -191,7 +191,7 @@ class Threads final {
     std::size_t size() const noexcept { return threads.size(); }
     bool        empty() const noexcept { return threads.empty(); }
 
-    void reserve(std::size_t threadCount) noexcept { threads.reserve(threadCount); }
+    void reserve(std::size_t newCapacity) noexcept { threads.reserve(newCapacity); }
 
     void clear() noexcept;
 
