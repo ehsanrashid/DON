@@ -742,7 +742,7 @@ class SharedMemory final: public BaseSharedMemory {
         }
     }
 
-    void close(bool skipUnmapRegion) noexcept override {
+    void close(bool skipUnmapRegion = false) noexcept override {
         if (fd == -1 && mappedPtr == nullptr)
             return;
 
@@ -1000,12 +1000,13 @@ class SharedMemory final: public BaseSharedMemory {
 
         while (dirent* entry = readdir(dir))
         {
-            std::string name = entry->d_name;
+            std::string entryName = entry->d_name;
 
-            if (name.rfind(prefix, 0) != 0)
+            if (entryName.rfind(prefix, 0) != 0)
                 continue;
 
-            auto  pidStr = name.substr(prefix.size());
+            auto pidStr = entryName.substr(prefix.size());
+
             char* endPtr = nullptr;
             long  pidVal = std::strtol(pidStr.c_str(), &endPtr, 10);
 
@@ -1021,7 +1022,7 @@ class SharedMemory final: public BaseSharedMemory {
                 break;
             }
 
-            std::string stalePath = "/dev/shm/" + name;
+            std::string stalePath = "/dev/shm/" + entryName;
 
             ::unlink(stalePath.c_str());
 
