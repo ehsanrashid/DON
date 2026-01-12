@@ -54,24 +54,17 @@ inline constexpr IndexType LayerStacks = 8;
 
 static_assert(LayerStacks == PSQTBuckets);
 
-// If vector instructions are enabled, we update and refresh the
-// accumulator tile by tile such that each tile fits in the CPU's
-// vector registers.
+// If vector instructions are enabled, update and refresh the accumulator
+// tile by tile such that each tile fits in the CPU's vector registers.
 static_assert(PSQTBuckets % 8 == 0,
               "Per feature PSQT values cannot be processed at granularity lower than 8 at a time.");
 
 template<IndexType L1, std::uint32_t L2, std::uint32_t L3>
 struct NetworkArchitecture final {
+   public:
     static constexpr IndexType     TransformedFeatureDimensions = L1;
     static constexpr std::uint32_t FC_0_Outputs                 = L2;
     static constexpr std::uint32_t FC_1_Outputs                 = L3;
-
-    Layers::AffineTransformSparseInput<TransformedFeatureDimensions, FC_0_Outputs + 1> fc_0;
-    Layers::SqrClippedReLU<FC_0_Outputs + 1>                                           ac_sqr_0;
-    Layers::ClippedReLU<FC_0_Outputs + 1>                                              ac_0;
-    Layers::AffineTransform<FC_0_Outputs * 2, FC_1_Outputs>                            fc_1;
-    Layers::ClippedReLU<FC_1_Outputs>                                                  ac_1;
-    Layers::AffineTransform<FC_1_Outputs, 1>                                           fc_2;
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t hash() noexcept {
@@ -160,6 +153,14 @@ struct NetworkArchitecture final {
 
         return outputValue;
     }
+
+   private:
+    Layers::AffineTransformSparseInput<TransformedFeatureDimensions, FC_0_Outputs + 1> fc_0;
+    Layers::SqrClippedReLU<FC_0_Outputs + 1>                                           ac_sqr_0;
+    Layers::ClippedReLU<FC_0_Outputs + 1>                                              ac_0;
+    Layers::AffineTransform<FC_0_Outputs * 2, FC_1_Outputs>                            fc_1;
+    Layers::ClippedReLU<FC_1_Outputs>                                                  ac_1;
+    Layers::AffineTransform<FC_1_Outputs, 1>                                           fc_2;
 };
 
 }  // namespace DON::NNUE

@@ -65,7 +65,7 @@ class SqrClippedReLU final {
     bool write_parameters(std::ostream&) const noexcept { return true; }
 
     // Forward propagation
-    void propagate(const InputType* input, OutputType* output) const noexcept {
+    void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
 
 #if defined(USE_SSE2)
         constexpr IndexType ChunkCount = InputDimensions / 16;

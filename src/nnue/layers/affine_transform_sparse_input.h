@@ -170,7 +170,7 @@ void find_nnz(const std::int32_t* RESTRICT input,
 
 // Sparse input implementation
 template<IndexType InDims, IndexType OutDims>
-class AffineTransformSparseInput {
+class AffineTransformSparseInput final {
    public:
     // Input/output type
     using InputType  = std::uint8_t;
@@ -247,7 +247,7 @@ class AffineTransformSparseInput {
     }
 
     // Forward propagation
-    void propagate(const InputType* input, OutputType* output) const noexcept {
+    void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
 
 #if defined(USE_SSSE3) || (defined(USE_NEON) && (USE_NEON >= 8))
     #if defined(USE_AVX512)
