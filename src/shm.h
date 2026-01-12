@@ -475,8 +475,7 @@ class BaseSharedMemory {
    public:
     virtual ~BaseSharedMemory() = default;
 
-    virtual void               close() noexcept      = 0;
-    virtual const std::string& name() const noexcept = 0;
+    virtual void close(bool skipUnmapRegion = false) noexcept = 0;
 };
 
 class SharedMemoryRegistry final {
@@ -493,11 +492,11 @@ class SharedMemoryRegistry final {
         memories.erase(memory);
     }
 
-    static void clear() noexcept {
+    static void clear(bool skipUnmapRegion = false) noexcept {
         std::scoped_lock lock(mutex);
 
         for (auto* memory : memories)
-            memory->close();
+            memory->close(skipUnmapRegion);
 
         memories.clear();
     }
@@ -516,7 +515,7 @@ class SharedMemoryRegistry final {
 class CleanupHooks final {
    public:
     static void ensure_registered() noexcept {
-        std::call_once(registerOnceFlag, register_signal_handlers);
+        std::call_once(registerOnce, register_signal_handlers);
     }
 
    private:
@@ -527,12 +526,14 @@ class CleanupHooks final {
     CleanupHooks& operator=(CleanupHooks&&) noexcept      = delete;
 
     static void signal_handler(int sig) noexcept {
-        SharedMemoryRegistry::clear();
+        // Threads may still be running, so skip munmap (but still perform other cleanup actions).
+        // The memory mappings will be released on exit.
+        SharedMemoryRegistry::clear(true);
         _Exit(128 + sig);
     }
 
     static void register_signal_handlers() noexcept {
-        std::atexit([]() { SharedMemoryRegistry::clear(); });
+        std::atexit([]() { SharedMemoryRegistry::clear(true); });
 
         constexpr int Signals[]{
           SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
@@ -548,7 +549,7 @@ class CleanupHooks final {
             sigaction(signal, &sigAction, nullptr);
     }
 
-    static inline std::once_flag registerOnceFlag;
+    static inline std::once_flag registerOnce;
 };
 
 inline int portable_fallocate(int fd, off_t offset, off_t length) noexcept {
@@ -578,10 +579,10 @@ class SharedMemory final: public BaseSharedMemory {
     static_assert(!std::is_pointer_v<T>, "T cannot be a pointer type");
 
    public:
-    explicit SharedMemory(const std::string& name) noexcept :
-        _name(name),
+    explicit SharedMemory(const std::string& shmName) noexcept :
+        name(shmName),
         totalSize(calculate_total_size()),
-        sentinelBase(make_sentinel_base(name)) {}
+        sentinelBase(make_sentinel_base(shmName)) {}
 
     ~SharedMemory() noexcept override {
         SharedMemoryRegistry::unregister_memory(this);
@@ -592,8 +593,8 @@ class SharedMemory final: public BaseSharedMemory {
     SharedMemory& operator=(const SharedMemory&) = delete;
 
     SharedMemory(SharedMemory&& sharedMem) noexcept :
-        _name(std::move(sharedMem._name)),
-        _fd(sharedMem._fd),
+        name(std::move(sharedMem.name)),
+        fd(sharedMem.fd),
         mappedPtr(sharedMem.mappedPtr),
         dataPtr(sharedMem.dataPtr),
         shmHeader(sharedMem.shmHeader),
@@ -613,8 +614,8 @@ class SharedMemory final: public BaseSharedMemory {
         SharedMemoryRegistry::unregister_memory(this);
         close();
 
-        _name        = std::move(sharedMem._name);
-        _fd          = sharedMem._fd;
+        name         = std::move(sharedMem.name);
+        fd           = sharedMem.fd;
         mappedPtr    = sharedMem.mappedPtr;
         dataPtr      = sharedMem.dataPtr;
         shmHeader    = sharedMem.shmHeader;
@@ -641,13 +642,13 @@ class SharedMemory final: public BaseSharedMemory {
 
             bool newCreated = false;
 
-            _fd = shm_open(_name.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
+            fd = shm_open(name.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
 
-            if (_fd == -1)
+            if (fd == -1)
             {
-                _fd = shm_open(_name.c_str(), O_RDWR, 0666);
+                fd = shm_open(name.c_str(), O_RDWR, 0666);
 
-                if (_fd == -1)
+                if (fd == -1)
                     return false;
             }
             else
@@ -655,7 +656,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             if (!lock_file(LOCK_EX))
             {
-                ::close(_fd);
+                ::close(fd);
 
                 reset();
 
@@ -670,13 +671,13 @@ class SharedMemory final: public BaseSharedMemory {
             if (!success)
             {
                 if (newCreated || headerInvalid)
-                    shm_unlink(_name.c_str());
+                    shm_unlink(name.c_str());
 
                 unmap_region();
 
                 unlock_file();
 
-                ::close(_fd);
+                ::close(fd);
 
                 reset();
 
@@ -689,16 +690,16 @@ class SharedMemory final: public BaseSharedMemory {
                 return false;
             }
 
-            if (!lock_shared_mutex())
+            if (!lock_mutex())
             {
                 if (newCreated)
-                    shm_unlink(_name.c_str());
+                    shm_unlink(name.c_str());
 
                 unmap_region();
 
                 unlock_file();
 
-                ::close(_fd);
+                ::close(fd);
 
                 reset();
 
@@ -713,16 +714,16 @@ class SharedMemory final: public BaseSharedMemory {
 
             if (!create_sentinel_file_locked())
             {
-                unlock_shared_mutex();
+                unlock_mutex();
 
                 unmap_region();
 
                 if (newCreated)
-                    shm_unlink(_name.c_str());
+                    shm_unlink(name.c_str());
 
                 unlock_file();
 
-                ::close(_fd);
+                ::close(fd);
 
                 reset();
 
@@ -731,7 +732,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             shmHeader->refCount.fetch_add(1, std::memory_order_acq_rel);
 
-            unlock_shared_mutex();
+            unlock_mutex();
 
             unlock_file();
 
@@ -741,16 +742,16 @@ class SharedMemory final: public BaseSharedMemory {
         }
     }
 
-    void close() noexcept override {
-        if (_fd == -1 && mappedPtr == nullptr)
+    void close(bool skipUnmapRegion) noexcept override {
+        if (fd == -1 && mappedPtr == nullptr)
             return;
 
-        bool regionRemove = false;
+        bool removeRegion = false;
         bool fileLocked   = lock_file(LOCK_EX);
         bool mutexLocked  = false;
 
         if (fileLocked && shmHeader != nullptr)
-            mutexLocked = lock_shared_mutex();
+            mutexLocked = lock_mutex();
 
         if (mutexLocked)
         {
@@ -759,38 +760,34 @@ class SharedMemory final: public BaseSharedMemory {
 
             remove_sentinel_file();
 
-            regionRemove = !has_other_live_sentinels_locked();
+            removeRegion = !has_other_live_sentinels_locked();
 
-            unlock_shared_mutex();
+            unlock_mutex();
         }
         else
         {
             remove_sentinel_file();
 
-            decrement_refcount_relaxed();
+            decrement_ref_count();
         }
 
-        unmap_region();
+        if (!skipUnmapRegion)
+            unmap_region();
 
-        if (regionRemove)
-            shm_unlink(_name.c_str());
+        if (removeRegion)
+            shm_unlink(name.c_str());
 
         if (fileLocked)
             unlock_file();
 
-        if (_fd != -1)
-        {
-            ::close(_fd);
-            _fd = -1;
-        }
+        if (fd != -1)
+            ::close(fd);
 
         reset();
     }
 
-    const std::string& name() const noexcept override { return _name; }
-
     [[nodiscard]] bool is_open() const noexcept {
-        return _fd != -1 && mappedPtr != nullptr && dataPtr != nullptr;
+        return fd != -1 && mappedPtr != nullptr && dataPtr != nullptr;
     }
 
     [[nodiscard]] const T& get() const noexcept { return *dataPtr; }
@@ -832,7 +829,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void reset() noexcept {
-        _fd       = -1;
+        fd        = -1;
         mappedPtr = nullptr;
         dataPtr   = nullptr;
         shmHeader = nullptr;
@@ -850,27 +847,26 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     [[nodiscard]] bool lock_file(int operation) noexcept {
-        if (_fd == -1)
+        if (fd == -1)
             return false;
 
-        while (flock(_fd, operation) == -1)
+        while (flock(fd, operation) == -1)
         {
-            if (errno == EINTR)
-                continue;
-            return false;
+            if (errno != EINTR)
+                return false;
         }
+
         return true;
     }
 
     void unlock_file() noexcept {
-        if (_fd == -1)
+        if (fd == -1)
             return;
 
-        while (flock(_fd, LOCK_UN) == -1)
+        while (flock(fd, LOCK_UN) == -1)
         {
-            if (errno == EINTR)
-                continue;
-            break;
+            if (errno != EINTR)
+                break;
         }
     }
 
@@ -882,14 +878,14 @@ class SharedMemory final: public BaseSharedMemory {
         return path;
     }
 
-    void decrement_refcount_relaxed() noexcept {
+    void decrement_ref_count() noexcept {
         if (shmHeader == nullptr)
             return;
 
-        std::uint32_t expected = shmHeader->refCount.load(std::memory_order_relaxed);
-        while (expected != 0
-               && !shmHeader->refCount.compare_exchange_weak(
-                 expected, expected - 1, std::memory_order_acq_rel, std::memory_order_relaxed))
+        for (auto expected = shmHeader->refCount.load(std::memory_order_relaxed);
+             expected != 0
+             && !shmHeader->refCount.compare_exchange_weak(
+               expected, expected - 1, std::memory_order_acq_rel, std::memory_order_relaxed);)
         {}
     }
 
@@ -902,18 +898,21 @@ class SharedMemory final: public BaseSharedMemory {
 
         for (int attempt = 0; attempt < 2; ++attempt)
         {
-            int fd = ::open(sentinelPath.c_str(), O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC, 0600);
+            int fd_ = ::open(sentinelPath.c_str(), O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC, 0600);
 
-            if (fd != -1)
+            if (fd_ != -1)
             {
-                ::close(fd);
+                ::close(fd_);
+
                 return true;
             }
 
             if (errno == EEXIST)
             {
                 ::unlink(sentinelPath.c_str());
-                decrement_refcount_relaxed();
+
+                decrement_ref_count();
+
                 continue;
             }
 
@@ -921,6 +920,7 @@ class SharedMemory final: public BaseSharedMemory {
         }
 
         sentinelPath.clear();
+
         return false;
     }
 
@@ -929,6 +929,7 @@ class SharedMemory final: public BaseSharedMemory {
             return;
 
         ::unlink(sentinelPath.c_str());
+
         sentinelPath.clear();
     }
 
@@ -956,7 +957,7 @@ class SharedMemory final: public BaseSharedMemory {
         return rc == 0;
     }
 
-    [[nodiscard]] bool lock_shared_mutex() noexcept {
+    [[nodiscard]] bool lock_mutex() noexcept {
         if (shmHeader == nullptr)
             return false;
 
@@ -977,14 +978,12 @@ class SharedMemory final: public BaseSharedMemory {
             }
     #endif
 
-            if (rc == EINTR)
-                continue;
-
-            return false;
+            if (rc != EINTR)
+                return false;
         }
     }
 
-    void unlock_shared_mutex() noexcept {
+    void unlock_mutex() noexcept {
         if (shmHeader != nullptr)
             pthread_mutex_unlock(&shmHeader->mutex);
     }
@@ -1014,15 +1013,19 @@ class SharedMemory final: public BaseSharedMemory {
                 continue;
 
             pid_t pid = pid_t(pidVal);
+
             if (is_pid_alive(pid))
             {
                 found = true;
+
                 break;
             }
 
             std::string stalePath = "/dev/shm/" + name;
+
             ::unlink(stalePath.c_str());
-            const_cast<SharedMemory*>(this)->decrement_refcount_relaxed();
+
+            const_cast<SharedMemory*>(this)->decrement_ref_count();
         }
 
         closedir(dir);
@@ -1031,13 +1034,13 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     [[nodiscard]] bool setup_new_region(const T& initialValue) noexcept {
-        if (ftruncate(_fd, off_t(totalSize)) == -1)
+        if (ftruncate(fd, off_t(totalSize)) == -1)
             return false;
 
-        if (portable_fallocate(_fd, 0, off_t(totalSize)) != 0)
+        if (portable_fallocate(fd, 0, off_t(totalSize)) != 0)
             return false;
 
-        mappedPtr = mmap(nullptr, totalSize, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
+        mappedPtr = mmap(nullptr, totalSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
         if (mappedPtr == MAP_FAILED)
         {
@@ -1070,7 +1073,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         struct stat objStat;
 
-        if (fstat(_fd, &objStat) == -1)
+        if (fstat(fd, &objStat) == -1)
         {
             std::cerr << "fstat failed: " << strerror(errno) << std::endl;
 
@@ -1084,7 +1087,7 @@ class SharedMemory final: public BaseSharedMemory {
             return false;
         }
 
-        mappedPtr = mmap(nullptr, totalSize, PROT_READ | PROT_WRITE, MAP_SHARED, _fd, 0);
+        mappedPtr = mmap(nullptr, totalSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
         if (mappedPtr == MAP_FAILED)
         {
@@ -1115,8 +1118,8 @@ class SharedMemory final: public BaseSharedMemory {
         return true;
     }
 
-    std::string _name;
-    int         _fd = -1;
+    std::string name;
+    int         fd = -1;
 
     void*       mappedPtr = nullptr;
     T*          dataPtr   = nullptr;
@@ -1127,9 +1130,9 @@ class SharedMemory final: public BaseSharedMemory {
 };
 
 template<typename T>
-[[nodiscard]] std::optional<SharedMemory<T>> create_shared_memory(const std::string& name,
+[[nodiscard]] std::optional<SharedMemory<T>> create_shared_memory(const std::string& shmName,
                                                                   const T& initialValue) noexcept {
-    SharedMemory<T> shm(name);
+    SharedMemory<T> shm(shmName);
 
     if (shm.open(initialValue))
         return shm;

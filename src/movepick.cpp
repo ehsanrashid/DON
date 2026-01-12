@@ -315,7 +315,7 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case Stage::ENC_QUIET_INIT :
-        if (quietAllowed)
+        if (!skipQuiets)
         {
             MoveList<ENC_QUIET> moveList(pos);
 
@@ -328,7 +328,7 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case Stage::ENC_QUIET_GOOD :
-        if (quietAllowed)
+        if (!skipQuiets)
         {
             for (; !empty(); next())
                 if (valid())
@@ -355,7 +355,7 @@ STAGE_SWITCH:
         if (select([]() { return true; }))
             return move();
 
-        if (quietAllowed)
+        if (!skipQuiets)
         {
             // Prepare the pointers to loop over the bad quiets
             cur    = begBadQuiet;
@@ -366,7 +366,7 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case Stage::ENC_QUIET_BAD :
-        if (quietAllowed && select([]() { return true; }))
+        if (!skipQuiets && select([]() { return true; }))
             return move();
 
         return Move::None;

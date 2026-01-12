@@ -1242,7 +1242,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         if (!RootNode && hasNonPawn && !is_loss(bestValue))
         {
             // Skip quiet moves if moveCount exceeds Futility Move Count threshold
-            mp.quietAllowed &= moveCount < ((3 + depth * depth) >> int(!improve));
+            mp.skipQuiets |= moveCount >= ((3 + depth * depth) >> int(!improve));
 
             // Reduced depth of the next LMR search
             Depth lmrDepth = newDepth - r / 1024;
