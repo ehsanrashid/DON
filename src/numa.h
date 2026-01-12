@@ -1230,16 +1230,16 @@ class NumaConfig final {
                                    std::size_t             bundleSize) noexcept {
         assert(!domains.empty());
 
-        std::unordered_map<NumaIndex, std::vector<L3Domain>> numa_l3_domains;
+        std::unordered_map<NumaIndex, std::vector<L3Domain>> numaL3Domains;
 
         for (auto& d : domains)
-            numa_l3_domains[d.systemNumaIndex].emplace_back(std::move(d));
+            numaL3Domains[d.systemNumaIndex].emplace_back(std::move(d));
 
         NumaConfig numaCfg = empty();
 
         NumaIndex numaId = 0;
 
-        for (auto& [_, ds] : numa_l3_domains)
+        for (auto& [_, ds] : numaL3Domains)
         {
             bool changed;
             // Scan through pairs and merge them. With roughly equal L3 sizes, should give a decent distribution
