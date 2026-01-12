@@ -54,9 +54,8 @@ inline constexpr IndexType LayerStacks = 8;
 
 static_assert(LayerStacks == PSQTBuckets);
 
-// If vector instructions are enabled, we update and refresh the
-// accumulator tile by tile such that each tile fits in the CPU's
-// vector registers.
+// If vector instructions are enabled, update and refresh the accumulator
+// tile by tile such that each tile fits in the CPU's vector registers.
 static_assert(PSQTBuckets % 8 == 0,
               "Per feature PSQT values cannot be processed at granularity lower than 8 at a time.");
 
