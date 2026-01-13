@@ -90,7 +90,8 @@ MovePicker::MovePicker(const Position&                p,
 // preferring captures moves with a good history.
 // Quiets moves are ordered by using the history tables.
 template<>
-MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveList) noexcept {
+MovePicker::iterator
+MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList) noexcept {
 
     iterator itr = cur;
 
@@ -113,7 +114,8 @@ MovePicker::iterator MovePicker::score<ENC_CAPTURE>(MoveList<ENC_CAPTURE>& moveL
 }
 
 template<>
-MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList) noexcept {
+MovePicker::iterator
+MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) noexcept {
 
     Color ac = pos.active_color();
 
@@ -174,7 +176,8 @@ MovePicker::iterator MovePicker::score<ENC_QUIET>(MoveList<ENC_QUIET>& moveList)
 }
 
 template<>
-MovePicker::iterator MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveList) noexcept {
+MovePicker::iterator
+MovePicker::score<GenType::EVA_CAPTURE>(MoveList<GenType::EVA_CAPTURE>& moveList) noexcept {
 
     iterator itr = cur;
 
@@ -195,7 +198,8 @@ MovePicker::iterator MovePicker::score<EVA_CAPTURE>(MoveList<EVA_CAPTURE>& moveL
 }
 
 template<>
-MovePicker::iterator MovePicker::score<EVA_QUIET>(MoveList<EVA_QUIET>& moveList) noexcept {
+MovePicker::iterator
+MovePicker::score<GenType::EVA_QUIET>(MoveList<GenType::EVA_QUIET>& moveList) noexcept {
 
     Color ac = pos.active_color();
 
@@ -298,17 +302,17 @@ STAGE_SWITCH:
     case Stage::INIT :
         if (initStage == Stage::EVA_CAPTURE)
         {
-            MoveList<EVA_CAPTURE> moveList(pos);
+            MoveList<GenType::EVA_CAPTURE> moveList(pos);
 
             cur    = moves.data();
-            endCur = score<EVA_CAPTURE>(moveList);
+            endCur = score<GenType::EVA_CAPTURE>(moveList);
         }
         else
         {
-            MoveList<ENC_CAPTURE> moveList(pos);
+            MoveList<GenType::ENC_CAPTURE> moveList(pos);
 
             cur = endBadCapture = moves.data();
-            endCur              = score<ENC_CAPTURE>(moveList);
+            endCur              = score<GenType::ENC_CAPTURE>(moveList);
         }
 
         insertion_sort(cur, endCur);
@@ -328,9 +332,9 @@ STAGE_SWITCH:
 
         if (!skipQuiets)
         {
-            MoveList<ENC_QUIET> moveList(pos);
+            MoveList<GenType::ENC_QUIET> moveList(pos);
 
-            endCur = endBadQuiet = score<ENC_QUIET>(moveList);
+            endCur = endBadQuiet = score<GenType::ENC_QUIET>(moveList);
 
             insertion_sort(cur, endCur);
         }
@@ -387,9 +391,9 @@ STAGE_SWITCH:
             return move();
 
         {
-            MoveList<EVA_QUIET> moveList(pos);
+            MoveList<GenType::EVA_QUIET> moveList(pos);
 
-            endCur = score<EVA_QUIET>(moveList);
+            endCur = score<GenType::EVA_QUIET>(moveList);
 
             insertion_sort(cur, endCur);
         }

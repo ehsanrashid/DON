@@ -51,18 +51,20 @@ class UCI final {
 
     [[nodiscard]] static std::string move_to_can(Move m) noexcept;
 
-    [[nodiscard]] static Move can_to_move(std::string            can,
-                                          const MoveList<LEGAL>& legalMoves) noexcept;
+    [[nodiscard]] static Move can_to_move(std::string                     can,
+                                          const MoveList<GenType::LEGAL>& legalMoves) noexcept;
     [[nodiscard]] static Move can_to_move(std::string can, const Position& pos) noexcept;
 
     [[nodiscard]] static std::string move_to_san(Move m, Position& pos) noexcept;
 
-    [[nodiscard]] static Move
-    san_to_move(std::string san, Position& pos, const MoveList<LEGAL>& legalMoves) noexcept;
+    [[nodiscard]] static Move san_to_move(std::string                     san,
+                                          Position&                       pos,
+                                          const MoveList<GenType::LEGAL>& legalMoves) noexcept;
     [[nodiscard]] static Move san_to_move(std::string san, Position& pos) noexcept;
 
-    [[nodiscard]] static Move
-    mix_to_move(std::string mix, Position& pos, const MoveList<LEGAL>& legalMoves) noexcept;
+    [[nodiscard]] static Move mix_to_move(std::string                     mix,
+                                          Position&                       pos,
+                                          const MoveList<GenType::LEGAL>& legalMoves) noexcept;
 
     static std::string build_pv_string(const Moves& pvMoves) noexcept;
 

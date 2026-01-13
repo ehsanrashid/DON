@@ -160,7 +160,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
 
     for (const auto& move : moves)
     {
-        Move m = UCI::mix_to_move(move, pos, MoveList<LEGAL>(pos));
+        Move m = UCI::mix_to_move(move, pos, MoveList<GenType::LEGAL>(pos));
 
         if (m == Move::None)
         {

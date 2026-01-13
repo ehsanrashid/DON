@@ -1589,7 +1589,7 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
     WDLScore wdlScore, bestWdlScore = WDL_LOSS;
 
-    const MoveList<LEGAL> legalMoves(pos);
+    const MoveList<GenType::LEGAL> legalMoves(pos);
 
     std::uint8_t moveCount = 0;
 
@@ -1910,7 +1910,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     // and find the winning move that minimizes DTZ-score.
     int minDtzScore = 0xFFFF;
 
-    for (auto m : MoveList<LEGAL>(pos))
+    for (auto m : MoveList<GenType::LEGAL>(pos))
     {
         bool zeroing = pos.capture(m) || type_of(pos.moved_pc(m)) == PAWN;
 
@@ -1924,7 +1924,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
         dtzScore = zeroing ? -before_zeroing_dtz(search<false>(pos, ps)) : -probe_dtz(pos, ps);
 
         // If the move mates, force min DTZ-score to 1
-        if (dtzScore == 1 && pos.checkers_bb() != 0 && MoveList<LEGAL, true>(pos).empty())
+        if (dtzScore == 1 && pos.checkers_bb() != 0 && MoveList<GenType::LEGAL, true>(pos).empty())
             minDtzScore = 1;
 
         // Convert result from 1-ply search. Zeroing moves are already accounted
@@ -2023,7 +2023,7 @@ bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bo
         }
 
         // Make sure that a mating move is assigned a dtzScore value of 1
-        if (dtzScore == 2 && pos.checkers_bb() != 0 && MoveList<LEGAL, true>(pos).empty())
+        if (dtzScore == 2 && pos.checkers_bb() != 0 && MoveList<GenType::LEGAL, true>(pos).empty())
             dtzScore = 1;
 
         pos.undo_move(rm.pv[0]);

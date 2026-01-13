@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cmath>  // IWYU pragma: keep
+#include <cmath>
 #include <cstdint>
 #include <initializer_list>
 #include <string>
@@ -43,7 +43,7 @@
 
     // * _pext_u64(src, mask) - Parallel Bits Extract
     // Extracts the bits from the 64-bit 'src' corresponding to the 1-bits in 'mask',
-    // and packs them contiguously into the lower bits of the result.
+    // and packs them contiguously into the lower bits.
 
     // * _pdep_u64(src, mask) - Parallel Bits Deposit
     // Deposits the lower bits of 'src' into the positions of the 1-bits in 'mask',

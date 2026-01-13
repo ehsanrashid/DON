@@ -305,7 +305,7 @@ void Threads::start(Position&      pos,
 
     RootMoves rootMoves;
 
-    const MoveList<LEGAL> legalMoves(pos);
+    const MoveList<GenType::LEGAL> legalMoves(pos);
 
     if (!limit.searchMoves.empty())
     {

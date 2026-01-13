@@ -303,7 +303,7 @@ void Worker::start_search() noexcept {
 
         Value       value = rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW;
         std::string score = UCI::to_score({value, rootPos});
-        mainManager->updateCxt.onUpdateShort({DEPTH_ZERO, score});
+        mainManager->updateContext.onUpdateShort({DEPTH_ZERO, score});
     }
     else
     {
@@ -320,7 +320,7 @@ void Worker::start_search() noexcept {
 
             RootMoves oRootMoves;
 
-            for (auto m : MoveList<LEGAL>(rootPos))
+            for (auto m : MoveList<GenType::LEGAL>(rootPos))
                 oRootMoves.emplace_back(m);
 
             Move bookPonderMove = Book.probe(rootPos, oRootMoves, options);
@@ -407,7 +407,7 @@ void Worker::start_search() noexcept {
                                                 ? rm.pv[1]
                                                 : Move::None);
 
-    mainManager->updateCxt.onUpdateMove({bestMove, ponderMove});
+    mainManager->updateContext.onUpdateMove({bestMove, ponderMove});
 }
 
 // Main iterative deepening loop. It calls search() repeatedly with increasing depth
@@ -1209,7 +1209,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             {
                 std::string currMove       = UCI::move_to_can(move);
                 std::size_t currMoveNumber = curPV + moveCount;
-                main_manager()->updateCxt.onUpdateIter({rootDepth, currMove, currMoveNumber});
+                main_manager()->updateContext.onUpdateIter({rootDepth, currMove, currMoveNumber});
             }
 
         if constexpr (PVNode)
@@ -1614,7 +1614,8 @@ S_MOVES_LOOP:  // When in check, search starts here
             searchedMoves[capture].push_back(move);
     }
 
-    assert(moveCount != 0 || !ss->inCheck || exclude || (MoveList<LEGAL, true>(pos).empty()));
+    assert(moveCount != 0 || !ss->inCheck || exclude
+           || (MoveList<GenType::LEGAL, true>(pos).empty()));
     assert(ss->moveCount == moveCount && ss->ttMove == ttd.move);
 
     // Step 21. Check for mate and stalemate
@@ -1935,7 +1936,7 @@ QS_MOVES_LOOP:
         if (ss->inCheck)
         {
             assert(bestValue == -VALUE_INFINITE);
-            assert((MoveList<LEGAL, true>(pos).empty()));
+            assert((MoveList<GenType::LEGAL, true>(pos).empty()));
             bestValue = mated_in(ss->ply);  // Plies to mate from the root
         }
         else
@@ -1947,7 +1948,7 @@ QS_MOVES_LOOP:
                 && !pos.has_non_pawn(ac)
                 // No pawn pushes available
                 && (pawn_push_bb(pos.pieces_bb(ac, PAWN), ac) & ~pos.pieces_bb()) == 0
-                && MoveList<LEGAL, true>(pos).empty())
+                && MoveList<GenType::LEGAL, true>(pos).empty())
                 bestValue = VALUE_DRAW;
             pos.state()->checkersBB = 0;
         }
@@ -2146,7 +2147,7 @@ bool Worker::ponder_move_extracted() noexcept {
     rootPos.do_move(bestMove, st, true, this);
 
     // Legal moves for the opponent
-    const MoveList<LEGAL> oLegalMoves(rootPos);
+    const MoveList<GenType::LEGAL> oLegalMoves(rootPos);
 
     if (!oLegalMoves.empty())
     {
@@ -2241,7 +2242,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
         RootMoves rms;
 
-        for (auto m : MoveList<LEGAL>(rootPos))
+        for (auto m : MoveList<GenType::LEGAL>(rootPos))
             rms.emplace_back(m);
 
         auto tbCfg = Tablebase::rank_root_moves(rootPos, rms, options, false, time_to_abort);
@@ -2279,7 +2280,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
         RootMoves rms;
 
-        for (auto m : MoveList<LEGAL>(rootPos))
+        for (auto m : MoveList<GenType::LEGAL>(rootPos))
         {
             auto& rm = rms.emplace_back(m);
 
@@ -2287,7 +2288,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             rootPos.do_move(m, st);
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
-            for (auto om : MoveList<LEGAL>(rootPos))
+            for (auto om : MoveList<GenType::LEGAL>(rootPos))
                 rm.tbRank -= 1 + 99 * rootPos.capture(om);
             rootPos.undo_move(m);
         }
@@ -2453,7 +2454,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
         std::string pv = UCI::build_pv_string(rm.pv);
 
-        updateCxt.onUpdateFull(
+        updateContext.onUpdateFull(
           {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, hashfull, tbHits, pv});
     }
 }

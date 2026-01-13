@@ -447,8 +447,8 @@ class MainSearchManager final: public ISearchManager {
     };
 
     MainSearchManager() noexcept = delete;
-    explicit MainSearchManager(const UpdateContext& updateContext) noexcept :
-        updateCxt(updateContext) {}
+    explicit MainSearchManager(const UpdateContext& updateCtx) noexcept :
+        updateContext(updateCtx) {}
 
     void init() noexcept;
 
@@ -459,7 +459,7 @@ class MainSearchManager final: public ISearchManager {
 
     void show_pv(Worker& worker, Depth depth) const noexcept;
 
-    const UpdateContext& updateCxt;
+    const UpdateContext& updateContext;
 
     std::uint16_t callsCount;
     bool          ponder;

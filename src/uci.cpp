@@ -957,7 +957,7 @@ std::string UCI::move_to_can(Move m) noexcept {
 
 // Converts a string representing a move in coordinate notation
 // (g1f3, a7a8q) to the corresponding legal move, if any.
-Move UCI::can_to_move(std::string can, const MoveList<LEGAL>& legalMoves) noexcept {
+Move UCI::can_to_move(std::string can, const MoveList<GenType::LEGAL>& legalMoves) noexcept {
     assert(4 <= can.size() && can.size() <= 5);
 
     can = lower_case(can);
@@ -970,7 +970,7 @@ Move UCI::can_to_move(std::string can, const MoveList<LEGAL>& legalMoves) noexce
 }
 
 Move UCI::can_to_move(std::string can, const Position& pos) noexcept {
-    return can_to_move(can, MoveList<LEGAL>(pos));
+    return can_to_move(can, MoveList<GenType::LEGAL>(pos));
 }
 
 namespace {
@@ -1033,7 +1033,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     if (m == Move::Null)
         return "0000";
 
-    assert(MoveList<LEGAL>(pos).contains(m));
+    assert(MoveList<GenType::LEGAL>(pos).contains(m));
 
     Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     assert(color_of(pos[orgSq]) == pos.active_color());
@@ -1109,15 +1109,17 @@ SPECIAL:
 
     // Marker for check, checkmate & stalemate
     san += pos.checkers_bb() != 0  //
-           ? (MoveList<LEGAL, true>(pos).empty() ? '#' : '+')
-           : (MoveList<LEGAL, true>(pos).empty() ? '=' : '\0');
+           ? (MoveList<GenType::LEGAL, true>(pos).empty() ? '#' : '+')
+           : (MoveList<GenType::LEGAL, true>(pos).empty() ? '=' : '\0');
 
     pos.undo_move(m);
 
     return san;
 }
 
-Move UCI::san_to_move(std::string san, Position& pos, const MoveList<LEGAL>& legalMoves) noexcept {
+Move UCI::san_to_move(std::string                     san,
+                      Position&                       pos,
+                      const MoveList<GenType::LEGAL>& legalMoves) noexcept {
     assert(2 <= san.size() && san.size() <= 9);
 
     if (san.size() >= 2 && san[1] == '-' && (san[0] == '0' || std::tolower(san[0]) == 'o'))
@@ -1131,10 +1133,12 @@ Move UCI::san_to_move(std::string san, Position& pos, const MoveList<LEGAL>& leg
 }
 
 Move UCI::san_to_move(std::string san, Position& pos) noexcept {
-    return san_to_move(san, pos, MoveList<LEGAL>(pos));
+    return san_to_move(san, pos, MoveList<GenType::LEGAL>(pos));
 }
 
-Move UCI::mix_to_move(std::string mix, Position& pos, const MoveList<LEGAL>& legalMoves) noexcept {
+Move UCI::mix_to_move(std::string                     mix,
+                      Position&                       pos,
+                      const MoveList<GenType::LEGAL>& legalMoves) noexcept {
     assert(2 <= mix.size() && mix.size() <= 9);
 
     Move m = Move::None;

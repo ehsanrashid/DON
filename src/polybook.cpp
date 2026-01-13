@@ -386,7 +386,7 @@ void swap_entry(PolyBook::Entry* const e) noexcept {
 // bit  6-11: origin square (from 0 to 63)
 // bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
 // bit 14-15: special move flag: promotion (1), en-passant (2), castling (3)
-Move pg_to_move(std::uint16_t pgMove, const MoveList<LEGAL>& legalMoves) noexcept {
+Move pg_to_move(std::uint16_t pgMove, const MoveList<GenType::LEGAL>& legalMoves) noexcept {
 
     Move move(pgMove);
 
@@ -597,7 +597,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     if (candidates.empty())
         return Move::None;
 
-    const MoveList<LEGAL> legalMoves(pos);
+    const MoveList<GenType::LEGAL> legalMoves(pos);
 
     std::uint32_t maxWeight = 0;
     std::uint64_t sumWeight = 0;
