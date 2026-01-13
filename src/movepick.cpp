@@ -52,11 +52,21 @@ MovePicker::MovePicker(const Position&                  p,
     threshold(th) {
     assert(ttMove == Move::None || pos.legal(ttMove));
 
-    stage = pos.checkers_bb() != 0  //
-            ? Stage::EVA_TT + int(!(ttMove != Move::None))
-            : threshold < 0
-                ? Stage::ENC_TT + int(!(ttMove != Move::None))
-                : Stage::QS_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
+    if (pos.checkers_bb() != 0)
+    {
+        initStage = Stage::EVA_CAPTURE;
+        curStage  = Stage(!(ttMove != Move::None));
+    }
+    else if (threshold < 0)
+    {
+        initStage = Stage::ENC_GOOD_CAPTURE;
+        curStage  = Stage(!(ttMove != Move::None));
+    }
+    else
+    {
+        initStage = Stage::QS_CAPTURE;
+        curStage  = Stage(!(ttMove != Move::None && pos.capture_promo(ttMove)));
+    }
 }
 
 // MovePicker constructor for ProbCut:
@@ -72,7 +82,8 @@ MovePicker::MovePicker(const Position&                p,
     assert(pos.checkers_bb() == 0);
     assert(ttMove == Move::None || pos.legal(ttMove));
 
-    stage = Stage::PROBCUT_TT + int(!(ttMove != Move::None && pos.capture_promo(ttMove)));
+    initStage = Stage::PROBCUT;
+    curStage  = Stage(!(ttMove != Move::None && pos.capture_promo(ttMove)));
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -276,31 +287,34 @@ void insertion_sort(Iterator begin, Iterator end) noexcept {
 Move MovePicker::next_move() noexcept {
 
 STAGE_SWITCH:
-    switch (stage)
+    switch (curStage)
     {
-    case Stage::ENC_TT :
-    case Stage::EVA_TT :
-    case Stage::QS_TT :
-    case Stage::PROBCUT_TT :
-        ++stage;
+    case Stage::TT :
+        ++curStage;
         return ttMove;
 
-    case Stage::ENC_CAPTURE_INIT :
-    case Stage::QS_CAPTURE_INIT :
-    case Stage::PROBCUT_INIT : {
-        MoveList<ENC_CAPTURE> moveList(pos);
+    case Stage::INIT :
+        if (initStage == Stage::EVA_CAPTURE)
+        {
+            MoveList<EVA_CAPTURE> moveList(pos);
 
-        cur = endBadCapture = moves.data();
-        // NOTE:: endMove is not defined here, it will be set later
-        endCur = /* endMove =*/score<ENC_CAPTURE>(moveList);
+            cur    = moves.data();
+            endCur = score<EVA_CAPTURE>(moveList);
+        }
+        else
+        {
+            MoveList<ENC_CAPTURE> moveList(pos);
+
+            cur = endBadCapture = moves.data();
+            endCur              = score<ENC_CAPTURE>(moveList);
+        }
 
         insertion_sort(cur, endCur);
-    }
 
-        ++stage;
+        curStage = initStage;
         goto STAGE_SWITCH;
 
-    case Stage::ENC_CAPTURE_GOOD :
+    case Stage::ENC_GOOD_CAPTURE :
         if (select([&]() {
                 if (pos.see(*cur) >= -cur->value / 18)
                     return true;
@@ -310,23 +324,19 @@ STAGE_SWITCH:
             }))
             return move();
 
-        ++stage;
-        [[fallthrough]];
-
-    case Stage::ENC_QUIET_INIT :
         if (!skipQuiets)
         {
             MoveList<ENC_QUIET> moveList(pos);
 
-            endCur = endMove = score<ENC_QUIET>(moveList);
+            endCur = endBadQuiet = score<ENC_QUIET>(moveList);
 
             insertion_sort(cur, endCur);
         }
 
-        ++stage;
+        ++curStage;
         [[fallthrough]];
 
-    case Stage::ENC_QUIET_GOOD :
+    case Stage::ENC_GOOD_QUIET :
         if (!skipQuiets)
         {
             for (; !empty(); next())
@@ -347,10 +357,10 @@ STAGE_SWITCH:
         cur    = moves.data();
         endCur = endBadCapture;
 
-        ++stage;
+        ++curStage;
         [[fallthrough]];
 
-    case Stage::ENC_CAPTURE_BAD :
+    case Stage::ENC_BAD_CAPTURE :
         if (select([]() { return true; }))
             return move();
 
@@ -358,46 +368,31 @@ STAGE_SWITCH:
         {
             // Prepare the pointers to loop over the bad quiets
             cur    = begBadQuiet;
-            endCur = endMove;
+            endCur = endBadQuiet;
         }
 
-        ++stage;
+        ++curStage;
         [[fallthrough]];
 
-    case Stage::ENC_QUIET_BAD :
+    case Stage::ENC_BAD_QUIET :
         if (!skipQuiets && select([]() { return true; }))
             return move();
 
         return Move::None;
 
-    case Stage::EVA_CAPTURE_INIT : {
-        MoveList<EVA_CAPTURE> moveList(pos);
-
-        cur    = moves.data();
-        endCur = endMove = score<EVA_CAPTURE>(moveList);
-
-        insertion_sort(cur, endCur);
-    }
-
-        ++stage;
-        [[fallthrough]];
-
     case Stage::EVA_CAPTURE :
         if (select([]() { return true; }))
             return move();
 
-        ++stage;
-        [[fallthrough]];
+        {
+            MoveList<EVA_QUIET> moveList(pos);
 
-    case Stage::EVA_QUIET_INIT : {
-        MoveList<EVA_QUIET> moveList(pos);
+            endCur = score<EVA_QUIET>(moveList);
 
-        endCur = endMove = score<EVA_QUIET>(moveList);
+            insertion_sort(cur, endCur);
+        }
 
-        insertion_sort(cur, endCur);
-    }
-
-        ++stage;
+        ++curStage;
         [[fallthrough]];
 
     case Stage::EVA_QUIET :
@@ -413,7 +408,7 @@ STAGE_SWITCH:
 
         return Move::None;
 
-    case Stage::NONE :;
+    default :;
     }
     assert(false);
     return Move::None;  // Silence warning

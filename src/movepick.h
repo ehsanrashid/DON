@@ -62,33 +62,20 @@ class MovePicker final {
     using size_type       = std::size_t;
 
     enum class Stage : std::uint8_t {
-        NONE,
+        TT,
+        INIT,
 
-        // Generate encounter moves
-        ENC_TT,
-        ENC_CAPTURE_INIT,
-        ENC_CAPTURE_GOOD,
-        ENC_QUIET_INIT,
-        ENC_QUIET_GOOD,
-        ENC_CAPTURE_BAD,
-        ENC_QUIET_BAD,
+        ENC_GOOD_CAPTURE,
+        ENC_GOOD_QUIET,
+        ENC_BAD_CAPTURE,
+        ENC_BAD_QUIET,
 
-        // Generate evasion moves
-        EVA_TT,
-        EVA_CAPTURE_INIT,
         EVA_CAPTURE,
-        EVA_QUIET_INIT,
         EVA_QUIET,
 
-        // Generate qsearch moves
-        QS_TT,
-        QS_CAPTURE_INIT,
         QS_CAPTURE,
 
-        // Generate probcut moves
-        PROBCUT_TT,
-        PROBCUT_INIT,
-        PROBCUT,
+        PROBCUT
     };
 
     friend constexpr Stage operator+(Stage s, int i) noexcept { return Stage(std::uint8_t(s) + i); }
@@ -119,8 +106,6 @@ class MovePicker final {
     [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
 
     Move next_move() noexcept;
-
-    Stage stage = Stage::NONE;
 
     bool skipQuiets = false;
 
@@ -154,8 +139,11 @@ class MovePicker final {
     const std::int16_t               ssPly               = LOW_PLY_QUIET_SIZE;
     const int                        threshold;
 
+    Stage initStage;
+    Stage curStage;
+
     StdArray<value_type, MAX_MOVES> moves;
-    iterator                        cur, endCur, endBadCapture, begBadQuiet, endMove = nullptr;
+    iterator                        cur, endCur, endBadCapture, begBadQuiet, endBadQuiet;
 };
 
 }  // namespace DON
