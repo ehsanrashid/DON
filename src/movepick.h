@@ -41,7 +41,7 @@ struct ExtMove final: public Move {
     friend constexpr bool operator<=(ExtMove em1, ExtMove em2) noexcept { return !(em2 < em1); }
     friend constexpr bool operator>=(ExtMove em1, ExtMove em2) noexcept { return !(em1 < em2); }
 
-    int value;
+    int value = 0;
 };
 
 static_assert(sizeof(ExtMove) == 8, "Unexpected ExtMove size");
