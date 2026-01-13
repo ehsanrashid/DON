@@ -233,52 +233,46 @@ namespace {
 
 template<typename Iterator, typename T, typename Compare>
 Iterator
-exponential_upper_bound(Iterator begin, Iterator end, const T& value, Compare comp) noexcept {
-    Iterator loBound = end - 1;
+exponential_upper_bound(Iterator beg, Iterator end, const T& value, Compare comp) noexcept {
+    Iterator low = end - 1;
 
     // Insert at end, if value > last element
-    if (comp(*loBound, value))
+    if (comp(*low, value))
         return end;
 
     using DiffType = typename std::iterator_traits<Iterator>::difference_type;
 
     // Exponential backward search
     DiffType step = 1;
-    while (true)
+    while (low != beg)
     {
-        if (loBound == begin)
-            break;
+        Iterator pre = step < low - beg ? low - step : beg;
 
-        Iterator prev = loBound - step;
-
-        if (prev < begin)
-            prev = begin;
-
-        if (comp(*prev, value))
+        if (comp(*pre, value))
         {
-            loBound = prev + 1;
+            low = pre + 1;
             break;
         }
 
-        loBound = prev;
+        low = pre;
         step <<= 1;
     }
 
-    // Now [loBound..end) is a sorted subrange containing the insertion point.
-    // binary search inside [loBound, end)
-    return std::upper_bound(loBound, end, value, comp);
+    // Now [low..end) is a sorted subrange containing the insertion point.
+    // binary search inside [low, end)
+    return std::upper_bound(low, end, value, comp);
 }
 
 // Sort moves in descending order.
 template<typename Iterator>
-void insertion_sort(Iterator begin, Iterator end) noexcept {
+void insertion_sort(Iterator beg, Iterator end) noexcept {
 
-    for (Iterator p = begin + 1; p < end; ++p)
+    for (Iterator p = beg + 1; p < end; ++p)
     {
         auto value = *p;
 
         // Find the correct position for 'value' using binary search
-        Iterator q = exponential_upper_bound(begin, p, value, std::greater<>{});
+        Iterator q = exponential_upper_bound(beg, p, value, std::greater<>{});
         // Move elements to make space for 'value'
         for (Iterator r = p; r != q; --r)
             *r = *(r - 1);
