@@ -1629,9 +1629,9 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, false);
 
         // as a discriminator, locate the hardware/system numa-domain this CpuIndex belongs to
-        CpuIndex cpu = *numaCfg.nodes[numaId].begin();  // get a CpuIndex from NumaIndex
+        CpuIndex cpuId = *numaCfg.nodes[numaId].begin();  // get a CpuIndex from NumaIndex
 
-        NumaIndex sysId = sysCfg.is_cpu_assigned(cpu) ? sysCfg.nodeByCpu.at(cpu) : 0;
+        NumaIndex sysId = sysCfg.is_cpu_assigned(cpuId) ? sysCfg.nodeByCpu.at(cpuId) : 0;
 
         std::string str = sysCfg.to_string() + "$" + std::to_string(sysId);
 
