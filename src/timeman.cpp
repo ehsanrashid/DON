@@ -212,7 +212,7 @@ void TimeManager::advance_time_nodes(std::int64_t nodes) noexcept {
 
     timeNodes -= nodes;
 
-    if (timeNodes <= INITIAL_TIME_NODES)
+    if (timeNodes < INITIAL_TIME_NODES + 1)
         timeNodes = INITIAL_TIME_NODES + 1;
 }
 
