@@ -1052,14 +1052,14 @@ class NumaConfig final {
 
 #elif defined(__linux__) && !defined(__ANDROID__)
 
-        // On Linux things are straightforward, since there's no processor groups and
-        // any thread can be scheduled on all processors.
-        // We try to gather this information from the sysfs first
+        // On Linux things are straightforward, since there's no processor groups
+        // and any thread can be scheduled on all processors.
+        // Try to gather this information from the sysfs first
         // https://www.kernel.org/doc/Documentation/ABI/stable/sysfs-devices-node
 
         bool useFallback = false;
 
-        auto fallback = [&]() {
+        const auto fallback = [&]() noexcept {
             useFallback = true;
             numaCfg     = empty();
         };
