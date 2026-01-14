@@ -550,7 +550,7 @@ class NumaConfig final {
    public:
     // This function gets a NumaConfig based on the system's provided information.
     // The available policies are documented above.
-    static NumaConfig from_system([[maybe_unused]] const AutoNumaPolicy& policy,
+    static NumaConfig from_system([[maybe_unused]] const AutoNumaPolicy& numaPolicy,
                                   [[maybe_unused]] bool processAffinityRespect = true) noexcept {
         NumaConfig numaCfg = empty();
 
@@ -593,19 +593,18 @@ class NumaConfig final {
 
         bool l3Success = false;
 
-        if (!std::holds_alternative<SystemNumaPolicy>(policy))
+        if (!std::holds_alternative<SystemNumaPolicy>(numaPolicy))
         {
             std::size_t l3BundleSize = 0;
 
-            if (const auto* v = std::get_if<BundledL3Policy>(&policy))
-            {
+            if (const auto* v = std::get_if<BundledL3Policy>(&numaPolicy))
                 l3BundleSize = v->bundleSize;
-            }
 
             if (auto l3Cfg =
                   try_get_l3_aware_config(processAffinityRespect, l3BundleSize, is_cpu_allowed))
             {
-                numaCfg   = std::move(*l3Cfg);
+                numaCfg = std::move(*l3Cfg);
+
                 l3Success = true;
             }
         }
@@ -652,6 +651,7 @@ class NumaConfig final {
                     if (lstProcGroupId != groupId)
                     {
                         lstProcGroupId = groupId;
+
                         ++splitNumaId;
                     }
 
@@ -871,8 +871,9 @@ class NumaConfig final {
         if (setThreadSelectedCpuSetMasks != nullptr)
         {
             // Only available on Windows 11 and Windows Server 2022 onwards
-            auto procGroupCount  = static_cast<WORD>(((maxCpuId + 1) + WIN_PROCESSOR_GROUP_SIZE - 1)
-                                                     / WIN_PROCESSOR_GROUP_SIZE);
+            WORD procGroupCount = ((maxCpuId + 1) + WIN_PROCESSOR_GROUP_SIZE - 1)  //
+                                / WIN_PROCESSOR_GROUP_SIZE;
+
             auto groupAffinities = std::make_unique<GROUP_AFFINITY[]>(procGroupCount);
             std::memset(groupAffinities.get(), 0, procGroupCount * sizeof(*groupAffinities.get()));
 
