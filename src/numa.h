@@ -1111,10 +1111,6 @@ class NumaConfig final {
                     numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
         }
 
-#else
-
-        abort();  // should not reach here
-
 #endif
 
         return numaCfg;
