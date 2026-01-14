@@ -260,18 +260,18 @@ inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in)
 
     write_little_endian<std::uint32_t>(os, byteCount);
 
-    StdArray<std::uint8_t, 4096> buffer{};
+    StdArray<std::uint8_t, 4096> buffer;
 
     std::size_t bufferIdx = 0;
 
-    auto flush = [&]() {
+    const auto flush = [&]() noexcept {
         if (bufferIdx == 0)
             return;
         os.write(reinterpret_cast<const char*>(buffer.data()), bufferIdx);
         bufferIdx = 0;
     };
 
-    auto write = [&](std::uint8_t b) {
+    const auto write = [&](std::uint8_t b) noexcept {
         buffer[bufferIdx++] = b;
         if (bufferIdx == buffer.size())
             flush();

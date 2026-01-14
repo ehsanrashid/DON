@@ -637,7 +637,7 @@ std::string CommandLine::binary_directory(std::string path) noexcept {
 // Extract the working directory
 std::string CommandLine::working_directory() noexcept {
 
-    StdArray<char, 4096> buffer{};
+    StdArray<char, 4096> buffer;
 
     char* cwd = GETCWD(buffer.data(), buffer.size());
 

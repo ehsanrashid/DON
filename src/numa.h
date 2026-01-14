@@ -1136,7 +1136,8 @@ class NumaConfig final {
             return std::nullopt;
 
         std::vector<char> buffer(bufSize);
-        auto info = reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(buffer.data());
+
+        auto* info = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(buffer.data());
 
         if (!GetLogicalProcessorInformationEx(RelationCache, info, &bufSize))
             return std::nullopt;
@@ -1158,8 +1159,9 @@ class NumaConfig final {
                     l3Domains.push_back(std::move(domain));
                 }
             }
+
             // Variable length data structure, advance to next
-            info = reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(
+            info = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(
               reinterpret_cast<char*>(info) + info->Size);
         }
 
