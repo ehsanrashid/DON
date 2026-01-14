@@ -21,7 +21,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include <type_traits>
 
 #define INCBIN_SILENCE_BITCODE_WARNING
 #include "../incbin/incbin.h"
