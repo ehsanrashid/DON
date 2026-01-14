@@ -326,9 +326,9 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
     std::size_t readedSize = 0;
     while (readedSize < DataSize)
     {
-        std::size_t readSize = std::min(ChunkSize, DataSize - readedSize);
+        std::streamsize readSize = std::min(ChunkSize, DataSize - readedSize);
 
-        ifs.read(data + readedSize, std::streamsize(readSize));
+        ifs.read(data + readedSize, readSize);
 
         std::streamsize gotSize = ifs.gcount();
 
@@ -383,9 +383,9 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
     std::size_t writtenSize = 0;
     while (writtenSize < DataSize)
     {
-        std::size_t writeSize = std::min(ChunkSize, DataSize - writtenSize);
+        std::streamsize writeSize = std::min(ChunkSize, DataSize - writtenSize);
 
-        ofs.write(data + writtenSize, std::streamsize(writeSize));
+        ofs.write(data + writtenSize, writeSize);
 
         if (!ofs)  // write failed
             return false;

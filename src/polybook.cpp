@@ -480,7 +480,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
     std::size_t readedSize = 0;
     while (readedSize < DataSize)
     {
-        std::size_t readSize = std::min(ChunkSize, DataSize - readedSize);
+        std::streamsize readSize = std::min(ChunkSize, DataSize - readedSize);
 
         ifs.read(data + readedSize, readSize);
 
