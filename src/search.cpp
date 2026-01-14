@@ -765,8 +765,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if constexpr (PVNode)
     {
         // Update selDepth (selDepth from 1, ply from 0)
-        if (selDepth < 1 + ss->ply)
-            selDepth = 1 + ss->ply;
+        if (selDepth < ss->ply + 1)
+            selDepth = ss->ply + 1;
     }
 
     // Step 1. Initialize node
@@ -781,16 +781,16 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             return ss->ply >= MAX_PLY && !ss->inCheck ? evaluate(pos) : draw_value(key, nodes_());
 
         // Step 3. Mate distance pruning.
-        // Even if mate at the next move score would be at best mates_in(1 + ss->ply),
+        // Even if mate at the next move score would be at best mates_in(ss->ply + 1),
         // but if alpha is already bigger because a shorter mate was found upward in the tree
         // then there is no need to search further because will never beat the current alpha.
         // Same logic but with a reversed signs apply also in the opposite condition of being mated
         // instead of giving mate. In this case, return a fail-high score.
-        Value mated = mated_in(0 + ss->ply);
+        Value mated = mated_in(ss->ply + 0);
         if (alpha < mated)
             alpha = mated;
 
-        Value mates = mates_in(1 + ss->ply);
+        Value mates = mates_in(ss->ply + 1);
         if (beta > mates)
             beta = mates;
 
@@ -1095,7 +1095,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // For deep enough nodes without ttMoves, reduce search depth.
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
-        if (depth > 5 && red <= 3 && ttmNone)
+        if (depth > 5 && ttmNone)
             --depth;
 
     // Step 11. ProbCut
@@ -1737,8 +1737,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         (ss + 1)->pv = pv.data();
 
         // Update selDepth (selDepth from 1, ply from 0)
-        if (selDepth < 1 + ss->ply)
-            selDepth = 1 + ss->ply;
+        if (selDepth < ss->ply + 1)
+            selDepth = ss->ply + 1;
     }
 
     // Step 1. Initialize node
