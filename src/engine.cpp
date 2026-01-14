@@ -160,7 +160,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
 
     for (const auto& move : moves)
     {
-        Move m = UCI::mix_to_move(move, pos, MoveList<LEGAL>(pos));
+        Move m = UCI::mix_to_move(move, pos, MoveList<GenType::LEGAL>(pos));
 
         if (m == Move::None)
         {
@@ -379,17 +379,15 @@ void Engine::load_small_network(std::string_view netFile) noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::save_networks(const StdArray<std::optional<std::string>, 2>& netFiles) noexcept {
+void Engine::save_networks(const StdArray<std::optional<std::string>, 2>& netFiles) const noexcept {
 
-    networks.modify_and_replicate([&](const NNUE::Networks& nets) {
-        nets.big.save(netFiles[0]);
-        nets.small.save(netFiles[1]);
-    });
+    networks->big.save(netFiles[0]);
+    networks->small.save(netFiles[1]);
 }
 
-bool Engine::save_hash() const noexcept { return transpositionTable.save(options["HashFile"]); }
-
 bool Engine::load_hash() noexcept { return transpositionTable.load(options["HashFile"], threads); }
+
+bool Engine::save_hash() const noexcept { return transpositionTable.save(options["HashFile"]); }
 
 void Engine::set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept {
     updateContext.onUpdateShort = std::move(f);

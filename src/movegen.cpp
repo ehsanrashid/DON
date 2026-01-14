@@ -93,9 +93,9 @@ Move* splat_promotion_moves(Bitboard dstBB, Bitboard knightChecksBB, Move* moves
                     || D == NORTH_WEST || D == SOUTH_WEST,
                   "D is invalid");
 
-    constexpr bool All     = GT == ENCOUNTER || GT == EVASION;
-    constexpr bool Capture = GT == ENC_CAPTURE || GT == EVA_CAPTURE;
-    constexpr bool Quiet   = GT == ENC_QUIET || GT == EVA_QUIET;
+    constexpr bool All     = GT == GenType::ENCOUNTER || GT == GenType::EVASION;
+    constexpr bool Capture = GT == GenType::ENC_CAPTURE || GT == GenType::EVA_CAPTURE;
+    constexpr bool Quiet   = GT == GenType::ENC_QUIET || GT == GenType::EVA_QUIET;
 
     while (dstBB != 0)
     {
@@ -170,9 +170,10 @@ template<Color AC, GenType GT>
 Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) noexcept {
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
 
-    constexpr bool Evasion = GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET;
-    constexpr bool Capture = GT == ENC_CAPTURE || GT == EVA_CAPTURE;
-    constexpr bool Quiet   = GT == ENC_QUIET || GT == EVA_QUIET;
+    constexpr bool Evasion =
+      GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET;
+    constexpr bool Capture = GT == GenType::ENC_CAPTURE || GT == GenType::EVA_CAPTURE;
+    constexpr bool Quiet   = GT == GenType::ENC_QUIET || GT == GenType::EVA_QUIET;
 
     constexpr Direction Push1 = pawn_spush(AC);
     constexpr Direction Push2 = pawn_dpush(AC);
@@ -331,7 +332,7 @@ template<Color AC, GenType GT, bool Any>
 Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) noexcept {
     //assert(popcount(pos.checkers_bb()) <= 2);
 
-    constexpr bool Castle = GT == ENCOUNTER || GT == ENC_QUIET;
+    constexpr bool Castle = GT == GenType::ENCOUNTER || GT == GenType::ENC_QUIET;
 
     Square kingSq = pos.square<KING>(AC);
 
@@ -374,11 +375,13 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
 
 template<Color AC, GenType GT, bool Any>
 Move* generate_moves(const Position& pos, Move* moves) noexcept {
-    static_assert(GT == ENCOUNTER || GT == ENC_CAPTURE || GT == ENC_QUIET  //
-                    || GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET,
-                  "Unsupported generate type in generate_moves()");
+    static_assert(
+      GT == GenType::ENCOUNTER || GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
+        || GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
+      "Unsupported generate type in generate_moves()");
 
-    constexpr bool Evasion = GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET;
+    constexpr bool Evasion =
+      GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET;
 
     // clang-format off
     Bitboard targetBB;
@@ -387,12 +390,12 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
     {
         switch (GT)
         {
-        case ENCOUNTER :   targetBB = ~pos.pieces_bb(AC);                                          break;
-        case ENC_CAPTURE : targetBB =  pos.pieces_bb(~AC);                                         break;
-        case ENC_QUIET :   targetBB = ~pos.pieces_bb();                                            break;
-        case EVASION :     targetBB = between_bb(pos.square<KING>(AC), lsq(pos.checkers_bb()));    break;
-        case EVA_CAPTURE : targetBB = pos.checkers_bb();                                           break;
-        case EVA_QUIET :   targetBB = between_ex_bb(pos.square<KING>(AC), lsq(pos.checkers_bb())); break;
+        case GenType::ENCOUNTER :   targetBB = ~pos.pieces_bb(AC);                                                 break;
+        case GenType::ENC_CAPTURE : targetBB =  pos.pieces_bb(~AC);                                                break;
+        case GenType::ENC_QUIET :   targetBB = ~pos.pieces_bb();                                                   break;
+        case GenType::EVASION :     targetBB = between_bb(pos.square<KING>(AC), lsq(pos.checkers_bb()));    break;
+        case GenType::EVA_CAPTURE : targetBB = pos.checkers_bb();                                                  break;
+        case GenType::EVA_QUIET :   targetBB = between_ex_bb(pos.square<KING>(AC), lsq(pos.checkers_bb())); break;
         }
 
         const auto* pMoves = moves;
@@ -412,9 +415,9 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
     {
         switch (GT)
         {
-        case EVASION :     targetBB = ~pos.pieces_bb(AC);  break;
-        case EVA_CAPTURE : targetBB =  pos.pieces_bb(~AC); break;
-        case EVA_QUIET :   targetBB = ~pos.pieces_bb();    break;
+        case GenType::EVASION :     targetBB = ~pos.pieces_bb(AC);  break;
+        case GenType::EVA_CAPTURE : targetBB =  pos.pieces_bb(~AC); break;
+        case GenType::EVA_QUIET :   targetBB = ~pos.pieces_bb();    break;
         }
     }
     // clang-format on
@@ -434,40 +437,42 @@ Move* generate_moves(const Position& pos, Move* moves) noexcept {
 // <EVA_QUIET  > Generates all legal check evasions non-captures moves
 template<GenType GT, bool Any>
 Move* generate(const Position& pos, Move* moves) noexcept {
-    static_assert(GT == ENCOUNTER || GT == ENC_CAPTURE || GT == ENC_QUIET  //
-                    || GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET,
-                  "Unsupported generate type in generate()");
+    static_assert(
+      GT == GenType::ENCOUNTER || GT == GenType::ENC_CAPTURE || GT == GenType::ENC_QUIET  //
+        || GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET,
+      "Unsupported generate type in generate()");
 
-    assert((GT == EVASION || GT == EVA_CAPTURE || GT == EVA_QUIET) == (pos.checkers_bb() != 0));
+    assert((GT == GenType::EVASION || GT == GenType::EVA_CAPTURE || GT == GenType::EVA_QUIET)
+           == (pos.checkers_bb() != 0));
 
     return pos.active_color() == WHITE ? generate_moves<WHITE, GT, Any>(pos, moves)
                                        : generate_moves<BLACK, GT, Any>(pos, moves);
 }
 
 // Explicit template instantiations:
-template Move* generate<ENCOUNTER, false>(const Position& pos, Move* moves) noexcept;
-template Move* generate<ENCOUNTER, true>(const Position& pos, Move* moves) noexcept;
-template Move* generate<ENC_CAPTURE, false>(const Position& pos, Move* moves) noexcept;
-//template Move* generate<ENC_CAPTURE, true>(const Position& pos, Move* moves) noexcept;
-template Move* generate<ENC_QUIET, false>(const Position& pos, Move* moves) noexcept;
-//template Move* generate<ENC_QUIET, true>(const Position& pos, Move* moves) noexcept;
-template Move* generate<EVASION, false>(const Position& pos, Move* moves) noexcept;
-template Move* generate<EVASION, true>(const Position& pos, Move* moves) noexcept;
-template Move* generate<EVA_CAPTURE, false>(const Position& pos, Move* moves) noexcept;
-//template Move* generate<EVA_CAPTURE, true >(const Position& pos, Move* moves) noexcept;
-template Move* generate<EVA_QUIET, false>(const Position& pos, Move* moves) noexcept;
-//template Move* generate<EVA_QUIET, true>(const Position& pos, Move* moves) noexcept;
+template Move* generate<GenType::ENCOUNTER, false>(const Position& pos, Move* moves) noexcept;
+template Move* generate<GenType::ENCOUNTER, true>(const Position& pos, Move* moves) noexcept;
+template Move* generate<GenType::ENC_CAPTURE, false>(const Position& pos, Move* moves) noexcept;
+//template Move* generate<GenType::ENC_CAPTURE, true>(const Position& pos, Move* moves) noexcept;
+template Move* generate<GenType::ENC_QUIET, false>(const Position& pos, Move* moves) noexcept;
+//template Move* generate<GenType::ENC_QUIET, true>(const Position& pos, Move* moves) noexcept;
+template Move* generate<GenType::EVASION, false>(const Position& pos, Move* moves) noexcept;
+template Move* generate<GenType::EVASION, true>(const Position& pos, Move* moves) noexcept;
+template Move* generate<GenType::EVA_CAPTURE, false>(const Position& pos, Move* moves) noexcept;
+//template Move* generate<GenType::EVA_CAPTURE, true >(const Position& pos, Move* moves) noexcept;
+template Move* generate<GenType::EVA_QUIET, false>(const Position& pos, Move* moves) noexcept;
+//template Move* generate<GenType::EVA_QUIET, true>(const Position& pos, Move* moves) noexcept;
 
 // <LEGAL> Generates all legal moves
 template<>
-Move* generate<LEGAL, false>(const Position& pos, Move* moves) noexcept {
-    return pos.checkers_bb() != 0 ? generate<EVASION, false>(pos, moves)
-                                  : generate<ENCOUNTER, false>(pos, moves);
+Move* generate<GenType::LEGAL, false>(const Position& pos, Move* moves) noexcept {
+    return pos.checkers_bb() != 0 ? generate<GenType::EVASION, false>(pos, moves)
+                                  : generate<GenType::ENCOUNTER, false>(pos, moves);
 }
 template<>
-Move* generate<LEGAL, true>(const Position& pos, Move* moves) noexcept {
-    return pos.checkers_bb() != 0 ? generate<EVASION, true>(pos, moves)
-                                  : generate<ENCOUNTER, true>(pos, moves);
+Move* generate<GenType::LEGAL, true>(const Position& pos, Move* moves) noexcept {
+    return pos.checkers_bb() != 0 ? generate<GenType::EVASION, true>(pos, moves)
+                                  : generate<GenType::ENCOUNTER, true>(pos, moves);
 }
 
 }  // namespace DON

@@ -1798,9 +1798,9 @@ bool Position::is_draw(std::int16_t ply, bool useRule50, bool useStalemate) cons
       is_repetition(ply)
       // Draw by 50-move rule
       || (useRule50 && rule50_count() >= 2 * DrawMoveCount
-          && (checkers_bb() == 0 || !MoveList<LEGAL, true>(*this).empty()))
+          && (checkers_bb() == 0 || !MoveList<GenType::LEGAL, true>(*this).empty()))
       // Draw by Stalemate
-      || (useStalemate && checkers_bb() == 0 && MoveList<LEGAL, true>(*this).empty());
+      || (useStalemate && checkers_bb() == 0 && MoveList<GenType::LEGAL, true>(*this).empty());
 }
 
 // Tests whether there has been at least one repetition
@@ -1864,7 +1864,7 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location
         if (empty(m.org_sq()))
             m = m.reverse();
-        assert(legal(m) && MoveList<LEGAL>(*this).contains(m));
+        assert(legal(m) && MoveList<GenType::LEGAL>(*this).contains(m));
 #endif
         if (i < ply
             // For nodes before or at the root, check that the move is

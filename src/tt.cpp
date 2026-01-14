@@ -138,6 +138,10 @@ struct TTEntry final {
 
 static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");
 
+TTData TTData::empty() noexcept {
+    return {Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, Bound::NONE, false, false};
+}
+
 // TTCluster consists of bunch of TTEntry.
 // TTCluster size should divide the size of a cache-line for best performance,
 // as the cache-line is prefetched when possible.
@@ -155,6 +159,12 @@ struct TTCluster final {
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
+TTUpdater::TTUpdater(TTEntry* te, TTCluster* tc, std::uint16_t k, std::uint8_t gen) noexcept :
+    tte(te),
+    ttc(tc),
+    key(k),
+    generation(gen) {}
+
 void TTUpdater::update(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept {
 
     for (auto* const fte = &ttc->entries[0]; tte != fte && (tte - 1)->key() == key; --tte)
@@ -169,6 +179,8 @@ void TranspositionTable::free() noexcept {
     [[maybe_unused]] bool success = free_aligned_large_page(clusters);
     assert(success);
 }
+
+std::uint8_t TranspositionTable::generation() const noexcept { return generation8; }
 
 void TranspositionTable::increment_generation() noexcept { generation8 += GENERATION_DELTA; }
 
@@ -264,51 +276,6 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
     return scaledCount / clusters->entries.size();
 }
 
-bool TranspositionTable::save(std::string_view hashFile) const noexcept {
-
-    if (hashFile.empty())
-    {
-        std::cerr << "No Hash file provided" << std::endl;
-        return false;
-    }
-
-    std::ofstream ofs(std::string(hashFile), std::ios::binary);
-
-    if (!ofs.is_open())
-    {
-        std::cerr << "Failed to open Hash file " << hashFile << std::endl;
-        return false;
-    }
-
-    constexpr std::size_t ClusterSize = sizeof(TTCluster);
-    static_assert(ClusterSize > 0, "Cluster must have non-zero size");
-
-    // Choose a chunk that balances system call overhead and memory pressure.
-    // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr std::size_t ChunkSize = (2ULL * 1024 * 1024 / ClusterSize) * ClusterSize;
-
-    const std::size_t DataSize = clusterCount * ClusterSize;
-
-    const char* data = reinterpret_cast<const char*>(clusters);
-
-    std::size_t writtenSize = 0;
-    while (writtenSize < DataSize)
-    {
-        std::size_t writeSize = std::min(ChunkSize, DataSize - writtenSize);
-
-        ofs.write(data + writtenSize, std::streamsize(writeSize));
-
-        if (!ofs)  // write failed
-            return false;
-
-        writtenSize += writeSize;
-    }
-
-    ofs.flush();
-
-    return writtenSize == DataSize && ofs.good();
-}
-
 bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexcept {
 
     if (hashFile.empty())
@@ -359,9 +326,9 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
     std::size_t readedSize = 0;
     while (readedSize < DataSize)
     {
-        std::size_t readSize = std::min(ChunkSize, DataSize - readedSize);
+        std::streamsize readSize = std::min(ChunkSize, DataSize - readedSize);
 
-        ifs.read(data + readedSize, std::streamsize(readSize));
+        ifs.read(data + readedSize, readSize);
 
         std::streamsize gotSize = ifs.gcount();
 
@@ -384,6 +351,51 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
     }
 
     return readedSize == DataSize && ifs.good();
+}
+
+bool TranspositionTable::save(std::string_view hashFile) const noexcept {
+
+    if (hashFile.empty())
+    {
+        std::cerr << "No Hash file provided" << std::endl;
+        return false;
+    }
+
+    std::ofstream ofs(std::string(hashFile), std::ios::binary);
+
+    if (!ofs.is_open())
+    {
+        std::cerr << "Failed to open Hash file " << hashFile << std::endl;
+        return false;
+    }
+
+    constexpr std::size_t ClusterSize = sizeof(TTCluster);
+    static_assert(ClusterSize > 0, "Cluster must have non-zero size");
+
+    // Choose a chunk that balances system call overhead and memory pressure.
+    // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
+    constexpr std::size_t ChunkSize = (2ULL * 1024 * 1024 / ClusterSize) * ClusterSize;
+
+    const std::size_t DataSize = clusterCount * ClusterSize;
+
+    const char* data = reinterpret_cast<const char*>(clusters);
+
+    std::size_t writtenSize = 0;
+    while (writtenSize < DataSize)
+    {
+        std::streamsize writeSize = std::min(ChunkSize, DataSize - writtenSize);
+
+        ofs.write(data + writtenSize, writeSize);
+
+        if (!ofs)  // write failed
+            return false;
+
+        writtenSize += writeSize;
+    }
+
+    ofs.flush();
+
+    return writtenSize == DataSize && ofs.good();
 }
 
 }  // namespace DON

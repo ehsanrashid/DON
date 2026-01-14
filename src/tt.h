@@ -47,9 +47,7 @@ struct TTData final {
     TTData& operator=(const TTData&) noexcept = delete;
     TTData& operator=(TTData&&) noexcept      = delete;
 
-    static TTData empty() noexcept {
-        return {Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, Bound::NONE, false, false};
-    }
+    static TTData empty() noexcept;
 
     Move  move;
     Value value;
@@ -73,11 +71,7 @@ class TTUpdater final {
     TTUpdater& operator=(const TTUpdater&) noexcept = delete;
     TTUpdater& operator=(TTUpdater&&) noexcept      = delete;
 
-    TTUpdater(TTEntry* te, TTCluster* tc, std::uint16_t k, std::uint8_t gen) noexcept :
-        tte(te),
-        ttc(tc),
-        key(k),
-        generation(gen) {}
+    TTUpdater(TTEntry* te, TTCluster* tc, std::uint16_t k, std::uint8_t gen) noexcept;
 
     void update(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept;
 
@@ -88,12 +82,12 @@ class TTUpdater final {
     const std::uint8_t  generation;
 };
 
-class Threads;
-
 struct ProbResult final {
     TTData    data;
     TTUpdater updater;
 };
+
+class Threads;
 
 // TranspositionTable is an array of TTCluster, of size clusterCount.
 // Each non-empty TTEntry contains information on exactly one position.
@@ -106,7 +100,7 @@ class TranspositionTable final {
     TranspositionTable& operator=(TranspositionTable&&) noexcept      = delete;
     ~TranspositionTable() noexcept;
 
-    std::uint8_t generation() const noexcept { return generation8; }
+    std::uint8_t generation() const noexcept;
 
     void increment_generation() noexcept;
 
@@ -120,15 +114,15 @@ class TranspositionTable final {
 
     std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
 
-    bool save(std::string_view hashFile) const noexcept;
     bool load(std::string_view hashFile, Threads& threads) noexcept;
+    bool save(std::string_view hashFile) const noexcept;
 
    private:
     void free() noexcept;
 
     TTCluster*   clusters = nullptr;
     std::size_t  clusterCount;
-    std::uint8_t generation8;  // Size must be not bigger than TTEntry::genData8
+    std::uint8_t generation8;
 };
 
 }  // namespace DON

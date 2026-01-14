@@ -60,13 +60,13 @@ constexpr void permute(std::array<T, DataSize>&                  data,
     constexpr std::size_t ChunkSize = BlockSize * OrderSize;
     static_assert(TotalSize % ChunkSize == 0, "ChunkSize must perfectly divide TotalSize");
 
-    auto* const byts = reinterpret_cast<unsigned char*>(data.data());
+    auto* const byts = reinterpret_cast<std::uint8_t*>(data.data());
 
     for (std::size_t i = 0; i < TotalSize; i += ChunkSize)
     {
         auto* const values = &byts[i];
 
-        StdArray<unsigned char, ChunkSize> buffer;
+        StdArray<std::uint8_t, ChunkSize> buffer;
 
         for (std::size_t j = 0; j < order.size(); ++j)
         {

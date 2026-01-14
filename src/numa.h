@@ -192,10 +192,10 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
 // nullopt means no affinity is set, that is, all processors are allowed
 inline WindowsAffinity get_process_affinity() noexcept {
 
-    HMODULE hK32Module = GetModuleHandle(TEXT("kernel32.dll"));
+    HMODULE hModule = GetModuleHandle(TEXT("kernel32.dll"));
 
     auto getThreadSelectedCpuSetMasks = GetThreadSelectedCpuSetMasks_(
-      (void (*)()) GetProcAddress(hK32Module, "GetThreadSelectedCpuSetMasks"));
+      (void (*)()) GetProcAddress(hModule, "GetThreadSelectedCpuSetMasks"));
 
     WindowsAffinity winAffinity{};
 
@@ -855,14 +855,10 @@ class NumaConfig final {
 #if defined(_WIN64)
 
         // Requires Windows 11. No good way to set thread affinity spanning processor groups before that.
-        HMODULE hK32Module = GetModuleHandle(TEXT("kernel32.dll"));
+        HMODULE hModule = GetModuleHandle(TEXT("kernel32.dll"));
 
         auto setThreadSelectedCpuSetMasks = SetThreadSelectedCpuSetMasks_(
-          (void (*)()) GetProcAddress(hK32Module, "SetThreadSelectedCpuSetMasks"));
-
-        HANDLE threadHandle;
-
-        BOOL status;
+          (void (*)()) GetProcAddress(hModule, "SetThreadSelectedCpuSetMasks"));
 
         // ALWAYS set affinity with the new API if available,
         // because there's no downsides, and forcibly keep it consistent with
@@ -886,12 +882,9 @@ class NumaConfig final {
                 groupAffinities[procGroupIndex].Mask |= 1ULL << inProcGroupIndex;
             }
 
-            threadHandle = GetCurrentThread();
-
-            status =
-              setThreadSelectedCpuSetMasks(threadHandle, groupAffinities.get(), procGroupCount);
-
-            if (status == 0)
+            if (setThreadSelectedCpuSetMasks(GetCurrentThread(), groupAffinities.get(),
+                                             procGroupCount)
+                == 0)
                 std::exit(EXIT_FAILURE);
 
             // Yield this thread just to be sure it gets rescheduled.
@@ -935,11 +928,7 @@ class NumaConfig final {
                 groupAffinity.Mask |= 1ULL << inProcGroupIndex;
             }
 
-            threadHandle = GetCurrentThread();
-
-            status = SetThreadGroupAffinity(threadHandle, &groupAffinity, nullptr);
-
-            if (status == 0)
+            if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr) == 0)
                 std::exit(EXIT_FAILURE);
 
             // Yield this thread just to be sure it gets rescheduled.
@@ -1063,14 +1052,14 @@ class NumaConfig final {
 
 #elif defined(__linux__) && !defined(__ANDROID__)
 
-        // On Linux things are straightforward, since there's no processor groups and
-        // any thread can be scheduled on all processors.
-        // We try to gather this information from the sysfs first
+        // On Linux things are straightforward, since there's no processor groups
+        // and any thread can be scheduled on all processors.
+        // Try to gather this information from the sysfs first
         // https://www.kernel.org/doc/Documentation/ABI/stable/sysfs-devices-node
 
         bool useFallback = false;
 
-        auto fallback = [&]() {
+        const auto fallback = [&]() noexcept {
             useFallback = true;
             numaCfg     = empty();
         };
@@ -1122,10 +1111,6 @@ class NumaConfig final {
                     numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
         }
 
-#else
-
-        abort();  // should not reach here
-
 #endif
 
         return numaCfg;
@@ -1151,7 +1136,8 @@ class NumaConfig final {
             return std::nullopt;
 
         std::vector<char> buffer(bufSize);
-        auto info = reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(buffer.data());
+
+        auto* info = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(buffer.data());
 
         if (!GetLogicalProcessorInformationEx(RelationCache, info, &bufSize))
             return std::nullopt;
@@ -1173,8 +1159,9 @@ class NumaConfig final {
                     l3Domains.push_back(std::move(domain));
                 }
             }
+
             // Variable length data structure, advance to next
-            info = reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(
+            info = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(
               reinterpret_cast<char*>(info) + info->Size);
         }
 
@@ -1629,9 +1616,9 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, false);
 
         // as a discriminator, locate the hardware/system numa-domain this CpuIndex belongs to
-        CpuIndex cpu = *numaCfg.nodes[numaId].begin();  // get a CpuIndex from NumaIndex
+        CpuIndex cpuId = *numaCfg.nodes[numaId].begin();  // get a CpuIndex from NumaIndex
 
-        NumaIndex sysId = sysCfg.is_cpu_assigned(cpu) ? sysCfg.nodeByCpu.at(cpu) : 0;
+        NumaIndex sysId = sysCfg.is_cpu_assigned(cpuId) ? sysCfg.nodeByCpu.at(cpuId) : 0;
 
         std::string str = sysCfg.to_string() + "$" + std::to_string(sysId);
 
@@ -1668,13 +1655,13 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         // Even in the case of a single NUMA node have to copy since it's shared memory.
         if (numaCfg.requires_memory_replication())
         {
-            assert(numaCfg.nodes_size() > 0);
+            assert(numaCfg.nodes_size() != 0);
 
             numaCfg.execute_on_numa_node(0, [this, &source]() {
                 instances.emplace_back(SystemWideSharedMemory<T>(*source, get_discriminator(0)));
             });
 
-            // Prepare others for lazy init.
+            // Prepare others for lazy init
             instances.resize(numaCfg.nodes_size());
         }
         else

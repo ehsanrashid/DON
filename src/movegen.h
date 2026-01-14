@@ -29,7 +29,7 @@ namespace DON {
 
 class Position;
 
-enum GenType : std::uint8_t {
+enum class GenType : std::uint8_t {
     ENCOUNTER,
     ENC_CAPTURE,
     ENC_QUIET,

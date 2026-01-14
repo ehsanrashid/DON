@@ -77,16 +77,13 @@ class Network final {
                        AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept;
 
    private:
-    void load_user_net(const std::string& dir, const std::string& netFile) noexcept;
     void load_internal() noexcept;
-
-    void initialize() noexcept;
-
-    bool save(std::ostream&      os,
-              const std::string& name,
-              const std::string& netDescription) const noexcept;
+    void load_user_net(const std::string& dir, const std::string& netFile) noexcept;
 
     std::optional<std::string> load(std::istream& is) noexcept;
+    bool                       save(std::ostream&      os,
+                                    const std::string& name,
+                                    const std::string& netDescription) const noexcept;
 
     bool read_parameters(std::istream& is, std::string& netDescription) noexcept;
     bool write_parameters(std::ostream& os, const std::string& netDescription) const noexcept;
