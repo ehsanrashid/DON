@@ -1683,7 +1683,7 @@ S_MOVES_LOOP:  // When in check, search starts here
 
     // If no good move is found and the previous position was pvHit, then the previous
     // opponent move is probably good and the new position is added to the search tree.
-    ss->ttPv |= bestValue <= alpha && (ss - 1)->ttPv;
+    ss->ttPv |= (bestValue <= alpha) & (ss - 1)->ttPv;
 
     // Save gathered information in transposition table
     if ((!RootNode || curPV == 0) && !exclude)
