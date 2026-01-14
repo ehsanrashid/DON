@@ -602,7 +602,7 @@ CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
         arguments.emplace_back(argv[i]);  // no copy, just view
 }
 
-// Extract the binary directory path
+// Extract the binary directory
 std::string CommandLine::binary_directory(std::string path) noexcept {
     std::string pathSeparator;
 
@@ -630,7 +630,7 @@ std::string CommandLine::binary_directory(std::string path) noexcept {
 
     // Pattern replacement: "./" at the start of path is replaced by the working directory
     if (binaryDirectory.find("." + pathSeparator) == 0)
-        binaryDirectory.replace(0, 1, CommandLine::working_directory());
+        binaryDirectory.replace(0, 1, working_directory());
 
     return binaryDirectory;
 }
