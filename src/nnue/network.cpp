@@ -307,8 +307,11 @@ template<typename Arch, typename Transformer>
 std::optional<std::string> Network<Arch, Transformer>::load(std::istream& is) noexcept {
     initialized = true;
 
-    std::string description;
-    return read_parameters(is, description) ? std::make_optional(description) : std::nullopt;
+    std::string netDescription;
+    if (!read_parameters(is, netDescription))
+        return std::nullopt;
+
+    return netDescription;
 }
 
 template<typename Arch, typename Transformer>
@@ -327,10 +330,13 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& is,
     std::uint32_t hash;
     if (!_read_header(is, hash, netDescription))
         return false;
+
     if (hash != Network::Hash)
         return false;
+
     if (!_read_parameters(is, featureTransformer))
         return false;
+
     for (std::size_t i = 0; i < LayerStacks; ++i)
         if (!_read_parameters(is, network[i]))
             return false;
@@ -341,10 +347,13 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& is,
 template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::write_parameters(
   std::ostream& os, const std::string& netDescription) const noexcept {
+
     if (!_write_header(os, Network::Hash, netDescription))
         return false;
+
     if (!_write_parameters(os, featureTransformer))
         return false;
+
     for (std::size_t i = 0; i < LayerStacks; ++i)
         if (!_write_parameters(os, network[i]))
             return false;

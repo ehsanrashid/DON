@@ -657,11 +657,22 @@ std::size_t str_to_size_t(std::string_view str) noexcept {
 
 std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept {
 
-    std::ifstream ifs(std::string(filePath), std::ios::binary);
+    std::ifstream ifs(std::string(filePath), std::ios::binary | std::ios::ate);
     if (!ifs)
         return std::nullopt;
 
-    return std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    std::streamsize size = ifs.tellg();
+    if (size < 0)
+        return std::nullopt;
+
+    ifs.seekg(0, std::ios::beg);
+
+    std::string str(std::size_t(size), '\0');
+
+    if (!ifs.read(str.data(), size))
+        return std::nullopt;
+
+    return str;
 }
 
 }  // namespace DON
