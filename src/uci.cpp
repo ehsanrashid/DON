@@ -273,7 +273,7 @@ void UCI::run() noexcept {
         if (!command.empty())
             command += ' ';
 
-        command.append(commandLine.arguments[i].data(), commandLine.arguments[i].size());
+        command += commandLine.arguments[i];
     }
 
     bool running = commandLine.arguments.size() <= 1;
