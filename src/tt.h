@@ -47,9 +47,7 @@ struct TTData final {
     TTData& operator=(const TTData&) noexcept = delete;
     TTData& operator=(TTData&&) noexcept      = delete;
 
-    static TTData empty() noexcept {
-        return {Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, Bound::NONE, false, false};
-    }
+    static TTData empty() noexcept;
 
     Move  move;
     Value value;
@@ -73,11 +71,7 @@ class TTUpdater final {
     TTUpdater& operator=(const TTUpdater&) noexcept = delete;
     TTUpdater& operator=(TTUpdater&&) noexcept      = delete;
 
-    TTUpdater(TTEntry* te, TTCluster* tc, std::uint16_t k, std::uint8_t gen) noexcept :
-        tte(te),
-        ttc(tc),
-        key(k),
-        generation(gen) {}
+    TTUpdater(TTEntry* te, TTCluster* tc, std::uint16_t k, std::uint8_t gen) noexcept;
 
     void update(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept;
 
@@ -106,7 +100,7 @@ class TranspositionTable final {
     TranspositionTable& operator=(TranspositionTable&&) noexcept      = delete;
     ~TranspositionTable() noexcept;
 
-    std::uint8_t generation() const noexcept { return generation8; }
+    std::uint8_t generation() const noexcept;
 
     void increment_generation() noexcept;
 

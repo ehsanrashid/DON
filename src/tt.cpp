@@ -138,6 +138,10 @@ struct TTEntry final {
 
 static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");
 
+TTData TTData::empty() noexcept {
+    return {Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, Bound::NONE, false, false};
+}
+
 // TTCluster consists of bunch of TTEntry.
 // TTCluster size should divide the size of a cache-line for best performance,
 // as the cache-line is prefetched when possible.
@@ -155,6 +159,12 @@ struct TTCluster final {
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
 
+TTUpdater::TTUpdater(TTEntry* te, TTCluster* tc, std::uint16_t k, std::uint8_t gen) noexcept :
+    tte(te),
+    ttc(tc),
+    key(k),
+    generation(gen) {}
+
 void TTUpdater::update(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept {
 
     for (auto* const fte = &ttc->entries[0]; tte != fte && (tte - 1)->key() == key; --tte)
@@ -169,6 +179,8 @@ void TranspositionTable::free() noexcept {
     [[maybe_unused]] bool success = free_aligned_large_page(clusters);
     assert(success);
 }
+
+std::uint8_t TranspositionTable::generation() const noexcept { return generation8; }
 
 void TranspositionTable::increment_generation() noexcept { generation8 += GENERATION_DELTA; }
 
