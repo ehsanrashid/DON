@@ -84,8 +84,10 @@ bool _read_header(std::istream& is, std::uint32_t& hash, std::string& netDescrip
     fileVersion = read_little_endian<std::uint32_t>(is);
     hash        = read_little_endian<std::uint32_t>(is);
     descSize    = read_little_endian<std::uint32_t>(is);
+
     if (!is || fileVersion != FILE_VERSION)
         return false;
+
     netDescription.resize(descSize);
     is.read(netDescription.data(), descSize);
 
@@ -109,6 +111,7 @@ template<typename T>
 bool _read_parameters(std::istream& is, T& reference) noexcept {
     std::uint32_t hash;
     hash = read_little_endian<std::uint32_t>(is);
+
     if (!is || hash != T::hash())
         return false;
 
