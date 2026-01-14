@@ -860,10 +860,6 @@ class NumaConfig final {
         auto setThreadSelectedCpuSetMasks = SetThreadSelectedCpuSetMasks_(
           (void (*)()) GetProcAddress(hModule, "SetThreadSelectedCpuSetMasks"));
 
-        HANDLE hThread;
-
-        BOOL status;
-
         // ALWAYS set affinity with the new API if available,
         // because there's no downsides, and forcibly keep it consistent with
         // the old API should need to use it. i.e. always keep this as a superset
@@ -886,11 +882,9 @@ class NumaConfig final {
                 groupAffinities[procGroupIndex].Mask |= 1ULL << inProcGroupIndex;
             }
 
-            hThread = GetCurrentThread();
-
-            status = setThreadSelectedCpuSetMasks(hThread, groupAffinities.get(), procGroupCount);
-
-            if (status == 0)
+            if (setThreadSelectedCpuSetMasks(GetCurrentThread(), groupAffinities.get(),
+                                             procGroupCount)
+                == 0)
                 std::exit(EXIT_FAILURE);
 
             // Yield this thread just to be sure it gets rescheduled.
@@ -934,11 +928,7 @@ class NumaConfig final {
                 groupAffinity.Mask |= 1ULL << inProcGroupIndex;
             }
 
-            hThread = GetCurrentThread();
-
-            status = SetThreadGroupAffinity(hThread, &groupAffinity, nullptr);
-
-            if (status == 0)
+            if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr) == 0)
                 std::exit(EXIT_FAILURE);
 
             // Yield this thread just to be sure it gets rescheduled.
