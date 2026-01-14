@@ -1655,13 +1655,13 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         // Even in the case of a single NUMA node have to copy since it's shared memory.
         if (numaCfg.requires_memory_replication())
         {
-            assert(numaCfg.nodes_size() > 0);
+            assert(numaCfg.nodes_size() != 0);
 
             numaCfg.execute_on_numa_node(0, [this, &source]() {
                 instances.emplace_back(SystemWideSharedMemory<T>(*source, get_discriminator(0)));
             });
 
-            // Prepare others for lazy init.
+            // Prepare others for lazy init
             instances.resize(numaCfg.nodes_size());
         }
         else
