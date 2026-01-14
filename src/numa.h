@@ -192,10 +192,10 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
 // nullopt means no affinity is set, that is, all processors are allowed
 inline WindowsAffinity get_process_affinity() noexcept {
 
-    HMODULE hK32Module = GetModuleHandle(TEXT("kernel32.dll"));
+    HMODULE hModule = GetModuleHandle(TEXT("kernel32.dll"));
 
     auto getThreadSelectedCpuSetMasks = GetThreadSelectedCpuSetMasks_(
-      (void (*)()) GetProcAddress(hK32Module, "GetThreadSelectedCpuSetMasks"));
+      (void (*)()) GetProcAddress(hModule, "GetThreadSelectedCpuSetMasks"));
 
     WindowsAffinity winAffinity{};
 
@@ -855,12 +855,12 @@ class NumaConfig final {
 #if defined(_WIN64)
 
         // Requires Windows 11. No good way to set thread affinity spanning processor groups before that.
-        HMODULE hK32Module = GetModuleHandle(TEXT("kernel32.dll"));
+        HMODULE hModule = GetModuleHandle(TEXT("kernel32.dll"));
 
         auto setThreadSelectedCpuSetMasks = SetThreadSelectedCpuSetMasks_(
-          (void (*)()) GetProcAddress(hK32Module, "SetThreadSelectedCpuSetMasks"));
+          (void (*)()) GetProcAddress(hModule, "SetThreadSelectedCpuSetMasks"));
 
-        HANDLE threadHandle;
+        HANDLE hThread;
 
         BOOL status;
 
@@ -886,10 +886,9 @@ class NumaConfig final {
                 groupAffinities[procGroupIndex].Mask |= 1ULL << inProcGroupIndex;
             }
 
-            threadHandle = GetCurrentThread();
+            hThread = GetCurrentThread();
 
-            status =
-              setThreadSelectedCpuSetMasks(threadHandle, groupAffinities.get(), procGroupCount);
+            status = setThreadSelectedCpuSetMasks(hThread, groupAffinities.get(), procGroupCount);
 
             if (status == 0)
                 std::exit(EXIT_FAILURE);
@@ -935,9 +934,9 @@ class NumaConfig final {
                 groupAffinity.Mask |= 1ULL << inProcGroupIndex;
             }
 
-            threadHandle = GetCurrentThread();
+            hThread = GetCurrentThread();
 
-            status = SetThreadGroupAffinity(threadHandle, &groupAffinity, nullptr);
+            status = SetThreadGroupAffinity(hThread, &groupAffinity, nullptr);
 
             if (status == 0)
                 std::exit(EXIT_FAILURE);
