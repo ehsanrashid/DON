@@ -82,12 +82,12 @@ class TTUpdater final {
     const std::uint8_t  generation;
 };
 
-class Threads;
-
 struct ProbResult final {
     TTData    data;
     TTUpdater updater;
 };
+
+class Threads;
 
 // TranspositionTable is an array of TTCluster, of size clusterCount.
 // Each non-empty TTEntry contains information on exactly one position.
