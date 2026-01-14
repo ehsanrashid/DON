@@ -276,51 +276,6 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
     return scaledCount / clusters->entries.size();
 }
 
-bool TranspositionTable::save(std::string_view hashFile) const noexcept {
-
-    if (hashFile.empty())
-    {
-        std::cerr << "No Hash file provided" << std::endl;
-        return false;
-    }
-
-    std::ofstream ofs(std::string(hashFile), std::ios::binary);
-
-    if (!ofs.is_open())
-    {
-        std::cerr << "Failed to open Hash file " << hashFile << std::endl;
-        return false;
-    }
-
-    constexpr std::size_t ClusterSize = sizeof(TTCluster);
-    static_assert(ClusterSize > 0, "Cluster must have non-zero size");
-
-    // Choose a chunk that balances system call overhead and memory pressure.
-    // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr std::size_t ChunkSize = (2ULL * 1024 * 1024 / ClusterSize) * ClusterSize;
-
-    const std::size_t DataSize = clusterCount * ClusterSize;
-
-    const char* data = reinterpret_cast<const char*>(clusters);
-
-    std::size_t writtenSize = 0;
-    while (writtenSize < DataSize)
-    {
-        std::size_t writeSize = std::min(ChunkSize, DataSize - writtenSize);
-
-        ofs.write(data + writtenSize, std::streamsize(writeSize));
-
-        if (!ofs)  // write failed
-            return false;
-
-        writtenSize += writeSize;
-    }
-
-    ofs.flush();
-
-    return writtenSize == DataSize && ofs.good();
-}
-
 bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexcept {
 
     if (hashFile.empty())
@@ -396,6 +351,51 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
     }
 
     return readedSize == DataSize && ifs.good();
+}
+
+bool TranspositionTable::save(std::string_view hashFile) const noexcept {
+
+    if (hashFile.empty())
+    {
+        std::cerr << "No Hash file provided" << std::endl;
+        return false;
+    }
+
+    std::ofstream ofs(std::string(hashFile), std::ios::binary);
+
+    if (!ofs.is_open())
+    {
+        std::cerr << "Failed to open Hash file " << hashFile << std::endl;
+        return false;
+    }
+
+    constexpr std::size_t ClusterSize = sizeof(TTCluster);
+    static_assert(ClusterSize > 0, "Cluster must have non-zero size");
+
+    // Choose a chunk that balances system call overhead and memory pressure.
+    // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
+    constexpr std::size_t ChunkSize = (2ULL * 1024 * 1024 / ClusterSize) * ClusterSize;
+
+    const std::size_t DataSize = clusterCount * ClusterSize;
+
+    const char* data = reinterpret_cast<const char*>(clusters);
+
+    std::size_t writtenSize = 0;
+    while (writtenSize < DataSize)
+    {
+        std::size_t writeSize = std::min(ChunkSize, DataSize - writtenSize);
+
+        ofs.write(data + writtenSize, std::streamsize(writeSize));
+
+        if (!ofs)  // write failed
+            return false;
+
+        writtenSize += writeSize;
+    }
+
+    ofs.flush();
+
+    return writtenSize == DataSize && ofs.good();
 }
 
 }  // namespace DON

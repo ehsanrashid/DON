@@ -114,15 +114,15 @@ class TranspositionTable final {
 
     std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
 
-    bool save(std::string_view hashFile) const noexcept;
     bool load(std::string_view hashFile, Threads& threads) noexcept;
+    bool save(std::string_view hashFile) const noexcept;
 
    private:
     void free() noexcept;
 
     TTCluster*   clusters = nullptr;
     std::size_t  clusterCount;
-    std::uint8_t generation8;  // Size must be not bigger than TTEntry::genData8
+    std::uint8_t generation8;
 };
 
 }  // namespace DON

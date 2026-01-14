@@ -387,9 +387,9 @@ void Engine::save_networks(const StdArray<std::optional<std::string>, 2>& netFil
     });
 }
 
-bool Engine::save_hash() const noexcept { return transpositionTable.save(options["HashFile"]); }
-
 bool Engine::load_hash() noexcept { return transpositionTable.load(options["HashFile"], threads); }
+
+bool Engine::save_hash() const noexcept { return transpositionTable.save(options["HashFile"]); }
 
 void Engine::set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept {
     updateContext.onUpdateShort = std::move(f);
