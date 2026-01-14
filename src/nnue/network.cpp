@@ -142,14 +142,10 @@ void Network<Arch, Transformer>::load(std::string_view rootDirectory,
     for (const auto& directory : dirs)
         if (netFile != std::string(evalFile.currentName))
         {
-            if (directory != "<internal>")
-            {
-                load_user_net(directory, netFile);
-            }
-            else if (netFile == std::string(evalFile.defaultName))
-            {
+            if (directory == "<internal>" && netFile == std::string(evalFile.defaultName))
                 load_internal();
-            }
+            else if (directory != "<internal>")
+                load_user_net(directory, netFile);
         }
 }
 
@@ -273,20 +269,6 @@ Network<Arch, Transformer>::trace(const Position&                         pos,
 }
 
 template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::load_user_net(const std::string& dir,
-                                               const std::string& netFile) noexcept {
-    std::ifstream ifs(dir + netFile, std::ios::binary);
-
-    auto description = load(ifs);
-
-    if (description.has_value())
-    {
-        evalFile.currentName    = netFile;
-        evalFile.netDescription = description.value();
-    }
-}
-
-template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_internal() noexcept {
     const auto embedded = get_embedded(embeddedType);
 
@@ -305,8 +287,25 @@ void Network<Arch, Transformer>::load_internal() noexcept {
 }
 
 template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::initialize() noexcept {
+void Network<Arch, Transformer>::load_user_net(const std::string& dir,
+                                               const std::string& netFile) noexcept {
+    std::ifstream ifs(dir + netFile, std::ios::binary);
+
+    auto description = load(ifs);
+
+    if (description.has_value())
+    {
+        evalFile.currentName    = netFile;
+        evalFile.netDescription = description.value();
+    }
+}
+
+template<typename Arch, typename Transformer>
+std::optional<std::string> Network<Arch, Transformer>::load(std::istream& is) noexcept {
     initialized = true;
+
+    std::string description;
+    return read_parameters(is, description) ? std::make_optional(description) : std::nullopt;
 }
 
 template<typename Arch, typename Transformer>
@@ -317,14 +316,6 @@ bool Network<Arch, Transformer>::save(std::ostream&      os,
         return false;
 
     return write_parameters(os, netDescription);
-}
-
-template<typename Arch, typename Transformer>
-std::optional<std::string> Network<Arch, Transformer>::load(std::istream& is) noexcept {
-    initialize();
-
-    std::string description;
-    return read_parameters(is, description) ? std::make_optional(description) : std::nullopt;
 }
 
 template<typename Arch, typename Transformer>
