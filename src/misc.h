@@ -378,12 +378,6 @@ struct OffsetView final {
     constexpr T*       data(T* const base) noexcept { return base + offset(); }
     constexpr const T* data(const T* const base) const noexcept { return base + offset(); }
 
-    // --- Iterator helpers using external count ---
-    //constexpr T*       begin(T* const base) noexcept { return data(base); }
-    //constexpr T*       end(T* const base, size_type count) noexcept { return begin(base) + count; }
-    //constexpr const T* begin(const T* const base) const noexcept { return data(base); }
-    //constexpr const T* end(const T* const base, size_type count) const noexcept { return begin(base) + count; }
-
     // --- Push/pop using external count ---
     void push_back(const T& value, T* const base, size_type count) noexcept {
         assert(count < size());
