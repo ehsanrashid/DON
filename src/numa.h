@@ -1143,20 +1143,21 @@ class NumaConfig final {
 
         std::vector<char> buffer(bufSize);
 
-        auto* info = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(buffer.data());
+        auto* processorInfo =
+          reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(buffer.data());
 
-        if (!GetLogicalProcessorInformationEx(RelationCache, info, &bufSize))
+        if (!GetLogicalProcessorInformationEx(RelationCache, processorInfo, &bufSize))
             return std::nullopt;
 
-        while (reinterpret_cast<char*>(info) < buffer.data() + bufSize)
+        while (reinterpret_cast<char*>(processorInfo) < buffer.data() + bufSize)
         {
-            info = std::launder(info);
+            processorInfo = std::launder(processorInfo);
 
-            if (info->Relationship == RelationCache && info->Cache.Level == 3)
+            if (processorInfo->Relationship == RelationCache && processorInfo->Cache.Level == 3)
             {
                 L3Domain l3Domain{};
 
-                l3Domain.cpus = read_cache_members(info, is_cpu_allowed);
+                l3Domain.cpus = read_cache_members(processorInfo, is_cpu_allowed);
 
                 if (!l3Domain.cpus.empty())
                 {
@@ -1167,8 +1168,8 @@ class NumaConfig final {
             }
 
             // Variable length data structure, advance to next
-            info = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(
-              reinterpret_cast<char*>(info) + info->Size);
+            processorInfo = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(
+              reinterpret_cast<char*>(processorInfo) + processorInfo->Size);
         }
 
 #elif defined(__linux__) && !defined(__ANDROID__)
