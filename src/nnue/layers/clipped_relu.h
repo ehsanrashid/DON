@@ -68,13 +68,17 @@ class ClippedReLU final {
     void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
 
 #if defined(USE_AVX2)
-        if constexpr (InputDimensions % SIMD_WIDTH == 0)
-        {
-            constexpr IndexType ChunkCount = InputDimensions / SIMD_WIDTH;
+        constexpr bool      SimdBlockFull = InputDimensions % SIMD_WIDTH == 0;
+        constexpr IndexType SimdWidth     = SimdBlockFull ? SIMD_WIDTH : SIMD_WIDTH / 2;
+        constexpr IndexType ChunkCount    = InputDimensions / SimdWidth;
 
-            __m256i     Offsets = _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0);
-            const auto* in      = reinterpret_cast<const __m256i*>(input);
-            auto*       out     = reinterpret_cast<__m256i*>(output);
+        if constexpr (SimdBlockFull)
+        {
+            __m256i Offsets = _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0);
+
+            const auto* in  = reinterpret_cast<const __m256i*>(input);
+            auto*       out = reinterpret_cast<__m256i*>(output);
+
             for (IndexType i = 0; i < ChunkCount; ++i)
             {
                 __m256i words0 =
@@ -91,10 +95,9 @@ class ClippedReLU final {
         }
         else
         {
-            constexpr IndexType ChunkCount = InputDimensions / (SIMD_WIDTH / 2);
-
             const auto* in  = reinterpret_cast<const __m128i*>(input);
             auto*       out = reinterpret_cast<__m128i*>(output);
+
             for (IndexType i = 0; i < ChunkCount; ++i)
             {
                 __m128i words0 = _mm_srli_epi16(
@@ -107,12 +110,11 @@ class ClippedReLU final {
             }
         }
 
-        constexpr IndexType Start = InputDimensions % SIMD_WIDTH == 0
-                                    ? InputDimensions / SIMD_WIDTH * SIMD_WIDTH
-                                    : InputDimensions / (SIMD_WIDTH / 2) * (SIMD_WIDTH / 2);
+        constexpr IndexType Start = SimdWidth * ChunkCount;
 
 #elif defined(USE_SSE2)
-        constexpr IndexType ChunkCount = InputDimensions / SIMD_WIDTH;
+        constexpr IndexType SimdWidth  = SIMD_WIDTH;
+        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
     #if !defined(USE_SSE41)
         __m128i k0x80s = _mm_set1_epi8(-128);
@@ -120,6 +122,7 @@ class ClippedReLU final {
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
         auto*       out = reinterpret_cast<__m128i*>(output);
+
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
     #if defined(USE_SSE41)
@@ -142,14 +145,17 @@ class ClippedReLU final {
     #endif
         }
 
-        constexpr IndexType Start = SIMD_WIDTH * ChunkCount;
+        constexpr IndexType Start = SimdWidth * ChunkCount;
 
 #elif defined(USE_NEON)
-        constexpr IndexType ChunkCount = InputDimensions / (SIMD_WIDTH / 2);
+        constexpr IndexType SimdWidth  = SIMD_WIDTH / 2;
+        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
         const int8x8_t Zero = {0};
-        const auto*    in   = reinterpret_cast<const int32x4_t*>(input);
-        auto*          out  = reinterpret_cast<int8x8_t*>(output);
+
+        const auto* in  = reinterpret_cast<const int32x4_t*>(input);
+        auto*       out = reinterpret_cast<int8x8_t*>(output);
+
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
             int16x8_t shifted;
@@ -160,7 +166,7 @@ class ClippedReLU final {
             out[i]     = vmax_s8(vqmovn_s16(shifted), Zero);
         }
 
-        constexpr IndexType Start = (SIMD_WIDTH / 2) * ChunkCount;
+        constexpr IndexType Start = SimdWidth * ChunkCount;
 #else
         constexpr IndexType Start = 0;
 #endif
