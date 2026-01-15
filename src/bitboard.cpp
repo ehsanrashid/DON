@@ -98,10 +98,10 @@ void init_magics() noexcept {
         assert(magic.attacksBBs != nullptr);
 
         // Get the pseudo attacks on an empty board
-        Bitboard pseudoAttacksBB = attacks_bb(s, PT);
+        const Bitboard pseudoAttacksBB = attacks_bb(s, PT);
 
         // Board edges are not considered in the relevant occupancies
-        Bitboard edgesBB = (EDGE_FILES_BB & ~file_bb(s)) | (PROMOTION_RANKS_BB & ~rank_bb(s));
+        const Bitboard edgesBB = (EDGE_FILES_BB & ~file_bb(s)) | (PROMOTION_RANKS_BB & ~rank_bb(s));
 
         // Compute the mask of relevant occupancy bits for the square and piece type
         magic.maskBB = pseudoAttacksBB & ~edgesBB;
@@ -121,7 +121,7 @@ void init_magics() noexcept {
         Bitboard occupancyBB = 0;
         do
         {
-            Bitboard slidingAttacksBB = sliding_attacks_bb<PT>(s, occupancyBB);
+            const Bitboard slidingAttacksBB = sliding_attacks_bb<PT>(s, occupancyBB);
 
 #if defined(USE_BMI2)
             magic.attacks_bb(occupancyBB, slidingAttacksBB);
@@ -215,19 +215,21 @@ void init() noexcept {
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
     {
-        Bitboard s1BB = square_bb(s1);
+        const Bitboard s1BB = square_bb(s1);
 
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
-            Bitboard s2BB = square_bb(s2);
+            const Bitboard s2BB = square_bb(s2);
 
             for (PieceType pt : {BISHOP, ROOK})
             {
                 if ((attacks_bb(s1, pt) & s2BB) != 0)
                 {
+                    // clang-format off
                     BETWEEN_BBs[s1][s2] = attacks_bb(s1, pt, s2BB) & attacks_bb(s2, pt, s1BB);
-                    PASS_RAY_BBs[s1][s2] =
-                      attacks_bb(s1, pt, 0) & (attacks_bb(s2, pt, s1BB) | s2BB);
+
+                    PASS_RAY_BBs[s1][s2] = attacks_bb(s1, pt, 0) & (attacks_bb(s2, pt, s1BB) | s2BB);
+                    // clang-format on
                 }
             }
 
