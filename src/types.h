@@ -67,15 +67,16 @@
         #endif
     #endif
 
-    // Enforce minimum GCC version
-    #if defined(__GNUC__) && !defined(__clang__) \
-      && (__GNUC__ < 9 || (__GNUC__ == 9 && __GNUC_MINOR__ < 3))
-        #error "DON requires GCC 9.3 or later for correct compilation"
-    #endif
-
     // Enforce minimum Clang version
-    #if defined(__clang__) && (__clang_major__ < 10)
-        #error "DON requires Clang 10.0 or later for correct compilation"
+    #if defined(__clang__)
+        #if __clang_major__ < 10
+            #error "DON requires Clang 10.0 or later for correct compilation"
+        #endif
+    // Enforce minimum GCC version
+    #elif defined(__GNUC__)
+        #if (__GNUC__ < 9) || (__GNUC__ == 9 && __GNUC_MINOR__ < 3)
+            #error "DON requires GCC 9.3 or later for correct compilation"
+        #endif
     #endif
 
 namespace DON {

@@ -164,12 +164,12 @@ std::string compiler_info() noexcept {
 #elif defined(__clang__)
     str += "clang++ ";
     str += VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
-#elif defined(_MSC_VER)
-    str += "MSVC ";
-    str += STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD);
 #elif defined(__GNUC__)
     str += "g++ (GNUC) ";
     str += VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#elif defined(_MSC_VER)
+    str += "MSVC ";
+    str += STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD);
 #elif defined(__e2k__) && defined(__LCC__)
     str += "MCST LCC ";
     str += std::to_string(__LCC__ / 100);

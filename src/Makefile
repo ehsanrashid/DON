@@ -76,7 +76,7 @@ SRCS := benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp \
 
 HEADERS := benchmark.h bitboard.h engine.h evaluate.h history.h memory.h misc.h movegen.h \
     movepick.h numa.h option.h perft.h polybook.h position.h prng.h search.h shm.h \
-    thread.h timeman.h tt.h tune.h types.h uci.h \
+    thread.h timeman.h tt.h tune.h types.h uci.h incbin/incbin.h \
     nnue/features/full_threats.h nnue/features/half_ka_v2_hm.h \
     nnue/layers/affine_transform.h nnue/layers/affine_transform_sparse_input.h \
     nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h \
