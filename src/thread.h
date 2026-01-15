@@ -30,15 +30,109 @@
 #include <utility>
 #include <vector>
 
+#if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(USE_PTHREADS)
+    #include <pthread.h>
+#else  // Default case: use STL classes
+    #include <thread>
+#endif
+
 #include "memory.h"
 #include "numa.h"
 #include "position.h"
 #include "search.h"
-#include "thread_win32_osx.h"
 
 namespace DON {
 
-class Options;
+#if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(USE_PTHREADS)
+
+// On OSX threads other than the main thread are created with a reduced stack
+// size of 512KB by default, this is too low for deep searches,
+// which require somewhat more than 1MB stack, so adjust it to 8MB.
+class NativeThread final {
+   public:
+    NativeThread() noexcept = delete;
+
+    template<typename Function, typename... Args>
+    NativeThread(Function&& func, Args&&... args) noexcept {
+        using Func = std::function<void()>;
+
+        auto* funcPtr =
+          new Func(std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
+
+        const auto start_routine = [](void* ptr) noexcept -> void* {
+            auto* fnPtr = static_cast<Func*>(ptr);
+
+            // Call the function
+            (*fnPtr)();
+
+            delete fnPtr;
+
+            return nullptr;
+        };
+
+        pthread_attr_t attr;
+
+        if (pthread_attr_init(&attr) != 0)
+        {
+            delete funcPtr;
+            return;
+        }
+
+        pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
+
+        if (pthread_create(&thread, &attr, start_routine, funcPtr) != 0)
+        {
+            delete funcPtr;
+        }
+
+        pthread_attr_destroy(&attr);
+    }
+
+    // Non-copyable
+    NativeThread(const NativeThread&) noexcept            = delete;
+    NativeThread& operator=(const NativeThread&) noexcept = delete;
+
+    // Movable
+    NativeThread(NativeThread&& nativeThread) noexcept :
+        thread(nativeThread.thread),
+        joined(nativeThread.joined) {
+        nativeThread.joined = true;
+    }
+    NativeThread& operator=(NativeThread&& nativeThread) noexcept {
+        if (this == &nativeThread)
+            return *this;
+
+        join();
+        thread = nativeThread.thread;
+        joined = nativeThread.joined;
+
+        nativeThread.joined = true;
+        return *this;
+    }
+
+    // RAII: join on destruction if thread is joinable
+    ~NativeThread() noexcept { join(); }
+
+    bool joinable() const noexcept { return !joined; }
+
+    void join() noexcept {
+        if (joinable())
+        {
+            pthread_join(thread, nullptr);
+            joined = true;
+        }
+    }
+
+   private:
+    pthread_t thread;
+    bool      joined = false;
+};
+
+#else
+
+using NativeThread = std::thread;
+
+#endif
 
 // Sometimes don't want to actually bind the threads, but the recipient still needs
 // to think it runs on *some* NUMA node, such that it can access structures that rely
@@ -167,6 +261,8 @@ using StateList    = std::deque<State>;
 using StateListPtr = std::unique_ptr<StateList>;
 
 using ThreadPtr = std::unique_ptr<Thread>;
+
+class Options;
 
 // Threads handles all the threads-related stuff like
 // launching, initializing, starting and parking a thread.
