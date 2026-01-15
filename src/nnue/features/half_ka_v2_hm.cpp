@@ -96,7 +96,7 @@ void HalfKAv2_hm::append_active_indices(Color                             perspe
                                         IndexList&                        active) noexcept {
     while (changedBB != 0)
     {
-        Square s = pop_lsq(changedBB);
+        const Square s = pop_lsq(changedBB);
 
         active.push_back(make_index(perspective, kingSq, s, pieceMap[s]));
     }

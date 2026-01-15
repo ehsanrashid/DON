@@ -53,14 +53,14 @@ union Zobrist final {
         Key key = 0;
 
         std::size_t n;
-        auto        sqs = pos.squares(n);
+        const auto  sqs = pos.squares(n);
 
         auto       beg = sqs.begin();
         const auto end = beg + n;
         for (; beg != end; ++beg)
         {
-            Square s  = *beg;
-            Piece  pc = pos[s];
+            const Square s  = *beg;
+            const Piece  pc = pos[s];
 
             key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][s];
         }
@@ -69,7 +69,7 @@ union Zobrist final {
         while (castlingRightsBB != 0)
             key ^= _.Castling[pop_lsq(castlingRightsBB)];
 
-        if (Square enPassantSq = pos.en_passant_sq(); is_ok(enPassantSq))
+        if (const Square enPassantSq = pos.en_passant_sq(); is_ok(enPassantSq))
             key ^= _.Enpassant[file_of(enPassantSq)];
 
         if (pos.active_color() == WHITE)
@@ -393,8 +393,9 @@ Move pg_to_move(std::uint16_t pgMove, const MoveList<GenType::LEGAL>& legalMoves
     if (int pt = (move.raw() >> Move::PROMO_OFFSET) & 0x7; pt != 0)
         move = Move::make<MT::PROMOTION>(move.org_sq(), move.dst_sq(), PieceType(pt + 1));
 
-    std::uint16_t moveRaw = move.raw() & ~Move::TYPE_MASK;
-    for (auto m : legalMoves)
+    const std::uint16_t moveRaw = move.raw() & ~Move::TYPE_MASK;
+
+    for (const Move m : legalMoves)
         if ((m.raw() & ~Move::TYPE_MASK) == moveRaw)
             return m;
 
@@ -408,7 +409,7 @@ bool is_draw(Position& pos, Move m) noexcept {
     State st;
     pos.do_move(m, st);
 
-    bool isDraw = pos.is_draw(pos.ply(), true, true);
+    const bool isDraw = pos.is_draw(pos.ply(), true, true);
 
     pos.undo_move(m);
 
@@ -429,7 +430,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
     std::error_code ec;
 
-    std::size_t fileSize = std::filesystem::file_size(filename, ec);
+    const std::size_t fileSize = std::filesystem::file_size(filename, ec);
 
     if (ec)
     {
@@ -452,8 +453,8 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
         return false;
     }
 
-    std::size_t entryCount = fileSize / EntrySize;
-    std::size_t remainder  = fileSize % EntrySize;
+    const std::size_t entryCount = fileSize / EntrySize;
+    const std::size_t remainder  = fileSize % EntrySize;
 
     if (remainder != 0)
         std::cerr << "Warning: Bad size Book file " << filename << ", ignoring " << remainder
@@ -478,6 +479,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
     char* data = reinterpret_cast<char*>(entries.data());
 
     std::size_t readedSize = 0;
+
     while (readedSize < DataSize)
     {
         std::streamsize readSize = std::min(ChunkSize, DataSize - readedSize);
@@ -531,8 +533,8 @@ std::size_t PolyBook::key_index(Key key) const noexcept {
     // Binary scan
     while (window > 2 * Radius)
     {
-        std::size_t midIndex = begIndex + window / 2;
-        Key         midKey   = entries[midIndex].key;
+        const std::size_t midIndex = begIndex + window / 2;
+        const Key         midKey   = entries[midIndex].key;
 
         if (midKey == key)
         {
@@ -565,7 +567,7 @@ std::size_t PolyBook::key_index(Key key) const noexcept {
 }
 
 PolyBook::Entries PolyBook::key_candidates(Key key) const noexcept {
-    std::size_t index = key_index(key);
+    const std::size_t index = key_index(key);
 
     Entries candidates;
 
@@ -590,9 +592,9 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     if (!(options["OwnBook"] && !empty() && pos.move_num() <= options["BookProbeDepth"]))
         return Move::None;
 
-    Key key = PGZob.key(pos);
+    const Key key = PGZob.key(pos);
 
-    Entries candidates = key_candidates(key);
+    const Entries candidates = key_candidates(key);
 
     if (candidates.empty())
         return Move::None;
@@ -616,6 +618,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
               << "\nWeight Sum: " << sumWeight << '\n';
 
     std::size_t cnt = 0;
+
     for (const auto& candidate : candidates)
     {
         // clang-format off

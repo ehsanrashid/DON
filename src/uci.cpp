@@ -853,10 +853,10 @@ WinRateParams win_rate_params(const Position& pos) noexcept {
     // clang-format on
 
     // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (17.2414e-3).
-    double m = 17.2414e-3 * std::clamp(pos.std_material(), 17, 78);
+    const double m = 17.2414e-3 * std::clamp(pos.std_material(), 17, 78);
     // Return a = p_a(material) and b = p_b(material).
-    double a = ((A[0] * m + A[1]) * m + A[2]) * m + A[3];
-    double b = ((B[0] * m + B[1]) * m + B[2]) * m + B[3];
+    const double a = ((A[0] * m + A[1]) * m + A[2]) * m + A[3];
+    const double b = ((B[0] * m + B[1]) * m + B[2]) * m + B[3];
 
     return {a, b};
 }
@@ -935,7 +935,8 @@ std::string UCI::move_to_can(Move m) noexcept {
     if (m == Move::Null)
         return "0000";
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    const Square orgSq = m.org_sq();
+    Square       dstSq = m.dst_sq();
 
     if (!Position::Chess960 && m.type() == MT::CASTLING)
     {
@@ -962,7 +963,7 @@ Move UCI::can_to_move(std::string can, const MoveList<GenType::LEGAL>& legalMove
 
     can = lower_case(can);
 
-    for (auto m : legalMoves)
+    for (const Move m : legalMoves)
         if (can == move_to_can(m))
             return m;
 
@@ -987,11 +988,11 @@ enum class Ambiguity : std::uint8_t {
 Ambiguity detect_ambiguity(Move m, const Position& pos) noexcept {
     assert(pos.legal(m));
 
-    Color ac = pos.active_color();
+    const Color ac = pos.active_color();
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     assert(color_of(pos[orgSq]) == ac);
-    PieceType movedPt = type_of(pos[orgSq]);
+    const auto movedPt = type_of(pos[orgSq]);
 
     // Only one piece of this piece-type -> no ambiguity
     if (pos.count(ac, movedPt) == 1)
@@ -1035,10 +1036,10 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
 
     assert(MoveList<GenType::LEGAL>(pos).contains(m));
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     assert(color_of(pos[orgSq]) == pos.active_color());
 
-    auto movedPt = type_of(pos[orgSq]);
+    const auto movedPt = type_of(pos[orgSq]);
 
     std::string san;
     san.reserve(9);
@@ -1125,7 +1126,7 @@ Move UCI::san_to_move(std::string                     san,
     if (san.size() >= 2 && san[1] == '-' && (san[0] == '0' || std::tolower(san[0]) == 'o'))
         std::replace_if(san.begin(), san.end(), [](char c) { return c == 'o' || c == '0'; }, 'O');
 
-    for (auto m : legalMoves)
+    for (const Move m : legalMoves)
         if (san == move_to_san(m, pos))
             return m;
 
@@ -1166,7 +1167,7 @@ std::string UCI::build_pv_string(const Moves& pvMoves) noexcept {
     std::string pv;
     pv.reserve(6 * pvMoves.size());
 
-    for (auto m : pvMoves)
+    for (const Move m : pvMoves)
     {
         pv += ' ';
         pv += move_to_can(m);

@@ -194,27 +194,20 @@ struct IndexCount final {
    public:
     std::size_t begIdx;
     std::size_t count;
-
-    constexpr IndexCount(std::size_t beg, std::size_t cnt) noexcept :
-        begIdx(beg),
-        count(cnt) {}
 };
 
 constexpr IndexCount
 thread_index_count(std::size_t threadId, std::size_t threadCount, std::size_t totalSize) noexcept {
     assert(threadCount != 0 && threadId < threadCount);
 
-    std::size_t stride = totalSize / threadCount;
-    std::size_t remain = totalSize % threadCount;  // remainder to distribute
-
-    //// Last thread takes the remainder
-    //std::size_t begIdx = threadId * stride;
-    //std::size_t count  = threadId != threadCount - 1 ? stride : totalSize - begIdx;
+    const std::size_t stride = totalSize / threadCount;
+    const std::size_t remain = totalSize % threadCount;  // remainder to distribute
 
     // Distribute remainder among the first 'remain' threads
-    std::size_t begIdx = threadId * stride + std::min(threadId, remain);
-    std::size_t count  = stride + std::size_t(threadId < remain);
+    const std::size_t begIdx = threadId * stride + std::min(threadId, remain);
+    const std::size_t count  = stride + std::size_t(threadId < remain);
 
+    assert(begIdx + count <= totalSize);
     return {begIdx, count};
 }
 
@@ -222,26 +215,18 @@ struct IndexRange final {
    public:
     std::size_t begIdx;
     std::size_t endIdx;
-
-    constexpr IndexRange(std::size_t beg, std::size_t end) noexcept :
-        begIdx(beg),
-        endIdx(end) {}
 };
 
 constexpr IndexRange
 thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t totalSize) noexcept {
     assert(threadCount != 0 && threadId < threadCount);
 
-    std::size_t stride = totalSize / threadCount;
-    std::size_t remain = totalSize % threadCount;  // remainder to distribute
-
-    //// Last thread takes the remainder
-    //std::size_t begIdx = threadId * stride;
-    //std::size_t endIdx = threadId != threadCount - 1 ? begIdx + stride : totalSize;
+    const std::size_t stride = totalSize / threadCount;
+    const std::size_t remain = totalSize % threadCount;  // remainder to distribute
 
     // Distribute remainder among the first 'remain' threads
-    std::size_t begIdx = threadId * stride + std::min(threadId, remain);
-    std::size_t endIdx = begIdx + stride + std::size_t(threadId < remain);
+    const std::size_t begIdx = threadId * stride + std::min(threadId, remain);
+    const std::size_t endIdx = begIdx + stride + std::size_t(threadId < remain);
 
     assert(begIdx <= endIdx && endIdx <= totalSize);
     return {begIdx, endIdx};
@@ -378,12 +363,6 @@ struct OffsetView final {
     constexpr T*       data(T* const base) noexcept { return base + offset(); }
     constexpr const T* data(const T* const base) const noexcept { return base + offset(); }
 
-    // --- Iterator helpers using external count ---
-    //constexpr T*       begin(T* const base) noexcept { return data(base); }
-    //constexpr T*       end(T* const base, size_type count) noexcept { return begin(base) + count; }
-    //constexpr const T* begin(const T* const base) const noexcept { return data(base); }
-    //constexpr const T* end(const T* const base, size_type count) const noexcept { return begin(base) + count; }
-
     // --- Push/pop using external count ---
     void push_back(const T& value, T* const base, size_type count) noexcept {
         assert(count < size());
@@ -395,11 +374,6 @@ struct OffsetView final {
 
         data(base)[count] = std::move(value);
     }
-
-    //void pop_back([[maybe_unused]] size_type count) noexcept {
-    //    assert(count != 0);
-    //    // just placeholder, does not modify count
-    //}
 
     T& back(T* const base, size_type count) noexcept {
         assert(count != 0);
@@ -413,17 +387,8 @@ struct OffsetView final {
     }
 
     // --- Element access ---
-    T& at(size_type idx, T* const base /*, [[maybe_unused]] size_type count*/) noexcept {
-        //assert(idx < count);
-
-        return data(base)[idx];
-    }
-    const T& at(size_type      idx,
-                const T* const base /*, [[maybe_unused]] size_type count*/) const noexcept {
-        //assert(idx < count);
-
-        return data(base)[idx];
-    }
+    T&       at(size_type idx, T* const base) noexcept { return data(base)[idx]; }
+    const T& at(size_type idx, const T* const base) const noexcept { return data(base)[idx]; }
 
     // --- STL-style iterable proxy ---
     struct Iterable final {
@@ -1052,6 +1017,7 @@ inline void prefetch(const void* const) noexcept {}
 
 using TimePoint = std::chrono::milliseconds::rep;  // A value in milliseconds
 static_assert(sizeof(TimePoint) == sizeof(std::int64_t), "TimePoint should be 64-bit");
+
 inline TimePoint now() noexcept {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
              std::chrono::steady_clock::now().time_since_epoch())
@@ -1326,32 +1292,32 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 }
 
 [[nodiscard]] constexpr bool is_whitespace(std::string_view str) noexcept {
-    //return str.empty()
-    //    || std::all_of(str.begin(), str.end(), [](unsigned char ch) { return std::isspace(ch); });
     return str.find_first_not_of(WHITE_SPACE) == std::string_view::npos;
 }
 
 [[nodiscard]] constexpr std::string_view ltrim(std::string_view str) noexcept {
     // Find the first non-whitespace character
-    std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+    const std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+
     return beg == std::string_view::npos ? std::string_view{} : str.substr(beg);
 }
 
 [[nodiscard]] constexpr std::string_view rtrim(std::string_view str) noexcept {
     // Find the last non-whitespace character
-    std::size_t end = str.find_last_not_of(WHITE_SPACE);
+    const std::size_t end = str.find_last_not_of(WHITE_SPACE);
+
     return end == std::string_view::npos ? std::string_view{} : str.substr(0, end + 1);
 }
 
 [[nodiscard]] constexpr std::string_view trim(std::string_view str) noexcept {
-    std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+    const std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+
     if (beg == std::string_view::npos)
         return {};
 
-    std::size_t end = str.find_last_not_of(WHITE_SPACE);
+    const std::size_t end = str.find_last_not_of(WHITE_SPACE);
 
     return str.substr(beg, end - beg + 1);
-    //return ltrim(rtrim(str));
 }
 
 [[nodiscard]] constexpr std::string_view bool_to_string(bool b) noexcept {
@@ -1373,7 +1339,7 @@ split(std::string_view str, std::string_view delimiter, bool trimPart = false) n
 
     while (true)
     {
-        std::size_t end = str.find(delimiter, beg);
+        const std::size_t end = str.find(delimiter, beg);
 
         if (end == std::string_view::npos)
             break;

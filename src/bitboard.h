@@ -310,7 +310,8 @@ constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
 constexpr Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) noexcept {
     assert(is_ok(s));
 
-    Square sq = s + d;
+    const Square sq = s + d;
+
     return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
 }
 
@@ -327,13 +328,13 @@ constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexce
 
     Bitboard attacksBB = 0;
 
-    for (Direction d : Directions[PT - BISHOP])
+    for (const Direction d : Directions[PT - BISHOP])
     {
         Square sq = s;
 
         while (true)
         {
-            Square nextSq = sq + d;
+            const Square nextSq = sq + d;
 
             // Stop if next square is off-board or not adjacent (wrap-around)
             if (!is_ok(nextSq) || distance(sq, nextSq) > 1)
@@ -358,8 +359,8 @@ constexpr Bitboard knight_attacks_bb(Square s) noexcept {
 
     Bitboard attacksBB = 0;
 
-    for (auto dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH, WEST_2 + NORTH,
-                     EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
+    for (const Direction dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
+                                WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
         attacksBB |= destination_bb(s, dir, 2);
 
     return attacksBB;
@@ -370,7 +371,8 @@ constexpr Bitboard king_attacks_bb(Square s) noexcept {
 
     Bitboard attacksBB = 0;
 
-    for (auto dir : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
+    for (const Direction dir :
+         {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
         attacksBB |= destination_bb(s, dir);
 
     return attacksBB;
@@ -669,7 +671,9 @@ inline std::uint8_t popcount(Bitboard b) noexcept {
 #if !defined(USE_POPCNT)
     StdArray<std::uint16_t, 4> b16;
     static_assert(sizeof(b16) == sizeof(b));
+
     std::memcpy(b16.data(), &b, sizeof(b16));
+
     return POP_CNTS[b16[0]] + POP_CNTS[b16[1]] + POP_CNTS[b16[2]] + POP_CNTS[b16[3]];
 #elif defined(__GNUC__)  // (GCC, Clang, ICX)
     return __builtin_popcountll(b);
@@ -692,16 +696,19 @@ inline Square lsq(Bitboard b) noexcept {
     unsigned long idx;
     #if defined(_WIN64)  // (MSVC-> WIN64)
     _BitScanForward64(&idx, b);
+
     return Square(idx);
     #else                // (MSVC-> WIN32)
     if (auto bb = std::uint32_t(b); bb != 0)
     {
         _BitScanForward(&idx, bb);
+
         return Square(idx);
     }
     else
     {
         _BitScanForward(&idx, std::uint32_t(b >> 32));
+
         return Square(idx + 32);
     }
     #endif
@@ -722,16 +729,19 @@ inline Square msq(Bitboard b) noexcept {
     unsigned long idx;
     #if defined(_WIN64)  // (MSVC-> WIN64)
     _BitScanReverse64(&idx, b);
+
     return Square(idx);
     #else                // (MSVC-> WIN32)
     if (auto bb = std::uint32_t(b >> 32); bb != 0)
     {
         _BitScanReverse(&idx, bb);
+
         return Square(idx + 32);
     }
     else
     {
         _BitScanReverse(&idx, std::uint32_t(b));
+
         return Square(idx);
     }
     #endif
@@ -746,8 +756,10 @@ inline Square msq(Bitboard b) noexcept {
 inline Square pop_lsq(Bitboard& b) noexcept {
     assert(b != 0);
 
-    Square s = lsq(b);
+    const Square s = lsq(b);
+
     b &= b - 1;
+
     return s;
 }
 
@@ -755,8 +767,10 @@ inline Square pop_lsq(Bitboard& b) noexcept {
 inline Square pop_msq(Bitboard& b) noexcept {
     assert(b != 0);
 
-    Square s = msq(b);
+    const Square s = msq(b);
+
     b ^= s;
+
     return s;
 }
 

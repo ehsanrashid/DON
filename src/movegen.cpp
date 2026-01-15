@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cstring>
-#include <functional>
 #include <initializer_list>
 
 #if defined(USE_AVX512ICL)
@@ -180,15 +179,15 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     constexpr Direction LCap  = AC == WHITE ? NORTH_WEST : SOUTH_EAST;
     constexpr Direction RCap  = AC == WHITE ? NORTH_EAST : SOUTH_WEST;
 
-    const Move* rMoves = moves;
-    Move*       wMoves = moves;
+    const Move* RESTRICT rMoves = moves;
+    Move* RESTRICT       wMoves = moves;
 
-    Bitboard acPawnsBB    = pos.pieces_bb(AC, PAWN);
-    Bitboard yesR7PawnsBB = acPawnsBB & relative_rank(AC, RANK_7);
-    Bitboard notR7PawnsBB = acPawnsBB & ~yesR7PawnsBB;
+    const Bitboard acPawnsBB    = pos.pieces_bb(AC, PAWN);
+    const Bitboard yesR7PawnsBB = acPawnsBB & relative_rank(AC, RANK_7);
+    const Bitboard notR7PawnsBB = acPawnsBB & ~yesR7PawnsBB;
 
-    Bitboard emptyBB = ~pos.pieces_bb();
-    Bitboard enemyBB = pos.pieces_bb(~AC);
+    const Bitboard emptyBB = ~pos.pieces_bb();
+    Bitboard       enemyBB = pos.pieces_bb(~AC);
 
     if constexpr (Evasion)
         enemyBB &= targetBB;
@@ -241,8 +240,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
         dstBB = shift_bb<RCap>(notR7PawnsBB) & enemyBB;
         moves = splat_pawn_moves<AC, RCap>(dstBB, moves);
 
-        Square enPassantSq = pos.en_passant_sq();
-        if (is_ok(enPassantSq))
+        if (const Square enPassantSq = pos.en_passant_sq(); is_ok(enPassantSq))
         {
             assert(relative_rank(AC, enPassantSq) == RANK_6);
             assert(pos.pieces_bb(~AC, PAWN) & (enPassantSq - Push1));
@@ -268,16 +266,17 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
         }
     }
 
-    Square   kingSq     = pos.square<KING>(AC);
-    Bitboard blockersBB = pos.blockers_bb(AC);
+    const Square   kingSq     = pos.square<KING>(AC);
+    const Bitboard blockersBB = pos.blockers_bb(AC);
 
     // Filter illegal moves (preserve order)
     while (rMoves != moves)
     {
-        Move m = *rMoves++;
+        const Move m = *rMoves++;
 
-        if ((blockersBB & m.org_sq()) == 0 || aligned(kingSq, m.org_sq(), m.dst_sq()))
-            *wMoves++ = m;
+        *wMoves = m;
+
+        wMoves += int((blockersBB & m.org_sq()) == 0 || aligned(kingSq, m.org_sq(), m.dst_sq()));
     }
 
     return wMoves;
@@ -289,38 +288,34 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) 
                   "Unsupported piece type in generate_piece_moves()");
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
 
-    auto cnt = pos.count(AC, PT);
+    const auto count = pos.count(AC, PT);
 
-    if (cnt == 0)
+    if (count == 0)
         return moves;
 
     StdArray<Square, Position::CAPACITIES[PT - 1]> sqs;
     //std::memset(sqs.data(), SQ_NONE, sizeof(sqs));
 
-    std::memcpy(sqs.data(), pos.squares(AC, PT).data(pos.base(AC)), cnt * sizeof(Square));
+    std::memcpy(sqs.data(), pos.squares(AC, PT).data(pos.base(AC)), count * sizeof(Square));
 
-    Square*       begSq = sqs.data();
-    Square* const endSq = begSq + cnt;
+    Square* RESTRICT begSq = sqs.data();
+    Square* const    endSq = begSq + count;
 
-    if (cnt > 1)
-    {
-        if constexpr (AC == WHITE)
-            std::sort(begSq, endSq, std::greater<>{});
-        else
-            std::sort(begSq, endSq, std::less<>{});
-    }
+    if (count > 1)
+        std::sort(begSq, endSq,
+                  [](Square s1, Square s2) noexcept { return AC == WHITE ? s1 > s2 : s1 < s2; });
 
-    Square   kingSq      = pos.square<KING>(AC);
-    Bitboard occupancyBB = pos.pieces_bb();
-    Bitboard blockersBB  = pos.blockers_bb(AC);
+    const Square   kingSq      = pos.square<KING>(AC);
+    const Bitboard occupancyBB = pos.pieces_bb();
+    const Bitboard blockersBB  = pos.blockers_bb(AC);
 
     for (; begSq != endSq; ++begSq)
     {
-        Square orgSq = *begSq;
+        const Square orgSq = *begSq;
 
-        Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB)
-                       & ((blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq))  //
-                       & targetBB;
+        const Bitboard maskBB = (blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq);
+
+        const Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB) & maskBB & targetBB;
 
         moves = splat_moves<AC>(orgSq, dstBB, moves);
     }
@@ -334,7 +329,7 @@ Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) n
 
     constexpr bool Castle = GT == GenType::ENCOUNTER || GT == GenType::ENC_QUIET;
 
-    Square kingSq = pos.square<KING>(AC);
+    const Square kingSq = pos.square<KING>(AC);
 
     Bitboard dstBB = attacks_bb<KING>(kingSq) & ~pos.acc_attacks_bb<KING>() & targetBB;
 
