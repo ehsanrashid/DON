@@ -56,7 +56,7 @@ constexpr WDLScore normalize_wdl(WDLScore wdlScore) noexcept {
     return WDLScore(2 * ((wdlScore > WDL_DRAW) - (wdlScore < WDL_DRAW)));
 }
 
-inline std::string to_string(WDLScore wdlScore) noexcept {
+constexpr std::string_view to_string(WDLScore wdlScore) noexcept {
     return wdlScore == WDL_LOSS         ? "Loss"
          : wdlScore == WDL_BLESSED_LOSS ? "Blessed loss"
          : wdlScore == WDL_DRAW         ? "Draw"
@@ -73,7 +73,7 @@ enum ProbeState : std::int8_t {
     PS_BEST_MOVE_ZEROING = +2   // Best move zeroes DTZ (capture or pawn move)
 };
 
-inline std::string to_string(ProbeState ps) noexcept {
+constexpr std::string_view to_string(ProbeState ps) noexcept {
     return ps == PS_FAIL              ? "Failed"
          : ps == PS_OK                ? "Success"
          : ps == PS_AC_CHANGED        ? "Active color changed"
