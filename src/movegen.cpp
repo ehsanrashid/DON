@@ -276,11 +276,9 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     {
         Move m = *rMoves++;
 
-        bool legal = (blockersBB & m.org_sq()) == 0 || aligned(kingSq, m.org_sq(), m.dst_sq());
-
         *wMoves = m;
 
-        wMoves += int(legal);
+        wMoves += int((blockersBB & m.org_sq()) == 0 || aligned(kingSq, m.org_sq(), m.dst_sq()));
     }
 
     return wMoves;
