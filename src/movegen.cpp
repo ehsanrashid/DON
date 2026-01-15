@@ -180,8 +180,8 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     constexpr Direction LCap  = AC == WHITE ? NORTH_WEST : SOUTH_EAST;
     constexpr Direction RCap  = AC == WHITE ? NORTH_EAST : SOUTH_WEST;
 
-    const Move* rMoves = moves;
-    Move*       wMoves = moves;
+    const Move* RESTRICT rMoves = moves;
+    Move* RESTRICT       wMoves = moves;
 
     Bitboard acPawnsBB    = pos.pieces_bb(AC, PAWN);
     Bitboard yesR7PawnsBB = acPawnsBB & relative_rank(AC, RANK_7);
@@ -276,8 +276,11 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     {
         Move m = *rMoves++;
 
-        if ((blockersBB & m.org_sq()) == 0 || aligned(kingSq, m.org_sq(), m.dst_sq()))
-            *wMoves++ = m;
+        bool legal = (blockersBB & m.org_sq()) == 0 || aligned(kingSq, m.org_sq(), m.dst_sq());
+
+        *wMoves = m;
+
+        wMoves += int(legal);
     }
 
     return wMoves;
