@@ -194,10 +194,6 @@ struct IndexCount final {
    public:
     std::size_t begIdx;
     std::size_t count;
-
-    constexpr IndexCount(std::size_t beg, std::size_t cnt) noexcept :
-        begIdx(beg),
-        count(cnt) {}
 };
 
 constexpr IndexCount
@@ -219,10 +215,6 @@ struct IndexRange final {
    public:
     std::size_t begIdx;
     std::size_t endIdx;
-
-    constexpr IndexRange(std::size_t beg, std::size_t end) noexcept :
-        begIdx(beg),
-        endIdx(end) {}
 };
 
 constexpr IndexRange
