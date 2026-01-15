@@ -845,10 +845,11 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
 
     Color ac = active_color();
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-    Piece  movedPc    = piece(orgSq);
-    Piece  capturedPc = piece(m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac));
-    Piece  promotedPc = Piece::NO_PIECE;
+    const Square orgSq      = m.org_sq();
+    Square       dstSq      = m.dst_sq();
+    const Piece  movedPc    = piece(orgSq);
+    Piece        capturedPc = piece(m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac));
+    Piece        promotedPc = Piece::NO_PIECE;
     assert(color_of(movedPc) == ac);
     assert(!is_ok(capturedPc)
            || (color_of(capturedPc) == (m.type() != MT::CASTLING ? ~ac : ac)
@@ -1120,11 +1121,12 @@ void Position::undo_move(Move m) noexcept {
 
     Color ac = activeColor = ~active_color();
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-    Piece  movedPc = piece(dstSq);
+    const Square orgSq   = m.org_sq();
+    Square       dstSq   = m.dst_sq();
+    Piece        movedPc = piece(dstSq);
     assert(empty(orgSq) || m.type() == MT::CASTLING);
 
-    Piece capturedPc = captured_pc();
+    const Piece capturedPc = captured_pc();
     assert(!is_ok(capturedPc) || type_of(capturedPc) != KING);
 
     if (m.type() == MT::CASTLING)
@@ -1242,13 +1244,13 @@ void Position::undo_null_move() noexcept {
 bool Position::legal(Move m) const noexcept {
     assert(m.is_ok());
 
-    Color ac = active_color();
+    const Color ac = active_color();
 
-    Square kingSq = square<KING>(ac);
+    const Square kingSq = square<KING>(ac);
     assert(piece(kingSq) == make_piece(ac, KING));
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-    Piece  movedPc = piece(orgSq);
+    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    const Piece  movedPc = piece(orgSq);
 
     // If the origin square is not occupied by a piece belonging to
     // the side to move, the move is obviously not legal.
@@ -1345,12 +1347,12 @@ bool Position::legal(Move m) const noexcept {
 bool Position::check(Move m) const noexcept {
     assert(legal(m));
 
-    Color ac = active_color();
+    const Color ac = active_color();
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     assert((pieces_bb(ac) & orgSq) != 0 && !empty(orgSq) && color_of(piece(orgSq)) == ac);
 
-    Square kingSq = square<KING>(~ac);
+    const Square kingSq = square<KING>(~ac);
 
     if (
       // Is there a direct check?
@@ -1388,12 +1390,12 @@ bool Position::check(Move m) const noexcept {
 bool Position::dbl_check(Move m) const noexcept {
     assert(legal(m));
 
-    Color ac = active_color();
+    const Color ac = active_color();
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     assert((pieces_bb(ac) & orgSq) != 0 && !empty(orgSq) && color_of(piece(orgSq)) == ac);
 
-    Square kingSq = square<KING>(~ac);
+    const Square kingSq = square<KING>(~ac);
 
     switch (m.type())
     {
@@ -1465,12 +1467,12 @@ Key Position::move_key(Move m) const noexcept {
 
     assert(legal(m));
 
-    Color ac = active_color();
+    const Color ac = active_color();
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-    Piece  movedPc    = piece(orgSq);
-    Square capturedSq = m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac);
-    Piece  capturedPc = piece(capturedSq);
+    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    const Piece  movedPc    = piece(orgSq);
+    const Square capturedSq = m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac);
+    const Piece  capturedPc = piece(capturedSq);
     assert(color_of(movedPc) == ac);
     assert(!is_ok(capturedPc) || color_of(capturedPc) == (m.type() != MT::CASTLING ? ~ac : ac));
     assert(type_of(capturedPc) != KING);
@@ -1525,8 +1527,9 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     Color ac = active_color();
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-    assert((pieces_bb(ac) & orgSq) != 0 && !empty(orgSq) && color_of(piece(orgSq)) == ac);
+    Square      orgSq = m.org_sq(), dstSq = m.dst_sq();
+    const Piece movedPc = piece(orgSq);
+    assert((pieces_bb(ac) & orgSq) != 0 && !empty(orgSq) && color_of(movedPc) == ac);
 
     Bitboard occupancyBB = pieces_bb();
 
@@ -1544,9 +1547,9 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     if (swap < 0)
         return false;
 
-    auto moved = type_of(piece(orgSq));
+    const auto movedPt = type_of(movedPc);
 
-    swap = piece_value(m.type() != MT::PROMOTION ? moved : m.promotion_type()) - swap;
+    swap = piece_value(m.type() != MT::PROMOTION ? movedPt : m.promotion_type()) - swap;
 
     // If still beat the threshold after losing the piece,
     // it is guaranteed to beat the threshold.
@@ -1560,7 +1563,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     Bitboard attackersBB = attackers_bb(dstSq, occupancyBB);
 
     Square enPassantSq = SQ_NONE;
-    if (moved == PAWN && (int(dstSq) ^ int(orgSq)) == NORTH_2)
+    if (movedPt == PAWN && (int(dstSq) ^ int(orgSq)) == NORTH_2)
     {
         assert(relative_rank(ac, orgSq) == RANK_2);
         assert(relative_rank(ac, dstSq) == RANK_4);

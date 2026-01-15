@@ -306,9 +306,9 @@ Move* generate_piece_moves(const Position& pos, Move* moves, const Bitboard targ
         std::sort(begSq, endSq,
                   [](Square s1, Square s2) noexcept { return AC == WHITE ? s1 > s2 : s1 < s2; });
 
-    Square   kingSq      = pos.square<KING>(AC);
-    Bitboard occupancyBB = pos.pieces_bb();
-    Bitboard blockersBB  = pos.blockers_bb(AC);
+    const Square   kingSq      = pos.square<KING>(AC);
+    const Bitboard occupancyBB = pos.pieces_bb();
+    const Bitboard blockersBB  = pos.blockers_bb(AC);
 
     for (; begSq != endSq; ++begSq)
     {

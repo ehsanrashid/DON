@@ -133,9 +133,9 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
 
         assert(!pos.capture_promo(m));
 
-        Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-        Piece  movedPc = pos.moved_pc(m);
-        auto   movedPt = type_of(movedPc);
+        const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+        const Piece  movedPc = pos.moved_pc(m);
+        const auto   movedPt = type_of(movedPc);
 
         m.value = 2 * (*quietHistory)[ac][m.raw()]               //
                 + 2 * histories->pawn(pawnKey)[+movedPc][dstSq]  //
@@ -276,7 +276,7 @@ void insertion_sort(Iterator beg, Iterator end) noexcept {
 
         // Find the correct position for 'value' using binary search
         Iterator q = exponential_upper_bound(
-          beg, p, value, [](const auto& v1, const auto& v2) { return v1 > v2; });
+          beg, p, value, [](const auto& v1, const auto& v2) noexcept { return v1 > v2; });
         // Move elements to make space for 'value'
         for (Iterator r = p; r != q; --r)
             *r = *(r - 1);
