@@ -34,7 +34,6 @@
 namespace DON::NNUE::Layers {
 
 #if defined(USE_SSSE3) || (defined(USE_NEON) && (USE_NEON >= 8))
-
 namespace {
 
 struct Lookup final {
@@ -77,7 +76,6 @@ void find_nnz(const std::int32_t* RESTRICT input,
               IndexType&                   outCount) noexcept {
 
     #if defined(USE_AVX512ICL)
-
     constexpr IndexType SimdWidthIn  = 16;  // 512 bits / 32 bits
     constexpr IndexType SimdWidthOut = 32;  // 512 bits / 16 bits
     constexpr IndexType ChunkCount   = InputDimensions / SimdWidthOut;
@@ -105,14 +103,12 @@ void find_nnz(const std::int32_t* RESTRICT input,
         base = _mm512_add_epi16(base, increment);
     }
     outCount = count;
-
     #elif defined(USE_AVX512)
-
     constexpr IndexType SimdWidth  = 16;  // 512 bits / 32 bits
     constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
-    __m512i base      = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
-    __m512i increment = _mm512_set1_epi32(SimdWidth);
+    const __m512i increment = _mm512_set1_epi32(SimdWidth);
+    __m512i       base = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
 
     IndexType count = 0;
     for (IndexType i = 0; i < ChunkCount; ++i)
@@ -127,9 +123,7 @@ void find_nnz(const std::int32_t* RESTRICT input,
         base = _mm512_add_epi32(base, increment);
     }
     outCount = count;
-
     #else
-
     using namespace SIMD;
 
     constexpr IndexType InputSimdWidth = sizeof(vec_uint_t) / sizeof(std::int32_t);
@@ -142,8 +136,8 @@ void find_nnz(const std::int32_t* RESTRICT input,
 
     const auto* inputVector = reinterpret_cast<const vec_uint_t*>(input);
 
-    vec128_t base      = vec128_zero;
-    vec128_t increment = vec128_set_16(8);
+    const vec128_t increment = vec128_set_16(8);
+    vec128_t       base      = vec128_zero;
 
     IndexType count = 0;
     for (IndexType i = 0; i < ChunkCount; ++i)
