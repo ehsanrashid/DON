@@ -166,7 +166,7 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* moves) noexcept {
 }
 
 template<Color AC, GenType GT>
-Move* generate_pawns_moves(const Position& pos, Move* moves, const Bitboard targetBB) noexcept {
+Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) noexcept {
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
 
     constexpr bool Evasion =
@@ -284,7 +284,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, const Bitboard targ
 }
 
 template<Color AC, PieceType PT>
-Move* generate_piece_moves(const Position& pos, Move* moves, const Bitboard targetBB) noexcept {
+Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) noexcept {
     static_assert(PT == KNIGHT || PT == BISHOP || PT == ROOK || PT == QUEEN,
                   "Unsupported piece type in generate_piece_moves()");
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
@@ -325,7 +325,7 @@ Move* generate_piece_moves(const Position& pos, Move* moves, const Bitboard targ
 }
 
 template<Color AC, GenType GT, bool Any>
-Move* generate_king_moves(const Position& pos, Move* moves, const Bitboard targetBB) noexcept {
+Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) noexcept {
     //assert(popcount(pos.checkers_bb()) <= 2);
 
     constexpr bool Castle = GT == GenType::ENCOUNTER || GT == GenType::ENC_QUIET;
