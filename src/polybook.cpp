@@ -53,14 +53,14 @@ union Zobrist final {
         Key key = 0;
 
         std::size_t n;
-        auto        sqs = pos.squares(n);
+        const auto  sqs = pos.squares(n);
 
         auto       beg = sqs.begin();
         const auto end = beg + n;
         for (; beg != end; ++beg)
         {
-            Square s  = *beg;
-            Piece  pc = pos[s];
+            const Square s  = *beg;
+            const Piece  pc = pos[s];
 
             key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][s];
         }

@@ -633,9 +633,9 @@ void Position::set_state() noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            for (Square s : squares(c, pt).iterate(base(c), count(c, pt)))
+            for (const Square s : squares(c, pt).iterate(base(c), count(c, pt)))
             {
-                Key key = Zobrist::piece_square(c, pt, s);
+                const Key key = Zobrist::piece_square(c, pt, s);
                 assert(key != 0);
 
                 st->key ^= key;
@@ -652,7 +652,7 @@ void Position::set_state() noexcept {
 
     st->key ^= Zobrist::castling(castling_rights());
 
-    if (Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
+    if (const Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
         st->key ^= Zobrist::enpassant(enPassantSq);
 
     if (active_color() == BLACK)
@@ -1986,14 +1986,14 @@ Key Position::compute_key() const noexcept {
     Key key = 0;
 
     std::size_t n;
-    auto        sqs = squares(n);
+    const auto  sqs = squares(n);
 
     auto       beg = sqs.begin();
     const auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        Square s  = *beg;
-        Piece  pc = piece(s);
+        const Square s  = *beg;
+        const Piece  pc = piece(s);
 
         key ^= Zobrist::piece_square(pc, s);
     }
@@ -2013,15 +2013,15 @@ Key Position::compute_minor_key() const noexcept {
     Key minorKey = 0;
 
     std::size_t n;
-    auto        sqs = squares(n);
+    const auto  sqs = squares(n);
 
     auto       beg = sqs.begin();
     const auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        Square s  = *beg;
-        Piece  pc = piece(s);
-        auto   pt = type_of(pc);
+        const Square s  = *beg;
+        const Piece  pc = piece(s);
+        const auto   pt = type_of(pc);
 
         if (pt != PAWN && pt != KING && !is_major(pt))
             minorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
@@ -2034,15 +2034,15 @@ Key Position::compute_major_key() const noexcept {
     Key majorKey = 0;
 
     std::size_t n;
-    auto        sqs = squares(n);
+    const auto  sqs = squares(n);
 
     auto       beg = sqs.begin();
     const auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        Square s  = *beg;
-        Piece  pc = piece(s);
-        auto   pt = type_of(pc);
+        const Square s  = *beg;
+        const Piece  pc = piece(s);
+        const auto   pt = type_of(pc);
 
         if (pt != PAWN && pt != KING && is_major(pt))
             majorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
@@ -2055,15 +2055,15 @@ Key Position::compute_non_pawn_key() const noexcept {
     Key nonPawnKey = 0;
 
     std::size_t n;
-    auto        sqs = squares(n);
+    const auto  sqs = squares(n);
 
     auto       beg = sqs.begin();
     const auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        Square s  = *beg;
-        Piece  pc = piece(s);
-        auto   pt = type_of(pc);
+        const Square s  = *beg;
+        const Piece  pc = piece(s);
+        const auto   pt = type_of(pc);
 
         if (pt != PAWN)
             nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, s);
