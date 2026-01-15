@@ -882,7 +882,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (depth > 1 && red >= 2 && ss->evalValue > 169 - (ss - 1)->evalValue)
         --depth;
 
-    Key pawnKey = pos.pawn_key();
+    const Key pawnKey = pos.pawn_key();
 
     State st;
 
@@ -930,7 +930,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         }
     }
 
-    Color ac = pos.active_color();
+    const Color ac = pos.active_color();
 
     bool  hasNonPawn   = pos.has_non_pawn(ac);
     Value nonPawnValue = hasNonPawn ? pos.non_pawn_value(ac) : VALUE_ZERO;
@@ -945,7 +945,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if constexpr (!RootNode)
         if (!exclude && tbConfig.cardinality != 0)
         {
-            std::uint8_t pieceCount = pos.count();
+            const std::uint8_t pieceCount = pos.count();
 
             if (pieceCount <= tbConfig.cardinality
                 && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth)
@@ -953,7 +953,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             {
                 Tablebase::ProbeState wdlPs;
 
-                auto wdlScore = Tablebase::probe_wdl(pos, &wdlPs);
+                const auto wdlScore = Tablebase::probe_wdl(pos, &wdlPs);
 
                 // Force check of time on the next occasion
                 if (is_main_worker())
@@ -963,16 +963,16 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 {
                     tbHits.fetch_add(1, std::memory_order_relaxed);
 
-                    int drawValue = tbConfig.useRule50 * 1;
+                    const int drawValue = int(tbConfig.useRule50);
 
                     // Use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to value
                     value = wdlScore < -drawValue ? -VALUE_TB + ss->ply
                           : wdlScore > +drawValue ? +VALUE_TB - ss->ply
                                                   : VALUE_DRAW + 2 * wdlScore * drawValue;
 
-                    Bound bound = wdlScore < -drawValue ? Bound::UPPER
-                                : wdlScore > +drawValue ? Bound::LOWER
-                                                        : Bound::EXACT;
+                    const Bound bound = wdlScore < -drawValue ? Bound::UPPER
+                                      : wdlScore > +drawValue ? Bound::LOWER
+                                                              : Bound::EXACT;
 
                     if (bound == Bound::EXACT
                         || (bound == Bound::LOWER ? value >= beta : value <= alpha))
@@ -999,7 +999,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             }
         }
 
-    int absCorrectionValue = std::abs(correctionValue);
+    const int absCorrectionValue = std::abs(correctionValue);
 
     // Skip early pruning when in check
     if (ss->inCheck)
@@ -1058,11 +1058,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         assert((ss - 1)->move != Move::Null);
 
         // Null move dynamic reduction
-        Depth R = 7 + depth / 3;
+        const Depth R = 7 + depth / 3;
 
         do_null_move(pos, st, ss);
 
-        Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
+        const Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
 
         undo_null_move(pos);
 
@@ -1078,7 +1078,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             // with null move pruning disabled until ply exceeds nmpPly.
             nmpPly = ss->ply + 3 * (depth - R) / 4;
 
-            Value v = search<NT::ALL>(pos, ss, beta - 1, beta, depth - R);
+            const Value v = search<NT::ALL>(pos, ss, beta - 1, beta, depth - R);
 
             nmpPly = 0;
 
@@ -1104,14 +1104,14 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (depth > 2 && !is_decisive(beta))
     {
         // clang-format off
-        Value probCutBeta = std::min(235 + beta - int(improve) * 63, +VALUE_INFINITE);
+        const Value probCutBeta = std::min(235 + beta - int(improve) * 63, +VALUE_INFINITE);
         assert(beta < probCutBeta && probCutBeta <= +VALUE_INFINITE);
 
         // If value from transposition table is less than probCutBeta, don't attempt probCut
         if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
         {
-        Depth probCutDepth = std::clamp(depth - 5 - int(3.1746e-3 * (ss->evalValue - beta)), 0, depth - 0);
-        int   probCutThreshold = probCutBeta - ss->evalValue;
+        const Depth probCutDepth = std::clamp(depth - 5 - int(3.1746e-3 * (ss->evalValue - beta)), 0, depth - 0);
+        const int   probCutThreshold = probCutBeta - ss->evalValue;
 
         MovePicker mp(pos, ttd.move, &captureHistory, probCutThreshold);
         // Loop through all legal moves
@@ -1167,7 +1167,8 @@ S_MOVES_LOOP:  // When in check, search starts here
     // Step 12. Small ProbCut idea
     if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value))
     {
-        Value probCutBeta = std::min(418 + beta, +VALUE_INFINITE);
+        const Value probCutBeta = std::min(418 + beta, +VALUE_INFINITE);
+
         if (ttd.value >= probCutBeta && ttd.depth >= depth - 4 && is_ok(ttd.bound & Bound::LOWER))
             return probCutBeta;
     }
@@ -1215,22 +1216,22 @@ S_MOVES_LOOP:  // When in check, search starts here
         if constexpr (PVNode)
             (ss + 1)->pv = nullptr;
 
-        bool ttm = move == ttd.move;
+        const bool ttm = move == ttd.move;
 
-        Square dstSq = move.dst_sq();
+        const Square dstSq = move.dst_sq();
 
-        Piece movedPc = pos.moved_pc(move);
+        const Piece movedPc = pos.moved_pc(move);
 
-        bool check    = pos.check(move);
-        bool capture  = pos.capture_promo(move);
-        auto captured = capture ? pos.captured_pt(move) : NO_PIECE_TYPE;
+        const bool check      = pos.check(move);
+        const bool capture    = pos.capture_promo(move);
+        const auto capturedPt = capture ? pos.captured_pt(move) : NO_PIECE_TYPE;
 
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
 
         assert(alpha < beta);
 
-        std::uint32_t deltaRatio = 608 * (beta - alpha) / rootDelta;
+        const std::uint32_t deltaRatio = 608 * (beta - alpha) / rootDelta;
 
         int r = reduction(depth, moveCount, deltaRatio, improve);
 
@@ -1249,12 +1250,12 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             if (capture)
             {
-                int history = captureHistory[+movedPc][dstSq][captured];
+                const int history = captureHistory[+movedPc][dstSq][capturedPt];
 
                 // Futility pruning: for captures
                 if (!check && lmrDepth < 7)
                 {
-                    Value futilityValue = std::min(232 + ss->evalValue + piece_value(captured)
+                    Value futilityValue = std::min(232 + ss->evalValue + piece_value(capturedPt)
                                                      + 217 * lmrDepth + int(0.1279 * history),
                                                    +VALUE_INFINITE);
                     if (futilityValue <= alpha)
@@ -1275,7 +1276,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             else
             {
                 int history = histories.pawn(pawnKey)[+movedPc][dstSq]
-                            + (*contHistory[0])[+movedPc][dstSq]  //
+                            + (*contHistory[0])[+movedPc][dstSq]
                             + (*contHistory[1])[+movedPc][dstSq];
 
                 // History based pruning
@@ -1333,12 +1334,12 @@ S_MOVES_LOOP:  // When in check, search starts here
             && !is_decisive(ttd.value) && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER)
             && !is_shuffling(pos, ss, move))
         {
-            Value singularBeta =
+            const Value singularBeta =
               std::max(ttd.value - int((0.8833 + int(!PVNode && ss->ttPv) * 1.2500) * depth),
                        -VALUE_INFINITE + 1);
             assert(singularBeta >= -VALUE_INFINITE + 1);
 
-            Depth singularDepth = newDepth / 2;
+            const Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
 
             value = search<~~T>(pos, ss, singularBeta - 1, singularBeta, singularDepth, 0, move);
@@ -1348,11 +1349,11 @@ S_MOVES_LOOP:  // When in check, search starts here
 
             if (value < singularBeta)
             {
-                int corrMargin = int(4.3351e-6 * absCorrectionValue);
+                const int corrMargin = int(4.3351e-6 * absCorrectionValue);
 
                 // clang-format off
-                int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrMargin - int(7.0271e-3 * ttMoveHistory);
-                int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrMargin + int(ss->ttPv) * 90;
+                const int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrMargin - int(7.0271e-3 * ttMoveHistory);
+                const int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrMargin + int(ss->ttPv) * 90;
 
                 extension = 1 + int(value < singularBeta - doubleMargin)
                               + int(value < singularBeta - tripleMargin);
@@ -1399,10 +1400,10 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Step 16. Make the move
         do_move(pos, move, st, check, ss);
 
-        assert(captured == type_of(pos.captured_pc()));
+        assert(capturedPt == type_of(pos.captured_pc()));
 
-        ss->history = capture ? int(6.7813 * piece_value(captured))  //
-                                  + captureHistory[+movedPc][dstSq][captured]
+        ss->history = capture ? int(6.7813 * piece_value(capturedPt))  //
+                                  + captureHistory[+movedPc][dstSq][capturedPt]
                               : 2 * quietHistory[ac][move.raw()]        //
                                   + (*contHistory[0])[+movedPc][dstSq]  //
                                   + (*contHistory[1])[+movedPc][dstSq];
@@ -1459,9 +1460,9 @@ S_MOVES_LOOP:  // When in check, search starts here
             if (value > alpha)
             {
                 // If the value was good enough search deeper
-                bool extend = redDepth < newDepth && value > 50 + bestValue;
+                const bool extend = redDepth < newDepth && value > 50 + bestValue;
                 // If the value was bad enough search shallower
-                bool reduce = value < 9 + bestValue;
+                const bool reduce = value < 9 + bestValue;
 
                 // Adjust full-depth search based on LMR value
                 newDepth += int(extend) - int(reduce);
@@ -1674,10 +1675,10 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Bonus for prior capture move
         else
         {
-            auto captured = type_of(pos.captured_pc());
-            assert(captured != NO_PIECE_TYPE);
+            auto capturedPt = type_of(pos.captured_pc());
+            assert(capturedPt != NO_PIECE_TYPE);
 
-            update_capture_history(pos[preSq], preSq, captured, 1012);
+            update_capture_history(pos[preSq], preSq, capturedPt, 1012);
         }
     }
 
