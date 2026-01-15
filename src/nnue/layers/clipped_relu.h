@@ -117,7 +117,7 @@ class ClippedReLU final {
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
     #if !defined(USE_SSE41)
-        __m128i k0x80s = _mm_set1_epi8(-128);
+        __m128i K0x80s = _mm_set1_epi8(-128);
     #endif
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
@@ -141,7 +141,7 @@ class ClippedReLU final {
               _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3])),
               WEIGHT_SCALE_BITS);
             __m128i packedbytes = _mm_packs_epi16(words0, words1);
-            _mm_store_si128(&out[i], _mm_subs_epi8(_mm_adds_epi8(packedbytes, k0x80s), k0x80s));
+            _mm_store_si128(&out[i], _mm_subs_epi8(_mm_adds_epi8(packedbytes, K0x80s), K0x80s));
     #endif
         }
 
@@ -151,7 +151,7 @@ class ClippedReLU final {
         constexpr IndexType SimdWidth  = SIMD_WIDTH / 2;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
-        const int8x8_t Zero = {0};
+        int8x8_t Zero = {0};
 
         const auto* in  = reinterpret_cast<const int32x4_t*>(input);
         auto*       out = reinterpret_cast<int8x8_t*>(output);
