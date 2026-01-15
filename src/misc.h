@@ -1148,7 +1148,7 @@ class TieStreamBuf final: public std::streambuf {
 
 class Logger final {
    public:
-    // Start logging to `logFile`. Returns true on success.
+    // Start logging. Returns true on success.
     static bool start(std::string_view logFile) noexcept {
         std::scoped_lock lock(instance().mutex);
 

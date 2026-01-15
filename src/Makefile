@@ -142,7 +142,7 @@ ifeq ($(ARCH), native)
 endif
 
 # explicitly check for the list of supported architectures (as listed with make help),
-# the user can override with `make ARCH=x86-64-avx512icl SUPPORTED_ARCH=yes`
+# the user can override with 'make ARCH=x86-64-avx512icl SUPPORTED_ARCH=yes'
 ifeq ($(ARCH), $(filter $(ARCH), \
                  x86-64-avx512icl x86-64-vnni512 x86-64-avx512 x86-64-avxvnni x86-64-bmi2 x86-64-avx2 \
                  x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
@@ -235,7 +235,7 @@ ifeq ($(findstring -sse41, $(ARCH)), -sse41)
 endif
 
 ifeq ($(findstring -modern, $(ARCH)), -modern)
-    $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute `make help` for a list of available architectures. ***)
+    $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute 'make help' for a list of available architectures. ***)
     $(shell sleep 5)
     popcnt = yes
     sse = yes
