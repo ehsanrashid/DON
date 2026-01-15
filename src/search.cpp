@@ -2398,23 +2398,24 @@ TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
 void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     assert(depth > DEPTH_ZERO);
 
-    const auto& rootPos            = worker.rootPos;
-    const auto& rootMoves          = worker.rootMoves;
-    const auto& options            = worker.options;
-    const auto& threads            = worker.threads;
-    const auto& transpositionTable = worker.transpositionTable;
-    const auto& tbConfig           = worker.tbConfig;
-    std::size_t multiPV            = worker.multiPV;
-    std::size_t curPV              = worker.curPV;
+    const auto&       rootPos            = worker.rootPos;
+    const auto&       rootMoves          = worker.rootMoves;
+    const auto&       options            = worker.options;
+    const auto&       threads            = worker.threads;
+    const auto&       transpositionTable = worker.transpositionTable;
+    const auto&       tbConfig           = worker.tbConfig;
+    const std::size_t multiPV            = worker.multiPV;
+    const std::size_t curPV              = worker.curPV;
 
     TimePoint time = elapsed();
     // Avoid division by zero
     if (time == 0)
         time = 1;
 
-    std::uint64_t nodes    = threads.sum(&Worker::nodes);
-    std::uint16_t hashfull = transpositionTable.hashfull();
-    std::uint64_t tbHits   = threads.sum(&Worker::tbHits, tbConfig.rootInTB ? rootMoves.size() : 0);
+    const std::uint64_t nodes    = threads.sum(&Worker::nodes);
+    const std::uint16_t hashfull = transpositionTable.hashfull();
+    const std::uint64_t tbHits   = threads.sum(&Worker::tbHits,  //
+                                             tbConfig.rootInTB ? rootMoves.size() : 0);
 
     for (std::size_t i = 0; i < multiPV; ++i)
     {
