@@ -9,7 +9,6 @@
 #ifndef INCBIN_INCBIN_H_INCLUDED
 #define INCBIN_INCBIN_H_INCLUDED
 
-#include <limits.h>
 #if defined(__AVX512BW__) || defined(__AVX512CD__) || defined(__AVX512DQ__) \
   || defined(__AVX512ER__) || defined(__AVX512PF__) || defined(__AVX512VL__) \
   || defined(__AVX512F__)
