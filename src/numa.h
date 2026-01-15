@@ -689,12 +689,13 @@ class NumaConfig final {
         NumaConfig numaCfg = empty();
 
         NumaIndex numaId = 0;
-        for (auto&& nodeStr : split(str, ":"))
+        for (auto&& cpuIdStr : split(str, ":"))
         {
-            auto indices = shortened_string_to_indices(nodeStr);
-            if (!indices.empty())
+            auto cpuIds = shortened_string_to_indices(cpuIdStr);
+
+            if (!cpuIds.empty())
             {
-                for (auto cpuId : indices)
+                for (CpuIndex cpuId : cpuIds)
                     if (!numaCfg.add_cpu_to_node(numaId, cpuId))
                         std::exit(EXIT_FAILURE);
 
