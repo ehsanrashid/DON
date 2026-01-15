@@ -70,7 +70,7 @@ PGOBENCH := $(RUN_PREFIX) ./$(EXE) bench
 ### Source and object files
 SRCS := benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp \
     misc.cpp movegen.cpp movepick.cpp option.cpp perft.cpp polybook.cpp \
-    position.cpp search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp tune.cpp \
+    position.cpp search.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp \
     nnue/features/full_threats.cpp nnue/features/half_ka_v2_hm.cpp \
     nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp syzygy/tablebase.cpp
 
