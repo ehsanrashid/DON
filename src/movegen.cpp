@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cstring>
-#include <functional>
 #include <initializer_list>
 
 #if defined(USE_AVX512ICL)
@@ -290,20 +289,20 @@ Move* generate_piece_moves(const Position& pos, Move* moves, const Bitboard targ
                   "Unsupported piece type in generate_piece_moves()");
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
 
-    auto cnt = pos.count(AC, PT);
+    const auto count = pos.count(AC, PT);
 
-    if (cnt == 0)
+    if (count == 0)
         return moves;
 
     StdArray<Square, Position::CAPACITIES[PT - 1]> sqs;
     //std::memset(sqs.data(), SQ_NONE, sizeof(sqs));
 
-    std::memcpy(sqs.data(), pos.squares(AC, PT).data(pos.base(AC)), cnt * sizeof(Square));
+    std::memcpy(sqs.data(), pos.squares(AC, PT).data(pos.base(AC)), count * sizeof(Square));
 
     Square* RESTRICT begSq = sqs.data();
-    Square* const    endSq = begSq + cnt;
+    Square* const    endSq = begSq + count;
 
-    if (cnt > 1)
+    if (count > 1)
         std::sort(begSq, endSq,
                   [](Square s1, Square s2) noexcept { return AC == WHITE ? s1 > s2 : s1 < s2; });
 

@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <functional>
 
 #include "bitboard.h"
 #include "position.h"
