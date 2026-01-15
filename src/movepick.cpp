@@ -276,7 +276,8 @@ void insertion_sort(Iterator beg, Iterator end) noexcept {
         auto value = *p;
 
         // Find the correct position for 'value' using binary search
-        Iterator q = exponential_upper_bound(beg, p, value, std::greater<>{});
+        Iterator q = exponential_upper_bound(
+          beg, p, value, [](const auto& v1, const auto& v2) { return v1 > v2; });
         // Move elements to make space for 'value'
         for (Iterator r = p; r != q; --r)
             *r = *(r - 1);

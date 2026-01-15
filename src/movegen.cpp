@@ -167,7 +167,7 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* moves) noexcept {
 }
 
 template<Color AC, GenType GT>
-Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) noexcept {
+Move* generate_pawns_moves(const Position& pos, Move* moves, const Bitboard targetBB) noexcept {
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
 
     constexpr bool Evasion =
@@ -183,12 +183,12 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     const Move* RESTRICT rMoves = moves;
     Move* RESTRICT       wMoves = moves;
 
-    Bitboard acPawnsBB    = pos.pieces_bb(AC, PAWN);
-    Bitboard yesR7PawnsBB = acPawnsBB & relative_rank(AC, RANK_7);
-    Bitboard notR7PawnsBB = acPawnsBB & ~yesR7PawnsBB;
+    const Bitboard acPawnsBB    = pos.pieces_bb(AC, PAWN);
+    const Bitboard yesR7PawnsBB = acPawnsBB & relative_rank(AC, RANK_7);
+    const Bitboard notR7PawnsBB = acPawnsBB & ~yesR7PawnsBB;
 
-    Bitboard emptyBB = ~pos.pieces_bb();
-    Bitboard enemyBB = pos.pieces_bb(~AC);
+    const Bitboard emptyBB = ~pos.pieces_bb();
+    Bitboard       enemyBB = pos.pieces_bb(~AC);
 
     if constexpr (Evasion)
         enemyBB &= targetBB;
@@ -285,7 +285,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
 }
 
 template<Color AC, PieceType PT>
-Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) noexcept {
+Move* generate_piece_moves(const Position& pos, Move* moves, const Bitboard targetBB) noexcept {
     static_assert(PT == KNIGHT || PT == BISHOP || PT == ROOK || PT == QUEEN,
                   "Unsupported piece type in generate_piece_moves()");
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
@@ -300,16 +300,12 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) 
 
     std::memcpy(sqs.data(), pos.squares(AC, PT).data(pos.base(AC)), cnt * sizeof(Square));
 
-    Square*       begSq = sqs.data();
-    Square* const endSq = begSq + cnt;
+    Square* RESTRICT begSq = sqs.data();
+    Square* const    endSq = begSq + cnt;
 
     if (cnt > 1)
-    {
-        if constexpr (AC == WHITE)
-            std::sort(begSq, endSq, std::greater<>{});
-        else
-            std::sort(begSq, endSq, std::less<>{});
-    }
+        std::sort(begSq, endSq,
+                  [](Square s1, Square s2) noexcept { return AC == WHITE ? s1 > s2 : s1 < s2; });
 
     Square   kingSq      = pos.square<KING>(AC);
     Bitboard occupancyBB = pos.pieces_bb();
@@ -317,11 +313,11 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) 
 
     for (; begSq != endSq; ++begSq)
     {
-        Square orgSq = *begSq;
+        const Square orgSq = *begSq;
 
-        Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB)
-                       & ((blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq))  //
-                       & targetBB;
+        const Bitboard maskBB = (blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq);
+
+        const Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB) & maskBB & targetBB;
 
         moves = splat_moves<AC>(orgSq, dstBB, moves);
     }
@@ -330,12 +326,12 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) 
 }
 
 template<Color AC, GenType GT, bool Any>
-Move* generate_king_moves(const Position& pos, Move* moves, Bitboard targetBB) noexcept {
+Move* generate_king_moves(const Position& pos, Move* moves, const Bitboard targetBB) noexcept {
     //assert(popcount(pos.checkers_bb()) <= 2);
 
     constexpr bool Castle = GT == GenType::ENCOUNTER || GT == GenType::ENC_QUIET;
 
-    Square kingSq = pos.square<KING>(AC);
+    const Square kingSq = pos.square<KING>(AC);
 
     Bitboard dstBB = attacks_bb<KING>(kingSq) & ~pos.acc_attacks_bb<KING>() & targetBB;
 

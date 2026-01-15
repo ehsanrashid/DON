@@ -82,23 +82,23 @@ void find_nnz(const std::int32_t* RESTRICT input,
     constexpr IndexType SimdWidthOut = 32;  // 512 bits / 16 bits
     constexpr IndexType ChunkCount   = InputDimensions / SimdWidthOut;
 
-    __m512i base      = _mm512_set_epi16(  // Same permute order as _mm512_packus_epi32()
+    const __m512i increment = _mm512_set1_epi16(SimdWidthOut);
+    __m512i       base      = _mm512_set_epi16(  // Same permute order as _mm512_packus_epi32()
       31, 30, 29, 28, 15, 14, 13, 12, 27, 26, 25, 24, 11, 10, 9, 8, 23, 22, 21, 20, 7, 6, 5, 4, 19,
       18, 17, 16, 3, 2, 1, 0);
-    __m512i increment = _mm512_set1_epi16(SimdWidthOut);
 
     IndexType count = 0;
     for (IndexType i = 0; i < ChunkCount; ++i)
     {
-        __m512i inputV0 = _mm512_load_si512(input + i * 2 * SimdWidthIn);
-        __m512i inputV1 = _mm512_load_si512(input + i * 2 * SimdWidthIn + SimdWidthIn);
+        const __m512i inputV0 = _mm512_load_si512(input + i * 2 * SimdWidthIn);
+        const __m512i inputV1 = _mm512_load_si512(input + i * 2 * SimdWidthIn + SimdWidthIn);
 
         // Get a bitmask and gather non zero indices
-        __m512i   inputV01 = _mm512_packus_epi32(inputV0, inputV1);
-        __mmask32 nnzMask  = _mm512_test_epi16_mask(inputV01, inputV01);
+        const __m512i   inputV01 = _mm512_packus_epi32(inputV0, inputV1);
+        const __mmask32 nnzMask  = _mm512_test_epi16_mask(inputV01, inputV01);
 
         // Avoid _mm512_mask_compressstoreu_epi16() as it's 256 uOps on Zen4
-        __m512i nnz = _mm512_maskz_compress_epi16(nnzMask, base);
+        const __m512i nnz = _mm512_maskz_compress_epi16(nnzMask, base);
         _mm512_storeu_si512(outNnz + count, nnz);
 
         count += LOOKUP.popcounts[nnzMask];
@@ -117,11 +117,11 @@ void find_nnz(const std::int32_t* RESTRICT input,
     IndexType count = 0;
     for (IndexType i = 0; i < ChunkCount; ++i)
     {
-        __m512i inputV = _mm512_load_si512(input + i * SimdWidth);
+        const __m512i inputV = _mm512_load_si512(input + i * SimdWidth);
 
         // Get a bitmask and gather non zero indices
-        __mmask16 nnzMask = _mm512_test_epi32_mask(inputV, inputV);
-        __m512i   nnzVal  = _mm512_maskz_compress_epi32(nnzMask, base);
+        const __mmask16 nnzMask = _mm512_test_epi32_mask(inputV, inputV);
+        const __m512i   nnzVal  = _mm512_maskz_compress_epi32(nnzMask, base);
         _mm512_mask_cvtepi32_storeu_epi16(outNnz + count, 0xFFFF, nnzVal);
         count += LOOKUP.popcounts[nnzMask];
         base = _mm512_add_epi32(base, increment);
@@ -152,11 +152,12 @@ void find_nnz(const std::int32_t* RESTRICT input,
         unsigned nnz = 0;
         for (IndexType j = 0; j < InputsPerChunk; ++j)
         {
-            vec_uint_t inputChunk = inputVector[i * InputsPerChunk + j];
+            const vec_uint_t inputChunk = inputVector[i * InputsPerChunk + j];
             nnz |= unsigned(vec_nnz(inputChunk)) << (j * InputSimdWidth);
         }
 
-        vec128_t offsets = vec128_load(reinterpret_cast<const vec128_t*>(&LOOKUP.indices[nnz]));
+        const vec128_t offsets =
+          vec128_load(reinterpret_cast<const vec128_t*>(&LOOKUP.indices[nnz]));
         vec128_storeu(reinterpret_cast<vec128_t*>(outNnz + count), vec128_add(base, offsets));
         count += LOOKUP.popcounts[nnz];
         base = vec128_add(base, increment);
