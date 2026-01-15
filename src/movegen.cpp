@@ -273,7 +273,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, const Bitboard targ
     // Filter illegal moves (preserve order)
     while (rMoves != moves)
     {
-        Move m = *rMoves++;
+        const Move m = *rMoves++;
 
         *wMoves = m;
 
