@@ -75,7 +75,7 @@ namespace DON {
 
 namespace {
 
-enum Endian : std::uint8_t {
+enum class Endian : std::uint8_t {
     BIG,
     LITTLE
 };
@@ -176,7 +176,7 @@ T number(const void* const addr) noexcept {
     else  // Unaligned pointer (very rare)
         std::memcpy(&v, addr, sizeof(T));
 
-    if (E != IsLittleEndian)
+    if (std::uint8_t(E) != IsLittleEndian)
         swap_endian(v);
 
     return v;
@@ -839,7 +839,7 @@ std::uint8_t* TBTable<DTZ>::set_dtz_map(std::uint8_t* data, File maxFile) noexce
                     // Sequence like 3,x,x,x,1,x,0,2,x,x
                     pd->mapIdx[i] = 1 + (std::uint16_t*) (data) - (std::uint16_t*) (mapPtr);
 
-                    data += 2 + 2 * number<std::uint16_t, LITTLE>(data);
+                    data += 2 + 2 * number<std::uint16_t, Endian::LITTLE>(data);
                 }
             }
             else
@@ -1058,8 +1058,8 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     auto k = std::uint32_t(idx / pd->span);
 
     // Then read the corresponding SparseIndex[] entry
-    auto block  = number<std::uint32_t, LITTLE>(pd->sparseIndex[k].block.data());
-    int  offset = number<std::uint16_t, LITTLE>(pd->sparseIndex[k].offset.data());
+    auto block  = number<std::uint32_t, Endian::LITTLE>(pd->sparseIndex[k].block.data());
+    int  offset = number<std::uint16_t, Endian::LITTLE>(pd->sparseIndex[k].offset.data());
 
     // Now compute the difference idx - I(k). From the definition of k,
     //
@@ -1085,7 +1085,7 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     // Read the first 64 bits in our block, this is a (truncated) sequence of
     // unknown number of symbols of unknown length but the first one
     // is at the beginning of this 64-bit sequence.
-    auto buf64 = number<std::uint64_t, BIG>(ptr);
+    auto buf64 = number<std::uint64_t, Endian::BIG>(ptr);
     ptr += 2;
 
     int buf64Size = 64;
@@ -1107,7 +1107,7 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
         sym = Sym((buf64 - pd->base64[len]) >> (64 - len - pd->minSymLen));
 
         // Now add the value of the lowest symbol of length len to get our symbol
-        sym += number<Sym, LITTLE>(&pd->lowestSym[len]);
+        sym += number<Sym, Endian::LITTLE>(&pd->lowestSym[len]);
 
         // If our offset is within the number of values represented by symbol 'sym', are done.
         if (offset < pd->symLen[sym] + 1)
@@ -1123,7 +1123,7 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
         if (buf64Size <= 32)
         {
             buf64Size += 32;
-            buf64 |= std::uint64_t(number<std::uint32_t, BIG>(ptr++)) << (64 - buf64Size);
+            buf64 |= std::uint64_t(number<std::uint32_t, Endian::BIG>(ptr++)) << (64 - buf64Size);
         }
     }
 
@@ -1497,9 +1497,9 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     pd->span            = 1ULL << *data++;
     pd->sparseIndexSize = (tbSize + pd->span - 1) / pd->span;  // Round up
 
-    auto padding = number<std::uint8_t, LITTLE>(data);
+    auto padding = number<std::uint8_t, Endian::LITTLE>(data);
     data += 1;
-    pd->blockCount = number<std::uint32_t, LITTLE>(data);
+    pd->blockCount = number<std::uint32_t, Endian::LITTLE>(data);
     data += sizeof(std::uint32_t);
     // Padded to ensure SparseIndex[] does not point out of range.
     pd->blockLengthSize = pd->blockCount + padding;
@@ -1518,9 +1518,9 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     std::size_t base64Size = pd->base64.size();
     for (std::size_t i = base64Size != 0 ? base64Size - 1 : 0; i-- > 0;)
     {
-        pd->base64[i] = (pd->base64[i + 1]                         //
-                         + number<Sym, LITTLE>(&pd->lowestSym[i])  //
-                         - number<Sym, LITTLE>(&pd->lowestSym[i + 1]))
+        pd->base64[i] = (pd->base64[i + 1]                                 //
+                         + number<Sym, Endian::LITTLE>(&pd->lowestSym[i])  //
+                         - number<Sym, Endian::LITTLE>(&pd->lowestSym[i + 1]))
                       / 2;
 
         assert(2 * pd->base64[i] >= pd->base64[i + 1]);
@@ -1535,7 +1535,7 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
         pd->base64[i] <<= 64 - i - pd->minSymLen;  // Right-padding to 64-bit
 
     data += base64Size * sizeof(Sym);
-    pd->symLen.resize(number<std::uint16_t, LITTLE>(data));
+    pd->symLen.resize(number<std::uint16_t, Endian::LITTLE>(data));
     data += sizeof(std::uint16_t);
     pd->btree = (LR*) (data);
 
