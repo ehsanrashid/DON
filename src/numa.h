@@ -642,15 +642,15 @@ class NumaConfig final {
                 if (cpus.empty())
                     continue;
 
-                std::size_t lstProcGroupId = *(cpus.begin()) / WIN_PROCESSOR_GROUP_SIZE;
+                WORD lstGroupId = *cpus.begin() / WIN_PROCESSOR_GROUP_SIZE;
 
                 for (CpuIndex cpuId : cpus)
                 {
                     WORD groupId = cpuId / WIN_PROCESSOR_GROUP_SIZE;
 
-                    if (lstProcGroupId != groupId)
+                    if (lstGroupId != groupId)
                     {
-                        lstProcGroupId = groupId;
+                        lstGroupId = groupId;
 
                         ++splitNumaId;
                     }
@@ -829,11 +829,11 @@ class NumaConfig final {
             {
                 NumaIndex bestNumaId = 0;
 
-                auto minNodeFill = std::numeric_limits<double>::max();
+                double minNodeFill = std::numeric_limits<double>::max();
 
                 for (NumaIndex numaId = 0; numaId < nodes_size(); ++numaId)
                 {
-                    auto nodeFill = double(1 + occupation[numaId]) / node_cpus_size(numaId);
+                    double nodeFill = double(1 + occupation[numaId]) / node_cpus_size(numaId);
                     // NOTE: Do want to perhaps fill the first available node up to 50% first before considering other nodes?
                     //       Probably not, because it would interfere with running multiple instances.
                     //       Basically shouldn't favor any particular node.
@@ -882,8 +882,8 @@ class NumaConfig final {
 
             for (CpuIndex cpuId : nodes[numaId])
             {
-                std::size_t groupId       = cpuId / WIN_PROCESSOR_GROUP_SIZE;
-                std::size_t inProcGroupId = cpuId % WIN_PROCESSOR_GROUP_SIZE;
+                WORD groupId       = cpuId / WIN_PROCESSOR_GROUP_SIZE;
+                BYTE inProcGroupId = cpuId % WIN_PROCESSOR_GROUP_SIZE;
 
                 groupAffinities[groupId].Mask |= KAFFINITY(1) << inProcGroupId;
             }
@@ -919,7 +919,8 @@ class NumaConfig final {
             std::memset(&groupAffinity, 0, sizeof(groupAffinity));
 
             // Use an ordered set so guaranteed to get the smallest cpu number here
-            WORD forcedGroupId  = *(nodes[numaId].begin()) / WIN_PROCESSOR_GROUP_SIZE;
+            WORD forcedGroupId = *nodes[numaId].begin() / WIN_PROCESSOR_GROUP_SIZE;
+
             groupAffinity.Group = forcedGroupId;
 
             for (CpuIndex cpuId : nodes[numaId])
