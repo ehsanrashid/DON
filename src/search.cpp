@@ -1574,8 +1574,8 @@ S_MOVES_LOOP:  // When in check, search starts here
 
         // In case have an alternative move equal in eval to the current bestMove,
         // promote it to bestMove by pretending it just exceeds alpha (but not beta).
-        bool inc = value == bestValue && 2 + ss->ply >= rootDepth && (nodes_() & 0xE) == 0
-                && !is_win(std::abs(value) + 1);
+        const bool inc = value == bestValue && 2 + ss->ply >= rootDepth && (nodes_() & 0xE) == 0
+                      && !is_win(std::abs(value) + 1);
 
         if (bestValue < value + int(inc))
         {
@@ -1675,7 +1675,7 @@ S_MOVES_LOOP:  // When in check, search starts here
         // Bonus for prior capture move
         else
         {
-            auto capturedPt = type_of(pos.captured_pc());
+            const auto capturedPt = type_of(pos.captured_pc());
             assert(capturedPt != NO_PIECE_TYPE);
 
             update_capture_history(pos[preSq], preSq, capturedPt, 1012);
@@ -1845,14 +1845,14 @@ QS_MOVES_LOOP:
 
         ++moveCount;
 
-        Square dstSq = move.dst_sq();
+        const Square dstSq = move.dst_sq();
 
-        bool check = pos.check(move);
+        const bool check = pos.check(move);
 
         // Step 6. Pruning
         if (!is_loss(bestValue))
         {
-            bool capture = pos.capture_promo(move);
+            const bool capture = pos.capture_promo(move);
 
             // Futility pruning and moveCount pruning
             if (!check && dstSq != preSq && move.type() != MT::PROMOTION
@@ -1862,7 +1862,7 @@ QS_MOVES_LOOP:
                     continue;
 
                 // Static evaluation + value of piece going to captured
-                Value futilityValue =
+                const Value futilityValue =
                   std::min(baseFutilityValue + piece_value(pos.captured_pt(move)), +VALUE_INFINITE);
 
                 if (futilityValue <= alpha)
@@ -1881,7 +1881,7 @@ QS_MOVES_LOOP:
 
                 if (pos.see(move) < -threshold)
                 {
-                    Value minValue = std::min(alpha, baseFutilityValue);
+                    const Value minValue = std::min(alpha, baseFutilityValue);
 
                     if (bestValue < minValue)
                         bestValue = minValue;
@@ -1942,7 +1942,8 @@ QS_MOVES_LOOP:
         }
         else
         {
-            Color ac                = pos.active_color();
+            const Color ac = pos.active_color();
+
             pos.state()->checkersBB = PROMOTION_RANKS_BB;
             if (bestValue != VALUE_DRAW  //
                 && type_of(pos.captured_pc()) >= ROOK
