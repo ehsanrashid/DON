@@ -2420,29 +2420,31 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     {
         auto& rm = rootMoves[i];
 
-        bool updated = rm.curValue != -VALUE_INFINITE;
+        const bool updated = rm.curValue != -VALUE_INFINITE;
 
         if (i != 0 && depth == 1 && !updated)
             continue;
 
-        Depth d = updated ? depth : depth - int(depth > 1);
+        const Depth d = updated ? depth : depth - int(depth > 1);
+
         Value v = updated ? rm.uciValue : rm.preValue;
 
         if (v == -VALUE_INFINITE)
             v = VALUE_ZERO;
 
-        bool tb = tbConfig.rootInTB && !is_mate(v);
+        const bool tb = tbConfig.rootInTB && !is_mate(v);
+
         if (tb)
             v = rm.tbValue;
 
         // tablebase- and previous-scores are exact
-        bool exact = i != curPV || tb || !updated;
+        const bool exact = i != curPV || tb || !updated;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
         if (is_decisive(v) && !is_mate(v) && (exact || rm.bound == Bound::NONE))
             worker.extend_tb_pv(i, v);
 
-        std::string score = UCI::to_score({v, rootPos});
+        const std::string score = UCI::to_score({v, rootPos});
 
         std::string bound;
         if (!exact && is_ok(rm.bound))
@@ -2452,7 +2454,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if (options["UCI_ShowWDL"])
             wdl = UCI::to_wdl(v, rootPos);
 
-        std::string pv = UCI::build_pv_string(rm.pv);
+        const std::string pv = UCI::build_pv_string(rm.pv);
 
         updateContext.onUpdateFull(
           {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, hashfull, tbHits, pv});
@@ -2486,9 +2488,11 @@ void Skill::init(const Options& options) noexcept {
     {
         std::uint16_t uciELO = options["UCI_ELO"];
 
-        auto e = double(uciELO - MIN_ELO) / (MAX_ELO - MIN_ELO);
-        auto l = ((37.2473 * e - 40.8525) * e + 22.2943) * e - 0.311438;
-        level  = std::clamp(l, MIN_LEVEL, MAX_LEVEL - 0.01);
+        const double e = double(uciELO - MIN_ELO) / (MAX_ELO - MIN_ELO);
+
+        const double l = ((37.2473 * e - 40.8525) * e + 22.2943) * e - 0.311438;
+
+        level = std::clamp(l, MIN_LEVEL, MAX_LEVEL - 0.01);
     }
     else
     {
