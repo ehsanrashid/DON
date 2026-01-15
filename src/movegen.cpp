@@ -267,8 +267,8 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, const Bitboard targ
         }
     }
 
-    Square   kingSq     = pos.square<KING>(AC);
-    Bitboard blockersBB = pos.blockers_bb(AC);
+    const Square   kingSq     = pos.square<KING>(AC);
+    const Bitboard blockersBB = pos.blockers_bb(AC);
 
     // Filter illegal moves (preserve order)
     while (rMoves != moves)
