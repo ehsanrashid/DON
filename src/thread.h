@@ -81,9 +81,7 @@ class NativeThread final {
         pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
 
         if (pthread_create(&thread, &attr, start_routine, funcPtr) != 0)
-        {
             delete funcPtr;
-        }
 
         pthread_attr_destroy(&attr);
     }
