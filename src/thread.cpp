@@ -349,7 +349,7 @@ void Threads::start(Position&      pos,
     auto& clock = limit.clocks[pos.active_color()];
 
     // If time manager is active, don't use more than 5% of clock time
-    auto startTime = std::chrono::steady_clock::now();
+    const auto startTime = std::chrono::steady_clock::now();
 
     const auto time_to_abort = [&]() noexcept -> bool {
         auto endTime = std::chrono::steady_clock::now();

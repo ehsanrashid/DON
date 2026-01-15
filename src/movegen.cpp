@@ -240,8 +240,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
         dstBB = shift_bb<RCap>(notR7PawnsBB) & enemyBB;
         moves = splat_pawn_moves<AC, RCap>(dstBB, moves);
 
-        Square enPassantSq = pos.en_passant_sq();
-        if (is_ok(enPassantSq))
+        if (const Square enPassantSq = pos.en_passant_sq(); is_ok(enPassantSq))
         {
             assert(relative_rank(AC, enPassantSq) == RANK_6);
             assert(pos.pieces_bb(~AC, PAWN) & (enPassantSq - Push1));

@@ -64,12 +64,13 @@ void TimeManager::init(
   Color ac, std::int16_t ply, std::int32_t moveNum, const Options& options, Limit& limit) noexcept {
     // If have no time, no need to fully initialize TM.
     // startTime is used by movetime and Nodes-Time is used in elapsed calls.
-    startTime   = limit.startTime;
+    startTime = limit.startTime;
+
     auto& clock = limit.clocks[ac];
 
-    std::uint64_t nodesTime = options["NodesTime"];
+    const std::uint64_t NodesTime = options["NodesTime"];
 
-    useNodesTime = nodesTime != 0;
+    useNodesTime = NodesTime != 0;
 
     if (clock.time == 0)
     {
@@ -89,7 +90,7 @@ void TimeManager::init(
         // Only once at game start
         if (timeNodes == INITIAL_TIME_NODES)
         {
-            timeNodes = clock.time * nodesTime;  // Time is in msec
+            timeNodes = clock.time * NodesTime;  // Time is in msec
 
             if (timeNodes < 1)
                 timeNodes = 1;
@@ -98,15 +99,15 @@ void TimeManager::init(
         // Convert from milliseconds to nodes
         clock.time = timeNodes;
 
-        clock.inc *= nodesTime;
+        clock.inc *= NodesTime;
 
-        moveOverhead *= nodesTime;
+        moveOverhead *= NodesTime;
     }
 
-    std::uint64_t scaleFactor =
-      nodesTime <= DEFAULT_SCALE_FACTOR ? DEFAULT_SCALE_FACTOR : nodesTime;
+    const std::uint64_t ScaleFactor =
+      NodesTime <= DEFAULT_SCALE_FACTOR ? DEFAULT_SCALE_FACTOR : NodesTime;
 
-    TimePoint scaledTime = clock.time / scaleFactor;
+    TimePoint scaledTime = clock.time / ScaleFactor;
 
     if (scaledTime < 1)
         scaledTime = 1;

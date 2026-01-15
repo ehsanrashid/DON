@@ -258,9 +258,9 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
 
     constexpr std::size_t requiredCount = 1000U;
 
-    std::size_t actualCount = std::min(requiredCount, clusterCount);
+    const std::size_t actualCount = std::min(requiredCount, clusterCount);
 
-    std::uint8_t relMaxAge = maxAge * GENERATION_DELTA;
+    const std::uint8_t relMaxAge = maxAge * GENERATION_DELTA;
 
     std::uint32_t count = 0;
 
@@ -270,7 +270,7 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
 
     // Scale proportionally to requiredCount using integer arithmetic
     // scaledCount = count * requiredCount / actualCount
-    std::uint32_t scaledCount = (count * requiredCount + actualCount - 1) / actualCount;
+    const std::uint32_t scaledCount = (count * requiredCount + actualCount - 1) / actualCount;
 
     // Normalize per entries per cluster
     return scaledCount / clusters->entries.size();
@@ -286,7 +286,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
 
     std::error_code ec;
 
-    std::size_t fileSize = std::filesystem::file_size(std::string(hashFile), ec);
+    const std::size_t fileSize = std::filesystem::file_size(std::string(hashFile), ec);
 
     if (ec)
     {
@@ -324,6 +324,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
     char* data = reinterpret_cast<char*>(clusters);
 
     std::size_t readedSize = 0;
+
     while (readedSize < DataSize)
     {
         std::streamsize readSize = std::min(ChunkSize, DataSize - readedSize);
@@ -381,6 +382,7 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
     const char* data = reinterpret_cast<const char*>(clusters);
 
     std::size_t writtenSize = 0;
+
     while (writtenSize < DataSize)
     {
         std::streamsize writeSize = std::min(ChunkSize, DataSize - writtenSize);
