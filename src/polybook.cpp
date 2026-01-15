@@ -65,7 +65,7 @@ union Zobrist final {
             key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][s];
         }
 
-        Bitboard castlingRightsBB = pos.castling_rights();
+        Bitboard castlingRightsBB = +pos.castling_rights();
         while (castlingRightsBB != 0)
             key ^= _.Castling[pop_lsq(castlingRightsBB)];
 

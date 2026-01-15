@@ -51,9 +51,9 @@ struct Zobrist final {
     }
 
     static Key castling(CastlingRights cr) noexcept {
-        assert(0 <= cr && cr < Castling.size());
+        assert(0 <= +cr && +cr < Castling.size());
 
-        return Castling[cr];
+        return Castling[+cr];
     }
 
     static Key enpassant(Square enPassantSq) noexcept {
@@ -607,7 +607,8 @@ inline std::int32_t Position::move_num() const noexcept {
 inline CastlingRights Position::castling_rights_mask(Square s) const noexcept {
     auto sIdx = CASTLING_RIGHTS_INDICES[s];
 
-    return sIdx < castlingRightsMasks.size() ? castlingRightsMasks[sIdx] : NO_CASTLING;
+    return sIdx < castlingRightsMasks.size() ? castlingRightsMasks[sIdx]
+                                             : CastlingRights::NO_CASTLING;
 }
 
 inline CastlingRights Position::castling_rights_mask(Square orgSq, Square dstSq) const noexcept {
@@ -617,11 +618,11 @@ inline CastlingRights Position::castling_rights_mask(Square orgSq, Square dstSq)
 inline CastlingRights Position::castling_rights() const noexcept { return st->castlingRights; }
 
 inline bool Position::has_castling_rights() const noexcept {
-    return castling_rights() != NO_CASTLING;
+    return castling_rights() != CastlingRights::NO_CASTLING;
 }
 
 inline bool Position::has_castling_rights(Color c, CastlingSide cs) const noexcept {
-    return (castling_rights() & make_cr(c, cs)) != NO_CASTLING;
+    return (castling_rights() & make_cr(c, cs)) != CastlingRights::NO_CASTLING;
 }
 
 // Checks if squares between king and rook are empty

@@ -285,80 +285,6 @@ constexpr Piece relative_piece(Color c, Piece pc) noexcept {
     return Piece(+pc ^ (c * PIECE_TYPE_NB));
 }
 
-enum class CastlingSide : std::uint8_t {
-    KING,
-    QUEEN,
-    ANY
-};
-
-inline constexpr std::size_t CASTLING_SIDE_NB = 2;
-
-constexpr std::uint8_t operator+(CastlingSide cs) noexcept { return std::uint8_t(cs); }
-
-[[nodiscard]] constexpr bool is_ok(CastlingSide cs) noexcept {
-    return (cs == CastlingSide::KING || cs == CastlingSide::QUEEN);
-}
-
-constexpr CastlingSide castling_side(Square kingOrgSq, Square kingDstSq) noexcept {
-    return kingOrgSq < kingDstSq ? CastlingSide::KING : CastlingSide::QUEEN;
-}
-
-inline std::string to_string(CastlingSide cs) noexcept {
-    switch (cs)
-    {
-    case CastlingSide::KING :
-        return "O-O";
-    case CastlingSide::QUEEN :
-        return "O-O-O";
-    case CastlingSide::ANY :
-        return "O-O / O-O-O";
-    default :
-        return "";
-    }
-}
-
-enum CastlingRights : std::uint8_t {
-    NO_CASTLING,
-
-    WHITE_OO  = 1 << 0,
-    WHITE_OOO = 1 << 1,
-
-    WHITE_CASTLING = WHITE_OO | WHITE_OOO,
-
-    BLACK_OO  = WHITE_OO << 2,
-    BLACK_OOO = WHITE_OOO << 2,
-
-    BLACK_CASTLING = BLACK_OO | BLACK_OOO,
-
-    ANY_CASTLING = WHITE_CASTLING | BLACK_CASTLING
-};
-
-inline constexpr std::size_t CASTLING_RIGHTS_NB = 16;
-
-constexpr CastlingRights operator|(CastlingRights cr1, CastlingRights cr2) noexcept {
-    return CastlingRights(std::uint8_t(cr1) | std::uint8_t(cr2));
-}
-constexpr CastlingRights operator&(CastlingRights cr1, CastlingRights cr2) noexcept {
-    return CastlingRights(std::uint8_t(cr1) & std::uint8_t(cr2));
-}
-constexpr CastlingRights operator|(CastlingRights cr, int i) noexcept {
-    return cr | CastlingRights(i);
-}
-constexpr CastlingRights operator&(CastlingRights cr, int i) noexcept {
-    return cr & CastlingRights(i);
-}
-constexpr CastlingRights& operator|=(CastlingRights& cr, int i) noexcept { return cr = cr | i; }
-constexpr CastlingRights& operator&=(CastlingRights& cr, int i) noexcept { return cr = cr & i; }
-
-constexpr CastlingRights make_cr(Color c, CastlingSide cs) noexcept {
-    assert(is_ok(c));
-
-    return CastlingRights((cs == CastlingSide::KING    ? WHITE_OO
-                           : cs == CastlingSide::QUEEN ? WHITE_OOO
-                                                       : WHITE_CASTLING)
-                          << (c << 1));
-}
-
 constexpr File fold_to_edge(File f) noexcept { return std::min(f, File(FILE_H - f)); }
 constexpr Rank fold_to_edge(Rank r) noexcept { return std::min(r, Rank(RANK_8 - r)); }
 
@@ -529,6 +455,107 @@ inline constexpr Depth DEPTH_NONE = -1;
 inline constexpr Depth DEPTH_OFFSET = DEPTH_NONE - 1;
 static_assert(DEPTH_OFFSET == MAX_PLY - 1 - 0xFF, "DEPTH_OFFSET == MAX_PLY - 1 - 0xFF");
 
+enum class CastlingSide : std::uint8_t {
+    KING,
+    QUEEN,
+    ANY
+};
+
+inline constexpr std::size_t CASTLING_SIDE_NB = 2;
+
+[[nodiscard]] constexpr bool is_ok(CastlingSide cs) noexcept {
+    return (cs == CastlingSide::KING || cs == CastlingSide::QUEEN);
+}
+
+constexpr CastlingSide castling_side(Square kingOrgSq, Square kingDstSq) noexcept {
+    return kingOrgSq < kingDstSq ? CastlingSide::KING : CastlingSide::QUEEN;
+}
+
+constexpr std::string_view to_string(CastlingSide cs) noexcept {
+    switch (cs)
+    {
+    case CastlingSide::KING :
+        return "O-O";
+    case CastlingSide::QUEEN :
+        return "O-O-O";
+    case CastlingSide::ANY :
+        return "O-O / O-O-O";
+    default :
+        return "";
+    }
+}
+
+enum class CastlingRights : std::uint8_t {
+    NO_CASTLING,
+
+    WHITE_OO  = 1 << 0,
+    WHITE_OOO = 1 << 1,
+
+    WHITE_CASTLING = WHITE_OO | WHITE_OOO,
+
+    BLACK_OO  = WHITE_OO << 2,
+    BLACK_OOO = WHITE_OOO << 2,
+
+    BLACK_CASTLING = BLACK_OO | BLACK_OOO,
+
+    ANY_CASTLING = WHITE_CASTLING | BLACK_CASTLING
+};
+
+inline constexpr std::size_t CASTLING_RIGHTS_NB = 16;
+
+constexpr CastlingRights make_cr(Color c, CastlingSide cs) noexcept {
+    assert(is_ok(c));
+
+    return CastlingRights(std::uint8_t(cs == CastlingSide::KING    ? CastlingRights::WHITE_OO
+                                       : cs == CastlingSide::QUEEN ? CastlingRights::WHITE_OOO
+                                                                   : CastlingRights::WHITE_CASTLING)
+                          << (c << 1));
+}
+
+// Bound type for alpha-beta search
+enum class Bound : std::uint8_t {
+    NONE,
+    UPPER,
+    LOWER,
+    EXACT = UPPER | LOWER
+};
+
+inline constexpr std::size_t BOUND_NB = 4;
+
+constexpr bool is_ok(Bound bnd) noexcept { return bnd != Bound::NONE; }
+
+constexpr std::string_view to_string(Bound bnd) noexcept {
+    return bnd == Bound::UPPER ? " upperbound"
+         : bnd == Bound::LOWER ? " lowerbound"
+         : bnd == Bound::EXACT ? " exactbound"
+                               : " none";
+}
+
+// clang-format off
+#define ENABLE_BIT_OPERATORS_ON(T) \
+        static_assert(std::is_enum_v<T>, "ENABLE_BIT_OPERATORS_ON requires an enum"); \
+        constexpr auto operator+(T t) noexcept { using U = std::underlying_type_t<T>; return U(t); } \
+        constexpr T operator~(T t) noexcept { using U = std::underlying_type_t<T>; return T(~U(t)); } \
+        constexpr T operator&(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) & U(t2)); } \
+        constexpr T operator|(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) | U(t2)); } \
+        constexpr T operator^(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) ^ U(t2)); } \
+        constexpr T operator&(T t, int i) noexcept { return t & T(i); } \
+        constexpr T operator|(T t, int i) noexcept { return t | T(i); } \
+        constexpr T operator^(T t, int i) noexcept { return t ^ T(i); } \
+        constexpr T& operator&=(T& t1, T t2) noexcept { return t1 = t1 & t2; } \
+        constexpr T& operator|=(T& t1, T t2) noexcept { return t1 = t1 | t2; } \
+        constexpr T& operator^=(T& t1, T t2) noexcept { return t1 = t1 ^ t2; } \
+        constexpr T& operator&=(T& t, int i) noexcept { return t = t & i; } \
+        constexpr T& operator|=(T& t, int i) noexcept { return t = t | i; } \
+        constexpr T& operator^=(T& t, int i) noexcept { return t = t ^ i; }
+// clang-format on
+
+ENABLE_BIT_OPERATORS_ON(CastlingSide)
+ENABLE_BIT_OPERATORS_ON(CastlingRights)
+ENABLE_BIT_OPERATORS_ON(Bound)
+
+    #undef ENABLE_BIT_OPERATORS_ON
+
 // Move representation (16 bits)
 // Each move is compactly stored in a 16-bit unsigned integer.
 //
@@ -622,15 +649,14 @@ using MT = Move::MT;
 
 // Implementation of the factory method
 template<MT T>
-inline constexpr Move Move::make(Square orgSq, Square dstSq, PieceType) noexcept {
+constexpr Move Move::make(Square orgSq, Square dstSq, PieceType) noexcept {
     static_assert(T != MT::PROMOTION, "Use make<PROMOTION>() for PROMOTION moves");
 
     return Move((int(T) << TYPE_OFFSET) | (orgSq << ORG_SQ_OFFSET) | (dstSq << DST_SQ_OFFSET));
 }
 // Specialization for PROMOTION moves
 template<>
-inline constexpr Move
-Move::make<MT::PROMOTION>(Square orgSq, Square dstSq, PieceType promoPt) noexcept {
+constexpr Move Move::make<MT::PROMOTION>(Square orgSq, Square dstSq, PieceType promoPt) noexcept {
     assert(KNIGHT <= promoPt && promoPt <= QUEEN);
 
     return Move((int(MT::PROMOTION) << TYPE_OFFSET) | ((promoPt - KNIGHT) << PROMO_OFFSET)
@@ -642,39 +668,6 @@ inline constexpr Move Move::None{SQ_A1, SQ_A1};
 inline constexpr Move Move::Null{SQ_H8, SQ_H8};
 
 using Moves = std::vector<Move>;
-
-// Bound type for alpha-beta search
-enum class Bound : std::uint8_t {
-    NONE,
-    UPPER,
-    LOWER,
-    EXACT = UPPER | LOWER
-};
-
-constexpr std::uint8_t operator+(Bound bnd) noexcept { return std::uint8_t(bnd); }
-
-constexpr bool is_ok(Bound bnd) noexcept { return bnd != Bound::NONE; }
-
-// --- Bitmask operators for Bound ---
-constexpr Bound operator&(Bound bnd1, Bound bnd2) noexcept {
-    return Bound(std::uint8_t(bnd1) & std::uint8_t(bnd2));
-}
-constexpr Bound operator|(Bound bnd1, Bound bnd2) noexcept {
-    return Bound(std::uint8_t(bnd1) | std::uint8_t(bnd2));
-}
-constexpr Bound operator^(Bound bnd1, Bound bnd2) noexcept {
-    return Bound(std::uint8_t(bnd1) ^ std::uint8_t(bnd2));
-}
-constexpr Bound& operator|=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 | bnd2; }
-constexpr Bound& operator&=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 & bnd2; }
-constexpr Bound& operator^=(Bound& bnd1, Bound bnd2) noexcept { return bnd1 = bnd1 ^ bnd2; }
-
-inline std::string to_string(Bound bnd) noexcept {
-    return bnd == Bound::UPPER ? " upperbound"
-         : bnd == Bound::LOWER ? " lowerbound"
-         : bnd == Bound::EXACT ? " exactbound"
-                               : " none";
-}
 
 // Keep track of what piece changes on the board by a move
 struct DirtyPiece final {

@@ -198,7 +198,8 @@ void Position::clear() noexcept {
     std::memset(pieceMap.data(), +Piece::NO_PIECE, sizeof(pieceMap));
     std::memset(typeBBs.data(), 0, sizeof(typeBBs));
     std::memset(colorBBs.data(), 0, sizeof(colorBBs));
-    std::memset(castlingRightsMasks.data(), NO_CASTLING, sizeof(castlingRightsMasks));
+    std::memset(castlingRightsMasks.data(), +CastlingRights::NO_CASTLING,
+                sizeof(castlingRightsMasks));
     std::memset(castlings.fullPathBB.data(), 0, sizeof(castlings.fullPathBB));
     std::memset(castlings.kingPathBB.data(), 0, sizeof(castlings.kingPathBB));
     std::memset(castlings.rookSq.data(), SQ_NONE, sizeof(castlings.rookSq));
@@ -594,7 +595,7 @@ std::string Position::fen(bool full) const noexcept {
 void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     assert(relative_rank(c, rookOrgSq) == RANK_1);
     assert((pieces_bb(c, ROOK) & rookOrgSq) != 0);
-    assert(castlingRightsMasks[CASTLING_RIGHTS_INDICES[rookOrgSq]] == NO_CASTLING);
+    assert(castlingRightsMasks[CASTLING_RIGHTS_INDICES[rookOrgSq]] == CastlingRights::NO_CASTLING);
 
     Square kingOrgSq = square<KING>(c);
     assert(relative_rank(c, kingOrgSq) == RANK_1);
@@ -1028,7 +1029,9 @@ DO_MOVE_END:
     st->key ^= movedKey;
 
     // Update castling rights if needed
-    if (int cr; has_castling_rights() && (cr = castling_rights_mask(orgSq, dstSq)) != NO_CASTLING)
+    if (CastlingRights cr;
+        has_castling_rights()
+        && (cr = castling_rights_mask(orgSq, dstSq)) != CastlingRights::NO_CASTLING)
     {
         st->key ^= Zobrist::castling(castling_rights());
         st->castlingRights &= ~cr;
@@ -1479,7 +1482,9 @@ Key Position::move_key(Move m) const noexcept {
       ^ Zobrist::piece_square(ac,  //
                               m.type() != MT::PROMOTION ? movedPt : m.promotion_type(),
                               m.type() != MT::CASTLING ? dstSq : king_castle_sq(orgSq, dstSq));
-    if (int cr; has_castling_rights() && (cr = castling_rights_mask(orgSq, dstSq)) != NO_CASTLING)
+    if (CastlingRights cr;
+        has_castling_rights()
+        && (cr = castling_rights_mask(orgSq, dstSq)) != CastlingRights::NO_CASTLING)
         moveKey ^= Zobrist::castling(castling_rights())  //
                  ^ Zobrist::castling(castling_rights() & ~cr);
 
