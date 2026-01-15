@@ -29,7 +29,7 @@
 
 namespace DON::NNUE::Layers {
 
-// Clipped ReLU
+// Square Clipped ReLU
 template<IndexType InDims>
 class SqrClippedReLU final {
    public:
