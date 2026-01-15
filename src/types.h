@@ -102,9 +102,13 @@ enum File : std::uint8_t {
     FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H
 };
 
+inline constexpr std::size_t FILE_NB   = 8;
+
 enum Rank : std::uint8_t {
     RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8
 };
+
+inline constexpr std::size_t RANK_NB   = 8;
 
 enum Square : std::uint8_t {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
@@ -118,11 +122,10 @@ enum Square : std::uint8_t {
     SQ_NONE,
     SQUARE_ZERO = 0
 };
-// clang-format on
 
-inline constexpr std::size_t FILE_NB   = 8;
-inline constexpr std::size_t RANK_NB   = 8;
 inline constexpr std::size_t SQUARE_NB = 64;
+
+// clang-format on
 
 enum Direction : std::int8_t {
     EAST  = 1,
