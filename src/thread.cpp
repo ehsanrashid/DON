@@ -315,7 +315,7 @@ void Threads::start(Position&      pos,
             if (emplace && rootMoves.size() == legalMoves.size())
                 break;
 
-            Move m = UCI::mix_to_move(move, pos, legalMoves);
+            const Move m = UCI::mix_to_move(move, pos, legalMoves);
 
             emplace = m != Move::None && !rootMoves.contains(m);
 
@@ -325,7 +325,7 @@ void Threads::start(Position&      pos,
     }
     else
     {
-        for (auto m : legalMoves)
+        for (const Move m : legalMoves)
             rootMoves.emplace_back(m);
     }
 
@@ -337,7 +337,7 @@ void Threads::start(Position&      pos,
             if (erase && rootMoves.empty())
                 break;
 
-            Move m = UCI::mix_to_move(move, pos, legalMoves);
+            const Move m = UCI::mix_to_move(move, pos, legalMoves);
 
             erase = m != Move::None;
 

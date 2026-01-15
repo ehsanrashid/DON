@@ -393,8 +393,9 @@ Move pg_to_move(std::uint16_t pgMove, const MoveList<GenType::LEGAL>& legalMoves
     if (int pt = (move.raw() >> Move::PROMO_OFFSET) & 0x7; pt != 0)
         move = Move::make<MT::PROMOTION>(move.org_sq(), move.dst_sq(), PieceType(pt + 1));
 
-    std::uint16_t moveRaw = move.raw() & ~Move::TYPE_MASK;
-    for (auto m : legalMoves)
+    const std::uint16_t moveRaw = move.raw() & ~Move::TYPE_MASK;
+
+    for (const Move m : legalMoves)
         if ((m.raw() & ~Move::TYPE_MASK) == moveRaw)
             return m;
 
@@ -408,7 +409,7 @@ bool is_draw(Position& pos, Move m) noexcept {
     State st;
     pos.do_move(m, st);
 
-    bool isDraw = pos.is_draw(pos.ply(), true, true);
+    const bool isDraw = pos.is_draw(pos.ply(), true, true);
 
     pos.undo_move(m);
 
