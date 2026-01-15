@@ -855,7 +855,7 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
            || (color_of(capturedPc) == (m.type() != MT::CASTLING ? ~ac : ac)
                && type_of(capturedPc) != KING));
 
-    auto movedPt = type_of(movedPc);
+    const auto movedPt = type_of(movedPc);
 
     DirtyBoard db;
 
@@ -1477,7 +1477,7 @@ Key Position::move_key(Move m) const noexcept {
     assert(!is_ok(capturedPc) || color_of(capturedPc) == (m.type() != MT::CASTLING ? ~ac : ac));
     assert(type_of(capturedPc) != KING);
 
-    auto movedPt = type_of(movedPc);
+    const auto movedPt = type_of(movedPc);
 
     moveKey ^=
       Zobrist::piece_square(ac, movedPt, orgSq)
