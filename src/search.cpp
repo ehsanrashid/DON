@@ -732,7 +732,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     assert(ss->ply >= 0);
     assert(!RootNode || (DEPTH_ZERO < depth && depth <= MAX_PLY - 1));
 
-    Key key = pos.key();
+    const Key key = pos.key();
 
     if constexpr (!RootNode)
     {
@@ -786,11 +786,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         // then there is no need to search further because will never beat the current alpha.
         // Same logic but with a reversed signs apply also in the opposite condition of being mated
         // instead of giving mate. In this case, return a fail-high score.
-        Value mated = mated_in(ss->ply + 0);
+        const Value mated = mated_in(ss->ply + 0);
         if (alpha < mated)
             alpha = mated;
 
-        Value mates = mates_in(ss->ply + 1);
+        const Value mates = mates_in(ss->ply + 1);
         if (beta > mates)
             beta = mates;
 
@@ -802,7 +802,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     (ss + 1)->cutoffCount = 0;
 
-    bool exclude = excludedMove != Move::None;
+    const bool exclude = excludedMove != Move::None;
 
     // Step 4. Transposition table lookup
     auto [ttd, ttu] = transpositionTable.probe(key);
@@ -812,21 +812,21 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
               : ttd.hit  ? legal_tt_move(ttd.move, pos)
                          : Move::None;
 
-    bool ttmNone = ttd.move == Move::None;
+    const bool ttmNone = ttd.move == Move::None;
     assert(ttmNone || pos.legal(ttd.move));
-    ss->ttMove     = ttd.move;
-    bool ttCapture = !ttmNone && pos.capture_promo(ttd.move);
+    ss->ttMove           = ttd.move;
+    const bool ttCapture = !ttmNone && pos.capture_promo(ttd.move);
 
     if (!exclude)
         ss->ttPv = PVNode || (ttd.hit && ttd.pv);
 
-    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+    const Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
-    bool preCapture = is_ok(pos.captured_pc());
-    bool preNonPawn =
+    const bool preCapture = is_ok(pos.captured_pc());
+    const bool preNonPawn =
       is_ok(preSq) && type_of(pos[preSq]) != PAWN && (ss - 1)->move.type() != MT::PROMOTION;
 
-    int correctionValue = correction_value(pos, ss);
+    const int correctionValue = correction_value(pos, ss);
 
     Value evalValue, ttEvalValue;
 
@@ -1718,7 +1718,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (1 + alpha == beta));
 
-    Key key = pos.key();
+    const Key key = pos.key();
 
     // Check if have an upcoming move that draws by repetition
     if (alpha < VALUE_DRAW && pos.is_upcoming_repetition(ss->ply))
@@ -1756,15 +1756,15 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = ttd.hit ? legal_tt_move(ttd.move, pos) : Move::None;
     assert(ttd.move == Move::None || pos.legal(ttd.move));
-    ss->ttMove = ttd.move;
-    bool ttPv  = ttd.hit && ttd.pv;
+    ss->ttMove      = ttd.move;
+    const bool ttPv = ttd.hit && ttd.pv;
 
     // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && ttd.depth >= DEPTH_ZERO && is_valid(ttd.value)
         && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
         return ttd.value;
 
-    int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
+    const int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
     Value evalValue, bestValue, baseFutilityValue;
 
