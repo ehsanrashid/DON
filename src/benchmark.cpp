@@ -398,21 +398,24 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
 
     const bool isGo = limitType != "eval";
 
-    std::string command = isGo ? "go " + limitType + " " + limitVal : "eval";
+    const std::string command = isGo ? "go " + limitType + " " + limitVal : "eval";
 
-    std::string option = lower_case(fenFile);
+    const std::string fenOpt = lower_case(fenFile);
 
     Strings fens;
 
-    if (option == "default")
+    if (fenOpt == "default")
     {
         fens.reserve(Positions.size());
+
         for (const auto& fen : Positions)
             if (!is_whitespace(fen))
                 fens.emplace_back(fen);
     }
-    else if (option == "current")
+    else if (fenOpt == "current")
+    {
         fens.emplace_back(currentFen);
+    }
     else
     {
         std::ifstream ifs(fenFile);
@@ -443,7 +446,7 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
     {
         fen = std::string(trim(fen));
 
-        bool setOption = fen.rfind("setoption ", 0) == 0;
+        const bool setOption = fen.rfind("setoption ", 0) == 0;
 
         if (!setOption)
             fen = "position fen " + fen;
@@ -505,27 +508,31 @@ Setup benchmark(std::istream& is) noexcept {
     for (const auto& game : Games)
     {
         std::uint16_t ply = 1;
+
         for (std::size_t i = 0; i < game.size(); ++i)
         {
-            double moveTime = get_move_time(ply);
+            const double moveTime = get_move_time(ply);
+
             totalMoveTime += moveTime;
 
             ++ply;
         }
     }
 
-    double timeScaleFactor = 1000.0 * desiredMoveTime / totalMoveTime;
+    const double TimeScaleFactor = 1000.0 * desiredMoveTime / totalMoveTime;
 
     for (const auto& game : Games)
     {
         setup.commands.emplace_back("ucinewgame");
 
         std::uint16_t ply = 1;
+
         for (const auto& fen : game)
         {
             setup.commands.emplace_back("position fen " + fen);
 
-            std::size_t moveTime = get_move_time(ply) * timeScaleFactor;
+            const std::size_t moveTime = get_move_time(ply) * TimeScaleFactor;
+
             setup.commands.emplace_back("go movetime " + std::to_string(moveTime));
 
             ++ply;
