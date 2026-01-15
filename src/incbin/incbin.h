@@ -26,7 +26,7 @@
     #define INCBIN_ALIGNMENT_INDEX 2
 #endif
 
-// Lookup table of (1 << n) where `n' is `INCBIN_ALIGNMENT_INDEX'
+// Lookup table of (1 << n) where 'n' is 'INCBIN_ALIGNMENT_INDEX'
 #define INCBIN_ALIGN_SHIFT_0 1
 #define INCBIN_ALIGN_SHIFT_1 2
 #define INCBIN_ALIGN_SHIFT_2 4
@@ -56,8 +56,8 @@
 #if defined(__ghs__)
     #if (__ghs_asm == 2)
         #define INCBIN_MACRO ".file"
-    // Or consider the ".myrawdata" entry in the ld file
     #else
+        // Consider the ".myrawdata" entry in the ld file
         #define INCBIN_MACRO "\tINCBIN"
     #endif
 #else
@@ -80,12 +80,12 @@
     #define INCBIN_ALIGN_HOST ".balign " INCBIN_STRINGIZE(INCBIN_ALIGNMENT) "\n"
     #define INCBIN_ALIGN_BYTE ".balign 1\n"
 #elif defined(INCBIN_ARM)
-    // On arm assemblers, the alignment value is calculated as (1 << n) where `n' is
-    // the shift count. This is the value passed to `.align'
+    // On arm assemblers, the alignment value is calculated as (1 << n) where 'n' is
+    // the shift count. This is the value passed to '.align'
     #define INCBIN_ALIGN_HOST ".align " INCBIN_STRINGIZE(INCBIN_ALIGNMENT_INDEX) "\n"
     #define INCBIN_ALIGN_BYTE ".align 0\n"
 #else
-    // Assume other inline assembler's treat `.align' as `.balign'
+    // Assume other inline assembler's treat '.align' as '.balign'
     #define INCBIN_ALIGN_HOST ".align " INCBIN_STRINGIZE(INCBIN_ALIGNMENT) "\n"
     #define INCBIN_ALIGN_BYTE ".align 1\n"
 #endif
@@ -137,18 +137,19 @@
     #if defined(TARGET_OS_IPHONE) && !defined(INCBIN_SILENCE_BITCODE_WARNING)
         #warning \
           "incbin is incompatible with bitcode. Using the library will break upload to App Store if you have bitcode enabled." \
-          "Add `#define INCBIN_SILENCE_BITCODE_WARNING` before including this header to silence this warning."
+          "Add '#define INCBIN_SILENCE_BITCODE_WARNING' before including this header to silence this warning."
     #endif
     // The directives are different for Apple branded compilers
     #define INCBIN_SECTION INCBIN_OUTPUT_SECTION "\n"
     #define INCBIN_GLOBAL(NAME) ".globl " INCBIN_MANGLE INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME "\n"
+    #define INCBIN_BYTE ".byte "
     #define INCBIN_INT ".long "
     #define INCBIN_MANGLE "_"
-    #define INCBIN_BYTE ".byte "
     #define INCBIN_TYPE(...)
 #else
     #define INCBIN_SECTION ".section " INCBIN_OUTPUT_SECTION "\n"
     #define INCBIN_GLOBAL(NAME) ".global " INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME "\n"
+    #define INCBIN_BYTE ".byte "
     #if defined(__ghs__)
         #define INCBIN_INT ".word "
     #else
@@ -160,16 +161,15 @@
         #define INCBIN_MANGLE ""
     #endif
     #if defined(INCBIN_ARM)
-        // On arm assemblers, `@' is used as a line comment token
+        // On arm assemblers, '@' is used as a line comment token
         #define INCBIN_TYPE(NAME) ".type " INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME ", %object\n"
     #elif defined(__MINGW32__) || defined(__MINGW64__)
         // Mingw doesn't support this directive either
         #define INCBIN_TYPE(NAME)
     #else
-        // It's safe to use `@' on other architectures
+        // It's safe to use '@' on other architectures
         #define INCBIN_TYPE(NAME) ".type " INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME ", @object\n"
     #endif
-    #define INCBIN_BYTE ".byte "
 #endif
 
 // List of style types used for symbol names
@@ -208,9 +208,9 @@
 // INCBIN(foo, "foo.txt");
 //
 // Now you have the following symbols:
-// - const unsigned char <prefix>foo_data[];
-// - const unsigned char *const <prefix>foo_end;
-// - const unsigned int <prefix>foo_size;
+// - const unsigned char <prefix>fooData[];
+// - const unsigned char *const <prefix>fooEnd;
+// - const unsigned int <prefix>fooSize;
 // @endcode
 #if !defined(INCBIN_STYLE)
     #define INCBIN_STYLE INCBIN_STYLE_CAMEL
@@ -244,10 +244,10 @@
 // Produces three external symbols that reference the binary data included in
 // another translation unit.
 //
-// The symbol names are a concatenation of `INCBIN_PREFIX' before *NAME*; with
+// The symbol names are a concatenation of 'INCBIN_PREFIX' before *NAME*; with
 // "Data", as well as "End" and "Size" after. An example is provided below.
 //
-// @param TYPE Optional array type. Omitting this picks a default of `unsigned char`.
+// @param TYPE Optional array type. Omitting this picks a default of 'unsigned char'.
 // @param NAME The name given for the binary data
 //
 // @code
@@ -284,7 +284,7 @@
 // Produces three external symbols that reference the textual data included in
 // another translation unit.
 //
-// The symbol names are a concatenation of `INCBIN_PREFIX' before *NAME*; with
+// The symbol names are a concatenation of 'INCBIN_PREFIX' before *NAME*; with
 // "Data", as well as "End" and "Size" after. An example is provided below.
 //
 // @param NAME The name given for the textual data
@@ -304,10 +304,10 @@
 // Includes a binary file into the current translation unit, producing three symbols
 // for objects that encode the data and size respectively.
 //
-// The symbol names are a concatenation of `INCBIN_PREFIX' before *NAME*; with
+// The symbol names are a concatenation of 'INCBIN_PREFIX' before *NAME*; with
 // "Data", as well as "End" and "Size" after. An example is provided below.
 //
-// @param TYPE Optional array type. Omitting this picks a default of `unsigned char`.
+// @param TYPE Optional array type. Omitting this picks a default of 'unsigned char'.
 // @param NAME The name to associate with this binary data (as an identifier.)
 // @param FILENAME The file to include (as a string literal.)
 //
@@ -377,7 +377,7 @@
 // Includes a textual file into the current translation unit, producing three
 // symbols for objects that encode the data and size respectively.
 //
-// The symbol names are a concatenation of `INCBIN_PREFIX' before *NAME*; with
+// The symbol names are a concatenation of 'INCBIN_PREFIX' before *NAME*; with
 // "Data", as well as "End" and "Size" after. An example is provided below.
 //
 // @param NAME The name to associate with this binary data (as an identifier.)
