@@ -52,6 +52,27 @@ bool CaseInsensitiveLess::operator()(std::string_view s1, std::string_view s2) c
                                         });
 }
 
+
+constexpr bool Option::is_ok(Type t) noexcept { return Type::BUTTON <= t && t <= Type::COMBO; }
+
+constexpr std::string_view Option::to_string(Type t) noexcept {
+    switch (t)
+    {
+    case Type::BUTTON :
+        return "button";
+    case Type::CHECK :
+        return "check";
+    case Type::STRING :
+        return "string";
+    case Type::SPIN :
+        return "spin";
+    case Type::COMBO :
+        return "combo";
+    default :;
+    }
+    return "none";
+}
+
 Option::Option(OnChange&& f) noexcept :
     type(Type::BUTTON),
     onChange(std::move(f)) {}

@@ -29,7 +29,7 @@
 
 namespace DON::NNUE::Layers {
 
-// Clipped ReLU
+// Square Clipped ReLU
 template<IndexType InDims>
 class SqrClippedReLU final {
    public:
@@ -66,20 +66,19 @@ class SqrClippedReLU final {
 
     // Forward propagation
     void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
-
+        // clang-format off
 #if defined(USE_SSE2)
-        constexpr IndexType ChunkCount = InputDimensions / 16;
-
         static_assert(WEIGHT_SCALE_BITS == 6);
+
+        constexpr IndexType SimdWidth  = 16;
+        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
         auto*       out = reinterpret_cast<__m128i*>(output);
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
-            __m128i words0 =
-              _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]), _mm_load_si128(&in[i * 4 + 1]));
-            __m128i words1 =
-              _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3]));
+            __m128i words0 = _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]), _mm_load_si128(&in[i * 4 + 1]));
+            __m128i words1 = _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3]));
 
             // Shift by WEIGHT_SCALE_BITS * 2 = 12 and divide by 128
             // which is an additional shift-right of 7, meaning 19 in total.
@@ -90,10 +89,11 @@ class SqrClippedReLU final {
             _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
         }
 
-        constexpr IndexType Start = 16 * ChunkCount;
+        constexpr IndexType Start = SimdWidth * ChunkCount;
 #else
         constexpr IndexType Start = 0;
 #endif
+        // clang-format on
 
         for (IndexType i = Start; i < InputDimensions; ++i)
         {

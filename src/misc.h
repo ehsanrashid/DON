@@ -1014,9 +1014,12 @@ inline std::size_t raw_data_hash(const T& value) noexcept {
 inline std::string create_hash_string(std::string_view str) noexcept {
     constexpr std::size_t Size = 16 + 1;  // 16 hex + '\0'
 
-    std::string   hashStr(Size, '\0');
+    std::string hashStr(Size, '\0');
+
     std::uint64_t hash = std::hash<std::string_view>{}(str);
+
     std::snprintf(hashStr.data(), hashStr.size(), "%016" PRIX64, hash);
+
     return hashStr;
 }
 
@@ -1145,7 +1148,7 @@ class TieStreamBuf final: public std::streambuf {
 
 class Logger final {
    public:
-    // Start logging to `logFile`. Returns true on success.
+    // Start logging. Returns true on success.
     static bool start(std::string_view logFile) noexcept {
         std::scoped_lock lock(instance().mutex);
 
@@ -1402,14 +1405,18 @@ inline std::string u32_to_string(std::uint32_t u32) noexcept {
     constexpr std::size_t Size = 2 + 8 + 1;  // "0x" + 8 hex + '\0'
 
     std::string str(Size, '\0');
+
     std::snprintf(str.data(), str.size(), "0x%08" PRIX32, u32);
+
     return str;
 }
 inline std::string u64_to_string(std::uint64_t u64) noexcept {
     constexpr std::size_t Size = 2 + 16 + 1;  // "0x" + 16 hex + '\0'
 
     std::string str(Size, '\0');
+
     std::snprintf(str.data(), str.size(), "0x%016" PRIX64, u64);
+
     return str;
 }
 

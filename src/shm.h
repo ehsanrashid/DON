@@ -1238,11 +1238,10 @@ struct SystemWideSharedMemory final {
         // then add name hashing to avoid length limits
         shmName = "/don_" + create_hash_string(shmName);
 
-        // POSIX APIs expect a fixed-size C string where the maximum length includes
-        // the terminating null character ('\0'). Since std::string::size() does not
-        // count the null terminator, allowed at most (MAX - 1) characters
-        // and reserve the final byte for '\0'.
-        constexpr std::size_t MaxNameSize = SHM_NAME_MAX_SIZE - 1;
+        // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
+        // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters
+        // to guarantee space for the terminator ('\0') in fixed-size buffers.
+        constexpr std::size_t MaxNameSize = SHM_NAME_MAX_SIZE > 0 ? SHM_NAME_MAX_SIZE - 1 : 254;
 
         // Truncate the name if necessary so that shmName.c_str() always fits
         // within SHM_NAME_MAX_SIZE bytes including the null terminator.

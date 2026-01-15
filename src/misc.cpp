@@ -164,12 +164,12 @@ std::string compiler_info() noexcept {
 #elif defined(__clang__)
     str += "clang++ ";
     str += VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
-#elif defined(_MSC_VER)
-    str += "MSVC ";
-    str += STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD);
 #elif defined(__GNUC__)
     str += "g++ (GNUC) ";
     str += VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#elif defined(_MSC_VER)
+    str += "MSVC ";
+    str += STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD);
 #elif defined(__e2k__) && defined(__LCC__)
     str += "MCST LCC ";
     str += std::to_string(__LCC__ / 100);
@@ -657,11 +657,22 @@ std::size_t str_to_size_t(std::string_view str) noexcept {
 
 std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept {
 
-    std::ifstream ifs(std::string(filePath), std::ios::binary);
+    std::ifstream ifs(std::string(filePath), std::ios::binary | std::ios::ate);
     if (!ifs)
         return std::nullopt;
 
-    return std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    std::streamsize size = ifs.tellg();
+    if (size < 0)
+        return std::nullopt;
+
+    ifs.seekg(0, std::ios::beg);
+
+    std::string str(std::size_t(size), '\0');
+
+    if (!ifs.read(str.data(), size))
+        return std::nullopt;
+
+    return str;
 }
 
 }  // namespace DON

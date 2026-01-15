@@ -70,13 +70,13 @@ PGOBENCH := $(RUN_PREFIX) ./$(EXE) bench
 ### Source and object files
 SRCS := benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp \
     misc.cpp movegen.cpp movepick.cpp option.cpp perft.cpp polybook.cpp \
-    position.cpp search.cpp thread.cpp timeman.cpp tt.cpp uci.cpp tune.cpp \
+    position.cpp search.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp \
     nnue/features/full_threats.cpp nnue/features/half_ka_v2_hm.cpp \
     nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp syzygy/tablebase.cpp
 
 HEADERS := benchmark.h bitboard.h engine.h evaluate.h history.h memory.h misc.h movegen.h \
     movepick.h numa.h option.h perft.h polybook.h position.h prng.h search.h shm.h \
-    thread.h thread_win32_osx.h timeman.h tt.h tune.h types.h uci.h \
+    thread.h timeman.h tt.h tune.h types.h uci.h incbin/incbin.h \
     nnue/features/full_threats.h nnue/features/half_ka_v2_hm.h \
     nnue/layers/affine_transform.h nnue/layers/affine_transform_sparse_input.h \
     nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h \
@@ -142,7 +142,7 @@ ifeq ($(ARCH), native)
 endif
 
 # explicitly check for the list of supported architectures (as listed with make help),
-# the user can override with `make ARCH=x86-64-avx512icl SUPPORTED_ARCH=yes`
+# the user can override with 'make ARCH=x86-64-avx512icl SUPPORTED_ARCH=yes'
 ifeq ($(ARCH), $(filter $(ARCH), \
                  x86-64-avx512icl x86-64-vnni512 x86-64-avx512 x86-64-avxvnni x86-64-bmi2 x86-64-avx2 \
                  x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
@@ -235,7 +235,7 @@ ifeq ($(findstring -sse41, $(ARCH)), -sse41)
 endif
 
 ifeq ($(findstring -modern, $(ARCH)), -modern)
-    $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute `make help` for a list of available architectures. ***)
+    $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute 'make help' for a list of available architectures. ***)
     $(shell sleep 5)
     popcnt = yes
     sse = yes

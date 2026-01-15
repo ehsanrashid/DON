@@ -63,25 +63,9 @@ class Option final {
 
     using OnChange = std::function<std::optional<std::string>(const Option&)>;
 
-    static constexpr bool is_ok(Type t) noexcept { return Type::BUTTON <= t && t <= Type::COMBO; }
+    static constexpr bool is_ok(Type t) noexcept;
 
-    static std::string_view to_string(Type t) noexcept {
-        switch (t)
-        {
-        case Type::BUTTON :
-            return "button";
-        case Type::CHECK :
-            return "check";
-        case Type::STRING :
-            return "string";
-        case Type::SPIN :
-            return "spin";
-        case Type::COMBO :
-            return "combo";
-        default :
-            return "none";
-        }
-    }
+    static constexpr std::string_view to_string(Type t) noexcept;
 
     explicit Option(OnChange&& f = nullptr) noexcept;
     explicit Option(bool v, OnChange&& f = nullptr) noexcept;
