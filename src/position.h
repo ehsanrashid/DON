@@ -926,11 +926,11 @@ inline void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
 inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && is_ok(pc) && empty(s));
 
-    Bitboard sBB = square_bb(s);
+    const Bitboard sBB = square_bb(s);
 
-    auto c   = color_of(pc);
-    auto pt  = type_of(pc);
-    auto cnt = count(c, pt);
+    const auto c   = color_of(pc);
+    const auto pt  = type_of(pc);
+    const auto cnt = count(c, pt);
 
     pieceMap[s] = pc;
     colorBBs[c] |= sBB;
@@ -948,12 +948,12 @@ inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept 
 inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && !empty(s));
 
-    Bitboard sBB = square_bb(s);
+    const Bitboard sBB = square_bb(s);
 
-    Piece pc  = piece(s);
-    auto  c   = color_of(pc);
-    auto  pt  = type_of(pc);
-    auto  cnt = count(c, pt);
+    const Piece pc  = piece(s);
+    const auto  c   = color_of(pc);
+    const auto  pt  = type_of(pc);
+    const auto  cnt = count(c, pt);
     assert(is_ok(pc) && cnt != 0);
 
     if (dts != nullptr)
@@ -964,13 +964,12 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     typeBBs[pt] ^= sBB;
     typeBBs[ALL] ^= sBB;
 
-    auto idx = indexMap[s];
+    const auto idx = indexMap[s];
     assert(idx < pieceLists[c][pt].size());
-    Square s_    = pieceLists[c][pt].back(base(c), cnt);
-    indexMap[s_] = idx;
+    const Square sb = pieceLists[c][pt].back(base(c), cnt);
+    indexMap[sb]    = idx;
     //indexMap[s]  = INDEX_NONE;
-    pieceLists[c][pt].at(idx, base(c) /*, cnt*/) = s_;
-    //pieceLists[c][pt].pop_back(cnt);
+    pieceLists[c][pt].at(idx, base(c)) = sb;
 
     return pc;
 }
@@ -978,11 +977,11 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
 inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexcept {
     assert(is_ok(s1) && is_ok(s2) && s1 != s2 && !empty(s1));
 
-    Bitboard s1s2BB = make_bb(s1, s2);
+    const Bitboard s1s2BB = make_bb(s1, s2);
 
-    Piece pc = piece(s1);
-    auto  c  = color_of(pc);
-    auto  pt = type_of(pc);
+    const Piece pc = piece(s1);
+    const auto  c  = color_of(pc);
+    const auto  pt = type_of(pc);
     assert(is_ok(pc) && count(c, pt) != 0);
 
     if (dts != nullptr)
@@ -994,11 +993,11 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     typeBBs[pt] ^= s1s2BB;
     typeBBs[ALL] ^= s1s2BB;
 
-    auto idx = indexMap[s1];
+    const auto idx = indexMap[s1];
     assert(idx < pieceLists[c][pt].size());
     indexMap[s2] = idx;
     //indexMap[s1] = INDEX_NONE;
-    pieceLists[c][pt].at(idx, base(c) /*, cnt*/) = s2;
+    pieceLists[c][pt].at(idx, base(c)) = s2;
 
     if (dts != nullptr)
         update_pc_threats<true>(s2, pc, dts, s1s2BB);
@@ -1008,7 +1007,7 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
 
 inline Piece Position::swap(Square s, Piece newPc, DirtyThreats* const dts) noexcept {
 
-    Piece oldPc = remove(s);
+    const Piece oldPc = remove(s);
 
     if (dts != nullptr)
         update_pc_threats<false, false>(s, oldPc, dts);

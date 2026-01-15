@@ -396,11 +396,6 @@ struct OffsetView final {
         data(base)[count] = std::move(value);
     }
 
-    //void pop_back([[maybe_unused]] size_type count) noexcept {
-    //    assert(count != 0);
-    //    // just placeholder, does not modify count
-    //}
-
     T& back(T* const base, size_type count) noexcept {
         assert(count != 0);
 
@@ -413,17 +408,8 @@ struct OffsetView final {
     }
 
     // --- Element access ---
-    T& at(size_type idx, T* const base /*, [[maybe_unused]] size_type count*/) noexcept {
-        //assert(idx < count);
-
-        return data(base)[idx];
-    }
-    const T& at(size_type      idx,
-                const T* const base /*, [[maybe_unused]] size_type count*/) const noexcept {
-        //assert(idx < count);
-
-        return data(base)[idx];
-    }
+    T&       at(size_type idx, T* const base) noexcept { return data(base)[idx]; }
+    const T& at(size_type idx, const T* const base) const noexcept { return data(base)[idx]; }
 
     // --- STL-style iterable proxy ---
     struct Iterable final {
