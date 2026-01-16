@@ -303,8 +303,8 @@ class AffineTransformSparseInput final {
         for (IndexType k = 0; k < AccCount; ++k)
             acc[k] = biasVec[k];
 
-        const auto* beg = nnz;
-        const auto* end = nnz + count;
+        const auto* RESTRICT beg = nnz;
+        const auto* const    end = nnz + count;
 
             // clang-format off
     #if defined(USE_VNNI)
