@@ -489,6 +489,8 @@ void Worker::iterative_deepening() noexcept {
             // Reset UCI info selDepth for each depth and each PV line
             selDepth = 1;
 
+            ss->cutoffCount = 0;
+
             auto avgValue    = rootMoves[curPV].avgValue;
             auto avgSqrValue = rootMoves[curPV].avgSqrValue;
 
@@ -510,8 +512,6 @@ void Worker::iterative_deepening() noexcept {
             {
                 rootDelta = beta - alpha;
                 assert(rootDelta != 0);
-
-                ss->cutoffCount = 0;
 
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
