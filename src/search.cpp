@@ -1969,18 +1969,19 @@ QS_MOVES_LOOP:
 }
 
 void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const ss) noexcept {
-    bool capture = pos.capture_promo(m);
-    auto db      = pos.do_move(m, st, check, this);
+    const bool capture = pos.capture_promo(m);
+    DirtyBoard db      = pos.do_move(m, st, check, this);
     nodes.fetch_add(1, std::memory_order_relaxed);
+
     if (ss != nullptr)
     {
         // clang-format off
-        auto dstSq                   = m.dst_sq();
         ss->move                     = m;
-        ss->pieceSqHistory           = &continuationHistory[ss->inCheck][capture][+db.dp.movedPc][dstSq];
-        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+db.dp.movedPc][dstSq];
+        ss->pieceSqHistory           = &continuationHistory[ss->inCheck][capture][+db.dp.movedPc][m.dst_sq()];
+        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+db.dp.movedPc][m.dst_sq()];
         // clang-format on
     }
+
     accStack.push(std::move(db));
 }
 void Worker::do_move(Position& pos, Move m, State& st, Stack* const ss) noexcept {
@@ -1993,7 +1994,8 @@ void Worker::undo_move(Position& pos, Move m) noexcept {
 }
 
 void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
-    pos.do_null_move(st, this);
+    pos.do_null_move(st);
+
     if (ss != nullptr)
     {
         // clang-format off
@@ -2086,7 +2088,7 @@ void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss,
 
 // Updates correction histories at the end of search() when a bestMove is found
 void Worker::update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept {
-    Color ac = pos.active_color();
+    const Color ac = pos.active_color();
 
     bonus = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
 
@@ -2097,7 +2099,7 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
     histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac] << 1.3906 * bonus;
     histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac] << 1.3906 * bonus;
 
-    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+    const Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
     if (is_ok(preSq))
     {
@@ -2110,9 +2112,9 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 int Worker::correction_value(const Position& pos, const Stack* const ss) noexcept {
     constexpr std::int64_t Limit = 0x7FFFFFFF;
 
-    Color ac = pos.active_color();
+    const Color ac = pos.active_color();
 
-    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+    const Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
     return std::clamp<std::int64_t>(
            + 5174LL * (histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
@@ -2140,7 +2142,7 @@ bool Worker::ponder_move_extracted() noexcept {
     auto& rm0 = rootMoves[0];
     assert(rm0.pv.size() == 1);
 
-    auto bestMove = rm0.pv[0];
+    const Move bestMove = rm0.pv[0];
 
     if (bestMove == Move::None)
         return false;
@@ -2211,9 +2213,10 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     if (!options["SyzygyPVExtend"])
         return;
 
-    TimePoint moveOverhead = options["MoveOverhead"];
+    const TimePoint MoveOverhead = options["MoveOverhead"];
+    const bool      UseRule50    = options["Syzygy50MoveRule"];
 
-    // If time manager is active, don't use more than 50% of moveOverhead time
+    // If time manager is active, don't use more than 50% of MoveOverhead time
     const auto startTime = std::chrono::steady_clock::now();
 
     const auto time_to_abort = [&]() noexcept -> bool {
@@ -2221,12 +2224,10 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
                 || std::chrono::duration<double, std::milli>(endTime - startTime).count()
-                     > 0.5000 * moveOverhead);
+                     > 0.5000 * MoveOverhead);
     };
 
     bool aborted = false;
-
-    bool useRule50 = options["Syzygy50MoveRule"];
 
     auto& rootMove = rootMoves[index];
 
@@ -2240,11 +2241,11 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     // Step 1. Walk the PV to the last position in TB with correct decisive score
     while (std::size_t(ply) < rootMove.pv.size())
     {
-        auto pvMove = rootMove.pv[ply];
+        const Move pvMove = rootMove.pv[ply];
 
         RootMoves rms;
 
-        for (auto m : MoveList<GenType::LEGAL>(rootPos))
+        for (const Move m : MoveList<GenType::LEGAL>(rootPos))
             rms.emplace_back(m);
 
         auto tbCfg = Tablebase::rank_root_moves(rootPos, rms, options, false, time_to_abort);
@@ -2252,12 +2253,12 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         if (rms.find(pvMove)->tbRank != rms[0].tbRank)
             break;
 
-        auto& st = states.emplace_back();
+        State& st = states.emplace_back();
         rootPos.do_move(pvMove, st);
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime
-        if (tbCfg.rootInTB && rootPos.is_draw(ply, useRule50))
+        if (tbCfg.rootInTB && rootPos.is_draw(ply, UseRule50))
         {
             --ply;
             rootPos.undo_move(pvMove);
@@ -2275,14 +2276,14 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     // Step 2. Now extend the PV to mate, as if the user explores syzygy-tables.info using
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
-    while (!(useRule50 && rootPos.is_draw(0)))
+    while (!(UseRule50 && rootPos.is_draw(0)))
     {
         if (aborted || (aborted = time_to_abort()))
             break;
 
         RootMoves rms;
 
-        for (auto m : MoveList<GenType::LEGAL>(rootPos))
+        for (const Move m : MoveList<GenType::LEGAL>(rootPos))
         {
             auto& rm = rms.emplace_back(m);
 
@@ -2290,8 +2291,9 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             rootPos.do_move(m, st);
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
-            for (auto om : MoveList<GenType::LEGAL>(rootPos))
+            for (const Move om : MoveList<GenType::LEGAL>(rootPos))
                 rm.tbRank -= 1 + 99 * rootPos.capture(om);
+
             rootPos.undo_move(m);
         }
 
@@ -2363,6 +2365,7 @@ void MainSearchManager::check_time(Worker& worker) noexcept {
 
 #if !defined(NDEBUG)
     static TimePoint infoTime = now();
+
     if (TimePoint curTime = worker.limit.startTime + elapsedTime; curTime - infoTime > 1000)
     {
         infoTime = curTime;
@@ -2474,13 +2477,13 @@ Score::Score(Value v, const Position& pos) noexcept {
     }
     else if (!is_mate(v))
     {
-        auto ply = VALUE_TB - std::abs(v);
-        score    = v > 0 ? Tablebase{+ply, true} : Tablebase{-ply, false};
+        int ply = VALUE_TB - std::abs(v);
+        score   = Tablebase{v > 0 ? +ply : -ply, v > 0};
     }
     else
     {
-        auto ply = VALUE_MATE - std::abs(v);
-        score    = v > 0 ? Mate{+ply} : Mate{-ply};
+        int ply = VALUE_MATE - std::abs(v);
+        score   = Mate{v > 0 ? +ply : -ply};
     }
 }
 
@@ -2489,11 +2492,13 @@ void Skill::init(const Options& options) noexcept {
 
     if (options["UCI_LimitStrength"])
     {
-        std::uint16_t uciELO = options["UCI_ELO"];
+        constexpr StdArray<double, 4> P{37.2473, -40.8525, 22.2943, -0.311438};
 
-        const double e = double(uciELO - MIN_ELO) / (MAX_ELO - MIN_ELO);
+        const std::uint16_t UCI_ELO = options["UCI_ELO"];
 
-        const double l = ((37.2473 * e - 40.8525) * e + 22.2943) * e - 0.311438;
+        const double e = double(UCI_ELO - MIN_ELO) / (MAX_ELO - MIN_ELO);
+
+        const double l = ((P[0] * e + P[1]) * e + P[2]) * e + P[3];
 
         level = std::clamp(l, MIN_LEVEL, MAX_LEVEL - 0.01);
     }
@@ -2516,9 +2521,9 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
     if (pickBest || bestMove == Move::None)
     {
         // RootMoves are already sorted by value in descending order
-        Value maxValue = rootMoves[0].curValue;
+        const Value maxValue = rootMoves[0].curValue;
 
-        Value delta = std::min(maxValue - rootMoves[multiPV - 1].curValue, int(VALUE_PAWN));
+        const Value delta = std::min(maxValue - rootMoves[multiPV - 1].curValue, int(VALUE_PAWN));
 
         Value bestValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.
@@ -2526,11 +2531,10 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
         // Then choose the move with the resulting highest value.
         for (std::size_t i = 0; i < multiPV; ++i)
         {
-            Value diff  = maxValue - rootMoves[i].curValue;
-            Value noise = prng.rand<std::uint32_t>() % weakness();
-            Value push  = (weakness() * diff + delta * noise) / 128;
-
-            Value value = rootMoves[i].curValue + push;
+            const Value diff  = maxValue - rootMoves[i].curValue;
+            const Value noise = prng.rand<std::uint32_t>() % weakness();
+            const Value push  = (weakness() * diff + delta * noise) / 128;
+            const Value value = rootMoves[i].curValue + push;
 
             if (bestValue <= value)
             {

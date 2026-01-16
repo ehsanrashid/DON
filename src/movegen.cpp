@@ -195,7 +195,7 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
     // Promotions and under-promotions
     if (yesR7PawnsBB != 0)
     {
-        Bitboard knightChecksBB = pos.checks_bb(KNIGHT);
+        const Bitboard knightChecksBB = pos.checks_bb(KNIGHT);
 
         Bitboard dstBB;
 
@@ -243,9 +243,9 @@ Move* generate_pawns_moves(const Position& pos, Move* moves, Bitboard targetBB) 
         if (const Square enPassantSq = pos.en_passant_sq(); is_ok(enPassantSq))
         {
             assert(relative_rank(AC, enPassantSq) == RANK_6);
-            assert(pos.pieces_bb(~AC, PAWN) & (enPassantSq - Push1));
+            assert((pos.pieces_bb(~AC, PAWN) & (enPassantSq - Push1)) != 0);
             assert(pos.rule50_count() == 0);
-            assert(notR7PawnsBB & relative_rank(AC, RANK_5));
+            assert((notR7PawnsBB & relative_rank(AC, RANK_5)) != 0);
 
             // An en-passant capture cannot resolve a discovered check
             assert(!(Evasion && (targetBB & (enPassantSq + Push1)) != 0));

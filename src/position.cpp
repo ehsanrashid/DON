@@ -1192,7 +1192,7 @@ UNDO_MOVE_END:
 
 // Makes a null move
 // It flips the active color without executing any move on the board.
-void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
+void Position::do_null_move(State& newSt) noexcept {
     assert(&newSt != st);
     assert(checkers_bb() == 0);
 
@@ -1207,9 +1207,6 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
         st->key ^= Zobrist::enpassant(en_passant_sq());
         reset_en_passant_sq();
     }
-
-    if (worker != nullptr)
-        prefetch(worker->transpositionTable.cluster(key()));
 
     st->nullPly    = 0;
     st->capturedSq = SQ_NONE;

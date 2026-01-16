@@ -355,7 +355,7 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     return failureFunc();
     #else
 
-    std::size_t LargePageSize = GetLargePageMinimum();
+    const std::size_t LargePageSize = GetLargePageMinimum();
 
     if (LargePageSize == 0)
         return failureFunc();

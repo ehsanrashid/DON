@@ -77,8 +77,10 @@ class SqrClippedReLU final {
         auto*       out = reinterpret_cast<__m128i*>(output);
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
-            __m128i words0 = _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]), _mm_load_si128(&in[i * 4 + 1]));
-            __m128i words1 = _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3]));
+            __m128i words0 = _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]),
+                                             _mm_load_si128(&in[i * 4 + 1]));
+            __m128i words1 = _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]),
+                                             _mm_load_si128(&in[i * 4 + 3]));
 
             // Shift by WEIGHT_SCALE_BITS * 2 = 12 and divide by 128
             // which is an additional shift-right of 7, meaning 19 in total.

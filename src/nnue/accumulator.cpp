@@ -411,7 +411,7 @@ void update_accumulator_refresh_cache(Color                                 pers
                                       AccumulatorState<PSQFeatureSet>&      accState,
                                       AccumulatorCaches::Cache<Dimensions>& cache) noexcept {
 
-    Square kingSq = pos.square<KING>(perspective);
+    const Square kingSq = pos.square<KING>(perspective);
 
     auto& entry = cache[kingSq][perspective];
 
@@ -703,6 +703,7 @@ void AccumulatorStack::reset() noexcept {
 
 void AccumulatorStack::push(DirtyBoard&& db) noexcept {
     assert(size < MAX_SIZE);
+
     psqAccumulators[size].reset(std::move(db.dp));
     threatAccumulators[size].reset(std::move(db.dts));
     ++size;
@@ -710,6 +711,7 @@ void AccumulatorStack::push(DirtyBoard&& db) noexcept {
 
 void AccumulatorStack::pop() noexcept {
     assert(size > 1);
+
     --size;
 }
 
@@ -721,9 +723,12 @@ void AccumulatorStack::evaluate(const Position&                       pos,
     constexpr bool UseThreats = Dimensions == BigTransformedFeatureDimensions;
 
     evaluate<PSQFeatureSet>(WHITE, pos, featureTransformer, cache);
+
     if constexpr (UseThreats)
         evaluate<ThreatFeatureSet>(WHITE, pos, featureTransformer, cache);
+
     evaluate<PSQFeatureSet>(BLACK, pos, featureTransformer, cache);
+
     if constexpr (UseThreats)
         evaluate<ThreatFeatureSet>(BLACK, pos, featureTransformer, cache);
 }
@@ -734,7 +739,8 @@ void AccumulatorStack::evaluate(Color                                 perspectiv
                                 const FeatureTransformer<Dimensions>& featureTransformer,
                                 AccumulatorCaches::Cache<Dimensions>& cache) noexcept {
 
-    std::size_t lastAccIdx = last_usable_accumulator_index<FeatureSet, Dimensions>(perspective);
+    const std::size_t lastAccIdx =
+      last_usable_accumulator_index<FeatureSet, Dimensions>(perspective);
 
     if ((accumulators<FeatureSet>()[lastAccIdx].template acc<Dimensions>()).computed[perspective])
     {
@@ -780,7 +786,7 @@ void AccumulatorStack::forward_update_incremental(
     assert(begin < size && size <= MAX_SIZE);
     assert((accumulators<FeatureSet>()[begin].template acc<Dimensions>()).computed[perspective]);
 
-    Square kingSq = pos.square<KING>(perspective);
+    const Square kingSq = pos.square<KING>(perspective);
 
     for (std::size_t idx = begin; ++idx < size;)
     {
@@ -838,7 +844,7 @@ void AccumulatorStack::backward_update_incremental(
     assert(end < size && size <= MAX_SIZE);
     assert((state<FeatureSet>().template acc<Dimensions>()).computed[perspective]);
 
-    Square kingSq = pos.square<KING>(perspective);
+    const Square kingSq = pos.square<KING>(perspective);
 
     for (std::size_t idx = size != 0 ? size - 1 : 0; idx-- > end;)
         update_accumulator_incremental<false>(perspective, featureTransformer, kingSq,

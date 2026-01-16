@@ -255,7 +255,7 @@ class Position final {
     // Doing and undoing moves
     DirtyBoard do_move(Move m, State& newSt, bool mayCheck = true, const Worker* const worker = nullptr) noexcept;
     void       undo_move(Move m) noexcept;
-    void       do_null_move(State& newSt, const Worker* const worker = nullptr) noexcept;
+    void       do_null_move(State& newSt) noexcept;
     void       undo_null_move() noexcept;
     // clang-format on
 
