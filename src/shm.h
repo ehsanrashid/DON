@@ -526,12 +526,10 @@ class CleanupHooks final {
     }
 
     static void register_signal_handlers() noexcept {
-        std::atexit([]() { SharedMemoryRegistry::clear(true); });
+        std::atexit([]() { SharedMemoryRegistry::clear(false); });
 
-        constexpr int Signals[]{
-          SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
-          SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ  //
-        };
+        constexpr StdArray<int, 12> Signals{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
+                                            SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
 
         struct sigaction sigAction;
         sigAction.sa_handler = signal_handler;
@@ -637,11 +635,11 @@ class SharedMemory final: public BaseSharedMemory {
 
             fd = shm_open(name.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
 
-            if (fd == -1)
+            if (fd < 0)
             {
                 fd = shm_open(name.c_str(), O_RDWR, 0666);
 
-                if (fd == -1)
+                if (fd < 0)
                     return false;
             }
             else
@@ -649,6 +647,9 @@ class SharedMemory final: public BaseSharedMemory {
 
             if (!lock_file(LOCK_EX))
             {
+                if (newCreated)
+                    shm_unlink(name.c_str());
+
                 ::close(fd);
 
                 reset();
@@ -658,17 +659,18 @@ class SharedMemory final: public BaseSharedMemory {
 
             bool headerInvalid = false;
 
-            bool success =
-              newCreated ? setup_new_region(initialValue) : setup_existing_region(headerInvalid);
+            bool success = newCreated  //
+                           ? setup_new_region(initialValue)
+                           : setup_existing_region(headerInvalid);
 
             if (!success)
             {
-                if (newCreated || headerInvalid)
-                    shm_unlink(name.c_str());
-
                 unmap_region();
 
                 unlock_file();
+
+                if (newCreated || headerInvalid)
+                    shm_unlink(name.c_str());
 
                 ::close(fd);
 
@@ -685,12 +687,12 @@ class SharedMemory final: public BaseSharedMemory {
 
             if (!lock_mutex())
             {
-                if (newCreated)
-                    shm_unlink(name.c_str());
-
                 unmap_region();
 
                 unlock_file();
+
+                if (newCreated)
+                    shm_unlink(name.c_str());
 
                 ::close(fd);
 
@@ -711,10 +713,10 @@ class SharedMemory final: public BaseSharedMemory {
 
                 unmap_region();
 
+                unlock_file();
+
                 if (newCreated)
                     shm_unlink(name.c_str());
-
-                unlock_file();
 
                 ::close(fd);
 
@@ -736,7 +738,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void close(bool skipUnmapRegion = false) noexcept override {
-        if (fd == -1 && mappedPtr == nullptr)
+        if (fd < 0 && mappedPtr == nullptr)
             return;
 
         bool removeRegion = false;
@@ -767,20 +769,21 @@ class SharedMemory final: public BaseSharedMemory {
         if (!skipUnmapRegion)
             unmap_region();
 
-        if (removeRegion)
-            shm_unlink(name.c_str());
-
         if (fileLocked)
             unlock_file();
 
-        if (fd != -1)
+        if (removeRegion)
+            shm_unlink(name.c_str());
+
+        if (fd >= 0)
             ::close(fd);
 
-        reset();
+        if (!skipUnmapRegion)
+            reset();
     }
 
     [[nodiscard]] bool is_open() const noexcept {
-        return fd != -1 && mappedPtr != nullptr && dataPtr != nullptr;
+        return fd >= 0 && mappedPtr != nullptr && dataPtr != nullptr;
     }
 
     [[nodiscard]] const T& get() const noexcept { return *dataPtr; }
@@ -840,26 +843,39 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     [[nodiscard]] bool lock_file(int operation) noexcept {
-        if (fd == -1)
+        if (fd < 0)
             return false;
 
-        while (flock(fd, operation) == -1)
+        while (true)
         {
-            if (errno != EINTR)
+            if (flock(fd, operation) == 0)
+                return true;
+
+            if (errno == EINTR)
+                continue;  // retry if interrupted by signal
+
+            if (errno == EWOULDBLOCK || errno == EAGAIN)  // for LOCK_NB: lock is busy
                 return false;
+
+            break;  // real error
         }
 
-        return true;
+        return false;
     }
 
     void unlock_file() noexcept {
-        if (fd == -1)
+        if (fd < 0)
             return;
 
-        while (flock(fd, LOCK_UN) == -1)
+        while (true)
         {
-            if (errno != EINTR)
+            if (flock(fd, LOCK_UN) == 0)
                 break;
+
+            if (errno == EINTR)
+                continue;  // retry on signal
+
+            break;  // ignore other errors (nothing useful to do)
         }
     }
 
@@ -1103,8 +1119,6 @@ class SharedMemory final: public BaseSharedMemory {
             || shmHeader->magic != ShmHeader::SHM_MAGIC)
         {
             headerInvalid = true;
-
-            unmap_region();
 
             return false;
         }
