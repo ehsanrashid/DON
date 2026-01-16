@@ -485,7 +485,7 @@ class SharedMemoryRegistry final {
         memories.erase(memory);
     }
 
-    static void clear(bool skipUnmapRegion = false) noexcept {
+    static void clean(bool skipUnmapRegion = false) noexcept {
         std::scoped_lock lock(mutex);
 
         for (auto* memory : memories)
@@ -521,12 +521,12 @@ class CleanupHooks final {
     static void signal_handler(int sig) noexcept {
         // Threads may still be running, so skip munmap (but still perform other cleanup actions).
         // The memory mappings will be released on exit.
-        SharedMemoryRegistry::clear(true);
+        SharedMemoryRegistry::clean(true);
         _Exit(128 + sig);
     }
 
     static void register_signal_handlers() noexcept {
-        std::atexit([]() { SharedMemoryRegistry::clear(false); });
+        std::atexit([]() { SharedMemoryRegistry::clean(); });
 
         constexpr StdArray<int, 12> Signals{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
                                             SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
