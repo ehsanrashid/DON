@@ -1208,8 +1208,9 @@ S_MOVES_LOOP:  // When in check, search starts here
         if constexpr (RootNode)
             if (is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
             {
-                std::string currMove       = UCI::move_to_can(move);
-                std::size_t currMoveNumber = curPV + moveCount;
+                const std::string currMove       = UCI::move_to_can(move);
+                const std::size_t currMoveNumber = curPV + moveCount;
+
                 main_manager()->updateContext.onUpdateIter({rootDepth, currMove, currMoveNumber});
             }
 
@@ -1352,8 +1353,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 const int corrMargin = int(4.3351e-6 * absCorrectionValue);
 
                 // clang-format off
-                const int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrMargin - int(7.0271e-3 * ttMoveHistory);
-                const int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrMargin + int(ss->ttPv) * 90;
+                const int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrMargin - int(ss->ply > rootDepth) * 42 - int(7.0271e-3 * ttMoveHistory);
+                const int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrMargin - int(ss->ply > rootDepth) * 48 + int(ss->ttPv) * 90;
 
                 extension = 1 + int(value < singularBeta - doubleMargin)
                               + int(value < singularBeta - tripleMargin);
