@@ -17,7 +17,6 @@
 
 #include "accumulator.h"
 
-#include <algorithm>
 #include <type_traits>
 #include <utility>
 
@@ -366,20 +365,22 @@ Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
 #if defined(USE_AVX512) || defined(USE_AVX2)
     Bitboard samedBB = 0;
 
-    for (std::size_t s = 0; s < SQUARE_NB; s += 32)
-    {
-        __m256i oldV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
-        __m256i newV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
-        __m256i cmpEqual = _mm256_cmpeq_epi8(oldV, newV);
+    const __m256i  oldV0 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[0]));
+    const __m256i  newV0 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[0]));
+    const __m256i  cmp0  = _mm256_cmpeq_epi8(oldV0, newV0);
+    const uint32_t mask0 = _mm256_movemask_epi8(cmp0);
+    samedBB |= Bitboard(mask0) << 0;
 
-        std::uint32_t equalMask = _mm256_movemask_epi8(cmpEqual);
-        samedBB |= Bitboard(equalMask) << s;
-    }
+    const __m256i  oldV1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[32]));
+    const __m256i  newV1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[32]));
+    const __m256i  cmp1  = _mm256_cmpeq_epi8(oldV1, newV1);
+    const uint32_t mask1 = _mm256_movemask_epi8(cmp1);
+    samedBB |= Bitboard(mask1) << 32;
 
     return ~samedBB;
 #elif defined(USE_NEON)
-    uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const uint8_t*>(oldPieces.data()));
-    uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const uint8_t*>(newPieces.data()));
+    const uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const uint8_t*>(oldPieces.data()));
+    const uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const uint8_t*>(newPieces.data()));
 
     const auto cmp = [&oldV, &newV](std::size_t i) { return vceqq_u8(oldV.val[i], newV.val[i]); };
 
