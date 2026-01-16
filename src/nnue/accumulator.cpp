@@ -366,8 +366,7 @@ Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
 #if defined(USE_AVX512) || defined(USE_AVX2)
     Bitboard samedBB = 0;
 
-    const std::size_t Size = std::min(oldPieces.size(), newPieces.size());
-    for (std::size_t s = 0; s < Size; s += 32)
+    for (std::size_t s = 0; s < SQUARE_NB; s += 32)
     {
         __m256i oldV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
         __m256i newV     = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
@@ -394,8 +393,7 @@ Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
 #else
     Bitboard changedBB = 0;
 
-    const std::size_t Size = std::min(oldPieces.size(), newPieces.size());
-    for (std::size_t s = 0; s < Size; ++s)
+    for (std::size_t s = 0; s < SQUARE_NB; ++s)
         changedBB |= Bitboard(oldPieces[s] != newPieces[s]) << s;
 
     return changedBB;
