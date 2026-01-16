@@ -1399,7 +1399,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             preNodes = nodes_();
 
         // Step 16. Make the move
-        do_move(pos, move, st, check, ss);
+        do_move(pos, move, st, ss, check);
 
         assert(capturedPt == type_of(pos.captured_pc()));
 
@@ -1901,7 +1901,7 @@ QS_MOVES_LOOP:
         }
 
         // Step 7. Make the move
-        do_move(pos, move, st, check, ss);
+        do_move(pos, move, st, ss, check);
 
         value = -qsearch<PVNode>(pos, ss + 1, -beta, -alpha);
 
@@ -1969,42 +1969,32 @@ QS_MOVES_LOOP:
     return bestValue;
 }
 
-void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const ss) noexcept {
+void Worker::do_move(Position& pos, Move m, State& st, Stack* const ss, bool mayCheck) noexcept {
     const bool capture = pos.capture_promo(m);
-    DirtyBoard db      = pos.do_move(m, st, check, this);
+
+    DirtyBoard db = pos.do_move(m, st, mayCheck, this);
+
     nodes.fetch_add(1, std::memory_order_relaxed);
 
-    if (ss != nullptr)
-    {
-        // clang-format off
-        ss->move                     = m;
-        ss->pieceSqHistory           = &continuationHistory[ss->inCheck][capture][+db.dp.movedPc][m.dst_sq()];
-        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+db.dp.movedPc][m.dst_sq()];
-        // clang-format on
-    }
+    ss->move           = m;
+    ss->pieceSqHistory = &continuationHistory[ss->inCheck][capture][+db.dp.movedPc][m.dst_sq()];
+    ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+db.dp.movedPc][m.dst_sq()];
 
     accStack.push(std::move(db));
-}
-void Worker::do_move(Position& pos, Move m, State& st, Stack* const ss) noexcept {
-    do_move(pos, m, st, pos.check(m), ss);
 }
 
 void Worker::undo_move(Position& pos, Move m) noexcept {
     accStack.pop();
+
     pos.undo_move(m);
 }
 
 void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
     pos.do_null_move(st);
 
-    if (ss != nullptr)
-    {
-        // clang-format off
-        ss->move                     = Move::Null;
-        ss->pieceSqHistory           = &continuationHistory[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
-        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQUARE_ZERO];
-        // clang-format on
-    }
+    ss->move                     = Move::Null;
+    ss->pieceSqHistory           = &continuationHistory[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
+    ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQUARE_ZERO];
 }
 
 void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }
