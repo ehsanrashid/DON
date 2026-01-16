@@ -233,13 +233,11 @@ void update_accumulator_incremental_double(
     assert(!targetState.acc<TransformedFeatureDimensions>().computed[perspective]);
 
     PSQFeatureSet::IndexList removed, added;
-    PSQFeatureSet::append_changed_indices(perspective, kingSq, middleState.dirtyType, removed,
-                                          added);
+    PSQFeatureSet::append_changed_indices(perspective, kingSq, middleState.dirty, removed, added);
     // Can't capture a piece that was just involved in castling since the rook ends up
     // in a square that the king passed
     assert(added.size() < 2);
-    PSQFeatureSet::append_changed_indices(perspective, kingSq, targetState.dirtyType, removed,
-                                          added);
+    PSQFeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed, added);
 
     assert(added.size() == 1);
     assert(removed.size() == 2 || removed.size() == 3);
@@ -279,10 +277,10 @@ void update_accumulator_incremental_double(
     ThreatFeatureSet::FusedData fusedData(dp2.removeSq);
 
     ThreatFeatureSet::IndexList removed, added;
-    ThreatFeatureSet::append_changed_indices(perspective, kingSq, middleState.dirtyType, removed,
-                                             added, &fusedData, true);
-    ThreatFeatureSet::append_changed_indices(perspective, kingSq, targetState.dirtyType, removed,
-                                             added, &fusedData, false);
+    ThreatFeatureSet::append_changed_indices(perspective, kingSq, middleState.dirty, removed, added,
+                                             &fusedData, true);
+    ThreatFeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed, added,
+                                             &fusedData, false);
 
     auto updateContext =
       make_accumulator_update_context(perspective, featureTransformer, computedState, targetState);
@@ -312,10 +310,9 @@ void update_accumulator_incremental(
     // since incrementally updating one move at a time.
     typename FeatureSet::IndexList removed, added;
     if constexpr (Forward)
-        FeatureSet::append_changed_indices(perspective, kingSq, targetState.dirtyType, removed,
-                                           added);
+        FeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed, added);
     else
-        FeatureSet::append_changed_indices(perspective, kingSq, computedState.dirtyType, added,
+        FeatureSet::append_changed_indices(perspective, kingSq, computedState.dirty, added,
                                            removed);
 
     auto updateContext =
@@ -384,7 +381,8 @@ Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
 #elif defined(USE_NEON)
     uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const uint8_t*>(oldPieces.data()));
     uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const uint8_t*>(newPieces.data()));
-    const auto   cmp  = [=](const int i) { return vceqq_u8(oldV.val[i], newV.val[i]); };
+
+    const auto cmp = [&oldV, &newV](std::size_t i) { return vceqq_u8(oldV.val[i], newV.val[i]); };
 
     uint8x16_t cmp_01 = vsriq_n_u8(cmp(1), cmp(0), 1);
     uint8x16_t cmp_23 = vsriq_n_u8(cmp(3), cmp(2), 1);
@@ -769,7 +767,7 @@ std::size_t AccumulatorStack::last_usable_accumulator_index(Color perspective) c
         if ((accumulators<FeatureSet>()[idx].template acc<Dimensions>()).computed[perspective])
             return idx;
 
-        if (FeatureSet::refresh_required(perspective, accumulators<FeatureSet>()[idx].dirtyType))
+        if (FeatureSet::refresh_required(perspective, accumulators<FeatureSet>()[idx].dirty))
             return idx;
     }
 
@@ -792,8 +790,8 @@ void AccumulatorStack::forward_update_incremental(
     {
         if (idx + 1 < size)
         {
-            auto& dp1 = mut_accumulators<PSQFeatureSet>()[idx].dirtyType;
-            auto& dp2 = mut_accumulators<PSQFeatureSet>()[idx + 1].dirtyType;
+            auto& dp1 = mut_accumulators<PSQFeatureSet>()[idx].dirty;
+            auto& dp2 = mut_accumulators<PSQFeatureSet>()[idx + 1].dirty;
 
             auto& accumulators = mut_accumulators<FeatureSet>();
 
@@ -814,8 +812,7 @@ void AccumulatorStack::forward_update_incremental(
             }
             if constexpr (std::is_same_v<FeatureSet, ThreatFeatureSet>)
             {
-                if (is_ok(dp2.removeSq)
-                    && (accumulators[idx].dirtyType.threateningBB & dp2.removeSq))
+                if (is_ok(dp2.removeSq) && (accumulators[idx].dirty.threateningBB & dp2.removeSq))
                 {
                     update_accumulator_incremental_double(perspective, featureTransformer, kingSq,
                                                           accumulators[idx - 1], accumulators[idx],
