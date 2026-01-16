@@ -1095,7 +1095,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // For deep enough nodes without ttMoves, reduce search depth.
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
-        if (depth > 5 && ttmNone)
+        if (depth > 5 && red <= 3 && ttmNone)
             --depth;
 
     // Step 11. ProbCut
