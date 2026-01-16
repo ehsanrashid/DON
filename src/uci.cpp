@@ -1048,7 +1048,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     {
         assert(movedPt == KING && rank_of(orgSq) == rank_of(dstSq));
 
-        san = to_string(castling_side(orgSq, dstSq));
+        san = to_string(make_cs(orgSq, dstSq));
 
         goto SPECIAL;
     }

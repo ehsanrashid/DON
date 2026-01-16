@@ -553,7 +553,7 @@ ENABLE_BIT_OPERATORS_ON(Bound)
 
     #undef ENABLE_BIT_OPERATORS_ON
 
-constexpr CastlingSide castling_side(Square kingOrgSq, Square kingDstSq) noexcept {
+constexpr CastlingSide make_cs(Square kingOrgSq, Square kingDstSq) noexcept {
     return kingOrgSq < kingDstSq ? CastlingSide::KING : CastlingSide::QUEEN;
 }
 

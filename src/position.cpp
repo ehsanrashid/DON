@@ -601,7 +601,7 @@ void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     assert(relative_rank(c, kingOrgSq) == RANK_1);
     assert((pieces_bb(c, KING) & kingOrgSq) != 0);
 
-    CastlingSide cs = castling_side(kingOrgSq, rookOrgSq);
+    CastlingSide cs = make_cs(kingOrgSq, rookOrgSq);
     assert(!is_ok(castling_rook_sq(c, cs)));
 
     CastlingRights cr = make_cr(c, cs);
@@ -1256,7 +1256,7 @@ bool Position::legal(Move m) const noexcept {
 
     if (m.type() == MT::CASTLING)
     {
-        CastlingSide cs = castling_side(orgSq, dstSq);
+        CastlingSide cs = make_cs(orgSq, dstSq);
 
         return type_of(movedPc) == KING && (pieces_bb(ac, ROOK) & dstSq) != 0 && checkers_bb() == 0
             && has_castling_rights() && has_castling_rights(ac, CastlingSide::ANY)
