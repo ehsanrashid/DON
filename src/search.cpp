@@ -421,6 +421,10 @@ void Worker::iterative_deepening() noexcept {
     // (ss + 1) is needed for initialization of cutoffCount.
     constexpr std::uint16_t StackOffset = 9;
 
+    constexpr int MaxDelta = 2 * VALUE_INFINITE;
+
+    const Color ac = rootPos.active_color();
+
     StdArray<Stack, StackOffset + (MAX_PLY + 1) + 1> stacks{};
 
     Stack* const ss = &stacks[StackOffset];
@@ -443,13 +447,9 @@ void Worker::iterative_deepening() noexcept {
     assert(stacks[0].ply == -StackOffset && stacks[stacks.size() - 1].ply == MAX_PLY + 1);
     assert(ss->ply == 0);
 
-    constexpr int MaxDelta = 2 * VALUE_INFINITE;
-
     StdArray<Move, MAX_PLY + 1> pv;
 
     ss->pv = pv.data();
-
-    Color ac = rootPos.active_color();
 
     std::uint16_t researchCnt = 0;
 
