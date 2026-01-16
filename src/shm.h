@@ -453,8 +453,6 @@ class BackendSharedMemory final {
 
 #else
 
-namespace internal {
-
 struct ShmHeader final {
     static constexpr std::uint32_t SHM_MAGIC = 0xAD5F1A12U;
 
@@ -621,7 +619,7 @@ class SharedMemory final: public BaseSharedMemory {
         return *this;
     }
 
-    [[nodiscard]] bool open(const T& initialValue) noexcept {
+    [[nodiscard]] bool open(const T& value) noexcept {
         CleanupHooks::ensure_registered();
 
         bool staleRetried = false;
@@ -660,7 +658,7 @@ class SharedMemory final: public BaseSharedMemory {
             bool headerInvalid = false;
 
             bool success = newCreated  //
-                           ? setup_new_region(initialValue)
+                           ? setup_new_region(value)
                            : setup_existing_region(headerInvalid);
 
             if (!success)
@@ -1043,7 +1041,7 @@ class SharedMemory final: public BaseSharedMemory {
         return found;
     }
 
-    [[nodiscard]] bool setup_new_region(const T& initialValue) noexcept {
+    [[nodiscard]] bool setup_new_region(const T& value) noexcept {
         if (ftruncate(fd, off_t(totalSize)) == -1)
             return false;
 
@@ -1067,7 +1065,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         new (shmHeader) ShmHeader{};
 
-        new (dataPtr) T{initialValue};
+        new (dataPtr) T{value};
 
         if (!initialize_shared_mutex())
             return false;
@@ -1138,25 +1136,16 @@ class SharedMemory final: public BaseSharedMemory {
 };
 
 template<typename T>
-[[nodiscard]] std::optional<SharedMemory<T>> create_shared_memory(const std::string& shmName,
-                                                                  const T& initialValue) noexcept {
-    SharedMemory<T> shm(shmName);
-
-    if (shm.open(initialValue))
-        return shm;
-
-    return std::nullopt;
-}
-
-}  // namespace internal
-
-template<typename T>
 class BackendSharedMemory final {
    public:
     BackendSharedMemory() noexcept = default;
 
-    BackendSharedMemory(const std::string& shmName, const T& value) noexcept :
-        shm(internal::create_shared_memory<T>(shmName, value)) {}
+    BackendSharedMemory(const std::string& shmName, const T& value) noexcept {
+        SharedMemory<T> tmpShm(shmName);
+
+        if (tmpShm.open(value))
+            shm = std::move(tmpShm);
+    }
 
     bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
 
@@ -1183,7 +1172,7 @@ class BackendSharedMemory final {
     }
 
    private:
-    std::optional<internal::SharedMemory<T>> shm;
+    std::optional<SharedMemory<T>> shm;
 };
 
 #endif
