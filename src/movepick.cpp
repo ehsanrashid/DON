@@ -296,11 +296,14 @@ STAGE_SWITCH:
     switch (curStage)
     {
     case Stage::TT :
-        ++curStage;
+        curStage = Stage::INIT;
+
         return ttMove;
 
     case Stage::INIT :
-        if (initStage == Stage::EVA_CAPTURE)
+        curStage = initStage;
+
+        if (curStage == Stage::EVA_CAPTURE)
         {
             MoveList<GenType::EVA_CAPTURE> moveList(pos);
 
@@ -317,7 +320,6 @@ STAGE_SWITCH:
 
         insertion_sort(cur, endCur);
 
-        curStage = initStage;
         goto STAGE_SWITCH;
 
     case Stage::ENC_GOOD_CAPTURE :
