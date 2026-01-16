@@ -556,7 +556,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 #else
     int fd = ::open(filename.data(), O_RDONLY);
 
-    if (fd == -1)
+    if (fd < 0)
     {
         assert(mappedPtr == nullptr);
 
