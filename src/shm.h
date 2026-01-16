@@ -1141,10 +1141,10 @@ class BackendSharedMemory final {
     BackendSharedMemory() noexcept = default;
 
     BackendSharedMemory(const std::string& shmName, const T& value) noexcept {
-        SharedMemory<T> tmpShm(shmName);
+        shm.emplace(shmName);
 
-        if (tmpShm.open(value))
-            shm = std::move(tmpShm);
+        if (!shm->open(value))
+            shm.reset();
     }
 
     bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
