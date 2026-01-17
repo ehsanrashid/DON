@@ -1255,8 +1255,8 @@ struct SystemWideSharedMemory final {
     // Content is addressed by its hash. An additional discriminator can be added to account for differences
     // that are not present in the content, for example NUMA node allocation.
     SystemWideSharedMemory(const T& value, std::size_t discriminator = 0) noexcept {
-        std::size_t valueHash      = std::hash<T>{}(value);
-        std::size_t executableHash = std::hash<std::string>{}(executable_path());
+        const std::size_t valueHash      = std::hash<T>{}(value);
+        const std::size_t executableHash = std::hash<std::string>{}(executable_path());
 
         std::string shmName = std::string("Local\\don_") + std::to_string(valueHash)  //
                             + "$" + std::to_string(executableHash)                    //
