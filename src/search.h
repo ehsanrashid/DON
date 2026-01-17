@@ -125,10 +125,8 @@ class RootMoves final {
     using const_reference = container_type::const_reference;
 
     RootMoves() noexcept = default;
-    // Construct from existing vector
     explicit RootMoves(container_type rms) noexcept :
         rootMoves(std::move(rms)) {}
-    // Construct from initializer list
     RootMoves(std::initializer_list<value_type> initList) noexcept :
         rootMoves(initList) {}
 
@@ -266,7 +264,6 @@ class RootMoves final {
         return true;
     }
 
-    // Sorts within the range [beg, end)
     void sort(size_type beg, size_type end) noexcept {
         assert(beg <= end && end <= size());
 
