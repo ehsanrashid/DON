@@ -957,7 +957,7 @@ class SharedMemory final: public BaseSharedMemory {
         }
     }
 
-    std::string set_sentinel_path(pid_t pid) noexcept {
+    void set_sentinel_path(pid_t pid) noexcept {
         sentinelPath.reserve(11 + sentinelBase.size() + 1 + 10);
 
         sentinelPath += "/dev/shm/";
