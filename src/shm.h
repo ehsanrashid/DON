@@ -80,7 +80,6 @@
         #define SHM_NAME_MAX_SIZE 31
     #elif defined(__linux__) || defined(__NetBSD__) || defined(__DragonFly__)
         #include <limits.h>
-        #include <unistd.h>
         #define SHM_NAME_MAX_SIZE NAME_MAX
     #elif defined(__sun)  // Solaris
         #include <stdlib.h>
@@ -88,7 +87,6 @@
     #elif defined(__FreeBSD__)
         #include <sys/sysctl.h>
         #include <sys/types.h>
-        #include <unistd.h>
         #define SHM_NAME_MAX_SIZE 255
     #else
         #define SHM_NAME_MAX_SIZE 255
@@ -130,6 +128,7 @@ inline std::string to_string(SharedMemoryAllocationStatus status) noexcept {
 inline std::string executable_path() noexcept {
     StdArray<char, 4096> executablePath;
     executablePath.fill('\0');
+
     std::size_t executableSize = 0;
 
 #if defined(_WIN32)
@@ -386,6 +385,8 @@ class BackendSharedMemory final {
 
         HANDLE hMutex = CreateMutex(nullptr, FALSE, mutexName.c_str());
 
+        HandleGuard hMutexGuard{hMutex};
+
         if (hMutex == nullptr)
         {
             status       = Status::MutexCreate;
@@ -401,7 +402,6 @@ class BackendSharedMemory final {
             lastErrorStr = error_to_string(GetLastError());
 
             partial_cleanup();
-            CloseHandle(hMutex);
             return;
         }
 
@@ -425,11 +425,8 @@ class BackendSharedMemory final {
             lastErrorStr = error_to_string(GetLastError());
 
             partial_cleanup();
-            CloseHandle(hMutex);
             return;
         }
-
-        CloseHandle(hMutex);
 
         status = Status::Success;
     }
@@ -440,18 +437,16 @@ class BackendSharedMemory final {
             UnmapViewOfFile(mappedPtr);
             mappedPtr = nullptr;
         }
-        if (hMapFile != nullptr)
-        {
-            CloseHandle(hMapFile);
-            hMapFile = nullptr;
-        }
+
+        hMapFileGuard.close();
     }
 
     void cleanup() noexcept { partial_cleanup(); }
 
     static constexpr DWORD IS_INITIALIZED = 1;
 
-    HANDLE      hMapFile  = nullptr;
+    HANDLE      hMapFile = nullptr;
+    HandleGuard hMapFileGuard{hMapFile};
     void*       mappedPtr = nullptr;
     Status      status    = Status::NotInitialized;
     std::string lastErrorStr;
@@ -634,8 +629,8 @@ struct ShmHeader final {
 
     pthread_mutex_t mutex;
 
-    alignas(64) std::atomic<bool> initialized{false};
-    alignas(64) std::atomic<std::uint32_t> refCount{0};
+    std::atomic<bool>          initialized{false};
+    std::atomic<std::uint32_t> refCount{0};
 };
 
 template<typename T>
@@ -725,7 +720,7 @@ class SharedMemory final: public BaseSharedMemory {
                 if (newCreated)
                     shm_unlink(name.c_str());
 
-                ::close(fd);
+                fdGuard.close();
 
                 reset();
 
@@ -747,7 +742,7 @@ class SharedMemory final: public BaseSharedMemory {
                 if (newCreated || headerInvalid)
                     shm_unlink(name.c_str());
 
-                ::close(fd);
+                fdGuard.close();
 
                 reset();
 
@@ -769,7 +764,7 @@ class SharedMemory final: public BaseSharedMemory {
                 if (newCreated)
                     shm_unlink(name.c_str());
 
-                ::close(fd);
+                fdGuard.close();
 
                 reset();
 
@@ -794,7 +789,7 @@ class SharedMemory final: public BaseSharedMemory {
                 if (newCreated)
                     shm_unlink(name.c_str());
 
-                ::close(fd);
+                fdGuard.close();
 
                 reset();
 
@@ -852,8 +847,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (removeRegion)
             shm_unlink(name.c_str());
 
-        if (fd >= 0)
-            ::close(fd);
+        fdGuard.close();
 
         if (!skipUnmapRegion)
             reset();
@@ -971,14 +965,12 @@ class SharedMemory final: public BaseSharedMemory {
 
         for (int attempt = 0; attempt < 2; ++attempt)
         {
-            int fd_ = ::open(sentinelPath.c_str(), O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC, 0600);
+            int tmpFd = ::open(sentinelPath.c_str(), O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC, 0600);
 
-            if (fd_ != -1)
-            {
-                ::close(fd_);
+            FdGuard tmpFdGuard(tmpFd);
 
+            if (tmpFd != -1)
                 return true;
-            }
 
             if (errno == EEXIST)
             {
@@ -1151,7 +1143,7 @@ class SharedMemory final: public BaseSharedMemory {
 
     std::string name;
     int         fd = -1;
-
+    FdGuard     fdGuard{fd};
     void*       mappedPtr = nullptr;
     T*          dataPtr   = nullptr;
     ShmHeader*  shmHeader = nullptr;
