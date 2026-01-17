@@ -296,11 +296,14 @@ STAGE_SWITCH:
     switch (curStage)
     {
     case Stage::TT :
-        ++curStage;
+        curStage = Stage::INIT;
+
         return ttMove;
 
     case Stage::INIT :
-        if (initStage == Stage::EVA_CAPTURE)
+        curStage = initStage;
+
+        if (curStage == Stage::EVA_CAPTURE)
         {
             MoveList<GenType::EVA_CAPTURE> moveList(pos);
 
@@ -317,7 +320,6 @@ STAGE_SWITCH:
 
         insertion_sort(cur, endCur);
 
-        curStage = initStage;
         goto STAGE_SWITCH;
 
     case Stage::ENC_GOOD_CAPTURE :
@@ -339,7 +341,7 @@ STAGE_SWITCH:
             insertion_sort(cur, endCur);
         }
 
-        ++curStage;
+        curStage = Stage::ENC_GOOD_QUIET;
         [[fallthrough]];
 
     case Stage::ENC_GOOD_QUIET :
@@ -363,7 +365,7 @@ STAGE_SWITCH:
         cur    = moves.data();
         endCur = endBadCapture;
 
-        ++curStage;
+        curStage = Stage::ENC_BAD_CAPTURE;
         [[fallthrough]];
 
     case Stage::ENC_BAD_CAPTURE :
@@ -377,7 +379,7 @@ STAGE_SWITCH:
             endCur = endBadQuiet;
         }
 
-        ++curStage;
+        curStage = Stage::ENC_BAD_QUIET;
         [[fallthrough]];
 
     case Stage::ENC_BAD_QUIET :
@@ -398,7 +400,7 @@ STAGE_SWITCH:
             insertion_sort(cur, endCur);
         }
 
-        ++curStage;
+        curStage = Stage::EVA_QUIET;
         [[fallthrough]];
 
     case Stage::EVA_QUIET :

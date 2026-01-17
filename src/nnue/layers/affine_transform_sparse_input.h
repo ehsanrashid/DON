@@ -299,12 +299,14 @@ class AffineTransformSparseInput final {
         const outvec_t* biasVec = reinterpret_cast<const outvec_t*>(biases.data());
 
         outvec_t acc[RegCount];
+
         for (IndexType k = 0; k < AccCount; ++k)
             acc[k] = biasVec[k];
 
-        const auto* beg = nnz;
-        const auto* end = nnz + count;
+        const auto* RESTRICT beg = nnz;
+        const auto* const    end = nnz + count;
 
+            // clang-format off
     #if defined(USE_VNNI)
 
         for (IndexType k = AccCount; k < RegCount; ++k)
@@ -320,40 +322,39 @@ class AffineTransformSparseInput final {
             invec_t in1 = vec_set_32(input32[i1]);
             invec_t in2 = vec_set_32(input32[i2]);
 
-            const invec_t* col0 =
-              reinterpret_cast<const invec_t*>(&weights[i0 * OutputDimensions * ChunkSize]);
-            const invec_t* col1 =
-              reinterpret_cast<const invec_t*>(&weights[i1 * OutputDimensions * ChunkSize]);
-            const invec_t* col2 =
-              reinterpret_cast<const invec_t*>(&weights[i2 * OutputDimensions * ChunkSize]);
+            const invec_t* col0 = reinterpret_cast<const invec_t*>(&weights[i0 * OutputDimensions * ChunkSize]);
+            const invec_t* col1 = reinterpret_cast<const invec_t*>(&weights[i1 * OutputDimensions * ChunkSize]);
+            const invec_t* col2 = reinterpret_cast<const invec_t*>(&weights[i2 * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
             {
-                vec_add_dpbusd_32(acc[k + 0 * AccCount], in0, col0[k]);
-                vec_add_dpbusd_32(acc[k + 1 * AccCount], in1, col1[k]);
-                vec_add_dpbusd_32(acc[k + 2 * AccCount], in2, col2[k]);
+                vec_add_dpbusd_32(acc[0 * AccCount + k], in0, col0[k]);
+                vec_add_dpbusd_32(acc[1 * AccCount + k], in1, col1[k]);
+                vec_add_dpbusd_32(acc[2 * AccCount + k], in2, col2[k]);
             }
         }
 
         for (IndexType k = 0; k < AccCount; ++k)
-            acc[k] = vec_add_32(vec_add_32(acc[k + 0 * AccCount], acc[k + 1 * AccCount]),
-                                acc[k + 2 * AccCount]);
+            acc[k] = vec_add_32(vec_add_32(acc[0 * AccCount + k],
+                                           acc[1 * AccCount + k]),
+                                           acc[2 * AccCount + k]);
     #endif
 
-        while (beg < end)
+        while (beg != end)
         {
             auto i = *beg++;
 
             invec_t in = vec_set_32(input32[i]);
 
-            const invec_t* col =
-              reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);
+            const invec_t* col = reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
+        // clang-format on
 
         outvec_t* outVec = reinterpret_cast<outvec_t*>(output);
+
         for (IndexType k = 0; k < AccCount; ++k)
             outVec[k] = acc[k];
 

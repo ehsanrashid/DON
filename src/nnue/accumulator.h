@@ -148,12 +148,12 @@ struct AccumulatorState final {
     }
 
     void reset(typename FeatureSet::DirtyType&& dt) noexcept {
-        dirtyType = std::move(dt);
+        dirty = std::move(dt);
         big.computed.fill(false);
         small.computed.fill(false);
     }
 
-    typename FeatureSet::DirtyType dirtyType;
+    typename FeatureSet::DirtyType dirty;
     BigAccumulator                 big;
     SmallAccumulator               small;
 };

@@ -601,7 +601,7 @@ void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     assert(relative_rank(c, kingOrgSq) == RANK_1);
     assert((pieces_bb(c, KING) & kingOrgSq) != 0);
 
-    CastlingSide cs = castling_side(kingOrgSq, rookOrgSq);
+    CastlingSide cs = make_cs(kingOrgSq, rookOrgSq);
     assert(!is_ok(castling_rook_sq(c, cs)));
 
     CastlingRights cr = make_cr(c, cs);
@@ -1192,7 +1192,7 @@ UNDO_MOVE_END:
 
 // Makes a null move
 // It flips the active color without executing any move on the board.
-void Position::do_null_move(State& newSt) noexcept {
+void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
     assert(&newSt != st);
     assert(checkers_bb() == 0);
 
@@ -1207,6 +1207,9 @@ void Position::do_null_move(State& newSt) noexcept {
         st->key ^= Zobrist::enpassant(en_passant_sq());
         reset_en_passant_sq();
     }
+
+    if (worker != nullptr)
+        prefetch(worker->transpositionTable.cluster(key()));
 
     st->nullPly    = 0;
     st->capturedSq = SQ_NONE;
@@ -1256,7 +1259,7 @@ bool Position::legal(Move m) const noexcept {
 
     if (m.type() == MT::CASTLING)
     {
-        CastlingSide cs = castling_side(orgSq, dstSq);
+        CastlingSide cs = make_cs(orgSq, dstSq);
 
         return type_of(movedPc) == KING && (pieces_bb(ac, ROOK) & dstSq) != 0 && checkers_bb() == 0
             && has_castling_rights() && has_castling_rights(ac, CastlingSide::ANY)

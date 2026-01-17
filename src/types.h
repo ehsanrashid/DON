@@ -470,10 +470,6 @@ inline constexpr std::size_t CASTLING_SIDE_NB = 2;
     return (cs == CastlingSide::KING || cs == CastlingSide::QUEEN);
 }
 
-constexpr CastlingSide castling_side(Square kingOrgSq, Square kingDstSq) noexcept {
-    return kingOrgSq < kingDstSq ? CastlingSide::KING : CastlingSide::QUEEN;
-}
-
 constexpr std::string_view to_string(CastlingSide cs) noexcept {
     switch (cs)
     {
@@ -483,9 +479,9 @@ constexpr std::string_view to_string(CastlingSide cs) noexcept {
         return "O-O-O";
     case CastlingSide::ANY :
         return "O-O / O-O-O";
-    default :
-        return "";
+    default :;
     }
+    return "";
 }
 
 enum class CastlingRights : std::uint8_t {
@@ -506,15 +502,6 @@ enum class CastlingRights : std::uint8_t {
 
 inline constexpr std::size_t CASTLING_RIGHTS_NB = 16;
 
-constexpr CastlingRights make_cr(Color c, CastlingSide cs) noexcept {
-    assert(is_ok(c));
-
-    return CastlingRights(std::uint8_t(cs == CastlingSide::KING    ? CastlingRights::WHITE_OO
-                                       : cs == CastlingSide::QUEEN ? CastlingRights::WHITE_OOO
-                                                                   : CastlingRights::WHITE_CASTLING)
-                          << (c << 1));
-}
-
 // Bound type for alpha-beta search
 enum class Bound : std::uint8_t {
     NONE,
@@ -525,13 +512,20 @@ enum class Bound : std::uint8_t {
 
 inline constexpr std::size_t BOUND_NB = 4;
 
-constexpr bool is_ok(Bound bnd) noexcept { return bnd != Bound::NONE; }
+constexpr bool is_ok(Bound bound) noexcept { return bound != Bound::NONE; }
 
-constexpr std::string_view to_string(Bound bnd) noexcept {
-    return bnd == Bound::UPPER ? " upperbound"
-         : bnd == Bound::LOWER ? " lowerbound"
-         : bnd == Bound::EXACT ? " exactbound"
-                               : " none";
+constexpr std::string_view to_string(Bound bound) noexcept {
+    switch (bound)
+    {
+    case Bound::UPPER :
+        return " upperbound";
+    case Bound::LOWER :
+        return " lowerbound";
+    case Bound::EXACT :
+        return " exactbound";
+    default :;
+    }
+    return "";
 }
 
 // clang-format off
@@ -558,6 +552,19 @@ ENABLE_BIT_OPERATORS_ON(CastlingRights)
 ENABLE_BIT_OPERATORS_ON(Bound)
 
     #undef ENABLE_BIT_OPERATORS_ON
+
+constexpr CastlingSide make_cs(Square kingOrgSq, Square kingDstSq) noexcept {
+    return kingOrgSq < kingDstSq ? CastlingSide::KING : CastlingSide::QUEEN;
+}
+
+constexpr CastlingRights make_cr(Color c, CastlingSide cs) noexcept {
+    assert(is_ok(c));
+
+    return CastlingRights(+(cs == CastlingSide::KING    ? CastlingRights::WHITE_OO
+                            : cs == CastlingSide::QUEEN ? CastlingRights::WHITE_OOO
+                                                        : CastlingRights::WHITE_CASTLING)
+                          << (c << 1));
+}
 
 // Move representation (16 bits)
 // Each move is compactly stored in a 16-bit unsigned integer.

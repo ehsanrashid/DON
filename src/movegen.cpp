@@ -294,7 +294,6 @@ Move* generate_piece_moves(const Position& pos, Move* moves, Bitboard targetBB) 
         return moves;
 
     StdArray<Square, Position::CAPACITIES[PT - 1]> sqs;
-    //std::memset(sqs.data(), SQ_NONE, sizeof(sqs));
 
     std::memcpy(sqs.data(), pos.squares(AC, PT).data(pos.base(AC)), count * sizeof(Square));
 
@@ -448,15 +447,12 @@ Move* generate(const Position& pos, Move* moves) noexcept {
 template Move* generate<GenType::ENCOUNTER, false>(const Position& pos, Move* moves) noexcept;
 template Move* generate<GenType::ENCOUNTER, true>(const Position& pos, Move* moves) noexcept;
 template Move* generate<GenType::ENC_CAPTURE, false>(const Position& pos, Move* moves) noexcept;
-//template Move* generate<GenType::ENC_CAPTURE, true>(const Position& pos, Move* moves) noexcept;
 template Move* generate<GenType::ENC_QUIET, false>(const Position& pos, Move* moves) noexcept;
-//template Move* generate<GenType::ENC_QUIET, true>(const Position& pos, Move* moves) noexcept;
+
 template Move* generate<GenType::EVASION, false>(const Position& pos, Move* moves) noexcept;
 template Move* generate<GenType::EVASION, true>(const Position& pos, Move* moves) noexcept;
 template Move* generate<GenType::EVA_CAPTURE, false>(const Position& pos, Move* moves) noexcept;
-//template Move* generate<GenType::EVA_CAPTURE, true >(const Position& pos, Move* moves) noexcept;
 template Move* generate<GenType::EVA_QUIET, false>(const Position& pos, Move* moves) noexcept;
-//template Move* generate<GenType::EVA_QUIET, true>(const Position& pos, Move* moves) noexcept;
 
 // <LEGAL> Generates all legal moves
 template<>

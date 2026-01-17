@@ -421,6 +421,10 @@ void Worker::iterative_deepening() noexcept {
     // (ss + 1) is needed for initialization of cutoffCount.
     constexpr std::uint16_t StackOffset = 9;
 
+    constexpr int MaxDelta = 2 * VALUE_INFINITE;
+
+    const Color ac = rootPos.active_color();
+
     StdArray<Stack, StackOffset + (MAX_PLY + 1) + 1> stacks{};
 
     Stack* const ss = &stacks[StackOffset];
@@ -443,13 +447,9 @@ void Worker::iterative_deepening() noexcept {
     assert(stacks[0].ply == -StackOffset && stacks[stacks.size() - 1].ply == MAX_PLY + 1);
     assert(ss->ply == 0);
 
-    constexpr int MaxDelta = 2 * VALUE_INFINITE;
-
     StdArray<Move, MAX_PLY + 1> pv;
 
     ss->pv = pv.data();
-
-    Color ac = rootPos.active_color();
 
     std::uint16_t researchCnt = 0;
 
@@ -1095,7 +1095,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // For deep enough nodes without ttMoves, reduce search depth.
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
-        if (depth > 5 && ttmNone)
+        if (depth > 5 && ttmNone && red <= 3)
             --depth;
 
     // Step 11. ProbCut
@@ -1208,8 +1208,9 @@ S_MOVES_LOOP:  // When in check, search starts here
         if constexpr (RootNode)
             if (is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
             {
-                std::string currMove       = UCI::move_to_can(move);
-                std::size_t currMoveNumber = curPV + moveCount;
+                const std::string currMove       = UCI::move_to_can(move);
+                const std::size_t currMoveNumber = curPV + moveCount;
+
                 main_manager()->updateContext.onUpdateIter({rootDepth, currMove, currMoveNumber});
             }
 
@@ -1352,8 +1353,8 @@ S_MOVES_LOOP:  // When in check, search starts here
                 const int corrMargin = int(4.3351e-6 * absCorrectionValue);
 
                 // clang-format off
-                const int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrMargin - int(7.0271e-3 * ttMoveHistory);
-                const int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrMargin + int(ss->ttPv) * 90;
+                const int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrMargin - int(ss->ply > rootDepth) * 42 - int(7.0271e-3 * ttMoveHistory);
+                const int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrMargin - int(ss->ply > rootDepth) * 48 + int(ss->ttPv) * 90;
 
                 extension = 1 + int(value < singularBeta - doubleMargin)
                               + int(value < singularBeta - tripleMargin);
@@ -1398,7 +1399,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             preNodes = nodes_();
 
         // Step 16. Make the move
-        do_move(pos, move, st, check, ss);
+        do_move(pos, move, st, ss, check);
 
         assert(capturedPt == type_of(pos.captured_pc()));
 
@@ -1900,7 +1901,7 @@ QS_MOVES_LOOP:
         }
 
         // Step 7. Make the move
-        do_move(pos, move, st, check, ss);
+        do_move(pos, move, st, ss, check);
 
         value = -qsearch<PVNode>(pos, ss + 1, -beta, -alpha);
 
@@ -1968,42 +1969,32 @@ QS_MOVES_LOOP:
     return bestValue;
 }
 
-void Worker::do_move(Position& pos, Move m, State& st, bool check, Stack* const ss) noexcept {
+void Worker::do_move(Position& pos, Move m, State& st, Stack* const ss, bool mayCheck) noexcept {
     const bool capture = pos.capture_promo(m);
-    DirtyBoard db      = pos.do_move(m, st, check, this);
+
+    DirtyBoard db = pos.do_move(m, st, mayCheck, this);
+
     nodes.fetch_add(1, std::memory_order_relaxed);
 
-    if (ss != nullptr)
-    {
-        // clang-format off
-        ss->move                     = m;
-        ss->pieceSqHistory           = &continuationHistory[ss->inCheck][capture][+db.dp.movedPc][m.dst_sq()];
-        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+db.dp.movedPc][m.dst_sq()];
-        // clang-format on
-    }
+    ss->move           = m;
+    ss->pieceSqHistory = &continuationHistory[ss->inCheck][capture][+db.dp.movedPc][m.dst_sq()];
+    ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+db.dp.movedPc][m.dst_sq()];
 
     accStack.push(std::move(db));
-}
-void Worker::do_move(Position& pos, Move m, State& st, Stack* const ss) noexcept {
-    do_move(pos, m, st, pos.check(m), ss);
 }
 
 void Worker::undo_move(Position& pos, Move m) noexcept {
     accStack.pop();
+
     pos.undo_move(m);
 }
 
 void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
-    pos.do_null_move(st);
+    pos.do_null_move(st, this);
 
-    if (ss != nullptr)
-    {
-        // clang-format off
-        ss->move                     = Move::Null;
-        ss->pieceSqHistory           = &continuationHistory[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
-        ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQUARE_ZERO];
-        // clang-format on
-    }
+    ss->move                     = Move::Null;
+    ss->pieceSqHistory           = &continuationHistory[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
+    ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQUARE_ZERO];
 }
 
 void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }

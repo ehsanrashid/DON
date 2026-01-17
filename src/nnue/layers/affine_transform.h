@@ -272,6 +272,7 @@ class AffineTransform final {
             const vec_t* biasVec = reinterpret_cast<const vec_t*>(biases.data());
 
             vec_t acc[RegCount];
+
             for (IndexType k = 0; k < RegCount; ++k)
                 acc[k] = biasVec[k];
 
@@ -286,6 +287,7 @@ class AffineTransform final {
             }
 
             vec_t* outVec = reinterpret_cast<vec_t*>(output);
+
             for (IndexType k = 0; k < RegCount; ++k)
                 outVec[k] = acc[k];
 

@@ -78,9 +78,6 @@ class MovePicker final {
         PROBCUT
     };
 
-    friend constexpr Stage operator+(Stage s, int i) noexcept { return Stage(std::uint8_t(s) + i); }
-    friend constexpr Stage& operator++(Stage& s) noexcept { return s = s + 1; }
-
     MovePicker() noexcept                             = delete;
     MovePicker(const MovePicker&) noexcept            = delete;
     MovePicker(MovePicker&&) noexcept                 = delete;

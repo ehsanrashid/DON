@@ -867,8 +867,8 @@ ifeq ($(optimize), yes)
             endif
             LDFLAGS += $(CXXFLAGS)
 
-# GCC and CLANG use different methods for parallelizing LTO and CLANG pretends to be
-# GCC on some systems.
+        # GCC and CLANG use different methods for parallelizing LTO
+        # and CLANG pretends to be GCC on some systems.
         else ifeq ($(comp), gcc)
             ifeq ($(KERNEL), Darwin)
                 # macOS + GCC: Don't add LTO
@@ -883,11 +883,21 @@ ifeq ($(optimize), yes)
                 endif
             endif
 
-# To use LTO and static linking on Windows,
-# the tool chain requires gcc version 10.1 or later.
+        # To use LTO and static linking on Windows,
+        # the tool chain requires gcc version 10.1 or later.
         else ifeq ($(comp), mingw)
             CXXFLAGS += -flto -flto-partition=one
             LDFLAGS += $(CXXFLAGS) -flto=jobserver -save-temps
+        endif
+    endif
+
+    # Inline settings
+    ifeq ($(comp), clang)
+        ifneq ($(filter Windows_NT Darwin, $(OS) $(KERNEL)), )
+            # skip -mllvm on Windows or macOS
+        else ifneq ($(filter -m64, $(CXXFLAGS)), )
+            # only add for 64-bit Linux
+            #CXXFLAGS += -mllvm -inline-threshold=500
         endif
     endif
 endif
