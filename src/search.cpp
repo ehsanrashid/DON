@@ -1990,7 +1990,7 @@ void Worker::undo_move(Position& pos, Move m) noexcept {
 }
 
 void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
-    pos.do_null_move(st);
+    pos.do_null_move(st, this);
 
     ss->move                     = Move::Null;
     ss->pieceSqHistory           = &continuationHistory[0][0][+Piece::NO_PIECE][SQUARE_ZERO];

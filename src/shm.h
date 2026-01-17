@@ -140,12 +140,14 @@ inline std::string executable_path() noexcept {
     executablePath[executableSize] = '\0';
 #elif defined(__APPLE__)
     std::uint32_t size = std::uint32_t(executablePath.size());
+
     if (_NSGetExecutablePath(executablePath.data(), &size) == 0)
     {
         executableSize = std::strlen(executablePath.data());
     }
 #elif defined(__linux__)
     ssize_t size = readlink("/proc/self/exe", executablePath.data(), executablePath.size() - 1);
+
     if (size >= 0)
     {
         executableSize = size;
@@ -154,6 +156,7 @@ inline std::string executable_path() noexcept {
     }
 #elif defined(__NetBSD__) || defined(__DragonFly__)
     ssize_t size = readlink("/proc/curproc/exe", executablePath.data(), executablePath.size() - 1);
+
     if (size >= 0)
     {
         executableSize = size;
@@ -162,6 +165,7 @@ inline std::string executable_path() noexcept {
     }
 #elif defined(__sun)  // Solaris
     const char* path = getexecname();
+
     if (path != nullptr)
     {
         std::strncpy(executablePath.data(), path, executablePath.size() - 1);
@@ -172,6 +176,7 @@ inline std::string executable_path() noexcept {
     constexpr StdArray<int, 4> MIB{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
 
     std::size_t size = executablePath.size();
+
     if (sysctl(MIB.data(), MIB.size(), executablePath.data(), &size, nullptr, 0) == 0)
     {
         executableSize = std::min(size, executablePath.size() - 1);
@@ -226,12 +231,12 @@ inline std::string error_to_string(DWORD errorId) noexcept {
       reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
       0, NULL);
 
-    // Copy the error message into a std::string.
+    // Copy the error message into a std::string
     std::string message(buffer, len);
     // Trim trailing CR/LF that many system messages include
     while (!message.empty() && (message.back() == '\r' || message.back() == '\n'))
         message.pop_back();
-    // Free the Win32's string's buffer.
+    // Free the Win32's string's buffer
     LocalFree(buffer);
 
     return message;
@@ -241,18 +246,16 @@ inline std::string error_to_string(DWORD errorId) noexcept {
 template<typename T>
 class BackendSharedMemory final {
    public:
-    enum class Status {
+    enum class Status : std::uint8_t {
         Success,
         NotInitialized,
-        FileMappingError,
-        MapViewError,
-        MutexCreateError,
-        MutexWaitError,
-        MutexReleaseError,
-        LargePageAllocationError,
+        FileMapping,
+        MapView,
+        MutexCreate,
+        MutexWait,
+        MutexRelease,
+        LargePageAllocation
     };
-
-    static constexpr DWORD IS_INITIALIZED = 1;
 
     BackendSharedMemory() noexcept :
         status(Status::NotInitialized) {};
@@ -312,32 +315,32 @@ class BackendSharedMemory final {
             return std::nullopt;
         case Status::NotInitialized :
             return "Not initialized";
-        case Status::FileMappingError :
+        case Status::FileMapping :
             return "Failed to create file mapping: " + lastErrorStr;
-        case Status::MapViewError :
+        case Status::MapView :
             return "Failed to map view: " + lastErrorStr;
-        case Status::MutexCreateError :
+        case Status::MutexCreate :
             return "Failed to create mutex: " + lastErrorStr;
-        case Status::MutexWaitError :
+        case Status::MutexWait :
             return "Failed to wait on mutex: " + lastErrorStr;
-        case Status::MutexReleaseError :
+        case Status::MutexRelease :
             return "Failed to release mutex: " + lastErrorStr;
-        case Status::LargePageAllocationError :
+        case Status::LargePageAllocation :
             return "Failed to allocate large page memory";
-        default :
-            return "Unknown error";
+        default :;
         }
+        return "Unknown error";
     }
 
    private:
     void initialize(const std::string& shmName, const T& value) noexcept {
-        std::size_t totalSize = sizeof(T) + sizeof(IS_INITIALIZED);
+        constexpr std::size_t TotalSize = sizeof(T) + sizeof(IS_INITIALIZED);
 
         // Try allocating with large page first
         hMapFile = try_with_windows_lock_memory_privilege(
-          [&](std::size_t LargePageSize) {
+          [&](std::size_t LargePageSize) noexcept {
               // Round up size to full large page
-              std::size_t roundedTotalSize = round_up_to_pow2_multiple(totalSize, LargePageSize);
+              std::size_t roundedTotalSize = round_up_to_pow2_multiple(TotalSize, LargePageSize);
 
     #if defined(_WIN64)
               DWORD hiTotalSize = roundedTotalSize >> 32;
@@ -357,21 +360,21 @@ class BackendSharedMemory final {
         if (hMapFile == nullptr)
             hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,  //
                                          PAGE_READWRITE,                 //
-                                         0, totalSize, shmName.c_str());
+                                         0, TotalSize, shmName.c_str());
 
         if (hMapFile == nullptr)
         {
-            status       = Status::FileMappingError;
+            status       = Status::FileMapping;
             lastErrorStr = error_to_string(GetLastError());
 
             return;
         }
 
-        mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, totalSize);
+        mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, TotalSize);
 
         if (mappedPtr == nullptr)
         {
-            status       = Status::MapViewError;
+            status       = Status::MapView;
             lastErrorStr = error_to_string(GetLastError());
 
             partial_cleanup();
@@ -379,13 +382,13 @@ class BackendSharedMemory final {
         }
 
         // Use named mutex to ensure only one initializer
-        std::string mutexName = shmName + "$mutex";
+        std::string mutexName = shmName + std::string("$mutex");
 
         HANDLE hMutex = CreateMutex(nullptr, FALSE, mutexName.c_str());
 
         if (hMutex == nullptr)
         {
-            status       = Status::MutexCreateError;
+            status       = Status::MutexCreate;
             lastErrorStr = error_to_string(GetLastError());
 
             partial_cleanup();
@@ -394,7 +397,7 @@ class BackendSharedMemory final {
 
         if (WaitForSingleObject(hMutex, INFINITE) != WAIT_OBJECT_0)
         {
-            status       = Status::MutexWaitError;
+            status       = Status::MutexWait;
             lastErrorStr = error_to_string(GetLastError());
 
             partial_cleanup();
@@ -418,7 +421,7 @@ class BackendSharedMemory final {
 
         if (!ReleaseMutex(hMutex))
         {
-            status       = Status::MutexReleaseError;
+            status       = Status::MutexRelease;
             lastErrorStr = error_to_string(GetLastError());
 
             partial_cleanup();
@@ -445,6 +448,8 @@ class BackendSharedMemory final {
     }
 
     void cleanup() noexcept { partial_cleanup(); }
+
+    static constexpr DWORD IS_INITIALIZED = 1;
 
     HANDLE      hMapFile  = nullptr;
     void*       mappedPtr = nullptr;
@@ -1083,8 +1088,6 @@ class SharedMemory final: public BaseSharedMemory {
 
         if (mappedPtr == MAP_FAILED)
         {
-            std::cerr << "mmap() failed" << std::endl;
-
             mappedPtr = nullptr;
 
             return false;

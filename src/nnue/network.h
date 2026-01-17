@@ -39,7 +39,7 @@ class Position;
 
 namespace NNUE {
 
-enum class EmbeddedType {
+enum class EmbeddedType : std::uint8_t {
     BIG,
     SMALL
 };
