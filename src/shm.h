@@ -627,7 +627,13 @@ struct ShmHeader final {
 
     void unlock_mutex() noexcept { pthread_mutex_unlock(&mutex); }
 
-    void increment_ref_count() noexcept { refCount.fetch_sub(1, std::memory_order_acq_rel); }
+    [[nodiscard]] bool is_initialized() const noexcept {
+        return initialized.load(std::memory_order_acquire);
+    }
+
+    [[nodiscard]] std::uint32_t ref_count() const noexcept {
+        return refCount.load(std::memory_order_acquire);
+    }
 
     void decrement_ref_count() noexcept {
 
@@ -657,7 +663,7 @@ class SharedMemory final: public BaseSharedMemory {
     explicit SharedMemory(const std::string& shmName) noexcept :
         name(shmName),
         totalSize(calculate_total_size()) {
-        sentinelBase = "don_" + create_hash_string(name);
+        sentinelBase = std::string("don_") + create_hash_string(name);
     }
 
     ~SharedMemory() noexcept override {
@@ -836,7 +842,8 @@ class SharedMemory final: public BaseSharedMemory {
 
         if (mutexLocked)
         {
-            increment_ref_count();
+            if (shmHeader != nullptr)
+                shmHeader->refCount.fetch_sub(1, std::memory_order_acq_rel);
 
             remove_sentinel_file();
 
@@ -878,13 +885,12 @@ class SharedMemory final: public BaseSharedMemory {
 
     [[nodiscard]] const T& operator*() const noexcept { return *dataPtr; }
 
-    [[nodiscard]] uint32_t ref_count() const noexcept {
-        return shmHeader != nullptr ? shmHeader->refCount.load(std::memory_order_acquire) : 0;
+    [[nodiscard]] bool is_initialized() const noexcept {
+        return shmHeader != nullptr ? shmHeader->is_initialized() : false;
     }
 
-    [[nodiscard]] bool is_initialized() const noexcept {
-        return shmHeader != nullptr ? shmHeader->initialized.load(std::memory_order_acquire)
-                                    : false;
+    [[nodiscard]] std::uint32_t ref_count() const noexcept {
+        return shmHeader != nullptr ? shmHeader->ref_count() : 0;
     }
 
    private:
@@ -960,15 +966,10 @@ class SharedMemory final: public BaseSharedMemory {
     void set_sentinel_path(pid_t pid) noexcept {
         sentinelPath.reserve(11 + sentinelBase.size() + 1 + 10);
 
-        sentinelPath += "/dev/shm/";
+        sentinelPath = "/dev/shm/";
         sentinelPath += sentinelBase;
         sentinelPath += '.';
         sentinelPath += std::to_string(pid);
-    }
-
-    void increment_ref_count() noexcept {
-        if (shmHeader != nullptr)
-            shmHeader->increment_ref_count();
     }
 
     void decrement_ref_count() noexcept {
@@ -1055,7 +1056,7 @@ class SharedMemory final: public BaseSharedMemory {
                 break;
             }
 
-            std::string stalePath = "/dev/shm/" + entryName;
+            std::string stalePath = std::string("/dev/shm/") + entryName;
 
             ::unlink(stalePath.c_str());
 
@@ -1259,13 +1260,13 @@ struct SystemWideSharedMemory final {
         std::size_t valueHash      = std::hash<T>{}(value);
         std::size_t executableHash = std::hash<std::string>{}(executable_path());
 
-        std::string shmName = "Local\\don_" + std::to_string(valueHash)  //
-                            + "$" + std::to_string(executableHash)       //
+        std::string shmName = std::string("Local\\don_") + std::to_string(valueHash)  //
+                            + "$" + std::to_string(executableHash)                    //
                             + "$" + std::to_string(discriminator);
 #if !defined(_WIN32)
         // POSIX shared memory names must start with a slash
         // then add name hashing to avoid length limits
-        shmName = "/don_" + create_hash_string(shmName);
+        shmName = std::string("/don_") + create_hash_string(shmName);
 
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters
