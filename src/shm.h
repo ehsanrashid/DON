@@ -627,6 +627,17 @@ struct ShmHeader final {
 
     void unlock_mutex() noexcept { pthread_mutex_unlock(&mutex); }
 
+    void increment_ref_count() noexcept { refCount.fetch_sub(1, std::memory_order_acq_rel); }
+
+    void decrement_ref_count() noexcept {
+
+        for (auto expected = refCount.load(std::memory_order_relaxed);
+             expected != 0
+             && !refCount.compare_exchange_weak(expected, expected - 1, std::memory_order_acq_rel,
+                                                std::memory_order_relaxed);)
+        {}
+    }
+
     static constexpr std::uint32_t MAGIC = 0xAD5F1A12U;
 
     const std::uint32_t magic = MAGIC;
@@ -645,8 +656,9 @@ class SharedMemory final: public BaseSharedMemory {
    public:
     explicit SharedMemory(const std::string& shmName) noexcept :
         name(shmName),
-        totalSize(calculate_total_size()),
-        sentinelBase(make_sentinel_base(shmName)) {}
+        totalSize(calculate_total_size()) {
+        sentinelBase = "don_" + create_hash_string(name);
+    }
 
     ~SharedMemory() noexcept override {
         SharedMemoryRegistry::unregister_memory(this);
@@ -824,8 +836,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         if (mutexLocked)
         {
-            if (shmHeader != nullptr)
-                shmHeader->refCount.fetch_sub(1, std::memory_order_acq_rel);
+            increment_ref_count();
 
             remove_sentinel_file();
 
@@ -879,14 +890,6 @@ class SharedMemory final: public BaseSharedMemory {
    private:
     static constexpr std::size_t calculate_total_size() noexcept {
         return sizeof(T) + sizeof(ShmHeader);
-    }
-
-    static std::string make_sentinel_base(const std::string& name) noexcept {
-        std::string str(32, '\0');
-
-        std::uint64_t hash = std::hash<std::string>{}(name);
-        std::snprintf(str.data(), str.size(), "don_shm_%016" PRIx64, hash);
-        return str;
     }
 
     static bool is_pid_alive(pid_t pid) noexcept {
@@ -954,23 +957,23 @@ class SharedMemory final: public BaseSharedMemory {
         }
     }
 
-    std::string sentinel_full_path(pid_t pid) const {
-        std::string path = "/dev/shm/";
-        path += sentinelBase;
-        path.push_back('.');
-        path += std::to_string(pid);
-        return path;
+    std::string set_sentinel_path(pid_t pid) noexcept {
+        sentinelPath.reserve(11 + sentinelBase.size() + 1 + 10);
+
+        sentinelPath += "/dev/shm/";
+        sentinelPath += sentinelBase;
+        sentinelPath += '.';
+        sentinelPath += std::to_string(pid);
+    }
+
+    void increment_ref_count() noexcept {
+        if (shmHeader != nullptr)
+            shmHeader->increment_ref_count();
     }
 
     void decrement_ref_count() noexcept {
-        if (shmHeader == nullptr)
-            return;
-
-        for (auto expected = shmHeader->refCount.load(std::memory_order_relaxed);
-             expected != 0
-             && !shmHeader->refCount.compare_exchange_weak(
-               expected, expected - 1, std::memory_order_acq_rel, std::memory_order_relaxed);)
-        {}
+        if (shmHeader != nullptr)
+            shmHeader->decrement_ref_count();
     }
 
     bool create_sentinel_file_locked() noexcept {
@@ -978,7 +981,8 @@ class SharedMemory final: public BaseSharedMemory {
             return false;
 
         pid_t selfPid = getpid();
-        sentinelPath  = sentinel_full_path(selfPid);
+
+        set_sentinel_path(selfPid);
 
         for (int attempt = 0; attempt < 2; ++attempt)
         {
