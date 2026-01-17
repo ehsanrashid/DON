@@ -1051,9 +1051,9 @@ class SharedMemory final: public BaseSharedMemory {
         if (ftruncate(fd, off_t(totalSize)) == -1)
             return false;
 
-    #if defined(__APPLE__)
         off_t offset = 0;
 
+    #if defined(__APPLE__)
         fstore_t store{};
         store.fst_flags   = F_ALLOCATECONTIG;
         store.fst_posmode = F_PEOFPOSMODE;
