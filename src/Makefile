@@ -894,9 +894,9 @@ ifeq ($(optimize), yes)
     ifeq ($(comp), clang)
         ifneq ($(filter Windows_NT Darwin, $(OS) $(KERNEL)), )
             # skip -mllvm on Windows or macOS
-        else ifneq ($(filter -m64,$(CXXFLAGS)), )
+        else ifneq ($(filter -m64, $(CXXFLAGS)), )
             # only add for 64-bit Linux
-            CXXFLAGS += -mllvm -inline-threshold=500
+            #CXXFLAGS += -mllvm -inline-threshold=500
         endif
     endif
 endif
