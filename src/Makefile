@@ -890,6 +890,10 @@ ifeq ($(optimize), yes)
             LDFLAGS += $(CXXFLAGS) -flto=jobserver -save-temps
         endif
     endif
+    # Inline settings
+    ifeq ($(comp), clang)
+        CXXFLAGS += --start-no-unused-arguments -mllvm -inline-threshold=500 --end-no-unused-arguments
+    endif
 endif
 
 ### 3.10 Android 5 can only run position independent executables. Note that this
