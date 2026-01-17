@@ -721,7 +721,7 @@ class SharedMemory final: public BaseSharedMemory {
                 if (newCreated)
                     shm_unlink(name.c_str());
 
-                ::close(fd);
+                fdGuard.close();
 
                 reset();
 
@@ -743,7 +743,7 @@ class SharedMemory final: public BaseSharedMemory {
                 if (newCreated || headerInvalid)
                     shm_unlink(name.c_str());
 
-                ::close(fd);
+                fdGuard.close();
 
                 reset();
 
@@ -765,7 +765,7 @@ class SharedMemory final: public BaseSharedMemory {
                 if (newCreated)
                     shm_unlink(name.c_str());
 
-                ::close(fd);
+                fdGuard.close();
 
                 reset();
 
@@ -790,7 +790,7 @@ class SharedMemory final: public BaseSharedMemory {
                 if (newCreated)
                     shm_unlink(name.c_str());
 
-                ::close(fd);
+                fdGuard.close();
 
                 reset();
 
@@ -848,8 +848,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (removeRegion)
             shm_unlink(name.c_str());
 
-        if (fd >= 0)
-            ::close(fd);
+        fdGuard.close();
 
         if (!skipUnmapRegion)
             reset();
@@ -967,14 +966,12 @@ class SharedMemory final: public BaseSharedMemory {
 
         for (int attempt = 0; attempt < 2; ++attempt)
         {
-            int fd_ = ::open(sentinelPath.c_str(), O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC, 0600);
+            int tmpFd = ::open(sentinelPath.c_str(), O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC, 0600);
 
-            if (fd_ != -1)
-            {
-                ::close(fd_);
+            FdGuard tmpFdGuard(tmpFd);
 
+            if (tmpFd != -1)
                 return true;
-            }
 
             if (errno == EEXIST)
             {
@@ -1147,7 +1144,7 @@ class SharedMemory final: public BaseSharedMemory {
 
     std::string name;
     int         fd = -1;
-
+    FdGuard     fdGuard(fd);
     void*       mappedPtr = nullptr;
     T*          dataPtr   = nullptr;
     ShmHeader*  shmHeader = nullptr;

@@ -50,6 +50,8 @@
     #endif
 
     #include <psapi.h>
+#else
+    #include <unistd.h>
 #endif
 
 #define ASSERT_ALIGNED(ptr, alignment) \
@@ -274,9 +276,9 @@ template<std::size_t Alignment, typename T>
 #if defined(_WIN32)
 
 struct HandleGuard final {
-
-    explicit HandleGuard(HANDLE& h) noexcept :
-        handle(h) {}
+   public:
+    explicit HandleGuard(HANDLE& handleRef) noexcept :
+        handle(handleRef) {}
     HandleGuard() noexcept                              = delete;
     HandleGuard(const HandleGuard&) noexcept            = delete;
     HandleGuard& operator=(const HandleGuard&) noexcept = delete;
@@ -297,11 +299,12 @@ struct HandleGuard final {
     }
 
     HANDLE release() noexcept {
-        HANDLE h = handle;
-        handle   = nullptr;
-        return h;
+        HANDLE oldHandle = handle;
+        handle           = nullptr;
+        return oldHandle;
     }
 
+   private:
     HANDLE& handle;
 };
 
@@ -437,6 +440,41 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     return std::forward<decltype(ret)>(ret);
     #endif
 }
+
+#else
+
+struct FdGuard final {
+   public:
+    explicit FdGuard(int& fdRef) noexcept :
+        fd(fdRef) {}
+    FdGuard()                          = delete;
+    FdGuard(const FdGuard&)            = delete;
+    FdGuard& operator=(const FdGuard&) = delete;
+
+    ~FdGuard() noexcept { close(); }
+
+    void close() noexcept {
+        if (fd >= 0)
+        {
+            ::close(fd);
+            fd = -1;
+        }
+    }
+
+    void reset(int newFd = -1) noexcept {
+        close();
+        fd = newFd;
+    }
+
+    int release() noexcept {
+        int oldFd = fd;
+        fd        = -1;
+        return oldFd;
+    }
+
+   private:
+    int& fd;
+};
 
 #endif
 

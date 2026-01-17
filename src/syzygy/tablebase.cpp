@@ -386,14 +386,15 @@ struct TBTable final {
     StdArray<PairsData, SIDES, FILE_NB / 2> items;      // [color][FILE_A..FILE_D]
 
    private:
-    void*         mappedPtr = nullptr;
-    std::uint8_t* mapPtr    = nullptr;
-    std::uint64_t mapping   = 0;
 #if defined(_WIN32)
     HANDLE      hMapFile = nullptr;
     HandleGuard hMapFileGuard{hMapFile};
+#else
+    std::uint64_t mappingSize = 0;
 #endif
-    InitOnce initOnce;
+    void*         mappedPtr = nullptr;
+    std::uint8_t* mapPtr    = nullptr;
+    InitOnce      initOnce;
 };
 
 template<>
@@ -502,26 +503,20 @@ template<TBType T>
 std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 #if defined(_WIN32)
     // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
-    HANDLE fd = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
-                           FILE_FLAG_RANDOM_ACCESS, nullptr);
+    HANDLE hFile = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+                              OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
 
-    HandleGuard hFdGuard{fd};
+    HandleGuard hFileGuard{hFile};
 
-    if (fd == INVALID_HANDLE_VALUE)
-    {
-        assert(mappedPtr == nullptr);
-
+    if (hFile == INVALID_HANDLE_VALUE)
         return nullptr;
-    }
 
     DWORD hiSize;
-    DWORD loSize = GetFileSize(fd, &hiSize);
+    DWORD loSize = GetFileSize(hFile, &hiSize);
 
     if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
     {
         std::cerr << "GetFileSize() failed" << std::endl;
-
-        assert(mappedPtr == nullptr);
 
         return nullptr;
     }
@@ -533,7 +528,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
         std::exit(EXIT_FAILURE);
     }
 
-    hMapFile = CreateFileMapping(fd, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
+    hMapFile = CreateFileMapping(hFile, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
 
     if (hMapFile == nullptr)
     {
@@ -541,8 +536,6 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
         std::exit(EXIT_FAILURE);
     }
-
-    mapping = std::uint64_t(hMapFile);
 
     mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
 
@@ -558,22 +551,16 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 #else
     int fd = ::open(filename.data(), O_RDONLY);
 
-    if (fd < 0)
-    {
-        assert(mappedPtr == nullptr);
+    FdGuard fdGuard(fd);
 
+    if (fd < 0)
         return nullptr;
-    }
 
     struct stat Stat{};
 
     if (fstat(fd, &Stat) == -1)
     {
         std::cerr << "fstat failed: " << strerror(errno) << std::endl;
-
-        ::close(fd);
-
-        assert(mappedPtr == nullptr);
 
         return nullptr;
     }
@@ -582,30 +569,23 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
     {
         std::cerr << "Corrupt tablebase file " << filename << std::endl;
 
-        ::close(fd);
-
         std::exit(EXIT_FAILURE);
     }
 
-    // Store mapping size
-    mapping = Stat.st_size;
+    mappingSize = Stat.st_size;
 
-    mappedPtr = mmap(nullptr, mapping, PROT_READ, MAP_SHARED, fd, 0);
+    mappedPtr = mmap(nullptr, mappingSize, PROT_READ, MAP_SHARED, fd, 0);
 
     if (mappedPtr == MAP_FAILED)
     {
         std::cerr << "mmap() failed, name = " << filename << std::endl;
 
-        ::close(fd);
-
         std::exit(EXIT_FAILURE);
     }
 
     #if defined(MADV_RANDOM)
-    madvise(mappedPtr, mapping, MADV_RANDOM);
+    madvise(mappedPtr, mappingSize, MADV_RANDOM);
     #endif
-
-    ::close(fd);
 #endif
 
     std::uint8_t* data = (std::uint8_t*) (mappedPtr);
@@ -632,15 +612,16 @@ void TBTable<T>::unmap() noexcept {
         UnmapViewOfFile(mappedPtr);
         mappedPtr = nullptr;
     }
-    mapping = 0;
+
     hMapFileGuard.close();
 #else
     if (mappedPtr != nullptr)
     {
-        munmap(mappedPtr, mapping);
+        munmap(mappedPtr, mappingSize);
         mappedPtr = nullptr;
     }
-    mapping = 0;
+
+    mappingSize = 0;
 #endif
 }
 
@@ -1158,11 +1139,9 @@ bool check_ac(TBTable<DTZ>* table, int ac, File f) noexcept {
         || (!table->hasPawns && table->key[WHITE] == table->key[BLACK]);
 }
 
-// DTZ scores are sorted by frequency of occurrence and
-// then assigned the values 0, 1, 2, ... in order of decreasing frequency.
+// DTZ scores are sorted by frequency of occurrence and then assigned
+// the values 0, 1, 2, ... in order of decreasing frequency.
 // This is done for each of the four WDLScore values.
-// The mapping information necessary to reconstruct the original values
-// are stored in the TB file and read during map[] init.
 WDLScore map_score(TBTable<WDL>*, File, int value, WDLScore) noexcept {
     return WDLScore(value - 2);
 }
