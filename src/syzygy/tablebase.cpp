@@ -62,6 +62,7 @@
 #endif
 
 #include "../bitboard.h"
+#include "../memory.h"
 #include "../misc.h"
 #include "../movegen.h"
 #include "../option.h"
