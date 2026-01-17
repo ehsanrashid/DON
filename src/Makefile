@@ -892,7 +892,7 @@ ifeq ($(optimize), yes)
     endif
     # Inline settings
     ifeq ($(comp), clang)
-        CXXFLAGS += --start-no-unused-arguments -mllvm -inline-threshold=500 --end-no-unused-arguments
+        CXXFLAGS += -mllvm -inline-threshold=500
     endif
 endif
 
