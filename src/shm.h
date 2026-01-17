@@ -1128,6 +1128,7 @@ class SharedMemory final: public BaseSharedMemory {
         }
 
         dataPtr = static_cast<T*>(mappedPtr);
+
         shmHeader =
           std::launder(reinterpret_cast<ShmHeader*>(static_cast<char*>(mappedPtr) + sizeof(T)));
 
