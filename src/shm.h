@@ -463,25 +463,25 @@ class BaseSharedMemory {
 
 class SharedMemoryRegistry final {
    public:
-    static void register_memory(BaseSharedMemory* memory) {
+    static void register_memory(BaseSharedMemory* sharedMemory) {
         std::scoped_lock lock(mutex);
 
-        memories.insert(memory);
+        sharedMemories.insert(sharedMemory);
     }
 
-    static void unregister_memory(BaseSharedMemory* memory) {
+    static void unregister_memory(BaseSharedMemory* sharedMemory) {
         std::scoped_lock lock(mutex);
 
-        memories.erase(memory);
+        sharedMemories.erase(sharedMemory);
     }
 
     static void clean(bool skipUnmapRegion = false) noexcept {
         std::scoped_lock lock(mutex);
 
-        for (auto* memory : memories)
-            memory->close(skipUnmapRegion);
+        for (auto* sharedMemory : sharedMemories)
+            sharedMemory->close(skipUnmapRegion);
 
-        memories.clear();
+        sharedMemories.clear();
     }
 
    private:
@@ -492,7 +492,7 @@ class SharedMemoryRegistry final {
     SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
 
     static inline std::mutex                            mutex;
-    static inline std::unordered_set<BaseSharedMemory*> memories;
+    static inline std::unordered_set<BaseSharedMemory*> sharedMemories;
 };
 
 class CleanupHooks final {
