@@ -1144,7 +1144,7 @@ class SharedMemory final: public BaseSharedMemory {
 
     std::string name;
     int         fd = -1;
-    FdGuard     fdGuard(fd);
+    FdGuard     fdGuard{fd};
     void*       mappedPtr = nullptr;
     T*          dataPtr   = nullptr;
     ShmHeader*  shmHeader = nullptr;
