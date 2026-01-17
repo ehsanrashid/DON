@@ -517,20 +517,20 @@ class CleanupHooks final {
     CleanupHooks& operator=(const CleanupHooks&) noexcept = delete;
     CleanupHooks& operator=(CleanupHooks&&) noexcept      = delete;
 
-    static void signal_handler(int sig) noexcept {
+    static void signal_handler(int Signal) noexcept {
         // Minimal cleanup; avoid non-signal-safe calls if possible
         // The memory mappings will be released on exit.
         SharedMemoryRegistry::clean(true);
 
         // Restore default and re-raise
-        struct sigaction sigAction{};
-        sigAction.sa_handler = SIG_DFL;
-        sigemptyset(&sigAction.sa_mask);
-        sigAction.sa_flags = SA_RESETHAND | SA_NODEFER;
+        struct sigaction SigAction{};
+        SigAction.sa_handler = SIG_DFL;
+        sigemptyset(&SigAction.sa_mask);
+        SigAction.sa_flags = SA_RESETHAND | SA_NODEFER;
 
-        sigaction(sig, &sigAction, nullptr);
+        sigaction(Signal, &SigAction, nullptr);
 
-        std::raise(sig);
+        std::raise(Signal);
     }
 
     static void register_signal_handlers() noexcept {
@@ -539,13 +539,13 @@ class CleanupHooks final {
         constexpr StdArray<int, 12> Signals{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
                                             SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
 
-        struct sigaction sigAction{};
-        sigAction.sa_handler = signal_handler;
-        sigemptyset(&sigAction.sa_mask);
-        sigAction.sa_flags = 0;
+        struct sigaction SigAction{};
+        SigAction.sa_handler = signal_handler;
+        sigemptyset(&SigAction.sa_mask);
+        SigAction.sa_flags = 0;
 
-        for (int signal : Signals)
-            sigaction(signal, &sigAction, nullptr);
+        for (int Signal : Signals)
+            sigaction(Signal, &SigAction, nullptr);
     }
 
     static inline std::once_flag registerOnce;
