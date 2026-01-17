@@ -128,6 +128,7 @@ inline std::string to_string(SharedMemoryAllocationStatus status) noexcept {
 inline std::string executable_path() noexcept {
     StdArray<char, 4096> executablePath;
     executablePath.fill('\0');
+
     std::size_t executableSize = 0;
 
 #if defined(_WIN32)
