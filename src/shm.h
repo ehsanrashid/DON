@@ -454,80 +454,6 @@ class BackendSharedMemory final {
 
 #else
 
-struct ShmHeader final {
-   public:
-    [[nodiscard]] bool initialize_mutex() noexcept {
-        pthread_mutexattr_t mutexattr;
-
-        if (pthread_mutexattr_init(&mutexattr) != 0)
-            return false;
-
-        const auto clean_mutexattr = [&mutexattr] { pthread_mutexattr_destroy(&mutexattr); };
-
-        if (pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED) != 0)
-        {
-            clean_mutexattr();
-            return false;
-        }
-
-    #if _POSIX_C_SOURCE >= 200809L
-        if (pthread_mutexattr_setrobust(&mutexattr, PTHREAD_MUTEX_ROBUST) != 0)
-        {
-            clean_mutexattr();
-            return false;
-        }
-    #endif
-
-        if (pthread_mutex_init(&mutex, &mutexattr) != 0)
-        {
-            clean_mutexattr();
-            return false;
-        }
-
-        clean_mutexattr();
-        return true;
-    }
-
-    [[nodiscard]] bool lock_mutex() noexcept {
-
-        while (true)
-        {
-            int rc = pthread_mutex_lock(&mutex);
-
-            // Locked successfully
-            if (rc == 0)
-                return true;
-
-    #if _POSIX_C_SOURCE >= 200809L
-            if (rc == EOWNERDEAD)
-            {
-                // Previous owner died, try to make mutex consistent
-                if (pthread_mutex_consistent(&mutex) == 0)
-                    return true;
-
-                break;
-            }
-    #endif
-            // Some real error occurred
-            if (rc != EINTR)
-                break;
-        }
-
-        return false;
-    }
-
-    void unlock_mutex() noexcept { pthread_mutex_unlock(&mutex); }
-
-    static constexpr std::uint32_t MAGIC = 0xAD5F1A12U;
-
-    const std::uint32_t magic = MAGIC;
-
-    pthread_mutex_t mutex;
-
-    alignas(64) std::atomic<bool> initialized{false};
-    alignas(64) std::atomic<std::uint32_t> refCount{0};
-};
-
 class BaseSharedMemory {
    public:
     virtual ~BaseSharedMemory() = default;
@@ -636,6 +562,80 @@ inline int portable_fallocate(int fd, off_t offset, off_t length) noexcept {
     return posix_fallocate(fd, offset, length);
     #endif
 }
+
+struct ShmHeader final {
+   public:
+    [[nodiscard]] bool initialize_mutex() noexcept {
+        pthread_mutexattr_t mutexattr;
+
+        if (pthread_mutexattr_init(&mutexattr) != 0)
+            return false;
+
+        const auto clean_mutexattr = [&mutexattr] { pthread_mutexattr_destroy(&mutexattr); };
+
+        if (pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED) != 0)
+        {
+            clean_mutexattr();
+            return false;
+        }
+
+    #if _POSIX_C_SOURCE >= 200809L
+        if (pthread_mutexattr_setrobust(&mutexattr, PTHREAD_MUTEX_ROBUST) != 0)
+        {
+            clean_mutexattr();
+            return false;
+        }
+    #endif
+
+        if (pthread_mutex_init(&mutex, &mutexattr) != 0)
+        {
+            clean_mutexattr();
+            return false;
+        }
+
+        clean_mutexattr();
+        return true;
+    }
+
+    [[nodiscard]] bool lock_mutex() noexcept {
+
+        while (true)
+        {
+            int rc = pthread_mutex_lock(&mutex);
+
+            // Locked successfully
+            if (rc == 0)
+                return true;
+
+    #if _POSIX_C_SOURCE >= 200809L
+            if (rc == EOWNERDEAD)
+            {
+                // Previous owner died, try to make mutex consistent
+                if (pthread_mutex_consistent(&mutex) == 0)
+                    return true;
+
+                break;
+            }
+    #endif
+            // Some real error occurred
+            if (rc != EINTR)
+                break;
+        }
+
+        return false;
+    }
+
+    void unlock_mutex() noexcept { pthread_mutex_unlock(&mutex); }
+
+    static constexpr std::uint32_t MAGIC = 0xAD5F1A12U;
+
+    const std::uint32_t magic = MAGIC;
+
+    pthread_mutex_t mutex;
+
+    alignas(64) std::atomic<bool> initialized{false};
+    alignas(64) std::atomic<std::uint32_t> refCount{0};
+};
 
 template<typename T>
 class SharedMemory final: public BaseSharedMemory {
