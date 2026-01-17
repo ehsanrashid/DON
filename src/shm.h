@@ -542,27 +542,6 @@ class CleanupHooks final {
     static inline std::once_flag registerOnce;
 };
 
-inline int portable_fallocate(int fd, off_t offset, off_t length) noexcept {
-    #if defined(__APPLE__)
-    fstore_t store = {F_ALLOCATECONTIG, F_PEOFPOSMODE, offset, length, 0};
-
-    int rc = fcntl(fd, F_PREALLOCATE, &store);
-    if (rc == -1)
-    {
-        store.fst_flags = F_ALLOCATEALL;
-
-        rc = fcntl(fd, F_PREALLOCATE, &store);
-    }
-
-    if (rc != -1)
-        rc = ftruncate(fd, offset + length);
-
-    return rc;
-    #else
-    return posix_fallocate(fd, offset, length);
-    #endif
-}
-
 struct ShmHeader final {
    public:
     [[nodiscard]] bool initialize_mutex() noexcept {
@@ -1072,8 +1051,33 @@ class SharedMemory final: public BaseSharedMemory {
         if (ftruncate(fd, off_t(totalSize)) == -1)
             return false;
 
-        if (portable_fallocate(fd, 0, off_t(totalSize)) != 0)
+    #if defined(__APPLE__)
+        off_t offset = 0;
+
+        fstore_t store{};
+        store.fst_flags   = F_ALLOCATECONTIG;
+        store.fst_posmode = F_PEOFPOSMODE;
+        store.fst_offset  = offset;
+        store.fst_length  = totalSize;
+
+        int rc = fcntl(fd, F_PREALLOCATE, &store);
+
+        if (rc == -1)
+        {
+            store.fst_flags = F_ALLOCATEALL;
+
+            rc = fcntl(fd, F_PREALLOCATE, &store);
+        }
+
+        if (rc == -1)
             return false;
+
+        if (ftruncate(fd, off_t(offset + totalSize)) == -1)
+            return false;
+    #else
+        if (posix_fallocate(fd, offset, totalSize) != 0)
+            return false;
+    #endif
 
         mappedPtr = mmap(nullptr, totalSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
