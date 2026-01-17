@@ -563,9 +563,9 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
         return nullptr;
     }
 
-    struct stat objStat;
+    struct stat Stat{};
 
-    if (fstat(fd, &objStat) == -1)
+    if (fstat(fd, &Stat) == -1)
     {
         std::cerr << "fstat failed: " << strerror(errno) << std::endl;
 
@@ -576,7 +576,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
         return nullptr;
     }
 
-    if (objStat.st_size % 64 != 16)
+    if (Stat.st_size % 64 != 16)
     {
         std::cerr << "Corrupt tablebase file " << filename << std::endl;
 
@@ -586,7 +586,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
     }
 
     // Store mapping size
-    mapping = objStat.st_size;
+    mapping = Stat.st_size;
 
     mappedPtr = mmap(nullptr, mapping, PROT_READ, MAP_SHARED, fd, 0);
 

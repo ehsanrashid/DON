@@ -67,6 +67,7 @@
     #include <pthread.h>
     #include <semaphore.h>
     #include <signal.h>
+    #include <csignal>
     #include <sys/file.h>
     #include <sys/mman.h>
     #include <sys/stat.h>
@@ -517,10 +518,19 @@ class CleanupHooks final {
     CleanupHooks& operator=(CleanupHooks&&) noexcept      = delete;
 
     static void signal_handler(int sig) noexcept {
-        // Threads may still be running, so skip munmap (but still perform other cleanup actions).
+        // Minimal cleanup; avoid non-signal-safe calls if possible
         // The memory mappings will be released on exit.
         SharedMemoryRegistry::clean(true);
-        _Exit(128 + sig);
+
+        // Restore default and re-raise
+        struct sigaction sigAction{};
+        sigAction.sa_handler = SIG_DFL;
+        sigemptyset(&sigAction.sa_mask);
+        sigAction.sa_flags = SA_RESETHAND | SA_NODEFER;
+
+        sigaction(sig, &sigAction, nullptr);
+
+        std::raise(sig);
     }
 
     static void register_signal_handlers() noexcept {
@@ -529,7 +539,7 @@ class CleanupHooks final {
         constexpr StdArray<int, 12> Signals{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
                                             SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
 
-        struct sigaction sigAction;
+        struct sigaction sigAction{};
         sigAction.sa_handler = signal_handler;
         sigemptyset(&sigAction.sa_mask);
         sigAction.sa_flags = 0;
@@ -1079,16 +1089,16 @@ class SharedMemory final: public BaseSharedMemory {
     [[nodiscard]] bool setup_existing_region(bool& headerInvalid) noexcept {
         headerInvalid = false;
 
-        struct stat objStat;
+        struct stat Stat{};
 
-        if (fstat(fd, &objStat) == -1)
+        if (fstat(fd, &Stat) == -1)
         {
             std::cerr << "fstat failed: " << strerror(errno) << std::endl;
 
             return false;
         }
 
-        if (std::size_t(objStat.st_size) < totalSize)
+        if (std::size_t(Stat.st_size) < totalSize)
         {
             headerInvalid = true;
 
