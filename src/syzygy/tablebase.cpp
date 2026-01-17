@@ -58,7 +58,7 @@
     #include <cerrno>
     #include <fcntl.h>
     #include <sys/mman.h>
-    #include <unistd.h>
+    #include <unistd.h>  // IWYU pragma: keep
 #endif
 
 #include "../bitboard.h"

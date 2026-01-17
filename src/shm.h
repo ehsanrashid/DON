@@ -80,7 +80,6 @@
         #define SHM_NAME_MAX_SIZE 31
     #elif defined(__linux__) || defined(__NetBSD__) || defined(__DragonFly__)
         #include <limits.h>
-        #include <unistd.h>
         #define SHM_NAME_MAX_SIZE NAME_MAX
     #elif defined(__sun)  // Solaris
         #include <stdlib.h>
@@ -88,7 +87,6 @@
     #elif defined(__FreeBSD__)
         #include <sys/sysctl.h>
         #include <sys/types.h>
-        #include <unistd.h>
         #define SHM_NAME_MAX_SIZE 255
     #else
         #define SHM_NAME_MAX_SIZE 255
@@ -630,8 +628,8 @@ struct ShmHeader final {
 
     pthread_mutex_t mutex;
 
-    alignas(64) std::atomic<bool> initialized{false};
-    alignas(64) std::atomic<std::uint32_t> refCount{0};
+    std::atomic<bool>          initialized{false};
+    std::atomic<std::uint32_t> refCount{0};
 };
 
 template<typename T>
