@@ -390,14 +390,15 @@ struct HasGroupCount<T, std::void_t<decltype(std::declval<T>().Cache.GroupCount)
     : std::bool_constant<true> {};
 
 template<typename T, typename Pred>
-std::unordered_set<CpuIndex> read_cache_members(const T* info, Pred&& is_cpu_allowed) noexcept {
+std::unordered_set<CpuIndex> read_cache_members(const T* processorInfo,
+                                                Pred&&   is_cpu_allowed) noexcept {
     std::unordered_set<CpuIndex> cpus;
 
     // Handle types with Cache.GroupCount
     if constexpr (HasGroupCount<T>::value)
     {
         // On Windows 10 this will read a 0 because GroupCount doesn't exist
-        WORD groupCount = info->Cache.GroupCount;
+        WORD groupCount = processorInfo->Cache.GroupCount;
 
         if (groupCount < 1)
             groupCount = 1;
@@ -406,8 +407,8 @@ std::unordered_set<CpuIndex> read_cache_members(const T* info, Pred&& is_cpu_all
         {
             for (BYTE number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
             {
-                WORD      groupId   = info->Cache.GroupMasks[i].Group;
-                KAFFINITY groupMask = info->Cache.GroupMasks[i].Mask;
+                WORD      groupId   = processorInfo->Cache.GroupMasks[i].Group;
+                KAFFINITY groupMask = processorInfo->Cache.GroupMasks[i].Mask;
 
                 CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
@@ -423,8 +424,8 @@ std::unordered_set<CpuIndex> read_cache_members(const T* info, Pred&& is_cpu_all
     {
         for (BYTE number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
         {
-            WORD      groupId   = info->Cache.GroupMask.Group;
-            KAFFINITY groupMask = info->Cache.GroupMask.Mask;
+            WORD      groupId   = processorInfo->Cache.GroupMask.Group;
+            KAFFINITY groupMask = processorInfo->Cache.GroupMask.Mask;
 
             CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
@@ -726,8 +727,6 @@ class NumaConfig final {
     NumaConfig& operator=(const NumaConfig&) noexcept = delete;
     NumaConfig& operator=(NumaConfig&&) noexcept      = default;
 
-    bool is_cpu_assigned(CpuIndex cpuId) const noexcept { return nodeByCpu.count(cpuId) == 1; }
-
     NumaIndex nodes_size() const noexcept { return nodes.size(); }
 
     CpuIndex node_cpus_size(NumaIndex numaId) const noexcept {
@@ -739,6 +738,10 @@ class NumaConfig final {
     CpuIndex cpus_size() const noexcept { return nodeByCpu.size(); }
 
     bool requires_memory_replication() const noexcept { return affinityCustom || nodes_size() > 1; }
+
+    bool is_cpu_assigned(CpuIndex cpuId) const noexcept {
+        return nodeByCpu.find(cpuId) != nodeByCpu.end();
+    }
 
     std::string to_string() const noexcept {
         std::ostringstream oss;
