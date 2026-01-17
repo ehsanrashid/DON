@@ -170,6 +170,7 @@ class RootMoves final {
 
     const_iterator find(size_type beg, size_type end, Move m) const noexcept {
         assert(beg <= end && end <= size());
+
         return std::find(begin() + beg, begin() + end, m);
     }
     const_iterator find(size_type beg, size_type end, const value_type& v) const noexcept {
@@ -195,10 +196,14 @@ class RootMoves final {
 
     bool contains(size_type beg, size_type end, Move m) const noexcept {
         assert(beg <= end && end <= size());
-        return find(beg, end, m) != begin() + end;
+
+        const auto fst = begin() + beg;
+        const auto lst = begin() + end;
+        return std::find(fst, lst, m) != lst;
     }
     bool contains(size_type beg, size_type end, const value_type& v) const noexcept {
         assert(beg <= end && end <= size());
+
         return v.pv.empty() || contains(beg, end, v.pv[0]);
     }
 
@@ -218,17 +223,22 @@ class RootMoves final {
     iterator erase(const_iterator beg, const_iterator end) noexcept {
         return rootMoves.erase(beg, end);
     }
+
     bool erase(Move m) noexcept {
         auto itr = find(m);
+
         if (itr == end())
             return false;
+
         erase(itr);
         return true;
     }
     bool erase(const value_type& v) noexcept {
         auto itr = find(v);
+
         if (itr == end())
             return false;
+
         erase(itr);
         return true;
     }
@@ -236,17 +246,22 @@ class RootMoves final {
     template<typename Predicate>
     bool move_to_front(Predicate&& pred) noexcept {
         auto itr = find_if(std::forward<Predicate>(pred));
+
         if (itr == end())
             return false;
+
         if (itr != begin())
             std::rotate(begin(), itr, itr + 1);
+
         return true;
     }
 
     bool swap_to_front(Move m) noexcept {
         auto itr = find(m);
-        if (itr == end() || itr == begin())
+
+        if (itr == begin() || itr == end())
             return false;
+
         std::iter_swap(begin(), itr);
         return true;
     }
@@ -254,6 +269,7 @@ class RootMoves final {
     // Sorts within the range [beg, end)
     void sort(size_type beg, size_type end) noexcept {
         assert(beg <= end && end <= size());
+
         std::stable_sort(begin() + beg, begin() + end);
     }
     template<typename Predicate>
@@ -263,10 +279,12 @@ class RootMoves final {
 
     [[nodiscard]] reference operator[](size_type idx) noexcept {
         assert(idx < size());
+
         return rootMoves[idx];
     }
     [[nodiscard]] const_reference operator[](size_type idx) const noexcept {
         assert(idx < size());
+
         return rootMoves[idx];
     }
 
