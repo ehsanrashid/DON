@@ -455,12 +455,77 @@ class BackendSharedMemory final {
 #else
 
 struct ShmHeader final {
-    static constexpr std::uint32_t SHM_MAGIC = 0xAD5F1A12U;
+   public:
+    [[nodiscard]] bool initialize_mutex() noexcept {
+        pthread_mutexattr_t mutexattr;
 
-    pthread_mutex_t            mutex;
-    std::atomic<std::uint32_t> refCount{0};
-    std::atomic<bool>          initialized{false};
-    std::uint32_t              magic = SHM_MAGIC;
+        if (pthread_mutexattr_init(&mutexattr) != 0)
+            return false;
+
+        const auto clean_mutexattr = [&mutexattr] { pthread_mutexattr_destroy(&mutexattr); };
+
+        if (pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED) != 0)
+        {
+            clean_mutexattr();
+            return false;
+        }
+
+    #if _POSIX_C_SOURCE >= 200809L
+        if (pthread_mutexattr_setrobust(&mutexattr, PTHREAD_MUTEX_ROBUST) != 0)
+        {
+            clean_mutexattr();
+            return false;
+        }
+    #endif
+
+        if (pthread_mutex_init(&mutex, &mutexattr) != 0)
+        {
+            clean_mutexattr();
+            return false;
+        }
+
+        clean_mutexattr();
+        return true;
+    }
+
+    [[nodiscard]] bool lock_mutex() noexcept {
+
+        while (true)
+        {
+            int rc = pthread_mutex_lock(&mutex);
+
+            // Locked successfully
+            if (rc == 0)
+                return true;
+
+    #if _POSIX_C_SOURCE >= 200809L
+            if (rc == EOWNERDEAD)
+            {
+                // Previous owner died, try to make mutex consistent
+                if (pthread_mutex_consistent(&mutex) == 0)
+                    return true;
+
+                break;
+            }
+    #endif
+            // Some real error occurred
+            if (rc != EINTR)
+                break;
+        }
+
+        return false;
+    }
+
+    void unlock_mutex() noexcept { pthread_mutex_unlock(&mutex); }
+
+    static constexpr std::uint32_t MAGIC = 0xAD5F1A12U;
+
+    const std::uint32_t magic = MAGIC;
+
+    pthread_mutex_t mutex;
+
+    alignas(64) std::atomic<bool> initialized{false};
+    alignas(64) std::atomic<std::uint32_t> refCount{0};
 };
 
 class BaseSharedMemory {
@@ -693,7 +758,7 @@ class SharedMemory final: public BaseSharedMemory {
                 return false;
             }
 
-            if (!lock_mutex())
+            if (shmHeader == nullptr || !shmHeader->lock_mutex())
             {
                 unmap_region();
 
@@ -717,7 +782,8 @@ class SharedMemory final: public BaseSharedMemory {
 
             if (!create_sentinel_file_locked())
             {
-                unlock_mutex();
+                if (shmHeader != nullptr)
+                    shmHeader->unlock_mutex();
 
                 unmap_region();
 
@@ -735,7 +801,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             shmHeader->refCount.fetch_add(1, std::memory_order_acq_rel);
 
-            unlock_mutex();
+            shmHeader->unlock_mutex();
 
             unlock_file();
 
@@ -753,8 +819,8 @@ class SharedMemory final: public BaseSharedMemory {
         bool fileLocked   = lock_file(LOCK_EX);
         bool mutexLocked  = false;
 
-        if (fileLocked && shmHeader != nullptr)
-            mutexLocked = lock_mutex();
+        if (fileLocked)
+            mutexLocked = shmHeader != nullptr && shmHeader->lock_mutex();
 
         if (mutexLocked)
         {
@@ -765,7 +831,8 @@ class SharedMemory final: public BaseSharedMemory {
 
             removeRegion = !has_other_live_sentinels_locked();
 
-            unlock_mutex();
+            if (shmHeader != nullptr)
+                shmHeader->unlock_mutex();
         }
         else
         {
@@ -950,61 +1017,6 @@ class SharedMemory final: public BaseSharedMemory {
         sentinelPath.clear();
     }
 
-    [[nodiscard]] bool initialize_shared_mutex() noexcept {
-        if (shmHeader == nullptr)
-            return false;
-
-        pthread_mutexattr_t mutexattr;
-
-        if (pthread_mutexattr_init(&mutexattr) != 0)
-            return false;
-
-        int rc = pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED);
-
-    #if _POSIX_C_SOURCE >= 200809L
-        if (rc == 0)
-            rc = pthread_mutexattr_setrobust(&mutexattr, PTHREAD_MUTEX_ROBUST);
-    #endif
-
-        if (rc == 0)
-            rc = pthread_mutex_init(&shmHeader->mutex, &mutexattr);
-
-        pthread_mutexattr_destroy(&mutexattr);
-
-        return rc == 0;
-    }
-
-    [[nodiscard]] bool lock_mutex() noexcept {
-        if (shmHeader == nullptr)
-            return false;
-
-        while (true)
-        {
-            int rc = pthread_mutex_lock(&shmHeader->mutex);
-
-            if (rc == 0)
-                return true;
-
-    #if _POSIX_C_SOURCE >= 200809L
-            if (rc == EOWNERDEAD)
-            {
-                if (pthread_mutex_consistent(&shmHeader->mutex) == 0)
-                    return true;
-
-                return false;
-            }
-    #endif
-
-            if (rc != EINTR)
-                return false;
-        }
-    }
-
-    void unlock_mutex() noexcept {
-        if (shmHeader != nullptr)
-            pthread_mutex_unlock(&shmHeader->mutex);
-    }
-
     bool has_other_live_sentinels_locked() const noexcept {
         DIR* dir = opendir("/dev/shm");
 
@@ -1077,11 +1089,11 @@ class SharedMemory final: public BaseSharedMemory {
 
         new (dataPtr) T{value};
 
-        if (!initialize_shared_mutex())
+        if (shmHeader == nullptr || !shmHeader->initialize_mutex())
             return false;
 
-        shmHeader->refCount.store(0, std::memory_order_release);
         shmHeader->initialized.store(true, std::memory_order_release);
+        shmHeader->refCount.store(0, std::memory_order_release);
 
         return true;
     }
@@ -1124,7 +1136,7 @@ class SharedMemory final: public BaseSharedMemory {
             return false;
 
         if (!shmHeader->initialized.load(std::memory_order_acquire)
-            || shmHeader->magic != ShmHeader::SHM_MAGIC)
+            || shmHeader->magic != ShmHeader::MAGIC)
         {
             headerInvalid = true;
 
