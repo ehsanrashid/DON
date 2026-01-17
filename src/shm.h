@@ -1113,25 +1113,15 @@ class SharedMemory final: public BaseSharedMemory {
         struct stat Stat{};
 
         if (fstat(fd, &Stat) == -1)
-        {
-            std::cerr << "fstat failed: " << strerror(errno) << std::endl;
-
             return false;
-        }
 
         if (std::size_t(Stat.st_size) < totalSize)
-        {
-            headerInvalid = true;
-
             return false;
-        }
 
         mappedPtr = mmap(nullptr, totalSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
         if (mappedPtr == MAP_FAILED)
         {
-            std::cerr << "mmap() failed" << std::endl;
-
             mappedPtr = nullptr;
 
             return false;
