@@ -389,7 +389,11 @@ struct TBTable final {
     void*         mappedPtr = nullptr;
     std::uint8_t* mapPtr    = nullptr;
     std::uint64_t mapping   = 0;
-    InitOnce      initOnce;
+#if defined(_WIN32)
+    HANDLE      hMapFile = nullptr;
+    HandleGuard hMapFileGuard{hMapFile};
+#endif
+    InitOnce initOnce;
 };
 
 template<>
@@ -501,6 +505,8 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
     HANDLE fd = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
                            FILE_FLAG_RANDOM_ACCESS, nullptr);
 
+    HandleGuard hFdGuard{fd};
+
     if (fd == INVALID_HANDLE_VALUE)
     {
         assert(mappedPtr == nullptr);
@@ -515,8 +521,6 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
     {
         std::cerr << "GetFileSize() failed" << std::endl;
 
-        CloseHandle(fd);
-
         assert(mappedPtr == nullptr);
 
         return nullptr;
@@ -529,9 +533,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
         std::exit(EXIT_FAILURE);
     }
 
-    HANDLE hMapFile = CreateFileMapping(fd, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
-
-    CloseHandle(fd);
+    hMapFile = CreateFileMapping(fd, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
 
     if (hMapFile == nullptr)
     {
@@ -549,7 +551,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
         std::cerr << "MapViewOfFile() failed, name = " << filename << ", error = " << GetLastError()
                   << std::endl;
 
-        CloseHandle(hMapFile);
+        hMapFileGuard.close();
 
         std::exit(EXIT_FAILURE);
     }
@@ -630,18 +632,15 @@ void TBTable<T>::unmap() noexcept {
         UnmapViewOfFile(mappedPtr);
         mappedPtr = nullptr;
     }
-    if (mapping != 0)
-    {
-        CloseHandle(HANDLE(mapping));
-        mapping = 0;
-    }
+    mapping = 0;
+    hMapFileGuard.close();
 #else
     if (mappedPtr != nullptr)
     {
         munmap(mappedPtr, mapping);
         mappedPtr = nullptr;
-        mapping   = 0;
     }
+    mapping = 0;
 #endif
 }
 

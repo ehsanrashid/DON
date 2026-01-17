@@ -386,6 +386,8 @@ class BackendSharedMemory final {
 
         HANDLE hMutex = CreateMutex(nullptr, FALSE, mutexName.c_str());
 
+        HandleGuard hMutexGuard{hMutex};
+
         if (hMutex == nullptr)
         {
             status       = Status::MutexCreate;
@@ -401,7 +403,6 @@ class BackendSharedMemory final {
             lastErrorStr = error_to_string(GetLastError());
 
             partial_cleanup();
-            CloseHandle(hMutex);
             return;
         }
 
@@ -425,11 +426,8 @@ class BackendSharedMemory final {
             lastErrorStr = error_to_string(GetLastError());
 
             partial_cleanup();
-            CloseHandle(hMutex);
             return;
         }
-
-        CloseHandle(hMutex);
 
         status = Status::Success;
     }
@@ -440,18 +438,16 @@ class BackendSharedMemory final {
             UnmapViewOfFile(mappedPtr);
             mappedPtr = nullptr;
         }
-        if (hMapFile != nullptr)
-        {
-            CloseHandle(hMapFile);
-            hMapFile = nullptr;
-        }
+
+        hMapFileGuard.close();
     }
 
     void cleanup() noexcept { partial_cleanup(); }
 
     static constexpr DWORD IS_INITIALIZED = 1;
 
-    HANDLE      hMapFile  = nullptr;
+    HANDLE      hMapFile = nullptr;
+    HandleGuard hMapFileGuard{hMapFile};
     void*       mappedPtr = nullptr;
     Status      status    = Status::NotInitialized;
     std::string lastErrorStr;

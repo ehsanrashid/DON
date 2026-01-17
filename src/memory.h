@@ -273,6 +273,38 @@ template<std::size_t Alignment, typename T>
 
 #if defined(_WIN32)
 
+struct HandleGuard final {
+
+    explicit HandleGuard(HANDLE& h) noexcept :
+        handle(h) {}
+    HandleGuard() noexcept                              = delete;
+    HandleGuard(const HandleGuard&) noexcept            = delete;
+    HandleGuard& operator=(const HandleGuard&) noexcept = delete;
+
+    ~HandleGuard() noexcept { close(); }
+
+    void close() noexcept {
+        if (handle != nullptr)
+        {
+            CloseHandle(handle);
+            handle = nullptr;
+        }
+    }
+
+    void reset(HANDLE newHandle = nullptr) noexcept {
+        close();
+        handle = newHandle;
+    }
+
+    HANDLE release() noexcept {
+        HANDLE h = handle;
+        handle   = nullptr;
+        return h;
+    }
+
+    HANDLE& handle;
+};
+
 struct Advapi final {
    public:
     // clang-format off
@@ -369,12 +401,14 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
 
     HANDLE hProcess = nullptr;
 
+    HandleGuard hProcessGuard{hProcess};
+
     // Need SeLockMemoryPrivilege, so try to enable it for the process
     if (!advapi.openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
                                  &hProcess))
         return failureFunc();
 
-    TOKEN_PRIVILEGES newTp;
+    TOKEN_PRIVILEGES newTp{};
     newTp.PrivilegeCount           = 1;
     newTp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
@@ -382,7 +416,7 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     if (!advapi.lookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &newTp.Privileges[0].Luid))
         return failureFunc();
 
-    TOKEN_PRIVILEGES oldTp;
+    TOKEN_PRIVILEGES oldTp{};
     DWORD            oldTpLen = 0;
 
     // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
@@ -399,11 +433,6 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     // Privilege no longer needed, restore the privileges
     //if (oldTp.PrivilegeCount > 0)
     advapi.adjustTokenPrivileges(hProcess, FALSE, &oldTp, 0, nullptr, nullptr);
-
-    if (hProcess != nullptr)
-        CloseHandle(hProcess);
-
-    advapi.free();
 
     return std::forward<decltype(ret)>(ret);
     #endif
