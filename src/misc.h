@@ -653,47 +653,53 @@ class FixedVector final {
 
     bool push_back(const T& value) noexcept {
         assert(size() < capacity());
+
         data()[_size++] = value;  // copy-assign into pre-initialized slot
         return true;
     }
     bool push_back(T&& value) noexcept {
         assert(size() < capacity());
+
         data()[_size++] = std::move(value);
         return true;
     }
     template<typename... Args>
     bool emplace_back(Args&&... args) noexcept {
         assert(size() < capacity());
+
         data()[_size++] = T(std::forward<Args>(args)...);
         return true;
     }
 
     void pop_back() noexcept {
         assert(size() != 0);
+
         --_size;
     }
 
     T& back() noexcept {
         assert(size() > 0);
+
         return data()[size() - 1];
     }
     const T& back() const noexcept {
         assert(size() > 0);
+
         return data()[size() - 1];
     }
 
     T& operator[](std::size_t idx) noexcept {
         assert(idx < size());
-        assert(size() <= capacity());
+
         return data()[idx];
     }
     const T& operator[](std::size_t idx) const noexcept {
         assert(idx < size());
-        assert(size() <= capacity());
+
         return data()[idx];
     }
 
-    void size(std::size_t newSize) noexcept {
+    void resize(std::size_t newSize) noexcept {
 
         if (newSize > capacity())
             newSize = capacity();
@@ -702,10 +708,11 @@ class FixedVector final {
     }
 
     T* make_space(std::size_t space) noexcept {
-        T* value = &data()[size()];
-        _size += space;
-        assert(size() <= capacity());
-        return value;
+        const std::size_t oldSize = size();
+
+        resize(oldSize + space);
+
+        return &data()[oldSize];
     }
 
     void clear() noexcept { _size = 0; }
