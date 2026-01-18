@@ -308,7 +308,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
     assert(count(WHITE, KING) == 1 && count(BLACK, KING) == 1);
     assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
     assert((pieces_bb(PAWN) & PROMOTION_RANKS_BB) == 0);
-    assert(is_ok(square<KING>(WHITE)) && is_ok(square<KING>(BLACK)));
+    assert(square<KING>(WHITE) != SQ_NONE && square<KING>(BLACK) != SQ_NONE);
     assert(distance(square<KING>(WHITE), square<KING>(BLACK)) > 1);
 
     iss >> std::ws;
@@ -440,7 +440,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 
     set_ext_state();
 
-    if (is_ok(enPassantSq))
+    if (enPassantSq != SQ_NONE)
     {
         // En-passant square will be considered only if
         // a) there is an enemy pawn in front of epSquare
@@ -575,7 +575,7 @@ std::string Position::fen(bool full) const noexcept {
 
     fens += ' ';
 
-    if (const Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
+    if (const Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
         fens += to_square(enPassantSq);
     else
         fens += '-';
@@ -602,7 +602,7 @@ void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     assert((pieces_bb(c, KING) & kingOrgSq) != 0);
 
     CastlingSide cs = make_cs(kingOrgSq, rookOrgSq);
-    assert(!is_ok(castling_rook_sq(c, cs)));
+    assert(castling_rook_sq(c, cs) == SQ_NONE);
 
     CastlingRights cr = make_cr(c, cs);
 
@@ -652,7 +652,7 @@ void Position::set_state() noexcept {
 
     st->key ^= Zobrist::castling(castling_rights());
 
-    if (const Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
+    if (const Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
         st->key ^= Zobrist::enpassant(enPassantSq);
 
     if (active_color() == BLACK)
@@ -701,7 +701,7 @@ template<bool After>
 bool Position::enpassant_possible(Color           ac,
                                   Square          enPassantSq,
                                   Bitboard* const epPawnsBBp) const noexcept {
-    assert(is_ok(enPassantSq));
+    assert(enPassantSq != SQ_NONE);
 
     Bitboard epPawnsBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
     if (epPawnsBBp != nullptr)
@@ -870,7 +870,7 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
 
     st->key ^= Zobrist::turn();
 
-    if (is_ok(en_passant_sq()))
+    if (en_passant_sq() != SQ_NONE)
     {
         st->key ^= Zobrist::enpassant(en_passant_sq());
         reset_en_passant_sq();
@@ -933,7 +933,7 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
                 assert(relative_rank(ac, dstSq) == RANK_6);
                 assert((pieces_bb(~ac, PAWN) & capturedSq) != 0);
                 assert(empty(dstSq) && empty(dstSq + pawn_spush(ac)));
-                assert(!is_ok(en_passant_sq()));  // Already reset to SQ_NONE
+                assert(en_passant_sq() == SQ_NONE);  // Already reset to SQ_NONE
                 assert(rule50_count() == 1);
                 assert(st->preSt->enPassantSq == dstSq);
                 assert(st->preSt->rule50Count == 0);
@@ -1204,7 +1204,7 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
 
     st->key ^= Zobrist::turn();
 
-    if (is_ok(en_passant_sq()))
+    if (en_passant_sq() != SQ_NONE)
     {
         st->key ^= Zobrist::enpassant(en_passant_sq());
         reset_en_passant_sq();
@@ -1230,7 +1230,7 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
 
 // Unmakes a null move
 void Position::undo_null_move() noexcept {
-    assert(!is_ok(captured_sq()));
+    assert(captured_sq() == SQ_NONE);
     assert(checkers_bb() == 0);
     assert(!is_ok(captured_pc()));
     assert(!is_ok(promoted_pc()));
@@ -1461,7 +1461,7 @@ bool Position::fork(Move m) const noexcept {
 Key Position::move_key(Move m) const noexcept {
     Key moveKey = st->key ^ Zobrist::turn();
 
-    if (const Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
+    if (const Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
         moveKey ^= Zobrist::enpassant(enPassantSq);
 
     if (m == Move::Null)
@@ -1574,7 +1574,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     }
 
     Bitboard epPawnsBB;
-    if (is_ok(enPassantSq) && enpassant_possible<false>(~ac, enPassantSq, &epPawnsBB))
+    if (enPassantSq != SQ_NONE && enpassant_possible<false>(~ac, enPassantSq, &epPawnsBB))
     {
         assert(epPawnsBB != 0);
         attackersBB |= epPawnsBB;
@@ -1654,7 +1654,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
         ge ^= 1;
 
-        if (!is_ok(enPassantSq) && discovery[ac] && (b = blockers_bb(~ac) & acAttackersBB) != 0)
+        if (enPassantSq == SQ_NONE && discovery[ac] && (b = blockers_bb(~ac) & acAttackersBB) != 0)
         {
             Square sq = pop_lsq(b);
             pt        = type_of(piece(sq));
@@ -1722,7 +1722,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             if (qbBB != 0)
                 attackersBB |= qbBB & attacks_bb<BISHOP>(*magic, occupancyBB);
 
-            if (is_ok(enPassantSq) && rank_of(orgSq) == rank_of(dstSq))
+            if (enPassantSq != SQ_NONE && rank_of(orgSq) == rank_of(dstSq))
             {
                 occupancyBB ^= make_bb(dstSq, enPassantSq);
 
@@ -1997,7 +1997,7 @@ Key Position::compute_key() const noexcept {
 
     key ^= Zobrist::castling(castling_rights());
 
-    if (const Square enPassantSq = en_passant_sq(); is_ok(enPassantSq))
+    if (const Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
         key ^= Zobrist::enpassant(enPassantSq);
 
     if (active_color() == BLACK)
@@ -2081,7 +2081,7 @@ bool Position::_is_ok() const noexcept {
         || piece(square<KING>(WHITE)) != Piece::W_KING         //
         || piece(square<KING>(BLACK)) != Piece::B_KING         //
         || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1
-        || (is_ok(en_passant_sq()) && relative_rank(active_color(), en_passant_sq()) != RANK_6
+        || (en_passant_sq() != SQ_NONE && relative_rank(active_color(), en_passant_sq()) != RANK_6
             && !enpassant_possible(active_color(), en_passant_sq())))
         assert(false && "Position::_is_ok(): Default");
 
@@ -2158,7 +2158,7 @@ bool Position::_is_ok() const noexcept {
 
             CastlingRights cr = make_cr(c, cs);
 
-            if (!is_ok(castling_rook_sq(c, cs))
+            if (castling_rook_sq(c, cs) == SQ_NONE
                 || (pieces_bb(c, ROOK) & castling_rook_sq(c, cs)) == 0
                 || (castling_rights_mask(castling_rook_sq(c, cs))) != cr
                 || (castling_rights_mask(square<KING>(c)) & cr) != cr)
@@ -2269,9 +2269,9 @@ void State::dump(std::ostream& os) const noexcept {
         os << u64_to_string(nonPawnKeys[c][1]) << "\n";
     }
 
-    os << "En-Passant Square: " << (is_ok(enPassantSq) ? to_square(enPassantSq) : "-");
+    os << "En-Passant Square: " << (enPassantSq != SQ_NONE ? to_square(enPassantSq) : "-");
     os << "\n";
-    os << "Captured Square: " << (is_ok(capturedSq) ? to_square(capturedSq) : "-");
+    os << "Captured Square: " << (capturedSq != SQ_NONE ? to_square(capturedSq) : "-");
     os << "\n";
 
     os << "Pinner Bitboards:\n";
@@ -2379,7 +2379,7 @@ void Position::dump(std::ostream& os) const noexcept {
     {
         for (Square s : squaresTable[c])
         {
-            os << (is_ok(s) ? to_square(s) : "-");
+            os << (s != SQ_NONE ? to_square(s) : "-");
             os << " ";
         }
         os << "\n";
@@ -2396,7 +2396,7 @@ void Position::dump(std::ostream& os) const noexcept {
             os << "\n";
             os << BitBoard::pretty(castlings.kingPathBB[c][+cs]);
             os << "\n";
-            os << (is_ok(castlings.rookSq[c][+cs]) ? to_square(castlings.rookSq[c][+cs]) : "-");
+            os << (castlings.rookSq[c][+cs] != SQ_NONE ? to_square(castlings.rookSq[c][+cs]) : "-");
             os << "\n";
         }
         os << "\n";
