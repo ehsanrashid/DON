@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "../misc.h"
 #include "architecture.h"
