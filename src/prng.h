@@ -86,13 +86,14 @@ class XorShift64Star final {
 
         std::uint64_t t = 0;
 
-        for (std::uint8_t b = 0; b < 64; ++b)
-        {
-            if ((JumpMask & bit(b)) != 0)
-                t ^= s;
+        if (JumpMask != 0)
+            for (std::uint8_t b = 0; b < 64; ++b)
+            {
+                if ((JumpMask & bit(b)) != 0)
+                    t ^= s;
 
-            rand64();
-        }
+                rand64();
+            }
 
         s = t;
     }

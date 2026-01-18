@@ -174,7 +174,7 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
 
         BOOL status = GetProcessGroupAffinity(GetCurrentProcess(), &groupCount, alignedGroupArray);
 
-        if (status != 0)
+        if (status == TRUE)
             return std::make_pair(TRUE,
                                   std::vector(alignedGroupArray, alignedGroupArray + groupCount));
 
@@ -215,11 +215,11 @@ inline WindowsAffinity get_process_affinity() noexcept {
     if (getThreadSelectedCpuSetMasks != nullptr)
     {
         USHORT requiredMaskCount;
+
         status = getThreadSelectedCpuSetMasks(GetCurrentThread(), nullptr, 0, &requiredMaskCount);
 
-        // Expect ERROR_INSUFFICIENT_BUFFER from GetThreadSelectedCpuSetMasks,
-        // but other failure is an actual error.
-        if (status == 0 && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+        // Expect ERROR_INSUFFICIENT_BUFFER from GetThreadSelectedCpuSetMasks, but other failure is an actual error
+        if (status == FALSE && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         {
             winAffinity.newDeterminate = false;
         }
@@ -232,7 +232,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
             status = getThreadSelectedCpuSetMasks(GetCurrentThread(), groupAffinities.get(),
                                                   requiredMaskCount, &requiredMaskCount);
 
-            if (status == 0)
+            if (status == FALSE)
                 winAffinity.newDeterminate = false;
             else
             {
@@ -243,9 +243,14 @@ inline WindowsAffinity get_process_affinity() noexcept {
                     WORD      groupId   = groupAffinities[i].Group;
                     KAFFINITY groupMask = groupAffinities[i].Mask;
 
-                    for (BYTE number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-                        if (groupMask & (KAFFINITY(1) << number))
-                            cpus.insert(groupId * WIN_PROCESSOR_GROUP_SIZE + number);
+                    if (groupMask != 0)
+                        for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+                            if ((groupMask & (KAFFINITY(1) << number)) != 0)
+                            {
+                                CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
+
+                                cpus.insert(cpuId);
+                            }
                 }
 
                 winAffinity.newApi = std::move(cpus);
@@ -255,10 +260,9 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
     // NOTE: There is no way to determine full affinity using the old API
     //       if individual threads set affinity on different processor groups.
-
     DWORD_PTR procMask, sysMask;
-    status = GetProcessAffinityMask(GetCurrentProcess(), &procMask, &sysMask);
 
+    status = GetProcessAffinityMask(GetCurrentProcess(), &procMask, &sysMask);
     // If procMask == 0 then cannot determine affinity because it spans processor groups.
     // On Windows 11 and Server 2022 it will instead
     //     > If, however, hHandle specifies a handle to the current process, the function
@@ -266,22 +270,23 @@ inline WindowsAffinity get_process_affinity() noexcept {
     //     > as the process' primary group) in order to set the
     //     > lpProcessAffinityMask and lpSystemAffinityMask.
     // So it will never be indeterminate here. Can only make assumptions later.
-    if (status == 0 || procMask == 0)
+    if (status == FALSE || procMask == 0)
     {
         winAffinity.oldDeterminate = false;
+
         return winAffinity;
     }
 
     // If SetProcessAffinityMask was never called the affinity must span
     // all processor groups, but if it was called it must only span one.
-
-    std::vector<USHORT> procGroupAffinity;  // Need to capture this later and capturing
-                                            // from structured bindings requires c++20.
+    std::vector<USHORT> procGroupAffinity;  // Need to capture this later
 
     std::tie(status, procGroupAffinity) = get_process_group_affinity();
-    if (status == 0)
+
+    if (status == FALSE)
     {
         winAffinity.oldDeterminate = false;
+
         return winAffinity;
     }
 
@@ -293,12 +298,19 @@ inline WindowsAffinity get_process_affinity() noexcept {
         {
             std::unordered_set<CpuIndex> cpus;
 
-            WORD      groupId   = procGroupAffinity[0];
-            KAFFINITY groupMask = procMask;
+            if (procMask != 0)
+            {
+                WORD      groupId   = procGroupAffinity[0];
+                KAFFINITY groupMask = procMask;
 
-            for (BYTE number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-                if (groupMask & (KAFFINITY(1) << number))
-                    cpus.insert(groupId * WIN_PROCESSOR_GROUP_SIZE + number);
+                for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+                    if ((groupMask & (KAFFINITY(1) << number)) != 0)
+                    {
+                        CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
+
+                        cpus.insert(cpuId);
+                    }
+            }
 
             winAffinity.oldApi = std::move(cpus);
         }
@@ -315,10 +327,9 @@ inline WindowsAffinity get_process_affinity() noexcept {
         //     > (which by default is the same as the process' primary group)
         //     > in order to set the lpProcessAffinityMask and lpSystemAffinityMask.
         // In which case can actually retrieve the full affinity.
-
         if (getThreadSelectedCpuSetMasks != nullptr)
         {
-            std::thread th([&]() {
+            std::thread th([&winAffinity, &procGroupAffinity]() {
                 std::unordered_set<CpuIndex> cpus;
 
                 bool affinityFull = true;
@@ -341,11 +352,11 @@ inline WindowsAffinity get_process_affinity() noexcept {
                         groupAffinity.Group = groupId;
                         groupAffinity.Mask  = KAFFINITY(1) << i;
 
-                        status =
-                          SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr);
-                        if (status == 0)
+                        if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr)
+                            == FALSE)
                         {
                             winAffinity.oldDeterminate = false;
+
                             return;
                         }
 
@@ -353,11 +364,11 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                         DWORD_PTR thProcMask, thSysMask;
 
-                        status =
-                          GetProcessAffinityMask(GetCurrentProcess(), &thProcMask, &thSysMask);
-                        if (status == 0)
+                        if (GetProcessAffinityMask(GetCurrentProcess(), &thProcMask, &thSysMask)
+                            == FALSE)
                         {
                             winAffinity.oldDeterminate = false;
+
                             return;
                         }
 
@@ -368,9 +379,14 @@ inline WindowsAffinity get_process_affinity() noexcept {
                     if (combinedProcMask != combinedSysMask)
                         affinityFull = false;
 
-                    for (BYTE number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-                        if (combinedProcMask & (KAFFINITY(1) << number))
-                            cpus.insert(groupId * WIN_PROCESSOR_GROUP_SIZE + number);
+                    if (combinedProcMask != 0)
+                        for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+                            if ((combinedProcMask & (KAFFINITY(1) << number)) != 0)
+                            {
+                                CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
+
+                                cpus.insert(cpuId);
+                            }
                 }
 
                 // Have to detect the case where the affinity was not set,
@@ -416,14 +432,14 @@ std::unordered_set<CpuIndex> read_cache_members(const T* processorInfo,
 
         for (WORD i = 0; i < groupCount; ++i)
         {
-            for (BYTE number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+            for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
             {
                 WORD      groupId   = processorInfo->Cache.GroupMasks[i].Group;
                 KAFFINITY groupMask = processorInfo->Cache.GroupMasks[i].Mask;
 
                 CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
-                if (!(groupMask & (KAFFINITY(1) << number)) || !is_cpu_allowed(cpuId))
+                if ((groupMask & (KAFFINITY(1) << number)) == 0 || !is_cpu_allowed(cpuId))
                     continue;
 
                 cpus.insert(cpuId);
@@ -433,14 +449,14 @@ std::unordered_set<CpuIndex> read_cache_members(const T* processorInfo,
     // Handle types without Cache.GroupCount
     else
     {
-        for (BYTE number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+        for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
         {
             WORD      groupId   = processorInfo->Cache.GroupMask.Group;
             KAFFINITY groupMask = processorInfo->Cache.GroupMask.Mask;
 
             CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
-            if (!(groupMask & (KAFFINITY(1) << number)) || !is_cpu_allowed(cpuId))
+            if ((groupMask & (KAFFINITY(1) << number)) == 0 || !is_cpu_allowed(cpuId))
                 continue;
 
             cpus.insert(cpuId);
@@ -906,7 +922,7 @@ class NumaConfig final {
 
             if (setThreadSelectedCpuSetMasks(GetCurrentThread(), groupAffinities.get(),
                                              procGroupCount)
-                == 0)
+                == FALSE)
                 std::exit(EXIT_FAILURE);
 
             // Yield this thread just to be sure it gets rescheduled.
@@ -952,7 +968,7 @@ class NumaConfig final {
                 groupAffinity.Mask |= KAFFINITY(1) << inProcGroupId;
             }
 
-            if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr) == 0)
+            if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr) == FALSE)
                 std::exit(EXIT_FAILURE);
 
             // Yield this thread just to be sure it gets rescheduled.
@@ -1052,26 +1068,31 @@ class NumaConfig final {
 
 #if defined(_WIN64)
 
-        WORD procGroupCount = GetActiveProcessorGroupCount();
+        const WORD ActiveProcGroupCount = GetActiveProcessorGroupCount();
 
-        for (WORD groupId = 0; groupId < procGroupCount; ++groupId)
+        for (WORD groupId = 0; groupId < ActiveProcGroupCount; ++groupId)
         {
-            for (BYTE number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+            const DWORD ActiveProcCount = GetActiveProcessorCount(groupId);
+
+            for (DWORD number = 0; number < ActiveProcCount; ++number)
             {
-                PROCESSOR_NUMBER processorNumber;
+                PROCESSOR_NUMBER processorNumber{};
                 processorNumber.Group    = groupId;
-                processorNumber.Number   = number;
+                processorNumber.Number   = BYTE(number);
                 processorNumber.Reserved = 0;
 
                 USHORT nodeNumber;
 
-                BOOL status = GetNumaProcessorNodeEx(&processorNumber, &nodeNumber);
+                if (GetNumaProcessorNodeEx(&processorNumber, &nodeNumber) == TRUE)
+                {
+                    if (nodeNumber != std::numeric_limits<USHORT>::max())
+                    {
+                        CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
-                CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
-
-                if (status != 0 && nodeNumber != std::numeric_limits<USHORT>::max()
-                    && is_cpu_allowed(cpuId))
-                    numaCfg.add_cpu_to_node(nodeNumber, cpuId);
+                        if (is_cpu_allowed(cpuId))
+                            numaCfg.add_cpu_to_node(nodeNumber, cpuId);
+                    }
+                }
             }
         }
 
