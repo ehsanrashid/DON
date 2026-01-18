@@ -724,11 +724,11 @@ class FixedString final {
 
     FixedString(std::string_view str) { assign(str); }
 
-    constexpr std::size_t capacity() noexcept { return Capacity; }
+    [[nodiscard]] constexpr std::size_t capacity() const noexcept { return Capacity; }
 
-    std::size_t size() const noexcept { return _size; }
-    bool        empty() const noexcept { return size() == 0; }
-    bool        full() const noexcept { return size() == capacity(); }
+    [[nodiscard]] std::size_t size() const noexcept { return _size; }
+    [[nodiscard]] bool        empty() const noexcept { return size() == 0; }
+    [[nodiscard]] bool        full() const noexcept { return size() == capacity(); }
 
     constexpr char*       data() noexcept { return _data.data(); }
     constexpr const char* data() const noexcept { return _data.data(); }
