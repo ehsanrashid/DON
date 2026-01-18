@@ -245,7 +245,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                     if (groupMask != 0)
                         for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-                            if ((groupMask & (KAFFINITY(1) << number)) != 0)
+                            if ((groupMask & bit(number)) != 0)
                             {
                                 CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
@@ -304,7 +304,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                 KAFFINITY groupMask = procMask;
 
                 for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-                    if ((groupMask & (KAFFINITY(1) << number)) != 0)
+                    if ((groupMask & bit(number)) != 0)
                     {
                         CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
@@ -336,7 +336,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                 for (WORD groupId : procGroupAffinity)
                 {
-                    DWORD activeProcessorCount = GetActiveProcessorCount(groupId);
+                    const DWORD ActiveProcCount = GetActiveProcessorCount(groupId);
 
                     // Have to schedule to 2 different processors and the affinities.
                     // Otherwise processor choice could influence the resulting affinity.
@@ -344,13 +344,13 @@ inline WindowsAffinity get_process_affinity() noexcept {
                     DWORD_PTR combinedProcMask = std::numeric_limits<DWORD_PTR>::max();
                     DWORD_PTR combinedSysMask  = std::numeric_limits<DWORD_PTR>::max();
 
-                    for (DWORD i = 0; i < std::min(activeProcessorCount, DWORD(2)); ++i)
+                    for (DWORD i = 0; i < std::min(ActiveProcCount, DWORD(2)); ++i)
                     {
                         GROUP_AFFINITY groupAffinity;
                         std::memset(&groupAffinity, 0, sizeof(groupAffinity));
 
                         groupAffinity.Group = groupId;
-                        groupAffinity.Mask  = KAFFINITY(1) << i;
+                        groupAffinity.Mask  = bit(i);
 
                         if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr)
                             == FALSE)
@@ -381,7 +381,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                     if (combinedProcMask != 0)
                         for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-                            if ((combinedProcMask & (KAFFINITY(1) << number)) != 0)
+                            if ((combinedProcMask & bit(number)) != 0)
                             {
                                 CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
@@ -439,7 +439,7 @@ std::unordered_set<CpuIndex> read_cache_members(const T* processorInfo,
 
                 CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
-                if ((groupMask & (KAFFINITY(1) << number)) == 0 || !is_cpu_allowed(cpuId))
+                if ((groupMask & bit(number)) == 0 || !is_cpu_allowed(cpuId))
                     continue;
 
                 cpus.insert(cpuId);
@@ -456,7 +456,7 @@ std::unordered_set<CpuIndex> read_cache_members(const T* processorInfo,
 
             CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
-            if ((groupMask & (KAFFINITY(1) << number)) == 0 || !is_cpu_allowed(cpuId))
+            if ((groupMask & bit(number)) == 0 || !is_cpu_allowed(cpuId))
                 continue;
 
             cpus.insert(cpuId);
@@ -917,7 +917,7 @@ class NumaConfig final {
                 WORD groupId       = cpuId / WIN_PROCESSOR_GROUP_SIZE;
                 BYTE inProcGroupId = cpuId % WIN_PROCESSOR_GROUP_SIZE;
 
-                groupAffinities[groupId].Mask |= KAFFINITY(1) << inProcGroupId;
+                groupAffinities[groupId].Mask |= bit(inProcGroupId);
             }
 
             if (setThreadSelectedCpuSetMasks(GetCurrentThread(), groupAffinities.get(),
@@ -965,7 +965,7 @@ class NumaConfig final {
                 if (groupId != forcedGroupId)
                     continue;
 
-                groupAffinity.Mask |= KAFFINITY(1) << inProcGroupId;
+                groupAffinity.Mask |= bit(inProcGroupId);
             }
 
             if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr) == FALSE)

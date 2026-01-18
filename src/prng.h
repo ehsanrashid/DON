@@ -20,6 +20,8 @@
 
 #include <cstdint>
 
+#include "misc.h"
+
 namespace DON {
 
 // SplitMix64 is used to initialize the state of the main generator.
@@ -43,8 +45,6 @@ class SplitMix64 final {
    private:
     std::uint64_t s;
 };
-
-constexpr std::uint64_t bit(std::uint8_t b) noexcept { return (1ULL << b); }
 
 // XorShift64* Pseudo-Random Number Generator
 // It is based on original code written and dedicated

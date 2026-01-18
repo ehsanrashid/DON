@@ -103,6 +103,8 @@ std::string engine_info(bool uci = false) noexcept;
 std::string version_info() noexcept;
 std::string compiler_info() noexcept;
 
+constexpr std::uint64_t bit(std::uint8_t b) noexcept { return (1ULL << b); }
+
 template<typename To, typename From>
 constexpr bool is_strictly_assignable_v =
   std::is_assignable_v<To&, From> && (std::is_same_v<To, From> || !std::is_convertible_v<From, To>);
