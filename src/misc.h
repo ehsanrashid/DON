@@ -712,7 +712,7 @@ class FixedVector final {
 
         resize(oldSize + space);
 
-        return &data()[oldSize];
+        return data() + oldSize;
     }
 
     void clear() noexcept { _size = 0; }
