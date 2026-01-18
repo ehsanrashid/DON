@@ -1040,7 +1040,7 @@ DO_MOVE_END:
 
     if (worker != nullptr)
     {
-        if (!is_ok(enPassantSq))
+        if (enPassantSq == SQ_NONE)
             prefetch(worker->transpositionTable.cluster(key()));
 
         prefetch(&worker->histories.pawn(pawn_key())[+movedPc][dstSq]);
@@ -1069,7 +1069,7 @@ DO_MOVE_END:
 
     set_ext_state();
 
-    if (is_ok(enPassantSq))
+    if (enPassantSq != SQ_NONE)
     {
         if (enpassant_possible(ac, enPassantSq))
         {
