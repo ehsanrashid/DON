@@ -76,17 +76,6 @@ namespace DON {
 using CpuIndex  = std::size_t;
 using NumaIndex = std::size_t;
 
-#if defined(_WIN64)
-// On Windows each processor group can have up to 64 processors.
-// https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
-inline constexpr std::size_t WIN_PROCESSOR_GROUP_SIZE = 64;
-
-// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadselectedcpusetmasks
-using SetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT);
-// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadselectedcpusetmasks
-using GetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT, PUSHORT);
-#endif
-
 inline CpuIndex hardware_concurrency() noexcept {
     CpuIndex concurrency = std::thread::hardware_concurrency();
 
@@ -103,6 +92,15 @@ inline CpuIndex hardware_concurrency() noexcept {
 inline const CpuIndex SYSTEM_THREADS_NB = std::max(int(hardware_concurrency()), 1);
 
 #if defined(_WIN64)
+
+// On Windows each processor group can have up to 64 processors.
+// https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
+inline constexpr std::size_t WIN_PROCESSOR_GROUP_SIZE = 64;
+
+// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadselectedcpusetmasks
+using GetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT, PUSHORT);
+// https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadselectedcpusetmasks
+using SetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT);
 
 struct WindowsAffinity final {
    public:
@@ -708,6 +706,8 @@ class NumaConfig final {
         return numaCfg;
     }
 
+    static NumaConfig empty() noexcept { return NumaConfig(0, false); }
+
     // ':'-separated numa nodes
     // ','-separated cpu indices
     // supports "first-last" range syntax for cpu indices
@@ -1023,8 +1023,6 @@ class NumaConfig final {
     std::unordered_map<CpuIndex, NumaIndex>   nodeByCpu;
 
    private:
-    static NumaConfig empty() noexcept { return NumaConfig(0, false); }
-
     static std::vector<CpuIndex> shortened_string_to_indices(std::string_view str) noexcept {
         std::vector<CpuIndex> indices;
 
@@ -1371,14 +1369,17 @@ class BaseNumaReplicated {
     BaseNumaReplicated(BaseNumaReplicated&& baseNumaRep) noexcept;
     BaseNumaReplicated& operator=(const BaseNumaReplicated&) noexcept = delete;
     BaseNumaReplicated& operator=(BaseNumaReplicated&& baseNumaRep) noexcept;
-    virtual ~BaseNumaReplicated() noexcept;
 
-    virtual void on_numa_config_changed() noexcept = 0;
+    virtual ~BaseNumaReplicated() noexcept;
 
     const NumaConfig& numa_config() const noexcept;
 
+    virtual void on_numa_config_changed() noexcept = 0;
+
    private:
-    NumaReplicationContext* context;
+    void detach_context() noexcept;
+
+    NumaReplicationContext* numaContext;
 };
 
 // Force boxing with a unique_ptr. If this becomes an issue due to added
@@ -1773,30 +1774,47 @@ class NumaReplicationContext final {
     std::unordered_set<BaseNumaReplicated*> trackedReplicated;
 };
 
-inline BaseNumaReplicated::BaseNumaReplicated(NumaReplicationContext& ctx) noexcept :
-    context(&ctx) {
-    context->attach(this);
+inline BaseNumaReplicated::BaseNumaReplicated(NumaReplicationContext& numaCtx) noexcept :
+    numaContext(&numaCtx) {
+    if (numaContext != nullptr)
+        numaContext->attach(this);
+}
+
+inline void BaseNumaReplicated::detach_context() noexcept {
+    if (numaContext != nullptr)
+    {
+        numaContext->detach(this);
+        numaContext = nullptr;
+    }
 }
 
 inline BaseNumaReplicated::BaseNumaReplicated(BaseNumaReplicated&& baseNumaRep) noexcept :
-    context(std::exchange(baseNumaRep.context, nullptr)) {
-    context->move_attached(&baseNumaRep, this);
+    numaContext(std::exchange(baseNumaRep.numaContext, nullptr)) {
+    if (numaContext != nullptr)
+        numaContext->move_attached(&baseNumaRep, this);
 }
 
 inline BaseNumaReplicated&
 BaseNumaReplicated::operator=(BaseNumaReplicated&& baseNumaRep) noexcept {
-    context = std::exchange(baseNumaRep.context, nullptr);
-    context->move_attached(&baseNumaRep, this);
+    if (this == &baseNumaRep)
+        return *this;
+
+    detach_context();  // cleanup existing context
+
+    numaContext = std::exchange(baseNumaRep.numaContext, nullptr);
+
+    if (numaContext != nullptr)
+        numaContext->move_attached(&baseNumaRep, this);
+
     return *this;
 }
 
-inline BaseNumaReplicated::~BaseNumaReplicated() noexcept {
-    if (context != nullptr)
-        context->detach(this);
-}
+inline BaseNumaReplicated::~BaseNumaReplicated() noexcept { detach_context(); }
 
 inline const NumaConfig& BaseNumaReplicated::numa_config() const noexcept {
-    return context->numa_config();
+    static const NumaConfig EmptyCfg = NumaConfig::empty();
+
+    return numaContext != nullptr ? numaContext->numa_config() : EmptyCfg;
 }
 
 }  // namespace DON

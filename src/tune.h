@@ -101,7 +101,7 @@ class Tune final {
     // Use polymorphism to accommodate Entry of different types in the same vector
     struct BaseEntry {
        public:
-        virtual ~BaseEntry() = default;
+        virtual ~BaseEntry() noexcept = default;
 
         virtual void init_option() noexcept = 0;
         virtual void read_option() noexcept = 0;

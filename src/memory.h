@@ -308,6 +308,7 @@ struct HandleGuard final {
     HANDLE& handle;
 };
 
+    #if defined(_WIN64)
 struct Advapi final {
    public:
     // clang-format off
@@ -382,6 +383,7 @@ struct Advapi final {
     HMODULE hModule = nullptr;
     bool    loaded  = false;
 };
+    #endif
 
 template<typename SuccessFunc, typename FailureFunc>
 auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& successFunc,

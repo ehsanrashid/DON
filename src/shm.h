@@ -67,7 +67,6 @@
     #include <pthread.h>
     #include <semaphore.h>
     #include <signal.h>
-    #include <csignal>
     #include <sys/file.h>
     #include <sys/mman.h>
     #include <sys/stat.h>
@@ -456,32 +455,38 @@ class BackendSharedMemory final {
 
 class BaseSharedMemory {
    public:
-    virtual ~BaseSharedMemory() = default;
+    virtual ~BaseSharedMemory() noexcept = default;
 
     virtual void close(bool skipUnmapRegion = false) noexcept = 0;
 };
 
 class SharedMemoryRegistry final {
    public:
-    static void register_memory(BaseSharedMemory* sharedMemory) {
+    static void register_memory(BaseSharedMemory* sharedMemory) noexcept {
         std::scoped_lock lock(mutex);
 
         sharedMemories.insert(sharedMemory);
     }
 
-    static void unregister_memory(BaseSharedMemory* sharedMemory) {
+    static void unregister_memory(BaseSharedMemory* sharedMemory) noexcept {
         std::scoped_lock lock(mutex);
 
         sharedMemories.erase(sharedMemory);
     }
 
     static void clean(bool skipUnmapRegion = false) noexcept {
-        std::scoped_lock lock(mutex);
+        // Swap out the set to avoid iterator invalidation if close() calls unregister_memory()
+        std::unordered_set<BaseSharedMemory*> toCleanMemories;
 
-        for (auto* sharedMemory : sharedMemories)
+        {
+            std::scoped_lock lock(mutex);
+
+            toCleanMemories.swap(sharedMemories);  // now sharedMemories is empty
+        }
+
+        // Safe to iterate and close memory
+        for (BaseSharedMemory* sharedMemory : toCleanMemories)
             sharedMemory->close(skipUnmapRegion);
-
-        sharedMemories.clear();
     }
 
    private:
@@ -521,7 +526,7 @@ class CleanupHooks final {
 
         sigaction(Signal, &SigAction, nullptr);
 
-        std::raise(Signal);
+        ::raise(Signal);
     }
 
     static void register_signal_handlers() noexcept {
@@ -536,7 +541,14 @@ class CleanupHooks final {
         SigAction.sa_flags = 0;
 
         for (int Signal : Signals)
-            sigaction(Signal, &SigAction, nullptr);
+            if (sigaction(Signal, &SigAction, nullptr) != 0)
+            {
+                std::cerr << "Failed to register handler for signal " << Signal << ": "
+                          << std::strerror(errno) << std::endl;
+
+                // Optionally, if want to abort on fatal failure
+                //std::terminate();
+            }
     }
 
     static inline std::once_flag registerOnce;
