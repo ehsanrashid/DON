@@ -870,7 +870,6 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
 
     st->key ^= Zobrist::turn();
 
-    // Reset en-passant square
     if (is_ok(en_passant_sq()))
     {
         st->key ^= Zobrist::enpassant(en_passant_sq());
@@ -1070,14 +1069,17 @@ DO_MOVE_END:
 
     set_ext_state();
 
-    if (is_ok(enPassantSq) && enpassant_possible(ac, enPassantSq))
+    if (is_ok(enPassantSq))
     {
-        st->enPassantSq = enPassantSq;
-        st->key ^= Zobrist::enpassant(enPassantSq);
-    }
+        if (enpassant_possible(ac, enPassantSq))
+        {
+            st->enPassantSq = enPassantSq;
+            st->key ^= Zobrist::enpassant(enPassantSq);
+        }
 
-    if (worker != nullptr)
-        prefetch(worker->transpositionTable.cluster(key()));
+        if (worker != nullptr)
+            prefetch(worker->transpositionTable.cluster(key()));
+    }
 
     // Compute the repetition info.
     // It is the ply distance from the previous occurrence of the same position,
@@ -1814,14 +1816,9 @@ bool Position::is_draw(std::int16_t ply, bool useRule50, bool useStalemate) cons
 // Tests whether there has been at least one repetition
 // of positions since the last capture or pawn move.
 bool Position::has_repeated() const noexcept {
-    auto end = std::min(rule50_count(), null_ply());
-
-    if (end < 4)
-        return false;
-
     const State* cSt = st;
 
-    while (end-- >= 4)
+    for (auto end = std::min(rule50_count(), null_ply()); end >= 4; --end)
     {
         if (cSt->repetition != 0)
             return true;
@@ -1835,7 +1832,7 @@ bool Position::has_repeated() const noexcept {
 // Tests if the current position has a move which draws by repetition.
 // Accurately matches the outcome of is_draw() over all legal moves.
 bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
-    auto end = std::min(rule50_count(), null_ply());
+    const auto end = std::min(rule50_count(), null_ply());
     // Enough reversible moves played
     if (end < 3)
         return false;

@@ -722,22 +722,7 @@ class FixedString final {
    public:
     FixedString() noexcept { clear(); }
 
-    FixedString(const char* str) {
-        std::size_t strSize = std::strlen(str);
-        if (strSize > capacity())
-            std::terminate();
-        std::memcpy(data(), str, strSize);
-        _size = strSize;
-        null_terminate();
-    }
-
-    FixedString(const std::string& str) {
-        if (str.size() > capacity())
-            std::terminate();
-        std::memcpy(data(), str.data(), str.size());
-        _size = str.size();
-        null_terminate();
-    }
+    FixedString(std::string_view str) { assign(str); }
 
     [[nodiscard]] constexpr std::size_t capacity() noexcept { return Capacity; }
 
@@ -759,34 +744,50 @@ class FixedString final {
 
     constexpr char& operator[](std::size_t idx) noexcept {
         assert(idx < size());
+
         return data()[idx];
     }
     constexpr const char& operator[](std::size_t idx) const noexcept {
         assert(idx < size());
+
         return data()[idx];
     }
 
     void null_terminate() noexcept { data()[size()] = '\0'; }
 
-    FixedString& operator+=(const char* str) {
-        std::size_t strSize = std::strlen(str);
-        if (size() + strSize > capacity())
+    FixedString& operator=(std::string_view str) {
+        assign(str);
+        return *this;
+    }
+    // Optional: assignment from const char*
+    FixedString& operator=(const char* str) {
+        assign(str);
+        return *this;
+    }
+
+    FixedString& operator+=(std::string_view str) {
+
+        const std::size_t Size = str.size();
+
+        if (size() + Size > capacity())
             std::terminate();
-        std::memcpy(data() + size(), str, strSize);
-        _size += strSize;
+
+        std::memcpy(data() + size(), str.data(), Size);
+
+        _size += Size;
         null_terminate();
+
         return *this;
     }
-    FixedString& operator+=(const std::string& str) {
-        *this += str.data();
-        return *this;
-    }
+
     FixedString& operator+=(const FixedString& fixedStr) {
         *this += fixedStr.data();
+
         return *this;
     }
 
     operator std::string() const noexcept { return std::string(data(), size()); }
+
     operator std::string_view() const noexcept { return std::string_view(data(), size()); }
 
     template<typename T>
@@ -804,6 +805,19 @@ class FixedString final {
     }
 
    private:
+    void assign(std::string_view str) {
+
+        const std::size_t Size = str.size();
+
+        if (Size > capacity())
+            std::terminate();
+
+        std::memcpy(data(), str.data(), Size);
+
+        _size = Size;
+        null_terminate();
+    }
+
     StdArray<char, Capacity + 1> _data;  // +1 for null terminator
     std::size_t                  _size;
 };
