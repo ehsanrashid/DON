@@ -152,32 +152,43 @@ struct WindowsAffinity final {
 inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcept {
     // GetProcessGroupAffinity requires the groupArray argument to be aligned to 4 bytes instead of just 2
     constexpr std::size_t GroupArrayMinAlignment = 4;
-    static_assert(GroupArrayMinAlignment >= alignof(USHORT));
+    constexpr std::size_t UShortAlignment        = alignof(USHORT);
+    static_assert(GroupArrayMinAlignment >= UShortAlignment);
+
+    constexpr std::size_t AlignmentExtraCount = div_ceil(GroupArrayMinAlignment, UShortAlignment);
 
     constexpr std::size_t MaxTries = 2;
+
+    USHORT requiredGroupCount = 1;
 
     // The function should succeed the second time, but it may fail if the
     // group affinity has changed between GetProcessGroupAffinity calls.
     // In such case consider this a hard error, can't work with unstable affinities anyway.
     for (std::size_t i = 0; i < MaxTries; ++i)
     {
-        USHORT groupCount = 1;
-        auto   groupArray =
-          std::make_unique<USHORT[]>(groupCount + (GroupArrayMinAlignment / alignof(USHORT) - 1));
+        auto groupArray = std::make_unique<USHORT[]>(requiredGroupCount + AlignmentExtraCount);
 
         USHORT* alignedGroupArray = align_ptr_up<GroupArrayMinAlignment>(groupArray.get());
 
+        USHORT groupCount = requiredGroupCount;
+
         BOOL status = GetProcessGroupAffinity(GetCurrentProcess(), &groupCount, alignedGroupArray);
 
-        if (status == 0 && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
-            break;
-
         if (status != 0)
-            return std::make_pair(status,
+            return std::make_pair(TRUE,
                                   std::vector(alignedGroupArray, alignedGroupArray + groupCount));
+
+        else
+        {
+            if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+                break;
+        }
+
+        // Windows tells us the correct size
+        requiredGroupCount = groupCount;
     }
 
-    return std::make_pair(0, std::vector<USHORT>());
+    return std::make_pair(FALSE, std::vector<USHORT>());
 }
 
 // On Windows there are two ways to set affinity, and therefore 2 ways to get it.
@@ -464,10 +475,9 @@ inline std::unordered_set<CpuIndex> get_process_affinity() noexcept {
         set_to_all_cpus();
 
         return cpus;
-        //std::exit(EXIT_FAILURE);
     }
 
-    std::size_t MaskSize = CPU_ALLOC_SIZE(MaxCpusCount);
+    const std::size_t MaskSize = CPU_ALLOC_SIZE(MaxCpusCount);
 
     CPU_ZERO_S(MaskSize, cpuMask);
 
@@ -478,7 +488,6 @@ inline std::unordered_set<CpuIndex> get_process_affinity() noexcept {
         set_to_all_cpus();
 
         return cpus;
-        //std::exit(EXIT_FAILURE);
     }
 
     for (CpuIndex cpuId = 0; cpuId < MaxCpusCount; ++cpuId)
@@ -958,19 +967,21 @@ class NumaConfig final {
         if (cpuMask == nullptr)
             std::exit(EXIT_FAILURE);
 
-        std::size_t MaskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
+        const std::size_t MaskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
 
         CPU_ZERO_S(MaskSize, cpuMask);
 
         for (CpuIndex cpuId : nodes[numaId])
             CPU_SET_S(cpuId, MaskSize, cpuMask);
 
-        int status = sched_setaffinity(0, MaskSize, cpuMask);
+        if (sched_setaffinity(0, MaskSize, cpuMask) != 0)
+        {
+            CPU_FREE(cpuMask);
+
+            std::exit(EXIT_FAILURE);
+        }
 
         CPU_FREE(cpuMask);
-
-        if (status != 0)
-            std::exit(EXIT_FAILURE);
 
         // Yield this thread just to be sure it gets rescheduled.
         // This is defensive, allowed because this code is not performance critical.

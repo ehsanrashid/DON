@@ -64,6 +64,8 @@ inline constexpr int WEIGHT_SCALE_BITS = 6;
 inline constexpr const char  LEB128_MAGIC_STRING[]    = "COMPRESSED_LEB128";
 inline constexpr std::size_t LEB128_MAGIC_STRING_SIZE = sizeof(LEB128_MAGIC_STRING) - 1;
 
+inline constexpr std::size_t MAX_SIMD_WIDTH = 32;
+
 // SIMD width (in bytes)
 #if defined(USE_AVX2)
 inline constexpr std::size_t SIMD_WIDTH = 32;
@@ -73,12 +75,10 @@ inline constexpr std::size_t SIMD_WIDTH = 16;
 inline constexpr std::size_t SIMD_WIDTH = 16;
 #endif
 
-inline constexpr std::size_t MAX_SIMD_WIDTH = 32;
-
 // Round n up to be a multiple of base
 template<typename IntType>
 constexpr IntType ceil_to_multiple(IntType n, IntType base) noexcept {
-    return (n + base - 1) / base * base;
+    return div_ceil(n, base) * base;
 }
 
 // Utility to read an integer (signed or unsigned, any size)

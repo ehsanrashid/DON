@@ -526,7 +526,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
     {
         std::cerr << "Corrupt tablebase file " << filename << std::endl;
 
-        std::exit(EXIT_FAILURE);
+        return nullptr;
     }
 
     hMapFile = CreateFileMapping(hFile, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
@@ -535,7 +535,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
     {
         std::cerr << "CreateFileMapping() failed, name = " << filename << std::endl;
 
-        std::exit(EXIT_FAILURE);
+        return nullptr;
     }
 
     mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
@@ -547,7 +547,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
         hMapFileGuard.close();
 
-        std::exit(EXIT_FAILURE);
+        return nullptr;
     }
 #else
     int fd = ::open(filename.data(), O_RDONLY);
@@ -570,7 +570,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
     {
         std::cerr << "Corrupt tablebase file " << filename << std::endl;
 
-        std::exit(EXIT_FAILURE);
+        return nullptr;
     }
 
     mappingSize = Stat.st_size;
@@ -581,7 +581,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
     {
         std::cerr << "mmap() failed, name = " << filename << std::endl;
 
-        std::exit(EXIT_FAILURE);
+        return nullptr;
     }
 
     #if defined(MADV_RANDOM)
@@ -1475,7 +1475,7 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
 
     pd->blockSize       = 1ULL << *data++;
     pd->span            = 1ULL << *data++;
-    pd->sparseIndexSize = (tbSize + pd->span - 1) / pd->span;  // Round up
+    pd->sparseIndexSize = div_ceil(tbSize, pd->span);  // Round up
 
     auto padding = number<std::uint8_t, Endian::LITTLE>(data);
     data += 1;
