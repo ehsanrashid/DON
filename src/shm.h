@@ -462,13 +462,13 @@ class BaseSharedMemory {
 
 class SharedMemoryRegistry final {
    public:
-    static void register_memory(BaseSharedMemory* sharedMemory) noexcept {
+    static void register_memory(BaseSharedMemory* const sharedMemory) noexcept {
         std::scoped_lock lock(mutex);
 
         sharedMemories.insert(sharedMemory);
     }
 
-    static void unregister_memory(BaseSharedMemory* sharedMemory) noexcept {
+    static void unregister_memory(BaseSharedMemory* const sharedMemory) noexcept {
         std::scoped_lock lock(mutex);
 
         sharedMemories.erase(sharedMemory);
@@ -485,7 +485,7 @@ class SharedMemoryRegistry final {
         }
 
         // Safe to iterate and close memory
-        for (BaseSharedMemory* sharedMemory : toCleanMemories)
+        for (BaseSharedMemory* const sharedMemory : toCleanMemories)
             sharedMemory->close(skipUnmapRegion);
     }
 

@@ -238,8 +238,7 @@ thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t to
 
 class OstreamMutexRegistry final {
    public:
-    static std::mutex& get(std::ostream* const osPtr) {
-
+    static std::mutex& get(std::ostream* const osPtr) noexcept {
         std::scoped_lock lock(mutex);
 
         auto& osMutexPtr = osMutexes[osPtr];
