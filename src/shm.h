@@ -507,11 +507,36 @@ class CleanupHooks final {
     }
 
    private:
-    CleanupHooks() noexcept                               = delete;
-    CleanupHooks(const CleanupHooks&) noexcept            = delete;
-    CleanupHooks(CleanupHooks&&) noexcept                 = delete;
-    CleanupHooks& operator=(const CleanupHooks&) noexcept = delete;
-    CleanupHooks& operator=(CleanupHooks&&) noexcept      = delete;
+    static void register_signal_handlers() noexcept {
+        std::atexit([]() { SharedMemoryRegistry::clean(); });
+
+        constexpr StdArray<int, 12> Signals{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
+                                            SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
+
+        struct sigaction SigAction{};
+        SigAction.sa_handler = signal_handler;
+        sigemptyset(&SigAction.sa_mask);
+
+        for (int Signal : Signals)
+        {
+            // Fatal signals
+            if (Signal == SIGSEGV || Signal == SIGILL || Signal == SIGABRT || Signal == SIGFPE
+                || Signal == SIGBUS)
+                SigAction.sa_flags = 0;
+            // Normal termination/interruption signals
+            else
+                SigAction.sa_flags = SA_RESTART;
+
+            if (sigaction(Signal, &SigAction, nullptr) != 0)
+            {
+                std::cerr << "Failed to register handler for signal " << Signal << ": "
+                          << std::strerror(errno) << std::endl;
+
+                // Optionally, if want to abort on fatal failure
+                //std::terminate();
+            }
+        }
+    }
 
     static void signal_handler(int Signal) noexcept {
         // Minimal cleanup; avoid non-signal-safe calls if possible
@@ -529,27 +554,12 @@ class CleanupHooks final {
         ::raise(Signal);
     }
 
-    static void register_signal_handlers() noexcept {
-        std::atexit([]() { SharedMemoryRegistry::clean(); });
-
-        constexpr StdArray<int, 12> Signals{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
-                                            SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
-
-        struct sigaction SigAction{};
-        SigAction.sa_handler = signal_handler;
-        sigemptyset(&SigAction.sa_mask);
-        SigAction.sa_flags = 0;
-
-        for (int Signal : Signals)
-            if (sigaction(Signal, &SigAction, nullptr) != 0)
-            {
-                std::cerr << "Failed to register handler for signal " << Signal << ": "
-                          << std::strerror(errno) << std::endl;
-
-                // Optionally, if want to abort on fatal failure
-                //std::terminate();
-            }
-    }
+   private:
+    CleanupHooks() noexcept                               = delete;
+    CleanupHooks(const CleanupHooks&) noexcept            = delete;
+    CleanupHooks(CleanupHooks&&) noexcept                 = delete;
+    CleanupHooks& operator=(const CleanupHooks&) noexcept = delete;
+    CleanupHooks& operator=(CleanupHooks&&) noexcept      = delete;
 
     static inline std::once_flag registerOnce;
 };
