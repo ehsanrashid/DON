@@ -498,8 +498,6 @@ class MultiArray {
     using reverse_iterator       = typename ArrayType::reverse_iterator;
     using const_reverse_iterator = typename ArrayType::const_reverse_iterator;
 
-    constexpr MultiArray() noexcept = default;
-
     constexpr auto begin() const noexcept { return _data.begin(); }
     constexpr auto end() const noexcept { return _data.end(); }
     constexpr auto begin() noexcept { return _data.begin(); }
@@ -652,8 +650,6 @@ class FixedVector final {
     static_assert(Capacity > 0, "Capacity must be > 0");
 
    public:
-    constexpr FixedVector() noexcept = default;
-
     [[nodiscard]] constexpr std::size_t capacity() const noexcept { return Capacity; }
 
     [[nodiscard]] constexpr std::size_t size() const noexcept { return _size; }
