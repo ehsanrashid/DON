@@ -495,6 +495,7 @@ class SharedMemoryRegistry final {
     SharedMemoryRegistry(SharedMemoryRegistry&&) noexcept                 = delete;
     SharedMemoryRegistry& operator=(const SharedMemoryRegistry&) noexcept = delete;
     SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
+    ~SharedMemoryRegistry() noexcept                                      = delete;
 
     static inline std::mutex                            mutex;
     static inline std::unordered_set<BaseSharedMemory*> sharedMemories;
@@ -578,6 +579,7 @@ class CleanupHooks final {
     CleanupHooks(CleanupHooks&&) noexcept                 = delete;
     CleanupHooks& operator=(const CleanupHooks&) noexcept = delete;
     CleanupHooks& operator=(CleanupHooks&&) noexcept      = delete;
+    ~CleanupHooks() noexcept                              = delete;
 
     static inline std::once_flag registerOnce;
 };

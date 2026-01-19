@@ -78,6 +78,7 @@ struct Zobrist final {
     Zobrist(Zobrist&&) noexcept                 = delete;
     Zobrist& operator=(const Zobrist&) noexcept = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
+    ~Zobrist() noexcept                         = delete;
 
     static inline StdArray<Key, COLOR_NB, 1 + PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
     static inline StdArray<Key, CASTLING_RIGHTS_NB>                      Castling;

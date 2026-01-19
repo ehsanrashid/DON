@@ -93,6 +93,8 @@ inline const CpuIndex SYSTEM_THREADS_NB = std::max(int(hardware_concurrency()), 
 
 #if defined(_WIN64)
 
+inline constexpr LPCSTR MODULE_NAME = TEXT("kernel32.dll");
+
 // On Windows each processor group can have up to 64 processors.
 // https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
 inline constexpr std::size_t WIN_PROCESSOR_GROUP_SIZE = 64;
@@ -204,7 +206,7 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
 // nullopt means no affinity is set, that is, all processors are allowed
 inline WindowsAffinity get_process_affinity() noexcept {
 
-    HMODULE hModule = GetModuleHandle(TEXT("kernel32.dll"));
+    HMODULE hModule = GetModuleHandle(MODULE_NAME);
 
     auto getThreadSelectedCpuSetMasks = GetThreadSelectedCpuSetMasks_(
       (void (*)()) GetProcAddress(hModule, "GetThreadSelectedCpuSetMasks"));
@@ -894,7 +896,7 @@ class NumaConfig final {
 #if defined(_WIN64)
 
         // Requires Windows 11. No good way to set thread affinity spanning processor groups before that.
-        HMODULE hModule = GetModuleHandle(TEXT("kernel32.dll"));
+        HMODULE hModule = GetModuleHandle(MODULE_NAME);
 
         auto setThreadSelectedCpuSetMasks = SetThreadSelectedCpuSetMasks_(
           (void (*)()) GetProcAddress(hModule, "SetThreadSelectedCpuSetMasks"));

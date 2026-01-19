@@ -255,6 +255,7 @@ class OstreamMutexRegistry final {
     OstreamMutexRegistry(OstreamMutexRegistry&&) noexcept                 = delete;
     OstreamMutexRegistry& operator=(const OstreamMutexRegistry&) noexcept = delete;
     OstreamMutexRegistry& operator=(OstreamMutexRegistry&&) noexcept      = delete;
+    ~OstreamMutexRegistry() noexcept                                      = delete;
 
     static inline std::mutex                                                     mutex;
     static inline std::unordered_map<std::ostream*, std::unique_ptr<std::mutex>> osMutexes;
@@ -334,8 +335,6 @@ class [[nodiscard]] SyncOstream final {
 template<typename T>
 class TableView final {
    public:
-    constexpr TableView() noexcept = default;
-
     constexpr TableView(T* data, std::size_t size) noexcept :
         _data(data),
         _size(size) {}

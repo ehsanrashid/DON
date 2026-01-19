@@ -42,13 +42,14 @@ namespace DON {
 class Engine final {
    public:
     explicit Engine(std::optional<std::string> path = std::nullopt) noexcept;
-    ~Engine() noexcept;
 
     // Cannot be movable due to components holding backreferences to fields
     Engine(const Engine&) noexcept            = delete;
     Engine(Engine&&) noexcept                 = delete;
     Engine& operator=(const Engine&) noexcept = delete;
     Engine& operator=(Engine&&) noexcept      = delete;
+
+    ~Engine() noexcept;
 
     Options&       get_options() noexcept;
     const Options& get_options() const noexcept;
