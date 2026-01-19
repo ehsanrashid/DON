@@ -665,7 +665,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
         return nullptr;
     }
 
-    std::uint64_t mappingSize = Stat.st_size;
+    std::size_t mappingSize = Stat.st_size;
 
     mappedPtr = mmap(nullptr, mappingSize, PROT_READ, MAP_SHARED, fd, 0);
 
