@@ -356,8 +356,7 @@ class BackendSharedMemory final {
 
         // Fallback to normal allocation if no large page available
         if (hMapFile == nullptr)
-            hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,  //
-                                         PAGE_READWRITE,                 //
+            hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,  //
                                          0, TotalSize, shmName.c_str());
 
         if (hMapFile == nullptr)
@@ -462,13 +461,13 @@ class BaseSharedMemory {
 
 class SharedMemoryRegistry final {
    public:
-    static void register_memory(BaseSharedMemory* sharedMemory) noexcept {
+    static void register_memory(BaseSharedMemory* const sharedMemory) noexcept {
         std::scoped_lock lock(mutex);
 
         sharedMemories.insert(sharedMemory);
     }
 
-    static void unregister_memory(BaseSharedMemory* sharedMemory) noexcept {
+    static void unregister_memory(BaseSharedMemory* const sharedMemory) noexcept {
         std::scoped_lock lock(mutex);
 
         sharedMemories.erase(sharedMemory);
@@ -485,7 +484,7 @@ class SharedMemoryRegistry final {
         }
 
         // Safe to iterate and close memory
-        for (BaseSharedMemory* sharedMemory : toCleanMemories)
+        for (BaseSharedMemory* const sharedMemory : toCleanMemories)
             sharedMemory->close(skipUnmapRegion);
     }
 
@@ -507,11 +506,54 @@ class CleanupHooks final {
     }
 
    private:
-    CleanupHooks() noexcept                               = delete;
-    CleanupHooks(const CleanupHooks&) noexcept            = delete;
-    CleanupHooks(CleanupHooks&&) noexcept                 = delete;
-    CleanupHooks& operator=(const CleanupHooks&) noexcept = delete;
-    CleanupHooks& operator=(CleanupHooks&&) noexcept      = delete;
+    static void register_signal_handlers() noexcept {
+        std::atexit([]() { SharedMemoryRegistry::clean(); });
+
+        constexpr StdArray<int, 12> Signals{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
+                                            SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
+
+        struct sigaction SigAction{};
+        SigAction.sa_handler = signal_handler;
+        sigemptyset(&SigAction.sa_mask);
+
+        for (int Signal : Signals)
+        {
+            switch (Signal)
+            {
+                // Normal termination/interruption signals
+            case SIGHUP :
+            case SIGINT :
+            case SIGQUIT :
+            case SIGTERM :
+            case SIGSYS :
+            case SIGXCPU :
+            case SIGXFSZ :
+                SigAction.sa_flags = SA_RESTART;
+                break;
+            // Fatal signals
+            case SIGSEGV :
+            case SIGILL :
+            case SIGABRT :
+            case SIGFPE :
+            case SIGBUS :
+                SigAction.sa_flags = 0;
+                break;
+            // Just in case a signal sneaks in
+            default :
+                SigAction.sa_flags = 0;  // Safe fallback
+                break;
+            }
+
+            if (sigaction(Signal, &SigAction, nullptr) != 0)
+            {
+                std::cerr << "Failed to register handler for signal " << Signal << ": "
+                          << std::strerror(errno) << std::endl;
+
+                // Optionally, if want to abort on fatal failure
+                //std::terminate();
+            }
+        }
+    }
 
     static void signal_handler(int Signal) noexcept {
         // Minimal cleanup; avoid non-signal-safe calls if possible
@@ -529,27 +571,12 @@ class CleanupHooks final {
         ::raise(Signal);
     }
 
-    static void register_signal_handlers() noexcept {
-        std::atexit([]() { SharedMemoryRegistry::clean(); });
-
-        constexpr StdArray<int, 12> Signals{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
-                                            SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
-
-        struct sigaction SigAction{};
-        SigAction.sa_handler = signal_handler;
-        sigemptyset(&SigAction.sa_mask);
-        SigAction.sa_flags = 0;
-
-        for (int Signal : Signals)
-            if (sigaction(Signal, &SigAction, nullptr) != 0)
-            {
-                std::cerr << "Failed to register handler for signal " << Signal << ": "
-                          << std::strerror(errno) << std::endl;
-
-                // Optionally, if want to abort on fatal failure
-                //std::terminate();
-            }
-    }
+   private:
+    CleanupHooks() noexcept                               = delete;
+    CleanupHooks(const CleanupHooks&) noexcept            = delete;
+    CleanupHooks(CleanupHooks&&) noexcept                 = delete;
+    CleanupHooks& operator=(const CleanupHooks&) noexcept = delete;
+    CleanupHooks& operator=(CleanupHooks&&) noexcept      = delete;
 
     static inline std::once_flag registerOnce;
 };
@@ -657,53 +684,25 @@ class SharedMemory final: public BaseSharedMemory {
         sentinelBase = std::string("don_") + create_hash_string(name);
     }
 
-    ~SharedMemory() noexcept override {
-        SharedMemoryRegistry::unregister_memory(this);
-        close();
-    }
+    ~SharedMemory() noexcept override { unregister_close(); }
 
     SharedMemory(const SharedMemory&)            = delete;
     SharedMemory& operator=(const SharedMemory&) = delete;
 
-    SharedMemory(SharedMemory&& sharedMem) noexcept :
-        name(std::move(sharedMem.name)),
-        fd(sharedMem.fd),
-        mappedPtr(sharedMem.mappedPtr),
-        dataPtr(sharedMem.dataPtr),
-        shmHeader(sharedMem.shmHeader),
-        totalSize(sharedMem.totalSize),
-        sentinelBase(std::move(sharedMem.sentinelBase)),
-        sentinelPath(std::move(sharedMem.sentinelPath)) {
-
-        SharedMemoryRegistry::unregister_memory(&sharedMem);
-        SharedMemoryRegistry::register_memory(this);
-        sharedMem.reset();
-    }
-
+    SharedMemory(SharedMemory&& sharedMem) noexcept { move_with_registry(sharedMem); }
     SharedMemory& operator=(SharedMemory&& sharedMem) noexcept {
         if (this == &sharedMem)
             return *this;
 
-        SharedMemoryRegistry::unregister_memory(this);
-        close();
+        // Clean old resource first
+        unregister_close();
 
-        name         = std::move(sharedMem.name);
-        fd           = sharedMem.fd;
-        mappedPtr    = sharedMem.mappedPtr;
-        dataPtr      = sharedMem.dataPtr;
-        shmHeader    = sharedMem.shmHeader;
-        totalSize    = sharedMem.totalSize;
-        sentinelBase = std::move(sharedMem.sentinelBase);
-        sentinelPath = std::move(sharedMem.sentinelPath);
+        move_with_registry(sharedMem);
 
-        SharedMemoryRegistry::unregister_memory(&sharedMem);
-        SharedMemoryRegistry::register_memory(this);
-
-        sharedMem.reset();
         return *this;
     }
 
-    [[nodiscard]] bool open(const T& value) noexcept {
+    [[nodiscard]] bool open_register(const T& value) noexcept {
         CleanupHooks::ensure_registered();
 
         bool staleRetried = false;
@@ -814,6 +813,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             unlock_file();
 
+            // Register this new resource
             SharedMemoryRegistry::register_memory(this);
 
             return true;
@@ -898,11 +898,43 @@ class SharedMemory final: public BaseSharedMemory {
         return errno == EPERM;
     }
 
+    // Cleanup on destruction
+    void unregister_close() noexcept {
+        // 1. Unregister from registry
+        SharedMemoryRegistry::unregister_memory(this);
+
+        // 2. Release resources
+        close();
+    }
+
+    void move_with_registry(SharedMemory& sharedMem) noexcept {
+        // 1. Unregister source while it's intact
+        SharedMemoryRegistry::unregister_memory(&sharedMem);
+
+        // 2. Move members
+        name         = std::move(sharedMem.name);
+        fd           = sharedMem.fd;
+        mappedPtr    = sharedMem.mappedPtr;
+        dataPtr      = sharedMem.dataPtr;
+        shmHeader    = sharedMem.shmHeader;
+        totalSize    = sharedMem.totalSize;
+        sentinelBase = std::move(sharedMem.sentinelBase);
+        sentinelPath = std::move(sharedMem.sentinelPath);
+
+        // 3. Reset source
+        sharedMem.reset();
+
+        // 4. Register this new resource
+        SharedMemoryRegistry::register_memory(this);
+    }
+
     void reset() noexcept {
         fd        = -1;
         mappedPtr = nullptr;
+        totalSize = 0;
         dataPtr   = nullptr;
         shmHeader = nullptr;
+        sentinelBase.clear();
         sentinelPath.clear();
     }
 
@@ -911,6 +943,7 @@ class SharedMemory final: public BaseSharedMemory {
             return;
 
         munmap(mappedPtr, totalSize);
+        totalSize = 0;
         mappedPtr = nullptr;
         dataPtr   = nullptr;
         shmHeader = nullptr;
@@ -981,7 +1014,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             FdGuard tmpFdGuard(tmpFd);
 
-            if (tmpFd != -1)
+            if (tmpFd >= 0)
                 return true;
 
             if (errno == EEXIST)
@@ -1157,9 +1190,9 @@ class SharedMemory final: public BaseSharedMemory {
     int         fd = -1;
     FdGuard     fdGuard{fd};
     void*       mappedPtr = nullptr;
+    std::size_t totalSize = 0;
     T*          dataPtr   = nullptr;
     ShmHeader*  shmHeader = nullptr;
-    std::size_t totalSize = 0;
     std::string sentinelBase;
     std::string sentinelPath;
 };
@@ -1172,7 +1205,7 @@ class BackendSharedMemory final {
     BackendSharedMemory(const std::string& shmName, const T& value) noexcept {
         shm.emplace(shmName);
 
-        if (!shm->open(value))
+        if (!shm->open_register(value))
             shm.reset();
     }
 

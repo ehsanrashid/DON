@@ -236,63 +236,85 @@ thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t to
     return {begIdx, endIdx};
 }
 
+class OstreamMutexRegistry final {
+   public:
+    static std::mutex& get(std::ostream* const osPtr) noexcept {
+        std::scoped_lock lock(mutex);
+
+        auto& osMutexPtr = osMutexes[osPtr];
+
+        if (!osMutexPtr)
+            osMutexPtr = std::make_unique<std::mutex>();
+
+        return *osMutexPtr;
+    }
+
+   private:
+    OstreamMutexRegistry() noexcept                                       = delete;
+    OstreamMutexRegistry(const OstreamMutexRegistry&) noexcept            = delete;
+    OstreamMutexRegistry(OstreamMutexRegistry&&) noexcept                 = delete;
+    OstreamMutexRegistry& operator=(const OstreamMutexRegistry&) noexcept = delete;
+    OstreamMutexRegistry& operator=(OstreamMutexRegistry&&) noexcept      = delete;
+
+    static inline std::mutex                                                     mutex;
+    static inline std::unordered_map<std::ostream*, std::unique_ptr<std::mutex>> osMutexes;
+};
+
 // --- Synchronized output stream ---
 class [[nodiscard]] SyncOstream final {
    public:
     explicit SyncOstream(std::ostream& os) noexcept :
         osPtr(&os),
-        lock(mutex) {}
+        lock(OstreamMutexRegistry::get(osPtr)) {}
     SyncOstream(const SyncOstream&) noexcept = delete;
     // Move-constructible so factories can return by value
     SyncOstream(SyncOstream&& syncOs) noexcept :
         osPtr(syncOs.osPtr),
-        lock(std::move(syncOs.lock)) {
-        syncOs.osPtr = nullptr;
-    }
+        lock(std::move(syncOs.lock)) {}
 
     SyncOstream& operator=(const SyncOstream&) noexcept = delete;
     // Prefer deleting move-assignment to avoid unlock window
     SyncOstream& operator=(SyncOstream&&) noexcept = delete;
 
-    ~SyncOstream() noexcept = default;
-
     template<typename T>
-    SyncOstream& operator<<(T&& x) & noexcept {
+    SyncOstream& operator<<(T&& x) & {
         assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
         *osPtr << std::forward<T>(x);
         return *this;
     }
     template<typename T>
-    SyncOstream&& operator<<(T&& x) && noexcept {
+    SyncOstream&& operator<<(T&& x) && {
         assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
         *osPtr << std::forward<T>(x);
         return std::move(*this);
     }
 
-    using IosManip = std::ios& (*) (std::ios&);
-    SyncOstream& operator<<(IosManip manip) & noexcept {
+    using IosManipulator = std::ios& (*) (std::ios&);
+
+    SyncOstream& operator<<(IosManipulator manip) & {
         assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
         manip(*osPtr);
         return *this;
     }
-    SyncOstream&& operator<<(IosManip manip) && noexcept {
+    SyncOstream&& operator<<(IosManipulator manip) && {
         assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
         manip(*osPtr);
         return std::move(*this);
     }
 
-    using OstreamManip = std::ostream& (*) (std::ostream&);
-    SyncOstream& operator<<(OstreamManip manip) & noexcept {
+    using OstreamManipulator = std::ostream& (*) (std::ostream&);
+
+    SyncOstream& operator<<(OstreamManipulator manip) & {
         assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
         manip(*osPtr);
         return *this;
     }
-    SyncOstream&& operator<<(OstreamManip manip) && noexcept {
+    SyncOstream&& operator<<(OstreamManipulator manip) && {
         assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
         manip(*osPtr);
@@ -300,9 +322,7 @@ class [[nodiscard]] SyncOstream final {
     }
 
    private:
-    static inline std::mutex mutex;
-
-    std::ostream*                osPtr;
+    std::ostream* const          osPtr;
     std::unique_lock<std::mutex> lock;
 };
 
@@ -616,8 +636,8 @@ class DynamicArray final {
     void fill(std::size_t begIdx, std::size_t endIdx, const U& v) noexcept {
         assert(begIdx <= endIdx && endIdx <= size());
 
-        if (endIdx > size())
-            endIdx = size();
+        //if (endIdx > size())
+        //    endIdx = size();
 
         for (std::size_t idx = begIdx; idx < endIdx; ++idx)
             data()[idx].fill(v);
@@ -653,47 +673,53 @@ class FixedVector final {
 
     bool push_back(const T& value) noexcept {
         assert(size() < capacity());
+
         data()[_size++] = value;  // copy-assign into pre-initialized slot
         return true;
     }
     bool push_back(T&& value) noexcept {
         assert(size() < capacity());
+
         data()[_size++] = std::move(value);
         return true;
     }
     template<typename... Args>
     bool emplace_back(Args&&... args) noexcept {
         assert(size() < capacity());
+
         data()[_size++] = T(std::forward<Args>(args)...);
         return true;
     }
 
     void pop_back() noexcept {
         assert(size() != 0);
+
         --_size;
     }
 
     T& back() noexcept {
         assert(size() > 0);
+
         return data()[size() - 1];
     }
     const T& back() const noexcept {
         assert(size() > 0);
+
         return data()[size() - 1];
     }
 
     T& operator[](std::size_t idx) noexcept {
         assert(idx < size());
-        assert(size() <= capacity());
+
         return data()[idx];
     }
     const T& operator[](std::size_t idx) const noexcept {
         assert(idx < size());
-        assert(size() <= capacity());
+
         return data()[idx];
     }
 
-    void size(std::size_t newSize) noexcept {
+    void resize(std::size_t newSize) noexcept {
 
         if (newSize > capacity())
             newSize = capacity();
@@ -702,10 +728,11 @@ class FixedVector final {
     }
 
     T* make_space(std::size_t space) noexcept {
-        T* value = &data()[size()];
-        _size += space;
-        assert(size() <= capacity());
-        return value;
+        const std::size_t oldSize = size();
+
+        resize(oldSize + space);
+
+        return data() + oldSize;
     }
 
     void clear() noexcept { _size = 0; }
@@ -722,28 +749,13 @@ class FixedString final {
    public:
     FixedString() noexcept { clear(); }
 
-    FixedString(const char* str) {
-        std::size_t strSize = std::strlen(str);
-        if (strSize > capacity())
-            std::terminate();
-        std::memcpy(data(), str, strSize);
-        _size = strSize;
-        null_terminate();
-    }
+    FixedString(std::string_view str) { assign(str); }
 
-    FixedString(const std::string& str) {
-        if (str.size() > capacity())
-            std::terminate();
-        std::memcpy(data(), str.data(), str.size());
-        _size = str.size();
-        null_terminate();
-    }
+    [[nodiscard]] constexpr std::size_t capacity() const noexcept { return Capacity; }
 
-    [[nodiscard]] constexpr std::size_t capacity() noexcept { return Capacity; }
-
-    [[nodiscard]] constexpr std::size_t size() const noexcept { return _size; }
-    [[nodiscard]] constexpr bool        empty() const noexcept { return size() == 0; }
-    [[nodiscard]] constexpr bool        full() const noexcept { return size() == capacity(); }
+    [[nodiscard]] std::size_t size() const noexcept { return _size; }
+    [[nodiscard]] bool        empty() const noexcept { return size() == 0; }
+    [[nodiscard]] bool        full() const noexcept { return size() == capacity(); }
 
     constexpr char*       data() noexcept { return _data.data(); }
     constexpr const char* data() const noexcept { return _data.data(); }
@@ -759,34 +771,50 @@ class FixedString final {
 
     constexpr char& operator[](std::size_t idx) noexcept {
         assert(idx < size());
+
         return data()[idx];
     }
     constexpr const char& operator[](std::size_t idx) const noexcept {
         assert(idx < size());
+
         return data()[idx];
     }
 
     void null_terminate() noexcept { data()[size()] = '\0'; }
 
-    FixedString& operator+=(const char* str) {
-        std::size_t strSize = std::strlen(str);
-        if (size() + strSize > capacity())
+    FixedString& operator=(std::string_view str) {
+        assign(str);
+        return *this;
+    }
+    // Optional: assignment from const char*
+    FixedString& operator=(const char* str) {
+        assign(str);
+        return *this;
+    }
+
+    FixedString& operator+=(std::string_view str) {
+
+        const std::size_t Size = str.size();
+
+        if (size() + Size > capacity())
             std::terminate();
-        std::memcpy(data() + size(), str, strSize);
-        _size += strSize;
+
+        std::memcpy(data() + size(), str.data(), Size);
+
+        _size += Size;
         null_terminate();
+
         return *this;
     }
-    FixedString& operator+=(const std::string& str) {
-        *this += str.data();
-        return *this;
-    }
+
     FixedString& operator+=(const FixedString& fixedStr) {
         *this += fixedStr.data();
+
         return *this;
     }
 
     operator std::string() const noexcept { return std::string(data(), size()); }
+
     operator std::string_view() const noexcept { return std::string_view(data(), size()); }
 
     template<typename T>
@@ -804,6 +832,19 @@ class FixedString final {
     }
 
    private:
+    void assign(std::string_view str) {
+
+        const std::size_t Size = str.size();
+
+        if (Size > capacity())
+            std::terminate();
+
+        std::memcpy(data(), str.data(), Size);
+
+        _size = Size;
+        null_terminate();
+    }
+
     StdArray<char, Capacity + 1> _data;  // +1 for null terminator
     std::size_t                  _size;
 };

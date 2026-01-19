@@ -28,6 +28,14 @@ namespace DON {
 
 namespace {
 
+constexpr std::uint16_t MIN_CENTI_MTG = 101U;
+constexpr std::uint16_t MAX_CENTI_MTG = 5051U;
+
+constexpr double INIT_TIME_ADJUST = -1.0;
+constexpr double MIN_TIME_ADJUST  = 1.0e-6;
+
+constexpr std::int64_t INIT_TIME_NODES = -1;
+
 // Safety margin subtracted from allocated time to account for
 // timer resolution, scheduling jitter, and measurement latency.
 // This helps avoid flagging under extreme time pressure.
@@ -35,23 +43,13 @@ constexpr TimePoint SAFETY_MARGIN_TIME = 10;
 
 constexpr TimePoint MIN_MAXIMUM_TIME = 1;
 
-constexpr std::uint64_t DEFAULT_SCALE_FACTOR = 1;
-
-constexpr std::uint16_t MIN_CENTI_MTG = 101U;
-constexpr std::uint16_t MAX_CENTI_MTG = 5051U;
-
-constexpr double INITIAL_TIME_ADJUST = -1.0;
-constexpr double MIN_TIME_ADJUST     = 1.0e-6;
-
-constexpr std::int64_t INITIAL_TIME_NODES = -1;
-
 }  // namespace
 
 void TimeManager::init() noexcept {
 
-    timeAdjust = INITIAL_TIME_ADJUST;
+    timeAdjust = INIT_TIME_ADJUST;
 
-    timeNodes = INITIAL_TIME_NODES;
+    timeNodes = INIT_TIME_NODES;
 }
 
 // Called at the beginning of the search and calculates
@@ -88,7 +86,7 @@ void TimeManager::init(
     if (use_nodes_time())
     {
         // Only once at game start
-        if (timeNodes == INITIAL_TIME_NODES)
+        if (timeNodes == INIT_TIME_NODES)
         {
             timeNodes = clock.time * NodesTime;  // Time is in msec
 
@@ -104,34 +102,29 @@ void TimeManager::init(
         moveOverhead *= NodesTime;
     }
 
-    const std::uint64_t ScaleFactor =
-      NodesTime <= DEFAULT_SCALE_FACTOR ? DEFAULT_SCALE_FACTOR : NodesTime;
+    const std::uint64_t ScaleFactor = use_nodes_time() ? NodesTime : 1;
 
-    TimePoint scaledTime = clock.time / ScaleFactor;
-
-    if (scaledTime < 1)
-        scaledTime = 1;
+    const TimePoint RawScaledTime = clock.time / ScaleFactor;
+    const TimePoint ScaledTime    = RawScaledTime < 1 ? 1 : RawScaledTime;
 
     // clang-format off
 
     // Maximum move horizon
-    auto centiMTG = limit.movesToGo == 0
+    std::uint16_t centiMTG = limit.movesToGo == 0
                   ? std::max<std::uint16_t>(MAX_CENTI_MTG - 10 * std::max(moveNum               - 20           , 0), MAX_CENTI_MTG - 1000)
                   : std::min<std::uint16_t>(MAX_CENTI_MTG + 10 * std::max(100 * limit.movesToGo - MAX_CENTI_MTG, 0), 100 * limit.movesToGo);
 
     // If less than one second, gradually reduce mtg
-    if (scaledTime < 1000)
+    if (ScaledTime < 1000)
     {
-        centiMTG = 5.0510 * scaledTime;
+        centiMTG = std::uint16_t(5.0510 * ScaledTime);
 
         if (centiMTG < MIN_CENTI_MTG)
             centiMTG = MIN_CENTI_MTG;
     }
 
-    TimePoint remainTime = clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * moveOverhead) / 100;
-    // Make sure remainTime > 0 since use it as a divisor
-    if (remainTime < 1)
-        remainTime = 1;
+    // Make sure RemainTime > 0 since use it as a divisor
+    const TimePoint RemainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * moveOverhead) / 100, TimePoint(1));
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
@@ -140,16 +133,16 @@ void TimeManager::init(
     if (limit.movesToGo == 0)
     {
         // Calculate time constants based on current remaining time
-        double logScaledTime = std::log10(scaledTime / 1000.0);
+        double logScaledTime = std::log10(ScaledTime / 1000.0);
 
         // 1) x basetime (sudden death)
         // Sudden death time control
         if (clock.inc == 0)
         {
         // Extra time according to initial remaining Time (Only once at game start)
-        if (timeAdjust == INITIAL_TIME_ADJUST)
+        if (timeAdjust == INIT_TIME_ADJUST)
         {
-            timeAdjust = -0.4126 + 0.2862 * std::log10(remainTime);
+            timeAdjust = -0.4126 + 0.2862 * std::log10(RemainTime);
 
             if (timeAdjust < MIN_TIME_ADJUST)
                 timeAdjust = MIN_TIME_ADJUST;
@@ -158,7 +151,7 @@ void TimeManager::init(
         optimumScale = timeAdjust
                      * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * logScaledTime, 4.06734e-3)
                                             * std::pow(2.82122 + ply, 0.466422),
-                                0.213035 * clock.time / remainTime);
+                                0.213035 * clock.time / RemainTime);
         maximumScale = std::min(std::max(3.66270 + 3.72690 * logScaledTime, 2.75068) + 78.37482e-3 * ply,
                                 6.35772);
         }
@@ -168,9 +161,9 @@ void TimeManager::init(
         else
         {
         // Extra time according to initial remaining Time (Only once at game start)
-        if (timeAdjust == INITIAL_TIME_ADJUST)
+        if (timeAdjust == INIT_TIME_ADJUST)
         {
-            timeAdjust = -0.4354 + 0.3128 * std::log10(remainTime);
+            timeAdjust = -0.4354 + 0.3128 * std::log10(RemainTime);
 
             if (timeAdjust < MIN_TIME_ADJUST)
                 timeAdjust = MIN_TIME_ADJUST;
@@ -179,7 +172,7 @@ void TimeManager::init(
         optimumScale = timeAdjust
                      * std::min(12.14310e-3 + std::min(3.21160e-3 + 32.11230e-5 * logScaledTime, 5.08017e-3)
                                             * std::pow(2.94693 + ply, 0.461073),
-                                0.213035 * clock.time / remainTime);
+                                0.213035 * clock.time / RemainTime);
         maximumScale = std::min(std::max(3.39770 + 3.03950 * logScaledTime, 2.94761) + 83.43972e-3 * ply,
                                 6.67704);
         }
@@ -188,13 +181,13 @@ void TimeManager::init(
     else
     {
         optimumScale = std::min((0.00880 + 85.91065e-6 * ply) / centiMTG,
-                                 0.88000 * clock.time / remainTime);
+                                 0.88000 * clock.time / RemainTime);
         maximumScale = std::min(1.30000 + 0.00110 * centiMTG,
                                 8.45000);
     }
 
     // Limit the maximum possible time for this move
-    optimumTime = TimePoint(optimumScale * remainTime);
+    optimumTime = TimePoint(optimumScale * RemainTime);
 
     maximumTime = centiMTG >= MIN_CENTI_MTG
                 ? TimePoint(std::min(0.825179 * clock.time - moveOverhead, maximumScale * optimumTime)) - SAFETY_MARGIN_TIME
@@ -213,8 +206,8 @@ void TimeManager::advance_time_nodes(std::int64_t nodes) noexcept {
 
     timeNodes -= nodes;
 
-    if (timeNodes < INITIAL_TIME_NODES + 1)
-        timeNodes = INITIAL_TIME_NODES + 1;
+    if (timeNodes < INIT_TIME_NODES + 1)
+        timeNodes = INIT_TIME_NODES + 1;
 }
 
 }  // namespace DON

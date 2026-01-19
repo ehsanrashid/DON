@@ -288,7 +288,9 @@ struct HandleGuard final {
     void close() noexcept {
         if (handle != nullptr)
         {
-            CloseHandle(handle);
+            if (handle != INVALID_HANDLE_VALUE)
+                CloseHandle(handle);
+
             handle = nullptr;
         }
     }
@@ -299,9 +301,9 @@ struct HandleGuard final {
     }
 
     HANDLE release() noexcept {
-        HANDLE oldHandle = handle;
-        handle           = nullptr;
-        return oldHandle;
+        HANDLE objReleased = handle;
+        handle             = nullptr;
+        return objReleased;
     }
 
    private:
@@ -469,9 +471,9 @@ struct FdGuard final {
     }
 
     int release() noexcept {
-        int oldFd = fd;
-        fd        = -1;
-        return oldFd;
+        int objReleased = fd;
+        fd              = -1;
+        return objReleased;
     }
 
    private:

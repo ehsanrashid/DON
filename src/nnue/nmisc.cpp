@@ -25,7 +25,6 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <string_view>
 
 #include "../misc.h"
 #include "../position.h"

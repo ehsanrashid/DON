@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 
 #include "../misc.h"
 #include "architecture.h"
@@ -38,6 +39,11 @@ struct AccumulatorCaches;
 // EvalFile uses fixed string types because it's part of the network structure which must be trivial.
 struct EvalFile final {
    public:
+    EvalFile(std::string_view defName, std::string_view curName, std::string_view netDesc) :
+        defaultName(defName),
+        currentName(curName),
+        netDescription(netDesc) {}
+
     // Default net name, will use the *EvalFileDefaultName macros defined in evaluate.h
     FixedString<256> defaultName;
     // Selected net name, either via uci option or default

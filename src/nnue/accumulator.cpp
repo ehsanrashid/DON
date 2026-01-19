@@ -800,7 +800,7 @@ void AccumulatorStack::forward_update_incremental(
 
             if constexpr (std::is_same_v<FeatureSet, PSQFeatureSet>)
             {
-                if (is_ok(dp1.dstSq) && dp1.dstSq == dp2.removeSq)
+                if (dp1.dstSq != SQ_NONE && dp1.dstSq == dp2.removeSq)
                 {
                     Square capturedSq = dp1.dstSq;
                     dp1.dstSq = dp2.removeSq = SQ_NONE;
@@ -815,7 +815,8 @@ void AccumulatorStack::forward_update_incremental(
             }
             if constexpr (std::is_same_v<FeatureSet, ThreatFeatureSet>)
             {
-                if (is_ok(dp2.removeSq) && (accumulators[idx].dirty.threateningBB & dp2.removeSq))
+                if (dp2.removeSq != SQ_NONE
+                    && (accumulators[idx].dirty.threateningBB & dp2.removeSq) != 0)
                 {
                     update_accumulator_incremental_double(perspective, featureTransformer, kingSq,
                                                           accumulators[idx - 1], accumulators[idx],

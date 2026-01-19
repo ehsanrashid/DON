@@ -347,6 +347,97 @@ struct PairsData final {
       mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
 };
 
+struct MMapGuard final {
+   public:
+#if !defined(_WIN32)
+    struct MMapRelease final {
+       public:
+        void* const       ptr;
+        const std::size_t size;
+    };
+#endif
+
+    MMapGuard() noexcept = default;
+
+#if defined(_WIN32)
+    MMapGuard(void* ptr) noexcept :
+        mappedPtr(ptr) {}
+#else
+    MMapGuard(void* ptr, std::size_t size) noexcept :
+        mappedPtr(ptr),
+        mappingSize(size) {}
+#endif
+
+    MMapGuard(const MMapGuard&)            = delete;
+    MMapGuard& operator=(const MMapGuard&) = delete;
+
+    MMapGuard(MMapGuard&& mMapGuard) noexcept :
+        mappedPtr(mMapGuard.mappedPtr)
+#if !defined(_WIN32)
+        ,
+        mappingSize(mMapGuard.mappingSize)
+#endif
+    {
+        mMapGuard.release();
+    }
+    MMapGuard& operator=(MMapGuard&& mMapGuard) noexcept {
+        if (this == &mMapGuard)
+            return *this;
+
+        close();
+
+        mappedPtr = mMapGuard.mappedPtr;
+#if !defined(_WIN32)
+        mappingSize = mMapGuard.mappingSize;
+#endif
+        mMapGuard.release();
+
+        return *this;
+    }
+
+    ~MMapGuard() noexcept { close(); }
+
+    void close() noexcept {
+        if (mappedPtr != nullptr)
+        {
+#if defined(_WIN32)
+            UnmapViewOfFile(mappedPtr);
+#else
+            munmap(mappedPtr, mappingSize);
+#endif
+            mappedPtr = nullptr;
+        }
+#if !defined(_WIN32)
+        mappingSize = 0;
+#endif
+    }
+
+#if defined(_WIN32)
+    void*
+#else
+    MMapRelease
+#endif
+    release() noexcept {
+#if defined(_WIN32)
+        void* objReleased = mappedPtr;
+        mappedPtr         = nullptr;
+        return objReleased;
+#else
+        MMapRelease objReleased{mappedPtr, mappingSize};
+        mappedPtr   = nullptr;
+        mappingSize = 0;
+        return objReleased;
+#endif
+    }
+
+   private:
+    void* mappedPtr = nullptr;
+
+#if !defined(_WIN32)
+    std::size_t mappingSize = 0;
+#endif
+};
+
 // TBTable contains indexing information to access the corresponding TBFile.
 // There are 2 types of TBTable, corresponding to a WDL or a DTZ file.
 // TBTable is populated at init time but the nested PairsData records are
@@ -390,11 +481,10 @@ struct TBTable final {
 #if defined(_WIN32)
     HANDLE      hMapFile = nullptr;
     HandleGuard hMapFileGuard{hMapFile};
-#else
-    std::uint64_t mappingSize = 0;
 #endif
     void*         mappedPtr = nullptr;
-    std::uint8_t* mapPtr    = nullptr;
+    MMapGuard     mappedGuard;
+    std::uint8_t* mapPtr = nullptr;
     InitOnce      initOnce;
 };
 
@@ -517,14 +607,14 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
     {
-        std::cerr << "GetFileSize() failed" << std::endl;
+        std::cerr << "GetFileSize() failed, name = " << filename << std::endl;
 
         return nullptr;
     }
 
     if (loSize % 64 != 16)
     {
-        std::cerr << "Corrupt tablebase file " << filename << std::endl;
+        std::cerr << "Corrupt tablebase, name = " << filename << std::endl;
 
         return nullptr;
     }
@@ -549,6 +639,8 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
         return nullptr;
     }
+
+    mappedGuard = MMapGuard{mappedPtr};
 #else
     int fd = ::open(filename.data(), O_RDONLY);
 
@@ -561,19 +653,19 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (fstat(fd, &Stat) == -1)
     {
-        std::cerr << "fstat failed: " << strerror(errno) << std::endl;
+        std::cerr << "fstat() failed, name = " << filename << ": " << strerror(errno) << std::endl;
 
         return nullptr;
     }
 
     if (Stat.st_size % 64 != 16)
     {
-        std::cerr << "Corrupt tablebase file " << filename << std::endl;
+        std::cerr << "Corrupt tablebase size, name = " << filename << std::endl;
 
         return nullptr;
     }
 
-    mappingSize = Stat.st_size;
+    std::size_t mappingSize = Stat.st_size;
 
     mappedPtr = mmap(nullptr, mappingSize, PROT_READ, MAP_SHARED, fd, 0);
 
@@ -584,8 +676,14 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
         return nullptr;
     }
 
+    mappedGuard = MMapGuard{mappedPtr, mappingSize};
+
     #if defined(MADV_RANDOM)
-    madvise(mappedPtr, mappingSize, MADV_RANDOM);
+    if (madvise(mappedPtr, mappingSize, MADV_RANDOM) != 0)
+    {
+        std::cerr << "madvise() failed, name = " << filename << ": " << strerror(errno)
+                  << std::endl;
+    }
     #endif
 #endif
 
@@ -595,7 +693,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (std::memcmp(data, TBMagic.data(), TBMagic.size()) != 0)
     {
-        std::cerr << "Corrupted table in file " << filename << std::endl;
+        std::cerr << "Corrupt tablebase table, name = " << filename << std::endl;
 
         unmap();
 
@@ -607,22 +705,9 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
 template<TBType T>
 void TBTable<T>::unmap() noexcept {
+    mappedGuard.close();
 #if defined(_WIN32)
-    if (mappedPtr != nullptr)
-    {
-        UnmapViewOfFile(mappedPtr);
-        mappedPtr = nullptr;
-    }
-
     hMapFileGuard.close();
-#else
-    if (mappedPtr != nullptr)
-    {
-        munmap(mappedPtr, mappingSize);
-        mappedPtr = nullptr;
-    }
-
-    mappingSize = 0;
 #endif
 }
 
@@ -639,7 +724,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
 
     ++data;  // First byte stores flags
 
-    std::size_t sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
+    const std::size_t Sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
 
     File maxFile = hasPawns ? FILE_D : FILE_A;
 
@@ -649,7 +734,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
 
     for (File f = FILE_A; f <= maxFile; ++f)
     {
-        for (std::size_t i = 0; i < sides; ++i)
+        for (std::size_t i = 0; i < Sides; ++i)
             *get(i, f) = PairsData();
 
         StdArray<int, 2, 2> order{{
@@ -660,17 +745,17 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
         data += 1 + pp;
 
         for (std::uint8_t k = 0; k < pieceCount; ++k, ++data)
-            for (std::size_t i = 0; i < sides; ++i)
+            for (std::size_t i = 0; i < Sides; ++i)
                 get(i, f)->pieces[k] = Piece(i != 0 ? (*data >> 4) : (*data & 0xF));
 
-        for (std::size_t i = 0; i < sides; ++i)
+        for (std::size_t i = 0; i < Sides; ++i)
             set_groups(get(i, f), order[i], f);
     }
 
     data += std::uintptr_t(data) & 1;  // Word alignment
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < sides; ++i)
+        for (std::size_t i = 0; i < Sides; ++i)
             data = set_sizes(get(i, f), data);
 
     data = set_dtz_map(data, maxFile);
@@ -678,7 +763,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
     PairsData* pd;
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < sides; ++i)
+        for (std::size_t i = 0; i < Sides; ++i)
         {
             (pd = get(i, f))->sparseIndex = (SparseEntry*) (data);
 
@@ -686,7 +771,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
         }
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < sides; ++i)
+        for (std::size_t i = 0; i < Sides; ++i)
         {
             (pd = get(i, f))->blockLength = (std::uint16_t*) (data);
 
@@ -694,7 +779,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
         }
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < sides; ++i)
+        for (std::size_t i = 0; i < Sides; ++i)
         {
             data = (std::uint8_t*) ((std::uintptr_t(data) + 0x3F) & ~0x3F);  // 64 byte alignment
 
@@ -1193,17 +1278,18 @@ Ret do_probe_table(
     // If both sides have the same pieces keys are equal. In this case TB-tables
     // only stores the 'white to move' case, so if the position to lookup has black
     // to move, need to switch the color and flip the squares before to lookup.
-    bool blackSymmetric = pos.active_color() == BLACK && table->key[WHITE] == table->key[BLACK];
+    const bool blackSymmetric =
+      pos.active_color() == BLACK && table->key[WHITE] == table->key[BLACK];
 
     // TB files are calculated for white as the stronger side. For instance, we
     // have KRvK, not KvKR. A position where the stronger side is white will have
     // its material key == table->key[WHITE], otherwise have to switch the color
     // and flip the squares before to lookup.
-    bool blackStronger = materialKey != table->key[WHITE];
+    const bool blackStronger = materialKey != table->key[WHITE];
 
-    bool flip = blackSymmetric || blackStronger;
+    const bool flip = blackSymmetric || blackStronger;
 
-    int activeColor = flip ? ~pos.active_color() : pos.active_color();
+    const int activeColor = flip ? ~pos.active_color() : pos.active_color();
 
     StdArray<Square, MAX_TB_PIECES> squares{};
     StdArray<Piece, MAX_TB_PIECES>  pieces;
@@ -1270,7 +1356,7 @@ Ret do_probe_table(
 
     assert(size >= 2);
 
-    PairsData* pd = table->get(activeColor, tbFile);
+    PairsData* const pd = table->get(activeColor, tbFile);
 
     // Then reorder the pieces to have the same sequence as the one stored
     // in pieces[i]: the sequence that ensures the best compression.
