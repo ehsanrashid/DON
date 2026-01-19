@@ -400,7 +400,8 @@ void min_of(std::int64_t value, std::size_t slot) noexcept {
         auto& mn = info[1];
         for (auto minValue = mn.load(std::memory_order_relaxed);
              minValue > value
-             && !mn.compare_exchange_weak(minValue, value, std::memory_order_relaxed,
+             && !mn.compare_exchange_weak(minValue, value,            //
+                                          std::memory_order_relaxed,  //
                                           std::memory_order_relaxed);)
         {}
     }
@@ -417,7 +418,8 @@ void max_of(std::int64_t value, std::size_t slot) noexcept {
         auto& mx = info[1];
         for (auto maxValue = mx.load(std::memory_order_relaxed);
              maxValue < value
-             && !mx.compare_exchange_weak(maxValue, value, std::memory_order_relaxed,
+             && !mx.compare_exchange_weak(maxValue, value,            //
+                                          std::memory_order_relaxed,  //
                                           std::memory_order_relaxed);)
         {}
     }
@@ -434,7 +436,8 @@ void extreme_of(std::int64_t value, std::size_t slot) noexcept {
         auto& mn = info[1];
         for (auto minValue = mn.load(std::memory_order_relaxed);
              minValue > value
-             && !mn.compare_exchange_weak(minValue, value, std::memory_order_relaxed,
+             && !mn.compare_exchange_weak(minValue, value,            //
+                                          std::memory_order_relaxed,  //
                                           std::memory_order_relaxed);)
         {}
     }
@@ -442,7 +445,8 @@ void extreme_of(std::int64_t value, std::size_t slot) noexcept {
         auto& mx = info[2];
         for (auto maxValue = mx.load(std::memory_order_relaxed);
              maxValue < value
-             && !mx.compare_exchange_weak(maxValue, value, std::memory_order_relaxed,
+             && !mx.compare_exchange_weak(maxValue, value,            //
+                                          std::memory_order_relaxed,  //
                                           std::memory_order_relaxed);)
         {}
     }

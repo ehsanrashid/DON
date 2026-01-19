@@ -57,8 +57,8 @@
 #else
     #include <cerrno>
     #include <fcntl.h>
-    #include <sys/mman.h>
-    #include <unistd.h>  // IWYU pragma: keep
+    #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
+    #include <unistd.h>    // IWYU pragma: keep
 #endif
 
 #include "../bitboard.h"
@@ -347,97 +347,6 @@ struct PairsData final {
       mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
 };
 
-struct MMapGuard final {
-   public:
-#if !defined(_WIN32)
-    struct MMapRelease final {
-       public:
-        void* const       ptr;
-        const std::size_t size;
-    };
-#endif
-
-    MMapGuard() noexcept = default;
-
-#if defined(_WIN32)
-    MMapGuard(void* ptr) noexcept :
-        mappedPtr(ptr) {}
-#else
-    MMapGuard(void* ptr, std::size_t size) noexcept :
-        mappedPtr(ptr),
-        mappingSize(size) {}
-#endif
-
-    MMapGuard(const MMapGuard&)            = delete;
-    MMapGuard& operator=(const MMapGuard&) = delete;
-
-    MMapGuard(MMapGuard&& mMapGuard) noexcept :
-        mappedPtr(mMapGuard.mappedPtr)
-#if !defined(_WIN32)
-        ,
-        mappingSize(mMapGuard.mappingSize)
-#endif
-    {
-        mMapGuard.release();
-    }
-    MMapGuard& operator=(MMapGuard&& mMapGuard) noexcept {
-        if (this == &mMapGuard)
-            return *this;
-
-        close();
-
-        mappedPtr = mMapGuard.mappedPtr;
-#if !defined(_WIN32)
-        mappingSize = mMapGuard.mappingSize;
-#endif
-        mMapGuard.release();
-
-        return *this;
-    }
-
-    ~MMapGuard() noexcept { close(); }
-
-    void close() noexcept {
-        if (mappedPtr != nullptr)
-        {
-#if defined(_WIN32)
-            UnmapViewOfFile(mappedPtr);
-#else
-            munmap(mappedPtr, mappingSize);
-#endif
-            mappedPtr = nullptr;
-        }
-#if !defined(_WIN32)
-        mappingSize = 0;
-#endif
-    }
-
-#if defined(_WIN32)
-    void*
-#else
-    MMapRelease
-#endif
-    release() noexcept {
-#if defined(_WIN32)
-        void* objReleased = mappedPtr;
-        mappedPtr         = nullptr;
-        return objReleased;
-#else
-        MMapRelease objReleased{mappedPtr, mappingSize};
-        mappedPtr   = nullptr;
-        mappingSize = 0;
-        return objReleased;
-#endif
-    }
-
-   private:
-    void* mappedPtr = nullptr;
-
-#if !defined(_WIN32)
-    std::size_t mappingSize = 0;
-#endif
-};
-
 // TBTable contains indexing information to access the corresponding TBFile.
 // There are 2 types of TBTable, corresponding to a WDL or a DTZ file.
 // TBTable is populated at init time but the nested PairsData records are
@@ -482,8 +391,14 @@ struct TBTable final {
     HANDLE      hMapFile = nullptr;
     HandleGuard hMapFileGuard{hMapFile};
 #endif
-    void*         mappedPtr = nullptr;
-    MMapGuard     mappedGuard;
+#if defined(_WIN32)
+    void*     mappedPtr = nullptr;
+    MMapGuard mappedGuard{mappedPtr};
+#else
+    void*       mappedPtr  = nullptr;
+    std::size_t mappedSize = 0;
+    MMapGuard   mappedGuard{mappedPtr, mappedSize};
+#endif
     std::uint8_t* mapPtr = nullptr;
     InitOnce      initOnce;
 };
@@ -639,8 +554,6 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
         return nullptr;
     }
-
-    mappedGuard = MMapGuard{mappedPtr};
 #else
     int fd = ::open(filename.data(), O_RDONLY);
 
@@ -665,9 +578,9 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
         return nullptr;
     }
 
-    std::size_t mappingSize = Stat.st_size;
+    mappedSize = Stat.st_size;
 
-    mappedPtr = mmap(nullptr, mappingSize, PROT_READ, MAP_SHARED, fd, 0);
+    mappedPtr = mmap(nullptr, mappedSize, PROT_READ, MAP_SHARED, fd, 0);
 
     if (mappedPtr == MAP_FAILED)
     {
@@ -676,10 +589,8 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
         return nullptr;
     }
 
-    mappedGuard = MMapGuard{mappedPtr, mappingSize};
-
     #if defined(MADV_RANDOM)
-    if (madvise(mappedPtr, mappingSize, MADV_RANDOM) != 0)
+    if (madvise(mappedPtr, mappedSize, MADV_RANDOM) != 0)
     {
         std::cerr << "madvise() failed, name = " << filename << ": " << strerror(errno)
                   << std::endl;
