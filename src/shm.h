@@ -657,7 +657,8 @@ struct ShmHeader final {
 
         for (auto expected = refCount.load(std::memory_order_relaxed);
              expected != 0
-             && !refCount.compare_exchange_weak(expected, expected - 1, std::memory_order_acq_rel,
+             && !refCount.compare_exchange_weak(expected, expected - 1,     //
+                                                std::memory_order_acq_rel,  //
                                                 std::memory_order_relaxed);)
         {}
     }
@@ -981,7 +982,7 @@ class SharedMemory final: public BaseSharedMemory {
     void set_sentinel_path(pid_t pid) noexcept {
         sentinelPath.reserve(11 + sentinelBase.size() + 1 + 10);
 
-        sentinelPath = "/dev/shm/";
+        sentinelPath = std::string(Dir);
         sentinelPath += sentinelBase;
         sentinelPath += '.';
         sentinelPath += std::to_string(pid);
@@ -1038,7 +1039,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     bool has_other_live_sentinels_locked() const noexcept {
-        DIR* dir = opendir("/dev/shm");
+        DIR* dir = opendir(Dir.data());
 
         if (dir == nullptr)
             return false;
@@ -1071,7 +1072,7 @@ class SharedMemory final: public BaseSharedMemory {
                 break;
             }
 
-            std::string stalePath = std::string("/dev/shm/") + entryName;
+            std::string stalePath = std::string(Dir) + entryName;
 
             ::unlink(stalePath.c_str());
 
@@ -1179,6 +1180,8 @@ class SharedMemory final: public BaseSharedMemory {
 
         return true;
     }
+
+    static constexpr std::string_view Dir{"/dev/shm/"};
 
     std::string name;
     int         fd = -1;
