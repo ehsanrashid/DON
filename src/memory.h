@@ -445,11 +445,15 @@ struct Advapi final {
     }
 
     void free() noexcept {
-        if (loaded && hModule != nullptr)
+        if (loaded)
+        {
+            assert(hModule != nullptr);
+
             FreeLibrary(hModule);
 
-        hModule = nullptr;
-        loaded  = false;
+            hModule = nullptr;
+            loaded  = false;
+        }
     }
 
     OpenProcessToken_      openProcessToken      = nullptr;
