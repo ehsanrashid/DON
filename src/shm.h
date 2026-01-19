@@ -929,14 +929,21 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void reset() noexcept {
+
         fdGuard.release();
+
         mappedGuard.release();
+
         dataPtr   = nullptr;
         shmHeader = nullptr;
+
         clear_sentinel_path();
     }
 
     void unmap_region() noexcept {
+        if (mappedPtr == nullptr)
+            return;
+
         mappedGuard.close();
 
         dataPtr   = nullptr;
