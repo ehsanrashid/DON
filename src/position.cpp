@@ -287,11 +287,12 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
         }
         else
         {
-            if (Piece pc = to_piece(token); is_ok(pc))
+            if (Piece pc = to_piece(token); pc != Piece::NO_PIECE)
             {
                 assert(file <= FILE_H);
 
                 Square sq = make_square(file, rank);
+
                 put(sq, pc);
 
                 if (file < FILE_H)
@@ -851,7 +852,7 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
     Piece        capturedPc = piece(m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac));
     Piece        promotedPc = Piece::NO_PIECE;
     assert(color_of(movedPc) == ac);
-    assert(!is_ok(capturedPc)
+    assert(capturedPc == Piece::NO_PIECE
            || (color_of(capturedPc) == (m.type() != MT::CASTLING ? ~ac : ac)
                && type_of(capturedPc) != KING));
 
@@ -910,7 +911,7 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
     movedKey = Zobrist::piece_square(ac, movedPt, orgSq)  //
              ^ Zobrist::piece_square(ac, movedPt, dstSq);
 
-    capture = is_ok(capturedPc);
+    capture = capturedPc != Piece::NO_PIECE;
 
     if (capture)
     {
@@ -1110,11 +1111,11 @@ DO_MOVE_END:
 
     assert(_is_ok());
 
-    assert(is_ok(db.dp.movedPc));
-    assert(is_ok(db.dp.orgSq));
-    assert(is_ok(db.dp.dstSq) ^ !(m.type() != MT::PROMOTION));
-    assert(is_ok(db.dp.removeSq) ^ !(capture || m.type() == MT::CASTLING));
-    assert(is_ok(db.dp.addSq) ^ !(m.type() == MT::PROMOTION || m.type() == MT::CASTLING));
+    assert((db.dp.movedPc != Piece::NO_PIECE));
+    assert((db.dp.orgSq != SQ_NONE));
+    assert((db.dp.dstSq != SQ_NONE) ^ !(m.type() != MT::PROMOTION));
+    assert((db.dp.removeSq != SQ_NONE) ^ !(capture || m.type() == MT::CASTLING));
+    assert((db.dp.addSq != SQ_NONE) ^ !(m.type() == MT::PROMOTION || m.type() == MT::CASTLING));
     return db;
 }
 
@@ -1129,13 +1130,13 @@ void Position::undo_move(Move m) noexcept {
     assert(empty(orgSq) || m.type() == MT::CASTLING);
 
     const Piece capturedPc = captured_pc();
-    assert(!is_ok(capturedPc) || type_of(capturedPc) != KING);
+    assert(capturedPc == Piece::NO_PIECE || type_of(capturedPc) != KING);
 
     if (m.type() == MT::CASTLING)
     {
         assert((pieces_bb(ac, KING) & king_castle_sq(orgSq, dstSq)) != 0);
         assert((pieces_bb(ac, ROOK) & rook_castle_sq(orgSq, dstSq)) != 0);
-        assert(!is_ok(capturedPc));
+        assert(capturedPc == Piece::NO_PIECE);
         assert(has_castled(ac));
 
         Square rookOrgSq, rookDstSq;
@@ -1161,7 +1162,7 @@ void Position::undo_move(Move m) noexcept {
     // Move back the piece
     move(dstSq, orgSq);
 
-    if (is_ok(capturedPc))
+    if (capturedPc != Piece::NO_PIECE)
     {
         Square capturedSq = dstSq;
 
@@ -1230,10 +1231,11 @@ void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
 
 // Unmakes a null move
 void Position::undo_null_move() noexcept {
+    assert(null_ply() == 0);
     assert(captured_sq() == SQ_NONE);
     assert(checkers_bb() == 0);
-    assert(!is_ok(captured_pc()));
-    assert(!is_ok(promoted_pc()));
+    assert(captured_pc() == Piece::NO_PIECE);
+    assert(promoted_pc() == Piece::NO_PIECE);
 
     activeColor = ~active_color();
 
@@ -1476,7 +1478,8 @@ Key Position::move_key(Move m) const noexcept {
     const Square capturedSq = m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac);
     const Piece  capturedPc = piece(capturedSq);
     assert(color_of(movedPc) == ac);
-    assert(!is_ok(capturedPc) || color_of(capturedPc) == (m.type() != MT::CASTLING ? ~ac : ac));
+    assert(capturedPc == Piece::NO_PIECE
+           || color_of(capturedPc) == (m.type() != MT::CASTLING ? ~ac : ac));
     assert(type_of(capturedPc) != KING);
 
     const auto movedPt = type_of(movedPc);
@@ -1514,7 +1517,7 @@ Key Position::move_key(Move m) const noexcept {
 
     return moveKey  //
          ^ Zobrist::piece_square(~ac, type_of(capturedPc), capturedSq)
-         ^ Zobrist::mr50(is_ok(capturedPc) || movedPt == PAWN ? 0 : 1 + rule50_count());
+         ^ Zobrist::mr50(capturedPc != Piece::NO_PIECE || movedPt == PAWN ? 0 : 1 + rule50_count());
 }
 
 // Tests if the SEE (Static Exchange Evaluation) value of the move
@@ -2305,11 +2308,11 @@ void State::dump(std::ostream& os) const noexcept {
         os << BitBoard::pretty(accAttacksBB[pt]) << "\n";
     }
 
-    os << "Repetition: " << int(repetition);
+    os << "Repetition: " << repetition;
     os << "\n";
-    os << "Captured Piece: " << (is_ok(capturedPc) ? to_char(capturedPc) : '-');
+    os << "Captured Piece: " << (capturedPc != Piece::NO_PIECE ? to_char(capturedPc) : '-');
     os << "\n";
-    os << "Promoted Piece: " << (is_ok(promotedPc) ? to_char(promotedPc) : '-');
+    os << "Promoted Piece: " << (promotedPc != Piece::NO_PIECE ? to_char(promotedPc) : '-');
     os << "\n";
 
     os.flush();

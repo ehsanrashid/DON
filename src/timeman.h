@@ -19,6 +19,7 @@
 #define TIMEMAN_H_INCLUDED
 
 #include <cstdint>
+#include <utility>
 
 #include "misc.h"
 #include "types.h"  // IWYU pragma: keep
@@ -46,7 +47,7 @@ class TimeManager final {
 
     template<typename NodesFunc>
     TimePoint elapsed(NodesFunc&& nodes) const noexcept {
-        return use_nodes_time() ? TimePoint(nodes()) : elapsed();
+        return use_nodes_time() ? TimePoint(std::forward<NodesFunc>(nodes)()) : elapsed();
     }
 
     void init() noexcept;

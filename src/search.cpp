@@ -140,7 +140,7 @@ void update_pv(Move* RESTRICT pv, Move m, const Move* RESTRICT childPv) noexcept
 // Updates the continuation histories for the move pairs formed
 // by the current move and the moves played in previous plies.
 void update_continuation_history(Stack* const ss, Piece pc, Square dstSq, int bonus) noexcept {
-    assert(is_ok(dstSq));
+    assert(dstSq != SQ_NONE);
 
     constexpr std::size_t MaxContHistorySize = 8;
 
@@ -824,7 +824,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     const bool preCapture = is_ok(pos.captured_pc());
     const bool preNonPawn =
-      is_ok(preSq) && type_of(pos[preSq]) != PAWN && (ss - 1)->move.type() != MT::PROMOTION;
+      preSq != SQ_NONE && type_of(pos[preSq]) != PAWN && (ss - 1)->move.type() != MT::PROMOTION;
 
     const int correctionValue = correction_value(pos, ss);
 
@@ -901,7 +901,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                                        std::min(-72 + 132 * depth, +985));
 
             // Extra penalty for early quiet moves of the previous ply
-            if (is_ok(preSq) && !preCapture && (ss - 1)->moveCount < 4)
+            if (preSq != SQ_NONE && !preCapture && (ss - 1)->moveCount < 4)
                 update_continuation_history(ss - 1, pos[preSq], preSq, -2060);
         }
 
@@ -1006,7 +1006,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         goto S_MOVES_LOOP;
 
     // Use static evaluation difference to improve quiet move ordering
-    if (is_ok(preSq) && !preCapture && !(ss - 1)->inCheck)
+    if (preSq != SQ_NONE && !preCapture && !(ss - 1)->inCheck)
     {
         int bonus = 59 + std::clamp(-((ss - 1)->evalValue + (ss - 0)->evalValue), -209, +167);
 
@@ -1643,7 +1643,7 @@ S_MOVES_LOOP:  // When in check, search starts here
             ttMoveHistory << (bestMove == ttd.move ? +809 : -865);
     }
     // If prior move is valid, that caused the fail low
-    else if (is_ok(preSq))
+    else if (preSq != SQ_NONE)
     {
         // Bonus for prior quiet move
         if (!preCapture)
@@ -2073,7 +2073,7 @@ void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss,
 
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted.
-    if (is_ok(preSq) && !is_ok(pos.captured_pc()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
+    if (preSq != SQ_NONE && !is_ok(pos.captured_pc()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
         update_continuation_history(ss - 1, pos[preSq], preSq, -0.5879 * malus);
 }
 
@@ -2092,7 +2092,7 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 
     const Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
-    if (is_ok(preSq))
+    if (preSq != SQ_NONE)
     {
         (*(ss - 2)->pieceSqCorrectionHistory)[+pos[preSq]][preSq] << 0.9922 * bonus;
         (*(ss - 4)->pieceSqCorrectionHistory)[+pos[preSq]][preSq] << 0.4609 * bonus;
@@ -2114,7 +2114,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
                      + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
            +11529LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                      + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac])
-           + 7841LL * (is_ok(preSq)
+           + 7841LL * (preSq != SQ_NONE
                       ? (*(ss - 2)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]
                       + (*(ss - 4)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]
                       : 8),
@@ -2412,6 +2412,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     const std::uint16_t hashfull = transpositionTable.hashfull();
     const std::uint64_t tbHits   = threads.sum(&Worker::tbHits,  //
                                              tbConfig.rootInTB ? rootMoves.size() : 0);
+    const bool          ShowWDL  = options["UCI_ShowWDL"];
 
     for (std::size_t i = 0; i < multiPV; ++i)
     {
@@ -2448,7 +2449,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
             bound = to_string(rm.bound);
 
         std::string wdl;
-        if (options["UCI_ShowWDL"])
+        if (ShowWDL)
             wdl = UCI::to_wdl(v, rootPos);
 
         const std::string pv = UCI::build_pv_string(rm.pv);

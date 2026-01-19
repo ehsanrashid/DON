@@ -336,7 +336,7 @@ void FullThreats::append_changed_indices(Color            perspective,
                     continue;
             }
 
-            if (is_ok(dstSq) && dstSq == fusedData->dp2removedSq)
+            if (dstSq != SQ_NONE && dstSq == fusedData->dp2removedSq)
             {
                 if (add)
                 {

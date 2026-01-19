@@ -110,13 +110,13 @@ void HalfKAv2_hm::append_changed_indices(Color            perspective,
                                          IndexList&       added) noexcept {
     removed.push_back(make_index(perspective, kingSq, dp.orgSq, dp.movedPc));
 
-    if (is_ok(dp.dstSq))
+    if (dp.dstSq != SQ_NONE)
         added.push_back(make_index(perspective, kingSq, dp.dstSq, dp.movedPc));
 
-    if (is_ok(dp.removeSq))
+    if (dp.removeSq != SQ_NONE)
         removed.push_back(make_index(perspective, kingSq, dp.removeSq, dp.removePc));
 
-    if (is_ok(dp.addSq))
+    if (dp.addSq != SQ_NONE)
         added.push_back(make_index(perspective, kingSq, dp.addSq, dp.addPc));
 }
 
