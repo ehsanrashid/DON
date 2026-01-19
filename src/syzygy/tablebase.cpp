@@ -724,7 +724,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
 
     ++data;  // First byte stores flags
 
-    std::size_t sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
+    const std::size_t Sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
 
     File maxFile = hasPawns ? FILE_D : FILE_A;
 
@@ -734,7 +734,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
 
     for (File f = FILE_A; f <= maxFile; ++f)
     {
-        for (std::size_t i = 0; i < sides; ++i)
+        for (std::size_t i = 0; i < Sides; ++i)
             *get(i, f) = PairsData();
 
         StdArray<int, 2, 2> order{{
@@ -745,17 +745,17 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
         data += 1 + pp;
 
         for (std::uint8_t k = 0; k < pieceCount; ++k, ++data)
-            for (std::size_t i = 0; i < sides; ++i)
+            for (std::size_t i = 0; i < Sides; ++i)
                 get(i, f)->pieces[k] = Piece(i != 0 ? (*data >> 4) : (*data & 0xF));
 
-        for (std::size_t i = 0; i < sides; ++i)
+        for (std::size_t i = 0; i < Sides; ++i)
             set_groups(get(i, f), order[i], f);
     }
 
     data += std::uintptr_t(data) & 1;  // Word alignment
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < sides; ++i)
+        for (std::size_t i = 0; i < Sides; ++i)
             data = set_sizes(get(i, f), data);
 
     data = set_dtz_map(data, maxFile);
@@ -763,7 +763,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
     PairsData* pd;
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < sides; ++i)
+        for (std::size_t i = 0; i < Sides; ++i)
         {
             (pd = get(i, f))->sparseIndex = (SparseEntry*) (data);
 
@@ -771,7 +771,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
         }
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < sides; ++i)
+        for (std::size_t i = 0; i < Sides; ++i)
         {
             (pd = get(i, f))->blockLength = (std::uint16_t*) (data);
 
@@ -779,7 +779,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
         }
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < sides; ++i)
+        for (std::size_t i = 0; i < Sides; ++i)
         {
             data = (std::uint8_t*) ((std::uintptr_t(data) + 0x3F) & ~0x3F);  // 64 byte alignment
 
