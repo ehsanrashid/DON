@@ -395,9 +395,9 @@ struct TBTable final {
     void*     mappedPtr = nullptr;
     MMapGuard mappedGuard{mappedPtr};
 #else
-    void*       mappedPtr   = nullptr;
-    std::size_t mappingSize = 0;
-    MMapGuard   mappedGuard{mappedPtr, mappingSize};
+    void*       mappedPtr  = nullptr;
+    std::size_t mappedSize = 0;
+    MMapGuard   mappedGuard{mappedPtr, mappedSize};
 #endif
     std::uint8_t* mapPtr = nullptr;
     InitOnce      initOnce;
@@ -578,9 +578,9 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
         return nullptr;
     }
 
-    mappingSize = Stat.st_size;
+    mappedSize = Stat.st_size;
 
-    mappedPtr = mmap(nullptr, mappingSize, PROT_READ, MAP_SHARED, fd, 0);
+    mappedPtr = mmap(nullptr, mappedSize, PROT_READ, MAP_SHARED, fd, 0);
 
     if (mappedPtr == MAP_FAILED)
     {
@@ -590,7 +590,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
     }
 
     #if defined(MADV_RANDOM)
-    if (madvise(mappedPtr, mappingSize, MADV_RANDOM) != 0)
+    if (madvise(mappedPtr, mappedSize, MADV_RANDOM) != 0)
     {
         std::cerr << "madvise() failed, name = " << filename << ": " << strerror(errno)
                   << std::endl;

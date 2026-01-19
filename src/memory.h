@@ -587,7 +587,7 @@ struct MMapGuard final {
 
     MMapGuard(void*& ptrRef, std::size_t& sizeRef) noexcept :
         mappedPtr(ptrRef),
-        mappingSize(sizeRef) {}
+        mappedSize(sizeRef) {}
 
     MMapGuard()                            = delete;
     MMapGuard(const MMapGuard&)            = delete;
@@ -595,7 +595,7 @@ struct MMapGuard final {
 
     MMapGuard(MMapGuard&& mMapGuard) noexcept :
         mappedPtr(mMapGuard.mappedPtr),
-        mappingSize(mMapGuard.mappingSize) {
+        mappedSize(mMapGuard.mappedSize) {
         mMapGuard.release();
     }
     MMapGuard& operator=(MMapGuard&& mMapGuard) noexcept {
@@ -604,8 +604,8 @@ struct MMapGuard final {
 
         close();
 
-        mappedPtr   = mMapGuard.mappedPtr;
-        mappingSize = mMapGuard.mappingSize;
+        mappedPtr  = mMapGuard.mappedPtr;
+        mappedSize = mMapGuard.mappedSize;
 
         mMapGuard.release();
 
@@ -616,38 +616,38 @@ struct MMapGuard final {
 
     void* get() const noexcept { return mappedPtr; }
 
-    std::size_t get_size() const noexcept { return mappingSize; }
+    std::size_t get_size() const noexcept { return mappedSize; }
 
     void close() noexcept {
         if (mappedPtr != nullptr)
         {
-            munmap(mappedPtr, mappingSize);
+            munmap(mappedPtr, mappedSize);
 
             mappedPtr = nullptr;
         }
 
-        mappingSize = 0;
+        mappedSize = 0;
     }
 
     void reset(void* newPtr = nullptr, std::size_t newSize = 0) noexcept {
         close();
 
-        mappedPtr   = newPtr;
-        mappingSize = newSize;
+        mappedPtr  = newPtr;
+        mappedSize = newSize;
     }
 
     MMapRelease release() noexcept {
-        MMapRelease released{mappedPtr, mappingSize};
+        MMapRelease released{mappedPtr, mappedSize};
 
-        mappedPtr   = nullptr;
-        mappingSize = 0;
+        mappedPtr  = nullptr;
+        mappedSize = 0;
 
         return released;
     }
 
    private:
     void*&       mappedPtr;
-    std::size_t& mappingSize;
+    std::size_t& mappedSize;
 };
 
 #endif
