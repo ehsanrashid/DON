@@ -124,7 +124,7 @@ template<typename T>
 constexpr auto sqr(T x) noexcept {
     static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
     using Wider = std::conditional_t<std::is_integral_v<T>, long long, T>;
-    return Wider(x) * x;
+    return Wider(x) * Wider(x);
 }
 
 // Return the square of a number multiplied by its sign, using a wider type to avoid overflow
