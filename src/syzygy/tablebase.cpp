@@ -347,6 +347,97 @@ struct PairsData final {
       mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
 };
 
+struct MMapGuard final {
+   public:
+#if !defined(_WIN32)
+    struct MMapRelease final {
+       public:
+        void* const       ptr;
+        const std::size_t size;
+    };
+#endif
+
+    MMapGuard() noexcept = default;
+
+#if defined(_WIN32)
+    MMapGuard(void* ptr) noexcept :
+        mappedPtr(ptr) {}
+#else
+    MMapGuard(void* ptr, std::size_t size) noexcept :
+        mappedPtr(ptr),
+        mappingSize(size) {}
+#endif
+
+    MMapGuard(const MMapGuard&)            = delete;
+    MMapGuard& operator=(const MMapGuard&) = delete;
+
+    MMapGuard(MMapGuard&& mMapGuard) noexcept :
+        mappedPtr(mMapGuard.mappedPtr)
+#if !defined(_WIN32)
+        ,
+        mappingSize(mMapGuard.mappingSize)
+#endif
+    {
+        mMapGuard.release();
+    }
+    MMapGuard& operator=(MMapGuard&& mMapGuard) noexcept {
+        if (this == &mMapGuard)
+            return *this;
+
+        close();
+
+        mappedPtr = mMapGuard.mappedPtr;
+#if !defined(_WIN32)
+        mappingSize = mMapGuard.mappingSize;
+#endif
+        mMapGuard.release();
+
+        return *this;
+    }
+
+    ~MMapGuard() noexcept { close(); }
+
+    void close() noexcept {
+        if (mappedPtr != nullptr)
+        {
+#if defined(_WIN32)
+            UnmapViewOfFile(mappedPtr);
+#else
+            munmap(mappedPtr, mappingSize);
+#endif
+            mappedPtr = nullptr;
+        }
+#if !defined(_WIN32)
+        mappingSize = 0;
+#endif
+    }
+
+#if defined(_WIN32)
+    void*
+#else
+    MMapRelease
+#endif
+    release() noexcept {
+#if defined(_WIN32)
+        void* objReleased = mappedPtr;
+        mappedPtr         = nullptr;
+        return objReleased;
+#else
+        MMapRelease objReleased{mappedPtr, mappingSize};
+        mappedPtr   = nullptr;
+        mappingSize = 0;
+        return objReleased;
+#endif
+    }
+
+   private:
+    void* mappedPtr = nullptr;
+
+#if !defined(_WIN32)
+    std::size_t mappingSize = 0;
+#endif
+};
+
 // TBTable contains indexing information to access the corresponding TBFile.
 // There are 2 types of TBTable, corresponding to a WDL or a DTZ file.
 // TBTable is populated at init time but the nested PairsData records are
@@ -390,11 +481,10 @@ struct TBTable final {
 #if defined(_WIN32)
     HANDLE      hMapFile = nullptr;
     HandleGuard hMapFileGuard{hMapFile};
-#else
-    std::uint64_t mappingSize = 0;
 #endif
     void*         mappedPtr = nullptr;
-    std::uint8_t* mapPtr    = nullptr;
+    MMapGuard     mappedGuard;
+    std::uint8_t* mapPtr = nullptr;
     InitOnce      initOnce;
 };
 
@@ -517,14 +607,14 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
     {
-        std::cerr << "GetFileSize() failed" << std::endl;
+        std::cerr << "GetFileSize() failed, name = " << filename << std::endl;
 
         return nullptr;
     }
 
     if (loSize % 64 != 16)
     {
-        std::cerr << "Corrupt tablebase file " << filename << std::endl;
+        std::cerr << "Corrupt tablebase, name = " << filename << std::endl;
 
         return nullptr;
     }
@@ -549,6 +639,8 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
         return nullptr;
     }
+
+    mappedGuard = MMapGuard{mappedPtr};
 #else
     int fd = ::open(filename.data(), O_RDONLY);
 
@@ -561,19 +653,19 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (fstat(fd, &Stat) == -1)
     {
-        std::cerr << "fstat failed: " << strerror(errno) << std::endl;
+        std::cerr << "fstat() failed, name = " << filename << ": " << strerror(errno) << std::endl;
 
         return nullptr;
     }
 
     if (Stat.st_size % 64 != 16)
     {
-        std::cerr << "Corrupt tablebase file " << filename << std::endl;
+        std::cerr << "Corrupt tablebase size, name = " << filename << std::endl;
 
         return nullptr;
     }
 
-    mappingSize = Stat.st_size;
+    std::uint64_t mappingSize = Stat.st_size;
 
     mappedPtr = mmap(nullptr, mappingSize, PROT_READ, MAP_SHARED, fd, 0);
 
@@ -584,8 +676,14 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
         return nullptr;
     }
 
+    mappedGuard = MMapGuard{mappedPtr, mappingSize};
+
     #if defined(MADV_RANDOM)
-    madvise(mappedPtr, mappingSize, MADV_RANDOM);
+    if (madvise(mappedPtr, mappingSize, MADV_RANDOM) != 0)
+    {
+        std::cerr << "madvise() failed, name = " << filename << ": " << strerror(errno)
+                  << std::endl;
+    }
     #endif
 #endif
 
@@ -595,7 +693,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (std::memcmp(data, TBMagic.data(), TBMagic.size()) != 0)
     {
-        std::cerr << "Corrupted table in file " << filename << std::endl;
+        std::cerr << "Corrupt tablebase table, name = " << filename << std::endl;
 
         unmap();
 
@@ -607,23 +705,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
 template<TBType T>
 void TBTable<T>::unmap() noexcept {
-#if defined(_WIN32)
-    if (mappedPtr != nullptr)
-    {
-        UnmapViewOfFile(mappedPtr);
-        mappedPtr = nullptr;
-    }
-
-    hMapFileGuard.close();
-#else
-    if (mappedPtr != nullptr)
-    {
-        munmap(mappedPtr, mappingSize);
-        mappedPtr = nullptr;
-    }
-
-    mappingSize = 0;
-#endif
+    mappedGuard.close();
 }
 
 // Populate entry's PairsData records with data from the just memory-mapped file.

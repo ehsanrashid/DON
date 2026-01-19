@@ -356,8 +356,7 @@ class BackendSharedMemory final {
 
         // Fallback to normal allocation if no large page available
         if (hMapFile == nullptr)
-            hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,  //
-                                         PAGE_READWRITE,                 //
+            hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,  //
                                          0, TotalSize, shmName.c_str());
 
         if (hMapFile == nullptr)
@@ -695,7 +694,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (this == &sharedMem)
             return *this;
 
-        // Clean old resources first
+        // Clean old resource first
         unregister_close();
 
         move_with_registry(sharedMem);
@@ -703,7 +702,7 @@ class SharedMemory final: public BaseSharedMemory {
         return *this;
     }
 
-    [[nodiscard]] bool open(const T& value) noexcept {
+    [[nodiscard]] bool open_register(const T& value) noexcept {
         CleanupHooks::ensure_registered();
 
         bool staleRetried = false;
@@ -814,6 +813,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             unlock_file();
 
+            // Register this new resource
             SharedMemoryRegistry::register_memory(this);
 
             return true;
@@ -1014,7 +1014,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             FdGuard tmpFdGuard(tmpFd);
 
-            if (tmpFd != -1)
+            if (tmpFd >= 0)
                 return true;
 
             if (errno == EEXIST)
@@ -1205,7 +1205,7 @@ class BackendSharedMemory final {
     BackendSharedMemory(const std::string& shmName, const T& value) noexcept {
         shm.emplace(shmName);
 
-        if (!shm->open(value))
+        if (!shm->open_register(value))
             shm.reset();
     }
 
