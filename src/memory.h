@@ -51,6 +51,7 @@
 
     #include <psapi.h>
 #else
+    #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
     #include <unistd.h>
 #endif
 
@@ -283,6 +284,23 @@ struct HandleGuard final {
     HandleGuard(const HandleGuard&) noexcept            = delete;
     HandleGuard& operator=(const HandleGuard&) noexcept = delete;
 
+    HandleGuard(HandleGuard&& handleGuard) noexcept :
+        handle(handleGuard.handle) {
+        handleGuard.release();
+    }
+    HandleGuard& operator=(HandleGuard&& handleGuard) noexcept {
+        if (this == &handleGuard)
+            return *this;
+
+        close();
+
+        handle = handleGuard.handle;
+
+        handleGuard.release();
+
+        return *this;
+    }
+
     ~HandleGuard() noexcept { close(); }
 
     void close() noexcept {
@@ -297,17 +315,77 @@ struct HandleGuard final {
 
     void reset(HANDLE newHandle = nullptr) noexcept {
         close();
+
         handle = newHandle;
     }
 
     HANDLE release() noexcept {
-        HANDLE objReleased = handle;
-        handle             = nullptr;
-        return objReleased;
+        HANDLE released = handle;
+
+        handle = nullptr;
+
+        return released;
     }
 
    private:
     HANDLE& handle;
+};
+
+struct MMapGuard final {
+   public:
+    explicit MMapGuard(void*& ptrRef) noexcept :
+        mappedPtr(ptrRef) {}
+
+    MMapGuard()                            = delete;
+    MMapGuard(const MMapGuard&)            = delete;
+    MMapGuard& operator=(const MMapGuard&) = delete;
+
+    MMapGuard(MMapGuard&& mMapGuard) noexcept :
+        mappedPtr(mMapGuard.mappedPtr) {
+        mMapGuard.release();
+    }
+    MMapGuard& operator=(MMapGuard&& mMapGuard) noexcept {
+        if (this == &mMapGuard)
+            return *this;
+
+        close();
+
+        mappedPtr = mMapGuard.mappedPtr;
+
+        mMapGuard.release();
+
+        return *this;
+    }
+
+    ~MMapGuard() noexcept { close(); }
+
+    void* get() const noexcept { return mappedPtr; }
+
+    void close() noexcept {
+        if (mappedPtr != nullptr)
+        {
+            UnmapViewOfFile(mappedPtr);
+
+            mappedPtr = nullptr;
+        }
+    }
+
+    void reset(void* newPtr = nullptr) noexcept {
+        close();
+
+        mappedPtr = newPtr;
+    }
+
+    void* release() noexcept {
+        void* released = mappedPtr;
+
+        mappedPtr = nullptr;
+
+        return released;
+    }
+
+   private:
+    void*& mappedPtr;
 };
 
     #if defined(_WIN64)
@@ -455,6 +533,23 @@ struct FdGuard final {
     FdGuard(const FdGuard&)            = delete;
     FdGuard& operator=(const FdGuard&) = delete;
 
+    FdGuard(FdGuard&& fdGuard) noexcept :
+        fd(fdGuard.fd) {
+        fdGuard.release();
+    }
+    FdGuard& operator=(FdGuard&& fdGuard) noexcept {
+        if (this == &fdGuard)
+            return *this;
+
+        close();
+
+        fd = fdGuard.fd;
+
+        fdGuard.release();
+
+        return *this;
+    }
+
     ~FdGuard() noexcept { close(); }
 
     void close() noexcept {
@@ -467,17 +562,92 @@ struct FdGuard final {
 
     void reset(int newFd = -1) noexcept {
         close();
+
         fd = newFd;
     }
 
     int release() noexcept {
-        int objReleased = fd;
-        fd              = -1;
-        return objReleased;
+        int released = fd;
+
+        fd = -1;
+
+        return released;
     }
 
    private:
     int& fd;
+};
+
+struct MMapGuard final {
+   public:
+    struct MMapRelease final {
+        void* const       ptr;
+        const std::size_t size;
+    };
+
+    MMapGuard(void*& ptrRef, std::size_t& sizeRef) noexcept :
+        mappedPtr(ptrRef),
+        mappingSize(sizeRef) {}
+
+    MMapGuard()                            = delete;
+    MMapGuard(const MMapGuard&)            = delete;
+    MMapGuard& operator=(const MMapGuard&) = delete;
+
+    MMapGuard(MMapGuard&& mMapGuard) noexcept :
+        mappedPtr(mMapGuard.mappedPtr),
+        mappingSize(mMapGuard.mappingSize) {
+        mMapGuard.release();
+    }
+    MMapGuard& operator=(MMapGuard&& mMapGuard) noexcept {
+        if (this == &mMapGuard)
+            return *this;
+
+        close();
+
+        mappedPtr   = mMapGuard.mappedPtr;
+        mappingSize = mMapGuard.mappingSize;
+
+        mMapGuard.release();
+
+        return *this;
+    }
+
+    ~MMapGuard() noexcept { close(); }
+
+    void* get() const noexcept { return mappedPtr; }
+
+    std::size_t get_size() const noexcept { return mappingSize; }
+
+    void close() noexcept {
+        if (mappedPtr != nullptr)
+        {
+            munmap(mappedPtr, mappingSize);
+
+            mappedPtr = nullptr;
+        }
+
+        mappingSize = 0;
+    }
+
+    void reset(void* newPtr = nullptr, std::size_t newSize = 0) noexcept {
+        close();
+
+        mappedPtr   = newPtr;
+        mappingSize = newSize;
+    }
+
+    MMapRelease release() noexcept {
+        MMapRelease released{mappedPtr, mappingSize};
+
+        mappedPtr   = nullptr;
+        mappingSize = 0;
+
+        return released;
+    }
+
+   private:
+    void*&       mappedPtr;
+    std::size_t& mappingSize;
 };
 
 #endif

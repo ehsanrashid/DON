@@ -29,8 +29,6 @@
     #include <iostream>
 
     #include "misc.h"
-#elif defined(__linux__) && !defined(__ANDROID__)
-    #include <sys/mman.h>
 #endif
 
 namespace DON {

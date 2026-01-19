@@ -68,7 +68,7 @@
     #include <semaphore.h>
     #include <signal.h>
     #include <sys/file.h>
-    #include <sys/mman.h>
+    #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
     #include <sys/stat.h>
     #include <unistd.h>
     #include <unordered_set>
@@ -269,12 +269,14 @@ class BackendSharedMemory final {
 
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept :
         hMapFile(backendShm.hMapFile),
+        hMapFileGuard(hMapFile),
         mappedPtr(backendShm.mappedPtr),
+        mappedGuard(mappedPtr),
         status(backendShm.status),
         lastErrorStr(std::move(backendShm.lastErrorStr)) {
 
-        backendShm.mappedPtr = nullptr;
         backendShm.hMapFile  = nullptr;
+        backendShm.mappedPtr = nullptr;
         backendShm.status    = Status::NotInitialized;
     }
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept {
@@ -430,11 +432,8 @@ class BackendSharedMemory final {
     }
 
     void partial_cleanup() noexcept {
-        if (mappedPtr != nullptr)
-        {
-            UnmapViewOfFile(mappedPtr);
-            mappedPtr = nullptr;
-        }
+
+        mappedGuard.close();
 
         hMapFileGuard.close();
     }
@@ -446,7 +445,8 @@ class BackendSharedMemory final {
     HANDLE      hMapFile = nullptr;
     HandleGuard hMapFileGuard{hMapFile};
     void*       mappedPtr = nullptr;
-    Status      status    = Status::NotInitialized;
+    MMapGuard   mappedGuard{mappedPtr};
+    Status      status = Status::NotInitialized;
     std::string lastErrorStr;
 };
 
@@ -680,7 +680,7 @@ class SharedMemory final: public BaseSharedMemory {
    public:
     explicit SharedMemory(const std::string& shmName) noexcept :
         name(shmName),
-        totalSize(calculate_total_size()) {
+        mappingSize(mapping_size()) {
         sentinelBase = std::string("don_") + create_hash_string(name);
     }
 
@@ -694,7 +694,6 @@ class SharedMemory final: public BaseSharedMemory {
         if (this == &sharedMem)
             return *this;
 
-        // Clean old resource first
         unregister_close();
 
         move_with_registry(sharedMem);
@@ -884,9 +883,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
    private:
-    static constexpr std::size_t calculate_total_size() noexcept {
-        return sizeof(T) + sizeof(ShmHeader);
-    }
+    static constexpr std::size_t mapping_size() noexcept { return sizeof(T) + sizeof(ShmHeader); }
 
     static bool is_pid_alive(pid_t pid) noexcept {
         if (pid <= 0)
@@ -898,15 +895,16 @@ class SharedMemory final: public BaseSharedMemory {
         return errno == EPERM;
     }
 
-    // Cleanup on destruction
+    // Unregister SharedMemory object and release resources
     void unregister_close() noexcept {
         // 1. Unregister from registry
         SharedMemoryRegistry::unregister_memory(this);
 
-        // 2. Release resources
+        // 2. Close and release
         close();
     }
 
+    // Move the contents of another SharedMemory object into this one, updating the registry accordingly
     void move_with_registry(SharedMemory& sharedMem) noexcept {
         // 1. Unregister source while it's intact
         SharedMemoryRegistry::unregister_memory(&sharedMem);
@@ -917,7 +915,7 @@ class SharedMemory final: public BaseSharedMemory {
         mappedPtr    = sharedMem.mappedPtr;
         dataPtr      = sharedMem.dataPtr;
         shmHeader    = sharedMem.shmHeader;
-        totalSize    = sharedMem.totalSize;
+        mappingSize  = sharedMem.mappingSize;
         sentinelBase = std::move(sharedMem.sentinelBase);
         sentinelPath = std::move(sharedMem.sentinelPath);
 
@@ -929,22 +927,17 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void reset() noexcept {
-        fd        = -1;
-        mappedPtr = nullptr;
-        totalSize = 0;
-        dataPtr   = nullptr;
-        shmHeader = nullptr;
-        sentinelBase.clear();
-        sentinelPath.clear();
+        fd          = -1;
+        mappedPtr   = nullptr;
+        mappingSize = 0;
+        dataPtr     = nullptr;
+        shmHeader   = nullptr;
+        clear_sentinel_path();
     }
 
     void unmap_region() noexcept {
-        if (mappedPtr == nullptr)
-            return;
+        mappedGuard.close();
 
-        munmap(mappedPtr, totalSize);
-        totalSize = 0;
-        mappedPtr = nullptr;
         dataPtr   = nullptr;
         shmHeader = nullptr;
     }
@@ -995,6 +988,8 @@ class SharedMemory final: public BaseSharedMemory {
         sentinelPath += std::to_string(pid);
     }
 
+    void clear_sentinel_path() noexcept { sentinelPath.clear(); }
+
     void decrement_ref_count() noexcept {
         if (shmHeader != nullptr)
             shmHeader->decrement_ref_count();
@@ -1029,7 +1024,7 @@ class SharedMemory final: public BaseSharedMemory {
             break;
         }
 
-        sentinelPath.clear();
+        clear_sentinel_path();
 
         return false;
     }
@@ -1040,7 +1035,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         ::unlink(sentinelPath.c_str());
 
-        sentinelPath.clear();
+        clear_sentinel_path();
     }
 
     bool has_other_live_sentinels_locked() const noexcept {
@@ -1090,7 +1085,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     [[nodiscard]] bool setup_new_region(const T& value) noexcept {
-        if (ftruncate(fd, off_t(totalSize)) == -1)
+        if (ftruncate(fd, off_t(mappingSize)) == -1)
             return false;
 
         off_t offset = 0;
@@ -1100,7 +1095,7 @@ class SharedMemory final: public BaseSharedMemory {
         store.fst_flags   = F_ALLOCATECONTIG;
         store.fst_posmode = F_PEOFPOSMODE;
         store.fst_offset  = offset;
-        store.fst_length  = totalSize;
+        store.fst_length  = mappingSize;
 
         int rc = fcntl(fd, F_PREALLOCATE, &store);
 
@@ -1114,14 +1109,14 @@ class SharedMemory final: public BaseSharedMemory {
         if (rc == -1)
             return false;
 
-        if (ftruncate(fd, off_t(offset + totalSize)) == -1)
+        if (ftruncate(fd, off_t(offset + mappingSize)) == -1)
             return false;
     #else
-        if (posix_fallocate(fd, offset, totalSize) != 0)
+        if (posix_fallocate(fd, offset, mappingSize) != 0)
             return false;
     #endif
 
-        mappedPtr = mmap(nullptr, totalSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        mappedPtr = mmap(nullptr, mappingSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
         if (mappedPtr == MAP_FAILED)
         {
@@ -1155,10 +1150,10 @@ class SharedMemory final: public BaseSharedMemory {
         if (fstat(fd, &Stat) == -1)
             return false;
 
-        if (std::size_t(Stat.st_size) < totalSize)
+        if (std::size_t(Stat.st_size) < mappingSize)
             return false;
 
-        mappedPtr = mmap(nullptr, totalSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+        mappedPtr = mmap(nullptr, mappingSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
         if (mappedPtr == MAP_FAILED)
         {
@@ -1189,8 +1184,9 @@ class SharedMemory final: public BaseSharedMemory {
     std::string name;
     int         fd = -1;
     FdGuard     fdGuard{fd};
-    void*       mappedPtr = nullptr;
-    std::size_t totalSize = 0;
+    void*       mappedPtr   = nullptr;
+    std::size_t mappingSize = 0;
+    MMapGuard   mappedGuard{mappedPtr, mappingSize};
     T*          dataPtr   = nullptr;
     ShmHeader*  shmHeader = nullptr;
     std::string sentinelBase;
