@@ -236,12 +236,36 @@ thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t to
     return {begIdx, endIdx};
 }
 
+class OstreamMutexRegistry final {
+   public:
+    static std::mutex& get(std::ostream& os) {
+
+        std::scoped_lock lock(mutex);
+
+        auto& osMutexPtr = osMutexes[&os];
+        if (osMutexPtr == nullptr)
+            osMutexPtr = std::make_unique<std::mutex>();
+
+        return *osMutexPtr;
+    }
+
+   private:
+    OstreamMutexRegistry() noexcept                                       = delete;
+    OstreamMutexRegistry(const OstreamMutexRegistry&) noexcept            = delete;
+    OstreamMutexRegistry(OstreamMutexRegistry&&) noexcept                 = delete;
+    OstreamMutexRegistry& operator=(const OstreamMutexRegistry&) noexcept = delete;
+    OstreamMutexRegistry& operator=(OstreamMutexRegistry&&) noexcept      = delete;
+
+    static inline std::mutex                                                     mutex;
+    static inline std::unordered_map<std::ostream*, std::unique_ptr<std::mutex>> osMutexes;
+};
+
 // --- Synchronized output stream ---
 class [[nodiscard]] SyncOstream final {
    public:
     explicit SyncOstream(std::ostream& os) noexcept :
         osPtr(&os),
-        lock(mutex) {}
+        lock(OstreamMutexRegistry::get(os)) {}
     SyncOstream(const SyncOstream&) noexcept = delete;
     // Move-constructible so factories can return by value
     SyncOstream(SyncOstream&& syncOs) noexcept :
@@ -254,45 +278,45 @@ class [[nodiscard]] SyncOstream final {
     // Prefer deleting move-assignment to avoid unlock window
     SyncOstream& operator=(SyncOstream&&) noexcept = delete;
 
-    ~SyncOstream() noexcept = default;
-
     template<typename T>
-    SyncOstream& operator<<(T&& x) & noexcept {
+    SyncOstream& operator<<(T&& x) & {
         assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
         *osPtr << std::forward<T>(x);
         return *this;
     }
     template<typename T>
-    SyncOstream&& operator<<(T&& x) && noexcept {
+    SyncOstream&& operator<<(T&& x) && {
         assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
         *osPtr << std::forward<T>(x);
         return std::move(*this);
     }
 
-    using IosManip = std::ios& (*) (std::ios&);
-    SyncOstream& operator<<(IosManip manip) & noexcept {
+    using IosManipulator = std::ios& (*) (std::ios&);
+
+    SyncOstream& operator<<(IosManipulator manip) & {
         assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
         manip(*osPtr);
         return *this;
     }
-    SyncOstream&& operator<<(IosManip manip) && noexcept {
+    SyncOstream&& operator<<(IosManipulator manip) && {
         assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
         manip(*osPtr);
         return std::move(*this);
     }
 
-    using OstreamManip = std::ostream& (*) (std::ostream&);
-    SyncOstream& operator<<(OstreamManip manip) & noexcept {
+    using OstreamManipulator = std::ostream& (*) (std::ostream&);
+
+    SyncOstream& operator<<(OstreamManipulator manip) & {
         assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
         manip(*osPtr);
         return *this;
     }
-    SyncOstream&& operator<<(OstreamManip manip) && noexcept {
+    SyncOstream&& operator<<(OstreamManipulator manip) && {
         assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
         manip(*osPtr);
@@ -300,8 +324,6 @@ class [[nodiscard]] SyncOstream final {
     }
 
    private:
-    static inline std::mutex mutex;
-
     std::ostream*                osPtr;
     std::unique_lock<std::mutex> lock;
 };
@@ -616,8 +638,8 @@ class DynamicArray final {
     void fill(std::size_t begIdx, std::size_t endIdx, const U& v) noexcept {
         assert(begIdx <= endIdx && endIdx <= size());
 
-        if (endIdx > size())
-            endIdx = size();
+        //if (endIdx > size())
+        //    endIdx = size();
 
         for (std::size_t idx = begIdx; idx < endIdx; ++idx)
             data()[idx].fill(v);
