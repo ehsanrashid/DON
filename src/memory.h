@@ -553,6 +553,7 @@ struct FdGuard final {
         if (fd >= 0)
         {
             ::close(fd);
+
             fd = -1;
         }
     }

@@ -1670,7 +1670,14 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
         NumaIndex sysId = sysCfg.is_cpu_assigned(cpuId) ? sysCfg.nodeByCpu.at(cpuId) : 0;
 
-        std::string str = sysCfg.to_string() + "$" + std::to_string(sysId);
+        std::string sysStr = sysCfg.to_string();
+
+        std::string str;
+        str.reserve(sysStr.size() + 1 + 8);
+
+        str = sysStr;
+        str += '$';
+        str += std::to_string(sysId);
 
         return std::hash<std::string>{}(str);
     }
