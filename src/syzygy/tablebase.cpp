@@ -1278,17 +1278,18 @@ Ret do_probe_table(
     // If both sides have the same pieces keys are equal. In this case TB-tables
     // only stores the 'white to move' case, so if the position to lookup has black
     // to move, need to switch the color and flip the squares before to lookup.
-    bool blackSymmetric = pos.active_color() == BLACK && table->key[WHITE] == table->key[BLACK];
+    const bool blackSymmetric =
+      pos.active_color() == BLACK && table->key[WHITE] == table->key[BLACK];
 
     // TB files are calculated for white as the stronger side. For instance, we
     // have KRvK, not KvKR. A position where the stronger side is white will have
     // its material key == table->key[WHITE], otherwise have to switch the color
     // and flip the squares before to lookup.
-    bool blackStronger = materialKey != table->key[WHITE];
+    const bool blackStronger = materialKey != table->key[WHITE];
 
-    bool flip = blackSymmetric || blackStronger;
+    const bool flip = blackSymmetric || blackStronger;
 
-    int activeColor = flip ? ~pos.active_color() : pos.active_color();
+    const int activeColor = flip ? ~pos.active_color() : pos.active_color();
 
     StdArray<Square, MAX_TB_PIECES> squares{};
     StdArray<Piece, MAX_TB_PIECES>  pieces;
@@ -1355,7 +1356,7 @@ Ret do_probe_table(
 
     assert(size >= 2);
 
-    PairsData* pd = table->get(activeColor, tbFile);
+    PairsData* const pd = table->get(activeColor, tbFile);
 
     // Then reorder the pieces to have the same sequence as the one stored
     // in pieces[i]: the sequence that ensures the best compression.
