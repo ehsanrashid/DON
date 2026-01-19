@@ -927,11 +927,10 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void reset() noexcept {
-        fd          = -1;
-        mappedPtr   = nullptr;
-        mappingSize = 0;
-        dataPtr     = nullptr;
-        shmHeader   = nullptr;
+        fdGuard.release();
+        mappedGuard.release();
+        dataPtr   = nullptr;
+        shmHeader = nullptr;
         clear_sentinel_path();
     }
 
