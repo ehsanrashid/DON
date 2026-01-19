@@ -996,6 +996,8 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     bool create_sentinel_file_locked() noexcept {
+        constexpr std::size_t MaxAttempts = 2;
+
         if (shmHeader == nullptr)
             return false;
 
@@ -1003,7 +1005,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         set_sentinel_path(selfPid);
 
-        for (int attempt = 0; attempt < 2; ++attempt)
+        for (std::size_t attempt = 0;; ++attempt)
         {
             int tmpFd = ::open(sentinelPath.c_str(), O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC, 0600);
 
@@ -1017,6 +1019,9 @@ class SharedMemory final: public BaseSharedMemory {
                 ::unlink(sentinelPath.c_str());
 
                 decrement_ref_count();
+
+                if (attempt >= MaxAttempts)
+                    break;
 
                 continue;
             }

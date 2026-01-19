@@ -155,14 +155,14 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
 
     constexpr std::size_t AlignmentExtraCount = div_ceil(GroupArrayMinAlignment, UShortAlignment);
 
-    constexpr std::size_t MaxTries = 2;
+    constexpr std::size_t MaxAttempts = 2;
 
     USHORT requiredGroupCount = 1;
 
     // The function should succeed the second time, but it may fail if the
     // group affinity has changed between GetProcessGroupAffinity calls.
     // In such case consider this a hard error, can't work with unstable affinities anyway.
-    for (std::size_t i = 0; i < MaxTries; ++i)
+    for (std::size_t attempt = 0;; ++attempt)
     {
         auto groupArray = std::make_unique<USHORT[]>(requiredGroupCount + AlignmentExtraCount);
 
@@ -184,6 +184,9 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
 
         // Windows tells us the correct size
         requiredGroupCount = groupCount;
+
+        if (attempt >= MaxAttempts)
+            break;
     }
 
     return std::make_pair(FALSE, std::vector<USHORT>());
