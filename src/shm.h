@@ -982,7 +982,7 @@ class SharedMemory final: public BaseSharedMemory {
     void set_sentinel_path(pid_t pid) noexcept {
         sentinelPath.reserve(11 + sentinelBase.size() + 1 + 10);
 
-        sentinelPath = std::string(DIR);
+        sentinelPath = std::string(DIRECTORY);
         sentinelPath += sentinelBase;
         sentinelPath += '.';
         sentinelPath += std::to_string(pid);
@@ -1044,7 +1044,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     bool has_other_live_sentinels_locked() const noexcept {
-        DIR* dir = opendir(DIR.data());
+        DIR* dir = opendir(DIRECTORY.data());
 
         if (dir == nullptr)
             return false;
@@ -1077,7 +1077,7 @@ class SharedMemory final: public BaseSharedMemory {
                 break;
             }
 
-            std::string stalePath = std::string(DIR) + entryName;
+            std::string stalePath = std::string(DIRECTORY) + entryName;
 
             ::unlink(stalePath.c_str());
 
@@ -1186,7 +1186,7 @@ class SharedMemory final: public BaseSharedMemory {
         return true;
     }
 
-    static constexpr std::string_view DIR{"/dev/shm/"};
+    static constexpr std::string_view DIRECTORY{"/dev/shm/"};
 
     std::string name;
     int         fd = -1;
