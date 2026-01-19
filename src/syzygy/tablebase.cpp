@@ -706,6 +706,9 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 template<TBType T>
 void TBTable<T>::unmap() noexcept {
     mappedGuard.close();
+#if defined(_WIN32)
+    hMapFileGuard.close();
+#endif
 }
 
 // Populate entry's PairsData records with data from the just memory-mapped file.
