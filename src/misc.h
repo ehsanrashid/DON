@@ -238,12 +238,13 @@ thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t to
 
 class OstreamMutexRegistry final {
    public:
-    static std::mutex& get(std::ostream& os) {
+    static std::mutex& get(std::ostream* const osPtr) {
 
         std::scoped_lock lock(mutex);
 
-        auto& osMutexPtr = osMutexes[&os];
-        if (osMutexPtr == nullptr)
+        auto& osMutexPtr = osMutexes[osPtr];
+
+        if (!osMutexPtr)
             osMutexPtr = std::make_unique<std::mutex>();
 
         return *osMutexPtr;
@@ -265,14 +266,12 @@ class [[nodiscard]] SyncOstream final {
    public:
     explicit SyncOstream(std::ostream& os) noexcept :
         osPtr(&os),
-        lock(OstreamMutexRegistry::get(os)) {}
+        lock(OstreamMutexRegistry::get(osPtr)) {}
     SyncOstream(const SyncOstream&) noexcept = delete;
     // Move-constructible so factories can return by value
     SyncOstream(SyncOstream&& syncOs) noexcept :
         osPtr(syncOs.osPtr),
-        lock(std::move(syncOs.lock)) {
-        syncOs.osPtr = nullptr;
-    }
+        lock(std::move(syncOs.lock)) {}
 
     SyncOstream& operator=(const SyncOstream&) noexcept = delete;
     // Prefer deleting move-assignment to avoid unlock window
@@ -324,7 +323,7 @@ class [[nodiscard]] SyncOstream final {
     }
 
    private:
-    std::ostream*                osPtr;
+    std::ostream* const          osPtr;
     std::unique_lock<std::mutex> lock;
 };
 
