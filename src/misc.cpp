@@ -116,7 +116,7 @@ std::string version_info() noexcept {
     std::string str;
     str.reserve(32);
 
-    str += Name;
+    str = Name;
     str += ' ';
     str += Version;
 
@@ -157,7 +157,7 @@ std::string compiler_info() noexcept {
     std::string str;
     str.reserve(256);
 
-    str += "\nCompiled by                : ";
+    str = "\nCompiled by                : ";
 #if defined(__INTEL_LLVM_COMPILER)
     str += "ICX ";
     str += STRINGIFY(__INTEL_LLVM_COMPILER);
@@ -601,8 +601,11 @@ void print() noexcept {
 #endif
 
 CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
-    arguments.reserve(argc);
-    for (int i = 0; i < argc; ++i)
+    const std::size_t ArgSize = argc;
+
+    arguments.reserve(ArgSize);
+
+    for (std::size_t i = 0; i < ArgSize; ++i)
         arguments.emplace_back(argv[i]);  // no copy, just view
 }
 
@@ -626,14 +629,17 @@ std::string CommandLine::binary_directory(std::string path) noexcept {
 
     std::string binaryDirectory = path;
 
-    std::size_t pos = binaryDirectory.find_last_of("\\/");
+    std::string currentDirectory = std::string(".") + pathSeparator;
+
+    const std::size_t pos = binaryDirectory.find_last_of("\\/");
+
     if (pos == std::string::npos)
-        binaryDirectory = "." + pathSeparator;
+        binaryDirectory = currentDirectory;
     else
         binaryDirectory.resize(pos + 1);
 
     // Pattern replacement: "./" at the start of path is replaced by the working directory
-    if (binaryDirectory.find("." + pathSeparator) == 0)
+    if (binaryDirectory.find(currentDirectory) == 0)
         binaryDirectory.replace(0, 1, working_directory());
 
     return binaryDirectory;

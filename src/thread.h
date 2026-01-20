@@ -43,6 +43,8 @@
 
 namespace DON {
 
+using JobFunc = std::function<void()>;
+
 #if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(USE_PTHREADS)
 
 // On OSX threads other than the main thread are created with a reduced stack
@@ -50,17 +52,17 @@ namespace DON {
 // which require somewhat more than 1MB stack, so adjust it to 8MB.
 class NativeThread final {
    public:
-    NativeThread() noexcept = delete;
+    // Default thread is not joinable
+    NativeThread() noexcept :
+        joined(true) {}
 
     template<typename Function, typename... Args>
     NativeThread(Function&& func, Args&&... args) noexcept {
-        using Func = std::function<void()>;
-
-        auto* funcPtr =
-          new Func(std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
+        auto* jobFuncPtr =
+          new JobFunc(std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
 
         const auto start_routine = [](void* ptr) noexcept -> void* {
-            auto* fnPtr = static_cast<Func*>(ptr);
+            auto* fnPtr = static_cast<JobFunc*>(ptr);
 
             // Call the function
             (*fnPtr)();
@@ -70,20 +72,20 @@ class NativeThread final {
             return nullptr;
         };
 
-        pthread_attr_t attr;
+        pthread_attr_t threadAttr;
 
-        if (pthread_attr_init(&attr) != 0)
+        if (pthread_attr_init(&threadAttr) != 0)
         {
-            delete funcPtr;
+            delete jobFuncPtr;
             return;
         }
 
-        pthread_attr_setstacksize(&attr, 8 * 1024 * 1024);
+        pthread_attr_setstacksize(&threadAttr, TH_STACK_SIZE);
 
-        if (pthread_create(&thread, &attr, start_routine, funcPtr) != 0)
-            delete funcPtr;
+        if (pthread_create(&thread, &threadAttr, start_routine, jobFuncPtr) != 0)
+            delete jobFuncPtr;
 
-        pthread_attr_destroy(&attr);
+        pthread_attr_destroy(&threadAttr);
     }
 
     // Non-copyable
@@ -101,10 +103,12 @@ class NativeThread final {
             return *this;
 
         join();
+
         thread = nativeThread.thread;
         joined = nativeThread.joined;
 
         nativeThread.joined = true;
+
         return *this;
     }
 
@@ -117,11 +121,14 @@ class NativeThread final {
         if (joinable())
         {
             pthread_join(thread, nullptr);
+
             joined = true;
         }
     }
 
    private:
+    static constexpr std::size_t TH_STACK_SIZE = 8 * 1024 * 1024;
+
     pthread_t thread;
     bool      joined = false;
 };
@@ -156,7 +163,6 @@ class ThreadToNumaNodeBinder final {
     const NumaConfig* const numaConfigPtr;
 };
 
-using JobFunc   = std::function<void()>;
 using WorkerPtr = LargePagePtr<Worker>;
 
 // Abstraction of a thread. It contains a pointer to the worker and a native thread.
@@ -172,7 +178,8 @@ class Thread final {
            std::size_t                   numaThreadCnt,
            const ThreadToNumaNodeBinder& nodeBinder,
            ISearchManagerPtr             searchManager,
-           const SharedState&            sharedState) noexcept;
+           const SharedState&            sharedState,
+           bool                          autoStart = true) noexcept;
 
     ~Thread() noexcept;
 
@@ -188,19 +195,22 @@ class Thread final {
 
     void ensure_network_replicated() const noexcept;
 
-    void wait_finish() noexcept;
+    void start() noexcept;
+
+    void stop() noexcept;
 
     void run_custom_job(JobFunc job) noexcept;
-
-    void idle_func() noexcept;
 
     void init() noexcept;
 
     void start_search() noexcept;
 
+    void wait_finish() noexcept;
+
    private:
-    // Set before starting nativeThread
-    bool dead = false, busy = true;
+    void idle_func() noexcept;
+
+    bool dead, busy;
 
     const std::size_t threadId, threadCount, numaId, numaThreadCount;
 
@@ -214,13 +224,6 @@ class Thread final {
    public:
     WorkerPtr worker;
 };
-
-// Blocks on the condition variable until the thread has finished job
-inline void Thread::wait_finish() noexcept {
-    std::unique_lock lock(mutex);
-
-    condVar.wait(lock, [this] { return !busy; });
-}
 
 // Launching a job in the thread
 inline void Thread::run_custom_job(JobFunc jobFn) noexcept {
@@ -249,6 +252,13 @@ inline void Thread::start_search() noexcept {
     assert(worker != nullptr);
 
     run_custom_job([this]() { worker->start_search(); });
+}
+
+// Blocks on the condition variable until the thread has finished job
+inline void Thread::wait_finish() noexcept {
+    std::unique_lock lock(mutex);
+
+    condVar.wait(lock, [this] { return !busy; });
 }
 
 // A list to keep track of the position states along the setup moves
