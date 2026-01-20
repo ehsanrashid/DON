@@ -636,6 +636,17 @@ class SharedMemoryCleanupManager final {
     static inline std::once_flag registerOnce;
 };
 
+struct MutexAttrGuard final {
+   public:
+    explicit MutexAttrGuard(pthread_mutexattr_t& mtxAttr) noexcept :
+        mutexAttr(mtxAttr) {}
+
+    ~MutexAttrGuard() noexcept { pthread_mutexattr_destroy(&mutexAttr); }
+
+   private:
+    pthread_mutexattr_t& mutexAttr;
+};
+
 struct ShmHeader final {
    public:
     ~ShmHeader() noexcept {
@@ -650,29 +661,19 @@ struct ShmHeader final {
         if (pthread_mutexattr_init(&mutexAttr) != 0)
             return false;
 
-        const auto destroy_mutexattr = [&mutexAttr] { pthread_mutexattr_destroy(&mutexAttr); };
+        MutexAttrGuard mutexAttrGuard{mutexAttr};
 
         if (pthread_mutexattr_setpshared(&mutexAttr, PTHREAD_PROCESS_SHARED) != 0)
-        {
-            destroy_mutexattr();
             return false;
-        }
 
     #if _POSIX_C_SOURCE >= 200809L
         if (pthread_mutexattr_setrobust(&mutexAttr, PTHREAD_MUTEX_ROBUST) != 0)
-        {
-            destroy_mutexattr();
             return false;
-        }
     #endif
 
         if (pthread_mutex_init(&mutex, &mutexAttr) != 0)
-        {
-            destroy_mutexattr();
             return false;
-        }
 
-        destroy_mutexattr();
         return true;
     }
 
