@@ -638,37 +638,46 @@ class SharedMemoryCleanupManager final {
 
 struct ShmHeader final {
    public:
-    [[nodiscard]] bool initialize_mutex() noexcept {
-        pthread_mutexattr_t mutexattr;
+    ~ShmHeader() noexcept {
+        unlock_mutex();
 
-        if (pthread_mutexattr_init(&mutexattr) != 0)
+        destroy_mutex();
+    }
+
+    [[nodiscard]] bool initialize_mutex() noexcept {
+        pthread_mutexattr_t mutexAttr;
+
+        if (pthread_mutexattr_init(&mutexAttr) != 0)
             return false;
 
-        const auto clean_mutexattr = [&mutexattr] { pthread_mutexattr_destroy(&mutexattr); };
+        const auto destroy_mutexattr = [&mutexAttr] { pthread_mutexattr_destroy(&mutexAttr); };
 
-        if (pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED) != 0)
+        if (pthread_mutexattr_setpshared(&mutexAttr, PTHREAD_PROCESS_SHARED) != 0)
         {
-            clean_mutexattr();
+            destroy_mutexattr();
             return false;
         }
 
     #if _POSIX_C_SOURCE >= 200809L
-        if (pthread_mutexattr_setrobust(&mutexattr, PTHREAD_MUTEX_ROBUST) != 0)
+        if (pthread_mutexattr_setrobust(&mutexAttr, PTHREAD_MUTEX_ROBUST) != 0)
         {
-            clean_mutexattr();
+            destroy_mutexattr();
             return false;
         }
     #endif
 
-        if (pthread_mutex_init(&mutex, &mutexattr) != 0)
+        if (pthread_mutex_init(&mutex, &mutexAttr) != 0)
         {
-            clean_mutexattr();
+            destroy_mutexattr();
             return false;
         }
 
-        clean_mutexattr();
+        destroy_mutexattr();
         return true;
     }
+
+    // Destroy the mutex
+    void destroy_mutex() noexcept { pthread_mutex_destroy(&mutex); }
 
     [[nodiscard]] bool lock_mutex() noexcept {
 
