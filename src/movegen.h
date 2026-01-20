@@ -40,7 +40,7 @@ enum class GenType : std::uint8_t {
 };
 
 template<GenType GT, bool Any = false>
-Move* generate(const Position& pos, Move* moves) noexcept;
+Move* generate(const Position& pos, Move* RESTRICT moves) noexcept;
 
 // MoveList struct wraps the generate() function and returns a convenient list of moves.
 // Using MoveList is sometimes preferable to directly calling the lower level generate() function.

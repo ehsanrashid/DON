@@ -276,8 +276,8 @@ class BackendSharedMemory final {
         status(backendShm.status),
         lastErrorStr(std::move(backendShm.lastErrorStr)) {
 
-        backendShm.hMapFile  = nullptr;
-        backendShm.mappedPtr = nullptr;
+        backendShm.hMapFile  = INVALID_HANDLE;
+        backendShm.mappedPtr = INVALID_MMAP_PTR;
         backendShm.status    = Status::NotInitialized;
     }
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept {
@@ -291,8 +291,8 @@ class BackendSharedMemory final {
         status       = backendShm.status;
         lastErrorStr = std::move(backendShm.lastErrorStr);
 
-        backendShm.hMapFile  = nullptr;
-        backendShm.mappedPtr = nullptr;
+        backendShm.hMapFile  = INVALID_HANDLE;
+        backendShm.mappedPtr = INVALID_MMAP_PTR;
         backendShm.status    = Status::NotInitialized;
 
         return *this;
@@ -302,7 +302,7 @@ class BackendSharedMemory final {
 
     bool is_valid() const noexcept { return status == Status::Success; }
 
-    void* get() const noexcept { return is_valid() ? mappedPtr : nullptr; }
+    void* get() const noexcept { return is_valid() ? mappedPtr : INVALID_MMAP_PTR; }
 
     SharedMemoryAllocationStatus get_status() const noexcept {
         return status == Status::Success ? SharedMemoryAllocationStatus::SharedMemory
@@ -355,14 +355,14 @@ class BackendSharedMemory final {
                                        PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,  //
                                        hiTotalSize, loTotalSize, shmName.c_str());
           },
-          []() { return (void*) nullptr; });
+          []() { return INVALID_HANDLE; });
 
         // Fallback to normal allocation if no large page available
-        if (hMapFile == nullptr)
+        if (hMapFile == INVALID_HANDLE)
             hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,  //
                                          0, TotalSize, shmName.c_str());
 
-        if (hMapFile == nullptr)
+        if (hMapFile == INVALID_HANDLE)
         {
             status       = Status::FileMapping;
             lastErrorStr = error_to_string(GetLastError());
@@ -372,7 +372,7 @@ class BackendSharedMemory final {
 
         mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, TotalSize);
 
-        if (mappedPtr == nullptr)
+        if (mappedPtr == INVALID_MMAP_PTR)
         {
             status       = Status::MapView;
             lastErrorStr = error_to_string(GetLastError());
@@ -443,9 +443,9 @@ class BackendSharedMemory final {
 
     static constexpr DWORD IS_INITIALIZED = 1;
 
-    HANDLE      hMapFile = nullptr;
+    HANDLE      hMapFile = INVALID_HANDLE;
     HandleGuard hMapFileGuard{hMapFile};
-    void*       mappedPtr = nullptr;
+    void*       mappedPtr = INVALID_MMAP_PTR;
     MMapGuard   mappedGuard{mappedPtr};
     Status      status = Status::NotInitialized;
     std::string lastErrorStr;
@@ -500,16 +500,16 @@ class SharedMemoryRegistry final {
     // if any close() call triggers unregister_memory().
     static void clean(bool skipUnmapRegion = false) noexcept {
         // Swap out the set to avoid iterator invalidation if close() calls unregister_memory()
-        std::unordered_set<BaseSharedMemory*> toCleanMemories;
+        std::unordered_set<BaseSharedMemory*> copiedSharedMemories;
 
         {
             std::scoped_lock lock(mutex);
 
-            toCleanMemories.swap(sharedMemories);  // now sharedMemories is empty
+            copiedSharedMemories.swap(sharedMemories);  // now sharedMemories is empty
         }
 
         // Safe to iterate and close memory without holding the lock
-        for (BaseSharedMemory* const sharedMemory : toCleanMemories)
+        for (BaseSharedMemory* const sharedMemory : copiedSharedMemories)
             sharedMemory->close(skipUnmapRegion);
     }
 
@@ -559,12 +559,13 @@ class SharedMemoryCleanupManager final {
         constexpr StdArray<int, 12> Signals{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
                                             SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
 
-        struct sigaction SigAction{};
-        SigAction.sa_handler = signal_handler;
-        sigemptyset(&SigAction.sa_mask);
-
         for (int Signal : Signals)
         {
+            struct sigaction SigAction{};
+            SigAction.sa_handler = signal_handler;
+
+            sigemptyset(&SigAction.sa_mask);
+
             switch (Signal)
             {
                 // Normal termination/interruption signals
@@ -593,11 +594,8 @@ class SharedMemoryCleanupManager final {
 
             if (sigaction(Signal, &SigAction, nullptr) != 0)
             {
-                std::cerr << "Failed to register handler for signal " << Signal << ": "
+                std::cerr << "Failed to register signal handler for " << Signal << ": "
                           << std::strerror(errno) << std::endl;
-
-                // Optionally, if want to abort on fatal failure
-                //std::terminate();
             }
         }
     }
@@ -610,7 +608,9 @@ class SharedMemoryCleanupManager final {
         // Restore default and re-raise
         struct sigaction SigAction{};
         SigAction.sa_handler = SIG_DFL;
+
         sigemptyset(&SigAction.sa_mask);
+
         SigAction.sa_flags = SA_RESETHAND | SA_NODEFER;
 
         sigaction(Signal, &SigAction, nullptr);
@@ -867,7 +867,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void close(bool skipUnmapRegion = false) noexcept override {
-        if (fd < 0 && mappedPtr == nullptr)
+        if (fd < 0 && mappedPtr == INVALID_MMAP_PTR)
             return;
 
         bool removeRegion = false;
@@ -986,7 +986,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void unmap_region() noexcept {
-        if (mappedPtr == nullptr)
+        if (mappedPtr == INVALID_MMAP_PTR)
             return;
 
         mappedGuard.close();
@@ -1064,7 +1064,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             FdGuard tmpFdGuard(tmpFd);
 
-            if (tmpFd >= 0)
+            if (tmpFd > INVALID_FD)
                 return true;
 
             if (errno == EEXIST)
@@ -1102,7 +1102,11 @@ class SharedMemory final: public BaseSharedMemory {
         if (dir == nullptr)
             return false;
 
-        std::string prefix = sentinelBase + ".";
+        std::string prefix;
+        prefix.reserve(sentinelBase.size() + 1);
+
+        prefix = sentinelBase;
+        prefix += '.';
 
         bool found = false;
 
@@ -1110,7 +1114,9 @@ class SharedMemory final: public BaseSharedMemory {
         {
             std::string entryName = entry->d_name;
 
-            if (entryName.rfind(prefix, 0) != 0)
+            // Check if entryName starts with prefix
+            if (entryName.size() < prefix.size()
+                || entryName.compare(0, prefix.size(), prefix) != 0)
                 continue;
 
             auto pidStr = entryName.substr(prefix.size());
@@ -1178,7 +1184,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         if (mappedPtr == MAP_FAILED)
         {
-            mappedPtr = nullptr;
+            mappedPtr = INVALID_MMAP_PTR;
 
             return false;
         }
@@ -1216,7 +1222,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         if (mappedPtr == MAP_FAILED)
         {
-            mappedPtr = nullptr;
+            mappedPtr = INVALID_MMAP_PTR;
 
             return false;
         }
@@ -1243,10 +1249,10 @@ class SharedMemory final: public BaseSharedMemory {
     static constexpr std::string_view DIRECTORY{"/dev/shm/"};
 
     std::string name;
-    int         fd = -1;
+    int         fd = INVALID_FD;
     FdGuard     fdGuard{fd};
-    void*       mappedPtr  = nullptr;
-    std::size_t mappedSize = 0;
+    void*       mappedPtr  = INVALID_MMAP_PTR;
+    std::size_t mappedSize = INVALID_MMAP_SIZE;
     MMapGuard   mappedGuard{mappedPtr, mappedSize};
     T*          dataPtr   = nullptr;
     ShmHeader*  shmHeader = nullptr;

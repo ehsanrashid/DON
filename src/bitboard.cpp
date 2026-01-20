@@ -246,7 +246,7 @@ std::string pretty_str(Bitboard b) noexcept {
     std::string str;
     str.reserve(646);
 
-    str += Sep;
+    str = Sep;
 
     for (Rank r = RANK_8;; --r)
     {

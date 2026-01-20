@@ -276,6 +276,9 @@ template<std::size_t Alignment, typename T>
 
 #if defined(_WIN32)
 
+inline constexpr HANDLE INVALID_HANDLE   = nullptr;
+static constexpr void*  INVALID_MMAP_PTR = nullptr;
+
 struct HandleGuard final {
    public:
     explicit HandleGuard(HANDLE& handleRef) noexcept :
@@ -330,8 +333,6 @@ struct HandleGuard final {
     }
 
    private:
-    static constexpr HANDLE INVALID_HANDLE = nullptr;
-
     HANDLE& handle;
 };
 
@@ -363,7 +364,7 @@ struct MMapGuard final {
 
     ~MMapGuard() noexcept { close(); }
 
-    bool valid() const noexcept { return mappedPtr != INVALID_PTR; }
+    bool valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
 
     void* get() const noexcept { return mappedPtr; }
 
@@ -372,11 +373,11 @@ struct MMapGuard final {
         {
             UnmapViewOfFile(mappedPtr);
 
-            mappedPtr = INVALID_PTR;
+            mappedPtr = INVALID_MMAP_PTR;
         }
     }
 
-    void reset(void* newPtr = INVALID_PTR) noexcept {
+    void reset(void* newPtr = INVALID_MMAP_PTR) noexcept {
         close();
 
         mappedPtr = newPtr;
@@ -385,14 +386,12 @@ struct MMapGuard final {
     void* release() noexcept {
         void* released = mappedPtr;
 
-        mappedPtr = INVALID_PTR;
+        mappedPtr = INVALID_MMAP_PTR;
 
         return released;
     }
 
    private:
-    static constexpr void* INVALID_PTR = nullptr;
-
     void*& mappedPtr;
 };
 
@@ -493,7 +492,7 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     if (!advapi.load())
         return failureFunc();
 
-    HANDLE hProcess = nullptr;
+    HANDLE hProcess = INVALID_HANDLE;
 
     HandleGuard hProcessGuard{hProcess};
 
@@ -533,6 +532,10 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
 }
 
 #else
+
+inline constexpr int         INVALID_FD        = -1;
+inline constexpr void*       INVALID_MMAP_PTR  = nullptr;
+inline constexpr std::size_t INVALID_MMAP_SIZE = 0;
 
 struct FdGuard final {
    public:
@@ -587,8 +590,6 @@ struct FdGuard final {
     }
 
    private:
-    static constexpr int INVALID_FD = -1;
-
     int& fd;
 };
 
@@ -628,7 +629,7 @@ struct MMapGuard final {
 
     ~MMapGuard() noexcept { close(); }
 
-    bool valid() const noexcept { return mappedPtr != INVALID_PTR; }
+    bool valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
 
     void* get() const noexcept { return mappedPtr; }
 
@@ -639,13 +640,13 @@ struct MMapGuard final {
         {
             munmap(mappedPtr, mappedSize);
 
-            mappedPtr = INVALID_PTR;
+            mappedPtr = INVALID_MMAP_PTR;
         }
 
-        mappedSize = INVALID_SIZE;
+        mappedSize = INVALID_MMAP_SIZE;
     }
 
-    void reset(void* newPtr = INVALID_PTR, std::size_t newSize = INVALID_SIZE) noexcept {
+    void reset(void* newPtr = INVALID_MMAP_PTR, std::size_t newSize = INVALID_MMAP_SIZE) noexcept {
         close();
 
         mappedPtr  = newPtr;
@@ -655,16 +656,13 @@ struct MMapGuard final {
     MMapRelease release() noexcept {
         MMapRelease released{mappedPtr, mappedSize};
 
-        mappedPtr  = INVALID_PTR;
-        mappedSize = INVALID_SIZE;
+        mappedPtr  = INVALID_MMAP_PTR;
+        mappedSize = INVALID_MMAP_SIZE;
 
         return released;
     }
 
    private:
-    static constexpr void*       INVALID_PTR  = nullptr;
-    static constexpr std::size_t INVALID_SIZE = 0;
-
     void*&       mappedPtr;
     std::size_t& mappedSize;
 };

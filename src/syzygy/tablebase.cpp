@@ -388,15 +388,15 @@ struct TBTable final {
 
    private:
 #if defined(_WIN32)
-    HANDLE      hMapFile = nullptr;
+    HANDLE      hMapFile = INVALID_HANDLE;
     HandleGuard hMapFileGuard{hMapFile};
 #endif
 #if defined(_WIN32)
-    void*     mappedPtr = nullptr;
+    void*     mappedPtr = INVALID_MMAP_PTR;
     MMapGuard mappedGuard{mappedPtr};
 #else
-    void*       mappedPtr  = nullptr;
-    std::size_t mappedSize = 0;
+    void*       mappedPtr  = INVALID_MMAP_PTR;
+    std::size_t mappedSize = INVALID_MMAP_SIZE;
     MMapGuard   mappedGuard{mappedPtr, mappedSize};
 #endif
     std::uint8_t* mapPtr = nullptr;
@@ -536,7 +536,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     hMapFile = CreateFileMapping(hFile, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
 
-    if (hMapFile == nullptr)
+    if (hMapFile == INVALID_HANDLE)
     {
         std::cerr << "CreateFileMapping() failed, name = " << filename << std::endl;
 
@@ -545,7 +545,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
 
-    if (mappedPtr == nullptr)
+    if (mappedPtr == INVALID_MMAP_PTR)
     {
         std::cerr << "MapViewOfFile() failed, name = " << filename << ", error = " << GetLastError()
                   << std::endl;
@@ -559,7 +559,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     FdGuard fdGuard(fd);
 
-    if (fd < 0)
+    if (fd <= INVALID_FD)
         return nullptr;
 
     struct stat Stat{};
