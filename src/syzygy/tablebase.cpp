@@ -840,6 +840,29 @@ std::uint8_t* TBTable<DTZ>::set_dtz_map(std::uint8_t* data, File maxFile) noexce
 // It supports a fast, hash-based, table lookup.
 // Populated at init time, accessed at probe time.
 class TBTables final {
+   private:
+    struct Entry final {
+       public:
+        std::size_t bucket() const noexcept { return key & MASK; }
+
+        template<TBType T>
+        TBTable<T>* get() const noexcept {
+            if constexpr (T == WDL)
+                return wdlTable;
+            else
+                return dtzTable;
+        }
+
+        void clear() noexcept {
+            key      = 0;
+            wdlTable = nullptr;
+            dtzTable = nullptr;
+        }
+
+        Key           key;
+        TBTable<WDL>* wdlTable;
+        TBTable<DTZ>* dtzTable;
+    };
 
    public:
     template<TBType T>
@@ -847,26 +870,27 @@ class TBTables final {
 
         for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
-            std::size_t bucket = (key + distance) & MASK;
+            const std::size_t bucket = (key + distance) & MASK;
 
             Entry& entry = entries[bucket];
 
             TBTable<T>* table = entry.get<T>();
 
-            // Key matches: return the stored table pointer
+            // Found the key -> return the associated table
             if (entry.key == key)
                 return table;
 
-            std::size_t displacement = (bucket - entry.bucket()) & MASK;
+            // Compute how far this entry is from its ideal bucket
+            const std::size_t entryDistance = (bucket - entry.bucket()) & MASK;
 
             // Stop search if:
-            // 1) Empty slot -> key not in table
+            // 1) Empty slot -> key not found
             // 2) Robin Hood break condition -> key would have been inserted earlier
-            if (table == nullptr || distance > displacement)
+            if (table == nullptr || distance > entryDistance)
                 break;
         }
 
-        // Safety fallback: key not found
+        // Key not found
         return nullptr;
     }
 
@@ -887,55 +911,33 @@ class TBTables final {
     void add(const std::vector<PieceType>& pieces) noexcept;
 
    private:
-    struct Entry final {
-       public:
-        std::size_t bucket() const noexcept { return key & MASK; }
-
-        template<TBType T>
-        TBTable<T>* get() const noexcept {
-            if constexpr (T == WDL)
-                return wdlTable;
-            else
-                return dtzTable;
-        }
-
-        Key           key;
-        TBTable<WDL>* wdlTable;
-        TBTable<DTZ>* dtzTable;
-    };
-
     void insert(Entry newEntry) noexcept {
 
         for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
-            std::size_t bucket = (newEntry.key + distance) & MASK;
+            const std::size_t bucket = (newEntry.key + distance) & MASK;
 
             Entry& entry = entries[bucket];
 
-            // Case 1: Place the entry if the slot is empty OR the key already exists
+            // Case 1: Empty slot or key already exists -> place/update
             if (entry.get<WDL>() == nullptr || entry.key == newEntry.key)
             {
                 entry = newEntry;
+
                 return;
             }
 
-            // Case 2: Robin Hood strategy rule: compare probe distances
-            // displacement(entry) = how far the entry is from its ideal slot
-            // distance            = how far the NEW entry has already probed
-            // If have probed farther than the entry currently in the bucket,
-            // then "steal" its slot (Robin Hood rule) because NEW entry are poorer.
-            std::size_t displacement = (bucket - entry.bucket()) & MASK;
+            // Compute how far the existing entry is from its ideal bucket
+            const std::size_t entryDistance = (bucket - entry.bucket()) & MASK;
 
-            if (distance > displacement)
+            // Case 2: Robin Hood strategy rule: compare probe distances
+            // If the new entry has probed farther than the current entry,
+            // steal the slot and continue with the displaced entry.
+            if (distance > entryDistance)
             {
                 // Swap entries: the poorer (more probed) entry takes this slot,
                 // the richer (less probed) entry continues probing forward.
                 std::swap(newEntry, entry);
-
-                // After swap, now continue insertion using the displaced entry.
-                // Reset distance to the entry's original displacement so resume
-                // probing as if NEW entry were that entry from the start.
-                distance = displacement;
             }
         }
 
@@ -944,6 +946,62 @@ class TBTables final {
 
         std::exit(EXIT_FAILURE);
     }
+
+    /*
+    void remove(Key key) noexcept {
+
+        for (std::size_t distance = 0; distance < SIZE; ++distance)
+        {
+            std::size_t bucket = (key + distance) & MASK;
+
+            Entry& entry = entries[bucket];
+
+            // Stop early if empty slot
+            if (entry.get<WDL>() == nullptr)
+                return;
+
+            if (entry.key == key)
+            {
+                // Found the entry to remove
+                entry.clear();
+
+                // Backward-shift subsequent entries to preserve Robin Hood property
+                std::size_t nextBucket = (bucket + 1) & MASK;
+
+                // Shift entries backward until we reach an empty slot or an entry in its ideal bucket
+                while (true)
+                {
+                    Entry& nextEntry = entries[nextBucket];
+
+                    // Reached empty slot, done
+                    if (nextEntry.get<WDL>() == nullptr)
+                        break;
+
+                    const std::size_t idealBucket = nextEntry.bucket();
+                    // Check if the entry can be shifted backward
+                    if (((nextBucket - idealBucket) & MASK) == 0)
+                        break;  // next entry is in its ideal position
+
+                    // Shift entry backward
+                    entries[bucket] = nextEntry;
+                    bucket          = nextBucket;
+                    nextBucket      = (nextBucket + 1) & MASK;
+                }
+
+                // Clear the last slot after shifting
+                entries[bucket].clear();
+
+                return;
+            }
+
+            // Stop search if Robin Hood break condition
+            const std::size_t entryDistance = (bucket - entry.bucket()) & MASK;
+
+            if (distance > entryDistance)
+                return;
+        }
+    }
+    */
 
     // 4K table, indexed by key's 12 lsb
     static constexpr std::size_t SIZE = 0x1000;
