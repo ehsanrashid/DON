@@ -33,13 +33,6 @@ namespace NNUE::Features {
 
 // Feature FullThreats: Threats posed by pieces to opponent's pieces
 class FullThreats final {
-   private:
-    FullThreats() noexcept                              = delete;
-    FullThreats(const FullThreats&) noexcept            = delete;
-    FullThreats(FullThreats&&) noexcept                 = delete;
-    FullThreats& operator=(const FullThreats&) noexcept = delete;
-    FullThreats& operator=(FullThreats&&) noexcept      = delete;
-
    public:
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t Hash = 0x8F234CB8U;
@@ -76,6 +69,14 @@ class FullThreats final {
                                        bool             first     = false) noexcept;
 
     static bool refresh_required(Color perspective, const DirtyType& dts) noexcept;
+
+   private:
+    FullThreats() noexcept                              = delete;
+    FullThreats(const FullThreats&) noexcept            = delete;
+    FullThreats(FullThreats&&) noexcept                 = delete;
+    FullThreats& operator=(const FullThreats&) noexcept = delete;
+    FullThreats& operator=(FullThreats&&) noexcept      = delete;
+    ~FullThreats() noexcept                             = delete;
 };
 
 }  // namespace NNUE::Features

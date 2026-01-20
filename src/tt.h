@@ -98,6 +98,7 @@ class TranspositionTable final {
     TranspositionTable(TranspositionTable&&) noexcept                 = delete;
     TranspositionTable& operator=(const TranspositionTable&) noexcept = delete;
     TranspositionTable& operator=(TranspositionTable&&) noexcept      = delete;
+
     ~TranspositionTable() noexcept;
 
     std::uint8_t generation() const noexcept;

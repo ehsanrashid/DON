@@ -71,7 +71,6 @@ class PolyBook final {
     PolyBook(PolyBook&&) noexcept                 = delete;
     PolyBook& operator=(const PolyBook&) noexcept = delete;
     PolyBook& operator=(PolyBook&&) noexcept      = delete;
-    ~PolyBook() noexcept                          = default;
 
     bool load(std::string_view bookFile) noexcept;
 

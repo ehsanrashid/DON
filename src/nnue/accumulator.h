@@ -42,8 +42,6 @@ class FeatureTransformer;
 template<IndexType Size>
 struct alignas(CACHE_LINE_SIZE) Accumulator final {
    public:
-    constexpr Accumulator() noexcept = default;
-
     StdArray<BiasType, COLOR_NB, Size>              accumulation;
     StdArray<PSQTWeightType, COLOR_NB, PSQTBuckets> psqtAccumulation;
     StdArray<bool, COLOR_NB>                        computed;
@@ -63,12 +61,8 @@ struct AccumulatorCaches final {
     template<IndexType Size>
     struct alignas(CACHE_LINE_SIZE) Cache final {
        public:
-        constexpr Cache() noexcept = default;
-
         struct alignas(CACHE_LINE_SIZE) Entry final {
            public:
-            constexpr Entry() noexcept = default;
-
             // To initialize a refresh entry, set all its bitboards empty,
             // so put the biases in the accumulation, without any weights on top
             void init(const StdArray<BiasType, Size>& biases) noexcept {
@@ -122,8 +116,6 @@ struct AccumulatorCaches final {
 template<typename FeatureSet>
 struct AccumulatorState final {
    public:
-    constexpr AccumulatorState() noexcept = default;
-
     template<IndexType Size>
     const auto& acc() const noexcept {
         static_assert(Size == BigTransformedFeatureDimensions
@@ -161,8 +153,6 @@ struct AccumulatorState final {
 struct AccumulatorStack final {
    public:
     static constexpr std::size_t MAX_SIZE = MAX_PLY + 1;
-
-    AccumulatorStack() noexcept = default;
 
     template<typename T>
     [[nodiscard]] const StdArray<AccumulatorState<T>, MAX_SIZE>& accumulators() const noexcept;

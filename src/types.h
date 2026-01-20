@@ -682,8 +682,6 @@ using Moves = std::vector<Move>;
 // Keep track of what piece changes on the board by a move
 struct DirtyPiece final {
    public:
-    constexpr DirtyPiece() noexcept = default;
-
     Piece  movedPc = Piece::NO_PIECE;         // this is never allowed to be NO_PIECE
     Square orgSq = SQ_NONE, dstSq = SQ_NONE;  // dstSq should be SQ_NONE for promotions
 
@@ -748,9 +746,9 @@ struct DirtyThreats final {
     void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept;
 
     Color  ac;
-    Square kingSq, preKingSq;
+    Square kingSq = SQ_NONE, preKingSq = SQ_NONE;
 
-    Bitboard threateningBB, threatenedBB;
+    Bitboard threateningBB = 0, threatenedBB = 0;
 
     DirtyThreatList dtList;
 };

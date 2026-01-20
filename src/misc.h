@@ -124,7 +124,7 @@ template<typename T>
 constexpr auto sqr(T x) noexcept {
     static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
     using Wider = std::conditional_t<std::is_integral_v<T>, long long, T>;
-    return Wider(x) * x;
+    return Wider(x) * Wider(x);
 }
 
 // Return the square of a number multiplied by its sign, using a wider type to avoid overflow
@@ -236,31 +236,85 @@ thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t to
     return {begIdx, endIdx};
 }
 
+// OstreamMutexRegistry
+//
+// A thread-safe registry that provides a unique mutex for each std::ostream pointer.
+// This is useful when multiple threads may write to the same ostream and you want
+// to synchronize access without locking unrelated streams.
+//
+// Key Features:
+//  - Thread-safe: internal access to the registry map is protected by a mutex.
+//  - Per-ostream mutex: each ostream gets its own mutex to avoid contention.
+//  - Null-safe: passing a nullptr returns a dummy mutex to safely ignore locking
+//    without inserting invalid keys into the map.
+//  - Lazy initialization: mutexes are default-constructed when first requested.
+//
+// Usage:
+//  - Call 'get(&std::cout)' to obtain a mutex before writing to std::cout from multiple threads.
+//  - Lock the returned mutex with std::scoped_lock or std::unique_lock.
+//
+// Notes:
+//  - The class is static-only and cannot be instantiated. (Restriction)
+//  - Mutexes are stored as values in the map, avoiding extra heap allocations.
 class OstreamMutexRegistry final {
    public:
+    // Return a mutex associated with the given ostream pointer.
+    // If osPtr is nullptr, returns a dummy mutex to safely ignore locking.
+    // This ensures no accidental insertion of null keys into the map.
     static std::mutex& get(std::ostream* const osPtr) noexcept {
+        // Fallback for null pointers
+        if (osPtr == nullptr)
+            return dummy_mutex();
+        // Lock the registry while accessing the map
         std::scoped_lock lock(mutex);
-
-        auto& osMutexPtr = osMutexes[osPtr];
-
-        if (!osMutexPtr)
-            osMutexPtr = std::make_unique<std::mutex>();
-
-        return *osMutexPtr;
+        // Default-constructs a mutex if osPtr is not yet registered
+        return osMutexes[osPtr];
     }
 
    private:
+    // Dummy mutex returned for nullptr streams
+    static std::mutex& dummy_mutex() noexcept {
+        static std::mutex dummyMutex;
+
+        return dummyMutex;
+    }
+
     OstreamMutexRegistry() noexcept                                       = delete;
     OstreamMutexRegistry(const OstreamMutexRegistry&) noexcept            = delete;
     OstreamMutexRegistry(OstreamMutexRegistry&&) noexcept                 = delete;
     OstreamMutexRegistry& operator=(const OstreamMutexRegistry&) noexcept = delete;
     OstreamMutexRegistry& operator=(OstreamMutexRegistry&&) noexcept      = delete;
+    ~OstreamMutexRegistry() noexcept                                      = delete;
 
-    static inline std::mutex                                                     mutex;
-    static inline std::unordered_map<std::ostream*, std::unique_ptr<std::mutex>> osMutexes;
+    // Protects access to the osMutexes map for thread safety
+    static inline std::mutex mutex;
+    // Maps of each ostream pointer to its dedicated mutex
+    static inline std::unordered_map<std::ostream*, std::mutex> osMutexes;
 };
 
-// --- Synchronized output stream ---
+// SyncOstream --- Synchronized output stream ---
+//
+// A RAII-style wrapper for synchronizing output to a std::ostream across multiple threads.
+// Each SyncOstream locks a mutex associated with the given ostream (via OstreamMutexRegistry)
+// during its lifetime, ensuring thread-safe writes.
+//
+// Key Features:
+//  - Thread-safe: locks the ostream-specific mutex for the duration of the SyncOstream object.
+//  - RAII-based: mutex is automatically locked on construction and released on destruction.
+//  - Move-constructible: can be returned from factories or functions by value.
+//  - Deleted copy and move-assignment: prevents accidental unlocking windows or double-locks.
+//  - Supports all standard ostream operators and manipulators (std::endl, std::flush, etc.).
+//  - Asserts on use of moved-from SyncOstream to catch logic errors in debug builds.
+//
+// Usage Example:
+//   SyncOstream(syncOut) << "Thread-safe message " << value << std::endl;
+//   where syncOut is a std::ostream (like std::cout or a file stream)
+//   that you want to write to safely from multiple threads.
+//
+// Notes:
+//  - Designed for short-lived, scoped output operations; lock is held for the lifetime
+//    of the SyncOstream object.
+//  - Uses OstreamMutexRegistry internally to avoid creating multiple mutexes for the same ostream.
 class [[nodiscard]] SyncOstream final {
    public:
     explicit SyncOstream(std::ostream& os) noexcept :
@@ -334,8 +388,6 @@ class [[nodiscard]] SyncOstream final {
 template<typename T>
 class TableView final {
    public:
-    constexpr TableView() noexcept = default;
-
     constexpr TableView(T* data, std::size_t size) noexcept :
         _data(data),
         _size(size) {}
@@ -499,8 +551,6 @@ class MultiArray {
     using reverse_iterator       = typename ArrayType::reverse_iterator;
     using const_reverse_iterator = typename ArrayType::const_reverse_iterator;
 
-    constexpr MultiArray() noexcept = default;
-
     constexpr auto begin() const noexcept { return _data.begin(); }
     constexpr auto end() const noexcept { return _data.end(); }
     constexpr auto begin() noexcept { return _data.begin(); }
@@ -653,8 +703,6 @@ class FixedVector final {
     static_assert(Capacity > 0, "Capacity must be > 0");
 
    public:
-    constexpr FixedVector() noexcept = default;
-
     [[nodiscard]] constexpr std::size_t capacity() const noexcept { return Capacity; }
 
     [[nodiscard]] constexpr std::size_t size() const noexcept { return _size; }

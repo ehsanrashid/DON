@@ -272,6 +272,7 @@ class Threads final {
     Threads(Threads&&) noexcept                 = delete;
     Threads& operator=(const Threads&) noexcept = delete;
     Threads& operator=(Threads&&) noexcept      = delete;
+
     ~Threads() noexcept;
 
     auto begin() noexcept { return threads.begin(); }

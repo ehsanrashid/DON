@@ -460,20 +460,44 @@ class BaseSharedMemory {
     virtual void close(bool skipUnmapRegion = false) noexcept = 0;
 };
 
+// SharedMemoryRegistry
+//
+// A thread-safe global registry for managing shared memory objects (BaseSharedMemory).
+// This class allows registering and unregistering shared memory instances and provides
+// a centralized cleanup mechanism to safely close all registered memory.
+//
+// Key Features:
+//  - Thread-safe: all operations are protected by a mutex.
+//  - Automatic cleanup: 'clean()' closes all registered objects safely, even if unregistering occurs during cleanup.
+//  - Lightweight: stores only pointers, avoids ownership management; actual memory management is handled by BaseSharedMemory.
+//
+// Usage:
+//  - Call 'register_memory()' when a new shared memory object is created.
+//  - Call 'unregister_memory()' when the object is no longer needed.
+//  - Call 'clean()' to close and clean up all registered objects, optionally skipping actual memory unmapping.
+//
+// Note:
+//  - This class is static-only; it cannot be instantiated. (Restriction)
 class SharedMemoryRegistry final {
    public:
+    // Register a shared memory object in the global registry.
+    // Thread-safe: locks the registry while inserting.
     static void register_memory(BaseSharedMemory* const sharedMemory) noexcept {
         std::scoped_lock lock(mutex);
 
         sharedMemories.insert(sharedMemory);
     }
-
+    // Unregister a shared memory object from the global registry.
+    // Thread-safe: locks the registry while erasing.
     static void unregister_memory(BaseSharedMemory* const sharedMemory) noexcept {
         std::scoped_lock lock(mutex);
 
         sharedMemories.erase(sharedMemory);
     }
-
+    // Close and clean all registered shared memory objects.
+    // If skipUnmapRegion is true, the actual memory unmapping can be skipped.
+    // Thread-safe: swaps the registry into a local set to avoid iterator invalidation
+    // if any close() call triggers unregister_memory().
     static void clean(bool skipUnmapRegion = false) noexcept {
         // Swap out the set to avoid iterator invalidation if close() calls unregister_memory()
         std::unordered_set<BaseSharedMemory*> toCleanMemories;
@@ -484,7 +508,7 @@ class SharedMemoryRegistry final {
             toCleanMemories.swap(sharedMemories);  // now sharedMemories is empty
         }
 
-        // Safe to iterate and close memory
+        // Safe to iterate and close memory without holding the lock
         for (BaseSharedMemory* const sharedMemory : toCleanMemories)
             sharedMemory->close(skipUnmapRegion);
     }
@@ -495,12 +519,34 @@ class SharedMemoryRegistry final {
     SharedMemoryRegistry(SharedMemoryRegistry&&) noexcept                 = delete;
     SharedMemoryRegistry& operator=(const SharedMemoryRegistry&) noexcept = delete;
     SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
+    ~SharedMemoryRegistry() noexcept                                      = delete;
 
-    static inline std::mutex                            mutex;
+    // Protects access to sharedMemories set for thread safety
+    static inline std::mutex mutex;
+    // Set of currently registered shared memory objects
     static inline std::unordered_set<BaseSharedMemory*> sharedMemories;
 };
 
-class CleanupHooks final {
+// SharedMemoryCleanupManager
+//
+// A utility class that ensures **automatic cleanup of shared memory** when the program exits
+// or when certain signals (termination, fatal errors) are received.
+//
+// Usage:
+//   Call SharedMemoryCleanupManager::ensure_registered() early in main()
+//   to register cleanup hooks and signal handlers.
+//   This guarantees that SharedMemoryRegistry::clean() will be
+//   invoked automatically on program exit or abnormal termination.
+//
+// Key Points:
+//   - Uses std::call_once to register hooks only once, even if called multiple times.
+//   - Registers both atexit handler (normal program termination) and POSIX signal handlers.
+//   - Signal handler performs minimal, safe cleanup and then re-raises the signal with default behavior.
+//   - Prevents instantiation and copying (all constructors/destructor deleted).
+//
+// Note:
+//  - This class is static-only; it cannot be instantiated. (Restriction)
+class SharedMemoryCleanupManager final {
    public:
     static void ensure_registered() noexcept {
         std::call_once(registerOnce, register_signal_handlers);
@@ -573,11 +619,12 @@ class CleanupHooks final {
     }
 
    private:
-    CleanupHooks() noexcept                               = delete;
-    CleanupHooks(const CleanupHooks&) noexcept            = delete;
-    CleanupHooks(CleanupHooks&&) noexcept                 = delete;
-    CleanupHooks& operator=(const CleanupHooks&) noexcept = delete;
-    CleanupHooks& operator=(CleanupHooks&&) noexcept      = delete;
+    SharedMemoryCleanupManager() noexcept                                             = delete;
+    SharedMemoryCleanupManager(const SharedMemoryCleanupManager&) noexcept            = delete;
+    SharedMemoryCleanupManager(SharedMemoryCleanupManager&&) noexcept                 = delete;
+    SharedMemoryCleanupManager& operator=(const SharedMemoryCleanupManager&) noexcept = delete;
+    SharedMemoryCleanupManager& operator=(SharedMemoryCleanupManager&&) noexcept      = delete;
+    ~SharedMemoryCleanupManager() noexcept                                            = delete;
 
     static inline std::once_flag registerOnce;
 };
@@ -704,8 +751,6 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     [[nodiscard]] bool open_register(const T& value) noexcept {
-        CleanupHooks::ensure_registered();
-
         bool staleRetried = false;
 
         while (true)
@@ -1150,6 +1195,7 @@ class SharedMemory final: public BaseSharedMemory {
             return false;
 
         shmHeader->initialized.store(true, std::memory_order_release);
+
         shmHeader->refCount.store(0, std::memory_order_release);
 
         return true;
@@ -1214,6 +1260,8 @@ class BackendSharedMemory final {
     BackendSharedMemory() noexcept = default;
 
     BackendSharedMemory(const std::string& shmName, const T& value) noexcept {
+        SharedMemoryCleanupManager::ensure_registered();
+
         shm.emplace(shmName);
 
         if (!shm->open_register(value))

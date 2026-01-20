@@ -402,8 +402,6 @@ struct Advapi final {
 
     static constexpr LPCSTR MODULE_NAME = TEXT("advapi32.dll");
 
-    constexpr Advapi() noexcept = default;
-
     ~Advapi() noexcept { free(); }
 
     // The needed Windows API for processor groups could be missed from old Windows versions,
@@ -429,30 +427,33 @@ struct Advapi final {
         openProcessToken =
           OpenProcessToken_((void (*)()) GetProcAddress(hModule, "OpenProcessToken"));
 
-        if (openProcessToken == nullptr)
-            return false;
-
         lookupPrivilegeValue =
           LookupPrivilegeValue_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueA"));
-
-        if (lookupPrivilegeValue == nullptr)
-            return false;
 
         adjustTokenPrivileges =
           AdjustTokenPrivileges_((void (*)()) GetProcAddress(hModule, "AdjustTokenPrivileges"));
 
-        if (adjustTokenPrivileges == nullptr)
+        if (openProcessToken == nullptr || lookupPrivilegeValue == nullptr
+            || adjustTokenPrivileges == nullptr)
+        {
+            free();
+
             return false;
+        }
 
         return true;
     }
 
     void free() noexcept {
-        if (loaded && hModule != nullptr)
+        if (loaded)
+        {
+            assert(hModule != nullptr);
+
             FreeLibrary(hModule);
 
-        hModule = nullptr;
-        loaded  = false;
+            hModule = nullptr;
+            loaded  = false;
+        }
     }
 
     OpenProcessToken_      openProcessToken      = nullptr;
@@ -556,6 +557,7 @@ struct FdGuard final {
         if (fd >= 0)
         {
             ::close(fd);
+
             fd = -1;
         }
     }
