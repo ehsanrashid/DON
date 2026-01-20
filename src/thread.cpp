@@ -64,20 +64,15 @@ Thread::Thread(std::size_t                   threadIdx,
 Thread::~Thread() noexcept {
     assert(!busy);
 
-    {
-        std::scoped_lock lock(mutex);
-
-        dead = true;
-    }
-
-    condVar.notify_one();  // Wake up
-
-    if (nativeThread.joinable())
-        nativeThread.join();
+    stop();
 }
 
 void Thread::ensure_network_replicated() const noexcept { worker->ensure_network_replicated(); }
 
+// Starts the thread if it is not already running
+// Ensures that after it returns,
+// the thread is ready to accept jobs,
+// and avoids race conditions on the 'busy' flag.
 void Thread::start() noexcept {
     std::unique_lock lock(mutex);
 
@@ -96,6 +91,21 @@ void Thread::start() noexcept {
     condVar.wait(lock, [this] { return !busy; });
 }
 
+// Safely stops the thread by setting the dead flag,
+// waking it if necessary, and joining it.
+void Thread::stop() noexcept {
+    {
+        std::scoped_lock lock(mutex);
+
+        dead = true;
+    }
+
+    condVar.notify_one();  // Notify (Wake up)
+
+    if (nativeThread.joinable())
+        nativeThread.join();
+}
+
 // Thread gets parked here, blocked on the condition variable,
 // when it has no work to do.
 void Thread::idle_func() noexcept {
@@ -103,10 +113,13 @@ void Thread::idle_func() noexcept {
     {
         std::unique_lock lock(mutex);
 
+        // Thread is idle now
         busy = false;
 
-        condVar.notify_one();  // Wake up anyone waiting for job finished
+        // Notify one thread waiting for idle/busy state
+        condVar.notify_one();
 
+        // Wait until new job or termination
         condVar.wait(lock, [this] { return busy || dead; });
 
         if (dead)
@@ -117,6 +130,7 @@ void Thread::idle_func() noexcept {
 
         lock.unlock();
 
+        // Execute job outside the lock
         if (jobFn)
             jobFn();
     }

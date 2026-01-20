@@ -197,6 +197,8 @@ class Thread final {
 
     void start() noexcept;
 
+    void stop() noexcept;
+
     void wait_finish() noexcept;
 
     void run_custom_job(JobFunc job) noexcept;
