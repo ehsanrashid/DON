@@ -199,13 +199,13 @@ class Thread final {
 
     void stop() noexcept;
 
-    void wait_finish() noexcept;
-
     void run_custom_job(JobFunc job) noexcept;
 
     void init() noexcept;
 
     void start_search() noexcept;
+
+    void wait_finish() noexcept;
 
    private:
     void idle_func() noexcept;
@@ -224,13 +224,6 @@ class Thread final {
    public:
     WorkerPtr worker;
 };
-
-// Blocks on the condition variable until the thread has finished job
-inline void Thread::wait_finish() noexcept {
-    std::unique_lock lock(mutex);
-
-    condVar.wait(lock, [this] { return !busy; });
-}
 
 // Launching a job in the thread
 inline void Thread::run_custom_job(JobFunc jobFn) noexcept {
@@ -259,6 +252,13 @@ inline void Thread::start_search() noexcept {
     assert(worker != nullptr);
 
     run_custom_job([this]() { worker->start_search(); });
+}
+
+// Blocks on the condition variable until the thread has finished job
+inline void Thread::wait_finish() noexcept {
+    std::unique_lock lock(mutex);
+
+    condVar.wait(lock, [this] { return !busy; });
 }
 
 // A list to keep track of the position states along the setup moves
