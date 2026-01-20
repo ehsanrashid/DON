@@ -52,7 +52,9 @@ using JobFunc = std::function<void()>;
 // which require somewhat more than 1MB stack, so adjust it to 8MB.
 class NativeThread final {
    public:
-    NativeThread() noexcept = delete;
+    // Default thread is not joinable
+    NativeThread() noexcept :
+        joined(true) {}
 
     template<typename Function, typename... Args>
     NativeThread(Function&& func, Args&&... args) noexcept {
@@ -176,7 +178,8 @@ class Thread final {
            std::size_t                   numaThreadCnt,
            const ThreadToNumaNodeBinder& nodeBinder,
            ISearchManagerPtr             searchManager,
-           const SharedState&            sharedState) noexcept;
+           const SharedState&            sharedState,
+           bool                          autoStart = true) noexcept;
 
     ~Thread() noexcept;
 
@@ -192,19 +195,20 @@ class Thread final {
 
     void ensure_network_replicated() const noexcept;
 
+    void start() noexcept;
+
     void wait_finish() noexcept;
 
     void run_custom_job(JobFunc job) noexcept;
-
-    void idle_func() noexcept;
 
     void init() noexcept;
 
     void start_search() noexcept;
 
    private:
-    // Set before starting nativeThread
-    bool dead = false, busy = true;
+    void idle_func() noexcept;
+
+    bool dead, busy;
 
     const std::size_t threadId, threadCount, numaId, numaThreadCount;
 

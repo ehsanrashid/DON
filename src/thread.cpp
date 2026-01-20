@@ -41,13 +41,16 @@ Thread::Thread(std::size_t                   threadIdx,
                std::size_t                   numaThreadCnt,
                const ThreadToNumaNodeBinder& nodeBinder,
                ISearchManagerPtr             searchManager,
-               const SharedState&            sharedState) noexcept :
+               const SharedState&            sharedState,
+               bool                          autoStart) noexcept :
     threadId(threadIdx),
     threadCount(threadCnt),
     numaId(numaIdx),
-    numaThreadCount(numaThreadCnt),
-    nativeThread(&Thread::idle_func, this) {
+    numaThreadCount(numaThreadCnt) {
     assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
+
+    if (autoStart)
+        start();
 
     wait_finish();
 
@@ -72,10 +75,26 @@ Thread::~Thread() noexcept {
 
     condVar.notify_one();  // Wake up
 
-    nativeThread.join();
+    if (nativeThread.joinable())
+        nativeThread.join();
 }
 
 void Thread::ensure_network_replicated() const noexcept { worker->ensure_network_replicated(); }
+
+void Thread::start() noexcept {
+    std::scoped_lock lock(mutex);
+
+    // If thread is already running, do nothing
+    if (nativeThread.joinable())
+        return;
+
+    // Reset flags before starting new nativeThread
+    dead = false;
+    busy = true;
+
+    // Move new NativeThread in
+    nativeThread = NativeThread(&Thread::idle_func, this);
+}
 
 // Thread gets parked here, blocked on the condition variable,
 // when it has no work to do.
@@ -88,7 +107,7 @@ void Thread::idle_func() noexcept {
 
         condVar.notify_one();  // Wake up anyone waiting for job finished
 
-        condVar.wait(lock, [this] { return dead || busy; });
+        condVar.wait(lock, [this] { return busy || dead; });
 
         if (dead)
             break;
