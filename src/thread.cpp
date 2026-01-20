@@ -64,9 +64,13 @@ Thread::Thread(std::size_t                   threadIdx,
 Thread::~Thread() noexcept {
     assert(!busy);
 
-    dead = true;
+    {
+        std::scoped_lock lock(mutex);
 
-    run_custom_job([]() { return; });
+        dead = true;
+    }
+
+    condVar.notify_one();  // Wake up
 
     nativeThread.join();
 }
@@ -83,7 +87,8 @@ void Thread::idle_func() noexcept {
         busy = false;
 
         condVar.notify_one();  // Wake up anyone waiting for job finished
-        condVar.wait(lock, [this] { return busy; });
+
+        condVar.wait(lock, [this] { return dead || busy; });
 
         if (dead)
             break;
