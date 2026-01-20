@@ -1195,6 +1195,7 @@ class SharedMemory final: public BaseSharedMemory {
             return false;
 
         shmHeader->initialized.store(true, std::memory_order_release);
+
         shmHeader->refCount.store(0, std::memory_order_release);
 
         return true;
